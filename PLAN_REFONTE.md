@@ -369,14 +369,14 @@ Orchestration : `GameSession` détient la boucle de tours (pioche selon `tiersFo
 - [x] **CLAUDE.md** mis à jour : stack (Vite/React/TS/Tailwind/Zustand/Three npm), déploiement (ports 3742/5173, build), routes (398 cartes), Mode 3D (npm, plus d'importmap), navigation `uiStore`, table de correspondance ancienne archi (`game/`) → nouvelle (`client/src/`).
 - **Done** (partiel) : PWA installable (manifest + SW générés), ancienne UI retirée, prod servie, CLAUDE.md à jour. **Restent hors-agent** : test Safari iOS réel + passe Lighthouse PWA (nécessitent un appareil/navigateur réels). `tsc`/`eslint`/`vitest(74)`/`build` verts.
 
-### Phase 7 — (optionnelle, selon D3) Online : Auth complet, PvP, Tournoi, Amis/Profil (4–7 jours) — risque : élevé
+### Phase 7 — (optionnelle, selon D3) Online : Auth complet, PvP, Tournoi, Amis/Profil (4–7 jours) — risque : élevé ✅ 2026-07-24
 
-- [ ] AuthScreen complet + ResetPassword, `authStore`
-- [ ] OnlineLobby (matchmaking via `PvpConnection`), GameScreen variante PvP (`PvpOpponentProvider` remplace EnemyAI, miroir des rows, synchro des rounds)
-- [ ] Vérification croisée du déterminisme entre 2 clients (test : même seed d'état initial → même `combat_end` ; les golden tests de Phase 1 sont le garde-fou)
-- [ ] TournamentScreen (bracket, `resolveAiMatches`, matchs du joueur)
-- [ ] Friends/Profile
-- **Done** : un duel réel entre deux navigateurs aboutit au même vainqueur des deux côtés.
+- [x] **Auth complet** : AuthScreen (connexion/inscription + mode « mot de passe oublié ») ; `ResetPasswordScreen` (jeton URL `?screen=reset_password&token=`, alias `resetpwd` conservé) ; `AuthClient.forgotPassword/resetPassword` ; `authStore` (Phase 5).
+- [x] **OnlineLobby** (matchmaking via `PvpConnection` : connect → `queue:join(deck actif)` → `match:found` → `game_pvp`). **`PvpController`** (sous-classe de `GameController`) : hérite préparation/placement, override le combat par poignée de main réseau (`board_ready` → A `terrain_pick` → `combat_start_ack` → barrière serveur `round:go` → reconstruction adverse **en miroir rows 7–10** via `PvpOpponentProvider` → `session.startCombat(agreedBoard)`). `GameSession` mode `pvp` (pas d'EnemyAI, terrain convenu). `GameScreenPvp` (shell sans shopping, bannière adversaire, overlay d'attente, abandon).
+- [x] **Déterminisme** : les 74 golden tests de Phase 1 restent verts (contrat). `PvpOpponentProvider` transmet la vétérance pour que la reconstruction adverse égale l'unité réelle (mêmes stats effectives aux rounds > 1). Un seul tirage de terrain (côté A) diffusé aux deux.
+- [x] **TournamentScreen** : bracket local à 8 (toi + 7 IA sur decks publics), Bo5 résolu par `simulateMatch` (headless déterministe), `createTournament`/`resolveAiMatches`/`buildNextRound`/`getChampion`/`isPlayerEliminated`. Révélé round par round. Vérifié jusqu'au champion.
+- [x] **Friends/Profile** : `FriendsScreen` (recherche, demandes entrantes/sortantes, liste, retrait) + `ProfileScreen` (pseudo/avatar) sur les API `/users/search`, `/friends`, `/profile/me`. Vérifiés avec données réelles.
+- **Done** (partiel) : lobby + tournoi + social vérifiés en navigateur ; PvP câblé de bout en bout (protocole + déterminisme). **Restant** : un **duel 2-joueurs réel** (2 comptes/sessions distincts requis — non pilotable depuis l'agent) reste à valider côté utilisateur pour cocher « même vainqueur des deux côtés ». `tsc`/`eslint`/`vitest(74)`/`build` verts.
 
 ---
 

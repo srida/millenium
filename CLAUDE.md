@@ -784,7 +784,13 @@ Un seul pont React ↔ Three : `client/src/components/board/Board3DCanvas.tsx` m
 
 ### Navigation client
 
-Écrans routés par `uiStore.screen` (Zustand, parité `?screen=`, pas de react-router) : `main_menu`, `auth`, `deck_selector`, `deck_builder`, `game`, `combatlab` (dev), `testbench` (dev).
+Écrans routés par `uiStore.screen` (Zustand, parité `?screen=`, pas de react-router) : `main_menu`, `auth`, `reset_password`, `profile`, `friends`, `deck_selector`, `deck_builder`, `tournament`, `online_lobby`, `game`, `game_pvp`, `combatlab` (dev), `testbench` (dev).
+
+### Online (Phase 7)
+
+- **Auth optionnelle** (`authStore`) : jeu jouable en invité ; se connecter active la synchro serveur des decks. `AuthScreen`/`ResetPasswordScreen`, `ProfileScreen`, `FriendsScreen` sur les API `routes/online.js`.
+- **Tournoi** (`TournamentScreen`) : bracket local à 8 entièrement client (`logic/Tournament.js` + `MatchSimulator`, headless déterministe).
+- **PvP** (`OnlineLobby` + `GameScreenPvp` + `game/PvpController.ts`) : le serveur (`ws/`) fait matchmaking + relais **opaque** ; chaque client simule le combat localement (déterminisme → même vainqueur des deux côtés). L'adversaire est reconstruit **en miroir** (rows 7–10) depuis `net/PvpOpponentProvider.js`. `GameSession` a un mode `'pvp'` (pas d'EnemyAI, terrain convenu). Pas de Phase Shopping en PvP.
 
 ---
 
