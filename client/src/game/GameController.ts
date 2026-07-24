@@ -306,18 +306,19 @@ export class GameController {
   private _startShopping(): void {
     const magies = this.session.getShoppingMagies();
     if (!magies.length) { this._proceedNextRound(); return; }
+    this._shoppingMagies = magies;
     this.sync({ endRound: null, shopping: { magies, awaitingTarget: null, banner: null } });
   }
 
   chooseMagie(magie: Magie): void {
     if (this.session.magieNeedsUnitTarget(magie)) {
       const targets = this.session.magieUnitTargets(magie);
-      if (!targets.length) { this._proceedNextRound(); return; }
+      if (!targets.length) { this._flashError('Aucune cible valide pour cette magie'); return; }
       this.scene?.setHighlight(targets.map(u => u.position!).filter(Boolean));
       this._pendingMagie = magie;
       this.sync({ shopping: { magies: [], awaitingTarget: 'unit', banner: `${magie.name} — touche une unité de ton terrain` } });
     } else if (this.session.magieNeedsGraveyardTarget(magie)) {
-      if (!this.session.graveyard.length) { this._proceedNextRound(); return; }
+      if (!this.session.graveyard.length) { this._flashError('Aucune unité au cimetière'); return; }
       this._pendingMagie = magie;
       this.sync({ shopping: { magies: [], awaitingTarget: 'graveyard', banner: `${magie.name} — touche une unité du cimetière` } });
     } else {
@@ -330,7 +331,17 @@ export class GameController {
     this._proceedNextRound();
   }
 
+  // Annule le ciblage en cours et revient au choix des 3 magies (la magie n'est
+  // pas consommée). Plan §3.4 : le ciblage est annulable.
+  cancelMagieTargeting(): void {
+    if (!this._pendingMagie) return;
+    this._pendingMagie = null;
+    this.scene?.clearHighlight();
+    this.sync({ shopping: { magies: this._shoppingMagies, awaitingTarget: null, banner: null } });
+  }
+
   private _pendingMagie: Magie | null = null;
+  private _shoppingMagies: Magie[] = [];
 
   // Ciblage magie sur unité board — réutilise onUnitTap via un mode dédié.
   resolveMagieUnitTarget(unit: Unit): void {
@@ -360,6 +371,8 @@ export class GameController {
   }
 
   private _proceedNextRound(): void {
+    this._shoppingMagies = [];
+    this._pendingMagie = null;
     this.session.startNextRound();
     this._clearSelection();
     if (this.session.phase === Phase.GAME_OVER) {

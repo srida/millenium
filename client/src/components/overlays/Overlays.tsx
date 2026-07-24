@@ -1,11 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Overlays de la partie : menu d'options d'invocation, résultat de round,
-// Phase Shopping (version fonctionnelle — polie en Phase 4), fin de partie.
+// fin de partie. La Phase Shopping vit dans components/shopping/.
 import { useEffect, useState } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
-import { effectLabel } from '../../logic/MagieEffect.js';
-import { Button } from '../ui/primitives.js';
+import { Button, Modal } from '../ui/primitives.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
 
 export function SummonOptionMenu() {
@@ -96,46 +94,6 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
   );
 }
 
-export function ShoppingOverlay() {
-  const shopping = useGameStore(s => s.shopping);
-  const controller = useGameStore(s => s.controller);
-  const banner = useUiStore; // no-op ref keep import
-  void banner;
-  if (!shopping || !controller) return null;
-
-  // Mode ciblage : la bannière est affichée par GameScreen, l'overlay se retire.
-  if (shopping.awaitingTarget) return null;
-
-  return (
-    <Modal>
-      <div className="mb-1 text-center">
-        <div className="text-xs tracking-widest text-gold">✦ PHASE SHOPPING ✦</div>
-        <div className="text-sm text-white/60">Choisis une magie</div>
-      </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        {shopping.magies.map((m: any) => (
-          <button
-            key={m.id}
-            onPointerDown={(e) => { e.stopPropagation(); controller.chooseMagie(m); }}
-            className="flex flex-col overflow-hidden rounded-lg border border-line bg-surface-raised text-left active:opacity-80"
-          >
-            <div className="aspect-video w-full bg-black/40">
-              {m._has_illustration && <img src={`/illustrations/${m.id}`} alt="" className="h-full w-full object-cover" />}
-            </div>
-            <div className="p-2">
-              <div className="text-sm font-bold">{m.name}</div>
-              <div className="text-[11px] text-white/60">{(effectLabel as any)(m)}</div>
-            </div>
-          </button>
-        ))}
-      </div>
-      <button onPointerDown={(e) => { e.stopPropagation(); controller.skipShopping(); }} className="mt-3 w-full text-center text-xs text-white/50 underline">
-        Passer cette phase →
-      </button>
-    </Modal>
-  );
-}
-
 export function GameOverScreen() {
   const gameOver = useGameStore(s => s.gameOver);
   const winner = useGameStore(s => s.winner);
@@ -164,18 +122,5 @@ export function GameOverScreen() {
         </Button>
       </div>
     </Modal>
-  );
-}
-
-function Modal({ children, onClose }: { children: React.ReactNode; onClose?: () => void }) {
-  return (
-    <div
-      className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
-      onPointerDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
-    >
-      <div className="w-full max-w-sm rounded-2xl border border-gold/40 bg-surface/97 p-4 shadow-2xl">
-        {children}
-      </div>
-    </div>
   );
 }

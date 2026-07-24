@@ -12,7 +12,8 @@ import SynergyPanel from '../components/hud/SynergyPanel.js';
 import PhaseControls from '../components/hud/PhaseControls.js';
 import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
-import { SummonOptionMenu, EndRoundOverlay, ShoppingOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
+import { SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
+import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import { Banner } from '../components/ui/primitives.js';
 
 const PREP_DURATION = 60;
@@ -52,7 +53,7 @@ export default function GameScreen() {
       <Banners />
       <SummonOptionMenu />
       <EndRoundOverlay />
-      <ShoppingOverlay />
+      <ShoppingLayer />
       <GameOverScreen />
     </div>
   );
@@ -90,10 +91,9 @@ function PrepTimer({ controller }: { controller: GameController }) {
 function Banners() {
   const errorFlash = useGameStore(s => s.errorFlash);
   const invocationBanner = useGameStore(s => s.invocationBanner);
-  const shopping = useGameStore(s => s.shopping);
   const combatActive = useGameStore(s => s.combatActive);
+  // La bannière de ciblage magie est rendue par ShoppingLayer (avec Annuler).
   if (errorFlash) return <Banner text={`⚠ ${errorFlash}`} tone="error" />;
-  if (shopping?.banner) return <Banner text={`✨ ${shopping.banner}`} />;
   if (invocationBanner && !combatActive) return <Banner text={invocationBanner} />;
   return null;
 }

@@ -48,3 +48,18 @@ export function Banner({ text, tone = 'info' }: { text: string; tone?: 'info' | 
     </div>
   );
 }
+
+// Overlay modal centré, mobile-first (safe-areas iOS). onClose (optionnel) est
+// déclenché par un tap sur le fond — jamais sur le contenu.
+export function Modal({ children, onClose }: { children: ReactNode; onClose?: () => void }) {
+  return (
+    <div
+      className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
+      onPointerDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
+    >
+      <div className="max-h-[88dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gold/40 bg-surface/97 p-4 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {children}
+      </div>
+    </div>
+  );
+}

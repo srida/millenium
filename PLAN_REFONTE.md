@@ -341,12 +341,13 @@ Orchestration : `GameSession` détient la boucle de tours (pioche selon `tiersFo
 - [x] **Shopping fonctionnel** (avancé depuis Phase 4 pour boucler la partie de bout en bout) : overlay 3 magies, ciblage unité/cimetière, effets globaux
 - **Done** ✅ 2026-07-24 : partie vérifiée dans le navigateur (mobile 375×812 + desktop) — placement, rendu, synergies live, combat animé ×1/×2/×4 + pause, **fin de round avec dégâts exacts** (64 = Σ ATK survivants ennemis × ×1.0, HP 1000→936), overlay défaite + breakdown, passage au tour 2 avec HP et cimetière préservés, **zéro erreur console**. `tsc`/`eslint`/`vitest 59`/`build` verts. Notes techniques : sélection au `pointerdown` (le `pointerup` ne se déclenche pas de façon fiable sous automatisation), correctif d'un setState-pendant-render dans EndRoundOverlay, `resolve.dedupe` React ajouté.
 
-### Phase 4 — Phase Shopping + magies (2–3 jours) — risque : moyen
+### Phase 4 — Phase Shopping + magies (2–3 jours) — risque : moyen ✅ 2026-07-24
 
-- [ ] `ShoppingController` + `ShoppingOverlay`/`MagieCard`/`TargetPicker`/`GraveyardPicker`/`Banner`
-- [ ] 14 types d'effets branchés, y compris `defuse_fusion` (réimplémentation documentée), `destroy_unit`, modifiers de main différés, `extraShoppingMagies`, skip fin de partie
-- [ ] Tests unitaires ShoppingController (ciblage, application, carry-over)
-- **Done** : chaque type de magie démontrable en partie réelle.
+- [x] Composants dédiés `components/shopping/` : `ShoppingLayer` (route choix ↔ ciblage) + `MagieCard` (vignette compacte mobile-first). Le ciblage réutilise le highlight de scène (unité) et `GraveyardTray` (cimetière) ; bannière d'instruction + **bouton Annuler** (`cancelMagieTargeting` — le ciblage est annulable, la magie non consommée). `Modal` extrait dans `ui/primitives` (borné `max-h-88dvh`, scroll interne).
+- [x] Le rôle « ShoppingController » vit dans `GameSession` (orchestrateur pur) : `getShoppingMagies` (3 + `extraShoppingMagies`, compteur consommé), `magieNeedsUnitTarget`/`magieNeedsGraveyardTarget`, `magieUnitTargets` (filtre Fusion pour `defuse_fusion`), `applyMagieOnUnit`/`applyMagieOnGraveyardUnit`/`applyGlobalMagie`, `_defuseFusion`/`_destroyUnit`. Pas de classe séparée : éviter de fragmenter l'état (gameState/board/graveyard/deps déjà dans la session).
+- [x] 14 types d'effets branchés, y compris `defuse_fusion` (débordement cimetière), `destroy_unit`, modifiers de main différés (`reduce_sacrifice_cost`/`free_transformation`/`remove_heritage_material` consommés à `startPreparation`), `extraShoppingMagies`, skip fin de partie (`isGameOver`) / zéro magie
+- [x] Tests unitaires shopping (`src/test/shopping.test.ts`, 15 cas) : tirage + extra, routage du ciblage, effets à cible (defuse/destroy/revive), carry-over global consommé au tour suivant. Suite : **74 tests** verts.
+- **Done** : boucle vérifiée en navigateur (mobile 375×812) — overlay 3 magies compact, `player_hp_bonus` appliqué (956→1000 cappé) puis Tour 2, zéro erreur console. `tsc`/`eslint`/`vitest(74)`/`build` verts.
 
 ### Phase 5 — DeckBuilder + DeckSelector + navigation complète (2–3 jours) — risque : faible
 
