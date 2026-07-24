@@ -1,15 +1,43 @@
+import type { EndOfCombatAttributeResult, GuaranteedDraw, HandModifier, RoundWinner } from './types.js';
+
 export const Phase = Object.freeze({
   PREPARATION: 'preparation',
   COMBAT:      'combat',
   END_ROUND:   'end_round',
   GAME_OVER:   'game_over',
-});
+} as const);
+
+export type PhaseValue = typeof Phase[keyof typeof Phase];
 
 const MAX_ROUNDS = 5;
 const STARTING_HP = 1000;
 const DEFAULT_BOARD_SLOTS = 5;
 
 export class GameState {
+  round: number;
+  phase: PhaseValue;
+
+  player_hp: number;
+  enemy_hp: number;
+
+  player_multiplier: number;
+  enemy_multiplier: number;
+  // Unit-count component only (without the round multiplier), kept for UI breakdown
+  player_unit_multiplier: number;
+  enemy_unit_multiplier: number;
+
+  // Expanded by board_slot_bonus attribute effect
+  player_board_slots: number;
+  enemy_board_slots: number;
+  // Yeux bleus / Réaction en chaîne / Fission share a single +1 slot cap (non cumulable)
+  _limitedBoardSlotBonusUsed: number;
+
+  // Carry-over from previous rounds
+  player_extra_draws: number;              // accumulated draw_bonus
+  player_guaranteed_draws: GuaranteedDraw[];
+  player_hand_modifiers: HandModifier[];   // applied to drawn cards
+  player_extra_shopping_magies: number;    // accumulated shopping_bonus
+
   constructor() {
     this.round = 1;
     this.phase = Phase.PREPARATION;
@@ -19,26 +47,22 @@ export class GameState {
 
     this.player_multiplier = 1.0;
     this.enemy_multiplier  = 1.0;
-    // Unit-count component only (without the round multiplier), kept for UI breakdown
     this.player_unit_multiplier = 1.0;
     this.enemy_unit_multiplier  = 1.0;
 
-    // Expanded by board_slot_bonus attribute effect
     this.player_board_slots = DEFAULT_BOARD_SLOTS;
     this.enemy_board_slots  = DEFAULT_BOARD_SLOTS;
-    // Yeux bleus / Réaction en chaîne / Fission share a single +1 slot cap (non cumulable)
     this._limitedBoardSlotBonusUsed = 0;
 
-    // Carry-over from previous rounds
-    this.player_extra_draws = 0;   // accumulated draw_bonus
-    this.player_guaranteed_draws = []; // [{ category, attribute }]
-    this.player_hand_modifiers = []; // [{ type, value? }] applied to drawn cards
-    this.player_extra_shopping_magies = 0; // accumulated shopping_bonus
+    this.player_extra_draws = 0;
+    this.player_guaranteed_draws = [];
+    this.player_hand_modifiers = [];
+    this.player_extra_shopping_magies = 0;
   }
 
   // ── Phase transitions ──
 
-  startCombat(playerUnitCount, enemyUnitCount) {
+  startCombat(playerUnitCount: number, enemyUnitCount: number): void {
     this.phase = Phase.COMBAT;
     this.player_unit_multiplier = this._multiplier(playerUnitCount);
     this.enemy_unit_multiplier  = this._multiplier(enemyUnitCount);
@@ -46,7 +70,7 @@ export class GameState {
     this.enemy_multiplier  = this.enemy_unit_multiplier * this.round;
   }
 
-  _multiplier(unitCount) {
+  _multiplier(unitCount: number): number {
     if (unitCount >= 5) return 1.0;
     if (unitCount === 4) return 1.2;
     if (unitCount === 3) return 1.5;
@@ -56,12 +80,17 @@ export class GameState {
 
   /**
    * Apply the result of a finished combat round.
-   * @param {'player'|'enemy'|'draw'|'timeout'} winner
-   * @param {number} playerSurvivorsAtk  - sum of ATK of surviving player units
-   * @param {number} enemySurvivorsAtk   - sum of ATK of surviving enemy units
-   * @param {Object} attributeResult     - from AttributeManager.applyEndOfCombat()
+   * @param winner 'player' | 'enemy' | 'draw' | 'timeout'
+   * @param playerSurvivorsAtk  sum of ATK of surviving player units
+   * @param enemySurvivorsAtk   sum of ATK of surviving enemy units
+   * @param attributeResult     from AttributeManager.applyEndOfCombat()
    */
-  applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, attributeResult = {}) {
+  applyEndOfCombat(
+    winner: RoundWinner,
+    playerSurvivorsAtk: number,
+    enemySurvivorsAtk: number,
+    attributeResult: EndOfCombatAttributeResult = {},
+  ): void {
     this.phase = Phase.END_ROUND;
 
     if (winner === 'player' || winner === 'timeout' || winner === 'draw') {
@@ -96,7 +125,7 @@ export class GameState {
    * (Yeux bleus attribute, magies Réaction en chaîne / Fission).
    * Returns the amount actually granted (0 once the cap is reached).
    */
-  grantLimitedBoardSlotBonus(value, cap = 1) {
+  grantLimitedBoardSlotBonus(value: number, cap = 1): number {
     const grant = Math.max(0, Math.min(value, cap - this._limitedBoardSlotBonusUsed));
     this.player_board_slots += grant;
     this._limitedBoardSlotBonusUsed += grant;
@@ -107,7 +136,7 @@ export class GameState {
    * Advance to the next round or trigger game over.
    * Returns the new phase.
    */
-  nextRound() {
+  nextRound(): PhaseValue {
     if (this.player_hp <= 0 || this.enemy_hp <= 0 || this.round >= MAX_ROUNDS) {
       this.phase = Phase.GAME_OVER;
     } else {
@@ -122,11 +151,11 @@ export class GameState {
     return this.phase;
   }
 
-  isGameOver() {
+  isGameOver(): boolean {
     return this.phase === Phase.GAME_OVER || this.player_hp <= 0 || this.enemy_hp <= 0 || this.round >= MAX_ROUNDS;
   }
 
-  getWinner() {
+  getWinner(): 'player' | 'enemy' | 'draw' {
     if (this.player_hp > this.enemy_hp) return 'player';
     if (this.enemy_hp > this.player_hp) return 'enemy';
     return 'draw';

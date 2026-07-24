@@ -9,6 +9,12 @@ import {
 } from '../logic/InvocationManager.js';
 import { makeBoard, makeCard, spawn } from './helpers.js';
 
+// canSummon retourne { ok, reason } ou { options } (cartes à summon_options) ;
+// ces tests n'utilisent que la première forme.
+function can(...args: unknown[]): { ok: boolean; reason: string } {
+  return (canSummon as any)(...args);
+}
+
 const AVIAN = makeCard({ id: 'AVIAN', name: 'Avian' });
 const BURSTINATRIX = makeCard({ id: 'BURSTINATRIX', name: 'Burstinatrix' });
 const FIREWING = makeCard({
@@ -96,20 +102,20 @@ describe('canSummon', () => {
   it('normal : refuse le doublon vivant sur le board joueur', () => {
     const board = makeBoard();
     spawn(board, AVIAN, 'player', { col: 0, row: 0 });
-    const res = canSummon(AVIAN as any, { col: 1, row: 0 }, board, []);
+    const res = can(AVIAN as any, { col: 1, row: 0 }, board, []);
     expect(res.ok).toBe(false);
 
     // …mais l'accepte si l'exemplaire en jeu est neutralisé
     board.getLivingUnitsOnSide('player')[0].is_neutralized = true;
-    const res2 = canSummon(AVIAN as any, { col: 1, row: 0 }, board, []);
+    const res2 = can(AVIAN as any, { col: 1, row: 0 }, board, []);
     expect(res2.ok).toBe(true);
   });
 
   it('refuse le côté ennemi et les cases occupées', () => {
     const board = makeBoard();
-    expect(canSummon(AVIAN as any, { col: 0, row: 7 }, board, []).ok).toBe(false);
+    expect(can(AVIAN as any, { col: 0, row: 7 }, board, []).ok).toBe(false);
     spawn(board, BURSTINATRIX, 'player', { col: 0, row: 0 });
-    expect(canSummon(AVIAN as any, { col: 0, row: 0 }, board, []).ok).toBe(false);
+    expect(can(AVIAN as any, { col: 0, row: 0 }, board, []).ok).toBe(false);
   });
 
   it('sacrifice : compte les material_value du board ET du cimetière', () => {
@@ -119,30 +125,30 @@ describe('canSummon', () => {
 
     // 1 seule unité en jeu (valeur 1) → insuffisant
     spawn(board, makeCard({ id: 'FODDER_1' }), 'player', { col: 0, row: 0 });
-    expect(canSummon(sacCard as any, { col: 2, row: 0 }, board, [], graveyard).ok).toBe(false);
+    expect(can(sacCard as any, { col: 2, row: 0 }, board, [], graveyard).ok).toBe(false);
 
     // + une unité au cimetière → 2 slots, ok
     const dead = spawn(makeBoard(), makeCard({ id: 'FODDER_2' }), 'player', { col: 0, row: 0 });
     dead.is_neutralized = true;
     graveyard.push(dead);
-    expect(canSummon(sacCard as any, { col: 2, row: 0 }, board, [], graveyard).ok).toBe(true);
+    expect(can(sacCard as any, { col: 2, row: 0 }, board, [], graveyard).ok).toBe(true);
   });
 
   it('fusion : exige chaque matériau sur le board ou au cimetière', () => {
     const board = makeBoard();
     spawn(board, AVIAN, 'player', { col: 0, row: 0 });
-    expect(canSummon(FIREWING as any, { col: 2, row: 0 }, board, []).ok).toBe(false);
+    expect(can(FIREWING as any, { col: 2, row: 0 }, board, []).ok).toBe(false);
     spawn(board, BURSTINATRIX, 'player', { col: 1, row: 0 });
-    expect(canSummon(FIREWING as any, { col: 2, row: 0 }, board, []).ok).toBe(true);
+    expect(can(FIREWING as any, { col: 2, row: 0 }, board, []).ok).toBe(true);
   });
 
   it('transformation : cible requise, position héritée de la cible', () => {
     const NEO = makeCard({ id: 'NEO_AVIAN', summon_type: 'transformation', cost: { materials: ['AVIAN'] } });
     const board = makeBoard();
-    expect(canSummon(NEO as any, { col: 0, row: 0 }, board, []).ok).toBe(false);
+    expect(can(NEO as any, { col: 0, row: 0 }, board, []).ok).toBe(false);
 
     const avian = spawn(board, AVIAN, 'player', { col: 1, row: 2 });
-    expect(canSummon(NEO as any, { col: 1, row: 2 }, board, []).ok).toBe(true);
+    expect(can(NEO as any, { col: 1, row: 2 }, board, []).ok).toBe(true);
     expect(resolveTransformationTarget(NEO as any, board)).toBe(avian);
 
     const neo = summon(NEO as any, { col: 3, row: 0 }, board, [{ ...NEO }]);

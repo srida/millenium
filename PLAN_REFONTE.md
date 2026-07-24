@@ -307,18 +307,18 @@ Orchestration : `GameSession` détient la boucle de tours (pioche selon `tiersFo
 
 ### Phase 1 — Scaffold + portage logic/data + non-régression (2–4 jours) — risque : moyen
 
-- [ ] `client/` : Vite + React + TS strict (`allowJs`), Tailwind v4 (`@tailwindcss/vite`), Zustand, Vitest
-- [ ] ESLint + `eslint-plugin-boundaries` (ou `no-restricted-imports`) : `logic/` ne peut importer ni react, ni zustand, ni three, ni `data/` ; `three/` ne peut importer react
-- [ ] Copier `game/logic/` → `client/src/logic/` **byte-for-byte** (sauf : sortir les imports `data/` de Tournament.js → injection de dépendances)
-- [ ] Copier `game/data/`, `game/net/` → `client/src/{data,net}/`
-- [ ] `src/logic/types.ts` : types Card/Power/Attribute/Magie/BoardDef/CombatEvent (unions discriminées)
-- [ ] **Tests de non-régression déterminisme** (Vitest, jsdom inutile — node pur) :
-  - [ ] fixtures : 5–6 setups de combat scriptés (unités, positions, terrain avec cases bloquées, pouvoirs variés dont FREEZE/TAUNT/CONFUSION/BURN, synergies actives, timeout) — **sans pioche** (pas de RNG)
-  - [ ] golden files : séquence d'événements sérialisée (`type`, uid, positions, dégâts, tick) → `expect(events).toMatchSnapshot()` gelé comme référence
-  - [ ] tests unitaires ciblés : multiplicateurs GameState, `tiersForRound`, lignées (`materialLineageLegit` : cas Aile de feu/Electrum du CLAUDE.md), `material_value`, vétérance, magies
-  - [ ] reset du compteur `_nextUid` entre tests (exposer un `__resetUidsForTests` ou compter relativement)
-- [ ] Conversion TS progressive des feuilles (Draw, BoardEffect, PathFinder, Board, Unit, GameState) — snapshots verts après chaque module
-- **Done** : `vitest run` vert, golden files committés, logique consommable en node headless.
+- [x] `client/` : Vite 6 + React 19 + TS strict (`allowJs`), Tailwind v4 (`@tailwindcss/vite`), Zustand, Vitest — dev proxifié vers Express :3742 (`/api`, `/illustrations`, `/ws`)
+- [x] ESLint (`no-restricted-imports`) : `logic/` ne peut importer ni react, ni zustand, ni three, ni `data/` ; `three/` ne peut importer react ; le JS gelé du portage est exempté de `no-unused-vars`
+- [x] Copier `game/logic/` → `client/src/logic/` **byte-for-byte** (`diff -r` vérifié ; seule exception : Tournament.js reçoit `{ playerDeck, publicDecks }` en paramètre au lieu d'importer data/ — signature devenue synchrone, à répercuter sur TournamentScreen en Phase 7)
+- [x] Copier `game/data/`, `game/net/` → `client/src/{data,net}/`
+- [x] `src/logic/types.ts` : types Card/Power/Attribute/Magie/BoardDef/GameState carry-over + union discriminée `CombatEvent`
+- [x] **Tests de non-régression déterminisme** — 59 tests verts :
+  - [x] 7 scénarios golden : mêlée 2v2, portée+LOS avec mur, pouvoirs soutien (HEAL/SHIELD/SUPER/AOE), contrôle (POISON/PARALYSIS/PUSH/BLOCK), avancés (BURN/CONFUSION/FREEZE/TAUNT/TELEPORT + effect_immunity), synergies (stat_bonus, shield×alliés, RAGE during_combat verrouillée, vétérance), timeout à MAX_COMBAT_TICKS
+  - [x] golden file `combat.golden.test.ts.snap` (3 114 lignes d'événements) — unités référencées `side:card_id` (stable, pas d'uid)
+  - [x] unitaires : multiplicateurs/dégâts/cap slots GameState, `tiersForRound`, lignées Aile de feu/Electrum, `material_value`, transfert shopping/vétérance (max, pas somme), 14 types de magies, comptage distinct des seuils, `value_per`, `reapplyBonuses`, `getActiveSynergies`
+  - [x] `__resetUnitUidsForTests()` exposé par Unit.ts (les snapshots n'utilisent pas l'uid)
+- [x] Conversion TS des feuilles (types, Unit, Board, PathFinder, GameState, Draw, BoardEffect) — **golden snapshots inchangés au bit près après conversion** ; `tsc --noEmit`, `eslint`, `vite build` verts. Restent en JS pour les prochaines phases : CombatManager, AttributeManager, InvocationManager, InvocationRules, MagieEffect, EnemyAI, MatchSimulator, Tournament (+ data/ et net/)
+- **Done** : `vitest run` vert (59), golden files committés, logique consommable en node headless. ✅ 2026-07-24
 
 ### Phase 2 — Three.js npm + portage de la scène board (2–4 jours) — risque : moyen (portage de l'existant restauré)
 

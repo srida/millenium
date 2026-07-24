@@ -1,7 +1,9 @@
+import type { Card } from './types.js';
+
 // Tiers available per round:
 // T1: R1  T2: R1+  T3: R3+  T4: R4+  T5: R5+
 // R1:[1]  R2:[1,2]  R3:[1,2,3]  R4:[2,3,4]  R5+:[3,4,5]
-export function tiersForRound(round) {
+export function tiersForRound(round: number): number[] {
   if (round <= 1) return [1];
   if (round === 2) return [1, 2];
   if (round === 3) return [1, 2, 3];
@@ -10,10 +12,10 @@ export function tiersForRound(round) {
 }
 
 // Draw `count` cards randomly from the eligible tiers (duplicates allowed)
-export function drawHand(cardsByTier, round, count) {
+export function drawHand(cardsByTier: Record<number, Card[]>, round: number, count: number): Card[] {
   const pool = tiersForRound(round).flatMap(t => cardsByTier[t] ?? []);
   if (pool.length === 0) return [];
-  const hand = [];
+  const hand: Card[] = [];
   for (let i = 0; i < count; i++) {
     // Clone so two draws of the same card_id are distinct object instances —
     // HandUI's selection (in non-grouped mode) compares cards by reference.

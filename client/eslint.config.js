@@ -9,6 +9,29 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // Globals navigateur pour les couches client (data/net utilisent fetch,
+    // localStorage, WebSocket… ; les futurs composants utilisent le DOM).
+    languageOptions: {
+      globals: {
+        fetch: 'readonly', localStorage: 'readonly', sessionStorage: 'readonly',
+        WebSocket: 'readonly', location: 'readonly', window: 'readonly',
+        document: 'readonly', navigator: 'readonly', console: 'readonly',
+        setTimeout: 'readonly', clearTimeout: 'readonly',
+        setInterval: 'readonly', clearInterval: 'readonly',
+        requestAnimationFrame: 'readonly', cancelAnimationFrame: 'readonly',
+      },
+    },
+  },
+  {
+    // Code JS gelé du portage (converti en TS au fil de l'eau) : on ne le
+    // modifie pas pour satisfaire le lint.
+    files: ['src/**/*.js'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
+      'no-unused-vars': 'off',
+    },
+  },
+  {
     files: ['src/logic/**'],
     rules: {
       'no-restricted-imports': ['error', {
