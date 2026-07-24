@@ -1,0 +1,3883 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soulforge — Card Manager</title>
+<link rel="icon" type="image/png" href="/game/favicon.png">
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d26;
+  --surface2: #22263a;
+  --border: #2d3148;
+  --accent: #6c63ff;
+  --accent2: #ff6584;
+  --text: #e8eaf6;
+  --muted: #8892b0;
+  --tier1: #78c8a8;
+  --tier2: #6ab4e8;
+  --tier3: #c878e0;
+  --tier4: #f0a040;
+  --tier5: #f05050;
+  --green: #4caf80;
+  --red: #f04050;
+  --yellow: #f0c040;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; overflow-x: hidden; }
+
+/* Layout */
+.app { display: flex; flex-direction: column; height: 100vh; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; gap: 16px; }
+.topbar h1 { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: 0.5px; }
+.tabs { display: flex; gap: 4px; }
+.tab { padding: 6px 16px; border-radius: 6px; cursor: pointer; color: var(--muted); font-weight: 500; transition: all .15s; border: none; background: none; font-size: 14px; }
+.tab:hover { color: var(--text); background: var(--surface2); }
+.tab.active { color: var(--text); background: var(--accent); }
+.main { flex: 1; overflow: hidden; display: flex; }
+
+/* Sidebar */
+.sidebar { width: 280px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+.sidebar-list { flex: 1; overflow-y: auto; }
+.list-item { padding: 10px 16px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; transition: background .1s; }
+.list-item:hover { background: var(--surface2); }
+.list-item.selected { background: var(--surface2); border-left: 3px solid var(--accent); }
+.list-item .item-id { font-size: 11px; color: var(--muted); font-family: monospace; }
+.list-item .item-name { font-weight: 500; flex: 1; }
+.list-item .item-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.list-thumb { width: 36px; height: 48px; border-radius: 4px; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); }
+.list-thumb-placeholder { width: 36px; height: 48px; border-radius: 4px; flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; }
+.list-item.bulk-selected { background: var(--accent)18; border-left: 3px solid var(--accent); }
+.bulk-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: border-color .15s, background .15s; }
+.bulk-check.checked { border-color: var(--accent); background: var(--accent); }
+.mass-toolbar { padding: 8px 14px; background: var(--surface2); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+.mass-toolbar-top { display: flex; justify-content: space-between; align-items: center; }
+.mass-toolbar-count { font-size: 12px; color: var(--muted); }
+.mass-toolbar-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+
+/* Content */
+.content { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* Card detail */
+.detail-header { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 24px; }
+.illustration-box { width: 120px; height: 120px; background: var(--surface2); border: 2px dashed var(--border); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; flex-shrink: 0; position: relative; overflow: hidden; }
+.illustration-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
+.illustration-box .illus-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.7); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; opacity: 0; transition: opacity .2s; }
+.illustration-box:hover .illus-overlay { opacity: 1; }
+.illus-text { font-size: 11px; color: var(--muted); text-align: center; }
+
+.detail-info { flex: 1; }
+.detail-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.detail-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+.badge-tier1 { background: #1a3a2e; color: var(--tier1); }
+.badge-tier2 { background: #1a2e3a; color: var(--tier2); }
+.badge-tier3 { background: #2e1a3a; color: var(--tier3); }
+.badge-tier4 { background: #3a2a10; color: var(--tier4); }
+.badge-tier5 { background: #3a1010; color: var(--tier5); }
+.badge-summon { background: var(--surface2); color: var(--text); }
+.badge-power { background: #1a2e3a; color: #88ccff; }
+.badge-illus { background: #1a3a1a; color: var(--green); }
+.badge-no-illus { background: #3a1a1a; color: var(--red); }
+
+/* Form */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid.wide { grid-template-columns: 1fr; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+.field input, .field select, .field textarea {
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 10px; border-radius: 6px; font-size: 13px; outline: none; width: 100%;
+  font-family: inherit;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 60px; }
+.field select option { background: var(--surface2); }
+.field input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; padding: 0; border: none; background: none; height: 20px; }
+.field input[type=range]:focus { border-color: transparent; }
+.slider-val { font-size: 12px; font-weight: 700; color: var(--accent); background: rgba(108,99,255,.15); border-radius: 4px; padding: 1px 6px; margin-left: 5px; font-family: monospace; }
+.slider-marks { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+.section-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; font-weight: 700; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.set-picker-row { display: flex; align-items: center; gap: 6px; }
+.set-sep { font-size: 16px; font-weight: 700; color: var(--muted); flex-shrink: 0; padding: 0 2px; }
+.set-num { width: 70px !important; text-align: center; font-family: monospace; flex-shrink: 0; }
+.set-result-id { margin-top: 5px; font-family: monospace; font-size: 12px; background: var(--surface2); color: var(--muted); }
+.cat-picker-row { display: flex; align-items: center; gap: 6px; }
+
+/* Stats grid */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+/* Attribute chips */
+.attr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.attr-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 12px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+.attr-chip:hover { border-color: var(--red); }
+.attr-chip .remove { color: var(--red); font-weight: 700; }
+.attr-add { background: none; border: 1px dashed var(--border); border-radius: 20px; padding: 3px 10px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.attr-add:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Materials list */
+.materials-list { display: flex; flex-direction: column; gap: 6px; }
+.material-item { display: flex; align-items: center; gap: 8px; background: var(--surface2); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); }
+.material-item span { flex: 1; font-family: monospace; font-size: 12px; }
+.material-item button { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; line-height: 1; }
+
+/* Buttons */
+.btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all .15s; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: #7b73ff; }
+.btn-danger { background: var(--red); color: white; }
+.btn-danger:hover { background: #ff5060; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+.btn-success { background: var(--green); color: white; }
+.btn-success:hover { background: #5cbf90; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.actions { display: flex; gap: 10px; margin-top: 20px; }
+
+/* Search / filter */
+input[type=search], input[type=text].search { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 6px; outline: none; width: 100%; font-size: 13px; }
+input[type=search]:focus { border-color: var(--accent); }
+select.filter { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 6px; outline: none; font-size: 12px; }
+select.filter:focus { border-color: var(--accent); }
+
+/* Count badge */
+.count { background: var(--surface2); color: var(--muted); font-size: 11px; padding: 2px 7px; border-radius: 10px; margin-left: auto; }
+
+/* Modal */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.deckbuilder-overlay { position: fixed; inset: 0; background: #0f1117; z-index: 110; display: flex; flex-direction: column; }
+.deckbuilder-overlay iframe { flex: 1; width: 100%; border: none; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; width: 460px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+.modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
+.hidden { display: none !important; }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface); border: 1px solid var(--border); padding: 12px 20px; border-radius: 8px; z-index: 200; font-size: 13px; box-shadow: 0 4px 20px rgba(0,0,0,.4); transition: opacity .3s; }
+.toast.ok { border-left: 3px solid var(--green); }
+.toast.err { border-left: 3px solid var(--red); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Attribute detail */
+.threshold-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+.effect-block { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-top: 8px; }
+
+/* Empty state */
+.empty { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--muted); flex-direction: column; gap: 8px; }
+.empty svg { opacity: .3; }
+
+.illus-import { display: flex; gap: 6px; }
+.illus-import input { flex: 1; }
+
+/* FAB + Back button (mobile) */
+.fab {
+  display: none; position: fixed; bottom: 24px; right: 20px;
+  width: 58px; height: 58px; border-radius: 50%;
+  background: var(--accent); color: #fff; font-size: 30px; line-height: 1;
+  border: none; cursor: pointer; z-index: 90;
+  align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(108,99,255,.55); transition: transform .15s;
+}
+.fab:active { transform: scale(.9); }
+.back-btn {
+  display: none; align-items: center; gap: 6px;
+  background: none; border: none; color: var(--accent);
+  font-size: 14px; font-weight: 700; padding: 0 0 14px; cursor: pointer;
+}
+.back-btn::before { content: '←'; font-size: 18px; }
+.mobile-info { display: none; }
+
+@media (max-width: 768px) {
+  /* Topbar — wrap onto two lines so tabs never overflow the viewport */
+  .topbar { padding: 8px 12px 0; gap: 6px; flex-wrap: wrap; }
+  .topbar h1 { font-size: 14px; white-space: nowrap; }
+  .tab { padding: 5px 9px; font-size: 12px; }
+  .tabs { width: 100%; overflow-x: auto; flex-shrink: 0; padding-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  /* Single-panel layout */
+  .main { position: relative; overflow: hidden; }
+  .sidebar {
+    width: 100%; position: absolute; inset: 0; z-index: 2;
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+  }
+  .content {
+    position: absolute; inset: 0; width: 100%; padding: 16px;
+    background: var(--bg); overflow-y: auto;
+    transform: translateX(105%);
+    transition: transform .25s cubic-bezier(.4,0,.2,1);
+  }
+  .main.show-detail .sidebar  { transform: translateX(-105%); pointer-events: none; }
+  .main.show-detail .content  { transform: translateX(0); pointer-events: auto; }
+
+  /* Stats & DB tabs — no sidebar, always visible */
+  #tab-stats .content,
+  #tab-db .content {
+    transform: none !important; position: relative !important;
+    inset: auto !important; height: 100% !important;
+  }
+
+  /* FAB & back btn */
+  .fab      { display: flex; }
+  .back-btn { display: flex; }
+  .mobile-info { display: flex; flex-direction: column; gap: 5px; }
+
+  /* Forms: 1 column */
+  .form-grid  { grid-template-columns: 1fr !important; gap: 10px; }
+  .stats-grid { grid-template-columns: 1fr !important; }
+
+  /* Touch-friendly inputs (16px prevents iOS zoom-in) */
+  .field input, .field select, .field textarea {
+    padding: 12px 10px; font-size: 16px;
+  }
+  select.filter { padding: 8px; font-size: 12px; }
+  input[type=search] { font-size: 16px; padding: 10px; }
+
+  /* List items — bigger tap target */
+  .list-item { padding: 13px 14px; }
+
+  /* Buttons */
+  .btn { min-height: 44px; font-size: 14px; }
+  .actions { flex-wrap: wrap; gap: 8px; }
+
+  /* Illustration overlay always visible on touch */
+  .illustration-box .illus-overlay { opacity: 1; }
+  .illustration-box { width: 90px; height: 90px; }
+
+  /* Stats */
+  #tab-stats .content { padding: 12px !important; }
+  .stat-panel { padding: 12px 10px; }
+  .tier-overview-table { font-size: 11px; }
+  .tier-overview-table th, .tier-overview-table td { padding: 5px 6px; }
+  .mini-bar-track { min-width: 36px; }
+  /* Sticky stat-name column so tier columns scroll under it */
+  .tier-overview-table th:first-child,
+  .tier-overview-table td:first-child {
+    position: sticky; left: 0;
+    background: var(--surface); z-index: 1;
+    padding-right: 10px;
+  }
+  /* Hide mini-bars in table to save width */
+  .tier-overview-table .mini-bar-wrap { display: none; }
+
+  /* Threshold row: wrap, slider prend toute la largeur */
+  .threshold-row { flex-wrap: wrap; gap: 6px; }
+  .threshold-row input[type=range] { width: 100%; order: 3; }
+
+  /* Anomaly rows mobile */
+  .anomaly-header { display: none !important; }
+  .anomaly-row {
+    display: flex !important; align-items: flex-start; justify-content: space-between;
+    gap: 12px; padding: 14px;
+  }
+  .anomaly-row .anomaly-col-pos,
+  .anomaly-row .anomaly-col-tier,
+  .anomaly-row .anomaly-col-stat,
+  .anomaly-row .anomaly-col-val { display: none !important; }
+  .anomaly-row .anomaly-col-card { flex: 1; min-width: 0; }
+  .anomaly-col-id { display: none; }
+  /* Card name: wrap autorisé sur 2 lignes */
+  .anomaly-name { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; font-size: 14px !important; line-height: 1.3; }
+  /* Z-chip: plus grand, ne se rétrécit pas */
+  .anomaly-row .z-chip { font-size: 13px !important; padding: 5px 11px !important; flex-shrink: 0 !important; margin-top: 2px; }
+
+  /* Modal */
+  .modal { width: 96vw; padding: 18px; }
+}
+
+/* Stats tab */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+.stats-grid.wide { grid-template-columns: 1fr; }
+.stat-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+.stat-panel h3 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px; }
+.tier-overview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tier-overview-table th { text-align: left; padding: 6px 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: .4px; border-bottom: 1px solid var(--border); }
+.tier-overview-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+.tier-overview-table tr:last-child td { border-bottom: none; }
+.tier-overview-table tr:hover td { background: var(--surface2); }
+.stat-val { font-weight: 700; }
+.stat-range { font-size: 10px; color: var(--muted); }
+.mini-bar-wrap { display: flex; align-items: center; gap: 6px; }
+.mini-bar-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; position: relative; min-width: 60px; }
+.mini-bar-fill { position: absolute; top: 0; height: 100%; border-radius: 2px; }
+.anomaly-row { display: grid; grid-template-columns: 1fr 60px 90px 100px 1fr 70px; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; font-size: 12px; }
+.anomaly-row:hover { background: var(--surface2); }
+.anomaly-row:last-child { border-bottom: none; }
+.anomaly-header { display: grid; grid-template-columns: 1fr 60px 90px 100px 1fr 70px; gap: 10px; padding: 6px 12px; font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .4px; border-bottom: 2px solid var(--border); }
+.severity-bar { height: 6px; border-radius: 3px; }
+.z-chip { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; text-align: center; white-space: nowrap; }
+.z-mild { background: #2a2a10; color: var(--yellow); }
+.z-high { background: #3a1a10; color: var(--red); }
+.direction-high { color: var(--red); }
+.direction-low { color: #6ab4e8; }
+.tier-filter-chips { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.tier-chip { padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 600; }
+.tier-chip.active { border-color: currentColor; }
+.tier-chip-1.active { color: var(--tier1); background: #1a3a2e; border-color: var(--tier1); }
+.tier-chip-2.active { color: var(--tier2); background: #1a2e3a; border-color: var(--tier2); }
+.tier-chip-3.active { color: var(--tier3); background: #2e1a3a; border-color: var(--tier3); }
+.tier-chip-4.active { color: var(--tier4); background: #3a2a10; border-color: var(--tier4); }
+.tier-chip-5.active { color: var(--tier5); background: #3a1010; border-color: var(--tier5); }
+.threshold-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 12px; color: var(--muted); }
+.threshold-row input[type=range] { accent-color: var(--accent); width: 120px; }
+.stat-sparkline { display: flex; gap: 2px; align-items: flex-end; height: 24px; }
+.spark-bar { width: 5px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: .6; }
+.spark-bar.highlight { opacity: 1; background: var(--accent2); }
+.no-anomalies { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }
+.broken-link-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; font-size: 12px; }
+.broken-link-row:hover { background: var(--surface2); }
+.broken-link-row:last-child { border-bottom: none; }
+
+/* DB explorer */
+.db-tables-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.db-table-chip { padding: 6px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.db-table-chip:hover { color: var(--text); border-color: var(--accent); }
+.db-table-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.db-count { background: rgba(0,0,0,.25); border-radius: 999px; padding: 1px 7px; font-size: 11px; }
+.db-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 13px; }
+.db-pager { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.db-table-scroll { overflow: auto; max-height: calc(100vh - 220px); border: 1px solid var(--border); border-radius: 8px; }
+.db-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.db-table th { position: sticky; top: 0; background: var(--surface2); color: var(--muted); text-align: left; padding: 8px 10px; white-space: nowrap; border-bottom: 1px solid var(--border); z-index: 1; }
+.db-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+.db-table tbody tr:hover { background: var(--surface2); }
+.db-null { color: var(--muted); font-style: italic; opacity: .6; }
+.db-admin-toggle { padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: 11px; cursor: pointer; white-space: nowrap; }
+.db-admin-toggle:hover { border-color: var(--accent); color: var(--text); }
+.db-admin-toggle.is-admin { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <a href="/" style="color:var(--muted);text-decoration:none;font-size:20px;line-height:1;padding:4px 8px;border-radius:6px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">←</a>
+    <h1>Soulforge — Card Manager</h1>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('cards')">Cartes</button>
+      <button class="tab" onclick="switchTab('attributes')">Attributs</button>
+      <button class="tab" onclick="switchTab('powers')">Pouvoirs</button>
+      <button class="tab" onclick="switchTab('boards')">Terrains</button>
+      <button class="tab" onclick="switchTab('magies')">Magies</button>
+      <button class="tab" onclick="switchTab('decks')">Decks publics</button>
+      <button class="tab" onclick="switchTab('stats')">📊 Stats</button>
+      <button class="tab" onclick="switchTab('db')">🗄️ Base SQL</button>
+    </div>
+  </div>
+
+  <!-- CARDS TAB -->
+  <div id="tab-cards" class="main">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="card-search" placeholder="Rechercher..." oninput="filterCards()">
+          <span id="card-count" class="count">0</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <select class="filter" id="filter-tier" onchange="filterCards()">
+            <option value="">Tous tiers</option>
+            <option value="1">Tier 1</option>
+            <option value="2">Tier 2</option>
+            <option value="3">Tier 3</option>
+            <option value="4">Tier 4</option>
+            <option value="5">Tier 5</option>
+          </select>
+          <select class="filter" id="filter-summon" onchange="filterCards()">
+            <option value="">Tous types</option>
+            <option value="normal">Normal</option>
+            <option value="sacrifice">Sacrifice</option>
+            <option value="fusion">Fusion</option>
+            <option value="heritage">Heritage</option>
+            <option value="transformation">Transformation</option>
+          </select>
+          <select class="filter" id="filter-illus" onchange="filterCards()">
+            <option value="">Toutes</option>
+            <option value="no">Sans illus.</option>
+            <option value="yes">Avec illus.</option>
+          </select>
+          <select class="filter" id="filter-attribute" onchange="filterCards()">
+            <option value="">Tous attributs</option>
+          </select>
+          <select class="filter" id="filter-power" onchange="filterCards()">
+            <option value="">Tous pouvoirs</option>
+            <option value="none">Aucun pouvoir</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="openNewCard()">+ Nouvelle carte</button>
+          <button class="btn btn-secondary btn-sm" onclick="openImportModal('cards')">Importer JSON</button>
+          <button class="btn btn-secondary btn-sm" id="btn-select-mode" onclick="toggleSelectionMode()">Sélectionner</button>
+        </div>
+      </div>
+      <div id="mass-toolbar" style="display:none"></div>
+      <div class="sidebar-list" id="card-list"></div>
+    </div>
+    <div class="content" id="card-detail">
+      <div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg><span>Sélectionne une carte</span></div>
+    </div>
+  </div>
+
+  <!-- ATTRIBUTES TAB -->
+  <div id="tab-attributes" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="attr-search" placeholder="Rechercher..." oninput="filterAttributes()">
+          <span id="attr-count" class="count">0</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="openNewAttribute()">+ Nouvel attribut</button>
+          <button class="btn btn-secondary btn-sm" onclick="openImportModal('attributes')">Importer JSON</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="attr-list"></div>
+    </div>
+    <div class="content" id="attr-detail">
+      <div class="empty"><span>Sélectionne un attribut</span></div>
+    </div>
+  </div>
+
+  <!-- POWERS TAB -->
+  <div id="tab-powers" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="power-search" placeholder="Rechercher..." oninput="filterPowers()">
+          <span id="power-count" class="count">0</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="openNewPower()">+ Nouveau pouvoir</button>
+          <button class="btn btn-secondary btn-sm" onclick="openImportModal('powers')">Importer JSON</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="power-list"></div>
+    </div>
+    <div class="content" id="power-detail">
+      <div class="empty"><span>Sélectionne un pouvoir</span></div>
+    </div>
+  </div>
+  <!-- BOARDS TAB -->
+  <div id="tab-boards" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="board-search" placeholder="Rechercher..." oninput="filterBoards()">
+          <span id="board-count" class="count">0</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="openNewBoard()">+ Nouveau terrain</button>
+          <button class="btn btn-secondary btn-sm" onclick="openImportModal('boards')">Importer JSON</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="board-list"></div>
+    </div>
+    <div class="content" id="board-detail">
+      <div class="empty"><span>Sélectionne un terrain</span></div>
+    </div>
+  </div>
+
+  <!-- MAGIES TAB -->
+  <div id="tab-magies" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="magie-search" placeholder="Rechercher..." oninput="filterMagies()">
+          <span id="magie-count" class="count">0</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="openNewMagie()">+ Nouvelle magie</button>
+          <button class="btn btn-secondary btn-sm" onclick="openImportModal('magies')">Importer JSON</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="magie-list"></div>
+    </div>
+    <div class="content" id="magie-detail">
+      <div class="empty"><span>Sélectionne une magie</span></div>
+    </div>
+  </div>
+
+  <!-- DECKS PUBLICS TAB -->
+  <div id="tab-decks" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="deck-search" placeholder="Rechercher..." oninput="filterPublicDecks()">
+          <span id="deck-count" class="count">0</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="openNewPublicDeck()">+ Nouveau deck</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="deck-list"></div>
+    </div>
+    <div class="content" id="deck-detail">
+      <div class="empty"><span>Sélectionne un deck</span></div>
+    </div>
+  </div>
+
+  <!-- STATS TAB -->
+  <div id="tab-stats" class="main hidden">
+    <div class="content" id="stats-content" style="padding:24px;overflow-y:auto;width:100%">
+      <div class="empty"><span>Chargement...</span></div>
+    </div>
+  </div>
+
+  <div id="tab-db" class="main hidden">
+    <div class="content" id="db-content" style="padding:20px;overflow:auto;width:100%">
+      <div class="empty"><span>Chargement...</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="fabAction()">+</button>
+
+<!-- MODAL -->
+<div class="modal-backdrop hidden" id="modal-backdrop" onclick="closeModal(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<!-- DECK BUILDER OVERLAY -->
+<div class="deckbuilder-overlay hidden" id="deckbuilder-overlay">
+  <iframe id="deckbuilder-frame"></iframe>
+</div>
+
+<!-- TOAST -->
+<div class="toast hidden" id="toast"></div>
+
+<script>
+// ================== STATE ==================
+let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [];
+let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null;
+let currentTab = 'cards';
+let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false;
+let selectionMode = false;
+const bulkSelected = new Set();
+
+// ================== INIT ==================
+async function init() {
+  [cards, attributes, powers, boards, magies, publicDecks] = await Promise.all([
+    apiFetch('/api/cards'),
+    apiFetch('/api/attributes'),
+    apiFetch('/api/powers'),
+    apiFetch('/api/boards'),
+    apiFetch('/api/magies'),
+    apiFetch('/api/decks'),
+  ]);
+  populateAttributeFilter();
+  populatePowerFilter();
+  renderCardList();
+  renderAttrList();
+  renderPowerList();
+  renderBoardList();
+  renderMagieList();
+  renderPublicDeckList();
+}
+
+function populateAttributeFilter() {
+  const sel = document.getElementById('filter-attribute');
+  if (!sel) return;
+  const sorted = [...attributes].sort((a, b) => a.name.localeCompare(b.name));
+  sel.innerHTML = '<option value="">Tous attributs</option>' +
+    sorted.map(a => `<option value="${a.id}">${a.icon ? a.icon + ' ' : ''}${a.name}</option>`).join('');
+}
+
+function populatePowerFilter() {
+  const sel = document.getElementById('filter-power');
+  if (!sel) return;
+  const sorted = [...powers].sort((a, b) => a.name.localeCompare(b.name));
+  sel.innerHTML = '<option value="">Tous pouvoirs</option><option value="none">Aucun pouvoir</option>' +
+    sorted.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+// ================== API ==================
+async function apiFetch(url, options = {}) {
+  const r = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+  return r.json();
+}
+
+// ================== TABS ==================
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.main').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.remove('hidden');
+  document.querySelectorAll('.tab').forEach(el => {
+    const t = el.textContent.toLowerCase();
+    const match = (tab === 'cards' && t.includes('carte')) ||
+                  (tab === 'attributes' && t.includes('attribut')) ||
+                  (tab === 'powers' && t.includes('pouv')) ||
+                  (tab === 'boards' && t.includes('terrain')) ||
+                  (tab === 'magies' && t.includes('magie')) ||
+                  (tab === 'decks' && t.includes('deck')) ||
+                  (tab === 'stats' && t.includes('stat')) ||
+                  (tab === 'db' && t.includes('sql'));
+    if (match) el.classList.add('active');
+  });
+  if (tab === 'stats') renderStats();
+  if (tab === 'db') renderDbTables();
+  showList(); // reset panel on tab switch
+}
+
+// ================== DB EXPLORER (read-only) ==================
+let dbCurrentTable = null;
+let dbOffset = 0;
+const DB_PAGE = 50;
+
+async function renderDbTables() {
+  const el = document.getElementById('db-content');
+  el.innerHTML = '<div class="empty"><span>Chargement...</span></div>';
+  let data;
+  try { data = await apiFetch('/api/admin/db/tables'); }
+  catch (e) { el.innerHTML = `<div class="empty"><span>Erreur : ${esc(e.message)}</span></div>`; return; }
+  if (data.error) { el.innerHTML = `<div class="empty"><span>Erreur : ${esc(data.error)}</span></div>`; return; }
+  const chips = data.tables.map(t =>
+    `<button class="db-table-chip${t.name === dbCurrentTable ? ' active' : ''}" data-table="${esc(t.name)}" onclick="openDbTable('${esc(t.name)}', 0)">
+       ${esc(t.name)} <span class="db-count">${t.count}</span>
+     </button>`).join('');
+  el.innerHTML = `
+    <div class="db-tables-bar">${chips || '<span style="color:var(--muted)">Aucune table</span>'}</div>
+    <div id="db-table-view"><div class="empty"><span>Choisis une table ci-dessus.</span></div></div>`;
+  if (dbCurrentTable && data.tables.some(t => t.name === dbCurrentTable)) openDbTable(dbCurrentTable, dbOffset);
+}
+
+async function openDbTable(name, offset) {
+  dbCurrentTable = name; dbOffset = offset;
+  document.querySelectorAll('.db-table-chip').forEach(c => c.classList.toggle('active', c.dataset.table === name));
+  const view = document.getElementById('db-table-view');
+  if (view) view.innerHTML = '<div class="empty"><span>Chargement...</span></div>';
+  let data;
+  try { data = await apiFetch(`/api/admin/db/table/${encodeURIComponent(name)}?limit=${DB_PAGE}&offset=${offset}`); }
+  catch (e) { if (view) view.innerHTML = `<div class="empty"><span>Erreur : ${esc(e.message)}</span></div>`; return; }
+  if (data.error) { if (view) view.innerHTML = `<div class="empty"><span>Erreur : ${esc(data.error)}</span></div>`; return; }
+
+  const isUsers = name === 'users' && data.columns.includes('is_admin') && data.columns.includes('id');
+  const head = data.columns.map(c => `<th>${esc(c)}</th>`).join('') + (isUsers ? '<th>Admin</th>' : '');
+  const colCount = data.columns.length + (isUsers ? 1 : 0);
+  const body = data.rows.length
+    ? data.rows.map(r => {
+        const cells = data.columns.map(c => `<td>${r[c] === null ? '<span class="db-null">NULL</span>' : esc(r[c])}</td>`).join('');
+        if (!isUsers) return `<tr>${cells}</tr>`;
+        const isAdminNow = r.is_admin === '1';
+        const actionCell = `<td>
+          <button class="db-admin-toggle${isAdminNow ? ' is-admin' : ''}"
+            onclick="toggleUserAdmin('${esc(r.id)}', ${!isAdminNow})">
+            ${isAdminNow ? '✓ Admin' : 'Promouvoir'}
+          </button>
+        </td>`;
+        return `<tr>${cells}${actionCell}</tr>`;
+      }).join('')
+    : `<tr><td colspan="${colCount || 1}" style="text-align:center;color:var(--muted);padding:16px">Aucune ligne</td></tr>`;
+
+  const from = data.total ? offset + 1 : 0;
+  const to = Math.min(offset + DB_PAGE, data.total);
+  const prevDis = offset <= 0 ? 'disabled' : '';
+  const nextDis = offset + DB_PAGE >= data.total ? 'disabled' : '';
+  document.getElementById('db-table-view').innerHTML = `
+    <div class="db-toolbar">
+      <strong>${esc(name)}</strong>
+      <span style="color:var(--muted)">${data.total} ligne(s)</span>
+      <div class="db-pager">
+        <button class="tab" ${prevDis} onclick="openDbTable('${esc(name)}', ${Math.max(0, offset - DB_PAGE)})">‹</button>
+        <span>${from}–${to}</span>
+        <button class="tab" ${nextDis} onclick="openDbTable('${esc(name)}', ${offset + DB_PAGE})">›</button>
+      </div>
+    </div>
+    <div class="db-table-scroll">
+      <table class="db-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+    </div>`;
+}
+
+async function toggleUserAdmin(userId, nextIsAdmin) {
+  try {
+    const res = await fetch(`/api/admin/db/users/${encodeURIComponent(userId)}/admin`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_admin: nextIsAdmin }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) { toast(data.error || 'Erreur', 'err'); return; }
+    toast(nextIsAdmin ? 'Promu administrateur.' : 'Droits admin retirés.');
+    openDbTable('users', dbOffset);
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ================== CARDS ==================
+function tierBadge(tier) {
+  return `<span class="badge badge-tier${Math.round(tier)}">T${Math.round(tier)}</span>`;
+}
+function summonLabel(t) {
+  return { normal: 'Normal', sacrifice: 'Sacrifice', fusion: 'Fusion', heritage: 'Heritage', transformation: 'Transfo' }[t] || t;
+}
+function summonColor(t) {
+  return { normal: '#78c8a8', sacrifice: '#f0a040', fusion: '#c878e0', heritage: '#6ab4e8', transformation: '#ff8040' }[t] || '#888';
+}
+
+function filterCards() {
+  const q = document.getElementById('card-search').value.toLowerCase();
+  const tier = document.getElementById('filter-tier').value;
+  const summon = document.getElementById('filter-summon').value;
+  const illus = document.getElementById('filter-illus').value;
+  const attribute = document.getElementById('filter-attribute').value;
+  const power = document.getElementById('filter-power').value;
+  const filtered = cards.filter(c =>
+    (!q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)) &&
+    (!tier || Math.round(c.tier) == tier) &&
+    (!summon || c.summon_type === summon) &&
+    (!illus || (illus === 'yes' ? c._has_illustration : !c._has_illustration)) &&
+    (!attribute || (c.attributes || []).includes(attribute)) &&
+    (!power || (power === 'none' ? !(c.power && c.power.id) : (c.power && c.power.id === power)))
+  );
+  renderCardList(filtered);
+}
+
+function renderCardList(list = cards) {
+  const el = document.getElementById('card-list');
+  document.getElementById('card-count').textContent = list.length;
+  el.innerHTML = list.map(c => {
+    const isBulk = bulkSelected.has(c.id);
+    const isActive = !selectionMode && selectedCard && selectedCard.id === c.id;
+    const thumb = c._has_illustration
+      ? `<img class="list-thumb" src="/illustrations/${c.id}" alt="" loading="lazy">`
+      : `<div class="list-thumb-placeholder"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div>`;
+    const check = `<div class="bulk-check ${isBulk ? 'checked' : ''}">${isBulk ? `<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5 L4 7 L8 3" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}</div>`;
+    return `
+      <div class="list-item ${isActive ? 'selected' : ''} ${isBulk ? 'bulk-selected' : ''}" data-id="${c.id}"
+           onclick="${selectionMode ? `toggleCardSelection('${c.id}')` : `selectCard('${c.id}')`}">
+        ${selectionMode ? check : thumb}
+        <div style="flex:1;min-width:0">
+          <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
+          <div style="display:flex;gap:4px;margin-top:3px">
+            ${tierBadge(c.tier)}
+            <span class="badge" style="background:var(--surface2);color:${summonColor(c.summon_type)};font-size:10px">${summonLabel(c.summon_type)}</span>
+            ${(c.summon_options && c.summon_options.length) ? `<span class="badge" style="background:var(--surface2);color:#e07be0;font-size:10px">🔀 ${c.summon_options.length}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectCard(id) {
+  selectedCard = cards.find(c => c.id === id);
+  isNewCard = false;
+  filterCards();
+  renderCardDetail();
+  showDetail();
+}
+
+function getAttrName(id) {
+  const a = attributes.find(x => x.id === id);
+  return a ? `${a.icon || ''} ${a.name}` : id;
+}
+function getPowerName(id) {
+  const p = powers.find(x => x.id === id);
+  return p ? p.name : id;
+}
+function getCardName(id) {
+  const c = cards.find(x => x.id === id);
+  return c ? c.name : id;
+}
+function getMaterialName(id) {
+  const c = cards.find(x => x.id === id);
+  if (c) return c.name;
+  const a = attributes.find(x => x.id === id);
+  if (a) return (a.icon ? a.icon + ' ' : '') + a.name;
+  return id;
+}
+function isMaterialAttribute(id) {
+  return !cards.find(x => x.id === id) && !!attributes.find(x => x.id === id);
+}
+
+function renderCardDetail() {
+  const c = selectedCard;
+  if (!c) return;
+  const el = document.getElementById('card-detail');
+  const hasIllus = c._has_illustration;
+  const hasPower = c.power && c.power.id;
+
+  let idFieldHtml;
+  if (isNewCard) {
+    const allSets = getSets();
+    const lastSet = localStorage.getItem('lastSet') || '';
+    const curSet = allSets.includes(lastSet) ? lastSet : allSets[0];
+    const nextN = getNextNumForSet(curSet);
+    const initId = `${curSet}_${String(nextN).padStart(3, '0')}`;
+    selectedCard.id = initId;
+    const setOpts = allSets.map(s => `<option value="${s}" ${s === curSet ? 'selected' : ''}>${s}</option>`).join('');
+    idFieldHtml = `
+      <div class="set-picker-row">
+        <select id="f-set" onchange="onSetChange()" style="flex:1;min-width:90px">${setOpts}<option value="__new__">+ Nouveau set…</option></select>
+        <div id="f-set-new-wrap" style="display:none;flex:1"><input id="f-set-new" placeholder="NOM_DU_SET" oninput="syncIdFromSet()" style="width:100%;font-family:monospace;text-transform:uppercase"></div>
+        <span class="set-sep">_</span>
+        <input type="number" id="f-num" min="1" value="${nextN}" oninput="syncIdFromSet()" class="set-num">
+      </div>
+      <input id="f-id" value="${initId}" class="set-result-id" placeholder="CORE_001">`;
+  } else {
+    idFieldHtml = `<input id="f-id" value="${esc(c.id)}" placeholder="CORE_001">`;
+  }
+
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header">
+      <div class="illustration-box" id="illus-box">
+        ${hasIllus ? `<img src="/illustrations/${c.id}" id="illus-img" alt="">` : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
+        <div class="illus-overlay">
+          ${hasIllus ? `<button class="btn btn-danger btn-sm" onclick="deleteIllustration()">Supprimer</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="openIllusModal()">Importer URL</button>
+        </div>
+      </div>
+      <div class="detail-info">
+        <div class="detail-title">${c.name}</div>
+        <div class="detail-meta">
+          ${tierBadge(c.tier)}
+          <span class="badge badge-summon">${summonLabel(c.summon_type)}</span>
+          ${(c.summon_options && c.summon_options.length) ? `<span class="badge" style="background:#e07be022;color:#e07be0">🔀 ${c.summon_options.length} options alt.</span>` : ''}
+          ${hasPower ? `<span class="badge badge-power">⚡ ${getPowerName(c.power.id)}</span>` : ''}
+          <span class="badge ${hasIllus ? 'badge-illus' : 'badge-no-illus'}">${hasIllus ? '🖼 Illus.' : 'Pas d\'illus.'}</span>
+        </div>
+        <div id="detail-card-id-display" style="font-family:monospace;font-size:11px;color:var(--muted)">${c.id}</div>
+      </div>
+    </div>
+
+    <div class="section-title">Identité</div>
+    <div class="form-grid">
+      <div class="field"><label>ID</label>${idFieldHtml}</div>
+      <div class="field"><label>Nom</label><input id="f-name" value="${esc(c.name)}" placeholder="Nom de la carte"></div>
+      <div class="field">
+        <label>Tier <span class="slider-val" id="f-tier-val">${Math.round(c.tier)}</span></label>
+        <input type="range" id="f-tier" min="1" max="5" step="1" value="${Math.round(c.tier)}" oninput="document.getElementById('f-tier-val').textContent=this.value">
+        <div class="slider-marks"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+      </div>
+      <div class="field"><label>Type d'invocation</label>
+        <select id="f-summon" onchange="onSummonTypeChange(this.value)">
+          ${['normal','sacrifice','fusion','heritage','transformation'].map(s => `<option value="${s}" ${c.summon_type===s?'selected':''}>${summonLabel(s)}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title">Stats</div>
+    <div class="stats-grid">
+      <div class="field"><label>ATK</label><input type="number" id="f-atk" value="${c.stats.atk}" step="0.5"></div>
+      <div class="field"><label>HP</label><input type="number" id="f-hp" value="${c.stats.hp}" step="0.5"></div>
+      <div class="field">
+        <label>Portée <span class="slider-val" id="f-range-val">${Math.min(4,Math.max(1,Math.round(c.stats.range)))}</span></label>
+        <input type="range" id="f-range" min="1" max="4" step="1" value="${Math.min(4,Math.max(1,Math.round(c.stats.range)))}" oninput="document.getElementById('f-range-val').textContent=this.value">
+        <div class="slider-marks"><span>1</span><span>2</span><span>3</span><span>4</span></div>
+      </div>
+      <div class="field">
+        <label>Vit. déplacement <span class="slider-val" id="f-move-val">${Math.min(20,Math.max(5,Math.round(c.stats.movement_speed/5)*5))}</span></label>
+        <input type="range" id="f-move" min="5" max="20" step="5" value="${Math.min(20,Math.max(5,Math.round(c.stats.movement_speed/5)*5))}" oninput="document.getElementById('f-move-val').textContent=this.value">
+        <div class="slider-marks"><span>5</span><span>10</span><span>15</span><span>20</span></div>
+      </div>
+      <div class="field">
+        <label>Vit. attaque <span class="slider-val" id="f-aspeed-val">${Math.min(20,Math.max(1,Math.round(c.stats.attack_speed)))}</span></label>
+        <input type="range" id="f-aspeed" min="1" max="20" step="1" value="${Math.min(20,Math.max(1,Math.round(c.stats.attack_speed)))}" oninput="document.getElementById('f-aspeed-val').textContent=this.value">
+        <div class="slider-marks"><span>1</span><span>20</span></div>
+      </div>
+      <div class="field">
+        <label>Initiative <span class="slider-val" id="f-init-val">${Math.min(10,Math.max(1,Math.round(c.stats.initiative)))}</span></label>
+        <input type="range" id="f-init" min="1" max="10" step="1" value="${Math.min(10,Math.max(1,Math.round(c.stats.initiative)))}" oninput="document.getElementById('f-init-val').textContent=this.value">
+        <div class="slider-marks"><span>1</span><span>10</span></div>
+      </div>
+    </div>
+
+    <div class="section-title">Pouvoir</div>
+    <div class="form-grid">
+      <div class="field"><label>Pouvoir</label>
+        <select id="f-power-id" onchange="togglePowerFields()">
+          <option value="">Aucun</option>
+          ${powers.map(p => `<option value="${p.id}" ${hasPower && c.power.id===p.id?'selected':''}>${p.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field" id="f-power-speed-wrap"><label>Vitesse pouvoir</label><input type="number" id="f-power-speed" value="${hasPower && c.power.power_speed != null ? c.power.power_speed : ''}" step="0.5" placeholder="ex: 60"></div>
+      <div class="field" id="f-power-val-wrap"><label>Valeur</label><input type="number" id="f-power-val" value="${hasPower && c.power.value != null ? c.power.value : ''}" step="0.5" placeholder="optionnel"></div>
+    </div>
+
+    <div class="section-title">Coût d'invocation</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Sacrifices requis <span class="slider-val" id="f-sac-val">${Math.min(3,Math.max(0,c.cost.sacrifice||0))}</span></label>
+        <input type="range" id="f-sac" min="0" max="3" step="1" value="${Math.min(3,Math.max(0,c.cost.sacrifice||0))}" oninput="document.getElementById('f-sac-val').textContent=this.value">
+        <div class="slider-marks"><span>0</span><span>1</span><span>2</span><span>3</span></div>
+      </div>
+    </div>
+    <div id="materials-section">
+      <div id="material-section-label" style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">${c.summon_type === 'heritage' ? 'Matériaux de Heritage' : 'Matériaux de fusion/heritage'}</div>
+      <div class="materials-list" id="materials-list">
+        ${(c.cost.materials || []).map(mid => {
+          const isAttr = !cards.find(x => x.id === mid) && !!attributes.find(x => x.id === mid);
+          return `
+          <div class="material-item" data-mid="${mid}">
+            <span style="display:flex;align-items:center;gap:6px">
+              ${isAttr ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px;white-space:nowrap">Attribut</span>` : ''}
+              <span>${esc(getMaterialName(mid))}</span>
+              <span style="font-size:10px;color:var(--muted);font-family:monospace">${mid}</span>
+            </span>
+            <button onclick="removeMaterial('${mid}')">×</button>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="position:relative;margin-top:8px" id="material-search-wrap">
+        <input type="text" id="material-search" placeholder="${c.summon_type === 'heritage' ? 'Rechercher une carte ou un attribut...' : 'Rechercher une carte à ajouter...'}" autocomplete="off"
+          oninput="filterMaterialSearch()" onfocus="showMaterialDropdown()" onblur="hideMaterialDropdown()"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
+        <div id="material-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
+      </div>
+    </div>
+
+    <div class="section-title">Lignée (cartes représentées)</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+      IDs de cartes que cette carte « représente » en plus d'elle-même pour le matching de matériaux fusion/heritage/transformation (ex : une fusion Avian+Burstinatrix doit lister Avian et Burstinatrix ici pour pouvoir combler leurs slots dans une fusion ultérieure qui les requiert).
+    </div>
+    <div class="materials-list" id="represented-list">
+      ${(c.represented_ids || []).map(rid => `
+        <div class="material-item" data-mid="${rid}">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span>${esc(getMaterialName(rid))}</span>
+            <span style="font-size:10px;color:var(--muted);font-family:monospace">${rid}</span>
+          </span>
+          <button onclick="removeRepresented('${rid}')">×</button>
+        </div>`).join('')}
+    </div>
+    <div style="position:relative;margin-top:8px;margin-bottom:20px" id="represented-search-wrap">
+      <input type="text" id="represented-search" placeholder="Rechercher une carte à ajouter à la lignée..." autocomplete="off"
+        oninput="filterRepresentedSearch()" onfocus="showRepresentedDropdown()" onblur="hideRepresentedDropdown()"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
+      <div id="represented-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
+    </div>
+
+    <div class="section-title">Options d'invocation alternatives</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+      Permet d'invoquer le même monstre par plusieurs méthodes différentes (ex : transformation depuis une carte précise OU sacrifice de plusieurs monstres). ${(c.summon_options && c.summon_options.length) ? `<strong style="color:var(--text)">Le type et le coût classiques ci-dessus sont ignorés</strong> tant qu'au moins une option est définie ici.` : `Tant qu'aucune option n'est ajoutée, le type et le coût classiques ci-dessus s'appliquent normalement.`}
+    </div>
+    <div id="summon-options-list">
+      ${(c.summon_options || []).map((opt, idx) => optionRowHtml(opt, idx)).join('')}
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="addSummonOption()" style="margin-bottom:20px">+ Ajouter une option alternative</button>
+
+    <div class="section-title">Attributs</div>
+    <div class="attr-chips" id="attr-chips">
+      ${(c.attributes || []).map(aid => `
+        <span class="attr-chip" onclick="removeCardAttribute('${aid}')">
+          ${getAttrName(aid)} <span class="remove">×</span>
+        </span>
+      `).join('')}
+      <button class="attr-add" onclick="openAttrPickModal()">+ Ajouter</button>
+    </div>
+
+    <div class="actions">
+      ${isNewCard
+        ? `<button class="btn btn-success" onclick="createCard()">Créer la carte</button>
+           <button class="btn btn-secondary" onclick="cancelNew()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveCard()">Enregistrer</button>
+           <button class="btn btn-secondary" onclick="duplicateCard()" title="Crée une copie avec un nouvel ID">⧉ Dupliquer</button>
+           <button class="btn btn-danger" onclick="deleteCard()">Supprimer</button>`}
+    </div>
+  `;
+  togglePowerFields();
+}
+
+function togglePowerFields() {
+  const hasPower = document.getElementById('f-power-id')?.value;
+  const speedWrap = document.getElementById('f-power-speed-wrap');
+  const valWrap = document.getElementById('f-power-val-wrap');
+  if (speedWrap) speedWrap.style.display = hasPower ? '' : 'none';
+  if (valWrap) valWrap.style.display = hasPower ? '' : 'none';
+}
+
+function removeCardAttribute(aid) {
+  syncCardFromForm();
+  selectedCard.attributes = (selectedCard.attributes || []).filter(a => a !== aid);
+  renderCardDetail();
+}
+
+function removeMaterial(mid) {
+  syncCardFromForm();
+  selectedCard.cost.materials = (selectedCard.cost.materials || []).filter(m => m !== mid);
+  renderCardDetail();
+}
+
+function removeRepresented(rid) {
+  syncCardFromForm();
+  selectedCard.represented_ids = (selectedCard.represented_ids || []).filter(r => r !== rid);
+  renderCardDetail();
+}
+
+function addRepresented(id) {
+  syncCardFromForm();
+  if (!selectedCard.represented_ids) selectedCard.represented_ids = [];
+  if (!selectedCard.represented_ids.includes(id) && id !== selectedCard.id) {
+    selectedCard.represented_ids.push(id);
+    renderCardDetail();
+  }
+}
+
+function filterRepresentedSearch() {
+  const q = document.getElementById('represented-search')?.value.toLowerCase() || '';
+  const current = selectedCard.represented_ids || [];
+
+  const results = cards
+    .filter(x => x.id !== selectedCard.id && !current.includes(x.id))
+    .filter(x => !q || x.name.toLowerCase().includes(q) || x.id.toLowerCase().includes(q))
+    .slice(0, 20);
+
+  renderRepresentedDropdown(results);
+}
+
+function renderRepresentedDropdown(results) {
+  const dd = document.getElementById('represented-dropdown');
+  if (!dd) return;
+  if (!results.length) {
+    dd.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
+  } else {
+    dd.innerHTML = results.map(x => `
+        <div onmousedown="addRepresented('${x.id}')"
+          style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
+          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <div>
+            <div style="font-size:13px">${esc(x.name)}</div>
+            <div style="margin-top:2px"><span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${summonLabel(x.summon_type)}</span></div>
+          </div>
+        </div>`).join('');
+  }
+  dd.style.display = 'block';
+}
+
+function showRepresentedDropdown() {
+  filterRepresentedSearch();
+}
+
+function hideRepresentedDropdown() {
+  setTimeout(() => {
+    const dd = document.getElementById('represented-dropdown');
+    if (dd) dd.style.display = 'none';
+  }, 150);
+}
+
+function filterMaterialSearch() {
+  const q = document.getElementById('material-search')?.value.toLowerCase() || '';
+  const summon = document.getElementById('f-summon')?.value;
+  const current = selectedCard.cost?.materials || [];
+
+  const matchedCards = cards
+    .filter(x => x.id !== selectedCard.id && !current.includes(x.id))
+    .filter(x => !q || x.name.toLowerCase().includes(q) || x.id.toLowerCase().includes(q))
+    .slice(0, 20)
+    .map(x => ({ ...x, _matType: 'card' }));
+
+  let results = matchedCards;
+
+  if (summon === 'heritage') {
+    const matchedAttrs = attributes
+      .filter(a => !current.includes(a.id))
+      .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
+      .slice(0, 10)
+      .map(a => ({ ...a, _matType: 'attribute' }));
+    results = [...matchedAttrs, ...matchedCards];
+  }
+
+  renderMaterialDropdown(results);
+}
+
+function renderMaterialDropdown(results) {
+  const dd = document.getElementById('material-dropdown');
+  if (!dd) return;
+  if (!results.length) {
+    dd.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
+  } else {
+    dd.innerHTML = results.map(x => {
+      const isAttr = x._matType === 'attribute';
+      const sub = isAttr
+        ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px">Attribut</span>`
+        : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${summonLabel(x.summon_type)}</span>`;
+      return `
+        <div onmousedown="addMaterial('${x.id}')"
+          style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
+          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          ${isAttr ? `<span style="font-size:16px">${x.icon || '🔷'}</span>` : ''}
+          <div>
+            <div style="font-size:13px">${esc(x.name)}</div>
+            <div style="margin-top:2px">${sub}</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+  dd.style.display = 'block';
+}
+
+function optionMaterialsLabel(type) {
+  return type === 'heritage' ? 'Matériaux de Heritage' : 'Matériaux de fusion/heritage/transformation';
+}
+
+function optionRowHtml(opt, idx) {
+  const sac = Math.min(3, Math.max(0, opt.cost?.sacrifice || 0));
+  const mats = opt.cost?.materials || [];
+  return `
+    <div class="option-row" data-idx="${idx}" style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--surface2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:600;font-size:12px;color:var(--muted)">Option ${idx + 1}</span>
+        <button class="btn btn-danger btn-sm" onclick="removeSummonOption(${idx})">× Retirer</button>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>Type d'invocation</label>
+          <select id="opt-summon-${idx}" onchange="onOptionSummonTypeChange(${idx}, this.value)">
+            ${['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'].map(s => `<option value="${s}" ${opt.summon_type === s ? 'selected' : ''}>${summonLabel(s)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Sacrifices requis <span class="slider-val" id="opt-sac-val-${idx}">${sac}</span></label>
+          <input type="range" id="opt-sac-${idx}" min="0" max="3" step="1" value="${sac}" oninput="document.getElementById('opt-sac-val-${idx}').textContent=this.value">
+          <div class="slider-marks"><span>0</span><span>1</span><span>2</span><span>3</span></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600" id="opt-material-label-${idx}">${optionMaterialsLabel(opt.summon_type)}</div>
+      <div class="materials-list" id="opt-materials-list-${idx}">
+        ${mats.map(mid => {
+          const isAttr = isMaterialAttribute(mid);
+          return `
+          <div class="material-item" data-mid="${mid}">
+            <span style="display:flex;align-items:center;gap:6px">
+              ${isAttr ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px;white-space:nowrap">Attribut</span>` : ''}
+              <span>${esc(getMaterialName(mid))}</span>
+              <span style="font-size:10px;color:var(--muted);font-family:monospace">${mid}</span>
+            </span>
+            <button onclick="removeOptionMaterial(${idx}, '${mid}')">×</button>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="position:relative;margin-top:8px" id="opt-material-search-wrap-${idx}">
+        <input type="text" id="opt-material-search-${idx}" placeholder="Rechercher une carte ou un attribut..." autocomplete="off"
+          oninput="filterOptionMaterialSearch(${idx})" onfocus="showOptionMaterialDropdown(${idx})" onblur="hideOptionMaterialDropdown(${idx})"
+          style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
+        <div id="opt-material-dropdown-${idx}" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
+      </div>
+    </div>`;
+}
+
+function addSummonOption() {
+  syncCardFromForm();
+  if (!selectedCard.summon_options) selectedCard.summon_options = [];
+  selectedCard.summon_options.push({ summon_type: 'normal', cost: { sacrifice: 0, materials: [] } });
+  renderCardDetail();
+}
+
+function removeSummonOption(idx) {
+  syncCardFromForm();
+  selectedCard.summon_options.splice(idx, 1);
+  renderCardDetail();
+}
+
+function onOptionSummonTypeChange(idx, val) {
+  syncCardFromForm();
+  selectedCard.summon_options[idx].summon_type = val;
+  renderCardDetail();
+}
+
+function removeOptionMaterial(idx, mid) {
+  syncCardFromForm();
+  const opt = selectedCard.summon_options[idx];
+  opt.cost.materials = (opt.cost.materials || []).filter(m => m !== mid);
+  renderCardDetail();
+}
+
+function addOptionMaterial(idx, id) {
+  syncCardFromForm();
+  const opt = selectedCard.summon_options[idx];
+  if (!opt.cost.materials) opt.cost.materials = [];
+  if (!opt.cost.materials.includes(id)) {
+    opt.cost.materials.push(id);
+    renderCardDetail();
+  }
+}
+
+function filterOptionMaterialSearch(idx) {
+  const q = document.getElementById(`opt-material-search-${idx}`)?.value.toLowerCase() || '';
+  const summonType = document.getElementById(`opt-summon-${idx}`)?.value;
+  const current = selectedCard.summon_options[idx]?.cost?.materials || [];
+
+  const matchedCards = cards
+    .filter(x => x.id !== selectedCard.id && !current.includes(x.id))
+    .filter(x => !q || x.name.toLowerCase().includes(q) || x.id.toLowerCase().includes(q))
+    .slice(0, 20)
+    .map(x => ({ ...x, _matType: 'card' }));
+
+  let results = matchedCards;
+  if (summonType === 'heritage') {
+    const matchedAttrs = attributes
+      .filter(a => !current.includes(a.id))
+      .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
+      .slice(0, 10)
+      .map(a => ({ ...a, _matType: 'attribute' }));
+    results = [...matchedAttrs, ...matchedCards];
+  }
+
+  renderOptionMaterialDropdown(idx, results);
+}
+
+function renderOptionMaterialDropdown(idx, results) {
+  const dd = document.getElementById(`opt-material-dropdown-${idx}`);
+  if (!dd) return;
+  if (!results.length) {
+    dd.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
+  } else {
+    dd.innerHTML = results.map(x => {
+      const isAttr = x._matType === 'attribute';
+      const sub = isAttr
+        ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px">Attribut</span>`
+        : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${summonLabel(x.summon_type)}</span>`;
+      return `
+        <div onmousedown="addOptionMaterial(${idx}, '${x.id}')"
+          style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
+          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          ${isAttr ? `<span style="font-size:16px">${x.icon || '🔷'}</span>` : ''}
+          <div>
+            <div style="font-size:13px">${esc(x.name)}</div>
+            <div style="margin-top:2px">${sub}</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+  dd.style.display = 'block';
+}
+
+function showOptionMaterialDropdown(idx) {
+  filterOptionMaterialSearch(idx);
+}
+
+function hideOptionMaterialDropdown(idx) {
+  // Delay so onmousedown on items fires first
+  setTimeout(() => {
+    const dd = document.getElementById(`opt-material-dropdown-${idx}`);
+    if (dd) dd.style.display = 'none';
+  }, 150);
+}
+
+function collectSummonOptionsFromForm() {
+  if (!selectedCard.summon_options || !selectedCard.summon_options.length) return undefined;
+  return selectedCard.summon_options.map((opt, idx) => {
+    const typeEl = document.getElementById(`opt-summon-${idx}`);
+    const sacEl = document.getElementById(`opt-sac-${idx}`);
+    return {
+      summon_type: typeEl ? typeEl.value : opt.summon_type,
+      cost: {
+        sacrifice: sacEl ? (parseFloat(sacEl.value) || 0) : (opt.cost?.sacrifice || 0),
+        materials: [...(opt.cost?.materials || [])],
+      },
+    };
+  });
+}
+
+function onSummonTypeChange(val) {
+  syncCardFromForm();
+  const label = document.getElementById('material-section-label');
+  const input = document.getElementById('material-search');
+  if (label) label.textContent = val === 'heritage' ? 'Matériaux de Heritage' : 'Matériaux de fusion/heritage';
+  if (input) input.placeholder = val === 'heritage' ? 'Rechercher une carte ou un attribut...' : 'Rechercher une carte à ajouter...';
+  filterMaterialSearch();
+}
+
+function showMaterialDropdown() {
+  filterMaterialSearch();
+}
+
+function hideMaterialDropdown() {
+  // Delay so onmousedown on items fires first
+  setTimeout(() => {
+    const dd = document.getElementById('material-dropdown');
+    if (dd) dd.style.display = 'none';
+  }, 150);
+}
+
+function addMaterial(id) {
+  syncCardFromForm();
+  if (!selectedCard.cost.materials) selectedCard.cost.materials = [];
+  if (!selectedCard.cost.materials.includes(id)) {
+    selectedCard.cost.materials.push(id);
+    renderCardDetail();
+  }
+}
+
+function syncCardFromForm() {
+  if (!selectedCard || !document.getElementById('f-id')) return;
+  const powId = document.getElementById('f-power-id')?.value;
+  const powSpeed = document.getElementById('f-power-speed')?.value;
+  const powVal = document.getElementById('f-power-val')?.value;
+  selectedCard.id = document.getElementById('f-id').value.trim();
+  selectedCard.name = document.getElementById('f-name').value.trim();
+  selectedCard.type = 'monster';
+  selectedCard.tier = parseFloat(document.getElementById('f-tier').value);
+  selectedCard.summon_type = document.getElementById('f-summon').value;
+  selectedCard.stats = {
+    atk: parseFloat(document.getElementById('f-atk').value) || 0,
+    hp: parseFloat(document.getElementById('f-hp').value) || 0,
+    movement_speed: parseFloat(document.getElementById('f-move').value) || 0,
+    attack_speed: parseFloat(document.getElementById('f-aspeed').value) || 0,
+    initiative: parseFloat(document.getElementById('f-init').value) || 0,
+    range: parseFloat(document.getElementById('f-range').value) || 0,
+  };
+  selectedCard.power = powId
+    ? { id: powId, ...(powSpeed !== '' ? { power_speed: parseFloat(powSpeed) } : {}), ...(powVal !== '' ? { value: parseFloat(powVal) } : {}) }
+    : {};
+  selectedCard.cost = {
+    sacrifice: parseFloat(document.getElementById('f-sac').value) || 0,
+    materials: selectedCard.cost?.materials || [],
+  };
+  selectedCard.represented_ids = selectedCard.represented_ids || [];
+  selectedCard.summon_options = collectSummonOptionsFromForm();
+}
+
+function collectCardFromForm() {
+  const powId = document.getElementById('f-power-id').value;
+  const powSpeed = document.getElementById('f-power-speed')?.value;
+  const powVal = document.getElementById('f-power-val')?.value;
+  const power = powId
+    ? { id: powId, ...(powSpeed !== '' ? { power_speed: parseFloat(powSpeed) } : {}), ...(powVal !== '' ? { value: parseFloat(powVal) } : {}) }
+    : {};
+
+  return {
+    id: document.getElementById('f-id').value.trim(),
+    name: document.getElementById('f-name').value.trim(),
+    type: 'monster',
+    tier: parseFloat(document.getElementById('f-tier').value),
+    summon_type: document.getElementById('f-summon').value,
+    attributes: [...(selectedCard.attributes || [])],
+    stats: {
+      atk: parseFloat(document.getElementById('f-atk').value),
+      hp: parseFloat(document.getElementById('f-hp').value),
+      movement_speed: parseFloat(document.getElementById('f-move').value),
+      attack_speed: parseFloat(document.getElementById('f-aspeed').value),
+      initiative: parseFloat(document.getElementById('f-init').value),
+      range: parseFloat(document.getElementById('f-range').value),
+    },
+    power,
+    cost: {
+      sacrifice: parseFloat(document.getElementById('f-sac').value),
+      materials: [...(selectedCard.cost.materials || [])],
+    },
+    represented_ids: [...(selectedCard.represented_ids || [])],
+    summon_options: collectSummonOptionsFromForm(),
+  };
+}
+
+async function saveCard() {
+  const updated = collectCardFromForm();
+  const oldId = selectedCard.id;
+  if (!updated.id || !updated.name) return toast('ID et nom requis', 'err');
+
+  const res = await apiFetch(`/api/cards/${oldId}`, { method: 'PUT', body: updated });
+  if (res.error) return toast(res.error, 'err');
+
+  const idx = cards.findIndex(c => c.id === oldId);
+  updated._has_illustration = cards[idx]._has_illustration;
+  cards[idx] = updated;
+  selectedCard = updated;
+  filterCards();
+  renderCardDetail();
+  toast('Carte enregistrée');
+}
+
+async function deleteCard() {
+  if (!confirm(`Supprimer "${selectedCard.name}" ?`)) return;
+  const res = await apiFetch(`/api/cards/${selectedCard.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  cards = cards.filter(c => c.id !== selectedCard.id);
+  selectedCard = null;
+  filterCards();
+  document.getElementById('card-detail').innerHTML = '<div class="empty"><span>Sélectionne une carte</span></div>';
+  showList();
+  toast('Carte supprimée');
+}
+
+function getSets() {
+  const sets = new Set();
+  for (const c of cards) {
+    const m = c.id.match(/^(.+)_(\d+)$/);
+    if (m) sets.add(m[1]);
+  }
+  if (sets.size === 0) sets.add('CORE');
+  return [...sets].sort();
+}
+
+function getAttrCategories() {
+  const cats = new Set();
+  for (const a of attributes) {
+    if (a.categorie) cats.add(a.categorie);
+  }
+  return [...cats].sort();
+}
+
+function onAttrCategoryChange() {
+  const sel = document.getElementById('af-cat');
+  const newWrap = document.getElementById('af-cat-new-wrap');
+  if (!sel || !newWrap) return;
+  newWrap.style.display = sel.value === '__new__' ? '' : 'none';
+  if (sel.value === '__new__') document.getElementById('af-cat-new')?.focus();
+}
+
+function getAttrCategoryValue() {
+  const sel = document.getElementById('af-cat');
+  if (!sel) return '';
+  return sel.value === '__new__'
+    ? (document.getElementById('af-cat-new')?.value.trim() || '')
+    : (sel.value === '__none__' ? '' : sel.value);
+}
+
+function getNextNumForSet(setName) {
+  const escaped = setName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`^${escaped}_(\\d+)$`);
+  let max = 0;
+  for (const c of cards) {
+    const m = c.id.match(re);
+    if (m) max = Math.max(max, parseInt(m[1]));
+  }
+  return max + 1;
+}
+
+function onSetChange() {
+  const sel = document.getElementById('f-set');
+  const newWrap = document.getElementById('f-set-new-wrap');
+  if (!sel) return;
+  if (sel.value === '__new__') {
+    if (newWrap) newWrap.style.display = '';
+    document.getElementById('f-set-new')?.focus();
+  } else {
+    if (newWrap) newWrap.style.display = 'none';
+    const numInput = document.getElementById('f-num');
+    if (numInput) numInput.value = getNextNumForSet(sel.value);
+  }
+  syncIdFromSet();
+}
+
+function syncIdFromSet() {
+  const sel = document.getElementById('f-set');
+  if (!sel) return;
+  const setName = sel.value === '__new__'
+    ? (document.getElementById('f-set-new')?.value.trim().toUpperCase() || '')
+    : sel.value;
+  const num = parseInt(document.getElementById('f-num')?.value) || 1;
+  const idInput = document.getElementById('f-id');
+  if (idInput && setName) {
+    idInput.value = `${setName}_${String(num).padStart(3, '0')}`;
+    localStorage.setItem('lastSet', setName);
+  }
+}
+
+function openNewCard() {
+  const allSets = getSets();
+  const lastSet = localStorage.getItem('lastSet') || '';
+  const currentSet = allSets.includes(lastSet) ? lastSet : allSets[0];
+  const nextNum = getNextNumForSet(currentSet);
+  const newId = `${currentSet}_${String(nextNum).padStart(3, '0')}`;
+
+  selectedCard = {
+    id: newId, name: '', type: 'monster', tier: 1, summon_type: 'normal',
+    attributes: [], stats: { atk: 10, hp: 100, movement_speed: 10, attack_speed: 10, initiative: 4, range: 1 },
+    power: {}, cost: { sacrifice: 0, materials: [] }, represented_ids: [], _has_illustration: false,
+  };
+  isNewCard = true;
+  renderCardList();
+  renderCardDetail();
+  showDetail();
+}
+
+async function createCard() {
+  const card = collectCardFromForm();
+  if (!card.id || !card.name) return toast('ID et nom requis', 'err');
+  const res = await apiFetch('/api/cards', { method: 'POST', body: card });
+  if (res.error) return toast(res.error, 'err');
+  card._has_illustration = selectedCard._has_illustration || false;
+  cards.push(card);
+  selectedCard = card;
+  isNewCard = false;
+  filterCards();
+  renderCardDetail();
+  toast('Carte créée');
+}
+
+function cancelNew() {
+  selectedCard = null;
+  isNewCard = false;
+  filterCards();
+  document.getElementById('card-detail').innerHTML = '<div class="empty"><span>Sélectionne une carte</span></div>';
+  showList();
+}
+
+function duplicateCard() {
+  if (!selectedCard) return;
+  syncCardFromForm();
+
+  // Extrait le préfixe et trouve le prochain numéro disponible pour ce préfixe
+  const idMatch = selectedCard.id.match(/^(.+?)_(\d+)$/);
+  const prefix = idMatch ? idMatch[1] : 'CORE';
+  const padLen  = idMatch ? idMatch[2].length : 3;
+  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const prefixRe = new RegExp(`^${escaped}_(\\d+)$`);
+
+  const nextNum = cards.reduce((max, c) => {
+    const m = c.id.match(prefixRe);
+    return m ? Math.max(max, parseInt(m[1])) : max;
+  }, 0) + 1;
+
+  const newId = `${prefix}_${String(nextNum).padStart(Math.max(padLen, 3), '0')}`;
+
+  // Deep-clone de la carte courante, nouvel ID, pas d'illustration
+  selectedCard = JSON.parse(JSON.stringify(selectedCard));
+  selectedCard.id = newId;
+  selectedCard._has_illustration = false;
+
+  isNewCard = true;
+  renderCardList();
+  renderCardDetail();
+
+  // renderCardDetail() écrase selectedCard.id via le set-picker auto.
+  // On réinjecte notre ID calculé dans le set picker, puis on sync.
+  const setEl  = document.getElementById('f-set');
+  const numEl  = document.getElementById('f-num');
+  const newWrp = document.getElementById('f-set-new-wrap');
+  if (setEl) {
+    const inList = [...setEl.options].some(o => o.value === prefix);
+    if (inList) {
+      setEl.value = prefix;
+      if (newWrp) newWrp.style.display = 'none';
+    } else {
+      // Le set n'existe pas encore : utilise le champ "nouveau set"
+      setEl.value = '__new__';
+      if (newWrp) newWrp.style.display = '';
+      const newSetEl = document.getElementById('f-set-new');
+      if (newSetEl) newSetEl.value = prefix;
+    }
+    if (numEl) numEl.value = nextNum;
+    syncIdFromSet();   // met à jour f-id
+    // syncIdFromSet ne touche pas selectedCard.id, on le force ici
+    const finalId = document.getElementById('f-id')?.value;
+    if (finalId && selectedCard) {
+      selectedCard.id = finalId;
+      const badge = document.getElementById('detail-card-id-display');
+      if (badge) badge.textContent = finalId;
+    }
+  }
+
+  showDetail();
+  toast(`Carte dupliquée — modifie puis clique "Créer la carte"`);
+}
+
+// Illustration
+function openIllusModal() {
+  const cardName = selectedCard?.name || '';
+  const defaultQuery = `yugioh illustration ${cardName}`.trim();
+  showModal(`
+    <h2 style="margin-bottom:16px">Illustration — ${esc(cardName)}</h2>
+
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Mots-clés</label>
+        <input id="illus-search-q" value="${esc(defaultQuery)}" style="font-family:monospace;font-size:12px">
+      </div>
+      <button class="btn btn-secondary" onclick="openImageSearch()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.28 5 12c0-4.2 3.29-7.27 7.19-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"/></svg>
+        Ouvrir Google Images ↗
+      </button>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.6;border-top:1px solid var(--border);padding-top:10px">
+        Clic droit sur l'image souhaitée →
+        <strong style="color:var(--text)">Copier l'adresse de l'image</strong>
+        → coller dans le champ ci-dessous.
+      </div>
+    </div>
+
+    <div class="field">
+      <label>URL de l'image</label>
+      <div style="display:flex;gap:6px">
+        <input id="illus-url" type="text" placeholder="https://..." style="flex:1">
+        <button class="btn btn-secondary btn-sm" onclick="pasteIllusUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
+      </div>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Sauvegardée sous <code>${selectedCard.id}.png</code></span>
+    </div>
+
+    <div style="text-align:center;margin:14px 0;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px">— ou —</div>
+
+    <div class="field">
+      <label>Importer depuis mon appareil</label>
+      <input id="illus-file" type="file" accept="image/*" onchange="importIllustrationFromFile()">
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Conversion automatique au format PNG</span>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="importIllustration()">Importer depuis l'URL</button>
+    </div>
+  `, 'wide');
+}
+
+function openImageSearch() {
+  const q = document.getElementById('illus-search-q')?.value || `yugioh illustration ${selectedCard?.name || ''}`;
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
+}
+
+async function pasteIllusUrl() {
+  try {
+    const text = await navigator.clipboard.readText();
+    const el = document.getElementById('illus-url');
+    if (el) el.value = text;
+  } catch {
+    toast('Accès presse-papier refusé — collez manuellement (Ctrl+V)', 'err');
+  }
+}
+
+async function importIllustration() {
+  const url = document.getElementById('illus-url').value.trim();
+  if (!url) return toast('URL requise', 'err');
+  closeModal();
+  toast('Téléchargement en cours...', 'ok');
+  const res = await apiFetch(`/api/cards/${selectedCard.id}/illustration`, { method: 'POST', body: { url } });
+  if (res.error) return toast(res.error, 'err');
+  selectedCard._has_illustration = true;
+  const idx = cards.findIndex(c => c.id === selectedCard.id);
+  if (idx !== -1) cards[idx]._has_illustration = true;
+  filterCards();
+  renderCardDetail();
+  toast('Illustration importée');
+}
+
+async function importIllustrationFromFile() {
+  const fileInput = document.getElementById('illus-file');
+  const file = fileInput?.files?.[0];
+  if (!file) return;
+  closeModal();
+  toast('Import en cours...', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/cards/${selectedCard.id}/illustration`, { method: 'PUT', body: { data } });
+  if (res.error) return toast(res.error, 'err');
+  selectedCard._has_illustration = true;
+  const idx = cards.findIndex(c => c.id === selectedCard.id);
+  if (idx !== -1) cards[idx]._has_illustration = true;
+  filterCards();
+  renderCardDetail();
+  toast('Illustration importée');
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function deleteIllustration() {
+  if (!confirm('Supprimer l\'illustration ?')) return;
+  const res = await apiFetch(`/api/cards/${selectedCard.id}/illustration`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  selectedCard._has_illustration = false;
+  const idx = cards.findIndex(c => c.id === selectedCard.id);
+  if (idx !== -1) cards[idx]._has_illustration = false;
+  filterCards();
+  renderCardDetail();
+  toast('Illustration supprimée');
+}
+
+// Attribute picker modal
+let attrPickCat = '';
+let attrPickSelected = new Set();
+
+function openAttrPickModal() {
+  attrPickCat = '';
+  attrPickSelected = new Set();
+  const cats = getAttrCategories();
+  showModal(`
+    <h2>Ajouter des attributs</h2>
+    <input type="search" id="ap-search" placeholder="Rechercher..." autocomplete="off" oninput="renderAttrPickList()" style="width:100%;margin-bottom:8px">
+    <div class="tabs" style="margin-bottom:8px;flex-wrap:wrap">
+      <button class="tab ap-tab active" data-cat="" onclick="setAttrPickCat('')">Tous</button>
+      ${cats.map(cat => `<button class="tab ap-tab" data-cat="${esc(cat)}" onclick="setAttrPickCat('${esc(cat)}')">${esc(cat)}</button>`).join('')}
+    </div>
+    <div id="ap-list" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmAttrPick()">Ajouter<span id="ap-count"></span></button>
+    </div>
+  `);
+  renderAttrPickList();
+}
+
+function setAttrPickCat(cat) {
+  attrPickCat = cat;
+  document.querySelectorAll('.ap-tab').forEach(el => el.classList.toggle('active', el.dataset.cat === cat));
+  renderAttrPickList();
+}
+
+function renderAttrPickList() {
+  const current = selectedCard.attributes || [];
+  const q = (document.getElementById('ap-search')?.value || '').toLowerCase();
+  const list = attributes.filter(a =>
+    !current.includes(a.id) &&
+    (!attrPickCat || a.categorie === attrPickCat) &&
+    (!q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
+  );
+  document.getElementById('ap-list').innerHTML = list.map(a => `
+    <div class="list-item ${attrPickSelected.has(a.id) ? 'bulk-selected' : ''}" style="border-radius:6px" onclick="toggleAttrPickSelect('${a.id}')">
+      <span style="font-size:16px">${a.icon || ''}</span>
+      <div><div>${esc(a.name)}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${a.id}</div></div>
+    </div>
+  `).join('') || '<div class="empty"><span>Aucun attribut</span></div>';
+  updateAttrPickCount();
+}
+
+function toggleAttrPickSelect(aid) {
+  if (attrPickSelected.has(aid)) attrPickSelected.delete(aid);
+  else attrPickSelected.add(aid);
+  renderAttrPickList();
+}
+
+function updateAttrPickCount() {
+  const el = document.getElementById('ap-count');
+  if (el) el.textContent = attrPickSelected.size ? ` (${attrPickSelected.size})` : '';
+}
+
+function confirmAttrPick() {
+  if (!attrPickSelected.size) { closeModal(); return; }
+  if (!selectedCard.attributes) selectedCard.attributes = [];
+  syncCardFromForm();
+  for (const aid of attrPickSelected) {
+    if (!selectedCard.attributes.includes(aid)) selectedCard.attributes.push(aid);
+  }
+  closeModal();
+  renderCardDetail();
+}
+
+// ================== ATTRIBUTES ==================
+function filterAttributes() {
+  const q = document.getElementById('attr-search').value.toLowerCase();
+  const filtered = attributes.filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q));
+  renderAttrList(filtered);
+}
+
+function renderAttrList(list = attributes) {
+  document.getElementById('attr-count').textContent = list.length;
+  document.getElementById('attr-list').innerHTML = list.map(a => `
+    <div class="list-item ${selectedAttr && selectedAttr.id === a.id ? 'selected' : ''}" onclick="selectAttr('${a.id}')">
+      <span style="font-size:18px">${a.icon || '❓'}</span>
+      <div>
+        <div class="item-name">${a.name}</div>
+        <div class="item-id">${a.id}</div>
+      </div>
+      <span class="badge badge-summon" style="font-size:10px">${a.thresholds.length} seuils</span>
+    </div>
+  `).join('');
+}
+
+function selectAttr(id) {
+  selectedAttr = attributes.find(a => a.id === id);
+  isNewAttr = false;
+  renderAttrList();
+  renderAttrDetail();
+  showDetail();
+}
+
+function renderAttrDetail() {
+  const a = selectedAttr;
+  const el = document.getElementById('attr-detail');
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header" style="align-items:center;gap:16px">
+      <div style="font-size:48px">${a.icon || '❓'}</div>
+      <div>
+        <div class="detail-title">${a.name}</div>
+        <div style="font-family:monospace;font-size:11px;color:var(--muted)">${a.id}</div>
+      </div>
+    </div>
+
+    <div class="section-title">Identité</div>
+    <div class="form-grid">
+      <div class="field"><label>ID</label><input id="af-id" value="${a.id}"></div>
+      <div class="field"><label>Nom</label><input id="af-name" value="${esc(a.name)}"></div>
+      <div class="field"><label>Icône (emoji)</label><input id="af-icon" value="${a.icon || ''}"></div>
+      <div class="field"><label>Timing</label>
+        <select id="af-timing">
+          ${['start_of_combat','during_combat','end_of_combat','none'].map(t =>
+            `<option value="${t}" ${a.timing===t?'selected':''}>${t}</option>`
+          ).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Catégorie</label>
+        <div class="cat-picker-row">
+          <select id="af-cat" onchange="onAttrCategoryChange()" style="flex:1">
+            <option value="__none__" ${!a.categorie ? 'selected' : ''}>— Aucune —</option>
+            ${getAttrCategories().map(cat => `<option value="${cat}" ${a.categorie === cat ? 'selected' : ''}>${esc(cat)}</option>`).join('')}
+            <option value="__new__">+ Nouvelle catégorie…</option>
+          </select>
+          <div id="af-cat-new-wrap" style="display:none;flex:1">
+            <input id="af-cat-new" placeholder="Nom de la catégorie" style="width:100%">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Seuils <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="addThreshold()">+ Seuil</button></div>
+    <div id="thresholds-container">
+      ${(a.thresholds || []).map((th, ti) => renderThresholdBlock(th, ti)).join('')}
+    </div>
+
+    <div class="actions">
+      ${isNewAttr
+        ? `<button class="btn btn-success" onclick="submitNewAttribute()">Créer l'attribut</button>
+           <button class="btn btn-secondary" onclick="cancelNewAttr()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveAttribute()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deleteAttribute()">Supprimer</button>`}
+    </div>
+  `;
+}
+
+function renderThresholdBlock(th, ti) {
+  const medals = ['bronze','silver','gold','platinum'];
+  return `
+    <div class="threshold-block" id="th-${ti}">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="field" style="flex:1"><label>Nombre de cartes requis</label><input type="number" id="th-${ti}-count" value="${th.count}" min="1" style="width:100%"></div>
+        <div class="field" style="flex:1"><label>Médaille</label>
+          <select id="th-${ti}-medal">
+            ${medals.map(m => `<option value="${m}" ${th.medal===m?'selected':''}>${m}</option>`).join('')}
+          </select>
+        </div>
+        <button class="btn btn-danger btn-sm" style="margin-top:16px" onclick="removeThreshold(${ti})">×</button>
+      </div>
+      ${(th.effects || []).map((ef, ei) => renderEffectBlock(ef, ti, ei)).join('')}
+      <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="addEffect(${ti})">+ Effet</button>
+    </div>
+  `;
+}
+
+const ATTR_EFFECT_STATS = ['atk', 'hp', 'attack_speed', 'movement_speed', 'range', 'initiative', 'power_charge'];
+const ATTR_EFFECT_TRIGGERS = ['on_enemy_neutralized', 'on_ally_neutralized'];
+const ATTR_EFFECT_CATEGORIES = ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'];
+const ATTR_EFFECT_TARGETS = ['neutralized_ally'];
+
+function _attrEffectFieldVisibility(type) {
+  return {
+    showStat: ['stat_bonus', 'stat_modifier'].includes(type),
+    showValuePer: ['stat_bonus', 'shield'].includes(type),
+    showTrigger: type === 'stat_modifier',
+    showMax: ['draw_bonus', 'board_slot_bonus'].includes(type),
+    showTarget: type === 'revive',
+    showHpPercent: type === 'revive',
+    showCategory: type === 'guaranteed_draw',
+    showValue: !['guaranteed_draw', 'effect_immunity'].includes(type),
+  };
+}
+
+function renderEffectBlock(ef, ti, ei) {
+  const type = ef.type || 'stat_bonus';
+  const v = _attrEffectFieldVisibility(type);
+  const valuePerOptions = ['active_unit', ...attributes.map(a => a.id)];
+  return `
+    <div class="effect-block" id="ef-${ti}-${ei}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div class="field" style="flex:1"><label>Type</label>
+          <select id="ef-${ti}-${ei}-type" onchange="updateEffectFields(${ti},${ei})">
+            <option value="stat_bonus" ${type === 'stat_bonus' ? 'selected' : ''}>Bonus de stat</option>
+            <option value="stat_modifier" ${type === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat (sur trigger)</option>
+            <option value="draw_bonus" ${type === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
+            <option value="guaranteed_draw" ${type === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (par catégorie)</option>
+            <option value="revive" ${type === 'revive' ? 'selected' : ''}>Réanimation (%HP)</option>
+            <option value="shield" ${type === 'shield' ? 'selected' : ''}>Bouclier</option>
+            <option value="board_slot_bonus" ${type === 'board_slot_bonus' ? 'selected' : ''}>Slot de board supplémentaire</option>
+            <option value="damage_multiplier_bonus" ${type === 'damage_multiplier_bonus' ? 'selected' : ''}>Multiplicateur de dégât supplémentaire (fin de combat)</option>
+            <option value="effect_immunity" ${type === 'effect_immunity' ? 'selected' : ''}>Immunité aux effets négatifs (poison, paralysie, push, burn…)</option>
+          </select>
+        </div>
+        <button class="btn btn-danger btn-sm" style="margin-top:16px" onclick="removeEffect(${ti},${ei})">×</button>
+      </div>
+      <div class="form-grid" id="ef-${ti}-${ei}-fields">
+        <div class="field" id="ef-${ti}-${ei}-stat-field" style="${v.showStat ? '' : 'display:none'}">
+          <label>Stat ciblée</label>
+          <select id="ef-${ti}-${ei}-stat">
+            ${ATTR_EFFECT_STATS.map(s => `<option value="${s}" ${ef.stat === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-trigger-field" style="${v.showTrigger ? '' : 'display:none'}">
+          <label>Déclencheur</label>
+          <select id="ef-${ti}-${ei}-trigger">
+            ${ATTR_EFFECT_TRIGGERS.map(t => `<option value="${t}" ${ef.trigger === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-value-field" style="${v.showValue ? '' : 'display:none'}">
+          <label>Valeur</label>
+          <input id="ef-${ti}-${ei}-value" type="number" step="any" value="${ef.value ?? 0}">
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-valueper-field" style="${v.showValuePer ? '' : 'display:none'}">
+          <label>Multiplié par (optionnel)</label>
+          <select id="ef-${ti}-${ei}-valueper">
+            <option value="" ${!ef.value_per ? 'selected' : ''}>— Aucun —</option>
+            ${valuePerOptions.map(id => `<option value="${id}" ${ef.value_per === id ? 'selected' : ''}>${id === 'active_unit' ? 'active_unit (unités alliées vivantes)' : id}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-max-field" style="${v.showMax ? '' : 'display:none'}">
+          <label>Maximum (optionnel)</label>
+          <input id="ef-${ti}-${ei}-max" type="number" min="1" value="${ef.max ?? ''}">
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-target-field" style="${v.showTarget ? '' : 'display:none'}">
+          <label>Cible</label>
+          <select id="ef-${ti}-${ei}-target">
+            ${ATTR_EFFECT_TARGETS.map(t => `<option value="${t}" ${ef.target === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-hppercent-field" style="${v.showHpPercent ? '' : 'display:none'}">
+          <label>% PV max</label>
+          <input id="ef-${ti}-${ei}-hppercent" type="number" min="1" max="100" value="${ef.hp_percent ?? 50}">
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-category-field" style="${v.showCategory ? '' : 'display:none'}">
+          <label>Catégorie d'invocation</label>
+          <select id="ef-${ti}-${ei}-category">
+            ${ATTR_EFFECT_CATEGORIES.map(c => `<option value="${c}" ${ef.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function updateEffectFields(ti, ei) {
+  const type = document.getElementById(`ef-${ti}-${ei}-type`).value;
+  const v = _attrEffectFieldVisibility(type);
+  document.getElementById(`ef-${ti}-${ei}-stat-field`).style.display = v.showStat ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-trigger-field`).style.display = v.showTrigger ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-value-field`).style.display = v.showValue ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-valueper-field`).style.display = v.showValuePer ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-max-field`).style.display = v.showMax ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-target-field`).style.display = v.showTarget ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-hppercent-field`).style.display = v.showHpPercent ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-category-field`).style.display = v.showCategory ? '' : 'none';
+}
+
+function _collectEffectFromFields(ti, ei) {
+  const type = document.getElementById(`ef-${ti}-${ei}-type`).value;
+  const v = _attrEffectFieldVisibility(type);
+  const ef = { type };
+  if (v.showStat) ef.stat = document.getElementById(`ef-${ti}-${ei}-stat`).value;
+  if (v.showTrigger) ef.trigger = document.getElementById(`ef-${ti}-${ei}-trigger`).value;
+  if (v.showValue) ef.value = parseFloat(document.getElementById(`ef-${ti}-${ei}-value`).value) || 0;
+  if (v.showValuePer) {
+    const valuePer = document.getElementById(`ef-${ti}-${ei}-valueper`).value;
+    if (valuePer) ef.value_per = valuePer;
+  }
+  if (v.showMax) {
+    const max = document.getElementById(`ef-${ti}-${ei}-max`).value;
+    if (max) ef.max = parseInt(max);
+  }
+  if (v.showTarget) ef.target = document.getElementById(`ef-${ti}-${ei}-target`).value;
+  if (v.showHpPercent) ef.hp_percent = parseInt(document.getElementById(`ef-${ti}-${ei}-hppercent`).value) || 0;
+  if (v.showCategory) {
+    ef.category = document.getElementById(`ef-${ti}-${ei}-category`).value;
+    ef.attribute = selectedAttr.id; // guaranteed_draw se réfère toujours à l'attribut courant
+  }
+  return ef;
+}
+
+function addThreshold() {
+  if (!selectedAttr.thresholds) selectedAttr.thresholds = [];
+  selectedAttr.thresholds.push({ count: 2, medal: 'silver', effects: [{ type: 'stat_bonus', stat: 'atk', value: 1 }] });
+  renderAttrDetail();
+}
+
+function removeThreshold(ti) {
+  selectedAttr.thresholds.splice(ti, 1);
+  renderAttrDetail();
+}
+
+function addEffect(ti) {
+  if (!selectedAttr.thresholds[ti].effects) selectedAttr.thresholds[ti].effects = [];
+  selectedAttr.thresholds[ti].effects.push({ type: 'stat_bonus', stat: 'atk', value: 1 });
+  renderAttrDetail();
+}
+
+function removeEffect(ti, ei) {
+  selectedAttr.thresholds[ti].effects.splice(ei, 1);
+  renderAttrDetail();
+}
+
+function collectAttrFromForm() {
+  const thresholds = (selectedAttr.thresholds || []).map((th, ti) => {
+    const effects = (th.effects || []).map((ef, ei) => _collectEffectFromFields(ti, ei));
+    return {
+      count: parseInt(document.getElementById(`th-${ti}-count`).value),
+      medal: document.getElementById(`th-${ti}-medal`).value,
+      effects,
+    };
+  });
+  const cat = getAttrCategoryValue();
+  return {
+    id: document.getElementById('af-id').value.trim(),
+    name: document.getElementById('af-name').value.trim(),
+    icon: document.getElementById('af-icon').value.trim(),
+    timing: document.getElementById('af-timing').value,
+    ...(cat ? { categorie: cat } : {}),
+    thresholds,
+  };
+}
+
+async function saveAttribute() {
+  const updated = collectAttrFromForm();
+  const oldId = selectedAttr.id;
+  const res = await apiFetch(`/api/attributes/${oldId}`, { method: 'PUT', body: updated });
+  if (res.error) return toast(res.error, 'err');
+  const idx = attributes.findIndex(a => a.id === oldId);
+  attributes[idx] = updated;
+  selectedAttr = updated;
+  filterAttributes();
+  renderAttrDetail();
+  toast('Attribut enregistré');
+}
+
+async function deleteAttribute() {
+  if (!confirm(`Supprimer "${selectedAttr.name}" ?`)) return;
+  const res = await apiFetch(`/api/attributes/${selectedAttr.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  attributes = attributes.filter(a => a.id !== selectedAttr.id);
+  selectedAttr = null;
+  filterAttributes();
+  document.getElementById('attr-detail').innerHTML = '<div class="empty"><span>Sélectionne un attribut</span></div>';
+  showList();
+  toast('Attribut supprimé');
+}
+
+function openNewAttribute() {
+  const nextNum = attributes.reduce((max, a) => {
+    const m = a.id.match(/ARCH_(\d+)/);
+    return m ? Math.max(max, parseInt(m[1])) : max;
+  }, 0) + 1;
+  selectedAttr = {
+    id: `ARCH_${String(nextNum).padStart(3, '0')}`,
+    name: '', icon: '', timing: 'start_of_combat', thresholds: [],
+  };
+  isNewAttr = true;
+  renderAttrList();
+  renderAttrDetail();
+  showDetail();
+}
+
+async function submitNewAttribute() {
+  const attr = collectAttrFromForm();
+  if (!attr.id || !attr.name) return toast('ID et nom requis', 'err');
+  const res = await apiFetch('/api/attributes', { method: 'POST', body: attr });
+  if (res.error) return toast(res.error, 'err');
+  attributes.push(attr);
+  selectedAttr = attr;
+  isNewAttr = false;
+  filterAttributes();
+  renderAttrDetail();
+  toast('Attribut créé');
+}
+
+function cancelNewAttr() {
+  selectedAttr = null;
+  isNewAttr = false;
+  filterAttributes();
+  document.getElementById('attr-detail').innerHTML = '<div class="empty"><span>Sélectionne un attribut</span></div>';
+  showList();
+}
+
+// ================== POWERS ==================
+function filterPowers() {
+  const q = document.getElementById('power-search').value.toLowerCase();
+  const filtered = powers.filter(p => !q || p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+  renderPowerList(filtered);
+}
+
+function renderPowerList(list = powers) {
+  document.getElementById('power-count').textContent = list.length;
+  document.getElementById('power-list').innerHTML = list.map(p => `
+    <div class="list-item ${selectedPower && selectedPower.id === p.id ? 'selected' : ''}" onclick="selectPower('${p.id}')">
+      <div>
+        <div class="item-name">⚡ ${p.name}</div>
+        <div class="item-id">${p.id}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectPower(id) {
+  selectedPower = powers.find(p => p.id === id);
+  isNewPower = false;
+  renderPowerList();
+  renderPowerDetail();
+  showDetail();
+}
+
+function renderPowerDetail() {
+  const p = selectedPower;
+  const el = document.getElementById('power-detail');
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-title" style="margin-bottom:16px">⚡ ${p.name}</div>
+    <div class="section-title">Identité</div>
+    <div class="form-grid">
+      <div class="field"><label>ID</label><input id="pf-id" value="${p.id}"></div>
+      <div class="field"><label>Nom</label><input id="pf-name" value="${esc(p.name)}"></div>
+    </div>
+    <div class="field" style="margin-top:12px"><label>Description</label><textarea id="pf-desc" rows="4">${esc(p.description || '')}</textarea></div>
+    <div class="actions">
+      ${isNewPower
+        ? `<button class="btn btn-success" onclick="createPower()">Créer le pouvoir</button>
+           <button class="btn btn-secondary" onclick="cancelNewPower()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="savePower()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deletePower()">Supprimer</button>`}
+    </div>
+  `;
+}
+
+async function savePower() {
+  const updated = {
+    id: document.getElementById('pf-id').value.trim(),
+    name: document.getElementById('pf-name').value.trim(),
+    description: document.getElementById('pf-desc').value.trim(),
+  };
+  const oldId = selectedPower.id;
+  const res = await apiFetch(`/api/powers/${oldId}`, { method: 'PUT', body: updated });
+  if (res.error) return toast(res.error, 'err');
+  const idx = powers.findIndex(p => p.id === oldId);
+  powers[idx] = updated;
+  selectedPower = updated;
+  filterPowers();
+  renderPowerDetail();
+  toast('Pouvoir enregistré');
+}
+
+async function deletePower() {
+  if (!confirm(`Supprimer "${selectedPower.name}" ?`)) return;
+  const res = await apiFetch(`/api/powers/${selectedPower.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  powers = powers.filter(p => p.id !== selectedPower.id);
+  selectedPower = null;
+  filterPowers();
+  document.getElementById('power-detail').innerHTML = '<div class="empty"><span>Sélectionne un pouvoir</span></div>';
+  showList();
+  toast('Pouvoir supprimé');
+}
+
+function openNewPower() {
+  selectedPower = { id: 'POWER_NEW', name: '', description: '' };
+  isNewPower = true;
+  renderPowerList();
+  renderPowerDetail();
+  showDetail();
+}
+
+async function createPower() {
+  const power = {
+    id: document.getElementById('pf-id').value.trim(),
+    name: document.getElementById('pf-name').value.trim(),
+    description: document.getElementById('pf-desc').value.trim(),
+  };
+  if (!power.id || !power.name) return toast('ID et nom requis', 'err');
+  const res = await apiFetch('/api/powers', { method: 'POST', body: power });
+  if (res.error) return toast(res.error, 'err');
+  powers.push(power);
+  selectedPower = power;
+  isNewPower = false;
+  filterPowers();
+  renderPowerDetail();
+  toast('Pouvoir créé');
+}
+
+function cancelNewPower() {
+  selectedPower = null;
+  isNewPower = false;
+  filterPowers();
+  document.getElementById('power-detail').innerHTML = '<div class="empty"><span>Sélectionne un pouvoir</span></div>';
+  showList();
+}
+
+// ================== MAGIES ==================
+const EFFECT_TYPE_LABELS = {
+  stat_bonus: 'Bonus de stat',
+  stat_modifier: 'Modificateur de stat',
+  draw_bonus: 'Pioche',
+  revive: 'Réanimation',
+  heal: 'Soin',
+  shield: 'Bouclier',
+  player_hp_bonus: 'Bonus HP joueur',
+  board_slot_bonus: 'Slot de board',
+  guaranteed_draw: 'Pioche garantie',
+  defuse_fusion: 'Séparer une fusion',
+  destroy_unit: 'Détruire une unité',
+  reduce_sacrifice_cost: 'Réduire coût sacrifice',
+  free_transformation: 'Transformation gratuite',
+  remove_heritage_material: 'Retirer matériel Heritage',
+};
+
+function filterMagies() {
+  const q = document.getElementById('magie-search').value.toLowerCase();
+  const filtered = magies.filter(m => !q || m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q));
+  renderMagieList(filtered);
+}
+
+function renderMagieList(list = magies) {
+  document.getElementById('magie-count').textContent = list.length;
+  document.getElementById('magie-list').innerHTML = list.map(m => `
+    <div class="list-item ${selectedMagie && selectedMagie.id === m.id ? 'selected' : ''}" onclick="selectMagie('${m.id}')">
+      ${m._has_illustration
+        ? `<img src="/illustrations/${m.id}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0" loading="lazy">`
+        : `<div style="width:40px;height:40px;background:var(--surface2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px">✨</div>`}
+      <div style="min-width:0">
+        <div class="item-name">${esc(m.name)}</div>
+        <div class="item-id">${m.id}${m.effect ? ` · ${EFFECT_TYPE_LABELS[m.effect.type] || m.effect.type}` : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectMagie(id) {
+  selectedMagie = magies.find(m => m.id === id);
+  isNewMagie = false;
+  renderMagieList();
+  renderMagieDetail();
+  showDetail();
+}
+
+function renderMagieDetail() {
+  const m = selectedMagie;
+  const el = document.getElementById('magie-detail');
+  const hasIllus = m._has_illustration;
+  const effect = m.effect || {};
+  const effectType = effect.type || 'none';
+  const showStat = ['stat_bonus', 'stat_modifier'].includes(effectType);
+  const showTier = effectType === 'guaranteed_draw';
+  const noValue = ['none', 'guaranteed_draw', 'defuse_fusion', 'destroy_unit', 'free_transformation', 'remove_heritage_material'];
+  const showValue = !noValue.includes(effectType);
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header">
+      <div class="illustration-box" onclick="${isNewMagie ? '' : 'openMagieIllusModal()'}">
+        ${hasIllus
+          ? `<img src="/illustrations/${m.id}?t=${Date.now()}" alt="">`
+          : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
+        <div class="illus-overlay">
+          ${hasIllus
+            ? `<span style="font-size:12px;color:white">Changer</span>
+               <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteMagieIllustration()">Supprimer</button>`
+            : `<span style="font-size:12px;color:white">Ajouter une illustration</span>`}
+        </div>
+      </div>
+      <div class="detail-info">
+        <div class="detail-title">✨ ${esc(m.name)}</div>
+        <div class="detail-meta">
+          <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(m.id)}</span>
+          ${m.effect ? `<span class="badge badge-power">${EFFECT_TYPE_LABELS[effectType] || effectType}</span>` : ''}
+          ${hasIllus ? `<span class="badge badge-illus">Illustration ✓</span>` : `<span class="badge badge-no-illus">Sans illustration</span>`}
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Identité</div>
+    <div class="form-grid">
+      <div class="field"><label>ID</label><input id="mf-id" value="${esc(m.id)}"></div>
+      <div class="field"><label>Nom</label><input id="mf-name" value="${esc(m.name)}"></div>
+    </div>
+    <div class="section-title" style="margin-top:20px">Effet</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Type d'effet</label>
+        <select id="mf-effect-type" onchange="updateMagieEffectFields()">
+          <option value="none" ${effectType === 'none' ? 'selected' : ''}>Aucun</option>
+          <option value="stat_bonus" ${effectType === 'stat_bonus' ? 'selected' : ''}>Bonus de stat</option>
+          <option value="stat_modifier" ${effectType === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat</option>
+          <option value="draw_bonus" ${effectType === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
+          <option value="guaranteed_draw" ${effectType === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (par tier)</option>
+          <option value="heal" ${effectType === 'heal' ? 'selected' : ''}>Soin (PV)</option>
+          <option value="revive" ${effectType === 'revive' ? 'selected' : ''}>Réanimation (%HP)</option>
+          <option value="shield" ${effectType === 'shield' ? 'selected' : ''}>Bouclier</option>
+          <option value="player_hp_bonus" ${effectType === 'player_hp_bonus' ? 'selected' : ''}>Bonus HP joueur</option>
+          <option value="board_slot_bonus" ${effectType === 'board_slot_bonus' ? 'selected' : ''}>Slot de board supplémentaire</option>
+          <optgroup label="Effets avancés">
+          <option value="defuse_fusion" ${effectType === 'defuse_fusion' ? 'selected' : ''}>Séparer une Fusion en ses matériaux</option>
+          <option value="destroy_unit" ${effectType === 'destroy_unit' ? 'selected' : ''}>Détruire une unité alliée</option>
+          <option value="reduce_sacrifice_cost" ${effectType === 'reduce_sacrifice_cost' ? 'selected' : ''}>Réduire coût de sacrifice (main)</option>
+          <option value="free_transformation" ${effectType === 'free_transformation' ? 'selected' : ''}>Transformation gratuite (main)</option>
+          <option value="remove_heritage_material" ${effectType === 'remove_heritage_material' ? 'selected' : ''}>Retirer matériel Heritage (main)</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid" style="margin-top:10px">
+      <div class="field" id="mf-stat-field" style="${showStat ? '' : 'display:none'}">
+        <label>Stat ciblée</label>
+        <select id="mf-effect-stat">
+          <option value="atk" ${effect.stat === 'atk' ? 'selected' : ''}>ATK</option>
+          <option value="hp" ${effect.stat === 'hp' ? 'selected' : ''}>HP</option>
+          <option value="attack_speed" ${effect.stat === 'attack_speed' ? 'selected' : ''}>Vitesse d'attaque</option>
+          <option value="movement_speed" ${effect.stat === 'movement_speed' ? 'selected' : ''}>Vitesse de déplacement</option>
+          <option value="range" ${effect.stat === 'range' ? 'selected' : ''}>Portée</option>
+          <option value="initiative" ${effect.stat === 'initiative' ? 'selected' : ''}>Initiative</option>
+        </select>
+      </div>
+      <div class="field" id="mf-value-field" style="${showValue ? '' : 'display:none'}">
+        <label>Valeur</label>
+        <input id="mf-effect-value" type="number" step="any" value="${effect.value ?? 0}">
+      </div>
+      <div class="field" id="mf-tier-field" style="${showTier ? '' : 'display:none'}">
+        <label>Tier de la carte garantie</label>
+        <select id="mf-effect-tier">
+          <option value="1" ${effect.tier === 1 ? 'selected' : ''}>Tier 1</option>
+          <option value="2" ${effect.tier === 2 ? 'selected' : ''}>Tier 2</option>
+          <option value="3" ${effect.tier === 3 ? 'selected' : ''}>Tier 3</option>
+          <option value="4" ${effect.tier === 4 ? 'selected' : ''}>Tier 4</option>
+          <option value="5" ${effect.tier === 5 ? 'selected' : ''}>Tier 5</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      ${isNewMagie
+        ? `<button class="btn btn-success" onclick="createMagie()">Créer la magie</button>
+           <button class="btn btn-secondary" onclick="cancelNewMagie()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveMagie()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deleteMagie()">Supprimer</button>`}
+    </div>
+  `;
+}
+
+function updateMagieEffectFields() {
+  const type = document.getElementById('mf-effect-type')?.value || 'none';
+  const showStat = ['stat_bonus', 'stat_modifier'].includes(type);
+  const showTier = type === 'guaranteed_draw';
+  const noValue = ['none', 'guaranteed_draw', 'defuse_fusion', 'destroy_unit', 'free_transformation', 'remove_heritage_material'];
+  const showValue = !noValue.includes(type);
+  document.getElementById('mf-stat-field').style.display = showStat ? '' : 'none';
+  document.getElementById('mf-value-field').style.display = showValue ? '' : 'none';
+  document.getElementById('mf-tier-field').style.display = showTier ? '' : 'none';
+}
+
+function _collectMagieFields() {
+  const effectType = document.getElementById('mf-effect-type')?.value || 'none';
+  let effect = null;
+  const noValue = ['defuse_fusion', 'destroy_unit', 'free_transformation', 'remove_heritage_material'];
+  if (effectType !== 'none') {
+    effect = { type: effectType };
+    if (effectType === 'guaranteed_draw') {
+      effect.tier = parseInt(document.getElementById('mf-effect-tier')?.value) || 1;
+    } else if (!noValue.includes(effectType)) {
+      effect.value = parseFloat(document.getElementById('mf-effect-value')?.value) || 0;
+    }
+    if (['stat_bonus', 'stat_modifier'].includes(effectType)) {
+      effect.stat = document.getElementById('mf-effect-stat')?.value || 'atk';
+    }
+  }
+  return {
+    id: document.getElementById('mf-id')?.value.trim() || '',
+    name: document.getElementById('mf-name')?.value.trim() || '',
+    effect,
+  };
+}
+
+async function saveMagie() {
+  const updated = _collectMagieFields();
+  if (!updated.id || !updated.name) return toast('ID et nom requis', 'err');
+  const oldId = selectedMagie.id;
+  const res = await apiFetch(`/api/magies/${oldId}`, { method: 'PUT', body: updated });
+  if (res.error) return toast(res.error, 'err');
+  const idx = magies.findIndex(m => m.id === oldId);
+  magies[idx] = { ...updated, _has_illustration: selectedMagie._has_illustration };
+  selectedMagie = magies[idx];
+  filterMagies();
+  renderMagieDetail();
+  toast('Magie enregistrée');
+}
+
+async function deleteMagie() {
+  if (!confirm(`Supprimer "${selectedMagie.name}" ?`)) return;
+  const res = await apiFetch(`/api/magies/${selectedMagie.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  magies = magies.filter(m => m.id !== selectedMagie.id);
+  selectedMagie = null;
+  filterMagies();
+  document.getElementById('magie-detail').innerHTML = '<div class="empty"><span>Sélectionne une magie</span></div>';
+  showList();
+  toast('Magie supprimée');
+}
+
+function openNewMagie() {
+  let maxNum = 0;
+  for (const m of magies) {
+    const match = m.id.match(/(\d+)$/);
+    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+  }
+  const nextId = `MAGIE_${String(maxNum + 1).padStart(3, '0')}`;
+  selectedMagie = { id: nextId, name: '', effect: null, _has_illustration: false };
+  isNewMagie = true;
+  renderMagieList();
+  renderMagieDetail();
+  showDetail();
+}
+
+async function createMagie() {
+  const magie = _collectMagieFields();
+  if (!magie.id || !magie.name) return toast('ID et nom requis', 'err');
+  const res = await apiFetch('/api/magies', { method: 'POST', body: magie });
+  if (res.error) return toast(res.error, 'err');
+  magies.push({ ...magie, _has_illustration: false });
+  selectedMagie = magies[magies.length - 1];
+  isNewMagie = false;
+  filterMagies();
+  renderMagieDetail();
+  toast('Magie créée');
+}
+
+function cancelNewMagie() {
+  selectedMagie = null;
+  isNewMagie = false;
+  filterMagies();
+  document.getElementById('magie-detail').innerHTML = '<div class="empty"><span>Sélectionne une magie</span></div>';
+  showList();
+}
+
+function openMagieIllusModal() {
+  if (!selectedMagie) return;
+  const name = selectedMagie.name || '';
+  const defaultQuery = `yugioh illustration ${name}`.trim();
+  showModal(`
+    <h2 style="margin-bottom:16px">Illustration — ${esc(name)}</h2>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Mots-clés</label>
+        <input id="magie-illus-q" value="${esc(defaultQuery)}" style="font-family:monospace;font-size:12px">
+      </div>
+      <button class="btn btn-secondary" onclick="openMagieImageSearch()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.28 5 12c0-4.2 3.29-7.27 7.19-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"/></svg>
+        Ouvrir Google Images ↗
+      </button>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.6;border-top:1px solid var(--border);padding-top:10px">
+        Clic droit sur l'image souhaitée →
+        <strong style="color:var(--text)">Copier l'adresse de l'image</strong>
+        → coller dans le champ ci-dessous.
+      </div>
+    </div>
+    <div class="field">
+      <label>URL de l'image</label>
+      <div style="display:flex;gap:6px">
+        <input id="magie-illus-url" type="text" placeholder="https://..." style="flex:1">
+        <button class="btn btn-secondary btn-sm" onclick="pasteMagieIllusUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
+      </div>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Sauvegardée sous <code>${selectedMagie.id}.png</code></span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="importMagieIllustration()">Importer</button>
+    </div>
+  `, 'wide');
+}
+
+function openMagieImageSearch() {
+  const q = document.getElementById('magie-illus-q')?.value || `yugioh illustration ${selectedMagie?.name || ''}`;
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
+}
+
+async function pasteMagieIllusUrl() {
+  try {
+    const text = await navigator.clipboard.readText();
+    const el = document.getElementById('magie-illus-url');
+    if (el) el.value = text;
+  } catch {
+    toast('Accès presse-papier refusé — collez manuellement (Ctrl+V)', 'err');
+  }
+}
+
+async function importMagieIllustration() {
+  const url = document.getElementById('magie-illus-url').value.trim();
+  if (!url) return toast('URL requise', 'err');
+  closeModal();
+  toast('Téléchargement en cours...', 'ok');
+  const res = await apiFetch(`/api/magies/${selectedMagie.id}/illustration`, { method: 'POST', body: { url } });
+  if (res.error) return toast(res.error, 'err');
+  selectedMagie._has_illustration = true;
+  const idx = magies.findIndex(m => m.id === selectedMagie.id);
+  if (idx !== -1) magies[idx]._has_illustration = true;
+  filterMagies();
+  renderMagieDetail();
+  renderMagieList();
+  toast('Illustration importée');
+}
+
+async function deleteMagieIllustration() {
+  if (!confirm('Supprimer l\'illustration ?')) return;
+  const res = await apiFetch(`/api/magies/${selectedMagie.id}/illustration`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  selectedMagie._has_illustration = false;
+  const idx = magies.findIndex(m => m.id === selectedMagie.id);
+  if (idx !== -1) magies[idx]._has_illustration = false;
+  renderMagieDetail();
+  renderMagieList();
+  toast('Illustration supprimée');
+}
+
+// ================== PUBLIC DECKS ==================
+function filterPublicDecks() {
+  const q = document.getElementById('deck-search').value.toLowerCase();
+  const filtered = publicDecks.filter(d => !q || d.name.toLowerCase().includes(q) || d.id.toLowerCase().includes(q));
+  renderPublicDeckList(filtered);
+}
+
+function deckTotalCards(deck) {
+  return [1, 2, 3, 4, 5].reduce((sum, t) => sum + ((deck?.[String(t)]?.length) || 0), 0);
+}
+
+function renderPublicDeckList(list = publicDecks) {
+  document.getElementById('deck-count').textContent = list.length;
+  document.getElementById('deck-list').innerHTML = list.map(d => `
+    <div class="list-item ${selectedPublicDeck && selectedPublicDeck.id === d.id ? 'selected' : ''}" onclick="selectPublicDeck('${d.id}')">
+      <div style="width:40px;height:40px;background:var(--surface2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px">🃏</div>
+      <div style="min-width:0">
+        <div class="item-name">${esc(d.name)}</div>
+        <div class="item-id">${d.id} · ${deckTotalCards(d.deck)} cartes</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectPublicDeck(id) {
+  selectedPublicDeck = publicDecks.find(d => d.id === id);
+  isNewPublicDeck = false;
+  renderPublicDeckList();
+  renderPublicDeckDetail();
+  showDetail();
+}
+
+function renderPublicDeckDetail() {
+  const d = selectedPublicDeck;
+  const deck = d.deck || {};
+  const el = document.getElementById('deck-detail');
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header">
+      <div class="detail-info">
+        <div class="detail-title">🃏 ${esc(d.name)}</div>
+        <div class="detail-meta">
+          <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(d.id)}</span>
+          <span class="badge">${deckTotalCards(deck)} cartes</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Identité</div>
+    <div class="form-grid">
+      <div class="field"><label>ID</label><input id="df-id" value="${esc(d.id)}"></div>
+      <div class="field"><label>Nom</label><input id="df-name" value="${esc(d.name)}"></div>
+    </div>
+
+    ${isNewPublicDeck ? '' : `
+    <div class="actions" style="margin-top:16px">
+      <button class="btn btn-secondary" onclick="openDeckBuilder('${esc(d.id)}')">🛠 Composer avec le Deck Builder</button>
+    </div>`}
+
+    <div class="section-title" style="margin-top:20px">Composition (IDs de cartes par tier, séparés par des virgules)</div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      ${[1, 2, 3, 4, 5].map(t => `
+        <div class="field">
+          <label>Tier ${t}</label>
+          <textarea id="df-tier-${t}" rows="2" style="width:100%;resize:vertical">${esc((deck[String(t)] || []).join(', '))}</textarea>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="actions">
+      ${isNewPublicDeck
+        ? `<button class="btn btn-success" onclick="createPublicDeck()">Créer le deck</button>
+           <button class="btn btn-secondary" onclick="cancelNewPublicDeck()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="savePublicDeck()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deletePublicDeck()">Supprimer</button>`}
+    </div>
+  `;
+}
+
+function _collectPublicDeckFields() {
+  const deck = {};
+  for (const t of [1, 2, 3, 4, 5]) {
+    const raw = document.getElementById(`df-tier-${t}`)?.value || '';
+    deck[String(t)] = raw.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return {
+    id: document.getElementById('df-id')?.value.trim() || '',
+    name: document.getElementById('df-name')?.value.trim() || '',
+    deck,
+  };
+}
+
+async function savePublicDeck() {
+  const updated = _collectPublicDeckFields();
+  if (!updated.id || !updated.name) return toast('ID et nom requis', 'err');
+  const oldId = selectedPublicDeck.id;
+  const res = await apiFetch(`/api/decks/${oldId}`, { method: 'PUT', body: updated });
+  if (res.error) return toast(res.error, 'err');
+  const idx = publicDecks.findIndex(d => d.id === oldId);
+  publicDecks[idx] = updated;
+  selectedPublicDeck = updated;
+  filterPublicDecks();
+  renderPublicDeckDetail();
+  toast('Deck enregistré');
+}
+
+async function deletePublicDeck() {
+  if (!confirm(`Supprimer "${selectedPublicDeck.name}" ?`)) return;
+  const res = await apiFetch(`/api/decks/${selectedPublicDeck.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  publicDecks = publicDecks.filter(d => d.id !== selectedPublicDeck.id);
+  selectedPublicDeck = null;
+  filterPublicDecks();
+  document.getElementById('deck-detail').innerHTML = '<div class="empty"><span>Sélectionne un deck</span></div>';
+  showList();
+  toast('Deck supprimé');
+}
+
+function openNewPublicDeck() {
+  let maxNum = 0;
+  for (const d of publicDecks) {
+    const match = d.id.match(/(\d+)$/);
+    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+  }
+  const nextId = `PUBLIC_DECK_${String(maxNum + 1).padStart(3, '0')}`;
+  selectedPublicDeck = { id: nextId, name: '', deck: { "1": [], "2": [], "3": [], "4": [], "5": [] } };
+  isNewPublicDeck = true;
+  renderPublicDeckList();
+  renderPublicDeckDetail();
+  showDetail();
+}
+
+async function createPublicDeck() {
+  const deck = _collectPublicDeckFields();
+  if (!deck.id || !deck.name) return toast('ID et nom requis', 'err');
+  const res = await apiFetch('/api/decks', { method: 'POST', body: deck });
+  if (res.error) return toast(res.error, 'err');
+  publicDecks.push(deck);
+  selectedPublicDeck = deck;
+  isNewPublicDeck = false;
+  filterPublicDecks();
+  renderPublicDeckDetail();
+  toast('Deck créé');
+}
+
+function openDeckBuilder(id) {
+  document.getElementById('deckbuilder-frame').src = `/?screen=deck_builder&publicDeckId=${encodeURIComponent(id)}`;
+  document.getElementById('deckbuilder-overlay').classList.remove('hidden');
+}
+
+function closeDeckBuilder() {
+  document.getElementById('deckbuilder-overlay').classList.add('hidden');
+  document.getElementById('deckbuilder-frame').src = '';
+}
+
+window.addEventListener('message', async (e) => {
+  if (e.data?.type === 'soulforge-deckbuilder-close') {
+    closeDeckBuilder();
+  } else if (e.data?.type === 'soulforge-deckbuilder-saved') {
+    publicDecks = await apiFetch('/api/decks');
+    if (selectedPublicDeck) selectedPublicDeck = publicDecks.find(d => d.id === selectedPublicDeck.id) || null;
+    filterPublicDecks();
+    if (selectedPublicDeck) renderPublicDeckDetail();
+    closeDeckBuilder();
+    toast('Deck enregistré');
+  }
+});
+
+function cancelNewPublicDeck() {
+  selectedPublicDeck = null;
+  isNewPublicDeck = false;
+  filterPublicDecks();
+  document.getElementById('deck-detail').innerHTML = '<div class="empty"><span>Sélectionne un deck</span></div>';
+  showList();
+}
+
+// ================== MOBILE ==================
+function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }
+
+function showDetail() {
+  if (!isMobile()) return;
+  const panel = document.querySelector('.main:not(.hidden)');
+  if (panel) panel.classList.add('show-detail');
+  document.getElementById('fab').textContent = '←';
+  document.getElementById('fab').onclick = showList;
+}
+
+function showList() {
+  const panel = document.querySelector('.main.show-detail');
+  if (panel) panel.classList.remove('show-detail');
+  document.getElementById('fab').textContent = '+';
+  document.getElementById('fab').onclick = fabAction;
+}
+
+function fabAction() {
+  if (currentTab === 'cards')           openNewCard();
+  else if (currentTab === 'attributes') openNewAttribute();
+  else if (currentTab === 'powers')     openNewPower();
+  else if (currentTab === 'boards')     openNewBoard();
+  else if (currentTab === 'magies')     openNewMagie();
+  else if (currentTab === 'decks')      openNewPublicDeck();
+}
+
+// ================== UTILS ==================
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showModal(html, size = '') {
+  const modal = document.getElementById('modal-content');
+  modal.style.width = size === 'wide' ? '580px' : '';
+  modal.innerHTML = html;
+  document.getElementById('modal-backdrop').classList.remove('hidden');
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-backdrop')) return;
+  document.getElementById('modal-backdrop').classList.add('hidden');
+}
+
+let toastTimer;
+function toast(msg, type = 'ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add('hidden'), 3000);
+}
+
+// ================== STATS ==================
+const STAT_LABELS = { atk: 'ATK', hp: 'HP', movement_speed: 'Déplacement', attack_speed: 'Vit. Attaque', initiative: 'Initiative', range: 'Portée' };
+const STAT_KEYS = ['atk', 'hp', 'movement_speed', 'attack_speed', 'initiative', 'range'];
+const TIER_COLORS = { 1: '#78c8a8', 2: '#6ab4e8', 3: '#c878e0', 4: '#f0a040', 5: '#f05050' };
+
+const COMPOSITE_STATS = [
+  { key: 'offensive', label: 'Score Offensif', formula: 'ATK × (100 / Vit. Attaque)', color: '#f05050', note: 'Dégâts sur 100 ticks', compute: s => (s.atk != null && s.attack_speed != null) ? s.atk * (100 / s.attack_speed) : null },
+  { key: 'defensive', label: 'Ratio Défensif',  formula: 'ATK / HP',            color: '#6ab4e8', note: 'Élevé = glass canon · Faible = tank', compute: s => (s.atk != null && s.hp != null && s.hp > 0) ? s.atk / s.hp : null },
+  { key: 'mobility',  label: 'Score Mobilité',  formula: 'Déplacement / Portée', color: '#78c8a8', note: 'Mobilité relative à la portée', compute: s => (s.movement_speed != null && s.range != null && s.range > 0) ? s.movement_speed / s.range : null }
+];
+
+let statsFilterTier = 0;
+let statsThreshold = 1.5;
+let statsPowerExpanded = null;
+let statsPowerDetailId = null;
+
+function mean(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
+function stdDev(arr) {
+  if (arr.length < 2) return 0;
+  const m = mean(arr);
+  return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length);
+}
+
+function computeTierStats() {
+  const result = {};
+  [1,2,3,4,5].forEach(tier => {
+    const tc = cards.filter(c => Math.round(c.tier) === tier && c.stats);
+    result[tier] = { count: tc.length, stats: {} };
+    STAT_KEYS.forEach(key => {
+      const vals = tc.map(c => c.stats[key]).filter(v => v != null && !isNaN(v));
+      const m = mean(vals), s = stdDev(vals);
+      result[tier].stats[key] = { avg: m, std: s, min: vals.length ? Math.min(...vals) : 0, max: vals.length ? Math.max(...vals) : 0 };
+    });
+  });
+  return result;
+}
+
+function detectOutliers(tierStats) {
+  const out = [];
+  cards.forEach(card => {
+    if (!card.stats) return;
+    const tier = Math.round(card.tier);
+    const ts = tierStats[tier];
+    if (!ts) return;
+    STAT_KEYS.forEach(key => {
+      const v = card.stats[key];
+      if (v == null || isNaN(v)) return;
+      const { avg: m, std: s, min, max } = ts.stats[key];
+      if (s < 0.5) return;
+      const z = (v - m) / s;
+      if (Math.abs(z) >= statsThreshold) out.push({ card, stat: key, value: v, avg: m, std: s, min, max, z });
+    });
+  });
+  return out.sort((a, b) => Math.abs(b.z) - Math.abs(a.z));
+}
+
+function computeCompositeTierStats() {
+  const result = {};
+  [1,2,3,4,5].forEach(tier => {
+    const tc = cards.filter(c => Math.round(c.tier) === tier && c.stats);
+    result[tier] = { count: tc.length };
+    COMPOSITE_STATS.forEach(cs => {
+      const vals = tc.map(c => cs.compute(c.stats)).filter(v => v != null && !isNaN(v) && isFinite(v));
+      const m = mean(vals), s = stdDev(vals);
+      result[tier][cs.key] = { avg: m, std: s, min: vals.length ? Math.min(...vals) : 0, max: vals.length ? Math.max(...vals) : 0, count: vals.length };
+    });
+  });
+  return result;
+}
+
+function detectCompositeOutliers(compTierStats) {
+  const out = [];
+  cards.forEach(card => {
+    if (!card.stats) return;
+    const tier = Math.round(card.tier);
+    const ts = compTierStats[tier];
+    if (!ts) return;
+    COMPOSITE_STATS.forEach(cs => {
+      const v = cs.compute(card.stats);
+      if (v == null || isNaN(v) || !isFinite(v)) return;
+      const { avg: m, std: s, min, max } = ts[cs.key];
+      if (s < 0.01) return;
+      const z = (v - m) / s;
+      if (Math.abs(z) >= statsThreshold) out.push({ card, cs, value: v, avg: m, std: s, min, max, z });
+    });
+  });
+  return out.sort((a, b) => Math.abs(b.z) - Math.abs(a.z));
+}
+
+function detectBrokenLinks() {
+  const attrIds = new Set(attributes.map(a => a.id));
+  const powerIds = new Set(powers.map(p => p.id));
+  const cardIds = new Set(cards.map(c => c.id));
+  const broken = [];
+  for (const card of cards) {
+    for (const aid of (card.attributes || [])) {
+      if (!attrIds.has(aid)) broken.push({ card, type: 'attribute', refId: aid });
+    }
+    if (card.power?.id && !powerIds.has(card.power.id)) {
+      broken.push({ card, type: 'power', refId: card.power.id });
+    }
+    for (const mid of (card.cost?.materials || [])) {
+      const valid = cardIds.has(mid) || (card.summon_type === 'heritage' && attrIds.has(mid));
+      if (!valid) broken.push({ card, type: 'material', refId: mid });
+    }
+  }
+  return broken;
+}
+
+function computePowerStats() {
+  const byPower = powers.map(p => {
+    const used = cards.filter(c => c.power?.id === p.id);
+    const tierCounts = [1,2,3,4,5].map(t => used.filter(c => Math.round(c.tier) === t).length);
+    return { power: p, cards: used, count: used.length, tierCounts };
+  }).sort((a, b) => b.count - a.count);
+  const noPower = cards.filter(c => !c.power?.id);
+  const noPowerTierCounts = [1,2,3,4,5].map(t => noPower.filter(c => Math.round(c.tier) === t).length);
+  return { byPower, noPower, noPowerTierCounts };
+}
+
+function togglePowerExpand(key) {
+  statsPowerExpanded = statsPowerExpanded === key ? null : key;
+  renderStats();
+}
+
+function setStatsPowerDetail(id) {
+  statsPowerDetailId = id || null;
+  renderStats();
+}
+
+function renderStats() {
+  const el = document.getElementById('stats-content');
+  const ts = computeTierStats();
+  const outliers = detectOutliers(ts);
+  const filteredOutliers = statsFilterTier ? outliers.filter(o => Math.round(o.card.tier) === statsFilterTier) : outliers;
+
+  const cts = computeCompositeTierStats();
+  const compOutliers = detectCompositeOutliers(cts);
+  const filteredCompOutliers = statsFilterTier ? compOutliers.filter(o => Math.round(o.card.tier) === statsFilterTier) : compOutliers;
+  const fmtC = v => v >= 10 ? v.toFixed(1) : v >= 1 ? v.toFixed(2) : v.toFixed(3);
+
+  const tierRow = (key) => [1,2,3,4,5].map(tier => {
+    const s = ts[tier].stats[key];
+    if (!s || ts[tier].count === 0) return '<td style="color:var(--muted)">—</td>';
+    const col = TIER_COLORS[tier];
+    return `<td>
+      <div class="stat-val">${s.avg.toFixed(1)}</div>
+      <div class="stat-range">${s.min.toFixed(0)}–${s.max.toFixed(0)} <span style="color:var(--muted)">±${s.std.toFixed(1)}</span></div>
+      <div class="mini-bar-wrap" style="margin-top:3px">
+        <div class="mini-bar-track">
+          <div class="mini-bar-fill" style="left:0;width:100%;background:${col};opacity:.18"></div>
+          <div class="mini-bar-fill" style="
+            left:${s.max > s.min ? ((s.avg - s.std - s.min)/(s.max - s.min)*100).toFixed(1) : 0}%;
+            width:${s.max > s.min ? (s.std * 2 / (s.max - s.min) * 100).toFixed(1) : 100}%;
+            background:${col};opacity:.5;max-width:100%
+          "></div>
+          <div class="mini-bar-fill" style="
+            left:${s.max > s.min ? ((s.avg - s.min)/(s.max - s.min)*100).toFixed(1) : 50}%;
+            width:2px;background:${col};opacity:1
+          "></div>
+        </div>
+      </div>
+    </td>`;
+  }).join('');
+
+  const overviewTable = `
+    <div class="stat-panel" style="margin-bottom:20px">
+      <h3>Synthèse par Tier</h3>
+      <div style="overflow-x:auto">
+        <table class="tier-overview-table">
+          <thead>
+            <tr>
+              <th>Stat</th>
+              ${[1,2,3,4,5].map(t => `<th style="color:${TIER_COLORS[t]}">Tier ${t} <span style="font-weight:400;color:var(--muted)">(${ts[t].count})</span></th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${STAT_KEYS.map(key => `<tr><td style="font-weight:600;color:var(--muted);white-space:nowrap">${STAT_LABELS[key]}</td>${tierRow(key)}</tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px">La barre montre la plage moyenne ± 1σ. Le trait vertical = moyenne du tier.</div>
+    </div>
+  `;
+
+  const tierChips = `
+    <div class="tier-filter-chips">
+      <span style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Tier :</span>
+      <button class="tier-chip ${statsFilterTier === 0 ? 'active' : ''}" onclick="setStatsFilter(0)" style="${statsFilterTier === 0 ? 'border-color:var(--accent);color:var(--accent);background:rgba(108,99,255,.15)' : ''}">Tous</button>
+      ${[1,2,3,4,5].map(t => `<button class="tier-chip tier-chip-${t} ${statsFilterTier === t ? 'active' : ''}" onclick="setStatsFilter(${t})">T${t} <span style="font-size:10px;opacity:.7">(${ts[t].count})</span></button>`).join('')}
+    </div>
+  `;
+
+  const thresholdControl = `
+    <div class="threshold-row">
+      <span>Seuil d'anomalie :</span>
+      <input type="range" min="1" max="3" step="0.1" value="${statsThreshold}" oninput="setThreshold(this.value)">
+      <span id="threshold-val" style="font-weight:700;color:var(--text);min-width:30px">${statsThreshold}σ</span>
+      <span style="font-size:11px">${filteredOutliers.length} anomalie${filteredOutliers.length !== 1 ? 's' : ''} détectée${filteredOutliers.length !== 1 ? 's' : ''}</span>
+    </div>
+  `;
+
+  const anomalyRows = filteredOutliers.length === 0
+    ? `<div class="no-anomalies">✅ Aucune anomalie détectée avec ce seuil</div>`
+    : `
+      <div class="anomaly-header">
+        <div>Carte</div><div>Tier</div><div>Stat</div><div>Valeur vs Moy.</div><div>Position</div><div>Écart</div>
+      </div>
+      ${filteredOutliers.map(o => {
+        const tier = Math.round(o.card.tier);
+        const col = TIER_COLORS[tier];
+        const range = o.max - o.min;
+        const pos = range > 0 ? ((o.value - o.min) / range * 100).toFixed(1) : 50;
+        const avgPos = range > 0 ? ((o.avg - o.min) / range * 100).toFixed(1) : 50;
+        const isHigh = o.z > 0;
+        const severity = Math.abs(o.z);
+        const zClass = severity >= 2.5 ? 'z-high' : 'z-mild';
+        return `
+          <div class="anomaly-row" onclick="jumpToCard('${o.card.id}')">
+            <div class="anomaly-col-card">
+              <div class="anomaly-name" style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.card.name)}</div>
+              <div class="anomaly-col-id" style="font-size:10px;color:var(--muted);font-family:monospace">${o.card.id}</div>
+              <div class="mobile-info" style="margin-top:7px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+                  <span class="badge" style="background:${col}22;color:${col};font-size:11px;font-weight:700;padding:2px 8px">T${tier}</span>
+                  <span style="font-size:11px;color:var(--muted);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.card.id}</span>
+                </div>
+                <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                  <span style="font-size:13px;color:var(--text);font-weight:700">${STAT_LABELS[o.stat]}</span>
+                  <span class="${isHigh ? 'direction-high' : 'direction-low'}" style="font-size:14px;font-weight:800;margin:0 5px">${isHigh ? '▲' : '▼'} ${o.value.toFixed(1)}</span>
+                  <span style="color:var(--muted);font-size:12px">vs ${o.avg.toFixed(1)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="anomaly-col-tier"><span class="badge" style="background:${col}22;color:${col};font-size:10px">T${tier}</span></div>
+            <div class="anomaly-col-stat" style="font-weight:600">${STAT_LABELS[o.stat]}</div>
+            <div class="anomaly-col-val">
+              <span class="${isHigh ? 'direction-high' : 'direction-low'}" style="font-weight:700">${isHigh ? '▲' : '▼'} ${o.value.toFixed(1)}</span>
+              <span style="color:var(--muted)"> / ${o.avg.toFixed(1)}</span>
+            </div>
+            <div class="anomaly-col-pos">
+              <div class="mini-bar-track" style="min-width:80px">
+                <div class="mini-bar-fill" style="left:0;width:100%;background:${col};opacity:.1"></div>
+                <div class="mini-bar-fill" style="left:${avgPos}%;width:2px;background:var(--muted);opacity:.6"></div>
+                <div class="mini-bar-fill" style="left:${pos}%;width:3px;background:${isHigh ? 'var(--red)' : '#6ab4e8'};opacity:1"></div>
+              </div>
+              <div style="font-size:9px;color:var(--muted);margin-top:2px">${o.min.toFixed(0)} – ${o.max.toFixed(0)}</div>
+            </div>
+            <div><span class="z-chip ${zClass}">${severity.toFixed(1)}σ</span></div>
+          </div>
+        `;
+      }).join('')}
+    `;
+
+  const compTierRow = (cs) => [1,2,3,4,5].map(tier => {
+    const s = cts[tier][cs.key];
+    if (!s || s.count === 0) return '<td style="color:var(--muted)">—</td>';
+    const col = cs.color;
+    const safeLeft = s.max > s.min ? Math.max(0, (s.avg - s.std - s.min) / (s.max - s.min) * 100).toFixed(1) : 0;
+    const safeWidth = s.max > s.min ? Math.min(100, s.std * 2 / (s.max - s.min) * 100).toFixed(1) : 100;
+    const avgPct = s.max > s.min ? ((s.avg - s.min) / (s.max - s.min) * 100).toFixed(1) : 50;
+    return `<td>
+      <div class="stat-val" style="color:${col}">${fmtC(s.avg)}</div>
+      <div class="stat-range">${fmtC(s.min)}–${fmtC(s.max)} <span style="color:var(--muted)">±${fmtC(s.std)}</span></div>
+      <div class="mini-bar-wrap" style="margin-top:3px">
+        <div class="mini-bar-track">
+          <div class="mini-bar-fill" style="left:0;width:100%;background:${col};opacity:.18"></div>
+          <div class="mini-bar-fill" style="left:${safeLeft}%;width:${safeWidth}%;background:${col};opacity:.5;max-width:100%"></div>
+          <div class="mini-bar-fill" style="left:${avgPct}%;width:2px;background:${col};opacity:1"></div>
+        </div>
+      </div>
+    </td>`;
+  }).join('');
+
+  const compAnomalyRows = filteredCompOutliers.length === 0
+    ? `<div class="no-anomalies">✅ Aucune anomalie composite détectée avec ce seuil</div>`
+    : `
+      <div class="anomaly-header">
+        <div>Carte</div><div>Tier</div><div>Stat composite</div><div>Valeur vs Moy.</div><div>Position</div><div>Écart</div>
+      </div>
+      ${filteredCompOutliers.map(o => {
+        const tier = Math.round(o.card.tier);
+        const col = TIER_COLORS[tier];
+        const csCol = o.cs.color;
+        const range = o.max - o.min;
+        const pos = range > 0 ? ((o.value - o.min) / range * 100).toFixed(1) : 50;
+        const avgPos = range > 0 ? ((o.avg - o.min) / range * 100).toFixed(1) : 50;
+        const isHigh = o.z > 0;
+        const severity = Math.abs(o.z);
+        const zClass = severity >= 2.5 ? 'z-high' : 'z-mild';
+        return `
+          <div class="anomaly-row" style="grid-template-columns:1fr 60px 150px 110px 1fr 70px" onclick="jumpToCard('${o.card.id}')">
+            <div class="anomaly-col-card">
+              <div style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.card.name)}</div>
+              <div style="font-size:10px;color:var(--muted);font-family:monospace">${o.card.id}</div>
+              <div class="mobile-info" style="margin-top:7px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+                  <span class="badge" style="background:${col}22;color:${col};font-size:11px;font-weight:700;padding:2px 8px">T${tier}</span>
+                </div>
+                <div style="margin-bottom:2px">
+                  <span style="font-size:11px;color:${csCol};font-weight:700">${o.cs.label}</span>
+                  <span style="font-size:10px;color:var(--muted)"> (${o.cs.formula})</span>
+                </div>
+                <div>
+                  <span class="${isHigh ? 'direction-high' : 'direction-low'}" style="font-size:14px;font-weight:800">${isHigh ? '▲' : '▼'} ${fmtC(o.value)}</span>
+                  <span style="color:var(--muted);font-size:12px"> vs ${fmtC(o.avg)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="anomaly-col-tier"><span class="badge" style="background:${col}22;color:${col};font-size:10px">T${tier}</span></div>
+            <div class="anomaly-col-stat">
+              <div style="font-weight:600;color:${csCol}">${o.cs.label}</div>
+              <div style="font-size:10px;color:var(--muted)">${o.cs.formula}</div>
+            </div>
+            <div class="anomaly-col-val">
+              <span class="${isHigh ? 'direction-high' : 'direction-low'}" style="font-weight:700">${isHigh ? '▲' : '▼'} ${fmtC(o.value)}</span>
+              <span style="color:var(--muted)"> / ${fmtC(o.avg)}</span>
+            </div>
+            <div class="anomaly-col-pos">
+              <div class="mini-bar-track" style="min-width:80px">
+                <div class="mini-bar-fill" style="left:0;width:100%;background:${csCol};opacity:.1"></div>
+                <div class="mini-bar-fill" style="left:${avgPos}%;width:2px;background:var(--muted);opacity:.6"></div>
+                <div class="mini-bar-fill" style="left:${pos}%;width:3px;background:${isHigh ? 'var(--red)' : '#6ab4e8'};opacity:1"></div>
+              </div>
+              <div style="font-size:9px;color:var(--muted);margin-top:2px">${fmtC(o.min)} – ${fmtC(o.max)}</div>
+            </div>
+            <div><span class="z-chip ${zClass}">${severity.toFixed(1)}σ</span></div>
+          </div>
+        `;
+      }).join('')}
+    `;
+
+  const brokenLinks = detectBrokenLinks();
+  const TYPE_LABEL = { attribute: 'Attribut', power: 'Pouvoir', material: 'Matériel' };
+  const TYPE_COLOR = { attribute: '#a78bfa', power: '#fb923c', material: '#34d399' };
+  const brokenRows = brokenLinks.length === 0
+    ? `<div class="no-anomalies">✅ Aucun lien manquant</div>`
+    : brokenLinks.map(b => {
+        const col = TYPE_COLOR[b.type] || 'var(--accent)';
+        return `
+          <div class="broken-link-row" onclick="jumpToCard('${b.card.id}')">
+            <div style="flex:1;min-width:0;overflow:hidden">
+              <span style="font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">${esc(b.card.name)}</span>
+              <span style="font-size:10px;color:var(--muted);font-family:monospace">${b.card.id}</span>
+            </div>
+            <span class="badge" style="background:${col}22;color:${col};font-size:11px;flex-shrink:0">${TYPE_LABEL[b.type]}</span>
+            <span style="font-family:monospace;font-size:11px;color:var(--red);flex-shrink:0">${esc(b.refId)}</span>
+          </div>`;
+      }).join('');
+
+  const { byPower, noPower, noPowerTierCounts } = computePowerStats();
+  const powerCardChips = (list) => list.length === 0
+    ? `<span style="font-size:11px;color:var(--muted)">Aucune carte</span>`
+    : list.map(c => `<span class="badge" style="background:var(--surface2);cursor:pointer" onclick="event.stopPropagation();jumpToCard('${c.id}')">${esc(c.name)} <span style="color:${TIER_COLORS[Math.round(c.tier)]}">T${Math.round(c.tier)}</span></span>`).join(' ');
+
+  const powerRows = byPower.map(ps => `
+    <tr class="power-row" style="cursor:pointer" onclick="togglePowerExpand('${ps.power.id}')">
+      <td style="font-weight:600">${esc(ps.power.name)}</td>
+      ${[0,1,2,3,4].map(i => `<td>${ps.tierCounts[i] || '<span style="color:var(--muted)">—</span>'}</td>`).join('')}
+      <td style="font-weight:700">${ps.count}</td>
+    </tr>
+    ${statsPowerExpanded === ps.power.id ? `<tr><td colspan="7" style="background:var(--surface2)"><div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0">${powerCardChips(ps.cards)}</div></td></tr>` : ''}
+  `).join('');
+
+  const noPowerRow = `
+    <tr class="power-row" style="cursor:pointer;border-top:1px solid var(--border)" onclick="togglePowerExpand('NONE')">
+      <td style="font-weight:600;color:var(--muted)">Sans pouvoir</td>
+      ${[0,1,2,3,4].map(i => `<td>${noPowerTierCounts[i] || '<span style="color:var(--muted)">—</span>'}</td>`).join('')}
+      <td style="font-weight:700">${noPower.length}</td>
+    </tr>
+    ${statsPowerExpanded === 'NONE' ? `<tr><td colspan="7" style="background:var(--surface2)"><div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0">${powerCardChips(noPower)}</div></td></tr>` : ''}
+  `;
+
+  const powerSection = `
+    <div class="stat-panel" style="margin-top:20px">
+      <h3>Pouvoirs <span style="font-size:11px;font-weight:400;color:var(--muted)">(répartition des cartes par pouvoir et par tier — clic sur une ligne pour voir le détail)</span></h3>
+      <div style="overflow-x:auto">
+        <table class="tier-overview-table">
+          <thead>
+            <tr>
+              <th>Pouvoir</th>
+              ${[1,2,3,4,5].map(t => `<th style="color:${TIER_COLORS[t]}">T${t}</th>`).join('')}
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${powerRows}
+            ${noPowerRow}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  const detailPowerId = statsPowerDetailId || (powers[0] && powers[0].id) || null;
+  const detailPower = powers.find(p => p.id === detailPowerId);
+  const detailCards = detailPower
+    ? cards.filter(c => c.power?.id === detailPower.id).sort((a, b) => Math.round(a.tier) - Math.round(b.tier) || a.name.localeCompare(b.name))
+    : [];
+  const hasValue = detailCards.some(c => c.power.value != null);
+  const hasSpeed = detailCards.some(c => c.power.power_speed != null);
+
+  const powerDetailRows = detailCards.length === 0
+    ? `<div class="no-anomalies">Aucune carte n'utilise ce pouvoir</div>`
+    : `
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <table class="tier-overview-table" style="width:100%">
+          <thead>
+            <tr>
+              <th style="text-align:left">Carte</th>
+              <th>Tier</th>
+              ${hasValue ? '<th>Valeur</th>' : ''}
+              ${hasSpeed ? '<th>Vit. pouvoir</th>' : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${detailCards.map(c => {
+              const tier = Math.round(c.tier);
+              return `
+                <tr class="power-row" style="cursor:pointer" onclick="jumpToCard('${c.id}')">
+                  <td style="text-align:left;font-weight:600">${esc(c.name)}</td>
+                  <td><span class="badge" style="background:${TIER_COLORS[tier]}22;color:${TIER_COLORS[tier]}">T${tier}</span></td>
+                  ${hasValue ? `<td>${c.power.value != null ? c.power.value : '<span style="color:var(--muted)">—</span>'}</td>` : ''}
+                  ${hasSpeed ? `<td>${c.power.power_speed != null ? c.power.power_speed : '<span style="color:var(--muted)">—</span>'}</td>` : ''}
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+  const powerDetailSection = `
+    <div class="stat-panel" style="margin-top:20px">
+      <h3>Détail par pouvoir <span style="font-size:11px;font-weight:400;color:var(--muted)">(valeurs par carte et par tier pour un pouvoir donné)</span></h3>
+      <div style="margin-bottom:12px">
+        <select onchange="setStatsPowerDetail(this.value)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px">
+          ${powers.map(p => `<option value="${p.id}" ${p.id === detailPowerId ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+        </select>
+      </div>
+      ${powerDetailRows}
+    </div>
+  `;
+
+  el.innerHTML = `
+    ${overviewTable}
+    ${powerSection}
+    ${powerDetailSection}
+    <div class="stat-panel">
+      <h3>Anomalies détectées <span style="font-size:11px;font-weight:400;color:var(--muted)">(cartes dont une stat s'écarte significativement de la moyenne du tier)</span></h3>
+      ${tierChips}
+      ${thresholdControl}
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        ${anomalyRows}
+      </div>
+    </div>
+    <div class="stat-panel" style="margin-top:20px">
+      <h3>Anomalies avancées <span style="font-size:11px;font-weight:400;color:var(--muted)">(stats composites — ${filteredCompOutliers.length} anomalie${filteredCompOutliers.length !== 1 ? 's' : ''} · seuil ${statsThreshold}σ)</span></h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+        ${COMPOSITE_STATS.map(cs => `
+          <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid ${cs.color}44;background:${cs.color}11;font-size:11px">
+            <span style="width:8px;height:8px;border-radius:50%;background:${cs.color};flex-shrink:0"></span>
+            <span style="font-weight:700;color:${cs.color}">${cs.label}</span>
+            <span style="color:var(--muted)">${cs.formula}</span>
+            <span style="color:var(--muted);font-size:10px;opacity:.8">· ${cs.note}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div style="overflow-x:auto;margin-bottom:16px">
+        <table class="tier-overview-table">
+          <thead>
+            <tr>
+              <th>Stat composite</th>
+              ${[1,2,3,4,5].map(t => `<th style="color:${TIER_COLORS[t]}">Tier ${t} <span style="font-weight:400;color:var(--muted)">(${cts[t].count})</span></th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${COMPOSITE_STATS.map(cs => `<tr>
+              <td style="white-space:nowrap">
+                <div style="font-weight:600;color:${cs.color}">${cs.label}</div>
+                <div style="font-size:10px;color:var(--muted);font-weight:400">${cs.formula}</div>
+              </td>
+              ${compTierRow(cs)}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        ${compAnomalyRows}
+      </div>
+    </div>
+    <div class="stat-panel" style="margin-top:20px">
+      <h3>Liens manquants <span style="font-size:11px;font-weight:400;color:var(--muted)">(${brokenLinks.length} référence${brokenLinks.length !== 1 ? 's' : ''} vers des IDs introuvables)</span></h3>
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        ${brokenRows}
+      </div>
+    </div>
+  `;
+}
+
+function setStatsFilter(tier) {
+  statsFilterTier = tier;
+  renderStats();
+}
+
+function setThreshold(val) {
+  statsThreshold = parseFloat(val);
+  document.getElementById('threshold-val').textContent = statsThreshold.toFixed(1) + 'σ';
+  const ts = computeTierStats();
+  const outliers = detectOutliers(ts);
+  const filtered = statsFilterTier ? outliers.filter(o => Math.round(o.card.tier) === statsFilterTier) : outliers;
+  // Re-render just the anomaly count + rows
+  renderStats();
+}
+
+function jumpToCard(id) {
+  switchTab('cards');
+  selectCard(id);
+  // Scroll card into view in sidebar
+  setTimeout(() => {
+    const item = document.querySelector(`#card-list .list-item.selected`);
+    if (item) item.scrollIntoView({ block: 'nearest' });
+  }, 50);
+}
+
+// ================== IMPORT JSON ==================
+// ---- Sélection / modifications de masse ----
+function toggleSelectionMode() {
+  selectionMode = !selectionMode;
+  if (!selectionMode) bulkSelected.clear();
+  const btn = document.getElementById('btn-select-mode');
+  if (btn) btn.textContent = selectionMode ? 'Terminer' : 'Sélectionner';
+  filterCards();
+  renderMassToolbar();
+}
+
+function toggleCardSelection(id) {
+  if (bulkSelected.has(id)) bulkSelected.delete(id);
+  else bulkSelected.add(id);
+  const item = document.querySelector(`.list-item[data-id="${id}"]`);
+  if (item) {
+    item.classList.toggle('bulk-selected', bulkSelected.has(id));
+    const check = item.querySelector('.bulk-check');
+    if (check) {
+      check.classList.toggle('checked', bulkSelected.has(id));
+      check.innerHTML = bulkSelected.has(id) ? `<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5 L4 7 L8 3" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : '';
+    }
+  }
+  renderMassToolbar();
+}
+
+function selectAllVisible() {
+  document.querySelectorAll('.list-item[data-id]').forEach(el => bulkSelected.add(el.dataset.id));
+  filterCards();
+  renderMassToolbar();
+}
+
+function deselectAll() {
+  bulkSelected.clear();
+  filterCards();
+  renderMassToolbar();
+}
+
+function renderMassToolbar() {
+  const toolbar = document.getElementById('mass-toolbar');
+  if (!toolbar) return;
+  if (!selectionMode) { toolbar.style.display = 'none'; return; }
+  const n = bulkSelected.size;
+  const dis = n === 0 ? 'disabled' : '';
+  toolbar.style.display = '';
+  toolbar.innerHTML = `
+    <div class="mass-toolbar">
+      <div class="mass-toolbar-top">
+        <span class="mass-toolbar-count">${n} carte${n > 1 ? 's' : ''} sélectionnée${n > 1 ? 's' : ''}</span>
+        <span style="display:flex;gap:4px">
+          <button class="btn btn-secondary btn-sm" onclick="selectAllVisible()" style="padding:2px 8px;font-size:11px">Tout</button>
+          <button class="btn btn-secondary btn-sm" onclick="deselectAll()" style="padding:2px 8px;font-size:11px">Aucun</button>
+        </span>
+      </div>
+      <div class="mass-toolbar-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openMassEditModal()" ${dis}>Modifier un champ</button>
+        <button class="btn btn-secondary btn-sm" onclick="openMassAttrModal()" ${dis}>Attribut</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmMassDelete()" ${dis}>Supprimer (${n})</button>
+      </div>
+    </div>`;
+}
+
+function openMassEditModal() {
+  const n = bulkSelected.size;
+  showModal(`
+    <h2>Modifier en masse <span style="font-size:13px;font-weight:400;color:var(--muted)">${n} carte${n>1?'s':''}</span></h2>
+    <div class="field"><label>Champ</label>
+      <select id="mass-field" onchange="onMassFieldChange()">
+        <option value="tier">Tier</option>
+        <option value="summon_type">Type d'invocation</option>
+        <option value="power">Pouvoir</option>
+      </select>
+    </div>
+    <div id="mass-value-wrap" class="field"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="applyMassEdit()">Appliquer</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+    </div>
+  `);
+  onMassFieldChange();
+}
+
+function onMassFieldChange() {
+  const field = document.getElementById('mass-field')?.value;
+  const wrap = document.getElementById('mass-value-wrap');
+  if (!wrap) return;
+  if (field === 'tier') {
+    wrap.innerHTML = `<label>Tier</label><select id="mass-value">${[1,2,3,4,5].map(t=>`<option value="${t}">${t}</option>`).join('')}</select>`;
+  } else if (field === 'summon_type') {
+    wrap.innerHTML = `<label>Type d'invocation</label><select id="mass-value">${['normal','sacrifice','fusion','heritage','transformation'].map(s=>`<option value="${s}">${summonLabel(s)}</option>`).join('')}</select>`;
+  } else if (field === 'power') {
+    wrap.innerHTML = `<label>Pouvoir</label><select id="mass-value"><option value="">Aucun</option>${powers.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>`;
+  }
+}
+
+async function applyMassEdit() {
+  const field = document.getElementById('mass-field')?.value;
+  const value = document.getElementById('mass-value')?.value;
+  closeModal();
+  const ids = [...bulkSelected];
+  for (const id of ids) {
+    const card = cards.find(c => c.id === id);
+    if (!card) continue;
+    const updated = { ...card };
+    delete updated._has_illustration;
+    if (field === 'tier') updated.tier = parseInt(value);
+    else if (field === 'summon_type') updated.summon_type = value;
+    else if (field === 'power') updated.power = value ? { id: value, power_speed: updated.power?.power_speed || 0, value: updated.power?.value ?? null } : {};
+    await fetch(`/api/cards/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
+  }
+  toast(`${ids.length} carte${ids.length>1?'s':''} modifiée${ids.length>1?'s':''}`, 'ok');
+  cards = await apiFetch('/api/cards'); filterCards(); renderMassToolbar();
+}
+
+function openMassAttrModal() {
+  const n = bulkSelected.size;
+  showModal(`
+    <h2>Attributs en masse <span style="font-size:13px;font-weight:400;color:var(--muted)">${n} carte${n>1?'s':''}</span></h2>
+    <div class="field"><label>Action</label>
+      <select id="mass-attr-action">
+        <option value="add">Ajouter</option>
+        <option value="remove">Retirer</option>
+      </select>
+    </div>
+    <div class="field"><label>Attribut</label>
+      <select id="mass-attr-id">${attributes.map(a=>`<option value="${a.id}">${esc((a.icon||'')+' '+a.name)}</option>`).join('')}</select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="applyMassAttribute()">Appliquer</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+    </div>
+  `);
+}
+
+async function applyMassAttribute() {
+  const action = document.getElementById('mass-attr-action')?.value;
+  const attrId = document.getElementById('mass-attr-id')?.value;
+  if (!attrId) return;
+  closeModal();
+  const ids = [...bulkSelected];
+  for (const id of ids) {
+    const card = cards.find(c => c.id === id);
+    if (!card) continue;
+    const updated = { ...card };
+    delete updated._has_illustration;
+    const attrs = [...(updated.attributes || [])];
+    if (action === 'add' && !attrs.includes(attrId)) attrs.push(attrId);
+    else if (action === 'remove') { const i = attrs.indexOf(attrId); if (i !== -1) attrs.splice(i, 1); }
+    updated.attributes = attrs;
+    await fetch(`/api/cards/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
+  }
+  toast(`${ids.length} carte${ids.length>1?'s':''} mise${ids.length>1?'s':''} à jour`, 'ok');
+  cards = await apiFetch('/api/cards'); filterCards(); renderMassToolbar();
+}
+
+async function confirmMassDelete() {
+  const n = bulkSelected.size;
+  if (!confirm(`Supprimer ${n} carte${n>1?'s':''} ? Cette action est irréversible.`)) return;
+  const ids = [...bulkSelected];
+  await Promise.all(ids.map(id => fetch(`/api/cards/${id}`, { method: 'DELETE' })));
+  bulkSelected.clear();
+  if (selectedCard && ids.includes(selectedCard.id)) { selectedCard = null; document.getElementById('card-detail').innerHTML = `<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg><span>Sélectionne une carte</span></div>`; }
+  toast(`${ids.length} carte${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`, 'ok');
+  cards = await apiFetch('/api/cards'); filterCards(); renderMassToolbar();
+}
+
+let importType = null;
+let importItems = null;
+
+const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies' };
+
+function openImportModal(type) {
+  importType = type;
+  importItems = null;
+  showModal(`
+    <h2>Importer des ${IMPORT_LABELS[type]}</h2>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:14px">
+      Sélectionne un fichier JSON contenant un tableau d'objets ou un objet avec une clé <code>${type}</code>.
+    </p>
+    <div class="field">
+      <label>Fichier JSON</label>
+      <input type="file" id="import-file" accept=".json" onchange="previewImport()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;width:100%">
+    </div>
+    <div id="import-preview" class="hidden" style="margin-top:12px">
+      <div id="import-preview-info" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:13px;margin-bottom:12px"></div>
+      <div class="field">
+        <label>En cas de doublon (même ID)</label>
+        <select id="import-mode">
+          <option value="skip">Ignorer (conserver l'existant)</option>
+          <option value="replace">Remplacer (écraser l'existant)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" id="import-confirm-btn" disabled onclick="confirmImport()">Importer</button>
+    </div>
+  `);
+}
+
+function previewImport() {
+  const file = document.getElementById('import-file')?.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let parsed = JSON.parse(e.target.result);
+      if (Array.isArray(parsed)) {
+        importItems = parsed;
+      } else if (parsed && Array.isArray(parsed[importType])) {
+        importItems = parsed[importType];
+      } else {
+        importItems = null;
+        toast('Format invalide : tableau attendu', 'err');
+        return;
+      }
+      const preview = document.getElementById('import-preview');
+      const info = document.getElementById('import-preview-info');
+      const btn = document.getElementById('import-confirm-btn');
+      if (preview) preview.classList.remove('hidden');
+      if (info) info.textContent = `${importItems.length} élément${importItems.length !== 1 ? 's' : ''} trouvé${importItems.length !== 1 ? 's' : ''} dans le fichier.`;
+      if (btn) btn.disabled = false;
+    } catch {
+      importItems = null;
+      toast('Fichier JSON invalide', 'err');
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function confirmImport() {
+  if (!importItems || !importType) return;
+  const mode = document.getElementById('import-mode')?.value || 'skip';
+  closeModal();
+  const endpoint = `/api/${importType}/import`;
+  const res = await apiFetch(endpoint, { method: 'POST', body: { items: importItems, mode } });
+  if (res.error) return toast(res.error, 'err');
+
+  // Reload data from server
+  if (importType === 'cards') {
+    cards = await apiFetch('/api/cards');
+    filterCards();
+  } else if (importType === 'attributes') {
+    attributes = await apiFetch('/api/attributes');
+    filterAttributes();
+  } else if (importType === 'powers') {
+    powers = await apiFetch('/api/powers');
+    filterPowers();
+  } else if (importType === 'boards') {
+    boards = await apiFetch('/api/boards');
+    filterBoards();
+  } else if (importType === 'magies') {
+    magies = await apiFetch('/api/magies');
+    filterMagies();
+  }
+
+  const parts = [];
+  if (res.added)    parts.push(`${res.added} ajouté${res.added !== 1 ? 's' : ''}`);
+  if (res.replaced) parts.push(`${res.replaced} remplacé${res.replaced !== 1 ? 's' : ''}`);
+  if (res.skipped)  parts.push(`${res.skipped} ignoré${res.skipped !== 1 ? 's' : ''}`);
+  toast(`Import terminé : ${parts.join(', ') || 'aucun changement'}`);
+}
+
+// ================== BOARDS ==================
+let _boardBlockedSet = new Set();
+
+function filterBoards() {
+  const q = document.getElementById('board-search').value.toLowerCase();
+  const filtered = boards.filter(b => !q || b.name.toLowerCase().includes(q) || b.id.toLowerCase().includes(q));
+  renderBoardList(filtered);
+}
+
+function renderBoardList(list = boards) {
+  document.getElementById('board-count').textContent = list.length;
+  document.getElementById('board-list').innerHTML = list.map(b => `
+    <div class="list-item ${selectedBoard && selectedBoard.id === b.id ? 'selected' : ''}" onclick="selectBoard('${b.id}')">
+      ${b._has_illustration
+        ? `<img src="/illustrations/${b.id}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0" loading="lazy">`
+        : `<div style="width:40px;height:40px;background:var(--surface2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px">🗺️</div>`}
+      <div style="min-width:0">
+        <div class="item-name">${esc(b.name)}</div>
+        <div class="item-id">${b.id}${b.blocked_cells?.length ? ` · ${b.blocked_cells.length} case${b.blocked_cells.length>1?'s':''} bloquée${b.blocked_cells.length>1?'s':''}` : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectBoard(id) {
+  selectedBoard = boards.find(b => b.id === id);
+  isNewBoard = false;
+  renderBoardList();
+  renderBoardDetail();
+  showDetail();
+}
+
+function renderBoardDetail() {
+  const b = selectedBoard;
+  _boardBlockedSet = new Set((b.blocked_cells || []).map(c => `${c.col},${c.row}`));
+  const el = document.getElementById('board-detail');
+  const e  = b.effect;
+  const needsStat = e?.type === 'stat_bonus' || e?.type === 'stat_modifier';
+
+  const statOpts = [
+    ['atk','ATK'],['hp','HP'],['movement_speed','Vitesse mvt'],
+    ['attack_speed','Vitesse attaque'],['initiative','Initiative'],['range','Portée'],
+  ].map(([v,l]) => `<option value="${v}" ${e?.stat===v?'selected':''}>${l}</option>`).join('');
+
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-title" style="margin-bottom:16px">🗺️ ${esc(b.name)}</div>
+
+    <div class="section-title">Identité</div>
+    <div class="form-grid">
+      <div class="field"><label>ID</label><input id="bf-id" value="${esc(b.id)}"></div>
+      <div class="field"><label>Nom</label><input id="bf-name" value="${esc(b.name)}"></div>
+    </div>
+
+    <div class="section-title" style="margin-top:20px">Effet</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Type</label>
+        <select id="bf-effect-type" onchange="toggleBoardEffectFields()">
+          <option value="">Aucun effet</option>
+          <option value="stat_bonus"    ${e?.type==='stat_bonus'   ?'selected':''}>Bonus de stat</option>
+          <option value="stat_modifier" ${e?.type==='stat_modifier'?'selected':''}>Modificateur de stat</option>
+          <option value="shield"        ${e?.type==='shield'       ?'selected':''}>Bouclier</option>
+          <option value="draw_bonus"    ${e?.type==='draw_bonus'   ?'selected':''}>Bonus de pioche</option>
+        </select>
+      </div>
+      <div class="field" id="bf-stat-wrap" style="${needsStat?'':'display:none'}">
+        <label>Stat</label>
+        <select id="bf-effect-stat">${statOpts}</select>
+      </div>
+      <div class="field" id="bf-value-wrap" style="${e?.type?'':'display:none'}">
+        <label>Valeur</label>
+        <input type="number" id="bf-effect-value" value="${e?.value ?? 0}">
+      </div>
+    </div>
+    <div id="bf-target-wrap" style="${e?.type?'':'display:none'}">
+      <div class="section-title" style="margin-top:20px">Attributs cibles <span style="font-size:10px;font-weight:400;color:var(--muted)">(vide = tous les attributs)</span></div>
+      <div class="attr-chips" id="bf-attr-chips">
+        ${(e?.target_attributes || []).map(aid => `
+          <span class="attr-chip" data-aid="${aid}" onclick="removeBoardTargetAttr('${aid}')">
+            ${getAttrName(aid)} <span class="remove">×</span>
+          </span>
+        `).join('')}
+        <button class="attr-add" onclick="openBoardAttrPickModal()">+ Ajouter</button>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:20px">Cellules bloquées (zone neutre)</div>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:8px">Cliquez pour bloquer/débloquer une cellule.</p>
+    <div id="bf-blocked-grid" style="display:inline-grid;grid-template-columns:repeat(5,28px);gap:2px;margin-bottom:4px"></div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:16px" id="bf-blocked-count">${_boardBlockedSet.size} cellule${_boardBlockedSet.size!==1?'s':''} bloquée${_boardBlockedSet.size!==1?'s':''}</div>
+
+    <div class="section-title" style="margin-top:4px">Illustration</div>
+    <div class="detail-header" style="margin-bottom:16px">
+      <div class="illustration-box" onclick="openBoardIllusModal()">
+        ${b._has_illustration
+          ? `<img src="/illustrations/${b.id}?t=${Date.now()}" alt="">`
+          : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
+        <div class="illus-overlay">
+          ${b._has_illustration ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteBoardIllustration()">Supprimer</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openBoardIllusModal()">Importer URL</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      ${isNewBoard
+        ? `<button class="btn btn-success" onclick="createBoard()">Créer le terrain</button>
+           <button class="btn btn-secondary" onclick="cancelNewBoard()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveBoard()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deleteBoard()">Supprimer</button>`}
+    </div>
+  `;
+  _renderBlockedCellsGrid();
+}
+
+function toggleBoardEffectFields() {
+  const type = document.getElementById('bf-effect-type').value;
+  const needsStat = type === 'stat_bonus' || type === 'stat_modifier';
+  document.getElementById('bf-stat-wrap').style.display   = needsStat ? '' : 'none';
+  document.getElementById('bf-value-wrap').style.display  = type ? '' : 'none';
+  document.getElementById('bf-target-wrap').style.display = type ? '' : 'none';
+}
+
+function removeBoardTargetAttr(aid) {
+  const chip = document.querySelector(`#bf-attr-chips .attr-chip[data-aid="${aid}"]`);
+  if (chip) chip.remove();
+}
+
+function openBoardAttrPickModal() {
+  const current = [...document.querySelectorAll('#bf-attr-chips .attr-chip')].map(el => el.dataset.aid);
+  showModal(`
+    <h2>Ajouter un attribut cible</h2>
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto">
+      ${attributes.filter(a => !current.includes(a.id)).map(a => `
+        <div class="list-item" style="border-radius:6px" onclick="addBoardTargetAttr('${a.id}')">
+          <span style="font-size:16px">${a.icon || ''}</span>
+          <div><div>${esc(a.name)}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${a.id}</div></div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">Fermer</button></div>
+  `);
+}
+
+function addBoardTargetAttr(aid) {
+  const chipsEl = document.getElementById('bf-attr-chips');
+  if (!chipsEl || chipsEl.querySelector(`[data-aid="${aid}"]`)) { closeModal(); return; }
+  const addBtn = chipsEl.querySelector('.attr-add');
+  const chip = document.createElement('span');
+  chip.className = 'attr-chip';
+  chip.dataset.aid = aid;
+  chip.onclick = () => removeBoardTargetAttr(aid);
+  chip.innerHTML = `${getAttrName(aid)} <span class="remove">×</span>`;
+  chipsEl.insertBefore(chip, addBtn);
+  closeModal();
+}
+
+function _renderBlockedCellsGrid() {
+  const grid = document.getElementById('bf-blocked-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  for (let row = 6; row >= 4; row--) {
+    for (let col = 0; col < 5; col++) {
+      const key = `${col},${row}`;
+      const isBlocked = _boardBlockedSet.has(key);
+      const cell = document.createElement('div');
+      cell.title = `col ${col}, row ${row}`;
+      cell.style.cssText = `width:28px;height:28px;border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:${isBlocked?'#4a4a4a':'#1a1a2e'};border:1px solid ${isBlocked?'#aaa':'#333'};font-size:13px;`;
+      cell.textContent = isBlocked ? '✕' : '';
+      cell.addEventListener('click', () => {
+        if (_boardBlockedSet.has(key)) _boardBlockedSet.delete(key);
+        else _boardBlockedSet.add(key);
+        const countEl = document.getElementById('bf-blocked-count');
+        if (countEl) countEl.textContent = `${_boardBlockedSet.size} cellule${_boardBlockedSet.size!==1?'s':''} bloquée${_boardBlockedSet.size!==1?'s':''}`;
+        _renderBlockedCellsGrid();
+      });
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function _collectBoardFields() {
+  const type = document.getElementById('bf-effect-type').value;
+  let effect = null;
+  if (type) {
+    const needsStat = type === 'stat_bonus' || type === 'stat_modifier';
+    effect = { type, value: +document.getElementById('bf-effect-value').value };
+    if (needsStat) effect.stat = document.getElementById('bf-effect-stat').value;
+    effect.target_attributes = [...document.querySelectorAll('#bf-attr-chips .attr-chip')].map(el => el.dataset.aid);
+  }
+  return {
+    id:            document.getElementById('bf-id').value.trim(),
+    name:          document.getElementById('bf-name').value.trim(),
+    effect,
+    blocked_cells: [..._boardBlockedSet].map(k => { const [c,r] = k.split(','); return { col:+c, row:+r }; }),
+  };
+}
+
+async function saveBoard() {
+  const updated = _collectBoardFields();
+  if (!updated) return;
+  const oldId = selectedBoard.id;
+  const res = await apiFetch(`/api/boards/${oldId}`, { method: 'PUT', body: updated });
+  if (res.error) return toast(res.error, 'err');
+  const idx = boards.findIndex(b => b.id === oldId);
+  boards[idx] = { ...updated, _has_illustration: selectedBoard._has_illustration };
+  selectedBoard = boards[idx];
+  filterBoards();
+  renderBoardDetail();
+  toast('Terrain enregistré');
+}
+
+async function deleteBoard() {
+  if (!confirm(`Supprimer "${selectedBoard.name}" ?`)) return;
+  const res = await apiFetch(`/api/boards/${selectedBoard.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  boards = boards.filter(b => b.id !== selectedBoard.id);
+  selectedBoard = null;
+  filterBoards();
+  document.getElementById('board-detail').innerHTML = '<div class="empty"><span>Sélectionne un terrain</span></div>';
+  showList();
+  toast('Terrain supprimé');
+}
+
+function openNewBoard() {
+  const nextNum = String(boards.length + 1).padStart(3, '0');
+  selectedBoard = { id: `BOARD_${nextNum}`, name: '', effect: null, blocked_cells: [], _has_illustration: false };
+  isNewBoard = true;
+  renderBoardList();
+  renderBoardDetail();
+  showDetail();
+}
+
+async function createBoard() {
+  const board = _collectBoardFields();
+  if (!board) return;
+  if (!board.id || !board.name) return toast('ID et nom requis', 'err');
+  const res = await apiFetch('/api/boards', { method: 'POST', body: board });
+  if (res.error) return toast(res.error, 'err');
+  boards.push({ ...board, _has_illustration: false });
+  selectedBoard = boards[boards.length - 1];
+  isNewBoard = false;
+  filterBoards();
+  renderBoardDetail();
+  toast('Terrain créé');
+}
+
+function cancelNewBoard() {
+  selectedBoard = null;
+  isNewBoard = false;
+  filterBoards();
+  document.getElementById('board-detail').innerHTML = '<div class="empty"><span>Sélectionne un terrain</span></div>';
+  showList();
+}
+
+function openBoardIllusModal() {
+  const boardName = selectedBoard?.name || '';
+  const defaultQuery = `yugioh illustration ${boardName}`.trim();
+  showModal(`
+    <h2 style="margin-bottom:16px">Illustration — ${esc(boardName)}</h2>
+
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Mots-clés</label>
+        <input id="board-illus-q" value="${esc(defaultQuery)}" style="font-family:monospace;font-size:12px">
+      </div>
+      <button class="btn btn-secondary" onclick="openBoardImageSearch()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.28 5 12c0-4.2 3.29-7.27 7.19-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"/></svg>
+        Ouvrir Google Images ↗
+      </button>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);line-height:1.6;border-top:1px solid var(--border);padding-top:10px">
+        Clic droit sur l'image souhaitée →
+        <strong style="color:var(--text)">Copier l'adresse de l'image</strong>
+        → coller dans le champ ci-dessous.
+      </div>
+    </div>
+
+    <div class="field">
+      <label>URL de l'image</label>
+      <div style="display:flex;gap:6px">
+        <input id="board-illus-url" type="text" placeholder="https://..." style="flex:1">
+        <button class="btn btn-secondary btn-sm" onclick="pasteBoardIllusUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
+      </div>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Sauvegardée sous <code>${selectedBoard.id}.png</code></span>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="importBoardIllustration()">Importer</button>
+    </div>
+  `, 'wide');
+}
+
+function openBoardImageSearch() {
+  const q = document.getElementById('board-illus-q')?.value || `yugioh illustration ${selectedBoard?.name || ''}`;
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
+}
+
+async function pasteBoardIllusUrl() {
+  try {
+    const text = await navigator.clipboard.readText();
+    const el = document.getElementById('board-illus-url');
+    if (el) el.value = text;
+  } catch {
+    toast('Accès presse-papier refusé — collez manuellement (Ctrl+V)', 'err');
+  }
+}
+
+async function importBoardIllustration() {
+  const url = document.getElementById('board-illus-url').value.trim();
+  if (!url) return toast('URL requise', 'err');
+  closeModal();
+  toast('Téléchargement en cours...', 'ok');
+  const res = await apiFetch(`/api/boards/${selectedBoard.id}/illustration`, { method: 'POST', body: { url } });
+  if (res.error) return toast(res.error, 'err');
+  selectedBoard._has_illustration = true;
+  const idx = boards.findIndex(b => b.id === selectedBoard.id);
+  if (idx !== -1) boards[idx]._has_illustration = true;
+  filterBoards();
+  renderBoardDetail();
+  renderBoardList();
+  toast('Illustration importée');
+}
+
+async function deleteBoardIllustration() {
+  if (!confirm('Supprimer l\'illustration ?')) return;
+  const res = await apiFetch(`/api/boards/${selectedBoard.id}/illustration`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  selectedBoard._has_illustration = false;
+  const idx = boards.findIndex(b => b.id === selectedBoard.id);
+  if (idx !== -1) boards[idx]._has_illustration = false;
+  renderBoardDetail();
+  renderBoardList();
+  toast('Illustration supprimée');
+}
+
+// ================== BOOT ==================
+init();
+</script>
+</body>
+</html>
