@@ -22,9 +22,18 @@ function ensureListening() {
 }
 
 export function sendOwnBoard(round, units) {
+  // On transmet aussi l'état persistant (vétérance) : sans lui, la reconstruction
+  // repartirait de zéro et les deux clients simuleraient des matchups différents
+  // aux rounds > 1 (chacun voit son adversaire "frais"). Le combat lui-même reste
+  // déterministe une fois les deux boards identiques des deux côtés.
   const payload = {
     round,
-    units: units.map(u => ({ uid: u.uid, card_id: u.card_id, position: { ...u.position } })),
+    units: units.map(u => ({
+      uid: u.uid,
+      card_id: u.card_id,
+      position: { ...u.position },
+      veterancy_points: u.veterancy_points || 0,
+    })),
   };
   PvpConnection.send('round:board_ready', payload);
 }
@@ -55,6 +64,11 @@ export function reconstructOpponentUnits(payload, board, cardDb) {
     const card = cardDb.getCard(entry.card_id);
     if (!card) continue;
     const unit = new Unit(card, 'enemy');
+    // Rejoue l'état persistant pour que l'unité reconstruite soit identique à
+    // l'unité réelle de l'adversaire (mêmes stats effectives → même combat).
+    unit.veterancy_points = entry.veterancy_points || 0;
+    unit._recomputeStats?.();
+    unit.current_hp = unit.max_hp;
     const pos = { col: entry.position.col, row: mirrorRow(entry.position.row) };
     board.placeUnit(unit, pos);
     units.push(unit);

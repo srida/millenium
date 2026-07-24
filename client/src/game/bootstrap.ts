@@ -50,7 +50,7 @@ function resolveDeck(deckName?: string): Record<string, string[]> {
   return autoDeck();
 }
 
-export function buildSession(deckName?: string): GameSession {
+export function buildSession(deckName?: string, mode: 'ai' | 'pvp' = 'ai'): GameSession {
   const rawDeck = resolveDeck(deckName);
 
   const cardsByTier: Record<number, Card[]> = {};
@@ -67,5 +67,15 @@ export function buildSession(deckName?: string): GameSession {
     cardDb: CardDatabase as any,
     getRandomBoard: () => (BoardDatabase as any).getRandomBoard(),
     getRandomMagies: (count: number) => (MagieDatabase as any).getRandomMagies(count),
+    mode,
   });
+}
+
+// Dépendances data pour le PvpController (résolution carte + terrains).
+export function pvpDeps() {
+  return {
+    cardDb: CardDatabase as any,
+    getBoard: (id: string) => (BoardDatabase as any).getBoard(id),
+    getRandomBoard: () => (BoardDatabase as any).getRandomBoard(),
+  };
 }

@@ -63,6 +63,9 @@ export interface GameSnapshot {
   summonOptions: SummonOptionMenuSnapshot | null;
   gameOver: boolean;
   winner: 'player' | 'enemy' | 'draw' | null;
+  // PvP uniquement
+  pvpOpponent: string | null;   // pseudo de l'adversaire
+  pvpWaiting: boolean;          // en attente de l'adversaire (poignée de main / résultat)
 }
 
 export const EMPTY_SNAPSHOT: GameSnapshot = {
@@ -71,7 +74,7 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
   boardTerrain: null, combatActive: false, combatRemaining: 60, speed: 2, paused: false,
   prepRemaining: 60, endRound: null, shopping: null, summonOptions: null,
-  gameOver: false, winner: null,
+  gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
 };
 
 interface GameStoreState extends GameSnapshot {

@@ -36,9 +36,9 @@ export class GameController {
   private summonOptions: SummonOptionMenu | null = null;
 
   combatSpeed = 2;
-  private paused = false;
+  protected paused = false;
   private _errorTimer: ReturnType<typeof setTimeout> | null = null;
-  private _combatRemaining = 60;
+  protected _combatRemaining = 60;
 
   constructor(session: GameSession) {
     this.session = session;
@@ -256,9 +256,14 @@ export class GameController {
     if (this.session.phase !== Phase.PREPARATION) return;
     this._clearSelection();
     const { combat, boardData } = this.session.startCombat();
+    this._beginCombatAnimation(combat, boardData);
+  }
+
+  // Lance l'animateur de combat sur un CombatManager déjà construit. Partagé
+  // avec le mode PvP (qui appelle session.startCombat(agreedBoard) puis ceci).
+  protected _beginCombatAnimation(combat: import('../logic/CombatManager.js').CombatManager, boardData: import('../logic/types.js').BoardDef | null): void {
     this.scene?.enterCombatMode();
     this._combatRemaining = 60;
-
     const animator = new CombatAnimator3D(combat, this.scene as any, {
       onStep: () => {
         this._combatRemaining = Math.ceil(60 * combat.remainingTicks() / 333);
@@ -286,7 +291,7 @@ export class GameController {
     this.sync();
   }
 
-  private _onCombatFinished(): void {
+  protected _onCombatFinished(): void {
     const result = this.session.finishCombat();
     this.animator = null;
     this.scene?.exitCombatMode();
@@ -370,7 +375,7 @@ export class GameController {
     return this._pendingMagie ? (this.session.magieNeedsGraveyardTarget(this._pendingMagie) ? 'graveyard' : 'unit') : null;
   }
 
-  private _proceedNextRound(): void {
+  protected _proceedNextRound(): void {
     this._shoppingMagies = [];
     this._pendingMagie = null;
     this.session.startNextRound();
@@ -411,7 +416,7 @@ export class GameController {
     );
   }
 
-  private _clearSelection(): void {
+  protected _clearSelection(): void {
     this.selectedCard = null;
     this.selectedHandIdx = null;
     this.selectedMaterials = [];

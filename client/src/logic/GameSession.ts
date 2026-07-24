@@ -49,6 +49,10 @@ export interface GameSessionDeps {
   getRandomBoard: () => BoardDef | null;
   /** Tire N magies pour la Phase Shopping (MagieDatabase.getRandomMagies). */
   getRandomMagies: (count: number) => Magie[];
+  /** 'ai' (défaut) : EnemyAI place l'adversaire. 'pvp' : l'adversaire est un
+   *  humain distant — le placement ennemi et le terrain sont gérés en externe
+   *  (PvpController/PvpOpponentProvider), pas ici. */
+  mode?: 'ai' | 'pvp';
 }
 
 export interface EndRoundResult {
@@ -154,6 +158,10 @@ export class GameSession {
       }
     }
 
+    // En PvP, l'adversaire humain place ses unités sur son propre client ; le
+    // PvpController les reconstruira côté ennemi juste avant le combat.
+    if (this.deps.mode === 'pvp') return;
+
     // L'IA ennemie pioche et remplit ses slots vides (survivants restent, cimetière dispo)
     this.enemyAI.drawHand(this.gameState.round);
     this.enemyAI.placeFromHand(this.board, this.gameState.enemy_board_slots, this.enemyGraveyard);
@@ -239,11 +247,13 @@ export class GameSession {
 
   // ── Combat ─────────────────────────────────────────────────────────────
 
-  startCombat(): StartCombatResult {
+  // agreedBoard : en PvP, terrain convenu entre les 2 clients (déterminisme) ;
+  // omis en IA → terrain aléatoire.
+  startCombat(agreedBoard?: BoardDef | null): StartCombatResult {
     this.graveyard = [];
     this.enemyGraveyard = [];
 
-    const boardData = this.deps.getRandomBoard();
+    const boardData = agreedBoard !== undefined ? agreedBoard : this.deps.getRandomBoard();
     this.board.setBlockedCells(boardData?.blocked_cells || []);
 
     const playerUnits = this.board.getLivingUnitsOnSide('player');
