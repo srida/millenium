@@ -1,0 +1,557 @@
+[
+	{
+		"id": "PUBLIC_DECK_001",
+		"name": "Heroes",
+		"deck": {
+			"1": [
+				"CORE_093",
+				"CORE_094",
+				"CORE_095",
+				"CORE_096",
+				"CORE_097"
+			],
+			"2": [
+				"CORE_098",
+				"CORE_099",
+				"CORE_100",
+				"CORE_101",
+				"CORE_121",
+				"CORE_122",
+				"CORE_124",
+				"CORE_125"
+			],
+			"3": [
+				"CORE_119",
+				"CORE_120",
+				"CORE_123",
+				"CORE_127",
+				"CORE_128",
+				"EXTRA_090",
+				"EXTRA_091",
+				"EXTRA_092"
+			],
+			"4": [
+				"CORE_126",
+				"CORE_129",
+				"CORE_131",
+				"CORE_132"
+			],
+			"5": [
+				"CORE_130",
+				"CORE_133"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_002",
+		"name": "Atem",
+		"deck": {
+			"1": [
+				"CORE_004",
+				"CORE_062",
+				"CORE_063",
+				"CORE_058",
+				"CORE_059",
+				"CORE_060",
+				"CORE_014",
+				"CORE_015"
+			],
+			"2": [
+				"CORE_001",
+				"CORE_003",
+				"CORE_092",
+				"CORE_064",
+				"CORE_005",
+				"CORE_006",
+				"CORE_078",
+				"CORE_118"
+			],
+			"3": [
+				"CORE_007",
+				"CORE_013",
+				"CORE_016"
+			],
+			"4": [
+				"CORE_011",
+				"CORE_061",
+				"CORE_065",
+				"CORE_066",
+				"CORE_068",
+				"CORE_077",
+				"EXTRA_081",
+				"EXTRA_083"
+			],
+			"5": [
+				"CORE_067",
+				"EXTRA_089"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_003",
+		"name": "Yugi",
+		"deck": {
+			"1": [
+				"CORE_052",
+				"CORE_053",
+				"CORE_054",
+				"CORE_055",
+				"CORE_083",
+				"CORE_085",
+				"CORE_010",
+				"CORE_008"
+			],
+			"2": [
+				"CORE_005",
+				"CORE_006",
+				"CORE_012",
+				"EXTRA_078",
+				"CORE_118"
+			],
+			"3": [
+				"CORE_007",
+				"CORE_057",
+				"CORE_084",
+				"CORE_086",
+				"CORE_102",
+				"EXTRA_077",
+				"EXTRA_079"
+			],
+			"4": [
+				"CORE_011",
+				"CORE_087",
+				"EXTRA_080"
+			],
+			"5": [
+				"CORE_088"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_004",
+		"name": "Kaiba",
+		"deck": {
+			"1": [
+				"CORE_023",
+				"CORE_026",
+				"CORE_031",
+				"CORE_041",
+				"CORE_047",
+				"CORE_048",
+				"CORE_049",
+				"CORE_079"
+			],
+			"2": [
+				"CORE_042",
+				"CORE_045",
+				"CORE_070",
+				"CORE_071",
+				"CORE_072",
+				"EXTRA_086",
+				"EXTRA_088"
+			],
+			"3": [
+				"CORE_002",
+				"CORE_069",
+				"CORE_108"
+			],
+			"4": [
+				"EXTRA_084"
+			],
+			"5": [
+				"CORE_103"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_005",
+		"name": "Joey",
+		"deck": {
+			"1": [
+				"CORE_032",
+				"CORE_035",
+				"CORE_036",
+				"CORE_037",
+				"CORE_074",
+				"CORE_075",
+				"CORE_080",
+				"CORE_081"
+			],
+			"2": [
+				"CORE_033",
+				"CORE_039",
+				"CORE_073",
+				"CORE_076",
+				"CORE_111",
+				"CORE_112",
+				"CORE_116",
+				"CORE_012"
+			],
+			"3": [
+				"CORE_038",
+				"CORE_110",
+				"CORE_115",
+				"CORE_114",
+				"CORE_113"
+			],
+			"4": [
+				"CORE_089",
+				"CORE_090"
+			],
+			"5": []
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_006",
+		"name": "Marik",
+		"deck": {
+			"1": [
+				"EXTRA_055",
+				"MARIK_007",
+				"MARIK_008",
+				"MARIK_006",
+				"EXTRA_056",
+				"MARIK_001",
+				"MARIK_003",
+				"MARIK_009"
+			],
+			"2": [
+				"MARIK_002",
+				"MARIK_011",
+				"MARIK_012",
+				"EXTRA_048",
+				"EXTRA_049",
+				"EXTRA_050",
+				"EXTRA_052",
+				"EXTRA_051"
+			],
+			"3": [
+				"MARIK_015",
+				"MARIK_016",
+				"MARIK_017",
+				"MARIK_018",
+				"EXTRA_053",
+				"EXTRA_054",
+				"EXTRA_058"
+			],
+			"4": [
+				"MARIK_019",
+				"EXTRA_057"
+			],
+			"5": [
+				"MARIK_020"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_007",
+		"name": "Paradox",
+		"deck": {
+			"1": [
+				"PARA_008",
+				"PARA_012",
+				"PARA_013",
+				"EXTRA_067",
+				"EXTRA_069",
+				"EXTRA_070"
+			],
+			"2": [
+				"HAGA_014",
+				"PARA_001",
+				"PARA_002",
+				"PARA_003",
+				"PARA_006",
+				"PARA_011"
+			],
+			"3": [
+				"EXTRA_068",
+				"EXTRA_072",
+				"EXTRA_073",
+				"EXTRA_074",
+				"EXTRA_075"
+			],
+			"4": [
+				"PARA_004",
+				"EXTRA_076"
+			],
+			"5": [
+				"EXTRA_071"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_008",
+		"name": "Insector Haga",
+		"deck": {
+			"1": [
+				"HAGA_008",
+				"EXTRA_002",
+				"HAGA_006",
+				"HAGA_005",
+				"HAGA_001",
+				"HAGA_003",
+				"HAGA_009",
+				"HAGA_002"
+			],
+			"2": [
+				"EXTRA_007",
+				"EXTRA_011",
+				"EXTRA_006",
+				"EXTRA_005",
+				"HAGA_007",
+				"EXTRA_009",
+				"EXTRA_001"
+			],
+			"3": [
+				"HAGA_011",
+				"HAGA_013",
+				"EXTRA_010"
+			],
+			"4": [
+				"EXTRA_004",
+				"HAGA_012"
+			],
+			"5": [
+				"EXTRA_008"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_009",
+		"name": "Rex Raptor",
+		"deck": {
+			"1": [
+				"REX_001",
+				"EXTRA_014",
+				"REX_002",
+				"EXTRA_018",
+				"EXTRA_013",
+				"REX_003",
+				"REX_005",
+				"REX_009"
+			],
+			"2": [
+				"EXTRA_019",
+				"EXTRA_016",
+				"EXTRA_012",
+				"REX_008",
+				"REX_011",
+				"EXTRA_017",
+				"REX_007",
+				"REX_004"
+			],
+			"3": [
+				"REX_006",
+				"REX_012",
+				"REX_013"
+			],
+			"4": [
+				"EXTRA_015"
+			],
+			"5": []
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_010",
+		"name": "Mako Tsunami",
+		"deck": {
+			"1": [
+				"MAKO_002",
+				"MAKO_003",
+				"MAKO_005",
+				"MAKO_014",
+				"EXTRA_020"
+			],
+			"2": [
+				"REX_010",
+				"MAKO_001",
+				"MAKO_006",
+				"MAKO_008",
+				"MAKO_012",
+				"EXTRA_023"
+			],
+			"3": [
+				"MAKO_004",
+				"MAKO_010",
+				"MAKO_011",
+				"MAKO_015",
+				"EXTRA_021",
+				"EXTRA_026",
+				"EXTRA_027"
+			],
+			"4": [
+				"MAKO_013",
+				"EXTRA_024"
+			],
+			"5": [
+				"EXTRA_022",
+				"EXTRA_025"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_011",
+		"name": "Maï",
+		"deck": {
+			"1": [
+				"MAI_002",
+				"MAI_003",
+				"MAI_004",
+				"EXTRA_039",
+				"EXTRA_042",
+				"MAKO_007"
+			],
+			"2": [
+				"MAI_005",
+				"MAI_006",
+				"EXTRA_041"
+			],
+			"3": [
+				"MAI_007",
+				"EXTRA_037",
+				"EXTRA_038",
+				"EXTRA_040",
+				"EXTRA_044",
+				"EXTRA_045",
+				"EXTRA_047"
+			],
+			"4": [
+				"MAI_014",
+				"MAI_015",
+				"EXTRA_046"
+			],
+			"5": [
+				"EXTRA_043"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_012",
+		"name": "Pegasus",
+		"deck": {
+			"1": [
+				"PEGASUS_014",
+				"PEGASUS_001",
+				"PEGASUS_002",
+				"PEGASUS_016",
+				"PEGASUS_017",
+				"PEGASUS_022",
+				"PEGASUS_005",
+				"PEGASUS_025"
+			],
+			"2": [
+				"PEGASUS_008",
+				"PEGASUS_010",
+				"PEGASUS_013",
+				"EXTRA_095",
+				"PEGASUS_019",
+				"PEGASUS_021",
+				"PEGASUS_006",
+				"PEGASUS_011"
+			],
+			"3": [
+				"PEGASUS_009",
+				"PEGASUS_015",
+				"PEGASUS_030",
+				"PEGASUS_031",
+				"PEGASUS_034",
+				"PEGASUS_007",
+				"PEGASUS_023",
+				"PEGASUS_024"
+			],
+			"4": [
+				"PEGASUS_020",
+				"PEGASUS_028",
+				"PEGASUS_032",
+				"PEGASUS_035",
+				"PEGASUS_027",
+				"PEGASUS_032",
+				"PEGASUS_026"
+			],
+			"5": [
+				"PEGASUS_029",
+				"PEGASUS_033"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_013",
+		"name": "Bandit Ken",
+		"deck": {
+			"1": [
+				"KEITH_002",
+				"KEITH_003",
+				"KEITH_005",
+				"KEITH_014",
+				"KEITH_015",
+				"EXTRA_031",
+				"EXTRA_032",
+				"EXTRA_033"
+			],
+			"2": [
+				"KEITH_004",
+				"KEITH_007",
+				"KEITH_008",
+				"KEITH_009",
+				"EXTRA_030",
+				"EXTRA_035",
+				"CORE_033",
+				"CORE_039"
+			],
+			"3": [
+				"KEITH_006",
+				"KEITH_010",
+				"KEITH_012",
+				"EXTRA_094"
+			],
+			"4": [
+				"KEITH_011",
+				"EXTRA_028",
+				"EXTRA_029",
+				"EXTRA_034",
+				"EXTRA_036"
+			],
+			"5": [
+				"EXTRA_093"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_014",
+		"name": "Bakura",
+		"deck": {
+			"1": [
+				"BAKURA_001",
+				"BAKURA_007",
+				"BAKURA_009",
+				"EXTRA_063",
+				"BONZ_005",
+				"BONZ_001",
+				"BONZ_002",
+				"BONZ_014"
+			],
+			"2": [
+				"BAKURA_006",
+				"BAKURA_008",
+				"BAKURA_011",
+				"EXTRA_064",
+				"BONZ_007",
+				"BONZ_008",
+				"BONZ_010"
+			],
+			"3": [
+				"EXTRA_062",
+				"EXTRA_066",
+				"BONZ_013",
+				"BONZ_015"
+			],
+			"4": [
+				"EXTRA_060",
+				"EXTRA_065"
+			],
+			"5": [
+				"EXTRA_061"
+			]
+		}
+	}
+]

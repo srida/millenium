@@ -1,0 +1,11921 @@
+[
+	{
+		"id": "CORE_001",
+		"name": "Magicien sombre",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_004",
+			"ARCH_007",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 14,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_DEBUFF",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_002",
+		"name": "Dragon blanc aux yeux bleus",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_005",
+			"ARCH_017",
+			"ARCH_045",
+			"ARCH_055",
+			"ARCH_052",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 250,
+			"movement_speed": 10,
+			"attack_speed": 18,
+			"initiative": 8,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 60,
+			"value": 100
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_003",
+		"name": "Magicienne des ténèbres",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_004",
+			"ARCH_007",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 170,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_004",
+		"name": "Kuriboh",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_004",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 2,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 2,
+			"initiative": 1,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_005",
+		"name": "Gaïa le chevalier implacable",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_009",
+			"ARCH_004",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 23,
+			"hp": 210,
+			"movement_speed": 5,
+			"attack_speed": 14,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_006",
+		"name": "Malédiction du dragon",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_009",
+			"ARCH_004",
+			"ARCH_045",
+			"ARCH_048",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 160,
+			"movement_speed": 5,
+			"attack_speed": 13,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_007",
+		"name": "Gaïa le dragon champion",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_004",
+			"ARCH_003",
+			"ARCH_009",
+			"ARCH_045",
+			"ARCH_048",
+			"ARCH_051",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 230,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 50,
+			"value": 3
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_005",
+				"CORE_006"
+			]
+		},
+		"represented_ids": [
+			"CORE_005"
+		]
+	},
+	{
+		"id": "CORE_008",
+		"name": "Gardien celte",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_004",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_009",
+		"name": "Dragon ailée de la forteresse",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_004",
+			"ARCH_045",
+			"ARCH_051",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 140,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_010",
+		"name": "Soldat géant de pierre",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_028",
+			"ARCH_004",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 250,
+			"movement_speed": 15,
+			"attack_speed": 15,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_011",
+		"name": "Soldat du lustre noir",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_004",
+			"ARCH_026",
+			"ARCH_009",
+			"ARCH_056",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 280,
+			"movement_speed": 5,
+			"attack_speed": 6,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 30,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"CORE_005"
+			]
+		},
+		"represented_ids": [
+			"CORE_005"
+		]
+	},
+	{
+		"id": "CORE_012",
+		"name": "Squelette malfaisant",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_020",
+			"ARCH_004",
+			"ARCH_054",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_013",
+		"name": "Buster Blader",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_004",
+			"ARCH_016",
+			"ARCH_056",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_014",
+		"name": "Gazelle le roi des bêtes mythique",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_004",
+			"ARCH_022",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 120,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_015",
+		"name": "Berformet",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_004",
+			"ARCH_022",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 180,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_016",
+		"name": "Chimère le roi des bêtes fantome",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_021",
+			"ARCH_004",
+			"ARCH_022",
+			"ARCH_054",
+			"ARCH_051",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 230,
+			"movement_speed": 5,
+			"attack_speed": 5,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 30,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_014",
+				"CORE_015"
+			]
+		},
+		"represented_ids": [
+			"CORE_014",
+			"CORE_015"
+		]
+	},
+	{
+		"id": "CORE_017",
+		"name": "Castor Guerrier",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_021",
+			"ARCH_004",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 150,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_018",
+		"name": "Elfe mystique",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_023",
+			"ARCH_004",
+			"ARCH_051",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 250,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 45,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_019",
+		"name": "Lutin sauvage",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_021",
+			"ARCH_004",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 140,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_020",
+		"name": "Cimetiere de mammouth",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_029",
+			"ARCH_021",
+			"ARCH_004",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 80,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_021",
+		"name": "Croc blanc",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_004",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 80,
+			"movement_speed": 5,
+			"attack_speed": 6,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_022",
+		"name": "Hitotsu le géant",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_017",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_023",
+		"name": "Boeuf à la hache",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_001",
+			"ARCH_017",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 17,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_024",
+		"name": "Dragon Koumori",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_017",
+			"ARCH_045",
+			"ARCH_054",
+			"ARCH_051",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_025",
+		"name": "Le Juge",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_017",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 180,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_026",
+		"name": "Cavalier mystique",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_001",
+			"ARCH_017",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 180,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_027",
+		"name": "Ryukishin le puissant",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_017",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_028",
+		"name": "Spadassin vengeur",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_001",
+			"ARCH_017",
+			"ARCH_054",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_029",
+		"name": "La-jinn le génie de la lampe",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_002",
+			"ARCH_017",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_030",
+		"name": "Kaiser insolent",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_001",
+			"ARCH_017",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 160,
+			"movement_speed": 5,
+			"attack_speed": 13,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_031",
+		"name": "Seigneur des D",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_005",
+			"ARCH_017",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_032",
+		"name": "Guerrier Roquette",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_025",
+			"ARCH_018",
+			"ARCH_056",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 120,
+			"movement_speed": 5,
+			"attack_speed": 13,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 50,
+			"value": 3
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_033",
+		"name": "Dragon Noir aux yeux rouge",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_008",
+			"ARCH_018",
+			"ARCH_045",
+			"ARCH_048",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 210,
+			"movement_speed": 5,
+			"attack_speed": 14,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 60,
+			"value": 10
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_034",
+		"name": "Le chevalier de Landstar",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_018",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 7,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_035",
+		"name": "Bébé dragon",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_018",
+			"ARCH_045",
+			"ARCH_051",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 80,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 3,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_036",
+		"name": "Gearfried le chevalier de fer",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_010",
+			"ARCH_018",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_037",
+		"name": "Le magicien du temps",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_018",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 80,
+			"movement_speed": 10,
+			"attack_speed": 6,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_038",
+		"name": "Le dragon millenaire",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_018",
+			"ARCH_048",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 200,
+			"movement_speed": 15,
+			"attack_speed": 8,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_037",
+				"CORE_035"
+			]
+		},
+		"represented_ids": [
+			"CORE_035"
+		]
+	},
+	{
+		"id": "CORE_039",
+		"name": "Chevalier flamboyant",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_027",
+			"ARCH_018",
+			"ARCH_056",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_040",
+		"name": "Giltia le chevalier des ténèbres",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_018",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 150,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_041",
+		"name": "Kayser Hyppocampe",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_005",
+			"ARCH_017",
+			"ARCH_035",
+			"ARCH_049",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 17,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_042",
+		"name": "Paladin du dragon blanc",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_001",
+			"ARCH_005",
+			"ARCH_017",
+			"ARCH_045",
+			"ARCH_056",
+			"ARCH_051",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 160,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 40,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"ARCH_005"
+			]
+		}
+	},
+	{
+		"id": "CORE_043",
+		"name": "Dragon étincelant d'émeraude",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_045",
+			"ARCH_051",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 15,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_044",
+		"name": "Dragon étincelant de rubis",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_045",
+			"ARCH_055",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 13,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_045",
+		"name": "Vorse le raider",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_001",
+			"ARCH_017",
+			"ARCH_056",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 170,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_046",
+		"name": "Chevalier épée",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_017",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_047",
+		"name": "Tete de canon X",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_013",
+			"ARCH_017",
+			"ARCH_056",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 160,
+			"movement_speed": 15,
+			"attack_speed": 15,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_048",
+		"name": "Tete de dragon Y",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_013",
+			"ARCH_017",
+			"ARCH_056",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 160,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_049",
+		"name": "Tank de métal Z",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_013",
+			"ARCH_017",
+			"ARCH_056",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 130,
+			"movement_speed": 10,
+			"attack_speed": 15,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_050",
+		"name": "Le mystèrieux",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_004",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 5,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_051",
+		"name": "Valkyrie de magicien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_004",
+			"ARCH_007",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 17,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 15,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_052",
+		"name": "Gadget Jaune",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_004",
+			"ARCH_011",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_053",
+		"name": "Gadget Rouge",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_004",
+			"ARCH_011",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 150,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_054",
+		"name": "Gadget Vert",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_004",
+			"ARCH_011",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_055",
+		"name": "Spadassin silencieux",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_004",
+			"ARCH_014",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_057",
+		"name": "Spadassin silencieux LV2",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_004",
+			"ARCH_014",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 280,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 40,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_055"
+			]
+		},
+		"represented_ids": [
+			"CORE_055"
+		]
+	},
+	{
+		"id": "CORE_058",
+		"name": "Alpha le guerrier magnetique",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_028",
+			"ARCH_004",
+			"ARCH_012",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 170,
+			"movement_speed": 10,
+			"attack_speed": 7,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_059",
+		"name": "Beta le guerrier magnetique",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_028",
+			"ARCH_004",
+			"ARCH_012",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 17,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_060",
+		"name": "Gamma le guerrier magnetique",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_028",
+			"ARCH_004",
+			"ARCH_012",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 180,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_061",
+		"name": "Valkyrion le guerrier magnetique",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_028",
+			"ARCH_004",
+			"ARCH_012",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 380,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 35,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_058",
+				"CORE_059",
+				"CORE_060"
+			]
+		},
+		"represented_ids": [
+			"CORE_058",
+			"CORE_059",
+			"CORE_060"
+		]
+	},
+	{
+		"id": "CORE_062",
+		"name": "Chevalier de la reine",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_004",
+			"ARCH_015",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_063",
+		"name": "Chevalier du roi",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_004",
+			"ARCH_015",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 140,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_064",
+		"name": "Chevalier du valet",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_004",
+			"ARCH_015",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 180,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_065",
+		"name": "Alakan le chevalier harlequin",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_004",
+			"ARCH_015",
+			"ARCH_056",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 38,
+			"hp": 250,
+			"movement_speed": 5,
+			"attack_speed": 9,
+			"initiative": 9,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 60,
+			"value": 20
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_062",
+				"CORE_063",
+				"CORE_064"
+			]
+		}
+	},
+	{
+		"id": "CORE_066",
+		"name": "Paladin des ténèbres",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_002",
+			"ARCH_004",
+			"ARCH_007",
+			"ARCH_056",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 29,
+			"hp": 270,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 9,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 60,
+			"value": 100
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_001",
+				"CORE_013"
+			]
+		},
+		"represented_ids": [
+			"CORE_001"
+		]
+	},
+	{
+		"id": "CORE_067",
+		"name": "Imperion Magnum le guerrier magnetique",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_028",
+			"ARCH_004",
+			"ARCH_012",
+			"ARCH_056",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 400,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 10,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 50,
+			"value": 100
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_061"
+			]
+		},
+		"represented_ids": [
+			"CORE_061"
+		]
+	},
+	{
+		"id": "CORE_068",
+		"name": "Buster Blader le Spadassin destructeur",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_003",
+			"ARCH_004",
+			"ARCH_016",
+			"ARCH_056",
+			"ARCH_055",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 300,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 10,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 30,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_013"
+			]
+		},
+		"represented_ids": [
+			"CORE_013"
+		]
+	},
+	{
+		"id": "CORE_069",
+		"name": "Canon dragon XYZ",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_017",
+			"ARCH_013",
+			"ARCH_055",
+			"ARCH_056",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 260,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 30,
+			"value": 20
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_047",
+				"CORE_048",
+				"CORE_049"
+			]
+		},
+		"represented_ids": [
+			"CORE_047",
+			"CORE_048",
+			"CORE_049"
+		]
+	},
+	{
+		"id": "CORE_070",
+		"name": "Canon dragon XY",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_017",
+			"ARCH_013",
+			"ARCH_056",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 190,
+			"movement_speed": 5,
+			"attack_speed": 18,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 60,
+			"value": 3
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_047",
+				"CORE_048"
+			]
+		},
+		"represented_ids": [
+			"CORE_047",
+			"CORE_048"
+		]
+	},
+	{
+		"id": "CORE_071",
+		"name": "Canon tank XZ",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_017",
+			"ARCH_013",
+			"ARCH_056",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 210,
+			"movement_speed": 15,
+			"attack_speed": 18,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 60,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_047",
+				"CORE_049"
+			]
+		},
+		"represented_ids": [
+			"CORE_047",
+			"CORE_049"
+		]
+	},
+	{
+		"id": "CORE_072",
+		"name": "Dragon tank YZ",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_017",
+			"ARCH_013",
+			"ARCH_056",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 220,
+			"movement_speed": 10,
+			"attack_speed": 18,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 60,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_049",
+				"CORE_048"
+			]
+		},
+		"represented_ids": [
+			"CORE_049",
+			"CORE_048"
+		]
+	},
+	{
+		"id": "CORE_073",
+		"name": "Dragon météore",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_018",
+			"ARCH_048",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 200,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_074",
+		"name": "Glaive de l'alligator",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_001",
+			"ARCH_018",
+			"ARCH_035",
+			"ARCH_056",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_075",
+		"name": "Petit guerrier ailé",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_018",
+			"ARCH_056",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 180,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 60,
+			"value": 30
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_076",
+		"name": "Dragon du glaive de l'alligator",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_001",
+			"ARCH_018",
+			"ARCH_035",
+			"ARCH_045",
+			"ARCH_056",
+			"ARCH_048",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 17,
+			"hp": 150,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"power_speed": 40
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_074",
+				"CORE_035"
+			]
+		},
+		"represented_ids": [
+			"CORE_035"
+		]
+	},
+	{
+		"id": "CORE_077",
+		"name": "Magicien du chaos",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_004",
+			"ARCH_007",
+			"ARCH_026",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 260,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_speed": 40,
+			"value": 0
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"CORE_001"
+			]
+		},
+		"represented_ids": [
+			"CORE_001"
+		]
+	},
+	{
+		"id": "CORE_078",
+		"name": "Bête de Gilfer",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_004",
+			"ARCH_020",
+			"ARCH_021",
+			"ARCH_022",
+			"ARCH_054",
+			"ARCH_051",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 220,
+			"movement_speed": 5,
+			"attack_speed": 11,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 50,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_079",
+		"name": "Kaibaman",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_017",
+			"ARCH_005",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 7,
+			"hp": 80,
+			"movement_speed": 10,
+			"attack_speed": 7,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_080",
+		"name": "Axe raider",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_018",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 17,
+			"hp": 130,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_081",
+		"name": "Tigre à la hache",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_001",
+			"ARCH_018",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_082",
+		"name": "Garoozis",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_001",
+			"ARCH_018",
+			"ARCH_035",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 180,
+			"movement_speed": 10,
+			"attack_speed": 13,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_083",
+		"name": "Magicien silencieux",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_014",
+			"ARCH_004",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_084",
+		"name": "Magicien silencieux lvl 2",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_014",
+			"ARCH_004",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 250,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 45,
+			"value": 100
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_083"
+			]
+		},
+		"represented_ids": [
+			"CORE_083"
+		]
+	},
+	{
+		"id": "CORE_085",
+		"name": "Marshmallow",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_023",
+			"ARCH_004",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 3,
+			"hp": 250,
+			"movement_speed": 15,
+			"attack_speed": 7,
+			"initiative": 1,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 50,
+			"value": 20
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_086",
+		"name": "Gandoora",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_004",
+			"ARCH_045",
+			"ARCH_048",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 300,
+			"movement_speed": 10,
+			"attack_speed": 14,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_087",
+		"name": "Gandoora X",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_004",
+			"ARCH_045",
+			"ARCH_048",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 36,
+			"hp": 320,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 10,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 50,
+			"value": 75
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_086"
+			]
+		},
+		"represented_ids": [
+			"CORE_086"
+		]
+	},
+	{
+		"id": "CORE_088",
+		"name": "Gandoora Gigarayon",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_004",
+			"ARCH_045",
+			"ARCH_048",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 400,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 10,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 60,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_087"
+			]
+		},
+		"represented_ids": [
+			"CORE_086"
+		]
+	},
+	{
+		"id": "CORE_089",
+		"name": "Dragon noir météore",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_008",
+			"ARCH_018",
+			"ARCH_045",
+			"ARCH_048",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 320,
+			"movement_speed": 10,
+			"attack_speed": 18,
+			"initiative": 9,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 60,
+			"value": 120
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_033",
+				"CORE_073"
+			]
+		},
+		"represented_ids": [
+			"CORE_033"
+		]
+	},
+	{
+		"id": "CORE_090",
+		"name": "Dragon crane noir",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_008",
+			"ARCH_018",
+			"ARCH_020",
+			"ARCH_045",
+			"ARCH_048",
+			"ARCH_054",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 32,
+			"hp": 280,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 9,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 48,
+			"value": 20
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_033",
+				"CORE_012"
+			]
+		},
+		"represented_ids": [
+			"CORE_033"
+		]
+	},
+	{
+		"id": "CORE_091",
+		"name": "Guerrier panthere",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_001",
+			"ARCH_018",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 180,
+			"movement_speed": 5,
+			"attack_speed": 13,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_092",
+		"name": "Gardna au grand bouclier",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_004",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 350,
+			"movement_speed": 15,
+			"attack_speed": 7,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_TAUNT",
+			"power_speed": 60,
+			"value": 30
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_093",
+		"name": "Avian",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_051",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_094",
+		"name": "Burstinatrix",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_048",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 80,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_095",
+		"name": "Sparkman",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_096",
+		"name": "Clayman",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 250,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_097",
+		"name": "Bulleman",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 7,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_098",
+		"name": "Géant du tonnerre",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 150,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 40,
+			"value": 10
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_096",
+				"CORE_095"
+			]
+		},
+		"represented_ids": [
+			"CORE_095",
+			"CORE_096"
+		]
+	},
+	{
+		"id": "CORE_099",
+		"name": "Boule de boue",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_049",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 400,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 40,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_096",
+				"CORE_097"
+			]
+		},
+		"represented_ids": [
+			"CORE_096",
+			"CORE_097"
+		]
+	},
+	{
+		"id": "CORE_100",
+		"name": "Artilleur de flamme",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_056",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 250,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 6,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 60,
+			"value": 3
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_096",
+				"CORE_094"
+			]
+		},
+		"represented_ids": [
+			"CORE_096",
+			"CORE_094"
+		]
+	},
+	{
+		"id": "CORE_101",
+		"name": "Aile de feu",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_051",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 190,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 35,
+			"value": 42
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_094",
+				"CORE_093"
+			]
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_094"
+		]
+	},
+	{
+		"id": "CORE_102",
+		"name": "Fortin la forteresse mobile",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_004",
+			"ARCH_011",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 500,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 10,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_TAUNT",
+			"power_speed": 60,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_052",
+				"CORE_053",
+				"CORE_054"
+			]
+		},
+		"represented_ids": [
+			"CORE_052",
+			"CORE_053",
+			"CORE_054"
+		]
+	},
+	{
+		"id": "CORE_103",
+		"name": "Ultime dragon blanc aux yeux bleus",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_005",
+			"ARCH_017",
+			"ARCH_026",
+			"ARCH_045",
+			"ARCH_052",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 45,
+			"hp": 400,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 10,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 52,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_002"
+			]
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "CORE_104",
+		"name": "Dragoon le soldat aux yeux rouge",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_002",
+			"ARCH_007",
+			"ARCH_008",
+			"ARCH_045",
+			"ARCH_054",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 300,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 10,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 35,
+			"value": 30
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_001",
+				"CORE_033"
+			]
+		},
+		"represented_ids": [
+			"CORE_001"
+		]
+	},
+	{
+		"id": "CORE_105",
+		"name": "Chevalier magicien des ténèbres",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_002",
+			"ARCH_007",
+			"ARCH_056",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_001"
+			]
+		},
+		"represented_ids": [
+			"CORE_001"
+		]
+	},
+	{
+		"id": "CORE_106",
+		"name": "Chevalier du flamboiement des ténèbres",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_007",
+			"ARCH_027",
+			"ARCH_056",
+			"ARCH_054",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_DEBUFF",
+			"power_speed": 48
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_001",
+				"CORE_039"
+			]
+		},
+		"represented_ids": [
+			"CORE_001",
+			"CORE_039"
+		]
+	},
+	{
+		"id": "CORE_107",
+		"name": "Spadassin mirage",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_027",
+			"ARCH_010",
+			"ARCH_056",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 250,
+			"movement_speed": 5,
+			"attack_speed": 9,
+			"initiative": 10,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_speed": 45
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_106"
+			]
+		}
+	},
+	{
+		"id": "CORE_108",
+		"name": "Cavalier enragé",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_017",
+			"ARCH_021",
+			"ARCH_050",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 360,
+			"movement_speed": 5,
+			"attack_speed": 9,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 45,
+			"value": 80
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_023",
+				"CORE_026"
+			]
+		}
+	},
+	{
+		"id": "CORE_109",
+		"name": "Paladin du dragon noir",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_001",
+			"ARCH_008",
+			"ARCH_045",
+			"ARCH_051",
+			"ARCH_056",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 220,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 40,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"ARCH_008"
+			]
+		}
+	},
+	{
+		"id": "CORE_110",
+		"name": "Gilford l'eclair",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_018",
+			"ARCH_010",
+			"ARCH_056",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 140,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 50,
+			"value": 28
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_111",
+		"name": "Dragon centenaire",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_018",
+			"ARCH_045",
+			"ARCH_048",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 220,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_035"
+			]
+		},
+		"represented_ids": [
+			"CORE_035"
+		],
+		"summon_options": [
+			{
+				"summon_type": "sacrifice",
+				"cost": {
+					"sacrifice": 2,
+					"materials": []
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_035"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "CORE_112",
+		"name": "Magicien du temps de demain",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_018",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_037"
+			]
+		},
+		"represented_ids": [
+			"CORE_037"
+		]
+	},
+	{
+		"id": "CORE_113",
+		"name": "Gearfried aux yeux rouge",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_008",
+			"ARCH_010",
+			"ARCH_018",
+			"ARCH_056",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 220,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_036"
+			]
+		},
+		"represented_ids": [
+			"CORE_036"
+		]
+	},
+	{
+		"id": "CORE_114",
+		"name": "Squelette malfaisant aux yeux rouges",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_008",
+			"ARCH_019",
+			"ARCH_020",
+			"ARCH_004",
+			"ARCH_018",
+			"ARCH_052",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 200,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_012"
+			]
+		},
+		"represented_ids": [
+			"CORE_012"
+		]
+	},
+	{
+		"id": "CORE_115",
+		"name": "Dragon météore aux yeux rouges",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_008",
+			"ARCH_018",
+			"ARCH_045",
+			"ARCH_048",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 300,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_073"
+			]
+		},
+		"represented_ids": [
+			"CORE_073"
+		]
+	},
+	{
+		"id": "CORE_116",
+		"name": "Bébé dragon aux yeux rouges",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_008",
+			"ARCH_018",
+			"ARCH_045",
+			"ARCH_048",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_035"
+			]
+		},
+		"represented_ids": [
+			"CORE_035"
+		]
+	},
+	{
+		"id": "CORE_117",
+		"name": "Saggy le bouffon des ténèbres",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_017",
+			"ARCH_019",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 7,
+			"hp": 150,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 3,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 42,
+			"value": 2
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_118",
+		"name": "Tortue catapulte",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_004",
+			"ARCH_021",
+			"ARCH_025",
+			"ARCH_035",
+			"ARCH_049",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 200,
+			"movement_speed": 15,
+			"attack_speed": 15,
+			"initiative": 5,
+			"range": 3
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "CORE_119",
+		"name": "Tempête",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_051",
+			"ARCH_055",
+			"ARCH_052",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 280,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_speed": 42
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_095",
+				"CORE_097",
+				"CORE_093"
+			]
+		},
+		"represented_ids": [
+			"CORE_095",
+			"CORE_097",
+			"CORE_093"
+		]
+	},
+	{
+		"id": "CORE_120",
+		"name": "Aile de photon",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 210,
+			"movement_speed": 5,
+			"attack_speed": 9,
+			"initiative": 8,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_101",
+				"CORE_095"
+			]
+		},
+		"represented_ids": [
+			"CORE_101",
+			"CORE_095"
+		]
+	},
+	{
+		"id": "CORE_121",
+		"name": "Alie d'explosion",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_048",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 200,
+			"movement_speed": 10,
+			"attack_speed": 5,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_093",
+				"CORE_094"
+			]
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_094"
+		]
+	},
+	{
+		"id": "CORE_122",
+		"name": "Aile du tonnerre",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_051",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 160,
+			"movement_speed": 5,
+			"attack_speed": 5,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_095",
+				"CORE_093"
+			]
+		},
+		"represented_ids": [
+			"CORE_095",
+			"CORE_093"
+		]
+	},
+	{
+		"id": "CORE_123",
+		"name": "Heliosphere",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_051",
+			"ARCH_052",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 280,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 49,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_095",
+				"CORE_093",
+				"CORE_094"
+			]
+		},
+		"represented_ids": [
+			"CORE_095",
+			"CORE_093",
+			"CORE_094"
+		]
+	},
+	{
+		"id": "CORE_124",
+		"name": "Vapoguerisseur",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_049",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 190,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 40,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_094",
+				"CORE_097"
+			]
+		},
+		"represented_ids": [
+			"CORE_097",
+			"CORE_094"
+		]
+	},
+	{
+		"id": "CORE_125",
+		"name": "Marin",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 140,
+			"movement_speed": 5,
+			"attack_speed": 5,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 30,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_093",
+				"CORE_097"
+			]
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_097"
+		]
+	},
+	{
+		"id": "CORE_126",
+		"name": "Electrum",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 300,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 9,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_DEBUFF",
+			"power_speed": 42
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_093",
+				"CORE_094",
+				"CORE_097",
+				"CORE_096"
+			]
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_094",
+			"CORE_097",
+			"CORE_096"
+		]
+	},
+	{
+		"id": "CORE_127",
+		"name": "Neo Bulleman",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_FREEZE",
+			"power_speed": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_097"
+			]
+		},
+		"represented_ids": [
+			"CORE_097"
+		],
+		"summon_options": [
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 2,
+					"materials": [
+						"ARCH_006"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_097"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "CORE_128",
+		"name": "Neo Clayman",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 400,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_TAUNT",
+			"power_speed": 60,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_096"
+			]
+		},
+		"represented_ids": [
+			"CORE_096"
+		],
+		"summon_options": [
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 2,
+					"materials": [
+						"ARCH_006"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_096"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "CORE_129",
+		"name": "Sunrise",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_048",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 250,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 50,
+			"value": 100
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"ARCH_006"
+			]
+		}
+	},
+	{
+		"id": "CORE_130",
+		"name": "Grandfusion",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_055",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 400,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 10,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 50,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_123"
+			]
+		},
+		"summon_options": [
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 3,
+					"materials": [
+						"ARCH_006"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_123"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "CORE_131",
+		"name": "Géant du Tonnerre Voltaïques",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 34,
+			"hp": 260,
+			"movement_speed": 10,
+			"attack_speed": 7,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 50,
+			"value": 40
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_098"
+			]
+		},
+		"represented_ids": [
+			"CORE_095",
+			"CORE_096"
+		],
+		"summon_options": [
+			{
+				"summon_type": "fusion",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_128",
+						"EXTRA_090"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_098"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "CORE_132",
+		"name": "Aile de feu infernal",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_048",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 31,
+			"hp": 240,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_101"
+			]
+		},
+		"represented_ids": [
+			"CORE_093",
+			"CORE_094"
+		],
+		"summon_options": [
+			{
+				"summon_type": "fusion",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"EXTRA_092",
+						"EXTRA_091"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_101"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "CORE_133",
+		"name": "Aile de photon favoris",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_052",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 420,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 10,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 40
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_120"
+			]
+		},
+		"summon_options": [
+			{
+				"summon_type": "fusion",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_132",
+						"EXTRA_090"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_120"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "MARIK_001",
+		"name": "Newdoria",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_030",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 130,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_002",
+		"name": "Gil Garth",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_030",
+			"ARCH_054",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 150,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_003",
+		"name": "Drillago",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_030",
+			"ARCH_025",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 110,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_004",
+		"name": "Viser Des",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_025",
+			"ARCH_056",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 90,
+			"movement_speed": 15,
+			"attack_speed": 5,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 18,
+			"value": 8
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_005",
+		"name": "Seigneur Poison",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_030",
+			"ARCH_035",
+			"ARCH_058",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 28,
+			"value": 4
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_006",
+		"name": "Anguille de Plasma",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_035",
+			"ARCH_025",
+			"ARCH_046",
+			"ARCH_049",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 7,
+			"initiative": 3,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_007",
+		"name": "Jam Revigorant",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_035",
+			"ARCH_046",
+			"ARCH_054",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 200,
+			"movement_speed": 15,
+			"attack_speed": 5,
+			"initiative": 1,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_008",
+		"name": "Défenseur du Jam",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_035",
+			"ARCH_046",
+			"ARCH_049",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 6,
+			"hp": 250,
+			"movement_speed": 15,
+			"attack_speed": 7,
+			"initiative": 2,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_009",
+		"name": "Melchid aux Quatre Visages",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_030",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_010",
+		"name": "Byser Shock",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_030",
+			"ARCH_025",
+			"ARCH_056",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 140,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 5,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_011",
+		"name": "Makyura le Destructeur",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_030",
+			"ARCH_019",
+			"ARCH_054",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 23,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_012",
+		"name": "Helpoemer",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_030",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 180,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_015",
+		"name": "Bête Masquée des Gardius",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_030",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 250,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 45,
+			"value": 15
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"MARIK_009"
+			]
+		}
+	},
+	{
+		"id": "MARIK_016",
+		"name": "Bête Mystique Serket",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_033",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 200,
+			"movement_speed": 5,
+			"attack_speed": 9,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 60,
+			"value": 80
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_017",
+		"name": "Golem de Lave",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_019",
+			"ARCH_048",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 350,
+			"movement_speed": 15,
+			"attack_speed": 15,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"power_speed": 48
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_018",
+		"name": "Ra — Mode Sphère",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_031",
+			"ARCH_030",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 2,
+			"hp": 500,
+			"movement_speed": 15,
+			"attack_speed": 5,
+			"initiative": 10,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_speed": 50
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "MARIK_019",
+		"name": "Ra le Dragon Ailé",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_031",
+			"ARCH_003",
+			"ARCH_030",
+			"ARCH_045",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 450,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 10,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 50,
+			"value": 150
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MARIK_018"
+			]
+		},
+		"summon_options": [
+			{
+				"summon_type": "sacrifice",
+				"cost": {
+					"sacrifice": 3,
+					"materials": []
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"MARIK_018"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "MARIK_020",
+		"name": "Ra — Phoenix Immortel",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_031",
+			"ARCH_003",
+			"ARCH_030",
+			"ARCH_045",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 45,
+			"hp": 500,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 10,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 45,
+			"value": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MARIK_019"
+			]
+		},
+		"represented_ids": [
+			"MARIK_019"
+		]
+	},
+	{
+		"id": "KEITH_001",
+		"name": "Mécanochasseur",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 150,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_002",
+		"name": "Gardien Métal",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 170,
+			"movement_speed": 15,
+			"attack_speed": 10,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_003",
+		"name": "Escargot Mécanique",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_033",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 140,
+			"movement_speed": 15,
+			"attack_speed": 8,
+			"initiative": 3,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_004",
+		"name": "Machine Pendule",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 17,
+			"hp": 140,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_005",
+		"name": "Sphère Explosive",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_048",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 25,
+			"value": 8
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_006",
+		"name": "Dragon Métal Rare",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_003",
+			"ARCH_056",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 190,
+			"movement_speed": 5,
+			"attack_speed": 14,
+			"initiative": 5,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_007",
+		"name": "Araignée Lanceur",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_048",
+			"ARCH_033",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 200,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 5,
+			"range": 3
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_008",
+		"name": "Roi des Machines",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_009",
+		"name": "Machine Roulette",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 180,
+			"movement_speed": 15,
+			"attack_speed": 15,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 25,
+			"value": 3
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_010",
+		"name": "Zoa",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_044",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 220,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_011",
+		"name": "Metalzoa",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_019",
+			"ARCH_044",
+			"ARCH_056",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 32,
+			"hp": 320,
+			"movement_speed": 5,
+			"attack_speed": 9,
+			"initiative": 9,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 45,
+			"value": 90
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"KEITH_010"
+			]
+		}
+	},
+	{
+		"id": "KEITH_012",
+		"name": "Dragon Barrel",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_003",
+			"ARCH_044",
+			"ARCH_055",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 270,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 8,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 40,
+			"value": 25
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_013",
+		"name": "Chasseur Épéiste",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 170,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_014",
+		"name": "Canon Lance-Torpilles",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_056",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 160,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 5,
+			"range": 3
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "KEITH_015",
+		"name": "Scorpion Blindé",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_033",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "HAGA_001",
+		"name": "Insecte de Base",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "HAGA_002",
+		"name": "Kamakiri Volant",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_051",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 90,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "HAGA_003",
+		"name": "Soldat Insecte du Ciel",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 110,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "HAGA_005",
+		"name": "Bug Mangeur",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 150,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_DEBUFF",
+			"power_speed": 35
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "HAGA_006",
+		"name": "Parasite Paracide",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 80,
+			"movement_speed": 15,
+			"attack_speed": 6,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 20,
+			"value": 6
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "HAGA_007",
+		"name": "Larve de Mite",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 100,
+			"movement_speed": 15,
+			"attack_speed": 5,
+			"initiative": 2,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"HAGA_008"
+			]
+		},
+		"summon_options": [
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 2,
+					"materials": [
+						"ARCH_033"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"HAGA_008"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "HAGA_008",
+		"name": "Cocon d'Évolution",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 1,
+			"hp": 400,
+			"movement_speed": 20,
+			"attack_speed": 2,
+			"initiative": 2,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 15,
+			"value": 80
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "HAGA_009",
+		"name": "Chevalier Cafard",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 11,
+			"hp": 90,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "HAGA_011",
+		"name": "Grande Mite",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_051",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 250,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"HAGA_007"
+			]
+		},
+		"summon_options": [
+			{
+				"summon_type": "sacrifice",
+				"cost": {
+					"sacrifice": 2,
+					"materials": []
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"HAGA_007"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "HAGA_012",
+		"name": "Ultime Grande Mite",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_051",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 36,
+			"hp": 320,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 9,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 50,
+			"value": 30
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"HAGA_011"
+			]
+		}
+	},
+	{
+		"id": "HAGA_013",
+		"name": "Reine des Insectes",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 250,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 45,
+			"value": 80
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "HAGA_014",
+		"name": "Jirai Gumo",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_041",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "REX_001",
+		"name": "Rex à Deux Têtes",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "REX_002",
+		"name": "Dragon Rampant",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_003",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 130,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "REX_003",
+		"name": "Trakadon",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 150,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "REX_004",
+		"name": "Mégastrateur",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 140,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "REX_005",
+		"name": "Anthrosaurus",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "REX_006",
+		"name": "Dragon à l'Épée",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_003",
+			"ARCH_048",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 27,
+			"hp": 210,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 35,
+			"value": 3
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"ARCH_034"
+			]
+		}
+	},
+	{
+		"id": "REX_007",
+		"name": "Brachiosaure",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 17,
+			"hp": 280,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "REX_008",
+		"name": "Grand Lion de Guerre",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_021",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 23,
+			"hp": 210,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "REX_009",
+		"name": "Ptérodactyle",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 100,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 4,
+			"range": 3
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "REX_010",
+		"name": "Megalodon",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_035",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 120,
+			"movement_speed": 15,
+			"attack_speed": 9,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "REX_011",
+		"name": "Dragon Terrestre",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_003",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 180,
+			"movement_speed": 10,
+			"attack_speed": 13,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "REX_012",
+		"name": "Serpent Dragon Noctambule",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_034",
+			"ARCH_045",
+			"ARCH_051",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 270,
+			"movement_speed": 5,
+			"attack_speed": 14,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "REX_013",
+		"name": "Tyranno Noir",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 280,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 45,
+			"value": 80
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAKO_001",
+		"name": "Poisson aux 7 Couleurs",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 120,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAKO_002",
+		"name": "Kraken Diabolique",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_047",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 200,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAKO_003",
+		"name": "Grand Requin Blanc",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_021",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 130,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAKO_004",
+		"name": "Kairyu-Shin",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_047",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 200,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 5,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAKO_005",
+		"name": "Méduse",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_047",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 7,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAKO_006",
+		"name": "Légendaire Pêcheur",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_001",
+			"ARCH_047",
+			"ARCH_018",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 200,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAKO_007",
+		"name": "Oiseau Tornade",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 130,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 30,
+			"value": 3
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAKO_008",
+		"name": "Mer Kamen",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 140,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAKO_010",
+		"name": "Bête Amphibie",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_021",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 260,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 40,
+			"value": 15
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MAKO_006",
+				"MAKO_001"
+			]
+		}
+	},
+	{
+		"id": "MAKO_011",
+		"name": "Baleine Forteresse",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_047",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 23,
+			"hp": 330,
+			"movement_speed": 15,
+			"attack_speed": 14,
+			"initiative": 8,
+			"range": 3
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"ARCH_035"
+			]
+		}
+	},
+	{
+		"id": "MAKO_012",
+		"name": "Dragon Aquatique",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_003",
+			"ARCH_045",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 210,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAKO_013",
+		"name": "Seigneur des Profondeurs",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_047",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 32,
+			"hp": 270,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 9,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_FREEZE",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAKO_014",
+		"name": "Sirène Enchantée",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_002",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 150,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAKO_015",
+		"name": "Léviathan",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_019",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 300,
+			"movement_speed": 10,
+			"attack_speed": 13,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 45,
+			"value": 80
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAI_002",
+		"name": "Harpie Lady 1",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_001",
+			"ARCH_021",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 140,
+			"movement_speed": 5,
+			"attack_speed": 9,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAI_003",
+		"name": "Harpie Lady 2",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_001",
+			"ARCH_021",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 110,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAI_004",
+		"name": "Harpie Lady 3",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_001",
+			"ARCH_021",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 11,
+			"hp": 170,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAI_005",
+		"name": "Cyber Harpie",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_001",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 150,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 5,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"ARCH_036"
+			]
+		}
+	},
+	{
+		"id": "MAI_006",
+		"name": "Dragon Familier de Harpie",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_003",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 200,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "MAI_007",
+		"name": "Sœurs Harpies",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_001",
+			"ARCH_021",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 270,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 35,
+			"value": 15
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MAI_002",
+				"MAI_003",
+				"MAI_004"
+			]
+		},
+		"represented_ids": [
+			"MAI_002",
+			"MAI_003",
+			"MAI_004"
+		]
+	},
+	{
+		"id": "MAI_014",
+		"name": "Dragon Harpie Ultime",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_003",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 260,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 9,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 40,
+			"value": 20
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MAI_006"
+			]
+		}
+	},
+	{
+		"id": "MAI_015",
+		"name": "Reine des Harpies",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_001",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 32,
+			"hp": 280,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 10,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_DEBUFF",
+			"power_speed": 40
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "PEGASUS_001",
+		"name": "Toon Sirène",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_038",
+			"ARCH_035",
+			"ARCH_054",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 150,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"PEGASUS_014"
+			]
+		}
+	},
+	{
+		"id": "PEGASUS_002",
+		"name": "Toon Alligator",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_038",
+			"ARCH_021",
+			"ARCH_054",
+			"ARCH_035",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 140,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"PEGASUS_014"
+			]
+		}
+	},
+	{
+		"id": "PEGASUS_005",
+		"name": "Idole aux Milles Yeux",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_054",
+			"ARCH_039"
+		],
+		"stats": {
+			"atk": 1,
+			"hp": 80,
+			"movement_speed": 15,
+			"attack_speed": 5,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "PEGASUS_006",
+		"name": "L’abandonné",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_054",
+			"ARCH_039"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 150,
+			"movement_speed": 10,
+			"attack_speed": 5,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_CONFUSION",
+			"power_speed": 25
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"ARCH_039"
+			]
+		}
+	},
+	{
+		"id": "PEGASUS_007",
+		"name": "L’abandonné aux Milles Yeux",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_054",
+			"ARCH_039"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 300,
+			"movement_speed": 15,
+			"attack_speed": 3,
+			"initiative": 9,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_CONFUSION",
+			"power_speed": 20
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_005",
+				"PEGASUS_006"
+			]
+		},
+		"represented_ids": [
+			"PEGASUS_006"
+		]
+	},
+	{
+		"id": "PEGASUS_008",
+		"name": "Toon Crâne Invoqué",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_038",
+			"ARCH_019",
+			"ARCH_020",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 200,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 40,
+			"value": 15
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"PEGASUS_014"
+			]
+		},
+		"represented_ids": [
+			"CORE_012"
+		]
+	},
+	{
+		"id": "PEGASUS_009",
+		"name": "Dragon Blanc Toon",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_038",
+			"ARCH_003",
+			"ARCH_045",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 250,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 9,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 40,
+			"value": 80
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"PEGASUS_014"
+			]
+		},
+		"represented_ids": [
+			"CORE_002"
+		]
+	},
+	{
+		"id": "PEGASUS_010",
+		"name": "Toon Magicienne des ténèbres",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_038",
+			"ARCH_002",
+			"ARCH_007",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"PEGASUS_014"
+			]
+		},
+		"represented_ids": [
+			"CORE_003"
+		]
+	},
+	{
+		"id": "PEGASUS_011",
+		"name": "Mage Masqué Illusoire",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_054",
+			"ARCH_039"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 5,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "PEGASUS_013",
+		"name": "Toon Magicien Sombre",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_038",
+			"ARCH_002",
+			"ARCH_007",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"PEGASUS_014"
+			]
+		},
+		"represented_ids": [
+			"CORE_001"
+		]
+	},
+	{
+		"id": "BAKURA_001",
+		"name": "Chevalier sans Tête",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_043",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BAKURA_003",
+		"name": "Clown Grossier",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_039",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 140,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BAKURA_004",
+		"name": "Clown Rêveur",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_039",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 90,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BAKURA_005",
+		"name": "Clown Zombie",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_039",
+			"ARCH_029",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BAKURA_006",
+		"name": "Comte du Trépas",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_043",
+			"ARCH_054",
+			"ARCH_001"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 160,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BAKURA_007",
+		"name": "Fantôme des Songes Perdus",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_043",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 180,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BAKURA_008",
+		"name": "Necrofear des Ténèbres",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_029",
+			"ARCH_043",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 200,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_DEBUFF",
+			"power_speed": 40
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "BAKURA_009",
+		"name": "Esprit Sombre Silencieux",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_043",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 80,
+			"movement_speed": 10,
+			"attack_speed": 5,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_speed": 20
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BAKURA_011",
+		"name": "Pilleur de Tombe",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_043",
+			"ARCH_054",
+			"ARCH_018"
+		],
+		"stats": {
+			"atk": 6,
+			"hp": 150,
+			"movement_speed": 5,
+			"attack_speed": 3,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BONZ_001",
+		"name": "Dragon Zombie",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_029",
+			"ARCH_003",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 100,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BONZ_002",
+		"name": "Zombie Blindé",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_029",
+			"ARCH_001",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BONZ_003",
+		"name": "Zombie Zanki",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_029",
+			"ARCH_001",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 130,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BONZ_004",
+		"name": "13ième Tombe",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_029",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 80,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BONZ_005",
+		"name": "Citrouille Effrayante",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_040",
+			"ARCH_029",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 250,
+			"movement_speed": 15,
+			"attack_speed": 8,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BONZ_007",
+		"name": "Roi Citrouille",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_040",
+			"ARCH_029",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 350,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 25,
+			"value": 30
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "BONZ_008",
+		"name": "Dragon Zombie Géant",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_029",
+			"ARCH_003",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 200,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"BONZ_001"
+			]
+		}
+	},
+	{
+		"id": "BONZ_010",
+		"name": "Nécromancien des Morts",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_029",
+			"ARCH_002",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 5,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "BONZ_013",
+		"name": "Dragon Mort-Vivant",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_029",
+			"ARCH_003",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 27,
+			"hp": 260,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 8,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 45,
+			"value": 70
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "BONZ_014",
+		"name": "Princesse Citrouille",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_040",
+			"ARCH_029",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 150,
+			"movement_speed": 15,
+			"attack_speed": 10,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 30,
+			"value": 60
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "BONZ_015",
+		"name": "Armée des Morts",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_029",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 280,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"ARCH_029"
+			]
+		}
+	},
+	{
+		"id": "PARA_001",
+		"name": "Sanga du Tonnerre",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_042",
+			"ARCH_041",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 200,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 30,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "PARA_002",
+		"name": "Kazejin",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_042",
+			"ARCH_041",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 200,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 25,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "PARA_003",
+		"name": "Suijin",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_042",
+			"ARCH_041",
+			"ARCH_035",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 210,
+			"movement_speed": 5,
+			"attack_speed": 11,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_FREEZE",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "PARA_004",
+		"name": "Gardien de la Porte",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_042",
+			"ARCH_001",
+			"ARCH_041",
+			"ARCH_049",
+			"ARCH_052",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 450,
+			"movement_speed": 5,
+			"attack_speed": 9,
+			"initiative": 10,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_TAUNT",
+			"power_speed": 60,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PARA_001",
+				"PARA_002",
+				"PARA_003"
+			]
+		},
+		"represented_ids": [
+			"PARA_001",
+			"PARA_002",
+			"PARA_003"
+		]
+	},
+	{
+		"id": "PARA_006",
+		"name": "Ver du Donjon",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_041",
+			"ARCH_021",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 200,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "PARA_008",
+		"name": "Chimère des Ténèbres",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_041",
+			"ARCH_019",
+			"ARCH_021",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 110,
+			"movement_speed": 5,
+			"attack_speed": 11,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "PARA_011",
+		"name": "Ombre Murale",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_041",
+			"ARCH_019",
+			"ARCH_054",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 23,
+			"hp": 220,
+			"movement_speed": 15,
+			"attack_speed": 9,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"ARCH_041"
+			]
+		}
+	},
+	{
+		"id": "PARA_012",
+		"name": "Tank du Labyrinthe",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_041",
+			"ARCH_025",
+			"ARCH_056",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 150,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "PARA_013",
+		"name": "Maître du Labyrinthe",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_041",
+			"ARCH_002",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 180,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_001",
+		"name": "Scarabée hercule",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_002",
+		"name": "Gokibore",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_003",
+		"name": "Pinchopper",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 100,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_004",
+		"name": "Reine insecte metamorphosée",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 33,
+			"hp": 380,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 9,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 50,
+			"value": 100
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"HAGA_013"
+			]
+		},
+		"represented_ids": [
+			"HAGA_013"
+		]
+	},
+	{
+		"id": "EXTRA_005",
+		"name": "Bio armure d'insecte",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_025",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 5,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 60,
+			"value": 3
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_006",
+		"name": "Insecte mangeur d'homme imitateur",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 160,
+			"movement_speed": 5,
+			"attack_speed": 5,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"HAGA_005"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_007",
+		"name": "Parasite paranoiaque",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 23,
+			"hp": 110,
+			"movement_speed": 5,
+			"attack_speed": 5,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 30,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"HAGA_006"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_008",
+		"name": "Grand Insecte ultime",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 500,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 9,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"HAGA_013",
+				"HAGA_012"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_009",
+		"name": "Princesse Insecte",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 170,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_010",
+		"name": "Chargeur Dévastateur",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 260,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"ARCH_033"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_011",
+		"name": "Gokipole",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_033",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 5,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"EXTRA_002"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_012",
+		"name": "Dragon bras d'épée",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 260,
+			"movement_speed": 15,
+			"attack_speed": 13,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_013",
+		"name": "Bête folle à l'épée",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 120,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_014",
+		"name": "Tomosaure",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 7,
+			"hp": 90,
+			"movement_speed": 5,
+			"attack_speed": 6,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_015",
+		"name": "Puissant dino roi rex",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 36,
+			"hp": 350,
+			"movement_speed": 10,
+			"attack_speed": 13,
+			"initiative": 9,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 75,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"EXTRA_016"
+			]
+		},
+		"represented_ids": [
+			"REX_001"
+		]
+	},
+	{
+		"id": "EXTRA_016",
+		"name": "Dino roi rex à double tête",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 280,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 60,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"REX_001"
+			]
+		},
+		"represented_ids": [
+			"REX_001"
+		]
+	},
+	{
+		"id": "EXTRA_017",
+		"name": "Rex le géant",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 14,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_018",
+		"name": "Gilasaure",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 60,
+			"movement_speed": 5,
+			"attack_speed": 6,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_019",
+		"name": "Zuttomosaure",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_034",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 23,
+			"hp": 230,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_speed": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"EXTRA_014"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_020",
+		"name": "Baleine Citadelle",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_047",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 170,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_021",
+		"name": "Le pêcheur légendaire 2",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_035",
+			"ARCH_018",
+			"ARCH_047",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 27,
+			"hp": 200,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 60,
+			"value": 3
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MAKO_006"
+			]
+		},
+		"represented_ids": [
+			"MAKO_006"
+		],
+		"summon_options": [
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 2,
+					"materials": [
+						"ARCH_035"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"MAKO_006"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "EXTRA_022",
+		"name": "Le pêcheur légendaire 3",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_035",
+			"ARCH_018",
+			"ARCH_047",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 43,
+			"hp": 340,
+			"movement_speed": 5,
+			"attack_speed": 9,
+			"initiative": 10,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 60,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"EXTRA_021"
+			]
+		},
+		"represented_ids": [
+			"MAKO_006"
+		]
+	},
+	{
+		"id": "EXTRA_023",
+		"name": "Orca meca forteresse",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_047",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 160,
+			"movement_speed": 15,
+			"attack_speed": 14,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_024",
+		"name": "Mega baleine forteresse",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_047",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 38,
+			"hp": 360,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 8,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 60,
+			"value": 40
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"MAKO_011"
+			]
+		},
+		"represented_ids": [
+			"MAKO_011"
+		]
+	},
+	{
+		"id": "EXTRA_025",
+		"name": "Seigneur Dragon Océan - Kairyu-Shin",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_047",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 48,
+			"hp": 420,
+			"movement_speed": 5,
+			"attack_speed": 11,
+			"initiative": 10,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 60,
+			"value": 40
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MAKO_004"
+			]
+		},
+		"represented_ids": [
+			"MAKO_004"
+		]
+	},
+	{
+		"id": "EXTRA_026",
+		"name": "Méduse Électrique",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_047",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 300,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MAKO_005"
+			]
+		},
+		"summon_options": [
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 2,
+					"materials": [
+						"ARCH_035"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"MAKO_005"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "EXTRA_027",
+		"name": "Kraken de la Mort",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_047",
+			"ARCH_049",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 300,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"summon_options": [
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"MAKO_002"
+					]
+				}
+			},
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 2,
+					"materials": [
+						"ARCH_035"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "EXTRA_028",
+		"name": "Revolver Dragon Desperado",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 37,
+			"hp": 320,
+			"movement_speed": 15,
+			"attack_speed": 11,
+			"initiative": 9,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 60,
+			"value": 45
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"KEITH_012"
+			]
+		},
+		"represented_ids": [
+			"KEITH_012"
+		]
+	},
+	{
+		"id": "EXTRA_029",
+		"name": "Roi-Machine Parfait",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 380,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 9,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 60,
+			"value": 80
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"KEITH_008"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_030",
+		"name": "Dragon à Recul",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_048",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_031",
+		"name": "Araignée Explosion BM-4",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_033",
+			"ARCH_048",
+			"ARCH_056",
+			"ARCH_044"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 180,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_032",
+		"name": "Dragon Double Barillet",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_055",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 17,
+			"hp": 80,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_033",
+		"name": "Roi-Machine Prototype",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 70,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_034",
+		"name": "Dragon noir métallique aux yeux rouges",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_008",
+			"ARCH_018",
+			"ARCH_025",
+			"ARCH_048",
+			"ARCH_056",
+			"ARCH_044"
+		],
+		"stats": {
+			"atk": 34,
+			"hp": 300,
+			"movement_speed": 15,
+			"attack_speed": 9,
+			"initiative": 9,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 45,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_033"
+			]
+		},
+		"represented_ids": [
+			"CORE_033"
+		]
+	},
+	{
+		"id": "EXTRA_035",
+		"name": "Illusioniste métalique",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_054",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 250,
+			"movement_speed": 5,
+			"attack_speed": 5,
+			"initiative": 5,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 60,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"ARCH_044"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_036",
+		"name": "Dragon Gatling",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_048",
+			"ARCH_055",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 180,
+			"movement_speed": 10,
+			"attack_speed": 6,
+			"initiative": 8,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 80,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"KEITH_012",
+				"EXTRA_030"
+			]
+		},
+		"represented_ids": [
+			"KEITH_012"
+		]
+	},
+	{
+		"id": "EXTRA_037",
+		"name": "Oracle Harpie",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_001",
+			"ARCH_021",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 240,
+			"movement_speed": 10,
+			"attack_speed": 13,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_038",
+		"name": "Parfumeuse Harpie",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_002",
+			"ARCH_021",
+			"ARCH_045",
+			"ARCH_051",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 150,
+			"movement_speed": 15,
+			"attack_speed": 13,
+			"initiative": 5,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_039",
+		"name": "Bébé Dragon, Familier de Harpie",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_036",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 160,
+			"movement_speed": 15,
+			"attack_speed": 13,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_040",
+		"name": "Jo, l'Homme-Oiseau Prompt",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_001",
+			"ARCH_021",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 23,
+			"hp": 130,
+			"movement_speed": 5,
+			"attack_speed": 6,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_041",
+		"name": "Frère de Harpie",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_036",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 150,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_042",
+		"name": "Fille Harpie",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 80,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_043",
+		"name": "Dragon de Harpie - Souffle de Feu Terrible",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_036"
+		],
+		"stats": {
+			"atk": 42,
+			"hp": 440,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 9,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 60,
+			"value": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MAI_014"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_044",
+		"name": "Harpiste Harpie",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_001",
+			"ARCH_021",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 23,
+			"hp": 280,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MAI_002"
+			]
+		},
+		"represented_ids": [
+			"MAI_002"
+		]
+	},
+	{
+		"id": "EXTRA_045",
+		"name": "Médium Harpie",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_001",
+			"ARCH_021",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 23,
+			"hp": 280,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 60,
+			"value": 30
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MAI_003"
+			]
+		},
+		"represented_ids": [
+			"MAI_003"
+		]
+	},
+	{
+		"id": "EXTRA_046",
+		"name": "Cyber-Griffes Dame Harpie",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_001",
+			"ARCH_021",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 31,
+			"hp": 340,
+			"movement_speed": 5,
+			"attack_speed": 6,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MAI_005"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_047",
+		"name": "Chef d'Orchestre Harpie",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_001",
+			"ARCH_021",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 23,
+			"hp": 280,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"MAI_004"
+			]
+		},
+		"represented_ids": [
+			"MAI_004"
+		]
+	},
+	{
+		"id": "EXTRA_048",
+		"name": "Gélatine Humanoïde",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_035",
+			"ARCH_046",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 300,
+			"movement_speed": 15,
+			"attack_speed": 8,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 80,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_049",
+		"name": "Jeroid des Ténèbres",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_019",
+			"ARCH_025",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 240,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 55
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_050",
+		"name": "Juragedo",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_030",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 120,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_051",
+		"name": "Lekunga",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_035",
+			"ARCH_049",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 17,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_052",
+		"name": "Bowganian",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_030",
+			"ARCH_001",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 110,
+			"movement_speed": 10,
+			"attack_speed": 6,
+			"initiative": 4,
+			"range": 3
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_053",
+		"name": "Slime Métallique",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_035",
+			"ARCH_030",
+			"ARCH_046",
+			"ARCH_049",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 400,
+			"movement_speed": 10,
+			"attack_speed": 5,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 60,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"ARCH_030"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_054",
+		"name": "Démon Légendaire",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_030",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 29,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_055",
+		"name": "Réacteur Slime",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_035",
+			"ARCH_046",
+			"ARCH_049",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 250,
+			"movement_speed": 15,
+			"attack_speed": 5,
+			"initiative": 2,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 60,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"ARCH_030"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_056",
+		"name": "Ver Drakonien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_033",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 140,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_057",
+		"name": "Dieu Égyptien Slime",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_031",
+			"ARCH_035",
+			"ARCH_046",
+			"ARCH_049",
+			"ARCH_054",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 400,
+			"movement_speed": 15,
+			"attack_speed": 14,
+			"initiative": 10,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 70,
+			"value": 80
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"EXTRA_053"
+			]
+		},
+		"summon_options": [
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 3,
+					"materials": [
+						"ARCH_046"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"EXTRA_053"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "EXTRA_058",
+		"name": "Ver Drakonien Humanoïde",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_033",
+			"ARCH_035",
+			"ARCH_046",
+			"ARCH_049",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 32,
+			"hp": 360,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"EXTRA_048",
+				"EXTRA_056"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_059",
+		"name": "Granadora",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_030",
+			"ARCH_035",
+			"ARCH_054",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 120,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_060",
+		"name": "Malédiction Necrofear",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_043",
+			"ARCH_001",
+			"ARCH_019",
+			"ARCH_054",
+			"ARCH_056",
+			"ARCH_025"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 400,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"BAKURA_008"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_061",
+		"name": "Zorc - Maître des Ténèbres",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_043",
+			"ARCH_019",
+			"ARCH_054",
+			"ARCH_001"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 450,
+			"movement_speed": 10,
+			"attack_speed": 13,
+			"initiative": 10,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 60,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"EXTRA_062"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_062",
+		"name": "Noyau Diabound",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_043",
+			"ARCH_019",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 27,
+			"hp": 360,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 60,
+			"value": 30
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_063",
+		"name": "Cavalier Squelette Deathcalibur",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_043",
+			"ARCH_001",
+			"ARCH_019",
+			"ARCH_054",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 120,
+			"movement_speed": 5,
+			"attack_speed": 11,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_064",
+		"name": "Esprit Noir de la Malice",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_043",
+			"ARCH_019",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 160,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"BAKURA_009"
+			]
+		},
+		"represented_ids": [
+			"BAKURA_009"
+		]
+	},
+	{
+		"id": "EXTRA_065",
+		"name": "Esprit Noir du Bannissement",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_043",
+			"ARCH_019",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 33,
+			"hp": 200,
+			"movement_speed": 5,
+			"attack_speed": 9,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"BAKURA_009"
+			]
+		},
+		"represented_ids": [
+			"BAKURA_009"
+		]
+	},
+	{
+		"id": "EXTRA_066",
+		"name": "Duc de la Disparition",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_043",
+			"ARCH_001",
+			"ARCH_019",
+			"ARCH_029",
+			"ARCH_054",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 210,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 40,
+			"value": 40
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"BAKURA_006",
+				"BAKURA_001"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_067",
+		"name": "Gardien des Ténèbres",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_041",
+			"ARCH_042",
+			"ARCH_021",
+			"ARCH_049",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 190,
+			"movement_speed": 15,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_068",
+		"name": "Char Lourd du Labyrinthe",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_041",
+			"ARCH_056",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 29,
+			"hp": 280,
+			"movement_speed": 10,
+			"attack_speed": 12,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"ARCH_041"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_069",
+		"name": "Dompteur de Monstres",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_041",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 17,
+			"hp": 90,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_070",
+		"name": "Goule d'Ombre",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_041",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_071",
+		"name": "Association du Gardien de la Porte",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_025",
+			"ARCH_041",
+			"ARCH_042",
+			"ARCH_049",
+			"ARCH_052",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 50,
+			"hp": 500,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 10,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_TAUNT",
+			"power_speed": 60,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PARA_004"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_072",
+		"name": "Gardien de la Porte de l'Eau et du Tonnerre",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_041",
+			"ARCH_042",
+			"ARCH_049",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 33,
+			"hp": 290,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PARA_003",
+				"PARA_001"
+			]
+		},
+		"represented_ids": [
+			"PARA_003",
+			"PARA_001"
+		]
+	},
+	{
+		"id": "EXTRA_073",
+		"name": "Gardien de la Porte du Tonnerre et du Vent",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_042",
+			"ARCH_041",
+			"ARCH_052",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 280,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 60,
+			"value": 40
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PARA_001",
+				"PARA_002"
+			]
+		},
+		"represented_ids": [
+			"PARA_001",
+			"PARA_002"
+		]
+	},
+	{
+		"id": "EXTRA_074",
+		"name": "Gardien de la Porte du Vent et de l'Eau",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_041",
+			"ARCH_042",
+			"ARCH_051",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 31,
+			"hp": 250,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 40,
+			"value": 3
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PARA_002",
+				"PARA_003"
+			]
+		},
+		"represented_ids": [
+			"PARA_002",
+			"PARA_003"
+		]
+	},
+	{
+		"id": "EXTRA_075",
+		"name": "Défenseur du Labyrinthe",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_041",
+			"ARCH_056",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 27,
+			"hp": 250,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 50,
+			"value": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PARA_013"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_076",
+		"name": "Goule d'Ombre du Labyrinthe",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_041",
+			"ARCH_054",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 36,
+			"hp": 400,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 9,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PARA_011"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_077",
+		"name": "Moremarshmallon",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_004",
+			"ARCH_021",
+			"ARCH_023",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 400,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 40,
+			"value": 40
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_085"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_078",
+		"name": "Gadget Argent",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_004",
+			"ARCH_025",
+			"ARCH_011",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 170,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 5,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"ARCH_011"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_079",
+		"name": "Gadget Or",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_004",
+			"ARCH_011",
+			"ARCH_025",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 250,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"ARCH_011"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_080",
+		"name": "Gadget Platine",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_004",
+			"ARCH_011",
+			"ARCH_025",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 36,
+			"hp": 340,
+			"movement_speed": 10,
+			"attack_speed": 8,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"EXTRA_078",
+				"EXTRA_079"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_081",
+		"name": "Chimère la bête illusion",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_004",
+			"ARCH_019",
+			"ARCH_021",
+			"ARCH_022",
+			"ARCH_054",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 34,
+			"hp": 370,
+			"movement_speed": 5,
+			"attack_speed": 11,
+			"initiative": 9,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_014",
+				"CORE_015",
+				"CORE_078"
+			]
+		},
+		"represented_ids": [
+			"CORE_014",
+			"CORE_015",
+			"CORE_078"
+		]
+	},
+	{
+		"id": "EXTRA_082",
+		"name": "Griffore",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_004",
+			"ARCH_003",
+			"ARCH_051",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 160,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_083",
+		"name": "Sliffer le dragon du ciel",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_004",
+			"ARCH_031",
+			"ARCH_003",
+			"ARCH_045",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 400,
+			"movement_speed": 10,
+			"attack_speed": 13,
+			"initiative": 10,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 3,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_084",
+		"name": "Obelisk le tourmenteur",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_017",
+			"ARCH_031",
+			"ARCH_001",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 400,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 10,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 60,
+			"value": 80
+		},
+		"cost": {
+			"sacrifice": 3,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_085",
+		"name": "Chevalier maître des dragons",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_004",
+			"ARCH_017",
+			"ARCH_001",
+			"ARCH_003",
+			"ARCH_005",
+			"ARCH_009",
+			"ARCH_026",
+			"ARCH_045",
+			"ARCH_055",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 50,
+			"hp": 500,
+			"movement_speed": 10,
+			"attack_speed": 13,
+			"initiative": 10,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 60,
+			"value": 100
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_103",
+				"CORE_011"
+			]
+		},
+		"represented_ids": [
+			"CORE_103",
+			"CORE_011"
+		]
+	},
+	{
+		"id": "EXTRA_086",
+		"name": "Prêtresse aux yeux bleus",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "sacrifice",
+		"attributes": [
+			"ARCH_005",
+			"ARCH_002",
+			"ARCH_017",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 160,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 5,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_FREEZE",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_087",
+		"name": "Magia le maître des dragons",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_003",
+			"ARCH_004",
+			"ARCH_005",
+			"ARCH_007",
+			"ARCH_017",
+			"ARCH_026",
+			"ARCH_045",
+			"ARCH_055",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 50,
+			"hp": 500,
+			"movement_speed": 10,
+			"attack_speed": 14,
+			"initiative": 10,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_103",
+				"CORE_077"
+			]
+		},
+		"represented_ids": [
+			"CORE_103",
+			"CORE_077"
+		]
+	},
+	{
+		"id": "EXTRA_088",
+		"name": "Esprit aux yeux bleus",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_005",
+			"ARCH_017",
+			"ARCH_045",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 80,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 5,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"ARCH_005"
+			]
+		}
+	},
+	{
+		"id": "TEST_001",
+		"name": "Ojama jaune",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "TEST_002",
+		"name": "Ojama vert",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "TEST_003",
+		"name": "Ojama noir",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "TEST_004",
+		"name": "Ojama rouge",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "TEST_005",
+		"name": "Ojama bleu",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 1,
+			"hp": 1000,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "EXTRA_089",
+		"name": "Magicien sombre de la destruction",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_004",
+			"ARCH_007",
+			"ARCH_026",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 350,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 10,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_077"
+			]
+		},
+		"represented_ids": [
+			"CORE_001"
+		],
+		"summon_options": [
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 3,
+					"materials": [
+						"CORE_001"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_077"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "EXTRA_090",
+		"name": "Neo Sparkman",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_006",
+			"ARCH_001",
+			"ARCH_024",
+			"ARCH_052"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 240,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_095"
+			]
+		},
+		"represented_ids": [
+			"CORE_095"
+		],
+		"summon_options": [
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 2,
+					"materials": [
+						"ARCH_006"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_095"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "EXTRA_091",
+		"name": "Neo Burstinatrix",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 240,
+			"movement_speed": 10,
+			"attack_speed": 11,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_094"
+			]
+		},
+		"represented_ids": [
+			"CORE_094"
+		],
+		"summon_options": [
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 2,
+					"materials": [
+						"ARCH_006"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_094"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "EXTRA_092",
+		"name": "Neo Avian",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 250,
+			"movement_speed": 5,
+			"attack_speed": 12,
+			"initiative": 6,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 75,
+			"value": 40
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_093"
+			]
+		},
+		"represented_ids": [
+			"CORE_093"
+		],
+		"summon_options": [
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 2,
+					"materials": [
+						"ARCH_006"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"CORE_093"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "EXTRA_093",
+		"name": "Metalzoa Parfait",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_019",
+			"ARCH_025",
+			"ARCH_044",
+			"ARCH_055",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 45,
+			"hp": 400,
+			"movement_speed": 5,
+			"attack_speed": 6,
+			"initiative": 10,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"KEITH_011"
+			]
+		},
+		"represented_ids": [
+			"KEITH_010"
+		],
+		"summon_options": [
+			{
+				"summon_type": "heritage",
+				"cost": {
+					"sacrifice": 3,
+					"materials": [
+						"KEITH_010"
+					]
+				}
+			},
+			{
+				"summon_type": "transformation",
+				"cost": {
+					"sacrifice": 0,
+					"materials": [
+						"KEITH_011"
+					]
+				}
+			}
+		]
+	},
+	{
+		"id": "EXTRA_094",
+		"name": "Chevalier flamboyant de métal",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_018",
+			"ARCH_027",
+			"ARCH_044",
+			"ARCH_048",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 220,
+			"movement_speed": 5,
+			"attack_speed": 9,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"power_speed": 45
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"CORE_039"
+			]
+		},
+		"represented_ids": [
+			"CORE_039"
+		]
+	},
+	{
+		"id": "PEGASUS_014",
+		"name": "Monde des toons",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_038",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 2,
+			"hp": 200,
+			"movement_speed": 20,
+			"attack_speed": 20,
+			"initiative": 3,
+			"range": 4
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 50,
+			"value": 30
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "PEGASUS_015",
+		"name": "Forteresse des toons",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_038",
+			"ARCH_054",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 400,
+			"movement_speed": 20,
+			"attack_speed": 20,
+			"initiative": 8,
+			"range": 4
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 50,
+			"value": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_014"
+			]
+		},
+		"represented_ids": [
+			"PEGASUS_014"
+		]
+	},
+	{
+		"id": "PEGASUS_016",
+		"name": "Lapin des ténèbres",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_038",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 11,
+			"hp": 150,
+			"movement_speed": 5,
+			"attack_speed": 6,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"PEGASUS_014"
+			]
+		}
+	},
+	{
+		"id": "EXTRA_095",
+		"name": "Dragon perroquet",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_038",
+			"ARCH_051",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 160,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 6,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"PEGASUS_014"
+			]
+		}
+	},
+	{
+		"id": "PEGASUS_017",
+		"name": "Soldat canon toon",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_038",
+			"ARCH_054",
+			"ARCH_055",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 120,
+			"movement_speed": 15,
+			"attack_speed": 9,
+			"initiative": 4,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 40,
+			"value": 3
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"PEGASUS_014"
+			]
+		},
+		"represented_ids": [
+			"KEITH_014"
+		]
+	},
+	{
+		"id": "PEGASUS_018",
+		"name": "Jigen Bakudan",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_025",
+			"ARCH_039",
+			"ARCH_048",
+			"ARCH_054",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 60,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 3,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 20,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "PEGASUS_019",
+		"name": "Manga Ryu-Ran",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_038",
+			"ARCH_048",
+			"ARCH_054",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 260,
+			"movement_speed": 20,
+			"attack_speed": 13,
+			"initiative": 7,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 50,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"PEGASUS_014"
+			]
+		}
+	},
+	{
+		"id": "PEGASUS_020",
+		"name": "Soldat du lustre noir toon",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_001",
+			"ARCH_009",
+			"ARCH_026",
+			"ARCH_038",
+			"ARCH_054",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 300,
+			"movement_speed": 5,
+			"attack_speed": 9,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 50,
+			"value": 40
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"PEGASUS_014"
+			]
+		},
+		"represented_ids": [
+			"CORE_011",
+			"CORE_005"
+		]
+	},
+	{
+		"id": "PEGASUS_021",
+		"name": "Dragon toon aux yeux rouges",
+		"type": "monster",
+		"tier": 2,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_008",
+			"ARCH_038",
+			"ARCH_048",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 210,
+			"movement_speed": 10,
+			"attack_speed": 9,
+			"initiative": 7,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_speed": 50,
+			"value": 30
+		},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"PEGASUS_014"
+			]
+		},
+		"represented_ids": [
+			"CORE_033"
+		]
+	},
+	{
+		"id": "PEGASUS_022",
+		"name": "Dame harpie toon",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_036",
+			"ARCH_038",
+			"ARCH_045",
+			"ARCH_051",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 140,
+			"movement_speed": 5,
+			"attack_speed": 7,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 1,
+			"materials": [
+				"PEGASUS_014"
+			]
+		},
+		"represented_ids": [
+			"MAI_002",
+			"MAI_003",
+			"MAI_004"
+		]
+	},
+	{
+		"id": "PEGASUS_023",
+		"name": "Idole aux yeux d’or",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_039",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 200,
+			"movement_speed": 5,
+			"attack_speed": 6,
+			"initiative": 6,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_speed": 50,
+			"value": 5
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_005"
+			]
+		},
+		"represented_ids": [
+			"PEGASUS_005"
+		]
+	},
+	{
+		"id": "PEGASUS_024",
+		"name": "Illusionniste aux yeux millénaires",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_039",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 300,
+			"movement_speed": 10,
+			"attack_speed": 7,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_DEBUFF",
+			"power_speed": 60
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_025"
+			]
+		},
+		"represented_ids": [
+			"PEGASUS_025"
+		]
+	},
+	{
+		"id": "PEGASUS_025",
+		"name": "Illusionniste des ténèbres",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_039",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 150,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 2
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		}
+	},
+	{
+		"id": "PEGASUS_026",
+		"name": "Magicien illusionniste anonyme",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_039",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 31,
+			"hp": 350,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_speed": 50
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_011"
+			]
+		},
+		"represented_ids": [
+			"PEGASUS_011"
+		]
+	},
+	{
+		"id": "PEGASUS_027",
+		"name": "L’abandonné aux yeux millénaires",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_039",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 50,
+			"hp": 300,
+			"movement_speed": 5,
+			"attack_speed": 20,
+			"initiative": 9,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_CONFUSION",
+			"power_speed": 20
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_006",
+				"PEGASUS_024"
+			]
+		},
+		"represented_ids": [
+			"PEGASUS_006"
+		]
+	},
+	{
+		"id": "PEGASUS_028",
+		"name": "Doppleganger le mimetique",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_038",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 200,
+			"movement_speed": 5,
+			"attack_speed": 4,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 10,
+			"value": 1
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_031"
+			]
+		}
+	},
+	{
+		"id": "PEGASUS_029",
+		"name": "Dragon ultime aux yeux bleus toon",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_003",
+			"ARCH_005",
+			"ARCH_038",
+			"ARCH_052",
+			"ARCH_054",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 45,
+			"hp": 380,
+			"movement_speed": 15,
+			"attack_speed": 12,
+			"initiative": 10,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_speed": 50,
+			"value": 70
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_009"
+			]
+		},
+		"represented_ids": [
+			"CORE_103"
+		]
+	},
+	{
+		"id": "PEGASUS_030",
+		"name": "Lapin des ténèbres malin",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_038",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 300,
+			"movement_speed": 5,
+			"attack_speed": 8,
+			"initiative": 7,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_speed": 40
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_016"
+			]
+		}
+	},
+	{
+		"id": "PEGASUS_031",
+		"name": "Chat comique",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_038",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 100,
+			"movement_speed": 5,
+			"attack_speed": 4,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_speed": 20,
+			"value": 1
+		},
+		"cost": {
+			"sacrifice": 2,
+			"materials": [
+				"ARCH_038"
+			]
+		}
+	},
+	{
+		"id": "PEGASUS_032",
+		"name": "Mage illusionniste aux yeux noirs",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "fusion",
+		"attributes": [
+			"ARCH_002",
+			"ARCH_039",
+			"ARCH_038",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 34,
+			"hp": 360,
+			"movement_speed": 15,
+			"attack_speed": 10,
+			"initiative": 8,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 30,
+			"value": 40
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_014",
+				"PEGASUS_025"
+			]
+		},
+		"represented_ids": [
+			"PEGASUS_025"
+		]
+	},
+	{
+		"id": "PEGASUS_033",
+		"name": "Monde des toons le monde parfait",
+		"type": "monster",
+		"tier": 5,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_038",
+			"ARCH_002",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 500,
+			"movement_speed": 20,
+			"attack_speed": 20,
+			"initiative": 10,
+			"range": 4
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_speed": 10,
+			"value": 20
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_015"
+			]
+		},
+		"represented_ids": [
+			"PEGASUS_014"
+		]
+	},
+	{
+		"id": "PEGASUS_034",
+		"name": "Bickuribox",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "heritage",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_038",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 27,
+			"hp": 250,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 7,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_014"
+			]
+		}
+	},
+	{
+		"id": "PEGASUS_035",
+		"name": "Boîte maléfique",
+		"type": "monster",
+		"tier": 4,
+		"summon_type": "transformation",
+		"attributes": [
+			"ARCH_021",
+			"ARCH_038",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 37,
+			"hp": 350,
+			"movement_speed": 5,
+			"attack_speed": 10,
+			"initiative": 9,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_speed": 50,
+			"value": 30
+		},
+		"cost": {
+			"sacrifice": 0,
+			"materials": [
+				"PEGASUS_034"
+			]
+		}
+	},
+	{
+		"id": "YGX_001",
+		"name": "Golem Rouage Ancients",
+		"type": "monster",
+		"tier": 3,
+		"summon_type": "sacrifice",
+		"attributes": [],
+		"stats": {
+			"atk": 30,
+			"hp": 300,
+			"movement_speed": 15,
+			"attack_speed": 13,
+			"initiative": 8,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 2,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_002",
+		"name": "Bête rouages ancients",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_003",
+		"name": "Soldat rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_004",
+		"name": "Dragon gadjiltron",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_005",
+		"name": "Chimère gadjiltron",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_006",
+		"name": "Ingénieur rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_007",
+		"name": "Chevalier rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_008",
+		"name": "Vouivre rouage ancient",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_009",
+		"name": "Boîte rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_010",
+		"name": "Chien de chasse rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_011",
+		"name": "Gadget rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_012",
+		"name": "Dragon réacteur rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_013",
+		"name": "Golem rouage ancien frappe ultime",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_014",
+		"name": "Armature rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_015",
+		"name": "Baliste rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_016",
+		"name": "Commandant rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_017",
+		"name": "Dragon rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_018",
+		"name": "Golem des ténèbres rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_019",
+		"name": "Hydre rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_020",
+		"name": "Statut rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_021",
+		"name": "Tankiste rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_022",
+		"name": "Géant rouage ancien chaos",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_023",
+		"name": "Golem megatone rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_024",
+		"name": "Golem rouage ancien ultime",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	},
+	{
+		"id": "YGX_025",
+		"name": "Obusier rouage ancien",
+		"type": "monster",
+		"tier": 1,
+		"summon_type": "normal",
+		"attributes": [],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_speed": 10,
+			"attack_speed": 10,
+			"initiative": 4,
+			"range": 1
+		},
+		"power": {},
+		"cost": {
+			"sacrifice": 0,
+			"materials": []
+		},
+		"represented_ids": []
+	}
+]

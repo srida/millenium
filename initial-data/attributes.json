@@ -1,0 +1,1297 @@
+[
+	{
+		"id": "ARCH_001",
+		"name": "Guerrier",
+		"icon": "⚔️",
+		"timing": "start_of_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "bronze",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "hp",
+						"value": 10
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "hp",
+						"value": 20
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "hp",
+						"value": 50
+					}
+				]
+			},
+			{
+				"count": 5,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "hp",
+						"value": 100
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_002",
+		"name": "Magicien",
+		"icon": "🪄",
+		"timing": "start_of_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "bronze",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "attack_speed",
+						"value": -1
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "attack_speed",
+						"value": -2
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "attack_speed",
+						"value": -3
+					}
+				]
+			},
+			{
+				"count": 5,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "attack_speed",
+						"value": -5
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_003",
+		"name": "Dragon",
+		"icon": "🐲",
+		"timing": "start_of_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "bronze",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 1
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 2
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 5
+					}
+				]
+			},
+			{
+				"count": 5,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 10
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_004",
+		"name": "Âme des cartes",
+		"icon": "🏵",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "draw_bonus",
+						"value": 1,
+						"max": 1
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_005",
+		"name": "Yeux Bleus",
+		"icon": "🔵",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "board_slot_bonus",
+						"value": 1,
+						"max": 1
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_006",
+		"name": "Héros",
+		"icon": "🦸‍♂️",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "revive",
+						"target": "neutralized_ally",
+						"hp_percent": 50
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_007",
+		"name": "Magie Noire",
+		"icon": "🔮",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "heritage",
+						"attribute": "ARCH_007"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_008",
+		"name": "Yeux Rouges",
+		"icon": "🔴",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "fusion",
+						"attribute": "ARCH_008"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_009",
+		"name": "Gaïa",
+		"icon": "🌎",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "fusion",
+						"attribute": "ARCH_009"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_010",
+		"name": "Noble",
+		"icon": "🤴",
+		"timing": "none",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_011",
+		"name": "Gadget",
+		"icon": "⚙️",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "normal",
+						"attribute": "ARCH_011"
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "fusion",
+						"attribute": "ARCH_011"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_012",
+		"name": "Magnétique",
+		"icon": "🧲",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "normal",
+						"attribute": "ARCH_012"
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "fusion",
+						"attribute": "ARCH_012"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_013",
+		"name": "Union",
+		"icon": "🪢",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "fusion",
+						"attribute": "ARCH_013"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_014",
+		"name": "Silencieux",
+		"icon": "🙊",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "transformation",
+						"attribute": "ARCH_014"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_015",
+		"name": "Figure",
+		"icon": "🃏",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "normal",
+						"attribute": "ARCH_015"
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "fusion",
+						"attribute": "ARCH_015"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_016",
+		"name": "Épée Destructrice",
+		"icon": "🐉",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value_per": "ARCH_003",
+						"value": 5
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_017",
+		"name": "Rage de Vaincre",
+		"icon": "😡",
+		"timing": "during_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_modifier",
+						"trigger": "on_enemy_neutralized",
+						"stat": "atk",
+						"value": 2
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_018",
+		"name": "Courageux",
+		"icon": "👨‍🚒",
+		"timing": "during_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_modifier",
+						"trigger": "on_ally_neutralized",
+						"stat": "atk",
+						"value": 5
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_019",
+		"name": "Démon",
+		"icon": "😈",
+		"timing": "start_of_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value_per": "active_unit",
+						"value": 1
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value_per": "active_unit",
+						"value": 3
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value_per": "active_unit",
+						"value": 5
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_020",
+		"name": "Archdémon",
+		"icon": "💀",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "hp",
+						"value_per": "active_unit",
+						"value": 10
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "hp",
+						"value_per": "active_unit",
+						"value": 30
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "hp",
+						"value_per": "active_unit",
+						"value": 50
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_021",
+		"name": "Bête",
+		"icon": "🐻",
+		"timing": "start_of_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "movement_speed",
+						"value": -1
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "movement_speed",
+						"value": -3
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "movement_speed",
+						"value": -5
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_022",
+		"name": "Bête Fantôme",
+		"icon": "👻",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "fusion",
+						"attribute": "ARCH_022"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_023",
+		"name": "Elfe",
+		"icon": "🧝‍♂️",
+		"timing": "start_of_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "shield",
+						"value_per": "active_unit",
+						"value": 1
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "shield",
+						"value_per": "active_unit",
+						"value": 3
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "shield",
+						"value_per": "active_unit",
+						"value": 5
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_024",
+		"name": "Elementaire",
+		"icon": "🌈",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "normal",
+						"attribute": "ARCH_024"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_025",
+		"name": "Machine",
+		"icon": "🤖",
+		"timing": "start_of_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "range",
+						"value": 1
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_026",
+		"name": "Chaos",
+		"icon": "☯️",
+		"timing": "none",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_027",
+		"name": "Salamandra",
+		"icon": "🔥",
+		"timing": "none",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_028",
+		"name": "Rocher",
+		"icon": "🪨",
+		"timing": "start_of_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "hp",
+						"value": 30
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "hp",
+						"value": 100
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_029",
+		"name": "Zombie",
+		"icon": "🧟‍♂️",
+		"timing": "end_of_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "revive",
+						"target": "neutralized_ally",
+						"hp_percent": 75
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_030",
+		"name": "Tombeau",
+		"icon": "🪦",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "revive",
+						"target": "neutralized_ally",
+						"hp_percent": 30
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_031",
+		"name": "Dieu Égyptien",
+		"icon": "☀️",
+		"timing": "start_of_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 15
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_033",
+		"name": "Insecte",
+		"icon": "🦗",
+		"timing": "during_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "stat_modifier",
+						"stat": "hp",
+						"trigger": "on_enemy_neutralized",
+						"value": 10
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_modifier",
+						"stat": "hp",
+						"trigger": "on_enemy_neutralized",
+						"value": 15
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_modifier",
+						"stat": "hp",
+						"trigger": "on_enemy_neutralized",
+						"value": 30
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_034",
+		"name": "Dinosaure",
+		"icon": "🦕",
+		"timing": "start_of_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "bronze",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 2
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 4
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 7
+					}
+				]
+			},
+			{
+				"count": 5,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 10
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_035",
+		"name": "Aquatique",
+		"icon": "🐟",
+		"timing": "start_of_combat",
+		"categorie": "Type",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "bronze",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "movement_speed",
+						"value": -1
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "movement_speed",
+						"value": -3
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "movement_speed",
+						"value": -5
+					}
+				]
+			},
+			{
+				"count": 5,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "movement_speed",
+						"value": -10
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_036",
+		"name": "Harpie",
+		"icon": "🦅",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "attack_speed",
+						"value": -1
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "attack_speed",
+						"value": -2
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "attack_speed",
+						"value": -4
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_038",
+		"name": "Toon",
+		"icon": "🎪",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "normal",
+						"attribute": "ARCH_038"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_039",
+		"name": "Illusion",
+		"icon": "👁️",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "draw_bonus",
+						"value": 1
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "draw_bonus",
+						"value": 2
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_040",
+		"name": "Citrouille",
+		"icon": "🎃",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "hp",
+						"value": 50
+					}
+				]
+			},
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "hp",
+						"value": 100
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_041",
+		"name": "Labyrinthe",
+		"icon": "🗺️",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "power_charge",
+						"value": 1
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_042",
+		"name": "Gardiens",
+		"icon": "🚪",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "sacrifice",
+						"attribute": "ARCH_042"
+					}
+				]
+			},
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "fusion",
+						"attribute": "ARCH_042"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_043",
+		"name": "Spectre",
+		"icon": "👁️‍🗨️",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "damage_multiplier_bonus",
+						"value": 2
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_044",
+		"name": "Casino",
+		"icon": "🎲",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_045",
+		"name": "Volant",
+		"icon": "🪽",
+		"timing": "start_of_combat",
+		"categorie": "Type",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_046",
+		"name": "Slime",
+		"icon": "🫟",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_047",
+		"name": "Atlantide",
+		"icon": "🦈",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_048",
+		"name": "Feu",
+		"icon": "🔥",
+		"timing": "start_of_combat",
+		"categorie": "Element",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_049",
+		"name": "Eau",
+		"icon": "💧",
+		"timing": "start_of_combat",
+		"categorie": "Element",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_050",
+		"name": "Terre",
+		"icon": "🗻",
+		"timing": "start_of_combat",
+		"categorie": "Element",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_051",
+		"name": "Air",
+		"icon": "🌪️",
+		"timing": "start_of_combat",
+		"categorie": "Element",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_052",
+		"name": "Foudre",
+		"icon": "⚡",
+		"timing": "start_of_combat",
+		"categorie": "Element",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_053",
+		"name": "Glace",
+		"icon": "❄️",
+		"timing": "start_of_combat",
+		"categorie": "Element",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_054",
+		"name": "Sorcellerie",
+		"icon": "🧿",
+		"timing": "start_of_combat",
+		"categorie": "Element",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_055",
+		"name": "Energie",
+		"icon": "💎",
+		"timing": "start_of_combat",
+		"categorie": "Element",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_056",
+		"name": "Metal",
+		"icon": "⛓️",
+		"timing": "start_of_combat",
+		"categorie": "Element",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_057",
+		"name": "Sable",
+		"icon": "🏜️",
+		"timing": "start_of_combat",
+		"categorie": "Element",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_058",
+		"name": "Plante",
+		"icon": "🌱",
+		"timing": "start_of_combat",
+		"categorie": "Element",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_059",
+		"name": "Rouages ancients",
+		"icon": "⚙️",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	}
+]

@@ -1,0 +1,446 @@
+[
+	{
+		"id": "BOARD_002",
+		"name": "Forêt",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 10,
+			"stat": "atk",
+			"target_attributes": [
+				"ARCH_021",
+				"ARCH_033"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 4,
+				"row": 6
+			},
+			{
+				"col": 4,
+				"row": 4
+			},
+			{
+				"col": 0,
+				"row": 6
+			},
+			{
+				"col": 0,
+				"row": 4
+			}
+		]
+	},
+	{
+		"id": "BOARD_003",
+		"name": "Montagne",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 10,
+			"stat": "atk",
+			"target_attributes": [
+				"ARCH_003",
+				"ARCH_036"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 1,
+				"row": 5
+			},
+			{
+				"col": 2,
+				"row": 5
+			},
+			{
+				"col": 3,
+				"row": 5
+			},
+			{
+				"col": 2,
+				"row": 6
+			},
+			{
+				"col": 2,
+				"row": 4
+			}
+		]
+	},
+	{
+		"id": "BOARD_004",
+		"name": "Prairie",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 10,
+			"stat": "atk",
+			"target_attributes": [
+				"ARCH_001"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 1,
+				"row": 6
+			},
+			{
+				"col": 3,
+				"row": 6
+			},
+			{
+				"col": 1,
+				"row": 4
+			},
+			{
+				"col": 3,
+				"row": 4
+			}
+		]
+	},
+	{
+		"id": "BOARD_005",
+		"name": "Ocean",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 10,
+			"stat": "atk",
+			"target_attributes": [
+				"ARCH_035"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 0,
+				"row": 5
+			},
+			{
+				"col": 4,
+				"row": 5
+			},
+			{
+				"col": 2,
+				"row": 6
+			},
+			{
+				"col": 2,
+				"row": 4
+			}
+		]
+	},
+	{
+		"id": "BOARD_006",
+		"name": "Gratte-ciel",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 10,
+			"stat": "atk",
+			"target_attributes": [
+				"ARCH_006"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 0,
+				"row": 5
+			},
+			{
+				"col": 2,
+				"row": 5
+			},
+			{
+				"col": 4,
+				"row": 5
+			}
+		]
+	},
+	{
+		"id": "BOARD_007",
+		"name": "École de sorcier",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 10,
+			"stat": "atk",
+			"target_attributes": [
+				"ARCH_002"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 2,
+				"row": 6
+			},
+			{
+				"col": 2,
+				"row": 5
+			},
+			{
+				"col": 2,
+				"row": 4
+			}
+		]
+	},
+	{
+		"id": "BOARD_001",
+		"name": "Enfer",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 30,
+			"stat": "hp",
+			"target_attributes": [
+				"ARCH_019"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 4,
+				"row": 4
+			},
+			{
+				"col": 0,
+				"row": 6
+			},
+			{
+				"col": 2,
+				"row": 4
+			},
+			{
+				"col": 2,
+				"row": 6
+			}
+		]
+	},
+	{
+		"id": "BOARD_008",
+		"name": "Cimetière",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 5,
+			"stat": "movement_speed",
+			"target_attributes": [
+				"ARCH_029"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 3,
+				"row": 6
+			},
+			{
+				"col": 1,
+				"row": 4
+			},
+			{
+				"col": 4,
+				"row": 4
+			},
+			{
+				"col": 0,
+				"row": 6
+			}
+		]
+	},
+	{
+		"id": "BOARD_009",
+		"name": "Vallée des rois",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 5,
+			"stat": "movement_speed",
+			"target_attributes": [
+				"ARCH_030"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 2,
+				"row": 5
+			},
+			{
+				"col": 4,
+				"row": 6
+			},
+			{
+				"col": 0,
+				"row": 4
+			}
+		]
+	},
+	{
+		"id": "BOARD_010",
+		"name": "Mur du Labyrinthe",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 5,
+			"stat": "movement_speed",
+			"target_attributes": [
+				"ARCH_041"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 0,
+				"row": 4
+			},
+			{
+				"col": 1,
+				"row": 6
+			},
+			{
+				"col": 2,
+				"row": 6
+			},
+			{
+				"col": 3,
+				"row": 6
+			},
+			{
+				"col": 2,
+				"row": 4
+			},
+			{
+				"col": 4,
+				"row": 4
+			},
+			{
+				"col": 2,
+				"row": 5
+			}
+		]
+	},
+	{
+		"id": "BOARD_011",
+		"name": "Monde Jurassique",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 10,
+			"stat": "atk",
+			"target_attributes": [
+				"ARCH_034"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 0,
+				"row": 6
+			},
+			{
+				"col": 1,
+				"row": 5
+			},
+			{
+				"col": 2,
+				"row": 4
+			},
+			{
+				"col": 0,
+				"row": 5
+			},
+			{
+				"col": 0,
+				"row": 4
+			},
+			{
+				"col": 1,
+				"row": 4
+			}
+		]
+	},
+	{
+		"id": "BOARD_012",
+		"name": "Terrain de chasse des harpies",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 5,
+			"stat": "attack_speed",
+			"target_attributes": [
+				"ARCH_036"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 0,
+				"row": 4
+			},
+			{
+				"col": 4,
+				"row": 5
+			},
+			{
+				"col": 0,
+				"row": 6
+			}
+		]
+	},
+	{
+		"id": "BOARD_013",
+		"name": "Nuit des machines",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 5,
+			"stat": "attack_speed",
+			"target_attributes": [
+				"ARCH_025"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 1,
+				"row": 6
+			},
+			{
+				"col": 3,
+				"row": 4
+			},
+			{
+				"col": 4,
+				"row": 6
+			},
+			{
+				"col": 0,
+				"row": 4
+			}
+		]
+	},
+	{
+		"id": "BOARD_014",
+		"name": "Desert",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 50,
+			"stat": "hp",
+			"target_attributes": [
+				"ARCH_028"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 3,
+				"row": 6
+			},
+			{
+				"col": 1,
+				"row": 4
+			}
+		]
+	},
+	{
+		"id": "BOARD_015",
+		"name": "Village secret",
+		"effect": {
+			"type": "stat_bonus",
+			"value": 1,
+			"stat": "range",
+			"target_attributes": [
+				"ARCH_023"
+			]
+		},
+		"blocked_cells": [
+			{
+				"col": 2,
+				"row": 4
+			},
+			{
+				"col": 2,
+				"row": 6
+			}
+		]
+	}
+]
