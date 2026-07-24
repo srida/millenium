@@ -51,6 +51,15 @@ export async function logout() {
   currentUser = null;
 }
 
+// --- Réinitialisation du mot de passe ---
+export async function forgotPassword(email) {
+  return api('/auth/forgot-password', { method: 'POST', body: { email } });
+}
+
+export async function resetPassword({ token, password }) {
+  return api('/auth/reset-password', { method: 'POST', body: { token, password } });
+}
+
 export async function updateProfile({ username, avatar }) {
   const { user } = await api('/profile/me', { method: 'PUT', body: { username, avatar } });
   currentUser = user;

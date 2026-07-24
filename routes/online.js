@@ -96,7 +96,7 @@ router.post('/auth/forgot-password', auth.rateLimit({ windowMs: 60_000, max: 5 }
   const now = Date.now();
   stmt.insertResetToken.run(token, user.id, now, now + RESET_TTL_MS);
 
-  const resetUrl = `${APP_URL}/?screen=resetpwd&token=${token}`;
+  const resetUrl = `${APP_URL}/?screen=reset_password&token=${token}`;
 
   try {
     await fetch('https://api.resend.com/emails', {

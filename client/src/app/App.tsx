@@ -7,6 +7,9 @@ import { useAuthStore } from '../stores/authStore.js';
 import { initGameData } from '../game/bootstrap.js';
 import MainMenu from '../screens/MainMenu.js';
 import AuthScreen from '../screens/AuthScreen.js';
+import ResetPasswordScreen from '../screens/ResetPasswordScreen.js';
+import ProfileScreen from '../screens/ProfileScreen.js';
+import FriendsScreen from '../screens/FriendsScreen.js';
 import DeckSelector from '../screens/DeckSelector.js';
 import DeckBuilder from '../screens/DeckBuilder.js';
 import GameScreen from '../screens/GameScreen.js';
@@ -46,6 +49,9 @@ export default function App() {
     <>
       {screen === 'main_menu' && <MainMenu />}
       {screen === 'auth' && <AuthScreen />}
+      {screen === 'reset_password' && <ResetPasswordScreen />}
+      {screen === 'profile' && <ProfileScreen />}
+      {screen === 'friends' && <FriendsScreen />}
       {screen === 'deck_selector' && <DeckSelector />}
       {screen === 'deck_builder' && <DeckBuilder />}
       {screen === 'game' && <GameScreen />}

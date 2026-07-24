@@ -35,9 +35,13 @@ export default function MainMenu() {
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-1 text-xs">
+      <div className="flex flex-col items-center gap-2 text-xs">
         {user ? (
           <>
+            <div className="flex gap-3">
+              <button onPointerDown={() => navigate('profile')} className="text-white/70 underline">Profil</button>
+              <button onPointerDown={() => navigate('friends')} className="text-white/70 underline">Amis</button>
+            </div>
             <span className="text-white/60">Connecté : <span className="font-semibold text-gold">{user.username}</span></span>
             <button onPointerDown={() => logout()} className="text-white/50 underline">Se déconnecter</button>
           </>

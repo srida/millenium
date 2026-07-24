@@ -2,9 +2,16 @@ import { create } from 'zustand';
 import type { Card, AttributeDef, BoardDef } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
 
-export type ScreenName = 'main_menu' | 'auth' | 'deck_selector' | 'deck_builder' | 'game' | 'combatlab' | 'testbench';
+export type ScreenName =
+  | 'main_menu' | 'auth' | 'reset_password' | 'profile' | 'friends'
+  | 'deck_selector' | 'deck_builder' | 'online_lobby' | 'tournament'
+  | 'game' | 'game_pvp' | 'combatlab' | 'testbench';
 
-const SCREEN_NAMES: ScreenName[] = ['main_menu', 'auth', 'deck_selector', 'deck_builder', 'game', 'combatlab', 'testbench'];
+const SCREEN_NAMES: ScreenName[] = [
+  'main_menu', 'auth', 'reset_password', 'profile', 'friends',
+  'deck_selector', 'deck_builder', 'online_lobby', 'tournament',
+  'game', 'game_pvp', 'combatlab', 'testbench',
+];
 
 export interface ScreenParams {
   deckName?: string;
@@ -46,7 +53,9 @@ interface UiState {
 
 // Deep-link ?screen= (parité avec l'ancien routeur maison).
 function initialScreen(): ScreenName {
-  const s = new URLSearchParams(window.location.search).get('screen') as ScreenName | null;
+  const raw = new URLSearchParams(window.location.search).get('screen');
+  if (raw === 'resetpwd') return 'reset_password'; // alias des anciens liens e-mail
+  const s = raw as ScreenName | null;
   return s && SCREEN_NAMES.includes(s) ? s : 'main_menu';
 }
 
