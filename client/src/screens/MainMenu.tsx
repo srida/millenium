@@ -26,6 +26,10 @@ export default function MainMenu() {
           Construire un deck
         </Button>
         <div className="flex gap-2">
+          <Button className="flex-1" onPointerDown={() => navigate('tournament')}>🏆 Tournoi</Button>
+          <Button className="flex-1" onPointerDown={() => navigate(user ? 'online_lobby' : 'auth')}>⚔ Duel en ligne</Button>
+        </div>
+        <div className="flex gap-2">
           <Button className="flex-1 text-xs opacity-70" onPointerDown={() => navigate('testbench')}>
             TestBench (dev)
           </Button>

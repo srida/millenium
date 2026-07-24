@@ -12,6 +12,7 @@ import ProfileScreen from '../screens/ProfileScreen.js';
 import FriendsScreen from '../screens/FriendsScreen.js';
 import DeckSelector from '../screens/DeckSelector.js';
 import DeckBuilder from '../screens/DeckBuilder.js';
+import TournamentScreen from '../screens/TournamentScreen.js';
 import GameScreen from '../screens/GameScreen.js';
 import TooltipHost from '../components/tooltip/TooltipHost.js';
 import { LandscapeOverlay } from '../components/system/DeviceGuards.js';
@@ -54,6 +55,7 @@ export default function App() {
       {screen === 'friends' && <FriendsScreen />}
       {screen === 'deck_selector' && <DeckSelector />}
       {screen === 'deck_builder' && <DeckBuilder />}
+      {screen === 'tournament' && <TournamentScreen />}
       {screen === 'game' && <GameScreen />}
       {screen === 'combatlab' && (
         <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-surface text-white">Chargement…</div>}>
