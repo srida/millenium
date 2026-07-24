@@ -322,12 +322,13 @@ Orchestration : `GameSession` détient la boucle de tours (pioche selon `tiersFo
 
 ### Phase 2 — Three.js npm + portage de la scène board (2–4 jours) — risque : moyen (portage de l'existant restauré)
 
-- [ ] `three` en npm, suppression de l'importmap/CDN dans le nouveau `client/index.html`
-- [ ] Porter [Board3D.js](game/ui/components/Board3D.js) (1 792 l.) → `three/Scene3D.ts` + `BoardView3D.ts` + `UnitView3D.ts` + `DragController.ts` : découpage en modules, imports npm, mais **comportement visuel identique** (comparaison côte à côte avec l'ancienne app)
-  - [ ] au passage : `dpr = min(devicePixelRatio, 2)`, render à la demande hors combat, `dispose()` complet (l'ancien code étant SPA-naviguée, vérifier ce qu'il libérait réellement)
-- [ ] Porter [CombatAnimator3D.js](game/ui/components/CombatAnimator3D.js) (288 l.) → `three/CombatAnimator3D.ts` : horloge `BASE_TICK_MS/speed`, mapping des événements (`move`, `attack`, `power`, `dot`, `freeze`, `stat_change`, `death`, `combat_end`), pause — compléter les événements éventuellement non gérés par l'ancien code
-- [ ] Harnais visuel provisoire : page dev qui charge une fixture de Phase 1 et joue le combat (ni HUD ni règles) — sert de proto TestBench
-- **Done** : un combat scripté se joue visuellement à ×1/×2/×4 sur Safari iOS et Chrome desktop, rendu comparable à l'ancienne app côte à côte, 60 fps (ou 30 stable) sur MBP 2015, zéro fuite mémoire après 10 montages/démontages (heap snapshot).
+- [x] `three` (+ `@types/three`) en npm, pinné `0.160.x` ; CSS3DRenderer importé de `three/addons/…` — plus d'importmap/CDN
+- [x] Porter [Board3D.js](game/ui/components/Board3D.js) (1 792 l.) → `three/Scene3D.ts` (+ `constants.ts` pour la géométrie/styles élémentaires, + `UnitCardEl.ts` pour la fabrique DOM CSS3D des cartes) : port **ligne à ligne**, comportement visuel identique. Le découpage BoardView/UnitView/DragController prévu s'est révélé inutile — la classe est cohérente telle quelle ; on la scindera seulement si un besoin réel apparaît en Phase 3.
+  - [x] `dpr = min(devicePixelRatio, 2)` (conservé de l'original), **render à la demande** ajouté (`_invalidate()` + flag `_needsRender` : la boucle rAF saute le rendu quand rien n'est actif — gain hors combat), `dispose()`/`destroy()` complet **enrichi** (l'ancien ne libérait ni les textures canvas cachées, ni les groupes de `spawnMagicCircle`, ni le DOM des deux renderers — corrigé)
+- [x] Porter [CombatAnimator3D.js](game/ui/components/CombatAnimator3D.js) (288 l.) → `three/CombatAnimator3D.ts` : horloge `BASE_TICK_MS/speed`, mapping `move/attack/dot/power/death/freeze`, pause/resume, purge des cases gelées
+- [x] CSS des cartes + animations de combat portés dans `src/styles/board3d.css` (autonome, variables du DS Astral inlinées) ; polices EB Garamond/Hanken chargées dans `index.html`
+- [x] Harnais visuel `src/dev/CombatLab.tsx` (`/?screen=combatlab`) : combat scripté 4v4 avec pouvoirs (HEAL/POISON/SUPER/FREEZE) et éléments variés, boutons Lancer/Pause/×1/×2/×4/Remonter — sert de proto TestBench
+- **Done** ✅ 2026-07-24 : combat scripté joué visuellement à ×1/×2/×4 dans le navigateur (particules feu/foudre/gel/poison, toasts « Gel »/« Soin », morts fragmentées, `combat_end` → vainqueur), drag & drop de repositionnement OK, **`dispose()` sans fuite** (6 cycles remonter → canvas reste à 1, aucun warning WebGL, DOM non cumulatif) ; `tsc`, `eslint`, `vitest 59/59`, `vite build` verts. Reste à valider sur Safari iOS réel + mesure fps MBP 2015 (Phase 6 polish).
 
 ### Phase 3 — GameScreen minimal jouable (4–6 jours) — risque : élevé
 

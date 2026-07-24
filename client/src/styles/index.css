@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./board3d.css";
 
 /* Design tokens Millenium — étendus au fil des phases (cf. PLAN_REFONTE §3.1) */
 @theme {
