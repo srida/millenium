@@ -349,12 +349,14 @@ Orchestration : `GameSession` détient la boucle de tours (pioche selon `tiersFo
 - [x] Tests unitaires shopping (`src/test/shopping.test.ts`, 15 cas) : tirage + extra, routage du ciblage, effets à cible (defuse/destroy/revive), carry-over global consommé au tour suivant. Suite : **74 tests** verts.
 - **Done** : boucle vérifiée en navigateur (mobile 375×812) — overlay 3 magies compact, `player_hp_bonus` appliqué (956→1000 cappé) puis Tour 2, zéro erreur console. `tsc`/`eslint`/`vitest(74)`/`build` verts.
 
-### Phase 5 — DeckBuilder + DeckSelector + navigation complète (2–3 jours) — risque : faible
+### Phase 5 — DeckBuilder + DeckSelector + navigation complète (2–3 jours) — risque : faible ✅ 2026-07-24
 
-- [ ] `deckStore`, DeckSelector (couleurs/tags/renommage/duplication), DeckBuilder (contraintes min 20 / max tier / pendingEdit)
-- [ ] GameScreen consomme le deck actif (`buildDeckFromIds`)
-- [ ] Décision D2 appliquée : soit AuthScreen minimal (login/register/logout + gate bootstrap + sync decks `pull/flushSync`), soit bypass dev documenté
-- **Done** : boucle complète menu → construire → jouer → rejouer sans recharger.
+- [x] `deckStore` (vue réactive sur DeckRepository, source de vérité localStorage), `authStore` (session optionnelle). Navigation : `uiStore` étendu (`auth`/`deck_selector`/`deck_builder`), parité `?screen=`.
+- [x] `DeckSelector` : liste (pastille couleur, répartition par tier, tags, badge ACTIF), sélection, jouer, éditer (param `deckName` → DeckBuilder), dupliquer (`findFreeName` → « (copie) »), renommer (modal), supprimer (modal de confirmation), créer, état vide.
+- [x] `DeckBuilder` : bibliothèque filtrable (tier / invocation / recherche), `CardTile` réutilisable (tap `onClick` + long-press tooltip), lanes par tier avec ajout/retrait, règles **max/tier = min(8, pool)** et **total ≥ 20 + nom requis** (validation bloquante continue), couleur, tags auto-calculés (`computeTags`), mode édition (param `deckName` prioritaire, sinon `consumePendingEdit`).
+- [x] GameScreen consomme le deck sélectionné (`buildSession(deckName)` via DeckRepository ; `autoDeck` conservé en repli de sécurité pour un deep-link `?screen=game` sans deck).
+- [x] **D2** — AuthScreen minimal (connexion / inscription / déconnexion) + restauration de session **non bloquante** au boot (cap 4 s) + sync decks (`pull`/`flushSync`) quand connecté. Choix : gate **optionnel** (jeu jouable en invité) plutôt qu'un mur de login — évite de bloquer le dev/HMR (R7) tout en activant la synchro serveur des decks une fois connecté.
+- **Done** : boucle complète vérifiée en navigateur (mobile 375×812) sans rechargement — menu → construire (deck 20 cartes, cap tier, validation) → enregistrer → sélectionner → **jouer avec les cartes du deck** ; duplication et tags OK ; AuthScreen rendu ; zéro erreur console. `tsc`/`eslint`/`vitest(74)`/`build` verts.
 
 ### Phase 6 — TestBench + PWA + polish mobile (3–4 jours) — risque : moyen
 

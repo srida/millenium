@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import type { Card, AttributeDef, BoardDef } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
 
-export type ScreenName = 'main_menu' | 'game' | 'combatlab';
+export type ScreenName = 'main_menu' | 'auth' | 'deck_selector' | 'deck_builder' | 'game' | 'combatlab';
+
+const SCREEN_NAMES: ScreenName[] = ['main_menu', 'auth', 'deck_selector', 'deck_builder', 'game', 'combatlab'];
 
 export interface ScreenParams {
   deckName?: string;
@@ -44,9 +46,8 @@ interface UiState {
 
 // Deep-link ?screen= (parité avec l'ancien routeur maison).
 function initialScreen(): ScreenName {
-  const s = new URLSearchParams(window.location.search).get('screen');
-  if (s === 'game' || s === 'combatlab' || s === 'main_menu') return s;
-  return 'main_menu';
+  const s = new URLSearchParams(window.location.search).get('screen') as ScreenName | null;
+  return s && SCREEN_NAMES.includes(s) ? s : 'main_menu';
 }
 
 export const useUiStore = create<UiState>((set) => ({

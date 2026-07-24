@@ -1,10 +1,14 @@
-// Shell applicatif : initialise les databases (via /api), route les écrans via
-// uiStore (parité ?screen=), monte le TooltipHost global. Le vrai DeckBuilder /
-// auth arrivent en Phases 5/7.
+// Shell applicatif : initialise les databases (via /api), restaure la session
+// (auth optionnelle, D2), route les écrans via uiStore (parité ?screen=), monte
+// le TooltipHost global.
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
+import { useAuthStore } from '../stores/authStore.js';
 import { initGameData } from '../game/bootstrap.js';
 import MainMenu from '../screens/MainMenu.js';
+import AuthScreen from '../screens/AuthScreen.js';
+import DeckSelector from '../screens/DeckSelector.js';
+import DeckBuilder from '../screens/DeckBuilder.js';
 import GameScreen from '../screens/GameScreen.js';
 import TooltipHost from '../components/tooltip/TooltipHost.js';
 
@@ -12,12 +16,15 @@ const CombatLab = lazy(() => import('../dev/CombatLab.js'));
 
 export default function App() {
   const screen = useUiStore(s => s.screen);
+  const restore = useAuthStore(s => s.restore);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Données de jeu = bloquant ; restauration de session = best-effort en parallèle.
+    restore();
     initGameData().then(() => setReady(true)).catch(e => setError(String(e)));
-  }, []);
+  }, [restore]);
 
   if (error) {
     return (
@@ -36,6 +43,9 @@ export default function App() {
   return (
     <>
       {screen === 'main_menu' && <MainMenu />}
+      {screen === 'auth' && <AuthScreen />}
+      {screen === 'deck_selector' && <DeckSelector />}
+      {screen === 'deck_builder' && <DeckBuilder />}
       {screen === 'game' && <GameScreen />}
       {screen === 'combatlab' && (
         <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-surface text-white">Chargement…</div>}>
