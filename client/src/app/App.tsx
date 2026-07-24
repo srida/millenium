@@ -1,24 +1,48 @@
-import { lazy, Suspense } from 'react';
+// Shell applicatif : initialise les databases (via /api), route les écrans via
+// uiStore (parité ?screen=), monte le TooltipHost global. Le vrai DeckBuilder /
+// auth arrivent en Phases 5/7.
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { useUiStore } from '../stores/uiStore.js';
+import { initGameData } from '../game/bootstrap.js';
+import MainMenu from '../screens/MainMenu.js';
+import GameScreen from '../screens/GameScreen.js';
+import TooltipHost from '../components/tooltip/TooltipHost.js';
 
-const CombatLab = lazy(() => import('../dev/CombatLab'));
-
-// Shell provisoire : le vrai routage d'écrans (uiStore + ScreenRouter) arrive
-// en Phase 3. Le paramètre ?screen= reprend la convention de l'ancienne app.
-const screen = new URLSearchParams(window.location.search).get('screen');
+const CombatLab = lazy(() => import('../dev/CombatLab.js'));
 
 export default function App() {
-  if (screen === 'combatlab') {
+  const screen = useUiStore(s => s.screen);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    initGameData().then(() => setReady(true)).catch(e => setError(String(e)));
+  }, []);
+
+  if (error) {
     return (
-      <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-surface text-white">Chargement…</div>}>
-        <CombatLab />
-      </Suspense>
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-2 bg-surface p-6 text-center text-white">
+        <p className="font-semibold text-danger">Impossible de charger les données de jeu</p>
+        <p className="text-xs text-white/50">Le serveur Express (port 3742) est-il démarré ?</p>
+        <p className="text-[10px] text-white/30">{error}</p>
+      </div>
     );
   }
+
+  if (!ready) {
+    return <div className="flex min-h-dvh items-center justify-center bg-surface text-gold">Chargement…</div>;
+  }
+
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-2 bg-surface text-white">
-      <h1 className="text-3xl font-bold tracking-wide text-gold">Millenium</h1>
-      <p className="text-sm opacity-70">Refonte en cours — Phase 2 : scène 3D portée</p>
-      <a className="text-sm text-gold underline" href="/?screen=combatlab">Ouvrir le CombatLab (dev)</a>
-    </main>
+    <>
+      {screen === 'main_menu' && <MainMenu />}
+      {screen === 'game' && <GameScreen />}
+      {screen === 'combatlab' && (
+        <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-surface text-white">Chargement…</div>}>
+          <CombatLab />
+        </Suspense>
+      )}
+      <TooltipHost />
+    </>
   );
 }

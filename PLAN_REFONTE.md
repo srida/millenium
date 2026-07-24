@@ -332,13 +332,14 @@ Orchestration : `GameSession` détient la boucle de tours (pioche selon `tiersFo
 
 ### Phase 3 — GameScreen minimal jouable (4–6 jours) — risque : élevé
 
-- [ ] `GameSession` (orchestrateur headless) + `gameStore` + `syncFromSession`
-- [ ] Boucle complète : pioche (tiers/round, extraDraws, guaranteedDraws priorisées) → préparation (timer 60 s auto-combat, placement normal, repositionnement drag, EnemyAI + masquage) → combat (terrain aléatoire, multiplicateurs, animator) → fin de round (dégâts HP, cimetière, retour `initial_position`, reset stats) → tour suivant → game over
-- [ ] Invocations spéciales complètes : sacrifice, fusion, heritage, transformation, chaînage, matériaux depuis cimetière, `validCells`, doublons grisés
-- [ ] HUD : HpBar, RoundIndicator, MultiplierBadge, PhaseControls, SpeedToggle, SynergyPanel, HandBar, GraveyardTray, EndRoundOverlay, GameOverScreen
-- [ ] Tooltip (card/unit) via `uiStore`
-- [ ] MainMenu + navigation `uiStore` (+ deep-link `?screen=`)
-- **Done** : partie complète 5 tours jouable au doigt sur iPhone (deck de test hardcodé si Phase 5 pas faite), déterminisme combat toujours vert.
+- [x] `GameSession` (orchestrateur headless **pur** — deps data injectées : terrain/magies/attributs/cardDb) + `GameController` (glue app : session↔scene↔stores) + `gameStore`/`uiStore` (snapshots)
+- [x] Boucle complète : pioche (tiers/round, extraDraws, guaranteedDraws priorisées, modifiers de main) → préparation (timer 60 s auto-combat, placement, repositionnement drag, EnemyAI + masquage ennemi) → combat (terrain aléatoire, multiplicateurs, `CombatAnimator3D`) → fin de round (dégâts HP, cimetière, retour `initial_position`, reset stats, vétérance) → tour suivant → game over
+- [x] Invocations spéciales : sacrifice, fusion, heritage, transformation (tap-to-transform), chaînage, matériaux board **et** cimetière, `validCells`, doublons grisés, menu de choix `summon_options`
+- [x] HUD : Hud (HP ×2, manche, multiplicateurs combat), SynergyPanel (tap→tooltip), PhaseControls (compteur, timer, PRÊT, vitesse ×1/×2/×4, pause/reprise), HandBar (grisage injouables + hints), GraveyardTray, EndRoundOverlay (breakdown survivants), GameOverScreen, SummonOptionMenu
+- [x] Tooltip (card/unit/attribute/terrain) via `uiStore` — lignée 🧬, vétérance, bouclier, stats
+- [x] MainMenu + navigation `uiStore` (+ deep-link `?screen=`), bootstrap init databases + deck de repli auto
+- [x] **Shopping fonctionnel** (avancé depuis Phase 4 pour boucler la partie de bout en bout) : overlay 3 magies, ciblage unité/cimetière, effets globaux
+- **Done** ✅ 2026-07-24 : partie vérifiée dans le navigateur (mobile 375×812 + desktop) — placement, rendu, synergies live, combat animé ×1/×2/×4 + pause, **fin de round avec dégâts exacts** (64 = Σ ATK survivants ennemis × ×1.0, HP 1000→936), overlay défaite + breakdown, passage au tour 2 avec HP et cimetière préservés, **zéro erreur console**. `tsc`/`eslint`/`vitest 59`/`build` verts. Notes techniques : sélection au `pointerdown` (le `pointerup` ne se déclenche pas de façon fiable sous automatisation), correctif d'un setState-pendant-render dans EndRoundOverlay, `resolve.dedupe` React ajouté.
 
 ### Phase 4 — Phase Shopping + magies (2–3 jours) — risque : moyen
 

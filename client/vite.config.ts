@@ -6,6 +6,10 @@ import tailwindcss from '@tailwindcss/vite';
 // PvP ; en dev, Vite sert le client et proxifie tout le reste.
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // Force une instance unique de React/React-DOM (évite le "Invalid hook call"
+  // quand Vite résout deux copies via ses deps optimisées).
+  resolve: { dedupe: ['react', 'react-dom'] },
+  optimizeDeps: { include: ['react', 'react-dom', 'react/jsx-runtime', 'zustand'] },
   server: {
     proxy: {
       '/api': 'http://localhost:3742',
