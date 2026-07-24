@@ -47,12 +47,12 @@ function requireAuth(req, res, next) {
   if (!ADMIN_PASS) return next();
   const auth = req.headers.authorization || '';
   if (!auth.startsWith('Basic ')) {
-    res.set('WWW-Authenticate', 'Basic realm="Soulforge Card Manager"');
+    res.set('WWW-Authenticate', 'Basic realm="Millenium Card Manager"');
     return res.status(401).send('Authentification requise');
   }
   const [user, pass] = Buffer.from(auth.slice(6), 'base64').toString().split(':');
   if (user !== ADMIN_USER || pass !== ADMIN_PASS) {
-    res.set('WWW-Authenticate', 'Basic realm="Soulforge Card Manager"');
+    res.set('WWW-Authenticate', 'Basic realm="Millenium Card Manager"');
     return res.status(401).send('Identifiants incorrects');
   }
   next();
@@ -67,11 +67,11 @@ function requireSiteAdmin(req, res, next) {
   return requireAuth(req, res, next);
 }
 
-// Game modules (public, ES modules)
-app.use('/game', express.static(path.join(__dirname, 'game')));
-
-// Game (public)
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+// Client Vite build (SPA). `npm run build` (dans client/) génère client/dist.
+// express.static sert index.html sur "/", plus les assets, le service worker,
+// le manifest et les icônes. Le fallback SPA est monté en fin de fichier.
+const CLIENT_DIST = path.join(__dirname, 'client', 'dist');
+app.use(express.static(CLIENT_DIST));
 
 // Admin (protected)
 app.get('/admin', requireSiteAdmin, (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
@@ -664,6 +664,13 @@ function downloadUrl(url) {
     }).on('error', reject);
   });
 }
+
+// Fallback SPA : toute route GET non-API renvoie l'app cliente (deep-links
+// /deck_selector, /game…). Les préfixes API/assets serveur passent au suivant.
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/illustrations') || req.path.startsWith('/ws')) return next();
+  res.sendFile(path.join(CLIENT_DIST, 'index.html'));
+});
 
 const { attachPvpWebSocketServer } = require('./ws/pvpServer');
 

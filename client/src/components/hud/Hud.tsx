@@ -7,7 +7,7 @@ export default function Hud() {
   const { playerHp, enemyHp, round, playerMultiplier, enemyMultiplier, combatActive } = useGameStore();
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-2">
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
       <div className="flex-1">
         <div className="flex items-center justify-between text-xs">
           <span className="font-semibold text-enemy">◆ Adversaire</span>

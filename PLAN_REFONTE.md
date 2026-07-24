@@ -358,16 +358,16 @@ Orchestration : `GameSession` détient la boucle de tours (pioche selon `tiersFo
 - [x] **D2** — AuthScreen minimal (connexion / inscription / déconnexion) + restauration de session **non bloquante** au boot (cap 4 s) + sync decks (`pull`/`flushSync`) quand connecté. Choix : gate **optionnel** (jeu jouable en invité) plutôt qu'un mur de login — évite de bloquer le dev/HMR (R7) tout en activant la synchro serveur des decks une fois connecté.
 - **Done** : boucle complète vérifiée en navigateur (mobile 375×812) sans rechargement — menu → construire (deck 20 cartes, cap tier, validation) → enregistrer → sélectionner → **jouer avec les cartes du deck** ; duplication et tags OK ; AuthScreen rendu ; zéro erreur console. `tsc`/`eslint`/`vitest(74)`/`build` verts.
 
-### Phase 6 — TestBench + PWA + polish mobile (3–4 jours) — risque : moyen
+### Phase 6 — TestBench + PWA + polish mobile (3–4 jours) — risque : moyen ✅ 2026-07-24
 
-- [ ] TestBench parité (3.7) 
-- [ ] `vite-plugin-pwa` : migration du manifest (**Millenium** — cf. D9, portrait, icônes), SW `autoUpdate`, precache app shell, runtime cache illustrations (stale-while-revalidate), **network-only sur `/api/*`**
-- [ ] Renommage **Soulforge → Millenium** partout (D9) : manifest (`name`, `short_name`, `description`), `<title>` du client, `admin.html` (titre + libellés), realm basic-auth `"Soulforge Card Manager"` dans [server.js](server.js), chaînes visibles des écrans. Exception recommandée : le fichier `data/soulforge.db` garde son nom sur disque (le renommer casserait les sessions/comptes existants à chaque déploiement pour un gain nul — si tu y tiens, prévoir un `mv` + variable d'env dans un commit dédié)
-- [ ] Retrait de l'ancienne UI (`game/ui/`, ancien `index.html`, importmap) une fois la parité validée côte à côte
-- [ ] Fullscreen API, overlay paysage, safe-areas, audit tap-targets, test réel Safari iOS portrait
-- [ ] Prod : build + `express.static(client/dist)` + fallback SPA ; suppression des routes `/game` statiques
-- [ ] Mise à jour CLAUDE.md (nouvelle stack, nouveaux chemins, écarts du §1.1 documentés)
-- **Done** : installable sur l'écran d'accueil iOS, lighthouse PWA vert, CLAUDE.md à jour.
+- [x] **TestBench parité** (`client/src/dev/TestBench.tsx`, `?screen=testbench`) : placement libre 2 camps (aucune règle d'invocation), browser de cartes filtrable par `summon_type` + recherche, toggle Joueur/Ennemi, suppression par long-press, sélecteur de terrain (cases bloquées immédiates + bouton ℹ avec compte/effet), pause, vitesses ×1/×2/×4, BoardInspector (stats live). Réutilise `Scene3D` + `CombatAnimator3D` (sans `GameController`).
+- [x] **PWA** (`vite-plugin-pwa`) : manifest **Millenium** (portrait, icônes 192/512 + maskable, `theme_color` #0f1117), SW `autoUpdate`, precache app shell (`globPatterns` js/css/html/woff2), runtime cache illustrations **stale-while-revalidate**, **NetworkOnly sur `/api/*`**, `navigateFallback` SPA. `apple-touch-icon` + meta iOS dans `index.html`.
+- [x] **Renommage Soulforge → Millenium** (D9) : realm basic-auth `server.js` (×2), `admin.html` (titre + h1 + favicon), `package.json` (name/description), e-mail de reset (`routes/online.js`), manifest client. **Conservés** (infra/données) : `data/soulforge.db`, clés localStorage `soulforge_*` (renommage = perte des decks invités), domaine/e-mail Railway.
+- [x] **Retrait de l'ancienne UI** : `game/` (5.5 Mo) et l'ancien `index.html` (importmap CDN) supprimés — le client Vite est autonome (copies de `logic`/`data`/`three`/`net` sous `client/src/`). Icônes migrées vers `client/public/`.
+- [x] **Polish mobile** : bouton plein écran (Fullscreen API, masqué si non supporté), overlay « repasse en portrait » sur petit écran en paysage (`DeviceGuards`), safe-areas iOS (`env(safe-area-inset-*)` sur HUD/contrôles/menu), tap-targets ≥ 44 px (`min-h-tap`). *Reste à faire hors-agent : test réel sur Safari iOS + audit Lighthouse.*
+- [x] **Prod** : `server.js` sert `client/dist` (`express.static` + fallback SPA GET non-API) ; routes `/game` statiques et ancien `/` supprimées ; `/api`, `/illustrations`, `/admin` intacts. Script `npm run build` (racine) → build client. Vérifié en isolé (port 3999) : `/` sert le SPA (`<title>Millenium</title>`), `/manifest.webmanifest`, `/sw.js`, fallback `/deck_selector`, `/api/cards` = 200.
+- [x] **CLAUDE.md** mis à jour : stack (Vite/React/TS/Tailwind/Zustand/Three npm), déploiement (ports 3742/5173, build), routes (398 cartes), Mode 3D (npm, plus d'importmap), navigation `uiStore`, table de correspondance ancienne archi (`game/`) → nouvelle (`client/src/`).
+- **Done** (partiel) : PWA installable (manifest + SW générés), ancienne UI retirée, prod servie, CLAUDE.md à jour. **Restent hors-agent** : test Safari iOS réel + passe Lighthouse PWA (nécessitent un appareil/navigateur réels). `tsc`/`eslint`/`vitest(74)`/`build` verts.
 
 ### Phase 7 — (optionnelle, selon D3) Online : Auth complet, PvP, Tournoi, Amis/Profil (4–7 jours) — risque : élevé
 

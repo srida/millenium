@@ -2,9 +2,9 @@ import { create } from 'zustand';
 import type { Card, AttributeDef, BoardDef } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
 
-export type ScreenName = 'main_menu' | 'auth' | 'deck_selector' | 'deck_builder' | 'game' | 'combatlab';
+export type ScreenName = 'main_menu' | 'auth' | 'deck_selector' | 'deck_builder' | 'game' | 'combatlab' | 'testbench';
 
-const SCREEN_NAMES: ScreenName[] = ['main_menu', 'auth', 'deck_selector', 'deck_builder', 'game', 'combatlab'];
+const SCREEN_NAMES: ScreenName[] = ['main_menu', 'auth', 'deck_selector', 'deck_builder', 'game', 'combatlab', 'testbench'];
 
 export interface ScreenParams {
   deckName?: string;

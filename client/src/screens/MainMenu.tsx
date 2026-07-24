@@ -3,6 +3,7 @@
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { Button } from '../components/ui/primitives.js';
+import { FullscreenButton } from '../components/system/DeviceGuards.js';
 
 export default function MainMenu() {
   const navigate = useUiStore(s => s.navigate);
@@ -10,7 +11,8 @@ export default function MainMenu() {
   const logout = useAuthStore(s => s.logout);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface p-6 text-white">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface p-6 pt-[max(1.5rem,env(safe-area-inset-top))] text-white">
+      <FullscreenButton className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))]" />
       <div className="text-center">
         <h1 className="text-4xl font-bold tracking-[0.2em] text-gold">MILLENIUM</h1>
         <p className="mt-1 text-sm text-white/50">Auto-battler tactique</p>
@@ -23,9 +25,14 @@ export default function MainMenu() {
         <Button className="w-full" onPointerDown={() => navigate('deck_builder')}>
           Construire un deck
         </Button>
-        <Button className="w-full text-xs opacity-70" onPointerDown={() => navigate('combatlab')}>
-          CombatLab (dev)
-        </Button>
+        <div className="flex gap-2">
+          <Button className="flex-1 text-xs opacity-70" onPointerDown={() => navigate('testbench')}>
+            TestBench (dev)
+          </Button>
+          <Button className="flex-1 text-xs opacity-70" onPointerDown={() => navigate('combatlab')}>
+            CombatLab (dev)
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col items-center gap-1 text-xs">

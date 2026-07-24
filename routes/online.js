@@ -105,10 +105,10 @@ router.post('/auth/forgot-password', auth.rateLimit({ windowMs: 60_000, max: 5 }
       body: JSON.stringify({
         from: RESEND_FROM,
         to: [email],
-        subject: 'Réinitialisation de ton mot de passe — Soulforge',
+        subject: 'Réinitialisation de ton mot de passe — Millenium',
         html: `
           <p>Bonjour ${user.username},</p>
-          <p>Tu as demandé la réinitialisation de ton mot de passe Soulforge.</p>
+          <p>Tu as demandé la réinitialisation de ton mot de passe Millenium.</p>
           <p><a href="${resetUrl}" style="background:#7c5cff;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Réinitialiser mon mot de passe</a></p>
           <p>Ce lien est valable <strong>1 heure</strong>. Si tu n'as pas fait cette demande, ignore cet e-mail.</p>
           <p style="color:#888;font-size:12px;">${resetUrl}</p>

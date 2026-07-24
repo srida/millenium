@@ -11,8 +11,10 @@ import DeckSelector from '../screens/DeckSelector.js';
 import DeckBuilder from '../screens/DeckBuilder.js';
 import GameScreen from '../screens/GameScreen.js';
 import TooltipHost from '../components/tooltip/TooltipHost.js';
+import { LandscapeOverlay } from '../components/system/DeviceGuards.js';
 
 const CombatLab = lazy(() => import('../dev/CombatLab.js'));
+const TestBench = lazy(() => import('../dev/TestBench.js'));
 
 export default function App() {
   const screen = useUiStore(s => s.screen);
@@ -52,7 +54,13 @@ export default function App() {
           <CombatLab />
         </Suspense>
       )}
+      {screen === 'testbench' && (
+        <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-surface text-white">Chargement…</div>}>
+          <TestBench />
+        </Suspense>
+      )}
       <TooltipHost />
+      <LandscapeOverlay />
     </>
   );
 }

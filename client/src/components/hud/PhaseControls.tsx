@@ -14,7 +14,7 @@ export default function PhaseControls() {
 
   if (combatActive) {
     return (
-      <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 p-2">
+      <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <span className="rounded-md border border-line bg-surface/80 px-2 py-1 text-xs font-bold tabular-nums text-white/80">
           {combatRemaining}s
         </span>

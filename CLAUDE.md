@@ -9,22 +9,34 @@ Port web d'un Auto-Battler inspiré de :
 
 Gameplay-complete pour le premier vertical slice.
 
-**Stack :** Babylon JS, ExpressJS, à compléter.
+**Stack :**
+- **Client** (`client/`) : Vite + React + TypeScript + Tailwind CSS v4 + Zustand + **Three.js vanilla** (npm, WebGL + CSS3D — pas de react-three-fiber : un composant React monte un `<canvas>` et délègue à la classe `Scene3D` qui possède la boucle de rendu). PWA via `vite-plugin-pwa`.
+- **Serveur** (`server.js`) : Express (API données + comptes/PvP), sert le build client (`client/dist`) en prod.
+
+> Historique : refonte du client vanilla-JS (dossier `game/`, supprimé) vers Vite/React documentée dans [PLAN_REFONTE.md](PLAN_REFONTE.md). La logique de jeu (`client/src/logic/`) reste **headless** et testable (golden tests de déterminisme du combat).
 
 La philosophie du projet :
 
 - Data-driven gameplay
 - Mobile-first UX
 - Simple mais tactiquement profond
-- Séparation stricte logique / visuel
+- **Séparation stricte logique / visuel** : `client/src/logic/` n'importe jamais React, Zustand ni Three.
 
 ---
 
 ## Déploiement
 
 ```
-npm start          # port ??? local
+# Dev (deux process) :
+npm start                 # serveur Express — port 3742 (API + prod build)
+npm run client:dev        # client Vite — port 5173 (proxifie /api, /illustrations, /ws → 3742)
+
+# Prod :
+npm run build             # build du client → client/dist
+npm start                 # Express sert client/dist sur / (fallback SPA)
 ```
+
+En dev, on développe sur **http://localhost:5173** (HMR) ; en prod, Express sert le SPA sur `/`.
 
 Repo : `https://github.com/srida/Millenium`
 
@@ -34,9 +46,9 @@ Repo : `https://github.com/srida/Millenium`
 
 | Route | Accès | Description |
 |---|---|---|
-| `GET /` | Public | Jeu (SPA) |
-| `GET /admin` | Auth basique | Card Manager |
-| `GET /api/cards` | Public | 253 cartes |
+| `GET /` | Public | Jeu (SPA React servi depuis `client/dist`) |
+| `GET /admin` | Auth basique | Card Manager (`admin.html`) |
+| `GET /api/cards` | Public | 398 cartes |
 | `GET /api/attributes` | Public | Attributs |
 | `GET /api/powers` | Public | Pouvoirs |
 | `GET /api/boards` | Public | Terrains de combat |
@@ -750,9 +762,9 @@ Mode édition : déclenché via `DeckRepository.setPendingEdit(deckName)` avant 
 
 ## TestBench
 
-Écran développeur (`game/ui/screens/TestBench3D.js`) accessible depuis `MainMenu` (bouton "TestBench 3D (dev)").
+Écran développeur (`client/src/dev/TestBench.tsx`, route `?screen=testbench`) accessible depuis `MainMenu` (bouton "TestBench (dev)"). Réutilise `Scene3D` + `CombatAnimator3D` directement (sans `GameController`).
 
-Différences avec `GameScreen3D` :
+Différences avec l'écran de jeu :
 - Placement libre pour les deux équipes (pas de règles d'invocation, pas de main, pas de deck)
 - Filtre par `summon_type` dans le browser de cartes
 - Suppression d'une unité par clic droit (ou long press mobile)
@@ -766,24 +778,32 @@ Différences avec `GameScreen3D` :
 
 ## Mode 3D
 
-Rendu du board en Three.js (WebGL + CSS3D), accessible depuis `MainMenu` (bouton "Jouer (3D — dev)"). C'est l'unique mode de rendu du jeu — les écrans 2D (`GameScreen.js`, `TestBench.js`, `BoardGrid.js`, `CombatAnimator.js`) ont été supprimés.
+Rendu du board en Three.js (WebGL + CSS3D). **Three.js est une dépendance npm** (`client/package.json`, `three` + `@types/three`), résolue par Vite — plus d'importmap CDN. `Scene3D` (`client/src/three/Scene3D.ts`) possède la scène, le renderer WebGL et le `CSS3DRenderer` (importés depuis le paquet `three`) ; `CombatAnimator3D` consomme les événements de `CombatManager` et applique les animations.
 
-**Three.js** chargé via CDN (`jsdelivr`), déclaré dans une `importmap` (`index.html`) :
+Un seul pont React ↔ Three : `client/src/components/board/Board3DCanvas.tsx` monte un `<canvas>`, instancie `Scene3D` et délègue tout le rendu (pas de react-three-fiber).
 
-```html
-<script type="importmap">
-  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
-</script>
-```
+### Navigation client
 
-`CSS3DRenderer` / `CSS3DObject` sont importés directement depuis le CDN (`examples/jsm/renderers/CSS3DRenderer.js`) dans `Board3D.js`.
+Écrans routés par `uiStore.screen` (Zustand, parité `?screen=`, pas de react-router) : `main_menu`, `auth`, `deck_selector`, `deck_builder`, `game`, `combatlab` (dev), `testbench` (dev).
 
-### Routes (`game/main.js`)
+---
 
-```js
-game3d:      () => import('./ui/screens/GameScreen3D.js'),
-testbench3d: () => import('./ui/screens/TestBench3D.js'),
-```
+## Correspondance ancienne archi (`game/`, supprimée) → nouvelle (`client/src/`)
+
+L'ancien `GameScreen3D.js` mélangeait orchestration et rendu. La refonte le scinde ;
+les mentions de `GameScreen3D` dans ce document renvoient désormais à :
+
+| Ancien (`game/`) | Nouveau (`client/src/`) | Rôle |
+|---|---|---|
+| `ui/screens/GameScreen3D.js` (orchestration) | `logic/GameSession.ts` | Boucle de jeu **headless pure** (deps data injectées) |
+| `ui/screens/GameScreen3D.js` (glue UI) | `game/GameController.ts` | Session ↔ `Scene3D` ↔ stores Zustand |
+| `ui/screens/GameScreen3D.js` (DOM) | `screens/GameScreen.tsx` + `components/` | Composants React (HUD, main, overlays, shopping…) |
+| `rendering/Board3D.js` | `three/Scene3D.ts` | Scène Three (WebGL + CSS3D) |
+| `logic/`, `data/`, `net/` | `logic/`, `data/`, `net/` (copiés, en cours de migration TS) | Inchangés fonctionnellement |
+| `ui/screens/TestBench3D.js` | `dev/TestBench.tsx` | Banc de test dev |
+
+La couche `logic/` reste **headless** : aucun import de React/Zustand/Three (garde-fous ESLint).
+
 ---
 
 ## Mobile Rules
