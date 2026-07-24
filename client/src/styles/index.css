@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+/* Design tokens Millenium — étendus au fil des phases (cf. PLAN_REFONTE §3.1) */
+@theme {
+  --color-surface: #0f1117;
+  --color-surface-raised: #1a1d27;
+  --color-line: #2a2e3d;
+  --color-gold: #d4af61;
+  --color-player: #4f8ef7;
+  --color-enemy: #e0564f;
+  --color-danger: #e0564f;
+  --color-success: #59c98d;
+  --color-tier-1: #9aa3b2;
+  --color-tier-2: #59c98d;
+  --color-tier-3: #4f8ef7;
+  --color-tier-4: #a86ee7;
+  --color-tier-5: #d4af61;
+  /* Taille minimale des cibles tactiles (mobile-first) */
+  --spacing-tap: 44px;
+}

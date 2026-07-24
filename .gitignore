@@ -6,3 +6,4 @@ node_modules/
 .gdd-last-sync
 .claude/settings.local.json
 /gdd-proposals/
+client/dist/
