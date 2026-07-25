@@ -23,9 +23,10 @@ export default function GameScreen() {
   const setController = useGameStore(s => s.setController);
   const reset = useGameStore(s => s.reset);
   const deckName = useUiStore(s => s.params.deckName as string | undefined);
+  const enemyDeckName = useUiStore(s => s.params.enemyDeckName as string | undefined);
 
   useEffect(() => {
-    const session = buildSession(deckName);
+    const session = buildSession(deckName, 'ai', enemyDeckName);
     const ctrl = new GameController(session);
     setControllerLocal(ctrl);
     setController(ctrl);

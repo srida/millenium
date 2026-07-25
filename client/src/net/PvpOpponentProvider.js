@@ -21,18 +21,29 @@ function ensureListening() {
   PvpConnection.on('round:opponent_board', handler);
 }
 
-export function sendOwnBoard(round, units) {
-  // On transmet aussi l'état persistant (vétérance) : sans lui, la reconstruction
-  // repartirait de zéro et les deux clients simuleraient des matchups différents
-  // aux rounds > 1 (chacun voit son adversaire "frais"). Le combat lui-même reste
-  // déterministe une fois les deux boards identiques des deux côtés.
+export function sendOwnBoard(round, units, playerHp) {
+  // On transmet TOUT l'état persistant d'une unité entre deux rounds : sans lui,
+  // la reconstruction repartirait de zéro et les deux clients simuleraient des
+  // matchups différents aux rounds > 1 (chacun voyant son adversaire « frais »).
+  //   • `base`      — stats de base, modifiées en permanence par la Phase Shopping
+  //                   (stat_bonus / stat_modifier écrivent dans `_base`)
+  //   • `current_hp`— les PV ne se régénèrent pas entre les rounds
+  //   • `shield`    — un bouclier de magie survit jusqu'au combat suivant
+  //   • `veterancy_points` — rejoué par AttributeManager au start_of_combat
+  // `player_hp` accompagne le board : les magies globales (player_hp_bonus) ne
+  // sont connues que du client qui les a jouées, donc chaque joueur est la
+  // source de vérité de ses propres PV.
   const payload = {
     round,
+    player_hp: playerHp,
     units: units.map(u => ({
       uid: u.uid,
       card_id: u.card_id,
       position: { ...u.position },
       veterancy_points: u.veterancy_points || 0,
+      base: { ...u._base },
+      current_hp: u.current_hp,
+      shield: u.shield || 0,
     })),
   };
   PvpConnection.send('round:board_ready', payload);
@@ -67,10 +78,15 @@ export function reconstructOpponentUnits(payload, board, cardDb) {
     // Rejoue l'état persistant pour que l'unité reconstruite soit identique à
     // l'unité réelle de l'adversaire (mêmes stats effectives → même combat).
     unit.veterancy_points = entry.veterancy_points || 0;
+    if (entry.base) unit._base = { ...unit._base, ...entry.base };
     unit._recomputeStats?.();
-    unit.current_hp = unit.max_hp;
+    unit.current_hp = entry.current_hp != null
+      ? Math.max(1, Math.min(unit.max_hp, entry.current_hp))
+      : unit.max_hp;
+    unit.shield = entry.shield || 0;
     const pos = { col: entry.position.col, row: mirrorRow(entry.position.row) };
     board.placeUnit(unit, pos);
+    unit.initial_position = { ...pos };
     units.push(unit);
   }
   return units;

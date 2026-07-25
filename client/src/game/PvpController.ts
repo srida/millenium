@@ -60,8 +60,8 @@ export class PvpController extends GameController {
     this._clearSelection();
     const round = this.session.gameState.round;
 
-    // 1) J'annonce mon board (unités + vétérance).
-    sendOwnBoard(round, this.session.getPlayerUnits());
+    // 1) J'annonce mon board (unités + état persistant + mes PV).
+    sendOwnBoard(round, this.session.getPlayerUnits(), this.session.gameState.player_hp);
     // 2) Le rôle A choisit le terrain et le diffuse (déterminisme : un seul tirage).
     if (this.role === 'A') {
       const board = this.pvp.getRandomBoard();
@@ -77,6 +77,12 @@ export class PvpController extends GameController {
     if (!this._oppBoardPromise) return;
     const oppPayload = await this._oppBoardPromise;
     this._oppBoardPromise = null;
+
+    // PV adverses : autoritaires côté propriétaire. Les magies globales de la
+    // Phase Shopping (player_hp_bonus) n'existent que sur le client qui les a
+    // jouées — sans cette resynchro, les deux clients divergeraient sur les PV
+    // et pourraient déclarer la fin de partie différemment.
+    if (typeof oppPayload.player_hp === 'number') this.session.gameState.enemy_hp = oppPayload.player_hp;
 
     // Nettoie le côté ennemi (rounds > 1 : on rebâtit depuis le board autoritaire
     // de l'adversaire) puis reconstruit ses unités en miroir (rows 7–10).
@@ -102,9 +108,20 @@ export class PvpController extends GameController {
       this.sync({ endRound: null, pvpWaiting: true });
       return;
     }
-    // Pas de Phase Shopping en PvP : on relance directement la préparation.
+    // Phase Shopping identique au mode solo. Aucune synchro n'est nécessaire :
+    // chaque joueur tire et applique ses magies localement, et le résultat est
+    // transmis à l'adversaire dans le payload de board_ready du round suivant
+    // (stats de base, PV, bouclier, PV joueur). Le décalage de durée entre les
+    // deux shoppings est absorbé par la barrière `combat_start_ack`.
+    this._startShopping();
+  }
+
+  // Le passage au round suivant traverse le relais : il réinitialise les
+  // barrières serveur (terrain + acks). Appelé aussi bien après le choix d'une
+  // magie qu'après « Passer cette phase ».
+  protected _proceedNextRound(): void {
     PvpConnection.send('round:next_ready', { round: this.session.gameState.round });
-    this._proceedNextRound();
+    super._proceedNextRound();
   }
 
   private _onMatchEnd(msg: { winner: 'A' | 'B' | 'draw' }): void {

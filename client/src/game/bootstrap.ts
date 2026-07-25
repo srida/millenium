@@ -25,6 +25,15 @@ export async function initGameData(): Promise<void> {
   _dataReady = true;
 }
 
+// Charge un deck nommé, ou null s'il est absent, illisible ou vide.
+function tryLoadDeck(name: string | null | undefined): Record<string, string[]> | null {
+  if (!name) return null;
+  let raw: Record<string, string[]> | null = null;
+  try { raw = (DeckRepository as any).loadDeck(name) as Record<string, string[]> | null; }
+  catch { return null; }
+  return raw && Object.values(raw).some(ids => (ids as string[])?.length) ? raw : null;
+}
+
 // Deck de repli : jusqu'à 8 cartes par tier tirées de la base, quand aucun deck
 // n'est sauvegardé (le DeckBuilder arrive en Phase 5).
 function autoDeck(): Record<string, string[]> {
@@ -39,19 +48,16 @@ function autoDeck(): Record<string, string[]> {
 }
 
 function resolveDeck(deckName?: string): Record<string, string[]> {
-  const tryLoad = (name: string | null | undefined) => {
-    if (!name) return null;
-    try { return (DeckRepository as any).loadDeck(name) as Record<string, string[]> | null; }
-    catch { return null; }
-  };
-  const raw = tryLoad(deckName)
-    ?? tryLoad((DeckRepository as any).getActiveDeck?.());
-  if (raw && Object.values(raw).some(ids => (ids as string[])?.length)) return raw;
-  return autoDeck();
+  return tryLoadDeck(deckName)
+    ?? tryLoadDeck((DeckRepository as any).getActiveDeck?.())
+    ?? autoDeck();
 }
 
-export function buildSession(deckName?: string, mode: 'ai' | 'pvp' = 'ai'): GameSession {
+export function buildSession(deckName?: string, mode: 'ai' | 'pvp' = 'ai', enemyDeckName?: string): GameSession {
   const rawDeck = resolveDeck(deckName);
+  // Deck de l'IA : celui choisi dans le sélecteur, sinon miroir du deck joueur
+  // (comportement historique). Un nom illisible retombe aussi sur le miroir.
+  const rawEnemyDeck = (enemyDeckName ? tryLoadDeck(enemyDeckName) : null) ?? rawDeck;
 
   const cardsByTier: Record<number, Card[]> = {};
   for (let t = 1; t <= 5; t++) {
@@ -62,7 +68,7 @@ export function buildSession(deckName?: string, mode: 'ai' | 'pvp' = 'ai'): Game
 
   return new GameSession({
     cardsByTier,
-    enemyDeck: rawDeck,
+    enemyDeck: rawEnemyDeck,
     attributeList: (AttributeDatabase as any).getAllAttributes(),
     cardDb: CardDatabase as any,
     getRandomBoard: () => (BoardDatabase as any).getRandomBoard(),

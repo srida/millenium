@@ -18,24 +18,34 @@ export default function OnlineLobby() {
   const [error, setError] = useState<string | null>(null);
   const [opponent, setOpponent] = useState<string | null>(null);
   const startedRef = useRef(false);
+  const foundRef = useRef(false);
 
   const deckName = (DeckRepository as any).getActiveDeck?.() as string | null;
   const hasDeck = !!deckName && !!(DeckRepository as any).loadDeck?.(deckName);
+  // Le deck courant, lu via ref pour que le handler `onFound` (abonné une seule
+  // fois au montage) utilise toujours la valeur à jour sans re-déclencher l'effet.
+  const deckRef = useRef(deckName);
+  deckRef.current = deckName;
 
+  // Abonnement au match + sortie de file : MONTAGE/DÉMONTAGE uniquement.
+  // Ne jamais dépendre de `status` ici : un re-run de l'effet enverrait
+  // `queue:leave` dans son cleanup juste après `queue:join`, ce qui nous
+  // retirait aussitôt de la file (aucun match ne pouvait alors se former).
   useEffect(() => {
     const onFound = (msg: any) => {
+      foundRef.current = true;
       setOpponent(msg?.opponent?.username ?? 'Adversaire');
       setStatus('found');
       // Petit délai pour afficher « adversaire trouvé » avant de basculer.
-      setTimeout(() => navigate('game_pvp', { deckName: deckName ?? undefined }), 700);
+      setTimeout(() => navigate('game_pvp', { deckName: deckRef.current ?? undefined }), 700);
     };
     PvpConnection.on('match:found', onFound);
     return () => {
       PvpConnection.off('match:found', onFound);
-      // Si on quitte sans match trouvé, on sort de la file et on ferme la socket.
-      if (status !== 'found') { try { PvpConnection.send('queue:leave'); } catch { /* noop */ } }
+      // Démontage sans match trouvé (retour menu, navigation) : on sort de la file.
+      if (!foundRef.current) { try { PvpConnection.send('queue:leave'); } catch { /* noop */ } }
     };
-  }, [deckName, navigate, status]);
+  }, [navigate]);
 
   async function search() {
     if (startedRef.current) return;

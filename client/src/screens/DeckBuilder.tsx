@@ -61,6 +61,11 @@ export default function DeckBuilder() {
     return param ?? ((DeckRepository as any).consumePendingEdit?.() as string | null) ?? null;
   });
 
+  // Mode de l'écran d'où l'on vient : le retour doit y ramener à l'identique
+  // (« Jouer » vs « Construire un deck »). Figé au montage, comme editName.
+  const [backMode] = useState(() => useUiStore.getState().params.mode ?? 'play');
+  const back = () => navigate('deck_selector', { mode: backMode });
+
   const allCards = useMemo(() => (CardDatabase as any).getAllCards()
     .slice().sort((a: Card, b: Card) => a.tier !== b.tier ? a.tier - b.tier : a.name.localeCompare(b.name, 'fr')) as Card[], []);
   const tierMax = useMemo(() => {
@@ -123,7 +128,7 @@ export default function DeckBuilder() {
     if (color) (DeckRepository as any).setDeckColor?.(finalName, color);
     (DeckRepository as any).setDeckTags?.(finalName, computeTags(deckData));
     refreshDecks();
-    navigate('deck_selector');
+    back();
   }
 
   const need = Math.max(0, MIN_DECK - total);
@@ -131,7 +136,7 @@ export default function DeckBuilder() {
   return (
     <main className="flex min-h-dvh flex-col bg-surface text-white" onPointerDown={hideTooltip}>
       <header className="flex items-center gap-3 border-b border-line px-4 py-3">
-        <Button className="px-3" onPointerDown={() => navigate('deck_selector')}>◂</Button>
+        <Button className="px-3" onPointerDown={back}>◂</Button>
         <h1 className="text-lg font-bold tracking-wide">Deck-building</h1>
         <span className={`ml-auto text-sm font-bold tabular-nums ${valid ? 'text-success' : 'text-gold'}`}>{total}/{MIN_DECK}</span>
       </header>

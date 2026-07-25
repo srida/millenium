@@ -2,6 +2,11 @@
 // DeckSelector — liste des decks du joueur : sélection du deck actif, jouer,
 // éditer (setPendingEdit → DeckBuilder), dupliquer, renommer, supprimer, créer.
 // Source de vérité : DeckRepository ; deckStore reprojette après chaque mutation.
+//
+// Deux modes d'entrée (params.mode), même liste et mêmes actions par deck ; seule
+// l'action principale du bas change :
+//   'play'   (défaut, « Jouer ») → choisir son deck ET celui de l'IA, puis lancer
+//   'manage' (« Construire un deck ») → créer un nouveau deck
 import { useEffect, useState } from 'react';
 import * as DeckRepository from '../data/DeckRepository.js';
 import { useDeckStore, type DeckSummary } from '../stores/deckStore.js';
@@ -17,10 +22,16 @@ const MAX_PER_TIER = 8;
 export default function DeckSelector() {
   const navigate = useUiStore(s => s.navigate);
   const hideTooltip = useUiStore(s => s.hideTooltip);
+  const manage = useUiStore(s => s.params.mode === 'manage');
   const decks = useDeckStore(s => s.decks);
   const activeDeck = useDeckStore(s => s.activeDeck);
   const refresh = useDeckStore(s => s.refresh);
   const [selected, setSelected] = useState<string | null>(null);
+  // Deck confié à l'EnemyAI. null = miroir du deck joueur (comportement par
+  // défaut historique). `slot` dit à quel camp le prochain tap sur une carte
+  // s'applique — un seul geste par deck, adapté au mobile.
+  const [enemy, setEnemy] = useState<string | null>(null);
+  const [slot, setSlot] = useState<'player' | 'enemy'>('player');
   const [renaming, setRenaming] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -40,21 +51,34 @@ export default function DeckSelector() {
     refresh();
   }
 
+  // Un tap sur une carte alimente le camp actif. Re-taper le deck ennemi déjà
+  // choisi le remet en miroir.
+  function pick(name: string) {
+    if (slot === 'player') { setSelected(name); return; }
+    setEnemy(cur => (cur === name ? null : name));
+  }
+
   function play() {
     if (!selected) return;
     (DeckRepository as any).setActiveDeck(selected);
-    navigate('game', { deckName: selected });
+    navigate('game', { deckName: selected, ...(enemy ? { enemyDeckName: enemy } : {}) });
+  }
+
+  // Le mode est propagé au builder pour que son retour revienne ici à l'identique.
+  function openBuilder(deckName?: string) {
+    navigate('deck_builder', { ...(deckName ? { deckName } : {}), mode: manage ? 'manage' : 'play' });
   }
 
   return (
     <main className="flex min-h-dvh flex-col bg-surface text-white" onPointerDown={hideTooltip}>
       <header className="flex items-center gap-3 border-b border-line px-4 py-3">
         <Button className="px-3" onPointerDown={() => navigate('main_menu')}>◂</Button>
-        <h1 className="text-lg font-bold tracking-wide">Choisir un deck</h1>
+        <h1 className="text-lg font-bold tracking-wide">{manage ? 'Mes decks' : 'Choisir un deck'}</h1>
         <span className="ml-auto text-xs text-white/40">{decks.length} deck{decks.length !== 1 ? 's' : ''}</span>
       </header>
 
-      <div className="flex-1 space-y-3 overflow-y-auto p-4 pb-28">
+      {/* La barre du bas est plus haute en mode « jouer » (chips des deux camps). */}
+      <div className={`flex-1 space-y-3 overflow-y-auto p-4 ${manage ? 'pb-28' : 'pb-44'}`}>
         {decks.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
             <div className="text-4xl">🃏</div>
@@ -66,29 +90,51 @@ export default function DeckSelector() {
         {decks.map(d => (
           <DeckCard
             key={d.name} deck={d}
-            selected={selected === d.name}
+            mine={!manage && selected === d.name}
+            foe={!manage && enemy === d.name}
             active={activeDeck === d.name}
-            onSelect={() => setSelected(d.name)}
-            onEdit={() => navigate('deck_builder', { deckName: d.name })}
+            onSelect={() => (manage ? setSelected(d.name) : pick(d.name))}
+            onEdit={() => openBuilder(d.name)}
             onDuplicate={() => duplicate(d.name)}
             onRename={() => setRenaming(d.name)}
             onDelete={() => setDeleting(d.name)}
           />
         ))}
 
-        <button
-          onPointerDown={() => navigate('deck_builder')}
-          className="flex min-h-tap w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line py-6 text-white/60 active:opacity-80"
-        >
-          <span className="text-2xl leading-none text-gold">+</span>
-          <span className="text-sm font-semibold">Créer un deck</span>
-        </button>
+        {/* En mode gestion, « créer » est déjà l'action principale du bas. */}
+        {!manage && (
+          <button
+            onPointerDown={() => openBuilder()}
+            className="flex min-h-tap w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-line py-6 text-white/60 active:opacity-80"
+          >
+            <span className="text-2xl leading-none text-gold">+</span>
+            <span className="text-sm font-semibold">Créer un deck</span>
+          </button>
+        )}
       </div>
 
-      <div className="pointer-events-auto fixed inset-x-0 bottom-0 border-t border-line bg-surface/95 p-4">
-        <Button variant="primary" disabled={!selected} className="w-full py-3 text-base" onPointerDown={play}>
-          ⚔ Jouer avec ce deck
-        </Button>
+      <div className="pointer-events-auto fixed inset-x-0 bottom-0 space-y-2 border-t border-line bg-surface/95 p-4">
+        {manage ? (
+          <Button variant="primary" className="w-full py-3 text-base" onPointerDown={() => openBuilder()}>
+            ＋ Créer un nouveau deck
+          </Button>
+        ) : (
+          <>
+            <div className="flex gap-2">
+              <SlotChip
+                label="Mon deck" value={selected} tone="mine"
+                on={slot === 'player'} onPointerDown={() => setSlot('player')}
+              />
+              <SlotChip
+                label="Adversaire" value={enemy} placeholder="Miroir" tone="foe"
+                on={slot === 'enemy'} onPointerDown={() => setSlot('enemy')}
+              />
+            </div>
+            <Button variant="primary" disabled={!selected} className="w-full py-3 text-base" onPointerDown={play}>
+              ⚔ Jouer avec ce deck
+            </Button>
+          </>
+        )}
       </div>
 
       {renaming && (
@@ -128,22 +174,45 @@ export default function DeckSelector() {
   );
 }
 
-function DeckCard({
-  deck, selected, active, onSelect, onEdit, onDuplicate, onRename, onDelete,
+// Camp auquel s'applique le prochain tap sur un deck. Sert aussi de récapitulatif
+// avant lancement : on lit d'un coup d'œil qui joue quoi.
+function SlotChip({
+  label, value, placeholder, tone, on, onPointerDown,
 }: {
-  deck: DeckSummary; selected: boolean; active: boolean;
+  label: string; value: string | null; placeholder?: string;
+  tone: 'mine' | 'foe'; on: boolean; onPointerDown: () => void;
+}) {
+  const accent = tone === 'mine' ? 'border-gold text-gold' : 'border-enemy text-enemy';
+  return (
+    <button
+      onPointerDown={onPointerDown}
+      className={`min-h-tap flex-1 rounded-lg border bg-surface-raised px-2 py-1 text-left active:opacity-80 ${on ? accent : 'border-line text-white/60'}`}
+    >
+      <span className="block text-[9px] uppercase tracking-widest opacity-70">{label}</span>
+      <span className="block truncate text-xs font-semibold text-white">{value ?? placeholder ?? '—'}</span>
+    </button>
+  );
+}
+
+function DeckCard({
+  deck, mine, foe, active, onSelect, onEdit, onDuplicate, onRename, onDelete,
+}: {
+  deck: DeckSummary; mine: boolean; foe: boolean; active: boolean;
   onSelect: () => void; onEdit: () => void; onDuplicate: () => void; onRename: () => void; onDelete: () => void;
 }) {
   const valid = deck.count >= MIN_DECK;
   const hex = deck.color ?? '#a86ee7';
+  const border = mine ? 'border-gold' : foe ? 'border-enemy' : 'border-line';
   return (
     <div
       onPointerDown={onSelect}
-      className={`rounded-xl border bg-surface-raised/70 p-3 transition-colors ${selected ? 'border-gold' : 'border-line'}`}
+      className={`rounded-xl border bg-surface-raised/70 p-3 transition-colors ${border}`}
     >
       <div className="flex items-center gap-2">
         <span className="h-3 w-3 flex-shrink-0 rounded-full" style={{ background: hex, boxShadow: `0 0 8px -1px ${hex}` }} />
         <span className="truncate text-sm font-bold">{deck.name}</span>
+        {mine && <span className="rounded bg-gold/20 px-1.5 text-[9px] font-bold text-gold">MOI</span>}
+        {foe && <span className="rounded bg-enemy/20 px-1.5 text-[9px] font-bold text-enemy">ADVERSAIRE</span>}
         {active && <span className="rounded bg-gold/20 px-1.5 text-[9px] font-bold text-gold">ACTIF</span>}
         <span className={`ml-auto text-xs font-semibold tabular-nums ${valid ? 'text-success' : 'text-white/50'}`}>{deck.count} cartes</span>
       </div>

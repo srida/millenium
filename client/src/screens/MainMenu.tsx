@@ -19,10 +19,12 @@ export default function MainMenu() {
       </div>
 
       <div className="flex w-full max-w-xs flex-col gap-3">
-        <Button variant="primary" className="w-full py-3 text-base" onPointerDown={() => navigate('deck_selector')}>
+        <Button variant="primary" className="w-full py-3 text-base" onPointerDown={() => navigate('deck_selector', { mode: 'play' })}>
           Jouer
         </Button>
-        <Button className="w-full" onPointerDown={() => navigate('deck_builder')}>
+        {/* Passe par la liste des decks (gestion) plutôt que d'ouvrir un deck
+            vierge : de là on édite, duplique, renomme, supprime ou crée. */}
+        <Button className="w-full" onPointerDown={() => navigate('deck_selector', { mode: 'manage' })}>
           Construire un deck
         </Button>
         <div className="flex gap-2">

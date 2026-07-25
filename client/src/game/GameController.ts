@@ -308,7 +308,7 @@ export class GameController {
     this._startShopping();
   }
 
-  private _startShopping(): void {
+  protected _startShopping(): void {
     const magies = this.session.getShoppingMagies();
     if (!magies.length) { this._proceedNextRound(); return; }
     this._shoppingMagies = magies;

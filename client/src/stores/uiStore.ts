@@ -15,6 +15,12 @@ const SCREEN_NAMES: ScreenName[] = [
 
 export interface ScreenParams {
   deckName?: string;
+  // Deck confié à l'EnemyAI (mode solo). Absent = miroir du deck joueur.
+  enemyDeckName?: string;
+  // DeckSelector : 'play' (choisir puis lancer une partie) ou 'manage' (gérer
+  // ses decks — l'action principale devient « créer »). Propagé au DeckBuilder
+  // pour que le retour revienne dans le mode d'où l'on vient.
+  mode?: 'play' | 'manage';
   [key: string]: unknown;
 }
 

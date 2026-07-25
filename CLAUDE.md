@@ -760,6 +760,19 @@ Mode édition : déclenché via `DeckRepository.setPendingEdit(deckName)` avant 
 
 ---
 
+## DeckSelector
+
+Point de passage obligé du menu principal : **« Jouer »** comme **« Construire un deck »** ouvrent cet écran (`params.mode = 'play' | 'manage'`). Même liste et mêmes actions par deck (éditer / dupliquer / renommer / supprimer) ; seule l'action principale du bas change — lancer la partie, ou créer un deck. Le mode est propagé au DeckBuilder pour que son retour revienne dans le bon contexte.
+
+En mode `'play'`, deux camps sont sélectionnables : le chip actif (`Mon deck` / `Adversaire`) dit à qui le prochain tap sur un deck s'applique.
+
+```js
+navigate('game', { deckName, enemyDeckName })   // enemyDeckName optionnel
+buildSession(deckName, 'ai', enemyDeckName)     // absent → l'IA joue le deck du joueur (miroir)
+```
+
+---
+
 ## TestBench
 
 Écran développeur (`client/src/dev/TestBench.tsx`, route `?screen=testbench`) accessible depuis `MainMenu` (bouton "TestBench (dev)"). Réutilise `Scene3D` + `CombatAnimator3D` directement (sans `GameController`).
@@ -790,7 +803,11 @@ Un seul pont React ↔ Three : `client/src/components/board/Board3DCanvas.tsx` m
 
 - **Auth optionnelle** (`authStore`) : jeu jouable en invité ; se connecter active la synchro serveur des decks. `AuthScreen`/`ResetPasswordScreen`, `ProfileScreen`, `FriendsScreen` sur les API `routes/online.js`.
 - **Tournoi** (`TournamentScreen`) : bracket local à 8 entièrement client (`logic/Tournament.js` + `MatchSimulator`, headless déterministe).
-- **PvP** (`OnlineLobby` + `GameScreenPvp` + `game/PvpController.ts`) : le serveur (`ws/`) fait matchmaking + relais **opaque** ; chaque client simule le combat localement (déterminisme → même vainqueur des deux côtés). L'adversaire est reconstruit **en miroir** (rows 7–10) depuis `net/PvpOpponentProvider.js`. `GameSession` a un mode `'pvp'` (pas d'EnemyAI, terrain convenu). Pas de Phase Shopping en PvP.
+- **PvP** (`OnlineLobby` + `GameScreenPvp` + `game/PvpController.ts`) : le serveur (`ws/`) fait matchmaking + relais **opaque** ; chaque client simule le combat localement (déterminisme → même vainqueur des deux côtés). L'adversaire est reconstruit **en miroir** (rows 7–10) depuis `net/PvpOpponentProvider.js`. `GameSession` a un mode `'pvp'` (pas d'EnemyAI, terrain convenu).
+
+  **Parité avec le mode solo** : cimetière, menu d'options d'invocation et **Phase Shopping** sont présents en PvP. Le shopping n'est pas synchronisé — chaque joueur tire et applique ses magies localement ; le résultat est transmis à l'adversaire dans le payload `round:board_ready` du round suivant. Un chrono de 45 s le borne (passage automatique) pour ne pas bloquer l'adversaire à la barrière réseau ; le décalage résiduel est absorbé par la barrière `round:combat_start_ack`.
+
+  **Contrat de déterminisme** : tout état persistant d'une unité doit voyager dans `round:board_ready`, sinon les deux clients simulent des combats différents. Le payload transporte par unité `card_id`, `position`, `veterancy_points`, `base` (stats de base, modifiées en permanence par les magies), `current_hp` (les PV ne se régénèrent pas entre rounds) et `shield` ; plus `player_hp` au niveau du message — chaque joueur est la source de vérité de ses propres PV (les magies globales type `player_hp_bonus` sont invisibles de l'adversaire). Verrouillé par `client/src/test/pvp.test.ts`.
 
 ---
 

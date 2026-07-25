@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // GameScreenPvp — variante Duel en ligne de GameScreen. Même shell (board 3D,
-// HUD, main, contrôles, overlays) mais piloté par PvpController et sans Phase
-// Shopping. Ajoute la bannière adversaire, l'overlay d'attente (poignée de main
-// réseau / résultat) et l'abandon.
+// HUD, main, cimetière, contrôles, Phase Shopping, overlays) mais piloté par
+// PvpController. Ajoute la bannière adversaire, l'overlay d'attente (poignée de
+// main réseau / résultat) et l'abandon.
 import { useEffect, useRef, useState } from 'react';
 import { buildSession, pvpDeps } from '../game/bootstrap.js';
 import { PvpController } from '../game/PvpController.js';
@@ -14,10 +14,13 @@ import Hud from '../components/hud/Hud.js';
 import SynergyPanel from '../components/hud/SynergyPanel.js';
 import PhaseControls from '../components/hud/PhaseControls.js';
 import HandBar from '../components/hand/HandBar.js';
-import { EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
+import GraveyardTray from '../components/hand/GraveyardTray.js';
+import { SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
+import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import { Banner, Button } from '../components/ui/primitives.js';
 
 const PREP_DURATION = 60;
+const SHOPPING_DURATION = 45;
 
 export default function GameScreenPvp() {
   const [controller, setControllerLocal] = useState<PvpController | null>(null);
@@ -37,9 +40,17 @@ export default function GameScreenPvp() {
     ctrl.begin();
     return () => {
       ctrl.dispose();
-      (PvpConnection as any).disconnect();
       setController(null);
       reset();
+      // Ne fermer la socket PvP (singleton) QUE si on quitte réellement l'écran.
+      // En dev, StrictMode démonte puis remonte ce composant : lors de ce
+      // démontage transitoire, `screen` vaut toujours 'game_pvp' (aucune
+      // navigation), donc on préserve la socket + le rôle. Les fermer ici
+      // renverrait `getRole()===null` au remontage → rebond vers le lobby et
+      // « adversaire déconnecté » côté opposant.
+      if (useUiStore.getState().screen !== 'game_pvp') {
+        (PvpConnection as any).disconnect();
+      }
     };
     // Montage unique.
   }, []);
@@ -51,13 +62,17 @@ export default function GameScreenPvp() {
       <Board3DCanvas controller={controller} />
       <Hud />
       <SynergyPanel />
+      <GraveyardTray />
       <HandBar />
       <PhaseControls />
       <PvpHeader controller={controller} />
       <PrepTimer controller={controller} />
+      <ShoppingTimer controller={controller} />
       <PvpBanners />
+      <SummonOptionMenu />
       <WaitingOverlay />
       <EndRoundOverlay />
+      <ShoppingLayer />
       <GameOverScreen />
     </div>
   );
@@ -83,7 +98,7 @@ function PrepTimer({ controller }: { controller: PvpController }) {
     applySnapshot({ prepRemaining: PREP_DURATION });
     const t = setInterval(() => {
       const s = useGameStore.getState();
-      const active = s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.pvpWaiting && !s.gameOver;
+      const active = s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.pvpWaiting && !s.gameOver;
       if (!active) return;
       remaining.current -= 1;
       if (remaining.current <= 0) { clearInterval(t); applySnapshot({ prepRemaining: 0 }); controller.startCombat(); return; }
@@ -92,6 +107,35 @@ function PrepTimer({ controller }: { controller: PvpController }) {
     return () => clearInterval(t);
   }, [round, controller, applySnapshot]);
   return null;
+}
+
+// Chrono de la Phase Shopping — spécifique au PvP. En solo rien ne presse, mais
+// ici l'adversaire attend à la barrière réseau tant que je n'ai pas choisi : le
+// choix est donc borné, et « passer » est automatique à 0.
+function ShoppingTimer({ controller }: { controller: PvpController }) {
+  const active = useGameStore(s => !!s.shopping);
+  const [remaining, setRemaining] = useState(SHOPPING_DURATION);
+  const skipped = useRef(false);
+
+  useEffect(() => {
+    if (!active) { skipped.current = false; setRemaining(SHOPPING_DURATION); return; }
+    const t = setInterval(() => setRemaining(c => (c <= 1 ? 0 : c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [active]);
+
+  // Hors du render : `skipShopping` déclenche un setState dans le store.
+  useEffect(() => {
+    if (!active || remaining > 0 || skipped.current) return;
+    skipped.current = true;
+    controller.skipShopping();
+  }, [active, remaining, controller]);
+
+  if (!active) return null;
+  return (
+    <div className="pointer-events-none fixed left-1/2 top-[max(1rem,env(safe-area-inset-top))] z-50 -translate-x-1/2 rounded-full border border-gold/40 bg-surface/95 px-3 py-1 text-xs font-semibold tabular-nums text-gold">
+      Shopping · {remaining}s
+    </div>
+  );
 }
 
 function PvpBanners() {
