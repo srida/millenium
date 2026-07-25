@@ -149,6 +149,9 @@ Pour chaque tour :
 Fin de partie :
 - Tour 5 terminé
 - OU un joueur atteint 0 HP
+- OU abandon via le menu d'options
+
+**Menu d'options** (`components/hud/GameMenu.tsx`, bouton ☰ en haut à droite) : disponible en préparation comme en combat, dans les deux écrans de jeu. Reprendre / quitter (confirmation obligatoire). En solo, l'ouvrir gèle le chrono de préparation (`menuOpen` dans le snapshot) ; en PvP le chrono continue — l'adversaire attend à la barrière réseau et ne doit pas pouvoir être bloqué. En PvP, « quitter » = `PvpController.forfeit()`.
 
 **HP des joueurs : 1000.**
 
@@ -174,6 +177,8 @@ Le pool dépend du tour :
 | 5+ | Tier 3, 4, 5 |
 
 La main est conservée entre les tours (taille illimitée) — les cartes non jouées s'accumulent avec la nouvelle pioche au tour suivant, sans impact sur le pool de tiers disponible.
+
+**Affichage de la main** (`GameController._groupHand`) : `session.hand` reste une liste plate (l'ordre de pioche fait foi côté logique), mais l'instantané React regroupe les exemplaires identiques sous une seule entrée (badge ×N, `HandEntry.count`) et trie par tier croissant puis nom. `HandEntry.idx` pointe l'exemplaire représentatif — c'est lui qui quitte la main à l'invocation. La signature de regroupement inclut le coût : une carte remisée par une magie de main (`reduce_sacrifice_cost`, `free_transformation`…) ne fusionne pas avec un exemplaire normal.
 
 Pas de doublon (même `card_id`) sur le terrain joueur pour une invocation **normale** uniquement : `InvocationManager.canSummon` / `InvocationRules.isPlayable` refusent une carte normale déjà présente vivante sur le board joueur (carte grisée en main). Sacrifice/Fusion/Heritage/Transformation peuvent se jouer par-dessus un doublon existant (invocations spéciales légitimes). Limité au côté joueur (l'IA ennemie n'est pas concernée).
 
@@ -394,6 +399,10 @@ Chaque combat tire aléatoirement un terrain depuis `BoardDatabase`. Le terrain 
 | `draw_bonus` | Pioche supplémentaire (`value` cartes) — GameScreen3D uniquement |
 
 Les effets sont appliqués via `applyStatBonus()` / `applyShield()`, donc nettoyés automatiquement par `resetCombatStats()` en fin de combat.
+
+### Rendu en jeu
+
+`GameSession.startCombat` pose les cases bloquées sur le `Board` (logique) ; c'est `GameController` qui les transmet à la scène (`Scene3D.setBlockedCells`) au lancement de l'animation et les efface en fin de combat — sans quoi les unités contourneraient des cases visuellement libres. Le terrain tiré est aussi affiché dans la barre de combat (chip `🗺️`, tap → tooltip nom + effet).
 
 ### Ligne de vue (LOS)
 

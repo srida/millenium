@@ -1,5 +1,7 @@
-// Main du joueur : bande horizontale scrollable. Carte grisée si injouable
-// (doublon normal, matériaux manquants…). Tap → sélection ; long-press → tooltip.
+// Main du joueur : bande horizontale scrollable, triée par tier et regroupée
+// par carte (les exemplaires identiques s'empilent, badge ×N). Carte grisée si
+// injouable (doublon normal, matériaux manquants…). Tap → sélection ;
+// long-press → tooltip.
 import { useRef } from 'react';
 import { useGameStore, type HandEntry } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
@@ -15,15 +17,15 @@ export default function HandBar() {
     <div className="pointer-events-auto absolute inset-x-0 bottom-14 z-20">
       <div className="flex gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {hand.length === 0 && <span className="px-2 py-6 text-xs text-white/40">Main vide</span>}
-        {hand.map((entry, idx) => (
-          <HandCard key={entry.key} entry={entry} idx={idx} />
+        {hand.map(entry => (
+          <HandCard key={entry.key} entry={entry} />
         ))}
       </div>
     </div>
   );
 }
 
-function HandCard({ entry, idx }: { entry: HandEntry; idx: number }) {
+function HandCard({ entry }: { entry: HandEntry }) {
   const controller = useGameStore(s => s.controller)!;
   const showTooltip = useUiStore(s => s.showTooltip);
   const longPress = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,7 +40,7 @@ function HandCard({ entry, idx }: { entry: HandEntry; idx: number }) {
     <button
       onPointerDown={(e) => {
         e.stopPropagation();
-        controller.selectCard(entry.selected ? null : entry.card, entry.selected ? null : idx);
+        controller.selectCard(entry.selected ? null : entry.card, entry.selected ? null : entry.idx);
         const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
         longPress.current = setTimeout(() => {
           showTooltip({ kind: 'card', card: entry.card }, { left: r.left, top: r.top, bottom: r.bottom, width: r.width, height: r.height });
@@ -51,6 +53,8 @@ function HandCard({ entry, idx }: { entry: HandEntry; idx: number }) {
         'relative aspect-[5/7] h-28 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-transform',
         entry.selected ? 'border-gold -translate-y-2' : 'border-line',
         entry.playable ? 'opacity-100' : 'opacity-40 grayscale',
+        // Épaisseur de pile : la carte porte visiblement plusieurs exemplaires.
+        entry.count > 1 ? 'mr-1 shadow-[3px_3px_0_0_var(--color-surface-raised),4px_4px_0_0_var(--color-line)]' : '',
       ].join(' ')}
     >
       <img src={`/illustrations/${entry.card.id}`} alt={entry.card.name} className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
@@ -59,6 +63,9 @@ function HandCard({ entry, idx }: { entry: HandEntry; idx: number }) {
       </div>
       <span className="absolute left-0.5 top-0.5 rounded bg-black/70 px-1 text-[9px] font-bold text-white">T{entry.card.tier}</span>
       {hint && <span className="absolute right-0.5 top-0.5 rounded bg-black/70 px-1 text-[9px]">{hint}</span>}
+      {entry.count > 1 && (
+        <span className="absolute bottom-0.5 right-0.5 rounded bg-gold px-1 text-[9px] font-bold text-black">×{entry.count}</span>
+      )}
     </button>
   );
 }

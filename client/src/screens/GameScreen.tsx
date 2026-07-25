@@ -10,6 +10,7 @@ import Board3DCanvas from '../components/board/Board3DCanvas.js';
 import Hud from '../components/hud/Hud.js';
 import SynergyPanel from '../components/hud/SynergyPanel.js';
 import PhaseControls from '../components/hud/PhaseControls.js';
+import GameMenu from '../components/hud/GameMenu.js';
 import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
@@ -50,6 +51,7 @@ export default function GameScreen() {
       <GraveyardTray />
       <HandBar />
       <PhaseControls />
+      <GameMenu onQuit={() => useUiStore.getState().navigate('main_menu')} />
       <PrepTimer controller={controller} />
       <Banners />
       <SummonOptionMenu />
@@ -72,7 +74,7 @@ function PrepTimer({ controller }: { controller: GameController }) {
     applySnapshot({ prepRemaining: PREP_DURATION });
     const t = setInterval(() => {
       const s = useGameStore.getState();
-      const prepActive = s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.gameOver;
+      const prepActive = s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.gameOver;
       if (!prepActive) return;
       remaining.current -= 1;
       if (remaining.current <= 0) {

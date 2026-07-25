@@ -6,8 +6,10 @@ import type { GameController } from '../game/GameController.js';
 import type { EndRoundResult } from '../logic/GameSession.js';
 
 export interface HandEntry {
-  key: string;      // identité stable pour React (index en main)
+  key: string;      // identité stable pour React (signature de la carte)
+  idx: number;      // index dans session.hand de l'exemplaire représentatif
   card: Card;
+  count: number;    // exemplaires identiques regroupés sous cette entrée
   playable: boolean;
   selected: boolean;
 }
@@ -61,6 +63,7 @@ export interface GameSnapshot {
   endRound: EndRoundResult | null;
   shopping: ShoppingState | null;
   summonOptions: SummonOptionMenuSnapshot | null;
+  menuOpen: boolean;         // menu d'options ouvert → met la préparation en pause
   gameOver: boolean;
   winner: 'player' | 'enemy' | 'draw' | null;
   // PvP uniquement
@@ -74,7 +77,7 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
   boardTerrain: null, combatActive: false, combatRemaining: 60, speed: 2, paused: false,
   prepRemaining: 60, endRound: null, shopping: null, summonOptions: null,
-  gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
+  menuOpen: false, gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
 };
 
 interface GameStoreState extends GameSnapshot {

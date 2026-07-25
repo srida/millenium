@@ -1,6 +1,8 @@
 // Contrôles de phase : en préparation (compteur d'unités, timer 60s, bouton
-// PRÊT) ; en combat (timer restant, vitesse ×1/×2/×4, pause).
+// PRÊT) ; en combat (terrain, timer restant, vitesse ×1/×2/×4, pause).
 import { useGameStore } from '../../stores/gameStore.js';
+import { useUiStore } from '../../stores/uiStore.js';
+import type { BoardDef } from '../../logic/types.js';
 import { Button } from '../ui/primitives.js';
 
 function fmt(s: number): string {
@@ -8,8 +10,26 @@ function fmt(s: number): string {
   return `${m}:${String(Math.max(0, s % 60)).padStart(2, '0')}`;
 }
 
+// Terrain du combat en cours : tap → tooltip (nom + effet). Les cases bloquées
+// qu'il impose sont rendues par Scene3D, ce chip dit d'où elles viennent.
+function TerrainChip({ board }: { board: BoardDef }) {
+  const showTooltip = useUiStore(s => s.showTooltip);
+  return (
+    <button
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        showTooltip({ kind: 'terrain', board }, { left: r.left, top: r.top, bottom: r.bottom, width: r.width, height: r.height });
+      }}
+      className="min-h-tap min-w-0 max-w-[8rem] truncate rounded-md border border-line bg-surface/80 px-2 text-xs text-white/80 active:opacity-80"
+    >
+      🗺️ {board.name}
+    </button>
+  );
+}
+
 export default function PhaseControls() {
-  const { controller, combatActive, placedCount, boardSlots, prepRemaining, combatRemaining, speed, paused } = useGameStore();
+  const { controller, combatActive, placedCount, boardSlots, prepRemaining, combatRemaining, speed, paused, boardTerrain } = useGameStore();
   if (!controller) return null;
 
   if (combatActive) {
@@ -18,7 +38,8 @@ export default function PhaseControls() {
         <span className="rounded-md border border-line bg-surface/80 px-2 py-1 text-xs font-bold tabular-nums text-white/80">
           {combatRemaining}s
         </span>
-        <div className="flex overflow-hidden rounded-lg border border-line">
+        {boardTerrain && <TerrainChip board={boardTerrain} />}
+        <div className="flex shrink-0 overflow-hidden rounded-lg border border-line">
           {[1, 2, 4].map(s => (
             <button
               key={s}

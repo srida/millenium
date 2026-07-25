@@ -10,7 +10,7 @@ import { CombatAnimator3D } from '../three/CombatAnimator3D.js';
 import type { Scene3D } from '../three/Scene3D.js';
 import type { Card, Position, Magie } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
-import { useGameStore, type GameSnapshot } from '../stores/gameStore.js';
+import { useGameStore, type GameSnapshot, type HandEntry } from '../stores/gameStore.js';
 import { useUiStore, type TooltipAnchor } from '../stores/uiStore.js';
 
 interface SummonOptionMenu {
@@ -262,6 +262,10 @@ export class GameController {
   // Lance l'animateur de combat sur un CombatManager déjà construit. Partagé
   // avec le mode PvP (qui appelle session.startCombat(agreedBoard) puis ceci).
   protected _beginCombatAnimation(combat: import('../logic/CombatManager.js').CombatManager, boardData: import('../logic/types.js').BoardDef | null): void {
+    // Le terrain n'existait jusqu'ici que côté logique (Board._blockedCells) :
+    // la scène doit l'afficher, sinon les unités contournent des cases qui ont
+    // l'air libres.
+    this.scene?.setBlockedCells(boardData?.blocked_cells ?? []);
     this.scene?.enterCombatMode();
     this._combatRemaining = 60;
     const animator = new CombatAnimator3D(combat, this.scene as any, {
@@ -294,6 +298,9 @@ export class GameController {
   protected _onCombatFinished(): void {
     const result = this.session.finishCombat();
     this.animator = null;
+    // Le terrain ne vaut que pour le combat écoulé (session.startPreparation
+    // appelle board.clearBlockedCells de son côté).
+    this.scene?.setBlockedCells([]);
     this.scene?.exitCombatMode();
     this.sync({ combatActive: false, boardTerrain: null, endRound: result });
   }
@@ -437,17 +444,40 @@ export class GameController {
     this._errorTimer = setTimeout(() => this.sync({ errorFlash: null }), 2000);
   }
 
+  // Main affichée : les exemplaires identiques sont empilés sous une seule
+  // entrée (compteur ×N) et l'ordre est stable — tier croissant puis nom — au
+  // lieu de l'ordre de pioche. La signature inclut le coût car les magies de
+  // main (sacrifice remisé, transformation gratuite) ne modifient QU'UN
+  // exemplaire : le fondre avec un exemplaire normal masquerait la remise.
+  private _groupHand(): HandEntry[] {
+    const groups: { entry: HandEntry; indices: number[] }[] = [];
+    const byKey = new Map<string, { entry: HandEntry; indices: number[] }>();
+
+    this.session.hand.forEach((card, i) => {
+      const key = `${card.id}|${JSON.stringify((card as any).cost ?? null)}|${(card as any)._free_transformation ? 'F' : ''}`;
+      const found = byKey.get(key);
+      if (found) { found.entry.count += 1; found.indices.push(i); return; }
+      const group = {
+        entry: { key, idx: i, card, count: 1, playable: this.session.isPlayable(card), selected: false },
+        indices: [i],
+      };
+      byKey.set(key, group);
+      groups.push(group);
+    });
+
+    for (const g of groups) {
+      g.entry.selected = this.selectedHandIdx != null && g.indices.includes(this.selectedHandIdx);
+    }
+
+    return groups
+      .map(g => g.entry)
+      .sort((a, b) => (a.card.tier ?? 0) - (b.card.tier ?? 0) || a.card.name.localeCompare(b.card.name));
+  }
+
   // Recalcule l'instantané React depuis session + état de sélection.
   sync(extra: Partial<GameSnapshot> = {}): void {
     const gs = this.session.gameState;
-    const selKey = this.selectedHandIdx != null ? `h${this.selectedHandIdx}` : null;
-
-    const hand = this.session.hand.map((card, i) => ({
-      key: `h${i}`,
-      card,
-      playable: this.session.isPlayable(card),
-      selected: selKey === `h${i}`,
-    }));
+    const hand = this._groupHand();
 
     const matSet = new Set(this.selectedMaterials);
     const gcandidates = this.selectedCard

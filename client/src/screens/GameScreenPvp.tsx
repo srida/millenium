@@ -13,11 +13,12 @@ import Board3DCanvas from '../components/board/Board3DCanvas.js';
 import Hud from '../components/hud/Hud.js';
 import SynergyPanel from '../components/hud/SynergyPanel.js';
 import PhaseControls from '../components/hud/PhaseControls.js';
+import GameMenu from '../components/hud/GameMenu.js';
 import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
-import { Banner, Button } from '../components/ui/primitives.js';
+import { Banner } from '../components/ui/primitives.js';
 
 const PREP_DURATION = 60;
 const SHOPPING_DURATION = 45;
@@ -65,7 +66,10 @@ export default function GameScreenPvp() {
       <GraveyardTray />
       <HandBar />
       <PhaseControls />
-      <PvpHeader controller={controller} />
+      <PvpHeader />
+      {/* Le chrono de préparation PvP n'est PAS gelé par le menu : l'adversaire
+          attend à la barrière réseau, on ne peut pas le bloquer en l'ouvrant. */}
+      <GameMenu onQuit={() => controller.forfeit()} quitLabel="Abandonner le duel" />
       <PrepTimer controller={controller} />
       <ShoppingTimer controller={controller} />
       <PvpBanners />
@@ -78,12 +82,13 @@ export default function GameScreenPvp() {
   );
 }
 
-function PvpHeader({ controller }: { controller: PvpController }) {
+// L'abandon vit dans le menu d'options (☰), avec confirmation : il était trop
+// facile de le déclencher d'un doigt posé au mauvais endroit.
+function PvpHeader() {
   const opponent = useGameStore(s => s.pvpOpponent);
   return (
-    <div className="pointer-events-auto absolute left-1/2 top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] z-20 flex -translate-x-1/2 items-center gap-2">
+    <div className="pointer-events-none absolute left-1/2 top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] z-20 flex -translate-x-1/2 items-center gap-2">
       <span className="rounded-full border border-enemy/40 bg-surface/80 px-3 py-0.5 text-[11px] text-enemy">vs {opponent ?? '—'}</span>
-      <Button className="px-2 py-0.5 text-[11px]" onPointerDown={() => controller.forfeit()}>Abandonner</Button>
     </div>
   );
 }
