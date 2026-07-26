@@ -4,12 +4,24 @@ let currentUser = null;
 let fetched = false;
 
 async function api(path, { method = 'GET', body } = {}) {
-  const res = await fetch(`/api${path}`, {
-    method,
-    credentials: 'include',
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let res;
+  try {
+    res = await fetch(`/api${path}`, {
+      method,
+      credentials: 'include',
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (cause) {
+    // fetch ne rejette QUE sur échec réseau (serveur arrêté, hors-ligne, requête
+    // bloquée) : le message natif « Failed to fetch » ne dit rien au joueur, on
+    // le traduit en cause réelle. `network` permet aux écrans de proposer un
+    // « Réessayer » plutôt que de traiter ça comme une erreur métier.
+    const err = new Error('Serveur injoignable — vérifie ta connexion.');
+    err.network = true;
+    err.cause = cause;
+    throw err;
+  }
   let data = null;
   try { data = await res.json(); } catch { /* pas de corps JSON */ }
   if (!res.ok) {

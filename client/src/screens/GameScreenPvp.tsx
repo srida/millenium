@@ -19,9 +19,7 @@ import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import { Banner } from '../components/ui/primitives.js';
-
-const PREP_DURATION = 60;
-const SHOPPING_DURATION = 45;
+import { PREP_DURATION_S, SHOPPING_DURATION_S } from '../game/timings.js';
 
 export default function GameScreenPvp() {
   const [controller, setControllerLocal] = useState<PvpController | null>(null);
@@ -97,10 +95,10 @@ function PvpHeader() {
 function PrepTimer({ controller }: { controller: PvpController }) {
   const round = useGameStore(s => s.round);
   const applySnapshot = useGameStore(s => s.applySnapshot);
-  const remaining = useRef(PREP_DURATION);
+  const remaining = useRef(PREP_DURATION_S);
   useEffect(() => {
-    remaining.current = PREP_DURATION;
-    applySnapshot({ prepRemaining: PREP_DURATION });
+    remaining.current = PREP_DURATION_S;
+    applySnapshot({ prepRemaining: PREP_DURATION_S });
     const t = setInterval(() => {
       const s = useGameStore.getState();
       const active = s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.pvpWaiting && !s.gameOver;
@@ -119,11 +117,12 @@ function PrepTimer({ controller }: { controller: PvpController }) {
 // choix est donc borné, et « passer » est automatique à 0.
 function ShoppingTimer({ controller }: { controller: PvpController }) {
   const active = useGameStore(s => !!s.shopping);
-  const [remaining, setRemaining] = useState(SHOPPING_DURATION);
+  const [remaining, setRemaining] = useState(SHOPPING_DURATION_S);
   const skipped = useRef(false);
 
   useEffect(() => {
-    if (!active) { skipped.current = false; setRemaining(SHOPPING_DURATION); return; }
+    if (!active) { skipped.current = false; setRemaining(SHOPPING_DURATION_S); return; }
+    setRemaining(SHOPPING_DURATION_S);
     const t = setInterval(() => setRemaining(c => (c <= 1 ? 0 : c - 1)), 1000);
     return () => clearInterval(t);
   }, [active]);

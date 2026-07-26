@@ -17,6 +17,7 @@ import { createUnitEl, updateUnitEl } from './UnitCardEl.js';
 import {
   ELEMENT_STYLES, elementsForUnit,
   COLS, TOTAL_ROWS, PLAYER_ROWS, CELL, CARD_PX, CSS_SCALE, FOV, HIGHLIGHT_RING_PX,
+  PREP_COL_MARGIN, PREP_FOCUS_Y, PREP_ROW_MARGIN, PREP_ROW_MARGIN_WEB, WEB_RAIL_PX,
   zForRow, xForCol, cellKey as key, baseColorFor, emissiveFor,
 } from './constants.js';
 import type { Unit } from '../logic/Unit.js';
@@ -102,6 +103,9 @@ export class Scene3D {
 
   _camCenterZ = 0;
   _camH = 6;
+  // Rotation de la vue de dessus autour de l'axe vertical (radians).
+  // 0 = portrait (ennemi en haut) ; PI/2 = paysage (ennemi à droite).
+  _camAngle = 0;
   _shake: { time: number; duration: number; magnitude: number } | null = null;
   _raycaster: THREE.Raycaster | null = null;
   _pointerState: any = null;
@@ -246,40 +250,80 @@ export class Scene3D {
     return w / h;
   }
 
-  _cameraFraming(combatMode: boolean): { centerZ: number; H: number } {
+  // Vue web (conteneur plus large que haut) : pendant le combat, on pivote la vue
+  // de dessus d'un quart de tour pour que les 11 rangées s'étalent sur la largeur
+  // de l'écran — les cases y sont bien plus grandes qu'en cadrage portrait.
+  _shouldRotate(combatMode: boolean): boolean {
+    return combatMode && this._aspect() > 1;
+  }
+
+  _cameraFraming(combatMode: boolean): { centerZ: number; H: number; angle: number } {
     const showFullBoard = combatMode || this.showEnemySide;
-    const minRow = 0;
-    let maxRow = PLAYER_ROWS - 3;
-    let rowsVisible = PLAYER_ROWS + 1.5;
-    if (showFullBoard) {
-      maxRow = TOTAL_ROWS - 1;
-      rowsVisible = TOTAL_ROWS + 1.5;
-    }
-    const centerZ = (zForRow(minRow) + zForRow(maxRow)) / 2;
+    const rotated = this._shouldRotate(combatMode);
     const vFov = THREE.MathUtils.degToRad(FOV);
     const aspect = this._aspect();
+    const span = 2 * Math.tan(vFov / 2);   // hauteur monde visible par unité de distance
 
-    let heightForRows = (rowsVisible * CELL) / (2 * Math.tan(vFov / 2));
-    let heightForCols = (COLS * 0.5 * CELL) / (2 * Math.tan(vFov / 2) * aspect);
-    if (showFullBoard) {
-      heightForRows = (rowsVisible * CELL) / (2 * Math.tan(vFov / 2));
-      heightForCols = (COLS * 1.25 * CELL) / (2 * Math.tan(vFov / 2) * aspect);
+    let H: number;
+    let centerZ: number;
+    if (rotated) {
+      // Rangées → largeur de l'écran, colonnes → hauteur.
+      const heightForRows = ((TOTAL_ROWS + 0.6) * CELL) / (span * aspect);
+      const heightForCols = ((COLS + 0.8) * CELL) / span;
+      H = Math.max(heightForRows, heightForCols);
+      centerZ = (zForRow(0) + zForRow(TOTAL_ROWS - 1)) / 2;
+    } else if (showFullBoard) {
+      const heightForRows = ((TOTAL_ROWS + 1.5) * CELL) / span;
+      const heightForCols = (COLS * 1.25 * CELL) / (span * aspect);
+      H = Math.max(heightForRows, heightForCols);
+      centerZ = (zForRow(0) + zForRow(TOTAL_ROWS - 1)) / 2;
+    } else {
+      // Préparation. En mode web la main et les neutralisées sont des rails
+      // latéraux : le board dispose de toute la hauteur mais pas de toute la
+      // largeur. En portrait c'est l'inverse — la main mange le bas de l'écran.
+      const web = aspect > 1;
+      const usableWidth = web ? Math.max(0.35, (this.container.clientWidth - 2 * WEB_RAIL_PX) / (this.container.clientWidth || 1)) : 1;
+      // Les 5 colonnes du joueur doivent tenir dans la largeur utile — sur un
+      // écran étroit (mobile portrait) c'est cette contrainte qui commande le
+      // zoom, sinon la moitié des cases sort de l'écran.
+      const heightForRows = ((PLAYER_ROWS + (web ? PREP_ROW_MARGIN_WEB : PREP_ROW_MARGIN)) * CELL) / span;
+      const heightForCols = ((COLS + PREP_COL_MARGIN) * CELL) / (span * aspect * usableWidth);
+      H = Math.max(heightForRows, heightForCols);
+      // Le bloc joueur est centré verticalement en web (rien ne mange le bas),
+      // remonté au-dessus du milieu en portrait pour dégager la main.
+      const focusY = web ? 0.5 : PREP_FOCUS_Y;
+      centerZ = zForRow((PLAYER_ROWS - 1) / 2) + (0.5 - focusY) * span * H;
     }
-    const H = Math.max(heightForRows, heightForCols);
-    return { centerZ, H };
+    return { centerZ, H, angle: rotated ? Math.PI / 2 : 0 };
+  }
+
+  // Applique l'état caméra courant (_camH / _camCenterZ / _camAngle). L'angle pivote
+  // le vecteur "up" de la caméra ; les cartes CSS3D suivent pour rester lisibles.
+  _applyCameraState(): void {
+    const a = this._camAngle;
+    this.camera.up.set(-Math.sin(a), 0, -Math.cos(a));
+    this.camera.position.set(0, this._camH, this._camCenterZ);
+    this.camera.lookAt(0, 0, this._camCenterZ);
+    this._applyCardOrientation();
+  }
+
+  _applyCardOrientation(): void {
+    for (const entry of this.unitObjs.values()) {
+      entry.obj.rotation.set(-Math.PI / 2, 0, this._camAngle);
+    }
   }
 
   _setCameraImmediate(combatMode: boolean): void {
-    const { centerZ, H } = this._cameraFraming(combatMode);
+    const { centerZ, H, angle } = this._cameraFraming(combatMode);
     this._camCenterZ = centerZ;
     this._camH = H;
-    this.camera.position.set(0, H, centerZ);
-    this.camera.lookAt(0, 0, centerZ);
+    this._camAngle = angle;
+    this._applyCameraState();
     this._invalidate();
   }
 
   _animateCameraTo(combatMode: boolean): void {
-    const from = { centerZ: this._camCenterZ, H: this._camH };
+    const from = { centerZ: this._camCenterZ, H: this._camH, angle: this._camAngle };
     const to = this._cameraFraming(combatMode);
     let t = 0;
     const duration = 0.5;
@@ -290,8 +334,8 @@ export class Scene3D {
         const eased = 1 - Math.pow(1 - p, 3);
         this._camCenterZ = THREE.MathUtils.lerp(from.centerZ, to.centerZ, eased);
         this._camH = THREE.MathUtils.lerp(from.H, to.H, eased);
-        this.camera.position.set(0, this._camH, this._camCenterZ);
-        this.camera.lookAt(0, 0, this._camCenterZ);
+        this._camAngle = THREE.MathUtils.lerp(from.angle, to.angle, eased);
+        this._applyCameraState();
         return p < 1;
       },
     });
@@ -1157,7 +1201,7 @@ export class Scene3D {
     // CSS3DObject force pointer-events: auto sur l'élément — on l'annule pour
     // que tous les pointer events passent par le canvas WebGL (raycasting).
     wrap.style.pointerEvents = 'none';
-    obj.rotation.x = -Math.PI / 2;
+    obj.rotation.set(-Math.PI / 2, 0, this._camAngle);
     const x = xForCol(pos.col);
     const z = zForRow(pos.row);
     obj.position.set(x, 3, z);
@@ -1259,7 +1303,7 @@ export class Scene3D {
         clip.appendChild(inner);
 
         const fobj = new CSS3DObject(clip);
-        fobj.rotation.x = -Math.PI / 2;
+        fobj.rotation.set(-Math.PI / 2, 0, this._camAngle);
         fobj.position.set(x, 0.06, z);
         fobj.scale.setScalar(CSS_SCALE * KILL_CFG.fS);
         this.cssScene.add(fobj);
@@ -1688,17 +1732,15 @@ export class Scene3D {
     if (this._shake) {
       this._shake.time += dt;
       const sp = this._shake.time / this._shake.duration;
-      if (sp >= 1) {
-        this._shake = null;
-        this.camera.position.x = 0;
-        this.camera.position.y = this._camH;
-        this.camera.lookAt(0, 0, this._camCenterZ);
-      } else {
-        const mag = this._shake.magnitude * (1 - sp);
-        this.camera.position.x = (Math.random() * 2 - 1) * mag;
-        this.camera.position.y = this._camH + (Math.random() * 2 - 1) * mag * 0.6;
-        this.camera.lookAt(0, 0, this._camCenterZ);
-      }
+      const mag = sp >= 1 ? 0 : this._shake.magnitude * (1 - sp);
+      if (sp >= 1) this._shake = null;
+      // Décalage le long de l'axe « droite écran » (perpendiculaire au up de la
+      // caméra) : sans ça, une vue pivotée secouerait en roulis au lieu de trembler.
+      const a = this._camAngle;
+      const dx = mag ? (Math.random() * 2 - 1) * mag : 0;
+      const dy = mag ? (Math.random() * 2 - 1) * mag * 0.6 : 0;
+      this.camera.position.set(Math.cos(a) * dx, this._camH + dy, this._camCenterZ - Math.sin(a) * dx);
+      this.camera.lookAt(0, 0, this._camCenterZ);
     }
 
     this.renderer.render(this.scene, this.camera);

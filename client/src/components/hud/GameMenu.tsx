@@ -1,7 +1,9 @@
-// Menu d'options en jeu (☰, coin haut-droit) — disponible en préparation comme
-// en combat. Tant qu'il est ouvert, `menuOpen` gèle le chrono de préparation :
-// le combat ne doit pas se lancer pendant qu'on lit le menu. Quitter demande
-// confirmation (une partie abandonnée n'est pas reprenable).
+// Menu d'options en jeu — disponible en préparation comme en combat. Le bouton
+// ☰ qui l'ouvre vit dans PhaseControls (barre du bas, à côté de PRÊT / Pause) ;
+// `menuOpen` du store est la source de vérité de l'ouverture, et gèle au passage
+// le chrono de préparation (solo) : le combat ne doit pas se lancer pendant
+// qu'on lit le menu. Quitter demande confirmation (une partie abandonnée n'est
+// pas reprenable).
 import { useEffect, useState } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { Button, Modal } from '../ui/primitives.js';
@@ -10,27 +12,17 @@ export default function GameMenu({ onQuit, quitLabel = 'Quitter la partie' }: {
   onQuit: () => void;
   quitLabel?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const open = useGameStore(s => s.menuOpen);
   const [confirm, setConfirm] = useState(false);
   const applySnapshot = useGameStore(s => s.applySnapshot);
 
-  useEffect(() => {
-    applySnapshot({ menuOpen: open });
-    return () => applySnapshot({ menuOpen: false });
-  }, [open, applySnapshot]);
+  useEffect(() => () => applySnapshot({ menuOpen: false }), [applySnapshot]);
+  useEffect(() => { if (!open) setConfirm(false); }, [open]);
 
-  const close = () => { setOpen(false); setConfirm(false); };
+  const close = () => { applySnapshot({ menuOpen: false }); setConfirm(false); };
 
   return (
     <>
-      <button
-        aria-label="Options"
-        onPointerDown={(e) => { e.stopPropagation(); setOpen(true); }}
-        className="pointer-events-auto absolute right-2 top-[max(3.5rem,calc(env(safe-area-inset-top)+3rem))] z-30 flex min-h-tap min-w-tap items-center justify-center rounded-lg border border-line bg-surface/80 text-lg text-white/70 active:opacity-80"
-      >
-        ☰
-      </button>
-
       {open && (
         <Modal onClose={close}>
           <div className="text-xs tracking-widest text-white/50">OPTIONS</div>

@@ -8,6 +8,7 @@ import * as DeckRepository from '../data/DeckRepository.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from '../components/ui/primitives.js';
+import DeckPicker from '../components/deck/DeckPicker.js';
 
 type Status = 'idle' | 'connecting' | 'searching' | 'found' | 'error';
 
@@ -20,7 +21,12 @@ export default function OnlineLobby() {
   const startedRef = useRef(false);
   const foundRef = useRef(false);
 
-  const deckName = (DeckRepository as any).getActiveDeck?.() as string | null;
+  // Deck engagé dans le duel : initialisé sur le deck actif, modifiable tant que
+  // la recherche n'a pas commencé (il part dans `queue:join`, puis sert à bâtir
+  // la session PvP).
+  const [deckName, setDeckName] = useState<string | null>(
+    () => ((DeckRepository as any).getActiveDeck?.() as string | null) ?? null,
+  );
   const hasDeck = !!deckName && !!(DeckRepository as any).loadDeck?.(deckName);
   // Le deck courant, lu via ref pour que le handler `onFound` (abonné une seule
   // fois au montage) utilise toujours la valeur à jour sans re-déclencher l'effet.
@@ -79,24 +85,28 @@ export default function OnlineLobby() {
     );
   }
 
-  if (!hasDeck) {
-    return (
-      <Center>
-        <p className="text-sm text-white/60">Choisis un deck actif avant de chercher un duel.</p>
-        <Button variant="primary" onPointerDown={() => navigate('deck_selector')}>Choisir un deck</Button>
-        <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-      </Center>
-    );
-  }
-
   return (
     <Center>
       <div className="text-5xl">⚔️</div>
       <h1 className="text-xl font-bold tracking-wide text-gold">Duel en ligne</h1>
-      <p className="text-xs text-white/50">Deck : {deckName}</p>
+
+      {/* Le deck part avec `queue:join` : on le verrouille dès la recherche. */}
+      <div className="w-full max-w-sm text-left">
+        <DeckPicker
+          value={deckName}
+          onChange={setDeckName}
+          disabled={status !== 'idle' && status !== 'error'}
+          emptyHint="Crée un deck avant de chercher un duel."
+        />
+      </div>
 
       {status === 'idle' && (
-        <Button variant="primary" className="px-8 py-3" onPointerDown={search}>Chercher un adversaire</Button>
+        <>
+          <Button variant="primary" disabled={!hasDeck} className="px-8 py-3" onPointerDown={search}>
+            Chercher un adversaire
+          </Button>
+          {!hasDeck && <p className="text-xs text-white/40">Choisis un deck pour entrer en file.</p>}
+        </>
       )}
       {(status === 'connecting' || status === 'searching') && (
         <>

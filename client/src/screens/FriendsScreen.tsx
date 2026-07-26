@@ -42,13 +42,23 @@ export default function FriendsScreen() {
   const [incoming, setIncoming] = useState<UserRow[]>([]);
   const [outgoing, setOutgoing] = useState<UserRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const setUser = useAuthStore(s => s.setUser);
+
+  // Une session expirée côté serveur (cookie effacé, serveur redémarré) ne doit
+  // pas se lire comme une erreur de la page : on repasse en invité, l'écran
+  // propose alors « Se connecter ».
+  const handleError = useCallback((e: any) => {
+    if (e?.status === 401) { setUser(null); return; }
+    setError(e?.message ?? 'Erreur');
+  }, [setUser]);
 
   const refresh = useCallback(async () => {
+    setError(null);
     try {
       const [f, r] = await Promise.all([(AuthClient as any).getFriends(), (AuthClient as any).getRequests()]);
       setFriends(f); setIncoming(r.incoming); setOutgoing(r.outgoing);
-    } catch (e: any) { setError(e?.message ?? 'Erreur'); }
-  }, []);
+    } catch (e: any) { handleError(e); }
+  }, [handleError]);
 
   useEffect(() => { if (user) refresh(); }, [user, refresh]);
 
@@ -56,11 +66,11 @@ export default function FriendsScreen() {
   useEffect(() => {
     if (query.trim().length < 2) { setResults([]); return; }
     const t = setTimeout(async () => {
-      try { setResults(await (AuthClient as any).searchUsers(query.trim())); }
-      catch { /* ignore */ }
+      try { setResults(await (AuthClient as any).searchUsers(query.trim())); setError(null); }
+      catch (e: any) { setResults([]); handleError(e); }
     }, 300);
     return () => clearTimeout(t);
-  }, [query]);
+  }, [query, handleError]);
 
   if (!user) {
     return (
@@ -75,7 +85,7 @@ export default function FriendsScreen() {
   const act = (fn: () => Promise<any>) => async () => {
     setError(null);
     try { await fn(); await refresh(); if (query.trim().length >= 2) setResults(await (AuthClient as any).searchUsers(query.trim())); }
-    catch (e: any) { setError(e?.message ?? 'Erreur'); }
+    catch (e: any) { handleError(e); }
   };
 
   return (
@@ -86,7 +96,12 @@ export default function FriendsScreen() {
       </header>
 
       <div className="flex-1 space-y-5 overflow-y-auto p-4">
-        {error && <p className="text-xs text-danger">{error}</p>}
+        {error && (
+          <div className="flex items-center gap-2 rounded-lg border border-danger/40 bg-danger/10 p-2">
+            <p className="flex-1 text-xs text-danger">{error}</p>
+            <Button className="px-2 text-xs" onPointerDown={() => { void refresh(); }}>Réessayer</Button>
+          </div>
+        )}
 
         <section>
           <input

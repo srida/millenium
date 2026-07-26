@@ -25,15 +25,32 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
   setUser: (user) => set({ user }),
 
   restore: async () => {
-    let user: AuthUser | null = null;
-    try {
-      user = await Promise.race([
-        (AuthClient as any).me() as Promise<AuthUser | null>,
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
-      ]);
-    } catch { user = null; }
-    set({ user: user ?? null, ready: true });
-    if (user) { try { await (DeckRepository as any).pull(); } catch { /* hors-ligne */ } }
+    // Le boot ne doit pas attendre le réseau : passé 4 s on débloque l'UI
+    // (`ready`) — mais on n'ABANDONNE pas la session pour autant. /auth/me peut
+    // dépasser le délai au premier chargement (le serveur est occupé à servir
+    // /api/cards) : la réponse tardive est appliquée quand elle arrive, sinon
+    // une session valide se dégradait en invité et l'écran Amis affichait
+    // « Connecte-toi » (idem Profil).
+    const pending: Promise<AuthUser | null> = ((AuthClient as any).me() as Promise<AuthUser | null>)
+      .catch(() => null);
+    const TIMED_OUT = Symbol('timeout');
+    const raced = await Promise.race([
+      pending,
+      new Promise<typeof TIMED_OUT>((resolve) => setTimeout(() => resolve(TIMED_OUT), 4000)),
+    ]);
+
+    if (raced !== TIMED_OUT) {
+      set({ user: raced ?? null, ready: true });
+      if (raced) { try { await (DeckRepository as any).pull(); } catch { /* hors-ligne */ } }
+      return;
+    }
+
+    set({ ready: true });
+    const late = await pending;
+    // Ne pas écraser un login/logout survenu entre-temps.
+    if (!late || get().user) return;
+    set({ user: late });
+    try { await (DeckRepository as any).pull(); } catch { /* hors-ligne */ }
   },
 
   onAuthenticated: async (user) => {

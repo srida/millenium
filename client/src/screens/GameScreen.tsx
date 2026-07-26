@@ -16,8 +16,7 @@ import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import { Banner } from '../components/ui/primitives.js';
-
-const PREP_DURATION = 60;
+import { PREP_DURATION_S } from '../game/timings.js';
 
 export default function GameScreen() {
   const [controller, setControllerLocal] = useState<GameController | null>(null);
@@ -67,11 +66,11 @@ export default function GameScreen() {
 function PrepTimer({ controller }: { controller: GameController }) {
   const round = useGameStore(s => s.round);
   const applySnapshot = useGameStore(s => s.applySnapshot);
-  const remaining = useRef(PREP_DURATION);
+  const remaining = useRef(PREP_DURATION_S);
 
   useEffect(() => {
-    remaining.current = PREP_DURATION;
-    applySnapshot({ prepRemaining: PREP_DURATION });
+    remaining.current = PREP_DURATION_S;
+    applySnapshot({ prepRemaining: PREP_DURATION_S });
     const t = setInterval(() => {
       const s = useGameStore.getState();
       const prepActive = s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.gameOver;

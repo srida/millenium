@@ -60,6 +60,18 @@ export const CELL = 1;
 export const CARD_PX = 90;
 export const CSS_SCALE = CELL / CARD_PX;
 export const FOV = 40;
+// Cadrage de la phase de préparation : marge horizontale (en cases) laissée autour
+// des 5 colonnes, et position verticale du centre du bloc joueur (fraction de la
+// hauteur d'écran, 0 = haut) pour dégager le HUD au-dessus et la main en dessous.
+export const PREP_COL_MARGIN = 0.5;
+export const PREP_FOCUS_Y = 0.4;
+// Mode web : la main et les neutralisées passent en rails verticaux à deux
+// colonnes sur les côtés (bas d'écran libéré) — le bloc joueur se recentre et
+// gagne en hauteur, mais le cadrage doit réserver la largeur des rails. Doit
+// rester synchronisé avec la largeur `w-52` de HandBar / GraveyardTray.
+export const WEB_RAIL_PX = 208;
+export const PREP_ROW_MARGIN_WEB = 0.8;
+export const PREP_ROW_MARGIN = 1.5;
 // CSS3DObject scales the unit-card DOM by CSS_SCALE, so a screen-visible Npx ring
 // must be specified as N / CSS_SCALE in the element's own (pre-scale) box-shadow.
 export const HIGHLIGHT_RING_PX = 4 / CSS_SCALE;

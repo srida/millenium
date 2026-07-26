@@ -2,16 +2,20 @@
 // puce → tooltip d'attribut.
 import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
+import { useWebLayout } from '../system/useWebLayout.js';
 import { getAttribute } from '../../data/AttributeDatabase.js';
 
 export default function SynergyPanel() {
   const synergies = useGameStore(s => s.synergies);
   const combatActive = useGameStore(s => s.combatActive);
   const showTooltip = useUiStore(s => s.showTooltip);
+  const web = useWebLayout();
   if (combatActive || synergies.length === 0) return null;
 
   return (
-    <div className="pointer-events-auto absolute left-2 top-14 z-20 flex max-w-[42%] flex-wrap gap-1">
+    // En mode web, la main occupe le rail de gauche : les puces se décalent juste
+    // à sa droite.
+    <div className={`pointer-events-auto absolute top-14 z-20 flex max-w-[42%] flex-wrap gap-1 ${web ? 'left-54' : 'left-2'}`}>
       {synergies.map(s => {
         const active = !!s.activeThreshold;
         const label = s.nextThreshold ? `${s.count}/${s.nextThreshold.count}` : `${s.count}`;

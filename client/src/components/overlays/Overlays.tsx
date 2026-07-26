@@ -1,9 +1,10 @@
 // Overlays de la partie : menu d'options d'invocation, résultat de round,
 // fin de partie. La Phase Shopping vit dans components/shopping/.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { Button, Modal } from '../ui/primitives.js';
+import { END_ROUND_DURATION_S } from '../../game/timings.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
 
 export function SummonOptionMenu() {
@@ -38,11 +39,15 @@ export function EndRoundOverlay() {
   const round = useGameStore(s => s.round);
   const playerHp = useGameStore(s => s.playerHp);
   const enemyHp = useGameStore(s => s.enemyHp);
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(END_ROUND_DURATION_S);
+  // Un seul passage automatique par overlay : sans ce verrou, le 0 laissé par le
+  // round précédent est encore l'état courant au premier rendu du round suivant
+  // et l'effet ci-dessous congédiait l'overlay instantanément.
+  const dismissed = useRef(false);
 
   useEffect(() => {
-    if (!endRound) return;
-    setCountdown(30);
+    if (!endRound) { dismissed.current = false; setCountdown(END_ROUND_DURATION_S); return; }
+    setCountdown(END_ROUND_DURATION_S);
     const t = setInterval(() => {
       setCountdown(c => (c <= 1 ? 0 : c - 1));
     }, 1000);
@@ -52,7 +57,9 @@ export function EndRoundOverlay() {
   // Déclenche le passage à la suite quand le compte à rebours atteint 0 —
   // hors du render (effet séparé) pour ne pas setState pendant le rendu.
   useEffect(() => {
-    if (endRound && countdown === 0) controller?.dismissEndRound();
+    if (!endRound || countdown > 0 || dismissed.current) return;
+    dismissed.current = true;
+    controller?.dismissEndRound();
   }, [countdown, endRound, controller]);
 
   if (!endRound || !controller) return null;

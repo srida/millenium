@@ -15,6 +15,7 @@ import {
 } from '../logic/Tournament.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from '../components/ui/primitives.js';
+import DeckPicker from '../components/deck/DeckPicker.js';
 
 const ROUND_LABELS = ['Quarts de finale', 'Demi-finales', 'Finale'];
 
@@ -23,10 +24,15 @@ export default function TournamentScreen() {
   const [ready, setReady] = useState(false);
   const [tournament, setTournament] = useState<any>(null);
   const [, bump] = useState(0);
+  // Deck engagé dans le tournoi : initialisé sur le deck actif, choisi
+  // explicitement avant le lancement (le bracket est bâti dessus, il ne change
+  // plus une fois le tournoi démarré).
+  const [deckName, setDeckName] = useState<string | null>(
+    () => ((DeckRepository as any).getActiveDeck?.() as string | null) ?? null,
+  );
 
   useEffect(() => { (PublicDeckDatabase as any).init().then(() => setReady(true)); }, []);
 
-  const deckName = (DeckRepository as any).getActiveDeck?.() as string | null;
   const playerDeck = deckName ? (DeckRepository as any).loadDeck(deckName) : null;
   const deps = { attributeList: (AttributeDatabase as any).getAllAttributes(), cardDb: CardDatabase };
 
@@ -42,8 +48,9 @@ export default function TournamentScreen() {
   }
 
   function start() {
+    if (!deckName || !playerDeck) return;
     const publicDecks = ((PublicDeckDatabase as any).getAllDecks() as any[]).map(d => ({ name: d.name, deck: d.deck }));
-    const t = createTournament(deckName!, { playerDeck, publicDecks });
+    const t = createTournament(deckName, { playerDeck, publicDecks });
     resolveCurrentRound(t);
     setTournament(t);
   }
@@ -57,16 +64,6 @@ export default function TournamentScreen() {
 
   if (!ready) return <Center><span className="text-gold">Chargement…</span></Center>;
 
-  if (!playerDeck) {
-    return (
-      <Center>
-        <p className="text-sm text-white/60">Sélectionne un deck actif pour entrer en tournoi.</p>
-        <Button variant="primary" onPointerDown={() => navigate('deck_selector')}>Choisir un deck</Button>
-        <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-      </Center>
-    );
-  }
-
   const complete = tournament && isTournamentComplete(tournament);
   const champion = tournament && getChampion(tournament);
   const eliminated = tournament && isPlayerEliminated(tournament);
@@ -76,15 +73,25 @@ export default function TournamentScreen() {
       <header className="flex items-center gap-3 border-b border-line px-4 py-3">
         <Button className="px-3" onPointerDown={() => navigate('main_menu')}>◂</Button>
         <h1 className="text-lg font-bold tracking-wide">Tournoi</h1>
-        <span className="ml-auto text-xs text-white/40">deck : {deckName}</span>
+        <span className="ml-auto truncate text-xs text-white/40">deck : {deckName ?? '—'}</span>
       </header>
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {!tournament ? (
-          <div className="flex flex-col items-center gap-3 py-10 text-center">
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
             <div className="text-4xl">🏆</div>
             <p className="max-w-xs text-sm text-white/60">8 joueurs (toi + 7 IA sur decks publics), élimination directe, chaque match en Bo5 simulé.</p>
-            <Button variant="primary" className="px-6 py-3" onPointerDown={start}>Lancer le tournoi</Button>
+            <div className="w-full max-w-sm text-left">
+              <DeckPicker
+                value={deckName}
+                onChange={setDeckName}
+                emptyHint="Crée un deck pour entrer en tournoi."
+              />
+            </div>
+            <Button variant="primary" disabled={!playerDeck} className="px-6 py-3" onPointerDown={start}>
+              Lancer le tournoi
+            </Button>
+            {!playerDeck && <p className="text-xs text-white/40">Choisis un deck pour lancer le tournoi.</p>}
           </div>
         ) : (
           <>

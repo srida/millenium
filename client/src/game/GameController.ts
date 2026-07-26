@@ -12,6 +12,7 @@ import type { Card, Position, Magie } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
 import { useGameStore, type GameSnapshot, type HandEntry } from '../stores/gameStore.js';
 import { useUiStore, type TooltipAnchor } from '../stores/uiStore.js';
+import { PREP_DURATION_S, COMBAT_DURATION_S, combatSecondsLeft } from './timings.js';
 
 interface SummonOptionMenu {
   card: Card;
@@ -38,7 +39,7 @@ export class GameController {
   combatSpeed = 2;
   protected paused = false;
   private _errorTimer: ReturnType<typeof setTimeout> | null = null;
-  protected _combatRemaining = 60;
+  protected _combatRemaining = COMBAT_DURATION_S;
 
   constructor(session: GameSession) {
     this.session = session;
@@ -57,7 +58,16 @@ export class GameController {
     this.session.startPreparation();
     this._clearSelection();
     this.scene?.refresh();
-    this.sync();
+    this.sync(this._freshPhaseClocks());
+  }
+
+  // Chronos remis à neuf en même temps que la phase de préparation : le
+  // décompte lui-même vit dans React, mais la valeur affichée doit être juste
+  // dès le premier rendu du nouveau round (sinon le HUD montre brièvement le
+  // reliquat du round précédent — « Fin prépa 0:00 »).
+  protected _freshPhaseClocks(): Partial<GameSnapshot> {
+    this._combatRemaining = COMBAT_DURATION_S;
+    return { prepRemaining: PREP_DURATION_S, combatRemaining: COMBAT_DURATION_S };
   }
 
   // ── Sélection de carte en main ──────────────────────────────────────────
@@ -267,10 +277,10 @@ export class GameController {
     // l'air libres.
     this.scene?.setBlockedCells(boardData?.blocked_cells ?? []);
     this.scene?.enterCombatMode();
-    this._combatRemaining = 60;
+    this._combatRemaining = COMBAT_DURATION_S;
     const animator = new CombatAnimator3D(combat, this.scene as any, {
       onStep: () => {
-        this._combatRemaining = Math.ceil(60 * combat.remainingTicks() / 333);
+        this._combatRemaining = combatSecondsLeft(combat.remainingTicks());
         this.sync({ combatActive: true, combatRemaining: this._combatRemaining });
       },
       onFinished: () => this._onCombatFinished(),
@@ -278,7 +288,9 @@ export class GameController {
     animator.setSpeed(this.combatSpeed);
     this.animator = animator;
     this.paused = false;
-    this.sync({ combatActive: true, boardTerrain: boardData });
+    // combatRemaining doit repartir de 60 dès l'entrée en combat : sans ça le
+    // HUD affiche la valeur finale du combat précédent jusqu'au premier tick.
+    this.sync({ combatActive: true, combatRemaining: this._combatRemaining, boardTerrain: boardData });
     animator.start();
   }
 
@@ -392,7 +404,7 @@ export class GameController {
       return;
     }
     this.scene?.refresh();
-    this.sync({ shopping: null, endRound: null });
+    this.sync({ shopping: null, endRound: null, ...this._freshPhaseClocks() });
   }
 
   // ── Timer de préparation (piloté par GameScreen) ─────────────────────────
