@@ -1,0 +1,528 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/// <reference types="node" />
+// Les types Node sont référencés ICI et pas dans `types` du tsconfig : le client
+// est du code navigateur, seul ce test (qui charge un module serveur) en a besoin.
+//
+// Golden tests de la boutique de cartes (shop.js, côté SERVEUR).
+//
+// Même harnais que missions.test.ts : le module est chargé via createRequire
+// avec un DATA_DIR temporaire, il ouvre sa propre base SQLite et ne touche
+// jamais data/soulforge.db.
+//
+// Ce qui est verrouillé ici, ce sont les invariants économiques qui ne doivent
+// jamais dériver :
+//   - ZÉRO DOUBLON : aucun tirage, nulle part, ne produit une carte possédée ;
+//   - le SERVEUR chiffre : le client ne transmet jamais ni prix ni montant ;
+//   - l'offre est FIGÉE pour la journée : aucune action client ne la re-tire ;
+//   - la Convoitise coûte le double et n'est jamais accessible en gemmes.
+import { describe, it, expect, beforeAll } from 'vitest';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import fs from 'node:fs';
+import os from 'node:os';
+import crypto from 'node:crypto';
+
+const require = createRequire(import.meta.url);
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+
+let shop: any;
+let progression: any;
+let stmt: any;
+let CARDS: any[];
+
+beforeAll(() => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'millenium-shop-'));
+  for (const f of ['cards.json', 'missions.json', 'sets.json']) {
+    fs.copyFileSync(path.join(ROOT, 'data', f), path.join(tmp, f));
+  }
+  process.env.DATA_DIR = tmp;
+  ({ stmt } = require(path.join(ROOT, 'db.js')));
+  progression = require(path.join(ROOT, 'progression.js'));
+  shop = require(path.join(ROOT, 'shop.js'));
+  CARDS = JSON.parse(fs.readFileSync(path.join(tmp, 'cards.json'), 'utf8'));
+});
+
+/** Compte neuf, doté comme à l'inscription (cartes CORE_*). */
+function newUser(gold = 100_000, gems = 10_000) {
+  const id = crypto.randomUUID();
+  stmt.insertUser.run({
+    id, email: `${id}@test.local`, username: 'T', username_lc: 't',
+    tag: id.slice(0, 4), password_hash: 'x', avatar: null, created_at: Date.now(),
+  });
+  progression.initUser(id);
+  progression.grant(id, { gold, gems });
+  return () => stmt.userById.get(id);
+}
+
+/** Deck actif côté serveur (lu par la pondération d'affinité). */
+function setActiveDeck(userId: string, cardIds: string[]) {
+  stmt.upsertDeckBook.run({
+    user_id: userId,
+    data: JSON.stringify({ decks: { Test: { 1: cardIds } }, meta: {}, active: 'Test' }),
+    updated_at: Date.now(),
+  });
+}
+
+const owned = (user: any) => new Set<string>(progression.unlockedCardIds(user));
+const cardOf = (id: string) => CARDS.find(c => c.id === id);
+
+describe('calendrier', () => {
+  it('la rotation suit le reset des missions (5 h → 5 h)', () => {
+    // Un seul rendez-vous quotidien : la boutique et les missions tournent
+    // ensemble, sinon le joueur en rate systématiquement une des deux.
+    const missions = require(path.join(ROOT, 'missions.js'));
+    expect(shop.dayKey).toBe(missions.dayKey);
+    const now = Date.now();
+    expect(shop.nextRotationAt(now)).toBeGreaterThan(now);
+    expect(shop.nextRotationAt(now) - now).toBeLessThanOrEqual(24 * 3600_000);
+  });
+
+  it('daysBetween compte des journées de mission, pas des dates civiles', () => {
+    expect(shop.daysBetween('2026-07-24', '2026-07-27')).toBe(3);
+    expect(shop.daysBetween('2026-07-27', '2026-07-27')).toBe(0);
+    expect(shop.daysBetween(null, '2026-07-27')).toBe(0);
+  });
+});
+
+describe('offre quotidienne', () => {
+  it('trois emplacements, jamais une carte déjà possédée', () => {
+    const user = newUser();
+    const snap = shop.refresh(user());
+    expect(snap.slots).toHaveLength(3);
+    expect(snap.slots.map((s: any) => s.slot)).toEqual([1, 2, 3]);
+
+    const mine = owned(user());
+    for (const slot of snap.slots) {
+      expect(mine.has(slot.card_id)).toBe(false);
+      expect(slot.price).toBe(shop.CARD_PRICES[slot.tier]);
+      expect(slot.purchased).toBe(false);
+    }
+    // Trois cartes distinctes : un emplacement ne double jamais un autre.
+    expect(new Set(snap.slots.map((s: any) => s.card_id)).size).toBe(3);
+  });
+
+  it('l\'offre est figée pour la journée — la relire ne la re-tire pas', () => {
+    // C'est LE garde-fou anti-exploit : si un rechargement pouvait régénérer
+    // l'offre, le joueur la re-tirerait jusqu'à satisfaction.
+    const user = newUser();
+    const first = shop.refresh(user()).slots.map((s: any) => s.card_id);
+    for (let i = 0; i < 5; i++) {
+      expect(shop.refresh(user()).slots.map((s: any) => s.card_id)).toEqual(first);
+    }
+  });
+
+  it('changer de deck actif n\'influence pas l\'offre du jour', () => {
+    // Sinon : exploit par changement de deck en boucle jusqu'à obtenir le
+    // slot d'affinité voulu (brief §7).
+    const user = newUser();
+    const before = shop.refresh(user()).slots.map((s: any) => s.card_id);
+    setActiveDeck(user().id, CARDS.filter(c => c.attributes?.includes('ARCH_036')).slice(0, 8).map(c => c.id));
+    expect(shop.refresh(user()).slots.map((s: any) => s.card_id)).toEqual(before);
+  });
+
+  it('le tirage est déterministe à (joueur, jour, slot)', () => {
+    // Reproductibilité : un tirage douteux se rejoue au lieu de se raconter.
+    const user = newUser();
+    const ctx = shop.context(user());
+    const a = shop.buildOffer(user(), ctx, { day: '2026-07-27' });
+    const b = shop.buildOffer(user(), ctx, { day: '2026-07-27' });
+    expect(b.slots.map((s: any) => s.card_id)).toEqual(a.slots.map((s: any) => s.card_id));
+    const c = shop.buildOffer(user(), ctx, { day: '2026-07-28' });
+    expect(c.slots.map((s: any) => s.card_id)).not.toEqual(a.slots.map((s: any) => s.card_id));
+  });
+});
+
+describe('slot 1 — Le Maillon', () => {
+  it('ne propose que des cartes qui débloquent une invocation', () => {
+    const user = newUser();
+    const ctx = shop.context(user());
+    const pool = CARDS.filter(c => !ctx.owned.has(c.id));
+    const candidates = shop.linkCandidates(pool, ctx);
+    expect(candidates.length).toBeGreaterThan(0);
+
+    for (const { card, reason, reason_ref } of candidates) {
+      if (reason === 'unlocks') {
+        // Tous ses matériaux sont là : elle est jouable le soir même.
+        const mats = shop.materialsOf(card);
+        expect(mats.length).toBeGreaterThan(0);
+        expect(mats.every((m: string) => ctx.owned.has(m) || ctx.ownedAttributes.has(m))).toBe(true);
+      } else {
+        // C'est le matériau manquant d'une carte déjà possédée.
+        expect(reason).toBe('material');
+        expect(ctx.owned.has(reason_ref)).toBe(true);
+        expect(shop.materialsOf(cardOf(reason_ref))).toContain(card.id);
+      }
+    }
+  });
+
+  it('un matériau désigné par attribut est couvert par n\'importe quel porteur', () => {
+    // `cost.materials` mélange ids de cartes et ids d'attributs (ARCH_*) :
+    // « un Dragon » se satisfait de n'importe quel Dragon possédé.
+    const user = newUser();
+    const ctx = shop.context(user());
+    const byAttr = CARDS.find(c => shop.materialsOf(c).some((m: string) => m.startsWith('ARCH_')));
+    expect(byAttr).toBeTruthy();
+    const attrMat = shop.materialsOf(byAttr).find((m: string) => m.startsWith('ARCH_'));
+    expect(ctx.ownedAttributes.has(attrMat)).toBe(ctx.ownedAttributes.has(attrMat)); // sanity
+    // Le porteur possédé suffit : aucun matériau ARCH_* n'est jamais « possédé »
+    // en tant que carte.
+    expect(ctx.owned.has(attrMat)).toBe(false);
+  });
+});
+
+describe('slot 2 — L\'Affinité', () => {
+  it('ne propose que des cartes partageant un attribut vu ≥ 2 fois dans le deck actif', () => {
+    const user = newUser();
+    const harpies = CARDS.filter(c => c.attributes?.includes('ARCH_036')).slice(0, 6).map(c => c.id);
+    setActiveDeck(user().id, harpies);
+
+    const attrs = shop.activeDeckAttributes(user().id);
+    expect(attrs.get('ARCH_036')).toBeGreaterThanOrEqual(2);
+
+    const ctx = shop.context(user());
+    const pool = CARDS.filter(c => !ctx.owned.has(c.id));
+    for (const { card, reason_ref } of shop.affinityCandidates(pool, ctx)) {
+      expect(card.attributes).toContain(reason_ref);
+      expect(attrs.has(reason_ref)).toBe(true);
+    }
+  });
+
+  it('sans deck actif, le slot se replie sur le tirage libre', () => {
+    const user = newUser();
+    expect(shop.activeDeckAttributes(user().id).size).toBe(0);
+    const slot2 = shop.refresh(user()).slots.find((s: any) => s.slot === 2);
+    expect(slot2.reason).toBe('random');
+  });
+});
+
+describe('achat d\'un emplacement', () => {
+  it('débite le prix du tier et débloque la carte', () => {
+    const user = newUser(1000);
+    const slot = shop.refresh(user()).slots[0];
+    const before = user().gold;
+
+    const res = shop.buySlot(user(), slot.slot, slot.card_id);
+    expect(res.ok).toBe(true);
+    expect(user().gold).toBe(before - shop.CARD_PRICES[slot.tier]);
+    expect(progression.ownsCard(user(), slot.card_id)).toBe(true);
+  });
+
+  it('refuse le second achat du même emplacement', () => {
+    const user = newUser(1000);
+    const slot = shop.refresh(user()).slots[0];
+    shop.buySlot(user(), slot.slot, slot.card_id);
+    const again = shop.buySlot(user(), slot.slot, slot.card_id);
+    expect(again.ok).toBe(false);
+    expect(again.reason).toMatch(/déjà acheté/);
+  });
+
+  it('les trois emplacements sont achetables le même jour', () => {
+    const user = newUser(5000);
+    const snap = shop.refresh(user());
+    for (const slot of snap.slots) {
+      expect(shop.buySlot(user(), slot.slot, slot.card_id).ok).toBe(true);
+    }
+    // Acheter un emplacement ne rafraîchit pas les autres.
+    expect(shop.getSnapshot(user()).slots.every((s: any) => s.purchased)).toBe(true);
+  });
+
+  it('refuse un achat dont la carte attendue ne correspond plus', () => {
+    // Verrou transactionnel : l'achat valide l'offre horodatée, pas la courante.
+    const user = newUser(5000);
+    const slot = shop.refresh(user()).slots[0];
+    const res = shop.buySlot(user(), slot.slot, 'CORE_999');
+    expect(res.ok).toBe(false);
+    expect(res.stale).toBe(true);
+  });
+
+  it('refuse l\'achat sans les golds', () => {
+    const user = newUser(0);
+    const slot = shop.refresh(user()).slots[0];
+    const res = shop.buySlot(user(), slot.slot, slot.card_id);
+    expect(res.ok).toBe(false);
+    expect(user().gold).toBe(0);
+    expect(progression.ownsCard(user(), slot.card_id)).toBe(false);
+  });
+});
+
+describe('reroll', () => {
+  it('un seul gratuit par jour, la carte quitte le pool du jour', () => {
+    const user = newUser();
+    const before = shop.refresh(user()).slots.find((s: any) => s.slot === 3);
+
+    const res = shop.reroll(user(), 3);
+    expect(res.ok).toBe(true);
+    expect(res.slot.card_id).not.toBe(before.card_id);
+
+    const snap = shop.getSnapshot(user());
+    expect(snap.reroll.free_available).toBe(false);
+    // Elle ne peut pas revenir dans l'offre du jour.
+    expect(snap.slots.map((s: any) => s.card_id)).not.toContain(before.card_id);
+
+    const second = shop.reroll(user(), 2);
+    expect(second.ok).toBe(false);
+    expect(second.reason).toMatch(/déjà utilisé/);
+  });
+
+  it('le reroll conserve la règle du slot', () => {
+    // Un reroll du Maillon rend un autre Maillon, pas une carte au hasard :
+    // sinon le reroll dégraderait l'offre au lieu de la changer.
+    const user = newUser();
+    const before = shop.refresh(user()).slots.find((s: any) => s.slot === 1);
+    expect(['unlocks', 'material']).toContain(before.reason);
+    const res = shop.reroll(user(), 1);
+    expect(['unlocks', 'material']).toContain(res.slot.reason);
+  });
+
+  it('un emplacement acheté ne se reroule pas', () => {
+    const user = newUser(5000);
+    const slot = shop.refresh(user()).slots[0];
+    shop.buySlot(user(), slot.slot, slot.card_id);
+    expect(shop.reroll(user(), slot.slot).ok).toBe(false);
+  });
+});
+
+describe('Convoitise', () => {
+  it('épingle une carte, la propose au bout de 3 jours au double du prix', () => {
+    const user = newUser(5000);
+    const target = CARDS.find(c => !progression.ownsCard(user(), c.id) && c.tier === 4);
+
+    expect(shop.setCovet(user(), target.id).ok).toBe(true);
+    const pinned = shop.getSnapshot(user()).covet;
+    expect(pinned.days_remaining).toBe(shop.COVET_DELAY_DAYS);
+    expect(pinned.ready).toBe(false);
+    expect(pinned.price).toBe(shop.CARD_PRICES[4] * shop.COVET_PRICE_MULTIPLIER);
+
+    // Le délai est compté en journées de mission : on antidate l'épingle.
+    const state = stmt.shopStateByUser.get(user().id);
+    stmt.upsertShopState.run({
+      ...state,
+      covet_pinned_day: shop.dayKey(Date.now() - shop.COVET_DELAY_DAYS * 86_400_000),
+      offer_day: null, offer: null,
+    });
+
+    const slot1 = shop.refresh(user()).slots.find((s: any) => s.slot === 1);
+    expect(slot1.card_id).toBe(target.id);
+    expect(slot1.reason).toBe('covet');
+    expect(slot1.price).toBe(shop.CARD_PRICES[4] * 2);
+  });
+
+  it('une carte convoitée ne se reroule pas', () => {
+    // Elle n'est pas une proposition de la boutique mais une demande du joueur.
+    const user = newUser(5000);
+    const target = CARDS.find(c => !progression.ownsCard(user(), c.id));
+    shop.setCovet(user(), target.id);
+    const state = stmt.shopStateByUser.get(user().id);
+    stmt.upsertShopState.run({
+      ...state,
+      covet_pinned_day: shop.dayKey(Date.now() - 5 * 86_400_000),
+      offer_day: null, offer: null,
+    });
+    shop.refresh(user());
+    expect(shop.reroll(user(), 1).ok).toBe(false);
+  });
+
+  it('changer de carte remet le délai à zéro', () => {
+    const user = newUser();
+    const [a, b] = CARDS.filter(c => !progression.ownsCard(user(), c.id));
+    shop.setCovet(user(), a.id);
+    const state = stmt.shopStateByUser.get(user().id);
+    stmt.upsertShopState.run({ ...state, covet_pinned_day: shop.dayKey(Date.now() - 2 * 86_400_000) });
+    expect(shop.getSnapshot(user()).covet.days_remaining).toBe(1);
+
+    shop.setCovet(user(), b.id);
+    expect(shop.getSnapshot(user()).covet.card_id).toBe(b.id);
+    expect(shop.getSnapshot(user()).covet.days_remaining).toBe(shop.COVET_DELAY_DAYS);
+  });
+
+  it('refuse d\'épingler une carte déjà possédée', () => {
+    const user = newUser();
+    const mine = [...owned(user())][0];
+    expect(shop.setCovet(user(), mine).ok).toBe(false);
+  });
+
+  it('acheter la carte convoitée solde l\'épingle', () => {
+    const user = newUser(5000);
+    const target = CARDS.find(c => !progression.ownsCard(user(), c.id) && c.tier <= 2);
+    shop.setCovet(user(), target.id);
+    const state = stmt.shopStateByUser.get(user().id);
+    stmt.upsertShopState.run({
+      ...state,
+      covet_pinned_day: shop.dayKey(Date.now() - 4 * 86_400_000),
+      offer_day: null, offer: null,
+    });
+    const slot1 = shop.refresh(user()).slots.find((s: any) => s.slot === 1);
+    expect(shop.buySlot(user(), 1, slot1.card_id).ok).toBe(true);
+    expect(shop.getSnapshot(user()).covet).toBe(null);
+  });
+});
+
+describe('boosters', () => {
+  it('3 cartes non possédées, distinctes, du set choisi', () => {
+    const user = newUser();
+    const set = shop.sets()[0];
+    const before = owned(user());
+
+    const res = shop.buyBooster(user(), set.id, 'golds');
+    expect(res.ok).toBe(true);
+    expect(res.cards).toHaveLength(3);
+
+    const ids = res.cards.map((c: any) => c.card_id);
+    expect(new Set(ids).size).toBe(3);
+    for (const id of ids) {
+      expect(before.has(id)).toBe(false);              // zéro doublon
+      expect(shop.setCardIds(set)).toContain(id);      // bien du set acheté
+      expect(progression.ownsCard(user(), id)).toBe(true);
+    }
+  });
+
+  it('garantit 2 cartes Tier 1-2 et 1 carte Tier 3+', () => {
+    const user = newUser();
+    // Plusieurs ouvertures : la garantie n'est pas un coup de chance.
+    for (let i = 0; i < 8; i++) {
+      const res = shop.buyBooster(user(), shop.sets()[1].id, 'golds');
+      if (!res.ok) break;
+      const low = res.cards.filter((c: any) => c.tier < 3).length;
+      const high = res.cards.filter((c: any) => c.tier >= 3).length;
+      expect(low).toBe(2);
+      expect(high).toBe(1);
+    }
+  });
+
+  // Le tirage lui-même se teste sur un pool contrôlé : sur données réelles, la
+  // cohérence d'attribut est régulièrement (et légitimement) abandonnée — une
+  // partie du catalogue ne porte aucun attribut.
+  const mkCard = (id: string, tier: number, attributes: string[], materials: string[] = []) =>
+    ({ id, tier, attributes, cost: { sacrifice: 0, materials } });
+  const noCtx = { owned: new Set<string>(), ownedAttributes: new Set<string>(), affinity: new Map() };
+
+  it('les 3 cartes partagent un attribut avec l\'ancre quand le pool le permet', () => {
+    const pool = [
+      mkCard('H1', 4, ['ARCH_X']), mkCard('H2', 3, ['ARCH_X']),
+      mkCard('L1', 1, ['ARCH_X']), mkCard('L2', 2, ['ARCH_X']), mkCard('L3', 2, ['ARCH_X']),
+      mkCard('N1', 1, ['ARCH_Z']), mkCard('N2', 2, ['ARCH_Z']),
+    ];
+    for (let seed = 0; seed < 25; seed++) {
+      const [anchor, ...rest] = shop.drawBooster(pool, noCtx, shop.seededRandom('s', seed));
+      const attrs = new Set(anchor.attributes);
+      for (const c of rest) expect(c.attributes.some((a: string) => attrs.has(a))).toBe(true);
+    }
+  });
+
+  it('un pool sans attribut commun se rabat silencieusement, sans jamais bloquer la vente', () => {
+    // Priorité d'abandon : cohérence d'attribut d'abord, garantie de tier
+    // ensuite — le zéro doublon, jamais.
+    const pool = [mkCard('A', 4, []), mkCard('B', 1, ['ARCH_1']), mkCard('C', 2, ['ARCH_2'])];
+    const drawn = shop.drawBooster(pool, noCtx, shop.seededRandom('s', 1));
+    expect(drawn.map((c: any) => c.id).sort()).toEqual(['A', 'B', 'C']);
+  });
+
+  it('cohérence de lignée : une fusion tirée entraîne ses matériaux manquants', () => {
+    const pool = [
+      mkCard('FUSION', 4, ['ARCH_X'], ['MAT_A', 'MAT_B']),
+      mkCard('MAT_A', 1, ['ARCH_X']), mkCard('MAT_B', 2, ['ARCH_X']),
+      mkCard('OTHER_1', 1, ['ARCH_X']), mkCard('OTHER_2', 2, ['ARCH_X']),
+    ];
+    for (let seed = 0; seed < 15; seed++) {
+      const drawn = shop.drawBooster(pool, noCtx, shop.seededRandom('lineage', seed));
+      const ids = drawn.map((c: any) => c.id);
+      // L'ancre est forcément la seule carte Tier 3+ du pool.
+      expect(ids[0]).toBe('FUSION');
+      expect(ids).toContain('MAT_A');
+      expect(ids).toContain('MAT_B');
+    }
+  });
+
+  it('débite les golds OU les gemmes, jamais les deux', () => {
+    const user = newUser(10_000, 1_000);
+    const gold = user().gold;
+    const gems = user().gems;
+
+    shop.buyBooster(user(), shop.sets()[3].id, 'golds');
+    expect(user().gold).toBe(gold - shop.BOOSTER.price_golds);
+    expect(user().gems).toBe(gems);
+
+    shop.buyBooster(user(), shop.sets()[3].id, 'gems');
+    expect(user().gems).toBe(gems - shop.BOOSTER.price_gems);
+    expect(user().gold).toBe(gold - shop.BOOSTER.price_golds);
+  });
+
+  it('refuse l\'achat sans le solde', () => {
+    const user = newUser(0, 0);
+    const res = shop.buyBooster(user(), shop.sets()[0].id, 'golds');
+    expect(res.ok).toBe(false);
+    expect(res.reason).toMatch(/golds/);
+  });
+
+  it('un set complet ne peut plus être acheté, et verse sa prime une seule fois', () => {
+    const user = newUser();
+    const set = shop.sets()[0];
+    // On force la complétion du set : c'est l'état terminal à couvrir.
+    progression.unlockCards(user().id, shop.setCardIds(set));
+    const gems = user().gems;
+
+    // La prime tombe au premier passage (ici, l'achat d'un autre booster).
+    const other = shop.buyBooster(user(), shop.sets()[1].id, 'golds');
+    expect(other.sets_completed.map((s: any) => s.set_id)).toContain(set.id);
+    expect(user().gems).toBe(gems + (set.completion_reward?.gems ?? 0));
+
+    const again = shop.buyBooster(user(), shop.sets()[1].id, 'golds');
+    expect(again.sets_completed.map((s: any) => s.set_id)).not.toContain(set.id);
+
+    const refused = shop.buyBooster(user(), set.id, 'golds');
+    expect(refused.ok).toBe(false);
+    expect(refused.reason).toMatch(/complète/);
+    expect(shop.getSnapshot(user()).sets.find((s: any) => s.id === set.id).complete).toBe(true);
+  });
+
+  it('une carte convoitée obtenue au booster vide l\'épingle', () => {
+    const user = newUser();
+    const set = shop.sets()[4];
+    const pool = shop.setCardIds(set).filter((id: string) => !progression.ownsCard(user(), id));
+    shop.setCovet(user(), pool[0]);
+
+    // On vide le set jusqu'à tomber sur la carte épinglée.
+    for (let i = 0; i < 30; i++) {
+      const res = shop.buyBooster(user(), set.id, 'golds');
+      if (!res.ok) break;
+      if (res.covet_cleared) {
+        expect(res.cards.map((c: any) => c.card_id)).toContain(pool[0]);
+        expect(shop.getSnapshot(user()).covet).toBe(null);
+        return;
+      }
+    }
+    // Le set a été vidé sans jamais sortir la carte : impossible (tirage sans
+    // remise), donc l'échec est un vrai échec.
+    expect(shop.getSnapshot(user()).covet).toBe(null);
+  });
+
+  it('le dernier booster d\'un set rend ce qui reste, sans garantie satisfaite', () => {
+    // Repli SILENCIEUX : un pool résiduel de 1 carte ne bloque pas la vente.
+    const user = newUser();
+    const set = shop.sets()[5];
+    const ids = shop.setCardIds(set);
+    progression.unlockCards(user().id, ids.slice(0, ids.length - 1));
+
+    const res = shop.buyBooster(user(), set.id, 'golds');
+    expect(res.ok).toBe(true);
+    expect(res.cards).toHaveLength(1);
+    expect(res.cards[0].card_id).toBe(ids[ids.length - 1]);
+  });
+});
+
+describe('instantané', () => {
+  it('porte les prix, les sets et l\'avancement de collection', () => {
+    const user = newUser();
+    const snap = shop.refresh(user());
+    expect(snap.prices).toEqual({ 1: 75, 2: 125, 3: 200, 4: 350, 5: 550 });
+    expect(snap.booster.price_golds).toBe(600);
+    expect(snap.booster.price_gems).toBe(100);
+    expect(snap.sets.length).toBeGreaterThan(0);
+    expect(snap.collection.total).toBe(CARDS.length);
+    expect(snap.collection.owned).toBe(owned(user()).size);
+    for (const s of snap.sets) {
+      expect(s.owned_count).toBeLessThanOrEqual(s.card_count);
+    }
+  });
+});

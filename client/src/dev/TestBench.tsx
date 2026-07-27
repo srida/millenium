@@ -16,6 +16,7 @@ import * as CardDatabase from '../data/CardDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as BoardDatabase from '../data/BoardDatabase.js';
 import type { Card, Position, BoardDef } from '../logic/types.js';
+import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import { useUiStore } from '../stores/uiStore.js';
 
 const SUMMON_TYPES = ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'];
@@ -258,10 +259,15 @@ export default function TestBench() {
               <button className={`w-full ${showTerrainInfo ? active : idle}`} onPointerDown={() => setShowTerrainInfo(v => !v)}>ℹ Terrain</button>
             )}
             {selectedBoard && showTerrainInfo && (
-              <div className="rounded-lg border border-line bg-surface-raised/60 p-2 text-[11px] text-white/70">
-                <div className="font-bold text-white">{selectedBoard.name}</div>
-                <div>{(selectedBoard as any).blocked_cells?.length ?? 0} cases bloquées</div>
-                <div>{selectedBoard.effect ? `Effet : ${(selectedBoard.effect as any).type}` : 'Aucun effet'}</div>
+              <div className="flex gap-2 rounded-lg border border-line bg-surface-raised/60 p-2 text-[11px] text-white/70">
+                {(selectedBoard as any)._has_illustration && (
+                  <img src={`/illustrations/${selectedBoard.id}`} alt="" className="h-12 w-12 flex-shrink-0 rounded-md object-cover" />
+                )}
+                <div className="min-w-0">
+                  <div className="font-bold text-white">{selectedBoard.name}</div>
+                  <div>{(selectedBoard as any).blocked_cells?.length ?? 0} cases bloquées</div>
+                  <div>{selectedBoard.effect ? `Effet : ${(selectedBoard.effect as any).type}` : 'Aucun effet'}</div>
+                </div>
               </div>
             )}
             <input
@@ -279,15 +285,11 @@ export default function TestBench() {
           </div>
           <div className="grid min-h-0 flex-1 grid-cols-3 gap-1 overflow-y-auto p-2">
             {cards.map(c => (
-              <button
-                key={c.id}
-                onPointerDown={() => setSelectedCardId(c.id === selectedCardId ? null : c.id)}
-                className={`relative aspect-[5/7] overflow-hidden rounded border-2 ${c.id === selectedCardId ? 'border-gold' : 'border-line'}`}
-                title={c.name}
-              >
-                <img src={`/illustrations/${c.id}`} alt={c.name} className="pointer-events-none absolute inset-0 h-full w-full object-cover" loading="lazy" />
-                <span className="absolute left-0.5 top-0.5 rounded bg-black/70 px-0.5 text-[8px] font-bold">T{c.tier}</span>
-              </button>
+              <CardTile
+                key={c.id} {...cardTileProps(c)} size="h-auto w-full"
+                onTap={() => setSelectedCardId(c.id === selectedCardId ? null : c.id)}
+                highlight={c.id === selectedCardId ? 'selected' : 'none'}
+              />
             ))}
           </div>
         </aside>

@@ -24,7 +24,8 @@ export default function TooltipHost() {
     const a = tooltip.anchor;
     let left = a.left + a.width / 2 - w / 2;
     left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
-    const top = a.top - h - 8 > 0 ? a.top - h - 8 : a.bottom + 8;
+    let top = a.top - h - 8 > 0 ? a.top - h - 8 : a.bottom + 8;
+    top = Math.max(8, Math.min(top, window.innerHeight - h - 8));
     setPos({ left, top });
   }, [tooltip]);
 
@@ -76,6 +77,8 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
       ? { atk: data.atk, hp: data.current_hp, attack_speed: data.attack_speed, range: data.range, movement_speed: data.movement_speed }
       : { atk: data.stats.atk, hp: data.stats.hp, attack_speed: data.stats.attack_speed, range: data.stats.range, movement_speed: data.stats.movement_speed };
     const lineage = isUnit ? (data.represented_ids ?? []).filter((id: string) => id !== data.card_id) : [];
+    const shoppingBonus: Record<string, number> = isUnit ? (data._shopping_bonus ?? {}) : {};
+    const shoppingEntries = Object.entries(shoppingBonus).filter(([, v]) => v);
 
     return (
       <div>
@@ -96,6 +99,11 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
         {isUnit && data.shield > 0 && <div className="mt-1 text-[11px] text-gold">🛡 Bouclier : {data.shield}</div>}
         {lineage.length > 0 && (
           <div className="mt-1 text-[11px] text-player">🧬 {lineage.map((id: string) => (getCard as any)(id)?.name ?? id).join(', ')}</div>
+        )}
+        {shoppingEntries.length > 0 && (
+          <div className="mt-1 text-[11px] text-gold">
+            🛒 {shoppingEntries.map(([stat, value]) => `+${value} ${STAT_LABELS[stat] ?? stat}`).join(', ')}
+          </div>
         )}
         {isUnit && (data.veterancy_points ?? 0) >= 2 && (
           <div className="mt-1 text-[11px] text-gold">★ Vétéran ({data.veterancy_points})</div>
@@ -130,7 +138,12 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
   const b: any = content.board;
   return (
     <div>
-      <div className="text-sm font-bold">🗺️ {b.name}</div>
+      <div className="flex items-center gap-2">
+        {b._has_illustration && (
+          <img src={`/illustrations/${b.id}`} alt="" className="h-10 w-10 flex-shrink-0 rounded-md object-cover" />
+        )}
+        <div className="text-sm font-bold">🗺️ {b.name}</div>
+      </div>
       <div className="mt-1 text-[11px] text-white/60">{b.effect ? describeEffects([b.effect]) : 'Aucun effet'}</div>
     </div>
   );

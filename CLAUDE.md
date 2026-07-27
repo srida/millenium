@@ -83,8 +83,235 @@ Repo : `https://github.com/srida/Millenium`
 | `GET /api/friends`, `GET /api/friends/requests` | Connecté | Liste d'amis / demandes |
 | `POST /api/friends/request`, `POST /api/friends/:id/accept` \| `decline`, `DELETE /api/friends/:id` | Connecté | Gestion des amis |
 | `GET/PUT /api/me/decks` | Connecté | Synchro serveur des decks (`DeckRepository.pull` / `flushSync`) |
+| `GET /api/me/progression` | Connecté | Progression + collection (`{ level, xp, gold, gems, unlocked_count, unlocked_cards }`) |
+| `GET /api/me/missions` | Connecté | Missions du jour + jauge hebdomadaire (délivre les lots manquants) |
+| `POST /api/me/missions/events` | Connecté | Lot d'événements de partie (voir Missions quotidiennes) |
+| `POST /api/me/missions/:id/reroll` | Connecté | Reroll d'une mission |
+| `GET /api/me/shop` | Connecté | Boutique du jour (emplacements, Convoitise, sets) — génère l'offre au passage |
+| `POST /api/me/shop/buy` \| `reroll` \| `covet` \| `booster` | Connecté | Achat d'emplacement, reroll, épingle, ouverture de booster |
 
 Le PvP temps réel ne passe pas par HTTP : `ws/pvpServer.js` (matchmaking + relais opaque) sur `/ws`.
+
+---
+
+## Progression joueur (niveau, monnaies, collection)
+
+Stockée en base (`db.js`), règles dans **`progression.js`** (racine — le serveur, pas le client) :
+
+| Donnée | Colonne `users` | Défaut | Admin (`is_admin`) |
+|---|---|---|---|
+| Niveau | `level` | 1 | 100 |
+| Expérience | `xp` | 0 | inchangée |
+| Gold | `gold` | 0 | 9999 |
+| Gemmes | `gems` | 0 | 9999 |
+| Cartes débloquées | table `user_cards` | toutes les `CORE_*` (132) | **tout** le catalogue |
+
+**Courbe de niveau** : palier unique de `XP_PER_LEVEL = 100`. `users.xp` stocke la progression **dans le niveau** (0–99), pas un cumul de carrière — `grant()` absorbe le passage de palier (250 XP d'un coup = +2 niveaux et 50 de reste), et la jauge de l'UI va donc de 0 à 100 sans calcul côté client. Un débit d'XP ne fait jamais redescendre de niveau.
+
+**Barème des gains** (`progression.REWARDS`) :
+
+| Événement | Gain | Décerné par |
+|---|---|---|
+| `ai_win` — victoire solo contre l'IA | 10 | Client → `POST /api/me/progression/reward` (`GameScreen`) |
+| `tournament_win` — tournoi remporté | 50 | Client → même route (`tournamentStore.finishGame`, quand la finale est scellée) |
+| `pvp_win` — victoire sur un joueur en ligne | 70 | **Serveur** (`ws/MatchRelay.endMatch`), transmis dans `match:end` |
+
+- Le client envoie une **raison**, jamais un montant — sinon n'importe qui s'attribuerait le gain de son choix. `pvp_win` est refusé sur la route HTTP (`CLIENT_CLAIMABLE`) : le serveur est seul arbitre du vainqueur PvP (rapports croisés, forfait, timeout), il le décerne lui-même.
+- Limite assumée : solo et tournoi se déroulent **entièrement côté client**, le serveur ne peut que croire le joueur. Le rate-limit (30/min) borne l'abus sans l'empêcher.
+- Une **manche** de tournoi ne rapporte pas `ai_win` : le tournoi a son propre gain à la victoire finale (sinon un tournoi rapporterait jusqu'à 9×10 + 50).
+
+```js
+progression.initUser(userId)              // dotation d'un compte neuf — appelé par /api/auth/register
+progression.applyAdminGrants(userId)      // niveau/monnaies (MAX, jamais de rétrogradation) + toutes les cartes
+progression.unlockCard(userId, cardId)    // → false si déjà possédée ou id inconnu
+progression.grant(userId, { xp, gold, gems })   // crédit/débit relatif, plancher à 0
+progression.unlockedCardIds(user) / ownsCard(user, cardId) / getProgression(user)
+progression.backfillAll()                 // rattrapage au boot (server.js, après bootstrap())
+```
+
+- **Le catalogue fait foi, pas la base** : `allCardIds()` lit `cards.json` (cache invalidé au mtime), donc une carte créée depuis l'admin est immédiatement débloquable.
+- **Admins** : les cartes sont matérialisées en base *et* recalculées à la lecture (`unlockedCardIds`) — une carte ajoutée après la promotion leur appartient sans resynchronisation. Une rétrogradation ne dépouille pas le compte.
+- `auth.publicUser()` expose `level/xp/gold/gems` (donc `/auth/me`, login, register) ; la **liste** des cartes, trop volumineuse, vit sur `GET /api/me/progression`.
+- **Affichage** : `components/ui/ProgressionStats.tsx` — `<ProgressionPills>` (ligne compacte `Nv. 2 ▓▒░ 25/100 · 💰 · 💎`, menu principal, sous l'identité) et `<ProgressionPanel>` (jauge pleine largeur + soldes, écran Profil). Les deux lisent `authStore.user`, **sans fetch** : les valeurs arrivent déjà avec la session. Rien n'est rendu en invité. Icônes et couleurs sont définies une seule fois (`CURRENCIES`) ; 💰 et non 🪙, qui retombe en disque gris faute de glyphe couleur.
+- **L'XP n'a pas de compteur à elle** : elle n'existe qu'au travers de la jauge de niveau (primitive `Gauge`, 0 → 100), avec le décompte exact en petit sous la barre. C'est la seule lecture qui compte (« où j'en suis du palier ») là où un nombre nu ne dit rien sans son plafond. Gold et gemmes, eux, sont des **soldes** → chiffres.
+- `XP_PER_LEVEL` est dupliqué côté client (`ProgressionStats.tsx`) — à garder synchronisé avec `progression.js` à la main.
+
+## Missions quotidiennes
+
+Règles dans **`missions.js`** (racine, à côté de `progression.js` dont il est le client pour créditer les gains), catalogue dans **`data/missions.json`**, tables `user_missions` / `user_mission_state`.
+
+| Règle | Valeur |
+|---|---|
+| Missions délivrées par cycle | **3** — une par difficulté de slot (facile / moyen / engagé) |
+| Cycle | **8 h**, ancré sur 5 h → **5 h / 13 h / 21 h**, dans le fuseau du **serveur** |
+| Accumulation | **9** missions actives maximum (= 3 cycles, soit 24 h d'absence pardonnées) |
+| Reroll | 1 gratuit par **jour**, puis **100 golds** (jamais en gemmes) |
+| Jauge hebdomadaire | **30** points — 1 par mission terminée, semaine du lundi |
+| Paliers hebdo | **10 / 20 / 30** |
+
+**Barème** (`SLOT_REWARDS`, `WEEKLY_MILESTONES`) :
+
+| Slot | XP | Golds | | Palier | XP | Golds | Gemmes |
+|---|---|---|---|---|---|---|---|
+| Facile (1) | 60 | 50 | | 10 pts | 50 | 150 | 10 |
+| Moyen (2) | 100 | 100 | | 20 pts | 100 | 250 | 25 |
+| Engagé (3) | 150 | 175 | | 30 pts | 200 | 500 | 50 |
+
+**Calendrier** : `cycleKey(ts)` → `2026-07-27#1` (jour de mission + rang du créneau) ; `cycleNumber(key)` en donne un rang **absolu** pour que `cyclesBetween` fonctionne de part et d'autre de minuit. Le reroll gratuit et la purge des missions terminées restent indexés sur la **journée** (`dayKey`) : une mission bouclée à 12 h 55 ne doit pas disparaître de l'écran à 13 h. Une clé d'état sans `#` (antérieure aux cycles) est lue comme le premier créneau de sa journée — le joueur reçoit les cycles écoulés depuis, il n'y a pas de migration à écrire.
+
+- **Rien ne se réclame** : mission terminée = créditée dans la seconde (idem paliers hebdo). Un gain qu'il faut penser à récupérer est un gain qu'on perd. L'écran Missions est donc en lecture seule, sa seule action est le reroll.
+- **Le fuseau du reset est celui du serveur**, pas du joueur : un client qui annonce son fuseau pourrait en mentir pour se faire délivrer un cycle de plus. Déployer avec `TZ=Europe/Paris`.
+- Les missions **terminées restent affichées** jusqu'à la fin de la journée (`deleteStaleCompletedMissions`), puis s'effacent. Le plafond de 9 ne compte que les **actives**.
+- **Filtrage par collection** (`requirements.owns_cards_matching`) : une mission Fusion ne sort pas si le joueur ne possède pas assez de cartes Fusion.
+
+### Flux d'événements
+
+Le système ne lit **jamais** l'état du jeu : il consomme des **événements nommés**. `logic/` l'ignore complètement — c'est `GameController` (couche app) qui les nomme, et le serveur qui les confronte à son catalogue.
+
+| Événement | Payload | Émis par |
+|---|---|---|
+| `combat_started` | `unit_count`, `attribute_count`, `max_attribute_units` | `GameController._beginCombatAnimation` |
+| `combat_ended` | `result`, `unit_count`, `units_lost` | `GameController._onCombatFinished` |
+| `summon_performed` | `card_id`, `tier`, `summon_type` | `GameController._tryPlace` |
+| `power_triggered` | `power_id` | flux d'événements de `CombatManager` (`onStep`) |
+| `magic_selected` | `magic_id`, `effect_type` | `GameController._noteMagie` |
+| `match_completed` | `result`, `rounds_played` | `GameController._reportMatchCompleted` |
+| `deck_saved` | `card_count` | `DeckBuilder.save` (événement méta, envoyé seul) |
+
+**Un lot = une partie.** `missionStore` accumule les événements et ne les envoie qu'en **fin de partie** (ou au démontage de l'écran de jeu : quitter en cours de route ne fait pas perdre ce qui a été joué). Ce découpage n'est pas cosmétique — c'est lui qui permet au serveur de **dériver lui-même** les garde-fous du contenu du lot, au lieu de croire un drapeau du client :
+
+- **anti-concede** : le lot est rejeté en bloc s'il porte moins de **2 `combat_started`** ;
+- **anti-AFK** : rejeté s'il ne porte **aucun `summon_performed`** ;
+- hors partie (`match_id` absent), seuls les événements de `META_EVENTS` sont retenus.
+
+Contrepartie assumée : les missions n'avancent pas pendant qu'on joue (l'écran Missions n'est de toute façon pas accessible en partie).
+
+**Portées** (`objective.scope`) : `cumulative` (cumul entre parties) · `single_match` (dans le lot) · `single_combat` (max par `combat_index`). La distinction est critique — sans elle, « 6 pouvoirs dans un même combat » se validerait avec 6 combats à 1 pouvoir. Le client affiche la portée en chip sous le libellé (`scope_hint`), elle n'est donc **pas** répétée dans le libellé du catalogue.
+
+Comme pour `progression.reward`, **le client nomme, le serveur chiffre** : aucun montant ne transite dans le sens client → serveur. La limite reste la même que pour le solo (la partie se déroule côté client, le serveur ne peut que croire la teneur du lot) ; le rate-limit (30/min) borne l'abus.
+
+### Routes API
+
+| Route | Accès | Description |
+|---|---|---|
+| `GET /api/me/missions` | Connecté | Instantané (missions, `cycle`, jauge hebdo, reroll). **Délivre les lots manquants au passage** — le cycle avance à la lecture, il n'y a pas de tâche planifiée |
+| `POST /api/me/missions/events` | Connecté (30/min) | Lot d'événements → `{ countable, completed, milestones, granted, … }` |
+| `POST /api/me/missions/:id/reroll` | Connecté (20/min) | Remplace une mission par une autre du même slot |
+
+### Client
+
+- `stores/missionStore.ts` — instantané + file d'événements (`startMatch` / `emit` / `emitCombatStarted` / `flushMatch` / `emitMeta`).
+- `screens/MissionsScreen.tsx` — jauge hebdomadaire avec jalons posés à leur position réelle sur la barre, cartes de mission, reroll. Une cible de 1 n'affiche pas de barre de progression (elle serait toujours vide ou pleine).
+- `components/ui/MissionToasts.tsx` — monté au niveau de **l'App**, pas d'un écran : la réponse du lot arrive souvent une fois revenu au menu. Positionné à la hauteur de `Banner` (`top-16`) pour ne pas recouvrir la barre de PV.
+- `MainMenu` — bouton `🎯 Missions` avec le nombre d'actives et de terminées. Rien n'est rendu en invité : le cycle a besoin d'un compte.
+
+### Collection & DeckBuilder
+
+Le DeckBuilder ne laisse sélectionner que les cartes **possédées** (`stores/collectionStore.ts`, alimenté par `GET /api/me/progression`) :
+
+- Les cartes non débloquées sont **masquées par défaut** ; le chip `🔒 Verrouillées` les révèle, grisées et intapables (cadenas via la prop `locked` de `CardTile`). Le compteur affiche `133/398 cartes débloquées`.
+- `addCard` revérifie la possession : l'ajout ne dépend jamais du seul état d'affichage.
+- **Invité** : repli sur les cartes de départ (`CORE_*`), la dotation d'un compte neuf. Le jeu se joue sans compte — un invité sans aucune carte ne pourrait plus construire de deck, et ce qu'il bâtit reste valable s'il s'inscrit.
+- Un deck **déjà enregistré** contenant des cartes non possédées n'est **pas** amputé au chargement : les cartes concernées sont signalées (cadenas + bandeau) et restent retirables à la main. Effacer le travail du joueur sans qu'il l'ait demandé serait pire que l'incohérence.
+- La table `user_cards` est créée **après** la migration `tag` de `users` : un `ALTER TABLE … RENAME` réécrit les FK des tables dépendantes vers `users_v1`, qui est ensuite supprimée (même raison pour le correctif FK de `sessions`/`friendships`/`deck_books`/`reset_tokens`/`matches`).
+
+---
+
+## Boutique de cartes
+
+Règles dans **`shop.js`** (racine, à côté de `progression.js` dont il est le client pour débiter et débloquer, et de `missions.js` dont il reprend le calendrier), sets dans **`data/sets.json`**, table `user_shop_state`. La boutique **cosmétique** du brief n'est pas implémentée.
+
+Trois systèmes, trois fonctions qui ne se recouvrent pas :
+
+| Système | Fonction | Plafond |
+|---|---|---|
+| **Emplacements quotidiens** | Construction de deck — conscients du graphe d'invocation et du deck actif | 3 / jour |
+| **Booster** | Collection — volume brut sur un set choisi | aucun |
+| **Convoitise** | Précision absolue — une carte nommée | 1 à la fois, 3 jours |
+
+Deux invariants portent tout le reste :
+
+1. **Zéro doublon** — aucun tirage, nulle part, ne produit une carte possédée. C'est ce qui dispense le jeu de poussière, de fragments et de conversion de doublons.
+2. **L'offre est serveur** — générée, horodatée et **persistée** (`user_shop_state.offer`). Aucune action client (changement de deck, rechargement, fuseau annoncé) ne la régénère : une offre re-tirable se re-tirerait jusqu'à satisfaction. Vérifié par golden test.
+
+### Prérequis — le champ `set`
+
+Le préfixe d'`id` (`CORE`, `EXTRA`, `YGX`…) est un identifiant technique, pas un axe commercial : les groupes vont de 8 à 32 cartes et plusieurs ne peuvent pas satisfaire la garantie de tiers. Chaque carte porte donc un champ **`set`**, et `data/sets.json` décrit les sets (nom, archétypes, `booster_enabled`, `signature_card`, `completion_reward`, liste `cards`).
+
+**Le découpage actuel est PROVISOIRE**, produit par `scripts/build-sets.js` (`--write` pour écrire) : 7 sets de ~57 cartes. Ce qu'il garantit et ce qu'il ne garantit pas :
+
+- ✔ **aucune carte orpheline** — fermeture par union-find sur le graphe de matériaux : une fusion/héritage/transformation est toujours dans le set de ses matériaux. C'est la contrainte dure ;
+- ~ distribution de tiers : rapportée, pas garantie (le booster se rabat silencieusement) ;
+- ✘ **« un archétype n'est jamais découpé entre deux sets » : impossible sur le pool actuel** — unir les cartes par archétype produit une composante unique de 223 cartes (une carte porte jusqu'à 4 attributs d'archétype, qui se chevauchent). C'est un travail éditorial sur `attributes.json`, pas un calcul — le brief le classe d'ailleurs en décision ouverte.
+
+`sets.json` **fait foi** pour le pool d'un booster ; le champ `set` de la carte en est le miroir (il rattrape une carte créée depuis l'admin après la rédaction du set). Remplacer les deux suffit à substituer le découpage à la main : `shop.js` ne lit rien d'autre.
+
+Le **set de fondation** (§2.5 du brief : cartes Tier 1 transverses attribuées par la progression de niveau) n'est **pas** implémenté — la fermeture par matériaux le rend inutile ici, et son attribution dépend de la courbe de niveau, décision ouverte de `brief_progression.md`. `booster_enabled: false` est prêt à l'accueillir.
+
+### Emplacements quotidiens
+
+Rotation à **5 h**, même reset que les missions (`shop.dayKey === missions.dayKey` — un seul rendez-vous quotidien à retenir). Composition fixe, contenu variable :
+
+| Slot | Nom | Règle de tirage | `reason` |
+|---|---|---|---|
+| 1 | **Le Maillon** | carte dont tous les matériaux sont possédés, **ou** matériau manquant d'une carte possédée | `unlocks` / `material` |
+| 2 | **L'Affinité** | carte partageant un attribut vu **≥ 2 fois** dans le deck actif | `affinity` |
+| 3 | **L'Inconnu** | tirage libre pondéré par tier | `random` |
+
+- **Pondération par tier** : 30 / 28 / 22 / 14 / 6 — volontairement plus plate que la distribution du pool (T1 38 %). Les tiers élevés coûtent plus cher : ils doivent sortir assez souvent pour que l'arbitrage budgétaire existe.
+- **Prix** : 75 / 125 / 200 / 350 / 550 golds. Le client ne transmet **jamais** de montant.
+- C'est le **badge** qui porte la valeur perçue, pas la carte : « une carte au hasard à 350 golds » et « la pièce qui manque à ta fusion à 350 golds » ne sont pas la même proposition.
+- Un matériau désigné par **attribut** (`cost.materials` mélange ids de cartes et `ARCH_*`) est couvert par n'importe quel porteur possédé.
+- **Dégénérescence en fin de collection** : les slots 1 et 2 se replient naturellement sur le tirage libre, aucun traitement particulier.
+- **Reroll** : 1 gratuit par jour, jamais payant (un reroll achetable ferait de la boutique une machine à sous et casserait le plafond de 3 cartes/jour). La carte rerollée quitte le pool du **jour** et le slot est re-tiré **en conservant sa règle** — un reroll du Maillon rend un autre Maillon.
+- **Verrou d'offre** : l'achat porte `slot` **et** `card_id`. Un tap au moment exact de la rotation échoue en 409 au lieu d'acheter la carte qui vient de prendre la place.
+- Le tirage est **déterministe** à `(player_id, jour, slot)` (xorshift32 semé en SHA-256) : un tirage douteux se rejoue au lieu de se raconter.
+
+### Convoitise
+
+Une seule carte épinglée, gratuitement, à tout moment. Après **3 jours**, elle occupe le **slot 1** et court-circuite le Maillon. Prix : **double du tarif de son tier**. **Golds uniquement** — c'est le point de rupture du principe « les gemmes n'achètent jamais de précision ».
+
+- Changer de carte remet le compteur à zéro (sinon on épinglerait n'importe quoi 3 jours avant de basculer sur la vraie cible).
+- Une carte convoitée **ne se reroule pas** : ce n'est pas une proposition de la boutique mais une demande du joueur.
+- L'épingle se vide d'elle-même si la carte est obtenue autrement (achat, booster) — laisser une carte possédée épinglée gèlerait le slot 1.
+
+### Boosters
+
+3 cartes, ciblées sur un set, **disponibles en permanence**, **600 golds ou 100 gemmes**, sans plafond d'achat. Tirage **à l'achat** (jamais à l'avance) : le cas « deck actif modifié entre la génération et l'ouverture » est donc sans objet.
+
+Ordre de résolution du tirage — qui est aussi l'ordre d'**abandon** des garanties :
+
+1. une carte **Tier 3+** comme ancre (c'est elle qui donne son thème au booster) ;
+2. **garantie de tier** : 2 cartes Tier 1-2 + 1 carte Tier 3+ ;
+3. **cohérence de lignée** : les matériaux manquants de l'ancre d'abord ;
+4. **cohérence d'attribut** : les cartes partageant un attribut avec l'ancre ;
+5. **pondération d'affinité** ×2 pour les attributs du deck actif (non exclusif — la découverte reste possible).
+
+Chaque cran tombe **silencieusement** quand le pool résiduel ne peut plus le satisfaire (priorité d'abandon : cohérence d'attribut d'abord, garantie de tier ensuite, **jamais** le zéro doublon). Sur données réelles, la cohérence d'attribut est régulièrement abandonnée à bon droit : une partie du catalogue ne porte **aucun** attribut.
+
+- Booster **grisé** quand le set est complet — jamais de vente ne pouvant rien produire.
+- **Ne jamais indexer le prix sur le taux de complétion** : la valeur croissante à mesure que le set se vide est la propriété la plus vertueuse du système, elle récompense l'engagement au lieu de le taxer. L'écran affiche le nombre de cartes restantes pour la rendre visible.
+- **Prime de complétion** (`completion_reward.gems`, 300) : versée **une seule fois**, automatiquement, jamais à réclamer — même règle que les paliers de missions.
+
+### Routes API
+
+| Route | Accès | Description |
+|---|---|---|
+| `GET /api/me/shop` | Connecté | Instantané (emplacements, Convoitise, sets, prix). **Génère l'offre du jour au passage** — pas de tâche planifiée |
+| `POST /api/me/shop/buy` | Connecté (30/min) | `{ slot, card_id }` — 409 si l'offre a tourné |
+| `POST /api/me/shop/reroll` | Connecté (20/min) | `{ slot }` |
+| `POST /api/me/shop/covet` | Connecté (20/min) | `{ card_id }` — `null` retire l'épingle |
+| `POST /api/me/shop/booster` | Connecté (30/min) | `{ set_id, currency }` |
+
+Toutes les mutations renvoient l'instantané complet + la progression à jour : aucun rechargement derrière une action.
+
+### Client
+
+- `stores/shopStore.ts` — instantané + actions. Absorbe chaque réponse (solde via `authStore.applyProgression`, cartes via `collectionStore.add` — on ne recharge pas les 398 ids après chaque achat).
+- `screens/ShopScreen.tsx` — emplacements, Convoitise (avec sélecteur de carte non possédée), boosters, révélation en modale.
+- `MainMenu` — bouton `🛒 Boutique` avec le nombre d'emplacements restants, et un ⚡ quand un Maillon est proposé : c'est la seule chose qui mérite d'ouvrir l'écran aujourd'hui plutôt que demain.
+- `components/ui/primitives.tsx` — `Countdown` (rafraîchi à la **minute** : un repère, pas un chronomètre), partagé avec l'écran Missions.
+- Verrouillé par `client/src/test/shop.test.ts` (34 golden tests, même harnais serveur que `missions.test.ts`).
 
 ---
 
@@ -857,6 +1084,8 @@ board.moveUnit(unit, to)  // met à jour grid + unit.position ensemble
 
 ## EnemyAI — Stratégie de placement
 
+**Quand l'IA joue** : en dernier. Son placement n'a pas lieu à l'ouverture de la préparation mais au **lancement du combat** (`GameSession.startCombat` → `_placeEnemyUnits`, avant la purge des cimetières qui lui sert de matériaux) — donc quand le joueur tape PRÊT ou que le chrono tombe à 0. Le joueur pose son board sans adversaire à l'écran, puis voit l'IA arriver : `Scene3D.revealEnemyUnits` fait tomber les nouvelles unités en cascade (`refresh()` ne passe plus une fois en mode combat) et `GameController` retarde le premier step de la durée de la cascade. En PvP, `_placeEnemyUnits` est un no-op (board adverse reconstruit par `PvpController`) et `revealEnemyUnits` ne trouve rien à faire tomber : comportement inchangé.
+
 L'IA place les unités en deux passes :
 1. Cartes normales en premier (libèrent les matériaux potentiels)
 2. Cartes à invocation spéciale (peuvent consommer les unités posées)
@@ -900,25 +1129,39 @@ Validation `board.isOccupied(pos)` avant le drop.
 
 ## DeckBuilder
 
+- **Unicité** : une carte ne peut figurer qu'**une seule fois** dans un deck (cohérent avec la règle du doublon, qui interdit deux exemplaires vivants de la même `card_id` sur le board). Dans la bibliothèque, une carte déjà prise est intapable, grisée et liserée d'or ; un tier plein est grisé franc.
 - Maximum par tier : `min(8, pool_size)` cartes
 - Minimum pour sauvegarder : **20 cartes au total** (réparties librement entre les tiers, aucun minimum par tier)
 
 Validation bloquante : le deck ne peut être sauvegardé que si le nom est renseigné et que le total ≥ 20.
 
-Mode édition : déclenché via `DeckRepository.setPendingEdit(deckName)` avant de naviguer vers DeckBuilder.
+Mode édition : déclenché via `DeckRepository.setPendingEdit(deckName)` avant de naviguer vers DeckBuilder. Les decks enregistrés **avant** la règle d'unicité sont dédoublonnés au chargement, avec un bandeau qui l'annonce (le total change à l'écran, le joueur ne doit pas avoir à le deviner).
+
+⚠️ **`CardTile` en `tapOn="up"`** (DeckBuilder) n'arme le tap que si le `pointerdown` a eu lieu **sur la vignette**. Sans ce garde-fou, un relâchement dont l'appui vient d'ailleurs déclenche l'action : les boutons du DeckSelector naviguant au `pointerdown`, le `pointerup` retombait sur la grille fraîchement montée et ajoutait une carte au deck à l'ouverture de l'écran.
 
 ---
 
-## DeckSelector
+## Deck actif & DeckSelector
 
-Point de passage obligé du menu principal : **« Jouer »** comme **« Construire un deck »** ouvrent cet écran (`params.mode = 'play' | 'manage'`). Même liste et mêmes actions par deck (éditer / dupliquer / renommer / supprimer) ; seule l'action principale du bas change — lancer la partie, ou créer un deck. Le mode est propagé au DeckBuilder pour que son retour revienne dans le bon contexte.
+**Le deck du joueur se choisit à un seul endroit** : la **pastille du deck actif** du menu principal (couleur + nom + nombre de cartes, `ActiveDeckPill` dans `MainMenu.tsx`, à côté du profil) ouvre `DeckSelector` en `params.mode = 'manage'`. C'est le seul accès — pas de bouton « Mes decks » en double, la pastille disant déjà avec quoi on joue. Un tap sur un deck le promeut **deck actif** (`DeckRepository.setActiveDeck`), et c'est ce deck que jouent **tous** les modes — partie solo, tournoi, duel en ligne.
 
-En mode `'play'`, deux camps sont sélectionnables : le chip actif (`Mon deck` / `Adversaire`) dit à qui le prochain tap sur un deck s'applique.
+`DeckSelector` (`screens/DeckSelector.tsx`) a donc exactement deux modes, avec la même liste et la même carte de deck :
 
+| `params.mode` | Ouvert par | Rôle | Action du bas |
+|---|---|---|---|
+| `'manage'` | la pastille du deck actif | Choisir le deck **actif** + gérer (éditer → DeckBuilder, dupliquer, renommer, supprimer) | ＋ Créer un nouveau deck |
+| `'play'` | « Jouer » | Choisir **uniquement le deck de l'IA** ; le deck du joueur est le deck actif, rappelé en récap non modifiable | ⚔ Jouer [contre X] → `navigate('game', { deckName: actif, enemyDeckName })` |
+
+- Les actions de gestion n'apparaissent qu'en `'manage'` : en partie solo, la carte de deck ne sert qu'à désigner l'adversaire. Elles sont réduites à des icônes (✏️ éditer, 📋 dupliquer, 🏷️ renommer, 🗑️ supprimer) ; le libellé vit dans `title` + `aria-label` (`IconButton`, local à l'écran).
+- La liste passe à **2 colonnes dès `sm`, 3 dès `lg`** (grille Tailwind sur la largeur, pas `useWebLayout` qui raisonne en ratio : trois colonnes tiennent à la largeur disponible, pas à l'orientation).
+- Deux raccourcis en tête de la section « DECK DE L'IA » (mode `'play'`) : **`🪞 Miroir`** (état par défaut, `enemy = null` → l'IA joue le deck du joueur) et **`🎲 Aléatoire`** (action : tire un deck jouable au hasard, affiché comme un choix normal ; re-taper relance le tirage). Le tirage écarte par préférence le deck du joueur (ce serait un miroir) et le tirage précédent, et ne retient que les decks ≥ 20 cartes.
+- **Garde-fou** : sans deck actif, ou si celui-ci fait moins de 20 cartes, le lancement est bloqué (bouton désactivé + rappel).
+- Le mode est propagé au DeckBuilder pour que son retour revienne dans le contexte d'origine. À l'enregistrement, `DeckBuilder` adopte le deck comme actif s'il n'y en a pas de valide (`hasActiveDeck()`) — sinon un premier deck créé ne serait jouable nulle part.
 ```js
-navigate('game', { deckName, enemyDeckName })   // enemyDeckName optionnel
 buildSession(deckName, 'ai', enemyDeckName)     // absent → l'IA joue le deck du joueur (miroir)
 ```
+
+**Tournoi et Duel en ligne n'ont plus d'étape de sélection** : le menu y entre directement et les deux écrans consomment `getActiveDeck()`. Ils partagent le même en-tête (retour `◂`, titre, `deck : X` à droite — dans `OnlineLobby`, le `◂` passe par `cancel()` pour sortir de la file) et n'affichent qu'un récap **en lecture seule** (`components/deck/SelectedDeck.tsx`). Seul cas navigable de ce composant : aucun deck actif → CTA « Mes decks », pour ne pas laisser l'écran en cul-de-sac. Un tournoi déjà lancé garde le deck figé dans son bracket (`tournament.playerDeckName`) : changer de deck actif ensuite ne l'affecte pas.
 
 ---
 
@@ -946,13 +1189,16 @@ Un seul pont React ↔ Three : `client/src/components/board/Board3DCanvas.tsx` m
 
 ### Navigation client
 
-Écrans routés par `uiStore.screen` (Zustand, parité `?screen=`, pas de react-router) : `main_menu`, `auth`, `reset_password`, `profile`, `friends`, `deck_selector`, `deck_builder`, `tournament`, `online_lobby`, `game`, `game_pvp`, `combatlab` (dev), `testbench` (dev).
+Écrans routés par `uiStore.screen` (Zustand, parité `?screen=`, pas de react-router) : `main_menu`, `auth`, `reset_password`, `profile`, `friends`, `deck_selector`, `deck_builder`, `tournament`, `missions`, `shop`, `online_lobby`, `game`, `game_pvp`, `combatlab` (dev), `testbench` (dev).
 
 ### Online (Phase 7)
 
 - **Auth optionnelle** (`authStore`) : jeu jouable en invité ; se connecter active la synchro serveur des decks. `AuthScreen`/`ResetPasswordScreen`, `ProfileScreen`, `FriendsScreen` sur les API `routes/online.js`.
-- **Tournoi** (`TournamentScreen`) : bracket local à 8 entièrement client (`logic/Tournament.js` + `MatchSimulator`, headless déterministe).
-- **PvP** (`OnlineLobby` + `GameScreenPvp` + `game/PvpController.ts`) : le serveur (`ws/`) fait matchmaking + relais **opaque** ; chaque client simule le combat localement (déterminisme → même vainqueur des deux côtés). L'adversaire est reconstruit **en miroir** (rows 7–10) depuis `net/PvpOpponentProvider.js`. `GameSession` a un mode `'pvp'` (pas d'EnemyAI, terrain convenu).
+- **Tournoi** (`TournamentScreen`) : bracket local à 8 entièrement client (`logic/Tournament.js`), élimination directe, chaque match en Bo5. Le deck engagé est le **deck actif** (choisi au menu, aucune sélection ici) et est figé dans le bracket au lancement.
+  - Les matchs **entre IA** sont simulés (`MatchSimulator`, headless déterministe), résolus dès l'ouverture d'un round.
+  - Les matchs **du joueur** se **jouent** : chaque manche du Bo5 lance une vraie partie solo (`GameScreen` avec `params.tournament`), contre le deck public de l'adversaire injecté via `buildSession(..., enemyDeck)`. Le résultat est reporté dans le bracket au retour (`tournamentStore.finishGame`) : victoire/défaite créditée, égalité non comptée (manche rejouée), abandon = manche concédée.
+  - Le bracket vit dans `stores/tournamentStore.ts` (et non dans l'état du composant) : l'écran Tournoi est démonté pendant qu'on joue. `pendingGame` est le contrat entre les deux écrans — posé avant de naviguer, consommé au montage de `GameScreen`, soldé au retour.
+- **PvP** (`OnlineLobby` + `GameScreenPvp` + `game/PvpController.ts`) : le lobby joue le **deck actif** (choisi au menu, aucune sélection ici), envoyé avec `queue:join`. Le serveur (`ws/`) fait matchmaking + relais **opaque** ; chaque client simule le combat localement (déterminisme → même vainqueur des deux côtés). L'adversaire est reconstruit **en miroir** (rows 7–10) depuis `net/PvpOpponentProvider.js`. `GameSession` a un mode `'pvp'` (pas d'EnemyAI, terrain convenu).
 
   **Parité avec le mode solo** : cimetière, menu d'options d'invocation et **Phase Shopping** sont présents en PvP. Le shopping n'est pas synchronisé — chaque joueur tire et applique ses magies localement ; le résultat est transmis à l'adversaire dans le payload `round:board_ready` du round suivant. Un chrono de 45 s le borne (passage automatique) pour ne pas bloquer l'adversaire à la barrière réseau ; le décalage résiduel est absorbé par la barrière `round:combat_start_ack`.
 
@@ -983,7 +1229,7 @@ La couche `logic/` reste **headless** : aucun import de React/Zustand/Three (gar
 
 - Pointer Events API sur tous les éléments interactifs (pas de `mousedown`/`touchstart` séparés)
 - Tester sur Safari iOS en portrait (priorité)
-- Portrait recommandé ; afficher un message si l'utilisateur passe en paysage
+- Portrait recommandé, **paysage jamais bloqué** : un téléphone tourné franchit le seuil d'aspect et bascule sur le **mode web** (rails latéraux + cadrage caméra correspondant), exactement comme un desktop
 - `manifest.json` PWA : icône, nom, couleurs de thème
 - Bouton plein écran (Fullscreen API)
 
@@ -993,12 +1239,12 @@ Le seuil est le même des deux côtés — écran plus large que haut (`useWebLa
 côté React, `aspect > 1` dans `Scene3D._cameraFraming`) — et les deux **doivent
 rester d'accord**, sinon les rails recouvrent le board.
 
-| | Portrait (mobile) | Web (écran large) |
+| | Portrait (mobile) | Web (écran large — desktop, tablette, **téléphone en paysage**) |
 |---|---|---|
 | Main | bande horizontale en bas | rail vertical à gauche |
 | Neutralisées | bandeau horizontal au-dessus de la main | rail vertical à droite |
 | Bloc joueur | remonté à `PREP_FOCUS_Y` (40 % de la hauteur) | centré verticalement |
-| Contrainte de cadrage | les 5 colonnes doivent tenir en largeur | idem, mais dans la largeur **moins les deux rails** (`WEB_RAIL_PX`, à garder synchronisé avec le `w-28` des rails) |
+| Contrainte de cadrage | les 5 colonnes doivent tenir en largeur | idem, mais dans la largeur **moins les deux rails** (`WEB_RAIL_PX` = 208, à garder synchronisé avec le `w-52` des rails) |
 
 ---
 

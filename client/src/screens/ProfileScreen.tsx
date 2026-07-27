@@ -6,6 +6,7 @@ import * as AuthClient from '../data/AuthClient.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from '../components/ui/primitives.js';
+import { ProgressionPanel } from '../components/ui/ProgressionStats.js';
 
 export default function ProfileScreen() {
   const navigate = useUiStore(s => s.navigate);
@@ -58,6 +59,9 @@ export default function ProfileScreen() {
             ? (isImg ? <img src={avatarPreview} alt="" className="h-full w-full object-cover" /> : <span>{avatarPreview.slice(0, 2)}</span>)
             : <span>{user.username.slice(0, 1).toUpperCase()}</span>}
         </div>
+
+        {/* Progression : lecture seule, au-dessus des champs éditables. */}
+        <ProgressionPanel user={user} />
 
         <div className="flex w-full max-w-xs flex-col gap-3">
           <label className="text-[10px] tracking-widest text-white/40">PSEUDO</label>

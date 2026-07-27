@@ -53,11 +53,21 @@ function resolveDeck(deckName?: string): Record<string, string[]> {
     ?? autoDeck();
 }
 
-export function buildSession(deckName?: string, mode: 'ai' | 'pvp' = 'ai', enemyDeckName?: string): GameSession {
+/**
+ * @param enemyDeck Deck adverse fourni tel quel (decks publics du Tournoi, qui
+ *   ne vivent pas dans DeckRepository) — prioritaire sur `enemyDeckName`.
+ */
+export function buildSession(
+  deckName?: string,
+  mode: 'ai' | 'pvp' = 'ai',
+  enemyDeckName?: string,
+  enemyDeck?: Record<string, string[]> | null,
+): GameSession {
   const rawDeck = resolveDeck(deckName);
-  // Deck de l'IA : celui choisi dans le sélecteur, sinon miroir du deck joueur
-  // (comportement historique). Un nom illisible retombe aussi sur le miroir.
-  const rawEnemyDeck = (enemyDeckName ? tryLoadDeck(enemyDeckName) : null) ?? rawDeck;
+  // Deck de l'IA : celui injecté par l'appelant, sinon celui choisi dans le
+  // sélecteur, sinon miroir du deck joueur (comportement historique). Un nom
+  // illisible retombe aussi sur le miroir.
+  const rawEnemyDeck = enemyDeck ?? (enemyDeckName ? tryLoadDeck(enemyDeckName) : null) ?? rawDeck;
 
   const cardsByTier: Record<number, Card[]> = {};
   for (let t = 1; t <= 5; t++) {

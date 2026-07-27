@@ -12,6 +12,7 @@ import type { Card, Position, Magie } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
 import { useGameStore, type GameSnapshot, type HandEntry } from '../stores/gameStore.js';
 import { useUiStore, type TooltipAnchor } from '../stores/uiStore.js';
+import { useMissionStore } from '../stores/missionStore.js';
 import { PREP_DURATION_S, COMBAT_DURATION_S, combatSecondsLeft } from './timings.js';
 
 interface SummonOptionMenu {
@@ -39,6 +40,7 @@ export class GameController {
   combatSpeed = 2;
   protected paused = false;
   private _errorTimer: ReturnType<typeof setTimeout> | null = null;
+  private _revealTimer: ReturnType<typeof setTimeout> | null = null;
   protected _combatRemaining = COMBAT_DURATION_S;
 
   constructor(session: GameSession) {
@@ -57,6 +59,10 @@ export class GameController {
   begin(): void {
     this.session.startPreparation();
     this._clearSelection();
+    // Ouvre la file d'événements de missions : elle est vidée en fin de partie
+    // (ou au démontage), un lot = une partie. Cf. stores/missionStore.
+    useMissionStore.getState().startMatch();
+    this._matchReported = false;
     this.scene?.refresh();
     this.sync(this._freshPhaseClocks());
   }
@@ -240,6 +246,9 @@ export class GameController {
       return;
     }
     this.session.place(card, pos, this.selectedMaterials, this.selectedHandIdx);
+    useMissionStore.getState().emit('summon_performed', {
+      card_id: card.id, tier: card.tier, summon_type: card.summon_type,
+    });
     this._clearSelection();
     this.scene?.refresh();
     this.sync();
@@ -277,9 +286,16 @@ export class GameController {
     // l'air libres.
     this.scene?.setBlockedCells(boardData?.blocked_cells ?? []);
     this.scene?.enterCombatMode();
+    // L'IA place ses unités au moment du PRÊT : elles n'ont pas encore d'objet
+    // de scène (refresh() ne passe plus en mode combat) — on les fait tomber en
+    // cascade et on retarde le premier step d'autant, pour que le joueur voie
+    // arriver l'adversaire avant le premier coup. 0 en PvP (board déjà rendu).
+    const revealMs = this.scene?.revealEnemyUnits(this.session.enemyUnits) ?? 0;
     this._combatRemaining = COMBAT_DURATION_S;
+    this._noteCombatStarted();
     const animator = new CombatAnimator3D(combat, this.scene as any, {
-      onStep: () => {
+      onStep: (events: any[]) => {
+        this._noteCombatEvents(events);
         this._combatRemaining = combatSecondsLeft(combat.remainingTicks());
         this.sync({ combatActive: true, combatRemaining: this._combatRemaining });
       },
@@ -291,7 +307,16 @@ export class GameController {
     // combatRemaining doit repartir de 60 dès l'entrée en combat : sans ça le
     // HUD affiche la valeur finale du combat précédent jusqu'au premier tick.
     this.sync({ combatActive: true, combatRemaining: this._combatRemaining, boardTerrain: boardData });
-    animator.start();
+    if (revealMs > 0) {
+      this._revealTimer = setTimeout(() => {
+        this._revealTimer = null;
+        if (this.animator !== animator) return;   // combat quitté entre-temps
+        animator.start();
+        if (this.paused) animator.pause();        // Pause tapée pendant la cascade
+      }, revealMs);
+    } else {
+      animator.start();
+    }
   }
 
   setSpeed(s: number): void {
@@ -307,8 +332,63 @@ export class GameController {
     this.sync();
   }
 
+  // ── Événements de missions ───────────────────────────────────────────────
+  // Le contrôleur est la SEULE couche qui nomme ces événements : logic/ reste
+  // headless et ignore tout des missions. Les montants et le catalogue vivent
+  // côté serveur (missions.js) — ici on ne fait que décrire ce qui s'est passé.
+
+  private _combatUnitCount = 0;
+  protected _matchReported = false;
+
+  private _noteCombatStarted(): void {
+    const units = this.session.getPlayerUnits();
+    const synergies = this.session.getSynergies() as any[];
+    this._combatUnitCount = units.length;
+    useMissionStore.getState().emitCombatStarted({
+      unit_count: units.length,
+      // Attributs dont un palier est ATTEINT (les autres ne sont que comptés).
+      attribute_count: synergies.filter(s => s.activeThreshold != null).length,
+      max_attribute_units: synergies.reduce((m, s) => Math.max(m, s.count ?? 0), 0),
+    });
+  }
+
+  // Pouvoirs déclenchés par le camp du joueur, comptés sur le flux d'événements
+  // du CombatManager — la seule source qui les voit tous.
+  private _noteCombatEvents(events: any[]): void {
+    if (!events?.length) return;
+    const emit = useMissionStore.getState().emit;
+    for (const e of events) {
+      if (e?.type === 'power' && e.unit?.side === 'player') {
+        emit('power_triggered', { power_id: e.power_id });
+      }
+    }
+  }
+
+  private _noteMagie(magie: Magie): void {
+    useMissionStore.getState().emit('magic_selected', {
+      magic_id: magie.id, effect_type: magie.effect?.type ?? null,
+    });
+  }
+
+  /** Clôt le lot d'événements de la partie et l'envoie. Idempotent. */
+  protected _reportMatchCompleted(): void {
+    if (this._matchReported) return;
+    this._matchReported = true;
+    const winner = this.session.getWinner();
+    useMissionStore.getState().emit('match_completed', {
+      result: winner === 'player' ? 'win' : winner === 'enemy' ? 'loss' : 'draw',
+      rounds_played: this.session.gameState.round,
+    });
+    void useMissionStore.getState().flushMatch();
+  }
+
   protected _onCombatFinished(): void {
     const result = this.session.finishCombat();
+    useMissionStore.getState().emit('combat_ended', {
+      result: result.winner === 'player' ? 'win' : result.winner === 'enemy' ? 'loss' : result.winner,
+      unit_count: this._combatUnitCount,
+      units_lost: Math.max(0, this._combatUnitCount - result.playerSurvivors.length),
+    });
     this.animator = null;
     // Le terrain ne vaut que pour le combat écoulé (session.startPreparation
     // appelle board.clearBlockedCells de son côté).
@@ -321,6 +401,7 @@ export class GameController {
 
   dismissEndRound(): void {
     if (this.session.isGameOver()) {
+      this._reportMatchCompleted();
       this.sync({ endRound: null, gameOver: true, winner: this.session.getWinner() });
       return;
     }
@@ -347,6 +428,7 @@ export class GameController {
       this.sync({ shopping: { magies: [], awaitingTarget: 'graveyard', banner: `${magie.name} — touche une unité du cimetière` } });
     } else {
       this.session.applyGlobalMagie(magie);
+      this._noteMagie(magie);
       this._proceedNextRound();
     }
   }
@@ -376,6 +458,7 @@ export class GameController {
     this._pendingMagie = null;
     this.scene?.clearHighlight();
     this.session.applyMagieOnUnit(magie, unit);
+    this._noteMagie(magie);
     this.scene?.refresh();
     this._proceedNextRound();
   }
@@ -386,6 +469,7 @@ export class GameController {
     const magie = this._pendingMagie;
     this._pendingMagie = null;
     this.session.applyMagieOnGraveyardUnit(magie, unit);
+    this._noteMagie(magie);
     this.scene?.refresh();
     this._proceedNextRound();
   }
@@ -400,6 +484,7 @@ export class GameController {
     this.session.startNextRound();
     this._clearSelection();
     if (this.session.phase === Phase.GAME_OVER) {
+      this._reportMatchCompleted();
       this.sync({ shopping: null, endRound: null, gameOver: true, winner: this.session.getWinner() });
       return;
     }
@@ -537,7 +622,12 @@ export class GameController {
 
   dispose(): void {
     if (this._errorTimer) clearTimeout(this._errorTimer);
+    if (this._revealTimer) clearTimeout(this._revealTimer);
     this.animator?.stop();
     this.animator = null;
+    // Partie quittée en cours de route : ce qui a été joué reste acquis (le
+    // serveur écarte de lui-même les lots trop courts — anti-concede). No-op si
+    // la fin de partie a déjà vidé la file.
+    void useMissionStore.getState().flushMatch();
   }
 }

@@ -17,6 +17,7 @@ import * as PvpConnection from '../net/PvpConnection.js';
 import { sendOwnBoard, waitForOpponentBoard, reconstructOpponentUnits, reset as resetOpponent } from '../net/PvpOpponentProvider.js';
 import type { BoardDef } from '../logic/types.js';
 import { useGameStore } from '../stores/gameStore.js';
+import { useAuthStore } from '../stores/authStore.js';
 
 interface PvpDeps {
   cardDb: { getCard(id: string): any };
@@ -103,6 +104,9 @@ export class PvpController extends GameController {
     if (this.session.isGameOver()) {
       if (this._finished) return;
       this._finished = true;
+      // Missions : la partie est jouée, on solde le lot sans attendre l'arbitrage
+      // du serveur (le résultat local suffit — seuls les gains PvP en dépendent).
+      this._reportMatchCompleted();
       const localWinner = this.session.getWinner(); // 'player' | 'enemy' | 'draw'
       PvpConnection.send('match:report_result', { localWinner });
       this.sync({ endRound: null, pvpWaiting: true });
@@ -124,10 +128,14 @@ export class PvpController extends GameController {
     super._proceedNextRound();
   }
 
-  private _onMatchEnd(msg: { winner: 'A' | 'B' | 'draw' }): void {
+  private _onMatchEnd(msg: { winner: 'A' | 'B' | 'draw'; progression?: any }): void {
     const iWon = msg.winner === this.role;
     const winner: 'player' | 'enemy' | 'draw' = msg.winner === 'draw' ? 'draw' : iWon ? 'player' : 'enemy';
     this.animator?.stop();
+    // Le gain PvP est décerné par le serveur (seul arbitre du vainqueur) et
+    // voyage dans match:end : il n'y a rien à réclamer, juste à afficher.
+    this._reportMatchCompleted();
+    if (iWon && msg.progression) useAuthStore.getState().applyProgression(msg.progression);
     this.sync({ combatActive: false, pvpWaiting: false, gameOver: true, winner });
   }
 

@@ -101,7 +101,15 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
   );
 }
 
-export function GameOverScreen() {
+/**
+ * Fin de partie. `onExit` permet à l'appelant de détourner la sortie — le
+ * Tournoi renvoie vers son bracket après avoir comptabilisé la manche, au lieu
+ * de retomber sur le menu principal.
+ */
+export function GameOverScreen({ onExit, exitLabel = '◂ MENU PRINCIPAL' }: {
+  onExit?: (winner: 'player' | 'enemy' | 'draw' | null) => void;
+  exitLabel?: string;
+} = {}) {
   const gameOver = useGameStore(s => s.gameOver);
   const winner = useGameStore(s => s.winner);
   const playerHp = useGameStore(s => s.playerHp);
@@ -124,8 +132,12 @@ export function GameOverScreen() {
           <span className="text-white/40">VS</span>
           <span className="font-bold text-enemy tabular-nums">{enemyHp} PV</span>
         </div>
-        <Button variant="primary" className="w-full" onPointerDown={(e) => { e.stopPropagation(); navigate('main_menu'); }}>
-          ◂ MENU PRINCIPAL
+        <Button
+          variant="primary"
+          className="w-full"
+          onPointerDown={(e) => { e.stopPropagation(); if (onExit) onExit(winner); else navigate('main_menu'); }}
+        >
+          {exitLabel}
         </Button>
       </div>
     </Modal>

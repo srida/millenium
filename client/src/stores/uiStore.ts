@@ -4,23 +4,30 @@ import type { Unit } from '../logic/Unit.js';
 
 export type ScreenName =
   | 'main_menu' | 'auth' | 'reset_password' | 'profile' | 'friends'
-  | 'deck_selector' | 'deck_builder' | 'online_lobby' | 'tournament'
+  | 'deck_selector' | 'deck_builder' | 'online_lobby' | 'tournament' | 'missions' | 'shop'
   | 'game' | 'game_pvp' | 'combatlab' | 'testbench';
 
 const SCREEN_NAMES: ScreenName[] = [
   'main_menu', 'auth', 'reset_password', 'profile', 'friends',
-  'deck_selector', 'deck_builder', 'online_lobby', 'tournament',
+  'deck_selector', 'deck_builder', 'online_lobby', 'tournament', 'missions', 'shop',
   'game', 'game_pvp', 'combatlab', 'testbench',
 ];
+
+// 'manage' = gérer ses decks et choisir le deck ACTIF (celui joué partout) ;
+// 'play' = ne choisir que le deck de l'IA avant une partie solo.
+export type DeckSelectorMode = 'play' | 'manage';
 
 export interface ScreenParams {
   deckName?: string;
   // Deck confié à l'EnemyAI (mode solo). Absent = miroir du deck joueur.
   enemyDeckName?: string;
-  // DeckSelector : 'play' (choisir puis lancer une partie) ou 'manage' (gérer
-  // ses decks — l'action principale devient « créer »). Propagé au DeckBuilder
-  // pour que le retour revienne dans le mode d'où l'on vient.
-  mode?: 'play' | 'manage';
+  // DeckSelector : 'manage' (gestion + choix du deck actif) ou 'play' (choix du
+  // seul deck de l'IA). Propagé au DeckBuilder pour que le retour revienne dans
+  // le mode d'origine.
+  mode?: DeckSelectorMode;
+  // Écran de jeu lancé depuis le Tournoi : la partie compte comme une manche du
+  // bracket (adversaire + deck lus dans tournamentStore.pendingGame).
+  tournament?: boolean;
   [key: string]: unknown;
 }
 
@@ -49,12 +56,10 @@ interface UiState {
   screen: ScreenName;
   params: ScreenParams;
   tooltip: TooltipState | null;
-  landscapeWarning: boolean;
 
   navigate: (screen: ScreenName, params?: ScreenParams) => void;
   showTooltip: (content: TooltipContent, anchor: TooltipAnchor) => void;
   hideTooltip: () => void;
-  setLandscapeWarning: (on: boolean) => void;
 }
 
 // Deep-link ?screen= (parité avec l'ancien routeur maison).
@@ -69,10 +74,8 @@ export const useUiStore = create<UiState>((set) => ({
   screen: initialScreen(),
   params: {},
   tooltip: null,
-  landscapeWarning: false,
 
   navigate: (screen, params = {}) => set({ screen, params, tooltip: null }),
   showTooltip: (content, anchor) => set({ tooltip: { content, anchor } }),
   hideTooltip: () => set((s) => (s.tooltip ? { tooltip: null } : s)),
-  setLandscapeWarning: (on) => set({ landscapeWarning: on }),
 }));

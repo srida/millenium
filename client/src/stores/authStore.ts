@@ -6,12 +6,27 @@ import { create } from 'zustand';
 import * as AuthClient from '../data/AuthClient.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 
-export interface AuthUser { id: string; username: string; email?: string; avatar?: string | null }
+export interface AuthUser {
+  id: string; username: string; email?: string; avatar?: string | null; is_admin?: boolean;
+  /** Progression — servie par publicUser() ; la collection est sur /api/me/progression. */
+  level?: number; xp?: number; gold?: number; gems?: number;
+}
+
+/** Progression renvoyée par le serveur (barème et courbe de niveau côté serveur). */
+export interface Progression { level: number; xp: number; xp_per_level?: number; gold: number; gems: number }
 
 interface AuthStoreState {
   user: AuthUser | null;
   ready: boolean;                       // me() a répondu (ou timeout) au moins une fois
   setUser: (u: AuthUser | null) => void;
+  /** Fusionne une progression fraîche dans l'utilisateur courant (no-op en invité). */
+  applyProgression: (p: Progression | null | undefined) => void;
+  /**
+   * Déclare un gain d'XP au serveur et applique le résultat. Best-effort :
+   * une erreur réseau ne doit jamais interrompre une fin de partie, et un
+   * invité n'a simplement pas de progression à créditer.
+   */
+  claimReward: (reason: 'ai_win' | 'tournament_win') => Promise<void>;
   /** Restauration de session au boot (cap 4 s) puis pull des decks si connecté. */
   restore: () => Promise<void>;
   /** Après login/register réussi : mémorise l'utilisateur et pull des decks. */
@@ -23,6 +38,20 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
   user: null,
   ready: false,
   setUser: (user) => set({ user }),
+
+  applyProgression: (p) => {
+    if (!p) return;
+    const user = get().user;
+    if (!user) return;
+    set({ user: { ...user, level: p.level, xp: p.xp, gold: p.gold, gems: p.gems } });
+  },
+
+  claimReward: async (reason) => {
+    if (!get().user) return;
+    try {
+      get().applyProgression(await (AuthClient as any).claimReward(reason));
+    } catch { /* gain perdu, partie inchangée */ }
+  },
 
   restore: async () => {
     // Le boot ne doit pas attendre le réseau : passé 4 s on débloque l'UI
@@ -56,6 +85,9 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
   onAuthenticated: async (user) => {
     set({ user });
     try { await (DeckRepository as any).pull(); } catch { /* hors-ligne */ }
+    // Missions du compte fraîchement connecté (l'invité n'en a pas). Import
+    // paresseux : missionStore lit authStore, un import statique serait circulaire.
+    void (await import('./missionStore.js')).useMissionStore.getState().load(true);
   },
 
   logout: async () => {
@@ -63,6 +95,10 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     try { await (AuthClient as any).logout(); } catch { /* best-effort */ }
     (DeckRepository as any).handleLogout();
     set({ user: null });
+    (await import('./missionStore.js')).useMissionStore.getState().reset();
+    // L'offre de boutique est attachée au compte : la garder à l'écran après
+    // une déconnexion afficherait les cartes d'un autre joueur.
+    (await import('./shopStore.js')).useShopStore.getState().reset();
     void get();
   },
 }));

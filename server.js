@@ -28,7 +28,7 @@ const PUBLIC_DECKS_FILE = path.join(DATA_DIR, 'public_decks.json');
 function bootstrap() {
   fs.mkdirSync(DATA_DIR,  { recursive: true });
   fs.mkdirSync(ILLUS_DIR, { recursive: true });
-  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json']) {
+  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -38,6 +38,10 @@ function bootstrap() {
   }
 }
 bootstrap();
+
+// Dote les comptes antérieurs à la collection (idempotent, cf. progression.js).
+// Après bootstrap() : cards.json doit exister sur le volume.
+require('./progression').backfillAll();
 
 // --- Basic auth (set ADMIN_USER + ADMIN_PASS in env to enable) ---
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';

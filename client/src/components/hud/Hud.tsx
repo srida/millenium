@@ -11,23 +11,27 @@ export default function Hud() {
       <div className="flex-1">
         <div className="flex items-center justify-between text-xs">
           <span className="font-semibold text-player">◆ Toi</span>
-          <span className="font-bold text-player tabular-nums">{playerHp}</span>
+          <span className="flex items-center gap-1.5">
+            {combatActive && <span className="text-[10px] font-bold text-player/80 tabular-nums">×{playerMultiplier.toFixed(1)}</span>}
+            <span className="font-bold text-player tabular-nums">{playerHp}</span>
+          </span>
         </div>
         <Gauge value={playerHp / 1000} fillClassName="bg-player" className="mt-1" />
       </div>
 
       <div className="flex flex-col items-center px-1">
-        {combatActive && <div className="text-[10px] font-bold text-player tabular-nums">×{playerMultiplier.toFixed(1)}</div>}
         <div className="flex flex-col items-center rounded-md border border-line bg-surface/80 px-2 py-0.5">
           <span className="text-sm font-bold tabular-nums">{round} / 5</span>
           <span className="text-[9px] tracking-widest text-white/50">MANCHE</span>
         </div>
-        {combatActive && <div className="text-[10px] font-bold text-enemy tabular-nums">×{enemyMultiplier.toFixed(1)}</div>}
       </div>
 
       <div className="flex-1">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-bold text-enemy tabular-nums">{enemyHp}</span>
+          <span className="flex items-center gap-1.5">
+            <span className="font-bold text-enemy tabular-nums">{enemyHp}</span>
+            {combatActive && <span className="text-[10px] font-bold text-enemy/80 tabular-nums">×{enemyMultiplier.toFixed(1)}</span>}
+          </span>
           <span className="font-semibold text-enemy">Adversaire ◆</span>
         </div>
         <Gauge value={enemyHp / 1000} fillClassName="bg-enemy" className="mt-1" />

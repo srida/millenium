@@ -10,12 +10,16 @@ export default function SynergyPanel() {
   const combatActive = useGameStore(s => s.combatActive);
   const showTooltip = useUiStore(s => s.showTooltip);
   const web = useWebLayout();
-  if (combatActive || synergies.length === 0) return null;
+  // Réservé au mode web (écran large) : en portrait, la main et le cimetière
+  // occupent déjà le bas de l'écran, sans place pour un troisième bandeau.
+  if (!web || combatActive || synergies.length === 0) return null;
 
   return (
-    // En mode web, la main occupe le rail de gauche : les puces se décalent juste
-    // à sa droite.
-    <div className={`pointer-events-auto absolute top-14 z-20 flex max-w-[42%] flex-wrap gap-1 ${web ? 'left-54' : 'left-2'}`}>
+    // Bandeau centré sous le board, entre les deux rails (main à gauche,
+    // cimetière à droite — cf. HandBar/GraveyardTray, w-52 chacun). bottom-14,
+    // pas bottom-2 : la barre de phase (bottom-0, pleine largeur) intercepterait
+    // sinon les taps malgré son fond transparent.
+    <div className="pointer-events-auto absolute bottom-14 left-1/2 z-20 flex max-w-[60%] -translate-x-1/2 flex-wrap justify-center gap-1">
       {synergies.map(s => {
         const active = !!s.activeThreshold;
         const label = s.nextThreshold ? `${s.count}/${s.nextThreshold.count}` : `${s.count}`;

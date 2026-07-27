@@ -1,0 +1,234 @@
+[
+  {
+    "id": "MISSION_A_001",
+    "family": "presence",
+    "slot_weight": 1,
+    "label": "Terminer {target} partie",
+    "objective": { "event": "match_completed", "filters": {}, "target": 1, "scope": "cumulative" },
+    "tags": ["presence"]
+  },
+  {
+    "id": "MISSION_A_002",
+    "family": "presence",
+    "slot_weight": 2,
+    "label": "Terminer {target} parties",
+    "objective": { "event": "match_completed", "filters": {}, "target": 2, "scope": "cumulative" },
+    "tags": ["presence"]
+  },
+  {
+    "id": "MISSION_A_003",
+    "family": "presence",
+    "slot_weight": 3,
+    "label": "Terminer {target} parties",
+    "objective": { "event": "match_completed", "filters": {}, "target": 3, "scope": "cumulative" },
+    "tags": ["presence"]
+  },
+  {
+    "id": "MISSION_A_004",
+    "family": "presence",
+    "slot_weight": 1,
+    "label": "Lancer {target} combats",
+    "objective": { "event": "combat_started", "filters": {}, "target": 3, "scope": "cumulative" },
+    "tags": ["presence"]
+  },
+  {
+    "id": "MISSION_A_005",
+    "family": "presence",
+    "slot_weight": 2,
+    "label": "Jouer une partie jusqu'au tour 5",
+    "objective": { "event": "match_completed", "filters": { "rounds_min": 5 }, "target": 1, "scope": "cumulative" },
+    "tags": ["presence"]
+  },
+  {
+    "id": "MISSION_A_006",
+    "family": "presence",
+    "slot_weight": 2,
+    "label": "Remporter {target} partie",
+    "objective": { "event": "match_completed", "filters": { "result": "win" }, "target": 1, "scope": "cumulative" },
+    "tags": ["presence", "victoire"]
+  },
+  {
+    "id": "MISSION_B_001",
+    "family": "mechanical",
+    "slot_weight": 2,
+    "label": "Réussir {target} invocation par Fusion",
+    "objective": { "event": "summon_performed", "filters": { "summon_type": "fusion" }, "target": 1, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "summon_type": "fusion", "count": 2 } },
+    "tags": ["fusion", "exploration"]
+  },
+  {
+    "id": "MISSION_B_002",
+    "family": "mechanical",
+    "slot_weight": 3,
+    "label": "Réussir {target} invocations par Fusion",
+    "objective": { "event": "summon_performed", "filters": { "summon_type": "fusion" }, "target": 3, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "summon_type": "fusion", "count": 3 } },
+    "tags": ["fusion", "exploration"]
+  },
+  {
+    "id": "MISSION_B_003",
+    "family": "mechanical",
+    "slot_weight": 2,
+    "label": "Réussir {target} invocation par Héritage",
+    "objective": { "event": "summon_performed", "filters": { "summon_type": "heritage" }, "target": 1, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "summon_type": "heritage", "count": 2 } },
+    "tags": ["heritage", "exploration"]
+  },
+  {
+    "id": "MISSION_B_004",
+    "family": "mechanical",
+    "slot_weight": 2,
+    "label": "Réussir {target} invocation par Transformation",
+    "objective": { "event": "summon_performed", "filters": { "summon_type": "transformation" }, "target": 1, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "summon_type": "transformation", "count": 2 } },
+    "tags": ["transformation", "exploration"]
+  },
+  {
+    "id": "MISSION_B_005",
+    "family": "mechanical",
+    "slot_weight": 1,
+    "label": "Invoquer {target} monstres par Sacrifice",
+    "objective": { "event": "summon_performed", "filters": { "summon_type": "sacrifice" }, "target": 2, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "summon_type": "sacrifice", "count": 2 } },
+    "tags": ["sacrifice"]
+  },
+  {
+    "id": "MISSION_B_006",
+    "family": "mechanical",
+    "slot_weight": 3,
+    "label": "Invoquer {target} monstres par Sacrifice",
+    "objective": { "event": "summon_performed", "filters": { "summon_type": "sacrifice" }, "target": 6, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "summon_type": "sacrifice", "count": 3 } },
+    "tags": ["sacrifice"]
+  },
+  {
+    "id": "MISSION_B_007",
+    "family": "mechanical",
+    "slot_weight": 2,
+    "label": "Invoquer {target} cartes de Tier 4 ou plus",
+    "objective": { "event": "summon_performed", "filters": { "tier_min": 4 }, "target": 2, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "tier_min": 4, "count": 2 } },
+    "tags": ["tier"]
+  },
+  {
+    "id": "MISSION_B_008",
+    "family": "mechanical",
+    "slot_weight": 3,
+    "label": "Invoquer {target} carte de Tier 5",
+    "objective": { "event": "summon_performed", "filters": { "tier_min": 5 }, "target": 1, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "tier_min": 5, "count": 1 } },
+    "tags": ["tier"]
+  },
+  {
+    "id": "MISSION_B_009",
+    "family": "mechanical",
+    "slot_weight": 2,
+    "label": "Lancer un combat avec 5 unités sur le terrain",
+    "objective": { "event": "combat_started", "filters": { "unit_count_min": 5 }, "target": 1, "scope": "cumulative" },
+    "tags": ["board"]
+  },
+  {
+    "id": "MISSION_B_010",
+    "family": "mechanical",
+    "slot_weight": 3,
+    "label": "Remporter un combat avec 2 unités ou moins",
+    "objective": { "event": "combat_ended", "filters": { "result": "win", "unit_count_max": 2 }, "target": 1, "scope": "cumulative" },
+    "tags": ["board", "risk"]
+  },
+  {
+    "id": "MISSION_B_011",
+    "family": "mechanical",
+    "slot_weight": 2,
+    "label": "Terminer un combat sans perdre d'unité",
+    "objective": { "event": "combat_ended", "filters": { "result": "win", "units_lost_max": 0 }, "target": 1, "scope": "cumulative" },
+    "tags": ["board"]
+  },
+  {
+    "id": "MISSION_B_012",
+    "family": "mechanical",
+    "slot_weight": 1,
+    "label": "Déclencher {target} pouvoirs",
+    "objective": { "event": "power_triggered", "filters": {}, "target": 5, "scope": "cumulative" },
+    "tags": ["pouvoir"]
+  },
+  {
+    "id": "MISSION_B_013",
+    "family": "mechanical",
+    "slot_weight": 2,
+    "label": "Déclencher {target} pouvoirs",
+    "objective": { "event": "power_triggered", "filters": {}, "target": 6, "scope": "single_combat" },
+    "tags": ["pouvoir"]
+  },
+  {
+    "id": "MISSION_C_001",
+    "family": "synergy",
+    "slot_weight": 2,
+    "label": "Lancer un combat avec 2 attributs actifs",
+    "objective": { "event": "combat_started", "filters": { "attribute_count_min": 2 }, "target": 1, "scope": "cumulative" },
+    "tags": ["synergie"]
+  },
+  {
+    "id": "MISSION_C_002",
+    "family": "synergy",
+    "slot_weight": 3,
+    "label": "Lancer un combat avec 3 attributs actifs",
+    "objective": { "event": "combat_started", "filters": { "attribute_count_min": 3 }, "target": 1, "scope": "cumulative" },
+    "tags": ["synergie"]
+  },
+  {
+    "id": "MISSION_C_003",
+    "family": "synergy",
+    "slot_weight": 2,
+    "label": "Aligner 3 unités du même attribut sur le terrain",
+    "objective": { "event": "combat_started", "filters": { "max_attribute_units_min": 3 }, "target": 1, "scope": "cumulative" },
+    "tags": ["synergie"]
+  },
+  {
+    "id": "MISSION_D_001",
+    "family": "shopping",
+    "slot_weight": 1,
+    "label": "Choisir {target} magies",
+    "objective": { "event": "magic_selected", "filters": {}, "target": 2, "scope": "cumulative" },
+    "tags": ["shopping"]
+  },
+  {
+    "id": "MISSION_D_002",
+    "family": "shopping",
+    "slot_weight": 2,
+    "label": "Choisir {target} magies",
+    "objective": { "event": "magic_selected", "filters": {}, "target": 6, "scope": "cumulative" },
+    "tags": ["shopping"]
+  },
+  {
+    "id": "MISSION_D_003",
+    "family": "shopping",
+    "slot_weight": 2,
+    "label": "Réanimer une unité du cimetière",
+    "objective": { "event": "magic_selected", "filters": { "effect_type": "revive" }, "target": 1, "scope": "cumulative" },
+    "tags": ["shopping"]
+  },
+  {
+    "id": "MISSION_D_004",
+    "family": "shopping",
+    "slot_weight": 2,
+    "label": "Utiliser une magie de terrain ou de défusion",
+    "objective": { "event": "magic_selected", "filters": { "effect_type_in": ["board_slot_bonus", "defuse_fusion"] }, "target": 1, "scope": "cumulative" },
+    "tags": ["shopping"]
+  },
+  {
+    "id": "MISSION_E_001",
+    "family": "meta",
+    "slot_weight": 1,
+    "label": "Créer ou modifier un deck",
+    "objective": { "event": "deck_saved", "filters": {}, "target": 1, "scope": "cumulative" },
+    "tags": ["meta"]
+  },
+  {
+    "id": "MISSION_E_002",
+    "family": "meta",
+    "slot_weight": 1,
+    "label": "Enregistrer un deck d'au moins 25 cartes",
+    "objective": { "event": "deck_saved", "filters": { "card_count_min": 25 }, "target": 1, "scope": "cumulative" },
+    "tags": ["meta"]
+  }
+]

@@ -16,8 +16,10 @@ import TournamentScreen from '../screens/TournamentScreen.js';
 import OnlineLobby from '../screens/OnlineLobby.js';
 import GameScreen from '../screens/GameScreen.js';
 import GameScreenPvp from '../screens/GameScreenPvp.js';
+import MissionsScreen from '../screens/MissionsScreen.js';
+import ShopScreen from '../screens/ShopScreen.js';
 import TooltipHost from '../components/tooltip/TooltipHost.js';
-import { LandscapeOverlay } from '../components/system/DeviceGuards.js';
+import MissionToasts from '../components/ui/MissionToasts.js';
 
 const CombatLab = lazy(() => import('../dev/CombatLab.js'));
 const TestBench = lazy(() => import('../dev/TestBench.js'));
@@ -58,6 +60,8 @@ export default function App() {
       {screen === 'deck_selector' && <DeckSelector />}
       {screen === 'deck_builder' && <DeckBuilder />}
       {screen === 'tournament' && <TournamentScreen />}
+      {screen === 'missions' && <MissionsScreen />}
+      {screen === 'shop' && <ShopScreen />}
       {screen === 'online_lobby' && <OnlineLobby />}
       {screen === 'game' && <GameScreen />}
       {screen === 'game_pvp' && <GameScreenPvp />}
@@ -72,7 +76,9 @@ export default function App() {
         </Suspense>
       )}
       <TooltipHost />
-      <LandscapeOverlay />
+      {/* Au-dessus des écrans : le lot d'événements part en fin de partie et la
+          réponse arrive souvent une fois revenu au menu. */}
+      <MissionToasts />
     </>
   );
 }

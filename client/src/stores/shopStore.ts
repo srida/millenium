@@ -1,0 +1,217 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// shopStore — boutique de cartes : instantané servi par le serveur + actions.
+//
+// Le client ne calcule AUCUN prix et ne tire AUCUNE carte : il désigne un
+// emplacement, un set ou une carte à épingler, et affiche ce que le serveur
+// répond. Même contrat que missionStore — un montant envoyé par le client
+// serait auto-attribué, et une offre tirée par le client serait re-tirée
+// jusqu'à satisfaction.
+//
+// Chaque mutation renvoie l'instantané complet : aucun rechargement derrière
+// une action, et l'offre affichée est toujours celle que le serveur vient de
+// valider.
+import { create } from 'zustand';
+import * as AuthClient from '../data/AuthClient.js';
+import { useAuthStore } from './authStore.js';
+import { useCollectionStore } from './collectionStore.js';
+
+/** Pourquoi cette carte est proposée — c'est le badge qui porte la valeur perçue. */
+export type SlotReason = 'unlocks' | 'material' | 'affinity' | 'random' | 'covet';
+
+export interface ShopSlot {
+  slot: number;
+  card_id: string;
+  tier: number;
+  price: number;
+  reason: SlotReason;
+  /** Carte débloquée (`material`) ou attribut visé (`affinity`). */
+  reason_ref: string | null;
+  purchased: boolean;
+}
+
+export interface ShopSet {
+  id: string;
+  name: string;
+  card_count: number;
+  owned_count: number;
+  complete: boolean;
+  booster_enabled: boolean;
+  archetypes: string[];
+  signature_card: string | null;
+  completion_reward: { gems?: number; gold?: number; xp?: number } | null;
+}
+
+export interface CovetState {
+  card_id: string;
+  tier: number;
+  price: number;
+  pinned_day: string;
+  days_remaining: number;
+  ready: boolean;
+}
+
+export interface ShopSnapshot {
+  day: string;
+  next_rotation_at: number;
+  slots: ShopSlot[];
+  reroll: { free_available: boolean; per_day: number };
+  covet: CovetState | null;
+  covet_rules: { delay_days: number; price_multiplier: number };
+  booster: { price_golds: number; price_gems: number; card_count: number };
+  sets: ShopSet[];
+  prices: Record<string, number>;
+  collection: { owned: number; total: number };
+}
+
+/** Résultat d'une ouverture de booster — consommé par l'écran pour la révélation. */
+export interface BoosterResult {
+  set_id: string;
+  cards: { card_id: string; tier: number }[];
+  price: number;
+  currency: 'golds' | 'gems';
+  covet_cleared: boolean;
+  sets_completed: { set_id: string; name: string; rewards: { xp: number; gold: number; gems: number } }[];
+}
+
+interface ShopStoreState {
+  snapshot: ShopSnapshot | null;
+  loading: boolean;
+  busy: boolean;
+  error: string | null;
+  /** Annonce transitoire (set complété…), affichée par l'écran. */
+  notice: string | null;
+  booster: BoosterResult | null;
+
+  load: (force?: boolean) => Promise<void>;
+  buy: (slot: ShopSlot) => Promise<string | null>;
+  reroll: (slot: number) => Promise<string | null>;
+  covet: (cardId: string | null) => Promise<string | null>;
+  openBooster: (setId: string, currency: 'golds' | 'gems') => Promise<string | null>;
+  closeBooster: () => void;
+  dismissNotice: () => void;
+  reset: () => void;
+}
+
+const isGuest = () => !useAuthStore.getState().user;
+
+function pickSnapshot(data: any): ShopSnapshot {
+  return {
+    day: data.day,
+    next_rotation_at: data.next_rotation_at,
+    slots: data.slots ?? [],
+    reroll: data.reroll,
+    covet: data.covet ?? null,
+    covet_rules: data.covet_rules,
+    booster: data.booster,
+    sets: data.sets ?? [],
+    prices: data.prices ?? {},
+    collection: data.collection ?? { owned: 0, total: 0 },
+  };
+}
+
+/** Réponse d'une mutation : instantané, solde, collection, primes de complétion. */
+function absorb(set: (partial: any) => void, data: any, unlocked: string[] = []): void {
+  if (!data) return;
+  set({ snapshot: pickSnapshot(data) });
+  useAuthStore.getState().applyProgression(data.progression);
+  useCollectionStore.getState().add(unlocked);
+
+  const completed = data.sets_completed ?? [];
+  if (completed.length) {
+    const gems = completed.reduce((n: number, s: any) => n + (s.rewards?.gems ?? 0), 0);
+    set({ notice: `Set complété : ${completed.map((s: any) => s.name).join(', ')}${gems ? ` — +${gems} 💎` : ''}` });
+  }
+}
+
+export const useShopStore = create<ShopStoreState>((set, get) => ({
+  snapshot: null,
+  loading: false,
+  busy: false,
+  error: null,
+  notice: null,
+  booster: null,
+
+  load: async (force = false) => {
+    if (isGuest()) { set({ snapshot: null, error: null }); return; }
+    if (get().loading || (get().snapshot && !force)) return;
+    set({ loading: true, error: null });
+    try {
+      const data = await (AuthClient as any).getShop();
+      set({ snapshot: pickSnapshot(data) });
+      useAuthStore.getState().applyProgression(data.progression);
+    } catch (e: any) {
+      set({ error: e?.message ?? 'Boutique indisponible.' });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  buy: async (slot) => {
+    if (get().busy) return null;
+    set({ busy: true });
+    try {
+      const data = await (AuthClient as any).buyShopCard({ slot: slot.slot, cardId: slot.card_id });
+      absorb(set, data, [slot.card_id]);
+      return null;
+    } catch (e: any) {
+      // 409 = l'offre a tourné pendant qu'on regardait : on la recharge pour
+      // que le joueur voie la nouvelle plutôt qu'une erreur sur l'ancienne.
+      if (e?.status === 409) void get().load(true);
+      return e?.message ?? 'Achat impossible.';
+    } finally {
+      set({ busy: false });
+    }
+  },
+
+  reroll: async (slot) => {
+    if (get().busy) return null;
+    set({ busy: true });
+    try {
+      absorb(set, await (AuthClient as any).rerollShopSlot(slot));
+      return null;
+    } catch (e: any) {
+      if (e?.status === 409) void get().load(true);
+      return e?.message ?? 'Reroll impossible.';
+    } finally {
+      set({ busy: false });
+    }
+  },
+
+  covet: async (cardId) => {
+    if (get().busy) return null;
+    set({ busy: true });
+    try {
+      absorb(set, await (AuthClient as any).setCovet(cardId));
+      return null;
+    } catch (e: any) {
+      return e?.message ?? 'Impossible d\'épingler cette carte.';
+    } finally {
+      set({ busy: false });
+    }
+  },
+
+  openBooster: async (setId, currency) => {
+    if (get().busy) return null;
+    set({ busy: true });
+    try {
+      const data = await (AuthClient as any).buyBooster({ setId, currency });
+      const cards = (data.cards ?? []) as { card_id: string; tier: number }[];
+      absorb(set, data, cards.map(c => c.card_id));
+      set({
+        booster: {
+          set_id: data.set_id, cards, price: data.price, currency: data.currency,
+          covet_cleared: !!data.covet_cleared, sets_completed: data.sets_completed ?? [],
+        },
+      });
+      return null;
+    } catch (e: any) {
+      return e?.message ?? 'Ouverture impossible.';
+    } finally {
+      set({ busy: false });
+    }
+  },
+
+  closeBooster: () => set({ booster: null }),
+  dismissNotice: () => set({ notice: null }),
+  reset: () => set({ snapshot: null, booster: null, notice: null, error: null }),
+}));

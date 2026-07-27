@@ -78,6 +78,79 @@ export async function updateProfile({ username, avatar }) {
   return user;
 }
 
+// --- Progression (niveau, XP, monnaies, collection) ---
+export async function getProgression() {
+  return api('/me/progression'); // { level, xp, xp_per_level, gold, gems, unlocked_count, unlocked_cards }
+}
+
+// Déclare un événement de jeu ; le serveur applique son barème et renvoie la
+// progression à jour. Volontairement silencieux en cas d'échec côté appelant :
+// perdre un gain d'XP ne doit jamais casser une fin de partie.
+export async function claimReward(reason) {
+  const { progression } = await api('/me/progression/reward', { method: 'POST', body: { reason } });
+  if (currentUser && progression) currentUser = { ...currentUser, ...progression };
+  return progression;
+}
+
+// --- Missions quotidiennes ---
+// Le serveur délivre les lots manquants À LA LECTURE : un simple GET fait
+// avancer le cycle, il n'y a pas de tâche planifiée à attendre.
+export async function getMissions() {
+  return api('/me/missions'); // { missions, daily, weekly, reroll }
+}
+
+// Envoie un lot d'ÉVÉNEMENTS de partie (jamais une progression ni un montant :
+// le serveur applique son catalogue et son barème). `matchId` absent = lot méta,
+// hors partie (deck enregistré…).
+export async function sendMissionEvents({ matchId = null, events }) {
+  const data = await api('/me/missions/events', {
+    method: 'POST',
+    body: { match_id: matchId, events },
+  });
+  if (currentUser && data && data.progression) currentUser = { ...currentUser, ...data.progression };
+  return data; // { countable, completed, milestones, missions, weekly, reroll, progression }
+}
+
+export async function rerollMission(id) {
+  const data = await api(`/me/missions/${encodeURIComponent(id)}/reroll`, { method: 'POST' });
+  if (currentUser && data && data.progression) currentUser = { ...currentUser, ...data.progression };
+  return data;
+}
+
+// --- Boutique de cartes ---
+// Même contrat que les missions : le client DÉSIGNE (un emplacement, un set,
+// une carte à épingler), le serveur chiffre. Aucun prix ne circule dans le sens
+// client → serveur, sinon n'importe qui s'achèterait une T5 pour 1 gold.
+// Toutes les réponses portent l'instantané complet + la progression à jour :
+// aucun rechargement à faire derrière une action.
+function absorbShop(data) {
+  if (currentUser && data && data.progression) currentUser = { ...currentUser, ...data.progression };
+  return data;
+}
+
+export async function getShop() {
+  return absorbShop(await api('/me/shop'));
+}
+
+// `cardId` accompagne le slot : le serveur refuse (409) si l'offre a tourné
+// entre l'affichage et le tap, au lieu d'acheter la carte qui a pris la place.
+export async function buyShopCard({ slot, cardId }) {
+  return absorbShop(await api('/me/shop/buy', { method: 'POST', body: { slot, card_id: cardId } }));
+}
+
+export async function rerollShopSlot(slot) {
+  return absorbShop(await api('/me/shop/reroll', { method: 'POST', body: { slot } }));
+}
+
+/** `cardId = null` retire l'épingle. Changer de carte relance le délai. */
+export async function setCovet(cardId) {
+  return absorbShop(await api('/me/shop/covet', { method: 'POST', body: { card_id: cardId } }));
+}
+
+export async function buyBooster({ setId, currency = 'golds' }) {
+  return absorbShop(await api('/me/shop/booster', { method: 'POST', body: { set_id: setId, currency } }));
+}
+
 // --- Amis ---
 export async function searchUsers(q) {
   const { users } = await api(`/users/search?q=${encodeURIComponent(q)}`);

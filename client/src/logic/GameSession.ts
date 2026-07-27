@@ -158,11 +158,17 @@ export class GameSession {
       }
     }
 
-    // En PvP, l'adversaire humain place ses unités sur son propre client ; le
-    // PvpController les reconstruira côté ennemi juste avant le combat.
-    if (this.deps.mode === 'pvp') return;
+    // L'adversaire ne joue PAS ici : en solo l'IA place ses unités au
+    // lancement du combat (startCombat), une fois le joueur prêt ; en PvP
+    // l'adversaire humain place sur son propre client et le PvpController
+    // reconstruit son board juste avant le combat.
+  }
 
-    // L'IA ennemie pioche et remplit ses slots vides (survivants restent, cimetière dispo)
+  /** Placement de l'adversaire IA — le joueur pose en premier, l'IA répond au
+   *  moment où il valide (bouton PRÊT / fin du chrono). No-op en PvP. */
+  private _placeEnemyUnits(): void {
+    if (this.deps.mode === 'pvp') return;
+    // L'IA pioche et remplit ses slots vides (survivants restent, cimetière dispo)
     this.enemyAI.drawHand(this.gameState.round);
     this.enemyAI.placeFromHand(this.board, this.gameState.enemy_board_slots, this.enemyGraveyard);
     this.enemyAI.rearrangeUnits(this.board, this.gameState.enemy_board_slots);
@@ -250,6 +256,10 @@ export class GameSession {
   // agreedBoard : en PvP, terrain convenu entre les 2 clients (déterminisme) ;
   // omis en IA → terrain aléatoire.
   startCombat(agreedBoard?: BoardDef | null): StartCombatResult {
+    // L'IA joue en dernier : son placement consomme encore le cimetière ennemi
+    // du round précédent, il doit donc précéder la purge des cimetières.
+    this._placeEnemyUnits();
+
     this.graveyard = [];
     this.enemyGraveyard = [];
 

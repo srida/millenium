@@ -1,14 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // OnlineLobby — matchmaking du Duel en ligne. Connecte le WebSocket, rejoint la
-// file avec le deck actif, et navigue vers l'écran de jeu PvP dès qu'un match
+// file avec le deck engagé, et navigue vers l'écran de jeu PvP dès qu'un match
 // est trouvé. Le combat lui-même vit dans GameScreenPvp / PvpController.
+//
+// Le deck n'est PAS choisi ici : c'est le deck actif, choisi au menu principal
+// (« Mes decks ») ; ce lobby n'en affiche que le récap (SelectedDeck).
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import * as PvpConnection from '../net/PvpConnection.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from '../components/ui/primitives.js';
-import DeckPicker from '../components/deck/DeckPicker.js';
+import SelectedDeck from '../components/deck/SelectedDeck.js';
 
 type Status = 'idle' | 'connecting' | 'searching' | 'found' | 'error';
 
@@ -21,15 +24,12 @@ export default function OnlineLobby() {
   const startedRef = useRef(false);
   const foundRef = useRef(false);
 
-  // Deck engagé dans le duel : initialisé sur le deck actif, modifiable tant que
-  // la recherche n'a pas commencé (il part dans `queue:join`, puis sert à bâtir
-  // la session PvP).
-  const [deckName, setDeckName] = useState<string | null>(
-    () => ((DeckRepository as any).getActiveDeck?.() as string | null) ?? null,
-  );
+  // Deck engagé dans le duel = deck actif (choisi au menu). Il part dans
+  // `queue:join`, puis sert à bâtir la session PvP.
+  const deckName = ((DeckRepository as any).getActiveDeck?.() as string | null) ?? null;
   const hasDeck = !!deckName && !!(DeckRepository as any).loadDeck?.(deckName);
-  // Le deck courant, lu via ref pour que le handler `onFound` (abonné une seule
-  // fois au montage) utilise toujours la valeur à jour sans re-déclencher l'effet.
+  // Lu via ref pour que le handler `onFound` (abonné une seule fois au montage)
+  // utilise toujours la valeur à jour sans re-déclencher l'effet.
   const deckRef = useRef(deckName);
   deckRef.current = deckName;
 
@@ -85,46 +85,49 @@ export default function OnlineLobby() {
     );
   }
 
+  // Même en-tête que l'écran Tournoi : retour, titre, deck engagé. Le ◂ passe par
+  // `cancel()` pour ne pas laisser le joueur dans la file en quittant.
   return (
-    <Center>
-      <div className="text-5xl">⚔️</div>
-      <h1 className="text-xl font-bold tracking-wide text-gold">Duel en ligne</h1>
+    <main className="flex min-h-dvh flex-col bg-surface text-white">
+      <header className="flex items-center gap-3 border-b border-line px-4 py-3">
+        <Button className="px-3" onPointerDown={cancel}>◂</Button>
+        <h1 className="text-lg font-bold tracking-wide">Duel en ligne</h1>
+        <span className="ml-auto truncate text-xs text-white/40">deck : {deckName ?? '—'}</span>
+      </header>
 
-      {/* Le deck part avec `queue:join` : on le verrouille dès la recherche. */}
-      <div className="w-full max-w-sm text-left">
-        <DeckPicker
-          value={deckName}
-          onChange={setDeckName}
-          disabled={status !== 'idle' && status !== 'error'}
-          emptyHint="Crée un deck avant de chercher un duel."
-        />
-      </div>
+      <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto p-4 py-6 text-center">
+        <div className="text-4xl">⚔️</div>
+        <p className="max-w-xs text-sm text-white/60">
+          Duel 1v1 contre un autre joueur, avec ton deck actif. Le combat est simulé
+          des deux côtés — même déroulé, même vainqueur.
+        </p>
 
-      {status === 'idle' && (
-        <>
-          <Button variant="primary" disabled={!hasDeck} className="px-8 py-3" onPointerDown={search}>
+        <div className="w-full max-w-sm text-left">
+          <SelectedDeck deckName={deckName} emptyHint="Choisis un deck avant de chercher un duel." />
+        </div>
+
+        {status === 'idle' && hasDeck && (
+          <Button variant="primary" className="px-8 py-3" onPointerDown={search}>
             Chercher un adversaire
           </Button>
-          {!hasDeck && <p className="text-xs text-white/40">Choisis un deck pour entrer en file.</p>}
-        </>
-      )}
-      {(status === 'connecting' || status === 'searching') && (
-        <>
-          <p className="animate-pulse text-sm text-white/70">
-            {status === 'connecting' ? 'Connexion…' : 'Recherche d\'un adversaire…'}
-          </p>
-          <Button onPointerDown={cancel}>Annuler</Button>
-        </>
-      )}
-      {status === 'found' && <p className="text-sm text-success">Adversaire trouvé : {opponent} !</p>}
-      {status === 'error' && (
-        <>
-          <p className="text-sm text-danger">{error}</p>
-          <Button onPointerDown={() => { setStatus('idle'); }}>Réessayer</Button>
-          <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-        </>
-      )}
-    </Center>
+        )}
+        {(status === 'connecting' || status === 'searching') && (
+          <>
+            <p className="animate-pulse text-sm text-white/70">
+              {status === 'connecting' ? 'Connexion…' : 'Recherche d\'un adversaire…'}
+            </p>
+            <Button onPointerDown={cancel}>Annuler</Button>
+          </>
+        )}
+        {status === 'found' && <p className="text-sm text-success">Adversaire trouvé : {opponent} !</p>}
+        {status === 'error' && (
+          <>
+            <p className="text-sm text-danger">{error}</p>
+            <Button onPointerDown={() => { setStatus('idle'); }}>Réessayer</Button>
+          </>
+        )}
+      </div>
+    </main>
   );
 }
 

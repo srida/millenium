@@ -10,6 +10,7 @@
 // perte de match irrécupérable (seule l'historique en DB survit).
 const crypto = require('crypto');
 const { stmt } = require('../db');
+const progression = require('../progression');
 
 const GRACE_PERIOD_MS = 45_000;
 
@@ -249,8 +250,22 @@ function endMatch(matchId, winnerUserId, reason) {
 
   stmt.endMatch.run(winnerUserId || null, reason, Date.now(), matchId);
 
-  send(roleA.ws, 'match:end', { matchId, winner: winnerRole, reason });
-  send(roleB.ws, 'match:end', { matchId, winner: winnerRole, reason });
+  // Gain PvP décerné ICI et pas par le client : c'est le serveur qui arbitre le
+  // vainqueur (rapports croisés des deux joueurs, forfait, timeout). Le gain
+  // vaut aussi sur forfait/timeout — l'adversaire a bien remporté le match.
+  // `reward` renvoie la progression à jour, transmise avec match:end pour que
+  // le vainqueur voie sa jauge bouger sans refetch.
+  const gain = winnerUserId ? progression.reward(winnerUserId, 'pvp_win') : null;
+  const xpGained = gain ? progression.REWARDS.pvp_win : 0;
+
+  send(roleA.ws, 'match:end', {
+    matchId, winner: winnerRole, reason,
+    ...(winnerRole === 'A' ? { xp_gained: xpGained, progression: gain } : {}),
+  });
+  send(roleB.ws, 'match:end', {
+    matchId, winner: winnerRole, reason,
+    ...(winnerRole === 'B' ? { xp_gained: xpGained, progression: gain } : {}),
+  });
 
   for (const p of [roleA, roleB]) {
     clearTimeout(p.disconnectTimer);

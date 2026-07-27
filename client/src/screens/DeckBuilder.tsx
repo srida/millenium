@@ -9,10 +9,12 @@ import * as CardDatabase from '../data/CardDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import type { Card } from '../logic/types.js';
-import { useUiStore } from '../stores/uiStore.js';
+import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
+import { useCollectionStore } from '../stores/collectionStore.js';
+import { useMissionStore } from '../stores/missionStore.js';
 import { Button } from '../components/ui/primitives.js';
-import CardTile from '../components/deck/CardTile.js';
+import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 
 const MIN_DECK = 20;
 const SUMMON_LABELS: Record<string, string> = {
@@ -61,9 +63,9 @@ export default function DeckBuilder() {
     return param ?? ((DeckRepository as any).consumePendingEdit?.() as string | null) ?? null;
   });
 
-  // Mode de l'écran d'où l'on vient : le retour doit y ramener à l'identique
-  // (« Jouer » vs « Construire un deck »). Figé au montage, comme editName.
-  const [backMode] = useState(() => useUiStore.getState().params.mode ?? 'play');
+  // Mode du DeckSelector d'où l'on vient : le retour doit y ramener à
+  // l'identique. Figé au montage, comme editName.
+  const [backMode] = useState<DeckSelectorMode>(() => useUiStore.getState().params.mode ?? 'manage');
   const back = () => navigate('deck_selector', { mode: backMode });
 
   const allCards = useMemo(() => (CardDatabase as any).getAllCards()
@@ -74,6 +76,14 @@ export default function DeckBuilder() {
     return m;
   }, []);
 
+  // Collection du joueur : seules ses cartes sont sélectionnables. Rechargée au
+  // montage pour refléter un déblocage obtenu depuis la dernière visite.
+  const ownedIds = useCollectionStore(s => s.ownedIds);
+  const collectionLoaded = useCollectionStore(s => s.loaded);
+  useEffect(() => { void useCollectionStore.getState().load(true); }, []);
+  const owns = useMemo(() => (id: string) => ownedIds.has(id), [ownedIds]);
+  const ownedCount = useMemo(() => allCards.filter(c => ownedIds.has(c.id)).length, [allCards, ownedIds]);
+
   const [deckData, setDeckData] = useState<DeckData>(EMPTY);
   const [name, setName] = useState(editName ?? '');
   const [color, setColor] = useState<string | null>(null);
@@ -81,15 +91,34 @@ export default function DeckBuilder() {
   const [tierFilters, setTierFilters] = useState<number[]>([]);
   const [summonFilters, setSummonFilters] = useState<string[]>([]);
   const [search, setSearch] = useState('');
+  // Les cartes non possédées sont masquées par défaut (la bibliothèque montre ce
+  // avec quoi on peut jouer) ; ce chip les révèle, verrouillées et intapables,
+  // pour qu'on voie ce qu'il reste à débloquer.
+  const [showLocked, setShowLocked] = useState(false);
 
   // Préchargement en mode édition
+  // Decks enregistrés avant la règle d'unicité : on retire les doublons au
+  // chargement (sinon les rééditer les conserverait), et on le DIT — le total
+  // change sous les yeux du joueur, il ne doit pas avoir à le deviner.
+  const [dropped, setDropped] = useState(0);
+
   useEffect(() => {
     if (!editName) return;
     const saved = (DeckRepository as any).loadDeck(editName) as Record<string, string[]> | null;
     if (saved) {
       const d: DeckData = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-      for (let t = 1; t <= 5; t++) d[t] = (saved[String(t)] ?? []).map((id: string) => (CardDatabase as any).getCard(id)).filter(Boolean);
+      let dupes = 0;
+      for (let t = 1; t <= 5; t++) {
+        const cards = (saved[String(t)] ?? []).map((id: string) => (CardDatabase as any).getCard(id)).filter(Boolean) as Card[];
+        const seen = new Set<string>();
+        for (const c of cards) {
+          if (seen.has(c.id)) { dupes++; continue; }
+          seen.add(c.id);
+          d[t].push(c);
+        }
+      }
       setDeckData(d);
+      setDropped(dupes);
     }
     setColor((DeckRepository as any).getDeckColor?.(editName) ?? null);
   }, [editName]);
@@ -99,15 +128,33 @@ export default function DeckBuilder() {
   const valid = name.trim().length > 0 && total >= MIN_DECK && tierOk;
 
   const filtered = allCards.filter(c => {
+    if (!showLocked && !owns(c.id)) return false;
     if (tierFilters.length && !tierFilters.includes(c.tier)) return false;
     if (summonFilters.length && !summonFilters.includes((c as any).summon_type ?? 'normal')) return false;
     if (search.trim() && !c.name.toLowerCase().includes(search.trim().toLowerCase())) return false;
     return true;
   });
 
+  // Cartes du deck chargé que le joueur ne possède pas (deck bâti avant un
+  // changement de collection). Elles sont signalées, PAS supprimées d'office :
+  // effacer le travail du joueur sans qu'il l'ait demandé serait pire.
+  const lockedInDeck = collectionLoaded
+    ? [1, 2, 3, 4, 5].reduce((n, t) => n + deckData[t].filter(c => !owns(c.id)).length, 0)
+    : 0;
+
+  // Une carte ne peut figurer qu'UNE fois dans un deck (la règle du doublon
+  // interdit de toute façon deux exemplaires vivants de la même card_id sur le
+  // board). Vérifié dans l'updater plutôt que sur `deckData` du rendu, pour ne
+  // pas dépendre d'un état périmé si deux taps s'enchaînent.
   function addCard(c: Card) {
-    if (deckData[c.tier].length >= tierMax[c.tier]) return;
-    setDeckData(d => ({ ...d, [c.tier]: [...d[c.tier], c] }));
+    // Garde-fou : la vignette verrouillée est déjà intapable, mais l'ajout ne
+    // doit dépendre que de la collection, pas de l'état d'affichage.
+    if (!owns(c.id)) return;
+    setDeckData(d => {
+      if (d[c.tier].length >= tierMax[c.tier]) return d;
+      if (d[c.tier].some(x => x.id === c.id)) return d;
+      return { ...d, [c.tier]: [...d[c.tier], c] };
+    });
   }
   function removeCard(tier: number, idx: number) {
     setDeckData(d => ({ ...d, [tier]: d[tier].filter((_, i) => i !== idx) }));
@@ -127,6 +174,12 @@ export default function DeckBuilder() {
     (DeckRepository as any).saveDeck(finalName, toSave);
     if (color) (DeckRepository as any).setDeckColor?.(finalName, color);
     (DeckRepository as any).setDeckTags?.(finalName, computeTags(deckData));
+    // Tous les modes de jeu partent du deck actif : sans deck actif valide (1er
+    // deck créé, deck actif supprimé), on adopte celui qu'on vient d'enregistrer.
+    if (!(DeckRepository as any).hasActiveDeck?.()) (DeckRepository as any).setActiveDeck(finalName);
+    // Mission famille « méta » : se valide sans jouer, précieux les jours sans
+    // temps. Événement isolé → envoyé tout de suite (pas de lot de partie).
+    void useMissionStore.getState().emitMeta('deck_saved', { card_count: total });
     refreshDecks();
     back();
   }
@@ -153,10 +206,23 @@ export default function DeckBuilder() {
         ))}
       </div>
 
+      {dropped > 0 && (
+        <p className="border-b border-line bg-gold/10 px-4 py-2 text-xs text-gold">
+          ⚠ {dropped} doublon{dropped > 1 ? 's' : ''} retiré{dropped > 1 ? 's' : ''} : une carte ne peut figurer qu'une fois dans un deck.
+        </p>
+      )}
+
+      {lockedInDeck > 0 && (
+        <p className="border-b border-line bg-danger/10 px-4 py-2 text-xs text-danger">
+          🔒 {lockedInDeck} carte{lockedInDeck > 1 ? 's' : ''} de ce deck n'{lockedInDeck > 1 ? 'ont' : 'a'} pas été débloquée{lockedInDeck > 1 ? 's' : ''} — retire-la{lockedInDeck > 1 ? 's' : ''} pour n'y garder que ta collection.
+        </p>
+      )}
+
       {tab === 'lib' ? (
         <LibraryPanel
-          cards={filtered} total={allCards.length}
-          deckData={deckData} tierMax={tierMax}
+          cards={filtered} total={allCards.length} ownedCount={ownedCount}
+          deckData={deckData} tierMax={tierMax} owns={owns}
+          showLocked={showLocked} setShowLocked={setShowLocked}
           search={search} setSearch={setSearch}
           tierFilters={tierFilters} setTierFilters={setTierFilters}
           summonFilters={summonFilters} setSummonFilters={setSummonFilters}
@@ -165,7 +231,7 @@ export default function DeckBuilder() {
       ) : (
         <DeckPanel
           deckData={deckData} tierMax={tierMax} name={name} setName={setName}
-          color={color} setColor={setColor} onRemove={removeCard}
+          color={color} setColor={setColor} onRemove={removeCard} owns={owns}
           onClear={() => setDeckData(EMPTY)}
         />
       )}
@@ -196,7 +262,7 @@ function Chip({ active, onTap, children }: { active: boolean; onTap: () => void;
 }
 
 function LibraryPanel({
-  cards, total, deckData, tierMax, search, setSearch,
+  cards, total, ownedCount, deckData, tierMax, owns, showLocked, setShowLocked, search, setSearch,
   tierFilters, setTierFilters, summonFilters, setSummonFilters, onAdd,
 }: any) {
   return (
@@ -222,23 +288,38 @@ function LibraryPanel({
               {label}
             </Chip>
           ))}
+          {ownedCount < total && (
+            <Chip active={showLocked} onTap={() => setShowLocked((v: boolean) => !v)}>🔒 Verrouillées</Chip>
+          )}
         </div>
-        <div className="text-[11px] text-white/40">{total} cartes · {cards.length} affichées</div>
+        <div className="text-[11px] text-white/40">
+          {ownedCount}/{total} cartes débloquées · {cards.length} affichée{cards.length > 1 ? 's' : ''} · 1 exemplaire par deck
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
         {cards.length === 0
           ? <p className="py-10 text-center text-sm text-white/40">Aucune carte trouvée.</p>
           : (
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
               {cards.map((c: Card) => {
-                const copies = deckData[c.tier].filter((x: Card) => x.id === c.id).length;
+                // Non débloquée : cadenas + grisé franc, intapable — elle n'est
+                // là que pour montrer ce qui reste à obtenir.
+                // Déjà dans le deck : liseré or (« tu l'as ») + grisé léger.
+                // Tier plein : grisé franc. Tous ces cas sont intapables.
+                const locked = !owns(c.id);
+                const inDeck = deckData[c.tier].some((x: Card) => x.id === c.id);
                 const full = deckData[c.tier].length >= tierMax[c.tier];
                 return (
                   <CardTile
-                    key={c.id} card={c} size="h-auto w-full"
-                    onTap={() => onAdd(c)} disabled={full} dimmed={full}
-                    badge={copies || null}
+                    key={c.id} {...cardTileProps(c)} size="h-auto w-full"
+                    // Ajout au relâchement : un appui long ouvre le tooltip sans
+                    // glisser la carte dans le deck au passage.
+                    tapOn="up" onTap={() => onAdd(c)}
+                    locked={locked}
+                    disabled={locked || inDeck || full}
+                    dim={locked ? 'strong' : inDeck ? 'soft' : full ? 'strong' : 'none'}
+                    highlight={inDeck ? 'selected' : 'none'}
                   />
                 );
               })}
@@ -249,7 +330,7 @@ function LibraryPanel({
   );
 }
 
-function DeckPanel({ deckData, tierMax, name, setName, color, setColor, onRemove, onClear }: any) {
+function DeckPanel({ deckData, tierMax, name, setName, color, setColor, onRemove, owns, onClear }: any) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-3">
       <input
@@ -287,7 +368,13 @@ function DeckPanel({ deckData, tierMax, name, setName, color, setColor, onRemove
                 : (
                   <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-8">
                     {cards.map((c, idx) => (
-                      <CardTile key={`${c.id}-${idx}`} card={c} size="h-auto w-full" onTap={() => onRemove(t, idx)} />
+                      // Une carte du deck non débloquée reste RETIRABLE : c'est
+                      // la seule action qui la fait sortir du deck.
+                      <CardTile
+                        key={`${c.id}-${idx}`} {...cardTileProps(c)} size="h-auto w-full"
+                        tapOn="up" onTap={() => onRemove(t, idx)}
+                        locked={!owns(c.id)} dim={owns(c.id) ? 'none' : 'strong'}
+                      />
                     ))}
                   </div>
                 )}

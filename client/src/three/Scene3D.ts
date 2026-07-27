@@ -27,6 +27,13 @@ import type { Position } from '../logic/types.js';
 // full unit-card DOM (image + badges) per fragment is the dominant cost during AOE wipes.
 const LOW_END_DEVICE = (navigator.hardwareConcurrency || 8) <= 4;
 
+// Apparition d'une unité : chute depuis y=3, puis impact élémentaire.
+// LEAD/STAGGER ne servent qu'à la cascade d'apparition de l'IA (revealEnemyUnits) :
+// le lead laisse la caméra amorcer son travelling de combat avant la 1re carte.
+const SPAWN_DROP_S = 0.22;
+const SPAWN_LEAD_S = 0.25;
+const SPAWN_STAGGER_S = 0.16;
+
 export interface Scene3DOptions {
   onCellTap?: (cell: Position) => void;
   onUnitTap?: (unit: Unit, cell: Position, rect: { left: number; top: number; bottom: number; width: number; height: number }) => void;
@@ -1184,7 +1191,9 @@ export class Scene3D {
     return (this._combatMode || this.showEnemySide || unit.side === 'player') ? 1 : 0;
   }
 
-  _spawnUnitObj(unit: Unit): UnitEntry {
+  // delay : retarde la chute (l'unité reste invisible en attendant) — utilisé
+  // pour échelonner l'apparition des unités de l'IA au lancement du combat.
+  _spawnUnitObj(unit: Unit, delay = 0): UnitEntry {
     const pos = unit.position as Position;
     const wrap = document.createElement('div');
     wrap.style.width = CARD_PX + 'px';
@@ -1212,12 +1221,14 @@ export class Scene3D {
     const entry: UnitEntry = { unit, obj, wrap, el, pos: { ...pos }, elements };
     this._applyUnitHighlightClasses(entry);
 
-    let t = 0;
-    const duration = 0.22;
+    let t = -delay;
+    if (delay > 0) obj.visible = false;
     this.anims.push({
       update: (dt: number) => {
         t += dt;
-        const p = Math.min(t / duration, 1);
+        if (t < 0) return true;
+        obj.visible = true;
+        const p = Math.min(t / SPAWN_DROP_S, 1);
         const eased = 1 - Math.pow(1 - p, 3);
         obj.position.y = THREE.MathUtils.lerp(3, 0.06, eased);
         if (p >= 1) {
@@ -1229,6 +1240,33 @@ export class Scene3D {
     });
 
     return entry;
+  }
+
+  // Synchronise le côté ennemi hors du cycle refresh() (qui ne passe plus en
+  // mode combat) : en solo l'IA place ses unités APRÈS le PRÊT du joueur, donc
+  // une fois la caméra déjà en combat. Les unités nouvellement invoquées
+  // tombent en cascade (animation d'apparition), les survivants déjà à l'écran
+  // se contentent de rejoindre leur nouvelle case (rearrangeUnits les déplace).
+  // Retourne la durée totale (ms) de la cascade, pour retarder le combat.
+  revealEnemyUnits(units: Unit[]): number {
+    let spawned = 0;
+    for (const unit of units) {
+      const pos = unit.position;
+      if (!pos) continue;
+      const entry = this.unitObjs.get(unit.uid);
+      if (entry) {
+        if (entry.pos.col !== pos.col || entry.pos.row !== pos.row) {
+          this._animateMove(entry, pos);
+          entry.pos = { ...pos };
+        }
+        continue;
+      }
+      this.unitObjs.set(unit.uid, this._spawnUnitObj(unit, SPAWN_LEAD_S + spawned * SPAWN_STAGGER_S));
+      spawned++;
+    }
+    this._invalidate();
+    if (spawned === 0) return 0;
+    return (SPAWN_LEAD_S + (spawned - 1) * SPAWN_STAGGER_S + SPAWN_DROP_S) * 1000;
   }
 
   animateUnitMove(uid: number, toPos: Position, duration = 0.28): void {

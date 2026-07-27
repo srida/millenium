@@ -3,6 +3,9 @@ const crypto = require('crypto');
 const express = require('express');
 const { stmt } = require('../db');
 const auth = require('../auth');
+const progression = require('../progression');
+const missions = require('../missions');
+const shop = require('../shop');
 
 const router = express.Router();
 
@@ -41,10 +44,12 @@ router.post('/auth/register', auth.rateLimit({ max: 10 }), (req, res) => {
     created_at: Date.now(),
   };
   stmt.insertUser.run(user);
+  // Dotation de départ : niveau 1 / 0 XP / 0 gold / 0 gemme + cartes CORE_*.
+  progression.initUser(user.id);
 
   const token = auth.createSession(user.id);
   auth.setSessionCookie(res, token);
-  res.json({ user: auth.publicUser(user) });
+  res.json({ user: auth.publicUser(stmt.userById.get(user.id)) });
 });
 
 router.post('/auth/login', auth.rateLimit({ max: 15 }), (req, res) => {
@@ -260,6 +265,143 @@ router.delete('/friends/:id', auth.requireUser, (req, res) => {
   }
   stmt.deleteFriendship.run(f.id);
   res.json({ ok: true });
+});
+
+// =====================================================================
+//  PROGRESSION (niveau, XP, monnaies, collection)
+// =====================================================================
+// Le résumé (niveau/XP/gold/gemmes) voyage déjà dans `publicUser` ; cette route
+// ajoute la liste complète des cartes possédées, trop volumineuse pour /auth/me.
+router.get('/me/progression', auth.requireUser, (req, res) => {
+  res.json({
+    ...progression.getProgression(req.user),
+    unlocked_cards: progression.unlockedCardIds(req.user),
+  });
+});
+
+// Gain d'XP après un événement de jeu. Le client nomme la RAISON, le serveur
+// applique son barème (progression.REWARDS) — un montant envoyé par le client
+// serait auto-attribué.
+//
+// ⚠️ Les parties solo et le tournoi se déroulent entièrement côté client : le
+// serveur ne peut que croire le joueur sur parole. Le rate-limit borne l'abus
+// sans le rendre impossible. `pvp_win` est donc exclu d'ici — le serveur le
+// décerne lui-même, à partir du résultat qu'il arbitre (ws/MatchRelay.js).
+router.post('/me/progression/reward', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  const reason = String(req.body && req.body.reason || '');
+  if (!progression.CLIENT_CLAIMABLE.includes(reason)) {
+    return res.status(400).json({ error: 'Gain inconnu.', field: 'reason' });
+  }
+  res.json({ reason, gained: progression.REWARDS[reason], progression: progression.reward(req.user.id, reason) });
+});
+
+// =====================================================================
+//  MISSIONS QUOTIDIENNES
+// =====================================================================
+// `refresh` délivre les lots manquants avant de répondre : le cycle avance à la
+// lecture, il n'y a pas de tâche planifiée côté serveur.
+router.get('/me/missions', auth.requireUser, (req, res) => {
+  res.json(missions.refresh(req.user));
+});
+
+// Flux d'événements d'une partie. Le client envoie des ÉVÉNEMENTS NOMMÉS, jamais
+// une progression ni un montant : le serveur applique son catalogue et son
+// barème (même règle que /me/progression/reward).
+//
+// ⚠️ Les parties solo se déroulant entièrement côté client, le serveur ne peut
+// que croire le joueur sur la teneur du lot. Ce qu'il ne délègue PAS : les
+// garde-fous anti-concede et anti-AFK, dérivés du contenu du lot lui-même
+// (≥ 2 combats lancés, ≥ 1 invocation) et non d'un drapeau envoyé par le client.
+router.post('/me/missions/events', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  const body = req.body || {};
+  const events = Array.isArray(body.events) ? body.events : null;
+  if (!events) return res.status(400).json({ error: 'events requis', field: 'events' });
+  if (events.length > missions.MAX_EVENTS_PER_BATCH) {
+    return res.status(413).json({ error: 'Trop d\'événements dans le lot.' });
+  }
+  const matchId = body.match_id ? String(body.match_id).slice(0, 64) : null;
+
+  missions.sync(req.user);
+  const result = missions.applyEvents(req.user, { matchId, events });
+  // L'utilisateur a pu être crédité : on relit la ligne pour renvoyer un solde à jour.
+  const fresh = stmt.userById.get(req.user.id);
+  res.json({
+    ...result,
+    ...missions.getSnapshot(req.user),
+    progression: progression.getProgression(fresh),
+  });
+});
+
+router.post('/me/missions/:id/reroll', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
+  missions.sync(req.user);
+  const result = missions.reroll(req.user, String(req.params.id));
+  if (!result.ok) return res.status(400).json({ error: result.reason });
+  const fresh = stmt.userById.get(req.user.id);
+  res.json({
+    ...result,
+    ...missions.getSnapshot(req.user),
+    progression: progression.getProgression(fresh),
+  });
+});
+
+// =====================================================================
+//  BOUTIQUE DE CARTES
+// =====================================================================
+// Comme pour les missions, l'offre avance À LA LECTURE : un GET génère l'offre
+// du jour si elle manque, il n'y a pas de tâche planifiée. Et comme pour la
+// progression, le client ne chiffre RIEN : il désigne un emplacement ou un
+// set, le serveur applique ses prix et son tirage.
+//
+// Ici, contrairement au solo, le serveur n'a rien à croire sur parole : la
+// collection, les soldes et l'offre sont tous de son côté. Le seul vecteur
+// d'abus serait le re-tirage de l'offre, d'où sa persistance.
+router.get('/me/shop', auth.requireUser, (req, res) => {
+  res.json({ ...shop.refresh(req.user), progression: progression.getProgression(req.user) });
+});
+
+// Réponse commune aux mutations : instantané complet + solde à jour. Le client
+// n'a jamais à recharger derrière une action.
+function shopResult(req, res, result) {
+  if (!result.ok) return res.status(result.stale ? 409 : 400).json({ error: result.reason });
+  const fresh = stmt.userById.get(req.user.id);
+  res.json({ ...result, ...shop.getSnapshot(fresh), progression: progression.getProgression(fresh) });
+}
+
+// `card_id` accompagne le slot : l'achat valide l'offre HORODATÉE, pas la
+// courante — un tap au moment de la rotation échoue (409) au lieu d'acheter la
+// carte qui vient de prendre la place.
+router.post('/me/shop/buy', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  const slot = Number(req.body?.slot);
+  if (!Number.isInteger(slot) || slot < 1 || slot > shop.DAILY_SLOTS) {
+    return res.status(400).json({ error: 'Emplacement invalide.', field: 'slot' });
+  }
+  shop.sync(req.user);
+  shopResult(req, res, shop.buySlot(req.user, slot, req.body?.card_id ? String(req.body.card_id) : null));
+});
+
+router.post('/me/shop/reroll', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
+  const slot = Number(req.body?.slot);
+  if (!Number.isInteger(slot) || slot < 1 || slot > shop.DAILY_SLOTS) {
+    return res.status(400).json({ error: 'Emplacement invalide.', field: 'slot' });
+  }
+  shop.sync(req.user);
+  shopResult(req, res, shop.reroll(req.user, slot));
+});
+
+// `card_id: null` retire l'épingle. Changer de carte remet le délai à zéro
+// (règle appliquée dans shop.setCovet).
+router.post('/me/shop/covet', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
+  const cardId = req.body?.card_id ? String(req.body.card_id).slice(0, 64) : null;
+  shop.sync(req.user);
+  shopResult(req, res, shop.setCovet(req.user, cardId));
+});
+
+router.post('/me/shop/booster', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  const setId = String(req.body?.set_id || '').slice(0, 64);
+  const currency = req.body?.currency === 'gems' ? 'gems' : 'golds';
+  if (!setId) return res.status(400).json({ error: 'set_id requis', field: 'set_id' });
+  shop.sync(req.user);
+  shopResult(req, res, shop.buyBooster(req.user, setId, currency));
 });
 
 // =====================================================================

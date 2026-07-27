@@ -1,6 +1,5 @@
-// « Mode web » : écran au moins aussi large que haut. Les téléphones en paysage
-// sont interceptés en amont par LandscapeOverlay (max-width: 900px), donc en
-// pratique seuls desktop et tablettes matchent.
+// « Mode web » : écran au moins aussi large que haut — desktop, tablettes, et
+// téléphones en paysage (le paysage n'est plus bloqué : il réutilise ce mode).
 //
 // Le même seuil d'aspect pilote le cadrage caméra (Scene3D._cameraFraming) : les
 // deux doivent rester d'accord, sinon les rails latéraux recouvriraient le board.

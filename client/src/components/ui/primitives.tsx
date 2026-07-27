@@ -1,5 +1,5 @@
 // Primitives du design system Millenium (Tailwind v4, mobile-first, tap ≥ 44px).
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 type Variant = 'primary' | 'ghost' | 'danger';
 
@@ -36,6 +36,25 @@ export function Gauge({ value, className = '', fillClassName = 'bg-player' }: { 
     <div className={`h-2 overflow-hidden rounded-full bg-black/50 ${className}`}>
       <div className={`h-full rounded-full transition-[width] duration-300 ${fillClassName}`} style={{ width: `${Math.max(0, Math.min(100, value * 100))}%` }} />
     </div>
+  );
+}
+
+// Compte à rebours vers un instant (prochain lot de missions, rotation de la
+// boutique). Rafraîchi à la MINUTE : c'est un repère (« encore 4 h »), pas un
+// chronomètre — une seconde qui défile ne dit rien de plus et met la pression.
+export function Countdown({ at, className = '', title }: { at: number; className?: string; title?: string }) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick(n => n + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  const ms = Math.max(0, at - Date.now());
+  const h = Math.floor(ms / 3_600_000);
+  const min = Math.floor((ms % 3_600_000) / 60_000);
+  return (
+    <span className={`text-xs tabular-nums text-white/40 ${className}`} title={title}>
+      ⏳ {h > 0 ? `${h} h ${String(min).padStart(2, '0')}` : `${min} min`}
+    </span>
   );
 }
 

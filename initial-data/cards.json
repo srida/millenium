@@ -26,7 +26,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_002",
@@ -59,7 +60,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_003",
@@ -85,7 +87,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "CORE_004",
@@ -110,7 +113,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_005",
@@ -136,7 +140,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_006",
@@ -164,7 +169,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_007",
@@ -204,7 +210,8 @@
 		},
 		"represented_ids": [
 			"CORE_005"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_008",
@@ -229,7 +236,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_009",
@@ -256,7 +264,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_010",
@@ -281,7 +290,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_011",
@@ -318,7 +328,8 @@
 		},
 		"represented_ids": [
 			"CORE_005"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_012",
@@ -345,7 +356,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_013",
@@ -372,7 +384,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_014",
@@ -398,7 +411,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "CORE_015",
@@ -424,7 +438,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "CORE_016",
@@ -464,7 +479,8 @@
 		"represented_ids": [
 			"CORE_014",
 			"CORE_015"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "CORE_017",
@@ -490,7 +506,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_018",
@@ -520,7 +537,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_019",
@@ -546,7 +564,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_020",
@@ -572,7 +591,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_021",
@@ -597,7 +617,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_022",
@@ -622,7 +643,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_023",
@@ -648,7 +670,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_024",
@@ -676,7 +699,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_025",
@@ -701,7 +725,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_026",
@@ -727,7 +752,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_027",
@@ -752,7 +778,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_028",
@@ -779,7 +806,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_029",
@@ -805,7 +833,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_030",
@@ -831,7 +860,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_031",
@@ -857,7 +887,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_032",
@@ -888,7 +919,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_033",
@@ -920,7 +952,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_034",
@@ -945,7 +978,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_035",
@@ -972,7 +1006,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_036",
@@ -998,7 +1033,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "CORE_037",
@@ -1023,7 +1059,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_038",
@@ -1058,7 +1095,8 @@
 		},
 		"represented_ids": [
 			"CORE_035"
-		]
+		],
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_039",
@@ -1085,7 +1123,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_040",
@@ -1110,7 +1149,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_041",
@@ -1138,7 +1178,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_042",
@@ -1174,7 +1215,8 @@
 			"materials": [
 				"ARCH_005"
 			]
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_043",
@@ -1200,7 +1242,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_044",
@@ -1226,7 +1269,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_045",
@@ -1253,7 +1297,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_046",
@@ -1278,7 +1323,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_047",
@@ -1305,7 +1351,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "CORE_048",
@@ -1332,7 +1379,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "CORE_049",
@@ -1359,7 +1407,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "CORE_050",
@@ -1384,7 +1433,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_051",
@@ -1410,7 +1460,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "CORE_052",
@@ -1436,7 +1487,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "CORE_053",
@@ -1462,7 +1514,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "CORE_054",
@@ -1488,7 +1541,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "CORE_055",
@@ -1514,7 +1568,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_057",
@@ -1549,7 +1604,8 @@
 		},
 		"represented_ids": [
 			"CORE_055"
-		]
+		],
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_058",
@@ -1575,7 +1631,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_059",
@@ -1601,7 +1658,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_060",
@@ -1627,7 +1685,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_061",
@@ -1666,7 +1725,8 @@
 			"CORE_058",
 			"CORE_059",
 			"CORE_060"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_062",
@@ -1692,7 +1752,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_063",
@@ -1718,7 +1779,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_064",
@@ -1744,7 +1806,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_065",
@@ -1779,7 +1842,8 @@
 				"CORE_063",
 				"CORE_064"
 			]
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_066",
@@ -1817,7 +1881,8 @@
 		},
 		"represented_ids": [
 			"CORE_001"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_067",
@@ -1854,7 +1919,8 @@
 		},
 		"represented_ids": [
 			"CORE_061"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_068",
@@ -1892,7 +1958,8 @@
 		},
 		"represented_ids": [
 			"CORE_013"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_069",
@@ -1933,7 +2000,8 @@
 			"CORE_047",
 			"CORE_048",
 			"CORE_049"
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "CORE_070",
@@ -1971,7 +2039,8 @@
 		"represented_ids": [
 			"CORE_047",
 			"CORE_048"
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "CORE_071",
@@ -2009,7 +2078,8 @@
 		"represented_ids": [
 			"CORE_047",
 			"CORE_049"
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "CORE_072",
@@ -2047,7 +2117,8 @@
 		"represented_ids": [
 			"CORE_049",
 			"CORE_048"
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "CORE_073",
@@ -2073,7 +2144,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_074",
@@ -2101,7 +2173,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_075",
@@ -2131,7 +2204,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_076",
@@ -2170,7 +2244,8 @@
 		},
 		"represented_ids": [
 			"CORE_035"
-		]
+		],
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_077",
@@ -2206,7 +2281,8 @@
 		},
 		"represented_ids": [
 			"CORE_001"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_078",
@@ -2240,7 +2316,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "CORE_079",
@@ -2266,7 +2343,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_080",
@@ -2291,7 +2369,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_081",
@@ -2317,7 +2396,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_082",
@@ -2344,7 +2424,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_083",
@@ -2370,7 +2451,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_084",
@@ -2405,7 +2487,8 @@
 		},
 		"represented_ids": [
 			"CORE_083"
-		]
+		],
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_085",
@@ -2435,7 +2518,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_086",
@@ -2462,7 +2546,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_087",
@@ -2498,7 +2583,8 @@
 		},
 		"represented_ids": [
 			"CORE_086"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_088",
@@ -2534,7 +2620,8 @@
 		},
 		"represented_ids": [
 			"CORE_086"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_089",
@@ -2572,7 +2659,8 @@
 		},
 		"represented_ids": [
 			"CORE_033"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_090",
@@ -2612,7 +2700,8 @@
 		},
 		"represented_ids": [
 			"CORE_033"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_091",
@@ -2638,7 +2727,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_092",
@@ -2667,7 +2757,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_093",
@@ -2694,7 +2785,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_094",
@@ -2721,7 +2813,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_095",
@@ -2747,7 +2840,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_096",
@@ -2773,7 +2867,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_097",
@@ -2799,7 +2894,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_098",
@@ -2836,7 +2932,8 @@
 		"represented_ids": [
 			"CORE_095",
 			"CORE_096"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_099",
@@ -2874,7 +2971,8 @@
 		"represented_ids": [
 			"CORE_096",
 			"CORE_097"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_100",
@@ -2912,7 +3010,8 @@
 		"represented_ids": [
 			"CORE_096",
 			"CORE_094"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_101",
@@ -2950,7 +3049,8 @@
 		"represented_ids": [
 			"CORE_093",
 			"CORE_094"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_102",
@@ -2989,7 +3089,8 @@
 			"CORE_052",
 			"CORE_053",
 			"CORE_054"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "CORE_103",
@@ -3025,7 +3126,8 @@
 				"CORE_002"
 			]
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_104",
@@ -3064,7 +3166,8 @@
 		},
 		"represented_ids": [
 			"CORE_001"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_105",
@@ -3099,7 +3202,8 @@
 		},
 		"represented_ids": [
 			"CORE_001"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_106",
@@ -3137,7 +3241,8 @@
 		"represented_ids": [
 			"CORE_001",
 			"CORE_039"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_107",
@@ -3169,7 +3274,8 @@
 			"materials": [
 				"CORE_106"
 			]
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_108",
@@ -3203,7 +3309,8 @@
 				"CORE_023",
 				"CORE_026"
 			]
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_109",
@@ -3238,7 +3345,8 @@
 			"materials": [
 				"ARCH_008"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "CORE_110",
@@ -3269,7 +3377,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "CORE_111",
@@ -3319,7 +3428,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_112",
@@ -3349,7 +3459,8 @@
 		},
 		"represented_ids": [
 			"CORE_037"
-		]
+		],
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_113",
@@ -3382,7 +3493,8 @@
 		},
 		"represented_ids": [
 			"CORE_036"
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "CORE_114",
@@ -3416,7 +3528,8 @@
 		},
 		"represented_ids": [
 			"CORE_012"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_115",
@@ -3449,7 +3562,8 @@
 		},
 		"represented_ids": [
 			"CORE_073"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_116",
@@ -3482,7 +3596,8 @@
 		},
 		"represented_ids": [
 			"CORE_035"
-		]
+		],
+		"set": "SET_07"
 	},
 	{
 		"id": "CORE_117",
@@ -3512,7 +3627,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "CORE_118",
@@ -3540,7 +3656,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "CORE_119",
@@ -3581,7 +3698,8 @@
 			"CORE_095",
 			"CORE_097",
 			"CORE_093"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_120",
@@ -3617,7 +3735,8 @@
 		"represented_ids": [
 			"CORE_101",
 			"CORE_095"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_121",
@@ -3651,7 +3770,8 @@
 		"represented_ids": [
 			"CORE_093",
 			"CORE_094"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_122",
@@ -3685,7 +3805,8 @@
 		"represented_ids": [
 			"CORE_095",
 			"CORE_093"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_123",
@@ -3726,7 +3847,8 @@
 			"CORE_095",
 			"CORE_093",
 			"CORE_094"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_124",
@@ -3764,7 +3886,8 @@
 		"represented_ids": [
 			"CORE_097",
 			"CORE_094"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_125",
@@ -3801,7 +3924,8 @@
 		"represented_ids": [
 			"CORE_093",
 			"CORE_097"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_126",
@@ -3841,7 +3965,8 @@
 			"CORE_094",
 			"CORE_097",
 			"CORE_096"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_127",
@@ -3895,7 +4020,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_128",
@@ -3950,7 +4076,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_129",
@@ -3983,7 +4110,8 @@
 			"materials": [
 				"ARCH_006"
 			]
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_130",
@@ -4036,7 +4164,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_131",
@@ -4093,7 +4222,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_132",
@@ -4147,7 +4277,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "CORE_133",
@@ -4200,7 +4331,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "MARIK_001",
@@ -4225,7 +4357,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_002",
@@ -4251,7 +4384,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_003",
@@ -4277,7 +4411,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_004",
@@ -4307,7 +4442,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_005",
@@ -4338,7 +4474,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_006",
@@ -4366,7 +4503,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_007",
@@ -4393,7 +4531,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_008",
@@ -4420,7 +4559,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_009",
@@ -4445,7 +4585,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_010",
@@ -4472,7 +4613,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_011",
@@ -4499,7 +4641,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_012",
@@ -4524,7 +4667,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_015",
@@ -4555,7 +4699,8 @@
 			"materials": [
 				"MARIK_009"
 			]
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_016",
@@ -4584,7 +4729,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_017",
@@ -4613,7 +4759,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_018",
@@ -4641,7 +4788,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_019",
@@ -4692,7 +4840,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_04"
 	},
 	{
 		"id": "MARIK_020",
@@ -4728,7 +4877,8 @@
 		},
 		"represented_ids": [
 			"MARIK_019"
-		]
+		],
+		"set": "SET_04"
 	},
 	{
 		"id": "KEITH_001",
@@ -4752,7 +4902,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "KEITH_002",
@@ -4776,7 +4927,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "KEITH_003",
@@ -4801,7 +4953,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "KEITH_004",
@@ -4826,7 +4979,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "KEITH_005",
@@ -4856,7 +5010,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "KEITH_006",
@@ -4882,7 +5037,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "KEITH_007",
@@ -4909,7 +5065,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "KEITH_008",
@@ -4934,7 +5091,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "KEITH_009",
@@ -4963,7 +5121,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "KEITH_010",
@@ -4988,7 +5147,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "KEITH_011",
@@ -5021,7 +5181,8 @@
 			"materials": [
 				"KEITH_010"
 			]
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "KEITH_012",
@@ -5052,7 +5213,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "KEITH_013",
@@ -5076,7 +5238,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "KEITH_014",
@@ -5102,7 +5265,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "KEITH_015",
@@ -5127,7 +5291,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "HAGA_001",
@@ -5151,7 +5316,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "HAGA_002",
@@ -5176,7 +5342,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "HAGA_003",
@@ -5200,7 +5367,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "HAGA_005",
@@ -5227,7 +5395,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "HAGA_006",
@@ -5256,7 +5425,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "HAGA_007",
@@ -5302,7 +5472,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "HAGA_008",
@@ -5330,7 +5501,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "HAGA_009",
@@ -5355,7 +5527,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_01"
 	},
 	{
 		"id": "HAGA_011",
@@ -5400,7 +5573,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "HAGA_012",
@@ -5431,7 +5605,8 @@
 			"materials": [
 				"HAGA_011"
 			]
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "HAGA_013",
@@ -5459,7 +5634,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "HAGA_014",
@@ -5484,7 +5660,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "REX_001",
@@ -5509,7 +5686,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "REX_002",
@@ -5534,7 +5712,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "REX_003",
@@ -5558,7 +5737,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "REX_004",
@@ -5582,7 +5762,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "REX_005",
@@ -5606,7 +5787,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "REX_006",
@@ -5638,7 +5820,8 @@
 			"materials": [
 				"ARCH_034"
 			]
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "REX_007",
@@ -5662,7 +5845,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "REX_008",
@@ -5687,7 +5871,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "REX_009",
@@ -5711,7 +5896,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "REX_010",
@@ -5736,7 +5922,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "REX_011",
@@ -5761,7 +5948,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "REX_012",
@@ -5788,7 +5976,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "REX_013",
@@ -5816,7 +6005,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MAKO_001",
@@ -5840,7 +6030,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "MAKO_002",
@@ -5865,7 +6056,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "MAKO_003",
@@ -5890,7 +6082,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "MAKO_004",
@@ -5915,7 +6108,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "MAKO_005",
@@ -5940,7 +6134,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "MAKO_006",
@@ -5967,7 +6162,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "MAKO_007",
@@ -5995,7 +6191,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "MAKO_008",
@@ -6019,7 +6216,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "MAKO_010",
@@ -6051,7 +6249,8 @@
 				"MAKO_006",
 				"MAKO_001"
 			]
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "MAKO_011",
@@ -6078,7 +6277,8 @@
 			"materials": [
 				"ARCH_035"
 			]
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "MAKO_012",
@@ -6104,7 +6304,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "MAKO_013",
@@ -6132,7 +6333,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "MAKO_014",
@@ -6157,7 +6359,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "MAKO_015",
@@ -6186,7 +6389,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "MAI_002",
@@ -6213,7 +6417,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "MAI_003",
@@ -6240,7 +6445,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "MAI_004",
@@ -6267,7 +6473,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "MAI_005",
@@ -6295,7 +6502,8 @@
 			"materials": [
 				"ARCH_036"
 			]
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "MAI_006",
@@ -6321,7 +6529,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "MAI_007",
@@ -6361,7 +6570,8 @@
 			"MAI_002",
 			"MAI_003",
 			"MAI_004"
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "MAI_014",
@@ -6393,7 +6603,8 @@
 			"materials": [
 				"MAI_006"
 			]
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "MAI_015",
@@ -6422,7 +6633,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "PEGASUS_001",
@@ -6450,7 +6662,8 @@
 			"materials": [
 				"PEGASUS_014"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_002",
@@ -6479,7 +6692,8 @@
 			"materials": [
 				"PEGASUS_014"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_005",
@@ -6504,7 +6718,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_006",
@@ -6534,7 +6749,8 @@
 			"materials": [
 				"ARCH_039"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_007",
@@ -6568,7 +6784,8 @@
 		},
 		"represented_ids": [
 			"PEGASUS_006"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_008",
@@ -6603,7 +6820,8 @@
 		},
 		"represented_ids": [
 			"CORE_012"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_009",
@@ -6638,7 +6856,8 @@
 		},
 		"represented_ids": [
 			"CORE_002"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_010",
@@ -6669,7 +6888,8 @@
 		},
 		"represented_ids": [
 			"CORE_003"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_011",
@@ -6694,7 +6914,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "PEGASUS_013",
@@ -6725,7 +6946,8 @@
 		},
 		"represented_ids": [
 			"CORE_001"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "BAKURA_001",
@@ -6750,7 +6972,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "BAKURA_003",
@@ -6774,7 +6997,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "BAKURA_004",
@@ -6798,7 +7022,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "BAKURA_005",
@@ -6823,7 +7048,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "BAKURA_006",
@@ -6849,7 +7075,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "BAKURA_007",
@@ -6873,7 +7100,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "BAKURA_008",
@@ -6902,7 +7130,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "BAKURA_009",
@@ -6929,7 +7158,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "BAKURA_011",
@@ -6955,7 +7185,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "BONZ_001",
@@ -6980,7 +7211,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "BONZ_002",
@@ -7005,7 +7237,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "BONZ_003",
@@ -7030,7 +7263,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "BONZ_004",
@@ -7054,7 +7288,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "BONZ_005",
@@ -7079,7 +7314,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "BONZ_007",
@@ -7108,7 +7344,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "BONZ_008",
@@ -7135,7 +7372,8 @@
 			"materials": [
 				"BONZ_001"
 			]
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "BONZ_010",
@@ -7160,7 +7398,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "BONZ_013",
@@ -7189,7 +7428,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "BONZ_014",
@@ -7218,7 +7458,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "BONZ_015",
@@ -7244,7 +7485,8 @@
 			"materials": [
 				"ARCH_029"
 			]
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "PARA_001",
@@ -7273,7 +7515,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "PARA_002",
@@ -7302,7 +7545,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "PARA_003",
@@ -7331,7 +7575,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "PARA_004",
@@ -7372,7 +7617,8 @@
 			"PARA_001",
 			"PARA_002",
 			"PARA_003"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "PARA_006",
@@ -7397,7 +7643,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "PARA_008",
@@ -7423,7 +7670,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "PARA_011",
@@ -7451,7 +7699,8 @@
 			"materials": [
 				"ARCH_041"
 			]
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "PARA_012",
@@ -7477,7 +7726,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "PARA_013",
@@ -7502,7 +7752,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_001",
@@ -7526,7 +7777,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "EXTRA_002",
@@ -7550,7 +7802,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "EXTRA_003",
@@ -7574,7 +7827,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "EXTRA_004",
@@ -7607,7 +7861,8 @@
 		},
 		"represented_ids": [
 			"HAGA_013"
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_005",
@@ -7636,7 +7891,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "EXTRA_006",
@@ -7662,7 +7918,8 @@
 			"materials": [
 				"HAGA_005"
 			]
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "EXTRA_007",
@@ -7692,7 +7949,8 @@
 			"materials": [
 				"HAGA_006"
 			]
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "EXTRA_008",
@@ -7722,7 +7980,8 @@
 				"HAGA_013",
 				"HAGA_012"
 			]
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_009",
@@ -7746,7 +8005,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_010",
@@ -7772,7 +8032,8 @@
 			"materials": [
 				"ARCH_033"
 			]
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_011",
@@ -7798,7 +8059,8 @@
 			"materials": [
 				"EXTRA_002"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "EXTRA_012",
@@ -7822,7 +8084,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "EXTRA_013",
@@ -7846,7 +8109,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "EXTRA_014",
@@ -7870,7 +8134,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_015",
@@ -7903,7 +8168,8 @@
 		},
 		"represented_ids": [
 			"REX_001"
-		]
+		],
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_016",
@@ -7936,7 +8202,8 @@
 		},
 		"represented_ids": [
 			"REX_001"
-		]
+		],
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_017",
@@ -7960,7 +8227,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "EXTRA_018",
@@ -7984,7 +8252,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "EXTRA_019",
@@ -8013,7 +8282,8 @@
 			"materials": [
 				"EXTRA_014"
 			]
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_020",
@@ -8038,7 +8308,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "EXTRA_021",
@@ -8094,7 +8365,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_07"
 	},
 	{
 		"id": "EXTRA_022",
@@ -8130,7 +8402,8 @@
 		},
 		"represented_ids": [
 			"MAKO_006"
-		]
+		],
+		"set": "SET_07"
 	},
 	{
 		"id": "EXTRA_023",
@@ -8155,7 +8428,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "EXTRA_024",
@@ -8189,7 +8463,8 @@
 		},
 		"represented_ids": [
 			"MAKO_011"
-		]
+		],
+		"set": "SET_07"
 	},
 	{
 		"id": "EXTRA_025",
@@ -8223,7 +8498,8 @@
 		},
 		"represented_ids": [
 			"MAKO_004"
-		]
+		],
+		"set": "SET_07"
 	},
 	{
 		"id": "EXTRA_026",
@@ -8273,7 +8549,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_07"
 	},
 	{
 		"id": "EXTRA_027",
@@ -8322,7 +8599,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_07"
 	},
 	{
 		"id": "EXTRA_028",
@@ -8357,7 +8635,8 @@
 		},
 		"represented_ids": [
 			"KEITH_012"
-		]
+		],
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_029",
@@ -8389,7 +8668,8 @@
 			"materials": [
 				"KEITH_008"
 			]
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_030",
@@ -8416,7 +8696,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_031",
@@ -8443,7 +8724,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_032",
@@ -8470,7 +8752,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_033",
@@ -8496,7 +8779,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_034",
@@ -8534,7 +8818,8 @@
 		},
 		"represented_ids": [
 			"CORE_033"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "EXTRA_035",
@@ -8567,7 +8852,8 @@
 			"materials": [
 				"ARCH_044"
 			]
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_036",
@@ -8605,7 +8891,8 @@
 		},
 		"represented_ids": [
 			"KEITH_012"
-		]
+		],
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_037",
@@ -8631,7 +8918,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_038",
@@ -8659,7 +8947,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_039",
@@ -8685,7 +8974,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_040",
@@ -8711,7 +9001,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_041",
@@ -8737,7 +9028,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_042",
@@ -8762,7 +9054,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_043",
@@ -8791,7 +9084,8 @@
 			"materials": [
 				"MAI_014"
 			]
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_044",
@@ -8825,7 +9119,8 @@
 		},
 		"represented_ids": [
 			"MAI_002"
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_045",
@@ -8860,7 +9155,8 @@
 		},
 		"represented_ids": [
 			"MAI_003"
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_046",
@@ -8892,7 +9188,8 @@
 			"materials": [
 				"MAI_005"
 			]
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_047",
@@ -8926,7 +9223,8 @@
 		},
 		"represented_ids": [
 			"MAI_004"
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_048",
@@ -8956,7 +9254,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_049",
@@ -8985,7 +9284,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_050",
@@ -9010,7 +9310,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_051",
@@ -9036,7 +9337,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_052",
@@ -9062,7 +9364,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_053",
@@ -9095,7 +9398,8 @@
 			"materials": [
 				"ARCH_030"
 			]
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_054",
@@ -9120,7 +9424,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_055",
@@ -9153,7 +9458,8 @@
 			"materials": [
 				"ARCH_030"
 			]
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_056",
@@ -9178,7 +9484,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_057",
@@ -9233,7 +9540,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_058",
@@ -9264,7 +9572,8 @@
 				"EXTRA_048",
 				"EXTRA_056"
 			]
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_059",
@@ -9290,7 +9599,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_060",
@@ -9323,7 +9633,8 @@
 			"materials": [
 				"BAKURA_008"
 			]
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_061",
@@ -9355,7 +9666,8 @@
 			"materials": [
 				"EXTRA_062"
 			]
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_062",
@@ -9384,7 +9696,8 @@
 		"cost": {
 			"sacrifice": 2,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_063",
@@ -9411,7 +9724,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_064",
@@ -9441,7 +9755,8 @@
 		},
 		"represented_ids": [
 			"BAKURA_009"
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_065",
@@ -9471,7 +9786,8 @@
 		},
 		"represented_ids": [
 			"BAKURA_009"
-		]
+		],
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_066",
@@ -9506,7 +9822,8 @@
 				"BAKURA_006",
 				"BAKURA_001"
 			]
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "EXTRA_067",
@@ -9534,7 +9851,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "EXTRA_068",
@@ -9562,7 +9880,8 @@
 			"materials": [
 				"ARCH_041"
 			]
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_069",
@@ -9587,7 +9906,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_070",
@@ -9612,7 +9932,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_071",
@@ -9647,7 +9968,8 @@
 			"materials": [
 				"PARA_004"
 			]
-		}
+		},
+		"set": "SET_03"
 	},
 	{
 		"id": "EXTRA_072",
@@ -9683,7 +10005,8 @@
 		"represented_ids": [
 			"PARA_003",
 			"PARA_001"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "EXTRA_073",
@@ -9720,7 +10043,8 @@
 		"represented_ids": [
 			"PARA_001",
 			"PARA_002"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "EXTRA_074",
@@ -9757,7 +10081,8 @@
 		"represented_ids": [
 			"PARA_002",
 			"PARA_003"
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "EXTRA_075",
@@ -9789,7 +10114,8 @@
 			"materials": [
 				"PARA_013"
 			]
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_076",
@@ -9820,7 +10146,8 @@
 			"materials": [
 				"PARA_011"
 			]
-		}
+		},
+		"set": "SET_04"
 	},
 	{
 		"id": "EXTRA_077",
@@ -9852,7 +10179,8 @@
 			"materials": [
 				"CORE_085"
 			]
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "EXTRA_078",
@@ -9880,7 +10208,8 @@
 			"materials": [
 				"ARCH_011"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "EXTRA_079",
@@ -9908,7 +10237,8 @@
 			"materials": [
 				"ARCH_011"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "EXTRA_080",
@@ -9940,7 +10270,8 @@
 				"EXTRA_078",
 				"EXTRA_079"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "EXTRA_081",
@@ -9980,7 +10311,8 @@
 			"CORE_014",
 			"CORE_015",
 			"CORE_078"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "EXTRA_082",
@@ -10006,7 +10338,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "EXTRA_083",
@@ -10036,7 +10369,8 @@
 		"cost": {
 			"sacrifice": 3,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "EXTRA_084",
@@ -10066,7 +10400,8 @@
 		"cost": {
 			"sacrifice": 3,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_085",
@@ -10109,7 +10444,8 @@
 		"represented_ids": [
 			"CORE_103",
 			"CORE_011"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "EXTRA_086",
@@ -10138,7 +10474,8 @@
 		"cost": {
 			"sacrifice": 1,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_087",
@@ -10180,7 +10517,8 @@
 		"represented_ids": [
 			"CORE_103",
 			"CORE_077"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "EXTRA_088",
@@ -10209,7 +10547,8 @@
 			"materials": [
 				"ARCH_005"
 			]
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "TEST_001",
@@ -10230,7 +10569,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_05"
 	},
 	{
 		"id": "TEST_002",
@@ -10251,7 +10591,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_06"
 	},
 	{
 		"id": "TEST_003",
@@ -10272,7 +10613,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "TEST_004",
@@ -10293,7 +10635,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_01"
 	},
 	{
 		"id": "TEST_005",
@@ -10314,7 +10657,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "EXTRA_089",
@@ -10369,7 +10713,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "EXTRA_090",
@@ -10423,7 +10768,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "EXTRA_091",
@@ -10477,7 +10823,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "EXTRA_092",
@@ -10532,7 +10879,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_03"
 	},
 	{
 		"id": "EXTRA_093",
@@ -10587,7 +10935,8 @@
 					]
 				}
 			}
-		]
+		],
+		"set": "SET_06"
 	},
 	{
 		"id": "EXTRA_094",
@@ -10623,7 +10972,8 @@
 		},
 		"represented_ids": [
 			"CORE_039"
-		]
+		],
+		"set": "SET_01"
 	},
 	{
 		"id": "PEGASUS_014",
@@ -10652,7 +11002,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_015",
@@ -10687,7 +11038,8 @@
 		},
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_016",
@@ -10714,7 +11066,8 @@
 			"materials": [
 				"PEGASUS_014"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "EXTRA_095",
@@ -10742,7 +11095,8 @@
 			"materials": [
 				"PEGASUS_014"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_017",
@@ -10778,7 +11132,8 @@
 		},
 		"represented_ids": [
 			"KEITH_014"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_018",
@@ -10809,7 +11164,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_07"
 	},
 	{
 		"id": "PEGASUS_019",
@@ -10842,7 +11198,8 @@
 			"materials": [
 				"PEGASUS_014"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_020",
@@ -10880,7 +11237,8 @@
 		"represented_ids": [
 			"CORE_011",
 			"CORE_005"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_021",
@@ -10916,7 +11274,8 @@
 		},
 		"represented_ids": [
 			"CORE_033"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_022",
@@ -10950,7 +11309,8 @@
 			"MAI_002",
 			"MAI_003",
 			"MAI_004"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_023",
@@ -10984,7 +11344,8 @@
 		},
 		"represented_ids": [
 			"PEGASUS_005"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_024",
@@ -11017,7 +11378,8 @@
 		},
 		"represented_ids": [
 			"PEGASUS_025"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_025",
@@ -11042,7 +11404,8 @@
 		"cost": {
 			"sacrifice": 0,
 			"materials": []
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_026",
@@ -11075,7 +11438,8 @@
 		},
 		"represented_ids": [
 			"PEGASUS_011"
-		]
+		],
+		"set": "SET_07"
 	},
 	{
 		"id": "PEGASUS_027",
@@ -11109,7 +11473,8 @@
 		},
 		"represented_ids": [
 			"PEGASUS_006"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_028",
@@ -11140,7 +11505,8 @@
 			"materials": [
 				"PEGASUS_031"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_029",
@@ -11177,7 +11543,8 @@
 		},
 		"represented_ids": [
 			"CORE_103"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_030",
@@ -11207,7 +11574,8 @@
 			"materials": [
 				"PEGASUS_016"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_031",
@@ -11238,7 +11606,8 @@
 			"materials": [
 				"ARCH_038"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_032",
@@ -11274,7 +11643,8 @@
 		},
 		"represented_ids": [
 			"PEGASUS_025"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_033",
@@ -11308,7 +11678,8 @@
 		},
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_034",
@@ -11335,7 +11706,8 @@
 			"materials": [
 				"PEGASUS_014"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "PEGASUS_035",
@@ -11366,7 +11738,8 @@
 			"materials": [
 				"PEGASUS_034"
 			]
-		}
+		},
+		"set": "SET_02"
 	},
 	{
 		"id": "YGX_001",
@@ -11388,7 +11761,8 @@
 			"sacrifice": 2,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_03"
 	},
 	{
 		"id": "YGX_002",
@@ -11410,7 +11784,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_04"
 	},
 	{
 		"id": "YGX_003",
@@ -11432,7 +11807,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_05"
 	},
 	{
 		"id": "YGX_004",
@@ -11454,7 +11830,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_06"
 	},
 	{
 		"id": "YGX_005",
@@ -11476,7 +11853,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_07"
 	},
 	{
 		"id": "YGX_006",
@@ -11498,7 +11876,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_01"
 	},
 	{
 		"id": "YGX_007",
@@ -11520,7 +11899,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_02"
 	},
 	{
 		"id": "YGX_008",
@@ -11542,7 +11922,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_03"
 	},
 	{
 		"id": "YGX_009",
@@ -11564,7 +11945,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_04"
 	},
 	{
 		"id": "YGX_010",
@@ -11586,7 +11968,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_05"
 	},
 	{
 		"id": "YGX_011",
@@ -11608,7 +11991,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_06"
 	},
 	{
 		"id": "YGX_012",
@@ -11630,7 +12014,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_07"
 	},
 	{
 		"id": "YGX_013",
@@ -11652,7 +12037,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_01"
 	},
 	{
 		"id": "YGX_014",
@@ -11674,7 +12060,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_02"
 	},
 	{
 		"id": "YGX_015",
@@ -11696,7 +12083,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_03"
 	},
 	{
 		"id": "YGX_016",
@@ -11718,7 +12106,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_04"
 	},
 	{
 		"id": "YGX_017",
@@ -11740,7 +12129,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_05"
 	},
 	{
 		"id": "YGX_018",
@@ -11762,7 +12152,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_06"
 	},
 	{
 		"id": "YGX_019",
@@ -11784,7 +12175,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_07"
 	},
 	{
 		"id": "YGX_020",
@@ -11806,7 +12198,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_01"
 	},
 	{
 		"id": "YGX_021",
@@ -11828,7 +12221,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_02"
 	},
 	{
 		"id": "YGX_022",
@@ -11850,7 +12244,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_03"
 	},
 	{
 		"id": "YGX_023",
@@ -11872,7 +12267,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_04"
 	},
 	{
 		"id": "YGX_024",
@@ -11894,7 +12290,8 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_05"
 	},
 	{
 		"id": "YGX_025",
@@ -11916,6 +12313,7 @@
 			"sacrifice": 0,
 			"materials": []
 		},
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_06"
 	}
 ]

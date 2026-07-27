@@ -1,30 +1,9 @@
-// Garde-fous mobiles (PLAN §Mobile Rules) : superposition « repasse en portrait »
-// sur petit écran en paysage, et bouton plein écran (Fullscreen API).
+// Garde-fous mobiles (PLAN §Mobile Rules) : bouton plein écran (Fullscreen API).
+//
+// Le paysage n'est plus bloqué : un téléphone tourné passe le seuil d'aspect
+// (min-aspect-ratio: 1/1) et bascule sur le mode web (rails latéraux + cadrage
+// caméra correspondant), comme un desktop.
 import { useEffect, useState } from 'react';
-
-// Ne cible que les petits écrans (téléphones/petites tablettes) : le desktop en
-// paysage n'est jamais bloqué.
-const LANDSCAPE_QUERY = '(orientation: landscape) and (max-width: 900px)';
-
-export function LandscapeOverlay() {
-  const [landscape, setLandscape] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia(LANDSCAPE_QUERY);
-    const update = () => setLandscape(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
-
-  if (!landscape) return null;
-  return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-3 bg-surface p-6 text-center text-white">
-      <div className="text-5xl">📱↻</div>
-      <div className="text-lg font-bold text-gold">Tourne ton appareil</div>
-      <p className="max-w-xs text-sm text-white/60">Millenium se joue en mode portrait.</p>
-    </div>
-  );
-}
 
 export function FullscreenButton({ className = '' }: { className?: string }) {
   const [fs, setFs] = useState(false);

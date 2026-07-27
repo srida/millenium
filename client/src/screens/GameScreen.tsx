@@ -6,6 +6,8 @@ import { buildSession } from '../game/bootstrap.js';
 import { GameController } from '../game/GameController.js';
 import { useGameStore } from '../stores/gameStore.js';
 import { useUiStore } from '../stores/uiStore.js';
+import { useAuthStore } from '../stores/authStore.js';
+import { useTournamentStore } from '../stores/tournamentStore.js';
 import Board3DCanvas from '../components/board/Board3DCanvas.js';
 import Hud from '../components/hud/Hud.js';
 import SynergyPanel from '../components/hud/SynergyPanel.js';
@@ -24,9 +26,20 @@ export default function GameScreen() {
   const reset = useGameStore(s => s.reset);
   const deckName = useUiStore(s => s.params.deckName as string | undefined);
   const enemyDeckName = useUiStore(s => s.params.enemyDeckName as string | undefined);
+  // Manche de tournoi : adversaire et deck viennent du bracket, et la sortie
+  // (fin de partie ou abandon) est comptabilisée puis renvoyée vers l'écran Tournoi.
+  const inTournament = useUiStore(s => s.params.tournament === true);
 
   useEffect(() => {
-    const session = buildSession(deckName, 'ai', enemyDeckName);
+    const pending = inTournament ? useTournamentStore.getState().pendingGame : null;
+    // Tournoi sans manche en attente (rechargement de page, deep-link) : rien à jouer.
+    if (inTournament && !pending) { useUiStore.getState().navigate('tournament'); return; }
+    const session = buildSession(
+      pending?.playerDeckName ?? deckName,
+      'ai',
+      enemyDeckName,
+      pending?.opponentDeck,
+    );
     const ctrl = new GameController(session);
     setControllerLocal(ctrl);
     setController(ctrl);
@@ -50,13 +63,63 @@ export default function GameScreen() {
       <GraveyardTray />
       <HandBar />
       <PhaseControls />
-      <GameMenu onQuit={() => useUiStore.getState().navigate('main_menu')} />
+      {inTournament ? (
+        // Abandonner une manche de tournoi la concède : le bracket ne peut pas
+        // rester en suspens, et rejouer à volonté viderait le Bo5 de son sens.
+        <GameMenu quitLabel="Abandonner la manche" onQuit={() => exitTournamentGame('enemy')} />
+      ) : (
+        <GameMenu onQuit={() => useUiStore.getState().navigate('main_menu')} />
+      )}
       <PrepTimer controller={controller} />
+      <AiWinReward inTournament={inTournament} />
+      {inTournament && <TournamentHeader />}
       <Banners />
       <SummonOptionMenu />
       <EndRoundOverlay />
       <ShoppingLayer />
-      <GameOverScreen />
+      {inTournament
+        ? <GameOverScreen exitLabel="◂ RETOUR AU TOURNOI" onExit={exitTournamentGame} />
+        : <GameOverScreen />}
+    </div>
+  );
+}
+
+// Gain d'XP de la victoire solo, crédité une seule fois par partie (`claimed`).
+//
+// Une MANCHE de tournoi ne compte pas ici : le tournoi a son propre gain, à la
+// victoire finale. Créditer les deux ferait rapporter à un tournoi jusqu'à
+// 9 manches × 10 + 50, bien au-delà du barème voulu.
+function AiWinReward({ inTournament }: { inTournament: boolean }) {
+  const gameOver = useGameStore(s => s.gameOver);
+  const winner = useGameStore(s => s.winner);
+  const claimed = useRef(false);
+
+  useEffect(() => {
+    if (inTournament || claimed.current) return;
+    if (!gameOver || winner !== 'player') return;
+    claimed.current = true;
+    void useAuthStore.getState().claimReward('ai_win');
+  }, [gameOver, winner, inTournament]);
+
+  return null;
+}
+
+// Solde la manche dans le bracket puis rend la main à l'écran Tournoi.
+function exitTournamentGame(winner: 'player' | 'enemy' | 'draw' | null) {
+  useTournamentStore.getState().finishGame(winner);
+  useUiStore.getState().navigate('tournament');
+}
+
+// Rappel du contexte tournoi pendant la partie : adversaire et score du Bo5.
+function TournamentHeader() {
+  const pending = useTournamentStore(s => s.pendingGame);
+  if (!pending) return null;
+  const [pw, ow] = pending.score;
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] z-20 flex -translate-x-1/2 items-center gap-2">
+      <span className="rounded-full border border-gold/40 bg-surface/80 px-3 py-0.5 text-[11px] text-gold">
+        🏆 vs {pending.opponentName} · manche {pending.gameNumber} ({pw}–{ow})
+      </span>
     </div>
   );
 }

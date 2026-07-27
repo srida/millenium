@@ -3,6 +3,7 @@
 // server.js — indispensable car les GET sous /api sont publics par défaut.
 const express = require('express');
 const { db, stmt } = require('../db');
+const progression = require('../progression');
 
 const router = express.Router();
 
@@ -67,7 +68,11 @@ router.put('/users/:id/admin', (req, res) => {
     const isAdmin = !!req.body.is_admin;
     const result = stmt.setUserAdmin.run(isAdmin ? 1 : 0, req.params.id);
     if (result.changes === 0) return res.status(404).json({ error: 'Utilisateur introuvable' });
-    res.json({ ok: true, is_admin: isAdmin });
+    // Promotion : niveau 100, 9999 gold/gemmes, toutes les cartes. La
+    // rétrogradation ne reprend rien — le compte garde ce qu'il a acquis
+    // (les cartes sont matérialisées en base, pas seulement calculées).
+    const prog = isAdmin ? progression.applyAdminGrants(req.params.id) : null;
+    res.json({ ok: true, is_admin: isAdmin, ...(prog ? { progression: prog } : {}) });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
