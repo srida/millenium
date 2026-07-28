@@ -1,8 +1,6 @@
 // Barre HUD haute : PV joueur/ennemi (max 1000), indicateur de manche,
 // multiplicateurs de dégâts (affichés pendant le combat), identité des deux
-// camps (avatar + pseudo joueur). Côté adverse, le nom n'est affiché que si
-// fourni (solo/tournoi, deck public) — en PvP il vit déjà dans le bandeau
-// `vs …` dédié, pas besoin de le répéter ici.
+// camps (avatar + pseudo/nom de deck, résolus par l'écran appelant).
 import { useGameStore } from '../../stores/gameStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { Avatar, Gauge } from '../ui/primitives.js';
@@ -12,7 +10,7 @@ export interface HudProps {
   // (solo/tournoi) — image ou emoji, résolu par l'écran appelant.
   enemyAvatarSrc?: string | null;
   enemyAvatarFallback?: string;
-  // Nom du deck public adverse (solo/tournoi uniquement).
+  // Pseudo de l'adversaire (PvP) ou nom du deck public (solo/tournoi).
   enemyName?: string | null;
 }
 

@@ -44,13 +44,16 @@ function MenuButton() {
   );
 }
 
-export default function PhaseControls() {
+export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   const { controller, combatActive, placedCount, boardSlots, prepRemaining, combatRemaining, speed, paused, boardTerrain } = useGameStore();
   if (!controller) return null;
 
   // Barre de combat : dense sur un écran de 375 px (timer, terrain, vitesses,
   // options, pause) — d'où les paddings serrés et les `shrink-0`, sans quoi le
-  // chip terrain est écrasé et le label Pause passe à la ligne.
+  // chip terrain est écrasé et le label Pause passe à la ligne. En PvP, vitesse
+  // et pause ne sont pas réseau — un joueur qui ralentit/pause chez lui ne fait
+  // que désynchroniser sa propre vue de l'adversaire qui attend, donc les deux
+  // sont retirés plutôt que de laisser un contrôle trompeur.
   if (combatActive) {
     return (
       <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1.5 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
@@ -58,24 +61,28 @@ export default function PhaseControls() {
           {combatRemaining}s
         </span>
         {boardTerrain && <TerrainChip board={boardTerrain} />}
-        <div className="flex shrink-0 overflow-hidden rounded-lg border border-line">
-          {[1, 2, 4].map(s => (
-            <button
-              key={s}
-              onPointerDown={(e) => { e.stopPropagation(); controller.setSpeed(s); }}
-              className={`min-h-tap px-2 text-sm font-semibold ${s === speed ? 'bg-gold/20 text-gold' : 'bg-surface-raised text-white/70'}`}
-            >×{s}</button>
-          ))}
-        </div>
+        {!pvp && (
+          <div className="flex shrink-0 overflow-hidden rounded-lg border border-line">
+            {[1, 2, 4].map(s => (
+              <button
+                key={s}
+                onPointerDown={(e) => { e.stopPropagation(); controller.setSpeed(s); }}
+                className={`min-h-tap px-2 text-sm font-semibold ${s === speed ? 'bg-gold/20 text-gold' : 'bg-surface-raised text-white/70'}`}
+              >×{s}</button>
+            ))}
+          </div>
+        )}
         <div className="flex-1" />
         <MenuButton />
-        <Button
-          aria-label={paused ? 'Reprendre le combat' : 'Mettre en pause'}
-          className="shrink-0 px-3 text-base"
-          onPointerDown={(e) => { e.stopPropagation(); controller.togglePause(); }}
-        >
-          {paused ? '▶' : '⏸'}
-        </Button>
+        {!pvp && (
+          <Button
+            aria-label={paused ? 'Reprendre le combat' : 'Mettre en pause'}
+            className="shrink-0 px-3 text-base"
+            onPointerDown={(e) => { e.stopPropagation(); controller.togglePause(); }}
+          >
+            {paused ? '▶' : '⏸'}
+          </Button>
+        )}
       </div>
     );
   }

@@ -66,7 +66,7 @@ export default function GameScreenPvp() {
       <SynergyPanel />
       <GraveyardTray />
       <HandBar />
-      <PhaseControls />
+      <PhaseControls pvp />
       <PvpHeader />
       {/* Le chrono de préparation PvP n'est PAS gelé par le menu : l'adversaire
           attend à la barrière réseau, on ne peut pas le bloquer en l'ouvrant. */}
@@ -83,15 +83,15 @@ export default function GameScreenPvp() {
   );
 }
 
-// Portrait de l'adversaire dans le HUD : avatar de profil récupéré à la
-// poignée de main (peut être une image ou un emoji, cf. `Avatar`). Le pseudo
-// n'y est pas répété, il vit déjà dans `PvpHeader` ("vs …").
+// Portrait de l'adversaire dans le HUD : avatar de profil + pseudo, récupérés
+// à la poignée de main (l'avatar peut être une image ou un emoji, cf. `Avatar`).
 function HudWithOpponent({ opponentAvatar }: { opponentAvatar: string | null }) {
   const opponentName = useGameStore(s => s.pvpOpponent);
   return (
     <Hud
       enemyAvatarSrc={opponentAvatar}
       enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
+      enemyName={opponentName}
     />
   );
 }
