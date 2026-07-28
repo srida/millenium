@@ -11,7 +11,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.png', 'icon-192.png', 'icon-512.png'],
+      includeAssets: ['favicon.png', 'favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png'],
       manifest: {
         name: 'Millenium',
         short_name: 'Millenium',
@@ -25,7 +25,7 @@ export default defineConfig({
         icons: [
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
@@ -33,7 +33,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,woff2}'],
         navigateFallback: '/index.html',
         // /api et /ws ne doivent pas être interceptés par la navigation SPA.
-        navigateFallbackDenylist: [/^\/api/, /^\/illustrations/, /^\/ws/],
+        navigateFallbackDenylist: [/^\/api/, /^\/illustrations/, /^\/avatars/, /^\/ws/],
         runtimeCaching: [
           {
             // Art des cartes : stale-while-revalidate (affichage instantané, MAJ en fond).
@@ -42,6 +42,15 @@ export default defineConfig({
             options: {
               cacheName: 'illustrations',
               expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+          {
+            // Portraits des decks publics — même politique que l'art des cartes.
+            urlPattern: ({ url }) => url.pathname.startsWith('/avatars/'),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'avatars',
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
           {
@@ -62,6 +71,7 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:3742',
       '/illustrations': 'http://localhost:3742',
+      '/avatars': 'http://localhost:3742',
       '/admin': 'http://localhost:3742',
       '/ws': { target: 'ws://localhost:3742', ws: true },
     },

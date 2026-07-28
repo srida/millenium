@@ -23,6 +23,7 @@ import { PREP_DURATION_S, SHOPPING_DURATION_S } from '../game/timings.js';
 
 export default function GameScreenPvp() {
   const [controller, setControllerLocal] = useState<PvpController | null>(null);
+  const [opponentAvatar, setOpponentAvatar] = useState<string | null>(null);
   const setController = useGameStore(s => s.setController);
   const reset = useGameStore(s => s.reset);
   const navigate = useUiStore(s => s.navigate);
@@ -31,7 +32,9 @@ export default function GameScreenPvp() {
   useEffect(() => {
     const role = (PvpConnection as any).getRole() as 'A' | 'B' | null;
     if (!role) { navigate('online_lobby'); return; }
-    const opponent = (PvpConnection as any).getOpponent()?.username ?? 'Adversaire';
+    const opponentUser = (PvpConnection as any).getOpponent();
+    const opponent = opponentUser?.username ?? 'Adversaire';
+    setOpponentAvatar(opponentUser?.avatar ?? null);
     const session = buildSession(deckName, 'pvp');
     const ctrl = new PvpController(session, pvpDeps(), role, opponent);
     setControllerLocal(ctrl);
@@ -59,7 +62,7 @@ export default function GameScreenPvp() {
   return (
     <div className="relative h-dvh overflow-hidden bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
       <Board3DCanvas controller={controller} />
-      <Hud />
+      <HudWithOpponent opponentAvatar={opponentAvatar} />
       <SynergyPanel />
       <GraveyardTray />
       <HandBar />
@@ -77,6 +80,19 @@ export default function GameScreenPvp() {
       <ShoppingLayer />
       <GameOverScreen />
     </div>
+  );
+}
+
+// Portrait de l'adversaire dans le HUD : avatar de profil récupéré à la
+// poignée de main (peut être une image ou un emoji, cf. `Avatar`). Le pseudo
+// n'y est pas répété, il vit déjà dans `PvpHeader` ("vs …").
+function HudWithOpponent({ opponentAvatar }: { opponentAvatar: string | null }) {
+  const opponentName = useGameStore(s => s.pvpOpponent);
+  return (
+    <Hud
+      enemyAvatarSrc={opponentAvatar}
+      enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
+    />
   );
 }
 
@@ -112,9 +128,9 @@ function PrepTimer({ controller }: { controller: PvpController }) {
   return null;
 }
 
-// Chrono de la Phase Shopping — spécifique au PvP. En solo rien ne presse, mais
-// ici l'adversaire attend à la barrière réseau tant que je n'ai pas choisi : le
-// choix est donc borné, et « passer » est automatique à 0.
+// Chrono de la Phase Shopping. En PvP, l'adversaire attend à la barrière
+// réseau tant que je n'ai pas choisi : le choix est donc borné, et « passer »
+// est automatique à 0.
 function ShoppingTimer({ controller }: { controller: PvpController }) {
   const active = useGameStore(s => !!s.shopping);
   const [remaining, setRemaining] = useState(SHOPPING_DURATION_S);

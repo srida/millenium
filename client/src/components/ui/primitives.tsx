@@ -30,6 +30,20 @@ export function Panel({ className = '', children }: { className?: string; childr
   );
 }
 
+// Portrait générique : `src` image (URL/data-URI) ou emoji/texte court, avec
+// repli sur `fallback` (ex. initiale du pseudo, ★ pour un invité). Même
+// convention de détection qu'ailleurs (Profil, Amis, Tournoi) : un `src` qui
+// commence par http(s)/data:/ est une image, sinon c'est du texte affiché tel quel.
+export function Avatar({ src, fallback = '★', className = 'h-8 w-8' }: { src?: string | null; fallback?: string; className?: string }) {
+  const value = (src ?? '').trim();
+  const isImg = /^(https?:|data:|\/)/i.test(value);
+  return (
+    <div className={`flex flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-surface-raised text-xs font-semibold ${className}`}>
+      {value ? (isImg ? <img src={value} alt="" className="h-full w-full object-cover" /> : <span>{value.slice(0, 2)}</span>) : <span>{fallback}</span>}
+    </div>
+  );
+}
+
 // Jauge horizontale (HP, etc.), remplie de 0→1.
 export function Gauge({ value, className = '', fillClassName = 'bg-player' }: { value: number; className?: string; fillClassName?: string }) {
   return (

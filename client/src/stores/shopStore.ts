@@ -94,6 +94,30 @@ interface ShopStoreState {
 
 const isGuest = () => !useAuthStore.getState().user;
 
+// Pastille "nouveauté" du bouton Boutique du menu principal : un simple point,
+// pas un compteur — la valeur d'un emplacement ne se lit pas dans un chiffre
+// (cf. le badge par emplacement dans ShopScreen). Elle disparaît dès que le
+// joueur a *visité* l'écran pour le jour en cours, comme une notification —
+// pas au premier achat, pas à la rotation suivante avant d'y être retourné.
+const seenKey = (userId: string) => `millenium_shop_seen_day_${userId}`;
+
+export function hasUnseenShop(userId: string, day: string): boolean {
+  try {
+    return localStorage.getItem(seenKey(userId)) !== day;
+  } catch {
+    return false;
+  }
+}
+
+export function markShopSeen(userId: string, day: string): void {
+  try {
+    localStorage.setItem(seenKey(userId), day);
+  } catch {
+    // localStorage indisponible (navigation privée…) : la pastille resterait
+    // affichée en permanence, sans conséquence plus grave.
+  }
+}
+
 function pickSnapshot(data: any): ShopSnapshot {
   return {
     day: data.day,

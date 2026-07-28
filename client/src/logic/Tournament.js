@@ -21,15 +21,18 @@ export function createMatch(pA, pB) {
  *
  * Les decks sont injectés par l'appelant (écran Tournoi) au lieu d'être lus
  * depuis la couche data — logic/ ne doit pas dépendre de data/ (PLAN §2.1).
+ * `avatarId` n'est qu'un identifiant transporté : logic/ ne construit aucune URL
+ * et ne sait pas qu'il existe des images — c'est l'écran qui s'en charge.
+ *
  * @param {string} playerDeckName - display name of the player's deck
- * @param {{ playerDeck: Object, publicDecks: {name: string, deck: Object}[] }} deps
+ * @param {{ playerDeck: Object, publicDecks: {id?: string, name: string, deck: Object}[] }} deps
  */
 export function createTournament(playerDeckName, { playerDeck, publicDecks }) {
   const picked = shuffle(publicDecks).slice(0, 7);
 
   const participants = [
-    { id: 0, name: 'Vous', isPlayer: true, deckName: playerDeckName, deck: playerDeck },
-    ...picked.map((d, i) => ({ id: i + 1, name: d.name, isPlayer: false, deck: d.deck })),
+    { id: 0, name: 'Vous', isPlayer: true, deckName: playerDeckName, deck: playerDeck, avatarId: null },
+    ...picked.map((d, i) => ({ id: i + 1, name: d.name, isPlayer: false, deck: d.deck, avatarId: d.id ?? null })),
   ];
 
   const seeded = shuffle(participants);

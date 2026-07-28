@@ -151,15 +151,22 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
 
 function describeEffects(effects: any[]): string {
   return (effects ?? []).map((e: any) => {
+    const target = describeTargetAttributes(e.target_attributes);
     switch (e.type) {
-      case 'stat_bonus': return `+${e.value} ${STAT_LABELS[e.stat] ?? e.stat}`;
-      case 'stat_modifier': return `×${e.value} ${STAT_LABELS[e.stat] ?? e.stat}`;
+      case 'stat_bonus': return `+${e.value} ${STAT_LABELS[e.stat] ?? e.stat}${target}`;
+      case 'stat_modifier': return `×${e.value} ${STAT_LABELS[e.stat] ?? e.stat}${target}`;
       case 'draw_bonus': return `+${e.value} pioche`;
       case 'guaranteed_draw': return 'Pioche garantie';
       case 'revive': return 'Réanimation';
-      case 'shield': return `Bouclier +${e.value}`;
+      case 'shield': return `Bouclier +${e.value}${target}`;
       case 'board_slot_bonus': return `+${e.value} slot`;
       default: return e.type;
     }
   }).join(', ');
+}
+
+function describeTargetAttributes(targetAttributes: any): string {
+  if (!Array.isArray(targetAttributes) || targetAttributes.length === 0) return '';
+  const names = targetAttributes.map((id: string) => (getAttribute(id) as any)?.name ?? id);
+  return ` (${names.join(', ')})`;
 }

@@ -95,6 +95,10 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     try { await (AuthClient as any).logout(); } catch { /* best-effort */ }
     (DeckRepository as any).handleLogout();
     set({ user: null });
+    // Le deck actif vit dans DeckRepository (localStorage) ; deckStore n'en est
+    // qu'un cache réactif — sans refresh, un écran déjà monté garderait l'ancien
+    // deck actif à l'écran jusqu'à son prochain montage.
+    (await import('./deckStore.js')).useDeckStore.getState().refresh();
     (await import('./missionStore.js')).useMissionStore.getState().reset();
     // L'offre de boutique est attachée au compte : la garder à l'écran après
     // une déconnexion afficherait les cartes d'un autre joueur.

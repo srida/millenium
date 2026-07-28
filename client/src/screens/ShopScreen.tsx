@@ -18,8 +18,9 @@ import type { Card } from '../logic/types.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
-import { useShopStore, type ShopSlot, type ShopSet, type CovetState } from '../stores/shopStore.js';
+import { useShopStore, markShopSeen, type ShopSlot, type ShopSet, type CovetState } from '../stores/shopStore.js';
 import { Button, Panel, Gauge, Modal, Countdown } from '../components/ui/primitives.js';
+import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 
 const fmt = new Intl.NumberFormat('fr-FR');
@@ -36,6 +37,8 @@ export default function ShopScreen() {
   useEffect(() => { void load(true); }, [load]);
   // La collection sert au sélecteur de Convoitise (cartes non possédées).
   useEffect(() => { void useCollectionStore.getState().load(true); }, []);
+  // Efface la pastille de nouveauté du menu principal pour l'offre du jour.
+  useEffect(() => { if (user && snapshot) markShopSeen(user.id, snapshot.day); }, [user, snapshot?.day]);
 
   if (!user) {
     return (
@@ -53,12 +56,17 @@ export default function ShopScreen() {
 
   return (
     <main className="flex min-h-dvh flex-col bg-surface text-white">
-      <header className="flex items-center gap-3 border-b border-line px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <Button className="px-3" onPointerDown={() => navigate('main_menu')}>◂</Button>
-        <h1 className="text-lg font-bold tracking-wide">Boutique</h1>
-        <Balance />
-        {snapshot && <Countdown at={snapshot.next_rotation_at} title="Nouvelle sélection" />}
-      </header>
+      <ScreenHeader
+        title="Boutique"
+        onBack={() => navigate('main_menu')}
+        safeAreaTop
+        right={(
+          <>
+            <Balance />
+            {snapshot && <Countdown at={snapshot.next_rotation_at} title="Nouvelle sélection" />}
+          </>
+        )}
+      />
 
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4">
         {error && <p className="text-xs text-danger">{error}</p>}
@@ -134,7 +142,10 @@ function Balance() {
   const user = useAuthStore(s => s.user);
   if (!user) return null;
   return (
-    <span className="ml-auto flex items-center gap-2 text-xs tabular-nums">
+    // Masqué en web : le header y affiche déjà le solde (ProgressionPills), le
+    // répéter serait redondant. En mobile, le header n'affiche que le profil,
+    // donc le solde reste ici — fonctionnel pendant les achats.
+    <span className="flex items-center gap-2 text-xs tabular-nums sm:hidden">
       <span className="text-gold" title="Golds">💰 {fmt.format(user.gold ?? 0)}</span>
       <span className="text-tier-4" title="Gemmes">💎 {fmt.format(user.gems ?? 0)}</span>
     </span>

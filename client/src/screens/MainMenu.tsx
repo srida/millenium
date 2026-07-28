@@ -8,24 +8,23 @@
 // directement, et « Jouer » n'ouvre le sélecteur que pour le deck de l'IA.
 import { useEffect } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
-import { useAuthStore, type AuthUser } from '../stores/authStore.js';
+import { useAuthStore } from '../stores/authStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
-import { useShopStore } from '../stores/shopStore.js';
+import { useShopStore, hasUnseenShop } from '../stores/shopStore.js';
 import { Button } from '../components/ui/primitives.js';
-import { ProgressionPills } from '../components/ui/ProgressionStats.js';
+import { ProgressionPills, ProfilePill } from '../components/ui/ProgressionStats.js';
 import { FullscreenButton } from '../components/system/DeviceGuards.js';
 
 export default function MainMenu() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
-  const logout = useAuthStore(s => s.logout);
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface p-6 pt-[max(1.5rem,env(safe-area-inset-top))] text-white">
       <FullscreenButton className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))]" />
       <div className="text-center">
-        <h1 className="text-4xl font-bold tracking-[0.2em] text-gold">MILLENIUM</h1>
+        <img src="/logo.png" alt="Millenium" className="mx-auto h-32 w-32 object-contain" />
         <p className="mt-1 text-sm text-white/50">Auto-battler tactique</p>
       </div>
 
@@ -71,9 +70,6 @@ export default function MainMenu() {
         </div>
         {/* Progression du compte, sous l'identité : niveau, XP et monnaies. */}
         <ProgressionPills user={user} />
-        {user && (
-          <button onPointerDown={() => logout()} className="text-white/50 underline">Se déconnecter</button>
-        )}
       </div>
     </main>
   );
@@ -108,10 +104,11 @@ function MissionsButton() {
   );
 }
 
-// Boutique de cartes. La pastille compte les emplacements du jour encore
-// disponibles, et l'éclair signale un Maillon (une carte qui débloque une
-// invocation) : c'est la seule proposition qui mérite qu'on ouvre l'écran
-// aujourd'hui plutôt que demain. Rien en invité — l'offre est liée au compte.
+// Boutique de cartes. Un simple point signale une offre du jour pas encore
+// visitée — pas un compteur, qui répéterait une valeur déjà portée par le
+// badge de chaque emplacement à l'intérieur. Il s'efface dès que l'écran a
+// été ouvert pour ce jour, comme une notification. Rien en invité — l'offre
+// est liée au compte.
 function ShopButton() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
@@ -122,44 +119,16 @@ function ShopButton() {
 
   if (!user) return null;
 
-  const slots = snapshot?.slots ?? [];
-  const available = slots.filter(s => !s.purchased).length;
-  const highlight = slots.some(s => !s.purchased && (s.reason === 'unlocks' || s.reason === 'material' || s.reason === 'covet'));
+  const unseen = !!snapshot && hasUnseenShop(user.id, snapshot.day);
 
   return (
     <Button className="flex-1 px-2" onPointerDown={() => navigate('shop')}>
       {/* nowrap : avec la pastille, « 🛒 Boutique » se coupait en deux lignes. */}
       <span className="whitespace-nowrap">🛒 Boutique</span>
-      {available > 0 && (
-        <span className="rounded-full border border-gold/50 bg-gold/15 px-2 text-xs tabular-nums text-gold">
-          {highlight && '⚡ '}{available}
-        </span>
+      {unseen && (
+        <span className="h-2 w-2 rounded-full bg-gold" aria-label="Nouveautés" />
       )}
     </Button>
-  );
-}
-
-// Pastille de profil (avatar + pseudo). Tap → écran Profil. Elle dit déjà qui est
-// connecté : pas de ligne « Connecté : … » en plus. L'avatar suit la même règle
-// qu'ailleurs (URL/data → image, sinon emoji, sinon initiale du pseudo).
-function ProfilePill({ user, onPointerDown }: { user: AuthUser; onPointerDown: () => void }) {
-  const avatar = (user.avatar ?? '').trim();
-  const isImg = /^(https?:|data:)/i.test(avatar);
-
-  return (
-    <button
-      onPointerDown={onPointerDown}
-      title="Profil"
-      aria-label={`Profil de ${user.username}`}
-      className="flex min-h-tap items-center gap-2 rounded-full border border-line bg-surface-raised/70 px-2 py-1 pr-3 active:opacity-80"
-    >
-      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-gold/40 bg-surface text-xs">
-        {avatar
-          ? (isImg ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : <span>{avatar.slice(0, 2)}</span>)
-          : <span>{user.username.slice(0, 1).toUpperCase()}</span>}
-      </span>
-      <span className="max-w-[9rem] truncate font-semibold text-white">{user.username}</span>
-    </button>
   );
 }
 

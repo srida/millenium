@@ -12,6 +12,7 @@
  *   ADMIN_PASS  — mot de passe admin
  *
  * "pull"  : copie les données de Railway vers le dossier local data/ + resources/card_illustrations/
+ *           + resources/enemy_avatars/ (--no-illustrations coupe les deux)
  * "push"  : envoie les données locales vers Railway (écrase les données distantes)
  */
 
@@ -47,6 +48,14 @@ const ADMIN_PASS = process.env.ADMIN_PASS || '';
 
 const DATA_DIR  = process.env.DATA_DIR  || path.join(ROOT, 'data');
 const ILLUS_DIR = process.env.ILLUS_DIR || path.join(ROOT, 'resources', 'card_illustrations');
+const AVATARS_DIR = process.env.AVATARS_DIR || path.join(ROOT, 'resources', 'enemy_avatars');
+
+// Les deux familles d'images se synchronisent à l'identique, sur deux dossiers
+// et deux jeux de routes. `key` est la clé du manifeste de /api/export.
+const ASSETS = [
+  { key: 'illustrations', label: 'Illustrations', dir: ILLUS_DIR, exportPath: id => `/api/export/illustration/${id}`, pushPath: id => `/api/illustrations/${id}` },
+  { key: 'avatars',       label: 'Avatars',       dir: AVATARS_DIR, exportPath: id => `/api/export/avatar/${id}`,      pushPath: id => `/api/avatars/${id}` },
+];
 
 const ENTITIES = [
   { type: 'cards',      file: 'cards.json',      importPath: '/api/cards/import',      deletePath: id => `/api/cards/${id}` },
@@ -89,13 +98,13 @@ function writeLocalJson(file, data) {
   fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(data, null, '\t'), 'utf-8');
 }
 
-function localIllustrations() {
-  fs.mkdirSync(ILLUS_DIR, { recursive: true });
+function localAssets(dir) {
+  fs.mkdirSync(dir, { recursive: true });
   const map = new Map();
-  for (const f of fs.readdirSync(ILLUS_DIR)) {
+  for (const f of fs.readdirSync(dir)) {
     if (!f.endsWith('.png')) continue;
     const id = f.replace(/\.png$/, '');
-    const checksum = crypto.createHash('md5').update(fs.readFileSync(path.join(ILLUS_DIR, f))).digest('hex');
+    const checksum = crypto.createHash('md5').update(fs.readFileSync(path.join(dir, f))).digest('hex');
     map.set(id, checksum);
   }
   return map;
@@ -123,28 +132,30 @@ async function pull(opts) {
   }
 
   if (opts.illustrations) {
-    const remoteIllus = remote.illustrations || [];
-    const local = localIllustrations();
-    const remoteIds = new Set(remoteIllus.map(i => i.id));
+    for (const asset of ASSETS) {
+      const remoteAssets = remote[asset.key] || [];
+      const local = localAssets(asset.dir);
+      const remoteIds = new Set(remoteAssets.map(i => i.id));
 
-    let downloaded = 0, skipped = 0, deleted = 0;
-    for (const { id, checksum } of remoteIllus) {
-      if (local.get(id) === checksum) { skipped++; continue; }
-      if (opts.dryRun) { console.log(`[dry-run] télécharger ${id}.png`); downloaded++; continue; }
-      const { data } = await apiGet(`/api/export/illustration/${id}`);
-      fs.writeFileSync(path.join(ILLUS_DIR, `${id}.png`), Buffer.from(data, 'base64'));
-      downloaded++;
-    }
-
-    // Supprime localement les illustrations qui n'existent plus côté distant
-    for (const id of local.keys()) {
-      if (!remoteIds.has(id)) {
-        if (opts.dryRun) { console.log(`[dry-run] supprimer localement ${id}.png`); deleted++; continue; }
-        fs.unlinkSync(path.join(ILLUS_DIR, `${id}.png`));
-        deleted++;
+      let downloaded = 0, skipped = 0, deleted = 0;
+      for (const { id, checksum } of remoteAssets) {
+        if (local.get(id) === checksum) { skipped++; continue; }
+        if (opts.dryRun) { console.log(`[dry-run] télécharger ${id}.png`); downloaded++; continue; }
+        const { data } = await apiGet(asset.exportPath(id));
+        fs.writeFileSync(path.join(asset.dir, `${id}.png`), Buffer.from(data, 'base64'));
+        downloaded++;
       }
+
+      // Supprime localement les images qui n'existent plus côté distant
+      for (const id of local.keys()) {
+        if (!remoteIds.has(id)) {
+          if (opts.dryRun) { console.log(`[dry-run] supprimer localement ${id}.png`); deleted++; continue; }
+          fs.unlinkSync(path.join(asset.dir, `${id}.png`));
+          deleted++;
+        }
+      }
+      console.log(`✓ ${asset.label} : ${downloaded} téléchargées, ${skipped} à jour, ${deleted} supprimées localement`);
     }
-    console.log(`✓ Illustrations : ${downloaded} téléchargées, ${skipped} à jour, ${deleted} supprimées localement`);
   }
 
   console.log('Pull terminé.');
@@ -181,27 +192,28 @@ async function push(opts) {
   }
 
   if (opts.illustrations) {
-    const local = localIllustrations();
-    const remoteIllus = remote.illustrations || [];
-    const remoteMap = new Map(remoteIllus.map(i => [i.id, i.checksum]));
+    for (const asset of ASSETS) {
+      const local = localAssets(asset.dir);
+      const remoteMap = new Map((remote[asset.key] || []).map(i => [i.id, i.checksum]));
 
-    let uploaded = 0, skipped = 0, deleted = 0;
-    for (const [id, checksum] of local) {
-      if (remoteMap.get(id) === checksum) { skipped++; continue; }
-      if (opts.dryRun) { console.log(`[dry-run] envoyer ${id}.png`); uploaded++; continue; }
-      const data = fs.readFileSync(path.join(ILLUS_DIR, `${id}.png`)).toString('base64');
-      await apiSend('PUT', `/api/illustrations/${id}`, { data });
-      uploaded++;
-    }
-
-    for (const id of remoteMap.keys()) {
-      if (!local.has(id)) {
-        if (opts.dryRun) { console.log(`[dry-run] supprimer côté distant ${id}.png`); deleted++; continue; }
-        await apiSend('DELETE', `/api/illustrations/${id}`);
-        deleted++;
+      let uploaded = 0, skipped = 0, deleted = 0;
+      for (const [id, checksum] of local) {
+        if (remoteMap.get(id) === checksum) { skipped++; continue; }
+        if (opts.dryRun) { console.log(`[dry-run] envoyer ${id}.png`); uploaded++; continue; }
+        const data = fs.readFileSync(path.join(asset.dir, `${id}.png`)).toString('base64');
+        await apiSend('PUT', asset.pushPath(id), { data });
+        uploaded++;
       }
+
+      for (const id of remoteMap.keys()) {
+        if (!local.has(id)) {
+          if (opts.dryRun) { console.log(`[dry-run] supprimer côté distant ${id}.png`); deleted++; continue; }
+          await apiSend('DELETE', asset.pushPath(id));
+          deleted++;
+        }
+      }
+      console.log(`✓ ${asset.label} : ${uploaded} envoyées, ${skipped} à jour, ${deleted} supprimées côté distant`);
     }
-    console.log(`✓ Illustrations : ${uploaded} envoyées, ${skipped} à jour, ${deleted} supprimées côté distant`);
   }
 
   console.log('Push terminé.');

@@ -18,6 +18,8 @@ export interface PendingGame {
   playerSlot: 0 | 1;
   opponentName: string;
   opponentDeck: DeckIds;
+  /** Id du deck public adverse — pour retrouver son avatar (`PublicDeckDatabase.avatarUrl`). */
+  opponentAvatarId: string | null;
   playerDeckName: string;
   /** Numéro de la manche dans le Bo5 (1-indexé). */
   gameNumber: number;
@@ -58,6 +60,7 @@ export const useTournamentStore = create<TournamentStoreState>((set, get) => ({
         playerSlot: playerSlot as 0 | 1,
         opponentName: match.players[other].name,
         opponentDeck: match.players[other].deck,
+        opponentAvatarId: match.players[other].avatarId ?? null,
         playerDeckName: t?.playerDeckName ?? match.players[playerSlot].deckName,
         gameNumber: match.wins[0] + match.wins[1] + 1,
         score: [match.wins[playerSlot], match.wins[other]],

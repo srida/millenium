@@ -11,6 +11,7 @@ import * as DeckRepository from '../data/DeckRepository.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from '../components/ui/primitives.js';
+import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 
 type Status = 'idle' | 'connecting' | 'searching' | 'found' | 'error';
@@ -85,15 +86,11 @@ export default function OnlineLobby() {
     );
   }
 
-  // Même en-tête que l'écran Tournoi : retour, titre, deck engagé. Le ◂ passe par
-  // `cancel()` pour ne pas laisser le joueur dans la file en quittant.
+  // Même en-tête que l'écran Tournoi : retour, titre. Le ◂ passe par `cancel()`
+  // pour ne pas laisser le joueur dans la file en quittant.
   return (
     <main className="flex min-h-dvh flex-col bg-surface text-white">
-      <header className="flex items-center gap-3 border-b border-line px-4 py-3">
-        <Button className="px-3" onPointerDown={cancel}>◂</Button>
-        <h1 className="text-lg font-bold tracking-wide">Duel en ligne</h1>
-        <span className="ml-auto truncate text-xs text-white/40">deck : {deckName ?? '—'}</span>
-      </header>
+      <ScreenHeader title="Duel en ligne" onBack={cancel} />
 
       <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto p-4 py-6 text-center">
         <div className="text-4xl">⚔️</div>

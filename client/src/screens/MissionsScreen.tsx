@@ -12,6 +12,7 @@ import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useMissionStore, type Mission, type WeeklyMilestone } from '../stores/missionStore.js';
 import { Button, Panel, Gauge, Countdown } from '../components/ui/primitives.js';
+import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 
 const fmt = new Intl.NumberFormat('fr-FR');
 
@@ -47,11 +48,12 @@ export default function MissionsScreen() {
 
   return (
     <main className="flex min-h-dvh flex-col bg-surface text-white">
-      <header className="flex items-center gap-3 border-b border-line px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <Button className="px-3" onPointerDown={() => navigate('main_menu')}>◂</Button>
-        <h1 className="text-lg font-bold tracking-wide">Missions</h1>
-        {snapshot && <Countdown at={snapshot.cycle.next_reset_at} className="ml-auto" title="Prochaines missions" />}
-      </header>
+      <ScreenHeader
+        title="Missions"
+        onBack={() => navigate('main_menu')}
+        safeAreaTop
+        right={snapshot && <Countdown at={snapshot.cycle.next_reset_at} title="Prochaines missions" />}
+      />
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">
         {error && <p className="text-xs text-danger">{error}</p>}

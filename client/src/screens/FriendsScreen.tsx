@@ -6,12 +6,13 @@ import * as AuthClient from '../data/AuthClient.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from '../components/ui/primitives.js';
+import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 
 interface UserRow { id: string; username: string; tag?: number; avatar?: string | null; relation?: string; friendship_id?: string }
 
 function Avatar({ u }: { u: UserRow }) {
   const a = u.avatar ?? '';
-  const isImg = /^(https?:|data:)/i.test(a);
+  const isImg = /^(https?:|data:|\/)/i.test(a);
   return (
     <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-line bg-surface text-sm">
       {a ? (isImg ? <img src={a} alt="" className="h-full w-full object-cover" /> : <span>{a.slice(0, 2)}</span>) : <span>{u.username.slice(0, 1).toUpperCase()}</span>}
@@ -90,10 +91,7 @@ export default function FriendsScreen() {
 
   return (
     <main className="flex min-h-dvh flex-col bg-surface text-white">
-      <header className="flex items-center gap-3 border-b border-line px-4 py-3">
-        <Button className="px-3" onPointerDown={() => navigate('main_menu')}>◂</Button>
-        <h1 className="text-lg font-bold tracking-wide">Amis</h1>
-      </header>
+      <ScreenHeader title="Amis" onBack={() => navigate('main_menu')} />
 
       <div className="flex-1 space-y-5 overflow-y-auto p-4">
         {error && (

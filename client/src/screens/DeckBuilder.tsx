@@ -14,13 +14,17 @@ import { useDeckStore } from '../stores/deckStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
 import { Button } from '../components/ui/primitives.js';
+import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 
 const MIN_DECK = 20;
 const SUMMON_LABELS: Record<string, string> = {
   normal: 'Normale', sacrifice: 'Sacrifice', fusion: 'Fusion', heritage: 'Héritage', transformation: 'Transfo.',
 };
-const DECK_COLORS = ['#d8564e', '#e4c65a', '#7cd88a', '#2f7d4f', '#6fc0e6', '#2f5bd8', '#e08a3a', '#a86ee7', '#e58ab8'];
+const DECK_COLORS = [
+  '#d8564e', '#e4c65a', '#7cd88a', '#2f7d4f', '#6fc0e6', '#2f5bd8', '#e08a3a', '#a86ee7', '#e58ab8',
+  '#f5f0e6', '#d9c7a3', '#9a9a9a', '#8b5a2b',
+];
 const TIER_TEXT: Record<number, string> = {
   1: 'text-tier-1', 2: 'text-tier-2', 3: 'text-tier-3', 4: 'text-tier-4', 5: 'text-tier-5',
 };
@@ -90,7 +94,10 @@ export default function DeckBuilder() {
   const [tab, setTab] = useState<'lib' | 'deck'>('lib');
   const [tierFilters, setTierFilters] = useState<number[]>([]);
   const [summonFilters, setSummonFilters] = useState<string[]>([]);
+  const [attributeFilter, setAttributeFilter] = useState('');
   const [search, setSearch] = useState('');
+  const allAttributes = useMemo(() => (AttributeDatabase as any).getAllAttributes()
+    .slice().sort((a: any, b: any) => a.name.localeCompare(b.name, 'fr')), []);
   // Les cartes non possédées sont masquées par défaut (la bibliothèque montre ce
   // avec quoi on peut jouer) ; ce chip les révèle, verrouillées et intapables,
   // pour qu'on voie ce qu'il reste à débloquer.
@@ -131,6 +138,7 @@ export default function DeckBuilder() {
     if (!showLocked && !owns(c.id)) return false;
     if (tierFilters.length && !tierFilters.includes(c.tier)) return false;
     if (summonFilters.length && !summonFilters.includes((c as any).summon_type ?? 'normal')) return false;
+    if (attributeFilter && !(c.attributes ?? []).includes(attributeFilter)) return false;
     if (search.trim() && !c.name.toLowerCase().includes(search.trim().toLowerCase())) return false;
     return true;
   });
@@ -188,11 +196,11 @@ export default function DeckBuilder() {
 
   return (
     <main className="flex min-h-dvh flex-col bg-surface text-white" onPointerDown={hideTooltip}>
-      <header className="flex items-center gap-3 border-b border-line px-4 py-3">
-        <Button className="px-3" onPointerDown={back}>◂</Button>
-        <h1 className="text-lg font-bold tracking-wide">Deck-building</h1>
-        <span className={`ml-auto text-sm font-bold tabular-nums ${valid ? 'text-success' : 'text-gold'}`}>{total}/{MIN_DECK}</span>
-      </header>
+      <ScreenHeader
+        title="Deck-building"
+        onBack={back}
+        right={<span className={`text-sm font-bold tabular-nums ${valid ? 'text-success' : 'text-gold'}`}>{total}/{MIN_DECK}</span>}
+      />
 
       <div className="flex border-b border-line">
         {(['lib', 'deck'] as const).map(t => (
@@ -226,6 +234,7 @@ export default function DeckBuilder() {
           search={search} setSearch={setSearch}
           tierFilters={tierFilters} setTierFilters={setTierFilters}
           summonFilters={summonFilters} setSummonFilters={setSummonFilters}
+          attributeFilter={attributeFilter} setAttributeFilter={setAttributeFilter} allAttributes={allAttributes}
           onAdd={addCard}
         />
       ) : (
@@ -263,7 +272,8 @@ function Chip({ active, onTap, children }: { active: boolean; onTap: () => void;
 
 function LibraryPanel({
   cards, total, ownedCount, deckData, tierMax, owns, showLocked, setShowLocked, search, setSearch,
-  tierFilters, setTierFilters, summonFilters, setSummonFilters, onAdd,
+  tierFilters, setTierFilters, summonFilters, setSummonFilters,
+  attributeFilter, setAttributeFilter, allAttributes, onAdd,
 }: any) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -273,6 +283,15 @@ function LibraryPanel({
           onChange={(e) => setSearch(e.target.value)}
           className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-sm text-white placeholder:text-white/30"
         />
+        <select
+          value={attributeFilter} onChange={(e) => setAttributeFilter(e.target.value)}
+          className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-sm text-white"
+        >
+          <option value="">Tous les attributs</option>
+          {allAttributes.map((a: any) => (
+            <option key={a.id} value={a.id}>{a.name}</option>
+          ))}
+        </select>
         <div className="flex flex-wrap gap-1.5">
           {[1, 2, 3, 4, 5].map(t => (
             <Chip key={t} active={tierFilters.includes(t)}

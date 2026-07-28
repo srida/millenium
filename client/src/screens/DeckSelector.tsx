@@ -9,16 +9,20 @@
 //     (partie solo, tournoi, duel en ligne). Porte aussi la gestion : éditer
 //     (→ DeckBuilder), dupliquer, renommer, supprimer, créer.
 //
-//   'play' (« Jouer ») — on ne choisit QUE le deck de l'IA. Le deck du joueur est
-//     le deck actif, affiché en récap non modifiable ; sans choix d'adversaire,
-//     l'IA joue ce même deck en miroir.
+//   'play' (« Jouer ») — on ne choisit QUE le deck de l'IA, parmi les decks
+//     PUBLICS (les mêmes que ceux du Tournoi), jamais parmi ceux du joueur : un
+//     adversaire est un archétype construit, pas un brouillon de collection. Le
+//     deck du joueur est le deck actif, affiché en récap non modifiable ; sans
+//     choix d'adversaire, l'IA joue ce même deck en miroir.
 //
 // Tournoi et Duel en ligne ne passent plus par ici : ils consomment le deck actif.
 import { useEffect, useState } from 'react';
 import * as DeckRepository from '../data/DeckRepository.js';
+import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import { useDeckStore, type DeckSummary } from '../stores/deckStore.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { Button, Modal } from '../components/ui/primitives.js';
+import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 
 const TIER_BG: Record<number, string> = {
@@ -29,8 +33,21 @@ const MAX_PER_TIER = 8;
 
 const MODES: Record<DeckSelectorMode, { title: string; blurb: string }> = {
   manage: { title: 'Mes decks', blurb: 'Le deck actif est celui que tu joues partout : partie solo, tournoi, duel en ligne.' },
-  play: { title: 'Partie solo', blurb: 'Choisis le deck de l\'IA. Sans choix, elle joue le tien en miroir.' },
+  play: { title: 'Partie solo', blurb: 'Choisis l\'adversaire parmi les decks du jeu. Sans choix, l\'IA joue le tien en miroir.' },
 };
+
+// Deck public projeté dans la même forme que les decks du joueur, pour être rendu
+// par la même carte. `id` est la clé (deux decks publics pourraient porter le même
+// nom) ; couleur et tags n'existent pas côté public.
+type PublicDeckSummary = DeckSummary & { id: string };
+
+function summarizePublic(raw: { id: string; name: string; deck?: Record<string, string[]> }): PublicDeckSummary {
+  const deck = raw.deck ?? {};
+  const dist: Record<number, number> = {};
+  let count = 0;
+  for (let t = 1; t <= 5; t++) { const n = (deck[String(t)] ?? []).length; dist[t] = n; count += n; }
+  return { id: raw.id, name: raw.name, deck, count, dist, color: null, tags: [] };
+}
 
 export default function DeckSelector() {
   const navigate = useUiStore(s => s.navigate);
@@ -40,15 +57,30 @@ export default function DeckSelector() {
   const decks = useDeckStore(s => s.decks);
   const activeDeck = useDeckStore(s => s.activeDeck);
   const refresh = useDeckStore(s => s.refresh);
-  // Deck confié à l'EnemyAI (mode 'play'). null = miroir du deck actif.
-  const [enemy, setEnemy] = useState<string | null>(null);
+  // Decks publics — pool d'adversaires du mode 'play'. Chargés ici seulement :
+  // la gestion de decks n'en a pas besoin.
+  const [publicDecks, setPublicDecks] = useState<PublicDeckSummary[] | null>(null);
+  // Deck confié à l'EnemyAI (mode 'play'), par id de deck public. null = miroir.
+  const [enemyId, setEnemyId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => { refresh(); }, [refresh]);
 
+  useEffect(() => {
+    if (manage) return;
+    let alive = true;
+    (PublicDeckDatabase as any).init().then(() => {
+      if (alive) setPublicDecks(((PublicDeckDatabase as any).getAllDecks() as any[]).map(summarizePublic));
+    });
+    return () => { alive = false; };
+  }, [manage]);
+
   const active = decks.find(d => d.name === activeDeck) ?? null;
   const canPlay = !!active && active.count >= MIN_DECK;
+  const enemy = publicDecks?.find(d => d.id === enemyId) ?? null;
+  // Liste rendue par la grille : ses decks en gestion, ceux du jeu en partie solo.
+  const list: (DeckSummary | PublicDeckSummary)[] = manage ? decks : (publicDecks ?? []);
 
   function duplicate(name: string) {
     const deck = (DeckRepository as any).loadDeck(name);
@@ -64,31 +96,33 @@ export default function DeckSelector() {
   }
 
   // En gestion, taper un deck = le rendre actif (c'est la sélection). En partie
-  // solo, taper = désigner l'adversaire ; re-taper le même le remet en miroir.
-  function pick(name: string) {
-    if (manage) { (DeckRepository as any).setActiveDeck(name); refresh(); return; }
-    setEnemy(cur => (cur === name ? null : name));
+  // solo, taper un deck public = désigner l'adversaire ; re-taper le même le
+  // remet en miroir.
+  function pick(deck: DeckSummary | PublicDeckSummary) {
+    if (manage) { (DeckRepository as any).setActiveDeck(deck.name); refresh(); return; }
+    const id = (deck as PublicDeckSummary).id;
+    setEnemyId(cur => (cur === id ? null : id));
   }
 
-  // Tirage de l'adversaire au hasard, parmi les decks jouables seulement (un deck
-  // incomplet ferait un match sans intérêt). Le résultat est affiché comme un
-  // choix normal : on voit sur quoi on tombe, et re-taper relance le tirage.
-  // Préférences dégressives : ni son propre deck (ce serait un miroir) ni le
-  // tirage précédent, puis on relâche ces contraintes s'il ne reste rien.
-  const drawable = decks.filter(d => d.count >= MIN_DECK);
+  // Tirage de l'adversaire au hasard, parmi les decks publics jouables seulement
+  // (un deck incomplet ferait un match sans intérêt). Le résultat est affiché
+  // comme un choix normal : on voit sur quoi on tombe, et re-taper relance le
+  // tirage — en évitant de retomber sur le précédent tant qu'il y a le choix.
+  const drawable = (publicDecks ?? []).filter(d => d.count >= MIN_DECK);
   function randomEnemy() {
-    const pool = [
-      drawable.filter(d => d.name !== activeDeck && d.name !== enemy),
-      drawable.filter(d => d.name !== enemy),
-      drawable,
-    ].find(p => p.length > 0);
+    const pool = [drawable.filter(d => d.id !== enemyId), drawable].find(p => p.length > 0);
     if (!pool) return;
-    setEnemy(pool[Math.floor(Math.random() * pool.length)].name);
+    setEnemyId(pool[Math.floor(Math.random() * pool.length)].id);
   }
 
+  // Le deck public voyage en clair : il ne vit pas dans DeckRepository, donc son
+  // nom seul ne suffirait pas à le retrouver côté GameScreen.
   function play() {
     if (!canPlay || !active) return;
-    navigate('game', { deckName: active.name, ...(enemy ? { enemyDeckName: enemy } : {}) });
+    navigate('game', {
+      deckName: active.name,
+      ...(enemy ? { enemyDeckName: enemy.name, enemyDeck: enemy.deck, enemyDeckId: enemy.id } : {}),
+    });
   }
 
   // Le mode est propagé au builder pour que son retour revienne ici à l'identique.
@@ -98,17 +132,15 @@ export default function DeckSelector() {
 
   return (
     <main className="flex min-h-dvh flex-col bg-surface text-white" onPointerDown={hideTooltip}>
-      <header className="border-b border-line px-4 py-3">
-        <div className="flex items-center gap-3">
-          <Button className="px-3" onPointerDown={() => navigate('main_menu')}>◂</Button>
-          <h1 className="text-lg font-bold tracking-wide">{MODES[mode].title}</h1>
-          <span className="ml-auto text-xs text-white/40">{decks.length} deck{decks.length !== 1 ? 's' : ''}</span>
-        </div>
-        <p className="mt-1.5 text-xs text-white/50">{MODES[mode].blurb}</p>
-      </header>
+      <ScreenHeader
+        title={MODES[mode].title}
+        onBack={() => navigate('main_menu')}
+        right={<span className="text-xs text-white/40">{list.length} deck{list.length !== 1 ? 's' : ''}</span>}
+        subtitle={<p className="mt-1.5 text-xs text-white/50">{MODES[mode].blurb}</p>}
+      />
 
       <div className={`flex-1 space-y-3 overflow-y-auto p-4 ${manage ? 'pb-28' : 'pb-36'}`}>
-        {decks.length === 0 && (
+        {manage && decks.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
             <div className="text-4xl">🃏</div>
             <div className="text-sm text-white/70">Aucun deck sauvegardé</div>
@@ -117,8 +149,8 @@ export default function DeckSelector() {
         )}
 
         {/* Partie solo : rappel de son propre deck (non modifiable ici), puis la
-            liste sert uniquement à désigner l'adversaire. */}
-        {!manage && decks.length > 0 && (
+            liste des decks du jeu sert uniquement à désigner l'adversaire. */}
+        {!manage && (
           <>
             <SelectedDeck deckName={activeDeck} emptyHint="Choisis ton deck dans « Mes decks » pour jouer." />
             <div className="flex items-center gap-2 pt-1">
@@ -127,8 +159,8 @@ export default function DeckSelector() {
             </div>
             <div className="flex gap-2">
               <button
-                onPointerDown={() => setEnemy(null)}
-                className={`min-h-tap flex-1 rounded-xl border px-3 py-2 text-left active:opacity-80 ${enemy === null ? 'border-enemy bg-enemy/10' : 'border-line bg-surface-raised/70'}`}
+                onPointerDown={() => setEnemyId(null)}
+                className={`min-h-tap flex-1 rounded-xl border px-3 py-2 text-left active:opacity-80 ${enemyId === null ? 'border-enemy bg-enemy/10' : 'border-line bg-surface-raised/70'}`}
               >
                 <span className="block text-sm font-semibold">🪞 Miroir</span>
                 <span className="block text-[10px] text-white/50">l'IA joue ton deck</span>
@@ -143,19 +175,26 @@ export default function DeckSelector() {
                 </button>
               )}
             </div>
+            {publicDecks === null && <div className="py-8 text-center text-xs text-white/40">Chargement des decks…</div>}
+            {publicDecks?.length === 0 && (
+              <div className="py-8 text-center text-xs text-white/40">
+                Aucun deck adverse disponible — l'IA jouera ton deck en miroir.
+              </div>
+            )}
           </>
         )}
 
         {/* Une colonne en portrait (mobile), jusqu'à trois dès qu'il y a la largeur
             pour les tenir — la carte de deck reste lisible en dessous de ~340 px. */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {decks.map(d => (
+          {list.map(d => (
             <DeckCard
-              key={d.name} deck={d}
-              active={activeDeck === d.name}
-              foe={!manage && enemy === d.name}
+              key={(d as PublicDeckSummary).id ?? d.name} deck={d}
+              avatar={manage ? null : (PublicDeckDatabase as any).avatarUrl((d as PublicDeckSummary).id)}
+              active={manage && activeDeck === d.name}
+              foe={!manage && enemyId === (d as PublicDeckSummary).id}
               showActions={manage}
-              onSelect={() => pick(d.name)}
+              onSelect={() => pick(d)}
               onEdit={() => openBuilder(d.name)}
               onDuplicate={() => duplicate(d.name)}
               onRename={() => setRenaming(d.name)}
@@ -173,7 +212,7 @@ export default function DeckSelector() {
         ) : (
           <>
             <Button variant="primary" disabled={!canPlay} className="w-full py-3 text-base" onPointerDown={play}>
-              ⚔ Jouer{enemy ? ` contre ${enemy}` : ''}
+              ⚔ Jouer{enemy ? ` contre ${enemy.name}` : ''}
             </Button>
             {!canPlay && (
               <p className="text-center text-xs text-gold">
@@ -193,7 +232,6 @@ export default function DeckSelector() {
           onConfirm={(newName) => {
             try { (DeckRepository as any).renameDeck(renaming, newName); }
             catch (e: any) { return e?.message ?? 'Erreur'; }
-            if (enemy === renaming) setEnemy(newName);
             setRenaming(null); refresh();
             return null;
           }}
@@ -211,7 +249,6 @@ export default function DeckSelector() {
                 variant="danger" className="flex-1"
                 onPointerDown={() => {
                   (DeckRepository as any).deleteDeck(deleting);
-                  if (enemy === deleting) setEnemy(null);
                   setDeleting(null); refresh();
                 }}
               >Supprimer</Button>
@@ -224,9 +261,9 @@ export default function DeckSelector() {
 }
 
 function DeckCard({
-  deck, active, foe, showActions, onSelect, onEdit, onDuplicate, onRename, onDelete,
+  deck, avatar, active, foe, showActions, onSelect, onEdit, onDuplicate, onRename, onDelete,
 }: {
-  deck: DeckSummary; active: boolean; foe: boolean; showActions: boolean;
+  deck: DeckSummary; avatar: string | null; active: boolean; foe: boolean; showActions: boolean;
   onSelect: () => void; onEdit: () => void; onDuplicate: () => void; onRename: () => void; onDelete: () => void;
 }) {
   const valid = deck.count >= MIN_DECK;
@@ -238,7 +275,14 @@ function DeckCard({
       className={`rounded-xl border bg-surface-raised/70 p-3 transition-colors ${border}`}
     >
       <div className="flex items-center gap-2">
-        <span className="h-3 w-3 flex-shrink-0 rounded-full" style={{ background: hex, boxShadow: `0 0 8px -1px ${hex}` }} />
+        {/* Deck public : son portrait. Deck du joueur : la pastille de couleur,
+            qui est son seul signe distinctif. */}
+        {/* Pas de `loading="lazy"` : une quinzaine de vignettes toutes visibles,
+            qui partagent le plus souvent le même fichier (l'avatar par défaut) —
+            le différé n'économise rien et fait clignoter des cadres vides. */}
+        {avatar
+          ? <img src={avatar} alt="" className={`h-9 w-9 flex-shrink-0 rounded-lg bg-surface object-cover ring-1 ${foe ? 'ring-enemy' : 'ring-line'}`} />
+          : <span className="h-3 w-3 flex-shrink-0 rounded-full" style={{ background: hex, boxShadow: `0 0 8px -1px ${hex}` }} />}
         <span className="truncate text-sm font-bold">{deck.name}</span>
         {foe && <span className="rounded bg-enemy/20 px-1.5 text-[9px] font-bold text-enemy">ADVERSAIRE</span>}
         {active && <span className="rounded bg-gold/20 px-1.5 text-[9px] font-bold text-gold">ACTIF</span>}

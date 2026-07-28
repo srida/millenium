@@ -20,7 +20,11 @@ export type DeckSelectorMode = 'play' | 'manage';
 export interface ScreenParams {
   deckName?: string;
   // Deck confié à l'EnemyAI (mode solo). Absent = miroir du deck joueur.
+  // Les adversaires solo sont des decks PUBLICS : ils ne vivent pas dans
+  // DeckRepository, donc le contenu voyage avec le nom (qui n'est plus qu'un
+  // libellé d'affichage).
   enemyDeckName?: string;
+  enemyDeck?: Record<string, string[]>;
   // DeckSelector : 'manage' (gestion + choix du deck actif) ou 'play' (choix du
   // seul deck de l'IA). Propagé au DeckBuilder pour que le retour revienne dans
   // le mode d'origine.

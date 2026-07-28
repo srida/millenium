@@ -58,15 +58,17 @@ Repo : `https://github.com/srida/Millenium`
 | `GET /api/powers` | Public | Pouvoirs |
 | `GET /api/boards` | Public | Terrains de combat |
 | `GET /api/magies` | Public | Magies (Phase Shopping) |
-| `GET /api/decks` | Public | Decks publics (`PublicDeckDatabase`) |
+| `GET /api/decks` | Public | Decks publics (`PublicDeckDatabase`), avec `_has_avatar` |
 | `POST/PUT/DELETE /api/*` | Auth | Écriture admin |
 | `GET /illustrations/:id` | Public | Art des cartes (PNG sans extension) |
+| `GET /avatars/:id` | Public | Avatar d'un deck public (repli sur l'avatar par défaut) |
 | `POST /api/cards/import` | Auth | Import en masse (mode skip/replace) |
 | `POST /api/cards/:id/illustration` | Auth | Upload illustration (URL ou base64) |
 | `POST /api/attributes/import` | Auth | Import attributs en masse |
 | `POST /api/powers/import` | Auth | Import pouvoirs en masse |
 | `POST /api/decks/import` | Site admin | Import decks publics en masse |
-| `GET /api/export` | Auth | Export complet avec checksums illustrations |
+| `POST/PUT/DELETE /api/decks/:id/avatar` | Site admin | Avatar d'un deck public (URL / base64 / suppression) |
+| `GET /api/export` | Auth | Export complet avec checksums illustrations **et avatars** |
 | `/api/admin/db/*` | Site admin | Inspection de la base SQLite (`routes/admin-db.js`) |
 
 **Niveaux d'accès** : l'écriture sur `cards` / `attributes` / `powers` passe par le middleware d'auth générique ; `boards`, `magies` et `decks` exigent en plus `requireSiteAdmin` (`auth.js`).
@@ -1145,21 +1147,34 @@ Mode édition : déclenché via `DeckRepository.setPendingEdit(deckName)` avant 
 
 **Le deck du joueur se choisit à un seul endroit** : la **pastille du deck actif** du menu principal (couleur + nom + nombre de cartes, `ActiveDeckPill` dans `MainMenu.tsx`, à côté du profil) ouvre `DeckSelector` en `params.mode = 'manage'`. C'est le seul accès — pas de bouton « Mes decks » en double, la pastille disant déjà avec quoi on joue. Un tap sur un deck le promeut **deck actif** (`DeckRepository.setActiveDeck`), et c'est ce deck que jouent **tous** les modes — partie solo, tournoi, duel en ligne.
 
-`DeckSelector` (`screens/DeckSelector.tsx`) a donc exactement deux modes, avec la même liste et la même carte de deck :
+`DeckSelector` (`screens/DeckSelector.tsx`) a donc exactement deux modes, avec la même carte de deck — mais **pas la même liste** :
 
-| `params.mode` | Ouvert par | Rôle | Action du bas |
-|---|---|---|---|
-| `'manage'` | la pastille du deck actif | Choisir le deck **actif** + gérer (éditer → DeckBuilder, dupliquer, renommer, supprimer) | ＋ Créer un nouveau deck |
-| `'play'` | « Jouer » | Choisir **uniquement le deck de l'IA** ; le deck du joueur est le deck actif, rappelé en récap non modifiable | ⚔ Jouer [contre X] → `navigate('game', { deckName: actif, enemyDeckName })` |
+| `params.mode` | Ouvert par | Liste affichée | Rôle | Action du bas |
+|---|---|---|---|---|
+| `'manage'` | la pastille du deck actif | les decks du **joueur** (`deckStore`) | Choisir le deck **actif** + gérer (éditer → DeckBuilder, dupliquer, renommer, supprimer) | ＋ Créer un nouveau deck |
+| `'play'` | « Jouer » | les decks **publics** (`PublicDeckDatabase`, `GET /api/decks`) | Choisir **uniquement le deck de l'IA** ; le deck du joueur est le deck actif, rappelé en récap non modifiable | ⚔ Jouer [contre X] → `navigate('game', { deckName: actif, enemyDeckName, enemyDeck })` |
 
+- **L'adversaire solo se choisit parmi les decks publics, jamais parmi ceux du joueur** — les mêmes que ceux du Tournoi : un adversaire est un archétype construit, pas un brouillon de collection (et faire jouer l'IA avec un deck à moitié fini n'a d'intérêt pour personne).
+- Le deck public **voyage en clair** dans les params (`enemyDeck`), pas seulement par son nom : il ne vit pas dans `DeckRepository`, `GameScreen` ne pourrait pas le recharger. `enemyDeckName` n'est plus qu'un libellé (et le repli historique sur un deck local, si jamais seul le nom arrive).
 - Les actions de gestion n'apparaissent qu'en `'manage'` : en partie solo, la carte de deck ne sert qu'à désigner l'adversaire. Elles sont réduites à des icônes (✏️ éditer, 📋 dupliquer, 🏷️ renommer, 🗑️ supprimer) ; le libellé vit dans `title` + `aria-label` (`IconButton`, local à l'écran).
 - La liste passe à **2 colonnes dès `sm`, 3 dès `lg`** (grille Tailwind sur la largeur, pas `useWebLayout` qui raisonne en ratio : trois colonnes tiennent à la largeur disponible, pas à l'orientation).
-- Deux raccourcis en tête de la section « DECK DE L'IA » (mode `'play'`) : **`🪞 Miroir`** (état par défaut, `enemy = null` → l'IA joue le deck du joueur) et **`🎲 Aléatoire`** (action : tire un deck jouable au hasard, affiché comme un choix normal ; re-taper relance le tirage). Le tirage écarte par préférence le deck du joueur (ce serait un miroir) et le tirage précédent, et ne retient que les decks ≥ 20 cartes.
+- Deux raccourcis en tête de la section « DECK DE L'IA » (mode `'play'`) : **`🪞 Miroir`** (état par défaut, `enemyId = null` → l'IA joue le deck du joueur) et **`🎲 Aléatoire`** (action : tire un deck public jouable au hasard, affiché comme un choix normal ; re-taper relance le tirage, en évitant le tirage précédent tant qu'il y a le choix). Ne retient que les decks ≥ 20 cartes.
 - **Garde-fou** : sans deck actif, ou si celui-ci fait moins de 20 cartes, le lancement est bloqué (bouton désactivé + rappel).
 - Le mode est propagé au DeckBuilder pour que son retour revienne dans le contexte d'origine. À l'enregistrement, `DeckBuilder` adopte le deck comme actif s'il n'y en a pas de valide (`hasActiveDeck()`) — sinon un premier deck créé ne serait jouable nulle part.
 ```js
-buildSession(deckName, 'ai', enemyDeckName)     // absent → l'IA joue le deck du joueur (miroir)
+buildSession(deckName, 'ai', enemyDeckName, enemyDeck)   // les deux absents → l'IA joue le deck du joueur (miroir)
 ```
+
+### Avatars des decks publics
+
+Un deck public porte un **portrait** — c'est le visage de l'adversaire, en sélection solo comme dans le bracket de tournoi. Fichiers dans **`resources/enemy_avatars/<DECK_ID>.png`** (`AVATARS_DIR`, surchargeable en prod), servis par `GET /avatars/:id`.
+
+- **Le repli est serveur, pas client** : `/avatars/:id` renvoie `PUBLIC_DECK_000.png` quand le deck n'a pas le sien. L'URL est donc toujours affichable et aucun écran n'a de branche « pas d'avatar » — `PublicDeckDatabase.avatarUrl(id)` la construit, point final. `_has_avatar` (calculé dans `GET /api/decks`, jamais persisté) ne sert qu'à l'admin, pour distinguer « son portrait » de « le portrait par défaut ».
+- L'id d'un asset sert de nom de fichier : `safeAssetId()` refuse tout ce qui n'est pas `[A-Za-z0-9_-]+` (400), sinon `../` remonterait l'arborescence.
+- **Admin** (onglet Decks publics) : boîte d'illustration cliquable → import par URL ou depuis l'appareil, suppression. Même triptyque que les illustrations de cartes. L'URL étant stable, le remplacement d'un avatar s'accompagne d'un cache-buster (`avatarBust`), sans quoi le navigateur continuerait d'afficher l'ancien.
+- **Déploiement** : `resources/` est gitignoré — les avatars voyagent par `scripts/sync-data.js` (clé `avatars` de `/api/export`, routes `/api/avatars/:id`), exactement comme les illustrations ; `--no-illustrations` coupe les deux. Le `bootstrap()` du serveur dépose l'avatar par défaut sur le volume s'il n'y est pas.
+- **Affichage** : `DeckSelector` en mode `'play'` (vignette 36 px sur la carte de deck, à la place de la pastille de couleur, réservée aux decks du joueur) et `TournamentScreen` (`Portrait`, dans chaque slot de match et sur le champion). Dans le bracket, le joueur est représenté par son **avatar de profil** (ou ★ en invité) : sept portraits et un trou se lirait comme un bug.
+- `logic/Tournament.js` transporte un `avatarId` sur chaque participant et **ne construit aucune URL** — la couche logique ignore qu'il existe des images.
 
 **Tournoi et Duel en ligne n'ont plus d'étape de sélection** : le menu y entre directement et les deux écrans consomment `getActiveDeck()`. Ils partagent le même en-tête (retour `◂`, titre, `deck : X` à droite — dans `OnlineLobby`, le `◂` passe par `cancel()` pour sortir de la file) et n'affichent qu'un récap **en lecture seule** (`components/deck/SelectedDeck.tsx`). Seul cas navigable de ce composant : aucun deck actif → CTA « Mes decks », pour ne pas laisser l'écran en cul-de-sac. Un tournoi déjà lancé garde le deck figé dans son bracket (`tournament.playerDeckName`) : changer de deck actif ensuite ne l'affecte pas.
 

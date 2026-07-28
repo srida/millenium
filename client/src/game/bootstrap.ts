@@ -54,8 +54,9 @@ function resolveDeck(deckName?: string): Record<string, string[]> {
 }
 
 /**
- * @param enemyDeck Deck adverse fourni tel quel (decks publics du Tournoi, qui
- *   ne vivent pas dans DeckRepository) — prioritaire sur `enemyDeckName`.
+ * @param enemyDeck Deck adverse fourni tel quel (decks publics — Tournoi et
+ *   partie solo — qui ne vivent pas dans DeckRepository) : prioritaire sur
+ *   `enemyDeckName`, qui n'est plus qu'un libellé côté sélecteur.
  */
 export function buildSession(
   deckName?: string,

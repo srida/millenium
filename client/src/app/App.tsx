@@ -47,7 +47,12 @@ export default function App() {
   }
 
   if (!ready) {
-    return <div className="flex min-h-dvh items-center justify-center bg-surface text-gold">Chargement…</div>;
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface text-gold">
+        <img src="/logo.png" alt="Millenium" className="h-24 w-24 object-contain" />
+        <p>Chargement…</p>
+      </div>
+    );
   }
 
   return (

@@ -66,6 +66,30 @@ export function ProgressionPills({ user, className = '' }: { user: AuthUser | nu
   );
 }
 
+/** Pastille de profil (avatar + pseudo). Tap → écran Profil. Elle dit déjà qui
+ * est connecté : pas de ligne « Connecté : … » en plus. L'avatar suit la même
+ * règle qu'ailleurs (URL/data → image, sinon emoji, sinon initiale du pseudo). */
+export function ProfilePill({ user, onPointerDown, className = '' }: { user: AuthUser; onPointerDown?: () => void; className?: string }) {
+  const avatar = (user.avatar ?? '').trim();
+  const isImg = /^(https?:|data:|\/)/i.test(avatar);
+
+  return (
+    <button
+      onPointerDown={onPointerDown}
+      title="Profil"
+      aria-label={`Profil de ${user.username}`}
+      className={`flex min-h-tap items-center gap-2 rounded-full border border-line bg-surface-raised/70 px-2 py-1 pr-3 active:opacity-80 ${className}`}
+    >
+      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-gold/40 bg-surface text-xs">
+        {avatar
+          ? (isImg ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : <span>{avatar.slice(0, 2)}</span>)
+          : <span>{user.username.slice(0, 1).toUpperCase()}</span>}
+      </span>
+      <span className="max-w-[9rem] truncate font-semibold text-white">{user.username}</span>
+    </button>
+  );
+}
+
 /** Bloc détaillé (jauge pleine largeur + soldes) — écran Profil. */
 export function ProgressionPanel({ user, className = '' }: { user: AuthUser | null; className?: string }) {
   if (!user) return null;

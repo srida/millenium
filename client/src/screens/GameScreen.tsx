@@ -8,6 +8,7 @@ import { useGameStore } from '../stores/gameStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useTournamentStore } from '../stores/tournamentStore.js';
+import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import Board3DCanvas from '../components/board/Board3DCanvas.js';
 import Hud from '../components/hud/Hud.js';
 import SynergyPanel from '../components/hud/SynergyPanel.js';
@@ -18,7 +19,7 @@ import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import { Banner } from '../components/ui/primitives.js';
-import { PREP_DURATION_S } from '../game/timings.js';
+import { PREP_DURATION_S, SHOPPING_DURATION_S } from '../game/timings.js';
 
 export default function GameScreen() {
   const [controller, setControllerLocal] = useState<GameController | null>(null);
@@ -26,9 +27,24 @@ export default function GameScreen() {
   const reset = useGameStore(s => s.reset);
   const deckName = useUiStore(s => s.params.deckName as string | undefined);
   const enemyDeckName = useUiStore(s => s.params.enemyDeckName as string | undefined);
+  // Deck public choisi dans le sélecteur : transmis en clair (il n'est pas dans
+  // DeckRepository, un nom ne suffirait pas à le recharger).
+  const enemyDeck = useUiStore(s => s.params.enemyDeck as Record<string, string[]> | undefined);
+  // Id du deck public adverse (mode 'play', absent en miroir) — pour son avatar.
+  const enemyDeckId = useUiStore(s => s.params.enemyDeckId as string | undefined);
   // Manche de tournoi : adversaire et deck viennent du bracket, et la sortie
   // (fin de partie ou abandon) est comptabilisée puis renvoyée vers l'écran Tournoi.
   const inTournament = useUiStore(s => s.params.tournament === true);
+  const pendingOpponentAvatarId = useTournamentStore(s => s.pendingGame?.opponentAvatarId);
+  const pendingOpponentName = useTournamentStore(s => s.pendingGame?.opponentName);
+  // Avatar adverse dans le HUD : deck public choisi (solo) ou du bracket
+  // (tournoi) ; sans choix (miroir), repli sur l'avatar par défaut — le
+  // serveur renvoie déjà ce même repli quand un deck n'a pas le sien.
+  const enemyAvatarSrc = PublicDeckDatabase.avatarUrl(
+    (inTournament ? pendingOpponentAvatarId : enemyDeckId) ?? 'PUBLIC_DECK_000',
+  );
+  // Nom du deck public adverse — absent en miroir, rien à afficher alors.
+  const enemyName = (inTournament ? pendingOpponentName : enemyDeckName) ?? null;
 
   useEffect(() => {
     const pending = inTournament ? useTournamentStore.getState().pendingGame : null;
@@ -38,7 +54,7 @@ export default function GameScreen() {
       pending?.playerDeckName ?? deckName,
       'ai',
       enemyDeckName,
-      pending?.opponentDeck,
+      pending?.opponentDeck ?? enemyDeck,
     );
     const ctrl = new GameController(session);
     setControllerLocal(ctrl);
@@ -58,7 +74,7 @@ export default function GameScreen() {
   return (
     <div className="relative h-dvh overflow-hidden bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
       <Board3DCanvas controller={controller} />
-      <Hud />
+      <Hud enemyAvatarSrc={enemyAvatarSrc} enemyName={enemyName} />
       <SynergyPanel />
       <GraveyardTray />
       <HandBar />
@@ -71,6 +87,7 @@ export default function GameScreen() {
         <GameMenu onQuit={() => useUiStore.getState().navigate('main_menu')} />
       )}
       <PrepTimer controller={controller} />
+      <ShoppingTimer controller={controller} />
       <AiWinReward inTournament={inTournament} />
       {inTournament && <TournamentHeader />}
       <Banners />
@@ -151,6 +168,34 @@ function PrepTimer({ controller }: { controller: GameController }) {
   }, [round, controller, applySnapshot]);
 
   return null;
+}
+
+// Chrono de la Phase Shopping (solo + tournoi) : passage automatique à 0,
+// même règle qu'en PvP (GameScreenPvp.tsx).
+function ShoppingTimer({ controller }: { controller: GameController }) {
+  const active = useGameStore(s => !!s.shopping);
+  const [remaining, setRemaining] = useState(SHOPPING_DURATION_S);
+  const skipped = useRef(false);
+
+  useEffect(() => {
+    if (!active) { skipped.current = false; setRemaining(SHOPPING_DURATION_S); return; }
+    setRemaining(SHOPPING_DURATION_S);
+    const t = setInterval(() => setRemaining(c => (c <= 1 ? 0 : c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [active]);
+
+  useEffect(() => {
+    if (!active || remaining > 0 || skipped.current) return;
+    skipped.current = true;
+    controller.skipShopping();
+  }, [active, remaining, controller]);
+
+  if (!active) return null;
+  return (
+    <div className="pointer-events-none fixed left-1/2 top-[max(1rem,env(safe-area-inset-top))] z-50 -translate-x-1/2 rounded-full border border-gold/40 bg-surface/95 px-3 py-1 text-xs font-semibold tabular-nums text-gold">
+      Shopping · {remaining}s
+    </div>
+  );
 }
 
 function Banners() {
