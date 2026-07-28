@@ -277,6 +277,7 @@ Une seule carte épinglée, gratuitement, à tout moment. Après **3 jours**, el
 - Une carte convoitée **ne se reroule pas** : ce n'est pas une proposition de la boutique mais une demande du joueur.
 - L'épingle se vide d'elle-même si la carte est obtenue autrement (achat, booster) — laisser une carte possédée épinglée gèlerait le slot 1.
 
+
 ### Boosters
 
 3 cartes, ciblées sur un set, **disponibles en permanence**, **600 golds ou 100 gemmes**, sans plafond d'achat. Tirage **à l'achat** (jamais à l'avance) : le cas « deck actif modifié entre la génération et l'ouverture » est donc sans objet.
