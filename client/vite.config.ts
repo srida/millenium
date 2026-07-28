@@ -32,8 +32,8 @@ export default defineConfig({
         // App shell précaché ; on n'y met JAMAIS les données ni les illustrations.
         globPatterns: ['**/*.{js,css,html,woff2}'],
         navigateFallback: '/index.html',
-        // /api et /ws ne doivent pas être interceptés par la navigation SPA.
-        navigateFallbackDenylist: [/^\/api/, /^\/illustrations/, /^\/avatars/, /^\/ws/],
+        // /api, /admin et /ws ne doivent pas être interceptés par la navigation SPA.
+        navigateFallbackDenylist: [/^\/api/, /^\/admin/, /^\/illustrations/, /^\/avatars/, /^\/ws/],
         runtimeCaching: [
           {
             // Art des cartes : stale-while-revalidate (affichage instantané, MAJ en fond).
