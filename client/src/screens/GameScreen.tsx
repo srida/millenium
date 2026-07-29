@@ -171,31 +171,34 @@ function PrepTimer({ controller }: { controller: GameController }) {
 }
 
 // Chrono de la Phase Shopping (solo + tournoi) : passage automatique à 0,
-// même règle qu'en PvP (GameScreenPvp.tsx).
+// même règle qu'en PvP (GameScreenPvp.tsx). Affiché dans la popup elle-même
+// (ShoppingLayer, via gameStore.shoppingRemaining) plutôt qu'en overlay
+// séparé — un chrono à côté de la décision qu'il borne, pas au-dessus.
 function ShoppingTimer({ controller }: { controller: GameController }) {
   const active = useGameStore(s => !!s.shopping);
-  const [remaining, setRemaining] = useState(SHOPPING_DURATION_S);
+  const applySnapshot = useGameStore(s => s.applySnapshot);
+  const remaining = useRef(SHOPPING_DURATION_S);
   const skipped = useRef(false);
 
   useEffect(() => {
-    if (!active) { skipped.current = false; setRemaining(SHOPPING_DURATION_S); return; }
-    setRemaining(SHOPPING_DURATION_S);
-    const t = setInterval(() => setRemaining(c => (c <= 1 ? 0 : c - 1)), 1000);
+    if (!active) { skipped.current = false; return; }
+    remaining.current = SHOPPING_DURATION_S;
+    skipped.current = false;
+    applySnapshot({ shoppingRemaining: SHOPPING_DURATION_S });
+    const t = setInterval(() => {
+      remaining.current -= 1;
+      if (remaining.current <= 0) {
+        clearInterval(t);
+        applySnapshot({ shoppingRemaining: 0 });
+        if (!skipped.current) { skipped.current = true; controller.skipShopping(); }
+        return;
+      }
+      applySnapshot({ shoppingRemaining: remaining.current });
+    }, 1000);
     return () => clearInterval(t);
-  }, [active]);
+  }, [active, controller, applySnapshot]);
 
-  useEffect(() => {
-    if (!active || remaining > 0 || skipped.current) return;
-    skipped.current = true;
-    controller.skipShopping();
-  }, [active, remaining, controller]);
-
-  if (!active) return null;
-  return (
-    <div className="pointer-events-none fixed left-1/2 top-[max(1rem,env(safe-area-inset-top))] z-50 -translate-x-1/2 rounded-full border border-gold/40 bg-surface/95 px-3 py-1 text-xs font-semibold tabular-nums text-gold">
-      Shopping · {remaining}s
-    </div>
-  );
+  return null;
 }
 
 function Banners() {

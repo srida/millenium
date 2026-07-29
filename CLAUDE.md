@@ -89,8 +89,8 @@ Repo : `https://github.com/srida/Millenium`
 | `GET /api/me/missions` | Connecté | Missions du jour + jauge hebdomadaire (délivre les lots manquants) |
 | `POST /api/me/missions/events` | Connecté | Lot d'événements de partie (voir Missions quotidiennes) |
 | `POST /api/me/missions/:id/reroll` | Connecté | Reroll d'une mission |
-| `GET /api/me/shop` | Connecté | Boutique du jour (emplacements, Convoitise, sets) — génère l'offre au passage |
-| `POST /api/me/shop/buy` \| `reroll` \| `covet` \| `booster` | Connecté | Achat d'emplacement, reroll, épingle, ouverture de booster |
+| `GET /api/me/shop` | Connecté | Boutique du jour (emplacements, épingle, sets) — génère l'offre au passage |
+| `POST /api/me/shop/buy` \| `reroll` \| `pin` \| `booster` | Connecté | Achat d'emplacement, reroll, épingle, ouverture de booster |
 
 Le PvP temps réel ne passe pas par HTTP : `ws/pvpServer.js` (matchmaking + relais opaque) sur `/ws`.
 
@@ -223,13 +223,14 @@ Le DeckBuilder ne laisse sélectionner que les cartes **possédées** (`stores/c
 
 Règles dans **`shop.js`** (racine, à côté de `progression.js` dont il est le client pour débiter et débloquer, et de `missions.js` dont il reprend le calendrier), sets dans **`data/sets.json`**, table `user_shop_state`. La boutique **cosmétique** du brief n'est pas implémentée.
 
-Trois systèmes, trois fonctions qui ne se recouvrent pas :
+⚠️ **Écart assumé avec le brief** : la **Convoitise** (§3.5 — épingler n'importe quelle carte du catalogue, 3 jours d'attente, prix double) n'existe pas. Elle est remplacée par l'**épingle d'un emplacement proposé**, qui le conserve à la rotation suivante. La précision absolue disparaît donc du jeu : on ne commande plus une carte, on garde une proposition.
+
+Deux systèmes, deux fonctions qui ne se recouvrent pas :
 
 | Système | Fonction | Plafond |
 |---|---|---|
-| **Emplacements quotidiens** | Construction de deck — conscients du graphe d'invocation et du deck actif | 3 / jour |
+| **Emplacements quotidiens** | Construction de deck — conscients du graphe d'invocation et du deck actif | 3 / jour, dont 1 épinglable |
 | **Booster** | Collection — volume brut sur un set choisi | aucun |
-| **Convoitise** | Précision absolue — une carte nommée | 1 à la fois, 3 jours |
 
 Deux invariants portent tout le reste :
 
@@ -269,13 +270,15 @@ Rotation à **5 h**, même reset que les missions (`shop.dayKey === missions.day
 - **Verrou d'offre** : l'achat porte `slot` **et** `card_id`. Un tap au moment exact de la rotation échoue en 409 au lieu d'acheter la carte qui vient de prendre la place.
 - Le tirage est **déterministe** à `(player_id, jour, slot)` (xorshift32 semé en SHA-256) : un tirage douteux se rejoue au lieu de se raconter.
 
-### Convoitise
+### Épingle
 
-Une seule carte épinglée, gratuitement, à tout moment. Après **3 jours**, elle occupe le **slot 1** et court-circuite le Maillon. Prix : **double du tarif de son tier**. **Golds uniquement** — c'est le point de rupture du principe « les gemmes n'achètent jamais de précision ».
+**Un** emplacement peut être épinglé (`PINNED_SLOTS_MAX = 1`) : il traverse la rotation **à l'identique** — même carte, même prix, même badge — au lieu d'être re-tiré. Gratuit, sans délai, sans limite de durée.
 
-- Changer de carte remet le compteur à zéro (sinon on épinglerait n'importe quoi 3 jours avant de basculer sur la vraie cible).
-- Une carte convoitée **ne se reroule pas** : ce n'est pas une proposition de la boutique mais une demande du joueur.
-- L'épingle se vide d'elle-même si la carte est obtenue autrement (achat, booster) — laisser une carte possédée épinglée gèlerait le slot 1.
+- Le plafond de 1 n'est pas une avarice : épingler les trois figerait la boutique et supprimerait la rotation. Épingler, c'est **renoncer à une proposition neuve** — c'est l'arbitrage qui donne son poids au geste. Désigner un autre emplacement **déplace** l'épingle (pas d'erreur « épingle déjà utilisée » : le geste est sans ambiguïté).
+- L'état persisté est l'emplacement **entier** (`user_shop_state.pinned`), pas le seul `card_id` : c'est ce qui garantit qu'on retrouve le lendemain exactement la proposition mise de côté, prix compris. Le badge n'est pas recalculé — « débloque X » reste vrai, une collection ne se dépossède pas.
+- Un emplacement épinglé **ne se reroule pas** (le reroll jetterait ce que l'épingle vient de mettre de côté, et consommerait le reroll du jour pour rien) ; le dé disparaît côté client plutôt que d'échouer au tap.
+- L'épingle se libère d'elle-même à l'**achat**, si la carte tombe au **booster**, et au `sync` suivant si elle a été obtenue autrement — laisser une carte possédée épinglée gèlerait l'emplacement sur une carte invendable.
+- Dans l'instantané, `slot.pinned` est **dérivé à la lecture** de `state.pinned` et non recopié dans l'offre persistée : une seule source de vérité, donc pas de désaccord possible.
 
 
 ### Boosters
@@ -300,10 +303,10 @@ Chaque cran tombe **silencieusement** quand le pool résiduel ne peut plus le sa
 
 | Route | Accès | Description |
 |---|---|---|
-| `GET /api/me/shop` | Connecté | Instantané (emplacements, Convoitise, sets, prix). **Génère l'offre du jour au passage** — pas de tâche planifiée |
+| `GET /api/me/shop` | Connecté | Instantané (emplacements, épingle, sets, prix). **Génère l'offre du jour au passage** — pas de tâche planifiée |
 | `POST /api/me/shop/buy` | Connecté (30/min) | `{ slot, card_id }` — 409 si l'offre a tourné |
 | `POST /api/me/shop/reroll` | Connecté (20/min) | `{ slot }` |
-| `POST /api/me/shop/covet` | Connecté (20/min) | `{ card_id }` — `null` retire l'épingle |
+| `POST /api/me/shop/pin` | Connecté (20/min) | `{ slot }` — `null` détache |
 | `POST /api/me/shop/booster` | Connecté (30/min) | `{ set_id, currency }` |
 
 Toutes les mutations renvoient l'instantané complet + la progression à jour : aucun rechargement derrière une action.
@@ -311,10 +314,10 @@ Toutes les mutations renvoient l'instantané complet + la progression à jour : 
 ### Client
 
 - `stores/shopStore.ts` — instantané + actions. Absorbe chaque réponse (solde via `authStore.applyProgression`, cartes via `collectionStore.add` — on ne recharge pas les 398 ids après chaque achat).
-- `screens/ShopScreen.tsx` — emplacements, Convoitise (avec sélecteur de carte non possédée), boosters, révélation en modale.
-- `MainMenu` — bouton `🛒 Boutique` avec le nombre d'emplacements restants, et un ⚡ quand un Maillon est proposé : c'est la seule chose qui mérite d'ouvrir l'écran aujourd'hui plutôt que demain.
+- `screens/ShopScreen.tsx` — emplacements (bouton 📌 par emplacement), boosters, révélation en modale.
+- `MainMenu` — bouton `🛒 Boutique` avec une pastille de nouveauté : un simple point, pas un compteur, effacé dès que l'écran a été ouvert pour le jour en cours (`hasUnseenShop` / `markShopSeen`, localStorage).
 - `components/ui/primitives.tsx` — `Countdown` (rafraîchi à la **minute** : un repère, pas un chronomètre), partagé avec l'écran Missions.
-- Verrouillé par `client/src/test/shop.test.ts` (34 golden tests, même harnais serveur que `missions.test.ts`).
+- Verrouillé par `client/src/test/shop.test.ts` (35 golden tests, même harnais serveur que `missions.test.ts`).
 
 ---
 

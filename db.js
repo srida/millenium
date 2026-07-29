@@ -246,11 +246,20 @@ db.exec(`
     offer_day        TEXT,
     offer            TEXT,
     reroll_free_day  TEXT,
-    covet_card_id    TEXT,
-    covet_pinned_day TEXT,
+    pinned           TEXT,
     sets_claimed     TEXT NOT NULL DEFAULT '[]'
   );
 `);
+
+// Migration : la Convoitise (carte nommée dans tout le catalogue, 3 jours
+// d'attente) a été remplacée par l'épingle d'un emplacement proposé. Les deux
+// colonnes qu'elle occupait n'ont plus d'objet — DROP COLUMN plutôt que de les
+// laisser traîner, la table est trop jeune pour mériter une couche de sédiment.
+const shopColumns = db.prepare('PRAGMA table_info(user_shop_state)').all().map(c => c.name);
+if (!shopColumns.includes('pinned')) db.exec('ALTER TABLE user_shop_state ADD COLUMN pinned TEXT');
+for (const dead of ['covet_card_id', 'covet_pinned_day']) {
+  if (shopColumns.includes(dead)) db.exec(`ALTER TABLE user_shop_state DROP COLUMN ${dead}`);
+}
 
 // Progression du joueur (niveau, XP, monnaies). Colonnes additives : le PRAGMA
 // est relu ici car la migration `tag` ci-dessus a pu recréer la table entre-temps.
@@ -376,16 +385,15 @@ const stmt = {
       reroll_free_day = @reroll_free_day
   `),
 
-  // Boutique de cartes. Les RÈGLES (tirage des emplacements, prix, Convoitise,
+  // Boutique de cartes. Les RÈGLES (tirage des emplacements, prix, épingle,
   // boosters) vivent dans shop.js — ici, seulement l'accès SQL.
   shopStateByUser: db.prepare('SELECT * FROM user_shop_state WHERE user_id = ?'),
   upsertShopState: db.prepare(`
-    INSERT INTO user_shop_state (user_id, offer_day, offer, reroll_free_day, covet_card_id, covet_pinned_day, sets_claimed)
-    VALUES (@user_id, @offer_day, @offer, @reroll_free_day, @covet_card_id, @covet_pinned_day, @sets_claimed)
+    INSERT INTO user_shop_state (user_id, offer_day, offer, reroll_free_day, pinned, sets_claimed)
+    VALUES (@user_id, @offer_day, @offer, @reroll_free_day, @pinned, @sets_claimed)
     ON CONFLICT(user_id) DO UPDATE SET
       offer_day = @offer_day, offer = @offer, reroll_free_day = @reroll_free_day,
-      covet_card_id = @covet_card_id, covet_pinned_day = @covet_pinned_day,
-      sets_claimed = @sets_claimed
+      pinned = @pinned, sets_claimed = @sets_claimed
   `),
 
   insertResetToken: db.prepare('INSERT INTO reset_tokens (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)'),

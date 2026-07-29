@@ -14,7 +14,8 @@
 //   - ZÉRO DOUBLON : aucun tirage, nulle part, ne produit une carte possédée ;
 //   - le SERVEUR chiffre : le client ne transmet jamais ni prix ni montant ;
 //   - l'offre est FIGÉE pour la journée : aucune action client ne la re-tire ;
-//   - la Convoitise coûte le double et n'est jamais accessible en gemmes.
+//   - l'épingle traverse la rotation À L'IDENTIQUE (carte, prix, badge), et une
+//     seule à la fois.
 import { describe, it, expect, beforeAll } from 'vitest';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -77,12 +78,6 @@ describe('calendrier', () => {
     expect(shop.nextRotationAt(now)).toBeGreaterThan(now);
     expect(shop.nextRotationAt(now) - now).toBeLessThanOrEqual(24 * 3600_000);
   });
-
-  it('daysBetween compte des journées de mission, pas des dates civiles', () => {
-    expect(shop.daysBetween('2026-07-24', '2026-07-27')).toBe(3);
-    expect(shop.daysBetween('2026-07-27', '2026-07-27')).toBe(0);
-    expect(shop.daysBetween(null, '2026-07-27')).toBe(0);
-  });
 });
 
 describe('offre quotidienne', () => {
@@ -97,6 +92,7 @@ describe('offre quotidienne', () => {
       expect(mine.has(slot.card_id)).toBe(false);
       expect(slot.price).toBe(shop.CARD_PRICES[slot.tier]);
       expect(slot.purchased).toBe(false);
+      expect(slot.pinned).toBe(false);
     }
     // Trois cartes distinctes : un emplacement ne double jamais un autre.
     expect(new Set(snap.slots.map((s: any) => s.card_id)).size).toBe(3);
@@ -283,78 +279,102 @@ describe('reroll', () => {
   });
 });
 
-describe('Convoitise', () => {
-  it('épingle une carte, la propose au bout de 3 jours au double du prix', () => {
-    const user = newUser(5000);
-    const target = CARDS.find(c => !progression.ownsCard(user(), c.id) && c.tier === 4);
+describe('épingle', () => {
+  /** Rejoue une rotation : l'offre est effacée, `sync` la reconstruit. */
+  function rotate(userId: string) {
+    const state = stmt.shopStateByUser.get(userId);
+    stmt.upsertShopState.run({ ...state, offer_day: null, offer: null });
+  }
 
-    expect(shop.setCovet(user(), target.id).ok).toBe(true);
-    const pinned = shop.getSnapshot(user()).covet;
-    expect(pinned.days_remaining).toBe(shop.COVET_DELAY_DAYS);
-    expect(pinned.ready).toBe(false);
-    expect(pinned.price).toBe(shop.CARD_PRICES[4] * shop.COVET_PRICE_MULTIPLIER);
+  it('l\'emplacement épinglé traverse la rotation à l\'identique', () => {
+    // Carte, PRIX et badge : le joueur doit retrouver exactement la proposition
+    // qu'il a mise de côté, sinon économiser pour elle n'a pas de sens.
+    const user = newUser();
+    const before = shop.refresh(user()).slots.find((s: any) => s.slot === 2);
+    expect(shop.setPin(user(), 2).ok).toBe(true);
 
-    // Le délai est compté en journées de mission : on antidate l'épingle.
-    const state = stmt.shopStateByUser.get(user().id);
-    stmt.upsertShopState.run({
-      ...state,
-      covet_pinned_day: shop.dayKey(Date.now() - shop.COVET_DELAY_DAYS * 86_400_000),
-      offer_day: null, offer: null,
-    });
+    const pinned = shop.getSnapshot(user()).pinned;
+    expect(pinned.slot).toBe(2);
+    expect(pinned.card_id).toBe(before.card_id);
 
-    const slot1 = shop.refresh(user()).slots.find((s: any) => s.slot === 1);
-    expect(slot1.card_id).toBe(target.id);
-    expect(slot1.reason).toBe('covet');
-    expect(slot1.price).toBe(shop.CARD_PRICES[4] * 2);
+    // Un vrai lendemain : autre jour → autres graines pour les slots libres.
+    const next = shop.buildOffer(user(), shop.context(user()), { day: '2027-01-01', pinned: { ...before, since_day: '2026-12-31' } });
+    const kept = next.slots.find((s: any) => s.slot === 2);
+    expect(kept.card_id).toBe(before.card_id);
+    expect(kept.price).toBe(before.price);
+    expect(kept.reason).toBe(before.reason);
+    expect(kept.purchased).toBe(false);
+    // Les autres emplacements, eux, sont bien re-tirés.
+    expect(next.slots.filter((s: any) => s.slot !== 2)).toHaveLength(2);
   });
 
-  it('une carte convoitée ne se reroule pas', () => {
-    // Elle n'est pas une proposition de la boutique mais une demande du joueur.
-    const user = newUser(5000);
-    const target = CARDS.find(c => !progression.ownsCard(user(), c.id));
-    shop.setCovet(user(), target.id);
-    const state = stmt.shopStateByUser.get(user().id);
-    stmt.upsertShopState.run({
-      ...state,
-      covet_pinned_day: shop.dayKey(Date.now() - 5 * 86_400_000),
-      offer_day: null, offer: null,
-    });
+  it('l\'épingle survit à la reconstruction de l\'offre', () => {
+    const user = newUser();
+    const before = shop.refresh(user()).slots.find((s: any) => s.slot === 3);
+    shop.setPin(user(), 3);
+    rotate(user().id);
+
+    const slot3 = shop.refresh(user()).slots.find((s: any) => s.slot === 3);
+    expect(slot3.card_id).toBe(before.card_id);
+    expect(slot3.pinned).toBe(true);
+  });
+
+  it('une seule à la fois : épingler ailleurs déplace l\'épingle', () => {
+    // Épingler les trois figerait la boutique et supprimerait la rotation.
+    const user = newUser();
     shop.refresh(user());
-    expect(shop.reroll(user(), 1).ok).toBe(false);
+    shop.setPin(user(), 1);
+    shop.setPin(user(), 3);
+
+    const snap = shop.getSnapshot(user());
+    expect(snap.pinned.slot).toBe(3);
+    expect(snap.slots.filter((s: any) => s.pinned)).toHaveLength(1);
+    expect(snap.pin_rules.max).toBe(1);
   });
 
-  it('changer de carte remet le délai à zéro', () => {
+  it('un emplacement épinglé ne se reroule pas, détacher le rend re-tirable', () => {
     const user = newUser();
-    const [a, b] = CARDS.filter(c => !progression.ownsCard(user(), c.id));
-    shop.setCovet(user(), a.id);
-    const state = stmt.shopStateByUser.get(user().id);
-    stmt.upsertShopState.run({ ...state, covet_pinned_day: shop.dayKey(Date.now() - 2 * 86_400_000) });
-    expect(shop.getSnapshot(user()).covet.days_remaining).toBe(1);
+    shop.refresh(user());
+    shop.setPin(user(), 3);
 
-    shop.setCovet(user(), b.id);
-    expect(shop.getSnapshot(user()).covet.card_id).toBe(b.id);
-    expect(shop.getSnapshot(user()).covet.days_remaining).toBe(shop.COVET_DELAY_DAYS);
+    const refused = shop.reroll(user(), 3);
+    expect(refused.ok).toBe(false);
+    expect(refused.reason).toMatch(/épinglé/);
+    // Le reroll du jour n'a pas été consommé pour rien.
+    expect(shop.getSnapshot(user()).reroll.free_available).toBe(true);
+
+    expect(shop.setPin(user(), null).ok).toBe(true);
+    expect(shop.getSnapshot(user()).pinned).toBe(null);
+    expect(shop.reroll(user(), 3).ok).toBe(true);
   });
 
-  it('refuse d\'épingler une carte déjà possédée', () => {
-    const user = newUser();
-    const mine = [...owned(user())][0];
-    expect(shop.setCovet(user(), mine).ok).toBe(false);
-  });
-
-  it('acheter la carte convoitée solde l\'épingle', () => {
+  it('acheter la carte épinglée libère l\'épingle', () => {
     const user = newUser(5000);
-    const target = CARDS.find(c => !progression.ownsCard(user(), c.id) && c.tier <= 2);
-    shop.setCovet(user(), target.id);
-    const state = stmt.shopStateByUser.get(user().id);
-    stmt.upsertShopState.run({
-      ...state,
-      covet_pinned_day: shop.dayKey(Date.now() - 4 * 86_400_000),
-      offer_day: null, offer: null,
-    });
-    const slot1 = shop.refresh(user()).slots.find((s: any) => s.slot === 1);
-    expect(shop.buySlot(user(), 1, slot1.card_id).ok).toBe(true);
-    expect(shop.getSnapshot(user()).covet).toBe(null);
+    const slot = shop.refresh(user()).slots[0];
+    shop.setPin(user(), slot.slot);
+    expect(shop.buySlot(user(), slot.slot, slot.card_id).ok).toBe(true);
+    expect(shop.getSnapshot(user()).pinned).toBe(null);
+  });
+
+  it('refuse d\'épingler un emplacement déjà acheté', () => {
+    const user = newUser(5000);
+    const slot = shop.refresh(user()).slots[0];
+    shop.buySlot(user(), slot.slot, slot.card_id);
+    expect(shop.setPin(user(), slot.slot).ok).toBe(false);
+  });
+
+  it('une carte obtenue autrement libère l\'épingle à la rotation', () => {
+    // Sinon l'emplacement resterait gelé sur une carte invendable.
+    const user = newUser();
+    const slot = shop.refresh(user()).slots[1];
+    shop.setPin(user(), slot.slot);
+
+    progression.unlockCard(user().id, slot.card_id);
+    rotate(user().id);
+
+    const snap = shop.refresh(user());
+    expect(snap.pinned).toBe(null);
+    expect(snap.slots.map((s: any) => s.card_id)).not.toContain(slot.card_id);
   });
 });
 
@@ -476,25 +496,29 @@ describe('boosters', () => {
     expect(shop.getSnapshot(user()).sets.find((s: any) => s.id === set.id).complete).toBe(true);
   });
 
-  it('une carte convoitée obtenue au booster vide l\'épingle', () => {
+  it('une carte épinglée tombée au booster libère l\'épingle', () => {
     const user = newUser();
-    const set = shop.sets()[4];
-    const pool = shop.setCardIds(set).filter((id: string) => !progression.ownsCard(user(), id));
-    shop.setCovet(user(), pool[0]);
+    // On épingle un emplacement dont la carte appartient à un set achetable :
+    // c'est le seul moyen de la faire tomber par une autre porte.
+    const slot = shop.refresh(user()).slots
+      .find((s: any) => shop.sets().some((d: any) => shop.setCardIds(d).includes(s.card_id)));
+    expect(slot).toBeTruthy();
+    const set = shop.sets().find((d: any) => shop.setCardIds(d).includes(slot.card_id));
+    shop.setPin(user(), slot.slot);
 
     // On vide le set jusqu'à tomber sur la carte épinglée.
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 40; i++) {
       const res = shop.buyBooster(user(), set.id, 'golds');
       if (!res.ok) break;
-      if (res.covet_cleared) {
-        expect(res.cards.map((c: any) => c.card_id)).toContain(pool[0]);
-        expect(shop.getSnapshot(user()).covet).toBe(null);
+      if (res.pin_cleared) {
+        expect(res.cards.map((c: any) => c.card_id)).toContain(slot.card_id);
+        expect(shop.getSnapshot(user()).pinned).toBe(null);
         return;
       }
     }
     // Le set a été vidé sans jamais sortir la carte : impossible (tirage sans
     // remise), donc l'échec est un vrai échec.
-    expect(shop.getSnapshot(user()).covet).toBe(null);
+    expect(shop.getSnapshot(user()).pinned).toBe(null);
   });
 
   it('le dernier booster d\'un set rend ce qui reste, sans garantie satisfaite', () => {

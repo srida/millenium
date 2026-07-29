@@ -2,10 +2,9 @@
 // shopStore — boutique de cartes : instantané servi par le serveur + actions.
 //
 // Le client ne calcule AUCUN prix et ne tire AUCUNE carte : il désigne un
-// emplacement, un set ou une carte à épingler, et affiche ce que le serveur
-// répond. Même contrat que missionStore — un montant envoyé par le client
-// serait auto-attribué, et une offre tirée par le client serait re-tirée
-// jusqu'à satisfaction.
+// emplacement ou un set, et affiche ce que le serveur répond. Même contrat que
+// missionStore — un montant envoyé par le client serait auto-attribué, et une
+// offre tirée par le client serait re-tirée jusqu'à satisfaction.
 //
 // Chaque mutation renvoie l'instantané complet : aucun rechargement derrière
 // une action, et l'offre affichée est toujours celle que le serveur vient de
@@ -16,7 +15,7 @@ import { useAuthStore } from './authStore.js';
 import { useCollectionStore } from './collectionStore.js';
 
 /** Pourquoi cette carte est proposée — c'est le badge qui porte la valeur perçue. */
-export type SlotReason = 'unlocks' | 'material' | 'affinity' | 'random' | 'covet';
+export type SlotReason = 'unlocks' | 'material' | 'affinity' | 'random';
 
 export interface ShopSlot {
   slot: number;
@@ -27,6 +26,8 @@ export interface ShopSlot {
   /** Carte débloquée (`material`) ou attribut visé (`affinity`). */
   reason_ref: string | null;
   purchased: boolean;
+  /** Conservé à la prochaine rotation au lieu d'être re-tiré. */
+  pinned: boolean;
 }
 
 export interface ShopSet {
@@ -41,13 +42,10 @@ export interface ShopSet {
   completion_reward: { gems?: number; gold?: number; xp?: number } | null;
 }
 
-export interface CovetState {
+export interface PinnedSlot {
+  slot: number;
   card_id: string;
-  tier: number;
-  price: number;
-  pinned_day: string;
-  days_remaining: number;
-  ready: boolean;
+  since_day: string;
 }
 
 export interface ShopSnapshot {
@@ -55,8 +53,8 @@ export interface ShopSnapshot {
   next_rotation_at: number;
   slots: ShopSlot[];
   reroll: { free_available: boolean; per_day: number };
-  covet: CovetState | null;
-  covet_rules: { delay_days: number; price_multiplier: number };
+  pinned: PinnedSlot | null;
+  pin_rules: { max: number };
   booster: { price_golds: number; price_gems: number; card_count: number };
   sets: ShopSet[];
   prices: Record<string, number>;
@@ -69,7 +67,7 @@ export interface BoosterResult {
   cards: { card_id: string; tier: number }[];
   price: number;
   currency: 'golds' | 'gems';
-  covet_cleared: boolean;
+  pin_cleared: boolean;
   sets_completed: { set_id: string; name: string; rewards: { xp: number; gold: number; gems: number } }[];
 }
 
@@ -85,7 +83,8 @@ interface ShopStoreState {
   load: (force?: boolean) => Promise<void>;
   buy: (slot: ShopSlot) => Promise<string | null>;
   reroll: (slot: number) => Promise<string | null>;
-  covet: (cardId: string | null) => Promise<string | null>;
+  /** Épingle un emplacement, ou détache avec `null`. */
+  pin: (slot: number | null) => Promise<string | null>;
   openBooster: (setId: string, currency: 'golds' | 'gems') => Promise<string | null>;
   closeBooster: () => void;
   dismissNotice: () => void;
@@ -124,8 +123,8 @@ function pickSnapshot(data: any): ShopSnapshot {
     next_rotation_at: data.next_rotation_at,
     slots: data.slots ?? [],
     reroll: data.reroll,
-    covet: data.covet ?? null,
-    covet_rules: data.covet_rules,
+    pinned: data.pinned ?? null,
+    pin_rules: data.pin_rules ?? { max: 1 },
     booster: data.booster,
     sets: data.sets ?? [],
     prices: data.prices ?? {},
@@ -201,14 +200,15 @@ export const useShopStore = create<ShopStoreState>((set, get) => ({
     }
   },
 
-  covet: async (cardId) => {
+  pin: async (slot) => {
     if (get().busy) return null;
     set({ busy: true });
     try {
-      absorb(set, await (AuthClient as any).setCovet(cardId));
+      absorb(set, await (AuthClient as any).pinShopSlot(slot));
       return null;
     } catch (e: any) {
-      return e?.message ?? 'Impossible d\'épingler cette carte.';
+      if (e?.status === 409) void get().load(true);
+      return e?.message ?? 'Impossible d\'épingler cet emplacement.';
     } finally {
       set({ busy: false });
     }
@@ -224,7 +224,7 @@ export const useShopStore = create<ShopStoreState>((set, get) => ({
       set({
         booster: {
           set_id: data.set_id, cards, price: data.price, currency: data.currency,
-          covet_cleared: !!data.covet_cleared, sets_completed: data.sets_completed ?? [],
+          pin_cleared: !!data.pin_cleared, sets_completed: data.sets_completed ?? [],
         },
       });
       return null;

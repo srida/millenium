@@ -1,16 +1,16 @@
-// Boutique de cartes : emplacements quotidiens, Convoitise, boosters.
+// Boutique de cartes : emplacements quotidiens (épinglables), boosters.
 // db.js ne porte que l'accès SQL ; les RÈGLES sont ici — même découpage que
 // progression.js (dont ce module est le client pour débiter et débloquer) et
 // missions.js (dont il reprend le calendrier : la boutique tourne au même
 // reset de 5 h, brief §3.1).
 //
-// Trois systèmes, trois fonctions qui ne se recouvrent pas (brief §3.4) :
+// Deux systèmes, deux fonctions qui ne se recouvrent pas :
 //
 //   - Emplacements quotidiens — CONSTRUCTION DE DECK. 3 par jour, conscients du
 //     graphe d'invocation et du deck actif. C'est le plafond qui structure
-//     toute l'économie.
+//     toute l'économie. Un seul peut être ÉPINGLÉ : il survit à la rotation
+//     du lendemain au lieu d'être re-tiré.
 //   - Booster — COLLECTION. Volume brut sur un set choisi, sans plafond.
-//   - Convoitise — PRÉCISION. Une carte nommée, 3 jours d'attente, prix double.
 //
 // Deux invariants tiennent tout le reste :
 //   1. ZÉRO DOUBLON — aucun tirage ne peut produire une carte déjà possédée.
@@ -40,11 +40,14 @@ const CARD_PRICES = Object.freeze({ 1: 75, 2: 125, 3: 200, 4: 350, 5: 550 });
 // existe. Sans ça le joueur n'a jamais à choisir, il achète tout.
 const TIER_WEIGHTS = Object.freeze({ 1: 30, 2: 28, 3: 22, 4: 14, 5: 6 });
 
-// Convoitise : une seule carte épinglée, 3 jours d'attente, prix DOUBLE, et
-// jamais en gemmes — c'est le point de rupture du principe « les gemmes
-// n'achètent pas de précision » (brief §3.5).
-const COVET_DELAY_DAYS = 3;
-const COVET_PRICE_MULTIPLIER = 2;
+// Épingle : UN seul emplacement conservé d'une rotation à l'autre, gratuitement
+// et sans limite de durée. C'est ce qui permet d'économiser pour une carte chère
+// sans la voir disparaître au reset du lendemain.
+//
+// Le plafond de 1 n'est pas une avarice : épingler les trois emplacements
+// figerait la boutique et supprimerait la rotation. Épingler, c'est renoncer à
+// une proposition neuve — c'est l'arbitrage qui donne son poids au geste.
+const PINNED_SLOTS_MAX = 1;
 
 // Un reroll gratuit par jour, pas de reroll payant : un reroll achetable
 // transformerait la boutique en machine à sous et casserait le plafond de
@@ -121,15 +124,6 @@ function nextRotationAt(ts = Date.now()) {
   const d = new Date(ts - missions.RESET_HOUR * 3600_000);
   const end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0);
   return end.getTime() + missions.RESET_HOUR * 3600_000;
-}
-
-/** Nombre de jours entre deux clés de jour (b − a), 0 si l'une manque. */
-function daysBetween(a, b) {
-  if (!a || !b) return 0;
-  const ta = Date.parse(`${a}T00:00:00Z`);
-  const tb = Date.parse(`${b}T00:00:00Z`);
-  if (Number.isNaN(ta) || Number.isNaN(tb)) return 0;
-  return Math.round((tb - ta) / 86_400_000);
 }
 
 // --- Tirage déterministe ---
@@ -294,8 +288,13 @@ function drawSlot(slot, pool, ctx, rand) {
  * Offre du jour. `excluded` porte les cartes retirées du pool par un reroll —
  * une carte rerollée ne peut pas être re-tirée le jour même, sinon le reroll
  * ne serait qu'un bouton « rejouer ».
+ *
+ * `pinned` est l'emplacement épinglé la veille : il traverse la rotation tel
+ * quel — même carte, même prix, même badge. Son badge n'est pas recalculé :
+ * « débloque X » reste vrai (une collection ne se dépossède pas) et le joueur
+ * doit retrouver EXACTEMENT la proposition qu'il a mise de côté.
  */
-function buildOffer(user, ctx, { day, excluded = [], covet = null }) {
+function buildOffer(user, ctx, { day, excluded = [], pinned = null }) {
   const pool = [...cards().values()]
     .filter(c => !ctx.owned.has(c.id) && !excluded.includes(c.id))
     .sort((a, b) => a.id.localeCompare(b.id)); // ordre stable = tirage reproductible
@@ -303,18 +302,17 @@ function buildOffer(user, ctx, { day, excluded = [], covet = null }) {
   const slots = [];
   const taken = new Set();
 
-  // Priorité de la Convoitise : délai écoulé → elle occupe le slot 1 et
-  // court-circuite le Maillon (brief §3.2).
-  if (covet && !ctx.owned.has(covet)) {
-    const c = card(covet);
-    if (c) {
-      slots.push({
-        slot: 1, card_id: c.id, tier: Number(c.tier) || 1,
-        price: priceOf(c) * COVET_PRICE_MULTIPLIER,
-        reason: 'covet', reason_ref: null, purchased: false,
-      });
-      taken.add(c.id);
-    }
+  if (pinned && cards().has(pinned.card_id) && !ctx.owned.has(pinned.card_id)) {
+    slots.push({
+      slot: pinned.slot,
+      card_id: pinned.card_id,
+      tier: pinned.tier,
+      price: pinned.price,
+      reason: pinned.reason,
+      reason_ref: pinned.reason_ref,
+      purchased: false,
+    });
+    taken.add(pinned.card_id);
   }
 
   for (let slot = 1; slot <= DAILY_SLOTS; slot++) {
@@ -335,6 +333,8 @@ function readState(userId) {
   const row = stmt.shopStateByUser.get(userId);
   let offer = null;
   try { offer = row?.offer ? JSON.parse(row.offer) : null; } catch { offer = null; }
+  let pinned = null;
+  try { pinned = row?.pinned ? JSON.parse(row.pinned) : null; } catch { pinned = null; }
   let claimed = [];
   try { claimed = JSON.parse(row?.sets_claimed ?? '[]'); } catch { claimed = []; }
   return {
@@ -342,8 +342,7 @@ function readState(userId) {
     offer_day: row?.offer_day ?? null,
     offer,
     reroll_free_day: row?.reroll_free_day ?? null,
-    covet_card_id: row?.covet_card_id ?? null,
-    covet_pinned_day: row?.covet_pinned_day ?? null,
+    pinned,
     sets_claimed: Array.isArray(claimed) ? claimed : [],
   };
 }
@@ -354,23 +353,17 @@ function writeState(state) {
     offer_day: state.offer_day,
     offer: JSON.stringify(state.offer ?? null),
     reroll_free_day: state.reroll_free_day,
-    covet_card_id: state.covet_card_id,
-    covet_pinned_day: state.covet_pinned_day,
+    pinned: state.pinned ? JSON.stringify(state.pinned) : null,
     sets_claimed: JSON.stringify(state.sets_claimed ?? []),
   });
-}
-
-/** Carte convoitée prête à apparaître en boutique (délai écoulé) ? */
-function covetReady(state, day = dayKey()) {
-  if (!state.covet_card_id || !state.covet_pinned_day) return false;
-  return daysBetween(state.covet_pinned_day, day) >= COVET_DELAY_DAYS;
 }
 
 /**
  * Aligne l'offre du joueur sur le jour courant. Idempotent — appelé à chaque
  * lecture, comme `missions.sync`. Pas de rattrapage : une offre manquée est
  * manquée (brief §7 : la rotation est une opportunité, jamais une punition,
- * donc ni dette ni accumulation).
+ * donc ni dette ni accumulation) — sauf l'emplacement épinglé, qui est
+ * précisément la seule chose que le joueur a demandé à ne pas manquer.
  */
 const sync = db.transaction((user) => {
   const state = readState(user.id);
@@ -378,7 +371,11 @@ const sync = db.transaction((user) => {
   if (state.offer_day === day && state.offer) return state;
 
   const ctx = context(user);
-  state.offer = buildOffer(user, ctx, { day, covet: covetReady(state, day) ? state.covet_card_id : null });
+  // Une épingle dont la carte est arrivée autrement (booster) n'a plus d'objet :
+  // la garder gèlerait un emplacement sur une carte invendable.
+  if (state.pinned && ctx.owned.has(state.pinned.card_id)) state.pinned = null;
+
+  state.offer = buildOffer(user, ctx, { day, pinned: state.pinned });
   state.offer_day = day;
   writeState(state);
   return state;
@@ -414,11 +411,9 @@ const buySlot = db.transaction((user, slotIndex, expectedCardId) => {
   progression.unlockCard(user.id, slot.card_id);
   slot.purchased = true;
 
-  // Acheter la carte épinglée solde la Convoitise : elle n'a plus d'objet.
-  if (state.covet_card_id === slot.card_id) {
-    state.covet_card_id = null;
-    state.covet_pinned_day = null;
-  }
+  // L'épingle a rempli son office : elle se libère d'elle-même à l'achat,
+  // sinon elle bloquerait l'emplacement sur une carte désormais possédée.
+  if (state.pinned?.card_id === slot.card_id) state.pinned = null;
   writeState(state);
 
   return {
@@ -443,9 +438,11 @@ const reroll = db.transaction((user, slotIndex) => {
   const slot = state.offer.slots.find(s => s.slot === slotIndex);
   if (!slot) return { ok: false, reason: 'Emplacement introuvable.' };
   if (slot.purchased) return { ok: false, reason: 'Emplacement déjà acheté.' };
-  // La Convoitise n'est pas une proposition de la boutique mais une demande du
-  // joueur : la rerouler reviendrait à lui reprendre ce qu'il a désigné.
-  if (slot.reason === 'covet') return { ok: false, reason: 'Une carte convoitée ne se reroule pas.' };
+  // Épingler puis rerouler se contredit : le reroll jetterait ce que l'épingle
+  // vient de mettre de côté, et consommerait le reroll du jour pour rien.
+  if (state.pinned?.card_id === slot.card_id) {
+    return { ok: false, reason: 'Emplacement épinglé — détache-le d\'abord.' };
+  }
 
   const ctx = context(user);
   const excluded = [...new Set([...(state.offer.excluded ?? []), slot.card_id])];
@@ -465,49 +462,58 @@ const reroll = db.transaction((user, slotIndex) => {
   return { ok: true, slot: drawn };
 });
 
-// --- Convoitise ---
+// --- Épingle ---
 
 /**
- * Épingle (ou retire, avec `cardId = null`) la carte convoitée. Changer de
- * carte remet le compteur à zéro : sans ça, on épinglerait n'importe quoi 3
- * jours avant de basculer sur la vraie cible au dernier moment.
+ * Épingle l'emplacement `slotIndex` (ou détache, avec `slotIndex = null`).
+ *
+ * L'épingle porte sur une PROPOSITION, pas sur une carte du catalogue : elle ne
+ * donne aucune précision nouvelle, elle prolonge seulement ce que la boutique a
+ * déjà offert. C'est pour ça qu'elle est gratuite, au prix normal, et sans
+ * délai — contrairement à un système de commande, elle ne court-circuite rien.
+ *
+ * On mémorise l'emplacement ENTIER (carte, prix, badge) et pas seulement son
+ * id : c'est ce qui garantit que le joueur retrouve le lendemain exactement la
+ * proposition qu'il a mise de côté, prix compris.
  */
-const setCovet = db.transaction((user, cardId) => {
+const setPin = db.transaction((user, slotIndex) => {
   const state = readState(user.id);
 
-  if (!cardId) {
-    state.covet_card_id = null;
-    state.covet_pinned_day = null;
+  if (slotIndex === null || slotIndex === undefined) {
+    state.pinned = null;
     writeState(state);
-    return { ok: true, covet: null };
+    return { ok: true, pinned: null };
   }
 
-  const c = card(cardId);
-  if (!c) return { ok: false, reason: 'Carte inconnue.' };
-  if (progression.ownsCard(stmt.userById.get(user.id), cardId)) {
-    return { ok: false, reason: 'Tu possèdes déjà cette carte.' };
+  const day = dayKey();
+  if (state.offer_day !== day || !state.offer) {
+    return { ok: false, reason: 'L\'offre a changé, recharge la boutique.', stale: true };
   }
-  if (state.covet_card_id === cardId) return { ok: true, covet: covetView(state) };
 
-  state.covet_card_id = cardId;
-  state.covet_pinned_day = dayKey();
+  const slot = state.offer.slots.find(s => s.slot === slotIndex);
+  if (!slot) return { ok: false, reason: 'Emplacement introuvable.' };
+  // Une carte achetée n'a plus rien à conserver — et l'épingle serait perdue
+  // au premier sync, la carte étant désormais possédée.
+  if (slot.purchased) return { ok: false, reason: 'Emplacement déjà acheté.' };
+
+  // Une seule épingle : désigner un autre emplacement DÉPLACE la précédente.
+  // Pas d'erreur « épingle déjà utilisée » à lever, le geste est sans ambiguïté.
+  state.pinned = {
+    slot: slot.slot,
+    card_id: slot.card_id,
+    tier: slot.tier,
+    price: slot.price,
+    reason: slot.reason,
+    reason_ref: slot.reason_ref,
+    since_day: day,
+  };
   writeState(state);
-  return { ok: true, covet: covetView(state) };
+  return { ok: true, pinned: pinView(state) };
 });
 
-function covetView(state, day = dayKey()) {
-  if (!state.covet_card_id) return null;
-  const c = card(state.covet_card_id);
-  if (!c) return null;
-  const elapsed = daysBetween(state.covet_pinned_day, day);
-  return {
-    card_id: c.id,
-    tier: Number(c.tier) || 1,
-    price: priceOf(c) * COVET_PRICE_MULTIPLIER,
-    pinned_day: state.covet_pinned_day,
-    days_remaining: Math.max(0, COVET_DELAY_DAYS - elapsed),
-    ready: elapsed >= COVET_DELAY_DAYS,
-  };
+function pinView(state) {
+  if (!state.pinned) return null;
+  return { slot: state.pinned.slot, card_id: state.pinned.card_id, since_day: state.pinned.since_day };
 }
 
 // --- Boosters (brief §3.4) ---
@@ -599,13 +605,12 @@ const buyBooster = db.transaction((user, setId, currency = 'golds') => {
   progression.grant(user.id, currency === 'gems' ? { gems: -price } : { gold: -price });
   for (const c of drawn) progression.unlockCard(user.id, c.id);
 
-  // Carte épinglée obtenue au booster : la Convoitise se vide d'elle-même
-  // (brief §7) — laisser une carte possédée épinglée gèlerait le slot 1.
+  // Carte épinglée tombée au booster : l'épingle se libère d'elle-même —
+  // laisser une carte possédée épinglée gèlerait l'emplacement.
   const state = readState(user.id);
-  const covetHit = state.covet_card_id && drawn.some(c => c.id === state.covet_card_id);
-  if (covetHit) {
-    state.covet_card_id = null;
-    state.covet_pinned_day = null;
+  const pinHit = state.pinned && drawn.some(c => c.id === state.pinned.card_id);
+  if (pinHit) {
+    state.pinned = null;
     writeState(state);
   }
 
@@ -615,7 +620,7 @@ const buyBooster = db.transaction((user, setId, currency = 'golds') => {
     price,
     currency,
     cards: drawn.map(c => ({ card_id: c.id, tier: Number(c.tier) || 1 })),
-    covet_cleared: !!covetHit,
+    pin_cleared: !!pinHit,
     sets_completed: claimSetCompletions(user.id, state),
   };
 });
@@ -674,7 +679,11 @@ function getSnapshot(user) {
   const state = readState(user.id);
   const ctx = context(user);
   const day = dayKey();
-  const slots = state.offer_day === day ? (state.offer?.slots ?? []) : [];
+  const offered = state.offer_day === day ? (state.offer?.slots ?? []) : [];
+  // L'état d'épingle est dérivé à la lecture plutôt que recopié dans l'offre
+  // persistée : une seule source de vérité, donc pas de désaccord possible
+  // entre les deux.
+  const slots = offered.map(s => ({ ...s, pinned: state.pinned?.card_id === s.card_id }));
 
   return {
     day,
@@ -684,8 +693,8 @@ function getSnapshot(user) {
       free_available: state.reroll_free_day !== day,
       per_day: FREE_REROLLS_PER_DAY,
     },
-    covet: covetView(state, day),
-    covet_rules: { delay_days: COVET_DELAY_DAYS, price_multiplier: COVET_PRICE_MULTIPLIER },
+    pinned: pinView(state),
+    pin_rules: { max: PINNED_SLOTS_MAX },
     booster: { price_golds: BOOSTER.price_golds, price_gems: BOOSTER.price_gems, card_count: BOOSTER.card_count },
     sets: setsView(ctx),
     prices: CARD_PRICES,
@@ -703,9 +712,9 @@ function refresh(user) {
 
 module.exports = {
   DAILY_SLOTS, CARD_PRICES, TIER_WEIGHTS, BOOSTER,
-  COVET_DELAY_DAYS, COVET_PRICE_MULTIPLIER, FREE_REROLLS_PER_DAY, AFFINITY_MIN_OCCURRENCES,
+  PINNED_SLOTS_MAX, FREE_REROLLS_PER_DAY, AFFINITY_MIN_OCCURRENCES,
   cards, sets, setCardIds, materialsOf, priceOf,
-  dayKey, nextRotationAt, daysBetween, seededRandom, weightedPick,
+  dayKey, nextRotationAt, seededRandom, weightedPick,
   context, activeDeckAttributes, linkCandidates, affinityCandidates, buildOffer, drawBooster,
-  sync, buySlot, reroll, setCovet, buyBooster, covetView, getSnapshot, refresh,
+  sync, buySlot, reroll, setPin, buyBooster, pinView, getSnapshot, refresh,
 };

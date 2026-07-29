@@ -118,9 +118,9 @@ export async function rerollMission(id) {
 }
 
 // --- Boutique de cartes ---
-// Même contrat que les missions : le client DÉSIGNE (un emplacement, un set,
-// une carte à épingler), le serveur chiffre. Aucun prix ne circule dans le sens
-// client → serveur, sinon n'importe qui s'achèterait une T5 pour 1 gold.
+// Même contrat que les missions : le client DÉSIGNE (un emplacement, un set),
+// le serveur chiffre. Aucun prix ne circule dans le sens client → serveur,
+// sinon n'importe qui s'achèterait une T5 pour 1 gold.
 // Toutes les réponses portent l'instantané complet + la progression à jour :
 // aucun rechargement à faire derrière une action.
 function absorbShop(data) {
@@ -142,9 +142,9 @@ export async function rerollShopSlot(slot) {
   return absorbShop(await api('/me/shop/reroll', { method: 'POST', body: { slot } }));
 }
 
-/** `cardId = null` retire l'épingle. Changer de carte relance le délai. */
-export async function setCovet(cardId) {
-  return absorbShop(await api('/me/shop/covet', { method: 'POST', body: { card_id: cardId } }));
+/** `slot = null` détache. Une seule épingle : désigner un autre slot la déplace. */
+export async function pinShopSlot(slot) {
+  return absorbShop(await api('/me/shop/pin', { method: 'POST', body: { slot } }));
 }
 
 export async function buyBooster({ setId, currency = 'golds' }) {

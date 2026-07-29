@@ -4,6 +4,7 @@ import type { Unit } from '../logic/Unit.js';
 import type { PhaseValue } from '../logic/GameState.js';
 import type { GameController } from '../game/GameController.js';
 import type { EndRoundResult } from '../logic/GameSession.js';
+import { SHOPPING_DURATION_S } from '../game/timings.js';
 
 export interface HandEntry {
   key: string;      // identité stable pour React (signature de la carte)
@@ -62,6 +63,7 @@ export interface GameSnapshot {
   prepRemaining: number;   // secondes restantes de préparation
   endRound: EndRoundResult | null;
   shopping: ShoppingState | null;
+  shoppingRemaining: number;   // secondes restantes de la Phase Shopping
   summonOptions: SummonOptionMenuSnapshot | null;
   menuOpen: boolean;         // menu d'options ouvert → met la préparation en pause
   gameOver: boolean;
@@ -76,7 +78,7 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   playerMultiplier: 1, enemyMultiplier: 1, boardSlots: 5, placedCount: 0,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
   boardTerrain: null, combatActive: false, combatRemaining: 60, speed: 2, paused: false,
-  prepRemaining: 60, endRound: null, shopping: null, summonOptions: null,
+  prepRemaining: 60, endRound: null, shopping: null, shoppingRemaining: SHOPPING_DURATION_S, summonOptions: null,
   menuOpen: false, gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
 };
 

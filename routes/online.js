@@ -388,12 +388,16 @@ router.post('/me/shop/reroll', auth.requireUser, auth.rateLimit({ windowMs: 60_0
   shopResult(req, res, shop.reroll(req.user, slot));
 });
 
-// `card_id: null` retire l'épingle. Changer de carte remet le délai à zéro
-// (règle appliquée dans shop.setCovet).
-router.post('/me/shop/covet', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
-  const cardId = req.body?.card_id ? String(req.body.card_id).slice(0, 64) : null;
+// `slot: null` détache. Une seule épingle : désigner un autre emplacement la
+// déplace (règle appliquée dans shop.setPin).
+router.post('/me/shop/pin', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
+  const raw = req.body?.slot;
+  const slot = raw === null || raw === undefined ? null : Number(raw);
+  if (slot !== null && (!Number.isInteger(slot) || slot < 1 || slot > shop.DAILY_SLOTS)) {
+    return res.status(400).json({ error: 'Emplacement invalide.', field: 'slot' });
+  }
   shop.sync(req.user);
-  shopResult(req, res, shop.setCovet(req.user, cardId));
+  shopResult(req, res, shop.setPin(req.user, slot));
 });
 
 router.post('/me/shop/booster', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {

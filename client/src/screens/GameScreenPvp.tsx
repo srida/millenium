@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // GameScreenPvp — variante Duel en ligne de GameScreen. Même shell (board 3D,
 // HUD, main, cimetière, contrôles, Phase Shopping, overlays) mais piloté par
-// PvpController. Ajoute la bannière adversaire, l'overlay d'attente (poignée de
-// main réseau / résultat) et l'abandon.
+// PvpController. L'identité de l'adversaire (avatar + pseudo) vit dans le HUD
+// (`HudWithOpponent`). Ajoute l'overlay d'attente (poignée de main réseau /
+// résultat) et l'abandon.
 import { useEffect, useRef, useState } from 'react';
 import { buildSession, pvpDeps } from '../game/bootstrap.js';
 import { PvpController } from '../game/PvpController.js';
@@ -67,7 +68,6 @@ export default function GameScreenPvp() {
       <GraveyardTray />
       <HandBar />
       <PhaseControls pvp />
-      <PvpHeader />
       {/* Le chrono de préparation PvP n'est PAS gelé par le menu : l'adversaire
           attend à la barrière réseau, on ne peut pas le bloquer en l'ouvrant. */}
       <GameMenu onQuit={() => controller.forfeit()} quitLabel="Abandonner le duel" />
@@ -96,17 +96,6 @@ function HudWithOpponent({ opponentAvatar }: { opponentAvatar: string | null }) 
   );
 }
 
-// L'abandon vit dans le menu d'options (☰), avec confirmation : il était trop
-// facile de le déclencher d'un doigt posé au mauvais endroit.
-function PvpHeader() {
-  const opponent = useGameStore(s => s.pvpOpponent);
-  return (
-    <div className="pointer-events-none absolute left-1/2 top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] z-20 flex -translate-x-1/2 items-center gap-2">
-      <span className="rounded-full border border-enemy/40 bg-surface/80 px-3 py-0.5 text-[11px] text-enemy">vs {opponent ?? '—'}</span>
-    </div>
-  );
-}
-
 // Timer de préparation : déclenche la poignée de main de combat à 0.
 function PrepTimer({ controller }: { controller: PvpController }) {
   const round = useGameStore(s => s.round);
@@ -130,32 +119,33 @@ function PrepTimer({ controller }: { controller: PvpController }) {
 
 // Chrono de la Phase Shopping. En PvP, l'adversaire attend à la barrière
 // réseau tant que je n'ai pas choisi : le choix est donc borné, et « passer »
-// est automatique à 0.
+// est automatique à 0. Affiché dans la popup elle-même (ShoppingLayer, via
+// gameStore.shoppingRemaining) plutôt qu'en overlay séparé.
 function ShoppingTimer({ controller }: { controller: PvpController }) {
   const active = useGameStore(s => !!s.shopping);
-  const [remaining, setRemaining] = useState(SHOPPING_DURATION_S);
+  const applySnapshot = useGameStore(s => s.applySnapshot);
+  const remaining = useRef(SHOPPING_DURATION_S);
   const skipped = useRef(false);
 
   useEffect(() => {
-    if (!active) { skipped.current = false; setRemaining(SHOPPING_DURATION_S); return; }
-    setRemaining(SHOPPING_DURATION_S);
-    const t = setInterval(() => setRemaining(c => (c <= 1 ? 0 : c - 1)), 1000);
+    if (!active) { skipped.current = false; return; }
+    remaining.current = SHOPPING_DURATION_S;
+    skipped.current = false;
+    applySnapshot({ shoppingRemaining: SHOPPING_DURATION_S });
+    const t = setInterval(() => {
+      remaining.current -= 1;
+      if (remaining.current <= 0) {
+        clearInterval(t);
+        applySnapshot({ shoppingRemaining: 0 });
+        if (!skipped.current) { skipped.current = true; controller.skipShopping(); }
+        return;
+      }
+      applySnapshot({ shoppingRemaining: remaining.current });
+    }, 1000);
     return () => clearInterval(t);
-  }, [active]);
+  }, [active, controller, applySnapshot]);
 
-  // Hors du render : `skipShopping` déclenche un setState dans le store.
-  useEffect(() => {
-    if (!active || remaining > 0 || skipped.current) return;
-    skipped.current = true;
-    controller.skipShopping();
-  }, [active, remaining, controller]);
-
-  if (!active) return null;
-  return (
-    <div className="pointer-events-none fixed left-1/2 top-[max(1rem,env(safe-area-inset-top))] z-50 -translate-x-1/2 rounded-full border border-gold/40 bg-surface/95 px-3 py-1 text-xs font-semibold tabular-nums text-gold">
-      Shopping · {remaining}s
-    </div>
-  );
+  return null;
 }
 
 function PvpBanners() {
