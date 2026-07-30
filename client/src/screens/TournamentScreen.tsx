@@ -77,7 +77,7 @@ export default function TournamentScreen() {
 
   return (
     <main className="flex min-h-dvh flex-col bg-surface text-white">
-      <ScreenHeader title="Tournoi" onBack={() => navigate('main_menu')} />
+      <ScreenHeader title="Tournoi" onBack={() => navigate('main_menu')} safeAreaTop />
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {!tournament ? (
