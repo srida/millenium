@@ -5,6 +5,9 @@ const https = require('https');
 const http = require('http');
 const crypto = require('crypto');
 const auth = require('./auth');
+// Catalogue des packs de boutique : le serveur en écrit le fichier (onglet
+// Packs), ce module le relit (cache au mtime) pour les flags calculés.
+const packs = require('./sets');
 
 const app = express();
 app.use(express.json({ limit: '20mb' }));
@@ -19,6 +22,9 @@ const ILLUS_DIR      = process.env.ILLUS_DIR || path.join(PROJECT_ROOT, 'resourc
 // séparé des illustrations : ce n'est pas de l'art de carte, et l'avatar par
 // défaut doit pouvoir vivre à côté sans polluer l'index des illustrations.
 const AVATARS_DIR    = process.env.AVATARS_DIR || path.join(PROJECT_ROOT, 'resources', 'enemy_avatars');
+// Affiches des packs de boutique. Le dossier est défini par sets.js, qui est
+// aussi celui qui répond « ce pack a-t-il son affiche ? » à la boutique.
+const POSTERS_DIR    = packs.POSTERS_DIR;
 const INITIAL_DIR    = path.join(__dirname, 'initial-data');
 
 // Avatar servi quand un deck n'a pas le sien : aucun écran ne doit afficher de
@@ -31,12 +37,14 @@ const POWERS_FILE    = path.join(DATA_DIR, 'powers.json');
 const BOARDS_FILE    = path.join(DATA_DIR, 'boards.json');
 const MAGIES_FILE    = path.join(DATA_DIR, 'magies.json');
 const PUBLIC_DECKS_FILE = path.join(DATA_DIR, 'public_decks.json');
+const SETS_FILE      = path.join(DATA_DIR, 'sets.json');
 
 // --- Bootstrap: copy initial data to volume on first run ---
 function bootstrap() {
   fs.mkdirSync(DATA_DIR,  { recursive: true });
   fs.mkdirSync(ILLUS_DIR, { recursive: true });
   fs.mkdirSync(AVATARS_DIR, { recursive: true });
+  fs.mkdirSync(POSTERS_DIR, { recursive: true });
   for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
@@ -59,7 +67,8 @@ bootstrap();
 
 // Dote les comptes antérieurs à la collection (idempotent, cf. progression.js).
 // Après bootstrap() : cards.json doit exister sur le volume.
-require('./progression').backfillAll();
+const progression = require('./progression');
+progression.backfillAll();
 
 // --- Basic auth (set ADMIN_USER + ADMIN_PASS in env to enable) ---
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
@@ -124,6 +133,18 @@ app.get('/avatars/:id', (req, res) => {
   res.status(404).end();
 });
 
+// Affiche d'un pack de boutique. Pas de repli, contrairement aux avatars : il
+// n'existe pas d'affiche par défaut, et un pack sans affiche est un cas normal
+// (l'instantané de la boutique porte `has_poster`, le client pose alors une
+// tuile neutre plutôt qu'une image cassée).
+app.get('/pack-posters/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).end();
+  const filePath = path.join(POSTERS_DIR, `${id}.png`);
+  if (fs.existsSync(filePath)) return res.sendFile(filePath);
+  res.status(404).end();
+});
+
 // --- Helpers ---
 function readJson(file) {
   const raw = fs.readFileSync(file, 'utf-8');
@@ -173,10 +194,19 @@ app.use('/api', (req, res, next) => {
 });
 
 // --- Cards API ---
+// `_starter` dit si la carte fait partie de la dotation d'un compte neuf (pack
+// marqué « départ »). Calculé, jamais persisté — même statut que
+// `_has_illustration`. C'est ce qui évite au client de dupliquer la règle de
+// dotation pour son repli invité.
 app.get('/api/cards', (req, res) => {
   try {
     const cards = readJson(CARDS_FILE);
-    res.json(cards.map(c => ({ ...c, _has_illustration: illustrationExists(c.id) })));
+    const starter = new Set(progression.starterCardIds());
+    res.json(cards.map(c => ({
+      ...c,
+      _has_illustration: illustrationExists(c.id),
+      _starter: starter.has(c.id),
+    })));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -694,6 +724,148 @@ app.delete('/api/decks/:id/avatar', requireSiteAdmin, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// --- Packs de boutique API ---
+// Le fichier `sets.json` FAIT FOI pour le pool d'un booster (cf. sets.js) ; le
+// champ `set` d'une carte n'en est que le miroir. Ces routes écrivent les deux,
+// pour qu'une carte n'appartienne qu'à UN pack commercial — sans quoi une carte
+// listée dans un pack et miroir d'un autre se retrouverait dans les deux pools.
+function packMemberIds(pack) {
+  return Array.isArray(pack?.cards) ? pack.cards.filter(Boolean) : [];
+}
+
+/**
+ * Aligne le champ `set` des cartes sur la composition d'un pack : il est posé
+ * sur les membres, et effacé sur les cartes qui viennent d'en sortir.
+ *
+ * Un pack de DÉPART ne possède pas le miroir : la dotation chevauche les packs
+ * commerciaux par nature (une carte offerte peut appartenir à un pack vendu),
+ * lui laisser réécrire le champ dépouillerait les packs concernés.
+ */
+function syncCardSetMirror(pack, previousIds = []) {
+  if (!pack || pack.starter === true) return;
+  const members = new Set(packMemberIds(pack));
+  const dropped = new Set(previousIds.filter(id => !members.has(id)));
+  if (!members.size && !dropped.size) return;
+
+  const cards = readJson(CARDS_FILE);
+  let touched = 0;
+  for (const c of cards) {
+    if (members.has(c.id) && c.set !== pack.id) { c.set = pack.id; touched++; }
+    else if (dropped.has(c.id) && c.set === pack.id) { delete c.set; touched++; }
+  }
+  if (touched) writeJson(CARDS_FILE, cards);
+}
+
+// `_has_poster` est calculé (comme `_has_avatar` pour les decks) : un pack sans
+// affiche est un cas normal, il n'y a pas d'affiche par défaut.
+app.get('/api/sets', (req, res) => {
+  try {
+    res.json(readJson(SETS_FILE).map(s => ({ ...s, _has_poster: packs.posterExists(s.id) })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/sets', requireSiteAdmin, (req, res) => {
+  try {
+    const sets = readJson(SETS_FILE);
+    const pack = req.body;
+    if (!pack.id) return res.status(400).json({ error: 'id required' });
+    if (sets.find(s => s.id === pack.id)) return res.status(400).json({ error: `ID ${pack.id} already exists` });
+    delete pack._has_poster;
+    sets.push(pack);
+    writeJson(SETS_FILE, sets);
+    syncCardSetMirror(pack);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/sets/import', requireSiteAdmin, (req, res) => {
+  try {
+    const { items, mode = 'skip' } = req.body;
+    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
+    const sets = readJson(SETS_FILE);
+    let added = 0, replaced = 0, skipped = 0;
+    const errors = [];
+    for (const item of items) {
+      if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
+      delete item._has_poster;
+      const idx = sets.findIndex(s => s.id === item.id);
+      if (idx !== -1) {
+        if (mode === 'replace') { sets[idx] = item; replaced++; }
+        else skipped++;
+      } else {
+        sets.push(item);
+        added++;
+      }
+    }
+    writeJson(SETS_FILE, sets);
+    res.json({ ok: true, added, replaced, skipped, errors });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/sets/:id', requireSiteAdmin, (req, res) => {
+  try {
+    const sets = readJson(SETS_FILE);
+    const idx = sets.findIndex(s => s.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    const updated = req.body;
+    delete updated._has_poster;
+    const previousIds = packMemberIds(sets[idx]);
+    sets[idx] = updated;
+    writeJson(SETS_FILE, sets);
+    syncCardSetMirror(updated, previousIds);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/sets/:id', requireSiteAdmin, (req, res) => {
+  try {
+    const sets = readJson(SETS_FILE);
+    const idx = sets.findIndex(s => s.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    // Le miroir des cartes du pack supprimé est effacé : le laisser pointer sur
+    // un pack disparu ne casse rien aujourd'hui, mais ferait revenir les cartes
+    // dans son pool si l'id était réutilisé.
+    syncCardSetMirror({ id: sets[idx].id, cards: [] }, packMemberIds(sets[idx]));
+    sets.splice(idx, 1);
+    writeJson(SETS_FILE, sets);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- Affiches des packs (même triptyque que les avatars : URL, upload base64
+// depuis l'appareil, suppression) ---
+app.post('/api/sets/:id/poster', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { url } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    await savePng(POSTERS_DIR, id, await downloadUrl(url));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/sets/:id/poster', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    await savePng(POSTERS_DIR, id, Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/sets/:id/poster', requireSiteAdmin, (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = path.join(POSTERS_DIR, `${id}.png`);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // --- Export API (pour la future sync locale) ---
 app.get('/api/export', (req, res) => {
   try {
@@ -703,9 +875,11 @@ app.get('/api/export', (req, res) => {
     const boards     = readJson(BOARDS_FILE);
     const magies     = readJson(MAGIES_FILE);
     const publicDecks = readJson(PUBLIC_DECKS_FILE);
+    const sets       = readJson(SETS_FILE);
     const illustrations = listPngChecksums(ILLUS_DIR);
     const avatars = listPngChecksums(AVATARS_DIR);
-    res.json({ cards, attributes, powers, boards, magies, publicDecks, illustrations, avatars });
+    const packPosters = listPngChecksums(POSTERS_DIR);
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, illustrations, avatars, packPosters });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -731,6 +905,36 @@ app.get('/api/export/avatar/:id', (req, res) => {
   const filePath = path.join(AVATARS_DIR, `${id}.png`);
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
   res.json({ id, data: fs.readFileSync(filePath).toString('base64') });
+});
+
+app.get('/api/export/pack-poster/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  const filePath = path.join(POSTERS_DIR, `${id}.png`);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+  res.json({ id, data: fs.readFileSync(filePath).toString('base64') });
+});
+
+// --- Upload/delete générique d'affiche de pack (scripts/sync-data.js) ---
+app.put('/api/pack-posters/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    fs.writeFileSync(path.join(POSTERS_DIR, `${id}.png`), Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/pack-posters/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = path.join(POSTERS_DIR, `${id}.png`);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // --- Upload/delete générique d'avatar (scripts/sync-data.js) ---
@@ -793,7 +997,8 @@ function downloadUrl(url) {
 // Fallback SPA : toute route GET non-API renvoie l'app cliente (deep-links
 // /deck_selector, /game…). Les préfixes API/assets serveur passent au suivant.
 app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/illustrations') || req.path.startsWith('/avatars') || req.path.startsWith('/ws')) return next();
+  if (req.path.startsWith('/api') || req.path.startsWith('/illustrations') || req.path.startsWith('/avatars')
+      || req.path.startsWith('/pack-posters') || req.path.startsWith('/ws')) return next();
   res.sendFile(path.join(CLIENT_DIST, 'index.html'));
 });
 

@@ -278,6 +278,29 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
 
 // --- Boosters ---
 
+/**
+ * Affiche du pack — c'est elle qui lui donne un visage à côté de son nom. Sans
+ * affiche posée en admin, une tuile neutre : le serveur n'a pas d'image par
+ * défaut à servir, et une `<img>` cassée serait pire que rien.
+ */
+function PackPoster({ set, className }: { set: ShopSet; className: string }) {
+  if (!set.has_poster) {
+    return (
+      <div className={`${className} flex flex-shrink-0 items-center justify-center rounded-lg border border-line bg-white/5 text-white/25`}>
+        🎁
+      </div>
+    );
+  }
+  return (
+    <img
+      src={`/pack-posters/${set.id}`}
+      alt=""
+      loading="lazy"
+      className={`${className} flex-shrink-0 rounded-lg border border-line object-cover`}
+    />
+  );
+}
+
 function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds: number; priceGems: number }) {
   const user = useAuthStore(s => s.user);
   const busy = useShopStore(s => s.busy);
@@ -290,6 +313,7 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
   return (
     <Panel className={`flex flex-col gap-2 p-3 ${set.complete ? 'border-success/40 bg-success/5' : ''}`}>
       <div className="flex items-start gap-2">
+        <PackPoster set={set} className="h-12 w-12" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold leading-tight">{set.name}</p>
           <p className="truncate text-[10px] text-white/40">{set.archetypes.join(' · ')}</p>
@@ -336,11 +360,17 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
 
 function BoosterReveal({ onClose }: { onClose: () => void }) {
   const booster = useShopStore(s => s.booster);
+  // Le pack ouvert, retrouvé dans l'instantané : c'est de là que viennent son
+  // nom et son affiche (la réponse d'achat ne porte qu'un `set_id`).
+  const set = useShopStore(s => s.snapshot?.sets.find(x => x.id === booster?.set_id) ?? null);
   if (!booster) return null;
 
   return (
     <Modal onClose={onClose}>
-      <h2 className="mb-3 text-center text-sm font-bold tracking-widest text-gold">BOOSTER OUVERT</h2>
+      <div className="mb-3 flex items-center justify-center gap-2">
+        {set && <PackPoster set={set} className="h-8 w-8" />}
+        <h2 className="text-sm font-bold tracking-widest text-gold">{set ? set.name.toUpperCase() : 'BOOSTER OUVERT'}</h2>
+      </div>
       <div className="flex justify-center gap-2">
         {booster.cards.map(({ card_id }) => {
           const card = cardOf(card_id);

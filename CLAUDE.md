@@ -53,25 +53,30 @@ Repo : `https://github.com/srida/Millenium`
 | `GET /` | Public | Jeu (SPA React servi depuis `client/dist`) |
 | `GET /admin` | Site admin | Card Manager (`admin.html`) |
 | `GET /api/version` | Public | Version du build (`package.json`) |
-| `GET /api/cards` | Public | 398 cartes |
+| `GET /api/cards` | Public | 398 cartes, avec `_has_illustration` et `_starter` |
 | `GET /api/attributes` | Public | Attributs |
 | `GET /api/powers` | Public | Pouvoirs |
 | `GET /api/boards` | Public | Terrains de combat |
 | `GET /api/magies` | Public | Magies (Phase Shopping) |
 | `GET /api/decks` | Public | Decks publics (`PublicDeckDatabase`), avec `_has_avatar` |
+| `GET /api/sets` | Public | Packs de boutique, avec `_has_poster` |
 | `POST/PUT/DELETE /api/*` | Auth | Écriture admin |
 | `GET /illustrations/:id` | Public | Art des cartes (PNG sans extension) |
 | `GET /avatars/:id` | Public | Avatar d'un deck public (repli sur l'avatar par défaut) |
+| `GET /pack-posters/:id` | Public | Affiche d'un pack (404 s'il n'en a pas — pas d'affiche par défaut) |
 | `POST /api/cards/import` | Auth | Import en masse (mode skip/replace) |
 | `POST /api/cards/:id/illustration` | Auth | Upload illustration (URL ou base64) |
 | `POST /api/attributes/import` | Auth | Import attributs en masse |
 | `POST /api/powers/import` | Auth | Import pouvoirs en masse |
 | `POST /api/decks/import` | Site admin | Import decks publics en masse |
 | `POST/PUT/DELETE /api/decks/:id/avatar` | Site admin | Avatar d'un deck public (URL / base64 / suppression) |
-| `GET /api/export` | Auth | Export complet avec checksums illustrations **et avatars** |
+| `POST/PUT/DELETE /api/sets` \| `/api/sets/:id` | Site admin | CRUD des packs (réaligne le miroir `card.set`) |
+| `POST /api/sets/import` | Site admin | Import packs en masse |
+| `POST/PUT/DELETE /api/sets/:id/poster` | Site admin | Affiche d'un pack (URL / base64 / suppression) |
+| `GET /api/export` | Auth | Export complet avec checksums illustrations, avatars **et affiches de packs** |
 | `/api/admin/db/*` | Site admin | Inspection de la base SQLite (`routes/admin-db.js`) |
 
-**Niveaux d'accès** : l'écriture sur `cards` / `attributes` / `powers` passe par le middleware d'auth générique ; `boards`, `magies` et `decks` exigent en plus `requireSiteAdmin` (`auth.js`).
+**Niveaux d'accès** : l'écriture sur `cards` / `attributes` / `powers` passe par le middleware d'auth générique ; `boards`, `magies`, `decks` et `sets` exigent en plus `requireSiteAdmin` (`auth.js`).
 
 ### API en ligne (`routes/online.js`, montée sur `/api`)
 
@@ -106,7 +111,9 @@ Stockée en base (`db.js`), règles dans **`progression.js`** (racine — le ser
 | Expérience | `xp` | 0 | inchangée |
 | Gold | `gold` | 0 | 9999 |
 | Gemmes | `gems` | 0 | 9999 |
-| Cartes débloquées | table `user_cards` | toutes les `CORE_*` (132) | **tout** le catalogue |
+| Cartes débloquées | table `user_cards` | les cartes du **pack de départ** (à défaut : les `CORE_*`, 132) | **tout** le catalogue |
+
+La dotation d'un compte neuf se **designe en admin** : c'est le pack marqué « départ » (`starter: true` dans `sets.json`), cf. « Le pack de départ » plus bas. `STARTER_PREFIX = 'CORE'` n'est plus que le repli quand aucun pack ne porte le drapeau — l'état des données livrées.
 
 **Courbe de niveau** : palier unique de `XP_PER_LEVEL = 100`. `users.xp` stocke la progression **dans le niveau** (0–99), pas un cumul de carrière — `grant()` absorbe le passage de palier (250 XP d'un coup = +2 niveaux et 50 de reste), et la jauge de l'UI va donc de 0 à 100 sans calcul côté client. Un débit d'XP ne fait jamais redescendre de niveau.
 
@@ -213,7 +220,7 @@ Le DeckBuilder ne laisse sélectionner que les cartes **possédées** (`stores/c
 
 - Les cartes non débloquées sont **masquées par défaut** ; le chip `🔒 Verrouillées` les révèle, grisées et intapables (cadenas via la prop `locked` de `CardTile`). Le compteur affiche `133/398 cartes débloquées`.
 - `addCard` revérifie la possession : l'ajout ne dépend jamais du seul état d'affichage.
-- **Invité** : repli sur les cartes de départ (`CORE_*`), la dotation d'un compte neuf. Le jeu se joue sans compte — un invité sans aucune carte ne pourrait plus construire de deck, et ce qu'il bâtit reste valable s'il s'inscrit.
+- **Invité** : repli sur les cartes de départ, reconnues au drapeau `_starter` de `GET /api/cards` (préfixe `CORE_*` en second repli) — exactement la dotation d'un compte neuf. Le jeu se joue sans compte — un invité sans aucune carte ne pourrait plus construire de deck, et ce qu'il bâtit reste valable s'il s'inscrit.
 - Un deck **déjà enregistré** contenant des cartes non possédées n'est **pas** amputé au chargement : les cartes concernées sont signalées (cadenas + bandeau) et restent retirables à la main. Effacer le travail du joueur sans qu'il l'ait demandé serait pire que l'incohérence.
 - La table `user_cards` est créée **après** la migration `tag` de `users` : un `ALTER TABLE … RENAME` réécrit les FK des tables dépendantes vers `users_v1`, qui est ensuite supprimée (même raison pour le correctif FK de `sessions`/`friendships`/`deck_books`/`reset_tokens`/`matches`).
 
@@ -221,7 +228,7 @@ Le DeckBuilder ne laisse sélectionner que les cartes **possédées** (`stores/c
 
 ## Boutique de cartes
 
-Règles dans **`shop.js`** (racine, à côté de `progression.js` dont il est le client pour débiter et débloquer, et de `missions.js` dont il reprend le calendrier), sets dans **`data/sets.json`**, table `user_shop_state`. La boutique **cosmétique** du brief n'est pas implémentée.
+Règles dans **`shop.js`** (racine, à côté de `progression.js` dont il est le client pour débiter et débloquer, et de `missions.js` dont il reprend le calendrier), catalogue de packs dans **`sets.js`** (qui lit `data/sets.json`), table `user_shop_state`. La boutique **cosmétique** du brief n'est pas implémentée.
 
 ⚠️ **Écart assumé avec le brief** : la **Convoitise** (§3.5 — épingler n'importe quelle carte du catalogue, 3 jours d'attente, prix double) n'existe pas. Elle est remplacée par l'**épingle d'un emplacement proposé**, qui le conserve à la rotation suivante. La précision absolue disparaît donc du jeu : on ne commande plus une carte, on garde une proposition.
 
@@ -237,19 +244,60 @@ Deux invariants portent tout le reste :
 1. **Zéro doublon** — aucun tirage, nulle part, ne produit une carte possédée. C'est ce qui dispense le jeu de poussière, de fragments et de conversion de doublons.
 2. **L'offre est serveur** — générée, horodatée et **persistée** (`user_shop_state.offer`). Aucune action client (changement de deck, rechargement, fuseau annoncé) ne la régénère : une offre re-tirable se re-tirerait jusqu'à satisfaction. Vérifié par golden test.
 
-### Prérequis — le champ `set`
+### Les packs — `sets.js` + onglet Packs de l'admin
 
-Le préfixe d'`id` (`CORE`, `EXTRA`, `YGX`…) est un identifiant technique, pas un axe commercial : les groupes vont de 8 à 32 cartes et plusieurs ne peuvent pas satisfaire la garantie de tiers. Chaque carte porte donc un champ **`set`**, et `data/sets.json` décrit les sets (nom, archétypes, `booster_enabled`, `signature_card`, `completion_reward`, liste `cards`).
+Le préfixe d'`id` (`CORE`, `EXTRA`, `YGX`…) est un identifiant technique, pas un axe commercial : les groupes vont de 8 à 32 cartes et plusieurs ne peuvent pas satisfaire la garantie de tiers. Chaque carte porte donc un champ **`set`**, et `data/sets.json` décrit les packs (nom, archétypes, `booster_enabled`, `starter`, `signature_card`, `completion_reward`, liste `cards`).
 
-**Le découpage actuel est PROVISOIRE**, produit par `scripts/build-sets.js` (`--write` pour écrire) : 7 sets de ~57 cartes. Ce qu'il garantit et ce qu'il ne garantit pas :
+**Vocabulaire** : le code et la donnée disent `set` (`sets.json`, `card.set`, `/api/sets`, `shop.setCardIds`) ; l'**interface dit « pack »** — admin comme boutique. Les deux désignent la même chose.
 
-- ✔ **aucune carte orpheline** — fermeture par union-find sur le graphe de matériaux : une fusion/héritage/transformation est toujours dans le set de ses matériaux. C'est la contrainte dure ;
+**`sets.js`** (racine) est le propriétaire du catalogue. Il existe pour une raison de dépendances : `shop.js` (boosters) et `progression.js` (dotation) en ont tous deux besoin, et `shop.js` requiert déjà `progression.js` — le cycle serait immédiat. D'où la règle : **`sets.js` ne requiert ni l'un ni l'autre**.
+
+```js
+sets.all() / byId(id) / cardIdsOf(def)        // catalogue (cache mémoire au mtime)
+sets.isStarter(def) / starterPacks() / starterCardIds()
+sets.boosterPacks()                          // = tout sauf les packs de départ
+sets.posterExists(id) / sets.POSTERS_DIR
+```
+
+`shop.sets` **est** `sets.boosterPacks` et `shop.setCardIds` **est** `sets.cardIdsOf` (mêmes noms exportés qu'avant : les golden tests les appellent directement).
+
+**Les packs se designent depuis l'admin** (onglet 🎁 Packs) : nom, **affiche**, composition carte par carte (sélecteur plein écran avec filtres tier/type/attribut/appartenance et compteurs live), drapeau « pack de départ », `booster_enabled`. À l'enregistrement, `card_count` et `archetypes` (le sous-titre affiché en boutique) sont **dérivés** de la composition, jamais saisis.
+
+Le découpage livré reste celui de `scripts/build-sets.js` (7 packs de ~57 cartes), désormais un simple **point de départ éditable** — attention, son `--write` réécrit `sets.json` *et* les 398 champs `set` : il écrase le travail fait en admin. Ce qu'il garantit et ce qu'il ne garantit pas :
+
+- ✔ **aucune carte orpheline** — fermeture par union-find sur le graphe de matériaux : une fusion/héritage/transformation est toujours dans le pack de ses matériaux. C'est la contrainte dure ;
 - ~ distribution de tiers : rapportée, pas garantie (le booster se rabat silencieusement) ;
-- ✘ **« un archétype n'est jamais découpé entre deux sets » : impossible sur le pool actuel** — unir les cartes par archétype produit une composante unique de 223 cartes (une carte porte jusqu'à 4 attributs d'archétype, qui se chevauchent). C'est un travail éditorial sur `attributes.json`, pas un calcul — le brief le classe d'ailleurs en décision ouverte.
+- ✘ **« un archétype n'est jamais découpé entre deux packs » : impossible sur le pool actuel** — unir les cartes par archétype produit une composante unique de 223 cartes (une carte porte jusqu'à 4 attributs d'archétype, qui se chevauchent). C'est un travail éditorial sur `attributes.json`, pas un calcul — le brief le classe d'ailleurs en décision ouverte.
 
-`sets.json` **fait foi** pour le pool d'un booster ; le champ `set` de la carte en est le miroir (il rattrape une carte créée depuis l'admin après la rédaction du set). Remplacer les deux suffit à substituer le découpage à la main : `shop.js` ne lit rien d'autre.
+Un pack designé à la main ne rétablit **aucune** de ces garanties : le sélecteur les **affiche** (garantie de tiers tenable ou non, matériaux hors pack, cartes déjà prises par un autre pack, cartes du catalogue dans aucun pack) sans jamais bloquer l'enregistrement. C'est un tableau de bord, pas un validateur.
 
-Le **set de fondation** (§2.5 du brief : cartes Tier 1 transverses attribuées par la progression de niveau) n'est **pas** implémenté — la fermeture par matériaux le rend inutile ici, et son attribution dépend de la courbe de niveau, décision ouverte de `brief_progression.md`. `booster_enabled: false` est prêt à l'accueillir.
+`sets.json` **fait foi** pour le pool d'un booster ; le champ `set` de la carte en est le miroir (il rattrape une carte créée depuis l'admin après la rédaction du pack). `POST/PUT/DELETE /api/sets` **réalignent le miroir** : le champ `set` est posé sur les cartes listées et effacé sur celles qui sortent du pack — une carte n'appartient donc qu'à **un** pack commercial. Un pack de départ, lui, ne touche pas au miroir (il chevauche les packs vendus par nature).
+
+⚠️ **La prime de complétion est mémorisée par id** (`user_shop_state.sets_claimed`) : changer l'`id` d'un pack revient à en créer un neuf, et les joueurs qui avaient touché la prime de l'ancien la toucheront à nouveau. L'écran d'admin le dit.
+
+### Le pack de départ (`starter: true`) — dotation d'un compte neuf
+
+Le **set de fondation** du brief (§2.5) existe sous cette forme : un pack marqué `starter: true` n'est pas un produit, c'est la **dotation offerte à la création de chaque compte**. `progression.starterCardIds()` en est l'union ; sans aucun pack de départ, il retombe sur le préfixe historique `CORE_*` (`STARTER_PREFIX`) — le comportement livré, puisque les données ne contiennent pas de pack de départ.
+
+Trois exclusions, toutes vérifiées par golden test (`packs.test.ts`) — sans elles un pack de départ casse la boutique :
+
+| Endroit | Sans exclusion |
+|---|---|
+| `setsView` (l'instantané) | le pack s'affiche en boutique, éternellement « ✓ complet » |
+| `claimSetCompletions` | chaque compte neuf le possède en entier → **prime versée à l'inscription** |
+| `buyBooster` | achetable, puis « Collection complète » |
+
+- Un pack de départ ne listant que des ids inconnus retombe sur le repli : un id mal saisi en admin ne doit pas produire des comptes sans aucune carte, incapables de construire un deck.
+- Côté client, la dotation voyage sur chaque carte de `GET /api/cards` via **`_starter`** (calculé, jamais persisté — même statut que `_has_illustration`). `collectionStore` l'utilise pour son repli invité au lieu de dupliquer la règle ; le préfixe `CORE` n'y reste qu'en repli de repli (serveur antérieur).
+- `ProfileScreen.tsx` garde une liste d'avatars codée en dur (`CORE_001…007`) : c'est un choix cosmétique, sans lien avec la collection possédée.
+
+### Affiche d'un pack
+
+Troisième famille d'assets, calquée sur les avatars de decks publics : fichiers dans **`resources/pack_posters/<PACK_ID>.png`** (`POSTERS_DIR`, surchargeable), servis par `GET /pack-posters/:id` (gardé par `safeAssetId`), triptyque admin `POST` (URL) / `PUT` (base64) / `DELETE /api/sets/:id/poster`.
+
+- **Une seule différence, mais elle compte : pas d'affiche par défaut.** Il n'existe pas d'équivalent de `PUBLIC_DECK_000.png` à livrer, donc la route rend un 404 franc et l'instantané porte **`has_poster`** ; c'est le client qui pose une tuile neutre (🎁). C'est le seul endroit du projet où le repli est côté client plutôt que serveur, et c'est assumé : mieux vaut une tuile qu'une `<img>` cassée.
+- L'URL étant stable, le remplacement d'une affiche s'accompagne d'un cache-buster côté admin (`posterBust`), comme `avatarBust` pour les avatars.
+- **Déploiement** : `sets.json` et les affiches passent par `scripts/sync-data.js` (entrée `sets` de `ENTITIES`, clé `packPosters` de `ASSETS` / `/api/export`) — `--no-illustrations` coupe les trois familles d'images. Ne pas oublier le proxy de dev (`client/vite.config.ts`) et la liste d'exclusion du fallback SPA (`server.js`) pour tout nouveau préfixe d'asset.
 
 ### Emplacements quotidiens
 
@@ -314,10 +362,10 @@ Toutes les mutations renvoient l'instantané complet + la progression à jour : 
 ### Client
 
 - `stores/shopStore.ts` — instantané + actions. Absorbe chaque réponse (solde via `authStore.applyProgression`, cartes via `collectionStore.add` — on ne recharge pas les 398 ids après chaque achat).
-- `screens/ShopScreen.tsx` — emplacements (bouton 📌 par emplacement), boosters, révélation en modale.
+- `screens/ShopScreen.tsx` — emplacements (bouton 📌 par emplacement), boosters, révélation en modale. `<PackPoster>` pose l'**affiche du pack** à gauche de son nom (et dans l'en-tête de la révélation), avec une tuile 🎁 quand `has_poster` est faux.
 - `MainMenu` — bouton `🛒 Boutique` avec une pastille de nouveauté : un simple point, pas un compteur, effacé dès que l'écran a été ouvert pour le jour en cours (`hasUnseenShop` / `markShopSeen`, localStorage).
 - `components/ui/primitives.tsx` — `Countdown` (rafraîchi à la **minute** : un repère, pas un chronomètre), partagé avec l'écran Missions.
-- Verrouillé par `client/src/test/shop.test.ts` (35 golden tests, même harnais serveur que `missions.test.ts`).
+- Verrouillé par `client/src/test/shop.test.ts` (36 golden tests) et `client/src/test/packs.test.ts` (14 : dotation, exclusions du pack de départ, miroir, affiche), même harnais serveur que `missions.test.ts`. Les deux fichiers sont **séparés à dessein** : `packs.test.ts` réécrit `sets.json` en cours de route, là où `shop.test.ts` indexe les packs par position.
 
 ---
 

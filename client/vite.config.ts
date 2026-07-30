@@ -72,6 +72,7 @@ export default defineConfig({
       '/api': 'http://localhost:3742',
       '/illustrations': 'http://localhost:3742',
       '/avatars': 'http://localhost:3742',
+      '/pack-posters': 'http://localhost:3742',
       '/admin': 'http://localhost:3742',
       '/ws': { target: 'ws://localhost:3742', ws: true },
     },

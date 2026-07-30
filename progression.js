@@ -1,7 +1,7 @@
 // Progression du joueur : niveau, XP, monnaies (gold / gemmes) et collection
 // de cartes débloquées. db.js ne porte que l'accès SQL ; les RÈGLES sont ici.
 //
-//   - nouveau compte : niveau 1, 0 XP, 0 gold, 0 gemme, cartes CORE_* débloquées
+//   - nouveau compte : niveau 1, 0 XP, 0 gold, 0 gemme, cartes du pack de départ
 //   - compte admin   : niveau 100, 9999 gold, 9999 gemmes, toutes les cartes
 //
 // La liste des cartes vient de cards.json (même fichier que /api/cards), pas de
@@ -9,13 +9,20 @@
 const path = require('path');
 const fs = require('fs');
 const { db, stmt } = require('./db');
+// `sets.js` ne requiert ni ce module ni shop.js : c'est ce qui permet de lire le
+// catalogue de packs ici sans créer de cycle (shop.js requiert progression.js).
+const packs = require('./sets');
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const CARDS_FILE = path.join(DATA_DIR, 'cards.json');
 
 const DEFAULTS = Object.freeze({ level: 1, xp: 0, gold: 0, gems: 0 });
 const ADMIN_GRANTS = Object.freeze({ level: 100, gold: 9999, gems: 9999 });
-// Préfixe des cartes offertes à tous les joueurs (CORE_001, CORE_002…).
+// Repli quand AUCUN pack n'est marqué « départ » dans sets.json : préfixe des
+// cartes offertes à tous les joueurs (CORE_001, CORE_002…). C'était la règle
+// avant que la dotation soit designable en admin ; elle reste le filet de
+// sécurité — un catalogue sans pack de départ ne doit pas produire de comptes
+// sans aucune carte, qui ne pourraient plus construire de deck.
 const STARTER_PREFIX = 'CORE';
 
 // Courbe de niveau : palier unique de 100 XP, d'où la jauge 0→100 de l'UI.
@@ -52,7 +59,14 @@ function allCardIds() {
   return _cache.ids;
 }
 
+/**
+ * Dotation d'un compte neuf. Elle est DESIGNÉE : ce sont les cartes du (ou des)
+ * pack(s) marqué(s) « départ » dans sets.json, éditables depuis l'admin. Le
+ * préfixe historique ne sert plus que de repli.
+ */
 function starterCardIds() {
+  const designed = packs.starterCardIds();
+  if (designed.length) return designed;
   return allCardIds().filter(id => String(id).toUpperCase().startsWith(STARTER_PREFIX));
 }
 
