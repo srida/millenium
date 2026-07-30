@@ -20,10 +20,11 @@ export default function SynergyPanel() {
   // Portrait (mobile) : la main et le cimetière occupent déjà le bas de
   // l'écran, sans place pour un troisième bandeau — posé sous le header à la
   // place (même repère que TournamentHeader, légèrement plus bas pour ne pas
-  // se superposer si les deux sont affichés en même temps).
+  // se superposer si les deux sont affichés en même temps). Pleine largeur
+  // (inset-x-0) plutôt que centré à 92 % : plus de puces tiennent sur une ligne.
   const positionClass = web
     ? 'bottom-14 left-1/2 -translate-x-1/2 max-w-[60%] justify-center'
-    : 'top-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))] left-1/2 -translate-x-1/2 max-w-[92%] justify-center';
+    : 'top-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))] inset-x-0 justify-center px-3';
 
   return (
     <div className={`pointer-events-auto absolute z-20 flex flex-wrap gap-1 ${positionClass}`}>
