@@ -10,6 +10,7 @@ import { PvpController } from '../game/PvpController.js';
 import * as PvpConnection from '../net/PvpConnection.js';
 import { useGameStore } from '../stores/gameStore.js';
 import { useUiStore } from '../stores/uiStore.js';
+import { useAuthStore } from '../stores/authStore.js';
 import Board3DCanvas from '../components/board/Board3DCanvas.js';
 import Hud from '../components/hud/Hud.js';
 import SynergyPanel from '../components/hud/SynergyPanel.js';
@@ -78,8 +79,23 @@ export default function GameScreenPvp() {
       <WaitingOverlay />
       <EndRoundOverlay />
       <ShoppingLayer />
-      <GameOverScreen />
+      <ResultOverlay opponentAvatar={opponentAvatar} />
     </div>
+  );
+}
+
+// Portrait du vainqueur sur l'écran de résultat : le mien (profil connecté,
+// ★ en invité) ou celui de l'adversaire, récupéré à la poignée de main.
+function ResultOverlay({ opponentAvatar }: { opponentAvatar: string | null }) {
+  const user = useAuthStore(s => s.user);
+  const opponentName = useGameStore(s => s.pvpOpponent);
+  return (
+    <GameOverScreen
+      playerAvatarSrc={user?.avatar ?? null}
+      playerAvatarFallback={(user?.username ?? '?').slice(0, 2).toUpperCase()}
+      enemyAvatarSrc={opponentAvatar}
+      enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
+    />
   );
 }
 

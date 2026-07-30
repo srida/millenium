@@ -10,6 +10,7 @@
 // niveau. C'est la seule lecture qui compte (« où j'en suis du palier »), là où
 // un nombre nu ne dit rien sans son plafond ; le décompte exact reste en petit
 // sous la barre. Gold et gemmes, eux, sont des soldes → chiffres.
+import { useEffect, useState } from 'react';
 import type { AuthUser } from '../../stores/authStore.js';
 import { Gauge, Panel } from './primitives.js';
 
@@ -119,5 +120,44 @@ export function ProgressionPanel({ user, className = '' }: { user: AuthUser | nu
         ))}
       </dl>
     </Panel>
+  );
+}
+
+/**
+ * Jauge de niveau animée d'un instantané de progression à un autre — utilisée
+ * par l'écran de résultat du duel pour visualiser le gain XP de la victoire au
+ * lieu de basculer directement sur le nouvel état. Un gain de partie (10 à 70
+ * XP, cf. `progression.REWARDS`) ne dépasse jamais `XP_PER_LEVEL` : au plus un
+ * palier est franchi, la jauge se remplit puis revient à 0 avant de reprendre.
+ */
+export function AnimatedLevelGauge({
+  fromLevel, fromXp, toLevel, toXp, className = '',
+}: { fromLevel: number; fromXp: number; toLevel: number; toXp: number; className?: string }) {
+  const [level, setLevel] = useState(fromLevel);
+  const [xp, setXp] = useState(fromXp);
+
+  useEffect(() => {
+    setLevel(fromLevel);
+    setXp(fromXp);
+    const leveledUp = toLevel > fromLevel;
+    const timers = [
+      setTimeout(() => setXp(leveledUp ? XP_PER_LEVEL : toXp), 60),
+    ];
+    if (leveledUp) {
+      timers.push(setTimeout(() => { setLevel(toLevel); setXp(0); }, 500));
+      timers.push(setTimeout(() => setXp(toXp), 560));
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [fromLevel, fromXp, toLevel, toXp]);
+
+  return (
+    <div className={className}>
+      <div className="flex items-baseline justify-between text-[10px] tracking-widest text-white/40">
+        <span>NIVEAU</span>
+        <span className="text-sm font-bold tabular-nums text-gold">{fmt.format(level)}</span>
+      </div>
+      <Gauge value={xp / XP_PER_LEVEL} className="mt-1" fillClassName="bg-player" />
+      <div className="mt-1 text-right text-[10px] tabular-nums text-white/40">{fmt.format(xp)}/{XP_PER_LEVEL}</div>
+    </div>
   );
 }

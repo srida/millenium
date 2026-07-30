@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
-import { Button, Modal } from '../ui/primitives.js';
+import { useAuthStore } from '../../stores/authStore.js';
+import { Avatar, Button, Modal } from '../ui/primitives.js';
+import { AnimatedLevelGauge } from '../ui/ProgressionStats.js';
 import { END_ROUND_DURATION_S } from '../../game/timings.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
 
@@ -105,25 +107,53 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
  * Fin de partie. `onExit` permet à l'appelant de détourner la sortie — le
  * Tournoi renvoie vers son bracket après avoir comptabilisé la manche, au lieu
  * de retomber sur le menu principal.
+ *
+ * `playerAvatarSrc`/`enemyAvatarSrc` sont optionnels et **volontairement sans
+ * valeur par défaut** (`undefined`, pas `null`) : seul l'appelant qui les
+ * fournit (le Duel en ligne, où les deux portraits sont connus) voit le
+ * portrait du vainqueur affiché ; le mode solo/tournoi, qui ne les passe pas,
+ * garde l'écran inchangé.
  */
-export function GameOverScreen({ onExit, exitLabel = '◂ MENU PRINCIPAL' }: {
+export function GameOverScreen({
+  onExit, exitLabel = '◂ MENU PRINCIPAL',
+  playerAvatarSrc, playerAvatarFallback = '★',
+  enemyAvatarSrc, enemyAvatarFallback = '?',
+}: {
   onExit?: (winner: 'player' | 'enemy' | 'draw' | null) => void;
   exitLabel?: string;
+  playerAvatarSrc?: string | null;
+  playerAvatarFallback?: string;
+  enemyAvatarSrc?: string | null;
+  enemyAvatarFallback?: string;
 } = {}) {
   const gameOver = useGameStore(s => s.gameOver);
   const winner = useGameStore(s => s.winner);
   const playerHp = useGameStore(s => s.playerHp);
   const enemyHp = useGameStore(s => s.enemyHp);
   const navigate = useUiStore(s => s.navigate);
+  const user = useAuthStore(s => s.user);
+  // Progression d'avant-partie, capturée au montage de l'écran (avant tout
+  // gain de cette partie) — sert de point de départ à l'animation de la jauge
+  // de niveau à la victoire.
+  const startProgression = useRef({ level: user?.level ?? 1, xp: user?.xp ?? 0 });
   if (!gameOver) return null;
 
   const title = winner === 'player' ? 'VICTOIRE' : winner === 'enemy' ? 'DÉFAITE' : 'ÉGALITÉ';
   const icon = winner === 'player' ? '🏆' : winner === 'enemy' ? '💀' : '⚖️';
   const tone = winner === 'player' ? 'text-success' : winner === 'enemy' ? 'text-danger' : 'text-gold';
+  const winnerAvatar = winner === 'player'
+    ? { src: playerAvatarSrc, fallback: playerAvatarFallback }
+    : winner === 'enemy'
+      ? { src: enemyAvatarSrc, fallback: enemyAvatarFallback }
+      : null;
+  const showWinnerAvatar = winnerAvatar && (playerAvatarSrc !== undefined || enemyAvatarSrc !== undefined);
 
   return (
     <Modal>
       <div className="flex flex-col items-center gap-2">
+        {showWinnerAvatar && (
+          <Avatar src={winnerAvatar.src} fallback={winnerAvatar.fallback} className="h-16 w-16 border-gold/60" />
+        )}
         <div className="text-5xl">{icon}</div>
         <div className={`text-2xl font-bold ${tone}`}>{title}</div>
         <div className="text-xs tracking-widest text-white/40">FIN DE PARTIE</div>
@@ -132,6 +162,15 @@ export function GameOverScreen({ onExit, exitLabel = '◂ MENU PRINCIPAL' }: {
           <span className="text-white/40">VS</span>
           <span className="font-bold text-enemy tabular-nums">{enemyHp} PV</span>
         </div>
+        {winner === 'player' && user && (
+          <AnimatedLevelGauge
+            className="w-full"
+            fromLevel={startProgression.current.level}
+            fromXp={startProgression.current.xp}
+            toLevel={user.level ?? startProgression.current.level}
+            toXp={user.xp ?? startProgression.current.xp}
+          />
+        )}
         <Button
           variant="primary"
           className="w-full"
