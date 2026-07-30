@@ -335,12 +335,23 @@ function buildOffer(user, ctx, { day, excluded = [], pinned = null }) {
 
 // --- État du joueur ---
 
+// Rattrape les emplacements persistés avant le passage au prix unique
+// (`price` → `price_golds`/`price_gems`) : une offre du jour déjà tirée sous
+// l'ancien schéma resterait affichée telle quelle jusqu'à la prochaine
+// rotation, prix compris — d'où le NaN à l'écran sans ce filet.
+function withSlotPrices(slot) {
+  if (!slot || (slot.price_golds != null && slot.price_gems != null)) return slot;
+  return { ...slot, price_golds: SLOT_PRICE.golds, price_gems: SLOT_PRICE.gems };
+}
+
 function readState(userId) {
   const row = stmt.shopStateByUser.get(userId);
   let offer = null;
   try { offer = row?.offer ? JSON.parse(row.offer) : null; } catch { offer = null; }
+  if (offer?.slots) offer.slots = offer.slots.map(withSlotPrices);
   let pinned = null;
   try { pinned = row?.pinned ? JSON.parse(row.pinned) : null; } catch { pinned = null; }
+  pinned = withSlotPrices(pinned);
   let claimed = [];
   try { claimed = JSON.parse(row?.sets_claimed ?? '[]'); } catch { claimed = []; }
   return {
