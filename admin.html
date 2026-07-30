@@ -2877,9 +2877,28 @@ function packCardIds(p) {
   return Array.isArray(p?.cards) ? p.cards : [];
 }
 
-/** Pack (commercial) qui revendique déjà cette carte, hors pack courant. */
+/**
+ * Pack COMMERCIAL qui revendique déjà cette carte, hors pack courant. C'est le
+ * seul cas de conflit : une carte n'appartient qu'à un pack vendu (le serveur
+ * réaligne le champ `set` en conséquence).
+ */
 function packClaiming(cardId, exceptId = null) {
   return packs.find(p => p.id !== exceptId && p.starter !== true && packCardIds(p).includes(cardId)) ?? null;
+}
+
+/**
+ * Pack de DÉPART contenant cette carte. Ce n'est pas un conflit — la dotation
+ * chevauche les packs vendus par nature — mais ça se voit quand même : vendre
+ * en booster une carte déjà offerte à l'inscription est une décision, pas un
+ * hasard, et elle ne se prend pas à l'aveugle.
+ */
+function starterPackWith(cardId, exceptId = null) {
+  return packs.find(p => p.id !== exceptId && p.starter === true && packCardIds(p).includes(cardId)) ?? null;
+}
+
+/** Cette carte est-elle placée quelque part ? (départ compris) */
+function packHolding(cardId, exceptId = null) {
+  return packClaiming(cardId, exceptId) ?? starterPackWith(cardId, exceptId);
 }
 
 function filterPacks() {
@@ -3006,7 +3025,11 @@ function renderPackDetail() {
   const spread = packTierSpread(ids);
   const missing = packMissingMaterials(ids);
   const archs = packArchetypes(ids);
-  const orphans = cards.filter(c => !packs.some(x => x.starter !== true && packCardIds(x).includes(c.id))).length;
+  // Cartes placées NULLE PART, dotation comprise : une carte du pack de départ
+  // est distribuée, elle n'a rien d'orpheline. Ne compter que les packs vendus
+  // ferait passer toute la dotation pour du travail restant à faire.
+  const orphans = cards.filter(c => !packs.some(x => packCardIds(x).includes(c.id))).length;
+  const starterOverlap = ids.filter(id => starterPackWith(id, p.id)).length;
 
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
@@ -3069,7 +3092,9 @@ function renderPackDetail() {
       ${isStarter ? '' : `<span class="badge" style="background:var(--surface2);color:${(spread[3] + spread[4] + spread[5]) >= 1 && (spread[1] + spread[2]) >= 2 ? '#7bd88f' : '#e0a04a'}">
         garantie 2×T1-2 + 1×T3+ ${(spread[3] + spread[4] + spread[5]) >= 1 && (spread[1] + spread[2]) >= 2 ? '✓' : '⚠'}</span>`}
       ${missing.length ? `<span class="badge" style="background:var(--surface2);color:#e0a04a" title="${esc(missing.slice(0, 20).join(', '))}">⚠ ${missing.length} matériau(x) hors pack</span>` : ''}
-      ${isStarter ? '' : `<span class="badge" style="background:var(--surface2);color:var(--muted)">${orphans} carte(s) du catalogue dans aucun pack</span>`}
+      ${!isStarter && starterOverlap ? `<span class="badge" style="background:var(--surface2);color:#7bd88f"
+        title="Déjà offertes à la création du compte : les vendre reste possible, mais chaque joueur les possède déjà">🎓 ${starterOverlap} déjà offerte(s) au départ</span>` : ''}
+      <span class="badge" style="background:var(--surface2);color:var(--muted)">${orphans} carte(s) du catalogue dans aucun pack</span>
     </div>
     <div class="actions" style="margin-top:0">
       <button class="btn btn-secondary" onclick="openPackPicker()">🃏 Choisir les cartes</button>
@@ -3314,6 +3339,7 @@ function openPackPicker() {
           <option value="picked">Dans ce pack</option>
           <option value="free">Dans aucun pack</option>
           <option value="taken">Pris par un autre pack</option>
+          <option value="starter">Dans le pack de départ</option>
         </select>
       </div>
       <div class="picker-stats" id="picker-stats"></div>
@@ -3349,7 +3375,10 @@ function _pickerFiltered() {
     if (attribute && !(c.attributes || []).includes(attribute)) return false;
     if (membership === 'picked' && !pickerSelected.has(c.id)) return false;
     if (membership === 'taken' && !packClaiming(c.id, exceptId)) return false;
-    if (membership === 'free' && (pickerSelected.has(c.id) || packClaiming(c.id, exceptId))) return false;
+    if (membership === 'starter' && !starterPackWith(c.id, exceptId)) return false;
+    // « Dans aucun pack » veut dire AUCUN, pack de départ compris : une carte
+    // déjà offerte à l'inscription est placée, elle n'attend pas d'être casée.
+    if (membership === 'free' && (pickerSelected.has(c.id) || packHolding(c.id, exceptId))) return false;
     return true;
   });
 }
@@ -3361,12 +3390,20 @@ function renderPackPicker() {
   body.innerHTML = list.map(c => {
     const picked = pickerSelected.has(c.id);
     const taken = packClaiming(c.id, exceptId);
+    // Deux appartenances distinctes, deux couleurs : orange = conflit (une carte
+    // n'est vendue que dans un pack), vert = déjà offerte à l'inscription, ce qui
+    // s'additionne légitimement mais mérite d'être vu.
+    const starter = starterPackWith(c.id, exceptId);
+    const hints = [
+      taken ? `Déjà vendue dans ${taken.name || taken.id}` : '',
+      starter ? `Déjà offerte par ${starter.name || starter.id}` : '',
+    ].filter(Boolean).join(' · ');
     const thumb = c._has_illustration
       ? `<img class="picker-thumb" src="/illustrations/${c.id}" alt="" loading="lazy">`
       : `<div class="picker-thumb"></div>`;
     return `
-      <div class="picker-card ${picked ? 'picked' : ''} ${taken ? 'taken' : ''}" onclick="pickerToggle('${c.id}')"
-           title="${taken ? `Déjà dans ${esc(taken.name || taken.id)}` : ''}">
+      <div class="picker-card ${picked ? 'picked' : ''} ${taken || starter ? 'taken' : ''}" onclick="pickerToggle('${c.id}')"
+           title="${esc(hints)}">
         <div class="bulk-check ${picked ? 'checked' : ''}">${picked ? `<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5 L4 7 L8 3" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}</div>
         ${thumb}
         <div style="flex:1;min-width:0">
@@ -3374,6 +3411,7 @@ function renderPackPicker() {
           <div style="display:flex;gap:4px;margin-top:2px;align-items:center">
             ${tierBadge(c.tier)}
             ${taken ? `<span class="badge" style="background:var(--surface2);color:#e0a04a;font-size:10px">${esc(taken.id)}</span>` : ''}
+            ${starter ? `<span class="badge" style="background:var(--surface2);color:#7bd88f;font-size:10px">🎓 départ</span>` : ''}
           </div>
         </div>
       </div>`;
@@ -3387,7 +3425,9 @@ function renderPickerStats(visible) {
   const ids = [...pickerSelected];
   const spread = packTierSpread(ids);
   const missing = packMissingMaterials(ids);
-  const takenCount = ids.filter(id => packClaiming(id, selectedPack?.id ?? null)).length;
+  const exceptId = selectedPack?.id ?? null;
+  const takenCount = ids.filter(id => packClaiming(id, exceptId)).length;
+  const starterCount = ids.filter(id => starterPackWith(id, exceptId)).length;
   const low = spread[1] + spread[2];
   const high = spread[3] + spread[4] + spread[5];
   const guaranteeOk = high >= 1 && low >= 2;
@@ -3398,7 +3438,9 @@ function renderPickerStats(visible) {
           title="Un booster promet 2 cartes Tier 1-2 et 1 carte Tier 3+ ; la garantie se rabat silencieusement si le pack ne peut pas la tenir">
       garantie de tiers ${guaranteeOk ? '✓' : '⚠'}</span>
     ${missing.length ? `<span class="badge" style="background:var(--surface2);color:#e0a04a" title="${esc(missing.slice(0, 20).join(', '))}">⚠ ${missing.length} matériau(x) hors pack</span>` : ''}
-    ${takenCount ? `<span class="badge" style="background:var(--surface2);color:#e0a04a">${takenCount} déjà dans un autre pack</span>` : ''}
+    ${takenCount ? `<span class="badge" style="background:var(--surface2);color:#e0a04a">${takenCount} déjà vendue(s) ailleurs</span>` : ''}
+    ${starterCount ? `<span class="badge" style="background:var(--surface2);color:#7bd88f"
+          title="Ces cartes sont déjà offertes à la création du compte : les vendre en booster reste possible, mais chaque joueur les possède déjà">🎓 ${starterCount} déjà offerte(s) au départ</span>` : ''}
     <span class="badge" style="background:var(--surface2);color:var(--muted);margin-left:auto">${visible} carte(s) affichée(s)</span>
   `;
 }

@@ -269,7 +269,16 @@ Le découpage livré reste celui de `scripts/build-sets.js` (7 packs de ~57 cart
 - ~ distribution de tiers : rapportée, pas garantie (le booster se rabat silencieusement) ;
 - ✘ **« un archétype n'est jamais découpé entre deux packs » : impossible sur le pool actuel** — unir les cartes par archétype produit une composante unique de 223 cartes (une carte porte jusqu'à 4 attributs d'archétype, qui se chevauchent). C'est un travail éditorial sur `attributes.json`, pas un calcul — le brief le classe d'ailleurs en décision ouverte.
 
-Un pack designé à la main ne rétablit **aucune** de ces garanties : le sélecteur les **affiche** (garantie de tiers tenable ou non, matériaux hors pack, cartes déjà prises par un autre pack, cartes du catalogue dans aucun pack) sans jamais bloquer l'enregistrement. C'est un tableau de bord, pas un validateur.
+Un pack designé à la main ne rétablit **aucune** de ces garanties : le sélecteur les **affiche** (garantie de tiers tenable ou non, matériaux hors pack, cartes déjà vendues dans un autre pack, cartes déjà offertes par le pack de départ, cartes du catalogue dans aucun pack) sans jamais bloquer l'enregistrement. C'est un tableau de bord, pas un validateur.
+
+Deux appartenances qui ne se confondent pas, et que le sélecteur distingue par la couleur comme par le filtre :
+
+| | Signal | Nature |
+|---|---|---|
+| Déjà dans un **pack vendu** | badge orange (id du pack) | **Conflit** — une carte n'est vendue que dans un pack, le serveur réaligne le miroir en conséquence |
+| Déjà dans le **pack de départ** | badge vert 🎓 | **Information** — la dotation chevauche les packs vendus par nature, mais revendre une carte que tout le monde possède déjà est une décision, pas un hasard |
+
+Corollaire : « dans aucun pack » veut dire **aucun**, dotation comprise. Une carte du pack de départ est distribuée, elle n'attend pas d'être casée — la compter comme orpheline ferait passer toute la dotation pour du travail restant.
 
 `sets.json` **fait foi** pour le pool d'un booster ; le champ `set` de la carte en est le miroir (il rattrape une carte créée depuis l'admin après la rédaction du pack). `POST/PUT/DELETE /api/sets` **réalignent le miroir** : le champ `set` est posé sur les cartes listées et effacé sur celles qui sortent du pack — une carte n'appartient donc qu'à **un** pack commercial. Un pack de départ, lui, ne touche pas au miroir (il chevauche les packs vendus par nature).
 
