@@ -137,6 +137,7 @@ export default function DeckSelector() {
         onBack={() => navigate('main_menu')}
         right={<span className="text-xs text-white/40">{list.length} deck{list.length !== 1 ? 's' : ''}</span>}
         subtitle={<p className="mt-1.5 text-xs text-white/50">{MODES[mode].blurb}</p>}
+        safeAreaTop
       />
 
       <div className={`flex-1 space-y-3 overflow-y-auto p-4 ${manage ? 'pb-28' : 'pb-36'}`}>
