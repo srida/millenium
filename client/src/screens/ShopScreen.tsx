@@ -188,7 +188,8 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
   const [err, setErr] = useState<string | null>(null);
 
   const card = cardOf(slot.card_id);
-  const affordable = (user?.gold ?? 0) >= slot.price;
+  const affordableGolds = (user?.gold ?? 0) >= slot.price_golds;
+  const affordableGems = (user?.gems ?? 0) >= slot.price_gems;
   // Épingler puis rerouler se contredit : le die disparaît sur l'emplacement
   // épinglé plutôt que d'échouer au tap.
   const rerollable = !slot.purchased && !slot.pinned && freeReroll;
@@ -211,8 +212,9 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
           {slot.pinned && !slot.purchased && (
             <p className="mt-0.5 text-[10px] leading-tight text-tier-5">📌 Conservée à la prochaine rotation</p>
           )}
-          <span className={`mt-auto text-sm font-bold tabular-nums ${affordable ? 'text-gold' : 'text-white/30'}`}>
-            💰 {fmt.format(slot.price)}
+          <span className="mt-auto flex items-center gap-2 text-sm font-bold tabular-nums">
+            <span className={affordableGolds ? 'text-gold' : 'text-white/30'}>💰 {fmt.format(slot.price_golds)}</span>
+            <span className={affordableGems ? 'text-tier-4' : 'text-white/30'}>💎 {fmt.format(slot.price_gems)}</span>
           </span>
         </div>
       </div>
@@ -224,12 +226,20 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
           <>
             <Button
               variant="primary"
-              className="flex-1"
-              disabled={busy || !affordable}
-              title={affordable ? undefined : 'Pas assez de golds'}
-              onPointerDown={async () => setErr(await buy(slot))}
+              className="flex-1 px-2 text-xs"
+              disabled={busy || !affordableGolds}
+              title={affordableGolds ? undefined : 'Pas assez de golds'}
+              onPointerDown={async () => setErr(await buy(slot, 'golds'))}
             >
-              Acheter
+              💰 {fmt.format(slot.price_golds)}
+            </Button>
+            <Button
+              className="flex-1 px-2 text-xs"
+              disabled={busy || !affordableGems}
+              title={affordableGems ? undefined : 'Pas assez de gemmes'}
+              onPointerDown={async () => setErr(await buy(slot, 'gems'))}
+            >
+              💎 {fmt.format(slot.price_gems)}
             </Button>
             <button
               disabled={busy}

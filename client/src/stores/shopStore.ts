@@ -21,7 +21,8 @@ export interface ShopSlot {
   slot: number;
   card_id: string;
   tier: number;
-  price: number;
+  price_golds: number;
+  price_gems: number;
   reason: SlotReason;
   /** Carte débloquée (`material`) ou attribut visé (`affinity`). */
   reason_ref: string | null;
@@ -81,7 +82,7 @@ interface ShopStoreState {
   booster: BoosterResult | null;
 
   load: (force?: boolean) => Promise<void>;
-  buy: (slot: ShopSlot) => Promise<string | null>;
+  buy: (slot: ShopSlot, currency: 'golds' | 'gems') => Promise<string | null>;
   reroll: (slot: number) => Promise<string | null>;
   /** Épingle un emplacement, ou détache avec `null`. */
   pin: (slot: number | null) => Promise<string | null>;
@@ -169,11 +170,11 @@ export const useShopStore = create<ShopStoreState>((set, get) => ({
     }
   },
 
-  buy: async (slot) => {
+  buy: async (slot, currency) => {
     if (get().busy) return null;
     set({ busy: true });
     try {
-      const data = await (AuthClient as any).buyShopCard({ slot: slot.slot, cardId: slot.card_id });
+      const data = await (AuthClient as any).buyShopCard({ slot: slot.slot, cardId: slot.card_id, currency });
       absorb(set, data, [slot.card_id]);
       return null;
     } catch (e: any) {

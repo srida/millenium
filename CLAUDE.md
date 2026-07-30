@@ -261,9 +261,9 @@ Rotation à **5 h**, même reset que les missions (`shop.dayKey === missions.day
 | 2 | **L'Affinité** | carte partageant un attribut vu **≥ 2 fois** dans le deck actif | `affinity` |
 | 3 | **L'Inconnu** | tirage libre pondéré par tier | `random` |
 
-- **Pondération par tier** : 30 / 28 / 22 / 14 / 6 — volontairement plus plate que la distribution du pool (T1 38 %). Les tiers élevés coûtent plus cher : ils doivent sortir assez souvent pour que l'arbitrage budgétaire existe.
-- **Prix** : 75 / 125 / 200 / 350 / 550 golds. Le client ne transmet **jamais** de montant.
-- C'est le **badge** qui porte la valeur perçue, pas la carte : « une carte au hasard à 350 golds » et « la pièce qui manque à ta fusion à 350 golds » ne sont pas la même proposition.
+- **Pondération par tier** : 30 / 28 / 22 / 14 / 6 — volontairement plus plate que la distribution du pool (T1 38 %) : les tiers élevés doivent sortir assez souvent pour ne pas être anecdotiques.
+- **Prix** : **1000 golds ou 100 gemmes**, au choix du joueur à l'achat — un seul prix, quel que soit le tier de la carte. Le client ne transmet **jamais** de montant.
+- C'est le **badge** qui porte la valeur perçue, pas la carte : « une carte au hasard » et « la pièce qui manque à ta fusion » ne sont pas la même proposition, au même prix.
 - Un matériau désigné par **attribut** (`cost.materials` mélange ids de cartes et `ARCH_*`) est couvert par n'importe quel porteur possédé.
 - **Dégénérescence en fin de collection** : les slots 1 et 2 se replient naturellement sur le tirage libre, aucun traitement particulier.
 - **Reroll** : 1 gratuit par jour, jamais payant (un reroll achetable ferait de la boutique une machine à sous et casserait le plafond de 3 cartes/jour). La carte rerollée quitte le pool du **jour** et le slot est re-tiré **en conservant sa règle** — un reroll du Maillon rend un autre Maillon.
@@ -283,7 +283,7 @@ Rotation à **5 h**, même reset que les missions (`shop.dayKey === missions.day
 
 ### Boosters
 
-3 cartes, ciblées sur un set, **disponibles en permanence**, **600 golds ou 100 gemmes**, sans plafond d'achat. Tirage **à l'achat** (jamais à l'avance) : le cas « deck actif modifié entre la génération et l'ouverture » est donc sans objet.
+3 cartes, ciblées sur un set, **disponibles en permanence**, **2000 golds ou 150 gemmes**, sans plafond d'achat. Tirage **à l'achat** (jamais à l'avance) : le cas « deck actif modifié entre la génération et l'ouverture » est donc sans objet.
 
 Ordre de résolution du tirage — qui est aussi l'ordre d'**abandon** des garanties :
 

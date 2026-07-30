@@ -90,7 +90,8 @@ describe('offre quotidienne', () => {
     const mine = owned(user());
     for (const slot of snap.slots) {
       expect(mine.has(slot.card_id)).toBe(false);
-      expect(slot.price).toBe(shop.CARD_PRICES[slot.tier]);
+      expect(slot.price_golds).toBe(shop.SLOT_PRICE.golds);
+      expect(slot.price_gems).toBe(shop.SLOT_PRICE.gems);
       expect(slot.purchased).toBe(false);
       expect(slot.pinned).toBe(false);
     }
@@ -193,14 +194,28 @@ describe('slot 2 — L\'Affinité', () => {
 });
 
 describe('achat d\'un emplacement', () => {
-  it('débite le prix du tier et débloque la carte', () => {
+  it('débite le prix en golds et débloque la carte', () => {
     const user = newUser(1000);
     const slot = shop.refresh(user()).slots[0];
     const before = user().gold;
 
     const res = shop.buySlot(user(), slot.slot, slot.card_id);
     expect(res.ok).toBe(true);
-    expect(user().gold).toBe(before - shop.CARD_PRICES[slot.tier]);
+    expect(res.currency).toBe('golds');
+    expect(user().gold).toBe(before - shop.SLOT_PRICE.golds);
+    expect(progression.ownsCard(user(), slot.card_id)).toBe(true);
+  });
+
+  it('peut être payé en gemmes à la place', () => {
+    const user = newUser(0, 1000);
+    const slot = shop.refresh(user()).slots[0];
+    const before = user().gems;
+
+    const res = shop.buySlot(user(), slot.slot, slot.card_id, 'gems');
+    expect(res.ok).toBe(true);
+    expect(res.currency).toBe('gems');
+    expect(user().gems).toBe(before - shop.SLOT_PRICE.gems);
+    expect(user().gold).toBe(0);
     expect(progression.ownsCard(user(), slot.card_id)).toBe(true);
   });
 
@@ -301,7 +316,8 @@ describe('épingle', () => {
     const next = shop.buildOffer(user(), shop.context(user()), { day: '2027-01-01', pinned: { ...before, since_day: '2026-12-31' } });
     const kept = next.slots.find((s: any) => s.slot === 2);
     expect(kept.card_id).toBe(before.card_id);
-    expect(kept.price).toBe(before.price);
+    expect(kept.price_golds).toBe(before.price_golds);
+    expect(kept.price_gems).toBe(before.price_gems);
     expect(kept.reason).toBe(before.reason);
     expect(kept.purchased).toBe(false);
     // Les autres emplacements, eux, sont bien re-tirés.
@@ -539,9 +555,9 @@ describe('instantané', () => {
   it('porte les prix, les sets et l\'avancement de collection', () => {
     const user = newUser();
     const snap = shop.refresh(user());
-    expect(snap.prices).toEqual({ 1: 75, 2: 125, 3: 200, 4: 350, 5: 550 });
-    expect(snap.booster.price_golds).toBe(600);
-    expect(snap.booster.price_gems).toBe(100);
+    expect(snap.prices).toEqual({ golds: 1000, gems: 100 });
+    expect(snap.booster.price_golds).toBe(2000);
+    expect(snap.booster.price_gems).toBe(150);
     expect(snap.sets.length).toBeGreaterThan(0);
     expect(snap.collection.total).toBe(CARDS.length);
     expect(snap.collection.owned).toBe(owned(user()).size);
