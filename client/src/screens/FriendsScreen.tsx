@@ -91,7 +91,7 @@ export default function FriendsScreen() {
 
   return (
     <main className="flex min-h-dvh flex-col bg-surface text-white">
-      <ScreenHeader title="Amis" onBack={() => navigate('main_menu')} />
+      <ScreenHeader title="Amis" onBack={() => navigate('main_menu')} safeAreaTop />
 
       <div className="flex-1 space-y-5 overflow-y-auto p-4">
         {error && (
