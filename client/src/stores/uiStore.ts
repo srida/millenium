@@ -32,6 +32,9 @@ export interface ScreenParams {
   // Écran de jeu lancé depuis le Tournoi : la partie compte comme une manche du
   // bracket (adversaire + deck lus dans tournamentStore.pendingGame).
   tournament?: boolean;
+  // Panneau admin (iframe) : édite un deck PUBLIC (par id) au lieu d'un deck du
+  // joueur. Voir App.tsx / DeckBuilder.tsx.
+  publicDeckId?: string;
   [key: string]: unknown;
 }
 
@@ -74,9 +77,17 @@ function initialScreen(): ScreenName {
   return s && SCREEN_NAMES.includes(s) ? s : 'main_menu';
 }
 
+// Deep-link ?publicDeckId= : ouvre DeckBuilder sur un deck PUBLIC (panneau
+// admin, iframe), plutôt qu'un deck du joueur. Seul param transmis par URL —
+// tous les autres passent par navigate() en SPA.
+function initialParams(): ScreenParams {
+  const publicDeckId = new URLSearchParams(window.location.search).get('publicDeckId');
+  return publicDeckId ? { publicDeckId } : {};
+}
+
 export const useUiStore = create<UiState>((set) => ({
   screen: initialScreen(),
-  params: {},
+  params: initialParams(),
   tooltip: null,
 
   navigate: (screen, params = {}) => set({ screen, params, tooltip: null }),
