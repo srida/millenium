@@ -15,13 +15,14 @@ import { useShopStore, hasUnseenShop } from '../stores/shopStore.js';
 import { Button } from '../components/ui/primitives.js';
 import { ProgressionPills, ProfilePill } from '../components/ui/ProgressionStats.js';
 import { FullscreenButton } from '../components/system/DeviceGuards.js';
+import { AppVersion } from '../components/system/AppVersion.js';
 
 export default function MainMenu() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface p-6 pt-[max(1.5rem,env(safe-area-inset-top))] text-white">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface p-6 pt-[max(1.5rem,env(safe-area-inset-top))] text-white">
       <FullscreenButton className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))]" />
       <div className="text-center">
         <img src="/logo.png" alt="Millenium" className="mx-auto h-32 w-32 object-contain" />
@@ -71,6 +72,7 @@ export default function MainMenu() {
         {/* Progression du compte, sous l'identité : niveau, XP et monnaies. */}
         <ProgressionPills user={user} />
       </div>
+      <AppVersion className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))]" />
     </main>
   );
 }

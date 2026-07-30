@@ -8,6 +8,7 @@ import * as AuthClient from '../data/AuthClient.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from '../components/ui/primitives.js';
+import { AppVersion } from '../components/system/AppVersion.js';
 
 type Mode = 'login' | 'register' | 'forgot';
 
@@ -51,7 +52,7 @@ export default function AuthScreen() {
     : email.trim() && password && (mode === 'login' || username.trim());
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface p-6 text-white">
+    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface p-6 text-white">
       <div className="text-center">
         <h1 className="text-3xl font-bold tracking-[0.2em] text-gold">MILLENIUM</h1>
         <p className="mt-1 text-sm text-white/50">
@@ -122,6 +123,7 @@ export default function AuthScreen() {
       <button onPointerDown={() => navigate('main_menu')} className="text-xs text-white/50 underline">
         Continuer en invité →
       </button>
+      <AppVersion className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))]" />
     </main>
   );
 }
