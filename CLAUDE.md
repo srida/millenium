@@ -306,7 +306,8 @@ Troisième famille d'assets, calquée sur les avatars de decks publics : fichier
 
 - **Une seule différence, mais elle compte : pas d'affiche par défaut.** Il n'existe pas d'équivalent de `PUBLIC_DECK_000.png` à livrer, donc la route rend un 404 franc et l'instantané porte **`has_poster`** ; c'est le client qui pose une tuile neutre (🎁). C'est le seul endroit du projet où le repli est côté client plutôt que serveur, et c'est assumé : mieux vaut une tuile qu'une `<img>` cassée.
 - L'URL étant stable, le remplacement d'une affiche s'accompagne d'un cache-buster côté admin (`posterBust`), comme `avatarBust` pour les avatars.
-- **Déploiement** : `sets.json` et les affiches passent par `scripts/sync-data.js` (entrée `sets` de `ENTITIES`, clé `packPosters` de `ASSETS` / `/api/export`) — `--no-illustrations` coupe les trois familles d'images. Ne pas oublier le proxy de dev (`client/vite.config.ts`) et la liste d'exclusion du fallback SPA (`server.js`) pour tout nouveau préfixe d'asset.
+- **Déploiement** : `sets.json` et les affiches passent par `scripts/sync-data.js` (entrée `sets` de `ENTITIES`, clé `packPosters` de `ASSETS` / `/api/export`) — `--no-illustrations` coupe les trois familles d'images.
+- ⚠️ **Un nouveau préfixe d'asset se déclare à quatre endroits**, et l'oubli de l'un d'eux ne se voit qu'en prod ou en PWA installée : le proxy de dev (`client/vite.config.ts`), la liste d'exclusion du fallback SPA (`server.js`), et — côté service worker — `navigateFallbackDenylist` **et** `runtimeCaching` (`vite.config.ts` : les affiches suivent la même politique `StaleWhileRevalidate` que les illustrations et les avatars).
 
 ### Emplacements quotidiens
 
@@ -371,7 +372,7 @@ Toutes les mutations renvoient l'instantané complet + la progression à jour : 
 ### Client
 
 - `stores/shopStore.ts` — instantané + actions. Absorbe chaque réponse (solde via `authStore.applyProgression`, cartes via `collectionStore.add` — on ne recharge pas les 398 ids après chaque achat).
-- `screens/ShopScreen.tsx` — emplacements (bouton 📌 par emplacement), boosters, révélation en modale. `<PackPoster>` pose l'**affiche du pack** à gauche de son nom (et dans l'en-tête de la révélation), avec une tuile 🎁 quand `has_poster` est faux.
+- `screens/ShopScreen.tsx` — emplacements (bouton 📌 par emplacement), boosters, révélation en modale. `<PackPoster>` pose l'**affiche du pack** à gauche de la carte de booster, pleine hauteur (96×112) : c'est le visage du produit, et la section Boosters se lit alors au même rythme que les emplacements du dessus (illustration puis texte). Vignette plus petite dans l'en-tête de la révélation. Tuile 🎁 quand `has_poster` est faux.
 - `MainMenu` — bouton `🛒 Boutique` avec une pastille de nouveauté : un simple point, pas un compteur, effacé dès que l'écran a été ouvert pour le jour en cours (`hasUnseenShop` / `markShopSeen`, localStorage).
 - `components/ui/primitives.tsx` — `Countdown` (rafraîchi à la **minute** : un repère, pas un chronomètre), partagé avec l'écran Missions.
 - Verrouillé par `client/src/test/shop.test.ts` (36 golden tests) et `client/src/test/packs.test.ts` (14 : dotation, exclusions du pack de départ, miroir, affiche), même harnais serveur que `missions.test.ts`. Les deux fichiers sont **séparés à dessein** : `packs.test.ts` réécrit `sets.json` en cours de route, là où `shop.test.ts` indexe les packs par position.

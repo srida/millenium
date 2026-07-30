@@ -279,14 +279,19 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
 // --- Boosters ---
 
 /**
- * Affiche du pack — c'est elle qui lui donne un visage à côté de son nom. Sans
- * affiche posée en admin, une tuile neutre : le serveur n'a pas d'image par
- * défaut à servir, et une `<img>` cassée serait pire que rien.
+ * Affiche du pack — c'est le visage du produit, pas une vignette d'appoint :
+ * elle occupe la gauche de la carte, comme l'illustration d'un emplacement.
+ * Sans affiche posée en admin, une tuile neutre : le serveur n'a pas d'image
+ * par défaut à servir, et une `<img>` cassée serait pire que rien.
  */
-function PackPoster({ set, className }: { set: ShopSet; className: string }) {
+function PackPoster({ set, className, fallbackClassName = 'text-2xl' }: {
+  set: ShopSet;
+  className: string;
+  fallbackClassName?: string;
+}) {
   if (!set.has_poster) {
     return (
-      <div className={`${className} flex flex-shrink-0 items-center justify-center rounded-lg border border-line bg-white/5 text-white/25`}>
+      <div className={`${className} ${fallbackClassName} flex flex-shrink-0 items-center justify-center rounded-lg border border-line bg-white/5 text-white/25`}>
         🎁
       </div>
     );
@@ -311,49 +316,55 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
   const disabled = busy || set.complete || !set.booster_enabled;
 
   return (
-    <Panel className={`flex flex-col gap-2 p-3 ${set.complete ? 'border-success/40 bg-success/5' : ''}`}>
-      <div className="flex items-start gap-2">
-        <PackPoster set={set} className="h-12 w-12" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold leading-tight">{set.name}</p>
-          <p className="truncate text-[10px] text-white/40">{set.archetypes.join(' · ')}</p>
-        </div>
-        <span className={`flex-shrink-0 text-xs tabular-nums ${set.complete ? 'text-success' : 'text-white/50'}`}>
-          {set.owned_count}/{set.card_count}
-        </span>
-      </div>
+    // L'affiche à gauche, le reste à droite : même anatomie qu'un emplacement du
+    // jour (illustration puis texte), pour que la section Boosters se lise au
+    // même rythme que celle du dessus.
+    <Panel className={`flex gap-3 p-3 ${set.complete ? 'border-success/40 bg-success/5' : ''}`}>
+      <PackPoster set={set} className="h-28 w-24" />
 
-      <Gauge value={set.card_count ? set.owned_count / set.card_count : 0} className="h-1.5" fillClassName={set.complete ? 'bg-success' : 'bg-gold'} />
-
-      {set.complete ? (
-        <p className="py-1 text-center text-xs font-semibold text-success">✓ Collection complète</p>
-      ) : (
-        <>
-          <div className="flex gap-2">
-            <Button
-              variant="primary" className="flex-1 px-2 text-xs"
-              disabled={disabled || (user?.gold ?? 0) < priceGolds}
-              onPointerDown={async () => setErr(await open(set.id, 'golds'))}
-            >
-              💰 {fmt.format(priceGolds)}
-            </Button>
-            <Button
-              className="flex-1 px-2 text-xs"
-              disabled={disabled || (user?.gems ?? 0) < priceGems}
-              onPointerDown={async () => setErr(await open(set.id, 'gems'))}
-            >
-              💎 {fmt.format(priceGems)}
-            </Button>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold leading-tight">{set.name}</p>
+            <p className="truncate text-[10px] text-white/40">{set.archetypes.join(' · ')}</p>
           </div>
-          {/* La valeur d'un booster CROÎT à mesure que le set se vide : c'est la
-              propriété la plus vertueuse du système, elle doit se voir. */}
-          <p className="text-[10px] text-white/30">
-            {missing} carte{missing > 1 ? 's' : ''} restante{missing > 1 ? 's' : ''}
-            {set.completion_reward?.gems ? ` · set complet : +${set.completion_reward.gems} 💎` : ''}
-          </p>
-        </>
-      )}
-      {err && <p className="text-[10px] text-danger">{err}</p>}
+          <span className={`flex-shrink-0 text-xs tabular-nums ${set.complete ? 'text-success' : 'text-white/50'}`}>
+            {set.owned_count}/{set.card_count}
+          </span>
+        </div>
+
+        <Gauge value={set.card_count ? set.owned_count / set.card_count : 0} className="h-1.5" fillClassName={set.complete ? 'bg-success' : 'bg-gold'} />
+
+        {set.complete ? (
+          <p className="my-auto py-1 text-center text-xs font-semibold text-success">✓ Collection complète</p>
+        ) : (
+          <>
+            <div className="mt-auto flex gap-2">
+              <Button
+                variant="primary" className="flex-1 px-2 text-xs"
+                disabled={disabled || (user?.gold ?? 0) < priceGolds}
+                onPointerDown={async () => setErr(await open(set.id, 'golds'))}
+              >
+                💰 {fmt.format(priceGolds)}
+              </Button>
+              <Button
+                className="flex-1 px-2 text-xs"
+                disabled={disabled || (user?.gems ?? 0) < priceGems}
+                onPointerDown={async () => setErr(await open(set.id, 'gems'))}
+              >
+                💎 {fmt.format(priceGems)}
+              </Button>
+            </div>
+            {/* La valeur d'un booster CROÎT à mesure que le set se vide : c'est la
+                propriété la plus vertueuse du système, elle doit se voir. */}
+            <p className="text-[10px] text-white/30">
+              {missing} carte{missing > 1 ? 's' : ''} restante{missing > 1 ? 's' : ''}
+              {set.completion_reward?.gems ? ` · set complet : +${set.completion_reward.gems} 💎` : ''}
+            </p>
+          </>
+        )}
+        {err && <p className="text-[10px] text-danger">{err}</p>}
+      </div>
     </Panel>
   );
 }
@@ -368,7 +379,7 @@ function BoosterReveal({ onClose }: { onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
       <div className="mb-3 flex items-center justify-center gap-2">
-        {set && <PackPoster set={set} className="h-8 w-8" />}
+        {set && <PackPoster set={set} className="h-10 w-10" fallbackClassName="text-lg" />}
         <h2 className="text-sm font-bold tracking-widest text-gold">{set ? set.name.toUpperCase() : 'BOOSTER OUVERT'}</h2>
       </div>
       <div className="flex justify-center gap-2">
