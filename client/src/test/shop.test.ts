@@ -565,4 +565,26 @@ describe('instantané', () => {
       expect(s.owned_count).toBeLessThanOrEqual(s.card_count);
     }
   });
+
+  it('rattrape une offre persistée avant le prix unique (price → price_golds/price_gems)', () => {
+    // Simule une offre écrite par une version antérieure du schéma (avant le
+    // passage au prix unique) : plus de champ `price`, un emplacement épinglé
+    // dans le même état legacy. Sans rattrapage à la lecture, ces champs
+    // manquants s'affichent en NaN côté client.
+    const user = newUser();
+    const day = shop.dayKey();
+    const legacySlot = { slot: 1, card_id: 'CORE_001', tier: 1, price: 75, reason: 'random', reason_ref: null, purchased: false };
+    stmt.upsertShopState.run({
+      user_id: user().id,
+      offer_day: day,
+      offer: JSON.stringify({ day, generated_at: Date.now(), slots: [legacySlot], excluded: [] }),
+      reroll_free_day: null,
+      pinned: JSON.stringify({ slot: 1, card_id: 'CORE_001', tier: 1, price: 75, reason: 'random', reason_ref: null, since_day: day }),
+      sets_claimed: JSON.stringify([]),
+    });
+
+    const snap = shop.refresh(user());
+    expect(snap.slots[0].price_golds).toBe(1000);
+    expect(snap.slots[0].price_gems).toBe(100);
+  });
 });
