@@ -18,16 +18,11 @@
 //   2. L'OFFRE EST SERVEUR. Elle est générée, horodatée et persistée ici ;
 //      aucune action client (changement de deck, rechargement, fuseau annoncé)
 //      ne peut la régénérer — sinon l'offre se re-tire jusqu'à satisfaction.
-const path = require('path');
-const fs = require('fs');
 const crypto = require('crypto');
 const { db, stmt } = require('./db');
 const progression = require('./progression');
 const missions = require('./missions');
-
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
-const CARDS_FILE = path.join(DATA_DIR, 'cards.json');
-const SETS_FILE = path.join(DATA_DIR, 'sets.json');
+const packs = require('./sets');
 
 // --- Barème (brief §3.3, §3.4, §3.5) ---
 
@@ -71,38 +66,24 @@ const BOOSTER = Object.freeze({
 // Une seule occurrence peut être un accident de deckbuilding.
 const AFFINITY_MIN_OCCURRENCES = 2;
 
-// --- Catalogues (cache mémoire invalidé au mtime, comme progression.allCardIds) ---
+// --- Catalogues ---
+// Cartes et packs sont lus par `sets.js` (cache mémoire invalidé au mtime) : ce
+// catalogue est partagé avec progression.js, qui en a besoin pour la dotation.
 
-function jsonCache(file, build) {
-  let cache = { mtime: -1, value: build([]) };
-  return () => {
-    try {
-      const mtime = fs.statSync(file).mtimeMs;
-      if (mtime !== cache.mtime) {
-        const raw = JSON.parse(fs.readFileSync(file, 'utf8').replace(/,\s*([\]}])/g, '$1'));
-        cache = { mtime, value: build(Array.isArray(raw) ? raw : []) };
-      }
-    } catch { /* fichier absent/illisible : on garde le dernier cache connu */ }
-    return cache.value;
-  };
-}
-
-const cards = jsonCache(CARDS_FILE, list => new Map(list.filter(c => c && c.id).map(c => [c.id, c])));
-const sets = jsonCache(SETS_FILE, list => list.filter(s => s && s.id));
-
-function card(id) { return cards().get(id) ?? null; }
-function setDef(id) { return sets().find(s => s.id === id) ?? null; }
+const cards = packs.cards;
 
 /**
- * Cartes d'un set. `sets.json` fait foi ; le champ `set` de la carte n'en est
- * que le miroir — c'est lui qui rattrape une carte créée depuis l'admin après
- * la rédaction du set.
+ * Packs VENDUS EN BOUTIQUE. Le pack de départ en est exclu à la source, une
+ * fois pour toutes : il est déjà entièrement possédé par chaque compte neuf, il
+ * n'aurait jamais rien à vendre — et sa prime de complétion tomberait à
+ * l'inscription. `setDef` continue de le trouver, pour pouvoir refuser un achat
+ * avec un motif clair.
  */
-function setCardIds(def) {
-  const listed = Array.isArray(def.cards) ? def.cards : [];
-  const mirrored = [...cards().values()].filter(c => c.set === def.id).map(c => c.id);
-  return [...new Set([...listed, ...mirrored])].filter(id => cards().has(id));
-}
+const sets = packs.boosterPacks;
+const setCardIds = packs.cardIdsOf;
+
+function card(id) { return cards().get(id) ?? null; }
+function setDef(id) { return packs.byId(id); }
 
 /** Matériaux d'une carte, toutes options d'invocation confondues. */
 function materialsOf(c) {
@@ -608,6 +589,9 @@ function drawBooster(pool, ctx, rand) {
 const buyBooster = db.transaction((user, setId, currency = 'golds') => {
   const def = setDef(setId);
   if (!def) return { ok: false, reason: 'Set inconnu.' };
+  // Le pack de départ est absent de l'instantané : un client à jour ne peut pas
+  // le proposer. On refuse quand même explicitement — l'id vient du réseau.
+  if (packs.isStarter(def)) return { ok: false, reason: 'Ce pack est offert à la création du compte.' };
   if (def.booster_enabled === false) return { ok: false, reason: 'Ce set n\'est pas vendu en booster.' };
   if (currency !== 'golds' && currency !== 'gems') return { ok: false, reason: 'Monnaie inconnue.' };
 
@@ -689,6 +673,10 @@ function setsView(ctx) {
       archetypes: (def.archetypes ?? []).slice(0, 3).map(a => a.name ?? a.attribute),
       signature_card: def.signature_card ?? null,
       completion_reward: def.completion_reward ?? null,
+      // Le pack a-t-il SON affiche ? Il n'y a pas d'affiche par défaut à servir
+      // (contrairement aux avatars de decks publics) : c'est donc le client qui
+      // pose une tuile neutre, plutôt qu'une image cassée.
+      has_poster: packs.posterExists(def.id),
     };
   });
 }

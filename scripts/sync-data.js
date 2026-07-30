@@ -12,7 +12,7 @@
  *   ADMIN_PASS  — mot de passe admin
  *
  * "pull"  : copie les données de Railway vers le dossier local data/ + resources/card_illustrations/
- *           + resources/enemy_avatars/ (--no-illustrations coupe les deux)
+ *           + resources/enemy_avatars/ + resources/pack_posters/ (--no-illustrations coupe les trois)
  * "push"  : envoie les données locales vers Railway (écrase les données distantes)
  */
 
@@ -49,12 +49,14 @@ const ADMIN_PASS = process.env.ADMIN_PASS || '';
 const DATA_DIR  = process.env.DATA_DIR  || path.join(ROOT, 'data');
 const ILLUS_DIR = process.env.ILLUS_DIR || path.join(ROOT, 'resources', 'card_illustrations');
 const AVATARS_DIR = process.env.AVATARS_DIR || path.join(ROOT, 'resources', 'enemy_avatars');
+const POSTERS_DIR = process.env.POSTERS_DIR || path.join(ROOT, 'resources', 'pack_posters');
 
-// Les deux familles d'images se synchronisent à l'identique, sur deux dossiers
-// et deux jeux de routes. `key` est la clé du manifeste de /api/export.
+// Les familles d'images se synchronisent à l'identique, sur un dossier et un jeu
+// de routes chacune. `key` est la clé du manifeste de /api/export.
 const ASSETS = [
   { key: 'illustrations', label: 'Illustrations', dir: ILLUS_DIR, exportPath: id => `/api/export/illustration/${id}`, pushPath: id => `/api/illustrations/${id}` },
   { key: 'avatars',       label: 'Avatars',       dir: AVATARS_DIR, exportPath: id => `/api/export/avatar/${id}`,      pushPath: id => `/api/avatars/${id}` },
+  { key: 'packPosters',   label: 'Affiches de packs', dir: POSTERS_DIR, exportPath: id => `/api/export/pack-poster/${id}`, pushPath: id => `/api/pack-posters/${id}` },
 ];
 
 const ENTITIES = [
@@ -64,6 +66,7 @@ const ENTITIES = [
   { type: 'boards',     file: 'boards.json',     importPath: '/api/boards/import',     deletePath: id => `/api/boards/${id}` },
   { type: 'magies',     file: 'magies.json',     importPath: '/api/magies/import',     deletePath: id => `/api/magies/${id}` },
   { type: 'publicDecks', file: 'public_decks.json', importPath: '/api/decks/import',   deletePath: id => `/api/decks/${id}` },
+  { type: 'sets',       file: 'sets.json',       importPath: '/api/sets/import',       deletePath: id => `/api/sets/${id}` },
 ];
 
 function authHeader() {

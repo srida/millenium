@@ -41,6 +41,12 @@ export interface ShopSet {
   archetypes: string[];
   signature_card: string | null;
   completion_reward: { gems?: number; gold?: number; xp?: number } | null;
+  /**
+   * Le pack a son affiche (posée depuis l'admin). Il n'y a pas d'affiche par
+   * défaut à servir — contrairement aux avatars de decks publics — donc c'est
+   * l'écran qui pose une tuile neutre quand elle manque.
+   */
+  has_poster: boolean;
 }
 
 export interface PinnedSlot {

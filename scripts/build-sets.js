@@ -25,7 +25,12 @@
 //     un travail éditorial sur les attributs, pas un algorithme.
 //
 // Quand le découpage à la main sera fait, il suffit de remplacer sets.json et
-// les champs `set` : shop.js ne lit rien d'autre.
+// les champs `set` : sets.js ne lit rien d'autre.
+//
+// ⚠️ LES PACKS SE DESIGNENT MAINTENANT DEPUIS L'ADMIN (onglet Packs). `--write`
+// réécrit sets.json ET le champ `set` des 398 cartes, dans data/ comme dans
+// initial-data/ : il ÉCRASE donc ce découpage. Ce script n'est plus qu'un
+// générateur de point de départ.
 const fs = require('fs');
 const path = require('path');
 

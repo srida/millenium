@@ -150,6 +150,20 @@ select.filter:focus { border-color: var(--accent); }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
 .deckbuilder-overlay { position: fixed; inset: 0; background: #0f1117; z-index: 110; display: flex; flex-direction: column; }
 .deckbuilder-overlay iframe { flex: 1; width: 100%; border: none; }
+
+/* Sélecteur de cartes d'un pack — même plein écran que le Deck Builder, mais le
+   catalogue est déjà en mémoire : pas d'iframe, une grille locale. */
+.picker-head { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; background: var(--surface); }
+.picker-head-top { display: flex; align-items: center; gap: 10px; }
+.picker-title { font-size: 15px; font-weight: 700; margin-right: auto; }
+.picker-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.picker-stats { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 11px; color: var(--muted); }
+.picker-body { flex: 1; overflow-y: auto; padding: 10px 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; align-content: start; }
+.picker-card { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; background: var(--surface); min-width: 0; }
+.picker-card:hover { border-color: var(--accent); }
+.picker-card.picked { border-color: var(--accent); background: var(--accent)18; }
+.picker-card.taken { opacity: .75; }
+.picker-thumb { width: 30px; height: 30px; border-radius: 4px; object-fit: cover; flex-shrink: 0; background: var(--surface2); }
 .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; width: 460px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
 .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
 .modal-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: flex-end; }
@@ -366,6 +380,7 @@ select.filter:focus { border-color: var(--accent); }
       <button class="tab" onclick="switchTab('boards')">Terrains</button>
       <button class="tab" onclick="switchTab('magies')">Magies</button>
       <button class="tab" onclick="switchTab('decks')">Decks publics</button>
+      <button class="tab" onclick="switchTab('packs')">🎁 Packs</button>
       <button class="tab" onclick="switchTab('stats')">📊 Stats</button>
       <button class="tab" onclick="switchTab('db')">🗄️ Base SQL</button>
     </div>
@@ -521,6 +536,26 @@ select.filter:focus { border-color: var(--accent); }
     </div>
   </div>
 
+  <!-- PACKS TAB (boutique — data/sets.json) -->
+  <div id="tab-packs" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="pack-search" placeholder="Rechercher..." oninput="filterPacks()">
+          <span id="pack-count" class="count">0</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="openNewPack()">+ Nouveau pack</button>
+          <button class="btn btn-secondary btn-sm" onclick="openImportModal('sets')">Importer JSON</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="pack-list"></div>
+    </div>
+    <div class="content" id="pack-detail">
+      <div class="empty"><span>Sélectionne un pack</span></div>
+    </div>
+  </div>
+
   <!-- STATS TAB -->
   <div id="tab-stats" class="main hidden">
     <div class="content" id="stats-content" style="padding:24px;overflow-y:auto;width:100%">
@@ -548,27 +583,33 @@ select.filter:focus { border-color: var(--accent); }
   <iframe id="deckbuilder-frame"></iframe>
 </div>
 
+<!-- SÉLECTEUR DE CARTES D'UN PACK -->
+<div class="deckbuilder-overlay hidden" id="packpicker-overlay"></div>
+
 <!-- TOAST -->
 <div class="toast hidden" id="toast"></div>
 
 <script>
 // ================== STATE ==================
-let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [];
-let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null;
+// `packs` = les packs de boutique (data/sets.json, API /api/sets). Le code et la
+// donnée disent « set », l'interface dit « pack » : ici on est dans l'interface.
+let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [];
+let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null;
 let currentTab = 'cards';
-let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false;
+let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false;
 let selectionMode = false;
 const bulkSelected = new Set();
 
 // ================== INIT ==================
 async function init() {
-  [cards, attributes, powers, boards, magies, publicDecks] = await Promise.all([
+  [cards, attributes, powers, boards, magies, publicDecks, packs] = await Promise.all([
     apiFetch('/api/cards'),
     apiFetch('/api/attributes'),
     apiFetch('/api/powers'),
     apiFetch('/api/boards'),
     apiFetch('/api/magies'),
     apiFetch('/api/decks'),
+    apiFetch('/api/sets'),
   ]);
   populateAttributeFilter();
   populatePowerFilter();
@@ -578,6 +619,7 @@ async function init() {
   renderBoardList();
   renderMagieList();
   renderPublicDeckList();
+  renderPackList();
 }
 
 function populateAttributeFilter() {
@@ -620,6 +662,7 @@ function switchTab(tab) {
                   (tab === 'boards' && t.includes('terrain')) ||
                   (tab === 'magies' && t.includes('magie')) ||
                   (tab === 'decks' && t.includes('deck')) ||
+                  (tab === 'packs' && t.includes('pack')) ||
                   (tab === 'stats' && t.includes('stat')) ||
                   (tab === 'db' && t.includes('sql'));
     if (match) el.classList.add('active');
@@ -2815,6 +2858,567 @@ function cancelNewPublicDeck() {
   showList();
 }
 
+// ================== PACKS DE BOUTIQUE ==================
+// data/sets.json via /api/sets. Un pack, c'est trois choses : un nom, une
+// AFFICHE (c'est elle qui le vend, à côté de son nom en boutique) et une liste
+// de cartes. Le prix et la prime de complétion, eux, sont globaux (shop.js) —
+// pas de réglage par pack.
+//
+// Cas particulier, le PACK DE DÉPART (`starter`) : ce n'est pas un produit mais
+// la dotation d'un compte neuf. Il est absent de la boutique, ne se vend jamais,
+// et ne possède pas le champ `set` des cartes (il chevauche les packs
+// commerciaux par nature).
+
+// L'URL d'une affiche est stable (/pack-posters/<id>) : sans ce cache-buster, le
+// navigateur continuerait d'afficher l'ancienne image après un remplacement.
+let posterBust = Date.now();
+
+function packCardIds(p) {
+  return Array.isArray(p?.cards) ? p.cards : [];
+}
+
+/** Pack (commercial) qui revendique déjà cette carte, hors pack courant. */
+function packClaiming(cardId, exceptId = null) {
+  return packs.find(p => p.id !== exceptId && p.starter !== true && packCardIds(p).includes(cardId)) ?? null;
+}
+
+function filterPacks() {
+  const q = (document.getElementById('pack-search')?.value || '').toLowerCase();
+  const filtered = packs.filter(p =>
+    !q || (p.name || '').toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+  renderPackList(filtered);
+}
+
+function renderPackList(list = packs) {
+  const el = document.getElementById('pack-list');
+  if (!el) return;
+  document.getElementById('pack-count').textContent = list.length;
+  el.innerHTML = list.map(p => {
+    const isActive = selectedPack && selectedPack.id === p.id;
+    const thumb = p._has_poster
+      ? `<img class="list-thumb" src="/pack-posters/${esc(p.id)}?t=${posterBust}" alt="" loading="lazy">`
+      : `<div class="list-thumb-placeholder"><span style="font-size:14px;opacity:.4">🎁</span></div>`;
+    return `
+      <div class="list-item ${isActive ? 'selected' : ''}" onclick="selectPack('${esc(p.id)}')">
+        ${thumb}
+        <div style="flex:1;min-width:0">
+          <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name || p.id)}</span>
+          <div style="display:flex;gap:4px;margin-top:3px;align-items:center">
+            <span class="item-id">${esc(p.id)}</span>
+            <span class="badge" style="background:var(--surface2);font-size:10px">${packCardIds(p).length} cartes</span>
+            ${p.starter === true ? `<span class="badge" style="background:var(--surface2);color:#7bd88f;font-size:10px">🎓 départ</span>` : ''}
+            ${p.starter !== true && p.booster_enabled === false ? `<span class="badge" style="background:var(--surface2);color:var(--muted);font-size:10px">hors vente</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectPack(id) {
+  selectedPack = packs.find(p => p.id === id);
+  isNewPack = false;
+  renderPackList();
+  renderPackDetail();
+  showDetail();
+}
+
+/** Répartition par tier des cartes d'un pack — la garantie du booster en dépend. */
+function packTierSpread(ids) {
+  const spread = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  for (const id of ids) {
+    const c = cards.find(x => x.id === id);
+    if (c) spread[Math.round(c.tier)] = (spread[Math.round(c.tier)] || 0) + 1;
+  }
+  return spread;
+}
+
+/**
+ * Matériaux d'invocation absents du pack. `build-sets.js` garantissait qu'une
+ * fusion ne soit jamais séparée de ses matériaux ; à la main, ce n'est plus vrai
+ * — d'où ce décompte, purement informatif (shop.js se rabat silencieusement).
+ * Les matériaux désignés par ATTRIBUT (ARCH_*) ne sont pas des cartes : ignorés.
+ */
+function packMissingMaterials(ids) {
+  const inPack = new Set(ids);
+  const missing = new Set();
+  for (const id of ids) {
+    const c = cards.find(x => x.id === id);
+    if (!c) continue;
+    const mats = [...(c.cost?.materials || [])];
+    for (const opt of c.summon_options || []) mats.push(...(opt.cost?.materials || []));
+    for (const m of mats) {
+      if (!m || String(m).startsWith('ARCH_')) continue;
+      if (!inPack.has(m)) missing.add(m);
+    }
+  }
+  return [...missing];
+}
+
+/** Archétypes dominants — c'est le sous-titre du pack en boutique. */
+function packArchetypes(ids, limit = 3) {
+  const counts = new Map();
+  for (const id of ids) {
+    const c = cards.find(x => x.id === id);
+    for (const a of c?.attributes || []) {
+      const attr = attributes.find(x => x.id === a);
+      if (attr?.categorie !== 'Archetype') continue;
+      counts.set(a, (counts.get(a) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([attribute, card_count]) => ({
+      attribute,
+      name: attributes.find(x => x.id === attribute)?.name || attribute,
+      card_count,
+    }));
+}
+
+/**
+ * Reporte les champs du formulaire dans l'objet en mémoire. Le détail d'un pack
+ * se re-rend en cours d'édition (bascule « départ », retour du sélecteur de
+ * cartes) : sans ça, un nom saisi mais pas encore enregistré serait perdu à
+ * chaque re-rendu.
+ */
+function _stashPackFormEdits() {
+  if (!selectedPack || !document.getElementById('pf-id')) return;
+  selectedPack.id = document.getElementById('pf-id').value.trim() || selectedPack.id;
+  selectedPack.name = document.getElementById('pf-name').value.trim();
+  if (document.getElementById('pf-starter')?.checked) selectedPack.starter = true;
+  else delete selectedPack.starter;
+  const booster = document.getElementById('pf-booster');
+  if (booster) selectedPack.booster_enabled = booster.checked;
+}
+
+/** Bascule « pack de départ » : le formulaire change de forme, pas de contenu. */
+function onPackStarterToggle() {
+  _stashPackFormEdits();
+  renderPackDetail();
+}
+
+function renderPackDetail() {
+  const p = selectedPack;
+  const el = document.getElementById('pack-detail');
+  const ids = packCardIds(p);
+  const hasPoster = !!p._has_poster;
+  const isStarter = p.starter === true;
+  const spread = packTierSpread(ids);
+  const missing = packMissingMaterials(ids);
+  const archs = packArchetypes(ids);
+  const orphans = cards.filter(c => !packs.some(x => x.starter !== true && packCardIds(x).includes(c.id))).length;
+
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header">
+      <div class="illustration-box" onclick="${isNewPack ? '' : 'openPackPosterModal()'}">
+        ${hasPoster
+          ? `<img src="/pack-posters/${esc(p.id)}?t=${posterBust}" alt="">
+             <div class="illus-overlay">
+               <span style="font-size:12px;color:white">Changer</span>
+               <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePackPoster()">Supprimer</button>
+             </div>`
+          : `<span class="illus-text">${isNewPack ? 'Affiche : après création' : 'Ajouter une affiche'}</span>`}
+      </div>
+      <div class="detail-info">
+        <div class="detail-title">🎁 ${esc(p.name || p.id)}</div>
+        <div class="detail-meta">
+          <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(p.id)}</span>
+          <span class="badge">${ids.length} cartes</span>
+          ${hasPoster ? `<span class="badge badge-illus">Affiche ✓</span>` : `<span class="badge badge-no-illus">Sans affiche</span>`}
+          ${isStarter ? `<span class="badge" style="background:var(--surface2);color:#7bd88f">🎓 Dotation de départ</span>` : ''}
+        </div>
+        ${archs.length ? `<div class="illus-text" style="text-align:left;margin-top:6px">Sous-titre en boutique : ${esc(archs.map(a => a.name).join(' · '))}</div>` : ''}
+      </div>
+    </div>
+
+    <div class="section-title">Identité</div>
+    <div class="form-grid">
+      <div class="field"><label>ID</label><input id="pf-id" value="${esc(p.id)}"></div>
+      <div class="field"><label>Nom</label><input id="pf-name" value="${esc(p.name || '')}"></div>
+    </div>
+    ${isNewPack ? '' : `<div class="illus-text" style="text-align:left;margin-top:-8px;margin-bottom:8px">
+      La prime de complétion est mémorisée par ID : changer l'ID revient à créer un pack neuf, et la prime pourra retomber une seconde fois.
+    </div>`}
+
+    <div class="section-title" style="margin-top:16px">Rôle</div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      <div class="field">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="pf-starter" ${isStarter ? 'checked' : ''} onchange="onPackStarterToggle()" style="width:auto">
+          Pack de départ — ses cartes sont offertes à la création de chaque compte
+        </label>
+        <div class="illus-text" style="text-align:left">
+          Un pack de départ n'est jamais vendu et n'apparaît pas en boutique. Sans aucun pack de départ, la dotation retombe sur les cartes <code>CORE_*</code>.
+        </div>
+      </div>
+      ${isStarter ? '' : `
+      <div class="field">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="pf-booster" ${p.booster_enabled === false ? '' : 'checked'} style="width:auto">
+          Vendu en booster
+        </label>
+        <div class="illus-text" style="text-align:left">Décoché, le pack reste visible en boutique mais ses boutons d'achat sont éteints.</div>
+      </div>`}
+    </div>
+
+    <div class="section-title" style="margin-top:16px">Composition</div>
+    <div class="picker-stats" style="margin-bottom:10px">
+      <span class="badge" style="background:var(--surface2)">${ids.length} cartes</span>
+      ${[1, 2, 3, 4, 5].map(t => `<span class="badge" style="background:var(--surface2)">T${t} : ${spread[t] || 0}</span>`).join('')}
+      ${isStarter ? '' : `<span class="badge" style="background:var(--surface2);color:${(spread[3] + spread[4] + spread[5]) >= 1 && (spread[1] + spread[2]) >= 2 ? '#7bd88f' : '#e0a04a'}">
+        garantie 2×T1-2 + 1×T3+ ${(spread[3] + spread[4] + spread[5]) >= 1 && (spread[1] + spread[2]) >= 2 ? '✓' : '⚠'}</span>`}
+      ${missing.length ? `<span class="badge" style="background:var(--surface2);color:#e0a04a" title="${esc(missing.slice(0, 20).join(', '))}">⚠ ${missing.length} matériau(x) hors pack</span>` : ''}
+      ${isStarter ? '' : `<span class="badge" style="background:var(--surface2);color:var(--muted)">${orphans} carte(s) du catalogue dans aucun pack</span>`}
+    </div>
+    <div class="actions" style="margin-top:0">
+      <button class="btn btn-secondary" onclick="openPackPicker()">🃏 Choisir les cartes</button>
+    </div>
+
+    <div class="actions">
+      ${isNewPack
+        ? `<button class="btn btn-success" onclick="createPack()">Créer le pack</button>
+           <button class="btn btn-secondary" onclick="cancelNewPack()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="savePack()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deletePack()">Supprimer</button>`}
+    </div>
+  `;
+}
+
+/**
+ * Ce que `shop.js` lit d'un pack est recalculé ICI, à l'enregistrement :
+ * `card_count` et `archetypes` (le sous-titre affiché en boutique) sont dérivés
+ * de la composition, jamais saisis à la main.
+ */
+function _collectPackFields() {
+  const starter = !!document.getElementById('pf-starter')?.checked;
+  const ids = packCardIds(selectedPack);
+  const out = {
+    ...selectedPack,
+    id: document.getElementById('pf-id')?.value.trim() || '',
+    name: document.getElementById('pf-name')?.value.trim() || '',
+    card_count: ids.length,
+    archetypes: packArchetypes(ids),
+    cards: ids,
+  };
+  delete out._has_poster;
+
+  if (starter) {
+    out.starter = true;
+    // Un pack de départ n'est pas un produit : ni vente, ni prime.
+    delete out.booster_enabled;
+    delete out.completion_reward;
+  } else {
+    delete out.starter;
+    out.booster_enabled = document.getElementById('pf-booster')?.checked !== false;
+  }
+  return out;
+}
+
+async function savePack() {
+  const updated = _collectPackFields();
+  if (!updated.id || !updated.name) return toast('ID et nom requis', 'err');
+  const oldId = selectedPack.id;
+  const res = await apiFetch(`/api/sets/${oldId}`, { method: 'PUT', body: updated });
+  if (res.error) return toast(res.error, 'err');
+  // `_has_poster` est calculé côté serveur : il ne fait pas l'aller-retour.
+  const withFlag = { ...updated, _has_poster: selectedPack._has_poster || false };
+  packs[packs.findIndex(p => p.id === oldId)] = withFlag;
+  selectedPack = withFlag;
+  // Le champ `set` des cartes est réaligné côté serveur : on recharge le
+  // catalogue, sinon les compteurs « déjà pris » mentiraient jusqu'au F5.
+  cards = await apiFetch('/api/cards');
+  filterPacks();
+  renderPackDetail();
+  toast('Pack enregistré');
+}
+
+async function createPack() {
+  const pack = _collectPackFields();
+  if (!pack.id || !pack.name) return toast('ID et nom requis', 'err');
+  const res = await apiFetch('/api/sets', { method: 'POST', body: pack });
+  if (res.error) return toast(res.error, 'err');
+  pack._has_poster = false;
+  packs.push(pack);
+  selectedPack = pack;
+  isNewPack = false;
+  cards = await apiFetch('/api/cards');
+  filterPacks();
+  renderPackDetail();
+  toast('Pack créé — tu peux maintenant lui poser une affiche');
+}
+
+async function deletePack() {
+  if (!confirm(`Supprimer le pack "${selectedPack.name || selectedPack.id}" ?`)) return;
+  const res = await apiFetch(`/api/sets/${selectedPack.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  packs = packs.filter(p => p.id !== selectedPack.id);
+  selectedPack = null;
+  cards = await apiFetch('/api/cards');
+  filterPacks();
+  document.getElementById('pack-detail').innerHTML = '<div class="empty"><span>Sélectionne un pack</span></div>';
+  showList();
+  toast('Pack supprimé');
+}
+
+function openNewPack() {
+  let maxNum = 0;
+  for (const p of packs) {
+    const match = p.id.match(/(\d+)$/);
+    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+  }
+  selectedPack = { id: `SET_${String(maxNum + 1).padStart(3, '0')}`, name: '', cards: [], booster_enabled: true };
+  isNewPack = true;
+  renderPackList();
+  renderPackDetail();
+  showDetail();
+}
+
+function cancelNewPack() {
+  selectedPack = null;
+  isNewPack = false;
+  filterPacks();
+  document.getElementById('pack-detail').innerHTML = '<div class="empty"><span>Sélectionne un pack</span></div>';
+  showList();
+}
+
+// --- Affiche du pack (même triptyque que les avatars de decks publics) ---
+function openPackPosterModal() {
+  if (!selectedPack) return;
+  showModal(`
+    <h2>Affiche du pack <span style="font-size:13px;font-weight:400;color:var(--muted)">${esc(selectedPack.name || selectedPack.id)}</span></h2>
+    <div class="field">
+      <label>Chercher une image</label>
+      <div style="display:flex;gap:6px">
+        <input id="pack-poster-q" value="${esc(selectedPack.name || '')}" placeholder="Mots-clés">
+        <button class="btn btn-secondary btn-sm" onclick="openPackPosterSearch()">🔍</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>URL de l'image</label>
+      <div style="display:flex;gap:6px">
+        <input id="pack-poster-url" placeholder="https://...">
+        <button class="btn btn-secondary btn-sm" onclick="pastePackPosterUrl()">📋</button>
+      </div>
+    </div>
+    <div style="text-align:center;color:var(--muted);font-size:11px;margin:10px 0">— ou —</div>
+    <div class="field">
+      <label>Depuis l'appareil</label>
+      <input id="pack-poster-file" type="file" accept="image/*" onchange="importPackPosterFromFile()"
+             style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;width:100%">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="importPackPoster()">Importer l'URL</button>
+    </div>
+  `, 'wide');
+}
+
+function openPackPosterSearch() {
+  const q = document.getElementById('pack-poster-q')?.value.trim();
+  if (!q) return toast('Renseigne des mots-clés', 'err');
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
+}
+
+async function pastePackPosterUrl() {
+  try {
+    const text = await navigator.clipboard.readText();
+    const input = document.getElementById('pack-poster-url');
+    if (input) input.value = text.trim();
+  } catch {
+    toast('Presse-papiers inaccessible — collez à la main', 'err');
+  }
+}
+
+/** L'affiche n'est pas dans le JSON du pack : on reporte le drapeau à la main. */
+function _setPackPosterFlag(has) {
+  selectedPack._has_poster = has;
+  const idx = packs.findIndex(p => p.id === selectedPack.id);
+  if (idx !== -1) packs[idx]._has_poster = has;
+  posterBust = Date.now();
+  filterPacks();
+  renderPackDetail();
+}
+
+async function importPackPoster() {
+  const url = document.getElementById('pack-poster-url')?.value.trim();
+  if (!url) return toast('URL requise', 'err');
+  closeModal();
+  toast('Téléchargement en cours…');
+  const res = await apiFetch(`/api/sets/${selectedPack.id}/poster`, { method: 'POST', body: { url } });
+  if (res.error) return toast(res.error, 'err');
+  _setPackPosterFlag(true);
+  toast('Affiche importée');
+}
+
+async function importPackPosterFromFile() {
+  const file = document.getElementById('pack-poster-file')?.files[0];
+  if (!file) return;
+  closeModal();
+  toast('Import en cours…');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/sets/${selectedPack.id}/poster`, { method: 'PUT', body: { data } });
+  if (res.error) return toast(res.error, 'err');
+  _setPackPosterFlag(true);
+  toast('Affiche importée');
+}
+
+async function deletePackPoster() {
+  if (!confirm('Supprimer l\'affiche de ce pack ?')) return;
+  const res = await apiFetch(`/api/sets/${selectedPack.id}/poster`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  _setPackPosterFlag(false);
+  toast('Affiche supprimée');
+}
+
+// --- Sélecteur de cartes ---
+// Sélection PROPRE au sélecteur : `bulkSelected` appartient à la sélection de
+// masse de l'onglet Cartes, la partager écraserait le travail en cours là-bas.
+let pickerSelected = new Set();
+
+function openPackPicker() {
+  if (!selectedPack) return;
+  _stashPackFormEdits();
+  pickerSelected = new Set(packCardIds(selectedPack));
+  const overlay = document.getElementById('packpicker-overlay');
+  overlay.innerHTML = `
+    <div class="picker-head">
+      <div class="picker-head-top">
+        <span class="picker-title">🃏 Cartes de « ${esc(selectedPack.name || selectedPack.id)} »</span>
+        <button class="btn btn-secondary btn-sm" onclick="pickerSelectVisible()">Tout cocher (visible)</button>
+        <button class="btn btn-secondary btn-sm" onclick="pickerClear()">Tout décocher</button>
+        <button class="btn btn-primary btn-sm" onclick="closePackPicker(true)">Valider</button>
+        <button class="btn btn-secondary btn-sm" onclick="closePackPicker(false)">Annuler</button>
+      </div>
+      <div class="picker-filters">
+        <input type="search" id="picker-search" placeholder="Rechercher..." oninput="renderPackPicker()" style="max-width:220px">
+        <select class="filter" id="picker-tier" onchange="renderPackPicker()">
+          <option value="">Tous tiers</option>
+          ${[1, 2, 3, 4, 5].map(t => `<option value="${t}">Tier ${t}</option>`).join('')}
+        </select>
+        <select class="filter" id="picker-summon" onchange="renderPackPicker()">
+          <option value="">Tous types</option>
+          <option value="normal">Normal</option>
+          <option value="sacrifice">Sacrifice</option>
+          <option value="fusion">Fusion</option>
+          <option value="heritage">Heritage</option>
+          <option value="transformation">Transformation</option>
+        </select>
+        <select class="filter" id="picker-attribute" onchange="renderPackPicker()">
+          <option value="">Tous attributs</option>
+          ${[...attributes].sort((a, b) => a.name.localeCompare(b.name))
+            .map(a => `<option value="${a.id}">${a.icon ? a.icon + ' ' : ''}${esc(a.name)}</option>`).join('')}
+        </select>
+        <select class="filter" id="picker-membership" onchange="renderPackPicker()">
+          <option value="">Tout le catalogue</option>
+          <option value="picked">Dans ce pack</option>
+          <option value="free">Dans aucun pack</option>
+          <option value="taken">Pris par un autre pack</option>
+        </select>
+      </div>
+      <div class="picker-stats" id="picker-stats"></div>
+    </div>
+    <div class="picker-body" id="picker-body"></div>
+  `;
+  overlay.classList.remove('hidden');
+  renderPackPicker();
+}
+
+function closePackPicker(commit) {
+  if (commit && selectedPack) {
+    // L'ordre du catalogue plutôt que l'ordre de clic : un diff de sets.json
+    // doit rester lisible d'une édition à l'autre.
+    selectedPack.cards = cards.filter(c => pickerSelected.has(c.id)).map(c => c.id);
+    renderPackDetail();
+  }
+  document.getElementById('packpicker-overlay').classList.add('hidden');
+}
+
+function _pickerFiltered() {
+  const q = (document.getElementById('picker-search')?.value || '').toLowerCase();
+  const tier = document.getElementById('picker-tier')?.value || '';
+  const summon = document.getElementById('picker-summon')?.value || '';
+  const attribute = document.getElementById('picker-attribute')?.value || '';
+  const membership = document.getElementById('picker-membership')?.value || '';
+  const exceptId = selectedPack?.id ?? null;
+
+  return cards.filter(c => {
+    if (q && !c.name.toLowerCase().includes(q) && !c.id.toLowerCase().includes(q)) return false;
+    if (tier && Math.round(c.tier) != tier) return false;
+    if (summon && c.summon_type !== summon) return false;
+    if (attribute && !(c.attributes || []).includes(attribute)) return false;
+    if (membership === 'picked' && !pickerSelected.has(c.id)) return false;
+    if (membership === 'taken' && !packClaiming(c.id, exceptId)) return false;
+    if (membership === 'free' && (pickerSelected.has(c.id) || packClaiming(c.id, exceptId))) return false;
+    return true;
+  });
+}
+
+function renderPackPicker() {
+  const list = _pickerFiltered();
+  const exceptId = selectedPack?.id ?? null;
+  const body = document.getElementById('picker-body');
+  body.innerHTML = list.map(c => {
+    const picked = pickerSelected.has(c.id);
+    const taken = packClaiming(c.id, exceptId);
+    const thumb = c._has_illustration
+      ? `<img class="picker-thumb" src="/illustrations/${c.id}" alt="" loading="lazy">`
+      : `<div class="picker-thumb"></div>`;
+    return `
+      <div class="picker-card ${picked ? 'picked' : ''} ${taken ? 'taken' : ''}" onclick="pickerToggle('${c.id}')"
+           title="${taken ? `Déjà dans ${esc(taken.name || taken.id)}` : ''}">
+        <div class="bulk-check ${picked ? 'checked' : ''}">${picked ? `<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5 L4 7 L8 3" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ''}</div>
+        ${thumb}
+        <div style="flex:1;min-width:0">
+          <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)}</span>
+          <div style="display:flex;gap:4px;margin-top:2px;align-items:center">
+            ${tierBadge(c.tier)}
+            ${taken ? `<span class="badge" style="background:var(--surface2);color:#e0a04a;font-size:10px">${esc(taken.id)}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  renderPickerStats(list.length);
+}
+
+function renderPickerStats(visible) {
+  const el = document.getElementById('picker-stats');
+  if (!el) return;
+  const ids = [...pickerSelected];
+  const spread = packTierSpread(ids);
+  const missing = packMissingMaterials(ids);
+  const takenCount = ids.filter(id => packClaiming(id, selectedPack?.id ?? null)).length;
+  const low = spread[1] + spread[2];
+  const high = spread[3] + spread[4] + spread[5];
+  const guaranteeOk = high >= 1 && low >= 2;
+  el.innerHTML = `
+    <span class="badge" style="background:var(--surface2);color:var(--text)">${ids.length} sélectionnée(s)</span>
+    ${[1, 2, 3, 4, 5].map(t => `<span class="badge" style="background:var(--surface2)">T${t} : ${spread[t] || 0}</span>`).join('')}
+    <span class="badge" style="background:var(--surface2);color:${guaranteeOk ? '#7bd88f' : '#e0a04a'}"
+          title="Un booster promet 2 cartes Tier 1-2 et 1 carte Tier 3+ ; la garantie se rabat silencieusement si le pack ne peut pas la tenir">
+      garantie de tiers ${guaranteeOk ? '✓' : '⚠'}</span>
+    ${missing.length ? `<span class="badge" style="background:var(--surface2);color:#e0a04a" title="${esc(missing.slice(0, 20).join(', '))}">⚠ ${missing.length} matériau(x) hors pack</span>` : ''}
+    ${takenCount ? `<span class="badge" style="background:var(--surface2);color:#e0a04a">${takenCount} déjà dans un autre pack</span>` : ''}
+    <span class="badge" style="background:var(--surface2);color:var(--muted);margin-left:auto">${visible} carte(s) affichée(s)</span>
+  `;
+}
+
+function pickerToggle(id) {
+  if (pickerSelected.has(id)) pickerSelected.delete(id);
+  else pickerSelected.add(id);
+  renderPackPicker();
+}
+
+function pickerSelectVisible() {
+  for (const c of _pickerFiltered()) pickerSelected.add(c.id);
+  renderPackPicker();
+}
+
+function pickerClear() {
+  pickerSelected.clear();
+  renderPackPicker();
+}
+
 // ================== MOBILE ==================
 function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }
 
@@ -2840,6 +3444,7 @@ function fabAction() {
   else if (currentTab === 'boards')     openNewBoard();
   else if (currentTab === 'magies')     openNewMagie();
   else if (currentTab === 'decks')      openNewPublicDeck();
+  else if (currentTab === 'packs')      openNewPack();
 }
 
 // ================== UTILS ==================
@@ -3562,7 +4167,7 @@ async function confirmMassDelete() {
 let importType = null;
 let importItems = null;
 
-const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies' };
+const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs' };
 
 function openImportModal(type) {
   importType = type;
@@ -3647,6 +4252,10 @@ async function confirmImport() {
   } else if (importType === 'magies') {
     magies = await apiFetch('/api/magies');
     filterMagies();
+  } else if (importType === 'sets') {
+    packs = await apiFetch('/api/sets');
+    selectedPack = null;
+    filterPacks();
   }
 
   const parts = [];
