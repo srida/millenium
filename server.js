@@ -15,7 +15,15 @@ const PROJECT_ROOT = __dirname;
 
 const DATA_DIR       = process.env.DATA_DIR  || path.join(PROJECT_ROOT, 'data');
 const ILLUS_DIR      = process.env.ILLUS_DIR || path.join(PROJECT_ROOT, 'resources', 'card_illustrations');
+// Portraits des decks publics (adversaires solo + bracket de tournoi). Dossier
+// séparé des illustrations : ce n'est pas de l'art de carte, et l'avatar par
+// défaut doit pouvoir vivre à côté sans polluer l'index des illustrations.
+const AVATARS_DIR    = process.env.AVATARS_DIR || path.join(PROJECT_ROOT, 'resources', 'enemy_avatars');
 const INITIAL_DIR    = path.join(__dirname, 'initial-data');
+
+// Avatar servi quand un deck n'a pas le sien : aucun écran ne doit afficher de
+// trou, et un deck fraîchement créé en admin est immédiatement présentable.
+const DEFAULT_AVATAR_ID = 'PUBLIC_DECK_000';
 
 const CARDS_FILE     = path.join(DATA_DIR, 'cards.json');
 const ATTRIBUTES_FILE = path.join(DATA_DIR, 'attributes.json');
@@ -28,7 +36,8 @@ const PUBLIC_DECKS_FILE = path.join(DATA_DIR, 'public_decks.json');
 function bootstrap() {
   fs.mkdirSync(DATA_DIR,  { recursive: true });
   fs.mkdirSync(ILLUS_DIR, { recursive: true });
-  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json']) {
+  fs.mkdirSync(AVATARS_DIR, { recursive: true });
+  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -36,8 +45,21 @@ function bootstrap() {
       console.log(`[bootstrap] ${f} copied to volume`);
     }
   }
+  // L'avatar par défaut est du code, pas de la donnée : si AVATARS_DIR pointe
+  // sur un volume vide (prod), il faut l'y déposer, sinon tous les portraits
+  // tombent en 404 tant qu'aucun n'a été uploadé.
+  const avatarDefault = path.join(AVATARS_DIR, `${DEFAULT_AVATAR_ID}.png`);
+  const avatarSrc = path.join(PROJECT_ROOT, 'resources', 'enemy_avatars', `${DEFAULT_AVATAR_ID}.png`);
+  if (!fs.existsSync(avatarDefault) && fs.existsSync(avatarSrc)) {
+    fs.copyFileSync(avatarSrc, avatarDefault);
+    console.log('[bootstrap] avatar par défaut copié sur le volume');
+  }
 }
 bootstrap();
+
+// Dote les comptes antérieurs à la collection (idempotent, cf. progression.js).
+// Après bootstrap() : cards.json doit exister sur le volume.
+require('./progression').backfillAll();
 
 // --- Basic auth (set ADMIN_USER + ADMIN_PASS in env to enable) ---
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
@@ -47,12 +69,12 @@ function requireAuth(req, res, next) {
   if (!ADMIN_PASS) return next();
   const auth = req.headers.authorization || '';
   if (!auth.startsWith('Basic ')) {
-    res.set('WWW-Authenticate', 'Basic realm="Soulforge Card Manager"');
+    res.set('WWW-Authenticate', 'Basic realm="Millenium Card Manager"');
     return res.status(401).send('Authentification requise');
   }
   const [user, pass] = Buffer.from(auth.slice(6), 'base64').toString().split(':');
   if (user !== ADMIN_USER || pass !== ADMIN_PASS) {
-    res.set('WWW-Authenticate', 'Basic realm="Soulforge Card Manager"');
+    res.set('WWW-Authenticate', 'Basic realm="Millenium Card Manager"');
     return res.status(401).send('Identifiants incorrects');
   }
   next();
@@ -67,11 +89,11 @@ function requireSiteAdmin(req, res, next) {
   return requireAuth(req, res, next);
 }
 
-// Game modules (public, ES modules)
-app.use('/game', express.static(path.join(__dirname, 'game')));
-
-// Game (public)
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+// Client Vite build (SPA). `npm run build` (dans client/) génère client/dist.
+// express.static sert index.html sur "/", plus les assets, le service worker,
+// le manifest et les icônes. Le fallback SPA est monté en fin de fichier.
+const CLIENT_DIST = path.join(__dirname, 'client', 'dist');
+app.use(express.static(CLIENT_DIST));
 
 // Admin (protected)
 app.get('/admin', requireSiteAdmin, (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
@@ -81,6 +103,25 @@ app.get('/illustrations/:id', (req, res) => {
   const filePath = path.join(ILLUS_DIR, `${req.params.id}.png`);
   if (fs.existsSync(filePath)) res.sendFile(filePath);
   else res.status(404).end();
+});
+
+// Un id d'asset ne doit jamais pouvoir remonter l'arborescence : il sert de nom
+// de fichier tel quel.
+function safeAssetId(id) {
+  return /^[A-Za-z0-9_-]+$/.test(id || '') ? id : null;
+}
+
+// Avatars des decks publics — le repli sur l'avatar par défaut est fait ICI et
+// nulle part ailleurs : chaque écran qui affiche un adversaire n'a qu'une URL à
+// construire, sans savoir si le deck a son portrait.
+app.get('/avatars/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).end();
+  const filePath = path.join(AVATARS_DIR, `${id}.png`);
+  if (fs.existsSync(filePath)) return res.sendFile(filePath);
+  const fallback = path.join(AVATARS_DIR, `${DEFAULT_AVATAR_ID}.png`);
+  if (fs.existsSync(fallback)) return res.sendFile(fallback);
+  res.status(404).end();
 });
 
 // --- Helpers ---
@@ -97,10 +138,18 @@ function illustrationExists(id) {
   return fs.existsSync(path.join(ILLUS_DIR, `${id}.png`));
 }
 
-function illustrationChecksum(id) {
-  const p = path.join(ILLUS_DIR, `${id}.png`);
-  if (!fs.existsSync(p)) return null;
-  return crypto.createHash('md5').update(fs.readFileSync(p)).digest('hex');
+function avatarExists(id) {
+  return fs.existsSync(path.join(AVATARS_DIR, `${id}.png`));
+}
+
+// Écrit un buffer image en PNG (conversion via sharp quand il est installé —
+// l'upload accepte alors JPEG/WebP —, sinon copie brute).
+async function savePng(dir, id, imageBuffer) {
+  const destPath = path.join(dir, `${id}.png`);
+  let sharp;
+  try { sharp = require('sharp'); } catch (_) { /* optionnel */ }
+  if (sharp) await sharp(imageBuffer).png().toFile(destPath);
+  else fs.writeFileSync(destPath, imageBuffer);
 }
 
 // Online API (accounts, sessions, friends) — auth par session cookie, pas la
@@ -542,9 +591,11 @@ app.delete('/api/magies/:id/illustration', requireSiteAdmin, (req, res) => {
 });
 
 // --- Decks publics API ---
+// `_has_avatar` est calculé (comme `_has_illustration` ailleurs) : il dit si le
+// deck a SON portrait, là où /avatars/:id sert toujours quelque chose.
 app.get('/api/decks', (req, res) => {
   try {
-    res.json(readJson(PUBLIC_DECKS_FILE));
+    res.json(readJson(PUBLIC_DECKS_FILE).map(d => ({ ...d, _has_avatar: avatarExists(d.id) })));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -554,6 +605,7 @@ app.post('/api/decks', requireSiteAdmin, (req, res) => {
     const deck = req.body;
     if (!deck.id) return res.status(400).json({ error: 'id required' });
     if (decks.find(d => d.id === deck.id)) return res.status(400).json({ error: `ID ${deck.id} already exists` });
+    delete deck._has_avatar;
     decks.push(deck);
     writeJson(PUBLIC_DECKS_FILE, decks);
     res.json({ ok: true });
@@ -569,6 +621,7 @@ app.post('/api/decks/import', requireSiteAdmin, (req, res) => {
     const errors = [];
     for (const item of items) {
       if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
+      delete item._has_avatar;
       const idx = decks.findIndex(d => d.id === item.id);
       if (idx !== -1) {
         if (mode === 'replace') { decks[idx] = item; replaced++; }
@@ -588,7 +641,9 @@ app.put('/api/decks/:id', requireSiteAdmin, (req, res) => {
     const decks = readJson(PUBLIC_DECKS_FILE);
     const idx = decks.findIndex(d => d.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    decks[idx] = req.body;
+    const updated = req.body;
+    delete updated._has_avatar;
+    decks[idx] = updated;
     writeJson(PUBLIC_DECKS_FILE, decks);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -605,6 +660,40 @@ app.delete('/api/decks/:id', requireSiteAdmin, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// --- Avatars des decks publics (même triptyque que les illustrations : URL,
+// upload base64 depuis l'appareil, suppression) ---
+app.post('/api/decks/:id/avatar', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { url } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    await savePng(AVATARS_DIR, id, await downloadUrl(url));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/decks/:id/avatar', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    await savePng(AVATARS_DIR, id, Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/decks/:id/avatar', requireSiteAdmin, (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = path.join(AVATARS_DIR, `${id}.png`);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // --- Export API (pour la future sync locale) ---
 app.get('/api/export', (req, res) => {
   try {
@@ -614,20 +703,56 @@ app.get('/api/export', (req, res) => {
     const boards     = readJson(BOARDS_FILE);
     const magies     = readJson(MAGIES_FILE);
     const publicDecks = readJson(PUBLIC_DECKS_FILE);
-    const illustrations = fs.readdirSync(ILLUS_DIR)
-      .filter(f => f.endsWith('.png'))
-      .map(f => {
-        const id = f.replace('.png', '');
-        return { id, checksum: illustrationChecksum(id) };
-      });
-    res.json({ cards, attributes, powers, boards, magies, publicDecks, illustrations });
+    const illustrations = listPngChecksums(ILLUS_DIR);
+    const avatars = listPngChecksums(AVATARS_DIR);
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, illustrations, avatars });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+function listPngChecksums(dir) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
+    .filter(f => f.endsWith('.png'))
+    .map(f => ({
+      id: f.replace(/\.png$/, ''),
+      checksum: crypto.createHash('md5').update(fs.readFileSync(path.join(dir, f))).digest('hex'),
+    }));
+}
 
 app.get('/api/export/illustration/:id', (req, res) => {
   const filePath = path.join(ILLUS_DIR, `${req.params.id}.png`);
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
   res.json({ id: req.params.id, data: fs.readFileSync(filePath).toString('base64') });
+});
+
+app.get('/api/export/avatar/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  const filePath = path.join(AVATARS_DIR, `${id}.png`);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+  res.json({ id, data: fs.readFileSync(filePath).toString('base64') });
+});
+
+// --- Upload/delete générique d'avatar (scripts/sync-data.js) ---
+app.put('/api/avatars/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    fs.writeFileSync(path.join(AVATARS_DIR, `${id}.png`), Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/avatars/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = path.join(AVATARS_DIR, `${id}.png`);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // --- Generic illustration upload/delete (utilisé par scripts/sync-data.js) ---
@@ -664,6 +789,13 @@ function downloadUrl(url) {
     }).on('error', reject);
   });
 }
+
+// Fallback SPA : toute route GET non-API renvoie l'app cliente (deep-links
+// /deck_selector, /game…). Les préfixes API/assets serveur passent au suivant.
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/illustrations') || req.path.startsWith('/avatars') || req.path.startsWith('/ws')) return next();
+  res.sendFile(path.join(CLIENT_DIST, 'index.html'));
+});
 
 const { attachPvpWebSocketServer } = require('./ws/pvpServer');
 

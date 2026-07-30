@@ -47,6 +47,8 @@ function publicUser(u) {
   return {
     id: u.id, email: u.email, username: u.username, tag: u.tag, avatar: u.avatar,
     created_at: u.created_at, is_admin: !!u.is_admin,
+    // Progression : le détail de la collection reste sur /api/me/progression.
+    level: u.level ?? 1, xp: u.xp ?? 0, gold: u.gold ?? 0, gems: u.gems ?? 0,
   };
 }
 

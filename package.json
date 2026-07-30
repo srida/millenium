@@ -1,10 +1,12 @@
 {
-  "name": "soulforge",
+  "name": "millenium",
   "version": "0.1.0",
-  "description": "Soulforge — game + card manager",
+  "description": "Millenium — auto-battler + card manager",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "build": "npm --prefix client install && npm --prefix client run build",
+    "client:dev": "npm --prefix client run dev",
     "sync:pull": "node scripts/sync-data.js pull",
     "sync:push": "node scripts/sync-data.js push"
   },

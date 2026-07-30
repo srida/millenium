@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Soulforge — Card Manager</title>
-<link rel="icon" type="image/png" href="/game/favicon.png">
+<title>Millenium — Card Manager</title>
+<link rel="icon" type="image/png" href="/favicon.png">
 <style>
 :root {
   --bg: #0f1117;
@@ -358,7 +358,7 @@ select.filter:focus { border-color: var(--accent); }
 <div class="app">
   <div class="topbar">
     <a href="/" style="color:var(--muted);text-decoration:none;font-size:20px;line-height:1;padding:4px 8px;border-radius:6px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">←</a>
-    <h1>Soulforge — Card Manager</h1>
+    <h1>Millenium — Card Manager</h1>
     <div class="tabs">
       <button class="tab active" onclick="switchTab('cards')">Cartes</button>
       <button class="tab" onclick="switchTab('attributes')">Attributs</button>
@@ -2522,6 +2522,10 @@ async function deleteMagieIllustration() {
 }
 
 // ================== PUBLIC DECKS ==================
+// Cache-buster des avatars : l'URL /avatars/<id> est stable (repli serveur sur
+// l'avatar par défaut), le navigateur ne verrait donc jamais un remplacement.
+let avatarBust = Date.now();
+
 function filterPublicDecks() {
   const q = document.getElementById('deck-search').value.toLowerCase();
   const filtered = publicDecks.filter(d => !q || d.name.toLowerCase().includes(q) || d.id.toLowerCase().includes(q));
@@ -2536,7 +2540,7 @@ function renderPublicDeckList(list = publicDecks) {
   document.getElementById('deck-count').textContent = list.length;
   document.getElementById('deck-list').innerHTML = list.map(d => `
     <div class="list-item ${selectedPublicDeck && selectedPublicDeck.id === d.id ? 'selected' : ''}" onclick="selectPublicDeck('${d.id}')">
-      <div style="width:40px;height:40px;background:var(--surface2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px">🃏</div>
+      <img class="list-thumb" src="/avatars/${d.id}?t=${avatarBust}" alt="" loading="lazy" style="width:40px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0">
       <div style="min-width:0">
         <div class="item-name">${esc(d.name)}</div>
         <div class="item-id">${d.id} · ${deckTotalCards(d.deck)} cartes</div>
@@ -2557,14 +2561,25 @@ function renderPublicDeckDetail() {
   const d = selectedPublicDeck;
   const deck = d.deck || {};
   const el = document.getElementById('deck-detail');
+  const hasAvatar = d._has_avatar;
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
     <div class="detail-header">
+      <div class="illustration-box" onclick="${isNewPublicDeck ? '' : 'openDeckAvatarModal()'}">
+        <img src="/avatars/${esc(d.id)}?t=${avatarBust}" alt="">
+        <div class="illus-overlay">
+          ${hasAvatar
+            ? `<span style="font-size:12px;color:white">Changer</span>
+               <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteDeckAvatar()">Supprimer</button>`
+            : `<span style="font-size:12px;color:white">Ajouter un avatar</span>`}
+        </div>
+      </div>
       <div class="detail-info">
         <div class="detail-title">🃏 ${esc(d.name)}</div>
         <div class="detail-meta">
           <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(d.id)}</span>
           <span class="badge">${deckTotalCards(deck)} cartes</span>
+          ${hasAvatar ? `<span class="badge badge-illus">Avatar ✓</span>` : `<span class="badge badge-no-illus">Avatar par défaut</span>`}
         </div>
       </div>
     </div>
@@ -2619,9 +2634,12 @@ async function savePublicDeck() {
   const oldId = selectedPublicDeck.id;
   const res = await apiFetch(`/api/decks/${oldId}`, { method: 'PUT', body: updated });
   if (res.error) return toast(res.error, 'err');
+  // `_has_avatar` est calculé côté serveur : il ne fait pas l'aller-retour, on
+  // le reporte à la main pour ne pas perdre le badge jusqu'au rechargement.
+  const withFlag = { ...updated, _has_avatar: selectedPublicDeck._has_avatar || false };
   const idx = publicDecks.findIndex(d => d.id === oldId);
-  publicDecks[idx] = updated;
-  selectedPublicDeck = updated;
+  publicDecks[idx] = withFlag;
+  selectedPublicDeck = withFlag;
   filterPublicDecks();
   renderPublicDeckDetail();
   toast('Deck enregistré');
@@ -2658,12 +2676,112 @@ async function createPublicDeck() {
   if (!deck.id || !deck.name) return toast('ID et nom requis', 'err');
   const res = await apiFetch('/api/decks', { method: 'POST', body: deck });
   if (res.error) return toast(res.error, 'err');
+  deck._has_avatar = false;   // un deck neuf part sur l'avatar par défaut
   publicDecks.push(deck);
   selectedPublicDeck = deck;
   isNewPublicDeck = false;
   filterPublicDecks();
   renderPublicDeckDetail();
   toast('Deck créé');
+}
+
+// --- Avatar du deck (portrait de l'adversaire : sélection solo + bracket) ---
+function openDeckAvatarModal() {
+  if (!selectedPublicDeck) return;
+  const name = selectedPublicDeck.name || '';
+  const defaultQuery = `yugioh ${name} portrait`.trim();
+  showModal(`
+    <h2 style="margin-bottom:16px">Avatar — ${esc(name)}</h2>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Mots-clés</label>
+        <input id="deck-avatar-q" value="${esc(defaultQuery)}" style="font-family:monospace;font-size:12px">
+      </div>
+      <button class="btn btn-secondary" onclick="openDeckAvatarSearch()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.28 5 12c0-4.2 3.29-7.27 7.19-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"/></svg>
+        Ouvrir Google Images ↗
+      </button>
+    </div>
+    <div class="field">
+      <label>URL de l'image</label>
+      <div style="display:flex;gap:6px">
+        <input id="deck-avatar-url" type="text" placeholder="https://..." style="flex:1">
+        <button class="btn btn-secondary btn-sm" onclick="pasteDeckAvatarUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
+      </div>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Sauvegardé sous <code>${esc(selectedPublicDeck.id)}.png</code> dans <code>resources/enemy_avatars</code></span>
+    </div>
+
+    <div style="text-align:center;margin:14px 0;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px">— ou —</div>
+
+    <div class="field">
+      <label>Importer depuis mon appareil</label>
+      <input id="deck-avatar-file" type="file" accept="image/*" onchange="importDeckAvatarFromFile()">
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Conversion automatique au format PNG</span>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="importDeckAvatar()">Importer depuis l'URL</button>
+    </div>
+  `, 'wide');
+}
+
+function openDeckAvatarSearch() {
+  const q = document.getElementById('deck-avatar-q')?.value || selectedPublicDeck?.name || '';
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
+}
+
+async function pasteDeckAvatarUrl() {
+  try {
+    const text = await navigator.clipboard.readText();
+    const el = document.getElementById('deck-avatar-url');
+    if (el) el.value = text;
+  } catch {
+    toast('Accès presse-papier refusé — collez manuellement (Ctrl+V)', 'err');
+  }
+}
+
+// Marque l'avatar comme présent/absent partout où le deck est référencé, et
+// rafraîchit les vignettes (l'URL est stable : sans cache-buster, rien ne bouge).
+function _setDeckAvatarFlag(has) {
+  selectedPublicDeck._has_avatar = has;
+  const idx = publicDecks.findIndex(d => d.id === selectedPublicDeck.id);
+  if (idx !== -1) publicDecks[idx]._has_avatar = has;
+  avatarBust = Date.now();
+  filterPublicDecks();
+  renderPublicDeckDetail();
+}
+
+async function importDeckAvatar() {
+  const url = document.getElementById('deck-avatar-url').value.trim();
+  if (!url) return toast('URL requise', 'err');
+  closeModal();
+  toast('Téléchargement en cours...', 'ok');
+  const res = await apiFetch(`/api/decks/${selectedPublicDeck.id}/avatar`, { method: 'POST', body: { url } });
+  if (res.error) return toast(res.error, 'err');
+  _setDeckAvatarFlag(true);
+  toast('Avatar importé');
+}
+
+async function importDeckAvatarFromFile() {
+  const file = document.getElementById('deck-avatar-file')?.files?.[0];
+  if (!file) return;
+  closeModal();
+  toast('Import en cours...', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/decks/${selectedPublicDeck.id}/avatar`, { method: 'PUT', body: { data } });
+  if (res.error) return toast(res.error, 'err');
+  _setDeckAvatarFlag(true);
+  toast('Avatar importé');
+}
+
+async function deleteDeckAvatar() {
+  if (!confirm('Supprimer l\'avatar ? Le deck reprendra l\'avatar par défaut.')) return;
+  const res = await apiFetch(`/api/decks/${selectedPublicDeck.id}/avatar`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  _setDeckAvatarFlag(false);
+  toast('Avatar supprimé');
 }
 
 function openDeckBuilder(id) {

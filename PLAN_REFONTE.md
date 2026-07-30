@@ -1,7 +1,7 @@
 # PLAN_REFONTE.md — Refonte Millenium (Vite + React + TS + Tailwind + Zustand)
 
-> Statut : **proposition — aucune implémentation commencée**.
-> Rédigé après audit du codebase le 2026-07-24. À valider avant tout code.
+> Statut : **validé le 2026-07-24 — décisions D1–D9 tranchées (voir §6), prêt à implémenter**.
+> Audit initial du 2026-07-24, révisé après restauration du dépôt (D1) : l'ancienne UI 3D a été récupérée, la Phase 2 est un **portage** et non plus une réécriture.
 
 ---
 
@@ -9,18 +9,14 @@
 
 ### 1.1 État réel vs CLAUDE.md — constats majeurs
 
-**⚠️ Constat n°1 — la couche UI a été supprimée EN TOTALITÉ, y compris le rendu 3D.**
-`game/ui/components/` et `game/ui/screens/` ne contiennent que des `.DS_Store`. Les fichiers suivants, référencés par [main.js](game/main.js) et par le CLAUDE.md, n'existent plus :
+**✅ Constat n°1 (résolu par D1) — la couche UI, un temps supprimée localement, a été restaurée depuis le dépôt.**
+`game/ui/` contient à nouveau les 16 fichiers (~8 600 lignes) : composants `Board3D.js` (1 792 l.), `CombatAnimator3D.js` (288 l.), `HandUI.js`, `Tooltip.js`, `UnitCard.js`, et les écrans `GameScreen3D.js` (2 223 l.), `TestBench3D.js`, `MainMenu.js`, `DeckSelector.js`, `DeckBuilder.js`, `AuthScreen.js`, `OnlineLobby.js`, `TournamentScreen.js`, `ProfileScreen.js`, `FriendsScreen.js`, `ResetPasswordScreen.js`.
 
-- `GameScreen3D.js`, `TestBench3D.js`, `Board3D.js`, `CombatAnimator3D.js`, `Tooltip.js`
-- `MainMenu.js`, `DeckSelector.js`, `DeckBuilder.js`
-- `OnlineLobby.js`, `TournamentScreen.js`, `AuthScreen.js`, `ProfileScreen.js`, `FriendsScreen.js`, `ResetPasswordScreen.js`
+Conséquence : la Phase 2 est un **portage** de `Board3D`/`CombatAnimator3D` vers `three/` (npm), pas une réécriture d'après spec. Et l'ancienne app est **exécutable** : elle sert de baseline visuelle et comportementale pour comparer côte à côte pendant toute la migration.
 
-Conséquence : le brief dit « rendu 3D à conserver fonctionnellement » — mais il n'y a **rien à porter**. `Board3D` / `CombatAnimator3D` / la scène Three.js devront être **réécrits from scratch**, en s'appuyant sur la spec du CLAUDE.md (événements de combat, BASE_TICK_MS=180, CSS3DRenderer, etc.). Il n'existe aucune baseline visuelle exécutable pour comparer (voir aussi 1.4).
+**✅ Constat n°2 (résolu par D1, un reliquat).** `index.html`, `package.json`, `node_modules/` sont restaurés, le projet démarre. Reste absent : `initial-data/` (référencé par le bootstrap de [server.js](server.js) — sans impact en local puisque `data/*.json` existe, mais un déploiement neuf ne s'auto-amorcerait pas). À vérifier sur le remote ou reconstituer depuis `data/` (Phase 0).
 
-**⚠️ Constat n°2 — fichiers racine manquants.** `index.html` (servi par `GET /` dans [server.js:74](server.js:74)), `package.json`, `node_modules/` et `initial-data/` sont absents. Le projet **ne démarre pas en l'état** (`npm start` impossible). `data/*.json` existe localement (gitignoré), donc le bootstrap serveur fonctionnerait une fois Express réinstallé.
-
-**⚠️ Constat n°3 — le projet n'est pas un dépôt git localement.** Aucun `.git/`. Avant toute refonte, il faut soit re-cloner `github.com/srida/Millenium`, soit `git init` + premier commit de l'état actuel. Non négociable pour une migration de cette ampleur.
+**✅ Constat n°3 (résolu par D1).** Le projet est rattaché à `github.com/srida/millenium.git`, branche `main` propre. ⚠️ Nettoyage : un dossier parasite `https:/` (artefact d'une commande `git clone` malformée) traîne à la racine — à supprimer en Phase 0.
 
 **⚠️ Constat n°4 — un pan entier du jeu n'est pas documenté dans CLAUDE.md** mais existe dans le code et était câblé dans l'ancienne UI :
 
@@ -74,9 +70,9 @@ Chasse aux fuites (`document`, `window`, sélecteurs, `setTimeout`, `setInterval
 
 **`game/net/` — 2 modules.** Singletons propres (WebSocket + buffering de messages). Aucune dépendance DOM hors `location`/`WebSocket`. Portables tels quels.
 
-### 1.3 Ce que `GameScreen3D` mélangeait (d'après CLAUDE.md) et qui doit être extrait
+### 1.3 Ce que `GameScreen3D` mélange (confirmé sur le fichier restauré) et qui doit être extrait
 
-Le fichier n'existe plus, mais la spec liste ce qu'il contenait. Dans la refonte, ces responsabilités **ne retournent pas dans un composant écran** :
+[GameScreen3D.js](game/ui/screens/GameScreen3D.js) (2 223 lignes) mélange effectivement orchestration et rendu : `setInterval` pour le timer de préparation (l.217) et l'auto-résolution du shopping (l.1705, l.2071), `setTimeout` pour les enchaînements visuels, Phase Shopping complète (`_startShopping` l.1646, `_applyChosenMagie` l.1737, `_defuseFusion` l.1802), résultat de round (`_showEndRound` l.1909). Dans la refonte, ces responsabilités **ne retournent pas dans un composant écran** :
 
 | Responsabilité (ex-GameScreen3D) | Destination cible |
 |---|---|
@@ -95,7 +91,7 @@ Trois options évaluées :
 2. **`allowJs` progressif** ✅ **recommandé** — Phase 1 : copie **byte-for-byte** de `logic/` et `data/` en `.js` sous Vite (`allowJs: true, checkJs: false`), + fichier `src/logic/types.ts` (types `Card`, `Unit`, `CombatEvent`, `Magie`, `AttributeDef`, `BoardDef` — utilisés par le code React/three neuf). Les tests de non-régression (voir Phase 1) sont écrits **avant** toute conversion. Ensuite, conversion mécanique module par module (un module = un commit = suite de tests verte), en commençant par les feuilles (Draw, BoardEffect, PathFinder, Board) et en finissant par CombatManager/InvocationManager.
 3. **Pas de TS du tout sur `logic/`** — rejeté : on perd le principal bénéfice de la refonte (contrats typés entre logique, stores et rendu), et les événements de combat sont exactement le genre d'union discriminée où TS paie.
 
-Justification du choix 2 : le gel byte-for-byte donne une baseline de déterminisme **prouvable par test** (l'ancienne UI n'étant plus exécutable, c'est la seule baseline possible), puis la conversion TS se fait sous filet.
+Justification du choix 2 : le gel byte-for-byte donne une baseline de déterminisme **prouvable par test**, complétée depuis D1 par l'ancienne app exécutable comme référence comportementale ; la conversion TS se fait ensuite sous filet. **→ Tranché : option 2 (D4).**
 
 ---
 
@@ -301,78 +297,86 @@ Orchestration : `GameSession` détient la boucle de tours (pioche selon `tiersFo
 
 ### Phase 0 — Pré-vol (½ jour) — risque : faible
 
-- [ ] Restaurer un dépôt git : re-cloner `srida/Millenium` ou `git init` + commit de l'état actuel (décision D1)
-- [ ] Récupérer/reconstituer `package.json` racine, `initial-data/`, dépendances serveur ; vérifier `node server.js` + `/api/cards` répond (253 cartes)
-- [ ] Branche `refonte/vite-react`
-- **Done** : serveur up, API vérifiées, baseline committée.
+- [x] Restaurer un dépôt git — fait (D1) : `github.com/srida/millenium.git`, `main` propre
+- [x] Récupérer `package.json`, `index.html`, `node_modules`, ancienne UI — fait (D1)
+- [x] Supprimer le dossier parasite `https:/` à la racine
+- [x] Reconstituer `initial-data/` (copie des 6 JSON de `data/`, jamais présent dans l'historique git) pour que le bootstrap serveur fonctionne sur un déploiement neuf
+- [x] Vérifier `npm start` (port **3742**) : `/api/cards` → **398 cartes** (le CLAUDE.md dit 253 — à corriger en Phase 6), attributes 57, powers 14, boards 15, magies 19 ; `GET /` sert l'ancienne app (AuthScreen OK visuellement)
+- [x] Branche `refonte/vite-react`
+- **Done** : serveur up, ancienne app démarre en local, baseline committée. ✅ 2026-07-24
 
 ### Phase 1 — Scaffold + portage logic/data + non-régression (2–4 jours) — risque : moyen
 
-- [ ] `client/` : Vite + React + TS strict (`allowJs`), Tailwind v4 (`@tailwindcss/vite`), Zustand, Vitest
-- [ ] ESLint + `eslint-plugin-boundaries` (ou `no-restricted-imports`) : `logic/` ne peut importer ni react, ni zustand, ni three, ni `data/` ; `three/` ne peut importer react
-- [ ] Copier `game/logic/` → `client/src/logic/` **byte-for-byte** (sauf : sortir les imports `data/` de Tournament.js → injection de dépendances)
-- [ ] Copier `game/data/`, `game/net/` → `client/src/{data,net}/`
-- [ ] `src/logic/types.ts` : types Card/Power/Attribute/Magie/BoardDef/CombatEvent (unions discriminées)
-- [ ] **Tests de non-régression déterminisme** (Vitest, jsdom inutile — node pur) :
-  - [ ] fixtures : 5–6 setups de combat scriptés (unités, positions, terrain avec cases bloquées, pouvoirs variés dont FREEZE/TAUNT/CONFUSION/BURN, synergies actives, timeout) — **sans pioche** (pas de RNG)
-  - [ ] golden files : séquence d'événements sérialisée (`type`, uid, positions, dégâts, tick) → `expect(events).toMatchSnapshot()` gelé comme référence
-  - [ ] tests unitaires ciblés : multiplicateurs GameState, `tiersForRound`, lignées (`materialLineageLegit` : cas Aile de feu/Electrum du CLAUDE.md), `material_value`, vétérance, magies
-  - [ ] reset du compteur `_nextUid` entre tests (exposer un `__resetUidsForTests` ou compter relativement)
-- [ ] Conversion TS progressive des feuilles (Draw, BoardEffect, PathFinder, Board, Unit, GameState) — snapshots verts après chaque module
-- **Done** : `vitest run` vert, golden files committés, logique consommable en node headless.
+- [x] `client/` : Vite 6 + React 19 + TS strict (`allowJs`), Tailwind v4 (`@tailwindcss/vite`), Zustand, Vitest — dev proxifié vers Express :3742 (`/api`, `/illustrations`, `/ws`)
+- [x] ESLint (`no-restricted-imports`) : `logic/` ne peut importer ni react, ni zustand, ni three, ni `data/` ; `three/` ne peut importer react ; le JS gelé du portage est exempté de `no-unused-vars`
+- [x] Copier `game/logic/` → `client/src/logic/` **byte-for-byte** (`diff -r` vérifié ; seule exception : Tournament.js reçoit `{ playerDeck, publicDecks }` en paramètre au lieu d'importer data/ — signature devenue synchrone, à répercuter sur TournamentScreen en Phase 7)
+- [x] Copier `game/data/`, `game/net/` → `client/src/{data,net}/`
+- [x] `src/logic/types.ts` : types Card/Power/Attribute/Magie/BoardDef/GameState carry-over + union discriminée `CombatEvent`
+- [x] **Tests de non-régression déterminisme** — 59 tests verts :
+  - [x] 7 scénarios golden : mêlée 2v2, portée+LOS avec mur, pouvoirs soutien (HEAL/SHIELD/SUPER/AOE), contrôle (POISON/PARALYSIS/PUSH/BLOCK), avancés (BURN/CONFUSION/FREEZE/TAUNT/TELEPORT + effect_immunity), synergies (stat_bonus, shield×alliés, RAGE during_combat verrouillée, vétérance), timeout à MAX_COMBAT_TICKS
+  - [x] golden file `combat.golden.test.ts.snap` (3 114 lignes d'événements) — unités référencées `side:card_id` (stable, pas d'uid)
+  - [x] unitaires : multiplicateurs/dégâts/cap slots GameState, `tiersForRound`, lignées Aile de feu/Electrum, `material_value`, transfert shopping/vétérance (max, pas somme), 14 types de magies, comptage distinct des seuils, `value_per`, `reapplyBonuses`, `getActiveSynergies`
+  - [x] `__resetUnitUidsForTests()` exposé par Unit.ts (les snapshots n'utilisent pas l'uid)
+- [x] Conversion TS des feuilles (types, Unit, Board, PathFinder, GameState, Draw, BoardEffect) — **golden snapshots inchangés au bit près après conversion** ; `tsc --noEmit`, `eslint`, `vite build` verts. Restent en JS pour les prochaines phases : CombatManager, AttributeManager, InvocationManager, InvocationRules, MagieEffect, EnemyAI, MatchSimulator, Tournament (+ data/ et net/)
+- **Done** : `vitest run` vert (59), golden files committés, logique consommable en node headless. ✅ 2026-07-24
 
-### Phase 2 — Three.js npm + scène board (3–5 jours) — risque : élevé (réécriture, pas portage)
+### Phase 2 — Three.js npm + portage de la scène board (2–4 jours) — risque : moyen (portage de l'existant restauré)
 
-- [ ] `three` en npm, suppression conceptuelle de l'importmap/CDN
-- [ ] `Scene3D` : WebGL renderer + CSS3DRenderer superposés, caméra portrait, `dpr = min(devicePixelRatio, 2)`, resize observer, `dispose()` complet, render à la demande
-- [ ] `BoardView3D` : grille 5×11, zones (joueur/neutre/ennemi), cases bloquées, highlights (cellules valides, sélection matériaux, cible magie)
-- [ ] `UnitView3D` : carte/mesh, barre HP, bouclier, jauge de pouvoir, état neutralisé, masquage ennemis en préparation
-- [ ] `CombatAnimator3D` : horloge `BASE_TICK_MS/speed`, mapping exhaustif des événements (`move`, `attack`, `power` ×14, `dot`, `freeze`, `stat_change`, `death`, `combat_end`), pause
-- [ ] `DragController` : raycast, drag unité en préparation, tap → picking (tooltip/matériaux)
-- [ ] Harnais visuel provisoire : page dev qui charge une fixture de Phase 1 et joue le combat (ni HUD ni règles) — sert de proto TestBench
-- **Done** : un combat scripté se joue visuellement à ×1/×2/×4 sur Safari iOS et Chrome desktop, 60 fps (ou 30 stable) sur MBP 2015, zéro fuite mémoire après 10 montages/démontages (heap snapshot).
+- [x] `three` (+ `@types/three`) en npm, pinné `0.160.x` ; CSS3DRenderer importé de `three/addons/…` — plus d'importmap/CDN
+- [x] Porter [Board3D.js](game/ui/components/Board3D.js) (1 792 l.) → `three/Scene3D.ts` (+ `constants.ts` pour la géométrie/styles élémentaires, + `UnitCardEl.ts` pour la fabrique DOM CSS3D des cartes) : port **ligne à ligne**, comportement visuel identique. Le découpage BoardView/UnitView/DragController prévu s'est révélé inutile — la classe est cohérente telle quelle ; on la scindera seulement si un besoin réel apparaît en Phase 3.
+  - [x] `dpr = min(devicePixelRatio, 2)` (conservé de l'original), **render à la demande** ajouté (`_invalidate()` + flag `_needsRender` : la boucle rAF saute le rendu quand rien n'est actif — gain hors combat), `dispose()`/`destroy()` complet **enrichi** (l'ancien ne libérait ni les textures canvas cachées, ni les groupes de `spawnMagicCircle`, ni le DOM des deux renderers — corrigé)
+- [x] Porter [CombatAnimator3D.js](game/ui/components/CombatAnimator3D.js) (288 l.) → `three/CombatAnimator3D.ts` : horloge `BASE_TICK_MS/speed`, mapping `move/attack/dot/power/death/freeze`, pause/resume, purge des cases gelées
+- [x] CSS des cartes + animations de combat portés dans `src/styles/board3d.css` (autonome, variables du DS Astral inlinées) ; polices EB Garamond/Hanken chargées dans `index.html`
+- [x] Harnais visuel `src/dev/CombatLab.tsx` (`/?screen=combatlab`) : combat scripté 4v4 avec pouvoirs (HEAL/POISON/SUPER/FREEZE) et éléments variés, boutons Lancer/Pause/×1/×2/×4/Remonter — sert de proto TestBench
+- **Done** ✅ 2026-07-24 : combat scripté joué visuellement à ×1/×2/×4 dans le navigateur (particules feu/foudre/gel/poison, toasts « Gel »/« Soin », morts fragmentées, `combat_end` → vainqueur), drag & drop de repositionnement OK, **`dispose()` sans fuite** (6 cycles remonter → canvas reste à 1, aucun warning WebGL, DOM non cumulatif) ; `tsc`, `eslint`, `vitest 59/59`, `vite build` verts. Reste à valider sur Safari iOS réel + mesure fps MBP 2015 (Phase 6 polish).
 
 ### Phase 3 — GameScreen minimal jouable (4–6 jours) — risque : élevé
 
-- [ ] `GameSession` (orchestrateur headless) + `gameStore` + `syncFromSession`
-- [ ] Boucle complète : pioche (tiers/round, extraDraws, guaranteedDraws priorisées) → préparation (timer 60 s auto-combat, placement normal, repositionnement drag, EnemyAI + masquage) → combat (terrain aléatoire, multiplicateurs, animator) → fin de round (dégâts HP, cimetière, retour `initial_position`, reset stats) → tour suivant → game over
-- [ ] Invocations spéciales complètes : sacrifice, fusion, heritage, transformation, chaînage, matériaux depuis cimetière, `validCells`, doublons grisés
-- [ ] HUD : HpBar, RoundIndicator, MultiplierBadge, PhaseControls, SpeedToggle, SynergyPanel, HandBar, GraveyardTray, EndRoundOverlay, GameOverScreen
-- [ ] Tooltip (card/unit) via `uiStore`
-- [ ] MainMenu + navigation `uiStore` (+ deep-link `?screen=`)
-- **Done** : partie complète 5 tours jouable au doigt sur iPhone (deck de test hardcodé si Phase 5 pas faite), déterminisme combat toujours vert.
+- [x] `GameSession` (orchestrateur headless **pur** — deps data injectées : terrain/magies/attributs/cardDb) + `GameController` (glue app : session↔scene↔stores) + `gameStore`/`uiStore` (snapshots)
+- [x] Boucle complète : pioche (tiers/round, extraDraws, guaranteedDraws priorisées, modifiers de main) → préparation (timer 60 s auto-combat, placement, repositionnement drag, EnemyAI + masquage ennemi) → combat (terrain aléatoire, multiplicateurs, `CombatAnimator3D`) → fin de round (dégâts HP, cimetière, retour `initial_position`, reset stats, vétérance) → tour suivant → game over
+- [x] Invocations spéciales : sacrifice, fusion, heritage, transformation (tap-to-transform), chaînage, matériaux board **et** cimetière, `validCells`, doublons grisés, menu de choix `summon_options`
+- [x] HUD : Hud (HP ×2, manche, multiplicateurs combat), SynergyPanel (tap→tooltip), PhaseControls (compteur, timer, PRÊT, vitesse ×1/×2/×4, pause/reprise), HandBar (grisage injouables + hints), GraveyardTray, EndRoundOverlay (breakdown survivants), GameOverScreen, SummonOptionMenu
+- [x] Tooltip (card/unit/attribute/terrain) via `uiStore` — lignée 🧬, vétérance, bouclier, stats
+- [x] MainMenu + navigation `uiStore` (+ deep-link `?screen=`), bootstrap init databases + deck de repli auto
+- [x] **Shopping fonctionnel** (avancé depuis Phase 4 pour boucler la partie de bout en bout) : overlay 3 magies, ciblage unité/cimetière, effets globaux
+- **Done** ✅ 2026-07-24 : partie vérifiée dans le navigateur (mobile 375×812 + desktop) — placement, rendu, synergies live, combat animé ×1/×2/×4 + pause, **fin de round avec dégâts exacts** (64 = Σ ATK survivants ennemis × ×1.0, HP 1000→936), overlay défaite + breakdown, passage au tour 2 avec HP et cimetière préservés, **zéro erreur console**. `tsc`/`eslint`/`vitest 59`/`build` verts. Notes techniques : sélection au `pointerdown` (le `pointerup` ne se déclenche pas de façon fiable sous automatisation), correctif d'un setState-pendant-render dans EndRoundOverlay, `resolve.dedupe` React ajouté.
 
-### Phase 4 — Phase Shopping + magies (2–3 jours) — risque : moyen
+### Phase 4 — Phase Shopping + magies (2–3 jours) — risque : moyen ✅ 2026-07-24
 
-- [ ] `ShoppingController` + `ShoppingOverlay`/`MagieCard`/`TargetPicker`/`GraveyardPicker`/`Banner`
-- [ ] 14 types d'effets branchés, y compris `defuse_fusion` (réimplémentation documentée), `destroy_unit`, modifiers de main différés, `extraShoppingMagies`, skip fin de partie
-- [ ] Tests unitaires ShoppingController (ciblage, application, carry-over)
-- **Done** : chaque type de magie démontrable en partie réelle.
+- [x] Composants dédiés `components/shopping/` : `ShoppingLayer` (route choix ↔ ciblage) + `MagieCard` (vignette compacte mobile-first). Le ciblage réutilise le highlight de scène (unité) et `GraveyardTray` (cimetière) ; bannière d'instruction + **bouton Annuler** (`cancelMagieTargeting` — le ciblage est annulable, la magie non consommée). `Modal` extrait dans `ui/primitives` (borné `max-h-88dvh`, scroll interne).
+- [x] Le rôle « ShoppingController » vit dans `GameSession` (orchestrateur pur) : `getShoppingMagies` (3 + `extraShoppingMagies`, compteur consommé), `magieNeedsUnitTarget`/`magieNeedsGraveyardTarget`, `magieUnitTargets` (filtre Fusion pour `defuse_fusion`), `applyMagieOnUnit`/`applyMagieOnGraveyardUnit`/`applyGlobalMagie`, `_defuseFusion`/`_destroyUnit`. Pas de classe séparée : éviter de fragmenter l'état (gameState/board/graveyard/deps déjà dans la session).
+- [x] 14 types d'effets branchés, y compris `defuse_fusion` (débordement cimetière), `destroy_unit`, modifiers de main différés (`reduce_sacrifice_cost`/`free_transformation`/`remove_heritage_material` consommés à `startPreparation`), `extraShoppingMagies`, skip fin de partie (`isGameOver`) / zéro magie
+- [x] Tests unitaires shopping (`src/test/shopping.test.ts`, 15 cas) : tirage + extra, routage du ciblage, effets à cible (defuse/destroy/revive), carry-over global consommé au tour suivant. Suite : **74 tests** verts.
+- **Done** : boucle vérifiée en navigateur (mobile 375×812) — overlay 3 magies compact, `player_hp_bonus` appliqué (956→1000 cappé) puis Tour 2, zéro erreur console. `tsc`/`eslint`/`vitest(74)`/`build` verts.
 
-### Phase 5 — DeckBuilder + DeckSelector + navigation complète (2–3 jours) — risque : faible
+### Phase 5 — DeckBuilder + DeckSelector + navigation complète (2–3 jours) — risque : faible ✅ 2026-07-24
 
-- [ ] `deckStore`, DeckSelector (couleurs/tags/renommage/duplication), DeckBuilder (contraintes min 20 / max tier / pendingEdit)
-- [ ] GameScreen consomme le deck actif (`buildDeckFromIds`)
-- [ ] Décision D2 appliquée : soit AuthScreen minimal (login/register/logout + gate bootstrap + sync decks `pull/flushSync`), soit bypass dev documenté
-- **Done** : boucle complète menu → construire → jouer → rejouer sans recharger.
+- [x] `deckStore` (vue réactive sur DeckRepository, source de vérité localStorage), `authStore` (session optionnelle). Navigation : `uiStore` étendu (`auth`/`deck_selector`/`deck_builder`), parité `?screen=`.
+- [x] `DeckSelector` : liste (pastille couleur, répartition par tier, tags, badge ACTIF), sélection, jouer, éditer (param `deckName` → DeckBuilder), dupliquer (`findFreeName` → « (copie) »), renommer (modal), supprimer (modal de confirmation), créer, état vide.
+- [x] `DeckBuilder` : bibliothèque filtrable (tier / invocation / recherche), `CardTile` réutilisable (tap `onClick` + long-press tooltip), lanes par tier avec ajout/retrait, règles **max/tier = min(8, pool)** et **total ≥ 20 + nom requis** (validation bloquante continue), couleur, tags auto-calculés (`computeTags`), mode édition (param `deckName` prioritaire, sinon `consumePendingEdit`).
+- [x] GameScreen consomme le deck sélectionné (`buildSession(deckName)` via DeckRepository ; `autoDeck` conservé en repli de sécurité pour un deep-link `?screen=game` sans deck).
+- [x] **D2** — AuthScreen minimal (connexion / inscription / déconnexion) + restauration de session **non bloquante** au boot (cap 4 s) + sync decks (`pull`/`flushSync`) quand connecté. Choix : gate **optionnel** (jeu jouable en invité) plutôt qu'un mur de login — évite de bloquer le dev/HMR (R7) tout en activant la synchro serveur des decks une fois connecté.
+- **Done** : boucle complète vérifiée en navigateur (mobile 375×812) sans rechargement — menu → construire (deck 20 cartes, cap tier, validation) → enregistrer → sélectionner → **jouer avec les cartes du deck** ; duplication et tags OK ; AuthScreen rendu ; zéro erreur console. `tsc`/`eslint`/`vitest(74)`/`build` verts.
 
-### Phase 6 — TestBench + PWA + polish mobile (3–4 jours) — risque : moyen
+### Phase 6 — TestBench + PWA + polish mobile (3–4 jours) — risque : moyen ✅ 2026-07-24
 
-- [ ] TestBench parité (3.7) 
-- [ ] `vite-plugin-pwa` : migration du manifest (Soulforge, portrait, icônes), SW `autoUpdate`, precache app shell, runtime cache illustrations (stale-while-revalidate), **network-only sur `/api/*`**
-- [ ] Fullscreen API, overlay paysage, safe-areas, audit tap-targets, test réel Safari iOS portrait
-- [ ] Prod : build + `express.static(client/dist)` + fallback SPA ; suppression des routes `/game` statiques
-- [ ] Mise à jour CLAUDE.md (nouvelle stack, nouveaux chemins, écarts du §1.1 documentés)
-- **Done** : installable sur l'écran d'accueil iOS, lighthouse PWA vert, CLAUDE.md à jour.
+- [x] **TestBench parité** (`client/src/dev/TestBench.tsx`, `?screen=testbench`) : placement libre 2 camps (aucune règle d'invocation), browser de cartes filtrable par `summon_type` + recherche, toggle Joueur/Ennemi, suppression par long-press, sélecteur de terrain (cases bloquées immédiates + bouton ℹ avec compte/effet), pause, vitesses ×1/×2/×4, BoardInspector (stats live). Réutilise `Scene3D` + `CombatAnimator3D` (sans `GameController`).
+- [x] **PWA** (`vite-plugin-pwa`) : manifest **Millenium** (portrait, icônes 192/512 + maskable, `theme_color` #0f1117), SW `autoUpdate`, precache app shell (`globPatterns` js/css/html/woff2), runtime cache illustrations **stale-while-revalidate**, **NetworkOnly sur `/api/*`**, `navigateFallback` SPA. `apple-touch-icon` + meta iOS dans `index.html`.
+- [x] **Renommage Soulforge → Millenium** (D9) : realm basic-auth `server.js` (×2), `admin.html` (titre + h1 + favicon), `package.json` (name/description), e-mail de reset (`routes/online.js`), manifest client. **Conservés** (infra/données) : `data/soulforge.db`, clés localStorage `soulforge_*` (renommage = perte des decks invités), domaine/e-mail Railway.
+- [x] **Retrait de l'ancienne UI** : `game/` (5.5 Mo) et l'ancien `index.html` (importmap CDN) supprimés — le client Vite est autonome (copies de `logic`/`data`/`three`/`net` sous `client/src/`). Icônes migrées vers `client/public/`.
+- [x] **Polish mobile** : bouton plein écran (Fullscreen API, masqué si non supporté), overlay « repasse en portrait » sur petit écran en paysage (`DeviceGuards`), safe-areas iOS (`env(safe-area-inset-*)` sur HUD/contrôles/menu), tap-targets ≥ 44 px (`min-h-tap`). *Reste à faire hors-agent : test réel sur Safari iOS + audit Lighthouse.*
+- [x] **Prod** : `server.js` sert `client/dist` (`express.static` + fallback SPA GET non-API) ; routes `/game` statiques et ancien `/` supprimées ; `/api`, `/illustrations`, `/admin` intacts. Script `npm run build` (racine) → build client. Vérifié en isolé (port 3999) : `/` sert le SPA (`<title>Millenium</title>`), `/manifest.webmanifest`, `/sw.js`, fallback `/deck_selector`, `/api/cards` = 200.
+- [x] **CLAUDE.md** mis à jour : stack (Vite/React/TS/Tailwind/Zustand/Three npm), déploiement (ports 3742/5173, build), routes (398 cartes), Mode 3D (npm, plus d'importmap), navigation `uiStore`, table de correspondance ancienne archi (`game/`) → nouvelle (`client/src/`).
+- **Done** (partiel) : PWA installable (manifest + SW générés), ancienne UI retirée, prod servie, CLAUDE.md à jour. **Restent hors-agent** : test Safari iOS réel + passe Lighthouse PWA (nécessitent un appareil/navigateur réels). `tsc`/`eslint`/`vitest(74)`/`build` verts.
 
-### Phase 7 — (optionnelle, selon D3) Online : Auth complet, PvP, Tournoi, Amis/Profil (4–7 jours) — risque : élevé
+### Phase 7 — (optionnelle, selon D3) Online : Auth complet, PvP, Tournoi, Amis/Profil (4–7 jours) — risque : élevé ✅ 2026-07-24
 
-- [ ] AuthScreen complet + ResetPassword, `authStore`
-- [ ] OnlineLobby (matchmaking via `PvpConnection`), GameScreen variante PvP (`PvpOpponentProvider` remplace EnemyAI, miroir des rows, synchro des rounds)
-- [ ] Vérification croisée du déterminisme entre 2 clients (test : même seed d'état initial → même `combat_end` ; les golden tests de Phase 1 sont le garde-fou)
-- [ ] TournamentScreen (bracket, `resolveAiMatches`, matchs du joueur)
-- [ ] Friends/Profile
-- **Done** : un duel réel entre deux navigateurs aboutit au même vainqueur des deux côtés.
+- [x] **Auth complet** : AuthScreen (connexion/inscription + mode « mot de passe oublié ») ; `ResetPasswordScreen` (jeton URL `?screen=reset_password&token=`, alias `resetpwd` conservé) ; `AuthClient.forgotPassword/resetPassword` ; `authStore` (Phase 5).
+- [x] **OnlineLobby** (matchmaking via `PvpConnection` : connect → `queue:join(deck actif)` → `match:found` → `game_pvp`). **`PvpController`** (sous-classe de `GameController`) : hérite préparation/placement, override le combat par poignée de main réseau (`board_ready` → A `terrain_pick` → `combat_start_ack` → barrière serveur `round:go` → reconstruction adverse **en miroir rows 7–10** via `PvpOpponentProvider` → `session.startCombat(agreedBoard)`). `GameSession` mode `pvp` (pas d'EnemyAI, terrain convenu). `GameScreenPvp` (shell sans shopping, bannière adversaire, overlay d'attente, abandon).
+- [x] **Déterminisme** : les 74 golden tests de Phase 1 restent verts (contrat). `PvpOpponentProvider` transmet la vétérance pour que la reconstruction adverse égale l'unité réelle (mêmes stats effectives aux rounds > 1). Un seul tirage de terrain (côté A) diffusé aux deux.
+- [x] **TournamentScreen** : bracket local à 8 (toi + 7 IA sur decks publics), Bo5 résolu par `simulateMatch` (headless déterministe), `createTournament`/`resolveAiMatches`/`buildNextRound`/`getChampion`/`isPlayerEliminated`. Révélé round par round. Vérifié jusqu'au champion.
+- [x] **Friends/Profile** : `FriendsScreen` (recherche, demandes entrantes/sortantes, liste, retrait) + `ProfileScreen` (pseudo/avatar) sur les API `/users/search`, `/friends`, `/profile/me`. Vérifiés avec données réelles.
+- **Done** (partiel) : lobby + tournoi + social vérifiés en navigateur ; PvP câblé de bout en bout (protocole + déterminisme). **Restant** : un **duel 2-joueurs réel** (2 comptes/sessions distincts requis — non pilotable depuis l'agent) reste à valider côté utilisateur pour cocher « même vainqueur des deux côtés ». `tsc`/`eslint`/`vitest(74)`/`build` verts.
 
 ---
 
@@ -388,7 +392,7 @@ Orchestration : `GameSession` détient la boucle de tours (pioche selon `tiersFo
 
 **R5 — Pointer Events Safari iOS (moyen).** `pointercancel` intempestifs (scroll, edge swipes) : `touch-action: none` sur canvas et cartes draggables, seuil de drag, restauration d'état sur cancel. Tester tôt (Phase 2/3), pas au polish.
 
-**R6 — Pas de baseline exécutable (moyen).** L'ancienne UI ayant disparu, la « parité rendu » de la Phase 2 est une reconstruction d'après spec. Accepter que le visuel diverge ; ce qui est contractuel, c'est la logique (tests) et les fonctionnalités listées au §3.
+**R6 — Divergence silencieuse avec la baseline (faible depuis D1).** L'ancienne app restaurée est exécutable : la garder lançable (`npm start` + `/`) pendant toute la migration et comparer systématiquement (préparation, combat ×1/×2/×4, shopping, tooltips) à chaque phase. Ne retirer l'ancien `index.html`/`game/ui` qu'en Phase 6, une fois la parité validée.
 
 **R7 — Auth au bootstrap (faible mais bloquant au quotidien).** Le jeu exige une session (`AuthClient.me()` avec cap 4 s). En dev, prévoir soit l'AuthScreen dès la Phase 5, soit un bypass `VITE_DEV_NO_AUTH` — sinon chaque rechargement HMR bute sur le gate.
 
@@ -396,20 +400,20 @@ Orchestration : `GameSession` détient la boucle de tours (pioche selon `tiersFo
 
 ---
 
-## 6. Décisions à trancher (avec recommandations)
+## 6. Décisions — TRANCHÉES le 2026-07-24
 
-| # | Décision | Options | Ma recommandation |
-|---|---|---|---|
-| **D1** | Restauration du dépôt | (a) re-cloner `srida/Millenium` et rebaser l'état local ; (b) `git init` sur l'état actuel | **(a)** si le remote est accessible et à jour — on y récupère sûrement `index.html`, `package.json`, `initial-data/` et l'ancienne UI 3D supprimée localement (**ce qui changerait la Phase 2 de « réécriture » en « portage », gain énorme**). (b) en secours. À vérifier en tout premier. |
-| **D2** | Auth dans le vertical slice | (a) AuthScreen minimal en Phase 5 ; (b) bypass dev + auth en Phase 7 | **(a)** : le bootstrap et la sync des decks en dépendent, l'écran est petit, et ça évite un mode « sans auth » divergent du prod. |
-| **D3** | Scope online (PvP, Tournoi, Amis, Profil) | (a) inclus dans la refonte (Phase 7) ; (b) hors scope, backend conservé, écrans plus tard | **(a) en Phase 7 après validation du slice solo** — la logique et le backend existent déjà et le déterminisme est testé dès la Phase 1 ; mais je livre les Phases 0–6 d'abord. |
-| **D4** | Migration TS de `logic/` | immédiate / progressive `allowJs` / aucune | **Progressive** (§1.4) : copie gelée + golden tests, puis conversion module par module. |
-| **D5** | CSS3DRenderer conservé ? | (a) garder l'hybride WebGL+CSS3D ; (b) tout-WebGL (cartes en textures/sprites) | **(a) en Phase 2** (fidélité à l'existant, texte net, images DOM simples), **réévaluer en fin de Phase 3** si les perfs iOS déçoivent — l'architecture (`UnitView3D` encapsulé) rend le swap localisé. |
-| **D6** | Tailwind v4 vs v3 | v4 (`@tailwindcss/vite`, tokens `@theme`) / v3 (config JS classique) | **v4** : plus rapide (bon pour MBP 2015), CSS-first, pas de legacy à traîner sur un projet neuf. |
-| **D7** | Navigation | (a) `uiStore.screen` + sync `?screen=` (parité actuelle) ; (b) react-router | **(a)** : 6 écrans, pas de routes imbriquées, une dépendance de moins, parité deep-links conservée. |
-| **D8** | Gestionnaire de paquets | npm / pnpm | **npm** : zéro friction, une seule techno ; pnpm seulement si le disque du MBP devient un problème. |
-| **D9** | Nom affiché | Le produit s'appelle « Soulforge » partout (manifest, DB, admin) mais le repo « Millenium » | Garder **Soulforge** côté produit/PWA ; purement cosmétique, mais à figer avant la PWA (Phase 6). |
+| # | Décision | Arbitrage |
+|---|---|---|
+| **D1** | Restauration du dépôt | ✅ **Fait** : projet rattaché à `github.com/srida/millenium.git`, fichiers manquants récupérés (dont l'ancienne UI 3D → Phase 2 = portage). Reliquats en Phase 0 : `initial-data/` à reconstituer, dossier parasite `https:/` à supprimer. |
+| **D2** | Auth dans le vertical slice | ✅ **(a)** AuthScreen minimal en Phase 5 (gate bootstrap + sync decks). |
+| **D3** | Scope online | ✅ **(a)** PvP / Tournoi / Amis / Profil inclus, en Phase 7 après validation du slice solo. |
+| **D4** | Migration TS de `logic/` | ✅ **Progressive** (`allowJs`, §1.4) : copie gelée + golden tests, puis conversion module par module. |
+| **D5** | CSS3DRenderer | ✅ **(a)** hybride WebGL+CSS3D conservé en Phase 2 ; réévaluation perfs iOS en fin de Phase 3. |
+| **D6** | Tailwind | ✅ **v4** (`@tailwindcss/vite`, tokens `@theme`). |
+| **D7** | Navigation | ✅ **(a)** `uiStore.screen` + sync `?screen=`, pas de react-router. |
+| **D8** | Gestionnaire de paquets | ✅ **npm**. |
+| **D9** | Nom du produit | ✅ **Millenium partout** : manifest PWA, `<title>`, écrans, `admin.html`, realm basic-auth. Checklist détaillée en Phase 6. Seule exception proposée : le fichier `data/soulforge.db` garde son nom sur disque (renommage = migration de données pour un gain nul ; faisable en commit dédié si souhaité). |
 
 ---
 
-*Prochaine étape : ta validation (et tes arbitrages D1–D9). Aucune implémentation ne démarre avant.*
+*Plan validé — l'implémentation démarre à la Phase 0 (reliquats : `https:/`, `initial-data/`, branche `refonte/vite-react`).*

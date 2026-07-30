@@ -168,7 +168,106 @@ if (sessionsSchema && sessionsSchema.sql.includes('users_v1')) {
     INSERT OR IGNORE INTO reset_tokens_new SELECT * FROM reset_tokens;
     DROP TABLE reset_tokens;
     ALTER TABLE reset_tokens_new RENAME TO reset_tokens;
+
+    CREATE TABLE matches_new (
+      id             TEXT PRIMARY KEY,
+      player_a_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      player_b_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      status         TEXT NOT NULL DEFAULT 'active',
+      winner_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      ended_reason   TEXT,
+      round          INTEGER NOT NULL DEFAULT 1,
+      created_at     INTEGER NOT NULL,
+      ended_at       INTEGER
+    );
+    INSERT INTO matches_new SELECT * FROM matches;
+    DROP TABLE matches;
+    ALTER TABLE matches_new RENAME TO matches;
+    CREATE INDEX IF NOT EXISTS idx_matches_player_a ON matches(player_a_id);
+    CREATE INDEX IF NOT EXISTS idx_matches_player_b ON matches(player_b_id);
   `);
+}
+
+// Collection : une ligne par carte débloquée. Les cartes CORE_* sont acquises
+// d'office à l'inscription (règles dans progression.js), les admins possèdent
+// l'intégralité du jeu.
+// ⚠️ Créée APRÈS la migration `tag` : un `ALTER TABLE users RENAME` réécrit les
+// FK des tables dépendantes (comportement SQLite), donc une table déclarée plus
+// haut pointerait sur `users_v1` — supprimée juste après — et toute écriture
+// échouerait avec "no such table: main.users_v1" sur une base neuve.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_cards (
+    user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    card_id     TEXT NOT NULL,
+    unlocked_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, card_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_user_cards_user ON user_cards(user_id);
+`);
+
+// Missions quotidiennes. Deux tables : les missions elles-mêmes (une ligne par
+// mission délivrée) et l'état du cycle du joueur (jour de la dernière
+// délivrance, jauge hebdomadaire, reroll gratuit consommé).
+// ⚠️ Même contrainte que user_cards : créées APRÈS la migration `tag`, sinon
+// leur FK pointerait sur users_v1 (supprimée juste après).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_missions (
+    id           TEXT PRIMARY KEY,
+    user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    mission_id   TEXT NOT NULL,
+    slot_weight  INTEGER NOT NULL,
+    progress     INTEGER NOT NULL DEFAULT 0,
+    target       INTEGER NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'active',
+    issued_day   TEXT NOT NULL,
+    issued_at    INTEGER NOT NULL,
+    completed_at INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_user_missions_user ON user_missions(user_id, status);
+
+  CREATE TABLE IF NOT EXISTS user_mission_state (
+    user_id         TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    last_issued_day TEXT,
+    week_key        TEXT,
+    weekly_points   INTEGER NOT NULL DEFAULT 0,
+    weekly_claimed  TEXT NOT NULL DEFAULT '[]',
+    reroll_free_day TEXT
+  );
+`);
+
+// Boutique de cartes : une seule ligne par joueur. L'offre du jour y est
+// PERSISTÉE (et pas recalculée à la lecture) — c'est elle qui fait foi à
+// l'achat, sinon un changement de deck ou un rechargement re-tirerait l'offre
+// jusqu'à satisfaction. Les RÈGLES vivent dans shop.js.
+// ⚠️ Même contrainte que user_cards : créée APRÈS la migration `tag`.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_shop_state (
+    user_id          TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    offer_day        TEXT,
+    offer            TEXT,
+    reroll_free_day  TEXT,
+    pinned           TEXT,
+    sets_claimed     TEXT NOT NULL DEFAULT '[]'
+  );
+`);
+
+// Migration : la Convoitise (carte nommée dans tout le catalogue, 3 jours
+// d'attente) a été remplacée par l'épingle d'un emplacement proposé. Les deux
+// colonnes qu'elle occupait n'ont plus d'objet — DROP COLUMN plutôt que de les
+// laisser traîner, la table est trop jeune pour mériter une couche de sédiment.
+const shopColumns = db.prepare('PRAGMA table_info(user_shop_state)').all().map(c => c.name);
+if (!shopColumns.includes('pinned')) db.exec('ALTER TABLE user_shop_state ADD COLUMN pinned TEXT');
+for (const dead of ['covet_card_id', 'covet_pinned_day']) {
+  if (shopColumns.includes(dead)) db.exec(`ALTER TABLE user_shop_state DROP COLUMN ${dead}`);
+}
+
+// Progression du joueur (niveau, XP, monnaies). Colonnes additives : le PRAGMA
+// est relu ici car la migration `tag` ci-dessus a pu recréer la table entre-temps.
+const userColumnsV2 = db.prepare('PRAGMA table_info(users)').all().map(c => c.name);
+for (const [col, def] of [['level', 1], ['xp', 0], ['gold', 0], ['gems', 0]]) {
+  if (!userColumnsV2.includes(col)) {
+    db.exec(`ALTER TABLE users ADD COLUMN ${col} INTEGER NOT NULL DEFAULT ${def}`);
+  }
 }
 
 // --- Prepared statements ---
@@ -238,6 +337,63 @@ const stmt = {
   upsertDeckBook: db.prepare(`
     INSERT INTO deck_books (user_id, data, updated_at) VALUES (@user_id, @data, @updated_at)
     ON CONFLICT(user_id) DO UPDATE SET data = @data, updated_at = @updated_at
+  `),
+
+  // Progression + collection. Les règles (valeurs par défaut, grants admin,
+  // cartes de départ) vivent dans progression.js — ici, seulement l'accès SQL.
+  updateProgression: db.prepare(`
+    UPDATE users SET level = @level, xp = @xp, gold = @gold, gems = @gems WHERE id = @id
+  `),
+  unlockCard: db.prepare(`
+    INSERT OR IGNORE INTO user_cards (user_id, card_id, unlocked_at) VALUES (?, ?, ?)
+  `),
+  unlockedCards: db.prepare('SELECT card_id FROM user_cards WHERE user_id = ? ORDER BY card_id'),
+  countUnlockedCards: db.prepare('SELECT COUNT(*) AS c FROM user_cards WHERE user_id = ?'),
+  hasUnlockedCard: db.prepare('SELECT 1 FROM user_cards WHERE user_id = ? AND card_id = ?'),
+  usersWithoutCards: db.prepare(`
+    SELECT u.id, u.is_admin FROM users u
+    WHERE NOT EXISTS (SELECT 1 FROM user_cards c WHERE c.user_id = u.id)
+  `),
+
+  // Missions quotidiennes. Les RÈGLES (tirage, barème, jauge hebdo) vivent dans
+  // missions.js — ici, seulement l'accès SQL.
+  insertMission: db.prepare(`
+    INSERT INTO user_missions (id, user_id, mission_id, slot_weight, progress, target, status, issued_day, issued_at)
+    VALUES (@id, @user_id, @mission_id, @slot_weight, 0, @target, 'active', @issued_day, @issued_at)
+  `),
+  missionRowById: db.prepare('SELECT * FROM user_missions WHERE id = ?'),
+  // Les missions terminées restent visibles jusqu'au prochain reset : le joueur
+  // doit voir ce qu'il a gagné, pas les voir disparaître en silence.
+  missionsByUser: db.prepare(`
+    SELECT * FROM user_missions WHERE user_id = ?
+    ORDER BY status = 'completed', slot_weight, issued_at
+  `),
+  activeMissionsByUser: db.prepare("SELECT * FROM user_missions WHERE user_id = ? AND status = 'active'"),
+  countActiveMissions: db.prepare("SELECT COUNT(*) AS c FROM user_missions WHERE user_id = ? AND status = 'active'"),
+  updateMissionProgress: db.prepare('UPDATE user_missions SET progress = @progress, status = @status, completed_at = @completed_at WHERE id = @id'),
+  deleteMission: db.prepare('DELETE FROM user_missions WHERE id = ?'),
+  // Purge des missions terminées d'un cycle révolu (appelée au reset quotidien).
+  deleteStaleCompletedMissions: db.prepare("DELETE FROM user_missions WHERE user_id = ? AND status = 'completed' AND issued_day < ?"),
+
+  missionStateByUser: db.prepare('SELECT * FROM user_mission_state WHERE user_id = ?'),
+  upsertMissionState: db.prepare(`
+    INSERT INTO user_mission_state (user_id, last_issued_day, week_key, weekly_points, weekly_claimed, reroll_free_day)
+    VALUES (@user_id, @last_issued_day, @week_key, @weekly_points, @weekly_claimed, @reroll_free_day)
+    ON CONFLICT(user_id) DO UPDATE SET
+      last_issued_day = @last_issued_day, week_key = @week_key,
+      weekly_points = @weekly_points, weekly_claimed = @weekly_claimed,
+      reroll_free_day = @reroll_free_day
+  `),
+
+  // Boutique de cartes. Les RÈGLES (tirage des emplacements, prix, épingle,
+  // boosters) vivent dans shop.js — ici, seulement l'accès SQL.
+  shopStateByUser: db.prepare('SELECT * FROM user_shop_state WHERE user_id = ?'),
+  upsertShopState: db.prepare(`
+    INSERT INTO user_shop_state (user_id, offer_day, offer, reroll_free_day, pinned, sets_claimed)
+    VALUES (@user_id, @offer_day, @offer, @reroll_free_day, @pinned, @sets_claimed)
+    ON CONFLICT(user_id) DO UPDATE SET
+      offer_day = @offer_day, offer = @offer, reroll_free_day = @reroll_free_day,
+      pinned = @pinned, sets_claimed = @sets_claimed
   `),
 
   insertResetToken: db.prepare('INSERT INTO reset_tokens (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)'),

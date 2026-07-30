@@ -1,0 +1,162 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// PvpController — variante Duel en ligne de GameController. La préparation, la
+// sélection et le placement sont hérités tels quels ; seuls le déclenchement du
+// combat et l'enchaînement des rounds changent : ils passent par une poignée de
+// main via le relais WebSocket (PvpConnection) et la reconstruction du board
+// adverse (PvpOpponentProvider). Le combat lui-même reste 100 % local et
+// déterministe des deux côtés (aucun RNG dans CombatManager).
+//
+// Séquence d'un round (identique pour A et B, barrières côté serveur) :
+//   startCombat → board_ready(mes unités) ; A choisit + terrain_pick(boardId)
+//   → combat_start_ack → [barrière serveur] → round:go(boardId)
+//   → reconstruire l'adversaire (miroir rows 7–10) → session.startCombat(board)
+//   → animer. Fin de partie : match:report_result(localWinner) → match:end.
+import { GameController } from './GameController.js';
+import { GameSession, Phase } from '../logic/GameSession.js';
+import * as PvpConnection from '../net/PvpConnection.js';
+import { sendOwnBoard, waitForOpponentBoard, reconstructOpponentUnits, reset as resetOpponent } from '../net/PvpOpponentProvider.js';
+import type { BoardDef } from '../logic/types.js';
+import { useGameStore } from '../stores/gameStore.js';
+import { useAuthStore } from '../stores/authStore.js';
+
+interface PvpDeps {
+  cardDb: { getCard(id: string): any };
+  getBoard: (id: string) => BoardDef | null;
+  getRandomBoard: () => BoardDef | null;
+}
+
+export class PvpController extends GameController {
+  private pvp: PvpDeps;
+  private role: 'A' | 'B';
+  private opponentName: string;
+  private _handshaking = false;
+  private _oppBoardPromise: Promise<any> | null = null;
+  private _listeners: [string, (m: any) => void][] = [];
+  private _finished = false;
+
+  constructor(session: GameSession, pvp: PvpDeps, role: 'A' | 'B', opponentName: string) {
+    super(session);
+    this.pvp = pvp;
+    this.role = role;
+    this.opponentName = opponentName;
+  }
+
+  begin(): void {
+    // Écoute les messages de round + fin de match, puis démarre la préparation.
+    this._listen('round:go', (m) => this._onRoundGo(m));
+    this._listen('match:end', (m) => this._onMatchEnd(m));
+    this._listen('match:opponent_disconnected', () => this._pvpNotify('Adversaire déconnecté…'));
+    this._listen('_socket_closed', () => this._pvpNotify('Connexion perdue'));
+    PvpConnection.send('match:ready');
+    this.session.startPreparation();
+    this._clearSelection();
+    this.scene?.refresh();
+    this.sync({ pvpOpponent: this.opponentName });
+  }
+
+  // ── Déclenchement du combat : poignée de main réseau ────────────────────────
+  startCombat(): void {
+    if (this.session.phase !== Phase.PREPARATION || this._handshaking) return;
+    this._handshaking = true;
+    this._clearSelection();
+    const round = this.session.gameState.round;
+
+    // 1) J'annonce mon board (unités + état persistant + mes PV).
+    sendOwnBoard(round, this.session.getPlayerUnits(), this.session.gameState.player_hp);
+    // 2) Le rôle A choisit le terrain et le diffuse (déterminisme : un seul tirage).
+    if (this.role === 'A') {
+      const board = this.pvp.getRandomBoard();
+      PvpConnection.send('round:terrain_pick', { round, boardId: board?.id ?? null });
+    }
+    // 3) J'attends le board adverse en parallèle, puis j'acquitte la barrière.
+    this._oppBoardPromise = waitForOpponentBoard(round);
+    PvpConnection.send('round:combat_start_ack', { round });
+    this.sync({ combatActive: false, pvpWaiting: true });
+  }
+
+  private async _onRoundGo(msg: { round: number; boardId: string | null }): Promise<void> {
+    if (!this._oppBoardPromise) return;
+    const oppPayload = await this._oppBoardPromise;
+    this._oppBoardPromise = null;
+
+    // PV adverses : autoritaires côté propriétaire. Les magies globales de la
+    // Phase Shopping (player_hp_bonus) n'existent que sur le client qui les a
+    // jouées — sans cette resynchro, les deux clients divergeraient sur les PV
+    // et pourraient déclarer la fin de partie différemment.
+    if (typeof oppPayload.player_hp === 'number') this.session.gameState.enemy_hp = oppPayload.player_hp;
+
+    // Nettoie le côté ennemi (rounds > 1 : on rebâtit depuis le board autoritaire
+    // de l'adversaire) puis reconstruit ses unités en miroir (rows 7–10).
+    for (const u of this.session.board.getLivingUnitsOnSide('enemy')) this.session.board.removeUnit(u);
+    reconstructOpponentUnits(oppPayload, this.session.board, this.pvp.cardDb);
+    this.session.enemyUnits = this.session.board.getLivingUnitsOnSide('enemy');
+
+    const board = msg.boardId ? this.pvp.getBoard(msg.boardId) : null;
+    this.scene?.refresh();
+    const { combat } = this.session.startCombat(board);
+    this._handshaking = false;
+    this.sync({ pvpWaiting: false });
+    this._beginCombatAnimation(combat, board);
+  }
+
+  // ── Fin de round / fin de partie ───────────────────────────────────────────
+  dismissEndRound(): void {
+    if (this.session.isGameOver()) {
+      if (this._finished) return;
+      this._finished = true;
+      // Missions : la partie est jouée, on solde le lot sans attendre l'arbitrage
+      // du serveur (le résultat local suffit — seuls les gains PvP en dépendent).
+      this._reportMatchCompleted();
+      const localWinner = this.session.getWinner(); // 'player' | 'enemy' | 'draw'
+      PvpConnection.send('match:report_result', { localWinner });
+      this.sync({ endRound: null, pvpWaiting: true });
+      return;
+    }
+    // Phase Shopping identique au mode solo. Aucune synchro n'est nécessaire :
+    // chaque joueur tire et applique ses magies localement, et le résultat est
+    // transmis à l'adversaire dans le payload de board_ready du round suivant
+    // (stats de base, PV, bouclier, PV joueur). Le décalage de durée entre les
+    // deux shoppings est absorbé par la barrière `combat_start_ack`.
+    this._startShopping();
+  }
+
+  // Le passage au round suivant traverse le relais : il réinitialise les
+  // barrières serveur (terrain + acks). Appelé aussi bien après le choix d'une
+  // magie qu'après « Passer cette phase ».
+  protected _proceedNextRound(): void {
+    PvpConnection.send('round:next_ready', { round: this.session.gameState.round });
+    super._proceedNextRound();
+  }
+
+  private _onMatchEnd(msg: { winner: 'A' | 'B' | 'draw'; progression?: any }): void {
+    const iWon = msg.winner === this.role;
+    const winner: 'player' | 'enemy' | 'draw' = msg.winner === 'draw' ? 'draw' : iWon ? 'player' : 'enemy';
+    this.animator?.stop();
+    // Le gain PvP est décerné par le serveur (seul arbitre du vainqueur) et
+    // voyage dans match:end : il n'y a rien à réclamer, juste à afficher.
+    this._reportMatchCompleted();
+    if (iWon && msg.progression) useAuthStore.getState().applyProgression(msg.progression);
+    this.sync({ combatActive: false, pvpWaiting: false, gameOver: true, winner });
+  }
+
+  // Abandon volontaire (bouton quitter).
+  forfeit(): void {
+    if (this._finished) return;
+    this._finished = true;
+    PvpConnection.send('match:forfeit');
+  }
+
+  private _pvpNotify(msg: string): void { useGameStore.getState().applySnapshot({ errorFlash: msg }); }
+
+  private _listen(type: string, fn: (m: any) => void): void {
+    PvpConnection.on(type, fn);
+    this._listeners.push([type, fn]);
+  }
+
+  dispose(): void {
+    for (const [type, fn] of this._listeners) PvpConnection.off(type, fn);
+    this._listeners = [];
+    resetOpponent();
+    super.dispose();
+  }
+}
