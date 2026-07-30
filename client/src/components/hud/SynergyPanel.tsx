@@ -10,16 +10,23 @@ export default function SynergyPanel() {
   const combatActive = useGameStore(s => s.combatActive);
   const showTooltip = useUiStore(s => s.showTooltip);
   const web = useWebLayout();
-  // Réservé au mode web (écran large) : en portrait, la main et le cimetière
-  // occupent déjà le bas de l'écran, sans place pour un troisième bandeau.
-  if (!web || combatActive || synergies.length === 0) return null;
+  if (combatActive || synergies.length === 0) return null;
+
+  // Web (écran large) : bandeau centré sous le board, entre les deux rails
+  // (main à gauche, cimetière à droite — cf. HandBar/GraveyardTray, w-52
+  // chacun). bottom-14, pas bottom-2 : la barre de phase (bottom-0, pleine
+  // largeur) intercepterait sinon les taps malgré son fond transparent.
+  //
+  // Portrait (mobile) : la main et le cimetière occupent déjà le bas de
+  // l'écran, sans place pour un troisième bandeau — posé sous le header à la
+  // place (même repère que TournamentHeader, légèrement plus bas pour ne pas
+  // se superposer si les deux sont affichés en même temps).
+  const positionClass = web
+    ? 'bottom-14 left-1/2 -translate-x-1/2 max-w-[60%] justify-center'
+    : 'top-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))] left-1/2 -translate-x-1/2 max-w-[92%] justify-center';
 
   return (
-    // Bandeau centré sous le board, entre les deux rails (main à gauche,
-    // cimetière à droite — cf. HandBar/GraveyardTray, w-52 chacun). bottom-14,
-    // pas bottom-2 : la barre de phase (bottom-0, pleine largeur) intercepterait
-    // sinon les taps malgré son fond transparent.
-    <div className="pointer-events-auto absolute bottom-14 left-1/2 z-20 flex max-w-[60%] -translate-x-1/2 flex-wrap justify-center gap-1">
+    <div className={`pointer-events-auto absolute z-20 flex flex-wrap gap-1 ${positionClass}`}>
       {synergies.map(s => {
         const active = !!s.activeThreshold;
         const label = s.nextThreshold ? `${s.count}/${s.nextThreshold.count}` : `${s.count}`;
