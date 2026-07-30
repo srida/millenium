@@ -200,6 +200,7 @@ export default function DeckBuilder() {
         title="Deck-building"
         onBack={back}
         right={<span className={`text-sm font-bold tabular-nums ${valid ? 'text-success' : 'text-gold'}`}>{total}/{MIN_DECK}</span>}
+        safeAreaTop
       />
 
       <div className="flex border-b border-line">
