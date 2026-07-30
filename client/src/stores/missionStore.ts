@@ -94,6 +94,29 @@ function newMatchId(): string {
 
 const isGuest = () => !useAuthStore.getState().user;
 
+// Pastille "nouveauté" du bouton Missions du menu principal : même mécanique
+// que la Boutique (`hasUnseenShop`/`markShopSeen`) — un simple point, pas un
+// compteur, effacé dès que l'écran a été *visité* pour le cycle en cours.
+// `next_reset_at` sert de clé de rotation : il est stable pendant tout le
+// cycle courant (5h/13h/21h) et change au suivant, comme `day` pour la Boutique.
+const seenKey = (userId: string) => `millenium_missions_seen_cycle_${userId}`;
+
+export function hasUnseenMissions(userId: string, nextResetAt: number): boolean {
+  try {
+    return localStorage.getItem(seenKey(userId)) !== String(nextResetAt);
+  } catch {
+    return false;
+  }
+}
+
+export function markMissionsSeen(userId: string, nextResetAt: number): void {
+  try {
+    localStorage.setItem(seenKey(userId), String(nextResetAt));
+  } catch {
+    // localStorage indisponible : la pastille resterait affichée en permanence.
+  }
+}
+
 export const useMissionStore = create<MissionStoreState>((set, get) => ({
   snapshot: null,
   loading: false,

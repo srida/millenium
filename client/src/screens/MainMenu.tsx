@@ -10,7 +10,7 @@ import { useEffect } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
-import { useMissionStore } from '../stores/missionStore.js';
+import { useMissionStore, hasUnseenMissions } from '../stores/missionStore.js';
 import { useShopStore, hasUnseenShop } from '../stores/shopStore.js';
 import { Button } from '../components/ui/primitives.js';
 import { ProgressionPills, ProfilePill } from '../components/ui/ProgressionStats.js';
@@ -77,9 +77,10 @@ export default function MainMenu() {
   );
 }
 
-// Accès aux missions du jour, avec le nombre de missions restantes en pastille :
-// c'est le rappel qui fait revenir, il doit être lisible sans ouvrir l'écran.
-// Rien n'est rendu en invité — un compte est nécessaire pour porter le cycle.
+// Accès aux missions du jour. Même notification que la Boutique : un simple
+// point signale un cycle pas encore visité, pas un compteur — le détail vit
+// dans l'écran. Rien n'est rendu en invité — un compte est nécessaire pour
+// porter le cycle.
 function MissionsButton() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
@@ -90,17 +91,13 @@ function MissionsButton() {
 
   if (!user) return null;
 
-  const pending = (snapshot?.missions ?? []).filter(m => m.status === 'active').length;
-  const done = (snapshot?.missions ?? []).filter(m => m.status === 'completed').length;
+  const unseen = !!snapshot && hasUnseenMissions(user.id, snapshot.cycle.next_reset_at);
 
   return (
     <Button className="flex-1 px-2" onPointerDown={() => navigate('missions')}>
       <span className="whitespace-nowrap">🎯 Missions</span>
-      {pending > 0 && (
-        <span className="rounded-full border border-gold/50 bg-gold/15 px-2 text-xs tabular-nums text-gold">{pending}</span>
-      )}
-      {done > 0 && (
-        <span className="rounded-full border border-success/50 bg-success/15 px-2 text-xs tabular-nums text-success">✓ {done}</span>
+      {unseen && (
+        <span className="h-2 w-2 rounded-full bg-gold" aria-label="Nouveautés" />
       )}
     </Button>
   );

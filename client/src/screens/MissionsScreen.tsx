@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
-import { useMissionStore, type Mission, type WeeklyMilestone } from '../stores/missionStore.js';
+import { useMissionStore, markMissionsSeen, type Mission, type WeeklyMilestone } from '../stores/missionStore.js';
 import { Button, Panel, Gauge, Countdown } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 
@@ -33,6 +33,7 @@ export default function MissionsScreen() {
   const { snapshot, loading, error, load } = useMissionStore();
 
   useEffect(() => { void load(true); }, [load]);
+  useEffect(() => { if (user && snapshot) markMissionsSeen(user.id, snapshot.cycle.next_reset_at); }, [user, snapshot?.cycle.next_reset_at]);
 
   if (!user) {
     return (
