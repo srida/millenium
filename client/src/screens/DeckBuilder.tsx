@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as CardDatabase from '../data/CardDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
+import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import type { Card } from '../logic/types.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
@@ -67,10 +68,20 @@ export default function DeckBuilder() {
     return param ?? ((DeckRepository as any).consumePendingEdit?.() as string | null) ?? null;
   });
 
+  // Édition d'un deck PUBLIC depuis le panneau admin (iframe, ?publicDeckId=) :
+  // ni collection du joueur, ni DeckRepository local — la source et la cible
+  // sont l'API /api/decks, et le retour se fait par postMessage au parent
+  // plutôt que par navigate() (il n'y a pas de DeckSelector à retrouver).
+  const [publicDeckId] = useState<string | null>(() => (useUiStore.getState().params.publicDeckId as string | undefined) ?? null);
+  const isAdminEdit = publicDeckId != null;
+
   // Mode du DeckSelector d'où l'on vient : le retour doit y ramener à
   // l'identique. Figé au montage, comme editName.
   const [backMode] = useState<DeckSelectorMode>(() => useUiStore.getState().params.mode ?? 'manage');
-  const back = () => navigate('deck_selector', { mode: backMode });
+  const back = () => {
+    if (isAdminEdit) { window.parent.postMessage({ type: 'soulforge-deckbuilder-close' }, window.location.origin); return; }
+    navigate('deck_selector', { mode: backMode });
+  };
 
   const allCards = useMemo(() => (CardDatabase as any).getAllCards()
     .slice().sort((a: Card, b: Card) => a.tier !== b.tier ? a.tier - b.tier : a.name.localeCompare(b.name, 'fr')) as Card[], []);
@@ -82,11 +93,13 @@ export default function DeckBuilder() {
 
   // Collection du joueur : seules ses cartes sont sélectionnables. Rechargée au
   // montage pour refléter un déblocage obtenu depuis la dernière visite.
+  // Non pertinent en édition admin d'un deck public : le catalogue entier est
+  // disponible (il n'y a pas de « joueur » propriétaire d'un deck public).
   const ownedIds = useCollectionStore(s => s.ownedIds);
   const collectionLoaded = useCollectionStore(s => s.loaded);
-  useEffect(() => { void useCollectionStore.getState().load(true); }, []);
-  const owns = useMemo(() => (id: string) => ownedIds.has(id), [ownedIds]);
-  const ownedCount = useMemo(() => allCards.filter(c => ownedIds.has(c.id)).length, [allCards, ownedIds]);
+  useEffect(() => { if (!isAdminEdit) void useCollectionStore.getState().load(true); }, [isAdminEdit]);
+  const owns = useMemo(() => (id: string) => isAdminEdit || ownedIds.has(id), [ownedIds, isAdminEdit]);
+  const ownedCount = useMemo(() => isAdminEdit ? allCards.length : allCards.filter(c => ownedIds.has(c.id)).length, [allCards, ownedIds, isAdminEdit]);
 
   const [deckData, setDeckData] = useState<DeckData>(EMPTY);
   const [name, setName] = useState(editName ?? '');
@@ -130,6 +143,24 @@ export default function DeckBuilder() {
     setColor((DeckRepository as any).getDeckColor?.(editName) ?? null);
   }, [editName]);
 
+  // Préchargement en mode admin (deck public) : source = /api/decks, pas
+  // DeckRepository. Pas de dédoublonnage silencieux ici — un deck public mal
+  // formé doit se voir tel quel plutôt que de perdre des cartes sans le dire.
+  useEffect(() => {
+    if (!publicDeckId) return;
+    (async () => {
+      await (PublicDeckDatabase as any).init();
+      const pd = (PublicDeckDatabase as any).getDeck(publicDeckId) as { name?: string; deck?: Record<string, string[]> } | null;
+      if (!pd) return;
+      const d: DeckData = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+      for (let t = 1; t <= 5; t++) {
+        d[t] = (pd.deck?.[String(t)] ?? []).map((id: string) => (CardDatabase as any).getCard(id)).filter(Boolean) as Card[];
+      }
+      setDeckData(d);
+      setName(pd.name ?? '');
+    })();
+  }, [publicDeckId]);
+
   const total = [1, 2, 3, 4, 5].reduce((s, t) => s + deckData[t].length, 0);
   const tierOk = [1, 2, 3, 4, 5].every(t => deckData[t].length <= tierMax[t]);
   const valid = name.trim().length > 0 && total >= MIN_DECK && tierOk;
@@ -168,8 +199,28 @@ export default function DeckBuilder() {
     setDeckData(d => ({ ...d, [tier]: d[tier].filter((_, i) => i !== idx) }));
   }
 
-  function save() {
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
     if (!valid) return;
+    const toSave: Record<string, string[]> = {};
+    for (let t = 1; t <= 5; t++) toSave[String(t)] = deckData[t].map(c => c.id);
+
+    if (isAdminEdit) {
+      setSaving(true);
+      try {
+        await fetch(`/api/decks/${encodeURIComponent(publicDeckId!)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: publicDeckId, name: name.trim(), deck: toSave }),
+        });
+      } finally {
+        setSaving(false);
+      }
+      window.parent.postMessage({ type: 'soulforge-deckbuilder-saved' }, window.location.origin);
+      return;
+    }
+
     const finalName = name.trim();
     if ((DeckRepository as any).deckExists(finalName) && finalName !== editName) {
       if (!window.confirm(`Un deck "${finalName}" existe déjà. Écraser ?`)) return;
@@ -177,8 +228,6 @@ export default function DeckBuilder() {
     if (editName && editName !== finalName && (DeckRepository as any).deckExists(editName)) {
       (DeckRepository as any).deleteDeck(editName);
     }
-    const toSave: Record<string, string[]> = {};
-    for (let t = 1; t <= 5; t++) toSave[String(t)] = deckData[t].map(c => c.id);
     (DeckRepository as any).saveDeck(finalName, toSave);
     if (color) (DeckRepository as any).setDeckColor?.(finalName, color);
     (DeckRepository as any).setDeckTags?.(finalName, computeTags(deckData));
@@ -197,7 +246,7 @@ export default function DeckBuilder() {
   return (
     <main className="flex min-h-dvh flex-col bg-surface text-white" onPointerDown={hideTooltip}>
       <ScreenHeader
-        title="Deck-building"
+        title={isAdminEdit ? `Deck-building — ${publicDeckId}` : 'Deck-building'}
         onBack={back}
         right={<span className={`text-sm font-bold tabular-nums ${valid ? 'text-success' : 'text-gold'}`}>{total}/{MIN_DECK}</span>}
         safeAreaTop
@@ -241,7 +290,7 @@ export default function DeckBuilder() {
       ) : (
         <DeckPanel
           deckData={deckData} tierMax={tierMax} name={name} setName={setName}
-          color={color} setColor={setColor} onRemove={removeCard} owns={owns}
+          color={color} setColor={setColor} showColor={!isAdminEdit} onRemove={removeCard} owns={owns}
           onClear={() => setDeckData(EMPTY)}
         />
       )}
@@ -254,8 +303,8 @@ export default function DeckBuilder() {
               ? <span className="text-gold">Encore {need} carte{need > 1 ? 's' : ''} (min. {MIN_DECK})</span>
               : <span className="text-gold">Nomme ton deck pour enregistrer</span>}
         </div>
-        <Button variant="primary" disabled={!valid} className="w-full py-3" onPointerDown={save}>
-          ▸ Enregistrer le deck
+        <Button variant="primary" disabled={!valid || saving} className="w-full py-3" onPointerDown={() => void save()}>
+          {saving ? '…' : '▸ Enregistrer le deck'}
         </Button>
       </div>
     </main>
@@ -350,7 +399,7 @@ function LibraryPanel({
   );
 }
 
-function DeckPanel({ deckData, tierMax, name, setName, color, setColor, onRemove, owns, onClear }: any) {
+function DeckPanel({ deckData, tierMax, name, setName, color, setColor, showColor = true, onRemove, owns, onClear }: any) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-3">
       <input
@@ -359,18 +408,20 @@ function DeckPanel({ deckData, tierMax, name, setName, color, setColor, onRemove
         className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-base font-bold text-white placeholder:text-white/30"
       />
 
-      <div className="mt-3">
-        <div className="mb-1 text-[10px] tracking-widest text-white/40">COULEUR DU DECK</div>
-        <div className="flex flex-wrap gap-2">
-          {DECK_COLORS.map(c => (
-            <button
-              key={c} onPointerDown={() => setColor(c)}
-              className={`h-7 w-7 rounded-full ${color === c ? 'ring-2 ring-gold ring-offset-2 ring-offset-surface' : ''}`}
-              style={{ background: c }}
-            />
-          ))}
+      {showColor && (
+        <div className="mt-3">
+          <div className="mb-1 text-[10px] tracking-widest text-white/40">COULEUR DU DECK</div>
+          <div className="flex flex-wrap gap-2">
+            {DECK_COLORS.map(c => (
+              <button
+                key={c} onPointerDown={() => setColor(c)}
+                className={`h-7 w-7 rounded-full ${color === c ? 'ring-2 ring-gold ring-offset-2 ring-offset-surface' : ''}`}
+                style={{ background: c }}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="mt-4 space-y-3">
         {[1, 2, 3, 4, 5].map(t => {
