@@ -31,6 +31,7 @@ const POWERS_FILE    = path.join(DATA_DIR, 'powers.json');
 const BOARDS_FILE    = path.join(DATA_DIR, 'boards.json');
 const MAGIES_FILE    = path.join(DATA_DIR, 'magies.json');
 const PUBLIC_DECKS_FILE = path.join(DATA_DIR, 'public_decks.json');
+const MISSIONS_FILE  = path.join(DATA_DIR, 'missions.json');
 
 // --- Bootstrap: copy initial data to volume on first run ---
 function bootstrap() {
@@ -586,6 +587,70 @@ app.delete('/api/magies/:id/illustration', requireSiteAdmin, (req, res) => {
   const filePath = path.join(ILLUS_DIR, `${req.params.id}.png`);
   try {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- Missions API ---
+app.get('/api/missions', (req, res) => {
+  try {
+    res.json(readJson(MISSIONS_FILE));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/missions', requireSiteAdmin, (req, res) => {
+  try {
+    const missions = readJson(MISSIONS_FILE);
+    const mission  = req.body;
+    if (!mission.id) return res.status(400).json({ error: 'id required' });
+    if (missions.find(m => m.id === mission.id)) return res.status(400).json({ error: `ID ${mission.id} already exists` });
+    missions.push(mission);
+    writeJson(MISSIONS_FILE, missions);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/missions/import', requireSiteAdmin, (req, res) => {
+  try {
+    const { items, mode = 'skip' } = req.body;
+    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
+    const missions = readJson(MISSIONS_FILE);
+    let added = 0, replaced = 0, skipped = 0;
+    const errors = [];
+    for (const item of items) {
+      if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
+      const idx = missions.findIndex(m => m.id === item.id);
+      if (idx !== -1) {
+        if (mode === 'replace') { missions[idx] = item; replaced++; }
+        else skipped++;
+      } else {
+        missions.push(item);
+        added++;
+      }
+    }
+    writeJson(MISSIONS_FILE, missions);
+    res.json({ ok: true, added, replaced, skipped, errors });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/missions/:id', requireSiteAdmin, (req, res) => {
+  try {
+    const missions = readJson(MISSIONS_FILE);
+    const idx = missions.findIndex(m => m.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    missions[idx] = req.body;
+    writeJson(MISSIONS_FILE, missions);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/missions/:id', requireSiteAdmin, (req, res) => {
+  try {
+    let missions = readJson(MISSIONS_FILE);
+    const idx = missions.findIndex(m => m.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    missions.splice(idx, 1);
+    writeJson(MISSIONS_FILE, missions);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
