@@ -134,8 +134,8 @@ export async function getShop() {
 
 // `cardId` accompagne le slot : le serveur refuse (409) si l'offre a tourné
 // entre l'affichage et le tap, au lieu d'acheter la carte qui a pris la place.
-export async function buyShopCard({ slot, cardId }) {
-  return absorbShop(await api('/me/shop/buy', { method: 'POST', body: { slot, card_id: cardId } }));
+export async function buyShopCard({ slot, cardId, currency = 'golds' }) {
+  return absorbShop(await api('/me/shop/buy', { method: 'POST', body: { slot, card_id: cardId, currency } }));
 }
 
 export async function rerollShopSlot(slot) {

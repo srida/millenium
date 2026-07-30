@@ -32,7 +32,9 @@ const SETS_FILE = path.join(DATA_DIR, 'sets.json');
 // --- Barème (brief §3.3, §3.4, §3.5) ---
 
 const DAILY_SLOTS = 3;
-const CARD_PRICES = Object.freeze({ 1: 75, 2: 125, 3: 200, 4: 350, 5: 550 });
+// Prix unique, quel que soit le tier de la carte : le joueur choisit sa
+// monnaie à l'achat (golds ou gemmes), comme pour un booster.
+const SLOT_PRICE = Object.freeze({ golds: 1000, gems: 100 });
 
 // Pondération de tirage par tier, volontairement plus PLATE que la
 // distribution naturelle du pool (T1 38 % / T5 5 %) : les tiers élevés coûtent
@@ -56,8 +58,8 @@ const FREE_REROLLS_PER_DAY = 1;
 
 const BOOSTER = Object.freeze({
   card_count: 3,
-  price_golds: 600,
-  price_gems: 100,
+  price_golds: 2000,
+  price_gems: 150,
   // 2 cartes Tier 1-2 + 1 carte Tier 3+.
   tier_guarantee: { low: 2, high: 1, high_threshold: 3 },
   // Poids ×2 pour les cartes portant un attribut du deck actif. Non exclusif :
@@ -109,8 +111,10 @@ function materialsOf(c) {
   return out;
 }
 
-function priceOf(c) {
-  return CARD_PRICES[Number(c?.tier)] ?? CARD_PRICES[1];
+// Le prix ne dépend plus de la carte — conservé comme fonction pour ne pas
+// disperser la constante dans tout le fichier.
+function priceOf() {
+  return { golds: SLOT_PRICE.golds, gems: SLOT_PRICE.gems };
 }
 
 // --- Calendrier ---
@@ -277,7 +281,8 @@ function drawSlot(slot, pool, ctx, rand) {
     slot,
     card_id: pick.card.id,
     tier: Number(pick.card.tier) || 1,
-    price: priceOf(pick.card),
+    price_golds: SLOT_PRICE.golds,
+    price_gems: SLOT_PRICE.gems,
     reason: pick.reason,
     reason_ref: pick.reason_ref,
     purchased: false,
@@ -307,7 +312,8 @@ function buildOffer(user, ctx, { day, excluded = [], pinned = null }) {
       slot: pinned.slot,
       card_id: pinned.card_id,
       tier: pinned.tier,
-      price: pinned.price,
+      price_golds: pinned.price_golds,
+      price_gems: pinned.price_gems,
       reason: pinned.reason,
       reason_ref: pinned.reason_ref,
       purchased: false,
@@ -389,7 +395,9 @@ const sync = db.transaction((user) => {
  * de la rotation échoue proprement au lieu d'acheter la carte suivante
  * (brief §7, « verrou transactionnel sur l'offre »).
  */
-const buySlot = db.transaction((user, slotIndex, expectedCardId) => {
+const buySlot = db.transaction((user, slotIndex, expectedCardId, currency = 'golds') => {
+  if (currency !== 'golds' && currency !== 'gems') return { ok: false, reason: 'Monnaie inconnue.' };
+
   const state = readState(user.id);
   const day = dayKey();
   if (state.offer_day !== day || !state.offer) return { ok: false, reason: 'L\'offre a changé, recharge la boutique.', stale: true };
@@ -401,13 +409,15 @@ const buySlot = db.transaction((user, slotIndex, expectedCardId) => {
   }
   if (slot.purchased) return { ok: false, reason: 'Emplacement déjà acheté.' };
 
+  const price = currency === 'gems' ? slot.price_gems : slot.price_golds;
   const fresh = stmt.userById.get(user.id);
-  if ((fresh?.gold ?? 0) < slot.price) return { ok: false, reason: 'Pas assez de golds.' };
+  const balance = currency === 'gems' ? (fresh?.gems ?? 0) : (fresh?.gold ?? 0);
+  if (balance < price) return { ok: false, reason: currency === 'gems' ? 'Pas assez de gemmes.' : 'Pas assez de golds.' };
   // Zéro doublon : une carte acquise entre-temps (booster, autre onglet) ne
   // peut plus être vendue.
   if (progression.ownsCard(fresh, slot.card_id)) return { ok: false, reason: 'Carte déjà possédée.' };
 
-  progression.grant(user.id, { gold: -slot.price });
+  progression.grant(user.id, currency === 'gems' ? { gems: -price } : { gold: -price });
   progression.unlockCard(user.id, slot.card_id);
   slot.purchased = true;
 
@@ -417,7 +427,7 @@ const buySlot = db.transaction((user, slotIndex, expectedCardId) => {
   writeState(state);
 
   return {
-    ok: true, card_id: slot.card_id, price: slot.price, currency: 'golds',
+    ok: true, card_id: slot.card_id, price, currency,
     sets_completed: claimSetCompletions(user.id, state),
   };
 });
@@ -502,7 +512,8 @@ const setPin = db.transaction((user, slotIndex) => {
     slot: slot.slot,
     card_id: slot.card_id,
     tier: slot.tier,
-    price: slot.price,
+    price_golds: slot.price_golds,
+    price_gems: slot.price_gems,
     reason: slot.reason,
     reason_ref: slot.reason_ref,
     since_day: day,
@@ -697,7 +708,7 @@ function getSnapshot(user) {
     pin_rules: { max: PINNED_SLOTS_MAX },
     booster: { price_golds: BOOSTER.price_golds, price_gems: BOOSTER.price_gems, card_count: BOOSTER.card_count },
     sets: setsView(ctx),
-    prices: CARD_PRICES,
+    prices: SLOT_PRICE,
     // Collection saturée : la boutique de cartes n'a plus rien à vendre. Le
     // client affiche un message de complétion plutôt que trois cases vides.
     collection: { owned: ctx.owned.size, total: cards().size },
@@ -711,7 +722,7 @@ function refresh(user) {
 }
 
 module.exports = {
-  DAILY_SLOTS, CARD_PRICES, TIER_WEIGHTS, BOOSTER,
+  DAILY_SLOTS, SLOT_PRICE, TIER_WEIGHTS, BOOSTER,
   PINNED_SLOTS_MAX, FREE_REROLLS_PER_DAY, AFFINITY_MIN_OCCURRENCES,
   cards, sets, setCardIds, materialsOf, priceOf,
   dayKey, nextRotationAt, seededRandom, weightedPick,

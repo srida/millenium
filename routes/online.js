@@ -375,8 +375,9 @@ router.post('/me/shop/buy', auth.requireUser, auth.rateLimit({ windowMs: 60_000,
   if (!Number.isInteger(slot) || slot < 1 || slot > shop.DAILY_SLOTS) {
     return res.status(400).json({ error: 'Emplacement invalide.', field: 'slot' });
   }
+  const currency = req.body?.currency === 'gems' ? 'gems' : 'golds';
   shop.sync(req.user);
-  shopResult(req, res, shop.buySlot(req.user, slot, req.body?.card_id ? String(req.body.card_id) : null));
+  shopResult(req, res, shop.buySlot(req.user, slot, req.body?.card_id ? String(req.body.card_id) : null, currency));
 });
 
 router.post('/me/shop/reroll', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
