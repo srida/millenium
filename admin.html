@@ -379,6 +379,7 @@ select.filter:focus { border-color: var(--accent); }
       <button class="tab" onclick="switchTab('powers')">Pouvoirs</button>
       <button class="tab" onclick="switchTab('boards')">Terrains</button>
       <button class="tab" onclick="switchTab('magies')">Magies</button>
+      <button class="tab" onclick="switchTab('missions')">Missions</button>
       <button class="tab" onclick="switchTab('decks')">Decks publics</button>
       <button class="tab" onclick="switchTab('packs')">🎁 Packs</button>
       <button class="tab" onclick="switchTab('stats')">📊 Stats</button>
@@ -517,6 +518,26 @@ select.filter:focus { border-color: var(--accent); }
     </div>
   </div>
 
+  <!-- MISSIONS TAB -->
+  <div id="tab-missions" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="mission-search" placeholder="Rechercher..." oninput="filterMissions()">
+          <span id="mission-count" class="count">0</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="openNewMission()">+ Nouvelle mission</button>
+          <button class="btn btn-secondary btn-sm" onclick="openImportModal('missions')">Importer JSON</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="mission-list"></div>
+    </div>
+    <div class="content" id="mission-detail">
+      <div class="empty"><span>Sélectionne une mission</span></div>
+    </div>
+  </div>
+
   <!-- DECKS PUBLICS TAB -->
   <div id="tab-decks" class="main hidden">
     <div class="sidebar">
@@ -593,16 +614,16 @@ select.filter:focus { border-color: var(--accent); }
 // ================== STATE ==================
 // `packs` = les packs de boutique (data/sets.json, API /api/sets). Le code et la
 // donnée disent « set », l'interface dit « pack » : ici on est dans l'interface.
-let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [];
-let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null;
+let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [];
+let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null;
 let currentTab = 'cards';
-let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false;
+let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false;
 let selectionMode = false;
 const bulkSelected = new Set();
 
 // ================== INIT ==================
 async function init() {
-  [cards, attributes, powers, boards, magies, publicDecks, packs] = await Promise.all([
+  [cards, attributes, powers, boards, magies, publicDecks, packs, missions] = await Promise.all([
     apiFetch('/api/cards'),
     apiFetch('/api/attributes'),
     apiFetch('/api/powers'),
@@ -610,6 +631,7 @@ async function init() {
     apiFetch('/api/magies'),
     apiFetch('/api/decks'),
     apiFetch('/api/sets'),
+    apiFetch('/api/missions'),
   ]);
   populateAttributeFilter();
   populatePowerFilter();
@@ -620,6 +642,7 @@ async function init() {
   renderMagieList();
   renderPublicDeckList();
   renderPackList();
+  renderMissionList();
 }
 
 function populateAttributeFilter() {
@@ -661,6 +684,7 @@ function switchTab(tab) {
                   (tab === 'powers' && t.includes('pouv')) ||
                   (tab === 'boards' && t.includes('terrain')) ||
                   (tab === 'magies' && t.includes('magie')) ||
+                  (tab === 'missions' && t.includes('mission')) ||
                   (tab === 'decks' && t.includes('deck')) ||
                   (tab === 'packs' && t.includes('pack')) ||
                   (tab === 'stats' && t.includes('stat')) ||
@@ -2564,6 +2588,306 @@ async function deleteMagieIllustration() {
   toast('Illustration supprimée');
 }
 
+// ================== MISSIONS ==================
+const EVENT_LABELS = {
+  match_completed: 'Partie terminée',
+  combat_started: 'Combat lancé',
+  combat_ended: 'Combat terminé',
+  summon_performed: 'Invocation',
+  power_triggered: 'Pouvoir déclenché',
+  magic_selected: 'Magie choisie',
+  deck_saved: 'Deck enregistré',
+};
+
+// Filtres actifs par event (source de vérité : eventMatches() dans missions.js)
+const EVENT_FIELD_CONFIG = {
+  match_completed: ['result', 'rounds_min'],
+  combat_started: ['unit_count_min', 'attribute_count_min', 'max_attribute_units_min'],
+  combat_ended: ['result', 'unit_count_max', 'units_lost_max'],
+  summon_performed: ['summon_type', 'tier_min'],
+  power_triggered: [],
+  magic_selected: ['effect_type', 'effect_type_in'],
+  deck_saved: ['card_count_min'],
+};
+
+// Tous les champs de filtre possibles, tous conservés dans le DOM et affichés/masqués selon l'event choisi
+const ALL_FILTER_KEYS = ['result', 'rounds_min', 'unit_count_min', 'unit_count_max', 'units_lost_max', 'attribute_count_min', 'max_attribute_units_min', 'card_count_min', 'tier_min', 'summon_type', 'effect_type', 'effect_type_in'];
+
+function filterMissions() {
+  const q = document.getElementById('mission-search').value.toLowerCase();
+  const filtered = missions.filter(m => !q || m.id.toLowerCase().includes(q) || (m.label || '').toLowerCase().includes(q) || (m.family || '').toLowerCase().includes(q));
+  renderMissionList(filtered);
+}
+
+function renderMissionList(list = missions) {
+  document.getElementById('mission-count').textContent = list.length;
+  document.getElementById('mission-list').innerHTML = list.map(m => `
+    <div class="list-item ${selectedMission && selectedMission.id === m.id ? 'selected' : ''}" onclick="selectMission('${m.id}')">
+      <div style="width:40px;height:40px;background:var(--surface2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px">🎯</div>
+      <div style="min-width:0">
+        <div class="item-name">${esc(m.label || m.id)}</div>
+        <div class="item-id">${m.id} · ${EVENT_LABELS[m.objective?.event] || m.objective?.event || '?'} · poids ${m.slot_weight ?? '?'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectMission(id) {
+  selectedMission = missions.find(m => m.id === id);
+  isNewMission = false;
+  renderMissionList();
+  renderMissionDetail();
+  showDetail();
+}
+
+function _filterFieldHtml(key, filters) {
+  const v = filters[key];
+  let input;
+  if (key === 'result') {
+    input = `<select id="msf-filter-result">
+      <option value="">—</option>
+      <option value="win" ${v === 'win' ? 'selected' : ''}>Victoire</option>
+      <option value="lose" ${v === 'lose' ? 'selected' : ''}>Défaite</option>
+      <option value="draw" ${v === 'draw' ? 'selected' : ''}>Égalité</option>
+      <option value="timeout" ${v === 'timeout' ? 'selected' : ''}>Timeout</option>
+    </select>`;
+  } else if (key === 'summon_type') {
+    input = `<select id="msf-filter-summon_type">
+      <option value="">—</option>
+      <option value="normal" ${v === 'normal' ? 'selected' : ''}>Normal</option>
+      <option value="sacrifice" ${v === 'sacrifice' ? 'selected' : ''}>Sacrifice</option>
+      <option value="fusion" ${v === 'fusion' ? 'selected' : ''}>Fusion</option>
+      <option value="heritage" ${v === 'heritage' ? 'selected' : ''}>Héritage</option>
+      <option value="transformation" ${v === 'transformation' ? 'selected' : ''}>Transformation</option>
+    </select>`;
+  } else if (key === 'effect_type') {
+    input = `<input id="msf-filter-effect_type" value="${esc(v ?? '')}" placeholder="ex. revive">`;
+  } else if (key === 'effect_type_in') {
+    input = `<input id="msf-filter-effect_type_in" value="${esc(Array.isArray(v) ? v.join(', ') : '')}" placeholder="ex. board_slot_bonus, defuse_fusion">`;
+  } else {
+    input = `<input id="msf-filter-${key}" type="number" value="${v ?? ''}">`;
+  }
+  const labels = {
+    result: 'Résultat', rounds_min: 'Tours joués (min)', unit_count_min: 'Unités sur le terrain (min)',
+    unit_count_max: 'Unités sur le terrain (max)', units_lost_max: 'Unités perdues (max)',
+    attribute_count_min: 'Attributs actifs (min)', max_attribute_units_min: 'Unités du même attribut (min)',
+    card_count_min: 'Cartes dans le deck (min)', tier_min: 'Tier (min)', summon_type: 'Type d\'invocation',
+    effect_type: 'Type d\'effet de magie', effect_type_in: 'Types d\'effet de magie (liste)',
+  };
+  return `<div class="field" id="msf-field-${key}" style="display:none"><label>${labels[key]}</label>${input}</div>`;
+}
+
+function renderMissionDetail() {
+  const m = selectedMission;
+  const el = document.getElementById('mission-detail');
+  const objective = m.objective || { event: 'match_completed', filters: {}, target: 1, scope: 'cumulative' };
+  const filters = objective.filters || {};
+  const req = m.requirements?.owns_cards_matching;
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header">
+      <div style="width:64px;height:64px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">🎯</div>
+      <div class="detail-info">
+        <div class="detail-title">🎯 ${esc(m.label || m.id)}</div>
+        <div class="detail-meta">
+          <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(m.id)}</span>
+          <span class="badge badge-power">${EVENT_LABELS[objective.event] || objective.event}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Identité</div>
+    <div class="form-grid">
+      <div class="field"><label>ID</label><input id="msf-id" value="${esc(m.id)}"></div>
+      <div class="field"><label>Famille</label><input id="msf-family" value="${esc(m.family || '')}" placeholder="ex. presence, mechanical, synergy, shopping, meta"></div>
+      <div class="field">
+        <label>Poids de slot (difficulté)</label>
+        <select id="msf-slot-weight">
+          <option value="1" ${m.slot_weight === 1 ? 'selected' : ''}>1 — Facile</option>
+          <option value="2" ${m.slot_weight === 2 ? 'selected' : ''}>2 — Moyen</option>
+          <option value="3" ${m.slot_weight === 3 ? 'selected' : ''}>3 — Engagé</option>
+        </select>
+      </div>
+      <div class="field"><label>Libellé (utiliser {target} pour la cible)</label><input id="msf-label" value="${esc(m.label || '')}"></div>
+    </div>
+
+    <div class="section-title" style="margin-top:20px">Objectif</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Événement</label>
+        <select id="msf-event" onchange="updateMissionFilterFields()">
+          ${Object.entries(EVENT_LABELS).map(([k, v]) => `<option value="${k}" ${objective.event === k ? 'selected' : ''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Cible (target)</label><input id="msf-target" type="number" min="1" value="${objective.target ?? 1}"></div>
+      <div class="field">
+        <label>Portée (scope)</label>
+        <select id="msf-scope">
+          <option value="cumulative" ${objective.scope === 'cumulative' ? 'selected' : ''}>Cumulative (entre parties)</option>
+          <option value="single_match" ${objective.scope === 'single_match' ? 'selected' : ''}>Une partie</option>
+          <option value="single_combat" ${objective.scope === 'single_combat' ? 'selected' : ''}>Un combat</option>
+        </select>
+      </div>
+    </div>
+    <div class="section-title" style="margin-top:20px">Filtres de l'événement</div>
+    <div class="form-grid">
+      ${ALL_FILTER_KEYS.map(k => _filterFieldHtml(k, filters)).join('')}
+    </div>
+
+    <div class="section-title" style="margin-top:20px">Prérequis (collection)</div>
+    <div class="form-grid">
+      <div class="field">
+        <label><input type="checkbox" id="msf-req-enabled" ${req ? 'checked' : ''} onchange="updateMissionFilterFields()" style="width:auto;margin-right:6px">Nécessite des cartes possédées</label>
+      </div>
+    </div>
+    <div class="form-grid" id="msf-req-fields" style="${req ? '' : 'display:none'}">
+      <div class="field"><label>Type d'invocation requis</label><input id="msf-req-summon-type" value="${esc(req?.summon_type || '')}" placeholder="ex. fusion"></div>
+      <div class="field"><label>Tier minimum requis</label><input id="msf-req-tier-min" type="number" value="${req?.tier_min ?? ''}"></div>
+      <div class="field"><label>Nombre de cartes possédées</label><input id="msf-req-count" type="number" value="${req?.count ?? 1}"></div>
+    </div>
+
+    <div class="section-title" style="margin-top:20px">Tags</div>
+    <div class="form-grid">
+      <div class="field"><label>Tags (séparés par des virgules)</label><input id="msf-tags" value="${esc((m.tags || []).join(', '))}"></div>
+    </div>
+
+    <div class="actions">
+      ${isNewMission
+        ? `<button class="btn btn-success" onclick="createMission()">Créer la mission</button>
+           <button class="btn btn-secondary" onclick="cancelNewMission()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveMission()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deleteMission()">Supprimer</button>`}
+    </div>
+  `;
+  updateMissionFilterFields();
+}
+
+function updateMissionFilterFields() {
+  const event = document.getElementById('msf-event')?.value || 'match_completed';
+  const active = EVENT_FIELD_CONFIG[event] || [];
+  for (const key of ALL_FILTER_KEYS) {
+    const field = document.getElementById(`msf-field-${key}`);
+    if (field) field.style.display = active.includes(key) ? '' : 'none';
+  }
+  const reqEnabled = document.getElementById('msf-req-enabled')?.checked;
+  const reqFields = document.getElementById('msf-req-fields');
+  if (reqFields) reqFields.style.display = reqEnabled ? '' : 'none';
+}
+
+function _collectMissionFields() {
+  const event = document.getElementById('msf-event')?.value || 'match_completed';
+  const active = EVENT_FIELD_CONFIG[event] || [];
+  const filters = {};
+  for (const key of active) {
+    const field = document.getElementById(`msf-filter-${key}`);
+    if (!field) continue;
+    const raw = field.value;
+    if (raw === '' || raw == null) continue;
+    if (key === 'effect_type_in') {
+      const arr = raw.split(',').map(s => s.trim()).filter(Boolean);
+      if (arr.length) filters[key] = arr;
+    } else if (field.tagName === 'SELECT' && key !== 'result' && key !== 'summon_type') {
+      filters[key] = raw;
+    } else if (['result', 'summon_type', 'effect_type'].includes(key)) {
+      filters[key] = raw;
+    } else {
+      filters[key] = Number(raw);
+    }
+  }
+
+  const reqEnabled = document.getElementById('msf-req-enabled')?.checked;
+  let requirements;
+  if (reqEnabled) {
+    const owns = {};
+    const summonType = document.getElementById('msf-req-summon-type')?.value.trim();
+    const tierMin = document.getElementById('msf-req-tier-min')?.value;
+    const count = document.getElementById('msf-req-count')?.value;
+    if (summonType) owns.summon_type = summonType;
+    if (tierMin !== '' && tierMin != null) owns.tier_min = Number(tierMin);
+    owns.count = count !== '' && count != null ? Number(count) : 1;
+    requirements = { owns_cards_matching: owns };
+  }
+
+  const tags = (document.getElementById('msf-tags')?.value || '').split(',').map(s => s.trim()).filter(Boolean);
+
+  const result = {
+    id: document.getElementById('msf-id')?.value.trim() || '',
+    family: document.getElementById('msf-family')?.value.trim() || '',
+    slot_weight: parseInt(document.getElementById('msf-slot-weight')?.value, 10) || 1,
+    label: document.getElementById('msf-label')?.value.trim() || '',
+    objective: {
+      event,
+      filters,
+      target: parseInt(document.getElementById('msf-target')?.value, 10) || 1,
+      scope: document.getElementById('msf-scope')?.value || 'cumulative',
+    },
+    tags,
+  };
+  if (requirements) result.requirements = requirements;
+  return result;
+}
+
+async function saveMission() {
+  const updated = _collectMissionFields();
+  if (!updated.id || !updated.label) return toast('ID et libellé requis', 'err');
+  const oldId = selectedMission.id;
+  const res = await apiFetch(`/api/missions/${oldId}`, { method: 'PUT', body: updated });
+  if (res.error) return toast(res.error, 'err');
+  const idx = missions.findIndex(m => m.id === oldId);
+  missions[idx] = updated;
+  selectedMission = missions[idx];
+  filterMissions();
+  renderMissionDetail();
+  toast('Mission enregistrée');
+}
+
+async function deleteMission() {
+  if (!confirm(`Supprimer "${selectedMission.label || selectedMission.id}" ?`)) return;
+  const res = await apiFetch(`/api/missions/${selectedMission.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  missions = missions.filter(m => m.id !== selectedMission.id);
+  selectedMission = null;
+  filterMissions();
+  document.getElementById('mission-detail').innerHTML = '<div class="empty"><span>Sélectionne une mission</span></div>';
+  showList();
+  toast('Mission supprimée');
+}
+
+function openNewMission() {
+  let maxNum = 0;
+  for (const m of missions) {
+    const match = m.id.match(/(\d+)$/);
+    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+  }
+  const nextId = `MISSION_NEW_${String(maxNum + 1).padStart(3, '0')}`;
+  selectedMission = { id: nextId, family: '', slot_weight: 1, label: '', objective: { event: 'match_completed', filters: {}, target: 1, scope: 'cumulative' }, tags: [] };
+  isNewMission = true;
+  renderMissionList();
+  renderMissionDetail();
+  showDetail();
+}
+
+async function createMission() {
+  const mission = _collectMissionFields();
+  if (!mission.id || !mission.label) return toast('ID et libellé requis', 'err');
+  const res = await apiFetch('/api/missions', { method: 'POST', body: mission });
+  if (res.error) return toast(res.error, 'err');
+  missions.push(mission);
+  selectedMission = missions[missions.length - 1];
+  isNewMission = false;
+  filterMissions();
+  renderMissionDetail();
+  toast('Mission créée');
+}
+
+function cancelNewMission() {
+  selectedMission = null;
+  isNewMission = false;
+  filterMissions();
+  document.getElementById('mission-detail').innerHTML = '<div class="empty"><span>Sélectionne une mission</span></div>';
+  showList();
+}
+
 // ================== PUBLIC DECKS ==================
 // Cache-buster des avatars : l'URL /avatars/<id> est stable (repli serveur sur
 // l'avatar par défaut), le navigateur ne verrait donc jamais un remplacement.
@@ -3485,6 +3809,7 @@ function fabAction() {
   else if (currentTab === 'powers')     openNewPower();
   else if (currentTab === 'boards')     openNewBoard();
   else if (currentTab === 'magies')     openNewMagie();
+  else if (currentTab === 'missions')   openNewMission();
   else if (currentTab === 'decks')      openNewPublicDeck();
   else if (currentTab === 'packs')      openNewPack();
 }
@@ -4209,7 +4534,7 @@ async function confirmMassDelete() {
 let importType = null;
 let importItems = null;
 
-const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs' };
+const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions' };
 
 function openImportModal(type) {
   importType = type;
@@ -4298,6 +4623,9 @@ async function confirmImport() {
     packs = await apiFetch('/api/sets');
     selectedPack = null;
     filterPacks();
+  } else if (importType === 'missions') {
+    missions = await apiFetch('/api/missions');
+    filterMissions();
   }
 
   const parts = [];

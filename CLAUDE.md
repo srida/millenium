@@ -58,6 +58,7 @@ Repo : `https://github.com/srida/Millenium`
 | `GET /api/powers` | Public | Pouvoirs |
 | `GET /api/boards` | Public | Terrains de combat |
 | `GET /api/magies` | Public | Magies (Phase Shopping) |
+| `GET /api/missions` | Public | Catalogue des missions quotidiennes |
 | `GET /api/decks` | Public | Decks publics (`PublicDeckDatabase`), avec `_has_avatar` |
 | `GET /api/sets` | Public | Packs de boutique, avec `_has_poster` |
 | `POST/PUT/DELETE /api/*` | Auth | Écriture admin |
@@ -76,7 +77,7 @@ Repo : `https://github.com/srida/Millenium`
 | `GET /api/export` | Auth | Export complet avec checksums illustrations, avatars **et affiches de packs** |
 | `/api/admin/db/*` | Site admin | Inspection de la base SQLite (`routes/admin-db.js`) |
 
-**Niveaux d'accès** : l'écriture sur `cards` / `attributes` / `powers` passe par le middleware d'auth générique ; `boards`, `magies`, `decks` et `sets` exigent en plus `requireSiteAdmin` (`auth.js`).
+**Niveaux d'accès** : l'écriture sur `cards` / `attributes` / `powers` passe par le middleware d'auth générique ; `boards`, `magies`, `missions`, `decks` et `sets` exigent en plus `requireSiteAdmin` (`auth.js`).
 
 ### API en ligne (`routes/online.js`, montée sur `/api`)
 
@@ -206,6 +207,18 @@ Comme pour `progression.reward`, **le client nomme, le serveur chiffre** : aucun
 | `GET /api/me/missions` | Connecté | Instantané (missions, `cycle`, jauge hebdo, reroll). **Délivre les lots manquants au passage** — le cycle avance à la lecture, il n'y a pas de tâche planifiée |
 | `POST /api/me/missions/events` | Connecté (30/min) | Lot d'événements → `{ countable, completed, milestones, granted, … }` |
 | `POST /api/me/missions/:id/reroll` | Connecté (20/min) | Remplace une mission par une autre du même slot |
+
+**Catalogue** (`data/missions.json`, distinct des routes de progression joueur ci-dessus) : CRUD admin sur le modèle des magies, gating identique.
+
+| Route | Accès | Description |
+|---|---|---|
+| `GET /api/missions` | Public | Liste le catalogue des missions |
+| `POST /api/missions` | Site admin | Créer une mission |
+| `POST /api/missions/import` | Site admin | Import en masse (mode skip/replace) |
+| `PUT /api/missions/:id` | Site admin | Modifier une mission |
+| `DELETE /api/missions/:id` | Site admin | Supprimer une mission |
+
+Onglet **Missions** de `admin.html` (Card Manager) : liste + formulaire (champs de filtre conditionnels selon `objective.event`, sur le modèle de l'onglet Magies). Le cache mémoire de `missions.js` (`catalog()`, invalidé au mtime du fichier) prend en compte les écritures admin sans redémarrage serveur.
 
 ### Client
 
