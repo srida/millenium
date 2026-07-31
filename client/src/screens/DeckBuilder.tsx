@@ -14,11 +14,15 @@ import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
+import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { Button } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
+import IllustrationPicker from '../components/deck/IllustrationPicker.js';
 
 const MIN_DECK = 20;
+/** Édition admin d'un deck public : aucun joueur, donc aucune variante. */
+const noVariants = () => [];
 const SUMMON_LABELS: Record<string, string> = {
   normal: 'Normale', sacrifice: 'Sacrifice', fusion: 'Fusion', heritage: 'Héritage', transformation: 'Transfo.',
 };
@@ -98,12 +102,28 @@ export default function DeckBuilder() {
   const ownedIds = useCollectionStore(s => s.ownedIds);
   const collectionLoaded = useCollectionStore(s => s.loaded);
   useEffect(() => { if (!isAdminEdit) void useCollectionStore.getState().load(true); }, [isAdminEdit]);
+  // Variantes possédées : même raison de recharger au montage que la
+  // collection — un achat fait depuis la dernière visite doit être proposé.
+  const loadCosmetics = useCosmeticStore(s => s.load);
+  const cosmeticSnapshot = useCosmeticStore(s => s.snapshot);
+  useEffect(() => { if (!isAdminEdit) void loadCosmetics(true); }, [isAdminEdit, loadCosmetics]);
+  const ownedVariantsFor = useMemo(
+    () => (cardId: string) => useCosmeticStore.getState().ownedVariantsFor(cardId),
+    // `cosmeticSnapshot` n'est pas lu ici : il force la re-création de la
+    // fonction après un achat, pour que les badges réapparaissent.
+    [cosmeticSnapshot],
+  );
   const owns = useMemo(() => (id: string) => isAdminEdit || ownedIds.has(id), [ownedIds, isAdminEdit]);
   const ownedCount = useMemo(() => isAdminEdit ? allCards.length : allCards.filter(c => ownedIds.has(c.id)).length, [allCards, ownedIds, isAdminEdit]);
 
   const [deckData, setDeckData] = useState<DeckData>(EMPTY);
   const [name, setName] = useState(editName ?? '');
   const [color, setColor] = useState<string | null>(null);
+  // Illustrations choisies pour ce deck : { card_id: id_de_variante }. Le
+  // « défaut » est une ABSENCE d'entrée, jamais une entrée qui pointe sur la
+  // carte elle-même — le méta reste petit et le filtre serveur trivial.
+  const [variants, setVariants] = useState<Record<string, string>>({});
+  const [skinning, setSkinning] = useState<Card | null>(null);
   const [tab, setTab] = useState<'lib' | 'deck'>('lib');
   const [tierFilters, setTierFilters] = useState<number[]>([]);
   const [summonFilters, setSummonFilters] = useState<string[]>([]);
@@ -141,6 +161,7 @@ export default function DeckBuilder() {
       setDropped(dupes);
     }
     setColor((DeckRepository as any).getDeckColor?.(editName) ?? null);
+    setVariants((DeckRepository as any).getDeckVariants?.(editName) ?? {});
   }, [editName]);
 
   // Préchargement en mode admin (deck public) : source = /api/decks, pas
@@ -231,6 +252,13 @@ export default function DeckBuilder() {
     (DeckRepository as any).saveDeck(finalName, toSave);
     if (color) (DeckRepository as any).setDeckColor?.(finalName, color);
     (DeckRepository as any).setDeckTags?.(finalName, computeTags(deckData));
+    // Purge à l'ENREGISTREMENT, pas au retrait d'une carte : une carte retirée
+    // puis remise dans la même session garde ainsi son illustration.
+    const inDeck = new Set(Object.values(deckData).flat().map((c: any) => c.id));
+    (DeckRepository as any).setDeckVariants?.(
+      finalName,
+      Object.fromEntries(Object.entries(variants).filter(([cardId]) => inDeck.has(cardId))),
+    );
     // Tous les modes de jeu partent du deck actif : sans deck actif valide (1er
     // deck créé, deck actif supprimé), on adopte celui qu'on vient d'enregistrer.
     if (!(DeckRepository as any).hasActiveDeck?.()) (DeckRepository as any).setActiveDeck(finalName);
@@ -292,6 +320,10 @@ export default function DeckBuilder() {
           deckData={deckData} tierMax={tierMax} name={name} setName={setName}
           color={color} setColor={setColor} showColor={!isAdminEdit} onRemove={removeCard} owns={owns}
           onClear={() => setDeckData(EMPTY)}
+          variants={variants} onSkin={setSkinning}
+          // Pas de cosmétique en édition de deck public : il n'y a pas de
+          // « joueur » propriétaire, donc personne dont ce soient les variantes.
+          ownedVariantsFor={isAdminEdit ? noVariants : ownedVariantsFor}
         />
       )}
 
@@ -307,6 +339,22 @@ export default function DeckBuilder() {
           {saving ? '…' : '▸ Enregistrer le deck'}
         </Button>
       </div>
+
+      {skinning && (
+        <IllustrationPicker
+          card={skinning}
+          current={variants[skinning.id] ?? skinning.id}
+          options={ownedVariantsFor(skinning.id)}
+          onPick={(illustrationId) => setVariants(prev => {
+            const next = { ...prev };
+            // Revenir à l'origine RETIRE l'entrée : le défaut est une absence.
+            if (illustrationId === skinning.id) delete next[skinning.id];
+            else next[skinning.id] = illustrationId;
+            return next;
+          })}
+          onClose={() => setSkinning(null)}
+        />
+      )}
     </main>
   );
 }
@@ -399,7 +447,7 @@ function LibraryPanel({
   );
 }
 
-function DeckPanel({ deckData, tierMax, name, setName, color, setColor, showColor = true, onRemove, owns, onClear }: any) {
+function DeckPanel({ deckData, tierMax, name, setName, color, setColor, showColor = true, onRemove, owns, onClear, variants = {}, onSkin, ownedVariantsFor }: any) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-3">
       <input
@@ -438,15 +486,40 @@ function DeckPanel({ deckData, tierMax, name, setName, color, setColor, showColo
                 ? <div className="py-2 text-center text-[11px] text-white/30">Aucune carte de tier {t}</div>
                 : (
                   <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-8">
-                    {cards.map((c, idx) => (
-                      // Une carte du deck non débloquée reste RETIRABLE : c'est
-                      // la seule action qui la fait sortir du deck.
-                      <CardTile
-                        key={`${c.id}-${idx}`} {...cardTileProps(c)} size="h-auto w-full"
-                        tapOn="up" onTap={() => onRemove(t, idx)}
-                        locked={!owns(c.id)} dim={owns(c.id) ? 'none' : 'strong'}
-                      />
-                    ))}
+                    {cards.map((c, idx) => {
+                      const skins = ownedVariantsFor?.(c.id) ?? [];
+                      const skinned = !!variants[c.id];
+                      return (
+                        // Une carte du deck non débloquée reste RETIRABLE : c'est
+                        // la seule action qui la fait sortir du deck.
+                        <div key={`${c.id}-${idx}`} className="relative">
+                          <CardTile
+                            {...cardTileProps(c)} size="h-auto w-full"
+                            // Aperçu immédiat du choix en cours d'édition, sans
+                            // toucher à l'état global de CardArt (non enregistré).
+                            illustrationId={variants[c.id] ?? c.id}
+                            tapOn="up" onTap={() => onRemove(t, idx)}
+                            locked={!owns(c.id)} dim={owns(c.id) ? 'none' : 'strong'}
+                          />
+                          {/* Le tap retire la carte, l'appui long ouvre le tooltip :
+                              les deux gestes sont pris. Le badge est donc un FRÈRE
+                              de la vignette — un pointerdown qui l'atteint n'arme
+                              jamais le retrait (et un <button> imbriqué serait du
+                              HTML invalide). */}
+                          {skins.length > 0 && (
+                            <button
+                              type="button"
+                              title="Choisir l'illustration"
+                              aria-label={`Illustration de ${c.name}`}
+                              onPointerDown={(e) => { e.stopPropagation(); onSkin?.(c); }}
+                              className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border bg-surface/90 text-[11px] ${skinned ? 'border-gold' : 'border-line'}`}
+                            >
+                              🎨
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
             </div>
