@@ -131,6 +131,7 @@ export default function TestBench() {
     const enemies = board.getLivingUnitsOnSide('enemy');
     if (!players.length || !enemies.length) return;
 
+    scene.setTerrainBackground(selectedBoard);
     scene.enterCombatMode();
 
     const attributeList = (AttributeDatabase as any).getAllAttributes();
@@ -161,6 +162,7 @@ export default function TestBench() {
       u.resetCombatStats?.();
     }
     scene?.exitCombatMode();
+    scene?.setTerrainBackground(null);
     scene?.setBlockedCells(selectedBoard?.blocked_cells || []);
     scene?.refresh();
     setPhase('prep');

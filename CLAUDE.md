@@ -66,6 +66,7 @@ Repo : `https://github.com/srida/Millenium`
 | `GET /illustrations/:id` | Public | Art des cartes, terrains, magies **et variantes** (PNG sans extension, id gardé par `safeAssetId`) |
 | `GET /avatars/:id` | Public | Avatar d'un deck public (repli sur l'avatar par défaut) |
 | `GET /pack-posters/:id` | Public | Affiche d'un pack (404 s'il n'en a pas — pas d'affiche par défaut) |
+| `GET /board-backgrounds/:id` | Public | Fond de grille d'un terrain (404 s'il n'en a pas — le décor par défaut reste) |
 | `POST /api/cards/import` | Auth | Import en masse (mode skip/replace) |
 | `POST /api/cards/:id/illustration` | Auth | Upload illustration (URL ou base64) |
 | `POST /api/attributes/import` | Auth | Import attributs en masse |
@@ -75,7 +76,9 @@ Repo : `https://github.com/srida/Millenium`
 | `POST/PUT/DELETE /api/sets` \| `/api/sets/:id` | Site admin | CRUD des packs (réaligne le miroir `card.set`) |
 | `POST /api/sets/import` | Site admin | Import packs en masse |
 | `POST/PUT/DELETE /api/sets/:id/poster` | Site admin | Affiche d'un pack (URL / base64 / suppression) |
-| `GET /api/export` | Auth | Export complet avec checksums illustrations, avatars **et affiches de packs** |
+| `POST/PUT/DELETE /api/boards/:id/illustration` | Site admin | Illustration d'un terrain (URL / base64 / suppression) |
+| `POST/PUT/DELETE /api/boards/:id/background` | Site admin | Fond de grille d'un terrain (URL / base64 / suppression) |
+| `GET /api/export` | Auth | Export complet avec checksums illustrations, avatars, affiches de packs **et fonds de terrain** |
 | `/api/admin/db/*` | Site admin | Inspection de la base SQLite (`routes/admin-db.js`) |
 
 **Niveaux d'accès** : l'écriture sur `cards` / `attributes` / `powers` passe par le middleware d'auth générique ; `boards`, `magies`, `missions`, `decks` et `sets` exigent en plus `requireSiteAdmin` (`auth.js`).
@@ -322,7 +325,7 @@ Troisième famille d'assets, calquée sur les avatars de decks publics : fichier
 
 - **Une seule différence, mais elle compte : pas d'affiche par défaut.** Il n'existe pas d'équivalent de `PUBLIC_DECK_000.png` à livrer, donc la route rend un 404 franc et l'instantané porte **`has_poster`** ; c'est le client qui pose une tuile neutre (🎁). C'est le seul endroit du projet où le repli est côté client plutôt que serveur, et c'est assumé : mieux vaut une tuile qu'une `<img>` cassée.
 - L'URL étant stable, le remplacement d'une affiche s'accompagne d'un cache-buster côté admin (`posterBust`), comme `avatarBust` pour les avatars.
-- **Déploiement** : `sets.json` et les affiches passent par `scripts/sync-data.js` (entrée `sets` de `ENTITIES`, clé `packPosters` de `ASSETS` / `/api/export`) — `--no-illustrations` coupe les trois familles d'images. Ne pas oublier le proxy de dev (`client/vite.config.ts`) et la liste d'exclusion du fallback SPA (`server.js`) pour tout nouveau préfixe d'asset.
+- **Déploiement** : `sets.json` et les affiches passent par `scripts/sync-data.js` (entrée `sets` de `ENTITIES`, clé `packPosters` de `ASSETS` / `/api/export`) — `--no-illustrations` coupe les **quatre** familles d'images (illustrations, avatars, affiches de packs, fonds de terrain). Ne pas oublier le proxy de dev (`client/vite.config.ts`) et la liste d'exclusion du fallback SPA (`server.js`) pour tout nouveau préfixe d'asset.
 
 ### Emplacements quotidiens
 
@@ -807,6 +810,7 @@ Chaque combat tire aléatoirement un terrain depuis `BoardDatabase`. Le terrain 
   "id": "BOARD_001",
   "name": "Désert Maudit",
   "_has_illustration": true,
+  "_has_background": true,
   "blocked_cells": [{ "col": 2, "row": 5 }],
   "effect": {
     "type": "stat_bonus",
@@ -818,6 +822,22 @@ Chaque combat tire aléatoirement un terrain depuis `BoardDatabase`. Le terrain 
 ```
 
 `effect` peut être `null` (aucun effet). `target_attributes` vide = toutes les unités des deux joueurs.
+
+Un terrain porte **deux images distinctes**, calculées à la lecture et jamais persistées (même statut que `_has_illustration` sur une carte) — `POST`/`PUT`/`import` les effacent (`stripBoardComputed`) :
+
+| Drapeau | Dossier | Route | Rôle |
+|---|---|---|---|
+| `_has_illustration` | `resources/card_illustrations` (partagé avec les cartes) | `GET /illustrations/:id` | Vignette **carrée** du tooltip `🗺️` |
+| `_has_background` | `resources/board_backgrounds` (`BOARD_BG_DIR`) | `GET /board-backgrounds/:id` | **Fond de grille**, vue de dessus au ratio 5:11 |
+
+Ce sont bien deux assets et non un seul recadré : un plan de 5 × 11 rogné en vignette carrée ne montrerait qu'une bande centrale illisible, et une vignette carrée étirée sur la grille serait déformée.
+
+### Fond de grille (`board_backgrounds`)
+
+Quatrième famille d'assets, sur le modèle des affiches de packs : triptyque admin `POST` (URL) / `PUT` (base64) / `DELETE /api/boards/:id/background`, gardé par `safeAssetId`, entrée `boardBackgrounds` de `scripts/sync-data.js` et de `/api/export` (checksums + `/api/export/board-background/:id`), routes génériques `PUT`/`DELETE /api/board-backgrounds/:id` pour la sync.
+
+- **Pas d'affiche par défaut**, comme les packs : la route rend un 404 franc. Mais ici le repli n'est ni serveur ni client — il n'y a **rien à poser**, c'est le décor de scène habituel qui reste en place.
+- L'onglet Terrains de l'admin expose les deux boîtes d'image côte à côte (`BOARD_ASSETS` décrit la paire, la modale d'import est écrite une seule fois). Deux cache-busters distincts, `boardIllusBust` et `boardBgBust`, les URLs étant stables.
 
 ### Types d'effets supportés
 
@@ -833,6 +853,14 @@ Les effets sont appliqués via `applyStatBonus()` / `applyShield()`, donc nettoy
 ### Rendu en jeu
 
 `GameSession.startCombat` pose les cases bloquées sur le `Board` (logique) ; c'est `GameController` qui les transmet à la scène (`Scene3D.setBlockedCells`) au lancement de l'animation et les efface en fin de combat — sans quoi les unités contourneraient des cases visuellement libres. Le terrain tiré est aussi affiché dans la barre de combat (chip `🗺️`, tap → tooltip nom + effet).
+
+Le **fond de grille** suit exactement le même trajet, une ligne plus bas : `Scene3D.setTerrainBackground(boardData)` au lancement du combat, `setTerrainBackground(null)` à sa fin. Le PvP est couvert sans une ligne de plus — `PvpController` passe par le même `_beginCombatAnimation`. Le TestBench fait le même appel dans `startCombat` / `stopCombat`.
+
+- **Combat uniquement.** En préparation le terrain n'est pas encore tiré (l'IA place ses unités au PRÊT), et le cadrage ne montre que les rangées 0–3 : il n'y aurait ni terrain à afficher, ni place pour le montrer.
+- `Scene3D` construit l'URL `/board-backgrounds/<id>` lui-même — précédent en place avec `UnitCardEl`, qui pointe directement sur `/illustrations/<card_id>`. `three/` n'importe donc pas `data/`, et `GameController` n'a rien à plomber.
+- Le plan texturé (`PlaneGeometry(5, 11)`, `MeshBasicMaterial` — *Basic* pour que l'éclairage de scène n'assombrisse pas l'illustration) est posé à `y = -0.08`, sous les tuiles. Une illustration hors ratio 5:11 est **rognée au centre**, jamais déformée (`coverFitTexture`).
+- Les 55 tuiles passent alors en **voile translucide** (`TERRAIN_TILE_OPACITY`) : les rangées neutres et ennemies sont opaques par défaut et masqueraient tout. Les tuiles ne couvrant que 92 % de leur case, c'est le contraste tuile/interstice qui redessine la grille par-dessus l'image. Les trois zones prennent le **même** voile — les différencier par l'opacité créerait une couture en travers de l'illustration ; c'est la couleur des tuiles qui porte seule la lecture des zones. Le voile bleu du bloc joueur (`_playerBg`) est masqué pour la même raison.
+- **Le chargement est asynchrone et annulable** : `_terrainToken` invalide une texture qui arrive après la fin du combat ou après un autre terrain, sinon on rattacherait un mesh à une scène morte. Un 404 ne fait rien — le décor par défaut reste en place, ce qui **est** le comportement voulu pour un terrain sans fond.
 
 ### Ligne de vue (LOS)
 
@@ -1308,7 +1336,7 @@ Un deck public porte un **portrait** — c'est le visage de l'adversaire, en sé
 - **Le repli est serveur, pas client** : `/avatars/:id` renvoie `PUBLIC_DECK_000.png` quand le deck n'a pas le sien. L'URL est donc toujours affichable et aucun écran n'a de branche « pas d'avatar » — `PublicDeckDatabase.avatarUrl(id)` la construit, point final. `_has_avatar` (calculé dans `GET /api/decks`, jamais persisté) ne sert qu'à l'admin, pour distinguer « son portrait » de « le portrait par défaut ».
 - L'id d'un asset sert de nom de fichier : `safeAssetId()` refuse tout ce qui n'est pas `[A-Za-z0-9_-]+` (400), sinon `../` remonterait l'arborescence.
 - **Admin** (onglet Decks publics) : boîte d'illustration cliquable → import par URL ou depuis l'appareil, suppression. Même triptyque que les illustrations de cartes. L'URL étant stable, le remplacement d'un avatar s'accompagne d'un cache-buster (`avatarBust`), sans quoi le navigateur continuerait d'afficher l'ancien.
-- **Déploiement** : `resources/` est gitignoré — les avatars voyagent par `scripts/sync-data.js` (clé `avatars` de `/api/export`, routes `/api/avatars/:id`), exactement comme les illustrations ; `--no-illustrations` coupe les deux. Le `bootstrap()` du serveur dépose l'avatar par défaut sur le volume s'il n'y est pas.
+- **Déploiement** : `resources/` est gitignoré — les avatars voyagent par `scripts/sync-data.js` (clé `avatars` de `/api/export`, routes `/api/avatars/:id`), exactement comme les illustrations ; `--no-illustrations` coupe toutes les familles d'un coup. Le `bootstrap()` du serveur dépose l'avatar par défaut sur le volume s'il n'y est pas.
 - **Affichage** : `DeckSelector` en mode `'play'` (vignette 36 px sur la carte de deck, à la place de la pastille de couleur, réservée aux decks du joueur) et `TournamentScreen` (`Portrait`, dans chaque slot de match et sur le champion). Dans le bracket, le joueur est représenté par son **avatar de profil** (ou ★ en invité) : sept portraits et un trou se lirait comme un bug.
 - `logic/Tournament.js` transporte un `avatarId` sur chaque participant et **ne construit aucune URL** — la couche logique ignore qu'il existe des images.
 
