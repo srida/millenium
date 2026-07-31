@@ -38,12 +38,19 @@ beforeAll(() => {
   missions = require(path.join(ROOT, 'missions.js'));
 });
 
+// Tous les comptes de test partagent `username_lc = 't'` : la contrainte
+// d'unicité porte donc sur (username_lc, tag). Un tag tiré des 4 premiers
+// caractères d'un UUID n'offre que 65 536 valeurs — sur quelques dizaines de
+// comptes, la collision d'anniversaire finit par tomber et le fichier échoue
+// au hasard. Un compteur la supprime par construction.
+let _tagSeq = 0;
+
 /** Compte neuf, doté comme à l'inscription (cartes CORE_*). */
 function newUser() {
   const id = crypto.randomUUID();
   stmt.insertUser.run({
     id, email: `${id}@test.local`, username: 'T', username_lc: 't',
-    tag: id.slice(0, 4), password_hash: 'x', avatar: null, created_at: Date.now(),
+    tag: String(++_tagSeq).padStart(4, '0'), password_hash: 'x', avatar: null, created_at: Date.now(),
   });
   progression.initUser(id);
   return () => stmt.userById.get(id);
