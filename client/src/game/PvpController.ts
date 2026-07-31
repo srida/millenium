@@ -18,6 +18,7 @@ import { sendOwnBoard, waitForOpponentBoard, reconstructOpponentUnits, reset as 
 import type { BoardDef } from '../logic/types.js';
 import { useGameStore } from '../stores/gameStore.js';
 import { useAuthStore } from '../stores/authStore.js';
+import * as CardArt from '../data/CardArt.js';
 
 interface PvpDeps {
   cardDb: { getCard(id: string): any };
@@ -42,6 +43,17 @@ export class PvpController extends GameController {
   }
 
   begin(): void {
+    // Illustrations de l'adversaire : dérivées par le SERVEUR de son deck book
+    // et filtrées par possession (cf. cosmetics.deckVariantMap), elles arrivent
+    // dans `match:found` — donc bien avant que la première unité adverse ne
+    // soit posée. Purement cosmétiques, elles n'entrent jamais dans le payload
+    // de déterminisme du round.
+    CardArt.setEnemyVariants((PvpConnection as any).getOpponent()?.variants ?? null);
+    // Après une reconnexion, l'adversaire est re-annoncé : on le relit, sinon
+    // le reste du match se jouerait avec l'art d'origine.
+    this._listen('match:rejoined', () => {
+      CardArt.setEnemyVariants((PvpConnection as any).getOpponent()?.variants ?? null);
+    });
     // Écoute les messages de round + fin de match, puis démarre la préparation.
     this._listen('round:go', (m) => this._onRoundGo(m));
     this._listen('match:end', (m) => this._onMatchEnd(m));

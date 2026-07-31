@@ -61,6 +61,11 @@ export default function OnlineLobby() {
     setStatus('connecting');
     try {
       await (PvpConnection as any).connect();
+      // Le serveur lit sa PROPRE copie du deck pour en dériver les
+      // illustrations transmises à l'adversaire. La synchro étant debouncée à
+      // 500 ms, une variante choisie juste avant d'entrer dans la file ne
+      // serait pas encore en base : on force l'envoi ici.
+      await (DeckRepository as any).flushSync?.();
       setStatus('searching');
       (PvpConnection as any).send('queue:join', { deckName });
     } catch (e: any) {

@@ -11,11 +11,22 @@
 const crypto = require('crypto');
 const { stmt } = require('../db');
 const progression = require('../progression');
+const cosmetics = require('../cosmetics');
 
 const GRACE_PERIOD_MS = 45_000;
 
 const matches = new Map();      // matchId -> MatchState
 const matchByUser = new Map();  // userId -> matchId
+
+// Carte d'identité transmise à l'adversaire. `variants` (les illustrations
+// alternatives du deck engagé) est ajouté par les appelants : il est DÉRIVÉ du
+// deck book serveur, jamais transmis par le client — sinon n'importe qui
+// afficherait à son adversaire une variante qu'il n'a pas achetée. Étant
+// purement cosmétique, il ne touche pas au payload de déterminisme
+// (`round:board_ready`).
+function playerInfo(userId, ws) {
+  return { id: userId, username: ws?.username, tag: ws?.tag, avatar: ws?.avatar };
+}
 
 function send(ws, type, payload = {}) {
   if (!ws || ws.readyState !== ws.OPEN) return;
@@ -65,8 +76,8 @@ function createMatch(connA, connB) {
     created_at: now,
   });
 
-  const infoA = { id: connA.userId, username: connA.ws.username, tag: connA.ws.tag, avatar: connA.ws.avatar };
-  const infoB = { id: connB.userId, username: connB.ws.username, tag: connB.ws.tag, avatar: connB.ws.avatar };
+  const infoA = { ...playerInfo(connA.userId, connA.ws), variants: cosmetics.deckVariantMap(connA.userId, connA.deckName) };
+  const infoB = { ...playerInfo(connB.userId, connB.ws), variants: cosmetics.deckVariantMap(connB.userId, connB.deckName) };
 
   send(connA.ws, 'match:found', { matchId, opponent: infoB, youAre: 'A' });
   send(connB.ws, 'match:found', { matchId, opponent: infoA, youAre: 'B' });
@@ -224,8 +235,10 @@ function handleRejoin(ws, matchIdHint, userId) {
   ws.userId = userId;
 
   const other = match.players[otherRole(role)];
+  // À la reconnexion aussi : sans ça, un joueur revenu en jeu perdrait l'art
+  // de son adversaire pour le reste du match.
   const opponentInfo = other.ws
-    ? { id: other.userId, username: other.ws.username, tag: other.ws.tag, avatar: other.ws.avatar }
+    ? { ...playerInfo(other.userId, other.ws), variants: cosmetics.deckVariantMap(other.userId, other.deckName) }
     : { id: other.userId };
 
   send(ws, 'match:rejoined', { matchId: match.id, round: match.round, opponent: opponentInfo, youAre: role });
