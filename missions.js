@@ -52,9 +52,9 @@ const SLOT_REWARDS = Object.freeze({
 // d'être là aux trois cycles, ni tous les jours.
 const WEEKLY_MAX = 30;
 const WEEKLY_MILESTONES = Object.freeze([
-  { points: 10, rewards: { gold: 150, gems: 10, xp: 50 } },
-  { points: 20, rewards: { gold: 250, gems: 25, xp: 100 } },
-  { points: 30, rewards: { gold: 500, gems: 50, xp: 200 } },
+  { points: 10, rewards: { gold: 150, gems: 10, xp: 5 } },
+  { points: 20, rewards: { gold: 250, gems: 25, xp: 10 } },
+  { points: 30, rewards: { gold: 500, gems: 50, xp: 20 } },
 ]);
 
 // Garde-fous d'entrée : une requête d'événements est plafonnée en taille.

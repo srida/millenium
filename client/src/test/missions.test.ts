@@ -289,8 +289,8 @@ describe('complétion et barème', () => {
 
     const res = missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
     expect(res.milestones.map((m: any) => m.points)).toEqual([first]);
-    // Mission facile (6/50) + 1er palier (50 XP / 150 golds / 10 gemmes).
-    expect(res.granted).toEqual({ xp: 56, gold: 200, gems: 10 });
+    // Mission facile (6/50) + 1er palier (5 XP / 150 golds / 10 gemmes).
+    expect(res.granted).toEqual({ xp: 11, gold: 200, gems: 10 });
 
     const snap = missions.getSnapshot(user());
     expect(snap.weekly.points).toBe(first);
