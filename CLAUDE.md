@@ -169,9 +169,11 @@ Règles dans **`missions.js`** (racine, à côté de `progression.js` dont il es
 
 | Slot | XP | Golds | | Palier | XP | Golds | Gemmes |
 |---|---|---|---|---|---|---|---|
-| Facile (1) | 60 | 50 | | 10 pts | 50 | 150 | 10 |
-| Moyen (2) | 100 | 100 | | 20 pts | 100 | 250 | 25 |
-| Engagé (3) | 150 | 175 | | 30 pts | 200 | 500 | 50 |
+| Facile (1) | 6 | 50 | | 10 pts | 50 | 150 | 10 |
+| Moyen (2) | 10 | 100 | | 20 pts | 100 | 250 | 25 |
+| Engagé (3) | 15 | 175 | | 30 pts | 200 | 500 | 50 |
+
+⚠️ **Écart assumé avec le brief** (§5.1 : 60 / 100 / 150) : l'**XP** des missions est divisée par 10, les golds sont inchangés. À 60 XP la mission, une journée de missions valait plus de six victoires PvP (`pvp_win` = 70) — le niveau se serait gagné en écran de menu plutôt qu'en jeu. Les **paliers hebdomadaires** gardent leur barème : c'est une récompense d'assiduité, versée trois fois par semaine au maximum.
 
 **Calendrier** : `cycleKey(ts)` → `2026-07-27#1` (jour de mission + rang du créneau) ; `cycleNumber(key)` en donne un rang **absolu** pour que `cyclesBetween` fonctionne de part et d'autre de minuit. Le reroll gratuit et la purge des missions terminées restent indexés sur la **journée** (`dayKey`) : une mission bouclée à 12 h 55 ne doit pas disparaître de l'écran à 13 h. Une clé d'état sans `#` (antérieure aux cycles) est lue comme le premier créneau de sa journée — le joueur reçoit les cycles écoulés depuis, il n'y a pas de migration à écrire.
 

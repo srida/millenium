@@ -42,9 +42,9 @@ const REROLL_COST = 100;      // golds, après le reroll gratuit du jour
 // Barème par difficulté de slot (brief §5.1). Source unique : une mission ne
 // porte pas ses propres montants, sinon le barème dérive au fil du catalogue.
 const SLOT_REWARDS = Object.freeze({
-  1: { xp: 60, gold: 50 },
-  2: { xp: 100, gold: 100 },
-  3: { xp: 150, gold: 175 },
+  1: { xp: 6, gold: 50 },
+  2: { xp: 10, gold: 100 },
+  3: { xp: 15, gold: 175 },
 });
 
 // Jauge hebdomadaire : 1 point par mission terminée, un palier tous les 10.
