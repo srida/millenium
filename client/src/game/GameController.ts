@@ -285,6 +285,7 @@ export class GameController {
     // la scène doit l'afficher, sinon les unités contournent des cases qui ont
     // l'air libres.
     this.scene?.setBlockedCells(boardData?.blocked_cells ?? []);
+    this.scene?.setTerrainBackground(boardData ?? null);
     this.scene?.enterCombatMode();
     // L'IA place ses unités au moment du PRÊT : elles n'ont pas encore d'objet
     // de scène (refresh() ne passe plus en mode combat) — on les fait tomber en
@@ -393,6 +394,7 @@ export class GameController {
     // Le terrain ne vaut que pour le combat écoulé (session.startPreparation
     // appelle board.clearBlockedCells de son côté).
     this.scene?.setBlockedCells([]);
+    this.scene?.setTerrainBackground(null);
     this.scene?.exitCombatMode();
     this.sync({ combatActive: false, boardTerrain: null, endRound: result });
   }

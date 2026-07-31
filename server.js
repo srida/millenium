@@ -25,6 +25,10 @@ const AVATARS_DIR    = process.env.AVATARS_DIR || path.join(PROJECT_ROOT, 'resou
 // Affiches des packs de boutique. Le dossier est défini par sets.js, qui est
 // aussi celui qui répond « ce pack a-t-il son affiche ? » à la boutique.
 const POSTERS_DIR    = packs.POSTERS_DIR;
+// Fonds de grille des terrains de combat : l'illustration vue de dessus posée
+// sous les 5 × 11 cases pendant le combat. Famille distincte de l'illustration
+// du terrain (vignette carrée du tooltip) — deux cadrages, deux images.
+const BOARD_BG_DIR   = process.env.BOARD_BG_DIR || path.join(PROJECT_ROOT, 'resources', 'board_backgrounds');
 const INITIAL_DIR    = path.join(__dirname, 'initial-data');
 
 // Avatar servi quand un deck n'a pas le sien : aucun écran ne doit afficher de
@@ -46,6 +50,7 @@ function bootstrap() {
   fs.mkdirSync(ILLUS_DIR, { recursive: true });
   fs.mkdirSync(AVATARS_DIR, { recursive: true });
   fs.mkdirSync(POSTERS_DIR, { recursive: true });
+  fs.mkdirSync(BOARD_BG_DIR, { recursive: true });
   for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
@@ -146,6 +151,17 @@ app.get('/pack-posters/:id', (req, res) => {
   res.status(404).end();
 });
 
+// Fond de grille d'un terrain. Pas de repli non plus : un terrain sans fond est
+// le cas normal (le décor de scène par défaut est alors conservé), et c'est la
+// scène 3D qui décide, sur le drapeau `_has_background`, de charger ou non.
+app.get('/board-backgrounds/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).end();
+  const filePath = path.join(BOARD_BG_DIR, `${id}.png`);
+  if (fs.existsSync(filePath)) return res.sendFile(filePath);
+  res.status(404).end();
+});
+
 // --- Helpers ---
 function readJson(file) {
   const raw = fs.readFileSync(file, 'utf-8');
@@ -162,6 +178,10 @@ function illustrationExists(id) {
 
 function avatarExists(id) {
   return fs.existsSync(path.join(AVATARS_DIR, `${id}.png`));
+}
+
+function boardBackgroundExists(id) {
+  return fs.existsSync(path.join(BOARD_BG_DIR, `${id}.png`));
 }
 
 // Écrit un buffer image en PNG (conversion via sharp quand il est installé —
@@ -442,10 +462,22 @@ app.delete('/api/powers/:id', (req, res) => {
 });
 
 // --- Boards API ---
+// `_has_illustration` et `_has_background` sont calculés à la lecture depuis le
+// disque : les réécrire dans boards.json ferait mentir la donnée dès qu'une
+// image est ajoutée ou retirée hors de cette requête.
+function stripBoardComputed(board) {
+  delete board._has_illustration;
+  delete board._has_background;
+}
+
 app.get('/api/boards', (req, res) => {
   try {
     const boards = readJson(BOARDS_FILE);
-    res.json(boards.map(b => ({ ...b, _has_illustration: illustrationExists(b.id) })));
+    res.json(boards.map(b => ({
+      ...b,
+      _has_illustration: illustrationExists(b.id),
+      _has_background: boardBackgroundExists(b.id),
+    })));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -455,6 +487,7 @@ app.post('/api/boards', requireSiteAdmin, (req, res) => {
     const board  = req.body;
     if (!board.id) return res.status(400).json({ error: 'id required' });
     if (boards.find(b => b.id === board.id)) return res.status(400).json({ error: `ID ${board.id} already exists` });
+    stripBoardComputed(board);
     boards.push(board);
     writeJson(BOARDS_FILE, boards);
     res.json({ ok: true });
@@ -468,6 +501,7 @@ app.post('/api/boards/import', requireSiteAdmin, (req, res) => {
     let added = 0, replaced = 0, skipped = 0;
     for (const item of items) {
       const idx = boards.findIndex(b => b.id === item.id);
+      stripBoardComputed(item);
       if (idx !== -1) {
         if (mode === 'replace') { boards[idx] = item; replaced++; }
         else skipped++;
@@ -485,6 +519,7 @@ app.put('/api/boards/:id', requireSiteAdmin, (req, res) => {
     const boards = readJson(BOARDS_FILE);
     const idx = boards.findIndex(b => b.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    stripBoardComputed(req.body);
     boards[idx] = req.body;
     writeJson(BOARDS_FILE, boards);
     res.json({ ok: true });
@@ -502,26 +537,69 @@ app.delete('/api/boards/:id', requireSiteAdmin, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// --- Illustration d'un terrain (vignette du tooltip 🗺️) : même triptyque que
+// les avatars et les affiches de packs — URL, upload base64 depuis l'appareil,
+// suppression ---
 app.post('/api/boards/:id/illustration', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
   const { url } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
   if (!url) return res.status(400).json({ error: 'url required' });
-  const destPath = path.join(ILLUS_DIR, `${req.params.id}.png`);
   try {
-    const imageBuffer = await downloadUrl(url);
-    let sharp;
-    try { sharp = require('sharp'); } catch (_) {}
-    if (sharp) {
-      await sharp(imageBuffer).png().toFile(destPath);
-    } else {
-      fs.writeFileSync(destPath, imageBuffer);
-    }
+    await savePng(ILLUS_DIR, id, await downloadUrl(url));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/boards/:id/illustration', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    await savePng(ILLUS_DIR, id, Buffer.from(data, 'base64'));
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.delete('/api/boards/:id/illustration', requireSiteAdmin, (req, res) => {
-  const filePath = path.join(ILLUS_DIR, `${req.params.id}.png`);
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
+    const filePath = path.join(ILLUS_DIR, `${id}.png`);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- Fond de grille d'un terrain (vue de dessus, ratio 5:11) ---
+app.post('/api/boards/:id/background', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { url } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    await savePng(BOARD_BG_DIR, id, await downloadUrl(url));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/boards/:id/background', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    await savePng(BOARD_BG_DIR, id, Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/boards/:id/background', requireSiteAdmin, (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = path.join(BOARD_BG_DIR, `${id}.png`);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -943,8 +1021,9 @@ app.get('/api/export', (req, res) => {
     const sets       = readJson(SETS_FILE);
     const illustrations = listPngChecksums(ILLUS_DIR);
     const avatars = listPngChecksums(AVATARS_DIR);
+    const boardBackgrounds = listPngChecksums(BOARD_BG_DIR);
     const packPosters = listPngChecksums(POSTERS_DIR);
-    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, illustrations, avatars, packPosters });
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, illustrations, avatars, packPosters, boardBackgrounds });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -980,6 +1059,14 @@ app.get('/api/export/pack-poster/:id', (req, res) => {
   res.json({ id, data: fs.readFileSync(filePath).toString('base64') });
 });
 
+app.get('/api/export/board-background/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  const filePath = path.join(BOARD_BG_DIR, `${id}.png`);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+  res.json({ id, data: fs.readFileSync(filePath).toString('base64') });
+});
+
 // --- Upload/delete générique d'affiche de pack (scripts/sync-data.js) ---
 app.put('/api/pack-posters/:id', (req, res) => {
   const id = safeAssetId(req.params.id);
@@ -997,6 +1084,28 @@ app.delete('/api/pack-posters/:id', (req, res) => {
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
     const filePath = path.join(POSTERS_DIR, `${id}.png`);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- Upload/delete générique de fond de terrain (scripts/sync-data.js) ---
+app.put('/api/board-backgrounds/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    fs.writeFileSync(path.join(BOARD_BG_DIR, `${id}.png`), Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/board-backgrounds/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = path.join(BOARD_BG_DIR, `${id}.png`);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1063,7 +1172,8 @@ function downloadUrl(url) {
 // /deck_selector, /game…). Les préfixes API/assets serveur passent au suivant.
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/illustrations') || req.path.startsWith('/avatars')
-      || req.path.startsWith('/pack-posters') || req.path.startsWith('/ws')) return next();
+      || req.path.startsWith('/pack-posters') || req.path.startsWith('/board-backgrounds')
+      || req.path.startsWith('/ws')) return next();
   res.sendFile(path.join(CLIENT_DIST, 'index.html'));
 });
 

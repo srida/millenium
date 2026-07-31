@@ -117,6 +117,10 @@ export interface BoardDef {
   blocked_cells?: Position[];
   effect?: BoardEffectDef | null;
   _has_illustration?: boolean;
+  // Fond de grille (vue de dessus 5:11) servi sur /board-backgrounds/<id>.
+  // Calculé par le serveur à la lecture, jamais persisté — même statut que
+  // `_has_illustration`.
+  _has_background?: boolean;
 }
 
 // ── Magies (Phase Shopping) ──

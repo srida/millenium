@@ -4637,6 +4637,11 @@ async function confirmImport() {
 
 // ================== BOARDS ==================
 let _boardBlockedSet = new Set();
+// Les URLs d'assets d'un terrain sont stables (/illustrations/<ID>,
+// /board-backgrounds/<ID>) : sans cache-buster, le navigateur continue
+// d'afficher l'ancienne image après un remplacement.
+let boardIllusBust = Date.now();
+let boardBgBust = Date.now();
 
 function filterBoards() {
   const q = document.getElementById('board-search').value.toLowerCase();
@@ -4649,7 +4654,7 @@ function renderBoardList(list = boards) {
   document.getElementById('board-list').innerHTML = list.map(b => `
     <div class="list-item ${selectedBoard && selectedBoard.id === b.id ? 'selected' : ''}" onclick="selectBoard('${b.id}')">
       ${b._has_illustration
-        ? `<img src="/illustrations/${b.id}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0" loading="lazy">`
+        ? `<img src="/illustrations/${b.id}?t=${boardIllusBust}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0" loading="lazy">`
         : `<div style="width:40px;height:40px;background:var(--surface2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px">🗺️</div>`}
       <div style="min-width:0">
         <div class="item-name">${esc(b.name)}</div>
@@ -4728,15 +4733,34 @@ function renderBoardDetail() {
     <div style="font-size:11px;color:var(--muted);margin-bottom:16px" id="bf-blocked-count">${_boardBlockedSet.size} cellule${_boardBlockedSet.size!==1?'s':''} bloquée${_boardBlockedSet.size!==1?'s':''}</div>
 
     <div class="section-title" style="margin-top:4px">Illustration</div>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:8px">Vignette carrée du tooltip 🗺️ en combat.</p>
     <div class="detail-header" style="margin-bottom:16px">
-      <div class="illustration-box" onclick="openBoardIllusModal()">
+      <div class="illustration-box" ${isNewBoard ? '' : 'onclick="openBoardIllusModal()"'}>
         ${b._has_illustration
-          ? `<img src="/illustrations/${b.id}?t=${Date.now()}" alt="">`
+          ? `<img src="/illustrations/${b.id}?t=${boardIllusBust}" alt="">`
           : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
-        <div class="illus-overlay">
+        ${isNewBoard ? '' : `<div class="illus-overlay">
           ${b._has_illustration ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteBoardIllustration()">Supprimer</button>` : ''}
-          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openBoardIllusModal()">Importer URL</button>
-        </div>
+          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openBoardIllusModal()">Importer</button>
+        </div>`}
+      </div>
+      ${isNewBoard ? `<div style="font-size:12px;color:var(--muted);align-self:center">Crée le terrain pour pouvoir lui ajouter des images.</div>` : ''}
+    </div>
+
+    <div class="section-title" style="margin-top:4px">Fond de grille</div>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:8px">
+      Vue de dessus au ratio <strong>5:11</strong> (ex. 860 × 1890) — affichée sous les
+      5 × 11 cases pendant le combat. Sans fond, le décor par défaut est conservé.
+    </p>
+    <div class="detail-header" style="margin-bottom:16px">
+      <div class="illustration-box" ${isNewBoard ? '' : 'onclick="openBoardBgModal()"'}>
+        ${b._has_background
+          ? `<img src="/board-backgrounds/${b.id}?t=${boardBgBust}" alt="">`
+          : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
+        ${isNewBoard ? '' : `<div class="illus-overlay">
+          ${b._has_background ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteBoardBg()">Supprimer</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openBoardBgModal()">Importer</button>
+        </div>`}
       </div>
     </div>
 
@@ -4841,7 +4865,11 @@ async function saveBoard() {
   const res = await apiFetch(`/api/boards/${oldId}`, { method: 'PUT', body: updated });
   if (res.error) return toast(res.error, 'err');
   const idx = boards.findIndex(b => b.id === oldId);
-  boards[idx] = { ...updated, _has_illustration: selectedBoard._has_illustration };
+  boards[idx] = {
+    ...updated,
+    _has_illustration: selectedBoard._has_illustration,
+    _has_background: selectedBoard._has_background,
+  };
   selectedBoard = boards[idx];
   filterBoards();
   renderBoardDetail();
@@ -4862,7 +4890,7 @@ async function deleteBoard() {
 
 function openNewBoard() {
   const nextNum = String(boards.length + 1).padStart(3, '0');
-  selectedBoard = { id: `BOARD_${nextNum}`, name: '', effect: null, blocked_cells: [], _has_illustration: false };
+  selectedBoard = { id: `BOARD_${nextNum}`, name: '', effect: null, blocked_cells: [], _has_illustration: false, _has_background: false };
   isNewBoard = true;
   renderBoardList();
   renderBoardDetail();
@@ -4875,7 +4903,7 @@ async function createBoard() {
   if (!board.id || !board.name) return toast('ID et nom requis', 'err');
   const res = await apiFetch('/api/boards', { method: 'POST', body: board });
   if (res.error) return toast(res.error, 'err');
-  boards.push({ ...board, _has_illustration: false });
+  boards.push({ ...board, _has_illustration: false, _has_background: false });
   selectedBoard = boards[boards.length - 1];
   isNewBoard = false;
   filterBoards();
@@ -4891,19 +4919,42 @@ function cancelNewBoard() {
   showList();
 }
 
-function openBoardIllusModal() {
-  const boardName = selectedBoard?.name || '';
-  const defaultQuery = `yugioh illustration ${boardName}`.trim();
+// Un terrain porte deux images distinctes : l'illustration (vignette carrée du
+// tooltip) et le fond de grille (vue de dessus 5:11). Elles vivent sur deux
+// routes et deux dossiers, mais la boîte d'import est la même — d'où ce
+// descripteur, qui évite d'écrire la modale en double.
+const BOARD_ASSETS = {
+  illustration: {
+    title: 'Illustration',
+    route: 'illustration',
+    flag: '_has_illustration',
+    query: name => `yugioh illustration ${name}`.trim(),
+    hint: 'Vignette carrée affichée dans le tooltip du terrain en combat.',
+  },
+  background: {
+    title: 'Fond de grille',
+    route: 'background',
+    flag: '_has_background',
+    query: name => `top down battle map ${name}`.trim(),
+    hint: 'Vue de dessus au ratio 5:11 (ex. 860 × 1890) — posée sous les 5 × 11 cases pendant le combat.',
+  },
+};
+
+function openBoardAssetModal(kind) {
+  if (!selectedBoard) return;
+  const asset = BOARD_ASSETS[kind];
+  const boardName = selectedBoard.name || '';
   showModal(`
-    <h2 style="margin-bottom:16px">Illustration — ${esc(boardName)}</h2>
+    <h2 style="margin-bottom:6px">${asset.title} — ${esc(boardName)}</h2>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:16px">${asset.hint}</p>
 
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
       <div class="field" style="margin-bottom:10px">
         <label>Mots-clés</label>
-        <input id="board-illus-q" value="${esc(defaultQuery)}" style="font-family:monospace;font-size:12px">
+        <input id="board-asset-q" value="${esc(asset.query(boardName))}" style="font-family:monospace;font-size:12px">
       </div>
-      <button class="btn btn-secondary" onclick="openBoardImageSearch()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">
+      <button class="btn btn-secondary" onclick="openBoardAssetSearch()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0"><path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.28 5 12c0-4.2 3.29-7.27 7.19-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"/></svg>
         Ouvrir Google Images ↗
       </button>
@@ -4917,61 +4968,92 @@ function openBoardIllusModal() {
     <div class="field">
       <label>URL de l'image</label>
       <div style="display:flex;gap:6px">
-        <input id="board-illus-url" type="text" placeholder="https://..." style="flex:1">
-        <button class="btn btn-secondary btn-sm" onclick="pasteBoardIllusUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
+        <input id="board-asset-url" type="text" placeholder="https://..." style="flex:1">
+        <button class="btn btn-secondary btn-sm" onclick="pasteBoardAssetUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
       </div>
       <span style="font-size:11px;color:var(--muted);margin-top:4px">Sauvegardée sous <code>${selectedBoard.id}.png</code></span>
     </div>
 
+    <div style="text-align:center;color:var(--muted);font-size:11px;margin:10px 0">— ou —</div>
+    <div class="field">
+      <label>Depuis l'appareil</label>
+      <input id="board-asset-file" type="file" accept="image/*" onchange="importBoardAssetFromFile('${kind}')"
+             style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;width:100%">
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
-      <button class="btn btn-primary" onclick="importBoardIllustration()">Importer</button>
+      <button class="btn btn-primary" onclick="importBoardAsset('${kind}')">Importer l'URL</button>
     </div>
   `, 'wide');
 }
 
-function openBoardImageSearch() {
-  const q = document.getElementById('board-illus-q')?.value || `yugioh illustration ${selectedBoard?.name || ''}`;
+function openBoardIllusModal() { openBoardAssetModal('illustration'); }
+function openBoardBgModal()    { openBoardAssetModal('background'); }
+
+function openBoardAssetSearch() {
+  const q = document.getElementById('board-asset-q')?.value.trim();
+  if (!q) return toast('Renseigne des mots-clés', 'err');
   window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
 }
 
-async function pasteBoardIllusUrl() {
+async function pasteBoardAssetUrl() {
   try {
     const text = await navigator.clipboard.readText();
-    const el = document.getElementById('board-illus-url');
-    if (el) el.value = text;
+    const el = document.getElementById('board-asset-url');
+    if (el) el.value = text.trim();
   } catch {
     toast('Accès presse-papier refusé — collez manuellement (Ctrl+V)', 'err');
   }
 }
 
-async function importBoardIllustration() {
-  const url = document.getElementById('board-illus-url').value.trim();
+/** Aucune des deux images n'est dans le JSON du terrain : on reporte le drapeau
+ *  calculé à la main, et on bumpe le cache-buster de la famille concernée. */
+function _setBoardAssetFlag(kind, has) {
+  const asset = BOARD_ASSETS[kind];
+  selectedBoard[asset.flag] = has;
+  const idx = boards.findIndex(b => b.id === selectedBoard.id);
+  if (idx !== -1) boards[idx][asset.flag] = has;
+  if (kind === 'background') boardBgBust = Date.now();
+  else boardIllusBust = Date.now();
+  filterBoards();
+  renderBoardDetail();
+}
+
+async function importBoardAsset(kind) {
+  const url = document.getElementById('board-asset-url')?.value.trim();
   if (!url) return toast('URL requise', 'err');
   closeModal();
   toast('Téléchargement en cours...', 'ok');
-  const res = await apiFetch(`/api/boards/${selectedBoard.id}/illustration`, { method: 'POST', body: { url } });
+  const res = await apiFetch(`/api/boards/${selectedBoard.id}/${BOARD_ASSETS[kind].route}`, { method: 'POST', body: { url } });
   if (res.error) return toast(res.error, 'err');
-  selectedBoard._has_illustration = true;
-  const idx = boards.findIndex(b => b.id === selectedBoard.id);
-  if (idx !== -1) boards[idx]._has_illustration = true;
-  filterBoards();
-  renderBoardDetail();
-  renderBoardList();
-  toast('Illustration importée');
+  _setBoardAssetFlag(kind, true);
+  toast(`${BOARD_ASSETS[kind].title} importée`);
 }
 
-async function deleteBoardIllustration() {
-  if (!confirm('Supprimer l\'illustration ?')) return;
-  const res = await apiFetch(`/api/boards/${selectedBoard.id}/illustration`, { method: 'DELETE' });
+async function importBoardAssetFromFile(kind) {
+  const file = document.getElementById('board-asset-file')?.files[0];
+  if (!file) return;
+  closeModal();
+  toast('Import en cours…', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/boards/${selectedBoard.id}/${BOARD_ASSETS[kind].route}`, { method: 'PUT', body: { data } });
   if (res.error) return toast(res.error, 'err');
-  selectedBoard._has_illustration = false;
-  const idx = boards.findIndex(b => b.id === selectedBoard.id);
-  if (idx !== -1) boards[idx]._has_illustration = false;
-  renderBoardDetail();
-  renderBoardList();
-  toast('Illustration supprimée');
+  _setBoardAssetFlag(kind, true);
+  toast(`${BOARD_ASSETS[kind].title} importée`);
 }
+
+async function deleteBoardAsset(kind) {
+  const asset = BOARD_ASSETS[kind];
+  if (!confirm(`Supprimer « ${asset.title.toLowerCase()} » de ce terrain ?`)) return;
+  const res = await apiFetch(`/api/boards/${selectedBoard.id}/${asset.route}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  _setBoardAssetFlag(kind, false);
+  toast(`${asset.title} supprimée`);
+}
+
+function deleteBoardIllustration() { return deleteBoardAsset('illustration'); }
+function deleteBoardBg()           { return deleteBoardAsset('background'); }
 
 // ================== BOOT ==================
 init();

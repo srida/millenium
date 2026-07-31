@@ -21,7 +21,7 @@ import {
   zForRow, xForCol, cellKey as key, baseColorFor, emissiveFor,
 } from './constants.js';
 import type { Unit } from '../logic/Unit.js';
-import type { Position } from '../logic/types.js';
+import type { BoardDef, Position } from '../logic/types.js';
 
 // Low-end devices (few cores) get fewer shatter fragments per kill — deep-cloning the
 // full unit-card DOM (image + badges) per fragment is the dominant cost during AOE wipes.
@@ -33,6 +33,37 @@ const LOW_END_DEVICE = (navigator.hardwareConcurrency || 8) <= 4;
 const SPAWN_DROP_S = 0.22;
 const SPAWN_LEAD_S = 0.25;
 const SPAWN_STAGGER_S = 0.16;
+
+// ── Fond de grille d'un terrain (combat) ──
+// Plan texturé de 5 × 11 posé SOUS les tuiles. Assez bas pour ne pas z-fighter
+// avec le voile joueur (y = -0.04) ni avec les tuiles (y = 0 / 0.01).
+const TERRAIN_BG_Y = -0.08;
+// L'illustration est rabattue pour que les cartes d'unités (CSS3D, claires)
+// restent lisibles par-dessus — teinte multiplicative sur le MeshBasicMaterial.
+const TERRAIN_BG_TINT = 0x8f96a6;
+// Voile des tuiles quand un fond est actif. Les tuiles ne couvrent que 92 % de
+// leur case : c'est le contraste entre la tuile voilée et l'interstice resté
+// clair qui redessine la grille par-dessus l'illustration — trop bas, les cases
+// disparaissent ; trop haut, l'illustration ne sert plus à rien.
+const TERRAIN_TILE_OPACITY = 0.2;
+
+// Recadre une texture en « cover » : une illustration qui n'est pas exactement
+// au ratio de la grille est rognée au centre plutôt que déformée (même intention
+// que le object-fit: cover de .unit-art).
+function coverFitTexture(tex: THREE.Texture, planeAspect: number): void {
+  const img = tex.image as { width?: number; height?: number } | undefined;
+  if (!img?.width || !img?.height) return;
+  const imgAspect = img.width / img.height;
+  if (imgAspect > planeAspect) {
+    const r = planeAspect / imgAspect;
+    tex.repeat.set(r, 1);
+    tex.offset.set((1 - r) / 2, 0);
+  } else {
+    const r = imgAspect / planeAspect;
+    tex.repeat.set(1, r);
+    tex.offset.set(0, (1 - r) / 2);
+  }
+}
 
 export interface Scene3DOptions {
   onCellTap?: (cell: Position) => void;
@@ -107,6 +138,15 @@ export class Scene3D {
   tileMeshes: THREE.Mesh[] = [];
   tilesByKey = new Map<string, THREE.Mesh>();
   _separators: THREE.Mesh[] = [];
+  _playerBg!: THREE.Mesh;
+
+  // Fond de terrain : le mesh n'existe que pendant un combat sur un terrain qui
+  // a une illustration. `_terrainToken` invalide un chargement en vol (fin de
+  // combat ou terrain suivant avant que la texture soit arrivée).
+  _terrainBg: THREE.Mesh | null = null;
+  _terrainTex: THREE.Texture | null = null;
+  _terrainActive = false;
+  _terrainToken = 0;
 
   _camCenterZ = 0;
   _camH = 6;
@@ -198,6 +238,7 @@ export class Scene3D {
     const centerZ = (zForRow(0) + zForRow(PLAYER_ROWS - 1)) / 2;
     plane.position.set(0, -0.04, centerZ);
     this.scene.add(plane);
+    this._playerBg = plane;
   }
 
   _buildTiles(): void {
@@ -357,6 +398,86 @@ export class Scene3D {
   setBlockedCells(cells: Position[] | null | undefined): void {
     this._blockedCells = new Set((cells || []).map(key));
     this._refreshTileColors();
+  }
+
+  // Pose (ou retire) l'illustration du terrain sous la grille. Appelée par
+  // GameController au lancement du combat, avec `null` à sa fin.
+  //
+  // Sans fond pour ce terrain — ou en cas de 404 — on ne fait rien de plus que
+  // nettoyer : le décor par défaut de la scène est conservé tel quel.
+  setTerrainBackground(board: BoardDef | null | undefined): void {
+    const token = ++this._terrainToken;
+    this._clearTerrainBackground();
+    if (!board?._has_background) return;
+
+    // Construire l'URL ici plutôt que de la faire descendre depuis la couche
+    // app est le précédent en place — cf. UnitCardEl, qui pointe directement
+    // sur /illustrations/<card_id>.
+    new THREE.TextureLoader().load(
+      `/board-backgrounds/${board.id}`,
+      (tex) => {
+        // Combat terminé, terrain suivant déjà demandé, ou scène détruite
+        // pendant le chargement : la texture n'a plus de destination.
+        if (token !== this._terrainToken || !this._running) { tex.dispose(); return; }
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const w = COLS * CELL;
+        const d = TOTAL_ROWS * CELL;
+        coverFitTexture(tex, w / d);
+
+        const mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(w, d),
+          // Basic et non Standard : l'illustration ne doit pas être assombrie
+          // par l'éclairage de scène. La teinte la rabat d'un cran.
+          new THREE.MeshBasicMaterial({ map: tex, color: TERRAIN_BG_TINT }),
+        );
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.position.set(0, TERRAIN_BG_Y, (zForRow(0) + zForRow(TOTAL_ROWS - 1)) / 2);
+        mesh.renderOrder = -10;
+        this.scene.add(mesh);
+
+        this._terrainBg = mesh;
+        this._terrainTex = tex;
+        this._terrainActive = true;
+        // Le voile bleu du bloc joueur salirait l'illustration ; en combat, la
+        // lecture des zones est portée par les séparateurs dorés et la teinte
+        // rosée des rangées ennemies.
+        this._playerBg.visible = false;
+        this._applyTerrainTileMode(true);
+        this._refreshTileColors();
+        this._invalidate();
+      },
+      undefined,
+      () => { /* 404 ou image illisible : on garde le fond actuel */ },
+    );
+  }
+
+  _clearTerrainBackground(): void {
+    if (this._terrainBg) {
+      this.scene.remove(this._terrainBg);
+      this._terrainBg.geometry.dispose();
+      (this._terrainBg.material as THREE.Material).dispose();
+      this._terrainBg = null;
+    }
+    this._terrainTex?.dispose();
+    this._terrainTex = null;
+    if (!this._terrainActive) return;
+    this._terrainActive = false;
+    this._playerBg.visible = true;
+    this._applyTerrainTileMode(false);
+    this._refreshTileColors();
+    this._invalidate();
+  }
+
+  // Les rangées neutres et ennemies sont opaques par défaut : elles masqueraient
+  // entièrement le fond. Le mode « fond actif » les fait passer en voile.
+  _applyTerrainTileMode(active: boolean): void {
+    for (const tile of this.tileMeshes) {
+      const { isPlayer } = tile.userData as { isPlayer: boolean };
+      const mat = tile.material as THREE.MeshStandardMaterial;
+      mat.transparent = active || isPlayer;
+      mat.depthWrite = !(active || isPlayer);
+      mat.needsUpdate = true;
+    }
   }
 
   // Additive variants used for POWER_FREEZE: merge/remove a single cell
@@ -1155,34 +1276,43 @@ export class Scene3D {
     let color = baseColor;
     let emissive = baseEmissive;
     let intensity = baseEmissiveIntensity;
-    let opacity = isPlayer ? 0.04 : 1.0;
+    // Une tuile n'est « voilée » (= son opacité compte) que sur le bloc joueur,
+    // ou partout dès qu'un fond de terrain est posé. Sans ça les états ci-dessous
+    // resteraient invisibles hors du bloc joueur — or les cases bloquées d'un
+    // terrain tombent justement en zone neutre.
+    const veiled = isPlayer || this._terrainActive;
+    // Avec un fond, les trois zones passent au même voile : les différencier par
+    // l'opacité créerait une couture horizontale en travers de l'illustration.
+    // C'est la couleur des tuiles (joueur/neutre sombres, ennemi rosé) qui porte
+    // seule la lecture des zones.
+    let opacity = this._terrainActive ? TERRAIN_TILE_OPACITY : (isPlayer ? 0.04 : 1.0);
 
     if (this._highlighted.has(k)) {
       color = 0x1a2a54; emissive = 0x9d74dc; intensity = 0.4;
-      if (isPlayer) opacity = 0.38;
+      if (veiled) opacity = 0.38;
     }
     if (this._materialCandidates.has(k)) {
       emissive = 0xcba85a; intensity = 0.38;
-      if (isPlayer) opacity = 0.32;
+      if (veiled) opacity = 0.32;
     }
     if (this._materialSelected.has(k)) {
       color = 0x2a3060; emissive = 0xecd7a2; intensity = 0.45;
-      if (isPlayer) opacity = 0.42;
+      if (veiled) opacity = 0.42;
     }
     if (this._selectedPos && this._selectedPos.col === col && this._selectedPos.row === row) {
       color = 0x1a2a54; emissive = 0xbd9df0; intensity = 0.65;
-      if (isPlayer) opacity = 0.48;
+      if (veiled) opacity = 0.48;
     }
     if (this._blockedCells.has(k)) {
       color = 0x4a1418; emissive = 0xd86a7e; intensity = 0.3;
-      if (isPlayer) opacity = 0.52;
+      if (veiled) opacity = 0.52;
     }
 
     const mat = tile.material as THREE.MeshStandardMaterial;
     mat.color.setHex(color);
     mat.emissive.setHex(emissive);
     mat.emissiveIntensity = intensity;
-    if (isPlayer) mat.opacity = opacity;
+    mat.opacity = veiled ? opacity : 1;
   }
 
   // ── Unités CSS3D ──────────────────────────────────────────────────────────
@@ -1806,6 +1936,15 @@ export class Scene3D {
       sep.geometry.dispose();
       (sep.material as THREE.Material).dispose();
     }
+    this._playerBg.geometry.dispose();
+    (this._playerBg.material as THREE.Material).dispose();
+    if (this._terrainBg) {
+      this._terrainBg.geometry.dispose();
+      (this._terrainBg.material as THREE.Material).dispose();
+      this._terrainBg = null;
+    }
+    this._terrainTex?.dispose();
+    this._terrainTex = null;
     for (const b of this.bursts) {
       if (b.points) { b.points.geometry.dispose(); b.points.material.dispose(); }
       if (b.ring) { b.ring.geometry.dispose(); b.ring.material.dispose(); }

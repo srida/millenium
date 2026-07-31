@@ -33,7 +33,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,woff2}'],
         navigateFallback: '/index.html',
         // /api et /ws ne doivent pas être interceptés par la navigation SPA.
-        navigateFallbackDenylist: [/^\/api/, /^\/admin/, /^\/illustrations/, /^\/avatars/, /^\/ws/],
+        navigateFallbackDenylist: [/^\/api/, /^\/admin/, /^\/illustrations/, /^\/avatars/, /^\/pack-posters/, /^\/board-backgrounds/, /^\/ws/],
         runtimeCaching: [
           {
             // Art des cartes : stale-while-revalidate (affichage instantané, MAJ en fond).
@@ -51,6 +51,17 @@ export default defineConfig({
             options: {
               cacheName: 'avatars',
               expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+          {
+            // Fonds de grille des terrains — lourds et à URL stable, donc le
+            // cache est ici particulièrement rentable. Peu d'entrées : un fond
+            // par terrain.
+            urlPattern: ({ url }) => url.pathname.startsWith('/board-backgrounds/'),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'board-backgrounds',
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
           {
@@ -73,6 +84,7 @@ export default defineConfig({
       '/illustrations': 'http://localhost:3742',
       '/avatars': 'http://localhost:3742',
       '/pack-posters': 'http://localhost:3742',
+      '/board-backgrounds': 'http://localhost:3742',
       '/admin': 'http://localhost:3742',
       '/ws': { target: 'ws://localhost:3742', ws: true },
     },
