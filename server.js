@@ -8,6 +8,9 @@ const auth = require('./auth');
 // Catalogue des packs de boutique : le serveur en écrit le fichier (onglet
 // Packs), ce module le relit (cache au mtime) pour les flags calculés.
 const packs = require('./sets');
+// Catalogue des variantes d'illustration (onglet Variantes). Propriétaire du
+// dossier d'illustrations : leur art y vit sous l'id de la variante.
+const variants = require('./variants');
 
 const app = express();
 app.use(express.json({ limit: '20mb' }));
@@ -17,7 +20,7 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 const PROJECT_ROOT = __dirname;
 
 const DATA_DIR       = process.env.DATA_DIR  || path.join(PROJECT_ROOT, 'data');
-const ILLUS_DIR      = process.env.ILLUS_DIR || path.join(PROJECT_ROOT, 'resources', 'card_illustrations');
+const ILLUS_DIR      = variants.ILLUS_DIR;
 // Portraits des decks publics (adversaires solo + bracket de tournoi). Dossier
 // séparé des illustrations : ce n'est pas de l'art de carte, et l'avatar par
 // défaut doit pouvoir vivre à côté sans polluer l'index des illustrations.
@@ -39,6 +42,7 @@ const MAGIES_FILE    = path.join(DATA_DIR, 'magies.json');
 const PUBLIC_DECKS_FILE = path.join(DATA_DIR, 'public_decks.json');
 const SETS_FILE      = path.join(DATA_DIR, 'sets.json');
 const MISSIONS_FILE  = path.join(DATA_DIR, 'missions.json');
+const VARIANTS_FILE  = variants.VARIANTS_FILE;
 
 // --- Bootstrap: copy initial data to volume on first run ---
 function bootstrap() {
@@ -46,7 +50,7 @@ function bootstrap() {
   fs.mkdirSync(ILLUS_DIR, { recursive: true });
   fs.mkdirSync(AVATARS_DIR, { recursive: true });
   fs.mkdirSync(POSTERS_DIR, { recursive: true });
-  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json']) {
+  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json', 'variants.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -108,18 +112,23 @@ app.use(express.static(CLIENT_DIST));
 // Admin (protected)
 app.get('/admin', requireSiteAdmin, (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
-// Illustrations public (game needs card art) — adds .png extension automatically
-app.get('/illustrations/:id', (req, res) => {
-  const filePath = path.join(ILLUS_DIR, `${req.params.id}.png`);
-  if (fs.existsSync(filePath)) res.sendFile(filePath);
-  else res.status(404).end();
-});
-
 // Un id d'asset ne doit jamais pouvoir remonter l'arborescence : il sert de nom
 // de fichier tel quel.
 function safeAssetId(id) {
   return /^[A-Za-z0-9_-]+$/.test(id || '') ? id : null;
 }
+
+// Illustrations public (game needs card art) — adds .png extension automatically.
+// Sert aussi l'art des VARIANTES, qui vivent dans le même espace de noms.
+// Le garde-fou n'est pas décoratif : Express décode `%2f`, et depuis les
+// variantes l'id vient du méta de deck, donc du joueur.
+app.get('/illustrations/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).end();
+  const filePath = path.join(ILLUS_DIR, `${id}.png`);
+  if (fs.existsSync(filePath)) res.sendFile(filePath);
+  else res.status(404).end();
+});
 
 // Avatars des decks publics — le repli sur l'avatar par défaut est fait ICI et
 // nulle part ailleurs : chaque écran qui affiche un adversaire n'a qu'une URL à
@@ -621,6 +630,114 @@ app.delete('/api/magies/:id/illustration', requireSiteAdmin, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// --- Variantes API ---
+// Une variante est une illustration alternative d'une carte, vendue dans
+// l'onglet cosmétique de la boutique. Son art vit dans ILLUS_DIR sous l'id de
+// la variante : le triptyque d'illustration ci-dessous est donc exactement
+// celui des magies, au chemin près (il n'y en a pas).
+app.get('/api/variants', (req, res) => {
+  try {
+    const list = readJson(VARIANTS_FILE);
+    res.json(list.map(v => ({ ...v, _has_illustration: illustrationExists(v.id) })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/variants', requireSiteAdmin, (req, res) => {
+  try {
+    const list = readJson(VARIANTS_FILE);
+    const variant = req.body;
+    if (!variant.id) return res.status(400).json({ error: 'id required' });
+    if (!variant.card_id) return res.status(400).json({ error: 'card_id required' });
+    if (list.find(v => v.id === variant.id)) return res.status(400).json({ error: `ID ${variant.id} already exists` });
+    delete variant._has_illustration;
+    list.push(variant);
+    writeJson(VARIANTS_FILE, list);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/variants/import', requireSiteAdmin, (req, res) => {
+  try {
+    const { items, mode = 'skip' } = req.body;
+    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
+    const list = readJson(VARIANTS_FILE);
+    let added = 0, replaced = 0, skipped = 0;
+    const errors = [];
+    for (const item of items) {
+      if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
+      if (!item.card_id) { errors.push(`${item.id} : card_id manquant, ignoré`); continue; }
+      delete item._has_illustration;
+      const idx = list.findIndex(v => v.id === item.id);
+      if (idx !== -1) {
+        if (mode === 'replace') { list[idx] = item; replaced++; }
+        else skipped++;
+      } else {
+        list.push(item);
+        added++;
+      }
+    }
+    writeJson(VARIANTS_FILE, list);
+    res.json({ ok: true, added, replaced, skipped, errors });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/variants/:id', requireSiteAdmin, (req, res) => {
+  try {
+    const list = readJson(VARIANTS_FILE);
+    const idx = list.findIndex(v => v.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    const updated = req.body;
+    if (!updated.card_id) return res.status(400).json({ error: 'card_id required' });
+    delete updated._has_illustration;
+    list[idx] = updated;
+    writeJson(VARIANTS_FILE, list);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/variants/:id', requireSiteAdmin, (req, res) => {
+  try {
+    const list = readJson(VARIANTS_FILE);
+    const idx = list.findIndex(v => v.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    list.splice(idx, 1);
+    writeJson(VARIANTS_FILE, list);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/variants/:id/illustration', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { url } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    await savePng(ILLUS_DIR, id, await downloadUrl(url));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/variants/:id/illustration', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    await savePng(ILLUS_DIR, id, Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/variants/:id/illustration', requireSiteAdmin, (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = path.join(ILLUS_DIR, `${id}.png`);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // --- Missions API ---
 app.get('/api/missions', (req, res) => {
   try {
@@ -941,10 +1058,13 @@ app.get('/api/export', (req, res) => {
     const magies     = readJson(MAGIES_FILE);
     const publicDecks = readJson(PUBLIC_DECKS_FILE);
     const sets       = readJson(SETS_FILE);
+    const variantList = readJson(VARIANTS_FILE);
+    // L'art des variantes est déjà dans ILLUS_DIR : il voyage avec les
+    // illustrations, sans famille d'assets supplémentaire.
     const illustrations = listPngChecksums(ILLUS_DIR);
     const avatars = listPngChecksums(AVATARS_DIR);
     const packPosters = listPngChecksums(POSTERS_DIR);
-    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, illustrations, avatars, packPosters });
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, illustrations, avatars, packPosters });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

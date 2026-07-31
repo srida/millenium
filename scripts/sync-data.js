@@ -67,6 +67,9 @@ const ENTITIES = [
   { type: 'magies',     file: 'magies.json',     importPath: '/api/magies/import',     deletePath: id => `/api/magies/${id}` },
   { type: 'publicDecks', file: 'public_decks.json', importPath: '/api/decks/import',   deletePath: id => `/api/decks/${id}` },
   { type: 'sets',       file: 'sets.json',       importPath: '/api/sets/import',       deletePath: id => `/api/sets/${id}` },
+  // Les variantes n'ont pas d'entrée dans ASSETS : leur art vit dans le dossier
+  // des illustrations, sous l'id de la variante.
+  { type: 'variants',   file: 'variants.json',   importPath: '/api/variants/import',   deletePath: id => `/api/variants/${id}` },
 ];
 
 function authHeader() {

@@ -382,6 +382,7 @@ select.filter:focus { border-color: var(--accent); }
       <button class="tab" onclick="switchTab('missions')">Missions</button>
       <button class="tab" onclick="switchTab('decks')">Decks publics</button>
       <button class="tab" onclick="switchTab('packs')">🎁 Packs</button>
+      <button class="tab" onclick="switchTab('variants')">🎨 Variantes</button>
       <button class="tab" onclick="switchTab('stats')">📊 Stats</button>
       <button class="tab" onclick="switchTab('db')">🗄️ Base SQL</button>
     </div>
@@ -518,6 +519,26 @@ select.filter:focus { border-color: var(--accent); }
     </div>
   </div>
 
+  <!-- VARIANTS TAB -->
+  <div id="tab-variants" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="variant-search" placeholder="Rechercher..." oninput="filterVariants()">
+          <span id="variant-count" class="count">0</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="openNewVariant()">+ Nouvelle variante</button>
+          <button class="btn btn-secondary btn-sm" onclick="openImportModal('variants')">Importer JSON</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="variant-list"></div>
+    </div>
+    <div class="content" id="variant-detail">
+      <div class="empty"><span>Sélectionne une variante</span></div>
+    </div>
+  </div>
+
   <!-- MISSIONS TAB -->
   <div id="tab-missions" class="main hidden">
     <div class="sidebar">
@@ -614,16 +635,16 @@ select.filter:focus { border-color: var(--accent); }
 // ================== STATE ==================
 // `packs` = les packs de boutique (data/sets.json, API /api/sets). Le code et la
 // donnée disent « set », l'interface dit « pack » : ici on est dans l'interface.
-let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [];
-let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null;
+let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [];
+let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null;
 let currentTab = 'cards';
-let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false;
+let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false;
 let selectionMode = false;
 const bulkSelected = new Set();
 
 // ================== INIT ==================
 async function init() {
-  [cards, attributes, powers, boards, magies, publicDecks, packs, missions] = await Promise.all([
+  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants] = await Promise.all([
     apiFetch('/api/cards'),
     apiFetch('/api/attributes'),
     apiFetch('/api/powers'),
@@ -632,6 +653,7 @@ async function init() {
     apiFetch('/api/decks'),
     apiFetch('/api/sets'),
     apiFetch('/api/missions'),
+    apiFetch('/api/variants'),
   ]);
   populateAttributeFilter();
   populatePowerFilter();
@@ -643,6 +665,7 @@ async function init() {
   renderPublicDeckList();
   renderPackList();
   renderMissionList();
+  renderVariantList();
 }
 
 function populateAttributeFilter() {
@@ -687,6 +710,7 @@ function switchTab(tab) {
                   (tab === 'missions' && t.includes('mission')) ||
                   (tab === 'decks' && t.includes('deck')) ||
                   (tab === 'packs' && t.includes('pack')) ||
+                  (tab === 'variants' && t.includes('variante')) ||
                   (tab === 'stats' && t.includes('stat')) ||
                   (tab === 'db' && t.includes('sql'));
     if (match) el.classList.add('active');
@@ -2588,6 +2612,336 @@ async function deleteMagieIllustration() {
   toast('Illustration supprimée');
 }
 
+// ================== VARIANTES ==================
+// Une variante est une illustration alternative d'une carte, vendue dans
+// l'onglet cosmétique de la boutique. Son art vit dans le dossier des
+// illustrations sous l'id de la VARIANTE — d'où l'absence de famille d'assets
+// dédiée, et un triptyque d'illustration identique à celui des magies.
+//
+// Une variante SANS illustration n'est pas vendable : le serveur l'écarte du
+// tirage. La liste le signale, c'est le seul avertissement de cet écran.
+
+function _variantCard(v) {
+  return cards.find(c => c.id === v?.card_id) ?? null;
+}
+
+function filterVariants() {
+  const q = document.getElementById('variant-search')?.value.toLowerCase() || '';
+  const filtered = variants.filter(v => {
+    if (!q) return true;
+    const card = _variantCard(v);
+    return (v.name || '').toLowerCase().includes(q)
+      || v.id.toLowerCase().includes(q)
+      || (v.card_id || '').toLowerCase().includes(q)
+      || (card?.name || '').toLowerCase().includes(q);
+  });
+  renderVariantList(filtered);
+}
+
+function renderVariantList(list = variants) {
+  document.getElementById('variant-count').textContent = list.length;
+  const el = document.getElementById('variant-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty" style="padding:24px"><span>Aucune variante</span></div>';
+    return;
+  }
+  el.innerHTML = list.map(v => {
+    const card = _variantCard(v);
+    const active = selectedVariant?.id === v.id ? ' active' : '';
+    return `
+      <div class="list-item${active}" onclick="selectVariant('${v.id}')">
+        <div class="list-item-name">${v._has_illustration ? '' : '⚠️ '}${esc(v.name || v.id)}</div>
+        <div class="list-item-meta">
+          <span style="font-family:monospace">${esc(v.id)}</span>
+          · ${card ? esc(card.name) : `<span style="color:var(--danger)">carte inconnue : ${esc(v.card_id)}</span>`}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectVariant(id) {
+  selectedVariant = variants.find(v => v.id === id) ?? null;
+  isNewVariant = false;
+  renderVariantList();
+  renderVariantDetail();
+  showDetail();
+}
+
+function renderVariantDetail() {
+  const v = selectedVariant;
+  const el = document.getElementById('variant-detail');
+  const card = _variantCard(v);
+  const hasIllus = v._has_illustration;
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header">
+      <div class="illustration-box" onclick="${isNewVariant ? '' : 'openVariantIllusModal()'}">
+        ${hasIllus
+          ? `<img src="/illustrations/${v.id}?t=${variantBust}" alt="">`
+          : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
+        <div class="illus-overlay">
+          ${hasIllus
+            ? `<span style="font-size:12px;color:white">Changer</span>
+               <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteVariantIllustration()">Supprimer</button>`
+            : `<span style="font-size:12px;color:white">Ajouter une illustration</span>`}
+        </div>
+      </div>
+      <div class="detail-info">
+        <div class="detail-title">🎨 ${esc(v.name || v.id)}</div>
+        <div class="detail-meta"><span style="font-family:monospace">${esc(v.id)}</span></div>
+      </div>
+    </div>
+
+    ${hasIllus ? '' : `
+      <div style="background:rgba(240,180,60,.1);border:1px solid rgba(240,180,60,.35);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0b43c">
+        ⚠️ Sans illustration, cette variante n'est pas vendue en boutique.
+      </div>`}
+
+    <div class="field">
+      <label>Nom</label>
+      <input id="variant-name" value="${esc(v.name || '')}" placeholder="Saphir — Illustration d'origine">
+    </div>
+
+    <div class="field">
+      <label>Carte visée</label>
+      ${card
+        ? `<div style="display:flex;gap:10px;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px">
+             <img src="/illustrations/${card.id}" alt="" style="width:34px;height:34px;object-fit:cover;border-radius:6px;flex-shrink:0" onerror="this.style.visibility='hidden'">
+             <div style="flex:1">
+               <div style="font-size:13px">${esc(card.name)}</div>
+               <div style="font-size:11px;color:var(--muted);font-family:monospace">${card.id} · T${Math.round(card.tier)}</div>
+             </div>
+             <button class="btn btn-secondary btn-sm" onclick="clearVariantCard()">Changer</button>
+           </div>`
+        : `<div style="position:relative">
+             <input id="variant-card-search" placeholder="Rechercher une carte..." autocomplete="off"
+               oninput="filterVariantCardSearch()" onfocus="filterVariantCardSearch()" onblur="hideVariantCardDropdown()">
+             <div id="variant-card-dropdown" class="dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:20;max-height:260px;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px"></div>
+             ${v.card_id ? `<div style="margin-top:6px;font-size:11px;color:var(--danger)">Carte introuvable au catalogue : <code>${esc(v.card_id)}</code></div>` : ''}
+           </div>`}
+    </div>
+
+    <div class="detail-actions">
+      ${isNewVariant
+        ? `<button class="btn btn-primary" onclick="createVariant()">Créer</button>
+           <button class="btn btn-secondary" onclick="cancelNewVariant()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveVariant()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deleteVariant()">Supprimer</button>`}
+    </div>
+  `;
+}
+
+// L'URL de l'art est stable : sans cache-buster, le navigateur continuerait
+// d'afficher l'ancienne image après un remplacement (même raison que
+// `posterBust` pour les affiches de packs).
+let variantBust = Date.now();
+
+// Le formulaire est re-rendu à chaque choix de carte : sans ça, un nom saisi
+// avant de désigner la carte serait perdu.
+function _stashVariantFields() {
+  const name = document.getElementById('variant-name');
+  if (name && selectedVariant) selectedVariant.name = name.value.trim();
+}
+
+function filterVariantCardSearch() {
+  const q = document.getElementById('variant-card-search')?.value.toLowerCase() || '';
+  const results = cards
+    .filter(c => !q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q))
+    .slice(0, 20);
+  const dd = document.getElementById('variant-card-dropdown');
+  if (!dd) return;
+  dd.innerHTML = results.length
+    ? results.map(c => `
+        <div onmousedown="pickVariantCard('${c.id}')"
+          style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
+          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <div>
+            <div style="font-size:13px">${esc(c.name)}</div>
+            <div style="margin-top:2px"><span style="font-size:11px;color:var(--muted);font-family:monospace">${c.id} · T${Math.round(c.tier)}</span></div>
+          </div>
+        </div>`).join('')
+    : '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
+  dd.style.display = 'block';
+}
+
+function hideVariantCardDropdown() {
+  setTimeout(() => {
+    const dd = document.getElementById('variant-card-dropdown');
+    if (dd) dd.style.display = 'none';
+  }, 150);
+}
+
+function pickVariantCard(id) {
+  _stashVariantFields();
+  selectedVariant.card_id = id;
+  renderVariantDetail();
+}
+
+function clearVariantCard() {
+  _stashVariantFields();
+  selectedVariant.card_id = '';
+  renderVariantDetail();
+}
+
+function _collectVariantFields() {
+  return {
+    id: selectedVariant.id,
+    card_id: selectedVariant.card_id || '',
+    name: document.getElementById('variant-name')?.value.trim() || '',
+  };
+}
+
+async function saveVariant() {
+  const variant = _collectVariantFields();
+  if (!variant.name) return toast('Nom requis', 'err');
+  if (!variant.card_id) return toast('Carte visée requise', 'err');
+  const res = await apiFetch(`/api/variants/${selectedVariant.id}`, { method: 'PUT', body: variant });
+  if (res.error) return toast(res.error, 'err');
+  const idx = variants.findIndex(v => v.id === selectedVariant.id);
+  // Le serveur ne renvoie pas les drapeaux calculés : on les rattache à la main.
+  if (idx !== -1) {
+    variants[idx] = { ...variant, _has_illustration: selectedVariant._has_illustration };
+    selectedVariant = variants[idx];
+  }
+  filterVariants();
+  renderVariantDetail();
+  toast('Variante enregistrée');
+}
+
+async function deleteVariant() {
+  if (!confirm(`Supprimer la variante ${selectedVariant.id} ?`)) return;
+  const res = await apiFetch(`/api/variants/${selectedVariant.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  variants = variants.filter(v => v.id !== selectedVariant.id);
+  selectedVariant = null;
+  filterVariants();
+  document.getElementById('variant-detail').innerHTML = '<div class="empty"><span>Sélectionne une variante</span></div>';
+  showList();
+  toast('Variante supprimée');
+}
+
+function openNewVariant() {
+  let maxNum = 0;
+  for (const v of variants) {
+    const match = v.id.match(/(\d+)$/);
+    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+  }
+  selectedVariant = { id: `VAR_${String(maxNum + 1).padStart(3, '0')}`, card_id: '', name: '', _has_illustration: false };
+  isNewVariant = true;
+  renderVariantList();
+  renderVariantDetail();
+  showDetail();
+}
+
+async function createVariant() {
+  const variant = _collectVariantFields();
+  if (!variant.name) return toast('Nom requis', 'err');
+  if (!variant.card_id) return toast('Carte visée requise', 'err');
+  const res = await apiFetch('/api/variants', { method: 'POST', body: variant });
+  if (res.error) return toast(res.error, 'err');
+  variants.push({ ...variant, _has_illustration: false });
+  selectedVariant = variants[variants.length - 1];
+  isNewVariant = false;
+  filterVariants();
+  renderVariantDetail();
+  toast('Variante créée — ajoute son illustration pour qu\'elle soit vendable');
+}
+
+function cancelNewVariant() {
+  selectedVariant = null;
+  isNewVariant = false;
+  filterVariants();
+  document.getElementById('variant-detail').innerHTML = '<div class="empty"><span>Sélectionne une variante</span></div>';
+  showList();
+}
+
+function openVariantIllusModal() {
+  if (!selectedVariant) return;
+  const card = _variantCard(selectedVariant);
+  const defaultQuery = `yugioh alternate artwork ${card?.name || selectedVariant.name || ''}`.trim();
+  showModal(`
+    <h2 style="margin-bottom:16px">Illustration — ${esc(selectedVariant.name || selectedVariant.id)}</h2>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Mots-clés</label>
+        <input id="variant-illus-q" value="${esc(defaultQuery)}" style="font-family:monospace;font-size:12px">
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="openVariantImageSearch()">Ouvrir Google Images</button>
+    </div>
+    <div class="field">
+      <label>Depuis une URL</label>
+      <div style="display:flex;gap:6px">
+        <input id="variant-illus-url" type="text" placeholder="https://..." style="flex:1">
+        <button class="btn btn-secondary btn-sm" onclick="pasteVariantIllusUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Depuis l'appareil</label>
+      <input type="file" accept="image/*" onchange="importVariantIllustrationFromFile()" id="variant-illus-file">
+    </div>
+    <span style="font-size:11px;color:var(--muted)">Sauvegardée sous <code>${selectedVariant.id}.png</code></span>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="importVariantIllustration()">Importer l'URL</button>
+    </div>
+  `, 'wide');
+}
+
+function openVariantImageSearch() {
+  const q = document.getElementById('variant-illus-q')?.value || '';
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
+}
+
+async function pasteVariantIllusUrl() {
+  try {
+    const el = document.getElementById('variant-illus-url');
+    if (el) el.value = await navigator.clipboard.readText();
+  } catch {
+    toast('Accès presse-papier refusé — collez manuellement (Ctrl+V)', 'err');
+  }
+}
+
+function _setVariantIllusFlag(has) {
+  selectedVariant._has_illustration = has;
+  const idx = variants.findIndex(v => v.id === selectedVariant.id);
+  if (idx !== -1) variants[idx]._has_illustration = has;
+  variantBust = Date.now();
+  filterVariants();
+  renderVariantDetail();
+}
+
+async function importVariantIllustration() {
+  const url = document.getElementById('variant-illus-url').value.trim();
+  if (!url) return toast('URL requise', 'err');
+  closeModal();
+  toast('Téléchargement en cours...', 'ok');
+  const res = await apiFetch(`/api/variants/${selectedVariant.id}/illustration`, { method: 'POST', body: { url } });
+  if (res.error) return toast(res.error, 'err');
+  _setVariantIllusFlag(true);
+  toast('Illustration importée');
+}
+
+async function importVariantIllustrationFromFile() {
+  const file = document.getElementById('variant-illus-file')?.files?.[0];
+  if (!file) return;
+  closeModal();
+  toast('Envoi en cours...', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/variants/${selectedVariant.id}/illustration`, { method: 'PUT', body: { data } });
+  if (res.error) return toast(res.error, 'err');
+  _setVariantIllusFlag(true);
+  toast('Illustration importée');
+}
+
+async function deleteVariantIllustration() {
+  if (!confirm('Supprimer l\'illustration ?')) return;
+  const res = await apiFetch(`/api/variants/${selectedVariant.id}/illustration`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  _setVariantIllusFlag(false);
+  toast('Illustration supprimée');
+}
+
 // ================== MISSIONS ==================
 const EVENT_LABELS = {
   match_completed: 'Partie terminée',
@@ -3812,6 +4166,7 @@ function fabAction() {
   else if (currentTab === 'missions')   openNewMission();
   else if (currentTab === 'decks')      openNewPublicDeck();
   else if (currentTab === 'packs')      openNewPack();
+  else if (currentTab === 'variants')   openNewVariant();
 }
 
 // ================== UTILS ==================
@@ -4534,7 +4889,7 @@ async function confirmMassDelete() {
 let importType = null;
 let importItems = null;
 
-const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions' };
+const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions', variants: 'variantes' };
 
 function openImportModal(type) {
   importType = type;
@@ -4626,6 +4981,10 @@ async function confirmImport() {
   } else if (importType === 'missions') {
     missions = await apiFetch('/api/missions');
     filterMissions();
+  } else if (importType === 'variants') {
+    variants = await apiFetch('/api/variants');
+    selectedVariant = null;
+    filterVariants();
   }
 
   const parts = [];
