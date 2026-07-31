@@ -251,6 +251,28 @@ db.exec(`
   );
 `);
 
+// Boutique cosmétique : avatars et variantes d'illustration. Deux tables, sur
+// le modèle de la boutique de cartes — la possession (une ligne par cosmétique
+// débloqué, comme user_cards) et l'offre du jour persistée (comme
+// user_shop_state). Les RÈGLES vivent dans cosmetics.js.
+// ⚠️ Même contrainte que user_cards : créées APRÈS la migration `tag`.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_cosmetics (
+    user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind        TEXT NOT NULL,
+    cosmetic_id TEXT NOT NULL,
+    unlocked_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, kind, cosmetic_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_user_cosmetics_user ON user_cosmetics(user_id);
+
+  CREATE TABLE IF NOT EXISTS user_cosmetic_state (
+    user_id   TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    offer_day TEXT,
+    offer     TEXT
+  );
+`);
+
 // Migration : la Convoitise (carte nommée dans tout le catalogue, 3 jours
 // d'attente) a été remplacée par l'épingle d'un emplacement proposé. Les deux
 // colonnes qu'elle occupait n'ont plus d'objet — DROP COLUMN plutôt que de les
@@ -394,6 +416,20 @@ const stmt = {
     ON CONFLICT(user_id) DO UPDATE SET
       offer_day = @offer_day, offer = @offer, reroll_free_day = @reroll_free_day,
       pinned = @pinned, sets_claimed = @sets_claimed
+  `),
+
+  // Boutique cosmétique (avatars, variantes). Les RÈGLES vivent dans
+  // cosmetics.js — ici, seulement l'accès SQL.
+  unlockCosmetic: db.prepare(`
+    INSERT OR IGNORE INTO user_cosmetics (user_id, kind, cosmetic_id, unlocked_at) VALUES (?, ?, ?, ?)
+  `),
+  cosmeticsByUser: db.prepare('SELECT kind, cosmetic_id FROM user_cosmetics WHERE user_id = ? ORDER BY cosmetic_id'),
+  hasCosmetic: db.prepare('SELECT 1 FROM user_cosmetics WHERE user_id = ? AND kind = ? AND cosmetic_id = ?'),
+  cosmeticStateByUser: db.prepare('SELECT * FROM user_cosmetic_state WHERE user_id = ?'),
+  upsertCosmeticState: db.prepare(`
+    INSERT INTO user_cosmetic_state (user_id, offer_day, offer)
+    VALUES (@user_id, @offer_day, @offer)
+    ON CONFLICT(user_id) DO UPDATE SET offer_day = @offer_day, offer = @offer
   `),
 
   insertResetToken: db.prepare('INSERT INTO reset_tokens (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)'),

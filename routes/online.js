@@ -6,6 +6,7 @@ const auth = require('../auth');
 const progression = require('../progression');
 const missions = require('../missions');
 const shop = require('../shop');
+const cosmetics = require('../cosmetics');
 
 const router = express.Router();
 
@@ -14,6 +15,16 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 
 function normEmail(v) { return String(v || '').trim().toLowerCase(); }
+
+// Un avatar voyage soit en id (`CORE_003`), soit en URL héritée
+// (`/illustrations/CORE_003`) ; il est STOCKÉ en URL, la forme que tous les
+// écrans savent déjà rendre. Retourne null si l'id n'est pas dans `allowed`.
+function avatarIdOrNull(raw, allowed) {
+  const value = String(raw || '').trim();
+  if (!value) return null;
+  const id = value.startsWith('/illustrations/') ? value.slice('/illustrations/'.length) : value;
+  return allowed.includes(id) ? `/illustrations/${id}` : null;
+}
 function validPassword(v) { return typeof v === 'string' && v.length >= 8 && v.length <= 200; }
 
 // =====================================================================
@@ -40,7 +51,11 @@ router.post('/auth/register', auth.rateLimit({ max: 10 }), (req, res) => {
     username_lc,
     tag: next_tag,
     password_hash: auth.hashPassword(password),
-    avatar: req.body.avatar || null,
+    // Un compte neuf ne possède aucun cosmétique : seuls les avatars offerts
+    // d'office sont recevables ici. Tout le reste est écarté en silence — c'est
+    // une inscription, pas le bon moment pour un message d'erreur sur un champ
+    // que le formulaire ne propose même pas.
+    avatar: avatarIdOrNull(req.body.avatar, cosmetics.DEFAULT_AVATARS),
     created_at: Date.now(),
   };
   stmt.insertUser.run(user);
@@ -172,7 +187,26 @@ router.put('/profile/me', auth.requireUser, (req, res) => {
     username_lc = lc;
   }
 
-  const avatar = req.body.avatar !== undefined ? (req.body.avatar || null) : current.avatar;
+  // L'avatar est un id d'illustration : soit un avatar offert d'office, soit un
+  // avatar acheté en boutique cosmétique. Il était jusqu'ici écrit TEL QUEL en
+  // base, donc une chaîne arbitraire finissait dans un `<img src>` — c'est le
+  // seul point de passage, la vérification appartient donc ici.
+  //
+  // On stocke la forme URL `/illustrations/<id>` : c'est celle que tous les
+  // écrans savent déjà rendre, et celle des comptes existants.
+  let avatar = current.avatar;
+  if (req.body.avatar !== undefined) {
+    const raw = String(req.body.avatar || '').trim();
+    if (!raw) {
+      avatar = null;
+    } else {
+      const id = raw.startsWith('/illustrations/') ? raw.slice('/illustrations/'.length) : raw;
+      if (!cosmetics.canUseAvatar(current, id)) {
+        return res.status(400).json({ error: 'Cet avatar n\'est pas débloqué.', field: 'avatar' });
+      }
+      avatar = `/illustrations/${id}`;
+    }
+  }
   stmt.updateProfile.run({ id: current.id, username, username_lc, tag, avatar });
   res.json({ user: auth.publicUser({ ...current, username, username_lc, tag, avatar }) });
 });
@@ -407,6 +441,34 @@ router.post('/me/shop/booster', auth.requireUser, auth.rateLimit({ windowMs: 60_
   if (!setId) return res.status(400).json({ error: 'set_id requis', field: 'set_id' });
   shop.sync(req.user);
   shopResult(req, res, shop.buyBooster(req.user, setId, currency));
+});
+
+// =====================================================================
+//  BOUTIQUE COSMÉTIQUE (avatars, variantes d'illustration)
+// =====================================================================
+// Mêmes règles que la boutique de cartes : l'offre avance à la lecture, le
+// client désigne sans jamais chiffrer, et l'instantané complet accompagne
+// chaque mutation pour qu'aucune action n'entraîne de rechargement.
+//
+// Cet instantané sert aussi le Profil (avatars portables) et le DeckBuilder
+// (variantes possédées) : un seul appel pour les trois écrans.
+router.get('/me/cosmetics', auth.requireUser, (req, res) => {
+  res.json({ ...cosmetics.refresh(req.user), progression: progression.getProgression(req.user) });
+});
+
+function cosmeticResult(req, res, result) {
+  if (!result.ok) return res.status(result.stale ? 409 : 400).json({ error: result.reason });
+  const fresh = stmt.userById.get(req.user.id);
+  res.json({ ...result, ...cosmetics.getSnapshot(fresh), progression: progression.getProgression(fresh) });
+}
+
+router.post('/me/cosmetics/buy', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  const kind = String(req.body?.kind || '');
+  const id = String(req.body?.id || '').slice(0, 64);
+  if (!cosmetics.KINDS.includes(kind)) return res.status(400).json({ error: 'Type de cosmétique inconnu.', field: 'kind' });
+  if (!id) return res.status(400).json({ error: 'id requis', field: 'id' });
+  cosmetics.sync(req.user);
+  cosmeticResult(req, res, cosmetics.buy(req.user, kind, id));
 });
 
 // =====================================================================
