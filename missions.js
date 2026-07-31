@@ -42,9 +42,9 @@ const REROLL_COST = 100;      // golds, après le reroll gratuit du jour
 // Barème par difficulté de slot (brief §5.1). Source unique : une mission ne
 // porte pas ses propres montants, sinon le barème dérive au fil du catalogue.
 const SLOT_REWARDS = Object.freeze({
-  1: { xp: 60, gold: 50 },
-  2: { xp: 100, gold: 100 },
-  3: { xp: 150, gold: 175 },
+  1: { xp: 6, gold: 50 },
+  2: { xp: 10, gold: 100 },
+  3: { xp: 15, gold: 175 },
 });
 
 // Jauge hebdomadaire : 1 point par mission terminée, un palier tous les 10.
@@ -52,9 +52,9 @@ const SLOT_REWARDS = Object.freeze({
 // d'être là aux trois cycles, ni tous les jours.
 const WEEKLY_MAX = 30;
 const WEEKLY_MILESTONES = Object.freeze([
-  { points: 10, rewards: { gold: 150, gems: 10, xp: 50 } },
-  { points: 20, rewards: { gold: 250, gems: 25, xp: 100 } },
-  { points: 30, rewards: { gold: 500, gems: 50, xp: 200 } },
+  { points: 10, rewards: { gold: 150, gems: 10, xp: 5 } },
+  { points: 20, rewards: { gold: 250, gems: 25, xp: 10 } },
+  { points: 30, rewards: { gold: 500, gems: 50, xp: 20 } },
 ]);
 
 // Garde-fous d'entrée : une requête d'événements est plafonnée en taille.
