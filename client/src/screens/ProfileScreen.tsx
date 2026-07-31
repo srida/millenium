@@ -1,19 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // ProfileScreen — édition du profil (pseudo, avatar) via /profile/me.
 // L'utilisateur modifie lui-même ses données ; le compte doit être connecté.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as AuthClient from '../data/AuthClient.js';
 import { illustrationUrl } from '../data/CardDatabase.js';
 import { useAuthStore } from '../stores/authStore.js';
+import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import { ProgressionPanel } from '../components/ui/ProgressionStats.js';
 
-// Avatars débloqués par défaut — les 7 premières cartes du set CORE (dotation
-// de départ). D'autres pourront s'ajouter via une future boutique d'avatars ;
-// cette liste sera alors alimentée par la progression du joueur plutôt que figée.
-const UNLOCKED_AVATARS = ['CORE_001', 'CORE_002', 'CORE_003', 'CORE_004', 'CORE_005', 'CORE_006', 'CORE_007'];
+// Les avatars portables viennent du SERVEUR (cosmetics.js) : les offerts
+// d'office, puis ceux achetés dans l'onglet cosmétique de la boutique. La
+// liste n'est plus codée ici — c'est le serveur qui valide l'enregistrement,
+// les deux ne doivent pas pouvoir diverger.
+//
+// Repli si l'appel échoue : les 7 avatars de la dotation de départ, pour que
+// l'écran ne se retrouve jamais sans aucun choix.
+const FALLBACK_AVATARS = ['CORE_001', 'CORE_002', 'CORE_003', 'CORE_004', 'CORE_005', 'CORE_006', 'CORE_007'];
 
 export default function ProfileScreen() {
   const navigate = useUiStore(s => s.navigate);
@@ -26,6 +31,12 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  const loadCosmetics = useCosmeticStore(s => s.load);
+  const selectableAvatars = useCosmeticStore(s => s.selectableAvatars);
+  const cosmeticSnapshot = useCosmeticStore(s => s.snapshot);
+  useEffect(() => { void loadCosmetics(); }, [loadCosmetics]);
+  const avatarIds = cosmeticSnapshot ? selectableAvatars() : FALLBACK_AVATARS;
 
   if (!user) {
     return (
@@ -78,9 +89,17 @@ export default function ProfileScreen() {
             value={username} maxLength={20} onChange={(e) => { setUsername(e.target.value); setSaved(false); }}
             className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-sm text-white"
           />
-          <label className="text-[10px] tracking-widest text-white/40">AVATAR</label>
+          <div className="flex items-baseline justify-between">
+            <label className="text-[10px] tracking-widest text-white/40">AVATAR</label>
+            <button
+              onPointerDown={() => navigate('shop')}
+              className="text-[10px] text-white/40 underline"
+            >
+              En débloquer d'autres →
+            </button>
+          </div>
           <div className="grid grid-cols-4 gap-2">
-            {UNLOCKED_AVATARS.map((id) => {
+            {avatarIds.map((id) => {
               const url = illustrationUrl(id);
               const selected = avatar === url;
               return (

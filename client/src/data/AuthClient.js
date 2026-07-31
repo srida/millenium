@@ -151,6 +151,18 @@ export async function buyBooster({ setId, currency = 'golds' }) {
   return absorbShop(await api('/me/shop/booster', { method: 'POST', body: { set_id: setId, currency } }));
 }
 
+// --- Boutique cosmétique (avatars, variantes) ---
+// Même contrat que ci-dessus. L'instantané sert trois écrans : la boutique
+// (l'offre du jour), le profil (les avatars portables) et le DeckBuilder (les
+// variantes possédées).
+export async function getCosmetics() {
+  return absorbShop(await api('/me/cosmetics'));
+}
+
+export async function buyCosmetic({ kind, id }) {
+  return absorbShop(await api('/me/cosmetics/buy', { method: 'POST', body: { kind, id } }));
+}
+
 // --- Amis ---
 export async function searchUsers(q) {
   const { users } = await api(`/users/search?q=${encodeURIComponent(q)}`);

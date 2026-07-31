@@ -103,6 +103,9 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     // L'offre de boutique est attachée au compte : la garder à l'écran après
     // une déconnexion afficherait les cartes d'un autre joueur.
     (await import('./shopStore.js')).useShopStore.getState().reset();
+    // Même raison pour les cosmétiques — et les avatars possédés d'un autre
+    // compte ne doivent pas rester sélectionnables au Profil.
+    (await import('./cosmeticStore.js')).useCosmeticStore.getState().reset();
     void get();
   },
 }));

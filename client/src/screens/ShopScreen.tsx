@@ -1,15 +1,21 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// ShopScreen — boutique de cartes (brief_boutique §3).
+// ShopScreen — boutique. Deux onglets, deux économies distinctes.
 //
-// Deux blocs, deux fonctions qui ne se recouvrent pas :
+// 🃏 CARTES (brief_boutique §3) — ce qui change le jeu, acheté en golds ou en
+// gemmes. Deux blocs qui ne se recouvrent pas :
 //   1. les 3 EMPLACEMENTS du jour — construction de deck. Chacun porte le
 //      badge qui dit POURQUOI il est là (« ⚡ Débloque : … ») : c'est le badge
 //      qui porte la valeur perçue, pas la carte. Un seul peut être ÉPINGLÉ,
 //      pour le retrouver après la rotation du lendemain ;
 //   2. les BOOSTERS — du volume sur un set choisi, sans plafond.
 //
+// 🎨 COSMÉTIQUES — ce qui ne change rien au jeu, en gemmes uniquement, à prix
+// fixe. 3 avatars + 3 variantes d'illustration par jour. Ni reroll ni épingle :
+// les prix sont bas et un cosmétique manqué revient (il ne quitte pas le pool
+// à l'achat, contrairement à une carte).
+//
 // Rien n'est calculé ici : prix, tirage et soldes viennent du serveur
-// (shop.js). L'écran affiche et déclenche, il n'arbitre pas.
+// (shop.js, cosmetics.js). L'écran affiche et déclenche, il n'arbitre pas.
 import { useEffect, useState } from 'react';
 import * as CardDatabase from '../data/CardDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
@@ -17,6 +23,7 @@ import type { Card } from '../logic/types.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
+import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant } from '../stores/cosmeticStore.js';
 import { Button, Panel, Gauge, Modal, Countdown } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
@@ -30,8 +37,11 @@ export default function ShopScreen() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
   const { snapshot, loading, error, notice, booster, load, dismissNotice, closeBooster } = useShopStore();
+  const loadCosmetics = useCosmeticStore(s => s.load);
+  const [tab, setTab] = useState<'cards' | 'cosmetics'>('cards');
 
   useEffect(() => { void load(true); }, [load]);
+  useEffect(() => { void loadCosmetics(true); }, [loadCosmetics]);
   // Efface la pastille de nouveauté du menu principal pour l'offre du jour.
   useEffect(() => { if (user && snapshot) markShopSeen(user.id, snapshot.day); }, [user, snapshot?.day]);
 
@@ -63,6 +73,19 @@ export default function ShopScreen() {
         )}
       />
 
+      <div className="flex border-b border-line">
+        {([['cards', '🃏 Cartes'], ['cosmetics', '🎨 Cosmétiques']] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onPointerDown={() => setTab(key)}
+            className={`min-h-tap flex-1 text-sm font-semibold ${tab === key ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'cosmetics' ? <CosmeticsTab /> : (
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4">
         {error && <p className="text-xs text-danger">{error}</p>}
         {loading && !snapshot && <p className="text-sm text-white/40">Chargement…</p>}
@@ -127,9 +150,154 @@ export default function ShopScreen() {
           </>
         )}
       </div>
+      )}
 
       {booster && <BoosterReveal onClose={closeBooster} />}
     </main>
+  );
+}
+
+// ---------------------------------------------------------------------------
+//  Onglet cosmétiques
+// ---------------------------------------------------------------------------
+
+// Pas de modale de révélation, contrairement au booster : l'achat est unitaire
+// et son résultat est déjà à l'écran. Un bandeau suffit — et il dit OÙ aller
+// s'en servir, sans quoi le joueur reste avec un objet acheté et invisible.
+function CosmeticsTab() {
+  const { snapshot, loading, error, notice, dismissNotice } = useCosmeticStore();
+
+  return (
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4">
+      {error && <p className="text-xs text-danger">{error}</p>}
+      {loading && !snapshot && <p className="text-sm text-white/40">Chargement…</p>}
+
+      {notice && (
+        <button
+          onPointerDown={dismissNotice}
+          className="rounded-lg border border-gold/50 bg-gold/10 px-3 py-2 text-left text-xs text-gold"
+        >
+          ✨ {notice}
+        </button>
+      )}
+
+      {snapshot && (
+        <>
+          <section className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between px-1">
+              <h2 className="text-[10px] tracking-widest text-white/40">AVATARS DU JOUR</h2>
+              <span className="text-[10px] text-white/30">{snapshot.prices.avatar.gems} 💎 pièce</span>
+            </div>
+            {snapshot.avatars.length ? (
+              <div className="grid grid-cols-3 gap-2">
+                {snapshot.avatars.map(a => <AvatarOffer key={a.id} avatar={a} />)}
+              </div>
+            ) : (
+              <Panel className="p-4 text-center text-xs text-white/40">
+                Plus aucun avatar à débloquer — tu les as tous.
+              </Panel>
+            )}
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between px-1">
+              <h2 className="text-[10px] tracking-widest text-white/40">VARIANTES DU JOUR</h2>
+              <span className="text-[10px] text-white/30">{snapshot.prices.variant.gems} 💎 pièce</span>
+            </div>
+            {snapshot.variants.length ? (
+              <div className="grid grid-cols-3 gap-2">
+                {snapshot.variants.map(v => <VariantOffer key={v.id} variant={v} />)}
+              </div>
+            ) : (
+              // Deux causes, un seul message : aucune variante ne vise une carte
+              // possédée, ou le joueur les a toutes. Dire « reviens quand tu
+              // auras d'autres cartes » couvre les deux sans mentir.
+              <Panel className="p-4 text-center text-xs text-white/40">
+                Aucune illustration alternative disponible pour tes cartes aujourd'hui.
+              </Panel>
+            )}
+          </section>
+
+          <p className="px-1 text-[10px] leading-relaxed text-white/30">
+            Nouvelle sélection chaque jour à 5 h, en même temps que les cartes. Les cosmétiques ne
+            {' '}changent rien au jeu : un avatar se porte depuis ton profil, une illustration se
+            {' '}choisit carte par carte dans le DeckBuilder — et l'adversaire la voit aussi. Tu ne
+            {' '}peux acheter que les illustrations des cartes que tu possèdes.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Tuile d'offre — l'image, le nom, le prix, un bouton. Rien de plus. */
+function CosmeticOffer({
+  illustrationId, title, subtitle, price, purchased, onBuy,
+}: {
+  illustrationId: string; title: string; subtitle: string;
+  price: number; purchased: boolean; onBuy: () => void;
+}) {
+  const busy = useCosmeticStore(s => s.busy);
+  const gems = useAuthStore(s => s.user?.gems ?? 0);
+  const affordable = gems >= price;
+
+  return (
+    <Panel className="flex flex-col gap-1.5 p-2">
+      <img
+        src={`/illustrations/${illustrationId}`}
+        alt=""
+        loading="lazy"
+        className="aspect-square w-full rounded-lg border border-line object-cover"
+      />
+      <div className="min-h-8">
+        <div className="truncate text-[11px] font-semibold leading-tight">{title}</div>
+        <div className="truncate text-[10px] text-white/40">{subtitle}</div>
+      </div>
+      {purchased ? (
+        <div className="py-1 text-center text-[11px] font-semibold text-success">✓ Débloqué</div>
+      ) : (
+        <Button
+          variant={affordable ? 'primary' : undefined}
+          className="w-full px-1 text-[11px]"
+          disabled={busy || !affordable}
+          onPointerDown={onBuy}
+          title={affordable ? undefined : 'Pas assez de gemmes'}
+        >
+          {price} 💎
+        </Button>
+      )}
+    </Panel>
+  );
+}
+
+function AvatarOffer({ avatar }: { avatar: CosmeticAvatar }) {
+  const buy = useCosmeticStore(s => s.buy);
+  const SOURCE_LABEL = { card: 'Carte', board: 'Terrain', magie: 'Magie' } as const;
+  return (
+    <CosmeticOffer
+      illustrationId={avatar.id}
+      title={avatar.name}
+      subtitle={SOURCE_LABEL[avatar.source] ?? 'Avatar'}
+      price={avatar.price_gems}
+      purchased={avatar.purchased}
+      onBuy={() => { void buy('avatar', avatar.id, avatar.name); }}
+    />
+  );
+}
+
+function VariantOffer({ variant }: { variant: CosmeticVariant }) {
+  const buy = useCosmeticStore(s => s.buy);
+  return (
+    <CosmeticOffer
+      // L'illustration montrée est CELLE DE LA VARIANTE, pas celle de la carte :
+      // c'est exactement ce qu'on achète.
+      illustrationId={variant.id}
+      title={variant.name}
+      subtitle={variant.card_name}
+      price={variant.price_gems}
+      purchased={variant.purchased}
+      onBuy={() => { void buy('variant', variant.id, variant.name); }}
+    />
   );
 }
 
