@@ -61,8 +61,9 @@ Repo : `https://github.com/srida/Millenium`
 | `GET /api/missions` | Public | Catalogue des missions quotidiennes |
 | `GET /api/decks` | Public | Decks publics (`PublicDeckDatabase`), avec `_has_avatar` |
 | `GET /api/sets` | Public | Packs de boutique, avec `_has_poster` |
+| `GET /api/variants` | Public | Variantes d'illustration, avec `_has_illustration` |
 | `POST/PUT/DELETE /api/*` | Auth | Écriture admin |
-| `GET /illustrations/:id` | Public | Art des cartes (PNG sans extension) |
+| `GET /illustrations/:id` | Public | Art des cartes, terrains, magies **et variantes** (PNG sans extension, id gardé par `safeAssetId`) |
 | `GET /avatars/:id` | Public | Avatar d'un deck public (repli sur l'avatar par défaut) |
 | `GET /pack-posters/:id` | Public | Affiche d'un pack (404 s'il n'en a pas — pas d'affiche par défaut) |
 | `POST /api/cards/import` | Auth | Import en masse (mode skip/replace) |
@@ -86,7 +87,7 @@ Repo : `https://github.com/srida/Millenium`
 | `POST /api/auth/register` \| `login` \| `logout` | Public (rate-limité) | Comptes |
 | `GET /api/auth/me` | Optionnel | Session courante |
 | `POST /api/auth/forgot-password` \| `reset-password` | Public (rate-limité) | Réinitialisation mot de passe |
-| `GET/PUT /api/profile/me` | Connecté | Profil (pseudo, avatar) |
+| `GET/PUT /api/profile/me` | Connecté | Profil (pseudo, avatar — l'appartenance de l'avatar est vérifiée) |
 | `GET /api/users/search` | Connecté | Recherche de joueurs |
 | `GET /api/friends`, `GET /api/friends/requests` | Connecté | Liste d'amis / demandes |
 | `POST /api/friends/request`, `POST /api/friends/:id/accept` \| `decline`, `DELETE /api/friends/:id` | Connecté | Gestion des amis |
@@ -97,8 +98,10 @@ Repo : `https://github.com/srida/Millenium`
 | `POST /api/me/missions/:id/reroll` | Connecté | Reroll d'une mission |
 | `GET /api/me/shop` | Connecté | Boutique du jour (emplacements, épingle, sets) — génère l'offre au passage |
 | `POST /api/me/shop/buy` \| `reroll` \| `pin` \| `booster` | Connecté | Achat d'emplacement, reroll, épingle, ouverture de booster |
+| `GET /api/me/cosmetics` | Connecté | Offre cosmétique du jour + cosmétiques possédés — génère l'offre au passage |
+| `POST /api/me/cosmetics/buy` | Connecté | Achat d'un avatar ou d'une variante |
 
-Le PvP temps réel ne passe pas par HTTP : `ws/pvpServer.js` (matchmaking + relais opaque) sur `/ws`.
+Le PvP temps réel ne passe pas par HTTP : `ws/pvpServer.js` (matchmaking + relais opaque) sur `/ws`. Le message `match:found` (et `match:rejoined`) transporte les **variantes d'illustration** du deck adverse, dérivées côté serveur.
 
 ---
 
@@ -241,7 +244,7 @@ Le DeckBuilder ne laisse sélectionner que les cartes **possédées** (`stores/c
 
 ## Boutique de cartes
 
-Règles dans **`shop.js`** (racine, à côté de `progression.js` dont il est le client pour débiter et débloquer, et de `missions.js` dont il reprend le calendrier), catalogue de packs dans **`sets.js`** (qui lit `data/sets.json`), table `user_shop_state`. La boutique **cosmétique** du brief n'est pas implémentée.
+Règles dans **`shop.js`** (racine, à côté de `progression.js` dont il est le client pour débiter et débloquer, et de `missions.js` dont il reprend le calendrier), catalogue de packs dans **`sets.js`** (qui lit `data/sets.json`), table `user_shop_state`. La boutique **cosmétique** est un second onglet du même écran — voir « Boutique cosmétique » plus bas.
 
 ⚠️ **Écart assumé avec le brief** : la **Convoitise** (§3.5 — épingler n'importe quelle carte du catalogue, 3 jours d'attente, prix double) n'existe pas. Elle est remplacée par l'**épingle d'un emplacement proposé**, qui le conserve à la rotation suivante. La précision absolue disparaît donc du jeu : on ne commande plus une carte, on garde une proposition.
 
@@ -311,7 +314,7 @@ Trois exclusions, toutes vérifiées par golden test (`packs.test.ts`) — sans 
 
 - Un pack de départ ne listant que des ids inconnus retombe sur le repli : un id mal saisi en admin ne doit pas produire des comptes sans aucune carte, incapables de construire un deck.
 - Côté client, la dotation voyage sur chaque carte de `GET /api/cards` via **`_starter`** (calculé, jamais persisté — même statut que `_has_illustration`). `collectionStore` l'utilise pour son repli invité au lieu de dupliquer la règle ; le préfixe `CORE` n'y reste qu'en repli de repli (serveur antérieur).
-- `ProfileScreen.tsx` garde une liste d'avatars codée en dur (`CORE_001…007`) : c'est un choix cosmétique, sans lien avec la collection possédée.
+- Les avatars sélectionnables au Profil viennent du serveur (`cosmetics.DEFAULT_AVATARS` + ceux achetés) et non plus d'une liste codée en dur — c'est le même module qui valide l'enregistrement, les deux ne peuvent donc pas diverger. `ProfileScreen` garde `FALLBACK_AVATARS` (les 7 mêmes ids) en repli si l'appel échoue.
 
 ### Affiche d'un pack
 
@@ -391,6 +394,63 @@ Toutes les mutations renvoient l'instantané complet + la progression à jour : 
 
 ---
 
+## Boutique cosmétique (avatars & variantes)
+
+Second **onglet** de `ShopScreen` (`🃏 Cartes` / `🎨 Cosmétiques`). Règles dans **`cosmetics.js`** (racine, à côté de `shop.js` dont il reprend le calendrier — *littéralement* : `const { dayKey, nextRotationAt, seededRandom } = require('./shop')`), catalogue de variantes dans **`variants.js`** (qui lit `data/variants.json`), tables `user_cosmetics` et `user_cosmetic_state`.
+
+⚠️ **Écarts assumés avec le brief** : §4.5 vend les cosmétiques en **golds** et §5.2 réserve les gemmes aux boosters ; §4.3 classe les illustrations alternatives en « prestige, **non achetables** ». Le modèle retenu est **gemmes uniquement**, variantes achetables. Les cadres d'avatar et les styles procéduraux du brief n'existent pas.
+
+| Famille | Pool | Prix | Condition |
+|---|---|---|---|
+| **Avatar** | toute illustration existante (carte, terrain, magie) | **10 💎** | — |
+| **Variante** | illustration alternative d'une carte, écrite en admin | **100 💎** | le joueur doit **posséder la carte** |
+
+3 avatars + 3 variantes par jour, **même rotation de 5 h** que les cartes et les missions. Les deux invariants de la boutique de cartes s'appliquent tels quels : **zéro doublon** (un cosmétique possédé ne ressort jamais du tirage) et **l'offre est serveur** (générée, horodatée, persistée ; l'achat porte `kind` **et** `id` → 409 si l'offre a tourné). Le tirage est déterministe à `(joueur, jour, famille)`.
+
+- **Ni reroll ni épingle**, contrairement aux cartes : les prix sont bas et un cosmétique manqué **revient** — il ne quitte pas le pool à l'achat.
+- **Pool d'avatars automatique**, sans curation : tout ce qui a une illustration est un visage possible. Les 7 avatars offerts d'office (`DEFAULT_AVATARS`) en sont exclus — on ne vend pas ce qu'on donne.
+- **Dégénérescence assumée** : moins de trois candidats éligibles donnent moins de trois emplacements, voire zéro (joueur ne possédant aucune carte à variante). Le client affiche un message, pas des cases vides.
+- Une variante **sans illustration** n'est jamais vendue (l'admin le signale sans bloquer l'enregistrement).
+
+### Les variantes — `variants.js` + onglet 🎨 Variantes de l'admin
+
+`{ id, card_id, name }` dans `data/variants.json`. **L'art vit dans le dossier d'illustrations existant** (`resources/card_illustrations/<VAR_ID>.png`), où cartes, terrains et magies se côtoient déjà : `/illustrations/:id` le sert, `listPngChecksums(ILLUS_DIR)` le synchronise. **Aucune famille d'assets à créer** — donc rien à ajouter au proxy Vite, à la liste d'exclusion du fallback SPA ni à `ASSETS` de `sync-data.js` (une seule ligne dans `ENTITIES`). `variants.js` possède le dossier et l'exporte à `server.js`, comme `sets.js` possède celui des affiches ; il ne requiert ni `cosmetics.js` ni `progression.js` (même règle anti-cycle que `sets.js`).
+
+### Où le choix s'applique
+
+- **Avatar** → `ProfileScreen`. `PUT /api/profile/me` **valide désormais l'appartenance** (`cosmetics.canUseAvatar`) et stocke la forme URL `/illustrations/<id>` : les 5 sites de rendu existants sont inchangés. Auparavant la valeur était écrite **telle quelle**, donc une chaîne arbitraire finissait dans un `<img src>` ; même verrou à l'inscription, où seuls les avatars offerts sont recevables.
+- **Variante** → **par deck**, dans le DeckBuilder. Le choix vit dans le méta de deck (`meta[nom].variants = { card_id: variant_id }`), à côté de la couleur et des tags — il se synchronise donc déjà vers le serveur via `_buildBook()`. Revenir à l'origine **retire** l'entrée : le défaut est une absence.
+
+**`client/src/data/CardArt.ts`** est le seul point de résolution `card_id → id d'illustration`. Deux tables, une par camp, et **aucun import** — c'est ce qui autorise `three/UnitCardEl.ts` à s'en servir (les garde-fous ESLint n'y interdisent que React et Zustand) pendant que `logic/` continue de tout ignorer. Trois sites : `cardTileProps` (main, cimetière, DeckBuilder, boutique, TestBench), `UnitCardEl` (board 3D) et `GraveyardTray`. Les tooltips de carte n'affichent aucune image : il n'y a rien à y câbler.
+
+Qui remplit les tables : `game/bootstrap.ts` (`buildSession`, point de passage unique du solo, du tournoi et du PvP), `stores/deckStore.refresh()` (écrans hors partie → deck actif), `PvpController.begin()` (camp adverse), `GameController.dispose()` (purge du camp adverse — la table joueur reste, les menus s'en servent). `artFor` retombe **toujours** sur `cardId` : une variante supprimée rend l'art d'origine, jamais un trou.
+
+### PvP — le serveur dérive, il ne croit pas le client
+
+`match:found` **et `match:rejoined`** portent `opponent.variants`, calculé par `cosmetics.deckVariantMap(userId, deckName)` à partir du **deck book serveur**, filtré par possession et par cohérence (`variants.byId(id).card_id === cardId`). Le méta de deck vient du client : sans ce filtre, n'importe qui afficherait à son adversaire une variante non achetée. Le `deckName` annoncé ne sert qu'à choisir une clé du **propre** livre de ce joueur.
+
+⚠️ **`round:board_ready` n'est pas touché** — l'illustration n'est jamais simulée, elle n'a rien à faire dans le contrat de déterminisme (verrouillé par `pvp.test.ts`), et elle est constante sur la durée du match. `OnlineLobby` force `DeckRepository.flushSync()` **avant** `queue:join` : la synchro est debouncée à 500 ms, un choix fait juste avant d'entrer dans la file ne serait pas encore en base.
+
+### Routes API
+
+| Route | Accès | Description |
+|---|---|---|
+| `GET /api/me/cosmetics` | Connecté | Instantané (génère l'offre du jour au passage). Alimente **trois** écrans : boutique (l'offre), profil (avatars portables), DeckBuilder (variantes possédées, en objets — le `card_id` y est nécessaire) |
+| `POST /api/me/cosmetics/buy` | Connecté (30/min) | `{ kind, id }` — 409 si l'offre a tourné |
+| `GET /api/variants` | Public | Catalogue des variantes (avec `_has_illustration`) |
+| `POST/PUT/DELETE /api/variants` \| `/api/variants/:id` | Site admin | CRUD |
+| `POST /api/variants/import` | Site admin | Import en masse |
+| `POST/PUT/DELETE /api/variants/:id/illustration` | Site admin | Art de la variante (URL / base64 / suppression) |
+
+### Client
+
+- `stores/cosmeticStore.ts` — instantané + `load` / `buy`, plus `ownedVariantsFor(cardId)` (DeckBuilder) et `selectableAvatars()` (Profil).
+- `screens/ShopScreen.tsx` — onglet Cosmétiques : deux sections, tuiles carrées, prix en 💎. **Pas de modale de révélation** contrairement au booster : l'achat est unitaire et son résultat déjà à l'écran. Un bandeau suffit, et il dit **où** s'en servir — sinon le joueur repart avec un objet acheté et invisible.
+- `components/deck/IllustrationPicker.tsx` — modale « Origine + variantes possédées ». Dans le DeckBuilder, le badge 🎨 est un **frère** de `CardTile`, pas un enfant : le tap de la vignette retire la carte et l'appui long ouvre le tooltip, les deux gestes sont pris (et un `<button>` imbriqué serait du HTML invalide). Rien de tout ça en édition de deck public — il n'y a pas de joueur propriétaire.
+- Verrouillé par `client/src/test/cosmetics.test.ts` (33 golden tests), même harnais serveur que `shop.test.ts`. Il dépose de vrais PNG dans un `ILLUS_DIR` temporaire : sans art, les deux pools sont vides et le fichier ne prouverait rien.
+
+---
+
 ## Data Layer
 
 Chaque database expose `init()` async. Les données sont cachées en mémoire après le premier fetch.
@@ -436,6 +496,7 @@ DeckRepository.setActiveDeck(name)
 DeckRepository.listDecks()
 DeckRepository.getDeckColor(name) / setDeckColor(name, color)
 DeckRepository.getDeckTags(name)  / setDeckTags(name, tags)
+DeckRepository.getDeckVariants(name) / setDeckVariants(name, map)  // { card_id: variant_id }
 DeckRepository.setPendingEdit(name)      // stocke en sessionStorage
 DeckRepository.consumePendingEdit()      // lit ET efface le pendingEdit
 
@@ -445,7 +506,7 @@ await DeckRepository.flushSync()         // PUT /api/me/decks — push debouncé
 DeckRepository.handleLogout()            // coupe la synchro, garde le local
 ```
 
-**DeckRepository** persiste en `localStorage` (decks + méta couleur/tags). Chaque mutation planifie un push serveur debouncé si l'utilisateur est connecté ; en invité, tout reste local. Structure d'un deck :
+**DeckRepository** persiste en `localStorage` (decks + méta couleur/tags/variantes d'illustration). Chaque mutation planifie un push serveur debouncé si l'utilisateur est connecté ; en invité, tout reste local. Structure d'un deck :
 ```json
 { "1": ["CORE_001", ...], "2": [...], "3": [...], "4": [...], "5": [...] }
 ```
@@ -1205,6 +1266,7 @@ Validation `board.isOccupied(pos)` avant le drop.
 
 ## DeckBuilder
 
+- **Illustration par carte** : badge 🎨 sur les vignettes du panneau Deck dont le joueur possède une variante (cf. « Boutique cosmétique »). Le choix vaut **pour ce deck seulement**.
 - **Unicité** : une carte ne peut figurer qu'**une seule fois** dans un deck (cohérent avec la règle du doublon, qui interdit deux exemplaires vivants de la même `card_id` sur le board). Dans la bibliothèque, une carte déjà prise est intapable, grisée et liserée d'or ; un tier plein est grisé franc.
 - Maximum par tier : `min(8, pool_size)` cartes
 - Minimum pour sauvegarder : **20 cartes au total** (réparties librement entre les tiers, aucun minimum par tier)
