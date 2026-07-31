@@ -7,6 +7,7 @@
 import { useGameStore, type GraveyardEntry } from '../../stores/gameStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import CardTile from '../ui/CardTile.js';
+import { artFor } from '../../data/CardArt.js';
 
 export default function GraveyardTray() {
   const graveyard = useGameStore(s => s.graveyard);
@@ -50,7 +51,7 @@ function GraveCard({ entry, targeting, rail = false }: { entry: GraveyardEntry; 
 
   return (
     <CardTile
-      illustrationId={entry.unit.card_id}
+      illustrationId={artFor(entry.unit.card_id, entry.unit.side)}
       name={entry.unit.name}
       showName={false}
       // Le rail vertical a la largeur de deux cartes de main : les vignettes y

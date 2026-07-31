@@ -135,6 +135,21 @@ export function setDeckTags(name, tags) {
   _afterMutation();
 }
 
+// Illustrations choisies pour ce deck : { card_id: id_de_variante }. Une carte
+// absente de la map utilise son illustration d'origine — le « défaut » est
+// donc une absence d'entrée, jamais une entrée qui pointe sur la carte
+// elle-même.
+export function getDeckVariants(name) {
+  return loadMeta()[name]?.variants ?? {};
+}
+
+export function setDeckVariants(name, variants) {
+  const meta = loadMeta();
+  meta[name] = { ...(meta[name] || {}), variants };
+  saveMeta(meta);
+  _afterMutation();
+}
+
 // Sauvegarde un deck. Structure : { "1": ["ID", ...], "2": [...], ... }
 export function saveDeck(name, deckData) {
   const decks = load();

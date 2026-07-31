@@ -17,6 +17,7 @@
 import { useRef } from 'react';
 import type { Card } from '../../logic/types.js';
 import { costHint } from '../../data/CardDatabase.js';
+import { artFor } from '../../data/CardArt.js';
 import { useUiStore, type TooltipContent } from '../../stores/uiStore.js';
 
 // Cadre : or = sélection / candidat, blanc = matériau retenu — même code couleur
@@ -62,10 +63,14 @@ export interface CardTileProps {
 }
 
 // Props dérivées d'une carte du catalogue — évite de répéter costHint et le
-// tooltip sur chaque appelant.
+// tooltip sur chaque appelant. `illustrationId` passe par `artFor` : la
+// variante choisie pour le deck actif s'applique donc partout où ce helper est
+// utilisé (main, cimetière, DeckBuilder, boutique, TestBench). La prop reste
+// surchargeable — le DeckBuilder s'en sert pour prévisualiser un choix en
+// cours d'édition, avant qu'il ne soit enregistré.
 export function cardTileProps(card: Card): Pick<CardTileProps, 'illustrationId' | 'name' | 'tier' | 'hint' | 'tooltip'> {
   return {
-    illustrationId: card.id,
+    illustrationId: artFor(card.id),
     name: card.name,
     tier: card.tier,
     hint: (costHint as (c: unknown) => string | null)(card),

@@ -2,6 +2,10 @@
 // affichées via CSS3DRenderer. Ce module vit dans three/ (présentation de la
 // scène), pas dans components/ React : il manipule le DOM impérativement.
 import type { Unit } from '../logic/Unit.js';
+// `data/CardArt` n'importe rien : la couche de rendu y gagne la résolution des
+// variantes sans traîner de dépendance (les garde-fous ESLint n'interdisent à
+// three/ que React et Zustand).
+import { artFor } from '../data/CardArt.js';
 
 const TIER_CFG: Record<number, { edge: string; deep: string; ink: string; glow: string; art: string }> = {
   1: { edge: '#5ad0a0', deep: '#0e2b20', ink: '#93ecc6', glow: 'rgba(90,208,160,.5)',   art: 'linear-gradient(155deg,#123528,#06110d)' },
@@ -74,7 +78,7 @@ function _inner(unit: Unit): string {
 
   return `
     <div class="unit-face">
-      <img class="unit-art" src="/illustrations/${unit.card_id}" alt="${esc(unit.name)}">
+      <img class="unit-art" src="/illustrations/${artFor(unit.card_id, unit.side)}" alt="${esc(unit.name)}">
       <div class="unit-foil-stars"></div>
       <div class="unit-foil-nebula"></div>
       <div class="unit-top-edge"></div>

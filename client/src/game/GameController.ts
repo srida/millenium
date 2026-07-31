@@ -13,6 +13,7 @@ import type { Unit } from '../logic/Unit.js';
 import { useGameStore, type GameSnapshot, type HandEntry } from '../stores/gameStore.js';
 import { useUiStore, type TooltipAnchor } from '../stores/uiStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
+import * as CardArt from '../data/CardArt.js';
 import { PREP_DURATION_S, COMBAT_DURATION_S, combatSecondsLeft } from './timings.js';
 
 interface SummonOptionMenu {
@@ -625,6 +626,10 @@ export class GameController {
     if (this._revealTimer) clearTimeout(this._revealTimer);
     this.animator?.stop();
     this.animator = null;
+    // Les illustrations de l'adversaire ne survivent pas au match — sans quoi
+    // elles fuiteraient dans la partie suivante. Celles du joueur restent en
+    // place : les écrans de menu s'en servent.
+    CardArt.setEnemyVariants(null);
     // Partie quittée en cours de route : ce qui a été joué reste acquis (le
     // serveur écarte de lui-même les lots trop courts — anti-concede). No-op si
     // la fin de partie a déjà vidé la file.

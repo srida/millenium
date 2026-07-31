@@ -8,6 +8,7 @@ import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as BoardDatabase from '../data/BoardDatabase.js';
 import * as MagieDatabase from '../data/MagieDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
+import * as CardArt from '../data/CardArt.js';
 import { GameSession } from '../logic/GameSession.js';
 import type { Card } from '../logic/types.js';
 
@@ -47,10 +48,18 @@ function autoDeck(): Record<string, string[]> {
   return deck;
 }
 
-function resolveDeck(deckName?: string): Record<string, string[]> {
-  return tryLoadDeck(deckName)
-    ?? tryLoadDeck((DeckRepository as any).getActiveDeck?.())
-    ?? autoDeck();
+// Retourne AUSSI le nom retenu : c'est lui qui porte les variantes
+// d'illustration choisies pour ce deck (`null` sur le deck de repli, qui n'est
+// enregistré nulle part).
+function resolveDeck(deckName?: string): { deck: Record<string, string[]>; name: string | null } {
+  const asked = tryLoadDeck(deckName);
+  if (asked) return { deck: asked, name: deckName ?? null };
+
+  const activeName = (DeckRepository as any).getActiveDeck?.() as string | null;
+  const active = tryLoadDeck(activeName);
+  if (active) return { deck: active, name: activeName ?? null };
+
+  return { deck: autoDeck(), name: null };
 }
 
 /**
@@ -64,11 +73,18 @@ export function buildSession(
   enemyDeckName?: string,
   enemyDeck?: Record<string, string[]> | null,
 ): GameSession {
-  const rawDeck = resolveDeck(deckName);
+  const { deck: rawDeck, name: resolvedName } = resolveDeck(deckName);
   // Deck de l'IA : celui injecté par l'appelant, sinon celui choisi dans le
   // sélecteur, sinon miroir du deck joueur (comportement historique). Un nom
   // illisible retombe aussi sur le miroir.
   const rawEnemyDeck = enemyDeck ?? (enemyDeckName ? tryLoadDeck(enemyDeckName) : null) ?? rawDeck;
+
+  // Illustrations : les variantes du deck engagé s'appliquent à la main, au
+  // cimetière et au board. Le camp adverse repart à zéro — en solo comme en
+  // tournoi l'IA joue un deck public, sans variante ; en PvP c'est
+  // PvpController qui pose celles de l'adversaire une fois le match trouvé.
+  CardArt.setPlayerVariants(resolvedName ? (DeckRepository as any).getDeckVariants?.(resolvedName) : null);
+  CardArt.setEnemyVariants(null);
 
   const cardsByTier: Record<number, Card[]> = {};
   for (let t = 1; t <= 5; t++) {

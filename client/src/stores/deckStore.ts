@@ -5,6 +5,7 @@
 // ce store n'est qu'un cache de rendu.
 import { create } from 'zustand';
 import * as DeckRepository from '../data/DeckRepository.js';
+import * as CardArt from '../data/CardArt.js';
 
 export interface DeckSummary {
   name: string;
@@ -36,8 +37,16 @@ interface DeckStoreState {
 export const useDeckStore = create<DeckStoreState>((set) => ({
   decks: [],
   activeDeck: null,
-  refresh: () => set({
-    decks: ((DeckRepository as any).listDecks() as string[]).map(summarize),
-    activeDeck: (DeckRepository as any).getActiveDeck?.() ?? null,
-  }),
+  refresh: () => {
+    const activeDeck = ((DeckRepository as any).getActiveDeck?.() ?? null) as string | null;
+    // Hors partie (sélecteur de deck, boutique, menu), les vignettes de carte
+    // montrent les illustrations du deck ACTIF. En partie, buildSession pose
+    // celles du deck réellement engagé — qui peut différer si le joueur a
+    // changé de deck actif entre-temps.
+    CardArt.setPlayerVariants(activeDeck ? (DeckRepository as any).getDeckVariants?.(activeDeck) : null);
+    set({
+      decks: ((DeckRepository as any).listDecks() as string[]).map(summarize),
+      activeDeck,
+    });
+  },
 }));
