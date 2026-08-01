@@ -454,6 +454,102 @@ Qui remplit les tables : `game/bootstrap.ts` (`buildSession`, point de passage u
 
 ---
 
+## Mode tutoriel
+
+Accueil des nouveaux joueurs, en trois temps : un **codex** consultable (11 chapitres), une
+**partie d'entraînement guidée**, puis la **création accompagnée du premier deck**. Écran
+`tutorial`, bouton `🎓 Tutoriel` au menu principal, plus une invitation au tout premier lancement.
+
+**Entièrement client. Zéro ligne côté serveur** : pas de route, pas de table, aucune récompense —
+donc aucune surface de triche à défendre. La progression (chapitres lus, étapes faites, invitation
+congédiée) vit dans **une seule clé localStorage**, `millenium_tutorial_v1`.
+
+⚠️ Cette clé ne porte **pas** d'`user.id`, contrairement à `hasUnseenShop` / `hasUnseenMissions` :
+le public visé est justement celui qui n'a pas encore de compte. Tout le mode est accessible en
+**invité** — ne pas y recopier le `if (!user) return null` des boutons Missions et Boutique.
+
+### Le principe : le coach observe, il ne pilote pas
+
+`GameController` republie déjà tout l'état de la partie dans `gameStore` après chaque mutation.
+Le coach s'y **abonne** et avance seul. Conséquence : **`logic/`, `GameController` et `Scene3D`
+ne sont pas touchés** — pas de `TutorialController`, pas de crochet dans le chemin de combat
+déterministe, aucun risque pour les golden tests.
+
+Toute la **décision** (quelle bulle, quand avancer) vit dans des **fonctions pures**
+(`data/tutorialScript.ts`) ; les composants ne font que les rendre. C'est ce qui rend le mode
+testable alors que la suite vitest tourne en node **sans jsdom** — aucun test de composant n'est
+possible dans ce projet.
+
+| Fichier | Rôle |
+|---|---|
+| `data/tutorialContent.ts` | Les 11 chapitres : copie + **sélecteurs** d'exemples, purs |
+| `data/tutorialScript.ts` | `advanceGameSteps` / `gameCoachStep` / `deckCoachStep` — le cœur testable |
+| `data/tutorialProgress.ts` | localStorage (lecture, écriture, `shouldInvite`) |
+| `game/tutorialDeck.ts` | `buildTutorialDecks(cards)` — les deux decks, dérivés du catalogue |
+| `screens/TutorialScreen.tsx` | Sommaire **et** lecteur de chapitre (un seul écran, état local) |
+| `components/tutorial/` | `ChapterBlocks`, `CoachBubble`, `TutorialCoach`, `DeckCoach` |
+
+### Le codex
+
+Un chapitre ne contient **jamais d'`id` de carte en dur** : ses exemples sont des sélecteurs
+`(cards) => Card[]` évalués sur le catalogue réel au rendu, et les pouvoirs / attributs / magies /
+terrains sont lus dans leurs databases. Le codex suit donc les données — une carte retouchée
+depuis l'admin ne le fait pas mentir. `tutorial.test.ts` vérifie que **chaque sélecteur rend
+encore au moins une carte** : la donnée qui disparaît casse le test, pas l'écran du joueur.
+
+### La partie guidée — `?screen=game` + `params.tutorial`
+
+Ce n'est **pas un écran à part** : c'est `GameScreen`, avec le vrai board 3D, la vraie
+`GameSession` et le vrai combat. Seuls changent le deck et l'accompagnement.
+
+- **Les decks** (`buildTutorialDecks`) ne vivent pas dans `DeckRepository` — même situation que
+  les decks publics adverses, d'où le 5ᵉ paramètre **optionnel** `playerDeck` de `buildSession`,
+  symétrique d'`enemyDeck`.
+- **Construction en deux temps**, imposée par les données : le catalogue n'a presque aucune carte
+  d'invocation **normale** au-delà du tier 2 (5 en T3, 1 en T4, 1 en T5). Les tiers 1–2 prennent
+  donc des normales ; les tiers 3–5 **uniquement des cartes dont les matériaux sont déjà dans le
+  deck** (couverture accumulée tier par tier, ids *et* attributs). Sans ce filtre, la main des
+  derniers tours se remplirait de cartes définitivement injouables.
+- **L'ATK pèse 20× les PV** dans le classement des candidats : ce sont les survivants et leur ATK
+  qui infligent les dégâts de fin de combat. Un mur à 1 ATK / 1000 PV ferait un mauvais allié et
+  un pire adversaire — le combat partirait au **timeout**, qui blesse les *deux* joueurs.
+- **Le gel des chronos** est le seul vrai piège du mode : sans lui, `PrepTimer` lance le combat au
+  bout de 60 s en pleine explication. D'où **`coachBlocking`** dans `GameSnapshot`, sur le modèle
+  exact de `menuOpen` — lu par `prepActive` (`GameScreen`), par `ShoppingTimer` et par le décompte
+  de `EndRoundOverlay`. **Toujours faux hors tutoriel** : les autres modes sont inchangés.
+- **`ai_win` n'est pas crédité** (`AiWinReward`) : l'adversaire est choisi par nous pour être
+  battu et la partie se rejoue à volonté. Les **missions**, en revanche, ne sont *pas* neutralisées
+  — une partie d'entraînement est une partie solo comme une autre au regard des garde-fous serveur,
+  et la contourner demanderait de toucher `GameController`.
+- La bulle se pose **au-dessus de la main** en portrait (`useWebLayout` : le bas est libre en mode
+  web, où la main est un rail). L'étape qui dit « tape une carte » ne peut pas être celle qui les
+  recouvre. Pendant le récapitulatif de round, la Phase Shopping et la fin de partie — trois
+  modales centrées — elle passe **en haut**, à la hauteur des bannières.
+- Le script s'arrête au **tour 2** : la boucle a été vue en entier, la partie continue normalement.
+
+### Le DeckBuilder guidé — `params.tutorial`
+
+`DeckCoach` est rendu **dans** `DeckBuilder`, en flux juste au-dessus du pied de page (une bulle
+flottante masquerait forcément la grille). Il reçoit en props les valeurs **déjà dérivées à chaque
+rendu** (`total`, `perTier`, `tierMax`, `name`, `tab`, `valid`) : aucun refactor, aucune remontée
+d'état, et **aucune règle réimplémentée**. Il n'a pas d'index d'étape, seulement l'état — un joueur
+qui retire des cartes revient donc naturellement au message précédent.
+
+`back()` renvoie vers `tutorial` et `save()` marque l'étape faite ; tout le reste de
+l'enregistrement est inchangé, y compris `if (!hasActiveDeck()) setActiveDeck(finalName)` qui fait
+déjà exactement ce qu'il faut d'un premier deck.
+
+### Tests
+
+`client/src/test/tutorial.test.ts` (27 golden tests) lit le catalogue depuis
+**`initial-data/cards.json`** — versionné et toujours présent, là où `data/` n'est créé qu'au
+démarrage du serveur. Couvre : intégrité des chapitres, résolution *et* stabilité des sélecteurs,
+déterminisme des decks, **invocabilité réelle de chaque carte de haut tier**, monotonie du script
+(une étape franchie ne se rejoue jamais quand sa condition se retourne), étapes conditionnelles,
+et la liste exacte des étapes bloquantes — c'est elle qui gèle les chronos.
+
+---
+
 ## Data Layer
 
 Chaque database expose `init()` async. Les données sont cachées en mémoire après le premier fetch.
@@ -1368,7 +1464,9 @@ Un seul pont React ↔ Three : `client/src/components/board/Board3DCanvas.tsx` m
 
 ### Navigation client
 
-Écrans routés par `uiStore.screen` (Zustand, parité `?screen=`, pas de react-router) : `main_menu`, `auth`, `reset_password`, `profile`, `friends`, `deck_selector`, `deck_builder`, `tournament`, `missions`, `shop`, `online_lobby`, `game`, `game_pvp`, `combatlab` (dev), `testbench` (dev).
+Écrans routés par `uiStore.screen` (Zustand, parité `?screen=`, pas de react-router) : `main_menu`, `auth`, `reset_password`, `profile`, `friends`, `deck_selector`, `deck_builder`, `tournament`, `missions`, `shop`, `tutorial`, `online_lobby`, `game`, `game_pvp`, `combatlab` (dev), `testbench` (dev).
+
+⚠️ Ajouter un écran se fait à **deux** endroits dans `uiStore.ts` — l'union `ScreenName` *et* le tableau `SCREEN_NAMES`, qui est celui qui valide `?screen=` — puis une ligne dans `App.tsx`.
 
 ### Online (Phase 7)
 

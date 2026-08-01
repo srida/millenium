@@ -66,14 +66,22 @@ function resolveDeck(deckName?: string): { deck: Record<string, string[]>; name:
  * @param enemyDeck Deck adverse fourni tel quel (decks publics — Tournoi et
  *   partie solo — qui ne vivent pas dans DeckRepository) : prioritaire sur
  *   `enemyDeckName`, qui n'est plus qu'un libellé côté sélecteur.
+ * @param playerDeck Deck du joueur fourni tel quel — même raison que
+ *   `enemyDeck` : le deck d'entraînement du tutoriel est dérivé du catalogue et
+ *   n'est enregistré nulle part, un nom ne suffirait pas à le recharger. Il
+ *   court-circuite donc `resolveDeck` (et n'a, comme le deck de repli, aucune
+ *   variante d'illustration attachée).
  */
 export function buildSession(
   deckName?: string,
   mode: 'ai' | 'pvp' = 'ai',
   enemyDeckName?: string,
   enemyDeck?: Record<string, string[]> | null,
+  playerDeck?: Record<string, string[]> | null,
 ): GameSession {
-  const { deck: rawDeck, name: resolvedName } = resolveDeck(deckName);
+  const { deck: rawDeck, name: resolvedName } = playerDeck
+    ? { deck: playerDeck, name: null }
+    : resolveDeck(deckName);
   // Deck de l'IA : celui injecté par l'appelant, sinon celui choisi dans le
   // sélecteur, sinon miroir du deck joueur (comportement historique). Un nom
   // illisible retombe aussi sur le miroir.

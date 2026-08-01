@@ -6,13 +6,14 @@
 // elle affiche déjà avec quoi on joue, un bouton dédié en plus ferait doublon.
 // Le deck actif sert dans tous les modes : Tournoi et Duel en ligne entrent donc
 // directement, et « Jouer » n'ouvre le sélecteur que pour le deck de l'IA.
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
 import { useMissionStore, hasUnseenMissions } from '../stores/missionStore.js';
 import { useShopStore, hasUnseenShop } from '../stores/shopStore.js';
-import { Button } from '../components/ui/primitives.js';
+import { getProgress, shouldInvite, updateProgress } from '../data/tutorialProgress.js';
+import { Button, Modal } from '../components/ui/primitives.js';
 import { ProgressionPills, ProfilePill } from '../components/ui/ProgressionStats.js';
 import { FullscreenButton } from '../components/system/DeviceGuards.js';
 import { AppVersion } from '../components/system/AppVersion.js';
@@ -33,6 +34,7 @@ export default function MainMenu() {
         <Button variant="primary" className="w-full py-3 text-base" onPointerDown={() => navigate('deck_selector', { mode: 'play' })}>
           Jouer
         </Button>
+        <TutorialButton />
         <div className="flex gap-2">
           {/* Ces deux modes jouent le deck actif : aucune sélection en amont. */}
           <Button className="flex-1" onPointerDown={() => navigate('tournament')}>🏆 Tournoi</Button>
@@ -73,7 +75,63 @@ export default function MainMenu() {
         <ProgressionPills user={user} />
       </div>
       <AppVersion className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))]" />
+      <TutorialInvite />
     </main>
+  );
+}
+
+// Accès au tutoriel. Rendu pour TOUT LE MONDE, invités compris — contrairement
+// aux Missions et à la Boutique, qui ont besoin d'un compte. C'est précisément
+// le joueur sans compte qu'il s'agit d'accueillir, et la progression du
+// tutoriel vit en localStorage, sans identifiant.
+function TutorialButton() {
+  const navigate = useUiStore(s => s.navigate);
+  const [read, setRead] = useState(0);
+
+  // Lu au montage plutôt qu'au rendu : le retour du tutoriel remonte le menu,
+  // et le compteur doit refléter ce qui vient d'être parcouru.
+  useEffect(() => { setRead(getProgress().chapters.length); }, []);
+
+  return (
+    <Button className="w-full" onPointerDown={() => navigate('tutorial')}>
+      <span className="whitespace-nowrap">🎓 Tutoriel</span>
+      {read === 0 && <span className="h-2 w-2 rounded-full bg-gold" aria-label="Jamais ouvert" />}
+    </Button>
+  );
+}
+
+// Invitation du tout premier lancement — une seule fois, jamais reproposée.
+// Un nouveau joueur ne sait pas qu'un tutoriel existe, et il ne le cherchera
+// pas : c'est le seul moment où l'interrompre est légitime.
+function TutorialInvite() {
+  const navigate = useUiStore(s => s.navigate);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => { setOpen(shouldInvite()); }, []);
+
+  if (!open) return null;
+
+  const close = () => { updateProgress({ dismissed: true }); setOpen(false); };
+
+  return (
+    <Modal onClose={close}>
+      <div className="flex flex-col items-center gap-3 text-center">
+        <div className="text-4xl" aria-hidden>🎓</div>
+        <div className="text-lg font-bold text-gold">Première partie ?</div>
+        <p className="text-sm leading-relaxed text-white/70">
+          Millenium est un auto-battler : tu prépares un board, puis le combat se résout tout seul.
+          Le tutoriel explique les règles, te fait jouer une partie guidée et t'aide à construire ton premier deck.
+        </p>
+        <Button
+          variant="primary"
+          className="w-full"
+          onPointerDown={() => { updateProgress({ dismissed: true }); setOpen(false); navigate('tutorial'); }}
+        >
+          ▸ Commencer le tutoriel
+        </Button>
+        <button onPointerDown={close} className="text-xs text-white/50 underline">Plus tard</button>
+      </div>
+    </Modal>
   );
 }
 
