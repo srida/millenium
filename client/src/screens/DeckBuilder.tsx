@@ -19,6 +19,8 @@ import { Button } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import IllustrationPicker from '../components/deck/IllustrationPicker.js';
+import DeckCoach from '../components/tutorial/DeckCoach.js';
+import { updateProgress } from '../data/tutorialProgress.js';
 
 const MIN_DECK = 20;
 /** Édition admin d'un deck public : aucun joueur, donc aucune variante. */
@@ -82,8 +84,16 @@ export default function DeckBuilder() {
   // Mode du DeckSelector d'où l'on vient : le retour doit y ramener à
   // l'identique. Figé au montage, comme editName.
   const [backMode] = useState<DeckSelectorMode>(() => useUiStore.getState().params.mode ?? 'manage');
+
+  // Premier deck construit depuis le tutoriel : le guide s'affiche et le retour
+  // ramène au tutoriel, pas au sélecteur de decks (d'où l'on ne vient pas).
+  // Figé au montage comme `backMode` — l'écran ne doit pas changer de nature en
+  // cours de route.
+  const [isTutorial] = useState<boolean>(() => useUiStore.getState().params.tutorial === true);
+
   const back = () => {
     if (isAdminEdit) { window.parent.postMessage({ type: 'soulforge-deckbuilder-close' }, window.location.origin); return; }
+    if (isTutorial) { navigate('tutorial'); return; }
     navigate('deck_selector', { mode: backMode });
   };
 
@@ -265,6 +275,7 @@ export default function DeckBuilder() {
     // Mission famille « méta » : se valide sans jouer, précieux les jours sans
     // temps. Événement isolé → envoyé tout de suite (pas de lot de partie).
     void useMissionStore.getState().emitMeta('deck_saved', { card_count: total });
+    if (isTutorial) updateProgress({ deck: true });
     refreshDecks();
     back();
   }
@@ -324,6 +335,20 @@ export default function DeckBuilder() {
           // Pas de cosmétique en édition de deck public : il n'y a pas de
           // « joueur » propriétaire, donc personne dont ce soient les variantes.
           ownedVariantsFor={isAdminEdit ? noVariants : ownedVariantsFor}
+        />
+      )}
+
+      {/* Guide du tutoriel : au-dessus du pied de page, EN FLUX — une bulle
+          flottante masquerait forcément une partie de la grille de cartes. */}
+      {isTutorial && (
+        <DeckCoach
+          total={total}
+          perTier={Object.fromEntries([1, 2, 3, 4, 5].map(t => [t, deckData[t].length]))}
+          tierMax={tierMax}
+          name={name}
+          tab={tab}
+          valid={valid}
+          minDeck={MIN_DECK}
         />
       )}
 
