@@ -3,10 +3,10 @@
 // découpage que progression.js, dont ce module est le client pour créditer les
 // gains (grant).
 //
-//   - 3 missions délivrées par jour, reset à 5 h (heure du serveur)
-//   - accumulation jusqu'à 9 missions actives (3 jours d'absence pardonnés)
+//   - 2 missions délivrées par cycle de 8 h, ancré sur 5 h (heure du serveur)
+//   - accumulation jusqu'à 6 missions actives (24 h d'absence pardonnées)
 //   - 1 reroll gratuit par jour, puis 100 golds
-//   - chaque mission terminée = 1 point sur une jauge hebdomadaire de 15,
+//   - chaque mission terminée = 1 point sur une jauge hebdomadaire de 25,
 //     avec un palier tous les 5 points
 //
 // Le système ne lit JAMAIS l'état du jeu : il consomme un flux d'événements
@@ -34,10 +34,24 @@ const RESET_HOUR = 5;
 const CYCLE_HOURS = 8;
 const CYCLES_PER_DAY = 24 / CYCLE_HOURS;   // 3
 
-const CYCLE_COUNT = 3;        // missions délivrées par cycle (une par slot)
-const MAX_ACTIVE = 9;         // plafond d'accumulation (= 3 cycles, soit 24 h)
-const SLOTS = [1, 2, 3];      // facile / moyen / engagé — un de chaque par cycle
+const CYCLE_COUNT = 2;        // missions délivrées par cycle
+const MAX_ACTIVE = 6;         // plafond d'accumulation (= 3 cycles, soit 24 h)
+const SLOTS = [1, 2, 3];      // difficultés du catalogue : facile / moyen / engagé
 const REROLL_COST = 100;      // golds, après le reroll gratuit du jour
+
+// Deux missions par cycle mais trois difficultés : la paire TOURNE avec le
+// créneau, elle n'est pas tirée au hasard (« éviter le hasard caché »). Sur
+// trois cycles consécutifs — soit exactement une journée, et exactement le
+// plafond d'accumulation — chaque difficulté sort deux fois : le joueur qui
+// rattrape 24 h d'absence reçoit la même chose que celui qui est passé aux
+// trois rendez-vous.
+const SLOT_ROTATION = Object.freeze([[1, 2], [2, 3], [3, 1]]);
+
+/** Paire de difficultés d'un cycle, désignée par son rang absolu (cycleNumber). */
+function slotsForCycle(rank) {
+  const n = SLOT_ROTATION.length;
+  return SLOT_ROTATION[(((rank | 0) % n) + n) % n];
+}
 
 // Barème par difficulté de slot (brief §5.1). Source unique : une mission ne
 // porte pas ses propres montants, sinon le barème dérive au fil du catalogue.
@@ -47,14 +61,23 @@ const SLOT_REWARDS = Object.freeze({
   3: { xp: 15, gold: 175 },
 });
 
-// Jauge hebdomadaire : 1 point par mission terminée, un palier tous les 10.
-// Le plafond à 30 (et non 63 = 3 cycles × 3 missions × 7 jours) n'exige ni
-// d'être là aux trois cycles, ni tous les jours.
-const WEEKLY_MAX = 30;
+// Jauge hebdomadaire : 1 point par mission terminée, un palier tous les 5
+// (modèle Marvel Snap — un jalon assez proche pour qu'il y ait toujours une
+// raison de finir la mission en cours). Le plafond à 25 (et non 42 = 2 missions
+// × 3 cycles × 7 jours) n'exige ni d'être là aux trois cycles, ni tous les
+// jours : ~3,6 missions par jour suffisent à le remplir.
+//
+// La dotation TOTALE de la semaine est inchangée (35 XP / 900 golds / 85 gemmes,
+// cf. le barème 10/20/30 précédent) — elle est redistribuée sur cinq marches
+// croissantes, la dernière portant la prime : c'est elle qui doit tirer la
+// semaine, sinon la jauge s'abandonne une fois l'avant-dernier palier passé.
+const WEEKLY_MAX = 25;
 const WEEKLY_MILESTONES = Object.freeze([
+  { points: 5,  rewards: { gold: 100, gems: 5,  xp: 3 } },
   { points: 10, rewards: { gold: 150, gems: 10, xp: 5 } },
-  { points: 20, rewards: { gold: 250, gems: 25, xp: 10 } },
-  { points: 30, rewards: { gold: 500, gems: 50, xp: 20 } },
+  { points: 15, rewards: { gold: 175, gems: 15, xp: 6 } },
+  { points: 20, rewards: { gold: 200, gems: 20, xp: 8 } },
+  { points: 25, rewards: { gold: 275, gems: 35, xp: 13 } },
 ]);
 
 // Garde-fous d'entrée : une requête d'événements est plafonnée en taille.
@@ -229,9 +252,9 @@ function pickMission(weight, exclude, ownedIds) {
 
 /**
  * Aligne les missions du joueur sur le cycle courant : délivre les lots
- * manquants (un par cycle écoulé, 3 cycles maximum), fait tourner la semaine,
- * purge les missions terminées des journées révolues. Idempotent — appelé à
- * chaque lecture.
+ * manquants (un lot de CYCLE_COUNT par cycle écoulé, 3 cycles maximum), fait
+ * tourner la semaine, purge les missions terminées des journées révolues.
+ * Idempotent — appelé à chaque lecture.
  */
 const sync = db.transaction((user) => {
   const userId = user.id;
@@ -259,11 +282,14 @@ const sync = db.transaction((user) => {
     // plafond d'accumulation, pas une dette qui s'accumule indéfiniment.
     const batches = Math.min(missed, Math.ceil(MAX_ACTIVE / CYCLE_COUNT));
     const now = Date.now();
+    const rank = cycleNumber(cycle) ?? 0;
     for (let b = 0; b < batches; b++) {
       const active = stmt.activeMissionsByUser.all(userId);
       if (active.length >= MAX_ACTIVE) break;
       const exclude = new Set(active.map(r => r.mission_id));
-      for (const weight of SLOTS) {
+      // Le lot rattrapé garde la paire de SON cycle (du plus ancien au courant),
+      // pas celle du cycle d'arrivée : c'est ce qui rend le rattrapage complet.
+      for (const weight of slotsForCycle(rank - (batches - 1 - b))) {
         if (stmt.countActiveMissions.get(userId).c >= MAX_ACTIVE) break;
         const def = pickMission(weight, exclude, ownedIds);
         if (!def) continue;
@@ -523,6 +549,7 @@ function refresh(user) {
 
 module.exports = {
   RESET_HOUR, CYCLE_HOURS, CYCLES_PER_DAY, CYCLE_COUNT, MAX_ACTIVE, SLOTS, SLOT_REWARDS,
+  SLOT_ROTATION, slotsForCycle,
   WEEKLY_MAX, WEEKLY_MILESTONES, REROLL_COST,
   MAX_EVENTS_PER_BATCH, MIN_COMBATS_COUNTABLE, META_EVENTS,
   catalog, dayKey, cycleKey, cycleNumber, cyclesBetween, weekKey, nextResetAt,

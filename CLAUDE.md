@@ -158,20 +158,28 @@ Règles dans **`missions.js`** (racine, à côté de `progression.js` dont il es
 
 | Règle | Valeur |
 |---|---|
-| Missions délivrées par cycle | **3** — une par difficulté de slot (facile / moyen / engagé) |
+| Missions délivrées par cycle | **2** — deux difficultés sur trois, par **rotation** du créneau |
 | Cycle | **8 h**, ancré sur 5 h → **5 h / 13 h / 21 h**, dans le fuseau du **serveur** |
-| Accumulation | **9** missions actives maximum (= 3 cycles, soit 24 h d'absence pardonnées) |
+| Accumulation | **6** missions actives maximum (= 3 cycles, soit 24 h d'absence pardonnées) |
 | Reroll | 1 gratuit par **jour**, puis **100 golds** (jamais en gemmes) |
-| Jauge hebdomadaire | **30** points — 1 par mission terminée, semaine du lundi |
-| Paliers hebdo | **10 / 20 / 30** |
+| Jauge hebdomadaire | **25** points — 1 par mission terminée, semaine du lundi |
+| Paliers hebdo | **5 / 10 / 15 / 20 / 25** (un tous les 5, modèle Marvel Snap) |
+
+**Rotation des difficultés** (`SLOT_ROTATION`, `slotsForCycle`) : deux missions par cycle mais trois difficultés — la paire tourne avec le créneau (`[1,2]` → `[2,3]` → `[3,1]`), elle n'est **pas tirée au hasard**. Sur trois cycles consécutifs — soit exactement une journée, et exactement le plafond d'accumulation — chaque difficulté sort **deux fois** : le joueur qui rattrape 24 h d'absence reçoit la même chose que celui qui est passé aux trois rendez-vous. Un lot rattrapé garde donc la paire de **son** cycle, pas celle du cycle d'arrivée.
 
 **Barème** (`SLOT_REWARDS`, `WEEKLY_MILESTONES`) :
 
 | Slot | XP | Golds | | Palier | XP | Golds | Gemmes |
 |---|---|---|---|---|---|---|---|
-| Facile (1) | 6 | 50 | | 10 pts | 5 | 150 | 10 |
-| Moyen (2) | 10 | 100 | | 20 pts | 10 | 250 | 25 |
-| Engagé (3) | 15 | 175 | | 30 pts | 20 | 500 | 50 |
+| Facile (1) | 6 | 50 | | 5 pts | 3 | 100 | 5 |
+| Moyen (2) | 10 | 100 | | 10 pts | 5 | 150 | 10 |
+| Engagé (3) | 15 | 175 | | 15 pts | 6 | 175 | 15 |
+| | | | | 20 pts | 8 | 200 | 20 |
+| | | | | 25 pts | 13 | 275 | 35 |
+
+La **dotation hebdomadaire totale est inchangée** par le passage de 3 à 5 paliers — 35 XP / 900 golds / 85 gemmes, comme le barème 10/20/30 précédent — simplement redistribuée sur cinq marches croissantes, la dernière portant la prime : c'est elle qui doit tirer la semaine, sinon la jauge s'abandonne une fois l'avant-dernier palier passé. Verrouillé par golden test (montants croissants, total exact).
+
+⚠️ **Le revenu quotidien des missions baisse d'un tiers** (6 missions/jour au lieu de 9 : 650 golds et 62 XP par jour au lieu de 975 et 93). C'est la conséquence assumée du plafond à 6 — le barème par mission, lui, n'a pas bougé.
 
 ⚠️ **Écart assumé avec le brief** (§5.1 : 60 / 100 / 150 par mission, 50 / 100 / 200 par palier) : **toute l'XP des missions est divisée par 10**, missions et paliers hebdomadaires ; golds et gemmes sont inchangés. À 60 XP la mission, une journée de missions valait plus de six victoires PvP (`pvp_win` = 70) — le niveau se serait gagné en écran de menu plutôt qu'en jeu. **Les missions restent la source de golds** ; l'XP, elle, se gagne en jouant.
 
@@ -179,7 +187,7 @@ Règles dans **`missions.js`** (racine, à côté de `progression.js` dont il es
 
 - **Rien ne se réclame** : mission terminée = créditée dans la seconde (idem paliers hebdo). Un gain qu'il faut penser à récupérer est un gain qu'on perd. L'écran Missions est donc en lecture seule, sa seule action est le reroll.
 - **Le fuseau du reset est celui du serveur**, pas du joueur : un client qui annonce son fuseau pourrait en mentir pour se faire délivrer un cycle de plus. Déployer avec `TZ=Europe/Paris`.
-- Les missions **terminées restent affichées** jusqu'à la fin de la journée (`deleteStaleCompletedMissions`), puis s'effacent. Le plafond de 9 ne compte que les **actives**.
+- Les missions **terminées restent affichées** jusqu'à la fin de la journée (`deleteStaleCompletedMissions`), puis s'effacent. Le plafond de 6 ne compte que les **actives**.
 - **Filtrage par collection** (`requirements.owns_cards_matching`) : une mission Fusion ne sort pas si le joueur ne possède pas assez de cartes Fusion.
 
 ### Flux d'événements

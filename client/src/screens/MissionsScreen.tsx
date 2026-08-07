@@ -96,6 +96,9 @@ export default function MissionsScreen() {
 }
 
 function WeeklyGauge({ points, max, milestones }: { points: number; max: number; milestones: WeeklyMilestone[] }) {
+  // Le prochain palier est signalé : à cinq marches, « où j'en suis » ne se lit
+  // plus d'un coup d'œil sur la seule couleur acquis/pas acquis.
+  const next = milestones.find(ms => !ms.claimed)?.points ?? null;
   return (
     <Panel className="p-3">
       <div className="flex items-baseline justify-between">
@@ -121,7 +124,9 @@ function WeeklyGauge({ points, max, milestones }: { points: number; max: number;
           <li
             key={ms.points}
             className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] tabular-nums ${
-              ms.claimed ? 'border-success/50 bg-success/10 text-success' : 'border-line bg-surface/60 text-white/60'
+              ms.claimed ? 'border-success/50 bg-success/10 text-success'
+                : ms.points === next ? 'border-gold/60 bg-gold/10 text-white/80'
+                : 'border-line bg-surface/60 text-white/60'
             }`}
           >
             <span className="font-semibold">{ms.claimed ? '✓' : ms.points}</span>
