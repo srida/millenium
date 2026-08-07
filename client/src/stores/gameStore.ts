@@ -66,6 +66,10 @@ export interface GameSnapshot {
   shoppingRemaining: number;   // secondes restantes de la Phase Shopping
   summonOptions: SummonOptionMenuSnapshot | null;
   menuOpen: boolean;         // menu d'options ouvert → met la préparation en pause
+  // Le coach du tutoriel attend un tap → gèle les chronos (préparation,
+  // shopping, récapitulatif de round), sur le modèle de `menuOpen`. Toujours
+  // faux hors tutoriel : les autres modes sont strictement inchangés.
+  coachBlocking: boolean;
   gameOver: boolean;
   winner: 'player' | 'enemy' | 'draw' | null;
   // PvP uniquement
@@ -79,7 +83,7 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
   boardTerrain: null, combatActive: false, combatRemaining: 60, speed: 2, paused: false,
   prepRemaining: 60, endRound: null, shopping: null, shoppingRemaining: SHOPPING_DURATION_S, summonOptions: null,
-  menuOpen: false, gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
+  menuOpen: false, coachBlocking: false, gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
 };
 
 interface GameStoreState extends GameSnapshot {

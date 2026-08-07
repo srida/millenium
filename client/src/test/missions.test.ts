@@ -142,19 +142,34 @@ describe('correspondance des événements', () => {
 });
 
 describe('délivrance par cycle', () => {
-  it('un compte neuf reçoit un lot de 3, un par difficulté', () => {
+  it('un compte neuf reçoit un lot de 2, aux difficultés du cycle courant', () => {
     const user = newUser();
     const snap = missions.refresh(user());
+    expect(missions.CYCLE_COUNT).toBe(2);
     expect(snap.missions).toHaveLength(missions.CYCLE_COUNT);
-    expect(snap.missions.map((m: any) => m.slot_weight).sort()).toEqual([1, 2, 3]);
+    expect(snap.missions.map((m: any) => m.slot_weight).sort())
+      .toEqual([...missions.slotsForCycle(missions.cycleNumber(missions.cycleKey()))].sort());
     expect(snap.weekly.points).toBe(0);
     expect(snap.reroll.free_available).toBe(true);
+  });
+
+  it('la rotation des difficultés couvre chaque slot deux fois par journée', () => {
+    // Trois cycles consécutifs = une journée = le plafond d'accumulation : la
+    // paire tourne pour que le rattrapage vaille la présence aux trois créneaux.
+    const rank = missions.cycleNumber(missions.cycleKey());
+    const day = [0, 1, 2].flatMap(i => missions.slotsForCycle(rank + i));
+    expect(day).toHaveLength(missions.CYCLE_COUNT * missions.CYCLES_PER_DAY);
+    for (const slot of missions.SLOTS) {
+      expect(day.filter((s: number) => s === slot)).toHaveLength(2);
+    }
+    // Rang négatif (rattrapage d'un cycle antérieur) : jamais d'index hors bornes.
+    expect(missions.slotsForCycle(-1)).toEqual(missions.slotsForCycle(2));
   });
 
   it('relire dans le même cycle ne redélivre rien', () => {
     const user = newUser();
     missions.refresh(user());
-    expect(missions.refresh(user()).missions).toHaveLength(3);
+    expect(missions.refresh(user()).missions).toHaveLength(missions.CYCLE_COUNT);
   });
 
   it('un cycle écoulé délivre un lot de plus, sans attendre le lendemain', () => {
@@ -168,12 +183,13 @@ describe('délivrance par cycle', () => {
     expect(snap.missions.filter((m: any) => m.status === 'active')).toHaveLength(2 * missions.CYCLE_COUNT);
   });
 
-  it('l\'accumulation est plafonnée à 9, même après une longue absence', () => {
+  it('l\'accumulation est plafonnée à 6, même après une longue absence', () => {
     const user = newUser();
     missions.refresh(user());
     const { db } = require(path.join(ROOT, 'db.js'));
     db.prepare("UPDATE user_mission_state SET last_issued_day = '2020-01-01#0' WHERE user_id = ?").run(user().id);
     const snap = missions.refresh(user());
+    expect(missions.MAX_ACTIVE).toBe(6);
     expect(snap.missions.filter((m: any) => m.status === 'active')).toHaveLength(missions.MAX_ACTIVE);
   });
 
@@ -261,7 +277,7 @@ describe('complétion et barème', () => {
 
     expect(res.countable).toBe(true);
     expect(res.completed.map((c: any) => c.mission_id)).toEqual(['MISSION_A_006']);
-    expect(res.granted).toEqual({ xp: 100, gold: 100, gems: 0 });
+    expect(res.granted).toEqual({ xp: 10, gold: 100, gems: 0 });
     expect(progression.getProgression(user()).gold).toBe(before.gold + 100);
   });
 
@@ -286,7 +302,7 @@ describe('complétion et barème', () => {
     const { db } = require(path.join(ROOT, 'db.js'));
     missions.refresh(user());
     db.prepare('DELETE FROM user_missions WHERE user_id = ?').run(user().id);
-    // 9 points déjà acquis : la 10ᵉ mission franchit le premier palier.
+    // 4 points déjà acquis : la 5ᵉ mission franchit le premier palier.
     const first = missions.WEEKLY_MILESTONES[0].points;
     db.prepare('UPDATE user_mission_state SET weekly_points = ? WHERE user_id = ?').run(first - 1, user().id);
     stmt.insertMission.run({
@@ -296,12 +312,29 @@ describe('complétion et barème', () => {
 
     const res = missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
     expect(res.milestones.map((m: any) => m.points)).toEqual([first]);
-    // Mission facile (60/50) + 1er palier (50 XP / 150 golds / 10 gemmes).
-    expect(res.granted).toEqual({ xp: 110, gold: 200, gems: 10 });
+    // Mission facile (6 XP / 50 golds) + 1er palier (3 XP / 100 golds / 5 gemmes).
+    expect(res.granted).toEqual({ xp: 9, gold: 150, gems: 5 });
 
     const snap = missions.getSnapshot(user());
     expect(snap.weekly.points).toBe(first);
     expect(snap.weekly.milestones.find((m: any) => m.points === first).claimed).toBe(true);
+  });
+
+  it('la jauge hebdomadaire tient en 5 paliers réguliers, croissants et bornés', () => {
+    const ms = missions.WEEKLY_MILESTONES;
+    expect(ms.map((m: any) => m.points)).toEqual([5, 10, 15, 20, 25]);
+    expect(missions.WEEKLY_MAX).toBe(25);
+    // Un palier ne doit jamais valoir moins que le précédent : la jauge se
+    // parcourt en montant, une marche qui redescend n'a aucune raison d'être.
+    for (const k of ['xp', 'gold', 'gems']) {
+      const seq = ms.map((m: any) => m.rewards[k]);
+      expect(seq).toEqual([...seq].sort((a: number, b: number) => a - b));
+    }
+    // Dotation totale de la semaine, inchangée par la refonte des paliers.
+    const total = ms.reduce((acc: any, m: any) => ({
+      xp: acc.xp + m.rewards.xp, gold: acc.gold + m.rewards.gold, gems: acc.gems + m.rewards.gems,
+    }), { xp: 0, gold: 0, gems: 0 });
+    expect(total).toEqual({ xp: 35, gold: 900, gems: 85 });
   });
 
   it('la jauge est plafonnée et repart à zéro la semaine suivante', () => {

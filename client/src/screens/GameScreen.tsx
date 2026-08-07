@@ -18,8 +18,11 @@ import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
+import TutorialCoach from '../components/tutorial/TutorialCoach.js';
 import { Banner } from '../components/ui/primitives.js';
 import { PREP_DURATION_S, SHOPPING_DURATION_S } from '../game/timings.js';
+import { buildTutorialDecks } from '../game/tutorialDeck.js';
+import * as CardDatabase from '../data/CardDatabase.js';
 
 export default function GameScreen() {
   const [controller, setControllerLocal] = useState<GameController | null>(null);
@@ -35,6 +38,9 @@ export default function GameScreen() {
   // Manche de tournoi : adversaire et deck viennent du bracket, et la sortie
   // (fin de partie ou abandon) est comptabilisée puis renvoyée vers l'écran Tournoi.
   const inTournament = useUiStore(s => s.params.tournament === true);
+  // Partie d'entraînement : le VRAI écran de jeu, avec deux decks dérivés du
+  // catalogue et un coach par-dessus. Rien du mode solo n'est simulé.
+  const inTutorial = useUiStore(s => s.params.tutorial === true);
   const pendingOpponentAvatarId = useTournamentStore(s => s.pendingGame?.opponentAvatarId);
   const pendingOpponentName = useTournamentStore(s => s.pendingGame?.opponentName);
   // Avatar adverse dans le HUD : deck public choisi (solo) ou du bracket
@@ -50,11 +56,16 @@ export default function GameScreen() {
     const pending = inTournament ? useTournamentStore.getState().pendingGame : null;
     // Tournoi sans manche en attente (rechargement de page, deep-link) : rien à jouer.
     if (inTournament && !pending) { useUiStore.getState().navigate('tournament'); return; }
+    // Le deck d'entraînement ne vit pas dans DeckRepository : il est dérivé du
+    // catalogue à chaque lancement, comme les decks publics adverses, et voyage
+    // donc en clair jusqu'à buildSession.
+    const tutorialDecks = inTutorial ? buildTutorialDecks(CardDatabase.getAllCards()) : null;
     const session = buildSession(
       pending?.playerDeckName ?? deckName,
       'ai',
       enemyDeckName,
-      pending?.opponentDeck ?? enemyDeck,
+      tutorialDecks?.enemy ?? pending?.opponentDeck ?? enemyDeck,
+      tutorialDecks?.player,
     );
     const ctrl = new GameController(session);
     setControllerLocal(ctrl);
@@ -83,12 +94,15 @@ export default function GameScreen() {
         // Abandonner une manche de tournoi la concède : le bracket ne peut pas
         // rester en suspens, et rejouer à volonté viderait le Bo5 de son sens.
         <GameMenu quitLabel="Abandonner la manche" onQuit={() => exitTournamentGame('enemy')} />
+      ) : inTutorial ? (
+        <GameMenu quitLabel="Quitter l'entraînement" onQuit={() => useUiStore.getState().navigate('tutorial')} />
       ) : (
         <GameMenu onQuit={() => useUiStore.getState().navigate('main_menu')} />
       )}
       <PrepTimer controller={controller} />
       <ShoppingTimer controller={controller} />
-      <AiWinReward inTournament={inTournament} />
+      <AiWinReward inTournament={inTournament} inTutorial={inTutorial} />
+      {inTutorial && <TutorialCoach />}
       {inTournament && <TournamentHeader />}
       <Banners />
       <SummonOptionMenu />
@@ -96,7 +110,9 @@ export default function GameScreen() {
       <ShoppingLayer />
       {inTournament
         ? <GameOverScreen exitLabel="◂ RETOUR AU TOURNOI" onExit={exitTournamentGame} />
-        : <GameOverScreen />}
+        : inTutorial
+          ? <GameOverScreen exitLabel="◂ RETOUR AU TUTORIEL" onExit={() => useUiStore.getState().navigate('tutorial')} />
+          : <GameOverScreen />}
     </div>
   );
 }
@@ -106,17 +122,21 @@ export default function GameScreen() {
 // Une MANCHE de tournoi ne compte pas ici : le tournoi a son propre gain, à la
 // victoire finale. Créditer les deux ferait rapporter à un tournoi jusqu'à
 // 9 manches × 10 + 50, bien au-delà du barème voulu.
-function AiWinReward({ inTournament }: { inTournament: boolean }) {
+//
+// La partie d'ENTRAÎNEMENT non plus : son adversaire est choisi par nous pour
+// être battu, et elle se rejoue à volonté. Le tutoriel est pédagogique, il ne
+// paie rien — c'est la contrepartie de n'avoir aucune vérification serveur.
+function AiWinReward({ inTournament, inTutorial }: { inTournament: boolean; inTutorial: boolean }) {
   const gameOver = useGameStore(s => s.gameOver);
   const winner = useGameStore(s => s.winner);
   const claimed = useRef(false);
 
   useEffect(() => {
-    if (inTournament || claimed.current) return;
+    if (inTournament || inTutorial || claimed.current) return;
     if (!gameOver || winner !== 'player') return;
     claimed.current = true;
     void useAuthStore.getState().claimReward('ai_win');
-  }, [gameOver, winner, inTournament]);
+  }, [gameOver, winner, inTournament, inTutorial]);
 
   return null;
 }
@@ -153,7 +173,9 @@ function PrepTimer({ controller }: { controller: GameController }) {
     applySnapshot({ prepRemaining: PREP_DURATION_S });
     const t = setInterval(() => {
       const s = useGameStore.getState();
-      const prepActive = s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.gameOver;
+      // `coachBlocking` gèle la préparation comme `menuOpen` : une bulle du
+      // tutoriel qui attend un tap ne doit pas voir le combat partir sous elle.
+      const prepActive = s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.coachBlocking && !s.gameOver;
       if (!prepActive) return;
       remaining.current -= 1;
       if (remaining.current <= 0) {
@@ -186,6 +208,9 @@ function ShoppingTimer({ controller }: { controller: GameController }) {
     skipped.current = false;
     applySnapshot({ shoppingRemaining: SHOPPING_DURATION_S });
     const t = setInterval(() => {
+      // Même gel que la préparation : le coach explique le choix de magie,
+      // le chrono ne doit pas trancher à sa place.
+      if (useGameStore.getState().coachBlocking) return;
       remaining.current -= 1;
       if (remaining.current <= 0) {
         clearInterval(t);

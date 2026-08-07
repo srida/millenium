@@ -5,12 +5,12 @@ import type { Unit } from '../logic/Unit.js';
 export type ScreenName =
   | 'main_menu' | 'auth' | 'reset_password' | 'profile' | 'friends'
   | 'deck_selector' | 'deck_builder' | 'online_lobby' | 'tournament' | 'missions' | 'shop'
-  | 'game' | 'game_pvp' | 'combatlab' | 'testbench';
+  | 'tutorial' | 'game' | 'game_pvp' | 'combatlab' | 'testbench';
 
 const SCREEN_NAMES: ScreenName[] = [
   'main_menu', 'auth', 'reset_password', 'profile', 'friends',
   'deck_selector', 'deck_builder', 'online_lobby', 'tournament', 'missions', 'shop',
-  'game', 'game_pvp', 'combatlab', 'testbench',
+  'tutorial', 'game', 'game_pvp', 'combatlab', 'testbench',
 ];
 
 // 'manage' = gérer ses decks et choisir le deck ACTIF (celui joué partout) ;
@@ -35,6 +35,10 @@ export interface ScreenParams {
   // Panneau admin (iframe) : édite un deck PUBLIC (par id) au lieu d'un deck du
   // joueur. Voir App.tsx / DeckBuilder.tsx.
   publicDeckId?: string;
+  // Mode tutoriel : l'écran de jeu joue le deck d'entraînement et monte le
+  // coach ; le DeckBuilder affiche le guide et revient au tutoriel. Les deux
+  // écrans sont les VRAIS écrans — le drapeau ne change que l'accompagnement.
+  tutorial?: boolean;
   [key: string]: unknown;
 }
 

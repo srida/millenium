@@ -51,6 +51,9 @@ export function EndRoundOverlay() {
     if (!endRound) { dismissed.current = false; setCountdown(END_ROUND_DURATION_S); return; }
     setCountdown(END_ROUND_DURATION_S);
     const t = setInterval(() => {
+      // Le coach du tutoriel explique justement ces dégâts : congédier le
+      // récapitulatif sous son nez viderait l'explication de son objet.
+      if (useGameStore.getState().coachBlocking) return;
       setCountdown(c => (c <= 1 ? 0 : c - 1));
     }, 1000);
     return () => clearInterval(t);

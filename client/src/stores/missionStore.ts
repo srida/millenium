@@ -38,7 +38,7 @@ export interface WeeklyMilestone {
 
 export interface MissionSnapshot {
   missions: Mission[];
-  /** Les missions tombent par cycles de `hours` heures (3 par cycle). */
+  /** Les missions tombent par cycles de `hours` heures (`count` par cycle). */
   cycle: { count: number; hours: number; max_active: number; next_reset_at: number };
   weekly: { points: number; max: number; milestones: WeeklyMilestone[] };
   reroll: { free_available: boolean; cost: number };
