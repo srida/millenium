@@ -115,10 +115,12 @@ function variantPool(user) {
     .filter(v => owned.has(v.card_id) && variants.illustrationExists(v.id))
     .map(v => {
       const card = cards().get(v.card_id);
+      // Une variante n'a pas de nom propre : c'est une illustration de plus
+      // pour une carte, pas un objet à part. Elle s'annonce par la carte
+      // qu'elle habille, et se distingue par son image.
       return {
         id: v.id,
         card_id: v.card_id,
-        name: v.name ?? v.id,
         card_name: card?.name ?? v.card_id,
         tier: card?.tier ?? null,
       };
@@ -330,7 +332,6 @@ function getSnapshot(user) {
     return {
       id,
       card_id: def?.card_id ?? null,
-      name: def?.name ?? id,
       card_name: cards().get(def?.card_id)?.name ?? null,
     };
   }).filter(v => v.card_id);

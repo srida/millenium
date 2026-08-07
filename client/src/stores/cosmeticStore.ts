@@ -19,10 +19,12 @@ export interface CosmeticAvatar {
   purchased: boolean;
 }
 
+// Une variante n'a pas de nom propre : c'est une illustration de plus pour une
+// carte. Elle s'annonce par `card_name`, et se distingue de ses sœurs par son
+// image — pas par un libellé.
 export interface CosmeticVariant {
   id: string;
   card_id: string;
-  name: string;
   card_name: string;
   tier: number | null;
   price_gems: number;
@@ -33,7 +35,6 @@ export interface CosmeticVariant {
 export interface OwnedVariant {
   id: string;
   card_id: string;
-  name: string;
   card_name: string | null;
 }
 

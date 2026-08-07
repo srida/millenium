@@ -2630,8 +2630,7 @@ function filterVariants() {
   const filtered = variants.filter(v => {
     if (!q) return true;
     const card = _variantCard(v);
-    return (v.name || '').toLowerCase().includes(q)
-      || v.id.toLowerCase().includes(q)
+    return v.id.toLowerCase().includes(q)
       || (v.card_id || '').toLowerCase().includes(q)
       || (card?.name || '').toLowerCase().includes(q);
   });
@@ -2650,10 +2649,10 @@ function renderVariantList(list = variants) {
     const active = selectedVariant?.id === v.id ? ' active' : '';
     return `
       <div class="list-item${active}" onclick="selectVariant('${v.id}')">
-        <div class="list-item-name">${v._has_illustration ? '' : '⚠️ '}${esc(v.name || v.id)}</div>
+        <div class="list-item-name">${v._has_illustration ? '' : '⚠️ '}${card ? esc(card.name) : `<span style="color:var(--danger)">carte inconnue</span>`}</div>
         <div class="list-item-meta">
           <span style="font-family:monospace">${esc(v.id)}</span>
-          · ${card ? esc(card.name) : `<span style="color:var(--danger)">carte inconnue : ${esc(v.card_id)}</span>`}
+          ${card ? '' : `· <span style="color:var(--danger)">${esc(v.card_id)}</span>`}
         </div>
       </div>`;
   }).join('');
@@ -2687,7 +2686,7 @@ function renderVariantDetail() {
         </div>
       </div>
       <div class="detail-info">
-        <div class="detail-title">🎨 ${esc(v.name || v.id)}</div>
+        <div class="detail-title">🎨 ${card ? esc(card.name) : esc(v.id)}</div>
         <div class="detail-meta"><span style="font-family:monospace">${esc(v.id)}</span></div>
       </div>
     </div>
@@ -2696,11 +2695,6 @@ function renderVariantDetail() {
       <div style="background:rgba(240,180,60,.1);border:1px solid rgba(240,180,60,.35);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0b43c">
         ⚠️ Sans illustration, cette variante n'est pas vendue en boutique.
       </div>`}
-
-    <div class="field">
-      <label>Nom</label>
-      <input id="variant-name" value="${esc(v.name || '')}" placeholder="Saphir — Illustration d'origine">
-    </div>
 
     <div class="field">
       <label>Carte visée</label>
@@ -2736,12 +2730,6 @@ function renderVariantDetail() {
 // `posterBust` pour les affiches de packs).
 let variantBust = Date.now();
 
-// Le formulaire est re-rendu à chaque choix de carte : sans ça, un nom saisi
-// avant de désigner la carte serait perdu.
-function _stashVariantFields() {
-  const name = document.getElementById('variant-name');
-  if (name && selectedVariant) selectedVariant.name = name.value.trim();
-}
 
 function filterVariantCardSearch() {
   const q = document.getElementById('variant-card-search')?.value.toLowerCase() || '';
@@ -2772,28 +2760,27 @@ function hideVariantCardDropdown() {
 }
 
 function pickVariantCard(id) {
-  _stashVariantFields();
   selectedVariant.card_id = id;
   renderVariantDetail();
 }
 
 function clearVariantCard() {
-  _stashVariantFields();
   selectedVariant.card_id = '';
   renderVariantDetail();
 }
 
+// Une variante n'a que deux champs : son id et la carte qu'elle habille. Pas
+// de nom — c'est une illustration de plus pour cette carte, et c'est la carte
+// qui la nomme, en admin comme en boutique.
 function _collectVariantFields() {
   return {
     id: selectedVariant.id,
     card_id: selectedVariant.card_id || '',
-    name: document.getElementById('variant-name')?.value.trim() || '',
   };
 }
 
 async function saveVariant() {
   const variant = _collectVariantFields();
-  if (!variant.name) return toast('Nom requis', 'err');
   if (!variant.card_id) return toast('Carte visée requise', 'err');
   const res = await apiFetch(`/api/variants/${selectedVariant.id}`, { method: 'PUT', body: variant });
   if (res.error) return toast(res.error, 'err');
@@ -2835,7 +2822,6 @@ function openNewVariant() {
 
 async function createVariant() {
   const variant = _collectVariantFields();
-  if (!variant.name) return toast('Nom requis', 'err');
   if (!variant.card_id) return toast('Carte visée requise', 'err');
   const res = await apiFetch('/api/variants', { method: 'POST', body: variant });
   if (res.error) return toast(res.error, 'err');
@@ -2858,9 +2844,9 @@ function cancelNewVariant() {
 function openVariantIllusModal() {
   if (!selectedVariant) return;
   const card = _variantCard(selectedVariant);
-  const defaultQuery = `yugioh alternate artwork ${card?.name || selectedVariant.name || ''}`.trim();
+  const defaultQuery = `yugioh alternate artwork ${card?.name || ''}`.trim();
   showModal(`
-    <h2 style="margin-bottom:16px">Illustration — ${esc(selectedVariant.name || selectedVariant.id)}</h2>
+    <h2 style="margin-bottom:16px">Illustration — ${esc(card?.name || selectedVariant.id)}</h2>
     <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
       <div class="field" style="margin-bottom:10px">

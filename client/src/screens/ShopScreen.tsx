@@ -290,13 +290,15 @@ function VariantOffer({ variant }: { variant: CosmeticVariant }) {
   return (
     <CosmeticOffer
       // L'illustration montrée est CELLE DE LA VARIANTE, pas celle de la carte :
-      // c'est exactement ce qu'on achète.
+      // c'est exactement ce qu'on achète. Le nom affiché est en revanche celui
+      // de la CARTE — une variante n'a pas de nom propre, et « Magicien
+      // sombre » dit tout ce qu'il y a à savoir quand l'image est sous les yeux.
       illustrationId={variant.id}
-      title={variant.name}
-      subtitle={variant.card_name}
+      title={variant.card_name}
+      subtitle="Illustration alternative"
       price={variant.price_gems}
       purchased={variant.purchased}
-      onBuy={() => { void buy('variant', variant.id, variant.name); }}
+      onBuy={() => { void buy('variant', variant.id, variant.card_name); }}
     />
   );
 }

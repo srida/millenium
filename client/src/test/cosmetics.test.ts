@@ -157,8 +157,8 @@ describe('pool de variantes', () => {
     const mine = ownedCardId(user());
     const foreign = CARDS.find(c => !progression.ownsCard(user(), c.id))!;
     writeVariants([
-      { id: 'VAR_MINE', card_id: mine, name: 'Mienne' },
-      { id: 'VAR_FOREIGN', card_id: foreign.id, name: 'Pas à moi' },
+      { id: 'VAR_MINE', card_id: mine },
+      { id: 'VAR_FOREIGN', card_id: foreign.id },
     ]);
     putArt('VAR_MINE');
     putArt('VAR_FOREIGN');
@@ -172,8 +172,8 @@ describe('pool de variantes', () => {
     const user = newUser();
     const mine = ownedCardId(user());
     writeVariants([
-      { id: 'VAR_ART', card_id: mine, name: 'Avec art' },
-      { id: 'VAR_NOART', card_id: mine, name: 'Sans art' },
+      { id: 'VAR_ART', card_id: mine },
+      { id: 'VAR_NOART', card_id: mine },
     ]);
     putArt('VAR_ART');
 
@@ -258,7 +258,7 @@ describe('achat', () => {
   it('débite exactement 100 gemmes pour une variante', () => {
     const user = newUser(1_000);
     const mine = ownedCardId(user());
-    writeVariants([{ id: 'VAR_BUY', card_id: mine, name: 'Achat' }]);
+    writeVariants([{ id: 'VAR_BUY', card_id: mine }]);
     putArt('VAR_BUY');
     rotate(user().id);
 
@@ -347,7 +347,7 @@ describe('instantané', () => {
   it('porte les variantes possédées en OBJETS (le DeckBuilder a besoin du card_id)', () => {
     const user = newUser();
     const mine = ownedCardId(user());
-    writeVariants([{ id: 'VAR_SNAP', card_id: mine, name: 'Instantané' }]);
+    writeVariants([{ id: 'VAR_SNAP', card_id: mine }]);
     putArt('VAR_SNAP');
     rotate(user().id);
     cosmetics.refresh(user());
@@ -355,6 +355,25 @@ describe('instantané', () => {
 
     const owned = cosmetics.getSnapshot(user()).owned.variants;
     expect(owned).toContainEqual(expect.objectContaining({ id: 'VAR_SNAP', card_id: mine }));
+  });
+
+  it('nomme une variante par SA CARTE, jamais par un nom propre', () => {
+    const user = newUser();
+    const mine = ownedCardId(user());
+    // Un nom résiduel dans la donnée (variante écrite avant que le champ ne
+    // disparaisse) ne doit pas ressortir : le catalogue l'ignore.
+    writeVariants([{ id: 'VAR_NAMED', card_id: mine, name: 'Nom hérité' }]);
+    putArt('VAR_NAMED');
+    rotate(user().id);
+
+    const offered = cosmetics.refresh(user()).variants.find((v: any) => v.id === 'VAR_NAMED');
+    expect(offered.card_name).toBe(CARDS.find(c => c.id === mine).name);
+    expect(offered.name).toBeUndefined();
+
+    cosmetics.buy(user(), 'variant', 'VAR_NAMED');
+    const owned = cosmetics.getSnapshot(user()).owned.variants.find((v: any) => v.id === 'VAR_NAMED');
+    expect(owned.card_name).toBe(CARDS.find(c => c.id === mine).name);
+    expect(owned.name).toBeUndefined();
   });
 
   it('expose les avatars par défaut pour que le Profil ne les redevine pas', () => {
@@ -367,7 +386,7 @@ describe('variantes d\'un deck (transport PvP)', () => {
   it('dérive la map du deck book SERVEUR, filtrée par possession', () => {
     const user = newUser();
     const mine = ownedCardId(user());
-    writeVariants([{ id: 'VAR_PVP', card_id: mine, name: 'PvP' }]);
+    writeVariants([{ id: 'VAR_PVP', card_id: mine }]);
     putArt('VAR_PVP');
     rotate(user().id);
     cosmetics.refresh(user());
@@ -384,7 +403,7 @@ describe('variantes d\'un deck (transport PvP)', () => {
   it('écarte une variante NON POSSÉDÉE — le méta de deck vient du client', () => {
     const user = newUser();
     const mine = ownedCardId(user());
-    writeVariants([{ id: 'VAR_STOLEN', card_id: mine, name: 'Non achetée' }]);
+    writeVariants([{ id: 'VAR_STOLEN', card_id: mine }]);
     putArt('VAR_STOLEN');
 
     setDeckBook(user().id, {
@@ -398,7 +417,7 @@ describe('variantes d\'un deck (transport PvP)', () => {
   it('écarte une variante qui ne vise pas la carte annoncée', () => {
     const user = newUser();
     const [a, b] = progression.unlockedCardIds(user());
-    writeVariants([{ id: 'VAR_A', card_id: a, name: 'A' }]);
+    writeVariants([{ id: 'VAR_A', card_id: a }]);
     putArt('VAR_A');
     rotate(user().id);
     cosmetics.refresh(user());
@@ -416,7 +435,7 @@ describe('variantes d\'un deck (transport PvP)', () => {
   it('écarte une carte absente du deck', () => {
     const user = newUser();
     const [a, b] = progression.unlockedCardIds(user());
-    writeVariants([{ id: 'VAR_OUT', card_id: b, name: 'Hors deck' }]);
+    writeVariants([{ id: 'VAR_OUT', card_id: b }]);
     putArt('VAR_OUT');
     rotate(user().id);
     cosmetics.refresh(user());
@@ -433,7 +452,7 @@ describe('variantes d\'un deck (transport PvP)', () => {
   it('retombe sur le deck actif quand le nom annoncé est inconnu', () => {
     const user = newUser();
     const mine = ownedCardId(user());
-    writeVariants([{ id: 'VAR_ACTIVE', card_id: mine, name: 'Actif' }]);
+    writeVariants([{ id: 'VAR_ACTIVE', card_id: mine }]);
     putArt('VAR_ACTIVE');
     rotate(user().id);
     cosmetics.refresh(user());

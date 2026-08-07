@@ -41,11 +41,14 @@ export default function IllustrationPicker({
             selected={current === card.id}
             onTap={() => choose(card.id)}
           />
-          {options.map(v => (
+          {/* Toutes les options habillent la MÊME carte : un libellé nominal
+              n'y apprendrait rien. C'est l'image qui distingue, le numéro ne
+              sert qu'à pouvoir en parler (et à l'accessibilité). */}
+          {options.map((v, i) => (
             <Choice
               key={v.id}
               illustrationId={v.id}
-              label={v.name}
+              label={`Variante ${i + 1}`}
               selected={current === v.id}
               onTap={() => choose(v.id)}
             />
