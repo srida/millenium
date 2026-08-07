@@ -277,9 +277,10 @@ describe('complétion et barème', () => {
 
     expect(res.countable).toBe(true);
     expect(res.completed.map((c: any) => c.mission_id)).toEqual(['MISSION_A_006']);
-    // Terminer NE CRÉDITE PLUS : le gain attend la récupération.
-    expect(res.granted).toEqual({ xp: 0, gold: 0, gems: 0 });
+    // Terminer NE CRÉDITE PLUS RIEN : ni gain, ni point de semaine.
+    expect(res.granted).toBeUndefined();
     expect(progression.getProgression(user()).gold).toBe(before.gold);
+    expect(missions.getSnapshot(user()).weekly.points).toBe(0);
 
     // …et c'est bien le barème du serveur (slot 2) qui tombe au `claim`.
     const claimed = missions.claim(user(), 'fixed-1');
@@ -358,12 +359,31 @@ describe('complétion et barème', () => {
     expect(progression.getProgression(user()).gold).toBe(afterFirst.gold);
   });
 
+  it('la jauge hebdomadaire n\'avance qu\'à la RÉCUPÉRATION, jamais à la complétion', () => {
+    // C'est ce décalage qui permet à la barre de bouger sous les yeux du joueur
+    // au moment de son tap, au lieu d'être déjà remplie à l'ouverture de l'écran.
+    const user = newUser();
+    const { db } = require(path.join(ROOT, 'db.js'));
+    missions.refresh(user());
+    db.prepare('DELETE FROM user_missions WHERE user_id = ?').run(user().id);
+    stmt.insertMission.run({
+      id: 'fixed-gauge', user_id: user().id, mission_id: 'MISSION_A_001',
+      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now(),
+    });
+
+    missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
+    expect(missions.getSnapshot(user()).weekly.points).toBe(0);
+
+    missions.claim(user(), 'fixed-gauge');
+    expect(missions.getSnapshot(user()).weekly.points).toBe(1);
+  });
+
   it('la jauge hebdomadaire verse ses paliers au passage, une seule fois', () => {
     const user = newUser();
     const { db } = require(path.join(ROOT, 'db.js'));
     missions.refresh(user());
     db.prepare('DELETE FROM user_missions WHERE user_id = ?').run(user().id);
-    // 4 points déjà acquis : la 5ᵉ mission franchit le premier palier.
+    // 4 points déjà acquis : la 5ᵉ mission récupérée franchit le 1er palier.
     const first = missions.WEEKLY_MILESTONES[0].points;
     db.prepare('UPDATE user_mission_state SET weekly_points = ? WHERE user_id = ?').run(first - 1, user().id);
     stmt.insertMission.run({
@@ -372,14 +392,38 @@ describe('complétion et barème', () => {
     });
 
     const res = missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
-    expect(res.milestones.map((m: any) => m.points)).toEqual([first]);
-    // Le palier tombe D'OFFICE (3 XP / 100 golds / 5 gemmes) : seule la mission
-    // qui l'a fait franchir (6 XP / 50 golds) attend d'être récupérée.
-    expect(res.granted).toEqual({ xp: 3, gold: 100, gems: 5 });
+    expect(res.completed).toHaveLength(1);
+    expect(res.milestones).toBeUndefined();     // rien n'est versé à la complétion
+
+    const claimed = missions.claim(user(), 'fixed-3');
+    expect(claimed.milestones.map((m: any) => m.points)).toEqual([first]);
+    // Un seul crédit : mission facile (6 XP / 50 golds) + 1er palier
+    // (3 XP / 100 golds / 5 gemmes), le palier tombant d'office.
+    expect(claimed.granted).toEqual({ xp: 9, gold: 150, gems: 5 });
 
     const snap = missions.getSnapshot(user());
     expect(snap.weekly.points).toBe(first);
     expect(snap.weekly.milestones.find((m: any) => m.points === first).claimed).toBe(true);
+  });
+
+  it('la jauge est bornée : récupérer au-delà du plafond ne reverse rien', () => {
+    const user = newUser();
+    const { db } = require(path.join(ROOT, 'db.js'));
+    missions.refresh(user());
+    db.prepare('DELETE FROM user_missions WHERE user_id = ?').run(user().id);
+    db.prepare('UPDATE user_mission_state SET weekly_points = ? WHERE user_id = ?')
+      .run(missions.WEEKLY_MAX, user().id);
+    stmt.insertMission.run({
+      id: 'fixed-cap', user_id: user().id, mission_id: 'MISSION_A_001',
+      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now(),
+    });
+    missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
+
+    const claimed = missions.claim(user(), 'fixed-cap');
+    // Le gain de la mission tombe toujours — c'est la SEMAINE qui est pleine.
+    expect(claimed.granted).toEqual({ xp: 6, gold: 50, gems: 0 });
+    expect(claimed.milestones).toEqual([]);
+    expect(missions.getSnapshot(user()).weekly.points).toBe(missions.WEEKLY_MAX);
   });
 
   it('la jauge hebdomadaire tient en 5 paliers réguliers, croissants et bornés', () => {

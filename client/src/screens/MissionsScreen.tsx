@@ -5,8 +5,10 @@
 // mission terminée mais non récupérée n'est jamais purgée (le reset quotidien
 // n'emporte que les soldées), sinon oublier de taper reviendrait à perdre.
 //
-// Les paliers hebdomadaires, eux, tombent d'office — ils n'ont pas de carte à
-// taper, et la jauge avance à la complétion, pas à la récupération.
+// La jauge hebdomadaire avance elle aussi AU TAP, d'un cran par mission
+// récupérée : le joueur voit la barre bouger devant lui au lieu de la découvrir
+// déjà remplie. Les paliers franchis au passage, eux, tombent d'office — ils
+// n'ont pas de carte à taper.
 //
 // Toutes les valeurs viennent du serveur (missions.js) : barème, cible,
 // progression, paliers. Le client n'en calcule aucune.

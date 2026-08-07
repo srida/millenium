@@ -6,10 +6,9 @@
 //   - 2 missions délivrées par cycle de 8 h, ancré sur 5 h (heure du serveur)
 //   - accumulation jusqu'à 6 missions actives (24 h d'absence pardonnées)
 //   - 1 reroll gratuit par jour, puis 100 golds
-//   - chaque mission terminée = 1 point sur une jauge hebdomadaire de 25,
-//     avec un palier tous les 5 points
-//   - le gain d'une mission se RÉCUPÈRE (`claim`) ; celui d'un palier tombe
-//     d'office
+//   - le gain d'une mission se RÉCUPÈRE d'un tap (`claim`)
+//   - chaque mission RÉCUPÉRÉE = 1 point sur une jauge hebdomadaire de 25,
+//     avec un palier tous les 5 points ; les paliers, eux, tombent d'office
 //
 // Le système ne lit JAMAIS l'état du jeu : il consomme un flux d'événements
 // nommés (brief §4.3). C'est ce qui permet au moteur de rester gelé — un
@@ -63,7 +62,7 @@ const SLOT_REWARDS = Object.freeze({
   3: { xp: 15, gold: 175 },
 });
 
-// Jauge hebdomadaire : 1 point par mission terminée, un palier tous les 5
+// Jauge hebdomadaire : 1 point par mission RÉCUPÉRÉE, un palier tous les 5
 // (modèle Marvel Snap — un jalon assez proche pour qu'il y ait toujours une
 // raison de finir la mission en cours). Le plafond à 25 (et non 42 = 2 missions
 // × 3 cycles × 7 jours) n'exige ni d'être là aux trois cycles, ni tous les
@@ -370,10 +369,10 @@ function batchDelta(events, obj) {
  * deux `combat_started` (anti-concede) et une invocation (anti-AFK). Absent =
  * lot méta (deck enregistré…), limité aux événements hors combat.
  *
- * Ce qui est crédité ici : les paliers hebdomadaires seulement. Les missions
- * terminées sont ANNONCÉES (`completed`) et attendent leur `claim`.
+ * Rien n'est crédité ici : les missions terminées sont ANNONCÉES (`completed`)
+ * et attendent leur `claim`, qui porte à la fois le gain et le point de semaine.
  *
- * → { countable, completed: [{ id, mission_id, label, rewards }], milestones: [...] }
+ * → { countable, completed: [{ id, mission_id, label, rewards }] }
  */
 const applyEvents = db.transaction((user, { matchId = null, events = [] } = {}) => {
   const userId = user.id;
@@ -384,15 +383,14 @@ const applyEvents = db.transaction((user, { matchId = null, events = [] } = {}) 
     const combats = list.filter(e => e && e.type === 'combat_started').length;
     const summons = list.filter(e => e && e.type === 'summon_performed').length;
     if (combats < MIN_COMBATS_COUNTABLE || summons === 0) {
-      return { countable: false, completed: [], milestones: [] };
+      return { countable: false, completed: [] };
     }
     usable = list;
   } else {
     usable = list.filter(e => e && META_EVENTS.includes(e.type));
-    if (!usable.length) return { countable: true, completed: [], milestones: [] };
+    if (!usable.length) return { countable: true, completed: [] };
   }
 
-  const state = readState(userId);
   const completed = [];
   const now = Date.now();
 
@@ -416,50 +414,27 @@ const applyEvents = db.transaction((user, { matchId = null, events = [] } = {}) 
         mission_id: def.id,
         label: renderLabel(def, row.target),
         slot_weight: row.slot_weight,
-        // Montant ANNONCÉ, pas crédité : il attend un `claim`. C'est la seule
-        // différence avec les paliers hebdo ci-dessous, qui tombent d'office.
+        // Montant ANNONCÉ, pas crédité : il attend un `claim`.
         rewards: SLOT_REWARDS[row.slot_weight] ?? SLOT_REWARDS[1],
       });
     }
   }
 
-  // Jauge hebdomadaire : 1 point par mission terminée, paliers versés au passage.
-  const milestones = [];
-  if (completed.length) {
-    const before = state.weekly_points;
-    state.weekly_points = Math.min(WEEKLY_MAX, before + completed.length);
-    for (const ms of WEEKLY_MILESTONES) {
-      if (state.weekly_points >= ms.points && !state.weekly_claimed.includes(ms.points)) {
-        state.weekly_claimed.push(ms.points);
-        milestones.push(ms);
-      }
-    }
-    writeState(state);
-  }
-
-  // Seuls les PALIERS sont crédités ici. Le gain d'une mission attend son
-  // `claim` : c'est le joueur qui le solde, d'un tap sur la carte.
-  //
-  // La jauge hebdomadaire, elle, avance bien à la COMPLÉTION et non à la
-  // récupération — sinon oublier de récupérer coûterait deux fois : le gain de
-  // la mission ET la semaine. Ce qui se réclame, c'est un gain ; une jauge de
-  // progression n'est pas un gain.
-  const total = { xp: 0, gold: 0, gems: 0 };
-  for (const m of milestones) {
-    total.xp += m.rewards.xp ?? 0; total.gold += m.rewards.gold ?? 0; total.gems += m.rewards.gems ?? 0;
-  }
-  if (total.xp || total.gold || total.gems) progression.grant(userId, total);
-
-  return { countable: true, completed, milestones, granted: total };
+  // RIEN n'est crédité ici, et la jauge hebdomadaire ne bouge pas non plus :
+  // terminer une mission ne fait que la rendre récupérable. Tout tombe au
+  // `claim` — le gain comme le point de semaine — pour que le joueur voie la
+  // barre avancer sous ses yeux au lieu de la découvrir déjà remplie.
+  return { countable: true, completed };
 });
 
 // --- Récupération d'un gain ---
 
 /**
- * Solde une mission terminée : crédite son barème et la passe en `claimed`.
- * Le client désigne une LIGNE, jamais un montant — le barème reste au serveur,
- * exactement comme quand le crédit était automatique.
- * → { ok: false, reason } si la mission n'est pas récupérable.
+ * Solde une mission terminée : crédite son barème, avance la jauge de la
+ * semaine d'un point et verse les paliers franchis au passage. Le client
+ * désigne une LIGNE, jamais un montant — le barème reste au serveur, exactement
+ * comme quand le crédit était automatique.
+ * → { ok: true, granted, milestones, mission } | { ok: false, reason }
  */
 const claim = db.transaction((user, rowId) => {
   const row = stmt.missionRowById.get(rowId);
@@ -474,12 +449,39 @@ const claim = db.transaction((user, rowId) => {
 
   const rewards = SLOT_REWARDS[row.slot_weight] ?? SLOT_REWARDS[1];
   const granted = { xp: rewards.xp ?? 0, gold: rewards.gold ?? 0, gems: rewards.gems ?? 0 };
+
+  // Jauge hebdomadaire : +1 point ICI, à la récupération, et pas à la
+  // complétion. C'est ce qui la fait avancer d'un cran sous les yeux du joueur
+  // au moment de son tap — une barre déjà remplie avant l'ouverture de l'écran
+  // ne raconte aucune progression. Le point n'est jamais perdu pour autant :
+  // une mission terminée attend indéfiniment d'être récupérée (elle n'est pas
+  // purgée au reset), le crédit est différé, pas confisqué.
+  //
+  // Les paliers franchis au passage, eux, tombent d'office — ils n'ont pas de
+  // carte à taper — et sont donc ajoutés au même crédit.
+  const state = readState(user.id);
+  const milestones = [];
+  if (state.weekly_points < WEEKLY_MAX) {
+    state.weekly_points += 1;
+    for (const ms of WEEKLY_MILESTONES) {
+      if (state.weekly_points >= ms.points && !state.weekly_claimed.includes(ms.points)) {
+        state.weekly_claimed.push(ms.points);
+        milestones.push(ms);
+        granted.xp += ms.rewards.xp ?? 0;
+        granted.gold += ms.rewards.gold ?? 0;
+        granted.gems += ms.rewards.gems ?? 0;
+      }
+    }
+    writeState(state);
+  }
+
   progression.grant(user.id, granted);
 
   const def = missionDef(row.mission_id);
   return {
     ok: true,
     granted,
+    milestones,
     mission: { id: row.id, mission_id: row.mission_id, label: def ? renderLabel(def, row.target) : row.mission_id },
   };
 });

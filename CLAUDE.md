@@ -162,7 +162,7 @@ Règles dans **`missions.js`** (racine, à côté de `progression.js` dont il es
 | Cycle | **8 h**, ancré sur 5 h → **5 h / 13 h / 21 h**, dans le fuseau du **serveur** |
 | Accumulation | **6** missions actives maximum (= 3 cycles, soit 24 h d'absence pardonnées) |
 | Reroll | 1 gratuit par **jour**, puis **100 golds** (jamais en gemmes) |
-| Jauge hebdomadaire | **25** points — 1 par mission terminée, semaine du lundi |
+| Jauge hebdomadaire | **25** points — 1 par mission **récupérée**, semaine du lundi |
 | Paliers hebdo | **5 / 10 / 15 / 20 / 25** (un tous les 5, modèle Marvel Snap) |
 
 **Rotation des difficultés** (`SLOT_ROTATION`, `slotsForCycle`) : deux missions par cycle mais trois difficultés — la paire tourne avec le créneau (`[1,2]` → `[2,3]` → `[3,1]`), elle n'est **pas tirée au hasard**. Sur trois cycles consécutifs — soit exactement une journée, et exactement le plafond d'accumulation — chaque difficulté sort **deux fois** : le joueur qui rattrape 24 h d'absence reçoit la même chose que celui qui est passé aux trois rendez-vous. Un lot rattrapé garde donc la paire de **son** cycle, pas celle du cycle d'arrivée.
@@ -188,7 +188,9 @@ La **dotation hebdomadaire totale est inchangée** par le passage de 3 à 5 pali
 - **Le gain d'une mission se RÉCUPÈRE** (`POST /api/me/missions/:id/claim`), d'un tap sur sa carte : `active` → `completed` (terminée, gain en attente) → `claimed` (soldée). Le crédit ne se déplace que dans le temps — le client désigne une **ligne**, jamais un montant, et le barème reste `SLOT_REWARDS`.
   - ⚠️ **Une mission terminée mais non récupérée n'est jamais purgée** : `deleteStaleClaimedMissions` n'emporte au reset que les **soldées**. Sans cette règle, la récupération manuelle ferait perdre le gain d'un joueur qui quitte le jeu sans repasser par l'écran — exactement ce que le crédit automatique évitait.
   - La garde anti-double-crédit est **dans le SQL** (`… WHERE id = ? AND status = 'completed'`) : deux taps concurrents ne changent qu'une ligne, le second appel voit `changes === 0` et ne crédite rien.
-  - **Les paliers hebdomadaires, eux, tombent d'office** : ils n'ont pas de carte à taper. Et la jauge avance à la **complétion**, pas à la récupération — sinon oublier de récupérer coûterait deux fois (le gain *et* la semaine). Ce qui se réclame est un gain ; une jauge de progression n'en est pas un.
+  - **La jauge hebdomadaire avance elle aussi au tap** : +1 point par mission **récupérée**, pas par mission terminée. C'est ce décalage qui la fait bouger sous les yeux du joueur au moment du geste, au lieu d'être déjà remplie à l'ouverture de l'écran (`Gauge` anime sa largeur sur 300 ms). Le point n'est jamais perdu pour autant — une mission terminée attend indéfiniment, cf. la purge ci-dessus : le crédit est **différé, pas confisqué**.
+  - **Les paliers franchis au passage, eux, tombent d'office** : ils n'ont pas de carte à taper, et sont versés dans le **même crédit** que la mission qui les déclenche (`claim` → `{ granted, milestones }`).
+  - ⚠️ Corollaire assumé : thésauriser des missions terminées pour les récupérer d'un bloc concentre la jauge sur une seule semaine, donc monte plus haut dans l'échelle qu'en étalant. Ça ne crée aucune valeur (une mission = 1 point, plafond 25) et ça coûte la liquidité du gain — non traité.
   - ⚠️ **Migration** : `user_missions.claimed_at` est ajoutée de façon additive (idiome `PRAGMA table_info` de `db.js`), et **son absence est le marqueur d'une bascule qui ne doit tourner qu'une fois** — les missions `completed` de l'ère « crédit automatique » ont déjà été payées et passent en `claimed` au même moment. Un `UPDATE` rejoué à chaque démarrage volerait, lui, les missions légitimement en attente.
 - **Le fuseau du reset est celui du serveur**, pas du joueur : un client qui annonce son fuseau pourrait en mentir pour se faire délivrer un cycle de plus. Déployer avec `TZ=Europe/Paris`.
 - Les missions **terminées restent affichées** jusqu'à la fin de la journée (`deleteStaleCompletedMissions`), puis s'effacent. Le plafond de 6 ne compte que les **actives**.
@@ -225,8 +227,8 @@ Comme pour `progression.reward`, **le client nomme, le serveur chiffre** : aucun
 | Route | Accès | Description |
 |---|---|---|
 | `GET /api/me/missions` | Connecté | Instantané (missions, `cycle`, jauge hebdo, reroll). **Délivre les lots manquants au passage** — le cycle avance à la lecture, il n'y a pas de tâche planifiée |
-| `POST /api/me/missions/events` | Connecté (30/min) | Lot d'événements → `{ countable, completed, milestones, granted, … }`. `granted` ne porte que les **paliers** : les missions terminées y sont annoncées, pas créditées |
-| `POST /api/me/missions/:id/claim` | Connecté (30/min) | Solde une mission terminée → `{ granted, mission, … }` |
+| `POST /api/me/missions/events` | Connecté (30/min) | Lot d'événements → `{ countable, completed, … }`. **Ne crédite rien et ne touche pas à la jauge** : les missions terminées y sont annoncées, pas soldées |
+| `POST /api/me/missions/:id/claim` | Connecté (30/min) | Solde une mission terminée : gain + 1 point de semaine + paliers franchis → `{ granted, milestones, mission, … }` |
 | `POST /api/me/missions/:id/reroll` | Connecté (20/min) | Remplace une mission par une autre du même slot |
 
 **Catalogue** (`data/missions.json`, distinct des routes de progression joueur ci-dessus) : CRUD admin sur le modèle des magies, gating identique.

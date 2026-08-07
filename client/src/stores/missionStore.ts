@@ -147,9 +147,9 @@ export const useMissionStore = create<MissionStoreState>((set, get) => ({
 
   claim: async (id) => {
     try {
-      const data = await (AuthClient as any).claimMission(id);
-      set({ snapshot: pickSnapshot(data) });
-      useAuthStore.getState().applyProgression(data.progression);
+      // `absorb` fait tout : instantané (donc la jauge hebdo avance à l'écran),
+      // solde, et toast des paliers franchis par ce tap.
+      absorb(set, await (AuthClient as any).claimMission(id));
       return null;
     } catch (e: any) {
       // L'instantané peut être en retard (mission déjà soldée dans un autre
@@ -220,7 +220,10 @@ function pickSnapshot(data: any): MissionSnapshot {
   return { missions: data.missions, cycle: data.cycle, weekly: data.weekly, reroll: data.reroll };
 }
 
-// Réponse d'un envoi d'événements : instantané rafraîchi, solde crédité, toasts.
+// Réponse d'un envoi d'événements OU d'une récupération : instantané rafraîchi,
+// solde crédité, toasts. Les deux réponses partagent la même forme — `completed`
+// (missions terminées, gain en attente) et `milestones` (paliers déjà crédités)
+// sont simplement absents de l'une ou de l'autre.
 function absorb(set: (partial: any) => void, data: any): void {
   if (!data) return;
   set((s: MissionStoreState) => ({
