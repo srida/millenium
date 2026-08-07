@@ -1,16 +1,19 @@
 // MissionsScreen — missions quotidiennes et jauge hebdomadaire.
 //
-// Écran de LECTURE : rien ne s'y réclame. Une mission terminée est créditée à
-// l'instant où le serveur la valide (fin de partie), pas au moment où le joueur
-// tape dessus — un gain qu'il faut penser à récupérer est un gain qu'on perd.
-// L'écran montre donc l'état, et n'offre qu'une seule action : le reroll.
+// Le gain d'une mission terminée SE RÉCUPÈRE : le serveur la valide en fin de
+// partie, le joueur la solde d'un tap. Contrepartie assumée de ce geste : une
+// mission terminée mais non récupérée n'est jamais purgée (le reset quotidien
+// n'emporte que les soldées), sinon oublier de taper reviendrait à perdre.
+//
+// Les paliers hebdomadaires, eux, tombent d'office — ils n'ont pas de carte à
+// taper, et la jauge avance à la complétion, pas à la récupération.
 //
 // Toutes les valeurs viennent du serveur (missions.js) : barème, cible,
 // progression, paliers. Le client n'en calcule aucune.
 import { useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
-import { useMissionStore, markMissionsSeen, type Mission, type WeeklyMilestone } from '../stores/missionStore.js';
+import { useMissionStore, markMissionsSeen, claimableCount, type Mission, type WeeklyMilestone } from '../stores/missionStore.js';
 import { Button, Panel, Gauge, Countdown } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 
@@ -34,6 +37,8 @@ export default function MissionsScreen() {
 
   useEffect(() => { void load(true); }, [load]);
   useEffect(() => { if (user && snapshot) markMissionsSeen(user.id, snapshot.cycle.next_reset_at); }, [user, snapshot?.cycle.next_reset_at]);
+
+  const pending = claimableCount(snapshot);
 
   if (!user) {
     return (
@@ -67,6 +72,11 @@ export default function MissionsScreen() {
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-[10px] tracking-widest text-white/40">
                 EN COURS — {snapshot.missions.filter(m => m.status === 'active').length}/{snapshot.cycle.max_active}
+                {pending > 0 && (
+                  <span className="ml-2 text-success">
+                    · {pending} GAIN{pending > 1 ? 'S' : ''} À RÉCUPÉRER
+                  </span>
+                )}
               </h2>
               <span className="text-[10px] text-white/30">
                 {snapshot.reroll.free_available
@@ -86,7 +96,8 @@ export default function MissionsScreen() {
             <p className="px-1 text-[10px] leading-relaxed text-white/30">
               {snapshot.cycle.count} nouvelles missions toutes les {snapshot.cycle.hours} h, cumulables
               {' '}jusqu'à {snapshot.cycle.max_active} ({Math.round(snapshot.cycle.max_active / snapshot.cycle.count * snapshot.cycle.hours)} h
-              {' '}d'absence pardonnées). Les récompenses sont créditées dès qu'une mission se termine.
+              {' '}d'absence pardonnées). Un gain terminé t'attend aussi longtemps qu'il le faut :
+              {' '}seules les missions déjà récupérées s'effacent au reset.
             </p>
           </>
         )}
@@ -140,20 +151,27 @@ function WeeklyGauge({ points, max, milestones }: { points: number; max: number;
 
 function MissionCard({ mission, rerollCost }: { mission: Mission; rerollCost: number }) {
   const reroll = useMissionStore(s => s.reroll);
+  const claim = useMissionStore(s => s.claim);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const done = mission.status === 'completed';
+  const claimable = mission.status === 'completed';   // terminée, gain en attente
+  const claimed = mission.status === 'claimed';       // soldée
+  const done = claimable || claimed;
   const slot = SLOTS[mission.slot_weight] ?? SLOTS[1];
 
-  async function doReroll() {
+  async function run(action: (id: string) => Promise<string | null>) {
     setBusy(true);
-    setErr(await reroll(mission.id));
+    setErr(await action(mission.id));
     setBusy(false);
   }
 
   return (
-    <Panel className={`flex flex-col gap-2 p-3 ${done ? 'border-success/40 bg-success/5' : ''}`}>
+    <Panel
+      className={`flex flex-col gap-2 p-3 ${
+        claimable ? 'border-success bg-success/10' : claimed ? 'border-success/30 bg-success/5' : ''
+      }`}
+    >
       <div className="flex items-start gap-2">
         <span aria-hidden="true" className="text-base leading-tight">{FAMILY_ICONS[mission.family] ?? '🎯'}</span>
         <div className="min-w-0 flex-1">
@@ -176,20 +194,34 @@ function MissionCard({ mission, rerollCost }: { mission: Mission; rerollCost: nu
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <RewardList rewards={mission.rewards} className={done ? 'text-success' : 'text-white/60'} />
-        {!done && (
-          <button
-            disabled={busy}
-            onPointerDown={doReroll}
-            title={rerollCost ? `Changer de mission — ${fmt.format(rerollCost)} golds` : 'Changer de mission (gratuit)'}
-            aria-label="Changer de mission"
-            className="ml-auto flex min-h-tap min-w-tap items-center justify-center rounded-lg border border-line px-2 text-xs text-white/50 active:opacity-70 disabled:opacity-30"
-          >
-            {busy ? '…' : rerollCost ? `🎲 ${fmt.format(rerollCost)}` : '🎲'}
-          </button>
-        )}
-      </div>
+      {/* Le gain à récupérer prend toute la largeur : c'est la seule chose à
+          faire sur cette carte, elle ne se dispute pas la place avec le dé. */}
+      {claimable ? (
+        <Button
+          variant="primary"
+          disabled={busy}
+          onPointerDown={() => void run(claim)}
+          className="w-full justify-center gap-2 border-success bg-success/20 text-success"
+        >
+          {busy ? '…' : <>Récupérer <RewardList rewards={mission.rewards} className="text-success" /></>}
+        </Button>
+      ) : (
+        <div className="flex items-center gap-2">
+          <RewardList rewards={mission.rewards} className={claimed ? 'text-success/60 line-through' : 'text-white/60'} />
+          {!done && (
+            <button
+              disabled={busy}
+              onPointerDown={() => void run(reroll)}
+              title={rerollCost ? `Changer de mission — ${fmt.format(rerollCost)} golds` : 'Changer de mission (gratuit)'}
+              aria-label="Changer de mission"
+              className="ml-auto flex min-h-tap min-w-tap items-center justify-center rounded-lg border border-line px-2 text-xs text-white/50 active:opacity-70 disabled:opacity-30"
+            >
+              {busy ? '…' : rerollCost ? `🎲 ${fmt.format(rerollCost)}` : '🎲'}
+            </button>
+          )}
+          {claimed && <span className="ml-auto text-[10px] text-success/60">récupéré</span>}
+        </div>
+      )}
       {err && <p className="text-[10px] text-danger">{err}</p>}
     </Panel>
   );

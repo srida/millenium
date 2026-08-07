@@ -366,6 +366,21 @@ router.post('/me/missions/events', auth.requireUser, auth.rateLimit({ windowMs: 
   });
 });
 
+// Récupération du gain d'une mission terminée. Le client désigne une LIGNE, le
+// serveur applique son barème : rien ne change au contrat « le client nomme, le
+// serveur chiffre », seul le moment du crédit se déplace.
+router.post('/me/missions/:id/claim', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  missions.sync(req.user);
+  const result = missions.claim(req.user, String(req.params.id));
+  if (!result.ok) return res.status(400).json({ error: result.reason });
+  const fresh = stmt.userById.get(req.user.id);
+  res.json({
+    ...result,
+    ...missions.getSnapshot(req.user),
+    progression: progression.getProgression(fresh),
+  });
+});
+
 router.post('/me/missions/:id/reroll', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
   missions.sync(req.user);
   const result = missions.reroll(req.user, String(req.params.id));

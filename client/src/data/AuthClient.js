@@ -111,6 +111,14 @@ export async function sendMissionEvents({ matchId = null, events }) {
   return data; // { countable, completed, milestones, missions, weekly, reroll, progression }
 }
 
+// Récupère le gain d'une mission terminée. Le client désigne une ligne, jamais
+// un montant : le barème reste au serveur, comme pour tout le reste.
+export async function claimMission(id) {
+  const data = await api(`/me/missions/${encodeURIComponent(id)}/claim`, { method: 'POST' });
+  if (currentUser && data && data.progression) currentUser = { ...currentUser, ...data.progression };
+  return data; // { ok, granted, mission, missions, weekly, reroll, progression }
+}
+
 export async function rerollMission(id) {
   const data = await api(`/me/missions/${encodeURIComponent(id)}/reroll`, { method: 'POST' });
   if (currentUser && data && data.progression) currentUser = { ...currentUser, ...data.progression };

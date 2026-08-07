@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
-import { useMissionStore, hasUnseenMissions } from '../stores/missionStore.js';
+import { useMissionStore, hasUnseenMissions, claimableCount } from '../stores/missionStore.js';
 import { useShopStore, hasUnseenShop } from '../stores/shopStore.js';
 import { getProgress, shouldInvite, updateProgress } from '../data/tutorialProgress.js';
 import { Button, Modal } from '../components/ui/primitives.js';
@@ -135,10 +135,19 @@ function TutorialInvite() {
   );
 }
 
-// Accès aux missions du jour. Même notification que la Boutique : un simple
-// point signale un cycle pas encore visité, pas un compteur — le détail vit
-// dans l'écran. Rien n'est rendu en invité — un compte est nécessaire pour
-// porter le cycle.
+// Accès aux missions du jour. DEUX notifications, qui ne disent pas la même
+// chose et ne s'annulent donc pas l'une l'autre :
+//
+//   - pastille VERTE chiffrée = des gains attendent d'être récupérés. C'est un
+//     compteur (et non le simple point de la Boutique) parce que la valeur est
+//     dénombrable et actionnable : le joueur doit savoir combien de taps
+//     l'attendent. Elle ne s'efface pas à la visite — seulement quand il ne
+//     reste plus rien à récupérer, sinon elle mentirait.
+//   - point DORÉ = cycle pas encore visité, exactement comme la Boutique.
+//     Effacé à la visite.
+//
+// La verte prime : « tu as gagné quelque chose » passe avant « il y a du neuf ».
+// Rien n'est rendu en invité — un compte est nécessaire pour porter le cycle.
 function MissionsButton() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
@@ -149,14 +158,22 @@ function MissionsButton() {
 
   if (!user) return null;
 
+  const pending = claimableCount(snapshot);
   const unseen = !!snapshot && hasUnseenMissions(user.id, snapshot.cycle.next_reset_at);
 
   return (
     <Button className="flex-1 px-2" onPointerDown={() => navigate('missions')}>
       <span className="whitespace-nowrap">🎯 Missions</span>
-      {unseen && (
+      {pending > 0 ? (
+        <span
+          aria-label={`${pending} gain${pending > 1 ? 's' : ''} à récupérer`}
+          className="flex h-5 min-w-5 items-center justify-center rounded-full bg-success px-1 text-[11px] font-bold tabular-nums text-black"
+        >
+          {pending}
+        </span>
+      ) : unseen ? (
         <span className="h-2 w-2 rounded-full bg-gold" aria-label="Nouveautés" />
-      )}
+      ) : null}
     </Button>
   );
 }

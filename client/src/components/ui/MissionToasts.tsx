@@ -4,8 +4,13 @@
 // partie et la réponse arrive souvent après la navigation vers le menu — un
 // toast rendu par l'écran de jeu ne serait jamais vu.
 //
-// Volontairement non interactif (pointer-events-none) : rien à réclamer, la
-// récompense est déjà créditée. Le toast informe, il ne demande rien.
+// Volontairement non interactif (pointer-events-none) : un toast qui se solde
+// au tap se solderait aussi à côté, en pleine partie, sur un geste destiné au
+// board. Il ANNONCE le gain ; c'est l'écran Missions qui le remet, et la
+// pastille verte du menu qui le rappelle jusque-là.
+//
+// Un palier hebdomadaire, lui, est déjà crédité — d'où le libellé différent :
+// dire « à récupérer » sur les deux enverrait chercher un gain déjà tombé.
 import { useEffect } from 'react';
 import { useMissionStore } from '../../stores/missionStore.js';
 import { RewardList } from '../../screens/MissionsScreen.js';
@@ -38,7 +43,12 @@ export default function MissionToasts() {
           <span aria-hidden="true">{t.kind === 'milestone' ? '🏅' : '🎯'}</span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-semibold text-white">{t.label}</p>
-            <RewardList rewards={t.rewards} className="text-white/60" />
+            <div className="flex items-baseline gap-1.5">
+              <RewardList rewards={t.rewards} className="text-white/60" />
+              {t.kind === 'mission' && (
+                <span className="text-[10px] text-success">à récupérer · 🎯 Missions</span>
+              )}
+            </div>
           </div>
         </div>
       ))}

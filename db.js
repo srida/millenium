@@ -235,6 +235,25 @@ db.exec(`
   );
 `);
 
+// Une mission terminée n'est plus créditée d'office : elle attend d'être
+// RÉCUPÉRÉE (status 'completed' → 'claimed'). D'où la colonne, ajoutée de
+// manière additive comme les autres.
+//
+// ⚠️ Son absence est aussi le marqueur d'une migration qui ne doit tourner
+// qu'UNE fois : les missions terminées sous l'ancien régime ont déjà été
+// payées à la seconde où elles se sont terminées. Sans cette bascule elles
+// réapparaîtraient comme récupérables et seraient créditées une seconde fois ;
+// et un `UPDATE` rejoué à chaque démarrage volerait, lui, les missions
+// légitimement en attente. La colonne ne pouvant s'ajouter qu'une fois, la
+// bascule non plus.
+const missionColumns = db.prepare('PRAGMA table_info(user_missions)').all().map(c => c.name);
+if (!missionColumns.includes('claimed_at')) {
+  db.exec(`
+    ALTER TABLE user_missions ADD COLUMN claimed_at INTEGER;
+    UPDATE user_missions SET status = 'claimed', claimed_at = completed_at WHERE status = 'completed';
+  `);
+}
+
 // Boutique de cartes : une seule ligne par joueur. L'offre du jour y est
 // PERSISTÉE (et pas recalculée à la lecture) — c'est elle qui fait foi à
 // l'achat, sinon un changement de deck ou un rechargement re-tirerait l'offre
@@ -384,18 +403,25 @@ const stmt = {
     VALUES (@id, @user_id, @mission_id, @slot_weight, 0, @target, 'active', @issued_day, @issued_at)
   `),
   missionRowById: db.prepare('SELECT * FROM user_missions WHERE id = ?'),
-  // Les missions terminées restent visibles jusqu'au prochain reset : le joueur
-  // doit voir ce qu'il a gagné, pas les voir disparaître en silence.
+  // Les missions terminées passent EN TÊTE : ce sont les seules sur lesquelles
+  // le joueur a quelque chose à faire (récupérer). Viennent ensuite les actives,
+  // puis les déjà récupérées, qui ne sont plus là que pour la mémoire du jour.
   missionsByUser: db.prepare(`
     SELECT * FROM user_missions WHERE user_id = ?
-    ORDER BY status = 'completed', slot_weight, issued_at
+    ORDER BY CASE status WHEN 'completed' THEN 0 WHEN 'active' THEN 1 ELSE 2 END, slot_weight, issued_at
   `),
   activeMissionsByUser: db.prepare("SELECT * FROM user_missions WHERE user_id = ? AND status = 'active'"),
   countActiveMissions: db.prepare("SELECT COUNT(*) AS c FROM user_missions WHERE user_id = ? AND status = 'active'"),
   updateMissionProgress: db.prepare('UPDATE user_missions SET progress = @progress, status = @status, completed_at = @completed_at WHERE id = @id'),
+  // Le `status = 'completed'` de la clause WHERE n'est pas décoratif : c'est lui
+  // qui rend le double crédit impossible, sans relecture préalable. Deux appels
+  // concurrents → le second ne change aucune ligne (`changes === 0`).
+  claimMission: db.prepare("UPDATE user_missions SET status = 'claimed', claimed_at = @claimed_at WHERE id = @id AND status = 'completed'"),
   deleteMission: db.prepare('DELETE FROM user_missions WHERE id = ?'),
-  // Purge des missions terminées d'un cycle révolu (appelée au reset quotidien).
-  deleteStaleCompletedMissions: db.prepare("DELETE FROM user_missions WHERE user_id = ? AND status = 'completed' AND issued_day < ?"),
+  // Purge des missions RÉCUPÉRÉES d'un cycle révolu (appelée au reset quotidien).
+  // Une mission terminée mais non récupérée n'est jamais purgée : le gain est
+  // acquis, seule la main du joueur peut le solder.
+  deleteStaleClaimedMissions: db.prepare("DELETE FROM user_missions WHERE user_id = ? AND status = 'claimed' AND issued_day < ?"),
 
   missionStateByUser: db.prepare('SELECT * FROM user_mission_state WHERE user_id = ?'),
   upsertMissionState: db.prepare(`

@@ -277,11 +277,72 @@ describe('complétion et barème', () => {
 
     expect(res.countable).toBe(true);
     expect(res.completed.map((c: any) => c.mission_id)).toEqual(['MISSION_A_006']);
-    expect(res.granted).toEqual({ xp: 10, gold: 100, gems: 0 });
+    // Terminer NE CRÉDITE PLUS : le gain attend la récupération.
+    expect(res.granted).toEqual({ xp: 0, gold: 0, gems: 0 });
+    expect(progression.getProgression(user()).gold).toBe(before.gold);
+
+    // …et c'est bien le barème du serveur (slot 2) qui tombe au `claim`.
+    const claimed = missions.claim(user(), 'fixed-1');
+    expect(claimed.ok).toBe(true);
+    expect(claimed.granted).toEqual({ xp: 10, gold: 100, gems: 0 });
     expect(progression.getProgression(user()).gold).toBe(before.gold + 100);
   });
 
-  it('une mission terminée n\'est jamais recréditée', () => {
+  it('un gain ne se récupère qu\'une fois, et seulement une fois terminé', () => {
+    const user = newUser();
+    const { db } = require(path.join(ROOT, 'db.js'));
+    missions.refresh(user());
+    db.prepare('DELETE FROM user_missions WHERE user_id = ?').run(user().id);
+    stmt.insertMission.run({
+      id: 'fixed-claim', user_id: user().id, mission_id: 'MISSION_A_001',
+      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now(),
+    });
+
+    // Encore active : rien à récupérer.
+    expect(missions.claim(user(), 'fixed-claim')).toMatchObject({ ok: false });
+    const before = progression.getProgression(user());
+
+    missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
+    expect(missions.claim(user(), 'fixed-claim').ok).toBe(true);
+    const afterClaim = progression.getProgression(user());
+    expect(afterClaim.gold).toBe(before.gold + missions.SLOT_REWARDS[1].gold);
+
+    // Deuxième tap (double-clic, second onglet) : refusé, et rien de crédité.
+    expect(missions.claim(user(), 'fixed-claim')).toMatchObject({ ok: false });
+    expect(progression.getProgression(user()).gold).toBe(afterClaim.gold);
+
+    // La mission d'un autre joueur n'est pas récupérable, même en connaissant l'id.
+    const thief = newUser();
+    expect(missions.claim(thief(), 'fixed-claim')).toMatchObject({ ok: false });
+  });
+
+  it('un gain terminé mais non récupéré survit au reset quotidien', () => {
+    // C'est la contrepartie de la récupération manuelle : si la purge emportait
+    // les gains en attente, oublier de taper reviendrait à les perdre.
+    const user = newUser();
+    const { db } = require(path.join(ROOT, 'db.js'));
+    missions.refresh(user());
+    db.prepare('DELETE FROM user_missions WHERE user_id = ?').run(user().id);
+    stmt.insertMission.run({
+      id: 'fixed-stale', user_id: user().id, mission_id: 'MISSION_A_001',
+      slot_weight: 1, target: 1, issued_day: '2020-01-01#0', issued_at: Date.now(),
+    });
+    missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
+
+    // Un cycle (et bien plus) a passé : la délivrance tourne, la purge aussi.
+    db.prepare("UPDATE user_mission_state SET last_issued_day = '2020-01-01#0' WHERE user_id = ?").run(user().id);
+    const snap = missions.refresh(user());
+    const kept = snap.missions.find((m: any) => m.id === 'fixed-stale');
+    expect(kept).toBeTruthy();
+    expect(kept.status).toBe('completed');
+    expect(missions.claim(user(), 'fixed-stale').ok).toBe(true);
+
+    // Une fois récupérée, elle s'efface au reset suivant comme avant.
+    missions.refresh(user());
+    expect(missions.getSnapshot(user()).missions.find((m: any) => m.id === 'fixed-stale')).toBeUndefined();
+  });
+
+  it('une mission terminée ne se re-termine jamais', () => {
     const user = newUser();
     const { db } = require(path.join(ROOT, 'db.js'));
     missions.refresh(user());
@@ -312,8 +373,9 @@ describe('complétion et barème', () => {
 
     const res = missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
     expect(res.milestones.map((m: any) => m.points)).toEqual([first]);
-    // Mission facile (6 XP / 50 golds) + 1er palier (3 XP / 100 golds / 5 gemmes).
-    expect(res.granted).toEqual({ xp: 9, gold: 150, gems: 5 });
+    // Le palier tombe D'OFFICE (3 XP / 100 golds / 5 gemmes) : seule la mission
+    // qui l'a fait franchir (6 XP / 50 golds) attend d'être récupérée.
+    expect(res.granted).toEqual({ xp: 3, gold: 100, gems: 5 });
 
     const snap = missions.getSnapshot(user());
     expect(snap.weekly.points).toBe(first);

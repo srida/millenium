@@ -26,7 +26,8 @@ export interface Mission {
   slot_weight: 1 | 2 | 3;
   progress: number;
   target: number;
-  status: 'active' | 'completed';
+  /** `completed` = terminée, gain EN ATTENTE ; `claimed` = gain récupéré. */
+  status: 'active' | 'completed' | 'claimed';
   rewards: { xp: number; gold: number };
 }
 
@@ -47,9 +48,15 @@ export interface MissionSnapshot {
 /** Toast de complétion — affiché par `MissionToasts`, quel que soit l'écran. */
 export interface MissionToast {
   key: number;
+  /** `mission` = terminée, gain à récupérer ; `milestone` = palier déjà crédité. */
   kind: 'mission' | 'milestone';
   label: string;
   rewards: { xp?: number; gold?: number; gems?: number };
+}
+
+/** Nombre de gains de mission en attente — dérivé, jamais transmis. */
+export function claimableCount(snapshot: MissionSnapshot | null): number {
+  return snapshot ? snapshot.missions.filter(m => m.status === 'completed').length : 0;
 }
 
 /** Événement de partie. `combat_index` est posé par le store, pas par l'appelant. */
@@ -66,6 +73,8 @@ interface MissionStoreState {
   toasts: MissionToast[];
 
   load: (force?: boolean) => Promise<void>;
+  /** Solde une mission terminée → message d'erreur, ou `null` si le gain est tombé. */
+  claim: (id: string) => Promise<string | null>;
   reroll: (id: string) => Promise<string | null>;
   dismissToast: (key: number) => void;
   reset: () => void;
@@ -133,6 +142,20 @@ export const useMissionStore = create<MissionStoreState>((set, get) => ({
       set({ error: e?.message ?? 'Missions indisponibles.' });
     } finally {
       set({ loading: false });
+    }
+  },
+
+  claim: async (id) => {
+    try {
+      const data = await (AuthClient as any).claimMission(id);
+      set({ snapshot: pickSnapshot(data) });
+      useAuthStore.getState().applyProgression(data.progression);
+      return null;
+    } catch (e: any) {
+      // L'instantané peut être en retard (mission déjà soldée dans un autre
+      // onglet) : on le relit plutôt que de laisser un bouton qui ment.
+      void get().load(true);
+      return e?.message ?? 'Récupération impossible.';
     }
   },
 

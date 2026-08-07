@@ -8,6 +8,8 @@
 //   - 1 reroll gratuit par jour, puis 100 golds
 //   - chaque mission terminée = 1 point sur une jauge hebdomadaire de 25,
 //     avec un palier tous les 5 points
+//   - le gain d'une mission se RÉCUPÈRE (`claim`) ; celui d'un palier tombe
+//     d'office
 //
 // Le système ne lit JAMAIS l'état du jeu : il consomme un flux d'événements
 // nommés (brief §4.3). C'est ce qui permet au moteur de rester gelé — un
@@ -273,7 +275,9 @@ const sync = db.transaction((user) => {
   // Purge à la JOURNÉE et non au cycle : une mission bouclée à 12 h 55 ne doit
   // pas disparaître de l'écran à 13 h. Les clés de cycle (`2026-07-27#1`) se
   // comparent bien à une clé de jour — le jour nu trie avant tous ses cycles.
-  stmt.deleteStaleCompletedMissions.run(userId, today);
+  // Ne sont purgées que les missions RÉCUPÉRÉES : un gain terminé mais non
+  // réclamé attend indéfiniment : il a été mérité, le reset ne le confisque pas.
+  stmt.deleteStaleClaimedMissions.run(userId, today);
 
   const missed = state.last_issued_day ? cyclesBetween(state.last_issued_day, cycle) : 1;
   if (missed > 0) {
@@ -366,7 +370,10 @@ function batchDelta(events, obj) {
  * deux `combat_started` (anti-concede) et une invocation (anti-AFK). Absent =
  * lot méta (deck enregistré…), limité aux événements hors combat.
  *
- * → { countable, completed: [{ mission_id, label, rewards }], milestones: [...] }
+ * Ce qui est crédité ici : les paliers hebdomadaires seulement. Les missions
+ * terminées sont ANNONCÉES (`completed`) et attendent leur `claim`.
+ *
+ * → { countable, completed: [{ id, mission_id, label, rewards }], milestones: [...] }
  */
 const applyEvents = db.transaction((user, { matchId = null, events = [] } = {}) => {
   const userId = user.id;
@@ -405,9 +412,12 @@ const applyEvents = db.transaction((user, { matchId = null, events = [] } = {}) 
     });
     if (done) {
       completed.push({
+        id: row.id,
         mission_id: def.id,
         label: renderLabel(def, row.target),
         slot_weight: row.slot_weight,
+        // Montant ANNONCÉ, pas crédité : il attend un `claim`. C'est la seule
+        // différence avec les paliers hebdo ci-dessous, qui tombent d'office.
         rewards: SLOT_REWARDS[row.slot_weight] ?? SLOT_REWARDS[1],
       });
     }
@@ -427,16 +437,51 @@ const applyEvents = db.transaction((user, { matchId = null, events = [] } = {}) 
     writeState(state);
   }
 
-  // Un seul crédit pour tout le lot : le client n'envoie que des événements,
-  // le serveur applique SON barème (même règle que progression.reward).
+  // Seuls les PALIERS sont crédités ici. Le gain d'une mission attend son
+  // `claim` : c'est le joueur qui le solde, d'un tap sur la carte.
+  //
+  // La jauge hebdomadaire, elle, avance bien à la COMPLÉTION et non à la
+  // récupération — sinon oublier de récupérer coûterait deux fois : le gain de
+  // la mission ET la semaine. Ce qui se réclame, c'est un gain ; une jauge de
+  // progression n'est pas un gain.
   const total = { xp: 0, gold: 0, gems: 0 };
-  for (const c of completed) { total.xp += c.rewards.xp ?? 0; total.gold += c.rewards.gold ?? 0; }
   for (const m of milestones) {
     total.xp += m.rewards.xp ?? 0; total.gold += m.rewards.gold ?? 0; total.gems += m.rewards.gems ?? 0;
   }
   if (total.xp || total.gold || total.gems) progression.grant(userId, total);
 
   return { countable: true, completed, milestones, granted: total };
+});
+
+// --- Récupération d'un gain ---
+
+/**
+ * Solde une mission terminée : crédite son barème et la passe en `claimed`.
+ * Le client désigne une LIGNE, jamais un montant — le barème reste au serveur,
+ * exactement comme quand le crédit était automatique.
+ * → { ok: false, reason } si la mission n'est pas récupérable.
+ */
+const claim = db.transaction((user, rowId) => {
+  const row = stmt.missionRowById.get(rowId);
+  if (!row || row.user_id !== user.id) return { ok: false, reason: 'Mission introuvable.' };
+  if (row.status === 'claimed') return { ok: false, reason: 'Récompense déjà récupérée.' };
+  if (row.status !== 'completed') return { ok: false, reason: 'Mission pas encore terminée.' };
+
+  // La garde `status = 'completed'` est dans le SQL : si l'UPDATE ne touche
+  // aucune ligne, quelqu'un est passé avant — on ne crédite pas.
+  const res = stmt.claimMission.run({ id: row.id, claimed_at: Date.now() });
+  if (!res.changes) return { ok: false, reason: 'Récompense déjà récupérée.' };
+
+  const rewards = SLOT_REWARDS[row.slot_weight] ?? SLOT_REWARDS[1];
+  const granted = { xp: rewards.xp ?? 0, gold: rewards.gold ?? 0, gems: rewards.gems ?? 0 };
+  progression.grant(user.id, granted);
+
+  const def = missionDef(row.mission_id);
+  return {
+    ok: true,
+    granted,
+    mission: { id: row.id, mission_id: row.mission_id, label: def ? renderLabel(def, row.target) : row.mission_id },
+  };
 });
 
 // --- Reroll ---
@@ -501,6 +546,10 @@ const SCOPE_HINTS = Object.freeze({
  * Instantané complet servi au client : missions du jour, jauge hebdomadaire,
  * état du reroll, prochain reset. Les montants viennent du serveur — le client
  * ne calcule aucune récompense.
+ *
+ * Le nombre de gains en attente ne fait pas partie de la charge : il se dérive
+ * des `status` (`completed`). Une valeur dérivée transmise est une valeur qui
+ * peut contredire celle dont elle vient.
  */
 function getSnapshot(user) {
   const state = readState(user.id);
@@ -517,6 +566,7 @@ function getSnapshot(user) {
       slot_weight: row.slot_weight,
       progress: row.progress,
       target: row.target,
+      // 'active' → 'completed' (terminée, gain en attente) → 'claimed' (soldée).
       status: row.status,
       rewards: SLOT_REWARDS[row.slot_weight] ?? SLOT_REWARDS[1],
     };
@@ -554,5 +604,5 @@ module.exports = {
   MAX_EVENTS_PER_BATCH, MIN_COMBATS_COUNTABLE, META_EVENTS,
   catalog, dayKey, cycleKey, cycleNumber, cyclesBetween, weekKey, nextResetAt,
   meetsRequirements, eventMatches, batchDelta, renderLabel,
-  sync, applyEvents, reroll, getSnapshot, refresh,
+  sync, applyEvents, claim, reroll, getSnapshot, refresh,
 };

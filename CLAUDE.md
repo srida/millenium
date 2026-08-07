@@ -185,7 +185,11 @@ La **dotation hebdomadaire totale est inchangée** par le passage de 3 à 5 pali
 
 **Calendrier** : `cycleKey(ts)` → `2026-07-27#1` (jour de mission + rang du créneau) ; `cycleNumber(key)` en donne un rang **absolu** pour que `cyclesBetween` fonctionne de part et d'autre de minuit. Le reroll gratuit et la purge des missions terminées restent indexés sur la **journée** (`dayKey`) : une mission bouclée à 12 h 55 ne doit pas disparaître de l'écran à 13 h. Une clé d'état sans `#` (antérieure aux cycles) est lue comme le premier créneau de sa journée — le joueur reçoit les cycles écoulés depuis, il n'y a pas de migration à écrire.
 
-- **Rien ne se réclame** : mission terminée = créditée dans la seconde (idem paliers hebdo). Un gain qu'il faut penser à récupérer est un gain qu'on perd. L'écran Missions est donc en lecture seule, sa seule action est le reroll.
+- **Le gain d'une mission se RÉCUPÈRE** (`POST /api/me/missions/:id/claim`), d'un tap sur sa carte : `active` → `completed` (terminée, gain en attente) → `claimed` (soldée). Le crédit ne se déplace que dans le temps — le client désigne une **ligne**, jamais un montant, et le barème reste `SLOT_REWARDS`.
+  - ⚠️ **Une mission terminée mais non récupérée n'est jamais purgée** : `deleteStaleClaimedMissions` n'emporte au reset que les **soldées**. Sans cette règle, la récupération manuelle ferait perdre le gain d'un joueur qui quitte le jeu sans repasser par l'écran — exactement ce que le crédit automatique évitait.
+  - La garde anti-double-crédit est **dans le SQL** (`… WHERE id = ? AND status = 'completed'`) : deux taps concurrents ne changent qu'une ligne, le second appel voit `changes === 0` et ne crédite rien.
+  - **Les paliers hebdomadaires, eux, tombent d'office** : ils n'ont pas de carte à taper. Et la jauge avance à la **complétion**, pas à la récupération — sinon oublier de récupérer coûterait deux fois (le gain *et* la semaine). Ce qui se réclame est un gain ; une jauge de progression n'en est pas un.
+  - ⚠️ **Migration** : `user_missions.claimed_at` est ajoutée de façon additive (idiome `PRAGMA table_info` de `db.js`), et **son absence est le marqueur d'une bascule qui ne doit tourner qu'une fois** — les missions `completed` de l'ère « crédit automatique » ont déjà été payées et passent en `claimed` au même moment. Un `UPDATE` rejoué à chaque démarrage volerait, lui, les missions légitimement en attente.
 - **Le fuseau du reset est celui du serveur**, pas du joueur : un client qui annonce son fuseau pourrait en mentir pour se faire délivrer un cycle de plus. Déployer avec `TZ=Europe/Paris`.
 - Les missions **terminées restent affichées** jusqu'à la fin de la journée (`deleteStaleCompletedMissions`), puis s'effacent. Le plafond de 6 ne compte que les **actives**.
 - **Filtrage par collection** (`requirements.owns_cards_matching`) : une mission Fusion ne sort pas si le joueur ne possède pas assez de cartes Fusion.
@@ -221,7 +225,8 @@ Comme pour `progression.reward`, **le client nomme, le serveur chiffre** : aucun
 | Route | Accès | Description |
 |---|---|---|
 | `GET /api/me/missions` | Connecté | Instantané (missions, `cycle`, jauge hebdo, reroll). **Délivre les lots manquants au passage** — le cycle avance à la lecture, il n'y a pas de tâche planifiée |
-| `POST /api/me/missions/events` | Connecté (30/min) | Lot d'événements → `{ countable, completed, milestones, granted, … }` |
+| `POST /api/me/missions/events` | Connecté (30/min) | Lot d'événements → `{ countable, completed, milestones, granted, … }`. `granted` ne porte que les **paliers** : les missions terminées y sont annoncées, pas créditées |
+| `POST /api/me/missions/:id/claim` | Connecté (30/min) | Solde une mission terminée → `{ granted, mission, … }` |
 | `POST /api/me/missions/:id/reroll` | Connecté (20/min) | Remplace une mission par une autre du même slot |
 
 **Catalogue** (`data/missions.json`, distinct des routes de progression joueur ci-dessus) : CRUD admin sur le modèle des magies, gating identique.
@@ -238,10 +243,10 @@ Onglet **Missions** de `admin.html` (Card Manager) : liste + formulaire (champs 
 
 ### Client
 
-- `stores/missionStore.ts` — instantané + file d'événements (`startMatch` / `emit` / `emitCombatStarted` / `flushMatch` / `emitMeta`).
-- `screens/MissionsScreen.tsx` — jauge hebdomadaire avec jalons posés à leur position réelle sur la barre, cartes de mission, reroll. Une cible de 1 n'affiche pas de barre de progression (elle serait toujours vide ou pleine).
-- `components/ui/MissionToasts.tsx` — monté au niveau de **l'App**, pas d'un écran : la réponse du lot arrive souvent une fois revenu au menu. Positionné à la hauteur de `Banner` (`top-16`) pour ne pas recouvrir la barre de PV.
-- `MainMenu` — bouton `🎯 Missions` avec le nombre d'actives et de terminées. Rien n'est rendu en invité : le cycle a besoin d'un compte.
+- `stores/missionStore.ts` — instantané + file d'événements (`startMatch` / `emit` / `emitCombatStarted` / `flushMatch` / `emitMeta`), plus `claim(id)` et le sélecteur `claimableCount(snapshot)`. Le **nombre de gains en attente est dérivé des `status`, jamais transmis** — une valeur dérivée qu'on transporte est une valeur qui peut contredire sa source.
+- `screens/MissionsScreen.tsx` — jauge hebdomadaire avec jalons posés à leur position réelle sur la barre, cartes de mission, reroll. Une carte terminée affiche un bouton **Récupérer** pleine largeur (le gain est la seule chose à y faire, il ne se dispute pas la place avec le dé) ; une fois soldée, elle retombe en vert éteint. Une cible de 1 n'affiche pas de barre de progression (elle serait toujours vide ou pleine).
+- `components/ui/MissionToasts.tsx` — monté au niveau de **l'App**, pas d'un écran : la réponse du lot arrive souvent une fois revenu au menu. Positionné à la hauteur de `Banner` (`top-16`) pour ne pas recouvrir la barre de PV. Reste **non interactif** : un toast qui se solde au tap se solderait aussi à côté, en pleine partie, sur un geste destiné au board — il annonce « à récupérer », il ne remet rien.
+- `MainMenu` — bouton `🎯 Missions` avec **deux** notifications qui ne disent pas la même chose : une pastille **verte chiffrée** quand des gains attendent (un compteur, pas un point : la valeur est dénombrable et actionnable — elle ne s'efface qu'une fois tout récupéré, pas à la visite), et à défaut le **point doré** « cycle pas encore vu », effacé à la visite comme celui de la Boutique. La verte prime. Rien n'est rendu en invité : le cycle a besoin d'un compte.
 
 ### Collection & DeckBuilder
 
