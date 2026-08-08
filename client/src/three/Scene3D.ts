@@ -1387,11 +1387,22 @@ export class Scene3D {
   // tombent en cascade (animation d'apparition), les survivants déjà à l'écran
   // se contentent de rejoindre leur nouvelle case (rearrangeUnits les déplace).
   // Retourne la durée totale (ms) de la cascade, pour retarder le combat.
+  //
+  // ⚠️ C'est une SYNCHRO, pas un simple ajout : le tour de l'IA peut aussi FAIRE
+  // DISPARAÎTRE des unités du board (un survivant consommé comme matériau de
+  // sacrifice/fusion/héritage, remplacé par une transformation, ou écarté par le
+  // plafond de slots de rearrangeUnits). Ces unités-là ont déjà un objet de
+  // scène hérité du round précédent ; sans la purge ci-dessous, leur carte reste
+  // affichée pendant tout le combat alors qu'elles ne sont plus dans
+  // `board.grid` — un fantôme qui n'attaque pas, ne bouge pas et n'est pas
+  // ciblable, et que seul le refresh() de exitCombatMode finit par balayer.
   revealEnemyUnits(units: Unit[]): number {
+    const seen = new Set<number>();
     let spawned = 0;
     for (const unit of units) {
       const pos = unit.position;
       if (!pos) continue;
+      seen.add(unit.uid);
       const entry = this.unitObjs.get(unit.uid);
       if (entry) {
         if (entry.pos.col !== pos.col || entry.pos.row !== pos.row) {
@@ -1402,6 +1413,15 @@ export class Scene3D {
       }
       this.unitObjs.set(unit.uid, this._spawnUnitObj(unit, SPAWN_LEAD_S + spawned * SPAWN_STAGGER_S));
       spawned++;
+    }
+    // Purge des unités ennemies qui ont quitté le board. Retrait franc
+    // (_removeUnitObj) et non killUnitObj : elles n'ont pas été tuées — une
+    // explosion de mort avant le premier coup mentirait sur ce qui s'est passé.
+    // Le côté joueur n'est jamais touché ici : il reste géré par refresh().
+    for (const [uid, entry] of [...this.unitObjs.entries()]) {
+      if (entry.unit.side !== 'enemy' || seen.has(uid)) continue;
+      this._removeUnitObj(entry);
+      this.unitObjs.delete(uid);
     }
     this._invalidate();
     if (spawned === 0) return 0;
