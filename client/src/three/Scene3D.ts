@@ -210,12 +210,21 @@ export class Scene3D {
     this.renderer.domElement.style.position = 'absolute';
     this.renderer.domElement.style.inset = '0';
     this.renderer.domElement.style.touchAction = 'none';
+    // L'appui long sur une unité ouvre le tooltip du jeu : le navigateur ne doit
+    // ni sélectionner, ni proposer son menu contextuel par-dessus (cf. le garde
+    // hérité de <body> dans styles/index.css — répété ici parce que c'est ce
+    // canvas qui reçoit le geste, et qu'il vit aussi dans le TestBench).
+    this.renderer.domElement.style.userSelect = 'none';
+    (this.renderer.domElement.style as any).webkitUserSelect = 'none';
+    (this.renderer.domElement.style as any).webkitTouchCallout = 'none';
     this.container.appendChild(this.renderer.domElement);
 
     this.cssRenderer = new CSS3DRenderer();
     this.cssRenderer.domElement.style.position = 'absolute';
     this.cssRenderer.domElement.style.inset = '0';
     this.cssRenderer.domElement.style.pointerEvents = 'none';
+    this.cssRenderer.domElement.style.userSelect = 'none';
+    (this.cssRenderer.domElement.style as any).webkitUserSelect = 'none';
     this.container.appendChild(this.cssRenderer.domElement);
 
     // Ambiance astrale : lumière froide violet-bleu + clé dorée rasante

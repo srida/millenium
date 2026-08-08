@@ -1526,6 +1526,9 @@ La couche `logic/` reste **headless** : aucun import de React/Zustand/Three (gar
 - Portrait recommandé, **paysage jamais bloqué** : un téléphone tourné franchit le seuil d'aspect et bascule sur le **mode web** (rails latéraux + cadrage caméra correspondant), exactement comme un desktop
 - `manifest.json` PWA : icône, nom, couleurs de thème
 - Bouton plein écran (Fullscreen API)
+- **Aucun geste natif du navigateur ne concurrence l'appui long** (`styles/index.css`) : `user-select: none`, `-webkit-touch-callout: none` et `-webkit-tap-highlight-color: transparent` sont posés sur `<body>`, donc **hérités** par tout l'arbre — HUD React comme cartes CSS3D du board. Sans ça, l'appui de 500 ms qui ouvre le tooltip (unité, carte en main) déclenche d'abord la sélection : poignées bleues, loupe, menu « Copier » / « Enregistrer l'image » sur iOS. `Scene3D` les répète sur son canvas et sur le conteneur CSS3D — c'est ce canvas qui reçoit le geste, et il vit aussi dans le TestBench.
+  - **Exception : les champs de saisie** (`input`, `textarea`, `select`, `contenteditable`) rétablissent `user-select: auto`. Un champ non sélectionnable n'est plus corrigeable au doigt sur iOS (ni curseur déplaçable, ni sélection de mot).
+  - `touch-action: manipulation` sur les commandes (`button`, `a`, `label`, `[role=button]`) supprime le délai de double-tap ; le canvas garde son `touch-action: none`, il gère le drag d'unité lui-même.
 
 ### Cadrage préparation : portrait vs web
 

@@ -10,6 +10,36 @@ html, body {
   overscroll-behavior-y: none;
 }
 
+/* Le jeu se joue au doigt : la sélection du navigateur n'y a rien à faire.
+   Sans ça, l'appui long qui ouvre un tooltip (unité du board, carte en main)
+   déclenche d'abord le geste natif — poignées de sélection, loupe, menu
+   « Copier » / « Enregistrer l'image » sur iOS, surbrillance grise sur Android.
+   Le geste appartient au jeu, pas au navigateur. Ces trois propriétés sont
+   héritées : les poser sur <body> couvre tout l'arbre, HUD React comme cartes
+   CSS3D du board. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Exception : la saisie. Un champ non sélectionnable n'est plus corrigeable au
+   doigt sur iOS (pas de curseur déplaçable, pas de sélection de mot). */
+input, textarea, select, [contenteditable="true"] {
+  -webkit-user-select: auto;
+  user-select: auto;
+  -webkit-touch-callout: default;
+}
+
+/* Supprime le délai de double-tap sur les commandes. Le canvas WebGL garde son
+   propre `touch-action: none` (Scene3D) — il gère le drag d'unité lui-même. */
+button, a, label, [role="button"] { touch-action: manipulation; }
+
+/* Anneau de focus au clavier uniquement : un tap ne doit pas laisser un contour
+   collé sur le bouton après coup. */
+:focus:not(:focus-visible) { outline: none; }
+
 /* Design tokens Millenium — étendus au fil des phases (cf. PLAN_REFONTE §3.1) */
 @theme {
   --color-surface: #0f1117;
