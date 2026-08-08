@@ -155,6 +155,11 @@ export const useMissionStore = create<MissionStoreState>((set, get) => ({
       // L'instantané peut être en retard (mission déjà soldée dans un autre
       // onglet) : on le relit plutôt que de laisser un bouton qui ment.
       void get().load(true);
+      // Un 404 ici ne veut pas dire « mission introuvable » (le serveur répond
+      // 400 dans ce cas) mais « la ROUTE n'existe pas » : client à jour devant
+      // un serveur qui ne l'est pas. Le dire, plutôt que d'afficher « Erreur
+      // 404 » sous un bouton qui a l'air cassé.
+      if (e?.status === 404) return 'Serveur pas à jour : la récupération des gains n\'existe pas encore de son côté (redémarre-le).';
       return e?.message ?? 'Récupération impossible.';
     }
   },

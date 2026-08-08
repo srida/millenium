@@ -224,7 +224,13 @@ function MissionCard({ mission, rerollCost }: { mission: Mission; rerollCost: nu
           {claimed && <span className="ml-auto text-[10px] text-success/60">récupéré</span>}
         </div>
       )}
-      {err && <p className="text-[10px] text-danger">{err}</p>}
+      {/* Un échec de récupération se lit : à 10 px sous la carte, un bouton qui
+          ne fait « rien » passe pour cassé au lieu de pour empêché. */}
+      {err && (
+        <p role="alert" className="rounded-lg border border-danger/50 bg-danger/10 px-2 py-1.5 text-xs leading-snug text-danger">
+          {err}
+        </p>
+      )}
     </Panel>
   );
 }
