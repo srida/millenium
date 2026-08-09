@@ -381,6 +381,22 @@ router.post('/me/missions/:id/claim', auth.requireUser, auth.rateLimit({ windowM
   });
 });
 
+// Récupération d'un palier hebdomadaire atteint. Le chemin a un segment de plus
+// que `/me/missions/:id/claim` À DESSEIN : `/me/missions/weekly/claim` aurait la
+// même forme que celui-ci et serait capté par `:id = 'weekly'` — une collision
+// que seul l'ordre d'enregistrement départagerait.
+router.post('/me/missions/weekly/:points/claim', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  missions.sync(req.user);
+  const result = missions.claimMilestone(req.user, req.params.points);
+  if (!result.ok) return res.status(400).json({ error: result.reason });
+  const fresh = stmt.userById.get(req.user.id);
+  res.json({
+    ...result,
+    ...missions.getSnapshot(req.user),
+    progression: progression.getProgression(fresh),
+  });
+});
+
 router.post('/me/missions/:id/reroll', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
   missions.sync(req.user);
   const result = missions.reroll(req.user, String(req.params.id));

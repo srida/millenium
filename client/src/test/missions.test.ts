@@ -395,15 +395,56 @@ describe('complétion et barème', () => {
     expect(res.completed).toHaveLength(1);
     expect(res.milestones).toBeUndefined();     // rien n'est versé à la complétion
 
+    // Récupérer la mission ATTEINT le palier sans le verser : il se réclame.
     const claimed = missions.claim(user(), 'fixed-3');
-    expect(claimed.milestones.map((m: any) => m.points)).toEqual([first]);
-    // Un seul crédit : mission facile (6 XP / 50 golds) + 1er palier
-    // (3 XP / 100 golds / 5 gemmes), le palier tombant d'office.
-    expect(claimed.granted).toEqual({ xp: 9, gold: 150, gems: 5 });
+    expect(claimed.unlocked.map((m: any) => m.points)).toEqual([first]);
+    expect(claimed.granted).toEqual({ xp: 6, gold: 50, gems: 0 });   // la mission seule
 
-    const snap = missions.getSnapshot(user());
+    let snap = missions.getSnapshot(user());
     expect(snap.weekly.points).toBe(first);
+    expect(snap.weekly.milestones.find((m: any) => m.points === first).claimed).toBe(false);
+
+    // …puis le tap sur le palier le solde, une fois.
+    const before = progression.getProgression(user());
+    const ms = missions.claimMilestone(user(), first);
+    expect(ms.granted).toEqual({ xp: 3, gold: 100, gems: 5 });
+    expect(progression.getProgression(user()).gems).toBe(before.gems + 5);
+    expect(missions.claimMilestone(user(), first)).toMatchObject({ ok: false });
+    expect(progression.getProgression(user()).gems).toBe(before.gems + 5);
+
+    snap = missions.getSnapshot(user());
     expect(snap.weekly.milestones.find((m: any) => m.points === first).claimed).toBe(true);
+  });
+
+  it('un palier non atteint (ou inconnu) ne se récupère pas', () => {
+    const user = newUser();
+    missions.refresh(user());
+    const before = progression.getProgression(user());
+    expect(missions.claimMilestone(user(), missions.WEEKLY_MILESTONES[0].points)).toMatchObject({ ok: false });
+    expect(missions.claimMilestone(user(), 7)).toMatchObject({ ok: false });   // hors barème
+    expect(progression.getProgression(user()).gold).toBe(before.gold);
+  });
+
+  it('un palier atteint et oublié est soldé au changement de semaine, pas perdu', () => {
+    // Une jauge qui repart de zéro ne peut pas porter ses restes : on règle
+    // l'ardoise à la frontière plutôt que de confisquer un gain mérité.
+    const user = newUser();
+    const { db } = require(path.join(ROOT, 'db.js'));
+    missions.refresh(user());
+    const first = missions.WEEKLY_MILESTONES[0];
+    db.prepare("UPDATE user_mission_state SET weekly_points = ?, weekly_claimed = '[]', week_key = ? WHERE user_id = ?")
+      .run(first.points, '2000-01-03', user().id);
+
+    const before = progression.getProgression(user());
+    const snap = missions.refresh(user());                    // franchit la semaine
+    expect(snap.weekly.points).toBe(0);
+    expect(progression.getProgression(user()).gems).toBe(before.gems + first.rewards.gems);
+    expect(progression.getProgression(user()).gold).toBe(before.gold + first.rewards.gold);
+
+    // Et le solde ne se rejoue pas au passage suivant.
+    const after = progression.getProgression(user());
+    missions.refresh(user());
+    expect(progression.getProgression(user()).gold).toBe(after.gold);
   });
 
   it('la jauge est bornée : récupérer au-delà du plafond ne reverse rien', () => {
@@ -422,7 +463,7 @@ describe('complétion et barème', () => {
     const claimed = missions.claim(user(), 'fixed-cap');
     // Le gain de la mission tombe toujours — c'est la SEMAINE qui est pleine.
     expect(claimed.granted).toEqual({ xp: 6, gold: 50, gems: 0 });
-    expect(claimed.milestones).toEqual([]);
+    expect(claimed.unlocked).toEqual([]);
     expect(missions.getSnapshot(user()).weekly.points).toBe(missions.WEEKLY_MAX);
   });
 

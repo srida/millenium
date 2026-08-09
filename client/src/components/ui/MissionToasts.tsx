@@ -9,8 +9,8 @@
 // board. Il ANNONCE le gain ; c'est l'écran Missions qui le remet, et la
 // pastille verte du menu qui le rappelle jusque-là.
 //
-// Un palier hebdomadaire, lui, est déjà crédité — d'où le libellé différent :
-// dire « à récupérer » sur les deux enverrait chercher un gain déjà tombé.
+// Les deux familles annoncent la même chose depuis que le palier se réclame
+// lui aussi : « à récupérer ». Seule l'icône les distingue.
 import { useEffect } from 'react';
 import { useMissionStore } from '../../stores/missionStore.js';
 import { RewardList } from '../../screens/MissionsScreen.js';
@@ -45,9 +45,7 @@ export default function MissionToasts() {
             <p className="truncate text-xs font-semibold text-white">{t.label}</p>
             <div className="flex items-baseline gap-1.5">
               <RewardList rewards={t.rewards} className="text-white/60" />
-              {t.kind === 'mission' && (
-                <span className="text-[10px] text-success">à récupérer · 🎯 Missions</span>
-              )}
+              <span className="text-[10px] text-success">à récupérer · 🎯 Missions</span>
             </div>
           </div>
         </div>

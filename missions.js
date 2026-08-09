@@ -8,7 +8,9 @@
 //   - 1 reroll gratuit par jour, puis 100 golds
 //   - le gain d'une mission se RÉCUPÈRE d'un tap (`claim`)
 //   - chaque mission RÉCUPÉRÉE = 1 point sur une jauge hebdomadaire de 25,
-//     avec un palier tous les 5 points ; les paliers, eux, tombent d'office
+//     avec un palier tous les 5 points, qui se récupère lui aussi d'un tap
+//     (`claimMilestone`) — et qui est soldé d'office au changement de semaine
+//     s'il a été atteint sans être réclamé
 //
 // Le système ne lit JAMAIS l'état du jeu : il consomme un flux d'événements
 // nommés (brief §4.3). C'est ce qui permet au moteur de rester gelé — un
@@ -265,7 +267,26 @@ const sync = db.transaction((user) => {
   const week = weekKey();
 
   // Nouvelle semaine → la jauge repart de zéro (les paliers aussi).
+  //
+  // ⚠️ Mais on SOLDE d'abord les paliers atteints et jamais récupérés. Depuis
+  // qu'un palier se réclame d'un tap, le reset pourrait confisquer un gain déjà
+  // mérité — c'est exactement ce qu'on refuse aux missions terminées (jamais
+  // purgées). Une jauge qui repart à zéro ne peut pas, elle, porter ses restes
+  // d'une semaine à l'autre : on règle donc l'ardoise à la frontière plutôt que
+  // de traîner un état en travers. Le tap reste le geste normal ; ceci n'est
+  // que le filet, et il est silencieux (le solde, lui, est juste).
   if (state.week_key !== week) {
+    const due = WEEKLY_MILESTONES.filter(ms =>
+      state.weekly_points >= ms.points && !state.weekly_claimed.includes(ms.points));
+    if (due.length) {
+      const total = { xp: 0, gold: 0, gems: 0 };
+      for (const ms of due) {
+        total.xp += ms.rewards.xp ?? 0;
+        total.gold += ms.rewards.gold ?? 0;
+        total.gems += ms.rewards.gems ?? 0;
+      }
+      progression.grant(userId, total);
+    }
     state.week_key = week;
     state.weekly_points = 0;
     state.weekly_claimed = [];
@@ -457,20 +478,16 @@ const claim = db.transaction((user, rowId) => {
   // une mission terminée attend indéfiniment d'être récupérée (elle n'est pas
   // purgée au reset), le crédit est différé, pas confisqué.
   //
-  // Les paliers franchis au passage, eux, tombent d'office — ils n'ont pas de
-  // carte à taper — et sont donc ajoutés au même crédit.
+  // Le palier franchi au passage n'est pas versé ici : il devient RÉCUPÉRABLE,
+  // et attend son propre tap (`claimMilestone`). On le renvoie tout de même
+  // pour que le client puisse l'annoncer — « atteint », pas « crédité ».
   const state = readState(user.id);
-  const milestones = [];
+  const unlocked = [];
   if (state.weekly_points < WEEKLY_MAX) {
+    const before = state.weekly_points;
     state.weekly_points += 1;
     for (const ms of WEEKLY_MILESTONES) {
-      if (state.weekly_points >= ms.points && !state.weekly_claimed.includes(ms.points)) {
-        state.weekly_claimed.push(ms.points);
-        milestones.push(ms);
-        granted.xp += ms.rewards.xp ?? 0;
-        granted.gold += ms.rewards.gold ?? 0;
-        granted.gems += ms.rewards.gems ?? 0;
-      }
+      if (ms.points > before && ms.points <= state.weekly_points) unlocked.push(ms);
     }
     writeState(state);
   }
@@ -481,9 +498,41 @@ const claim = db.transaction((user, rowId) => {
   return {
     ok: true,
     granted,
-    milestones,
+    unlocked,
     mission: { id: row.id, mission_id: row.mission_id, label: def ? renderLabel(def, row.target) : row.mission_id },
   };
+});
+
+/**
+ * Récupère un palier hebdomadaire ATTEINT. Même contrat que pour une mission :
+ * le client désigne un palier (son nombre de points), le serveur applique son
+ * barème. `weekly_claimed` porte exactement le même sens qu'avant — la liste
+ * des paliers déjà PAYÉS —, seul le moment du paiement change : au tap et non
+ * plus au franchissement. Aucune migration : un palier déjà payé y figure déjà.
+ *
+ * L'atomicité vient de `db.transaction` (better-sqlite3 est synchrone : deux
+ * requêtes concurrentes ne s'entrelacent pas), là où les missions s'appuient
+ * sur un `WHERE status = 'completed'` — un tableau JSON ne se garde pas aussi
+ * bien en SQL, la transaction fait le même travail.
+ * → { ok: true, granted, milestone } | { ok: false, reason }
+ */
+const claimMilestone = db.transaction((user, points) => {
+  const target = Number(points);
+  const ms = WEEKLY_MILESTONES.find(m => m.points === target);
+  if (!ms) return { ok: false, reason: 'Palier inconnu.' };
+
+  const state = readState(user.id);
+  if (state.weekly_points < ms.points) {
+    return { ok: false, reason: `Palier pas encore atteint (${state.weekly_points}/${ms.points}).` };
+  }
+  if (state.weekly_claimed.includes(ms.points)) return { ok: false, reason: 'Palier déjà récupéré.' };
+
+  state.weekly_claimed.push(ms.points);
+  writeState(state);
+
+  const granted = { xp: ms.rewards.xp ?? 0, gold: ms.rewards.gold ?? 0, gems: ms.rewards.gems ?? 0 };
+  progression.grant(user.id, granted);
+  return { ok: true, granted, milestone: { points: ms.points, rewards: ms.rewards } };
 });
 
 // --- Reroll ---
@@ -606,5 +655,5 @@ module.exports = {
   MAX_EVENTS_PER_BATCH, MIN_COMBATS_COUNTABLE, META_EVENTS,
   catalog, dayKey, cycleKey, cycleNumber, cyclesBetween, weekKey, nextResetAt,
   meetsRequirements, eventMatches, batchDelta, renderLabel,
-  sync, applyEvents, claim, reroll, getSnapshot, refresh,
+  sync, applyEvents, claim, claimMilestone, reroll, getSnapshot, refresh,
 };

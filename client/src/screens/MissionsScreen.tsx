@@ -7,15 +7,16 @@
 //
 // La jauge hebdomadaire avance elle aussi AU TAP, d'un cran par mission
 // récupérée : le joueur voit la barre bouger devant lui au lieu de la découvrir
-// déjà remplie. Les paliers franchis au passage, eux, tombent d'office — ils
-// n'ont pas de carte à taper.
+// déjà remplie. Et un palier atteint se récupère de la même façon, en tapant sa
+// pastille — le serveur le solde d'office au changement de semaine s'il a été
+// oublié, aucun gain mérité ne se perd.
 //
 // Toutes les valeurs viennent du serveur (missions.js) : barème, cible,
 // progression, paliers. Le client n'en calcule aucune.
 import { useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
-import { useMissionStore, markMissionsSeen, claimableCount, type Mission, type WeeklyMilestone } from '../stores/missionStore.js';
+import { useMissionStore, markMissionsSeen, claimableMissions, type Mission, type WeeklyMilestone } from '../stores/missionStore.js';
 import { Button, Panel, Gauge, Countdown } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 
@@ -40,7 +41,7 @@ export default function MissionsScreen() {
   useEffect(() => { void load(true); }, [load]);
   useEffect(() => { if (user && snapshot) markMissionsSeen(user.id, snapshot.cycle.next_reset_at); }, [user, snapshot?.cycle.next_reset_at]);
 
-  const pending = claimableCount(snapshot);
+  const pending = claimableMissions(snapshot);
 
   if (!user) {
     return (
@@ -109,9 +110,20 @@ export default function MissionsScreen() {
 }
 
 function WeeklyGauge({ points, max, milestones }: { points: number; max: number; milestones: WeeklyMilestone[] }) {
-  // Le prochain palier est signalé : à cinq marches, « où j'en suis » ne se lit
-  // plus d'un coup d'œil sur la seule couleur acquis/pas acquis.
-  const next = milestones.find(ms => !ms.claimed)?.points ?? null;
+  const claimMilestone = useMissionStore(s => s.claimMilestone);
+  const [busy, setBusy] = useState<number | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  // Le prochain palier ENCORE À ATTEINDRE est signalé : à cinq marches, « où
+  // j'en suis » ne se lit plus d'un coup d'œil sur la seule couleur.
+  const next = milestones.find(ms => points < ms.points)?.points ?? null;
+
+  async function claim(p: number) {
+    setBusy(p);
+    setErr(await claimMilestone(p));
+    setBusy(null);
+  }
+
   return (
     <Panel className="p-3">
       <div className="flex items-baseline justify-between">
@@ -132,21 +144,47 @@ function WeeklyGauge({ points, max, milestones }: { points: number; max: number;
         ))}
       </div>
 
+      {/* Un palier atteint est un BOUTON : c'est le même geste que sur une carte
+          de mission, et il doit se voir comme tel (pastille pleine, 🎁). Les
+          autres restent des pastilles inertes — rien à y faire. */}
       <ul className="mt-2 flex flex-wrap gap-1.5">
-        {milestones.map(ms => (
-          <li
-            key={ms.points}
-            className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-[11px] tabular-nums ${
-              ms.claimed ? 'border-success/50 bg-success/10 text-success'
-                : ms.points === next ? 'border-gold/60 bg-gold/10 text-white/80'
-                : 'border-line bg-surface/60 text-white/60'
-            }`}
-          >
-            <span className="font-semibold">{ms.claimed ? '✓' : ms.points}</span>
-            <RewardList rewards={ms.rewards} />
-          </li>
-        ))}
+        {milestones.map(ms => {
+          const claimable = !ms.claimed && points >= ms.points;
+          const chip = 'flex min-h-tap items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] tabular-nums';
+          if (claimable) {
+            return (
+              <li key={ms.points}>
+                <button
+                  disabled={busy === ms.points}
+                  onPointerDown={() => void claim(ms.points)}
+                  aria-label={`Récupérer le palier ${ms.points}`}
+                  className={`${chip} border-success bg-success/25 font-semibold text-success active:opacity-70 disabled:opacity-40`}
+                >
+                  {busy === ms.points ? '…' : <>🎁 <RewardList rewards={ms.rewards} className="text-success" /></>}
+                </button>
+              </li>
+            );
+          }
+          return (
+            <li
+              key={ms.points}
+              className={`${chip} ${
+                ms.claimed ? 'border-success/40 bg-success/5 text-success/60'
+                  : ms.points === next ? 'border-gold/60 bg-gold/10 text-white/80'
+                  : 'border-line bg-surface/60 text-white/60'
+              }`}
+            >
+              <span className="font-semibold">{ms.claimed ? '✓' : ms.points}</span>
+              <RewardList rewards={ms.rewards} />
+            </li>
+          );
+        })}
       </ul>
+      {err && (
+        <p role="alert" className="mt-2 rounded-lg border border-danger/50 bg-danger/10 px-2 py-1.5 text-xs leading-snug text-danger">
+          {err}
+        </p>
+      )}
     </Panel>
   );
 }

@@ -48,15 +48,30 @@ export interface MissionSnapshot {
 /** Toast de complétion — affiché par `MissionToasts`, quel que soit l'écran. */
 export interface MissionToast {
   key: number;
-  /** `mission` = terminée, gain à récupérer ; `milestone` = palier déjà crédité. */
+  /** Les deux annoncent un gain À RÉCUPÉRER : mission terminée, palier atteint. */
   kind: 'mission' | 'milestone';
   label: string;
   rewards: { xp?: number; gold?: number; gems?: number };
 }
 
-/** Nombre de gains de mission en attente — dérivé, jamais transmis. */
-export function claimableCount(snapshot: MissionSnapshot | null): number {
+/** Missions terminées dont le gain attend un tap — dérivé, jamais transmis. */
+export function claimableMissions(snapshot: MissionSnapshot | null): number {
   return snapshot ? snapshot.missions.filter(m => m.status === 'completed').length : 0;
+}
+
+/**
+ * Paliers ATTEINTS et pas encore récupérés. `reached` se déduit du nombre de
+ * points : le serveur n'envoie que `claimed`, le reste se calcule — une valeur
+ * dérivée qu'on transporte est une valeur qui peut contredire sa source.
+ */
+export function claimableMilestones(snapshot: MissionSnapshot | null): number {
+  if (!snapshot) return 0;
+  return snapshot.weekly.milestones.filter(m => !m.claimed && snapshot.weekly.points >= m.points).length;
+}
+
+/** Tous gains confondus — c'est ce que compte la pastille verte du menu. */
+export function claimableCount(snapshot: MissionSnapshot | null): number {
+  return claimableMissions(snapshot) + claimableMilestones(snapshot);
 }
 
 /** Événement de partie. `combat_index` est posé par le store, pas par l'appelant. */
@@ -75,6 +90,8 @@ interface MissionStoreState {
   load: (force?: boolean) => Promise<void>;
   /** Solde une mission terminée → message d'erreur, ou `null` si le gain est tombé. */
   claim: (id: string) => Promise<string | null>;
+  /** Solde un palier hebdomadaire atteint, désigné par son nombre de points. */
+  claimMilestone: (points: number) => Promise<string | null>;
   reroll: (id: string) => Promise<string | null>;
   dismissToast: (key: number) => void;
   reset: () => void;
@@ -148,18 +165,25 @@ export const useMissionStore = create<MissionStoreState>((set, get) => ({
   claim: async (id) => {
     try {
       // `absorb` fait tout : instantané (donc la jauge hebdo avance à l'écran),
-      // solde, et toast des paliers franchis par ce tap.
+      // solde, et toast des paliers ATTEINTS par ce tap (à récupérer à leur tour).
       absorb(set, await (AuthClient as any).claimMission(id));
       return null;
     } catch (e: any) {
       // L'instantané peut être en retard (mission déjà soldée dans un autre
       // onglet) : on le relit plutôt que de laisser un bouton qui ment.
       void get().load(true);
-      // Un 404 ici ne veut pas dire « mission introuvable » (le serveur répond
-      // 400 dans ce cas) mais « la ROUTE n'existe pas » : client à jour devant
-      // un serveur qui ne l'est pas. Le dire, plutôt que d'afficher « Erreur
-      // 404 » sous un bouton qui a l'air cassé.
-      if (e?.status === 404) return 'Serveur pas à jour : la récupération des gains n\'existe pas encore de son côté (redémarre-le).';
+      if (e?.status === 404) return STALE_SERVER;
+      return e?.message ?? 'Récupération impossible.';
+    }
+  },
+
+  claimMilestone: async (points) => {
+    try {
+      absorb(set, await (AuthClient as any).claimMissionMilestone(points));
+      return null;
+    } catch (e: any) {
+      void get().load(true);
+      if (e?.status === 404) return STALE_SERVER;
       return e?.message ?? 'Récupération impossible.';
     }
   },
@@ -221,6 +245,11 @@ export const useMissionStore = create<MissionStoreState>((set, get) => ({
 
 const MAX_QUEUE = 400; // aligné sur MAX_EVENTS_PER_BATCH (missions.js)
 
+// Un 404 sur une route de récupération ne veut pas dire « introuvable » (le
+// serveur répond 400 dans ce cas) mais « la ROUTE n'existe pas » : client à
+// jour devant un serveur qui ne l'est pas.
+const STALE_SERVER = 'Serveur pas à jour : la récupération des gains n\'existe pas encore de son côté (redémarre-le).';
+
 function pickSnapshot(data: any): MissionSnapshot {
   return { missions: data.missions, cycle: data.cycle, weekly: data.weekly, reroll: data.reroll };
 }
@@ -238,7 +267,7 @@ function absorb(set: (partial: any) => void, data: any): void {
       ...(data.completed ?? []).map((c: any) => ({
         key: ++toastKey, kind: 'mission' as const, label: c.label, rewards: c.rewards ?? {},
       })),
-      ...(data.milestones ?? []).map((m: any) => ({
+      ...(data.unlocked ?? []).map((m: any) => ({
         key: ++toastKey, kind: 'milestone' as const,
         label: `Palier hebdomadaire ${m.points} missions`, rewards: m.rewards ?? {},
       })),

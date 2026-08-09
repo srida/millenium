@@ -189,7 +189,9 @@ La **dotation hebdomadaire totale est inchangée** par le passage de 3 à 5 pali
   - ⚠️ **Une mission terminée mais non récupérée n'est jamais purgée** : `deleteStaleClaimedMissions` n'emporte au reset que les **soldées**. Sans cette règle, la récupération manuelle ferait perdre le gain d'un joueur qui quitte le jeu sans repasser par l'écran — exactement ce que le crédit automatique évitait.
   - La garde anti-double-crédit est **dans le SQL** (`… WHERE id = ? AND status = 'completed'`) : deux taps concurrents ne changent qu'une ligne, le second appel voit `changes === 0` et ne crédite rien.
   - **La jauge hebdomadaire avance elle aussi au tap** : +1 point par mission **récupérée**, pas par mission terminée. C'est ce décalage qui la fait bouger sous les yeux du joueur au moment du geste, au lieu d'être déjà remplie à l'ouverture de l'écran (`Gauge` anime sa largeur sur 300 ms). Le point n'est jamais perdu pour autant — une mission terminée attend indéfiniment, cf. la purge ci-dessus : le crédit est **différé, pas confisqué**.
-  - **Les paliers franchis au passage, eux, tombent d'office** : ils n'ont pas de carte à taper, et sont versés dans le **même crédit** que la mission qui les déclenche (`claim` → `{ granted, milestones }`).
+  - **Un palier hebdomadaire se récupère pareil** (`POST /api/me/missions/weekly/:points/claim`), en tapant sa pastille. La mission qui le franchit ne fait que le rendre **récupérable** (`claim` → `unlocked`, pour l'annonce), elle ne le verse pas.
+  - ⚠️ **Un palier atteint et jamais réclamé est soldé d'office au changement de semaine**, avant la remise à zéro (`sync`). Une jauge qui repart de zéro ne peut pas porter ses restes d'une semaine à l'autre comme le fait une mission terminée : on règle donc l'ardoise **à la frontière** plutôt que de traîner un état en travers, et aucun gain mérité n'est confisqué. Le tap reste le geste normal ; ce n'est que le filet, et il est silencieux.
+  - **Aucune migration** pour les paliers : `weekly_claimed` gardait déjà le sens « paliers **payés** », seul le moment du paiement change (au tap, non plus au franchissement).
   - ⚠️ Corollaire assumé : thésauriser des missions terminées pour les récupérer d'un bloc concentre la jauge sur une seule semaine, donc monte plus haut dans l'échelle qu'en étalant. Ça ne crée aucune valeur (une mission = 1 point, plafond 25) et ça coûte la liquidité du gain — non traité.
   - ⚠️ **Migration** : `user_missions.claimed_at` est ajoutée de façon additive (idiome `PRAGMA table_info` de `db.js`), et **son absence est le marqueur d'une bascule qui ne doit tourner qu'une fois** — les missions `completed` de l'ère « crédit automatique » ont déjà été payées et passent en `claimed` au même moment. Un `UPDATE` rejoué à chaque démarrage volerait, lui, les missions légitimement en attente.
 - **Le fuseau du reset est celui du serveur**, pas du joueur : un client qui annonce son fuseau pourrait en mentir pour se faire délivrer un cycle de plus. Déployer avec `TZ=Europe/Paris`.
@@ -228,7 +230,8 @@ Comme pour `progression.reward`, **le client nomme, le serveur chiffre** : aucun
 |---|---|---|
 | `GET /api/me/missions` | Connecté | Instantané (missions, `cycle`, jauge hebdo, reroll). **Délivre les lots manquants au passage** — le cycle avance à la lecture, il n'y a pas de tâche planifiée |
 | `POST /api/me/missions/events` | Connecté (30/min) | Lot d'événements → `{ countable, completed, … }`. **Ne crédite rien et ne touche pas à la jauge** : les missions terminées y sont annoncées, pas soldées |
-| `POST /api/me/missions/:id/claim` | Connecté (30/min) | Solde une mission terminée : gain + 1 point de semaine + paliers franchis → `{ granted, milestones, mission, … }` |
+| `POST /api/me/missions/:id/claim` | Connecté (30/min) | Solde une mission terminée : gain + 1 point de semaine → `{ granted, unlocked, mission, … }` (`unlocked` = paliers rendus récupérables, pas versés) |
+| `POST /api/me/missions/weekly/:points/claim` | Connecté (30/min) | Solde un palier **atteint** → `{ granted, milestone, … }`. Le segment `weekly/` supplémentaire évite la collision avec `:id/claim`, que seul l'ordre d'enregistrement départagerait |
 | `POST /api/me/missions/:id/reroll` | Connecté (20/min) | Remplace une mission par une autre du même slot |
 
 **Catalogue** (`data/missions.json`, distinct des routes de progression joueur ci-dessus) : CRUD admin sur le modèle des magies, gating identique.
@@ -246,9 +249,9 @@ Onglet **Missions** de `admin.html` (Card Manager) : liste + formulaire (champs 
 ### Client
 
 - `stores/missionStore.ts` — instantané + file d'événements (`startMatch` / `emit` / `emitCombatStarted` / `flushMatch` / `emitMeta`), plus `claim(id)` et le sélecteur `claimableCount(snapshot)`. Le **nombre de gains en attente est dérivé des `status`, jamais transmis** — une valeur dérivée qu'on transporte est une valeur qui peut contredire sa source.
-- `screens/MissionsScreen.tsx` — jauge hebdomadaire avec jalons posés à leur position réelle sur la barre, cartes de mission, reroll. Une carte terminée affiche un bouton **Récupérer** pleine largeur (le gain est la seule chose à y faire, il ne se dispute pas la place avec le dé) ; une fois soldée, elle retombe en vert éteint. Une cible de 1 n'affiche pas de barre de progression (elle serait toujours vide ou pleine).
+- `screens/MissionsScreen.tsx` — jauge hebdomadaire avec jalons posés à leur position réelle sur la barre, **pastille de palier tapable** quand il est atteint (bouton 🎁 vert plein ; les autres restent des pastilles inertes), cartes de mission, reroll. Une carte terminée affiche un bouton **Récupérer** pleine largeur (le gain est la seule chose à y faire, il ne se dispute pas la place avec le dé) ; une fois soldée, elle retombe en vert éteint. Une cible de 1 n'affiche pas de barre de progression (elle serait toujours vide ou pleine).
 - `components/ui/MissionToasts.tsx` — monté au niveau de **l'App**, pas d'un écran : la réponse du lot arrive souvent une fois revenu au menu. Positionné à la hauteur de `Banner` (`top-16`) pour ne pas recouvrir la barre de PV. Reste **non interactif** : un toast qui se solde au tap se solderait aussi à côté, en pleine partie, sur un geste destiné au board — il annonce « à récupérer », il ne remet rien.
-- `MainMenu` — bouton `🎯 Missions` avec **deux** notifications qui ne disent pas la même chose : une pastille **verte chiffrée** quand des gains attendent (un compteur, pas un point : la valeur est dénombrable et actionnable — elle ne s'efface qu'une fois tout récupéré, pas à la visite), et à défaut le **point doré** « cycle pas encore vu », effacé à la visite comme celui de la Boutique. La verte prime. Rien n'est rendu en invité : le cycle a besoin d'un compte.
+- `MainMenu` — bouton `🎯 Missions` avec **deux** notifications qui ne disent pas la même chose : une pastille **verte chiffrée** quand des gains attendent (un compteur, pas un point : la valeur est dénombrable et actionnable — elle ne s'efface qu'une fois tout récupéré, pas à la visite), et à défaut le **point doré** « cycle pas encore vu », effacé à la visite comme celui de la Boutique. La verte prime, et elle compte **missions terminées + paliers atteints** (`claimableCount` = `claimableMissions` + `claimableMilestones`). Rien n'est rendu en invité : le cycle a besoin d'un compte.
 
 ### Collection & DeckBuilder
 
@@ -387,7 +390,7 @@ Chaque cran tombe **silencieusement** quand le pool résiduel ne peut plus le sa
 
 - Booster **grisé** quand le set est complet — jamais de vente ne pouvant rien produire.
 - **Ne jamais indexer le prix sur le taux de complétion** : la valeur croissante à mesure que le set se vide est la propriété la plus vertueuse du système, elle récompense l'engagement au lieu de le taxer. L'écran affiche le nombre de cartes restantes pour la rendre visible.
-- **Prime de complétion** (`completion_reward.gems`, 300) : versée **une seule fois**, automatiquement, jamais à réclamer — même règle que les paliers de missions.
+- **Prime de complétion** (`completion_reward.gems`, 300) : versée **une seule fois**, automatiquement, jamais à réclamer. ⚠️ Elle ne suit **pas** les paliers de missions, qui se réclament désormais d'un tap.
 
 ### Routes API
 

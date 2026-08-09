@@ -119,6 +119,14 @@ export async function claimMission(id) {
   return data; // { ok, granted, mission, missions, weekly, reroll, progression }
 }
 
+// Récupère un palier hebdomadaire atteint. Le client désigne un palier par son
+// nombre de points ; le barème, lui, reste au serveur.
+export async function claimMissionMilestone(points) {
+  const data = await api(`/me/missions/weekly/${encodeURIComponent(points)}/claim`, { method: 'POST' });
+  if (currentUser && data && data.progression) currentUser = { ...currentUser, ...data.progression };
+  return data; // { ok, granted, milestone, missions, weekly, reroll, progression }
+}
+
 export async function rerollMission(id) {
   const data = await api(`/me/missions/${encodeURIComponent(id)}/reroll`, { method: 'POST' });
   if (currentUser && data && data.progression) currentUser = { ...currentUser, ...data.progression };
