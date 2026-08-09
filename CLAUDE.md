@@ -59,7 +59,7 @@ Repo : `https://github.com/srida/Millenium`
 | `GET /api/boards` | Public | Terrains de combat |
 | `GET /api/magies` | Public | Magies (Phase Shopping) |
 | `GET /api/missions` | Public | Catalogue des missions quotidiennes |
-| `GET /api/decks` | Public | Decks publics (`PublicDeckDatabase`), avec `_has_avatar` |
+| `GET /api/decks` | Public | Decks publics (`PublicDeckDatabase`), avec `_has_avatar` et `difficulty` (échelon Arcade) |
 | `GET /api/sets` | Public | Packs de boutique, avec `_has_poster` |
 | `GET /api/variants` | Public | Variantes d'illustration, avec `_has_illustration` |
 | `POST/PUT/DELETE /api/*` | Auth | Écriture admin |
@@ -103,6 +103,8 @@ Repo : `https://github.com/srida/Millenium`
 | `POST /api/me/shop/buy` \| `reroll` \| `pin` \| `booster` | Connecté | Achat d'emplacement, reroll, épingle, ouverture de booster |
 | `GET /api/me/cosmetics` | Connecté | Offre cosmétique du jour + cosmétiques possédés — génère l'offre au passage |
 | `POST /api/me/cosmetics/buy` | Connecté | Achat d'un avatar ou d'une variante |
+| `GET /api/me/arcade` | Connecté | Run Arcade du jour (parcours, échelon courant) — aligne la ligne sur le jour au passage |
+| `POST /api/me/arcade/start` \| `duel` | Connecté | Lance la run du jour, solde un duel |
 
 Le PvP temps réel ne passe pas par HTTP : `ws/pvpServer.js` (matchmaking + relais opaque) sur `/ws`. Le message `match:found` (et `match:rejoined`) transporte les **variantes d'illustration** du deck adverse, dérivées côté serveur.
 
@@ -469,6 +471,75 @@ Qui remplit les tables : `game/bootstrap.ts` (`buildSession`, point de passage u
 - `screens/ShopScreen.tsx` — onglet Cosmétiques : deux sections, tuiles carrées, prix en 💎. **Pas de modale de révélation** contrairement au booster : l'achat est unitaire et son résultat déjà à l'écran. Un bandeau suffit, et il dit **où** s'en servir — sinon le joueur repart avec un objet acheté et invisible.
 - `components/deck/IllustrationPicker.tsx` — modale « Origine + variantes possédées ». Dans le DeckBuilder, le badge 🎨 est un **frère** de `CardTile`, pas un enfant : le tap de la vignette retire la carte et l'appui long ouvre le tooltip, les deux gestes sont pris (et un `<button>` imbriqué serait du HTML invalide). Rien de tout ça en édition de deck public — il n'y a pas de joueur propriétaire.
 - Verrouillé par `client/src/test/cosmetics.test.ts` (33 golden tests), même harnais serveur que `shop.test.ts`. Il dépose de vrais PNG dans un `ILLUS_DIR` temporaire : sans art, les deux pools sont vides et le fichier ne prouverait rien.
+
+---
+
+## Mode Arcade (run solo quotidienne)
+
+Une run par jour, **4 duels solo enchaînés** contre des decks publics tirés par difficulté croissante, l'IA recevant à chaque échelon un handicap plat de plus en plus lourd. Règles dans **`arcade.js`** (racine, à côté de `shop.js` et `cosmetics.js` dont il reprend le calendrier — *littéralement* : `const { dayKey, nextRotationAt, seededRandom } = require('./shop')`), table `user_arcade_state`, écran `arcade`.
+
+Le mode existe pour une raison de game design : c'est le **rendez-vous quotidien qui se joue**. Quatre parties complètes en une assise, de quoi faire tomber une bonne partie des missions du jour — là où les autres écrans quotidiens (Missions, Boutique) se consultent.
+
+| Règle | Valeur |
+|---|---|
+| Duels par run | **4**, enchaînés |
+| Runs par jour | **1** — le verrou est l'existence de la ligne du jour, pas un compteur |
+| Rotation | **5 h**, celle de la boutique et des missions (`shop.dayKey`), fuseau du **serveur** |
+| Défaite | **clôt la run** — la journée est consommée |
+| Adversaires | decks publics, duel N tiré dans la difficulté N |
+| Gain de fin de parcours | **200 golds + 50 XP**, versé une seule fois au 4ᵉ duel gagné |
+
+**Échelons** (`arcade.DUELS`) :
+
+| Duel | Difficulté du deck | Handicap IA |
+|---|---|---|
+| 1 | 1 — Initiation | +0 PV / +0 ATK |
+| 2 | 2 — Confirmé | +10 PV / +2 ATK |
+| 3 | 3 — Vétéran | +30 PV / +3 ATK |
+| 4 | 4 — Élite | +50 PV / +5 ATK |
+
+Le premier duel est **à mains nues** à dessein : c'est l'étalon, le joueur voit d'abord un adversaire non trafiqué avant de sentir la rampe. Croissance stricte des trois axes (difficulté, PV, ATK) verrouillée par golden test — une rampe qui s'aplatit ferait du 4ᵉ duel une formalité.
+
+Trois invariants portent le reste :
+
+1. **Une run par jour.** `start` refuse dès qu'une run porte la date courante, **quel que soit son état** (en cours, gagnée, perdue). Lire (`GET`) ne consomme rien : ouvrir l'écran ne doit pas engager la journée, seul `start` engage.
+2. **La run est serveur, donc reprenable.** Adversaires, échelon courant et résultats sont persistés ; s'arrêter entre deux duels, recharger la page ou changer d'appareil ne coûte rien — le client redemande « où j'en suis aujourd'hui ? ». C'est la différence de fond avec le **Tournoi**, dont le bracket vit en mémoire et se perd au F5.
+3. **Le client nomme, le serveur chiffre.** Le client rapporte `win`/`loss` sur un **index** de duel : ni bonus, ni deck adverse, ni montant ne remontent. Le tirage et le crédit sont faits par le serveur.
+
+- **Le blob de run porte la composition du deck adverse**, pas seulement son id — même raison que `pendingGame.opponentDeck` côté tournoi : un deck public retouché ou supprimé en admin en cours de run ne doit pas casser la reprise.
+- **Le deck du joueur est figé au lancement** (`run.deck_name`) : changer de deck actif en cours de parcours ne change pas d'arme entre deux duels. Son *contenu*, lui, n'est pas figé.
+- Tirage **déterministe** à `(player_id, jour)` (xorshift32 semé en SHA-256, comme la boutique) : un tirage douteux se rejoue au lieu de se raconter. Un même deck ne ressort pas deux fois dans une run tant que le pool le permet.
+- **Difficulté des decks publics** : champ `difficulty` (1–4) posé depuis l'onglet Decks publics de l'admin. Une difficulté **absente est lue comme 1** — le champ est postérieur aux decks livrés, et `bootstrap()` ne recopie pas `initial-data/` sur un volume déjà peuplé.
+- **Repli de difficulté** : un niveau vide se rabat sur le niveau non vide le plus proche (écart croissant, égalité → le plus haut), puis sur tout le pool. Sans lui, un seul niveau laissé vide en admin — ou une base antérieure au champ, où tout est lu comme 1 — rendrait la run impossible à lancer. **L'échelon garde son handicap** : c'est le duel qui durcit, pas le deck.
+- Un deck public de **moins de 20 cartes** n'est jamais proposé comme adversaire (même seuil que le DeckSelector).
+- ⚠️ **`PUT /api/decks/:id` fusionne désormais** au lieu de remplacer : deux clients y écrivent et ils n'envoient pas le même objet — le formulaire admin poste le deck complet, mais le DeckBuilder en iframe ne poste que `{ id, name, deck }`. Un remplacement franc effaçait `difficulty` à chaque composition. Corollaire côté admin : `_collectPublicDeckFields` **reconstruit l'objet de zéro**, toute nouvelle donnée de deck doit y être relue.
+
+### Le handicap IA — un primitif de `logic/`, pas une notion « arcade »
+
+`GameSessionDeps.enemyBonus` (`{ atk, hp }`, 6ᵉ paramètre de `buildSession`) : `logic/` ne sait pas que le mode Arcade s'en sert. Appliqué dans **`GameSession._placeEnemyUnits()`**, seul entonnoir par lequel passent les unités créées par l'IA — `EnemyAI` construit `new Unit` en **sept** endroits, un par voie d'invocation.
+
+- Le bonus s'écrit dans **`unit._base`**, jamais dans `_stat_bonuses` : c'est la seule voie permanente du jeu (`_stat_bonuses` est balayé par `resetCombatStats()` à chaque fin de combat, et par `POWER_DEBUFF`). Même geste que les magies de Shopping.
+- Idempotence par marqueur `unit._enemy_bonus_applied` : un survivant du round précédent est sauté, et une unité **fusionnée** à partir de matériaux déjà boostés est une unité neuve — elle reçoit le handicap une fois, sans cumul. ⚠️ Ne **pas** passer par `_shopping_bonus`, que `InvocationManager._transferShoppingBonuses` **somme** sur l'unité composite.
+- Appliqué **après** `rearrangeUnits()`, qui trie par PV : poser le bonus avant décalerait le placement de l'IA. Verrouillé par `enemy-placement.test.ts`.
+- Absent partout ailleurs (`null`) : solo, tournoi, tutoriel et PvP sont strictement inchangés.
+
+### Client
+
+- `stores/arcadeStore.ts` — instantané + `load` / `start` / `reportDuel`, sélecteurs `currentDuel(snapshot)` et `wonCount(run)`. **Le contrat entre l'écran Arcade et `GameScreen` est l'instantané serveur lui-même**, pas un objet posé en mémoire avant de naviguer (là où le Tournoi passe par `pendingGame`).
+- `screens/ArcadeScreen.tsx` — trois états : parcours annoncé + « Lancer la run » / échelle des 4 duels avec le duel courant en tête / récap et `Countdown` vers la prochaine rotation. Le deck engagé est le **deck actif**, en récap lecture seule (`SelectedDeck`), comme au Tournoi et au Duel en ligne — il n'y a plus de sélecteur par mode.
+- `screens/GameScreen.tsx` — drapeau `params.arcade`, sur le patron exact de `params.tournament` / `params.tutorial` : garde de montage (pas de duel en cours → retour à `arcade`), bandeau `ArcadeHeader` (échelon + handicap), `GameOverScreen` et `GameMenu` dédiés.
+- `MainMenu` — bouton `🕹 Arcade` pleine largeur, avec deux pastilles **dérivées de l'instantané** (et non d'un `localStorage` « déjà vu » comme Missions et Boutique — ce n'est pas une nouveauté qu'on signale, c'est un état de jeu) : verte chiffrée `N/4` quand une run est en cours, point doré quand la run du jour n'est pas lancée, rien une fois la journée soldée. Rien en invité.
+- **Missions : aucun câblage.** Chaque duel remonte et démonte `GameScreen`, donc ouvre son propre lot d'événements (`begin()` → `startMatch()`, `dispose()` → `flushMatch()`). Les garde-fous anti-concede / anti-AFK s'appliquent duel par duel.
+- Verrouillé par `client/src/test/arcade.test.ts` (29 golden tests, même harnais serveur que `shop.test.ts`) et 6 tests de handicap dans `enemy-placement.test.ts`. ⚠️ `arcade.test.ts` **écrit son propre `public_decks.json`** dans le `DATA_DIR` temporaire au lieu de copier celui de `data/` : c'est le catalogue qui est l'objet du test (difficultés connues, un niveau volontairement vide, un deck trop court). Les autres catalogues viennent d'`initial-data/`, versionné (précédent : `tutorial.test.ts`).
+
+### Écarts et limites assumés
+
+- **`ai_win` reste crédité** à chaque duel gagné : un duel Arcade est une victoire solo comme une autre, et plus dure. Une run parfaite vaut donc 4 × 10 XP + 50 XP de fin de parcours = **90 XP**, l'ordre de grandeur d'une journée de missions côté XP (62) pour beaucoup moins de golds (200 contre 650). **Arcade paie en progression, les missions en monnaie.**
+- **Pas de gemmes** dans le barème : elles restent la monnaie des boutiques, une source quotidienne gratuite les dévaluerait.
+- **Le duel se joue côté client, le serveur ne peut que croire le rapport** — même limite que le solo et le tournoi. Elle est ici plus **serrée** qu'ailleurs : la run est unique par jour et bornée à quatre rapports, l'abus plafonne donc à un gain quotidien au lieu d'être illimité.
+- **Fermer l'onglet en plein duel laisse ce duel rejouable**, alors que quitter par le menu ☰ le concède (et clôt donc la run). C'est le prix de la reprise : la seule fermeture honnête de cette faille — annoncer le début du duel au serveur — transformerait un plantage ou une coupure réseau en défaite.
+- Une **égalité** (PV identiques au 5ᵉ tour) n'est pas rapportée : le duel se rejoue, comme une manche de tournoi. Ni le joueur ni l'IA n'a pris le dessus, consommer un échelon là-dessus serait arbitraire.
+- La répartition de difficulté livrée sur les 14 decks publics est **dérivée** du volume de cartes et du poids des tiers 4-5 (4/4/3/3) : un point de départ éditable en admin, au même titre que le découpage de `scripts/build-sets.js` pour les packs.
 
 ---
 
@@ -1484,7 +1555,7 @@ Un seul pont React ↔ Three : `client/src/components/board/Board3DCanvas.tsx` m
 
 ### Navigation client
 
-Écrans routés par `uiStore.screen` (Zustand, parité `?screen=`, pas de react-router) : `main_menu`, `auth`, `reset_password`, `profile`, `friends`, `deck_selector`, `deck_builder`, `tournament`, `missions`, `shop`, `tutorial`, `online_lobby`, `game`, `game_pvp`, `combatlab` (dev), `testbench` (dev).
+Écrans routés par `uiStore.screen` (Zustand, parité `?screen=`, pas de react-router) : `main_menu`, `auth`, `reset_password`, `profile`, `friends`, `deck_selector`, `deck_builder`, `tournament`, `arcade`, `missions`, `shop`, `tutorial`, `online_lobby`, `game`, `game_pvp`, `combatlab` (dev), `testbench` (dev).
 
 ⚠️ Ajouter un écran se fait à **deux** endroits dans `uiStore.ts` — l'union `ScreenName` *et* le tableau `SCREEN_NAMES`, qui est celui qui valide `?screen=` — puis une ligne dans `App.tsx`.
 

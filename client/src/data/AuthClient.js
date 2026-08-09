@@ -179,6 +179,24 @@ export async function buyCosmetic({ kind, id }) {
   return absorbShop(await api('/me/cosmetics/buy', { method: 'POST', body: { kind, id } }));
 }
 
+// --- Arcade (run solo quotidienne) ---
+// Même contrat encore : le client nomme (un index de duel, un résultat), le
+// serveur chiffre (adversaires, handicaps, gain de fin de run). Lire ne
+// consomme pas la journée — seul `startArcade` engage.
+export async function getArcade() {
+  return absorbShop(await api('/me/arcade'));
+}
+
+export async function startArcade(deckName) {
+  return absorbShop(await api('/me/arcade/start', { method: 'POST', body: { deck_name: deckName ?? null } }));
+}
+
+// `index` accompagne le résultat : le serveur refuse (409) un rapport qui ne
+// porte pas sur le duel en cours, au lieu de faire avancer la run de deux crans.
+export async function reportArcadeDuel({ index, result }) {
+  return absorbShop(await api('/me/arcade/duel', { method: 'POST', body: { index, result } }));
+}
+
 // --- Amis ---
 export async function searchUsers(q) {
   const { users } = await api(`/users/search?q=${encodeURIComponent(q)}`);

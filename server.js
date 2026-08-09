@@ -933,7 +933,11 @@ app.put('/api/decks/:id', requireSiteAdmin, (req, res) => {
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
     const updated = req.body;
     delete updated._has_avatar;
-    decks[idx] = updated;
+    // FUSION et non remplacement : deux clients écrivent ici, et ils n'envoient
+    // pas le même objet. Le formulaire admin poste le deck complet, mais le
+    // DeckBuilder (iframe, ?publicDeckId=) ne poste que `{ id, name, deck }` —
+    // un remplacement franc effacerait `difficulty` à chaque composition.
+    decks[idx] = { ...decks[idx], ...updated };
     writeJson(PUBLIC_DECKS_FILE, decks);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }

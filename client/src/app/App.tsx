@@ -13,6 +13,7 @@ import FriendsScreen from '../screens/FriendsScreen.js';
 import DeckSelector from '../screens/DeckSelector.js';
 import DeckBuilder from '../screens/DeckBuilder.js';
 import TournamentScreen from '../screens/TournamentScreen.js';
+import ArcadeScreen from '../screens/ArcadeScreen.js';
 import OnlineLobby from '../screens/OnlineLobby.js';
 import GameScreen from '../screens/GameScreen.js';
 import GameScreenPvp from '../screens/GameScreenPvp.js';
@@ -66,6 +67,7 @@ export default function App() {
       {screen === 'deck_selector' && <DeckSelector />}
       {screen === 'deck_builder' && <DeckBuilder />}
       {screen === 'tournament' && <TournamentScreen />}
+      {screen === 'arcade' && <ArcadeScreen />}
       {screen === 'missions' && <MissionsScreen />}
       {screen === 'shop' && <ShopScreen />}
       {screen === 'tutorial' && <TutorialScreen />}

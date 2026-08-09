@@ -71,6 +71,8 @@ function resolveDeck(deckName?: string): { deck: Record<string, string[]>; name:
  *   n'est enregistré nulle part, un nom ne suffirait pas à le recharger. Il
  *   court-circuite donc `resolveDeck` (et n'a, comme le deck de repli, aucune
  *   variante d'illustration attachée).
+ * @param enemyBonus Handicap plat (ATK/PV) appliqué à chaque unité de l'IA —
+ *   le mode Arcade durcit ainsi ses quatre échelons. Absent partout ailleurs.
  */
 export function buildSession(
   deckName?: string,
@@ -78,6 +80,7 @@ export function buildSession(
   enemyDeckName?: string,
   enemyDeck?: Record<string, string[]> | null,
   playerDeck?: Record<string, string[]> | null,
+  enemyBonus?: { atk: number; hp: number } | null,
 ): GameSession {
   const { deck: rawDeck, name: resolvedName } = playerDeck
     ? { deck: playerDeck, name: null }
@@ -109,6 +112,7 @@ export function buildSession(
     getRandomBoard: () => (BoardDatabase as any).getRandomBoard(),
     getRandomMagies: (count: number) => (MagieDatabase as any).getRandomMagies(count),
     mode,
+    enemyBonus: enemyBonus ?? null,
   });
 }
 

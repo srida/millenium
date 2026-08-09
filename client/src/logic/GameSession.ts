@@ -53,6 +53,11 @@ export interface GameSessionDeps {
    *  humain distant — le placement ennemi et le terrain sont gérés en externe
    *  (PvpController/PvpOpponentProvider), pas ici. */
   mode?: 'ai' | 'pvp';
+  /** Handicap PLAT donné à chaque unité de l'IA, cumulé à ses stats de base
+   *  pour toute la partie. Absent ou nul = adversaire non trafiqué, le cas de
+   *  tous les modes existants. C'est un primitif générique : `logic/` ne sait
+   *  pas que le mode Arcade s'en sert pour durcir ses quatre échelons. */
+  enemyBonus?: { atk: number; hp: number } | null;
 }
 
 export interface EndRoundResult {
@@ -173,6 +178,40 @@ export class GameSession {
     this.enemyAI.placeFromHand(this.board, this.gameState.enemy_board_slots, this.enemyGraveyard);
     this.enemyAI.rearrangeUnits(this.board, this.gameState.enemy_board_slots);
     this.enemyUnits = this.board.getLivingUnitsOnSide('enemy');
+    this._applyEnemyBonus();
+  }
+
+  /**
+   * Applique le handicap plat aux unités de l'IA. Appelé ici parce que
+   * `_placeEnemyUnits` est le SEUL entonnoir par lequel passent les unités
+   * créées par l'IA — `EnemyAI` construit `new Unit` en sept endroits, un par
+   * voie d'invocation.
+   *
+   * Le bonus s'écrit dans `_base` et non dans `_stat_bonuses` : c'est la seule
+   * voie permanente du jeu (`_stat_bonuses` est balayé par `resetCombatStats()`
+   * à chaque fin de combat, et par POWER_DEBUFF). Même geste que les magies de
+   * Shopping, qui sont les autres bonus « définitifs ».
+   *
+   * Le marqueur d'instance rend l'appel idempotent : un survivant du round
+   * précédent est sauté, et une unité FUSIONNÉE à partir de matériaux déjà
+   * boostés est une unité neuve — elle reçoit le handicap une fois, sans cumul.
+   *
+   * ⚠️ Appelé APRÈS `rearrangeUnits` : ce dernier trie par PV, poser le bonus
+   * avant décalerait le placement de l'IA dans tous les modes.
+   */
+  private _applyEnemyBonus(): void {
+    const bonus = this.deps.enemyBonus;
+    if (!bonus || (!bonus.atk && !bonus.hp)) return;
+    for (const unit of this.enemyUnits) {
+      if (unit._enemy_bonus_applied) continue;
+      unit._enemy_bonus_applied = true;
+      if (bonus.atk) unit._base.atk = Math.max(1, unit._base.atk + bonus.atk);
+      if (bonus.hp) {
+        unit._base.hp = Math.max(1, unit._base.hp + bonus.hp);
+        unit.current_hp += bonus.hp;
+      }
+      unit._recomputeStats();
+    }
   }
 
   // ── Flux d'invocation (délégué à InvocationRules/Manager) ───────────────

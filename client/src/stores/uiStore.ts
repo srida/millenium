@@ -4,12 +4,12 @@ import type { Unit } from '../logic/Unit.js';
 
 export type ScreenName =
   | 'main_menu' | 'auth' | 'reset_password' | 'profile' | 'friends'
-  | 'deck_selector' | 'deck_builder' | 'online_lobby' | 'tournament' | 'missions' | 'shop'
+  | 'deck_selector' | 'deck_builder' | 'online_lobby' | 'tournament' | 'arcade' | 'missions' | 'shop'
   | 'tutorial' | 'game' | 'game_pvp' | 'combatlab' | 'testbench';
 
 const SCREEN_NAMES: ScreenName[] = [
   'main_menu', 'auth', 'reset_password', 'profile', 'friends',
-  'deck_selector', 'deck_builder', 'online_lobby', 'tournament', 'missions', 'shop',
+  'deck_selector', 'deck_builder', 'online_lobby', 'tournament', 'arcade', 'missions', 'shop',
   'tutorial', 'game', 'game_pvp', 'combatlab', 'testbench',
 ];
 
@@ -32,6 +32,10 @@ export interface ScreenParams {
   // Écran de jeu lancé depuis le Tournoi : la partie compte comme une manche du
   // bracket (adversaire + deck lus dans tournamentStore.pendingGame).
   tournament?: boolean;
+  // Écran de jeu lancé depuis l'Arcade : la partie est un duel de la run
+  // quotidienne (adversaire, handicap IA et deck lus dans arcadeStore, qui les
+  // tient du SERVEUR — c'est ce qui rend la run reprenable après un F5).
+  arcade?: boolean;
   // Panneau admin (iframe) : édite un deck PUBLIC (par id) au lieu d'un deck du
   // joueur. Voir App.tsx / DeckBuilder.tsx.
   publicDeckId?: string;

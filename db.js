@@ -292,6 +292,21 @@ db.exec(`
   );
 `);
 
+// Mode Arcade : la run quotidienne d'un joueur. Une seule ligne, dont tout le
+// contenu tient dans un blob JSON dont la forme appartient à arcade.js — seul
+// le jour est promu en colonne, pour que la comparaison de rotation reste une
+// comparaison de chaîne. C'est cette persistance qui rend la run REPRENABLE :
+// s'arrêter entre deux duels ne demande rien de plus au client que de relire
+// « où j'en suis aujourd'hui ». Les RÈGLES vivent dans arcade.js.
+// ⚠️ Même contrainte que user_cards : créée APRÈS la migration `tag`.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_arcade_state (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    run_day TEXT,
+    run     TEXT
+  );
+`);
+
 // Migration : la Convoitise (carte nommée dans tout le catalogue, 3 jours
 // d'attente) a été remplacée par l'épingle d'un emplacement proposé. Les deux
 // colonnes qu'elle occupait n'ont plus d'objet — DROP COLUMN plutôt que de les
@@ -456,6 +471,13 @@ const stmt = {
     INSERT INTO user_cosmetic_state (user_id, offer_day, offer)
     VALUES (@user_id, @offer_day, @offer)
     ON CONFLICT(user_id) DO UPDATE SET offer_day = @offer_day, offer = @offer
+  `),
+
+  arcadeStateByUser: db.prepare('SELECT * FROM user_arcade_state WHERE user_id = ?'),
+  upsertArcadeState: db.prepare(`
+    INSERT INTO user_arcade_state (user_id, run_day, run)
+    VALUES (@user_id, @run_day, @run)
+    ON CONFLICT(user_id) DO UPDATE SET run_day = @run_day, run = @run
   `),
 
   insertResetToken: db.prepare('INSERT INTO reset_tokens (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)'),

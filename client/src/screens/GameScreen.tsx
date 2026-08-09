@@ -8,6 +8,7 @@ import { useGameStore } from '../stores/gameStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useTournamentStore } from '../stores/tournamentStore.js';
+import { useArcadeStore, currentDuel } from '../stores/arcadeStore.js';
 import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import Board3DCanvas from '../components/board/Board3DCanvas.js';
 import Hud from '../components/hud/Hud.js';
@@ -41,31 +42,43 @@ export default function GameScreen() {
   // Partie d'entraînement : le VRAI écran de jeu, avec deux decks dérivés du
   // catalogue et un coach par-dessus. Rien du mode solo n'est simulé.
   const inTutorial = useUiStore(s => s.params.tutorial === true);
+  // Duel de la run Arcade : l'adversaire et le handicap donné à l'IA viennent de
+  // l'instantané SERVEUR, pas des params — c'est ce qui permet de reprendre la
+  // run là où elle en était après un rechargement.
+  const inArcade = useUiStore(s => s.params.arcade === true);
+  const arcadeDuel = useArcadeStore(s => (inArcade ? currentDuel(s.snapshot) : null));
   const pendingOpponentAvatarId = useTournamentStore(s => s.pendingGame?.opponentAvatarId);
   const pendingOpponentName = useTournamentStore(s => s.pendingGame?.opponentName);
-  // Avatar adverse dans le HUD : deck public choisi (solo) ou du bracket
-  // (tournoi) ; sans choix (miroir), repli sur l'avatar par défaut — le
-  // serveur renvoie déjà ce même repli quand un deck n'a pas le sien.
+  // Avatar adverse dans le HUD : deck public choisi (solo), du bracket (tournoi)
+  // ou de l'échelon d'Arcade ; sans choix (miroir), repli sur l'avatar par
+  // défaut — le serveur renvoie déjà ce même repli quand un deck n'a pas le sien.
   const enemyAvatarSrc = PublicDeckDatabase.avatarUrl(
-    (inTournament ? pendingOpponentAvatarId : enemyDeckId) ?? 'PUBLIC_DECK_000',
+    (inTournament ? pendingOpponentAvatarId : inArcade ? arcadeDuel?.deck_id : enemyDeckId) ?? 'PUBLIC_DECK_000',
   );
   // Nom du deck public adverse — absent en miroir, rien à afficher alors.
-  const enemyName = (inTournament ? pendingOpponentName : enemyDeckName) ?? null;
+  const enemyName = (inTournament ? pendingOpponentName : inArcade ? arcadeDuel?.deck_name : enemyDeckName) ?? null;
 
   useEffect(() => {
     const pending = inTournament ? useTournamentStore.getState().pendingGame : null;
     // Tournoi sans manche en attente (rechargement de page, deep-link) : rien à jouer.
     if (inTournament && !pending) { useUiStore.getState().navigate('tournament'); return; }
+    // Même garde côté Arcade : sans run en cours dans l'instantané, il n'y a pas
+    // de duel à jouer (deep-link, ou run terminée dans un autre onglet).
+    const duel = inArcade ? currentDuel(useArcadeStore.getState().snapshot) : null;
+    if (inArcade && !duel) { useUiStore.getState().navigate('arcade'); return; }
     // Le deck d'entraînement ne vit pas dans DeckRepository : il est dérivé du
     // catalogue à chaque lancement, comme les decks publics adverses, et voyage
     // donc en clair jusqu'à buildSession.
     const tutorialDecks = inTutorial ? buildTutorialDecks(CardDatabase.getAllCards()) : null;
     const session = buildSession(
-      pending?.playerDeckName ?? deckName,
+      // Le deck engagé dans la run est figé à son lancement : en changer d'actif
+      // en cours de parcours ne doit pas changer d'arme entre deux duels.
+      (duel ? useArcadeStore.getState().snapshot?.run?.deck_name : null) ?? pending?.playerDeckName ?? deckName,
       'ai',
       enemyDeckName,
-      tutorialDecks?.enemy ?? pending?.opponentDeck ?? enemyDeck,
+      duel?.deck ?? tutorialDecks?.enemy ?? pending?.opponentDeck ?? enemyDeck,
       tutorialDecks?.player,
+      duel?.bonus ? { atk: duel.bonus.atk, hp: duel.bonus.hp } : null,
     );
     const ctrl = new GameController(session);
     setControllerLocal(ctrl);
@@ -94,6 +107,11 @@ export default function GameScreen() {
         // Abandonner une manche de tournoi la concède : le bracket ne peut pas
         // rester en suspens, et rejouer à volonté viderait le Bo5 de son sens.
         <GameMenu quitLabel="Abandonner la manche" onQuit={() => exitTournamentGame('enemy')} />
+      ) : inArcade ? (
+        // Même règle en Arcade : quitter un duel le concède, donc clôt la run.
+        // Sans ça, un duel mal engagé se relancerait à volonté et le handicap
+        // croissant ne voudrait plus rien dire.
+        <GameMenu quitLabel="Abandonner le duel" onQuit={() => exitArcadeGame('enemy')} />
       ) : inTutorial ? (
         <GameMenu quitLabel="Quitter l'entraînement" onQuit={() => useUiStore.getState().navigate('tutorial')} />
       ) : (
@@ -104,15 +122,18 @@ export default function GameScreen() {
       <AiWinReward inTournament={inTournament} inTutorial={inTutorial} />
       {inTutorial && <TutorialCoach />}
       {inTournament && <TournamentHeader />}
+      {inArcade && arcadeDuel && <ArcadeHeader duel={arcadeDuel} />}
       <Banners />
       <SummonOptionMenu />
       <EndRoundOverlay />
       <ShoppingLayer />
       {inTournament
         ? <GameOverScreen exitLabel="◂ RETOUR AU TOURNOI" onExit={exitTournamentGame} />
-        : inTutorial
-          ? <GameOverScreen exitLabel="◂ RETOUR AU TUTORIEL" onExit={() => useUiStore.getState().navigate('tutorial')} />
-          : <GameOverScreen />}
+        : inArcade
+          ? <GameOverScreen exitLabel="◂ RETOUR À L'ARCADE" onExit={exitArcadeGame} />
+          : inTutorial
+            ? <GameOverScreen exitLabel="◂ RETOUR AU TUTORIEL" onExit={() => useUiStore.getState().navigate('tutorial')} />
+            : <GameOverScreen />}
     </div>
   );
 }
@@ -145,6 +166,31 @@ function AiWinReward({ inTournament, inTutorial }: { inTournament: boolean; inTu
 function exitTournamentGame(winner: 'player' | 'enemy' | 'draw' | null) {
   useTournamentStore.getState().finishGame(winner);
   useUiStore.getState().navigate('tournament');
+}
+
+// Rapporte le duel au serveur (qui fait avancer ou clôt la run) puis rend la
+// main à l'écran Arcade. Une ÉGALITÉ n'est pas rapportée : comme au tournoi, le
+// duel se rejoue — ni le joueur ni l'IA n'a pris le dessus, et consommer un
+// échelon là-dessus serait arbitraire.
+function exitArcadeGame(winner: 'player' | 'enemy' | 'draw' | null) {
+  if (winner === 'player' || winner === 'enemy') {
+    void useArcadeStore.getState().reportDuel(winner === 'player' ? 'win' : 'loss');
+  }
+  useUiStore.getState().navigate('arcade');
+}
+
+// Rappel du contexte Arcade pendant la partie : l'échelon et le handicap donné
+// à l'IA. Le joueur doit savoir POURQUOI l'adversaire cogne plus fort.
+function ArcadeHeader({ duel }: { duel: { index: number; deck_name: string; bonus: { hp: number; atk: number } } }) {
+  const { hp, atk } = duel.bonus;
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] z-20 flex -translate-x-1/2 items-center gap-2">
+      <span className="rounded-full border border-gold/40 bg-surface/80 px-3 py-0.5 text-[11px] text-gold">
+        🕹 duel {duel.index + 1} · vs {duel.deck_name}
+        {(hp || atk) ? ` · IA +${hp} PV / +${atk} ATK` : ''}
+      </span>
+    </div>
+  );
 }
 
 // Rappel du contexte tournoi pendant la partie : adversaire et score du Bo5.

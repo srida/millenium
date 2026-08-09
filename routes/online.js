@@ -7,6 +7,7 @@ const progression = require('../progression');
 const missions = require('../missions');
 const shop = require('../shop');
 const cosmetics = require('../cosmetics');
+const arcade = require('../arcade');
 
 const router = express.Router();
 
@@ -500,6 +501,41 @@ router.post('/me/cosmetics/buy', auth.requireUser, auth.rateLimit({ windowMs: 60
   if (!id) return res.status(400).json({ error: 'id requis', field: 'id' });
   cosmetics.sync(req.user);
   cosmeticResult(req, res, cosmetics.buy(req.user, kind, id));
+});
+
+// =====================================================================
+//  ARCADE (run solo quotidienne — 4 duels enchaînés, règles dans arcade.js)
+// =====================================================================
+// Même contrat que la boutique : le client nomme (un index de duel, un
+// résultat), le serveur chiffre (adversaires, handicaps, gain de fin de run).
+//
+// La lecture aligne la ligne sur le jour courant au passage — il n'y a pas de
+// tâche planifiée — mais elle ne DÉMARRE pas la run : ouvrir l'écran ne
+// consomme pas la journée.
+router.get('/me/arcade', auth.requireUser, (req, res) => {
+  res.json({ ...arcade.refresh(req.user), progression: progression.getProgression(req.user) });
+});
+
+function arcadeResult(req, res, result) {
+  if (!result.ok) return res.status(result.stale ? 409 : 400).json({ error: result.reason });
+  // La run a pu être créditée dans la transaction : `req.user` est un
+  // instantané pris AVANT, il faut relire la ligne pour renvoyer le bon solde.
+  const fresh = stmt.userById.get(req.user.id);
+  res.json({ ...result, ...arcade.getSnapshot(fresh), progression: progression.getProgression(fresh) });
+}
+
+router.post('/me/arcade/start', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
+  const deckName = req.body?.deck_name ? String(req.body.deck_name).slice(0, 64) : null;
+  arcade.sync(req.user);
+  arcadeResult(req, res, arcade.start(req.user, deckName));
+});
+
+router.post('/me/arcade/duel', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  const index = Number(req.body?.index);
+  const result = String(req.body?.result || '');
+  if (!Number.isInteger(index)) return res.status(400).json({ error: 'index requis', field: 'index' });
+  arcade.sync(req.user);
+  arcadeResult(req, res, arcade.reportDuel(req.user, { index, result }));
 });
 
 // =====================================================================

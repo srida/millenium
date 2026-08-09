@@ -47,6 +47,10 @@ export class Unit {
   _shopping_bonus?: Record<string, number>;
   // Posé par CombatManager._checkDeaths pour ne pas ré-émettre 'death'
   _deathEmitted?: boolean;
+  // Posé par GameSession._applyEnemyBonus : le handicap d'une unité IA est
+  // définitif (écrit dans _base) et ne doit donc être versé qu'une fois, alors
+  // que le placement de l'IA repasse sur les survivants à chaque round.
+  _enemy_bonus_applied?: boolean;
 
   // Effective combat stats
   atk: number;

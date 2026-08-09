@@ -2,6 +2,7 @@
 	{
 		"id": "PUBLIC_DECK_001",
 		"name": "Heroes",
+		"difficulty": 4,
 		"deck": {
 			"1": [
 				"CORE_093",
@@ -45,6 +46,7 @@
 	{
 		"id": "PUBLIC_DECK_002",
 		"name": "Atem",
+		"difficulty": 4,
 		"deck": {
 			"1": [
 				"CORE_004",
@@ -90,6 +92,7 @@
 	{
 		"id": "PUBLIC_DECK_003",
 		"name": "Yugi",
+		"difficulty": 3,
 		"deck": {
 			"1": [
 				"CORE_052",
@@ -130,6 +133,7 @@
 	{
 		"id": "PUBLIC_DECK_004",
 		"name": "Kaiba",
+		"difficulty": 1,
 		"deck": {
 			"1": [
 				"CORE_023",
@@ -166,6 +170,7 @@
 	{
 		"id": "PUBLIC_DECK_005",
 		"name": "Joey",
+		"difficulty": 1,
 		"deck": {
 			"1": [
 				"CORE_032",
@@ -204,6 +209,7 @@
 	{
 		"id": "PUBLIC_DECK_006",
 		"name": "Marik",
+		"difficulty": 2,
 		"deck": {
 			"1": [
 				"EXTRA_055",
@@ -246,6 +252,7 @@
 	{
 		"id": "PUBLIC_DECK_007",
 		"name": "Paradox",
+		"difficulty": 1,
 		"deck": {
 			"1": [
 				"PARA_008",
@@ -282,6 +289,7 @@
 	{
 		"id": "PUBLIC_DECK_008",
 		"name": "Insector Haga",
+		"difficulty": 2,
 		"deck": {
 			"1": [
 				"HAGA_008",
@@ -319,6 +327,7 @@
 	{
 		"id": "PUBLIC_DECK_009",
 		"name": "Rex Raptor",
+		"difficulty": 1,
 		"deck": {
 			"1": [
 				"REX_001",
@@ -354,6 +363,7 @@
 	{
 		"id": "PUBLIC_DECK_010",
 		"name": "Mako Tsunami",
+		"difficulty": 3,
 		"deck": {
 			"1": [
 				"MAKO_002",
@@ -392,6 +402,7 @@
 	{
 		"id": "PUBLIC_DECK_011",
 		"name": "Maï",
+		"difficulty": 2,
 		"deck": {
 			"1": [
 				"MAI_002",
@@ -428,6 +439,7 @@
 	{
 		"id": "PUBLIC_DECK_012",
 		"name": "Pegasus",
+		"difficulty": 4,
 		"deck": {
 			"1": [
 				"PEGASUS_014",
@@ -477,6 +489,7 @@
 	{
 		"id": "PUBLIC_DECK_013",
 		"name": "Bandit Ken",
+		"difficulty": 3,
 		"deck": {
 			"1": [
 				"KEITH_002",
@@ -519,6 +532,7 @@
 	{
 		"id": "PUBLIC_DECK_014",
 		"name": "Bakura",
+		"difficulty": 2,
 		"deck": {
 			"1": [
 				"BAKURA_001",

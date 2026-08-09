@@ -12,6 +12,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
 import { useMissionStore, hasUnseenMissions, claimableCount } from '../stores/missionStore.js';
 import { useShopStore, hasUnseenShop } from '../stores/shopStore.js';
+import { useArcadeStore } from '../stores/arcadeStore.js';
 import { getProgress, shouldInvite, updateProgress } from '../data/tutorialProgress.js';
 import { Button, Modal } from '../components/ui/primitives.js';
 import { ProgressionPills, ProfilePill } from '../components/ui/ProgressionStats.js';
@@ -40,6 +41,7 @@ export default function MainMenu() {
           <Button className="flex-1" onPointerDown={() => navigate('tournament')}>🏆 Tournoi</Button>
           <Button className="flex-1" onPointerDown={() => navigate(user ? 'online_lobby' : 'auth')}>⚔ Duel en ligne</Button>
         </div>
+        <ArcadeButton />
         <div className="flex gap-2">
           <MissionsButton />
           <ShopButton />
@@ -173,6 +175,55 @@ function MissionsButton() {
         </span>
       ) : unseen ? (
         <span className="h-2 w-2 rounded-full bg-gold" aria-label="Nouveautés" />
+      ) : null}
+    </Button>
+  );
+}
+
+// Arcade : la run solo du jour. Deux pastilles qui ne disent pas la même chose,
+// et toutes deux DÉRIVÉES de l'instantané serveur — pas de localStorage « déjà
+// vu » ici, contrairement aux Missions et à la Boutique : ce n'est pas une
+// nouveauté qu'on signale, c'est un état de jeu.
+//
+//   - pastille VERTE = une run est en cours, il reste des duels à jouer. C'est
+//     l'appel le plus fort : quelque chose est engagé et attend.
+//   - point DORÉ = la run du jour n'est pas encore lancée.
+//   - rien quand la journée est soldée (parcours complet ou run perdue).
+//
+// Rien n'est rendu en invité : la run est gardée côté serveur, elle a besoin
+// d'un compte. Le bouton renvoie alors vers l'inscription, comme le Duel en ligne.
+function ArcadeButton() {
+  const navigate = useUiStore(s => s.navigate);
+  const user = useAuthStore(s => s.user);
+  const snapshot = useArcadeStore(s => s.snapshot);
+  const load = useArcadeStore(s => s.load);
+
+  useEffect(() => { if (user) void load(true); }, [user, load]);
+
+  if (!user) {
+    return (
+      <Button className="w-full" onPointerDown={() => navigate('auth')}>
+        <span className="whitespace-nowrap">🕹 Arcade</span>
+      </Button>
+    );
+  }
+
+  const run = snapshot?.run ?? null;
+  const running = run?.status === 'in_progress';
+  const available = !!snapshot && !run;
+
+  return (
+    <Button className="w-full" onPointerDown={() => navigate('arcade')}>
+      <span className="whitespace-nowrap">🕹 Arcade</span>
+      {running ? (
+        <span
+          aria-label={`Run en cours — duel ${run.current + 1} sur ${snapshot!.duel_count}`}
+          className="flex h-5 items-center justify-center rounded-full bg-success px-1.5 text-[11px] font-bold tabular-nums text-black"
+        >
+          {run.current + 1}/{snapshot!.duel_count}
+        </span>
+      ) : available ? (
+        <span className="h-2 w-2 rounded-full bg-gold" aria-label="Run du jour disponible" />
       ) : null}
     </Button>
   );

@@ -3243,6 +3243,23 @@ function deckTotalCards(deck) {
   return [1, 2, 3, 4, 5].reduce((sum, t) => sum + ((deck?.[String(t)]?.length) || 0), 0);
 }
 
+// Difficulté d'un deck public — c'est ELLE qui décide de l'échelon du mode
+// Arcade : le duel N tire au hasard parmi les decks de difficulté N. Un deck
+// sans difficulté est lu comme 1 côté serveur (les decks livrés sont antérieurs
+// au champ), mais l'admin doit VOIR que rien n'a été posé : « à définir » n'est
+// pas « Initiation ».
+const DECK_DIFFICULTIES = [
+  { value: 1, label: 'Initiation' },
+  { value: 2, label: 'Confirmé' },
+  { value: 3, label: 'Vétéran' },
+  { value: 4, label: 'Élite' },
+];
+
+function deckDifficultyLabel(d) {
+  const found = DECK_DIFFICULTIES.find(x => x.value === Number(d?.difficulty));
+  return found ? `Diff. ${found.value} · ${found.label}` : 'Difficulté à définir';
+}
+
 function renderPublicDeckList(list = publicDecks) {
   document.getElementById('deck-count').textContent = list.length;
   document.getElementById('deck-list').innerHTML = list.map(d => `
@@ -3250,7 +3267,7 @@ function renderPublicDeckList(list = publicDecks) {
       <img class="list-thumb" src="/avatars/${d.id}?t=${avatarBust}" alt="" loading="lazy" style="width:40px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0">
       <div style="min-width:0">
         <div class="item-name">${esc(d.name)}</div>
-        <div class="item-id">${d.id} · ${deckTotalCards(d.deck)} cartes</div>
+        <div class="item-id">${d.id} · ${deckTotalCards(d.deck)} cartes · ${esc(deckDifficultyLabel(d))}</div>
       </div>
     </div>
   `).join('');
@@ -3286,6 +3303,7 @@ function renderPublicDeckDetail() {
         <div class="detail-meta">
           <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(d.id)}</span>
           <span class="badge">${deckTotalCards(deck)} cartes</span>
+          ${Number(d.difficulty) ? `<span class="badge">${esc(deckDifficultyLabel(d))}</span>` : `<span class="badge badge-no-illus">Difficulté à définir</span>`}
           ${hasAvatar ? `<span class="badge badge-illus">Avatar ✓</span>` : `<span class="badge badge-no-illus">Avatar par défaut</span>`}
         </div>
       </div>
@@ -3295,6 +3313,15 @@ function renderPublicDeckDetail() {
     <div class="form-grid">
       <div class="field"><label>ID</label><input id="df-id" value="${esc(d.id)}"></div>
       <div class="field"><label>Nom</label><input id="df-name" value="${esc(d.name)}"></div>
+      <div class="field">
+        <label>Difficulté (mode Arcade)</label>
+        <select id="df-difficulty">
+          ${DECK_DIFFICULTIES.map(x => `
+            <option value="${x.value}" ${Number(d.difficulty || 1) === x.value ? 'selected' : ''}>${x.value} — ${x.label}</option>
+          `).join('')}
+        </select>
+        <div style="font-size:11px;color:var(--muted)">Le duel N du mode Arcade tire au hasard parmi les decks de difficulté N.</div>
+      </div>
     </div>
 
     ${isNewPublicDeck ? '' : `
@@ -3331,6 +3358,10 @@ function _collectPublicDeckFields() {
   return {
     id: document.getElementById('df-id')?.value.trim() || '',
     name: document.getElementById('df-name')?.value.trim() || '',
+    // ⚠️ Ce collecteur RECONSTRUIT l'objet de zéro et `PUT /api/decks/:id` fait
+    // un remplacement complet : un champ absent d'ici est effacé du disque à
+    // chaque enregistrement. Toute nouvelle donnée de deck doit être relue ici.
+    difficulty: Number(document.getElementById('df-difficulty')?.value) || 1,
     deck,
   };
 }
@@ -3371,7 +3402,7 @@ function openNewPublicDeck() {
     if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
   }
   const nextId = `PUBLIC_DECK_${String(maxNum + 1).padStart(3, '0')}`;
-  selectedPublicDeck = { id: nextId, name: '', deck: { "1": [], "2": [], "3": [], "4": [], "5": [] } };
+  selectedPublicDeck = { id: nextId, name: '', difficulty: 1, deck: { "1": [], "2": [], "3": [], "4": [], "5": [] } };
   isNewPublicDeck = true;
   renderPublicDeckList();
   renderPublicDeckDetail();
