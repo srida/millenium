@@ -272,7 +272,7 @@ Deux systèmes, deux fonctions qui ne se recouvrent pas :
 
 | Système | Fonction | Plafond |
 |---|---|---|
-| **Emplacements quotidiens** | Construction de deck — conscients du graphe d'invocation et du deck actif | 3 / jour, dont 1 épinglable |
+| **Emplacements quotidiens** | Vitrine à l'unité — tirage libre dans tout le pool non possédé | 6 / jour, dont 1 épinglable |
 | **Booster** | Collection — volume brut sur un set choisi | aucun |
 
 Deux invariants portent tout le reste :
@@ -346,29 +346,26 @@ Troisième famille d'assets, calquée sur les avatars de decks publics : fichier
 
 ### Emplacements quotidiens
 
-Rotation à **5 h**, même reset que les missions (`shop.dayKey === missions.dayKey` — un seul rendez-vous quotidien à retenir). Composition fixe, contenu variable :
+Rotation à **5 h**, même reset que les missions (`shop.dayKey === missions.dayKey` — un seul rendez-vous quotidien à retenir). **`DAILY_SLOTS = 6` emplacements**, tous identiques dans leur règle : un tirage libre dans le catalogue **non possédé**, pondéré par tier et par rien d'autre. Un emplacement ne se distingue d'un autre que par la carte proposée.
 
-| Slot | Nom | Règle de tirage | `reason` |
-|---|---|---|---|
-| 1 | **Le Maillon** | carte dont tous les matériaux sont possédés, **ou** matériau manquant d'une carte possédée | `unlocks` / `material` |
-| 2 | **L'Affinité** | carte partageant un attribut vu **≥ 2 fois** dans le deck actif | `affinity` |
-| 3 | **L'Inconnu** | tirage libre pondéré par tier | `random` |
+⚠️ **Les trois catégories historiques sont supprimées** — Le Maillon (`unlocks` / `material`), L'Affinité (`affinity`) et L'Inconnu (`random`). Avec elles disparaissent `linkCandidates`, `affinityCandidates`, `ctx.ownedAttributes` et les champs **`reason` / `reason_ref`** du slot (donc le badge côté client). Le raisonnement : le badge ne portait sa valeur que quand le graphe d'invocation avait quelque chose à dire — sur une collection jeune, les slots 1 et 2 dégénéraient en tirage libre et le joueur lisait « 🎲 Découverte » sans comprendre pourquoi ses autres emplacements avaient l'air d'être des cadeaux. C'est désormais le **nombre** qui répond à la frustration : sur six cartes, il y a presque toujours quelque chose à vouloir, et l'arbitrage porte sur « laquelle » plutôt que sur « est-ce que ça vaut le coup ».
+
+L'**affinité au deck actif survit dans les boosters** (`drawBooster`, pondération ×2) — là, elle n'est pas pilotable, le tirage ayant lieu à l'achat. `activeDeckAttributes` reste donc, mais ne touche plus les emplacements : `buildOffer` rend le même résultat avec ou sans deck.
 
 - **Pondération par tier** : 30 / 28 / 22 / 14 / 6 — volontairement plus plate que la distribution du pool (T1 38 %) : les tiers élevés doivent sortir assez souvent pour ne pas être anecdotiques.
 - **Prix** : **1000 golds ou 100 gemmes**, au choix du joueur à l'achat — un seul prix, quel que soit le tier de la carte. Le client ne transmet **jamais** de montant.
-- C'est le **badge** qui porte la valeur perçue, pas la carte : « une carte au hasard » et « la pièce qui manque à ta fusion » ne sont pas la même proposition, au même prix.
-- Un matériau désigné par **attribut** (`cost.materials` mélange ids de cartes et `ARCH_*`) est couvert par n'importe quel porteur possédé.
-- **Dégénérescence en fin de collection** : les slots 1 et 2 se replient naturellement sur le tirage libre, aucun traitement particulier.
-- **Reroll** : 1 gratuit par jour, jamais payant (un reroll achetable ferait de la boutique une machine à sous et casserait le plafond de 3 cartes/jour). La carte rerollée quitte le pool du **jour** et le slot est re-tiré **en conservant sa règle** — un reroll du Maillon rend un autre Maillon.
+- **Six cartes distinctes** : `fillSlots` retire du pool ce qui est déjà placé, un emplacement ne double jamais un autre.
+- **Reroll** : 1 gratuit par jour, jamais payant (un reroll achetable ferait de la boutique une machine à sous et casserait le plafond de 6 cartes/jour). La carte rerollée quitte le pool du **jour** — il n'y a plus de règle de slot à conserver, le re-tirage est libre comme les autres.
 - **Verrou d'offre** : l'achat porte `slot` **et** `card_id`. Un tap au moment exact de la rotation échoue en 409 au lieu d'acheter la carte qui vient de prendre la place.
 - Le tirage est **déterministe** à `(player_id, jour, slot)` (xorshift32 semé en SHA-256) : un tirage douteux se rejoue au lieu de se raconter.
+- **Rattrapage d'une offre plus courte** : une offre du jour tirée avant le passage de 3 à 6 est **complétée** par `sync` (`fillSlots`), jamais régénérée — les emplacements existants, achats compris, sont conservés tels quels. C'est le seul écart toléré à « l'offre est figée pour la journée », et il n'est pas déclenchable par le client : le nombre d'emplacements ne vient d'aucune entrée réseau. Une offre déjà complète n'est pas réécrite (ni celle d'un joueur dont le pool est épuisé).
 
 ### Épingle
 
-**Un** emplacement peut être épinglé (`PINNED_SLOTS_MAX = 1`) : il traverse la rotation **à l'identique** — même carte, même prix, même badge — au lieu d'être re-tiré. Gratuit, sans délai, sans limite de durée.
+**Un** emplacement peut être épinglé (`PINNED_SLOTS_MAX = 1`) : il traverse la rotation **à l'identique** — même carte, même prix — au lieu d'être re-tiré. Gratuit, sans délai, sans limite de durée.
 
-- Le plafond de 1 n'est pas une avarice : épingler les trois figerait la boutique et supprimerait la rotation. Épingler, c'est **renoncer à une proposition neuve** — c'est l'arbitrage qui donne son poids au geste. Désigner un autre emplacement **déplace** l'épingle (pas d'erreur « épingle déjà utilisée » : le geste est sans ambiguïté).
-- L'état persisté est l'emplacement **entier** (`user_shop_state.pinned`), pas le seul `card_id` : c'est ce qui garantit qu'on retrouve le lendemain exactement la proposition mise de côté, prix compris. Le badge n'est pas recalculé — « débloque X » reste vrai, une collection ne se dépossède pas.
+- Le plafond de 1 n'est pas une avarice : épingler tous les emplacements figerait la boutique et supprimerait la rotation. Épingler, c'est **renoncer à une proposition neuve** — c'est l'arbitrage qui donne son poids au geste. Désigner un autre emplacement **déplace** l'épingle (pas d'erreur « épingle déjà utilisée » : le geste est sans ambiguïté).
+- L'état persisté est l'emplacement **entier** (`user_shop_state.pinned`), pas le seul `card_id` : c'est ce qui garantit qu'on retrouve le lendemain exactement la proposition mise de côté, prix compris.
 - Un emplacement épinglé **ne se reroule pas** (le reroll jetterait ce que l'épingle vient de mettre de côté, et consommerait le reroll du jour pour rien) ; le dé disparaît côté client plutôt que d'échouer au tap.
 - L'épingle se libère d'elle-même à l'**achat**, si la carte tombe au **booster**, et au `sync` suivant si elle a été obtenue autrement — laisser une carte possédée épinglée gèlerait l'emplacement sur une carte invendable.
 - Dans l'instantané, `slot.pinned` est **dérivé à la lecture** de `state.pinned` et non recopié dans l'offre persistée : une seule source de vérité, donc pas de désaccord possible.
@@ -407,10 +404,11 @@ Toutes les mutations renvoient l'instantané complet + la progression à jour : 
 ### Client
 
 - `stores/shopStore.ts` — instantané + actions. Absorbe chaque réponse (solde via `authStore.applyProgression`, cartes via `collectionStore.add` — on ne recharge pas les 398 ids après chaque achat).
-- `screens/ShopScreen.tsx` — emplacements (bouton 📌 par emplacement), boosters, révélation en modale. `<PackPoster>` pose l'**affiche du pack** à gauche de son nom (et dans l'en-tête de la révélation), avec une tuile 🎁 quand `has_poster` est faux.
+- `screens/ShopScreen.tsx` — emplacements, boosters, révélation en modale. `<PackPoster>` pose l'**affiche du pack** à gauche de son nom (et dans l'en-tête de la révélation), avec une tuile 🎁 quand `has_poster` est faux.
+  - `SlotCard` est **vertical** (tier + icônes en tête, vignette, nom, les deux prix empilés) : six tuiles tiennent en **2 colonnes dès le portrait** (`grid-cols-2 sm:grid-cols-3`), ce que l'ancienne disposition horizontale ne permettait pas. 📌 et 🎲 sont remontés sur la ligne du tier — ils ne se disputent plus la largeur avec les boutons d'achat. Plus de `ReasonBadge` (les catégories ont disparu).
 - `MainMenu` — bouton `🛒 Boutique` avec une pastille de nouveauté : un simple point, pas un compteur, effacé dès que l'écran a été ouvert pour le jour en cours (`hasUnseenShop` / `markShopSeen`, localStorage).
 - `components/ui/primitives.tsx` — `Countdown` (rafraîchi à la **minute** : un repère, pas un chronomètre), partagé avec l'écran Missions.
-- Verrouillé par `client/src/test/shop.test.ts` (36 golden tests) et `client/src/test/packs.test.ts` (14 : dotation, exclusions du pack de départ, miroir, affiche), même harnais serveur que `missions.test.ts`. Les deux fichiers sont **séparés à dessein** : `packs.test.ts` réécrit `sets.json` en cours de route, là où `shop.test.ts` indexe les packs par position.
+- Verrouillé par `client/src/test/shop.test.ts` (37 golden tests) et `client/src/test/packs.test.ts` (14 : dotation, exclusions du pack de départ, miroir, affiche), même harnais serveur que `missions.test.ts`. Les deux fichiers sont **séparés à dessein** : `packs.test.ts` réécrit `sets.json` en cours de route, là où `shop.test.ts` indexe les packs par position.
 
 ---
 

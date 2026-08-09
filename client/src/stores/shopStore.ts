@@ -14,18 +14,17 @@ import * as AuthClient from '../data/AuthClient.js';
 import { useAuthStore } from './authStore.js';
 import { useCollectionStore } from './collectionStore.js';
 
-/** Pourquoi cette carte est proposée — c'est le badge qui porte la valeur perçue. */
-export type SlotReason = 'unlocks' | 'material' | 'affinity' | 'random';
-
+/**
+ * Un emplacement de la vitrine du jour. Plus de catégorie ni de badge : les
+ * emplacements sont tirés dans tout le pool non possédé, ils sont
+ * interchangeables et ne se distinguent que par la carte proposée.
+ */
 export interface ShopSlot {
   slot: number;
   card_id: string;
   tier: number;
   price_golds: number;
   price_gems: number;
-  reason: SlotReason;
-  /** Carte débloquée (`material`) ou attribut visé (`affinity`). */
-  reason_ref: string | null;
   purchased: boolean;
   /** Conservé à la prochaine rotation au lieu d'être re-tiré. */
   pinned: boolean;

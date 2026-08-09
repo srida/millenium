@@ -6,8 +6,9 @@
 //
 // Deux systèmes, deux fonctions qui ne se recouvrent pas :
 //
-//   - Emplacements quotidiens — CONSTRUCTION DE DECK. 3 par jour, conscients du
-//     graphe d'invocation et du deck actif. C'est le plafond qui structure
+//   - Emplacements quotidiens — CHOIX À L'UNITÉ. 6 par jour, tirés dans TOUT le
+//     pool non possédé, sans catégorie ni règle par emplacement : c'est une
+//     vitrine, le joueur y prend ce qu'il veut. C'est le plafond qui structure
 //     toute l'économie. Un seul peut être ÉPINGLÉ : il survit à la rotation
 //     du lendemain au lieu d'être re-tiré.
 //   - Booster — COLLECTION. Volume brut sur un set choisi, sans plafond.
@@ -26,7 +27,12 @@ const packs = require('./sets');
 
 // --- Barème (brief §3.3, §3.4, §3.5) ---
 
-const DAILY_SLOTS = 3;
+// 6 emplacements. Le nombre est la seule chose qui reste du plafond : plus de
+// catégories (Maillon / Affinité / Inconnu), donc plus de raison d'en afficher
+// trois. Une vitrine de trois cartes tirées au hasard frustre — sur six, il y a
+// presque toujours quelque chose à vouloir, et l'arbitrage porte enfin sur
+// « laquelle » plutôt que sur « est-ce que ça vaut le coup ».
+const DAILY_SLOTS = 6;
 // Prix unique, quel que soit le tier de la carte : le joueur choisit sa
 // monnaie à l'achat (golds ou gemmes), comme pour un booster.
 const SLOT_PRICE = Object.freeze({ golds: 1000, gems: 100 });
@@ -41,7 +47,7 @@ const TIER_WEIGHTS = Object.freeze({ 1: 30, 2: 28, 3: 22, 4: 14, 5: 6 });
 // et sans limite de durée. C'est ce qui permet d'économiser pour une carte chère
 // sans la voir disparaître au reset du lendemain.
 //
-// Le plafond de 1 n'est pas une avarice : épingler les trois emplacements
+// Le plafond de 1 n'est pas une avarice : épingler tous les emplacements
 // figerait la boutique et supprimerait la rotation. Épingler, c'est renoncer à
 // une proposition neuve — c'est l'arbitrage qui donne son poids au geste.
 const PINNED_SLOTS_MAX = 1;
@@ -176,98 +182,71 @@ function activeDeckAttributes(userId) {
 }
 
 function context(user) {
-  const owned = new Set(progression.unlockedCardIds(user));
-  // Attributs possédés : un matériau désigné par ARCH_* est satisfait dès
-  // qu'on possède une carte qui le porte (brief §3.2).
-  const ownedAttributes = new Set();
-  for (const id of owned) {
-    for (const attr of card(id)?.attributes ?? []) ownedAttributes.add(attr);
-  }
-  return { owned, ownedAttributes, affinity: activeDeckAttributes(user.id) };
+  return { owned: new Set(progression.unlockedCardIds(user)), affinity: activeDeckAttributes(user.id) };
 }
 
-// --- Sélection des emplacements (brief §3.2) ---
+// --- Sélection des emplacements ---
+//
+// ⚠️ Il n'y a plus de RÈGLE par emplacement. Les trois catégories historiques
+// (Le Maillon « invocable immédiatement », L'Affinité « synergie », L'Inconnu
+// « découverte ») sont supprimées : les six emplacements sont tirés dans le
+// MÊME pool, tout le catalogue non possédé, pondéré par tier et rien d'autre.
+//
+// Ce que ça change, et pourquoi c'est assumé : le badge portait la valeur
+// perçue d'un emplacement (« la pièce qui manque à ta fusion » ≠ « une carte au
+// hasard », au même prix). Mais il ne la portait que quand le graphe
+// d'invocation avait quelque chose à dire — sur une collection jeune ou une
+// carte sans matériaux, les slots dégénéraient en tirage libre et le joueur
+// voyait « 🎲 Découverte » sans comprendre pourquoi ses deux autres
+// emplacements avaient l'air d'être des cadeaux. Une vitrine uniforme et plus
+// large se lit d'un coup d'œil ; c'est le NOMBRE (6) qui remplace le badge
+// comme réponse à la frustration.
+//
+// L'affinité au deck actif n'est pas perdue pour autant : elle continue de
+// pondérer le tirage des BOOSTERS (`drawBooster`), là où elle n'est pas
+// pilotable par le joueur puisque le tirage a lieu à l'achat.
 
-/** Le joueur a-t-il de quoi couvrir ce matériau (carte précise ou porteur d'attribut) ? */
-function hasMaterial(matId, ctx) {
-  return ctx.owned.has(matId) || ctx.ownedAttributes.has(matId);
-}
-
-/**
- * Slot 1 — Le Maillon. Une carte non possédée qui, achetée, débloque
- * immédiatement une invocation :
- *   'unlocks'  — c'est une fusion/héritage/transfo dont TOUS les matériaux
- *                sont déjà là : elle est jouable le soir même ;
- *   'material' — c'est le matériau qui manque à une carte déjà possédée.
- *
- * Le second cas porte le badge le plus fort (« ⚡ Débloque : <la carte> »),
- * il gagne quand une carte relève des deux.
- */
-function linkCandidates(pool, ctx) {
-  const unlockedBy = new Map(); // materialId → carte possédée qu'il débloque
-  for (const id of ctx.owned) {
-    const owner = card(id);
-    if (!owner) continue;
-    for (const mat of materialsOf(owner)) {
-      if (!ctx.owned.has(mat) && cards().has(mat) && !unlockedBy.has(mat)) unlockedBy.set(mat, owner.id);
-    }
-  }
-
-  const out = [];
-  for (const c of pool) {
-    if (unlockedBy.has(c.id)) {
-      out.push({ card: c, reason: 'material', reason_ref: unlockedBy.get(c.id) });
-      continue;
-    }
-    const mats = materialsOf(c);
-    if (mats.length && mats.every(m => hasMaterial(m, ctx))) {
-      out.push({ card: c, reason: 'unlocks', reason_ref: null });
-    }
-  }
-  return out;
-}
-
-/** Slot 2 — L'Affinité. Une carte non possédée qui pousse vers un seuil d'attribut. */
-function affinityCandidates(pool, ctx) {
-  if (!ctx.affinity.size) return [];
-  const out = [];
-  for (const c of pool) {
-    // À attribut multiple, on annonce le plus représenté dans le deck : c'est
-    // le seuil dont le joueur est le plus proche.
-    let best = null;
-    for (const attr of c.attributes ?? []) {
-      const n = ctx.affinity.get(attr);
-      if (n && (!best || n > best.n)) best = { attr, n };
-    }
-    if (best) out.push({ card: c, reason: 'affinity', reason_ref: best.attr });
-  }
-  return out;
-}
-
-/**
- * Tire un emplacement. Chaque slot garde SA règle et se replie sur le tirage
- * libre quand son pool est vide (fin de collection : les slots 1 et 2
- * dégénèrent naturellement en slot 3, aucun traitement particulier requis).
- */
-function drawSlot(slot, pool, ctx, rand) {
-  const candidates = slot === 1 ? linkCandidates(pool, ctx)
-    : slot === 2 ? affinityCandidates(pool, ctx)
-      : [];
-  const source = candidates.length
-    ? candidates
-    : pool.map(c => ({ card: c, reason: 'random', reason_ref: null }));
-  const pick = weightedPick(source, e => tierWeight(e.card), rand);
+/** Tire un emplacement : tirage libre dans le pool, pondéré par tier. */
+function drawSlot(slot, pool, rand) {
+  const pick = weightedPick(pool, tierWeight, rand);
   if (!pick) return null;
   return {
     slot,
-    card_id: pick.card.id,
-    tier: Number(pick.card.tier) || 1,
+    card_id: pick.id,
+    tier: Number(pick.tier) || 1,
     price_golds: SLOT_PRICE.golds,
     price_gems: SLOT_PRICE.gems,
-    reason: pick.reason,
-    reason_ref: pick.reason_ref,
     purchased: false,
   };
+}
+
+/**
+ * Pool tirable : tout le catalogue non possédé, moins les cartes rerollées du
+ * jour et celles déjà placées dans l'offre. L'ordre est stable (par id) — c'est
+ * lui qui rend le tirage reproductible à graine égale.
+ */
+function drawablePool(ctx, excluded, taken) {
+  return [...cards().values()]
+    .filter(c => !ctx.owned.has(c.id) && !excluded.includes(c.id) && !taken.has(c.id))
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+
+/**
+ * Complète `slots` jusqu'à `DAILY_SLOTS` — les emplacements déjà présents ne
+ * sont JAMAIS re-tirés. Sert à la génération du jour comme au rattrapage d'une
+ * offre plus courte que le format courant (cf. `sync`).
+ */
+function fillSlots(user, ctx, { day, slots, excluded = [] }) {
+  const taken = new Set(slots.map(s => s.card_id));
+  for (let slot = 1; slot <= DAILY_SLOTS; slot++) {
+    if (slots.some(s => s.slot === slot)) continue;
+    const drawn = drawSlot(slot, drawablePool(ctx, excluded, taken), seededRandom(user.id, day, slot, excluded.length));
+    if (!drawn) continue;
+    taken.add(drawn.card_id);
+    slots.push(drawn);
+  }
+  slots.sort((a, b) => a.slot - b.slot);
+  return slots;
 }
 
 /**
@@ -276,17 +255,11 @@ function drawSlot(slot, pool, ctx, rand) {
  * ne serait qu'un bouton « rejouer ».
  *
  * `pinned` est l'emplacement épinglé la veille : il traverse la rotation tel
- * quel — même carte, même prix, même badge. Son badge n'est pas recalculé :
- * « débloque X » reste vrai (une collection ne se dépossède pas) et le joueur
- * doit retrouver EXACTEMENT la proposition qu'il a mise de côté.
+ * quel — même carte, même prix. Le joueur doit retrouver EXACTEMENT la
+ * proposition qu'il a mise de côté.
  */
 function buildOffer(user, ctx, { day, excluded = [], pinned = null }) {
-  const pool = [...cards().values()]
-    .filter(c => !ctx.owned.has(c.id) && !excluded.includes(c.id))
-    .sort((a, b) => a.id.localeCompare(b.id)); // ordre stable = tirage reproductible
-
   const slots = [];
-  const taken = new Set();
 
   if (pinned && cards().has(pinned.card_id) && !ctx.owned.has(pinned.card_id)) {
     slots.push({
@@ -295,22 +268,11 @@ function buildOffer(user, ctx, { day, excluded = [], pinned = null }) {
       tier: pinned.tier,
       price_golds: pinned.price_golds,
       price_gems: pinned.price_gems,
-      reason: pinned.reason,
-      reason_ref: pinned.reason_ref,
       purchased: false,
     });
-    taken.add(pinned.card_id);
   }
 
-  for (let slot = 1; slot <= DAILY_SLOTS; slot++) {
-    if (slots.some(s => s.slot === slot)) continue;
-    const drawn = drawSlot(slot, pool.filter(c => !taken.has(c.id)), ctx, seededRandom(user.id, day, slot, excluded.length));
-    if (!drawn) continue;
-    taken.add(drawn.card_id);
-    slots.push(drawn);
-  }
-
-  slots.sort((a, b) => a.slot - b.slot);
+  fillSlots(user, ctx, { day, slots, excluded });
   return { day, generated_at: Date.now(), slots, excluded };
 }
 
@@ -366,7 +328,24 @@ function writeState(state) {
 const sync = db.transaction((user) => {
   const state = readState(user.id);
   const day = dayKey();
-  if (state.offer_day === day && state.offer) return state;
+  if (state.offer_day === day && state.offer) {
+    // Offre plus courte que le format courant : elle a été tirée avant que
+    // DAILY_SLOTS n'augmente. On la COMPLÈTE au lieu de la régénérer — les
+    // emplacements déjà tirés (achats compris) sont conservés tels quels, donc
+    // l'invariant « l'offre ne se re-tire pas » tient toujours. Le nombre de
+    // slots ne dépend d'aucune entrée client : ce rattrapage n'est pas
+    // déclenchable à volonté.
+    const before = state.offer.slots?.length ?? 0;
+    if (before < DAILY_SLOTS) {
+      state.offer.slots = fillSlots(user, context(user), {
+        day, slots: state.offer.slots ?? [], excluded: state.offer.excluded ?? [],
+      });
+      // Pool épuisé (collection presque complète) : ne pas réécrire à chaque
+      // lecture pour un tirage qui ne rendra jamais rien.
+      if (state.offer.slots.length !== before) writeState(state);
+    }
+    return state;
+  }
 
   const ctx = context(user);
   // Une épingle dont la carte est arrivée autrement (booster) n'a plus d'objet :
@@ -428,8 +407,8 @@ const buySlot = db.transaction((user, slotIndex, expectedCardId, currency = 'gol
 
 /**
  * Reroll d'un emplacement : la carte quitte le pool du jour et le slot est
- * re-tiré EN CONSERVANT SA RÈGLE (un reroll du Maillon rend un autre Maillon,
- * pas une carte au hasard). Un seul par jour, jamais payant.
+ * re-tiré dans le reste du catalogue non possédé. Un seul par jour, jamais
+ * payant.
  */
 const reroll = db.transaction((user, slotIndex) => {
   const state = readState(user.id);
@@ -448,12 +427,10 @@ const reroll = db.transaction((user, slotIndex) => {
 
   const ctx = context(user);
   const excluded = [...new Set([...(state.offer.excluded ?? []), slot.card_id])];
-  const taken = state.offer.slots.filter(s => s.slot !== slotIndex).map(s => s.card_id);
-  const pool = [...cards().values()]
-    .filter(c => !ctx.owned.has(c.id) && !excluded.includes(c.id) && !taken.includes(c.id))
-    .sort((a, b) => a.id.localeCompare(b.id));
+  const taken = new Set(state.offer.slots.filter(s => s.slot !== slotIndex).map(s => s.card_id));
+  const pool = drawablePool(ctx, excluded, taken);
 
-  const drawn = drawSlot(slotIndex, pool, ctx, seededRandom(user.id, day, slotIndex, excluded.length));
+  const drawn = drawSlot(slotIndex, pool, seededRandom(user.id, day, slotIndex, excluded.length));
   if (!drawn) return { ok: false, reason: 'Plus aucune carte à proposer.' };
 
   state.offer.excluded = excluded;
@@ -474,8 +451,8 @@ const reroll = db.transaction((user, slotIndex) => {
  * déjà offert. C'est pour ça qu'elle est gratuite, au prix normal, et sans
  * délai — contrairement à un système de commande, elle ne court-circuite rien.
  *
- * On mémorise l'emplacement ENTIER (carte, prix, badge) et pas seulement son
- * id : c'est ce qui garantit que le joueur retrouve le lendemain exactement la
+ * On mémorise l'emplacement ENTIER (carte, prix) et pas seulement son id :
+ * c'est ce qui garantit que le joueur retrouve le lendemain exactement la
  * proposition qu'il a mise de côté, prix compris.
  */
 const setPin = db.transaction((user, slotIndex) => {
@@ -506,8 +483,6 @@ const setPin = db.transaction((user, slotIndex) => {
     tier: slot.tier,
     price_golds: slot.price_golds,
     price_gems: slot.price_gems,
-    reason: slot.reason,
-    reason_ref: slot.reason_ref,
     since_day: day,
   };
   writeState(state);
@@ -709,7 +684,7 @@ function getSnapshot(user) {
     sets: setsView(ctx),
     prices: SLOT_PRICE,
     // Collection saturée : la boutique de cartes n'a plus rien à vendre. Le
-    // client affiche un message de complétion plutôt que trois cases vides.
+    // client affiche un message de complétion plutôt que des cases vides.
     collection: { owned: ctx.owned.size, total: cards().size },
   };
 }
@@ -725,6 +700,6 @@ module.exports = {
   PINNED_SLOTS_MAX, FREE_REROLLS_PER_DAY, AFFINITY_MIN_OCCURRENCES,
   cards, sets, setCardIds, materialsOf, priceOf,
   dayKey, nextRotationAt, seededRandom, weightedPick,
-  context, activeDeckAttributes, linkCandidates, affinityCandidates, buildOffer, drawBooster,
+  context, activeDeckAttributes, drawSlot, drawablePool, fillSlots, buildOffer, drawBooster,
   sync, buySlot, reroll, setPin, buyBooster, pinView, getSnapshot, refresh,
 };

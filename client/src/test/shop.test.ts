@@ -88,11 +88,12 @@ describe('calendrier', () => {
 });
 
 describe('offre quotidienne', () => {
-  it('trois emplacements, jamais une carte déjà possédée', () => {
+  it('six emplacements, jamais une carte déjà possédée', () => {
     const user = newUser();
     const snap = shop.refresh(user());
-    expect(snap.slots).toHaveLength(3);
-    expect(snap.slots.map((s: any) => s.slot)).toEqual([1, 2, 3]);
+    expect(shop.DAILY_SLOTS).toBe(6);
+    expect(snap.slots).toHaveLength(6);
+    expect(snap.slots.map((s: any) => s.slot)).toEqual([1, 2, 3, 4, 5, 6]);
 
     const mine = owned(user());
     for (const slot of snap.slots) {
@@ -102,8 +103,8 @@ describe('offre quotidienne', () => {
       expect(slot.purchased).toBe(false);
       expect(slot.pinned).toBe(false);
     }
-    // Trois cartes distinctes : un emplacement ne double jamais un autre.
-    expect(new Set(snap.slots.map((s: any) => s.card_id)).size).toBe(3);
+    // Six cartes distinctes : un emplacement ne double jamais un autre.
+    expect(new Set(snap.slots.map((s: any) => s.card_id)).size).toBe(6);
   });
 
   it('l\'offre est figée pour la journée — la relire ne la re-tire pas', () => {
@@ -137,66 +138,49 @@ describe('offre quotidienne', () => {
   });
 });
 
-describe('slot 1 — Le Maillon', () => {
-  it('ne propose que des cartes qui débloquent une invocation', () => {
+describe('emplacements sans catégorie', () => {
+  // Les trois règles historiques (Maillon / Affinité / Inconnu) sont
+  // supprimées : tous les emplacements sont tirés dans le MÊME pool. Ce qui se
+  // vérifie ici, c'est l'absence de règle — donc l'absence de tout champ qui la
+  // décrirait, et l'indifférence du tirage au deck actif.
+  it('aucun emplacement ne porte de catégorie', () => {
     const user = newUser();
-    const ctx = shop.context(user());
-    const pool = CARDS.filter(c => !ctx.owned.has(c.id));
-    const candidates = shop.linkCandidates(pool, ctx);
-    expect(candidates.length).toBeGreaterThan(0);
-
-    for (const { card, reason, reason_ref } of candidates) {
-      if (reason === 'unlocks') {
-        // Tous ses matériaux sont là : elle est jouable le soir même.
-        const mats = shop.materialsOf(card);
-        expect(mats.length).toBeGreaterThan(0);
-        expect(mats.every((m: string) => ctx.owned.has(m) || ctx.ownedAttributes.has(m))).toBe(true);
-      } else {
-        // C'est le matériau manquant d'une carte déjà possédée.
-        expect(reason).toBe('material');
-        expect(ctx.owned.has(reason_ref)).toBe(true);
-        expect(shop.materialsOf(cardOf(reason_ref))).toContain(card.id);
-      }
+    for (const slot of shop.refresh(user()).slots) {
+      expect(slot.reason).toBeUndefined();
+      expect(slot.reason_ref).toBeUndefined();
+      expect(Object.keys(slot).sort()).toEqual(
+        ['card_id', 'pinned', 'price_gems', 'price_golds', 'purchased', 'slot', 'tier'],
+      );
     }
   });
 
-  it('un matériau désigné par attribut est couvert par n\'importe quel porteur', () => {
-    // `cost.materials` mélange ids de cartes et ids d'attributs (ARCH_*) :
-    // « un Dragon » se satisfait de n'importe quel Dragon possédé.
+  it('les emplacements sont tirés dans TOUT le catalogue non possédé', () => {
+    // Aucun slot n'est réservé à une famille de cartes : le pool d'un
+    // emplacement est le catalogue entier moins la collection du joueur.
     const user = newUser();
     const ctx = shop.context(user());
-    const byAttr = CARDS.find(c => shop.materialsOf(c).some((m: string) => m.startsWith('ARCH_')));
-    expect(byAttr).toBeTruthy();
-    const attrMat = shop.materialsOf(byAttr).find((m: string) => m.startsWith('ARCH_'));
-    expect(ctx.ownedAttributes.has(attrMat)).toBe(ctx.ownedAttributes.has(attrMat)); // sanity
-    // Le porteur possédé suffit : aucun matériau ARCH_* n'est jamais « possédé »
-    // en tant que carte.
-    expect(ctx.owned.has(attrMat)).toBe(false);
-  });
-});
+    const pool = shop.drawablePool(ctx, [], new Set());
+    expect(pool.length).toBe(CARDS.length - ctx.owned.size);
 
-describe('slot 2 — L\'Affinité', () => {
-  it('ne propose que des cartes partageant un attribut vu ≥ 2 fois dans le deck actif', () => {
+    const mine = owned(user());
+    for (const slot of shop.refresh(user()).slots) {
+      expect(cardOf(slot.card_id)).toBeTruthy();
+      expect(mine.has(slot.card_id)).toBe(false);
+    }
+  });
+
+  it('le deck actif ne pilote plus aucun emplacement', () => {
+    // L'affinité au deck ne survit que dans le tirage des BOOSTERS, où elle
+    // n'est pas pilotable (le tirage a lieu à l'achat).
     const user = newUser();
     const harpies = CARDS.filter(c => c.attributes?.includes('ARCH_036')).slice(0, 6).map(c => c.id);
     setActiveDeck(user().id, harpies);
-
-    const attrs = shop.activeDeckAttributes(user().id);
-    expect(attrs.get('ARCH_036')).toBeGreaterThanOrEqual(2);
+    expect(shop.activeDeckAttributes(user().id).get('ARCH_036')).toBeGreaterThanOrEqual(2);
 
     const ctx = shop.context(user());
-    const pool = CARDS.filter(c => !ctx.owned.has(c.id));
-    for (const { card, reason_ref } of shop.affinityCandidates(pool, ctx)) {
-      expect(card.attributes).toContain(reason_ref);
-      expect(attrs.has(reason_ref)).toBe(true);
-    }
-  });
-
-  it('sans deck actif, le slot se replie sur le tirage libre', () => {
-    const user = newUser();
-    expect(shop.activeDeckAttributes(user().id).size).toBe(0);
-    const slot2 = shop.refresh(user()).slots.find((s: any) => s.slot === 2);
-    expect(slot2.reason).toBe('random');
+    const withDeck = shop.buildOffer(user(), ctx, { day: '2026-09-01' });
+    const withoutDeck = shop.buildOffer(user(), { ...ctx, affinity: new Map() }, { day: '2026-09-01' });
+    expect(withDeck.slots.map((s: any) => s.card_id)).toEqual(withoutDeck.slots.map((s: any) => s.card_id));
   });
 });
 
@@ -235,8 +219,8 @@ describe('achat d\'un emplacement', () => {
     expect(again.reason).toMatch(/déjà acheté/);
   });
 
-  it('les trois emplacements sont achetables le même jour', () => {
-    const user = newUser(5000);
+  it('les six emplacements sont achetables le même jour', () => {
+    const user = newUser(10_000);
     const snap = shop.refresh(user());
     for (const slot of snap.slots) {
       expect(shop.buySlot(user(), slot.slot, slot.card_id).ok).toBe(true);
@@ -283,14 +267,17 @@ describe('reroll', () => {
     expect(second.reason).toMatch(/déjà utilisé/);
   });
 
-  it('le reroll conserve la règle du slot', () => {
-    // Un reroll du Maillon rend un autre Maillon, pas une carte au hasard :
-    // sinon le reroll dégraderait l'offre au lieu de la changer.
+  it('le reroll rend une autre carte du pool, sans doubler un autre emplacement', () => {
     const user = newUser();
-    const before = shop.refresh(user()).slots.find((s: any) => s.slot === 1);
-    expect(['unlocks', 'material']).toContain(before.reason);
+    const snap = shop.refresh(user());
+    const before = snap.slots.find((s: any) => s.slot === 1);
+    const others = snap.slots.filter((s: any) => s.slot !== 1).map((s: any) => s.card_id);
+
     const res = shop.reroll(user(), 1);
-    expect(['unlocks', 'material']).toContain(res.slot.reason);
+    expect(res.ok).toBe(true);
+    expect(res.slot.card_id).not.toBe(before.card_id);
+    expect(others).not.toContain(res.slot.card_id);
+    expect(owned(user()).has(res.slot.card_id)).toBe(false);
   });
 
   it('un emplacement acheté ne se reroule pas', () => {
@@ -325,10 +312,9 @@ describe('épingle', () => {
     expect(kept.card_id).toBe(before.card_id);
     expect(kept.price_golds).toBe(before.price_golds);
     expect(kept.price_gems).toBe(before.price_gems);
-    expect(kept.reason).toBe(before.reason);
     expect(kept.purchased).toBe(false);
     // Les autres emplacements, eux, sont bien re-tirés.
-    expect(next.slots.filter((s: any) => s.slot !== 2)).toHaveLength(2);
+    expect(next.slots.filter((s: any) => s.slot !== 2)).toHaveLength(shop.DAILY_SLOTS - 1);
   });
 
   it('l\'épingle survit à la reconstruction de l\'offre', () => {
@@ -438,7 +424,7 @@ describe('boosters', () => {
   // partie du catalogue ne porte aucun attribut.
   const mkCard = (id: string, tier: number, attributes: string[], materials: string[] = []) =>
     ({ id, tier, attributes, cost: { sacrifice: 0, materials } });
-  const noCtx = { owned: new Set<string>(), ownedAttributes: new Set<string>(), affinity: new Map() };
+  const noCtx = { owned: new Set<string>(), affinity: new Map() };
 
   it('les 3 cartes partagent un attribut avec l\'ancre quand le pool le permet', () => {
     const pool = [
@@ -593,5 +579,40 @@ describe('instantané', () => {
     const snap = shop.refresh(user());
     expect(snap.slots[0].price_golds).toBe(1000);
     expect(snap.slots[0].price_gems).toBe(100);
+  });
+
+  it('complète une offre du jour plus courte que le format courant, sans re-tirer l\'existant', () => {
+    // Une offre à 3 emplacements tirée avant le passage à 6 : elle est
+    // COMPLÉTÉE, pas régénérée. C'est le seul écart toléré à « l'offre est
+    // figée pour la journée » — et il n'est pas déclenchable par le client, le
+    // nombre d'emplacements ne venant d'aucune entrée réseau.
+    const user = newUser(10_000);
+    const full = shop.refresh(user());
+    expect(full.slots).toHaveLength(6);
+
+    // On achète le premier, puis on rétrécit l'offre persistée à 3 slots.
+    expect(shop.buySlot(user(), 1, full.slots[0].card_id).ok).toBe(true);
+    const state = stmt.shopStateByUser.get(user().id);
+    const offer = JSON.parse(state.offer);
+    const kept = offer.slots.filter((s: any) => s.slot <= 3);
+    stmt.upsertShopState.run({ ...state, offer: JSON.stringify({ ...offer, slots: kept }) });
+
+    const snap = shop.refresh(user());
+    expect(snap.slots).toHaveLength(6);
+    // Les trois d'origine sont intacts — carte ET état d'achat.
+    for (const before of kept) {
+      const after = snap.slots.find((s: any) => s.slot === before.slot);
+      expect(after.card_id).toBe(before.card_id);
+      expect(after.purchased).toBe(before.purchased);
+    }
+    expect(snap.slots.find((s: any) => s.slot === 1).purchased).toBe(true);
+    // Les trois nouveaux ne doublent rien et ne sont pas déjà possédés.
+    expect(new Set(snap.slots.map((s: any) => s.card_id)).size).toBe(6);
+    const mine = owned(user());
+    for (const s of snap.slots.filter((x: any) => !x.purchased)) expect(mine.has(s.card_id)).toBe(false);
+
+    // Et une fois complétée, elle est de nouveau figée.
+    expect(shop.refresh(user()).slots.map((s: any) => s.card_id))
+      .toEqual(snap.slots.map((s: any) => s.card_id));
   });
 });

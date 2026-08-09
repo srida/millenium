@@ -3,10 +3,10 @@
 //
 // 🃏 CARTES (brief_boutique §3) — ce qui change le jeu, acheté en golds ou en
 // gemmes. Deux blocs qui ne se recouvrent pas :
-//   1. les 3 EMPLACEMENTS du jour — construction de deck. Chacun porte le
-//      badge qui dit POURQUOI il est là (« ⚡ Débloque : … ») : c'est le badge
-//      qui porte la valeur perçue, pas la carte. Un seul peut être ÉPINGLÉ,
-//      pour le retrouver après la rotation du lendemain ;
+//   1. les 6 EMPLACEMENTS du jour — une vitrine tirée dans tout le catalogue
+//      non possédé. Pas de catégorie, pas de badge : les emplacements sont
+//      interchangeables et ne se distinguent que par la carte. Un seul peut
+//      être ÉPINGLÉ, pour le retrouver après la rotation du lendemain ;
 //   2. les BOOSTERS — du volume sur un set choisi, sans plafond.
 //
 // 🎨 COSMÉTIQUES — ce qui ne change rien au jeu, en gemmes uniquement, à prix
@@ -18,7 +18,6 @@
 // (shop.js, cosmetics.js). L'écran affiche et déclenche, il n'arbitre pas.
 import { useEffect, useState } from 'react';
 import * as CardDatabase from '../data/CardDatabase.js';
-import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import type { Card } from '../logic/types.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
@@ -31,7 +30,6 @@ import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 const fmt = new Intl.NumberFormat('fr-FR');
 
 const cardOf = (id: string | null): Card | null => (id ? (CardDatabase as any).getCard(id) ?? null : null);
-const attrName = (id: string) => (AttributeDatabase as any).getAttribute(id)?.name ?? id;
 
 export default function ShopScreen() {
   const navigate = useUiStore(s => s.navigate);
@@ -120,7 +118,9 @@ export default function ShopScreen() {
                   ✓ Collection complète — {fmt.format(snapshot.collection.total)} cartes. Plus rien à acheter ici.
                 </Panel>
               ) : (
-                <div className="grid gap-2 sm:grid-cols-3">
+                // Six emplacements : deux colonnes dès le portrait (une seule
+                // ferait six écrans de scroll), trois dès qu'il y a la largeur.
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {snapshot.slots.map(slot => <SlotCard key={slot.slot} slot={slot} />)}
                 </div>
               )}
@@ -321,34 +321,12 @@ function Balance() {
 // --- Emplacements quotidiens ---
 
 /**
- * Le badge dit pourquoi la carte est là. C'est lui qui porte la valeur : « une
- * carte au hasard à 350 golds » et « la pièce qui manque à ta fusion à 350
- * golds » ne sont pas la même proposition.
+ * Un emplacement. Disposition VERTICALE (vignette au-dessus, prix empilés) :
+ * six tuiles tiennent en deux colonnes dès le portrait, ce qu'une disposition
+ * horizontale ne permettait pas. Les deux icônes (📌 épingler, 🎲 rerouler)
+ * passent en tête de tuile, sur la ligne du tier — elles ne se disputent plus
+ * la largeur avec les boutons d'achat.
  */
-function ReasonBadge({ slot }: { slot: ShopSlot }) {
-  const ref = cardOf(slot.reason_ref);
-  const styles = 'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] leading-tight';
-
-  if (slot.reason === 'material') {
-    return (
-      <span className={`${styles} min-w-0 border-gold/60 bg-gold/10 text-gold`}>
-        ⚡ <span className="truncate">Débloque : {ref?.name ?? slot.reason_ref}</span>
-      </span>
-    );
-  }
-  if (slot.reason === 'unlocks') {
-    return <span className={`${styles} border-gold/60 bg-gold/10 text-gold`}>⚡ Invocable immédiatement</span>;
-  }
-  if (slot.reason === 'affinity') {
-    return (
-      <span className={`${styles} min-w-0 border-player/60 bg-player/10 text-player`}>
-        🧬 <span className="truncate">{attrName(slot.reason_ref ?? '')} — ton deck</span>
-      </span>
-    );
-  }
-  return <span className={`${styles} border-line text-white/50`}>🎲 Découverte</span>;
-}
-
 function SlotCard({ slot }: { slot: ShopSlot }) {
   const user = useAuthStore(s => s.user);
   const busy = useShopStore(s => s.busy);
@@ -360,57 +338,31 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
   const card = cardOf(slot.card_id);
   const affordableGolds = (user?.gold ?? 0) >= slot.price_golds;
   const affordableGems = (user?.gems ?? 0) >= slot.price_gems;
-  // Épingler puis rerouler se contredit : le die disparaît sur l'emplacement
+  // Épingler puis rerouler se contredit : le dé disparaît sur l'emplacement
   // épinglé plutôt que d'échouer au tap.
   const rerollable = !slot.purchased && !slot.pinned && freeReroll;
 
+  const iconBtn = 'flex h-7 w-7 items-center justify-center rounded-md border text-[11px] active:opacity-70 disabled:opacity-30';
+
   return (
-    <Panel className={`flex flex-col gap-2 p-3 ${
+    <Panel className={`flex flex-col gap-1.5 p-2 ${
       slot.purchased ? 'border-success/40 bg-success/5' : slot.pinned ? 'border-tier-5/60 bg-tier-5/5' : ''
     }`}>
-      <ReasonBadge slot={slot} />
-
-      <div className="flex gap-3">
-        {card
-          ? <CardTile {...cardTileProps(card)} size="h-28" tapOn="up" dim={slot.purchased ? 'soft' : 'none'} />
-          : <div className="h-28 w-20 rounded-lg border border-line" />}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <p className="truncate text-sm font-semibold leading-tight">{card?.name ?? slot.card_id}</p>
-          <p className="mt-0.5 text-[10px] text-white/40">Tier {slot.tier}</p>
-          {/* L'épingle ne se lit pas dans l'état du bouton : on dit ce qu'elle
-              PROMET (« encore là demain »), pas qu'elle est active. */}
-          {slot.pinned && !slot.purchased && (
-            <p className="mt-0.5 text-[10px] leading-tight text-tier-5">📌 Conservée à la prochaine rotation</p>
-          )}
-          <span className="mt-auto flex items-center gap-2 text-sm font-bold tabular-nums">
-            <span className={affordableGolds ? 'text-gold' : 'text-white/30'}>💰 {fmt.format(slot.price_golds)}</span>
-            <span className={affordableGems ? 'text-tier-4' : 'text-white/30'}>💎 {fmt.format(slot.price_gems)}</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        {slot.purchased ? (
-          <span className="flex min-h-tap flex-1 items-center justify-center text-sm font-semibold text-success">✓ Acheté</span>
-        ) : (
+      <div className="flex items-center gap-1">
+        <span className="flex-1 text-[10px] text-white/40">Tier {slot.tier}</span>
+        {!slot.purchased && (
           <>
-            <Button
-              variant="primary"
-              className="flex-1 px-2 text-xs"
-              disabled={busy || !affordableGolds}
-              title={affordableGolds ? undefined : 'Pas assez de golds'}
-              onPointerDown={async () => setErr(await buy(slot, 'golds'))}
-            >
-              💰 {fmt.format(slot.price_golds)}
-            </Button>
-            <Button
-              className="flex-1 px-2 text-xs"
-              disabled={busy || !affordableGems}
-              title={affordableGems ? undefined : 'Pas assez de gemmes'}
-              onPointerDown={async () => setErr(await buy(slot, 'gems'))}
-            >
-              💎 {fmt.format(slot.price_gems)}
-            </Button>
+            {rerollable && (
+              <button
+                disabled={busy}
+                onPointerDown={async () => setErr(await reroll(slot.slot))}
+                title="Changer cette proposition (1 gratuit par jour)"
+                aria-label="Changer cette proposition"
+                className={`${iconBtn} border-line text-white/50`}
+              >
+                🎲
+              </button>
+            )}
             <button
               disabled={busy}
               onPointerDown={async () => setErr(await pin(slot.pinned ? null : slot.slot))}
@@ -421,26 +373,51 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
                   : 'Conserver cette carte à la prochaine rotation'}
               aria-label={slot.pinned ? 'Détacher cet emplacement' : 'Épingler cet emplacement'}
               aria-pressed={slot.pinned}
-              className={`flex min-h-tap min-w-tap items-center justify-center rounded-lg border px-2 text-xs active:opacity-70 disabled:opacity-30 ${
-                slot.pinned ? 'border-tier-5 bg-tier-5/15 text-tier-5' : 'border-line text-white/50'
-              }`}
+              className={`${iconBtn} ${slot.pinned ? 'border-tier-5 bg-tier-5/15 text-tier-5' : 'border-line text-white/50'}`}
             >
               📌
             </button>
           </>
         )}
-        {rerollable && (
-          <button
-            disabled={busy}
-            onPointerDown={async () => setErr(await reroll(slot.slot))}
-            title="Changer cette proposition (1 gratuit par jour)"
-            aria-label="Changer cette proposition"
-            className="flex min-h-tap min-w-tap items-center justify-center rounded-lg border border-line px-2 text-xs text-white/50 active:opacity-70 disabled:opacity-30"
-          >
-            🎲
-          </button>
-        )}
       </div>
+
+      <div className="flex justify-center">
+        {card
+          ? <CardTile {...cardTileProps(card)} size="h-28" tapOn="up" dim={slot.purchased ? 'soft' : 'none'} />
+          : <div className="h-28 w-20 rounded-lg border border-line" />}
+      </div>
+
+      <p className="truncate text-center text-[11px] font-semibold leading-tight">{card?.name ?? slot.card_id}</p>
+
+      {/* L'épingle ne se lit pas dans l'état du bouton : on dit ce qu'elle
+          PROMET (« encore là demain »), pas qu'elle est active. */}
+      {slot.pinned && !slot.purchased && (
+        <p className="text-center text-[10px] leading-tight text-tier-5">📌 Conservée demain</p>
+      )}
+
+      {slot.purchased ? (
+        <span className="py-1 text-center text-xs font-semibold text-success">✓ Acheté</span>
+      ) : (
+        <div className="flex flex-col gap-1">
+          <Button
+            variant="primary"
+            className="w-full px-1 text-[11px]"
+            disabled={busy || !affordableGolds}
+            title={affordableGolds ? undefined : 'Pas assez de golds'}
+            onPointerDown={async () => setErr(await buy(slot, 'golds'))}
+          >
+            💰 {fmt.format(slot.price_golds)}
+          </Button>
+          <Button
+            className="w-full px-1 text-[11px]"
+            disabled={busy || !affordableGems}
+            title={affordableGems ? undefined : 'Pas assez de gemmes'}
+            onPointerDown={async () => setErr(await buy(slot, 'gems'))}
+          >
+            💎 {fmt.format(slot.price_gems)}
+          </Button>
+        </div>
+      )}
       {err && <p className="text-[10px] text-danger">{err}</p>}
     </Panel>
   );
