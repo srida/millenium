@@ -2646,13 +2646,23 @@ function renderVariantList(list = variants) {
   }
   el.innerHTML = list.map(v => {
     const card = _variantCard(v);
-    const active = selectedVariant?.id === v.id ? ' active' : '';
+    const isActive = selectedVariant?.id === v.id;
+    // L'art de la variante EST son intérêt : c'est la seule chose qui la
+    // distingue de ses sœurs (elles portent toutes le nom de leur carte).
+    // Le cache-buster est celui du détail — remplacer une illustration doit
+    // rafraîchir la vignette de la liste, l'URL étant stable.
+    const thumb = v._has_illustration
+      ? `<img class="list-thumb" src="/illustrations/${esc(v.id)}?t=${variantBust}" alt="" loading="lazy">`
+      : `<div class="list-thumb-placeholder"><span style="font-size:14px;opacity:.4">🎨</span></div>`;
     return `
-      <div class="list-item${active}" onclick="selectVariant('${v.id}')">
-        <div class="list-item-name">${v._has_illustration ? '' : '⚠️ '}${card ? esc(card.name) : `<span style="color:var(--danger)">carte inconnue</span>`}</div>
-        <div class="list-item-meta">
-          <span style="font-family:monospace">${esc(v.id)}</span>
-          ${card ? '' : `· <span style="color:var(--danger)">${esc(v.card_id)}</span>`}
+      <div class="list-item ${isActive ? 'selected' : ''}" onclick="selectVariant('${v.id}')">
+        ${thumb}
+        <div style="flex:1;min-width:0">
+          <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v._has_illustration ? '' : '⚠️ '}${card ? esc(card.name) : `<span style="color:var(--danger)">carte inconnue</span>`}</span>
+          <div style="display:flex;gap:4px;margin-top:3px;align-items:center">
+            <span class="item-id">${esc(v.id)}</span>
+            ${card ? '' : `<span class="item-id" style="color:var(--danger)">${esc(v.card_id)}</span>`}
+          </div>
         </div>
       </div>`;
   }).join('');
