@@ -17,10 +17,11 @@
 const path = require('path');
 const fs = require('fs');
 
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+// L'emplacement des dossiers est décidé par asset-dirs.js (qui ne requiert
+// rien, donc pas de cycle) : ce module possède le dossier d'illustrations au
+// sens éditorial — qui a le droit d'y écrire — pas au sens du chemin sur disque.
+const { DATA_DIR, ILLUS_DIR } = require('./asset-dirs');
 const VARIANTS_FILE = path.join(DATA_DIR, 'variants.json');
-
-const ILLUS_DIR = process.env.ILLUS_DIR || path.join(__dirname, 'resources', 'card_illustrations');
 
 // --- Catalogue (cache mémoire invalidé au mtime) ---
 // Même patron que sets.js : l'admin écrit à chaud, le serveur ne redémarre pas.

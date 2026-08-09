@@ -13,14 +13,14 @@
 const path = require('path');
 const fs = require('fs');
 
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
-const CARDS_FILE = path.join(DATA_DIR, 'cards.json');
-const SETS_FILE = path.join(DATA_DIR, 'sets.json');
-
 // Affiches des packs. Dossier séparé des illustrations de cartes et des avatars
 // de decks publics, pour les mêmes raisons : ce n'est pas de l'art de carte, et
-// l'index des illustrations ne doit pas s'en trouver pollué.
-const POSTERS_DIR = process.env.POSTERS_DIR || path.join(__dirname, 'resources', 'pack_posters');
+// l'index des illustrations ne doit pas s'en trouver pollué. L'emplacement des
+// dossiers est décidé par asset-dirs.js (qui ne requiert rien, donc pas de
+// cycle avec ce module).
+const { DATA_DIR, POSTERS_DIR } = require('./asset-dirs');
+const CARDS_FILE = path.join(DATA_DIR, 'cards.json');
+const SETS_FILE = path.join(DATA_DIR, 'sets.json');
 
 // --- Catalogue (cache mémoire invalidé au mtime) ---
 // Même patron que progression.allCardIds : l'admin écrit à chaud, le serveur

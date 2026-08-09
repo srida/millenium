@@ -19,19 +19,20 @@ app.use(express.json({ limit: '20mb' }));
 const IS_PROD = process.env.NODE_ENV === 'production';
 const PROJECT_ROOT = __dirname;
 
-const DATA_DIR       = process.env.DATA_DIR  || path.join(PROJECT_ROOT, 'data');
-const ILLUS_DIR      = variants.ILLUS_DIR;
-// Portraits des decks publics (adversaires solo + bracket de tournoi). Dossier
-// séparé des illustrations : ce n'est pas de l'art de carte, et l'avatar par
-// défaut doit pouvoir vivre à côté sans polluer l'index des illustrations.
-const AVATARS_DIR    = process.env.AVATARS_DIR || path.join(PROJECT_ROOT, 'resources', 'enemy_avatars');
-// Affiches des packs de boutique. Le dossier est défini par sets.js, qui est
-// aussi celui qui répond « ce pack a-t-il son affiche ? » à la boutique.
-const POSTERS_DIR    = packs.POSTERS_DIR;
-// Fonds de grille des terrains de combat : l'illustration vue de dessus posée
-// sous les 5 × 11 cases pendant le combat. Famille distincte de l'illustration
-// du terrain (vignette carrée du tooltip) — deux cadrages, deux images.
-const BOARD_BG_DIR   = process.env.BOARD_BG_DIR || path.join(PROJECT_ROOT, 'resources', 'board_backgrounds');
+// Emplacement des données et des quatre familles d'images : asset-dirs.js est
+// seul à en décider (il déduit leur racine commune de ILLUS_DIR, pour qu'aucune
+// famille n'atterrisse dans le conteneur — voir l'en-tête de ce module).
+//  - ILLUS_DIR     : art des cartes, terrains, magies et variantes (espace de
+//                    noms plat — c'est variants.js qui possède ce dossier)
+//  - AVATARS_DIR   : portraits des decks publics (adversaires solo + tournoi)
+//  - POSTERS_DIR   : affiches des packs de boutique
+//  - BOARD_BG_DIR  : fonds de grille des terrains, vue de dessus posée sous les
+//                    5 × 11 cases en combat — distinct de l'illustration du
+//                    terrain (vignette carrée du tooltip) : deux cadrages.
+const {
+  DATA_DIR, ILLUS_DIR, AVATARS_DIR, POSTERS_DIR, BOARD_BG_DIR,
+  FAMILIES: ASSET_FAMILIES, isEphemeral,
+} = require('./asset-dirs');
 const INITIAL_DIR    = path.join(__dirname, 'initial-data');
 
 // Avatar servi quand un deck n'a pas le sien : aucun écran ne doit afficher de
@@ -71,6 +72,29 @@ function bootstrap() {
   if (!fs.existsSync(avatarDefault) && fs.existsSync(avatarSrc)) {
     fs.copyFileSync(avatarSrc, avatarDefault);
     console.log('[bootstrap] avatar par défaut copié sur le volume');
+  }
+  logAssetDirs();
+}
+
+// Récapitulatif des dossiers d'images réellement utilisés. Une famille dont la
+// variable d'environnement n'est pas réglée en prod écrit dans le conteneur, et
+// son contenu disparaît au déploiement suivant — panne invisible au démarrage,
+// qui ne se constate qu'après coup par des images manquantes. On la nomme donc
+// ici, franchement, plutôt que de la laisser se découvrir.
+function logAssetDirs() {
+  for (const { label, dir, env } of ASSET_FAMILIES) {
+    let count = 0;
+    try { count = fs.readdirSync(dir).filter(f => f.endsWith('.png')).length; } catch { /* dossier illisible */ }
+    console.log(`[assets] ${label.padEnd(17)} ${dir} (${count} image${count > 1 ? 's' : ''})`);
+    if (IS_PROD && isEphemeral(dir)) {
+      // Régler ILLUS_DIR suffit pour toutes les familles sauf elle-même : les
+      // autres dossiers se déduisent de sa racine (cf. asset-dirs.js).
+      const fix = env === 'ILLUS_DIR' ? 'ILLUS_DIR' : `${env}, ou ILLUS_DIR dont il se déduit,`;
+      console.warn(
+        `[assets] ⚠ ${label} : ce dossier est DANS LE CONTENEUR, son contenu sera ` +
+        `effacé au prochain déploiement. Régler ${fix} sur le volume.`,
+      );
+    }
   }
 }
 bootstrap();

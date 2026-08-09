@@ -44,6 +44,23 @@ En dev, on développe sur **http://localhost:5173** (HMR) ; en prod, Express ser
 
 Repo : `https://github.com/srida/Millenium`
 
+### Où vivent les images (`asset-dirs.js`)
+
+`data/` et `resources/` sont **gitignorés** : ils ne sont pas dans l'image, et le conteneur est reconstruit à chaque déploiement. Tout ce qui doit survivre vit donc sur un **volume monté**, et un dossier d'assets mal résolu perd son contenu au déploiement suivant — panne invisible au démarrage, qui ne se constate qu'après coup.
+
+**`asset-dirs.js`** (racine, ne requiert rien — donc chargeable par `server.js`, `sets.js` et `scripts/sync-data.js` sans cycle) est seul à décider de ces chemins :
+
+```js
+const ASSETS_ROOT = path.dirname(ILLUS_DIR);   // dev : <projet>/resources ; prod : le volume
+BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgrounds')
+```
+
+- La racine se **déduit de `ILLUS_DIR`** au lieu d'être recalculée depuis le projet. C'est ce qui fait qu'une famille ajoutée plus tard suit le volume **sans nouvelle variable à régler** — l'inverse a coûté la disparition des fonds de terrain à chaque déploiement, leur `BOARD_BG_DIR` n'étant réglé nulle part.
+- La variable par famille (`AVATARS_DIR`, `POSTERS_DIR`, `BOARD_BG_DIR`) reste **prioritaire** : une configuration existante n'est jamais contredite.
+- `bootstrap()` trace au démarrage le chemin réel de chaque famille (`[assets] …`) et **avertit franchement** quand un dossier se trouve sous la racine du projet alors que `NODE_ENV=production` : c'est le test exact de la panne, pas une heuristique.
+
+⚠️ `npm run sync:push` **supprime les images distantes absentes en local** — lancé depuis une machine dont une famille est vide, il l'efface en prod. Faire un `sync:pull` d'abord, ou `--dry-run`.
+
 ---
 
 ## Routes Express
@@ -1013,7 +1030,7 @@ Un terrain porte **deux images distinctes**, calculées à la lecture et jamais 
 | Drapeau | Dossier | Route | Rôle |
 |---|---|---|---|
 | `_has_illustration` | `resources/card_illustrations` (partagé avec les cartes) | `GET /illustrations/:id` | Vignette **carrée** du tooltip `🗺️` |
-| `_has_background` | `resources/board_backgrounds` (`BOARD_BG_DIR`) | `GET /board-backgrounds/:id` | **Fond de grille**, vue de dessus au ratio 5:11 |
+| `_has_background` | `board_backgrounds` (`BOARD_BG_DIR`) | `GET /board-backgrounds/:id` | **Fond de grille**, vue de dessus au ratio 5:11 |
 
 Ce sont bien deux assets et non un seul recadré : un plan de 5 × 11 rogné en vignette carrée ne montrerait qu'une bande centrale illisible, et une vignette carrée étirée sur la grille serait déformée.
 

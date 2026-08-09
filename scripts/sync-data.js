@@ -46,11 +46,9 @@ const SYNC_URL   = (process.env.SYNC_URL || '').replace(/\/$/, '');
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || '';
 
-const DATA_DIR  = process.env.DATA_DIR  || path.join(ROOT, 'data');
-const ILLUS_DIR = process.env.ILLUS_DIR || path.join(ROOT, 'resources', 'card_illustrations');
-const AVATARS_DIR = process.env.AVATARS_DIR || path.join(ROOT, 'resources', 'enemy_avatars');
-const POSTERS_DIR = process.env.POSTERS_DIR || path.join(ROOT, 'resources', 'pack_posters');
-const BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ROOT, 'resources', 'board_backgrounds');
+// Mêmes dossiers que le serveur, décidés au même endroit — les recalculer ici
+// laisserait les deux côtés diverger au prochain ajout de famille.
+const { DATA_DIR, ILLUS_DIR, AVATARS_DIR, POSTERS_DIR, BOARD_BG_DIR } = require(path.join(ROOT, 'asset-dirs'));
 
 // Les familles d'images se synchronisent à l'identique, sur un dossier et un jeu
 // de routes chacune. `key` est la clé du manifeste de /api/export.
