@@ -358,6 +358,8 @@ Deux appartenances qui ne se confondent pas, et que le sélecteur distingue par 
 
 Corollaire : « dans aucun pack » veut dire **aucun**, dotation comprise. Une carte du pack de départ est distribuée, elle n'attend pas d'être casée — la compter comme orpheline ferait passer toute la dotation pour du travail restant.
 
+Même raisonnement pour les **matériaux hors pack** (`packMissingMaterials`) : un matériau offert par le pack de départ n'est **pas** un manque — tout joueur le possède avant d'ouvrir le moindre booster, la fusion est invocable dès la carte finale achetée. Il est donc exclu du décompte, au même titre que les matériaux du pack lui-même (et que les matériaux désignés par attribut, `ARCH_*`, qui ne sont pas des cartes). Sans cette exclusion, un pool de départ large noierait les vrais trous sous des alertes sans objet. Le pack **en cours d'édition** est écarté de cette recherche : sa composition à l'écran fait foi, pas la version encore enregistrée.
+
 `sets.json` **fait foi** pour le pool d'un booster ; le champ `set` de la carte en est le miroir (il rattrape une carte créée depuis l'admin après la rédaction du pack). `POST/PUT/DELETE /api/sets` **réalignent le miroir** : le champ `set` est posé sur les cartes listées et effacé sur celles qui sortent du pack — une carte n'appartient donc qu'à **un** pack commercial. Un pack de départ, lui, ne touche pas au miroir (il chevauche les packs vendus par nature).
 
 ⚠️ **La prime de complétion est mémorisée par id** (`user_shop_state.sets_claimed`) : changer l'`id` d'un pack revient à en créer un neuf, et les joueurs qui avaient touché la prime de l'ancien la toucheront à nouveau. L'écran d'admin le dit.

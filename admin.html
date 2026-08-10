@@ -3661,8 +3661,15 @@ function packTierSpread(ids) {
  * fusion ne soit jamais séparée de ses matériaux ; à la main, ce n'est plus vrai
  * — d'où ce décompte, purement informatif (shop.js se rabat silencieusement).
  * Les matériaux désignés par ATTRIBUT (ARCH_*) ne sont pas des cartes : ignorés.
+ *
+ * Un matériau offert par le PACK DE DÉPART n'est pas un manque : tout joueur le
+ * possède déjà avant d'ouvrir le moindre booster, la fusion est donc invocable
+ * dès la carte finale achetée. Le compter alerterait sur un problème inexistant
+ * — et sur un pool de départ large, l'alerte couvrirait les vrais trous.
+ * `exceptId` écarte le pack en cours d'édition : sa composition à l'écran
+ * (`ids`) fait foi, pas la version encore enregistrée dans `packs`.
  */
-function packMissingMaterials(ids) {
+function packMissingMaterials(ids, exceptId = null) {
   const inPack = new Set(ids);
   const missing = new Set();
   for (const id of ids) {
@@ -3672,7 +3679,7 @@ function packMissingMaterials(ids) {
     for (const opt of c.summon_options || []) mats.push(...(opt.cost?.materials || []));
     for (const m of mats) {
       if (!m || String(m).startsWith('ARCH_')) continue;
-      if (!inPack.has(m)) missing.add(m);
+      if (!inPack.has(m) && !starterPackWith(m, exceptId)) missing.add(m);
     }
   }
   return [...missing];
@@ -3728,7 +3735,7 @@ function renderPackDetail() {
   const hasPoster = !!p._has_poster;
   const isStarter = p.starter === true;
   const spread = packTierSpread(ids);
-  const missing = packMissingMaterials(ids);
+  const missing = packMissingMaterials(ids, p.id);
   const archs = packArchetypes(ids);
   // Cartes placées NULLE PART, dotation comprise : une carte du pack de départ
   // est distribuée, elle n'a rien d'orpheline. Ne compter que les packs vendus
@@ -3796,7 +3803,7 @@ function renderPackDetail() {
       ${[1, 2, 3, 4, 5].map(t => `<span class="badge" style="background:var(--surface2)">T${t} : ${spread[t] || 0}</span>`).join('')}
       ${isStarter ? '' : `<span class="badge" style="background:var(--surface2);color:${(spread[3] + spread[4] + spread[5]) >= 1 && (spread[1] + spread[2]) >= 2 ? '#7bd88f' : '#e0a04a'}">
         garantie 2×T1-2 + 1×T3+ ${(spread[3] + spread[4] + spread[5]) >= 1 && (spread[1] + spread[2]) >= 2 ? '✓' : '⚠'}</span>`}
-      ${missing.length ? `<span class="badge" style="background:var(--surface2);color:#e0a04a" title="${esc(missing.slice(0, 20).join(', '))}">⚠ ${missing.length} matériau(x) hors pack</span>` : ''}
+      ${missing.length ? `<span class="badge" style="background:var(--surface2);color:#e0a04a" title="Ni dans ce pack, ni offerts par le pack de départ : ${esc(missing.slice(0, 20).join(', '))}">⚠ ${missing.length} matériau(x) hors pack</span>` : ''}
       ${!isStarter && starterOverlap ? `<span class="badge" style="background:var(--surface2);color:#7bd88f"
         title="Déjà offertes à la création du compte : les vendre reste possible, mais chaque joueur les possède déjà">🎓 ${starterOverlap} déjà offerte(s) au départ</span>` : ''}
       <span class="badge" style="background:var(--surface2);color:var(--muted)">${orphans} carte(s) du catalogue dans aucun pack</span>
@@ -4129,8 +4136,8 @@ function renderPickerStats(visible) {
   if (!el) return;
   const ids = [...pickerSelected];
   const spread = packTierSpread(ids);
-  const missing = packMissingMaterials(ids);
   const exceptId = selectedPack?.id ?? null;
+  const missing = packMissingMaterials(ids, exceptId);
   const takenCount = ids.filter(id => packClaiming(id, exceptId)).length;
   const starterCount = ids.filter(id => starterPackWith(id, exceptId)).length;
   const low = spread[1] + spread[2];
@@ -4142,7 +4149,7 @@ function renderPickerStats(visible) {
     <span class="badge" style="background:var(--surface2);color:${guaranteeOk ? '#7bd88f' : '#e0a04a'}"
           title="Un booster promet 2 cartes Tier 1-2 et 1 carte Tier 3+ ; la garantie se rabat silencieusement si le pack ne peut pas la tenir">
       garantie de tiers ${guaranteeOk ? '✓' : '⚠'}</span>
-    ${missing.length ? `<span class="badge" style="background:var(--surface2);color:#e0a04a" title="${esc(missing.slice(0, 20).join(', '))}">⚠ ${missing.length} matériau(x) hors pack</span>` : ''}
+    ${missing.length ? `<span class="badge" style="background:var(--surface2);color:#e0a04a" title="Ni dans la sélection, ni offerts par le pack de départ : ${esc(missing.slice(0, 20).join(', '))}">⚠ ${missing.length} matériau(x) hors pack</span>` : ''}
     ${takenCount ? `<span class="badge" style="background:var(--surface2);color:#e0a04a">${takenCount} déjà vendue(s) ailleurs</span>` : ''}
     ${starterCount ? `<span class="badge" style="background:var(--surface2);color:#7bd88f"
           title="Ces cartes sont déjà offertes à la création du compte : les vendre en booster reste possible, mais chaque joueur les possède déjà">🎓 ${starterCount} déjà offerte(s) au départ</span>` : ''}
