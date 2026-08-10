@@ -19,11 +19,15 @@
 //   2. L'OFFRE EST SERVEUR. Elle est générée, horodatée et persistée ici ;
 //      aucune action client (changement de deck, rechargement, fuseau annoncé)
 //      ne peut la régénérer — sinon l'offre se re-tire jusqu'à satisfaction.
+//   3. UNE CARTE SANS ILLUSTRATION NE SE VEND PAS. Ce qu'on met en vitrine,
+//      c'est une image : un emplacement à 1000 golds sur un cadre vide ne
+//      donne rien à vouloir, et un booster qui la révèle gâche son seul moment.
 const crypto = require('crypto');
 const { db, stmt } = require('./db');
 const progression = require('./progression');
 const missions = require('./missions');
 const packs = require('./sets');
+const variants = require('./variants');
 
 // --- Barème (brief §3.3, §3.4, §3.5) ---
 
@@ -90,6 +94,33 @@ const setCardIds = packs.cardIdsOf;
 
 function card(id) { return cards().get(id) ?? null; }
 function setDef(id) { return packs.byId(id); }
+
+/**
+ * La carte a-t-elle son illustration ? `variants.illustrationExists` est le test
+ * générique « cet id a-t-il son PNG ? » — cartes, terrains, magies et variantes
+ * partagent l'espace de noms plat du dossier d'illustrations, et cosmetics.js
+ * s'en sert déjà pour composer son pool d'avatars à partir des trois premiers.
+ */
+const hasArt = id => variants.illustrationExists(id);
+
+/**
+ * Catalogue VENDABLE : les cartes qui ont leur art. C'est le seul pool que
+ * connaisse la boutique — emplacements, boosters, décomptes de pack et
+ * compteur de collection lisent tous celui-ci, sans quoi une carte sans image
+ * serait à la fois impossible à obtenir et comptée comme manquante (un pack
+ * jamais complétable, donc une prime jamais versée).
+ *
+ * ⚠️ La DOTATION d'un compte neuf n'est pas concernée (`progression.starterCardIds`) :
+ * elle est offerte, pas vendue — l'art n'y conditionne rien.
+ */
+function sellableCards() {
+  return [...cards().values()].filter(c => hasArt(c.id));
+}
+
+/** Cartes d'un pack réellement vendables (mêmes ids que `setCardIds`, moins celles sans art). */
+function sellableSetCardIds(def) {
+  return setCardIds(def).filter(hasArt);
+}
 
 /** Matériaux d'une carte, toutes options d'invocation confondues. */
 function materialsOf(c) {
@@ -221,12 +252,12 @@ function drawSlot(slot, pool, rand) {
 }
 
 /**
- * Pool tirable : tout le catalogue non possédé, moins les cartes rerollées du
- * jour et celles déjà placées dans l'offre. L'ordre est stable (par id) — c'est
- * lui qui rend le tirage reproductible à graine égale.
+ * Pool tirable : tout le catalogue VENDABLE non possédé, moins les cartes
+ * rerollées du jour et celles déjà placées dans l'offre. L'ordre est stable
+ * (par id) — c'est lui qui rend le tirage reproductible à graine égale.
  */
 function drawablePool(ctx, excluded, taken) {
-  return [...cards().values()]
+  return sellableCards()
     .filter(c => !ctx.owned.has(c.id) && !excluded.includes(c.id) && !taken.has(c.id))
     .sort((a, b) => a.id.localeCompare(b.id));
 }
@@ -261,7 +292,10 @@ function fillSlots(user, ctx, { day, slots, excluded = [] }) {
 function buildOffer(user, ctx, { day, excluded = [], pinned = null }) {
   const slots = [];
 
-  if (pinned && cards().has(pinned.card_id) && !ctx.owned.has(pinned.card_id)) {
+  // Une épingle dont l'art a été retiré depuis l'admin ne traverse pas la
+  // rotation : la boutique ne remet pas en vitrine ce qu'elle ne pourrait plus
+  // y tirer.
+  if (pinned && cards().has(pinned.card_id) && hasArt(pinned.card_id) && !ctx.owned.has(pinned.card_id)) {
     slots.push({
       slot: pinned.slot,
       card_id: pinned.card_id,
@@ -571,7 +605,7 @@ const buyBooster = db.transaction((user, setId, currency = 'golds') => {
   if (currency !== 'golds' && currency !== 'gems') return { ok: false, reason: 'Monnaie inconnue.' };
 
   const ctx = context(user);
-  const pool = setCardIds(def).filter(id => !ctx.owned.has(id)).map(card).filter(Boolean)
+  const pool = sellableSetCardIds(def).filter(id => !ctx.owned.has(id)).map(card).filter(Boolean)
     .sort((a, b) => a.id.localeCompare(b.id));
   if (!pool.length) return { ok: false, reason: 'Collection complète sur ce set.' };
 
@@ -619,7 +653,9 @@ function claimSetCompletions(userId, state) {
 
   for (const def of sets()) {
     if (state.sets_claimed.includes(def.id)) continue;
-    const ids = setCardIds(def);
+    // Les cartes sans art ne sont pas vendues : les exiger pour la prime la
+    // rendrait inatteignable, alors même que l'écran affiche « ✓ complet ».
+    const ids = sellableSetCardIds(def);
     if (!ids.length || !ids.every(id => owned.has(id))) continue;
     state.sets_claimed.push(def.id);
     const rewards = def.completion_reward ?? {};
@@ -636,7 +672,9 @@ function claimSetCompletions(userId, state) {
 
 function setsView(ctx) {
   return sets().map(def => {
-    const ids = setCardIds(def);
+    // Décompte sur les cartes VENDABLES : le joueur ne doit pas voir « 55/57 »
+    // sur un pack dont les deux dernières cartes ne peuvent pas sortir.
+    const ids = sellableSetCardIds(def);
     const owned = ids.filter(id => ctx.owned.has(id)).length;
     return {
       id: def.id,
@@ -685,7 +723,14 @@ function getSnapshot(user) {
     prices: SLOT_PRICE,
     // Collection saturée : la boutique de cartes n'a plus rien à vendre. Le
     // client affiche un message de complétion plutôt que des cases vides.
-    collection: { owned: ctx.owned.size, total: cards().size },
+    // Le décompte porte sur le catalogue VENDABLE, des deux côtés de la
+    // fraction : une carte sans art ne se compte ni au numérateur (elle a pu
+    // arriver par la dotation) ni au dénominateur, sinon la vitrine se viderait
+    // sans que le compteur n'atteigne jamais son total.
+    collection: (() => {
+      const sellable = sellableCards();
+      return { owned: sellable.filter(c => ctx.owned.has(c.id)).length, total: sellable.length };
+    })(),
   };
 }
 
@@ -698,7 +743,7 @@ function refresh(user) {
 module.exports = {
   DAILY_SLOTS, SLOT_PRICE, TIER_WEIGHTS, BOOSTER,
   PINNED_SLOTS_MAX, FREE_REROLLS_PER_DAY, AFFINITY_MIN_OCCURRENCES,
-  cards, sets, setCardIds, materialsOf, priceOf,
+  cards, sets, setCardIds, sellableCards, sellableSetCardIds, hasArt, materialsOf, priceOf,
   dayKey, nextRotationAt, seededRandom, weightedPick,
   context, activeDeckAttributes, drawSlot, drawablePool, fillSlots, buildOffer, drawBooster,
   sync, buySlot, reroll, setPin, buyBooster, pinView, getSnapshot, refresh,

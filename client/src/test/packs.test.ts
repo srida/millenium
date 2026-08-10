@@ -38,6 +38,16 @@ let stmt: any;
 let CARDS: any[];
 let TMP: string;
 let POSTERS: string;
+let ILLUS: string;
+
+// La boutique ne vend que des cartes ILLUSTRÉES : sans art déposé ici, tous les
+// packs seraient vides et les tests de prime ne prouveraient plus rien. Le dépôt
+// ne versionne aucune illustration (`resources/` est gitignoré), d'où les PNG
+// posés à la main — même harnais que cosmetics.test.ts.
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
 
 /** Cartes de `cards.json` portant le miroir `set: SET_01` (57 sur les données réelles). */
 let MIRRORED_SET_01: string[];
@@ -74,13 +84,16 @@ const STARTER_PACK = { id: 'PACK_START', name: 'Fondations', starter: true, card
 beforeAll(() => {
   TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'millenium-packs-'));
   POSTERS = fs.mkdtempSync(path.join(os.tmpdir(), 'millenium-posters-'));
+  ILLUS = fs.mkdtempSync(path.join(os.tmpdir(), 'millenium-packs-illus-'));
   for (const f of ['cards.json', 'missions.json']) {
     fs.copyFileSync(path.join(ROOT, 'data', f), path.join(TMP, f));
   }
   process.env.DATA_DIR = TMP;
   process.env.POSTERS_DIR = POSTERS;
+  process.env.ILLUS_DIR = ILLUS;
 
   CARDS = JSON.parse(fs.readFileSync(path.join(TMP, 'cards.json'), 'utf8'));
+  for (const c of CARDS) fs.writeFileSync(path.join(ILLUS, `${c.id}.png`), PNG);
   MIRRORED_SET_01 = CARDS.filter(c => c.set === 'SET_01').map(c => c.id);
 
   // Catalogue de départ : aucun pack. C'est l'état « repli » que le premier test

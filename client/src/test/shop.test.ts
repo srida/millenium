@@ -15,7 +15,9 @@
 //   - le SERVEUR chiffre : le client ne transmet jamais ni prix ni montant ;
 //   - l'offre est FIGÉE pour la journée : aucune action client ne la re-tire ;
 //   - l'épingle traverse la rotation À L'IDENTIQUE (carte, prix, badge), et une
-//     seule à la fois.
+//     seule à la fois ;
+//   - une carte SANS ILLUSTRATION ne se vend nulle part (ni emplacement, ni
+//     booster) et ne se compte nulle part.
 import { describe, it, expect, beforeAll } from 'vitest';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -31,17 +33,38 @@ let shop: any;
 let progression: any;
 let stmt: any;
 let CARDS: any[];
+let ILLUS: string;
+
+// L'art conditionne la vente : la boutique ne propose que des cartes qui ont
+// leur illustration. Le dépôt n'en versionne aucune (`resources/` est
+// gitignoré), les tests posent donc de vrais PNG — sans quoi le pool serait
+// vide et le fichier ne prouverait plus rien. Même harnais que cosmetics.test.ts.
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+const artPath = (id: string) => path.join(ILLUS, `${id}.png`);
+const putArt = (id: string) => fs.writeFileSync(artPath(id), PNG);
+const dropArt = (id: string) => fs.rmSync(artPath(id), { force: true });
 
 beforeAll(() => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'millenium-shop-'));
+  ILLUS = fs.mkdtempSync(path.join(os.tmpdir(), 'millenium-shop-illus-'));
   for (const f of ['cards.json', 'missions.json', 'sets.json']) {
     fs.copyFileSync(path.join(ROOT, 'data', f), path.join(tmp, f));
   }
   process.env.DATA_DIR = tmp;
+  process.env.ILLUS_DIR = ILLUS;
   ({ stmt } = require(path.join(ROOT, 'db.js')));
   progression = require(path.join(ROOT, 'progression.js'));
   shop = require(path.join(ROOT, 'shop.js'));
   CARDS = JSON.parse(fs.readFileSync(path.join(tmp, 'cards.json'), 'utf8'));
+
+  // Catalogue entièrement illustré : c'est l'état nominal. Les tests qui
+  // portent sur l'absence d'art retirent le fichier d'une carte choisie, puis
+  // le remettent — le reste du fichier ne doit pas s'en apercevoir.
+  for (const c of CARDS) putArt(c.id);
 });
 
 // Tous les comptes de test partagent `username_lc = 't'` : la contrainte
@@ -181,6 +204,122 @@ describe('emplacements sans catégorie', () => {
     const withDeck = shop.buildOffer(user(), ctx, { day: '2026-09-01' });
     const withoutDeck = shop.buildOffer(user(), { ...ctx, affinity: new Map() }, { day: '2026-09-01' });
     expect(withDeck.slots.map((s: any) => s.card_id)).toEqual(withoutDeck.slots.map((s: any) => s.card_id));
+  });
+});
+
+describe('cartes sans illustration', () => {
+  // La boutique vend une IMAGE : un emplacement à 1000 golds sur un cadre vide
+  // ne donne rien à vouloir, et un booster qui révèle une carte sans art gâche
+  // son seul moment. Une carte sans illustration est donc invisible partout —
+  // vitrine, booster, décomptes — jusqu'à ce que l'admin lui en donne une.
+
+  /** Retire l'art d'une carte le temps d'un test, puis le remet. */
+  function withoutArt<T>(cardId: string, run: () => T): T {
+    dropArt(cardId);
+    try { return run(); } finally { putArt(cardId); }
+  }
+
+  /** Une carte d'un pack commercial qu'un compte neuf ne possède pas. */
+  function sellableCardOf(set: any, user: any): string {
+    const mine = owned(user);
+    const id = shop.setCardIds(set).find((c: string) => !mine.has(c));
+    expect(id).toBeTruthy();
+    return id;
+  }
+
+  it('elle quitte le pool des emplacements', () => {
+    const user = newUser();
+    const ctx = shop.context(user());
+    const victim = sellableCardOf(shop.sets()[2], user());
+
+    withoutArt(victim, () => {
+      const pool = shop.drawablePool(ctx, [], new Set());
+      expect(pool.map((c: any) => c.id)).not.toContain(victim);
+      expect(pool.length).toBe(CARDS.length - ctx.owned.size - 1);
+    });
+    // L'art revenu, la carte est de nouveau tirable : la règle porte sur le
+    // fichier, pas sur un drapeau persisté.
+    expect(shop.drawablePool(ctx, [], new Set()).map((c: any) => c.id)).toContain(victim);
+  });
+
+  it('aucune offre quotidienne ne la propose', () => {
+    const user = newUser();
+    const victim = sellableCardOf(shop.sets()[2], user());
+    withoutArt(victim, () => {
+      const ctx = shop.context(user());
+      for (let d = 1; d <= 40; d++) {
+        const offer = shop.buildOffer(user(), ctx, { day: `2027-03-${String(d).padStart(2, '0')}` });
+        expect(offer.slots.map((s: any) => s.card_id)).not.toContain(victim);
+      }
+    });
+  });
+
+  it('un booster ne la tire pas, et le pack se complète sans elle', () => {
+    // C'est le corollaire indispensable : si le pack la comptait toujours
+    // comme manquante, il ne serait jamais complet — donc jamais primé — alors
+    // qu'aucun tirage ne peut plus la rendre.
+    const user = newUser();
+    const set = shop.sets()[2];
+    const victim = sellableCardOf(set, user());
+
+    withoutArt(victim, () => {
+      const sellable = shop.setCardIds(set).filter((id: string) => id !== victim);
+      progression.unlockCards(user().id, sellable);
+      const gems = user().gems;
+
+      const res = shop.buyBooster(user(), set.id, 'golds');
+      expect(res.ok).toBe(false);
+      expect(res.reason).toMatch(/complète/);
+      expect(progression.ownsCard(user(), victim)).toBe(false);
+
+      const view = shop.getSnapshot(user()).sets.find((s: any) => s.id === set.id);
+      expect(view.card_count).toBe(sellable.length);
+      expect(view.complete).toBe(true);
+
+      // La prime tombe bien, sur le pack amputé de sa carte sans art.
+      const other = shop.buyBooster(user(), shop.sets()[1].id, 'golds');
+      expect(other.sets_completed.map((s: any) => s.set_id)).toContain(set.id);
+      expect(user().gems).toBe(gems + (set.completion_reward?.gems ?? 0));
+    });
+  });
+
+  it('le compteur de collection l\'ignore des deux côtés de la fraction', () => {
+    const user = newUser();
+    const victim = sellableCardOf(shop.sets()[2], user());
+    withoutArt(victim, () => {
+      const snap = shop.refresh(user());
+      expect(snap.collection.total).toBe(CARDS.length - 1);
+      expect(snap.collection.owned).toBe(owned(user()).size);
+    });
+  });
+
+  it('une carte de la DOTATION sans art reste possédée, elle n\'est simplement pas comptée', () => {
+    // La dotation d'un compte neuf est offerte, pas vendue : l'art n'y
+    // conditionne rien. Sans l'exclure aussi du numérateur, un compte neuf
+    // afficherait plus de cartes possédées que le total vendable.
+    const user = newUser();
+    const mine = progression.unlockedCardIds(user());
+    withoutArt(mine[0], () => {
+      expect(progression.ownsCard(user(), mine[0])).toBe(true);
+      const snap = shop.refresh(user());
+      expect(snap.collection.total).toBe(CARDS.length - 1);
+      expect(snap.collection.owned).toBe(mine.length - 1);
+      expect(snap.collection.owned).toBeLessThanOrEqual(snap.collection.total);
+    });
+  });
+
+  it('une épingle dont l\'art disparaît ne traverse pas la rotation', () => {
+    const user = newUser();
+    const before = shop.refresh(user()).slots.find((s: any) => s.slot === 2);
+    expect(shop.setPin(user(), 2).ok).toBe(true);
+
+    withoutArt(before.card_id, () => {
+      const next = shop.buildOffer(user(), shop.context(user()), {
+        day: '2027-05-01', pinned: { ...before, since_day: '2027-04-30' },
+      });
+      expect(next.slots.map((s: any) => s.card_id)).not.toContain(before.card_id);
+      expect(next.slots).toHaveLength(shop.DAILY_SLOTS);
+    });
   });
 });
 

@@ -297,10 +297,30 @@ Deux systèmes, deux fonctions qui ne se recouvrent pas :
 | **Emplacements quotidiens** | Vitrine à l'unité — tirage libre dans tout le pool non possédé | 6 / jour, dont 1 épinglable |
 | **Booster** | Collection — volume brut sur un set choisi | aucun |
 
-Deux invariants portent tout le reste :
+Trois invariants portent tout le reste :
 
 1. **Zéro doublon** — aucun tirage, nulle part, ne produit une carte possédée. C'est ce qui dispense le jeu de poussière, de fragments et de conversion de doublons.
 2. **L'offre est serveur** — générée, horodatée et **persistée** (`user_shop_state.offer`). Aucune action client (changement de deck, rechargement, fuseau annoncé) ne la régénère : une offre re-tirable se re-tirerait jusqu'à satisfaction. Vérifié par golden test.
+3. **Une carte sans illustration ne se vend pas** — ce qu'on met en vitrine, c'est une image : un emplacement à 1000 golds sur un cadre vide ne donne rien à vouloir, et un booster qui la révèle gâche son seul moment.
+
+### Le catalogue vendable (`shop.sellableCards`)
+
+`hasArt(id)` s'appuie sur **`variants.illustrationExists`** — le test générique « cet id a-t-il son PNG ? », cartes / terrains / magies / variantes partageant l'espace de noms plat du dossier d'illustrations (`cosmetics.js` s'en sert déjà pour composer son pool d'avatars). Aucun drapeau persisté : la règle porte sur le **fichier**, une illustration ajoutée depuis l'admin rend la carte vendable sans redémarrage.
+
+Le filtre ne vit **pas** qu'à l'entrée du tirage : les **cinq** lectures de la boutique partagent le même pool, faute de quoi elles se contrediraient.
+
+| Endroit | Sans le filtre |
+|---|---|
+| `drawablePool` (emplacements, reroll) | une carte sans art en vitrine à 1000 golds |
+| `buildOffer` (report de l'épingle) | l'art retiré en admin, la vitrine remet quand même la carte |
+| `buyBooster` (pool du pack) | la carte tombe au booster, révélée sur un cadre vide |
+| `setsView` (`card_count` / `owned_count` / `complete`) | « 55/57 » sur un pack dont les 2 dernières cartes ne peuvent plus sortir |
+| `claimSetCompletions` | pack jamais complet → **prime jamais versée** |
+| `collection` (l'instantané) | le compteur n'atteint jamais son total, la vitrine se vide avant |
+
+⚠️ La **dotation** d'un compte neuf n'est pas concernée (`progression.starterCardIds`) : elle est offerte, pas vendue. Corollaire : une carte de départ sans art reste **possédée** mais n'est comptée ni au numérateur ni au dénominateur du compteur de collection — sans quoi un compte neuf afficherait plus de cartes possédées que le total vendable.
+
+⚠️ **L'offre du jour reste figée** : une illustration retirée en admin en cours de journée ne retire pas l'emplacement déjà tiré (il reste achetable jusqu'à la rotation). Seule l'**épingle**, qui est un report explicite, est refusée au passage suivant.
 
 ### Les packs — `sets.js` + onglet Packs de l'admin
 
@@ -430,7 +450,7 @@ Toutes les mutations renvoient l'instantané complet + la progression à jour : 
   - `SlotCard` est **vertical** (tier + icônes en tête, vignette, nom, les deux prix empilés) : six tuiles tiennent en **2 colonnes dès le portrait** (`grid-cols-2 sm:grid-cols-3`), ce que l'ancienne disposition horizontale ne permettait pas. 📌 et 🎲 sont remontés sur la ligne du tier — ils ne se disputent plus la largeur avec les boutons d'achat. Plus de `ReasonBadge` (les catégories ont disparu).
 - `MainMenu` — bouton `🛒 Boutique` avec une pastille de nouveauté : un simple point, pas un compteur, effacé dès que l'écran a été ouvert pour le jour en cours (`hasUnseenShop` / `markShopSeen`, localStorage).
 - `components/ui/primitives.tsx` — `Countdown` (rafraîchi à la **minute** : un repère, pas un chronomètre), partagé avec l'écran Missions.
-- Verrouillé par `client/src/test/shop.test.ts` (37 golden tests) et `client/src/test/packs.test.ts` (14 : dotation, exclusions du pack de départ, miroir, affiche), même harnais serveur que `missions.test.ts`. Les deux fichiers sont **séparés à dessein** : `packs.test.ts` réécrit `sets.json` en cours de route, là où `shop.test.ts` indexe les packs par position.
+- Verrouillé par `client/src/test/shop.test.ts` (43 golden tests) et `client/src/test/packs.test.ts` (14 : dotation, exclusions du pack de départ, miroir, affiche), même harnais serveur que `missions.test.ts`. Les deux fichiers sont **séparés à dessein** : `packs.test.ts` réécrit `sets.json` en cours de route, là où `shop.test.ts` indexe les packs par position. Les deux déposent de **vrais PNG** dans un `ILLUS_DIR` temporaire (comme `cosmetics.test.ts`) : sans art, le pool vendable serait vide et les deux fichiers ne prouveraient plus rien.
 
 ---
 
