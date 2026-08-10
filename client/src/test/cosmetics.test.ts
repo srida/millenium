@@ -110,8 +110,8 @@ function ownedCardId(user: any): string {
 
 describe('barème', () => {
   it('les prix sont fixes et en gemmes uniquement', () => {
-    expect(cosmetics.PRICE.avatar).toEqual({ gems: 10 });
-    expect(cosmetics.PRICE.variant).toEqual({ gems: 100 });
+    expect(cosmetics.PRICE.avatar).toEqual({ gems: 5 });
+    expect(cosmetics.PRICE.variant).toEqual({ gems: 50 });
   });
 
   it('3 avatars et 3 variantes par jour', () => {
@@ -245,17 +245,17 @@ describe('offre du jour', () => {
 });
 
 describe('achat', () => {
-  it('débite exactement 10 gemmes pour un avatar', () => {
+  it('débite exactement 5 gemmes pour un avatar', () => {
     const user = newUser(1_000);
     const snap = cosmetics.refresh(user());
     const before = user().gems;
     const res = cosmetics.buy(user(), 'avatar', snap.avatars[0].id);
     expect(res.ok).toBe(true);
-    expect(res.price).toBe(10);
-    expect(user().gems).toBe(before - 10);
+    expect(res.price).toBe(5);
+    expect(user().gems).toBe(before - 5);
   });
 
-  it('débite exactement 100 gemmes pour une variante', () => {
+  it('débite exactement 50 gemmes pour une variante', () => {
     const user = newUser(1_000);
     const mine = ownedCardId(user());
     writeVariants([{ id: 'VAR_BUY', card_id: mine }]);
@@ -267,17 +267,20 @@ describe('achat', () => {
     const before = user().gems;
     const res = cosmetics.buy(user(), 'variant', 'VAR_BUY');
     expect(res.ok).toBe(true);
-    expect(res.price).toBe(100);
-    expect(user().gems).toBe(before - 100);
+    expect(res.price).toBe(50);
+    expect(user().gems).toBe(before - 50);
   });
 
   it('refuse un solde insuffisant', () => {
-    const user = newUser(5);
+    // Une gemme de moins que le prix : le seuil se dérive du barème, sinon un
+    // changement de prix transforme ce test en achat réussi sans le dire.
+    const short = cosmetics.PRICE.avatar.gems - 1;
+    const user = newUser(short);
     const snap = cosmetics.refresh(user());
     const res = cosmetics.buy(user(), 'avatar', snap.avatars[0].id);
     expect(res.ok).toBe(false);
     expect(res.reason).toMatch(/gemmes/i);
-    expect(user().gems).toBe(5);
+    expect(user().gems).toBe(short);
   });
 
   it('refuse un id ABSENT de l\'offre (verrou d\'offre → 409)', () => {

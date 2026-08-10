@@ -301,7 +301,7 @@ Trois invariants portent tout le reste :
 
 1. **Zéro doublon** — aucun tirage, nulle part, ne produit une carte possédée. C'est ce qui dispense le jeu de poussière, de fragments et de conversion de doublons.
 2. **L'offre est serveur** — générée, horodatée et **persistée** (`user_shop_state.offer`). Aucune action client (changement de deck, rechargement, fuseau annoncé) ne la régénère : une offre re-tirable se re-tirerait jusqu'à satisfaction. Vérifié par golden test.
-3. **Une carte sans illustration ne se vend pas** — ce qu'on met en vitrine, c'est une image : un emplacement à 1000 golds sur un cadre vide ne donne rien à vouloir, et un booster qui la révèle gâche son seul moment.
+3. **Une carte sans illustration ne se vend pas** — ce qu'on met en vitrine, c'est une image : un emplacement à 500 golds sur un cadre vide ne donne rien à vouloir, et un booster qui la révèle gâche son seul moment.
 
 ### Le catalogue vendable (`shop.sellableCards`)
 
@@ -311,7 +311,7 @@ Le filtre ne vit **pas** qu'à l'entrée du tirage : les **cinq** lectures de la
 
 | Endroit | Sans le filtre |
 |---|---|
-| `drawablePool` (emplacements, reroll) | une carte sans art en vitrine à 1000 golds |
+| `drawablePool` (emplacements, reroll) | une carte sans art en vitrine à 500 golds |
 | `buildOffer` (report de l'épingle) | l'art retiré en admin, la vitrine remet quand même la carte |
 | `buyBooster` (pool du pack) | la carte tombe au booster, révélée sur un cadre vide |
 | `setsView` (`card_count` / `owned_count` / `complete`) | « 55/57 » sur un pack dont les 2 dernières cartes ne peuvent plus sortir |
@@ -397,7 +397,7 @@ Rotation à **5 h**, même reset que les missions (`shop.dayKey === missions.day
 L'**affinité au deck actif survit dans les boosters** (`drawBooster`, pondération ×2) — là, elle n'est pas pilotable, le tirage ayant lieu à l'achat. `activeDeckAttributes` reste donc, mais ne touche plus les emplacements : `buildOffer` rend le même résultat avec ou sans deck.
 
 - **Pondération par tier** : 30 / 28 / 22 / 14 / 6 — volontairement plus plate que la distribution du pool (T1 38 %) : les tiers élevés doivent sortir assez souvent pour ne pas être anecdotiques.
-- **Prix** : **1000 golds ou 100 gemmes**, au choix du joueur à l'achat — un seul prix, quel que soit le tier de la carte. Le client ne transmet **jamais** de montant.
+- **Prix** : **500 golds ou 20 gemmes**, au choix du joueur à l'achat — un seul prix, quel que soit le tier de la carte. Le client ne transmet **jamais** de montant.
 - **Six cartes distinctes** : `fillSlots` retire du pool ce qui est déjà placé, un emplacement ne double jamais un autre.
 - **Reroll** : 1 gratuit par jour, jamais payant (un reroll achetable ferait de la boutique une machine à sous et casserait le plafond de 6 cartes/jour). La carte rerollée quitte le pool du **jour** — il n'y a plus de règle de slot à conserver, le re-tirage est libre comme les autres.
 - **Verrou d'offre** : l'achat porte `slot` **et** `card_id`. Un tap au moment exact de la rotation échoue en 409 au lieu d'acheter la carte qui vient de prendre la place.
@@ -409,7 +409,8 @@ L'**affinité au deck actif survit dans les boosters** (`drawBooster`, pondérat
 **Un** emplacement peut être épinglé (`PINNED_SLOTS_MAX = 1`) : il traverse la rotation **à l'identique** — même carte, même prix — au lieu d'être re-tiré. Gratuit, sans délai, sans limite de durée.
 
 - Le plafond de 1 n'est pas une avarice : épingler tous les emplacements figerait la boutique et supprimerait la rotation. Épingler, c'est **renoncer à une proposition neuve** — c'est l'arbitrage qui donne son poids au geste. Désigner un autre emplacement **déplace** l'épingle (pas d'erreur « épingle déjà utilisée » : le geste est sans ambiguïté).
-- L'état persisté est l'emplacement **entier** (`user_shop_state.pinned`), pas le seul `card_id` : c'est ce qui garantit qu'on retrouve le lendemain exactement la proposition mise de côté, prix compris.
+- L'état persisté est l'emplacement **entier** (`user_shop_state.pinned`), pas le seul `card_id` : c'est ce qui garantit qu'on retrouve le lendemain exactement la proposition mise de côté.
+- ⚠️ **Le prix, lui, n'est pas figé** : `withSlotPrices` le ré-estampille à la lecture depuis `SLOT_PRICE`, les champs `price_golds` / `price_gems` de l'offre persistée n'en étant qu'un miroir. Sans ça, un emplacement épinglé — qui traverse les rotations **indéfiniment** — garderait à vie le barème du jour où il a été mis de côté, et un changement de prix n'atteindrait pas non plus les offres du jour déjà tirées. « Même carte, même prix » ne dit rien de plus tant que le prix est global et ne dépend pas de la carte ; le jour où il en dépendrait, c'est cette dérivation qu'il faudrait revoir.
 - Un emplacement épinglé **ne se reroule pas** (le reroll jetterait ce que l'épingle vient de mettre de côté, et consommerait le reroll du jour pour rien) ; le dé disparaît côté client plutôt que d'échouer au tap.
 - L'épingle se libère d'elle-même à l'**achat**, si la carte tombe au **booster**, et au `sync` suivant si elle a été obtenue autrement — laisser une carte possédée épinglée gèlerait l'emplacement sur une carte invendable.
 - Dans l'instantané, `slot.pinned` est **dérivé à la lecture** de `state.pinned` et non recopié dans l'offre persistée : une seule source de vérité, donc pas de désaccord possible.
@@ -417,7 +418,7 @@ L'**affinité au deck actif survit dans les boosters** (`drawBooster`, pondérat
 
 ### Boosters
 
-3 cartes, ciblées sur un set, **disponibles en permanence**, **2000 golds ou 150 gemmes**, sans plafond d'achat. Tirage **à l'achat** (jamais à l'avance) : le cas « deck actif modifié entre la génération et l'ouverture » est donc sans objet.
+3 cartes, ciblées sur un set, **disponibles en permanence**, **1000 golds ou 40 gemmes**, sans plafond d'achat. Tirage **à l'achat** (jamais à l'avance) : le cas « deck actif modifié entre la génération et l'ouverture » est donc sans objet.
 
 Ordre de résolution du tirage — qui est aussi l'ordre d'**abandon** des garanties :
 
@@ -464,8 +465,8 @@ Second **onglet** de `ShopScreen` (`🃏 Cartes` / `🎨 Cosmétiques`). Règles
 
 | Famille | Pool | Prix | Condition |
 |---|---|---|---|
-| **Avatar** | toute illustration existante (carte, terrain, magie) | **10 💎** | — |
-| **Variante** | illustration alternative d'une carte, écrite en admin | **100 💎** | le joueur doit **posséder la carte** |
+| **Avatar** | toute illustration existante (carte, terrain, magie) | **5 💎** | — |
+| **Variante** | illustration alternative d'une carte, écrite en admin | **50 💎** | le joueur doit **posséder la carte** |
 
 3 avatars + 3 variantes par jour, **même rotation de 5 h** que les cartes et les missions. Les deux invariants de la boutique de cartes s'appliquent tels quels : **zéro doublon** (un cosmétique possédé ne ressort jamais du tirage) et **l'offre est serveur** (générée, horodatée, persistée ; l'achat porte `kind` **et** `id` → 409 si l'offre a tourné). Le tirage est déterministe à `(joueur, jour, famille)`.
 

@@ -20,7 +20,7 @@
 //      aucune action client (changement de deck, rechargement, fuseau annoncé)
 //      ne peut la régénérer — sinon l'offre se re-tire jusqu'à satisfaction.
 //   3. UNE CARTE SANS ILLUSTRATION NE SE VEND PAS. Ce qu'on met en vitrine,
-//      c'est une image : un emplacement à 1000 golds sur un cadre vide ne
+//      c'est une image : un emplacement à 500 golds sur un cadre vide ne
 //      donne rien à vouloir, et un booster qui la révèle gâche son seul moment.
 const crypto = require('crypto');
 const { db, stmt } = require('./db');
@@ -39,7 +39,7 @@ const variants = require('./variants');
 const DAILY_SLOTS = 6;
 // Prix unique, quel que soit le tier de la carte : le joueur choisit sa
 // monnaie à l'achat (golds ou gemmes), comme pour un booster.
-const SLOT_PRICE = Object.freeze({ golds: 1000, gems: 100 });
+const SLOT_PRICE = Object.freeze({ golds: 500, gems: 20 });
 
 // Pondération de tirage par tier, volontairement plus PLATE que la
 // distribution naturelle du pool (T1 38 % / T5 5 %) : les tiers élevés coûtent
@@ -63,8 +63,8 @@ const FREE_REROLLS_PER_DAY = 1;
 
 const BOOSTER = Object.freeze({
   card_count: 3,
-  price_golds: 2000,
-  price_gems: 150,
+  price_golds: 1000,
+  price_gems: 40,
   // 2 cartes Tier 1-2 + 1 carte Tier 3+.
   tier_guarantee: { low: 2, high: 1, high_threshold: 3 },
   // Poids ×2 pour les cartes portant un attribut du deck actif. Non exclusif :
@@ -300,8 +300,11 @@ function buildOffer(user, ctx, { day, excluded = [], pinned = null }) {
       slot: pinned.slot,
       card_id: pinned.card_id,
       tier: pinned.tier,
-      price_golds: pinned.price_golds,
-      price_gems: pinned.price_gems,
+      // Barème COURANT, pas celui figé dans l'épingle : le prix est global et
+      // ré-estampillé à la lecture (`withSlotPrices`), une épingle sans date
+      // de péremption ne doit pas transporter un barème abandonné.
+      price_golds: SLOT_PRICE.golds,
+      price_gems: SLOT_PRICE.gems,
       purchased: false,
     });
   }
@@ -312,12 +315,18 @@ function buildOffer(user, ctx, { day, excluded = [], pinned = null }) {
 
 // --- État du joueur ---
 
-// Rattrape les emplacements persistés avant le passage au prix unique
-// (`price` → `price_golds`/`price_gems`) : une offre du jour déjà tirée sous
-// l'ancien schéma resterait affichée telle quelle jusqu'à la prochaine
-// rotation, prix compris — d'où le NaN à l'écran sans ce filet.
+// Le prix est GLOBAL (`SLOT_PRICE`), pas une propriété du tirage : il est donc
+// ré-estampillé à la lecture, et les champs persistés dans l'offre ne sont
+// qu'un miroir. C'est ce qui fait qu'un changement de barème prend effet tout
+// de suite au lieu d'attendre la rotation — et surtout qu'un emplacement
+// ÉPINGLÉ, qui traverse les rotations indéfiniment, ne garde pas à vie le prix
+// du jour où il a été mis de côté. « Même carte, même prix » ne dit rien
+// d'autre tant que le prix ne dépend pas de la carte.
+//
+// Rattrape du même geste les emplacements persistés avant le passage au prix
+// unique (`price` → `price_golds`/`price_gems`), qui s'affichaient en NaN.
 function withSlotPrices(slot) {
-  if (!slot || (slot.price_golds != null && slot.price_gems != null)) return slot;
+  if (!slot) return slot;
   return { ...slot, price_golds: SLOT_PRICE.golds, price_gems: SLOT_PRICE.gems };
 }
 

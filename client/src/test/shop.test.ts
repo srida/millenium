@@ -208,7 +208,7 @@ describe('emplacements sans catégorie', () => {
 });
 
 describe('cartes sans illustration', () => {
-  // La boutique vend une IMAGE : un emplacement à 1000 golds sur un cadre vide
+  // La boutique vend une IMAGE : un emplacement à 500 golds sur un cadre vide
   // ne donne rien à vouloir, et un booster qui révèle une carte sans art gâche
   // son seul moment. Une carte sans illustration est donc invisible partout —
   // vitrine, booster, décomptes — jusqu'à ce que l'admin lui en donne une.
@@ -687,9 +687,9 @@ describe('instantané', () => {
   it('porte les prix, les sets et l\'avancement de collection', () => {
     const user = newUser();
     const snap = shop.refresh(user());
-    expect(snap.prices).toEqual({ golds: 1000, gems: 100 });
-    expect(snap.booster.price_golds).toBe(2000);
-    expect(snap.booster.price_gems).toBe(150);
+    expect(snap.prices).toEqual({ golds: 500, gems: 20 });
+    expect(snap.booster.price_golds).toBe(1000);
+    expect(snap.booster.price_gems).toBe(40);
     expect(snap.sets.length).toBeGreaterThan(0);
     expect(snap.collection.total).toBe(CARDS.length);
     expect(snap.collection.owned).toBe(owned(user()).size);
@@ -716,8 +716,8 @@ describe('instantané', () => {
     });
 
     const snap = shop.refresh(user());
-    expect(snap.slots[0].price_golds).toBe(1000);
-    expect(snap.slots[0].price_gems).toBe(100);
+    expect(snap.slots[0].price_golds).toBe(shop.SLOT_PRICE.golds);
+    expect(snap.slots[0].price_gems).toBe(shop.SLOT_PRICE.gems);
   });
 
   it('complète une offre du jour plus courte que le format courant, sans re-tirer l\'existant', () => {

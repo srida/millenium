@@ -6,10 +6,10 @@
 //
 // Deux familles, qui n'ont ni le même pool ni le même prix :
 //
-//   - AVATAR (10 gemmes) — n'importe quelle illustration existante du jeu :
+//   - AVATAR (5 gemmes) — n'importe quelle illustration existante du jeu :
 //     carte, terrain ou magie. Le pool est automatique, sans curation : tout
 //     ce qui a une image est un visage possible.
-//   - VARIANTE (100 gemmes) — illustration alternative d'une carte, écrite en
+//   - VARIANTE (50 gemmes) — illustration alternative d'une carte, écrite en
 //     admin. Le joueur ne peut acheter que les variantes des cartes QU'IL
 //     POSSÈDE : une variante d'une carte qu'on n'a pas ne s'affiche nulle part.
 //
@@ -38,8 +38,8 @@ const DAILY = Object.freeze({ avatars: 3, variants: 3 });
 // l'un se change comme on change d'humeur, l'autre est un investissement sur
 // une carte qu'on joue.
 const PRICE = Object.freeze({
-  avatar: Object.freeze({ gems: 10 }),
-  variant: Object.freeze({ gems: 100 }),
+  avatar: Object.freeze({ gems: 5 }),
+  variant: Object.freeze({ gems: 50 }),
 });
 
 const KINDS = Object.freeze(['avatar', 'variant']);
