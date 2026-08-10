@@ -33,6 +33,12 @@ const cardOf = (id: string | null): Card | null => (id ? (CardDatabase as any).g
 
 export default function ShopScreen() {
   const navigate = useUiStore(s => s.navigate);
+  // Tap ailleurs → fermeture du tooltip, comme sur tous les écrans qui rendent
+  // des CardTile (DeckBuilder, DeckSelector, GameScreen). Sans ce handler, un
+  // appui long sur une carte de la boutique ouvrait un tooltip que plus rien
+  // ne refermait — `CardTile` arrête la propagation, la vignette elle-même ne
+  // peut donc pas servir de zone de fermeture.
+  const hideTooltip = useUiStore(s => s.hideTooltip);
   const user = useAuthStore(s => s.user);
   const { snapshot, loading, error, notice, booster, load, dismissNotice, closeBooster } = useShopStore();
   const loadCosmetics = useCosmeticStore(s => s.load);
@@ -58,7 +64,7 @@ export default function ShopScreen() {
   const complete = snapshot && snapshot.collection.owned >= snapshot.collection.total;
 
   return (
-    <main className="flex min-h-dvh flex-col bg-surface text-white">
+    <main className="flex min-h-dvh flex-col bg-surface text-white" onPointerDown={hideTooltip}>
       <ScreenHeader
         title="Boutique"
         onBack={() => navigate('main_menu')}

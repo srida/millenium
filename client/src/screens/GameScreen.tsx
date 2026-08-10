@@ -121,8 +121,11 @@ export default function GameScreen() {
       <ShoppingTimer controller={controller} />
       <AiWinReward inTournament={inTournament} inTutorial={inTutorial} />
       {inTutorial && <TutorialCoach />}
-      {inTournament && <TournamentHeader />}
-      {inArcade && arcadeDuel && <ArcadeHeader duel={arcadeDuel} />}
+      {/* Pas de bandeau de contexte Tournoi/Arcade : posé sous la barre de PV,
+          il recouvrait les synergies d'attributs — la seule information de cette
+          zone qui se lit EN JOUANT. L'adversaire est déjà nommé dans le HUD
+          (`enemyName`), et l'échelon comme le score du Bo5 se relisent sur
+          l'écran Arcade / Tournoi, où ils sont actionnables. */}
       <Banners />
       <SummonOptionMenu />
       <EndRoundOverlay />
@@ -177,34 +180,6 @@ function exitArcadeGame(winner: 'player' | 'enemy' | 'draw' | null) {
     void useArcadeStore.getState().reportDuel(winner === 'player' ? 'win' : 'loss');
   }
   useUiStore.getState().navigate('arcade');
-}
-
-// Rappel du contexte Arcade pendant la partie : l'échelon et le handicap donné
-// à l'IA. Le joueur doit savoir POURQUOI l'adversaire cogne plus fort.
-function ArcadeHeader({ duel }: { duel: { index: number; deck_name: string; bonus: { hp: number; atk: number } } }) {
-  const { hp, atk } = duel.bonus;
-  return (
-    <div className="pointer-events-none absolute left-1/2 top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] z-20 flex -translate-x-1/2 items-center gap-2">
-      <span className="rounded-full border border-gold/40 bg-surface/80 px-3 py-0.5 text-[11px] text-gold">
-        🕹 duel {duel.index + 1} · vs {duel.deck_name}
-        {(hp || atk) ? ` · IA +${hp} PV / +${atk} ATK` : ''}
-      </span>
-    </div>
-  );
-}
-
-// Rappel du contexte tournoi pendant la partie : adversaire et score du Bo5.
-function TournamentHeader() {
-  const pending = useTournamentStore(s => s.pendingGame);
-  if (!pending) return null;
-  const [pw, ow] = pending.score;
-  return (
-    <div className="pointer-events-none absolute left-1/2 top-[max(3rem,calc(env(safe-area-inset-top)+2.5rem))] z-20 flex -translate-x-1/2 items-center gap-2">
-      <span className="rounded-full border border-gold/40 bg-surface/80 px-3 py-0.5 text-[11px] text-gold">
-        🏆 vs {pending.opponentName} · manche {pending.gameNumber} ({pw}–{ow})
-      </span>
-    </div>
-  );
 }
 
 // Timer de préparation : redémarre à chaque nouvelle manche, ne décompte que

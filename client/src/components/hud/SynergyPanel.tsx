@@ -18,10 +18,11 @@ export default function SynergyPanel() {
   // largeur) intercepterait sinon les taps malgré son fond transparent.
   //
   // Portrait (mobile) : la main et le cimetière occupent déjà le bas de
-  // l'écran, sans place pour un troisième bandeau — posé sous le header à la
-  // place (même repère que TournamentHeader, légèrement plus bas pour ne pas
-  // se superposer si les deux sont affichés en même temps). Pleine largeur
-  // (inset-x-0) plutôt que centré à 92 % : plus de puces tiennent sur une ligne.
+  // l'écran, sans place pour un troisième bandeau — posé sous la barre de PV à
+  // la place. C'est le seul emplacement libre, d'où la suppression des
+  // bandeaux de contexte Tournoi/Arcade qui s'y posaient et le recouvraient
+  // (cf. GameScreen). Pleine largeur (inset-x-0) plutôt que centré à 92 % :
+  // plus de puces tiennent sur une ligne.
   const positionClass = web
     ? 'bottom-14 left-1/2 -translate-x-1/2 max-w-[60%] justify-center'
     : 'top-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))] inset-x-0 justify-center px-3';
