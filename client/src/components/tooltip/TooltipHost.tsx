@@ -6,6 +6,9 @@ import { useUiStore, type TooltipAnchor, type TooltipContent } from '../../store
 import { getPower } from '../../data/PowerDatabase.js';
 import { getAttribute } from '../../data/AttributeDatabase.js';
 import { getCard } from '../../data/CardDatabase.js';
+import {
+  summonRecipes, recipeCostText, materialsLabel, recipeIsFree, type SummonRecipe,
+} from '../../data/SummonInfo.js';
 
 const STAT_LABELS: Record<string, string> = {
   atk: 'ATQ', hp: 'PV', attack_speed: 'VIT', range: 'POR', movement_speed: 'DEP',
@@ -67,6 +70,76 @@ function Keywords({ ids }: { ids: string[] }) {
   );
 }
 
+// Le tooltip est rendu depuis des écrans où CardDatabase n'est pas forcément
+// initialisée (TestBench, CombatLab et leurs cartes fabriquées) : un id qu'on
+// ne sait pas nommer se rend tel quel, il ne fait pas tomber l'affichage.
+function cardName(id: string): string {
+  try {
+    return (getCard as any)(id)?.name ?? id;
+  } catch {
+    return id;
+  }
+}
+
+function attributeName(id: string): string {
+  try {
+    return (getAttribute as any)(id)?.name ?? id;
+  } catch {
+    return id;
+  }
+}
+
+// Invocation — comment la carte se pose et ce qu'elle exige. Une carte à
+// `summon_options` affiche ses voies l'une sous l'autre : ce sont des
+// alternatives, pas un cumul.
+function SummonBlock({ card }: { card: any }) {
+  const recipes = summonRecipes(card);
+  // Une normale sans rien à exiger n'apprend rien : la carte se pose, point.
+  if (recipes.length === 1 && recipes[0].summon_type === 'normal' && recipeIsFree(recipes[0])) return null;
+
+  return (
+    <div className="mt-2 rounded-lg border border-white/10 bg-white/5 p-2">
+      <div className="text-[9px] tracking-widest text-white/40">
+        {recipes.length > 1 ? 'INVOCATION — AU CHOIX' : 'INVOCATION'}
+      </div>
+      <div className="mt-1 space-y-1.5">
+        {recipes.map((r, i) => <RecipeRow key={r.index ?? i} recipe={r} />)}
+      </div>
+    </div>
+  );
+}
+
+function RecipeRow({ recipe }: { recipe: SummonRecipe }) {
+  const cost = recipeCostText(recipe);
+  return (
+    <div>
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-[11px] font-bold text-white/85">{recipe.icon} {recipe.label}</span>
+        {cost && <span className="text-[10px] text-white/55">{cost}</span>}
+      </div>
+      {recipe.materials.length > 0 && (
+        <div className="mt-0.5 text-[10px] leading-snug text-white/55">
+          <span className="text-white/40">{materialsLabel(recipe)} : </span>
+          {recipe.materials.map((m, i) => (
+            <span key={`${m.id}-${i}`}>
+              {i > 0 && <span className="text-white/30"> + </span>}
+              {m.kind === 'attribute'
+                // Un matériel d'attribut n'est pas une carte : n'importe quelle
+                // unité qui le porte convient. Le dire, sinon le joueur cherche
+                // une carte de ce nom.
+                // « tout porteur de X » plutôt que « tout X » : le nom d'un
+                // attribut n'a ni genre ni nombre fixes (Yeux Bleus, Dragon…),
+                // la tournure impersonnelle s'accorde donc toujours.
+                ? <span className="text-tier-4">tout porteur de {attributeName(m.id)}</span>
+                : <span className="text-player">{cardName(m.id)}</span>}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: TooltipAnchor }) {
   void anchor;
   if (content.kind === 'card' || content.kind === 'unit') {
@@ -96,9 +169,10 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
               : power.description && <div className="text-[10px] text-white/60">{power.description}</div>}
           </div>
         )}
+        {!isUnit && <SummonBlock card={data} />}
         {isUnit && data.shield > 0 && <div className="mt-1 text-[11px] text-gold">🛡 Bouclier : {data.shield}</div>}
         {lineage.length > 0 && (
-          <div className="mt-1 text-[11px] text-player">🧬 {lineage.map((id: string) => (getCard as any)(id)?.name ?? id).join(', ')}</div>
+          <div className="mt-1 text-[11px] text-player">🧬 {lineage.map(cardName).join(', ')}</div>
         )}
         {shoppingEntries.length > 0 && (
           <div className="mt-1 text-[11px] text-gold">

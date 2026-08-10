@@ -1482,6 +1482,19 @@ Instance globale unique : `components/tooltip/TooltipHost.tsx`, piloté par `uiS
 
 Contenu : nom, stats, pouvoir, attributs, coût d'invocation, lignée (🧬).
 
+### Bloc « Invocation » (tooltip de carte)
+
+Le tooltip d'une **carte** (main, cimetière, DeckBuilder, boutique, TestBench — tout ce qui passe par `cardTileProps`) annonce sa **voie d'invocation et ce qu'elle exige**. Toute la lecture vit dans **`data/SummonInfo.ts`**, pur et sans dépendance à une database : il rend les matériels par leur **id**, c'est le tooltip qui les nomme (`getCard` / `getAttribute`). C'est ce qui le rend testable dans une suite vitest qui tourne en node sans jsdom — même raison que `data/tutorialScript.ts`.
+
+- **Une carte à `summon_options` affiche ses voies l'une sous l'autre** (« INVOCATION — AU CHOIX ») : ce sont des alternatives, pas un cumul. Son `summon_type` / `cost` de premier niveau n'est qu'un miroir de l'une d'elles et n'est **pas** lu — `summon()` ne regarde que les options.
+- **Chaque voie n'affiche que ce qu'elle LIT réellement** (`READS_MATERIALS` / `READS_SACRIFICE`, calqués sur `InvocationManager`) : un `sacrifice` posé sur une fusion ou des `materials` posés sur un sacrifice ne sont jamais vérifiés — les montrer ferait mentir le tooltip.
+- **Trois mots pour trois sens** : la fusion liste ses `Matériels`, la transformation nomme la cible qu'elle remplace (`Transforme`), l'héritage écrit **`dont`** — ses matériaux sont pris **dans** ses tributs, ils ne s'y ajoutent pas.
+- Un matériel `ARCH_*` désigne **n'importe quelle** unité portant l'attribut, pas une carte : il se lit « tout porteur de X » et se nomme dans `AttributeDatabase`. La règle du préfixe a désormais un nom (`InvocationManager.isAttributeMaterial`), lu des deux côtés.
+- Les **remises des magies** sont visibles là où le joueur en a besoin : coût de sacrifice réduit (`_original_sacrifice` → « réduit de N ») et transformation sans cible (`_free_transformation`).
+- Une **normale sans rien à exiger n'affiche pas de bloc** — « la carte se pose » n'apprend rien.
+- Rien de tout ça sur un tooltip d'**unité** : elle est déjà invoquée, sa recette n'est plus actionnable (sa lignée 🧬, elle, reste affichée).
+- Verrouillé par `client/src/test/summon-info.test.ts` (18 golden tests), qui lit le catalogue depuis `initial-data/cards.json` : un matériel pointant sur un id inconnu casse ici plutôt qu'en affichant un identifiant brut au joueur.
+
 ---
 
 ## Drag & Drop

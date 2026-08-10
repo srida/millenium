@@ -299,10 +299,17 @@ function _removeFromHand(hand, cardId, atIdx = null) {
 function ok()         { return { ok: true,  reason: '' }; }
 function fail(reason) { return { ok: false, reason }; }
 
+// A material requirement designates an ATTRIBUTE (any unit carrying it) rather than one
+// specific card. Single source of truth for that prefix rule — the tooltip reads it too,
+// to name the requirement in the attribute database instead of the card one.
+export function isAttributeMaterial(matId) {
+  return typeof matId === 'string' && matId.startsWith('ARCH_');
+}
+
 // A material requirement matches either a specific card ID or an attribute ID.
 // Transformation results count as the original monster (represented_ids).
 export function matchesMaterial(unit, matId) {
-  if (matId.startsWith('ARCH_')) return unit.attributes?.includes(matId) ?? false;
+  if (isAttributeMaterial(matId)) return unit.attributes?.includes(matId) ?? false;
   return unit.represented_ids?.includes(matId) ?? unit.card_id === matId;
 }
 const _matchesMaterial = matchesMaterial;
