@@ -72,10 +72,21 @@ function writeSets(list: any[]) {
  * `offset` sert à obtenir deux packs DISJOINTS : deux packs aux mêmes cartes se
  * compléteraient l'un l'autre et fausseraient les tests de prime.
  */
+// Un pack de test délibérément PLUS GRAND qu'un booster : plusieurs de ces
+// tests achètent un booster puis vérifient qu'aucune prime de complétion n'est
+// tombée. Un pack qu'une seule ouverture vide complèterait le pack au passage
+// et paierait la prime — la taille se dérive donc de `BOOSTER.card_count`,
+// sinon l'agrandissement du booster casse ces tests par un effet de bord qui
+// n'a rien à voir avec ce qu'ils prouvent.
+// Lu à l'APPEL et non au chargement du module : `shop` n'est requis qu'une fois
+// l'environnement de test posé (`beforeAll`).
+const packSize = () => shop.BOOSTER.card_count + 1;
+
 function commercialPack(id = 'PACK_A', offset = 0) {
+  const size = packSize();
   const pool = CARDS.filter(c => !STARTER_CARDS.includes(c.id));
-  const low = pool.filter(c => Number(c.tier) <= 2).slice(offset, offset + 2).map(c => c.id);
-  const high = pool.filter(c => Number(c.tier) >= 3).slice(offset, offset + 2).map(c => c.id);
+  const low = pool.filter(c => Number(c.tier) <= 2).slice(offset, offset + size).map(c => c.id);
+  const high = pool.filter(c => Number(c.tier) >= 3).slice(offset, offset + size).map(c => c.id);
   return { id, name: 'Pack commercial', cards: [...low, ...high], completion_reward: { gems: 300 } };
 }
 

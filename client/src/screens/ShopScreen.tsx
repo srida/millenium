@@ -524,11 +524,15 @@ function BoosterReveal({ onClose }: { onClose: () => void }) {
         {set && <PackPoster set={set} className="h-8 w-8" />}
         <h2 className="text-sm font-bold tracking-widest text-gold">{set ? set.name.toUpperCase() : 'BOOSTER OUVERT'}</h2>
       </div>
-      <div className="flex justify-center gap-2">
+      {/* `flex-wrap` et non une grille : à 5 cartes la rangée ne tient plus en
+          portrait (les vignettes sont `flex-shrink-0`), et une dernière ligne
+          incomplète doit rester CENTRÉE — ce qu'une grille à colonnes fixes
+          collerait à gauche. */}
+      <div className="flex flex-wrap justify-center gap-2">
         {booster.cards.map(({ card_id }) => {
           const card = cardOf(card_id);
           return card
-            ? <CardTile key={card_id} {...cardTileProps(card)} size="h-36" tapOn="up" />
+            ? <CardTile key={card_id} {...cardTileProps(card)} size="h-32" tapOn="up" />
             : <span key={card_id} className="text-xs text-white/40">{card_id}</span>;
         })}
       </div>

@@ -418,9 +418,11 @@ Rotation à **5 h**, même reset que les missions (`shop.dayKey === missions.day
 
 ### Boosters
 
-3 cartes, ciblées sur un set, **disponibles en permanence**, **1000 golds ou 40 gemmes**, sans plafond d'achat. Tirage **à l'achat** (jamais à l'avance) : le cas « deck actif modifié entre la génération et l'ouverture » est donc sans objet.
+**5 cartes**, ciblées sur un set, **disponibles en permanence**, **1000 golds ou 40 gemmes**, sans plafond d'achat. Tirage **à l'achat** (jamais à l'avance) : le cas « deck actif modifié entre la génération et l'ouverture » est donc sans objet.
 
-**Le tirage n'a plus aucune structure** : 3 cartes distinctes prises **uniformément au hasard** dans le pool non possédé du pack. C'est tout ce que fait `drawBooster`.
+**Le tirage n'a plus aucune structure** : `BOOSTER.card_count` cartes distinctes prises **uniformément au hasard** dans le pool non possédé du pack. C'est tout ce que fait `drawBooster`.
+
+⚠️ **`card_count` est un plafond, pas une promesse** : les dernières ouvertures d'un pack rendent ce qu'il reste — moins de 5 cartes, au plein tarif — plutôt que d'échouer ou de compléter avec des doublons. C'était déjà vrai à 3 cartes ; ça se produit simplement plus tôt à 5, et l'écran affiche le nombre de cartes restantes pour que la décision soit informée.
 
 ⚠️ **Tout ce qui structurait le tirage a été retiré** — ancre Tier 3+, garantie « 2 cartes Tier 1-2 + 1 Tier 3+ » (`tier_guarantee`), cohérence de lignée (les matériaux manquants de l'ancre), cohérence d'attribut, pondération d'affinité ×2 (`affinity_weight`). Avec elles disparaissent `materialsOf` et l'ordre d'abandon des garanties.
 
@@ -428,6 +430,7 @@ Le raisonnement : ces garanties promettaient un booster **thématique**, mais ch
 
 Corollaire côté design de packs : **la composition du pack EST la distribution des drops**. Un pack sans Tier 5 n'en donnera jamais ; un pack qui n'a que du Tier 1 n'en donnera pas d'autre. Il n'y a plus de garantie pour rattraper un découpage déséquilibré — c'est l'onglet Packs qui porte cette responsabilité, et il affiche toujours la répartition par tier (mais plus de pastille « garantie de tiers ✓/⚠ », qui n'a plus d'objet).
 
+- Le tirage s'arrête aussi quand le pool est vide : `drawBooster` ne boucle jamais à vide.
 - Booster **grisé** quand le set est complet — jamais de vente ne pouvant rien produire.
 - **Ne jamais indexer le prix sur le taux de complétion** : la valeur croissante à mesure que le set se vide est la propriété la plus vertueuse du système, elle récompense l'engagement au lieu de le taxer. L'écran affiche le nombre de cartes restantes pour la rendre visible.
 - **Prime de complétion** (`completion_reward.gems`, 300) : versée **une seule fois**, automatiquement, jamais à réclamer. ⚠️ Elle ne suit **pas** les paliers de missions, qui se réclament désormais d'un tap.

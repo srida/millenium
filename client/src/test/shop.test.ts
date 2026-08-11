@@ -547,17 +547,17 @@ describe('épingle', () => {
 });
 
 describe('boosters', () => {
-  it('3 cartes non possédées, distinctes, du set choisi', () => {
+  it('5 cartes non possédées, distinctes, du set choisi', () => {
     const user = newUser();
     const set = shop.sets()[0];
     const before = owned(user());
 
     const res = shop.buyBooster(user(), set.id, 'golds');
     expect(res.ok).toBe(true);
-    expect(res.cards).toHaveLength(3);
+    expect(res.cards).toHaveLength(shop.BOOSTER.card_count);
 
     const ids = res.cards.map((c: any) => c.card_id);
-    expect(new Set(ids).size).toBe(3);
+    expect(new Set(ids).size).toBe(shop.BOOSTER.card_count);
     for (const id of ids) {
       expect(before.has(id)).toBe(false);              // zéro doublon
       expect(shop.setCardIds(set)).toContain(id);      // bien du set acheté
@@ -574,11 +574,12 @@ describe('boosters', () => {
 
   it('aucune garantie de tier : un booster peut n\'être QUE du bas tier', () => {
     // Ancien barème : l'unique Tier 5 du pool était l'ancre obligatoire, donc
-    // présent dans les 3 cartes à tous les coups.
+    // présent à tous les coups. Le pool doit rester nettement plus grand que le
+    // booster, sinon la carte haute tombe par simple épuisement et le test ne
+    // prouve plus rien.
     const pool = [
       mkCard('HIGH', 5, []),
-      mkCard('L1', 1, []), mkCard('L2', 1, []), mkCard('L3', 2, []),
-      mkCard('L4', 2, []), mkCard('L5', 1, []),
+      ...Array.from({ length: 11 }, (_, i) => mkCard(`L${i}`, i % 2 ? 1 : 2, [])),
     ];
     const draws = Array.from({ length: 25 }, (_, seed) =>
       shop.drawBooster(pool, shop.seededRandom('tier', seed)).map((c: any) => c.id));
@@ -586,10 +587,12 @@ describe('boosters', () => {
     expect(draws.some(ids => ids.includes('HIGH'))).toBe(true);
   });
 
-  it('aucune cohérence d\'attribut : les 3 cartes n\'ont rien à partager', () => {
+  it('aucune cohérence d\'attribut : les cartes n\'ont rien à partager', () => {
+    // Chaque famille est plus grande que le booster : un tirage cohérent RESTE
+    // possible, il n'est simplement plus recherché.
     const pool = [
-      mkCard('X1', 4, ['ARCH_X']), mkCard('X2', 1, ['ARCH_X']), mkCard('X3', 2, ['ARCH_X']),
-      mkCard('Z1', 3, ['ARCH_Z']), mkCard('Z2', 1, ['ARCH_Z']), mkCard('Z3', 2, ['ARCH_Z']),
+      ...Array.from({ length: 6 }, (_, i) => mkCard(`X${i}`, (i % 4) + 1, ['ARCH_X'])),
+      ...Array.from({ length: 6 }, (_, i) => mkCard(`Z${i}`, (i % 4) + 1, ['ARCH_Z'])),
     ];
     const mixed = Array.from({ length: 25 }, (_, seed) =>
       shop.drawBooster(pool, shop.seededRandom('attr', seed)).map((c: any) => c.attributes[0]))
@@ -601,7 +604,7 @@ describe('boosters', () => {
     const pool = [
       mkCard('FUSION', 4, ['ARCH_X'], ['MAT_A', 'MAT_B']),
       mkCard('MAT_A', 1, ['ARCH_X']), mkCard('MAT_B', 2, ['ARCH_X']),
-      mkCard('OTHER_1', 1, ['ARCH_X']), mkCard('OTHER_2', 2, ['ARCH_X']),
+      ...Array.from({ length: 8 }, (_, i) => mkCard(`OTHER_${i}`, (i % 3) + 1, ['ARCH_X'])),
     ];
     const orphan = Array.from({ length: 25 }, (_, seed) =>
       shop.drawBooster(pool, shop.seededRandom('lineage', seed)).map((c: any) => c.id))
@@ -609,7 +612,10 @@ describe('boosters', () => {
     expect(orphan).toBe(true);
   });
 
-  it('un pool réduit à 3 cartes les rend toutes, sans jamais bloquer la vente', () => {
+  it('un pool plus petit que le booster rend ce qu\'il reste, sans bloquer la vente', () => {
+    // `card_count` est un plafond, pas une promesse : les dernières ouvertures
+    // d'un pack rendent moins de cartes plutôt que d'échouer (ou pire, de
+    // compléter avec des doublons).
     const pool = [mkCard('A', 4, []), mkCard('B', 1, ['ARCH_1']), mkCard('C', 2, ['ARCH_2'])];
     const drawn = shop.drawBooster(pool, shop.seededRandom('s', 1));
     expect(drawn.map((c: any) => c.id).sort()).toEqual(['A', 'B', 'C']);
@@ -618,11 +624,11 @@ describe('boosters', () => {
   it('jamais deux fois la même carte dans un booster', () => {
     // Le zéro doublon est le SEUL invariant qui reste : il tient au niveau du
     // tirage (une carte tirée quitte le pool) autant que du pool de départ.
-    const pool = Array.from({ length: 5 }, (_, i) => mkCard(`C${i}`, 1, []));
+    const pool = Array.from({ length: 12 }, (_, i) => mkCard(`C${i}`, 1, []));
     for (let seed = 0; seed < 50; seed++) {
       const ids = shop.drawBooster(pool, shop.seededRandom('dup', seed)).map((c: any) => c.id);
-      expect(ids).toHaveLength(3);
-      expect(new Set(ids).size).toBe(3);
+      expect(ids).toHaveLength(shop.BOOSTER.card_count);
+      expect(new Set(ids).size).toBe(shop.BOOSTER.card_count);
     }
   });
 

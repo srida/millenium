@@ -67,11 +67,17 @@ const PINNED_SLOTS_MAX = 1;
 // 3 cartes/jour (brief §3.6).
 const FREE_REROLLS_PER_DAY = 1;
 
-// Un booster n'est plus qu'un VOLUME : 3 cartes, un prix, un pack. Il n'a plus
+// Un booster n'est plus qu'un VOLUME : 5 cartes, un prix, un pack. Il n'a plus
 // ni ancre Tier 3+, ni garantie de composition, ni cohérence de lignée ou
 // d'attribut — cf. `drawBooster`.
+//
+// ⚠️ `card_count` est un PLAFOND, pas une promesse : les toutes dernières
+// ouvertures d'un pack rendent ce qu'il reste (`drawBooster` s'arrête quand le
+// pool est vide), au plein tarif. C'était déjà vrai à 3 cartes, ça se produit
+// simplement plus tôt à 5 — la contrepartie assumée du zéro doublon, qui
+// interdit de compléter un booster avec des cartes déjà possédées.
 const BOOSTER = Object.freeze({
-  card_count: 3,
+  card_count: 5,
   price_golds: 1000,
   price_gems: 40,
 });
