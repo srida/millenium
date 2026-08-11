@@ -299,7 +299,7 @@ Deux systèmes, deux fonctions qui ne se recouvrent pas :
 
 Trois invariants portent tout le reste :
 
-1. **Zéro doublon** — aucun tirage, nulle part, ne produit une carte possédée. C'est ce qui dispense le jeu de poussière, de fragments et de conversion de doublons.
+1. **Zéro doublon** — aucun tirage, nulle part, ne produit une carte possédée. C'est ce qui dispense le jeu de poussière, de fragments et de conversion de doublons. C'est aussi, désormais, la **seule** contrainte qui pèse sur un tirage : emplacements comme boosters tirent **uniformément** dans leur pool non possédé, sans poids de tier, sans affinité, sans garantie de composition (`shop.pick`).
 2. **L'offre est serveur** — générée, horodatée et **persistée** (`user_shop_state.offer`). Aucune action client (changement de deck, rechargement, fuseau annoncé) ne la régénère : une offre re-tirable se re-tirerait jusqu'à satisfaction. Vérifié par golden test.
 3. **Une carte sans illustration ne se vend pas** — ce qu'on met en vitrine, c'est une image : un emplacement à 500 golds sur un cadre vide ne donne rien à vouloir, et un booster qui la révèle gâche son seul moment.
 
@@ -324,7 +324,7 @@ Le filtre ne vit **pas** qu'à l'entrée du tirage : les **cinq** lectures de la
 
 ### Les packs — `sets.js` + onglet Packs de l'admin
 
-Le préfixe d'`id` (`CORE`, `EXTRA`, `YGX`…) est un identifiant technique, pas un axe commercial : les groupes vont de 8 à 32 cartes et plusieurs ne peuvent pas satisfaire la garantie de tiers. Chaque carte porte donc un champ **`set`**, et `data/sets.json` décrit les packs (nom, archétypes, `booster_enabled`, `starter`, `signature_card`, `completion_reward`, liste `cards`).
+Le préfixe d'`id` (`CORE`, `EXTRA`, `YGX`…) est un identifiant technique, pas un axe commercial : les groupes vont de 8 à 32 cartes, sans rapport avec ce qu'on veut vendre ensemble. Chaque carte porte donc un champ **`set`**, et `data/sets.json` décrit les packs (nom, archétypes, `booster_enabled`, `starter`, `signature_card`, `completion_reward`, liste `cards`).
 
 **Vocabulaire** : le code et la donnée disent `set` (`sets.json`, `card.set`, `/api/sets`, `shop.setCardIds`) ; l'**interface dit « pack »** — admin comme boutique. Les deux désignent la même chose.
 
@@ -344,10 +344,10 @@ sets.posterExists(id) / sets.POSTERS_DIR
 Le découpage livré reste celui de `scripts/build-sets.js` (7 packs de ~57 cartes), désormais un simple **point de départ éditable** — attention, son `--write` réécrit `sets.json` *et* les 398 champs `set` : il écrase le travail fait en admin. Ce qu'il garantit et ce qu'il ne garantit pas :
 
 - ✔ **aucune carte orpheline** — fermeture par union-find sur le graphe de matériaux : une fusion/héritage/transformation est toujours dans le pack de ses matériaux. C'est la contrainte dure ;
-- ~ distribution de tiers : rapportée, pas garantie (le booster se rabat silencieusement) ;
+- ~ distribution de tiers : rapportée, pas garantie — et depuis que le booster tire uniformément, c'est elle **seule** qui décide de ce qui tombe : plus rien ne rattrape un pack déséquilibré ;
 - ✘ **« un archétype n'est jamais découpé entre deux packs » : impossible sur le pool actuel** — unir les cartes par archétype produit une composante unique de 223 cartes (une carte porte jusqu'à 4 attributs d'archétype, qui se chevauchent). C'est un travail éditorial sur `attributes.json`, pas un calcul — le brief le classe d'ailleurs en décision ouverte.
 
-Un pack designé à la main ne rétablit **aucune** de ces garanties : le sélecteur les **affiche** (garantie de tiers tenable ou non, matériaux hors pack, cartes déjà vendues dans un autre pack, cartes déjà offertes par le pack de départ, cartes du catalogue dans aucun pack) sans jamais bloquer l'enregistrement. C'est un tableau de bord, pas un validateur.
+Un pack designé à la main ne rétablit **aucune** de ces garanties : le sélecteur les **affiche** (répartition par tier, matériaux hors pack, cartes déjà vendues dans un autre pack, cartes déjà offertes par le pack de départ, cartes du catalogue dans aucun pack) sans jamais bloquer l'enregistrement. C'est un tableau de bord, pas un validateur.
 
 Deux appartenances qui ne se confondent pas, et que le sélecteur distingue par la couleur comme par le filtre :
 
@@ -390,13 +390,13 @@ Troisième famille d'assets, calquée sur les avatars de decks publics : fichier
 
 ### Emplacements quotidiens
 
-Rotation à **5 h**, même reset que les missions (`shop.dayKey === missions.dayKey` — un seul rendez-vous quotidien à retenir). **`DAILY_SLOTS = 6` emplacements**, tous identiques dans leur règle : un tirage libre dans le catalogue **non possédé**, pondéré par tier et par rien d'autre. Un emplacement ne se distingue d'un autre que par la carte proposée.
+Rotation à **5 h**, même reset que les missions (`shop.dayKey === missions.dayKey` — un seul rendez-vous quotidien à retenir). **`DAILY_SLOTS = 6` emplacements**, tous identiques dans leur règle : un tirage **uniforme** dans le catalogue **non possédé**, sans aucune pondération. Un emplacement ne se distingue d'un autre que par la carte proposée.
 
 ⚠️ **Les trois catégories historiques sont supprimées** — Le Maillon (`unlocks` / `material`), L'Affinité (`affinity`) et L'Inconnu (`random`). Avec elles disparaissent `linkCandidates`, `affinityCandidates`, `ctx.ownedAttributes` et les champs **`reason` / `reason_ref`** du slot (donc le badge côté client). Le raisonnement : le badge ne portait sa valeur que quand le graphe d'invocation avait quelque chose à dire — sur une collection jeune, les slots 1 et 2 dégénéraient en tirage libre et le joueur lisait « 🎲 Découverte » sans comprendre pourquoi ses autres emplacements avaient l'air d'être des cadeaux. C'est désormais le **nombre** qui répond à la frustration : sur six cartes, il y a presque toujours quelque chose à vouloir, et l'arbitrage porte sur « laquelle » plutôt que sur « est-ce que ça vaut le coup ».
 
-L'**affinité au deck actif survit dans les boosters** (`drawBooster`, pondération ×2) — là, elle n'est pas pilotable, le tirage ayant lieu à l'achat. `activeDeckAttributes` reste donc, mais ne touche plus les emplacements : `buildOffer` rend le même résultat avec ou sans deck.
+⚠️ **L'affinité au deck actif ne survit nulle part**, boosters compris : `activeDeckAttributes`, `ctx.affinity` et `AFFINITY_MIN_OCCURRENCES` sont supprimés, et `context()` ne porte plus que `owned`. Ce n'est plus « le deck ne change pas l'offre » mais « le tirage n'a plus de quoi consulter le deck » — la question de l'exploit par changement de deck ne se pose plus nulle part, au lieu de dépendre du moment du tirage. Verrouillé par golden test sur la forme même du contexte.
 
-- **Pondération par tier** : 30 / 28 / 22 / 14 / 6 — volontairement plus plate que la distribution du pool (T1 38 %) : les tiers élevés doivent sortir assez souvent pour ne pas être anecdotiques.
+- ⚠️ **Aucune pondération par tier** : la table 30 / 28 / 22 / 14 / 6 (`TIER_WEIGHTS`, `tierWeight`, `weightedPick`) est supprimée au profit d'un tirage uniforme (`shop.pick`). La distribution de la vitrine est donc celle du pool lui-même — les Tier 1, majoritaires au catalogue (≈38 %), sortent d'autant plus souvent, et les Tier 5 restent rares parce qu'ils sont rares. Assumé : le prix étant unique quel que soit le tier, le poids ne servait plus d'arbitrage budgétaire, il déguisait le hasard en règle.
 - **Prix** : **500 golds ou 20 gemmes**, au choix du joueur à l'achat — un seul prix, quel que soit le tier de la carte. Le client ne transmet **jamais** de montant.
 - **Six cartes distinctes** : `fillSlots` retire du pool ce qui est déjà placé, un emplacement ne double jamais un autre.
 - **Reroll** : 1 gratuit par jour, jamais payant (un reroll achetable ferait de la boutique une machine à sous et casserait le plafond de 6 cartes/jour). La carte rerollée quitte le pool du **jour** — il n'y a plus de règle de slot à conserver, le re-tirage est libre comme les autres.
@@ -420,15 +420,13 @@ L'**affinité au deck actif survit dans les boosters** (`drawBooster`, pondérat
 
 3 cartes, ciblées sur un set, **disponibles en permanence**, **1000 golds ou 40 gemmes**, sans plafond d'achat. Tirage **à l'achat** (jamais à l'avance) : le cas « deck actif modifié entre la génération et l'ouverture » est donc sans objet.
 
-Ordre de résolution du tirage — qui est aussi l'ordre d'**abandon** des garanties :
+**Le tirage n'a plus aucune structure** : 3 cartes distinctes prises **uniformément au hasard** dans le pool non possédé du pack. C'est tout ce que fait `drawBooster`.
 
-1. une carte **Tier 3+** comme ancre (c'est elle qui donne son thème au booster) ;
-2. **garantie de tier** : 2 cartes Tier 1-2 + 1 carte Tier 3+ ;
-3. **cohérence de lignée** : les matériaux manquants de l'ancre d'abord ;
-4. **cohérence d'attribut** : les cartes partageant un attribut avec l'ancre ;
-5. **pondération d'affinité** ×2 pour les attributs du deck actif (non exclusif — la découverte reste possible).
+⚠️ **Tout ce qui structurait le tirage a été retiré** — ancre Tier 3+, garantie « 2 cartes Tier 1-2 + 1 Tier 3+ » (`tier_guarantee`), cohérence de lignée (les matériaux manquants de l'ancre), cohérence d'attribut, pondération d'affinité ×2 (`affinity_weight`). Avec elles disparaissent `materialsOf` et l'ordre d'abandon des garanties.
 
-Chaque cran tombe **silencieusement** quand le pool résiduel ne peut plus le satisfaire (priorité d'abandon : cohérence d'attribut d'abord, garantie de tier ensuite, **jamais** le zéro doublon). Sur données réelles, la cohérence d'attribut est régulièrement abandonnée à bon droit : une partie du catalogue ne porte **aucun** attribut.
+Le raisonnement : ces garanties promettaient un booster **thématique**, mais chacune tombait *silencieusement* dès que le pool résiduel ne pouvait plus la satisfaire — c'est-à-dire de plus en plus souvent à mesure que le joueur complétait le pack, donc **exactement quand il y tenait le plus**. La cohérence d'attribut était même abandonnée d'emblée sur une bonne partie du catalogue, qui ne porte aucun attribut. Une règle qui ne tient pas ses promesses au moment où elles comptent vaut moins qu'un hasard franc, qui tient la sienne d'un bout à l'autre de la collection.
+
+Corollaire côté design de packs : **la composition du pack EST la distribution des drops**. Un pack sans Tier 5 n'en donnera jamais ; un pack qui n'a que du Tier 1 n'en donnera pas d'autre. Il n'y a plus de garantie pour rattraper un découpage déséquilibré — c'est l'onglet Packs qui porte cette responsabilité, et il affiche toujours la répartition par tier (mais plus de pastille « garantie de tiers ✓/⚠ », qui n'a plus d'objet).
 
 - Booster **grisé** quand le set est complet — jamais de vente ne pouvant rien produire.
 - **Ne jamais indexer le prix sur le taux de complétion** : la valeur croissante à mesure que le set se vide est la propriété la plus vertueuse du système, elle récompense l'engagement au lieu de le taxer. L'écran affiche le nombre de cartes restantes pour la rendre visible.
@@ -453,7 +451,7 @@ Toutes les mutations renvoient l'instantané complet + la progression à jour : 
   - `SlotCard` est **vertical** (tier + icônes en tête, vignette, nom, les deux prix empilés) : six tuiles tiennent en **2 colonnes dès le portrait** (`grid-cols-2 sm:grid-cols-3`), ce que l'ancienne disposition horizontale ne permettait pas. 📌 et 🎲 sont remontés sur la ligne du tier — ils ne se disputent plus la largeur avec les boutons d'achat. Plus de `ReasonBadge` (les catégories ont disparu).
 - `MainMenu` — bouton `🛒 Boutique` avec une pastille de nouveauté : un simple point, pas un compteur, effacé dès que l'écran a été ouvert pour le jour en cours (`hasUnseenShop` / `markShopSeen`, localStorage).
 - `components/ui/primitives.tsx` — `Countdown` (rafraîchi à la **minute** : un repère, pas un chronomètre), partagé avec l'écran Missions.
-- Verrouillé par `client/src/test/shop.test.ts` (43 golden tests) et `client/src/test/packs.test.ts` (14 : dotation, exclusions du pack de départ, miroir, affiche), même harnais serveur que `missions.test.ts`. Les deux fichiers sont **séparés à dessein** : `packs.test.ts` réécrit `sets.json` en cours de route, là où `shop.test.ts` indexe les packs par position. Les deux déposent de **vrais PNG** dans un `ILLUS_DIR` temporaire (comme `cosmetics.test.ts`) : sans art, le pool vendable serait vide et les deux fichiers ne prouveraient plus rien.
+- Verrouillé par `client/src/test/shop.test.ts` (45 golden tests) et `client/src/test/packs.test.ts` (14 : dotation, exclusions du pack de départ, miroir, affiche), même harnais serveur que `missions.test.ts`. Les deux fichiers sont **séparés à dessein** : `packs.test.ts` réécrit `sets.json` en cours de route, là où `shop.test.ts` indexe les packs par position. Les deux déposent de **vrais PNG** dans un `ILLUS_DIR` temporaire (comme `cosmetics.test.ts`) : sans art, le pool vendable serait vide et les deux fichiers ne prouveraient plus rien.
 
 ---
 

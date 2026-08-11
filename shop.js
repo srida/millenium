@@ -16,6 +16,9 @@
 // Deux invariants tiennent tout le reste :
 //   1. ZÉRO DOUBLON — aucun tirage ne peut produire une carte déjà possédée.
 //      C'est ce qui dispense le jeu de poussière, de fragments, de conversion.
+//      C'est aussi, désormais, la SEULE contrainte qui pèse sur un tirage :
+//      emplacements comme boosters tirent UNIFORMÉMENT dans leur pool non
+//      possédé, sans poids de tier, sans affinité, sans garantie de composition.
 //   2. L'OFFRE EST SERVEUR. Elle est générée, horodatée et persistée ici ;
 //      aucune action client (changement de deck, rechargement, fuseau annoncé)
 //      ne peut la régénérer — sinon l'offre se re-tire jusqu'à satisfaction.
@@ -41,11 +44,14 @@ const DAILY_SLOTS = 6;
 // monnaie à l'achat (golds ou gemmes), comme pour un booster.
 const SLOT_PRICE = Object.freeze({ golds: 500, gems: 20 });
 
-// Pondération de tirage par tier, volontairement plus PLATE que la
-// distribution naturelle du pool (T1 38 % / T5 5 %) : les tiers élevés coûtent
-// plus cher, ils doivent sortir assez souvent pour que l'arbitrage budgétaire
-// existe. Sans ça le joueur n'a jamais à choisir, il achète tout.
-const TIER_WEIGHTS = Object.freeze({ 1: 30, 2: 28, 3: 22, 4: 14, 5: 6 });
+// ⚠️ Il n'y a AUCUNE pondération de tirage. Ni par tier, ni par affinité au
+// deck actif : toutes les cartes du pool ont exactement la même chance de
+// sortir, en vitrine comme au booster. La distribution des tirages est donc
+// celle du pool lui-même — les Tier 1, majoritaires au catalogue (≈38 %),
+// sortent d'autant plus souvent, et les Tier 5 restent rares parce qu'ils sont
+// rares. C'est assumé : le prix étant unique quel que soit le tier, un poids
+// par tier ne servait plus d'arbitrage budgétaire, il ne faisait que déguiser
+// le hasard en règle.
 
 // Épingle : UN seul emplacement conservé d'une rotation à l'autre, gratuitement
 // et sans limite de durée. C'est ce qui permet d'économiser pour une carte chère
@@ -61,20 +67,14 @@ const PINNED_SLOTS_MAX = 1;
 // 3 cartes/jour (brief §3.6).
 const FREE_REROLLS_PER_DAY = 1;
 
+// Un booster n'est plus qu'un VOLUME : 3 cartes, un prix, un pack. Il n'a plus
+// ni ancre Tier 3+, ni garantie de composition, ni cohérence de lignée ou
+// d'attribut — cf. `drawBooster`.
 const BOOSTER = Object.freeze({
   card_count: 3,
   price_golds: 1000,
   price_gems: 40,
-  // 2 cartes Tier 1-2 + 1 carte Tier 3+.
-  tier_guarantee: { low: 2, high: 1, high_threshold: 3 },
-  // Poids ×2 pour les cartes portant un attribut du deck actif. Non exclusif :
-  // la découverte reste possible.
-  affinity_weight: 2,
 });
-
-// Attribut présent au moins deux fois dans le deck actif = signal d'intention.
-// Une seule occurrence peut être un accident de deckbuilding.
-const AFFINITY_MIN_OCCURRENCES = 2;
 
 // --- Catalogues ---
 // Cartes et packs sont lus par `sets.js` (cache mémoire invalidé au mtime) : ce
@@ -122,13 +122,6 @@ function sellableSetCardIds(def) {
   return setCardIds(def).filter(hasArt);
 }
 
-/** Matériaux d'une carte, toutes options d'invocation confondues. */
-function materialsOf(c) {
-  const out = [...(c.cost?.materials ?? [])];
-  for (const opt of c.summon_options ?? []) out.push(...(opt.cost?.materials ?? []));
-  return out;
-}
-
 // Le prix ne dépend plus de la carte — conservé comme fonction pour ne pas
 // disperser la constante dans tout le fichier.
 function priceOf() {
@@ -166,54 +159,26 @@ function seededRandom(...parts) {
   };
 }
 
-/** Tirage pondéré. `weight` retourne un poids > 0 ; les poids nuls sont ignorés. */
-function weightedPick(list, weight, rand) {
-  let total = 0;
-  const weights = list.map(item => {
-    const w = Math.max(0, weight(item));
-    total += w;
-    return w;
-  });
-  if (total <= 0) return list.length ? list[Math.floor(rand() * list.length)] ?? null : null;
-  let roll = rand() * total;
-  for (let i = 0; i < list.length; i++) {
-    roll -= weights[i];
-    if (roll <= 0) return list[i];
-  }
-  return list[list.length - 1] ?? null;
+/**
+ * Tirage UNIFORME dans `list`. Toute la boutique passe par ici : c'est le seul
+ * endroit du module où le hasard entre, et il n'y a rien à y régler. Une liste
+ * vide rend `null` — l'appelant décide si c'est un repli ou un refus de vente.
+ */
+function pick(list, rand) {
+  if (!list.length) return null;
+  return list[Math.floor(rand() * list.length)] ?? list[list.length - 1];
 }
-
-const tierWeight = c => TIER_WEIGHTS[Number(c?.tier)] ?? 1;
 
 // --- Contexte du joueur ---
-
-/**
- * Attributs présents au moins deux fois dans le DECK ACTIF. Le deck vit côté
- * client (localStorage) mais est synchronisé dans `deck_books` : le serveur
- * lit sa propre copie, il ne demande jamais au client de la lui décrire —
- * sinon la pondération d'affinité serait pilotable depuis la requête.
- */
-function activeDeckAttributes(userId) {
-  const row = stmt.deckBookByUser.get(userId);
-  if (!row) return new Map();
-  let book;
-  try { book = JSON.parse(row.data); } catch { return new Map(); }
-  const deck = book?.decks?.[book?.active];
-  if (!deck) return new Map();
-
-  const counts = new Map();
-  for (const ids of Object.values(deck)) {
-    for (const id of Array.isArray(ids) ? ids : []) {
-      for (const attr of card(id)?.attributes ?? []) {
-        counts.set(attr, (counts.get(attr) ?? 0) + 1);
-      }
-    }
-  }
-  return new Map([...counts].filter(([, n]) => n >= AFFINITY_MIN_OCCURRENCES));
-}
+//
+// ⚠️ Le contexte ne porte plus que la COLLECTION. Le deck actif n'y entre plus
+// (`activeDeckAttributes` est supprimé) : plus aucun tirage ne le consulte, ni
+// en vitrine ni au booster. C'est autant de surface d'exploit en moins — la
+// question « le joueur peut-il piloter son tirage en changeant de deck ? » ne
+// se pose plus nulle part, au lieu de dépendre du moment du tirage.
 
 function context(user) {
-  return { owned: new Set(progression.unlockedCardIds(user)), affinity: activeDeckAttributes(user.id) };
+  return { owned: new Set(progression.unlockedCardIds(user)) };
 }
 
 // --- Sélection des emplacements ---
@@ -221,7 +186,7 @@ function context(user) {
 // ⚠️ Il n'y a plus de RÈGLE par emplacement. Les trois catégories historiques
 // (Le Maillon « invocable immédiatement », L'Affinité « synergie », L'Inconnu
 // « découverte ») sont supprimées : les six emplacements sont tirés dans le
-// MÊME pool, tout le catalogue non possédé, pondéré par tier et rien d'autre.
+// MÊME pool, tout le catalogue non possédé, et sans aucune pondération.
 //
 // Ce que ça change, et pourquoi c'est assumé : le badge portait la valeur
 // perçue d'un emplacement (« la pièce qui manque à ta fusion » ≠ « une carte au
@@ -233,18 +198,17 @@ function context(user) {
 // large se lit d'un coup d'œil ; c'est le NOMBRE (6) qui remplace le badge
 // comme réponse à la frustration.
 //
-// L'affinité au deck actif n'est pas perdue pour autant : elle continue de
-// pondérer le tirage des BOOSTERS (`drawBooster`), là où elle n'est pas
-// pilotable par le joueur puisque le tirage a lieu à l'achat.
+// L'affinité au deck actif ne survit nulle part, boosters compris : le tirage
+// est le même pour tout le monde, du compte neuf au collectionneur.
 
-/** Tire un emplacement : tirage libre dans le pool, pondéré par tier. */
+/** Tire un emplacement : tirage uniforme dans le pool, sans aucun poids. */
 function drawSlot(slot, pool, rand) {
-  const pick = weightedPick(pool, tierWeight, rand);
-  if (!pick) return null;
+  const drawn = pick(pool, rand);
+  if (!drawn) return null;
   return {
     slot,
-    card_id: pick.id,
-    tier: Number(pick.tier) || 1,
+    card_id: drawn.id,
+    tier: Number(drawn.tier) || 1,
     price_golds: SLOT_PRICE.golds,
     price_gems: SLOT_PRICE.gems,
     purchased: false,
@@ -540,62 +504,31 @@ function pinView(state) {
 // --- Boosters (brief §3.4) ---
 
 /**
- * Tire les cartes d'un booster dans le pool NON POSSÉDÉ d'un set.
+ * Tire les cartes d'un booster dans le pool NON POSSÉDÉ d'un set : `card_count`
+ * cartes DISTINCTES, prises uniformément au hasard. Rien d'autre.
  *
- * Ordre de résolution, qui est aussi l'ordre d'abandon des garanties
- * (`fallback_priority` : cohérence d'attribut d'abord, garantie de tier
- * ensuite, jamais le zéro doublon) :
+ * ⚠️ Tout ce qui structurait le tirage a été retiré, et ce n'est pas un
+ * appauvrissement par accident : l'ancre Tier 3+, la garantie « 2 basses +
+ * 1 haute », la cohérence de lignée (les matériaux manquants de l'ancre) et la
+ * cohérence d'attribut promettaient un booster THÉMATIQUE, mais chacune de ces
+ * garanties tombait silencieusement dès que le pool résiduel ne pouvait plus la
+ * satisfaire — c'est-à-dire de plus en plus souvent à mesure que le joueur
+ * complétait le pack, donc exactement quand il y tenait le plus. Le hasard
+ * franc tient au moins sa promesse d'un bout à l'autre de la collection.
  *
- *   1. une carte Tier 3+ comme ANCRE — c'est elle qui donne son thème au
- *      booster et le pic d'intérêt du tirage ;
- *   2. les matériaux manquants de l'ancre si elle est composite (cohérence de
- *      lignée : un booster qui donne une fusion donne de quoi la jouer) ;
- *   3. le reste parmi les cartes partageant un attribut avec l'ancre, en
- *      Tier 1-2, pondéré ×2 par l'affinité avec le deck actif.
- *
- * Chaque repli est SILENCIEUX : un pool résiduel qui ne peut pas satisfaire
- * une garantie ne bloque jamais la vente (brief §7).
+ * Reste le seul invariant qui n'a jamais été négociable : ZÉRO DOUBLON. Il est
+ * ici porté par le pool (`buyBooster` en retire les cartes possédées) et par le
+ * retrait de chaque carte tirée — un booster ne se répète pas lui-même.
  */
-function drawBooster(pool, ctx, rand) {
+function drawBooster(pool, rand) {
   const remaining = [...pool];
   const picked = [];
-  const take = (candidates, weight) => {
-    if (!candidates.length) return false;
-    const pick = weightedPick(candidates, weight, rand);
-    if (!pick) return false;
-    picked.push(pick);
-    remaining.splice(remaining.indexOf(pick), 1);
-    return true;
-  };
-
-  const affinityWeight = c =>
-    ((c.attributes ?? []).some(a => ctx.affinity.has(a)) ? BOOSTER.affinity_weight : 1);
-  const { low, high_threshold } = BOOSTER.tier_guarantee;
-
-  // 1. L'ancre.
-  const highPool = remaining.filter(c => Number(c.tier) >= high_threshold);
-  take(highPool.length ? highPool : remaining, c => tierWeight(c) * affinityWeight(c));
-  const anchor = picked[0] ?? null;
-  const anchorAttributes = new Set(anchor?.attributes ?? []);
-  const coherent = c => (c.attributes ?? []).some(a => anchorAttributes.has(a));
-  const wantedMaterials = new Set(anchor ? materialsOf(anchor).filter(m => !ctx.owned.has(m)) : []);
-
-  // 2. Le reste. Chaîne de préférence, du plus fort au plus faible : la
-  //    garantie de tier borne le pool, puis les matériaux manquants de
-  //    l'ancre (lignée), puis la cohérence d'attribut. Chaque cran tombe
-  //    silencieusement quand il ne reste rien pour le satisfaire — dans
-  //    l'ordre du brief (§7 : cohérence d'abord, tier ensuite, jamais le
-  //    zéro doublon).
   while (picked.length < BOOSTER.card_count && remaining.length) {
-    const wantLow = picked.filter(c => Number(c.tier) < high_threshold).length < low;
-    const tierOk = remaining.filter(c => (Number(c.tier) < high_threshold) === wantLow);
-    const tierPool = tierOk.length ? tierOk : remaining;
-    const lineagePool = tierPool.filter(c => wantedMaterials.has(c.id));
-    const coherentPool = tierPool.filter(coherent);
-    const pool = lineagePool.length ? lineagePool : (coherentPool.length ? coherentPool : tierPool);
-    if (!take(pool, affinityWeight)) break;
+    const drawn = pick(remaining, rand);
+    if (!drawn) break;
+    picked.push(drawn);
+    remaining.splice(remaining.indexOf(drawn), 1);
   }
-
   return picked;
 }
 
@@ -623,7 +556,7 @@ const buyBooster = db.transaction((user, setId, currency = 'golds') => {
   const balance = currency === 'gems' ? (fresh?.gems ?? 0) : (fresh?.gold ?? 0);
   if (balance < price) return { ok: false, reason: currency === 'gems' ? 'Pas assez de gemmes.' : 'Pas assez de golds.' };
 
-  const drawn = drawBooster(pool, ctx, seededRandom(user.id, setId, Date.now(), Math.random()));
+  const drawn = drawBooster(pool, seededRandom(user.id, setId, Date.now(), Math.random()));
   if (!drawn.length) return { ok: false, reason: 'Collection complète sur ce set.' };
 
   progression.grant(user.id, currency === 'gems' ? { gems: -price } : { gold: -price });
@@ -750,10 +683,10 @@ function refresh(user) {
 }
 
 module.exports = {
-  DAILY_SLOTS, SLOT_PRICE, TIER_WEIGHTS, BOOSTER,
-  PINNED_SLOTS_MAX, FREE_REROLLS_PER_DAY, AFFINITY_MIN_OCCURRENCES,
-  cards, sets, setCardIds, sellableCards, sellableSetCardIds, hasArt, materialsOf, priceOf,
-  dayKey, nextRotationAt, seededRandom, weightedPick,
-  context, activeDeckAttributes, drawSlot, drawablePool, fillSlots, buildOffer, drawBooster,
+  DAILY_SLOTS, SLOT_PRICE, BOOSTER,
+  PINNED_SLOTS_MAX, FREE_REROLLS_PER_DAY,
+  cards, sets, setCardIds, sellableCards, sellableSetCardIds, hasArt, priceOf,
+  dayKey, nextRotationAt, seededRandom, pick,
+  context, drawSlot, drawablePool, fillSlots, buildOffer, drawBooster,
   sync, buySlot, reroll, setPin, buyBooster, pinView, getSnapshot, refresh,
 };

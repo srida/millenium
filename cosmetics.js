@@ -276,9 +276,9 @@ const buy = db.transaction((user, kind, id) => {
 
 /**
  * Map `card_id → variant_id` du deck d'un joueur, dérivée de la copie SERVEUR
- * du deck book. Le client ne transmet JAMAIS cette map — même principe que
- * `shop.activeDeckAttributes` : sinon elle serait pilotable depuis la requête,
- * et n'importe qui afficherait à son adversaire une variante non achetée.
+ * du deck book : le client ne transmet JAMAIS cette map, sinon elle serait
+ * pilotable depuis la requête et n'importe qui afficherait à son adversaire une
+ * variante non achetée.
  *
  * `deckName` vient bien du client, mais ne sert qu'à choisir une clé du propre
  * livre de ce joueur : il ne peut rien injecter.

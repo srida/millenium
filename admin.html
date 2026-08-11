@@ -3657,7 +3657,10 @@ function selectPack(id) {
   showDetail();
 }
 
-/** Répartition par tier des cartes d'un pack — la garantie du booster en dépend. */
+// Répartition par tier des cartes d'un pack. Le booster tirant UNIFORMÉMENT
+// dans le pool non possédé, cette répartition n'est plus une garantie à tenir :
+// elle EST la distribution des drops du pack. Un pack sans Tier 5 n'en donnera
+// jamais, un pack qui n'a que du Tier 1 n'en donnera pas d'autre.
 function packTierSpread(ids) {
   const spread = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   for (const id of ids) {
@@ -3812,8 +3815,6 @@ function renderPackDetail() {
     <div class="picker-stats" style="margin-bottom:10px">
       <span class="badge" style="background:var(--surface2)">${ids.length} cartes</span>
       ${[1, 2, 3, 4, 5].map(t => `<span class="badge" style="background:var(--surface2)">T${t} : ${spread[t] || 0}</span>`).join('')}
-      ${isStarter ? '' : `<span class="badge" style="background:var(--surface2);color:${(spread[3] + spread[4] + spread[5]) >= 1 && (spread[1] + spread[2]) >= 2 ? '#7bd88f' : '#e0a04a'}">
-        garantie 2×T1-2 + 1×T3+ ${(spread[3] + spread[4] + spread[5]) >= 1 && (spread[1] + spread[2]) >= 2 ? '✓' : '⚠'}</span>`}
       ${missing.length ? `<span class="badge" style="background:var(--surface2);color:#e0a04a" title="Ni dans ce pack, ni offerts par le pack de départ : ${esc(missing.slice(0, 20).join(', '))}">⚠ ${missing.length} matériau(x) hors pack</span>` : ''}
       ${!isStarter && starterOverlap ? `<span class="badge" style="background:var(--surface2);color:#7bd88f"
         title="Déjà offertes à la création du compte : les vendre reste possible, mais chaque joueur les possède déjà">🎓 ${starterOverlap} déjà offerte(s) au départ</span>` : ''}
@@ -4151,15 +4152,9 @@ function renderPickerStats(visible) {
   const missing = packMissingMaterials(ids, exceptId);
   const takenCount = ids.filter(id => packClaiming(id, exceptId)).length;
   const starterCount = ids.filter(id => starterPackWith(id, exceptId)).length;
-  const low = spread[1] + spread[2];
-  const high = spread[3] + spread[4] + spread[5];
-  const guaranteeOk = high >= 1 && low >= 2;
   el.innerHTML = `
     <span class="badge" style="background:var(--surface2);color:var(--text)">${ids.length} sélectionnée(s)</span>
     ${[1, 2, 3, 4, 5].map(t => `<span class="badge" style="background:var(--surface2)">T${t} : ${spread[t] || 0}</span>`).join('')}
-    <span class="badge" style="background:var(--surface2);color:${guaranteeOk ? '#7bd88f' : '#e0a04a'}"
-          title="Un booster promet 2 cartes Tier 1-2 et 1 carte Tier 3+ ; la garantie se rabat silencieusement si le pack ne peut pas la tenir">
-      garantie de tiers ${guaranteeOk ? '✓' : '⚠'}</span>
     ${missing.length ? `<span class="badge" style="background:var(--surface2);color:#e0a04a" title="Ni dans la sélection, ni offerts par le pack de départ : ${esc(missing.slice(0, 20).join(', '))}">⚠ ${missing.length} matériau(x) hors pack</span>` : ''}
     ${takenCount ? `<span class="badge" style="background:var(--surface2);color:#e0a04a">${takenCount} déjà vendue(s) ailleurs</span>` : ''}
     ${starterCount ? `<span class="badge" style="background:var(--surface2);color:#7bd88f"

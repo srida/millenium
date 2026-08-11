@@ -192,18 +192,38 @@ describe('emplacements sans catégorie', () => {
     }
   });
 
-  it('le deck actif ne pilote plus aucun emplacement', () => {
-    // L'affinité au deck ne survit que dans le tirage des BOOSTERS, où elle
-    // n'est pas pilotable (le tirage a lieu à l'achat).
+  it('le deck actif n\'entre plus du tout dans le contexte de tirage', () => {
+    // L'affinité au deck ne survit NULLE PART, boosters compris. Ce qui se
+    // vérifie ici est plus fort que « le deck ne change pas l'offre » : le
+    // contexte ne porte même plus de quoi la calculer, donc aucun tirage à
+    // venir ne pourra la consulter par accident.
     const user = newUser();
     const harpies = CARDS.filter(c => c.attributes?.includes('ARCH_036')).slice(0, 6).map(c => c.id);
     setActiveDeck(user().id, harpies);
-    expect(shop.activeDeckAttributes(user().id).get('ARCH_036')).toBeGreaterThanOrEqual(2);
 
-    const ctx = shop.context(user());
-    const withDeck = shop.buildOffer(user(), ctx, { day: '2026-09-01' });
-    const withoutDeck = shop.buildOffer(user(), { ...ctx, affinity: new Map() }, { day: '2026-09-01' });
-    expect(withDeck.slots.map((s: any) => s.card_id)).toEqual(withoutDeck.slots.map((s: any) => s.card_id));
+    expect(Object.keys(shop.context(user()))).toEqual(['owned']);
+
+    const before = shop.buildOffer(user(), shop.context(user()), { day: '2026-09-01' });
+    setActiveDeck(user().id, CARDS.slice(0, 6).map(c => c.id));
+    const after = shop.buildOffer(user(), shop.context(user()), { day: '2026-09-01' });
+    expect(after.slots.map((s: any) => s.card_id)).toEqual(before.slots.map((s: any) => s.card_id));
+  });
+
+  it('le tirage est UNIFORME : aucun tier n\'est favorisé ni bridé', () => {
+    // La table de poids par tier (30/28/22/14/6) est supprimée. Sur un pool
+    // d'un Tier 1 et d'un Tier 5, l'ancien barème donnait 83 % / 17 % ; le
+    // tirage uniforme doit rendre les deux cartes interchangeables.
+    const pool = [
+      { id: 'LOW', tier: 1, attributes: [] },
+      { id: 'HIGH', tier: 5, attributes: [] },
+    ];
+    let high = 0;
+    const runs = 200;
+    for (let seed = 0; seed < runs; seed++) {
+      if (shop.drawSlot(1, pool, shop.seededRandom('uniform', seed)).card_id === 'HIGH') high++;
+    }
+    expect(high / runs).toBeGreaterThan(0.35);
+    expect(high / runs).toBeLessThan(0.65);
   });
 });
 
@@ -545,60 +565,64 @@ describe('boosters', () => {
     }
   });
 
-  it('garantit 2 cartes Tier 1-2 et 1 carte Tier 3+', () => {
-    const user = newUser();
-    // Plusieurs ouvertures : la garantie n'est pas un coup de chance.
-    for (let i = 0; i < 8; i++) {
-      const res = shop.buyBooster(user(), shop.sets()[1].id, 'golds');
-      if (!res.ok) break;
-      const low = res.cards.filter((c: any) => c.tier < 3).length;
-      const high = res.cards.filter((c: any) => c.tier >= 3).length;
-      expect(low).toBe(2);
-      expect(high).toBe(1);
-    }
-  });
-
-  // Le tirage lui-même se teste sur un pool contrôlé : sur données réelles, la
-  // cohérence d'attribut est régulièrement (et légitimement) abandonnée — une
-  // partie du catalogue ne porte aucun attribut.
+  // Le tirage lui-même se teste sur un pool contrôlé. Ce qui suit vérifie des
+  // ABSENCES : le booster n'a plus ni garantie de tier, ni ancre, ni cohérence
+  // de lignée ou d'attribut. Chacune de ces règles a existé — un test qui les
+  // interdit explicitement empêche de les réintroduire par inadvertance.
   const mkCard = (id: string, tier: number, attributes: string[], materials: string[] = []) =>
     ({ id, tier, attributes, cost: { sacrifice: 0, materials } });
-  const noCtx = { owned: new Set<string>(), affinity: new Map() };
 
-  it('les 3 cartes partagent un attribut avec l\'ancre quand le pool le permet', () => {
+  it('aucune garantie de tier : un booster peut n\'être QUE du bas tier', () => {
+    // Ancien barème : l'unique Tier 5 du pool était l'ancre obligatoire, donc
+    // présent dans les 3 cartes à tous les coups.
     const pool = [
-      mkCard('H1', 4, ['ARCH_X']), mkCard('H2', 3, ['ARCH_X']),
-      mkCard('L1', 1, ['ARCH_X']), mkCard('L2', 2, ['ARCH_X']), mkCard('L3', 2, ['ARCH_X']),
-      mkCard('N1', 1, ['ARCH_Z']), mkCard('N2', 2, ['ARCH_Z']),
+      mkCard('HIGH', 5, []),
+      mkCard('L1', 1, []), mkCard('L2', 1, []), mkCard('L3', 2, []),
+      mkCard('L4', 2, []), mkCard('L5', 1, []),
     ];
-    for (let seed = 0; seed < 25; seed++) {
-      const [anchor, ...rest] = shop.drawBooster(pool, noCtx, shop.seededRandom('s', seed));
-      const attrs = new Set(anchor.attributes);
-      for (const c of rest) expect(c.attributes.some((a: string) => attrs.has(a))).toBe(true);
-    }
+    const draws = Array.from({ length: 25 }, (_, seed) =>
+      shop.drawBooster(pool, shop.seededRandom('tier', seed)).map((c: any) => c.id));
+    expect(draws.some(ids => !ids.includes('HIGH'))).toBe(true);
+    expect(draws.some(ids => ids.includes('HIGH'))).toBe(true);
   });
 
-  it('un pool sans attribut commun se rabat silencieusement, sans jamais bloquer la vente', () => {
-    // Priorité d'abandon : cohérence d'attribut d'abord, garantie de tier
-    // ensuite — le zéro doublon, jamais.
-    const pool = [mkCard('A', 4, []), mkCard('B', 1, ['ARCH_1']), mkCard('C', 2, ['ARCH_2'])];
-    const drawn = shop.drawBooster(pool, noCtx, shop.seededRandom('s', 1));
-    expect(drawn.map((c: any) => c.id).sort()).toEqual(['A', 'B', 'C']);
+  it('aucune cohérence d\'attribut : les 3 cartes n\'ont rien à partager', () => {
+    const pool = [
+      mkCard('X1', 4, ['ARCH_X']), mkCard('X2', 1, ['ARCH_X']), mkCard('X3', 2, ['ARCH_X']),
+      mkCard('Z1', 3, ['ARCH_Z']), mkCard('Z2', 1, ['ARCH_Z']), mkCard('Z3', 2, ['ARCH_Z']),
+    ];
+    const mixed = Array.from({ length: 25 }, (_, seed) =>
+      shop.drawBooster(pool, shop.seededRandom('attr', seed)).map((c: any) => c.attributes[0]))
+      .some((attrs: string[]) => new Set(attrs).size > 1);
+    expect(mixed).toBe(true);
   });
 
-  it('cohérence de lignée : une fusion tirée entraîne ses matériaux manquants', () => {
+  it('aucune cohérence de lignée : une fusion tirée n\'entraîne plus ses matériaux', () => {
     const pool = [
       mkCard('FUSION', 4, ['ARCH_X'], ['MAT_A', 'MAT_B']),
       mkCard('MAT_A', 1, ['ARCH_X']), mkCard('MAT_B', 2, ['ARCH_X']),
       mkCard('OTHER_1', 1, ['ARCH_X']), mkCard('OTHER_2', 2, ['ARCH_X']),
     ];
-    for (let seed = 0; seed < 15; seed++) {
-      const drawn = shop.drawBooster(pool, noCtx, shop.seededRandom('lineage', seed));
-      const ids = drawn.map((c: any) => c.id);
-      // L'ancre est forcément la seule carte Tier 3+ du pool.
-      expect(ids[0]).toBe('FUSION');
-      expect(ids).toContain('MAT_A');
-      expect(ids).toContain('MAT_B');
+    const orphan = Array.from({ length: 25 }, (_, seed) =>
+      shop.drawBooster(pool, shop.seededRandom('lineage', seed)).map((c: any) => c.id))
+      .some(ids => ids.includes('FUSION') && (!ids.includes('MAT_A') || !ids.includes('MAT_B')));
+    expect(orphan).toBe(true);
+  });
+
+  it('un pool réduit à 3 cartes les rend toutes, sans jamais bloquer la vente', () => {
+    const pool = [mkCard('A', 4, []), mkCard('B', 1, ['ARCH_1']), mkCard('C', 2, ['ARCH_2'])];
+    const drawn = shop.drawBooster(pool, shop.seededRandom('s', 1));
+    expect(drawn.map((c: any) => c.id).sort()).toEqual(['A', 'B', 'C']);
+  });
+
+  it('jamais deux fois la même carte dans un booster', () => {
+    // Le zéro doublon est le SEUL invariant qui reste : il tient au niveau du
+    // tirage (une carte tirée quitte le pool) autant que du pool de départ.
+    const pool = Array.from({ length: 5 }, (_, i) => mkCard(`C${i}`, 1, []));
+    for (let seed = 0; seed < 50; seed++) {
+      const ids = shop.drawBooster(pool, shop.seededRandom('dup', seed)).map((c: any) => c.id);
+      expect(ids).toHaveLength(3);
+      expect(new Set(ids).size).toBe(3);
     }
   });
 
