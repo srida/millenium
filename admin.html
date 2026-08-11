@@ -418,6 +418,11 @@ select.filter:focus { border-color: var(--accent); }
             <option value="no">Sans illus.</option>
             <option value="yes">Avec illus.</option>
           </select>
+          <select class="filter" id="filter-options" onchange="filterCards()">
+            <option value="">Toutes invocations</option>
+            <option value="yes">🔀 Avec options alt.</option>
+            <option value="no">Sans options alt.</option>
+          </select>
           <select class="filter" id="filter-attribute" onchange="filterCards()">
             <option value="">Tous attributs</option>
           </select>
@@ -813,6 +818,10 @@ function summonLabel(t) {
 function summonColor(t) {
   return { normal: '#78c8a8', sacrifice: '#f0a040', fusion: '#c878e0', heritage: '#6ab4e8', transformation: '#ff8040' }[t] || '#888';
 }
+// Une option définie suffit : le type et le coût classiques sont alors ignorés par le jeu.
+function hasSummonOptions(c) {
+  return !!(c.summon_options && c.summon_options.length);
+}
 
 function filterCards() {
   const q = document.getElementById('card-search').value.toLowerCase();
@@ -821,11 +830,13 @@ function filterCards() {
   const illus = document.getElementById('filter-illus').value;
   const attribute = document.getElementById('filter-attribute').value;
   const power = document.getElementById('filter-power').value;
+  const options = document.getElementById('filter-options').value;
   const filtered = cards.filter(c =>
     (!q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)) &&
     (!tier || Math.round(c.tier) == tier) &&
     (!summon || c.summon_type === summon) &&
     (!illus || (illus === 'yes' ? c._has_illustration : !c._has_illustration)) &&
+    (!options || (options === 'yes' ? hasSummonOptions(c) : !hasSummonOptions(c))) &&
     (!attribute || (c.attributes || []).includes(attribute)) &&
     (!power || (power === 'none' ? !(c.power && c.power.id) : (c.power && c.power.id === power)))
   );
@@ -851,7 +862,7 @@ function renderCardList(list = cards) {
           <div style="display:flex;gap:4px;margin-top:3px">
             ${tierBadge(c.tier)}
             <span class="badge" style="background:var(--surface2);color:${summonColor(c.summon_type)};font-size:10px">${summonLabel(c.summon_type)}</span>
-            ${(c.summon_options && c.summon_options.length) ? `<span class="badge" style="background:var(--surface2);color:#e07be0;font-size:10px">🔀 ${c.summon_options.length}</span>` : ''}
+            ${hasSummonOptions(c) ? `<span class="badge" style="background:var(--surface2);color:#e07be0;font-size:10px">🔀 ${c.summon_options.length}</span>` : ''}
           </div>
         </div>
       </div>`;
@@ -932,7 +943,7 @@ function renderCardDetail() {
         <div class="detail-meta">
           ${tierBadge(c.tier)}
           <span class="badge badge-summon">${summonLabel(c.summon_type)}</span>
-          ${(c.summon_options && c.summon_options.length) ? `<span class="badge" style="background:#e07be022;color:#e07be0">🔀 ${c.summon_options.length} options alt.</span>` : ''}
+          ${hasSummonOptions(c) ? `<span class="badge" style="background:#e07be022;color:#e07be0">🔀 ${c.summon_options.length} options alt.</span>` : ''}
           ${hasPower ? `<span class="badge badge-power">⚡ ${getPowerName(c.power.id)}</span>` : ''}
           <span class="badge ${hasIllus ? 'badge-illus' : 'badge-no-illus'}">${hasIllus ? '🖼 Illus.' : 'Pas d\'illus.'}</span>
         </div>
@@ -1049,7 +1060,7 @@ function renderCardDetail() {
 
     <div class="section-title">Options d'invocation alternatives</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
-      Permet d'invoquer le même monstre par plusieurs méthodes différentes (ex : transformation depuis une carte précise OU sacrifice de plusieurs monstres). ${(c.summon_options && c.summon_options.length) ? `<strong style="color:var(--text)">Le type et le coût classiques ci-dessus sont ignorés</strong> tant qu'au moins une option est définie ici.` : `Tant qu'aucune option n'est ajoutée, le type et le coût classiques ci-dessus s'appliquent normalement.`}
+      Permet d'invoquer le même monstre par plusieurs méthodes différentes (ex : transformation depuis une carte précise OU sacrifice de plusieurs monstres). ${hasSummonOptions(c) ? `<strong style="color:var(--text)">Le type et le coût classiques ci-dessus sont ignorés</strong> tant qu'au moins une option est définie ici.` : `Tant qu'aucune option n'est ajoutée, le type et le coût classiques ci-dessus s'appliquent normalement.`}
     </div>
     <div id="summon-options-list">
       ${(c.summon_options || []).map((opt, idx) => optionRowHtml(opt, idx)).join('')}
