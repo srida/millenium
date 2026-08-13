@@ -8,6 +8,7 @@ const missions = require('../missions');
 const shop = require('../shop');
 const cosmetics = require('../cosmetics');
 const arcade = require('../arcade');
+const gifts = require('../gifts');
 
 const router = express.Router();
 
@@ -536,6 +537,41 @@ router.post('/me/arcade/duel', auth.requireUser, auth.rateLimit({ windowMs: 60_0
   if (!Number.isInteger(index)) return res.status(400).json({ error: 'index requis', field: 'index' });
   arcade.sync(req.user);
   arcadeResult(req, res, arcade.reportDuel(req.user, { index, result }));
+});
+
+// =====================================================================
+//  CADEAUX (quotidien + ponctuels — règles dans gifts.js)
+// =====================================================================
+// Même contrat que partout ailleurs : le client désigne (« le quotidien », ou
+// un id de cadeau), le serveur chiffre. Aucun montant ne remonte du client.
+//
+// Ce qui change par rapport aux trois domaines précédents : il n'y a pas
+// d'offre tirée à persister, donc rien à re-tirer, aucun `sync` à appeler et
+// aucun cas « l'offre a changé » — pas de 409 possible ici.
+router.get('/me/gifts', auth.requireUser, (req, res) => {
+  res.json({ ...gifts.refresh(req.user), progression: progression.getProgression(req.user) });
+});
+
+function giftResult(req, res, result) {
+  if (!result.ok) return res.status(400).json({ error: result.reason });
+  // Le cadeau a crédité dans la transaction : `req.user` est un instantané pris
+  // AVANT, il faut relire la ligne pour renvoyer le bon solde.
+  const fresh = stmt.userById.get(req.user.id);
+  res.json({ ...result, ...gifts.getSnapshot(fresh), progression: progression.getProgression(fresh) });
+}
+
+// ⚠️ Le quotidien n'a PAS de segment `/claim`, à dessein : `/me/gifts/daily/claim`
+// aurait exactement la forme de `/me/gifts/:id/claim` et serait capté par
+// `:id = 'daily'` — une collision que seul l'ordre d'enregistrement
+// départagerait. Le même piège est documenté sur
+// `/me/missions/weekly/:points/claim`, qui le contourne par un segment de plus ;
+// ici la FORME de la route suffit, et ne dépend pas du rang.
+router.post('/me/gifts/daily', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  giftResult(req, res, gifts.claimDaily(req.user));
+});
+
+router.post('/me/gifts/:id/claim', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  giftResult(req, res, gifts.claimGift(req.user, String(req.params.id)));
 });
 
 // =====================================================================

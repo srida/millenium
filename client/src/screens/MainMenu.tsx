@@ -12,6 +12,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
 import { useMissionStore, hasUnseenMissions, claimableCount } from '../stores/missionStore.js';
 import { useShopStore, hasUnseenShop } from '../stores/shopStore.js';
+import { useGiftStore, claimableCount as claimableGifts } from '../stores/giftStore.js';
 import { useArcadeStore } from '../stores/arcadeStore.js';
 import { getProgress, shouldInvite, updateProgress } from '../data/tutorialProgress.js';
 import { Button, Modal } from '../components/ui/primitives.js';
@@ -46,6 +47,7 @@ export default function MainMenu() {
           <MissionsButton />
           <ShopButton />
         </div>
+        <GiftsButton />
         {user?.is_admin && (
           <div className="flex gap-2">
             <Button className="flex-1 text-xs opacity-70" onPointerDown={() => navigate('testbench')}>
@@ -252,6 +254,39 @@ function ShopButton() {
       <span className="whitespace-nowrap">🛒 Boutique</span>
       {unseen && (
         <span className="h-2 w-2 rounded-full bg-gold" aria-label="Nouveautés" />
+      )}
+    </Button>
+  );
+}
+
+// Cadeaux. UNE seule pastille, la verte chiffrée — et pas de point doré « pas
+// encore vu » ni de localStorage, contrairement aux Missions et à la Boutique :
+// un cadeau est toujours actionnable ou absent, il n'y a pas de nouveauté à
+// signaler à part. Elle ne s'efface donc pas à la visite mais quand tout est
+// récupéré, et compte le quotidien disponible plus les cadeaux non pris.
+// Rien en invité : un cadeau se garde sur un compte.
+function GiftsButton() {
+  const navigate = useUiStore(s => s.navigate);
+  const user = useAuthStore(s => s.user);
+  const snapshot = useGiftStore(s => s.snapshot);
+  const load = useGiftStore(s => s.load);
+
+  useEffect(() => { if (user) void load(true); }, [user, load]);
+
+  if (!user) return null;
+
+  const pending = claimableGifts(snapshot);
+
+  return (
+    <Button className="w-full" onPointerDown={() => navigate('gifts')}>
+      <span className="whitespace-nowrap">🎁 Cadeaux</span>
+      {pending > 0 && (
+        <span
+          aria-label={`${pending} cadeau${pending > 1 ? 'x' : ''} à récupérer`}
+          className="flex h-5 min-w-5 items-center justify-center rounded-full bg-success px-1 text-[11px] font-bold tabular-nums text-black"
+        >
+          {pending}
+        </span>
       )}
     </Button>
   );

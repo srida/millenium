@@ -70,6 +70,9 @@ const ENTITIES = [
   // Les variantes n'ont pas d'entrée dans ASSETS : leur art vit dans le dossier
   // des illustrations, sous l'id de la variante.
   { type: 'variants',   file: 'variants.json',   importPath: '/api/variants/import',   deletePath: id => `/api/variants/${id}` },
+  // Les cadeaux n'ont pas non plus d'entrée dans ASSETS : ils n'ont pas d'image
+  // propre, ils empruntent celles de leurs lots.
+  { type: 'gifts',      file: 'gifts.json',      importPath: '/api/gifts/import',      deletePath: id => `/api/gifts/${id}` },
 ];
 
 function authHeader() {

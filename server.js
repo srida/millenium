@@ -47,6 +47,7 @@ const MAGIES_FILE    = path.join(DATA_DIR, 'magies.json');
 const PUBLIC_DECKS_FILE = path.join(DATA_DIR, 'public_decks.json');
 const SETS_FILE      = path.join(DATA_DIR, 'sets.json');
 const MISSIONS_FILE  = path.join(DATA_DIR, 'missions.json');
+const GIFTS_FILE     = path.join(DATA_DIR, 'gifts.json');
 const VARIANTS_FILE  = variants.VARIANTS_FILE;
 
 // --- Bootstrap: copy initial data to volume on first run ---
@@ -56,7 +57,7 @@ function bootstrap() {
   fs.mkdirSync(AVATARS_DIR, { recursive: true });
   fs.mkdirSync(POSTERS_DIR, { recursive: true });
   fs.mkdirSync(BOARD_BG_DIR, { recursive: true });
-  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json', 'variants.json']) {
+  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -103,6 +104,10 @@ bootstrap();
 // Après bootstrap() : cards.json doit exister sur le volume.
 const progression = require('./progression');
 progression.backfillAll();
+
+// Après bootstrap() lui aussi : gifts.js tire db.js et shop.js derrière lui, et
+// son catalogue vit sur le volume.
+const gifts = require('./gifts');
 
 // --- Basic auth (set ADMIN_USER + ADMIN_PASS in env to enable) ---
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
@@ -904,6 +909,92 @@ app.delete('/api/missions/:id', requireSiteAdmin, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// --- Cadeaux API ---
+// ⚠️ `created_at` est POSÉ PAR LE SERVEUR et jamais lu du corps de la requête :
+// c'est lui, et lui seul, qui décide quels comptes peuvent réclamer le cadeau
+// (ceux qui existaient déjà). Le laisser au formulaire, c'est laisser une faute
+// de frappe rendre un cadeau invisible à tous — ou l'ouvrir à toute la base.
+//
+// La validation passe par `gifts.validateGift`, la même fonction que celle dont
+// dérive le chargement : la route d'écriture et la lecture ne peuvent pas
+// diverger sur ce qu'est un cadeau valide.
+app.get('/api/gifts', (req, res) => {
+  try {
+    res.json(readJson(GIFTS_FILE));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/gifts', requireSiteAdmin, (req, res) => {
+  try {
+    const check = gifts.validateGift(req.body);
+    if (!check.ok) return res.status(400).json({ error: check.errors[0].message, field: check.errors[0].field });
+    const list = readJson(GIFTS_FILE);
+    if (list.find(g => g.id === req.body.id)) return res.status(400).json({ error: `ID ${req.body.id} already exists` });
+    list.push({ ...req.body, created_at: Date.now() });
+    writeJson(GIFTS_FILE, list);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ⚠️ L'import CONSERVE le `created_at` reçu quand il y en a un : `sync-data.js`
+// doit pouvoir faire l'aller-retour local ↔ prod sans re-dater les cadeaux, ce
+// qui les rouvrirait à tous les comptes créés depuis.
+app.post('/api/gifts/import', requireSiteAdmin, (req, res) => {
+  try {
+    const { items, mode = 'skip' } = req.body;
+    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
+    const list = readJson(GIFTS_FILE);
+    let added = 0, replaced = 0, skipped = 0;
+    const errors = [];
+    for (const item of items) {
+      if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
+      const check = gifts.validateGift(item);
+      if (!check.ok) { errors.push(`${item.id} : ${check.errors[0].message}`); continue; }
+      const entry = { ...item, created_at: Number(item.created_at) || Date.now() };
+      const idx = list.findIndex(g => g.id === item.id);
+      if (idx !== -1) {
+        if (mode === 'replace') { list[idx] = entry; replaced++; }
+        else skipped++;
+      } else {
+        list.push(entry);
+        added++;
+      }
+    }
+    writeJson(GIFTS_FILE, list);
+    res.json({ ok: true, added, replaced, skipped, errors });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Le PUT PRÉSERVE le `created_at` enregistré : retoucher le libellé d'un cadeau
+// ne doit pas déplacer son adresse.
+app.put('/api/gifts/:id', requireSiteAdmin, (req, res) => {
+  try {
+    const check = gifts.validateGift(req.body);
+    if (!check.ok) return res.status(400).json({ error: check.errors[0].message, field: check.errors[0].field });
+    const list = readJson(GIFTS_FILE);
+    const idx = list.findIndex(g => g.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    list[idx] = { ...req.body, id: list[idx].id, created_at: list[idx].created_at };
+    writeJson(GIFTS_FILE, list);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ⚠️ Supprimer un cadeau n'efface PAS le registre des récupérations : recréer un
+// cadeau sous le même id le laisse silencieusement inaccessible à tous ceux qui
+// avaient pris le premier. Même piège que la prime de complétion d'un pack,
+// mémorisée par id — l'écran d'admin le dit.
+app.delete('/api/gifts/:id', requireSiteAdmin, (req, res) => {
+  try {
+    const list = readJson(GIFTS_FILE);
+    const idx = list.findIndex(g => g.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Not found' });
+    list.splice(idx, 1);
+    writeJson(GIFTS_FILE, list);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // --- Decks publics API ---
 // `_has_avatar` est calculé (comme `_has_illustration` ailleurs) : il dit si le
 // deck a SON portrait, là où /avatars/:id sert toujours quelque chose.
@@ -1165,13 +1256,16 @@ app.get('/api/export', (req, res) => {
     const publicDecks = readJson(PUBLIC_DECKS_FILE);
     const sets       = readJson(SETS_FILE);
     const variantList = readJson(VARIANTS_FILE);
+    // Un cadeau n'a pas d'image propre : il emprunte celles de ses lots
+    // (cartes, affiches de packs), déjà servies. Pas de famille d'assets.
+    const giftList = readJson(GIFTS_FILE);
     // L'art des variantes est déjà dans ILLUS_DIR : il voyage avec les
     // illustrations, sans famille d'assets supplémentaire.
     const illustrations = listPngChecksums(ILLUS_DIR);
     const avatars = listPngChecksums(AVATARS_DIR);
     const boardBackgrounds = listPngChecksums(BOARD_BG_DIR);
     const packPosters = listPngChecksums(POSTERS_DIR);
-    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, illustrations, avatars, packPosters, boardBackgrounds });
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, illustrations, avatars, packPosters, boardBackgrounds });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

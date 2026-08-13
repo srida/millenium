@@ -4,12 +4,12 @@ import type { Unit } from '../logic/Unit.js';
 
 export type ScreenName =
   | 'main_menu' | 'auth' | 'reset_password' | 'profile' | 'friends'
-  | 'deck_selector' | 'deck_builder' | 'online_lobby' | 'tournament' | 'arcade' | 'missions' | 'shop'
+  | 'deck_selector' | 'deck_builder' | 'online_lobby' | 'tournament' | 'arcade' | 'missions' | 'shop' | 'gifts'
   | 'tutorial' | 'game' | 'game_pvp' | 'combatlab' | 'testbench';
 
 const SCREEN_NAMES: ScreenName[] = [
   'main_menu', 'auth', 'reset_password', 'profile', 'friends',
-  'deck_selector', 'deck_builder', 'online_lobby', 'tournament', 'arcade', 'missions', 'shop',
+  'deck_selector', 'deck_builder', 'online_lobby', 'tournament', 'arcade', 'missions', 'shop', 'gifts',
   'tutorial', 'game', 'game_pvp', 'combatlab', 'testbench',
 ];
 

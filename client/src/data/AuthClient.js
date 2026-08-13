@@ -197,6 +197,21 @@ export async function reportArcadeDuel({ index, result }) {
   return absorbShop(await api('/me/arcade/duel', { method: 'POST', body: { index, result } }));
 }
 
+// --- Cadeaux (quotidien + ponctuels) ---
+// Même contrat que partout : le client DÉSIGNE (« le quotidien », un id de
+// cadeau), le serveur chiffre. Aucun montant ne circule dans ce sens.
+export async function getGifts() {
+  return absorbShop(await api('/me/gifts'));
+}
+
+export async function claimDailyGift() {
+  return absorbShop(await api('/me/gifts/daily', { method: 'POST' }));
+}
+
+export async function claimGift(id) {
+  return absorbShop(await api(`/me/gifts/${encodeURIComponent(id)}/claim`, { method: 'POST' }));
+}
+
 // --- Amis ---
 export async function searchUsers(q) {
   const { users } = await api(`/users/search?q=${encodeURIComponent(q)}`);

@@ -230,6 +230,35 @@ const sync = db.transaction((user) => {
   return state;
 });
 
+// --- Déblocage ---
+
+/**
+ * Débloque un cosmétique SANS le vendre — le point d'entrée de `gifts.js`.
+ *
+ * L'existence est validée ICI et pas chez l'appelant : c'est ce module qui sait
+ * ce qu'est un cosmétique valide, et la règle n'est pas la même dans les deux
+ * familles. Un avatar exige que son ILLUSTRATION EXISTE — `canUseAvatar` ne
+ * teste que la possession, si bien qu'un avatar offert sans PNG serait portable
+ * et cassé, avec un `<img>` vide sur cinq écrans. Une variante exige une entrée
+ * du catalogue, comme à l'achat.
+ *
+ * `already` n'est pas une erreur : offrir un cosmétique déjà possédé est sans
+ * effet, mais ce n'est pas un refus — c'est à l'appelant d'en rendre compte.
+ *
+ * → { ok: true, already: bool } | { ok: false, reason }
+ */
+function unlock(userId, kind, id) {
+  if (!KINDS.includes(kind)) return { ok: false, reason: 'Type de cosmétique inconnu.' };
+  if (kind === 'variant' && !variants.byId(id)) return { ok: false, reason: 'Variante introuvable.' };
+  if (kind === 'avatar' && !variants.illustrationExists(id)) return { ok: false, reason: 'Avatar introuvable.' };
+  // Un avatar offert d'office est déjà portable par tout le monde : rien à
+  // débloquer, et surtout rien à inscrire en base — le pool le retire du tirage.
+  if (kind === 'avatar' && DEFAULT_AVATARS.includes(id)) return { ok: true, already: true };
+
+  const res = stmt.unlockCosmetic.run(userId, kind, id, Date.now());
+  return { ok: true, already: res.changes === 0 };
+}
+
 // --- Achat ---
 
 /**
@@ -356,6 +385,6 @@ function refresh(user) {
 module.exports = {
   DAILY, PRICE, KINDS, DEFAULT_AVATARS,
   avatarPool, variantPool, ownedOf, owns, canUseAvatar,
-  buildOffer, sync, buy, deckVariantMap,
+  buildOffer, sync, unlock, buy, deckVariantMap,
   getSnapshot, refresh,
 };

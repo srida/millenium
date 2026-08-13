@@ -307,6 +307,42 @@ db.exec(`
   );
 `);
 
+// Cadeaux. Deux formes de persistance parce qu'il y a deux natures de cadeau,
+// et qu'aucune n'a besoin de la forme de l'autre :
+//
+//   - le QUOTIDIEN est un rendez-vous qui se rejoue : une seule ligne par
+//     joueur, dont seul le JOUR est promu en colonne, pour que la comparaison
+//     de rotation reste une comparaison de chaîne (même raison que
+//     `user_shop_state.offer_day` et `user_arcade_state.run_day`). Rien ne
+//     s'accumule, il n'y a donc rien à purger.
+//   - les PONCTUELS forment un registre : une ligne par cadeau soldé, sur le
+//     modèle de `user_cards` / `user_cosmetics`.
+//
+// ⚠️ Dans les DEUX cas, la garde anti-double-récupération est DANS LE SQL et
+// nulle part ailleurs — comme `claimMission` plus bas, dont le commentaire
+// explique pourquoi. Deux taps concurrents ne doivent changer qu'une ligne :
+// ici c'est le `WHERE` du DO UPDATE d'un côté, la clé primaire de l'autre, et
+// `changes === 0` qui vaut « quelqu'un est passé avant ».
+//
+// Les RÈGLES (barème, catalogue, éligibilité, livraison des lots) vivent dans
+// gifts.js — ici, seulement l'accès SQL.
+// ⚠️ Même contrainte que user_cards : créées APRÈS la migration `tag`.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_gift_state (
+    user_id          TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    daily_day        TEXT,
+    daily_claimed_at INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS user_gifts (
+    user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    gift_id    TEXT NOT NULL,
+    claimed_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, gift_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_user_gifts_user ON user_gifts(user_id);
+`);
+
 // Migration : la Convoitise (carte nommée dans tout le catalogue, 3 jours
 // d'attente) a été remplacée par l'épingle d'un emplacement proposé. Les deux
 // colonnes qu'elle occupait n'ont plus d'objet — DROP COLUMN plutôt que de les
@@ -479,6 +515,26 @@ const stmt = {
     VALUES (@user_id, @run_day, @run)
     ON CONFLICT(user_id) DO UPDATE SET run_day = @run_day, run = @run
   `),
+
+  // Cadeaux (quotidien + ponctuels). Les RÈGLES vivent dans gifts.js — ici,
+  // seulement l'accès SQL.
+  giftStateByUser: db.prepare('SELECT * FROM user_gift_state WHERE user_id = ?'),
+  // ⚠️ Le `WHERE` du DO UPDATE **EST** la garde anti-double-récupération du
+  // cadeau quotidien : la ligne ne bascule que si elle ne porte pas déjà le
+  // jour courant, donc `changes === 0` signifie « déjà récupéré aujourd'hui ».
+  // `IS NOT` et non `!=` : la comparaison doit être vraie quand `daily_day` est
+  // NULL (première récupération du compte), ce que `!=` rendrait NULL — donc
+  // faux, et le tout premier cadeau serait refusé.
+  claimDailyGift: db.prepare(`
+    INSERT INTO user_gift_state (user_id, daily_day, daily_claimed_at)
+    VALUES (@user_id, @day, @now)
+    ON CONFLICT(user_id) DO UPDATE SET daily_day = @day, daily_claimed_at = @now
+      WHERE user_gift_state.daily_day IS NOT @day
+  `),
+  // ⚠️ Même rôle, porté ici par la clé primaire (user_id, gift_id) :
+  // `INSERT OR IGNORE` puis `changes === 0` = « cadeau déjà récupéré ».
+  claimGift: db.prepare('INSERT OR IGNORE INTO user_gifts (user_id, gift_id, claimed_at) VALUES (?, ?, ?)'),
+  giftsByUser: db.prepare('SELECT gift_id, claimed_at FROM user_gifts WHERE user_id = ?'),
 
   insertResetToken: db.prepare('INSERT INTO reset_tokens (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)'),
   resetTokenByToken: db.prepare('SELECT * FROM reset_tokens WHERE token = ?'),

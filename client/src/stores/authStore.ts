@@ -106,6 +106,8 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     // Même raison pour les cosmétiques — et les avatars possédés d'un autre
     // compte ne doivent pas rester sélectionnables au Profil.
     (await import('./cosmeticStore.js')).useCosmeticStore.getState().reset();
+    // Et pour les cadeaux — le registre des récupérations est propre au compte.
+    (await import('./giftStore.js')).useGiftStore.getState().reset();
     void get();
   },
 }));

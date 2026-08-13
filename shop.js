@@ -539,9 +539,67 @@ function drawBooster(pool, rand) {
 }
 
 /**
+ * Conséquences de l'ENTRÉE de cartes dans la collection, quelle qu'en soit la
+ * provenance : l'épingle se libère si la carte mise de côté vient d'arriver
+ * (laisser une carte possédée épinglée gèlerait l'emplacement), et les primes
+ * de complétion des packs terminés sont soldées.
+ *
+ * Extrait pour que `gifts.js` en dispose : ce sont des conséquences de la
+ * possession, pas du paiement. Une carte OFFERTE qui termine un pack doit payer
+ * sa prime — sinon elle attend la prochaine visite en boutique, c'est-à-dire
+ * jamais pour qui n'achète plus.
+ */
+function settleCollection(userId, cardIds = []) {
+  const state = readState(userId);
+  const pinHit = !!(state.pinned && cardIds.includes(state.pinned.card_id));
+  if (pinHit) {
+    state.pinned = null;
+    writeState(state);
+  }
+  return { pin_cleared: pinHit, sets_completed: claimSetCompletions(userId, state) };
+}
+
+/**
+ * LIVRAISON d'un booster, sans la caisse : pool non possédé du pack, tirage,
+ * déblocage, puis `settleCollection`.
+ *
+ * Ce découpage existe pour `gifts.js` : un booster OFFERT doit produire
+ * exactement le même effet qu'un booster acheté — zéro doublon, filtre sur
+ * l'art, épingle et primes comprises. Recopier la livraison ailleurs, ce serait
+ * se donner deux versions de la règle et une occasion de les laisser diverger.
+ *
+ * Ce qui reste dans `buyBooster` : la monnaie, le prix, le solde, et les refus
+ * COMMERCIAUX (pack de départ, `booster_enabled: false`) — un cadeau n'est pas
+ * une vente et ne les rejoue pas.
+ */
+const deliverBooster = db.transaction((user, def, rand = null) => {
+  const ctx = context(user);
+  const pool = sellableSetCardIds(def).filter(id => !ctx.owned.has(id)).map(card).filter(Boolean)
+    .sort((a, b) => a.id.localeCompare(b.id));
+  if (!pool.length) return { ok: false, reason: 'Collection complète sur ce set.' };
+
+  const drawn = drawBooster(pool, rand ?? seededRandom(user.id, def.id, Date.now(), Math.random()));
+  if (!drawn.length) return { ok: false, reason: 'Collection complète sur ce set.' };
+
+  for (const c of drawn) progression.unlockCard(user.id, c.id);
+
+  return {
+    ok: true,
+    set_id: def.id,
+    cards: drawn.map(c => ({ card_id: c.id, tier: Number(c.tier) || 1 })),
+    ...settleCollection(user.id, drawn.map(c => c.id)),
+  };
+});
+
+/**
  * Achat + ouverture d'un booster. Le tirage a lieu À L'ACHAT (jamais à
  * l'avance) : c'est ce qui rend sans objet le cas « deck actif modifié entre
  * la génération et l'ouverture ».
+ *
+ * ⚠️ Le débit a lieu APRÈS la livraison, et pas avant : c'est ce qui garantit
+ * structurellement qu'un pool vide ne fait payer personne, là où l'ordre
+ * inverse le devait à deux clauses de garde placées juste avant. Tout tient
+ * dans une transaction, et better-sqlite3 est synchrone — rien ne s'intercale.
  */
 const buyBooster = db.transaction((user, setId, currency = 'golds') => {
   const def = setDef(setId);
@@ -552,40 +610,17 @@ const buyBooster = db.transaction((user, setId, currency = 'golds') => {
   if (def.booster_enabled === false) return { ok: false, reason: 'Ce set n\'est pas vendu en booster.' };
   if (currency !== 'golds' && currency !== 'gems') return { ok: false, reason: 'Monnaie inconnue.' };
 
-  const ctx = context(user);
-  const pool = sellableSetCardIds(def).filter(id => !ctx.owned.has(id)).map(card).filter(Boolean)
-    .sort((a, b) => a.id.localeCompare(b.id));
-  if (!pool.length) return { ok: false, reason: 'Collection complète sur ce set.' };
-
   const price = currency === 'gems' ? BOOSTER.price_gems : BOOSTER.price_golds;
   const fresh = stmt.userById.get(user.id);
   const balance = currency === 'gems' ? (fresh?.gems ?? 0) : (fresh?.gold ?? 0);
   if (balance < price) return { ok: false, reason: currency === 'gems' ? 'Pas assez de gemmes.' : 'Pas assez de golds.' };
 
-  const drawn = drawBooster(pool, seededRandom(user.id, setId, Date.now(), Math.random()));
-  if (!drawn.length) return { ok: false, reason: 'Collection complète sur ce set.' };
+  const delivered = deliverBooster(user, def);
+  if (!delivered.ok) return delivered;
 
   progression.grant(user.id, currency === 'gems' ? { gems: -price } : { gold: -price });
-  for (const c of drawn) progression.unlockCard(user.id, c.id);
 
-  // Carte épinglée tombée au booster : l'épingle se libère d'elle-même —
-  // laisser une carte possédée épinglée gèlerait l'emplacement.
-  const state = readState(user.id);
-  const pinHit = state.pinned && drawn.some(c => c.id === state.pinned.card_id);
-  if (pinHit) {
-    state.pinned = null;
-    writeState(state);
-  }
-
-  return {
-    ok: true,
-    set_id: def.id,
-    price,
-    currency,
-    cards: drawn.map(c => ({ card_id: c.id, tier: Number(c.tier) || 1 })),
-    pin_cleared: !!pinHit,
-    sets_completed: claimSetCompletions(user.id, state),
-  };
+  return { ...delivered, price, currency };
 });
 
 /**
@@ -694,5 +729,9 @@ module.exports = {
   cards, sets, setCardIds, sellableCards, sellableSetCardIds, hasArt, priceOf,
   dayKey, nextRotationAt, seededRandom, pick,
   context, drawSlot, drawablePool, fillSlots, buildOffer, drawBooster,
+  // `settleCollection` et `deliverBooster` sont la part LIVRAISON de la
+  // boutique, sans la caisse : `gifts.js` les appelle pour qu'un booster ou une
+  // carte offerts aient exactement les mêmes conséquences qu'un achat.
+  settleCollection, deliverBooster,
   sync, buySlot, reroll, setPin, buyBooster, pinView, getSnapshot, refresh,
 };

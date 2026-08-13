@@ -382,6 +382,9 @@ select.filter:focus { border-color: var(--accent); }
       <button class="tab" onclick="switchTab('missions')">Missions</button>
       <button class="tab" onclick="switchTab('decks')">Decks publics</button>
       <button class="tab" onclick="switchTab('packs')">🎁 Packs</button>
+      <!-- 🎀 et non 🎁 : les Packs occupent déjà ce glyphe, deux onglets au même
+           pictogramme se confondent au coup d'œil. -->
+      <button class="tab" onclick="switchTab('gifts')">🎀 Cadeaux</button>
       <button class="tab" onclick="switchTab('variants')">🎨 Variantes</button>
       <button class="tab" onclick="switchTab('stats')">📊 Stats</button>
       <button class="tab" onclick="switchTab('db')">🗄️ Base SQL</button>
@@ -564,6 +567,26 @@ select.filter:focus { border-color: var(--accent); }
     </div>
   </div>
 
+  <!-- CADEAUX TAB -->
+  <div id="tab-gifts" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="gift-search" placeholder="Rechercher..." oninput="filterGifts()">
+          <span id="gift-count" class="count">0</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="openNewGift()">+ Nouveau cadeau</button>
+          <button class="btn btn-secondary btn-sm" onclick="openImportModal('gifts')">Importer JSON</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="gift-list"></div>
+    </div>
+    <div class="content" id="gift-detail">
+      <div class="empty"><span>Sélectionne un cadeau</span></div>
+    </div>
+  </div>
+
   <!-- DECKS PUBLICS TAB -->
   <div id="tab-decks" class="main hidden">
     <div class="sidebar">
@@ -640,16 +663,16 @@ select.filter:focus { border-color: var(--accent); }
 // ================== STATE ==================
 // `packs` = les packs de boutique (data/sets.json, API /api/sets). Le code et la
 // donnée disent « set », l'interface dit « pack » : ici on est dans l'interface.
-let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [];
-let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null;
+let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [];
+let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null;
 let currentTab = 'cards';
-let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false;
+let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false, isNewGift = false;
 let selectionMode = false;
 const bulkSelected = new Set();
 
 // ================== INIT ==================
 async function init() {
-  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants] = await Promise.all([
+  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts] = await Promise.all([
     apiFetch('/api/cards'),
     apiFetch('/api/attributes'),
     apiFetch('/api/powers'),
@@ -659,6 +682,7 @@ async function init() {
     apiFetch('/api/sets'),
     apiFetch('/api/missions'),
     apiFetch('/api/variants'),
+    apiFetch('/api/gifts'),
   ]);
   populateAttributeFilter();
   populatePowerFilter();
@@ -671,6 +695,7 @@ async function init() {
   renderPackList();
   renderMissionList();
   renderVariantList();
+  renderGiftList();
 }
 
 function populateAttributeFilter() {
@@ -715,6 +740,7 @@ function switchTab(tab) {
                   (tab === 'missions' && t.includes('mission')) ||
                   (tab === 'decks' && t.includes('deck')) ||
                   (tab === 'packs' && t.includes('pack')) ||
+                  (tab === 'gifts' && t.includes('cadeau')) ||
                   (tab === 'variants' && t.includes('variante')) ||
                   (tab === 'stats' && t.includes('stat')) ||
                   (tab === 'db' && t.includes('sql'));
@@ -3249,6 +3275,281 @@ function cancelNewMission() {
   showList();
 }
 
+// ================== CADEAUX ==================
+// Un cadeau = un titre + une LISTE de lots, récupérés d'un seul geste côté
+// joueur. C'est le seul formulaire de ce panneau dont un champ est répétable :
+// les lots s'ajoutent et se retirent, et chacun porte ses propres champs selon
+// son type. D'où l'état local `giftLots` — le DOM ne peut pas servir de source
+// de vérité pour une liste dont on retire des éléments au milieu.
+const LOT_TYPE_LABELS = {
+  gold: '💰 Golds',
+  gems: '💎 Gemmes',
+  card: '🃏 Carte',
+  pack: '🎁 Booster de pack',
+  avatar: '🖼️ Avatar',
+  variant: '🎨 Variante d\'illustration',
+};
+
+// Champs actifs par type de lot (source de vérité : normalizeLot() dans gifts.js)
+const LOT_FIELD_CONFIG = {
+  gold: 'amount', gems: 'amount',
+  card: 'card', pack: 'pack', avatar: 'illustration', variant: 'variant',
+};
+
+// Lots du cadeau en cours d'édition. Réinitialisé à chaque sélection.
+let giftLots = [];
+
+function filterGifts() {
+  const q = document.getElementById('gift-search').value.toLowerCase();
+  const filtered = gifts.filter(g => !q || g.id.toLowerCase().includes(q) || (g.name || '').toLowerCase().includes(q));
+  renderGiftList(filtered);
+}
+
+function renderGiftList(list = gifts) {
+  document.getElementById('gift-count').textContent = list.length;
+  document.getElementById('gift-list').innerHTML = list.map(g => `
+    <div class="list-item ${selectedGift && selectedGift.id === g.id ? 'selected' : ''}" onclick="selectGift('${g.id}')">
+      <div style="width:40px;height:40px;background:var(--surface2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px">🎀</div>
+      <div style="min-width:0">
+        <div class="item-name">${esc(g.name || g.id)}</div>
+        <div class="item-id">${esc(g.id)} · ${(g.contents || []).length} lot${(g.contents || []).length > 1 ? 's' : ''}${g.created_at ? ' · ' + new Date(g.created_at).toLocaleDateString('fr-FR') : ''}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectGift(id) {
+  selectedGift = gifts.find(g => g.id === id);
+  isNewGift = false;
+  giftLots = JSON.parse(JSON.stringify(selectedGift.contents || []));
+  renderGiftList();
+  renderGiftDetail();
+  showDetail();
+}
+
+/** Une ligne de lot : son type, puis le champ que ce type réclame. */
+function _giftLotHtml(lot, i) {
+  const type = lot.type || 'gold';
+  const kind = LOT_FIELD_CONFIG[type] || 'amount';
+  let field;
+  if (kind === 'amount') {
+    field = `<input id="gf-lot-${i}-amount" type="number" min="1" value="${lot.amount ?? ''}" placeholder="Montant">`;
+  } else if (kind === 'pack') {
+    field = `<select id="gf-lot-${i}-id">
+      <option value="">— choisir un pack —</option>
+      ${packs.map(p => `<option value="${esc(p.id)}" ${lot.id === p.id ? 'selected' : ''}>${esc(p.name || p.id)}</option>`).join('')}
+    </select>`;
+  } else if (kind === 'variant') {
+    field = `<select id="gf-lot-${i}-id">
+      <option value="">— choisir une variante —</option>
+      ${variants.map(v => `<option value="${esc(v.id)}" ${lot.id === v.id ? 'selected' : ''}>${esc(v.id)} — ${esc((cards.find(c => c.id === v.card_id) || {}).name || v.card_id)}</option>`).join('')}
+    </select>`;
+  } else {
+    // Carte et avatar désignent tous deux un id d'illustration existante ;
+    // l'avatar peut aussi viser un terrain ou une magie, d'où la saisie libre
+    // assortie d'une datalist plutôt qu'un select fermé.
+    field = `<input id="gf-lot-${i}-id" list="gf-card-ids" value="${esc(lot.id || '')}" placeholder="${type === 'avatar' ? 'ID carte / terrain / magie' : 'ID de carte'}">`;
+  }
+  return `
+    <div class="field" style="flex-direction:row;align-items:flex-end;gap:8px">
+      <div style="flex:0 0 190px">
+        <label>Lot ${i + 1}</label>
+        <select id="gf-lot-${i}-type" onchange="changeGiftLotType(${i}, this.value)">
+          ${Object.entries(LOT_TYPE_LABELS).map(([k, v]) => `<option value="${k}" ${type === k ? 'selected' : ''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div style="flex:1;min-width:0"><label>&nbsp;</label>${field}</div>
+      <button class="btn btn-danger btn-sm" onclick="removeGiftLot(${i})" title="Retirer ce lot">✕</button>
+    </div>
+  `;
+}
+
+/** Relit les lots depuis le DOM — à faire AVANT toute re-render, sinon la saisie en cours est perdue. */
+function _readGiftLots() {
+  giftLots = giftLots.map((lot, i) => {
+    const type = document.getElementById(`gf-lot-${i}-type`)?.value || lot.type;
+    if (LOT_FIELD_CONFIG[type] === 'amount') {
+      const raw = document.getElementById(`gf-lot-${i}-amount`)?.value;
+      return { type, amount: raw === '' || raw == null ? undefined : Number(raw) };
+    }
+    return { type, id: document.getElementById(`gf-lot-${i}-id`)?.value.trim() || '' };
+  });
+  return giftLots;
+}
+
+/**
+ * Recopie la saisie en cours dans l'état AVANT une re-render.
+ *
+ * ⚠️ Indispensable, et pas seulement pour les lots : `renderGiftDetail` réécrit
+ * tout le panneau depuis `selectedGift`, y compris le nom et la description. Sans
+ * cette recopie, ajouter ou retirer un lot effaçait le nom que l'admin venait de
+ * taper — et le cadeau était refusé à l'enregistrement pour un champ qu'il avait
+ * pourtant rempli.
+ */
+function _syncGiftDraft() {
+  const id = document.getElementById('gf-id')?.value.trim();
+  if (selectedGift) {
+    if (id && isNewGift) selectedGift.id = id;
+    selectedGift.name = document.getElementById('gf-name')?.value ?? selectedGift.name;
+    selectedGift.description = document.getElementById('gf-description')?.value ?? selectedGift.description;
+  }
+  _readGiftLots();
+}
+
+function changeGiftLotType(i, type) {
+  _syncGiftDraft();
+  // Le champ change de nature : on repart d'un lot vide de ce type plutôt que
+  // de traîner un `id` sous un lot de monnaie (ou l'inverse).
+  giftLots[i] = { type };
+  renderGiftDetail();
+}
+
+function addGiftLot() {
+  _syncGiftDraft();
+  if (giftLots.length >= 12) return toast('12 lots maximum par cadeau', 'err');
+  giftLots.push({ type: 'gold' });
+  renderGiftDetail();
+}
+
+function removeGiftLot(i) {
+  _syncGiftDraft();
+  giftLots.splice(i, 1);
+  renderGiftDetail();
+}
+
+function renderGiftDetail() {
+  const g = selectedGift;
+  const el = document.getElementById('gift-detail');
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header">
+      <div style="width:64px;height:64px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">🎀</div>
+      <div class="detail-info">
+        <div class="detail-title">🎀 ${esc(g.name || g.id)}</div>
+        <div class="detail-meta">
+          <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(g.id)}</span>
+          ${g.created_at ? `<span class="badge badge-power">publié le ${new Date(g.created_at).toLocaleString('fr-FR')}</span>` : '<span class="badge badge-power">non publié</span>'}
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Identité</div>
+    <div class="form-grid">
+      <div class="field"><label>ID</label><input id="gf-id" value="${esc(g.id)}" ${isNewGift ? '' : 'disabled'}></div>
+      <div class="field"><label>Nom (vu par le joueur)</label><input id="gf-name" value="${esc(g.name || '')}"></div>
+      <div class="field" style="grid-column:1/-1"><label>Description (optionnelle)</label><input id="gf-description" value="${esc(g.description || '')}" placeholder="ex. Compensation suite à l'interruption du 12 août."></div>
+    </div>
+
+    <div class="section-title" style="margin-top:20px">Contenu</div>
+    <div class="form-grid" style="grid-template-columns:1fr">
+      ${giftLots.map((lot, i) => _giftLotHtml(lot, i)).join('') || '<div class="empty" style="padding:12px"><span>Aucun lot — un cadeau doit en contenir au moins un.</span></div>'}
+      <div><button class="btn btn-secondary btn-sm" onclick="addGiftLot()">+ Ajouter un lot</button></div>
+    </div>
+
+    <div class="section-title" style="margin-top:20px">À savoir</div>
+    <div style="font-size:12px;line-height:1.7;color:var(--muted);max-width:640px">
+      <p>⚠️ <b>La date de publication décide de qui reçoit le cadeau.</b> Elle est posée
+      par le serveur à la création et n'est plus modifiable : seuls les comptes
+      <b>déjà créés</b> à cet instant le verront. Un dédommagement n'a pas de sens
+      pour qui n'était pas là — et sans cette règle, chaque nouveau compte
+      ouvrirait le jeu sur toute l'histoire des cadeaux.</p>
+      <p>⚠️ <b>Supprimer un cadeau n'efface pas les récupérations déjà faites.</b>
+      Recréer un cadeau sous un <b>id déjà utilisé</b> le laisse silencieusement
+      inaccessible à tous ceux qui avaient pris le premier. Même piège que la
+      prime de complétion d'un pack, mémorisée par id.</p>
+      <p>Un lot « booster de pack » offre <b>une</b> ouverture du pack choisi (jamais
+      le pack entier), avec les mêmes règles qu'un booster acheté : zéro doublon,
+      et rien de ce que le joueur possède déjà. Un lot qui ne peut rien apporter
+      (carte déjà possédée, pack complet) n'empêche pas la récupération du reste.</p>
+    </div>
+
+    <div class="actions">
+      ${isNewGift
+        ? `<button class="btn btn-success" onclick="createGift()">Créer le cadeau</button>
+           <button class="btn btn-secondary" onclick="cancelNewGift()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveGift()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deleteGift()">Supprimer</button>`}
+    </div>
+
+    <datalist id="gf-card-ids">
+      ${cards.map(c => `<option value="${esc(c.id)}">${esc(c.name || '')}</option>`).join('')}
+    </datalist>
+  `;
+}
+
+function _collectGiftFields() {
+  return {
+    id: document.getElementById('gf-id')?.value.trim() || selectedGift.id,
+    name: document.getElementById('gf-name')?.value.trim() || '',
+    description: document.getElementById('gf-description')?.value.trim() || '',
+    contents: _readGiftLots(),
+  };
+}
+
+async function saveGift() {
+  const updated = _collectGiftFields();
+  const oldId = selectedGift.id;
+  const res = await apiFetch(`/api/gifts/${oldId}`, { method: 'PUT', body: updated });
+  if (res.error) return toast(res.error, 'err');
+  const idx = gifts.findIndex(g => g.id === oldId);
+  // `created_at` appartient au serveur : on le conserve tel qu'il était.
+  gifts[idx] = { ...updated, id: oldId, created_at: gifts[idx].created_at };
+  selectedGift = gifts[idx];
+  giftLots = JSON.parse(JSON.stringify(selectedGift.contents || []));
+  filterGifts();
+  renderGiftDetail();
+  toast('Cadeau enregistré');
+}
+
+async function deleteGift() {
+  if (!confirm(`Supprimer "${selectedGift.name || selectedGift.id}" ?\n\nLes récupérations déjà faites restent enregistrées : un cadeau recréé sous le même id serait inaccessible à ceux qui l'ont déjà pris.`)) return;
+  const res = await apiFetch(`/api/gifts/${selectedGift.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  gifts = gifts.filter(g => g.id !== selectedGift.id);
+  selectedGift = null;
+  filterGifts();
+  document.getElementById('gift-detail').innerHTML = '<div class="empty"><span>Sélectionne un cadeau</span></div>';
+  showList();
+  toast('Cadeau supprimé');
+}
+
+function openNewGift() {
+  let maxNum = 0;
+  for (const g of gifts) {
+    const match = g.id.match(/(\d+)$/);
+    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+  }
+  selectedGift = { id: `GIFT_${String(maxNum + 1).padStart(3, '0')}`, name: '', description: '', contents: [] };
+  giftLots = [{ type: 'gold' }];
+  isNewGift = true;
+  renderGiftList();
+  renderGiftDetail();
+  showDetail();
+}
+
+async function createGift() {
+  const gift = _collectGiftFields();
+  const res = await apiFetch('/api/gifts', { method: 'POST', body: gift });
+  if (res.error) return toast(res.error, 'err');
+  // Le serveur estampille `created_at` : on relit plutôt que de le deviner.
+  gifts = await apiFetch('/api/gifts');
+  selectedGift = gifts.find(g => g.id === gift.id) || null;
+  giftLots = JSON.parse(JSON.stringify(selectedGift?.contents || []));
+  isNewGift = false;
+  filterGifts();
+  if (selectedGift) renderGiftDetail();
+  toast('Cadeau créé');
+}
+
+function cancelNewGift() {
+  selectedGift = null;
+  isNewGift = false;
+  giftLots = [];
+  filterGifts();
+  document.getElementById('gift-detail').innerHTML = '<div class="empty"><span>Sélectionne un cadeau</span></div>';
+  showList();
+}
+
 // ================== PUBLIC DECKS ==================
 // Cache-buster des avatars : l'URL /avatars/<id> est stable (repli serveur sur
 // l'avatar par défaut), le navigateur ne verrait donc jamais un remplacement.
@@ -4207,6 +4508,7 @@ function fabAction() {
   else if (currentTab === 'decks')      openNewPublicDeck();
   else if (currentTab === 'packs')      openNewPack();
   else if (currentTab === 'variants')   openNewVariant();
+  else if (currentTab === 'gifts')      openNewGift();
 }
 
 // ================== UTILS ==================
@@ -4929,7 +5231,7 @@ async function confirmMassDelete() {
 let importType = null;
 let importItems = null;
 
-const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions', variants: 'variantes' };
+const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions', variants: 'variantes', gifts: 'cadeaux' };
 
 function openImportModal(type) {
   importType = type;
@@ -5025,6 +5327,10 @@ async function confirmImport() {
     variants = await apiFetch('/api/variants');
     selectedVariant = null;
     filterVariants();
+  } else if (importType === 'gifts') {
+    gifts = await apiFetch('/api/gifts');
+    selectedGift = null;
+    filterGifts();
   }
 
   const parts = [];

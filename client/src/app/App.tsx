@@ -19,6 +19,7 @@ import GameScreen from '../screens/GameScreen.js';
 import GameScreenPvp from '../screens/GameScreenPvp.js';
 import MissionsScreen from '../screens/MissionsScreen.js';
 import ShopScreen from '../screens/ShopScreen.js';
+import GiftsScreen from '../screens/GiftsScreen.js';
 import TutorialScreen from '../screens/TutorialScreen.js';
 import TooltipHost from '../components/tooltip/TooltipHost.js';
 import MissionToasts from '../components/ui/MissionToasts.js';
@@ -70,6 +71,7 @@ export default function App() {
       {screen === 'arcade' && <ArcadeScreen />}
       {screen === 'missions' && <MissionsScreen />}
       {screen === 'shop' && <ShopScreen />}
+      {screen === 'gifts' && <GiftsScreen />}
       {screen === 'tutorial' && <TutorialScreen />}
       {screen === 'online_lobby' && <OnlineLobby />}
       {screen === 'game' && <GameScreen />}

@@ -79,6 +79,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `GET /api/decks` | Public | Decks publics (`PublicDeckDatabase`), avec `_has_avatar` et `difficulty` (échelon Arcade) |
 | `GET /api/sets` | Public | Packs de boutique, avec `_has_poster` |
 | `GET /api/variants` | Public | Variantes d'illustration, avec `_has_illustration` |
+| `GET /api/gifts` | Public | Catalogue des cadeaux ponctuels |
 | `POST/PUT/DELETE /api/*` | Auth | Écriture admin |
 | `GET /illustrations/:id` | Public | Art des cartes, terrains, magies **et variantes** (PNG sans extension, id gardé par `safeAssetId`) |
 | `GET /avatars/:id` | Public | Avatar d'un deck public (repli sur l'avatar par défaut) |
@@ -122,6 +123,9 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `POST /api/me/cosmetics/buy` | Connecté | Achat d'un avatar ou d'une variante |
 | `GET /api/me/arcade` | Connecté | Run Arcade du jour (parcours, échelon courant) — aligne la ligne sur le jour au passage |
 | `POST /api/me/arcade/start` \| `duel` | Connecté | Lance la run du jour, solde un duel |
+| `GET /api/me/gifts` | Connecté | Cadeau quotidien + cadeaux ponctuels éligibles |
+| `POST /api/me/gifts/daily` | Connecté | Récupère le cadeau quotidien |
+| `POST /api/me/gifts/:id/claim` | Connecté | Récupère un cadeau ponctuel |
 
 Le PvP temps réel ne passe pas par HTTP : `ws/pvpServer.js` (matchmaking + relais opaque) sur `/ws`. Le message `match:found` (et `match:rejoined`) transporte les **variantes d'illustration** du deck adverse, dérivées côté serveur.
 
@@ -515,6 +519,66 @@ Qui remplit les tables : `game/bootstrap.ts` (`buildSession`, point de passage u
 - `screens/ShopScreen.tsx` — onglet Cosmétiques : deux sections, tuiles carrées, prix en 💎. L'achat passe par la **même confirmation** que les cartes (`useBuyConfirm`, cf. Boutique de cartes). **Pas de modale de révélation** en revanche, contrairement au booster : l'achat est unitaire et son résultat déjà à l'écran. Un bandeau suffit, et il dit **où** s'en servir — sinon le joueur repart avec un objet acheté et invisible.
 - `components/deck/IllustrationPicker.tsx` — modale « Origine + variantes possédées ». Dans le DeckBuilder, le badge 🎨 est un **frère** de `CardTile`, pas un enfant : le tap de la vignette retire la carte et l'appui long ouvre le tooltip, les deux gestes sont pris (et un `<button>` imbriqué serait du HTML invalide). Rien de tout ça en édition de deck public — il n'y a pas de joueur propriétaire.
 - Verrouillé par `client/src/test/cosmetics.test.ts` (33 golden tests), même harnais serveur que `shop.test.ts`. Il dépose de vrais PNG dans un `ILLUS_DIR` temporaire : sans art, les deux pools sont vides et le fichier ne prouverait rien.
+
+---
+
+## Système de cadeaux (🎁 Cadeaux)
+
+Ce que le jeu **donne**, par opposition à ce qu'il vend (`shop.js`, `cosmetics.js`) et à ce qu'il fait gagner (`missions.js`, `arcade.js`). Règles dans **`gifts.js`** (racine, à côté de `shop.js` dont il reprend le calendrier — *littéralement* : `const { dayKey, nextRotationAt } = require('./shop')`), catalogue dans **`data/gifts.json`**, tables `user_gift_state` et `user_gifts`, écran `gifts`.
+
+| Famille | Contenu | Rythme |
+|---|---|---|
+| **Quotidien** | **200 golds + 5 gemmes** | une fois par rotation de **5 h** — celle des missions, de la boutique et de l'arcade |
+| **Ponctuel** | plusieurs **lots** écrits en admin | une fois **par compte**, sans limite de durée |
+
+Un cadeau ponctuel porte un titre, une description et une **liste de lots** (`contents`) récupérés d'un seul geste. Six types : `gold`, `gems`, `card`, `pack`, `avatar`, `variant`.
+
+Quatre règles portent le reste :
+
+1. **Un cadeau se RÉCUPÈRE, il ne tombe pas.** Même raison qu'une mission terminée : un crédit automatique fait disparaître le gain sous les yeux du joueur. Le tap est le moment où le cadeau existe.
+2. **Le cadeau est consommé par le GESTE, pas par son rendement.** Une ligne dont le joueur ne peut pas profiter (carte déjà possédée, cosmétique déjà acquis, pack complet) ne fait **pas** échouer la récupération : le cadeau est soldé et le compte rendu dit la vérité, ligne par ligne. L'inverse ferait de la générosité de l'admin un piège — « reviens quand tu posséderas moins » — et laisserait à l'écran un cadeau que rien ne peut plus effacer.
+3. **Le module ne connaît aucun montant qui ne soit pas le sien.** Un lot `pack` n'ouvre pas un pack : il livre **un** booster, par `shop.deliverBooster`. Le tirage, le zéro-doublon, le filtre sur l'art, l'épingle et les primes de complétion sont ceux de la boutique.
+4. **Ancienneté du compte** : `gift.created_at >= user.created_at`. Un cadeau ne s'adresse qu'aux comptes créés **avant** lui — un dédommagement pour une panne n'a pas de sens pour qui n'était pas là, et sans cette règle un inscrit du jour ouvrirait le jeu sur toute l'histoire des cadeaux, faisant double emploi avec le pack de départ.
+
+⚠️ **Il n'y a pas de `sync` dans `gifts.js`, et ce n'est pas un oubli.** `shop.js`, `cosmetics.js` et `arcade.js` en exposent un parce qu'ils **tirent une offre** qu'il faut aligner sur le jour et persister. Les cadeaux ne tirent rien : la disponibilité du quotidien se lit dans une colonne, les ponctuels se dérivent du catalogue et du registre. Tout se déduit à la lecture. `refresh` n'est qu'un alias de `getSnapshot`, gardé pour que les routes se lisent comme les autres.
+
+### Les deux gardes anti-double-récupération sont dans le SQL
+
+Jamais en JS — même raison que `stmt.claimMission`. Deux taps concurrents ne doivent changer qu'une ligne, et `changes === 0` vaut « quelqu'un est passé avant » :
+
+- **quotidien** (`user_gift_state`, une ligne par joueur, rien ne s'accumule) : `ON CONFLICT(user_id) DO UPDATE … WHERE user_gift_state.daily_day IS NOT @day`. ⚠️ `IS NOT` et non `!=` : la comparaison doit être vraie quand `daily_day` est `NULL` (première récupération du compte), ce que `!=` rendrait `NULL` — donc faux, et le tout premier cadeau serait refusé.
+- **ponctuels** (`user_gifts`, une ligne par cadeau soldé) : `INSERT OR IGNORE` sur la clé `(user_id, gift_id)`, comme `user_cards`.
+
+**La marque se pose AVANT la livraison**, le tout dans un `db.transaction` : un échec de livraison annule la marque, et aucune fenêtre ne permet de livrer deux fois.
+
+### Ce que `gifts.js` a exigé d'ailleurs
+
+Deux extractions, toutes deux motivées par la même règle : ne pas se donner deux versions d'une règle et une occasion de les laisser diverger.
+
+- **`shop.deliverBooster(user, def, rand)`** et **`shop.settleCollection(userId, cardIds)`** — la part LIVRAISON de la boutique, sans la caisse. `buyBooster` mélangeait paiement et livraison ; il est désormais « validation + solde + débit + `deliverBooster` ». `settleCollection` (libération de l'épingle + primes de complétion) est aussi appelée par un lot `card` : ce sont des conséquences de la **possession**, pas de l'achat, et une carte offerte qui termine un pack doit payer sa prime — sinon elle attend la prochaine visite en boutique, c'est-à-dire jamais pour qui n'achète plus.
+  - ⚠️ Le débit de `buyBooster` a migré **après** la livraison. C'est ce qui garantit structurellement qu'un pool vide ne fait payer personne, là où l'ordre inverse le devait à deux clauses de garde. Tout tient dans une transaction, et better-sqlite3 est synchrone.
+  - ⚠️ Les refus **commerciaux** (`isStarter`, `booster_enabled: false`) restent dans `buyBooster` et ne sont **pas** rejoués par un cadeau : un cadeau n'est pas une vente. Le pack de départ se refuse tout seul — son pool non possédé est vide par construction.
+- **`cosmetics.unlock(userId, kind, id)`** — débloque sans vendre. Il valide l'existence lui-même, et la règle n'est pas la même dans les deux familles : un avatar exige que son **illustration existe**, car `canUseAvatar` ne teste que la possession — un avatar offert sans PNG serait portable et cassé, avec un `<img>` vide sur cinq écrans.
+
+### Catalogue et admin (onglet 🎀 Cadeaux)
+
+`data/gifts.json`, cache mémoire au mtime (même patron que `sets.js` / `variants.js` / `cosmetics.js`) : l'admin écrit à chaud.
+
+- ⚠️ **`created_at` est estampillé par le serveur** à la création et **préservé** par le `PUT` ; jamais lu du corps de la requête. C'est lui qui décide de l'éligibilité : le laisser au formulaire, c'est laisser une faute de frappe rendre un cadeau invisible à tous — ou l'ouvrir à toute la base. L'import, lui, le **conserve** quand il en reçoit un, sinon `sync-data.js` re-daterait les cadeaux à chaque aller-retour local ↔ prod.
+- ⚠️ **Un `created_at` absent fait tomber le cadeau au chargement**, avec un `console.warn`. C'est le seul champ sans lecture de repli sûre : le compter comme 0 le rend invisible pour toujours, le compter comme « maintenant » l'ouvre aux comptes créés depuis — exactement ce que la règle d'ancienneté interdit. On le nomme plutôt que de le deviner.
+- **Un lot mal formé est ignoré, pas fatal** (`normalizeLot`), et un cadeau dont **tous** les lots sont invalides n'existe pas — un cadeau qui ne donne rien est pire qu'un cadeau absent. `validateGift` rend le **même verdict** à l'écriture (400) que le chargement à la lecture : les deux chemins ne peuvent pas diverger sur ce qu'est un cadeau valide.
+- **Plafonds** : `MAX_LOT_AMOUNT = 100 000` par lot de monnaie, `MAX_LOTS_PER_GIFT = 12`. Pas une défiance envers l'admin — le zéro en trop, qui ne se rattrape pas une fois les gemmes distribuées.
+- ⚠️ **Supprimer un cadeau n'efface pas le registre** : recréer un cadeau sous un id déjà utilisé le laisse silencieusement inaccessible à qui avait pris le premier. Même piège que la prime de complétion d'un pack, mémorisée par id — l'écran d'admin le dit.
+- 🎀 et non 🎁 : les **Packs** occupent déjà ce glyphe, et le `switchTab` d'`admin.html` apparie les onglets par **sous-chaîne de libellé** (`t.includes('cadeau')`). Deux onglets au même pictogramme se confondent au coup d'œil.
+- **L'éditeur de lots est le seul champ répétable du panneau d'admin.** Il tient un état local `giftLots` (le DOM ne peut pas servir de source de vérité pour une liste dont on retire des éléments au milieu) et `_syncGiftDraft()` recopie la saisie **avant** chaque re-render — nom et description compris, sans quoi ajouter un lot effacerait le nom qu'on vient de taper.
+
+### Client
+
+- `stores/giftStore.ts` — instantané + `claimDaily()` / `claim(id)`. Son `absorb` fait les trois gestes de `shopStore.absorb` : `pickSnapshot`, `authStore.applyProgression`, et `collectionStore.add` des cartes livrées (lot `card` **et** cartes du booster) — un cadeau qui donne des cartes doit les faire apparaître au DeckBuilder sans recharger les 398 ids.
+- `screens/GiftsScreen.tsx` — tuile du quotidien (bouton vert, ou `Countdown` vers la prochaine rotation), liste des cadeaux, modale de révélation. **Pas de `ConfirmBuy`** : rien n'est débité, la confirmation n'a pas d'objet. ⚠️ La révélation passe par `createPortal(…, document.body)` — déclenchée depuis un `Panel`, qui porte `backdrop-blur`, elle serait sinon rognée dans sa colonne (cf. `ConfirmBuy`).
+- `MainMenu` — bouton `🎁 Cadeaux` avec **une seule** pastille, la verte chiffrée (quotidien disponible + cadeaux non pris). Pas de point doré ni de `localStorage` « déjà vu », contrairement aux Missions et à la Boutique : un cadeau est toujours actionnable ou absent, il n'y a pas de nouveauté à signaler à part. Elle s'efface quand tout est récupéré, pas à la visite. Rien en invité.
+- Le compteur est **dérivé** de l'instantané (`claimableCount`), jamais transmis : une valeur dérivée qu'on transporte est une valeur qui peut contredire sa source.
+- Verrouillé par `client/src/test/gifts.test.ts` (28 golden tests), même harnais serveur que `shop.test.ts`. Le fichier écrit son **propre** `gifts.json` et son propre `sets.json` — c'est le catalogue qui est l'objet du test (précédents : `arcade.test.ts`, `packs.test.ts`). ⚠️ Les comptes du fichier datent d'un mois et les cadeaux de maintenant : l'inverse les rendrait tous inéligibles, et le fichier passerait à côté de son sujet en échouant partout de la même façon.
 
 ---
 
@@ -1612,7 +1676,7 @@ Un seul pont React ↔ Three : `client/src/components/board/Board3DCanvas.tsx` m
 
 ### Navigation client
 
-Écrans routés par `uiStore.screen` (Zustand, parité `?screen=`, pas de react-router) : `main_menu`, `auth`, `reset_password`, `profile`, `friends`, `deck_selector`, `deck_builder`, `tournament`, `arcade`, `missions`, `shop`, `tutorial`, `online_lobby`, `game`, `game_pvp`, `combatlab` (dev), `testbench` (dev).
+Écrans routés par `uiStore.screen` (Zustand, parité `?screen=`, pas de react-router) : `main_menu`, `auth`, `reset_password`, `profile`, `friends`, `deck_selector`, `deck_builder`, `tournament`, `arcade`, `missions`, `shop`, `gifts`, `tutorial`, `online_lobby`, `game`, `game_pvp`, `combatlab` (dev), `testbench` (dev).
 
 ⚠️ Ajouter un écran se fait à **deux** endroits dans `uiStore.ts` — l'union `ScreenName` *et* le tableau `SCREEN_NAMES`, qui est celui qui valide `?screen=` — puis une ligne dans `App.tsx`.
 
