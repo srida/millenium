@@ -10,24 +10,37 @@
 //   - tous les 10 niveaux  → un OBJET tiré au sort en plus : carte, avatar ou
 //     variante d'illustration
 //
-// ⚠️ LE GAIN DE NIVEAU EST VERSÉ, IL NE SE RÉCUPÈRE PAS — seule exception
-// assumée à la règle « un gain se récupère » qui gouverne les missions et les
-// cadeaux. La raison est structurelle : un niveau ne se gagne pas sur un écran,
-// il tombe au milieu d'une fin de combat, d'un lot de missions ou d'un cadeau.
-// Il n'y a aucun geste à attendre, donc rien à taper — et un gain en attente
-// qu'aucun écran ne réclame serait un gain oublié. Le versement est annoncé au
-// client (`level_rewards`, cf. progression.grant), qui le montre en toast.
+// ⚠️ LE GAIN DE NIVEAU SE RÉCUPÈRE, IL NE TOMBE PAS — même règle que les
+// missions terminées et les cadeaux, et pour la même raison : un crédit
+// automatique fait disparaître le gain sous les yeux du joueur. Un niveau se
+// gagne n'importe où (fin de combat, lot de missions, cadeau) ; le tap, lui,
+// se fait à un seul endroit, la section Progression du Profil. Le palier y
+// attend indéfiniment — rien ne le périme, il n'y a aucune rotation ici.
 //
-// ⚠️ Les niveaux POSÉS D'AUTORITÉ ne versent rien : `applyAdminGrants` écrit
-// `level: 100` sans passer par `grant`, un admin promu ne reçoit donc pas cent
-// paliers de golds. C'est voulu — il a déjà 9999 de chaque et tout le catalogue.
+// ⚠️ L'ÉTAT TIENT EN UNE COLONNE, `users.levels_claimed` : les paliers en
+// attente sont `levels_claimed + 1 … level`. C'est possible parce qu'un palier
+// ne se saute pas — ils se récupèrent dans l'ordre et tous à la fois, le
+// joueur n'a rien à arbitrer. Un tap = tous les paliers dus.
+//
+// ⚠️ L'OBJET DU PALIER DE 10 EST TIRÉ AU MOMENT DU TAP, pas au moment où le
+// niveau est gagné. C'est ce qui garantit le zéro doublon : entre le niveau et
+// la récupération, le joueur a pu acheter la carte, l'avatar ou la variante que
+// le tirage aurait mis de côté. Le tirage reste déterministe à (joueur, niveau)
+// — c'est le POOL qui a bougé, pas le hasard.
+//
+// ⚠️ Les niveaux POSÉS D'AUTORITÉ n'ouvrent aucun palier : `applyAdminGrants`
+// écrit `level: 100` et aligne `levels_claimed` dans la foulée, un admin promu
+// ne trouve donc pas cent paliers à récupérer. C'est voulu — il a déjà 9999 de
+// chaque et tout le catalogue.
 //
 // ⚠️ RÈGLE DE DÉPENDANCES : ce module est un PUITS, comme gifts.js. Il requiert
 // shop.js, cosmetics.js et progression.js ; aucun d'eux ne doit le requérir en
-// tête de fichier — le cycle serait immédiat, shop.js et cosmetics.js
-// requérant tous deux progression.js. `progression.grant` le requiert donc
-// PARESSEUSEMENT, à l'appel (cf. le commentaire sur place).
-const { stmt } = require('./db');
+// retour — le cycle serait immédiat, shop.js et cosmetics.js requérant tous
+// deux progression.js. C'est aussi pourquoi `progression.grant` ne connaît PAS
+// les paliers : il se contente de faire monter `level`, et la dette de paliers
+// se déduit à la lecture. Rien à brancher sur les sources d'XP, donc rien à
+// oublier de brancher.
+const { db, stmt } = require('./db');
 const progression = require('./progression');
 // Le tirage de palier n'a pas son propre hasard ni son propre pool : ce sont
 // ceux de la boutique et des cosmétiques. Recopier « une carte non possédée qui
@@ -143,64 +156,72 @@ function drawItem(user, level) {
   return { type: kind, ...item };
 }
 
-// --- Livraison ---
-
-// Garde-fou de ré-entrance. Le chemin existe : une carte tirée au palier peut
-// compléter un pack, dont la prime de complétion peut porter de l'XP, qui peut
-// faire franchir un niveau de plus — donc rappeler `deliver` depuis l'intérieur
-// de `deliver`. La chaîne s'épuise d'elle-même (il n'y a qu'un nombre fini de
-// packs), mais un barème mal saisi en admin ne doit pas pouvoir faire tourner
-// le serveur en rond : au-delà de la profondeur, on refuse et on le dit.
-const MAX_DEPTH = 3;
-let depth = 0;
+// --- Paliers en attente ---
 
 /**
- * Verse les paliers de `fromLevel` (exclu) à `toLevel` (inclus) — un gain d'XP
- * peut en franchir plusieurs d'un coup (250 XP = 2 niveaux), et aucun ne doit
- * être sauté.
- *
- * → `[{ level, gold, gems, item }]`, une ligne par palier, dans l'ordre. C'est
- * ce que `progression.grant` remonte au client sous `level_rewards`.
- *
- * ⚠️ Appelé DEPUIS la transaction de `grant` : tout est déjà atomique, il n'y a
- * pas de seconde transaction à ouvrir ici.
+ * Paliers dus mais pas encore récupérés — `levels_claimed + 1 … level`.
+ * Barème seul : l'objet du palier de 10 n'est PAS tiré ici (cf. l'en-tête), il
+ * est annoncé comme une surprise et résolu au tap.
  */
-function deliver(userId, fromLevel, toLevel) {
-  if (!(toLevel > fromLevel)) return [];
-  if (depth >= MAX_DEPTH) {
-    console.warn(`[levels] ${userId} : livraison imbriquée trop profonde (${fromLevel}→${toLevel}), paliers ignorés`);
-    return [];
-  }
-
-  depth++;
-  try {
-    const lines = [];
-    let gold = 0;
-    let gems = 0;
-
-    for (let level = fromLevel + 1; level <= toLevel; level++) {
-      const rule = rewardsForLevel(level);
-      gold += rule.gold;
-      gems += rule.gems;
-      // Le tirage lit la collection : il a lieu palier par palier, dans
-      // l'ordre, pour qu'un objet tiré au niveau 10 ne puisse pas ressortir au
-      // niveau 20 du même gain.
-      const item = rule.draw ? drawItem(stmt.userById.get(userId), level) : null;
-      lines.push({ level: rule.level, gold: rule.gold, gems: rule.gems, item });
-    }
-
-    // UN seul crédit pour toute la série (même geste que `gifts.claimGift`) :
-    // hacher un gain de deux niveaux en quatre écritures n'apporte rien.
-    //
-    // ⚠️ Ce `grant` ne peut pas se rappeler ici : il ne porte pas d'XP, donc ne
-    // fait franchir aucun niveau.
-    if (gold || gems) progression.grant(userId, { gold, gems });
-
-    return lines;
-  } finally {
-    depth--;
-  }
+function pendingLevels(user) {
+  const level = Math.max(1, user?.level ?? 1);
+  // Le COMPTE vient de progression.js, qui possède les colonnes : refaire la
+  // soustraction ici en donnerait deux versions, et une occasion de diverger.
+  const count = progression.pendingLevelCount(user);
+  const out = [];
+  for (let l = level - count + 1; l <= level; l++) out.push(rewardsForLevel(l));
+  return out;
 }
+
+// --- Récupération ---
+
+/**
+ * Solde TOUS les paliers dus, d'un seul geste.
+ *
+ * → `{ ok: true, lines: [{ level, gold, gems, item }], granted: { gold, gems } }`
+ *   | `{ ok: false, reason }`
+ *
+ * La marque est posée AVANT la livraison (même ordre que `gifts.claimGift`) :
+ * si la suite jette, la transaction l'emporte et rien n'est consommé pour rien.
+ * L'ordre inverse paierait deux fois sur une erreur au milieu.
+ */
+const claim = db.transaction((user) => {
+  // Relu en base : `user` vient de la session, son niveau peut dater d'avant
+  // la partie qui vient de se terminer.
+  const fresh = stmt.userById.get(user.id);
+  if (!fresh) return { ok: false, reason: 'Compte introuvable.' };
+
+  const to = Math.max(1, fresh.level ?? 1);
+  const from = to - progression.pendingLevelCount(fresh);
+  if (to <= from) return { ok: false, reason: 'Aucun palier à récupérer.' };
+
+  const res = stmt.claimLevels.run({ id: user.id, from, level: to });
+  if (!res.changes) return { ok: false, reason: 'Paliers déjà récupérés.' };
+
+  const lines = [];
+  let gold = 0;
+  let gems = 0;
+
+  for (let level = from + 1; level <= to; level++) {
+    const rule = rewardsForLevel(level);
+    gold += rule.gold;
+    gems += rule.gems;
+    // Le tirage lit la collection : il a lieu palier par palier, dans l'ordre,
+    // pour qu'un objet tiré au niveau 10 ne puisse pas ressortir au niveau 20
+    // de la même récupération.
+    const item = rule.draw ? drawItem(stmt.userById.get(user.id), level) : null;
+    lines.push({ level: rule.level, gold: rule.gold, gems: rule.gems, item });
+  }
+
+  // UN seul crédit pour toute la série (même geste que `gifts.claimGift`) :
+  // hacher une récupération de dix paliers en vingt écritures n'apporte rien.
+  //
+  // ⚠️ Ce `grant` ne rouvre aucun palier : il ne porte pas d'XP, donc ne fait
+  // franchir aucun niveau.
+  if (gold || gems) progression.grant(user.id, { gold, gems });
+
+  return { ok: true, lines, granted: { gold, gems } };
+});
 
 // --- Lecture ---
 
@@ -223,12 +244,24 @@ function preview(user) {
   const upcoming = [];
   for (let i = 1; i <= PREVIEW_COUNT; i++) upcoming.push(rewardsForLevel(level + i));
 
+  const pending = pendingLevels(user);
+
   return {
     rules: {
       gold_per_level: GOLD_PER_LEVEL,
       gems: { every: GEMS_EVERY, amount: GEMS_AMOUNT },
       draw: { every: DRAW_EVERY, kinds: [...DRAW_KINDS] },
     },
+    // Ce qui attend le tap, palier par palier. Les montants sont connus
+    // d'avance (c'est un barème) ; l'objet du palier de 10 ne l'est pas — il
+    // n'est tiré qu'au tap, et s'annonce donc comme une surprise.
+    pending,
+    // Total à récupérer, replié ici pour que le bouton l'annonce sans que le
+    // client ait à sommer un barème qu'il ne connaît pas.
+    pending_totals: pending.reduce(
+      (acc, p) => ({ gold: acc.gold + p.gold, gems: acc.gems + p.gems, draws: acc.draws + (p.draw ? 1 : 0) }),
+      { gold: 0, gems: 0, draws: 0 },
+    ),
     upcoming,
     next_gems_level: nextMultiple(level, GEMS_EVERY),
     next_draw_level: nextMultiple(level, DRAW_EVERY),
@@ -237,5 +270,5 @@ function preview(user) {
 
 module.exports = {
   GOLD_PER_LEVEL, GEMS_EVERY, GEMS_AMOUNT, DRAW_EVERY, DRAW_KINDS, PREVIEW_COUNT,
-  rewardsForLevel, pools, drawItem, deliver, preview,
+  rewardsForLevel, pools, drawItem, pendingLevels, claim, preview,
 };

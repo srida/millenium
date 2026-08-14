@@ -336,6 +336,22 @@ router.post('/me/progression/reward', auth.requireUser, auth.rateLimit({ windowM
   res.json({ reason, gained: progression.REWARDS[reason], progression: progression.reward(req.user.id, reason) });
 });
 
+// Récupération des paliers de niveau. Le client tape, le serveur chiffre :
+// aucun niveau ni montant ne transite dans le sens client → serveur, la dette
+// se lit en base (`users.levels_claimed`). Tous les paliers dus sont soldés
+// d'un seul geste — ils ne s'arbitrent pas un par un.
+router.post('/me/levels/claim', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  const result = levels.claim(req.user);
+  if (!result.ok) return res.status(409).json({ error: result.reason });
+
+  const user = stmt.userById.get(req.user.id);
+  res.json({
+    ...result,
+    progression: progression.getProgression(user),
+    levels: levels.preview(user),
+  });
+});
+
 // =====================================================================
 //  MISSIONS QUOTIDIENNES
 // =====================================================================

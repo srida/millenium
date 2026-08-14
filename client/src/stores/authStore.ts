@@ -10,22 +10,28 @@ export interface AuthUser {
   id: string; username: string; email?: string; avatar?: string | null; is_admin?: boolean;
   /** Progression — servie par publicUser() ; la collection est sur /api/me/progression. */
   level?: number; xp?: number; gold?: number; gems?: number;
+  /** Paliers de niveau gagnés mais pas encore récupérés (levels.js). */
+  pending_levels?: number;
 }
 
 /** Objet tiré au sort à un palier de 10 niveaux (levels.js). */
 export interface LevelRewardItem { type: 'card' | 'avatar' | 'variant'; id: string; label: string; tier?: number | null }
 
-/**
- * Un palier de niveau franchi, tel que le serveur l'a VERSÉ — c'est un compte
- * rendu, pas une offre : il n'y a rien à réclamer, seulement à annoncer.
- */
+/** Un palier RÉCUPÉRÉ, tel que le serveur l'a soldé. */
 export interface LevelReward { level: number; gold: number; gems: number; item: LevelRewardItem | null }
+
+/** Réponse de `POST /me/levels/claim`. */
+export interface LevelClaim {
+  lines: LevelReward[];
+  granted: { gold: number; gems: number };
+  progression: Progression;
+  levels: unknown;
+}
 
 /** Progression renvoyée par le serveur (barème et courbe de niveau côté serveur). */
 export interface Progression {
   level: number; xp: number; xp_per_level?: number; gold: number; gems: number;
-  /** Présent uniquement quand la réponse a fait franchir au moins un palier. */
-  level_rewards?: LevelReward[];
+  pending_levels?: number;
 }
 
 interface AuthStoreState {
@@ -34,9 +40,16 @@ interface AuthStoreState {
   setUser: (u: AuthUser | null) => void;
   /** Fusionne une progression fraîche dans l'utilisateur courant (no-op en invité). */
   applyProgression: (p: Progression | null | undefined) => void;
-  /** Paliers franchis en attente d'annonce (toasts) — jamais de gain à réclamer. */
-  levelToasts: (LevelReward & { key: number })[];
+  /** Niveaux tout juste franchis, en attente d'ANNONCE (toasts). Le gain, lui,
+   *  se récupère au Profil : le toast dit qu'il y a quelque chose à y prendre. */
+  levelToasts: { key: number; level: number }[];
   dismissLevelToast: (key: number) => void;
+  /**
+   * Récupère les paliers dus (`POST /me/levels/claim`). → le compte rendu, ou
+   * `null` si rien n'était dû / l'appel a échoué. Les cartes livrées entrent
+   * dans la collection au passage, comme après un achat en boutique.
+   */
+  claimLevels: () => Promise<LevelClaim | null>;
   /**
    * Déclare un gain d'XP au serveur et applique le résultat. Best-effort :
    * une erreur réseau ne doit jamais interrompre une fin de partie, et un
@@ -66,16 +79,47 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     if (!p) return;
     const user = get().user;
     if (!user) return;
+
     // Toutes les réponses qui créditent de l'XP passent par ici — partie solo,
     // tournoi, PvP, missions, arcade, cadeaux. C'est donc le seul endroit où
-    // brancher l'annonce du palier, et il n'y en a pas d'autre à tenir à jour.
-    const gained = p.level_rewards ?? [];
+    // brancher l'annonce du niveau, et il n'y en a pas d'autre à tenir à jour.
+    //
+    // Le niveau franchi se LIT des deux instantanés, il n'est pas transmis :
+    // le serveur ne dit que l'état (`level`, `pending_levels`), le « tu viens
+    // de monter » est de l'affichage et reste côté client.
+    const from = user.level ?? 1;
+    const to = p.level ?? from;
+    const crossed = [];
+    for (let level = from + 1; level <= to; level++) crossed.push({ key: ++levelToastKey, level });
+
     set({
-      user: { ...user, level: p.level, xp: p.xp, gold: p.gold, gems: p.gems },
-      ...(gained.length
-        ? { levelToasts: [...get().levelToasts, ...gained.map(r => ({ ...r, key: ++levelToastKey }))] }
-        : {}),
+      user: {
+        ...user,
+        level: p.level, xp: p.xp, gold: p.gold, gems: p.gems,
+        pending_levels: p.pending_levels ?? user.pending_levels,
+      },
+      ...(crossed.length ? { levelToasts: [...get().levelToasts, ...crossed] } : {}),
     });
+  },
+
+  claimLevels: async () => {
+    if (!get().user) return null;
+    let data: LevelClaim | null = null;
+    try {
+      data = await (AuthClient as any).claimLevelRewards();
+    } catch {
+      return null; // 409 « rien à récupérer » compris : l'écran se recharge
+    }
+    if (!data) return null;
+
+    get().applyProgression(data.progression);
+    // Les cartes livrées entrent dans la collection sans recharger les 398 ids
+    // — même geste que shopStore/giftStore après un achat ou un cadeau.
+    const cards = data.lines.map(l => l.item).filter(i => i && i.type === 'card').map(i => i!.id);
+    if (cards.length) {
+      (await import('./collectionStore.js')).useCollectionStore.getState().add(cards);
+    }
+    return data;
   },
 
   claimReward: async (reason) => {

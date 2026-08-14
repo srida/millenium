@@ -90,6 +90,9 @@ function applyAdminGrants(userId) {
     gems: Math.max(user.gems || 0, ADMIN_GRANTS.gems),
   });
   unlockCards(userId, allCardIds());
+  // Le niveau est POSÉ, pas gagné : `levels_claimed` suit, sinon la promotion
+  // ouvrirait cent paliers rétroactifs à récupérer (levels.js).
+  stmt.syncLevelsClaimed.run(userId);
   return getProgression(stmt.userById.get(userId));
 }
 
@@ -115,35 +118,25 @@ function unlockCard(userId, cardId) {
  * Un débit d'XP ne fait jamais REDESCENDRE de niveau (plancher à 0 sur le
  * palier courant) : on ne retire pas un niveau déjà acquis.
  *
- * Tout franchissement de palier verse ses RÉCOMPENSES DE NIVEAU (levels.js) :
- * c'est ici et nulle part ailleurs, parce que c'est le seul passage obligé de
- * l'XP — parties, missions, arcade, primes de complétion y aboutissent toutes.
- * Le résultat porte alors `level_rewards`, que le client annonce au joueur.
+ * ⚠️ Monter de niveau ne DONNE rien ici. Les récompenses de palier (levels.js)
+ * se récupèrent d'un tap au Profil : ce module se contente de faire monter
+ * `level`, et la dette de paliers se déduit à la lecture (`levels_claimed`).
+ * C'est ce qui dispense de brancher quoi que ce soit sur les sources d'XP —
+ * parties, missions, arcade, primes de complétion — et donc d'en oublier une.
  */
 const grant = db.transaction((userId, { xp = 0, gold = 0, gems = 0 } = {}) => {
   const u = stmt.userById.get(userId);
   if (!u) return null;
 
-  const from = Math.max(1, u.level ?? DEFAULTS.level);
   const pool = Math.max(0, (u.xp ?? DEFAULTS.xp) + xp);
-  const to = Math.max(1, from + Math.floor(pool / XP_PER_LEVEL));
   stmt.updateProgression.run({
     id: userId,
-    level: to,
+    level: Math.max(1, (u.level ?? DEFAULTS.level) + Math.floor(pool / XP_PER_LEVEL)),
     xp: pool % XP_PER_LEVEL,
     gold: Math.max(0, (u.gold ?? DEFAULTS.gold) + gold),
     gems: Math.max(0, (u.gems ?? DEFAULTS.gems) + gems),
   });
-
-  // ⚠️ REQUIRE PARESSEUX, et ce n'est pas un raccourci : levels.js requiert
-  // shop.js et cosmetics.js (pools du tirage de palier), qui requièrent tous
-  // deux ce module. En tête de fichier, le cycle serait immédiat ; ici, il n'y
-  // en a pas — aucun `grant` n'a lieu pendant le chargement d'un module, les
-  // trois sont donc résolus depuis longtemps quand cette ligne s'exécute.
-  const levelRewards = to > from ? require('./levels').deliver(userId, from, to) : [];
-
-  const out = getProgression(stmt.userById.get(userId));
-  return levelRewards.length ? { ...out, level_rewards: levelRewards } : out;
+  return getProgression(stmt.userById.get(userId));
 });
 
 /** Applique le barème d'un événement de jeu. → null si la raison est inconnue. */
@@ -172,6 +165,18 @@ function ownsCard(user, cardId) {
   return !!stmt.hasUnlockedCard.get(user.id, cardId);
 }
 
+/**
+ * Paliers de niveau gagnés mais pas encore récupérés. La colonne
+ * `levels_claimed` appartient à ce module (c'est `users`) ; ce que le palier
+ * DONNE, en revanche, appartient à levels.js — qui construit sa liste sur ce
+ * compte plutôt que de refaire la soustraction de son côté.
+ */
+function pendingLevelCount(user) {
+  if (!user) return 0;
+  const level = Math.max(1, user.level ?? DEFAULTS.level);
+  return Math.max(0, level - Math.max(1, user.levels_claimed ?? level));
+}
+
 /** Bloc de progression exposé au client (sans la liste de cartes). */
 function getProgression(user) {
   if (!user) return null;
@@ -182,6 +187,9 @@ function getProgression(user) {
     gold: user.gold ?? DEFAULTS.gold,
     gems: user.gems ?? DEFAULTS.gems,
     unlocked_count: user.is_admin ? allCardIds().length : stmt.countUnlockedCards.get(user.id).c,
+    // Voyage avec CHAQUE réponse qui crédite : c'est ce qui fait apparaître la
+    // pastille du menu à la seconde où le niveau est gagné, sans second appel.
+    pending_levels: pendingLevelCount(user),
   };
 }
 
@@ -208,6 +216,6 @@ module.exports = {
   DEFAULTS, ADMIN_GRANTS, STARTER_PREFIX, XP_PER_LEVEL, REWARDS, CLIENT_CLAIMABLE,
   allCardIds, starterCardIds,
   initUser, applyAdminGrants, unlockCard, unlockCards, grant, reward,
-  unlockedCardIds, ownsCard, getProgression,
+  unlockedCardIds, ownsCard, getProgression, pendingLevelCount,
   backfillAll,
 };

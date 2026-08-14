@@ -11,8 +11,10 @@
 // un nombre nu ne dit rien sans son plafond ; le décompte exact reste en petit
 // sous la barre. Gold et gemmes, eux, sont des soldes → chiffres.
 import { useEffect, useState } from 'react';
-import type { AuthUser } from '../../stores/authStore.js';
-import { Gauge, Panel } from './primitives.js';
+import { createPortal } from 'react-dom';
+import { useAuthStore } from '../../stores/authStore.js';
+import type { AuthUser, LevelReward } from '../../stores/authStore.js';
+import { Button, Gauge, Modal, Panel } from './primitives.js';
 
 const fmt = new Intl.NumberFormat('fr-FR');
 
@@ -47,11 +49,30 @@ const xpTitle = (user: AuthUser) =>
 export function ProgressionPills({ user, className = '', onOpen }: { user: AuthUser | null; className?: string; onOpen?: () => void }) {
   if (!user) return null;
 
+  // Pastille VERTE chiffrée quand des paliers attendent — un compteur et non un
+  // point, exactement comme les Missions et les Cadeaux : la valeur est
+  // dénombrable et actionnable. Elle ne s'efface qu'une fois tout récupéré, pas
+  // à la visite du Profil.
+  //
+  // Elle prend la place du décompte d'XP plutôt que de s'y ajouter : une
+  // quatrième valeur ferait déborder la pastille sur deux lignes au menu comme
+  // dans l'en-tête. La jauge continue de dire où en est le palier, et le
+  // décompte exact reste dans le `title`.
+  const pending = user.pending_levels ?? 0;
   const level = (
     <>
       <span className="font-semibold tabular-nums text-gold">Nv. {fmt.format(user.level ?? 1)}</span>
       <Gauge value={xpOf(user) / XP_PER_LEVEL} className="h-1.5 w-14" fillClassName="bg-player" />
-      <span className="text-[10px] tabular-nums text-white/40">{fmt.format(xpOf(user))}/{XP_PER_LEVEL}</span>
+      {pending > 0 ? (
+        <span
+          aria-label={`${pending} palier${pending > 1 ? 's' : ''} à récupérer`}
+          className="flex h-4 min-w-4 items-center justify-center rounded-full bg-success px-1 text-[10px] font-bold tabular-nums text-black"
+        >
+          {fmt.format(pending)}
+        </span>
+      ) : (
+        <span className="text-[10px] tabular-nums text-white/40">{fmt.format(xpOf(user))}/{XP_PER_LEVEL}</span>
+      )}
     </>
   );
   const levelClass = 'flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-2.5 py-1';
@@ -155,13 +176,18 @@ export function ProgressionPanel({ user, className = '' }: { user: AuthUser | nu
  * le client afficherait sinon une règle et le serveur en appliquerait une
  * autre, sans que rien ne le signale.
  */
+export interface LevelStep { level: number; gold: number; gems: number; draw: boolean }
+
 export interface LevelRewardsView {
   rules: {
     gold_per_level: number;
     gems: { every: number; amount: number };
     draw: { every: number; kinds: string[] };
   };
-  upcoming: { level: number; gold: number; gems: number; draw: boolean }[];
+  /** Paliers gagnés qui attendent le tap. */
+  pending: LevelStep[];
+  pending_totals: { gold: number; gems: number; draws: number };
+  upcoming: LevelStep[];
   next_gems_level: number;
   next_draw_level: number;
 }
@@ -172,7 +198,7 @@ const KIND_LABELS: Record<string, string> = { card: 'carte', avatar: 'avatar', v
 const kindList = (kinds: string[]) => kinds.map(k => KIND_LABELS[k] ?? k).join(', ');
 
 /** Une marche de la liste « prochains paliers ». */
-function UpcomingRow({ step }: { step: LevelRewardsView['upcoming'][number] }) {
+function UpcomingRow({ step }: { step: LevelStep }) {
   // Un palier à objet est un rendez-vous, pas une ligne de plus : il est le
   // seul à être souligné, sinon la liste se lit comme quatre fois la même chose.
   return (
@@ -188,18 +214,46 @@ function UpcomingRow({ step }: { step: LevelRewardsView['upcoming'][number] }) {
 }
 
 /**
- * Section « Paliers de niveau » de l'écran Profil : ce que donne le prochain
- * niveau, et les rendez-vous qui suivent.
+ * Section « Paliers de niveau » de l'écran Profil : ce qui attend d'être
+ * récupéré, ce que donne le prochain niveau, et les rendez-vous qui suivent.
  *
- * Elle répond à la seule question que la jauge laisse en suspens — « et si je
- * monte, qu'est-ce que j'y gagne ? ». Sans elle, le niveau est un chiffre qui
- * augmente : le joueur ne peut pas savoir qu'un objet l'attend au multiple de 10.
+ * C'est le SEUL endroit où un palier se récupère — un niveau se gagne partout
+ * (fin de combat, missions, cadeau), le geste, lui, tient à un endroit. Le
+ * panneau répond du même coup à la question que la jauge laisse en suspens :
+ * « et si je monte, qu'est-ce que j'y gagne ? ».
+ *
+ * `onClaimed` permet à l'écran de recharger son barème après le tap (les
+ * paliers en attente ont bougé) ; la récupération elle-même vit ici.
  */
-export function LevelRewardsPanel({ user, levels, className = '' }: { user: AuthUser | null; levels: LevelRewardsView | null; className?: string }) {
+export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
+  user: AuthUser | null;
+  levels: LevelRewardsView | null;
+  onClaimed?: () => void;
+  className?: string;
+}) {
+  const claimLevels = useAuthStore(s => s.claimLevels);
+  const [busy, setBusy] = useState(false);
+  const [reveal, setReveal] = useState<LevelReward[] | null>(null);
+
   if (!user || !levels) return null;
 
   const { rules } = levels;
   const level = user.level ?? 1;
+  const pending = levels.pending ?? [];
+  const totals = levels.pending_totals ?? { gold: 0, gems: 0, draws: 0 };
+
+  async function claim() {
+    // Verrouillé pendant l'appel : la récupération n'est pas idempotente côté
+    // serveur (le second tap échouerait en 409, mais autant ne pas l'envoyer).
+    setBusy(true);
+    try {
+      const res = await claimLevels();
+      if (res) setReveal(res.lines);
+      onClaimed?.();
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <Panel className={`w-full max-w-xs p-3 ${className}`}>
@@ -207,6 +261,35 @@ export function LevelRewardsPanel({ user, levels, className = '' }: { user: Auth
         <span className="text-[10px] tracking-widest text-white/40">PALIERS DE NIVEAU</span>
         <span className="text-[10px] tabular-nums text-white/40">Nv. {fmt.format(level)}</span>
       </div>
+
+      {/* Le gain en attente passe AVANT la règle et les paliers à venir : c'est
+          la seule chose actionnable de l'écran, elle ne se mérite pas un
+          défilement. */}
+      {pending.length > 0 && (
+        <div className="mt-2 rounded-lg border border-success/50 bg-success/10 p-2">
+          <p className="text-[11px] font-semibold text-white">
+            {pending.length} palier{pending.length > 1 ? 's' : ''} à récupérer
+            <span className="ml-1 font-normal text-white/50">
+              (Nv. {fmt.format(pending[0].level)}
+              {pending.length > 1 ? ` → ${fmt.format(pending[pending.length - 1].level)}` : ''})
+            </span>
+          </p>
+          <div className="mt-1 flex items-baseline gap-2 text-[11px] tabular-nums">
+            <span className="text-gold">💰 {fmt.format(totals.gold)}</span>
+            {totals.gems > 0 && <span className="text-tier-4">💎 {fmt.format(totals.gems)}</span>}
+            {totals.draws > 0 && (
+              // L'objet n'est pas nommé : il n'est tiré qu'au tap (zéro
+              // doublon). L'annoncer, ce serait le promettre avant de l'avoir.
+              <span className="text-white/80">🎁 ×{totals.draws}</span>
+            )}
+          </div>
+          <Button variant="primary" className="mt-2 w-full justify-center" disabled={busy} onPointerDown={claim}>
+            {busy ? '…' : 'Récupérer'}
+          </Button>
+        </div>
+      )}
+
+      {reveal && <LevelReveal lines={reveal} onClose={() => setReveal(null)} />}
 
       {/* La règle en une phrase, avant la liste : c'est elle qui rend les quatre
           lignes suivantes lisibles comme un rythme et non comme un tableau. */}
@@ -233,6 +316,67 @@ export function LevelRewardsPanel({ user, levels, className = '' }: { user: Auth
         </div>
       </dl>
     </Panel>
+  );
+}
+
+// Icône par famille d'objet tiré. Le libellé, lui, vient du serveur.
+const ITEM_ICONS: Record<string, string> = { card: '🃏', avatar: '🎭', variant: '🎨' };
+
+/**
+ * Révélation de ce qui vient d'être récupéré, palier par palier.
+ *
+ * ⚠️ Rendue dans un `createPortal(…, document.body)`, et ce n'est pas
+ * optionnel : elle est déclenchée depuis un `Panel`, qui porte `backdrop-blur`.
+ * Un `backdrop-filter` sur un ancêtre crée un bloc conteneur, le
+ * `position: fixed` de `Modal` se résoudrait alors sur le panneau et la modale
+ * se retrouverait enfermée dans sa colonne, boutons rognés. Le piège vaut pour
+ * toute `Modal` rendue sous un `Panel` (cf. `ConfirmBuy`, `GiftReveal`).
+ */
+function LevelReveal({ lines, onClose }: { lines: LevelReward[]; onClose: () => void }) {
+  const gold = lines.reduce((n, l) => n + l.gold, 0);
+  const gems = lines.reduce((n, l) => n + l.gems, 0);
+  const items = lines.filter(l => l.item).map(l => l.item!);
+  const last = lines[lines.length - 1];
+
+  return createPortal(
+    <Modal onClose={onClose}>
+      <div className="flex flex-col gap-4">
+        <div className="text-center">
+          <p className="text-[10px] tracking-widest text-white/40">
+            {lines.length > 1 ? `${lines.length} PALIERS RÉCUPÉRÉS` : 'PALIER RÉCUPÉRÉ'}
+          </p>
+          <p className="mt-1 text-base font-semibold text-gold">Niveau {fmt.format(last?.level ?? 1)}</p>
+        </div>
+
+        <div className="flex justify-center gap-4 text-sm font-semibold">
+          <span className="text-gold">💰 +{fmt.format(gold)}</span>
+          {gems > 0 && <span className="text-tier-4">💎 +{fmt.format(gems)}</span>}
+        </div>
+
+        {!!items.length && (
+          <div className="flex flex-wrap justify-center gap-3">
+            {items.map((item, i) => (
+              <div key={`${item.id}-${i}`} className="flex w-24 flex-col items-center gap-1">
+                {/* Cartes, avatars et variantes partagent le dossier
+                    d'illustrations : une seule URL les rend tous les trois. */}
+                <img src={`/illustrations/${item.id}`} alt="" className="h-24 w-24 rounded-lg border border-gold/40 object-cover" />
+                <span className="w-full truncate text-center text-[10px] text-white/70" title={item.label}>
+                  <span aria-hidden="true">{ITEM_ICONS[item.type] ?? '🎁'}</span> {item.label}
+                </span>
+              </div>
+            ))}
+            <p className="w-full text-center text-[10px] leading-relaxed text-white/30">
+              Les avatars se choisissent au Profil, les illustrations dans le DeckBuilder.
+            </p>
+          </div>
+        )}
+
+        <Button variant="primary" className="w-full justify-center" onPointerDown={onClose}>
+          Continuer
+        </Button>
+      </div>
+    </Modal>,
+    document.body,
   );
 }
 

@@ -362,6 +362,23 @@ for (const [col, def] of [['level', 1], ['xp', 0], ['gold', 0], ['gems', 0]]) {
   }
 }
 
+// Dernier palier de niveau RÉCUPÉRÉ (levels.js). Les paliers en attente s'en
+// déduisent : `levels_claimed + 1 … level`. Une seule colonne suffit parce
+// qu'un palier ne se saute pas — ils se récupèrent dans l'ordre, tous à la fois.
+//
+// ⚠️ Son absence est aussi le marqueur d'une bascule qui ne doit tourner qu'UNE
+// fois : les comptes existants sont alignés sur leur niveau courant, sinon un
+// joueur déjà niveau 40 — et un admin posé d'autorité au niveau 100 — ouvrirait
+// l'écran sur quarante (ou cent) paliers rétroactifs, dont des tirages d'objets
+// que le jeu ne lui a jamais promis. La colonne ne pouvant s'ajouter qu'une
+// fois, la bascule non plus. Même idiome que `user_missions.claimed_at`.
+if (!userColumnsV2.includes('levels_claimed')) {
+  db.exec(`
+    ALTER TABLE users ADD COLUMN levels_claimed INTEGER NOT NULL DEFAULT 1;
+    UPDATE users SET levels_claimed = level;
+  `);
+}
+
 // --- Prepared statements ---
 const stmt = {
   insertUser: db.prepare(`
@@ -436,6 +453,19 @@ const stmt = {
   updateProgression: db.prepare(`
     UPDATE users SET level = @level, xp = @xp, gold = @gold, gems = @gems WHERE id = @id
   `),
+  // Récupération des paliers de niveau : compare-and-swap. La garde
+  // anti-double-crédit est DANS LE SQL (même règle que `claimMission` et
+  // `claimGift`) — deux taps concurrents ne changent qu'une ligne, le second
+  // voit `changes === 0` et ne livre rien. `level = @level` est dans le WHERE
+  // pour qu'un niveau gagné entre la lecture et l'écriture ne soit pas soldé
+  // sans avoir été livré.
+  claimLevels: db.prepare(`
+    UPDATE users SET levels_claimed = @level
+    WHERE id = @id AND levels_claimed = @from AND level = @level
+  `),
+  // Niveau posé d'autorité (admin) : le compteur suit, sinon la promotion
+  // ouvrirait cent paliers rétroactifs.
+  syncLevelsClaimed: db.prepare('UPDATE users SET levels_claimed = level WHERE id = ?'),
   unlockCard: db.prepare(`
     INSERT OR IGNORE INTO user_cards (user_id, card_id, unlocked_at) VALUES (?, ?, ?)
   `),

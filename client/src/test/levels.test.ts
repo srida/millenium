@@ -151,102 +151,144 @@ describe('barème', () => {
   });
 });
 
-describe('versement', () => {
-  it('un gain d\'XP qui ne franchit aucun palier ne verse rien', () => {
+describe('dette de paliers', () => {
+  it('monter de niveau ne crédite rien — le palier ATTEND', () => {
+    // C'est toute la différence avec un versement automatique : le gain existe,
+    // mais il ne bouge pas tant que le joueur ne l'a pas pris.
     const user = newUser();
-    const before = progression.getProgression(user());
-    const res = progression.grant(user().id, { xp: 50 });
-
-    expect(res.level).toBe(before.level);
-    expect(res.gold).toBe(before.gold);
-    // Pas de clé du tout : un tableau vide se lirait comme « un palier est
-    // passé, mais il ne donnait rien ».
-    expect(res.level_rewards).toBeUndefined();
-  });
-
-  it('franchir un palier verse 50 golds et l\'annonce', () => {
-    const user = newUser();
-    const before = progression.getProgression(user());
     const res = progression.grant(user().id, { xp: 100 });
 
-    expect(res.level).toBe(before.level + 1);
-    expect(res.gold).toBe(before.gold + 50);
-    expect(res.level_rewards).toEqual([{ level: 2, gold: 50, gems: 0, item: null }]);
+    expect(res.level).toBe(2);
+    expect(res.gold).toBe(0);
+    expect(res.gems).toBe(0);
+    expect(res.pending_levels).toBe(1);
   });
 
-  it('un gain qui franchit PLUSIEURS paliers les verse tous', () => {
-    // 250 XP = 2 niveaux + 50 de reste. Sauter le palier intermédiaire ferait
-    // perdre 50 golds au joueur qui joue peu souvent mais longtemps.
+  it('un gain d\'XP qui ne franchit aucun palier n\'ouvre aucune dette', () => {
     const user = newUser();
-    const res = progression.grant(user().id, { xp: 250 });
-
-    expect(res.level).toBe(3);
-    expect(res.xp).toBe(50);
-    expect(res.gold).toBe(100);
-    expect(res.level_rewards.map((l: any) => l.level)).toEqual([2, 3]);
+    const res = progression.grant(user().id, { xp: 50 });
+    expect(res.level).toBe(1);
+    expect(res.pending_levels).toBe(0);
+    expect(levels.claim(user())).toMatchObject({ ok: false });
   });
 
-  it('le palier 5 ajoute ses gemmes, le 4 non', () => {
+  it('la dette s\'accumule sur plusieurs niveaux et survit aux gains suivants', () => {
+    // Un joueur qui enchaîne les parties sans passer au Profil ne doit rien
+    // perdre : rien ne périme un palier, il n'y a aucune rotation ici.
     const user = newUser();
-    levelTo(user().id, 4);
-    expect(progression.getProgression(user()).gems).toBe(0);
+    progression.grant(user().id, { xp: 250 });
+    expect(progression.getProgression(user()).pending_levels).toBe(2);
 
-    const res = levelTo(user().id, 5);
-    expect(res.gems).toBe(50);
-    expect(res.level_rewards).toEqual([{ level: 5, gold: 50, gems: 50, item: null }]);
+    progression.grant(user().id, { xp: 100 });
+    expect(progression.getProgression(user()).pending_levels).toBe(3);
+    expect(progression.getProgression(user()).gold).toBe(0);
   });
 
-  it('une montée en bloc cumule golds et gemmes de tous les paliers traversés', () => {
-    const user = newUser();
-    const res = levelTo(user().id, 11);
-
-    // 10 paliers (2→11) : 10 × 50 golds, et les niveaux 5 et 10 pour les gemmes.
-    expect(res.gold).toBe(500);
-    expect(res.gems).toBe(100);
-    expect(res.level_rewards).toHaveLength(10);
+  it('un compte neuf n\'a aucune dette', () => {
+    expect(progression.getProgression(newUser()()).pending_levels).toBe(0);
   });
 
-  it('un crédit de monnaie seul ne verse jamais de palier', () => {
-    // Le versement crédite lui-même des golds : s'il se déclenchait sur un
-    // crédit de monnaie, il s'appellerait sans fin.
-    const user = newUser();
-    levelTo(user().id, 3);
-    const before = progression.getProgression(user());
-
-    const res = progression.grant(user().id, { gold: 1000, gems: 10 });
-    expect(res.gold).toBe(before.gold + 1000);
-    expect(res.level).toBe(before.level);
-    expect(res.level_rewards).toBeUndefined();
-  });
-
-  it('retirer de l\'XP ne fait ni redescendre ni verser', () => {
-    const user = newUser();
-    levelTo(user().id, 4);
-    const before = progression.getProgression(user());
-
-    const res = progression.grant(user().id, { xp: -500 });
-    expect(res.level).toBe(before.level);
-    expect(res.gold).toBe(before.gold);
-    expect(res.level_rewards).toBeUndefined();
-  });
-
-  it('un niveau posé d\'autorité (admin) ne verse aucun palier', () => {
-    // `applyAdminGrants` écrit level: 100 sans passer par `grant` — 99 paliers
-    // de golds tomberaient sur un compte qui a déjà 9999 de tout.
+  it('un niveau posé d\'autorité (admin) n\'ouvre aucun palier', () => {
+    // `applyAdminGrants` écrit level: 100 : sans l'alignement de
+    // `levels_claimed`, l'admin ouvrirait l'écran sur 99 paliers rétroactifs.
     const user = newUser();
     const res = progression.applyAdminGrants(user().id);
     expect(res.level).toBe(100);
-    expect(res.gold).toBe(9999);
-    expect(res.gems).toBe(9999);
+    expect(res.pending_levels).toBe(0);
+    expect(levels.claim(user())).toMatchObject({ ok: false });
+  });
+
+  it('retirer de l\'XP ne fait ni redescendre ni ouvrir de palier', () => {
+    const user = newUser();
+    levelTo(user().id, 4);
+    levels.claim(user());
+
+    const res = progression.grant(user().id, { xp: -500 });
+    expect(res.level).toBe(4);
+    expect(res.pending_levels).toBe(0);
+  });
+});
+
+describe('récupération', () => {
+  it('verse 50 golds par palier, d\'un seul geste', () => {
+    const user = newUser();
+    levelTo(user().id, 4);
+
+    const res = levels.claim(user());
+    expect(res.ok).toBe(true);
+    expect(res.lines.map((l: any) => l.level)).toEqual([2, 3, 4]);
+    expect(res.granted).toEqual({ gold: 150, gems: 0 });
+    expect(progression.getProgression(user()).gold).toBe(150);
+    expect(progression.getProgression(user()).pending_levels).toBe(0);
+  });
+
+  it('n\'oublie aucun palier traversé, gemmes comprises', () => {
+    // 10 paliers (2→11) : 10 × 50 golds, et les niveaux 5 et 10 pour les gemmes.
+    // Sauter un intermédiaire dépouillerait le joueur qui joue rarement mais
+    // longtemps.
+    const user = newUser();
+    levelTo(user().id, 11);
+
+    const res = levels.claim(user());
+    expect(res.lines).toHaveLength(10);
+    expect(res.granted).toEqual({ gold: 500, gems: 100 });
+  });
+
+  it('un second tap ne crédite rien', () => {
+    const user = newUser();
+    levelTo(user().id, 3);
+    expect(levels.claim(user()).ok).toBe(true);
+    const after = progression.getProgression(user());
+
+    expect(levels.claim(user())).toMatchObject({ ok: false });
+    expect(progression.getProgression(user()).gold).toBe(after.gold);
+  });
+
+  it('la garde est dans le SQL, pas dans une relecture JS', () => {
+    // On solde la dette à la main, sans passer par levels.js : la récupération
+    // doit échouer quand même. C'est ce qui garantit que deux taps concurrents
+    // ne créditent qu'une fois.
+    const user = newUser();
+    levelTo(user().id, 5);
+    stmt.claimLevels.run({ id: user().id, from: 1, level: 5 });
+
+    const before = progression.getProgression(user());
+    expect(levels.claim(user()).ok).toBe(false);
+    expect(progression.getProgression(user()).gold).toBe(before.gold);
+  });
+
+  it('un niveau gagné entre deux taps reste dû', () => {
+    const user = newUser();
+    levelTo(user().id, 3);
+    expect(levels.claim(user()).granted).toEqual({ gold: 100, gems: 0 });
+
+    levelTo(user().id, 5);
+    expect(progression.getProgression(user()).pending_levels).toBe(2);
+    const res = levels.claim(user());
+    expect(res.lines.map((l: any) => l.level)).toEqual([4, 5]);
+    expect(res.granted).toEqual({ gold: 100, gems: 50 });
+  });
+
+  it('récupère à partir d\'une session périmée — le niveau est relu en base', () => {
+    // `user` vient de la session : son niveau peut dater d'avant la partie qui
+    // vient de se terminer. Le serveur ne doit jamais se fier à cette copie.
+    const user = newUser();
+    const stale = user();
+    levelTo(user().id, 3);
+
+    const res = levels.claim(stale);
+    expect(res.ok).toBe(true);
+    expect(res.lines.map((l: any) => l.level)).toEqual([2, 3]);
   });
 });
 
 describe('tirage du palier 10', () => {
   it('livre un objet réellement acquis, et le nomme', () => {
     const user = newUser();
-    const res = levelTo(user().id, 10);
+    levelTo(user().id, 10);
+    const res = levels.claim(user());
 
-    const line = res.level_rewards.find((l: any) => l.level === 10);
+    const line = res.lines.find((l: any) => l.level === 10);
     expect(line.item).toBeTruthy();
     expect(['card', 'avatar', 'variant']).toContain(line.item.type);
     // Le libellé voyage avec l'objet : le client annonce un nom, pas un id.
@@ -263,8 +305,9 @@ describe('tirage du palier 10', () => {
     // Aucune variante au catalogue : un compte neuf n'a donc que deux familles
     // possibles. Sans le filtre, un palier sur trois ne donnerait rien.
     const user = newUser();
-    const res = levelTo(user().id, 10);
-    expect(res.level_rewards.find((l: any) => l.level === 10).item.type).not.toBe('variant');
+    levelTo(user().id, 10);
+    const res = levels.claim(user());
+    expect(res.lines.find((l: any) => l.level === 10).item.type).not.toBe('variant');
   });
 
   it('ne tire jamais une carte sans illustration', () => {
@@ -275,17 +318,17 @@ describe('tirage du palier 10', () => {
     ownEveryCard(user().id);
     expect(levels.pools(user()).card).toHaveLength(0);
 
-    const res = levelTo(user().id, 10);
-    const item = res.level_rewards.find((l: any) => l.level === 10).item;
+    levelTo(user().id, 10);
+    const item = levels.claim(user()).lines.find((l: any) => l.level === 10).item;
     expect(item.type).not.toBe('card');
     expect(progression.ownsCard(user(), NO_ART)).toBe(false);
   });
 
   it('est reproductible à (joueur, niveau) — un tirage douteux se rejoue', () => {
     const user = newUser();
-    levelTo(user().id, 9);
+    levelTo(user().id, 10);
 
-    // Le tirage attendu est recalculé AVANT la montée, sur l'état exact que
+    // Le tirage attendu est recalculé AVANT le tap, sur l'état exact que
     // `drawItem` verra : la seed est (id, 'level', niveau), rien d'autre.
     const rand = shop.seededRandom(user().id, 'level', 10);
     const available = levels.pools(user());
@@ -293,8 +336,7 @@ describe('tirage du palier 10', () => {
     const expectedKind = shop.pick(kinds, rand);
     const expectedItem = shop.pick(available[expectedKind], rand);
 
-    const res = levelTo(user().id, 10);
-    const item = res.level_rewards.find((l: any) => l.level === 10).item;
+    const item = levels.claim(user()).lines.find((l: any) => l.level === 10).item;
     expect(item.type).toBe(expectedKind);
     expect(item.id).toBe(expectedItem.id);
   });
@@ -308,9 +350,10 @@ describe('tirage du palier 10', () => {
     // d'illustrations, et l'avatar `CORE_050` n'est pas la carte `CORE_050` —
     // les deux peuvent légitimement tomber au même joueur.
     const user = newUser();
-    const res = levelTo(user().id, 20);
+    levelTo(user().id, 20);
+    const res = levels.claim(user());
 
-    const items = res.level_rewards.filter((l: any) => l.item).map((l: any) => l.item);
+    const items = res.lines.filter((l: any) => l.item).map((l: any) => l.item);
     expect(items).toHaveLength(2);
     expect(`${items[0].type}:${items[0].id}`).not.toBe(`${items[1].type}:${items[1].id}`);
   });
@@ -340,8 +383,8 @@ describe('tirage du palier 10', () => {
     ownEveryAvatar(other().id);
     expect(levels.pools(other()).card.map((c: any) => c.id)).toEqual([target]);
 
-    const res = levelTo(other().id, 10);
-    const line = res.level_rewards.find((l: any) => l.level === 10);
+    levelTo(other().id, 10);
+    const line = levels.claim(other()).lines.find((l: any) => l.level === 10);
     expect(line.item.type).toBe('card');
     expect(line.item.id).toBe(target);
     expect(progression.ownsCard(other(), target)).toBe(true);
@@ -361,11 +404,32 @@ describe('tirage du palier 10', () => {
     ownEveryAvatar(user().id);
     const before = progression.getProgression(user());
 
-    const res = levelTo(user().id, 10);
-    const line = res.level_rewards.find((l: any) => l.level === 10);
-    expect(line.item).toBeNull();
-    expect(res.gold).toBe(before.gold + 9 * 50);
-    expect(res.gems).toBe(before.gems + 100);
+    levelTo(user().id, 10);
+    const res = levels.claim(user());
+    expect(res.lines.find((l: any) => l.level === 10).item).toBeNull();
+    expect(res.granted).toEqual({ gold: 9 * 50, gems: 100 });
+    expect(progression.getProgression(user()).gold).toBe(before.gold + 9 * 50);
+  });
+
+  it('l\'objet est tiré AU TAP, pas au moment où le niveau est gagné', () => {
+    // C'est ce qui garantit le zéro doublon : entre le niveau et la
+    // récupération, le joueur a pu acheter la carte que le tirage aurait mise
+    // de côté. Ici on la lui donne juste avant le tap — elle ne doit pas tomber.
+    const user = newUser();
+    levelTo(user().id, 10);
+
+    const rand = shop.seededRandom(user().id, 'level', 10);
+    const available = levels.pools(user());
+    const kinds = levels.DRAW_KINDS.filter((k: string) => available[k].length);
+    const wouldDrawKind = shop.pick(kinds, rand);
+    const wouldDraw = shop.pick(available[wouldDrawKind], rand);
+
+    // Acquis entre-temps, par un autre chemin (achat, booster, cadeau…).
+    if (wouldDrawKind === 'card') progression.unlockCard(user().id, wouldDraw.id);
+    else cosmetics.unlock(user().id, wouldDrawKind, wouldDraw.id);
+
+    const item = levels.claim(user()).lines.find((l: any) => l.level === 10).item;
+    expect(`${item.type}:${item.id}`).not.toBe(`${wouldDrawKind}:${wouldDraw.id}`);
   });
 });
 
@@ -409,7 +473,28 @@ describe('annonce au joueur (preview)', () => {
     expect(view.rules.draw.every).toBe(10);
     expect(view.rules.draw.kinds).toEqual(['card', 'avatar', 'variant']);
 
-    const res = progression.grant(user().id, { xp: 100 });
-    expect(res.gold).toBe(view.rules.gold_per_level);
+    progression.grant(user().id, { xp: 100 });
+    expect(levels.claim(user()).granted.gold).toBe(view.rules.gold_per_level);
+  });
+
+  it('annonce ce qui attend le tap, paliers et total', () => {
+    const user = newUser();
+    levelTo(user().id, 12);
+
+    const view = levels.preview(user());
+    expect(view.pending.map((p: any) => p.level)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    // Le total est replié par le serveur : le bouton annonce un montant sans
+    // que le client ait à sommer un barème qu'il ne connaît pas.
+    expect(view.pending_totals).toEqual({ gold: 11 * 50, gems: 100, draws: 1 });
+  });
+
+  it('n\'annonce plus rien une fois le tap fait', () => {
+    const user = newUser();
+    levelTo(user().id, 6);
+    levels.claim(user());
+
+    const view = levels.preview(user());
+    expect(view.pending).toEqual([]);
+    expect(view.pending_totals).toEqual({ gold: 0, gems: 0, draws: 0 });
   });
 });

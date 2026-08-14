@@ -80,7 +80,16 @@ export async function updateProfile({ username, avatar }) {
 
 // --- Progression (niveau, XP, monnaies, collection) ---
 export async function getProgression() {
-  return api('/me/progression'); // { level, xp, xp_per_level, gold, gems, unlocked_count, unlocked_cards }
+  // { level, xp, xp_per_level, gold, gems, pending_levels, unlocked_count, unlocked_cards, levels }
+  return api('/me/progression');
+}
+
+// Récupère TOUS les paliers de niveau dus. Le client tape, le serveur chiffre :
+// aucun niveau ni montant n'est transmis, la dette se lit en base.
+export async function claimLevelRewards() {
+  const data = await api('/me/levels/claim', { method: 'POST' });
+  if (currentUser && data && data.progression) currentUser = { ...currentUser, ...data.progression };
+  return data; // { lines, granted, progression, levels }
 }
 
 // Déclare un événement de jeu ; le serveur applique son barème et renvoie la

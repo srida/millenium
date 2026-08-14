@@ -45,13 +45,16 @@ export default function ProfileScreen() {
   // La réponse porte aussi la collection complète, déjà chargée ailleurs :
   // c'est le prix d'un appel de moins à écrire côté serveur.
   const [levels, setLevels] = useState<LevelRewardsView | null>(null);
+  const [levelsBust, setLevelsBust] = useState(0);
   useEffect(() => {
     let alive = true;
     (AuthClient as any).getProgression()
       .then((p: any) => { if (alive) setLevels(p?.levels ?? null); })
       .catch(() => { /* section masquée : elle n'a rien d'indispensable */ });
     return () => { alive = false; };
-  }, []);
+    // Rechargé après une récupération : les paliers en attente ont bougé, et le
+    // prochain rendez-vous avec.
+  }, [levelsBust]);
 
   if (!user) {
     return (
@@ -99,7 +102,7 @@ export default function ProfileScreen() {
             détail des paliers suit la jauge — « où j'en suis », puis « ce que
             ça me rapportera ». */}
         <ProgressionPanel user={user} />
-        <LevelRewardsPanel user={user} levels={levels} />
+        <LevelRewardsPanel user={user} levels={levels} onClaimed={() => setLevelsBust(n => n + 1)} />
 
         <div className="flex w-full max-w-xs flex-col gap-3">
           <label className="text-[10px] tracking-widest text-white/40">PSEUDO</label>

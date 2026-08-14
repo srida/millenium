@@ -3,6 +3,9 @@ const crypto = require('crypto');
 const cookie = require('cookie');
 const bcrypt = require('bcryptjs');
 const { stmt } = require('./db');
+// Pour la seule dette de paliers de niveau (`pending_levels` ci-dessous).
+// progression.js ne requiert pas auth.js : la dépendance ne va que dans ce sens.
+const progression = require('./progression');
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 const SESSION_TTL_DAYS = Number(process.env.SESSION_TTL_DAYS || 30);
@@ -49,6 +52,9 @@ function publicUser(u) {
     created_at: u.created_at, is_admin: !!u.is_admin,
     // Progression : le détail de la collection reste sur /api/me/progression.
     level: u.level ?? 1, xp: u.xp ?? 0, gold: u.gold ?? 0, gems: u.gems ?? 0,
+    // Paliers de niveau en attente : la pastille du menu doit être juste dès la
+    // restauration de session, avant que le moindre écran n'ait été ouvert.
+    pending_levels: progression.pendingLevelCount(u),
   };
 }
 
