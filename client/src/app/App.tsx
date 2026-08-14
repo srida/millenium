@@ -23,6 +23,7 @@ import GiftsScreen from '../screens/GiftsScreen.js';
 import TutorialScreen from '../screens/TutorialScreen.js';
 import TooltipHost from '../components/tooltip/TooltipHost.js';
 import MissionToasts from '../components/ui/MissionToasts.js';
+import LevelUpToasts from '../components/ui/LevelUpToasts.js';
 
 const CombatLab = lazy(() => import('../dev/CombatLab.js'));
 const TestBench = lazy(() => import('../dev/TestBench.js'));
@@ -90,6 +91,9 @@ export default function App() {
       {/* Au-dessus des écrans : le lot d'événements part en fin de partie et la
           réponse arrive souvent une fois revenu au menu. */}
       <MissionToasts />
+      {/* Même raison, et même contrainte : un palier de niveau tombe au milieu
+          d'une fin de partie ou d'une récupération de mission. */}
+      <LevelUpToasts />
     </>
   );
 }

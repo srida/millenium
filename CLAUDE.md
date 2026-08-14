@@ -113,7 +113,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `GET /api/friends`, `GET /api/friends/requests` | Connecté | Liste d'amis / demandes |
 | `POST /api/friends/request`, `POST /api/friends/:id/accept` \| `decline`, `DELETE /api/friends/:id` | Connecté | Gestion des amis |
 | `GET/PUT /api/me/decks` | Connecté | Synchro serveur des decks (`DeckRepository.pull` / `flushSync`) |
-| `GET /api/me/progression` | Connecté | Progression + collection (`{ level, xp, gold, gems, unlocked_count, unlocked_cards }`) |
+| `GET /api/me/progression` | Connecté | Progression + collection + barème des paliers (`{ level, xp, gold, gems, unlocked_count, unlocked_cards, levels }`) |
 | `GET /api/me/missions` | Connecté | Missions du jour + jauge hebdomadaire (délivre les lots manquants) |
 | `POST /api/me/missions/events` | Connecté | Lot d'événements de partie (voir Missions quotidiennes) |
 | `POST /api/me/missions/:id/reroll` | Connecté | Reroll d'une mission |
@@ -163,7 +163,7 @@ La dotation d'un compte neuf se **designe en admin** : c'est le pack marqué « 
 progression.initUser(userId)              // dotation d'un compte neuf — appelé par /api/auth/register
 progression.applyAdminGrants(userId)      // niveau/monnaies (MAX, jamais de rétrogradation) + toutes les cartes
 progression.unlockCard(userId, cardId)    // → false si déjà possédée ou id inconnu
-progression.grant(userId, { xp, gold, gems })   // crédit/débit relatif, plancher à 0
+progression.grant(userId, { xp, gold, gems })   // crédit/débit relatif, plancher à 0 (+ paliers de niveau)
 progression.unlockedCardIds(user) / ownsCard(user, cardId) / getProgression(user)
 progression.backfillAll()                 // rattrapage au boot (server.js, après bootstrap())
 ```
@@ -171,9 +171,38 @@ progression.backfillAll()                 // rattrapage au boot (server.js, apr�
 - **Le catalogue fait foi, pas la base** : `allCardIds()` lit `cards.json` (cache invalidé au mtime), donc une carte créée depuis l'admin est immédiatement débloquable.
 - **Admins** : les cartes sont matérialisées en base *et* recalculées à la lecture (`unlockedCardIds`) — une carte ajoutée après la promotion leur appartient sans resynchronisation. Une rétrogradation ne dépouille pas le compte.
 - `auth.publicUser()` expose `level/xp/gold/gems` (donc `/auth/me`, login, register) ; la **liste** des cartes, trop volumineuse, vit sur `GET /api/me/progression`.
-- **Affichage** : `components/ui/ProgressionStats.tsx` — `<ProgressionPills>` (ligne compacte `Nv. 2 ▓▒░ 25/100 · 💰 · 💎`, menu principal, sous l'identité) et `<ProgressionPanel>` (jauge pleine largeur + soldes, écran Profil). Les deux lisent `authStore.user`, **sans fetch** : les valeurs arrivent déjà avec la session. Rien n'est rendu en invité. Icônes et couleurs sont définies une seule fois (`CURRENCIES`) ; 💰 et non 🪙, qui retombe en disque gris faute de glyphe couleur.
+- **Affichage** : `components/ui/ProgressionStats.tsx` — `<ProgressionPills>` (ligne compacte `Nv. 2 ▓▒░ 25/100 · 💰 · 💎`, menu principal sous l'identité, et en-tête des écrans secondaires en web) et `<ProgressionPanel>` (jauge pleine largeur + soldes, écran Profil). Les deux lisent `authStore.user`, **sans fetch** : les valeurs arrivent déjà avec la session. Rien n'est rendu en invité. Icônes et couleurs sont définies une seule fois (`CURRENCIES`) ; 💰 et non 🪙, qui retombe en disque gris faute de glyphe couleur.
+- **La pastille de niveau mène au Profil** (prop `onOpen`, posée par `MainMenu` et `ScreenHeader`) : « combien me reste-t-il avant le prochain niveau » appelle immédiatement « et qu'est-ce que j'y gagne », dont la réponse est là-bas. Seule celle-là est tapable — un solde ne mène nulle part, et un `min-h-tap` sur les trois pastilles ferait deux lignes sous l'identité du menu.
 - **L'XP n'a pas de compteur à elle** : elle n'existe qu'au travers de la jauge de niveau (primitive `Gauge`, 0 → 100), avec le décompte exact en petit sous la barre. C'est la seule lecture qui compte (« où j'en suis du palier ») là où un nombre nu ne dit rien sans son plafond. Gold et gemmes, eux, sont des **soldes** → chiffres.
-- `XP_PER_LEVEL` est dupliqué côté client (`ProgressionStats.tsx`) — à garder synchronisé avec `progression.js` à la main.
+- `XP_PER_LEVEL` est dupliqué côté client (`ProgressionStats.tsx`) — à garder synchronisé avec `progression.js` à la main. C'est la **seule** valeur dans ce cas : le barème des paliers, lui, voyage (cf. ci-dessous).
+
+### Récompenses de palier de niveau (`levels.js`)
+
+Ce que le passage d'un niveau **donne**. Règles dans **`levels.js`** (racine), versées par `progression.grant` — le seul passage obligé de l'XP (parties, missions, arcade, primes de complétion y aboutissent toutes).
+
+| Marche | Gain |
+|---|---|
+| **Chaque** niveau | **50 golds** |
+| Tous les **5** niveaux | **50 gemmes** en plus |
+| Tous les **10** niveaux | un **objet tiré au sort** en plus : carte, avatar ou variante |
+
+Les trois marches se **cumulent** : le niveau 10 donne 50 golds + 50 gemmes + l'objet. C'est ce cumul qui fait du multiple de 10 un rendez-vous plutôt qu'un remplacement.
+
+- 50 golds/niveau ne concurrencent pas les missions (650/jour) : un niveau vaut un dixième de journée de missions, c'est un bonus, pas un revenu. Les **gemmes**, elles, ne se gagnent qu'ici et aux paliers hebdomadaires — 50 tous les 5 niveaux = une variante d'illustration (50 💎) tous les 5 paliers.
+- ⚠️ **Le gain de niveau est VERSÉ, il ne se récupère pas** — seule exception assumée à la règle « un gain se récupère » des missions et des cadeaux. La raison est structurelle : un niveau ne se gagne pas sur un écran, il tombe au milieu d'une fin de combat, d'un lot de missions ou d'un cadeau. Il n'y a aucun geste à attendre, donc rien à taper, et un gain en attente qu'aucun écran ne réclame serait un gain oublié.
+- ⚠️ **Un gain d'XP qui franchit plusieurs paliers les verse TOUS** (250 XP = 2 niveaux = 100 golds) : sauter l'intermédiaire dépouillerait le joueur qui joue rarement mais longtemps.
+- ⚠️ **Les niveaux posés d'autorité ne versent rien** : `applyAdminGrants` écrit `level: 100` sans passer par `grant`, un admin promu ne reçoit donc pas cent paliers de golds.
+- **Le tirage n'a ni pool ni hasard à lui** : `shop.sellableCards` (donc illustration obligatoire — un palier qui révèle un cadre vide gâche son seul moment), `cosmetics.avatarPool` et `cosmetics.variantPool`, moins ce qui est déjà possédé. Déterministe à `(joueur, niveau)` (`shop.seededRandom`), comme la boutique.
+- Les trois familles sont **équiprobables**, et le tirage se fait **entre celles qui ont encore un candidat** — sans ce filtre, un joueur ayant tout acheté d'une famille perdrait le palier une fois sur trois. Pondérer par valeur marchande (une carte à 500 golds contre un avatar à 5 gemmes) reviendrait à promettre surtout des avatars.
+- **Une carte tirée est une carte achetée moins la caisse** : `progression.unlockCard` puis `shop.settleCollection` (épingle libérée, prime de complétion du pack terminé versée) — mêmes conséquences que pour un lot de cadeau.
+- **Pool entièrement épuisé** (compte qui possède tout) → `item: null`, et **aucune compensation n'est inventée** : le palier verse ses monnaies et le dit. Un lot de repli ferait apparaître une seconde règle, invisible dans le barème affiché au joueur.
+- ⚠️ **Règle de dépendances** : `levels.js` est un **puits**, comme `gifts.js` — il requiert `shop.js`, `cosmetics.js` et `progression.js`, aucun ne doit le requérir en retour. `progression.grant` le charge donc par un **`require` paresseux, à l'appel** : en tête de fichier le cycle serait immédiat (`shop` et `cosmetics` requièrent `progression`), alors qu'aucun `grant` n'a lieu pendant le chargement d'un module. Garde-fou de ré-entrance (`MAX_DEPTH`) : une carte tirée peut compléter un pack dont la prime porte de l'XP, donc rappeler la livraison depuis l'intérieur d'elle-même.
+
+**Client** — rien de tout ça n'est recopié : le barème **voyage** dans `GET /api/me/progression` (`levels.preview` → `rules`, `upcoming` (4 paliers), `next_gems_level`, `next_draw_level`).
+
+- `screens/ProfileScreen.tsx` — `<LevelRewardsPanel>` sous la jauge : la règle en une phrase, les 4 prochains paliers (celui à objet souligné), et les deux rendez-vous en clair (la liste ne va pas toujours assez loin — un objet peut être à 10 niveaux). Pas de store dédié : la donnée ne sert qu'à cet écran.
+- `components/ui/LevelUpToasts.tsx` — monté au niveau de l'**App** (comme `MissionToasts`, et pour la même raison), à **gauche** puisque les toasts de mission occupent la droite et que les deux tombent ensemble. Il **annonce un gain déjà versé** — il ne dit pas « à récupérer », contrairement au toast de mission. La file vit dans `authStore` (`levelToasts`), alimentée par `applyProgression` : **toutes** les réponses qui créditent de l'XP y passent (solo, tournoi, PvP, missions, arcade, cadeaux), il n'y a donc pas d'autre point de branchement à tenir à jour.
+- Verrouillé par `client/src/test/levels.test.ts` (23 golden tests, même harnais serveur que `gifts.test.ts` ; catalogues lus depuis `initial-data/`, et une carte volontairement laissée **sans art** — elle ne doit jamais tomber).
 
 ## Missions quotidiennes
 

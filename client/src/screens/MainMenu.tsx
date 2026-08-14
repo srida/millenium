@@ -75,8 +75,10 @@ export default function MainMenu() {
             <button onPointerDown={() => navigate('auth')} className="text-white/60 underline">Se connecter / créer un compte</button>
           )}
         </div>
-        {/* Progression du compte, sous l'identité : niveau, XP et monnaies. */}
-        <ProgressionPills user={user} />
+        {/* Progression du compte, sous l'identité : niveau, XP et monnaies. La
+            pastille de niveau mène au Profil, où les paliers à venir sont
+            annoncés — c'est la question que pose une jauge qu'on regarde. */}
+        <ProgressionPills user={user} onOpen={() => navigate('profile')} />
       </div>
       <AppVersion className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))]" />
       <TutorialInvite />

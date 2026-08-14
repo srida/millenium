@@ -36,22 +36,42 @@ const xpOf = (user: AuthUser) => user.xp ?? 0;
 const xpTitle = (user: AuthUser) =>
   `Expérience — ${xpOf(user)} / ${XP_PER_LEVEL} avant le niveau ${(user.level ?? 1) + 1}`;
 
-/** Ligne compacte `Nv. 1 ▓▒░ 25/100 · 💰 0 · 💎 0` — menu principal. */
-export function ProgressionPills({ user, className = '' }: { user: AuthUser | null; className?: string }) {
+/**
+ * Ligne compacte `Nv. 1 ▓▒░ 25/100 · 💰 0 · 💎 0` — menu principal.
+ *
+ * `onOpen` rend la pastille de NIVEAU tapable (→ écran Profil, où le détail de
+ * la progression et les paliers à venir sont annoncés). Seule celle-là : les
+ * soldes sont des chiffres, ils ne mènent nulle part, et un `min-h-tap` sur
+ * chaque pastille ferait deux lignes sous l'identité du menu.
+ */
+export function ProgressionPills({ user, className = '', onOpen }: { user: AuthUser | null; className?: string; onOpen?: () => void }) {
   if (!user) return null;
+
+  const level = (
+    <>
+      <span className="font-semibold tabular-nums text-gold">Nv. {fmt.format(user.level ?? 1)}</span>
+      <Gauge value={xpOf(user) / XP_PER_LEVEL} className="h-1.5 w-14" fillClassName="bg-player" />
+      <span className="text-[10px] tabular-nums text-white/40">{fmt.format(xpOf(user))}/{XP_PER_LEVEL}</span>
+    </>
+  );
+  const levelClass = 'flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-2.5 py-1';
 
   return (
     <div className={`flex flex-wrap items-center justify-center gap-1.5 ${className}`} aria-label="Progression">
       {/* Niveau + jauge du palier : la barre tient dans la pastille pour ne pas
           ajouter une ligne au menu. */}
-      <span
-        title={xpTitle(user)}
-        className="flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-2.5 py-1"
-      >
-        <span className="font-semibold tabular-nums text-gold">Nv. {fmt.format(user.level ?? 1)}</span>
-        <Gauge value={xpOf(user) / XP_PER_LEVEL} className="h-1.5 w-14" fillClassName="bg-player" />
-        <span className="text-[10px] tabular-nums text-white/40">{fmt.format(xpOf(user))}/{XP_PER_LEVEL}</span>
-      </span>
+      {onOpen ? (
+        <button
+          onPointerDown={onOpen}
+          title={`${xpTitle(user)} — voir la progression`}
+          aria-label="Progression — voir le détail"
+          className={`${levelClass} min-h-tap active:opacity-80`}
+        >
+          {level}
+        </button>
+      ) : (
+        <span title={xpTitle(user)} className={levelClass}>{level}</span>
+      )}
       {CURRENCIES.map(c => (
         <span
           key={c.key}
@@ -122,6 +142,95 @@ export function ProgressionPanel({ user, className = '' }: { user: AuthUser | nu
             <dd className={`mt-1 text-sm font-bold tabular-nums ${c.cls}`}>{fmt.format(user[c.key] ?? 0)}</dd>
           </div>
         ))}
+      </dl>
+    </Panel>
+  );
+}
+
+// --- Paliers de niveau ---
+
+/**
+ * Barème et paliers à venir, tels que le SERVEUR les annonce
+ * (`levels.preview`, servi par GET /me/progression). Rien n'est recalculé ici :
+ * le client afficherait sinon une règle et le serveur en appliquerait une
+ * autre, sans que rien ne le signale.
+ */
+export interface LevelRewardsView {
+  rules: {
+    gold_per_level: number;
+    gems: { every: number; amount: number };
+    draw: { every: number; kinds: string[] };
+  };
+  upcoming: { level: number; gold: number; gems: number; draw: boolean }[];
+  next_gems_level: number;
+  next_draw_level: number;
+}
+
+// Le serveur nomme les familles, le client les écrit en français : c'est de
+// l'interface, elle n'a rien à faire dans le barème.
+const KIND_LABELS: Record<string, string> = { card: 'carte', avatar: 'avatar', variant: 'variante' };
+const kindList = (kinds: string[]) => kinds.map(k => KIND_LABELS[k] ?? k).join(', ');
+
+/** Une marche de la liste « prochains paliers ». */
+function UpcomingRow({ step }: { step: LevelRewardsView['upcoming'][number] }) {
+  // Un palier à objet est un rendez-vous, pas une ligne de plus : il est le
+  // seul à être souligné, sinon la liste se lit comme quatre fois la même chose.
+  return (
+    <li className={`flex items-center justify-between rounded-lg px-2 py-1.5 ${step.draw ? 'bg-gold/10 ring-1 ring-inset ring-gold/40' : 'bg-surface/60'}`}>
+      <span className="text-[11px] font-semibold tabular-nums text-white/70">Nv. {fmt.format(step.level)}</span>
+      <span className="flex items-center gap-2 text-[11px] tabular-nums">
+        <span className="text-gold">💰 {fmt.format(step.gold)}</span>
+        {step.gems > 0 && <span className="text-tier-4">💎 {fmt.format(step.gems)}</span>}
+        {step.draw && <span className="text-white/80">🎁 objet</span>}
+      </span>
+    </li>
+  );
+}
+
+/**
+ * Section « Paliers de niveau » de l'écran Profil : ce que donne le prochain
+ * niveau, et les rendez-vous qui suivent.
+ *
+ * Elle répond à la seule question que la jauge laisse en suspens — « et si je
+ * monte, qu'est-ce que j'y gagne ? ». Sans elle, le niveau est un chiffre qui
+ * augmente : le joueur ne peut pas savoir qu'un objet l'attend au multiple de 10.
+ */
+export function LevelRewardsPanel({ user, levels, className = '' }: { user: AuthUser | null; levels: LevelRewardsView | null; className?: string }) {
+  if (!user || !levels) return null;
+
+  const { rules } = levels;
+  const level = user.level ?? 1;
+
+  return (
+    <Panel className={`w-full max-w-xs p-3 ${className}`}>
+      <div className="flex items-baseline justify-between">
+        <span className="text-[10px] tracking-widest text-white/40">PALIERS DE NIVEAU</span>
+        <span className="text-[10px] tabular-nums text-white/40">Nv. {fmt.format(level)}</span>
+      </div>
+
+      {/* La règle en une phrase, avant la liste : c'est elle qui rend les quatre
+          lignes suivantes lisibles comme un rythme et non comme un tableau. */}
+      <p className="mt-2 text-[11px] leading-relaxed text-white/60">
+        Chaque niveau rapporte <span className="font-semibold text-gold">💰 {fmt.format(rules.gold_per_level)}</span>,
+        tous les {rules.gems.every} niveaux <span className="font-semibold text-tier-4">💎 {fmt.format(rules.gems.amount)}</span> en plus,
+        et tous les {rules.draw.every} niveaux un objet tiré au sort ({kindList(rules.draw.kinds)}).
+      </p>
+
+      <ul className="mt-2 flex flex-col gap-1">
+        {levels.upcoming.map(step => <UpcomingRow key={step.level} step={step} />)}
+      </ul>
+
+      {/* Les deux rendez-vous, redits en clair : la liste ne va pas toujours
+          assez loin pour les montrer (un objet peut être à 10 niveaux). */}
+      <dl className="mt-2 grid grid-cols-2 gap-2 text-center">
+        <div className="rounded-lg border border-line bg-surface/60 px-1 py-2">
+          <dt className="text-[10px] tracking-widest text-white/40">💎 PROCHAINES</dt>
+          <dd className="mt-1 text-sm font-bold tabular-nums text-tier-4">Nv. {fmt.format(levels.next_gems_level)}</dd>
+        </div>
+        <div className="rounded-lg border border-line bg-surface/60 px-1 py-2">
+          <dt className="text-[10px] tracking-widest text-white/40">🎁 PROCHAIN OBJET</dt>
+          <dd className="mt-1 text-sm font-bold tabular-nums text-gold">Nv. {fmt.format(levels.next_draw_level)}</dd>
+        </div>
       </dl>
     </Panel>
   );

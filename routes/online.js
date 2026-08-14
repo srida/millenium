@@ -4,6 +4,7 @@ const express = require('express');
 const { stmt } = require('../db');
 const auth = require('../auth');
 const progression = require('../progression');
+const levels = require('../levels');
 const missions = require('../missions');
 const shop = require('../shop');
 const cosmetics = require('../cosmetics');
@@ -312,6 +313,10 @@ router.get('/me/progression', auth.requireUser, (req, res) => {
   res.json({
     ...progression.getProgression(req.user),
     unlocked_cards: progression.unlockedCardIds(req.user),
+    // Barème des paliers + prochaines marches. Il VOYAGE au lieu d'être recopié
+    // côté client : le profil annonce ce qui attend le joueur sans avoir à
+    // connaître la règle (même raison que le montant du cadeau quotidien).
+    levels: levels.preview(req.user),
   });
 });
 

@@ -56,7 +56,9 @@ export function ScreenHeader({
             {right}
             {user && (
               <>
-                <ProgressionPills user={user} className="hidden shrink-0 sm:flex" />
+                {/* Même geste qu'au menu : la jauge de niveau mène au Profil,
+                    où les paliers à venir sont annoncés. */}
+                <ProgressionPills user={user} className="hidden shrink-0 sm:flex" onOpen={() => navigate('profile')} />
                 <ProfilePill user={user} compact className="min-w-0" onPointerDown={() => navigate('profile')} />
               </>
             )}

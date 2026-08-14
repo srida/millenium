@@ -12,8 +12,21 @@ export interface AuthUser {
   level?: number; xp?: number; gold?: number; gems?: number;
 }
 
+/** Objet tiré au sort à un palier de 10 niveaux (levels.js). */
+export interface LevelRewardItem { type: 'card' | 'avatar' | 'variant'; id: string; label: string; tier?: number | null }
+
+/**
+ * Un palier de niveau franchi, tel que le serveur l'a VERSÉ — c'est un compte
+ * rendu, pas une offre : il n'y a rien à réclamer, seulement à annoncer.
+ */
+export interface LevelReward { level: number; gold: number; gems: number; item: LevelRewardItem | null }
+
 /** Progression renvoyée par le serveur (barème et courbe de niveau côté serveur). */
-export interface Progression { level: number; xp: number; xp_per_level?: number; gold: number; gems: number }
+export interface Progression {
+  level: number; xp: number; xp_per_level?: number; gold: number; gems: number;
+  /** Présent uniquement quand la réponse a fait franchir au moins un palier. */
+  level_rewards?: LevelReward[];
+}
 
 interface AuthStoreState {
   user: AuthUser | null;
@@ -21,6 +34,9 @@ interface AuthStoreState {
   setUser: (u: AuthUser | null) => void;
   /** Fusionne une progression fraîche dans l'utilisateur courant (no-op en invité). */
   applyProgression: (p: Progression | null | undefined) => void;
+  /** Paliers franchis en attente d'annonce (toasts) — jamais de gain à réclamer. */
+  levelToasts: (LevelReward & { key: number })[];
+  dismissLevelToast: (key: number) => void;
   /**
    * Déclare un gain d'XP au serveur et applique le résultat. Best-effort :
    * une erreur réseau ne doit jamais interrompre une fin de partie, et un
@@ -34,16 +50,32 @@ interface AuthStoreState {
   logout: () => Promise<void>;
 }
 
+// Clé d'affichage des toasts de palier — hors du store, comme `toastKey` de
+// missionStore : deux paliers du même gain doivent avoir deux clés React.
+let levelToastKey = 0;
+
 export const useAuthStore = create<AuthStoreState>((set, get) => ({
   user: null,
   ready: false,
   setUser: (user) => set({ user }),
 
+  levelToasts: [],
+  dismissLevelToast: (key) => set(s => ({ levelToasts: s.levelToasts.filter(t => t.key !== key) })),
+
   applyProgression: (p) => {
     if (!p) return;
     const user = get().user;
     if (!user) return;
-    set({ user: { ...user, level: p.level, xp: p.xp, gold: p.gold, gems: p.gems } });
+    // Toutes les réponses qui créditent de l'XP passent par ici — partie solo,
+    // tournoi, PvP, missions, arcade, cadeaux. C'est donc le seul endroit où
+    // brancher l'annonce du palier, et il n'y en a pas d'autre à tenir à jour.
+    const gained = p.level_rewards ?? [];
+    set({
+      user: { ...user, level: p.level, xp: p.xp, gold: p.gold, gems: p.gems },
+      ...(gained.length
+        ? { levelToasts: [...get().levelToasts, ...gained.map(r => ({ ...r, key: ++levelToastKey }))] }
+        : {}),
+    });
   },
 
   claimReward: async (reason) => {
@@ -94,7 +126,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     try { await (DeckRepository as any).flushSync(); } catch { /* best-effort */ }
     try { await (AuthClient as any).logout(); } catch { /* best-effort */ }
     (DeckRepository as any).handleLogout();
-    set({ user: null });
+    set({ user: null, levelToasts: [] });
     // Le deck actif vit dans DeckRepository (localStorage) ; deckStore n'en est
     // qu'un cache réactif — sans refresh, un écran déjà monté garderait l'ancien
     // deck actif à l'écran jusqu'à son prochain montage.

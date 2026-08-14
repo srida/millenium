@@ -114,20 +114,36 @@ function unlockCard(userId, cardId) {
  * reste est reporté — un gain de 250 XP fait donc monter de 2 niveaux + 50.
  * Un débit d'XP ne fait jamais REDESCENDRE de niveau (plancher à 0 sur le
  * palier courant) : on ne retire pas un niveau déjà acquis.
+ *
+ * Tout franchissement de palier verse ses RÉCOMPENSES DE NIVEAU (levels.js) :
+ * c'est ici et nulle part ailleurs, parce que c'est le seul passage obligé de
+ * l'XP — parties, missions, arcade, primes de complétion y aboutissent toutes.
+ * Le résultat porte alors `level_rewards`, que le client annonce au joueur.
  */
 const grant = db.transaction((userId, { xp = 0, gold = 0, gems = 0 } = {}) => {
   const u = stmt.userById.get(userId);
   if (!u) return null;
 
+  const from = Math.max(1, u.level ?? DEFAULTS.level);
   const pool = Math.max(0, (u.xp ?? DEFAULTS.xp) + xp);
+  const to = Math.max(1, from + Math.floor(pool / XP_PER_LEVEL));
   stmt.updateProgression.run({
     id: userId,
-    level: Math.max(1, (u.level ?? DEFAULTS.level) + Math.floor(pool / XP_PER_LEVEL)),
+    level: to,
     xp: pool % XP_PER_LEVEL,
     gold: Math.max(0, (u.gold ?? DEFAULTS.gold) + gold),
     gems: Math.max(0, (u.gems ?? DEFAULTS.gems) + gems),
   });
-  return getProgression(stmt.userById.get(userId));
+
+  // ⚠️ REQUIRE PARESSEUX, et ce n'est pas un raccourci : levels.js requiert
+  // shop.js et cosmetics.js (pools du tirage de palier), qui requièrent tous
+  // deux ce module. En tête de fichier, le cycle serait immédiat ; ici, il n'y
+  // en a pas — aucun `grant` n'a lieu pendant le chargement d'un module, les
+  // trois sont donc résolus depuis longtemps quand cette ligne s'exécute.
+  const levelRewards = to > from ? require('./levels').deliver(userId, from, to) : [];
+
+  const out = getProgression(stmt.userById.get(userId));
+  return levelRewards.length ? { ...out, level_rewards: levelRewards } : out;
 });
 
 /** Applique le barème d'un événement de jeu. → null si la raison est inconnue. */

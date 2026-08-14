@@ -9,7 +9,8 @@ import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
-import { ProgressionPanel } from '../components/ui/ProgressionStats.js';
+import { LevelRewardsPanel, ProgressionPanel } from '../components/ui/ProgressionStats.js';
+import type { LevelRewardsView } from '../components/ui/ProgressionStats.js';
 
 // Les avatars portables viennent du SERVEUR (cosmetics.js) : les offerts
 // d'office, puis ceux achetés dans l'onglet cosmétique de la boutique. La
@@ -37,6 +38,20 @@ export default function ProfileScreen() {
   const cosmeticSnapshot = useCosmeticStore(s => s.snapshot);
   useEffect(() => { void loadCosmetics(); }, [loadCosmetics]);
   const avatarIds = cosmeticSnapshot ? selectableAvatars() : FALLBACK_AVATARS;
+
+  // Paliers de niveau : le BARÈME vient du serveur (levels.js) plutôt que
+  // d'être recopié ici — les deux ne peuvent donc pas diverger. Pas de store
+  // dédié : la donnée ne sert qu'à cet écran et ne survit pas à sa fermeture.
+  // La réponse porte aussi la collection complète, déjà chargée ailleurs :
+  // c'est le prix d'un appel de moins à écrire côté serveur.
+  const [levels, setLevels] = useState<LevelRewardsView | null>(null);
+  useEffect(() => {
+    let alive = true;
+    (AuthClient as any).getProgression()
+      .then((p: any) => { if (alive) setLevels(p?.levels ?? null); })
+      .catch(() => { /* section masquée : elle n'a rien d'indispensable */ });
+    return () => { alive = false; };
+  }, []);
 
   if (!user) {
     return (
@@ -80,8 +95,11 @@ export default function ProfileScreen() {
             : <span>{user.username.slice(0, 1).toUpperCase()}</span>}
         </div>
 
-        {/* Progression : lecture seule, au-dessus des champs éditables. */}
+        {/* Progression : lecture seule, au-dessus des champs éditables. Le
+            détail des paliers suit la jauge — « où j'en suis », puis « ce que
+            ça me rapportera ». */}
         <ProgressionPanel user={user} />
+        <LevelRewardsPanel user={user} levels={levels} />
 
         <div className="flex w-full max-w-xs flex-col gap-3">
           <label className="text-[10px] tracking-widest text-white/40">PSEUDO</label>
