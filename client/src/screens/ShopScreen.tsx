@@ -76,19 +76,22 @@ export default function ShopScreen() {
             {snapshot && <Countdown at={snapshot.next_rotation_at} title="Nouvelle sélection" />}
           </>
         )}
+        // Les onglets font partie du bloc épinglé : changer de rayon doit
+        // rester possible sans remonter toute la vitrine.
+        below={(
+          <div className="flex">
+            {([['cards', '🃏 Cartes'], ['cosmetics', '🎨 Cosmétiques']] as const).map(([key, label]) => (
+              <button
+                key={key}
+                onPointerDown={() => setTab(key)}
+                className={`min-h-tap flex-1 text-sm font-semibold ${tab === key ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       />
-
-      <div className="flex border-b border-line">
-        {([['cards', '🃏 Cartes'], ['cosmetics', '🎨 Cosmétiques']] as const).map(([key, label]) => (
-          <button
-            key={key}
-            onPointerDown={() => setTab(key)}
-            className={`min-h-tap flex-1 text-sm font-semibold ${tab === key ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
 
       {tab === 'cosmetics' ? <CosmeticsTab /> : (
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4">

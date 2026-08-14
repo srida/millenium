@@ -289,19 +289,20 @@ export default function DeckBuilder() {
         onBack={back}
         right={<span className={`text-sm font-bold tabular-nums ${valid ? 'text-success' : 'text-gold'}`}>{total}/{MIN_DECK}</span>}
         safeAreaTop
+        below={(
+          <div className="flex">
+            {(['lib', 'deck'] as const).map(t => (
+              <button
+                key={t}
+                onPointerDown={() => setTab(t)}
+                className={`min-h-tap flex-1 text-sm font-semibold ${tab === t ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
+              >
+                {t === 'lib' ? 'Bibliothèque' : `Deck · ${total}`}
+              </button>
+            ))}
+          </div>
+        )}
       />
-
-      <div className="flex border-b border-line">
-        {(['lib', 'deck'] as const).map(t => (
-          <button
-            key={t}
-            onPointerDown={() => setTab(t)}
-            className={`min-h-tap flex-1 text-sm font-semibold ${tab === t ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
-          >
-            {t === 'lib' ? 'Bibliothèque' : `Deck · ${total}`}
-          </button>
-        ))}
-      </div>
 
       {dropped > 0 && (
         <p className="border-b border-line bg-gold/10 px-4 py-2 text-xs text-gold">
@@ -352,7 +353,10 @@ export default function DeckBuilder() {
         />
       )}
 
-      <div className="border-t border-line bg-surface/95 p-3">
+      {/* Pied de page COLLANT : « Enregistrer » est l'issue de l'écran, il ne
+          doit jamais demander de scroller — pas plus que le retour. Opaque
+          (`bg-surface`) parce que la grille de cartes passe dessous. */}
+      <div className="sticky bottom-0 z-20 shrink-0 border-t border-line bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="mb-2 text-center text-xs">
           {valid
             ? <span className="text-success">✓ Deck valide · prêt à enregistrer</span>

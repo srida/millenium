@@ -66,7 +66,10 @@ export function Countdown({ at, className = '', title }: { at: number; className
   const h = Math.floor(ms / 3_600_000);
   const min = Math.floor((ms % 3_600_000) / 60_000);
   return (
-    <span className={`text-xs tabular-nums text-white/40 ${className}`} title={title}>
+    // `whitespace-nowrap` : « 18 h 56 » cassé sur trois lignes triplait la
+    // hauteur de l'en-tête de la Boutique — qui est désormais épinglé, donc
+    // toujours à l'écran.
+    <span className={`whitespace-nowrap text-xs tabular-nums text-white/40 ${className}`} title={title}>
       ⏳ {h > 0 ? `${h} h ${String(min).padStart(2, '0')}` : `${min} min`}
     </span>
   );
