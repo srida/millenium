@@ -15,7 +15,7 @@ import { useShopStore, hasUnseenShop } from '../stores/shopStore.js';
 import { useGiftStore, claimableCount as claimableGifts } from '../stores/giftStore.js';
 import { useArcadeStore } from '../stores/arcadeStore.js';
 import { getProgress, shouldInvite, updateProgress } from '../data/tutorialProgress.js';
-import { Button, Modal } from '../components/ui/primitives.js';
+import { Button, CountBadge, Modal, NewDot } from '../components/ui/primitives.js';
 import { ProgressionPills, ProfilePill } from '../components/ui/ProgressionStats.js';
 import { FullscreenButton } from '../components/system/DeviceGuards.js';
 import { AppVersion } from '../components/system/AppVersion.js';
@@ -101,7 +101,7 @@ function TutorialButton() {
   return (
     <Button className="w-full" onPointerDown={() => navigate('tutorial')}>
       <span className="whitespace-nowrap">🎓 Tutoriel</span>
-      {read === 0 && <span className="h-2 w-2 rounded-full bg-gold" aria-label="Jamais ouvert" />}
+      {read === 0 && <NewDot label="Jamais ouvert" />}
     </Button>
   );
 }
@@ -141,18 +141,11 @@ function TutorialInvite() {
   );
 }
 
-// Accès aux missions du jour. DEUX notifications, qui ne disent pas la même
-// chose et ne s'annulent donc pas l'une l'autre :
+// Accès aux missions du jour. LES DEUX notifications du jeu (`CountBadge` et
+// `NewDot`, définies dans les primitives, cf. leur commentaire) : la verte
+// chiffrée pour les gains à récupérer, le point doré pour le cycle pas encore
+// visité. La verte prime.
 //
-//   - pastille VERTE chiffrée = des gains attendent d'être récupérés. C'est un
-//     compteur (et non le simple point de la Boutique) parce que la valeur est
-//     dénombrable et actionnable : le joueur doit savoir combien de taps
-//     l'attendent. Elle ne s'efface pas à la visite — seulement quand il ne
-//     reste plus rien à récupérer, sinon elle mentirait.
-//   - point DORÉ = cycle pas encore visité, exactement comme la Boutique.
-//     Effacé à la visite.
-//
-// La verte prime : « tu as gagné quelque chose » passe avant « il y a du neuf ».
 // Rien n'est rendu en invité — un compte est nécessaire pour porter le cycle.
 function MissionsButton() {
   const navigate = useUiStore(s => s.navigate);
@@ -171,14 +164,9 @@ function MissionsButton() {
     <Button className="flex-1 px-2" onPointerDown={() => navigate('missions')}>
       <span className="whitespace-nowrap">🎯 Missions</span>
       {pending > 0 ? (
-        <span
-          aria-label={`${pending} gain${pending > 1 ? 's' : ''} à récupérer`}
-          className="flex h-5 min-w-5 items-center justify-center rounded-full bg-success px-1 text-[11px] font-bold tabular-nums text-black"
-        >
-          {pending}
-        </span>
+        <CountBadge label={`${pending} gain${pending > 1 ? 's' : ''} à récupérer`}>{pending}</CountBadge>
       ) : unseen ? (
-        <span className="h-2 w-2 rounded-full bg-gold" aria-label="Nouveautés" />
+        <NewDot />
       ) : null}
     </Button>
   );
@@ -220,14 +208,11 @@ function ArcadeButton() {
     <Button className="w-full" onPointerDown={() => navigate('arcade')}>
       <span className="whitespace-nowrap">🕹 Arcade</span>
       {running ? (
-        <span
-          aria-label={`Run en cours — duel ${run.current + 1} sur ${snapshot!.duel_count}`}
-          className="flex h-5 items-center justify-center rounded-full bg-success px-1.5 text-[11px] font-bold tabular-nums text-black"
-        >
+        <CountBadge label={`Run en cours — duel ${run.current + 1} sur ${snapshot!.duel_count}`} className="px-1.5">
           {run.current + 1}/{snapshot!.duel_count}
-        </span>
+        </CountBadge>
       ) : available ? (
-        <span className="h-2 w-2 rounded-full bg-gold" aria-label="Run du jour disponible" />
+        <NewDot label="Run du jour disponible" />
       ) : null}
     </Button>
   );
@@ -254,9 +239,7 @@ function ShopButton() {
     <Button className="flex-1 px-2" onPointerDown={() => navigate('shop')}>
       {/* nowrap : avec la pastille, « 🛒 Boutique » se coupait en deux lignes. */}
       <span className="whitespace-nowrap">🛒 Boutique</span>
-      {unseen && (
-        <span className="h-2 w-2 rounded-full bg-gold" aria-label="Nouveautés" />
-      )}
+      {unseen && <NewDot />}
     </Button>
   );
 }
@@ -283,12 +266,7 @@ function GiftsButton() {
     <Button className="w-full" onPointerDown={() => navigate('gifts')}>
       <span className="whitespace-nowrap">🎁 Cadeaux</span>
       {pending > 0 && (
-        <span
-          aria-label={`${pending} cadeau${pending > 1 ? 'x' : ''} à récupérer`}
-          className="flex h-5 min-w-5 items-center justify-center rounded-full bg-success px-1 text-[11px] font-bold tabular-nums text-black"
-        >
-          {pending}
-        </span>
+        <CountBadge label={`${pending} cadeau${pending > 1 ? 'x' : ''} à récupérer`}>{pending}</CountBadge>
       )}
     </Button>
   );

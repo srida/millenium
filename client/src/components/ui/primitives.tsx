@@ -22,6 +22,38 @@ export function Button({
   );
 }
 
+// Les DEUX notifications du jeu, définies une fois pour toutes. Elles ne disent
+// pas la même chose et ne s'annulent donc pas l'une l'autre : quand les deux
+// s'appliquent, la verte prime — « tu as gagné quelque chose » passe avant « il
+// y a du neuf ». Missions, Cadeaux, Arcade, Boutique, Tutoriel et paliers de
+// niveau lisent tous ces deux-là.
+
+/**
+ * Pastille VERTE chiffrée — « N choses à récupérer ». Un compteur et non un
+ * point : la valeur est dénombrable ET actionnable, le joueur doit savoir
+ * combien de taps l'attendent. Elle ne s'efface jamais à la visite, seulement
+ * quand il ne reste plus rien à prendre — sinon elle mentirait.
+ */
+export function CountBadge({ children, label, className = '' }: { children: ReactNode; label: string; className?: string }) {
+  return (
+    <span
+      aria-label={label}
+      className={`flex h-5 min-w-5 items-center justify-center rounded-full bg-success px-1 text-[11px] font-bold tabular-nums text-black ${className}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+/**
+ * Point DORÉ — « il y a du neuf », non dénombrable. Effacé à la visite, comme
+ * une notification. Pas un compteur : ce qu'il annonce ne se compte pas en
+ * gestes à faire.
+ */
+export function NewDot({ label = 'Nouveautés' }: { label?: string }) {
+  return <span className="h-2 w-2 rounded-full bg-gold" aria-label={label} />;
+}
+
 export function Panel({ className = '', children }: { className?: string; children: ReactNode }) {
   return (
     <div className={`rounded-xl border border-line bg-surface-raised/80 backdrop-blur ${className}`}>

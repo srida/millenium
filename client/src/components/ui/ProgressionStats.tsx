@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuthStore } from '../../stores/authStore.js';
 import type { AuthUser, LevelReward } from '../../stores/authStore.js';
-import { Button, Gauge, Modal, Panel } from './primitives.js';
+import { Button, CountBadge, Gauge, Modal, Panel } from './primitives.js';
 
 const fmt = new Intl.NumberFormat('fr-FR');
 
@@ -49,10 +49,9 @@ const xpTitle = (user: AuthUser) =>
 export function ProgressionPills({ user, className = '', onOpen }: { user: AuthUser | null; className?: string; onOpen?: () => void }) {
   if (!user) return null;
 
-  // Pastille VERTE chiffrée quand des paliers attendent — un compteur et non un
-  // point, exactement comme les Missions et les Cadeaux : la valeur est
-  // dénombrable et actionnable. Elle ne s'efface qu'une fois tout récupéré, pas
-  // à la visite du Profil.
+  // Paliers à récupérer : la MÊME pastille verte que les Missions et les
+  // Cadeaux (`CountBadge`), pour la même raison — c'est le même genre de gain
+  // en attente, il doit se signaler pareil.
   //
   // Elle prend la place du décompte d'XP plutôt que de s'y ajouter : une
   // quatrième valeur ferait déborder la pastille sur deux lignes au menu comme
@@ -64,12 +63,9 @@ export function ProgressionPills({ user, className = '', onOpen }: { user: AuthU
       <span className="font-semibold tabular-nums text-gold">Nv. {fmt.format(user.level ?? 1)}</span>
       <Gauge value={xpOf(user) / XP_PER_LEVEL} className="h-1.5 w-14" fillClassName="bg-player" />
       {pending > 0 ? (
-        <span
-          aria-label={`${pending} palier${pending > 1 ? 's' : ''} à récupérer`}
-          className="flex h-4 min-w-4 items-center justify-center rounded-full bg-success px-1 text-[10px] font-bold tabular-nums text-black"
-        >
+        <CountBadge label={`${pending} palier${pending > 1 ? 's' : ''} à récupérer`} className="h-4 min-w-4 text-[10px]">
           {fmt.format(pending)}
-        </span>
+        </CountBadge>
       ) : (
         <span className="text-[10px] tabular-nums text-white/40">{fmt.format(xpOf(user))}/{XP_PER_LEVEL}</span>
       )}

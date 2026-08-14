@@ -45,7 +45,7 @@ export interface MissionSnapshot {
   reroll: { free_available: boolean; cost: number };
 }
 
-/** Toast de complétion — affiché par `MissionToasts`, quel que soit l'écran. */
+/** Toast de complétion — affiché par `RewardToasts`, quel que soit l'écran. */
 export interface MissionToast {
   key: number;
   /** Les deux annoncent un gain À RÉCUPÉRER : mission terminée, palier atteint. */
