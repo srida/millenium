@@ -1293,7 +1293,6 @@ exports[`combat déterministe — golden events > S4 — pouvoirs de contrôle :
       "extra": {
         "damage": 3,
         "interval": 3,
-        "remaining": 5,
         "timer": 0,
       },
       "power_id": "POWER_POISON",
@@ -1317,6 +1316,9 @@ exports[`combat déterministe — golden events > S4 — pouvoirs de contrôle :
       "unit": "enemy:E_PARALYZER",
     },
     {
+      "extra": {
+        "ticks": 25,
+      },
       "power_id": "POWER_BLOCK",
       "step": 6,
       "targets": [
@@ -1791,7 +1793,6 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
     },
     {
       "extra": {
-        "attacksRemaining": 3,
         "damage": 3,
       },
       "power_id": "POWER_BURN",

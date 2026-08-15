@@ -168,14 +168,15 @@ export interface EndOfCombatAttributeResult {
 
 export interface DotEffect {
   damage: number;
-  remaining: number;
   interval: number;
   timer: number;
+  // No `remaining`: a DOT lasts the whole round, cleared only by the status
+  // purges (end of combat, POWER_DEBUFF, revive magic).
 }
 
+// No `attacksRemaining`: like DotEffect, the curse lasts the whole round.
 export interface BurnStack {
   damage: number;
-  attacksRemaining: number;
 }
 
 export type CombatEvent =
