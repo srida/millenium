@@ -23,11 +23,10 @@ import SelectedDeck from '../components/deck/SelectedDeck.js';
 
 const MIN_DECK = 20;
 
-// Mêmes libellés que l'onglet Decks publics de l'admin : c'est là que la
-// difficulté se pose, les deux ne doivent pas se contredire.
-const DIFFICULTY_LABELS: Record<number, string> = {
-  1: 'Initiation', 2: 'Confirmé', 3: 'Vétéran', 4: 'Élite',
-};
+// Les libellés d'échelon vivent avec la donnée qui les porte
+// (PublicDeckDatabase.difficultyLabel) : la sélection d'adversaire solo les
+// affiche aussi, et deux copies finiraient par se contredire.
+const difficultyLabel = (PublicDeckDatabase as any).difficultyLabel as (d: number) => string;
 
 /** Handicap lisible. Un échelon sans bonus le dit — « rien » est une information. */
 function bonusLabel(bonus: ArcadeBonus): string {
@@ -106,7 +105,7 @@ export default function ArcadeScreen() {
                   <StepNumber n={step.index + 1} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm text-white/70">
-                      Adversaire {DIFFICULTY_LABELS[step.difficulty] ?? `niveau ${step.difficulty}`}
+                      Adversaire {difficultyLabel(step.difficulty)}
                     </div>
                     <div className="text-[11px] text-white/40">{bonusLabel(step.bonus)}</div>
                   </div>
@@ -215,7 +214,7 @@ function DuelRow({ duel, live }: { duel: ArcadeDuel; live: boolean }) {
       <div className="min-w-0 flex-1">
         <div className={`truncate text-sm ${live ? 'font-bold text-gold' : 'text-white/80'}`}>{duel.deck_name}</div>
         <div className="text-[11px] text-white/40">
-          {DIFFICULTY_LABELS[duel.difficulty] ?? `Niveau ${duel.difficulty}`} · {bonusLabel(duel.bonus)}
+          {difficultyLabel(duel.difficulty)} · {bonusLabel(duel.bonus)}
         </div>
       </div>
       <span className={`text-sm ${tone}`}>{won ? '✓' : duel.result === 'loss' ? '✗' : live ? '▸' : '·'}</span>

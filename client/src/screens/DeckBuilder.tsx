@@ -9,6 +9,7 @@ import * as CardDatabase from '../data/CardDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
+import { computeDeckTags } from '../data/DeckTags.js';
 import type { Card } from '../logic/types.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
@@ -39,27 +40,6 @@ const TIER_TEXT: Record<number, string> = {
 type DeckData = Record<number, Card[]>;
 const EMPTY: DeckData = { 1: [], 2: [], 3: [], 4: [], 5: [] };
 
-function computeTags(deckData: DeckData): string[] {
-  const all = [1, 2, 3, 4, 5].flatMap(t => deckData[t]);
-  const n = all.length;
-  const attrCounts: Record<string, number> = {};
-  for (const card of all) for (const id of (card.attributes ?? [])) attrCounts[id] = (attrCounts[id] || 0) + 1;
-  const dominant = Object.entries(attrCounts)
-    .filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 2)
-    .map(([id]) => (AttributeDatabase as any).getAttribute(id)?.name ?? id);
-  const tags = [...dominant];
-  if (n > 0) {
-    const meleeR = all.filter(c => ((c as any).stats?.range ?? 1) === 1).length / n;
-    if (meleeR >= 0.65) tags.push('Mêlée');
-    else if (meleeR <= 0.35) tags.push('Distance');
-    else {
-      const avg = all.reduce((s, c) => s + ((c as any).stats?.atk ?? 0), 0) / n;
-      if (all.filter(c => ((c as any).stats?.atk ?? 0) > 28).length >= 2) tags.push('Brutal');
-      else if (avg > 22) tags.push('Offensif');
-    }
-  }
-  return tags.slice(0, 3);
-}
 
 export default function DeckBuilder() {
   const navigate = useUiStore(s => s.navigate);
@@ -261,7 +241,7 @@ export default function DeckBuilder() {
     }
     (DeckRepository as any).saveDeck(finalName, toSave);
     if (color) (DeckRepository as any).setDeckColor?.(finalName, color);
-    (DeckRepository as any).setDeckTags?.(finalName, computeTags(deckData));
+    (DeckRepository as any).setDeckTags?.(finalName, computeDeckTags([1, 2, 3, 4, 5].flatMap(t => deckData[t])));
     // Purge à l'ENREGISTREMENT, pas au retrait d'une carte : une carte retirée
     // puis remise dans la même session garde ainsi son illustration.
     const inDeck = new Set(Object.values(deckData).flat().map((c: any) => c.id));
