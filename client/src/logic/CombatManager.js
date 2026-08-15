@@ -1,6 +1,7 @@
 import { chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, hasLineOfSight, stepToward, stepTowardOrNearest } from './PathFinder.js';
 
-// Power constants
+// Power constants — every one of them is a FALLBACK: the card's own
+// `power.value` (admin field "Valeur") overrides it when set, see powerValue().
 const POWER_SUPER_ATTACK_MULT = 3;
 const POWER_HEAL_RATIO = 0.4;        // % of healer max_hp
 const POWER_SHIELD_MULT = 2;         // × atk
@@ -11,9 +12,14 @@ const POWER_CONFUSION_TICKS = 20;
 const POWER_TAUNT_TICKS = 20;
 const DOT_DAMAGE_DIVISOR = 2;
 const DOT_INTERVAL = 3;              // global steps between DOT pulses
-const DOT_PULSES = 5;
 const BURN_DAMAGE_DIVISOR = 2;
-const BURN_ATTACKS = 3;              // number of the target's own attacks before the curse expires
+
+// A card's `power.value` overrides the constant it maps to; absent, it falls
+// back to the formula below. `||` and not `??` on purpose: a Valeur left at 0
+// in the admin panel reads as "not set", never as "this power does nothing" —
+// a silent no-op power is the one authoring mistake that costs a card its
+// whole identity without saying so anywhere.
+const powerValue = (unit, fallback) => unit.power_value || fallback;
 
 // Mirrors CombatAnimator3D's BASE_TICK_MS (180ms/tick at speed ×1) — kept in
 // sync manually since logic/ never imports from ui/. A combat that's still
@@ -95,17 +101,15 @@ export class CombatManager {
       if (u.confusion_remaining > 0) u.confusion_remaining--;
       if (u.taunt_remaining > 0) u.taunt_remaining--;
 
-      // DOT pulses
-      for (const dot of u.dot_effects.slice()) {
+      // DOT pulses — no expiry, they last the whole round (see POWER_POISON).
+      for (const dot of u.dot_effects) {
         dot.timer++;
         if (dot.timer >= dot.interval) {
           dot.timer = 0;
-          dot.remaining--;
           u.takeDamage(dot.damage);
           events.push({ type: 'dot', unit: u, damage: dot.damage });
         }
       }
-      u.dot_effects = u.dot_effects.filter(d => d.remaining > 0);
     }
 
     // ── 2. Deaths from DOT ──
@@ -233,7 +237,8 @@ export class CombatManager {
         // Heal the ally with the lowest current_hp (including self)
         const lowestAlly = allies.reduce((a, b) => a.current_hp < b.current_hp ? a : b, allies[0]);
         if (lowestAlly) {
-          const amount = Math.floor(unit.max_hp * POWER_HEAL_RATIO);
+          // `value` = flat HP restored; without it, 40% of the healer's max_hp.
+          const amount = powerValue(unit, Math.floor(unit.max_hp * POWER_HEAL_RATIO));
           lowestAlly.heal(amount);
           events.push({ type: 'power', unit, targets: [lowestAlly], power_id: pid, extra: { amount } });
         }
@@ -241,21 +246,21 @@ export class CombatManager {
       }
 
       case 'POWER_SHIELD': {
-        const amount = unit.atk * POWER_SHIELD_MULT;
+        const amount = powerValue(unit, unit.atk * POWER_SHIELD_MULT);
         unit.applyShield(amount);
         events.push({ type: 'power', unit, targets: [unit], power_id: pid, extra: { amount } });
         break;
       }
 
       case 'POWER_SUPER_ATTACK': {
-        const damage = unit.atk * POWER_SUPER_ATTACK_MULT;
+        const damage = powerValue(unit, unit.atk * POWER_SUPER_ATTACK_MULT);
         primaryTarget.takeDamage(damage);
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { damage } });
         break;
       }
 
       case 'POWER_AOE_ATTACK': {
-        const damage = unit.atk;
+        const damage = powerValue(unit, unit.atk);
         for (const e of enemies) e.takeDamage(damage);
         events.push({ type: 'power', unit, targets: [...enemies], power_id: pid, extra: { damage } });
         break;
@@ -266,9 +271,11 @@ export class CombatManager {
           events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
           break;
         }
+        // No pulse counter: the poison runs until the end of the round. It is
+        // cleared with the rest of the statuses by resetCombatStats() (end of
+        // combat, POWER_DEBUFF, revive magic) — those purges are the only exit.
         const dot = {
-          damage: Math.max(1, Math.floor(unit.atk / DOT_DAMAGE_DIVISOR)),
-          remaining: DOT_PULSES,
+          damage: powerValue(unit, Math.max(1, Math.floor(unit.atk / DOT_DAMAGE_DIVISOR))),
           interval: DOT_INTERVAL,
           timer: 0,
         };
@@ -282,7 +289,9 @@ export class CombatManager {
           events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
           break;
         }
-        primaryTarget.attack_speed_modifier += POWER_PARALYSIS_MODIFIER;
+        // `value` = how much attack_speed is added (the severity), not how long
+        // it lasts — the duration stays POWER_PARALYSIS_TICKS for every carrier.
+        primaryTarget.attack_speed_modifier += powerValue(unit, POWER_PARALYSIS_MODIFIER);
         primaryTarget.paralysis_remaining = POWER_PARALYSIS_TICKS;
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: POWER_PARALYSIS_TICKS } });
         break;
@@ -293,7 +302,7 @@ export class CombatManager {
           events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
           break;
         }
-        const pushCells = unit.power_value ?? 2;
+        const pushCells = powerValue(unit, 2);
         const pushed = this._pushUnit(primaryTarget, unit.position, pushCells);
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { pushed } });
         break;
@@ -314,9 +323,10 @@ export class CombatManager {
           events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
           break;
         }
+        // No attack counter: like the poison, the curse runs until the end of
+        // the round and is cleared only by the status purges.
         const burn = {
-          damage: Math.max(1, Math.floor(unit.atk / BURN_DAMAGE_DIVISOR)),
-          attacksRemaining: unit.power_value ?? BURN_ATTACKS,
+          damage: powerValue(unit, Math.max(1, Math.floor(unit.atk / BURN_DAMAGE_DIVISOR))),
         };
         primaryTarget.burn_stacks.push(burn);
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: burn });
@@ -354,9 +364,10 @@ export class CombatManager {
           events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
           break;
         }
+        const block_ticks = powerValue(unit, POWER_BLOCK_TICKS);
         primaryTarget.is_power_blocked = true;
-        primaryTarget.power_block_remaining = POWER_BLOCK_TICKS;
-        events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid });
+        primaryTarget.power_block_remaining = block_ticks;
+        events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: block_ticks } });
         break;
       }
 
@@ -365,13 +376,14 @@ export class CombatManager {
           events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
           break;
         }
-        primaryTarget.confusion_remaining = POWER_CONFUSION_TICKS;
-        events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: POWER_CONFUSION_TICKS } });
+        const confusion_ticks = powerValue(unit, POWER_CONFUSION_TICKS);
+        primaryTarget.confusion_remaining = confusion_ticks;
+        events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: confusion_ticks } });
         break;
       }
 
       case 'POWER_TAUNT': {
-        const taunt_ticks = unit.power_value ?? POWER_TAUNT_TICKS;
+        const taunt_ticks = powerValue(unit, POWER_TAUNT_TICKS);
         unit.taunt_remaining = taunt_ticks;
         events.push({ type: 'power', unit, targets: [unit], power_id: pid, extra: { ticks: taunt_ticks } });
         break;
@@ -430,17 +442,16 @@ export class CombatManager {
     return true;
   }
 
-  // Unlike POWER_POISON (a DOT ticking on a fixed timer), POWER_BURN is a curse
-  // attached to the attacker itself: it pulses on the unit's own next attacks
-  // (decremented here, right after it acts) instead of on a global tick interval.
+  // Like POWER_POISON, the curse lasts the whole round — what separates the two
+  // is their CLOCK, not their duration: the poison pulses on a fixed global
+  // interval, the burn pulses on the cursed unit's own attacks. A unit that
+  // stops attacking (paralysed, out of range, blocked) stops burning.
   _applyBurnStacks(unit, events) {
     if (unit.burn_stacks.length === 0) return;
     for (const stack of unit.burn_stacks) {
       unit.takeDamage(stack.damage);
       events.push({ type: 'dot', unit, damage: stack.damage });
-      stack.attacksRemaining--;
     }
-    unit.burn_stacks = unit.burn_stacks.filter(s => s.attacksRemaining > 0);
   }
 
   // Push target away from attacker's position by `cells` steps in a straight line

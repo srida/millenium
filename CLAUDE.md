@@ -1474,24 +1474,48 @@ La jauge gagne `1 + _stat_bonuses.power_charge` par step. Elle est prête à `po
 - Il remplace l'attaque normale du step
 - La jauge se réinitialise (sauf pouvoir non résolu, cf. `POWER_TELEPORT`)
 
-Les 14 pouvoirs implémentés (constantes en tête de `CombatManager.js`) :
+Les 14 pouvoirs implémentés (constantes en tête de `CombatManager.js`). **Chaque constante n'est qu'un repli** : la carte porte son propre chiffre dans `power.value` (champ « Valeur » de l'admin), et c'est lui qui prime — colonne « `value` = » ci-dessous.
 
-| Pouvoir | Effet |
-|---|---|
-| `POWER_HEAL` | Soigne l'allié au plus bas `current_hp` (soi-même inclus) de 40 % du `max_hp` du lanceur |
-| `POWER_SHIELD` | Bouclier sur soi = `atk × 2` |
-| `POWER_SUPER_ATTACK` | `atk × 3` sur la cible |
-| `POWER_AOE_ATTACK` | `atk` sur **tous** les ennemis vivants |
-| `POWER_POISON` | DOT : `atk / 2` par pulse, 5 pulses, 1 pulse tous les 3 steps (`dot_effects`) |
-| `POWER_BURN` | Malédiction : `atk / 2` infligés à la cible **sur ses 3 prochaines attaques** (`burn_stacks`, `power_value` surcharge le nombre) |
-| `POWER_PARALYSIS` | `attack_speed_modifier += 6` pendant 20 steps (`paralysis_remaining`) — ralentit, ne bloque pas |
-| `POWER_PUSH` | Repousse la cible de `power_value` cases (déf. 2) en ligne droite ; s'arrête aux bords, unités et cases bloquées |
-| `POWER_DEBUFF` | `resetCombatStats()` sur la cible — efface bonus **et** statuts |
-| `POWER_BLOCK` | Empêche la cible d'utiliser son pouvoir pendant 25 steps |
-| `POWER_CONFUSION` | 20 steps : la cible prend ses **propres alliés** pour cibles |
-| `POWER_TAUNT` | 20 steps (ou `power_value`) : le lanceur force les ennemis à le cibler |
-| `POWER_TELEPORT` | Se téléporte au contact de l'ennemi au plus bas `current_hp` (case adjacente libre, sinon case libre la plus proche). Sans destination, la jauge **reste pleine** et l'unité réessaie au step suivant |
-| `POWER_FREEZE` | Repousse la cible d'1 case et **gèle la case libérée** jusqu'à la fin du round (`board.setTemporaryBlock`). Un seul bloc de glace à la fois : le nouveau remplace l'ancien |
+| Pouvoir | Effet (sans `value`) | `value` = |
+|---|---|---|
+| `POWER_HEAL` | Soigne l'allié au plus bas `current_hp` (soi-même inclus) de 40 % du `max_hp` du **lanceur** | **PV plats** rendus |
+| `POWER_SHIELD` | Bouclier sur soi = `atk × 2` | bouclier **plat** |
+| `POWER_SUPER_ATTACK` | `atk × 3` sur la cible | dégâts **plats** |
+| `POWER_AOE_ATTACK` | `atk` sur **tous** les ennemis vivants | dégâts **plats** (par cible) |
+| `POWER_POISON` | DOT : `max(1, atk / 2)` par pulse, 1 pulse tous les 3 steps, **jusqu'à la fin du round** (`dot_effects`) | dégâts **par pulse** |
+| `POWER_BURN` | Malédiction : `max(1, atk / 2)` infligés à la cible **à chacune de ses attaques**, **jusqu'à la fin du round** (`burn_stacks`) | dégâts **par attaque** |
+| `POWER_PARALYSIS` | `attack_speed_modifier += 6` pendant 20 steps (`paralysis_remaining`) — ralentit, ne bloque pas | le **modificateur**, pas la durée |
+| `POWER_PUSH` | Repousse la cible de 2 cases en ligne droite ; s'arrête aux bords, unités et cases bloquées | nombre de cases |
+| `POWER_DEBUFF` | `resetCombatStats()` sur la cible — efface bonus **et** statuts | — |
+| `POWER_BLOCK` | Empêche la cible d'utiliser son pouvoir pendant 25 steps | nombre de steps |
+| `POWER_CONFUSION` | 20 steps : la cible prend ses **propres alliés** pour cibles | nombre de steps |
+| `POWER_TAUNT` | 20 steps : le lanceur force les ennemis à le cibler | nombre de steps |
+| `POWER_TELEPORT` | Se téléporte au contact de l'ennemi au plus bas `current_hp` (case adjacente libre, sinon case libre la plus proche). Sans destination, la jauge **reste pleine** et l'unité réessaie au step suivant | — |
+| `POWER_FREEZE` | Repousse la cible d'1 case et **gèle la case libérée** jusqu'à la fin du round (`board.setTemporaryBlock`). Un seul bloc de glace à la fois : le nouveau remplace l'ancien | — |
+
+### `power.value` — la surcharge par carte
+
+Toute la lecture tient dans un helper de trois lignes, `powerValue(unit, fallback)`, et il est le **seul** endroit qui consulte `unit.power_value`.
+
+- ⚠️ **`||` et non `??`** : une **Valeur laissée à 0** en admin est lue comme « non renseignée » et retombe sur le défaut, jamais comme « ce pouvoir ne fait rien ». Le cas s'est présenté (`CORE_077`, `POWER_BLOCK` à `value: 0`) : un `??` lui aurait donné un blocage de 0 step, c'est-à-dire un pouvoir qui consomme sa jauge et n'a aucun effet — la seule faute d'écriture qui coûte à une carte toute son identité sans que rien ne le signale nulle part.
+- **Un montant plat n'est pas un multiplicateur**, et c'est la donnée qui l'impose : `HAGA_008` a `atk: 1, hp: 400, value: 80`. Sous `atk × 2`, ce mur se pose un bouclier de 2. Même raison pour le soin, indexé sur le `max_hp` du **lanceur** faute de mieux — un soigneur ne devrait pas soigner moins parce qu'il est fragile.
+- **Le chiffre n'est pas arrondi** : `value` est écrit tel quel (l'admin accepte le pas 0.5). C'est la responsabilité de qui édite la carte, pas du combat.
+- Verrouillé par `client/src/test/powers.test.ts` (28 golden tests) : les **deux** branches de chaque pouvoir chiffré — avec `value`, sans `value` — plus la règle du 0. Une surcharge silencieusement ignorée (l'état d'avant) ne se voit nulle part en jeu : la carte annonce 100 de soin et en rend 40.
+
+### Poison et brûlure — deux horloges, plus aucun compteur
+
+⚠️ **Ni l'un ni l'autre n'expire** : `DOT_PULSES` et `BURN_ATTACKS` sont supprimés, `DotEffect` n'a plus de `remaining` ni `BurnStack` d'`attacksRemaining`. Les deux courent jusqu'à la fin du round et n'ont plus que les purges de statuts pour sortie — `resetCombatStats` en fin de combat, `POWER_DEBUFF`, magie `revive`.
+
+**Ce qui les sépare n'est donc plus leur durée, c'est leur horloge**, et c'est désormais la seule chose qui les distingue :
+
+| | Bat sur | Bornée par |
+|---|---|---|
+| `POWER_POISON` | l'**horloge globale** — 1 pulse tous les `DOT_INTERVAL` (3) steps | rien, jusqu'au timeout |
+| `POWER_BURN` | les **attaques de la cible** elle-même | le rythme d'attaque de la cible |
+
+C'est ce qui laisse à la brûlure un contre-jeu que le poison n'a pas : une cible paralysée, hors de portée ou qui n'a plus personne à frapper cesse de brûler. Verrouillé par golden test (personne n'attaque → aucun dégât de brûlure sur 20 steps, là où un poison aurait pulsé sept fois).
+
+⚠️ **Corollaire assumé pour les deux : les piles CUMULENT sans plafond.** Chaque tir en ajoute une, aucune ne meurt — un empoisonneur à `power_speed` bas voit ses dégâts croître linéairement jusqu'au timeout. Le jour où ça pose problème, le geste est de **rafraîchir** la pile existante au lieu d'en empiler une, pas de rétablir un compteur.
 
 **Règles importantes :**
 - Un pouvoir ne se déclenche jamais pendant la phase de préparation
