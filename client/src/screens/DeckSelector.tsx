@@ -17,8 +17,11 @@
 //
 // Tournoi et Duel en ligne ne passent plus par ici : ils consomment le deck actif.
 import { useEffect, useState } from 'react';
+import * as CardDatabase from '../data/CardDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
+import { computeDeckTags } from '../data/DeckTags.js';
+import type { Card } from '../logic/types.js';
 import { useDeckStore, type DeckSummary } from '../stores/deckStore.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { Button, Modal } from '../components/ui/primitives.js';
@@ -38,15 +41,28 @@ const MODES: Record<DeckSelectorMode, { title: string; blurb: string }> = {
 
 // Deck public projeté dans la même forme que les decks du joueur, pour être rendu
 // par la même carte. `id` est la clé (deux decks publics pourraient porter le même
-// nom) ; couleur et tags n'existent pas côté public.
-type PublicDeckSummary = DeckSummary & { id: string };
+// nom) ; la couleur n'existe pas côté public, et la difficulté n'existe que là.
+type PublicDeckSummary = DeckSummary & { id: string; difficulty: number };
 
-function summarizePublic(raw: { id: string; name: string; deck?: Record<string, string[]> }): PublicDeckSummary {
+// Les tags sont DÉRIVÉS ici, jamais lus de la donnée : un deck public n'a pas de
+// méta où les ranger (le champ `tags` de DeckRepository est local au joueur) et
+// sa composition se retouche en admin — un tag figé mentirait au tour suivant.
+function summarizePublic(raw: { id: string; name: string; deck?: Record<string, string[]>; difficulty?: number }): PublicDeckSummary {
   const deck = raw.deck ?? {};
   const dist: Record<number, number> = {};
+  const cards: Card[] = [];
   let count = 0;
-  for (let t = 1; t <= 5; t++) { const n = (deck[String(t)] ?? []).length; dist[t] = n; count += n; }
-  return { id: raw.id, name: raw.name, deck, count, dist, color: null, tags: [] };
+  for (let t = 1; t <= 5; t++) {
+    const ids = deck[String(t)] ?? [];
+    dist[t] = ids.length;
+    count += ids.length;
+    for (const id of ids) { const c = (CardDatabase as any).getCard(id) as Card | null; if (c) cards.push(c); }
+  }
+  return {
+    id: raw.id, name: raw.name, deck, count, dist, color: null,
+    tags: computeDeckTags(cards),
+    difficulty: (PublicDeckDatabase as any).difficultyOf(raw),
+  };
 }
 
 export default function DeckSelector() {
@@ -192,6 +208,7 @@ export default function DeckSelector() {
             <DeckCard
               key={(d as PublicDeckSummary).id ?? d.name} deck={d}
               avatar={manage ? null : (PublicDeckDatabase as any).avatarUrl((d as PublicDeckSummary).id)}
+              difficulty={manage ? null : (d as PublicDeckSummary).difficulty}
               active={manage && activeDeck === d.name}
               foe={!manage && enemyId === (d as PublicDeckSummary).id}
               showActions={manage}
@@ -262,9 +279,9 @@ export default function DeckSelector() {
 }
 
 function DeckCard({
-  deck, avatar, active, foe, showActions, onSelect, onEdit, onDuplicate, onRename, onDelete,
+  deck, avatar, difficulty, active, foe, showActions, onSelect, onEdit, onDuplicate, onRename, onDelete,
 }: {
-  deck: DeckSummary; avatar: string | null; active: boolean; foe: boolean; showActions: boolean;
+  deck: DeckSummary; avatar: string | null; difficulty: number | null; active: boolean; foe: boolean; showActions: boolean;
   onSelect: () => void; onEdit: () => void; onDuplicate: () => void; onRename: () => void; onDelete: () => void;
 }) {
   const valid = deck.count >= MIN_DECK;
@@ -290,23 +307,30 @@ function DeckCard({
         <span className={`ml-auto text-xs font-semibold tabular-nums ${valid ? 'text-success' : 'text-white/50'}`}>{deck.count} cartes</span>
       </div>
 
-      <div className="mt-2 flex items-end gap-1.5">
-        {[1, 2, 3, 4, 5].map(t => {
-          const c = deck.dist[t] ?? 0;
-          const pct = Math.max(c > 0 ? 14 : 5, Math.round((c / MAX_PER_TIER) * 100));
-          return (
-            <div key={t} className="flex flex-1 flex-col items-center gap-0.5">
-              <div className="flex h-8 w-full items-end rounded-sm bg-black/40">
-                <div className={`w-full rounded-sm ${TIER_BG[t]}`} style={{ height: `${pct}%` }} />
+      {/* Répartition par tier : decks du JOUEUR seulement. Devant un deck public,
+          on choisit un adversaire et non une composition — la difficulté et les
+          tags disent ce qu'il y a à savoir avant d'engager le combat, là où cinq
+          barres de tiers demandent une lecture qu'on ne fera pas. */}
+      {difficulty === null && (
+        <div className="mt-2 flex items-end gap-1.5">
+          {[1, 2, 3, 4, 5].map(t => {
+            const c = deck.dist[t] ?? 0;
+            const pct = Math.max(c > 0 ? 14 : 5, Math.round((c / MAX_PER_TIER) * 100));
+            return (
+              <div key={t} className="flex flex-1 flex-col items-center gap-0.5">
+                <div className="flex h-8 w-full items-end rounded-sm bg-black/40">
+                  <div className={`w-full rounded-sm ${TIER_BG[t]}`} style={{ height: `${pct}%` }} />
+                </div>
+                <span className="text-[9px] tabular-nums text-white/40">{c}</span>
               </div>
-              <span className="text-[9px] tabular-nums text-white/40">{c}</span>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
-      {deck.tags.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
+      {(difficulty !== null || deck.tags.length > 0) && (
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          {difficulty !== null && <DifficultyChip difficulty={difficulty} />}
           {deck.tags.map(t => (
             <span key={t} className="rounded border border-gold/30 bg-gold/10 px-1.5 py-0.5 text-[10px] text-gold">✦ {t}</span>
           ))}
@@ -326,6 +350,30 @@ function DeckCard({
         </div>
       )}
     </div>
+  );
+}
+
+// Difficulté d'un deck public : le libellé (qui nomme l'échelon) ET la jauge de
+// pastilles (qui le situe dans l'échelle). Le nom seul demande de connaître le
+// barème par cœur ; les pastilles seules ne disent pas ce qu'on affronte.
+const DIFFICULTY_TONE: Record<number, string> = {
+  1: 'border-success/40 bg-success/10 text-success',
+  2: 'border-gold/40 bg-gold/10 text-gold',
+  3: 'border-tier-4/40 bg-tier-4/10 text-tier-4',
+  4: 'border-enemy/40 bg-enemy/10 text-enemy',
+};
+
+function DifficultyChip({ difficulty }: { difficulty: number }) {
+  const tone = DIFFICULTY_TONE[difficulty] ?? 'border-line bg-surface/70 text-white/60';
+  return (
+    <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${tone}`}>
+      {(PublicDeckDatabase as any).difficultyLabel(difficulty)}
+      <span className="flex gap-0.5">
+        {Array.from({ length: (PublicDeckDatabase as any).MAX_DIFFICULTY as number }, (_, i) => (
+          <span key={i} className={`h-1 w-1 rounded-full bg-current ${i < difficulty ? '' : 'opacity-25'}`} />
+        ))}
+      </span>
+    </span>
   );
 }
 
