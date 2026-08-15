@@ -1237,7 +1237,7 @@ power_gauge
 dot_effects               // [] — poison, pulse sur un timer global
 burn_stacks               // [] — brûlure, pulse sur les attaques de l'unité elle-même
 paralysis_remaining       // steps restants de paralysie
-attack_speed_modifier     // ajouté à attack_speed tant que la paralysie dure
+attack_speed_modifier     // ajouté à attack_speed tant que la paralysie dure (= attack_speed → cadence ÷2)
 is_power_blocked / power_block_remaining
 confusion_remaining       // > 0 → l'unité cible ses propres alliés
 taunt_remaining           // > 0 → l'unité force les ennemis à la cibler
@@ -1484,7 +1484,7 @@ Les 14 pouvoirs implémentés (constantes en tête de `CombatManager.js`). **Cha
 | `POWER_AOE_ATTACK` | `atk` sur **tous** les ennemis vivants | dégâts **plats** (par cible) |
 | `POWER_POISON` | DOT : `max(1, atk / 2)` par pulse, 1 pulse tous les 3 steps, **jusqu'à la fin du round** (`dot_effects`) | dégâts **par pulse** |
 | `POWER_BURN` | Malédiction : `max(1, atk / 2)` infligés à la cible **à chacune de ses attaques**, **jusqu'à la fin du round** (`burn_stacks`) | dégâts **par attaque** |
-| `POWER_PARALYSIS` | `attack_speed_modifier += 6` pendant 20 steps (`paralysis_remaining`) — ralentit, ne bloque pas | le **modificateur**, pas la durée |
+| `POWER_PARALYSIS` | **`attack_speed` doublé** (`attack_speed_modifier = attack_speed`) pendant 20 steps (`paralysis_remaining`) — ralentit, ne bloque pas | la **durée en steps**, pas la sévérité |
 | `POWER_PUSH` | Repousse la cible de 2 cases en ligne droite ; s'arrête aux bords, unités et cases bloquées | nombre de cases |
 | `POWER_DEBUFF` | `resetCombatStats()` sur la cible — efface bonus **et** statuts | — |
 | `POWER_BLOCK` | Empêche la cible d'utiliser son pouvoir pendant 25 steps | nombre de steps |
@@ -1500,7 +1500,8 @@ Toute la lecture tient dans un helper de trois lignes, `powerValue(unit, fallbac
 - ⚠️ **`||` et non `??`** : une **Valeur laissée à 0** en admin est lue comme « non renseignée » et retombe sur le défaut, jamais comme « ce pouvoir ne fait rien ». Le cas s'est présenté (`CORE_077`, `POWER_BLOCK` à `value: 0`) : un `??` lui aurait donné un blocage de 0 step, c'est-à-dire un pouvoir qui consomme sa jauge et n'a aucun effet — la seule faute d'écriture qui coûte à une carte toute son identité sans que rien ne le signale nulle part.
 - **Un montant plat n'est pas un multiplicateur**, et c'est la donnée qui l'impose : `HAGA_008` a `atk: 1, hp: 400, value: 80`. Sous `atk × 2`, ce mur se pose un bouclier de 2. Même raison pour le soin, indexé sur le `max_hp` du **lanceur** faute de mieux — un soigneur ne devrait pas soigner moins parce qu'il est fragile.
 - **Le chiffre n'est pas arrondi** : `value` est écrit tel quel (l'admin accepte le pas 0.5). C'est la responsabilité de qui édite la carte, pas du combat.
-- Verrouillé par `client/src/test/powers.test.ts` (28 golden tests) : les **deux** branches de chaque pouvoir chiffré — avec `value`, sans `value` — plus la règle du 0. Une surcharge silencieusement ignorée (l'état d'avant) ne se voit nulle part en jeu : la carte annonce 100 de soin et en rend 40.
+- ⚠️ **La paralysie chiffre sa DURÉE, pas sa sévérité** — c'est le seul pouvoir dont le sens de `value` a changé. La sévérité est désormais fixe (`attack_speed` doublé, `attack_speed_modifier = attack_speed`) : un `+6` plat coûtait ses trois quarts d'attaques à une unité rapide (`attack_speed: 2`) et ne se voyait pas sur une lente (`attack_speed: 12`) — la même Valeur ne voulait pas dire la même chose selon la cible, ce qui n'est pas chiffrable en admin. Un doublement, lui, coûte **la moitié des attaques** quel que soit le rythme, et `value` sert alors à ce qui reste à doser : le temps que ça dure. Corollaire : un second tir **rafraîchit** la paralysie au lieu de l'empiler — doubler est un plafond, pas un cran (même geste que celui prévu pour poison/brûlure le jour où leur cumul posera problème).
+- Verrouillé par `client/src/test/powers.test.ts` (29 golden tests) : les **deux** branches de chaque pouvoir chiffré — avec `value`, sans `value` — plus la règle du 0. Une surcharge silencieusement ignorée (l'état d'avant) ne se voit nulle part en jeu : la carte annonce 100 de soin et en rend 40.
 
 ### Poison et brûlure — deux horloges, plus aucun compteur
 

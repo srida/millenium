@@ -1342,10 +1342,48 @@ exports[`combat déterministe — golden events > S4 — pouvoirs de contrôle :
       "type": "attack",
     },
     {
+      "extra": {
+        "pushed": 2,
+      },
+      "power_id": "POWER_PUSH",
+      "step": 8,
+      "targets": [
+        "enemy:E_PARALYZER",
+      ],
+      "type": "power",
+      "unit": "player:P_PUSHER",
+    },
+    {
       "damage": 3,
       "step": 9,
       "type": "dot",
       "unit": "enemy:E_BLOCKER",
+    },
+    {
+      "from": {
+        "col": 2,
+        "row": 8,
+      },
+      "step": 9,
+      "to": {
+        "col": 2,
+        "row": 7,
+      },
+      "type": "move",
+      "unit": "enemy:E_PARALYZER",
+    },
+    {
+      "from": {
+        "col": 2,
+        "row": 5,
+      },
+      "step": 9,
+      "to": {
+        "col": 1,
+        "row": 5,
+      },
+      "type": "move",
+      "unit": "player:P_PUSHER",
     },
     {
       "attacker": "enemy:E_BLOCKER",
@@ -1353,6 +1391,19 @@ exports[`combat déterministe — golden events > S4 — pouvoirs de contrôle :
       "step": 9,
       "target": "player:P_POISONER",
       "type": "attack",
+    },
+    {
+      "from": {
+        "col": 2,
+        "row": 7,
+      },
+      "step": 10,
+      "to": {
+        "col": 1,
+        "row": 7,
+      },
+      "type": "move",
+      "unit": "enemy:E_PARALYZER",
     },
     {
       "attacker": "player:P_POISONER",
@@ -1397,6 +1448,58 @@ exports[`combat déterministe — golden events > S4 — pouvoirs de contrôle :
       "step": 12,
       "type": "death",
       "unit": "enemy:E_BLOCKER",
+    },
+    {
+      "from": {
+        "col": 2,
+        "row": 4,
+      },
+      "step": 13,
+      "to": {
+        "col": 2,
+        "row": 5,
+      },
+      "type": "move",
+      "unit": "player:P_POISONER",
+    },
+    {
+      "from": {
+        "col": 1,
+        "row": 7,
+      },
+      "step": 13,
+      "to": {
+        "col": 2,
+        "row": 7,
+      },
+      "type": "move",
+      "unit": "enemy:E_PARALYZER",
+    },
+    {
+      "from": {
+        "col": 1,
+        "row": 5,
+      },
+      "step": 13,
+      "to": {
+        "col": 1,
+        "row": 6,
+      },
+      "type": "move",
+      "unit": "player:P_PUSHER",
+    },
+    {
+      "from": {
+        "col": 1,
+        "row": 6,
+      },
+      "step": 14,
+      "to": {
+        "col": 2,
+        "row": 6,
+      },
+      "type": "move",
+      "unit": "player:P_PUSHER",
     },
     {
       "attacker": "player:P_POISONER",
@@ -1458,51 +1561,25 @@ exports[`combat déterministe — golden events > S4 — pouvoirs de contrôle :
       "type": "attack",
     },
     {
-      "attacker": "enemy:E_PARALYZER",
+      "attacker": "player:P_POISONER",
       "damage": 6,
       "step": 22,
-      "target": "player:P_POISONER",
+      "target": "enemy:E_PARALYZER",
       "type": "attack",
     },
     {
-      "extra": {
-        "ticks": 20,
-      },
-      "power_id": "POWER_PARALYSIS",
-      "step": 24,
-      "targets": [
-        "player:P_POISONER",
-      ],
-      "type": "power",
+      "step": 22,
+      "type": "death",
       "unit": "enemy:E_PARALYZER",
     },
     {
-      "attacker": "enemy:E_PARALYZER",
-      "damage": 6,
-      "step": 26,
-      "target": "player:P_POISONER",
-      "type": "attack",
-    },
-    {
-      "attacker": "enemy:E_PARALYZER",
-      "damage": 6,
-      "step": 28,
-      "target": "player:P_POISONER",
-      "type": "attack",
-    },
-    {
-      "step": 28,
-      "type": "death",
-      "unit": "player:P_POISONER",
-    },
-    {
-      "step": 28,
+      "step": 22,
       "type": "combat_end",
-      "winner": "enemy",
+      "winner": "player",
     },
   ],
-  "steps": 28,
-  "winner": "enemy",
+  "steps": 22,
+  "winner": "player",
 }
 `;
 

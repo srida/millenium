@@ -5,8 +5,7 @@ import { chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarge
 const POWER_SUPER_ATTACK_MULT = 3;
 const POWER_HEAL_RATIO = 0.4;        // % of healer max_hp
 const POWER_SHIELD_MULT = 2;         // × atk
-const POWER_PARALYSIS_MODIFIER = 6;  // added to attack_speed
-const POWER_PARALYSIS_TICKS = 20;
+const POWER_PARALYSIS_TICKS = 20;    // duration in steps
 const POWER_BLOCK_TICKS = 25;
 const POWER_CONFUSION_TICKS = 20;
 const POWER_TAUNT_TICKS = 20;
@@ -289,11 +288,16 @@ export class CombatManager {
           events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
           break;
         }
-        // `value` = how much attack_speed is added (the severity), not how long
-        // it lasts — the duration stays POWER_PARALYSIS_TICKS for every carrier.
-        primaryTarget.attack_speed_modifier += powerValue(unit, POWER_PARALYSIS_MODIFIER);
-        primaryTarget.paralysis_remaining = POWER_PARALYSIS_TICKS;
-        events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: POWER_PARALYSIS_TICKS } });
+        // The severity is fixed: attack_speed DOUBLED (higher = slower), so the
+        // effect costs the target half its attacks whatever its rhythm — a flat
+        // +6 was crippling on a fast unit and unnoticeable on a slow one.
+        // `value` is therefore the DURATION in steps. Stored as a plain delta so
+        // effectiveAttackSpeed() stays additive; a second hit REFRESHES it
+        // instead of stacking — doubled is a ceiling, not a step.
+        const paralysisTicks = powerValue(unit, POWER_PARALYSIS_TICKS);
+        primaryTarget.attack_speed_modifier = primaryTarget.attack_speed;
+        primaryTarget.paralysis_remaining = paralysisTicks;
+        events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: paralysisTicks } });
         break;
       }
 

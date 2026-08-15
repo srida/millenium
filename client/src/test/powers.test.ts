@@ -89,17 +89,29 @@ describe('power.value — surcharge par carte', () => {
     expect(a.target2.current_hp).toBe(490);
   });
 
-  it('POWER_PARALYSIS : `value` = modificateur d\'attack_speed, pas la durée', () => {
+  it('POWER_PARALYSIS : `value` = durée en steps, la sévérité est fixe', () => {
     const a = arena({ id: 'POWER_PARALYSIS', power_speed: 1, value: 8 });
     a.fire();
-    expect(a.target.attack_speed_modifier).toBe(8);
-    expect(a.target.paralysis_remaining).toBe(20);   // durée inchangée
+    expect(a.target.paralysis_remaining).toBe(8);
+    // attack_speed DOUBLÉ : le modificateur vaut l'attack_speed de la cible (2)
+    expect(a.target.attack_speed_modifier).toBe(2);
+    expect(a.target.effectiveAttackSpeed()).toBe(4);
   });
 
-  it('POWER_PARALYSIS sans `value` : modificateur 6', () => {
+  it('POWER_PARALYSIS sans `value` : 20 steps', () => {
     const a = arena({ id: 'POWER_PARALYSIS', power_speed: 1 });
     a.fire();
-    expect(a.target.attack_speed_modifier).toBe(6);
+    expect(a.target.paralysis_remaining).toBe(20);
+    expect(a.target.effectiveAttackSpeed()).toBe(4);
+  });
+
+  it('POWER_PARALYSIS : le doublement suit l\'attack_speed de la CIBLE, et ne s\'empile pas', () => {
+    const a = arena({ id: 'POWER_PARALYSIS', power_speed: 1 });
+    a.target.attack_speed = 9;
+    a.fire();
+    expect(a.target.effectiveAttackSpeed()).toBe(18);
+    a.fire();                                        // second tir : rafraîchit
+    expect(a.target.effectiveAttackSpeed()).toBe(18);
   });
 
   it('POWER_BLOCK : `value` = nombre de steps', () => {
