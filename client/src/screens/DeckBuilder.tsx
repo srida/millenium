@@ -209,6 +209,11 @@ export default function DeckBuilder() {
   function removeCard(tier: number, idx: number) {
     setDeckData(d => ({ ...d, [tier]: d[tier].filter((_, i) => i !== idx) }));
   }
+  // Retrait depuis la BIBLIOTHÈQUE, où l'on ne connaît pas l'index : la carte y
+  // est unique (règle d'unicité), l'id suffit donc à la désigner.
+  function removeCardById(c: Card) {
+    setDeckData(d => ({ ...d, [c.tier]: d[c.tier].filter(x => x.id !== c.id) }));
+  }
 
   const [saving, setSaving] = useState(false);
 
@@ -305,7 +310,7 @@ export default function DeckBuilder() {
           tierFilters={tierFilters} setTierFilters={setTierFilters}
           summonFilters={summonFilters} setSummonFilters={setSummonFilters}
           attributeFilter={attributeFilter} setAttributeFilter={setAttributeFilter} allAttributes={allAttributes}
-          onAdd={addCard}
+          onAdd={addCard} onRemove={removeCardById}
         />
       ) : (
         <DeckPanel
@@ -380,7 +385,7 @@ function Chip({ active, onTap, children }: { active: boolean; onTap: () => void;
 function LibraryPanel({
   cards, total, ownedCount, deckData, tierMax, owns, showLocked, setShowLocked, search, setSearch,
   tierFilters, setTierFilters, summonFilters, setSummonFilters,
-  attributeFilter, setAttributeFilter, allAttributes, onAdd,
+  attributeFilter, setAttributeFilter, allAttributes, onAdd, onRemove,
 }: any) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -431,19 +436,25 @@ function LibraryPanel({
               {cards.map((c: Card) => {
                 // Non débloquée : cadenas + grisé franc, intapable — elle n'est
                 // là que pour montrer ce qui reste à obtenir.
-                // Déjà dans le deck : liseré or (« tu l'as ») + grisé léger.
-                // Tier plein : grisé franc. Tous ces cas sont intapables.
+                // Tier plein : grisé franc, intapable.
+                // Déjà dans le deck : liseré or (« tu l'as ») + grisé léger, et
+                // le tap la RETIRE — l'aller-retour se fait sans changer
+                // d'onglet, la grisaille disant seulement « déjà prise », pas
+                // « intapable ». Ce cas prime sur les deux autres : c'est
+                // justement sur un tier plein qu'il faut pouvoir faire de la
+                // place, et une carte verrouillée héritée d'un ancien deck
+                // reste retirable ici comme dans l'onglet Deck.
                 const locked = !owns(c.id);
                 const inDeck = deckData[c.tier].some((x: Card) => x.id === c.id);
                 const full = deckData[c.tier].length >= tierMax[c.tier];
                 return (
                   <CardTile
                     key={c.id} {...cardTileProps(c)} size="h-auto w-full"
-                    // Ajout au relâchement : un appui long ouvre le tooltip sans
-                    // glisser la carte dans le deck au passage.
-                    tapOn="up" onTap={() => onAdd(c)}
+                    // Ajout/retrait au relâchement : un appui long ouvre le
+                    // tooltip sans toucher au deck au passage.
+                    tapOn="up" onTap={() => (inDeck ? onRemove(c) : onAdd(c))}
                     locked={locked}
-                    disabled={locked || inDeck || full}
+                    disabled={!inDeck && (locked || full)}
                     dim={locked ? 'strong' : inDeck ? 'soft' : full ? 'strong' : 'none'}
                     highlight={inDeck ? 'selected' : 'none'}
                   />

@@ -1666,7 +1666,10 @@ Validation `board.isOccupied(pos)` avant le drop.
 ## DeckBuilder
 
 - **Illustration par carte** : badge 🎨 sur les vignettes du panneau Deck dont le joueur possède une variante (cf. « Boutique cosmétique »). Le choix vaut **pour ce deck seulement**.
-- **Unicité** : une carte ne peut figurer qu'**une seule fois** dans un deck (cohérent avec la règle du doublon, qui interdit deux exemplaires vivants de la même `card_id` sur le board). Dans la bibliothèque, une carte déjà prise est intapable, grisée et liserée d'or ; un tier plein est grisé franc.
+- **Unicité** : une carte ne peut figurer qu'**une seule fois** dans un deck (cohérent avec la règle du doublon, qui interdit deux exemplaires vivants de la même `card_id` sur le board). Dans la bibliothèque, une carte déjà prise est grisée et liserée d'or ; un tier plein est grisé franc.
+- **Le tap de la bibliothèque fait l'aller ET le retour** : sur une carte déjà prise (liserée d'or), il la **retire** du deck. La grisaille y dit « déjà prise », pas « intapable » — sans ça, corriger un choix obligeait à changer d'onglet, alors que c'est justement dans la bibliothèque qu'on compare. Le retrait s'y fait **par `card_id`** (`removeCardById`) et non par index : la règle d'unicité garantit qu'il n'y a qu'une carte à désigner.
+  - ⚠️ **« Déjà dans le deck » prime sur « verrouillée » et sur « tier plein »** : c'est précisément sur un tier plein qu'on a besoin de faire de la place, et une carte verrouillée héritée d'un ancien deck y reste retirable — même règle que dans l'onglet Deck, où le retrait est la seule action qu'elle accepte. Une carte verrouillée **hors** du deck, elle, reste intapable : `addCard` revérifie de toute façon la possession.
+  - Le geste repose sur `tapOn="up"` de `CardTile`, déjà en place : l'appui long (tooltip) arme `suppressTap` et ne touche donc **jamais** au deck.
 - Maximum par tier : `min(8, pool_size)` cartes
 - Minimum pour sauvegarder : **20 cartes au total** (réparties librement entre les tiers, aucun minimum par tier)
 
