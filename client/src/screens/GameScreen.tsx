@@ -111,7 +111,7 @@ export default function GameScreen() {
         // Même règle en Arcade : quitter un duel le concède, donc clôt la run.
         // Sans ça, un duel mal engagé se relancerait à volonté et le handicap
         // croissant ne voudrait plus rien dire.
-        <GameMenu quitLabel="Abandonner le duel" onQuit={() => exitArcadeGame('enemy')} />
+        <GameMenu quitLabel="Abandonner le duel" onQuit={() => { void exitArcadeGame('enemy'); }} />
       ) : inTutorial ? (
         <GameMenu quitLabel="Quitter l'entraînement" onQuit={() => useUiStore.getState().navigate('tutorial')} />
       ) : (
@@ -133,7 +133,7 @@ export default function GameScreen() {
       {inTournament
         ? <GameOverScreen exitLabel="◂ RETOUR AU TOURNOI" onExit={exitTournamentGame} />
         : inArcade
-          ? <GameOverScreen exitLabel="◂ RETOUR À L'ARCADE" onExit={exitArcadeGame} />
+          ? <GameOverScreen exitLabel="◂ RETOUR À L'ARCADE" onExit={(w) => { void exitArcadeGame(w); }} />
           : inTutorial
             ? <GameOverScreen exitLabel="◂ RETOUR AU TUTORIEL" onExit={() => useUiStore.getState().navigate('tutorial')} />
             : <GameOverScreen />}
@@ -175,9 +175,19 @@ function exitTournamentGame(winner: 'player' | 'enemy' | 'draw' | null) {
 // main à l'écran Arcade. Une ÉGALITÉ n'est pas rapportée : comme au tournoi, le
 // duel se rejoue — ni le joueur ni l'IA n'a pris le dessus, et consommer un
 // échelon là-dessus serait arbitraire.
-function exitArcadeGame(winner: 'player' | 'enemy' | 'draw' | null) {
+//
+// ⚠️ Le rapport est ATTENDU avant de naviguer, et ce n'est pas cosmétique :
+// l'écran Arcade recharge son instantané au montage. Naviguer d'abord lançait
+// ce GET pendant que le POST était encore en vol — la lecture pouvait traverser
+// le serveur AVANT que le duel n'y soit soldé et revenir en dernier, effaçant
+// la victoire de l'affichage. Le joueur rejouait alors un duel que le serveur
+// tenait déjà pour gagné, et son second rapport partait sur un index périmé
+// (409) : c'est le score de la partie PRÉCÉDENTE qui restait au tableau.
+// `arcadeStore` se défend aussi de son côté (compteur `revision`), pour les
+// croisements qui ne passent pas par ici — deux onglets, retour navigateur.
+async function exitArcadeGame(winner: 'player' | 'enemy' | 'draw' | null) {
   if (winner === 'player' || winner === 'enemy') {
-    void useArcadeStore.getState().reportDuel(winner === 'player' ? 'win' : 'loss');
+    await useArcadeStore.getState().reportDuel(winner === 'player' ? 'win' : 'loss');
   }
   useUiStore.getState().navigate('arcade');
 }

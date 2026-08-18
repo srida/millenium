@@ -42,6 +42,8 @@ export default function ArcadeScreen() {
   const busy = useArcadeStore(s => s.busy);
   const error = useArcadeStore(s => s.error);
   const granted = useArcadeStore(s => s.granted);
+  const reportError = useArcadeStore(s => s.reportError);
+  const dismissReportError = useArcadeStore(s => s.dismissReportError);
   const load = useArcadeStore(s => s.load);
   const start = useArcadeStore(s => s.start);
 
@@ -187,6 +189,26 @@ export default function ArcadeScreen() {
         {granted && (
           <div className="rounded-lg border border-success/50 bg-success/10 p-3 text-center text-xs text-success">
             Récompense de run versée : +{granted.gold} 💰 · +{granted.xp} XP
+          </div>
+        )}
+        {/* Un rapport de duel qui n'a pas pu partir se DIT. Le parcours affiché,
+            lui, reste juste : il est relu du serveur au montage de l'écran. Le
+            mot ne prétend donc pas ce qu'est devenu le duel (la requête a pu
+            aboutir et seule la réponse se perdre) — il explique l'écart entre ce
+            que le joueur vient de vivre et ce qu'il a sous les yeux, et désigne
+            l'arbitre. Sans lui, une victoire retrouvée « à jouer » passe pour un
+            vol. */}
+        {reportError && (
+          <div className="rounded-lg border border-danger/50 bg-danger/10 p-3 text-center text-xs text-danger">
+            <div>Résultat du dernier duel non transmis ({reportError})</div>
+            <div className="mt-1 text-white/50">Le parcours ci-dessus vient du serveur : c'est lui qui fait foi.</div>
+            <button
+              type="button"
+              className="mt-2 text-[11px] text-white/40 underline"
+              onPointerDown={dismissReportError}
+            >
+              Compris
+            </button>
           </div>
         )}
         {error && <p className="text-center text-xs text-danger">{error}</p>}
