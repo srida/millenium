@@ -154,7 +154,7 @@ La dotation d'un compte neuf se **designe en admin** : c'est le pack marqué « 
 |---|---|---|
 | `ai_win` — victoire solo contre l'IA | 10 | Client → `POST /api/me/progression/reward` (`GameScreen`) |
 | `tournament_win` — tournoi remporté | 50 | Client → même route (`tournamentStore.finishGame`, quand la finale est scellée) |
-| `pvp_win` — victoire sur un joueur en ligne | 70 | **Serveur** (`ws/MatchRelay.endMatch`), transmis dans `match:end` |
+| `pvp_win` — victoire sur un joueur en ligne | 70 | **Serveur** (`ws/MatchRelay.endMatch`, et `ws/BotMatch.endMatch` pour un duel contre bot), transmis dans `match:end` |
 
 - Le client envoie une **raison**, jamais un montant — sinon n'importe qui s'attribuerait le gain de son choix. `pvp_win` est refusé sur la route HTTP (`CLIENT_CLAIMABLE`) : le serveur est seul arbitre du vainqueur PvP (rapports croisés, forfait, timeout), il le décerne lui-même.
 - Limite assumée : solo et tournoi se déroulent **entièrement côté client**, le serveur ne peut que croire le joueur. Le rate-limit (30/min) borne l'abus sans l'empêcher.
@@ -690,6 +690,79 @@ Trois invariants portent le reste :
 - **Fermer l'onglet en plein duel laisse ce duel rejouable**, alors que quitter par le menu ☰ le concède (et clôt donc la run). C'est le prix de la reprise : la seule fermeture honnête de cette faille — annoncer le début du duel au serveur — transformerait un plantage ou une coupure réseau en défaite.
 - Une **égalité** (PV identiques au 5ᵉ tour) n'est pas rapportée : le duel se rejoue, comme une manche de tournoi. Ni le joueur ni l'IA n'a pris le dessus, consommer un échelon là-dessus serait arbitraire.
 - La répartition de difficulté livrée sur les 14 decks publics est **dérivée** du volume de cartes et du poids des tiers 4-5 (4/4/3/3) : un point de départ éditable en admin, au même titre que le découpage de `scripts/build-sets.js` pour les packs.
+
+---
+
+## Adversaires artificiels (Duel en ligne)
+
+Ce que le lobby sert quand la file d'attente ne trouve personne. Règles dans **`bots.js`** (racine) et **`ws/BotMatch.js`**, catalogue de decks dans **`initial-data/bot_decks.json`**, généré par **`scripts/build-bot-decks.js`**.
+
+Ils existent pour une raison de peuplement : une file vide est un cul-de-sac, et un joueur qui cherche un duel trois fois sans rien trouver n'y revient pas. Passé **`MatchmakingQueue.BOT_DELAY_MS` (20 s)**, le serveur sert donc un bot plutôt que rien.
+
+| Règle | Valeur |
+|---|---|
+| Délai avant repli | **20 s** seul dans la file |
+| Priorité | un **vrai joueur arrivé avant l'échéance l'emporte toujours** — un bot ne vole jamais un duel humain |
+| Deck | l'un des **10 de `bot_decks.json`**, tiré au hasard |
+| Identité | pseudo (48 au catalogue) + tag `#1234` + avatar `/illustrations/<id>` |
+| Gain d'une victoire | **`pvp_win` (70 XP)**, décerné par le serveur |
+
+⚠️ **Le joueur n'apprend jamais que son adversaire en est un.** C'est une décision de design, et elle contraint le code : rien dans `GameScreenPvp` ne doit prendre de branche visible sur `bot`. Un duel bot et un duel réel partagent l'écran, le HUD, les overlays, le chrono, le libellé d'abandon et l'écran de résultat — il n'y a qu'un contrôleur de différence.
+
+### Le bot est joué par le CLIENT, pas par le serveur
+
+Le PvP est un **relais opaque** : aucune logique de jeu ne vit côté serveur, et les deux clients simulent en parallèle grâce au déterminisme de `CombatManager`. Faire jouer un bot au serveur reviendrait à porter tout `client/src/logic/` côté Node — et à casser le principe qui tient tout le mode.
+
+La partie contre bot est donc **un solo** : `buildSession(deckName, 'ai', pseudo, botDeck)`, avec l'`EnemyAI` habituelle. Ce qui reste au serveur, et qui justifie qu'un WebSocket soit encore dans la boucle, c'est la **caisse**.
+
+| | Duel réel | Duel bot |
+|---|---|---|
+| Contrôleur | `PvpController` | **`BotController`** (`client/src/game/`) |
+| Session | `mode: 'pvp'`, board adverse reconstruit du réseau | `mode: 'ai'`, deck adverse annoncé par le serveur |
+| Serveur | `ws/MatchRelay.js` (relais + arbitrage) | **`ws/BotMatch.js`** (identité + horloge + caisse) |
+| Table `matches` | ligne insérée | **aucune** — la FK exige deux `users.id` |
+
+- **`match:found` porte un champ `bot`** (le deck) et c'est la seule chose qui distingue les deux messages. `PvpConnection.getBotMatch()` le rend, `GameScreenPvp` monte l'un ou l'autre contrôleur, et **rien d'autre de l'écran n'en sait quoi que ce soit**.
+- ⚠️ **Un match bot n'est PAS écrit dans `matches`**, et ce n'est pas un contournement de la clé étrangère : la table sert à retrouver le match **actif** d'un joueur qui recharge sa page, or un match bot n'est pas reprenable — tout son état de jeu vit dans l'onglet du joueur et meurt avec lui.
+- **Fermer l'onglet efface le match**, sans gain ni défaite : il n'y a pas de période de grâce à tenir, aucun adversaire n'attend.
+
+### La latence de « PRÊT » — le seul vrai piège du mode
+
+Sans elle, l'adversaire répond au quart de seconde à **chaque** round, et c'est le tell : un vrai joueur pose ses unités, hésite, choisit sa magie. `BotController` tire donc à chaque round un moment où il est prêt, **compté depuis le début de la préparation** (`READY_MIN_MS` 3 s → `READY_MAX_MS` 22 s), et affiche l'overlay « En attente de l'adversaire… » — celui du PvP réel, pas un second.
+
+- **Depuis le début de la préparation, pas depuis le tap du joueur** : celui qui prend son temps ne l'attend jamais, celui qui expédie son tour patiente. C'est exactement ce que produit un adversaire humain.
+- Le plafond reste **bien sous `PREP_DURATION_S`** (60 s) : au-delà, le chrono lancerait le combat avant que le bot ne soit « prêt ». `onPrepTimeout` remet d'ailleurs l'échéance à zéro — l'adversaire a le même chrono, il est réputé prêt lui aussi.
+
+### La caisse — ce que le client ne peut pas s'attribuer
+
+⚠️ **Une victoire contre bot paie `pvp_win` (70 XP), et le résultat est rapporté par le CLIENT.** C'est la limite assumée du choix « bot côté client » : le serveur n'a aucune simulation à opposer au rapport. Le gain reste hors de portée du client — il envoie `match:report_result` et **ne nomme jamais un montant**, exactement comme en PvP réel ; `CLIENT_CLAIMABLE` continue de refuser `pvp_win` sur la route HTTP.
+
+Deux plafonds bornent l'abus sans prétendre le fermer — même posture que le rate-limit des gains solo :
+
+| Garde-fou | Valeur | Raison |
+|---|---|---|
+| Durée plancher | **60 s** (`MIN_MATCH_MS`) | une partie de 5 tours contre 1000 PV ne se gagne pas en une minute |
+| Plafond horaire | **20 victoires** (`MAX_REWARDS_PER_WINDOW`) | un duel légitime dure ≈ 3 min ; le plafond ne touche que la boucle scriptée |
+
+Les deux sont **larges à dessein** : invisibles à qui joue normalement. Un match refusé est quand même **soldé** — c'est le gain qu'on retire, pas la partie.
+
+### Les decks — `scripts/build-bot-decks.js`
+
+Dix decks, un par archétype (Dragon, Rouages anciens, Magicien, Aquatique, Insecte, Zombie, Guerrier, Démon, Bête, Dinosaure), 24 à 26 cartes, avec un **profil de jeu** (aggro / tank / distance / pouvoirs / essaim) qui départage les candidats à puissance de thème égale.
+
+```
+node scripts/build-bot-decks.js            # rapport
+node scripts/build-bot-decks.js --write    # regénère initial-data/bot_decks.json
+node scripts/build-bot-decks.js --check    # revalide le fichier livré (exit 1 si KO)
+```
+
+- ⚠️ **Le catalogue est du CODE, pas de la donnée** : lu depuis `initial-data/`, sans copie sur le volume (`bootstrap`) ni CRUD d'admin. Un deck de bot n'est pas un contenu qu'on retouche, c'est une dérivation du catalogue de cartes — on le **regénère**. Même statut que l'avatar par défaut des decks publics.
+- **La contrainte qui commande tout le générateur** : au-delà du tier 2, le catalogue n'a presque aucune invocation *normale*. Les hauts tiers ne sont donc retenus que si le deck **couvre déjà** leurs matériaux (ids *et* attributs), la couverture s'accumulant tier par tier — une fusion T3 retenue alimente le T4. Sans ce filtre, la main des derniers tours se remplit de cartes définitivement injouables, et un bot ne les remplacera jamais par autre chose. Même règle que `game/tutorialDeck.ts`.
+- **Plancher de puissance** par haut tier (p25 du catalogue) : mieux vaut un tier plus court qu'une carte de tier 4 plus faible que le socle qu'elle est censée remplacer.
+- **Les Dieux Égyptiens (`ARCH_031`) sont exclus** : une option « sacrifice 3 » suffit à les rendre invocables, ils tombaient dans la moitié des decks.
+- **Le hors-thème n'est qu'un dernier recours**, pour atteindre les 24 cartes : un tier plus court vaut mieux qu'une carte que rien dans le deck ne fait résonner. Les decks se construisent **à la suite** et s'évitent les uns les autres, pour que dix bots n'alignent pas les mêmes staples.
+- **Le pseudo est DÉCOUPLÉ du deck** et tiré à chaque match : les apparier serait le tell le plus facile du système (« ce pseudo joue toujours des dragons » se remarque au troisième duel). L'**avatar**, lui, vient des cartes du deck — comme un joueur qui porte une carte qu'il aime — et n'est retenu que si son PNG existe : un `<img>` vide dans le HUD adverse serait le tell le plus visible qu'on puisse laisser.
+- Verrouillé par `client/src/test/bots.test.ts` (19 golden tests, même harnais serveur que `shop.test.ts`). ⚠️ Il lit le catalogue de decks à son emplacement **réel** et le confronte au **vrai `data/cards.json`** : une carte supprimée en admin doit casser ici, pas en laissant un bot poser une main injouable devant un joueur.
 
 ---
 
@@ -1760,7 +1833,7 @@ Un seul pont React ↔ Three : `client/src/components/board/Board3DCanvas.tsx` m
   - Les matchs **entre IA** sont simulés (`MatchSimulator`, headless déterministe), résolus dès l'ouverture d'un round.
   - Les matchs **du joueur** se **jouent** : chaque manche du Bo5 lance une vraie partie solo (`GameScreen` avec `params.tournament`), contre le deck public de l'adversaire injecté via `buildSession(..., enemyDeck)`. Le résultat est reporté dans le bracket au retour (`tournamentStore.finishGame`) : victoire/défaite créditée, égalité non comptée (manche rejouée), abandon = manche concédée.
   - Le bracket vit dans `stores/tournamentStore.ts` (et non dans l'état du composant) : l'écran Tournoi est démonté pendant qu'on joue. `pendingGame` est le contrat entre les deux écrans — posé avant de naviguer, consommé au montage de `GameScreen`, soldé au retour.
-- **PvP** (`OnlineLobby` + `GameScreenPvp` + `game/PvpController.ts`) : le lobby joue le **deck actif** (choisi au menu, aucune sélection ici), envoyé avec `queue:join`. Le serveur (`ws/`) fait matchmaking + relais **opaque** ; chaque client simule le combat localement (déterminisme → même vainqueur des deux côtés). L'adversaire est reconstruit **en miroir** (rows 7–10) depuis `net/PvpOpponentProvider.js`. `GameSession` a un mode `'pvp'` (pas d'EnemyAI, terrain convenu).
+- **PvP** (`OnlineLobby` + `GameScreenPvp` + `game/PvpController.ts`) : le lobby joue le **deck actif** (choisi au menu, aucune sélection ici), envoyé avec `queue:join`. Sans adversaire au bout de 20 s, le serveur en sert un **artificiel** — même écran, même contrôleur d'écran, cf. « Adversaires artificiels ». Le serveur (`ws/`) fait matchmaking + relais **opaque** ; chaque client simule le combat localement (déterminisme → même vainqueur des deux côtés). L'adversaire est reconstruit **en miroir** (rows 7–10) depuis `net/PvpOpponentProvider.js`. `GameSession` a un mode `'pvp'` (pas d'EnemyAI, terrain convenu).
 
   **Parité avec le mode solo** : cimetière, menu d'options d'invocation et **Phase Shopping** sont présents en PvP. Le shopping n'est pas synchronisé — chaque joueur tire et applique ses magies localement ; le résultat est transmis à l'adversaire dans le payload `round:board_ready` du round suivant. Un chrono de 45 s le borne (passage automatique) pour ne pas bloquer l'adversaire à la barrière réseau ; le décalage résiduel est absorbé par la barrière `round:combat_start_ack`.
 

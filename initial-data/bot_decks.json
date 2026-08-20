@@ -1,0 +1,452 @@
+[
+  {
+    "id": "BOT_DECK_001",
+    "name": "Nid du Dragon",
+    "pseudo": "Drakenor",
+    "archetype": "Dragon · Feu · Volant",
+    "profile": "aggro",
+    "difficulty": 4,
+    "deck": {
+      "1": [
+        "CORE_024",
+        "CORE_009",
+        "CORE_035",
+        "YGX_008",
+        "EXTRA_082",
+        "EXTRA_039",
+        "STAPLE_090"
+      ],
+      "2": [
+        "CORE_033",
+        "CORE_006",
+        "STAPLE_217",
+        "CORE_043",
+        "MAKO_012",
+        "EXTRA_030",
+        "STAPLE_066"
+      ],
+      "3": [
+        "CORE_086",
+        "REX_012",
+        "STAPLE_184",
+        "CORE_002",
+        "STAPLE_216",
+        "STAPLE_211"
+      ],
+      "4": [
+        "CORE_087",
+        "EXTRA_034",
+        "STAPLE_218",
+        "MAKO_013"
+      ],
+      "5": [
+        "CORE_088",
+        "CORE_103"
+      ]
+    }
+  },
+  {
+    "id": "BOT_DECK_002",
+    "name": "Rouages Anciens",
+    "pseudo": "Engrenator",
+    "archetype": "Rouages ancients · Machine · Metal",
+    "profile": "tank",
+    "difficulty": 4,
+    "deck": {
+      "1": [
+        "YGX_011",
+        "YGX_003",
+        "YGX_007",
+        "YGX_010",
+        "YGX_009",
+        "YGX_008",
+        "CORE_047"
+      ],
+      "2": [
+        "YGX_002",
+        "YGX_006",
+        "YGX_017",
+        "KEITH_008",
+        "KEITH_007",
+        "STAPLE_120",
+        "STAPLE_054"
+      ],
+      "3": [
+        "YGX_001",
+        "YGX_004",
+        "YGX_021",
+        "YGX_019",
+        "KEITH_012",
+        "STAPLE_186"
+      ],
+      "4": [
+        "YGX_012",
+        "YGX_023",
+        "YGX_013",
+        "EXTRA_029"
+      ],
+      "5": [
+        "YGX_022",
+        "YGX_024"
+      ]
+    }
+  },
+  {
+    "id": "BOT_DECK_003",
+    "name": "Cercle des Mages",
+    "pseudo": "Arcanys",
+    "archetype": "Magicien · Magie Noire",
+    "profile": "distance",
+    "difficulty": 1,
+    "deck": {
+      "1": [
+        "STAPLE_001",
+        "STAPLE_098",
+        "CORE_051",
+        "STAPLE_015",
+        "STAPLE_136",
+        "MARIK_010",
+        "STAPLE_145"
+      ],
+      "2": [
+        "CORE_001",
+        "STAPLE_147",
+        "CORE_003",
+        "STAPLE_144",
+        "EXTRA_086",
+        "STAPLE_022",
+        "CORE_050"
+      ],
+      "3": [
+        "CORE_105",
+        "STAPLE_071",
+        "STAPLE_215",
+        "EXTRA_038",
+        "STAPLE_028"
+      ],
+      "4": [
+        "CORE_077",
+        "STAPLE_121",
+        "STAPLE_174",
+        "STAPLE_077"
+      ],
+      "5": [
+        "EXTRA_089"
+      ]
+    }
+  },
+  {
+    "id": "BOT_DECK_004",
+    "name": "Marée Abyssale",
+    "pseudo": "Nérée",
+    "archetype": "Aquatique · Eau · Atlantide",
+    "profile": "essaim",
+    "difficulty": 3,
+    "deck": {
+      "1": [
+        "EXTRA_020",
+        "MAKO_002",
+        "MAKO_005",
+        "CORE_041",
+        "MARIK_007",
+        "MAKO_003",
+        "CORE_074"
+      ],
+      "2": [
+        "STAPLE_161",
+        "EXTRA_023",
+        "MAKO_006",
+        "PARA_003",
+        "STAPLE_131",
+        "EXTRA_051",
+        "REX_010"
+      ],
+      "3": [
+        "MAKO_011",
+        "EXTRA_027",
+        "EXTRA_021",
+        "EXTRA_026",
+        "STAPLE_160",
+        "MAKO_004"
+      ],
+      "4": [
+        "EXTRA_024",
+        "MAKO_013"
+      ],
+      "5": [
+        "EXTRA_025",
+        "EXTRA_022"
+      ]
+    }
+  },
+  {
+    "id": "BOT_DECK_005",
+    "name": "Essaim Rampant",
+    "pseudo": "Chrysalis",
+    "archetype": "Insecte · Plante",
+    "profile": "essaim",
+    "difficulty": 2,
+    "deck": {
+      "1": [
+        "KEITH_015",
+        "HAGA_003",
+        "EXTRA_002",
+        "EXTRA_031",
+        "EXTRA_056",
+        "HAGA_002",
+        "HAGA_008"
+      ],
+      "2": [
+        "EXTRA_001",
+        "HAGA_014",
+        "EXTRA_009",
+        "EXTRA_005",
+        "KEITH_007",
+        "STAPLE_034",
+        "PARA_001"
+      ],
+      "3": [
+        "EXTRA_010",
+        "HAGA_013",
+        "HAGA_011",
+        "MARIK_016",
+        "STAPLE_097",
+        "MARIK_017"
+      ],
+      "4": [
+        "HAGA_012",
+        "EXTRA_004",
+        "STAPLE_077"
+      ],
+      "5": [
+        "EXTRA_008"
+      ]
+    }
+  },
+  {
+    "id": "BOT_DECK_006",
+    "name": "Charnier Sans Fin",
+    "pseudo": "Ossuaire",
+    "archetype": "Zombie · Tombeau · Démon",
+    "profile": "pouvoirs",
+    "difficulty": 2,
+    "deck": {
+      "1": [
+        "STAPLE_124",
+        "STAPLE_169",
+        "BONZ_005",
+        "BONZ_003",
+        "BONZ_001",
+        "BONZ_002",
+        "BAKURA_005"
+      ],
+      "2": [
+        "BAKURA_008",
+        "STAPLE_057",
+        "STAPLE_084",
+        "STAPLE_156",
+        "STAPLE_132",
+        "BONZ_010",
+        "EXTRA_049"
+      ],
+      "3": [
+        "BONZ_007",
+        "BONZ_013",
+        "STAPLE_155",
+        "BONZ_015",
+        "STAPLE_154",
+        "EXTRA_054"
+      ],
+      "4": [
+        "EXTRA_060",
+        "STAPLE_174"
+      ],
+      "5": [
+        "STAPLE_229",
+        "STAPLE_175"
+      ]
+    }
+  },
+  {
+    "id": "BOT_DECK_007",
+    "name": "Serment du Guerrier",
+    "pseudo": "Gearheart",
+    "archetype": "Guerrier · Courageux · Rage de Vaincre",
+    "profile": "aggro",
+    "difficulty": 3,
+    "deck": {
+      "1": [
+        "CORE_036",
+        "CORE_030",
+        "CORE_023",
+        "CORE_080",
+        "CORE_046",
+        "CORE_075",
+        "CORE_032"
+      ],
+      "2": [
+        "CORE_039",
+        "CORE_025",
+        "CORE_028",
+        "CORE_091",
+        "CORE_045",
+        "CORE_040",
+        "CORE_082"
+      ],
+      "3": [
+        "STAPLE_202",
+        "STAPLE_182",
+        "STAPLE_200",
+        "STAPLE_199",
+        "STAPLE_222",
+        "CORE_110"
+      ],
+      "4": [
+        "STAPLE_201",
+        "STAPLE_203",
+        "STAPLE_198",
+        "STAPLE_150"
+      ],
+      "5": [
+        "STAPLE_175",
+        "STAPLE_229"
+      ]
+    }
+  },
+  {
+    "id": "BOT_DECK_008",
+    "name": "Pacte Démoniaque",
+    "pseudo": "Malphas",
+    "archetype": "Démon · Archdémon · Feu",
+    "profile": "pouvoirs",
+    "difficulty": 3,
+    "deck": {
+      "1": [
+        "STAPLE_173",
+        "MARIK_005",
+        "CORE_117",
+        "STAPLE_002",
+        "CORE_029",
+        "STAPLE_116",
+        "EXTRA_063"
+      ],
+      "2": [
+        "CORE_078",
+        "STAPLE_069",
+        "CORE_012",
+        "STAPLE_063",
+        "STAPLE_112",
+        "MARIK_011",
+        "MARIK_012"
+      ],
+      "3": [
+        "CORE_114",
+        "STAPLE_224",
+        "STAPLE_172",
+        "STAPLE_170",
+        "STAPLE_086",
+        "STAPLE_122"
+      ],
+      "4": [
+        "STAPLE_234",
+        "STAPLE_174",
+        "STAPLE_056"
+      ],
+      "5": [
+        "STAPLE_235",
+        "STAPLE_229"
+      ]
+    }
+  },
+  {
+    "id": "BOT_DECK_009",
+    "name": "Meute Sauvage",
+    "pseudo": "Fauvex",
+    "archetype": "Bête · Volant · Terre",
+    "profile": "aggro",
+    "difficulty": 2,
+    "deck": {
+      "1": [
+        "CORE_014",
+        "MAI_003",
+        "MAKO_007",
+        "STAPLE_163",
+        "STAPLE_061",
+        "MAI_002",
+        "CORE_026"
+      ],
+      "2": [
+        "REX_008",
+        "PARA_006",
+        "STAPLE_040",
+        "STAPLE_099",
+        "STAPLE_004",
+        "STAPLE_110",
+        "CORE_118"
+      ],
+      "3": [
+        "STAPLE_140",
+        "STAPLE_151",
+        "STAPLE_053",
+        "STAPLE_118",
+        "STAPLE_102",
+        "MAKO_010"
+      ],
+      "4": [
+        "STAPLE_043",
+        "BAKURA_012",
+        "STAPLE_056",
+        "MAI_015"
+      ],
+      "5": [
+        "STAPLE_109",
+        "STAPLE_175"
+      ]
+    }
+  },
+  {
+    "id": "BOT_DECK_010",
+    "name": "Ère des Dinosaures",
+    "pseudo": "Sauroka",
+    "archetype": "Dinosaure · Terre",
+    "profile": "tank",
+    "difficulty": 1,
+    "deck": {
+      "1": [
+        "REX_003",
+        "REX_002",
+        "REX_001",
+        "EXTRA_013",
+        "REX_005",
+        "EXTRA_018",
+        "EXTRA_014"
+      ],
+      "2": [
+        "EXTRA_012",
+        "REX_007",
+        "EXTRA_017",
+        "REX_011",
+        "REX_004",
+        "STAPLE_101",
+        "REX_008"
+      ],
+      "3": [
+        "REX_013",
+        "REX_006",
+        "STAPLE_216",
+        "REX_012",
+        "KEITH_006",
+        "MARIK_017"
+      ],
+      "4": [
+        "STAPLE_127",
+        "STAPLE_203",
+        "STAPLE_043",
+        "BAKURA_012"
+      ],
+      "5": [
+        "STAPLE_175"
+      ]
+    }
+  }
+]

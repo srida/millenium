@@ -2,17 +2,34 @@
 // Si le serveur redémarre, les joueurs en attente doivent simplement
 // rejoindre à nouveau la file (aucune persistance nécessaire ici).
 const relay = require('./MatchRelay');
+const botMatch = require('./BotMatch');
 
-const waiting = new Map(); // userId -> { ws, deckName, joinedAt }
+/**
+ * Délai au bout duquel un joueur seul se voit servir un adversaire artificiel.
+ *
+ * Assez long pour qu'un vrai joueur qui arrive dans la même minute soit
+ * toujours préféré — un bot ne doit jamais VOLER un duel humain — et assez
+ * court pour qu'une file vide ne se lise pas comme un jeu mort. Le joueur
+ * n'apprend pas que son adversaire en est un : il n'y a rien à distinguer à
+ * l'écran (cf. ws/BotMatch.js).
+ */
+const BOT_DELAY_MS = 20_000;
 
-function send(ws, type, payload = {}) {
-  if (ws.readyState !== ws.OPEN) return;
-  ws.send(JSON.stringify({ ...payload, type }));
+const waiting = new Map(); // userId -> { ws, deckName, joinedAt, botTimer }
+
+/** Retire de la file ET désarme le repli bot — les deux vont toujours ensemble. */
+function drop(userId) {
+  const entry = waiting.get(userId);
+  if (!entry) return null;
+  clearTimeout(entry.botTimer);
+  waiting.delete(userId);
+  return entry;
 }
 
 function joinQueue(ws, userId, deckName) {
   // Un joueur déjà en file (ex: double clic) remplace simplement son entrée.
-  waiting.set(userId, { ws, deckName, joinedAt: Date.now() });
+  drop(userId);
+  waiting.set(userId, { ws, deckName, joinedAt: Date.now(), botTimer: null });
 
   // Cherche un adversaire différent de soi-même.
   let opponentEntry = null;
@@ -24,10 +41,15 @@ function joinQueue(ws, userId, deckName) {
     break;
   }
 
-  if (!opponentEntry) return; // seul dans la file, on attend
+  if (!opponentEntry) {
+    // Seul dans la file : on attend, mais pas indéfiniment.
+    const entry = waiting.get(userId);
+    entry.botTimer = setTimeout(() => serveBot(userId), BOT_DELAY_MS);
+    return;
+  }
 
-  waiting.delete(userId);
-  waiting.delete(opponentId);
+  drop(userId);
+  drop(opponentId);
 
   relay.createMatch(
     { userId, ws, deckName },
@@ -35,12 +57,26 @@ function joinQueue(ws, userId, deckName) {
   );
 }
 
+/**
+ * Le délai est écoulé et personne n'est venu : on sert un bot. Un catalogue
+ * vide (ou illisible) laisse le joueur dans la file plutôt que de lui envoyer
+ * un adversaire sans deck — et sans nouveau timer : la recherche continue,
+ * c'est un humain qui la terminera.
+ */
+function serveBot(userId) {
+  const entry = waiting.get(userId);
+  if (!entry) return;
+  if (entry.ws.readyState !== entry.ws.OPEN) { drop(userId); return; }
+  const matchId = botMatch.createMatch(entry.ws, userId);
+  if (matchId) drop(userId);
+}
+
 function leaveQueue(userId) {
-  waiting.delete(userId);
+  drop(userId);
 }
 
 function handleDisconnectWhileWaiting(userId) {
-  waiting.delete(userId);
+  drop(userId);
 }
 
-module.exports = { joinQueue, leaveQueue, handleDisconnectWhileWaiting };
+module.exports = { joinQueue, leaveQueue, handleDisconnectWhileWaiting, BOT_DELAY_MS };

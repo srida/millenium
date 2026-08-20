@@ -9,6 +9,7 @@ const { WebSocketServer } = require('ws');
 const auth = require('../auth');
 const queue = require('./MatchmakingQueue');
 const relay = require('./MatchRelay');
+const botMatch = require('./BotMatch');
 
 const WS_PATH = '/ws/pvp';
 
@@ -47,6 +48,7 @@ function attachPvpWebSocketServer(httpServer) {
     ws.on('close', () => {
       queue.handleDisconnectWhileWaiting(ws.userId);
       relay.handleDisconnect(ws.userId);
+      botMatch.handleDisconnect(ws.userId);
     });
   });
 
@@ -64,6 +66,24 @@ function attachPvpWebSocketServer(httpServer) {
 }
 
 function handleMessage(ws, msg) {
+  // Un duel contre bot parle les MÊMES messages qu'un duel réel — c'est ce qui
+  // permet au client de n'avoir qu'un écran. Il n'a en revanche pas de second
+  // joueur à qui relayer : tout ce qui n'est pas la fin du match (résultat,
+  // abandon) est sans objet et tombe donc dans le vide.
+  if (botMatch.isBotMatch(msg.matchId)) {
+    switch (msg.type) {
+      case 'match:report_result':
+        botMatch.handleReportResult(msg.matchId, ws.userId, msg.localWinner);
+        break;
+      case 'match:forfeit':
+        botMatch.handleForfeit(msg.matchId, ws.userId);
+        break;
+      default:
+        break;
+    }
+    return;
+  }
+
   switch (msg.type) {
     case 'queue:join':
       queue.joinQueue(ws, ws.userId, msg.deckName);

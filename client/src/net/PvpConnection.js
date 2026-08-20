@@ -5,6 +5,10 @@ let ws = null;
 let matchId = null;
 let role = null;       // 'A' | 'B'
 let opponent = null;   // { id, username, tag, avatar }
+// Duel contre un adversaire artificiel : porte son deck, que l'EnemyAI locale
+// fera jouer (cf. game/BotController.ts). Reste `null` sur un duel réel, et
+// c'est la SEULE chose qui distingue les deux côté client.
+let botMatch = null;   // { deck } | null
 
 const listeners = new Map(); // type -> Set<handler>
 // Messages reçus avant qu'un handler ne soit enregistré (course réseau — le
@@ -43,6 +47,7 @@ export function connect() {
         matchId = msg.matchId;
         role = msg.youAre;
         opponent = msg.opponent;
+        botMatch = msg.bot ?? null;
       }
 
       dispatch(msg.type, msg);
@@ -73,6 +78,7 @@ export function off(type, handler) {
 export function getMatchId() { return matchId; }
 export function getRole() { return role; }
 export function getOpponent() { return opponent; }
+export function getBotMatch() { return botMatch; }
 
 export function disconnect() {
   if (ws) { ws.onclose = null; ws.close(); }
@@ -80,6 +86,7 @@ export function disconnect() {
   matchId = null;
   role = null;
   opponent = null;
+  botMatch = null;
   listeners.clear();
   buffered.clear();
 }

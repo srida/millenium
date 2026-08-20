@@ -4,9 +4,18 @@
 // PvpController. L'identité de l'adversaire (avatar + pseudo) vit dans le HUD
 // (`HudWithOpponent`). Ajoute l'overlay d'attente (poignée de main réseau /
 // résultat) et l'abandon.
+//
+// ⚠️ Cet écran sert AUSSI les duels contre un adversaire artificiel, servis par
+// le serveur quand la file d'attente ne trouve personne (cf.
+// ws/MatchmakingQueue.BOT_DELAY_MS). Seul le contrôleur change — BotController
+// au lieu de PvpController, et la session est bâtie en mode 'ai' sur le deck
+// annoncé. Tout le reste de l'écran est écrit une seule fois et ne sait pas
+// lequel des deux il pilote : c'est ce qui rend les deux duels indistinguables
+// à l'écran, et ce qui interdit d'ajouter ici la moindre branche visible.
 import { useEffect, useRef, useState } from 'react';
 import { buildSession, pvpDeps } from '../game/bootstrap.js';
 import { PvpController } from '../game/PvpController.js';
+import { BotController } from '../game/BotController.js';
 import * as PvpConnection from '../net/PvpConnection.js';
 import { useGameStore } from '../stores/gameStore.js';
 import { useUiStore } from '../stores/uiStore.js';
@@ -24,7 +33,7 @@ import { Banner } from '../components/ui/primitives.js';
 import { PREP_DURATION_S, SHOPPING_DURATION_S } from '../game/timings.js';
 
 export default function GameScreenPvp() {
-  const [controller, setControllerLocal] = useState<PvpController | null>(null);
+  const [controller, setControllerLocal] = useState<PvpController | BotController | null>(null);
   const [opponentAvatar, setOpponentAvatar] = useState<string | null>(null);
   const setController = useGameStore(s => s.setController);
   const reset = useGameStore(s => s.reset);
@@ -37,8 +46,16 @@ export default function GameScreenPvp() {
     const opponentUser = (PvpConnection as any).getOpponent();
     const opponent = opponentUser?.username ?? 'Adversaire';
     setOpponentAvatar(opponentUser?.avatar ?? null);
-    const session = buildSession(deckName, 'pvp');
-    const ctrl = new PvpController(session, pvpDeps(), role, opponent);
+    // Duel contre bot : la session est un solo (mode 'ai' + deck du bot), pas
+    // une session PvP — il n'y a pas de second client à synchroniser, et
+    // l'EnemyAI a besoin d'un deck adverse pour jouer.
+    const bot = (PvpConnection as any).getBotMatch();
+    const session = bot
+      ? buildSession(deckName, 'ai', opponent, bot.deck)
+      : buildSession(deckName, 'pvp');
+    const ctrl = bot
+      ? new BotController(session, opponent)
+      : new PvpController(session, pvpDeps(), role, opponent);
     setControllerLocal(ctrl);
     setController(ctrl);
     ctrl.begin();
@@ -113,7 +130,7 @@ function HudWithOpponent({ opponentAvatar }: { opponentAvatar: string | null }) 
 }
 
 // Timer de préparation : déclenche la poignée de main de combat à 0.
-function PrepTimer({ controller }: { controller: PvpController }) {
+function PrepTimer({ controller }: { controller: PvpController | BotController }) {
   const round = useGameStore(s => s.round);
   const applySnapshot = useGameStore(s => s.applySnapshot);
   const remaining = useRef(PREP_DURATION_S);
@@ -137,7 +154,7 @@ function PrepTimer({ controller }: { controller: PvpController }) {
 // réseau tant que je n'ai pas choisi : le choix est donc borné, et « passer »
 // est automatique à 0. Affiché dans la popup elle-même (ShoppingLayer, via
 // gameStore.shoppingRemaining) plutôt qu'en overlay séparé.
-function ShoppingTimer({ controller }: { controller: PvpController }) {
+function ShoppingTimer({ controller }: { controller: PvpController | BotController }) {
   const active = useGameStore(s => !!s.shopping);
   const applySnapshot = useGameStore(s => s.applySnapshot);
   const remaining = useRef(SHOPPING_DURATION_S);
