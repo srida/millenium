@@ -19,13 +19,23 @@ import {
   COLS, TOTAL_ROWS, PLAYER_ROWS, CELL, CARD_PX, CSS_SCALE, FOV, HIGHLIGHT_RING_PX,
   PREP_COL_MARGIN, PREP_FOCUS_Y, PREP_ROW_MARGIN, PREP_ROW_MARGIN_WEB, WEB_RAIL_PX,
   zForRow, xForCol, cellKey as key, baseColorFor, emissiveFor,
+  LOW_END_DEVICE,
 } from './constants.js';
 import type { Unit } from '../logic/Unit.js';
 import type { BoardDef, Position } from '../logic/types.js';
 
-// Low-end devices (few cores) get fewer shatter fragments per kill — deep-cloning the
-// full unit-card DOM (image + badges) per fragment is the dominant cost during AOE wipes.
-const LOW_END_DEVICE = (navigator.hardwareConcurrency || 8) <= 4;
+// Axe vertical du monde, réutilisé par spawnBeam (rotateOnWorldAxis).
+const WORLD_UP = new THREE.Vector3(0, 1, 0);
+
+// Part d'opacité du treillis du dôme, relative à celle de sa coque.
+const LATTICE_RATIO = 0.85;
+
+// Ouverture avec léger dépassement — le dôme claque au lieu de se gonfler.
+function easeOutBack(x: number): number {
+  const c = 1.9;
+  const k = x - 1;
+  return 1 + (c + 1) * k * k * k + c * k * k;
+}
 
 // Apparition d'une unité : chute depuis y=3, puis impact élémentaire.
 // LEAD/STAGGER ne servent qu'à la cascade d'apparition de l'IA (revealEnemyUnits) :
@@ -120,6 +130,16 @@ export class Scene3D {
   _materialSelected = new Set<string>();
   _materialsAllSelected = false;
   _blockedCells = new Set<string>();
+  // Sous-ensemble de _blockedCells posé par POWER_FREEZE : même blocage, mais une
+  // teinte de glace au lieu du rouge générique des cases bloquées d'un terrain.
+  _frozenCells = new Set<string>();
+  // Effets persistants (bloc de glace) : leurs disposers, pour que destroy() ne
+  // laisse pas de géométrie derrière si le combat s'arrête pendant qu'ils vivent.
+  _persistent = new Set<() => void>();
+  // Amas de cristaux vivants, par case. Scene3D possède le cycle de vie du
+  // décor de glace : l'animateur ne pilote que les cases (add/remove), il n'a
+  // pas à traîner un disposer en parallèle de son propre registre.
+  _iceBlocks = new Map<string, () => void>();
   _selectedPos: Position | null = null;
   _combatMode = false;
 
@@ -406,6 +426,7 @@ export class Scene3D {
 
   setBlockedCells(cells: Position[] | null | undefined): void {
     this._blockedCells = new Set((cells || []).map(key));
+    this._clearIceBlocks();
     this._refreshTileColors();
   }
 
@@ -492,13 +513,26 @@ export class Scene3D {
   // Additive variants used for POWER_FREEZE: merge/remove a single cell
   // without touching the terrain's permanent blocked cells set above.
   addTemporaryBlockedCell(pos: Position): void {
-    this._blockedCells.add(key(pos));
+    const k = key(pos);
+    this._blockedCells.add(k);
+    this._frozenCells.add(k);
+    if (!this._iceBlocks.has(k)) this._iceBlocks.set(k, this.spawnIceBlock(pos));
     this._refreshTileColors();
   }
 
   removeTemporaryBlockedCell(pos: Position): void {
-    this._blockedCells.delete(key(pos));
+    const k = key(pos);
+    this._blockedCells.delete(k);
+    this._frozenCells.delete(k);
+    this._iceBlocks.get(k)?.();
+    this._iceBlocks.delete(k);
     this._refreshTileColors();
+  }
+
+  _clearIceBlocks(): void {
+    for (const dispose of this._iceBlocks.values()) dispose();
+    this._iceBlocks.clear();
+    this._frozenCells.clear();
   }
 
   setHighlight(cells: Position[] | null | undefined): void {
@@ -611,14 +645,17 @@ export class Scene3D {
 
   spawnBurst(pos: Position | THREE.Vector3, color: number, count = 70, opts: any = {}): void {
     const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
-    const { speed: [speedMin, speedMax] = [1, 3], lift: [liftMin, liftMax] = [1.5, 3.5], size = 0.07, gravity = 6, spin = 0, maxLife = 0.6 } = opts;
+    // `dir` ({x, z}) + `cone` (ouverture en radians) : émission dans un secteur au
+    // lieu du cercle complet. Sans `dir`, comportement d'origine (360°).
+    const { speed: [speedMin, speedMax] = [1, 3], lift: [liftMin, liftMax] = [1.5, 3.5], size = 0.07, gravity = 6, spin = 0, maxLife = 0.6, dir = null, cone = Math.PI / 3 } = opts;
+    const baseAngle = dir ? Math.atan2(dir.z ?? 0, dir.x ?? 0) : 0;
     const positions = new Float32Array(count * 3);
     const velocities = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       positions[i * 3] = center.x;
       positions[i * 3 + 1] = center.y + 0.04;
       positions[i * 3 + 2] = center.z;
-      const theta = Math.random() * Math.PI * 2;
+      const theta = dir ? baseAngle + (Math.random() - 0.5) * cone : Math.random() * Math.PI * 2;
       const speed = speedMin + Math.random() * (speedMax - speedMin);
       velocities[i * 3] = Math.cos(theta) * speed;
       velocities[i * 3 + 1] = liftMin + Math.random() * (liftMax - liftMin);
@@ -635,7 +672,10 @@ export class Scene3D {
     this.bursts.push({ points, velocities, life: 0, maxLife, gravity, spin });
   }
 
-  spawnRing(pos: Position | THREE.Vector3, color: number, maxLife = 0.5, maxScale = 6): void {
+  // `startScale` permet l'anneau RENTRANT : la géométrie de base ne fait que
+  // 0,18 d'extérieur, un `maxScale` négatif seul ferait donc rétrécir un point.
+  // Un anneau qui se referme se démarre grand (startScale 6, maxScale -5).
+  spawnRing(pos: Position | THREE.Vector3, color: number, maxLife = 0.5, maxScale = 6, startScale = 1): void {
     const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
     const geo = new THREE.RingGeometry(0.05, 0.18, 32);
     const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
@@ -644,7 +684,8 @@ export class Scene3D {
     ring.position.copy(center);
     ring.position.y = 0.06;
     this.scene.add(ring);
-    this.bursts.push({ ring, life: 0, maxLife, maxScale });
+    ring.scale.setScalar(startScale);
+    this.bursts.push({ ring, life: 0, maxLife, maxScale, startScale });
   }
 
   spawnFlash(center: THREE.Vector3, color: number, intensity = 4, range = 4, maxLife = 0.25): void {
@@ -723,14 +764,16 @@ export class Scene3D {
   // Cercle magique : anneaux concentriques tournant à vitesses/sens différents + petits
   // motifs (façon symboles runiques) répartis sur l'anneau médian, qui tourne avec eux.
   // Flash bref façon "cercle d'invocation" — appelé pour l'élément 'sorcellerie'.
-  spawnMagicCircle(pos: Position | THREE.Vector3, tier = 1): void {
+  spawnMagicCircle(pos: Position | THREE.Vector3, tier = 1, color = 0xb86ae8, scale = 1): void {
     const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
     const t = Math.max(1, Math.min(5, tier));
-    const color = 0xb86ae8;
-    const glowColor = 0xe8c8ff;
+    // La teinte claire est dérivée de la couleur au lieu d'être une seconde
+    // constante : deux couleurs à tenir d'accord finissent par diverger.
+    const glowColor = new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.55).getHex();
 
     const group = new THREE.Group();
     group.position.set(center.x, 0.55, center.z);
+    group.scale.setScalar(scale);
     this.scene.add(group);
 
     const ringDefs = [
@@ -1245,6 +1288,327 @@ export class Scene3D {
     });
   }
 
+  // ── Effets de pouvoir (cf. three/PowerVfx.ts) ───────────────────────────
+  // Ces primitives passent toutes par `this.anims` (closure qui possède sa
+  // géométrie et son propre nettoyage, cf. playProjectile) et jamais par
+  // `bursts`, dont chaque variante coûte trois branches : mise à jour, disposal
+  // à p >= 1, et destroy().
+
+  // Rayon plat entre deux cases : gaine colorée + cœur blanc, apparition
+  // instantanée, tenue, puis fondu. Super Attaque, Blocage, Provocation.
+  spawnBeam(fromPos: Position | THREE.Vector3, toPos: Position | THREE.Vector3, color = 0xffffff, opts: any = {}): void {
+    const from = fromPos instanceof THREE.Vector3 ? fromPos : this.tilePosition(fromPos);
+    const to = toPos instanceof THREE.Vector3 ? toPos : this.tilePosition(toPos);
+    const { width = 0.2, maxLife = 0.24, hold = 0.06, y = 0.32, core = true, opacity = 0.9 } = opts;
+    const dx = to.x - from.x;
+    const dz = to.z - from.z;
+    const len = Math.hypot(dx, dz);
+    if (len < 0.01) return;
+    const angle = Math.atan2(dz, dx);
+
+    const meshes: THREE.Mesh[] = [];
+    const addPlank = (w: number, c: number, o: number, dy = 0) => {
+      const geo = new THREE.PlaneGeometry(len, w);
+      const mat = new THREE.MeshBasicMaterial({
+        color: c, transparent: true, opacity: o, side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending, depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      // rotation.x = -PI/2 couche le plan (son X local suit X monde), puis une
+      // rotation MONDE autour de Y l'oriente : l'ordre d'Euler ne rentre pas en
+      // jeu, contrairement à un rotation.set(x, y, z) qu'il faudrait décoder.
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.rotateOnWorldAxis(WORLD_UP, -angle);
+      mesh.position.set((from.x + to.x) / 2, y + dy, (from.z + to.z) / 2);
+      mesh.userData.baseOpacity = o;
+      this.scene.add(mesh);
+      meshes.push(mesh);
+    };
+    addPlank(width, color, opacity, 0);
+    // Le cœur blanc est décalé en hauteur : coplanaire, il z-fightait avec la
+    // gaine et délavait la couleur du rayon en gris.
+    if (core) addPlank(width * 0.3, 0xffffff, opacity * 0.55, 0.012);
+
+    let t = 0;
+    this.anims.push({
+      update: (dt: number) => {
+        t += dt;
+        const fade = t <= hold ? 1 : 1 - (t - hold) / Math.max(0.01, maxLife - hold);
+        for (const mesh of meshes) {
+          (mesh.material as THREE.MeshBasicMaterial).opacity = mesh.userData.baseOpacity * Math.max(0, fade);
+        }
+        if (t >= maxLife) {
+          for (const mesh of meshes) {
+            this.scene.remove(mesh);
+            mesh.geometry.dispose();
+            (mesh.material as THREE.Material).dispose();
+          }
+          return false;
+        }
+        return true;
+      },
+    });
+  }
+
+  // Coque hémisphérique + treillis tournant. Bouclier, et déflexion d'immunité.
+  // ⚠ Le rayon par défaut DÉBORDE la case à dessein. La carte CSS3D d'une unité
+  // occupe exactement une case (CARD_PX × CSS_SCALE = 1 unité monde) et vit dans
+  // un calque DOM empilé AU-DESSUS du canvas WebGL : tout ce qui est dessiné à
+  // moins de 0,5 unité du centre d'une unité est caché, quelle que soit sa
+  // hauteur. Même contrainte pour spawnOrbit et le sceau de POWER_BLOCK.
+  spawnDome(pos: Position | THREE.Vector3, color = 0x6ab4e8, opts: any = {}): void {
+    const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    const { radius = 0.9, maxLife = 0.75, growth = 0.13, opacity = 0.7 } = opts;
+
+    const geo = new THREE.SphereGeometry(radius, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({
+      color, transparent: true, opacity, side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const shell = new THREE.Mesh(geo, mat);
+
+    const geo2 = new THREE.SphereGeometry(radius * 1.05, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+    const mat2 = new THREE.MeshBasicMaterial({
+      // Teinté et non blanc : un treillis blanc se lisait comme une cage grise,
+      // sans rapport avec la couleur du pouvoir. 0.35 seulement vers le blanc —
+      // au-delà la teinte disparaît.
+      color: new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.35).getHex(),
+      transparent: true, opacity: opacity * LATTICE_RATIO, wireframe: true,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const lattice = new THREE.Mesh(geo2, mat2);
+
+    const group = new THREE.Group();
+    group.add(shell);
+    group.add(lattice);
+    group.position.set(center.x, 0.03, center.z);
+    group.scale.setScalar(0.01);
+    this.scene.add(group);
+
+    let t = 0;
+    this.anims.push({
+      update: (dt: number) => {
+        t += dt;
+        group.scale.setScalar(t < growth ? Math.max(0.01, easeOutBack(t / growth)) : 1);
+        lattice.rotation.y += dt * 1.3;
+        const fade = t <= growth ? 1 : 1 - (t - growth) / Math.max(0.01, maxLife - growth);
+        mat.opacity = opacity * Math.max(0, fade);
+        mat2.opacity = opacity * LATTICE_RATIO * Math.max(0, fade);
+        if (t >= maxLife) {
+          this.scene.remove(group);
+          geo.dispose(); mat.dispose();
+          geo2.dispose(); mat2.dispose();
+          return false;
+        }
+        return true;
+      },
+    });
+  }
+
+  // L'inverse de spawnBurst : les particules naissent sur un anneau et
+  // convergent vers le centre. Soin (elles montent), Débuff et départ de
+  // Téléportation (elles descendent, `sink`).
+  spawnConvergence(pos: Position | THREE.Vector3, color: number, count = 30, opts: any = {}): void {
+    const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    // ⚠ Rayon par défaut LARGE : sous ~0,7 les particules naissent déjà sous la
+    // carte CSS3D de l'unité et n'ont plus de trajet visible (cf. spawnDome).
+    const { radius = 1.5, size = 0.1, maxLife = 0.45, height = 0.55, sink = false } = opts;
+    const starts = new Float32Array(count * 3);
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const r = radius * (0.55 + Math.random() * 0.45);
+      const j = i * 3;
+      starts[j]     = center.x + Math.cos(theta) * r;
+      starts[j + 1] = center.y + (sink ? height * Math.random() : height * Math.random() * 0.5);
+      starts[j + 2] = center.z + Math.sin(theta) * r;
+      positions[j] = starts[j]; positions[j + 1] = starts[j + 1]; positions[j + 2] = starts[j + 2];
+    }
+    const endY = center.y + (sink ? -0.04 : height * 0.9);
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({
+      color, size, transparent: true, opacity: 1,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const points = new THREE.Points(geo, mat);
+    this.scene.add(points);
+
+    let t = 0;
+    this.anims.push({
+      update: (dt: number) => {
+        t += dt;
+        const p = Math.min(t / maxLife, 1);
+        const e = p * p; // accélération vers le centre — l'aspiration se sent
+        const arr = geo.attributes.position.array as unknown as Float32Array;
+        for (let j = 0; j < arr.length; j += 3) {
+          arr[j]     = THREE.MathUtils.lerp(starts[j], center.x, e);
+          arr[j + 1] = THREE.MathUtils.lerp(starts[j + 1], endY, e);
+          arr[j + 2] = THREE.MathUtils.lerp(starts[j + 2], center.z, e);
+        }
+        geo.attributes.position.needsUpdate = true;
+        mat.opacity = Math.min(1, (1 - p) * 3);
+        if (p >= 1) {
+          this.scene.remove(points);
+          geo.dispose(); mat.dispose();
+          return false;
+        }
+        return true;
+      },
+    });
+  }
+
+  // Motes en orbite au-dessus d'une unité. `alive` fait vivre l'effet tant que
+  // le statut dure (plutôt qu'une durée figée, qui mentirait dès que la vitesse
+  // de combat change ou qu'un POWER_DEBUFF purge le statut) ; `followUid` lui
+  // fait suivre la carte, qui se déplace pendant ce temps.
+  spawnOrbit(pos: Position | THREE.Vector3, color: number, opts: any = {}): void {
+    const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    const {
+      count = 3, radius = 0.76, height = 0.6, speed = 3.4, size = 0.1,
+      maxLife = 4, alive = null, followUid = null,
+    } = opts;
+
+    // Des MESHES et non des Points : trois particules de 0,12 se réduisent à
+    // trois poussières illisibles à la distance de caméra du board, là où un
+    // octaèdre garde une taille d'écran franche (mêmes glyphes que
+    // spawnMagicCircle, qui se lisent très bien).
+    const geo = new THREE.OctahedronGeometry(size, 0);
+    const mat = new THREE.MeshBasicMaterial({
+      color, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const motes: THREE.Mesh[] = [];
+    const group = new THREE.Group();
+    for (let i = 0; i < count; i++) {
+      const mote = new THREE.Mesh(geo, mat);
+      group.add(mote);
+      motes.push(mote);
+    }
+    this.scene.add(group);
+
+    let t = 0;
+    let fadeT = -1;
+    let cx = center.x;
+    let cz = center.z;
+    this.anims.push({
+      update: (dt: number) => {
+        t += dt;
+        if (followUid !== null) {
+          const entry = this.unitObjs.get(followUid);
+          if (entry) { cx = entry.obj.position.x; cz = entry.obj.position.z; }
+        }
+        if (fadeT < 0 && ((alive && !alive()) || t >= maxLife)) fadeT = 0;
+        if (fadeT >= 0) fadeT += dt;
+
+        for (let i = 0; i < count; i++) {
+          const a = t * speed + (i / count) * Math.PI * 2;
+          motes[i].position.set(
+            cx + Math.cos(a) * radius,
+            height + Math.sin(t * 2.4 + i) * 0.07,
+            // 0.85 et non 0.55 : trop aplatie, l'orbite repasserait sous la carte.
+            cz + Math.sin(a) * radius * 0.85,
+          );
+          motes[i].rotation.y += dt * 2.5;
+          motes[i].rotation.x += dt * 1.7;
+        }
+        mat.opacity = fadeT >= 0 ? Math.max(0, 1 - fadeT / 0.3) : Math.min(1, t / 0.15);
+
+        if (fadeT >= 0.3) {
+          this.scene.remove(group);
+          geo.dispose(); mat.dispose();
+          return false;
+        }
+        return true;
+      },
+    });
+  }
+
+  // Amas de cristaux posé sur une case gelée. Il vit jusqu'à ce que son disposer
+  // soit appelé (le cycle de vie `_frozenCells` de CombatAnimator3D), et reste
+  // STATIQUE une fois poussé : une animation permanente forcerait une frame à
+  // chaque tour de boucle et annulerait le rendu à la demande de `_animate`.
+  spawnIceBlock(pos: Position | THREE.Vector3): () => void {
+    const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xbfe9ff, transparent: true, opacity: 0.6,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const geos: THREE.BufferGeometry[] = [];
+    const group = new THREE.Group();
+    group.position.set(center.x, 0.02, center.z);
+    group.scale.set(1, 0.01, 1);
+    for (let i = 0; i < 5; i++) {
+      const h = 0.24 + Math.random() * 0.3;
+      const geo = new THREE.ConeGeometry(0.08 + Math.random() * 0.06, h, 5);
+      geos.push(geo);
+      const spike = new THREE.Mesh(geo, mat);
+      const a = (i / 5) * Math.PI * 2 + Math.random() * 0.7;
+      const r = i === 0 ? 0 : 0.15 + Math.random() * 0.12;
+      spike.position.set(Math.cos(a) * r, h / 2, Math.sin(a) * r);
+      spike.rotation.x = (Math.random() - 0.5) * 0.35;
+      spike.rotation.z = (Math.random() - 0.5) * 0.35;
+      group.add(spike);
+    }
+    this.scene.add(group);
+
+    let disposed = false;
+    const dispose = () => {
+      if (disposed) return;
+      disposed = true;
+      this._persistent.delete(dispose);
+      this.scene.remove(group);
+      for (const geo of geos) geo.dispose();
+      mat.dispose();
+      this._invalidate();
+    };
+    this._persistent.add(dispose);
+
+    let t = 0;
+    this.anims.push({
+      update: (dt: number) => {
+        if (disposed) return false;
+        t += dt;
+        const g = Math.min(1, t / 0.2);
+        group.scale.set(1, g, 1);
+        return g < 1;
+      },
+    });
+    return dispose;
+  }
+
+  // Téléportation : la carte se rétracte, se REPOSE (pas de lerp — une
+  // téléportation qui traverse le board est une marche), puis rejaillit.
+  playBlink(uid: number, toPos: Position, outDur = 0.11, inDur = 0.15): void {
+    const entry = this.unitObjs.get(uid);
+    if (!entry) return;
+    entry.pos = { ...toPos };
+    const to = this.tilePosition(toPos);
+    let t = 0;
+    let moved = false;
+    this.anims.push({
+      update: (dt: number) => {
+        t += dt;
+        if (t < outDur) {
+          entry.obj.scale.setScalar(CSS_SCALE * Math.max(0.001, 1 - t / outDur));
+          return true;
+        }
+        if (!moved) {
+          entry.obj.position.set(to.x, to.y, to.z);
+          moved = true;
+        }
+        const p = Math.min((t - outDur) / inDur, 1);
+        entry.obj.scale.setScalar(CSS_SCALE * Math.max(0.001, p));
+        if (p >= 1) {
+          entry.obj.scale.setScalar(CSS_SCALE);
+          return false;
+        }
+        return true;
+      },
+    });
+  }
+
   // ── Tuiles : couleurs/teintes ────────────────────────────────────────────
 
   _refreshTileColors(): void {
@@ -1315,6 +1679,12 @@ export class Scene3D {
     if (this._blockedCells.has(k)) {
       color = 0x4a1418; emissive = 0xd86a7e; intensity = 0.3;
       if (veiled) opacity = 0.52;
+    }
+    // Après le cas générique : une case gelée EST bloquée, mais le rouge des
+    // cases bloquées d'un terrain mentirait sur ce qui vient de s'y passer.
+    if (this._frozenCells.has(k)) {
+      color = 0x123a4e; emissive = 0x8fd6ff; intensity = 0.45;
+      if (veiled) opacity = 0.58;
     }
 
     const mat = tile.material as THREE.MeshStandardMaterial;
@@ -1832,7 +2202,7 @@ export class Scene3D {
         b.points.material.opacity = 1 - p;
       }
       if (b.ring) {
-        const scale = 1 + p * (b.maxScale ?? 6);
+        const scale = (b.startScale ?? 1) + p * (b.maxScale ?? 6);
         b.ring.scale.set(scale, scale, scale);
         b.ring.material.opacity = 0.9 * (1 - p);
       }
@@ -1987,6 +2357,9 @@ export class Scene3D {
     }
     this.bursts = [];
     this.anims = [];
+    this._iceBlocks.clear();
+    for (const dispose of [...this._persistent]) dispose();
+    this._persistent.clear();
 
     // Textures canvas mises en cache + DOM des deux renderers
     this._flameTex?.dispose();
