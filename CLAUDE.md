@@ -1602,6 +1602,37 @@ C'est ce qui laisse à la brûlure un contre-jeu que le poison n'a pas : une cib
 - Les effets de pouvoir prennent fin à la fin du combat (`resetCombatStats`)
 - Un `power_id` inconnu retombe sur une attaque normale
 
+### Effets visuels — une recette par pouvoir (`three/PowerVfx.ts`)
+
+Les 14 pouvoirs jouaient tous le **même** `spawnBurst(50)` + `spawnRing`, avec une classe CSS qui n'en distinguait que 4 : impossible de savoir lequel venait de partir sans lire le toast. Chacun a désormais une **grammaire** à lui — direction, silhouette, locus — parce que c'est elle qui distingue, pas la teinte : poison `0xc878e0` et confusion `0xa040c8` sont indiscernables en mouvement.
+
+| Grammaire | Pouvoirs |
+|---|---|
+| Explosion radiale | Super Attaque, Attaque Zone |
+| Implosion (`spawnConvergence`) | Débuff, Téléportation (départ), Soin |
+| Faisceau (`spawnBeam`) | Super Attaque, Blocage, Provocation (retour) |
+| Dôme (`spawnDome`) | Bouclier, **déflexion d'immunité** |
+| Orbite (`spawnOrbit`) | Confusion |
+| Nuage bas persistant | Poison |
+| Arcs rasants + anneau rentrant | Paralysie |
+| Cône directionnel | Poussée |
+| Sceau runique (`spawnMagicCircle`) | Blocage |
+| Cristaux au sol (`spawnIceBlock`) | Gel |
+
+**Le module est SÉPARÉ de `Scene3D` et ce n'est pas cosmétique** : `Scene3D` reste une bibliothèque de primitives (elle ne parle que de géométrie et d'éléments, cf. `spawnElementImpact`, le modèle de composition recopié ici), là où une recette parle d'un `CombatEvent`. `PowerVfx.ts` n'importe de `Scene3D` que son **type**.
+
+- **Hybride** : la forme et la couleur appartiennent au **pouvoir**, la signature élémentaire au **lanceur** (`elementAccent`, posé sur **sa** case seulement, à ~30 % du budget d'un impact). Sans ce cantonnement, une Attaque Zone sur cinq cibles devient illisible.
+- **Sobre** : aucun `shakeCamera` sur les pouvoirs — il reste réservé à l'élément `terre` (`spawnElementImpact`).
+- **Persistance ciblée**, là où l'invisibilité fait le plus mal : pulse de poison, pulse de brûlure, orbite de confusion, cristaux de la case gelée. Paralysie, blocage et provocation restent portés par le médaillon de statut de `UnitCardEl`.
+  - ⚠️ L'orbite vit **tant que le statut dure** (prédicat `alive: () => target.confusion_remaining > 0`), jamais sur une durée figée : celle-ci mentirait dès qu'on change la vitesse de combat ou qu'un `POWER_DEBUFF` purge le statut.
+  - L'événement `dot` **ne dit pas d'où vient le pulse** — poison et brûlure le partagent. On le déduit de l'état de l'unité (`dot_effects` / `burn_stacks`) plutôt que d'élargir le contrat d'événements de `logic/`, que les golden tests verrouillent.
+- **Déflexion d'immunité** : une seule recette pour les **sept** pouvoirs que `effect_immunity` dévie, et **aucun** effet du pouvoir. Avant, l'effet complet se jouait sur une cible immunisée — indiscernable d'un effet qui a pris.
+- **5 primitives nouvelles** (`spawnBeam`, `spawnDome`, `spawnConvergence`, `spawnOrbit`, `spawnIceBlock`) et 3 options sur l'existant : `dir`/`cone` sur `spawnBurst` (émission en secteur), couleur + échelle sur `spawnMagicCircle`, `startScale` sur `spawnRing` — c'est lui qui rend l'**anneau rentrant** possible, la géométrie de base ne faisant que 0,18 d'extérieur (un `maxScale` négatif seul ferait rétrécir un point).
+- ⚠️ Toutes bâties sur le hook **`Scene3D.anims`** (`{ update(dt): boolean }`, la closure possède sa géométrie et son nettoyage) et **jamais** sur `bursts`, dont chaque variante coûte trois branches à tenir d'accord : mise à jour dans `_animate`, disposal à `p >= 1`, et `destroy()`.
+- **Budget et durées se règlent en un seul endroit** (`vfxBudget` / `life`) : `LOW_END_DEVICE` (déplacé dans `three/constants.ts` pour que `CombatAnimator3D` le lise sans faire entrer Three.js dans son graphe de modules) et le paramètre **`interval`**, déjà passé à `_apply` mais jusque-là inutilisé. Plafond par lancement sur l'Attaque Zone, pire cas du jeu. Le toast lui-même raccourcit — à ×4 un step dure 45 ms, un toast de 1,8 s survivrait à quarante ticks.
+- ⚠️ **Rien côté serveur, rien dans `logic/`, aucune donnée** : tous les payloads `extra` nécessaires (`amount`, `damage`, `ticks`, `pushed`, `immune`, `cell`, `from`/`to`) étaient déjà émis, ils n'étaient simplement jamais lus. `powers.json` reste à trois champs — la table de recettes vit en TypeScript, comme `POWER_NAMES`. Les golden tests passent donc **sans modification**, `powers.test.ts` et `pvp.test.ts` compris, ce qui est la meilleure preuve de non-régression du lot.
+- **Banc d'essai** : `dev/CombatLab.tsx` (`?screen=combatlab`) porte un déclencheur manuel des 14 pouvoirs, plus la poussée butée et une case « cible immunisée ». Il fabrique les événements et les passe par le **vrai** `_apply` de l'animateur. Ces branches ne se rencontrent pas en jouant : une carte porte au plus un pouvoir.
+
 ---
 
 ## Combat Rules
@@ -1922,6 +1953,18 @@ Lors d'un déplacement d'unité :
 3. Animer visuellement
 
 Dans cet ordre.
+
+### Deux contraintes du rendu 3D qui ne se devinent pas
+
+Elles ont coûté trois effets de pouvoir invisibles avant d'être identifiées à l'écran. Elles s'appliquent à **tout** ce qu'on ajoute dans `three/`.
+
+**1. La caméra du board regarde DROIT vers le bas.** `_applyCameraState` pose `camera.position.set(0, _camH, _camCenterZ)` puis `lookAt(0, 0, _camCenterZ)` — il n'y a pas d'inclinaison, seulement la perspective qui écarte les bords. Conséquence : **tout ce qui doit se lire est planaire**. Une barre verticale, une colonne montante, une cage se projettent sur un point. Une première version du Soin (colonne de motes montantes) et de la Paralysie (cage d'arcs verticaux) était rigoureusement invisible. Les particules qui montent doivent aussi **s'écarter** ; les arcs se referment **sur le plan du sol**.
+
+**2. Une carte CSS3D occupe une case ENTIÈRE et masque tout ce qu'il y a dessous.** `CARD_PX × CSS_SCALE` = 1 unité monde, soit exactement une case ; et le `CSS3DRenderer` rend dans un **élément DOM empilé au-dessus du canvas WebGL**. Les deux renderers ne partagent aucun tampon de profondeur : **rien de ce qui est dessiné à moins de ~0,5 unité du centre d'une unité n'est visible, quelle que soit sa hauteur `y`**. D'où les dômes (rayon 0,9), les orbites (0,76) et les convergences (1,5) qui débordent franchement la case, et le `scale: 1.7` du sceau de Blocage.
+
+**Corollaire de blending** : `AdditiveBlending` d'une couleur **sombre** n'enregistre presque rien sur un plateau sombre. Les rayons de Provocation en `0xc83020` étaient purement et simplement invisibles ; les traits fins passent par le helper `brighten()` de `PowerVfx.ts`, qui éclaircit sans partir au blanc.
+
+⚠️ Corollaire de perf : un effet qui doit vivre longtemps (le bloc de glace d'une case gelée) se pose **statique** et se retire par un disposer, il ne s'anime pas en boucle. `Scene3D._animate` fait du **rendu à la demande** — il saute la frame quand `anims`, `bursts`, `_shake` et `_needsRender` sont tous vides — et une animation permanente annulerait cette économie pour tout le combat.
 
 ---
 
