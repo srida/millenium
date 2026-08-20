@@ -3,8 +3,13 @@
 // et applique les animations sur Scene3D. Le timing vit ici (jamais dans logic/) :
 // BASE_TICK_MS / speed, comme l'original (aligné sur MAX_COMBAT_TICKS côté logique).
 import { updateUnitEl } from './UnitCardEl.js';
-import { ELEMENT_STYLES, elementsForUnit } from './constants.js';
+import { ELEMENT_STYLES, elementsForUnit, LOW_END_DEVICE } from './constants.js';
+import {
+  playPowerVfx, playImmuneVfx, playPoisonPulse, playBurnPulse,
+  type PowerVfxContext,
+} from './PowerVfx.js';
 import type { Scene3D } from './Scene3D.js';
+import type { Unit } from '../logic/Unit.js';
 import type { Position } from '../logic/types.js';
 
 const BASE_TICK_MS = 180;
@@ -24,19 +29,6 @@ const POWER_NAMES: Record<string, string> = {
   POWER_FREEZE:       'Gel',
   POWER_CONFUSION:    'Confusion',
   POWER_TAUNT:        'Provocation',
-};
-
-const POWER_COLORS: Record<string, number> = {
-  POWER_HEAL:      0x4caf80,
-  POWER_SHIELD:    0x6ab4e8,
-  POWER_POISON:    0xc878e0,
-  POWER_PARALYSIS: 0xf0c040,
-  POWER_PUSH:      0xf0a040,
-  POWER_BURN:      0xff6020,
-  POWER_FREEZE:    0x8fd6ff,
-  POWER_TELEPORT:  0xb070ff,
-  POWER_CONFUSION: 0xa040c8,
-  POWER_TAUNT:     0xc83020,
 };
 
 function _cellKey(pos: Position): string { return `${pos.col},${pos.row}`; }
@@ -96,7 +88,15 @@ export class CombatAnimator3D {
       const events = this._cm.step();
       this._onStep?.(events);
       const dyingUids = new Set<number>(events.filter((e: any) => e.type === 'death').map((e: any) => e.unit.uid));
-      for (const evt of events) this._apply(evt, interval, dyingUids);
+      // POWER_TELEPORT pousse un 'move' juste après son 'power' : les deux
+      // arrivent dans le MÊME tick, on peut donc décider ici que ce
+      // déplacement-là ne se joue pas comme une marche (cf. _applyMove).
+      const teleportUids = new Set<number>(
+        events
+          .filter((e: any) => e.type === 'power' && e.power_id === 'POWER_TELEPORT')
+          .map((e: any) => e.unit.uid),
+      );
+      for (const evt of events) this._apply(evt, interval, dyingUids, teleportUids);
       this._purgeFrozenCells();
       this._refreshPowerGauges();
       if (this._cm.isOver) {
@@ -116,15 +116,30 @@ export class CombatAnimator3D {
     }
   }
 
-  _apply(evt: any, interval: number, dyingUids: Set<number> = new Set()): void {
+  _apply(evt: any, interval: number, dyingUids: Set<number> = new Set(), teleportUids: Set<number> = new Set()): void {
     switch (evt.type) {
-      case 'move':   this._applyMove(evt); break;
-      case 'attack': this._applyAttack(evt, dyingUids); break;
-      case 'dot':    this._applyDot(evt);     break;
-      case 'power':  this._applyPower(evt);   break;
-      case 'death':  this._applyDeath(evt);   break;
-      case 'freeze': this._applyFreeze(evt);  break;
+      case 'move':   this._applyMove(evt, teleportUids);       break;
+      case 'attack': this._applyAttack(evt, dyingUids);        break;
+      case 'dot':    this._applyDot(evt, interval);            break;
+      case 'power':  this._applyPower(evt, interval, dyingUids); break;
+      case 'death':  this._applyDeath(evt);                    break;
+      case 'freeze': this._applyFreeze(evt);                   break;
     }
+  }
+
+  // Contexte partagé par toutes les recettes : le budget de particules et les
+  // durées s'y règlent une fois pour toutes (appareil + vitesse de combat).
+  _vfxContext(interval: number, dying: Set<number> = new Set(), caster: Unit | null = null): PowerVfxContext {
+    return {
+      interval,
+      dying,
+      deviceScale: LOW_END_DEVICE ? 0.5 : 1,
+      opponents: () => {
+        if (!caster) return [];
+        const side = caster.side === 'player' ? this._cm.enemyUnits : this._cm.playerUnits;
+        return (side as Unit[]).filter((u) => u.isAlive());
+      },
+    };
   }
 
   _applyFreeze({ cell, expiresAtStep }: { cell: Position; expiresAtStep: number }): void {
@@ -151,8 +166,11 @@ export class CombatAnimator3D {
     }
   }
 
-  _applyMove({ unit, to }: any): void {
-    this._board.animateUnitMove(unit.uid, to);
+  _applyMove({ unit, to }: any, teleportUids: Set<number> = new Set()): void {
+    // Un lerp de 0,28 s à travers le board ferait MARCHER l'unité téléportée :
+    // elle doit disparaître et reparaître.
+    if (teleportUids.has(unit.uid)) this._board.playBlink(unit.uid, to);
+    else this._board.animateUnitMove(unit.uid, to);
   }
 
   _applyAttack({ attacker, target }: any, dyingUids: Set<number>): void {
@@ -230,54 +248,71 @@ export class CombatAnimator3D {
     }
   }
 
-  _applyDot({ unit }: any): void {
+  _applyDot({ unit }: any, interval: number): void {
     const entry = this._board.getUnitEntry(unit.uid);
     if (entry) {
       this._flashClass(entry.el, 'anim-poison');
       updateUnitEl(entry.el, unit);
     }
+    // L'événement 'dot' ne dit pas d'où vient le pulse — poison et brûlure le
+    // partagent. On le déduit de l'état de l'unité plutôt que d'élargir le
+    // contrat d'événements de logic/ : la lecture est gratuite et purement
+    // présentationnelle, là où un champ de plus toucherait au déterminisme.
+    const ctx = this._vfxContext(interval);
+    if (unit.dot_effects?.length) playPoisonPulse(this._board, unit, ctx);
+    if (unit.burn_stacks?.length) playBurnPulse(this._board, unit, ctx);
   }
 
-  _applyPower({ unit, targets, power_id }: any): void {
+  _applyPower(evt: any, interval: number, dyingUids: Set<number>): void {
+    const { unit, targets, power_id } = evt;
+    const extra = (evt.extra ?? {}) as Record<string, unknown>;
+    // Sept pouvoirs peuvent rendre `immune` quand la cible porte
+    // `effect_immunity`. Jouer l'effet complet dessus — l'état d'avant — le
+    // rendait indiscernable d'un effet qui a pris.
+    const immune = extra.immune === true;
+
     const casterEntry = this._board.getUnitEntry(unit.uid);
     if (casterEntry) {
       this._flashClass(casterEntry.el, 'anim-power-cast');
       updateUnitEl(casterEntry.el, unit);
-      if (unit.position) this._showPowerToast(unit.position, power_id);
+      if (unit.position) this._showPowerToast(unit.position, power_id, interval);
     }
-
-    const cls = _powerTargetClass(power_id);
-    const color = POWER_COLORS[power_id] ?? 0xf04050;
 
     for (const t of targets) {
       const entry = this._board.getUnitEntry(t.uid);
       if (entry) {
-        this._flashClass(entry.el, cls);
+        this._flashClass(entry.el, immune ? 'anim-immune' : _powerTargetClass(power_id));
         updateUnitEl(entry.el, t);
       }
-      if (t.position) {
-        this._board.spawnBurst(t.position, color, 50);
-        this._board.spawnRing(t.position, color);
-      }
-
       // POWER_PUSH / POWER_FREEZE : la logique a déjà déplacé l'unité via
       // board.moveUnit, mais aucun event 'move' n'est émis — on anime le
-      // déplacement ici.
-      if ((power_id === 'POWER_PUSH' || power_id === 'POWER_FREEZE') && entry && t.position) {
+      // déplacement ici. Une cible immunisée, elle, n'a pas bougé.
+      if (!immune && (power_id === 'POWER_PUSH' || power_id === 'POWER_FREEZE') && entry && t.position) {
         this._board.animateUnitMove(t.uid, t.position, 0.2);
       }
     }
+
+    const ctx = this._vfxContext(interval, dyingUids, unit);
+    if (immune) {
+      for (const t of targets) playImmuneVfx(this._board, t, ctx);
+      return;
+    }
+    playPowerVfx(this._board, unit, targets, power_id, extra, ctx);
   }
 
   _applyDeath({ unit }: any): void {
     this._board.killUnitObj(unit.uid);
   }
 
-  _showPowerToast(pos: Position, power_id: string): void {
+  _showPowerToast(pos: Position, power_id: string, interval: number = BASE_TICK_MS): void {
     const label = POWER_NAMES[power_id] ?? power_id.replace('POWER_', '').replace(/_/g, ' ');
     const screen = this._board.worldToScreen(this._board.tilePosition(pos));
     const toast = document.createElement('div');
     toast.className = 'power-cast-label';
+    // À ×4 un step dure 45 ms : un toast de 1,8 s survivrait à quarante ticks et
+    // les lancements s'empileraient à l'écran.
+    const scale = Math.min(1, Math.max(0.35, interval / BASE_TICK_MS));
+    toast.style.setProperty('--power-toast-dur', (1.8 * scale).toFixed(2) + 's');
     toast.textContent = label;
     toast.style.left = screen.x + 'px';
     toast.style.top  = (screen.y - 50) + 'px';
@@ -297,8 +332,17 @@ function _powerTargetClass(power_id: string): string {
   switch (power_id) {
     case 'POWER_HEAL':      return 'anim-heal';
     case 'POWER_SHIELD':    return 'anim-shield';
+    case 'POWER_TAUNT':     return 'anim-shield';   // le lanceur se pare, il n'encaisse rien
     case 'POWER_POISON':    return 'anim-poison';
+    case 'POWER_BURN':      return 'anim-burn';
     case 'POWER_PARALYSIS': return 'anim-paralysis';
+    case 'POWER_FREEZE':    return 'anim-freeze';
+    case 'POWER_DEBUFF':    return 'anim-debuff';
+    case 'POWER_BLOCK':     return 'anim-block';
+    case 'POWER_CONFUSION': return 'anim-confusion';
+    case 'POWER_TELEPORT':  return 'anim-teleport';
+    // Restent sur anim-hit : Super Attaque, Attaque Zone et Poussée, qui SONT
+    // des coups reçus.
     default:                return 'anim-hit';
   }
 }

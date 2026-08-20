@@ -2,6 +2,12 @@
 // et styles élémentaires des particules).
 import type { Unit } from '../logic/Unit.js';
 
+// Appareil modeste : divise les budgets visuels (fragments d'explosion de
+// carte, particules de pouvoir). Défini ici et non dans Scene3D pour que
+// CombatAnimator3D puisse le lire sans faire entrer Three.js dans son graphe de
+// modules — il ne dépend aujourd'hui de Scene3D que par un import de TYPE.
+export const LOW_END_DEVICE = (navigator.hardwareConcurrency || 8) <= 4;
+
 export interface ElementStyle {
   color: number;
   ringColor: number;

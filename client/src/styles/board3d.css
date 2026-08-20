@@ -196,6 +196,41 @@
   0%,100% { transform: scale(1); }
   50%     { transform: scale(1.18); }
 }
+@keyframes anim-burn {
+  0%   { filter: brightness(1); }
+  45%  { filter: brightness(1.7) saturate(2) hue-rotate(-25deg); }
+  100% { filter: brightness(1); }
+}
+@keyframes anim-freeze {
+  0%   { filter: brightness(1); }
+  45%  { filter: brightness(1.4) saturate(0.5) hue-rotate(165deg); }
+  100% { filter: brightness(1); }
+}
+/* Le débuff DÉSATURE : il retombait jusqu'ici sur anim-hit, un éclaircissement
+   rouge-sépia qui se lit comme des dégâts — l'inverse de ce qui se passe. */
+@keyframes anim-debuff {
+  0%,100% { filter: none; }
+  45%     { filter: grayscale(1) brightness(0.55); }
+}
+/* Le blocage scelle : la carte s'assombrit et se cercle d'indigo. */
+@keyframes anim-block {
+  0%,100% { filter: none;                    box-shadow: none; }
+  50%     { filter: brightness(0.6) saturate(0.5); box-shadow: 0 0 0 3px rgba(110,122,200,.9) inset; }
+}
+@keyframes anim-confusion {
+  0%,100% { filter: none; }
+  30%     { filter: hue-rotate(70deg) saturate(1.6); }
+  65%     { filter: hue-rotate(-70deg) saturate(1.6); }
+}
+@keyframes anim-teleport {
+  0%,100% { filter: none; }
+  50%     { filter: brightness(2) saturate(0.4) hue-rotate(60deg); }
+}
+/* Déflexion d'immunité : un liseré blanc, sans aucun effet du pouvoir. */
+@keyframes anim-immune {
+  0%,100% { box-shadow: none;                        filter: none; }
+  40%     { box-shadow: 0 0 0 4px rgba(255,233,168,.95); filter: brightness(1.5) saturate(0.4); }
+}
 .anim-shake      { animation: anim-shake      0.28s ease; }
 .anim-hit        { animation: anim-hit        0.25s ease; }
 .anim-heal       { animation: anim-heal       0.35s ease; }
@@ -203,6 +238,13 @@
 .anim-poison     { animation: anim-poison     0.32s ease; }
 .anim-paralysis  { animation: anim-paralysis  0.35s ease; }
 .anim-power-cast { animation: anim-power-cast 0.3s  ease; }
+.anim-burn       { animation: anim-burn       0.32s ease; }
+.anim-freeze     { animation: anim-freeze     0.35s ease; }
+.anim-debuff     { animation: anim-debuff     0.45s ease; }
+.anim-block      { animation: anim-block      0.45s ease; }
+.anim-confusion  { animation: anim-confusion  0.5s  ease; }
+.anim-teleport   { animation: anim-teleport   0.3s  ease; }
+.anim-immune     { animation: anim-immune     0.4s  ease; }
 
 /* ── Power cast label (toast flottant au-dessus de l'unité) ── */
 @keyframes power-toast-anim {
@@ -223,7 +265,9 @@
   border-radius: var(--radius-sm);
   white-space: nowrap;
   box-shadow: 0 2px 14px rgba(203,168,90,.6);
-  animation: power-toast-anim 1.8s ease forwards;
+  /* La durée est posée en ligne par CombatAnimator3D : à ×4 un step dure 45 ms
+     et un toast de 1,8 s survivrait à quarante lancements. */
+  animation: power-toast-anim var(--power-toast-dur, 1.8s) ease forwards;
   font-family: var(--font-display);
 }
 
