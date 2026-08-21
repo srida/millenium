@@ -24,9 +24,11 @@ import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
 import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant } from '../stores/cosmeticStore.js';
+import { useCollectionStore } from '../stores/collectionStore.js';
 import { Button, Panel, Gauge, Modal, Countdown } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
+import PackContents, { PackPoster } from '../components/shop/PackContents.js';
 
 const fmt = new Intl.NumberFormat('fr-FR');
 
@@ -43,10 +45,15 @@ export default function ShopScreen() {
   const user = useAuthStore(s => s.user);
   const { snapshot, loading, error, notice, booster, load, dismissNotice, closeBooster } = useShopStore();
   const loadCosmetics = useCosmeticStore(s => s.load);
+  // La vue « contenu d'un pack » distingue les cartes possédées des manquantes,
+  // et c'est `collectionStore` qui le sait. Sans `force` : l'appel est
+  // idempotent, et `shopStore.absorb` continue d'y verser les cartes achetées.
+  const loadCollection = useCollectionStore(s => s.load);
   const [tab, setTab] = useState<'cards' | 'cosmetics'>('cards');
 
   useEffect(() => { void load(true); }, [load]);
   useEffect(() => { void loadCosmetics(true); }, [loadCosmetics]);
+  useEffect(() => { void loadCollection(); }, [loadCollection]);
   // Efface la pastille de nouveauté du menu principal pour l'offre du jour.
   useEffect(() => { if (user && snapshot) markShopSeen(user.id, snapshot.day); }, [user, snapshot?.day]);
 
@@ -567,35 +574,15 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
 
 // --- Boosters ---
 
-/**
- * Affiche du pack — c'est elle qui lui donne un visage à côté de son nom. Sans
- * affiche posée en admin, une tuile neutre : le serveur n'a pas d'image par
- * défaut à servir, et une `<img>` cassée serait pire que rien.
- */
-function PackPoster({ set, className }: { set: ShopSet; className: string }) {
-  if (!set.has_poster) {
-    return (
-      <div className={`${className} flex flex-shrink-0 items-center justify-center rounded-lg border border-line bg-white/5 text-white/25`}>
-        🎁
-      </div>
-    );
-  }
-  return (
-    <img
-      src={`/pack-posters/${set.id}`}
-      alt=""
-      loading="lazy"
-      className={`${className} flex-shrink-0 rounded-lg border border-line object-cover`}
-    />
-  );
-}
-
 function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds: number; priceGems: number }) {
   const user = useAuthStore(s => s.user);
   const busy = useShopStore(s => s.busy);
   const open = useShopStore(s => s.openBooster);
   const cardCount = useShopStore(s => s.snapshot?.booster.card_count ?? 0);
   const [err, setErr] = useState<string | null>(null);
+  // Consulter n'est pas acheter : la vue du contenu s'ouvre même sur un pack
+  // complet ou dont le booster est éteint.
+  const [contents, setContents] = useState(false);
   const { ask, dialog } = useBuyConfirm();
 
   const missing = set.card_count - set.owned_count;
@@ -618,8 +605,22 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
   });
 
   return (
-    <Panel className={`flex flex-col gap-2 p-3 ${set.complete ? 'border-success/40 bg-success/5' : ''}`}>
-      <div className="flex items-start gap-2">
+    // ⚠️ `min-w-0` : la tuile est un ITEM DE GRILLE, dont le `min-width` vaut
+    // `auto` par défaut — elle refuse donc de descendre sous sa largeur de
+    // min-content et déborde l'écran par la droite en portrait (le document
+    // gagne une barre de défilement horizontale). Les enfants tronquent déjà
+    // ce qu'il faut ; il ne manquait que l'autorisation de rétrécir.
+    <Panel className={`flex min-w-0 flex-col gap-2 p-3 ${set.complete ? 'border-success/40 bg-success/5' : ''}`}>
+      {/* L'en-tête de la tuile OUVRE le pack : affiche, nom et compteur sont
+          justement ce dont on veut le détail. Les boutons d'achat restent ses
+          FRÈRES, hors du bouton — un <button> imbriqué serait du HTML invalide,
+          et le tap d'achat ne doit pas ouvrir la vue au passage. */}
+      <button
+        type="button"
+        onPointerDown={() => setContents(true)}
+        aria-label={`Voir le contenu du pack ${set.name}`}
+        className="flex w-full items-start gap-2 text-left"
+      >
         <PackPoster set={set} className="h-12 w-12" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold leading-tight">{set.name}</p>
@@ -628,7 +629,8 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
         <span className={`flex-shrink-0 text-xs tabular-nums ${set.complete ? 'text-success' : 'text-white/50'}`}>
           {set.owned_count}/{set.card_count}
         </span>
-      </div>
+        <span className="flex-shrink-0 text-xs text-white/30" aria-hidden="true">›</span>
+      </button>
 
       <Gauge value={set.card_count ? set.owned_count / set.card_count : 0} className="h-1.5" fillClassName={set.complete ? 'bg-success' : 'bg-gold'} />
 
@@ -662,6 +664,7 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
       )}
       {err && <p className="text-[10px] text-danger">{err}</p>}
       {dialog}
+      {contents && <PackContents set={set} onClose={() => setContents(false)} />}
     </Panel>
   );
 }

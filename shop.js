@@ -664,6 +664,12 @@ function setsView(ctx) {
       name: def.name,
       card_count: ids.length,
       owned_count: owned,
+      // La COMPOSITION du pack, pour la vue « contenu du pack » (l'écran
+      // affiche ce qu'on y trouve, carte par carte, et ce qu'il reste à
+      // collecter). Exactement les ids dont la fraction ci-dessus est tirée :
+      // un pool distinct ferait mentir le compteur affiché juste à côté, et
+      // rouvrirait le « 55/57 » que le filtre sur l'art existe pour fermer.
+      card_ids: ids,
       complete: owned >= ids.length && ids.length > 0,
       booster_enabled: def.booster_enabled !== false,
       archetypes: (def.archetypes ?? []).slice(0, 3).map(a => a.name ?? a.attribute),

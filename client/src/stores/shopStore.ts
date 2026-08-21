@@ -35,6 +35,14 @@ export interface ShopSet {
   name: string;
   card_count: number;
   owned_count: number;
+  /**
+   * Composition du pack — les cartes VENDABLES, c'est-à-dire exactement le pool
+   * dont `card_count` / `owned_count` sont tirés. Ce que le joueur possède n'y
+   * est PAS marqué : la possession se lit dans `collectionStore`, que ce store
+   * tient déjà à jour après chaque achat (`absorb`). Une donnée dérivée qu'on
+   * transporte est une donnée qui peut contredire sa source.
+   */
+  card_ids: string[];
   complete: boolean;
   booster_enabled: boolean;
   archetypes: string[];

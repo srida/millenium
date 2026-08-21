@@ -296,6 +296,12 @@ describe('cartes sans illustration', () => {
       expect(view.card_count).toBe(sellable.length);
       expect(view.complete).toBe(true);
 
+      // La COMPOSITION servie à la vue « contenu du pack » l'ignore aussi :
+      // sans ça, l'écran afficherait une carte que plus aucun tirage ne peut
+      // rendre, sous un compteur qui, lui, ne la compte pas.
+      expect(view.card_ids).not.toContain(victim);
+      expect(view.card_ids).toEqual(sellable);
+
       // La prime tombe bien, sur le pack amputé de sa carte sans art.
       const other = shop.buyBooster(user(), shop.sets()[1].id, 'golds');
       expect(other.sets_completed.map((s: any) => s.set_id)).toContain(set.id);
@@ -725,6 +731,11 @@ describe('instantané', () => {
     expect(snap.collection.owned).toBe(owned(user()).size);
     for (const s of snap.sets) {
       expect(s.owned_count).toBeLessThanOrEqual(s.card_count);
+      // La composition et la fraction affichée à côté d'elle sortent du MÊME
+      // pool : c'est l'assertion qui les empêche de diverger.
+      expect(s.card_ids).toHaveLength(s.card_count);
+      expect(new Set(s.card_ids).size).toBe(s.card_ids.length);
+      expect(s.card_ids.filter((id: string) => owned(user()).has(id))).toHaveLength(s.owned_count);
     }
   });
 

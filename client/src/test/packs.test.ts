@@ -236,6 +236,20 @@ describe('composition d\'un pack', () => {
     expect(new Set(ids).size).toBe(ids.length);            // union, pas concaténation
   });
 
+  it('l\'instantané porte la composition, listée ET miroir', () => {
+    // La vue « contenu du pack » se sert de `card_ids`. Il doit porter la même
+    // union que `setCardIds` — un pack designé en admin après la création d'une
+    // carte compte sur le miroir, et une carte listée là mais dont le champ
+    // `set` n'a pas été réaligné compte sur la liste.
+    writeSets([{ id: 'SET_01', name: 'Miroir', cards: ['EXTRA_001'] }]);
+    const view = shop.refresh(newUser()()).sets.find((s: any) => s.id === 'SET_01');
+
+    expect(view.card_ids).toContain('EXTRA_001');
+    for (const id of MIRRORED_SET_01) expect(view.card_ids).toContain(id);
+    expect(new Set(view.card_ids).size).toBe(view.card_ids.length);
+    expect(view.card_ids).toHaveLength(view.card_count);
+  });
+
   it('un id inconnu listé dans un pack est ignoré', () => {
     writeSets([{ id: 'PACK_A', name: 'A', cards: ['CORE_001', 'NOPE_001'] }]);
     expect(shop.setCardIds(packs.byId('PACK_A'))).toEqual(['CORE_001']);
