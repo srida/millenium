@@ -31,7 +31,7 @@ export default function ResetPasswordScreen() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface p-6 text-white">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 relative z-10 p-6 text-white">
       <h1 className="text-3xl font-bold tracking-[0.2em] text-gold">MILLENIUM</h1>
       {!token ? (
         <>

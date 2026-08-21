@@ -17,7 +17,6 @@ import { useArcadeStore } from '../stores/arcadeStore.js';
 import { getProgress, shouldInvite, updateProgress } from '../data/tutorialProgress.js';
 import { Button, CountBadge, Modal, NewDot } from '../components/ui/primitives.js';
 import { ProgressionPills, ProfilePill } from '../components/ui/ProgressionStats.js';
-import { SpaceBackground } from '../components/ui/SpaceBackground.js';
 import { FullscreenButton } from '../components/system/DeviceGuards.js';
 import { AppVersion } from '../components/system/AppVersion.js';
 
@@ -26,18 +25,14 @@ export default function MainMenu() {
   const user = useAuthStore(s => s.user);
 
   return (
-    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface p-6 pt-[max(1.5rem,env(safe-area-inset-top))] text-white">
-      {/* Décor spatial : premier enfant, tout le reste passe au-dessus en
-          `relative z-10`. `bg-surface` reste sur <main> — c'est la couleur du
-          vide, visible tant que le fond n'a pas peint sa première frame. */}
-      <SpaceBackground />
-      <FullscreenButton className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-10" />
-      <div className="relative z-10 text-center">
+    <main className="relative z-10 flex min-h-dvh flex-col items-center justify-center gap-6 p-6 pt-[max(1.5rem,env(safe-area-inset-top))] text-white">
+      <FullscreenButton className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))]" />
+      <div className="text-center">
         <img src="/logo.png" alt="Millenium" className="mx-auto h-32 w-32 object-contain" />
         <p className="mt-1 text-sm text-white/50">Auto-battler tactique</p>
       </div>
 
-      <div className="relative z-10 flex w-full max-w-xs flex-col gap-3">
+      <div className="flex w-full max-w-xs flex-col gap-3">
         <Button variant="primary" className="w-full py-3 text-base" onPointerDown={() => navigate('deck_selector', { mode: 'play' })}>
           Jouer
         </Button>
@@ -65,7 +60,7 @@ export default function MainMenu() {
         )}
       </div>
 
-      <div className="relative z-10 flex flex-col items-center gap-2 text-xs">
+      <div className="flex flex-col items-center gap-2 text-xs">
         {/* Deck actif à côté du profil : rappel permanent de ce avec quoi on
             joue, et raccourci vers l'écran où on en change. */}
         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -85,7 +80,7 @@ export default function MainMenu() {
             annoncés — c'est la question que pose une jauge qu'on regarde. */}
         <ProgressionPills user={user} onOpen={() => navigate('profile')} />
       </div>
-      <AppVersion className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-10" />
+      <AppVersion className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))]" />
       <TutorialInvite />
     </main>
   );

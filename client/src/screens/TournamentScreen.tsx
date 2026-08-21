@@ -76,7 +76,7 @@ export default function TournamentScreen() {
   const playerMatch = tournament && !complete ? findPlayerMatch(tournament) : null;
 
   return (
-    <main className="flex min-h-dvh flex-col bg-surface text-white">
+    <main className="flex min-h-dvh flex-col relative z-10 text-white">
       <ScreenHeader title="Tournoi" onBack={() => navigate('main_menu')} safeAreaTop />
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
@@ -191,5 +191,5 @@ function Portrait({ p, won, size = 'h-8 w-8' }: { p: any; won?: boolean; size?: 
 }
 
 function Center({ children }: { children: ReactNode }) {
-  return <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface p-6 text-white">{children}</main>;
+  return <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-white">{children}</main>;
 }

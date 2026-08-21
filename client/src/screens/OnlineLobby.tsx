@@ -113,7 +113,7 @@ export default function OnlineLobby() {
   // Même en-tête que l'écran Tournoi : retour, titre. Le ◂ passe par `cancel()`
   // pour ne pas laisser le joueur dans la file en quittant.
   return (
-    <main className="flex min-h-dvh flex-col bg-surface text-white">
+    <main className="flex min-h-dvh flex-col relative z-10 text-white">
       <ScreenHeader title="Duel en ligne" onBack={cancel} safeAreaTop />
 
       <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto p-4 py-6 text-center">
@@ -188,5 +188,5 @@ function MatchFoundReveal({ opponent }: { opponent: Opponent | null }) {
 }
 
 function Center({ children }: { children: ReactNode }) {
-  return <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface p-6 text-center text-white">{children}</main>;
+  return <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-center text-white">{children}</main>;
 }

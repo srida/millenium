@@ -45,7 +45,7 @@ export default function MissionsScreen() {
 
   if (!user) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface p-6 text-center text-white">
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-center text-white">
         <p className="text-sm text-white/60">
           Les missions quotidiennes suivent ta progression :<br />elles demandent un compte.
         </p>
@@ -56,7 +56,7 @@ export default function MissionsScreen() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col bg-surface text-white">
+    <main className="flex min-h-dvh flex-col relative z-10 text-white">
       <ScreenHeader
         title="Missions"
         onBack={() => navigate('main_menu')}

@@ -1829,9 +1829,15 @@ Un deck public porte un **portrait** — c'est le visage de l'adversaire, en sé
 
 ---
 
-## Fond spatial du menu principal
+## Fond spatial (tous les écrans hors jeu)
 
-Décor animé de `MainMenu` — `components/ui/SpaceBackground.tsx` + `styles/space.css`. Aucun état de jeu, aucun store, aucune ligne côté serveur : le composant se monte et se démonte avec l'écran.
+Décor animé commun — `components/ui/SpaceBackground.tsx` + `styles/space.css`. Aucun état de jeu, aucun store, aucune ligne côté serveur.
+
+⚠️ **Il est monté UNE FOIS par `App.tsx`, jamais par un écran.** C'est ce qui fait qu'il y a une seule boucle rAF pour tout le jeu, et surtout que **le ciel ne se réinitialise pas à chaque navigation** — un fond remonté par écran repartirait d'un tirage neuf à chaque aller-retour vers le menu, ce qui se voit. D'où le `fixed` de la couche : elle ne vit pas dans le `<main>` de l'écran, et ne défile pas avec un écran plus haut que la fenêtre.
+
+- **Les écrans sont TRANSPARENTS** : leur `<main>` a perdu `bg-surface` et porte `relative z-10` — sans le `z-10`, une couche positionnée `z-0` passerait **au-dessus** du contenu non positionné. `html, body` gardent `#0f1117`, la couleur du vide, visible tant que le canvas n'a pas peint sa première frame.
+- **`IMMERSIVE_SCREENS`** (`game`, `game_pvp`, `testbench`, `combatlab`) ne le montent pas : le board 3D y occupe toute la fenêtre — le ciel serait invisible, et une boucle rAF de plus pendant un combat WebGL est une dépense pure.
+- ⚠️ **Le `z-10` du `<main>` crée un contexte d'empilement.** Une `Modal` d'écran (`z-40`) y est donc confinée, là où `TooltipHost` et `RewardToasts` (`z-50`, montés par l'App) restent au-dessus — c'est **l'ordre qui prévalait déjà**, il n'y a rien à rattraper. Les modales en `createPortal(…, document.body)` (cf. `ConfirmBuy`) sortent du contexte et passent devant tout : inchangé.
 
 **Le partage CSS / canvas n'est pas arbitraire**, c'est la règle qui décide où va chaque couche :
 
@@ -1848,8 +1854,8 @@ Les mêmes nébuleuses dessinées au canvas coûteraient un remplissage plein é
 - **La dérive est OBLIQUE** (`DRIFT_TILT`, une fraction de la vitesse verticale portée en X) : une chute strictement verticale se lit comme de la neige. Et c'est la **parallaxe** qui fait le mouvement, pas la vitesse absolue — ce qui donne la profondeur est l'écart entre le premier plan et le fond (`speed` indexée sur `depth`). Une étoile sortie par le bas revient en haut à une **abscisse neuve**, sinon les colonnes se figeraient et le ciel défilerait en bandes ; sortie par le côté, elle rentre en face à sa hauteur.
 - Le **halo** des étoiles proches est un dégradé **pré-rendu** (une texture par teinte), jamais un disque plat à faible alpha : un disque plat se lit comme un disque gris, c'est le dégradé qui fait la lueur. Un `createRadialGradient` par étoile et par frame, lui, serait hors budget.
 - ⚠️ **Pas de `filter: blur()`** sur les nébuleuses : ces dégradés sont déjà continus, et un flou plein écran est l'effet le plus cher qu'on puisse poser sur un mobile. Elles sont en `mix-blend-mode: screen` — une couche opaque poserait un halo à bord visible sur le vide profond.
-- La **vignette** n'est pas cosmétique : le menu est du texte blanc et des boutons fins, une nébuleuse qui passe dessous leur ferait perdre leur contraste.
-- **Empilement** : le fond est le premier enfant de `<main>` en `absolute inset-0 z-0`, tout le contenu du menu passe en `relative z-10`. `bg-surface` reste sur `<main>` — c'est la couleur du vide, visible tant que le canvas n'a pas peint sa première frame. Le décor est `aria-hidden` et `pointer-events-none` : il ne dit rien à un lecteur d'écran et ne mange jamais un tap destiné à un bouton.
+- La **vignette** n'est pas cosmétique : les écrans sont du texte blanc et des boutons fins, une nébuleuse qui passe dessous leur ferait perdre leur contraste. L'en-tête collant (`ScreenHeader`) reste **opaque**, comme avant — le contenu défile dessous, et un `backdrop-filter` y créerait un bloc conteneur qui piégerait les `position: fixed` de ses descendants.
+- Le décor est `aria-hidden` et `pointer-events-none` : il ne dit rien à un lecteur d'écran et ne mange jamais un tap destiné à un bouton.
 
 ---
 

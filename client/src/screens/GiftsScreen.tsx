@@ -56,7 +56,7 @@ export default function GiftsScreen() {
 
   if (!user) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface p-6 text-center text-white">
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-center text-white">
         <p className="text-sm text-white/60">
           Les cadeaux se gardent sur ton compte :<br />ils en demandent un.
         </p>
@@ -70,7 +70,7 @@ export default function GiftsScreen() {
   const claimed = snapshot?.gifts.filter(g => g.claimed) ?? [];
 
   return (
-    <main className="flex min-h-dvh flex-col bg-surface text-white">
+    <main className="flex min-h-dvh flex-col relative z-10 text-white">
       <ScreenHeader
         title="Cadeaux"
         onBack={() => navigate('main_menu')}

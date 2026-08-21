@@ -269,12 +269,14 @@ function Starfield() {
 }
 
 /**
- * Décor spatial plein cadre. À poser en PREMIER enfant d'un conteneur
- * `relative`, le contenu de l'écran passant au-dessus (`relative z-10`).
+ * Décor spatial plein cadre, monté UNE FOIS par l'App derrière tous les écrans
+ * de menu (cf. `App.tsx`) — d'où le `fixed` : la couche ne vit pas dans le
+ * `<main>` de l'écran, et elle ne défile pas avec un écran plus haut que la
+ * fenêtre. Chaque `<main>` passe au-dessus en `relative z-10`.
  */
 export function SpaceBackground({ className = '' }: { className?: string }) {
   return (
-    <div aria-hidden className={`pointer-events-none absolute inset-0 z-0 overflow-hidden ${className}`}>
+    <div aria-hidden className={`pointer-events-none fixed inset-0 z-0 overflow-hidden ${className}`}>
       <div className="space-bg-deep" />
       <div className="space-bg-nebula space-bg-nebula-a" />
       <div className="space-bg-nebula space-bg-nebula-b" />

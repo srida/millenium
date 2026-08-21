@@ -23,9 +23,19 @@ import GiftsScreen from '../screens/GiftsScreen.js';
 import TutorialScreen from '../screens/TutorialScreen.js';
 import TooltipHost from '../components/tooltip/TooltipHost.js';
 import RewardToasts from '../components/ui/RewardToasts.js';
+import { SpaceBackground } from '../components/ui/SpaceBackground.js';
 
 const CombatLab = lazy(() => import('../dev/CombatLab.js'));
 const TestBench = lazy(() => import('../dev/TestBench.js'));
+
+/**
+ * Écrans qui posent leur propre décor plein cadre : le board 3D y occupe toute
+ * la fenêtre, le ciel serait invisible — et une boucle rAF de plus pendant un
+ * combat WebGL est une dépense pure. Partout ailleurs le fond est le même,
+ * monté ICI plutôt que par chaque écran : une seule instance, donc une seule
+ * boucle, et le ciel ne se réinitialise pas à chaque navigation.
+ */
+const IMMERSIVE_SCREENS = new Set(['game', 'game_pvp', 'testbench', 'combatlab']);
 
 export default function App() {
   const screen = useUiStore(s => s.screen);
@@ -60,6 +70,7 @@ export default function App() {
 
   return (
     <>
+      {!IMMERSIVE_SCREENS.has(screen) && <SpaceBackground />}
       {screen === 'main_menu' && <MainMenu />}
       {screen === 'auth' && <AuthScreen />}
       {screen === 'reset_password' && <ResetPasswordScreen />}

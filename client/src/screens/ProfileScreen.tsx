@@ -58,7 +58,7 @@ export default function ProfileScreen() {
 
   if (!user) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface p-6 text-white">
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-white">
         <p className="text-sm text-white/60">Connecte-toi pour accéder à ton profil.</p>
         <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
         <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
@@ -83,7 +83,7 @@ export default function ProfileScreen() {
   const isImg = /^(https?:|data:|\/)/i.test(avatarPreview);
 
   return (
-    <main className="flex min-h-dvh flex-col bg-surface text-white">
+    <main className="flex min-h-dvh flex-col relative z-10 text-white">
       <ScreenHeader
         title="Profil"
         onBack={() => navigate('main_menu')}

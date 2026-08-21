@@ -147,7 +147,7 @@ export default function DeckSelector() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col bg-surface text-white" onPointerDown={hideTooltip}>
+    <main className="flex min-h-dvh flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
       <ScreenHeader
         title={MODES[mode].title}
         onBack={() => navigate('main_menu')}

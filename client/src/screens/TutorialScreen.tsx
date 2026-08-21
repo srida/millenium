@@ -36,7 +36,7 @@ export default function TutorialScreen() {
   const chapter = openIdx != null ? CHAPTERS[openIdx] : null;
 
   return (
-    <main className="flex min-h-dvh flex-col bg-surface text-white" onPointerDown={hideTooltip}>
+    <main className="flex min-h-dvh flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
       <ScreenHeader
         title={chapter ? chapter.title : 'Tutoriel'}
         onBack={() => (chapter ? setOpenIdx(null) : navigate('main_menu'))}
