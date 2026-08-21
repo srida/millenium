@@ -1829,6 +1829,29 @@ Un deck public porte un **portrait** — c'est le visage de l'adversaire, en sé
 
 ---
 
+## Fond spatial du menu principal
+
+Décor animé de `MainMenu` — `components/ui/SpaceBackground.tsx` + `styles/space.css`. Aucun état de jeu, aucun store, aucune ligne côté serveur : le composant se monte et se démonte avec l'écran.
+
+**Le partage CSS / canvas n'est pas arbitraire**, c'est la règle qui décide où va chaque couche :
+
+| | Où | Pourquoi |
+|---|---|---|
+| Vide profond, **deux nébuleuses** | CSS (`space.css`, `@keyframes`) | large et lent → composé par le GPU, sans une frame de JS |
+| **Étoiles**, étoile filante | `<canvas>` 2D | ponctuel → chacune sa dérive, son scintillement, sa teinte |
+
+Les mêmes nébuleuses dessinées au canvas coûteraient un remplissage plein écran à chaque image ; les mêmes étoiles en CSS demanderaient un élément par point.
+
+- **Trois sorties de secours, toutes obligatoires** : `prefers-reduced-motion: reduce` → **aucune boucle rAF**, une seule frame dessinée (le ciel reste, le mouvement part) et les nébuleuses figées ; `LOW_END_DEVICE` (celui des budgets de particules du combat, `three/constants.ts`) → moitié moins d'étoiles ; `devicePixelRatio` plafonné à 2 — au-delà on paie 4× pour des points de 1 px.
+- ⚠️ **Le `dt` est plafonné à 50 ms.** Un onglet revenu au premier plan rend un `dt` de plusieurs minutes : sans plafond, les étoiles sauteraient d'un bloc et une filante traverserait l'écran en une image. Le `visibilitychange` recale l'horloge au retour.
+- **Densité, pas nombre** : une étoile par tranche de surface (`AREA_PER_STAR`), plafonnée — le ciel suit l'écran au lieu d'être calibré pour un seul.
+- Le **halo** des étoiles proches est un dégradé **pré-rendu** (une texture par teinte), jamais un disque plat à faible alpha : un disque plat se lit comme un disque gris, c'est le dégradé qui fait la lueur. Un `createRadialGradient` par étoile et par frame, lui, serait hors budget.
+- ⚠️ **Pas de `filter: blur()`** sur les nébuleuses : ces dégradés sont déjà continus, et un flou plein écran est l'effet le plus cher qu'on puisse poser sur un mobile. Elles sont en `mix-blend-mode: screen` — une couche opaque poserait un halo à bord visible sur le vide profond.
+- La **vignette** n'est pas cosmétique : le menu est du texte blanc et des boutons fins, une nébuleuse qui passe dessous leur ferait perdre leur contraste.
+- **Empilement** : le fond est le premier enfant de `<main>` en `absolute inset-0 z-0`, tout le contenu du menu passe en `relative z-10`. `bg-surface` reste sur `<main>` — c'est la couleur du vide, visible tant que le canvas n'a pas peint sa première frame. Le décor est `aria-hidden` et `pointer-events-none` : il ne dit rien à un lecteur d'écran et ne mange jamais un tap destiné à un bouton.
+
+---
+
 ## TestBench
 
 Écran développeur (`client/src/dev/TestBench.tsx`, route `?screen=testbench`) accessible depuis `MainMenu` (bouton "TestBench (dev)"). Réutilise `Scene3D` + `CombatAnimator3D` directement (sans `GameController`).

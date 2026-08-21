@@ -1,0 +1,62 @@
+/* Fond « espace » du menu principal — la moitié CSS du décor (l'autre est le
+   champ d'étoiles en <canvas>, cf. components/ui/SpaceBackground.tsx).
+
+   Tout ce qui est LARGE et LENT vit ici plutôt que dans le canvas : un dégradé
+   radial animé par keyframes est composé par le GPU sans repeindre une seule
+   frame en JS, là où les mêmes nébuleuses dessinées au canvas coûteraient un
+   remplissage plein écran à chaque image. Le canvas ne porte donc que ce qui
+   est PONCTUEL — les étoiles, qui scintillent et dérivent une par une. */
+
+@keyframes space-nebula-a {
+  0%, 100% { transform: translate3d(-4%, -2%, 0) scale(1);    opacity: .55; }
+  50%      { transform: translate3d(4%, 3%, 0)  scale(1.12); opacity: .85; }
+}
+@keyframes space-nebula-b {
+  0%, 100% { transform: translate3d(3%, 2%, 0)   scale(1.08); opacity: .45; }
+  50%      { transform: translate3d(-3%, -3%, 0) scale(1);    opacity: .7; }
+}
+
+.space-bg-deep {
+  position: absolute;
+  /* Débordement : les couches se translatent, un `inset: 0` laisserait
+     apparaître un bord franc au bout de la course. */
+  inset: -12%;
+  background:
+    radial-gradient(110% 70% at 50% -5%, #1a2447 0%, transparent 62%),
+    radial-gradient(90% 60% at 12% 108%, #241a3c 0%, transparent 66%),
+    linear-gradient(180deg, #070912 0%, #0f1117 52%, #090b13 100%);
+}
+
+.space-bg-nebula {
+  position: absolute;
+  inset: -20%;
+  /* `screen` : la nébuleuse ÉCLAIRE le vide au lieu de le recouvrir — une
+     couche opaque poserait un halo à bord visible sur le dégradé profond. */
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+/* Pas de `filter: blur()` : ces dégradés sont déjà continus, et un flou
+   plein écran est l'effet le plus cher qu'on puisse poser sur un mobile. */
+.space-bg-nebula-a {
+  background: radial-gradient(46% 34% at 26% 30%, rgba(120, 76, 200, .55) 0%, rgba(70, 44, 140, .22) 42%, transparent 72%);
+  animation: space-nebula-a 34s ease-in-out infinite;
+}
+.space-bg-nebula-b {
+  background: radial-gradient(44% 34% at 72% 64%, rgba(58, 132, 196, .5) 0%, rgba(40, 90, 150, .2) 45%, transparent 74%);
+  animation: space-nebula-b 46s ease-in-out infinite;
+}
+
+/* Vignette : le menu est du texte blanc et des boutons fins. Sans elle, une
+   nébuleuse qui passe sous un libellé lui fait perdre son contraste. */
+.space-bg-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(75% 55% at 50% 45%, transparent 0%, rgba(6, 8, 15, .5) 78%, rgba(6, 8, 15, .78) 100%);
+}
+
+/* Les nébuleuses se figent à mi-course (le décor reste, le mouvement part).
+   Le canvas applique la même règle de son côté : il dessine une seule frame. */
+@media (prefers-reduced-motion: reduce) {
+  .space-bg-nebula { animation: none; opacity: .6; }
+}

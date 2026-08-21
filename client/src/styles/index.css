@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./board3d.css";
+@import "./space.css";
 
 /* Évite le liseré blanc (fond par défaut du document) visible au lancement
    en PWA mobile — sous la barre d'accueil iOS, ou pendant l'overscroll —
