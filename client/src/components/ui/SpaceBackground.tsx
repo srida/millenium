@@ -1,4 +1,5 @@
-// Fond animé « espace » du menu principal — décor pur, jamais interactif.
+// Fond animé « espace » commun à tous les écrans hors jeu — décor pur, jamais
+// interactif.
 //
 // Deux moitiés, et le partage n'est pas arbitraire (cf. styles/space.css) :
 //   - ce qui est LARGE et LENT (le vide profond, les deux nébuleuses) est en
@@ -6,10 +7,15 @@
 //   - ce qui est PONCTUEL (les étoiles, qui scintillent et dérivent chacune à
 //     son rythme, et l'étoile filante) est dessiné au <canvas>.
 //
-// Aucun état de jeu, aucun store : le composant se monte, s'anime et se
-// démonte avec l'écran. Il est `aria-hidden` et `pointer-events-none` — un
-// décor n'a rien à dire à un lecteur d'écran et ne doit jamais manger un tap
-// destiné à un bouton du menu.
+// Aucun état de jeu, aucun store : monté une seule fois par `App.tsx`, il vit
+// tant qu'on n'entre pas en partie. Il est `aria-hidden` et
+// `pointer-events-none` — un décor n'a rien à dire à un lecteur d'écran et ne
+// doit jamais manger un tap destiné à un bouton.
+//
+// ⚠️ Les constantes de MOUVEMENT ci-dessous (vitesse de dérive, cadence du
+// scintillement, délai entre deux filantes, et les durées d'animation des
+// nébuleuses dans space.css) sont volontairement DISCRÈTES : c'est un fond de
+// menu, pas un écran de veille. Elles se règlent ici, en un seul endroit.
 import { useEffect, useRef } from 'react';
 import { LOW_END_DEVICE } from '../../three/constants.js';
 
@@ -20,17 +26,11 @@ const MAX_STARS = 320;
 /** Le pixel ratio est plafonné : au-delà de 2 on paie 4× pour des points de 1 px. */
 const MAX_DPR = 2;
 /** Bornes du délai entre deux étoiles filantes (secondes). */
-const SHOT_DELAY: [number, number] = [3, 8];
+const SHOT_DELAY: [number, number] = [7, 19];
 const SHOT_SPEED = 620;   // px/s
 const SHOT_LIFE = 1.1;    // s
 /** Teintes stellaires : blanc, bleu, ambre — le ciel n'est pas monochrome. */
 const TINTS = ['255, 255, 255', '196, 214, 255', '255, 226, 186'];
-/**
- * Inclinaison de la dérive (fraction de la vitesse verticale portée en X).
- * Une chute strictement verticale se lit comme de la neige ; un mouvement en
- * biais se lit comme un déplacement dans l'espace.
- */
-const DRIFT_TILT = 0.35;
 
 interface Star {
   x: number;
@@ -38,7 +38,7 @@ interface Star {
   /** 0 = étoile lointaine (petite, lente, pâle) → 1 = proche. Porte la parallaxe. */
   depth: number;
   radius: number;
-  /** Dérive, px/s — la composante horizontale vaut DRIFT_TILT fois la verticale. */
+  /** Dérive verticale, px/s. */
   speed: number;
   alpha: number;
   /** Pulsation du scintillement (rad/s) et déphasage — sinon tout clignote ensemble. */
@@ -66,11 +66,9 @@ function makeStar(width: number, height: number): Star {
     y: Math.random() * height,
     depth,
     radius: 0.45 + depth * 1.25,
-    // La parallaxe EST le mouvement : ce qui donne la profondeur n'est pas la
-    // vitesse absolue mais l'écart entre le premier plan et le fond.
-    speed: 5 + depth * 26,
+    speed: 1.5 + depth * 7,
     alpha: 0.3 + depth * 0.55,
-    twinkle: rand(0.9, 3.4),
+    twinkle: rand(0.5, 2.2),
     phase: Math.random() * Math.PI * 2,
     tint: Math.floor(Math.random() * TINTS.length),
   };
@@ -128,7 +126,7 @@ function drawFrame(
   ctx.clearRect(0, 0, width, height);
 
   for (const s of stars) {
-    const pulse = 0.45 + 0.55 * Math.sin(time * s.twinkle + s.phase);
+    const pulse = 0.58 + 0.42 * Math.sin(time * s.twinkle + s.phase);
     const alpha = Math.max(0, s.alpha * pulse);
     // Halo des seules étoiles proches : posé sur toutes, il coûterait un
     // second dessin par étoile pour un gain invisible sur les plus pâles.
@@ -216,15 +214,9 @@ function Starfield() {
 
       for (const s of stars) {
         s.y += s.speed * dt;
-        s.x += s.speed * DRIFT_TILT * dt;
-        // Sortie par le bas : l'étoile revient en haut à une abscisse neuve —
-        // sinon les colonnes se figeraient et le ciel se mettrait à défiler
-        // en bandes. Sortie par le côté : elle rentre en face, à sa hauteur.
         if (s.y - s.radius > height) {
           s.y = -s.radius;
           s.x = Math.random() * width;
-        } else if (s.x - s.radius > width) {
-          s.x = -s.radius;
         }
       }
 
