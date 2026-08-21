@@ -81,13 +81,14 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `GET /api/variants` | Public | Variantes d'illustration, avec `_has_illustration` |
 | `GET /api/gifts` | Public | Catalogue des cadeaux ponctuels |
 | `POST/PUT/DELETE /api/*` | Auth | Écriture admin |
-| `GET /illustrations/:id` | Public | Art des cartes, terrains, magies **et variantes** (PNG sans extension, id gardé par `safeAssetId`) |
+| `GET /illustrations/:id` | Public | Art des cartes, terrains, magies, **variantes** et **icônes d'attributs** (PNG sans extension, id gardé par `safeAssetId`) |
 | `GET /avatars/:id` | Public | Avatar d'un deck public (repli sur l'avatar par défaut) |
 | `GET /pack-posters/:id` | Public | Affiche d'un pack (404 s'il n'en a pas — pas d'affiche par défaut) |
 | `GET /board-backgrounds/:id` | Public | Fond de grille d'un terrain (404 s'il n'en a pas — le décor par défaut reste) |
 | `POST /api/cards/import` | Auth | Import en masse (mode skip/replace) |
 | `POST /api/cards/:id/illustration` | Auth | Upload illustration (URL ou base64) |
 | `POST /api/attributes/import` | Auth | Import attributs en masse |
+| `POST/PUT/DELETE /api/attributes/:id/illustration` | Auth | Icône d'un attribut (URL / base64 / suppression) |
 | `POST /api/powers/import` | Auth | Import pouvoirs en masse |
 | `POST /api/decks/import` | Site admin | Import decks publics en masse |
 | `POST/PUT/DELETE /api/decks/:id/avatar` | Site admin | Avatar d'un deck public (URL / base64 / suppression) |
@@ -1497,6 +1498,31 @@ Les coûts `sacrifice`/`heritage` (`canSummon`, `isPlayable`, sélection de mat�
 Chargés depuis `/api/attributes`.
 
 Un monstre peut posséder un ou plusieurs attributs. Un seul palier d'attribut est actif à la fois (le plus élevé atteint).
+
+### L'icône d'un attribut est une image, l'emoji n'en est que le repli
+
+Un attribut s'annonce par une **image** importée depuis l'onglet Attributs de l'admin (triptyque `POST` URL / `PUT` base64 / `DELETE /api/attributes/:id/illustration`). Le champ `icon` du JSON reste l'**emoji**, et ne sert plus qu'à ça : le repli tant qu'aucune image n'a été importée. Les 57 attributs livrés en ont un, la migration se fait donc attribut par attribut sans rien casser au passage — et elle a une raison d'être : `🔥` et `⚙️` étaient chacun portés par **deux** attributs, et `👁️` / `🏵` sont des emojis à variation qui ne rendent pas pareil d'une plateforme à l'autre. Un jeu qui promet des archétypes lisibles ne peut pas les distinguer avec un jeu de pictogrammes qu'il ne contrôle pas.
+
+**L'art vit dans le dossier d'illustrations existant** (`resources/card_illustrations/<ARCH_ID>.png`), où cartes, terrains, magies et variantes se côtoient déjà : `/illustrations/:id` le sert, `listPngChecksums(ILLUS_DIR)` le synchronise. **Aucune famille d'assets à créer** — donc rien à ajouter à `asset-dirs.js`, au proxy Vite, à la liste d'exclusion du fallback SPA, à `ASSETS` de `sync-data.js` ni à `/api/export` (`attributes` est déjà dans `ENTITIES`). Précédent exact : les variantes.
+
+- ⚠️ **Le pool d'avatars cosmétiques n'est PAS touché** : `cosmetics.avatarPool` itère `SOURCES` (`cards.json` / `boards.json` / `magies.json`), il ne scanne pas le dossier. Une icône d'attribut ne devient donc jamais un visage achetable. Même raisonnement pour `shop.sellableCards` et les tirages de `levels.js`, tous indexés sur des listes d'entités.
+- `_has_illustration` est **calculé à la lecture** et retiré aux trois points d'écriture (`POST`, `import`, `PUT`) — même statut que sur une magie ou un terrain. Une icône ajoutée depuis l'admin est donc visible sans redémarrage.
+- ⚠️ **L'image est nommée par l'`id` de l'attribut** : le renommer en admin la détache silencieusement (le PNG garde l'ancien nom). Même piège que la prime de complétion d'un pack, mémorisée par id — l'écran d'admin le dit.
+
+**Client** — un seul composant décide du repli : **`components/ui/AttrIcon.tsx`** (image si `_has_illustration`, emoji sinon, rien si ni l'un ni l'autre). Les quatre sites d'affichage ne font que le rendre à leur taille, en passant la taille de boîte *et* la taille de police dans `className` :
+
+| Site | Taille |
+|---|---|
+| `hud/SynergyPanel.tsx` — puce du panneau de synergies (préparation) | `h-4 w-4` |
+| `tooltip/TooltipHost.tsx` — titre du tooltip d'attribut | `h-7 w-7` |
+| `tooltip/TooltipHost.tsx` — chips `Keywords` des tooltips carte/unité | `h-3.5 w-3.5` |
+| `tutorial/ChapterBlocks.tsx` — codex | `h-5 w-5` |
+
+- **`object-contain`, jamais `object-cover`** : une icône rognée perd sa silhouette, qui est justement ce qui la distingue. C'est la seule différence de traitement avec l'art des cartes, qui vit dans le même dossier.
+- `getAttribute` **jette** tant que la database n'est pas initialisée (TestBench, CombatLab et leurs cartes fabriquées) : `AttrIcon` l'entoure d'un `try/catch` et retombe sur le `fallback` reçu en prop — même précaution que `attributeName` dans `TooltipHost`, qui existe pour cette exacte raison.
+- **Le panneau de synergies pose l'icône sur TOUTES les puces**, actives comme incomplètes : c'est avant d'avoir le palier que le joueur décide d'ajouter une carte, une puce reconnaissable seulement une fois la synergie acquise arriverait trop tard. La distinction valide / incomplet continue de passer par ce qui la porte déjà — bordure et fond dorés — l'icône se contente de s'éteindre (`opacity-60`).
+- ⚠️ **Rien à changer dans `logic/`, `GameController`, `gameStore` ni le snapshot** : `GameController` transportait déjà `{ id, name, icon }` par synergie, ce qui donne au panneau son repli sans surcoût, et `AttrIcon` va chercher le drapeau dans `AttributeDatabase`, déjà initialisée par `initGameData`. C'est ce qui laisse les golden tests du combat rigoureusement intacts.
+- **Pas de test de composant** — la suite vitest tourne en node **sans jsdom** (même raison que pour le mode tutoriel) : la règle de repli se vérifie à l'écran.
 
 Effets supportés (`AttributeManager`) :
 

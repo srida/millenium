@@ -13,6 +13,7 @@ import * as PowerDatabase from '../../data/PowerDatabase.js';
 import * as AttributeDatabase from '../../data/AttributeDatabase.js';
 import * as MagieDatabase from '../../data/MagieDatabase.js';
 import * as BoardDatabase from '../../data/BoardDatabase.js';
+import AttrIcon from '../ui/AttrIcon.js';
 import { effectLabel } from '../../logic/MagieEffect.js';
 import type { Card, AttributeDef, BoardDef, Magie, PowerDef } from '../../logic/types.js';
 import type { ChapterBlock } from '../../data/tutorialContent.js';
@@ -66,8 +67,9 @@ function AttributeExamples({ limit }: { limit: number }) {
     <div className="grid gap-1.5">
       {firstById(all, limit).map(a => (
         <div key={a.id} className="rounded-lg border border-line bg-surface-raised/60 px-3 py-2">
-          <div className="text-xs font-semibold text-gold">
-            {(a as any).icon ? `${(a as any).icon} ` : ''}{a.name}
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-gold">
+            <AttrIcon id={a.id} className="h-5 w-5 text-base" />
+            {a.name}
           </div>
           <div className="mt-1 flex flex-wrap gap-1">
             {a.thresholds.map(t => (

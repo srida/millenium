@@ -6,6 +6,7 @@ import { useUiStore, type TooltipAnchor, type TooltipContent } from '../../store
 import { getPower } from '../../data/PowerDatabase.js';
 import { getAttribute } from '../../data/AttributeDatabase.js';
 import { getCard } from '../../data/CardDatabase.js';
+import AttrIcon from '../ui/AttrIcon.js';
 import {
   summonRecipes, recipeCostText, materialsLabel, recipeIsFree, type SummonRecipe,
 } from '../../data/SummonInfo.js';
@@ -64,7 +65,12 @@ function Keywords({ ids }: { ids: string[] }) {
     <div className="mt-2 flex flex-wrap gap-1">
       {ids.map(id => {
         const attr = (getAttribute as any)(id);
-        return <span key={id} className="rounded border border-tier-4/40 bg-tier-4/10 px-2 py-0.5 text-[10px] text-tier-4">{attr?.name ?? id}</span>;
+        return (
+          <span key={id} className="inline-flex items-center gap-1 rounded border border-tier-4/40 bg-tier-4/10 px-2 py-0.5 text-[10px] text-tier-4">
+            <AttrIcon id={id} className="h-3.5 w-3.5 text-[11px]" />
+            {attr?.name ?? id}
+          </span>
+        );
       })}
     </div>
   );
@@ -190,9 +196,12 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
     const attr: any = content.attr;
     return (
       <div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-bold">{attr.name}</span>
-          <span className="text-[11px] text-white/50">{content.count} présent{content.count > 1 ? 's' : ''}</span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex min-w-0 items-center gap-2">
+            <AttrIcon id={attr.id} fallback={attr.icon} className="h-7 w-7 text-xl" />
+            <span className="text-sm font-bold">{attr.name}</span>
+          </span>
+          <span className="flex-shrink-0 text-[11px] text-white/50">{content.count} présent{content.count > 1 ? 's' : ''}</span>
         </div>
         <div className="mt-2 space-y-1">
           {(attr.thresholds ?? []).map((t: any, i: number) => {

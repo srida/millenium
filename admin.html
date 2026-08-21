@@ -1895,7 +1895,9 @@ function renderAttrList(list = attributes) {
   document.getElementById('attr-count').textContent = list.length;
   document.getElementById('attr-list').innerHTML = list.map(a => `
     <div class="list-item ${selectedAttr && selectedAttr.id === a.id ? 'selected' : ''}" onclick="selectAttr('${a.id}')">
-      <span style="font-size:18px">${a.icon || '❓'}</span>
+      ${a._has_illustration
+        ? `<img class="list-thumb" src="/illustrations/${a.id}?t=${attrIconBust}" alt="" loading="lazy" style="object-fit:contain">`
+        : `<span style="font-size:18px">${a.icon || '❓'}</span>`}
       <div>
         <div class="item-name">${a.name}</div>
         <div class="item-id">${a.id}</div>
@@ -1919,10 +1921,23 @@ function renderAttrDetail() {
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
     <div class="detail-header" style="align-items:center;gap:16px">
-      <div style="font-size:48px">${a.icon || '❓'}</div>
+      <div class="illustration-box" ${isNewAttr ? '' : 'onclick="openAttrIconModal()"'}>
+        ${a._has_illustration
+          ? `<img src="/illustrations/${a.id}?t=${attrIconBust}" alt="" style="object-fit:contain">`
+          : `<div style="font-size:48px">${a.icon || '❓'}</div>`}
+        ${isNewAttr ? '' : `<div class="illus-overlay">
+          ${a._has_illustration ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteAttrIcon()">Supprimer</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openAttrIconModal()">Importer</button>
+        </div>`}
+      </div>
       <div>
         <div class="detail-title">${a.name}</div>
         <div style="font-family:monospace;font-size:11px;color:var(--muted)">${a.id}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;max-width:320px;line-height:1.5">
+          ${isNewAttr
+            ? `Crée l'attribut pour pouvoir lui ajouter une icône.`
+            : `L'icône est enregistrée sous <code>${a.id}.png</code> — <strong>changer l'ID de l'attribut la détache</strong>. Sans image, l'emoji ci-dessous prend le relais.`}
+        </div>
       </div>
     </div>
 
@@ -1930,7 +1945,7 @@ function renderAttrDetail() {
     <div class="form-grid">
       <div class="field"><label>ID</label><input id="af-id" value="${a.id}"></div>
       <div class="field"><label>Nom</label><input id="af-name" value="${esc(a.name)}"></div>
-      <div class="field"><label>Icône (emoji)</label><input id="af-icon" value="${a.icon || ''}"></div>
+      <div class="field"><label>Emoji — repli sans image</label><input id="af-icon" value="${a.icon || ''}"></div>
       <div class="field"><label>Timing</label>
         <select id="af-timing">
           ${['start_of_combat','during_combat','end_of_combat','none'].map(t =>
@@ -2160,6 +2175,8 @@ async function saveAttribute() {
   const res = await apiFetch(`/api/attributes/${oldId}`, { method: 'PUT', body: updated });
   if (res.error) return toast(res.error, 'err');
   const idx = attributes.findIndex(a => a.id === oldId);
+  // Le serveur ne renvoie pas les drapeaux calculés : on le rattache à la main.
+  updated._has_illustration = selectedAttr._has_illustration || false;
   attributes[idx] = updated;
   selectedAttr = updated;
   filterAttributes();
@@ -2186,7 +2203,7 @@ function openNewAttribute() {
   }, 0) + 1;
   selectedAttr = {
     id: `ARCH_${String(nextNum).padStart(3, '0')}`,
-    name: '', icon: '', timing: 'start_of_combat', thresholds: [],
+    name: '', icon: '', timing: 'start_of_combat', thresholds: [], _has_illustration: false,
   };
   isNewAttr = true;
   renderAttrList();
@@ -2199,6 +2216,7 @@ async function submitNewAttribute() {
   if (!attr.id || !attr.name) return toast('ID et nom requis', 'err');
   const res = await apiFetch('/api/attributes', { method: 'POST', body: attr });
   if (res.error) return toast(res.error, 'err');
+  attr._has_illustration = false;
   attributes.push(attr);
   selectedAttr = attr;
   isNewAttr = false;
@@ -2214,6 +2232,112 @@ function cancelNewAttr() {
   document.getElementById('attr-detail').innerHTML = '<div class="empty"><span>Sélectionne un attribut</span></div>';
   showList();
 }
+
+// --- Icône d'un attribut ---------------------------------------------------
+// L'art vit dans le dossier des ILLUSTRATIONS, sous l'id de l'attribut : même
+// espace de noms plat que les cartes, terrains, magies et variantes, donc aucune
+// famille d'assets propre (mêmes routes, même sync). Le triptyque ci-dessous est
+// donc exactement celui des variantes.
+//
+// L'URL de l'art est stable : sans cache-buster, le navigateur continuerait
+// d'afficher l'ancienne image après un remplacement (même raison que
+// `variantBust` pour les variantes).
+let attrIconBust = Date.now();
+
+function _setAttrIconFlag(has) {
+  selectedAttr._has_illustration = has;
+  const idx = attributes.findIndex(a => a.id === selectedAttr.id);
+  if (idx !== -1) attributes[idx]._has_illustration = has;
+  attrIconBust = Date.now();
+  filterAttributes();
+  renderAttrDetail();
+}
+
+function openAttrIconModal() {
+  if (!selectedAttr) return;
+  const name = selectedAttr.name || selectedAttr.id;
+  showModal(`
+    <h2 style="margin-bottom:6px">Icône — ${esc(name)}</h2>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:16px">
+      Affichée en jeu au format d'une petite icône : puce du panneau de synergies
+      pendant la préparation, tooltip de l'attribut, chips des tooltips de carte
+      et d'unité, codex du tutoriel. Prévoir un <strong>carré</strong> à fond
+      transparent — l'image n'est jamais rognée, elle est mise à l'échelle.
+    </p>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Mots-clés</label>
+        <input id="attr-icon-q" value="${esc(`${name} icon png transparent`)}" style="font-family:monospace;font-size:12px">
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="openAttrIconSearch()">Ouvrir Google Images</button>
+    </div>
+    <div class="field">
+      <label>Depuis une URL</label>
+      <div style="display:flex;gap:6px">
+        <input id="attr-icon-url" type="text" placeholder="https://..." style="flex:1">
+        <button class="btn btn-secondary btn-sm" onclick="pasteAttrIconUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
+      </div>
+    </div>
+    <div style="text-align:center;color:var(--muted);font-size:11px;margin:10px 0">— ou —</div>
+    <div class="field">
+      <label>Depuis l'appareil</label>
+      <input type="file" accept="image/*" onchange="importAttrIconFromFile()" id="attr-icon-file">
+    </div>
+    <span style="font-size:11px;color:var(--muted)">Sauvegardée sous <code>${selectedAttr.id}.png</code></span>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="importAttrIcon()">Importer l'URL</button>
+    </div>
+  `, 'wide');
+}
+
+function openAttrIconSearch() {
+  const q = document.getElementById('attr-icon-q')?.value.trim();
+  if (!q) return toast('Renseigne des mots-clés', 'err');
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
+}
+
+async function pasteAttrIconUrl() {
+  try {
+    const el = document.getElementById('attr-icon-url');
+    if (el) el.value = (await navigator.clipboard.readText()).trim();
+  } catch {
+    toast('Accès presse-papier refusé — collez manuellement (Ctrl+V)', 'err');
+  }
+}
+
+async function importAttrIcon() {
+  const url = document.getElementById('attr-icon-url').value.trim();
+  if (!url) return toast('URL requise', 'err');
+  closeModal();
+  toast('Téléchargement en cours...', 'ok');
+  const res = await apiFetch(`/api/attributes/${selectedAttr.id}/illustration`, { method: 'POST', body: { url } });
+  if (res.error) return toast(res.error, 'err');
+  _setAttrIconFlag(true);
+  toast('Icône importée');
+}
+
+async function importAttrIconFromFile() {
+  const file = document.getElementById('attr-icon-file')?.files?.[0];
+  if (!file) return;
+  closeModal();
+  toast('Envoi en cours...', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/attributes/${selectedAttr.id}/illustration`, { method: 'PUT', body: { data } });
+  if (res.error) return toast(res.error, 'err');
+  _setAttrIconFlag(true);
+  toast('Icône importée');
+}
+
+async function deleteAttrIcon() {
+  if (!confirm('Supprimer l\'icône ? L\'emoji reprendra sa place.')) return;
+  const res = await apiFetch(`/api/attributes/${selectedAttr.id}/illustration`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  _setAttrIconFlag(false);
+  toast('Icône supprimée');
+}
+
 
 // ================== POWERS ==================
 function filterPowers() {

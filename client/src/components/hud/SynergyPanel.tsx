@@ -4,6 +4,7 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import { getAttribute } from '../../data/AttributeDatabase.js';
+import AttrIcon from '../ui/AttrIcon.js';
 
 export default function SynergyPanel() {
   const synergies = useGameStore(s => s.synergies);
@@ -45,7 +46,16 @@ export default function SynergyPanel() {
             }}
             className={`flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] ${active ? 'border-gold bg-gold/15 text-gold' : 'border-line bg-surface/70 text-white/60'}`}
           >
-            <span className="max-w-[70px] truncate">{s.attr.name}</span>
+            {/* L'icône est posée sur TOUTES les puces, actives comme
+                incomplètes : c'est avant d'avoir le palier que le joueur décide
+                d'ajouter une carte, une puce reconnaissable seulement une fois
+                la synergie acquise arriverait trop tard. La distinction
+                valide / incomplet continue de passer par ce qui la porte déjà,
+                la bordure et le fond dorés — l'icône se contente de s'éteindre.
+                Le nom perd 10 px de largeur en échange, pour qu'autant de puces
+                qu'avant tiennent sur une ligne en portrait. */}
+            <AttrIcon id={s.attr.id} fallback={s.attr.icon} className={`h-4 w-4 text-[13px] ${active ? '' : 'opacity-60'}`} />
+            <span className="max-w-[60px] truncate">{s.attr.name}</span>
             <span className="font-bold tabular-nums">{label}</span>
           </button>
         );

@@ -376,8 +376,17 @@ app.delete('/api/cards/:id/illustration', (req, res) => {
 });
 
 // --- Attributes API ---
+// L'icône d'un attribut est une IMAGE, dont l'art vit dans ILLUS_DIR sous l'id
+// de l'attribut — même espace de noms plat que les cartes, terrains, magies et
+// variantes, donc aucune famille d'assets à créer (cf. variants.js). Le champ
+// `icon` du JSON reste l'emoji, qui sert de repli tant qu'aucune image n'a été
+// importée. `_has_illustration` est calculé à la lecture : le réécrire dans
+// attributes.json le ferait mentir dès qu'une image est ajoutée ou retirée
+// hors de cette requête.
 app.get('/api/attributes', (req, res) => {
-  try { res.json(readJson(ATTRIBUTES_FILE)); } catch (e) { res.status(500).json({ error: e.message }); }
+  try {
+    res.json(readJson(ATTRIBUTES_FILE).map(a => ({ ...a, _has_illustration: illustrationExists(a.id) })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/attributes', (req, res) => {
@@ -386,6 +395,7 @@ app.post('/api/attributes', (req, res) => {
     const attr = req.body;
     if (!attr.id) return res.status(400).json({ error: 'id required' });
     if (attributes.find(a => a.id === attr.id)) return res.status(400).json({ error: `ID ${attr.id} already exists` });
+    delete attr._has_illustration;
     attributes.push(attr);
     writeJson(ATTRIBUTES_FILE, attributes);
     res.json({ ok: true });
@@ -401,6 +411,7 @@ app.post('/api/attributes/import', (req, res) => {
     const errors = [];
     for (const item of items) {
       if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
+      delete item._has_illustration;
       const idx = attributes.findIndex(a => a.id === item.id);
       if (idx !== -1) {
         if (mode === 'replace') { attributes[idx] = item; replaced++; }
@@ -420,7 +431,9 @@ app.put('/api/attributes/:id', (req, res) => {
     const attributes = readJson(ATTRIBUTES_FILE);
     const idx = attributes.findIndex(a => a.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    attributes[idx] = req.body;
+    const updated = req.body;
+    delete updated._has_illustration;
+    attributes[idx] = updated;
     writeJson(ATTRIBUTES_FILE, attributes);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -433,6 +446,42 @@ app.delete('/api/attributes/:id', (req, res) => {
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
     attributes.splice(idx, 1);
     writeJson(ATTRIBUTES_FILE, attributes);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Icône d'un attribut — triptyque identique à celui des variantes (URL, upload
+// base64 depuis l'appareil, suppression), au même dossier près : ILLUS_DIR. Pas
+// de middleware ici, comme les routes d'attributs voisines : le write-guard
+// global couvre déjà tout POST/PUT/DELETE sous /api.
+app.post('/api/attributes/:id/illustration', async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { url } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    await savePng(ILLUS_DIR, id, await downloadUrl(url));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/attributes/:id/illustration', async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    await savePng(ILLUS_DIR, id, Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/attributes/:id/illustration', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = path.join(ILLUS_DIR, `${id}.png`);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

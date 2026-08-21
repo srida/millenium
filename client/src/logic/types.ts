@@ -86,8 +86,16 @@ export interface AttributeThreshold {
 export interface AttributeDef {
   id: string;
   name: string;
+  /** Emoji — REPLI quand aucune image n'a été importée depuis l'admin. */
+  icon?: string;
+  categorie?: string;
   timing: AttributeTiming;
   thresholds: AttributeThreshold[];
+  /**
+   * Icône de l'attribut, servie sur /illustrations/<id> — l'art vit dans le
+   * dossier des illustrations, sous l'id de l'attribut. Calculé par le serveur
+   * à la lecture, jamais persisté (même statut que sur BoardDef).
+   */
   _has_illustration?: boolean;
 }
 
