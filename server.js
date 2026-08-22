@@ -60,6 +60,24 @@ const packs = require('./sets');
 const variants = require('./variants');
 
 const app = express();
+
+// Compression des réponses. Le gain principal n'est pas sur le SPA (déjà
+// pré-compressé au build) mais sur les CATALOGUES : `GET /api/cards` sérialise
+// 261 Ko de JSON très répétitif à chaque démarrage de client, et c'est la route
+// la plus chaude du jeu. Sur un jeu mobile-first, c'est le gain le plus direct
+// qu'on puisse poser en une ligne.
+app.use(require('compression')());
+
+// En-têtes de sécurité (X-Content-Type-Options, Referrer-Policy, HSTS…).
+//
+// ⚠️ La CSP est désactivée À DESSEIN, pas par négligence : `admin.html` est un
+// fichier de 282 Ko écrit à la main, tout en scripts et styles en ligne, que la
+// politique par défaut de helmet casserait net. La régler proprement (nonces,
+// ou extraction des scripts) est un travail à part entière — le faire à moitié
+// ici donnerait une CSP qu'on désactiverait au premier bug, ce qui est pire que
+// pas de CSP du tout.
+app.use(require('helmet')({ contentSecurityPolicy: false }));
+
 app.use(express.json({ limit: '20mb' }));
 
 // --- Config (env vars for production, local defaults for dev) ---

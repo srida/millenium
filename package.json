@@ -8,17 +8,28 @@
     "build": "npm --prefix client install && npm --prefix client run build",
     "client:dev": "npm --prefix client run dev",
     "sync:pull": "node scripts/sync-data.js pull",
-    "sync:push": "node scripts/sync-data.js push"
+    "sync:push": "node scripts/sync-data.js push",
+    "lint": "eslint .",
+    "lint:all": "npm run lint && npm --prefix client run lint",
+    "test": "npm --prefix client test"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.11.1",
+    "compression": "^1.8.1",
     "cookie": "^0.7.2",
     "express": "^4.18.2",
+    "helmet": "^8.3.0",
     "sharp": "^0.33.5",
     "ws": "^8.21.0"
   },
   "engines": {
     "node": ">=20.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-plugin-n": "^18.3.0",
+    "globals": "^17.11.0"
   }
 }
