@@ -362,13 +362,57 @@ app.get('/board-backgrounds/:id', (req, res) => {
 });
 
 // --- Helpers ---
+//
+// Cache mémoire des catalogues, invalidé au `mtime` — le patron que TOUS les
+// modules de règles appliquent déjà (`progression.allCardIds`, `sets.cards`,
+// `variants.all`, `missions.catalog`, `gifts`…). Les routes HTTP étaient les
+// seules à ne pas l'avoir : chaque `GET /api/cards` relisait et reparsait
+// 328 Ko de JSON.
+//
+// Mesuré : lecture + parse = 4,6 ms sur les 16,7 ms du handler complet, soit
+// ~28 %. Le reste (le `map` et le `JSON.stringify` de la réponse, ~8 ms) n'est
+// PAS mis en cache : il dépend des drapeaux calculés à la lecture, et les
+// mémoriser ferait mentir `_has_illustration` — c'est précisément ce que les
+// golden tests de la boutique interdisent.
+//
+// ⚠️ CONTRAT : `readJson` rend une copie du TABLEAU, mais en PARTAGE les
+// éléments. Un appelant peut donc `push`, `splice` ou remplacer une case —
+// ce que font tous les handlers d'écriture — mais **jamais muter un élément en
+// place**. Pour modifier une entrée, on remplace la case par un objet neuf
+// (`liste[i] = { ...liste[i], champ: valeur }`), comme le fait
+// `syncCardSetMirror`.
+//
+// La copie profonde a été essayée et REJETÉE : `structuredClone` des 653 cartes
+// coûte 5,3 ms, soit plus que les 4,6 ms de lecture + parse qu'il remplace — le
+// cache devenait plus lent que pas de cache du tout. La copie de surface, elle,
+// ramène `readJson` de 4,62 ms à 0,03 ms, et le handler complet de 16,7 ms à
+// 6,0 ms (×2,8) sur la route la plus chaude du jeu.
+const _jsonCache = new Map();
+
 function readJson(file) {
-  const raw = fs.readFileSync(file, 'utf-8');
-  return JSON.parse(raw.replace(/,\s*([\]}])/g, '$1'));
+  const mtime = fs.statSync(file).mtimeMs;
+  const hit = _jsonCache.get(file);
+  if (!hit || hit.mtime !== mtime) {
+    const raw = fs.readFileSync(file, 'utf-8');
+    _jsonCache.set(file, { mtime, value: JSON.parse(raw.replace(/,\s*([\]}])/g, '$1')) });
+  }
+  return _jsonCache.get(file).value.slice();
 }
 
 function writeJson(file, data) {
-  fs.writeFileSync(file, JSON.stringify(data, null, '\t'), 'utf-8');
+  // ⚠️ Écriture ATOMIQUE : fichier temporaire puis `rename`, qui est atomique
+  // sur un même système de fichiers. `writeFileSync` direct sur la destination
+  // laissait un catalogue TRONQUÉ si le processus s'arrêtait au mauvais moment
+  // — et l'hébergeur envoie un SIGTERM à chaque déploiement. La base SQLite est
+  // protégée (WAL + transactions) ; les neuf catalogues JSON, qui portent
+  // autant de valeur, ne l'étaient pas.
+  const tmp = `${file}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(data, null, '\t'), 'utf-8');
+  fs.renameSync(tmp, file);
+  // Invalidation EXPLICITE plutôt que de s'en remettre au mtime : deux
+  // écritures — ou une écriture suivie d'une lecture — peuvent tomber dans la
+  // même milliseconde, et le cache rendrait alors la version d'avant.
+  _jsonCache.delete(file);
 }
 
 function illustrationExists(id) {
@@ -1337,9 +1381,21 @@ function syncCardSetMirror(pack, previousIds = []) {
 
   const cards = readJson(CARDS_FILE);
   let touched = 0;
-  for (const c of cards) {
-    if (members.has(c.id) && c.set !== pack.id) { c.set = pack.id; touched++; }
-    else if (dropped.has(c.id) && c.set === pack.id) { delete c.set; touched++; }
+  // ⚠️ On REMPLACE la case du tableau au lieu de muter la carte en place :
+  // `readJson` rend une copie du tableau mais PARTAGE ses éléments (cf. son
+  // en-tête), et muter une carte ici corromprait le cache pour toutes les
+  // lectures suivantes. C'était le seul endroit du fichier à muter un élément.
+  for (let i = 0; i < cards.length; i++) {
+    const c = cards[i];
+    if (members.has(c.id) && c.set !== pack.id) {
+      cards[i] = { ...c, set: pack.id };
+      touched++;
+    } else if (dropped.has(c.id) && c.set === pack.id) {
+      const next = { ...c };
+      delete next.set;
+      cards[i] = next;
+      touched++;
+    }
   }
   if (touched) writeJson(CARDS_FILE, cards);
 }

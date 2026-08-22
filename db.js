@@ -395,9 +395,15 @@ const stmt = {
   `),
   updateProfile: db.prepare('UPDATE users SET username = @username, username_lc = @username_lc, tag = @tag, avatar = @avatar WHERE id = @id'),
   setUserAdmin: db.prepare('UPDATE users SET is_admin = ? WHERE id = ?'),
+  // ⚠️ `ESCAPE '\'` n'est pas décoratif : SQLite n'a AUCUN caractère
+  // d'échappement par défaut sur LIKE. `routes/online.js` échappe pourtant `%`
+  // et `_` avec un antislash — qui était donc cherché littéralement. Résultat :
+  // tout joueur dont le pseudo contient un souligné (USERNAME_RE l'autorise)
+  // devenait introuvable dès que son ami le tapait. « my_hero » sortait sur
+  // « my », pas sur « my_ ».
   searchUsers: db.prepare(`
     SELECT id, username, tag, avatar FROM users
-    WHERE username_lc LIKE ? AND id != ?
+    WHERE username_lc LIKE ? ESCAPE '\\' AND id != ?
     ORDER BY username_lc, tag LIMIT 20
   `),
 

@@ -306,6 +306,85 @@ describe('plafonds de corps de requête', () => {
 });
 
 // ===========================================================================
+//  Constat 11 — la recherche ne trouvait pas les pseudos avec un souligné
+// ===========================================================================
+describe('GET /api/users/search', () => {
+  it('trouve `my_hero` sur la requête `my_`, et le souligné reste LITTÉRAL', async () => {
+    const cible = makeUser(h, 'my_hero');
+    const leurre = makeUser(h, 'myXhero');   // un `_` joker le ferait remonter aussi
+    const { cookie } = login(h, makeUser(h, 'chercheur'));
+
+    const res = await request(h.server)
+      .get('/api/users/search').query({ q: 'my_' }).set('Cookie', cookie);
+
+    expect(res.status).toBe(200);
+    const ids = res.body.users.map((u: any) => u.id);
+
+    // `routes/online.js` échappe `_` en `\_` ; sans `ESCAPE '\'` sur le LIKE de
+    // db.js, SQLite prenait l'antislash au pied de la lettre et ne trouvait
+    // RIEN. Le bug était la liste vide, pas un faux positif.
+    expect(ids).toContain(cible);
+    // L'autre moitié : le `_` ne doit pas redevenir un joker pour autant.
+    expect(ids).not.toContain(leurre);
+  });
+
+  it('reste muette sous deux caractères', async () => {
+    const { cookie } = login(h, makeUser(h, 'chercheur2'));
+    const res = await request(h.server)
+      .get('/api/users/search').query({ q: 'm' }).set('Cookie', cookie);
+    expect(res.body.users).toEqual([]);
+  });
+});
+
+// ===========================================================================
+//  Constat 17 — écriture atomique, et cohérence du cache de catalogue
+// ===========================================================================
+describe('écriture des catalogues', () => {
+  it('une écriture est immédiatement relue, sans reliquat temporaire', async () => {
+    const id = 'ATOMIC_001';
+
+    const cree = await request(h.server).post('/api/cards')
+      .set('Authorization', ADMIN_BASIC)
+      .send({ id, name: 'Carte atomique', tier: 3 });
+    expect(cree.status).toBe(200);
+
+    // ⚠️ Le cache de catalogue est invalidé EXPLICITEMENT par `writeJson`, et
+    // pas seulement par le mtime : cette lecture suit l'écriture de si près
+    // qu'elles peuvent tomber dans la même milliseconde, et le cache rendrait
+    // alors la version d'avant.
+    const liste = await request(h.server).get('/api/cards');
+    const trouvee = liste.body.find((c: any) => c.id === id);
+    expect(trouvee).toBeDefined();
+    expect(trouvee.name).toBe('Carte atomique');
+
+    // Le fichier temporaire du rename atomique ne doit pas traîner.
+    expect(fs.existsSync(path.join(h.DATA, 'cards.json.tmp'))).toBe(false);
+
+    const efface = await request(h.server).delete(`/api/cards/${id}`)
+      .set('Authorization', ADMIN_BASIC);
+    expect(efface.status).toBe(200);
+
+    const apres = await request(h.server).get('/api/cards');
+    expect(apres.body.find((c: any) => c.id === id)).toBeUndefined();
+  });
+
+  it('le cache ne se laisse pas corrompre par un handler d\'écriture', async () => {
+    // Deux lectures encadrant une écriture avortée (id déjà pris) : le
+    // catalogue doit être rigoureusement identique. `readJson` partageant ses
+    // éléments, un handler qui muterait une carte en place se verrait ici.
+    const avant = (await request(h.server).get('/api/cards')).body;
+
+    const refus = await request(h.server).post('/api/cards')
+      .set('Authorization', ADMIN_BASIC)
+      .send({ id: avant[0].id, name: 'Doublon' });
+    expect(refus.status).toBe(400);
+
+    const apres = (await request(h.server).get('/api/cards')).body;
+    expect(apres).toEqual(avant);
+  });
+});
+
+// ===========================================================================
 //  Le compte de départ, et la forme des flags calculés
 // ===========================================================================
 describe('GET /api/cards', () => {
