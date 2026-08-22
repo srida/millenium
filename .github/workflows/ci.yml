@@ -14,9 +14,11 @@ on:
 
 jobs:
   check:
-    # ⚠️ Même garde que version-bump.yml : le commit de bump porte [skip ci] et
-    # ne doit pas relancer la suite pour une ligne de package.json.
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    # ⚠️ Le garde [skip ci] ne vaut QUE pour les push : sur un événement
+    # pull_request, `github.event.head_commit` n'existe pas, et la condition
+    # porterait sur du vide. Le commit de bump de version-bump.yml ne doit pas
+    # relancer la suite pour une ligne de package.json — mais une PR, si.
+    if: "github.event_name == 'pull_request' || !contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
 
     steps:
