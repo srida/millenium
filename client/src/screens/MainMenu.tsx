@@ -16,6 +16,7 @@ import { useGiftStore, claimableCount as claimableGifts } from '../stores/giftSt
 import { useArcadeStore } from '../stores/arcadeStore.js';
 import { getProgress, shouldInvite, updateProgress } from '../data/tutorialProgress.js';
 import { Button, CountBadge, Modal, NewDot } from '../components/ui/primitives.js';
+import { AnimatedLogo } from '../components/ui/AnimatedLogo.js';
 import { ProgressionPills, ProfilePill } from '../components/ui/ProgressionStats.js';
 import { FullscreenButton } from '../components/system/DeviceGuards.js';
 import { AppVersion } from '../components/system/AppVersion.js';
@@ -28,8 +29,12 @@ export default function MainMenu() {
     <main className="relative z-10 flex min-h-dvh flex-col items-center justify-center gap-6 p-6 pt-[max(1.5rem,env(safe-area-inset-top))] text-white">
       <FullscreenButton className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))]" />
       <div className="text-center">
-        <img src="/logo.png" alt="Millenium" className="mx-auto h-32 w-32 object-contain" />
-        <p className="mt-1 text-sm text-white/50">Auto-battler tactique</p>
+        {/* Le logo n'est pas une image : c'est le portail, qui respire (cf.
+            `AnimatedLogo`). Il porte déjà le mot « MILLENIUM » — le sous-titre
+            remonte donc contre lui (`-mt-2`), la composition réservant une
+            marge sous le mot. */}
+        <AnimatedLogo className="mx-auto w-44 sm:w-52" />
+        <p className="-mt-2 text-sm text-white/50">Auto-battler tactique</p>
       </div>
 
       <div className="flex w-full max-w-xs flex-col gap-3">

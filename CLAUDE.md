@@ -1891,6 +1891,21 @@ Les mêmes nébuleuses dessinées au canvas coûteraient un remplissage plein é
 
 ---
 
+## Logo animé (menu principal)
+
+Le logo du menu n'est pas une image : c'est le portail, qui **respire**. `components/ui/AnimatedLogo.tsx` — portage de la composition Claude Design « Portail Millenium Ambiance » (boucle de **20 s**) en composant React autonome, sans le runtime de Design. Trois PNG dans `client/public/logo/` (`core`, `ring`, `wordmark`), quantifiés à 256 couleurs : **202 Ko à eux trois**, contre 1 Mo à la sortie de Design et 1,6 Mo pour le `logo.png` statique qu'ils remplacent à l'écran.
+
+- **Il se pose SUR le décor, il ne le remplace pas** : le fond opaque plein cadre, la vignette et les poussières d'ambiance de la composition d'origine sont retirés — c'est `SpaceBackground` qui tient le ciel. Toutes les couches lumineuses sont en `mix-blend-mode: screen`, aucune n'est opaque.
+- ⚠️ **Aucun re-render React par frame** : le DOM est monté une fois, la boucle rAF mute les `style` par référence (même geste que `three/`). Une trentaine d'éléments reconciliés soixante fois par seconde pour un décor de menu serait la dépense la plus inutile de l'application.
+- ⚠️ **La première frame est posée SYNCHRONEMENT au montage**, avant la boucle : un onglet ouvert en arrière-plan ne reçoit aucun `requestAnimationFrame` et y resterait sur ses styles neutres — anneau et pierre à plat, sans halo ni lueur de cœur. C'est aussi cette frame, et elle seule, que voit `prefers-reduced-motion: reduce`.
+- Les **trois sorties de secours** de `SpaceBackground` s'appliquent telles quelles : mouvement réduit → aucune boucle ; `LOW_END_DEVICE` → moitié moins de braises ; et **les rayons de `blur()` sont constants** — animer un flou re-rasterise la couche à chaque frame, animer son opacité ne coûte qu'une composition. Même raison pour les deux volutes coniques, qui **tournent** au lieu de voir leur `conic-gradient` réécrit.
+- **Deux transforms imbriqués, qui ne se disputent rien** : l'extérieur porte la mise à l'échelle (mesurée une fois par `ResizeObserver`, le repère interne étant en px « source »), l'intérieur le balancement de caméra. La largeur vient du `className` (`w-44 sm:w-52`), la hauteur d'un `aspect-ratio` — le logo suit l'écran sans qu'aucune taille ne soit écrite deux fois.
+- Toutes les fréquences sont des **multiples entiers de la boucle** : la couture des 20 s est exacte, il n'y a pas de saut à reprendre. Braises et runes sont tirées par un générateur **semé** — le logo est le même à chaque chargement.
+- Il porte déjà le mot « MILLENIUM » : le sous-titre du menu remonte contre lui (`-mt-2`), la composition réservant sa marge sous le mot.
+- ⚠️ **L'écran de chargement (`App.tsx`) garde le `logo.png` statique**, et c'est délibéré : il s'affiche avant que les données de jeu soient là, monter une boucle rAF pour le temps d'un fetch n'a rien à donner. `logo.png` reste par ailleurs la source des icônes PWA.
+
+---
+
 ## TestBench
 
 Écran développeur (`client/src/dev/TestBench.tsx`, route `?screen=testbench`) accessible depuis `MainMenu` (bouton "TestBench (dev)"). Réutilise `Scene3D` + `CombatAnimator3D` directement (sans `GameController`).
