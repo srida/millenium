@@ -1,3 +1,50 @@
+// --- Basic auth du site (ADMIN_USER + ADMIN_PASS) ---
+//
+// ⚠️ EN TÊTE DE FICHIER, AVANT TOUT `require`, et ce n'est pas cosmétique.
+//
+// `requireAuth` laissait auparavant passer quand `ADMIN_PASS` manquait. Comme
+// `requireSiteAdmin` retombe dessus et que le write-guard global couvre TOUT
+// `POST/PUT/DELETE` sous `/api`, une variable absente ouvrait l'API d'écriture
+// entière à des requêtes anonymes — y compris `PUT /api/admin/db/users/:id/admin`,
+// qui pose le niveau 100, 9999 golds, 9999 gemmes et tout le catalogue sur
+// n'importe quel compte. Le dépôt n'ayant par ailleurs aucun chargeur de `.env`
+// avant ce lot, un `npm start` local tournait TOUJOURS dans cet état.
+//
+// D'où le refus de démarrer plutôt qu'un repli permissif : il n'existe plus
+// d'état où l'oubli d'une variable ouvre le serveur. C'est la bonne panne —
+// bruyante au déploiement — plutôt que la mauvaise, silencieuse en production.
+//
+// La garde est placée AVANT `require('./auth')` (qui tire `db.js`, lequel crée
+// DATA_DIR et ouvre la base) et avant `bootstrap()` : un démarrage refusé ne
+// doit laisser aucune trace sur le disque, sinon le refus lui-même devient un
+// effet de bord.
+const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_PASS = process.env.ADMIN_PASS;
+
+/**
+ * → le mot de passe, ou JETTE si la variable manque.
+ *
+ * Elle jette au lieu de terminer le process : c'est ce qui la rend testable
+ * (`client/src/test/http-boot.test.ts`), l'appelant traduisant l'erreur en
+ * sortie non nulle.
+ */
+function assertAdminPassword(pass = ADMIN_PASS) {
+  if (pass) return pass;
+  throw new Error(
+    'ADMIN_PASS n\'est pas réglé — le serveur refuse de démarrer.\n' +
+    '  Sans lui, TOUTE écriture sur /api serait anonyme, promotion admin comprise.\n' +
+    '  Dev  : renseigner ADMIN_PASS dans .env (npm start le charge via --env-file-if-exists).\n' +
+    '  Prod : régler la variable dans la configuration de l\'hébergeur.',
+  );
+}
+
+try {
+  assertAdminPassword();
+} catch (e) {
+  console.error(`[auth] ${e.message}`);
+  process.exit(1);
+}
+
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -109,12 +156,7 @@ progression.backfillAll();
 // son catalogue vit sur le volume.
 const gifts = require('./gifts');
 
-// --- Basic auth (set ADMIN_USER + ADMIN_PASS in env to enable) ---
-const ADMIN_USER = process.env.ADMIN_USER || 'admin';
-const ADMIN_PASS = process.env.ADMIN_PASS;
-
 function requireAuth(req, res, next) {
-  if (!ADMIN_PASS) return next();
   const auth = req.headers.authorization || '';
   if (!auth.startsWith('Basic ')) {
     res.set('WWW-Authenticate', 'Basic realm="Millenium Card Manager"');
@@ -152,6 +194,34 @@ function safeAssetId(id) {
   return /^[A-Za-z0-9_-]+$/.test(id || '') ? id : null;
 }
 
+/**
+ * Chemin du PNG d'un asset, ou `null` si l'id ne peut pas servir de nom de
+ * fichier. C'est le SEUL endroit du fichier qui a le droit de composer un
+ * chemin d'asset — plus aucun `path.join(<DIR>, …)` à nu dans un handler.
+ *
+ * ⚠️ Ce n'est pas une commodité, c'est le correctif d'une faille : `safeAssetId`
+ * existait et était appliqué à une vingtaine de routes, mais oublié sur huit
+ * autres (illustration des cartes et des magies, routes génériques
+ * `/api/illustrations/:id` de `sync-data.js`, export). Express décodant `%2f`,
+ * un `DELETE /api/cards/..%2FVICTIM/illustration` supprimait un fichier HORS du
+ * dossier d'illustrations, et le `PUT` correspondant y écrivait.
+ *
+ * L'oubli était structurel : le même quintuplet CRUD est recopié pour neuf
+ * entités, le garde-fou a été ajouté aux copies récentes et pas aux anciennes,
+ * et rien ne pouvait le signaler. Faire passer TOUTES les routes par ce helper
+ * — y compris celles qui étaient déjà correctes — ne laisse qu'une seule forme
+ * dans le fichier, donc une seule à vérifier.
+ */
+function assetPath(dir, rawId) {
+  const id = safeAssetId(rawId);
+  return id ? path.join(dir, `${id}.png`) : null;
+}
+
+/** Réponse commune aux routes d'asset dont l'id est refusé. */
+function badAssetId(res) {
+  return res.status(400).json({ error: 'id invalide' });
+}
+
 // Illustrations public (game needs card art) — adds .png extension automatically.
 // Sert aussi l'art des VARIANTES, qui vivent dans le même espace de noms.
 // Le garde-fou n'est pas décoratif : Express décode `%2f`, et depuis les
@@ -159,7 +229,7 @@ function safeAssetId(id) {
 app.get('/illustrations/:id', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).end();
-  const filePath = path.join(ILLUS_DIR, `${id}.png`);
+  const filePath = assetPath(ILLUS_DIR, id);
   if (fs.existsSync(filePath)) res.sendFile(filePath);
   else res.status(404).end();
 });
@@ -170,7 +240,7 @@ app.get('/illustrations/:id', (req, res) => {
 app.get('/avatars/:id', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).end();
-  const filePath = path.join(AVATARS_DIR, `${id}.png`);
+  const filePath = assetPath(AVATARS_DIR, id);
   if (fs.existsSync(filePath)) return res.sendFile(filePath);
   const fallback = path.join(AVATARS_DIR, `${DEFAULT_AVATAR_ID}.png`);
   if (fs.existsSync(fallback)) return res.sendFile(fallback);
@@ -184,7 +254,7 @@ app.get('/avatars/:id', (req, res) => {
 app.get('/pack-posters/:id', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).end();
-  const filePath = path.join(POSTERS_DIR, `${id}.png`);
+  const filePath = assetPath(POSTERS_DIR, id);
   if (fs.existsSync(filePath)) return res.sendFile(filePath);
   res.status(404).end();
 });
@@ -195,7 +265,7 @@ app.get('/pack-posters/:id', (req, res) => {
 app.get('/board-backgrounds/:id', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).end();
-  const filePath = path.join(BOARD_BG_DIR, `${id}.png`);
+  const filePath = assetPath(BOARD_BG_DIR, id);
   if (fs.existsSync(filePath)) return res.sendFile(filePath);
   res.status(404).end();
 });
@@ -211,15 +281,15 @@ function writeJson(file, data) {
 }
 
 function illustrationExists(id) {
-  return fs.existsSync(path.join(ILLUS_DIR, `${id}.png`));
+  return fs.existsSync(assetPath(ILLUS_DIR, id));
 }
 
 function avatarExists(id) {
-  return fs.existsSync(path.join(AVATARS_DIR, `${id}.png`));
+  return fs.existsSync(assetPath(AVATARS_DIR, id));
 }
 
 function boardBackgroundExists(id) {
-  return fs.existsSync(path.join(BOARD_BG_DIR, `${id}.png`));
+  return fs.existsSync(assetPath(BOARD_BG_DIR, id));
 }
 
 // Écrit un buffer image en PNG (conversion via sharp quand il est installé —
@@ -332,18 +402,12 @@ app.delete('/api/cards/:id', (req, res) => {
 
 // --- Illustration import ---
 app.post('/api/cards/:id/illustration', async (req, res) => {
+  const id = safeAssetId(req.params.id);
   const { url } = req.body;
+  if (!id) return badAssetId(res);
   if (!url) return res.status(400).json({ error: 'url required' });
-  const destPath = path.join(ILLUS_DIR, `${req.params.id}.png`);
   try {
-    const imageBuffer = await downloadUrl(url);
-    let sharp;
-    try { sharp = require('sharp'); } catch (_) {}
-    if (sharp) {
-      await sharp(imageBuffer).png().toFile(destPath);
-    } else {
-      fs.writeFileSync(destPath, imageBuffer);
-    }
+    await savePng(ILLUS_DIR, id, await downloadUrl(url));
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -351,24 +415,19 @@ app.post('/api/cards/:id/illustration', async (req, res) => {
 // Upload illustration en base64 (utilisé par push-illustrations.js et l'upload depuis l'appareil dans l'admin)
 // Convertit automatiquement vers PNG, quel que soit le format d'origine (JPEG, WebP, etc.)
 app.put('/api/cards/:id/illustration', async (req, res) => {
+  const id = safeAssetId(req.params.id);
   const { data } = req.body;
+  if (!id) return badAssetId(res);
   if (!data) return res.status(400).json({ error: 'data (base64) required' });
-  const destPath = path.join(ILLUS_DIR, `${req.params.id}.png`);
   try {
-    const imageBuffer = Buffer.from(data, 'base64');
-    let sharp;
-    try { sharp = require('sharp'); } catch (_) {}
-    if (sharp) {
-      await sharp(imageBuffer).png().toFile(destPath);
-    } else {
-      fs.writeFileSync(destPath, imageBuffer);
-    }
+    await savePng(ILLUS_DIR, id, Buffer.from(data, 'base64'));
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.delete('/api/cards/:id/illustration', (req, res) => {
-  const filePath = path.join(ILLUS_DIR, `${req.params.id}.png`);
+  const filePath = assetPath(ILLUS_DIR, req.params.id);
+  if (!filePath) return badAssetId(res);
   try {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
@@ -480,7 +539,7 @@ app.delete('/api/attributes/:id/illustration', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
-    const filePath = path.join(ILLUS_DIR, `${id}.png`);
+    const filePath = assetPath(ILLUS_DIR, id);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -653,7 +712,7 @@ app.delete('/api/boards/:id/illustration', requireSiteAdmin, (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
-    const filePath = path.join(ILLUS_DIR, `${id}.png`);
+    const filePath = assetPath(ILLUS_DIR, id);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -686,7 +745,7 @@ app.delete('/api/boards/:id/background', requireSiteAdmin, (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
-    const filePath = path.join(BOARD_BG_DIR, `${id}.png`);
+    const filePath = assetPath(BOARD_BG_DIR, id);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -762,24 +821,34 @@ app.delete('/api/magies/:id', requireSiteAdmin, (req, res) => {
 });
 
 app.post('/api/magies/:id/illustration', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
   const { url } = req.body;
+  if (!id) return badAssetId(res);
   if (!url) return res.status(400).json({ error: 'url required' });
-  const destPath = path.join(ILLUS_DIR, `${req.params.id}.png`);
   try {
-    const imageBuffer = await downloadUrl(url);
-    let sharp;
-    try { sharp = require('sharp'); } catch (_) {}
-    if (sharp) {
-      await sharp(imageBuffer).png().toFile(destPath);
-    } else {
-      fs.writeFileSync(destPath, imageBuffer);
-    }
+    await savePng(ILLUS_DIR, id, await downloadUrl(url));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Upload base64 — les magies étaient la SEULE famille à ne pas l'avoir, alors
+// que l'admin propose partout ailleurs « importer depuis l'appareil ». Ajouté
+// ici parce que le triptyque est justement ce qu'on uniformise : une famille
+// qui en dévie est la prochaine à recevoir un garde-fou de travers.
+app.put('/api/magies/:id/illustration', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return badAssetId(res);
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    await savePng(ILLUS_DIR, id, Buffer.from(data, 'base64'));
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.delete('/api/magies/:id/illustration', requireSiteAdmin, (req, res) => {
-  const filePath = path.join(ILLUS_DIR, `${req.params.id}.png`);
+  const filePath = assetPath(ILLUS_DIR, req.params.id);
+  if (!filePath) return badAssetId(res);
   try {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
@@ -888,7 +957,7 @@ app.delete('/api/variants/:id/illustration', requireSiteAdmin, (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
-    const filePath = path.join(ILLUS_DIR, `${id}.png`);
+    const filePath = assetPath(ILLUS_DIR, id);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1146,7 +1215,7 @@ app.delete('/api/decks/:id/avatar', requireSiteAdmin, (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
-    const filePath = path.join(AVATARS_DIR, `${id}.png`);
+    const filePath = assetPath(AVATARS_DIR, id);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1288,7 +1357,7 @@ app.delete('/api/sets/:id/poster', requireSiteAdmin, (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
-    const filePath = path.join(POSTERS_DIR, `${id}.png`);
+    const filePath = assetPath(POSTERS_DIR, id);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1328,16 +1397,23 @@ function listPngChecksums(dir) {
     }));
 }
 
+// ⚠️ La route la plus exposée des huit qui manquaient de garde-fou, et de loin :
+// le write-guard ne couvre que POST/PUT/DELETE, donc les GET sous /api sont
+// PUBLICS. Sans `assetPath`, un `GET /api/export/illustration/..%2FSECRET`
+// anonyme rendait le contenu base64 de n'importe quel `.png` du système de
+// fichiers — pas seulement de ceux du dossier d'illustrations.
 app.get('/api/export/illustration/:id', (req, res) => {
-  const filePath = path.join(ILLUS_DIR, `${req.params.id}.png`);
+  const id = safeAssetId(req.params.id);
+  if (!id) return badAssetId(res);
+  const filePath = assetPath(ILLUS_DIR, id);
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
-  res.json({ id: req.params.id, data: fs.readFileSync(filePath).toString('base64') });
+  res.json({ id, data: fs.readFileSync(filePath).toString('base64') });
 });
 
 app.get('/api/export/avatar/:id', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
-  const filePath = path.join(AVATARS_DIR, `${id}.png`);
+  const filePath = assetPath(AVATARS_DIR, id);
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
   res.json({ id, data: fs.readFileSync(filePath).toString('base64') });
 });
@@ -1345,7 +1421,7 @@ app.get('/api/export/avatar/:id', (req, res) => {
 app.get('/api/export/pack-poster/:id', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
-  const filePath = path.join(POSTERS_DIR, `${id}.png`);
+  const filePath = assetPath(POSTERS_DIR, id);
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
   res.json({ id, data: fs.readFileSync(filePath).toString('base64') });
 });
@@ -1353,7 +1429,7 @@ app.get('/api/export/pack-poster/:id', (req, res) => {
 app.get('/api/export/board-background/:id', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
-  const filePath = path.join(BOARD_BG_DIR, `${id}.png`);
+  const filePath = assetPath(BOARD_BG_DIR, id);
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
   res.json({ id, data: fs.readFileSync(filePath).toString('base64') });
 });
@@ -1365,7 +1441,7 @@ app.put('/api/pack-posters/:id', (req, res) => {
   if (!id) return res.status(400).json({ error: 'id invalide' });
   if (!data) return res.status(400).json({ error: 'data (base64) required' });
   try {
-    fs.writeFileSync(path.join(POSTERS_DIR, `${id}.png`), Buffer.from(data, 'base64'));
+    fs.writeFileSync(assetPath(POSTERS_DIR, id), Buffer.from(data, 'base64'));
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1374,7 +1450,7 @@ app.delete('/api/pack-posters/:id', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
-    const filePath = path.join(POSTERS_DIR, `${id}.png`);
+    const filePath = assetPath(POSTERS_DIR, id);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1387,7 +1463,7 @@ app.put('/api/board-backgrounds/:id', (req, res) => {
   if (!id) return res.status(400).json({ error: 'id invalide' });
   if (!data) return res.status(400).json({ error: 'data (base64) required' });
   try {
-    fs.writeFileSync(path.join(BOARD_BG_DIR, `${id}.png`), Buffer.from(data, 'base64'));
+    fs.writeFileSync(assetPath(BOARD_BG_DIR, id), Buffer.from(data, 'base64'));
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1396,7 +1472,7 @@ app.delete('/api/board-backgrounds/:id', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
-    const filePath = path.join(BOARD_BG_DIR, `${id}.png`);
+    const filePath = assetPath(BOARD_BG_DIR, id);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1409,7 +1485,7 @@ app.put('/api/avatars/:id', (req, res) => {
   if (!id) return res.status(400).json({ error: 'id invalide' });
   if (!data) return res.status(400).json({ error: 'data (base64) required' });
   try {
-    fs.writeFileSync(path.join(AVATARS_DIR, `${id}.png`), Buffer.from(data, 'base64'));
+    fs.writeFileSync(assetPath(AVATARS_DIR, id), Buffer.from(data, 'base64'));
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1418,7 +1494,7 @@ app.delete('/api/avatars/:id', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
-    const filePath = path.join(AVATARS_DIR, `${id}.png`);
+    const filePath = assetPath(AVATARS_DIR, id);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1426,9 +1502,10 @@ app.delete('/api/avatars/:id', (req, res) => {
 
 // --- Generic illustration upload/delete (utilisé par scripts/sync-data.js) ---
 app.put('/api/illustrations/:id', (req, res) => {
+  const destPath = assetPath(ILLUS_DIR, req.params.id);
   const { data } = req.body;
+  if (!destPath) return badAssetId(res);
   if (!data) return res.status(400).json({ error: 'data (base64) required' });
-  const destPath = path.join(ILLUS_DIR, `${req.params.id}.png`);
   try {
     fs.writeFileSync(destPath, Buffer.from(data, 'base64'));
     res.json({ ok: true });
@@ -1436,7 +1513,8 @@ app.put('/api/illustrations/:id', (req, res) => {
 });
 
 app.delete('/api/illustrations/:id', (req, res) => {
-  const filePath = path.join(ILLUS_DIR, `${req.params.id}.png`);
+  const filePath = assetPath(ILLUS_DIR, req.params.id);
+  if (!filePath) return badAssetId(res);
   try {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
