@@ -405,6 +405,15 @@ const stmt = {
   sessionByToken: db.prepare('SELECT * FROM sessions WHERE token = ?'),
   deleteSession: db.prepare('DELETE FROM sessions WHERE token = ?'),
   deleteExpiredSessions: db.prepare('DELETE FROM sessions WHERE expires_at < ?'),
+  // ⚠️ Révocation de TOUTES les sessions d'un compte. Appelée à la
+  // réinitialisation du mot de passe, et c'est le cœur de la fonctionnalité :
+  // sans elle, un compte compromis dont le propriétaire change le mot de passe
+  // garde l'intrus connecté jusqu'à l'expiration du cookie — 30 jours par
+  // défaut. `idx_sessions_user` couvre déjà la clause.
+  deleteSessionsForUser: db.prepare('DELETE FROM sessions WHERE user_id = ?'),
+  // Était préparée en ligne dans le handler de reset, donc recompilée à chaque
+  // appel — la seule requête du projet à déroger au style « tout est ici ».
+  updatePassword: db.prepare('UPDATE users SET password_hash = ? WHERE id = ?'),
 
   insertFriendship: db.prepare(`
     INSERT INTO friendships (id, requester_id, addressee_id, status, created_at, updated_at)

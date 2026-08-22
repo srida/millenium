@@ -165,11 +165,33 @@ function handleReportResult(matchId, userId, localWinner) {
   const resultA = match.resultReports.A;
   const resultB = match.resultReports.B;
 
+  // ⚠️ UN DÉSACCORD N'A PAS DE VAINQUEUR.
+  //
+  // Le rôle A faisait auparavant autorité (« Role A is authoritative on
+  // mismatch »), et c'était exploitable de la façon la plus simple qui soit :
+  // un client modifié en rôle A déclarait la victoire à chaque partie et
+  // encaissait `pvp_win` — 70 XP, le plus gros gain du jeu — quel que soit le
+  // rapport de son adversaire, qui voyait en prime le match se clore contre
+  // lui. Le désaccord n'était que journalisé.
+  //
+  // Le match est donc clos en nul, SANS RIEN VERSER. Un tricheur ne gagne plus
+  // rien à mentir ; le coût est qu'un joueur honnête perd ses 70 XP dans un cas
+  // — une vraie divergence de simulation — qui ne devrait jamais se produire,
+  // le combat étant déterministe des deux côtés (verrouillé par pvp.test.ts).
+  //
+  // Les deux `userId` sont journalisés, pas seulement les résultats : c'est la
+  // seule trace exploitable si un compte revient souvent dans ces lignes.
   if (resultA !== resultB) {
-    console.warn(`[PvP] Match ${matchId} (round ${match.round}): result mismatch — A says "${resultA}", B says "${resultB}". Using A's result.`);
+    console.warn(
+      `[PvP] Match ${matchId} (round ${match.round}) : rapports divergents — ` +
+      `A (${match.players.A.userId}) annonce « ${resultA} », ` +
+      `B (${match.players.B.userId}) annonce « ${resultB} ». ` +
+      'Match clos en nul, aucun gain versé.',
+    );
+    endMatch(matchId, null, 'result_mismatch');
+    return;
   }
 
-  // Role A is authoritative on mismatch
   if (resultA === 'draw') {
     endMatch(matchId, null, 'hp_zero');
   } else {

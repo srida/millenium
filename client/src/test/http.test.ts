@@ -18,7 +18,7 @@ import request from 'supertest';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  boot, makeUser, login, raw, ADMIN_BASIC, PNG, type Harness,
+  boot, makeUser, login, raw, sessionCookie, ADMIN_BASIC, PNG, type Harness,
 } from './http-harness';
 
 let h: Harness;
@@ -204,6 +204,104 @@ describe('write-guard /api', () => {
     expect(res.body).toEqual({ ok: true });
 
     await request(h.server).delete('/api/cards/ADMIN_OK_001').set('Cookie', cookie);
+  });
+});
+
+// ===========================================================================
+//  Constat 06 — réinitialiser son mot de passe ne déconnectait personne
+// ===========================================================================
+describe('POST /api/auth/reset-password', () => {
+  it('révoque les sessions ouvertes du compte', async () => {
+    // Inscription par HTTP : c'est le seul chemin qui produit un vrai
+    // `password_hash`, et on veut que le test parle du vrai formulaire.
+    const inscription = await request(h.server).post('/api/auth/register').send({
+      email: 'reset@test.local', username: 'reseteur', password: 'motdepasse-initial',
+    });
+    expect(inscription.status).toBe(200);
+    const cookie = sessionCookie(inscription)!;
+    const token = cookie.split('=')[1];
+    const userId = inscription.body.user.id;
+
+    // La session ouvre bien une porte AVANT.
+    expect((await request(h.server).get('/api/profile/me').set('Cookie', cookie)).status).toBe(200);
+
+    // Jeton posé en base : `/auth/forgot-password` exige RESEND_API_KEY (503
+    // sinon) et partirait appeler api.resend.com. Le test porte sur la
+    // CONSÉQUENCE de la réinitialisation, pas sur l'envoi de l'e-mail.
+    const reset = 'jeton-de-reset-fixe';
+    const now = Date.now();
+    h.stmt.insertResetToken.run(reset, userId, now, now + 3_600_000);
+
+    const res = await request(h.server)
+      .post('/api/auth/reset-password')
+      .send({ token: reset, password: 'nouveau-mot-de-passe' });
+    expect(res.status).toBe(200);
+
+    // ⚠️ LE CŒUR : l'ancien cookie ne doit plus rien ouvrir. Sans révocation,
+    // quiconque a volé la session — la raison même pour laquelle on
+    // réinitialise — la garde jusqu'à expiration, soit 30 jours par défaut.
+    expect((await request(h.server).get('/api/profile/me').set('Cookie', cookie)).status).toBe(401);
+    expect(h.stmt.sessionByToken.get(token)).toBeUndefined();
+
+    // Le nouveau mot de passe ouvre, l'ancien non.
+    const neuf = await request(h.server).post('/api/auth/login')
+      .send({ email: 'reset@test.local', password: 'nouveau-mot-de-passe' });
+    expect(neuf.status).toBe(200);
+    const vieux = await request(h.server).post('/api/auth/login')
+      .send({ email: 'reset@test.local', password: 'motdepasse-initial' });
+    expect(vieux.status).toBe(401);
+
+    // Et le jeton de réinitialisation est consommé : le lien ne se rejoue pas.
+    const rejeu = await request(h.server).post('/api/auth/reset-password')
+      .send({ token: reset, password: 'encore-un-autre-mdp' });
+    expect(rejeu.status).toBe(400);
+  });
+});
+
+// ===========================================================================
+//  Constat 09 — 20 Mo de corps acceptés avant toute authentification
+// ===========================================================================
+describe('plafonds de corps de requête', () => {
+  it('refuse 2 Mo sur une route ordinaire', async () => {
+    const res = await request(h.server)
+      .post('/api/cards')
+      .set('Authorization', ADMIN_BASIC)
+      .send({ id: 'GROS_001', name: 'x'.repeat(2 * 1024 * 1024) });
+
+    expect(res.status).toBe(413);
+  });
+
+  // Le plafond bas ne doit pas casser l'admin : un import en masse poste
+  // `cards.json` tel quel, soit ~320 Ko aujourd'hui.
+  it('laisse passer un import en masse de taille réaliste', async () => {
+    const items = Array.from({ length: 400 }, (_, i) => ({
+      id: `BULK_${String(i).padStart(3, '0')}`, name: 'Carte de charge', tier: 1,
+      description: 'x'.repeat(700),
+    }));
+    expect(JSON.stringify({ items }).length).toBeGreaterThan(300_000);
+
+    const res = await request(h.server)
+      .post('/api/cards/import')
+      .set('Authorization', ADMIN_BASIC)
+      .send({ items, mode: 'replace' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.added).toBe(400);
+  });
+
+  // ⚠️ Les routes d'upload gardent les 20 Mo : une illustration en base64 les
+  // dépasse vite. Le choix se fait AVANT le parsing — `express.json` ignore une
+  // requête déjà lue, donc monter la limite haute en aval de la basse serait un
+  // no-op silencieux.
+  it('laisse passer 2 Mo sur une route d\'upload d\'image', async () => {
+    const res = await request(h.server)
+      .put('/api/illustrations/GROS_ART')
+      .set('Authorization', ADMIN_BASIC)
+      .send({ data: PNG.toString('base64') + 'A'.repeat(2 * 1024 * 1024) });
+
+    // 500 (sharp refuse ces octets) et non 413 : la requête est ARRIVÉE, c'est
+    // tout ce que ce test doit prouver. Un 413 signalerait le mauvais plafond.
+    expect(res.status).not.toBe(413);
   });
 });
 

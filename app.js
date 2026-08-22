@@ -75,7 +75,41 @@ app.use(require('compression')());
 // pas de CSP du tout.
 app.use(require('helmet')({ contentSecurityPolicy: false }));
 
-app.use(express.json({ limit: '20mb' }));
+// ⚠️ Derrière le proxy de l'hébergeur, `req.ip` est celui du PROXY tant que
+// cette ligne n'est pas là : identique pour tout le monde. Le rate-limit
+// d'auth.js, qui s'en sert comme clé pour les routes anonymes, comptait donc
+// tous les joueurs comme un seul — 15 connexions par minute pour le jeu
+// entier. `1` = un seul proxy de confiance devant nous, ce qui est la
+// configuration de Railway ; une valeur plus permissive laisserait un client
+// forger son propre `X-Forwarded-For` et se donner une IP neuve à volonté.
+app.set('trust proxy', 1);
+
+// Deux plafonds de corps, et pas un seul.
+//
+// La limite globale était à 20 Mo, posée avant toute authentification : une
+// requête ANONYME vers n'importe quelle route /api faisait tamponner 20 Mo
+// avant que le moindre middleware d'auth ne s'exécute. Seuls les uploads
+// d'illustration en base64 ont besoin de cette taille ; ils la reçoivent
+// nommément, plus bas, sur leurs routes.
+//
+// 1 Mo et non 256 Ko : un import en masse depuis l'admin poste `cards.json`
+// tel quel, soit ~320 Ko aujourd'hui. Le plafond doit laisser au catalogue la
+// place de grandir sans casser l'onglet Cartes.
+const jsonSmall = express.json({ limit: '1mb' });
+const jsonUpload = express.json({ limit: '20mb' });
+
+// Les routes d'upload d'image, sous leurs deux formes : les familles
+// génériques utilisées par sync-data.js (`/api/illustrations/:id`…) et le
+// triptyque par entité, qui se termine toujours par le nom de la famille
+// (`/api/cards/:id/illustration`, `/api/sets/:id/poster`…).
+const UPLOAD_ROUTE_RE =
+  /^\/api\/(illustrations|avatars|pack-posters|board-backgrounds)\/|\/(illustration|background|poster|avatar)$/;
+
+// ⚠️ Le choix se fait AVANT le parsing, pas après : `express.json` ignore une
+// requête dont le corps est déjà lu (`req._body`). Monter la limite haute en
+// aval de la limite basse serait donc un no-op — la petite aurait déjà répondu
+// 413. C'est un seul middleware qui aiguille, pas deux montés l'un après l'autre.
+app.use((req, res, next) => (UPLOAD_ROUTE_RE.test(req.path) ? jsonUpload : jsonSmall)(req, res, next));
 
 // --- Config (env vars for production, local defaults for dev) ---
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -166,6 +200,48 @@ bootstrap();
 // Après bootstrap() : cards.json doit exister sur le volume.
 const progression = require('./progression');
 progression.backfillAll();
+
+// --- Entretien périodique ---
+//
+// `stmt.deleteExpiredSessions` était PRÉPARÉE et n'était appelée nulle part :
+// une ligne par connexion, conservée indéfiniment. Le TTL de 30 jours est bien
+// vérifié à la lecture (`getSession` supprime la ligne qu'il trouve expirée),
+// mais seulement pour les jetons qu'on présente encore — un joueur qui ne
+// revient pas laisse le sien à vie. `deleteExpiredResetTokens`, lui, était
+// correctement appelé sur ses deux routes : c'est l'oubli d'une seule des deux.
+//
+// Les matchs actifs sont refermés au démarrage pour la même raison : l'état
+// vivant d'un match est en mémoire (ws/MatchRelay.js) et meurt avec le
+// processus, mais la ligne SQL n'est refermée que par `endMatch`. Un
+// redémarrage laissait donc des `status='active'` définitifs — sans
+// conséquence aujourd'hui (`activeMatchByUser` n'est branché nulle part), mais
+// c'est exactement la requête qu'on branchera pour la reprise après
+// rechargement, et elle rendrait des fantômes.
+const MAINTENANCE_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const { db, stmt: dbStmt } = require('./db');
+
+function runMaintenance({ closeStaleMatches = false } = {}) {
+  const sessions = dbStmt.deleteExpiredSessions.run(Date.now()).changes;
+  const resets = dbStmt.deleteExpiredResetTokens.run(Date.now()).changes;
+  const buckets = auth.sweepBuckets();
+  let matches = 0;
+  if (closeStaleMatches) {
+    matches = db.prepare(
+      "UPDATE matches SET status = 'ended', ended_reason = 'server_restart', ended_at = ? WHERE status = 'active'",
+    ).run(Date.now()).changes;
+  }
+  if (sessions || resets || buckets || matches) {
+    console.log(
+      `[entretien] ${sessions} session(s) expirée(s), ${resets} jeton(s) de reset, ` +
+      `${buckets} seau(x) de quota, ${matches} match(s) rouvert(s) refermé(s)`,
+    );
+  }
+}
+
+runMaintenance({ closeStaleMatches: true });
+// `unref()` : ce minuteur ne doit jamais retenir le processus en vie — ni en
+// production à l'arrêt, ni dans un fork de test qui a requis app.js.
+setInterval(runMaintenance, MAINTENANCE_INTERVAL_MS).unref();
 
 // Après bootstrap() lui aussi : gifts.js tire db.js et shop.js derrière lui, et
 // son catalogue vit sur le volume.
@@ -1537,18 +1613,80 @@ app.delete('/api/illustrations/:id', (req, res) => {
 });
 
 // --- Download helper ---
-function downloadUrl(url) {
+//
+// Récupère une image depuis une URL fournie en admin (import d'illustration).
+// Quatre garde-fous, tous absents à l'origine :
+//
+//   - 5 redirections au maximum. La fonction se rappelait elle-même sans
+//     compteur : une URL qui redirige vers elle-même bouclait jusqu'à
+//     l'épuisement de la pile.
+//   - 10 s de délai. Sans lui, une cible qui n'envoie jamais rien immobilise la
+//     requête admin indéfiniment.
+//   - 10 Mo au maximum. Le corps était accumulé en mémoire sans borne.
+//   - refus des adresses PRIVÉES. C'est le garde-fou SSRF : sans lui, un import
+//     d'illustration est une sonde vers le réseau interne de l'hébergeur
+//     (169.254.169.254 et consorts). La route est réservée à l'admin, mais
+//     « admin » n'est pas « de confiance pour atteindre le réseau interne ».
+const DOWNLOAD_MAX_REDIRECTS = 5;
+const DOWNLOAD_TIMEOUT_MS = 10_000;
+const DOWNLOAD_MAX_BYTES = 10 * 1024 * 1024;
+
+/** Une adresse littérale privée, locale ou de lien-local ? */
+function isPrivateHost(hostname) {
+  const h = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+  if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.internal')) return true;
+  if (h === '::1' || h === '::' || h.startsWith('fc') || h.startsWith('fd') || h.startsWith('fe80:')) return true;
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!m) return false;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  return a === 0 || a === 10 || a === 127
+    || (a === 172 && b >= 16 && b <= 31)
+    || (a === 192 && b === 168)
+    || (a === 169 && b === 254)          // lien-local : métadonnées cloud
+    || (a === 100 && b >= 64 && b <= 127); // CGNAT
+}
+
+function downloadUrl(rawUrl, redirectsLeft = DOWNLOAD_MAX_REDIRECTS) {
   return new Promise((resolve, reject) => {
-    const proto = url.startsWith('https') ? https : http;
-    proto.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
-      if (res.statusCode === 301 || res.statusCode === 302)
-        return downloadUrl(res.headers.location).then(resolve).catch(reject);
-      if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+    let url;
+    try { url = new URL(rawUrl); } catch { return reject(new Error('URL invalide')); }
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return reject(new Error(`Protocole non autorisé : ${url.protocol}`));
+    }
+    if (isPrivateHost(url.hostname)) {
+      return reject(new Error(`Adresse privée refusée : ${url.hostname}`));
+    }
+
+    const proto = url.protocol === 'https:' ? https : http;
+    const req = proto.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        res.resume();   // libère la socket avant de repartir
+        if (redirectsLeft <= 0) return reject(new Error('Trop de redirections'));
+        // `new URL(location, url)` résout les redirections relatives, et fait
+        // repasser la cible par le contrôle d'adresse privée ci-dessus — une
+        // redirection vers 169.254.169.254 est le vecteur SSRF classique.
+        return downloadUrl(new URL(res.headers.location, url).href, redirectsLeft - 1)
+          .then(resolve).catch(reject);
+      }
+      if (res.statusCode !== 200) { res.resume(); return reject(new Error(`HTTP ${res.statusCode}`)); }
+
       const chunks = [];
-      res.on('data', c => chunks.push(c));
+      let size = 0;
+      res.on('data', (c) => {
+        size += c.length;
+        if (size > DOWNLOAD_MAX_BYTES) {
+          req.destroy();
+          return reject(new Error(`Image trop volumineuse (> ${DOWNLOAD_MAX_BYTES / 1024 / 1024} Mo)`));
+        }
+        chunks.push(c);
+      });
       res.on('end', () => resolve(Buffer.concat(chunks)));
       res.on('error', reject);
-    }).on('error', reject);
+    });
+    req.setTimeout(DOWNLOAD_TIMEOUT_MS, () => {
+      req.destroy(new Error(`Délai dépassé (${DOWNLOAD_TIMEOUT_MS / 1000} s)`));
+    });
+    req.on('error', reject);
   });
 }
 
