@@ -1,8 +1,7 @@
 [
 	{
 		"id": "PUBLIC_DECK_001",
-		"name": "Heroes",
-		"difficulty": 4,
+		"name": "Jaden",
 		"deck": {
 			"1": [
 				"CORE_093",
@@ -41,12 +40,12 @@
 				"CORE_130",
 				"CORE_133"
 			]
-		}
+		},
+		"difficulty": 3
 	},
 	{
 		"id": "PUBLIC_DECK_002",
 		"name": "Atem",
-		"difficulty": 4,
 		"deck": {
 			"1": [
 				"CORE_004",
@@ -87,12 +86,12 @@
 				"CORE_067",
 				"EXTRA_089"
 			]
-		}
+		},
+		"difficulty": 3
 	},
 	{
 		"id": "PUBLIC_DECK_003",
 		"name": "Yugi",
-		"difficulty": 3,
 		"deck": {
 			"1": [
 				"CORE_052",
@@ -128,12 +127,12 @@
 			"5": [
 				"CORE_088"
 			]
-		}
+		},
+		"difficulty": 4
 	},
 	{
 		"id": "PUBLIC_DECK_004",
 		"name": "Kaiba",
-		"difficulty": 1,
 		"deck": {
 			"1": [
 				"CORE_023",
@@ -165,12 +164,12 @@
 			"5": [
 				"CORE_103"
 			]
-		}
+		},
+		"difficulty": 3
 	},
 	{
 		"id": "PUBLIC_DECK_005",
 		"name": "Joey",
-		"difficulty": 1,
 		"deck": {
 			"1": [
 				"CORE_032",
@@ -204,12 +203,12 @@
 				"CORE_090"
 			],
 			"5": []
-		}
+		},
+		"difficulty": 3
 	},
 	{
 		"id": "PUBLIC_DECK_006",
 		"name": "Marik",
-		"difficulty": 2,
 		"deck": {
 			"1": [
 				"EXTRA_055",
@@ -247,12 +246,12 @@
 			"5": [
 				"MARIK_020"
 			]
-		}
+		},
+		"difficulty": 4
 	},
 	{
 		"id": "PUBLIC_DECK_007",
 		"name": "Paradox",
-		"difficulty": 1,
 		"deck": {
 			"1": [
 				"PARA_008",
@@ -284,12 +283,12 @@
 			"5": [
 				"EXTRA_071"
 			]
-		}
+		},
+		"difficulty": 2
 	},
 	{
 		"id": "PUBLIC_DECK_008",
 		"name": "Insector Haga",
-		"difficulty": 2,
 		"deck": {
 			"1": [
 				"HAGA_008",
@@ -322,12 +321,12 @@
 			"5": [
 				"EXTRA_008"
 			]
-		}
+		},
+		"difficulty": 1
 	},
 	{
 		"id": "PUBLIC_DECK_009",
 		"name": "Rex Raptor",
-		"difficulty": 1,
 		"deck": {
 			"1": [
 				"REX_001",
@@ -358,12 +357,12 @@
 				"EXTRA_015"
 			],
 			"5": []
-		}
+		},
+		"difficulty": 1
 	},
 	{
 		"id": "PUBLIC_DECK_010",
 		"name": "Mako Tsunami",
-		"difficulty": 3,
 		"deck": {
 			"1": [
 				"MAKO_002",
@@ -397,12 +396,12 @@
 				"EXTRA_022",
 				"EXTRA_025"
 			]
-		}
+		},
+		"difficulty": 1
 	},
 	{
 		"id": "PUBLIC_DECK_011",
 		"name": "Maï",
-		"difficulty": 2,
 		"deck": {
 			"1": [
 				"MAI_002",
@@ -434,12 +433,12 @@
 			"5": [
 				"EXTRA_043"
 			]
-		}
+		},
+		"difficulty": 2
 	},
 	{
 		"id": "PUBLIC_DECK_012",
 		"name": "Pegasus",
-		"difficulty": 4,
 		"deck": {
 			"1": [
 				"PEGASUS_014",
@@ -484,12 +483,12 @@
 				"PEGASUS_029",
 				"PEGASUS_033"
 			]
-		}
+		},
+		"difficulty": 4
 	},
 	{
 		"id": "PUBLIC_DECK_013",
 		"name": "Bandit Ken",
-		"difficulty": 3,
 		"deck": {
 			"1": [
 				"KEITH_002",
@@ -527,12 +526,12 @@
 			"5": [
 				"EXTRA_093"
 			]
-		}
+		},
+		"difficulty": 2
 	},
 	{
 		"id": "PUBLIC_DECK_014",
 		"name": "Bakura",
-		"difficulty": 2,
 		"deck": {
 			"1": [
 				"BAKURA_001",
@@ -566,6 +565,49 @@
 			"5": [
 				"EXTRA_061"
 			]
-		}
+		},
+		"difficulty": 4
+	},
+	{
+		"id": "PUBLIC_DECK_015",
+		"name": "Crowler",
+		"deck": {
+			"1": [
+				"YGX_009",
+				"YGX_007",
+				"YGX_010",
+				"YGX_011",
+				"YGX_003",
+				"YGX_008"
+			],
+			"2": [
+				"YGX_014",
+				"YGX_015",
+				"YGX_002",
+				"YGX_005",
+				"YGX_016",
+				"YGX_017",
+				"YGX_006"
+			],
+			"3": [
+				"YGX_004",
+				"YGX_001",
+				"YGX_019",
+				"YGX_025",
+				"YGX_020",
+				"YGX_021"
+			],
+			"4": [
+				"YGX_012",
+				"YGX_023",
+				"YGX_013"
+			],
+			"5": [
+				"YGX_022",
+				"YGX_018",
+				"YGX_024"
+			]
+		},
+		"difficulty": 2
 	}
 ]

@@ -281,7 +281,7 @@
 	{
 		"id": "ARCH_010",
 		"name": "Noble",
-		"icon": "🤴",
+		"icon": "👑",
 		"timing": "none",
 		"categorie": "Archetype",
 		"thresholds": []
@@ -598,17 +598,6 @@
 						"type": "stat_bonus",
 						"stat": "movement_speed",
 						"value": -3
-					}
-				]
-			},
-			{
-				"count": 4,
-				"medal": "platinum",
-				"effects": [
-					{
-						"type": "stat_bonus",
-						"stat": "movement_speed",
-						"value": -5
 					}
 				]
 			}
@@ -982,35 +971,13 @@
 		"categorie": "Archetype",
 		"thresholds": [
 			{
-				"count": 2,
-				"medal": "silver",
-				"effects": [
-					{
-						"type": "stat_bonus",
-						"stat": "attack_speed",
-						"value": -1
-					}
-				]
-			},
-			{
 				"count": 3,
-				"medal": "gold",
-				"effects": [
-					{
-						"type": "stat_bonus",
-						"stat": "attack_speed",
-						"value": -2
-					}
-				]
-			},
-			{
-				"count": 4,
 				"medal": "platinum",
 				"effects": [
 					{
 						"type": "stat_bonus",
 						"stat": "attack_speed",
-						"value": -4
+						"value": -2
 					}
 				]
 			}
@@ -1290,6 +1257,89 @@
 		"id": "ARCH_059",
 		"name": "Rouages ancients",
 		"icon": "⚙️",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_060",
+		"name": "Ninja",
+		"icon": "🥷",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_061",
+		"name": "Vampire",
+		"icon": "🧛‍♂️",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_062",
+		"name": "Monarque",
+		"icon": "🤴",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_063",
+		"name": "Esprit",
+		"icon": "🌀",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_064",
+		"name": "Jarre",
+		"icon": "🏺",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "draw_bonus",
+						"value": 1
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_065",
+		"name": "Psychique",
+		"icon": "🧠",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_066",
+		"name": "Metalmorphe",
+		"icon": "🪙",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_067",
+		"name": "Millenaire",
+		"icon": "🔺",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_068",
+		"name": "Dragon légendaires",
+		"icon": "🦄",
 		"timing": "start_of_combat",
 		"categorie": "Archetype",
 		"thresholds": []

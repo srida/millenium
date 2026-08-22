@@ -39,7 +39,7 @@
 			"stat": "atk",
 			"target_attributes": [
 				"ARCH_003",
-				"ARCH_036"
+				"ARCH_045"
 			]
 		},
 		"blocked_cells": [
@@ -340,32 +340,6 @@
 			{
 				"col": 1,
 				"row": 4
-			}
-		]
-	},
-	{
-		"id": "BOARD_012",
-		"name": "Terrain de chasse des harpies",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 5,
-			"stat": "attack_speed",
-			"target_attributes": [
-				"ARCH_036"
-			]
-		},
-		"blocked_cells": [
-			{
-				"col": 0,
-				"row": 4
-			},
-			{
-				"col": 4,
-				"row": 5
-			},
-			{
-				"col": 0,
-				"row": 6
 			}
 		]
 	},
