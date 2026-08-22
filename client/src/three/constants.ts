@@ -74,7 +74,8 @@ export const PREP_FOCUS_Y = 0.4;
 // Mode web : la main et les neutralisées passent en rails verticaux à deux
 // colonnes sur les côtés (bas d'écran libéré) — le bloc joueur se recentre et
 // gagne en hauteur, mais le cadrage doit réserver la largeur des rails. Doit
-// rester synchronisé avec la largeur `w-52` de HandBar / GraveyardTray.
+// rester synchronisé avec la largeur `w-52` de WEB_RAIL_BAND
+// (`components/hand/rail.ts`), commune aux deux rails.
 export const WEB_RAIL_PX = 208;
 export const PREP_ROW_MARGIN_WEB = 0.8;
 export const PREP_ROW_MARGIN = 1.5;

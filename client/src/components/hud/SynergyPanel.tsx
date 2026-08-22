@@ -14,8 +14,8 @@ export default function SynergyPanel() {
   if (combatActive || synergies.length === 0) return null;
 
   // Web (écran large) : bandeau centré sous le board, entre les deux rails
-  // (main à gauche, cimetière à droite — cf. HandBar/GraveyardTray, w-52
-  // chacun). bottom-14, pas bottom-2 : la barre de phase (bottom-0, pleine
+  // (main à gauche, cimetière à droite — cf. WEB_RAIL_BAND, w-52 chacun).
+  // bottom-14, pas bottom-2 : la barre de phase (bottom-0, pleine
   // largeur) intercepterait sinon les taps malgré son fond transparent.
   //
   // Portrait (mobile) : la main et le cimetière occupent déjà le bas de

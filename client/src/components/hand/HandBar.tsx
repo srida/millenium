@@ -6,10 +6,12 @@
 //
 // En mode web (écran plus large que haut), la bande devient un panneau encadré à
 // deux colonnes collé à gauche (même habillage que le cimetière) : le board
-// récupère toute la hauteur de l'écran. La largeur du rail (w-52) est réservée
-// par le cadrage caméra via WEB_RAIL_PX.
+// récupère toute la hauteur de l'écran. La bande occupée est celle du cimetière,
+// au pixel près — cf. WEB_RAIL_BAND (`./rail.ts`), qui porte aussi la largeur
+// réservée par le cadrage caméra via WEB_RAIL_PX.
 import { useGameStore, type HandEntry } from '../../stores/gameStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
+import { WEB_RAIL_BAND } from './rail.js';
 import CardTile, { cardTileProps } from '../ui/CardTile.js';
 
 export default function HandBar() {
@@ -23,7 +25,7 @@ export default function HandBar() {
 
   if (web) {
     return (
-      <div className="pointer-events-auto absolute bottom-14 left-0 top-14 z-20 w-52">
+      <div className={`${WEB_RAIL_BAND} left-0`}>
         <div className="mx-2 flex max-h-full flex-col rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-1.5">
           <div className="mb-1 shrink-0 text-[9px] tracking-widest text-white/40">MAIN</div>
           <div className="grid grid-cols-2 content-start justify-items-center gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">

@@ -2,10 +2,12 @@
 // (sacrifice/fusion/heritage/transformation) et cibles de la magie revive.
 //
 // En mode web (écran plus large que haut), le bandeau devient un rail vertical à
-// deux colonnes collé à droite, symétrique du rail de main — cf. HandBar /
-// WEB_RAIL_PX (les deux rails ont la même largeur : le board reste centré).
+// deux colonnes collé à droite, strictement symétrique du rail de main : même
+// bande verticale, même largeur (WEB_RAIL_BAND, `./rail.ts`), le board restant
+// centré entre les deux.
 import { useGameStore, type GraveyardEntry } from '../../stores/gameStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
+import { WEB_RAIL_BAND } from './rail.js';
 import CardTile from '../ui/CardTile.js';
 import { artFor } from '../../data/CardArt.js';
 
@@ -21,8 +23,7 @@ export default function GraveyardTray() {
 
   if (web) {
     return (
-      // top-28 : dégage le bouton ☰ du menu d'options, ancré en haut à droite.
-      <div className="pointer-events-auto absolute bottom-14 right-0 top-28 z-20 w-52">
+      <div className={`${WEB_RAIL_BAND} right-0`}>
         <div className="mx-2 flex max-h-full flex-col rounded-lg border border-red-500/30 bg-red-500/10 p-1.5">
           <div className="mb-1 shrink-0 text-[9px] tracking-widest text-white/40">NEUTRALISÉES</div>
           <div className="grid grid-cols-2 content-start justify-items-center gap-1.5 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
