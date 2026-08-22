@@ -17208,9 +17208,13 @@
 		"power": {},
 		"cost": {
 			"sacrifice": 0,
-			"materials": []
+			"materials": [
+				"STAPLE_153"
+			]
 		},
-		"represented_ids": []
+		"represented_ids": [
+			"STAPLE_153"
+		]
 	},
 	{
 		"id": "STAPLE_155",
