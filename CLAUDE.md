@@ -35,14 +35,43 @@ npm run client:dev        # client Vite — port 5173 (proxifie /api, /illustrat
 npm run build             # tsc --noEmit puis build Vite → client/dist
 npm start                 # Express sert client/dist sur / (fallback SPA)
 
+# Qualité :
+npm run lint              # eslint BACKEND (racine, routes/, ws/, scripts/)
+npm run lint:all          # backend + client
+npm test                  # = npm --prefix client test (toute la suite)
+
 # Qualité (dans client/) :
-npm test                  # vitest run — golden tests logique (déterminisme combat, PvP…)
-npm run lint              # eslint — inclut les garde-fous d'archi logic/ et three/
+npm test                  # vitest run — golden tests logique + serveur + HTTP
+npm run lint              # eslint client — garde-fous d'archi logic/ et three/
+npm run typecheck         # tsc --noEmit
 ```
+
+⚠️ **`npm start` charge `.env`** via `--env-file-if-exists` (natif Node ≥ 20.6). C'est bien la variante `-if-exists` qu'il faut : `--env-file` tout court **échoue au démarrage** quand le fichier est absent, ce qui casserait la production, où `.env` n'existe pas et où l'hébergeur injecte les variables directement. `ADMIN_PASS` y est **obligatoire** — sans elle le serveur refuse de démarrer (cf. « Niveaux d'accès »).
 
 En dev, on développe sur **http://localhost:5173** (HMR) ; en prod, Express sert le SPA sur `/`.
 
 Repo : `https://github.com/srida/Millenium`
+
+### Outillage de qualité
+
+**CI** (`.github/workflows/ci.yml`) — lint backend + client, toute la suite de tests, `tsc --noEmit`, et `npm audit --omit=dev --audit-level=high` (le bruit des devDependencies rendrait le signal inutile). Même garde `[skip ci]` que le workflow de version, sinon chaque commit de bump relancerait la suite.
+
+**ESLint backend** (`eslint.config.js` à la racine) — les 7 700 lignes de Node n'avaient aucun linter, celui du client s'arrêtant à `client/src`. Sa valeur principale n'est pas de traquer les variables inutilisées : c'est d'**encoder en règles les invariants d'architecture que ce document énonce en prose**. Deux pièges le concernant, tous deux trouvés en vérifiant que les règles se déclenchent plutôt qu'en constatant un lint vert :
+
+- ⚠️ **`no-restricted-imports` ne voit QUE les `import` ES.** Le backend est en CommonJS : c'est `n/no-restricted-require` (eslint-plugin-n) qu'il faut, et lui seul. Se tromper de règle donne une config qui passe au vert sans jamais rien vérifier — le pire des deux mondes.
+- ⚠️ **En config plate, une règle est REMPLACÉE, pas fusionnée**, par le bloc suivant qui la mentionne. `sets.js` étant à la fois une feuille et un module de règles, sa restriction de feuille était écrasée par celle des puits. D'où l'ordre (puits d'abord, feuilles ensuite) et la liste cumulée.
+
+`n/no-extraneous-require` attrape la dépendance **fantôme** — un module requis mais absent de `package.json`, qui ne se résout que par la remontée d'un autre paquet. C'est ce qui était arrivé à `cookie`, requis dans le chemin d'authentification et résolu par la seule copie hissée d'express.
+
+**`compression` et `helmet`** sont montés en tête d'`app.js`. `compression` fait passer `GET /api/cards` de 268 Ko à 25,8 Ko (×10,4) — c'est la route la plus chaude du jeu, traversée à chaque démarrage de client. ⚠️ La **CSP de helmet est désactivée à dessein** : `admin.html` fait 282 Ko de scripts en ligne, que la politique par défaut casserait net. La régler proprement est un travail à part ; à moitié, on la désactiverait au premier bug.
+
+### `app.js` et `server.js`
+
+`app.js` porte **toute** l'application Express et l'exporte ; `server.js` ne fait plus que le port, le serveur HTTP et l'attache du WebSocket PvP (qui prend un `http.Server`, pas un app Express).
+
+C'est ce découpage qui rend la couche HTTP testable : `client/src/test/http.test.ts` requiert `app.js` directement et le passe à `http.createServer` sur un port éphémère. `bootstrap()` et `progression.backfillAll()` restent **dans `app.js`**, au niveau module — un test qui pose un `DATA_DIR` vide obtient ainsi un catalogue peuplé par le code de production, pas par une copie parallèle qui dériverait.
+
+⚠️ La garde `ADMIN_PASS` est la **première instruction d'`app.js`**, avant tout `require` : `db.js` crée `DATA_DIR` et ouvre la base au chargement, et un démarrage refusé ne doit laisser aucune trace. Elle **jette** au lieu de terminer le processus — c'est ce qui la rend observable ; `server.js` traduit en sortie non nulle.
 
 ### Où vivent les images (`asset-dirs.js`)
 
@@ -70,7 +99,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `GET /` | Public | Jeu (SPA React servi depuis `client/dist`) |
 | `GET /admin` | Site admin | Card Manager (`admin.html`) |
 | `GET /api/version` | Public | Version du build (`package.json`) |
-| `GET /api/cards` | Public | 398 cartes, avec `_has_illustration` et `_starter` |
+| `GET /api/cards` | Public | Le catalogue complet, avec `_has_illustration` et `_starter` |
 | `GET /api/attributes` | Public | Attributs |
 | `GET /api/powers` | Public | Pouvoirs |
 | `GET /api/boards` | Public | Terrains de combat |
@@ -100,7 +129,27 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `GET /api/export` | Auth | Export complet avec checksums illustrations, avatars, affiches de packs **et fonds de terrain** |
 | `/api/admin/db/*` | Site admin | Inspection de la base SQLite (`routes/admin-db.js`) |
 
-**Niveaux d'accès** : l'écriture sur `cards` / `attributes` / `powers` passe par le middleware d'auth générique ; `boards`, `magies`, `missions`, `decks` et `sets` exigent en plus `requireSiteAdmin` (`auth.js`).
+### Lecture et écriture des catalogues (`readJson` / `writeJson`, `app.js`)
+
+**Un id d'asset ne compose JAMAIS un chemin à la main.** `assetPath(dir, id)` est le seul endroit du fichier autorisé à le faire, et il refuse tout ce que `safeAssetId` rejette. Ce n'est pas une commodité : `safeAssetId` gardait une vingtaine de routes et était **oublié sur huit autres** — la répétition du même quintuplet CRUD pour dix entités fait qu'un garde-fou ajouté aux copies récentes ne l'est pas aux anciennes, et rien ne peut le signaler. Une forme unique dans le fichier, c'est une seule chose à vérifier.
+
+**`readJson` met en cache au `mtime`** — le patron que tous les modules de règles appliquent déjà (`progression.allCardIds`, `sets.cards`, `variants.all`…), et que les routes HTTP étaient les seules à ne pas avoir. Mesuré sur `GET /api/cards` : lecture + parse **4,62 ms → 0,03 ms**, handler complet **16,7 ms → 6,0 ms** (×2,8).
+
+⚠️ **CONTRAT : `readJson` rend une copie du TABLEAU, mais en PARTAGE les éléments.** On peut `push`, `splice` ou remplacer une case ; on ne mute **jamais** un élément en place — pour modifier une entrée, on remplace la case par un objet neuf (`liste[i] = { ...liste[i], champ: valeur }`), comme le fait `syncCardSetMirror`. La copie **profonde** a été essayée et rejetée : `structuredClone` du catalogue coûte plus cher que la lecture + parse qu'il remplace, le cache devenait plus lent que pas de cache.
+
+⚠️ **`writeJson` écrit de façon ATOMIQUE** (`<file>.tmp` puis `renameSync`) et invalide le cache explicitement. Un `writeFileSync` direct sur la destination laissait un catalogue **tronqué** si le processus s'arrêtait au mauvais moment — et l'hébergeur envoie un `SIGTERM` à chaque déploiement. La base SQLite était protégée (WAL + transactions) ; les catalogues JSON, qui portent autant de valeur, ne l'étaient pas.
+
+**Deux plafonds de corps de requête**, pas un seul : 1 Mo en général, 20 Mo sur les seules routes d'upload d'image. ⚠️ Le choix se fait **avant** le parsing — `express.json` ignore une requête dont le corps est déjà lu, donc monter la limite haute *en aval* de la basse serait un no-op silencieux. Et 1 Mo plutôt que 256 Ko : un import en masse depuis l'admin poste `cards.json` tel quel (~320 Ko), le catalogue doit pouvoir grandir.
+
+**`downloadUrl`** (import d'illustration par URL) borne les redirections (5), le délai (10 s) et la taille (10 Mo), et **refuse les adresses privées** — 127/8, 10/8, 172.16/12, 192.168/16, 169.254/16 (métadonnées cloud), CGNAT, IPv6 locales, et tout protocole autre que http(s). La redirection repasse par le contrôle : rediriger vers 169.254.169.254 est le vecteur SSRF classique. « Admin » ne veut pas dire « de confiance pour atteindre le réseau interne ».
+
+**Niveaux d'accès** : un write-guard global (`app.js`) met **TOUT** `POST/PUT/DELETE/PATCH` sous `/api` derrière `requireSiteAdmin` — cartes et attributs comme terrains ou packs. Il n'y a donc qu'un seul niveau d'écriture, et `requireAuth` (la basic-auth seule) n'est jamais monté directement sur une route : on ne l'atteint qu'en repli de `requireSiteAdmin`.
+
+⚠️ Corollaire à connaître : **tout joueur marqué `is_admin` peut réécrire le catalogue de cartes**, pas seulement le porteur des identifiants du site. Les `requireSiteAdmin` explicites qu'on croise encore sur certaines routes (magies, terrains…) sont redondants avec le garde global — ils ne restreignent rien de plus.
+
+⚠️ **`ADMIN_PASS` est OBLIGATOIRE et son absence est fatale** : `app.js` refuse de se charger sans elle, avant même d'ouvrir la base ou de créer un dossier. Le repli permissif d'autrefois (`if (!ADMIN_PASS) return next()`) ouvrait toute l'écriture `/api` aux requêtes anonymes, promotion admin comprise — et comme rien ne chargeait `.env`, un `npm start` local tournait toujours ainsi. `npm start` passe désormais `--env-file-if-exists=.env` (natif Node ≥ 20.6 ; `--env-file` tout court échoue quand le fichier est absent, ce qui casserait la production). Verrouillé par `client/src/test/http-boot.test.ts`.
+
+⚠️ **Les GET sous `/api` sont PUBLICS** — le write-guard ne couvre que les écritures. C'est voulu (le jeu lit ses catalogues sans compte), mais ça veut dire qu'une route de lecture ajoutée sous `/api` est ouverte à tous par défaut : `GET /api/export/illustration/:id` a ainsi rendu, un temps, le contenu de n'importe quel `.png` du système de fichiers à un appelant anonyme, faute de `safeAssetId`.
 
 ### API en ligne (`routes/online.js`, montée sur `/api`)
 
@@ -108,7 +157,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 |---|---|---|
 | `POST /api/auth/register` \| `login` \| `logout` | Public (rate-limité) | Comptes |
 | `GET /api/auth/me` | Optionnel | Session courante |
-| `POST /api/auth/forgot-password` \| `reset-password` | Public (rate-limité) | Réinitialisation mot de passe |
+| `POST /api/auth/forgot-password` \| `reset-password` | Public (rate-limité) | Réinitialisation mot de passe — **révoque toutes les sessions du compte** |
 | `GET/PUT /api/profile/me` | Connecté | Profil (pseudo, avatar — l'appartenance de l'avatar est vérifiée) |
 | `GET /api/users/search` | Connecté | Recherche de joueurs |
 | `GET /api/friends`, `GET /api/friends/requests` | Connecté | Liste d'amis / demandes |
@@ -129,7 +178,11 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `POST /api/me/gifts/daily` | Connecté | Récupère le cadeau quotidien |
 | `POST /api/me/gifts/:id/claim` | Connecté | Récupère un cadeau ponctuel |
 
-Le PvP temps réel ne passe pas par HTTP : `ws/pvpServer.js` (matchmaking + relais opaque) sur `/ws`. Le message `match:found` (et `match:rejoined`) transporte les **variantes d'illustration** du deck adverse, dérivées côté serveur.
+**Rate-limit** (`auth.rateLimit`, seaux en mémoire) : la clé est le **compte** quand il y en a un, l'IP sinon. ⚠️ Elle était l'IP dans tous les cas, et derrière le proxy de l'hébergeur `req.ip` est celui du **proxy** — identique pour tout le monde : tous les joueurs partageaient un seul seau par route (15 connexions par minute pour le jeu ENTIER), et le quota ne protégeait plus du bourrage d'identifiants, qui vient lui aussi d'une IP unique. `app.set('trust proxy', 1)` est l'autre moitié du correctif ; la valeur `1` est délibérée — plus permissive, un client forgerait son propre `X-Forwarded-For` et se donnerait une IP neuve à volonté. Les seaux expirés sont purgés par la routine d'entretien.
+
+Le PvP temps réel ne passe pas par HTTP : `ws/pvpServer.js` (matchmaking + relais opaque) sur **`/ws/pvp`** — le fallback SPA d'`app.js`, lui, exclut tout le préfixe `/ws`. Le message `match:found` (et `match:rejoined`) transporte les **variantes d'illustration** du deck adverse, dérivées côté serveur.
+
+Trois garde-fous sur la poignée de main, tous absents à l'origine : `maxPayload` à **64 Ko** (le défaut de `ws` est 100 Mo, et le relais transmet des blobs opaques à l'adversaire), contrôle de l'en-tête **`Origin`** (liste blanche via `ALLOWED_WS_ORIGINS`, localhost toujours accepté, une requête sans `Origin` — client non navigateur — passe), et `socket.destroy()` sur un chemin d'upgrade non reconnu, où un simple `return` laissait la socket ouverte sans propriétaire.
 
 ---
 
@@ -145,7 +198,7 @@ Stockée en base (`db.js`), règles dans **`progression.js`** (racine — le ser
 | Gemmes | `gems` | 0 | 9999 |
 | Cartes débloquées | table `user_cards` | les cartes du **pack de départ** (à défaut : les `CORE_*`, 132) | **tout** le catalogue |
 
-La dotation d'un compte neuf se **designe en admin** : c'est le pack marqué « départ » (`starter: true` dans `sets.json`), cf. « Le pack de départ » plus bas. `STARTER_PREFIX = 'CORE'` n'est plus que le repli quand aucun pack ne porte le drapeau — l'état des données livrées.
+La dotation d'un compte neuf se **designe en admin** : c'est le pack marqué « départ » (`starter: true` dans `sets.json`), cf. « Le pack de départ » plus bas. `STARTER_PREFIX = 'CORE'` n'est plus que le repli quand aucun pack ne porte le drapeau. ⚠️ Les données livrées **portent désormais un pack de départ** (`SET_008`, 50 cartes) : c'est lui qui dote un compte neuf, pas les 132 `CORE_*` du repli historique.
 
 **Courbe de niveau** : palier unique de `XP_PER_LEVEL = 100`. `users.xp` stocke la progression **dans le niveau** (0–99), pas un cumul de carrière — `grant()` absorbe le passage de palier (250 XP d'un coup = +2 niveaux et 50 de reste), et la jauge de l'UI va donc de 0 à 100 sans calcul côté client. Un débit d'XP ne fait jamais redescendre de niveau.
 
@@ -158,6 +211,7 @@ La dotation d'un compte neuf se **designe en admin** : c'est le pack marqué « 
 | `pvp_win` — victoire sur un joueur en ligne | 70 | **Serveur** (`ws/MatchRelay.endMatch`, et `ws/BotMatch.endMatch` pour un duel contre bot), transmis dans `match:end` |
 
 - Le client envoie une **raison**, jamais un montant — sinon n'importe qui s'attribuerait le gain de son choix. `pvp_win` est refusé sur la route HTTP (`CLIENT_CLAIMABLE`) : le serveur est seul arbitre du vainqueur PvP (rapports croisés, forfait, timeout), il le décerne lui-même.
+- ⚠️ **Un désaccord entre les deux rapports n'a PAS de vainqueur** : le match est clos en `draw` avec `reason: 'result_mismatch'`, **aucun gain n'est versé**, et les deux `userId` sont journalisés. Le rôle A faisait autorité auparavant (« Role A is authoritative on mismatch »), ce qui était exploitable de la façon la plus simple qui soit — un client modifié en rôle A déclarait la victoire à chaque partie et encaissait les 70 XP quel que soit le rapport adverse, qui voyait en prime le match se clore contre lui. Coût assumé du correctif : dans le cas — anormal, le combat étant déterministe des deux côtés — d'une vraie divergence de simulation, un joueur honnête perd son gain. Verrouillé par `client/src/test/pvp-relay.test.ts`.
 - Limite assumée : solo et tournoi se déroulent **entièrement côté client**, le serveur ne peut que croire le joueur. Le rate-limit (30/min) borne l'abus sans l'empêcher.
 - Une **manche** de tournoi ne rapporte pas `ai_win` : le tournoi a son propre gain à la victoire finale (sinon un tournoi rapporterait jusqu'à 9×10 + 50).
 
@@ -319,7 +373,7 @@ Onglet **Missions** de `admin.html` (Card Manager) : liste + formulaire (champs 
 
 Le DeckBuilder ne laisse sélectionner que les cartes **possédées** (`stores/collectionStore.ts`, alimenté par `GET /api/me/progression`) :
 
-- Les cartes non débloquées sont **masquées par défaut** ; le chip `🔒 Verrouillées` les révèle, grisées et intapables (cadenas via la prop `locked` de `CardTile`). Le compteur affiche `133/398 cartes débloquées`.
+- Les cartes non débloquées sont **masquées par défaut** ; le chip `🔒 Verrouillées` les révèle, grisées et intapables (cadenas via la prop `locked` de `CardTile`). Le compteur affiche par exemple `50/653 cartes débloquées` — les deux nombres suivent la donnée (dotation du pack de départ / catalogue vendable).
 - `addCard` revérifie la possession : l'ajout ne dépend jamais du seul état d'affichage.
 - **Invité** : repli sur les cartes de départ, reconnues au drapeau `_starter` de `GET /api/cards` (préfixe `CORE_*` en second repli) — exactement la dotation d'un compte neuf. Le jeu se joue sans compte — un invité sans aucune carte ne pourrait plus construire de deck, et ce qu'il bâtit reste valable s'il s'inscrit.
 - Un deck **déjà enregistré** contenant des cartes non possédées n'est **pas** amputé au chargement : les cartes concernées sont signalées (cadenas + bandeau) et restent retirables à la main. Effacer le travail du joueur sans qu'il l'ait demandé serait pire que l'incohérence.
@@ -384,7 +438,7 @@ sets.posterExists(id) / sets.POSTERS_DIR
 
 **Les packs se designent depuis l'admin** (onglet 🎁 Packs) : nom, **affiche**, composition carte par carte (sélecteur plein écran avec filtres tier/type/attribut/appartenance et compteurs live), drapeau « pack de départ », `booster_enabled`. À l'enregistrement, `card_count` et `archetypes` (le sous-titre affiché en boutique) sont **dérivés** de la composition, jamais saisis.
 
-Le découpage livré reste celui de `scripts/build-sets.js` (7 packs de ~57 cartes), désormais un simple **point de départ éditable** — attention, son `--write` réécrit `sets.json` *et* les 398 champs `set` : il écrase le travail fait en admin. Ce qu'il garantit et ce qu'il ne garantit pas :
+Le découpage livré reste celui de `scripts/build-sets.js` (7 packs de ~57 cartes), désormais un simple **point de départ éditable** — attention, son `--write` réécrit `sets.json` *et* le champ `set` de toutes les cartes : il écrase le travail fait en admin. Ce qu'il garantit et ce qu'il ne garantit pas :
 
 - ✔ **aucune carte orpheline** — fermeture par union-find sur le graphe de matériaux : une fusion/héritage/transformation est toujours dans le pack de ses matériaux. C'est la contrainte dure ;
 - ~ distribution de tiers : rapportée, pas garantie — et depuis que le booster tire uniformément, c'est elle **seule** qui décide de ce qui tombe : plus rien ne rattrape un pack déséquilibré ;
@@ -492,7 +546,7 @@ Toutes les mutations renvoient l'instantané complet + la progression à jour : 
 
 ### Client
 
-- `stores/shopStore.ts` — instantané + actions. Absorbe chaque réponse (solde via `authStore.applyProgression`, cartes via `collectionStore.add` — on ne recharge pas les 398 ids après chaque achat).
+- `stores/shopStore.ts` — instantané + actions. Absorbe chaque réponse (solde via `authStore.applyProgression`, cartes via `collectionStore.add` — on ne recharge pas tout le catalogue d'ids après chaque achat).
 - `screens/ShopScreen.tsx` — emplacements, boosters, révélation en modale. `<PackPoster>` pose l'**affiche du pack** à gauche de son nom (et dans l'en-tête de la révélation), avec une tuile 🎁 quand `has_poster` est faux. Il vit désormais dans `components/shop/PackContents.tsx`, que les deux écrans importent.
 - `components/shop/PackContents.tsx` — le **contenu d'un pack**, carte par carte. ⚠️ Dossier `shop/` et non `shopping/`, qui est la Phase Shopping **en jeu**. La tuile d'un pack ne dit de son contenu qu'un nombre (« 12/57 ») : assez pour mesurer un avancement, pas pour arbitrer entre deux boosters à 1000 golds. On y **consulte, on n'y vend pas** — l'achat reste sur la tuile, à un seul endroit.
   - **Feuille plein écran**, pas une `Modal` (`max-w-sm`, scroll interne : ses filtres défileraient avec la grille), en `createPortal(…, document.body)` — même piège de bloc conteneur que `ConfirmBuy`, le déclencheur étant sous un `Panel`. `z-40` comme `Modal`, pour que les tooltips de carte (`TooltipHost`, z-50) restent **au-dessus** : c'est tout l'intérêt de l'appui long ici.
@@ -620,7 +674,7 @@ Deux extractions, toutes deux motivées par la même règle : ne pas se donner d
 
 ### Client
 
-- `stores/giftStore.ts` — instantané + `claimDaily()` / `claim(id)`. Son `absorb` fait les trois gestes de `shopStore.absorb` : `pickSnapshot`, `authStore.applyProgression`, et `collectionStore.add` des cartes livrées (lot `card` **et** cartes du booster) — un cadeau qui donne des cartes doit les faire apparaître au DeckBuilder sans recharger les 398 ids.
+- `stores/giftStore.ts` — instantané + `claimDaily()` / `claim(id)`. Son `absorb` fait les trois gestes de `shopStore.absorb` : `pickSnapshot`, `authStore.applyProgression`, et `collectionStore.add` des cartes livrées (lot `card` **et** cartes du booster) — un cadeau qui donne des cartes doit les faire apparaître au DeckBuilder sans recharger tout le catalogue d'ids.
 - `screens/GiftsScreen.tsx` — tuile du quotidien (bouton vert, ou `Countdown` vers la prochaine rotation), liste des cadeaux, modale de révélation. **Pas de `ConfirmBuy`** : rien n'est débité, la confirmation n'a pas d'objet. ⚠️ La révélation passe par `createPortal(…, document.body)` — déclenchée depuis un `Panel`, qui porte `backdrop-blur`, elle serait sinon rognée dans sa colonne (cf. `ConfirmBuy`).
 - `MainMenu` — bouton `🎁 Cadeaux` avec **une seule** pastille, la verte chiffrée (quotidien disponible + cadeaux non pris). Pas de point doré ni de `localStorage` « déjà vu », contrairement aux Missions et à la Boutique : un cadeau est toujours actionnable ou absent, il n'y a pas de nouveauté à signaler à part. Elle s'efface quand tout est récupéré, pas à la visite. Rien en invité.
 - Le compteur est **dérivé** de l'instantané (`claimableCount`), jamais transmis : une valeur dérivée qu'on transporte est une valeur qui peut contredire sa source.
@@ -867,6 +921,40 @@ démarrage du serveur. Couvre : intégrité des chapitres, résolution *et* stab
 déterminisme des decks, **invocabilité réelle de chaque carte de haut tier**, monotonie du script
 (une étape franchie ne se rejoue jamais quand sa condition se retourne), étapes conditionnelles,
 et la liste exacte des étapes bloquantes — c'est elle qui gèle les chronos.
+
+---
+
+## Tests de la couche HTTP et WebSocket
+
+Le reste de ce document nomme, domaine par domaine, le fichier qui verrouille chaque module de règles (`shop.test.ts`, `gifts.test.ts`, `arcade.test.ts`…). Il taisait longtemps un trou : **`routes/online.js`, `auth.js`, `db.js` et `ws/` n'avaient aucune couverture** — les golden tests exercent les règles à travers un harnais qui contourne Express. C'est très exactement là que vivaient tous les constats sérieux de l'audit du 22 août 2026.
+
+| Fichier | Ce qu'il verrouille |
+|---|---|
+| `client/src/test/http-harness.ts` | Le harnais : démarre `app.js` sur un port éphémère (pas un `*.test.ts`, donc jamais collecté seul) |
+| `client/src/test/http.test.ts` | Refus d'écriture anonyme, traversée de répertoire sur trois portes, write-guard, révocation de session au reset, plafonds de corps, recherche par souligné, écriture atomique |
+| `client/src/test/http-boot.test.ts` | Le refus de démarrer sans `ADMIN_PASS` — et l'absence d'effet de bord sur le disque |
+| `client/src/test/pvp-relay.test.ts` | L'arbitrage du relais : rapports concordants, divergents, forfait |
+
+Le harnais suit le patron des tests serveur existants (`createRequire`, `DATA_DIR` temporaire, env posées **avant** le premier `require`), avec deux différences qui comptent :
+
+- **aucun catalogue n'est recopié à la main** : `bootstrap()` vit dans `app.js` et peuple un `DATA_DIR` vide depuis `initial-data/`, par le code de production lui-même ;
+- **`ILLUS_DIR` est un ENFANT d'une racine à nous.** `asset-dirs.js` déduit `AVATARS_DIR`/`POSTERS_DIR`/`BOARD_BG_DIR` de `path.dirname(ILLUS_DIR)` : le poser directement dans `os.tmpdir()` ferait pondre `$TMPDIR/enemy_avatars`, partagé entre fichiers de tests et avec la machine du développeur. C'est aussi ce qui donne un « au-dessus d'`ILLUS_DIR` » propre, où déposer le fichier-victime du test de traversée.
+
+⚠️ **`http-boot.test.ts` est un fichier SÉPARÉ, et pas par goût.** Les modules racine sont chargés par `createRequire`, donc mis en cache par Node ; `vi.resetModules()` ne vide pas ce cache-là. Un second `require('app.js')` dans le même fork rendrait l'export mémorisé sans rejouer la garde, et le test passerait à vide. Vitest donne un processus par fichier (`pool: 'forks'`) — c'est la seule isolation qui marche ici.
+
+⚠️ **Le test de traversée passe par `node:http`, pas par supertest** (helper `raw()`). Un client de plus haut niveau ré-analyse l'URL et peut réécrire `..%2F`, auquel cas le test ne prouverait plus rien. Le `toBe(400)` strict est le canari : un 404 signalerait une normalisation, et le test doit échouer bruyamment plutôt que passer à vide.
+
+⚠️ **Un refus ne se prouve JAMAIS par un code de statut seul** — un 401 sur une URL mal orthographiée en rendrait un aussi. Chaque test vérifie l'ÉTAT après coup : la ligne en base, le fichier sur le disque, le catalogue inchangé.
+
+⚠️ **Un test de régression doit être éprouvé DANS LES DEUX SENS** : vert sur le code corrigé, **rouge** sur le comportement d'avant réintroduit exprès. Un test qui passe aussi sur la faille ne vaut rien, et c'est invérifiable après coup. Tous ceux ci-dessus l'ont été.
+
+### Entretien périodique (`app.js`)
+
+Au démarrage puis une fois par jour (`setInterval(...).unref()`, pour ne jamais retenir le processus) : purge des **sessions expirées** (`deleteExpiredSessions` était préparée et appelée nulle part — une ligne par connexion, gardée à vie), des jetons de reset périmés, des seaux de quota, et fermeture des **matchs restés `status='active'`** après un redémarrage. Ce dernier point est sans conséquence aujourd'hui (`activeMatchByUser` n'est branché nulle part) mais c'est la requête qu'on branchera pour la reprise après rechargement, et elle rendrait des fantômes.
+
+### Le fuseau du serveur est journalisé au démarrage
+
+Tout le calendrier du jeu (`missions.dayKey`, `cycleKey`, `weekKey`, dont dérivent boutique, cosmétiques, arcade et cadeau quotidien) lit l'heure **locale du processus**. Si `TZ` n'est pas réglée, Node prend celle du système — UTC sur la plupart des hébergeurs — et tous les rendez-vous quotidiens se décalent sans que rien ne le dise. `logTimezone()` le **nomme** au démarrage, exactement comme `[assets] ⚠` nomme un dossier mal placé : on ne peut pas deviner le bon fuseau, on peut au moins refuser de le taire.
 
 ---
 

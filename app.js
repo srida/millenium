@@ -171,6 +171,7 @@ function bootstrap() {
     console.log('[bootstrap] avatar par défaut copié sur le volume');
   }
   logAssetDirs();
+  logTimezone();
 }
 
 // Récapitulatif des dossiers d'images réellement utilisés. Une famille dont la
@@ -194,6 +195,33 @@ function logAssetDirs() {
     }
   }
 }
+// Fuseau horaire du serveur — même esprit que le récapitulatif d'assets
+// ci-dessus, et pour la même raison : une panne silencieuse qui ne se constate
+// qu'après coup.
+//
+// TOUT le calendrier du jeu lit l'heure LOCALE du processus : `missions.dayKey`,
+// `cycleKey` et `weekKey`, dont dérivent la rotation de la boutique, celle des
+// cosmétiques, la run d'arcade et le cadeau quotidien. Si `TZ` n'est pas réglée,
+// Node prend celle du système — UTC sur la plupart des hébergeurs — et tous les
+// rendez-vous quotidiens se décalent d'une ou deux heures sans que rien ne le
+// dise. Les joueurs le remarqueraient avant les journaux.
+//
+// On ne peut pas le corriger tout seul (quel fuseau serait le bon ?), donc on
+// le NOMME, exactement comme un dossier d'assets mal placé.
+function logTimezone() {
+  const tz = process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'inconnu';
+  const missions = require('./missions');
+  const rotation = `${String(missions.RESET_HOUR).padStart(2, '0')} h`;
+  console.log(`[fuseau] ${tz} — rotation quotidienne à ${rotation} locale`);
+  if (!process.env.TZ) {
+    console.warn(
+      `[fuseau] ⚠ TZ n'est pas réglée : le calendrier du jeu (missions, boutique, ` +
+      `cosmétiques, arcade, cadeaux) suit « ${tz} », le fuseau du système. Régler ` +
+      'TZ=Europe/Paris pour que les rotations tombent à l\'heure attendue.',
+    );
+  }
+}
+
 bootstrap();
 
 // Dote les comptes antérieurs à la collection (idempotent, cf. progression.js).
