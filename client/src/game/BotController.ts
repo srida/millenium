@@ -2,10 +2,10 @@
 // BotController — duel du lobby en ligne contre un adversaire artificiel.
 //
 // Il tient la place de `PvpController` quand le matchmaking n'a trouvé personne
-// (cf. ws/MatchmakingQueue.BOT_DELAY_MS) et que le serveur a servi un bot. Le
-// joueur n'en sait rien : même écran, même HUD, mêmes overlays, même identité
-// d'adversaire — c'est GameScreenPvp qui monte l'un ou l'autre, rien d'autre ne
-// change.
+// (cf. ws/MatchmakingQueue.BOT_DELAY_MIN_MS → BOT_DELAY_MAX_MS) et que le
+// serveur a servi un bot. Le joueur n'en sait rien : même écran, même HUD,
+// mêmes overlays, même identité d'adversaire — c'est GameScreenPvp qui monte
+// l'un ou l'autre, rien d'autre ne change.
 //
 // La partie, elle, est un solo : l'adversaire est joué par l'`EnemyAI`
 // habituelle, sur le deck que le serveur a annoncé. Aucun combat n'est simulé

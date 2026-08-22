@@ -5,15 +5,28 @@ const relay = require('./MatchRelay');
 const botMatch = require('./BotMatch');
 
 /**
- * Délai au bout duquel un joueur seul se voit servir un adversaire artificiel.
+ * Fenêtre au bout de laquelle un joueur seul se voit servir un adversaire
+ * artificiel : le délai est TIRÉ AU HASARD dans `[MIN, MAX]`, à chaque entrée
+ * en file.
  *
- * Assez long pour qu'un vrai joueur qui arrive dans la même minute soit
- * toujours préféré — un bot ne doit jamais VOLER un duel humain — et assez
- * court pour qu'une file vide ne se lise pas comme un jeu mort. Le joueur
- * n'apprend pas que son adversaire en est un : il n'y a rien à distinguer à
- * l'écran (cf. ws/BotMatch.js).
+ * Assez long pour qu'un vrai joueur qui arrive entre-temps soit toujours
+ * préféré — un bot ne doit jamais VOLER un duel humain — et assez court pour
+ * qu'une file vide ne se lise pas comme un jeu mort.
+ *
+ * ⚠️ Le hasard n'est pas cosmétique : **une échéance fixe est un tell**. Le
+ * joueur n'est pas censé apprendre que son adversaire en est un (rien ne les
+ * distingue à l'écran, cf. ws/BotMatch.js) — mais « trouvé à 20 s pile, trois
+ * fois de suite » se remarque, là où une attente qui varie ressemble à une
+ * file. C'est la même raison qui fait varier le « PRÊT » du bot en partie
+ * (game/BotController.READY_MIN_MS → READY_MAX_MS).
  */
-const BOT_DELAY_MS = 20_000;
+const BOT_DELAY_MIN_MS = 10_000;
+const BOT_DELAY_MAX_MS = 20_000;
+
+/** Délai du repli, tiré dans la fenêtre — bornes comprises. */
+function botDelay() {
+  return BOT_DELAY_MIN_MS + Math.floor(Math.random() * (BOT_DELAY_MAX_MS - BOT_DELAY_MIN_MS + 1));
+}
 
 const waiting = new Map(); // userId -> { ws, deckName, joinedAt, botTimer }
 
@@ -44,7 +57,7 @@ function joinQueue(ws, userId, deckName) {
   if (!opponentEntry) {
     // Seul dans la file : on attend, mais pas indéfiniment.
     const entry = waiting.get(userId);
-    entry.botTimer = setTimeout(() => serveBot(userId), BOT_DELAY_MS);
+    entry.botTimer = setTimeout(() => serveBot(userId), botDelay());
     return;
   }
 
@@ -79,4 +92,4 @@ function handleDisconnectWhileWaiting(userId) {
   drop(userId);
 }
 
-module.exports = { joinQueue, leaveQueue, handleDisconnectWhileWaiting, BOT_DELAY_MS };
+module.exports = { joinQueue, leaveQueue, handleDisconnectWhileWaiting, BOT_DELAY_MIN_MS, BOT_DELAY_MAX_MS };

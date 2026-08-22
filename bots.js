@@ -2,8 +2,9 @@
 //
 // Ils existent pour une raison de peuplement : une file d'attente vide est un
 // cul-de-sac, et un joueur qui cherche un duel trois fois sans rien trouver
-// n'y revient pas. Passé `ws/MatchmakingQueue.BOT_DELAY_MS`, le serveur sert
-// donc un bot plutôt que rien.
+// n'y revient pas. Passé le délai de `ws/MatchmakingQueue` (tiré entre
+// BOT_DELAY_MIN_MS et BOT_DELAY_MAX_MS), le serveur sert donc un bot plutôt
+// que rien.
 //
 // ⚠️ Le bot n'est PAS joué par le serveur. Le PvP est un relais opaque
 // (cf. ws/pvpServer.js) : aucune logique de jeu ne vit ici, et en faire tourner

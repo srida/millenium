@@ -317,15 +317,34 @@ describe('file d\'attente', () => {
   beforeEach(() => { vi.useFakeTimers(); });
   afterEach(() => { vi.useRealTimers(); });
 
-  it('sert un bot au joueur resté seul, et pas avant le délai', () => {
+  it('sert un bot au joueur resté seul, et jamais avant le plancher du délai', () => {
     const uid = newUser();
     const ws = fakeWs(uid);
     queue.joinQueue(ws, uid, 'Deck');
-    vi.advanceTimersByTime(queue.BOT_DELAY_MS - 1);
+    vi.advanceTimersByTime(queue.BOT_DELAY_MIN_MS - 1);
     expect(ws.last('match:found')).toBeUndefined();
-    vi.advanceTimersByTime(1);
+    vi.advanceTimersByTime(queue.BOT_DELAY_MAX_MS - queue.BOT_DELAY_MIN_MS + 1);
     expect(ws.last('match:found').bot).toBeTruthy();
     queue.leaveQueue(uid);
+  });
+
+  it('tire son délai DANS la fenêtre annoncée, bornes comprises', () => {
+    // Le hasard EST le sujet : on le fixe aux deux extrêmes plutôt que de
+    // faire tourner la file en espérant les voir sortir. Sans cette borne
+    // haute, un tirage mal écrit (fenêtre exclusive, facteur oublié) ferait
+    // attendre le joueur au-delà de ce que la file annonce.
+    for (const [rand, delay] of [[0, queue.BOT_DELAY_MIN_MS], [0.999999, queue.BOT_DELAY_MAX_MS]] as const) {
+      const spy = vi.spyOn(Math, 'random').mockReturnValue(rand);
+      const uid = newUser();
+      const ws = fakeWs(uid);
+      queue.joinQueue(ws, uid, 'Deck');
+      spy.mockRestore();
+      vi.advanceTimersByTime(delay - 1);
+      expect(ws.last('match:found'), `rand=${rand}`).toBeUndefined();
+      vi.advanceTimersByTime(1);
+      expect(ws.last('match:found')?.bot, `rand=${rand}`).toBeTruthy();
+      queue.leaveQueue(uid);
+    }
   });
 
   it('ne vole JAMAIS un duel humain', () => {
@@ -334,12 +353,12 @@ describe('file d\'attente', () => {
     const a = newUser(); const b = newUser();
     const wsA = fakeWs(a); const wsB = fakeWs(b);
     queue.joinQueue(wsA, a, 'Deck A');
-    vi.advanceTimersByTime(queue.BOT_DELAY_MS - 1);
+    vi.advanceTimersByTime(queue.BOT_DELAY_MIN_MS - 1);
     queue.joinQueue(wsB, b, 'Deck B');
     expect(wsA.last('match:found').bot).toBeUndefined();
     expect(wsB.last('match:found').bot).toBeUndefined();
     // Et le timer du premier ne doit plus se déclencher derrière.
-    vi.advanceTimersByTime(queue.BOT_DELAY_MS * 2);
+    vi.advanceTimersByTime(queue.BOT_DELAY_MAX_MS * 2);
     expect(wsA.sent.filter((m: any) => m.type === 'match:found')).toHaveLength(1);
   });
 
@@ -348,7 +367,7 @@ describe('file d\'attente', () => {
     const ws = fakeWs(uid);
     queue.joinQueue(ws, uid, 'Deck');
     queue.leaveQueue(uid);
-    vi.advanceTimersByTime(queue.BOT_DELAY_MS * 2);
+    vi.advanceTimersByTime(queue.BOT_DELAY_MAX_MS * 2);
     expect(ws.last('match:found')).toBeUndefined();
   });
 
@@ -357,7 +376,7 @@ describe('file d\'attente', () => {
     const ws = fakeWs(uid);
     queue.joinQueue(ws, uid, 'Deck');
     ws.readyState = 3;
-    vi.advanceTimersByTime(queue.BOT_DELAY_MS);
+    vi.advanceTimersByTime(queue.BOT_DELAY_MAX_MS);
     expect(ws.last('match:found')).toBeUndefined();
   });
 });

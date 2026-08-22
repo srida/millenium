@@ -7,9 +7,9 @@
 //
 // ⚠️ Cet écran sert AUSSI les duels contre un adversaire artificiel, servis par
 // le serveur quand la file d'attente ne trouve personne (cf.
-// ws/MatchmakingQueue.BOT_DELAY_MS). Seul le contrôleur change — BotController
-// au lieu de PvpController, et la session est bâtie en mode 'ai' sur le deck
-// annoncé. Tout le reste de l'écran est écrit une seule fois et ne sait pas
+// ws/MatchmakingQueue.BOT_DELAY_MIN_MS → BOT_DELAY_MAX_MS). Seul le contrôleur
+// change — BotController au lieu de PvpController, et la session est bâtie en
+// mode 'ai' sur le deck annoncé. Tout le reste de l'écran est écrit une seule fois et ne sait pas
 // lequel des deux il pilote : c'est ce qui rend les deux duels indistinguables
 // à l'écran, et ce qui interdit d'ajouter ici la moindre branche visible.
 import { useEffect, useRef, useState } from 'react';
