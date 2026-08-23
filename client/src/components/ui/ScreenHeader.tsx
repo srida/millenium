@@ -25,7 +25,7 @@ export function ScreenHeader({
   right,
   subtitle,
   below,
-  safeAreaTop = false,
+  safeAreaTop = true,
   className = '',
 }: {
   title: string;
@@ -35,6 +35,8 @@ export function ScreenHeader({
   /** Barre pleine largeur épinglée AVEC l'en-tête (onglets de la Boutique, du
    *  Deck-building…) — hors du padding, sous la ligne titre. */
   below?: ReactNode;
+  /** Réserve l'encoche iOS. Vrai par défaut : les 11 écrans le passaient tous,
+   *  et un en-tête collant sous l'encoche est un défaut, jamais un choix. */
   safeAreaTop?: boolean;
   className?: string;
 }) {

@@ -3,7 +3,7 @@
 // L'utilisateur modifie lui-même ses données ; le compte doit être connecté.
 import { useEffect, useState } from 'react';
 import * as AuthClient from '../data/AuthClient.js';
-import { illustrationUrl } from '../data/CardDatabase.js';
+import { illustrationUrl } from '../data/CardArt.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { useUiStore } from '../stores/uiStore.js';
@@ -11,6 +11,7 @@ import { Button } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import { LevelRewardsPanel, ProgressionPanel } from '../components/ui/ProgressionStats.js';
 import type { LevelRewardsView } from '../components/ui/ProgressionStats.js';
+import { GuestGate } from '../components/ui/GuestGate.js';
 
 // Les avatars portables viennent du SERVEUR (cosmetics.js) : les offerts
 // d'office, puis ceux achetés dans l'onglet cosmétique de la boutique. La
@@ -56,15 +57,7 @@ export default function ProfileScreen() {
     // prochain rendez-vous avec.
   }, [levelsBust]);
 
-  if (!user) {
-    return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-white">
-        <p className="text-sm text-white/60">Connecte-toi pour accéder à ton profil.</p>
-        <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
-        <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-      </main>
-    );
-  }
+  if (!user) return <GuestGate reason="Connecte-toi pour accéder à ton profil." />;
 
   async function save() {
     setError(null); setSaved(false); setBusy(true);
@@ -88,7 +81,6 @@ export default function ProfileScreen() {
         title="Profil"
         onBack={() => navigate('main_menu')}
         right={<span className="text-xs text-white/40">#{(user as any).tag ?? '—'}</span>}
-        safeAreaTop
       />
 
       <div className="flex flex-1 flex-col items-center gap-5 p-6">
@@ -108,7 +100,7 @@ export default function ProfileScreen() {
           <label className="text-[10px] tracking-widest text-white/40">PSEUDO</label>
           <input
             value={username} maxLength={20} onChange={(e) => { setUsername(e.target.value); setSaved(false); }}
-            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-sm text-white"
+            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-white"
           />
           <div className="flex items-baseline justify-between">
             <label className="text-[10px] tracking-widest text-white/40">AVATAR</label>

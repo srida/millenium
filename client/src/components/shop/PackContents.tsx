@@ -78,10 +78,16 @@ function Chip({ active, onTap, children }: { active: boolean; onTap: () => void;
 }
 
 export default function PackContents({ set, onClose }: { set: ShopSet; onClose: () => void }) {
-  // ⚠️ Le `onPointerDown={hideTooltip}` du <main> de ShopScreen ne couvre PAS
-  // cette feuille : elle est montée sur `document.body` par un portal. Sans son
-  // propre handler, un appui long sur une vignette ouvrirait un tooltip que
-  // plus rien ne pourrait refermer.
+  // La feuille porte son PROPRE `onPointerDown={hideTooltip}` pour être
+  // autonome : elle s'ouvre depuis la boutique aujourd'hui, mais rien dans son
+  // contrat ne l'y attache, et un appui long sur une vignette doit toujours
+  // pouvoir se refermer.
+  //
+  // (Ce n'est PAS parce que le portal la couperait du handler de `ShopScreen` :
+  // les événements synthétiques React traversent un portal via l'arbre REACT,
+  // pas via le DOM — le `<main>` parent les reçoit donc bel et bien. C'est la
+  // même propriété qui rend le portal de `Modal` sans conséquence pour ses
+  // appelants.)
   const hideTooltip = useUiStore(s => s.hideTooltip);
   const ownedIds = useCollectionStore(s => s.ownedIds);
 

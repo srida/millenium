@@ -10,6 +10,7 @@ import { create } from 'zustand';
 import * as AuthClient from '../data/AuthClient.js';
 import { useAuthStore } from './authStore.js';
 import { useCollectionStore } from './collectionStore.js';
+import { createSnapshotChannel } from './snapshotLoader.js';
 
 /** Un lot, tel qu'annoncé AVANT récupération (libellé résolu côté serveur). */
 export interface GiftLot {
@@ -74,8 +75,6 @@ interface GiftStoreState {
   reset: () => void;
 }
 
-const isGuest = () => !useAuthStore.getState().user;
-
 // Whitelist : sans elle, un champ ajouté côté serveur serait silencieusement
 // perdu — et un champ retiré laisserait un `undefined` dans le rendu.
 function pickSnapshot(data: any): GiftSnapshot {
@@ -103,12 +102,19 @@ function unlockedCardsOf(lines: GiftLine[]): string[] {
 }
 
 function absorb(set: (p: Partial<GiftStoreState>) => void, data: any, reveal: GiftReveal | null) {
+  channel.bump();
   set({ snapshot: pickSnapshot(data), reveal });
   useAuthStore.getState().applyProgression(data.progression);
   // Les cartes offertes doivent apparaître au DeckBuilder sans recharger les
   // 398 ids de la collection.
   if (reveal) useCollectionStore.getState().add(unlockedCardsOf(reveal.lines));
 }
+
+const channel = createSnapshotChannel<GiftSnapshot>({
+  fetch: () => (AuthClient as any).getGifts(),
+  pick: pickSnapshot,
+  errorLabel: 'Cadeaux indisponibles.',
+});
 
 export const useGiftStore = create<GiftStoreState>((set, get) => ({
   snapshot: null,
@@ -117,20 +123,7 @@ export const useGiftStore = create<GiftStoreState>((set, get) => ({
   error: null,
   reveal: null,
 
-  load: async (force = false) => {
-    if (isGuest()) { set({ snapshot: null, error: null }); return; }
-    if (get().loading || (get().snapshot && !force)) return;
-    set({ loading: true, error: null });
-    try {
-      const data = await (AuthClient as any).getGifts();
-      set({ snapshot: pickSnapshot(data) });
-      useAuthStore.getState().applyProgression(data.progression);
-    } catch (e: any) {
-      set({ error: e?.message ?? 'Cadeaux indisponibles.' });
-    } finally {
-      set({ loading: false });
-    }
-  },
+  load: channel.load(set, get),
 
   claimDaily: async () => {
     if (get().busy) return null;

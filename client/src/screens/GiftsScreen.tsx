@@ -12,19 +12,19 @@
 // Toutes les valeurs viennent du serveur (gifts.js) : barème du quotidien,
 // contenu des lots, libellés. Le client n'en calcule aucune.
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useGiftStore, type Gift, type GiftLot } from '../stores/giftStore.js';
-import { Button, Panel, Modal, Countdown } from '../components/ui/primitives.js';
+import { Amount, Button, Countdown, Illustration, LoadState, Modal, Panel } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import * as CardDatabase from '../data/CardDatabase.js';
-
-const fmt = new Intl.NumberFormat('fr-FR');
+import { CURRENCY, fmt } from '../components/ui/currency.js';
+import { GuestGate } from '../components/ui/GuestGate.js';
 
 const LOT_ICONS: Record<GiftLot['type'], string> = {
-  gold: '💰', gems: '💎', card: '🃏', pack: '🎁', avatar: '🖼️', variant: '🎨',
+  gold: CURRENCY.gold.icon, gems: CURRENCY.gems.icon,
+  card: '🃏', pack: '🎁', avatar: '🖼️', variant: '🎨',
 };
 
 // Pourquoi une ligne n'a rien donné. Un CODE côté serveur, une phrase ici :
@@ -54,17 +54,7 @@ export default function GiftsScreen() {
 
   useEffect(() => { void load(true); }, [load]);
 
-  if (!user) {
-    return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-center text-white">
-        <p className="text-sm text-white/60">
-          Les cadeaux se gardent sur ton compte :<br />ils en demandent un.
-        </p>
-        <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
-        <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-      </main>
-    );
-  }
+  if (!user) return <GuestGate reason="Les cadeaux se gardent sur ton compte : ils en demandent un." />;
 
   const pending = snapshot?.gifts.filter(g => !g.claimed) ?? [];
   const claimed = snapshot?.gifts.filter(g => g.claimed) ?? [];
@@ -74,13 +64,11 @@ export default function GiftsScreen() {
       <ScreenHeader
         title="Cadeaux"
         onBack={() => navigate('main_menu')}
-        safeAreaTop
         right={snapshot && <Countdown at={snapshot.next_rotation_at} title="Prochain cadeau quotidien" />}
       />
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 p-4">
-        {error && <p className="text-xs text-danger">{error}</p>}
-        {loading && !snapshot && <p className="text-sm text-white/40">Chargement…</p>}
+        <LoadState error={error} loading={loading} hasContent={!!snapshot} />
 
         {snapshot && (
           <>
@@ -139,7 +127,7 @@ function DailyCard() {
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">Cadeau quotidien</p>
           <p className="text-xs text-white/50">
-            💰 {fmt.format(reward.gold)} · 💎 {fmt.format(reward.gems)}
+            <Amount currency="gold" value={reward.gold} /> · <Amount currency="gems" value={reward.gems} />
           </p>
         </div>
       </div>
@@ -212,16 +200,7 @@ function GiftCard({ gift }: { gift: Gift }) {
   );
 }
 
-/**
- * Révélation de ce qui vient d'être livré.
- *
- * ⚠️ Rendue dans un `createPortal(…, document.body)`, et ce n'est pas optionnel :
- * elle est déclenchée depuis une tuile, donc sous un `Panel` — qui porte
- * `backdrop-blur`. Un `backdrop-filter` sur un ancêtre crée un bloc conteneur,
- * le `position: fixed` de `Modal` se résoudrait alors sur la tuile et la modale
- * se retrouverait enfermée dans sa colonne, boutons rognés. Le piège vaut pour
- * toute `Modal` rendue sous un `Panel` (cf. `ConfirmBuy` dans ShopScreen).
- */
+/** Révélation de ce qui vient d'être livré. */
 function GiftReveal({ onClose }: { onClose: () => void }) {
   const reveal = useGiftStore(s => s.reveal);
   if (!reveal) return null;
@@ -238,7 +217,7 @@ function GiftReveal({ onClose }: { onClose: () => void }) {
   // pourquoi un cadeau annonçant six choses n'en a donné que quatre.
   const missed = reveal.lines.filter(l => !l.granted);
 
-  return createPortal(
+  return (
     <Modal onClose={onClose}>
       <div className="flex flex-col gap-4">
         <div className="text-center">
@@ -248,8 +227,13 @@ function GiftReveal({ onClose }: { onClose: () => void }) {
 
         {(!!reveal.gold || !!reveal.gems) && (
           <div className="flex justify-center gap-4 text-sm font-semibold">
-            {!!reveal.gold && <span className="text-gold">💰 +{fmt.format(reveal.gold)}</span>}
-            {!!reveal.gems && <span className="text-tier-5">💎 +{fmt.format(reveal.gems)}</span>}
+            {/* ⚠️ Les gemmes étaient ici en `text-tier-5` — la MÊME valeur que
+                `--color-gold` (#d4af61) : sur le seul écran qui montre les deux
+                montants côte à côte, ils sortaient dans la même couleur.
+                `Amount` va chercher la teinte dans `currency.ts`, l'écart ne
+                peut plus se reproduire. */}
+            {!!reveal.gold && <Amount currency="gold" value={reveal.gold} sign />}
+            {!!reveal.gems && <Amount currency="gems" value={reveal.gems} sign />}
           </div>
         )}
 
@@ -267,12 +251,7 @@ function GiftReveal({ onClose }: { onClose: () => void }) {
         {!!cosmetics.length && (
           <div className="flex flex-wrap justify-center gap-2">
             {cosmetics.map((line, i) => (
-              <img
-                key={`${line.id}-${i}`}
-                src={`/illustrations/${line.id}`}
-                alt=""
-                className="h-20 w-20 rounded-lg border border-line object-cover"
-              />
+              <Illustration key={`${line.id}-${i}`} id={line.id!} framed className="h-20 w-20" />
             ))}
           </div>
         )}
@@ -297,7 +276,6 @@ function GiftReveal({ onClose }: { onClose: () => void }) {
           Continuer
         </Button>
       </div>
-    </Modal>,
-    document.body,
+    </Modal>
   );
 }

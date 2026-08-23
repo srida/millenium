@@ -4,7 +4,7 @@
 import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import type { BoardDef } from '../../logic/types.js';
-import { Button } from '../ui/primitives.js';
+import { Button, Illustration } from '../ui/primitives.js';
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);
@@ -30,7 +30,7 @@ function TerrainChip({ board }: { board: BoardDef }) {
       className="flex min-h-tap min-w-[4.5rem] max-w-[8rem] items-center gap-1.5 rounded-md border border-line bg-surface/80 px-2 text-xs text-white/80 active:opacity-80"
     >
       {board._has_illustration
-        ? <img src={`/illustrations/${board.id}`} alt="" className="h-5 w-5 flex-shrink-0 rounded object-cover" />
+        ? <Illustration id={board.id} className="h-5 w-5 rounded" />
         : <span className="flex-shrink-0 leading-none">🗺️</span>}
       <span className="truncate">{board.name}</span>
     </button>

@@ -50,12 +50,12 @@ export default function ResetPasswordScreen() {
           <input
             type="password" autoComplete="new-password" placeholder="Nouveau mot de passe" value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-sm text-white placeholder:text-white/30"
+            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-white placeholder:text-white/30"
           />
           <input
             type="password" autoComplete="new-password" placeholder="Confirmer" value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-sm text-white placeholder:text-white/30"
+            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-white placeholder:text-white/30"
           />
           {error && <p className="text-xs text-danger">{error}</p>}
           <Button type="submit" variant="primary" disabled={busy} className="w-full">
