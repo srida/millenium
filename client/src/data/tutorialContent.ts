@@ -279,7 +279,7 @@ export const CHAPTERS: Chapter[] = [
         "**Ligne de vue** — un obstacle entre une unité et sa cible l'empêche d'attaquer. Elle continue d'avancer jusqu'à retrouver l'angle.",
         "**Effet de terrain** — un bonus de statistique, parfois réservé à certains attributs, appliqué aux unités concernées des deux camps.",
       ] },
-      { kind: 'note', text: "En combat, le nom du terrain s'affiche dans la barre du bas (🗺️). Tape-le pour voir son effet." },
+      { kind: 'note', text: "En combat, l'illustration et le nom du terrain s'affichent dans la barre du bas. Tape-les pour voir son effet et les archétypes qu'il renforce." },
     ],
   },
 ];

@@ -218,23 +218,54 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
   }
 
   // terrain
+  //
+  // Pas d'emoji dans le titre : l'illustration du terrain est déjà là, et le
+  // chip de la barre de combat porte la même — 🗺️ n'ajoutait qu'un pictogramme
+  // générique à côté de l'image qui, elle, distingue les terrains.
   const b: any = content.board;
+  const targets: string[] = Array.isArray(b.effect?.target_attributes) ? b.effect.target_attributes : [];
+  // Seuls ces trois effets LISENT `target_attributes` (cf. BoardEffect) : un
+  // `draw_bonus` ne vise personne sur le board, annoncer « toutes les unités »
+  // sous lui ferait mentir le tooltip.
+  const targetsUnits = ['stat_bonus', 'stat_modifier', 'shield'].includes(b.effect?.type);
   return (
     <div>
       <div className="flex items-center gap-2">
         {b._has_illustration && (
           <img src={`/illustrations/${b.id}`} alt="" className="h-10 w-10 flex-shrink-0 rounded-md object-cover" />
         )}
-        <div className="text-sm font-bold">🗺️ {b.name}</div>
+        <div className="text-sm font-bold">{b.name}</div>
       </div>
-      <div className="mt-1 text-[11px] text-white/60">{b.effect ? describeEffects([b.effect]) : 'Aucun effet'}</div>
+      {/* L'effet ne répète PAS ses cibles entre parenthèses : les archétypes
+          boostés sont annoncés juste en dessous, avec leur icône. Un attribut
+          se reconnaît à son pictogramme bien avant son nom. */}
+      <div className="mt-1 text-[11px] text-white/60">{b.effect ? describeEffects([b.effect], false) : 'Aucun effet'}</div>
+      {targetsUnits && (
+        targets.length > 0 ? (
+          <div className="mt-2">
+            <div className="text-[9px] uppercase tracking-widest text-white/40">Archétypes boostés</div>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {targets.map((id: string) => (
+                <span key={id} className="flex items-center gap-1 rounded border border-gold/40 bg-gold/10 px-1.5 py-0.5 text-[10px] text-gold">
+                  <AttrIcon id={id} className="h-3.5 w-3.5 text-[11px]" />
+                  {attributeName(id)}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : (
+          // target_attributes vide = toutes les unités des deux joueurs : le
+          // dire, sinon le silence se lit comme « aucune cible ».
+          <div className="mt-2 text-[10px] text-white/40">Toutes les unités</div>
+        )
+      )}
     </div>
   );
 }
 
-function describeEffects(effects: any[]): string {
+function describeEffects(effects: any[], withTargets = true): string {
   return (effects ?? []).map((e: any) => {
-    const target = describeTargetAttributes(e.target_attributes);
+    const target = withTargets ? describeTargetAttributes(e.target_attributes) : '';
     switch (e.type) {
       case 'stat_bonus': return `+${e.value} ${STAT_LABELS[e.stat] ?? e.stat}${target}`;
       case 'stat_modifier': return `×${e.value} ${STAT_LABELS[e.stat] ?? e.stat}${target}`;
