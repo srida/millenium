@@ -135,12 +135,9 @@ exports[`/api/boards > empreinte du quintuplet 1`] = `
   ],
   [
     "import non-tableau",
-    200,
+    400,
     {
-      "added": 1,
-      "ok": true,
-      "replaced": 0,
-      "skipped": 3,
+      "error": "items doit être un tableau",
     },
   ],
   [
@@ -148,9 +145,12 @@ exports[`/api/boards > empreinte du quintuplet 1`] = `
     200,
     {
       "added": 0,
+      "errors": [
+        "Élément sans ID ignoré",
+      ],
       "ok": true,
       "replaced": 0,
-      "skipped": 1,
+      "skipped": 0,
     },
   ],
   [
@@ -158,6 +158,7 @@ exports[`/api/boards > empreinte du quintuplet 1`] = `
     200,
     {
       "added": 0,
+      "errors": [],
       "ok": true,
       "replaced": 0,
       "skipped": 1,
@@ -168,6 +169,7 @@ exports[`/api/boards > empreinte du quintuplet 1`] = `
     200,
     {
       "added": 0,
+      "errors": [],
       "ok": true,
       "replaced": 1,
       "skipped": 0,

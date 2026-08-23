@@ -16,7 +16,8 @@
 // l'instantané doit être VIDE après refonte. C'est le critère de recette, et
 // il est mécanique.
 //
-// Trois divergences connues sont volontairement gelées ici, pas corrigées :
+// Trois divergences que cette empreinte a mises au jour, corrigées depuis (le
+// commit qui les corrige a fait bouger l'instantané, délibérément) :
 //   - ⚠️ `/api/boards/import` n'a PAS le garde `Array.isArray` des autres, et
 //     la conséquence est pire qu'une erreur : une chaîne étant un ITÉRABLE,
 //     `{"items":"nope"}` pousse ses CARACTÈRES dans le catalogue comme s'ils
@@ -114,67 +115,57 @@ describe('drapeaux calculés', () => {
 // ---------------------------------------------------------------------------
 //  Les divergences connues, nommées plutôt que subies
 // ---------------------------------------------------------------------------
-describe('divergences gelées', () => {
-  it('/api/boards/import CORROMPT le catalogue sur un corps non-tableau', async () => {
+// Les trois divergences que l'empreinte a mises au jour, désormais CORRIGÉES.
+// Ces tests-ci ne gèlent plus un constat, ils verrouillent le correctif : les
+// dix routes d'import se comportent maintenant pareil.
+describe('divergences corrigées', () => {
+  it('/api/boards/import refuse un corps non-tableau, comme les neuf autres', async () => {
     const cards = await admin(request(h.server).post('/api/cards/import')).send({ items: 'nope' });
     expect(cards.status).toBe(400);
     expect(cards.body).toEqual({ error: 'items doit être un tableau' });
 
     const fichier = path.join(h.DATA, 'boards.json');
     const lire = () => JSON.parse(fs.readFileSync(fichier, 'utf8'));
+    const avant = lire().length;
 
-    // ⚠️ L'empreinte du quintuplet, plus haut dans ce fichier, a DÉJÀ joué
-    // `import non-tableau` sur boards — donc déjà glissé un caractère dans le
-    // catalogue. On repart d'un fichier propre pour que l'assertion porte sur
-    // ce test-ci et pas sur l'ordre d'exécution.
-    const propre = lire().filter((b: any) => b && typeof b === 'object');
-    fs.writeFileSync(fichier, JSON.stringify(propre, null, '\t'));
-
-    const avant = propre.length;
     const boards = await admin(request(h.server).post('/api/boards/import')).send({ items: 'nope' });
-    const apres = lire();
 
-    // ⚠️ Comportement ACTUEL, et il est PIRE qu'un 500 : faute de garde
-    // `Array.isArray`, la chaîne est ITÉRÉE — une chaîne est un itérable — et
-    // ses caractères sont poussés dans le catalogue comme s'ils étaient des
-    // terrains. La route répond 200, l'admin croit son import passé, et
-    // `boards.json` contient désormais une chaîne nue là où `BoardDatabase`
-    // attend un objet.
-    //
-    // Gelé ici, corrigé dans le commit suivant — l'instantané bougera alors
-    // délibérément.
-    expect(boards.status).toBe(200);
-    expect(apres.length).toBe(avant + 1);
-    expect(apres[apres.length - 1]).toBe('n');
-
-    // On nettoie derrière nous : les autres tests lisent ce fichier.
-    fs.writeFileSync(fichier, JSON.stringify(apres.filter((b: any) => b && typeof b === 'object'), null, '\t'));
+    // ⚠️ Le cœur du correctif. Avant, cette route répondait 200 et poussait les
+    // CARACTÈRES de la chaîne dans le catalogue — une chaîne est un itérable —
+    // laissant `boards.json` avec une entrée `"n"` là où `BoardDatabase` attend
+    // un objet. L'admin croyait son import passé.
+    expect(boards.status).toBe(400);
+    expect(boards.body).toEqual({ error: 'items doit être un tableau' });
+    expect(lire().length).toBe(avant);
+    // Et aucune entrée non-objet n'a pu s'y glisser.
+    expect(lire().every((b: any) => b && typeof b === 'object')).toBe(true);
   });
 
-  it('/api/boards/import ne rend pas de clé `errors`', async () => {
+  it('/api/boards/import saute les entrées sans id et rend une clé `errors`', async () => {
     const boards = await admin(request(h.server).post('/api/boards/import')).send({ items: [{ name: 'sans id' }] });
     const cards = await admin(request(h.server).post('/api/cards/import')).send({ items: [{ name: 'sans id' }] });
 
-    expect(cards.body).toHaveProperty('errors');
-    expect(boards.body).not.toHaveProperty('errors');
+    expect(boards.body).toHaveProperty('errors');
+    expect(boards.body.errors).toEqual(cards.body.errors);
+    expect(boards.body.added).toBe(0);
   });
 
-  it('/api/sets/import n\'aligne PAS le miroir `card.set`, là où POST le fait', async () => {
+  it('/api/sets/import aligne le miroir `card.set`, comme POST et PUT', async () => {
     const cible = 'CORE_002';
     const lireSet = () => JSON.parse(fs.readFileSync(path.join(h.DATA, 'cards.json'), 'utf8'))
       .find((c: any) => c.id === cible)?.set;
 
     await admin(request(h.server).post('/api/sets')).send({ id: 'CHAR_SET_P', name: 'Par POST', cards: [cible] });
-    const apresPost = lireSet();
+    expect(lireSet()).toBe('CHAR_SET_P');
 
     await admin(request(h.server).delete('/api/sets/CHAR_SET_P'));
     await admin(request(h.server).post('/api/sets/import'))
       .send({ items: [{ id: 'CHAR_SET_I', name: 'Par import', cards: [cible] }] });
-    const apresImport = lireSet();
 
-    // ⚠️ Comportement ACTUEL : le POST pose le miroir, l'import non.
-    expect(apresPost).toBe('CHAR_SET_P');
-    expect(apresImport).not.toBe('CHAR_SET_I');
+    // `sets.json` fait foi pour le pool d'un booster, mais le miroir rattrape
+    // les cartes créées après la rédaction du pack : le laisser périmé faisait
+    // diverger les deux sources.
+    expect(lireSet()).toBe('CHAR_SET_I');
 
     await admin(request(h.server).delete('/api/sets/CHAR_SET_I'));
   });
