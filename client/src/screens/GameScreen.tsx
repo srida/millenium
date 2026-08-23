@@ -89,8 +89,11 @@ export default function GameScreen() {
       setController(null);
       reset();
     };
-    // Montage unique : la session/partie ne se reconstruit pas sur changement de deps.
-
+    // Montage unique : la session/partie ne se reconstruit pas sur changement de
+    // deps. Les paramètres de la partie (deck, adversaire, mode) sont lus une
+    // fois au montage — les remettre en dépendances rebâtirait la partie en
+    // cours de jeu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
   }, []);
 
   if (!controller) return <div className="flex min-h-dvh items-center justify-center bg-surface text-white">Chargement…</div>;

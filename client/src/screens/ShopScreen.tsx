@@ -54,6 +54,9 @@ export default function ShopScreen() {
   useEffect(() => { void loadCosmetics(true); }, [loadCosmetics]);
   useEffect(() => { void loadCollection(); }, [loadCollection]);
   // Efface la pastille de nouveauté du menu principal pour l'offre du jour.
+  // La dépendance est le CHAMP `day`, pas l'instantané : ce dernier change
+  // d'identité à chaque achat, et la pastille ne se rejoue qu'à la rotation.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
   useEffect(() => { if (user && snapshot) markShopSeen(user.id, snapshot.day); }, [user, snapshot?.day]);
 
   if (!user) {

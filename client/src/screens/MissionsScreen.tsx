@@ -38,6 +38,10 @@ export default function MissionsScreen() {
   const { snapshot, loading, error, load } = useMissionStore();
 
   useEffect(() => { void load(true); }, [load]);
+  // La dépendance est le CHAMP, pas l'instantané : ce dernier change d'identité
+  // à chaque réponse (envoi d'événements, récupération d'une mission), et on ne
+  // veut re-marquer « vu » que quand le cycle, lui, a tourné.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
   useEffect(() => { if (user && snapshot) markMissionsSeen(user.id, snapshot.cycle.next_reset_at); }, [user, snapshot?.cycle.next_reset_at]);
 
   const pending = claimableMissions(snapshot);

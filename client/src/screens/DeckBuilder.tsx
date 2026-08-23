@@ -101,6 +101,7 @@ export default function DeckBuilder() {
     () => (cardId: string) => useCosmeticStore.getState().ownedVariantsFor(cardId),
     // `cosmeticSnapshot` n'est pas lu ici : il force la re-création de la
     // fonction après un achat, pour que les badges réapparaissent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
     [cosmeticSnapshot],
   );
   const owns = useMemo(() => (id: string) => isAdminEdit || ownedIds.has(id), [ownedIds, isAdminEdit]);

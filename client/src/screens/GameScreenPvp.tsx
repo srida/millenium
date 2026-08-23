@@ -73,7 +73,9 @@ export default function GameScreenPvp() {
         (PvpConnection as any).disconnect();
       }
     };
-    // Montage unique.
+    // Montage unique : le duel se noue une fois. Remettre `deckName` ou
+    // `navigate` en dépendances relancerait la poignée de main en pleine partie.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
   }, []);
 
   if (!controller) return <div className="flex min-h-dvh items-center justify-center bg-surface text-white">Connexion au duel…</div>;
