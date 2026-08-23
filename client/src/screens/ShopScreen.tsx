@@ -17,7 +17,6 @@
 // Rien n'est calculé ici : prix, tirage et soldes viennent du serveur
 // (shop.js, cosmetics.js). L'écran affiche et déclenche, il n'arbitre pas.
 import { useEffect, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import * as CardDatabase from '../data/CardDatabase.js';
 import type { Card } from '../logic/types.js';
 import { useUiStore } from '../stores/uiStore.js';
@@ -387,16 +386,10 @@ function ConfirmBuy({ pending, onClose }: { pending: PendingBuy; onClose: () => 
   const { icon, unit, balance, key } = CURRENCY_BY_WIRE[pending.currency];
   const after = balance(user) - pending.price;
 
-  // ⚠️ PORTAL OBLIGATOIRE. La modale est déclenchée depuis une tuile, donc
-  // rendue sous un `Panel` — qui porte `backdrop-blur`. Un `filter` /
-  // `backdrop-filter` sur un ancêtre crée un BLOC CONTENEUR : le `position:
-  // fixed` de `Modal` se résout alors sur la tuile et non sur l'écran, la
-  // modale se retrouve enfermée dans une colonne de la grille et ses boutons
-  // sont rognés. Le portal la sort de l'arbre, quel que soit l'appelant.
-  //
   // Pendant l'appel, ni fermeture au fond ni second tap : l'achat n'est pas
-  // idempotent côté serveur, deux envois débiteraient deux fois.
-  return createPortal(
+  // idempotent côté serveur, deux envois débiteraient deux fois. (Le portal qui
+  // sortait cette modale de son `Panel` vit désormais dans `Modal` elle-même.)
+  return (
     <Modal onClose={working ? undefined : onClose}>
       <div className="text-center text-[10px] tracking-widest text-white/40">CONFIRMER L'ACHAT</div>
 
@@ -432,8 +425,7 @@ function ConfirmBuy({ pending, onClose }: { pending: PendingBuy; onClose: () => 
           {working ? '…' : 'Acheter'}
         </Button>
       </div>
-    </Modal>,
-    document.body,
+    </Modal>
   );
 }
 

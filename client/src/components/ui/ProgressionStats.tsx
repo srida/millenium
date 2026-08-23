@@ -11,7 +11,6 @@
 // un nombre nu ne dit rien sans son plafond ; le décompte exact reste en petit
 // sous la barre. Gold et gemmes, eux, sont des soldes → chiffres.
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useAuthStore } from '../../stores/authStore.js';
 import type { AuthUser, LevelReward } from '../../stores/authStore.js';
 import { Amount, Button, CountBadge, Gauge, Modal, Panel } from './primitives.js';
@@ -307,23 +306,14 @@ export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
 // Icône par famille d'objet tiré. Le libellé, lui, vient du serveur.
 const ITEM_ICONS: Record<string, string> = { card: '🃏', avatar: '🎭', variant: '🎨' };
 
-/**
- * Révélation de ce qui vient d'être récupéré, palier par palier.
- *
- * ⚠️ Rendue dans un `createPortal(…, document.body)`, et ce n'est pas
- * optionnel : elle est déclenchée depuis un `Panel`, qui porte `backdrop-blur`.
- * Un `backdrop-filter` sur un ancêtre crée un bloc conteneur, le
- * `position: fixed` de `Modal` se résoudrait alors sur le panneau et la modale
- * se retrouverait enfermée dans sa colonne, boutons rognés. Le piège vaut pour
- * toute `Modal` rendue sous un `Panel` (cf. `ConfirmBuy`, `GiftReveal`).
- */
+/** Révélation de ce qui vient d'être récupéré, palier par palier. */
 function LevelReveal({ lines, onClose }: { lines: LevelReward[]; onClose: () => void }) {
   const gold = lines.reduce((n, l) => n + l.gold, 0);
   const gems = lines.reduce((n, l) => n + l.gems, 0);
   const items = lines.filter(l => l.item).map(l => l.item!);
   const last = lines[lines.length - 1];
 
-  return createPortal(
+  return (
     <Modal onClose={onClose}>
       <div className="flex flex-col gap-4">
         <div className="text-center">
@@ -360,8 +350,7 @@ function LevelReveal({ lines, onClose }: { lines: LevelReward[]; onClose: () => 
           Continuer
         </Button>
       </div>
-    </Modal>,
-    document.body,
+    </Modal>
   );
 }
 

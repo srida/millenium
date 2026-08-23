@@ -12,7 +12,6 @@
 // Toutes les valeurs viennent du serveur (gifts.js) : barème du quotidien,
 // contenu des lots, libellés. Le client n'en calcule aucune.
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useGiftStore, type Gift, type GiftLot } from '../stores/giftStore.js';
@@ -212,16 +211,7 @@ function GiftCard({ gift }: { gift: Gift }) {
   );
 }
 
-/**
- * Révélation de ce qui vient d'être livré.
- *
- * ⚠️ Rendue dans un `createPortal(…, document.body)`, et ce n'est pas optionnel :
- * elle est déclenchée depuis une tuile, donc sous un `Panel` — qui porte
- * `backdrop-blur`. Un `backdrop-filter` sur un ancêtre crée un bloc conteneur,
- * le `position: fixed` de `Modal` se résoudrait alors sur la tuile et la modale
- * se retrouverait enfermée dans sa colonne, boutons rognés. Le piège vaut pour
- * toute `Modal` rendue sous un `Panel` (cf. `ConfirmBuy` dans ShopScreen).
- */
+/** Révélation de ce qui vient d'être livré. */
 function GiftReveal({ onClose }: { onClose: () => void }) {
   const reveal = useGiftStore(s => s.reveal);
   if (!reveal) return null;
@@ -238,7 +228,7 @@ function GiftReveal({ onClose }: { onClose: () => void }) {
   // pourquoi un cadeau annonçant six choses n'en a donné que quatre.
   const missed = reveal.lines.filter(l => !l.granted);
 
-  return createPortal(
+  return (
     <Modal onClose={onClose}>
       <div className="flex flex-col gap-4">
         <div className="text-center">
@@ -302,7 +292,6 @@ function GiftReveal({ onClose }: { onClose: () => void }) {
           Continuer
         </Button>
       </div>
-    </Modal>,
-    document.body,
+    </Modal>
   );
 }

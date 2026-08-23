@@ -1,5 +1,6 @@
 // Primitives du design system Millenium (Tailwind v4, mobile-first, tap ≥ 44px).
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
 
 type Variant = 'primary' | 'ghost' | 'danger';
@@ -192,10 +193,27 @@ export function Banner({ text, tone = 'info' }: { text: string; tone?: 'info' | 
   );
 }
 
-// Overlay modal centré, mobile-first (safe-areas iOS). onClose (optionnel) est
-// déclenché par un tap sur le fond — jamais sur le contenu.
+/**
+ * Overlay modal centré, mobile-first (safe-areas iOS). `onClose` (optionnel) est
+ * déclenché par un tap sur le fond — jamais sur le contenu.
+ *
+ * ⚠️ **La modale se rend dans un `createPortal(…, document.body)`, et c'est la
+ * primitive qui le fait — plus ses appelants.** Un `filter` / `backdrop-filter`
+ * sur un ancêtre crée un BLOC CONTENEUR : rendue sous un `Panel` (qui porte
+ * `backdrop-blur`), la modale voyait son `position: fixed` se résoudre sur la
+ * tuile et non sur l'écran — enfermée dans une colonne de la grille, boutons
+ * rognés. Trois appelants (`ConfirmBuy`, `GiftReveal`, `LevelReveal`) portaient
+ * chacun leur propre portal et leur propre copie de cet avertissement, pendant
+ * que dix autres `<Modal>` n'en avaient pas et que rien ne disait laquelle en
+ * aurait eu besoin. Le piège n'existe plus, au lieu d'être documenté trois fois.
+ *
+ * Portaler est toujours correct ici : la couche est `fixed inset-0`, elle ne
+ * tient à son parent DOM par rien. Et les événements synthétiques React
+ * traversent un portal via l'arbre REACT — les `onPointerDown` des ancêtres
+ * (fermeture de tooltip, etc.) continuent donc de recevoir les taps.
+ */
 export function Modal({ children, onClose }: { children: ReactNode; onClose?: () => void }) {
-  return (
+  return createPortal(
     <div
       className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
       onPointerDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
@@ -203,6 +221,7 @@ export function Modal({ children, onClose }: { children: ReactNode; onClose?: ()
       <div className="max-h-[88dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gold/40 bg-surface/97 p-4 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
