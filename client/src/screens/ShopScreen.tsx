@@ -24,11 +24,12 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
 import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant } from '../stores/cosmeticStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
-import { Amount, Button, IconButton, Panel, Gauge, Modal, Countdown } from '../components/ui/primitives.js';
+import { Amount, Button, Countdown, Gauge, IconButton, Illustration, Modal, Panel } from '../components/ui/primitives.js';
 import { CURRENCY, CURRENCY_BY_WIRE, fmt, type WireCurrency } from '../components/ui/currency.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import PackContents, { PackPoster } from '../components/shop/PackContents.js';
+import { GuestGate } from '../components/ui/GuestGate.js';
 
 const cardOf = (id: string | null): Card | null => (id ? (CardDatabase as any).getCard(id) ?? null : null);
 
@@ -58,17 +59,7 @@ export default function ShopScreen() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
   useEffect(() => { if (user && snapshot) markShopSeen(user.id, snapshot.day); }, [user, snapshot?.day]);
 
-  if (!user) {
-    return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-center text-white">
-        <p className="text-sm text-white/60">
-          La boutique suit ta collection et ton deck actif :<br />elle demande un compte.
-        </p>
-        <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
-        <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-      </main>
-    );
-  }
+  if (!user) return <GuestGate reason="La boutique suit ta collection et ton deck actif : elle demande un compte." />;
 
   const complete = snapshot && snapshot.collection.owned >= snapshot.collection.total;
 
@@ -262,12 +253,7 @@ function CosmeticOffer({
 
   return (
     <Panel className="flex flex-col gap-1.5 p-2">
-      <img
-        src={`/illustrations/${illustrationId}`}
-        alt=""
-        loading="lazy"
-        className="aspect-square w-full rounded-lg border border-line object-cover"
-      />
+      <Illustration id={illustrationId} framed className="aspect-square w-full" />
       <div className="min-h-8">
         <div className="truncate text-[11px] font-semibold leading-tight">{title}</div>
         <div className="truncate text-[10px] text-white/40">{subtitle}</div>
@@ -281,11 +267,7 @@ function CosmeticOffer({
           disabled={busy || !affordable}
           onPointerDown={() => ask({
             visual: (
-              <img
-                src={`/illustrations/${illustrationId}`}
-                alt=""
-                className="h-28 w-28 rounded-lg border border-line object-cover"
-              />
+              <Illustration id={illustrationId} framed lazy={false} className="h-28 w-28" />
             ),
             title,
             detail: subtitle,

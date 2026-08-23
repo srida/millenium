@@ -20,6 +20,7 @@ import { useArcadeStore, currentDuel, wonCount, type ArcadeDuel, type ArcadeBonu
 import { Amount, Button, Countdown } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
+import { GuestGate } from '../components/ui/GuestGate.js';
 
 const MIN_DECK = 20;
 
@@ -69,18 +70,7 @@ export default function ArcadeScreen() {
     />
   );
 
-  if (!user) {
-    return (
-      <main className="flex min-h-dvh flex-col relative z-10 text-white">
-        {header}
-        <Center>
-          <div className="text-4xl">🕹</div>
-          <p className="text-sm text-white/60">L'Arcade a besoin d'un compte : la run du jour est gardée côté serveur.</p>
-          <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
-        </Center>
-      </main>
-    );
-  }
+  if (!user) return <GuestGate reason="L'Arcade a besoin d'un compte : la run du jour est gardée côté serveur." />;
 
   if (!snapshot) {
     return (

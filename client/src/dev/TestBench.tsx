@@ -18,6 +18,7 @@ import * as BoardDatabase from '../data/BoardDatabase.js';
 import type { Card, Position, BoardDef } from '../logic/types.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import { useUiStore } from '../stores/uiStore.js';
+import { Illustration } from '../components/ui/primitives.js';
 
 const SUMMON_TYPES = ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'];
 type Side = 'player' | 'enemy';
@@ -263,7 +264,7 @@ export default function TestBench() {
             {selectedBoard && showTerrainInfo && (
               <div className="flex gap-2 rounded-lg border border-line bg-surface-raised/60 p-2 text-[11px] text-white/70">
                 {(selectedBoard as any)._has_illustration && (
-                  <img src={`/illustrations/${selectedBoard.id}`} alt="" className="h-12 w-12 flex-shrink-0 rounded-md object-cover" />
+                  <Illustration id={selectedBoard.id} className="h-12 w-12 rounded-md" />
                 )}
                 <div className="min-w-0">
                   <div className="font-bold text-white">{selectedBoard.name}</div>

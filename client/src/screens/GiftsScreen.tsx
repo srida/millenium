@@ -15,11 +15,12 @@ import { useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useGiftStore, type Gift, type GiftLot } from '../stores/giftStore.js';
-import { Amount, Button, Panel, Modal, Countdown } from '../components/ui/primitives.js';
+import { Amount, Button, Countdown, Illustration, Modal, Panel } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import * as CardDatabase from '../data/CardDatabase.js';
 import { CURRENCY, fmt } from '../components/ui/currency.js';
+import { GuestGate } from '../components/ui/GuestGate.js';
 
 const LOT_ICONS: Record<GiftLot['type'], string> = {
   gold: CURRENCY.gold.icon, gems: CURRENCY.gems.icon,
@@ -53,17 +54,7 @@ export default function GiftsScreen() {
 
   useEffect(() => { void load(true); }, [load]);
 
-  if (!user) {
-    return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-center text-white">
-        <p className="text-sm text-white/60">
-          Les cadeaux se gardent sur ton compte :<br />ils en demandent un.
-        </p>
-        <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
-        <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-      </main>
-    );
-  }
+  if (!user) return <GuestGate reason="Les cadeaux se gardent sur ton compte : ils en demandent un." />;
 
   const pending = snapshot?.gifts.filter(g => !g.claimed) ?? [];
   const claimed = snapshot?.gifts.filter(g => g.claimed) ?? [];
@@ -262,12 +253,7 @@ function GiftReveal({ onClose }: { onClose: () => void }) {
         {!!cosmetics.length && (
           <div className="flex flex-wrap justify-center gap-2">
             {cosmetics.map((line, i) => (
-              <img
-                key={`${line.id}-${i}`}
-                src={`/illustrations/${line.id}`}
-                alt=""
-                className="h-20 w-20 rounded-lg border border-line object-cover"
-              />
+              <Illustration key={`${line.id}-${i}`} id={line.id!} framed className="h-20 w-20" />
             ))}
           </div>
         )}

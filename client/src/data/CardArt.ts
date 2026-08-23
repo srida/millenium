@@ -12,6 +12,21 @@
 // `three/UnitCardEl.ts` à s'en servir sans traîner de dépendance dans la
 // couche de rendu.
 
+/**
+ * URL de l'art d'un id — carte, terrain, magie, variante ou icône d'attribut :
+ * tous partagent l'espace de noms plat du dossier d'illustrations.
+ *
+ * Elle vivait dans `CardDatabase`, un module à état qu'il fallait `init()`.
+ * Personne ne l'importait donc pour construire une chaîne : 12 sites
+ * réécrivaient le gabarit à la main, et le helper documenté n'était appelé que
+ * 3 fois. Ici, dans un module PUR et sans import, elle est à portée de tout le
+ * monde — y compris de `three/UnitCardEl`, à qui le lint interdit `data/`… mais
+ * qui importe déjà ce fichier-ci.
+ */
+export function illustrationUrl(id: string): string {
+  return `/illustrations/${id}`;
+}
+
 export type VariantMap = Record<string, string>;   // card_id → id d'illustration
 export type Side = 'player' | 'enemy';
 

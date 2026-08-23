@@ -13,7 +13,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../stores/authStore.js';
 import type { AuthUser, LevelReward } from '../../stores/authStore.js';
-import { Amount, Button, CountBadge, Gauge, Modal, Panel } from './primitives.js';
+import { Amount, Button, CountBadge, Gauge, Illustration, Modal, Panel } from './primitives.js';
 import { CURRENCIES, CURRENCY, fmt, XP_ICON } from './currency.js';
 
 // Palier de niveau — doit rester aligné sur `XP_PER_LEVEL` de progression.js
@@ -334,7 +334,7 @@ function LevelReveal({ lines, onClose }: { lines: LevelReward[]; onClose: () => 
               <div key={`${item.id}-${i}`} className="flex w-24 flex-col items-center gap-1">
                 {/* Cartes, avatars et variantes partagent le dossier
                     d'illustrations : une seule URL les rend tous les trois. */}
-                <img src={`/illustrations/${item.id}`} alt="" className="h-24 w-24 rounded-lg border border-gold/40 object-cover" />
+                <Illustration id={item.id} framed className="h-24 w-24 border-gold/40" />
                 <span className="w-full truncate text-center text-[10px] text-white/70" title={item.label}>
                   <span aria-hidden="true">{ITEM_ICONS[item.type] ?? '🎁'}</span> {item.label}
                 </span>

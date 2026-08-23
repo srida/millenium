@@ -20,6 +20,7 @@ import { useMissionStore, markMissionsSeen, claimableMissions, type Mission, typ
 import { Button, Panel, Gauge, Countdown } from '../components/ui/primitives.js';
 import { CURRENCY, fmt, XP_ICON } from '../components/ui/currency.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
+import { GuestGate } from '../components/ui/GuestGate.js';
 
 // Difficulté du slot (brief §3.1) : facile = 1 partie, moyen = 2, engagé = 3-4.
 const SLOTS: Record<number, { label: string; cls: string }> = {
@@ -46,17 +47,7 @@ export default function MissionsScreen() {
 
   const pending = claimableMissions(snapshot);
 
-  if (!user) {
-    return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-center text-white">
-        <p className="text-sm text-white/60">
-          Les missions quotidiennes suivent ta progression :<br />elles demandent un compte.
-        </p>
-        <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
-        <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-      </main>
-    );
-  }
+  if (!user) return <GuestGate reason="Les missions quotidiennes suivent ta progression : elles demandent un compte." />;
 
   return (
     <main className="flex min-h-dvh flex-col relative z-10 text-white">

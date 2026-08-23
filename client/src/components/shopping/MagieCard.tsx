@@ -5,6 +5,7 @@
 // l'action de choix est déléguée au parent via onChoose.
 import { effectLabel } from '../../logic/MagieEffect.js';
 import type { Magie } from '../../logic/types.js';
+import { Illustration } from '../ui/primitives.js';
 
 export default function MagieCard({ magie, onChoose }: { magie: Magie; onChoose: (m: Magie) => void }) {
   return (
@@ -14,7 +15,7 @@ export default function MagieCard({ magie, onChoose }: { magie: Magie; onChoose:
     >
       <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md bg-black/40">
         {(magie as any)._has_illustration && (
-          <img src={`/illustrations/${magie.id}`} alt="" className="h-full w-full object-cover" />
+          <Illustration id={magie.id} className="h-full w-full" />
         )}
       </div>
       <div className="min-w-0 flex-1">

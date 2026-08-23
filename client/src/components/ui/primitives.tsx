@@ -2,6 +2,7 @@
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
+import { illustrationUrl } from '../../data/CardArt.js';
 
 type Variant = 'primary' | 'ghost' | 'danger';
 
@@ -127,6 +128,40 @@ export function Amount({
       <span aria-hidden="true">{c.icon}</span> {sign && value >= 0 ? '+' : ''}{fmt.format(value)}
       <span className="sr-only"> {c.unit}</span>
     </span>
+  );
+}
+
+/**
+ * L'art d'un id — carte, terrain, magie, variante, icône d'attribut : tous
+ * partagent l'espace de noms plat du dossier d'illustrations.
+ *
+ * Une douzaine de sites réécrivaient le gabarit d'URL à la main, et la moitié
+ * répétait en prime la même vignette carrée (`rounded-lg border border-line
+ * object-cover`) — pendant que le helper documenté, coincé dans un module à
+ * état, n'était appelé que trois fois.
+ *
+ * `fit="contain"` pour les ICÔNES D'ATTRIBUT : rognée, une icône perd sa
+ * silhouette, qui est justement ce qui la distingue. C'est la seule différence
+ * de traitement avec l'art des cartes, qui vit dans le même dossier.
+ */
+export function Illustration({
+  id, alt = '', className = '', fit = 'cover', framed = false, lazy = true,
+}: {
+  id: string;
+  alt?: string;
+  className?: string;
+  fit?: 'cover' | 'contain';
+  /** Vignette encadrée (bordure + coins arrondis), la forme la plus courante. */
+  framed?: boolean;
+  lazy?: boolean;
+}) {
+  return (
+    <img
+      src={illustrationUrl(id)}
+      alt={alt}
+      loading={lazy ? 'lazy' : undefined}
+      className={`flex-shrink-0 ${fit === 'cover' ? 'object-cover' : 'object-contain'} ${framed ? 'rounded-lg border border-line' : ''} ${className}`}
+    />
   );
 }
 

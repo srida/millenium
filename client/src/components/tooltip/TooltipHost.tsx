@@ -7,6 +7,7 @@ import { getPower } from '../../data/PowerDatabase.js';
 import { getAttribute } from '../../data/AttributeDatabase.js';
 import { getCard } from '../../data/CardDatabase.js';
 import AttrIcon from '../ui/AttrIcon.js';
+import { Illustration } from '../ui/primitives.js';
 import {
   summonRecipes, recipeCostText, materialsLabel, recipeIsFree, type SummonRecipe,
 } from '../../data/SummonInfo.js';
@@ -232,7 +233,7 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
     <div>
       <div className="flex items-center gap-2">
         {b._has_illustration && (
-          <img src={`/illustrations/${b.id}`} alt="" className="h-10 w-10 flex-shrink-0 rounded-md object-cover" />
+          <Illustration id={b.id} className="h-10 w-10 rounded-md" />
         )}
         <div className="text-sm font-bold">{b.name}</div>
       </div>

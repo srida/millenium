@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
+import { GuestGate } from '../components/ui/GuestGate.js';
 
 interface UserRow { id: string; username: string; tag?: number; avatar?: string | null; relation?: string; friendship_id?: string }
 
@@ -73,15 +74,7 @@ export default function FriendsScreen() {
     return () => clearTimeout(t);
   }, [query, handleError]);
 
-  if (!user) {
-    return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-white">
-        <p className="text-sm text-white/60">Connecte-toi pour gérer tes amis.</p>
-        <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
-        <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-      </main>
-    );
-  }
+  if (!user) return <GuestGate reason="Connecte-toi pour gérer tes amis." />;
 
   const act = (fn: () => Promise<any>) => async () => {
     setError(null);
