@@ -803,12 +803,24 @@ app.post('/api/boards', requireSiteAdmin, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ⚠️ Cette route était la SEULE des dix à ne pas garder `Array.isArray`, et la
+// conséquence n'était pas l'erreur qu'on imaginerait : une chaîne est un
+// ITÉRABLE, donc `{"items":"nope"}` parcourait ses caractères et les poussait
+// dans le catalogue comme s'ils étaient des terrains — en répondant 200.
+// `boards.json` se retrouvait avec une chaîne nue là où `BoardDatabase` attend
+// un objet, et `getRandomBoard()` pouvait la tirer en plein combat.
+//
+// Elle sautait aussi les deux autres garde-fous du patron commun : l'entrée
+// sans `id` et la clé `errors` du compte rendu. Alignée sur les huit autres.
 app.post('/api/boards/import', requireSiteAdmin, (req, res) => {
   try {
     const { items, mode = 'skip' } = req.body;
+    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
     const boards = readJson(BOARDS_FILE);
     let added = 0, replaced = 0, skipped = 0;
+    const errors = [];
     for (const item of items) {
+      if (!item || !item.id) { errors.push('Élément sans ID ignoré'); continue; }
       const idx = boards.findIndex(b => b.id === item.id);
       stripBoardComputed(item);
       if (idx !== -1) {
@@ -819,7 +831,7 @@ app.post('/api/boards/import', requireSiteAdmin, (req, res) => {
       }
     }
     writeJson(BOARDS_FILE, boards);
-    res.json({ ok: true, added, replaced, skipped });
+    res.json({ ok: true, added, replaced, skipped, errors });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1470,6 +1482,17 @@ app.post('/api/sets/import', requireSiteAdmin, (req, res) => {
       }
     }
     writeJson(SETS_FILE, sets);
+    // ⚠️ Le miroir `card.set` était aligné par le POST et le PUT, mais PAS par
+    // l'import — un pack importé laissait donc les cartes pointer sur leur
+    // ancien pack, ou sur rien. `sets.json` fait foi pour le pool d'un booster,
+    // mais le miroir rattrape les cartes créées après la rédaction du pack :
+    // le laisser périmé fait diverger les deux sources.
+    //
+    // Après l'écriture du fichier, comme les deux autres : `syncCardSetMirror`
+    // relit le catalogue de cartes et écrit de son côté.
+    for (const item of items) {
+      if (item && item.id && sets.some(s => s.id === item.id)) syncCardSetMirror(item);
+    }
     res.json({ ok: true, added, replaced, skipped, errors });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
