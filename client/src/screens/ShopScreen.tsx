@@ -25,7 +25,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
 import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant } from '../stores/cosmeticStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
-import { Amount, Button, Panel, Gauge, Modal, Countdown } from '../components/ui/primitives.js';
+import { Amount, Button, IconButton, Panel, Gauge, Modal, Countdown } from '../components/ui/primitives.js';
 import { CURRENCY, CURRENCY_BY_WIRE, fmt, type WireCurrency } from '../components/ui/currency.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
@@ -487,8 +487,6 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
   // épinglé plutôt que d'échouer au tap.
   const rerollable = !slot.purchased && !slot.pinned && freeReroll;
 
-  const iconBtn = 'flex h-7 w-7 items-center justify-center rounded-md border text-[11px] active:opacity-70 disabled:opacity-30';
-
   return (
     <Panel className={`flex flex-col gap-1.5 p-2 ${
       slot.purchased ? 'border-success/40 bg-success/5' : slot.pinned ? 'border-tier-5/60 bg-tier-5/5' : ''
@@ -498,30 +496,28 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
         {!slot.purchased && (
           <>
             {rerollable && (
-              <button
+              <IconButton
+                compact
+                icon="🎲"
                 disabled={busy}
-                onPointerDown={async () => setErr(await reroll(slot.slot))}
-                title="Changer cette proposition (1 gratuit par jour)"
-                aria-label="Changer cette proposition"
-                className={`${iconBtn} border-line text-white/50`}
-              >
-                🎲
-              </button>
+                onTap={async () => setErr(await reroll(slot.slot))}
+                label="Changer cette proposition (1 gratuit par jour)"
+                chipClassName="border-line text-white/50"
+              />
             )}
-            <button
+            <IconButton
+              compact
+              icon="📌"
               disabled={busy}
-              onPointerDown={async () => setErr(await pin(slot.pinned ? null : slot.slot))}
-              title={slot.pinned
+              onTap={async () => setErr(await pin(slot.pinned ? null : slot.slot))}
+              label={slot.pinned
                 ? 'Détacher — cet emplacement sera re-tiré demain'
                 : pinnedElsewhere
                   ? 'Conserver celui-ci demain (déplace l\'épingle posée sur un autre emplacement)'
                   : 'Conserver cette carte à la prochaine rotation'}
-              aria-label={slot.pinned ? 'Détacher cet emplacement' : 'Épingler cet emplacement'}
-              aria-pressed={slot.pinned}
-              className={`${iconBtn} ${slot.pinned ? 'border-tier-5 bg-tier-5/15 text-tier-5' : 'border-line text-white/50'}`}
-            >
-              📌
-            </button>
+              pressed={slot.pinned}
+              chipClassName={slot.pinned ? 'border-tier-5 bg-tier-5/15 text-tier-5' : 'border-line text-white/50'}
+            />
           </>
         )}
       </div>

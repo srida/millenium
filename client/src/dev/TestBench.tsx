@@ -250,7 +250,7 @@ export default function TestBench() {
             </div>
             <select
               value={boardId} onChange={(e) => setBoardId(e.target.value)}
-              className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-2 text-sm text-white"
+              className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-2 text-white"
             >
               <option value="">🗺️ Aucun terrain</option>
               {((BoardDatabase as any).getAllBoards() as BoardDef[]).map(b => (
@@ -274,7 +274,7 @@ export default function TestBench() {
             )}
             <input
               type="search" placeholder="Rechercher…" value={search} onChange={(e) => setSearch(e.target.value)}
-              className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-2 text-sm text-white placeholder:text-white/30"
+              className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-2 text-white placeholder:text-white/30"
             />
             <div className="flex flex-wrap gap-1">
               <button className={!typeFilter ? active : idle} onPointerDown={() => setTypeFilter(null)}>Tous</button>

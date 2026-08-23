@@ -398,11 +398,11 @@ function LibraryPanel({
         <input
           type="search" placeholder="Rechercher une carte…" value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-sm text-white placeholder:text-white/30"
+          className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-white placeholder:text-white/30"
         />
         <select
           value={attributeFilter} onChange={(e) => setAttributeFilter(e.target.value)}
-          className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-sm text-white"
+          className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-white"
         >
           <option value="">Tous les attributs</option>
           {allAttributes.map((a: any) => (
@@ -478,7 +478,7 @@ function DeckPanel({ deckData, tierMax, name, setName, color, setColor, showColo
       <input
         type="text" placeholder="Nom du deck" value={name} maxLength={32}
         onChange={(e) => setName(e.target.value)}
-        className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-base font-bold text-white placeholder:text-white/30"
+        className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 font-bold text-white placeholder:text-white/30"
       />
 
       {showColor && (

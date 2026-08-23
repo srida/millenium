@@ -104,7 +104,7 @@ export default function FriendsScreen() {
         <section>
           <input
             value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher un joueur (2+ lettres)…"
-            className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-sm text-white placeholder:text-white/30"
+            className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-white placeholder:text-white/30"
           />
           <div className="mt-2 space-y-1.5">
             {results.map(u => (

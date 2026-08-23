@@ -24,7 +24,7 @@ import { computeDeckTags } from '../data/DeckTags.js';
 import type { Card } from '../logic/types.js';
 import { useDeckStore, type DeckSummary } from '../stores/deckStore.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
-import { Button, Modal } from '../components/ui/primitives.js';
+import { Button, IconButton, Modal } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 
@@ -349,10 +349,10 @@ function DeckCard({
           dans l'UI ; `title`/`aria-label` portent le sens. */}
       {showActions && (
         <div className="mt-3 flex gap-2" onPointerDown={(e) => e.stopPropagation()}>
-          <IconButton label="Éditer le deck" icon="✏️" onTap={onEdit} />
-          <IconButton label="Dupliquer" icon="📋" onTap={onDuplicate} />
-          <IconButton label="Renommer" icon="🏷️" onTap={onRename} />
-          <IconButton label="Supprimer" icon="🗑️" tone="danger" onTap={onDelete} />
+          <IconButton label="Éditer le deck" icon="✏️" className="flex-1" onTap={onEdit} />
+          <IconButton label="Dupliquer" icon="📋" className="flex-1" onTap={onDuplicate} />
+          <IconButton label="Renommer" icon="🏷️" className="flex-1" onTap={onRename} />
+          <IconButton label="Supprimer" icon="🗑️" tone="danger" className="flex-1" onTap={onDelete} />
         </div>
       )}
     </div>
@@ -383,19 +383,6 @@ function DifficultyChip({ difficulty }: { difficulty: number }) {
   );
 }
 
-// Action de gestion réduite à une icône : le libellé passe en tooltip natif
-// (survol web) et en nom accessible (lecteurs d'écran, où l'icône ne dit rien).
-function IconButton({
-  label, icon, tone = 'ghost', onTap,
-}: { label: string; icon: string; tone?: 'ghost' | 'danger'; onTap: () => void }) {
-  return (
-    <Button
-      variant={tone} className="flex-1 px-2 text-base leading-none"
-      title={label} aria-label={label} onPointerDown={onTap}
-    >{icon}</Button>
-  );
-}
-
 function RenameModal({ name, onClose, onConfirm }: { name: string; onClose: () => void; onConfirm: (n: string) => string | null }) {
   const [value, setValue] = useState(name);
   const [error, setError] = useState<string | null>(null);
@@ -406,7 +393,7 @@ function RenameModal({ name, onClose, onConfirm }: { name: string; onClose: () =
       <input
         autoFocus value={value} maxLength={32}
         onChange={(e) => { setValue(e.target.value); setError(null); }}
-        className="mt-2 min-h-tap w-full rounded-lg border border-line bg-surface px-3 text-sm text-white"
+        className="mt-2 min-h-tap w-full rounded-lg border border-line bg-surface px-3 text-white"
       />
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
       <div className="mt-3 flex gap-2">

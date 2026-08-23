@@ -108,7 +108,7 @@ export default function ProfileScreen() {
           <label className="text-[10px] tracking-widest text-white/40">PSEUDO</label>
           <input
             value={username} maxLength={20} onChange={(e) => { setUsername(e.target.value); setSaved(false); }}
-            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-sm text-white"
+            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-white"
           />
           <div className="flex items-baseline justify-between">
             <label className="text-[10px] tracking-widest text-white/40">AVATAR</label>

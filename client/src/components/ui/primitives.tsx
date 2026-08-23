@@ -56,6 +56,60 @@ export function NewDot({ label = 'Nouveautés' }: { label?: string }) {
 }
 
 /**
+ * Action réduite à une icône : le libellé passe en infobulle native (survol
+ * web) et en nom accessible (lecteurs d'écran, où l'icône ne dit rien).
+ *
+ * ⚠️ La CIBLE fait toujours 44 px (`--spacing-tap`), y compris en `compact`.
+ * C'est tout l'intérêt d'avoir la règle ici plutôt qu'à l'appelant : la
+ * boutique s'était fabriqué ses propres boutons 28 × 28 px pour l'épingle et le
+ * reroll — les seuls contrôles du jeu sous le seuil, sur deux gestes que le
+ * design tient pour des arbitrages à part entière.
+ *
+ * `compact` garde le CHIP visible petit (28 px) mais élargit la zone tapable
+ * autour de lui ; le `-my-2` empêche cette zone de faire grandir la ligne qui
+ * l'accueille. Le doigt vise large, la tuile reste dense.
+ */
+export function IconButton({
+  label, icon, tone = 'ghost', compact = false, pressed, disabled, chipClassName = '', className = '', onTap,
+}: {
+  label: string;
+  icon: ReactNode;
+  tone?: Variant;
+  compact?: boolean;
+  pressed?: boolean;
+  disabled?: boolean;
+  /** Habillage du chip en mode `compact` (bordure/fond/teinte selon l'état). */
+  chipClassName?: string;
+  className?: string;
+  onTap: () => void;
+}) {
+  if (!compact) {
+    return (
+      <Button
+        variant={tone} className={`px-2 text-base leading-none ${className}`}
+        title={label} aria-label={label} aria-pressed={pressed} disabled={disabled}
+        onPointerDown={onTap}
+      >{icon}</Button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onPointerDown={onTap}
+      title={label}
+      aria-label={label}
+      aria-pressed={pressed}
+      className={`group -my-2 flex min-h-tap min-w-tap items-center justify-center disabled:cursor-not-allowed disabled:opacity-30 ${className}`}
+    >
+      <span className={`flex h-7 w-7 items-center justify-center rounded-md border text-[11px] transition-opacity group-active:opacity-70 ${chipClassName}`}>
+        {icon}
+      </span>
+    </button>
+  );
+}
+
+/**
  * Un montant en monnaie — icône, couleur et séparateur de milliers d'un seul
  * geste. C'est LE point de rendu d'un solde ou d'un gain : les glyphes 💰/💎
  * étaient écrits à la main dans une vingtaine d'endroits, et l'un d'eux s'était
