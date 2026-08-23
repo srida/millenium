@@ -41,7 +41,6 @@ export default function TutorialScreen() {
         title={chapter ? chapter.title : 'Tutoriel'}
         onBack={() => (chapter ? setOpenIdx(null) : navigate('main_menu'))}
         right={chapter ? <span className="text-xs tabular-nums text-white/40">{openIdx! + 1}/{CHAPTERS.length}</span> : undefined}
-        safeAreaTop
       />
 
       {chapter

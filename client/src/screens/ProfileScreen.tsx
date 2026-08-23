@@ -81,7 +81,6 @@ export default function ProfileScreen() {
         title="Profil"
         onBack={() => navigate('main_menu')}
         right={<span className="text-xs text-white/40">#{(user as any).tag ?? '—'}</span>}
-        safeAreaTop
       />
 
       <div className="flex flex-1 flex-col items-center gap-5 p-6">

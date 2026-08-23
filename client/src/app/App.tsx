@@ -1,8 +1,8 @@
 // Shell applicatif : initialise les databases (via /api), restaure la session
 // (auth optionnelle, D2), route les écrans via uiStore (parité ?screen=), monte
 // le TooltipHost global.
-import { lazy, Suspense, useEffect, useState } from 'react';
-import { useUiStore } from '../stores/uiStore.js';
+import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
+import { useUiStore, type ScreenName } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { initGameData } from '../game/bootstrap.js';
 import MainMenu from '../screens/MainMenu.js';
@@ -47,16 +47,48 @@ const lazyFallback = (
 );
 
 /**
+ * LE registre des écrans. `Record<ScreenName, …>` et non une chaîne de
+ * `screen === '…' &&` : TypeScript vérifie l'exhaustivité, donc un nom ajouté à
+ * `SCREEN_NAMES` sans composant en face ne compile pas. Le CLAUDE.md prévenait
+ * qu'ajouter un écran se faisait « à deux endroits » ; il y en avait quatre, et
+ * il n'en reste qu'un que le compilateur ne garde pas tout seul.
+ */
+const SCREENS: Record<ScreenName, ComponentType> = {
+  main_menu: MainMenu,
+  auth: AuthScreen,
+  reset_password: ResetPasswordScreen,
+  profile: ProfileScreen,
+  friends: FriendsScreen,
+  deck_selector: DeckSelector,
+  deck_builder: DeckBuilder,
+  online_lobby: OnlineLobby,
+  tournament: TournamentScreen,
+  arcade: ArcadeScreen,
+  missions: MissionsScreen,
+  shop: ShopScreen,
+  gifts: GiftsScreen,
+  tutorial: TutorialScreen,
+  game: GameScreen,
+  game_pvp: GameScreenPvp,
+  combatlab: CombatLab,
+  testbench: TestBench,
+};
+
+/**
  * Écrans qui posent leur propre décor plein cadre : le board 3D y occupe toute
  * la fenêtre, le ciel serait invisible — et une boucle rAF de plus pendant un
  * combat WebGL est une dépense pure. Partout ailleurs le fond est le même,
  * monté ICI plutôt que par chaque écran : une seule instance, donc une seule
  * boucle, et le ciel ne se réinitialise pas à chaque navigation.
+ *
+ * Typé `ScreenName` et non `string` : une faute de frappe y passait sans bruit,
+ * et l'écran concerné se retrouvait avec deux décors superposés.
  */
-const IMMERSIVE_SCREENS = new Set(['game', 'game_pvp', 'testbench', 'combatlab']);
+const IMMERSIVE_SCREENS = new Set<ScreenName>(['game', 'game_pvp', 'testbench', 'combatlab']);
 
 export default function App() {
   const screen = useUiStore(s => s.screen);
+  const Screen = SCREENS[screen];
   const restore = useAuthStore(s => s.restore);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,24 +126,7 @@ export default function App() {
           l'utilisent. Une frontière par écran différé ferait quatre copies du
           même repli, et il faudrait penser à en ajouter une au prochain. */}
       <Suspense fallback={lazyFallback}>
-      {screen === 'main_menu' && <MainMenu />}
-      {screen === 'auth' && <AuthScreen />}
-      {screen === 'reset_password' && <ResetPasswordScreen />}
-      {screen === 'profile' && <ProfileScreen />}
-      {screen === 'friends' && <FriendsScreen />}
-      {screen === 'deck_selector' && <DeckSelector />}
-      {screen === 'deck_builder' && <DeckBuilder />}
-      {screen === 'tournament' && <TournamentScreen />}
-      {screen === 'arcade' && <ArcadeScreen />}
-      {screen === 'missions' && <MissionsScreen />}
-      {screen === 'shop' && <ShopScreen />}
-      {screen === 'gifts' && <GiftsScreen />}
-      {screen === 'tutorial' && <TutorialScreen />}
-      {screen === 'online_lobby' && <OnlineLobby />}
-      {screen === 'game' && <GameScreen />}
-      {screen === 'game_pvp' && <GameScreenPvp />}
-      {screen === 'combatlab' && <CombatLab />}
-      {screen === 'testbench' && <TestBench />}
+        <Screen />
       </Suspense>
       <TooltipHost />
       {/* Au-dessus des écrans : missions terminées, paliers hebdomadaires et

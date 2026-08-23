@@ -278,7 +278,6 @@ export default function DeckBuilder() {
         title={isAdminEdit ? `Deck-building — ${publicDeckId}` : 'Deck-building'}
         onBack={back}
         right={<span className={`text-sm font-bold tabular-nums ${valid ? 'text-success' : 'text-gold'}`}>{total}/{MIN_DECK}</span>}
-        safeAreaTop
         below={(
           <div className="flex">
             {(['lib', 'deck'] as const).map(t => (

@@ -107,7 +107,7 @@ export default function OnlineLobby() {
   // pour ne pas laisser le joueur dans la file en quittant.
   return (
     <main className="flex min-h-dvh flex-col relative z-10 text-white">
-      <ScreenHeader title="Duel en ligne" onBack={cancel} safeAreaTop />
+      <ScreenHeader title="Duel en ligne" onBack={cancel} />
 
       <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto p-4 py-6 text-center">
         <div className="text-4xl">⚔️</div>

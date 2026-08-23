@@ -66,7 +66,6 @@ export default function ArcadeScreen() {
       title="Arcade"
       onBack={() => navigate('main_menu')}
       right={snapshot ? <Countdown at={snapshot.next_rotation_at} title="Prochaine run" /> : undefined}
-      safeAreaTop
     />
   );
 

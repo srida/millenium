@@ -68,7 +68,6 @@ export default function ShopScreen() {
       <ScreenHeader
         title="Boutique"
         onBack={() => navigate('main_menu')}
-        safeAreaTop
         right={(
           <>
             <Balance />
@@ -465,7 +464,8 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
   const rerollable = !slot.purchased && !slot.pinned && freeReroll;
 
   return (
-    <Panel className={`flex flex-col gap-1.5 p-2 ${
+    // `min-w-0` : item de grille, cf. l'explication sur BoosterCard plus bas.
+    <Panel className={`flex min-w-0 flex-col gap-1.5 p-2 ${
       slot.purchased ? 'border-success/40 bg-success/5' : slot.pinned ? 'border-tier-5/60 bg-tier-5/5' : ''
     }`}>
       <div className="flex items-center gap-1">

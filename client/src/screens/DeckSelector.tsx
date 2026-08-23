@@ -159,7 +159,6 @@ export default function DeckSelector() {
         onBack={() => navigate('main_menu')}
         right={<span className="text-xs text-white/40">{list.length} deck{list.length !== 1 ? 's' : ''}</span>}
         subtitle={<p className="mt-1.5 text-xs text-white/50">{MODES[mode].blurb}</p>}
-        safeAreaTop
       />
 
       <div className={`flex-1 space-y-3 overflow-y-auto p-4 ${manage ? 'pb-28' : 'pb-36'}`}>
@@ -296,7 +295,8 @@ function DeckCard({
   return (
     <div
       onPointerDown={onSelect}
-      className={`rounded-xl border bg-surface-raised/70 p-3 transition-colors ${border}`}
+      // `min-w-0` : item de grille, cf. `BoosterCard` (ShopScreen).
+      className={`min-w-0 rounded-xl border bg-surface-raised/70 p-3 transition-colors ${border}`}
     >
       <div className="flex items-center gap-2">
         {/* Deck public : son portrait. Deck du joueur : la pastille de couleur,

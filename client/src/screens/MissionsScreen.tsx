@@ -54,7 +54,6 @@ export default function MissionsScreen() {
       <ScreenHeader
         title="Missions"
         onBack={() => navigate('main_menu')}
-        safeAreaTop
         right={snapshot && <Countdown at={snapshot.cycle.next_reset_at} title="Prochaines missions" />}
       />
 
@@ -201,8 +200,11 @@ function MissionCard({ mission, rerollCost }: { mission: Mission; rerollCost: nu
   }
 
   return (
+    // `min-w-0` : item de grille, dont le `min-width` vaut `auto` par défaut —
+    // sans lui, la tuile refuse de descendre sous sa largeur de min-content et
+    // déborde l'écran par la droite en portrait (cf. `BoosterCard`, ShopScreen).
     <Panel
-      className={`flex flex-col gap-2 p-3 ${
+      className={`flex min-w-0 flex-col gap-2 p-3 ${
         claimable ? 'border-success bg-success/10' : claimed ? 'border-success/30 bg-success/5' : ''
       }`}
     >

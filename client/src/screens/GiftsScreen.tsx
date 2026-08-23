@@ -64,7 +64,6 @@ export default function GiftsScreen() {
       <ScreenHeader
         title="Cadeaux"
         onBack={() => navigate('main_menu')}
-        safeAreaTop
         right={snapshot && <Countdown at={snapshot.next_rotation_at} title="Prochain cadeau quotidien" />}
       />
 

@@ -86,7 +86,7 @@ export default function TournamentScreen() {
   // ⚠️ L'en-tête est rendu AVANT tout état, jamais après : c'est lui qui porte
   // le bouton retour. Un écran qui le saute pour afficher « Chargement… » ou
   // une erreur enferme le joueur dedans.
-  const header = <ScreenHeader title="Tournoi" onBack={() => navigate('main_menu')} safeAreaTop />;
+  const header = <ScreenHeader title="Tournoi" onBack={() => navigate('main_menu')} />;
 
   if (error || !ready) {
     return (
