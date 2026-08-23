@@ -13,6 +13,11 @@ function fmt(s: number): string {
 
 // Terrain du combat en cours : tap → tooltip (nom + effet). Les cases bloquées
 // qu'il impose sont rendues par Scene3D, ce chip dit d'où elles viennent.
+//
+// Le terrain s'annonce par son ILLUSTRATION (la vignette carrée du dossier
+// d'illustrations, celle du tooltip) ; 🗺️ n'est que le repli tant qu'aucune
+// image n'a été importée — même règle que `AttrIcon` pour les attributs. Un
+// pictogramme générique ne distingue pas deux terrains, une image si.
 function TerrainChip({ board }: { board: BoardDef }) {
   const showTooltip = useUiStore(s => s.showTooltip);
   return (
@@ -22,9 +27,12 @@ function TerrainChip({ board }: { board: BoardDef }) {
         const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
         showTooltip({ kind: 'terrain', board }, { left: r.left, top: r.top, bottom: r.bottom, width: r.width, height: r.height });
       }}
-      className="min-h-tap min-w-[4.5rem] max-w-[8rem] truncate rounded-md border border-line bg-surface/80 px-2 text-xs text-white/80 active:opacity-80"
+      className="flex min-h-tap min-w-[4.5rem] max-w-[8rem] items-center gap-1.5 rounded-md border border-line bg-surface/80 px-2 text-xs text-white/80 active:opacity-80"
     >
-      🗺️ {board.name}
+      {board._has_illustration
+        ? <img src={`/illustrations/${board.id}`} alt="" className="h-5 w-5 flex-shrink-0 rounded object-cover" />
+        : <span className="flex-shrink-0 leading-none">🗺️</span>}
+      <span className="truncate">{board.name}</span>
     </button>
   );
 }
