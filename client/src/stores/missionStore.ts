@@ -15,6 +15,7 @@
 import { create } from 'zustand';
 import * as AuthClient from '../data/AuthClient.js';
 import { useAuthStore } from './authStore.js';
+import { createSnapshotChannel, isGuest } from './snapshotLoader.js';
 
 export interface Mission {
   id: string;
@@ -118,8 +119,6 @@ function newMatchId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-const isGuest = () => !useAuthStore.getState().user;
-
 // Pastille "nouveauté" du bouton Missions du menu principal : même mécanique
 // que la Boutique (`hasUnseenShop`/`markShopSeen`) — un simple point, pas un
 // compteur, effacé dès que l'écran a été *visité* pour le cycle en cours.
@@ -143,24 +142,24 @@ export function markMissionsSeen(userId: string, nextResetAt: number): void {
   }
 }
 
+// ⚠️ `applyProgression: false` — contrairement aux quatre autres domaines, la
+// route de LECTURE des missions ne porte pas de bloc `progression` ; l'appeler
+// écraserait le solde du joueur avec `undefined`. Les mutations, elles, en
+// portent bien un, et `absorb` s'en charge.
+const channel = createSnapshotChannel<MissionSnapshot>({
+  fetch: () => (AuthClient as any).getMissions(),
+  pick: (data: any) => data as MissionSnapshot,
+  errorLabel: 'Missions indisponibles.',
+  applyProgression: false,
+});
+
 export const useMissionStore = create<MissionStoreState>((set, get) => ({
   snapshot: null,
   loading: false,
   error: null,
   toasts: [],
 
-  load: async (force = false) => {
-    if (isGuest()) { set({ snapshot: null, error: null }); return; }
-    if (get().loading || (get().snapshot && !force)) return;
-    set({ loading: true, error: null });
-    try {
-      set({ snapshot: await (AuthClient as any).getMissions() });
-    } catch (e: any) {
-      set({ error: e?.message ?? 'Missions indisponibles.' });
-    } finally {
-      set({ loading: false });
-    }
-  },
+  load: channel.load(set, get),
 
   claim: async (id) => {
     try {
@@ -260,6 +259,7 @@ function pickSnapshot(data: any): MissionSnapshot {
 // sont simplement absents de l'une ou de l'autre.
 function absorb(set: (partial: any) => void, data: any): void {
   if (!data) return;
+  channel.bump();
   set((s: MissionStoreState) => ({
     snapshot: data.missions ? pickSnapshot(data) : s.snapshot,
     toasts: [
