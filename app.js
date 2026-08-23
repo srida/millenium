@@ -492,83 +492,92 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// --- Cards API ---
+// --- Catalogues CRUD ---
+//
+// Six entités partagent le MÊME quintuplet (GET / POST / import / PUT /
+// DELETE) et ne diffèrent que par trois choses : leur fichier, les drapeaux
+// calculés qu'elles exposent à la lecture, et ceux qu'elles retirent à
+// l'écriture. Elles passent donc par `routes/crud-json.js`.
+//
+// ⚠️ MONTÉES ICI, après le write-guard global, et pas ailleurs. Express
+// distribue les middlewares dans l'ordre d'enregistrement : déplacer un de ces
+// `app.use` au-dessus du garde ouvrirait toutes ses écritures.
+//
+// ⚠️ Les triptyques d'illustration restent DÉCLARÉS PLUS BAS, entité par
+// entité. Ils ne matchent pas ces routeurs (`/:id/illustration` fait deux
+// segments, `/:id` un seul), la requête les traverse donc sans s'y arrêter.
+//
+// Quatre entités ne sont PAS ici, chacune pour une raison qui lui appartient :
+//   variants — exige `card_id`, et l'ORDRE des contrôles est observable ;
+//   gifts    — `created_at` est estampillé par le serveur et préservé au PUT,
+//              c'est la règle la plus sensible du fichier (cf. gifts.js) ;
+//   decks    — le PUT FUSIONNE au lieu de remplacer (le DeckBuilder en iframe
+//              ne poste que `{id, name, deck}`) ;
+//   sets     — réaligne le miroir `card.set` sur chaque écriture.
+// Les faire entrer demanderait autant d'options que d'appelants : à ce
+// compte-là, la fabrique cesse de capturer un concept commun et devient un
+// aiguillage déguisé en routeur.
+const { crudRouter } = require('./routes/crud-json');
+const crud = (opts) => crudRouter({ readJson, writeJson, ...opts });
+
 // `_starter` dit si la carte fait partie de la dotation d'un compte neuf (pack
 // marqué « départ »). Calculé, jamais persisté — même statut que
 // `_has_illustration`. C'est ce qui évite au client de dupliquer la règle de
 // dotation pour son repli invité.
-app.get('/api/cards', (req, res) => {
-  try {
-    const cards = readJson(CARDS_FILE);
+//
+// ⚠️ `render` reçoit la LISTE et non chaque carte : `starterCardIds()` relit
+// sets.json (cache au mtime), le refaire 653 fois par requête serait absurde.
+app.use('/api/cards', crud({
+  file: CARDS_FILE,
+  render: (list) => {
     const starter = new Set(progression.starterCardIds());
-    res.json(cards.map(c => ({
+    return list.map(c => ({
       ...c,
       _has_illustration: illustrationExists(c.id),
       _starter: starter.has(c.id),
-    })));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+    }));
+  },
+  strip: (c) => { delete c._has_illustration; },
+}));
 
-app.post('/api/cards', (req, res) => {
-  try {
-    const cards = readJson(CARDS_FILE);
-    const card = req.body;
-    if (!card.id) return res.status(400).json({ error: 'id required' });
-    if (cards.find(c => c.id === card.id)) return res.status(400).json({ error: `ID ${card.id} already exists` });
-    delete card._has_illustration;
-    cards.push(card);
-    writeJson(CARDS_FILE, cards);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+// L'icône d'un attribut est une IMAGE dont l'art vit dans ILLUS_DIR sous l'id
+// de l'attribut ; le champ `icon` du JSON reste l'emoji, qui sert de repli.
+app.use('/api/attributes', crud({
+  file: ATTRIBUTES_FILE,
+  render: (list) => list.map(a => ({ ...a, _has_illustration: illustrationExists(a.id) })),
+  strip: (a) => { delete a._has_illustration; },
+}));
 
-app.post('/api/cards/import', (req, res) => {
-  try {
-    const { items, mode = 'skip' } = req.body;
-    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
-    const cards = readJson(CARDS_FILE);
-    let added = 0, replaced = 0, skipped = 0;
-    const errors = [];
-    for (const item of items) {
-      if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
-      delete item._has_illustration;
-      const idx = cards.findIndex(c => c.id === item.id);
-      if (idx !== -1) {
-        if (mode === 'replace') { cards[idx] = item; replaced++; }
-        else skipped++;
-      } else {
-        cards.push(item);
-        added++;
-      }
-    }
-    writeJson(CARDS_FILE, cards);
-    res.json({ ok: true, added, replaced, skipped, errors });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+// Le cas nu : aucun drapeau calculé, aucune validation propre.
+app.use('/api/powers', crud({ file: POWERS_FILE }));
 
-app.put('/api/cards/:id', (req, res) => {
-  try {
-    const cards = readJson(CARDS_FILE);
-    const idx = cards.findIndex(c => c.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    const updated = req.body;
-    delete updated._has_illustration;
-    cards[idx] = updated;
-    writeJson(CARDS_FILE, cards);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+app.use('/api/missions', crud({ file: MISSIONS_FILE, guard: requireSiteAdmin }));
 
-app.delete('/api/cards/:id', (req, res) => {
-  try {
-    let cards = readJson(CARDS_FILE);
-    const idx = cards.findIndex(c => c.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    cards.splice(idx, 1);
-    writeJson(CARDS_FILE, cards);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
+app.use('/api/magies', crud({
+  file: MAGIES_FILE,
+  guard: requireSiteAdmin,
+  render: (list) => list.map(m => ({ ...m, _has_illustration: illustrationExists(m.id) })),
+  strip: (m) => { delete m._has_illustration; },
+}));
+
+// Un terrain porte DEUX images : la vignette carrée du tooltip
+// (`_has_illustration`, dans ILLUS_DIR) et le fond de grille au ratio 5:11
+// (`_has_background`, dans BOARD_BG_DIR). Deux assets, pas un recadrage.
+app.use('/api/boards', crud({
+  file: BOARDS_FILE,
+  guard: requireSiteAdmin,
+  render: (list) => list.map(b => ({
+    ...b,
+    _has_illustration: illustrationExists(b.id),
+    _has_background: boardBackgroundExists(b.id),
+  })),
+  strip: stripBoardComputed,
+}));
+
+
+
+
+
 
 // --- Illustration import ---
 app.post('/api/cards/:id/illustration', async (req, res) => {
@@ -612,72 +621,10 @@ app.delete('/api/cards/:id/illustration', (req, res) => {
 // importée. `_has_illustration` est calculé à la lecture : le réécrire dans
 // attributes.json le ferait mentir dès qu'une image est ajoutée ou retirée
 // hors de cette requête.
-app.get('/api/attributes', (req, res) => {
-  try {
-    res.json(readJson(ATTRIBUTES_FILE).map(a => ({ ...a, _has_illustration: illustrationExists(a.id) })));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.post('/api/attributes', (req, res) => {
-  try {
-    const attributes = readJson(ATTRIBUTES_FILE);
-    const attr = req.body;
-    if (!attr.id) return res.status(400).json({ error: 'id required' });
-    if (attributes.find(a => a.id === attr.id)) return res.status(400).json({ error: `ID ${attr.id} already exists` });
-    delete attr._has_illustration;
-    attributes.push(attr);
-    writeJson(ATTRIBUTES_FILE, attributes);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.post('/api/attributes/import', (req, res) => {
-  try {
-    const { items, mode = 'skip' } = req.body;
-    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
-    const attributes = readJson(ATTRIBUTES_FILE);
-    let added = 0, replaced = 0, skipped = 0;
-    const errors = [];
-    for (const item of items) {
-      if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
-      delete item._has_illustration;
-      const idx = attributes.findIndex(a => a.id === item.id);
-      if (idx !== -1) {
-        if (mode === 'replace') { attributes[idx] = item; replaced++; }
-        else skipped++;
-      } else {
-        attributes.push(item);
-        added++;
-      }
-    }
-    writeJson(ATTRIBUTES_FILE, attributes);
-    res.json({ ok: true, added, replaced, skipped, errors });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.put('/api/attributes/:id', (req, res) => {
-  try {
-    const attributes = readJson(ATTRIBUTES_FILE);
-    const idx = attributes.findIndex(a => a.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    const updated = req.body;
-    delete updated._has_illustration;
-    attributes[idx] = updated;
-    writeJson(ATTRIBUTES_FILE, attributes);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.delete('/api/attributes/:id', (req, res) => {
-  try {
-    let attributes = readJson(ATTRIBUTES_FILE);
-    const idx = attributes.findIndex(a => a.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    attributes.splice(idx, 1);
-    writeJson(ATTRIBUTES_FILE, attributes);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
 // Icône d'un attribut — triptyque identique à celui des variantes (URL, upload
 // base64 depuis l'appareil, suppression), au même dossier près : ILLUS_DIR. Pas
@@ -716,66 +663,10 @@ app.delete('/api/attributes/:id/illustration', (req, res) => {
 });
 
 // --- Powers API ---
-app.get('/api/powers', (req, res) => {
-  try { res.json(readJson(POWERS_FILE)); } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.post('/api/powers', (req, res) => {
-  try {
-    const powers = readJson(POWERS_FILE);
-    const power = req.body;
-    if (!power.id) return res.status(400).json({ error: 'id required' });
-    if (powers.find(p => p.id === power.id)) return res.status(400).json({ error: `ID ${power.id} already exists` });
-    powers.push(power);
-    writeJson(POWERS_FILE, powers);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.post('/api/powers/import', (req, res) => {
-  try {
-    const { items, mode = 'skip' } = req.body;
-    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
-    const powers = readJson(POWERS_FILE);
-    let added = 0, replaced = 0, skipped = 0;
-    const errors = [];
-    for (const item of items) {
-      if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
-      const idx = powers.findIndex(p => p.id === item.id);
-      if (idx !== -1) {
-        if (mode === 'replace') { powers[idx] = item; replaced++; }
-        else skipped++;
-      } else {
-        powers.push(item);
-        added++;
-      }
-    }
-    writeJson(POWERS_FILE, powers);
-    res.json({ ok: true, added, replaced, skipped, errors });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.put('/api/powers/:id', (req, res) => {
-  try {
-    const powers = readJson(POWERS_FILE);
-    const idx = powers.findIndex(p => p.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    powers[idx] = req.body;
-    writeJson(POWERS_FILE, powers);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.delete('/api/powers/:id', (req, res) => {
-  try {
-    let powers = readJson(POWERS_FILE);
-    const idx = powers.findIndex(p => p.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    powers.splice(idx, 1);
-    writeJson(POWERS_FILE, powers);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
 // --- Boards API ---
 // `_has_illustration` et `_has_background` sont calculés à la lecture depuis le
@@ -786,29 +677,7 @@ function stripBoardComputed(board) {
   delete board._has_background;
 }
 
-app.get('/api/boards', (req, res) => {
-  try {
-    const boards = readJson(BOARDS_FILE);
-    res.json(boards.map(b => ({
-      ...b,
-      _has_illustration: illustrationExists(b.id),
-      _has_background: boardBackgroundExists(b.id),
-    })));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.post('/api/boards', requireSiteAdmin, (req, res) => {
-  try {
-    const boards = readJson(BOARDS_FILE);
-    const board  = req.body;
-    if (!board.id) return res.status(400).json({ error: 'id required' });
-    if (boards.find(b => b.id === board.id)) return res.status(400).json({ error: `ID ${board.id} already exists` });
-    stripBoardComputed(board);
-    boards.push(board);
-    writeJson(BOARDS_FILE, boards);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
 // ⚠️ Cette route était la SEULE des dix à ne pas garder `Array.isArray`, et la
 // conséquence n'était pas l'erreur qu'on imaginerait : une chaîne est un
@@ -819,51 +688,8 @@ app.post('/api/boards', requireSiteAdmin, (req, res) => {
 //
 // Elle sautait aussi les deux autres garde-fous du patron commun : l'entrée
 // sans `id` et la clé `errors` du compte rendu. Alignée sur les huit autres.
-app.post('/api/boards/import', requireSiteAdmin, (req, res) => {
-  try {
-    const { items, mode = 'skip' } = req.body;
-    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
-    const boards = readJson(BOARDS_FILE);
-    let added = 0, replaced = 0, skipped = 0;
-    const errors = [];
-    for (const item of items) {
-      if (!item || !item.id) { errors.push('Élément sans ID ignoré'); continue; }
-      const idx = boards.findIndex(b => b.id === item.id);
-      stripBoardComputed(item);
-      if (idx !== -1) {
-        if (mode === 'replace') { boards[idx] = item; replaced++; }
-        else skipped++;
-      } else {
-        boards.push(item); added++;
-      }
-    }
-    writeJson(BOARDS_FILE, boards);
-    res.json({ ok: true, added, replaced, skipped, errors });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.put('/api/boards/:id', requireSiteAdmin, (req, res) => {
-  try {
-    const boards = readJson(BOARDS_FILE);
-    const idx = boards.findIndex(b => b.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    stripBoardComputed(req.body);
-    boards[idx] = req.body;
-    writeJson(BOARDS_FILE, boards);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.delete('/api/boards/:id', requireSiteAdmin, (req, res) => {
-  try {
-    let boards = readJson(BOARDS_FILE);
-    const idx = boards.findIndex(b => b.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    boards.splice(idx, 1);
-    writeJson(BOARDS_FILE, boards);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
 // --- Illustration d'un terrain (vignette du tooltip 🗺️) : même triptyque que
 // les avatars et les affiches de packs — URL, upload base64 depuis l'appareil,
@@ -934,73 +760,10 @@ app.delete('/api/boards/:id/background', requireSiteAdmin, (req, res) => {
 });
 
 // --- Magies API ---
-app.get('/api/magies', (req, res) => {
-  try {
-    const magies = readJson(MAGIES_FILE);
-    res.json(magies.map(m => ({ ...m, _has_illustration: illustrationExists(m.id) })));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.post('/api/magies', requireSiteAdmin, (req, res) => {
-  try {
-    const magies = readJson(MAGIES_FILE);
-    const magie  = req.body;
-    if (!magie.id) return res.status(400).json({ error: 'id required' });
-    if (magies.find(m => m.id === magie.id)) return res.status(400).json({ error: `ID ${magie.id} already exists` });
-    delete magie._has_illustration;
-    magies.push(magie);
-    writeJson(MAGIES_FILE, magies);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.post('/api/magies/import', requireSiteAdmin, (req, res) => {
-  try {
-    const { items, mode = 'skip' } = req.body;
-    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
-    const magies = readJson(MAGIES_FILE);
-    let added = 0, replaced = 0, skipped = 0;
-    const errors = [];
-    for (const item of items) {
-      if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
-      delete item._has_illustration;
-      const idx = magies.findIndex(m => m.id === item.id);
-      if (idx !== -1) {
-        if (mode === 'replace') { magies[idx] = item; replaced++; }
-        else skipped++;
-      } else {
-        magies.push(item);
-        added++;
-      }
-    }
-    writeJson(MAGIES_FILE, magies);
-    res.json({ ok: true, added, replaced, skipped, errors });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.put('/api/magies/:id', requireSiteAdmin, (req, res) => {
-  try {
-    const magies = readJson(MAGIES_FILE);
-    const idx = magies.findIndex(m => m.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    const updated = req.body;
-    delete updated._has_illustration;
-    magies[idx] = updated;
-    writeJson(MAGIES_FILE, magies);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.delete('/api/magies/:id', requireSiteAdmin, (req, res) => {
-  try {
-    let magies = readJson(MAGIES_FILE);
-    const idx = magies.findIndex(m => m.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    magies.splice(idx, 1);
-    writeJson(MAGIES_FILE, magies);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
 app.post('/api/magies/:id/illustration', requireSiteAdmin, async (req, res) => {
   const id = safeAssetId(req.params.id);
@@ -1146,68 +909,10 @@ app.delete('/api/variants/:id/illustration', requireSiteAdmin, (req, res) => {
 });
 
 // --- Missions API ---
-app.get('/api/missions', (req, res) => {
-  try {
-    res.json(readJson(MISSIONS_FILE));
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.post('/api/missions', requireSiteAdmin, (req, res) => {
-  try {
-    const missions = readJson(MISSIONS_FILE);
-    const mission  = req.body;
-    if (!mission.id) return res.status(400).json({ error: 'id required' });
-    if (missions.find(m => m.id === mission.id)) return res.status(400).json({ error: `ID ${mission.id} already exists` });
-    missions.push(mission);
-    writeJson(MISSIONS_FILE, missions);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.post('/api/missions/import', requireSiteAdmin, (req, res) => {
-  try {
-    const { items, mode = 'skip' } = req.body;
-    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
-    const missions = readJson(MISSIONS_FILE);
-    let added = 0, replaced = 0, skipped = 0;
-    const errors = [];
-    for (const item of items) {
-      if (!item.id) { errors.push('Élément sans ID ignoré'); continue; }
-      const idx = missions.findIndex(m => m.id === item.id);
-      if (idx !== -1) {
-        if (mode === 'replace') { missions[idx] = item; replaced++; }
-        else skipped++;
-      } else {
-        missions.push(item);
-        added++;
-      }
-    }
-    writeJson(MISSIONS_FILE, missions);
-    res.json({ ok: true, added, replaced, skipped, errors });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.put('/api/missions/:id', requireSiteAdmin, (req, res) => {
-  try {
-    const missions = readJson(MISSIONS_FILE);
-    const idx = missions.findIndex(m => m.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    missions[idx] = req.body;
-    writeJson(MISSIONS_FILE, missions);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
-app.delete('/api/missions/:id', requireSiteAdmin, (req, res) => {
-  try {
-    let missions = readJson(MISSIONS_FILE);
-    const idx = missions.findIndex(m => m.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    missions.splice(idx, 1);
-    writeJson(MISSIONS_FILE, missions);
-    res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
 // --- Cadeaux API ---
 // ⚠️ `created_at` est POSÉ PAR LE SERVEUR et jamais lu du corps de la requête :
