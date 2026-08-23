@@ -15,8 +15,6 @@ import DeckBuilder from '../screens/DeckBuilder.js';
 import TournamentScreen from '../screens/TournamentScreen.js';
 import ArcadeScreen from '../screens/ArcadeScreen.js';
 import OnlineLobby from '../screens/OnlineLobby.js';
-import GameScreen from '../screens/GameScreen.js';
-import GameScreenPvp from '../screens/GameScreenPvp.js';
 import MissionsScreen from '../screens/MissionsScreen.js';
 import ShopScreen from '../screens/ShopScreen.js';
 import GiftsScreen from '../screens/GiftsScreen.js';
@@ -25,8 +23,28 @@ import TooltipHost from '../components/tooltip/TooltipHost.js';
 import RewardToasts from '../components/ui/RewardToasts.js';
 import { SpaceBackground } from '../components/ui/SpaceBackground.js';
 
+/**
+ * Écrans chargés à la demande. Ce ne sont pas les plus gros en lignes, ce sont
+ * les seuls à tirer `three/Scene3D` — donc Three.js (≈ 560 Ko) tout entier.
+ * Statiquement importés, ils le faisaient télécharger pour AFFICHER LE MENU :
+ * un joueur qui ouvre la boutique, lit le codex ou consulte ses missions payait
+ * le moteur 3D sans lancer une seule partie. Le chunk n'est désormais cherché
+ * qu'au premier combat — bundle d'entrée 1 058 Ko → 447 Ko (295 → 133 Ko gzip).
+ *
+ * ⚠️ Tout nouvel écran qui importe `three/` doit rejoindre cette liste, sinon
+ * il ramène Scene3D dans le chunk d'entrée et annule le découpage d'un coup.
+ */
+const GameScreen = lazy(() => import('../screens/GameScreen.js'));
+const GameScreenPvp = lazy(() => import('../screens/GameScreenPvp.js'));
 const CombatLab = lazy(() => import('../dev/CombatLab.js'));
 const TestBench = lazy(() => import('../dev/TestBench.js'));
+
+// Repli commun des quatre écrans différés. Volontairement nu : le décor spatial
+// n'est pas monté sur ces écrans (cf. IMMERSIVE_SCREENS) et le chunk arrive en
+// une fraction de seconde — un écran de chargement travaillé clignoterait.
+const lazyFallback = (
+  <div className="flex min-h-dvh items-center justify-center bg-surface text-white">Chargement…</div>
+);
 
 /**
  * Écrans qui posent leur propre décor plein cadre : le board 3D y occupe toute
@@ -71,6 +89,11 @@ export default function App() {
   return (
     <>
       {!IMMERSIVE_SCREENS.has(screen) && <SpaceBackground />}
+      {/* Un seul `Suspense` pour tout le routage : les écrans chargés en
+          statique ne suspendent jamais, seuls les quatre `lazy()` ci-dessus
+          l'utilisent. Une frontière par écran différé ferait quatre copies du
+          même repli, et il faudrait penser à en ajouter une au prochain. */}
+      <Suspense fallback={lazyFallback}>
       {screen === 'main_menu' && <MainMenu />}
       {screen === 'auth' && <AuthScreen />}
       {screen === 'reset_password' && <ResetPasswordScreen />}
@@ -87,16 +110,9 @@ export default function App() {
       {screen === 'online_lobby' && <OnlineLobby />}
       {screen === 'game' && <GameScreen />}
       {screen === 'game_pvp' && <GameScreenPvp />}
-      {screen === 'combatlab' && (
-        <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-surface text-white">Chargement…</div>}>
-          <CombatLab />
-        </Suspense>
-      )}
-      {screen === 'testbench' && (
-        <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-surface text-white">Chargement…</div>}>
-          <TestBench />
-        </Suspense>
-      )}
+      {screen === 'combatlab' && <CombatLab />}
+      {screen === 'testbench' && <TestBench />}
+      </Suspense>
       <TooltipHost />
       {/* Au-dessus des écrans : missions terminées, paliers hebdomadaires et
           niveaux gagnés s'y annoncent ensemble — la réponse arrive souvent une
