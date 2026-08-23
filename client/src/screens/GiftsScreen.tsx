@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useGiftStore, type Gift, type GiftLot } from '../stores/giftStore.js';
-import { Amount, Button, Countdown, Illustration, Modal, Panel } from '../components/ui/primitives.js';
+import { Amount, Button, Countdown, Illustration, LoadState, Modal, Panel } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import * as CardDatabase from '../data/CardDatabase.js';
@@ -68,8 +68,7 @@ export default function GiftsScreen() {
       />
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 p-4">
-        {error && <p className="text-xs text-danger">{error}</p>}
-        {loading && !snapshot && <p className="text-sm text-white/40">Chargement…</p>}
+        <LoadState error={error} loading={loading} hasContent={!!snapshot} />
 
         {snapshot && (
           <>

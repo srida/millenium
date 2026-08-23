@@ -165,6 +165,30 @@ export function Illustration({
   );
 }
 
+/**
+ * L'erreur et le chargement d'un écran adossé à un instantané serveur.
+ *
+ * Les deux lignes étaient recopiées à l'identique dans quatre écrans. Ce n'est
+ * pas grand-chose, mais c'est justement le genre de bloc qu'on recopie une
+ * cinquième fois en changeant un mot au passage.
+ *
+ * ⚠️ Le « Chargement… » ne s'affiche QUE tant qu'il n'y a rien à montrer : une
+ * recharge en arrière-plan (`load(true)` au montage, après un achat) ne doit
+ * pas faire clignoter l'écran déjà rempli.
+ */
+export function LoadState({ error, loading, hasContent }: {
+  error: string | null;
+  loading: boolean;
+  hasContent: boolean;
+}) {
+  return (
+    <>
+      {error && <p className="text-xs text-danger">{error}</p>}
+      {loading && !hasContent && <p className="text-sm text-white/40">Chargement…</p>}
+    </>
+  );
+}
+
 export function Panel({ className = '', children }: { className?: string; children: ReactNode }) {
   return (
     <div className={`rounded-xl border border-line bg-surface-raised/80 backdrop-blur ${className}`}>

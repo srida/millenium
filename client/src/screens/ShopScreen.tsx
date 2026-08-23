@@ -24,7 +24,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
 import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant } from '../stores/cosmeticStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
-import { Amount, Button, Countdown, Gauge, IconButton, Illustration, Modal, Panel } from '../components/ui/primitives.js';
+import { Amount, Button, Countdown, Gauge, IconButton, Illustration, LoadState, Modal, Panel } from '../components/ui/primitives.js';
 import { CURRENCY, CURRENCY_BY_WIRE, fmt, type WireCurrency } from '../components/ui/currency.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
@@ -93,8 +93,7 @@ export default function ShopScreen() {
 
       {tab === 'cosmetics' ? <CosmeticsTab /> : (
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4">
-        {error && <p className="text-xs text-danger">{error}</p>}
-        {loading && !snapshot && <p className="text-sm text-white/40">Chargement…</p>}
+        <LoadState error={error} loading={loading} hasContent={!!snapshot} />
 
         {notice && (
           <button
@@ -177,8 +176,7 @@ function CosmeticsTab() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4">
-      {error && <p className="text-xs text-danger">{error}</p>}
-      {loading && !snapshot && <p className="text-sm text-white/40">Chargement…</p>}
+      <LoadState error={error} loading={loading} hasContent={!!snapshot} />
 
       {notice && (
         <button
