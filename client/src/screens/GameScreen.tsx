@@ -20,7 +20,7 @@ import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import TutorialCoach from '../components/tutorial/TutorialCoach.js';
-import { Banner } from '../components/ui/primitives.js';
+import { PhaseTimer, Banners } from '../components/hud/PhaseTimer.js';
 import { PREP_DURATION_S, SHOPPING_DURATION_S } from '../game/timings.js';
 import { buildTutorialDecks } from '../game/tutorialDeck.js';
 import * as CardDatabase from '../data/CardDatabase.js';
@@ -57,6 +57,9 @@ export default function GameScreen() {
   );
   // Nom du deck public adverse — absent en miroir, rien à afficher alors.
   const enemyName = (inTournament ? pendingOpponentName : inArcade ? arcadeDuel?.deck_name : enemyDeckName) ?? null;
+  // Pilotage des deux chronos partagés (cf. components/hud/PhaseTimer).
+  const round = useGameStore(s => s.round);
+  const shoppingOpen = useGameStore(s => !!s.shopping);
 
   useEffect(() => {
     const pending = inTournament ? useTournamentStore.getState().pendingGame : null;
@@ -120,8 +123,25 @@ export default function GameScreen() {
       ) : (
         <GameMenu onQuit={() => useUiStore.getState().navigate('main_menu')} />
       )}
-      <PrepTimer controller={controller} />
-      <ShoppingTimer controller={controller} />
+      {/* Chronos partagés avec GameScreenPvp. Le solo gèle en plus sur
+          `coachBlocking` : une bulle du tutoriel qui attend un tap ne doit pas
+          voir le combat partir sous elle, ni la magie se choisir à sa place. */}
+      <PhaseTimer
+        durationS={PREP_DURATION_S}
+        field="prepRemaining"
+        restartKey={round}
+        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.coachBlocking && !s.gameOver}
+        onTimeout={() => controller.onPrepTimeout()}
+      />
+      {shoppingOpen && (
+        <PhaseTimer
+          durationS={SHOPPING_DURATION_S}
+          field="shoppingRemaining"
+          restartKey="shopping"
+          isActive={s => !s.coachBlocking}
+          onTimeout={() => controller.skipShopping()}
+        />
+      )}
       <AiWinReward inTournament={inTournament} inTutorial={inTutorial} />
       {inTutorial && <TutorialCoach />}
       {/* Pas de bandeau de contexte Tournoi/Arcade : posé sous la barre de PV,
@@ -195,77 +215,3 @@ async function exitArcadeGame(winner: 'player' | 'enemy' | 'draw' | null) {
   useUiStore.getState().navigate('arcade');
 }
 
-// Timer de préparation : redémarre à chaque nouvelle manche, ne décompte que
-// hors combat/overlay, déclenche le combat à 0.
-function PrepTimer({ controller }: { controller: GameController }) {
-  const round = useGameStore(s => s.round);
-  const applySnapshot = useGameStore(s => s.applySnapshot);
-  const remaining = useRef(PREP_DURATION_S);
-
-  useEffect(() => {
-    remaining.current = PREP_DURATION_S;
-    applySnapshot({ prepRemaining: PREP_DURATION_S });
-    const t = setInterval(() => {
-      const s = useGameStore.getState();
-      // `coachBlocking` gèle la préparation comme `menuOpen` : une bulle du
-      // tutoriel qui attend un tap ne doit pas voir le combat partir sous elle.
-      const prepActive = s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.coachBlocking && !s.gameOver;
-      if (!prepActive) return;
-      remaining.current -= 1;
-      if (remaining.current <= 0) {
-        clearInterval(t);
-        applySnapshot({ prepRemaining: 0 });
-        controller.onPrepTimeout();
-        return;
-      }
-      applySnapshot({ prepRemaining: remaining.current });
-    }, 1000);
-    return () => clearInterval(t);
-  }, [round, controller, applySnapshot]);
-
-  return null;
-}
-
-// Chrono de la Phase Shopping (solo + tournoi) : passage automatique à 0,
-// même règle qu'en PvP (GameScreenPvp.tsx). Affiché dans la popup elle-même
-// (ShoppingLayer, via gameStore.shoppingRemaining) plutôt qu'en overlay
-// séparé — un chrono à côté de la décision qu'il borne, pas au-dessus.
-function ShoppingTimer({ controller }: { controller: GameController }) {
-  const active = useGameStore(s => !!s.shopping);
-  const applySnapshot = useGameStore(s => s.applySnapshot);
-  const remaining = useRef(SHOPPING_DURATION_S);
-  const skipped = useRef(false);
-
-  useEffect(() => {
-    if (!active) { skipped.current = false; return; }
-    remaining.current = SHOPPING_DURATION_S;
-    skipped.current = false;
-    applySnapshot({ shoppingRemaining: SHOPPING_DURATION_S });
-    const t = setInterval(() => {
-      // Même gel que la préparation : le coach explique le choix de magie,
-      // le chrono ne doit pas trancher à sa place.
-      if (useGameStore.getState().coachBlocking) return;
-      remaining.current -= 1;
-      if (remaining.current <= 0) {
-        clearInterval(t);
-        applySnapshot({ shoppingRemaining: 0 });
-        if (!skipped.current) { skipped.current = true; controller.skipShopping(); }
-        return;
-      }
-      applySnapshot({ shoppingRemaining: remaining.current });
-    }, 1000);
-    return () => clearInterval(t);
-  }, [active, controller, applySnapshot]);
-
-  return null;
-}
-
-function Banners() {
-  const errorFlash = useGameStore(s => s.errorFlash);
-  const invocationBanner = useGameStore(s => s.invocationBanner);
-  const combatActive = useGameStore(s => s.combatActive);
-  // La bannière de ciblage magie est rendue par ShoppingLayer (avec Annuler).
-  if (errorFlash) return <Banner text={`⚠ ${errorFlash}`} tone="error" />;
-  if (invocationBanner && !combatActive) return <Banner text={invocationBanner} />;
-  return null;
-}
