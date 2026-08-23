@@ -1,0 +1,1043 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`/api/attributes > empreinte du quintuplet 1`] = `
+[
+  [
+    "POST sans id",
+    400,
+    {
+      "error": "id required",
+    },
+  ],
+  [
+    "POST ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "POST doublon",
+    400,
+    {
+      "error": "ID CHAR_001 already exists",
+    },
+  ],
+  [
+    "import non-tableau",
+    400,
+    {
+      "error": "items doit être un tableau",
+    },
+  ],
+  [
+    "import sans id",
+    200,
+    {
+      "added": 0,
+      "errors": [
+        "Élément sans ID ignoré",
+      ],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 0,
+    },
+  ],
+  [
+    "import skip",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 1,
+    },
+  ],
+  [
+    "import replace",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 1,
+      "skipped": 0,
+    },
+  ],
+  [
+    "PUT ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "PUT inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après écritures",
+    [
+      {
+        "icon": "🔧",
+        "id": "CHAR_001",
+        "name": "Modifiée",
+      },
+    ],
+  ],
+  [
+    "DELETE ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "DELETE inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après suppression",
+    [],
+  ],
+]
+`;
+
+exports[`/api/boards > empreinte du quintuplet 1`] = `
+[
+  [
+    "POST sans id",
+    400,
+    {
+      "error": "id required",
+    },
+  ],
+  [
+    "POST ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "POST doublon",
+    400,
+    {
+      "error": "ID CHAR_001 already exists",
+    },
+  ],
+  [
+    "import non-tableau",
+    200,
+    {
+      "added": 1,
+      "ok": true,
+      "replaced": 0,
+      "skipped": 3,
+    },
+  ],
+  [
+    "import sans id",
+    200,
+    {
+      "added": 0,
+      "ok": true,
+      "replaced": 0,
+      "skipped": 1,
+    },
+  ],
+  [
+    "import skip",
+    200,
+    {
+      "added": 0,
+      "ok": true,
+      "replaced": 0,
+      "skipped": 1,
+    },
+  ],
+  [
+    "import replace",
+    200,
+    {
+      "added": 0,
+      "ok": true,
+      "replaced": 1,
+      "skipped": 0,
+    },
+  ],
+  [
+    "PUT ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "PUT inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après écritures",
+    [
+      {
+        "id": "CHAR_001",
+        "name": "Modifiée",
+      },
+    ],
+  ],
+  [
+    "DELETE ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "DELETE inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après suppression",
+    [],
+  ],
+]
+`;
+
+exports[`/api/cards > empreinte du quintuplet 1`] = `
+[
+  [
+    "POST sans id",
+    400,
+    {
+      "error": "id required",
+    },
+  ],
+  [
+    "POST ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "POST doublon",
+    400,
+    {
+      "error": "ID CHAR_001 already exists",
+    },
+  ],
+  [
+    "import non-tableau",
+    400,
+    {
+      "error": "items doit être un tableau",
+    },
+  ],
+  [
+    "import sans id",
+    200,
+    {
+      "added": 0,
+      "errors": [
+        "Élément sans ID ignoré",
+      ],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 0,
+    },
+  ],
+  [
+    "import skip",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 1,
+    },
+  ],
+  [
+    "import replace",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 1,
+      "skipped": 0,
+    },
+  ],
+  [
+    "PUT ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "PUT inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après écritures",
+    [
+      {
+        "id": "CHAR_001",
+        "name": "Modifiée",
+        "tier": 1,
+      },
+    ],
+  ],
+  [
+    "DELETE ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "DELETE inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après suppression",
+    [],
+  ],
+]
+`;
+
+exports[`/api/decks > empreinte du quintuplet 1`] = `
+[
+  [
+    "POST sans id",
+    400,
+    {
+      "error": "id required",
+    },
+  ],
+  [
+    "POST ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "POST doublon",
+    400,
+    {
+      "error": "ID CHAR_001 already exists",
+    },
+  ],
+  [
+    "import non-tableau",
+    400,
+    {
+      "error": "items doit être un tableau",
+    },
+  ],
+  [
+    "import sans id",
+    200,
+    {
+      "added": 0,
+      "errors": [
+        "Élément sans ID ignoré",
+      ],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 0,
+    },
+  ],
+  [
+    "import skip",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 1,
+    },
+  ],
+  [
+    "import replace",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 1,
+      "skipped": 0,
+    },
+  ],
+  [
+    "PUT ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "PUT inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après écritures",
+    [
+      {
+        "deck": {},
+        "id": "CHAR_001",
+        "name": "Modifiée",
+      },
+    ],
+  ],
+  [
+    "DELETE ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "DELETE inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après suppression",
+    [],
+  ],
+]
+`;
+
+exports[`/api/magies > empreinte du quintuplet 1`] = `
+[
+  [
+    "POST sans id",
+    400,
+    {
+      "error": "id required",
+    },
+  ],
+  [
+    "POST ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "POST doublon",
+    400,
+    {
+      "error": "ID CHAR_001 already exists",
+    },
+  ],
+  [
+    "import non-tableau",
+    400,
+    {
+      "error": "items doit être un tableau",
+    },
+  ],
+  [
+    "import sans id",
+    200,
+    {
+      "added": 0,
+      "errors": [
+        "Élément sans ID ignoré",
+      ],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 0,
+    },
+  ],
+  [
+    "import skip",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 1,
+    },
+  ],
+  [
+    "import replace",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 1,
+      "skipped": 0,
+    },
+  ],
+  [
+    "PUT ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "PUT inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après écritures",
+    [
+      {
+        "effect": null,
+        "id": "CHAR_001",
+        "name": "Modifiée",
+      },
+    ],
+  ],
+  [
+    "DELETE ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "DELETE inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après suppression",
+    [],
+  ],
+]
+`;
+
+exports[`/api/missions > empreinte du quintuplet 1`] = `
+[
+  [
+    "POST sans id",
+    400,
+    {
+      "error": "id required",
+    },
+  ],
+  [
+    "POST ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "POST doublon",
+    400,
+    {
+      "error": "ID CHAR_001 already exists",
+    },
+  ],
+  [
+    "import non-tableau",
+    400,
+    {
+      "error": "items doit être un tableau",
+    },
+  ],
+  [
+    "import sans id",
+    200,
+    {
+      "added": 0,
+      "errors": [
+        "Élément sans ID ignoré",
+      ],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 0,
+    },
+  ],
+  [
+    "import skip",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 1,
+    },
+  ],
+  [
+    "import replace",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 1,
+      "skipped": 0,
+    },
+  ],
+  [
+    "PUT ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "PUT inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après écritures",
+    [
+      {
+        "id": "CHAR_001",
+        "name": "Modifiée",
+      },
+    ],
+  ],
+  [
+    "DELETE ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "DELETE inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après suppression",
+    [],
+  ],
+]
+`;
+
+exports[`/api/powers > empreinte du quintuplet 1`] = `
+[
+  [
+    "POST sans id",
+    400,
+    {
+      "error": "id required",
+    },
+  ],
+  [
+    "POST ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "POST doublon",
+    400,
+    {
+      "error": "ID CHAR_001 already exists",
+    },
+  ],
+  [
+    "import non-tableau",
+    400,
+    {
+      "error": "items doit être un tableau",
+    },
+  ],
+  [
+    "import sans id",
+    200,
+    {
+      "added": 0,
+      "errors": [
+        "Élément sans ID ignoré",
+      ],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 0,
+    },
+  ],
+  [
+    "import skip",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 1,
+    },
+  ],
+  [
+    "import replace",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 1,
+      "skipped": 0,
+    },
+  ],
+  [
+    "PUT ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "PUT inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après écritures",
+    [
+      {
+        "id": "CHAR_001",
+        "name": "Modifiée",
+      },
+    ],
+  ],
+  [
+    "DELETE ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "DELETE inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après suppression",
+    [],
+  ],
+]
+`;
+
+exports[`/api/sets > empreinte du quintuplet 1`] = `
+[
+  [
+    "POST sans id",
+    400,
+    {
+      "error": "id required",
+    },
+  ],
+  [
+    "POST ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "POST doublon",
+    400,
+    {
+      "error": "ID CHAR_001 already exists",
+    },
+  ],
+  [
+    "import non-tableau",
+    400,
+    {
+      "error": "items doit être un tableau",
+    },
+  ],
+  [
+    "import sans id",
+    200,
+    {
+      "added": 0,
+      "errors": [
+        "Élément sans ID ignoré",
+      ],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 0,
+    },
+  ],
+  [
+    "import skip",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 1,
+    },
+  ],
+  [
+    "import replace",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 1,
+      "skipped": 0,
+    },
+  ],
+  [
+    "PUT ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "PUT inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après écritures",
+    [
+      {
+        "cards": [],
+        "id": "CHAR_001",
+        "name": "Modifiée",
+      },
+    ],
+  ],
+  [
+    "DELETE ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "DELETE inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après suppression",
+    [],
+  ],
+]
+`;
+
+exports[`/api/variants > empreinte du quintuplet 1`] = `
+[
+  [
+    "POST sans id",
+    400,
+    {
+      "error": "id required",
+    },
+  ],
+  [
+    "POST ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "POST doublon",
+    400,
+    {
+      "error": "ID CHAR_001 already exists",
+    },
+  ],
+  [
+    "import non-tableau",
+    400,
+    {
+      "error": "items doit être un tableau",
+    },
+  ],
+  [
+    "import sans id",
+    200,
+    {
+      "added": 0,
+      "errors": [
+        "Élément sans ID ignoré",
+      ],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 0,
+    },
+  ],
+  [
+    "import skip",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 0,
+      "skipped": 1,
+    },
+  ],
+  [
+    "import replace",
+    200,
+    {
+      "added": 0,
+      "errors": [],
+      "ok": true,
+      "replaced": 1,
+      "skipped": 0,
+    },
+  ],
+  [
+    "PUT ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "PUT inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après écritures",
+    [
+      {
+        "card_id": "CORE_001",
+        "id": "CHAR_001",
+        "name": "Modifiée",
+      },
+    ],
+  ],
+  [
+    "DELETE ok",
+    200,
+    {
+      "ok": true,
+    },
+  ],
+  [
+    "DELETE inconnu",
+    404,
+    {
+      "error": "Not found",
+    },
+  ],
+  [
+    "fichier après suppression",
+    [],
+  ],
+]
+`;
+
+exports[`drapeaux calculés > présents à la lecture, absents du fichier 1`] = `
+[
+  [
+    "cards",
+    [
+      "_has_illustration",
+      "_starter",
+    ],
+  ],
+  [
+    "attributes",
+    [
+      "_has_illustration",
+    ],
+  ],
+  [
+    "powers",
+    [],
+  ],
+  [
+    "boards",
+    [
+      "_has_background",
+      "_has_illustration",
+    ],
+  ],
+  [
+    "magies",
+    [
+      "_has_illustration",
+    ],
+  ],
+  [
+    "variants",
+    [
+      "_has_illustration",
+    ],
+  ],
+  [
+    "missions",
+    [],
+  ],
+  [
+    "decks",
+    [
+      "_has_avatar",
+    ],
+  ],
+  [
+    "sets",
+    [
+      "_has_poster",
+    ],
+  ],
+]
+`;
