@@ -284,6 +284,3 @@ export const CHAPTERS: Chapter[] = [
   },
 ];
 
-export function chapterById(id: string): Chapter | null {
-  return CHAPTERS.find(c => c.id === id) ?? null;
-}

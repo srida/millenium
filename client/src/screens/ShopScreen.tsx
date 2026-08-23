@@ -17,7 +17,6 @@
 // Rien n'est calculé ici : prix, tirage et soldes viennent du serveur
 // (shop.js, cosmetics.js). L'écran affiche et déclenche, il n'arbitre pas.
 import { useEffect, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import * as CardDatabase from '../data/CardDatabase.js';
 import type { Card } from '../logic/types.js';
 import { useUiStore } from '../stores/uiStore.js';
@@ -25,12 +24,12 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
 import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant } from '../stores/cosmeticStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
-import { Button, Panel, Gauge, Modal, Countdown } from '../components/ui/primitives.js';
+import { Amount, Button, Countdown, Gauge, IconButton, Illustration, LoadState, Modal, Panel } from '../components/ui/primitives.js';
+import { CURRENCY, CURRENCY_BY_WIRE, fmt, type WireCurrency } from '../components/ui/currency.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import PackContents, { PackPoster } from '../components/shop/PackContents.js';
-
-const fmt = new Intl.NumberFormat('fr-FR');
+import { GuestGate } from '../components/ui/GuestGate.js';
 
 const cardOf = (id: string | null): Card | null => (id ? (CardDatabase as any).getCard(id) ?? null : null);
 
@@ -55,19 +54,12 @@ export default function ShopScreen() {
   useEffect(() => { void loadCosmetics(true); }, [loadCosmetics]);
   useEffect(() => { void loadCollection(); }, [loadCollection]);
   // Efface la pastille de nouveauté du menu principal pour l'offre du jour.
+  // La dépendance est le CHAMP `day`, pas l'instantané : ce dernier change
+  // d'identité à chaque achat, et la pastille ne se rejoue qu'à la rotation.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
   useEffect(() => { if (user && snapshot) markShopSeen(user.id, snapshot.day); }, [user, snapshot?.day]);
 
-  if (!user) {
-    return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-center text-white">
-        <p className="text-sm text-white/60">
-          La boutique suit ta collection et ton deck actif :<br />elle demande un compte.
-        </p>
-        <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
-        <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-      </main>
-    );
-  }
+  if (!user) return <GuestGate reason="La boutique suit ta collection et ton deck actif : elle demande un compte." />;
 
   const complete = snapshot && snapshot.collection.owned >= snapshot.collection.total;
 
@@ -76,7 +68,6 @@ export default function ShopScreen() {
       <ScreenHeader
         title="Boutique"
         onBack={() => navigate('main_menu')}
-        safeAreaTop
         right={(
           <>
             <Balance />
@@ -102,8 +93,7 @@ export default function ShopScreen() {
 
       {tab === 'cosmetics' ? <CosmeticsTab /> : (
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4">
-        {error && <p className="text-xs text-danger">{error}</p>}
-        {loading && !snapshot && <p className="text-sm text-white/40">Chargement…</p>}
+        <LoadState error={error} loading={loading} hasContent={!!snapshot} />
 
         {notice && (
           <button
@@ -147,7 +137,7 @@ export default function ShopScreen() {
               <div className="flex items-baseline justify-between px-1">
                 <h2 className="text-[10px] tracking-widest text-white/40">BOOSTERS</h2>
                 <span className="text-[10px] text-white/30">
-                  {snapshot.booster.card_count} cartes · {fmt.format(snapshot.booster.price_golds)} 💰 ou {fmt.format(snapshot.booster.price_gems)} 💎
+                  {snapshot.booster.card_count} cartes · {fmt.format(snapshot.booster.price_golds)} {CURRENCY.gold.icon} ou {fmt.format(snapshot.booster.price_gems)} {CURRENCY.gems.icon}
                 </span>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -186,8 +176,7 @@ function CosmeticsTab() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4">
-      {error && <p className="text-xs text-danger">{error}</p>}
-      {loading && !snapshot && <p className="text-sm text-white/40">Chargement…</p>}
+      <LoadState error={error} loading={loading} hasContent={!!snapshot} />
 
       {notice && (
         <button
@@ -203,7 +192,7 @@ function CosmeticsTab() {
           <section className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-[10px] tracking-widest text-white/40">AVATARS DU JOUR</h2>
-              <span className="text-[10px] text-white/30">{snapshot.prices.avatar.gems} 💎 pièce</span>
+              <span className="text-[10px] text-white/30">{snapshot.prices.avatar.gems} {CURRENCY.gems.icon} pièce</span>
             </div>
             {snapshot.avatars.length ? (
               <div className="grid grid-cols-3 gap-2">
@@ -219,7 +208,7 @@ function CosmeticsTab() {
           <section className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-[10px] tracking-widest text-white/40">VARIANTES DU JOUR</h2>
-              <span className="text-[10px] text-white/30">{snapshot.prices.variant.gems} 💎 pièce</span>
+              <span className="text-[10px] text-white/30">{snapshot.prices.variant.gems} {CURRENCY.gems.icon} pièce</span>
             </div>
             {snapshot.variants.length ? (
               <div className="grid grid-cols-3 gap-2">
@@ -261,12 +250,7 @@ function CosmeticOffer({
 
   return (
     <Panel className="flex flex-col gap-1.5 p-2">
-      <img
-        src={`/illustrations/${illustrationId}`}
-        alt=""
-        loading="lazy"
-        className="aspect-square w-full rounded-lg border border-line object-cover"
-      />
+      <Illustration id={illustrationId} framed className="aspect-square w-full" />
       <div className="min-h-8">
         <div className="truncate text-[11px] font-semibold leading-tight">{title}</div>
         <div className="truncate text-[10px] text-white/40">{subtitle}</div>
@@ -280,11 +264,7 @@ function CosmeticOffer({
           disabled={busy || !affordable}
           onPointerDown={() => ask({
             visual: (
-              <img
-                src={`/illustrations/${illustrationId}`}
-                alt=""
-                className="h-28 w-28 rounded-lg border border-line object-cover"
-              />
+              <Illustration id={illustrationId} framed lazy={false} className="h-28 w-28" />
             ),
             title,
             detail: subtitle,
@@ -294,7 +274,7 @@ function CosmeticOffer({
           })}
           title={affordable ? undefined : 'Pas assez de gemmes'}
         >
-          {price} 💎
+          {price} {CURRENCY.gems.icon}
         </Button>
       )}
       {dialog}
@@ -349,12 +329,10 @@ function VariantOffer({ variant }: { variant: CosmeticVariant }) {
 // ce qu'on achète en grand, et le solde qu'il restera après. C'est cette
 // dernière ligne qui a de la valeur — le prix, lui, était déjà sur le bouton.
 
-type Currency = 'golds' | 'gems';
-
-const CURRENCY = {
-  golds: { icon: '💰', label: 'golds', balance: (u: { gold?: number } | null) => u?.gold ?? 0 },
-  gems: { icon: '💎', label: 'gemmes', balance: (u: { gems?: number } | null) => u?.gems ?? 0 },
-} as const;
+// La monnaie telle qu'elle voyage vers le serveur (`golds` au pluriel, là où le
+// champ du joueur est `gold`). La table qui vivait ici doublait `currency.ts` ;
+// `CURRENCY_BY_WIRE` fait le pont, et il n'y a plus qu'un jeu d'icônes.
+type Currency = WireCurrency;
 
 type PendingBuy = {
   /** Ce qu'on achète, montré tel qu'il apparaît dans la vitrine. */
@@ -384,19 +362,13 @@ function useBuyConfirm() {
 function ConfirmBuy({ pending, onClose }: { pending: PendingBuy; onClose: () => void }) {
   const user = useAuthStore(s => s.user);
   const [working, setWorking] = useState(false);
-  const { icon, label, balance } = CURRENCY[pending.currency];
+  const { icon, unit, balance, key } = CURRENCY_BY_WIRE[pending.currency];
   const after = balance(user) - pending.price;
 
-  // ⚠️ PORTAL OBLIGATOIRE. La modale est déclenchée depuis une tuile, donc
-  // rendue sous un `Panel` — qui porte `backdrop-blur`. Un `filter` /
-  // `backdrop-filter` sur un ancêtre crée un BLOC CONTENEUR : le `position:
-  // fixed` de `Modal` se résout alors sur la tuile et non sur l'écran, la
-  // modale se retrouve enfermée dans une colonne de la grille et ses boutons
-  // sont rognés. Le portal la sort de l'arbre, quel que soit l'appelant.
-  //
   // Pendant l'appel, ni fermeture au fond ni second tap : l'achat n'est pas
-  // idempotent côté serveur, deux envois débiteraient deux fois.
-  return createPortal(
+  // idempotent côté serveur, deux envois débiteraient deux fois. (Le portal qui
+  // sortait cette modale de son `Panel` vit désormais dans `Modal` elle-même.)
+  return (
     <Modal onClose={working ? undefined : onClose}>
       <div className="text-center text-[10px] tracking-widest text-white/40">CONFIRMER L'ACHAT</div>
 
@@ -408,12 +380,12 @@ function ConfirmBuy({ pending, onClose }: { pending: PendingBuy; onClose: () => 
       <div className="mt-3 space-y-1 rounded-lg border border-line bg-white/5 p-2 text-xs">
         <div className="flex justify-between">
           <span className="text-white/50">Prix</span>
-          <span className="font-semibold tabular-nums">{icon} {fmt.format(pending.price)}</span>
+          <Amount currency={key} value={pending.price} className="font-semibold" />
         </div>
         <div className="flex justify-between">
           <span className="text-white/50">Il te restera</span>
           <span className={`tabular-nums ${after < 0 ? 'text-danger' : 'text-white/70'}`}>
-            {icon} {fmt.format(Math.max(0, after))} {label}
+            {icon} {fmt.format(Math.max(0, after))} {unit}
           </span>
         </div>
       </div>
@@ -432,8 +404,7 @@ function ConfirmBuy({ pending, onClose }: { pending: PendingBuy; onClose: () => 
           {working ? '…' : 'Acheter'}
         </Button>
       </div>
-    </Modal>,
-    document.body,
+    </Modal>
   );
 }
 
@@ -446,8 +417,8 @@ function Balance() {
     // répéter serait redondant. En mobile, le header n'affiche que le profil,
     // donc le solde reste ici — fonctionnel pendant les achats.
     <span className="flex items-center gap-2 text-xs tabular-nums sm:hidden">
-      <span className="text-gold" title="Golds">💰 {fmt.format(user.gold ?? 0)}</span>
-      <span className="text-tier-4" title="Gemmes">💎 {fmt.format(user.gems ?? 0)}</span>
+      <Amount currency="gold" value={user.gold ?? 0} />
+      <Amount currency="gems" value={user.gems ?? 0} />
     </span>
   );
 }
@@ -490,10 +461,9 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
   // épinglé plutôt que d'échouer au tap.
   const rerollable = !slot.purchased && !slot.pinned && freeReroll;
 
-  const iconBtn = 'flex h-7 w-7 items-center justify-center rounded-md border text-[11px] active:opacity-70 disabled:opacity-30';
-
   return (
-    <Panel className={`flex flex-col gap-1.5 p-2 ${
+    // `min-w-0` : item de grille, cf. l'explication sur BoosterCard plus bas.
+    <Panel className={`flex min-w-0 flex-col gap-1.5 p-2 ${
       slot.purchased ? 'border-success/40 bg-success/5' : slot.pinned ? 'border-tier-5/60 bg-tier-5/5' : ''
     }`}>
       <div className="flex items-center gap-1">
@@ -501,30 +471,28 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
         {!slot.purchased && (
           <>
             {rerollable && (
-              <button
+              <IconButton
+                compact
+                icon="🎲"
                 disabled={busy}
-                onPointerDown={async () => setErr(await reroll(slot.slot))}
-                title="Changer cette proposition (1 gratuit par jour)"
-                aria-label="Changer cette proposition"
-                className={`${iconBtn} border-line text-white/50`}
-              >
-                🎲
-              </button>
+                onTap={async () => setErr(await reroll(slot.slot))}
+                label="Changer cette proposition (1 gratuit par jour)"
+                chipClassName="border-line text-white/50"
+              />
             )}
-            <button
+            <IconButton
+              compact
+              icon="📌"
               disabled={busy}
-              onPointerDown={async () => setErr(await pin(slot.pinned ? null : slot.slot))}
-              title={slot.pinned
+              onTap={async () => setErr(await pin(slot.pinned ? null : slot.slot))}
+              label={slot.pinned
                 ? 'Détacher — cet emplacement sera re-tiré demain'
                 : pinnedElsewhere
                   ? 'Conserver celui-ci demain (déplace l\'épingle posée sur un autre emplacement)'
                   : 'Conserver cette carte à la prochaine rotation'}
-              aria-label={slot.pinned ? 'Détacher cet emplacement' : 'Épingler cet emplacement'}
-              aria-pressed={slot.pinned}
-              className={`${iconBtn} ${slot.pinned ? 'border-tier-5 bg-tier-5/15 text-tier-5' : 'border-line text-white/50'}`}
-            >
-              📌
-            </button>
+              pressed={slot.pinned}
+              chipClassName={slot.pinned ? 'border-tier-5 bg-tier-5/15 text-tier-5' : 'border-line text-white/50'}
+            />
           </>
         )}
       </div>
@@ -554,7 +522,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
             title={affordableGolds ? undefined : 'Pas assez de golds'}
             onPointerDown={() => ask(confirmSlot('golds'))}
           >
-            💰 {fmt.format(slot.price_golds)}
+            {CURRENCY.gold.icon} {fmt.format(slot.price_golds)}
           </Button>
           <Button
             className="w-full px-1 text-[11px]"
@@ -562,7 +530,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
             title={affordableGems ? undefined : 'Pas assez de gemmes'}
             onPointerDown={() => ask(confirmSlot('gems'))}
           >
-            💎 {fmt.format(slot.price_gems)}
+            {CURRENCY.gems.icon} {fmt.format(slot.price_gems)}
           </Button>
         </div>
       )}
@@ -644,21 +612,21 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
               disabled={disabled || (user?.gold ?? 0) < priceGolds}
               onPointerDown={() => ask(confirmBooster('golds'))}
             >
-              💰 {fmt.format(priceGolds)}
+              {CURRENCY.gold.icon} {fmt.format(priceGolds)}
             </Button>
             <Button
               className="flex-1 px-2 text-xs"
               disabled={disabled || (user?.gems ?? 0) < priceGems}
               onPointerDown={() => ask(confirmBooster('gems'))}
             >
-              💎 {fmt.format(priceGems)}
+              {CURRENCY.gems.icon} {fmt.format(priceGems)}
             </Button>
           </div>
           {/* La valeur d'un booster CROÎT à mesure que le set se vide : c'est la
               propriété la plus vertueuse du système, elle doit se voir. */}
           <p className="text-[10px] text-white/30">
             {missing} carte{missing > 1 ? 's' : ''} restante{missing > 1 ? 's' : ''}
-            {set.completion_reward?.gems ? ` · set complet : +${set.completion_reward.gems} 💎` : ''}
+            {set.completion_reward?.gems ? ` · set complet : +${set.completion_reward.gems} ${CURRENCY.gems.icon}` : ''}
           </p>
         </>
       )}
@@ -699,7 +667,7 @@ function BoosterReveal({ onClose }: { onClose: () => void }) {
       )}
       {booster.sets_completed.map(s => (
         <p key={s.set_id} className="mt-2 text-center text-[11px] text-success">
-          🏅 Set complété : {s.name}{s.rewards.gems ? ` — +${s.rewards.gems} 💎` : ''}
+          🏅 Set complété : {s.name}{s.rewards.gems ? ` — +${s.rewards.gems} ${CURRENCY.gems.icon}` : ''}
         </p>
       ))}
       <Button variant="primary" className="mt-4 w-full" onPointerDown={onClose}>Continuer</Button>

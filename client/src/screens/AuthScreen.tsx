@@ -81,20 +81,20 @@ export default function AuthScreen() {
         <input
           type="email" autoComplete="email" placeholder="E-mail" value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-sm text-white placeholder:text-white/30"
+          className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-white placeholder:text-white/30"
         />
         {mode === 'register' && (
           <input
             type="text" autoComplete="username" placeholder="Pseudo" value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-sm text-white placeholder:text-white/30"
+            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-white placeholder:text-white/30"
           />
         )}
         {mode !== 'forgot' && (
           <input
             type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder="Mot de passe" value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-sm text-white placeholder:text-white/30"
+            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-white placeholder:text-white/30"
           />
         )}
         {mode === 'login' && (

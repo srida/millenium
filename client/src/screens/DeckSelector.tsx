@@ -24,7 +24,7 @@ import { computeDeckTags } from '../data/DeckTags.js';
 import type { Card } from '../logic/types.js';
 import { useDeckStore, type DeckSummary } from '../stores/deckStore.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
-import { Button, Modal } from '../components/ui/primitives.js';
+import { Button, IconButton, Modal } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 
@@ -86,9 +86,15 @@ export default function DeckSelector() {
   useEffect(() => {
     if (manage) return;
     let alive = true;
-    (PublicDeckDatabase as any).init().then(() => {
-      if (alive) setPublicDecks(((PublicDeckDatabase as any).getAllDecks() as any[]).map(summarizePublic));
-    });
+    // Sur échec, la liste vide plutôt que `null` : l'écran affiche alors son
+    // message « aucun deck adverse — l'IA jouera ton deck en miroir », qui est
+    // la vérité (le miroir reste jouable), là où `null` laissait « Chargement
+    // des decks… » à l'écran pour toujours.
+    (PublicDeckDatabase as any).init()
+      .then(() => {
+        if (alive) setPublicDecks(((PublicDeckDatabase as any).getAllDecks() as any[]).map(summarizePublic));
+      })
+      .catch(() => { if (alive) setPublicDecks([]); });
     return () => { alive = false; };
   }, [manage]);
 
@@ -153,7 +159,6 @@ export default function DeckSelector() {
         onBack={() => navigate('main_menu')}
         right={<span className="text-xs text-white/40">{list.length} deck{list.length !== 1 ? 's' : ''}</span>}
         subtitle={<p className="mt-1.5 text-xs text-white/50">{MODES[mode].blurb}</p>}
-        safeAreaTop
       />
 
       <div className={`flex-1 space-y-3 overflow-y-auto p-4 ${manage ? 'pb-28' : 'pb-36'}`}>
@@ -290,7 +295,8 @@ function DeckCard({
   return (
     <div
       onPointerDown={onSelect}
-      className={`rounded-xl border bg-surface-raised/70 p-3 transition-colors ${border}`}
+      // `min-w-0` : item de grille, cf. `BoosterCard` (ShopScreen).
+      className={`min-w-0 rounded-xl border bg-surface-raised/70 p-3 transition-colors ${border}`}
     >
       <div className="flex items-center gap-2">
         {/* Deck public : son portrait. Deck du joueur : la pastille de couleur,
@@ -343,10 +349,10 @@ function DeckCard({
           dans l'UI ; `title`/`aria-label` portent le sens. */}
       {showActions && (
         <div className="mt-3 flex gap-2" onPointerDown={(e) => e.stopPropagation()}>
-          <IconButton label="Éditer le deck" icon="✏️" onTap={onEdit} />
-          <IconButton label="Dupliquer" icon="📋" onTap={onDuplicate} />
-          <IconButton label="Renommer" icon="🏷️" onTap={onRename} />
-          <IconButton label="Supprimer" icon="🗑️" tone="danger" onTap={onDelete} />
+          <IconButton label="Éditer le deck" icon="✏️" className="flex-1" onTap={onEdit} />
+          <IconButton label="Dupliquer" icon="📋" className="flex-1" onTap={onDuplicate} />
+          <IconButton label="Renommer" icon="🏷️" className="flex-1" onTap={onRename} />
+          <IconButton label="Supprimer" icon="🗑️" tone="danger" className="flex-1" onTap={onDelete} />
         </div>
       )}
     </div>
@@ -377,19 +383,6 @@ function DifficultyChip({ difficulty }: { difficulty: number }) {
   );
 }
 
-// Action de gestion réduite à une icône : le libellé passe en tooltip natif
-// (survol web) et en nom accessible (lecteurs d'écran, où l'icône ne dit rien).
-function IconButton({
-  label, icon, tone = 'ghost', onTap,
-}: { label: string; icon: string; tone?: 'ghost' | 'danger'; onTap: () => void }) {
-  return (
-    <Button
-      variant={tone} className="flex-1 px-2 text-base leading-none"
-      title={label} aria-label={label} onPointerDown={onTap}
-    >{icon}</Button>
-  );
-}
-
 function RenameModal({ name, onClose, onConfirm }: { name: string; onClose: () => void; onConfirm: (n: string) => string | null }) {
   const [value, setValue] = useState(name);
   const [error, setError] = useState<string | null>(null);
@@ -400,7 +393,7 @@ function RenameModal({ name, onClose, onConfirm }: { name: string; onClose: () =
       <input
         autoFocus value={value} maxLength={32}
         onChange={(e) => { setValue(e.target.value); setError(null); }}
-        className="mt-2 min-h-tap w-full rounded-lg border border-line bg-surface px-3 text-sm text-white"
+        className="mt-2 min-h-tap w-full rounded-lg border border-line bg-surface px-3 text-white"
       />
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
       <div className="mt-3 flex gap-2">

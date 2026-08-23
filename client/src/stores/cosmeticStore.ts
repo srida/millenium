@@ -10,6 +10,7 @@
 import { create } from 'zustand';
 import * as AuthClient from '../data/AuthClient.js';
 import { useAuthStore } from './authStore.js';
+import { createSnapshotChannel } from './snapshotLoader.js';
 
 export interface CosmeticAvatar {
   id: string;
@@ -66,8 +67,6 @@ interface CosmeticStoreState {
   reset: () => void;
 }
 
-const isGuest = () => !useAuthStore.getState().user;
-
 // Whitelist : sans elle, un champ ajouté côté serveur serait silencieusement
 // perdu — et un champ retiré laisserait un `undefined` dans le rendu.
 function pickSnapshot(data: any): CosmeticSnapshot {
@@ -85,6 +84,12 @@ function pickSnapshot(data: any): CosmeticSnapshot {
   };
 }
 
+const channel = createSnapshotChannel<CosmeticSnapshot>({
+  fetch: () => (AuthClient as any).getCosmetics(),
+  pick: pickSnapshot,
+  errorLabel: 'Boutique indisponible.',
+});
+
 export const useCosmeticStore = create<CosmeticStoreState>((set, get) => ({
   snapshot: null,
   loading: false,
@@ -92,20 +97,7 @@ export const useCosmeticStore = create<CosmeticStoreState>((set, get) => ({
   error: null,
   notice: null,
 
-  load: async (force = false) => {
-    if (isGuest()) { set({ snapshot: null, error: null }); return; }
-    if (get().loading || (get().snapshot && !force)) return;
-    set({ loading: true, error: null });
-    try {
-      const data = await (AuthClient as any).getCosmetics();
-      set({ snapshot: pickSnapshot(data) });
-      useAuthStore.getState().applyProgression(data.progression);
-    } catch (e: any) {
-      set({ error: e?.message ?? 'Boutique indisponible.' });
-    } finally {
-      set({ loading: false });
-    }
-  },
+  load: channel.load(set, get),
 
   buy: async (kind, id, label) => {
     if (get().busy) return null;

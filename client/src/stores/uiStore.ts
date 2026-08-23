@@ -2,16 +2,26 @@ import { create } from 'zustand';
 import type { Card, AttributeDef, BoardDef } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
 
-export type ScreenName =
-  | 'main_menu' | 'auth' | 'reset_password' | 'profile' | 'friends'
-  | 'deck_selector' | 'deck_builder' | 'online_lobby' | 'tournament' | 'arcade' | 'missions' | 'shop' | 'gifts'
-  | 'tutorial' | 'game' | 'game_pvp' | 'combatlab' | 'testbench';
-
-const SCREEN_NAMES: ScreenName[] = [
+/**
+ * LA liste des écrans — une seule, dont le type est DÉRIVÉ.
+ *
+ * ⚠️ Elle existait en double : l'union `ScreenName` et ce tableau, qui est
+ * celui qui valide `?screen=`. Deux listes à tenir d'accord, dont une seule
+ * gardée par le compilateur : un écran ajouté à l'union mais pas au tableau
+ * était navigable en SPA et refusé au deep-link, sans que rien ne le signale.
+ * `as const` + `typeof […][number]` fait du tableau la source unique.
+ *
+ * Le rendu de chaque écran est apparié dans `app/App.tsx` par un
+ * `Record<ScreenName, …>` : TypeScript y vérifie l'exhaustivité, donc un nom
+ * ajouté ici sans composant en face ne compile pas.
+ */
+export const SCREEN_NAMES = [
   'main_menu', 'auth', 'reset_password', 'profile', 'friends',
   'deck_selector', 'deck_builder', 'online_lobby', 'tournament', 'arcade', 'missions', 'shop', 'gifts',
   'tutorial', 'game', 'game_pvp', 'combatlab', 'testbench',
-];
+] as const;
+
+export type ScreenName = typeof SCREEN_NAMES[number];
 
 // 'manage' = gérer ses decks et choisir le deck ACTIF (celui joué partout) ;
 // 'play' = ne choisir que le deck de l'IA avant une partie solo.

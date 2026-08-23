@@ -18,6 +18,7 @@ import { effectLabel } from '../../logic/MagieEffect.js';
 import type { Card, AttributeDef, BoardDef, Magie, PowerDef } from '../../logic/types.js';
 import type { ChapterBlock } from '../../data/tutorialContent.js';
 import CardTile, { cardTileProps } from '../ui/CardTile.js';
+import { Illustration } from '../ui/primitives.js';
 
 // Les textes du codex portent quelques **passages en gras** — juste assez de
 // balisage pour souligner un terme, sans embarquer un moteur Markdown.
@@ -91,7 +92,7 @@ function MagieExamples({ limit }: { limit: number }) {
       {magies.map(m => (
         <div key={m.id} className="flex items-center gap-2 rounded-lg border border-line bg-surface-raised/60 p-2">
           {m._has_illustration && (
-            <img src={(CardDatabase as any).illustrationUrl(m.id)} alt="" className="h-10 w-10 flex-shrink-0 rounded object-cover" />
+            <Illustration id={m.id} className="h-10 w-10 rounded" />
           )}
           <div className="min-w-0">
             <div className="text-xs font-semibold text-gold">{m.name}</div>
@@ -113,7 +114,7 @@ function BoardExamples({ limit }: { limit: number }) {
         return (
           <div key={b.id} className="flex items-center gap-2 rounded-lg border border-line bg-surface-raised/60 p-2">
             {b._has_illustration && (
-              <img src={(CardDatabase as any).illustrationUrl(b.id)} alt="" className="h-10 w-10 flex-shrink-0 rounded object-cover" />
+              <Illustration id={b.id} className="h-10 w-10 rounded" />
             )}
             <div className="min-w-0">
               <div className="text-xs font-semibold text-gold">{b.name}</div>

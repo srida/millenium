@@ -18,7 +18,7 @@ export function manhattanDistance(a: Position, b: Position): number {
  * Returns array of positions to walk (excluding start, including destination),
  * or null if unreachable.
  */
-export function findPath(board: Board, from: Position, to: Position): Position[] | null {
+function findPath(board: Board, from: Position, to: Position): Position[] | null {
   const key = (p: Position) => `${p.col},${p.row}`;
   const visited = new Set([key(from)]);
   const queue: { pos: Position; path: Position[] }[] = [{ pos: from, path: [] }];

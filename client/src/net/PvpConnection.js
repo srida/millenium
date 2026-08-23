@@ -75,7 +75,6 @@ export function off(type, handler) {
   if (set) set.delete(handler);
 }
 
-export function getMatchId() { return matchId; }
 export function getRole() { return role; }
 export function getOpponent() { return opponent; }
 export function getBotMatch() { return botMatch; }

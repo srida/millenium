@@ -1,5 +1,8 @@
 // Primitives du design system Millenium (Tailwind v4, mobile-first, tap ≥ 44px).
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
+import { illustrationUrl } from '../../data/CardArt.js';
 
 type Variant = 'primary' | 'ghost' | 'danger';
 
@@ -52,6 +55,138 @@ export function CountBadge({ children, label, className = '' }: { children: Reac
  */
 export function NewDot({ label = 'Nouveautés' }: { label?: string }) {
   return <span className="h-2 w-2 rounded-full bg-gold" aria-label={label} />;
+}
+
+/**
+ * Action réduite à une icône : le libellé passe en infobulle native (survol
+ * web) et en nom accessible (lecteurs d'écran, où l'icône ne dit rien).
+ *
+ * ⚠️ La CIBLE fait toujours 44 px (`--spacing-tap`), y compris en `compact`.
+ * C'est tout l'intérêt d'avoir la règle ici plutôt qu'à l'appelant : la
+ * boutique s'était fabriqué ses propres boutons 28 × 28 px pour l'épingle et le
+ * reroll — les seuls contrôles du jeu sous le seuil, sur deux gestes que le
+ * design tient pour des arbitrages à part entière.
+ *
+ * `compact` garde le CHIP visible petit (28 px) mais élargit la zone tapable
+ * autour de lui ; le `-my-2` empêche cette zone de faire grandir la ligne qui
+ * l'accueille. Le doigt vise large, la tuile reste dense.
+ */
+export function IconButton({
+  label, icon, tone = 'ghost', compact = false, pressed, disabled, chipClassName = '', className = '', onTap,
+}: {
+  label: string;
+  icon: ReactNode;
+  tone?: Variant;
+  compact?: boolean;
+  pressed?: boolean;
+  disabled?: boolean;
+  /** Habillage du chip en mode `compact` (bordure/fond/teinte selon l'état). */
+  chipClassName?: string;
+  className?: string;
+  onTap: () => void;
+}) {
+  if (!compact) {
+    return (
+      <Button
+        variant={tone} className={`px-2 text-base leading-none ${className}`}
+        title={label} aria-label={label} aria-pressed={pressed} disabled={disabled}
+        onPointerDown={onTap}
+      >{icon}</Button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onPointerDown={onTap}
+      title={label}
+      aria-label={label}
+      aria-pressed={pressed}
+      className={`group -my-2 flex min-h-tap min-w-tap items-center justify-center disabled:cursor-not-allowed disabled:opacity-30 ${className}`}
+    >
+      <span className={`flex h-7 w-7 items-center justify-center rounded-md border text-[11px] transition-opacity group-active:opacity-70 ${chipClassName}`}>
+        {icon}
+      </span>
+    </button>
+  );
+}
+
+/**
+ * Un montant en monnaie — icône, couleur et séparateur de milliers d'un seul
+ * geste. C'est LE point de rendu d'un solde ou d'un gain : les glyphes 💰/💎
+ * étaient écrits à la main dans une vingtaine d'endroits, et l'un d'eux s'était
+ * trompé de couleur sans que rien ne puisse le signaler (cf. `currency.ts`).
+ *
+ * `sign` préfixe un `+` : un GAIN se lit autrement qu'un solde.
+ */
+export function Amount({
+  currency, value, sign = false, className = '',
+}: { currency: CurrencyKey; value: number; sign?: boolean; className?: string }) {
+  const c = CURRENCY[currency];
+  return (
+    <span className={`tabular-nums ${c.cls} ${className}`} title={c.label}>
+      <span aria-hidden="true">{c.icon}</span> {sign && value >= 0 ? '+' : ''}{fmt.format(value)}
+      <span className="sr-only"> {c.unit}</span>
+    </span>
+  );
+}
+
+/**
+ * L'art d'un id — carte, terrain, magie, variante, icône d'attribut : tous
+ * partagent l'espace de noms plat du dossier d'illustrations.
+ *
+ * Une douzaine de sites réécrivaient le gabarit d'URL à la main, et la moitié
+ * répétait en prime la même vignette carrée (`rounded-lg border border-line
+ * object-cover`) — pendant que le helper documenté, coincé dans un module à
+ * état, n'était appelé que trois fois.
+ *
+ * `fit="contain"` pour les ICÔNES D'ATTRIBUT : rognée, une icône perd sa
+ * silhouette, qui est justement ce qui la distingue. C'est la seule différence
+ * de traitement avec l'art des cartes, qui vit dans le même dossier.
+ */
+export function Illustration({
+  id, alt = '', className = '', fit = 'cover', framed = false, lazy = true,
+}: {
+  id: string;
+  alt?: string;
+  className?: string;
+  fit?: 'cover' | 'contain';
+  /** Vignette encadrée (bordure + coins arrondis), la forme la plus courante. */
+  framed?: boolean;
+  lazy?: boolean;
+}) {
+  return (
+    <img
+      src={illustrationUrl(id)}
+      alt={alt}
+      loading={lazy ? 'lazy' : undefined}
+      className={`flex-shrink-0 ${fit === 'cover' ? 'object-cover' : 'object-contain'} ${framed ? 'rounded-lg border border-line' : ''} ${className}`}
+    />
+  );
+}
+
+/**
+ * L'erreur et le chargement d'un écran adossé à un instantané serveur.
+ *
+ * Les deux lignes étaient recopiées à l'identique dans quatre écrans. Ce n'est
+ * pas grand-chose, mais c'est justement le genre de bloc qu'on recopie une
+ * cinquième fois en changeant un mot au passage.
+ *
+ * ⚠️ Le « Chargement… » ne s'affiche QUE tant qu'il n'y a rien à montrer : une
+ * recharge en arrière-plan (`load(true)` au montage, après un achat) ne doit
+ * pas faire clignoter l'écran déjà rempli.
+ */
+export function LoadState({ error, loading, hasContent }: {
+  error: string | null;
+  loading: boolean;
+  hasContent: boolean;
+}) {
+  return (
+    <>
+      {error && <p className="text-xs text-danger">{error}</p>}
+      {loading && !hasContent && <p className="text-sm text-white/40">Chargement…</p>}
+    </>
+  );
 }
 
 export function Panel({ className = '', children }: { className?: string; children: ReactNode }) {
@@ -117,10 +252,27 @@ export function Banner({ text, tone = 'info' }: { text: string; tone?: 'info' | 
   );
 }
 
-// Overlay modal centré, mobile-first (safe-areas iOS). onClose (optionnel) est
-// déclenché par un tap sur le fond — jamais sur le contenu.
+/**
+ * Overlay modal centré, mobile-first (safe-areas iOS). `onClose` (optionnel) est
+ * déclenché par un tap sur le fond — jamais sur le contenu.
+ *
+ * ⚠️ **La modale se rend dans un `createPortal(…, document.body)`, et c'est la
+ * primitive qui le fait — plus ses appelants.** Un `filter` / `backdrop-filter`
+ * sur un ancêtre crée un BLOC CONTENEUR : rendue sous un `Panel` (qui porte
+ * `backdrop-blur`), la modale voyait son `position: fixed` se résoudre sur la
+ * tuile et non sur l'écran — enfermée dans une colonne de la grille, boutons
+ * rognés. Trois appelants (`ConfirmBuy`, `GiftReveal`, `LevelReveal`) portaient
+ * chacun leur propre portal et leur propre copie de cet avertissement, pendant
+ * que dix autres `<Modal>` n'en avaient pas et que rien ne disait laquelle en
+ * aurait eu besoin. Le piège n'existe plus, au lieu d'être documenté trois fois.
+ *
+ * Portaler est toujours correct ici : la couche est `fixed inset-0`, elle ne
+ * tient à son parent DOM par rien. Et les événements synthétiques React
+ * traversent un portal via l'arbre REACT — les `onPointerDown` des ancêtres
+ * (fermeture de tooltip, etc.) continuent donc de recevoir les taps.
+ */
 export function Modal({ children, onClose }: { children: ReactNode; onClose?: () => void }) {
-  return (
+  return createPortal(
     <div
       className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
       onPointerDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
@@ -128,6 +280,7 @@ export function Modal({ children, onClose }: { children: ReactNode; onClose?: ()
       <div className="max-h-[88dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gold/40 bg-surface/97 p-4 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

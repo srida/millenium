@@ -28,6 +28,7 @@ const ROUND_LABELS = ['Quarts de finale', 'Demi-finales', 'Finale'];
 export default function TournamentScreen() {
   const navigate = useUiStore(s => s.navigate);
   const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const tournament = useTournamentStore(s => s.tournament);
   const setTournament = useTournamentStore(s => s.setTournament);
   const clearTournament = useTournamentStore(s => s.clear);
@@ -39,7 +40,16 @@ export default function TournamentScreen() {
   // bâti dessus au lancement : changer de deck actif ensuite ne le modifie plus.
   const deckName = ((DeckRepository as any).getActiveDeck?.() as string | null) ?? null;
 
-  useEffect(() => { (PublicDeckDatabase as any).init().then(() => setReady(true)); }, []);
+  // ⚠️ Le `.catch` n'est pas décoratif : sans lui, un catalogue injoignable
+  // (hors ligne, 500) laissait `ready` à false pour toujours — et comme l'écran
+  // retournait AVANT son ScreenHeader, le joueur restait sur « Chargement… »
+  // sans titre ni bouton retour, avec une promesse rejetée non gérée en prime.
+  // Même geste qu'`App.tsx`, seul site du projet qui le faisait déjà.
+  useEffect(() => {
+    (PublicDeckDatabase as any).init()
+      .then(() => setReady(true))
+      .catch((e: unknown) => setError(String(e)));
+  }, []);
 
   const playerDeck = deckName ? (DeckRepository as any).loadDeck(deckName) : null;
 
@@ -68,16 +78,35 @@ export default function TournamentScreen() {
     navigate('game', { tournament: true });
   }
 
-  if (!ready) return <Center><span className="text-gold">Chargement…</span></Center>;
-
   const complete = tournament && isTournamentComplete(tournament);
   const champion = tournament && getChampion(tournament);
   const eliminated = tournament && isPlayerEliminated(tournament);
   const playerMatch = tournament && !complete ? findPlayerMatch(tournament) : null;
 
+  // ⚠️ L'en-tête est rendu AVANT tout état, jamais après : c'est lui qui porte
+  // le bouton retour. Un écran qui le saute pour afficher « Chargement… » ou
+  // une erreur enferme le joueur dedans.
+  const header = <ScreenHeader title="Tournoi" onBack={() => navigate('main_menu')} />;
+
+  if (error || !ready) {
+    return (
+      <main className="flex min-h-dvh flex-col relative z-10 text-white">
+        {header}
+        <Center>
+          {error
+            ? <>
+                <p className="text-sm font-semibold text-danger">Impossible de charger les decks adverses</p>
+                <p className="text-xs text-white/40">{error}</p>
+              </>
+            : <span className="text-gold">Chargement…</span>}
+        </Center>
+      </main>
+    );
+  }
+
   return (
     <main className="flex min-h-dvh flex-col relative z-10 text-white">
-      <ScreenHeader title="Tournoi" onBack={() => navigate('main_menu')} safeAreaTop />
+      {header}
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {!tournament ? (
@@ -190,6 +219,9 @@ function Portrait({ p, won, size = 'h-8 w-8' }: { p: any; won?: boolean; size?: 
   );
 }
 
+// Corps centré, rendu SOUS l'en-tête — et non à sa place. C'était un `<main>`
+// tant qu'il remplaçait l'écran entier ; il est désormais imbriqué dans celui de
+// l'écran, où un second `<main>` serait du HTML invalide.
 function Center({ children }: { children: ReactNode }) {
-  return <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-white">{children}</main>;
+  return <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">{children}</div>;
 }

@@ -13,6 +13,8 @@ import { create } from 'zustand';
 import * as AuthClient from '../data/AuthClient.js';
 import { useAuthStore } from './authStore.js';
 import { useCollectionStore } from './collectionStore.js';
+import { createSnapshotChannel } from './snapshotLoader.js';
+import { CURRENCY } from '../components/ui/currency.js';
 
 /**
  * Un emplacement de la vitrine du jour. Plus de catégorie ni de badge : les
@@ -105,8 +107,6 @@ interface ShopStoreState {
   reset: () => void;
 }
 
-const isGuest = () => !useAuthStore.getState().user;
-
 // Pastille "nouveauté" du bouton Boutique du menu principal : un simple point,
 // pas un compteur — la valeur d'un emplacement ne se lit pas dans un chiffre
 // (cf. le badge par emplacement dans ShopScreen). Elle disparaît dès que le
@@ -149,6 +149,7 @@ function pickSnapshot(data: any): ShopSnapshot {
 /** Réponse d'une mutation : instantané, solde, collection, primes de complétion. */
 function absorb(set: (partial: any) => void, data: any, unlocked: string[] = []): void {
   if (!data) return;
+  channel.bump();
   set({ snapshot: pickSnapshot(data) });
   useAuthStore.getState().applyProgression(data.progression);
   useCollectionStore.getState().add(unlocked);
@@ -156,9 +157,15 @@ function absorb(set: (partial: any) => void, data: any, unlocked: string[] = [])
   const completed = data.sets_completed ?? [];
   if (completed.length) {
     const gems = completed.reduce((n: number, s: any) => n + (s.rewards?.gems ?? 0), 0);
-    set({ notice: `Set complété : ${completed.map((s: any) => s.name).join(', ')}${gems ? ` — +${gems} 💎` : ''}` });
+    set({ notice: `Set complété : ${completed.map((s: any) => s.name).join(', ')}${gems ? ` — +${gems} ${CURRENCY.gems.icon}` : ''}` });
   }
 }
+
+const channel = createSnapshotChannel<ShopSnapshot>({
+  fetch: () => (AuthClient as any).getShop(),
+  pick: pickSnapshot,
+  errorLabel: 'Boutique indisponible.',
+});
 
 export const useShopStore = create<ShopStoreState>((set, get) => ({
   snapshot: null,
@@ -168,20 +175,7 @@ export const useShopStore = create<ShopStoreState>((set, get) => ({
   notice: null,
   booster: null,
 
-  load: async (force = false) => {
-    if (isGuest()) { set({ snapshot: null, error: null }); return; }
-    if (get().loading || (get().snapshot && !force)) return;
-    set({ loading: true, error: null });
-    try {
-      const data = await (AuthClient as any).getShop();
-      set({ snapshot: pickSnapshot(data) });
-      useAuthStore.getState().applyProgression(data.progression);
-    } catch (e: any) {
-      set({ error: e?.message ?? 'Boutique indisponible.' });
-    } finally {
-      set({ loading: false });
-    }
-  },
+  load: channel.load(set, get),
 
   buy: async (slot, currency) => {
     if (get().busy) return null;

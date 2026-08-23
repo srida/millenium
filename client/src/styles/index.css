@@ -37,6 +37,22 @@ input, textarea, select, [contenteditable="true"] {
    propre `touch-action: none` (Scene3D) — il gère le drag d'unité lui-même. */
 button, a, label, [role="button"] { touch-action: manipulation; }
 
+/* ⚠️ 16px MINIMUM sur toute saisie, et c'est une règle iOS, pas un choix de
+   maquette : Safari ZOOME le viewport dès qu'un champ passe sous 16px à la
+   mise au point, et ne redescend pas seul. Les champs étaient en `text-sm`
+   (14px), donc la page grossissait à chaque tap sur « E-mail », « Pseudo » ou
+   « Nom du deck » — sur la plateforme que le projet tient pour prioritaire.
+
+   `user-scalable=no` NE PROTÈGE PAS : Safari iOS l'ignore depuis iOS 10 (il a
+   d'ailleurs été retiré de la balise viewport, où il ne faisait plus que
+   bloquer le pincer-zoomer là où il EST honoré — Chrome Android).
+
+   La règle est ici plutôt que sur chaque champ : posée en classe utilitaire,
+   il faudrait y penser au prochain `<input>` ajouté. `!important` parce qu'une
+   classe Tailwind (spécificité 0,1,0) l'emporterait sinon sur ce sélecteur
+   d'élément (0,0,1) — et c'est bien la règle qui doit gagner. */
+input, textarea, select { font-size: 1rem !important; }
+
 /* Anneau de focus au clavier uniquement : un tap ne doit pas laisser un contour
    collé sur le bouton après coup. */
 :focus:not(:focus-visible) { outline: none; }

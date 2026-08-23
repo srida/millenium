@@ -20,8 +20,3 @@ export function getAllAttributes() {
   return list;
 }
 
-// Dictionnaire direct : { [id]: attribute }
-export function getAttributes() {
-  if (!byId) throw new Error('AttributeDatabase not initialised — call init() first');
-  return byId;
-}

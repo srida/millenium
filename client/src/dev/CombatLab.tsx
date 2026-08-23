@@ -171,6 +171,7 @@ export default function CombatLab() {
     // `speed` n'est lu qu'à l'initialisation (changeSpeed le pousse ensuite) :
     // le mettre en dépendance ferait reconstruire toute la scène à chaque
     // changement de vitesse.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
   }, [mountKey]);
 
   const startCombat = () => {

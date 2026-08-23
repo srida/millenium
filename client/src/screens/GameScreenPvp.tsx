@@ -12,7 +12,7 @@
 // mode 'ai' sur le deck annoncé. Tout le reste de l'écran est écrit une seule fois et ne sait pas
 // lequel des deux il pilote : c'est ce qui rend les deux duels indistinguables
 // à l'écran, et ce qui interdit d'ajouter ici la moindre branche visible.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { buildSession, pvpDeps } from '../game/bootstrap.js';
 import { PvpController } from '../game/PvpController.js';
 import { BotController } from '../game/BotController.js';
@@ -29,7 +29,7 @@ import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
-import { Banner } from '../components/ui/primitives.js';
+import { PhaseTimer, Banners } from '../components/hud/PhaseTimer.js';
 import { PREP_DURATION_S, SHOPPING_DURATION_S } from '../game/timings.js';
 
 export default function GameScreenPvp() {
@@ -37,6 +37,9 @@ export default function GameScreenPvp() {
   const [opponentAvatar, setOpponentAvatar] = useState<string | null>(null);
   const setController = useGameStore(s => s.setController);
   const reset = useGameStore(s => s.reset);
+  // Pilotage des deux chronos partagés (cf. components/hud/PhaseTimer).
+  const round = useGameStore(s => s.round);
+  const shoppingOpen = useGameStore(s => !!s.shopping);
   const navigate = useUiStore(s => s.navigate);
   const deckName = useUiStore(s => s.params.deckName as string | undefined);
 
@@ -73,7 +76,9 @@ export default function GameScreenPvp() {
         (PvpConnection as any).disconnect();
       }
     };
-    // Montage unique.
+    // Montage unique : le duel se noue une fois. Remettre `deckName` ou
+    // `navigate` en dépendances relancerait la poignée de main en pleine partie.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
   }, []);
 
   if (!controller) return <div className="flex min-h-dvh items-center justify-center bg-surface text-white">Connexion au duel…</div>;
@@ -89,9 +94,28 @@ export default function GameScreenPvp() {
       {/* Le chrono de préparation PvP n'est PAS gelé par le menu : l'adversaire
           attend à la barrière réseau, on ne peut pas le bloquer en l'ouvrant. */}
       <GameMenu onQuit={() => controller.forfeit()} quitLabel="Abandonner le duel" />
-      <PrepTimer controller={controller} />
-      <ShoppingTimer controller={controller} />
-      <PvpBanners />
+      {/* Chronos partagés avec GameScreen. Deux différences avec le solo, et
+          elles tiennent au réseau : `pvpWaiting` gèle la préparation (on attend
+          l'adversaire à la barrière), et rien ne gèle le shopping — l'adversaire
+          attend derrière, le choix doit être borné. Pas de `coachBlocking` non
+          plus : il n'y a pas de tutoriel en duel. */}
+      <PhaseTimer
+        durationS={PREP_DURATION_S}
+        field="prepRemaining"
+        restartKey={round}
+        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.pvpWaiting && !s.gameOver}
+        onTimeout={() => controller.startCombat()}
+      />
+      {shoppingOpen && (
+        <PhaseTimer
+          durationS={SHOPPING_DURATION_S}
+          field="shoppingRemaining"
+          restartKey="shopping"
+          isActive={() => true}
+          onTimeout={() => controller.skipShopping()}
+        />
+      )}
+      <Banners />
       <SummonOptionMenu />
       <WaitingOverlay />
       <EndRoundOverlay />
@@ -127,67 +151,6 @@ function HudWithOpponent({ opponentAvatar }: { opponentAvatar: string | null }) 
       enemyName={opponentName}
     />
   );
-}
-
-// Timer de préparation : déclenche la poignée de main de combat à 0.
-function PrepTimer({ controller }: { controller: PvpController | BotController }) {
-  const round = useGameStore(s => s.round);
-  const applySnapshot = useGameStore(s => s.applySnapshot);
-  const remaining = useRef(PREP_DURATION_S);
-  useEffect(() => {
-    remaining.current = PREP_DURATION_S;
-    applySnapshot({ prepRemaining: PREP_DURATION_S });
-    const t = setInterval(() => {
-      const s = useGameStore.getState();
-      const active = s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.pvpWaiting && !s.gameOver;
-      if (!active) return;
-      remaining.current -= 1;
-      if (remaining.current <= 0) { clearInterval(t); applySnapshot({ prepRemaining: 0 }); controller.startCombat(); return; }
-      applySnapshot({ prepRemaining: remaining.current });
-    }, 1000);
-    return () => clearInterval(t);
-  }, [round, controller, applySnapshot]);
-  return null;
-}
-
-// Chrono de la Phase Shopping. En PvP, l'adversaire attend à la barrière
-// réseau tant que je n'ai pas choisi : le choix est donc borné, et « passer »
-// est automatique à 0. Affiché dans la popup elle-même (ShoppingLayer, via
-// gameStore.shoppingRemaining) plutôt qu'en overlay séparé.
-function ShoppingTimer({ controller }: { controller: PvpController | BotController }) {
-  const active = useGameStore(s => !!s.shopping);
-  const applySnapshot = useGameStore(s => s.applySnapshot);
-  const remaining = useRef(SHOPPING_DURATION_S);
-  const skipped = useRef(false);
-
-  useEffect(() => {
-    if (!active) { skipped.current = false; return; }
-    remaining.current = SHOPPING_DURATION_S;
-    skipped.current = false;
-    applySnapshot({ shoppingRemaining: SHOPPING_DURATION_S });
-    const t = setInterval(() => {
-      remaining.current -= 1;
-      if (remaining.current <= 0) {
-        clearInterval(t);
-        applySnapshot({ shoppingRemaining: 0 });
-        if (!skipped.current) { skipped.current = true; controller.skipShopping(); }
-        return;
-      }
-      applySnapshot({ shoppingRemaining: remaining.current });
-    }, 1000);
-    return () => clearInterval(t);
-  }, [active, controller, applySnapshot]);
-
-  return null;
-}
-
-function PvpBanners() {
-  const errorFlash = useGameStore(s => s.errorFlash);
-  const invocationBanner = useGameStore(s => s.invocationBanner);
-  const combatActive = useGameStore(s => s.combatActive);
-  if (errorFlash) return <Banner text={`⚠ ${errorFlash}`} tone="error" />;
-  if (invocationBanner && !combatActive) return <Banner text={invocationBanner} />;
-  return null;
 }
 
 function WaitingOverlay() {

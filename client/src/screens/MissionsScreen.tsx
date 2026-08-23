@@ -17,10 +17,10 @@ import { useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useMissionStore, markMissionsSeen, claimableMissions, type Mission, type WeeklyMilestone } from '../stores/missionStore.js';
-import { Button, Panel, Gauge, Countdown } from '../components/ui/primitives.js';
+import { Button, Countdown, Gauge, LoadState, Panel } from '../components/ui/primitives.js';
+import { CURRENCY, fmt, XP_ICON } from '../components/ui/currency.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
-
-const fmt = new Intl.NumberFormat('fr-FR');
+import { GuestGate } from '../components/ui/GuestGate.js';
 
 // Difficulté du slot (brief §3.1) : facile = 1 partie, moyen = 2, engagé = 3-4.
 const SLOTS: Record<number, { label: string; cls: string }> = {
@@ -39,34 +39,26 @@ export default function MissionsScreen() {
   const { snapshot, loading, error, load } = useMissionStore();
 
   useEffect(() => { void load(true); }, [load]);
+  // La dépendance est le CHAMP, pas l'instantané : ce dernier change d'identité
+  // à chaque réponse (envoi d'événements, récupération d'une mission), et on ne
+  // veut re-marquer « vu » que quand le cycle, lui, a tourné.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
   useEffect(() => { if (user && snapshot) markMissionsSeen(user.id, snapshot.cycle.next_reset_at); }, [user, snapshot?.cycle.next_reset_at]);
 
   const pending = claimableMissions(snapshot);
 
-  if (!user) {
-    return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-center text-white">
-        <p className="text-sm text-white/60">
-          Les missions quotidiennes suivent ta progression :<br />elles demandent un compte.
-        </p>
-        <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
-        <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-      </main>
-    );
-  }
+  if (!user) return <GuestGate reason="Les missions quotidiennes suivent ta progression : elles demandent un compte." />;
 
   return (
     <main className="flex min-h-dvh flex-col relative z-10 text-white">
       <ScreenHeader
         title="Missions"
         onBack={() => navigate('main_menu')}
-        safeAreaTop
         right={snapshot && <Countdown at={snapshot.cycle.next_reset_at} title="Prochaines missions" />}
       />
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">
-        {error && <p className="text-xs text-danger">{error}</p>}
-        {loading && !snapshot && <p className="text-sm text-white/40">Chargement…</p>}
+        <LoadState error={error} loading={loading} hasContent={!!snapshot} />
 
         {snapshot && (
           <>
@@ -84,7 +76,7 @@ export default function MissionsScreen() {
               <span className="text-[10px] text-white/30">
                 {snapshot.reroll.free_available
                   ? '1 reroll gratuit'
-                  : `reroll : ${fmt.format(snapshot.reroll.cost)} 💰`}
+                  : `reroll : ${fmt.format(snapshot.reroll.cost)} ${CURRENCY.gold.icon}`}
               </span>
             </div>
 
@@ -207,8 +199,11 @@ function MissionCard({ mission, rerollCost }: { mission: Mission; rerollCost: nu
   }
 
   return (
+    // `min-w-0` : item de grille, dont le `min-width` vaut `auto` par défaut —
+    // sans lui, la tuile refuse de descendre sous sa largeur de min-content et
+    // déborde l'écran par la droite en portrait (cf. `BoosterCard`, ShopScreen).
     <Panel
-      className={`flex flex-col gap-2 p-3 ${
+      className={`flex min-w-0 flex-col gap-2 p-3 ${
         claimable ? 'border-success bg-success/10' : claimed ? 'border-success/30 bg-success/5' : ''
       }`}
     >
@@ -277,9 +272,9 @@ function MissionCard({ mission, rerollCost }: { mission: Mission; rerollCost: nu
 // ProgressionStats : un gold doit se lire pareil partout.
 export function RewardList({ rewards, className = '' }: { rewards: { xp?: number; gold?: number; gems?: number }; className?: string }) {
   const parts: string[] = [];
-  if (rewards.xp) parts.push(`✨ ${fmt.format(rewards.xp)}`);
-  if (rewards.gold) parts.push(`💰 ${fmt.format(rewards.gold)}`);
-  if (rewards.gems) parts.push(`💎 ${fmt.format(rewards.gems)}`);
+  if (rewards.xp) parts.push(`${XP_ICON} ${fmt.format(rewards.xp)}`);
+  if (rewards.gold) parts.push(`${CURRENCY.gold.icon} ${fmt.format(rewards.gold)}`);
+  if (rewards.gems) parts.push(`${CURRENCY.gems.icon} ${fmt.format(rewards.gems)}`);
   if (!parts.length) return null;
   return <span className={`text-[11px] tabular-nums ${className}`}>{parts.join('  ')}</span>;
 }

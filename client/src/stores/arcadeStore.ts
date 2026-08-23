@@ -33,6 +33,7 @@
 import { create } from 'zustand';
 import * as AuthClient from '../data/AuthClient.js';
 import { useAuthStore } from './authStore.js';
+import { createSnapshotChannel } from './snapshotLoader.js';
 
 /** Handicap plat donné à chaque unité de l'IA sur cet échelon. */
 export interface ArcadeBonus {
@@ -98,15 +99,6 @@ interface ArcadeStoreState {
   reset: () => void;
 }
 
-const isGuest = () => !useAuthStore.getState().user;
-
-/**
- * Compteur d'instantanés issus d'une MUTATION (start, rapport de duel). Hors du
- * store à dessein : c'est une horloge interne, pas un état à rendre — même
- * statut que `levelToastKey` dans authStore.
- */
-let revision = 0;
-
 function pickSnapshot(data: any): ArcadeSnapshot {
   return {
     day: data.day,
@@ -118,6 +110,12 @@ function pickSnapshot(data: any): ArcadeSnapshot {
   };
 }
 
+const channel = createSnapshotChannel<ArcadeSnapshot>({
+  fetch: () => (AuthClient as any).getArcade(),
+  pick: pickSnapshot,
+  errorLabel: 'Arcade indisponible.',
+});
+
 export const useArcadeStore = create<ArcadeStoreState>((set, get) => ({
   snapshot: null,
   loading: false,
@@ -126,31 +124,14 @@ export const useArcadeStore = create<ArcadeStoreState>((set, get) => ({
   granted: null,
   reportError: null,
 
-  load: async (force = false) => {
-    if (isGuest()) { set({ snapshot: null, error: null }); return; }
-    if (get().loading || (get().snapshot && !force)) return;
-    // Photographie de l'horloge AVANT la requête : si une mutation aboutit
-    // pendant qu'elle est en vol, sa réponse est plus fraîche que la nôtre.
-    const seen = revision;
-    set({ loading: true, error: null });
-    try {
-      const data = await (AuthClient as any).getArcade();
-      if (revision !== seen) return;   // une mutation est passée devant — on jette
-      set({ snapshot: pickSnapshot(data) });
-      useAuthStore.getState().applyProgression(data.progression);
-    } catch (e: any) {
-      set({ error: e?.message ?? 'Arcade indisponible.' });
-    } finally {
-      set({ loading: false });
-    }
-  },
+  load: channel.load(set, get),
 
   start: async (deckName) => {
     if (get().busy) return null;
     set({ busy: true });
     try {
       const data = await (AuthClient as any).startArcade(deckName);
-      revision++;
+      channel.bump();
       set({ snapshot: pickSnapshot(data), reportError: null });
       useAuthStore.getState().applyProgression(data.progression);
       return null;
@@ -175,7 +156,7 @@ export const useArcadeStore = create<ArcadeStoreState>((set, get) => ({
     set({ busy: true, reportError: null });
     try {
       const data = await (AuthClient as any).reportArcadeDuel({ index: run.current, result });
-      revision++;
+      channel.bump();
       set({ snapshot: pickSnapshot(data), granted: data.granted ?? null });
       useAuthStore.getState().applyProgression(data.progression);
       return null;

@@ -19,6 +19,7 @@ import type { Card } from '../../logic/types.js';
 import { costHint } from '../../data/CardDatabase.js';
 import { artFor } from '../../data/CardArt.js';
 import { useUiStore, type TooltipContent } from '../../stores/uiStore.js';
+import { Illustration } from './primitives.js';
 
 // Cadre : or = sélection / candidat, blanc = matériau retenu — même code couleur
 // que les unités du board (three/UnitCardEl.ts + styles/board3d.css).
@@ -130,10 +131,7 @@ export default function CardTile({
         stacked ? 'mr-1 shadow-[3px_3px_0_0_var(--color-surface-raised),4px_4px_0_0_var(--color-line)]' : '',
       ].join(' ')}
     >
-      <img
-        src={`/illustrations/${illustrationId}`} alt={name} loading="lazy"
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-      />
+      <Illustration id={illustrationId} alt={name} className="pointer-events-none absolute inset-0 h-full w-full" />
       {showName && (
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent px-1 pb-0.5 pt-3">
           <div className="truncate text-[9px] font-semibold leading-tight text-white">{name}</div>

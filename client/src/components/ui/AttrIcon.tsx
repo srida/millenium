@@ -10,6 +10,7 @@
 // espace de noms plat que les cartes, les terrains, les magies et les variantes
 // (cf. `variants.js`), donc aucune famille d'assets propre.
 import { getAttribute } from '../../data/AttributeDatabase.js';
+import { Illustration } from './primitives.js';
 
 export default function AttrIcon({ id, fallback, className = '' }: {
   id: string;
@@ -30,7 +31,7 @@ export default function AttrIcon({ id, fallback, className = '' }: {
     // object-CONTAIN, pas object-cover : une icône rognée perd sa silhouette,
     // qui est justement ce qui la distingue. C'est la seule différence de
     // traitement avec l'art des cartes, qui vit dans le même dossier.
-    return <img src={`/illustrations/${id}`} alt="" className={`flex-shrink-0 object-contain ${className}`} />;
+    return <Illustration id={id} fit="contain" className={className} />;
   }
 
   const emoji = attr?.icon ?? fallback;

@@ -6,7 +6,7 @@
 //
 // Le deck n'est PAS choisi ici : c'est le deck actif, choisi au menu principal
 // (« Mes decks ») ; ce lobby n'en affiche que le récap (SelectedDeck).
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as PvpConnection from '../net/PvpConnection.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import { useAuthStore } from '../stores/authStore.js';
@@ -14,6 +14,7 @@ import { useUiStore } from '../stores/uiStore.js';
 import { Avatar, Button } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
+import { GuestGate } from '../components/ui/GuestGate.js';
 
 type Status = 'idle' | 'connecting' | 'searching' | 'found' | 'error';
 
@@ -100,21 +101,13 @@ export default function OnlineLobby() {
     navigate('main_menu');
   }
 
-  if (!user) {
-    return (
-      <Center>
-        <p className="text-sm text-white/60">Connecte-toi pour jouer en ligne.</p>
-        <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
-        <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-      </Center>
-    );
-  }
+  if (!user) return <GuestGate reason="Connecte-toi pour jouer en ligne." />;
 
   // Même en-tête que l'écran Tournoi : retour, titre. Le ◂ passe par `cancel()`
   // pour ne pas laisser le joueur dans la file en quittant.
   return (
     <main className="flex min-h-dvh flex-col relative z-10 text-white">
-      <ScreenHeader title="Duel en ligne" onBack={cancel} safeAreaTop />
+      <ScreenHeader title="Duel en ligne" onBack={cancel} />
 
       <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto p-4 py-6 text-center">
         <div className="text-4xl">⚔️</div>
@@ -187,6 +180,3 @@ function MatchFoundReveal({ opponent }: { opponent: Opponent | null }) {
   );
 }
 
-function Center({ children }: { children: ReactNode }) {
-  return <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-center text-white">{children}</main>;
-}

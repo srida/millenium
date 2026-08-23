@@ -31,22 +31,6 @@ export function getAllCards() {
   return cards;
 }
 
-export function buildDeckFromIds(idsByTier) {
-  // idsByTier: { "1": ["CORE_001", ...], "2": [...], ... }
-  const result = {};
-  for (const [tier, ids] of Object.entries(idsByTier)) {
-    result[tier] = ids.map(id => {
-      const card = getCard(id);
-      if (!card) throw new Error(`Unknown card id: ${id}`);
-      return card;
-    });
-  }
-  return result;
-}
-
-export function illustrationUrl(id) {
-  return `/illustrations/${id}`;
-}
 
 export function costHint(card) {
   if (Array.isArray(card.summon_options) && card.summon_options.length > 0) return '🔀';

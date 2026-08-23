@@ -2,8 +2,7 @@
 // DeckBuilder — construction/édition d'un deck. Bibliothèque filtrable (tier /
 // invocation / recherche) + lanes par tier. Règles : max/tier = min(8, pool),
 // total ≥ 20 et nom requis pour enregistrer (validation bloquante continue).
-// Mode édition via consumePendingEdit() ou params.deckName. Source de vérité des
-// decks : DeckRepository.
+// Mode édition via params.deckName. Source de vérité des decks : DeckRepository.
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as CardDatabase from '../data/CardDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
@@ -46,13 +45,13 @@ export default function DeckBuilder() {
   const hideTooltip = useUiStore(s => s.hideTooltip);
   const refreshDecks = useDeckStore(s => s.refresh);
 
-  // Nom du deck à éditer : param de navigation en priorité (flux SPA), sinon
-  // pendingEdit (sessionStorage — survit à un rechargement). consumePendingEdit
-  // n'est appelé qu'en repli, pour ne pas le vider inutilement.
-  const [editName] = useState<string | null>(() => {
-    const param = useUiStore.getState().params.deckName as string | undefined;
-    return param ?? ((DeckRepository as any).consumePendingEdit?.() as string | null) ?? null;
-  });
+  // Nom du deck à éditer, figé au montage. Il vient du param de navigation, et
+  // de nulle part ailleurs : le détour par `sessionStorage` (setPendingEdit /
+  // consumePendingEdit) était mort — plus personne ne POSAIT la clé, donc le
+  // repli rendait toujours null, maintenu en vie par un `?.` défensif.
+  const [editName] = useState<string | null>(
+    () => (useUiStore.getState().params.deckName as string | undefined) ?? null,
+  );
 
   // Édition d'un deck PUBLIC depuis le panneau admin (iframe, ?publicDeckId=) :
   // ni collection du joueur, ni DeckRepository local — la source et la cible
@@ -101,6 +100,7 @@ export default function DeckBuilder() {
     () => (cardId: string) => useCosmeticStore.getState().ownedVariantsFor(cardId),
     // `cosmeticSnapshot` n'est pas lu ici : il force la re-création de la
     // fonction après un achat, pour que les badges réapparaissent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
     [cosmeticSnapshot],
   );
   const owns = useMemo(() => (id: string) => isAdminEdit || ownedIds.has(id), [ownedIds, isAdminEdit]);
@@ -159,8 +159,13 @@ export default function DeckBuilder() {
   // formé doit se voir tel quel plutôt que de perdre des cartes sans le dire.
   useEffect(() => {
     if (!publicDeckId) return;
+    // Le `catch` garde l'écran utilisable (grille vide, éditable) au lieu de
+    // laisser filer une promesse rejetée : le catalogue public est injoignable,
+    // ce n'est pas une raison pour perdre le DeckBuilder.
     (async () => {
-      await (PublicDeckDatabase as any).init();
+      try {
+        await (PublicDeckDatabase as any).init();
+      } catch { return; }
       const pd = (PublicDeckDatabase as any).getDeck(publicDeckId) as { name?: string; deck?: Record<string, string[]> } | null;
       if (!pd) return;
       const d: DeckData = { 1: [], 2: [], 3: [], 4: [], 5: [] };
@@ -273,7 +278,6 @@ export default function DeckBuilder() {
         title={isAdminEdit ? `Deck-building — ${publicDeckId}` : 'Deck-building'}
         onBack={back}
         right={<span className={`text-sm font-bold tabular-nums ${valid ? 'text-success' : 'text-gold'}`}>{total}/{MIN_DECK}</span>}
-        safeAreaTop
         below={(
           <div className="flex">
             {(['lib', 'deck'] as const).map(t => (
@@ -393,11 +397,11 @@ function LibraryPanel({
         <input
           type="search" placeholder="Rechercher une carte…" value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-sm text-white placeholder:text-white/30"
+          className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-white placeholder:text-white/30"
         />
         <select
           value={attributeFilter} onChange={(e) => setAttributeFilter(e.target.value)}
-          className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-sm text-white"
+          className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-white"
         >
           <option value="">Tous les attributs</option>
           {allAttributes.map((a: any) => (
@@ -473,7 +477,7 @@ function DeckPanel({ deckData, tierMax, name, setName, color, setColor, showColo
       <input
         type="text" placeholder="Nom du deck" value={name} maxLength={32}
         onChange={(e) => setName(e.target.value)}
-        className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-base font-bold text-white placeholder:text-white/30"
+        className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 font-bold text-white placeholder:text-white/30"
       />
 
       {showColor && (
