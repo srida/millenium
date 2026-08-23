@@ -7,11 +7,13 @@
 // La liste des cartes vient de cards.json (même fichier que /api/cards), pas de
 // la base : c'est le catalogue du jeu, il évolue via le panneau d'admin.
 const path = require('path');
-const fs = require('fs');
 const { db, stmt } = require('./db');
 // `sets.js` ne requiert ni ce module ni shop.js : c'est ce qui permet de lire le
 // catalogue de packs ici sans créer de cycle (shop.js requiert progression.js).
 const packs = require('./sets');
+// Cache mémoire au mtime, partagé par tous les catalogues (json-cache.js ne
+// requiert rien : chargeable ici sans créer de cycle, cf. son en-tête).
+const { jsonCache } = require('./json-cache');
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const CARDS_FILE = path.join(DATA_DIR, 'cards.json');
@@ -44,20 +46,11 @@ const CLIENT_CLAIMABLE = Object.freeze(['ai_win', 'tournament_win']);
 
 // Cache mémoire des ids, invalidé au mtime : l'admin peut ajouter des cartes à
 // chaud (POST /api/cards) sans redémarrer le serveur.
-let _cache = { mtime: -1, ids: [] };
-
-function allCardIds() {
-  try {
-    const mtime = fs.statSync(CARDS_FILE).mtimeMs;
-    if (mtime !== _cache.mtime) {
-      const cards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
-      _cache = { mtime, ids: (Array.isArray(cards) ? cards : []).map(c => c && c.id).filter(Boolean) };
-    }
-  } catch {
-    // cards.json absent/illisible : on garde le dernier cache connu (vide au boot).
-  }
-  return _cache.ids;
-}
+// ⚠️ Gagne au passage la tolérance aux virgules traînantes de `json-cache.js`
+// — un catalogue édité à la main qui en portait une faisait auparavant échouer
+// le parse ici, donc rendait le DERNIER cache connu (vide au boot, c'est-à-dire
+// aucune carte débloquable). Strictement plus permissif, jamais moins.
+const allCardIds = jsonCache(CARDS_FILE, list => list.map(c => c && c.id).filter(Boolean));
 
 /**
  * Dotation d'un compte neuf. Elle est DESIGNÉE : ce sont les cartes du (ou des)

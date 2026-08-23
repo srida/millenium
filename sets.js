@@ -12,6 +12,9 @@
 // ce fichier ne requiert NI shop.js NI progression.js.
 const path = require('path');
 const fs = require('fs');
+// Cache mémoire au mtime, partagé par tous les catalogues (json-cache.js ne
+// requiert rien : chargeable ici sans créer de cycle, cf. son en-tête).
+const { jsonCache } = require('./json-cache');
 
 // Affiches des packs. Dossier séparé des illustrations de cartes et des avatars
 // de decks publics, pour les mêmes raisons : ce n'est pas de l'art de carte, et
@@ -26,19 +29,6 @@ const SETS_FILE = path.join(DATA_DIR, 'sets.json');
 // Même patron que progression.allCardIds : l'admin écrit à chaud, le serveur
 // n'a pas à redémarrer.
 
-function jsonCache(file, build) {
-  let cache = { mtime: -1, value: build([]) };
-  return () => {
-    try {
-      const mtime = fs.statSync(file).mtimeMs;
-      if (mtime !== cache.mtime) {
-        const raw = JSON.parse(fs.readFileSync(file, 'utf8').replace(/,\s*([\]}])/g, '$1'));
-        cache = { mtime, value: build(Array.isArray(raw) ? raw : []) };
-      }
-    } catch { /* fichier absent/illisible : on garde le dernier cache connu */ }
-    return cache.value;
-  };
-}
 
 /** Catalogue de cartes, partagé avec shop.js (une seule lecture pour les deux). */
 const cards = jsonCache(CARDS_FILE, list => new Map(list.filter(c => c && c.id).map(c => [c.id, c])));

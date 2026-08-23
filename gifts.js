@@ -49,7 +49,9 @@
 // requérir en retour — le cycle serait immédiat, cosmetics.js requérant déjà
 // shop.js, qui requiert déjà progression.js.
 const path = require('path');
-const fs = require('fs');
+// Cache mémoire au mtime, partagé par tous les catalogues (json-cache.js ne
+// requiert rien : chargeable ici sans créer de cycle, cf. son en-tête).
+const { jsonCache } = require('./json-cache');
 const { db, stmt } = require('./db');
 const progression = require('./progression');
 const cosmetics = require('./cosmetics');
@@ -83,19 +85,6 @@ const MAX_LOTS_PER_GIFT = 12;
 // Cache au mtime, même patron que sets.js / variants.js / cosmetics.js :
 // l'admin écrit à chaud, sans redémarrage serveur.
 
-function jsonCache(file, build) {
-  let cache = { mtime: -1, value: build([]) };
-  return () => {
-    try {
-      const mtime = fs.statSync(file).mtimeMs;
-      if (mtime !== cache.mtime) {
-        const raw = JSON.parse(fs.readFileSync(file, 'utf8').replace(/,\s*([\]}])/g, '$1'));
-        cache = { mtime, value: build(Array.isArray(raw) ? raw : []) };
-      }
-    } catch { /* fichier absent/illisible : on garde le dernier cache connu */ }
-    return cache.value;
-  };
-}
 
 /**
  * Normalise un LOT. Rend `null` pour tout ce qui n'est pas livrable — l'admin

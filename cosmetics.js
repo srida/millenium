@@ -21,7 +21,9 @@
 // Rien à rerouler, rien à épingler : les prix sont bas et un cosmétique manqué
 // revient (contrairement à une carte, il ne sort pas du pool à l'achat).
 const path = require('path');
-const fs = require('fs');
+// Cache mémoire au mtime, partagé par tous les catalogues (json-cache.js ne
+// requiert rien : chargeable ici sans créer de cycle, cf. son en-tête).
+const { jsonCache } = require('./json-cache');
 const { db, stmt } = require('./db');
 const progression = require('./progression');
 const variants = require('./variants');
@@ -57,19 +59,6 @@ const DEFAULT_AVATARS = Object.freeze([
 // illustrations partagent un espace de noms plat. Cache au mtime, même patron
 // que sets.js / variants.js : l'admin écrit à chaud.
 
-function jsonCache(file, build) {
-  let cache = { mtime: -1, value: build([]) };
-  return () => {
-    try {
-      const mtime = fs.statSync(file).mtimeMs;
-      if (mtime !== cache.mtime) {
-        const raw = JSON.parse(fs.readFileSync(file, 'utf8').replace(/,\s*([\]}])/g, '$1'));
-        cache = { mtime, value: build(Array.isArray(raw) ? raw : []) };
-      }
-    } catch { /* fichier absent/illisible : on garde le dernier cache connu */ }
-    return cache.value;
-  };
-}
 
 const SOURCES = [
   { key: 'card',  file: 'cards.json' },

@@ -17,8 +17,9 @@
 // nouveau type de mission ne demande qu'une entrée de catalogue, pas une
 // modification de la logique de combat.
 const path = require('path');
-const fs = require('fs');
 const { db, stmt } = require('./db');
+// Cache mémoire au mtime, partagé par tous les catalogues (cf. json-cache.js).
+const { jsonCache } = require('./json-cache');
 const progression = require('./progression');
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -94,37 +95,14 @@ const META_EVENTS = Object.freeze(['deck_saved']);
 
 // --- Catalogue (cache mémoire invalidé au mtime, comme progression.allCardIds) ---
 
-let _catalog = { mtime: -1, list: [] };
-
-function catalog() {
-  try {
-    const mtime = fs.statSync(MISSIONS_FILE).mtimeMs;
-    if (mtime !== _catalog.mtime) {
-      const raw = JSON.parse(fs.readFileSync(MISSIONS_FILE, 'utf8'));
-      _catalog = { mtime, list: (Array.isArray(raw) ? raw : []).filter(m => m && m.id && m.objective) };
-    }
-  } catch {
-    // missions.json absent/illisible : on garde le dernier catalogue connu.
-  }
-  return _catalog.list;
-}
+// Une mission sans objectif ne peut ni progresser ni se terminer : écartée.
+const catalog = jsonCache(MISSIONS_FILE, list => list.filter(m => m && m.id && m.objective));
 
 function missionDef(id) {
   return catalog().find(m => m.id === id) || null;
 }
 
-let _cards = { mtime: -1, byId: new Map() };
-
-function cardsById() {
-  try {
-    const mtime = fs.statSync(CARDS_FILE).mtimeMs;
-    if (mtime !== _cards.mtime) {
-      const raw = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf8'));
-      _cards = { mtime, byId: new Map((Array.isArray(raw) ? raw : []).map(c => [c.id, c])) };
-    }
-  } catch { /* dernier cache connu */ }
-  return _cards.byId;
-}
+const cardsById = jsonCache(CARDS_FILE, list => new Map(list.filter(c => c && c.id).map(c => [c.id, c])));
 
 // --- Calendrier ---
 

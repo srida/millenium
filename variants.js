@@ -16,6 +16,9 @@
 // `progression.js` et `shop.js`. Ce fichier ne requiert donc AUCUN des trois.
 const path = require('path');
 const fs = require('fs');
+// Cache mémoire au mtime, partagé par tous les catalogues (json-cache.js ne
+// requiert rien : chargeable ici sans créer de cycle, cf. son en-tête).
+const { jsonCache } = require('./json-cache');
 
 // L'emplacement des dossiers est décidé par asset-dirs.js (qui ne requiert
 // rien, donc pas de cycle) : ce module possède le dossier d'illustrations au
@@ -26,19 +29,6 @@ const VARIANTS_FILE = path.join(DATA_DIR, 'variants.json');
 // --- Catalogue (cache mémoire invalidé au mtime) ---
 // Même patron que sets.js : l'admin écrit à chaud, le serveur ne redémarre pas.
 
-function jsonCache(file, build) {
-  let cache = { mtime: -1, value: build([]) };
-  return () => {
-    try {
-      const mtime = fs.statSync(file).mtimeMs;
-      if (mtime !== cache.mtime) {
-        const raw = JSON.parse(fs.readFileSync(file, 'utf8').replace(/,\s*([\]}])/g, '$1'));
-        cache = { mtime, value: build(Array.isArray(raw) ? raw : []) };
-      }
-    } catch { /* fichier absent/illisible : on garde le dernier cache connu */ }
-    return cache.value;
-  };
-}
 
 /** Toutes les variantes du catalogue. Une variante sans `card_id` ne vise rien : écartée. */
 const all = jsonCache(VARIANTS_FILE, list => list.filter(v => v && v.id && v.card_id));
