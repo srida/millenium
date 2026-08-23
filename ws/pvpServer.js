@@ -13,13 +13,59 @@ const botMatch = require('./BotMatch');
 
 const WS_PATH = '/ws/pvp';
 
+/**
+ * Plafond par message. Le défaut de `ws` est de **100 Mo**, et le relais
+ * transmet des blobs opaques à l'adversaire : sans plafond, un client hostile
+ * sature la mémoire du serveur ET celle de son adversaire. 64 Ko est large —
+ * le plus gros message du protocole est `round:board_ready`, qui porte au plus
+ * six unités avec leurs stats de base.
+ */
+const MAX_PAYLOAD_BYTES = 64 * 1024;
+
+/**
+ * Origines autorisées à ouvrir un WebSocket. Le cookie de session est en
+ * `SameSite=Lax`, ce qui couvre déjà l'essentiel sur les navigateurs récents,
+ * mais le contrôle d'origine est la défense qui n'en dépend pas — et il coûte
+ * trois lignes. `ALLOWED_WS_ORIGINS` (liste séparée par des virgules) permet
+ * d'ajouter un domaine sans toucher au code.
+ *
+ * Une requête SANS en-tête `Origin` est acceptée : ce sont les clients non
+ * navigateurs (scripts de test, outils en ligne de commande), et ce ne sont pas
+ * eux qui portent le risque — un navigateur envoie toujours l'en-tête.
+ */
+const ALLOWED_ORIGINS = (process.env.ALLOWED_WS_ORIGINS || '')
+  .split(',').map(s => s.trim()).filter(Boolean);
+
+function originAllowed(req) {
+  const origin = req.headers.origin;
+  if (!origin) return true;                       // client non navigateur
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  try {
+    const { hostname } = new URL(origin);
+    // Le développement sert le client depuis un autre port (Vite) que l'API.
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') return true;
+  } catch { return false; }
+  // Même hôte que la requête : le cas de la production, où Express sert le SPA.
+  return origin === `https://${req.headers.host}` || origin === `http://${req.headers.host}`;
+}
+
 function attachPvpWebSocketServer(httpServer) {
-  const wss = new WebSocketServer({ noServer: true });
+  const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_PAYLOAD_BYTES });
 
   httpServer.on('upgrade', (req, socket, head) => {
     let url;
     try { url = new URL(req.url, 'http://localhost'); } catch { socket.destroy(); return; }
-    if (url.pathname !== WS_PATH) return; // laisse d'autres upgrade handlers (s'il y en a) traiter
+    // ⚠️ `destroy()` et non un simple `return` : le commentaire d'origine
+    // laissait la place à d'autres handlers d'upgrade, mais il n'y en a aucun —
+    // la socket restait donc ouverte sans propriétaire, et une boucle d'upgrades
+    // sur un chemin quelconque les accumulait jusqu'à épuisement.
+    if (url.pathname !== WS_PATH) { socket.destroy(); return; }
+
+    if (!originAllowed(req)) {
+      socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+      socket.destroy();
+      return;
+    }
 
     const user = auth.attachUser({ headers: req.headers });
     if (!user) { socket.destroy(); return; }

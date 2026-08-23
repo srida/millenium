@@ -1,0 +1,59 @@
+name: CI
+
+# Lint + tests à chaque poussée et chaque PR.
+#
+# Le dépôt n'avait jusqu'ici qu'un seul workflow, et il incrémentait le numéro
+# de version : les 413 tests et le lint ne tournaient nulle part
+# automatiquement. Sur un projet solo, la CI ne sert pas à coordonner une
+# équipe — elle sert à ce que « je lancerai les tests avant de pousser » n'ait
+# pas à être vrai tous les jours.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    # ⚠️ Le garde [skip ci] ne vaut QUE pour les push : sur un événement
+    # pull_request, `github.event.head_commit` n'existe pas, et la condition
+    # porterait sur du vide. Le commit de bump de version-bump.yml ne doit pas
+    # relancer la suite pour une ligne de package.json — mais une PR, si.
+    if: "github.event_name == 'pull_request' || !contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 20.6 minimum : `--env-file-if-exists` du script `start` en dépend.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+
+      - name: Installer les dépendances
+        run: |
+          npm ci
+          npm --prefix client ci
+
+      # Le lint backend porte les garde-fous d'architecture (feuilles et puits
+      # du graphe de dépendances) ; le lint client porte ceux de logic/ et
+      # three/. Les deux sont des règles de conception, pas du style.
+      - name: Lint (backend + client)
+        run: npm run lint:all
+
+      # Les tests serveur lisent leurs catalogues depuis `data/`, que
+      # globalSetup peuple depuis `initial-data/` sur un clone neuf.
+      - name: Tests
+        run: npm --prefix client test
+
+      - name: Vérification des types du client
+        run: npm --prefix client run typecheck
+
+      # Ne casse le build que sur une vulnérabilité HAUTE ou critique dans les
+      # dépendances de PRODUCTION : le bruit des devDependencies rendrait le
+      # signal inutile.
+      - name: Audit des dépendances de production
+        run: npm audit --omit=dev --audit-level=high

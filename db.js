@@ -395,9 +395,15 @@ const stmt = {
   `),
   updateProfile: db.prepare('UPDATE users SET username = @username, username_lc = @username_lc, tag = @tag, avatar = @avatar WHERE id = @id'),
   setUserAdmin: db.prepare('UPDATE users SET is_admin = ? WHERE id = ?'),
+  // ⚠️ `ESCAPE '\'` n'est pas décoratif : SQLite n'a AUCUN caractère
+  // d'échappement par défaut sur LIKE. `routes/online.js` échappe pourtant `%`
+  // et `_` avec un antislash — qui était donc cherché littéralement. Résultat :
+  // tout joueur dont le pseudo contient un souligné (USERNAME_RE l'autorise)
+  // devenait introuvable dès que son ami le tapait. « my_hero » sortait sur
+  // « my », pas sur « my_ ».
   searchUsers: db.prepare(`
     SELECT id, username, tag, avatar FROM users
-    WHERE username_lc LIKE ? AND id != ?
+    WHERE username_lc LIKE ? ESCAPE '\\' AND id != ?
     ORDER BY username_lc, tag LIMIT 20
   `),
 
@@ -405,6 +411,15 @@ const stmt = {
   sessionByToken: db.prepare('SELECT * FROM sessions WHERE token = ?'),
   deleteSession: db.prepare('DELETE FROM sessions WHERE token = ?'),
   deleteExpiredSessions: db.prepare('DELETE FROM sessions WHERE expires_at < ?'),
+  // ⚠️ Révocation de TOUTES les sessions d'un compte. Appelée à la
+  // réinitialisation du mot de passe, et c'est le cœur de la fonctionnalité :
+  // sans elle, un compte compromis dont le propriétaire change le mot de passe
+  // garde l'intrus connecté jusqu'à l'expiration du cookie — 30 jours par
+  // défaut. `idx_sessions_user` couvre déjà la clause.
+  deleteSessionsForUser: db.prepare('DELETE FROM sessions WHERE user_id = ?'),
+  // Était préparée en ligne dans le handler de reset, donc recompilée à chaque
+  // appel — la seule requête du projet à déroger au style « tout est ici ».
+  updatePassword: db.prepare('UPDATE users SET password_hash = ? WHERE id = ?'),
 
   insertFriendship: db.prepare(`
     INSERT INTO friendships (id, requester_id, addressee_id, status, created_at, updated_at)

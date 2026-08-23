@@ -1,7 +1,7 @@
 // Online API: auth, profile, friends. Mounted at /api by server.js.
 const crypto = require('crypto');
 const express = require('express');
-const { stmt } = require('../db');
+const { stmt, db } = require('../db');
 const auth = require('../auth');
 const progression = require('../progression');
 const levels = require('../levels');
@@ -158,11 +158,31 @@ router.post('/auth/reset-password', auth.rateLimit({ windowMs: 60_000, max: 10 }
   const user = stmt.userById.get(row.user_id);
   if (!user) return res.status(400).json({ error: 'Compte introuvable.' });
 
-  require('../db').db.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
-    .run(auth.hashPassword(password), user.id);
-  stmt.deleteResetToken.run(token);
+  // ⚠️ Les trois écritures dans UNE transaction, et la révocation des sessions
+  // avec elles.
+  //
+  // La route changeait le mot de passe et consommait le jeton, mais laissait
+  // les sessions ouvertes — or c'est exactement le scénario que la
+  // fonctionnalité doit couvrir : un compte compromis dont le propriétaire
+  // change le mot de passe gardait l'intrus connecté jusqu'à l'expiration du
+  // cookie, soit 30 jours. Changer son mot de passe DOIT déconnecter tout le
+  // monde, c'est la moitié utile du geste.
+  //
+  // La transaction n'est pas décorative non plus : un mot de passe changé sans
+  // que le jeton soit consommé laisse le lien de réinitialisation réutilisable.
+  const applyReset = db.transaction(() => {
+    stmt.updatePassword.run(auth.hashPassword(password), user.id);
+    stmt.deleteSessionsForUser.run(user.id);
+    stmt.deleteResetToken.run(token);
+  });
+  applyReset();
 
-  res.json({ ok: true });
+  // Celui qui vient de réinitialiser n'a pas à se reconnecter dans la foulée :
+  // on lui rouvre une session, APRÈS la révocation pour qu'elle ne soit pas
+  // emportée avec les autres.
+  auth.setSessionCookie(res, auth.createSession(user.id));
+
+  res.json({ ok: true, user: auth.publicUser(stmt.userById.get(user.id)) });
 });
 
 // =====================================================================

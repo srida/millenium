@@ -116,10 +116,34 @@ function requireAppAdmin(req, res, next) {
 }
 
 // --- Rate limiting (mémoire, best-effort) ---
+//
+// ⚠️ La clé est le COMPTE quand il y en a un, l'IP sinon. Elle était l'IP dans
+// tous les cas, et derrière le proxy de l'hébergeur `req.ip` est celui du proxy,
+// identique pour tout le monde : tous les joueurs partageaient un seul seau par
+// route. Le quota devenait un déni de service subi (15 connexions par minute
+// pour le jeu ENTIER) au lieu d'une protection — et il ne protégeait plus du
+// bourrage d'identifiants, qui vient lui aussi d'une IP unique.
+//
+// `app.set('trust proxy', 1)` (app.js) est l'autre moitié du correctif : sans
+// lui, `req.ip` reste celui du proxy même pour les routes anonymes.
 const buckets = new Map();
+
+/** Purge les seaux expirés — sans elle, une entrée par (clé, route) à vie. */
+function sweepBuckets(now = Date.now()) {
+  let removed = 0;
+  for (const [key, b] of buckets) {
+    if (now > b.reset) { buckets.delete(key); removed++; }
+  }
+  return removed;
+}
+
 function rateLimit({ windowMs = 60_000, max = 10 } = {}) {
   return (req, res, next) => {
-    const key = `${req.ip}:${req.path}`;
+    // `attachUser` est déjà passé sur les routes authentifiées (requireUser en
+    // amont) ; sur les routes publiques il n'y a pas de session, on retombe
+    // donc sur l'IP — ce qui est le bon comportement pour /auth/login.
+    const identity = req.user ? `u:${req.user.id}` : `ip:${req.ip}`;
+    const key = `${identity}:${req.path}`;
     const now = Date.now();
     const b = buckets.get(key);
     if (!b || now > b.reset) {
@@ -140,7 +164,7 @@ module.exports = {
   createSession, getSession, destroySession,
   publicUser,
   setSessionCookie, clearSessionCookie,
-  attachUser,
+  attachUser, sweepBuckets,
   requireUser, optionalUser, requireAppAdmin,
   rateLimit,
 };
