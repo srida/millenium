@@ -2,10 +2,6 @@ import type { Card, DotEffect, BurnStack, Position, Side } from './types.js';
 
 let _nextUid = 0;
 
-/** Réinitialise le compteur d'uid — usage réservé aux tests. */
-export function __resetUnitUidsForTests(): void {
-  _nextUid = 0;
-}
 
 interface BaseStats {
   atk: number;

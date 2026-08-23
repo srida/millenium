@@ -31,10 +31,6 @@ export function setEnemyVariants(map: VariantMap | null | undefined): void {
   _enemy = map ?? {};
 }
 
-export function resetVariants(): void {
-  _player = {};
-  _enemy = {};
-}
 
 /**
  * Id d'illustration à rendre pour cette carte. Repli systématique sur

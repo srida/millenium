@@ -18,7 +18,7 @@ import { CombatManager, MAX_COMBAT_TICKS } from './CombatManager.js';
  * @param {Object} deps  - { attributeList, cardDb }
  * @returns {'player'|'enemy'} winner (never 'draw' — see _breakTie)
  */
-export function simulateGame(deckA, deckB, { attributeList, cardDb }) {
+function simulateGame(deckA, deckB, { attributeList, cardDb }) {
   const board = new Board();
   const gameState = new GameState();
   const aiA = new EnemyAI(deckA, cardDb, 'player');

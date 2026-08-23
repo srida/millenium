@@ -56,6 +56,8 @@ Repo : `https://github.com/srida/Millenium`
 
 **CI** (`.github/workflows/ci.yml`) — lint backend + client, toute la suite de tests, `tsc --noEmit`, et `npm audit --omit=dev --audit-level=high` (le bruit des devDependencies rendrait le signal inutile). Même garde `[skip ci]` que le workflow de version, sinon chaque commit de bump relancerait la suite.
 
+**ESLint client** (`client/eslint.config.js`) — encode les frontières d'architecture (`logic/` n'importe ni React, ni Zustand, ni Three, ni `data/` ; `three/` n'importe ni React ni Zustand) **et les règles des hooks React**. ⚠️ Ces dernières manquaient sur une soixantaine de composants : `rules-of-hooks`, celle qui attrape les plantages réels (un hook sous condition, dans une boucle, après un `return`), n'était vérifiée nulle part — le code la respectait, rien ne le maintenait. `exhaustive-deps` est en **`error`** et non en `warn` : les six écarts du projet sont tous délibérés (montage unique de `GameScreen`/`GameScreenPvp`, dépendance sur un *champ* plutôt que sur l'instantané entier dans `MissionsScreen`/`ShopScreen`…) et portent chacun leur `eslint-disable-next-line` avec sa raison. Une fois ces six-là nommés il ne reste aucun bruit ; en avertissement, la règle aurait rejoint la liste de ce qu'on ne lit plus.
+
 **ESLint backend** (`eslint.config.js` à la racine) — les 7 700 lignes de Node n'avaient aucun linter, celui du client s'arrêtant à `client/src`. Sa valeur principale n'est pas de traquer les variables inutilisées : c'est d'**encoder en règles les invariants d'architecture que ce document énonce en prose**. Deux pièges le concernant, tous deux trouvés en vérifiant que les règles se déclenchent plutôt qu'en constatant un lint vert :
 
 - ⚠️ **`no-restricted-imports` ne voit QUE les `import` ES.** Le backend est en CommonJS : c'est `n/no-restricted-require` (eslint-plugin-n) qu'il faut, et lui seul. Se tromper de règle donne une config qui passe au vert sans jamais rien vérifier — le pire des deux mondes.
@@ -227,7 +229,8 @@ progression.backfillAll()                 // rattrapage au boot (server.js, apr�
 - **Le catalogue fait foi, pas la base** : `allCardIds()` lit `cards.json` (cache invalidé au mtime), donc une carte créée depuis l'admin est immédiatement débloquable.
 - **Admins** : les cartes sont matérialisées en base *et* recalculées à la lecture (`unlockedCardIds`) — une carte ajoutée après la promotion leur appartient sans resynchronisation. Une rétrogradation ne dépouille pas le compte.
 - `auth.publicUser()` expose `level/xp/gold/gems` et `pending_levels` (donc `/auth/me`, login, register) ; la **liste** des cartes, trop volumineuse, vit sur `GET /api/me/progression`.
-- **Affichage** : `components/ui/ProgressionStats.tsx` — `<ProgressionPills>` (ligne compacte `Nv. 2 ▓▒░ 25/100 · 💰 · 💎`, menu principal sous l'identité, et en-tête des écrans secondaires en web) et `<ProgressionPanel>` (jauge pleine largeur + soldes, écran Profil). Les deux lisent `authStore.user`, **sans fetch** : les valeurs arrivent déjà avec la session. Rien n'est rendu en invité. Icônes et couleurs sont définies une seule fois (`CURRENCIES`) ; 💰 et non 🪙, qui retombe en disque gris faute de glyphe couleur.
+- **Affichage** : `components/ui/ProgressionStats.tsx` — `<ProgressionPills>` (ligne compacte `Nv. 2 ▓▒░ 25/100 · 💰 · 💎`, menu principal sous l'identité, et en-tête des écrans secondaires en web) et `<ProgressionPanel>` (jauge pleine largeur + soldes, écran Profil). Les deux lisent `authStore.user`, **sans fetch** : les valeurs arrivent déjà avec la session. Rien n'est rendu en invité.
+- **Icônes et couleurs de monnaie sont définies une seule fois — `components/ui/currency.ts`.** ⚠️ Ça ne l'était PAS : la table vivait en privé dans `ProgressionStats`, donc personne ne pouvait la lire, et les glyphes étaient réécrits à la main dans une vingtaine d'endroits (`ShopScreen` entretenait même une table parallèle). Coût constaté : `GiftsScreen` peignait les gemmes en `text-tier-5`, or `--color-tier-5` et `--color-gold` valent la **même** valeur (`#d4af61`) — sur le seul écran qui montre les deux montants côte à côte, ils sortaient dans la même couleur. La primitive **`<Amount currency value sign />`** est désormais le point de rendu d'un solde ou d'un gain : la teinte n'est écrite qu'à un endroit. 💰 et non 🪙, qui retombe en disque gris faute de glyphe couleur. Le module porte aussi `fmt` (`Intl.NumberFormat('fr-FR')`, jusque-là redéclaré dans 4 fichiers) et **`CURRENCY_BY_WIRE`**, qui fait le pont entre la clé du joueur (`gold`) et celle du fil (`golds`, routes d'achat) — les deux ne se confondent pas.
 - **La pastille de niveau mène au Profil** (prop `onOpen`, posée par `MainMenu` et `ScreenHeader`) : « combien me reste-t-il avant le prochain niveau » appelle immédiatement « et qu'est-ce que j'y gagne », dont la réponse est là-bas. Seule celle-là est tapable — un solde ne mène nulle part, et un `min-h-tap` sur les trois pastilles ferait deux lignes sous l'identité du menu.
 - **L'XP n'a pas de compteur à elle** : elle n'existe qu'au travers de la jauge de niveau (primitive `Gauge`, 0 → 100), avec le décompte exact en petit sous la barre. C'est la seule lecture qui compte (« où j'en suis du palier ») là où un nombre nu ne dit rien sans son plafond. Gold et gemmes, eux, sont des **soldes** → chiffres.
 - `XP_PER_LEVEL` est dupliqué côté client (`ProgressionStats.tsx`) — à garder synchronisé avec `progression.js` à la main. C'est la **seule** valeur dans ce cas : le barème des paliers, lui, voyage (cf. ci-dessous).
@@ -967,13 +970,11 @@ await CardDatabase.init()       // charge /api/cards
 CardDatabase.getCard(id)
 CardDatabase.getCardsByTier(tier)
 CardDatabase.getAllCards()
-CardDatabase.buildDeckFromIds(idsByTier)
 CardDatabase.illustrationUrl(id)
 CardDatabase.costHint(card)
 
 await AttributeDatabase.init()
 AttributeDatabase.getAttribute(id)
-AttributeDatabase.getAttributes()        // Dictionary { id: attr }
 AttributeDatabase.getAllAttributes()     // Array — injecté dans GameSession/MatchSimulator
 
 await PowerDatabase.init()
@@ -1004,8 +1005,6 @@ DeckRepository.listDecks()
 DeckRepository.getDeckColor(name) / setDeckColor(name, color)
 DeckRepository.getDeckTags(name)  / setDeckTags(name, tags)
 DeckRepository.getDeckVariants(name) / setDeckVariants(name, map)  // { card_id: variant_id }
-DeckRepository.setPendingEdit(name)      // stocke en sessionStorage
-DeckRepository.consumePendingEdit()      // lit ET efface le pendingEdit
 
 // Synchro serveur (compte connecté uniquement)
 await DeckRepository.pull()              // GET /api/me/decks → écrase le local
@@ -1904,7 +1903,7 @@ Validation `board.isOccupied(pos)` avant le drop.
 
 Validation bloquante : le deck ne peut être sauvegardé que si le nom est renseigné et que le total ≥ 20.
 
-Mode édition : déclenché via `DeckRepository.setPendingEdit(deckName)` avant de naviguer vers DeckBuilder. Les decks enregistrés **avant** la règle d'unicité sont dédoublonnés au chargement, avec un bandeau qui l'annonce (le total change à l'écran, le joueur ne doit pas avoir à le deviner).
+Mode édition : `navigate('deck_builder', { deckName })` — le nom du deck voyage dans les params de navigation, et de nulle part ailleurs. ⚠️ Un détour par `sessionStorage` (`setPendingEdit` / `consumePendingEdit`) a existé et a été **supprimé** : plus personne ne posait la clé, le repli rendait toujours `null`, et seul un `?.` défensif le maintenait en vie. Les decks enregistrés **avant** la règle d'unicité sont dédoublonnés au chargement, avec un bandeau qui l'annonce (le total change à l'écran, le joueur ne doit pas avoir à le deviner).
 
 ⚠️ **`CardTile` en `tapOn="up"`** (DeckBuilder) n'arme le tap que si le `pointerdown` a eu lieu **sur la vignette**. Sans ce garde-fou, un relâchement dont l'appui vient d'ailleurs déclenche l'action : les boutons du DeckSelector naviguant au `pointerdown`, le `pointerup` retombait sur la grille fraîchement montée et ajoutait une carte au deck à l'ouverture de l'écran.
 
@@ -2022,6 +2021,8 @@ Un seul pont React ↔ Three : `client/src/components/board/Board3DCanvas.tsx` m
 
 ⚠️ Ajouter un écran se fait à **deux** endroits dans `uiStore.ts` — l'union `ScreenName` *et* le tableau `SCREEN_NAMES`, qui est celui qui valide `?screen=` — puis une ligne dans `App.tsx`.
 
+⚠️ **`GameScreen`, `GameScreenPvp`, `TestBench` et `CombatLab` sont chargés en `lazy()`.** Ce ne sont pas les plus gros écrans en lignes : ce sont les seuls à tirer `three/Scene3D`, donc Three.js tout entier (≈ 560 Ko). Importés en statique, ils le faisaient télécharger **pour afficher le menu** — un joueur qui ouvre la boutique ou lit le codex payait le moteur 3D sans lancer une partie. Mesuré : bundle d'entrée **1 058 Ko → 447 Ko** (295 → 133 Ko gzip). Une frontière `Suspense` unique entoure tout le routage ; les écrans statiques ne suspendent jamais. **Tout nouvel écran qui importe `three/` doit rejoindre cette liste**, sinon il ramène Scene3D dans le chunk d'entrée et annule le découpage d'un coup.
+
 ### Online (Phase 7)
 
 - **Auth optionnelle** (`authStore`) : jeu jouable en invité ; se connecter active la synchro serveur des decks. `AuthScreen`/`ResetPasswordScreen`, `ProfileScreen`, `FriendsScreen` sur les API `routes/online.js`.
@@ -2059,6 +2060,8 @@ La couche `logic/` reste **headless** : aucun import de React/Zustand/Three (gar
 ## Mobile Rules
 
 - Pointer Events API sur tous les éléments interactifs (pas de `mousedown`/`touchstart` séparés)
+- **Cible tactile ≥ 44 px (`--spacing-tap`)** — portée par `Button` et par `IconButton` (`components/ui/primitives.tsx`). ⚠️ Le mode **`compact`** d'`IconButton` existe pour les tuiles denses : il garde le chip *visible* à 28 px mais porte bien une cible de 44 px, le `-my-2` empêchant cette cible de faire grandir la ligne. C'est ce qui manquait à l'épingle 📌 et au reroll 🎲 de la boutique, qui s'étaient fabriqué leurs propres boutons 28 × 28 — les seuls contrôles du jeu sous le seuil.
+- ⚠️ **16 px minimum sur toute saisie** (`input, textarea, select` dans `styles/index.css`, en `!important` pour l'emporter sur une classe Tailwind). Ce n'est pas un choix de maquette : **Safari iOS zoome le viewport** dès qu'un champ passe sous 16 px à la mise au point, et ne redescend pas seul. `user-scalable=no` **ne protège pas** — Safari iOS l'ignore depuis iOS 10 ; la balise a été retirée, où elle ne faisait plus que bloquer le pincer-zoomer là où il *est* honoré (Chrome Android). La règle est posée sur l'élément et non sur chaque champ : en classe utilitaire, il faudrait y penser au prochain `<input>` ajouté.
 - Tester sur Safari iOS en portrait (priorité)
 - Portrait recommandé, **paysage jamais bloqué** : un téléphone tourné franchit le seuil d'aspect et bascule sur le **mode web** (rails latéraux + cadrage caméra correspondant), exactement comme un desktop
 - `manifest.json` PWA : icône, nom, couleurs de thème

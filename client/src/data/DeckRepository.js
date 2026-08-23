@@ -2,7 +2,6 @@ import * as AuthClient from './AuthClient.js';
 
 const STORAGE_KEY = 'soulforge_decks';
 const ACTIVE_KEY = 'soulforge_active_deck';
-const PENDING_EDIT_KEY = 'soulforge_pending_edit';
 const META_KEY = 'soulforge_deck_meta';
 const SYNCED_USER_KEY = 'soulforge_synced_user';
 
@@ -215,13 +214,3 @@ export function hasActiveDeck() {
   return name !== null && deckExists(name);
 }
 
-// Utilisé par DeckSelector pour ouvrir DeckBuilder en mode édition
-export function setPendingEdit(deckName) {
-  sessionStorage.setItem(PENDING_EDIT_KEY, deckName);
-}
-
-export function consumePendingEdit() {
-  const name = sessionStorage.getItem(PENDING_EDIT_KEY) ?? null;
-  sessionStorage.removeItem(PENDING_EDIT_KEY);
-  return name;
-}

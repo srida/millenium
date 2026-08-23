@@ -2,8 +2,7 @@
 // DeckBuilder — construction/édition d'un deck. Bibliothèque filtrable (tier /
 // invocation / recherche) + lanes par tier. Règles : max/tier = min(8, pool),
 // total ≥ 20 et nom requis pour enregistrer (validation bloquante continue).
-// Mode édition via consumePendingEdit() ou params.deckName. Source de vérité des
-// decks : DeckRepository.
+// Mode édition via params.deckName. Source de vérité des decks : DeckRepository.
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as CardDatabase from '../data/CardDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
@@ -46,13 +45,13 @@ export default function DeckBuilder() {
   const hideTooltip = useUiStore(s => s.hideTooltip);
   const refreshDecks = useDeckStore(s => s.refresh);
 
-  // Nom du deck à éditer : param de navigation en priorité (flux SPA), sinon
-  // pendingEdit (sessionStorage — survit à un rechargement). consumePendingEdit
-  // n'est appelé qu'en repli, pour ne pas le vider inutilement.
-  const [editName] = useState<string | null>(() => {
-    const param = useUiStore.getState().params.deckName as string | undefined;
-    return param ?? ((DeckRepository as any).consumePendingEdit?.() as string | null) ?? null;
-  });
+  // Nom du deck à éditer, figé au montage. Il vient du param de navigation, et
+  // de nulle part ailleurs : le détour par `sessionStorage` (setPendingEdit /
+  // consumePendingEdit) était mort — plus personne ne POSAIT la clé, donc le
+  // repli rendait toujours null, maintenu en vie par un `?.` défensif.
+  const [editName] = useState<string | null>(
+    () => (useUiStore.getState().params.deckName as string | undefined) ?? null,
+  );
 
   // Édition d'un deck PUBLIC depuis le panneau admin (iframe, ?publicDeckId=) :
   // ni collection du joueur, ni DeckRepository local — la source et la cible

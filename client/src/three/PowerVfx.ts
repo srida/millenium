@@ -54,7 +54,7 @@ export const POWER_COLORS: Record<string, number> = {
 
 const IMMUNE_COLOR = 0xffe9a8;
 
-export function powerColor(powerId: string): number {
+function powerColor(powerId: string): number {
   return POWER_COLORS[powerId] ?? 0xd8d8e0;
 }
 
