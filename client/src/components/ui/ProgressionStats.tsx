@@ -14,25 +14,14 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuthStore } from '../../stores/authStore.js';
 import type { AuthUser, LevelReward } from '../../stores/authStore.js';
-import { Button, CountBadge, Gauge, Modal, Panel } from './primitives.js';
-
-const fmt = new Intl.NumberFormat('fr-FR');
+import { Amount, Button, CountBadge, Gauge, Modal, Panel } from './primitives.js';
+import { CURRENCIES, CURRENCY, fmt, XP_ICON } from './currency.js';
 
 // Palier de niveau — doit rester aligné sur `XP_PER_LEVEL` de progression.js
 // (serveur). `user.xp` est la progression DANS le niveau, jamais un cumul de
 // carrière : le serveur absorbe le passage de palier, la jauge va donc de 0 à
 // 100 sans calcul côté client.
 const XP_PER_LEVEL = 100;
-
-type CurrencyKey = 'gold' | 'gems';
-
-// `short` est l'étiquette AFFICHÉE dans les tuiles ; le libellé complet reste
-// dans title/aria. 💰 plutôt que 🪙 : la pièce n'a pas de glyphe couleur partout
-// et retombe en disque gris (constaté dans le rendu Chromium du preview).
-const CURRENCIES: { key: CurrencyKey; label: string; short: string; icon: string; cls: string }[] = [
-  { key: 'gold', label: 'Gold',   short: 'Gold',   icon: '💰', cls: 'text-gold' },
-  { key: 'gems', label: 'Gemmes', short: 'Gemmes', icon: '💎', cls: 'text-tier-4' },
-];
 
 const xpOf = (user: AuthUser) => user.xp ?? 0;
 const xpTitle = (user: AuthUser) =>
@@ -146,7 +135,7 @@ export function ProgressionPanel({ user, className = '' }: { user: AuthUser | nu
         {/* Jauge du palier : 0 → 100 XP, repart de 0 à chaque niveau gagné. */}
         <Gauge value={xpOf(user) / XP_PER_LEVEL} className="mt-1.5" fillClassName="bg-player" />
         <div className="mt-1 flex justify-between text-[10px] tabular-nums text-white/40">
-          <span>✨ EXPÉRIENCE</span>
+          <span>{XP_ICON} EXPÉRIENCE</span>
           <span>{fmt.format(xpOf(user))} / {XP_PER_LEVEL}</span>
         </div>
       </div>
@@ -201,8 +190,8 @@ function UpcomingRow({ step }: { step: LevelStep }) {
     <li className={`flex items-center justify-between rounded-lg px-2 py-1.5 ${step.draw ? 'bg-gold/10 ring-1 ring-inset ring-gold/40' : 'bg-surface/60'}`}>
       <span className="text-[11px] font-semibold tabular-nums text-white/70">Nv. {fmt.format(step.level)}</span>
       <span className="flex items-center gap-2 text-[11px] tabular-nums">
-        <span className="text-gold">💰 {fmt.format(step.gold)}</span>
-        {step.gems > 0 && <span className="text-tier-4">💎 {fmt.format(step.gems)}</span>}
+        <Amount currency="gold" value={step.gold} />
+        {step.gems > 0 && <Amount currency="gems" value={step.gems} />}
         {step.draw && <span className="text-white/80">🎁 objet</span>}
       </span>
     </li>
@@ -271,8 +260,8 @@ export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
             </span>
           </p>
           <div className="mt-1 flex items-baseline gap-2 text-[11px] tabular-nums">
-            <span className="text-gold">💰 {fmt.format(totals.gold)}</span>
-            {totals.gems > 0 && <span className="text-tier-4">💎 {fmt.format(totals.gems)}</span>}
+            <Amount currency="gold" value={totals.gold} />
+            {totals.gems > 0 && <Amount currency="gems" value={totals.gems} />}
             {totals.draws > 0 && (
               // L'objet n'est pas nommé : il n'est tiré qu'au tap (zéro
               // doublon). L'annoncer, ce serait le promettre avant de l'avoir.
@@ -290,8 +279,8 @@ export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
       {/* La règle en une phrase, avant la liste : c'est elle qui rend les quatre
           lignes suivantes lisibles comme un rythme et non comme un tableau. */}
       <p className="mt-2 text-[11px] leading-relaxed text-white/60">
-        Chaque niveau rapporte <span className="font-semibold text-gold">💰 {fmt.format(rules.gold_per_level)}</span>,
-        tous les {rules.gems.every} niveaux <span className="font-semibold text-tier-4">💎 {fmt.format(rules.gems.amount)}</span> en plus,
+        Chaque niveau rapporte <Amount currency="gold" value={rules.gold_per_level} className="font-semibold" />,
+        tous les {rules.gems.every} niveaux <Amount currency="gems" value={rules.gems.amount} className="font-semibold" /> en plus,
         et tous les {rules.draw.every} niveaux un objet tiré au sort ({kindList(rules.draw.kinds)}).
       </p>
 
@@ -303,7 +292,7 @@ export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
           assez loin pour les montrer (un objet peut être à 10 niveaux). */}
       <dl className="mt-2 grid grid-cols-2 gap-2 text-center">
         <div className="rounded-lg border border-line bg-surface/60 px-1 py-2">
-          <dt className="text-[10px] tracking-widest text-white/40">💎 PROCHAINES</dt>
+          <dt className="text-[10px] tracking-widest text-white/40">{CURRENCY.gems.icon} PROCHAINES</dt>
           <dd className="mt-1 text-sm font-bold tabular-nums text-tier-4">Nv. {fmt.format(levels.next_gems_level)}</dd>
         </div>
         <div className="rounded-lg border border-line bg-surface/60 px-1 py-2">
@@ -345,8 +334,8 @@ function LevelReveal({ lines, onClose }: { lines: LevelReward[]; onClose: () => 
         </div>
 
         <div className="flex justify-center gap-4 text-sm font-semibold">
-          <span className="text-gold">💰 +{fmt.format(gold)}</span>
-          {gems > 0 && <span className="text-tier-4">💎 +{fmt.format(gems)}</span>}
+          <Amount currency="gold" value={gold} sign />
+          {gems > 0 && <Amount currency="gems" value={gems} sign />}
         </div>
 
         {!!items.length && (

@@ -13,6 +13,7 @@ import { create } from 'zustand';
 import * as AuthClient from '../data/AuthClient.js';
 import { useAuthStore } from './authStore.js';
 import { useCollectionStore } from './collectionStore.js';
+import { CURRENCY } from '../components/ui/currency.js';
 
 /**
  * Un emplacement de la vitrine du jour. Plus de catégorie ni de badge : les
@@ -156,7 +157,7 @@ function absorb(set: (partial: any) => void, data: any, unlocked: string[] = [])
   const completed = data.sets_completed ?? [];
   if (completed.length) {
     const gems = completed.reduce((n: number, s: any) => n + (s.rewards?.gems ?? 0), 0);
-    set({ notice: `Set complété : ${completed.map((s: any) => s.name).join(', ')}${gems ? ` — +${gems} 💎` : ''}` });
+    set({ notice: `Set complété : ${completed.map((s: any) => s.name).join(', ')}${gems ? ` — +${gems} ${CURRENCY.gems.icon}` : ''}` });
   }
 }
 

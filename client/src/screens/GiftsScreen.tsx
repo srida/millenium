@@ -16,15 +16,15 @@ import { createPortal } from 'react-dom';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useGiftStore, type Gift, type GiftLot } from '../stores/giftStore.js';
-import { Button, Panel, Modal, Countdown } from '../components/ui/primitives.js';
+import { Amount, Button, Panel, Modal, Countdown } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import * as CardDatabase from '../data/CardDatabase.js';
-
-const fmt = new Intl.NumberFormat('fr-FR');
+import { CURRENCY, fmt } from '../components/ui/currency.js';
 
 const LOT_ICONS: Record<GiftLot['type'], string> = {
-  gold: '💰', gems: '💎', card: '🃏', pack: '🎁', avatar: '🖼️', variant: '🎨',
+  gold: CURRENCY.gold.icon, gems: CURRENCY.gems.icon,
+  card: '🃏', pack: '🎁', avatar: '🖼️', variant: '🎨',
 };
 
 // Pourquoi une ligne n'a rien donné. Un CODE côté serveur, une phrase ici :
@@ -139,7 +139,7 @@ function DailyCard() {
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">Cadeau quotidien</p>
           <p className="text-xs text-white/50">
-            💰 {fmt.format(reward.gold)} · 💎 {fmt.format(reward.gems)}
+            <Amount currency="gold" value={reward.gold} /> · <Amount currency="gems" value={reward.gems} />
           </p>
         </div>
       </div>
@@ -248,8 +248,13 @@ function GiftReveal({ onClose }: { onClose: () => void }) {
 
         {(!!reveal.gold || !!reveal.gems) && (
           <div className="flex justify-center gap-4 text-sm font-semibold">
-            {!!reveal.gold && <span className="text-gold">💰 +{fmt.format(reveal.gold)}</span>}
-            {!!reveal.gems && <span className="text-tier-5">💎 +{fmt.format(reveal.gems)}</span>}
+            {/* ⚠️ Les gemmes étaient ici en `text-tier-5` — la MÊME valeur que
+                `--color-gold` (#d4af61) : sur le seul écran qui montre les deux
+                montants côte à côte, ils sortaient dans la même couleur.
+                `Amount` va chercher la teinte dans `currency.ts`, l'écart ne
+                peut plus se reproduire. */}
+            {!!reveal.gold && <Amount currency="gold" value={reveal.gold} sign />}
+            {!!reveal.gems && <Amount currency="gems" value={reveal.gems} sign />}
           </div>
         )}
 

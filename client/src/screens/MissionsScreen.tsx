@@ -18,9 +18,8 @@ import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useMissionStore, markMissionsSeen, claimableMissions, type Mission, type WeeklyMilestone } from '../stores/missionStore.js';
 import { Button, Panel, Gauge, Countdown } from '../components/ui/primitives.js';
+import { CURRENCY, fmt, XP_ICON } from '../components/ui/currency.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
-
-const fmt = new Intl.NumberFormat('fr-FR');
 
 // Difficulté du slot (brief §3.1) : facile = 1 partie, moyen = 2, engagé = 3-4.
 const SLOTS: Record<number, { label: string; cls: string }> = {
@@ -84,7 +83,7 @@ export default function MissionsScreen() {
               <span className="text-[10px] text-white/30">
                 {snapshot.reroll.free_available
                   ? '1 reroll gratuit'
-                  : `reroll : ${fmt.format(snapshot.reroll.cost)} 💰`}
+                  : `reroll : ${fmt.format(snapshot.reroll.cost)} ${CURRENCY.gold.icon}`}
               </span>
             </div>
 
@@ -277,9 +276,9 @@ function MissionCard({ mission, rerollCost }: { mission: Mission; rerollCost: nu
 // ProgressionStats : un gold doit se lire pareil partout.
 export function RewardList({ rewards, className = '' }: { rewards: { xp?: number; gold?: number; gems?: number }; className?: string }) {
   const parts: string[] = [];
-  if (rewards.xp) parts.push(`✨ ${fmt.format(rewards.xp)}`);
-  if (rewards.gold) parts.push(`💰 ${fmt.format(rewards.gold)}`);
-  if (rewards.gems) parts.push(`💎 ${fmt.format(rewards.gems)}`);
+  if (rewards.xp) parts.push(`${XP_ICON} ${fmt.format(rewards.xp)}`);
+  if (rewards.gold) parts.push(`${CURRENCY.gold.icon} ${fmt.format(rewards.gold)}`);
+  if (rewards.gems) parts.push(`${CURRENCY.gems.icon} ${fmt.format(rewards.gems)}`);
   if (!parts.length) return null;
   return <span className={`text-[11px] tabular-nums ${className}`}>{parts.join('  ')}</span>;
 }

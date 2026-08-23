@@ -1,5 +1,6 @@
 // Primitives du design system Millenium (Tailwind v4, mobile-first, tap ≥ 44px).
 import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
 
 type Variant = 'primary' | 'ghost' | 'danger';
 
@@ -52,6 +53,26 @@ export function CountBadge({ children, label, className = '' }: { children: Reac
  */
 export function NewDot({ label = 'Nouveautés' }: { label?: string }) {
   return <span className="h-2 w-2 rounded-full bg-gold" aria-label={label} />;
+}
+
+/**
+ * Un montant en monnaie — icône, couleur et séparateur de milliers d'un seul
+ * geste. C'est LE point de rendu d'un solde ou d'un gain : les glyphes 💰/💎
+ * étaient écrits à la main dans une vingtaine d'endroits, et l'un d'eux s'était
+ * trompé de couleur sans que rien ne puisse le signaler (cf. `currency.ts`).
+ *
+ * `sign` préfixe un `+` : un GAIN se lit autrement qu'un solde.
+ */
+export function Amount({
+  currency, value, sign = false, className = '',
+}: { currency: CurrencyKey; value: number; sign?: boolean; className?: string }) {
+  const c = CURRENCY[currency];
+  return (
+    <span className={`tabular-nums ${c.cls} ${className}`} title={c.label}>
+      <span aria-hidden="true">{c.icon}</span> {sign && value >= 0 ? '+' : ''}{fmt.format(value)}
+      <span className="sr-only"> {c.unit}</span>
+    </span>
+  );
 }
 
 export function Panel({ className = '', children }: { className?: string; children: ReactNode }) {

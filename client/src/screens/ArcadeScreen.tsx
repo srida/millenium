@@ -17,7 +17,7 @@ import { useUiStore } from '../stores/uiStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useArcadeStore, currentDuel, wonCount, type ArcadeDuel, type ArcadeBonus } from '../stores/arcadeStore.js';
-import { Button, Countdown } from '../components/ui/primitives.js';
+import { Amount, Button, Countdown } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 
@@ -129,7 +129,7 @@ export default function ArcadeScreen() {
             </section>
 
             <p className="text-xs text-white/40">
-              Parcours complet : <span className="text-gold">+{snapshot.reward.gold} 💰</span>
+              Parcours complet : <Amount currency="gold" value={snapshot.reward.gold} sign className="font-semibold" />
               {' · '}
               <span className="text-gold">+{snapshot.reward.xp} XP</span>
             </p>
@@ -178,7 +178,7 @@ export default function ArcadeScreen() {
                   <div className="text-3xl">👑</div>
                   <div className="mt-1 text-sm font-bold text-gold">Parcours complet !</div>
                   <div className="mt-1 text-xs text-success">
-                    +{snapshot.reward.gold} 💰 · +{snapshot.reward.xp} XP
+                    <Amount currency="gold" value={snapshot.reward.gold} sign /> · +{snapshot.reward.xp} XP
                   </div>
                   <p className="mt-2 text-xs text-white/40">
                     Prochaine run dans <Countdown at={snapshot.next_rotation_at} className="text-white/60" />
@@ -201,7 +201,7 @@ export default function ArcadeScreen() {
 
         {granted && (
           <div className="rounded-lg border border-success/50 bg-success/10 p-3 text-center text-xs text-success">
-            Récompense de run versée : +{granted.gold} 💰 · +{granted.xp} XP
+            Récompense de run versée : <Amount currency="gold" value={granted.gold} sign /> · +{granted.xp} XP
           </div>
         )}
         {/* Un rapport de duel qui n'a pas pu partir se DIT. Le parcours affiché,

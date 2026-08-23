@@ -25,12 +25,11 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
 import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant } from '../stores/cosmeticStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
-import { Button, Panel, Gauge, Modal, Countdown } from '../components/ui/primitives.js';
+import { Amount, Button, Panel, Gauge, Modal, Countdown } from '../components/ui/primitives.js';
+import { CURRENCY, CURRENCY_BY_WIRE, fmt, type WireCurrency } from '../components/ui/currency.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import PackContents, { PackPoster } from '../components/shop/PackContents.js';
-
-const fmt = new Intl.NumberFormat('fr-FR');
 
 const cardOf = (id: string | null): Card | null => (id ? (CardDatabase as any).getCard(id) ?? null : null);
 
@@ -147,7 +146,7 @@ export default function ShopScreen() {
               <div className="flex items-baseline justify-between px-1">
                 <h2 className="text-[10px] tracking-widest text-white/40">BOOSTERS</h2>
                 <span className="text-[10px] text-white/30">
-                  {snapshot.booster.card_count} cartes · {fmt.format(snapshot.booster.price_golds)} 💰 ou {fmt.format(snapshot.booster.price_gems)} 💎
+                  {snapshot.booster.card_count} cartes · {fmt.format(snapshot.booster.price_golds)} {CURRENCY.gold.icon} ou {fmt.format(snapshot.booster.price_gems)} {CURRENCY.gems.icon}
                 </span>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -203,7 +202,7 @@ function CosmeticsTab() {
           <section className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-[10px] tracking-widest text-white/40">AVATARS DU JOUR</h2>
-              <span className="text-[10px] text-white/30">{snapshot.prices.avatar.gems} 💎 pièce</span>
+              <span className="text-[10px] text-white/30">{snapshot.prices.avatar.gems} {CURRENCY.gems.icon} pièce</span>
             </div>
             {snapshot.avatars.length ? (
               <div className="grid grid-cols-3 gap-2">
@@ -219,7 +218,7 @@ function CosmeticsTab() {
           <section className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-[10px] tracking-widest text-white/40">VARIANTES DU JOUR</h2>
-              <span className="text-[10px] text-white/30">{snapshot.prices.variant.gems} 💎 pièce</span>
+              <span className="text-[10px] text-white/30">{snapshot.prices.variant.gems} {CURRENCY.gems.icon} pièce</span>
             </div>
             {snapshot.variants.length ? (
               <div className="grid grid-cols-3 gap-2">
@@ -294,7 +293,7 @@ function CosmeticOffer({
           })}
           title={affordable ? undefined : 'Pas assez de gemmes'}
         >
-          {price} 💎
+          {price} {CURRENCY.gems.icon}
         </Button>
       )}
       {dialog}
@@ -349,12 +348,10 @@ function VariantOffer({ variant }: { variant: CosmeticVariant }) {
 // ce qu'on achète en grand, et le solde qu'il restera après. C'est cette
 // dernière ligne qui a de la valeur — le prix, lui, était déjà sur le bouton.
 
-type Currency = 'golds' | 'gems';
-
-const CURRENCY = {
-  golds: { icon: '💰', label: 'golds', balance: (u: { gold?: number } | null) => u?.gold ?? 0 },
-  gems: { icon: '💎', label: 'gemmes', balance: (u: { gems?: number } | null) => u?.gems ?? 0 },
-} as const;
+// La monnaie telle qu'elle voyage vers le serveur (`golds` au pluriel, là où le
+// champ du joueur est `gold`). La table qui vivait ici doublait `currency.ts` ;
+// `CURRENCY_BY_WIRE` fait le pont, et il n'y a plus qu'un jeu d'icônes.
+type Currency = WireCurrency;
 
 type PendingBuy = {
   /** Ce qu'on achète, montré tel qu'il apparaît dans la vitrine. */
@@ -384,7 +381,7 @@ function useBuyConfirm() {
 function ConfirmBuy({ pending, onClose }: { pending: PendingBuy; onClose: () => void }) {
   const user = useAuthStore(s => s.user);
   const [working, setWorking] = useState(false);
-  const { icon, label, balance } = CURRENCY[pending.currency];
+  const { icon, unit, balance, key } = CURRENCY_BY_WIRE[pending.currency];
   const after = balance(user) - pending.price;
 
   // ⚠️ PORTAL OBLIGATOIRE. La modale est déclenchée depuis une tuile, donc
@@ -408,12 +405,12 @@ function ConfirmBuy({ pending, onClose }: { pending: PendingBuy; onClose: () => 
       <div className="mt-3 space-y-1 rounded-lg border border-line bg-white/5 p-2 text-xs">
         <div className="flex justify-between">
           <span className="text-white/50">Prix</span>
-          <span className="font-semibold tabular-nums">{icon} {fmt.format(pending.price)}</span>
+          <Amount currency={key} value={pending.price} className="font-semibold" />
         </div>
         <div className="flex justify-between">
           <span className="text-white/50">Il te restera</span>
           <span className={`tabular-nums ${after < 0 ? 'text-danger' : 'text-white/70'}`}>
-            {icon} {fmt.format(Math.max(0, after))} {label}
+            {icon} {fmt.format(Math.max(0, after))} {unit}
           </span>
         </div>
       </div>
@@ -446,8 +443,8 @@ function Balance() {
     // répéter serait redondant. En mobile, le header n'affiche que le profil,
     // donc le solde reste ici — fonctionnel pendant les achats.
     <span className="flex items-center gap-2 text-xs tabular-nums sm:hidden">
-      <span className="text-gold" title="Golds">💰 {fmt.format(user.gold ?? 0)}</span>
-      <span className="text-tier-4" title="Gemmes">💎 {fmt.format(user.gems ?? 0)}</span>
+      <Amount currency="gold" value={user.gold ?? 0} />
+      <Amount currency="gems" value={user.gems ?? 0} />
     </span>
   );
 }
@@ -554,7 +551,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
             title={affordableGolds ? undefined : 'Pas assez de golds'}
             onPointerDown={() => ask(confirmSlot('golds'))}
           >
-            💰 {fmt.format(slot.price_golds)}
+            {CURRENCY.gold.icon} {fmt.format(slot.price_golds)}
           </Button>
           <Button
             className="w-full px-1 text-[11px]"
@@ -562,7 +559,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
             title={affordableGems ? undefined : 'Pas assez de gemmes'}
             onPointerDown={() => ask(confirmSlot('gems'))}
           >
-            💎 {fmt.format(slot.price_gems)}
+            {CURRENCY.gems.icon} {fmt.format(slot.price_gems)}
           </Button>
         </div>
       )}
@@ -644,21 +641,21 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
               disabled={disabled || (user?.gold ?? 0) < priceGolds}
               onPointerDown={() => ask(confirmBooster('golds'))}
             >
-              💰 {fmt.format(priceGolds)}
+              {CURRENCY.gold.icon} {fmt.format(priceGolds)}
             </Button>
             <Button
               className="flex-1 px-2 text-xs"
               disabled={disabled || (user?.gems ?? 0) < priceGems}
               onPointerDown={() => ask(confirmBooster('gems'))}
             >
-              💎 {fmt.format(priceGems)}
+              {CURRENCY.gems.icon} {fmt.format(priceGems)}
             </Button>
           </div>
           {/* La valeur d'un booster CROÎT à mesure que le set se vide : c'est la
               propriété la plus vertueuse du système, elle doit se voir. */}
           <p className="text-[10px] text-white/30">
             {missing} carte{missing > 1 ? 's' : ''} restante{missing > 1 ? 's' : ''}
-            {set.completion_reward?.gems ? ` · set complet : +${set.completion_reward.gems} 💎` : ''}
+            {set.completion_reward?.gems ? ` · set complet : +${set.completion_reward.gems} ${CURRENCY.gems.icon}` : ''}
           </p>
         </>
       )}
@@ -699,7 +696,7 @@ function BoosterReveal({ onClose }: { onClose: () => void }) {
       )}
       {booster.sets_completed.map(s => (
         <p key={s.set_id} className="mt-2 text-center text-[11px] text-success">
-          🏅 Set complété : {s.name}{s.rewards.gems ? ` — +${s.rewards.gems} 💎` : ''}
+          🏅 Set complété : {s.name}{s.rewards.gems ? ` — +${s.rewards.gems} ${CURRENCY.gems.icon}` : ''}
         </p>
       ))}
       <Button variant="primary" className="mt-4 w-full" onPointerDown={onClose}>Continuer</Button>
