@@ -25,8 +25,9 @@
 // ici plus SERRÉE qu'ailleurs — la run est unique par jour et bornée à quatre
 // rapports, l'abus plafonne donc à un gain quotidien au lieu d'être illimité.
 const path = require('path');
-const fs = require('fs');
 const { db, stmt } = require('./db');
+// Cache mémoire au mtime, partagé par tous les catalogues (cf. json-cache.js).
+const { jsonCache } = require('./json-cache');
 const progression = require('./progression');
 // Même rotation que les boutiques et les missions — pas une copie, la même
 // fonction. Un seul rendez-vous quotidien (5 h, fuseau du SERVEUR) à retenir.
@@ -68,18 +69,7 @@ const RESULTS = Object.freeze(['win', 'loss']);
 // sets.js / variants.js / cosmetics.js : un deck retouché depuis l'admin change
 // de difficulté sans redémarrage.
 
-let cache = { mtime: -1, value: [] };
-
-function publicDecks() {
-  try {
-    const mtime = fs.statSync(PUBLIC_DECKS_FILE).mtimeMs;
-    if (mtime !== cache.mtime) {
-      const raw = JSON.parse(fs.readFileSync(PUBLIC_DECKS_FILE, 'utf8').replace(/,\s*([\]}])/g, '$1'));
-      cache = { mtime, value: Array.isArray(raw) ? raw : [] };
-    }
-  } catch { /* fichier absent/illisible : on garde le dernier cache connu */ }
-  return cache.value;
-}
+const publicDecks = jsonCache(PUBLIC_DECKS_FILE, list => list);
 
 /** Nombre de cartes d'un deck public, tous tiers confondus. */
 function deckSize(deck) {

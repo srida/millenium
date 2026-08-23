@@ -37,7 +37,17 @@ const PSEUDOS = Object.freeze([
   'Ulric', 'Vanth', 'Xanthe', 'Yorick', 'Zaltar', 'Anouk', 'Brann', 'Cendre',
 ]);
 
-// --- Catalogue (cache mémoire au mtime, même patron que sets.js / variants.js) ---
+// --- Catalogue (cache mémoire au mtime) ---
+//
+// ⚠️ Seul cache du backend à NE PAS passer par `json-cache.js`, et c'est
+// délibéré : sa gestion d'erreur est l'inverse de celle du helper partagé.
+// Là où les catalogues de jeu gardent leur dernière valeur connue quand le
+// fichier devient illisible — une boutique qui disparaît le temps d'une
+// écriture serait pire que des données d'une seconde —, celui-ci rend `[]` et
+// le JOURNALISE. Un catalogue de bots vide sert simplement moins de bots (le
+// joueur reste en file, cf. `serveBot`), là où un catalogue périmé ferait
+// affronter des decks qui ne correspondent plus au vrai `cards.json` — ce que
+// bots.test.ts vérifie précisément.
 
 let cache = null;
 let cacheMtime = 0;

@@ -403,6 +403,13 @@ app.get('/board-backgrounds/:id', (req, res) => {
 // mémoriser ferait mentir `_has_illustration` — c'est précisément ce que les
 // golden tests de la boutique interdisent.
 //
+// ⚠️ Ce cache-ci NE passe PAS par `json-cache.js`, et ce n'est pas un oubli :
+// le helper partagé sert des catalogues qu'on LIT (les modules de règles), il
+// rend donc sa valeur telle quelle et n'a aucune notion d'écriture. Ici les
+// handlers MUTENT la liste avant de la réécrire, d'où deux exigences que le
+// helper n'a pas : la copie du tableau à chaque lecture, et l'invalidation
+// explicite par `writeJson`.
+//
 // ⚠️ CONTRAT : `readJson` rend une copie du TABLEAU, mais en PARTAGE les
 // éléments. Un appelant peut donc `push`, `splice` ou remplacer une case —
 // ce que font tous les handlers d'écriture — mais **jamais muter un élément en

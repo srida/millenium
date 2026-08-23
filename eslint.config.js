@@ -111,7 +111,10 @@ module.exports = [
     //
     // La liste reprend SINKS : une feuille est aussi un module de règles, et le
     // bloc ci-dessus vient d'être remplacé pour ces fichiers-là.
-    files: ['sets.js', 'variants.js', 'asset-dirs.js'],
+    // `json-cache.js` y figure pour la même raison qu'`asset-dirs.js` : sept
+    // modules de règles le requièrent, dont les feuilles du graphe. La moindre
+    // dépendance qu'il prendrait deviendrait une dépendance de tout le monde.
+    files: ['sets.js', 'variants.js', 'asset-dirs.js', 'json-cache.js'],
     rules: {
       'n/no-restricted-require': ['error', [
         ...SINKS,
