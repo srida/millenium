@@ -18,8 +18,17 @@ export function computeDeckTags(cards: Card[]): string[] {
   const n = cards.length;
   const attrCounts: Record<string, number> = {};
   for (const card of cards) for (const id of (card.attributes ?? [])) attrCounts[id] = (attrCounts[id] || 0) + 1;
+  // ⚠️ Le tri a DEUX critères, et le second n'est pas cosmétique : à effectif
+  // égal, sans lui, c'est l'ordre de parcours des cartes qui tranche. Deux decks
+  // de composition identique mais d'ordre différent afficheraient donc des tags
+  // différents — et un deck public, dont la composition se réordonne en admin,
+  // changerait de tags sans avoir changé de contenu. L'`id` d'attribut est une
+  // valeur ABSOLUE ; même geste que le départage par `card_id` de l'ordre
+  // d'initiative dans `CombatManager`, et pour la même raison.
   const dominant = Object.entries(attrCounts)
-    .filter(([, c]) => c >= MIN_ATTRIBUTE_OCCURRENCES).sort((a, b) => b[1] - a[1]).slice(0, 2)
+    .filter(([, c]) => c >= MIN_ATTRIBUTE_OCCURRENCES)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 2)
     .map(([id]) => (AttributeDatabase as any).getAttribute(id)?.name ?? id);
   const tags = [...dominant];
   if (n > 0) {
