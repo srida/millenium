@@ -159,8 +159,13 @@ export default function DeckBuilder() {
   // formé doit se voir tel quel plutôt que de perdre des cartes sans le dire.
   useEffect(() => {
     if (!publicDeckId) return;
+    // Le `catch` garde l'écran utilisable (grille vide, éditable) au lieu de
+    // laisser filer une promesse rejetée : le catalogue public est injoignable,
+    // ce n'est pas une raison pour perdre le DeckBuilder.
     (async () => {
-      await (PublicDeckDatabase as any).init();
+      try {
+        await (PublicDeckDatabase as any).init();
+      } catch { return; }
       const pd = (PublicDeckDatabase as any).getDeck(publicDeckId) as { name?: string; deck?: Record<string, string[]> } | null;
       if (!pd) return;
       const d: DeckData = { 1: [], 2: [], 3: [], 4: [], 5: [] };

@@ -56,22 +56,40 @@ export default function ArcadeScreen() {
   const activeDeck = deckName ? decks.find(d => d.name === deckName) ?? null : null;
   const deckReady = !!activeDeck && activeDeck.count >= MIN_DECK;
 
+  // ⚠️ L'en-tête est rendu AVANT tout état, jamais après : c'est lui qui porte
+  // le bouton retour. La branche invité s'en passait et n'offrait que « Se
+  // connecter » — un cul-de-sac, là où la branche `!snapshot` juste en dessous
+  // ajoutait bien un retour. Le compte à rebours, lui, a besoin de l'instantané.
+  const header = (
+    <ScreenHeader
+      title="Arcade"
+      onBack={() => navigate('main_menu')}
+      right={snapshot ? <Countdown at={snapshot.next_rotation_at} title="Prochaine run" /> : undefined}
+      safeAreaTop
+    />
+  );
+
   if (!user) {
     return (
-      <Center>
-        <div className="text-4xl">🕹</div>
-        <p className="text-sm text-white/60">L'Arcade a besoin d'un compte : la run du jour est gardée côté serveur.</p>
-        <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
-      </Center>
+      <main className="flex min-h-dvh flex-col relative z-10 text-white">
+        {header}
+        <Center>
+          <div className="text-4xl">🕹</div>
+          <p className="text-sm text-white/60">L'Arcade a besoin d'un compte : la run du jour est gardée côté serveur.</p>
+          <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
+        </Center>
+      </main>
     );
   }
 
   if (!snapshot) {
     return (
-      <Center>
-        <span className={error ? 'text-danger' : 'text-gold'}>{error ?? (loading ? 'Chargement…' : 'Arcade indisponible.')}</span>
-        <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
-      </Center>
+      <main className="flex min-h-dvh flex-col relative z-10 text-white">
+        {header}
+        <Center>
+          <span className={error ? 'text-danger' : 'text-gold'}>{error ?? (loading ? 'Chargement…' : 'Arcade indisponible.')}</span>
+        </Center>
+      </main>
     );
   }
 
@@ -81,12 +99,7 @@ export default function ArcadeScreen() {
 
   return (
     <main className="flex min-h-dvh flex-col relative z-10 text-white">
-      <ScreenHeader
-        title="Arcade"
-        onBack={() => navigate('main_menu')}
-        right={<Countdown at={snapshot.next_rotation_at} title="Prochaine run" />}
-        safeAreaTop
-      />
+      {header}
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {!run ? (
@@ -256,6 +269,9 @@ function StepNumber({ n, live }: { n: number; live?: boolean }) {
   );
 }
 
+// Corps centré, rendu SOUS l'en-tête — et non à sa place. C'était un `<main>`
+// tant qu'il remplaçait l'écran entier ; il est désormais imbriqué dans celui de
+// l'écran, où un second `<main>` serait du HTML invalide.
 function Center({ children }: { children: ReactNode }) {
-  return <main className="flex min-h-dvh flex-col items-center justify-center gap-4 relative z-10 p-6 text-center text-white">{children}</main>;
+  return <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">{children}</div>;
 }

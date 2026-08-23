@@ -86,9 +86,15 @@ export default function DeckSelector() {
   useEffect(() => {
     if (manage) return;
     let alive = true;
-    (PublicDeckDatabase as any).init().then(() => {
-      if (alive) setPublicDecks(((PublicDeckDatabase as any).getAllDecks() as any[]).map(summarizePublic));
-    });
+    // Sur échec, la liste vide plutôt que `null` : l'écran affiche alors son
+    // message « aucun deck adverse — l'IA jouera ton deck en miroir », qui est
+    // la vérité (le miroir reste jouable), là où `null` laissait « Chargement
+    // des decks… » à l'écran pour toujours.
+    (PublicDeckDatabase as any).init()
+      .then(() => {
+        if (alive) setPublicDecks(((PublicDeckDatabase as any).getAllDecks() as any[]).map(summarizePublic));
+      })
+      .catch(() => { if (alive) setPublicDecks([]); });
     return () => { alive = false; };
   }, [manage]);
 
