@@ -130,12 +130,16 @@ export default function GameScreenPvp() {
 function ResultOverlay({ opponentAvatar }: { opponentAvatar: string | null }) {
   const user = useAuthStore(s => s.user);
   const opponentName = useGameStore(s => s.pvpOpponent);
+  // La modale recouvre la bannière de jeu : c'est ici, et nulle part ailleurs,
+  // qu'un « le serveur n'a pas pu enregistrer ce duel » atteint le joueur.
+  const note = useGameStore(s => s.errorFlash);
   return (
     <GameOverScreen
       playerAvatarSrc={user?.avatar ?? null}
       playerAvatarFallback={(user?.username ?? '?').slice(0, 2).toUpperCase()}
       enemyAvatarSrc={opponentAvatar}
       enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
+      note={note}
     />
   );
 }

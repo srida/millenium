@@ -39,12 +39,28 @@ import { useAuthStore } from '../stores/authStore.js';
 const READY_MIN_MS = 3_000;
 const READY_MAX_MS = 22_000;
 
+/**
+ * Délai au bout duquel on cesse d'attendre le `match:end` du serveur.
+ *
+ * ⚠️ Il n'y a pas d'adversaire à attendre ici : la partie est jouée EN ENTIER
+ * dans l'onglet, le serveur ne fait que tenir la caisse. Un `match:end` qui ne
+ * revient pas (socket coupée juste après l'envoi, serveur redéployé) laissait
+ * donc le joueur derrière « En attente de l'adversaire… » indéfiniment, sur une
+ * partie dont il connaît le résultat depuis le début — il ne lui restait que le
+ * rechargement de la page. On se rabat sur le résultat local, en disant que le
+ * gain n'a pas pu être enregistré : le serveur reste seul arbitre du gain, on
+ * ne s'attribue rien, on rend juste sa partie au joueur.
+ */
+const MATCH_END_TIMEOUT_MS = 10_000;
+
 export class BotController extends GameController {
   private opponentName: string;
   private _readyAt = 0;
   private _waitTimer: ReturnType<typeof setTimeout> | null = null;
   private _listeners: [string, (m: any) => void][] = [];
   private _finished = false;
+  private _endTimer: ReturnType<typeof setTimeout> | null = null;
+  private _resolved = false;
 
   constructor(session: GameSession, opponentName: string) {
     super(session);
@@ -53,7 +69,12 @@ export class BotController extends GameController {
 
   begin(): void {
     this._listen('match:end', (m) => this._onMatchEnd(m));
-    this._listen('_socket_closed', () => this._notify('Connexion perdue'));
+    // ⚠️ Bannière ÉPHÉMÈRE (2 s), pas permanente : `errorFlash` a la priorité
+    // sur `invocationBanner` (cf. hud/PhaseTimer.Banners), une bannière qui
+    // reste éteint donc tout le retour d'invocation pour le reste du duel — et
+    // le duel, lui, continue de se jouer très bien sans réseau : c'est un solo.
+    // Ce qui dépend vraiment du serveur, c'est le GAIN, et il se dit à la fin.
+    this._listen('_socket_closed', () => this._flashError('Connexion perdue'));
     super.begin();
     this._armReady();
     this.sync({ pvpOpponent: this.opponentName });
@@ -87,7 +108,11 @@ export class BotController extends GameController {
       // Missions : la partie est jouée, on solde le lot sans attendre le
       // serveur — seul le gain PvP dépend de son arbitrage.
       this._reportMatchCompleted();
-      PvpConnection.send('match:report_result', { localWinner: this.session.getWinner() });
+      const sent = PvpConnection.send('match:report_result', { localWinner: this.session.getWinner() });
+      if (!sent) { this._resolveLocally(); return; }
+      // Le serveur a le message : on lui laisse le temps de rendre son verdict,
+      // pas l'éternité (cf. MATCH_END_TIMEOUT_MS).
+      this._endTimer = setTimeout(() => this._resolveLocally(), MATCH_END_TIMEOUT_MS);
       this.sync({ endRound: null, pvpWaiting: true });
       return;
     }
@@ -105,6 +130,9 @@ export class BotController extends GameController {
   }
 
   private _onMatchEnd(msg: { winner: 'A' | 'B' | 'draw'; progression?: any }): void {
+    if (this._resolved) return;
+    this._resolved = true;
+    this._clearEndTimer();
     // Le joueur est toujours le rôle A d'un match bot (cf. ws/BotMatch.js).
     const winner: 'player' | 'enemy' | 'draw' =
       msg.winner === 'draw' ? 'draw' : msg.winner === 'A' ? 'player' : 'enemy';
@@ -117,13 +145,48 @@ export class BotController extends GameController {
   }
 
   // Abandon volontaire : concédé au serveur, qui clôt le match sans rien verser.
+  // ⚠️ Sans réseau, l'abandon ne partait nulle part et le menu se contentait de
+  // se refermer : le joueur restait enfermé dans une partie qu'il venait de
+  // quitter. Rien n'est en jeu (un abandon ne verse jamais rien), on clôt donc
+  // localement sur la défaite qu'il a demandée.
   forfeit(): void {
     if (this._finished) return;
     this._finished = true;
-    PvpConnection.send('match:forfeit');
+    if (PvpConnection.send('match:forfeit')) {
+      this._endTimer = setTimeout(() => this._resolveLocally('enemy'), MATCH_END_TIMEOUT_MS);
+      return;
+    }
+    this._resolveLocally('enemy');
   }
 
-  private _notify(msg: string): void { this.sync({ errorFlash: msg }); }
+  /**
+   * Le serveur n'a pas rendu — ou n'a pas pu recevoir — son verdict : on solde
+   * la partie sur le résultat local. Aucun gain n'est appliqué (le client ne
+   * s'en attribue jamais), et on le DIT plutôt que de laisser croire à une
+   * victoire non payée — même posture que le `reportError` de l'Arcade.
+   */
+  private _resolveLocally(forced?: 'player' | 'enemy' | 'draw'): void {
+    if (this._resolved) return;
+    this._resolved = true;
+    this._clearEndTimer();
+    this.animator?.stop();
+    // No-op si le lot a déjà été soldé par `dismissEndRound` ; nécessaire sur
+    // le chemin de l'abandon, où c'était `match:end` qui s'en chargeait.
+    this._reportMatchCompleted();
+    this.sync({
+      combatActive: false,
+      pvpWaiting: false,
+      gameOver: true,
+      winner: forced ?? this.session.getWinner(),
+    });
+    // Permanent : il est repris tel quel par l'écran de résultat (cf.
+    // GameScreenPvp.ResultOverlay), qui recouvre la bannière.
+    this._flashError('Serveur injoignable — ce duel n\'a pas pu être enregistré.', 0);
+  }
+
+  private _clearEndTimer(): void {
+    if (this._endTimer) { clearTimeout(this._endTimer); this._endTimer = null; }
+  }
 
   private _listen(type: string, fn: (m: any) => void): void {
     (PvpConnection as any).on(type, fn);
@@ -132,6 +195,7 @@ export class BotController extends GameController {
 
   dispose(): void {
     if (this._waitTimer) { clearTimeout(this._waitTimer); this._waitTimer = null; }
+    this._clearEndTimer();
     for (const [type, fn] of this._listeners) (PvpConnection as any).off(type, fn);
     this._listeners = [];
     super.dispose();

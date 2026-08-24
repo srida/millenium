@@ -112,6 +112,13 @@ function attachPvpWebSocketServer(httpServer) {
 }
 
 function handleMessage(ws, msg) {
+  // Battement de cœur applicatif du client (cf. net/PvpConnection.KEEPALIVE_MS).
+  // ⚠️ Il est reconnu AVANT tout le reste, et surtout avant le `default` qui
+  // relaie : un type inconnu relayé à l'adversaire s'empilerait indéfiniment
+  // dans son tampon de messages. Il n'y a rien à répondre — la seule chose qui
+  // compte est qu'un octet ait traversé le proxy dans le sens client → serveur.
+  if (msg.type === 'ping') return;
+
   // Un duel contre bot parle les MÊMES messages qu'un duel réel — c'est ce qui
   // permet au client de n'avoir qu'un écran. Il n'a en revanche pas de second
   // joueur à qui relayer : tout ce qui n'est pas la fin du match (résultat,

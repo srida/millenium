@@ -538,10 +538,16 @@ export class GameController {
     this.summonOptions = null;
   }
 
-  private _flashError(msg: string): void {
+  /**
+   * `durationMs = 0` rend la bannière PERMANENTE — et désarme quand même le
+   * minuteur en cours, sans quoi un flash antérieur encore en vol l'effacerait
+   * deux secondes plus tard (cf. BotController, qui annonce ainsi un résultat
+   * de duel non enregistré).
+   */
+  protected _flashError(msg: string, durationMs = 2000): void {
     this.sync({ errorFlash: msg });
-    if (this._errorTimer) clearTimeout(this._errorTimer);
-    this._errorTimer = setTimeout(() => this.sync({ errorFlash: null }), 2000);
+    if (this._errorTimer) { clearTimeout(this._errorTimer); this._errorTimer = null; }
+    if (durationMs > 0) this._errorTimer = setTimeout(() => this.sync({ errorFlash: null }), durationMs);
   }
 
   // Main affichée : les exemplaires identiques sont empilés sous une seule

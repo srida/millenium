@@ -121,6 +121,7 @@ export function GameOverScreen({
   onExit, exitLabel = '◂ MENU PRINCIPAL',
   playerAvatarSrc, playerAvatarFallback = '★',
   enemyAvatarSrc, enemyAvatarFallback = '?',
+  note = null,
 }: {
   onExit?: (winner: 'player' | 'enemy' | 'draw' | null) => void;
   exitLabel?: string;
@@ -128,6 +129,13 @@ export function GameOverScreen({
   playerAvatarFallback?: string;
   enemyAvatarSrc?: string | null;
   enemyAvatarFallback?: string;
+  /**
+   * Réserve pour ce que le RÉSULTAT ne dit pas de lui-même. Aujourd'hui : le
+   * duel en ligne dont le serveur n'a pas pu enregistrer l'issue. La bannière
+   * de jeu (hud/PhaseTimer.Banners) passe SOUS cette modale — sans ce relais,
+   * l'avertissement serait écrit et invisible.
+   */
+  note?: string | null;
 } = {}) {
   const gameOver = useGameStore(s => s.gameOver);
   const winner = useGameStore(s => s.winner);
@@ -174,6 +182,7 @@ export function GameOverScreen({
             toXp={user.xp ?? startProgression.current.xp}
           />
         )}
+        {note && <div className="mb-1 text-center text-xs text-danger">⚠ {note}</div>}
         <Button
           variant="primary"
           className="w-full"
