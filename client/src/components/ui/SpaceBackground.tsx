@@ -265,10 +265,15 @@ function Starfield() {
  * de menu (cf. `App.tsx`) — d'où le `fixed` : la couche ne vit pas dans le
  * `<main>` de l'écran, et elle ne défile pas avec un écran plus haut que la
  * fenêtre. Chaque `<main>` passe au-dessus en `relative z-10`.
+ *
+ * ⚠️ Le placement vit dans `space.css` (`.space-bg`) et non en utilitaires
+ * Tailwind : en appli installée, la couche doit dépasser le viewport par le bas
+ * pour compenser un défaut d'iOS, ce qui demande une `@media (display-mode)` —
+ * une classe utilitaire ne peut pas la porter. Le pourquoi est là-bas.
  */
 export function SpaceBackground({ className = '' }: { className?: string }) {
   return (
-    <div aria-hidden className={`pointer-events-none fixed inset-0 z-0 overflow-hidden ${className}`}>
+    <div aria-hidden className={`space-bg ${className}`}>
       <div className="space-bg-deep" />
       <div className="space-bg-nebula space-bg-nebula-a" />
       <div className="space-bg-nebula space-bg-nebula-b" />

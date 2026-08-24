@@ -25,6 +25,41 @@
   --color-space-edge: #080a13;
 }
 
+/* La couche de décor, posée UNE FOIS par l'App (cf. SpaceBackground.tsx).
+
+   ⚠️ Elle est PLUS HAUTE QUE LE VIEWPORT en appli installée, et ce n'est pas
+   une marge de confort : c'est la compensation exacte d'un défaut d'iOS.
+
+   Avec `apple-mobile-web-app-status-bar-style: black-translucent` (index.html),
+   iOS pose le contenu à y=0 — sous la barre d'état, ce qu'on veut — mais lui
+   donne la hauteur qu'il aurait eue EN DESSOUS d'elle. Le viewport de mise en
+   page est donc trop court de très exactement `safe-area-inset-top`, et il
+   manque en BAS. Tout ce qui vaut `100dvh` ou `fixed inset-0` s'arrête avant le
+   bas de l'écran ; la bande restante laisse voir le canevas du document.
+   Mesuré sur un iPhone 16 Pro Max : écran 956 pt, décor arrêté à 893,7 pt,
+   bande de 62,0 pt — pour une encoche de 62 pt. La bande est paintable (elle
+   fait partie de la vue web), elle est simplement hors du viewport : un élément
+   `fixed` qu'on prolonge vers le bas y peint donc normalement.
+
+   Gardé derrière `display-mode: standalone` : en navigateur mobile le viewport
+   est juste, et prolonger le décor y ferait descendre le bord du vignettage
+   sous la zone visible — l'encadrement du bas s'en trouverait affaibli.
+   `bottom: auto` parce que `inset: 0` pose déjà `bottom` : les trois valeurs
+   ensemble sont sur-contraintes, et on veut que ce soit la hauteur qui gagne. */
+.space-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+@media (display-mode: standalone) {
+  .space-bg {
+    bottom: auto;
+    height: calc(100% + env(safe-area-inset-top));
+  }
+}
+
 @keyframes space-nebula-a {
   0%, 100% { transform: translate3d(-4%, -2%, 0) scale(1);    opacity: .55; }
   50%      { transform: translate3d(4%, 3%, 0)  scale(1.12); opacity: .85; }
