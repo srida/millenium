@@ -1556,6 +1556,18 @@ Le **fond de grille** suit exactement le même trajet, une ligne plus bas : `Sce
 - Les 55 tuiles passent alors en **voile translucide** (`TERRAIN_TILE_OPACITY`) : les rangées neutres et ennemies sont opaques par défaut et masqueraient tout. Les tuiles ne couvrant que 92 % de leur case, c'est le contraste tuile/interstice qui redessine la grille par-dessus l'image. Les trois zones prennent le **même** voile — les différencier par l'opacité créerait une couture en travers de l'illustration ; c'est la couleur des tuiles qui porte seule la lecture des zones. Le voile bleu du bloc joueur (`_playerBg`) est masqué pour la même raison.
 - **Le chargement est asynchrone et annulable** : `_terrainToken` invalide une texture qui arrive après la fin du combat ou après un autre terrain, sinon on rattacherait un mesh à une scène morte. Un 404 ne fait rien — le décor par défaut reste en place, ce qui **est** le comportement voulu pour un terrain sans fond.
 
+#### À quoi ressemble une case bloquée
+
+Un **creux avec des éclats de roche** (`Scene3D.spawnBlockedDecor`), pas une case rouge.
+
+⚠️ Le rouge d'avant peignait un **état d'UI** par-dessus l'illustration du terrain, dans le vocabulaire déjà pris par la zone ennemie (rangées teintées rosé) et par les dégâts — or une case bloquée n'est pas une menace, c'est un fait de terrain. Et la teinte, posée à 0,52 d'opacité, masquait précisément le fond qu'on venait d'ajouter. Le traitement actuel tient en trois couches : la dalle rabattue en pierre sombre et **sans emissive** (les cinq états au-dessus d'elle dans `_updateTileColor` — survol, candidat matériau, sélection — s'annoncent par une lueur : c'est le registre du retour à un geste, pas celui du décor), un creux posé en retrait qui donne la marche, et quelques éclats de pierre.
+
+- ⚠️ **La dalle reste OPAQUE sous un fond de terrain** (`BLOCKED_LEDGE_OPACITY`), là où les 54 autres passent au voile : c'est ce qui fait le trou. Voilée comme les autres, la case laisserait passer l'illustration et redeviendrait une case normale un peu plus sombre.
+- ⚠️ **C'est la ROCHE qui porte la lecture, pas le creux** — la zone neutre est déjà quasi noire (`0x070810`), un trou noir de plus ne s'y distingue de rien. D'où une pierre franchement claire (`BLOCKED_ROCK_COLOR`), qui est le seul contraste disponible.
+- Les trois contraintes de forme sont celles de « Deux contraintes du rendu 3D » : silhouette **au sol** (la caméra regarde droit vers le bas — un bloc haut se projette sur un point), décor **dans sa case** (une carte CSS3D voisine occupe une case entière et mangerait tout débordement), et **statique** — seule l'émergence d'un quart de seconde à la pose est animée, et elle se termine, sinon le rendu à la demande de `_animate` serait annulé pour tout le combat.
+- Le décor est **semé par `(col, row)`** (`cellRandom`) : deux combats sur le même terrain montrent les mêmes rochers, sinon le terrain ne serait pas un lieu.
+- ⚠️ **La case gelée (`POWER_FREEZE`) n'est pas concernée** : elle garde ses cristaux cyan additifs et sa teinte de glace, et son test passe **après** celui des cases bloquées dans `_updateTileColor`. Les deux vocabulaires se séparent maintenant d'eux-mêmes — glace claire et montante contre roche sombre et écrasée — là où le blocage permanent ressemblait à une version fade du gel.
+
 ### Ligne de vue (LOS)
 
 `PathFinder.ts` expose :

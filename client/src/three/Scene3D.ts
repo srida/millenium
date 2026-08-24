@@ -57,6 +57,46 @@ const TERRAIN_BG_TINT = 0x8f96a6;
 // disparaissent ; trop haut, l'illustration ne sert plus à rien.
 const TERRAIN_TILE_OPACITY = 0.2;
 
+// ── Case bloquée par le terrain (combat) ──
+// Le rouge d'autrefois peignait un ÉTAT D'UI par-dessus l'illustration du
+// terrain, dans le vocabulaire déjà pris par la zone ennemie et les dégâts. Or
+// une case bloquée n'est pas une menace : c'est un trou dans la grille. La dalle
+// est donc rabattue en pierre sombre, un creux est posé en retrait, et quelques
+// éclats de roche disent l'obstacle. Trois précautions commandent la forme :
+//  - la caméra regarde DROIT vers le bas → c'est la silhouette au sol qui se
+//    lit, jamais la hauteur : empreintes polygonales larges, blocs écrasés ;
+//  - le décor reste DANS sa case (< 0,46 unité du centre) — une carte CSS3D
+//    voisine occupe une case entière et masquerait tout débordement ;
+//  - il est STATIQUE : `_animate` fait du rendu à la demande, une animation
+//    permanente relancerait la boucle pour tout le combat (seule l'émergence
+//    d'un quart de seconde à la pose est animée, et elle se termine).
+const BLOCKED_LEDGE_COLOR = 0x1c202b;
+// Opaque MÊME sous un fond de terrain : c'est ce qui fait le trou. Voilée comme
+// les autres tuiles, la case laisserait passer l'illustration et redeviendrait
+// une case normale un peu plus sombre.
+const BLOCKED_LEDGE_OPACITY = 0.94;
+const BLOCKED_PIT_COLOR = 0x05070c;
+const BLOCKED_PIT_SCALE = 0.76;
+// La roche est franchement plus CLAIRE que le fond, et ce n'est pas un choix de
+// palette : la zone neutre est déjà quasi noire (0x070810), le creux seul ne s'y
+// distingue pas d'une case libre. C'est donc l'éclat de pierre qui porte toute la
+// lecture — trop sombre, la case bloquée redevient une case ordinaire.
+const BLOCKED_ROCK_COLOR = 0x8d97b0;
+const BLOCKED_ROCK_COUNT = 4;
+const BLOCKED_RISE_S = 0.25;
+
+// Décor STABLE pour une case donnée : deux combats sur le même terrain doivent
+// montrer les mêmes rochers, sinon le terrain n'est plus un lieu. xorshift32
+// semé par (col,row) — même idiome que le tirage semé de la boutique, sans
+// dépendance et sans état partagé.
+function cellRandom(col: number, row: number): () => number {
+  let s = ((col + 1) * 73856093) ^ ((row + 1) * 19349663) ^ 0x2545f491;
+  return () => {
+    s ^= s << 13; s ^= s >>> 17; s ^= s << 5;
+    return (s >>> 0) / 4294967296;
+  };
+}
+
 // Recadre une texture en « cover » : une illustration qui n'est pas exactement
 // au ratio de la grille est rognée au centre plutôt que déformée (même intention
 // que le object-fit: cover de .unit-art).
@@ -140,6 +180,10 @@ export class Scene3D {
   // décor de glace : l'animateur ne pilote que les cases (add/remove), il n'a
   // pas à traîner un disposer en parallèle de son propre registre.
   _iceBlocks = new Map<string, () => void>();
+  // Décors de case bloquée (creux + rochers), par case. Même propriété que les
+  // blocs de glace : la scène possède le cycle de vie, setBlockedCells ne fait
+  // que déclarer la liste des cases.
+  _blockedProps = new Map<string, () => void>();
   _selectedPos: Position | null = null;
   _combatMode = false;
 
@@ -427,7 +471,20 @@ export class Scene3D {
   setBlockedCells(cells: Position[] | null | undefined): void {
     this._blockedCells = new Set((cells || []).map(key));
     this._clearIceBlocks();
+    this._clearBlockedProps();
+    for (const cell of cells || []) {
+      const k = key(cell);
+      // Un terrain peut lister deux fois la même case : le décor se pose une
+      // seule fois, sinon les rochers se superposeraient à l'identique (semés
+      // sur la case, ils sortiraient rigoureusement pareils).
+      if (!this._blockedProps.has(k)) this._blockedProps.set(k, this.spawnBlockedDecor(cell));
+    }
     this._refreshTileColors();
+  }
+
+  _clearBlockedProps(): void {
+    for (const dispose of this._blockedProps.values()) dispose();
+    this._blockedProps.clear();
   }
 
   // Pose (ou retire) l'illustration du terrain sous la grille. Appelée par
@@ -1529,6 +1586,88 @@ export class Scene3D {
   // soit appelé (le cycle de vie `_frozenCells` de CombatAnimator3D), et reste
   // STATIQUE une fois poussé : une animation permanente forcerait une frame à
   // chaque tour de boucle et annulerait le rendu à la demande de `_animate`.
+  // Décor d'une case bloquée par le terrain : un creux posé en retrait de la
+  // dalle (qui donne la marche, donc la profondeur vue de dessus) et quelques
+  // éclats de roche. Rend son disposer, comme spawnIceBlock.
+  spawnBlockedDecor(pos: Position): () => void {
+    const center = this.tilePosition(pos);
+    const rand = cellRandom(pos.col, pos.row);
+    const group = new THREE.Group();
+    group.position.set(center.x, 0, center.z);
+
+    const geos: THREE.BufferGeometry[] = [];
+    const mats: THREE.Material[] = [];
+
+    // Le creux. Basic et non Standard : c'est un trou, l'éclairage de scène n'a
+    // rien à y révéler — et une géométrie de tuile arrondie, pour épouser la
+    // dalle au lieu de poser un disque dans un carré.
+    const pitGeo = createRoundedTileGeo(CELL * 0.92 * BLOCKED_PIT_SCALE, 0.06);
+    const pitMat = new THREE.MeshBasicMaterial({
+      color: BLOCKED_PIT_COLOR, transparent: true, opacity: 0.88, depthWrite: false,
+    });
+    const pit = new THREE.Mesh(pitGeo, pitMat);
+    // Au-dessus des deux hauteurs de dalle (0 en zone neutre, 0.01 côté joueur)
+    // et sous les séparateurs dorés (0.07) : pas de z-fighting possible.
+    pit.position.y = 0.015;
+    group.add(pit);
+    geos.push(pitGeo); mats.push(pitMat);
+
+    // Les éclats. Un prisme à 5-6 faces donne une empreinte polygonale
+    // irrégulière — la seule chose que la vue de dessus lit — et garde assez de
+    // flanc pour que la clé dorée rasante le détache du creux.
+    const rockMat = new THREE.MeshStandardMaterial({
+      color: BLOCKED_ROCK_COLOR, roughness: 0.95, metalness: 0.04,
+    });
+    mats.push(rockMat);
+    for (let i = 0; i < BLOCKED_ROCK_COUNT; i++) {
+      const r = 0.09 + rand() * 0.07;
+      const h = 0.10 + rand() * 0.12;
+      const geo = new THREE.CylinderGeometry(r * (0.62 + rand() * 0.3), r, h, 5 + Math.floor(rand() * 2));
+      geos.push(geo);
+      const rock = new THREE.Mesh(geo, rockMat);
+      const a = (i / BLOCKED_ROCK_COUNT) * Math.PI * 2 + rand() * 0.9;
+      // Rayon borné : le décor ne doit jamais déborder sa case, une carte CSS3D
+      // voisine le mangerait.
+      const d = i === 0 ? rand() * 0.06 : 0.13 + rand() * 0.09;
+      rock.position.set(Math.cos(a) * d, h / 2 + 0.016, Math.sin(a) * d);
+      rock.rotation.y = rand() * Math.PI;
+      // Basculement franc : des blocs tous d'aplomb se liraient comme des plots.
+      rock.rotation.x = (rand() - 0.5) * 0.4;
+      rock.rotation.z = (rand() - 0.5) * 0.4;
+      group.add(rock);
+    }
+
+    this.scene.add(group);
+
+    let disposed = false;
+    const dispose = () => {
+      if (disposed) return;
+      disposed = true;
+      this._persistent.delete(dispose);
+      this.scene.remove(group);
+      for (const geo of geos) geo.dispose();
+      for (const mat of mats) mat.dispose();
+      this._invalidate();
+    };
+    this._persistent.add(dispose);
+
+    // Émergence : la roche sort du sol au lieu d'apparaître. UNE SEULE fois —
+    // l'anim se termine (return false) et la scène retombe en rendu à la demande.
+    let t = 0;
+    group.scale.set(1, 0.01, 1);
+    this.anims.push({
+      update: (dt: number) => {
+        if (disposed) return false;
+        t += dt;
+        const g = Math.min(1, t / BLOCKED_RISE_S);
+        group.scale.set(1, g, 1);
+        return g < 1;
+      },
+    });
+    this._invalidate();
+    return dispose;
+  }
+
   spawnIceBlock(pos: Position | THREE.Vector3): () => void {
     const center = pos instanceof THREE.Vector3 ? pos : this.tilePosition(pos);
     const mat = new THREE.MeshBasicMaterial({
@@ -1677,8 +1816,11 @@ export class Scene3D {
       if (veiled) opacity = 0.48;
     }
     if (this._blockedCells.has(k)) {
-      color = 0x4a1418; emissive = 0xd86a7e; intensity = 0.3;
-      if (veiled) opacity = 0.52;
+      // Pierre sombre et AUCUNE emissive : les cinq états au-dessus sont des
+      // retours d'UI (survol, matériau, sélection) et s'annoncent par une lueur.
+      // Une case bloquée est un fait de terrain, pas un retour à un geste.
+      color = BLOCKED_LEDGE_COLOR; emissive = 0x000000; intensity = 0;
+      if (veiled) opacity = BLOCKED_LEDGE_OPACITY;
     }
     // Après le cas générique : une case gelée EST bloquée, mais le rouge des
     // cases bloquées d'un terrain mentirait sur ce qui vient de s'y passer.
@@ -2358,6 +2500,7 @@ export class Scene3D {
     this.bursts = [];
     this.anims = [];
     this._iceBlocks.clear();
+    this._blockedProps.clear();
     for (const dispose of [...this._persistent]) dispose();
     this._persistent.clear();
 
