@@ -74,13 +74,22 @@ jobs:
       # `vite-node` et non `node` : la couche logic/ est en ESM TypeScript avec
       # des imports en `.js`, que Node ne résout pas seul. Il arrive avec vitest,
       # déjà dans les devDependencies du client — aucune dépendance de plus.
+      #
+      # ⚠️ `working-directory: client`, et surtout PAS `npx --prefix client`.
+      # `--prefix` ne déplace que la résolution du BINAIRE : le répertoire de
+      # travail reste la racine du dépôt, et vite-node cherche alors
+      # `<racine>/src/sim/run.ts`, qui n'existe pas. Constaté en CI, où le job
+      # meurt sur un ERR_LOAD_URL après avoir déjà tiré le catalogue.
+      # `--out` remonte donc d'un cran pour que le rapport atterrisse à la
+      # racine, là où l'artifact et le dépôt vont le chercher.
       - name: Simuler
+        working-directory: client
         run: |
-          npx --prefix client vite-node src/sim/run.ts -- \
+          npx vite-node src/sim/run.ts -- \
             --games=${{ github.event.inputs.games || '60000' }} \
             --ab-top=${{ github.event.inputs.ab_top || '20' }} \
             --ab-games=600 \
-            --out=sim-report.json
+            --out=../sim-report.json
 
       # Le dépôt est séparé du calcul : une simulation de 15 minutes ne doit pas
       # être perdue parce que le serveur redémarrait à cet instant. L'artifact

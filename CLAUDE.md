@@ -996,8 +996,12 @@ que personne ne joue. Il n'est pas touché — seul `Tournament.js` en dépend.
 | `sim/report.ts` / `sim/run.ts` | Forme JSON publiée, point d'entrée CLI |
 
 ```
-npx --prefix client vite-node src/sim/run.ts -- --games=60000 --ab-top=20 --seed=2026-08-24
+cd client && npx vite-node src/sim/run.ts -- --games=60000 --ab-top=20 --seed=2026-08-24
 ```
+
+⚠️ **Depuis `client/`, jamais `npx --prefix client` depuis la racine** :
+`--prefix` ne déplace que la résolution du binaire, le répertoire de travail
+reste la racine et vite-node cherche alors un `src/sim/run.ts` qui n'y est pas.
 
 ⚠️ **`vite-node` et non `node`** : `logic/` est en ESM TypeScript avec des
 imports en `.js`, que Node ne résout pas seul. Il arrive avec vitest — **aucune
