@@ -1,11 +1,12 @@
-// MainMenu — hub : jouer, tournoi, duel en ligne, gérer ses decks, se connecter /
+// MainMenu — hub : jouer, tournoi, entraînement, gérer ses decks, se connecter /
 // déconnecter (auth optionnelle, D2). Lien dev vers le CombatLab.
 //
 // C'est ICI que se choisit le deck du joueur : la pastille du deck actif, à côté
 // du profil, est le seul accès à « Mes decks » (DeckSelector, mode 'manage') —
 // elle affiche déjà avec quoi on joue, un bouton dédié en plus ferait doublon.
-// Le deck actif sert dans tous les modes : Tournoi et Duel en ligne entrent donc
-// directement, et « Jouer » n'ouvre le sélecteur que pour le deck de l'IA.
+// Le deck actif sert dans tous les modes : « Jouer » (le duel en ligne) et le
+// Tournoi entrent donc directement, et seul « Entraînement » ouvre le sélecteur,
+// pour le seul deck de l'IA.
 import { useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
@@ -38,14 +39,18 @@ export default function MainMenu() {
       </div>
 
       <div className="flex w-full max-w-xs flex-col gap-3">
-        <Button variant="primary" className="w-full py-3 text-base" onPointerDown={() => navigate('deck_selector', { mode: 'play' })}>
+        {/* « Jouer » est le duel en ligne : c'est le mode principal, il prend
+            donc le bouton primaire. Il joue le deck actif, sans sélection en
+            amont — d'où l'entrée directe (ou l'inscription en invité). */}
+        <Button variant="primary" className="w-full py-3 text-base" onPointerDown={() => navigate(user ? 'online_lobby' : 'auth')}>
           Jouer
         </Button>
         <TutorialButton />
         <div className="flex gap-2">
-          {/* Ces deux modes jouent le deck actif : aucune sélection en amont. */}
           <Button className="flex-1" onPointerDown={() => navigate('tournament')}>🏆 Tournoi</Button>
-          <Button className="flex-1" onPointerDown={() => navigate(user ? 'online_lobby' : 'auth')}>⚔ Duel en ligne</Button>
+          {/* Entraînement = la partie solo contre l'IA. Seul mode qui ouvre
+              encore le sélecteur, et uniquement pour choisir le deck adverse. */}
+          <Button className="flex-1" onPointerDown={() => navigate('deck_selector', { mode: 'play' })}>🤖 Entraînement</Button>
         </div>
         <ArcadeButton />
         <div className="flex gap-2">
@@ -188,7 +193,7 @@ function MissionsButton() {
 //   - rien quand la journée est soldée (parcours complet ou run perdue).
 //
 // Rien n'est rendu en invité : la run est gardée côté serveur, elle a besoin
-// d'un compte. Le bouton renvoie alors vers l'inscription, comme le Duel en ligne.
+// d'un compte. Le bouton renvoie alors vers l'inscription, comme « Jouer ».
 function ArcadeButton() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
