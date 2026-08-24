@@ -20,8 +20,15 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
+        // Deux couleurs, deux moments — les confondre était l'erreur.
+        // `background_color` est l'écran de démarrage : il précède l'écran de
+        // chargement de l'app (`bg-surface`), il garde donc sa teinte.
+        // `theme_color` peint les BARRES SYSTÈME pendant qu'on joue, à côté du
+        // décor spatial : il miroite `--color-space-edge` (styles/space.css),
+        // sans quoi la barre de navigation Android pose une bande grise en bas
+        // de l'écran — visible en appli installée, jamais en navigateur.
         background_color: '#0f1117',
-        theme_color: '#0f1117',
+        theme_color: '#080a13',
         icons: [
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },

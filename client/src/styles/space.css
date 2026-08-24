@@ -7,6 +7,24 @@
    remplissage plein écran à chaque image. Le canvas ne porte donc que ce qui
    est PONCTUEL — les étoiles, qui scintillent et dérivent une par une. */
 
+/* Les deux teintes vers lesquelles le décor TEND À SES BORDS, une fois le
+   vignettage composé par-dessus le vide profond. Ce ne sont pas des choix de
+   maquette, ce sont des MESURES (décor rendu à 393 × 780, moyenne de la ligne
+   de pixels du bord) : le haut tire au bleu, que la radiale de la voûte y
+   ajoute, le bas est un quasi-noir franc.
+   Elles servent à peindre le fond du DOCUMENT — cf. index.css, qui explique ce
+   que ça répare. Deux valeurs et non une moyenne : une teinte unique manquait
+   forcément l'un des deux bords de 5 points, ce qui se voit sur un quasi-noir.
+   ⚠️ `--color-space-edge` (le bas) est MIROITÉE hors CSS, là où aucune
+   variable ne peut voyager : `<meta name="theme-color">` (index.html) et
+   `theme_color` du manifeste (vite.config.ts). C'est bien le BAS qu'elles
+   suivent — une barre système Android n'a qu'une couleur pour ses deux barres,
+   et c'est celle du bas qui borde le décor sur toute sa largeur. */
+:root {
+  --color-space-edge-top: #0b0e1c;
+  --color-space-edge: #080a13;
+}
+
 @keyframes space-nebula-a {
   0%, 100% { transform: translate3d(-4%, -2%, 0) scale(1);    opacity: .55; }
   50%      { transform: translate3d(4%, 3%, 0)  scale(1.12); opacity: .85; }

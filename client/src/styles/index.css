@@ -2,11 +2,38 @@
 @import "./board3d.css";
 @import "./space.css";
 
-/* Évite le liseré blanc (fond par défaut du document) visible au lancement
-   en PWA mobile — sous la barre d'accueil iOS, ou pendant l'overscroll —
-   tant que React n'a pas encore posé bg-surface sur <main>. */
+/* Le fond du DOCUMENT — pas celui d'un écran. C'est lui qu'on voit partout où
+   la couche de décor (`SpaceBackground`, en `position: fixed`) ne peint pas :
+   rebond d'overscroll iOS, bande sous l'indicateur d'accueil, instant de
+   bascule où le viewport visuel dépasse le viewport de mise en page.
+
+   ⚠️ Il valait `--color-surface` (#0f1117), et c'était la panne : le décor
+   spatial TEND VERS #080a13 en bas de fenêtre (mesuré), soit un quasi-noir.
+   Une bande de #0f1117 sous lui est plus claire de 7 points sur R et G — sur
+   un fond aussi sombre, l'écart relatif est énorme et se lit comme une barre
+   grise franche : « le fond ne va pas jusqu'en bas ». Il se voyait surtout en
+   appli installée, où l'absence de barre d'URL rend la bande basse permanente
+   au lieu de passer avec le défilement.
+
+   Les teintes des bords du décor (`--color-space-edge*`, mesurées dans
+   space.css) sont donc les seules qui conviennent ici : la bande devient
+   indiscernable de ce qui la surplombe, quelle que soit la raison pour laquelle
+   elle apparaît. Elles règlent aussi le liseré blanc du lancement, que #0f1117
+   réglait déjà.
+
+   Le dégradé reprend la verticale du décor pour couvrir les DEUX bords ; il est
+   `no-repeat` et adossé à `background-color`, si bien que la zone au-delà de la
+   boîte de <html> — page défilée, rebond bas — rend la teinte du bas, très
+   exactement celle du bord qu'elle prolonge. Il est posé sur <html> SEUL : un
+   fond sur <html> est propagé au canevas du document, en poser un second sur
+   <body> le repeindrait par-dessus dans la seule boîte du body. */
+html {
+  background-color: var(--color-space-edge);
+  background-image: linear-gradient(180deg, var(--color-space-edge-top) 0%, var(--color-space-edge) 100%);
+  background-repeat: no-repeat;
+}
+
 html, body {
-  background-color: #0f1117;
   height: 100%;
   overscroll-behavior-y: none;
 }

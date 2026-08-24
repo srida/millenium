@@ -3,7 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f1117" />
+    <!-- Couleur des barres système en appli installée (Android les peint avec,
+         iOS non : `black-translucent` les rend transparentes). Elle miroite
+         `--color-space-edge` de styles/space.css — la teinte vers laquelle le
+         décor spatial tend à ses bords — pour que la barre de navigation basse
+         ne se lise pas comme une bande grise sous le décor. -->
+    <meta name="theme-color" content="#080a13" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
