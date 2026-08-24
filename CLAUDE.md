@@ -54,6 +54,8 @@ Repo : `https://github.com/srida/Millenium`
 
 ### Outillage de qualité
 
+**Simulation d'équilibrage** (`.github/workflows/balance-sim.yml`) — routine quotidienne qui simule ~60 000 parties contre le catalogue de production et dépose son rapport sur `/admin/sim`. Voir « Simulation d'équilibrage » plus bas.
+
 **CI** (`.github/workflows/ci.yml`) — lint backend + client, toute la suite de tests, `tsc --noEmit`, et `npm audit --omit=dev --audit-level=high` (le bruit des devDependencies rendrait le signal inutile). Même garde `[skip ci]` que le workflow de version, sinon chaque commit de bump relancerait la suite.
 
 **ESLint client** (`client/eslint.config.js`) — encode les frontières d'architecture (`logic/` n'importe ni React, ni Zustand, ni Three, ni `data/` ; `three/` n'importe ni React ni Zustand) **et les règles des hooks React**. ⚠️ Ces dernières manquaient sur une soixantaine de composants : `rules-of-hooks`, celle qui attrape les plantages réels (un hook sous condition, dans une boucle, après un `return`), n'était vérifiée nulle part — le code la respectait, rien ne le maintenait. `exhaustive-deps` est en **`error`** et non en `warn` : les six écarts du projet sont tous délibérés (montage unique de `GameScreen`/`GameScreenPvp`, dépendance sur un *champ* plutôt que sur l'instantané entier dans `MissionsScreen`/`ShopScreen`…) et portent chacun leur `eslint-disable-next-line` avec sa raison. Une fois ces six-là nommés il ne reste aucun bruit ; en avertissement, la règle aurait rejoint la liste de ce qu'on ne lit plus.
@@ -130,6 +132,8 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `POST/PUT/DELETE /api/boards/:id/background` | Site admin | Fond de grille d'un terrain (URL / base64 / suppression) |
 | `GET /api/export` | Auth | Export complet avec checksums illustrations, avatars, affiches de packs **et fonds de terrain** |
 | `/api/admin/db/*` | Site admin | Inspection de la base SQLite (`routes/admin-db.js`) |
+| `GET /admin/sim` | Site admin | Rapport de la simulation d'équilibrage (`sim-report.html`) |
+| `/api/admin/sim/*` | Site admin | Dépôt et historique des runs (`routes/admin-sim.js`) |
 
 ### Lecture et écriture des catalogues (`readJson` / `writeJson`, `app.js`)
 
@@ -960,6 +964,171 @@ Au démarrage puis une fois par jour (`setInterval(...).unref()`, pour ne jamais
 Tout le calendrier du jeu (`missions.dayKey`, `cycleKey`, `weekKey`, dont dérivent boutique, cosmétiques, arcade et cadeau quotidien) lit l'heure **locale du processus**. Si `TZ` n'est pas réglée, Node prend celle du système — UTC sur la plupart des hébergeurs — et tous les rendez-vous quotidiens se décalent sans que rien ne le dise. `logTimezone()` le **nomme** au démarrage, exactement comme `[assets] ⚠` nomme un dossier mal placé : on ne peut pas deviner le bon fuseau, on peut au moins refuser de le taire.
 
 ---
+
+## Simulation d'équilibrage (`client/src/sim/`)
+
+Ce qui répond à « quelle carte est trop forte ? » sans attendre qu'un joueur le
+dise. Le catalogue s'édite à la main depuis l'admin ; rien ne mesurait ses 653
+cartes. Le module simule des dizaines de milliers de parties, classe les cartes,
+et une routine quotidienne dépose son rapport sur **`/admin/sim`**.
+
+**Il ne réimplémente RIEN.** Il pilote une vraie `GameSession` en mode `'ai'` —
+c'est littéralement la partie solo, moins l'animation. Terrain, vétérance,
+réanimation d'attribut, règle du doublon, pioches garanties et cimetière
+viennent gratuitement.
+
+⚠️ **Ce n'est PAS `MatchSimulator`**, qui rejoue une boucle allégée pour le
+Tournoi : celui-ci n'incrémente pas la vétérance (`u.veterancy_points++` de
+`finishCombat` n'y est pas, le seuil `VETERANCY_THRESHOLD` ne s'active donc
+jamais), ignore les unités réanimées (`attributeResult.revived` est calculé puis
+jeté) et ne pose aucun terrain. Mesurer l'équilibrage dessus mesurerait un jeu
+que personne ne joue. Il n'est pas touché — seul `Tournament.js` en dépend.
+
+| Fichier | Rôle |
+|---|---|
+| `logic/Random.ts` | xorshift32 semé, **pur** (aucun import, pas même `node:crypto`) — le seul ajout à `logic/` |
+| `sim/catalog.ts` | `data/` s'il existe, sinon `initial-data/` ; empreinte du catalogue mesuré |
+| `sim/autoPlayer.ts` | Tient le siège du joueur, **via la seule API publique de `GameSession`** |
+| `sim/decks.ts` | Decks aléatoires à **couverture de matériaux**, fermeture pour l'A/B |
+| `sim/runGame.ts` | La boucle d'une partie, instrumentée |
+| `sim/metrics.ts` | Agrégation par carte, intervalles de Wilson |
+| `sim/protocol.ts` | Les deux passes, et le handicap IA |
+| `sim/report.ts` / `sim/run.ts` | Forme JSON publiée, point d'entrée CLI |
+
+```
+npx --prefix client vite-node src/sim/run.ts -- --games=60000 --ab-top=20 --seed=2026-08-24
+```
+
+⚠️ **`vite-node` et non `node`** : `logic/` est en ESM TypeScript avec des
+imports en `.js`, que Node ne résout pas seul. Il arrive avec vitest — **aucune
+dépendance nouvelle**. Et le module vit sous `client/src/` pour être couvert par
+`npm run lint` et `tsc --noEmit` ; rien dans l'application ne l'importe, il
+n'entre donc dans aucun bundle.
+
+### Le hasard est SEMÉ, sinon rien ne se rejoue
+
+`rand` est une dep injectée, à valeur par défaut `Math.random` — **aucun
+appelant existant ne change** (`buildSession`, `MatchSimulator`,
+`PvpController`). Trois points de branchement : `Draw.drawHand`, le constructeur
+d'`EnemyAI`, et `GameSessionDeps.rand` (qui couvre les trois tirages de pioche
+garantie et l'IA qu'elle construit). `getRandomBoard` / `getRandomMagies`
+étaient déjà injectés.
+
+### Les trois constats qui commandent le protocole
+
+1. ⚠️ **Le siège n'est pas neutre.** `CombatManager.step()` trie
+   `[...playerUnits, ...enemyUnits]` et, à égalité totale d'initiative, de
+   vitesse d'attaque et de `card_id`, le tri stable laisse le joueur frapper le
+   premier — **mesuré à 61 % pour le côté A sur un miroir strict**. Le départage
+   par `card_id` porte le déterminisme PvP : on n'y touche pas, on joue **chaque
+   appariement dans les deux sens** et on ne mesure que le siège du joueur.
+2. ⚠️ **Appartenir au deck n'est pas être posée.** Sans filtre de couverture,
+   **130 cartes sur 653 ne sont jamais posées** en 1000 parties — toutes des
+   invocations spéciales dont les matériaux manquaient. Le dénominateur d'un
+   winrate est donc le nombre de parties où la carte a été **posée**, et le
+   générateur n'admet une carte que si le deck couvre déjà ses matériaux (ids
+   *et* attributs, couverture accumulée tier par tier — même règle que
+   `scripts/build-bot-decks.js`).
+3. ⚠️ **1000 parties par jour ne mesurent rien.** Elles rendent 46 poses par
+   carte en médiane, soit ±14 points d'intervalle de confiance : on ne distingue
+   pas une carte à 55 % d'une carte à 45 %. Il faut ~2400 observations pour
+   ±2 points, soit ~60 000 parties — **11 minutes** à 10,5 ms la partie.
+
+### `ENEMY_HANDICAP` — un instrument de mesure, pas un réglage de difficulté
+
+L'auto-joueur bat `EnemyAI` **80 % sur un miroir strict** : à ce niveau, une
+carte forte n'a plus que 20 points de marge et tout se tasse contre le plafond.
+`+4 ATK / +40 PV` (le primitif `enemyBonus` de l'Arcade, réutilisé tel quel)
+ramène la ligne de base à **~50 %**, où les deux sens du déséquilibre ont la
+même place. ⚠️ Il doit rester **figé** d'un jour sur l'autre : le recalibrer
+rendrait le rapport d'hier incomparable, et c'est le diff qui fait tout
+l'intérêt de la routine. Le rapport publie la ligne de base réalisée — si elle
+dérive à handicap constant, c'est le jeu qui a bougé.
+
+### Deux passes, qui ne disent pas la même chose
+
+| Passe | Ce qu'elle fait | Ce qu'elle vaut |
+|---|---|---|
+| **Détecteur** | ~60 000 parties, decks aléatoires couvrants, les deux sens | **Signale.** Le winrate y reste contaminé par le deck porteur |
+| **A/B** | Deck témoin figé, un seul slot qui change, N parties par bras | **Tranche.** Le seul chiffre qui isole la carte |
+
+Mesuré : Ra le Dragon Ailé ressort à **+35,9 pt** au détecteur et **+8,3 pt** en
+A/B — l'écart entre les deux **est** le biais de deck, et c'est la raison d'être
+de la seconde passe.
+
+- L'A/B ne part **que des lignes significatives** : envoyer 1200 parties
+  confirmer une carte vue trois fois serait du gaspillage déguisé en rigueur.
+- Le témoin est construit **autour** de la carte (`materialClosure`), et le bras
+  « sans » est le même deck moins elle — les matériaux restent en place.
+- La carte évincée n'est jamais un matériau dont une autre carte du deck dépend,
+  sinon l'écart ne porterait plus seulement sur la carte testée.
+- Une carte qu'on ne peut pas rendre invocable est déclarée **« non testable »**,
+  jamais dotée d'un chiffre qui ne mesurerait rien.
+
+### Ce qu'un chiffre a le droit d'affirmer
+
+- **Intervalle de Wilson**, jamais l'intervalle normal : ce dernier rend une
+  largeur **nulle** sur un taux de 0 ou 1, et une carte posée trois fois et
+  gagnante trois fois passerait pour une certitude.
+- **Le classement trie par l'écart amputé de son incertitude** (`effectSize`),
+  et présente les lignes **significatives** d'abord. Trier par |Δ| brut remonte
+  en tête les cartes posées une seule fois : +50 points d'écart, ±40
+  d'intervalle qui dit exactement qu'on n'en sait rien.
+- ⚠️ **Les dégâts sur la durée ne sont pas attribués au lanceur** : l'événement
+  `dot` ne nomme pas sa source (poison et brûlure le partagent). Élargir le
+  contrat d'événements de `logic/` pour ça casserait les golden tests — ils sont
+  donc comptés au débit de la victime, et le rapport le dit.
+
+### Consultation — `/admin/sim`
+
+`routes/admin-sim.js`, monté **avec un `requireSiteAdmin` explicite** (même
+raison qu'`admin-db.js` : les GET sous `/api` sont publics par défaut, et un
+rapport nomme les cartes trop fortes du jeu). Les runs vivent dans
+`DATA_DIR/sim-reports/<AAAA-MM-JJ>.json` — le **volume**, donc l'historique
+survit au déploiement, et le diff avec hier est gratuit. Écriture atomique,
+rétention 30 jours purgée **à l'écriture** (le seul moment où le dossier change).
+
+⚠️ La date compose un **nom de fichier** : garde stricte `^\d{4}-\d{2}-\d{2}$`,
+même raison que `safeAssetId`. Et `/latest` est enregistré **avant** `/:date`,
+qui le capturerait sinon.
+
+⚠️ **Le rapport ne transporte que des agrégats par carte** (~165 Ko mesuré) : le
+corps d'une requête `/api` est plafonné à 1 Mo hors routes d'upload. Aucune
+ligne par partie n'y entre jamais — verrouillé par golden test.
+
+`sim-report.html` (racine, à côté d'`admin.html`) est une page autonome qui va
+chercher ses données sur `/api/admin/sim` : tuiles de santé, graphique divergent
+des écarts, distribution des winrates, verdicts A/B, tableau filtrable des 653
+cartes avec la colonne **Δ hier**, et la liste des cartes jamais posées — qui
+distingue « jamais retenue en deck » (matériaux non couverts) de « en deck,
+jamais invoquée ». Palette de data-viz validée aux six contrôles dans les deux
+modes. Lien depuis l'onglet ⚖️ Équilibrage d'`admin.html`.
+
+### La routine (`.github/workflows/balance-sim.yml`)
+
+Cron quotidien + `workflow_dispatch`. ⚠️ **Le `sync-data.js pull` en tête n'est
+pas optionnel** : le runner clone le dépôt, donc `initial-data/` — le catalogue
+joué vit dans `data/`, sur le volume, gitignoré, et c'est lui que l'admin
+retouche. Sans ce pull la routine mesure un catalogue périmé. ⚠️ **Le cron
+GitHub est en UTC** : l'heure de Paris visée et l'offset retenu sont écrits dans
+le fichier (même vigilance que `logTimezone`). L'artifact part `if: always()` —
+une simulation de 15 minutes ne doit pas être perdue parce que le serveur
+redémarrait au moment du dépôt.
+
+### Périmètre assumé
+
+- **Ni magies ni Phase Shopping** : il faudrait une politique de magies pour
+  l'IA, qui n'existe nulle part. C'est de la nouvelle IA de jeu, et une mauvaise
+  politique fausserait le verdict sur les cartes. Les **terrains**, eux, sont
+  dedans (cases bloquées et ligne de vue pèsent sur les unités à distance).
+- **L'adversaire est `EnemyAI`**, constante et plus faible que l'auto-joueur.
+  C'est ce que le handicap compense ; les cartes sont comparées entre elles dans
+  des conditions identiques, jamais à un absolu.
+- Verrouillé par `client/src/test/sim.test.ts` (23 golden tests), tous
+  **éprouvés dans les deux sens** : RNG remis à `Math.random` → le déterminisme
+  tombe ; filtre de couverture retiré → `CORE_101` n'est plus invocable dans son
+  propre deck ; règle du doublon retirée du moteur → l'auto-joueur pose 5 unités
+  au lieu d'1 ; tri par |Δ| brut → le bruit coiffe le signal.
 
 ## Data Layer
 

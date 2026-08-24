@@ -1,0 +1,96 @@
+name: Simulation d'équilibrage
+
+# Simule des dizaines de milliers de parties contre le catalogue RÉEL, puis
+# dépose le rapport sur /api/admin/sim — consultable sur /admin/sim.
+#
+# Elle existe pour une raison précise : le catalogue s'édite à la main depuis
+# l'admin, et rien ne disait jusqu'ici quelle carte est trop forte. Une routine
+# ne vaut cependant que si elle se COMPARE À HIER : un tableau de winrates
+# absolus que personne ne lit est du bruit. C'est le diff — quelles cartes ont
+# bougé depuis la dernière retouche — qui justifie le rendez-vous quotidien.
+on:
+  schedule:
+    # ⚠️ Le cron GitHub est en UTC. Visé : 05 h 30 à Paris. En heure d'ÉTÉ
+    # (UTC+2) c'est 03 h 30 UTC — la valeur retenue ici. En heure d'hiver le
+    # rapport tombera donc à 04 h 30 locale : sans conséquence pour une routine
+    # nocturne, et préférable à deux crons qui se recouvriraient à la bascule.
+    - cron: '30 3 * * *'
+  # Pour lancer une mesure à la main juste après une passe d'équilibrage,
+  # sans attendre la nuit.
+  workflow_dispatch:
+    inputs:
+      games:
+        description: 'Parties du détecteur'
+        default: '60000'
+      ab_top:
+        description: 'Cartes soumises à l A/B'
+        default: '20'
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    # 60 000 parties ≈ 11 min, plus l'A/B ≈ 5 min. La borne est un garde-fou
+    # contre une boucle qui ne se termine pas, pas un budget serré.
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+
+      - name: Installer les dépendances
+        run: |
+          npm ci
+          npm --prefix client ci
+
+      # ⚠️ SANS CETTE ÉTAPE, LA ROUTINE NE MESURE RIEN D'UTILE. Le runner clone
+      # le dépôt, donc `initial-data/` — le catalogue livré. Le catalogue joué
+      # vit dans `data/`, sur le volume de production, gitignoré, et c'est lui
+      # que l'admin retouche. `loadCatalog()` préfère `data/` dès qu'il existe :
+      # ce pull est ce qui le fait exister.
+      - name: Récupérer le catalogue de production
+        env:
+          SYNC_URL: ${{ secrets.SYNC_URL }}
+          ADMIN_USER: ${{ secrets.ADMIN_USER }}
+          ADMIN_PASS: ${{ secrets.ADMIN_PASS }}
+        run: node scripts/sync-data.js pull --no-illustrations
+
+      # `vite-node` et non `node` : la couche logic/ est en ESM TypeScript avec
+      # des imports en `.js`, que Node ne résout pas seul. Il arrive avec vitest,
+      # déjà dans les devDependencies du client — aucune dépendance de plus.
+      - name: Simuler
+        run: |
+          npx --prefix client vite-node src/sim/run.ts -- \
+            --games=${{ github.event.inputs.games || '60000' }} \
+            --ab-top=${{ github.event.inputs.ab_top || '20' }} \
+            --ab-games=600 \
+            --out=sim-report.json
+
+      # Le dépôt est séparé du calcul : une simulation de 15 minutes ne doit pas
+      # être perdue parce que le serveur redémarrait à cet instant. L'artifact
+      # part dans tous les cas (`if: always()`), le POST peut échouer seul.
+      - name: Archiver le rapport
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-equilibrage
+          path: sim-report.json
+          retention-days: 14
+
+      - name: Déposer sur /admin/sim
+        env:
+          SYNC_URL: ${{ secrets.SYNC_URL }}
+          ADMIN_USER: ${{ secrets.ADMIN_USER }}
+          ADMIN_PASS: ${{ secrets.ADMIN_PASS }}
+        run: |
+          curl --fail --show-error --silent \
+            --user "${ADMIN_USER:-admin}:${ADMIN_PASS}" \
+            --header 'content-type: application/json' \
+            --data-binary @sim-report.json \
+            "${SYNC_URL%/}/api/admin/sim"

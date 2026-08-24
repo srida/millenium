@@ -35,6 +35,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .tab { padding: 6px 16px; border-radius: 6px; cursor: pointer; color: var(--muted); font-weight: 500; transition: all .15s; border: none; background: none; font-size: 14px; }
 .tab:hover { color: var(--text); background: var(--surface2); }
 .tab.active { color: var(--text); background: var(--accent); }
+.tab-link { text-decoration: none; display: inline-block; line-height: 1.5; }
 .main { flex: 1; overflow: hidden; display: flex; }
 
 /* Sidebar */
@@ -388,6 +389,10 @@ select.filter:focus { border-color: var(--accent); }
       <button class="tab" onclick="switchTab('variants')">🎨 Variantes</button>
       <button class="tab" onclick="switchTab('stats')">📊 Stats</button>
       <button class="tab" onclick="switchTab('db')">🗄️ Base SQL</button>
+      <!-- Page à part, pas un onglet : le rapport d'équilibrage est produit par
+           la routine quotidienne, pas édité ici. `tab-link` le tient hors du
+           sélecteur par sous-chaîne de `switchTab`. -->
+      <a class="tab tab-link" href="/admin/sim" title="Rapport de la simulation d'équilibrage">⚖️ Équilibrage</a>
     </div>
   </div>
 

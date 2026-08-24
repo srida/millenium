@@ -16,11 +16,15 @@ export class EnemyAI {
    * @param {Object} deck   - { "1": [cardId, ...], ..., "5": [...] }
    * @param {CardDatabase} cardDb - must already be initialised
    * @param {'player'|'enemy'} side - which board side this AI plays (default 'enemy')
+   * @param {() => number} rand - source de hasard, injectée pour que la
+   *   simulation d'équilibrage puisse SEMER la pioche (cf. logic/Random.ts).
+   *   Le défaut laisse le jeu strictement inchangé.
    */
-  constructor(deck, cardDb, side = 'enemy') {
+  constructor(deck, cardDb, side = 'enemy', rand = Math.random) {
     this._deck = deck;
     this._cardDb = cardDb;
     this._side = side;
+    this._rand = rand;
     this._hand = [];
   }
 
@@ -42,7 +46,7 @@ export class EnemyAI {
     if (pool.length === 0) { this._hand = []; return []; }
     const hand = [];
     for (let i = 0; i < HAND_SIZE; i++) {
-      hand.push(pool[Math.floor(Math.random() * pool.length)]);
+      hand.push(pool[Math.floor(this._rand() * pool.length)]);
     }
     this._hand = hand;
     return [...hand];

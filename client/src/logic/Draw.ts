@@ -11,15 +11,22 @@ export function tiersForRound(round: number): number[] {
   return [3, 4, 5];
 }
 
-// Draw `count` cards randomly from the eligible tiers (duplicates allowed)
-export function drawHand(cardsByTier: Record<number, Card[]>, round: number, count: number): Card[] {
+// Draw `count` cards randomly from the eligible tiers (duplicates allowed).
+// `rand` est injecté pour que la simulation d'équilibrage puisse SEMER la
+// pioche (cf. logic/Random.ts) ; le défaut laisse le jeu inchangé.
+export function drawHand(
+  cardsByTier: Record<number, Card[]>,
+  round: number,
+  count: number,
+  rand: () => number = Math.random,
+): Card[] {
   const pool = tiersForRound(round).flatMap(t => cardsByTier[t] ?? []);
   if (pool.length === 0) return [];
   const hand: Card[] = [];
   for (let i = 0; i < count; i++) {
     // Clone so two draws of the same card_id are distinct object instances —
     // HandUI's selection (in non-grouped mode) compares cards by reference.
-    hand.push({ ...pool[Math.floor(Math.random() * pool.length)] });
+    hand.push({ ...pool[Math.floor(rand() * pool.length)] });
   }
   return hand;
 }

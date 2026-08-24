@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Millenium — Rapport d'équilibrage</title>
+<link rel="icon" href="data:,">
+<style>
+/* Palette de data-viz : instance de référence, validée aux six contrôles dans
+   les deux modes (paire divergente #2a78d6 ↔ #e34948 en clair, #3987e5 ↔
+   #e66767 en sombre). Les rôles sont des variables : le mode sombre ne
+   redéfinit que les valeurs, jamais le corps de la page. */
+:root {
+  color-scheme: light;
+  --page:        #f9f9f7;
+  --surface:     #fcfcfb;
+  --ink:         #0b0b0b;
+  --ink-2:       #52514e;
+  --muted:       #898781;
+  --grid:        #e1e0d9;
+  --axis:        #c3c2b7;
+  --border:      rgba(11,11,11,.10);
+  --strong:      #e34948;  /* Δ positif — carte qui surperforme */
+  --weak:        #2a78d6;  /* Δ négatif — carte qui sous-performe */
+  --neutral:     #f0efec;
+  --seq:         #2a78d6;
+  --good:        #0ca30c;
+  --warning:     #fab219;
+  --critical:    #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --axis: #383835;
+    --border: rgba(255,255,255,.10);
+    --strong: #e66767; --weak: #3987e5; --neutral: #383835; --seq: #3987e5;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
+  --muted: #898781; --grid: #2c2c2a; --axis: #383835;
+  --border: rgba(255,255,255,.10);
+  --strong: #e66767; --weak: #3987e5; --neutral: #383835; --seq: #3987e5;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 0 16px 64px;
+  background: var(--page); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 1180px; margin: 0 auto; }
+h1 { font-size: 20px; margin: 24px 0 4px; letter-spacing: -.01em; }
+h2 { font-size: 15px; margin: 32px 0 4px; letter-spacing: -.005em; }
+.sub { color: var(--ink-2); font-size: 13px; margin: 0 0 8px; }
+.note { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+a { color: var(--seq); }
+
+.panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px; margin-top: 12px;
+}
+
+/* ── Tuiles de synthèse : un chiffre n'est pas un graphique ── */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.tile .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.tile .v { font-size: 26px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; margin-top: 2px; }
+.tile .h { color: var(--ink-2); font-size: 12px; margin-top: 2px; }
+
+/* ── Barre de filtres : une seule ligne, au-dessus du contenu ── */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+select, input[type="search"], button {
+  font: inherit; font-size: 16px; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; min-height: 40px;
+}
+button { cursor: pointer; }
+button.on { border-color: var(--seq); color: var(--seq); }
+label.chk { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 13px; }
+
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; cursor: pointer; position: sticky; top: 0; background: var(--surface); }
+th:first-child, td:first-child, th.l, td.l { text-align: left; }
+tbody tr:hover { background: color-mix(in oklab, var(--seq) 8%, transparent); }
+.scroll { overflow-x: auto; max-height: 640px; overflow-y: auto; }
+.dim { color: var(--muted); }
+.tag { font-size: 11px; color: var(--ink-2); border: 1px solid var(--border); border-radius: 999px; padding: 1px 7px; }
+.pos { color: var(--strong); } .neg { color: var(--weak); }
+
+svg { display: block; max-width: 100%; }
+.tip {
+  position: fixed; pointer-events: none; z-index: 10; opacity: 0;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+  font-size: 12px; box-shadow: 0 6px 24px rgba(0,0,0,.18); max-width: 260px;
+  transition: opacity .1s;
+}
+.tip b { display: block; margin-bottom: 3px; }
+.empty { color: var(--muted); padding: 24px 0; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Rapport d'équilibrage</h1>
+  <p class="sub" id="head">Chargement…</p>
+
+  <div class="filters">
+    <select id="runPick" aria-label="Run à afficher"></select>
+    <span class="note" id="cmp"></span>
+  </div>
+
+  <div id="content" hidden>
+    <h2>Santé du run</h2>
+    <p class="note" id="healthNote"></p>
+    <div class="tiles" id="tiles"></div>
+
+    <h2>Écarts les plus marqués</h2>
+    <p class="sub">Écart à la ligne de base du run, en points de winrate. Seules les lignes <strong>significatives</strong> (écart supérieur à son propre intervalle de confiance à 95 %) sont retenues.</p>
+    <div class="panel"><div id="deltaChart"></div></div>
+
+    <h2>Distribution des winrates</h2>
+    <p class="sub">Nombre de cartes par tranche de 5 points, parmi celles posées au moins 100 fois. Un jeu équilibré donne une cloche serrée autour de la ligne de base.</p>
+    <div class="panel"><div id="histChart"></div></div>
+
+    <h2>Verdicts A/B</h2>
+    <p class="sub">Deck témoin figé, un seul slot qui change. C'est le seul chiffre qui isole la carte — le classement ci-dessus, lui, reste contaminé par le deck qui la porte.</p>
+    <div class="panel"><div id="ab"></div></div>
+
+    <h2>Toutes les cartes</h2>
+    <div class="filters">
+      <input type="search" id="q" placeholder="Chercher une carte…" aria-label="Chercher une carte">
+      <select id="fTier" aria-label="Filtrer par tier"><option value="">Tous les tiers</option></select>
+      <select id="fType" aria-label="Filtrer par type d'invocation"><option value="">Tous les types</option></select>
+      <label class="chk"><input type="checkbox" id="fSig"> significatives seulement</label>
+      <span class="note" id="count"></span>
+    </div>
+    <div class="panel" style="padding:0 16px"><div class="scroll"><table id="cards"></table></div></div>
+
+    <h2>Cartes jamais posées</h2>
+    <p class="sub">Elles étaient dans le deck et ne l'ont jamais quitté : c'est un problème de <strong>constructibilité</strong>, pas de puissance. Aucun chiffre d'équilibrage ne les concerne.</p>
+    <div class="panel" style="padding:0 16px"><div class="scroll"><table id="never"></table></div></div>
+
+    <h2 id="scopeTitle">Ce que ce rapport ne mesure pas</h2>
+    <ul class="sub" id="scope"></ul>
+  </div>
+</div>
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const pct = (x, d = 1) => x === null || x === undefined ? '—' : (100 * x).toFixed(d) + ' %';
+const pts = (x, d = 1) => x === null || x === undefined ? '—' : (x >= 0 ? '+' : '') + (100 * x).toFixed(d);
+const num = x => x === null || x === undefined ? '—' : new Intl.NumberFormat('fr-FR').format(Math.round(x));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+let RUNS = [], REPORT = null, PREV = null;
+
+// ── Infobulle : un survol par marque, cible plus grande que la marque ──
+const tip = $('#tip');
+function showTip(evt, html) {
+  tip.innerHTML = html;
+  tip.style.opacity = '1';
+  const r = tip.getBoundingClientRect();
+  let x = evt.clientX + 14, y = evt.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = evt.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = evt.clientY - r.height - 14;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+const hideTip = () => { tip.style.opacity = '0'; };
+addEventListener('scroll', hideTip, true);
+
+// ── Chargement ──
+async function boot() {
+  try {
+    const list = await (await fetch('/api/admin/sim')).json();
+    RUNS = list.runs || [];
+  } catch { RUNS = []; }
+  if (!RUNS.length) { $('#head').textContent = "Aucun rapport déposé pour l'instant."; return; }
+
+  const pick = $('#runPick');
+  pick.innerHTML = RUNS.map(r => `<option value="${r.date}">${r.date}</option>`).join('');
+  pick.onchange = () => load(pick.value);
+  await load(RUNS[0].date);
+}
+
+async function load(date) {
+  const idx = RUNS.findIndex(r => r.date === date);
+  REPORT = await (await fetch('/api/admin/sim/' + date)).json();
+  PREV = idx >= 0 && RUNS[idx + 1] ? await (await fetch('/api/admin/sim/' + RUNS[idx + 1].date)).json() : null;
+  render();
+}
+
+// ── Rendu ──
+function render() {
+  const r = REPORT;
+  $('#content').hidden = false;
+  $('#head').innerHTML = `${r.date} · graine <code>${r.seed}</code> · catalogue <code>${r.catalog.source}</code> `
+    + `(${num(r.catalog.cards)} cartes, empreinte <code>${r.catalog.hash}</code>) · handicap IA +${r.protocol.handicap.atk} ATK / +${r.protocol.handicap.hp} PV`;
+
+  $('#cmp').textContent = PREV
+    ? `Comparé au run du ${PREV.date}` + (PREV.catalog.hash !== r.catalog.hash ? ' — ⚠ le catalogue a changé entre les deux' : '')
+    : 'Pas de run antérieur : aucune colonne de comparaison.';
+
+  renderTiles();
+  renderDelta();
+  renderHist();
+  renderAb();
+  renderCards();
+  renderNever();
+  $('#scope').innerHTML = r.protocol.excludes.map(e => `<li>${e}</li>`).join('');
+}
+
+function tile(k, v, h) { return `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="h">${h || ''}</div></div>`; }
+
+function renderTiles() {
+  const h = REPORT.health, p = REPORT.protocol;
+  const drift = PREV ? h.baseline - PREV.health.baseline : null;
+  $('#healthNote').textContent =
+    "La ligne de base n'est pas 50 % par hasard : le handicap IA est calibré pour l'y amener, "
+    + "afin que les deux sens du déséquilibre aient la même place pour s'exprimer. Si elle dérive à handicap constant, c'est le jeu qui a bougé.";
+  $('#tiles').innerHTML = [
+    tile('Ligne de base', pct(h.baseline), drift === null ? 'winrate du siège joueur' : `${pts(drift)} pt vs run précédent`),
+    tile('Parties', num(p.games), `${num(p.ab_candidates)} cartes en A/B × ${num(2 * p.ab_games_per_arm)}`),
+    tile('Cartes mesurées', num(h.cards_measured), `${num(h.cards_never_played)} jamais posées`),
+    tile('Écarts significatifs', num(h.significant), 'au-delà de leur intervalle'),
+    tile('Combats au chrono', h.timeouts_per_game.toFixed(2), 'par partie — boards défensifs'),
+    tile('Tours par partie', h.rounds_per_game.toFixed(2), 'sur 5 au maximum'),
+  ].join('');
+}
+
+const prevById = () => {
+  const m = new Map();
+  if (PREV) for (const c of PREV.cards) m.set(c.id, c);
+  return m;
+};
+
+// ── Graphique divergent : la polarité (au-dessus / en dessous de la base) ──
+function renderDelta() {
+  const rows = REPORT.cards.filter(c => c.significant).slice(0, 22);
+  const host = $('#deltaChart');
+  if (!rows.length) { host.innerHTML = '<p class="empty">Aucun écart significatif sur ce run.</p>'; return; }
+
+  const prev = prevById();
+  const W = 900, LABEL = 250, PAD_R = 78, ROW = 22, H = rows.length * ROW + 34;
+  const plotW = W - LABEL - PAD_R;
+  // Graduations rondes : un axe qui affiche « -39 / -19 » se lit deux fois.
+  const raw = Math.max(...rows.map(c => Math.abs(c.delta))) * 100;
+  const max = (Math.ceil(raw / 10) * 10) / 100;
+  const mid = LABEL + plotW / 2;
+  const x = d => mid + (d / max) * (plotW / 2);
+
+  const ticks = [-max, -max / 2, 0, max / 2, max];
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Écart au winrate de base, par carte">`;
+  // Grille récessive + axe zéro
+  for (const t of ticks) {
+    const px = x(t);
+    svg += `<line x1="${px}" y1="26" x2="${px}" y2="${H - 8}" stroke="${t === 0 ? css('--axis') : css('--grid')}" stroke-width="${t === 0 ? 1.5 : 1}"/>`;
+    svg += `<text x="${px}" y="18" fill="${css('--muted')}" font-size="11" text-anchor="middle">${(100 * t).toFixed(0)}</text>`;
+  }
+  rows.forEach((c, i) => {
+    const y = 30 + i * ROW;
+    const bw = Math.abs(x(c.delta) - mid);
+    const bx = c.delta >= 0 ? mid : mid - bw;
+    const color = c.delta >= 0 ? css('--strong') : css('--weak');
+    const p = prev.get(c.id);
+    const move = p && p.winrate !== null && c.winrate !== null ? c.winrate - p.winrate : null;
+    // Barre fine, extrémité arrondie côté valeur, ancrée sur l'axe zéro.
+    svg += `<g class="mark" data-i="${i}">`
+      + `<rect x="${LABEL}" y="${y - 3}" width="${plotW}" height="${ROW - 2}" fill="transparent"/>`
+      + `<rect x="${bx}" y="${y}" width="${Math.max(bw, 1.5)}" height="12" rx="4" fill="${color}"/>`
+      + `<text x="${LABEL - 10}" y="${y + 10}" fill="${css('--ink-2')}" font-size="12" text-anchor="end">${esc(c.name)}</text>`
+      + `<text x="${c.delta >= 0 ? bx + bw + 7 : bx - 7}" y="${y + 10}" fill="${css('--ink-2')}" font-size="11" text-anchor="${c.delta >= 0 ? 'start' : 'end'}">${pts(c.delta)}${move !== null ? ` <tspan fill="${css('--muted')}">(${pts(move)})</tspan>` : ''}</text>`
+      + `</g>`;
+  });
+  svg += '</svg>';
+  host.innerHTML = svg;
+
+  host.querySelectorAll('.mark').forEach(g => {
+    const c = rows[+g.dataset.i];
+    g.style.cursor = 'default';
+    g.addEventListener('pointermove', e => showTip(e,
+      `<b>${esc(c.name)}</b>Tier ${c.tier} · ${c.type}<br>`
+      + `winrate <strong>${pct(c.winrate)}</strong> ± ${(100 * c.ci).toFixed(1)} pt (n = ${num(c.played)})<br>`
+      + `survie ${pct(c.survival, 0)} · ${num(c.dmg)} dégâts/combat<br>`
+      + `posée dans ${pct(c.play_rate, 0)} des parties où elle était en deck`));
+    g.addEventListener('pointerleave', hideTip);
+  });
+}
+
+// ── Histogramme : une seule série, donc pas de légende (le titre la nomme) ──
+function renderHist() {
+  const data = REPORT.cards.filter(c => c.played >= 100 && c.winrate !== null);
+  const host = $('#histChart');
+  if (!data.length) { host.innerHTML = '<p class="empty">Pas assez de poses pour une distribution.</p>'; return; }
+
+  const STEP = 0.05, bins = new Map();
+  for (const c of data) {
+    const b = Math.min(0.95, Math.floor(c.winrate / STEP) * STEP);
+    if (!bins.has(b)) bins.set(b, []);
+    bins.get(b).push(c);
+  }
+  const keys = [...bins.keys()].sort((a, b) => a - b);
+  const lo = keys[0], hi = keys[keys.length - 1];
+  const all = [];
+  for (let b = lo; b <= hi + 1e-9; b += STEP) all.push(Math.round(b * 100) / 100);
+  const maxN = Math.max(...all.map(b => (bins.get(b) || []).length));
+
+  const W = 900, H = 250, L = 40, R = 12, T = 26, B = 34;
+  const bw = (W - L - R) / all.length;
+  const y = n => H - B - (n / maxN) * (H - T - B);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Distribution des winrates par carte">`;
+  for (let i = 0; i <= 4; i++) {
+    const n = Math.round((maxN / 4) * i), py = y(n);
+    svg += `<line x1="${L}" y1="${py}" x2="${W - R}" y2="${py}" stroke="${css('--grid')}" stroke-width="1"/>`
+      + `<text x="${L - 8}" y="${py + 4}" fill="${css('--muted')}" font-size="11" text-anchor="end">${n}</text>`;
+  }
+  all.forEach((b, i) => {
+    const list = bins.get(b) || [], n = list.length;
+    // 2 px de plan entre deux remplissages voisins.
+    const x0 = L + i * bw + 1, w = Math.max(bw - 2, 1);
+    svg += `<g class="hbar" data-b="${b}">`
+      + `<rect x="${x0}" y="${T}" width="${w}" height="${H - T - B}" fill="transparent"/>`;
+    if (n > 0) svg += `<rect x="${x0}" y="${y(n)}" width="${w}" height="${H - B - y(n)}" rx="4" fill="${css('--seq')}"/>`;
+    if (i % 2 === 0) svg += `<text x="${x0 + w / 2}" y="${H - 12}" fill="${css('--muted')}" font-size="11" text-anchor="middle">${Math.round(100 * b)}</text>`;
+    svg += `</g>`;
+  });
+  // La ligne de base, direct-labellisée : c'est la seule référence qui compte.
+  const bx = L + ((REPORT.health.baseline - lo) / ((hi + STEP) - lo)) * (W - L - R);
+  svg += `<line x1="${bx}" y1="${T}" x2="${bx}" y2="${H - B}" stroke="${css('--axis')}" stroke-width="1.5" stroke-dasharray="4 3"/>`
+    + `<text x="${bx}" y="${T - 8}" fill="${css('--ink-2')}" font-size="11" text-anchor="middle">ligne de base ${pct(REPORT.health.baseline, 0)}</text>`
+    + '</svg>';
+  host.innerHTML = svg;
+
+  host.querySelectorAll('.hbar').forEach(g => {
+    const list = bins.get(+g.dataset.b) || [];
+    g.addEventListener('pointermove', e => showTip(e,
+      `<b>${Math.round(100 * (+g.dataset.b))} – ${Math.round(100 * (+g.dataset.b + STEP))} %</b>`
+      + `${list.length} carte${list.length > 1 ? 's' : ''}`
+      + (list.length ? '<br><span class="dim">' + list.slice(0, 6).map(c => esc(c.name)).join(', ') + (list.length > 6 ? '…' : '') + '</span>' : '')));
+    g.addEventListener('pointerleave', hideTip);
+  });
+}
+
+function renderAb() {
+  const ab = REPORT.ab || [];
+  if (!ab.length) { $('#ab').innerHTML = '<p class="empty">Aucune carte n\'a été soumise à l\'A/B sur ce run.</p>'; return; }
+  const rows = ab.map(a => {
+    if (a.untestable) return `<tr><td class="l">${esc(a.name)}</td><td>${a.tier}</td><td colspan="4" class="l dim">non testable — ${esc(a.untestable)}</td></tr>`;
+    const decisive = Math.abs(a.delta) > a.ci;
+    return `<tr><td class="l">${esc(a.name)}</td><td>${a.tier}</td>`
+      + `<td class="${a.delta >= 0 ? 'pos' : 'neg'}">${pts(a.delta)} pt</td>`
+      + `<td class="dim">± ${(100 * a.ci).toFixed(1)}</td>`
+      + `<td>${pct(a.with)} / ${pct(a.without)}</td>`
+      + `<td class="l">${decisive ? '<span class="tag">tranché</span>' : '<span class="dim">non concluant</span>'}</td></tr>`;
+  }).join('');
+  $('#ab').innerHTML = `<div class="scroll"><table><thead><tr>`
+    + `<th class="l">Carte</th><th>Tier</th><th>Δ winrate</th><th>IC 95 %</th><th>avec / sans</th><th class="l">Verdict</th>`
+    + `</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+const COLS = [
+  { k: 'name', l: 'Carte', c: 'l', f: c => esc(c.name) },
+  { k: 'tier', l: 'T', f: c => c.tier },
+  { k: 'type', l: 'Invocation', c: 'l', f: c => c.type },
+  { k: 'played', l: 'Posée (n)', f: c => num(c.played) },
+  { k: 'play_rate', l: 'Taux de pose', f: c => pct(c.play_rate, 0) },
+  { k: 'winrate', l: 'Winrate', f: c => pct(c.winrate) },
+  { k: 'ci', l: 'IC', f: c => c.ci === null ? '—' : '± ' + (100 * c.ci).toFixed(1) },
+  { k: 'delta', l: 'Δ base', f: c => `<span class="${c.delta >= 0 ? 'pos' : 'neg'}">${pts(c.delta)}</span>` },
+  { k: '_move', l: 'Δ hier', f: (c, p) => p && p.winrate !== null && c.winrate !== null ? pts(c.winrate - p.winrate) : '—' },
+  { k: 'survival', l: 'Survie', f: c => pct(c.survival, 0) },
+  { k: 'dmg', l: 'Dégâts/combat', f: c => num(c.dmg) },
+];
+// ⚠️ `null` = l'ordre DU RAPPORT, qui est celui de l'écart amputé de son
+// intervalle de confiance. Trier par |Δ| brut par défaut remonterait en tête
+// les cartes posées une seule fois : +50 points d'écart, et un intervalle de
+// ±40 qui dit exactement qu'on n'en sait rien.
+let sortKey = null, sortDir = -1;
+
+function renderCards() {
+  const prev = prevById();
+  const q = $('#q').value.trim().toLowerCase();
+  const tier = $('#fTier').value, type = $('#fType').value, sig = $('#fSig').checked;
+
+  if ($('#fTier').options.length === 1) {
+    for (const t of [...new Set(REPORT.cards.map(c => c.tier))].sort()) $('#fTier').add(new Option('Tier ' + t, t));
+    for (const t of [...new Set(REPORT.cards.map(c => c.type))].sort()) $('#fType').add(new Option(t, t));
+  }
+
+  let rows = REPORT.cards.filter(c =>
+    (!q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)) &&
+    (!tier || String(c.tier) === tier) && (!type || c.type === type) && (!sig || c.significant));
+
+  if (sortKey) rows = rows.slice().sort((a, b) => {
+    const va = sortKey === '_move' ? moveOf(a, prev) : a[sortKey];
+    const vb = sortKey === '_move' ? moveOf(b, prev) : b[sortKey];
+    if (typeof va === 'string') return sortDir * va.localeCompare(vb);
+    return sortDir * ((va ?? -Infinity) - (vb ?? -Infinity));
+  });
+
+  $('#count').textContent = `${rows.length} carte${rows.length > 1 ? 's' : ''} sur ${REPORT.cards.length}`
+    + (sortKey ? '' : ' · triées par écart net de son incertitude');
+  $('#cards').innerHTML =
+    `<thead><tr>${COLS.map(c => `<th class="${c.c || ''}" data-k="${c.k}">${c.l}${sortKey === c.k ? (sortDir < 0 ? ' ▾' : ' ▴') : ''}</th>`).join('')}</tr></thead>`
+    + `<tbody>${rows.map(c => `<tr>${COLS.map(col => `<td class="${col.c || ''}">${col.f(c, prev.get(c.id))}</td>`).join('')}</tr>`).join('')}</tbody>`;
+
+  $('#cards').querySelectorAll('th').forEach(th => th.onclick = () => {
+    const k = th.dataset.k;
+    if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = -1; }
+    renderCards();
+  });
+}
+const moveOf = (c, prev) => { const p = prev.get(c.id); return p && p.winrate !== null && c.winrate !== null ? c.winrate - p.winrate : null; };
+
+function renderNever() {
+  const list = REPORT.never_played || [];
+  if (!list.length) { $('#never').innerHTML = '<tbody><tr><td class="l dim" style="padding:16px">Toutes les cartes du catalogue ont été posées au moins une fois.</td></tr></tbody>'; return; }
+  // Deux causes très différentes, et c'est la SEULE chose à lire ici : une
+  // carte que le générateur n'a jamais retenue n'a pas les mêmes torts qu'une
+  // carte qui n'a jamais quitté la main.
+  const rows = list.slice().sort((a, b) => b.inDeck - a.inDeck).map(c => `<tr>`
+    + `<td class="l">${esc(c.name)}</td><td>${c.tier}</td><td class="l">${esc(c.summon_type)}</td>`
+    + `<td>${num(c.inDeck)}</td>`
+    + `<td class="l dim">${c.inDeck === 0 ? 'jamais retenue en deck — matériaux non couverts' : 'en deck, jamais invoquée'}</td></tr>`).join('');
+  $('#never').innerHTML = `<thead><tr><th class="l">Carte</th><th>Tier</th><th class="l">Invocation</th><th>Fois en deck</th><th class="l">Cause</th></tr></thead>`
+    + `<tbody>${rows}</tbody>`;
+}
+
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m])); }
+
+for (const id of ['#q', '#fTier', '#fType', '#fSig']) $(id).addEventListener('input', () => REPORT && renderCards());
+boot();
+</script>
+</body>
+</html>

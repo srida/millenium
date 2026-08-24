@@ -307,6 +307,12 @@ app.use(express.static(CLIENT_DIST));
 // Admin (protected)
 app.get('/admin', requireSiteAdmin, (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
+// Rapport de la simulation d'équilibrage — page autonome, servie comme
+// admin.html : elle va chercher ses données sur /api/admin/sim, qui porte le
+// même garde. Enregistrée AVANT le fallback SPA (fin de fichier), qui n'exclut
+// pas le préfixe /admin.
+app.get('/admin/sim', requireSiteAdmin, (req, res) => res.sendFile(path.join(__dirname, 'sim-report.html')));
+
 // Un id d'asset ne doit jamais pouvoir remonter l'arborescence : il sert de nom
 // de fichier tel quel.
 function safeAssetId(id) {
@@ -485,6 +491,11 @@ app.use('/api', require('./routes/online'));
 // Explorateur SQLite du mode admin — READ-ONLY, protégé (obligatoire : les
 // GET sous /api sont publics par défaut).
 app.use('/api/admin/db', requireSiteAdmin, require('./routes/admin-db'));
+
+// Rapports de la simulation d'équilibrage — même garde EXPLICITE, et pour la
+// même raison : le write-guard global ne couvre que les écritures, un GET sous
+// /api est public par défaut.
+app.use('/api/admin/sim', requireSiteAdmin, require('./routes/admin-sim'));
 
 // Protect write operations on /api (reads stay public for the game)
 app.use('/api', (req, res, next) => {

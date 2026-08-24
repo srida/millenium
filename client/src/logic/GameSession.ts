@@ -53,6 +53,12 @@ export interface GameSessionDeps {
    *  humain distant — le placement ennemi et le terrain sont gérés en externe
    *  (PvpController/PvpOpponentProvider), pas ici. */
   mode?: 'ai' | 'pvp';
+  /** Source de hasard de la partie : pioche joueur, pioches garanties et
+   *  pioche de l'IA. Injectée pour que la simulation d'équilibrage puisse
+   *  SEMER une partie et la rejouer à l'identique (cf. logic/Random.ts) —
+   *  `getRandomBoard` et `getRandomMagies`, déjà injectés, portent le reste.
+   *  Le défaut `Math.random` laisse tous les modes de jeu inchangés. */
+  rand?: () => number;
   /** Handicap PLAT donné à chaque unité de l'IA, cumulé à ses stats de base
    *  pour toute la partie. Absent ou nul = adversaire non trafiqué, le cas de
    *  tous les modes existants. C'est un primitif générique : `logic/` ne sait
@@ -96,8 +102,11 @@ export class GameSession {
 
   constructor(deps: GameSessionDeps) {
     this.deps = deps;
-    this.enemyAI = new EnemyAI(deps.enemyDeck, deps.cardDb as any, 'enemy');
+    this.enemyAI = new EnemyAI(deps.enemyDeck, deps.cardDb as any, 'enemy', deps.rand ?? Math.random);
   }
+
+  /** Le hasard de la partie, en un seul point de lecture. */
+  private get _rand(): () => number { return this.deps.rand ?? Math.random; }
 
   // ── Accesseurs ─────────────────────────────────────────────────────────
 
@@ -123,7 +132,7 @@ export class GameSession {
     const extraDraws = this.gameState.player_extra_draws;
     this.gameState.player_extra_draws = 0; // consommé — re-gagné chaque tour via attributs
     const randomCount = Math.max(0, HAND_SIZE + extraDraws - guaranteedDraws.length);
-    this.hand = [...this.hand, ...drawHand(this.deps.cardsByTier, this.gameState.round, randomCount)];
+    this.hand = [...this.hand, ...drawHand(this.deps.cardsByTier, this.gameState.round, randomCount, this._rand)];
 
     // Pioches garanties : ignorent la restriction de tier du tour — cherche dans tout le deck
     const fullPool = Object.values(this.deps.cardsByTier).flat();
@@ -132,14 +141,15 @@ export class GameSession {
         (!draw.tier      || c.tier === draw.tier) &&
         (!draw.attribute || c.attributes?.includes(draw.attribute)) &&
         (!draw.category  || c.summon_type === draw.category));
+      const rand = this._rand;
       if (matches.length > 0) {
-        this.hand.push({ ...matches[Math.floor(Math.random() * matches.length)] });
+        this.hand.push({ ...matches[Math.floor(rand() * matches.length)] });
       } else {
         const fallback = fullPool.filter((c: any) =>
           (!draw.attribute || c.attributes?.includes(draw.attribute)) &&
           (!draw.category  || c.summon_type === draw.category));
-        if (fallback.length > 0) this.hand.push({ ...fallback[Math.floor(Math.random() * fallback.length)] });
-        else if (fullPool.length > 0) this.hand.push({ ...fullPool[Math.floor(Math.random() * fullPool.length)] });
+        if (fallback.length > 0) this.hand.push({ ...fallback[Math.floor(rand() * fallback.length)] });
+        else if (fullPool.length > 0) this.hand.push({ ...fullPool[Math.floor(rand() * fullPool.length)] });
       }
     }
 
