@@ -1106,7 +1106,13 @@ modes. Lien depuis l'onglet ⚖️ Équilibrage d'`admin.html`.
 
 ### La routine (`.github/workflows/balance-sim.yml`)
 
-Cron quotidien + `workflow_dispatch`. ⚠️ **Le `sync-data.js pull` en tête n'est
+Cron quotidien + `workflow_dispatch`. ⚠️ **`environment: production` sur le job
+n'est pas décoratif** : les trois secrets (`SYNC_URL`, `ADMIN_USER`,
+`ADMIN_PASS`) vivent dans l'environnement GitHub du même nom, et un job qui ne
+s'y rattache pas explicitement ne les voit **pas** — `${{ secrets.X }}` y rend
+une chaîne vide, sans erreur ni avertissement, et la panne ne se manifeste qu'à
+l'étape du pull sur un « ADMIN_PASS manquant » qui n'en donne pas la raison.
+⚠️ **Le `sync-data.js pull` en tête n'est
 pas optionnel** : le runner clone le dépôt, donc `initial-data/` — le catalogue
 joué vit dans `data/`, sur le volume, gitignoré, et c'est lui que l'admin
 retouche. Sans ce pull la routine mesure un catalogue périmé. ⚠️ **Le cron

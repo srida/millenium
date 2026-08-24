@@ -29,6 +29,14 @@ on:
 jobs:
   simulate:
     runs-on: ubuntu-latest
+    # ⚠️ OBLIGATOIRE, et cette ligne n'est PAS décorative : les trois secrets
+    # (SYNC_URL, ADMIN_USER, ADMIN_PASS) vivent dans l'environnement GitHub
+    # « production », pas au niveau du dépôt. Un job qui ne s'y rattache pas
+    # explicitement ne les voit tout simplement pas — `${{ secrets.X }}` y rend
+    # une CHAÎNE VIDE, sans erreur ni avertissement. La panne ne se manifeste
+    # alors qu'à l'étape du pull, sur un « ADMIN_PASS manquant » qui n'en donne
+    # pas la raison, et à 3 h du matin.
+    environment: production
     # 60 000 parties ≈ 11 min, plus l'A/B ≈ 5 min. La borne est un garde-fou
     # contre une boucle qui ne se termine pas, pas un budget serré.
     timeout-minutes: 45
