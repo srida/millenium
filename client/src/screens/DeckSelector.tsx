@@ -6,16 +6,17 @@
 //
 //   'manage' (« Mes decks », depuis le menu) — LE point où l'on choisit son deck :
 //     un tap le promeut deck ACTIF, et le deck actif est celui joué partout
-//     (partie solo, tournoi, duel en ligne). Porte aussi la gestion : éditer
+//     (entraînement, tournoi, duel en ligne). Porte aussi la gestion : éditer
 //     (→ DeckBuilder), dupliquer, renommer, supprimer, créer.
 //
-//   'play' (« Jouer ») — on ne choisit QUE le deck de l'IA, parmi les decks
+//   'play' (« Entraînement ») — on ne choisit QUE le deck de l'IA, parmi les decks
 //     PUBLICS (les mêmes que ceux du Tournoi), jamais parmi ceux du joueur : un
 //     adversaire est un archétype construit, pas un brouillon de collection. Le
 //     deck du joueur est le deck actif, affiché en récap non modifiable ; sans
 //     choix d'adversaire, l'IA joue ce même deck en miroir.
 //
-// Tournoi et Duel en ligne ne passent plus par ici : ils consomment le deck actif.
+// Le Tournoi et « Jouer » (le duel en ligne) ne passent plus par ici : ils
+// consomment le deck actif.
 import { useEffect, useState } from 'react';
 import * as CardDatabase from '../data/CardDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
@@ -35,8 +36,8 @@ const MIN_DECK = 20;
 const MAX_PER_TIER = 8;
 
 const MODES: Record<DeckSelectorMode, { title: string; blurb: string }> = {
-  manage: { title: 'Mes decks', blurb: 'Le deck actif est celui que tu joues partout : partie solo, tournoi, duel en ligne.' },
-  play: { title: 'Partie solo', blurb: 'Choisis l\'adversaire parmi les decks du jeu. Sans choix, l\'IA joue le tien en miroir.' },
+  manage: { title: 'Mes decks', blurb: 'Le deck actif est celui que tu joues partout : entraînement, tournoi, duel en ligne.' },
+  play: { title: 'Entraînement', blurb: 'Choisis l\'adversaire parmi les decks du jeu. Sans choix, l\'IA joue le tien en miroir.' },
 };
 
 // Deck public projeté dans la même forme que les decks du joueur, pour être rendu

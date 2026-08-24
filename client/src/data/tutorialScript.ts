@@ -187,7 +187,7 @@ export function deckCoachStep(state: DeckCoachState): CoachStep | null {
     return {
       id: 'save',
       title: 'Ton deck est prêt',
-      text: "Enregistre-le : il deviendra ton deck actif, celui que jouent la partie solo, le tournoi et le duel en ligne.",
+      text: "Enregistre-le : il deviendra ton deck actif, celui que jouent l'entraînement, le tournoi et le duel en ligne.",
       blocking: false,
     };
   }

@@ -24,7 +24,7 @@ export const SCREEN_NAMES = [
 export type ScreenName = typeof SCREEN_NAMES[number];
 
 // 'manage' = gérer ses decks et choisir le deck ACTIF (celui joué partout) ;
-// 'play' = ne choisir que le deck de l'IA avant une partie solo.
+// 'play' = ne choisir que le deck de l'IA avant un entraînement (partie solo).
 export type DeckSelectorMode = 'play' | 'manage';
 
 export interface ScreenParams {
