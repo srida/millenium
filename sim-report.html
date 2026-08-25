@@ -91,6 +91,20 @@ tbody tr:hover { background: color-mix(in oklab, var(--seq) 8%, transparent); }
 .tag { font-size: 11px; color: var(--ink-2); border: 1px solid var(--border); border-radius: 999px; padding: 1px 7px; }
 .pos { color: var(--strong); } .neg { color: var(--weak); }
 
+/* ── Lecteur de l'émission ── */
+.player { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+button.primary { border-color: var(--seq); color: var(--seq); font-weight: 600; }
+.chapters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.chapters button { font-size: 13px; padding: 5px 10px; min-height: 34px; }
+.chapters button.on { border-color: var(--seq); color: var(--seq); }
+.script h3 { font-size: 13px; margin: 18px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.script p { margin: 0 0 6px; max-width: 68ch; }
+/* La phrase en cours : un fond, jamais une couleur de texte — le contraste doit
+   tenir dans les deux thèmes sans dépendre de la teinte. */
+.script p.now { background: color-mix(in oklab, var(--seq) 18%, transparent); border-radius: 4px; padding: 2px 6px; margin-left: -6px; }
+.script .items { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.script .items span { font-size: 12px; color: var(--ink-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; }
+
 svg { display: block; max-width: 100%; }
 .tip {
   position: fixed; pointer-events: none; z-index: 10; opacity: 0;
@@ -114,6 +128,27 @@ svg { display: block; max-width: 100%; }
   </div>
 
   <div id="content" hidden>
+    <h2>🎧 L'émission</h2>
+    <p class="sub">Le rapport raconté à voix haute, par la voix du navigateur. Le texte est celui du run — aucun chiffre n'y est ajouté.</p>
+    <div class="panel">
+      <div class="player">
+        <button id="play" class="primary">▶ Écouter</button>
+        <button id="stop" disabled>■</button>
+        <label class="chk">Vitesse
+          <select id="rate" aria-label="Vitesse de lecture">
+            <option value="0.9">0,9×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.15">1,15×</option>
+            <option value="1.3">1,3×</option>
+          </select>
+        </label>
+        <select id="voice" aria-label="Voix"></select>
+        <span class="note" id="playerNote"></span>
+      </div>
+      <div class="chapters" id="chapters"></div>
+      <div id="script" class="script"></div>
+    </div>
+
     <h2>Santé du run</h2>
     <p class="note" id="healthNote"></p>
     <div class="tiles" id="tiles"></div>
@@ -205,6 +240,7 @@ function render() {
     ? `Comparé au run du ${PREV.date}` + (PREV.catalog.hash !== r.catalog.hash ? ' — ⚠ le catalogue a changé entre les deux' : '')
     : 'Pas de run antérieur : aucune colonne de comparaison.';
 
+  renderShow();
   renderTiles();
   renderDelta();
   renderHist();
@@ -430,6 +466,150 @@ function renderNever() {
   $('#never').innerHTML = `<thead><tr><th class="l">Carte</th><th>Tier</th><th class="l">Invocation</th><th>Fois en deck</th><th class="l">Cause</th></tr></thead>`
     + `<tbody>${rows}</tbody>`;
 }
+
+// ── L'émission ────────────────────────────────────────────────────────────
+// Lecture par la Web Speech API : aucune dépendance, aucun appel réseau, aucune
+// clé. Le script vient du rapport (`sim/show.ts`), la page ne fait que le rendre
+// et l'énoncer — elle ne calcule ni ne reformule rien.
+
+const speech = window.speechSynthesis;
+let LINES = [];          // { segId, el, text } — une entrée par phrase
+let cursor = -1;
+let playing = false;
+let keepAlive = null;
+
+function renderShow() {
+  const show = REPORT.show;
+  const host = $('#script');
+  const chapters = $('#chapters');
+  if (!show || !show.segments?.length) {
+    host.innerHTML = '<p class="empty">Ce rapport ne porte pas d\'émission (run antérieur à sa mise en place).</p>';
+    chapters.innerHTML = '';
+    $('#play').disabled = true;
+    return;
+  }
+
+  chapters.innerHTML = show.segments
+    .map((seg, i) => `<button data-seg="${i}">${esc(seg.title)}</button>`).join('');
+
+  host.innerHTML = show.segments.map((seg, i) => {
+    const items = seg.cards.length
+      ? `<div class="items">${seg.cards.map(c => `<span title="${esc(c.note)}">${esc(c.name)}</span>`).join('')}</div>`
+      : '';
+    const phrases = seg.sentences
+      .map((t, j) => `<p data-seg="${i}" data-line="${j}">${esc(t)}</p>`).join('');
+    return `<h3 id="seg-${i}">${esc(seg.title)}</h3>${phrases}${items}`;
+  }).join('');
+
+  LINES = [...host.querySelectorAll('p[data-line]')]
+    .map(el => ({ segIdx: +el.dataset.seg, el, text: el.textContent }));
+
+  $('#playerNote').textContent =
+    `${show.segments.length} chapitres · ${show.words} mots · environ ${Math.round(show.estimatedSeconds / 60)} min`;
+
+  chapters.querySelectorAll('button').forEach(b => b.onclick = () => {
+    const i = LINES.findIndex(l => l.segIdx === +b.dataset.seg);
+    if (i >= 0) startAt(i);
+  });
+  host.querySelectorAll('p[data-line]').forEach((el, i) => el.onclick = () => startAt(i));
+
+  loadVoices();
+}
+
+// ⚠️ `getVoices()` est ASYNCHRONE sur Chrome : au premier rendu la liste est
+// vide, et elle n'arrive qu'avec l'événement `voiceschanged`. S'en remettre au
+// seul appel synchrone donne un sélecteur vide sur la moitié des navigateurs.
+function loadVoices() {
+  const all = speech ? speech.getVoices() : [];
+  const fr = all.filter(v => /^fr/i.test(v.lang));
+  const sel = $('#voice');
+  sel.innerHTML = (fr.length ? fr : all)
+    .map((v, i) => `<option value="${v.voiceURI}"${i === 0 ? ' selected' : ''}>${esc(v.name)}</option>`).join('');
+  // Un `<select>` vide s'affiche comme un contrôle écrasé et muet : on le retire
+  // plutôt que de laisser un élément qui ne propose rien.
+  sel.hidden = all.length === 0;
+
+  // Repli EXPLICITE : un poste sans voix installée est un cas réel. On désactive
+  // le bouton en DISANT pourquoi — le texte, lui, reste lisible et complet.
+  if (!speech || all.length === 0) {
+    $('#play').disabled = true;
+    $('#playerNote').textContent += ' · aucune voix disponible dans ce navigateur — le texte reste lisible ci-dessous';
+  } else if (fr.length === 0) {
+    $('#playerNote').textContent += ' · aucune voix française installée, la lecture utilisera une voix étrangère';
+  }
+}
+if (speech) speech.addEventListener('voiceschanged', () => { if (REPORT) loadVoices(); });
+
+function currentVoice() {
+  const uri = $('#voice').value;
+  return (speech.getVoices() || []).find(v => v.voiceURI === uri) || null;
+}
+
+function highlight(i) {
+  LINES.forEach(l => l.el.classList.remove('now'));
+  const line = LINES[i];
+  if (!line) return;
+  line.el.classList.add('now');
+  line.el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  $('#chapters').querySelectorAll('button').forEach(b =>
+    b.classList.toggle('on', +b.dataset.seg === line.segIdx));
+}
+
+// ⚠️ Une énonciation PAR PHRASE, jamais le script entier : Chrome tronque au-delà
+// d'une quinzaine de secondes. Le découpage sert du même coup au surlignage et
+// au chapitrage — une seule mécanique pour trois besoins.
+function speakFrom(i) {
+  if (i >= LINES.length) { stopSpeech(); return; }
+  cursor = i;
+  highlight(i);
+  const u = new SpeechSynthesisUtterance(LINES[i].text);
+  const v = currentVoice();
+  if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'fr-FR'; }
+  u.rate = parseFloat($('#rate').value) || 1;
+  u.onend = () => { if (playing) speakFrom(i + 1); };
+  u.onerror = () => { if (playing) speakFrom(i + 1); };
+  speech.speak(u);
+}
+
+function startAt(i) {
+  if (!speech || $('#play').disabled) return;
+  speech.cancel();
+  playing = true;
+  $('#play').textContent = '⏸ Pause';
+  $('#stop').disabled = false;
+  // ⚠️ Chrome suspend la synthèse au bout d'une quinzaine de secondes ; un
+  // `resume()` périodique est le contournement connu. Inoffensif ailleurs.
+  clearInterval(keepAlive);
+  keepAlive = setInterval(() => { if (playing && speech.speaking) speech.resume(); }, 10000);
+  speakFrom(i);
+}
+
+function stopSpeech() {
+  playing = false;
+  clearInterval(keepAlive);
+  if (speech) speech.cancel();
+  $('#play').textContent = '▶ Écouter';
+  $('#stop').disabled = true;
+  LINES.forEach(l => l.el.classList.remove('now'));
+}
+
+// ⚠️ L'appel doit être SYNCHRONE dans le gestionnaire du tap : la politique
+// d'autoplay l'exige, et Safari iOS refuse un `speak()` différé.
+$('#play').onclick = () => {
+  if (playing) { playing = false; speech.pause(); $('#play').textContent = '▶ Reprendre'; return; }
+  if (speech.paused && cursor >= 0) {
+    playing = true; speech.resume(); $('#play').textContent = '⏸ Pause'; return;
+  }
+  startAt(cursor >= 0 ? cursor : 0);
+};
+$('#stop').onclick = stopSpeech;
+$('#rate').onchange = () => { if (playing) startAt(cursor); };
+$('#voice').onchange = () => { if (playing) startAt(cursor); };
+
+// ⚠️ `speechSynthesis` continue de parler après un changement d'onglet ou une
+// navigation : sans ces deux lignes, la voix poursuit dans le vide.
+addEventListener('pagehide', () => speech && speech.cancel());
+addEventListener('visibilitychange', () => { if (document.hidden) stopSpeech(); });
 
 function esc(s) { return String(s ?? '').replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m])); }
 

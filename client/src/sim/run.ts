@@ -86,6 +86,7 @@ async function main() {
     seed: args.seed, abGamesPerArm: args.abGames, date: new Date().toISOString().slice(0, 10),
   });
   const json = JSON.stringify(report);
+  console.log(`[sim] émission : ${report.show.segments.length} chapitres, ${report.show.words} mots, ~${Math.round(report.show.estimatedSeconds / 60)} min`);
   console.log(`[sim] rapport : ${(json.length / 1024).toFixed(0)} Ko`);
   if (json.length > 1024 * 1024) {
     console.warn('[sim] ⚠️ le rapport dépasse 1 Mo — le plafond de corps de /api le refusera.');

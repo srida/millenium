@@ -5,9 +5,11 @@
 // tiendrait le temps d'un run de démonstration, puis casserait en silence le
 // jour où la routine passe à l'échelle. Les nombres sont arrondis à la
 // quatrième décimale pour la même raison : au-delà, c'est du bruit qui pèse.
+import { buildAggregates, type Aggregates } from './aggregate.js';
 import type { Catalog } from './catalog.js';
 import type { AbResult, DetectorResult } from './protocol.js';
 import { ENEMY_HANDICAP } from './protocol.js';
+import { buildShow, type Show } from './show.js';
 
 export const REPORT_VERSION = 1;
 
@@ -40,6 +42,12 @@ export interface SimReport {
   cards: Record<string, unknown>[];
   ab: Record<string, unknown>[];
   never_played: DetectorResult['neverPlayed'];
+  /** Regroupements par attribut, voie d'invocation, tier et style de jeu. */
+  aggregates: Aggregates;
+  /** La chronique parlée, écrite ICI et non dans la page : elle est ainsi
+   *  couverte par le lint, le typage et les tests, versionnée avec le run, et
+   *  `sim-report.html` reste un simple rendu. */
+  show: Show;
 }
 
 export function buildReport(
@@ -48,6 +56,10 @@ export function buildReport(
   ab: AbResult[],
   opts: { seed: string; abGamesPerArm: number; date: string },
 ): SimReport {
+  const aggregates = buildAggregates(detector.rows, cat.cards, cat.attributes, detector.baseline);
+  const show = buildShow({
+    date: opts.date, detector, aggregates, ab, catalogCards: cat.fingerprint.cards,
+  });
   return {
     version: REPORT_VERSION,
     date: opts.date,
@@ -88,5 +100,7 @@ export function buildReport(
       ci: r4(a.ci), games: a.games, untestable: a.untestable,
     })),
     never_played: detector.neverPlayed,
+    aggregates,
+    show,
   };
 }

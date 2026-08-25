@@ -1004,6 +1004,8 @@ que personne ne joue. Il n'est pas touché — seul `Tournament.js` en dépend.
 | `sim/runGame.ts` | La boucle d'une partie, instrumentée |
 | `sim/metrics.ts` | Agrégation par carte, intervalles de Wilson |
 | `sim/protocol.ts` | Les deux passes, et le handicap IA |
+| `sim/aggregate.ts` | Agrégats par attribut, voie d'invocation, tier et style de jeu |
+| `sim/show.ts` | Le script de l'émission parlée (cf. « L'émission » plus bas) |
 | `sim/report.ts` / `sim/run.ts` | Forme JSON publiée, point d'entrée CLI |
 
 ```
@@ -1136,6 +1138,78 @@ GitHub est en UTC** : l'heure de Paris visée et l'offset retenu sont écrits da
 le fichier (même vigilance que `logTimezone`). L'artifact part `if: always()` —
 une simulation de 15 minutes ne doit pas être perdue parce que le serveur
 redémarrait au moment du dépôt.
+
+### L'émission — le rapport raconté à voix haute (`sim/show.ts`)
+
+Un tableau de 596 lignes justes ne se lit pas chaque matin. `/admin/sim` porte
+donc une **chronique parlée de 5 à 6 minutes**, lue par la voix du navigateur
+(Web Speech API) : aucune dépendance, aucune clé d'API, aucun coût par tir, et
+rien de plus côté serveur — le script voyage dans le rapport.
+
+| Fichier | Rôle |
+|---|---|
+| `sim/aggregate.ts` | Regroupe les cartes par **attribut, voie d'invocation, tier et style de jeu**, pondéré par le nombre de poses |
+| `sim/show.ts` | Le script, **pur** : six catégories de cartes, les archétypes, les façons de jouer |
+| `sim-report.html` | Le lecteur : file d'énonciations, chapitres, surlignage, vitesse |
+
+**Les six catégories**, et ce qui les distingue :
+
+| Catégorie | Règle |
+|---|---|
+| Trop fortes / trop faibles | significative, de part et d'autre de la ligne de base |
+| Injouables | en deck et **jamais invoquée** (`in_deck > 0` dans `never_played`) — un problème de constructibilité, pas de puissance |
+| Sous-estimées | significative, gagne, et se pose dans moins de 35 % des parties |
+| Pièges | significative, perd, et se pose dans plus de 60 % des parties |
+| Bien réglées | écart plus petit que son intervalle, sur un échantillon fourni |
+
+⚠️ **Sous-estimée et piège sont des LENTILLES, pas des cases** : elles regardent
+les mêmes cartes significatives sous l'angle du taux de pose. Une carte peut être
+à la fois trop forte et sous-estimée — c'est même l'information la plus
+actionnable qui soit. Seules trop-forte/trop-faible et sous-estimée/piège
+s'excluent deux à deux.
+
+⚠️ **Elles exigent la significativité.** Sans ce filtre, le segment citait
+« posée dans 100 % des parties, pour 0,0 % de victoires » sur une carte vue
+**une** fois — le bruit exact que le reste du module rejette partout ailleurs,
+dans la seule partie du rapport qu'on écoute. Le seuil de « bien réglée », lui,
+est **relatif** (médiane des poses) : en dur, il vide le segment sur un petit run
+et le noie sur un grand.
+
+⚠️ **Un agrégat par attribut n'est PAS un winrate d'attribut** : une carte porte
+jusqu'à quatre attributs, le même résultat compte donc dans plusieurs familles ;
+et le chiffre reste **corrélationnel** comme celui du détecteur — un archétype
+remonte parce qu'il contient une carte forte, pas parce que son thème l'est.
+L'émission le dit à voix haute plutôt que de le reléguer en note.
+
+**Écrit pour être DIT** : pas de `Δ`, pas de `±`, pas de `A/B` ni de `+35.9pt` —
+un moteur vocal les rend de façon imprévisible d'une voix à l'autre. On dit
+« 35,9 points au-dessus de la moyenne », « le test A B », et la date en toutes
+lettres. Verrouillé par test.
+
+⚠️ **Aucun chiffre n'est inventé, et c'est VÉRIFIÉ** : tous les formateurs
+(`pct`, `ecart`, `nb`, `dec`) enregistrent ce qu'ils produisent, et
+`show.test.ts` exige que chaque nombre du texte prononcé soit passé par l'un
+d'eux. Ce test a dû être resserré **deux fois** avant de valoir quelque chose —
+il comparait d'abord à « tous les taux du rapport » (avec 550 cartes,
+l'ensemble des pourcentages à une décimale est saturé : un `87,4 %` inventé
+passait), puis il enregistrait aussi les **listes écrites**, qui formatent des
+centaines de cartes et saturaient l'ensemble à leur tour. Seul le texte
+**prononcé** est enregistré (`silently()` pour le reste). ⚠️ Corollaire pour
+qui éprouve ce test : injecter le faux chiffre dans une branche réellement
+exercée par le run de test — un segment vide ne dit rien, et le test passe.
+
+**Le lecteur** — cinq pièges de `speechSynthesis`, tous traités :
+`getVoices()` est asynchrone (`voiceschanged`) ; Chrome **tronque** une
+énonciation longue, d'où le découpage **phrase par phrase** qui sert aussi au
+surlignage et au chapitrage ; la lecture démarre sur un **geste utilisateur**
+(Safari iOS exige un appel synchrone) ; `cancel()` sur `pagehide` et
+`visibilitychange`, sinon la voix continue dans le vide ; et **aucune voix
+installée** est un cas réel — le bouton se désactive en **disant pourquoi**, le
+texte restant lisible. Un `resume()` périodique contourne la suspension de
+Chrome au bout d'une quinzaine de secondes.
+
+⚠️ Le rapport passe de ~161 à ~200 Ko (agrégats + script) — toujours très loin
+du plafond de 1 Mo de `/api`.
 
 ### Périmètre assumé
 
