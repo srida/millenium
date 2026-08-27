@@ -2582,6 +2582,7 @@ function cancelNewPower() {
 // ================== MAGIES ==================
 const EFFECT_TYPE_LABELS = {
   stat_bonus: 'Bonus de stat',
+  team_stat_bonus: 'Bonus de stat (équipe)',
   stat_modifier: 'Modificateur de stat',
   draw_bonus: 'Pioche',
   revive: 'Réanimation',
@@ -2592,9 +2593,12 @@ const EFFECT_TYPE_LABELS = {
   guaranteed_draw: 'Pioche garantie',
   defuse_fusion: 'Séparer une fusion',
   destroy_unit: 'Détruire une unité',
+  drain_life: 'Absorber les PV d\'une unité',
+  hand_to_graveyard: 'Main → cimetière',
   reduce_sacrifice_cost: 'Réduire coût sacrifice',
   free_transformation: 'Transformation gratuite',
   remove_heritage_material: 'Retirer matériel Heritage',
+  remove_fusion_material: 'Retirer matériel Fusion',
 };
 
 function filterMagies() {
@@ -2632,9 +2636,9 @@ function renderMagieDetail() {
   const hasIllus = m._has_illustration;
   const effect = m.effect || {};
   const effectType = effect.type || 'none';
-  const showStat = ['stat_bonus', 'stat_modifier'].includes(effectType);
+  const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(effectType);
   const showTier = effectType === 'guaranteed_draw';
-  const noValue = ['none', 'guaranteed_draw', 'defuse_fusion', 'destroy_unit', 'free_transformation', 'remove_heritage_material'];
+  const noValue = ['none', 'guaranteed_draw', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
   const showValue = !noValue.includes(effectType);
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
@@ -2672,6 +2676,7 @@ function renderMagieDetail() {
         <select id="mf-effect-type" onchange="updateMagieEffectFields()">
           <option value="none" ${effectType === 'none' ? 'selected' : ''}>Aucun</option>
           <option value="stat_bonus" ${effectType === 'stat_bonus' ? 'selected' : ''}>Bonus de stat</option>
+          <option value="team_stat_bonus" ${effectType === 'team_stat_bonus' ? 'selected' : ''}>Bonus de stat — TOUTES tes unités</option>
           <option value="stat_modifier" ${effectType === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat</option>
           <option value="draw_bonus" ${effectType === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
           <option value="guaranteed_draw" ${effectType === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (par tier)</option>
@@ -2683,9 +2688,12 @@ function renderMagieDetail() {
           <optgroup label="Effets avancés">
           <option value="defuse_fusion" ${effectType === 'defuse_fusion' ? 'selected' : ''}>Séparer une Fusion en ses matériaux</option>
           <option value="destroy_unit" ${effectType === 'destroy_unit' ? 'selected' : ''}>Détruire une unité alliée</option>
+          <option value="drain_life" ${effectType === 'drain_life' ? 'selected' : ''}>Absorber les PV d'une unité alliée</option>
+          <option value="hand_to_graveyard" ${effectType === 'hand_to_graveyard' ? 'selected' : ''}>Envoyer une carte de la main au cimetière</option>
           <option value="reduce_sacrifice_cost" ${effectType === 'reduce_sacrifice_cost' ? 'selected' : ''}>Réduire coût de sacrifice (main)</option>
           <option value="free_transformation" ${effectType === 'free_transformation' ? 'selected' : ''}>Transformation gratuite (main)</option>
           <option value="remove_heritage_material" ${effectType === 'remove_heritage_material' ? 'selected' : ''}>Retirer matériel Heritage (main)</option>
+          <option value="remove_fusion_material" ${effectType === 'remove_fusion_material' ? 'selected' : ''}>Retirer matériel(s) Fusion (main)</option>
           </optgroup>
         </select>
       </div>
@@ -2730,9 +2738,9 @@ function renderMagieDetail() {
 
 function updateMagieEffectFields() {
   const type = document.getElementById('mf-effect-type')?.value || 'none';
-  const showStat = ['stat_bonus', 'stat_modifier'].includes(type);
+  const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(type);
   const showTier = type === 'guaranteed_draw';
-  const noValue = ['none', 'guaranteed_draw', 'defuse_fusion', 'destroy_unit', 'free_transformation', 'remove_heritage_material'];
+  const noValue = ['none', 'guaranteed_draw', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
   const showValue = !noValue.includes(type);
   document.getElementById('mf-stat-field').style.display = showStat ? '' : 'none';
   document.getElementById('mf-value-field').style.display = showValue ? '' : 'none';
@@ -2742,7 +2750,7 @@ function updateMagieEffectFields() {
 function _collectMagieFields() {
   const effectType = document.getElementById('mf-effect-type')?.value || 'none';
   let effect = null;
-  const noValue = ['defuse_fusion', 'destroy_unit', 'free_transformation', 'remove_heritage_material'];
+  const noValue = ['defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
   if (effectType !== 'none') {
     effect = { type: effectType };
     if (effectType === 'guaranteed_draw') {
@@ -2750,7 +2758,7 @@ function _collectMagieFields() {
     } else if (!noValue.includes(effectType)) {
       effect.value = parseFloat(document.getElementById('mf-effect-value')?.value) || 0;
     }
-    if (['stat_bonus', 'stat_modifier'].includes(effectType)) {
+    if (['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(effectType)) {
       effect.stat = document.getElementById('mf-effect-stat')?.value || 'atk';
     }
   }

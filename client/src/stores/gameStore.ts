@@ -31,7 +31,7 @@ export interface SynergyEntry {
 
 export interface ShoppingState {
   magies: import('../logic/types.js').Magie[];
-  awaitingTarget: 'unit' | 'graveyard' | null;
+  awaitingTarget: 'unit' | 'graveyard' | 'hand' | null;
   banner: string | null;
 }
 

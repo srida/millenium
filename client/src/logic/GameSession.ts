@@ -17,9 +17,9 @@ import { applyEffect as applyBoardEffect } from './BoardEffect.js';
 // Modules JS encore non convertis : leurs annotations JSDoc (Card[][], null par
 // défaut…) sont trop étroites pour l'interop TS. Casts localisés en attendant
 // la conversion TS de ces modules (au fil des phases).
-import { applyEffect as _applyMagieEffect, needsUnitTarget, needsGraveyardTarget } from './MagieEffect.js';
+import { applyEffect as _applyMagieEffect, needsUnitTarget, needsGraveyardTarget, needsHandTarget } from './MagieEffect.js';
 import * as _InvocationManager from './InvocationManager.js';
-const applyMagieEffect = _applyMagieEffect as (magie: any, ctx: { gameState?: any; targetUnit?: any }) => void;
+const applyMagieEffect = _applyMagieEffect as (magie: any, ctx: { gameState?: any; targetUnit?: any; targetUnits?: any[] }) => void;
 const InvocationManager = _InvocationManager as any;
 import * as _InvocationRules from './InvocationRules.js';
 const {
@@ -201,6 +201,23 @@ export class GameSession {
         } else if (mod.type === 'remove_heritage_material') {
           const idx = this.hand.findIndex(c => c.summon_type === 'heritage' && (c.cost?.materials?.length ?? 0) > 0);
           if (idx !== -1) this.hand[idx] = { ...this.hand[idx], cost: { ...this.hand[idx].cost, materials: [] } };
+        } else if (mod.type === 'remove_fusion_material') {
+          // Jumeau de remove_heritage_material, mais la fusion ne perd QU'UNE
+          // partie de ses matériels : on retire les derniers de la liste, et
+          // `_removed_materials` garde la trace pour le tooltip (même rôle
+          // qu'`_original_sacrifice`). Une fusion à un seul matériel tombe à
+          // zéro : elle s'invoque alors comme une normale, ce qui est bien
+          // l'effet voulu.
+          const idx = this.hand.findIndex(c => c.summon_type === 'fusion' && (c.cost?.materials?.length ?? 0) > 0);
+          if (idx !== -1) {
+            const materials = this.hand[idx].cost?.materials ?? [];
+            const removed = Math.min(materials.length, Math.max(1, mod.value || 1));
+            this.hand[idx] = {
+              ...this.hand[idx],
+              _removed_materials: (this.hand[idx]._removed_materials ?? 0) + removed,
+              cost: { ...this.hand[idx].cost, materials: materials.slice(0, materials.length - removed) },
+            };
+          }
         }
       }
     }
@@ -518,6 +535,7 @@ export class GameSession {
 
   magieNeedsUnitTarget(magie: Magie): boolean { return needsUnitTarget(magie as any); }
   magieNeedsGraveyardTarget(magie: Magie): boolean { return needsGraveyardTarget(magie as any); }
+  magieNeedsHandTarget(magie: Magie): boolean { return needsHandTarget(magie as any); }
 
   /** Cibles valides d'une magie sur le board joueur (defuse : fusions seulement). */
   magieUnitTargets(magie: Magie): Unit[] {
@@ -533,7 +551,26 @@ export class GameSession {
   applyMagieOnUnit(magie: Magie, unit: Unit): void {
     if (magie.effect?.type === 'defuse_fusion') { this._defuseFusion(unit); return; }
     if (magie.effect?.type === 'destroy_unit') { this._destroyUnit(unit); return; }
+    if (magie.effect?.type === 'drain_life') { this._drainLife(unit); return; }
     applyMagieEffect(magie as any, { gameState: this.gameState, targetUnit: unit });
+  }
+
+  /**
+   * Envoie une carte de la MAIN au cimetière, sous forme d'unité neutralisée :
+   * elle y devient un matériau d'invocation (sacrifice / fusion / héritage /
+   * transformation) au même titre qu'une unité tombée au combat. Comme toute
+   * unité du cimetière, elle disparaît au lancement du combat si personne ne
+   * l'a consommée — la magie échange donc une carte contre un matériau, elle
+   * n'ajoute pas de corps sur le terrain.
+   */
+  applyMagieOnHandCard(magie: Magie, handIdx: number): Unit | null {
+    const card = this.hand[handIdx];
+    if (!card) return null;
+    this.hand.splice(handIdx, 1);
+    const unit = new Unit(card, 'player');
+    unit.is_neutralized = true;
+    this.graveyard.push(unit);
+    return unit;
   }
 
   applyMagieOnGraveyardUnit(magie: Magie, unit: Unit): void {
@@ -545,7 +582,9 @@ export class GameSession {
   }
 
   applyGlobalMagie(magie: Magie): void {
-    applyMagieEffect(magie as any, { gameState: this.gameState });
+    // `targetUnits` porte les magies d'équipe (team_stat_bonus) : elles n'ont
+    // pas de cible à désigner, mais frappent tout le board joueur.
+    applyMagieEffect(magie as any, { gameState: this.gameState, targetUnits: this.getPlayerUnits() });
   }
 
   private _defuseFusion(fusionUnit: Unit): void {
@@ -572,6 +611,20 @@ export class GameSession {
     this.board.removeUnit(unit);
     unit.is_neutralized = true;
     this.graveyard.push(unit);
+  }
+
+  /**
+   * Absorption : l'unité est détruite comme par `destroy_unit` (elle part au
+   * cimetière et libère son emplacement) et ses PV COURANTS — pas son
+   * `max_hp` — sont versés à la jauge du joueur, plafonnés à 1000 comme
+   * `player_hp_bonus`. Ce sont bien les PV courants : absorber une unité
+   * qu'on vient de voir encaisser tout un combat ne doit pas rapporter autant
+   * qu'absorber une unité intacte.
+   */
+  private _drainLife(unit: Unit): void {
+    const drained = Math.max(0, Math.round(unit.current_hp));
+    this._destroyUnit(unit);
+    this.gameState.player_hp = Math.min(this.gameState.player_hp + drained, 1000);
   }
 
   // ── Fin de partie / tour suivant ────────────────────────────────────────

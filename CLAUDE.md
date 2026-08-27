@@ -1605,11 +1605,12 @@ MagieDatabase.getRandomMagies(count = 3) // tirage sans remise
 
 ### Types d'effets (`client/src/logic/MagieEffect.js`)
 
-`effectLabel(magie)` génère la description affichée, `applyEffect(magie, { gameState, targetUnit })` applique l'effet.
+`effectLabel(magie)` génère la description affichée, `applyEffect(magie, { gameState, targetUnit, targetUnits })` applique l'effet. ⚠️ `targetUnits` n'est PAS une variante de `targetUnit` : il porte les magies d'**équipe**, qui n'ont aucune cible à désigner et frappent tout le board joueur — `applyGlobalMagie` le remplit, les deux autres chemins de ciblage jamais.
 
 | `type` | Champs | Effet |
 |---|---|---|
 | `stat_bonus` | `stat`, `value` | Bonus additif **permanent** sur `targetUnit._base[stat]` (min 1) + `_recomputeStats()`. Si `stat === 'hp'`, augmente aussi `current_hp`. |
+| `team_stat_bonus` | `stat`, `value` | Le geste de `stat_bonus`, répété sur **toutes** les unités du joueur. Effet **global** : aucune cible à taper (`applyGlobalMagie` passe `targetUnits`). Permanent (`_base`) et **tracé** (`_shopping_bonus`), donc transféré à une invocation composite. |
 | `stat_modifier` | `stat`, `value` | Multiplicateur **permanent** : `_base[stat] += round(_base[stat] * (value - 1))` + `_recomputeStats()`. |
 | `heal` | `value` | `targetUnit.heal(value)` |
 | `shield` | `value` | `targetUnit.applyShield(value)` |
@@ -1620,16 +1621,29 @@ MagieDatabase.getRandomMagies(count = 3) // tirage sans remise
 | `guaranteed_draw` | `tier` | `gameState.player_guaranteed_draws.push({ tier })` |
 | `defuse_fusion` | — | No-op dans `applyEffect` ; géré par `GameSession._defuseFusion()` — sépare la fusion en ses matériaux (au cimetière s'il n'y a plus de slot). |
 | `destroy_unit` | — | No-op dans `applyEffect` ; géré par `GameSession._destroyUnit()` — retire l'unité du board et l'envoie au cimetière (libère un slot, la rend disponible comme matériau). |
+| `drain_life` | — | No-op dans `applyEffect` ; géré par `GameSession._drainLife()` — `destroy_unit` **plus** le versement des PV de l'unité au joueur. |
+| `hand_to_graveyard` | — | No-op dans `applyEffect` ; géré par `GameSession.applyMagieOnHandCard()` — cible une carte de la **main**, pas une unité. |
 | `reduce_sacrifice_cost` | `value` (déf. 1) | `gameState.player_hand_modifiers.push({ type: 'reduce_sacrifice_cost', value })` — réduit le coût en sacrifices d'une carte Sacrifice en main |
 | `free_transformation` | — | `gameState.player_hand_modifiers.push({ type: 'free_transformation' })` — invoque une Transformation sans son monstre cible |
 | `remove_heritage_material` | — | `gameState.player_hand_modifiers.push({ type: 'remove_heritage_material' })` — retire le matériel Heritage obligatoire |
+| `remove_fusion_material` | `value` (déf. 1) | `gameState.player_hand_modifiers.push({ type: 'remove_fusion_material', value })` — retire N matériels requis d'une carte **Fusion** en main |
 
-**Helpers de routage** :
-- `needsUnitTarget(magie)` → `stat_bonus`, `stat_modifier`, `shield`, `heal`, `defuse_fusion`, `destroy_unit` (cible une unité du board joueur)
+**Helpers de routage** — **trois** familles de cibles, et elles s'excluent : `GameController.chooseMagie` les teste dans l'ordre unité → cimetière → main, un type reconnu par deux d'entre elles n'atteindrait jamais la troisième branche.
+- `needsUnitTarget(magie)` → `stat_bonus`, `stat_modifier`, `shield`, `heal`, `defuse_fusion`, `destroy_unit`, `drain_life` (cible une unité du board joueur)
 - `needsGraveyardTarget(magie)` → `revive` uniquement (cible une unité du cimetière)
-- Tous les autres types sont des effets globaux appliqués immédiatement.
+- `needsHandTarget(magie)` → `hand_to_graveyard` uniquement (cible une **carte de la main**)
+- Tous les autres types sont des effets globaux appliqués immédiatement — `team_stat_bonus` compris : il frappe tout le board sans rien demander au joueur.
 
-Les `player_hand_modifiers` (`reduce_sacrifice_cost`, `free_transformation`, `remove_heritage_material`) sont consommés au tour suivant (différé), dans `GameSession.startPreparation()`.
+Les `player_hand_modifiers` (`reduce_sacrifice_cost`, `free_transformation`, `remove_heritage_material`, `remove_fusion_material`) sont consommés au tour suivant (différé), dans `GameSession.startPreparation()`.
+
+### Absorption (`drain_life`) et défausse au cimetière (`hand_to_graveyard`)
+
+Les deux magies **échangent une ressource contre une autre**, là où les autres en ajoutent — d'où deux règles qui ne se devinent pas :
+
+- ⚠️ **`drain_life` verse les PV COURANTS, pas le `max_hp`** : absorber une unité qu'on vient de voir encaisser tout un combat ne doit pas rapporter autant qu'absorber une unité intacte. Le plafond reste 1000, celui de `player_hp_bonus`. Et l'unité **part au cimetière**, elle n'est pas effacée : c'est ce qui en fait un remplaçant honnête de `destroy_unit` — on gagne les PV *sans* perdre le corps comme matériau d'invocation.
+- ⚠️ **`hand_to_graveyard` ne pose AUCUN corps sur le terrain** : la carte quitte la main et devient une unité **neutralisée** au cimetière, donc un matériau de fusion / héritage / sacrifice / transformation — et rien d'autre. Comme toute unité du cimetière, elle disparaît au lancement du combat si personne ne l'a consommée : la magie ne met pas une carte en réserve, elle la brûle pour un tour.
+- ⚠️ **C'est la seule magie qui cible la MAIN**, et c'est ce qui a coûté le plus cher au HUD : `HandBar` se masquait sur `combatActive`, or la Phase Shopping a lieu **après** le combat, drapeau encore levé. Elle porte donc la même exception que `GraveyardTray` pour le ciblage `revive` (`awaitingTarget === 'hand'`), et une carte **injouable y reste tapable** — c'est même souvent celle qu'on veut envoyer au cimetière.
+- `remove_fusion_material` est le jumeau de `remove_heritage_material`, à deux différences près : il ne retire que `value` matériels (l'héritage vide la liste entière), et il garde la trace du retrait dans `_removed_materials` — que `SummonInfo` annonce au tooltip, même rôle qu'`_original_sacrifice`. Une fusion dépouillée de **tous** ses matériels s'invoque comme une normale : `InvocationManager` rend `ok()` sur une liste vide, il n'y avait rien à ajouter pour ça.
 
 **Traçage des bonus permanents** : `stat_bonus` / `stat_modifier` écrivent dans `unit._base` **et** cumulent le delta réel dans `unit._shopping_bonus[stat]`. `InvocationManager._transferShoppingBonuses` reporte ces bonus sur l'unité composite quand l'unité est consommée comme matériau (sacrifice/fusion/heritage) ou remplacée (transformation) — un investissement de Shopping n'est jamais perdu par une invocation. Sont transférés : les deltas de stats (**sommés** sur tous les matériaux), le bouclier restant (sommé) et les points de vétérance (**maximum**, pas somme).
 
@@ -2291,10 +2305,10 @@ Le tooltip d'une **carte** (main, cimetière, DeckBuilder, boutique, TestBench �
 - **Chaque voie n'affiche que ce qu'elle LIT réellement** (`READS_MATERIALS` / `READS_SACRIFICE`, calqués sur `InvocationManager`) : un `sacrifice` posé sur une fusion ou des `materials` posés sur un sacrifice ne sont jamais vérifiés — les montrer ferait mentir le tooltip.
 - **Trois mots pour trois sens** : la fusion liste ses `Matériels`, la transformation nomme la cible qu'elle remplace (`Transforme`), l'héritage écrit **`dont`** — ses matériaux sont pris **dans** ses tributs, ils ne s'y ajoutent pas.
 - Un matériel `ARCH_*` désigne **n'importe quelle** unité portant l'attribut, pas une carte : il se lit « tout porteur de X » et se nomme dans `AttributeDatabase`. La règle du préfixe a désormais un nom (`InvocationManager.isAttributeMaterial`), lu des deux côtés.
-- Les **remises des magies** sont visibles là où le joueur en a besoin : coût de sacrifice réduit (`_original_sacrifice` → « réduit de N ») et transformation sans cible (`_free_transformation`).
+- Les **remises des magies** sont visibles là où le joueur en a besoin : coût de sacrifice réduit (`_original_sacrifice` → « réduit de N »), transformation sans cible (`_free_transformation`) et matériels de fusion retirés (`_removed_materials`). ⚠️ Ce dernier est **gardé par le type de voie** : le champ vit sur la *carte*, une carte à `summon_options` l'annoncerait sur toutes ses recettes — un héritage se vanterait d'une remise qu'il n'a pas reçue.
 - Une **normale sans rien à exiger n'affiche pas de bloc** — « la carte se pose » n'apprend rien.
 - Rien de tout ça sur un tooltip d'**unité** : elle est déjà invoquée, sa recette n'est plus actionnable (sa lignée 🧬, elle, reste affichée).
-- Verrouillé par `client/src/test/summon-info.test.ts` (18 golden tests), qui lit le catalogue depuis `initial-data/cards.json` : un matériel pointant sur un id inconnu casse ici plutôt qu'en affichant un identifiant brut au joueur.
+- Verrouillé par `client/src/test/summon-info.test.ts` (21 golden tests), qui lit le catalogue depuis `initial-data/cards.json` : un matériel pointant sur un id inconnu casse ici plutôt qu'en affichant un identifiant brut au joueur.
 
 ---
 

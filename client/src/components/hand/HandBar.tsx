@@ -17,9 +17,13 @@ import CardTile, { cardTileProps } from '../ui/CardTile.js';
 export default function HandBar() {
   const hand = useGameStore(s => s.hand);
   const combatActive = useGameStore(s => s.combatActive);
+  const shopping = useGameStore(s => s.shopping);
   const controller = useGameStore(s => s.controller);
   const web = useWebLayout();
-  if (combatActive || !controller) return null;
+  // Visible pendant la préparation OU pendant un ciblage hand_to_graveyard —
+  // même règle que le cimetière, qui reste montré pour le ciblage revive.
+  const targetingHand = shopping?.awaitingTarget === 'hand';
+  if ((combatActive && !targetingHand) || !controller) return null;
 
   const empty = hand.length === 0 && <span className="col-span-2 px-2 py-6 text-xs text-white/40">Main vide</span>;
 
@@ -31,7 +35,7 @@ export default function HandBar() {
           <div className="grid grid-cols-2 content-start justify-items-center gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {empty}
             {hand.map(entry => (
-              <HandCard key={entry.key} entry={entry} rail />
+              <HandCard key={entry.key} entry={entry} targeting={targetingHand} rail />
             ))}
           </div>
         </div>
@@ -45,7 +49,7 @@ export default function HandBar() {
         <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {empty}
           {hand.map(entry => (
-            <HandCard key={entry.key} entry={entry} />
+            <HandCard key={entry.key} entry={entry} targeting={targetingHand} />
           ))}
         </div>
       </div>
@@ -53,18 +57,24 @@ export default function HandBar() {
   );
 }
 
-function HandCard({ entry, rail = false }: { entry: HandEntry; rail?: boolean }) {
+function HandCard({ entry, targeting = false, rail = false }: { entry: HandEntry; targeting?: boolean; rail?: boolean }) {
   const controller = useGameStore(s => s.controller)!;
 
   return (
     <CardTile
       {...cardTileProps(entry.card)}
-      onTap={() => controller.selectCard(entry.selected ? null : entry.card, entry.selected ? null : entry.idx)}
-      highlight={entry.selected ? 'selected' : 'none'}
+      // tap → sélection d'invocation ; en ciblage de magie, la carte est la
+      // cible (une carte injouable l'est tout autant : c'est même souvent
+      // celle qu'on veut envoyer au cimetière).
+      onTap={() => {
+        if (targeting) controller.resolveMagieHandTarget(entry.idx);
+        else controller.selectCard(entry.selected ? null : entry.card, entry.selected ? null : entry.idx);
+      }}
+      highlight={targeting ? 'candidate' : entry.selected ? 'selected' : 'none'}
       // La carte sélectionnée sort de la bande : vers le haut en bas d'écran,
       // vers le board (droite) quand la main est un rail vertical.
-      lift={entry.selected ? (rail ? 'right' : 'up') : 'none'}
-      dim={entry.playable ? 'none' : 'strong'}
+      lift={entry.selected && !targeting ? (rail ? 'right' : 'up') : 'none'}
+      dim={targeting || entry.playable ? 'none' : 'strong'}
       badge={entry.count > 1 ? entry.count : null}
       stacked={entry.count > 1}
     />

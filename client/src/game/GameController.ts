@@ -464,6 +464,10 @@ export class GameController {
       if (!this.session.graveyard.length) { this._flashError('Aucune unité au cimetière'); return; }
       this._pendingMagie = magie;
       this.sync({ shopping: { magies: [], awaitingTarget: 'graveyard', banner: `${magie.name} — touche une unité du cimetière` } });
+    } else if (this.session.magieNeedsHandTarget(magie)) {
+      if (!this.session.hand.length) { this._flashError('Ta main est vide'); return; }
+      this._pendingMagie = magie;
+      this.sync({ shopping: { magies: [], awaitingTarget: 'hand', banner: `${magie.name} — touche une carte de ta main` } });
     } else {
       this.session.applyGlobalMagie(magie);
       this._noteMagie(magie);
@@ -501,6 +505,21 @@ export class GameController {
     this._proceedNextRound();
   }
 
+  // Ciblage magie sur une carte de la main (hand_to_graveyard). L'index vient
+  // de l'entrée groupée du HUD : c'est l'exemplaire représentatif qui part,
+  // exactement comme à l'invocation (cf. HandEntry.idx).
+  resolveMagieHandTarget(handIdx: number): void {
+    if (!this._pendingMagie) return;
+    if (!this.session.magieNeedsHandTarget(this._pendingMagie)) return;
+    if (handIdx < 0 || handIdx >= this.session.hand.length) return;
+    const magie = this._pendingMagie;
+    this._pendingMagie = null;
+    this.session.applyMagieOnHandCard(magie, handIdx);
+    this._noteMagie(magie);
+    this.scene?.refresh();
+    this._proceedNextRound();
+  }
+
   resolveMagieGraveyardTarget(unit: Unit): void {
     if (!this._pendingMagie) return;
     if (!this.session.graveyard.includes(unit)) return;
@@ -512,8 +531,11 @@ export class GameController {
     this._proceedNextRound();
   }
 
-  get awaitingMagieTarget(): 'unit' | 'graveyard' | null {
-    return this._pendingMagie ? (this.session.magieNeedsGraveyardTarget(this._pendingMagie) ? 'graveyard' : 'unit') : null;
+  get awaitingMagieTarget(): 'unit' | 'graveyard' | 'hand' | null {
+    if (!this._pendingMagie) return null;
+    if (this.session.magieNeedsGraveyardTarget(this._pendingMagie)) return 'graveyard';
+    if (this.session.magieNeedsHandTarget(this._pendingMagie)) return 'hand';
+    return 'unit';
   }
 
   protected _proceedNextRound(): void {

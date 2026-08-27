@@ -204,4 +204,194 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
     session.applyGlobalMagie(magie({ type: 'player_hp_bonus', value: 100 }) as any);
     expect(session.gameState.player_hp).toBe(1000);
   });
+
+  it('remove_fusion_material : retire UN matériel requis d\'une carte Fusion en main', () => {
+    const { session } = makeSession();
+    session.applyGlobalMagie(magie({ type: 'remove_fusion_material' }) as any);
+    session.hand = [makeCard({ id: 'FUS', summon_type: 'fusion', cost: { materials: ['A', 'B', 'C'] } }) as any];
+    session.startPreparation();
+    const fus = session.hand.find(c => c.id === 'FUS')!;
+    expect(fus.cost?.materials).toEqual(['A', 'B']);
+    // La trace sert au tooltip (cf. SummonInfo), au même titre qu'_original_sacrifice.
+    expect(fus._removed_materials).toBe(1);
+    expect(session.gameState.player_hand_modifiers).toHaveLength(0);
+  });
+
+  it('remove_fusion_material : `value` retire plusieurs matériels, sans jamais descendre sous zéro', () => {
+    const { session } = makeSession();
+    session.applyGlobalMagie(magie({ type: 'remove_fusion_material', value: 5 }) as any);
+    session.hand = [makeCard({ id: 'FUS', summon_type: 'fusion', cost: { materials: ['A', 'B'] } }) as any];
+    session.startPreparation();
+    const fus = session.hand.find(c => c.id === 'FUS')!;
+    expect(fus.cost?.materials).toEqual([]);
+    expect(fus._removed_materials).toBe(2);
+  });
+
+  it('remove_fusion_material : ne touche NI une Heritage NI une Fusion déjà sans matériel', () => {
+    // Le pendant exact de remove_heritage_material, qui ne prend que les
+    // Heritage : les deux magies ne doivent pas se voler leur cible.
+    const { session } = makeSession();
+    session.applyGlobalMagie(magie({ type: 'remove_fusion_material' }) as any);
+    session.hand = [
+      makeCard({ id: 'HER', summon_type: 'heritage', cost: { materials: ['X'], sacrifice: 2 } }) as any,
+      makeCard({ id: 'EMPTY', summon_type: 'fusion', cost: { materials: [] } }) as any,
+      makeCard({ id: 'FUS', summon_type: 'fusion', cost: { materials: ['A', 'B'] } }) as any,
+    ];
+    session.startPreparation();
+    expect(session.hand.find(c => c.id === 'HER')!.cost?.materials).toEqual(['X']);
+    expect(session.hand.find(c => c.id === 'EMPTY')!.cost?.materials).toEqual([]);
+    expect(session.hand.find(c => c.id === 'FUS')!.cost?.materials).toEqual(['A']);
+  });
+
+  it('remove_fusion_material : une Fusion dépouillée de tous ses matériels s\'invoque directement', () => {
+    // C'est bien l'effet voulu : plus rien à réunir, la carte se pose comme une
+    // normale. Vérifié sur la règle elle-même, pas sur la seule forme du coût.
+    const fus = makeCard({ id: 'FUS', summon_type: 'fusion', cost: { materials: ['A'] } }) as any;
+    const { session } = makeSession({ cards: [makeCard({ id: 'PLAIN' }), fus] });
+    session.applyGlobalMagie(magie({ type: 'remove_fusion_material' }) as any);
+    session.hand = [fus];
+    session.startPreparation();
+    const stripped = session.hand.find(c => c.id === 'FUS')!;
+    expect(session.needsMaterials(stripped as any)).toBe(false);
+    expect(session.isPlayable(stripped as any)).toBe(true);
+  });
+
+  it('team_stat_bonus : effet GLOBAL — aucune cible à désigner, tout le board joueur en profite', () => {
+    const { session } = makeSession();
+    const m = magie({ type: 'team_stat_bonus', stat: 'atk', value: 4 }) as any;
+    expect(session.magieNeedsUnitTarget(m)).toBe(false);
+    expect(session.magieNeedsGraveyardTarget(m)).toBe(false);
+    expect(session.magieNeedsHandTarget(m)).toBe(false);
+
+    const a = place(session, makeCard({ id: 'A', stats: { atk: 10 } as any }), { col: 0, row: 0 });
+    const b = place(session, makeCard({ id: 'B', stats: { atk: 2 } as any }), { col: 1, row: 0 });
+    session.applyGlobalMagie(m);
+    expect([a.atk, b.atk]).toEqual([14, 6]);
+  });
+
+  it('team_stat_bonus : n\'atteint PAS les unités ennemies', () => {
+    const { session } = makeSession();
+    const mine = place(session, makeCard({ id: 'A', stats: { atk: 10 } as any }), { col: 0, row: 0 });
+    const theirs = new (Unit as any)(makeCard({ id: 'E', stats: { atk: 10 } as any }), 'enemy');
+    session.board.placeUnit(theirs, { col: 0, row: 10 });
+
+    session.applyGlobalMagie(magie({ type: 'team_stat_bonus', stat: 'atk', value: 4 }) as any);
+
+    expect(mine.atk).toBe(14);
+    expect(theirs.atk).toBe(10);
+  });
+
+  it('team_stat_bonus : le bonus est PERMANENT — il survit à resetCombatStats', () => {
+    const { session } = makeSession();
+    const u = place(session, makeCard({ id: 'A', stats: { atk: 10 } as any }), { col: 0, row: 0 });
+    session.applyGlobalMagie(magie({ type: 'team_stat_bonus', stat: 'atk', value: 4 }) as any);
+    u.resetCombatStats();
+    expect(u.atk).toBe(14);
+  });
+});
+
+describe('Shopping — drain_life (absorption de PV)', () => {
+  it('détruit l\'unité vers le cimetière ET verse ses PV courants au joueur', () => {
+    const { session } = makeSession();
+    const u = place(session, makeCard({ id: 'A', stats: { hp: 80 } as any }), { col: 2, row: 1 });
+    u.current_hp = 55;
+    session.gameState.player_hp = 400;
+
+    expect(session.magieNeedsUnitTarget(magie({ type: 'drain_life' }) as any)).toBe(true);
+    session.applyMagieOnUnit(magie({ type: 'drain_life' }) as any, u);
+
+    expect(session.board.getUnit({ col: 2, row: 1 })).toBeNull();
+    expect(session.graveyard).toContain(u);
+    expect(u.is_neutralized).toBe(true);
+    expect(session.gameState.player_hp).toBe(455);
+  });
+
+  it('verse les PV COURANTS, pas le max : une unité blessée rapporte moins', () => {
+    const { session } = makeSession();
+    const u = place(session, makeCard({ id: 'A', stats: { hp: 200 } as any }), { col: 0, row: 0 });
+    u.current_hp = 12;
+    session.gameState.player_hp = 500;
+    session.applyMagieOnUnit(magie({ type: 'drain_life' }) as any, u);
+    expect(session.gameState.player_hp).toBe(512);
+  });
+
+  it('plafonné à 1000, comme player_hp_bonus', () => {
+    const { session } = makeSession();
+    const u = place(session, makeCard({ id: 'A', stats: { hp: 300 } as any }), { col: 0, row: 0 });
+    session.gameState.player_hp = 950;
+    session.applyMagieOnUnit(magie({ type: 'drain_life' }) as any, u);
+    expect(session.gameState.player_hp).toBe(1000);
+  });
+
+  it('l\'unité absorbée reste un matériau : elle est au cimetière, pas effacée', () => {
+    // C'est ce qui fait de drain_life un remplaçant honnête de destroy_unit :
+    // on gagne les PV SANS perdre le corps comme matériau d'invocation.
+    const { session } = makeSession();
+    const u = place(session, makeCard({ id: 'A', stats: { hp: 40 } as any }), { col: 0, row: 0 });
+    session.applyMagieOnUnit(magie({ type: 'drain_life' }) as any, u);
+    expect(session.graveyard.map(g => g.card_id)).toEqual(['A']);
+  });
+});
+
+describe('Shopping — hand_to_graveyard (main → cimetière)', () => {
+  it('routage : ni board ni cimetière, la cible est une carte de la main', () => {
+    const { session } = makeSession();
+    const m = magie({ type: 'hand_to_graveyard' }) as any;
+    expect(session.magieNeedsHandTarget(m)).toBe(true);
+    expect(session.magieNeedsUnitTarget(m)).toBe(false);
+    expect(session.magieNeedsGraveyardTarget(m)).toBe(false);
+  });
+
+  it('retire la carte de la main et pose une unité NEUTRALISÉE au cimetière', () => {
+    const { session } = makeSession();
+    session.hand = [
+      makeCard({ id: 'KEEP' }) as any,
+      makeCard({ id: 'DUMP', stats: { hp: 40 } as any }) as any,
+    ];
+
+    const unit = session.applyMagieOnHandCard(magie({ type: 'hand_to_graveyard' }) as any, 1);
+
+    expect(session.hand.map(c => c.id)).toEqual(['KEEP']);
+    expect(session.graveyard).toHaveLength(1);
+    expect(unit!.card_id).toBe('DUMP');
+    expect(unit!.is_neutralized).toBe(true);
+    expect(unit!.side).toBe('player');
+    // Elle n'occupe AUCUNE case : la magie échange une carte contre un
+    // matériau, elle ne pose pas de corps sur le terrain.
+    expect(session.board.getLivingUnitsOnSide('player')).toHaveLength(0);
+  });
+
+  it('la carte défaussée est utilisable comme matériau de fusion', () => {
+    // La raison d'être de la magie : débloquer une fusion dont il manque un
+    // matériau. Vérifié par la règle d'invocation, pas par la seule présence
+    // dans le tableau.
+    const matA = makeCard({ id: 'MAT_A' });
+    const matB = makeCard({ id: 'MAT_B' });
+    const fus = makeCard({ id: 'FUS', summon_type: 'fusion', cost: { materials: ['MAT_A', 'MAT_B'] } });
+    const { session } = makeSession({ cards: [matA, matB, fus] });
+
+    place(session, matA, { col: 0, row: 0 });
+    session.hand = [matB as any, fus as any];
+    expect(session.isPlayable(fus as any)).toBe(false);
+
+    session.applyMagieOnHandCard(magie({ type: 'hand_to_graveyard' }) as any, 0);
+
+    expect(session.isPlayable(fus as any)).toBe(true);
+  });
+
+  it('index hors bornes : ne touche à rien', () => {
+    const { session } = makeSession();
+    session.hand = [makeCard({ id: 'A' }) as any];
+    expect(session.applyMagieOnHandCard(magie({ type: 'hand_to_graveyard' }) as any, 7)).toBeNull();
+    expect(session.hand).toHaveLength(1);
+    expect(session.graveyard).toHaveLength(0);
+  });
+
+  it('un doublon en main ne part qu\'en UN exemplaire', () => {
+    const { session } = makeSession();
+    session.hand = [makeCard({ id: 'D' }) as any, makeCard({ id: 'D' }) as any];
+    session.applyMagieOnHandCard(magie({ type: 'hand_to_graveyard' }) as any, 0);
+    expect(session.hand.map(c => c.id)).toEqual(['D']);
+    expect(session.graveyard).toHaveLength(1);
+  });
 });

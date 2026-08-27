@@ -58,6 +58,8 @@ export interface Card {
   _free_transformation?: boolean;
   /** Coût sacrifice d'origine quand reduce_sacrifice_cost l'a modifié. */
   _original_sacrifice?: number;
+  /** Nombre de matériels retirés par remove_fusion_material (magie). */
+  _removed_materials?: number;
 }
 
 // ── Attributs (synergies) ──
@@ -158,7 +160,8 @@ export interface GuaranteedDraw {
 }
 
 export interface HandModifier {
-  type: 'reduce_sacrifice_cost' | 'free_transformation' | 'remove_heritage_material';
+  type: 'reduce_sacrifice_cost' | 'free_transformation' | 'remove_heritage_material'
+    | 'remove_fusion_material';
   value?: number;
 }
 

@@ -46,6 +46,8 @@ export interface SummonRecipe {
   free: boolean;
   /** Coût en tributs d'origine quand une magie l'a réduit, sinon `null`. */
   discountedFrom: number | null;
+  /** Matériels retirés par une magie (remove_fusion_material), sinon `null`. */
+  materialsRemoved: number | null;
 }
 
 // Ce que chaque voie LIT réellement dans son coût (cf. InvocationManager) : un
@@ -73,6 +75,7 @@ function recipe(card: Card, type: SummonType, cost: SummonCost | undefined, inde
     sacrifice,
     free,
     discountedFrom: type === 'sacrifice' && original !== null && original !== sacrifice ? original : null,
+    materialsRemoved: type === 'fusion' && (card._removed_materials ?? 0) > 0 ? card._removed_materials! : null,
   };
 }
 
@@ -95,6 +98,7 @@ export function recipeCostText(r: SummonRecipe): string | null {
   if (r.sacrifice > 0) parts.push(`${r.sacrifice} tribut${r.sacrifice > 1 ? 's' : ''}`);
   if (r.free) parts.push('sans cible (magie)');
   if (r.discountedFrom !== null) parts.push(`réduit de ${r.discountedFrom}`);
+  if (r.materialsRemoved !== null) parts.push(`${r.materialsRemoved} matériel${r.materialsRemoved > 1 ? 's' : ''} retiré${r.materialsRemoved > 1 ? 's' : ''} (magie)`);
   return parts.length ? parts.join(' · ') : null;
 }
 

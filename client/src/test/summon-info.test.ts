@@ -154,6 +154,34 @@ describe('summonRecipes — coûts remisés par une magie', () => {
     }));
     expect(r.discountedFrom).toBeNull();
   });
+
+  it('annonce les matériels retirés d\'une fusion (remove_fusion_material)', () => {
+    // Le coût affiché est celui qui RESTE — c'est lui que le joueur doit
+    // réunir — mais la remise se dit, sinon la carte a l'air d'avoir toujours
+    // exigé si peu.
+    const [r] = summonRecipes(card({
+      summon_type: 'fusion', cost: { sacrifice: 0, materials: ['CORE_001'] }, _removed_materials: 2,
+    }));
+    expect(r.materials.map(m => m.id)).toEqual(['CORE_001']);
+    expect(r.materialsRemoved).toBe(2);
+    expect(recipeCostText(r)).toBe('2 matériels retirés (magie)');
+  });
+
+  it('une fusion intacte ne signale aucun matériel retiré', () => {
+    const [r] = summonRecipes(card({ summon_type: 'fusion', cost: { sacrifice: 0, materials: ['CORE_001'] } }));
+    expect(r.materialsRemoved).toBeNull();
+    expect(recipeCostText(r)).toBeNull();
+  });
+
+  it('la marque ne déteint pas sur une autre voie que la fusion', () => {
+    // `_removed_materials` vit sur la CARTE : une carte à summon_options le
+    // porterait pour toutes ses recettes si le champ n'était pas gardé par le
+    // type — un héritage annoncerait alors une remise qu'il n'a pas reçue.
+    const [r] = summonRecipes(card({
+      summon_type: 'heritage', cost: { sacrifice: 2, materials: ['CORE_001'] }, _removed_materials: 1,
+    }));
+    expect(r.materialsRemoved).toBeNull();
+  });
 });
 
 // ── Le catalogue réel ───────────────────────────────────────────────────────

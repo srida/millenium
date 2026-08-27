@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from 'vitest';
-import { applyEffect, needsUnitTarget, needsGraveyardTarget, effectLabel } from '../logic/MagieEffect.js';
+import { applyEffect, needsUnitTarget, needsGraveyardTarget, needsHandTarget, effectLabel } from '../logic/MagieEffect.js';
 import { GameState } from '../logic/GameState.js';
 import { makeBoard, makeCard, spawn } from './helpers.js';
 
@@ -14,7 +14,7 @@ function freshUnit(over: any = {}) {
 
 describe('MagieEffect — routage du ciblage', () => {
   it('needsUnitTarget / needsGraveyardTarget', () => {
-    for (const t of ['stat_bonus', 'stat_modifier', 'shield', 'heal', 'defuse_fusion', 'destroy_unit']) {
+    for (const t of ['stat_bonus', 'stat_modifier', 'shield', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life']) {
       expect(needsUnitTarget(magie({ type: t }))).toBe(true);
     }
     expect(needsUnitTarget(magie({ type: 'draw_bonus' }))).toBe(false);
@@ -22,10 +22,29 @@ describe('MagieEffect — routage du ciblage', () => {
     expect(needsGraveyardTarget(magie({ type: 'heal' }))).toBe(false);
   });
 
+  it('needsHandTarget : hand_to_graveyard SEUL, et il n\'est ni unité ni cimetière', () => {
+    // Les trois familles de ciblage s'excluent : le controller les teste dans
+    // l'ordre unité → cimetière → main, un type reconnu par deux d'entre elles
+    // n'atteindrait jamais la troisième branche.
+    expect(needsHandTarget(magie({ type: 'hand_to_graveyard' }))).toBe(true);
+    expect(needsUnitTarget(magie({ type: 'hand_to_graveyard' }))).toBe(false);
+    expect(needsGraveyardTarget(magie({ type: 'hand_to_graveyard' }))).toBe(false);
+    for (const t of ['stat_bonus', 'team_stat_bonus', 'revive', 'destroy_unit', 'drain_life']) {
+      expect(needsHandTarget(magie({ type: t }))).toBe(false);
+    }
+  });
+
+  it('team_stat_bonus n\'a aucune cible à désigner (effet global)', () => {
+    expect(needsUnitTarget(magie({ type: 'team_stat_bonus' }))).toBe(false);
+    expect(needsGraveyardTarget(magie({ type: 'team_stat_bonus' }))).toBe(false);
+    expect(needsHandTarget(magie({ type: 'team_stat_bonus' }))).toBe(false);
+  });
+
   it('effectLabel couvre tous les types sans planter', () => {
     for (const t of ['stat_bonus', 'stat_modifier', 'draw_bonus', 'guaranteed_draw', 'heal', 'revive', 'shield',
       'player_hp_bonus', 'board_slot_bonus', 'defuse_fusion', 'destroy_unit', 'reduce_sacrifice_cost',
-      'free_transformation', 'remove_heritage_material']) {
+      'free_transformation', 'remove_heritage_material', 'team_stat_bonus', 'drain_life',
+      'hand_to_graveyard', 'remove_fusion_material']) {
       expect(typeof effectLabel(magie({ type: t, stat: 'atk', value: 2, tier: 3 }))).toBe('string');
     }
     expect(effectLabel({ id: 'X', name: 'X', effect: null } as any)).toBe('Aucun effet');
@@ -115,12 +134,69 @@ describe('MagieEffect — effets globaux (gameState)', () => {
     ]);
   });
 
-  it('defuse_fusion et destroy_unit sont des no-ops dans applyEffect (gérés par l\'écran)', () => {
+  it('defuse_fusion, destroy_unit, drain_life et hand_to_graveyard sont des no-ops dans applyEffect (gérés par GameSession)', () => {
     const u = freshUnit();
     const before = { ...u };
-    applyEffect(magie({ type: 'defuse_fusion' }), { targetUnit: u });
-    applyEffect(magie({ type: 'destroy_unit' }), { targetUnit: u });
+    const gs = new (GameState as any)();
+    // player_hp est SOUS son plafond, sinon un crédit parasite serait masqué
+    // par le `min(…, 1000)` et le test passerait à vide.
+    gs.player_hp = 500;
+    const hpBefore = gs.player_hp;
+    for (const t of ['defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard']) {
+      applyEffect(magie({ type: t }), { gameState: gs, targetUnit: u });
+    }
     expect(u.current_hp).toBe(before.current_hp);
     expect(u.is_neutralized).toBe(before.is_neutralized);
+    // drain_life en particulier : la jauge du joueur ne bouge PAS ici, sans quoi
+    // elle serait créditée deux fois (une par applyEffect, une par _drainLife).
+    expect(gs.player_hp).toBe(hpBefore);
+  });
+
+  it('remove_fusion_material : empile un modifier de main avec son compte', () => {
+    const gs = new (GameState as any)();
+    applyEffect(magie({ type: 'remove_fusion_material' }), { gameState: gs });
+    applyEffect(magie({ type: 'remove_fusion_material', value: 2 }), { gameState: gs });
+    expect(gs.player_hand_modifiers).toEqual([
+      { type: 'remove_fusion_material', value: 1 },
+      { type: 'remove_fusion_material', value: 2 },
+    ]);
+  });
+});
+
+describe('MagieEffect — team_stat_bonus', () => {
+  it('frappe TOUTES les unités reçues, en permanent et tracé pour transfert', () => {
+    const board = makeBoard();
+    const a = spawn(board, makeCard({ id: 'A', stats: { atk: 10, hp: 30 } as any }), 'player', { col: 0, row: 0 });
+    const b = spawn(board, makeCard({ id: 'B', stats: { atk: 4, hp: 30 } as any }), 'player', { col: 1, row: 0 });
+
+    applyEffect(magie({ type: 'team_stat_bonus', stat: 'atk', value: 3 }), { targetUnits: [a, b] });
+
+    expect([a._base.atk, b._base.atk]).toEqual([13, 7]);
+    expect([a.atk, b.atk]).toEqual([13, 7]);
+    // _shopping_bonus est ce qui suit l'unité dans une invocation composite :
+    // sans lui, fusionner une unité boostée perdrait l'investissement du joueur.
+    expect(a._shopping_bonus).toEqual({ atk: 3 });
+    expect(b._shopping_bonus).toEqual({ atk: 3 });
+  });
+
+  it('sur hp : monte aussi les PV courants, sans dépasser le nouveau max', () => {
+    const board = makeBoard();
+    const u = spawn(board, makeCard({ id: 'H', stats: { atk: 5, hp: 50 } as any }), 'player', { col: 0, row: 0 });
+    u.current_hp = 20;
+    applyEffect(magie({ type: 'team_stat_bonus', stat: 'hp', value: 15 }), { targetUnits: [u] });
+    expect(u.max_hp).toBe(65);
+    expect(u.current_hp).toBe(35);
+  });
+
+  it('sans unité (board vide) : aucun plantage', () => {
+    expect(() => applyEffect(magie({ type: 'team_stat_bonus', stat: 'atk', value: 3 }), { targetUnits: [] })).not.toThrow();
+    expect(() => applyEffect(magie({ type: 'team_stat_bonus', stat: 'atk', value: 3 }), {})).not.toThrow();
+  });
+
+  it('plancher à 1 comme stat_bonus : une valeur négative ne descend jamais sous 1', () => {
+    const board = makeBoard();
+    const u = spawn(board, makeCard({ id: 'N', stats: { atk: 3, hp: 30 } as any }), 'player', { col: 0, row: 0 });
+    applyEffect(magie({ type: 'team_stat_bonus', stat: 'atk', value: -10 }), { targetUnits: [u] });
+    expect(u._base.atk).toBe(1);
   });
 });

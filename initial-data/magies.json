@@ -155,5 +155,36 @@
 		"effect": {
 			"type": "destroy_unit"
 		}
+	},
+	{
+		"id": "MAGIE_021",
+		"name": "Bannière de guerre",
+		"effect": {
+			"type": "team_stat_bonus",
+			"stat": "atk",
+			"value": 3
+		}
+	},
+	{
+		"id": "MAGIE_022",
+		"name": "Chair et sang",
+		"effect": {
+			"type": "drain_life"
+		}
+	},
+	{
+		"id": "MAGIE_023",
+		"name": "Rite d'abandon",
+		"effect": {
+			"type": "hand_to_graveyard"
+		}
+	},
+	{
+		"id": "MAGIE_024",
+		"name": "Alliage instable",
+		"effect": {
+			"type": "remove_fusion_material",
+			"value": 1
+		}
 	}
 ]
