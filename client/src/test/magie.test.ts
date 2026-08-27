@@ -34,17 +34,22 @@ describe('MagieEffect — routage du ciblage', () => {
     }
   });
 
-  it('team_stat_bonus n\'a aucune cible à désigner (effet global)', () => {
-    expect(needsUnitTarget(magie({ type: 'team_stat_bonus' }))).toBe(false);
-    expect(needsGraveyardTarget(magie({ type: 'team_stat_bonus' }))).toBe(false);
-    expect(needsHandTarget(magie({ type: 'team_stat_bonus' }))).toBe(false);
+  it('les magies d\'ÉQUIPE n\'ont aucune cible à désigner (effets globaux)', () => {
+    for (const t of ['team_stat_bonus', 'team_heal']) {
+      expect(needsUnitTarget(magie({ type: t })), t).toBe(false);
+      expect(needsGraveyardTarget(magie({ type: t })), t).toBe(false);
+      expect(needsHandTarget(magie({ type: t })), t).toBe(false);
+    }
+    // …là où leur pendant à cible unique en demande bien une.
+    expect(needsUnitTarget(magie({ type: 'heal' }))).toBe(true);
+    expect(needsUnitTarget(magie({ type: 'stat_bonus' }))).toBe(true);
   });
 
   it('effectLabel couvre tous les types sans planter', () => {
     for (const t of ['stat_bonus', 'stat_modifier', 'draw_bonus', 'guaranteed_draw', 'heal', 'revive', 'shield',
       'player_hp_bonus', 'board_slot_bonus', 'defuse_fusion', 'destroy_unit', 'reduce_sacrifice_cost',
       'free_transformation', 'remove_heritage_material', 'team_stat_bonus', 'drain_life',
-      'hand_to_graveyard', 'remove_fusion_material']) {
+      'hand_to_graveyard', 'remove_fusion_material', 'team_heal']) {
       expect(typeof effectLabel(magie({ type: t, stat: 'atk', value: 2, tier: 3 }))).toBe('string');
     }
     expect(effectLabel({ id: 'X', name: 'X', effect: null } as any)).toBe('Aucun effet');
@@ -80,12 +85,50 @@ describe('MagieEffect — effets sur unité', () => {
     expect(weak._base.atk).toBe(1); // plancher
   });
 
-  it('heal / shield / revive', () => {
+  it('heal : soin TOTAL — les PV remontent au maximum, quelle que soit la blessure', () => {
+    const u = freshUnit({ stats: { hp: 50 } });
+    u.current_hp = 3;
+    applyEffect(magie({ type: 'heal' }), { targetUnit: u });
+    expect(u.current_hp).toBe(u.max_hp);
+    expect(u.current_hp).toBe(50);
+  });
+
+  it('heal : `value` n\'est PAS lu — un montant resté en donnée ne borne pas le soin', () => {
+    // Les entrées de catalogue antérieures au soin total portent encore un
+    // `value` : le lire ferait un soin partiel là où la carte promet un soin
+    // complet, et rien à l'écran ne le dirait.
+    const u = freshUnit({ stats: { hp: 200 } });
+    u.current_hp = 10;
+    applyEffect(magie({ type: 'heal', value: 15 }), { targetUnit: u });
+    expect(u.current_hp).toBe(200);
+  });
+
+  it('heal : suit le max COURANT, bonus de PV compris', () => {
+    // Un soin total soigne jusqu'au max du moment — vétérance et magies de
+    // stat comprises —, pas jusqu'au `hp` figé de la carte.
+    const u = freshUnit({ stats: { hp: 50 } });
+    applyEffect(magie({ type: 'stat_bonus', stat: 'hp', value: 30 }), { targetUnit: u });
+    u.current_hp = 5;
+    applyEffect(magie({ type: 'heal' }), { targetUnit: u });
+    expect(u.current_hp).toBe(80);
+  });
+
+  it('heal : ne dépasse jamais le maximum, et ne ressuscite pas', () => {
+    const u = freshUnit({ stats: { hp: 50 } });
+    applyEffect(magie({ type: 'heal' }), { targetUnit: u });
+    expect(u.current_hp).toBe(50);
+    // `revive` est le seul effet qui relève un neutralisé ; le soin ne fait
+    // que des PV. (Le ciblage l'exclut de toute façon : magieUnitTargets ne
+    // rend que des unités VIVANTES.)
+    u.is_neutralized = true;
+    u.current_hp = 0;
+    applyEffect(magie({ type: 'heal' }), { targetUnit: u });
+    expect(u.is_neutralized).toBe(true);
+  });
+
+  it('shield / revive', () => {
     const u = freshUnit({ stats: { hp: 50 } });
     u.current_hp = 20;
-    applyEffect(magie({ type: 'heal', value: 15 }), { targetUnit: u });
-    expect(u.current_hp).toBe(35);
-
     applyEffect(magie({ type: 'shield', value: 12 }), { targetUnit: u });
     expect(u.shield).toBe(12);
 
@@ -160,6 +203,43 @@ describe('MagieEffect — effets globaux (gameState)', () => {
       { type: 'remove_fusion_material', value: 1 },
       { type: 'remove_fusion_material', value: 2 },
     ]);
+  });
+});
+
+describe('MagieEffect — team_heal', () => {
+  it('soigne CHAQUE unité reçue du montant demandé', () => {
+    const board = makeBoard();
+    const a = spawn(board, makeCard({ id: 'A', stats: { hp: 100 } as any }), 'player', { col: 0, row: 0 });
+    const b = spawn(board, makeCard({ id: 'B', stats: { hp: 100 } as any }), 'player', { col: 1, row: 0 });
+    a.current_hp = 10;
+    b.current_hp = 50;
+
+    applyEffect(magie({ type: 'team_heal', value: 30 }), { targetUnits: [a, b] });
+
+    expect([a.current_hp, b.current_hp]).toEqual([40, 80]);
+  });
+
+  it('est CHIFFRÉ, pas total : une unité très blessée ne repart pas au maximum', () => {
+    // C'est toute la différence avec `heal`, qui n'a pas de montant. Un soin
+    // de masse total n'aurait aucun contrepoids.
+    const board = makeBoard();
+    const u = spawn(board, makeCard({ id: 'A', stats: { hp: 300 } as any }), 'player', { col: 0, row: 0 });
+    u.current_hp = 5;
+    applyEffect(magie({ type: 'team_heal', value: 20 }), { targetUnits: [u] });
+    expect(u.current_hp).toBe(25);
+  });
+
+  it('plafonne au max de chaque unité, sans déborder', () => {
+    const board = makeBoard();
+    const u = spawn(board, makeCard({ id: 'A', stats: { hp: 60 } as any }), 'player', { col: 0, row: 0 });
+    u.current_hp = 55;
+    applyEffect(magie({ type: 'team_heal', value: 999 }), { targetUnits: [u] });
+    expect(u.current_hp).toBe(60);
+  });
+
+  it('sans unité : aucun plantage', () => {
+    expect(() => applyEffect(magie({ type: 'team_heal', value: 10 }), { targetUnits: [] })).not.toThrow();
+    expect(() => applyEffect(magie({ type: 'team_heal', value: 10 }), {})).not.toThrow();
   });
 });
 

@@ -82,8 +82,7 @@
 		"id": "MAGIC_011",
 		"name": "Médicament bleu",
 		"effect": {
-			"type": "heal",
-			"value": 100
+			"type": "heal"
 		}
 	},
 	{
@@ -185,6 +184,14 @@
 		"effect": {
 			"type": "remove_fusion_material",
 			"value": 1
+		}
+	},
+	{
+		"id": "MAGIE_025",
+		"name": "Vague de repos",
+		"effect": {
+			"type": "team_heal",
+			"value": 40
 		}
 	}
 ]

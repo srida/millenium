@@ -1612,7 +1612,8 @@ MagieDatabase.getRandomMagies(count = 3) // tirage sans remise
 | `stat_bonus` | `stat`, `value` | Bonus additif **permanent** sur `targetUnit._base[stat]` (min 1) + `_recomputeStats()`. Si `stat === 'hp'`, augmente aussi `current_hp`. |
 | `team_stat_bonus` | `stat`, `value` | Le geste de `stat_bonus`, répété sur **toutes** les unités du joueur. Effet **global** : aucune cible à taper (`applyGlobalMagie` passe `targetUnits`). Permanent (`_base`) et **tracé** (`_shopping_bonus`), donc transféré à une invocation composite. |
 | `stat_modifier` | `stat`, `value` | Multiplicateur **permanent** : `_base[stat] += round(_base[stat] * (value - 1))` + `_recomputeStats()`. |
-| `heal` | `value` | `targetUnit.heal(value)` |
+| `heal` | — | Soin **TOTAL** : `targetUnit.heal(targetUnit.max_hp)`. ⚠️ `value` n'est **pas lu** — les entrées de catalogue antérieures en portent encore un, le lire ferait un soin partiel là où la carte promet un soin complet. Le soin suit le **max courant** (bonus de PV et vétérance compris), pas le `hp` figé de la carte. |
+| `team_heal` | `value` | Soigne de `value` PV **toutes** les unités du joueur. Effet **global** (`targetUnits`), plafonné au max de chaque unité. ⚠️ Il est **chiffré** là où `heal` est total : un soin de masse complet n'aurait aucun contrepoids. |
 | `shield` | `value` | `targetUnit.applyShield(value)` |
 | `revive` | `value` (% PV max) | Unité du **cimetière** : `is_neutralized = false`, `current_hp = max(1, round(max_hp * value/100))`, et purge de tous les statuts (dot, burn, paralysie, block). |
 | `player_hp_bonus` | `value` | `gameState.player_hp = min(player_hp + value, 1000)` |
@@ -1629,10 +1630,12 @@ MagieDatabase.getRandomMagies(count = 3) // tirage sans remise
 | `remove_fusion_material` | `value` (déf. 1) | `gameState.player_hand_modifiers.push({ type: 'remove_fusion_material', value })` — retire N matériels requis d'une carte **Fusion** en main |
 
 **Helpers de routage** — **trois** familles de cibles, et elles s'excluent : `GameController.chooseMagie` les teste dans l'ordre unité → cimetière → main, un type reconnu par deux d'entre elles n'atteindrait jamais la troisième branche.
-- `needsUnitTarget(magie)` → `stat_bonus`, `stat_modifier`, `shield`, `heal`, `defuse_fusion`, `destroy_unit`, `drain_life` (cible une unité du board joueur)
+- `needsUnitTarget(magie)` → `stat_bonus`, `stat_modifier`, `shield`, `heal`, `defuse_fusion`, `destroy_unit`, `drain_life` (cible une unité du board joueur — **vivante** : `magieUnitTargets` passe par `getPlayerUnits()`, aucun soin ne tombe donc sur un neutralisé encore posé après le combat)
 - `needsGraveyardTarget(magie)` → `revive` uniquement (cible une unité du cimetière)
 - `needsHandTarget(magie)` → `hand_to_graveyard` uniquement (cible une **carte de la main**)
-- Tous les autres types sont des effets globaux appliqués immédiatement — `team_stat_bonus` compris : il frappe tout le board sans rien demander au joueur.
+- Tous les autres types sont des effets globaux appliqués immédiatement — les magies d'**équipe** comprises (`team_stat_bonus`, `team_heal`) : elles frappent tout le board sans rien demander au joueur.
+
+⚠️ **Chaque magie d'équipe est le pendant d'une magie à cible unique, et les deux ne se dosent pas pareil.** `heal` soigne **tout** parce qu'il ne touche qu'une unité ; `team_heal` porte un **montant** parce qu'il les touche toutes. Copier le barème de l'un sur l'autre est l'erreur qui rend l'une des deux sans objet.
 
 Les `player_hand_modifiers` (`reduce_sacrifice_cost`, `free_transformation`, `remove_heritage_material`, `remove_fusion_material`) sont consommés au tour suivant (différé), dans `GameSession.startPreparation()`.
 

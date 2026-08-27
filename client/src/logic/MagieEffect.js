@@ -35,7 +35,8 @@ export function effectLabel(magie) {
     case 'stat_modifier':    return `×${e.value} ${STAT_NAMES[e.stat] || e.stat} sur une unité (permanent)`;
     case 'draw_bonus':       return `+${e.value} carte${e.value > 1 ? 's' : ''} supplémentaire${e.value > 1 ? 's' : ''} ce tour`;
     case 'guaranteed_draw':  return `Pioche garantie Tier ${e.tier} ce tour`;
-    case 'heal':             return `Soigne une unité de ${e.value} PV`;
+    case 'heal':             return 'Soigne ENTIÈREMENT une unité (PV au maximum)';
+    case 'team_heal':        return `Soigne toutes tes unités de ${e.value} PV`;
     case 'revive':           return `Réanime une unité du cimetière à ${e.value}% de ses PV`;
     case 'shield':           return `+${e.value} bouclier sur une unité`;
     case 'player_hp_bonus':  return `+${e.value} PV joueur`;
@@ -95,7 +96,16 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       }
       break;
     case 'heal':
-      if (targetUnit) targetUnit.heal(e.value);
+      // Soin TOTAL : `value` n'est pas lu. `heal()` plafonne déjà à `max_hp`,
+      // il n'y a donc rien à calculer — et le soin suit le max courant, bonus
+      // de PV compris (magies de stat, vétérance).
+      if (targetUnit) targetUnit.heal(targetUnit.max_hp);
+      break;
+    case 'team_heal':
+      // Le soin de masse, lui, est CHIFFRÉ : c'est ce qui le distingue du soin
+      // total à cible unique, qui n'aurait aucun contrepoids s'il frappait
+      // tout le board.
+      for (const unit of (targetUnits || [])) unit.heal(e.value);
       break;
     case 'shield':
       if (targetUnit) targetUnit.applyShield(e.value);

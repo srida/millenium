@@ -58,7 +58,7 @@ describe('Shopping — tirage & extraShoppingMagies', () => {
 describe('Shopping — routage du ciblage', () => {
   it('magieNeedsUnitTarget / magieNeedsGraveyardTarget', () => {
     const { session } = makeSession();
-    expect(session.magieNeedsUnitTarget(magie({ type: 'heal', value: 5 }) as any)).toBe(true);
+    expect(session.magieNeedsUnitTarget(magie({ type: 'heal' }) as any)).toBe(true);
     expect(session.magieNeedsUnitTarget(magie({ type: 'defuse_fusion' }) as any)).toBe(true);
     expect(session.magieNeedsGraveyardTarget(magie({ type: 'revive', value: 50 }) as any)).toBe(true);
     expect(session.magieNeedsUnitTarget(magie({ type: 'draw_bonus', value: 1 }) as any)).toBe(false);
@@ -80,7 +80,7 @@ describe('Shopping — routage du ciblage', () => {
     const { session } = makeSession();
     place(session, makeCard({ id: 'PLAIN' }), { col: 0, row: 0 });
     place(session, makeCard({ id: 'PLAIN' }), { col: 1, row: 0 });
-    expect(session.magieUnitTargets(magie({ type: 'heal', value: 5 }) as any)).toHaveLength(2);
+    expect(session.magieUnitTargets(magie({ type: 'heal' }) as any)).toHaveLength(2);
   });
 });
 
@@ -256,6 +256,46 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
     expect(session.isPlayable(stripped as any)).toBe(true);
   });
 
+  it('team_heal : effet GLOBAL — soigne tout le board joueur du montant demandé', () => {
+    const { session } = makeSession();
+    const m = magie({ type: 'team_heal', value: 25 }) as any;
+    expect(session.magieNeedsUnitTarget(m)).toBe(false);
+    expect(session.magieNeedsGraveyardTarget(m)).toBe(false);
+    expect(session.magieNeedsHandTarget(m)).toBe(false);
+
+    const a = place(session, makeCard({ id: 'A', stats: { hp: 100 } as any }), { col: 0, row: 0 });
+    const b = place(session, makeCard({ id: 'B', stats: { hp: 100 } as any }), { col: 1, row: 0 });
+    a.current_hp = 10;
+    b.current_hp = 90;
+
+    session.applyGlobalMagie(m);
+
+    expect([a.current_hp, b.current_hp]).toEqual([35, 100]);
+  });
+
+  it('team_heal : n\'atteint ni l\'ennemi ni le cimetière', () => {
+    // `getPlayerUnits()` ne rend que les unités VIVANTES du joueur : un
+    // neutralisé encore posé sur le board après le combat n'est pas soigné —
+    // c'est `revive` qui relève, pas le soin.
+    const { session } = makeSession();
+    const mine = place(session, makeCard({ id: 'A', stats: { hp: 100 } as any }), { col: 0, row: 0 });
+    mine.current_hp = 20;
+
+    const dead = place(session, makeCard({ id: 'D', stats: { hp: 100 } as any }), { col: 1, row: 0 });
+    dead.current_hp = 0;
+    dead.is_neutralized = true;
+
+    const theirs = new (Unit as any)(makeCard({ id: 'E', stats: { hp: 100 } as any }), 'enemy');
+    session.board.placeUnit(theirs, { col: 0, row: 10 });
+    theirs.current_hp = 20;
+
+    session.applyGlobalMagie(magie({ type: 'team_heal', value: 50 }) as any);
+
+    expect(mine.current_hp).toBe(70);
+    expect(dead.current_hp).toBe(0);
+    expect(theirs.current_hp).toBe(20);
+  });
+
   it('team_stat_bonus : effet GLOBAL — aucune cible à désigner, tout le board joueur en profite', () => {
     const { session } = makeSession();
     const m = magie({ type: 'team_stat_bonus', stat: 'atk', value: 4 }) as any;
@@ -287,6 +327,25 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
     session.applyGlobalMagie(magie({ type: 'team_stat_bonus', stat: 'atk', value: 4 }) as any);
     u.resetCombatStats();
     expect(u.atk).toBe(14);
+  });
+});
+
+describe('Shopping — heal (soin total)', () => {
+  it('remonte les PV de la cible à son maximum', () => {
+    const { session } = makeSession();
+    const u = place(session, makeCard({ id: 'A', stats: { hp: 120 } as any }), { col: 0, row: 0 });
+    u.current_hp = 7;
+    session.applyMagieOnUnit(magie({ type: 'heal' }) as any, u);
+    expect(u.current_hp).toBe(120);
+  });
+
+  it('ne cible que les unités VIVANTES du joueur', () => {
+    const { session } = makeSession();
+    const alive = place(session, makeCard({ id: 'A' }), { col: 0, row: 0 });
+    const dead = place(session, makeCard({ id: 'D' }), { col: 1, row: 0 });
+    dead.current_hp = 0;
+    dead.is_neutralized = true;
+    expect(session.magieUnitTargets(magie({ type: 'heal' }) as any)).toEqual([alive]);
   });
 });
 

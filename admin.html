@@ -2586,7 +2586,8 @@ const EFFECT_TYPE_LABELS = {
   stat_modifier: 'Modificateur de stat',
   draw_bonus: 'Pioche',
   revive: 'Réanimation',
-  heal: 'Soin',
+  heal: 'Soin total',
+  team_heal: 'Soin de masse',
   shield: 'Bouclier',
   player_hp_bonus: 'Bonus HP joueur',
   board_slot_bonus: 'Slot de board',
@@ -2638,7 +2639,7 @@ function renderMagieDetail() {
   const effectType = effect.type || 'none';
   const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(effectType);
   const showTier = effectType === 'guaranteed_draw';
-  const noValue = ['none', 'guaranteed_draw', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
+  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
   const showValue = !noValue.includes(effectType);
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
@@ -2680,7 +2681,8 @@ function renderMagieDetail() {
           <option value="stat_modifier" ${effectType === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat</option>
           <option value="draw_bonus" ${effectType === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
           <option value="guaranteed_draw" ${effectType === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (par tier)</option>
-          <option value="heal" ${effectType === 'heal' ? 'selected' : ''}>Soin (PV)</option>
+          <option value="heal" ${effectType === 'heal' ? 'selected' : ''}>Soin total (une unité)</option>
+          <option value="team_heal" ${effectType === 'team_heal' ? 'selected' : ''}>Soin de masse — TOUTES tes unités (PV)</option>
           <option value="revive" ${effectType === 'revive' ? 'selected' : ''}>Réanimation (%HP)</option>
           <option value="shield" ${effectType === 'shield' ? 'selected' : ''}>Bouclier</option>
           <option value="player_hp_bonus" ${effectType === 'player_hp_bonus' ? 'selected' : ''}>Bonus HP joueur</option>
@@ -2740,7 +2742,7 @@ function updateMagieEffectFields() {
   const type = document.getElementById('mf-effect-type')?.value || 'none';
   const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(type);
   const showTier = type === 'guaranteed_draw';
-  const noValue = ['none', 'guaranteed_draw', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
+  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
   const showValue = !noValue.includes(type);
   document.getElementById('mf-stat-field').style.display = showStat ? '' : 'none';
   document.getElementById('mf-value-field').style.display = showValue ? '' : 'none';
@@ -2750,7 +2752,7 @@ function updateMagieEffectFields() {
 function _collectMagieFields() {
   const effectType = document.getElementById('mf-effect-type')?.value || 'none';
   let effect = null;
-  const noValue = ['defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
+  const noValue = ['heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
   if (effectType !== 'none') {
     effect = { type: effectType };
     if (effectType === 'guaranteed_draw') {
