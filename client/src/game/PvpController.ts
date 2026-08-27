@@ -70,6 +70,10 @@ export class PvpController extends GameController {
   startCombat(): void {
     if (this.session.phase !== Phase.PREPARATION || this._handshaking) return;
     this._handshaking = true;
+    // Le board part sur le réseau : plus question de « Tout annuler ». La phase
+    // reste PREPARATION pendant toute la poignée de main (`pvpWaiting`), donc
+    // la barre de préparation — et son bouton — sont encore à l'écran.
+    this._committedPrepId = this.session.prepId;
     this._clearSelection();
     const round = this.session.gameState.round;
 

@@ -102,6 +102,10 @@ interface MissionStoreState {
   /** Incrémente l'index de combat ET émet `combat_started`. */
   emitCombatStarted: (payload: Record<string, unknown>) => void;
   emit: (type: string, payload?: Record<string, unknown>) => void;
+  /** Longueur courante de la file — repère à rendre à `rollbackEvents`. */
+  eventMark: () => number;
+  /** Défait les événements émis depuis `mark` (bouton « Tout annuler »). */
+  rollbackEvents: (mark: number) => void;
   /** Envoie la file au serveur (fin de partie / sortie de l'écran de jeu). */
   flushMatch: () => Promise<void>;
   /** Événement hors partie (deck enregistré…) — envoyé immédiatement. */
@@ -220,6 +224,14 @@ export const useMissionStore = create<MissionStoreState>((set, get) => ({
     if (queue.length >= MAX_QUEUE) return;      // garde-fou : le serveur plafonne aussi
     queue.push({ ...payload, type, combat_index: Math.max(0, combatIndex) });
   },
+
+  // Un tour de préparation entièrement annulé ne doit rien laisser dans la
+  // file : sans ça, une boucle poser/annuler ferait avancer une mission
+  // « invoque N unités » sans jouer une seule partie. La file ne fait que
+  // rétrécir — le plafond `MAX_QUEUE` d'`emit` reste donc respecté.
+  eventMark: () => queue.length,
+
+  rollbackEvents: (mark) => { queue.length = Math.min(queue.length, Math.max(0, mark)); },
 
   flushMatch: async () => {
     if (!matchId || !queue.length) { queue = []; return; }

@@ -38,6 +38,17 @@ export class GameController {
   private selectedBoardPos: Position | null = null;
   private summonOptions: SummonOptionMenu | null = null;
 
+  // « Tout annuler » — deux repères indexés sur `session.prepId`, qui change de
+  // lui-même à chaque ouverture de tour : aucun des deux n'a donc de remise à
+  // zéro à faire (et donc aucune à oublier au prochain mode de jeu ajouté).
+  //  · _committedPrepId : le tour dont le board est déjà engagé (PRÊT tapé).
+  //    En PvP la phase reste PREPARATION pendant toute la poignée de main.
+  //  · _eventMark / _markPrepId : longueur de la file d'événements de missions
+  //    avant la PREMIÈRE invocation du tour courant.
+  protected _committedPrepId: number | null = null;
+  private _markPrepId: number | null = null;
+  private _eventMark = 0;
+
   combatSpeed = 2;
   protected paused = false;
   private _errorTimer: ReturnType<typeof setTimeout> | null = null;
@@ -246,6 +257,10 @@ export class GameController {
       this._flashError(`Maximum ${this.session.gameState.player_board_slots} unités sur le terrain`);
       return;
     }
+    if (this._markPrepId !== this.session.prepId) {
+      this._markPrepId = this.session.prepId;
+      this._eventMark = useMissionStore.getState().eventMark();
+    }
     this.session.place(card, pos, this.selectedMaterials, this.selectedHandIdx);
     useMissionStore.getState().emit('summon_performed', {
       card_id: card.id, tier: card.tier, summon_type: card.summon_type,
@@ -270,10 +285,30 @@ export class GameController {
     this.sync();
   }
 
+  /**
+   * « Tout annuler » — remet board, main et cimetière à l'ouverture du tour.
+   * La règle vit dans `GameSession` ; ici on ne fait que défaire ce qui n'est
+   * pas de son ressort : les événements de missions déjà mis en file, sans quoi
+   * une boucle poser/annuler ferait avancer une mission d'invocation sans jouer.
+   */
+  undoPreparation(): void {
+    if (this.session.phase !== Phase.PREPARATION) return;
+    if (this._committedPrepId === this.session.prepId) return;   // board déjà annoncé (PvP)
+    if (!this.session.undoPreparation()) return;
+    if (this._markPrepId === this.session.prepId) {
+      useMissionStore.getState().rollbackEvents(this._eventMark);
+      this._markPrepId = null;
+    }
+    this._clearSelection();
+    this.scene?.refresh();
+    this.sync();
+  }
+
   // ── Combat ───────────────────────────────────────────────────────────────
 
   startCombat(): void {
     if (this.session.phase !== Phase.PREPARATION) return;
+    this._committedPrepId = this.session.prepId;
     this._clearSelection();
     const { combat, boardData } = this.session.startCombat();
     this._beginCombatAnimation(combat, boardData);
@@ -616,6 +651,9 @@ export class GameController {
       enemyMultiplier: gs.enemy_multiplier,
       boardSlots: gs.player_board_slots,
       placedCount: this.session.getPlayerUnits().length,
+      canUndo: gs.phase === Phase.PREPARATION
+        && this._committedPrepId !== this.session.prepId
+        && this.session.canUndoPreparation(),
       hand,
       graveyard,
       synergies,
