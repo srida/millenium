@@ -76,6 +76,28 @@ export interface EndRoundResult {
   isGameOver: boolean;
 }
 
+/**
+ * État du board et de la main du joueur à l'OUVERTURE d'un tour, tel que
+ * `undoPreparation()` le rétablit (bouton « Tout annuler »).
+ *
+ * ⚠️ Rien n'est cloné, et ce n'est pas une économie : la restauration doit être
+ * exacte au bit près. Les unités ne sont JAMAIS mutées par ce qui se passe en
+ * préparation — `board.removeUnit` ne fait que vider une case (il ne touche même
+ * pas `unit.position`) et `_transferShoppingBonuses` LIT les matériaux pour
+ * écrire sur le composite — et `_removeFromHand` fait un `splice` du tableau
+ * sans toucher aux objets `Card`. Garder les références rend donc `_base`,
+ * `_shopping_bonus`, `veterancy_points`, `current_hp`, `shield` et surtout
+ * l'`uid` intacts ; c'est ce dernier qui laisse `Scene3D.refresh()` — un diff
+ * indexé par uid — remettre la scène d'aplomb sans une ligne de plus.
+ *
+ * Seules les POSITIONS sont copiées : elles, la préparation les écrase.
+ */
+interface PrepSnapshot {
+  hand: Card[];
+  graveyard: Unit[];
+  units: { unit: Unit; position: Position; initial_position: Position | null }[];
+}
+
 export interface StartCombatResult {
   combat: CombatManager;
   attributeManager: AttributeManager;
@@ -92,6 +114,13 @@ export class GameSession {
   enemyUnits: Unit[] = [];
   enemyGraveyard: Unit[] = [];
 
+  /** Numéro du tour de préparation courant — incrémenté à chaque
+   *  `startPreparation()`. Repère d'identité, pas un compteur de rounds : la
+   *  couche app s'en sert pour savoir si un état qu'elle a mémorisé (marque
+   *  d'événements de missions, verrou d'engagement PvP) parle encore du tour à
+   *  l'écran, sans avoir à être prévenue du passage au tour suivant. */
+  prepId = 0;
+
   private deps: GameSessionDeps;
   private enemyAI: EnemyAI;
 
@@ -99,6 +128,9 @@ export class GameSession {
   private _combat: CombatManager | null = null;
   private _attributeManager: AttributeManager | null = null;
   private _combatPlayerUnits: Unit[] = [];
+
+  // État de début de tour, pour « Tout annuler » (cf. PrepSnapshot).
+  private _prepSnapshot: PrepSnapshot | null = null;
 
   constructor(deps: GameSessionDeps) {
     this.deps = deps;
@@ -177,6 +209,72 @@ export class GameSession {
     // lancement du combat (startCombat), une fois le joueur prêt ; en PvP
     // l'adversaire humain place sur son propre client et le PvpController
     // reconstruit son board juste avant le combat.
+
+    // Le tour est ouvert : c'est CET état que « Tout annuler » rétablit. La
+    // capture est la dernière instruction — pioche et modificateurs de main
+    // font partie du début de tour, pas de ce que le joueur a fait ensuite.
+    this.prepId++;
+    this._prepSnapshot = this._capturePreparation();
+  }
+
+  // ── « Tout annuler » (bouton de la barre de préparation) ─────────────────
+
+  private _capturePreparation(): PrepSnapshot {
+    return {
+      hand: [...this.hand],
+      graveyard: [...this.graveyard],
+      units: this.board.getUnitsOnSide('player').map(unit => ({
+        unit,
+        position: { ...(unit.position as Position) },
+        initial_position: unit.initial_position ? { ...unit.initial_position } : null,
+      })),
+    };
+  }
+
+  /**
+   * Y a-t-il quelque chose à annuler ? Le test est STRUCTUREL — on compare
+   * l'état courant au snapshot — et non un drapeau posé par les mutateurs :
+   * le déplacement tap-tap passe par `board.moveUnit` sans traverser
+   * `GameSession`, un drapeau se ferait donc oublier au prochain chemin ajouté.
+   * Sur cinq unités et une dizaine de cartes, le coût est nul.
+   */
+  canUndoPreparation(): boolean {
+    const snap = this._prepSnapshot;
+    if (!snap) return false;
+    if (this.hand.length !== snap.hand.length) return true;
+    if (this.graveyard.length !== snap.graveyard.length) return true;
+    if (this.hand.some((c, i) => c !== snap.hand[i])) return true;
+    if (this.graveyard.some((u, i) => u !== snap.graveyard[i])) return true;
+
+    const units = this.board.getUnitsOnSide('player');
+    if (units.length !== snap.units.length) return true;
+    return snap.units.some(e => {
+      const pos = e.unit.position;
+      if (!pos || this.board.getUnit(pos) !== e.unit) return true;
+      if (pos.col !== e.position.col || pos.row !== e.position.row) return true;
+      const init = e.unit.initial_position;
+      if (!init !== !e.initial_position) return true;
+      return !!init && !!e.initial_position &&
+        (init.col !== e.initial_position.col || init.row !== e.initial_position.row);
+    });
+  }
+
+  /** Remet board, main et cimetière du joueur à l'ouverture du tour. */
+  undoPreparation(): boolean {
+    const snap = this._prepSnapshot;
+    if (!snap || !this.canUndoPreparation()) return false;
+
+    // ⚠️ On vide TOUTES les cases joueur avant d'en reposer une seule :
+    // `placeUnit` jette sur case occupée, et une unité déplacée pendant la
+    // préparation occupe la case d'une autre.
+    for (const u of this.board.getUnitsOnSide('player')) this.board.removeUnit(u);
+    for (const e of snap.units) {
+      this.board.placeUnit(e.unit, e.position);
+      e.unit.initial_position = e.initial_position ? { ...e.initial_position } : null;
+    }
+    this.hand = [...snap.hand];
+    this.graveyard = [...snap.graveyard];
+    return true;
   }
 
   /** Placement de l'adversaire IA — le joueur pose en premier, l'IA répond au
@@ -305,6 +403,8 @@ export class GameSession {
   // agreedBoard : en PvP, terrain convenu entre les 2 clients (déterminisme) ;
   // omis en IA → terrain aléatoire.
   startCombat(agreedBoard?: BoardDef | null): StartCombatResult {
+    // Le tour est engagé : il n'y a plus rien à annuler.
+    this._prepSnapshot = null;
     // L'IA joue en dernier : son placement consomme encore le cimetière ennemi
     // du round précédent, il doit donc précéder la purge des cimetières.
     this._placeEnemyUnits();

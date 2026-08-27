@@ -1410,6 +1410,70 @@ Fin de partie :
 
 **Menu d'options** (`components/hud/GameMenu.tsx`, ouvert par le bouton ☰ de `PhaseControls`, à côté de PRÊT en préparation et de Pause en combat ; `menuOpen` du store est la source de vérité de l'ouverture) : disponible en préparation comme en combat, dans les deux écrans de jeu. Reprendre / quitter (confirmation obligatoire). En solo, l'ouvrir gèle le chrono de préparation (`menuOpen` dans le snapshot) ; en PvP le chrono continue — l'adversaire attend à la barrière réseau et ne doit pas pouvoir être bloqué. En PvP, « quitter » = `PvpController.forfeit()`.
 
+### « Tout annuler » — le point de retour d'un tour
+
+Un bouton **↺** dans la barre de préparation (`PhaseControls`, entre le remplissage et ☰) remet
+**board, main et cimetière du joueur** à l'ouverture du tour — le geste de Marvel Snap. Tout est
+dans `GameSession.undoPreparation()` ; le contrôleur ne fait qu'appeler.
+
+Il n'existe que parce que **rien n'était réversible en préparation** : une carte invoquée quitte la
+main, ses matériaux quittent le board sans passer par le cimetière, et un repositionnement écrase
+`initial_position`. Une fusion lancée avec le mauvais matériau se subissait jusqu'au combat.
+
+- **Le point de capture est la dernière instruction de `startPreparation()`**, pas le début du round.
+  La Phase Shopping a lieu **avant** (`dismissEndRound` → `_startShopping` → `_proceedNextRound` →
+  `startNextRound()` → `startPreparation()`) : « début de tour » veut donc dire pioche faite,
+  magies de main déjà appliquées, et une magie choisie au shopping n'est **jamais** annulable.
+- **Seules deux choses mutent l'état joueur en préparation** — l'invocation (`place` →
+  `InvocationManager.summon`) et le déplacement (`reposition`, ou `board.moveUnit` par
+  `GameController._tryMove`). Il n'y a pas de retrait libre d'unité, pas de magie, et rien côté
+  ennemi (`_placeEnemyUnits` n'est appelé qu'à `startCombat`). C'est ce qui rend le point de retour
+  petit et complet à la fois.
+- ⚠️ **Rien n'est CLONÉ, et ce n'est pas une économie** : c'est ce qui rend la restauration exacte.
+  `summon()` ne mute jamais les unités qu'elle consomme — `board.removeUnit` ne fait que vider une
+  case (il ne touche même pas `unit.position`) et `_transferShoppingBonuses` **lit** les matériaux
+  pour écrire sur le composite ; `_removeFromHand` fait un `splice` du tableau sans toucher aux
+  objets `Card`. Garder les **références** rend donc `_base`, `_shopping_bonus`, `veterancy_points`,
+  `current_hp`, `shield` et l'`uid` intacts — un clone, lui, aurait fait payer au joueur ce qu'il
+  avait acquis les tours d'avant. Les composites créés puis annulés sont simplement abandonnés.
+- **Garder l'`uid` rend le rendu gratuit** : `Scene3D.refresh()` est un diff indexé par uid — il
+  despawn les composites annulés, respawn les matériaux restaurés et anime les unités remises en
+  place, sans une ligne de plus. Seules les **positions** sont copiées à la capture (aucun objet
+  `Position` n'est aujourd'hui muté en place, tout écrit un objet neuf : c'est une précaution).
+- ⚠️ **On vide TOUTES les cases joueur avant d'en reposer une seule** : `placeUnit` *jette* sur case
+  occupée, et une unité déplacée pendant la préparation occupe la case d'une autre.
+- **La disponibilité se calcule STRUCTURELLEMENT** (`canUndoPreparation`), en comparant l'état au
+  point de retour, et non par un drapeau posé par les mutateurs : le déplacement tap-tap passe par
+  `board.moveUnit` sans traverser `GameSession`, un drapeau se ferait oublier au prochain chemin
+  ajouté. Sur cinq unités et une dizaine de cartes, le coût est nul. Le bouton est **masqué** tant
+  que c'est faux — il n'apparaît qu'après le premier geste du tour.
+- **`GameSession.prepId`** est incrémenté à chaque `startPreparation()`. Ce n'est pas un compteur de
+  rounds : c'est le repère qui permet à la couche app de savoir si un état qu'elle a mémorisé parle
+  encore du tour à l'écran — sans avoir à être **prévenue** du passage au tour suivant, donc sans
+  rien à remettre à zéro (et rien à oublier de remettre à zéro au prochain mode de jeu ajouté).
+  Deux usages, tous deux dans `GameController` :
+  - ⚠️ **Verrou d'engagement (`_committedPrepId`)** — posé à `startCombat()`. Il porte les deux modes
+    où **la phase reste `PREPARATION` après le tap sur PRÊT** : en **PvP** pendant toute la poignée
+    de main réseau (`pvpWaiting`), alors que le board a déjà été annoncé à l'adversaire ; et en
+    **duel contre bot**, où `BotController` retarde le combat de 3 à 22 s pour imiter un adversaire
+    humain. Dans les deux cas la barre de préparation est encore à l'écran sous l'overlay et `sync`
+    republie l'instantané : sans le verrou, ↺ reviendrait — vingt secondes de rab pour retoucher un
+    board déjà validé. Les deux sous-classes le posent donc **au tap**, pas à la fin de l'attente.
+  - ⚠️ **Rollback des missions (`_eventMark` / `_markPrepId`)** — `_tryPlace` mémorise la longueur de
+    la file d'événements avant la **première** invocation du tour, et l'annulation y revient
+    (`missionStore.rollbackEvents`). Sans ça, une boucle poser/annuler ferait avancer une mission
+    « invoque N unités » sans jouer une seule partie. Le test sur `prepId` n'est pas décoratif : sans
+    lui, annuler un tour où l'on n'a fait que **déplacer** rejouerait une marque périmée et
+    effacerait l'invocation d'un tour précédent, qui a bien eu lieu.
+- **Rien côté réseau** : `round:board_ready` ne transporte que `card_id`, `position`,
+  `veterancy_points`, `base`, `current_hp` et `shield`, tous restaurés à l'identique (l'`uid` est
+  envoyé mais jamais relu par `reconstructOpponentUnits`). L'annulation est purement locale et
+  précède toujours l'envoi.
+- Verrouillé par `client/src/test/prep-undo.test.ts` (14 golden tests sur `GameSession`) et
+  `client/src/test/prep-undo-events.test.ts` (6, sur le contrôleur et la file de missions — même
+  harnais de store qu'`arcade-store.test.ts`, `window.location` posé à la main). Tous éprouvés dans
+  les deux sens.
+
 **HP des joueurs : 1000.**
 
 À la fin de la phase de combat :

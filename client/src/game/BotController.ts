@@ -84,6 +84,13 @@ export class BotController extends GameController {
   startCombat(): void {
     if (this.session.phase !== Phase.PREPARATION || this._waitTimer) return;
     const wait = this._readyAt - Date.now();
+    // Le tour est engagé DÈS le tap sur PRÊT, pas à l'expiration de l'attente :
+    // pendant celle-ci la phase reste PREPARATION et `sync` republie
+    // l'instantané, donc sans ce verrou le bouton « Tout annuler » reviendrait
+    // sous l'overlay « En attente de l'adversaire… » — vingt secondes de rab
+    // pour retoucher un board déjà validé. Même geste que `PvpController`,
+    // où le board est en plus déjà parti sur le réseau.
+    this._committedPrepId = this.session.prepId;
     if (wait <= 0) { super.startCombat(); return; }
     this._clearSelection();
     this.sync({ combatActive: false, pvpWaiting: true });

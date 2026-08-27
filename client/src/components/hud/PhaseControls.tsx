@@ -37,6 +37,28 @@ function TerrainChip({ board }: { board: BoardDef }) {
   );
 }
 
+// « Tout annuler » — remet board et main à l'ouverture du tour (cf.
+// GameSession.undoPreparation). Il n'apparaît qu'une fois quelque chose posé ou
+// déplacé : au début du tour il n'a rien à faire, et la barre du bas est déjà
+// dense sur un écran de 375 px (compteur, chrono, ☰, PRÊT).
+//
+// Icône seule pour la même raison — le sens passe par `aria-label` / `title`.
+// La cible tactile de 44 px vient de `Button` : ne PAS refabriquer un bouton à
+// la main ici (c'est ce qui avait mis les contrôles de la boutique sous le
+// seuil).
+function UndoButton({ onUndo }: { onUndo: () => void }) {
+  return (
+    <Button
+      aria-label="Tout annuler"
+      title="Tout annuler"
+      className="shrink-0 px-3 text-base"
+      onPointerDown={(e) => { e.stopPropagation(); onUndo(); }}
+    >
+      ↺
+    </Button>
+  );
+}
+
 // Ouvre le menu d'options (rendu par GameMenu) — posé dans la barre du bas,
 // à portée de pouce, juste avant PRÊT / Pause.
 function MenuButton() {
@@ -53,7 +75,7 @@ function MenuButton() {
 }
 
 export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
-  const { controller, combatActive, placedCount, boardSlots, prepRemaining, combatRemaining, speed, paused, boardTerrain } = useGameStore();
+  const { controller, combatActive, placedCount, boardSlots, prepRemaining, combatRemaining, speed, paused, boardTerrain, canUndo } = useGameStore();
   if (!controller) return null;
 
   // Barre de combat : dense sur un écran de 375 px (timer, terrain, vitesses,
@@ -104,6 +126,7 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
         Fin prépa {fmt(prepRemaining)}
       </span>
       <div className="flex-1" />
+      {canUndo && <UndoButton onUndo={() => controller.undoPreparation()} />}
       <MenuButton />
       <Button variant="primary" onPointerDown={(e) => { e.stopPropagation(); controller.startCombat(); }}>
         PRÊT ▸

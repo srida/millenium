@@ -50,6 +50,9 @@ export interface GameSnapshot {
   enemyMultiplier: number;
   boardSlots: number;
   placedCount: number;
+  /** Quelque chose a été posé/déplacé depuis l'ouverture du tour → le bouton
+   *  « Tout annuler » de la barre de préparation s'affiche. */
+  canUndo: boolean;
   hand: HandEntry[];
   graveyard: GraveyardEntry[];
   synergies: SynergyEntry[];
@@ -79,7 +82,7 @@ export interface GameSnapshot {
 
 export const EMPTY_SNAPSHOT: GameSnapshot = {
   round: 1, phase: 'preparation', playerHp: 1000, enemyHp: 1000,
-  playerMultiplier: 1, enemyMultiplier: 1, boardSlots: 5, placedCount: 0,
+  playerMultiplier: 1, enemyMultiplier: 1, boardSlots: 5, placedCount: 0, canUndo: false,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
   boardTerrain: null, combatActive: false, combatRemaining: 60, speed: 2, paused: false,
   prepRemaining: 60, endRound: null, shopping: null, shoppingRemaining: SHOPPING_DURATION_S, summonOptions: null,
