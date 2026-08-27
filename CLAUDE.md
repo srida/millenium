@@ -1708,7 +1708,8 @@ N'importe quelle magie peut porter un **coût en PV du joueur**, saisi dans la s
 - ⚠️ **La garde et le paiement ne se désolidarisent jamais** : les quatre chemins (`applyGlobalMagie`, `applyMagieOnUnit`, `applyMagieOnGraveyardUnit`, `applyMagieOnHandCard`) portent les deux. `GameController.chooseMagie` a la sienne en plus, mais elle n'est là que pour que la règle ne dépende pas du seul rendu — un refus ne doit **rien** amputer, ni la main, ni le board.
 - **Une donnée absente, nulle, négative ou illisible vaut « aucun contrecoup »** : une magie gratuite est le cas normal, c'est donc la lecture de repli sûre. L'inverse ferait payer des PV sur une faute de saisie en admin.
 - **Rien côté PvP** : `player_hp` voyage déjà au niveau du message `round:board_ready`, chaque joueur étant la source de vérité de ses propres PV. Un contrecoup est invisible de l'adversaire jusqu'au round suivant, exactement comme `player_hp_bonus`.
-- ⚠️ Un coût **supérieur ou égal aux PV de départ (1000)** rend la magie injouable toute la partie. L'écran d'admin le dit ; rien ne l'interdit.
+- ⚠️ Un coût **supérieur ou égal aux PV de départ (`PLAYER_HP_CAP`)** rend la magie injouable toute la partie. L'écran d'admin le dit ; rien ne l'interdit.
+- ⚠️ **L'accessibilité n'est PAS un critère de pertinence** (`MagieOffer.isMagieRelevant`), et c'est une décision : le filtre d'offre écarte ce qui ne **ferait rien** — un `revive` sans cimetière, un `board_slot_bonus` une fois le cap consommé —, là où une magie trop chère **ferait** quelque chose, le joueur n'ayant simplement pas les PV. Elle est donc proposée et verrouillée plutôt que retirée : la filtrer la rendrait invisible au moment précis où il est le plus utile de savoir qu'elle existe. Verrouillé par golden test.
 
 ### Absorption (`drain_life`) et défausse au cimetière (`hand_to_graveyard`)
 

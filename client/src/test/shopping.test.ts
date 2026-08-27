@@ -624,6 +624,22 @@ describe('Shopping — contrecoup en PV joueur', () => {
     expect(session.canAffordMagie(m)).toBe(false);
   });
 
+  it('⚠️ un contrecoup impayable ne retire PAS la magie de l\'offre', () => {
+    // La couture entre les deux mécaniques, et c'est une décision, pas un
+    // oubli : le filtre de pertinence (`MagieOffer.isMagieRelevant`) écarte ce
+    // qui ne FERAIT rien, là où une magie trop chère ferait quelque chose — le
+    // joueur n'a simplement pas les PV. Elle est donc proposée et VERROUILLÉE
+    // (grisée, avec sa raison), ce qui lui apprend qu'elle existe et pourquoi
+    // elle lui échappe. La filtrer la rendrait invisible au moment précis où
+    // elle est la plus intéressante à connaître.
+    const chere = magie(ALWAYS, { id: 'CHERE', cost_hp: 900 });
+    const { session } = makeSession({ magies: [chere] });
+    session.gameState.player_hp = 100;
+
+    expect(offeredIds(session)).toContain('CHERE');
+    expect(session.canAffordMagie(chere as any)).toBe(false);
+  });
+
   it('une magie sans contrecoup reste gratuite', () => {
     const { session } = makeSession();
     session.gameState.player_hp = 1000;
