@@ -53,6 +53,11 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 .wrap { max-width: 1180px; margin: 0 auto; }
+/* Servie dans l'onglet ⚖️ de /admin : le titre et la marge haute font double emploi
+   avec l'onglet lui-même, et le retour n'a pas lieu d'être (on n'a pas quitté l'admin). */
+:root[data-embed] body { padding-top: 0; }
+:root[data-embed] h1, :root[data-embed] .back-admin { display: none; }
+.back-admin { display: inline-block; margin: 18px 0 0; font-size: 13px; text-decoration: none; }
 h1 { font-size: 20px; margin: 24px 0 4px; letter-spacing: -.01em; }
 h2 { font-size: 15px; margin: 32px 0 4px; letter-spacing: -.005em; }
 .sub { color: var(--ink-2); font-size: 13px; margin: 0 0 8px; }
@@ -106,6 +111,11 @@ button.primary { border-color: var(--seq); color: var(--seq); font-weight: 600; 
 .script .items span { font-size: 12px; color: var(--ink-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; }
 
 svg { display: block; max-width: 100%; }
+/* ⚠️ Les deux graphiques sont dessinés à 900 px de large avec des étiquettes de
+   11-12 px. Les rétrécir à la largeur d'un téléphone rendrait ce texte à ~4-5 px :
+   on fait DÉFILER plutôt, comme `.scroll` le fait déjà pour les tables larges. */
+.chart-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.chart-scroll svg { max-width: none; }
 .tip {
   position: fixed; pointer-events: none; z-index: 10; opacity: 0;
   background: var(--surface); color: var(--ink);
@@ -116,9 +126,23 @@ svg { display: block; max-width: 100%; }
 .tip b { display: block; margin-bottom: 3px; }
 .empty { color: var(--muted); padding: 24px 0; text-align: center; }
 </style>
+<script>
+// Thème et cadrage pilotés par l'URL : la page est aussi affichée dans une iframe au
+// sein de /admin, qui est sombre en permanence. `:root[data-theme="dark"]` existe déjà
+// dans la feuille — il n'y a rien à écrire côté CSS, seulement l'attribut à poser.
+// ⚠️ DOIT s'exécuter dans le <head> : depuis <body>, le corps est déjà peint et on
+// verrait un éclair de thème clair au milieu de l'admin à chaque ouverture de l'onglet.
+(() => {
+  const p = new URLSearchParams(location.search);
+  const t = p.get('theme');
+  if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+  if (p.get('embed') === '1') document.documentElement.dataset.embed = '1';
+})();
+</script>
 </head>
 <body>
 <div class="wrap">
+  <a class="back-admin" href="/admin">← Retour à l'admin</a>
   <h1>Rapport d'équilibrage</h1>
   <p class="sub" id="head">Chargement…</p>
 
@@ -155,11 +179,11 @@ svg { display: block; max-width: 100%; }
 
     <h2>Écarts les plus marqués</h2>
     <p class="sub">Écart à la ligne de base du run, en points de winrate. Seules les lignes <strong>significatives</strong> (écart supérieur à son propre intervalle de confiance à 95 %) sont retenues.</p>
-    <div class="panel"><div id="deltaChart"></div></div>
+    <div class="panel"><div class="chart-scroll"><div id="deltaChart"></div></div></div>
 
     <h2>Distribution des winrates</h2>
     <p class="sub">Nombre de cartes par tranche de 5 points, parmi celles posées au moins 100 fois. Un jeu équilibré donne une cloche serrée autour de la ligne de base.</p>
-    <div class="panel"><div id="histChart"></div></div>
+    <div class="panel"><div class="chart-scroll"><div id="histChart"></div></div></div>
 
     <h2>Verdicts A/B</h2>
     <p class="sub">Deck témoin figé, un seul slot qui change. C'est le seul chiffre qui isole la carte — le classement ci-dessus, lui, reste contaminé par le deck qui la porte.</p>
@@ -290,7 +314,7 @@ function renderDelta() {
   const x = d => mid + (d / max) * (plotW / 2);
 
   const ticks = [-max, -max / 2, 0, max / 2, max];
-  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Écart au winrate de base, par carte">`;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="min-width:${W}px" role="img" aria-label="Écart au winrate de base, par carte">`;
   // Grille récessive + axe zéro
   for (const t of ticks) {
     const px = x(t);
@@ -349,7 +373,7 @@ function renderHist() {
   const bw = (W - L - R) / all.length;
   const y = n => H - B - (n / maxN) * (H - T - B);
 
-  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Distribution des winrates par carte">`;
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="min-width:${W}px" role="img" aria-label="Distribution des winrates par carte">`;
   for (let i = 0; i <= 4; i++) {
     const n = Math.round((maxN / 4) * i), py = y(n);
     svg += `<line x1="${L}" y1="${py}" x2="${W - R}" y2="${py}" stroke="${css('--grid')}" stroke-width="1"/>`

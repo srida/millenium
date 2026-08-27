@@ -135,6 +135,61 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `GET /admin/sim` | Site admin | Rapport de la simulation d'équilibrage (`sim-report.html`) |
 | `/api/admin/sim/*` | Site admin | Dépôt et historique des runs (`routes/admin-sim.js`) |
 
+### Responsivité d'`admin.html` — navigation et pièges
+
+Les 13 onglets tenaient dans une seule bande horizontale. Trois choses en découlaient,
+dont deux invisibles à qui développe sur grand écran :
+
+- ⚠️ **La bande débordait aussi sur DESKTOP, et le débordement était masqué.** Les
+  libellés demandent ~1 100 px ; `#main-tabs` n'avait ni `flex-wrap` ni `overflow-x`, et
+  `body { overflow-x: hidden }` **coupait** le dépassement sans laisser de barre pour y
+  aller. Mesuré : à **1024 px**, quatre onglets (🎨 Variantes, 📊 Stats, 🗄️ Base SQL,
+  ⚖️ Équilibrage) débordaient du viewport ; à **1280 px** — un portable courant — ⚖️
+  Équilibrage restait inatteignable. Un `flex-wrap: wrap` sur `#main-tabs` ferme tout.
+- **Sur mobile, la bande est remplacée par une feuille plein écran** (`#tab-sheet`, ☰
+  dans la topbar) : 13 entrées en grille 2 colonnes, toutes visibles d'un coup. Les
+  entrées sont **clonées depuis `#main-tabs` à chaque ouverture** — une seule liste
+  d'onglets dans le fichier, un onglet ajouté au balisage y apparaît sans qu'on y pense.
+- `switchTab` apparie par **`data-tab`**, plus par sous-chaîne de libellé.
+
+⚠️ **`.tabs` et `.tab` sont RÉUTILISÉS hors de la topbar — c'est le piège du fichier.**
+Les flèches `‹` `›` du pager SQL portaient `class="tab"`, et les chips de catégorie du
+sélecteur d'attributs `class="tab ap-tab"` dans un conteneur `class="tabs"`. Un
+`querySelectorAll('.tab')` global les dépouillait donc déjà de leur `.active` à chaque
+changement d'onglet (inoffensif par pur hasard d'ordonnancement), masquer `.tabs` en
+mobile ferait **disparaître les chips**, et une délégation de clic sur `.tabs` capterait
+le pager. D'où **`id="main-tabs"` sur la seule barre du haut**, et la règle : tout
+sélecteur de navigation — CSS comme JS — passe par cet id. Le pager a reçu sa propre
+classe (`.db-pager-btn`).
+
+⚠️ **Le bloc `@media (max-width: 768px)` doit rester le DERNIER de la feuille.** Il
+vivait au milieu du fichier, **avant** les sections « Stats tab » et « DB explorer » : à
+spécificité égale la dernière règle gagne, et une douzaine de surcharges mobiles étaient
+mortes en silence (`.stat-panel`, `.tier-overview-table`, `.mini-bar-track`, le slider de
+seuil, la mise à plat des `.anomaly-row`). Elles existaient dans le fichier et ne
+s'appliquaient jamais. Toute règle desktop se pose **au-dessus** de ce bloc.
+
+⚠️ **`viewport-fit=cover` est la condition d'existence de `env(safe-area-inset-*)`** :
+sans lui les retraits valent `0px` et tout le travail de zone sûre est un no-op silencieux
+(FAB et toast repassent sous la barre d'accueil iOS).
+
+Autres correctifs, chacun invisible tant qu'on ne le cherche pas : `showModal` posait une
+largeur **en ligne** (`580px`), qui bat la requête média — d'où `min(580px, 96vw)` ; le
+FAB et le toast occupaient le **même coin** bas-droit ; `.content` ne réservait pas la
+place du FAB, qui recouvrait la dernière ligne ; l'en-tête du sélecteur de cartes d'un
+pack alignait un titre et **quatre boutons** sans `flex-wrap` ; et une des quatre tables
+de stats était enfermée dans un `overflow: hidden` qui coupait son contenu sans recours.
+
+**Aucun test automatisé ne couvre `admin.html`** (`npm test` est purement client). La
+vérification se fait au navigateur — Chromium et Playwright sont préinstallés dans
+l'environnement, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` (ne **pas** lancer
+`playwright install`). Ce qu'il faut mesurer plutôt que regarder :
+`document.documentElement.scrollWidth <= clientWidth` — `body { overflow-x: hidden }`
+**masque** le symptôme —, un seul `.main:not(.hidden)` et un seul `#main-tabs .tab.active`
+par onglet, les chips d'attributs toujours visibles et actifs après un `switchTab()`, et
+l'échelle réelle des SVG du rapport (`svg.getScreenCTM().a`) : un `getComputedStyle`
+rendrait `11px` même à l'échelle 0,4.
+
 ### Lecture et écriture des catalogues (`readJson` / `writeJson`, `app.js`)
 
 **Un id d'asset ne compose JAMAIS un chemin à la main.** `assetPath(dir, id)` est le seul endroit du fichier autorisé à le faire, et il refuse tout ce que `safeAssetId` rejette. Ce n'est pas une commodité : `safeAssetId` gardait une vingtaine de routes et était **oublié sur huit autres** — la répétition du même quintuplet CRUD pour dix entités fait qu'un garde-fou ajouté aux copies récentes ne l'est pas aux anciennes, et rien ne peut le signaler. Une forme unique dans le fichier, c'est une seule chose à vérifier.
@@ -676,7 +731,7 @@ Deux extractions, toutes deux motivées par la même règle : ne pas se donner d
 - **Un lot mal formé est ignoré, pas fatal** (`normalizeLot`), et un cadeau dont **tous** les lots sont invalides n'existe pas — un cadeau qui ne donne rien est pire qu'un cadeau absent. `validateGift` rend le **même verdict** à l'écriture (400) que le chargement à la lecture : les deux chemins ne peuvent pas diverger sur ce qu'est un cadeau valide.
 - **Plafonds** : `MAX_LOT_AMOUNT = 100 000` par lot de monnaie, `MAX_LOTS_PER_GIFT = 12`. Pas une défiance envers l'admin — le zéro en trop, qui ne se rattrape pas une fois les gemmes distribuées.
 - ⚠️ **Supprimer un cadeau n'efface pas le registre** : recréer un cadeau sous un id déjà utilisé le laisse silencieusement inaccessible à qui avait pris le premier. Même piège que la prime de complétion d'un pack, mémorisée par id — l'écran d'admin le dit.
-- 🎀 et non 🎁 : les **Packs** occupent déjà ce glyphe, et le `switchTab` d'`admin.html` apparie les onglets par **sous-chaîne de libellé** (`t.includes('cadeau')`). Deux onglets au même pictogramme se confondent au coup d'œil.
+- 🎀 et non 🎁 : les **Packs** occupent déjà ce glyphe, et deux onglets au même pictogramme se confondent au coup d'œil. ⚠️ Ça ne tient plus à une contrainte technique : `switchTab` appariait autrefois par **sous-chaîne de libellé** (`t.includes('cadeau')`), il lit désormais `data-tab` — un libellé se renomme donc librement.
 - **L'éditeur de lots est le seul champ répétable du panneau d'admin.** Il tient un état local `giftLots` (le DOM ne peut pas servir de source de vérité pour une liste dont on retire des éléments au milieu) et `_syncGiftDraft()` recopie la saisie **avant** chaque re-render — nom et description compris, sans quoi ajouter un lot effacerait le nom qu'on vient de taper.
 
 ### Client
@@ -1119,7 +1174,30 @@ des écarts, distribution des winrates, verdicts A/B, tableau filtrable des 653
 cartes avec la colonne **Δ hier**, et la liste des cartes jamais posées — qui
 distingue « jamais retenue en deck » (matériaux non couverts) de « en deck,
 jamais invoquée ». Palette de data-viz validée aux six contrôles dans les deux
-modes. Lien depuis l'onglet ⚖️ Équilibrage d'`admin.html`.
+modes. C'est l'onglet **⚖️ Équilibrage** d'`admin.html` qui l'affiche, dans une
+**iframe** sur `/admin/sim?embed=1&theme=dark`, chargée au **premier clic** (un `src`
+en dur ferait chercher le rapport à chaque ouverture de l'admin).
+
+⚠️ **Une iframe et non un inline du contenu.** `sim-report.html` redéfinit `--surface`,
+`--border` et `--muted` en **clair**, et style `*`, `body`, `h1`, `h2`, `a`, `svg`,
+`table` — son bloc `select, input[type=search], button` repeindrait **tous** les onglets
+et boutons de l'admin. Il déclare aussi un `esc()` global qui écraserait celui
+d'`admin.html` (la seconde déclaration gagne pour **les deux** fichiers), et son `boot()`
+part en `fetch` au chargement. L'iframe isole tout ça pour le prix d'un défilement
+imbriqué — qui est ici un **avantage** : le `th { position: sticky }` du rapport colle au
+viewport du cadre, ce qui est le comportement voulu.
+
+Le contrat entre les deux fichiers tient en deux paramètres d'URL, lus par un script du
+**`<head>`** de `sim-report.html` (depuis `<body>`, le corps est déjà peint et on verrait
+un éclair de thème clair) : `theme=dark|light` pose `data-theme` — le sélecteur
+`:root[data-theme="dark"]` **existait déjà**, il n'y a rien à écrire côté CSS — et
+`embed=1` masque le titre et le lien de retour, redondants avec l'onglet. Ouverte seule,
+`/admin/sim` reste une page autonome en thème clair, avec son lien retour vers `/admin` —
+et c'est toujours là que la routine quotidienne dépose son run.
+
+⚠️ L'iframe repose sur le `X-Frame-Options: SAMEORIGIN` que **helmet pose par défaut** :
+le passer à `DENY` casserait l'onglet. L'authentification, elle, ne demande rien — la
+requête est de même origine et porte le cookie de session de la page hôte.
 
 ### La routine (`.github/workflows/balance-sim.yml`)
 

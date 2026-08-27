@@ -2,7 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- ⚠️ `viewport-fit=cover` est la CONDITION D'EXISTENCE de `env(safe-area-inset-*)` :
+     sans lui les retraits valent 0 et le FAB repasse sous la barre d'accueil iOS. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Millenium — Card Manager</title>
 <link rel="icon" type="image/png" href="/favicon.png">
 <style>
@@ -28,14 +30,30 @@
 body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; overflow-x: hidden; }
 
 /* Layout */
-.app { display: flex; flex-direction: column; height: 100vh; }
-.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; gap: 16px; }
+.app { display: flex; flex-direction: column; height: 100dvh; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: flex-start; gap: 16px; flex-shrink: 0; }
+.topbar h1 { padding-top: 4px; white-space: nowrap; flex-shrink: 0; }
 .topbar h1 { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: 0.5px; }
+/* ⚠️ `#main-tabs` et non `.tabs` : la modale du sélecteur d'attributs porte la même
+   classe. Les 13 libellés demandent ~1400 px ; sans `flex-wrap` la barre débordait,
+   et `body { overflow-x: hidden }` MASQUAIT le débordement — les derniers onglets
+   étaient inatteignables entre 769 px et ~1700 px, donc sur tout portable 13". */
 .tabs { display: flex; gap: 4px; }
+#main-tabs { flex-wrap: wrap; }
+/* Navigation mobile — masqués hors du @media de fin de feuille. */
+.tab-menu-btn { display: none; align-items: center; gap: 8px; background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; font-weight: 600; padding: 0 12px; min-height: 44px; cursor: pointer; }
+.tab-menu-btn .burger { font-size: 17px; line-height: 1; }
+#tab-sheet { display: none; position: fixed; inset: 0; z-index: 120; background: var(--bg); flex-direction: column; }
+#tab-sheet.open { display: flex; }
+.sheet-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.sheet-head strong { font-size: 15px; margin-right: auto; }
+.sheet-close { background: none; border: none; color: var(--muted); font-size: 26px; line-height: 1; padding: 4px 10px; cursor: pointer; min-height: 44px; }
+.sheet-body { flex: 1; overflow-y: auto; padding: 14px 16px calc(24px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: start; }
+.sheet-item { display: flex; align-items: center; justify-content: center; text-align: center; min-height: 56px; padding: 10px 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; }
+.sheet-item.active { border-color: var(--accent); background: var(--accent); color: #fff; }
 .tab { padding: 6px 16px; border-radius: 6px; cursor: pointer; color: var(--muted); font-weight: 500; transition: all .15s; border: none; background: none; font-size: 14px; }
 .tab:hover { color: var(--text); background: var(--surface2); }
 .tab.active { color: var(--text); background: var(--accent); }
-.tab-link { text-decoration: none; display: inline-block; line-height: 1.5; }
 .main { flex: 1; overflow: hidden; display: flex; }
 
 /* Sidebar */
@@ -109,7 +127,6 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .cat-picker-row { display: flex; align-items: center; gap: 6px; }
 
 /* Stats grid */
-.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 
 /* Attribute chips */
 .attr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -155,7 +172,7 @@ select.filter:focus { border-color: var(--accent); }
 /* Sélecteur de cartes d'un pack — même plein écran que le Deck Builder, mais le
    catalogue est déjà en mémoire : pas d'iframe, une grille locale. */
 .picker-head { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; background: var(--surface); }
-.picker-head-top { display: flex; align-items: center; gap: 10px; }
+.picker-head-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .picker-title { font-size: 15px; font-weight: 700; margin-right: auto; }
 .picker-filters { display: flex; gap: 6px; flex-wrap: wrap; }
 .picker-stats { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-size: 11px; color: var(--muted); }
@@ -171,7 +188,7 @@ select.filter:focus { border-color: var(--accent); }
 .hidden { display: none !important; }
 
 /* Toast */
-.toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface); border: 1px solid var(--border); padding: 12px 20px; border-radius: 8px; z-index: 200; font-size: 13px; box-shadow: 0 4px 20px rgba(0,0,0,.4); transition: opacity .3s; }
+.toast { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); right: 24px; background: var(--surface); border: 1px solid var(--border); padding: 12px 20px; border-radius: 8px; z-index: 200; font-size: 13px; box-shadow: 0 4px 20px rgba(0,0,0,.4); transition: opacity .3s; }
 .toast.ok { border-left: 3px solid var(--green); }
 .toast.err { border-left: 3px solid var(--red); }
 
@@ -193,7 +210,7 @@ select.filter:focus { border-color: var(--accent); }
 
 /* FAB + Back button (mobile) */
 .fab {
-  display: none; position: fixed; bottom: 24px; right: 20px;
+  display: none; position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); right: 20px;
   width: 58px; height: 58px; border-radius: 50%;
   background: var(--accent); color: #fff; font-size: 30px; line-height: 1;
   border: none; cursor: pointer; z-index: 90;
@@ -209,13 +226,88 @@ select.filter:focus { border-color: var(--accent); }
 .back-btn::before { content: '←'; font-size: 18px; }
 .mobile-info { display: none; }
 
+
+/* Stats tab */
+.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+.stats-grid.wide { grid-template-columns: 1fr; }
+.stat-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
+.stat-panel h3 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px; }
+.tier-overview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tier-overview-table th { text-align: left; padding: 6px 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: .4px; border-bottom: 1px solid var(--border); }
+.tier-overview-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+.tier-overview-table tr:last-child td { border-bottom: none; }
+.tier-overview-table tr:hover td { background: var(--surface2); }
+.stat-val { font-weight: 700; }
+.stat-range { font-size: 10px; color: var(--muted); }
+.mini-bar-wrap { display: flex; align-items: center; gap: 6px; }
+.mini-bar-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; position: relative; min-width: 60px; }
+.mini-bar-fill { position: absolute; top: 0; height: 100%; border-radius: 2px; }
+.anomaly-row { display: grid; grid-template-columns: 1fr 60px 90px 100px 1fr 70px; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; font-size: 12px; }
+.anomaly-row:hover { background: var(--surface2); }
+.anomaly-row:last-child { border-bottom: none; }
+.anomaly-header { display: grid; grid-template-columns: 1fr 60px 90px 100px 1fr 70px; gap: 10px; padding: 6px 12px; font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .4px; border-bottom: 2px solid var(--border); }
+.severity-bar { height: 6px; border-radius: 3px; }
+.z-chip { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; text-align: center; white-space: nowrap; }
+.z-mild { background: #2a2a10; color: var(--yellow); }
+.z-high { background: #3a1a10; color: var(--red); }
+.direction-high { color: var(--red); }
+.direction-low { color: #6ab4e8; }
+.tier-filter-chips { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.tier-chip { padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 600; }
+.tier-chip.active { border-color: currentColor; }
+.tier-chip-1.active { color: var(--tier1); background: #1a3a2e; border-color: var(--tier1); }
+.tier-chip-2.active { color: var(--tier2); background: #1a2e3a; border-color: var(--tier2); }
+.tier-chip-3.active { color: var(--tier3); background: #2e1a3a; border-color: var(--tier3); }
+.tier-chip-4.active { color: var(--tier4); background: #3a2a10; border-color: var(--tier4); }
+.tier-chip-5.active { color: var(--tier5); background: #3a1010; border-color: var(--tier5); }
+.threshold-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 12px; color: var(--muted); }
+.threshold-row input[type=range] { accent-color: var(--accent); width: 120px; }
+.stat-sparkline { display: flex; gap: 2px; align-items: flex-end; height: 24px; }
+.spark-bar { width: 5px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: .6; }
+.spark-bar.highlight { opacity: 1; background: var(--accent2); }
+.no-anomalies { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }
+.broken-link-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; font-size: 12px; }
+.broken-link-row:hover { background: var(--surface2); }
+.broken-link-row:last-child { border-bottom: none; }
+
+/* DB explorer */
+.db-tables-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.db-table-chip { padding: 6px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.db-table-chip:hover { color: var(--text); border-color: var(--accent); }
+.db-table-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.db-count { background: rgba(0,0,0,.25); border-radius: 999px; padding: 1px 7px; font-size: 11px; }
+.db-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 13px; }
+.db-pager { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.db-table-scroll { overflow: auto; max-height: calc(100dvh - 220px); border: 1px solid var(--border); border-radius: 8px; }
+.db-table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.db-table th { position: sticky; top: 0; background: var(--surface2); color: var(--muted); text-align: left; padding: 8px 10px; white-space: nowrap; border-bottom: 1px solid var(--border); z-index: 1; }
+.db-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
+.db-table tbody tr:hover { background: var(--surface2); }
+.db-null { color: var(--muted); font-style: italic; opacity: .6; }
+/* Le pager empruntait `.tab` : il héritait donc de tout ce qu'on ajoute aux onglets. */
+.db-pager-btn { padding: 6px 16px; border-radius: 6px; cursor: pointer; color: var(--muted); font-weight: 500; transition: all .15s; border: none; background: none; font-size: 14px; }
+.db-pager-btn:hover:not(:disabled) { color: var(--text); background: var(--surface2); }
+.db-pager-btn:disabled { opacity: .4; cursor: default; }
+.db-admin-toggle { padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: 11px; cursor: pointer; white-space: nowrap; }
+.db-admin-toggle:hover { border-color: var(--accent); color: var(--text); }
+.db-admin-toggle.is-admin { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ⚠️ CE BLOC DOIT RESTER LE DERNIER DE LA FEUILLE.
+   Il vivait auparavant au milieu du fichier, AVANT les sections « Stats tab » et
+   « DB explorer » : à spécificité égale, la dernière règle gagne, et une douzaine
+   de surcharges mobiles étaient donc mortes sans que rien ne le signale
+   (.stat-panel, .tier-overview-table, .mini-bar-track, le slider de seuil, la
+   mise à plat des .anomaly-row…). Toute nouvelle règle desktop se pose AU-DESSUS
+   de ce bloc, jamais en dessous. */
 @media (max-width: 768px) {
-  /* Topbar — wrap onto two lines so tabs never overflow the viewport */
-  .topbar { padding: 8px 12px 0; gap: 6px; flex-wrap: wrap; }
-  .topbar h1 { font-size: 14px; white-space: nowrap; }
-  .tab { padding: 5px 9px; font-size: 12px; }
-  .tabs { width: 100%; overflow-x: auto; flex-shrink: 0; padding-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-  .tabs::-webkit-scrollbar { display: none; }
+  /* Topbar sur UNE ligne : `☰ + nom de l'onglet courant`. La bande défilante d'avant
+     coûtait une deuxième ligne en travers de l'écran et obligeait à balayer
+     horizontalement pour atteindre le 13e onglet ; la feuille les montre tous. */
+  .topbar { padding: 8px 12px; gap: 8px; align-items: center; }
+  .topbar h1 { display: none; }
+  #main-tabs { display: none; }
+  .tab-menu-btn { display: inline-flex; margin-left: auto; min-width: 0; flex: 1; justify-content: flex-start; }
+  .tab-menu-btn .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* Single-panel layout */
   .main { position: relative; overflow: hidden; }
@@ -232,9 +324,10 @@ select.filter:focus { border-color: var(--accent); }
   .main.show-detail .sidebar  { transform: translateX(-105%); pointer-events: none; }
   .main.show-detail .content  { transform: translateX(0); pointer-events: auto; }
 
-  /* Stats & DB tabs — no sidebar, always visible */
+  /* Stats, DB & Équilibrage — pas de sidebar, toujours visibles */
   #tab-stats .content,
-  #tab-db .content {
+  #tab-db .content,
+  #tab-sim .content {
     transform: none !important; position: relative !important;
     inset: auto !important; height: 100% !important;
   }
@@ -305,68 +398,24 @@ select.filter:focus { border-color: var(--accent); }
 
   /* Modal */
   .modal { width: 96vw; padding: 18px; }
+
+  /* Le FAB (58 px, en bas à droite) recouvrait la dernière ligne de chaque panneau. */
+  .content { padding-bottom: calc(96px + env(safe-area-inset-bottom)) !important; }
+  .sidebar-list { padding-bottom: 96px; }
+  /* L'onglet Équilibrage n'a pas de FAB (NO_FAB_TABS) : rien à réserver, et le
+     cadre doit occuper toute la hauteur. */
+  #tab-sim .content { padding: 0 !important; }
+  /* Le toast tombait PILE sur le FAB : on le remonte au-dessus. */
+  .toast { bottom: calc(96px + env(safe-area-inset-bottom)); right: 12px; left: 12px; }
+
+  /* Sélecteur de cartes d'un pack : titre sur sa ligne, 4 boutons en grille 2x2.
+     Aucune règle `.picker-*` n'existait ici — c'était le pire débordement du fichier. */
+  .picker-title { width: 100%; margin-right: 0; }
+  .picker-head-top { gap: 6px; }
+  .picker-head-top .btn { flex: 1 1 calc(50% - 3px); min-height: 44px; }
+  .picker-body { grid-template-columns: 1fr; padding: 10px 12px calc(24px + env(safe-area-inset-bottom)); }
 }
 
-/* Stats tab */
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
-.stats-grid.wide { grid-template-columns: 1fr; }
-.stat-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
-.stat-panel h3 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px; }
-.tier-overview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.tier-overview-table th { text-align: left; padding: 6px 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 10px; letter-spacing: .4px; border-bottom: 1px solid var(--border); }
-.tier-overview-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
-.tier-overview-table tr:last-child td { border-bottom: none; }
-.tier-overview-table tr:hover td { background: var(--surface2); }
-.stat-val { font-weight: 700; }
-.stat-range { font-size: 10px; color: var(--muted); }
-.mini-bar-wrap { display: flex; align-items: center; gap: 6px; }
-.mini-bar-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; position: relative; min-width: 60px; }
-.mini-bar-fill { position: absolute; top: 0; height: 100%; border-radius: 2px; }
-.anomaly-row { display: grid; grid-template-columns: 1fr 60px 90px 100px 1fr 70px; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; font-size: 12px; }
-.anomaly-row:hover { background: var(--surface2); }
-.anomaly-row:last-child { border-bottom: none; }
-.anomaly-header { display: grid; grid-template-columns: 1fr 60px 90px 100px 1fr 70px; gap: 10px; padding: 6px 12px; font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .4px; border-bottom: 2px solid var(--border); }
-.severity-bar { height: 6px; border-radius: 3px; }
-.z-chip { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; text-align: center; white-space: nowrap; }
-.z-mild { background: #2a2a10; color: var(--yellow); }
-.z-high { background: #3a1a10; color: var(--red); }
-.direction-high { color: var(--red); }
-.direction-low { color: #6ab4e8; }
-.tier-filter-chips { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
-.tier-chip { padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 600; }
-.tier-chip.active { border-color: currentColor; }
-.tier-chip-1.active { color: var(--tier1); background: #1a3a2e; border-color: var(--tier1); }
-.tier-chip-2.active { color: var(--tier2); background: #1a2e3a; border-color: var(--tier2); }
-.tier-chip-3.active { color: var(--tier3); background: #2e1a3a; border-color: var(--tier3); }
-.tier-chip-4.active { color: var(--tier4); background: #3a2a10; border-color: var(--tier4); }
-.tier-chip-5.active { color: var(--tier5); background: #3a1010; border-color: var(--tier5); }
-.threshold-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 12px; color: var(--muted); }
-.threshold-row input[type=range] { accent-color: var(--accent); width: 120px; }
-.stat-sparkline { display: flex; gap: 2px; align-items: flex-end; height: 24px; }
-.spark-bar { width: 5px; border-radius: 2px 2px 0 0; background: var(--accent); opacity: .6; }
-.spark-bar.highlight { opacity: 1; background: var(--accent2); }
-.no-anomalies { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }
-.broken-link-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; font-size: 12px; }
-.broken-link-row:hover { background: var(--surface2); }
-.broken-link-row:last-child { border-bottom: none; }
-
-/* DB explorer */
-.db-tables-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.db-table-chip { padding: 6px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
-.db-table-chip:hover { color: var(--text); border-color: var(--accent); }
-.db-table-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.db-count { background: rgba(0,0,0,.25); border-radius: 999px; padding: 1px 7px; font-size: 11px; }
-.db-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; font-size: 13px; }
-.db-pager { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-.db-table-scroll { overflow: auto; max-height: calc(100vh - 220px); border: 1px solid var(--border); border-radius: 8px; }
-.db-table { border-collapse: collapse; width: 100%; font-size: 12px; }
-.db-table th { position: sticky; top: 0; background: var(--surface2); color: var(--muted); text-align: left; padding: 8px 10px; white-space: nowrap; border-bottom: 1px solid var(--border); z-index: 1; }
-.db-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; white-space: nowrap; max-width: 420px; overflow: hidden; text-overflow: ellipsis; }
-.db-table tbody tr:hover { background: var(--surface2); }
-.db-null { color: var(--muted); font-style: italic; opacity: .6; }
-.db-admin-toggle { padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: 11px; cursor: pointer; white-space: nowrap; }
-.db-admin-toggle:hover { border-color: var(--accent); color: var(--text); }
-.db-admin-toggle.is-admin { background: var(--accent); color: #fff; border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -374,26 +423,44 @@ select.filter:focus { border-color: var(--accent); }
   <div class="topbar">
     <a href="/" style="color:var(--muted);text-decoration:none;font-size:20px;line-height:1;padding:4px 8px;border-radius:6px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">←</a>
     <h1>Millenium — Card Manager</h1>
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('cards')">Cartes</button>
-      <button class="tab" onclick="switchTab('attributes')">Attributs</button>
-      <button class="tab" onclick="switchTab('powers')">Pouvoirs</button>
-      <button class="tab" onclick="switchTab('boards')">Terrains</button>
-      <button class="tab" onclick="switchTab('magies')">Magies</button>
-      <button class="tab" onclick="switchTab('missions')">Missions</button>
-      <button class="tab" onclick="switchTab('decks')">Decks publics</button>
-      <button class="tab" onclick="switchTab('packs')">🎁 Packs</button>
+    <!-- ⚠️ `id="main-tabs"` n'est pas décoratif : `.tabs` et `.tab` sont RÉUTILISÉS
+         ailleurs (flèches du pager SQL, chips de catégorie du sélecteur d'attributs).
+         Tout sélecteur de navigation — CSS comme JS — doit passer par cet id, sinon
+         masquer la barre en mobile emporte les chips, et la délégation de clic
+         capte le pager. -->
+    <div class="tabs" id="main-tabs">
+      <button class="tab active" data-tab="cards">Cartes</button>
+      <button class="tab" data-tab="attributes">Attributs</button>
+      <button class="tab" data-tab="powers">Pouvoirs</button>
+      <button class="tab" data-tab="boards">Terrains</button>
+      <button class="tab" data-tab="magies">Magies</button>
+      <button class="tab" data-tab="missions">Missions</button>
+      <button class="tab" data-tab="decks">Decks publics</button>
+      <button class="tab" data-tab="packs">🎁 Packs</button>
       <!-- 🎀 et non 🎁 : les Packs occupent déjà ce glyphe, deux onglets au même
            pictogramme se confondent au coup d'œil. -->
-      <button class="tab" onclick="switchTab('gifts')">🎀 Cadeaux</button>
-      <button class="tab" onclick="switchTab('variants')">🎨 Variantes</button>
-      <button class="tab" onclick="switchTab('stats')">📊 Stats</button>
-      <button class="tab" onclick="switchTab('db')">🗄️ Base SQL</button>
-      <!-- Page à part, pas un onglet : le rapport d'équilibrage est produit par
-           la routine quotidienne, pas édité ici. `tab-link` le tient hors du
-           sélecteur par sous-chaîne de `switchTab`. -->
-      <a class="tab tab-link" href="/admin/sim" title="Rapport de la simulation d'équilibrage">⚖️ Équilibrage</a>
+      <button class="tab" data-tab="gifts">🎀 Cadeaux</button>
+      <button class="tab" data-tab="variants">🎨 Variantes</button>
+      <button class="tab" data-tab="stats">📊 Stats</button>
+      <button class="tab" data-tab="db">🗄️ Base SQL</button>
+      <!-- Le rapport d'équilibrage est un onglet ordinaire : son panneau porte une
+           iframe sur /admin/sim, chargée au premier clic. La page reste servie en
+           autonome à cette URL — c'est là que la routine quotidienne dépose son run. -->
+      <button class="tab" data-tab="sim" title="Rapport de la simulation d'équilibrage">⚖️ Équilibrage</button>
     </div>
+    <button class="tab-menu-btn" id="tab-menu-btn" onclick="openTabSheet()" aria-haspopup="dialog" aria-controls="tab-sheet">
+      <span class="burger" aria-hidden="true">☰</span><span class="label" id="current-tab-name">Cartes</span>
+    </button>
+  </div>
+
+  <!-- Navigation mobile. Les entrées sont GÉNÉRÉES depuis `#main-tabs` à l'ouverture :
+       une seule liste d'onglets dans le fichier, pas deux à tenir d'accord. -->
+  <div id="tab-sheet" role="dialog" aria-modal="true" aria-label="Navigation">
+    <div class="sheet-head">
+      <strong>Aller à…</strong>
+      <button class="sheet-close" onclick="closeTabSheet()" aria-label="Fermer">✕</button>
+    </div>
+    <div class="sheet-body" id="tab-sheet-body"></div>
   </div>
 
   <!-- CARDS TAB -->
@@ -643,6 +710,19 @@ select.filter:focus { border-color: var(--accent); }
       <div class="empty"><span>Chargement...</span></div>
     </div>
   </div>
+
+  <!-- Équilibrage. Même patron que #tab-stats / #tab-db : un `.main` sans sidebar.
+       ⚠️ IFRAME et non un inline du contenu de sim-report.html : cette page redéfinit
+       --surface / --border / --muted en clair, et style `*`, `body`, `button`, `table`,
+       `h1`, `a`, `svg` — son bloc `select, input, button` repeindrait TOUS les onglets
+       et boutons de l'admin. Elle déclare aussi un `esc()` qui écraserait celui d'ici.
+       L'iframe donne le même résultat perçu sans rien de tout ça, et /admin/sim reste
+       une URL autonome valide — c'est là que la routine quotidienne dépose son run. -->
+  <div id="tab-sim" class="main hidden">
+    <div class="content" style="padding:0;overflow:hidden;width:100%">
+      <iframe id="sim-frame" title="Rapport d'équilibrage" style="width:100%;height:100%;border:none;display:block"></iframe>
+    </div>
+  </div>
 </div>
 
 <!-- FAB -->
@@ -730,31 +810,75 @@ async function apiFetch(url, options = {}) {
 }
 
 // ================== TABS ==================
+// ================== NAVIGATION MOBILE (feuille plein écran) ==================
+// 13 onglets ne tiennent pas dans une bande horizontale : la feuille les montre tous
+// d'un coup, sans défilement latéral. Les entrées sont clonées depuis `#main-tabs` à
+// CHAQUE ouverture — un onglet ajouté au balisage y apparaît sans qu'on y pense.
+function openTabSheet() {
+  const body = document.getElementById('tab-sheet-body');
+  body.innerHTML = '';
+  document.querySelectorAll('#main-tabs .tab').forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'sheet-item' + (t.dataset.tab === currentTab ? ' active' : '');
+    b.dataset.tab = t.dataset.tab;
+    b.textContent = t.textContent.trim();
+    body.appendChild(b);
+  });
+  document.getElementById('tab-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden'; // pas de défilement du fond sous la feuille
+}
+
+function closeTabSheet() {
+  document.getElementById('tab-sheet').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeTabSheet();
+});
+
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.main').forEach(el => el.classList.add('hidden'));
-  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
   document.getElementById(`tab-${tab}`).classList.remove('hidden');
-  document.querySelectorAll('.tab').forEach(el => {
-    const t = el.textContent.toLowerCase();
-    const match = (tab === 'cards' && t.includes('carte')) ||
-                  (tab === 'attributes' && t.includes('attribut')) ||
-                  (tab === 'powers' && t.includes('pouv')) ||
-                  (tab === 'boards' && t.includes('terrain')) ||
-                  (tab === 'magies' && t.includes('magie')) ||
-                  (tab === 'missions' && t.includes('mission')) ||
-                  (tab === 'decks' && t.includes('deck')) ||
-                  (tab === 'packs' && t.includes('pack')) ||
-                  (tab === 'gifts' && t.includes('cadeau')) ||
-                  (tab === 'variants' && t.includes('variante')) ||
-                  (tab === 'stats' && t.includes('stat')) ||
-                  (tab === 'db' && t.includes('sql'));
-    if (match) el.classList.add('active');
-  });
+
+  // ⚠️ Portée `#main-tabs` et non `.tab` : les flèches du pager SQL et les chips de
+  // catégorie du sélecteur d'attributs portent la même classe. Un `querySelectorAll`
+  // global leur retirait leur `.active` à chaque changement d'onglet.
+  document.querySelectorAll('#main-tabs .tab').forEach(el =>
+    el.classList.toggle('active', el.dataset.tab === tab));
+  document.querySelectorAll('#tab-sheet [data-tab]').forEach(el =>
+    el.classList.toggle('active', el.dataset.tab === tab));
+
+  const label = document.querySelector(`#main-tabs .tab[data-tab="${tab}"]`);
+  const cur = document.getElementById('current-tab-name');
+  if (label && cur) cur.textContent = label.textContent.trim();
+
+  // Le FAB n'a rien à créer sur les onglets sans sidebar : il y était visible et inerte.
+  document.getElementById('fab').classList.toggle('hidden', NO_FAB_TABS.has(tab));
+
   if (tab === 'stats') renderStats();
   if (tab === 'db') renderDbTables();
+  // Chargement paresseux : sans ça, chaque ouverture de l'admin irait chercher le
+  // rapport d'équilibrage, qui pèse ~200 Ko et ne concerne qu'un onglet sur quatorze.
+  if (tab === 'sim') {
+    const f = document.getElementById('sim-frame');
+    if (f && !f.src) f.src = '/admin/sim?embed=1&theme=dark';
+  }
   showList(); // reset panel on tab switch
 }
+
+// Onglets sans sidebar : le FAB (« + ») n'y a rien à ouvrir.
+const NO_FAB_TABS = new Set(['stats', 'db', 'sim']);
+
+// Délégation : la barre et la feuille mobile partagent le même chemin de code.
+// Le garde `data-tab` est obligatoire — un clic ailleurs dans la barre ne doit rien faire.
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('#main-tabs [data-tab], #tab-sheet [data-tab]');
+  if (!el || !el.dataset.tab) return;
+  switchTab(el.dataset.tab);
+  closeTabSheet();
+});
 
 // ================== DB EXPLORER (read-only) ==================
 let dbCurrentTable = null;
@@ -815,9 +939,9 @@ async function openDbTable(name, offset) {
       <strong>${esc(name)}</strong>
       <span style="color:var(--muted)">${data.total} ligne(s)</span>
       <div class="db-pager">
-        <button class="tab" ${prevDis} onclick="openDbTable('${esc(name)}', ${Math.max(0, offset - DB_PAGE)})">‹</button>
+        <button class="db-pager-btn" ${prevDis} onclick="openDbTable('${esc(name)}', ${Math.max(0, offset - DB_PAGE)})">‹</button>
         <span>${from}–${to}</span>
-        <button class="tab" ${nextDis} onclick="openDbTable('${esc(name)}', ${offset + DB_PAGE})">›</button>
+        <button class="db-pager-btn" ${nextDis} onclick="openDbTable('${esc(name)}', ${offset + DB_PAGE})">›</button>
       </div>
     </div>
     <div class="db-table-scroll">
@@ -4647,7 +4771,9 @@ function esc(str) {
 
 function showModal(html, size = '') {
   const modal = document.getElementById('modal-content');
-  modal.style.width = size === 'wide' ? '580px' : '';
+  // ⚠️ `min()` et non '580px' : une largeur inline bat le `.modal { width: 96vw }`
+  // du bloc mobile, seul le `max-width: 95vw` de la classe rattrapait le débordement.
+  modal.style.width = size === 'wide' ? 'min(580px, 96vw)' : '';
   modal.innerHTML = html;
   document.getElementById('modal-backdrop').classList.remove('hidden');
 }
@@ -5071,7 +5197,7 @@ function renderStats() {
   const powerDetailRows = detailCards.length === 0
     ? `<div class="no-anomalies">Aucune carte n'utilise ce pouvoir</div>`
     : `
-      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+      <div style="border:1px solid var(--border);border-radius:8px;overflow-x:auto">
         <table class="tier-overview-table" style="width:100%">
           <thead>
             <tr>
