@@ -17,7 +17,7 @@ import { applyEffect as applyBoardEffect } from './BoardEffect.js';
 // Modules JS encore non convertis : leurs annotations JSDoc (Card[][], null par
 // défaut…) sont trop étroites pour l'interop TS. Casts localisés en attendant
 // la conversion TS de ces modules (au fil des phases).
-import { applyEffect as _applyMagieEffect, needsUnitTarget, needsGraveyardTarget, needsHandTarget } from './MagieEffect.js';
+import { applyEffect as _applyMagieEffect, needsUnitTarget, needsGraveyardTarget, needsHandTarget, magieCostHp, canAffordMagie } from './MagieEffect.js';
 import * as _InvocationManager from './InvocationManager.js';
 const applyMagieEffect = _applyMagieEffect as (magie: any, ctx: { gameState?: any; targetUnit?: any; targetUnits?: any[] }) => void;
 const InvocationManager = _InvocationManager as any;
@@ -600,6 +600,25 @@ export class GameSession {
     });
   }
 
+  /** Contrecoup en PV joueur de la magie (0 si elle n'en a pas). */
+  magieCostHp(magie: Magie): number { return magieCostHp(magie as any); }
+
+  /** Le joueur peut-il payer le contrecoup ET rester en vie ? */
+  canAffordMagie(magie: Magie): boolean {
+    return canAffordMagie(magie as any, this.gameState.player_hp);
+  }
+
+  /**
+   * Prélève le contrecoup. Appelé par les QUATRE chemins d'application, et
+   * toujours AVANT l'effet : sans quoi `drain_life` financerait son propre
+   * coût avec les PV qu'il rapporte. Le plancher à 0 est défensif — la garde
+   * d'accessibilité rend le cas impossible.
+   */
+  private _payMagieCost(magie: Magie): void {
+    const cost = this.magieCostHp(magie);
+    if (cost > 0) this.gameState.player_hp = Math.max(0, this.gameState.player_hp - cost);
+  }
+
   /** Cibles valides d'une magie sur le board joueur (defuse : fusions seulement). */
   magieUnitTargets(magie: Magie): Unit[] {
     if (magie.effect?.type === 'defuse_fusion') return this._defusableFusions();
@@ -607,6 +626,8 @@ export class GameSession {
   }
 
   applyMagieOnUnit(magie: Magie, unit: Unit): void {
+    if (!this.canAffordMagie(magie)) return;
+    this._payMagieCost(magie);
     if (magie.effect?.type === 'defuse_fusion') { this._defuseFusion(unit); return; }
     if (magie.effect?.type === 'destroy_unit') { this._destroyUnit(unit); return; }
     if (magie.effect?.type === 'drain_life') { this._drainLife(unit); return; }
@@ -624,6 +645,8 @@ export class GameSession {
   applyMagieOnHandCard(magie: Magie, handIdx: number): Unit | null {
     const card = this.hand[handIdx];
     if (!card) return null;
+    if (!this.canAffordMagie(magie)) return null;
+    this._payMagieCost(magie);
     this.hand.splice(handIdx, 1);
     const unit = new Unit(card, 'player');
     unit.is_neutralized = true;
@@ -632,6 +655,8 @@ export class GameSession {
   }
 
   applyMagieOnGraveyardUnit(magie: Magie, unit: Unit): void {
+    if (!this.canAffordMagie(magie)) return;
+    this._payMagieCost(magie);
     applyMagieEffect(magie as any, { gameState: this.gameState, targetUnit: unit });
     const target = unit.initial_position && !this.board.isOccupied(unit.initial_position)
       ? unit.initial_position : this.board.firstEmptyPlayerCell();
@@ -640,6 +665,8 @@ export class GameSession {
   }
 
   applyGlobalMagie(magie: Magie): void {
+    if (!this.canAffordMagie(magie)) return;
+    this._payMagieCost(magie);
     // `targetUnits` porte les magies d'équipe (team_stat_bonus) : elles n'ont
     // pas de cible à désigner, mais frappent tout le board joueur.
     applyMagieEffect(magie as any, { gameState: this.gameState, targetUnits: this.getPlayerUnits() });
@@ -674,7 +701,7 @@ export class GameSession {
   /**
    * Absorption : l'unité est détruite comme par `destroy_unit` (elle part au
    * cimetière et libère son emplacement) et ses PV COURANTS — pas son
-   * `max_hp` — sont versés à la jauge du joueur, plafonnés à 1000 comme
+   * `max_hp` — sont versés à la jauge du joueur, plafonnés à PLAYER_HP_CAP comme
    * `player_hp_bonus`. Ce sont bien les PV courants : absorber une unité
    * qu'on vient de voir encaisser tout un combat ne doit pas rapporter autant
    * qu'absorber une unité intacte.
@@ -682,7 +709,7 @@ export class GameSession {
   private _drainLife(unit: Unit): void {
     const drained = Math.max(0, Math.round(unit.current_hp));
     this._destroyUnit(unit);
-    this.gameState.player_hp = Math.min(this.gameState.player_hp + drained, 1000);
+    this.gameState.player_hp = Math.min(this.gameState.player_hp + drained, PLAYER_HP_CAP);
   }
 
   // ── Fin de partie / tour suivant ────────────────────────────────────────

@@ -1692,6 +1692,24 @@ Champ **racine** `rarity: 1 | 2 | 3`. ⚠️ **Pas dans `effect`** : une magie s
 
 Les `player_hand_modifiers` (`reduce_sacrifice_cost`, `free_transformation`, `remove_heritage_material`, `remove_fusion_material`) sont consommés au tour suivant (différé), dans `GameSession.startPreparation()`.
 
+### Contrecoup — une magie qui coûte des PV joueur (`cost_hp`)
+
+N'importe quelle magie peut porter un **coût en PV du joueur**, saisi dans la section « Contrecoup » de l'onglet Magies. C'est un champ de **premier niveau** (`magie.cost_hp`), et non un champ d'`effect` : il est orthogonal au type d'effet, un même contrecoup se pose aussi bien sur une pioche garantie que sur un bonus d'équipe. Corollaire : **rien à changer côté serveur** — `crudRouter` écrit le corps tel quel, et `strip` ne retire que `_has_illustration`.
+
+| | |
+|---|---|
+| Lecture | `magieCostHp(magie)` — le **seul** endroit qui lit le champ |
+| Accessibilité | `canAffordMagie(magie, playerHp)` → `playerHp > cost` |
+| Prélèvement | `GameSession._payMagieCost`, appelé par les **quatre** chemins d'application |
+
+- ⚠️ **La comparaison est STRICTE** : payer laisse toujours **1 PV au minimum**. Une magie qu'on ne peut pas payer sans mourir est **verrouillée** dans la modale (grisée, liserée de rouge, avec sa raison) plutôt que refusée au tap. Un choix qui tue n'est pas un choix, et la modale de shopping n'a **aucune confirmation** — un tap malheureux perdrait la partie sur un geste destiné à la gagner. Le joueur garde ses autres magies et le bouton « Passer ». À coût nul la règle se réduit à « le joueur est en vie », ce qui est exactement le comportement voulu pour les magies gratuites, c'est-à-dire presque toutes.
+- ⚠️ **Le coût est prélevé À L'APPLICATION, pas au choix de la carte** : le ciblage est **annulable** (`cancelMagieTargeting`), et une magie reposée sans avoir été appliquée ne doit rien coûter.
+- ⚠️ **Il est prélevé AVANT l'effet, et l'accessibilité se juge sur les PV d'avant.** Sans quoi `drain_life` **financerait son propre contrecoup** avec les PV qu'il rapporte : une magie hors de portée deviendrait payable par son propre gain, et le plancher de 1 PV ne tiendrait plus.
+- ⚠️ **La garde et le paiement ne se désolidarisent jamais** : les quatre chemins (`applyGlobalMagie`, `applyMagieOnUnit`, `applyMagieOnGraveyardUnit`, `applyMagieOnHandCard`) portent les deux. `GameController.chooseMagie` a la sienne en plus, mais elle n'est là que pour que la règle ne dépende pas du seul rendu — un refus ne doit **rien** amputer, ni la main, ni le board.
+- **Une donnée absente, nulle, négative ou illisible vaut « aucun contrecoup »** : une magie gratuite est le cas normal, c'est donc la lecture de repli sûre. L'inverse ferait payer des PV sur une faute de saisie en admin.
+- **Rien côté PvP** : `player_hp` voyage déjà au niveau du message `round:board_ready`, chaque joueur étant la source de vérité de ses propres PV. Un contrecoup est invisible de l'adversaire jusqu'au round suivant, exactement comme `player_hp_bonus`.
+- ⚠️ Un coût **supérieur ou égal aux PV de départ (1000)** rend la magie injouable toute la partie. L'écran d'admin le dit ; rien ne l'interdit.
+
 ### Absorption (`drain_life`) et défausse au cimetière (`hand_to_graveyard`)
 
 Les deux magies **échangent une ressource contre une autre**, là où les autres en ajoutent — d'où deux règles qui ne se devinent pas :

@@ -155,6 +155,10 @@ export interface Magie {
    *  absent ou hors bornes = Commune (`MagieOffer.rarityOf`), ce qui rend
    *  inoffensives les magies écrites avant l'existence du champ. */
   rarity?: MagieRarity;
+  /** Contrecoup : PV du joueur prélevés à l'application. À la RACINE pour la
+   *  même raison que `rarity` — il est orthogonal au type d'effet, et son
+   *  absence vaut « aucun contrecoup » (cf. `MagieEffect.magieCostHp`). */
+  cost_hp?: number;
   _has_illustration?: boolean;
 }
 

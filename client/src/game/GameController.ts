@@ -460,6 +460,12 @@ export class GameController {
   // protections de `resolveMagie*Target` si un type sortait un jour de la table
   // de pertinence, et le coût est de trois lignes.
   chooseMagie(magie: Magie): void {
+    // Contrecoup impayable : la carte est déjà verrouillée à l'écran, cette
+    // garde n'est là que pour que la règle ne dépende pas du seul rendu.
+    if (!this.session.canAffordMagie(magie)) {
+      this._flashError('Pas assez de PV pour en payer le contrecoup');
+      return;
+    }
     if (this.session.magieNeedsUnitTarget(magie)) {
       const targets = this.session.magieUnitTargets(magie);
       if (!targets.length) { this._flashError('Aucune cible valide pour cette magie'); return; }

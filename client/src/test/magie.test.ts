@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from 'vitest';
-import { applyEffect, needsUnitTarget, needsGraveyardTarget, needsHandTarget, effectLabel } from '../logic/MagieEffect.js';
+import { applyEffect, needsUnitTarget, needsGraveyardTarget, needsHandTarget, effectLabel, magieCostHp, canAffordMagie } from '../logic/MagieEffect.js';
 import { GameState } from '../logic/GameState.js';
 import { makeBoard, makeCard, spawn } from './helpers.js';
 
@@ -203,6 +203,37 @@ describe('MagieEffect — effets globaux (gameState)', () => {
       { type: 'remove_fusion_material', value: 1 },
       { type: 'remove_fusion_material', value: 2 },
     ]);
+  });
+});
+
+describe('MagieEffect — contrecoup en PV joueur', () => {
+  const withCost = (cost: any) => ({ id: 'M', name: 'M', effect: { type: 'draw_bonus', value: 1 }, cost_hp: cost });
+
+  it('magieCostHp lit le champ de PREMIER NIVEAU, arrondi', () => {
+    expect(magieCostHp(withCost(120))).toBe(120);
+    expect(magieCostHp(withCost(49.6))).toBe(50);
+  });
+
+  it('une donnée absente, nulle, négative ou illisible vaut « aucun contrecoup »', () => {
+    // Une magie gratuite est le cas normal : c'est la lecture de repli sûre.
+    // L'inverse ferait payer des PV sur une faute de saisie.
+    expect(magieCostHp(magie({ type: 'draw_bonus' }))).toBe(0);
+    for (const bad of [0, -50, null, undefined, NaN, 'cent', {}]) {
+      expect(magieCostHp(withCost(bad)), String(bad)).toBe(0);
+    }
+    expect(magieCostHp(undefined)).toBe(0);
+  });
+
+  it('canAffordMagie est STRICT : payer laisse toujours 1 PV', () => {
+    expect(canAffordMagie(withCost(100), 101)).toBe(true);
+    // Payer exactement ses PV tuerait : refusé.
+    expect(canAffordMagie(withCost(100), 100)).toBe(false);
+    expect(canAffordMagie(withCost(100), 40)).toBe(false);
+  });
+
+  it('sans contrecoup, la règle se réduit à « le joueur est en vie »', () => {
+    expect(canAffordMagie(magie({ type: 'draw_bonus' }), 1)).toBe(true);
+    expect(canAffordMagie(magie({ type: 'draw_bonus' }), 0)).toBe(false);
   });
 });
 

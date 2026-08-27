@@ -12,6 +12,33 @@ function _trackShoppingBonus(unit, stat, delta) {
   unit._shopping_bonus[stat] = (unit._shopping_bonus[stat] || 0) + delta;
 }
 
+/**
+ * Contrecoup : ce que la magie coûte en PV JOUEUR. Champ de premier niveau
+ * (`magie.cost_hp`) et non un champ d'`effect`, car il est orthogonal à
+ * l'effet — n'importe quel type peut porter un coût. Absent, nul, négatif ou
+ * mal saisi valent tous « aucun contrecoup » : une magie gratuite est le cas
+ * normal, et une donnée douteuse ne doit jamais coûter des PV au joueur.
+ * @param {any} magie
+ * @returns {number}
+ */
+export function magieCostHp(magie) {
+  const raw = Number(magie?.cost_hp);
+  return Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 0;
+}
+
+/**
+ * ⚠️ Comparaison STRICTE : payer doit laisser le joueur à 1 PV au moins. Un
+ * coût qui tue n'est pas un choix, et la modale de shopping n'a pas de
+ * confirmation — un tap malheureux perdrait la partie. Corollaire utile : à
+ * coût nul, la règle se réduit à « le joueur est en vie ».
+ * @param {any} magie
+ * @param {number} playerHp
+ * @returns {boolean}
+ */
+export function canAffordMagie(magie, playerHp) {
+  return playerHp > magieCostHp(magie);
+}
+
 export function needsUnitTarget(magie) {
   return ['stat_bonus', 'stat_modifier', 'shield', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life'].includes(magie?.effect?.type);
 }

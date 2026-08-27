@@ -217,5 +217,24 @@
 			"type": "team_heal",
 			"value": 40
 		}
+	},
+	{
+		"id": "MAGIE_026",
+		"name": "Pacte de sang",
+		"effect": {
+			"type": "team_stat_bonus",
+			"stat": "atk",
+			"value": 6
+		},
+		"cost_hp": 150
+	},
+	{
+		"id": "MAGIE_027",
+		"name": "Offrande écarlate",
+		"effect": {
+			"type": "guaranteed_draw",
+			"tier": 5
+		},
+		"cost_hp": 200
 	}
 ]

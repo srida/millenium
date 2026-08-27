@@ -2631,7 +2631,7 @@ function renderMagieList(list = magies) {
         : `<div style="width:40px;height:40px;background:var(--surface2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px">✨</div>`}
       <div style="min-width:0">
         <div class="item-name">${esc(m.name)}${magieRarityBadge(m)}</div>
-        <div class="item-id">${m.id}${m.effect ? ` · ${EFFECT_TYPE_LABELS[m.effect.type] || m.effect.type}` : ''}</div>
+        <div class="item-id">${m.id}${m.effect ? ` · ${EFFECT_TYPE_LABELS[m.effect.type] || m.effect.type}` : ''}${m.cost_hp > 0 ? ` · <span style="color:#fca5a5">−${m.cost_hp} PV</span>` : ''}</div>
       </div>
     </div>
   `).join('');
@@ -2676,6 +2676,7 @@ function renderMagieDetail() {
           <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(m.id)}</span>
           ${m.effect ? `<span class="badge badge-power">${EFFECT_TYPE_LABELS[effectType] || effectType}</span>` : ''}
           ${magieRarityBadge(m)}
+          ${m.cost_hp > 0 ? `<span class="badge" style="background:rgba(239,68,68,.2);color:#fca5a5">−${m.cost_hp} PV</span>` : ''}
           ${hasIllus ? `<span class="badge badge-illus">Illustration ✓</span>` : `<span class="badge badge-no-illus">Sans illustration</span>`}
         </div>
       </div>
@@ -2753,6 +2754,22 @@ function renderMagieDetail() {
       </div>
     </div>
 
+    <div class="section-title" style="margin-top:20px">Contrecoup</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Coût en PV du joueur (0 = aucun)</label>
+        <input id="mf-cost-hp" type="number" min="0" step="1" value="${m.cost_hp ?? 0}">
+        <div style="margin-top:6px;font-size:12px;color:var(--muted)">
+          Prélevé sur les PV du joueur au moment où la magie est appliquée — donc après
+          le choix de la cible, jamais si le ciblage est annulé. Le coût s'applique à
+          n'importe quel type d'effet.<br>
+          ⚠️ Une magie dont le coût atteindrait les PV restants est <b>verrouillée</b> en
+          jeu : payer laisse toujours 1 PV au minimum. Un coût supérieur ou égal aux PV de
+          départ (1000) la rendrait injouable toute la partie.
+        </div>
+      </div>
+    </div>
+
     <div class="actions">
       ${isNewMagie
         ? `<button class="btn btn-success" onclick="createMagie()">Créer la magie</button>
@@ -2789,6 +2806,10 @@ function _collectMagieFields() {
       effect.stat = document.getElementById('mf-effect-stat')?.value || 'atk';
     }
   }
+  // Le contrecoup est un champ de PREMIER NIVEAU, pas un champ d'`effect` : il
+  // est orthogonal au type d'effet. Absent quand il vaut 0, pour ne pas semer
+  // `"cost_hp": 0` dans tout le catalogue.
+  const costHp = Math.max(0, Math.round(parseFloat(document.getElementById('mf-cost-hp')?.value) || 0));
   return {
     // ⚠️ On REPART de `selectedMagie` au lieu de reconstruire l'objet de zéro :
     // le formulaire ne relit pas tous les champs de la donnée (`description`
@@ -2811,6 +2832,7 @@ function _collectMagieFields() {
     // ⚠️ parseInt OBLIGATOIRE : `<select>.value` est une CHAÎNE, et un `"2"`
     // persisté rendrait la donnée incohérente avec le catalogue livré.
     rarity: parseInt(document.getElementById('mf-rarity')?.value, 10) || 1,
+    ...(costHp > 0 ? { cost_hp: costHp } : {}),
   };
 }
 

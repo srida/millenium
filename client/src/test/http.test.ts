@@ -402,3 +402,47 @@ describe('GET /api/cards', () => {
     expect(disque[0]).not.toHaveProperty('_starter');
   });
 });
+
+// ===========================================================================
+//  Le contrecoup d'une magie traverse l'API sans qu'on ait rien écrit pour lui
+// ===========================================================================
+// `cost_hp` est un champ de PREMIER NIVEAU, et `crudRouter` écrit le corps tel
+// quel : aucune ligne de serveur n'a été ajoutée pour le porter. C'est
+// précisément ce qui doit être vérifié — une ligne qu'on n'écrit pas est une
+// ligne dont rien ne rappelle l'existence le jour où `strip` se met à filtrer.
+describe('POST/PUT /api/magies — contrecoup (cost_hp)', () => {
+  it('persiste le champ, sur le disque comme à la lecture', async () => {
+    const cree = await request(h.server).post('/api/magies')
+      .set('Authorization', ADMIN_BASIC)
+      .send({ id: 'MAGIE_COST', name: 'Contrecoup', effect: { type: 'draw_bonus', value: 1 }, cost_hp: 150 });
+    expect(cree.status).toBe(200);
+
+    const lue = (await request(h.server).get('/api/magies')).body.find((m: any) => m.id === 'MAGIE_COST');
+    expect(lue.cost_hp).toBe(150);
+
+    const disque = JSON.parse(fs.readFileSync(path.join(h.DATA, 'magies.json'), 'utf8'));
+    expect(disque.find((m: any) => m.id === 'MAGIE_COST').cost_hp).toBe(150);
+  });
+
+  it('un PUT sans le champ le RETIRE — la forme envoyée fait foi', async () => {
+    // `crudRouter.put` REMPLACE l'élément (`list[idx] = req.body`), il ne
+    // fusionne pas — contrairement à `PUT /api/decks/:id`. L'admin renvoie donc
+    // toujours l'objet complet, et omettre `cost_hp` est bien la façon de
+    // remettre une magie à zéro. À savoir avant d'écrire un client partiel.
+    const maj = await request(h.server).put('/api/magies/MAGIE_COST')
+      .set('Authorization', ADMIN_BASIC)
+      .send({ id: 'MAGIE_COST', name: 'Contrecoup', effect: { type: 'draw_bonus', value: 1 } });
+    expect(maj.status).toBe(200);
+
+    const lue = (await request(h.server).get('/api/magies')).body.find((m: any) => m.id === 'MAGIE_COST');
+    expect(lue.cost_hp).toBeUndefined();
+  });
+
+  it('reste fermé à un anonyme, et le catalogue ne bouge pas', async () => {
+    const avant = (await request(h.server).get('/api/magies')).body;
+    const refus = await request(h.server).post('/api/magies')
+      .send({ id: 'MAGIE_ANON', name: 'Anonyme', effect: null, cost_hp: 900 });
+    expect(refus.status).toBe(401);
+    expect((await request(h.server).get('/api/magies')).body).toEqual(avant);
+  });
+});

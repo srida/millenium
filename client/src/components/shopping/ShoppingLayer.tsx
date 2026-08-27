@@ -7,6 +7,7 @@
 // Toute la logique (application, ciblage, carry-over) vit dans GameSession ;
 // ici on ne fait que router les gestes vers le controller.
 import { useGameStore } from '../../stores/gameStore.js';
+import { canAffordMagie } from '../../logic/MagieEffect.js';
 import { Button, Modal } from '../ui/primitives.js';
 import MagieCard from './MagieCard.js';
 
@@ -14,6 +15,9 @@ export default function ShoppingLayer() {
   const shopping = useGameStore(s => s.shopping);
   const controller = useGameStore(s => s.controller);
   const remaining = useGameStore(s => s.shoppingRemaining);
+  // Le verrou se dérive des PV de l'instantané : la règle vit dans
+  // `MagieEffect`, l'écran ne fait que la lire.
+  const playerHp = useGameStore(s => s.playerHp);
   if (!shopping || !controller) return null;
 
   if (shopping.awaitingTarget) {
@@ -43,7 +47,12 @@ export default function ShoppingLayer() {
       </div>
       <div className="space-y-2">
         {shopping.magies.map(m => (
-          <MagieCard key={m.id} magie={m} onChoose={mm => controller.chooseMagie(mm)} />
+          <MagieCard
+            key={m.id}
+            magie={m}
+            affordable={canAffordMagie(m, playerHp)}
+            onChoose={mm => controller.chooseMagie(mm)}
+          />
         ))}
       </div>
       <button

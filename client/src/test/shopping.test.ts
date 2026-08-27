@@ -507,6 +507,131 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
   });
 });
 
+describe('Shopping — contrecoup en PV joueur', () => {
+  // Le contrecoup est orthogonal à l'effet : il se pose sur n'importe quel type.
+  const costly = (effect: any, cost: number) => magie(effect, { cost_hp: cost }) as any;
+
+  it('est prélevé sur les QUATRE chemins d\'application', () => {
+    // Global
+    let { session } = makeSession();
+    session.gameState.player_hp = 500;
+    session.applyGlobalMagie(costly({ type: 'draw_bonus', value: 1 }, 80));
+    expect(session.gameState.player_hp).toBe(420);
+    expect(session.gameState.player_extra_draws).toBe(1);
+
+    // Cible board
+    ({ session } = makeSession());
+    session.gameState.player_hp = 500;
+    const u = place(session, makeCard({ id: 'A', stats: { hp: 60 } as any }), { col: 0, row: 0 });
+    u.current_hp = 10;
+    session.applyMagieOnUnit(costly({ type: 'heal' }, 80), u);
+    expect(session.gameState.player_hp).toBe(420);
+    expect(u.current_hp).toBe(60);
+
+    // Cible cimetière
+    ({ session } = makeSession());
+    session.gameState.player_hp = 500;
+    const dead = new (Unit as any)(makeCard({ id: 'D', stats: { hp: 40 } as any }), 'player');
+    dead.is_neutralized = true;
+    dead.current_hp = 0;
+    session.graveyard = [dead];
+    session.applyMagieOnGraveyardUnit(costly({ type: 'revive', value: 50 }, 80), dead);
+    expect(session.gameState.player_hp).toBe(420);
+    expect(dead.is_neutralized).toBe(false);
+
+    // Cible main
+    ({ session } = makeSession());
+    session.gameState.player_hp = 500;
+    session.hand = [makeCard({ id: 'H' }) as any];
+    session.applyMagieOnHandCard(costly({ type: 'hand_to_graveyard' }, 80), 0);
+    expect(session.gameState.player_hp).toBe(420);
+    expect(session.graveyard).toHaveLength(1);
+  });
+
+  it('une magie impayable ne coûte RIEN et n\'applique RIEN', () => {
+    // La garde et le paiement ne peuvent pas se désolidariser : si l'un des
+    // deux tombe, l'autre ment.
+    const { session } = makeSession();
+    session.gameState.player_hp = 50;
+    const m = costly({ type: 'draw_bonus', value: 2 }, 80);
+
+    expect(session.canAffordMagie(m)).toBe(false);
+    session.applyGlobalMagie(m);
+
+    expect(session.gameState.player_hp).toBe(50);
+    expect(session.gameState.player_extra_draws).toBe(0);
+  });
+
+  it('un coût égal aux PV restants est refusé — payer ne tue jamais', () => {
+    const { session } = makeSession();
+    session.gameState.player_hp = 80;
+    const m = costly({ type: 'draw_bonus', value: 1 }, 80);
+    expect(session.canAffordMagie(m)).toBe(false);
+    session.applyGlobalMagie(m);
+    expect(session.gameState.player_hp).toBe(80);
+
+    // Un PV de plus et elle passe, en laissant très exactement 1 PV.
+    session.gameState.player_hp = 81;
+    expect(session.canAffordMagie(m)).toBe(true);
+    session.applyGlobalMagie(m);
+    expect(session.gameState.player_hp).toBe(1);
+  });
+
+  it('le refus n\'ampute NI la main NI le board', () => {
+    const { session } = makeSession();
+    session.gameState.player_hp = 10;
+    session.hand = [makeCard({ id: 'H' }) as any];
+    const u = place(session, makeCard({ id: 'A', stats: { hp: 90 } as any }), { col: 0, row: 0 });
+
+    expect(session.applyMagieOnHandCard(costly({ type: 'hand_to_graveyard' }, 500), 0)).toBeNull();
+    session.applyMagieOnUnit(costly({ type: 'drain_life' }, 500), u);
+
+    expect(session.hand).toHaveLength(1);
+    expect(session.graveyard).toHaveLength(0);
+    expect(session.board.getUnit({ col: 0, row: 0 })).toBe(u);
+    expect(session.gameState.player_hp).toBe(10);
+  });
+
+  it('⚠️ drain_life ne finance PAS son propre contrecoup', () => {
+    // Le coût est prélevé AVANT l'effet, et l'accessibilité se juge sur les PV
+    // d'avant : sinon une magie coûteuse deviendrait payable grâce aux PV
+    // qu'elle rapporte, et le plancher de 1 PV ne tiendrait plus.
+    const { session } = makeSession();
+    session.gameState.player_hp = 60;
+    const u = place(session, makeCard({ id: 'A', stats: { hp: 300 } as any }), { col: 0, row: 0 });
+    u.current_hp = 300;
+
+    // 100 > 60 : refusée, malgré les 300 PV qu'elle aurait rapportés.
+    expect(session.canAffordMagie(costly({ type: 'drain_life' }, 100))).toBe(false);
+    session.applyMagieOnUnit(costly({ type: 'drain_life' }, 100), u);
+    expect(session.gameState.player_hp).toBe(60);
+    expect(session.board.getUnit({ col: 0, row: 0 })).toBe(u);
+
+    // Payable : on paie 50, puis on encaisse les 300.
+    session.applyMagieOnUnit(costly({ type: 'drain_life' }, 50), u);
+    expect(session.gameState.player_hp).toBe(310);
+  });
+
+  it('le contrecoup peut faire descendre sous le seuil, mais jamais à zéro', () => {
+    const { session } = makeSession();
+    session.gameState.player_hp = 1000;
+    const m = costly({ type: 'draw_bonus', value: 1 }, 999);
+    session.applyGlobalMagie(m);
+    expect(session.gameState.player_hp).toBe(1);
+    // La partie n'est PAS finie : rester à 1 PV est une position, pas une mort.
+    expect(session.isGameOver()).toBe(false);
+    // …et la même magie est désormais hors de portée.
+    expect(session.canAffordMagie(m)).toBe(false);
+  });
+
+  it('une magie sans contrecoup reste gratuite', () => {
+    const { session } = makeSession();
+    session.gameState.player_hp = 1000;
+    session.applyGlobalMagie(magie({ type: 'draw_bonus', value: 1 }) as any);
+    expect(session.gameState.player_hp).toBe(1000);
+  });
+});
+
 describe('Shopping — heal (soin total)', () => {
   it('remonte les PV de la cible à son maximum', () => {
     const { session } = makeSession();
