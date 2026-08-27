@@ -110,7 +110,7 @@ export function buildSession(
     attributeList: (AttributeDatabase as any).getAllAttributes(),
     cardDb: CardDatabase as any,
     getRandomBoard: () => (BoardDatabase as any).getRandomBoard(),
-    getRandomMagies: (count: number) => (MagieDatabase as any).getRandomMagies(count),
+    getAllMagies: () => (MagieDatabase as any).getAllMagies(),
     mode,
     enemyBonus: enemyBonus ?? null,
   });

@@ -2,6 +2,7 @@
 	{
 		"id": "MAGIC_001",
 		"name": "Pot de Cupidité",
+		"rarity": 2,
 		"description": "Piochez 2 cartes supplémentaires au début du prochain tour de combat.",
 		"effect": {
 			"type": "draw_bonus",
@@ -12,6 +13,7 @@
 	{
 		"id": "MAGIC_002",
 		"name": "Renforcement",
+		"rarity": 1,
 		"description": "Augmente l'ATK de toutes vos unités de 15 au début du combat.",
 		"effect": {
 			"type": "stat_bonus",
@@ -24,6 +26,7 @@
 	{
 		"id": "MAGIC_003",
 		"name": "Monster Reborn",
+		"rarity": 2,
 		"effect": {
 			"type": "revive",
 			"value": 50
@@ -32,6 +35,7 @@
 	{
 		"id": "MAGIC_004",
 		"name": "Enceinte de château",
+		"rarity": 1,
 		"effect": {
 			"type": "shield",
 			"value": 40
@@ -40,6 +44,7 @@
 	{
 		"id": "MAGIC_005",
 		"name": "Médicament rouge",
+		"rarity": 2,
 		"effect": {
 			"type": "player_hp_bonus",
 			"value": 100
@@ -48,6 +53,7 @@
 	{
 		"id": "MAGIC_006",
 		"name": "Renfort de l’armée",
+		"rarity": 1,
 		"effect": {
 			"type": "guaranteed_draw",
 			"tier": 1
@@ -56,6 +62,7 @@
 	{
 		"id": "MAGIC_007",
 		"name": "Feu ardent",
+		"rarity": 3,
 		"effect": {
 			"type": "guaranteed_draw",
 			"tier": 5
@@ -64,6 +71,7 @@
 	{
 		"id": "MAGIC_009",
 		"name": "Recherche de fossiles",
+		"rarity": 2,
 		"effect": {
 			"type": "guaranteed_draw",
 			"tier": 3
@@ -72,6 +80,7 @@
 	{
 		"id": "MAGIC_010",
 		"name": "Longue vue",
+		"rarity": 1,
 		"effect": {
 			"type": "stat_bonus",
 			"value": 2,
@@ -81,6 +90,7 @@
 	{
 		"id": "MAGIC_011",
 		"name": "Médicament bleu",
+		"rarity": 1,
 		"effect": {
 			"type": "heal"
 		}
@@ -88,6 +98,7 @@
 	{
 		"id": "MAGIC_012",
 		"name": "Raigeki",
+		"rarity": 1,
 		"effect": {
 			"type": "stat_bonus",
 			"value": -5,
@@ -97,6 +108,7 @@
 	{
 		"id": "MAGIC_013",
 		"name": "Godspeed",
+		"rarity": 1,
 		"effect": {
 			"type": "stat_bonus",
 			"value": -5,
@@ -106,6 +118,7 @@
 	{
 		"id": "MAGIE_014",
 		"name": "Réaction en chaîne",
+		"rarity": 3,
 		"effect": {
 			"type": "board_slot_bonus",
 			"value": 1
@@ -114,6 +127,7 @@
 	{
 		"id": "MAGIE_015",
 		"name": "Fission",
+		"rarity": 2,
 		"effect": {
 			"type": "defuse_fusion"
 		}
@@ -121,6 +135,7 @@
 	{
 		"id": "MAGIE_016",
 		"name": "Bourse des âmes",
+		"rarity": 3,
 		"effect": {
 			"type": "reduce_sacrifice_cost",
 			"value": 2
@@ -129,6 +144,7 @@
 	{
 		"id": "MAGIE_017",
 		"name": "Ristourne",
+		"rarity": 1,
 		"effect": {
 			"type": "reduce_sacrifice_cost",
 			"value": 1
@@ -137,6 +153,7 @@
 	{
 		"id": "MAGIE_018",
 		"name": "Force spirituel",
+		"rarity": 3,
 		"effect": {
 			"type": "free_transformation"
 		}
@@ -144,6 +161,7 @@
 	{
 		"id": "MAGIE_019",
 		"name": "Préparation des rites",
+		"rarity": 2,
 		"effect": {
 			"type": "remove_heritage_material"
 		}
@@ -151,6 +169,7 @@
 	{
 		"id": "MAGIE_020",
 		"name": "Couteau dans le dos",
+		"rarity": 1,
 		"effect": {
 			"type": "destroy_unit"
 		}
@@ -158,6 +177,7 @@
 	{
 		"id": "MAGIE_021",
 		"name": "Bannière de guerre",
+		"rarity": 2,
 		"effect": {
 			"type": "team_stat_bonus",
 			"stat": "atk",
@@ -167,6 +187,7 @@
 	{
 		"id": "MAGIE_022",
 		"name": "Chair et sang",
+		"rarity": 2,
 		"effect": {
 			"type": "drain_life"
 		}
@@ -174,6 +195,7 @@
 	{
 		"id": "MAGIE_023",
 		"name": "Rite d'abandon",
+		"rarity": 1,
 		"effect": {
 			"type": "hand_to_graveyard"
 		}
@@ -181,6 +203,7 @@
 	{
 		"id": "MAGIE_024",
 		"name": "Alliage instable",
+		"rarity": 2,
 		"effect": {
 			"type": "remove_fusion_material",
 			"value": 1
@@ -189,6 +212,7 @@
 	{
 		"id": "MAGIE_025",
 		"name": "Vague de repos",
+		"rarity": 2,
 		"effect": {
 			"type": "team_heal",
 			"value": 40

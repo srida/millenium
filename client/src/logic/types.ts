@@ -142,10 +142,19 @@ export interface MagieEffectDef {
   tier?: number;
 }
 
+/** Palier de rareté d'une magie : 1 Commune · 2 Rare · 3 Légendaire. */
+export type MagieRarity = 1 | 2 | 3;
+
 export interface Magie {
   id: string;
   name: string;
   effect: MagieEffectDef | null;
+  /** ⚠️ À la RACINE, pas dans `effect` : une magie sans effet a quand même une
+   *  rareté, et deux magies du même type d'effet peuvent différer de palier
+   *  (MAGIE_016 « -2 sacrifices » contre MAGIE_017 « -1 »). FACULTATIF —
+   *  absent ou hors bornes = Commune (`MagieOffer.rarityOf`), ce qui rend
+   *  inoffensives les magies écrites avant l'existence du champ. */
+  rarity?: MagieRarity;
   _has_illustration?: boolean;
 }
 

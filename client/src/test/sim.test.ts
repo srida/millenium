@@ -167,7 +167,7 @@ describe('Auto-joueur — il joue sous les règles du JOUEUR', () => {
       cardsByTier: { 1: [card], 2: [], 3: [], 4: [], 5: [] },
       enemyDeck: { '1': [card.id], '2': [], '3': [], '4': [], '5': [] },
       attributeList: cat.attributes, cardDb: cat.cardDb,
-      getRandomBoard: () => null, getRandomMagies: () => [],
+      getRandomBoard: () => null, getAllMagies: () => [],
       mode: 'ai', rand: seededRandom('doublon'),
     });
   }
@@ -211,7 +211,7 @@ describe('Auto-joueur — il joue sous les règles du JOUEUR', () => {
     for (let t = 1; t <= 5; t++) cardsByTier[t] = (deck[String(t)] ?? []).map(id => cat.cardDb.getCard(id)!).filter(Boolean);
     const session = new GameSession({
       cardsByTier, enemyDeck: deck, attributeList: cat.attributes, cardDb: cat.cardDb,
-      getRandomBoard: () => null, getRandomMagies: () => [], mode: 'ai', rand,
+      getRandomBoard: () => null, getAllMagies: () => [], mode: 'ai', rand,
     });
     session.startPreparation();
     playPreparation(session);

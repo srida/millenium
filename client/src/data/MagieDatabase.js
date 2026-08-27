@@ -10,11 +10,8 @@ export function getAllMagies() {
   return _magies || [];
 }
 
-export function getRandomMagies(count = 3) {
-  const pool = [...(_magies || [])];
-  const result = [];
-  while (result.length < count && pool.length > 0) {
-    result.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
-  }
-  return result;
-}
+// ⚠️ `getRandomMagies` a été SUPPRIMÉE : le tirage de la Phase Shopping vit
+// désormais dans `logic/MagieOffer.pickMagies` — filtré par pertinence,
+// pondéré par rareté, et semé par le `rand` de la partie. La laisser aurait
+// maintenu un second chemin de tirage, ni filtré ni semé, portant très
+// exactement le nom que la prochaine fonctionnalité aurait repris.

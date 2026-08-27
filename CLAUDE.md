@@ -1083,7 +1083,7 @@ n'entre donc dans aucun bundle.
 appelant existant ne change** (`buildSession`, `MatchSimulator`,
 `PvpController`). Trois points de branchement : `Draw.drawHand`, le constructeur
 d'`EnemyAI`, et `GameSessionDeps.rand` (qui couvre les trois tirages de pioche
-garantie et l'IA qu'elle construit). `getRandomBoard` / `getRandomMagies`
+garantie et l'IA qu'elle construit). `getRandomBoard` / `getAllMagies`
 étaient déjà injectés.
 
 ### Les trois constats qui commandent le protocole
@@ -1331,7 +1331,7 @@ BoardDatabase.getRandomBoard()   // injecté dans GameSession — tiré à chaqu
 
 await MagieDatabase.init()
 MagieDatabase.getAllMagies()
-MagieDatabase.getRandomMagies(count = 3)   // tirage sans remise — Phase Shopping
+// ⚠️ plus de getRandomMagies : le tirage vit dans logic/MagieOffer.pickMagies
 
 await PublicDeckDatabase.init()            // /api/decks — decks pré-construits
 PublicDeckDatabase.getAllDecks()
@@ -1546,17 +1546,23 @@ gameState.player_unit_multiplier   // composante « nombre d'unités » seule, p
 
 ## Phase Shopping
 
-Après la phase de combat (et l'écran de résultat de fin de round), le joueur se voit proposer **3 magies aléatoires** avant de passer au tour suivant — plus `gameState.player_extra_shopping_magies`, accumulé par l'effet d'attribut `shopping_bonus` et consommé au tirage.
+Après la phase de combat (et l'écran de résultat de fin de round), le joueur se voit proposer **3 magies** avant de passer au tour suivant — plus `gameState.player_extra_shopping_magies`, accumulé par l'effet d'attribut `shopping_bonus` et consommé au tirage. L'offre est **filtrée par pertinence** puis **tirée pondérée par rareté, sans remise**, dans le flux `rand` **semé** de la partie (`logic/MagieOffer.ts`, cf. « Pertinence de l'offre » et « Rareté » plus bas).
 
 **Sautée** :
 - Sur le dernier tour / fin de partie (`gameState.isGameOver()`)
-- Si le tirage ne renvoie aucune magie (`MagieDatabase.getAllMagies()` vide) → passage direct au tour suivant
+- Si l'offre est **vide** — catalogue vide, ou plus aucune magie pertinente dans l'état courant → `_startShopping` fait `_proceedNextRound()`
+
+⚠️ **Aucun repli sur une magie non pertinente.** L'offre peut être plus courte que `3 + extra`, et l'extra est alors **perdu** — il ne se reporte pas : la remise à zéro du compteur précède le filtre, et le re-créditer transformerait un octroi *pour ce tour* en dette. Le tour où il ne reste rien à offrir est précisément celui où une magie de plus n'existe pas.
+
+⚠️ **Le shopping n'entre pas dans le déterminisme PvP.** Il n'est pas synchronisé (`PvpController` appelle le `_startShopping` de base), et le contexte de pertinence **diffère structurellement** entre les deux clients — board, main, cimetière, deck. Même semés à l'identique, les deux joueurs voient des offres différentes, et c'est correct : rien de tout ça ne traverse `round:board_ready`.
+
+⚠️ **L'offre ne se re-tire pas après un `undoPreparation()`** : le shopping a lieu **avant** `startPreparation()`, dont la dernière instruction est justement la capture du point de retour. Une magie choisie est déjà cuite dans le snapshot — c'est l'autre face de « une magie choisie au shopping n'est jamais annulable ».
 
 Répartie entre la logique headless et la glue UI (plus d'écran monolithique) :
 
 ```ts
 // client/src/logic/GameSession.ts — headless
-getShoppingMagies()                      // 3 + extra, via la dep getRandomMagies
+getShoppingMagies()                      // 3 + extra, filtrées + pondérées (MagieOffer)
 magieNeedsUnitTarget(magie) / magieNeedsGraveyardTarget(magie)
 magieUnitTargets(magie)                  // cibles valides sur le board (defuse : fusions seulement)
 applyMagieOnUnit(magie, unit) / applyMagieOnGraveyardUnit(magie, unit) / applyGlobalMagie(magie)
@@ -1591,6 +1597,7 @@ Système de cartes magiques tirées pendant la Phase Shopping. Chargées depuis 
 - `id` — identifiant unique (`MAGIC_NNN` dans les données initiales, `MAGIE_NNN` auto-généré par l'admin)
 - `name`
 - `effect` — `{ type, ...paramètres }` ou `null`
+- `rarity` — `1` Commune · `2` Rare · `3` Légendaire (cf. « Rareté » plus bas)
 - `_has_illustration` (calculé côté serveur, non persisté)
 
 ### MagieDatabase
@@ -1600,8 +1607,54 @@ Système de cartes magiques tirées pendant la Phase Shopping. Chargées depuis 
 ```js
 await MagieDatabase.init()              // fetch /api/magies, cache mémoire
 MagieDatabase.getAllMagies()
-MagieDatabase.getRandomMagies(count = 3) // tirage sans remise
 ```
+
+⚠️ **`getRandomMagies` a été SUPPRIMÉE** : le tirage de la Phase Shopping vit dans `logic/MagieOffer.pickMagies` — filtré par pertinence, pondéré par rareté, et **semé** par le `rand` de la partie. La dep de `GameSession` est désormais `getAllMagies: () => Magie[]` : la couche data **fournit**, elle ne décide plus. La laisser aurait maintenu un second chemin de tirage, ni filtré ni semé, portant très exactement le nom que la prochaine fonctionnalité aurait repris.
+
+### Pertinence de l'offre (`client/src/logic/MagieOffer.ts`)
+
+Une magie n'est proposée que si elle a un **effet réel** dans l'état courant. Le refus arrivait auparavant **après le tap**, en toast (`GameController.chooseMagie` → « Aucune cible valide ») : sur trois choix, le joueur pouvait n'en avoir aucun d'actionnable.
+
+`MagieOffer.ts` est un module **plat** — il n'importe que des types. La pertinence est une question sur un **état**, pas sur une session : la poser là la rend testable sans instancier une partie (la suite vitest tourne en node sans DOM), au même titre que `data/SummonInfo.ts`. C'est `GameSession._offerContext()` qui traduit son état en `MagieOfferContext`, et **le deck du joueur ne sort pas de la session** — aucun accesseur public n'a été ouvert, seuls des booléens et une liste de tiers en sortent.
+
+Détection **automatique**, dérivée de `effect.type` — **aucun champ admin à saisir**. C'est l'extension de la table de routage de ciblage qui existait déjà (`MagieEffect.needsUnitTarget` / `needsGraveyardTarget` / `needsHandTarget`).
+
+| Condition | Types |
+|---|---|
+| au moins une unité vivante sur le board | `stat_bonus`, `stat_modifier`, `shield`, `heal`, `team_stat_bonus`, `team_heal`, `destroy_unit`, `drain_life` |
+| une Fusion **avec matériaux** sur le board | `defuse_fusion` |
+| cimetière non vide | `revive` |
+| main non vide | `hand_to_graveyard` |
+| le deck porte **le** tier demandé | `guaranteed_draw` |
+| le cap partagé +1 slot est encore libre | `board_slot_bonus` |
+| `player_hp < PLAYER_HP_CAP` | `player_hp_bonus` |
+| le deck porte une carte du `summon_type` visé | `reduce_sacrifice_cost`, `free_transformation`, `remove_heritage_material`, `remove_fusion_material` |
+| toujours | `draw_bonus` |
+
+- La règle « Fusion avec matériaux » n'est écrite qu'**une fois** (`GameSession._defusableFusions`) : `magieUnitTargets` la sert au ciblage, `_offerContext` à la pertinence.
+- ⚠️ **Les quatre modificateurs de main se testent sur le DECK, jamais sur la main.** Ils sont **différés** au `startPreparation()` suivant, donc appliqués après une pioche de cinq cartes neuves : la main du moment ne dit rien de ce qu'ils vont trouver. Et chaque drapeau reprend le **prédicat exact** que `startPreparation` appliquera — `summon_type` **et** `cost.sacrifice > 0` / `cost.materials.length > 0`. Tester le seul `summon_type` déplacerait le mensonge au lieu de le supprimer : une Fusion sans matériaux n'est jamais retouchée.
+- ⚠️ **`guaranteed_draw` hors deck n'est PAS un no-op** : `startPreparation` a un **double repli** et pioche quand même — dans tout le deck, sans la restriction de tier du tour, donc parfois au-dessus de ce que le round autorise. Le filtre supprime là un effet accidentellement bon, délibérément : la magie **promet un tier qu'elle ne rend pas**.
+- ⚠️ **`board_slot_bonus` est la seule magie qui peut s'appliquer sans erreur et ne rien donner** : `grantLimitedBoardSlotBonus` rend 0 en silence une fois le cap consommé (par une autre magie **ou** par l'attribut Yeux Bleus). D'où `GameState.hasLimitedBoardSlotBonusLeft()`.
+- ⚠️ **La table est FERMÉE (`default: false`)** : un `effect` nul ou d'un type inconnu traverse le `switch` d'`applyEffect` sans rien faire, l'offrir serait offrir un blanc. **Corollaire : un type d'effet ajouté à `applyEffect` mais oublié dans `isMagieRelevant` disparaît silencieusement du jeu.** C'est pour l'attraper que `magie-offer.test.ts` relit `initial-data/magies.json` et exige que chaque magie livrée soit offrable sous un contexte permissif.
+- **Limite connue** : `heal` / `team_heal` sont offertes dès qu'une unité est sur le board, **même à PV pleins**. `current_hp` n'étant pas restauré entre les rounds (`resetCombatStats` ne fait que `min(current_hp, max_hp)`), le cas est marginal ; le durcir coûterait un `woundedUnitCount` dans le contexte.
+- Les trois gardes « aucune cible valide » de `GameController.chooseMagie` sont devenues **inatteignables** et sont **gardées** : ce sont les seuls filets de `resolveMagie*Target` si un type sortait un jour de la table.
+
+### Rareté
+
+Champ **racine** `rarity: 1 | 2 | 3`. ⚠️ **Pas dans `effect`** : une magie sans effet a quand même une rareté, et deux magies du même type d'effet peuvent différer de palier — `MAGIE_016` (« -2 sacrifices », Légendaire) contre `MAGIE_017` (« -1 », Commune). **Facultatif** : absent ou hors bornes = Commune (`rarityOf`), ce qui rend inoffensives les magies écrites avant le champ. ⚠️ `rarityOf` passe par `Number()` et non par une comparaison stricte — un `<select>` d'admin peut avoir persisté la chaîne `"2"`.
+
+`RARITY_WEIGHTS = { 1: 6, 2: 3, 3: 1 }`. Sur le catalogue livré (10 / 10 / 4, poids total 94) : **Commune 63,8 % · Rare 31,9 % · Légendaire 4,3 %** par emplacement. Une partie compte 4 phases de Shopping (`MAX_ROUNDS` = 5), soit **12 emplacements** : une run sur 2,4 croise une Légendaire.
+
+- ⚠️ **Pas de garde-fou sur la composition de l'offre.** Deux Légendaires dans la même offre de 3 : **0,44 %, soit une offre sur 230** — et ce n'est pas un défaut, c'est un bon moment. Un garde devrait décider quoi faire du tirage rejeté (re-tirer ? rétrograder ?), au prix d'un cas particulier dans une fonction pure.
+- ⚠️ **La rareté est CONDITIONNELLE à la pertinence** : le filtre passe d'abord. Les 4,3 % ne valent que pool complet — dans un état pauvre (board, main et cimetière vides) il ne reste qu'une poignée de magies éligibles et la part de Légendaire monte bien au-dessus. Aucune renormalisation : un état pauvre offre peu de choix, et c'est cohérent.
+- ⚠️ **Pourquoi pondérer ici alors que la boutique de cartes a SUPPRIMÉ sa table `TIER_WEIGHTS`** : là-bas le **prix était unique quel que soit le tier**, le poids n'arbitrait plus rien et déguisait le hasard en règle. Ici les magies ne s'achètent pas et ne se choisissent pas non plus — c'est l'offre qui décide — leur puissance est réellement inégale, et le palier est **affiché** : le joueur lit la règle au lieu de la subir.
+- **Affichage joueur** (`components/shopping/MagieCard.tsx`) : liseré gauche de 4 px + chip texte. Commune `--color-tier-1` (gris), Rare `--color-tier-3` (bleu), Légendaire `--color-tier-4` (violet). ⚠️ **Pas d'or pour la Légendaire** : le nom de la magie, le titre « ✦ PHASE SHOPPING ✦ » et le décompte sont déjà `text-gold` — il faut **contraster avec l'accent du panneau**, pas le prolonger. Vert et rouge sont écartés symétriquement, ils portent déjà « validé » et « danger ». Le `hover:border-gold/60` d'origine a été retiré : il écrasait la seule chose que ce liseré porte.
+- Le chip est rendu sur **les trois** paliers : le liseré seul porterait l'information par la seule couleur, et une magie sans chip laisserait le joueur incapable de dire si elle est Commune ou si le jeu a oublié de la marquer.
+- ⚠️ **L'offre n'est pas triée par rareté** — `pickMagies` rend l'ordre de tirage, une Légendaire sort en position 1, 2 ou 3. Trier ferait de la position un spoiler et rendrait le liseré redondant.
+- **Admin** : `<select id="mf-rarity">` dans la grille **Identité** (pas Effet — la rareté n'est pas persistée *dans* `effect`, l'y loger le laisserait croire). ⚠️ `parseInt` obligatoire à la collecte. ⚠️ **`_collectMagieFields` repart désormais de `...selectedMagie`** au lieu de reconstruire l'objet de zéro : la version « from scratch » détruisait déjà `description` à chaque enregistrement (même piège que `_collectPublicDeckFields`), et `rarity` en aurait été la victime suivante — sur l'écran même où on la saisit. Le sauvetage s'arrête au **premier niveau** : `effect` reste reconstruit depuis le formulaire, sans quoi un changement de type traînerait les champs de l'ancien.
+- **Serveur : rien à faire.** Le `strip` de `/api/magies` ne retire que `_has_illustration` et `routes/crud-json.js` ne valide que l'unicité de l'id — `rarity` traverse GET/POST/PUT/import tel quel.
+- ⚠️ **`initial-data/magies.json` n'est relu qu'au PREMIER boot** (`bootstrap()` ne recopie rien sur un `data/` déjà peuplé) : y écrire les raretés ne change **rien** sur une installation existante, prod comprise — c'est `data/magies.json`, sur le volume, qui est joué. Passer par l'admin, par `POST /api/magies/import` en mode `replace`, ou éditer le fichier du volume. Le défaut à 1 rend l'oubli inoffensif **et silencieux** : tout redevient Commune et le tirage redevient uniforme sans que rien ne le signale.
+- Verrouillé par `client/src/test/magie-offer.test.ts` (36 golden tests sur le module pur) et `client/src/test/shopping.test.ts` (49, au niveau `GameSession`). Tous **éprouvés dans les deux sens** : filtre retiré, poids égalisés, tirage avec remise, `default: true`, défaut de `rarityOf` déplacé — chacune de ces cinq régressions fait passer la suite au rouge.
 
 ### Types d'effets (`client/src/logic/MagieEffect.js`)
 

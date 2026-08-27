@@ -70,7 +70,7 @@ export function runGame(deps: RunGameDeps): GameResult {
     getRandomBoard: () => (deps.boards.length ? deps.boards[Math.floor(rand() * deps.boards.length)] : null),
     // La Phase Shopping est hors périmètre (elle exigerait une politique de
     // magies pour l'IA) : rien ne la déclenche ici, la dep n'est jamais appelée.
-    getRandomMagies: () => [],
+    getAllMagies: () => [],
     mode: 'ai',
     enemyBonus: deps.enemyBonus ?? null,
     rand,

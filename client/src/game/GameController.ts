@@ -453,6 +453,12 @@ export class GameController {
     this.sync({ endRound: null, shopping: { magies, awaitingTarget: null, banner: null } });
   }
 
+  // ⚠️ Les trois gardes « aucune cible valide » ci-dessous sont devenues
+  // INATTEIGNABLES depuis que l'offre est filtrée par pertinence
+  // (`GameSession.getShoppingMagies` → `MagieOffer.pickMagies`) : une magie sans
+  // cible n'est plus proposée. On les garde quand même — ce sont les seules
+  // protections de `resolveMagie*Target` si un type sortait un jour de la table
+  // de pertinence, et le coût est de trois lignes.
   chooseMagie(magie: Magie): void {
     if (this.session.magieNeedsUnitTarget(magie)) {
       const targets = this.session.magieUnitTargets(magie);

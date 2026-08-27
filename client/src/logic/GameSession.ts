@@ -9,7 +9,7 @@
 // GameSession n'expose que des transitions synchrones et des accesseurs.
 import { Board } from './Board.js';
 import { Unit } from './Unit.js';
-import { GameState, Phase } from './GameState.js';
+import { GameState, Phase, PLAYER_HP_CAP } from './GameState.js';
 import { EnemyAI } from './EnemyAI.js';
 import { AttributeManager } from './AttributeManager.js';
 import { CombatManager } from './CombatManager.js';
@@ -28,6 +28,8 @@ const {
   validCells, summonOptionsStatus,
 } = _InvocationRules as any;
 import { tiersForRound, drawHand } from './Draw.js';
+import { pickMagies } from './MagieOffer.js';
+import type { MagieOfferContext } from './MagieOffer.js';
 import type { Card, Position, BoardDef, AttributeDef, Magie, RoundWinner } from './types.js';
 
 const HAND_SIZE = 5;
@@ -47,8 +49,12 @@ export interface GameSessionDeps {
   cardDb: CardDbLike;
   /** Tire un terrain de combat aléatoire (BoardDatabase.getRandomBoard). */
   getRandomBoard: () => BoardDef | null;
-  /** Tire N magies pour la Phase Shopping (MagieDatabase.getRandomMagies). */
-  getRandomMagies: (count: number) => Magie[];
+  /** Catalogue COMPLET des magies (MagieDatabase.getAllMagies).
+   *  ⚠️ Le tirage n'est PLUS délégué à la couche data : c'est
+   *  `getShoppingMagies` qui filtre par pertinence et pondère par rareté
+   *  (`logic/MagieOffer.ts`), avec le `rand` semé de la partie. La couche data
+   *  fournit, elle ne décide plus. */
+  getAllMagies: () => Magie[];
   /** 'ai' (défaut) : EnemyAI place l'adversaire. 'pvp' : l'adversaire est un
    *  humain distant — le placement ennemi et le terrain sont gérés en externe
    *  (PvpController/PvpOpponentProvider), pas ici. */
@@ -56,7 +62,7 @@ export interface GameSessionDeps {
   /** Source de hasard de la partie : pioche joueur, pioches garanties et
    *  pioche de l'IA. Injectée pour que la simulation d'équilibrage puisse
    *  SEMER une partie et la rejouer à l'identique (cf. logic/Random.ts) —
-   *  `getRandomBoard` et `getRandomMagies`, déjà injectés, portent le reste.
+   *  `getRandomBoard` et `getAllMagies`, déjà injectés, portent le reste.
    *  Le défaut `Math.random` laisse tous les modes de jeu inchangés. */
   rand?: () => number;
   /** Handicap PLAT donné à chaque unité de l'IA, cumulé à ses stats de base
@@ -527,24 +533,76 @@ export class GameSession {
 
   // ── Phase Shopping (Phase 4 branchera l'UI ; ici : tirage + application) ──
 
+  /**
+   * L'offre de la Phase Shopping : `3 + extra` magies, tirées PARMI LES SEULES
+   * PERTINENTES dans l'état courant, pondérées par rareté et sans remise
+   * (`logic/MagieOffer.ts`).
+   *
+   * ⚠️ Aucun repli sur une magie sans effet réel : l'offre peut être plus
+   * courte que `count`, et vide — `_startShopping` saute alors la phase, ce
+   * qu'il faisait déjà.
+   *
+   * ⚠️ `player_extra_shopping_magies` est consommé AVANT le filtre : si le pool
+   * pertinent est plus court, l'extra est PERDU et ne se reporte pas. Le
+   * re-créditer transformerait un compteur d'octroi en dette — et le tour où il
+   * ne reste rien à offrir est précisément celui où une magie de plus n'existe
+   * pas.
+   */
   getShoppingMagies(): Magie[] {
     const count = 3 + (this.gameState.player_extra_shopping_magies || 0);
     this.gameState.player_extra_shopping_magies = 0;
-    return this.deps.getRandomMagies(count);
+    return pickMagies(this.deps.getAllMagies(), this._offerContext(), count, this._rand);
+  }
+
+  /**
+   * L'état courant réduit aux faits dont dépend la pertinence d'une magie.
+   *
+   * ⚠️ Construit ICI et pas dans `MagieOffer` : le deck du joueur
+   * (`deps.cardsByTier`) ne sort pas de la session — aucun accesseur public à
+   * ouvrir — et `MagieOffer` reste testable sans instancier une partie.
+   */
+  private _offerContext(): MagieOfferContext {
+    const deck = Object.values(this.deps.cardsByTier).flat();
+    return {
+      boardUnitCount: this.getPlayerUnits().length,
+      defusableFusionCount: this._defusableFusions().length,
+      graveyardCount: this.graveyard.length,
+      handCount: this.hand.length,
+      deckTiers: [...new Set(deck.map(c => c.tier).filter((t): t is number => typeof t === 'number'))],
+      // ⚠️ Le DECK et non la main : les quatre modificateurs sont différés au
+      // `startPreparation()` suivant, donc appliqués après une pioche neuve.
+      // Chaque prédicat est LE MÊME que celui que `startPreparation` appliquera
+      // — le `summon_type` seul ne suffit pas, une fusion sans matériaux ou un
+      // sacrifice à coût nul ne seraient jamais retouchés.
+      deckHasSacrificeCost:    deck.some(c => c.summon_type === 'sacrifice' && (c.cost?.sacrifice ?? 0) > 0),
+      deckHasTransformation:   deck.some(c => c.summon_type === 'transformation'),
+      deckHasHeritageMaterial: deck.some(c => c.summon_type === 'heritage' && (c.cost?.materials?.length ?? 0) > 0),
+      deckHasFusionMaterial:   deck.some(c => c.summon_type === 'fusion' && (c.cost?.materials?.length ?? 0) > 0),
+      boardSlotBonusAvailable: this.gameState.hasLimitedBoardSlotBonusLeft(),
+      playerHpBelowCap:        this.gameState.player_hp < PLAYER_HP_CAP,
+    };
   }
 
   magieNeedsUnitTarget(magie: Magie): boolean { return needsUnitTarget(magie as any); }
   magieNeedsGraveyardTarget(magie: Magie): boolean { return needsGraveyardTarget(magie as any); }
   magieNeedsHandTarget(magie: Magie): boolean { return needsHandTarget(magie as any); }
 
+  /**
+   * Unités du board joueur qu'une magie `defuse_fusion` peut séparer : des
+   * fusions, et seulement celles qui ont des matériaux à rendre. Extrait pour
+   * que la règle n'existe qu'à UN endroit — `magieUnitTargets` la sert au
+   * ciblage, `_offerContext` à la pertinence de l'offre.
+   */
+  private _defusableFusions(): Unit[] {
+    return this.getPlayerUnits().filter(u => {
+      const c = this.deps.cardDb.getCard(u.card_id);
+      return c?.summon_type === 'fusion' && (c.cost?.materials?.length ?? 0) > 0;
+    });
+  }
+
   /** Cibles valides d'une magie sur le board joueur (defuse : fusions seulement). */
   magieUnitTargets(magie: Magie): Unit[] {
-    if (magie.effect?.type === 'defuse_fusion') {
-      return this.getPlayerUnits().filter(u => {
-        const c = this.deps.cardDb.getCard(u.card_id);
-        return c?.summon_type === 'fusion' && (c.cost?.materials?.length ?? 0) > 0;
-      });
-    }
+    if (magie.effect?.type === 'defuse_fusion') return this._defusableFusions();
     return this.getPlayerUnits();
   }
 

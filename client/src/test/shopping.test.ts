@@ -8,20 +8,26 @@ import { describe, it, expect } from 'vitest';
 import { GameSession } from '../logic/GameSession.js';
 import type { GameSessionDeps } from '../logic/GameSession.js';
 import { Unit } from '../logic/Unit.js';
+import { makeRandom } from '../logic/Random.js';
 import { makeCard } from './helpers.js';
 
 function magie(effect: any, over: any = {}) {
   return { id: over.id ?? 'MAGIC_T', name: over.name ?? 'Test', effect, ...over };
 }
 
+/** Le seul effet toujours pertinent, quel que soit l'état : la pioche du tour
+ *  suivant a toujours lieu. Sert de bouche-trou partout où le test porte sur le
+ *  NOMBRE de magies offertes et non sur leur nature. */
+const ALWAYS = { type: 'draw_bonus', value: 1 };
+
 // Session minimale : deps synthétiques, deck ennemi vide (l'IA ne place rien).
-function makeSession(opts: { cards?: any[]; magies?: any[] } = {}): {
+// ⚠️ La dep est `getAllMagies` : c'est `GameSession` qui filtre et tire, la
+// couche data ne fait plus que fournir le catalogue.
+function makeSession(opts: { cards?: any[]; magies?: any[]; rand?: () => number } = {}): {
   session: GameSession;
-  magieCount: () => number;
 } {
   const cards = opts.cards ?? [makeCard({ id: 'PLAIN', summon_type: 'normal' })];
   const byId = new Map(cards.map(c => [c.id, c]));
-  let lastCount = 0;
   const magiePool = opts.magies ?? [];
   const deps: GameSessionDeps = {
     cardsByTier: { 1: cards.filter(c => (c.tier ?? 1) === 1) },
@@ -29,9 +35,15 @@ function makeSession(opts: { cards?: any[]; magies?: any[] } = {}): {
     attributeList: [],
     cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
     getRandomBoard: () => null,
-    getRandomMagies: (n: number) => { lastCount = n; return magiePool.slice(0, n); },
+    getAllMagies: () => magiePool,
+    rand: opts.rand,
   };
-  return { session: new GameSession(deps), magieCount: () => lastCount };
+  return { session: new GameSession(deps) };
+}
+
+/** Les ids offerts pour un état donné — l'assertion de base des tests d'offre. */
+function offeredIds(session: GameSession): string[] {
+  return session.getShoppingMagies().map(m => m.id);
 }
 
 function place(session: GameSession, card: any, pos: { col: number; row: number }): any {
@@ -40,18 +52,183 @@ function place(session: GameSession, card: any, pos: { col: number; row: number 
   return u;
 }
 
+const manyAlways = (n: number) => Array.from({ length: n }, (_, i) => magie(ALWAYS, { id: `M${i}` }));
+
 describe('Shopping — tirage & extraShoppingMagies', () => {
   it('getShoppingMagies tire 3 par défaut, +extra, et consomme le compteur', () => {
-    const { session, magieCount } = makeSession({ magies: Array.from({ length: 6 }, (_, i) => magie(null, { id: `M${i}` })) });
-    session.getShoppingMagies();
-    expect(magieCount()).toBe(3);
+    const { session } = makeSession({ magies: manyAlways(6) });
+    expect(session.getShoppingMagies()).toHaveLength(3);
 
     session.gameState.player_extra_shopping_magies = 2;
-    const drawn = session.getShoppingMagies();
-    expect(magieCount()).toBe(5);
-    expect(drawn).toHaveLength(5);
+    expect(session.getShoppingMagies()).toHaveLength(5);
     // compteur remis à zéro après consommation
     expect(session.gameState.player_extra_shopping_magies).toBe(0);
+  });
+
+  it('sans remise : une magie n\'occupe jamais deux emplacements de la même offre', () => {
+    const { session } = makeSession({ magies: manyAlways(8) });
+    session.gameState.player_extra_shopping_magies = 5; // 8 emplacements pour 8 magies
+    const ids = offeredIds(session);
+    expect(ids).toHaveLength(8);
+    expect(new Set(ids).size).toBe(8);
+  });
+
+  it('pool pertinent plus court que le compte : offre courte, et l\'extra est PERDU', () => {
+    // Décision figée : le compteur est un octroi POUR CE TOUR, pas une dette.
+    // Le tour où il ne reste rien à offrir est celui où une magie de plus
+    // n'existe pas.
+    const { session } = makeSession({ magies: manyAlways(2) });
+    session.gameState.player_extra_shopping_magies = 3;
+    expect(session.getShoppingMagies()).toHaveLength(2);
+    expect(session.gameState.player_extra_shopping_magies).toBe(0);
+  });
+
+  it('offre vide quand plus rien n\'est pertinent — le contrôleur saute alors la phase', () => {
+    const { session } = makeSession({ magies: [magie({ type: 'heal' }, { id: 'HEAL' })] });
+    expect(session.getPlayerUnits()).toHaveLength(0);
+    expect(session.getShoppingMagies()).toEqual([]);
+  });
+
+  it('le tirage passe par deps.rand : deux sessions semées à l\'identique offrent la même chose', () => {
+    const pool = manyAlways(10);
+    const a = makeSession({ magies: pool, rand: makeRandom(7) }).session;
+    const b = makeSession({ magies: pool, rand: makeRandom(7) }).session;
+    expect(offeredIds(a)).toEqual(offeredIds(b));
+  });
+});
+
+describe('Shopping — pertinence de l\'offre', () => {
+  // ⚠️ Chaque cas est éprouvé DANS LES DEUX SENS : l'état où la magie doit
+  // être absente, et celui où elle doit revenir. Un seul des deux ne prouverait
+  // rien — une offre vide passe le premier sans effort.
+
+  it('magies à cible d\'unité : absentes board vide, présentes dès une unité', () => {
+    const types = ['stat_bonus', 'stat_modifier', 'shield', 'heal',
+      'team_stat_bonus', 'team_heal', 'destroy_unit', 'drain_life'];
+    const pool = types.map(type => magie({ type, stat: 'atk', value: 1 }, { id: type }));
+    const { session } = makeSession({ magies: pool });
+
+    expect(session.getShoppingMagies()).toEqual([]);
+
+    place(session, makeCard({ id: 'PLAIN' }), { col: 0, row: 0 });
+    session.gameState.player_extra_shopping_magies = types.length - 3;
+    expect(offeredIds(session).sort()).toEqual([...types].sort());
+  });
+
+  it('defuse_fusion : ni sans unité, ni sur une normale, ni sur une Fusion SANS matériaux', () => {
+    const fusionCard = makeCard({ id: 'FUS', summon_type: 'fusion', cost: { materials: ['MAT_A'] } });
+    const emptyFusion = makeCard({ id: 'EMPTY', summon_type: 'fusion', cost: { materials: [] } });
+    const plain = makeCard({ id: 'PLAIN', summon_type: 'normal' });
+    const pool = [magie({ type: 'defuse_fusion' }, { id: 'FISSION' })];
+    const { session } = makeSession({ cards: [fusionCard, emptyFusion, plain, makeCard({ id: 'MAT_A' })], magies: pool });
+
+    expect(session.getShoppingMagies()).toEqual([]);
+    place(session, plain, { col: 0, row: 0 });
+    expect(session.getShoppingMagies()).toEqual([]);
+    place(session, emptyFusion, { col: 1, row: 0 });
+    expect(session.getShoppingMagies()).toEqual([]);
+    place(session, fusionCard, { col: 2, row: 0 });
+    expect(offeredIds(session)).toEqual(['FISSION']);
+  });
+
+  it('revive : absente cimetière vide, présente dès une unité au cimetière', () => {
+    const { session } = makeSession({ magies: [magie({ type: 'revive', value: 50 }, { id: 'REBORN' })] });
+    expect(session.getShoppingMagies()).toEqual([]);
+
+    const u = new (Unit as any)(makeCard({ id: 'PLAIN' }), 'player');
+    u.is_neutralized = true;
+    session.graveyard = [u];
+    expect(offeredIds(session)).toEqual(['REBORN']);
+  });
+
+  it('hand_to_graveyard : absente main vide, présente dès une carte en main', () => {
+    const { session } = makeSession({ magies: [magie({ type: 'hand_to_graveyard' }, { id: 'ABANDON' })] });
+    expect(session.getShoppingMagies()).toEqual([]);
+
+    session.hand = [makeCard({ id: 'PLAIN' }) as any];
+    expect(offeredIds(session)).toEqual(['ABANDON']);
+  });
+
+  it('guaranteed_draw : seulement pour un tier PRÉSENT dans le deck', () => {
+    // Sans ce filtre, la magie n'est pas inerte : startPreparation a un double
+    // repli et pioche quand même, dans tout le deck — elle ment sur son tier.
+    const t3 = makeCard({ id: 'T3', tier: 3 });
+    const { session } = makeSession({
+      cards: [makeCard({ id: 'PLAIN', tier: 1 }), t3],
+      magies: [magie({ type: 'guaranteed_draw', tier: 1 }, { id: 'G1' }),
+               magie({ type: 'guaranteed_draw', tier: 3 }, { id: 'G3' }),
+               magie({ type: 'guaranteed_draw', tier: 5 }, { id: 'G5' })],
+    });
+    expect(offeredIds(session)).toEqual(['G1']);
+
+    (session as any).deps.cardsByTier[3] = [t3];
+    expect(offeredIds(session).sort()).toEqual(['G1', 'G3']);
+  });
+
+  it('board_slot_bonus : disparaît une fois le cap partagé consommé', () => {
+    // C'est la seule magie du jeu qui s'applique sans erreur et ne donne RIEN :
+    // grantLimitedBoardSlotBonus rend 0 en silence passé le cap.
+    const { session } = makeSession({ magies: [magie({ type: 'board_slot_bonus', value: 1 }, { id: 'CHAIN' })] });
+    expect(offeredIds(session)).toEqual(['CHAIN']);
+
+    session.applyGlobalMagie(magie({ type: 'board_slot_bonus', value: 1 }) as any);
+    expect(session.getShoppingMagies()).toEqual([]);
+  });
+
+  it('board_slot_bonus : disparaît aussi quand c\'est l\'ATTRIBUT qui a pris le cap', () => {
+    const { session } = makeSession({ magies: [magie({ type: 'board_slot_bonus', value: 1 }, { id: 'CHAIN' })] });
+    session.gameState.grantLimitedBoardSlotBonus(1); // Yeux Bleus
+    expect(session.getShoppingMagies()).toEqual([]);
+  });
+
+  it('player_hp_bonus : absente à PV pleins, présente dès un point perdu', () => {
+    const { session } = makeSession({ magies: [magie({ type: 'player_hp_bonus', value: 100 }, { id: 'ROUGE' })] });
+    expect(session.getShoppingMagies()).toEqual([]);
+
+    session.gameState.player_hp = 999;
+    expect(offeredIds(session)).toEqual(['ROUGE']);
+  });
+
+  it('modificateurs de main : lus sur le DECK, jamais sur la main', () => {
+    // Ils sont DIFFÉRÉS au startPreparation suivant, donc appliqués après une
+    // pioche neuve : la main du moment ne dit rien de leur cible. Les deux
+    // assertions ci-dessous ne peuvent passer ensemble que si on a lu le deck.
+    const sac = makeCard({ id: 'SAC', summon_type: 'sacrifice', cost: { sacrifice: 3 } });
+    const pool = [magie({ type: 'reduce_sacrifice_cost', value: 1 }, { id: 'RISTOURNE' })];
+
+    const withInDeck = makeSession({ cards: [sac], magies: pool }).session;
+    expect(withInDeck.hand).toHaveLength(0);
+    expect(offeredIds(withInDeck)).toEqual(['RISTOURNE']);
+
+    const notInDeck = makeSession({ cards: [makeCard({ id: 'PLAIN' })], magies: pool }).session;
+    notInDeck.hand = [sac as any, sac as any];
+    expect(notInDeck.getShoppingMagies()).toEqual([]);
+  });
+
+  it('modificateurs de main : le summon_type ne suffit pas, le COÛT est lu aussi', () => {
+    // Le prédicat doit être celui que startPreparation appliquera : une fusion
+    // sans matériaux ou un sacrifice à coût nul ne sont jamais retouchés.
+    const pool = [
+      magie({ type: 'reduce_sacrifice_cost', value: 1 }, { id: 'SAC' }),
+      magie({ type: 'remove_heritage_material' }, { id: 'HER' }),
+      magie({ type: 'remove_fusion_material', value: 1 }, { id: 'FUS' }),
+      magie({ type: 'free_transformation' }, { id: 'TRA' }),
+    ];
+    const inert = makeSession({ magies: pool, cards: [
+      makeCard({ id: 'S0', summon_type: 'sacrifice', cost: { sacrifice: 0 } }),
+      makeCard({ id: 'H0', summon_type: 'heritage', cost: { materials: [] } }),
+      makeCard({ id: 'F0', summon_type: 'fusion', cost: { materials: [] } }),
+    ] }).session;
+    expect(inert.getShoppingMagies()).toEqual([]);
+
+    const live = makeSession({ magies: pool, cards: [
+      makeCard({ id: 'S1', summon_type: 'sacrifice', cost: { sacrifice: 2 } }),
+      makeCard({ id: 'H1', summon_type: 'heritage', cost: { materials: ['X'] } }),
+      makeCard({ id: 'F1', summon_type: 'fusion', cost: { materials: ['X'] } }),
+      makeCard({ id: 'T1', summon_type: 'transformation' }),
+    ] }).session;
+    live.gameState.player_extra_shopping_magies = 1;
+    expect(offeredIds(live).sort()).toEqual(['FUS', 'HER', 'SAC', 'TRA']);
   });
 });
 

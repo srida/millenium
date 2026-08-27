@@ -13,6 +13,17 @@ const MAX_ROUNDS = 5;
 const STARTING_HP = 1000;
 const DEFAULT_BOARD_SLOTS = 5;
 
+/** Plafond de `player_hp` : c'est le pool de départ lui-même — `player_hp_bonus`
+ *  et `drain_life` ne font que le regarnir, jamais le dépasser. Exporté parce
+ *  que la pertinence d'une magie `player_hp_bonus` en dépend
+ *  (`MagieOffer.isMagieRelevant`). ⚠️ `MagieEffect.js` en garde une copie
+ *  littérale (`Math.min(…, 1000)`) : les deux doivent rester d'accord. */
+export const PLAYER_HP_CAP = STARTING_HP;
+
+/** Cap PARTAGÉ du bonus de slot de board : attribut Yeux Bleus ∪ magies
+ *  `board_slot_bonus`, +1 pour toute la partie. */
+export const LIMITED_BOARD_SLOT_CAP = 1;
+
 export class GameState {
   round: number;
   phase: PhaseValue;
@@ -125,11 +136,21 @@ export class GameState {
    * (Yeux bleus attribute, magies Réaction en chaîne / Fission).
    * Returns the amount actually granted (0 once the cap is reached).
    */
-  grantLimitedBoardSlotBonus(value: number, cap = 1): number {
+  grantLimitedBoardSlotBonus(value: number, cap = LIMITED_BOARD_SLOT_CAP): number {
     const grant = Math.max(0, Math.min(value, cap - this._limitedBoardSlotBonusUsed));
     this.player_board_slots += grant;
     this._limitedBoardSlotBonusUsed += grant;
     return grant;
+  }
+
+  /**
+   * Le cap partagé est-il encore libre ? Lu par la pertinence de l'offre de
+   * Shopping : une magie `board_slot_bonus` proposée une fois le cap consommé
+   * s'appliquerait sans erreur et ne donnerait RIEN
+   * (`grantLimitedBoardSlotBonus` rend 0 en silence).
+   */
+  hasLimitedBoardSlotBonusLeft(cap = LIMITED_BOARD_SLOT_CAP): boolean {
+    return this._limitedBoardSlotBonusUsed < cap;
   }
 
   /**

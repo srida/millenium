@@ -2602,6 +2602,20 @@ const EFFECT_TYPE_LABELS = {
   remove_fusion_material: 'Retirer matériel Fusion',
 };
 
+// Rareté d'une magie : 1 Commune · 2 Rare · 3 Légendaire. Pondère le tirage de
+// la Phase Shopping (client : logic/MagieOffer.ts). ⚠️ FACULTATIVE dans la
+// donnée — absente ou hors bornes = Commune, exactement comme `rarityOf` côté
+// jeu, sinon l'admin et le jeu ne liraient pas le même catalogue.
+const MAGIE_RARITY_LABELS = { 1: 'Commune', 2: 'Rare', 3: 'Légendaire' };
+// Commune = AUCUN badge : c'est l'absence de marque qui fait ressortir les deux
+// autres. Bleu / violet, la même lecture que le liseré côté jeu.
+const MAGIE_RARITY_BADGE = { 2: 'badge-tier2', 3: 'badge-tier3' };
+function magieRarity(m) { const r = Number(m && m.rarity); return (r === 2 || r === 3) ? r : 1; }
+function magieRarityBadge(m) {
+  const r = magieRarity(m);
+  return r > 1 ? ` <span class="badge ${MAGIE_RARITY_BADGE[r]}">${MAGIE_RARITY_LABELS[r]}</span>` : '';
+}
+
 function filterMagies() {
   const q = document.getElementById('magie-search').value.toLowerCase();
   const filtered = magies.filter(m => !q || m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q));
@@ -2616,7 +2630,7 @@ function renderMagieList(list = magies) {
         ? `<img src="/illustrations/${m.id}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0" loading="lazy">`
         : `<div style="width:40px;height:40px;background:var(--surface2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px">✨</div>`}
       <div style="min-width:0">
-        <div class="item-name">${esc(m.name)}</div>
+        <div class="item-name">${esc(m.name)}${magieRarityBadge(m)}</div>
         <div class="item-id">${m.id}${m.effect ? ` · ${EFFECT_TYPE_LABELS[m.effect.type] || m.effect.type}` : ''}</div>
       </div>
     </div>
@@ -2637,6 +2651,7 @@ function renderMagieDetail() {
   const hasIllus = m._has_illustration;
   const effect = m.effect || {};
   const effectType = effect.type || 'none';
+  const rarity = magieRarity(m);
   const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(effectType);
   const showTier = effectType === 'guaranteed_draw';
   const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
@@ -2660,6 +2675,7 @@ function renderMagieDetail() {
         <div class="detail-meta">
           <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(m.id)}</span>
           ${m.effect ? `<span class="badge badge-power">${EFFECT_TYPE_LABELS[effectType] || effectType}</span>` : ''}
+          ${magieRarityBadge(m)}
           ${hasIllus ? `<span class="badge badge-illus">Illustration ✓</span>` : `<span class="badge badge-no-illus">Sans illustration</span>`}
         </div>
       </div>
@@ -2669,6 +2685,15 @@ function renderMagieDetail() {
     <div class="form-grid">
       <div class="field"><label>ID</label><input id="mf-id" value="${esc(m.id)}"></div>
       <div class="field"><label>Nom</label><input id="mf-name" value="${esc(m.name)}"></div>
+      <div class="field">
+        <label>Rareté</label>
+        <select id="mf-rarity">
+          <option value="1" ${rarity === 1 ? 'selected' : ''}>Commune</option>
+          <option value="2" ${rarity === 2 ? 'selected' : ''}>Rare</option>
+          <option value="3" ${rarity === 3 ? 'selected' : ''}>Légendaire</option>
+        </select>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Pondère le tirage de la Phase Shopping : une Légendaire sort ~6× moins souvent qu'une Commune.</div>
+      </div>
     </div>
     <div class="section-title" style="margin-top:20px">Effet</div>
     <div class="form-grid">
@@ -2765,9 +2790,27 @@ function _collectMagieFields() {
     }
   }
   return {
+    // ⚠️ On REPART de `selectedMagie` au lieu de reconstruire l'objet de zéro :
+    // le formulaire ne relit pas tous les champs de la donnée (`description`
+    // existe dans magies.json sans avoir d'entrée ici) et la version « from
+    // scratch » les détruisait en silence à chaque enregistrement. Même piège
+    // que `_collectPublicDeckFields`, et il devient coûteux maintenant qu'il y
+    // a un champ de plus à saisir depuis cet écran.
+    // ⚠️ La portée du sauvetage s'arrête au PREMIER NIVEAU : `effect` est
+    // réécrit juste en dessous à partir du formulaire, et c'est voulu — le
+    // reconstruire est la seule façon qu'un changement de type d'effet ne
+    // traîne pas les champs de l'ancien (`stat` d'un stat_bonus devenu heal).
+    // Les `effect.timing` / `effect.target_archetypes` de MAGIC_001 et
+    // MAGIC_002 y passent donc toujours ; ce sont des vestiges qu'aucun code ne
+    // lit, et les préserver coûterait ce nettoyage-là.
+    // `_has_illustration` peut passer : le serveur le `strip` lui-même.
+    ...(selectedMagie || {}),
     id: document.getElementById('mf-id')?.value.trim() || '',
     name: document.getElementById('mf-name')?.value.trim() || '',
     effect,
+    // ⚠️ parseInt OBLIGATOIRE : `<select>.value` est une CHAÎNE, et un `"2"`
+    // persisté rendrait la donnée incohérente avec le catalogue livré.
+    rarity: parseInt(document.getElementById('mf-rarity')?.value, 10) || 1,
   };
 }
 
@@ -2804,7 +2847,7 @@ function openNewMagie() {
     if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
   }
   const nextId = `MAGIE_${String(maxNum + 1).padStart(3, '0')}`;
-  selectedMagie = { id: nextId, name: '', effect: null, _has_illustration: false };
+  selectedMagie = { id: nextId, name: '', rarity: 1, effect: null, _has_illustration: false };
   isNewMagie = true;
   renderMagieList();
   renderMagieDetail();
