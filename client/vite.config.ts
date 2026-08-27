@@ -10,7 +10,26 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // ⚠️ `prompt` et non `autoUpdate`, alors que le rechargement EST
+      // automatique — la différence est celle du moment.
+      //
+      // `autoUpdate` pose `skipWaiting` + `clientsClaim` : la nouvelle version
+      // prend la main **sous la page en cours** et purge le précache de
+      // l'ancienne. Les écrans de jeu étant chargés en `lazy()` (Three.js), un
+      // `import()` parti après cette bascule demande un chunk dont le nom a
+      // changé : le serveur répond par le fallback SPA, et le navigateur essaie
+      // de lire `index.html` comme un module. En pleine partie, le seul recours
+      // était le rechargement à la main.
+      //
+      // `prompt` laisse la nouvelle version **en attente** : la session en cours
+      // garde son précache intact, et `app/pwaUpdate.ts` déclenche le
+      // basculement quand le rechargement est gratuit (au menu principal).
+      registerType: 'prompt',
+      // On enregistre le service worker depuis `app/pwaUpdate.ts` : le script
+      // injecté par défaut se contente d'un `register()` au chargement, sans
+      // rien pour interroger le serveur au réveil de l'appli — ce qui est
+      // précisément le trou qu'on bouche.
+      injectRegister: null,
       includeAssets: ['favicon.png', 'favicon.ico', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-512-maskable.png'],
       manifest: {
         name: 'Millenium',

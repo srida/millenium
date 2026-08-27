@@ -2506,6 +2506,70 @@ rester d'accord**, sinon les rails recouvrent le board.
 | Bloc joueur | remonté à `PREP_FOCUS_Y` (40 % de la hauteur) | centré verticalement |
 | Contrainte de cadrage | les 5 colonnes doivent tenir en largeur | idem, mais dans la largeur **moins les deux rails** (`WEB_RAIL_PX` = 208, à garder synchronisé avec le `w-52` des rails) |
 
+### Mise à jour de l'appli installée (`app/pwaUpdate.ts`)
+
+Le joueur devait **fermer l'appli de force** pour voir une nouvelle version. Ce
+n'était pas un caprice d'iOS : reprendre une PWA depuis les tâches de fond n'est
+**pas une navigation**, et le navigateur n'interroge le serveur pour un nouveau
+service worker qu'au chargement d'une page ou sur un `registration.update()`
+explicite. Une session qui ne fait que se réveiller ne demandait jamais rien —
+le geste qu'on demandait au joueur était exactement celui qui provoquait la
+seule vérification possible.
+
+Deux moitiés, et il fallait les deux : **demander**, puis **appliquer**.
+
+| | Déclencheur | Rôle |
+|---|---|---|
+| Demander | `visibilitychange` (retour au premier plan), `pageshow`, `online`, plus une passe horaire | `registration.update()` — la question que personne ne posait |
+| Appliquer | l'écran devient `main_menu` (abonnement `uiStore`) | `skipWaiting` + rechargement |
+
+- ⚠️ **`registerType: 'prompt'`, alors que le rechargement EST automatique.** La
+  différence n'est pas « avec ou sans confirmation », c'est **le moment**.
+  `autoUpdate` pose `skipWaiting` + `clientsClaim` : la nouvelle version prend la
+  main **sous la page en cours** et purge le précache de l'ancienne. Les écrans
+  de jeu étant en `lazy()` (Three.js), un `import()` parti après cette bascule
+  demande un chunk dont le nom a changé — le serveur répond par le fallback SPA,
+  et le navigateur essaie de lire `index.html` comme un module. `prompt` laisse
+  la version neuve **en attente** : la session en cours garde son précache
+  intact, et c'est nous qui déclenchons le basculement.
+- ⚠️ **`injectRegister: null`** : le script injecté par défaut se contente d'un
+  `register()` au chargement. Il n'a rien pour interroger le serveur au réveil —
+  c'est très précisément le trou qu'on bouche, on enregistre donc nous-mêmes.
+- ⚠️ **Le rechargement n'a lieu QU'AU MENU PRINCIPAL, et ce n'est pas une
+  prudence de principe** : `navigate()` n'écrit pas dans l'URL, donc un
+  `location.reload()` ramène toujours au menu quel que soit l'écran affiché.
+  Recharger en pleine partie perdrait le combat ; recharger sur la boutique ou
+  les missions renverrait le joueur au menu sans qu'il ait rien demandé. Au menu,
+  le rechargement ne se voit pas — c'est le seul écran où il est gratuit, et
+  c'est le hub par lequel tout repasse.
+- ⚠️ **Le menu ne suffit pas à dire que rien n'est en cours** : le bracket de
+  tournoi vit en **mémoire** (`tournamentStore`) et se perd au rechargement, or
+  on revient au menu entre deux manches. D'où la seconde clause de `isIdle()`.
+- **Plancher de 60 s entre deux interrogations** : iOS émet `visibilitychange` à
+  chaque bascule d'application — sans lui, un aller-retour vers une autre appli
+  redemanderait `sw.js` à chaque fois. Le compteur part **chargé**, `register()`
+  venant d'en faire une.
+- Une interrogation qui échoue (hors ligne, serveur qui redémarre) est sans
+  conséquence : la suivante arrive au prochain réveil.
+
+**Aucun test automatisé** — la suite vitest tourne en node sans DOM, et il n'y a
+ni service worker ni cycle de vie d'appli à y simuler. La vérification se fait au
+navigateur (Chromium + Playwright préinstallés, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`,
+ne **pas** lancer `playwright install`), et ce qu'il faut mesurer tient en deux
+scénarios, tous deux joués sur deux vrais builds successifs :
+
+1. **au menu** — page contrôlée par le SW, on déploie, on émet un
+   `visibilitychange` : la page doit se recharger seule (mesuré : < 1,5 s) ;
+2. **hors du menu** — même chose depuis la boutique : la version doit rester
+   `registration.waiting === true` **sans** rechargement, puis s'appliquer au
+   premier retour au menu (mesuré : < 1 s après le tap).
+
+⚠️ Le piège du protocole : **changer un commentaire ne fait PAS une nouvelle
+version.** La minification l'efface, le hash du bundle ne bouge pas, `sw.js` est
+identique au bit près et le test passe à vide en ne prouvant rien. Il faut un
+changement qui survive au minifieur — et vérifier que `sw.js` a bien changé
+avant de conclure.
+
 ---
 
 ## Important Design Rules
