@@ -2592,6 +2592,9 @@ const EFFECT_TYPE_LABELS = {
   player_hp_bonus: 'Bonus HP joueur',
   board_slot_bonus: 'Slot de board',
   guaranteed_draw: 'Pioche garantie',
+  grant_power: 'Donner un pouvoir',
+  power_cooldown: 'Accélérer un pouvoir',
+  damage_multiplier_bonus: 'Multiplicateur de dégâts',
   defuse_fusion: 'Séparer une fusion',
   destroy_unit: 'Détruire une unité',
   drain_life: 'Absorber les PV d\'une unité',
@@ -2654,6 +2657,9 @@ function renderMagieDetail() {
   const rarity = magieRarity(m);
   const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(effectType);
   const showTier = effectType === 'guaranteed_draw';
+  // `guaranteed_draw` porte DEUX filtres facultatifs qui se cumulent : le tier
+  // et la voie d'invocation. Les deux champs sortent donc ensemble.
+  const showPower = effectType === 'grant_power';
   const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
   const showValue = !noValue.includes(effectType);
   el.innerHTML = `
@@ -2706,7 +2712,8 @@ function renderMagieDetail() {
           <option value="team_stat_bonus" ${effectType === 'team_stat_bonus' ? 'selected' : ''}>Bonus de stat — TOUTES tes unités</option>
           <option value="stat_modifier" ${effectType === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat</option>
           <option value="draw_bonus" ${effectType === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
-          <option value="guaranteed_draw" ${effectType === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (par tier)</option>
+          <option value="guaranteed_draw" ${effectType === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (tier et/ou voie d'invocation)</option>
+          <option value="damage_multiplier_bonus" ${effectType === 'damage_multiplier_bonus' ? 'selected' : ''}>Multiplicateur de dégâts (permanent)</option>
           <option value="heal" ${effectType === 'heal' ? 'selected' : ''}>Soin total (une unité)</option>
           <option value="team_heal" ${effectType === 'team_heal' ? 'selected' : ''}>Soin de masse — TOUTES tes unités (PV)</option>
           <option value="revive" ${effectType === 'revive' ? 'selected' : ''}>Réanimation (%HP)</option>
@@ -2717,6 +2724,8 @@ function renderMagieDetail() {
           <option value="defuse_fusion" ${effectType === 'defuse_fusion' ? 'selected' : ''}>Séparer une Fusion en ses matériaux</option>
           <option value="destroy_unit" ${effectType === 'destroy_unit' ? 'selected' : ''}>Détruire une unité alliée</option>
           <option value="drain_life" ${effectType === 'drain_life' ? 'selected' : ''}>Absorber les PV d'une unité alliée</option>
+          <option value="grant_power" ${effectType === 'grant_power' ? 'selected' : ''}>Donner / remplacer le pouvoir d'une unité</option>
+          <option value="power_cooldown" ${effectType === 'power_cooldown' ? 'selected' : ''}>Accélérer le pouvoir d'une unité</option>
           <option value="hand_to_graveyard" ${effectType === 'hand_to_graveyard' ? 'selected' : ''}>Envoyer une carte de la main au cimetière</option>
           <option value="reduce_sacrifice_cost" ${effectType === 'reduce_sacrifice_cost' ? 'selected' : ''}>Réduire coût de sacrifice (main)</option>
           <option value="free_transformation" ${effectType === 'free_transformation' ? 'selected' : ''}>Transformation gratuite (main)</option>
@@ -2742,9 +2751,31 @@ function renderMagieDetail() {
         <label>Valeur</label>
         <input id="mf-effect-value" type="number" step="any" value="${effect.value ?? 0}">
       </div>
+      <div class="field" id="mf-power-field" style="${showPower ? '' : 'display:none'}">
+        <label>Pouvoir donné</label>
+        <select id="mf-effect-power">
+          ${powers.map(p => `<option value="${p.id}" ${effect.power_id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field" id="mf-power-speed-field" style="${showPower ? '' : 'display:none'}">
+        <label>Vitesse de chargement (seuil de jauge, plus bas = plus rapide)</label>
+        <input id="mf-effect-power-speed" type="number" min="1" step="1" value="${effect.power_speed ?? 20}">
+      </div>
+      <div class="field" id="mf-category-field" style="${showTier ? '' : 'display:none'}">
+        <label>Voie d'invocation garantie (facultatif, se cumule au tier)</label>
+        <select id="mf-effect-category">
+          <option value="" ${!effect.category ? 'selected' : ''}>— indifférente —</option>
+          <option value="normal" ${effect.category === 'normal' ? 'selected' : ''}>Normale</option>
+          <option value="sacrifice" ${effect.category === 'sacrifice' ? 'selected' : ''}>Sacrifice</option>
+          <option value="fusion" ${effect.category === 'fusion' ? 'selected' : ''}>Fusion</option>
+          <option value="heritage" ${effect.category === 'heritage' ? 'selected' : ''}>Héritage</option>
+          <option value="transformation" ${effect.category === 'transformation' ? 'selected' : ''}>Transformation</option>
+        </select>
+      </div>
       <div class="field" id="mf-tier-field" style="${showTier ? '' : 'display:none'}">
         <label>Tier de la carte garantie</label>
         <select id="mf-effect-tier">
+          <option value="" ${!effect.tier ? 'selected' : ''}>— indifférent —</option>
           <option value="1" ${effect.tier === 1 ? 'selected' : ''}>Tier 1</option>
           <option value="2" ${effect.tier === 2 ? 'selected' : ''}>Tier 2</option>
           <option value="3" ${effect.tier === 3 ? 'selected' : ''}>Tier 3</option>
@@ -2784,11 +2815,15 @@ function updateMagieEffectFields() {
   const type = document.getElementById('mf-effect-type')?.value || 'none';
   const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(type);
   const showTier = type === 'guaranteed_draw';
+  const showPower = type === 'grant_power';
   const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
   const showValue = !noValue.includes(type);
   document.getElementById('mf-stat-field').style.display = showStat ? '' : 'none';
   document.getElementById('mf-value-field').style.display = showValue ? '' : 'none';
   document.getElementById('mf-tier-field').style.display = showTier ? '' : 'none';
+  document.getElementById('mf-category-field').style.display = showTier ? '' : 'none';
+  document.getElementById('mf-power-field').style.display = showPower ? '' : 'none';
+  document.getElementById('mf-power-speed-field').style.display = showPower ? '' : 'none';
 }
 
 function _collectMagieFields() {
@@ -2798,12 +2833,25 @@ function _collectMagieFields() {
   if (effectType !== 'none') {
     effect = { type: effectType };
     if (effectType === 'guaranteed_draw') {
-      effect.tier = parseInt(document.getElementById('mf-effect-tier')?.value) || 1;
+      // ⚠️ Les DEUX filtres sont facultatifs, et un champ vide ne doit pas être
+      // écrit : `isMagieRelevant` traite l'absence comme « pas de contrainte »,
+      // là où un `tier: 0` ou une `category: ''` seraient des filtres
+      // impossibles à satisfaire — la magie ne sortirait jamais.
+      const tier = parseInt(document.getElementById('mf-effect-tier')?.value, 10);
+      if (tier) effect.tier = tier;
+      const cat = document.getElementById('mf-effect-category')?.value || '';
+      if (cat) effect.category = cat;
     } else if (!noValue.includes(effectType)) {
       effect.value = parseFloat(document.getElementById('mf-effect-value')?.value) || 0;
     }
     if (['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(effectType)) {
       effect.stat = document.getElementById('mf-effect-stat')?.value || 'atk';
+    }
+    if (effectType === 'grant_power') {
+      effect.power_id = document.getElementById('mf-effect-power')?.value || '';
+      // ⚠️ Sans vitesse explicite, l'unité hérite du 9999 d'`Unit` — le défaut
+      // de « pas de pouvoir » — et le pouvoir donné ne partirait JAMAIS.
+      effect.power_speed = Math.max(1, parseInt(document.getElementById('mf-effect-power-speed')?.value, 10) || 20);
     }
   }
   // Le contrecoup est un champ de PREMIER NIVEAU, pas un champ d'`effect` : il

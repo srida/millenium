@@ -566,9 +566,19 @@ export class GameSession {
     return {
       boardUnitCount: this.getPlayerUnits().length,
       defusableFusionCount: this._defusableFusions().length,
+      poweredUnitCount: this._poweredUnits().length,
       graveyardCount: this.graveyard.length,
       handCount: this.hand.length,
       deckTiers: [...new Set(deck.map(c => c.tier).filter((t): t is number => typeof t === 'number'))],
+      deckSummonTypes: [...new Set(deck.map(c => c.summon_type).filter((t): t is NonNullable<typeof t> => typeof t === 'string'))],
+      // ⚠️ FAUX en PvP, et ce n'est pas une restriction arbitraire : `enemy_hp`
+      // y est RÉÉCRIT à chaque round depuis le `player_hp` autoritaire de
+      // l'adversaire (`PvpController._onRoundGo`), qui a calculé ses propres
+      // dégâts subis sans connaître ce bonus. Le bonus n'y change donc rien —
+      // sauf à faire déclarer une fin de partie que l'adversaire ne voit pas,
+      // c'est-à-dire un `result_mismatch` qui prive les DEUX joueurs de leur
+      // gain. Une magie qui ne peut que nuire n'est pas offerte.
+      damageMultiplierMatters: this.deps.mode !== 'pvp',
       // ⚠️ Le DECK et non la main : les quatre modificateurs sont différés au
       // `startPreparation()` suivant, donc appliqués après une pioche neuve.
       // Chaque prédicat est LE MÊME que celui que `startPreparation` appliquera
@@ -620,8 +630,23 @@ export class GameSession {
   }
 
   /** Cibles valides d'une magie sur le board joueur (defuse : fusions seulement). */
+  /**
+   * Unités qui ont un pouvoir à accélérer. Même geste que `_defusableFusions`
+   * et pour la même raison : la règle sert le ciblage ET la pertinence de
+   * l'offre, elle ne doit donc exister qu'à un endroit.
+   *
+   * ⚠️ Lu sur l'UNITÉ et non sur sa carte : `grant_power` a pu lui en poser un
+   * qu'elle n'avait pas: la carte mentirait.
+   */
+  private _poweredUnits(): Unit[] {
+    return this.getPlayerUnits().filter(u => !!u.power_id);
+  }
+
   magieUnitTargets(magie: Magie): Unit[] {
     if (magie.effect?.type === 'defuse_fusion') return this._defusableFusions();
+    // Accélérer le pouvoir d'une unité qui n'en a pas ne ferait rien : elle
+    // n'est pas une cible, exactement comme une non-fusion pour `defuse_fusion`.
+    if (magie.effect?.type === 'power_cooldown') return this._poweredUnits();
     return this.getPlayerUnits();
   }
 

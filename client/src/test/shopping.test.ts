@@ -23,7 +23,7 @@ const ALWAYS = { type: 'draw_bonus', value: 1 };
 // Session minimale : deps synthétiques, deck ennemi vide (l'IA ne place rien).
 // ⚠️ La dep est `getAllMagies` : c'est `GameSession` qui filtre et tire, la
 // couche data ne fait plus que fournir le catalogue.
-function makeSession(opts: { cards?: any[]; magies?: any[]; rand?: () => number } = {}): {
+function makeSession(opts: { cards?: any[]; magies?: any[]; rand?: () => number; mode?: 'ai' | 'pvp' } = {}): {
   session: GameSession;
 } {
   const cards = opts.cards ?? [makeCard({ id: 'PLAIN', summon_type: 'normal' })];
@@ -37,6 +37,7 @@ function makeSession(opts: { cards?: any[]; magies?: any[]; rand?: () => number 
     getRandomBoard: () => null,
     getAllMagies: () => magiePool,
     rand: opts.rand,
+    mode: opts.mode,
   };
   return { session: new GameSession(deps) };
 }
@@ -504,6 +505,124 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
     session.applyGlobalMagie(magie({ type: 'team_stat_bonus', stat: 'atk', value: 4 }) as any);
     u.resetCombatStats();
     expect(u.atk).toBe(14);
+  });
+});
+
+describe('Shopping — pouvoirs, multiplicateur, pioche par voie', () => {
+  const powered = (id: string, speed: number) =>
+    makeCard({ id, power: { id: 'POWER_HEAL', power_speed: speed, value: null } as any });
+
+  it('power_cooldown ne cible QUE les unités portant un pouvoir', () => {
+    const { session } = makeSession();
+    const avec = place(session, powered('P', 20), { col: 0, row: 0 });
+    place(session, makeCard({ id: 'SANS' }), { col: 1, row: 0 });
+
+    expect(session.magieUnitTargets(magie({ type: 'power_cooldown', value: 2 }) as any)).toEqual([avec]);
+    // grant_power, lui, s'adresse à TOUTES les unités : donner un pouvoir à qui
+    // n'en a pas est précisément son intérêt.
+    expect(session.magieUnitTargets(magie({ type: 'grant_power', power_id: 'POWER_HEAL' }) as any)).toHaveLength(2);
+  });
+
+  it('un pouvoir DONNÉ rend l\'unité ciblable par power_cooldown', () => {
+    // La cible se lit sur l'UNITÉ, pas sur sa carte : sinon la carte mentirait
+    // dès qu'une magie a posé un pouvoir que la définition ne porte pas.
+    const { session } = makeSession();
+    const u = place(session, makeCard({ id: 'SANS' }), { col: 0, row: 0 });
+    expect(session.magieUnitTargets(magie({ type: 'power_cooldown', value: 2 }) as any)).toHaveLength(0);
+
+    session.applyMagieOnUnit(magie({ type: 'grant_power', power_id: 'POWER_FREEZE', power_speed: 16 }) as any, u);
+
+    expect(session.magieUnitTargets(magie({ type: 'power_cooldown', value: 2 }) as any)).toEqual([u]);
+  });
+
+  it('le pouvoir donné est PERMANENT — il survit à resetCombatStats', () => {
+    const { session } = makeSession();
+    const u = place(session, makeCard({ id: 'A' }), { col: 0, row: 0 });
+    session.applyMagieOnUnit(magie({ type: 'grant_power', power_id: 'POWER_TAUNT', power_speed: 9 }) as any, u);
+    u.resetCombatStats();
+    expect(u.power_id).toBe('POWER_TAUNT');
+    expect(u.power_speed).toBe(9);
+  });
+
+  it('damage_multiplier_bonus atteint les DÉGÂTS réellement infligés, et dure', () => {
+    const { session } = makeSession();
+    session.applyGlobalMagie(magie({ type: 'damage_multiplier_bonus', value: 1 }) as any);
+
+    const gs = session.gameState;
+    gs.enemy_hp = 1000;
+    gs.player_multiplier = 1;
+    // 100 d'ATK × (1 de base + 1 de bonus) = 200, et non 100.
+    gs.applyEndOfCombat('player', 100, 0);
+    expect(gs.enemy_hp).toBe(800);
+
+    // ⚠️ `nextRound()` remet `player_multiplier` à 1.0 : le bonus, lui, N'EST
+    // PAS consommé — c'est un investissement, il vaut pour tous les combats
+    // restants.
+    gs.nextRound();
+    gs.player_multiplier = 1;
+    gs.applyEndOfCombat('player', 100, 0);
+    expect(gs.enemy_hp).toBe(600);
+  });
+
+  it('damage_multiplier_bonus s\'ajoute au bonus d\'ATTRIBUT, il ne le remplace pas', () => {
+    const { session } = makeSession();
+    session.applyGlobalMagie(magie({ type: 'damage_multiplier_bonus', value: 1 }) as any);
+    const gs = session.gameState;
+    gs.enemy_hp = 1000;
+    gs.player_multiplier = 1;
+    gs.applyEndOfCombat('player', 100, 0, { damage_multiplier_bonus: 2 });
+    // 1 (base) + 2 (attribut) + 1 (magie) = 4
+    expect(gs.enemy_hp).toBe(600);
+  });
+
+  it('⚠️ damage_multiplier_bonus n\'est PAS offert en PvP', () => {
+    // En PvP `enemy_hp` est réécrit chaque round depuis le `player_hp`
+    // autoritaire de l'adversaire, qui a calculé ses dégâts subis SANS ce
+    // bonus. Il n'y change donc rien — sauf à faire déclarer une fin de partie
+    // que l'adversaire ne voit pas, soit un result_mismatch qui prive les deux
+    // joueurs de leur gain. Une magie qui ne peut que nuire n'est pas offerte.
+    const m = magie({ type: 'damage_multiplier_bonus', value: 1 }, { id: 'MULT' }) as any;
+    const solo = makeSession({ magies: [m] });
+    expect(offeredIds(solo.session)).toContain('MULT');
+
+    const pvp = makeSession({ magies: [m], mode: 'pvp' });
+    expect(offeredIds(pvp.session)).not.toContain('MULT');
+  });
+
+  it('pioche garantie par VOIE D\'INVOCATION : la carte tirée a le bon summon_type', () => {
+    const fus = makeCard({ id: 'FUS', tier: 1, summon_type: 'fusion', cost: { materials: ['X'] } });
+    const { session } = makeSession({ cards: [makeCard({ id: 'PLAIN', tier: 1 }), fus] });
+    session.applyGlobalMagie(magie({ type: 'guaranteed_draw', category: 'fusion' }) as any);
+    session.startPreparation();
+
+    expect(session.hand.some(c => c.id === 'FUS')).toBe(true);
+    expect(session.gameState.player_guaranteed_draws).toHaveLength(0);
+    // Elle OCCUPE un slot de la main, ce n'est pas une carte en plus.
+    expect(session.hand).toHaveLength(5);
+  });
+
+  it('pioche garantie : tier et voie se CUMULENT', () => {
+    const t3fusion = makeCard({ id: 'T3F', tier: 3, summon_type: 'fusion', cost: { materials: ['X'] } });
+    const t1fusion = makeCard({ id: 'T1F', tier: 1, summon_type: 'fusion', cost: { materials: ['X'] } });
+    const { session } = makeSession({ cards: [makeCard({ id: 'PLAIN', tier: 1 }), t1fusion, t3fusion] });
+    (session as any).deps.cardsByTier[3] = [t3fusion];
+
+    session.applyGlobalMagie(magie({ type: 'guaranteed_draw', tier: 3, category: 'fusion' }) as any);
+    session.startPreparation();
+
+    expect(session.hand.some(c => c.id === 'T3F')).toBe(true);
+  });
+
+  it('une pioche garantie par voie n\'est offerte que si le DECK porte cette voie', () => {
+    const m = magie({ type: 'guaranteed_draw', category: 'heritage' }, { id: 'HER' }) as any;
+    const sansHeritage = makeSession({ cards: [makeCard({ id: 'PLAIN', summon_type: 'normal' })], magies: [m] });
+    expect(offeredIds(sansHeritage.session)).not.toContain('HER');
+
+    const avec = makeSession({
+      cards: [makeCard({ id: 'H', summon_type: 'heritage', cost: { materials: ['X'], sacrifice: 1 } })],
+      magies: [m],
+    });
+    expect(offeredIds(avec.session)).toContain('HER');
   });
 });
 

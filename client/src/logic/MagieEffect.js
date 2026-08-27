@@ -39,8 +39,40 @@ export function canAffordMagie(magie, playerHp) {
   return playerHp > magieCostHp(magie);
 }
 
+/**
+ * Noms lisibles des pouvoirs, pour `effectLabel` seul. ⚠️ Doublon ASSUMÉ de
+ * `POWER_NAMES` (`three/`) : `logic/` ne doit rien importer de la couche 3D, et
+ * `powers.json` n'est pas accessible d'ici (le module est pur). Un id absent de
+ * la table retombe sur l'id brut plutôt que de masquer le pouvoir.
+ */
+const POWER_LABELS = {
+  POWER_HEAL: 'Soin', POWER_SHIELD: 'Bouclier', POWER_SUPER_ATTACK: 'Super attaque',
+  POWER_AOE_ATTACK: 'Attaque massive', POWER_POISON: 'Poison', POWER_BURN: 'Brûlure',
+  POWER_PARALYSIS: 'Paralysie', POWER_PUSH: 'Poussée', POWER_DEBUFF: 'Débuff',
+  POWER_BLOCK: 'Blocage', POWER_CONFUSION: 'Confusion', POWER_TAUNT: 'Provocation',
+  POWER_TELEPORT: 'Téléportation', POWER_FREEZE: 'Gel',
+};
+
+const SUMMON_LABELS = {
+  normal: 'Normale', sacrifice: 'Sacrifice', fusion: 'Fusion',
+  heritage: 'Héritage', transformation: 'Transformation',
+};
+
+/**
+ * `guaranteed_draw` porte deux filtres FACULTATIFS qui se cumulent : le tier et
+ * la voie d'invocation. Le libellé doit dire lequel des trois cas on a sous les
+ * yeux, sinon deux magies très différentes se lisent pareil.
+ */
+function guaranteedDrawLabel(e) {
+  const parts = [];
+  if (e.tier) parts.push(`Tier ${e.tier}`);
+  if (e.category) parts.push(SUMMON_LABELS[e.category] || e.category);
+  return parts.length ? `Pioche garantie ${parts.join(' · ')} ce tour` : 'Pioche garantie ce tour';
+}
+
 export function needsUnitTarget(magie) {
-  return ['stat_bonus', 'stat_modifier', 'shield', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life'].includes(magie?.effect?.type);
+  return ['stat_bonus', 'stat_modifier', 'shield', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life',
+    'grant_power', 'power_cooldown'].includes(magie?.effect?.type);
 }
 
 export function needsGraveyardTarget(magie) {
@@ -61,11 +93,14 @@ export function effectLabel(magie) {
     case 'team_stat_bonus':  return `+${e.value} ${STAT_NAMES[e.stat] || e.stat} sur TOUTES tes unités (permanent)`;
     case 'stat_modifier':    return `×${e.value} ${STAT_NAMES[e.stat] || e.stat} sur une unité (permanent)`;
     case 'draw_bonus':       return `+${e.value} carte${e.value > 1 ? 's' : ''} supplémentaire${e.value > 1 ? 's' : ''} ce tour`;
-    case 'guaranteed_draw':  return `Pioche garantie Tier ${e.tier} ce tour`;
+    case 'guaranteed_draw':  return guaranteedDrawLabel(e);
     case 'heal':             return 'Soigne ENTIÈREMENT une unité (PV au maximum)';
     case 'team_heal':        return `Soigne toutes tes unités de ${e.value} PV`;
     case 'revive':           return `Réanime une unité du cimetière à ${e.value}% de ses PV`;
     case 'shield':           return `+${e.value} bouclier sur une unité`;
+    case 'grant_power':      return `Donne le pouvoir ${POWER_LABELS[e.power_id] || e.power_id || '?'} à une unité (remplace le sien)`;
+    case 'power_cooldown':   return `Charge le pouvoir d'une unité ${e.value} fois plus vite`;
+    case 'damage_multiplier_bonus': return `+${e.value} au multiplicateur de dégâts, jusqu'à la fin de la partie`;
     case 'player_hp_bonus':  return `+${e.value} PV joueur`;
     case 'board_slot_bonus':         return `+${e.value} slot${e.value > 1 ? 's' : ''} de board permanent${e.value > 1 ? 's' : ''}`;
     case 'defuse_fusion':            return 'Sépare un monstre Fusion en ses matériaux';
@@ -137,6 +172,32 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
     case 'shield':
       if (targetUnit) targetUnit.applyShield(e.value);
       break;
+    case 'grant_power':
+      if (targetUnit && e.power_id) {
+        targetUnit.power_id = e.power_id;
+        // ⚠️ La vitesse est posée telle quelle, sans repli sur l'ancienne : un
+        // pouvoir donné sans vitesse hériterait de 9999 (le défaut d'`Unit`
+        // pour « pas de pouvoir ») et ne partirait jamais. L'admin l'impose.
+        targetUnit.power_speed = Math.max(1, e.power_speed ?? targetUnit.power_speed);
+        targetUnit.power_value = e.value ?? null;
+        // La jauge repart de zéro : héritée pleine de l'ancien pouvoir, le
+        // nouveau se déclencherait au premier step, ce que rien n'annonce.
+        targetUnit.power_gauge = 0;
+        targetUnit.is_power_blocked = false;
+        targetUnit.power_block_remaining = 0;
+      }
+      break;
+    case 'power_cooldown':
+      // `power_speed` est un SEUIL de jauge : plus il est bas, plus le pouvoir
+      // part souvent. « Charger N fois plus vite » est donc une DIVISION, pas
+      // une soustraction — un −4 plat ne veut pas dire la même chose sur un
+      // pouvoir à 6 et sur un pouvoir à 40, exactement le piège qui a fait
+      // passer POWER_PARALYSIS d'une sévérité plate à un doublement.
+      if (targetUnit && targetUnit.power_id) {
+        const factor = e.value > 0 ? e.value : 2;
+        targetUnit.power_speed = Math.max(1, Math.round(targetUnit.power_speed / factor));
+      }
+      break;
     case 'revive':
       if (targetUnit) {
         targetUnit.is_neutralized = false;
@@ -160,7 +221,13 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       if (gameState) gameState.player_extra_draws += (e.value || 1);
       break;
     case 'guaranteed_draw':
-      if (gameState) gameState.player_guaranteed_draws.push({ tier: e.tier });
+      // Les deux filtres voyagent tels quels : `startPreparation` les ET-e, et
+      // un champ absent n'y contraint rien. C'est la MÊME forme que celle des
+      // effets d'attribut (`GuaranteedDraw`), consommée par le même code.
+      if (gameState) gameState.player_guaranteed_draws.push({ tier: e.tier, category: e.category });
+      break;
+    case 'damage_multiplier_bonus':
+      if (gameState) gameState.player_damage_multiplier_bonus += (e.value || 0);
       break;
     case 'reduce_sacrifice_cost':
       if (gameState) gameState.player_hand_modifiers.push({ type: 'reduce_sacrifice_cost', value: e.value ?? 1 });

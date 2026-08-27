@@ -42,10 +42,16 @@ export interface MagieOfferContext {
   boardUnitCount: number;
   /** Unités Fusion AVEC matériaux — la règle exacte de `GameSession.magieUnitTargets`. */
   defusableFusionCount: number;
+  /** Unités du joueur PORTANT un pouvoir — lu sur l'unité, pas sur sa carte
+   *  (`grant_power` a pu lui en poser un). */
+  poweredUnitCount: number;
   graveyardCount: number;
   handCount: number;
   /** Tiers effectivement présents dans le DECK du joueur (pas dans sa main). */
   deckTiers: number[];
+  /** Voies d'invocation présentes dans le DECK — le pendant de `deckTiers`
+   *  pour une pioche garantie filtrée par `category`. */
+  deckSummonTypes: string[];
   // ⚠️ Les quatre drapeaux suivants portent sur le DECK, jamais sur la main :
   // les modificateurs de main sont DIFFÉRÉS au `startPreparation()` suivant,
   // donc appliqués après une pioche de cinq cartes neuves — la main du moment
@@ -60,6 +66,10 @@ export interface MagieOfferContext {
   boardSlotBonusAvailable: boolean;
   /** `player_hp` est-il sous son plafond (`PLAYER_HP_CAP`) ? */
   playerHpBelowCap: boolean;
+  /** Un bonus de multiplicateur de dégâts change-t-il quelque chose ici ?
+   *  FAUX en PvP, où `enemy_hp` est réécrit chaque round depuis les PV
+   *  autoritaires de l'adversaire — cf. `GameSession._offerContext`. */
+  damageMultiplierMatters: boolean;
 }
 
 /**
@@ -98,7 +108,21 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     // double repli et pioche quand même — dans tout le deck, sans la
     // restriction de tier du tour. La magie n'est donc pas inerte, elle MENT :
     // son libellé promet un tier qu'elle ne rendra pas. On ne l'offre pas.
-    case 'guaranteed_draw':          return ctx.deckTiers.includes(effect.tier ?? 0);
+    // ⚠️ Les deux filtres sont FACULTATIFS et se cumulent : une magie qui ne
+    // porte qu'une `category` n'a pas de tier à valider, et l'ancienne écriture
+    // (`ctx.deckTiers.includes(effect.tier ?? 0)`) l'aurait rendue à JAMAIS
+    // non pertinente — donc jamais offerte, en silence.
+    case 'guaranteed_draw':
+      // Sans AUCUN filtre, la magie ne promet rien de nommable : elle déplace
+      // un slot de pioche aléatoire vers… une pioche aléatoire. C'est le cas
+      // « blanc » que ce filtre existe pour supprimer, et il reste rejeté.
+      if (!effect.tier && !effect.category) return false;
+      return (!effect.tier || ctx.deckTiers.includes(effect.tier))
+        && (!effect.category || ctx.deckSummonTypes.includes(effect.category));
+
+    case 'grant_power':              return ctx.boardUnitCount > 0;
+    case 'power_cooldown':           return ctx.poweredUnitCount > 0;
+    case 'damage_multiplier_bonus':  return ctx.damageMultiplierMatters;
 
     case 'board_slot_bonus':         return ctx.boardSlotBonusAvailable;
     case 'player_hp_bonus':          return ctx.playerHpBelowCap;

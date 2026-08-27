@@ -140,6 +140,16 @@ export interface MagieEffectDef {
   stat?: string;
   value?: number;
   tier?: number;
+  /** `guaranteed_draw` : voie d'invocation exigée (`summon_type` de la carte).
+   *  Se cumule avec `tier` — les deux filtres sont ET-és par `startPreparation`.
+   *  Nommé `category` et non `summon_type` pour coller à `GuaranteedDraw`, la
+   *  forme que le moteur consomme déjà pour les effets d'attribut. */
+  category?: string;
+  /** `grant_power` : le pouvoir posé sur l'unité, et sa vitesse de chargement.
+   *  ⚠️ La vitesse est OBLIGATOIRE — sans elle l'unité hérite de 9999
+   *  (`Unit`), c'est-à-dire d'un pouvoir qui ne part jamais. */
+  power_id?: string;
+  power_speed?: number;
 }
 
 /** Palier de rareté d'une magie : 1 Commune · 2 Rare · 3 Légendaire. */

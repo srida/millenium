@@ -48,6 +48,13 @@ export class GameState {
   player_guaranteed_draws: GuaranteedDraw[];
   player_hand_modifiers: HandModifier[];   // applied to drawn cards
   player_extra_shopping_magies: number;    // accumulated shopping_bonus
+  /** Bonus PERMANENT de multiplicateur de dégâts, cumulé par les magies
+   *  `damage_multiplier_bonus`. ⚠️ Volontairement HORS de `nextRound()`, qui
+   *  remet `player_multiplier` à 1.0 à chaque tour : c'est un investissement,
+   *  il vaut pour tous les combats restants. À distinguer du bonus d'ATTRIBUT
+   *  du même nom, qui ne vaut que pour le round où il se déclenche et arrive
+   *  par `attributeResult`. */
+  player_damage_multiplier_bonus: number;
 
   constructor() {
     this.round = 1;
@@ -69,6 +76,7 @@ export class GameState {
     this.player_guaranteed_draws = [];
     this.player_hand_modifiers = [];
     this.player_extra_shopping_magies = 0;
+    this.player_damage_multiplier_bonus = 0;
   }
 
   // ── Phase transitions ──
@@ -105,7 +113,9 @@ export class GameState {
     this.phase = Phase.END_ROUND;
 
     if (winner === 'player' || winner === 'timeout' || winner === 'draw') {
-      const mult = this.player_multiplier + (attributeResult.damage_multiplier_bonus || 0);
+      const mult = this.player_multiplier
+        + (attributeResult.damage_multiplier_bonus || 0)
+        + this.player_damage_multiplier_bonus;
       this.enemy_hp -= Math.round(playerSurvivorsAtk * mult);
     }
     if (winner === 'enemy' || winner === 'timeout' || winner === 'draw') {

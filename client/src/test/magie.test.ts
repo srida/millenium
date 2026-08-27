@@ -49,7 +49,8 @@ describe('MagieEffect — routage du ciblage', () => {
     for (const t of ['stat_bonus', 'stat_modifier', 'draw_bonus', 'guaranteed_draw', 'heal', 'revive', 'shield',
       'player_hp_bonus', 'board_slot_bonus', 'defuse_fusion', 'destroy_unit', 'reduce_sacrifice_cost',
       'free_transformation', 'remove_heritage_material', 'team_stat_bonus', 'drain_life',
-      'hand_to_graveyard', 'remove_fusion_material', 'team_heal']) {
+      'hand_to_graveyard', 'remove_fusion_material', 'team_heal', 'grant_power',
+      'power_cooldown', 'damage_multiplier_bonus']) {
       expect(typeof effectLabel(magie({ type: t, stat: 'atk', value: 2, tier: 3 }))).toBe('string');
     }
     expect(effectLabel({ id: 'X', name: 'X', effect: null } as any)).toBe('Aucun effet');
@@ -202,6 +203,108 @@ describe('MagieEffect — effets globaux (gameState)', () => {
     expect(gs.player_hand_modifiers).toEqual([
       { type: 'remove_fusion_material', value: 1 },
       { type: 'remove_fusion_material', value: 2 },
+    ]);
+  });
+});
+
+describe('MagieEffect — pouvoirs (grant_power / power_cooldown)', () => {
+  it('grant_power pose pouvoir, vitesse et valeur, et REMET la jauge à zéro', () => {
+    const u = freshUnit({ power: { id: 'POWER_HEAL', power_speed: 30, value: null } });
+    u.power_gauge = 29; // presque prêt à lancer l'ANCIEN pouvoir
+
+    applyEffect(magie({ type: 'grant_power', power_id: 'POWER_FREEZE', power_speed: 12, value: 5 }), { targetUnit: u });
+
+    expect(u.power_id).toBe('POWER_FREEZE');
+    expect(u.power_speed).toBe(12);
+    expect(u.power_value).toBe(5);
+    // Sans cette remise à zéro, le pouvoir NEUF partirait au premier step sur
+    // une jauge héritée de l'ancien — rien à l'écran ne l'annoncerait.
+    expect(u.power_gauge).toBe(0);
+  });
+
+  it('grant_power donne un pouvoir à une unité qui n\'en avait aucun', () => {
+    const u = freshUnit();
+    expect(u.power_id).toBeNull();
+    expect(u.power_speed).toBe(9999); // le défaut « pas de pouvoir »
+
+    applyEffect(magie({ type: 'grant_power', power_id: 'POWER_TAUNT', power_speed: 15 }), { targetUnit: u });
+
+    expect(u.power_id).toBe('POWER_TAUNT');
+    expect(u.power_speed).toBe(15);
+    expect(u.isPowerReady()).toBe(false);
+  });
+
+  it('grant_power lève un blocage de pouvoir en cours', () => {
+    const u = freshUnit({ power: { id: 'POWER_HEAL', power_speed: 20, value: null } });
+    u.is_power_blocked = true;
+    u.power_block_remaining = 10;
+    applyEffect(magie({ type: 'grant_power', power_id: 'POWER_POISON', power_speed: 8 }), { targetUnit: u });
+    expect(u.is_power_blocked).toBe(false);
+    expect(u.power_block_remaining).toBe(0);
+  });
+
+  it('grant_power sans power_id ne touche à rien', () => {
+    const u = freshUnit({ power: { id: 'POWER_HEAL', power_speed: 20, value: null } });
+    applyEffect(magie({ type: 'grant_power', power_speed: 5 }), { targetUnit: u });
+    expect(u.power_id).toBe('POWER_HEAL');
+    expect(u.power_speed).toBe(20);
+  });
+
+  it('power_cooldown DIVISE le seuil de jauge, il ne le soustrait pas', () => {
+    // `power_speed` est un seuil : −4 plat ne veut pas dire la même chose sur
+    // un pouvoir à 6 et sur un pouvoir à 40. La division, elle, veut dire
+    // « deux fois plus souvent » quel que soit le rythme de départ.
+    const lent = freshUnit({ power: { id: 'POWER_AOE_ATTACK', power_speed: 40, value: null } });
+    const vif = freshUnit({ power: { id: 'POWER_HEAL', power_speed: 6, value: null } });
+
+    applyEffect(magie({ type: 'power_cooldown', value: 2 }), { targetUnit: lent });
+    applyEffect(magie({ type: 'power_cooldown', value: 2 }), { targetUnit: vif });
+
+    expect(lent.power_speed).toBe(20);
+    expect(vif.power_speed).toBe(3);
+  });
+
+  it('power_cooldown ne descend jamais sous 1, et se cumule', () => {
+    const u = freshUnit({ power: { id: 'POWER_HEAL', power_speed: 10, value: null } });
+    applyEffect(magie({ type: 'power_cooldown', value: 100 }), { targetUnit: u });
+    expect(u.power_speed).toBe(1);
+    applyEffect(magie({ type: 'power_cooldown', value: 2 }), { targetUnit: u });
+    expect(u.power_speed).toBe(1);
+  });
+
+  it('power_cooldown ne fait rien sur une unité SANS pouvoir', () => {
+    const u = freshUnit();
+    applyEffect(magie({ type: 'power_cooldown', value: 2 }), { targetUnit: u });
+    expect(u.power_speed).toBe(9999);
+  });
+
+  it('power_cooldown : une valeur absente ou absurde retombe sur un doublement', () => {
+    for (const v of [undefined, 0, -3]) {
+      const u = freshUnit({ power: { id: 'POWER_HEAL', power_speed: 20, value: null } });
+      applyEffect(magie({ type: 'power_cooldown', value: v }), { targetUnit: u });
+      expect(u.power_speed, String(v)).toBe(10);
+    }
+  });
+});
+
+describe('MagieEffect — damage_multiplier_bonus & pioche par voie', () => {
+  it('damage_multiplier_bonus s\'accumule sur gameState', () => {
+    const gs = new (GameState as any)();
+    expect(gs.player_damage_multiplier_bonus).toBe(0);
+    applyEffect(magie({ type: 'damage_multiplier_bonus', value: 0.5 }), { gameState: gs });
+    applyEffect(magie({ type: 'damage_multiplier_bonus', value: 0.25 }), { gameState: gs });
+    expect(gs.player_damage_multiplier_bonus).toBe(0.75);
+  });
+
+  it('guaranteed_draw transporte tier ET category, chacun facultatif', () => {
+    const gs = new (GameState as any)();
+    applyEffect(magie({ type: 'guaranteed_draw', tier: 3 }), { gameState: gs });
+    applyEffect(magie({ type: 'guaranteed_draw', category: 'fusion' }), { gameState: gs });
+    applyEffect(magie({ type: 'guaranteed_draw', tier: 5, category: 'sacrifice' }), { gameState: gs });
+    expect(gs.player_guaranteed_draws).toEqual([
+      { tier: 3, category: undefined },
+      { tier: undefined, category: 'fusion' },
+      { tier: 5, category: 'sacrifice' },
     ]);
   });
 });

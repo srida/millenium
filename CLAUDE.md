@@ -1672,7 +1672,10 @@ Champ **racine** `rarity: 1 | 2 | 3`. ⚠️ **Pas dans `effect`** : une magie s
 | `player_hp_bonus` | `value` | `gameState.player_hp = min(player_hp + value, 1000)` |
 | `board_slot_bonus` | `value` | `gameState.grantLimitedBoardSlotBonus(value \|\| 1)` — **cap partagé, non cumulable : +1 slot au total** sur toute la partie, pool commun avec l'attribut Yeux Bleus. Une seconde magie de slot ne donne rien. |
 | `draw_bonus` | `value` | `gameState.player_extra_draws += (value \|\| 1)` — pioches supplémentaires ce tour |
-| `guaranteed_draw` | `tier` | `gameState.player_guaranteed_draws.push({ tier })` |
+| `guaranteed_draw` | `tier`, `category` | `gameState.player_guaranteed_draws.push({ tier, category })` — les **deux filtres sont facultatifs et se cumulent** (`category` = `summon_type` de la carte). Même forme que les pioches garanties d'attribut, consommée par le même code. |
+| `grant_power` | `power_id`, `power_speed`, `value` | Pose (ou **remplace**) le pouvoir d'une unité, remet sa jauge à zéro et lève un blocage en cours. Permanent — `resetCombatStats` ne touche pas à `power_id`. |
+| `power_cooldown` | `value` (facteur, déf. 2) | **DIVISE** `unit.power_speed` (plancher 1) : le pouvoir se charge `value` fois plus vite. Ne cible que les unités **portant** un pouvoir. |
+| `damage_multiplier_bonus` | `value` | `gameState.player_damage_multiplier_bonus += value` — **permanent et cumulatif**, s'ajoute au multiplicateur du joueur à chaque fin de combat. |
 | `defuse_fusion` | — | No-op dans `applyEffect` ; géré par `GameSession._defuseFusion()` — sépare la fusion en ses matériaux (au cimetière s'il n'y a plus de slot). |
 | `destroy_unit` | — | No-op dans `applyEffect` ; géré par `GameSession._destroyUnit()` — retire l'unité du board et l'envoie au cimetière (libère un slot, la rend disponible comme matériau). |
 | `drain_life` | — | No-op dans `applyEffect` ; géré par `GameSession._drainLife()` — `destroy_unit` **plus** le versement des PV de l'unité au joueur. |
@@ -1691,6 +1694,16 @@ Champ **racine** `rarity: 1 | 2 | 3`. ⚠️ **Pas dans `effect`** : une magie s
 ⚠️ **Chaque magie d'équipe est le pendant d'une magie à cible unique, et les deux ne se dosent pas pareil.** `heal` soigne **tout** parce qu'il ne touche qu'une unité ; `team_heal` porte un **montant** parce qu'il les touche toutes. Copier le barème de l'un sur l'autre est l'erreur qui rend l'une des deux sans objet.
 
 Les `player_hand_modifiers` (`reduce_sacrifice_cost`, `free_transformation`, `remove_heritage_material`, `remove_fusion_material`) sont consommés au tour suivant (différé), dans `GameSession.startPreparation()`.
+
+### Pouvoirs, multiplicateur et pioche par voie
+
+- ⚠️ **`power_cooldown` DIVISE au lieu de soustraire.** `power_speed` est un **seuil de jauge** : un `−4` plat ne veut pas dire la même chose sur un pouvoir à 6 et sur un pouvoir à 40 — c'est exactement le piège qui a fait passer `POWER_PARALYSIS` d'une sévérité plate à un doublement. Une division veut dire « deux fois plus souvent » quel que soit le rythme de départ, et `value` sert alors à doser ce qui reste dosable. Plancher à 1 ; une `value` absente, nulle ou négative retombe sur un doublement.
+- ⚠️ **`grant_power` remet la jauge à zéro.** Héritée pleine de l'ancien pouvoir, le nouveau partirait au premier step, ce que rien à l'écran n'annonce. Il lève aussi un `POWER_BLOCK` en cours — le blocage portait sur le pouvoir remplacé.
+- ⚠️ **La vitesse de chargement est OBLIGATOIRE dans `grant_power`** : sans elle l'unité hérite du `9999` d'`Unit`, le défaut de « pas de pouvoir », et le pouvoir donné ne partirait **jamais**. L'admin impose donc le champ (défaut 20).
+- **La cible de `power_cooldown` se lit sur l'UNITÉ, pas sur sa carte** (`_poweredUnits`) : `grant_power` a pu poser un pouvoir que la définition de carte ne porte pas. Même geste que `_defusableFusions`, et pour la même raison — la règle sert le ciblage *et* la pertinence de l'offre, elle ne doit exister qu'à un endroit.
+- **`damage_multiplier_bonus` est PERMANENT**, volontairement hors de `nextRound()` qui remet `player_multiplier` à 1.0 : c'est un investissement, il vaut pour tous les combats restants et se cumule. À ne pas confondre avec l'effet d'**attribut** du même nom, qui ne vaut que pour le round où il se déclenche et arrive par `attributeResult` — les deux s'**additionnent**.
+- ⚠️ **`damage_multiplier_bonus` n'est PAS offert en PvP**, et ce n'est pas une restriction arbitraire : `enemy_hp` y est **réécrit à chaque round** depuis le `player_hp` autoritaire de l'adversaire (`PvpController._onRoundGo`), qui a calculé ses propres dégâts subis sans connaître ce bonus. Le bonus n'y change donc rien — sauf à faire déclarer une fin de partie que l'adversaire ne voit pas, c'est-à-dire un `result_mismatch` qui prive **les deux** joueurs de leur gain. Une magie qui ne peut que nuire n'est pas offerte (`ctx.damageMultiplierMatters`). ⚠️ L'attribut `ARCH_043` (Spectre, `+2`) porte la **même** asymétrie et n'est, lui, pas neutralisé : le rendre symétrique demanderait de faire voyager le bonus dans `round:board_ready`, donc de toucher au contrat de déterminisme.
+- ⚠️ **Une `guaranteed_draw` sans AUCUN filtre reste non pertinente** : elle déplacerait un slot de pioche aléatoire vers… une pioche aléatoire. C'est le cas « blanc » que le filtre d'offre existe pour supprimer. Corollaire côté admin : le tier est devenu **facultatif** (« — indifférent — »), mais laisser les deux vides rend la magie injouable.
 
 ### Contrecoup — une magie qui coûte des PV joueur (`cost_hp`)
 
