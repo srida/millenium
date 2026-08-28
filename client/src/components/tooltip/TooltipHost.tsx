@@ -7,6 +7,8 @@ import { getPower } from '../../data/PowerDatabase.js';
 import { getAttribute } from '../../data/AttributeDatabase.js';
 import { getCard } from '../../data/CardDatabase.js';
 import AttrIcon from '../ui/AttrIcon.js';
+import PowerIcon from '../ui/PowerIcon.js';
+import SummonTypeIcon from '../ui/SummonTypeIcon.js';
 import { Illustration } from '../ui/primitives.js';
 import {
   summonRecipes, recipeCostText, materialsLabel, recipeIsFree, type SummonRecipe,
@@ -121,7 +123,10 @@ function RecipeRow({ recipe }: { recipe: SummonRecipe }) {
   return (
     <div>
       <div className="flex items-baseline gap-1.5">
-        <span className="text-[11px] font-bold text-white/85">{recipe.icon} {recipe.label}</span>
+        <span className="flex items-center gap-1 text-[11px] font-bold text-white/85">
+          <SummonTypeIcon type={recipe.summon_type} fallback={recipe.icon} className="h-3.5 w-3.5 text-[11px]" />
+          {recipe.label}
+        </span>
         {cost && <span className="text-[10px] text-white/55">{cost}</span>}
       </div>
       {recipe.materials.length > 0 && (
@@ -170,7 +175,10 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
         <Keywords ids={data.attributes ?? []} />
         {power && (
           <div className="mt-2 rounded-lg border border-orange-400/25 bg-orange-500/5 p-2">
-            <div className="text-[11px] font-bold text-orange-300">{power.name ?? data.power_id}</div>
+            <div className="flex items-center gap-1 text-[11px] font-bold text-orange-300">
+              <PowerIcon id={data.power_id} fallback="⚡" className="h-3.5 w-3.5 text-[11px]" />
+              {power.name ?? data.power_id}
+            </div>
             {isUnit
               ? <div className="text-[10px] text-white/60">Jauge {data.power_gauge}/{data.power_speed}</div>
               : power.description && <div className="text-[10px] text-white/60">{power.description}</div>}

@@ -432,6 +432,7 @@ select.filter:focus { border-color: var(--accent); }
       <button class="tab active" data-tab="cards">Cartes</button>
       <button class="tab" data-tab="attributes">Attributs</button>
       <button class="tab" data-tab="powers">Pouvoirs</button>
+      <button class="tab" data-tab="summontypes">Invocation</button>
       <button class="tab" data-tab="boards">Terrains</button>
       <button class="tab" data-tab="magies">Magies</button>
       <button class="tab" data-tab="missions">Missions</button>
@@ -559,6 +560,24 @@ select.filter:focus { border-color: var(--accent); }
       <div class="empty"><span>Sélectionne un pouvoir</span></div>
     </div>
   </div>
+
+  <!-- SUMMON TYPES TAB — catalogue FERMÉ à 5 entrées (normal/sacrifice/fusion/
+       heritage/transformation). Pas de recherche, pas de + Nouveau, pas de
+       suppression : on n'y édite que le libellé et l'icône. -->
+  <div id="tab-summontypes" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="count" id="summontype-count">5</span> types d'invocation
+        </div>
+      </div>
+      <div class="sidebar-list" id="summontype-list"></div>
+    </div>
+    <div class="content" id="summontype-detail">
+      <div class="empty"><span>Sélectionne un type d'invocation</span></div>
+    </div>
+  </div>
+
   <!-- BOARDS TAB -->
   <div id="tab-boards" class="main hidden">
     <div class="sidebar">
@@ -748,8 +767,8 @@ select.filter:focus { border-color: var(--accent); }
 // ================== STATE ==================
 // `packs` = les packs de boutique (data/sets.json, API /api/sets). Le code et la
 // donnée disent « set », l'interface dit « pack » : ici on est dans l'interface.
-let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [];
-let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null;
+let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [], summonTypes = [];
+let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null, selectedSummonType = null;
 let currentTab = 'cards';
 let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false, isNewGift = false;
 let selectionMode = false;
@@ -757,7 +776,7 @@ const bulkSelected = new Set();
 
 // ================== INIT ==================
 async function init() {
-  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts] = await Promise.all([
+  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, summonTypes] = await Promise.all([
     apiFetch('/api/cards'),
     apiFetch('/api/attributes'),
     apiFetch('/api/powers'),
@@ -768,6 +787,7 @@ async function init() {
     apiFetch('/api/missions'),
     apiFetch('/api/variants'),
     apiFetch('/api/gifts'),
+    apiFetch('/api/summon-types'),
   ]);
   populateAttributeFilter();
   populatePowerFilter();
@@ -781,6 +801,7 @@ async function init() {
   renderMissionList();
   renderVariantList();
   renderGiftList();
+  renderSummonTypeList();
 }
 
 function populateAttributeFilter() {
@@ -868,8 +889,9 @@ function switchTab(tab) {
   showList(); // reset panel on tab switch
 }
 
-// Onglets sans sidebar : le FAB (« + ») n'y a rien à ouvrir.
-const NO_FAB_TABS = new Set(['stats', 'db', 'sim']);
+// Onglets sans sidebar : le FAB (« + ») n'y a rien à ouvrir. `summontypes` est
+// un catalogue FERMÉ à 5 entrées : rien à créer non plus.
+const NO_FAB_TABS = new Set(['stats', 'db', 'sim', 'summontypes']);
 
 // Délégation : la barre et la feuille mobile partagent le même chemin de code.
 // Le garde `data-tab` est obligatoire — un clic ailleurs dans la barre ne doit rien faire.
@@ -1038,7 +1060,7 @@ function getAttrName(id) {
 }
 function getPowerName(id) {
   const p = powers.find(x => x.id === id);
-  return p ? p.name : id;
+  return p ? `${p.icon || '⚡'} ${p.name}` : id;
 }
 function getCardName(id) {
   const c = cards.find(x => x.id === id);
@@ -1099,7 +1121,7 @@ function renderCardDetail() {
           ${tierBadge(c.tier)}
           <span class="badge badge-summon">${summonLabel(c.summon_type)}</span>
           ${hasSummonOptions(c) ? `<span class="badge" style="background:#e07be022;color:#e07be0">🔀 ${c.summon_options.length} options alt.</span>` : ''}
-          ${hasPower ? `<span class="badge badge-power">⚡ ${getPowerName(c.power.id)}</span>` : ''}
+          ${hasPower ? `<span class="badge badge-power">${getPowerName(c.power.id)}</span>` : ''}
           <span class="badge ${hasIllus ? 'badge-illus' : 'badge-no-illus'}">${hasIllus ? '🖼 Illus.' : 'Pas d\'illus.'}</span>
         </div>
         <div id="detail-card-id-display" style="font-family:monospace;font-size:11px;color:var(--muted)">${c.id}</div>
@@ -2479,8 +2501,11 @@ function renderPowerList(list = powers) {
   document.getElementById('power-count').textContent = list.length;
   document.getElementById('power-list').innerHTML = list.map(p => `
     <div class="list-item ${selectedPower && selectedPower.id === p.id ? 'selected' : ''}" onclick="selectPower('${p.id}')">
+      ${p._has_illustration
+        ? `<img class="list-thumb" src="/illustrations/${p.id}?t=${powerIconBust}" alt="" loading="lazy" style="object-fit:contain">`
+        : `<span style="font-size:18px">${p.icon || '⚡'}</span>`}
       <div>
-        <div class="item-name">⚡ ${p.name}</div>
+        <div class="item-name">${p.name}</div>
         <div class="item-id">${p.id}</div>
       </div>
     </div>
@@ -2500,11 +2525,31 @@ function renderPowerDetail() {
   const el = document.getElementById('power-detail');
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
-    <div class="detail-title" style="margin-bottom:16px">⚡ ${p.name}</div>
+    <div class="detail-header" style="align-items:center;gap:16px">
+      <div class="illustration-box" ${isNewPower ? '' : 'onclick="openPowerIconModal()"'}>
+        ${p._has_illustration
+          ? `<img src="/illustrations/${p.id}?t=${powerIconBust}" alt="" style="object-fit:contain">`
+          : `<div style="font-size:48px">${p.icon || '⚡'}</div>`}
+        ${isNewPower ? '' : `<div class="illus-overlay">
+          ${p._has_illustration ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePowerIcon()">Supprimer</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openPowerIconModal()">Importer</button>
+        </div>`}
+      </div>
+      <div>
+        <div class="detail-title">${p.name}</div>
+        <div style="font-family:monospace;font-size:11px;color:var(--muted)">${p.id}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;max-width:320px;line-height:1.5">
+          ${isNewPower
+            ? `Crée le pouvoir pour pouvoir lui ajouter une icône.`
+            : `L'icône est enregistrée sous <code>${p.id}.png</code> — <strong>changer l'ID du pouvoir la détache</strong>. Sans image, l'emoji ci-dessous prend le relais.`}
+        </div>
+      </div>
+    </div>
     <div class="section-title">Identité</div>
     <div class="form-grid">
       <div class="field"><label>ID</label><input id="pf-id" value="${p.id}"></div>
       <div class="field"><label>Nom</label><input id="pf-name" value="${esc(p.name)}"></div>
+      <div class="field"><label>Emoji — repli sans image</label><input id="pf-icon" value="${p.icon || ''}"></div>
     </div>
     <div class="field" style="margin-top:12px"><label>Description</label><textarea id="pf-desc" rows="4">${esc(p.description || '')}</textarea></div>
     <div class="actions">
@@ -2522,11 +2567,14 @@ async function savePower() {
     id: document.getElementById('pf-id').value.trim(),
     name: document.getElementById('pf-name').value.trim(),
     description: document.getElementById('pf-desc').value.trim(),
+    icon: document.getElementById('pf-icon').value.trim(),
   };
   const oldId = selectedPower.id;
   const res = await apiFetch(`/api/powers/${oldId}`, { method: 'PUT', body: updated });
   if (res.error) return toast(res.error, 'err');
   const idx = powers.findIndex(p => p.id === oldId);
+  // Le serveur ne renvoie pas les drapeaux calculés : on le rattache à la main.
+  updated._has_illustration = selectedPower._has_illustration || false;
   powers[idx] = updated;
   selectedPower = updated;
   filterPowers();
@@ -2547,7 +2595,7 @@ async function deletePower() {
 }
 
 function openNewPower() {
-  selectedPower = { id: 'POWER_NEW', name: '', description: '' };
+  selectedPower = { id: 'POWER_NEW', name: '', description: '', icon: '' };
   isNewPower = true;
   renderPowerList();
   renderPowerDetail();
@@ -2559,10 +2607,12 @@ async function createPower() {
     id: document.getElementById('pf-id').value.trim(),
     name: document.getElementById('pf-name').value.trim(),
     description: document.getElementById('pf-desc').value.trim(),
+    icon: document.getElementById('pf-icon').value.trim(),
   };
   if (!power.id || !power.name) return toast('ID et nom requis', 'err');
   const res = await apiFetch('/api/powers', { method: 'POST', body: power });
   if (res.error) return toast(res.error, 'err');
+  power._has_illustration = false;
   powers.push(power);
   selectedPower = power;
   isNewPower = false;
@@ -2577,6 +2627,282 @@ function cancelNewPower() {
   filterPowers();
   document.getElementById('power-detail').innerHTML = '<div class="empty"><span>Sélectionne un pouvoir</span></div>';
   showList();
+}
+
+// --- Icône d'un pouvoir ------------------------------------------------------
+// Même mécanisme que l'icône d'un attribut : image dans ILLUS_DIR sous l'id du
+// pouvoir, `icon` (emoji) en repli. Triptyque copié à l'identique.
+let powerIconBust = Date.now();
+
+function _setPowerIconFlag(has) {
+  selectedPower._has_illustration = has;
+  const idx = powers.findIndex(p => p.id === selectedPower.id);
+  if (idx !== -1) powers[idx]._has_illustration = has;
+  powerIconBust = Date.now();
+  filterPowers();
+  renderPowerDetail();
+}
+
+function openPowerIconModal() {
+  if (!selectedPower) return;
+  const name = selectedPower.name || selectedPower.id;
+  showModal(`
+    <h2 style="margin-bottom:6px">Icône — ${esc(name)}</h2>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:16px">
+      Affichée en jeu à côté du nom du pouvoir : tooltip carte/unité, toast de
+      déclenchement en combat, badge de la liste de cartes de l'admin. Prévoir
+      un <strong>carré</strong> à fond transparent — l'image n'est jamais
+      rognée, elle est mise à l'échelle.
+    </p>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Mots-clés</label>
+        <input id="power-icon-q" value="${esc(`${name} icon png transparent`)}" style="font-family:monospace;font-size:12px">
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="openPowerIconSearch()">Ouvrir Google Images</button>
+    </div>
+    <div class="field">
+      <label>Depuis une URL</label>
+      <div style="display:flex;gap:6px">
+        <input id="power-icon-url" type="text" placeholder="https://..." style="flex:1">
+        <button class="btn btn-secondary btn-sm" onclick="pastePowerIconUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
+      </div>
+    </div>
+    <div style="text-align:center;color:var(--muted);font-size:11px;margin:10px 0">— ou —</div>
+    <div class="field">
+      <label>Depuis l'appareil</label>
+      <input type="file" accept="image/*" onchange="importPowerIconFromFile()" id="power-icon-file">
+    </div>
+    <span style="font-size:11px;color:var(--muted)">Sauvegardée sous <code>${selectedPower.id}.png</code></span>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="importPowerIcon()">Importer l'URL</button>
+    </div>
+  `, 'wide');
+}
+
+function openPowerIconSearch() {
+  const q = document.getElementById('power-icon-q')?.value.trim();
+  if (!q) return toast('Renseigne des mots-clés', 'err');
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
+}
+
+async function pastePowerIconUrl() {
+  try {
+    const el = document.getElementById('power-icon-url');
+    if (el) el.value = (await navigator.clipboard.readText()).trim();
+  } catch {
+    toast('Accès presse-papier refusé — collez manuellement (Ctrl+V)', 'err');
+  }
+}
+
+async function importPowerIcon() {
+  const url = document.getElementById('power-icon-url').value.trim();
+  if (!url) return toast('URL requise', 'err');
+  closeModal();
+  toast('Téléchargement en cours...', 'ok');
+  const res = await apiFetch(`/api/powers/${selectedPower.id}/illustration`, { method: 'POST', body: { url } });
+  if (res.error) return toast(res.error, 'err');
+  _setPowerIconFlag(true);
+  toast('Icône importée');
+}
+
+async function importPowerIconFromFile() {
+  const file = document.getElementById('power-icon-file')?.files?.[0];
+  if (!file) return;
+  closeModal();
+  toast('Envoi en cours...', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/powers/${selectedPower.id}/illustration`, { method: 'PUT', body: { data } });
+  if (res.error) return toast(res.error, 'err');
+  _setPowerIconFlag(true);
+  toast('Icône importée');
+}
+
+async function deletePowerIcon() {
+  if (!confirm('Supprimer l\'icône ? L\'emoji reprendra sa place.')) return;
+  const res = await apiFetch(`/api/powers/${selectedPower.id}/illustration`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  _setPowerIconFlag(false);
+  toast('Icône supprimée');
+}
+
+// ================== SUMMON TYPES ==================
+// Catalogue FERMÉ à 5 entrées (normal/sacrifice/fusion/heritage/transformation),
+// pas de recherche, pas de création, pas de suppression — on n'y édite que le
+// libellé et l'icône (`id` et `type` restent affichés en lecture seule, `type`
+// étant la clé de résolution lue par le jeu).
+function renderSummonTypeList() {
+  document.getElementById('summontype-count').textContent = summonTypes.length;
+  document.getElementById('summontype-list').innerHTML = summonTypes.map(s => `
+    <div class="list-item ${selectedSummonType && selectedSummonType.id === s.id ? 'selected' : ''}" onclick="selectSummonType('${s.id}')">
+      ${s._has_illustration
+        ? `<img class="list-thumb" src="/illustrations/${s.id}?t=${summonIconBust}" alt="" loading="lazy" style="object-fit:contain">`
+        : `<span style="font-size:18px">${s.icon || '❓'}</span>`}
+      <div>
+        <div class="item-name">${s.label}</div>
+        <div class="item-id">${s.type}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectSummonType(id) {
+  selectedSummonType = summonTypes.find(s => s.id === id);
+  renderSummonTypeList();
+  renderSummonTypeDetail();
+  showDetail();
+}
+
+function renderSummonTypeDetail() {
+  const s = selectedSummonType;
+  const el = document.getElementById('summontype-detail');
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header" style="align-items:center;gap:16px">
+      <div class="illustration-box" onclick="openSummonIconModal()">
+        ${s._has_illustration
+          ? `<img src="/illustrations/${s.id}?t=${summonIconBust}" alt="" style="object-fit:contain">`
+          : `<div style="font-size:48px">${s.icon || '❓'}</div>`}
+        <div class="illus-overlay">
+          ${s._has_illustration ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteSummonIcon()">Supprimer</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openSummonIconModal()">Importer</button>
+        </div>
+      </div>
+      <div>
+        <div class="detail-title">${s.label}</div>
+        <div style="font-family:monospace;font-size:11px;color:var(--muted)">${s.id} · type=${s.type}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;max-width:320px;line-height:1.5">
+          L'icône est enregistrée sous <code>${s.id}.png</code>. Sans image, l'emoji ci-dessous prend le relais.
+        </div>
+      </div>
+    </div>
+    <div class="section-title">Identité</div>
+    <div class="form-grid">
+      <div class="field"><label>Nom affiché</label><input id="sf-label" value="${esc(s.label)}"></div>
+      <div class="field"><label>Emoji — repli sans image</label><input id="sf-icon" value="${s.icon || ''}"></div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="saveSummonType()">Enregistrer</button>
+    </div>
+  `;
+}
+
+async function saveSummonType() {
+  const updated = {
+    id: selectedSummonType.id,
+    type: selectedSummonType.type,
+    label: document.getElementById('sf-label').value.trim(),
+    icon: document.getElementById('sf-icon').value.trim(),
+  };
+  const res = await apiFetch(`/api/summon-types/${selectedSummonType.id}`, { method: 'PUT', body: updated });
+  if (res.error) return toast(res.error, 'err');
+  const idx = summonTypes.findIndex(s => s.id === selectedSummonType.id);
+  // Le serveur ne renvoie pas les drapeaux calculés : on le rattache à la main.
+  updated._has_illustration = selectedSummonType._has_illustration || false;
+  summonTypes[idx] = updated;
+  selectedSummonType = updated;
+  renderSummonTypeList();
+  renderSummonTypeDetail();
+  toast('Type d\'invocation enregistré');
+}
+
+// --- Icône d'un type d'invocation --------------------------------------------
+// Même mécanisme que les attributs et les pouvoirs.
+let summonIconBust = Date.now();
+
+function _setSummonIconFlag(has) {
+  selectedSummonType._has_illustration = has;
+  const idx = summonTypes.findIndex(s => s.id === selectedSummonType.id);
+  if (idx !== -1) summonTypes[idx]._has_illustration = has;
+  summonIconBust = Date.now();
+  renderSummonTypeList();
+  renderSummonTypeDetail();
+}
+
+function openSummonIconModal() {
+  if (!selectedSummonType) return;
+  const name = selectedSummonType.label || selectedSummonType.id;
+  showModal(`
+    <h2 style="margin-bottom:6px">Icône — ${esc(name)}</h2>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:16px">
+      Affichée en jeu dans le bloc INVOCATION du tooltip d'une carte. Prévoir un
+      <strong>carré</strong> à fond transparent — l'image n'est jamais rognée,
+      elle est mise à l'échelle.
+    </p>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Mots-clés</label>
+        <input id="summon-icon-q" value="${esc(`${name} icon png transparent`)}" style="font-family:monospace;font-size:12px">
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="openSummonIconSearch()">Ouvrir Google Images</button>
+    </div>
+    <div class="field">
+      <label>Depuis une URL</label>
+      <div style="display:flex;gap:6px">
+        <input id="summon-icon-url" type="text" placeholder="https://..." style="flex:1">
+        <button class="btn btn-secondary btn-sm" onclick="pasteSummonIconUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
+      </div>
+    </div>
+    <div style="text-align:center;color:var(--muted);font-size:11px;margin:10px 0">— ou —</div>
+    <div class="field">
+      <label>Depuis l'appareil</label>
+      <input type="file" accept="image/*" onchange="importSummonIconFromFile()" id="summon-icon-file">
+    </div>
+    <span style="font-size:11px;color:var(--muted)">Sauvegardée sous <code>${selectedSummonType.id}.png</code></span>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="importSummonIcon()">Importer l'URL</button>
+    </div>
+  `, 'wide');
+}
+
+function openSummonIconSearch() {
+  const q = document.getElementById('summon-icon-q')?.value.trim();
+  if (!q) return toast('Renseigne des mots-clés', 'err');
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
+}
+
+async function pasteSummonIconUrl() {
+  try {
+    const el = document.getElementById('summon-icon-url');
+    if (el) el.value = (await navigator.clipboard.readText()).trim();
+  } catch {
+    toast('Accès presse-papier refusé — collez manuellement (Ctrl+V)', 'err');
+  }
+}
+
+async function importSummonIcon() {
+  const url = document.getElementById('summon-icon-url').value.trim();
+  if (!url) return toast('URL requise', 'err');
+  closeModal();
+  toast('Téléchargement en cours...', 'ok');
+  const res = await apiFetch(`/api/summon-types/${selectedSummonType.id}/illustration`, { method: 'POST', body: { url } });
+  if (res.error) return toast(res.error, 'err');
+  _setSummonIconFlag(true);
+  toast('Icône importée');
+}
+
+async function importSummonIconFromFile() {
+  const file = document.getElementById('summon-icon-file')?.files?.[0];
+  if (!file) return;
+  closeModal();
+  toast('Envoi en cours...', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/summon-types/${selectedSummonType.id}/illustration`, { method: 'PUT', body: { data } });
+  if (res.error) return toast(res.error, 'err');
+  _setSummonIconFlag(true);
+  toast('Icône importée');
+}
+
+async function deleteSummonIcon() {
+  if (!confirm('Supprimer l\'icône ? L\'emoji reprendra sa place.')) return;
+  const res = await apiFetch(`/api/summon-types/${selectedSummonType.id}/illustration`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  _setSummonIconFlag(false);
+  toast('Icône supprimée');
 }
 
 // ================== MAGIES ==================

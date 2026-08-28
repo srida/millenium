@@ -1004,7 +1004,9 @@ exports[`drapeaux calculés > présents à la lecture, absents du fichier 1`] = 
   ],
   [
     "powers",
-    [],
+    [
+      "_has_illustration",
+    ],
   ],
   [
     "boards",

@@ -145,6 +145,7 @@ const SETS_FILE      = path.join(DATA_DIR, 'sets.json');
 const MISSIONS_FILE  = path.join(DATA_DIR, 'missions.json');
 const GIFTS_FILE     = path.join(DATA_DIR, 'gifts.json');
 const VARIANTS_FILE  = variants.VARIANTS_FILE;
+const SUMMON_TYPES_FILE = path.join(DATA_DIR, 'summon_types.json');
 
 // --- Bootstrap: copy initial data to volume on first run ---
 function bootstrap() {
@@ -153,7 +154,7 @@ function bootstrap() {
   fs.mkdirSync(AVATARS_DIR, { recursive: true });
   fs.mkdirSync(POSTERS_DIR, { recursive: true });
   fs.mkdirSync(BOARD_BG_DIR, { recursive: true });
-  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json']) {
+  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'summon_types.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -559,8 +560,14 @@ app.use('/api/attributes', crud({
   strip: (a) => { delete a._has_illustration; },
 }));
 
-// Le cas nu : aucun drapeau calculé, aucune validation propre.
-app.use('/api/powers', crud({ file: POWERS_FILE }));
+/// L'icône d'un pouvoir suit exactement la règle des attributs : une IMAGE
+// dans ILLUS_DIR sous l'id du pouvoir, le champ `icon` du JSON restant
+// l'emoji de repli.
+app.use('/api/powers', crud({
+  file: POWERS_FILE,
+  render: (list) => list.map(p => ({ ...p, _has_illustration: illustrationExists(p.id) })),
+  strip: (p) => { delete p._has_illustration; },
+}));
 
 app.use('/api/missions', crud({ file: MISSIONS_FILE, guard: requireSiteAdmin }));
 
@@ -585,7 +592,18 @@ app.use('/api/boards', crud({
   strip: stripBoardComputed,
 }));
 
-
+// Catalogue FERMÉ à 5 entrées (les types d'invocation du moteur) : l'admin
+// n'y édite que le libellé et l'icône (emoji + illustration, même mécanisme
+// que les attributs), jamais l'id ni le `type` qui sert de clé de résolution
+// côté client. `validateCreate` bloque POST/import ; l'UI admin n'expose
+// simplement aucun bouton créer/supprimer pour ce tab.
+app.use('/api/summon-types', crud({
+  file: SUMMON_TYPES_FILE,
+  guard: requireSiteAdmin,
+  render: (list) => list.map(s => ({ ...s, _has_illustration: illustrationExists(s.id) })),
+  strip: (s) => { delete s._has_illustration; },
+  validateCreate: () => ({ status: 403, body: { error: "Catalogue fixe : 5 types d'invocation, aucun ajout possible" } }),
+}));
 
 
 
@@ -674,9 +692,73 @@ app.delete('/api/attributes/:id/illustration', (req, res) => {
 });
 
 // --- Powers API ---
+// Icône d'un pouvoir — même triptyque que celui des attributs, même dossier
+// (ILLUS_DIR), même id de fichier que l'id du pouvoir.
+app.post('/api/powers/:id/illustration', async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { url } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    await savePng(ILLUS_DIR, id, await downloadUrl(url));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
+app.put('/api/powers/:id/illustration', async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    await savePng(ILLUS_DIR, id, Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
+app.delete('/api/powers/:id/illustration', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = assetPath(ILLUS_DIR, id);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
+// --- Summon types API ---
+// Même triptyque, pour les 5 entrées du catalogue des types d'invocation.
+app.post('/api/summon-types/:id/illustration', async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { url } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    await savePng(ILLUS_DIR, id, await downloadUrl(url));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/summon-types/:id/illustration', async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    await savePng(ILLUS_DIR, id, Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/summon-types/:id/illustration', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = assetPath(ILLUS_DIR, id);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 
 // --- Boards API ---
@@ -1295,6 +1377,7 @@ app.get('/api/export', (req, res) => {
     const publicDecks = readJson(PUBLIC_DECKS_FILE);
     const sets       = readJson(SETS_FILE);
     const variantList = readJson(VARIANTS_FILE);
+    const summonTypes = readJson(SUMMON_TYPES_FILE);
     // Un cadeau n'a pas d'image propre : il emprunte celles de ses lots
     // (cartes, affiches de packs), déjà servies. Pas de famille d'assets.
     const giftList = readJson(GIFTS_FILE);
@@ -1304,7 +1387,7 @@ app.get('/api/export', (req, res) => {
     const avatars = listPngChecksums(AVATARS_DIR);
     const boardBackgrounds = listPngChecksums(BOARD_BG_DIR);
     const packPosters = listPngChecksums(POSTERS_DIR);
-    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, illustrations, avatars, packPosters, boardBackgrounds });
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, summonTypes, illustrations, avatars, packPosters, boardBackgrounds });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

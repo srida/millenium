@@ -1,0 +1,32 @@
+[
+	{
+		"id": "SUMMON_NORMAL",
+		"type": "normal",
+		"label": "Normale",
+		"icon": "✋"
+	},
+	{
+		"id": "SUMMON_SACRIFICE",
+		"type": "sacrifice",
+		"label": "Sacrifice",
+		"icon": "💀"
+	},
+	{
+		"id": "SUMMON_FUSION",
+		"type": "fusion",
+		"label": "Fusion",
+		"icon": "⚗"
+	},
+	{
+		"id": "SUMMON_HERITAGE",
+		"type": "heritage",
+		"label": "Héritage",
+		"icon": "🔮"
+	},
+	{
+		"id": "SUMMON_TRANSFORMATION",
+		"type": "transformation",
+		"label": "Transformation",
+		"icon": "🔄"
+	}
+]

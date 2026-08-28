@@ -2,71 +2,85 @@
 	{
 		"id": "POWER_HEAL",
 		"name": "Soin",
-		"description": "Soigne l’allié ayant le moins de points de vie."
+		"description": "Soigne l’allié ayant le moins de points de vie.",
+		"icon": "💚"
 	},
 	{
 		"id": "POWER_SHIELD",
 		"name": "Bouclier",
-		"description": "Applique un bouclier au lanceur."
+		"description": "Applique un bouclier au lanceur.",
+		"icon": "🛡️"
 	},
 	{
 		"id": "POWER_SUPER_ATTACK",
 		"name": "Super attaque",
-		"description": "Inflige de lourds dégâts à la cible actuelle."
+		"description": "Inflige de lourds dégâts à la cible actuelle.",
+		"icon": "💥"
 	},
 	{
 		"id": "POWER_AOE_ATTACK",
 		"name": "Attaque massive",
-		"description": "Inflige des dégâts à toutes les unités ennemies vivantes présentes sur le terrain au moment de l'activation."
+		"description": "Inflige des dégâts à toutes les unités ennemies vivantes présentes sur le terrain au moment de l'activation.",
+		"icon": "☄️"
 	},
 	{
 		"id": "POWER_POISON",
 		"name": "Poison",
-		"description": "Empoisonne la cible, lui infligeant des dégâts sur la durée."
+		"description": "Empoisonne la cible, lui infligeant des dégâts sur la durée.",
+		"icon": "☠️"
 	},
 	{
 		"id": "POWER_PUSH",
 		"name": "Poussée",
-		"description": "Repousse la cible d’une case."
+		"description": "Repousse la cible d’une case.",
+		"icon": "👊"
 	},
 	{
 		"id": "POWER_PARALYSIS",
 		"name": "Paralysie",
-		"description": "Réduit la vitesse d’attaque de la cible pendant un court laps de temps."
+		"description": "Réduit la vitesse d’attaque de la cible pendant un court laps de temps.",
+		"icon": "⚡"
 	},
 	{
 		"id": "POWER_DEBUFF",
 		"name": "Silence",
-		"description": "Supprime tous les bonus et modificateurs de statistiques de la cible (attributs, paralysie, etc.)."
+		"description": "Supprime tous les bonus et modificateurs de statistiques de la cible (attributs, paralysie, etc.).",
+		"icon": "🔇"
 	},
 	{
 		"id": "POWER_BLOCK",
 		"name": "Blocage",
-		"description": "Empêche la cible d'utiliser son pouvoir"
+		"description": "Empêche la cible d'utiliser son pouvoir",
+		"icon": "🚫"
 	},
 	{
 		"id": "POWER_BURN",
 		"name": "Brûlure",
-		"description": "Maudit la cible : lors de ses prochaines attaques, elle se brûle elle-même."
+		"description": "Maudit la cible : lors de ses prochaines attaques, elle se brûle elle-même.",
+		"icon": "🔥"
 	},
 	{
 		"id": "POWER_TELEPORT",
 		"name": "Téléportation",
-		"description": "Se téléporte instantanément au contact de l'ennemi ayant le moins de PV."
+		"description": "Se téléporte instantanément au contact de l'ennemi ayant le moins de PV.",
+		"icon": "🌀"
 	},
 	{
 		"id": "POWER_FREEZE",
 		"name": "Glace",
-		"description": "Gèle une case du terrain jusqu'à la fin du combat."
+		"description": "Gèle une case du terrain jusqu'à la fin du combat.",
+		"icon": "❄️"
 	},
 	{
 		"id": "POWER_CONFUSION",
 		"name": "Confusion",
-		"description": "Confond la cible : elle attaque ses propres alliés pendant un court laps de temps."
+		"description": "Confond la cible : elle attaque ses propres alliés pendant un court laps de temps.",
+		"icon": "😵"
 	},
 	{
 		"id": "POWER_TAUNT",
 		"name": "Provocation",
-		"description": "Force toutes les unités ennemies à portée de vue à attaquer le lanceur pendant un court laps de temps."
+		"description": "Force toutes les unités ennemies à portée de vue à attaquer le lanceur pendant un court laps de temps.",
+		"icon": "📣"
 	}
 ]
