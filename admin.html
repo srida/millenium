@@ -3301,9 +3301,18 @@ function openMagieIllusModal() {
       </div>
       <span style="font-size:11px;color:var(--muted);margin-top:4px">Sauvegardée sous <code>${selectedMagie.id}.png</code></span>
     </div>
+
+    <div style="text-align:center;margin:14px 0;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px">— ou —</div>
+
+    <div class="field">
+      <label>Importer depuis mon appareil</label>
+      <input id="magie-illus-file" type="file" accept="image/*" onchange="importMagieIllustrationFromFile()">
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Conversion automatique au format PNG</span>
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
-      <button class="btn btn-primary" onclick="importMagieIllustration()">Importer</button>
+      <button class="btn btn-primary" onclick="importMagieIllustration()">Importer depuis l'URL</button>
     </div>
   `, 'wide');
 }
@@ -3329,6 +3338,24 @@ async function importMagieIllustration() {
   closeModal();
   toast('Téléchargement en cours...', 'ok');
   const res = await apiFetch(`/api/magies/${selectedMagie.id}/illustration`, { method: 'POST', body: { url } });
+  if (res.error) return toast(res.error, 'err');
+  selectedMagie._has_illustration = true;
+  const idx = magies.findIndex(m => m.id === selectedMagie.id);
+  if (idx !== -1) magies[idx]._has_illustration = true;
+  filterMagies();
+  renderMagieDetail();
+  renderMagieList();
+  toast('Illustration importée');
+}
+
+async function importMagieIllustrationFromFile() {
+  const fileInput = document.getElementById('magie-illus-file');
+  const file = fileInput?.files?.[0];
+  if (!file) return;
+  closeModal();
+  toast('Import en cours...', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/magies/${selectedMagie.id}/illustration`, { method: 'PUT', body: { data } });
   if (res.error) return toast(res.error, 'err');
   selectedMagie._has_illustration = true;
   const idx = magies.findIndex(m => m.id === selectedMagie.id);
