@@ -165,7 +165,11 @@ export class CombatManager {
       const { unit: target } = findAttackTarget(u, candidates, this.board);
       if (!canAttack(u, target, this.board)) continue; // out of range or no line of sight
 
-      if (u.isPowerReady()) {
+      // A full gauge is not enough: the power must have something to do to THIS
+      // target (see _isPowerRelevant). When it hasn't, the unit attacks normally
+      // and KEEPS its gauge full — same treatment as a power that fails to
+      // resolve below, and for the same reason: the charge is held, not burnt.
+      if (u.isPowerReady() && this._isPowerRelevant(u, target)) {
         // _firePower returns false only for a power that failed to resolve this
         // tick (e.g. POWER_TELEPORT with no free cell) — in that case the gauge
         // stays full so the unit retries on a later tick instead of wasting it.
@@ -224,6 +228,105 @@ export class CombatManager {
     const damage = attacker.atk;
     target.takeDamage(damage);
     events.push({ type: 'attack', attacker, target, damage });
+  }
+
+  // Would firing `unit`'s power at `target` right now change anything?
+  //
+  // A power used to leave on the sole condition that its gauge was full, so a
+  // blocker spent its charge on a target with no power at all, a dispeller on a
+  // target carrying nothing, a pusher on a target with a wall behind it — all of
+  // them silent no-ops the player could only diagnose by reading the code. The
+  // rule below is narrow on purpose: it answers "would this do NOTHING?", never
+  // "is there a better target?" — target selection stays findAttackTarget's job
+  // (range and line of sight), and the power is simply held until that target is
+  // worth it. Every predicate is a pure function of combat state, so it stays
+  // deterministic on both PvP clients.
+  //
+  // Two families are deliberately NOT covered:
+  //   - effect immunity (is_effect_immune) — it already has a designed outcome,
+  //     the deflection VFX, and it is a COUNTER the player earns via an
+  //     attribute: letting casters hold their charge instead would defuse it.
+  //   - powers that always land something (super attack, AOE, shield, poison,
+  //     burn) — poison and burn stack, shields add up, damage is damage.
+  _isPowerRelevant(unit, target) {
+    switch (unit.power_id) {
+      // Heals the lowest-HP ally (self included) — worthless at full health.
+      case 'POWER_HEAL':
+        return this._allies(unit).some(a => a.isAlive() && a.current_hp < a.max_hp);
+
+      // Blocks the target's power: nothing to block on a unit that has none.
+      // Re-blocking is skipped too — power_block_remaining is ASSIGNED, so
+      // firing again on a longer-running block would actually SHORTEN it.
+      case 'POWER_BLOCK':
+        return !!target.power_id && !target.is_power_blocked;
+
+      // Strips what resetCombatStats() would clear. The target's power gauge is
+      // reset too, but that is a side effect of the wipe, not what the power is
+      // for: counting it would make the dispel relevant against every powered
+      // enemy — i.e. undo the check on the one power that most needed it.
+      case 'POWER_DEBUFF':
+        return this._hasStrippableState(target);
+
+      // paralysis_remaining is ASSIGNED, so re-applying can shorten a running
+      // paralysis. Held until it lapses, then re-applied — same for confusion.
+      case 'POWER_PARALYSIS':
+        return target.paralysis_remaining === 0;
+
+      // Turns the target against its own side: needs a side to turn against.
+      case 'POWER_CONFUSION':
+        return target.confusion_remaining === 0
+          && this._allies(target).some(a => a.isAlive() && a !== target);
+
+      // Self-buff, assigned the same way: no point refreshing a running taunt.
+      case 'POWER_TAUNT':
+        return unit.taunt_remaining === 0;
+
+      // Both retreat the target by at least one cell. A target with a wall, an
+      // ally or the board edge right behind it does not move — and the freeze
+      // would then block the cell the target is still standing on.
+      case 'POWER_PUSH':
+      case 'POWER_FREEZE':
+        return this._canPush(target, unit.position);
+
+      // The jump has to actually close the gap on the weakest enemy. Already
+      // next to it, or the only free cell left is no nearer than where the unit
+      // already stands (the closest-free-cell fallback can even walk it back) →
+      // the teleport just breaks the formation for nothing. A null plan (no
+      // enemy, no free cell) lands here too: the unit attacks rather than
+      // spending its tick on a power that cannot resolve.
+      case 'POWER_TELEPORT': {
+        const plan = this._teleportPlan(unit, this._enemies(unit).filter(u => u.isAlive()));
+        if (!plan) return false;
+        return manhattanDistance(plan.destination, plan.target.position)
+             < manhattanDistance(unit.position, plan.target.position);
+      }
+
+      default:
+        return true;
+    }
+  }
+
+  // Everything resetCombatStats() takes away, minus the power gauge (see above).
+  _hasStrippableState(u) {
+    return Object.values(u._stat_bonuses).some(v => v !== 0)
+      || u.dot_effects.length > 0
+      || u.burn_stacks.length > 0
+      || u.paralysis_remaining > 0
+      || u.attack_speed_modifier !== 0
+      || u.is_power_blocked
+      || u.confusion_remaining > 0
+      || u.taunt_remaining > 0
+      || u.is_effect_immune;
+  }
+
+  // First step of the retreat _pushUnit would walk — the whole push is a no-op
+  // when it is unavailable, both cells sharing the same direction vector.
+  _canPush(target, attackerPos) {
+    const dirCol = Math.sign(target.position.col - attackerPos.col);
+    const dirRow = Math.sign(target.position.row - attackerPos.row);
+    if (dirCol === 0 && dirRow === 0) return false;
+    const next = { col: target.position.col + dirCol, row: target.position.row + dirRow };
+    return this.board.isInBounds(next) && !this.board.isOccupied(next) && !this.board.isBlocked(next);
   }
 
   _firePower(unit, primaryTarget, events) {
@@ -399,12 +502,13 @@ export class CombatManager {
     }
   }
 
-  // Teleport `unit` next to the enemy with the least current_hp (mirrors the
-  // lowest-HP reduce used by POWER_HEAL, applied to enemies instead of allies).
-  // Moves the unit directly via board.moveUnit — no pathfinding, no movement
-  // cooldown. Returns false (power not consumed) if no cell is available at all.
-  _teleportToWeakestEnemy(unit, enemies, events) {
-    if (enemies.length === 0) return false;
+  // Where POWER_TELEPORT would take `unit`: next to the enemy with the least
+  // current_hp (mirrors the lowest-HP reduce used by POWER_HEAL, applied to
+  // enemies instead of allies). Pure — it reads the board and returns a plan,
+  // so _isPowerRelevant can ask the same question the power itself will ask.
+  // Returns null when there is no enemy or no cell to land on.
+  _teleportPlan(unit, enemies) {
+    if (enemies.length === 0) return null;
     const target = enemies.reduce((a, b) => a.current_hp < b.current_hp ? a : b, enemies[0]);
 
     // Excludes unit.position explicitly (on top of the occupied check, which
@@ -435,7 +539,15 @@ export class CombatManager {
       }
     }
 
-    if (!destination) return false; // no other cell available — retry next tick
+    return destination ? { target, destination } : null;
+  }
+
+  // Moves the unit directly via board.moveUnit — no pathfinding, no movement
+  // cooldown. Returns false (power not consumed) if no cell is available at all.
+  _teleportToWeakestEnemy(unit, enemies, events) {
+    const plan = this._teleportPlan(unit, enemies);
+    if (!plan) return false; // no other cell available — retry next tick
+    const { target, destination } = plan;
 
     const from = { ...unit.position };
     this.board.moveUnit(unit, destination);

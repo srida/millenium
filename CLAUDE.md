@@ -2188,7 +2188,7 @@ Chargés depuis `/api/powers`.
 
 Une unité peut avoir : zéro ou un pouvoir.
 
-La jauge gagne `1 + _stat_bonuses.power_charge` par step. Elle est prête à `power_gauge >= power_speed` (`Unit.isPowerReady()`, faux si `is_power_blocked`). Le pouvoir se déclenche alors **dans la phase d'attaque**, donc uniquement si l'unité a une cible à portée et en ligne de vue — sinon la jauge reste pleine et attend. Quand il part :
+La jauge gagne `1 + _stat_bonuses.power_charge` par step. Elle est prête à `power_gauge >= power_speed` (`Unit.isPowerReady()`, faux si `is_power_blocked`). Le pouvoir se déclenche alors **dans la phase d'attaque**, donc uniquement si l'unité a une cible à portée et en ligne de vue — **et seulement s'il a quelque chose à faire à cette cible** (cf. « Pertinence vis-à-vis de la cible » plus bas) ; sinon la jauge reste pleine et attend. Quand il part :
 - Il remplace l'attaque normale du step
 - La jauge se réinitialise (sauf pouvoir non résolu, cf. `POWER_TELEPORT`)
 
@@ -2238,10 +2238,38 @@ C'est ce qui laisse à la brûlure un contre-jeu que le poison n'a pas : une cib
 
 **Règles importantes :**
 - Un pouvoir ne se déclenche jamais pendant la phase de préparation
-- Le pouvoir **remplace** l'attaque du step ; la jauge se vide, sauf si le pouvoir n'a pas pu se résoudre (`POWER_TELEPORT` sans case libre)
+- Le pouvoir **remplace** l'attaque du step ; la jauge se vide, sauf si le pouvoir n'a pas pu se résoudre (`POWER_TELEPORT` sans case libre) ou n'avait rien à faire à la cible (cf. ci-dessous)
 - Une unité `is_effect_immune` (attribut `effect_immunity`) annule poison, burn, paralysie, push, freeze, block et confusion — l'événement `power` est émis avec `extra: { immune: true }`
 - Les effets de pouvoir prennent fin à la fin du combat (`resetCombatStats`)
 - Un `power_id` inconnu retombe sur une attaque normale
+
+### Pertinence vis-à-vis de la cible (`CombatManager._isPowerRelevant`)
+
+**Une jauge pleine ne suffit plus.** Le pouvoir ne part que s'il a quelque chose à faire à la cible que `findAttackTarget` vient de désigner ; sinon l'unité **attaque normalement et GARDE sa jauge pleine**, jusqu'au tick où la cible le mérite.
+
+Le besoin est celui d'un joueur qui regarde son board : un bloqueur dépensait sa charge sur une cible **sans pouvoir**, un dissipateur sur une cible **qui ne portait rien**, un pousseur sur une cible adossée à un mur. Trois no-ops parfaitement silencieux — même toast, même VFX, même jauge remise à zéro qu'un pouvoir qui a pris.
+
+⚠️ **La règle est étroite à dessein : elle répond à « est-ce que ça ne ferait RIEN ? », jamais à « y a-t-il une meilleure cible ? ».** Le choix de cible reste celui de `findAttackTarget` (portée + ligne de vue) et n'est pas réordonné — un pouvoir qui trie ses propres cibles, c'est une seconde politique de ciblage à tenir d'accord avec celle du déplacement, et un déterminisme PvP de plus à prouver. Ici on ne change **que** le moment du tir.
+
+| Pouvoir | Retenu quand |
+|---|---|
+| `POWER_HEAL` | aucun allié vivant n'est blessé (le lanceur compris) |
+| `POWER_BLOCK` | la cible n'a **pas de pouvoir**, ou est déjà bloquée |
+| `POWER_DEBUFF` | la cible ne porte **rien** de ce que `resetCombatStats()` efface |
+| `POWER_PARALYSIS` | la cible est déjà paralysée |
+| `POWER_CONFUSION` | la cible est déjà confuse, ou n'a **aucun autre allié vivant** à retourner contre elle |
+| `POWER_TAUNT` | la provocation du lanceur court encore |
+| `POWER_PUSH` · `POWER_FREEZE` | la case de retraite est hors board, occupée ou bloquée — la cible ne bougerait pas |
+| `POWER_TELEPORT` | le saut ne **rapprocherait pas** du plus faible (déjà au contact, ou repli sur une case qui n'est pas plus près) |
+| les autres | jamais — dégâts, bouclier, poison et brûlure posent toujours quelque chose (les deux derniers cumulent) |
+
+- **Les trois statuts ASSIGNÉS y gagnent un correctif au passage** : `power_block_remaining`, `paralysis_remaining` et `confusion_remaining` sont écrits, pas maximisés — rejouer le pouvoir sur un statut plus long que le nouveau le **raccourcissait**. Ne pas rejouer tant qu'il court ferme le cas, et la charge retenue re-part au tick où il lapse : la couverture est meilleure qu'avec le rafraîchissement, sans le risque.
+- ⚠️ **`POWER_DEBUFF` ignore la JAUGE de la cible.** `resetCombatStats()` la remet à zéro, mais c'est un effet de bord du balayage, pas ce que le pouvoir dissipe : la compter rendrait le dissipateur pertinent contre **tout** ennemi doté d'un pouvoir — c'est-à-dire annulerait le filtre sur celui qui en avait le plus besoin.
+- ⚠️ **L'IMMUNITÉ n'est PAS un motif de retenue**, alors qu'elle est bien un no-op. `effect_immunity` a déjà une issue *designée* — la déflexion (`extra: { immune: true }`, sa recette VFX dédiée) — et c'est un **contre que le joueur a gagné** par un attribut : laisser les lanceurs garder leur charge le désamorcerait, en rendant l'immunité gratuite pour son porteur. On préfère la voir jouer.
+- ⚠️ **`POWER_TELEPORT` y gagne aussi une attaque.** Sans destination, il rendait `false` : la jauge était bien conservée, mais l'unité perdait **son tick entier** (ni pouvoir, ni attaque). Le filtre passant en amont, elle frappe normalement à la place. `_teleportPlan()` est le calcul partagé entre la question et le pouvoir — deux copies de la recherche de case auraient fini par diverger.
+- **Tous les prédicats sont des fonctions pures de l'état de combat** : rien de nouveau ne voyage sur le réseau, le contrat de déterminisme PvP (`round:board_ready`) est inchangé et `pvp.test.ts` passe sans modification.
+- ⚠️ **Les deux golden combats S4 et S5 ont changé de snapshot, et c'est le sujet même du lot** : S4 montrait un paralyseur re-paralysant une cible qui l'était pour 20 steps encore, S5 un téléporteur sautant à côté d'un ennemi **déjà au contact** — l'un et l'autre perdant le combat que la version filtrée gagne. Un snapshot inchangé aurait voulu dire que rien n'avait bougé.
+- Verrouillé par `client/src/test/power-relevance.test.ts` (26 golden tests, **éprouvés dans les deux sens** — le filtre neutralisé, 19 passent au rouge), qui couvre chaque prédicat par sa paire refus/tir **et** la conséquence en combat : jauge retenue, attaque normale à la place, tir au premier tick où la cible le mérite.
 
 ### Effets visuels — une recette par pouvoir (`three/PowerVfx.ts`)
 

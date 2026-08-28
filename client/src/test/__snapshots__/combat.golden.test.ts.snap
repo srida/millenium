@@ -1433,16 +1433,11 @@ exports[`combat déterministe — golden events > S4 — pouvoirs de contrôle :
       "type": "attack",
     },
     {
-      "extra": {
-        "ticks": 20,
-      },
-      "power_id": "POWER_PARALYSIS",
+      "attacker": "enemy:E_PARALYZER",
+      "damage": 6,
       "step": 12,
-      "targets": [
-        "player:P_PUSHER",
-      ],
-      "type": "power",
-      "unit": "enemy:E_PARALYZER",
+      "target": "player:P_PUSHER",
+      "type": "attack",
     },
     {
       "step": 12,
@@ -1516,28 +1511,14 @@ exports[`combat déterministe — golden events > S4 — pouvoirs de contrôle :
       "type": "attack",
     },
     {
-      "attacker": "player:P_POISONER",
-      "damage": 6,
-      "step": 16,
-      "target": "enemy:E_PARALYZER",
-      "type": "attack",
-    },
-    {
-      "attacker": "enemy:E_PARALYZER",
-      "damage": 6,
-      "step": 16,
-      "target": "player:P_PUSHER",
-      "type": "attack",
-    },
-    {
-      "step": 16,
+      "step": 14,
       "type": "death",
       "unit": "player:P_PUSHER",
     },
     {
       "attacker": "player:P_POISONER",
       "damage": 6,
-      "step": 18,
+      "step": 16,
       "target": "enemy:E_PARALYZER",
       "type": "attack",
     },
@@ -1546,7 +1527,7 @@ exports[`combat déterministe — golden events > S4 — pouvoirs de contrôle :
         "ticks": 20,
       },
       "power_id": "POWER_PARALYSIS",
-      "step": 18,
+      "step": 16,
       "targets": [
         "player:P_POISONER",
       ],
@@ -1556,29 +1537,50 @@ exports[`combat déterministe — golden events > S4 — pouvoirs de contrôle :
     {
       "attacker": "enemy:E_PARALYZER",
       "damage": 6,
-      "step": 20,
+      "step": 18,
       "target": "player:P_POISONER",
       "type": "attack",
     },
     {
       "attacker": "player:P_POISONER",
       "damage": 6,
-      "step": 22,
+      "step": 20,
       "target": "enemy:E_PARALYZER",
       "type": "attack",
     },
     {
+      "attacker": "enemy:E_PARALYZER",
+      "damage": 6,
+      "step": 20,
+      "target": "player:P_POISONER",
+      "type": "attack",
+    },
+    {
+      "attacker": "enemy:E_PARALYZER",
+      "damage": 6,
       "step": 22,
+      "target": "player:P_POISONER",
+      "type": "attack",
+    },
+    {
+      "attacker": "player:P_POISONER",
+      "damage": 6,
+      "step": 24,
+      "target": "enemy:E_PARALYZER",
+      "type": "attack",
+    },
+    {
+      "step": 24,
       "type": "death",
       "unit": "enemy:E_PARALYZER",
     },
     {
-      "step": 22,
+      "step": 24,
       "type": "combat_end",
       "winner": "player",
     },
   ],
-  "steps": 22,
+  "steps": 24,
   "winner": "player",
 }
 `;
@@ -1812,6 +1814,89 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
       "type": "attack",
     },
     {
+      "attacker": "player:P_TELEPORTER",
+      "damage": 7,
+      "step": 6,
+      "target": "enemy:E_FREEZER",
+      "type": "attack",
+    },
+    {
+      "attacker": "enemy:E_IMMUNE",
+      "damage": 6,
+      "step": 6,
+      "target": "player:P_TELEPORTER",
+      "type": "attack",
+    },
+    {
+      "extra": {
+        "ticks": 20,
+      },
+      "power_id": "POWER_CONFUSION",
+      "step": 6,
+      "targets": [
+        "player:P_TAUNTER",
+      ],
+      "type": "power",
+      "unit": "enemy:E_CONFUSER",
+    },
+    {
+      "step": 6,
+      "type": "death",
+      "unit": "enemy:E_FREEZER",
+    },
+    {
+      "from": {
+        "col": 1,
+        "row": 5,
+      },
+      "step": 7,
+      "to": {
+        "col": 1,
+        "row": 6,
+      },
+      "type": "move",
+      "unit": "player:P_BURNER",
+    },
+    {
+      "from": {
+        "col": 2,
+        "row": 5,
+      },
+      "step": 7,
+      "to": {
+        "col": 1,
+        "row": 5,
+      },
+      "type": "move",
+      "unit": "player:P_TAUNTER",
+    },
+    {
+      "from": {
+        "col": 1,
+        "row": 6,
+      },
+      "step": 8,
+      "to": {
+        "col": 2,
+        "row": 6,
+      },
+      "type": "move",
+      "unit": "player:P_BURNER",
+    },
+    {
+      "from": {
+        "col": 1,
+        "row": 5,
+      },
+      "step": 8,
+      "to": {
+        "col": 2,
+        "row": 5,
+      },
+      "type": "move",
+      "unit": "player:P_TAUNTER",
+    },
+    {
       "extra": {
         "from": {
           "col": 3,
@@ -1823,673 +1908,7 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
         },
       },
       "power_id": "POWER_TELEPORT",
-      "step": 6,
-      "targets": [
-        "enemy:E_FREEZER",
-      ],
-      "type": "power",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 3,
-        "row": 6,
-      },
-      "step": 6,
-      "to": {
-        "col": 2,
-        "row": 7,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "extra": {
-        "cell": {
-          "col": 2,
-          "row": 5,
-        },
-        "expiresAtStep": Infinity,
-      },
-      "power_id": "POWER_FREEZE",
-      "step": 6,
-      "targets": [
-        "player:P_TAUNTER",
-      ],
-      "type": "power",
-      "unit": "enemy:E_FREEZER",
-    },
-    {
-      "cell": {
-        "col": 2,
-        "row": 5,
-      },
-      "expiresAtStep": Infinity,
-      "step": 6,
-      "type": "freeze",
-    },
-    {
-      "extra": {
-        "damage": 3,
-      },
-      "power_id": "POWER_BURN",
-      "step": 6,
-      "targets": [
-        "enemy:E_FREEZER",
-      ],
-      "type": "power",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "extra": {
-        "ticks": 20,
-      },
-      "power_id": "POWER_CONFUSION",
-      "step": 6,
-      "targets": [
-        "player:P_TELEPORTER",
-      ],
-      "type": "power",
-      "unit": "enemy:E_CONFUSER",
-    },
-    {
-      "from": {
-        "col": 2,
-        "row": 7,
-      },
-      "step": 7,
-      "to": {
-        "col": 1,
-        "row": 7,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 2,
-        "row": 4,
-      },
-      "step": 7,
-      "to": {
-        "col": 3,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_TAUNTER",
-    },
-    {
-      "from": {
-        "col": 4,
-        "row": 6,
-      },
-      "step": 7,
-      "to": {
-        "col": 3,
-        "row": 6,
-      },
-      "type": "move",
-      "unit": "enemy:E_IMMUNE",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 7,
-      },
       "step": 8,
-      "to": {
-        "col": 1,
-        "row": 6,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 3,
-        "row": 4,
-      },
-      "step": 8,
-      "to": {
-        "col": 4,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_TAUNTER",
-    },
-    {
-      "from": {
-        "col": 3,
-        "row": 6,
-      },
-      "step": 8,
-      "to": {
-        "col": 3,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "enemy:E_IMMUNE",
-    },
-    {
-      "attacker": "player:P_TELEPORTER",
-      "damage": 7,
-      "step": 8,
-      "target": "player:P_BURNER",
-      "type": "attack",
-    },
-    {
-      "attacker": "enemy:E_FREEZER",
-      "damage": 5,
-      "step": 8,
-      "target": "player:P_TELEPORTER",
-      "type": "attack",
-    },
-    {
-      "damage": 3,
-      "step": 8,
-      "type": "dot",
-      "unit": "enemy:E_FREEZER",
-    },
-    {
-      "attacker": "player:P_BURNER",
-      "damage": 6,
-      "step": 8,
-      "target": "enemy:E_FREEZER",
-      "type": "attack",
-    },
-    {
-      "step": 8,
-      "type": "death",
-      "unit": "enemy:E_FREEZER",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 5,
-      },
-      "step": 9,
-      "to": {
-        "col": 1,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "from": {
-        "col": 4,
-        "row": 4,
-      },
-      "step": 9,
-      "to": {
-        "col": 3,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_TAUNTER",
-    },
-    {
-      "extra": {
-        "ticks": 20,
-      },
-      "power_id": "POWER_TAUNT",
-      "step": 9,
-      "targets": [
-        "player:P_TAUNTER",
-      ],
-      "type": "power",
-      "unit": "player:P_TAUNTER",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 6,
-      },
-      "step": 10,
-      "to": {
-        "col": 1,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 4,
-      },
-      "step": 10,
-      "to": {
-        "col": 0,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "from": {
-        "col": 2,
-        "row": 8,
-      },
-      "step": 10,
-      "to": {
-        "col": 3,
-        "row": 8,
-      },
-      "type": "move",
-      "unit": "enemy:E_CONFUSER",
-    },
-    {
-      "attacker": "enemy:E_IMMUNE",
-      "damage": 6,
-      "step": 10,
-      "target": "player:P_TAUNTER",
-      "type": "attack",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 5,
-      },
-      "step": 11,
-      "to": {
-        "col": 0,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 0,
-        "row": 4,
-      },
-      "step": 11,
-      "to": {
-        "col": 1,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "from": {
-        "col": 0,
-        "row": 5,
-      },
-      "step": 12,
-      "to": {
-        "col": 1,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 4,
-      },
-      "step": 12,
-      "to": {
-        "col": 0,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "from": {
-        "col": 3,
-        "row": 8,
-      },
-      "step": 12,
-      "to": {
-        "col": 4,
-        "row": 8,
-      },
-      "type": "move",
-      "unit": "enemy:E_CONFUSER",
-    },
-    {
-      "attacker": "player:P_TAUNTER",
-      "damage": 4,
-      "step": 12,
-      "target": "enemy:E_IMMUNE",
-      "type": "attack",
-    },
-    {
-      "attacker": "enemy:E_IMMUNE",
-      "damage": 6,
-      "step": 12,
-      "target": "player:P_TAUNTER",
-      "type": "attack",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 5,
-      },
-      "step": 13,
-      "to": {
-        "col": 0,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 0,
-        "row": 4,
-      },
-      "step": 13,
-      "to": {
-        "col": 1,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "from": {
-        "col": 0,
-        "row": 5,
-      },
-      "step": 14,
-      "to": {
-        "col": 1,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 4,
-      },
-      "step": 14,
-      "to": {
-        "col": 0,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "from": {
-        "col": 4,
-        "row": 8,
-      },
-      "step": 14,
-      "to": {
-        "col": 4,
-        "row": 7,
-      },
-      "type": "move",
-      "unit": "enemy:E_CONFUSER",
-    },
-    {
-      "attacker": "enemy:E_IMMUNE",
-      "damage": 6,
-      "step": 14,
-      "target": "player:P_TAUNTER",
-      "type": "attack",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 5,
-      },
-      "step": 15,
-      "to": {
-        "col": 0,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 0,
-        "row": 4,
-      },
-      "step": 15,
-      "to": {
-        "col": 1,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "extra": {
-        "ticks": 20,
-      },
-      "power_id": "POWER_TAUNT",
-      "step": 15,
-      "targets": [
-        "player:P_TAUNTER",
-      ],
-      "type": "power",
-      "unit": "player:P_TAUNTER",
-    },
-    {
-      "from": {
-        "col": 0,
-        "row": 5,
-      },
-      "step": 16,
-      "to": {
-        "col": 1,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 4,
-      },
-      "step": 16,
-      "to": {
-        "col": 0,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "from": {
-        "col": 4,
-        "row": 7,
-      },
-      "step": 16,
-      "to": {
-        "col": 4,
-        "row": 6,
-      },
-      "type": "move",
-      "unit": "enemy:E_CONFUSER",
-    },
-    {
-      "attacker": "enemy:E_IMMUNE",
-      "damage": 6,
-      "step": 16,
-      "target": "player:P_TAUNTER",
-      "type": "attack",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 5,
-      },
-      "step": 17,
-      "to": {
-        "col": 0,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 0,
-        "row": 4,
-      },
-      "step": 17,
-      "to": {
-        "col": 1,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "from": {
-        "col": 0,
-        "row": 5,
-      },
-      "step": 18,
-      "to": {
-        "col": 1,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 4,
-      },
-      "step": 18,
-      "to": {
-        "col": 0,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "attacker": "player:P_TAUNTER",
-      "damage": 4,
-      "step": 18,
-      "target": "enemy:E_IMMUNE",
-      "type": "attack",
-    },
-    {
-      "attacker": "enemy:E_IMMUNE",
-      "damage": 6,
-      "step": 18,
-      "target": "player:P_TAUNTER",
-      "type": "attack",
-    },
-    {
-      "extra": {
-        "ticks": 20,
-      },
-      "power_id": "POWER_CONFUSION",
-      "step": 18,
-      "targets": [
-        "player:P_TAUNTER",
-      ],
-      "type": "power",
-      "unit": "enemy:E_CONFUSER",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 5,
-      },
-      "step": 19,
-      "to": {
-        "col": 0,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 0,
-        "row": 4,
-      },
-      "step": 19,
-      "to": {
-        "col": 1,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "from": {
-        "col": 3,
-        "row": 4,
-      },
-      "step": 19,
-      "to": {
-        "col": 2,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_TAUNTER",
-    },
-    {
-      "from": {
-        "col": 3,
-        "row": 5,
-      },
-      "step": 19,
-      "to": {
-        "col": 3,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "enemy:E_IMMUNE",
-    },
-    {
-      "from": {
-        "col": 0,
-        "row": 5,
-      },
-      "step": 20,
-      "to": {
-        "col": 1,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 4,
-        "row": 6,
-      },
-      "step": 20,
-      "to": {
-        "col": 4,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "enemy:E_CONFUSER",
-    },
-    {
-      "extra": {
-        "from": {
-          "col": 1,
-          "row": 5,
-        },
-        "to": {
-          "col": 4,
-          "row": 4,
-        },
-      },
-      "power_id": "POWER_TELEPORT",
-      "step": 20,
       "targets": [
         "enemy:E_CONFUSER",
       ],
@@ -2498,257 +1917,293 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
     },
     {
       "from": {
-        "col": 1,
-        "row": 5,
+        "col": 3,
+        "row": 6,
       },
-      "step": 20,
+      "step": 8,
       "to": {
-        "col": 4,
-        "row": 4,
+        "col": 2,
+        "row": 7,
       },
       "type": "move",
       "unit": "player:P_TELEPORTER",
     },
     {
       "extra": {
-        "immune": true,
+        "damage": 3,
       },
       "power_id": "POWER_BURN",
-      "step": 20,
+      "step": 8,
       "targets": [
-        "enemy:E_IMMUNE",
+        "enemy:E_CONFUSER",
       ],
       "type": "power",
       "unit": "player:P_BURNER",
     },
     {
-      "attacker": "enemy:E_IMMUNE",
-      "damage": 6,
-      "step": 20,
-      "target": "player:P_TAUNTER",
-      "type": "attack",
-    },
-    {
-      "step": 20,
-      "type": "death",
-      "unit": "player:P_TAUNTER",
-    },
-    {
       "from": {
         "col": 4,
-        "row": 4,
+        "row": 6,
       },
-      "step": 21,
+      "step": 9,
       "to": {
-        "col": 4,
-        "row": 3,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
         "col": 3,
-        "row": 4,
-      },
-      "step": 21,
-      "to": {
-        "col": 4,
-        "row": 4,
+        "row": 6,
       },
       "type": "move",
       "unit": "enemy:E_IMMUNE",
-    },
-    {
-      "attacker": "enemy:E_CONFUSER",
-      "damage": 5,
-      "step": 21,
-      "target": "player:P_TELEPORTER",
-      "type": "attack",
-    },
-    {
-      "from": {
-        "col": 4,
-        "row": 3,
-      },
-      "step": 22,
-      "to": {
-        "col": 3,
-        "row": 3,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 1,
-        "row": 4,
-      },
-      "step": 22,
-      "to": {
-        "col": 2,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "from": {
-        "col": 4,
-        "row": 4,
-      },
-      "step": 22,
-      "to": {
-        "col": 3,
-        "row": 4,
-      },
-      "type": "move",
-      "unit": "enemy:E_IMMUNE",
-    },
-    {
-      "attacker": "player:P_BURNER",
-      "damage": 6,
-      "step": 22,
-      "target": "enemy:E_IMMUNE",
-      "type": "attack",
-    },
-    {
-      "attacker": "enemy:E_IMMUNE",
-      "damage": 6,
-      "step": 22,
-      "target": "player:P_BURNER",
-      "type": "attack",
-    },
-    {
-      "from": {
-        "col": 3,
-        "row": 3,
-      },
-      "step": 23,
-      "to": {
-        "col": 2,
-        "row": 3,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "attacker": "player:P_TELEPORTER",
-      "damage": 7,
-      "step": 24,
-      "target": "player:P_BURNER",
-      "type": "attack",
-    },
-    {
-      "attacker": "player:P_BURNER",
-      "damage": 6,
-      "step": 24,
-      "target": "enemy:E_IMMUNE",
-      "type": "attack",
-    },
-    {
-      "attacker": "enemy:E_IMMUNE",
-      "damage": 6,
-      "step": 24,
-      "target": "player:P_BURNER",
-      "type": "attack",
-    },
-    {
-      "step": 24,
-      "type": "death",
-      "unit": "player:P_BURNER",
-    },
-    {
-      "from": {
-        "col": 2,
-        "row": 3,
-      },
-      "step": 25,
-      "to": {
-        "col": 3,
-        "row": 3,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "extra": {
-        "from": {
-          "col": 3,
-          "row": 3,
-        },
-        "to": {
-          "col": 3,
-          "row": 5,
-        },
-      },
-      "power_id": "POWER_TELEPORT",
-      "step": 26,
-      "targets": [
-        "enemy:E_IMMUNE",
-      ],
-      "type": "power",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "from": {
-        "col": 3,
-        "row": 3,
-      },
-      "step": 26,
-      "to": {
-        "col": 3,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
-    },
-    {
-      "attacker": "enemy:E_IMMUNE",
-      "damage": 6,
-      "step": 26,
-      "target": "player:P_TELEPORTER",
-      "type": "attack",
     },
     {
       "extra": {
         "ticks": 20,
       },
-      "power_id": "POWER_CONFUSION",
-      "step": 27,
+      "power_id": "POWER_TAUNT",
+      "step": 9,
       "targets": [
-        "player:P_TELEPORTER",
+        "player:P_TAUNTER",
       ],
       "type": "power",
+      "unit": "player:P_TAUNTER",
+    },
+    {
+      "attacker": "enemy:E_CONFUSER",
+      "damage": 5,
+      "step": 9,
+      "target": "player:P_TAUNTER",
+      "type": "attack",
+    },
+    {
+      "damage": 3,
+      "step": 9,
+      "type": "dot",
       "unit": "enemy:E_CONFUSER",
+    },
+    {
+      "from": {
+        "col": 3,
+        "row": 6,
+      },
+      "step": 10,
+      "to": {
+        "col": 3,
+        "row": 5,
+      },
+      "type": "move",
+      "unit": "enemy:E_IMMUNE",
     },
     {
       "attacker": "player:P_TELEPORTER",
       "damage": 7,
-      "step": 28,
+      "step": 10,
+      "target": "enemy:E_CONFUSER",
+      "type": "attack",
+    },
+    {
+      "attacker": "player:P_BURNER",
+      "damage": 6,
+      "step": 10,
       "target": "enemy:E_CONFUSER",
       "type": "attack",
     },
     {
       "attacker": "enemy:E_IMMUNE",
       "damage": 6,
-      "step": 28,
-      "target": "player:P_TELEPORTER",
+      "step": 10,
+      "target": "player:P_TAUNTER",
       "type": "attack",
     },
     {
-      "step": 28,
+      "attacker": "player:P_TELEPORTER",
+      "damage": 7,
+      "step": 12,
+      "target": "enemy:E_CONFUSER",
+      "type": "attack",
+    },
+    {
+      "attacker": "player:P_BURNER",
+      "damage": 6,
+      "step": 12,
+      "target": "enemy:E_CONFUSER",
+      "type": "attack",
+    },
+    {
+      "attacker": "player:P_TAUNTER",
+      "damage": 4,
+      "step": 12,
+      "target": "player:P_BURNER",
+      "type": "attack",
+    },
+    {
+      "attacker": "enemy:E_IMMUNE",
+      "damage": 6,
+      "step": 12,
+      "target": "player:P_TAUNTER",
+      "type": "attack",
+    },
+    {
+      "step": 12,
       "type": "death",
+      "unit": "enemy:E_CONFUSER",
+    },
+    {
+      "from": {
+        "col": 2,
+        "row": 7,
+      },
+      "step": 13,
+      "to": {
+        "col": 3,
+        "row": 7,
+      },
+      "type": "move",
       "unit": "player:P_TELEPORTER",
     },
     {
-      "step": 28,
+      "from": {
+        "col": 3,
+        "row": 7,
+      },
+      "step": 14,
+      "to": {
+        "col": 3,
+        "row": 6,
+      },
+      "type": "move",
+      "unit": "player:P_TELEPORTER",
+    },
+    {
+      "attacker": "player:P_TELEPORTER",
+      "damage": 7,
+      "step": 14,
+      "target": "enemy:E_IMMUNE",
+      "type": "attack",
+    },
+    {
+      "extra": {
+        "immune": true,
+      },
+      "power_id": "POWER_BURN",
+      "step": 14,
+      "targets": [
+        "enemy:E_IMMUNE",
+      ],
+      "type": "power",
+      "unit": "player:P_BURNER",
+    },
+    {
+      "attacker": "enemy:E_IMMUNE",
+      "damage": 6,
+      "step": 14,
+      "target": "player:P_TAUNTER",
+      "type": "attack",
+    },
+    {
+      "attacker": "player:P_TAUNTER",
+      "damage": 4,
+      "step": 15,
+      "target": "player:P_BURNER",
+      "type": "attack",
+    },
+    {
+      "attacker": "player:P_TELEPORTER",
+      "damage": 7,
+      "step": 16,
+      "target": "enemy:E_IMMUNE",
+      "type": "attack",
+    },
+    {
+      "attacker": "player:P_BURNER",
+      "damage": 6,
+      "step": 16,
+      "target": "enemy:E_IMMUNE",
+      "type": "attack",
+    },
+    {
+      "attacker": "enemy:E_IMMUNE",
+      "damage": 6,
+      "step": 16,
+      "target": "player:P_TAUNTER",
+      "type": "attack",
+    },
+    {
+      "attacker": "player:P_TELEPORTER",
+      "damage": 7,
+      "step": 18,
+      "target": "enemy:E_IMMUNE",
+      "type": "attack",
+    },
+    {
+      "attacker": "player:P_BURNER",
+      "damage": 6,
+      "step": 18,
+      "target": "enemy:E_IMMUNE",
+      "type": "attack",
+    },
+    {
+      "attacker": "player:P_TAUNTER",
+      "damage": 4,
+      "step": 18,
+      "target": "player:P_BURNER",
+      "type": "attack",
+    },
+    {
+      "attacker": "enemy:E_IMMUNE",
+      "damage": 6,
+      "step": 18,
+      "target": "player:P_TAUNTER",
+      "type": "attack",
+    },
+    {
+      "step": 18,
+      "type": "death",
+      "unit": "player:P_TAUNTER",
+    },
+    {
+      "from": {
+        "col": 3,
+        "row": 5,
+      },
+      "step": 19,
+      "to": {
+        "col": 2,
+        "row": 5,
+      },
+      "type": "move",
+      "unit": "enemy:E_IMMUNE",
+    },
+    {
+      "from": {
+        "col": 3,
+        "row": 6,
+      },
+      "step": 20,
+      "to": {
+        "col": 3,
+        "row": 5,
+      },
+      "type": "move",
+      "unit": "player:P_TELEPORTER",
+    },
+    {
+      "attacker": "player:P_TELEPORTER",
+      "damage": 7,
+      "step": 20,
+      "target": "enemy:E_IMMUNE",
+      "type": "attack",
+    },
+    {
+      "step": 20,
+      "type": "death",
+      "unit": "enemy:E_IMMUNE",
+    },
+    {
+      "step": 20,
       "type": "combat_end",
-      "winner": "enemy",
+      "winner": "player",
     },
   ],
-  "steps": 28,
-  "winner": "enemy",
+  "steps": 20,
+  "winner": "player",
 }
 `;
 
