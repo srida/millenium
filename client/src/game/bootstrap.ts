@@ -7,6 +7,7 @@ import * as PowerDatabase from '../data/PowerDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as BoardDatabase from '../data/BoardDatabase.js';
 import * as MagieDatabase from '../data/MagieDatabase.js';
+import * as SummonTypeDatabase from '../data/SummonTypeDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import * as CardArt from '../data/CardArt.js';
 import { GameSession } from '../logic/GameSession.js';
@@ -22,6 +23,7 @@ export async function initGameData(): Promise<void> {
     (AttributeDatabase as any).init(),
     (BoardDatabase as any).init(),
     (MagieDatabase as any).init(),
+    (SummonTypeDatabase as any).init(),
   ]);
   _dataReady = true;
 }
