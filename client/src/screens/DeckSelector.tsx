@@ -311,7 +311,15 @@ function DeckCard({
         <span className="truncate text-sm font-bold">{deck.name}</span>
         {foe && <span className="rounded bg-enemy/20 px-1.5 text-[9px] font-bold text-enemy">ADVERSAIRE</span>}
         {active && <span className="rounded bg-gold/20 px-1.5 text-[9px] font-bold text-gold">ACTIF</span>}
-        <span className={`ml-auto text-xs font-semibold tabular-nums ${valid ? 'text-success' : 'text-white/50'}`}>{deck.count} cartes</span>
+        {/* Deck public : la difficulté prime sur le nombre de cartes — c'est ce
+            qu'on regarde avant d'engager le combat, pas la taille du deck. */}
+        {difficulty !== null ? (
+          <span className={`ml-auto text-xs font-semibold ${DIFFICULTY_TEXT_TONE[difficulty] ?? 'text-white/60'}`}>
+            {(PublicDeckDatabase as any).difficultyLabel(difficulty)}
+          </span>
+        ) : (
+          <span className={`ml-auto text-xs font-semibold tabular-nums ${valid ? 'text-success' : 'text-white/50'}`}>{deck.count} cartes</span>
+        )}
       </div>
 
       {/* Répartition par tier : decks du JOUEUR seulement. Devant un deck public,
@@ -368,6 +376,12 @@ const DIFFICULTY_TONE: Record<number, string> = {
   2: 'border-gold/40 bg-gold/10 text-gold',
   3: 'border-tier-4/40 bg-tier-4/10 text-tier-4',
   4: 'border-enemy/40 bg-enemy/10 text-enemy',
+};
+
+// Même palette que DIFFICULTY_TONE, texte seul — pour le badge d'en-tête de la
+// carte, qui n'a pas la place d'un chip bordé.
+const DIFFICULTY_TEXT_TONE: Record<number, string> = {
+  1: 'text-success', 2: 'text-gold', 3: 'text-tier-4', 4: 'text-enemy',
 };
 
 function DifficultyChip({ difficulty }: { difficulty: number }) {
