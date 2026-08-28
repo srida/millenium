@@ -14,12 +14,14 @@
 // l'action. C'est ce qui ajoutait une carte au deck en arrivant dans le
 // DeckBuilder — le bouton « Créer un deck » navigue au pointerdown, et le
 // pointerup retombait sur la grille qui venait de se monter dessous.
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 import type { Card } from '../../logic/types.js';
 import { costHint } from '../../data/CardDatabase.js';
 import { artFor } from '../../data/CardArt.js';
+import { SUMMON_ICONS } from '../../data/SummonInfo.js';
 import { useUiStore, type TooltipContent } from '../../stores/uiStore.js';
 import { Illustration } from './primitives.js';
+import SummonTypeIcon from './SummonTypeIcon.js';
 
 // Cadre : or = sélection / candidat, blanc = matériau retenu — même code couleur
 // que les unités du board (three/UnitCardEl.ts + styles/board3d.css).
@@ -48,7 +50,7 @@ export interface CardTileProps {
   illustrationId: string;
   name: string;
   tier?: number | null;             // null → ni badge T·, ni liseré de tier
-  hint?: string | null;             // pastille de coût d'invocation (costHint)
+  hint?: ReactNode;                 // pastille de coût d'invocation (costHint + renderHint)
   badge?: number | null;            // badge ×N (exemplaires)
   stacked?: boolean;                // épaisseur de pile (plusieurs exemplaires)
   showName?: boolean;
@@ -63,6 +65,26 @@ export interface CardTileProps {
   onTap?: () => void;
 }
 
+type CostHint = { kind: 'multi' } | { kind: 'type'; type: string; count?: number } | null;
+
+// costHint() ne décrit QUE la donnée (type d'invocation, compteur) : c'est ici,
+// pas dans le module data, que la description devient une icône réelle — image
+// posée en admin sur le catalogue des types d'invocation, sinon l'emoji de
+// repli. Le 🔀 « plusieurs recettes » n'est pas un type d'invocation du
+// catalogue à 5 entrées, il reste tel quel (même choix que le tooltip, qui ne
+// lui donne pas non plus d'icône dédiée).
+function renderHint(card: Card): ReactNode {
+  const h = (costHint as (c: unknown) => CostHint)(card);
+  if (!h) return null;
+  if (h.kind === 'multi') return '🔀';
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      {h.count ? `×${h.count}` : null}
+      <SummonTypeIcon type={h.type} fallback={SUMMON_ICONS[h.type]} className="h-2.5 w-2.5 text-[9px]" />
+    </span>
+  );
+}
+
 // Props dérivées d'une carte du catalogue — évite de répéter costHint et le
 // tooltip sur chaque appelant. `illustrationId` passe par `artFor` : la
 // variante choisie pour le deck actif s'applique donc partout où ce helper est
@@ -74,7 +96,7 @@ export function cardTileProps(card: Card): Pick<CardTileProps, 'illustrationId' 
     illustrationId: artFor(card.id),
     name: card.name,
     tier: card.tier,
-    hint: (costHint as (c: unknown) => string | null)(card),
+    hint: renderHint(card),
     tooltip: { kind: 'card', card },
   };
 }
