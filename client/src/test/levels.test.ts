@@ -16,6 +16,11 @@
 //
 // Ce qui est verrouillé ici :
 //   - le barème : 50 golds par niveau, 50 gemmes tous les 5, un objet tous les 10 ;
+//   - les deux ÉCHANGES qui remplacent les golds — 20 gemmes aux niveaux en 2
+//     et 7, un objet aux niveaux en 3 et 8 — et le fait qu'ils ne croisent
+//     jamais les deux marches historiques ;
+//   - les deux rendez-vous annoncés au profil suivent les échanges, ils ne se
+//     calculent plus par un multiple ;
 //   - un gain d'XP qui franchit PLUSIEURS paliers les verse TOUS ;
 //   - le tirage ne sort que des familles qui ont encore quelque chose à donner,
 //     jamais une carte sans illustration, et il est reproductible ;
@@ -124,30 +129,75 @@ beforeAll(() => {
 });
 
 describe('barème', () => {
-  it('50 golds à CHAQUE niveau', () => {
-    for (const level of [2, 3, 7, 11, 42]) {
+  it('50 golds aux niveaux qui n\'échangent pas', () => {
+    for (const level of [1, 4, 6, 9, 11, 44]) {
       expect(levels.rewardsForLevel(level).gold).toBe(50);
     }
     expect(levels.GOLD_PER_LEVEL).toBe(50);
   });
 
-  it('50 gemmes tous les 5 niveaux, et seulement là', () => {
-    expect(levels.rewardsForLevel(5).gems).toBe(50);
-    expect(levels.rewardsForLevel(10).gems).toBe(50);
-    expect(levels.rewardsForLevel(20).gems).toBe(50);
-    for (const level of [2, 3, 4, 6, 9, 11]) expect(levels.rewardsForLevel(level).gems).toBe(0);
+  it('50 gemmes tous les 5 niveaux', () => {
+    for (const level of [5, 10, 15, 20]) expect(levels.rewardsForLevel(level).gems).toBe(50);
+    for (const level of [1, 4, 6, 9, 11]) expect(levels.rewardsForLevel(level).gems).toBe(0);
   });
 
-  it('un objet tous les 10 niveaux, et seulement là', () => {
+  it('un objet tous les 10 niveaux', () => {
     expect(levels.rewardsForLevel(10).draw).toBe(true);
     expect(levels.rewardsForLevel(20).draw).toBe(true);
-    for (const level of [2, 5, 9, 15, 19]) expect(levels.rewardsForLevel(level).draw).toBe(false);
+    for (const level of [1, 5, 9, 15, 19]) expect(levels.rewardsForLevel(level).draw).toBe(false);
   });
 
   it('les trois marches se cumulent : le palier 10 donne les trois', () => {
     // C'est ce cumul qui fait du multiple de 10 un rendez-vous et non un
     // remplacement — le joueur ne perd ni ses golds ni ses gemmes ce jour-là.
     expect(levels.rewardsForLevel(10)).toEqual({ level: 10, gold: 50, gems: 50, draw: true });
+  });
+});
+
+describe('barème — les deux échanges', () => {
+  // ⚠️ Un ÉCHANGE, pas un bonus : le niveau concerné ne verse plus de golds.
+  // C'est ce qui le distingue des marches de 5 et de 10, qui s'ajoutent.
+  it('les niveaux en 2 et 7 donnent 20 gemmes À LA PLACE des golds', () => {
+    for (const level of [2, 7, 12, 17, 42, 97]) {
+      expect(levels.rewardsForLevel(level)).toEqual({ level, gold: 0, gems: 20, draw: false });
+    }
+    expect(levels.GEM_SWAP_AMOUNT).toBe(20);
+    expect([...levels.GEM_SWAP_STEPS]).toEqual([2, 7]);
+  });
+
+  it('les niveaux en 3 et 8 donnent un objet À LA PLACE des golds', () => {
+    for (const level of [3, 8, 13, 18, 43, 98]) {
+      expect(levels.rewardsForLevel(level)).toEqual({ level, gold: 0, gems: 0, draw: true });
+    }
+    expect([...levels.DRAW_SWAP_STEPS]).toEqual([3, 8]);
+  });
+
+  it('aucun échange ne tombe sur une marche de 5 ou de 10', () => {
+    // C'est ce qui garde le barème lisible : un multiple de 5 verse toujours
+    // ses golds ET ses gemmes, un multiple de 10 les trois choses. Si un rang
+    // d'échange devenait multiple de 5, le cumul et le remplacement se
+    // contrediraient sur le même palier.
+    for (const step of [...levels.GEM_SWAP_STEPS, ...levels.DRAW_SWAP_STEPS]) {
+      expect(step % levels.GEMS_EVERY).not.toBe(0);
+      expect(step % levels.DRAW_EVERY).not.toBe(0);
+    }
+  });
+
+  it('une dizaine complète : 300 golds, 140 gemmes, 3 objets', () => {
+    // Le cycle entier, chiffré une fois — c'est lui qu'on relit le jour où on
+    // veut savoir ce que dix niveaux rapportent vraiment.
+    const dizaine = Array.from({ length: 10 }, (_, i) => levels.rewardsForLevel(11 + i));
+    expect(dizaine.reduce((n, r) => n + r.gold, 0)).toBe(300);
+    expect(dizaine.reduce((n, r) => n + r.gems, 0)).toBe(140);
+    expect(dizaine.filter((r) => r.draw)).toHaveLength(3);
+  });
+
+  it('le cycle est le même à chaque dizaine', () => {
+    for (let level = 1; level <= 40; level++) {
+      expect(levels.rewardsForLevel(level + 10)).toEqual({
+        ...levels.rewardsForLevel(level), level: level + 10,
+      });
+    }
   });
 });
 
@@ -210,28 +260,34 @@ describe('dette de paliers', () => {
 });
 
 describe('récupération', () => {
-  it('verse 50 golds par palier, d\'un seul geste', () => {
+  it('verse chaque palier selon SON barème, d\'un seul geste', () => {
+    // 2 → 20 gemmes, 3 → un objet, 4 → 50 golds : les trois figures du cycle
+    // dans la même récupération, et une seule écriture de monnaies.
     const user = newUser();
     levelTo(user().id, 4);
 
     const res = levels.claim(user());
     expect(res.ok).toBe(true);
     expect(res.lines.map((l: any) => l.level)).toEqual([2, 3, 4]);
-    expect(res.granted).toEqual({ gold: 150, gems: 0 });
-    expect(progression.getProgression(user()).gold).toBe(150);
+    expect(res.granted).toEqual({ gold: 50, gems: 20 });
+    expect(res.lines.find((l: any) => l.level === 3).item).toBeTruthy();
+    expect(progression.getProgression(user()).gold).toBe(50);
+    expect(progression.getProgression(user()).gems).toBe(20);
     expect(progression.getProgression(user()).pending_levels).toBe(0);
   });
 
-  it('n\'oublie aucun palier traversé, gemmes comprises', () => {
-    // 10 paliers (2→11) : 10 × 50 golds, et les niveaux 5 et 10 pour les gemmes.
-    // Sauter un intermédiaire dépouillerait le joueur qui joue rarement mais
-    // longtemps.
+  it('n\'oublie aucun palier traversé, échanges compris', () => {
+    // 10 paliers (2→11) : six versent des golds (4, 5, 6, 9, 10, 11), quatre
+    // échangent (2 et 7 en gemmes, 3 et 8 en objet), et 5 et 10 ajoutent leurs
+    // gemmes. Sauter un intermédiaire dépouillerait le joueur qui joue rarement
+    // mais longtemps.
     const user = newUser();
     levelTo(user().id, 11);
 
     const res = levels.claim(user());
     expect(res.lines).toHaveLength(10);
-    expect(res.granted).toEqual({ gold: 500, gems: 100 });
+    expect(res.granted).toEqual({ gold: 6 * 50, gems: 20 + 50 + 20 + 50 });
+    expect(res.lines.filter((l: any) => l.item)).toHaveLength(3);
   });
 
   it('un second tap ne crédite rien', () => {
@@ -260,7 +316,9 @@ describe('récupération', () => {
   it('un niveau gagné entre deux taps reste dû', () => {
     const user = newUser();
     levelTo(user().id, 3);
-    expect(levels.claim(user()).granted).toEqual({ gold: 100, gems: 0 });
+    // Les paliers 2 et 3 échangent tous deux leurs golds : la série n'en verse
+    // aucun, et c'est bien ce qui doit être annoncé.
+    expect(levels.claim(user()).granted).toEqual({ gold: 0, gems: 20 });
 
     levelTo(user().id, 5);
     expect(progression.getProgression(user()).pending_levels).toBe(2);
@@ -282,13 +340,13 @@ describe('récupération', () => {
   });
 });
 
-describe('tirage du palier 10', () => {
+describe('tirage des paliers à objet', () => {
   it('livre un objet réellement acquis, et le nomme', () => {
     const user = newUser();
-    levelTo(user().id, 10);
+    levelTo(user().id, 3);
     const res = levels.claim(user());
 
-    const line = res.lines.find((l: any) => l.level === 10);
+    const line = res.lines.find((l: any) => l.level === 3);
     expect(line.item).toBeTruthy();
     expect(['card', 'avatar', 'variant']).toContain(line.item.type);
     // Le libellé voyage avec l'objet : le client annonce un nom, pas un id.
@@ -305,9 +363,9 @@ describe('tirage du palier 10', () => {
     // Aucune variante au catalogue : un compte neuf n'a donc que deux familles
     // possibles. Sans le filtre, un palier sur trois ne donnerait rien.
     const user = newUser();
-    levelTo(user().id, 10);
+    levelTo(user().id, 3);
     const res = levels.claim(user());
-    expect(res.lines.find((l: any) => l.level === 10).item.type).not.toBe('variant');
+    expect(res.lines.find((l: any) => l.level === 3).item.type).not.toBe('variant');
   });
 
   it('ne tire jamais une carte sans illustration', () => {
@@ -318,32 +376,37 @@ describe('tirage du palier 10', () => {
     ownEveryCard(user().id);
     expect(levels.pools(user()).card).toHaveLength(0);
 
-    levelTo(user().id, 10);
-    const item = levels.claim(user()).lines.find((l: any) => l.level === 10).item;
+    levelTo(user().id, 3);
+    const item = levels.claim(user()).lines.find((l: any) => l.level === 3).item;
     expect(item.type).not.toBe('card');
     expect(progression.ownsCard(user(), NO_ART)).toBe(false);
   });
 
   it('est reproductible à (joueur, niveau) — un tirage douteux se rejoue', () => {
     const user = newUser();
-    levelTo(user().id, 10);
+    // Niveau 3 : le PREMIER palier à objet du jeu, donc le seul dont l'état de
+    // départ soit exactement celui d'un compte neuf. Au-delà, un palier
+    // antérieur a déjà retiré son objet du pool.
+    levelTo(user().id, 3);
 
     // Le tirage attendu est recalculé AVANT le tap, sur l'état exact que
     // `drawItem` verra : la seed est (id, 'level', niveau), rien d'autre.
-    const rand = shop.seededRandom(user().id, 'level', 10);
+    const rand = shop.seededRandom(user().id, 'level', 3);
     const available = levels.pools(user());
     const kinds = levels.DRAW_KINDS.filter((k: string) => available[k].length);
     const expectedKind = shop.pick(kinds, rand);
     const expectedItem = shop.pick(available[expectedKind], rand);
 
-    const item = levels.claim(user()).lines.find((l: any) => l.level === 10).item;
+    const item = levels.claim(user()).lines.find((l: any) => l.level === 3).item;
     expect(item.type).toBe(expectedKind);
     expect(item.id).toBe(expectedItem.id);
   });
 
-  it('deux paliers d\'objet dans le même gain ne donnent pas deux fois la même chose', () => {
+  it('les paliers d\'objet du même gain ne donnent jamais deux fois la même chose', () => {
     // Le tirage lit la collection : il doit avoir lieu palier par palier, pas
-    // une fois pour toutes sur l'état de départ.
+    // une fois pour toutes sur l'état de départ. Six occasions ici (3, 8, 10,
+    // 13, 18, 20) — c'est le rythme du barème depuis les échanges, et c'est
+    // aussi ce qui met le zéro doublon sous pression.
     //
     // ⚠️ La comparaison porte sur (famille, id) et non sur l'id seul : cartes,
     // terrains, magies et variantes partagent l'espace de noms plat du dossier
@@ -354,8 +417,10 @@ describe('tirage du palier 10', () => {
     const res = levels.claim(user());
 
     const items = res.lines.filter((l: any) => l.item).map((l: any) => l.item);
-    expect(items).toHaveLength(2);
-    expect(`${items[0].type}:${items[0].id}`).not.toBe(`${items[1].type}:${items[1].id}`);
+    expect(res.lines.filter((l: any) => l.level % 10 === 3 || l.level % 10 === 8 || l.level % 10 === 0))
+      .toHaveLength(6);
+    expect(items).toHaveLength(6);
+    expect(new Set(items.map((i: any) => `${i.type}:${i.id}`)).size).toBe(6);
   });
 
   it('une carte tirée entre dans la collection et paie la prime de complétion du pack qu\'elle termine', () => {
@@ -383,15 +448,18 @@ describe('tirage du palier 10', () => {
     ownEveryAvatar(other().id);
     expect(levels.pools(other()).card.map((c: any) => c.id)).toEqual([target]);
 
-    levelTo(other().id, 10);
-    const line = levels.claim(other()).lines.find((l: any) => l.level === 10);
+    // Niveau 3 : le premier palier à objet, avant qu'un autre n'ait vidé le
+    // seul candidat qui reste.
+    levelTo(other().id, 3);
+    const line = levels.claim(other()).lines.find((l: any) => l.level === 3);
     expect(line.item.type).toBe('card');
     expect(line.item.id).toBe(target);
     expect(progression.ownsCard(other(), target)).toBe(true);
     // La prime du pack (300 gemmes) s'ajoute aux gemmes des paliers traversés
-    // (niveaux 5 et 10) : c'est bien un gain de plus, pas un remplacement.
+    // (ici l'échange du niveau 2) : c'est bien un gain de plus, pas un
+    // remplacement.
     expect(line.item.sets_completed.map((s: any) => s.set_id)).toContain('PACK_LEVEL');
-    expect(progression.getProgression(other()).gems).toBe(100 + 300);
+    expect(progression.getProgression(other()).gems).toBe(20 + 300);
 
     writeJson('sets.json', []);
   });
@@ -406,9 +474,12 @@ describe('tirage du palier 10', () => {
 
     levelTo(user().id, 10);
     const res = levels.claim(user());
-    expect(res.lines.find((l: any) => l.level === 10).item).toBeNull();
-    expect(res.granted).toEqual({ gold: 9 * 50, gems: 100 });
-    expect(progression.getProgression(user()).gold).toBe(before.gold + 9 * 50);
+    // Les trois paliers à objet de la série (3, 8, 10) ne rendent rien…
+    expect(res.lines.filter((l: any) => l.item)).toHaveLength(0);
+    // …et n'ouvrent AUCUNE compensation : ni golds de repli (ils ont été
+    // échangés), ni gemmes en plus. 5 niveaux payants (4, 5, 6, 9, 10).
+    expect(res.granted).toEqual({ gold: 5 * 50, gems: 20 + 50 + 20 + 50 });
+    expect(progression.getProgression(user()).gold).toBe(before.gold + 5 * 50);
   });
 
   it('l\'objet est tiré AU TAP, pas au moment où le niveau est gagné', () => {
@@ -416,9 +487,9 @@ describe('tirage du palier 10', () => {
     // récupération, le joueur a pu acheter la carte que le tirage aurait mise
     // de côté. Ici on la lui donne juste avant le tap — elle ne doit pas tomber.
     const user = newUser();
-    levelTo(user().id, 10);
+    levelTo(user().id, 3);
 
-    const rand = shop.seededRandom(user().id, 'level', 10);
+    const rand = shop.seededRandom(user().id, 'level', 3);
     const available = levels.pools(user());
     const kinds = levels.DRAW_KINDS.filter((k: string) => available[k].length);
     const wouldDrawKind = shop.pick(kinds, rand);
@@ -428,7 +499,7 @@ describe('tirage du palier 10', () => {
     if (wouldDrawKind === 'card') progression.unlockCard(user().id, wouldDraw.id);
     else cosmetics.unlock(user().id, wouldDrawKind, wouldDraw.id);
 
-    const item = levels.claim(user()).lines.find((l: any) => l.level === 10).item;
+    const item = levels.claim(user()).lines.find((l: any) => l.level === 3).item;
     expect(`${item.type}:${item.id}`).not.toBe(`${wouldDrawKind}:${wouldDraw.id}`);
   });
 });
@@ -449,7 +520,23 @@ describe('annonce au joueur (preview)', () => {
 
     const view = levels.preview(user());
     expect(view.next_gems_level).toBe(10);
-    expect(view.next_draw_level).toBe(10);
+    expect(view.next_draw_level).toBe(8);
+  });
+
+  it('les rendez-vous suivent les ÉCHANGES, ils ne sont pas des multiples', () => {
+    // Le piège de la version d'avant : `next_draw_level` se calculait par le
+    // multiple de 10 supérieur. À partir du niveau 11 il annonçait 20 alors
+    // qu'un objet tombe au 13 — faux de sept niveaux, sur le seul écran qui
+    // répond à « et si je monte, qu'est-ce que j'y gagne ? ».
+    const user = newUser();
+    levelTo(user().id, 11);
+
+    const view = levels.preview(user());
+    expect(view.next_gems_level).toBe(12);
+    expect(view.next_draw_level).toBe(13);
+    // Et l'annonce dit bien ce que le barème appliquera à ces deux niveaux.
+    expect(levels.rewardsForLevel(view.next_gems_level).gems).toBeGreaterThan(0);
+    expect(levels.rewardsForLevel(view.next_draw_level).draw).toBe(true);
   });
 
   it('un palier tout juste atteint ne s\'annonce plus comme à venir', () => {
@@ -457,8 +544,8 @@ describe('annonce au joueur (preview)', () => {
     levelTo(user().id, 10);
 
     const view = levels.preview(user());
-    expect(view.next_gems_level).toBe(15);
-    expect(view.next_draw_level).toBe(20);
+    expect(view.next_gems_level).toBe(12);
+    expect(view.next_draw_level).toBe(13);
     expect(view.upcoming[0].level).toBe(11);
   });
 
@@ -472,9 +559,18 @@ describe('annonce au joueur (preview)', () => {
     expect(view.rules.gems).toEqual({ every: 5, amount: 50 });
     expect(view.rules.draw.every).toBe(10);
     expect(view.rules.draw.kinds).toEqual(['card', 'avatar', 'variant']);
+    // Les échanges voyagent AUSSI : sans eux le client écrirait « chaque niveau
+    // rapporte 50 golds » sur un barème qui n'en verse que six sur dix.
+    expect(view.rules.swaps).toEqual({
+      cycle: 10,
+      gems: { steps: [2, 7], amount: 20 },
+      draw: { steps: [3, 8] },
+    });
 
+    // Le niveau 2 est un échange : c'est bien 20 gemmes et zéro gold qui sont
+    // versés, exactement ce que le barème annoncé décrit.
     progression.grant(user().id, { xp: 100 });
-    expect(levels.claim(user()).granted.gold).toBe(view.rules.gold_per_level);
+    expect(levels.claim(user()).granted).toEqual({ gold: 0, gems: view.rules.swaps.gems.amount });
   });
 
   it('annonce ce qui attend le tap, paliers et total', () => {
@@ -484,8 +580,11 @@ describe('annonce au joueur (preview)', () => {
     const view = levels.preview(user());
     expect(view.pending.map((p: any) => p.level)).toEqual([2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     // Le total est replié par le serveur : le bouton annonce un montant sans
-    // que le client ait à sommer un barème qu'il ne connaît pas.
-    expect(view.pending_totals).toEqual({ gold: 11 * 50, gems: 100, draws: 1 });
+    // que le client ait à sommer un barème qu'il ne connaît pas — et depuis les
+    // échanges, il ne peut PLUS le déduire d'une multiplication.
+    // Golds : 4, 5, 6, 9, 10, 11. Gemmes : 2, 7, 12 (20) + 5, 10 (50).
+    // Objets : 3, 8, 10.
+    expect(view.pending_totals).toEqual({ gold: 6 * 50, gems: 3 * 20 + 2 * 50, draws: 3 });
   });
 
   it('n\'annonce plus rien une fois le tap fait', () => {

@@ -2,13 +2,24 @@
 // SQL, progression.js la COURBE (100 XP par niveau, absorption du palier) ; le
 // barème du palier vit ici, et nulle part ailleurs.
 //
-// Trois marches, de la plus fréquente à la plus rare — c'est ce rythme qui fait
-// qu'un niveau se remarque même quand il ne tombe pas sur un multiple :
+// Deux marches qui S'AJOUTENT aux golds, et deux échanges qui les REMPLACENT.
+// C'est ce rythme — un cycle de dix niveaux, six figures différentes — qui fait
+// qu'un palier se remarque même quand il ne tombe pas sur un multiple :
 //
 //   - CHAQUE niveau        → 50 golds
-//   - tous les 5 niveaux   → 50 gemmes en plus
-//   - tous les 10 niveaux  → un OBJET tiré au sort en plus : carte, avatar ou
+//   - tous les 5 niveaux   → 50 gemmes EN PLUS
+//   - tous les 10 niveaux  → un OBJET tiré au sort EN PLUS : carte, avatar ou
 //     variante d'illustration
+//   - niveaux en 2 et 7    → 20 gemmes À LA PLACE des golds
+//   - niveaux en 3 et 8    → un OBJET À LA PLACE des golds
+//
+// Soit, sur une dizaine : 300 golds (six niveaux), 140 gemmes (deux échanges
+// à 20, deux marches à 50) et trois objets (deux échanges, une marche).
+//
+// ⚠️ La différence entre « en plus » et « à la place » est TOUTE la lecture du
+// barème. Les deux marches historiques tombent sur les rangs 0 et 5, les deux
+// échanges sur 2, 3, 7 et 8 : les quatre règles ne se croisent jamais, et le
+// multiple de 10 reste le seul palier à donner les trois choses à la fois.
 //
 // ⚠️ LE GAIN DE NIVEAU SE RÉCUPÈRE, IL NE TOMBE PAS — même règle que les
 // missions terminées et les cadeaux, et pour la même raison : un crédit
@@ -22,7 +33,7 @@
 // ne se saute pas — ils se récupèrent dans l'ordre et tous à la fois, le
 // joueur n'a rien à arbitrer. Un tap = tous les paliers dus.
 //
-// ⚠️ L'OBJET DU PALIER DE 10 EST TIRÉ AU MOMENT DU TAP, pas au moment où le
+// ⚠️ L'OBJET D'UN PALIER EST TIRÉ AU MOMENT DU TAP, pas au moment où le
 // niveau est gagné. C'est ce qui garantit le zéro doublon : entre le niveau et
 // la récupération, le joueur a pu acheter la carte, l'avatar ou la variante que
 // le tirage aurait mis de côté. Le tirage reste déterministe à (joueur, niveau)
@@ -66,20 +77,60 @@ const GEMS_AMOUNT = 50;
 // courbe : les niveaux 10, 20, 30… sont des rendez-vous, le reste est une pente.
 const DRAW_EVERY = 10;
 
+// --- La variation : quatre niveaux sur dix ne paient PAS en golds ---
+//
+// La pente à 50 golds finissait par ne plus rien dire : neuf paliers sur dix
+// versaient exactement la même chose, et seul le multiple de 5 ou de 10 se
+// remarquait. Quatre niveaux de chaque dizaine ÉCHANGENT donc leurs golds
+// contre autre chose — le gain n'augmente pas, il change de nature.
+//
+// ⚠️ C'est un REMPLACEMENT, pas un cumul : les niveaux en 2, 3, 7 et 8 versent
+// 0 gold. C'est ce qui distingue cette variation des deux marches historiques
+// (5 et 10), qui s'AJOUTENT aux golds — le multiple de 10 reste le seul palier
+// à donner les trois choses à la fois.
+const SWAP_CYCLE = 10;
+
+// Niveaux en 2 et 7 → 20 gemmes à la place des golds. 20 et non 50 : à ce
+// rythme (deux fois par dizaine) le barème des multiples de 5 perdrait son
+// statut de rendez-vous, et les gemmes celui de monnaie rare. 40 gemmes de plus
+// par dizaine restent l'équivalent d'un avatar (5 💎) toutes les deux dizaines
+// et demie — un appoint, pas un robinet.
+const GEM_SWAP_STEPS = Object.freeze([2, 7]);
+const GEM_SWAP_AMOUNT = 20;
+
+// Niveaux en 3 et 8 → un objet à la place des golds. ⚠️ Le palier à objet passe
+// donc de 1 à 3 par dizaine : c'est le poste le plus coûteux du barème (une
+// carte vendue 500 golds en boutique), et c'est assumé — le tirage reste borné
+// par le ZÉRO DOUBLON, il ne peut jamais rendre plus que ce que le joueur ne
+// possède pas encore, et il s'éteint de lui-même sur un compte complet.
+const DRAW_SWAP_STEPS = Object.freeze([3, 8]);
+
 // Les trois familles sont ÉQUIPROBABLES, et le tirage se fait entre celles qui
 // ont encore quelque chose à donner (cf. `drawItem`). Pondérer par valeur
 // marchande (une carte à 500 golds contre un avatar à 5 gemmes) reviendrait à
-// promettre surtout des avatars : le palier de 10 doit être une surprise, pas
+// promettre surtout des avatars : le palier à objet doit être une surprise, pas
 // une aumône statistiquement optimisée.
 const DRAW_KINDS = Object.freeze(['card', 'avatar', 'variant']);
 
+/** Le rang du niveau dans la dizaine (`12` → `2`, `20` → `0`). */
+const stepOf = (level) => level % SWAP_CYCLE;
+
 /** Ce que donne le passage AU niveau `level`. Pur — c'est le barème, rien d'autre. */
 function rewardsForLevel(level) {
+  const step = stepOf(level);
+  const gemSwap = GEM_SWAP_STEPS.includes(step);
+  const drawSwap = DRAW_SWAP_STEPS.includes(step);
+
   return {
     level,
-    gold: GOLD_PER_LEVEL,
-    gems: level % GEMS_EVERY === 0 ? GEMS_AMOUNT : 0,
-    draw: level % DRAW_EVERY === 0,
+    // ⚠️ L'échange est EXCLUSIF des golds — c'est là toute la variation. Aucun
+    // niveau n'est concerné par les deux échanges à la fois (2, 3, 7, 8 sont
+    // distincts), et aucun ne l'est en même temps qu'un multiple de 5 ou de 10 :
+    // les deux marches historiques tombent sur des rangs (0 et 5) que les
+    // échanges ne touchent pas. Le barème reste donc lisible d'un coup d'œil.
+    gold: gemSwap || drawSwap ? 0 : GOLD_PER_LEVEL,
+    gems: (level % GEMS_EVERY === 0 ? GEMS_AMOUNT : 0) + (gemSwap ? GEM_SWAP_AMOUNT : 0),
+    draw: level % DRAW_EVERY === 0 || drawSwap,
   };
 }
 
@@ -229,7 +280,22 @@ const claim = db.transaction((user) => {
 // prochaine marche à gemmes sans transformer le profil en calendrier.
 const PREVIEW_COUNT = 4;
 
-const nextMultiple = (level, step) => (Math.floor(level / step) + 1) * step;
+/**
+ * Prochain niveau, strictement au-dessus de `level`, dont le barème satisfait
+ * `test`. Il ne se calcule PLUS par un multiple : les échanges de rang (2, 3, 7,
+ * 8) donnent des gemmes et des objets entre les multiples, et annoncer « prochain
+ * objet : Nv. 20 » à un joueur de niveau 12 serait faux d'un facteur sept.
+ *
+ * La réponse tombe forcément dans le cycle qui vient — chaque dizaine porte deux
+ * marches à gemmes et trois paliers à objet — d'où la borne, qui n'est là que
+ * pour qu'une modification du barème ne puisse pas boucler à l'infini.
+ */
+function nextLevelMatching(level, test) {
+  for (let l = level + 1; l <= level + SWAP_CYCLE; l++) {
+    if (test(rewardsForLevel(l))) return l;
+  }
+  return null;
+}
 
 /**
  * Ce que le profil affiche : le barème, les prochains paliers, et les deux
@@ -247,10 +313,20 @@ function preview(user) {
   const pending = pendingLevels(user);
 
   return {
+    // Le barème COMPLET, échanges compris : le client écrit la phrase de règle
+    // à partir de là, il ne connaît ni les rangs ni les montants.
     rules: {
       gold_per_level: GOLD_PER_LEVEL,
       gems: { every: GEMS_EVERY, amount: GEMS_AMOUNT },
       draw: { every: DRAW_EVERY, kinds: [...DRAW_KINDS] },
+      // `steps` sont des RANGS dans la dizaine (« les niveaux en 2 et 7 »), pas
+      // des niveaux : c'est ce qui permet à la phrase de règle de tenir en une
+      // ligne au lieu d'énumérer une suite infinie.
+      swaps: {
+        cycle: SWAP_CYCLE,
+        gems: { steps: [...GEM_SWAP_STEPS], amount: GEM_SWAP_AMOUNT },
+        draw: { steps: [...DRAW_SWAP_STEPS] },
+      },
     },
     // Ce qui attend le tap, palier par palier. Les montants sont connus
     // d'avance (c'est un barème) ; l'objet du palier de 10 ne l'est pas — il
@@ -263,12 +339,15 @@ function preview(user) {
       { gold: 0, gems: 0, draws: 0 },
     ),
     upcoming,
-    next_gems_level: nextMultiple(level, GEMS_EVERY),
-    next_draw_level: nextMultiple(level, DRAW_EVERY),
+    // Dérivés du barème lui-même, jamais d'un multiple : les échanges de rang
+    // avancent les deux rendez-vous, et le profil doit annoncer le vrai.
+    next_gems_level: nextLevelMatching(level, r => r.gems > 0),
+    next_draw_level: nextLevelMatching(level, r => r.draw),
   };
 }
 
 module.exports = {
   GOLD_PER_LEVEL, GEMS_EVERY, GEMS_AMOUNT, DRAW_EVERY, DRAW_KINDS, PREVIEW_COUNT,
+  SWAP_CYCLE, GEM_SWAP_STEPS, GEM_SWAP_AMOUNT, DRAW_SWAP_STEPS,
   rewardsForLevel, pools, drawItem, pendingLevels, claim, preview,
 };
