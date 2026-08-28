@@ -256,3 +256,105 @@ describe('conséquence en combat : la jauge est RETENUE, pas dépensée', () => 
     expect(events.filter(e => e.type === 'power').length).toBeGreaterThan(0);
   });
 });
+
+describe('pouvoirs SANS PORTÉE : soin, provocation, téléportation', () => {
+  // Le lanceur est à l'autre bout du board, hors de portée de tout ennemi.
+  // C'est l'état où ces trois pouvoirs étaient muets : la phase d'attaque
+  // s'arrêtait au `canAttack` avant même de regarder la jauge.
+  function distant(power: any, opts: { range?: number; allyHp?: number } = {}) {
+    const board = makeBoard();
+    const caster = spawn(board, makeCard({
+      id: 'P_CASTER', power,
+      stats: { atk: 10, hp: 200, attack_speed: 2, initiative: 9, movement_speed: 99, range: opts.range ?? 1 },
+    }), 'player', { col: 2, row: 0 });
+    const ally = spawn(board, makeCard({
+      id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_speed: 2, initiative: 8, movement_speed: 99, range: 1 },
+    }), 'player', { col: 1, row: 0 });
+    const foe = spawn(board, makeCard({
+      id: 'E_FOE', stats: { atk: 5, hp: 500, attack_speed: 2, initiative: 1, movement_speed: 99, range: 1 },
+    }), 'enemy', { col: 2, row: 10 });
+    const foe2 = spawn(board, makeCard({
+      id: 'E_FOE_2', stats: { atk: 5, hp: 500, attack_speed: 2, initiative: 1, movement_speed: 99, range: 1 },
+    }), 'enemy', { col: 4, row: 10 });
+    if (opts.allyHp !== undefined) ally.current_hp = opts.allyHp;
+
+    const combat = new (CombatManager as any)(board, [caster, ally], [foe, foe2], null);
+    // Un seul tick d'action, sans laisser personne marcher : le sujet est le
+    // tir hors de portée, pas la course qui finirait par mettre à portée.
+    const tick = () => {
+      for (const u of [caster, ally, foe, foe2]) u.movement_speed = 9999;
+      caster.power_gauge = caster.power_speed;
+      const events: any[] = [];
+      for (let i = 0; i < 2; i++) events.push(...combat.step());
+      return events;
+    };
+    return { board, combat, caster, ally, foe, foe2, tick };
+  }
+
+  it('POWER_HEAL part hors de portée — un soigneur de ligne arrière ne pouvait sinon JAMAIS soigner', () => {
+    const d = distant({ id: 'POWER_HEAL', power_speed: 3, value: 40 }, { allyHp: 10 });
+    const events = d.tick();
+    expect(events.some(e => e.type === 'power' && e.power_id === 'POWER_HEAL')).toBe(true);
+    expect(d.ally.current_hp).toBe(50);
+  });
+
+  it('POWER_TAUNT part hors de portée — le tank provoque AVANT le contact, c\'est tout son intérêt', () => {
+    const d = distant({ id: 'POWER_TAUNT', power_speed: 3 });
+    const events = d.tick();
+    expect(events.some(e => e.type === 'power' && e.power_id === 'POWER_TAUNT')).toBe(true);
+    expect(d.caster.taunt_remaining).toBeGreaterThan(0);
+  });
+
+  it('POWER_TELEPORT part hors de portée — il devait être à portée pour se mettre à portée', () => {
+    const d = distant({ id: 'POWER_TELEPORT', power_speed: 3 });
+    const before = Math.abs(d.caster.position.row - d.foe.position.row);
+    const events = d.tick();
+    expect(events.some(e => e.type === 'power' && e.power_id === 'POWER_TELEPORT')).toBe(true);
+    const after = Math.abs(d.caster.position.row - d.foe.position.row)
+                + Math.abs(d.caster.position.col - d.foe.position.col);
+    expect(after).toBeLessThan(before);
+  });
+
+  it('les AUTRES pouvoirs restent muets hors de portée, et gardent leur jauge', () => {
+    for (const id of ['POWER_SUPER_ATTACK', 'POWER_AOE_ATTACK', 'POWER_SHIELD', 'POWER_POISON',
+                      'POWER_BURN', 'POWER_PARALYSIS', 'POWER_PUSH', 'POWER_FREEZE',
+                      'POWER_BLOCK', 'POWER_CONFUSION', 'POWER_DEBUFF']) {
+      const d = distant({ id, power_speed: 3 });
+      const events = d.tick();
+      expect(events.some(e => e.type === 'power')).toBe(false);
+      expect(events.some(e => e.type === 'attack')).toBe(false);   // rien à frapper non plus
+      expect(d.caster.power_gauge).toBeGreaterThanOrEqual(d.caster.power_speed);
+    }
+  });
+
+  it('un pouvoir sans portée mais SANS OBJET reste muet : le soin sur un camp à PV pleins', () => {
+    const d = distant({ id: 'POWER_HEAL', power_speed: 3 });   // personne n'est blessé
+    expect(d.tick().some(e => e.type === 'power')).toBe(false);
+    expect(d.caster.power_gauge).toBeGreaterThanOrEqual(d.caster.power_speed);
+  });
+
+  it('⚠️ la garde de cible nulle : un pouvoir à cible interrogé sans cible ne part pas', () => {
+    // Le seul filet si RANGELESS_POWERS accueillait un jour un pouvoir qui lit
+    // `primaryTarget` — sans elle, la lecture jetterait en plein combat.
+    const d = distant({ id: 'POWER_BLOCK', power_speed: 3 });
+    expect(d.combat._isPowerRelevant(d.caster, null)).toBe(false);
+    expect(d.combat._isPowerRelevant(d.caster, d.foe)).toBe(false);   // E_FOE n'a pas de pouvoir
+  });
+
+  it('la brûlure pulse sur un tir hors de portée : le pouvoir REMPLACE l\'attaque, il ne s\'y soustrait pas', () => {
+    const d = distant({ id: 'POWER_TAUNT', power_speed: 3 });
+    d.caster.burn_stacks.push({ damage: 7 });
+    const hp = d.caster.current_hp;
+    const events = d.tick();
+    expect(events.some(e => e.type === 'power')).toBe(true);
+    expect(hp - d.caster.current_hp).toBe(7);
+  });
+
+  it('hors de portée et sans pouvoir à lancer, l\'unité n\'émet RIEN — elle se contente d\'avancer', () => {
+    const d = distant({ id: 'POWER_SUPER_ATTACK', power_speed: 3 });
+    d.caster.power_gauge = 0;
+    for (const u of [d.caster, d.ally, d.foe, d.foe2]) u.movement_speed = 9999;
+    const events: any[] = d.combat.step();
+    expect(events.filter(e => e.unit === d.caster || e.attacker === d.caster)).toEqual([]);
+  });
+});

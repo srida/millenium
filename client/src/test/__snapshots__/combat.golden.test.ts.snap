@@ -1821,11 +1821,16 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
       "type": "attack",
     },
     {
-      "attacker": "enemy:E_IMMUNE",
-      "damage": 6,
+      "extra": {
+        "ticks": 20,
+      },
+      "power_id": "POWER_TAUNT",
       "step": 6,
-      "target": "player:P_TELEPORTER",
-      "type": "attack",
+      "targets": [
+        "player:P_TAUNTER",
+      ],
+      "type": "power",
+      "unit": "player:P_TAUNTER",
     },
     {
       "extra": {
@@ -1872,6 +1877,32 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
     },
     {
       "from": {
+        "col": 4,
+        "row": 6,
+      },
+      "step": 7,
+      "to": {
+        "col": 4,
+        "row": 5,
+      },
+      "type": "move",
+      "unit": "enemy:E_IMMUNE",
+    },
+    {
+      "from": {
+        "col": 3,
+        "row": 6,
+      },
+      "step": 8,
+      "to": {
+        "col": 4,
+        "row": 6,
+      },
+      "type": "move",
+      "unit": "player:P_TELEPORTER",
+    },
+    {
+      "from": {
         "col": 1,
         "row": 6,
       },
@@ -1897,9 +1928,22 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
       "unit": "player:P_TAUNTER",
     },
     {
+      "from": {
+        "col": 4,
+        "row": 5,
+      },
+      "step": 8,
+      "to": {
+        "col": 3,
+        "row": 5,
+      },
+      "type": "move",
+      "unit": "enemy:E_IMMUNE",
+    },
+    {
       "extra": {
         "from": {
-          "col": 3,
+          "col": 4,
           "row": 6,
         },
         "to": {
@@ -1917,7 +1961,7 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
     },
     {
       "from": {
-        "col": 3,
+        "col": 4,
         "row": 6,
       },
       "step": 8,
@@ -1941,29 +1985,18 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
       "unit": "player:P_BURNER",
     },
     {
-      "from": {
-        "col": 4,
-        "row": 6,
-      },
-      "step": 9,
-      "to": {
-        "col": 3,
-        "row": 6,
-      },
-      "type": "move",
-      "unit": "enemy:E_IMMUNE",
+      "attacker": "enemy:E_IMMUNE",
+      "damage": 6,
+      "step": 8,
+      "target": "player:P_TAUNTER",
+      "type": "attack",
     },
     {
-      "extra": {
-        "ticks": 20,
-      },
-      "power_id": "POWER_TAUNT",
+      "attacker": "player:P_TAUNTER",
+      "damage": 4,
       "step": 9,
-      "targets": [
-        "player:P_TAUNTER",
-      ],
-      "type": "power",
-      "unit": "player:P_TAUNTER",
+      "target": "player:P_BURNER",
+      "type": "attack",
     },
     {
       "attacker": "enemy:E_CONFUSER",
@@ -1977,19 +2010,6 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
       "step": 9,
       "type": "dot",
       "unit": "enemy:E_CONFUSER",
-    },
-    {
-      "from": {
-        "col": 3,
-        "row": 6,
-      },
-      "step": 10,
-      "to": {
-        "col": 3,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "enemy:E_IMMUNE",
     },
     {
       "attacker": "player:P_TELEPORTER",
@@ -2126,6 +2146,37 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
       "type": "attack",
     },
     {
+      "step": 16,
+      "type": "death",
+      "unit": "player:P_TAUNTER",
+    },
+    {
+      "from": {
+        "col": 3,
+        "row": 5,
+      },
+      "step": 17,
+      "to": {
+        "col": 2,
+        "row": 5,
+      },
+      "type": "move",
+      "unit": "enemy:E_IMMUNE",
+    },
+    {
+      "from": {
+        "col": 3,
+        "row": 6,
+      },
+      "step": 18,
+      "to": {
+        "col": 3,
+        "row": 5,
+      },
+      "type": "move",
+      "unit": "player:P_TELEPORTER",
+    },
+    {
       "attacker": "player:P_TELEPORTER",
       "damage": 7,
       "step": 18,
@@ -2140,49 +2191,11 @@ exports[`combat déterministe — golden events > S5 — pouvoirs avancés : BUR
       "type": "attack",
     },
     {
-      "attacker": "player:P_TAUNTER",
-      "damage": 4,
-      "step": 18,
-      "target": "player:P_BURNER",
-      "type": "attack",
-    },
-    {
       "attacker": "enemy:E_IMMUNE",
       "damage": 6,
       "step": 18,
-      "target": "player:P_TAUNTER",
+      "target": "player:P_BURNER",
       "type": "attack",
-    },
-    {
-      "step": 18,
-      "type": "death",
-      "unit": "player:P_TAUNTER",
-    },
-    {
-      "from": {
-        "col": 3,
-        "row": 5,
-      },
-      "step": 19,
-      "to": {
-        "col": 2,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "enemy:E_IMMUNE",
-    },
-    {
-      "from": {
-        "col": 3,
-        "row": 6,
-      },
-      "step": 20,
-      "to": {
-        "col": 3,
-        "row": 5,
-      },
-      "type": "move",
-      "unit": "player:P_TELEPORTER",
     },
     {
       "attacker": "player:P_TELEPORTER",

@@ -96,7 +96,21 @@ export class CombatAnimator3D {
           .filter((e: any) => e.type === 'power' && e.power_id === 'POWER_TELEPORT')
           .map((e: any) => e.unit.uid),
       );
-      for (const evt of events) this._apply(evt, interval, dyingUids, teleportUids);
+      // ⚠️ Une unité qui se téléporte a pu MARCHER plus tôt dans le même tick :
+      // le déplacement et l'attaque ont des horloges indépendantes, et depuis
+      // que le téléport part hors de portée (RANGELESS_POWERS) les deux tombent
+      // ensemble. Ses deux 'move' pousseraient alors deux animations
+      // CONCURRENTES sur le même objet — un lerp de marche et un blink qui se
+      // disputent sa position pendant 0,28 s. Seul le dernier compte : le board
+      // fait foi et il est déjà à la case d'arrivée.
+      const lastMove = new Map<number, number>();
+      events.forEach((e: any, i: number) => {
+        if (e.type === 'move' && teleportUids.has(e.unit.uid)) lastMove.set(e.unit.uid, i);
+      });
+      events.forEach((evt: any, i: number) => {
+        if (evt.type === 'move' && lastMove.has(evt.unit.uid) && lastMove.get(evt.unit.uid) !== i) return;
+        this._apply(evt, interval, dyingUids, teleportUids);
+      });
       this._purgeFrozenCells();
       this._refreshPowerGauges();
       if (this._cm.isOver) {

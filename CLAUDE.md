@@ -2188,7 +2188,7 @@ Chargés depuis `/api/powers`.
 
 Une unité peut avoir : zéro ou un pouvoir.
 
-La jauge gagne `1 + _stat_bonuses.power_charge` par step. Elle est prête à `power_gauge >= power_speed` (`Unit.isPowerReady()`, faux si `is_power_blocked`). Le pouvoir se déclenche alors **dans la phase d'attaque**, donc uniquement si l'unité a une cible à portée et en ligne de vue — **et seulement s'il a quelque chose à faire à cette cible** (cf. « Pertinence vis-à-vis de la cible » plus bas) ; sinon la jauge reste pleine et attend. Quand il part :
+La jauge gagne `1 + _stat_bonuses.power_charge` par step. Elle est prête à `power_gauge >= power_speed` (`Unit.isPowerReady()`, faux si `is_power_blocked`). Le pouvoir se déclenche alors **dans la phase d'attaque**, sous deux conditions : l'unité a une cible à portée et en ligne de vue — **sauf pour les trois pouvoirs sans portée**, cf. plus bas — **et** le pouvoir a quelque chose à faire à cette cible (« Pertinence vis-à-vis de la cible ») ; sinon la jauge reste pleine et attend. Quand il part :
 - Il remplace l'attaque normale du step
 - La jauge se réinitialise (sauf pouvoir non résolu, cf. `POWER_TELEPORT`)
 
@@ -2239,6 +2239,7 @@ C'est ce qui laisse à la brûlure un contre-jeu que le poison n'a pas : une cib
 **Règles importantes :**
 - Un pouvoir ne se déclenche jamais pendant la phase de préparation
 - Le pouvoir **remplace** l'attaque du step ; la jauge se vide, sauf si le pouvoir n'a pas pu se résoudre (`POWER_TELEPORT` sans case libre) ou n'avait rien à faire à la cible (cf. ci-dessous)
+- **Soin, provocation et téléportation partent hors de portée** (`RANGELESS_POWERS`) ; tous les autres exigent une cible à portée et en ligne de vue
 - Une unité `is_effect_immune` (attribut `effect_immunity`) annule poison, burn, paralysie, push, freeze, block et confusion — l'événement `power` est émis avec `extra: { immune: true }`
 - Les effets de pouvoir prennent fin à la fin du combat (`resetCombatStats`)
 - Un `power_id` inconnu retombe sur une attaque normale
@@ -2269,7 +2270,26 @@ Le besoin est celui d'un joueur qui regarde son board : un bloqueur dépensait s
 - ⚠️ **`POWER_TELEPORT` y gagne aussi une attaque.** Sans destination, il rendait `false` : la jauge était bien conservée, mais l'unité perdait **son tick entier** (ni pouvoir, ni attaque). Le filtre passant en amont, elle frappe normalement à la place. `_teleportPlan()` est le calcul partagé entre la question et le pouvoir — deux copies de la recherche de case auraient fini par diverger.
 - **Tous les prédicats sont des fonctions pures de l'état de combat** : rien de nouveau ne voyage sur le réseau, le contrat de déterminisme PvP (`round:board_ready`) est inchangé et `pvp.test.ts` passe sans modification.
 - ⚠️ **Les deux golden combats S4 et S5 ont changé de snapshot, et c'est le sujet même du lot** : S4 montrait un paralyseur re-paralysant une cible qui l'était pour 20 steps encore, S5 un téléporteur sautant à côté d'un ennemi **déjà au contact** — l'un et l'autre perdant le combat que la version filtrée gagne. Un snapshot inchangé aurait voulu dire que rien n'avait bougé.
-- Verrouillé par `client/src/test/power-relevance.test.ts` (26 golden tests, **éprouvés dans les deux sens** — le filtre neutralisé, 19 passent au rouge), qui couvre chaque prédicat par sa paire refus/tir **et** la conséquence en combat : jauge retenue, attaque normale à la place, tir au premier tick où la cible le mérite.
+- Verrouillé par `client/src/test/power-relevance.test.ts` (**éprouvé dans les deux sens** — le filtre neutralisé, 19 de ses cas passent au rouge), qui couvre chaque prédicat par sa paire refus/tir **et** la conséquence en combat : jauge retenue, attaque normale à la place, tir au premier tick où la cible le mérite.
+
+### Pouvoirs sans portée (`RANGELESS_POWERS`)
+
+**Trois pouvoirs n'ont pas besoin d'un ennemi à portée pour partir** : `POWER_HEAL`, `POWER_TAUNT` et `POWER_TELEPORT`. La phase d'attaque s'arrêtait sur le `canAttack` avant même de regarder la jauge, ce qui donnait trois absurdités :
+
+| | Sans la règle |
+|---|---|
+| `POWER_HEAL` | un soigneur de ligne arrière (`range: 1`) ne soignait **jamais** — il devait être au corps à corps pour soigner quelqu'un derrière lui |
+| `POWER_TAUNT` | le tank ne provoquait qu'**une fois au contact**, c'est-à-dire trop tard : provoquer sert à cueillir les ennemis avant qu'ils ne choisissent leur cible |
+| `POWER_TELEPORT` | il fallait être **à portée pour se mettre à portée** — le pouvoir dont le métier est de combler la distance était le seul à exiger qu'elle soit déjà comblée |
+
+**Le critère n'est pas un goût de design, il est structurel** : ces trois-là sont exactement les pouvoirs de `_firePower` qui **ne lisent jamais `primaryTarget`** (le soin parcourt `_allies`, la provocation et le téléport lisent `unit`). C'est ce qui rend la règle sûre — et pourquoi elle est écrite ainsi : ⚠️ **un pouvoir ajouté à `RANGELESS_POWERS` ne doit pas lire la cible**, qui vaut alors `null`.
+
+- Hors de portée, `_isPowerRelevant` est donc interrogé avec `target: null`, et sa **première ligne** est le filet correspondant : un pouvoir à cible sans cible ne fait rien, il rend `false` avant d'atteindre le `switch`. Sans elle, une future entrée dans le set jetterait en plein combat.
+- **La pertinence s'applique quand même** : un soin sur un camp à PV pleins, une provocation déjà en cours ou un téléport qui ne rapprocherait pas restent retenus, à portée comme hors de portée. « Sans portée » lève une condition, il n'en dispense aucune autre.
+- **Hors de portée et sans pouvoir à lancer, l'unité n'émet plus rien** et se contente d'avancer — c'est l'ancien `continue`, simplement déplacé après le test du pouvoir.
+- ⚠️ **La brûlure pulse sur un tir hors de portée.** `_applyBurnStacks` suit l'**action** de l'unité, et un pouvoir *remplace* l'attaque du step : un soin lancé de loin brûle comme une frappe. C'est la seule entorse à « une cible hors de portée cesse de brûler » (cf. « Poison et brûlure »), et elle est cohérente — ce qui borne la brûlure, c'est de ne **rien faire**, pas de ne pas frapper.
+- ⚠️ **Conséquence côté rendu, invisible depuis `logic/` : un téléporteur peut MARCHER puis se téléporter dans le même tick.** Déplacement et attaque ont des horloges indépendantes, et depuis que le téléport part hors de portée les deux tombent ensemble — le step émet alors **deux `move`** pour la même unité (constaté sur le golden S5). `Scene3D.animateUnitMove` et `playBlink` poussent chacun une animation dans `anims` : les deux se disputeraient la position de l'objet pendant 0,28 s, la marche annulant visuellement le blink. `CombatAnimator3D` ne joue donc que le **dernier** `move` d'une unité téléportée sur le tick — le board fait foi, et il est déjà à la case d'arrivée. Rien n'est corrigé côté logique : la marche a bien eu lieu, elle est seulement recouverte.
+- Verrouillé par les 8 golden tests « pouvoirs SANS PORTÉE » de `client/src/test/power-relevance.test.ts` (34 au total), **éprouvés dans les deux sens** — la garde de portée rétablie, 4 passent au rouge. La règle du rendu, elle, n'est pas testée : la suite tourne en node sans DOM (même raison que pour les composants React).
 
 ### Effets visuels — une recette par pouvoir (`three/PowerVfx.ts`)
 

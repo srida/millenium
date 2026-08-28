@@ -13,6 +13,15 @@ const DOT_DAMAGE_DIVISOR = 2;
 const DOT_INTERVAL = 3;              // global steps between DOT pulses
 const BURN_DAMAGE_DIVISOR = 2;
 
+// Powers that do NOT need an enemy within reach to go off, because they never
+// touch the attack target: the heal reads the caster's own side, the taunt and
+// the teleport read the caster itself. Gating them on range made a backline
+// healer with range 1 unable to ever heal, a tank unable to taunt before
+// contact, and — worst of all — a teleporter unable to use the very power whose
+// job is to CLOSE the gap: it had to already be in range to jump into range.
+// ⚠️ A power added here must not read `primaryTarget`, which is then null.
+const RANGELESS_POWERS = new Set(['POWER_HEAL', 'POWER_TAUNT', 'POWER_TELEPORT']);
+
 // A card's `power.value` overrides the constant it maps to; absent, it falls
 // back to the formula below. `||` and not `??` on purpose: a Valeur left at 0
 // in the admin panel reads as "not set", never as "this power does nothing" —
@@ -161,23 +170,33 @@ export class CombatManager {
       u.attack_timer = 0;
 
       const candidates = this._targetCandidates(u, { requireLOS: true });
-      if (candidates.length === 0) continue;
-      const { unit: target } = findAttackTarget(u, candidates, this.board);
-      if (!canAttack(u, target, this.board)) continue; // out of range or no line of sight
+      const target = candidates.length > 0 ? findAttackTarget(u, candidates, this.board).unit : null;
+      // Out of range or without line of sight there is nothing to hit — but the
+      // rangeless powers never needed that target in the first place, so they
+      // are offered a null one rather than being skipped with the attack.
+      const reachable = target !== null && canAttack(u, target, this.board);
+      const powerTarget = reachable ? target : null;
+      const canFire = u.isPowerReady()
+        && (reachable || RANGELESS_POWERS.has(u.power_id))
+        && this._isPowerRelevant(u, powerTarget);
 
       // A full gauge is not enough: the power must have something to do to THIS
       // target (see _isPowerRelevant). When it hasn't, the unit attacks normally
       // and KEEPS its gauge full — same treatment as a power that fails to
       // resolve below, and for the same reason: the charge is held, not burnt.
-      if (u.isPowerReady() && this._isPowerRelevant(u, target)) {
+      if (canFire) {
         // _firePower returns false only for a power that failed to resolve this
         // tick (e.g. POWER_TELEPORT with no free cell) — in that case the gauge
         // stays full so the unit retries on a later tick instead of wasting it.
-        const fired = this._firePower(u, target, events);
+        const fired = this._firePower(u, powerTarget, events);
         if (fired !== false) u.power_gauge = 0;
-      } else {
+      } else if (reachable) {
         this._normalAttack(u, target, events);
+      } else {
+        continue; // nothing in reach, nothing to cast — the unit just closes in
       }
+      // The burn pulses on the CURSED UNIT'S OWN action, and a power replaces
+      // the attack of the step: a rangeless cast burns exactly like a swing.
       this._applyBurnStacks(u, events);
     }
 
@@ -249,6 +268,11 @@ export class CombatManager {
   //   - powers that always land something (super attack, AOE, shield, poison,
   //     burn) — poison and burn stack, shields add up, damage is damage.
   _isPowerRelevant(unit, target) {
+    // `target` is null when nothing is in reach — only RANGELESS_POWERS get
+    // asked in that state, and none of their branches below read it. Any other
+    // power without a target has, by definition, nothing to act on.
+    if (target === null && !RANGELESS_POWERS.has(unit.power_id)) return false;
+
     switch (unit.power_id) {
       // Heals the lowest-HP ally (self included) — worthless at full health.
       case 'POWER_HEAL':
