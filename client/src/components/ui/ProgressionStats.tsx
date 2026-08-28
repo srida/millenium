@@ -167,6 +167,13 @@ export interface LevelRewardsView {
     gold_per_level: number;
     gems: { every: number; amount: number };
     draw: { every: number; kinds: string[] };
+    /** Les niveaux qui ÉCHANGENT leurs golds : `steps` sont des rangs dans la
+     *  dizaine (2 et 7 → gemmes, 3 et 8 → objet), pas des niveaux. */
+    swaps?: {
+      cycle: number;
+      gems: { steps: number[]; amount: number };
+      draw: { steps: number[] };
+    };
   };
   /** Paliers gagnés qui attendent le tap. */
   pending: LevelStep[];
@@ -181,15 +188,24 @@ export interface LevelRewardsView {
 const KIND_LABELS: Record<string, string> = { card: 'carte', avatar: 'avatar', variant: 'variante' };
 const kindList = (kinds: string[]) => kinds.map(k => KIND_LABELS[k] ?? k).join(', ');
 
+// « 2 et 7 » — les rangs d'échange, écrits comme on les dit. Le serveur ne
+// transmet que les nombres : la conjonction est de l'interface.
+const stepList = (steps: number[]) =>
+  steps.length > 1 ? `${steps.slice(0, -1).join(', ')} et ${steps[steps.length - 1]}` : String(steps[0] ?? '');
+
 /** Une marche de la liste « prochains paliers ». */
 function UpcomingRow({ step }: { step: LevelStep }) {
   // Un palier à objet est un rendez-vous, pas une ligne de plus : il est le
   // seul à être souligné, sinon la liste se lit comme quatre fois la même chose.
+  //
+  // ⚠️ Le montant en golds n'est affiché QUE s'il y en a : les niveaux en 2, 3,
+  // 7 et 8 échangent leurs golds contre autre chose, et un « 💰 0 » se lirait
+  // comme une perte plutôt que comme un échange.
   return (
     <li className={`flex items-center justify-between rounded-lg px-2 py-1.5 ${step.draw ? 'bg-gold/10 ring-1 ring-inset ring-gold/40' : 'bg-surface/60'}`}>
       <span className="text-[11px] font-semibold tabular-nums text-white/70">Nv. {fmt.format(step.level)}</span>
       <span className="flex items-center gap-2 text-[11px] tabular-nums">
-        <Amount currency="gold" value={step.gold} />
+        {step.gold > 0 && <Amount currency="gold" value={step.gold} />}
         {step.gems > 0 && <Amount currency="gems" value={step.gems} />}
         {step.draw && <span className="text-white/80">🎁 objet</span>}
       </span>
@@ -259,7 +275,7 @@ export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
             </span>
           </p>
           <div className="mt-1 flex items-baseline gap-2 text-[11px] tabular-nums">
-            <Amount currency="gold" value={totals.gold} />
+            {totals.gold > 0 && <Amount currency="gold" value={totals.gold} />}
             {totals.gems > 0 && <Amount currency="gems" value={totals.gems} />}
             {totals.draws > 0 && (
               // L'objet n'est pas nommé : il n'est tiré qu'au tap (zéro
@@ -282,6 +298,17 @@ export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
         tous les {rules.gems.every} niveaux <Amount currency="gems" value={rules.gems.amount} className="font-semibold" /> en plus,
         et tous les {rules.draw.every} niveaux un objet tiré au sort ({kindList(rules.draw.kinds)}).
       </p>
+
+      {/* Les échanges, en phrase à part : « en plus » et « à la place » sont
+          deux règles opposées, les fondre en une seule phrase ferait lire les
+          quatre rangs comme des bonus supplémentaires. */}
+      {rules.swaps && (
+        <p className="mt-1 text-[11px] leading-relaxed text-white/60">
+          À la place des golds : les niveaux en {stepList(rules.swaps.gems.steps)} donnent{' '}
+          <Amount currency="gems" value={rules.swaps.gems.amount} className="font-semibold" />,
+          ceux en {stepList(rules.swaps.draw.steps)} un objet.
+        </p>
+      )}
 
       <ul className="mt-2 flex flex-col gap-1">
         {levels.upcoming.map(step => <UpcomingRow key={step.level} step={step} />)}
@@ -323,10 +350,15 @@ function LevelReveal({ lines, onClose }: { lines: LevelReward[]; onClose: () => 
           <p className="mt-1 text-base font-semibold text-gold">Niveau {fmt.format(last?.level ?? 1)}</p>
         </div>
 
-        <div className="flex justify-center gap-4 text-sm font-semibold">
-          <Amount currency="gold" value={gold} sign />
-          {gems > 0 && <Amount currency="gems" value={gems} sign />}
-        </div>
+        {/* Une série peut n'être faite que d'échanges (un palier en 3 seul ne
+            donne qu'un objet) : la ligne de monnaies disparaît alors au lieu
+            d'annoncer deux zéros sous les illustrations. */}
+        {(gold > 0 || gems > 0) && (
+          <div className="flex justify-center gap-4 text-sm font-semibold">
+            {gold > 0 && <Amount currency="gold" value={gold} sign />}
+            {gems > 0 && <Amount currency="gems" value={gems} sign />}
+          </div>
+        )}
 
         {!!items.length && (
           <div className="flex flex-wrap justify-center gap-3">
