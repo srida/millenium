@@ -343,9 +343,8 @@ function DeckCard({
         </div>
       )}
 
-      {(difficulty !== null || deck.tags.length > 0) && (
+      {deck.tags.length > 0 && (
         <div className="mt-2 flex flex-wrap items-center gap-1">
-          {difficulty !== null && <DifficultyChip difficulty={difficulty} />}
           {deck.tags.map(t => (
             <span key={t} className="rounded border border-gold/30 bg-gold/10 px-1.5 py-0.5 text-[10px] text-gold">✦ {t}</span>
           ))}
@@ -368,35 +367,11 @@ function DeckCard({
   );
 }
 
-// Difficulté d'un deck public : le libellé (qui nomme l'échelon) ET la jauge de
-// pastilles (qui le situe dans l'échelle). Le nom seul demande de connaître le
-// barème par cœur ; les pastilles seules ne disent pas ce qu'on affronte.
-const DIFFICULTY_TONE: Record<number, string> = {
-  1: 'border-success/40 bg-success/10 text-success',
-  2: 'border-gold/40 bg-gold/10 text-gold',
-  3: 'border-tier-4/40 bg-tier-4/10 text-tier-4',
-  4: 'border-enemy/40 bg-enemy/10 text-enemy',
-};
-
-// Même palette que DIFFICULTY_TONE, texte seul — pour le badge d'en-tête de la
-// carte, qui n'a pas la place d'un chip bordé.
+// Palette du badge de difficulté (en-tête de la carte, à la place du nombre
+// de cartes pour un deck public) — texte seul, pas de place pour un chip bordé.
 const DIFFICULTY_TEXT_TONE: Record<number, string> = {
   1: 'text-success', 2: 'text-gold', 3: 'text-tier-4', 4: 'text-enemy',
 };
-
-function DifficultyChip({ difficulty }: { difficulty: number }) {
-  const tone = DIFFICULTY_TONE[difficulty] ?? 'border-line bg-surface/70 text-white/60';
-  return (
-    <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${tone}`}>
-      {(PublicDeckDatabase as any).difficultyLabel(difficulty)}
-      <span className="flex gap-0.5">
-        {Array.from({ length: (PublicDeckDatabase as any).MAX_DIFFICULTY as number }, (_, i) => (
-          <span key={i} className={`h-1 w-1 rounded-full bg-current ${i < difficulty ? '' : 'opacity-25'}`} />
-        ))}
-      </span>
-    </span>
-  );
-}
 
 function RenameModal({ name, onClose, onConfirm }: { name: string; onClose: () => void; onConfirm: (n: string) => string | null }) {
   const [value, setValue] = useState(name);
