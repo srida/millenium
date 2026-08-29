@@ -55,7 +55,11 @@ export default function GameScreenPvp() {
     const bot = (PvpConnection as any).getBotMatch();
     const session = bot
       ? buildSession(deckName, 'ai', opponent, bot.deck)
-      : buildSession(deckName, 'pvp');
+      // ⚠️ Le rôle est passé à la session, et pour une seule raison : le terrain.
+      // Le monde du rôle B étant le reflet de celui de A, ses cases bloquées
+      // doivent être miroitées — sans quoi les deux clients simulent deux
+      // plateaux différents (cf. `logic/BoardMirror`).
+      : buildSession(deckName, 'pvp', undefined, null, null, null, role);
     const ctrl = bot
       ? new BotController(session, opponent)
       : new PvpController(session, pvpDeps(), role, opponent);

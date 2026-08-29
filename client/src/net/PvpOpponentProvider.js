@@ -3,14 +3,11 @@
 // via PvpConnection. Le round côté serveur ne relaie que des payloads opaques
 // (card_id + position) — la reconstruction des unités est locale.
 import { Unit } from '../logic/Unit.js';
+// ⚠️ Le miroir est le MÊME que celui du terrain, et il n'a qu'une définition
+// (`logic/BoardMirror`) : les cases bloquées et les unités adverses décrivent
+// le même plateau, deux copies de la règle finiraient par ne plus s'accorder.
+import { mirrorRow } from '../logic/BoardMirror.js';
 import * as PvpConnection from './PvpConnection.js';
-
-// Chaque joueur envoie ses positions dans SON orientation locale (toujours
-// rows 0–3, comme Board.isPlayerCell). Le récepteur doit les recevoir en
-// miroir sur les rows 7–10 (enemy) : row' = 10 - row. Board.js range player
-// 0–3 et enemy 7–10 de façon symétrique autour du centre (rows 4–6 neutres),
-// donc cette transformation simple préserve "le plus proche du centre".
-function mirrorRow(row) { return 10 - row; }
 
 const pendingBoards = new Map(); // round -> payload (buffer si arrivé avant l'attente)
 let handler = null;
@@ -30,6 +27,18 @@ export function sendOwnBoard(round, units, playerHp) {
   //   • `current_hp`— les PV ne se régénèrent pas entre les rounds
   //   • `shield`    — un bouclier de magie survit jusqu'au combat suivant
   //   • `veterancy_points` — rejoué par AttributeManager au start_of_combat
+  //   • `power_*`   — les magies `grant_power` et `power_cooldown` réécrivent
+  //                   DURABLEMENT le pouvoir d'une unité (`resetCombatStats` ne
+  //                   touche pas à `power_id`). Sans eux, l'adversaire
+  //                   reconstruit l'unité avec le pouvoir de sa CARTE : un
+  //                   pouvoir donné en Phase Shopping partait chez l'un et pas
+  //                   chez l'autre, et les deux combats divergeaient.
+  //
+  // ⚠️ Les horloges d'attaque et de déplacement, elles, ne voyagent PAS et n'ont
+  // pas à voyager : `GameSession.startCombat` les remet à zéro des deux côtés.
+  // C'est l'inverse du réflexe (« tout état persistant doit voyager ») et c'est
+  // le bon geste ici — un état qui n'a aucune raison de survivre au combat se
+  // supprime, il ne se transporte pas.
   // `player_hp` accompagne le board : les magies globales (player_hp_bonus) ne
   // sont connues que du client qui les a jouées, donc chaque joueur est la
   // source de vérité de ses propres PV.
@@ -44,6 +53,9 @@ export function sendOwnBoard(round, units, playerHp) {
       base: { ...u._base },
       current_hp: u.current_hp,
       shield: u.shield || 0,
+      power_id: u.power_id ?? null,
+      power_speed: u.power_speed,
+      power_value: u.power_value ?? null,
     })),
   };
   PvpConnection.send('round:board_ready', payload);
@@ -84,6 +96,16 @@ export function reconstructOpponentUnits(payload, board, cardDb) {
       ? Math.max(1, Math.min(unit.max_hp, entry.current_hp))
       : unit.max_hp;
     unit.shield = entry.shield || 0;
+    // ⚠️ `'power_id' in entry` et non `entry.power_id ?? unit.power_id` : un
+    // pouvoir peut être ABSENT (`null`) sur une unité dont la carte en porte un
+    // — rien ne le retire aujourd'hui, mais un repli qui rétablirait la valeur
+    // de la carte serait faux le jour où quelque chose le fera. Un payload
+    // antérieur au champ (aucune clé) garde, lui, le pouvoir de la carte.
+    if ('power_id' in entry) {
+      unit.power_id = entry.power_id ?? null;
+      unit.power_value = entry.power_value ?? null;
+      if (typeof entry.power_speed === 'number') unit.power_speed = entry.power_speed;
+    }
     const pos = { col: entry.position.col, row: mirrorRow(entry.position.row) };
     board.placeUnit(unit, pos);
     unit.initial_position = { ...pos };

@@ -14,6 +14,7 @@ import { EnemyAI } from './EnemyAI.js';
 import { AttributeManager } from './AttributeManager.js';
 import { CombatManager } from './CombatManager.js';
 import { applyEffect as applyBoardEffect } from './BoardEffect.js';
+import { mirrorCells } from './BoardMirror.js';
 import { pickBoard, deckAttributes, dominantAttributes } from './BoardPicker.js';
 import type { BoardPickContext, AttributeCounts } from './BoardPicker.js';
 // Modules JS encore non convertis : leurs annotations JSDoc (Card[][], null par
@@ -78,6 +79,16 @@ export interface GameSessionDeps {
    *  tous les modes existants. C'est un primitif générique : `logic/` ne sait
    *  pas que le mode Arcade s'en sert pour durcir ses quatre échelons. */
   enemyBonus?: { atk: number; hp: number } | null;
+  /** Le camp local occupe-t-il le RÉCIPROQUE du repère de description du
+   *  terrain ? En duel en ligne, le monde du rôle B est le reflet de celui de A
+   *  (`net/PvpOpponentProvider.mirrorRow`) : ses cases bloquées doivent être
+   *  miroitées à l'application, faute de quoi les deux clients simulent deux
+   *  plateaux différents. Posé UNE FOIS à la construction de la session, et non
+   *  passé à `startCombat` : il n'y aurait alors qu'à l'oublier sur un des
+   *  chemins d'appel pour que la divergence revienne en silence.
+   *  Absent partout ailleurs — solo, arcade, tournoi, tutoriel et rôle A sont
+   *  déjà dans le repère de description. */
+  mirrorTerrain?: boolean;
 }
 
 export interface EndRoundResult {
@@ -511,10 +522,30 @@ export class GameSession {
     // compris ceux où le terrain arrive de l'extérieur (`agreedBoard`) — une
     // seule ligne tient l'historique du duel.
     if (boardData) this._usedBoardIds.add(boardData.id);
-    this.board.setBlockedCells(boardData?.blocked_cells || []);
+    // ⚠️ Le terrain est une donnée POSITIONNELLE, au même titre que la position
+    // d'une unité : appliqué verbatim des deux côtés d'un duel, il décrit deux
+    // plateaux différents (cf. `logic/BoardMirror`).
+    this.board.setBlockedCells(
+      this.deps.mirrorTerrain
+        ? mirrorCells(boardData?.blocked_cells)
+        : (boardData?.blocked_cells || []),
+    );
 
     const playerUnits = this.board.getLivingUnitsOnSide('player');
     this.enemyUnits = this.board.getLivingUnitsOnSide('enemy');
+
+    // ⚠️ Les horloges d'attaque et de déplacement repartent de zéro à CHAQUE
+    // combat, comme la jauge de pouvoir que `resetCombatStats` remet déjà à 0.
+    // Elles ne le faisaient pas : un survivant gardait le reliquat de son
+    // dernier coup et frappait donc quelques ticks plus tôt au round suivant.
+    // Invisible en solo (une seule simulation), fatal en duel — l'unité
+    // reconstruite depuis le réseau naît, elle, avec des horloges neuves, si
+    // bien que chaque joueur voyait l'adversaire d'en face décalé du sien.
+    // Le geste est ici et non dans `resetCombatStats`, que `POWER_DEBUFF`
+    // appelle EN PLEIN COMBAT : y toucher rendrait la dissipation capable de
+    // décaler le prochain coup de sa cible.
+    for (const u of playerUnits) u.resetCombatClocks();
+    for (const u of this.enemyUnits) u.resetCombatClocks();
 
     this.gameState.startCombat(playerUnits.length, this.enemyUnits.length);
 

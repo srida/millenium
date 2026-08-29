@@ -87,6 +87,40 @@ describe('PvP — reconstruction du board adverse', () => {
     expect(rebuilt.current_hp).toBe(rebuilt.max_hp);
   });
 
+  // ⚠️ `grant_power` et `power_cooldown` (Phase Shopping) réécrivent DURABLEMENT
+  // le pouvoir d'une unité — `resetCombatStats` ne touche pas à `power_id`.
+  // Sans ces trois champs, l'adversaire reconstruisait l'unité avec le pouvoir
+  // de sa CARTE : le pouvoir partait chez son propriétaire et pas chez l'autre,
+  // et les deux simulations divergeaient au premier déclenchement.
+  // Mutation : retirer `power_*` du payload → ROUGE.
+  it('rejoue un pouvoir DONNÉ ou accéléré par une magie', () => {
+    const source = veteranUnit(new Board());
+    source.power_id = 'POWER_HEAL';     // magie grant_power
+    source.power_speed = 7;             // puis power_cooldown (÷2)
+    source.power_value = 40;
+    const { rebuilt } = roundTrip(source);
+    expect(rebuilt.power_id).toBe('POWER_HEAL');
+    expect(rebuilt.power_speed).toBe(7);
+    expect(rebuilt.power_value).toBe(40);
+  });
+
+  // Le pouvoir de la CARTE n'est pas un repli : une unité qui n'en porte plus
+  // ne doit pas le retrouver à la reconstruction. La carte en porte un ici,
+  // sans quoi le cas ne prouverait rien.
+  it('rejoue l\'ABSENCE de pouvoir sans retomber sur celui de la carte', () => {
+    const armed = makeCard({ id: 'PVP_P', power: { id: 'POWER_SHIELD', speed: 20, value: null } as any });
+    const db = { getCard: (id: string) => (id === armed.id ? (armed as any) : null) };
+    const source = new (Unit as any)(armed, 'player') as Unit;
+    expect(source.power_id).toBe('POWER_SHIELD');   // témoin
+    new Board().placeUnit(source, { col: 1, row: 2 });
+    source.power_id = null;
+
+    sent.length = 0;
+    sendOwnBoard(2, [source], 1000);
+    const rebuilt = reconstructOpponentUnits(sent.find(m => m.type === 'round:board_ready'), new Board(), db)[0];
+    expect(rebuilt.power_id).toBeNull();
+  });
+
   it('reste compatible avec un payload legacy (sans base/current_hp/shield)', () => {
     const legacy = { round: 2, units: [{ uid: 1, card_id: CARD.id, position: { col: 0, row: 0 }, veterancy_points: 0 }] };
     const rebuilt = reconstructOpponentUnits(legacy, new Board(), cardDb)[0];

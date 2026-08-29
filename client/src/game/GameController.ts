@@ -337,7 +337,11 @@ export class GameController {
     // Le terrain n'existait jusqu'ici que côté logique (Board._blockedCells) :
     // la scène doit l'afficher, sinon les unités contournent des cases qui ont
     // l'air libres.
-    this.scene?.setBlockedCells(boardData?.blocked_cells ?? []);
+    // ⚠️ Les cases du BOARD, pas celles de la définition de terrain : en duel
+    // en ligne le rôle B applique les cases miroitées (`logic/BoardMirror`), et
+    // peindre les rochers d'après `boardData` poserait le décor à côté des
+    // obstacles que le pathfinding contourne réellement.
+    this.scene?.setBlockedCells(this.session.board.blockedCells());
     this.scene?.setTerrainBackground(boardData ?? null);
     this.scene?.enterCombatMode();
     // L'IA place ses unités au moment du PRÊT : elles n'ont pas encore d'objet
@@ -348,7 +352,11 @@ export class GameController {
     this._combatRemaining = COMBAT_DURATION_S;
     this._noteCombatStarted();
     this._recorder = this._newRecorder();
-    this._recorder?.header(combat, boardData);
+    // Même raison : le log doit porter le terrain TEL QU'IL EST JOUÉ. Le lire
+    // sur `boardData` ferait ressortir en divergence tout terrain non
+    // symétrique — c'est-à-dire la moitié du catalogue — alors que les deux
+    // clients s'accordent désormais dessus.
+    this._recorder?.header(combat, { ...boardData, blocked_cells: this.session.board.blockedCells() });
     const animator = new CombatAnimator3D(combat, this.scene as any, {
       onStep: (events: any[]) => {
         this._recorder?.capture(combat, events);

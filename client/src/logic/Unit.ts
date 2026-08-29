@@ -198,6 +198,21 @@ export class Unit {
     }
   }
 
+  /**
+   * Les deux horloges internes du combat — elles ne portent aucun acquis du
+   * joueur (ni stat, ni statut) : seulement « où en est cette unité de son
+   * cycle d'attaque / de déplacement ».
+   *
+   * ⚠️ SÉPARÉE de `resetCombatStats`, que `POWER_DEBUFF` appelle EN PLEIN
+   * COMBAT : la dissipation efface bonus et statuts, elle n'a pas à décaler le
+   * prochain coup de sa cible. C'est `GameSession.startCombat` qui remet les
+   * horloges à zéro, une fois par combat et pour les deux camps.
+   */
+  resetCombatClocks(): void {
+    this.attack_timer = 0;
+    this.move_timer = 0;
+  }
+
   // Called by POWER_DEBUFF and at end of combat — strip all bonuses and status effects
   resetCombatStats(): void {
     this._stat_bonuses = {};
