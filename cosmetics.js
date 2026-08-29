@@ -27,6 +27,7 @@ const { jsonCache } = require('./json-cache');
 const { db, stmt } = require('./db');
 const progression = require('./progression');
 const variants = require('./variants');
+const decks = require('./decks');
 // Même rotation que la boutique de cartes — pas une copie, la même fonction.
 const { dayKey, nextRotationAt, seededRandom } = require('./shop');
 
@@ -302,19 +303,14 @@ const buy = db.transaction((user, kind, id) => {
  * livre de ce joueur : il ne peut rien injecter.
  */
 function deckVariantMap(userId, deckName) {
-  const row = stmt.deckBookByUser.get(userId);
-  if (!row) return {};
-  let book;
-  try { book = JSON.parse(row.data); } catch { return {}; }
-
-  const name = deckName && book?.decks?.[deckName] ? deckName : book?.active;
-  const deck = book?.decks?.[name];
-  if (!deck) return {};
-
-  const inDeck = new Set();
-  for (const ids of Object.values(deck)) {
-    for (const id of Array.isArray(ids) ? ids : []) inDeck.add(id);
-  }
+  // ⚠️ La résolution du livre et du nom de deck vit dans `decks.js`, en un seul
+  // exemplaire : le relais PvP en a besoin lui aussi (attributs du deck), et
+  // deux lectures du même livre finiraient par ne plus s'accorder sur le repli
+  // « nom inconnu → deck actif ».
+  const resolved = decks.resolveDeck(userId, deckName);
+  if (!resolved) return {};
+  const { name, book } = resolved;
+  const inDeck = decks.deckCardIds(userId, deckName);
 
   const owned = new Set(ownedOf(userId).variants);
   const out = {};

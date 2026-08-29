@@ -12,6 +12,7 @@ const crypto = require('crypto');
 const { stmt } = require('../db');
 const progression = require('../progression');
 const cosmetics = require('../cosmetics');
+const decks = require('../decks');
 
 const GRACE_PERIOD_MS = 45_000;
 
@@ -26,6 +27,35 @@ const matchByUser = new Map();  // userId -> matchId
 // (`round:board_ready`).
 function playerInfo(userId, ws) {
   return { id: userId, username: ws?.username, tag: ws?.tag, avatar: ws?.avatar };
+}
+
+/**
+ * Ce que le serveur DÉRIVE du deck engagé par un joueur, pour l'annoncer à son
+ * adversaire. Deux faits, un seul point d'appel — ils voyagent ensemble dans
+ * `match:found` ET `match:rejoined`, et les laisser se séparer voudrait dire
+ * qu'un client reconnecté n'aurait qu'une moitié de son adversaire.
+ *
+ * Aucun des deux ne vient du client : il n'envoie qu'un NOM de deck, qui ne sert
+ * qu'à choisir une clé de son propre livre.
+ *
+ * - `variants` : cosmétique (l'art des cartes adverses), filtré par possession.
+ * - `deck_attribute_counts` : PAS cosmétique — c'est ce qui permet au rôle A de
+ *   choisir un terrain de combat pertinent pour l'un des deux decks, donc des
+ *   bonus de stats réels. Ce sont des COMPTES bruts : le seuil qui décide de ce
+ *   qui « identifie » un deck vit côté client, dans `logic/BoardPicker.ts`, en
+ *   un seul exemplaire.
+ *
+ * ⚠️ Divulgation assumée : l'adversaire apprend les attributs dominants du deck
+ * avant la première unité posée. La puce 🗺️ du terrain annonce déjà la même
+ * chose un round plus tard, et l'alternative — faire choisir le terrain par le
+ * serveur — mettrait de la logique de jeu dans un relais dont tout le principe
+ * est d'être OPAQUE.
+ */
+function deckDerived(userId, deckName) {
+  return {
+    variants: cosmetics.deckVariantMap(userId, deckName),
+    deck_attribute_counts: decks.deckAttributeCounts(userId, deckName),
+  };
 }
 
 function send(ws, type, payload = {}) {
@@ -76,8 +106,8 @@ function createMatch(connA, connB) {
     created_at: now,
   });
 
-  const infoA = { ...playerInfo(connA.userId, connA.ws), variants: cosmetics.deckVariantMap(connA.userId, connA.deckName) };
-  const infoB = { ...playerInfo(connB.userId, connB.ws), variants: cosmetics.deckVariantMap(connB.userId, connB.deckName) };
+  const infoA = { ...playerInfo(connA.userId, connA.ws), ...deckDerived(connA.userId, connA.deckName) };
+  const infoB = { ...playerInfo(connB.userId, connB.ws), ...deckDerived(connB.userId, connB.deckName) };
 
   send(connA.ws, 'match:found', { matchId, opponent: infoB, youAre: 'A' });
   send(connB.ws, 'match:found', { matchId, opponent: infoA, youAre: 'B' });
@@ -260,7 +290,7 @@ function handleRejoin(ws, matchIdHint, userId) {
   // À la reconnexion aussi : sans ça, un joueur revenu en jeu perdrait l'art
   // de son adversaire pour le reste du match.
   const opponentInfo = other.ws
-    ? { ...playerInfo(other.userId, other.ws), variants: cosmetics.deckVariantMap(other.userId, other.deckName) }
+    ? { ...playerInfo(other.userId, other.ws), ...deckDerived(other.userId, other.deckName) }
     : { id: other.userId };
 
   send(ws, 'match:rejoined', { matchId: match.id, round: match.round, opponent: opponentInfo, youAre: role });

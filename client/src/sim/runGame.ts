@@ -66,8 +66,11 @@ export function runGame(deps: RunGameDeps): GameResult {
     attributeList: deps.attributeList,
     cardDb: deps.cardDb,
     // Le terrain est TIRÉ, donc semé comme le reste : cases bloquées et ligne
-    // de vue pèsent réellement sur les unités à distance.
-    getRandomBoard: () => (deps.boards.length ? deps.boards[Math.floor(rand() * deps.boards.length)] : null),
+    // de vue pèsent réellement sur les unités à distance. Le tirage lui-même a
+    // migré DANS la session (`BoardPicker`), qui seule connaît les deux decks et
+    // les terrains déjà joués ; il reste conduit par ce même `rand`, à un appel
+    // par combat et au même point du flux — les suites semées restent en phase.
+    getAllBoards: () => deps.boards,
     // La Phase Shopping est hors périmètre (elle exigerait une politique de
     // magies pour l'IA) : rien ne la déclenche ici, la dep n'est jamais appelée.
     getAllMagies: () => [],

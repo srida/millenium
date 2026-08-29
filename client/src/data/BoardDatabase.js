@@ -15,12 +15,13 @@ export function getBoard(id) {
   return _byId[id] ?? null;
 }
 
+// ⚠️ `getRandomBoard` a été SUPPRIMÉE : le tirage du terrain vit dans
+// `logic/BoardPicker.pickBoard` — filtré par pertinence vis-à-vis des deux
+// decks, conscient des terrains déjà joués, et SEMÉ par le `rand` de la partie.
+// La laisser aurait maintenu un second chemin de tirage, ni filtré ni semé,
+// portant très exactement le nom que la prochaine fonctionnalité aurait repris
+// (même geste que `MagieDatabase.getRandomMagies`).
 export function getAllBoards() {
   if (!_initialized) throw new Error('BoardDatabase not initialized');
   return _boards;
-}
-
-export function getRandomBoard() {
-  if (!_initialized || _boards.length === 0) return null;
-  return _boards[Math.floor(Math.random() * _boards.length)];
 }

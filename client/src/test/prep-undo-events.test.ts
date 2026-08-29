@@ -43,7 +43,7 @@ function makeController(cards: any[]) {
     enemyDeck: {},
     attributeList: [],
     cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
-    getRandomBoard: () => null,
+    getAllBoards: () => [],
     getAllMagies: () => [],
   };
   const session = new GameSession(deps);

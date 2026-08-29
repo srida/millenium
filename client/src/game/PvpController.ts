@@ -23,7 +23,6 @@ import * as CardArt from '../data/CardArt.js';
 interface PvpDeps {
   cardDb: { getCard(id: string): any };
   getBoard: (id: string) => BoardDef | null;
-  getRandomBoard: () => BoardDef | null;
 }
 
 export class PvpController extends GameController {
@@ -49,10 +48,12 @@ export class PvpController extends GameController {
     // soit posée. Purement cosmétiques, elles n'entrent jamais dans le payload
     // de déterminisme du round.
     CardArt.setEnemyVariants((PvpConnection as any).getOpponent()?.variants ?? null);
+    this._applyOpponentDeck();
     // Après une reconnexion, l'adversaire est re-annoncé : on le relit, sinon
     // le reste du match se jouerait avec l'art d'origine.
     this._listen('match:rejoined', () => {
       CardArt.setEnemyVariants((PvpConnection as any).getOpponent()?.variants ?? null);
+      this._applyOpponentDeck();
     });
     // Écoute les messages de round + fin de match, puis démarre la préparation.
     this._listen('round:go', (m) => this._onRoundGo(m));
@@ -79,9 +80,13 @@ export class PvpController extends GameController {
 
     // 1) J'annonce mon board (unités + état persistant + mes PV).
     sendOwnBoard(round, this.session.getPlayerUnits(), this.session.gameState.player_hp);
-    // 2) Le rôle A choisit le terrain et le diffuse (déterminisme : un seul tirage).
+    // 2) Le rôle A choisit le terrain et le diffuse (déterminisme : un seul
+    //    tirage). Il le demande à SA session, seule à connaître les attributs
+    //    des deux decks et les terrains déjà joués — et elle ne consomme rien
+    //    ici : c'est l'id que le serveur renverra dans `round:go` qui sera
+    //    marqué comme joué, des deux côtés, par `startCombat`.
     if (this.role === 'A') {
-      const board = this.pvp.getRandomBoard();
+      const board = this.session.pickCombatBoard();
       PvpConnection.send('round:terrain_pick', { round, boardId: board?.id ?? null });
     }
     // 3) J'attends le board adverse en parallèle, puis j'acquitte la barrière.
@@ -160,6 +165,24 @@ export class PvpController extends GameController {
     if (this._finished) return;
     this._finished = true;
     PvpConnection.send('match:forfeit');
+  }
+
+  /**
+   * Les attributs du deck adverse, dérivés par le SERVEUR de son deck book et
+   * transportés dans `match:found` / `match:rejoined` — le trajet exact des
+   * variantes d'illustration, et pour la même raison : le client n'envoie qu'un
+   * NOM de deck, qui ne sert qu'à choisir une clé de son propre livre.
+   *
+   * ⚠️ Eux, en revanche, ne sont PAS cosmétiques : ils décident du terrain,
+   * donc de bonus de stats réels.
+   *
+   * ⚠️ On n'écrase QUE si le champ est présent. `match:rejoined` peut porter un
+   * adversaire dégénéré (`{ id }` quand sa socket est tombée) : repartir sur des
+   * comptes vides changerait la règle de tirage en plein match.
+   */
+  private _applyOpponentDeck(): void {
+    this.session.setEnemyDeckAttributeCounts(
+      (PvpConnection as any).getOpponent()?.deck_attribute_counts);
   }
 
   private _pvpNotify(msg: string): void { useGameStore.getState().applySnapshot({ errorFlash: msg }); }
