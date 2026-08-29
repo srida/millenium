@@ -3113,3 +3113,4 @@ Préférer :
 Le jeu doit ressembler à :
 
 "TFT avec la cadence de Marvel Snap."
+
