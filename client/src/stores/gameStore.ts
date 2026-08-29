@@ -35,6 +35,20 @@ export interface ShoppingState {
   banner: string | null;
 }
 
+/**
+ * Le terrain annoncé à l'entrée en combat — `null` dès que le premier coup part.
+ *
+ * ⚠️ `boosted` compte les unités RÉELLEMENT touchées, avec le filtre même de
+ * `BoardEffect.applyEffect` (`effectTargets`) : l'annonce ne peut donc pas dire
+ * autre chose que ce que l'effet a fait. `null` quand l'effet ne lit pas
+ * `target_attributes` (`draw_bonus`), auquel cas il n'y a aucun décompte à
+ * afficher.
+ */
+export interface TerrainAlertSnapshot {
+  board: import('../logic/types.js').BoardDef;
+  boosted: { player: number; enemy: number } | null;
+}
+
 export interface SummonOptionMenuSnapshot {
   card: Card;
   options: { index: number; summon_type: string; label: string; ok: boolean }[];
@@ -59,6 +73,7 @@ export interface GameSnapshot {
   invocationBanner: string | null;
   errorFlash: string | null;
   boardTerrain: import('../logic/types.js').BoardDef | null;
+  terrainAlert: TerrainAlertSnapshot | null;
   combatActive: boolean;
   combatRemaining: number;   // secondes restantes de combat
   speed: number;
@@ -84,7 +99,7 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   round: 1, phase: 'preparation', playerHp: 1000, enemyHp: 1000,
   playerMultiplier: 1, enemyMultiplier: 1, boardSlots: 5, placedCount: 0, canUndo: false,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
-  boardTerrain: null, combatActive: false, combatRemaining: 60, speed: 2, paused: false,
+  boardTerrain: null, terrainAlert: null, combatActive: false, combatRemaining: 60, speed: 2, paused: false,
   prepRemaining: 60, endRound: null, shopping: null, shoppingRemaining: SHOPPING_DURATION_S, summonOptions: null,
   menuOpen: false, coachBlocking: false, gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
 };

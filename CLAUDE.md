@@ -1947,6 +1947,28 @@ Les 14 terrains livrés portent **tous** un `target_attributes`. Un tirage aveug
 
 Verrouillé par `client/src/test/board-picker.test.ts` (23 golden tests sur le module pur) et `client/src/test/board-selection.test.ts` (11 au niveau `GameSession`). Tous **éprouvés dans les deux sens** — 19 régressions réintroduites une par une (filtre de non-répétition retiré, échelons inversés, seuil ramené à 1, deck adverse ignoré, `setEnemyDeckAttributeCounts` sans effet, tri supprimé, `rand` appelé sur pool vide, marquage déplacé dans le tirage…), chacune fait passer la suite au rouge.
 
+### L'annonce du terrain (entrée en combat)
+
+Le terrain décide de bonus de stats **réels** et change à chaque round — mais sa seule trace à l'écran était la puce 🗺️ de la barre de combat, qu'il fallait **taper** pour lire l'effet, et qui n'apparaît qu'une fois le combat lancé. `TerrainAlert` (`components/overlays/Overlays.tsx`) l'annonce donc pendant `TERRAIN_ALERT_MS` (2,5 s) : illustration, nom, effet, archétypes ciblés, et **combien d'unités de chaque camp** sont touchées.
+
+⚠️ **Le combat ATTEND l'annonce, et il n'y a QU'UN minuteur pour ça.** `_beginCombatAnimation` retenait déjà le premier coup le temps de la cascade d'arrivée de l'IA (`revealEnemyUnits`) : on **allonge ce délai** à `max(revealMs, TERRAIN_ALERT_MS)` au lieu d'en ajouter un second. Deux horloges pour un même départ finiraient par ne plus s'accorder.
+
+⚠️ **Le tap qui passe l'annonce ne peut PAS démarrer le combat avant la fin de la cascade.** `dismissTerrainAlert` retire l'annonce tout de suite mais **réarme pour le reliquat** (`_combatStartAt`) : sinon un tap à 0,3 s lancerait le premier coup pendant que l'adversaire est encore en l'air.
+
+⚠️ **`_pendingCombatStart` est un CHAMP, pas une closure locale** : le tap et le minuteur doivent déclencher le **même** départ, et une seule fois — il se remet à `null` en partant, donc un double tap ne lance pas deux combats. `dispose()` l'annule *et* vide le minuteur ; sans le `clearTimeout`, la garde d'identité de l'animateur masque la fuite et le test passe au vert (constaté — d'où l'assertion sur `vi.getTimerCount()`).
+
+⚠️ **Le décompte annoncé ne PEUT PAS contredire ce que l'effet a fait** : `logic/BoardEffect.effectTargets` est extrait d'`applyEffect`, qui l'appelle, et `terrainAlertFor` compte avec **la même fonction**. Un second filtre écrit côté annonce aurait fini par dire autre chose.
+
+⚠️ **`draw_bonus` n'affiche aucun décompte** (`boosted: null`) : il crédite le joueur quoi qu'il arrive, sans regarder `target_attributes` — annoncer « 3 unités boostées » sous lui ferait mentir l'écran. La règle est `data/BoardInfo.boardTargetsUnits`, lue aussi par l'infobulle.
+
+- **Un terrain qui ne touche personne le DIT** (« Aucune unité en jeu n'en profite »). La sélection préfère un terrain pertinent mais cède devant la non-répétition : le cas arrive, et le taire laisserait croire à un bonus qu'on n'a pas.
+- **Pas de `Modal`** : elle poserait un voile noir sur ce qu'on vient annoncer. Une couche transparente `z-40` suffit, et c'est elle qui capte le tap. ⚠️ `z-40` et pas plus : `TutorialCoach` est en `z-50` avec sa bulle en `pointer-events-auto` — au-dessus, l'annonce lui volerait ses taps. Contrepartie assumée : pendant 2,5 s la barre de combat (`z-20`) n'est pas tapable, le premier tap servant à passer l'annonce.
+- **La vignette carrée** (`/illustrations/<id>`), jamais le fond de grille `/board-backgrounds/<id>` — celui-ci est un plan 5:11, il serait déformé dans un cadre carré.
+- **Le composant ne pilote rien** : aucun minuteur à lui, il disparaît quand `terrainAlert` repasse à `null`. Le départ du combat appartient au contrôleur.
+- **L'animation** reprend la grammaire du toast de pouvoir (`power-toast-anim`) : un seul jeu d'images-clés qui **apparaît / tient / s'efface**, durée posée par une propriété personnalisée depuis `TERRAIN_ALERT_MS` — une seule source, sinon l'animation et l'attente dérivent. ⚠️ En `prefers-reduced-motion: reduce` l'annonce **reste affichée et le combat attend toujours** : c'est le mouvement qu'on retire, pas l'information.
+- **PvP** : même chemin (`_onRoundGo` → `_beginCombatAnimation`), et `revealMs` y vaut 0 — l'attente est donc entièrement celle de l'annonce. ⚠️ Aucune désynchronisation possible : le combat est simulé localement des deux côtés et le résultat n'est rapporté qu'à la fin ; un délai d'affichage ne traverse pas le réseau. Le chrono de combat ne dérive pas non plus, il est dérivé des **ticks** de l'animateur, jamais d'une horloge murale.
+- Verrouillé par `client/src/test/board-alert.test.ts` (10 golden tests) et `client/src/test/board-info.test.ts` (11). Tous **éprouvés dans les deux sens** — 8 régressions réintroduites une par une. ⚠️ Le rendu, lui, n'est pas testé : la suite tourne en node sans DOM. Il se vérifie au navigateur (cf. « Vérification » ci-dessous).
+
 ### Rendu en jeu
 
 `GameSession.startCombat` pose les cases bloquées sur le `Board` (logique) ; c'est `GameController` qui les transmet à la scène (`Scene3D.setBlockedCells`) au lancement de l'animation et les efface en fin de combat — sans quoi les unités contourneraient des cases visuellement libres. Le terrain tiré est aussi affiché dans la barre de combat (chip `🗺️`, tap → tooltip nom + effet).
@@ -2529,6 +2551,8 @@ Le tooltip d'une **carte** (main, cimetière, DeckBuilder, boutique, TestBench �
 - Les **remises des magies** sont visibles là où le joueur en a besoin : coût de sacrifice réduit (`_original_sacrifice` → « réduit de N »), transformation sans cible (`_free_transformation`) et matériels de fusion retirés (`_removed_materials`). ⚠️ Ce dernier est **gardé par le type de voie** : le champ vit sur la *carte*, une carte à `summon_options` l'annoncerait sur toutes ses recettes — un héritage se vanterait d'une remise qu'il n'a pas reçue.
 - Une **normale sans rien à exiger n'affiche pas de bloc** — « la carte se pose » n'apprend rien.
 - Rien de tout ça sur un tooltip d'**unité** : elle est déjà invoquée, sa recette n'est plus actionnable (sa lignée 🧬, elle, reste affichée).
+⚠️ Même patron pour le terrain : **`data/BoardInfo.ts`** (`boardEffectLabel`, `boardTargetsUnits`) et **`data/StatLabels.ts`** (`STAT_LABELS`) sont purs pour la même raison — l'infobulle 🗺️ et l'annonce d'entrée en combat décrivent le même terrain, et deux descriptions finissent par ne plus dire la même chose. Les helpers vivaient en privé dans `TooltipHost` ; `attributeName` est désormais exporté par `components/ui/AttrIcon.tsx`, qui porte déjà le même `try/catch` (`getAttribute` **jette** tant que la database n'est pas initialisée).
+
 - Verrouillé par `client/src/test/summon-info.test.ts` (21 golden tests), qui lit le catalogue depuis `initial-data/cards.json` : un matériel pointant sur un id inconnu casse ici plutôt qu'en affichant un identifiant brut au joueur.
 
 ---

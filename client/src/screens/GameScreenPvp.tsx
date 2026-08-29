@@ -27,7 +27,7 @@ import PhaseControls from '../components/hud/PhaseControls.js';
 import GameMenu from '../components/hud/GameMenu.js';
 import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
-import { SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
+import { TerrainAlert, SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import { PhaseTimer, Banners } from '../components/hud/PhaseTimer.js';
 import { PREP_DURATION_S, SHOPPING_DURATION_S } from '../game/timings.js';
@@ -118,6 +118,7 @@ export default function GameScreenPvp() {
       <Banners />
       <SummonOptionMenu />
       <WaitingOverlay />
+      <TerrainAlert />
       <EndRoundOverlay />
       <ShoppingLayer />
       <ResultOverlay opponentAvatar={opponentAvatar} />

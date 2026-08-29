@@ -12,6 +12,22 @@
 import { getAttribute } from '../../data/AttributeDatabase.js';
 import { Illustration } from './primitives.js';
 
+/**
+ * Le NOM d'un attribut, avec le même filet que son icône.
+ *
+ * ⚠️ `getAttribute` JETTE tant que la database n'est pas initialisée : le repli
+ * sur l'id brut vaut mieux qu'un écran blanc. La fonction vit ici plutôt que
+ * dans un module de données parce que c'est exactement la préoccupation de ce
+ * fichier — nommer et illustrer un attribut sans jamais casser.
+ */
+export function attributeName(id: string): string {
+  try {
+    return (getAttribute as (id: string) => { name?: string } | null)(id)?.name ?? id;
+  } catch {
+    return id;
+  }
+}
+
 export default function AttrIcon({ id, fallback, className = '' }: {
   id: string;
   /** Emoji de secours quand la database n'est pas joignable (snapshot de jeu). */
