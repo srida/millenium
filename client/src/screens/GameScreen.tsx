@@ -17,7 +17,7 @@ import PhaseControls from '../components/hud/PhaseControls.js';
 import GameMenu from '../components/hud/GameMenu.js';
 import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
-import { SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
+import { TerrainAlert, SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import TutorialCoach from '../components/tutorial/TutorialCoach.js';
 import { PhaseTimer, Banners } from '../components/hud/PhaseTimer.js';
@@ -151,6 +151,7 @@ export default function GameScreen() {
           l'écran Arcade / Tournoi, où ils sont actionnables. */}
       <Banners />
       <SummonOptionMenu />
+      <TerrainAlert />
       <EndRoundOverlay />
       <ShoppingLayer />
       {inTournament

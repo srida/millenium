@@ -102,3 +102,25 @@ input, textarea, select { font-size: 1rem !important; }
   /* Taille minimale des cibles tactiles (mobile-first) */
   --spacing-tap: 44px;
 }
+
+/* ── Annonce du terrain à l'entrée en combat (cf. `TerrainAlert`) ──
+   Apparaît / tient / s'efface, en un seul jeu d'images-clés — la grammaire du
+   toast de pouvoir (`power-toast-anim`, styles/board3d.css), et pour la même
+   raison : une durée en propriété personnalisée, posée par le composant depuis
+   `TERRAIN_ALERT_MS`, pour que l'animation et l'attente du combat ne puissent
+   pas dériver l'une de l'autre. */
+@keyframes terrain-alert-anim {
+  0%   { opacity: 0; transform: translateY(10px) scale(.94); }
+  12%  { opacity: 1; transform: none; }
+  82%  { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-8px) scale(.98); }
+}
+.terrain-alert {
+  animation: terrain-alert-anim var(--terrain-alert-dur, 2.5s) ease forwards;
+}
+/* ⚠️ L'annonce RESTE affichée et le combat attend toujours : c'est le mouvement
+   qu'on retire, pas l'information ni la temporisation. Même règle que
+   SpaceBackground — « le ciel reste, le mouvement part ». */
+@media (prefers-reduced-motion: reduce) {
+  .terrain-alert { animation: none; }
+}

@@ -6,17 +6,15 @@ import { useUiStore, type TooltipAnchor, type TooltipContent } from '../../store
 import { getPower } from '../../data/PowerDatabase.js';
 import { getAttribute } from '../../data/AttributeDatabase.js';
 import { getCard } from '../../data/CardDatabase.js';
-import AttrIcon from '../ui/AttrIcon.js';
+import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
 import PowerIcon from '../ui/PowerIcon.js';
 import SummonTypeIcon from '../ui/SummonTypeIcon.js';
 import { Illustration } from '../ui/primitives.js';
 import {
   summonRecipes, recipeCostText, materialsLabel, recipeIsFree, type SummonRecipe,
 } from '../../data/SummonInfo.js';
-
-const STAT_LABELS: Record<string, string> = {
-  atk: 'ATQ', hp: 'PV', attack_speed: 'VIT', range: 'POR', movement_speed: 'DEP',
-};
+import { STAT_LABELS } from '../../data/StatLabels.js';
+import { boardEffectLabel, boardTargetsUnits } from '../../data/BoardInfo.js';
 
 export default function TooltipHost() {
   const tooltip = useUiStore(s => s.tooltip);
@@ -85,14 +83,6 @@ function Keywords({ ids }: { ids: string[] }) {
 function cardName(id: string): string {
   try {
     return (getCard as any)(id)?.name ?? id;
-  } catch {
-    return id;
-  }
-}
-
-function attributeName(id: string): string {
-  try {
-    return (getAttribute as any)(id)?.name ?? id;
   } catch {
     return id;
   }
@@ -236,7 +226,7 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
   // Seuls ces trois effets LISENT `target_attributes` (cf. BoardEffect) : un
   // `draw_bonus` ne vise personne sur le board, annoncer « toutes les unités »
   // sous lui ferait mentir le tooltip.
-  const targetsUnits = ['stat_bonus', 'stat_modifier', 'shield'].includes(b.effect?.type);
+  const targetsUnits = boardTargetsUnits(b.effect);
   return (
     <div>
       <div className="flex items-center gap-2">
@@ -248,7 +238,7 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
       {/* L'effet ne répète PAS ses cibles entre parenthèses : les archétypes
           boostés sont annoncés juste en dessous, avec leur icône. Un attribut
           se reconnaît à son pictogramme bien avant son nom. */}
-      <div className="mt-1 text-[11px] text-white/60">{b.effect ? describeEffects([b.effect], false) : 'Aucun effet'}</div>
+      <div className="mt-1 text-[11px] text-white/60">{boardEffectLabel(b.effect)}</div>
       {targetsUnits && (
         targets.length > 0 ? (
           <div className="mt-2">
@@ -272,24 +262,12 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
   );
 }
 
+// Les effets d'ATTRIBUT (paliers de synergie) — même grammaire que celle des
+// terrains, qu'ils partagent désormais via `data/BoardInfo`. Ici les cibles SONT
+// annoncées entre parenthèses : contrairement au terrain, rien ne les répète en
+// dessous avec leur icône.
 function describeEffects(effects: any[], withTargets = true): string {
-  return (effects ?? []).map((e: any) => {
-    const target = withTargets ? describeTargetAttributes(e.target_attributes) : '';
-    switch (e.type) {
-      case 'stat_bonus': return `+${e.value} ${STAT_LABELS[e.stat] ?? e.stat}${target}`;
-      case 'stat_modifier': return `×${e.value} ${STAT_LABELS[e.stat] ?? e.stat}${target}`;
-      case 'draw_bonus': return `+${e.value} pioche`;
-      case 'guaranteed_draw': return 'Pioche garantie';
-      case 'revive': return 'Réanimation';
-      case 'shield': return `Bouclier +${e.value}${target}`;
-      case 'board_slot_bonus': return `+${e.value} slot`;
-      default: return e.type;
-    }
-  }).join(', ');
-}
-
-function describeTargetAttributes(targetAttributes: any): string {
-  if (!Array.isArray(targetAttributes) || targetAttributes.length === 0) return '';
-  const names = targetAttributes.map((id: string) => (getAttribute(id) as any)?.name ?? id);
-  return ` (${names.join(', ')})`;
+  return (effects ?? []).map((e: any) =>
+    boardEffectLabel(e, withTargets ? (ids) => ids.map(attributeName).join(', ') : undefined),
+  ).join(', ');
 }
