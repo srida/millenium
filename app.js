@@ -248,21 +248,27 @@ progression.backfillAll();
 // rechargement, et elle rendrait des fantômes.
 const MAINTENANCE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const { db, stmt: dbStmt } = require('./db');
+const pvplog = require('./pvplog');
 
 function runMaintenance({ closeStaleMatches = false } = {}) {
   const sessions = dbStmt.deleteExpiredSessions.run(Date.now()).changes;
   const resets = dbStmt.deleteExpiredResetTokens.run(Date.now()).changes;
   const buckets = auth.sweepBuckets();
+  // Logs de combat PvP : outil de diagnostic temporaire, quelques centaines de
+  // Ko par vue. Ils se purgent ici plutôt que dans un minuteur à eux — c'est
+  // déjà le rendez-vous quotidien du nettoyage.
+  const pvpLogs = pvplog.purge();
   let matches = 0;
   if (closeStaleMatches) {
     matches = db.prepare(
       "UPDATE matches SET status = 'ended', ended_reason = 'server_restart', ended_at = ? WHERE status = 'active'",
     ).run(Date.now()).changes;
   }
-  if (sessions || resets || buckets || matches) {
+  if (sessions || resets || buckets || matches || pvpLogs) {
     console.log(
       `[entretien] ${sessions} session(s) expirée(s), ${resets} jeton(s) de reset, ` +
-      `${buckets} seau(x) de quota, ${matches} match(s) rouvert(s) refermé(s)`,
+      `${buckets} seau(x) de quota, ${matches} match(s) rouvert(s) refermé(s), ` +
+      `${pvpLogs} log(s) de combat PvP purgé(s)`,
     );
   }
 }
@@ -497,6 +503,11 @@ app.use('/api/admin/db', requireSiteAdmin, require('./routes/admin-db'));
 // même raison : le write-guard global ne couvre que les écritures, un GET sous
 // /api est public par défaut.
 app.use('/api/admin/sim', requireSiteAdmin, require('./routes/admin-sim'));
+
+// Logs de combat PvP — OUTIL DE DIAGNOSTIC TEMPORAIRE (cf. pvplog.js). Même
+// garde explicite que ses deux voisins, et pour la même raison : un GET sous
+// /api est public par défaut, et un log nomme les deux joueurs d'un duel.
+app.use('/api/admin/pvp-logs', requireSiteAdmin, require('./routes/admin-pvplog'));
 
 // Protect write operations on /api (reads stay public for the game)
 app.use('/api', (req, res, next) => {

@@ -379,6 +379,41 @@ if (!userColumnsV2.includes('levels_claimed')) {
   `);
 }
 
+// Log de combat PvP par tick — TABLE DE DIAGNOSTIC TEMPORAIRE (pvplog.js).
+//
+// Les deux clients d'un duel simulent le combat en parallèle et sont censés
+// aboutir au même résultat (aucun RNG dans CombatManager). Quand ils divergent,
+// rien dans le jeu ne permet de le constater : on enregistre donc chaque tick
+// des DEUX côtés pour pouvoir les mettre face à face (`GET /api/admin/pvp-logs`).
+//
+// ⚠️ `payload` est DÉJÀ CANONIQUE — le client normalise dans le repère du rôle A
+// avant l'envoi (cf. game/CombatRecorder.ts). Sans quoi rien ne serait
+// comparable : le monde du client B est le reflet de celui de A.
+//
+// ⚠️ La clé primaire rend le renvoi idempotent, et `INSERT OR IGNORE` fait
+// gagner le PREMIER écrit : un second envoi ne doit pas pouvoir réécrire après
+// coup ce qu'on est en train de diagnostiquer.
+//
+// ⚠️ Même contrainte d'ordre que user_cards : déclarée APRÈS la migration `tag`,
+// sinon sa FK pointerait sur users_v1.
+//
+// Pas de FK vers `matches` : `pvplog.record` vérifie déjà l'appartenance au
+// match, et une table temporaire se retire d'autant plus facilement qu'elle ne
+// contraint personne. Purge par ancienneté dans le runMaintenance d'app.js.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS pvp_combat_logs (
+    match_id   TEXT    NOT NULL,
+    round      INTEGER NOT NULL,
+    role       TEXT    NOT NULL,
+    user_id    TEXT    NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    truncated  INTEGER NOT NULL DEFAULT 0,
+    payload    TEXT    NOT NULL,
+    PRIMARY KEY (match_id, round, role)
+  );
+  CREATE INDEX IF NOT EXISTS idx_pvp_logs_created ON pvp_combat_logs(created_at);
+`);
+
 // --- Prepared statements ---
 const stmt = {
   insertUser: db.prepare(`
@@ -601,6 +636,33 @@ const stmt = {
     UPDATE matches SET status = 'ended', winner_user_id = ?, ended_reason = ?, ended_at = ?
     WHERE id = ?
   `),
+
+  // Log de combat PvP (diagnostic temporaire — cf. pvplog.js).
+  insertPvpLog: db.prepare(`
+    INSERT OR IGNORE INTO pvp_combat_logs
+      (match_id, round, role, user_id, created_at, truncated, payload)
+    VALUES (@match_id, @round, @role, @user_id, @created_at, @truncated, @payload)
+  `),
+  pvpLogsByMatch: db.prepare(
+    'SELECT * FROM pvp_combat_logs WHERE match_id = ? ORDER BY round, role'),
+  // Un match par ligne, le plus récent d'abord. `rounds`/`roles` servent au
+  // verdict de la liste admin sans avoir à charger le moindre payload — ils
+  // pèsent des centaines de Ko chacun.
+  pvpLogMatches: db.prepare(`
+    SELECT match_id,
+           MIN(created_at) AS created_at,
+           COUNT(*)        AS entries,
+           MAX(truncated)  AS truncated,
+           GROUP_CONCAT(round || ':' || role) AS parts
+    FROM pvp_combat_logs
+    GROUP BY match_id
+    ORDER BY created_at DESC
+    LIMIT ? OFFSET ?
+  `),
+  pvpLogMatchCount: db.prepare(
+    'SELECT COUNT(DISTINCT match_id) AS n FROM pvp_combat_logs'),
+  deletePvpLogsByMatch: db.prepare('DELETE FROM pvp_combat_logs WHERE match_id = ?'),
+  deleteOldPvpLogs: db.prepare('DELETE FROM pvp_combat_logs WHERE created_at < ?'),
 };
 
 module.exports = { db, stmt, DB_FILE };

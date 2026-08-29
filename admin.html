@@ -292,6 +292,18 @@ select.filter:focus { border-color: var(--accent); }
 .db-admin-toggle:hover { border-color: var(--accent); color: var(--text); }
 .db-admin-toggle.is-admin { background: var(--accent); color: #fff; border-color: var(--accent); }
 
+/* Logs PvP (diagnostic temporaire). Réutilise .db-table / .db-toolbar / .db-pager
+   plutôt que de refaire un tableau : seul le verdict a besoin de son propre style. */
+.pvp-verdict { padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; display: inline-block; }
+.pvp-verdict.ok { background: rgba(46,160,67,.15); color: #3fb950; border: 1px solid rgba(46,160,67,.4); }
+.pvp-verdict.diverged { background: rgba(248,81,73,.15); color: #f85149; border: 1px solid rgba(248,81,73,.4); }
+.pvp-verdict.incomplete { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+.pvp-act { padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: 12px; cursor: pointer; text-decoration: none; display: inline-block; }
+.pvp-act:hover { border-color: var(--accent); color: var(--text); }
+.pvp-detail { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin: 8px 0 14px; font-size: 12px; overflow-x: auto; }
+.pvp-detail pre { margin: 6px 0 0; white-space: pre; font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.5; }
+.pvp-note { color: var(--muted); font-size: 12px; margin-bottom: 12px; line-height: 1.6; }
+
 /* ⚠️ CE BLOC DOIT RESTER LE DERNIER DE LA FEUILLE.
    Il vivait auparavant au milieu du fichier, AVANT les sections « Stats tab » et
    « DB explorer » : à spécificité égale, la dernière règle gagne, et une douzaine
@@ -448,6 +460,9 @@ select.filter:focus { border-color: var(--accent); }
            iframe sur /admin/sim, chargée au premier clic. La page reste servie en
            autonome à cette URL — c'est là que la routine quotidienne dépose son run. -->
       <button class="tab" data-tab="sim" title="Rapport de la simulation d'équilibrage">⚖️ Équilibrage</button>
+      <!-- Outil de DIAGNOSTIC TEMPORAIRE (cf. pvplog.js) : les deux vues d'un même
+           combat PvP, mises face à face pour trouver où elles divergent. -->
+      <button class="tab" data-tab="pvplogs" title="Logs de combat PvP (diagnostic)">🔬 Logs PvP</button>
     </div>
     <button class="tab-menu-btn" id="tab-menu-btn" onclick="openTabSheet()" aria-haspopup="dialog" aria-controls="tab-sheet">
       <span class="burger" aria-hidden="true">☰</span><span class="label" id="current-tab-name">Cartes</span>
@@ -743,6 +758,15 @@ select.filter:focus { border-color: var(--accent); }
       <iframe id="sim-frame" title="Rapport d'équilibrage" style="width:100%;height:100%;border:none;display:block"></iframe>
     </div>
   </div>
+
+  <!-- Logs de combat PvP — OUTIL DE DIAGNOSTIC TEMPORAIRE. Même patron sans sidebar
+       que #tab-db. Pas d'iframe ici : le contenu est du JSON qu'on rend nous-mêmes,
+       il n'y a aucune feuille de style étrangère à isoler. -->
+  <div id="tab-pvplogs" class="main hidden">
+    <div class="content" id="pvplogs-content" style="padding:20px;overflow:auto;width:100%">
+      <div class="empty"><span>Chargement...</span></div>
+    </div>
+  </div>
 </div>
 
 <!-- FAB -->
@@ -887,12 +911,13 @@ function switchTab(tab) {
     const f = document.getElementById('sim-frame');
     if (f && !f.src) f.src = '/admin/sim?embed=1&theme=dark';
   }
+  if (tab === 'pvplogs') renderPvpLogs();
   showList(); // reset panel on tab switch
 }
 
 // Onglets sans sidebar : le FAB (« + ») n'y a rien à ouvrir. `summontypes` est
 // un catalogue FERMÉ à 6 entrées : rien à créer non plus.
-const NO_FAB_TABS = new Set(['stats', 'db', 'sim', 'summontypes']);
+const NO_FAB_TABS = new Set(['stats', 'db', 'sim', 'summontypes', 'pvplogs']);
 
 // Délégation : la barre et la feuille mobile partagent le même chemin de code.
 // Le garde `data-tab` est obligatoire — un clic ailleurs dans la barre ne doit rien faire.
@@ -983,6 +1008,149 @@ async function toggleUserAdmin(userId, nextIsAdmin) {
     if (!res.ok || data.error) { toast(data.error || 'Erreur', 'err'); return; }
     toast(nextIsAdmin ? 'Promu administrateur.' : 'Droits admin retirés.');
     openDbTable('users', dbOffset);
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// =====================================================================
+//  LOGS DE COMBAT PvP — OUTIL DE DIAGNOSTIC TEMPORAIRE (cf. pvplog.js)
+// =====================================================================
+//
+// Les deux clients d'un duel simulent le même combat en parallèle, sans aucun
+// hasard : ils sont censés produire le même tick à l'unité près. Cet onglet
+// liste les combats enregistrés des deux côtés, dit lesquels divergent, et
+// donne le fichier qui les met face à face.
+//
+// Même patron que l'explorateur SQL juste au-dessus : placeholder → apiFetch en
+// try/catch → contrôle de `data.error` → chaîne HTML construite avec esc().
+
+let pvpOffset = 0;
+const PVP_PAGE = 25;
+// Le match dont le détail de divergence est déplié (un seul à la fois).
+let pvpOpenMatch = null;
+
+const PVP_VERDICTS = {
+  ok: { cls: 'ok', label: '✓ identiques' },
+  diverged: { cls: 'diverged', label: '⚠ divergent' },
+  incomplete: { cls: 'incomplete', label: 'un seul côté' },
+};
+
+// Ce que chaque nature de divergence veut dire, en clair. Sans ça le fichier se
+// lit mais le tableau ne se comprend pas.
+const PVP_KINDS = {
+  header: "l'entrée en combat n'était déjà pas la même (terrain, cases bloquées, unités de départ)",
+  order: "même état, mais les unités n'agissent pas dans le même ordre",
+  state: 'une unité diverge sur un champ',
+  events: 'même état et même ordre, mais un acte diffère',
+  length: "un côté s'arrête avant l'autre, ou ne désigne pas le même vainqueur",
+};
+
+function pvpDate(ms) {
+  return new Date(ms).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+async function renderPvpLogs(offset = pvpOffset) {
+  pvpOffset = offset;
+  const el = document.getElementById('pvplogs-content');
+  el.innerHTML = '<div class="empty"><span>Chargement...</span></div>';
+  let data;
+  try { data = await apiFetch(`/api/admin/pvp-logs?limit=${PVP_PAGE}&offset=${offset}`); }
+  catch (e) { el.innerHTML = `<div class="empty"><span>Erreur : ${esc(e.message)}</span></div>`; return; }
+  if (data.error) { el.innerHTML = `<div class="empty"><span>Erreur : ${esc(data.error)}</span></div>`; return; }
+
+  const rows = data.matches.map(m => {
+    const v = PVP_VERDICTS[m.verdict] || PVP_VERDICTS.incomplete;
+    const where = m.first_divergence
+      ? `round ${m.first_divergence.round}, tick ${m.first_divergence.tick} — ${esc(m.first_divergence.kind)}`
+      : '<span class="db-null">—</span>';
+    const rounds = m.rounds.map(r => r.round).join(', ') || '<span class="db-null">aucun</span>';
+    return `<tr>
+      <td>${esc(pvpDate(m.created_at))}</td>
+      <td style="font-family:ui-monospace,monospace">${esc(m.match_id.slice(0, 8))}</td>
+      <td>${rounds}</td>
+      <td><span class="pvp-verdict ${v.cls}">${v.label}</span></td>
+      <td>${where}</td>
+      <td style="white-space:nowrap">
+        <button class="pvp-act" onclick="togglePvpDetail('${esc(m.match_id)}')">Détail</button>
+        <a class="pvp-act" href="/api/admin/pvp-logs/${esc(m.match_id)}/download">⬇ Fichier</a>
+        <button class="pvp-act" onclick="deletePvpLog('${esc(m.match_id)}')">🗑</button>
+      </td>
+    </tr>
+    <tr id="pvp-detail-${esc(m.match_id)}" class="hidden"><td colspan="6"></td></tr>`;
+  }).join('');
+
+  const from = data.total ? offset + 1 : 0;
+  const to = Math.min(offset + PVP_PAGE, data.total);
+  const prevDis = offset <= 0 ? 'disabled' : '';
+  const nextDis = offset + PVP_PAGE >= data.total ? 'disabled' : '';
+
+  el.innerHTML = `
+    <div class="pvp-note">
+      Chaque duel PvP est enregistré <strong>par les deux joueurs</strong>, tick par tick, et
+      dans le repère du rôle&nbsp;A pour que les deux vues soient comparables. Le verdict
+      compare les deux et nomme la <strong>première</strong> différence — au-delà, tout
+      diverge par ricochet. Ces lignes sont purgées au bout de quelques jours&nbsp;: c'est
+      un outil de diagnostic, pas un historique.
+    </div>
+    <div class="db-toolbar">
+      <strong>Logs de combat PvP</strong>
+      <span style="color:var(--muted)">${data.total} match(s)</span>
+      <div class="db-pager">
+        <button class="db-pager-btn" ${prevDis} onclick="renderPvpLogs(${Math.max(0, offset - PVP_PAGE)})">‹</button>
+        <span>${from}–${to}</span>
+        <button class="db-pager-btn" ${nextDis} onclick="renderPvpLogs(${offset + PVP_PAGE})">›</button>
+      </div>
+    </div>
+    <div class="db-table-scroll">
+      <table class="db-table">
+        <thead><tr><th>Date</th><th>Match</th><th>Rounds</th><th>Verdict</th><th>Première divergence</th><th></th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Aucun log enregistré pour le moment.</td></tr>'}</tbody>
+      </table>
+    </div>`;
+  if (pvpOpenMatch) { const keep = pvpOpenMatch; pvpOpenMatch = null; togglePvpDetail(keep); }
+}
+
+// Le détail est chargé À LA DEMANDE : le bundle porte les deux vues complètes
+// d'un match, soit potentiellement plusieurs centaines de Ko. La liste, elle,
+// n'en transporte que le verdict.
+async function togglePvpDetail(matchId) {
+  const row = document.getElementById(`pvp-detail-${matchId}`);
+  if (!row) return;
+  if (pvpOpenMatch === matchId) { row.classList.add('hidden'); pvpOpenMatch = null; return; }
+  pvpOpenMatch = matchId;
+  row.classList.remove('hidden');
+  const cell = row.firstElementChild;
+  cell.innerHTML = '<div class="pvp-detail">Chargement...</div>';
+  let data;
+  try { data = await apiFetch(`/api/admin/pvp-logs/${encodeURIComponent(matchId)}`); }
+  catch (e) { cell.innerHTML = `<div class="pvp-detail">Erreur : ${esc(e.message)}</div>`; return; }
+  if (data.error) { cell.innerHTML = `<div class="pvp-detail">Erreur : ${esc(data.error)}</div>`; return; }
+
+  const parts = data.rounds.map(r => {
+    const v = PVP_VERDICTS[r.verdict] || PVP_VERDICTS.incomplete;
+    if (!r.divergence) {
+      return `<div><strong>Round ${r.round}</strong> <span class="pvp-verdict ${v.cls}">${v.label}</span>
+        <span style="color:var(--muted)"> — ${r.A ? r.A.tick_count : 0} tick(s)</span></div>`;
+    }
+    const d = r.divergence;
+    return `<div style="margin-top:8px">
+      <strong>Round ${r.round}</strong> <span class="pvp-verdict ${v.cls}">${v.label}</span>
+      <span style="color:var(--muted)"> — tick ${d.tick}, ${esc(d.kind)} : ${esc(PVP_KINDS[d.kind] || '')}</span>
+      <pre>${esc(JSON.stringify(d.detail, null, 2))}</pre>
+    </div>`;
+  }).join('');
+
+  cell.innerHTML = `<div class="pvp-detail">${parts || 'Aucun round.'}</div>`;
+}
+
+async function deletePvpLog(matchId) {
+  if (!confirm('Supprimer les logs de ce match ?')) return;
+  try {
+    const res = await fetch(`/api/admin/pvp-logs/${encodeURIComponent(matchId)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok || data.error) { toast(data.error || 'Erreur', 'err'); return; }
+    toast(`${data.deleted} ligne(s) supprimée(s).`);
+    pvpOpenMatch = null;
+    renderPvpLogs(pvpOffset);
   } catch (e) { toast(e.message, 'err'); }
 }
 

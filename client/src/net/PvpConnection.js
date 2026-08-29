@@ -149,6 +149,10 @@ export function off(type, handler) {
 }
 
 export function getRole() { return role; }
+// `matchId` était capté à `match:found` mais n'était lu que par `send()`, qui
+// l'estampille lui-même. Le log de combat PvP, lui, part par HTTP et doit donc
+// pouvoir le nommer (cf. game/CombatRecorder.ts).
+export function getMatchId() { return matchId; }
 export function getOpponent() { return opponent; }
 export function getBotMatch() { return botMatch; }
 

@@ -15,6 +15,7 @@ import { useUiStore, type TooltipAnchor } from '../stores/uiStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
 import * as CardArt from '../data/CardArt.js';
 import { PREP_DURATION_S, COMBAT_DURATION_S, combatSecondsLeft } from './timings.js';
+import { CombatRecorder } from './CombatRecorder.js';
 
 interface SummonOptionMenu {
   card: Card;
@@ -30,6 +31,11 @@ export class GameController {
   session: GameSession;
   scene: Scene3D | null = null;
   animator: CombatAnimator3D | null = null;
+
+  // Enregistreur de combat par tick — OUTIL DE DIAGNOSTIC TEMPORAIRE, alimenté
+  // par le crochet `onStep` qui existait déjà. Reste `null` partout sauf en
+  // duel PvP réel : c'est `PvpController` qui en fabrique un (cf. _newRecorder).
+  protected _recorder: CombatRecorder | null = null;
 
   // État d'interaction (préparation)
   private selectedCard: Card | null = null;        // carte effective (option résolue)
@@ -330,8 +336,11 @@ export class GameController {
     const revealMs = this.scene?.revealEnemyUnits(this.session.enemyUnits) ?? 0;
     this._combatRemaining = COMBAT_DURATION_S;
     this._noteCombatStarted();
+    this._recorder = this._newRecorder();
+    this._recorder?.header(combat, boardData);
     const animator = new CombatAnimator3D(combat, this.scene as any, {
       onStep: (events: any[]) => {
+        this._recorder?.capture(combat, events);
         this._noteCombatEvents(events);
         this._combatRemaining = combatSecondsLeft(combat.remainingTicks());
         this.sync({ combatActive: true, combatRemaining: this._combatRemaining });
@@ -419,7 +428,19 @@ export class GameController {
     void useMissionStore.getState().flushMatch();
   }
 
+  /**
+   * Fabrique l'enregistreur du combat qui commence, ou `null` pour ne rien
+   * enregistrer. No-op ici : seul le duel PvP réel a deux simulations à
+   * confronter — partout ailleurs il n'y a qu'un point de vue, donc rien à
+   * diffé (cf. PvpController).
+   */
+  protected _newRecorder(): CombatRecorder | null { return null; }
+
+  /** Expédie ce que l'enregistreur a retenu, s'il y a lieu. No-op ici. */
+  protected _flushRecorder(): void { this._recorder = null; }
+
   protected _onCombatFinished(): void {
+    this._flushRecorder();
     const result = this.session.finishCombat();
     useMissionStore.getState().emit('combat_ended', {
       result: result.winner === 'player' ? 'win' : result.winner === 'enemy' ? 'loss' : result.winner,
@@ -706,6 +727,9 @@ export class GameController {
     if (this._revealTimer) clearTimeout(this._revealTimer);
     this.animator?.stop();
     this.animator = null;
+    // Combat quitté en cours de route : ce qui a été capturé part quand même.
+    // Un combat interrompu est justement celui qu'on aimerait pouvoir relire.
+    this._flushRecorder();
     // Les illustrations de l'adversaire ne survivent pas au match — sans quoi
     // elles fuiteraient dans la partie suivante. Celles du joueur restent en
     // place : les écrans de menu s'en servent.
