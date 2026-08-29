@@ -592,17 +592,19 @@ app.use('/api/boards', crud({
   strip: stripBoardComputed,
 }));
 
-// Catalogue FERMÉ à 5 entrées (les types d'invocation du moteur) : l'admin
-// n'y édite que le libellé et l'icône (emoji + illustration, même mécanisme
-// que les attributs), jamais l'id ni le `type` qui sert de clé de résolution
-// côté client. `validateCreate` bloque POST/import ; l'UI admin n'expose
-// simplement aucun bouton créer/supprimer pour ce tab.
+// Catalogue FERMÉ à 6 entrées (les types d'invocation du moteur, plus « Plusieurs
+// recettes » — `summon_options` — qui n'est pas un `summon_type` mais suit la
+// même règle d'icône) : l'admin n'y édite que le libellé et l'icône (emoji +
+// illustration, même mécanisme que les attributs), jamais l'id ni le `type`
+// qui sert de clé de résolution côté client. `validateCreate` bloque
+// POST/import ; l'UI admin n'expose simplement aucun bouton créer/supprimer
+// pour ce tab.
 app.use('/api/summon-types', crud({
   file: SUMMON_TYPES_FILE,
   guard: requireSiteAdmin,
   render: (list) => list.map(s => ({ ...s, _has_illustration: illustrationExists(s.id) })),
   strip: (s) => { delete s._has_illustration; },
-  validateCreate: () => ({ status: 403, body: { error: "Catalogue fixe : 5 types d'invocation, aucun ajout possible" } }),
+  validateCreate: () => ({ status: 403, body: { error: "Catalogue fixe : 6 types d'invocation, aucun ajout possible" } }),
 }));
 
 

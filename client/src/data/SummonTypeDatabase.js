@@ -1,7 +1,8 @@
-// Catalogue admin des 5 types d'invocation (normal/sacrifice/fusion/heritage/
-// transformation) — même patron que PowerDatabase.js. Indexé par `type` (la
-// clé brute déjà utilisée partout, `normal`/`sacrifice`/…), pas par `id` : tous
-// les appelants existants raisonnent en `summon_type`, jamais en id de catalogue.
+// Catalogue admin des 6 types d'invocation (normal/sacrifice/fusion/heritage/
+// transformation, plus `multi` pour les cartes à `summon_options`) — même
+// patron que PowerDatabase.js. Indexé par `type` (la clé brute déjà utilisée
+// partout, `normal`/`sacrifice`/…), pas par `id` : tous les appelants
+// existants raisonnent en `summon_type` (ou `'multi'`), jamais en id de catalogue.
 let list = null;
 let byType = null;
 

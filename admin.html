@@ -561,14 +561,15 @@ select.filter:focus { border-color: var(--accent); }
     </div>
   </div>
 
-  <!-- SUMMON TYPES TAB — catalogue FERMÉ à 5 entrées (normal/sacrifice/fusion/
-       heritage/transformation). Pas de recherche, pas de + Nouveau, pas de
-       suppression : on n'y édite que le libellé et l'icône. -->
+  <!-- SUMMON TYPES TAB — catalogue FERMÉ à 6 entrées (normal/sacrifice/fusion/
+       heritage/transformation, plus « multi » pour les cartes à recettes
+       alternatives). Pas de recherche, pas de + Nouveau, pas de suppression :
+       on n'y édite que le libellé et l'icône. -->
   <div id="tab-summontypes" class="main hidden">
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <span class="count" id="summontype-count">5</span> types d'invocation
+          <span class="count" id="summontype-count">6</span> types d'invocation
         </div>
       </div>
       <div class="sidebar-list" id="summontype-list"></div>
@@ -890,7 +891,7 @@ function switchTab(tab) {
 }
 
 // Onglets sans sidebar : le FAB (« + ») n'y a rien à ouvrir. `summontypes` est
-// un catalogue FERMÉ à 5 entrées : rien à créer non plus.
+// un catalogue FERMÉ à 6 entrées : rien à créer non plus.
 const NO_FAB_TABS = new Set(['stats', 'db', 'sim', 'summontypes']);
 
 // Délégation : la barre et la feuille mobile partagent le même chemin de code.
@@ -2729,7 +2730,8 @@ async function deletePowerIcon() {
 }
 
 // ================== SUMMON TYPES ==================
-// Catalogue FERMÉ à 5 entrées (normal/sacrifice/fusion/heritage/transformation),
+// Catalogue FERMÉ à 6 entrées (normal/sacrifice/fusion/heritage/transformation,
+// plus « multi » pour les cartes à recettes alternatives — summon_options),
 // pas de recherche, pas de création, pas de suppression — on n'y édite que le
 // libellé et l'icône (`id` et `type` restent affichés en lecture seule, `type`
 // étant la clé de résolution lue par le jeu).
