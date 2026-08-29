@@ -245,3 +245,12 @@ export async function declineRequest(friendshipId) {
 export async function removeFriend(friendshipId) {
   return api(`/friends/${friendshipId}`, { method: 'DELETE' });
 }
+
+// --- Log de combat PvP (diagnostic temporaire — cf. game/CombatRecorder.ts) ---
+//
+// ⚠️ « Pose et oublie » : l'appelant ne l'attend jamais et n'en montre jamais
+// l'échec. Un outil de debug qui peut retarder une navigation ou faire perdre
+// un duel est pire que pas d'outil du tout.
+export async function postPvpLog(body) {
+  return api('/me/pvp-log', { method: 'POST', body });
+}
