@@ -18,7 +18,7 @@ function makeSession(mode?: 'ai' | 'pvp', enemyBonus?: { atk: number; hp: number
     enemyDeck: { 1: enemyCards.map(c => c.id) },
     attributeList: [],
     cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
-    getRandomBoard: () => null,
+    getAllBoards: () => [],
     getAllMagies: () => [],
     ...(mode ? { mode } : {}),
     ...(enemyBonus !== undefined ? { enemyBonus } : {}),

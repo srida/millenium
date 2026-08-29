@@ -54,6 +54,16 @@ function newUser(username: string) {
   return id;
 }
 
+/** Pose un deck book SERVEUR pour ce joueur — la seule source que le relais lit
+ *  pour dériver quoi que ce soit d'un deck (le client n'envoie qu'un NOM). */
+function setDeckBook(userId: string, decks: Record<string, Record<string, string[]>>, active: string) {
+  stmt.upsertDeckBook.run({
+    user_id: userId,
+    data: JSON.stringify({ active, decks, meta: {} }),
+    updated_at: Date.now(),
+  });
+}
+
 const xpOf = (id: string) => {
   const u = stmt.userById.get(id);
   return { level: u.level, xp: u.xp };
@@ -170,5 +180,112 @@ describe('forfait et déconnexion', () => {
     relay.handleReportResult(matchId, B, 'enemy');
 
     expect(xpOf(A)).toEqual(apres);
+  });
+});
+
+// ── Ce que le serveur DÉRIVE du deck engagé ────────────────────────────────
+//
+// Le rôle A choisit le terrain de combat en fonction des DEUX decks. Il connaît
+// le sien ; celui d'en face ne peut venir que d'ici — le client ne transmet
+// jamais son deck, seulement un nom, et `deps.enemyDeck` est un miroir en PvP.
+describe('attributs du deck adverse', () => {
+  // CORE_002 et CORE_006 portent tous deux ARCH_003 (Dragon) et ARCH_045
+  // (Volant) ; CORE_001 et CORE_003 portent ARCH_002 (Magicien).
+  const DRAGONS = { '1': ['CORE_002', 'CORE_006'] };
+  const MAGES = { '1': ['CORE_001', 'CORE_003'] };
+
+  function matchWith(deckA: any, deckB: any, name = 'Test') {
+    const a = newUser('derivA');
+    const b = newUser('derivB');
+    if (deckA) setDeckBook(a, { [name]: deckA }, name);
+    if (deckB) setDeckBook(b, { [name]: deckB }, name);
+    const sa = fakeSocket('derivA');
+    const sb = fakeSocket('derivB');
+    const id = relay.createMatch({ userId: a, ws: sa, deckName: name }, { userId: b, ws: sb, deckName: name });
+    return { a, b, sa, sb, id };
+  }
+
+  // Mutation : champ non ajouté à `deckDerived` → ROUGE.
+  it('match:found porte les comptes d\'attributs, dérivés du deck book SERVEUR', () => {
+    const { sa } = matchWith(DRAGONS, MAGES);
+    const counts = sa.last('match:found').opponent.deck_attribute_counts;
+    expect(counts).toBeTruthy();
+    expect(counts.ARCH_002).toBe(2);   // les 2 cartes du deck adverse sont Magicien
+  });
+
+  // ⚠️ Le bug classique de ces deux lignes : chacun doit recevoir les attributs
+  // de l'AUTRE. Mutation : intervertir connA/connB → ROUGE.
+  it('chacun reçoit les attributs de l\'ADVERSAIRE, pas les siens', () => {
+    const { sa, sb } = matchWith(DRAGONS, MAGES);
+    expect(sa.last('match:found').opponent.deck_attribute_counts.ARCH_002).toBe(2);
+    expect(sa.last('match:found').opponent.deck_attribute_counts.ARCH_003).toBeUndefined();
+    expect(sb.last('match:found').opponent.deck_attribute_counts.ARCH_003).toBe(2);
+    expect(sb.last('match:found').opponent.deck_attribute_counts.ARCH_002).toBeUndefined();
+  });
+
+  // Mutation : oublier le second point d'appel (handleRejoin) → ROUGE.
+  it('match:rejoined les porte AUSSI — sinon un reconnecté perdrait la règle', () => {
+    const { a, id } = matchWith(DRAGONS, MAGES);
+    const again = fakeSocket('derivA');
+    relay.handleRejoin(again, id, a);
+    expect(again.last('match:rejoined').opponent.deck_attribute_counts.ARCH_002).toBe(2);
+  });
+
+  // ⚠️ Le serveur COMPTE, il ne seuille pas : `MIN_ATTRIBUTE_OCCURRENCES` vit
+  // côté client, en un seul exemplaire. Mutation : appliquer un seuil ici → ROUGE.
+  it('rend des comptes BRUTS — un attribut sur une seule carte est transmis', () => {
+    // CORE_002 porte ARCH_017, que CORE_006 ne porte pas : compte de 1.
+    const { sa } = matchWith(MAGES, DRAGONS);
+    expect(sa.last('match:found').opponent.deck_attribute_counts.ARCH_017).toBe(1);
+  });
+
+  // Mutation : repli sur `book.active` supprimé → ROUGE.
+  it('un nom de deck inconnu retombe sur le deck ACTIF du joueur', () => {
+    const b = newUser('derivFallback');
+    setDeckBook(b, { Actif: MAGES }, 'Actif');
+    const sa = fakeSocket('derivAsker');
+    relay.createMatch(
+      { userId: newUser('derivAsker'), ws: sa, deckName: 'Test' },
+      { userId: b, ws: fakeSocket('derivFallback'), deckName: 'ce-deck-n-existe-pas' },
+    );
+    expect(sa.last('match:found').opponent.deck_attribute_counts.ARCH_002).toBe(2);
+  });
+
+  it('un joueur sans deck book ne casse rien — comptes vides', () => {
+    const { sa } = matchWith(DRAGONS, null);
+    expect(sa.last('match:found').opponent.deck_attribute_counts).toEqual({});
+  });
+
+  // Les deux faits dérivés voyagent ENSEMBLE : les séparer voudrait dire qu'un
+  // client reconnecté n'a qu'une moitié de son adversaire.
+  it('variants et deck_attribute_counts arrivent par le même chemin', () => {
+    const { sa } = matchWith(DRAGONS, MAGES);
+    const opp = sa.last('match:found').opponent;
+    expect(opp.variants).toBeTruthy();
+    expect(opp.deck_attribute_counts).toBeTruthy();
+  });
+});
+
+// ── La barrière du terrain ─────────────────────────────────────────────────
+//
+// Tests de CARACTÉRISATION : ils passaient déjà, mais rien ne les tenait. Le
+// choix du terrain repose désormais dessus — c'est le seul mécanisme qui
+// garantit que les deux clients jouent le MÊME terrain.
+describe('barrière du terrain', () => {
+  it('round:go porte aux DEUX le terrain annoncé par le rôle A', () => {
+    relay.relayMessage(matchId, A, { type: 'round:terrain_pick', round: 1, boardId: 'BOARD_007' });
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_ack', round: 1 });
+    expect(wsB.last('round:go')).toBeNull();          // barrière : on attend les 2
+    relay.relayMessage(matchId, B, { type: 'round:combat_start_ack', round: 1 });
+    expect(wsA.last('round:go').boardId).toBe('BOARD_007');
+    expect(wsB.last('round:go').boardId).toBe('BOARD_007');
+  });
+
+  it('round:next_ready remet le terrain à zéro pour le round suivant', () => {
+    relay.relayMessage(matchId, A, { type: 'round:terrain_pick', round: 1, boardId: 'BOARD_007' });
+    relay.relayMessage(matchId, A, { type: 'round:next_ready', round: 1 });
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_ack', round: 2 });
+    relay.relayMessage(matchId, B, { type: 'round:combat_start_ack', round: 2 });
+    expect(wsA.last('round:go').boardId).toBeNull();
   });
 });

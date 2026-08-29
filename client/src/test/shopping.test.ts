@@ -34,7 +34,7 @@ function makeSession(opts: { cards?: any[]; magies?: any[]; rand?: () => number;
     enemyDeck: {},
     attributeList: [],
     cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
-    getRandomBoard: () => null,
+    getAllBoards: () => [],
     getAllMagies: () => magiePool,
     rand: opts.rand,
     mode: opts.mode,

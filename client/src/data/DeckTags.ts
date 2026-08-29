@@ -8,10 +8,14 @@
 // partie de son méta), un deck public les dérive à l'affichage (DeckSelector) —
 // il n'a pas de méta local où les ranger et sa composition change en admin.
 import * as AttributeDatabase from './AttributeDatabase.js';
+import { MIN_ATTRIBUTE_OCCURRENCES } from '../logic/BoardPicker.js';
 import type { Card } from '../logic/types.js';
 
-/** Un attribut doit porter au moins 2 cartes pour être dit « dominant ». */
-const MIN_ATTRIBUTE_OCCURRENCES = 2;
+// ⚠️ « Un attribut doit porter au moins 2 cartes pour être dit dominant » est la
+// MÊME question que se pose le tirage du terrain de combat (quels attributs
+// identifient ce deck ?), posée pour deux usages. Le seuil vit donc dans
+// `logic/BoardPicker.ts`, en un seul exemplaire, plutôt qu'en deux copies
+// d'accord entre elles aujourd'hui — le risque n'est jamais l'état actuel.
 const MAX_TAGS = 3;
 
 export function computeDeckTags(cards: Card[]): string[] {

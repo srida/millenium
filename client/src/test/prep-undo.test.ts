@@ -24,7 +24,7 @@ function makeSession(cards: any[] = [], pool: any[] = []): GameSession {
     enemyDeck: {},
     attributeList: [],
     cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
-    getRandomBoard: () => null,
+    getAllBoards: () => [],
     getAllMagies: () => [],
   };
   return new GameSession(deps);

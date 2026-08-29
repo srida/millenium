@@ -779,7 +779,7 @@ function stripBoardComputed(board) {
 // ITÉRABLE, donc `{"items":"nope"}` parcourait ses caractères et les poussait
 // dans le catalogue comme s'ils étaient des terrains — en répondant 200.
 // `boards.json` se retrouvait avec une chaîne nue là où `BoardDatabase` attend
-// un objet, et `getRandomBoard()` pouvait la tirer en plein combat.
+// un objet, et le tirage du terrain pouvait la sortir en plein combat.
 //
 // Elle sautait aussi les deux autres garde-fous du patron commun : l'entrée
 // sans `id` et la clé `errors` du compte rendu. Alignée sur les huit autres.

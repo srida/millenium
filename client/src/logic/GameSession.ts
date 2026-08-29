@@ -2,7 +2,7 @@
 // GameSession — orchestrateur headless de la boucle de jeu (port de la logique
 // d'orchestration de l'ancien GameScreen3D, débarrassée du DOM, des timers et
 // du PvP). Pur : aucune dépendance à React, Zustand, Three ni à la couche data —
-// les données externes (terrain aléatoire, liste d'attributs, cardDb pour l'IA,
+// les données externes (catalogue de terrains, liste d'attributs, cardDb pour l'IA,
 // magies) sont injectées, comme MatchSimulator/Tournament (PLAN §2.1).
 //
 // Le timing (timer 60 s, tick de combat) vit dans la couche React/animateur ;
@@ -14,6 +14,8 @@ import { EnemyAI } from './EnemyAI.js';
 import { AttributeManager } from './AttributeManager.js';
 import { CombatManager } from './CombatManager.js';
 import { applyEffect as applyBoardEffect } from './BoardEffect.js';
+import { pickBoard, deckAttributes, dominantAttributes } from './BoardPicker.js';
+import type { BoardPickContext, AttributeCounts } from './BoardPicker.js';
 // Modules JS encore non convertis : leurs annotations JSDoc (Card[][], null par
 // défaut…) sont trop étroites pour l'interop TS. Casts localisés en attendant
 // la conversion TS de ces modules (au fil des phases).
@@ -47,8 +49,12 @@ export interface GameSessionDeps {
   attributeList: AttributeDef[];
   /** Résolution de carte par id (pour l'IA ennemie). */
   cardDb: CardDbLike;
-  /** Tire un terrain de combat aléatoire (BoardDatabase.getRandomBoard). */
-  getRandomBoard: () => BoardDef | null;
+  /** Catalogue COMPLET des terrains (BoardDatabase.getAllBoards).
+   *  ⚠️ Le TIRAGE n'est PLUS délégué à la couche data : il vit dans
+   *  `logic/BoardPicker.pickBoard`, qui le filtre par pertinence vis-à-vis des
+   *  deux decks et refuse un terrain déjà joué dans ce duel. La couche data
+   *  FOURNIT, elle ne décide plus — exactement comme `getAllMagies`. */
+  getAllBoards: () => BoardDef[];
   /** Catalogue COMPLET des magies (MagieDatabase.getAllMagies).
    *  ⚠️ Le tirage n'est PLUS délégué à la couche data : c'est
    *  `getShoppingMagies` qui filtre par pertinence et pondère par rareté
@@ -61,8 +67,10 @@ export interface GameSessionDeps {
   mode?: 'ai' | 'pvp';
   /** Source de hasard de la partie : pioche joueur, pioches garanties et
    *  pioche de l'IA. Injectée pour que la simulation d'équilibrage puisse
-   *  SEMER une partie et la rejouer à l'identique (cf. logic/Random.ts) —
-   *  `getRandomBoard` et `getAllMagies`, déjà injectés, portent le reste.
+   *  SEMER une partie et la rejouer à l'identique (cf. logic/Random.ts). Le
+   *  TERRAIN y est passé : son tirage (`BoardPicker`) consomme ce même flux, à
+   *  exactement un appel par combat — ni plus, ni moins, sinon toutes les
+   *  pioches et tous les choix d'IA qui suivent se décaleraient.
    *  Le défaut `Math.random` laisse tous les modes de jeu inchangés. */
   rand?: () => number;
   /** Handicap PLAT donné à chaque unité de l'IA, cumulé à ses stats de base
@@ -138,9 +146,69 @@ export class GameSession {
   // État de début de tour, pour « Tout annuler » (cf. PrepSnapshot).
   private _prepSnapshot: PrepSnapshot | null = null;
 
+  /** Terrains déjà JOUÉS dans ce duel. Vit sur la session, donc sa durée de vie
+   *  est exactement celle du duel — rien à réinitialiser, rien à purger, et
+   *  rien à oublier de purger au prochain mode de jeu ajouté. */
+  private _usedBoardIds = new Set<string>();
+
+  // ⚠️ Dérivés UNE FOIS au constructeur : les deux decks sont figés pour tout le
+  // duel (`cardsByTier` est bâti par `buildSession`, et `enemyDeck` est déjà
+  // consommé ici même par `EnemyAI`). Le deck lui-même ne sort jamais de la
+  // session — seule une liste d'ids d'attributs en sort, comme `_offerContext`
+  // ne rend que des booléens et des tiers.
+  private _playerDeckAttributes: string[];
+  private _enemyDeckAttributes: string[];
+
   constructor(deps: GameSessionDeps) {
     this.deps = deps;
     this.enemyAI = new EnemyAI(deps.enemyDeck, deps.cardDb as any, 'enemy', deps.rand ?? Math.random);
+    this._playerDeckAttributes = deckAttributes(Object.values(deps.cardsByTier ?? {}).flat());
+    this._enemyDeckAttributes = deckAttributes(
+      Object.values(deps.enemyDeck ?? {})
+        // ⚠️ Ni les decks publics ni les decks de bots ne sont validés par un
+        // schéma : une entrée qui n'est pas un tableau ne doit pas jeter ici.
+        .flatMap(ids => (Array.isArray(ids) ? ids : []))
+        .map(id => (deps.cardDb as any).getCard(id) as Card | null));
+  }
+
+  /**
+   * PvP : les attributs du deck ADVERSE, sous forme de COMPTES bruts dérivés
+   * par le serveur de son deck book et transportés par `match:found` /
+   * `match:rejoined` — le trajet exact des variantes d'illustration.
+   *
+   * ⚠️ Indispensable, et c'est le seul vrai piège du mode : en PvP,
+   * `deps.enemyDeck` est le MIROIR du deck du joueur (`buildSession` y retombe
+   * sur `rawDeck`, faute d'un deck adverse à injecter). Sans ce point d'entrée,
+   * le rôle A choisirait le terrain en comptant DEUX FOIS son propre deck — une
+   * erreur parfaitement silencieuse, puisqu'elle rend quand même un terrain
+   * pertinent pour quelqu'un.
+   *
+   * ⚠️ Ce sont des comptes, pas une liste déjà filtrée : le seuil ne s'applique
+   * qu'ici, côté client (cf. `BoardPicker.dominantAttributes`).
+   */
+  setEnemyDeckAttributeCounts(counts: AttributeCounts | null | undefined): void {
+    if (!counts) return;
+    this._enemyDeckAttributes = dominantAttributes(counts);
+  }
+
+  /**
+   * Le terrain du prochain combat, SANS le jouer ni le consommer. Seul le rôle A
+   * du PvP s'en sert : il le tire, diffuse son id, et les DEUX clients repassent
+   * ensuite par `startCombat(board)` avec l'id que le serveur leur renvoie.
+   */
+  pickCombatBoard(): BoardDef | null {
+    return pickBoard(this.deps.getAllBoards(), this._boardPickContext(), this._rand);
+  }
+
+  /** L'état du duel traduit pour `BoardPicker` — même geste que `_offerContext`
+   *  pour les magies : le module de règles est pur, c'est la session qui lui
+   *  raconte où on en est. */
+  private _boardPickContext(): BoardPickContext {
+    return {
+      playerAttributes: this._playerDeckAttributes,
+      enemyAttributes: this._enemyDeckAttributes,
+      usedBoardIds: this._usedBoardIds,
+    };
   }
 
   /** Le hasard de la partie, en un seul point de lecture. */
@@ -435,7 +503,14 @@ export class GameSession {
     this.graveyard = [];
     this.enemyGraveyard = [];
 
-    const boardData = agreedBoard !== undefined ? agreedBoard : this.deps.getRandomBoard();
+    const boardData = agreedBoard !== undefined ? agreedBoard : this.pickCombatBoard();
+    // ⚠️ On marque le terrain qui est JOUÉ, jamais celui qui a été tiré. En PvP,
+    // c'est l'id renvoyé par le serveur qui fait foi : un `round:terrain_pick`
+    // perdu ne doit pas consommer un terrain que personne n'a vu. Et comme le
+    // marquage vit ICI, il vaut pour les deux rôles et pour tous les modes, y
+    // compris ceux où le terrain arrive de l'extérieur (`agreedBoard`) — une
+    // seule ligne tient l'historique du duel.
+    if (boardData) this._usedBoardIds.add(boardData.id);
     this.board.setBlockedCells(boardData?.blocked_cells || []);
 
     const playerUnits = this.board.getLivingUnitsOnSide('player');

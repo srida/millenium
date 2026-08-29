@@ -111,18 +111,21 @@ export function buildSession(
     enemyDeck: rawEnemyDeck,
     attributeList: (AttributeDatabase as any).getAllAttributes(),
     cardDb: CardDatabase as any,
-    getRandomBoard: () => (BoardDatabase as any).getRandomBoard(),
+    getAllBoards: () => (BoardDatabase as any).getAllBoards(),
     getAllMagies: () => (MagieDatabase as any).getAllMagies(),
     mode,
     enemyBonus: enemyBonus ?? null,
   });
 }
 
-// Dépendances data pour le PvpController (résolution carte + terrains).
+// Dépendances data pour le PvpController (résolution carte + terrain convenu).
+// ⚠️ Plus de `getRandomBoard` : le rôle A tire désormais depuis SA session
+// (`pickCombatBoard`), seule à connaître les deux decks et les terrains déjà
+// joués. Il ne reste que `getBoard`, dont les deux rôles se servent pour
+// résoudre l'id que le serveur leur renvoie.
 export function pvpDeps() {
   return {
     cardDb: CardDatabase as any,
     getBoard: (id: string) => (BoardDatabase as any).getBoard(id),
-    getRandomBoard: () => (BoardDatabase as any).getRandomBoard(),
   };
 }

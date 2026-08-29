@@ -241,7 +241,7 @@ rendrait `11px` même à l'échelle 0,4.
 
 **Rate-limit** (`auth.rateLimit`, seaux en mémoire) : la clé est le **compte** quand il y en a un, l'IP sinon. ⚠️ Elle était l'IP dans tous les cas, et derrière le proxy de l'hébergeur `req.ip` est celui du **proxy** — identique pour tout le monde : tous les joueurs partageaient un seul seau par route (15 connexions par minute pour le jeu ENTIER), et le quota ne protégeait plus du bourrage d'identifiants, qui vient lui aussi d'une IP unique. `app.set('trust proxy', 1)` est l'autre moitié du correctif ; la valeur `1` est délibérée — plus permissive, un client forgerait son propre `X-Forwarded-For` et se donnerait une IP neuve à volonté. Les seaux expirés sont purgés par la routine d'entretien.
 
-Le PvP temps réel ne passe pas par HTTP : `ws/pvpServer.js` (matchmaking + relais opaque) sur **`/ws/pvp`** — le fallback SPA d'`app.js`, lui, exclut tout le préfixe `/ws`. Le message `match:found` (et `match:rejoined`) transporte les **variantes d'illustration** du deck adverse, dérivées côté serveur.
+Le PvP temps réel ne passe pas par HTTP : `ws/pvpServer.js` (matchmaking + relais opaque) sur **`/ws/pvp`** — le fallback SPA d'`app.js`, lui, exclut tout le préfixe `/ws`. Le message `match:found` (et `match:rejoined`) transporte les **variantes d'illustration** du deck adverse **et les comptes d'attributs de son deck** (`deck_attribute_counts`, qui décident du terrain de combat), tous deux dérivés côté serveur — cf. « PvP — le serveur dérive ».
 
 Trois garde-fous sur la poignée de main, tous absents à l'origine : `maxPayload` à **64 Ko** (le défaut de `ws` est 100 Mo, et le relais transmet des blobs opaques à l'adversaire), contrôle de l'en-tête **`Origin`** (liste blanche via `ALLOWED_WS_ORIGINS`, localhost toujours accepté, une requête sans `Origin` — client non navigateur — passe), et `socket.destroy()` sur un chemin d'upgrade non reconnu, où un simple `return` laissait la socket ouverte sans propriétaire.
 
@@ -675,7 +675,20 @@ Qui remplit les tables : `game/bootstrap.ts` (`buildSession`, point de passage u
 
 `match:found` **et `match:rejoined`** portent `opponent.variants`, calculé par `cosmetics.deckVariantMap(userId, deckName)` à partir du **deck book serveur**, filtré par possession et par cohérence (`variants.byId(id).card_id === cardId`). Le méta de deck vient du client : sans ce filtre, n'importe qui afficherait à son adversaire une variante non achetée. Le `deckName` annoncé ne sert qu'à choisir une clé du **propre** livre de ce joueur.
 
-⚠️ **`round:board_ready` n'est pas touché** — l'illustration n'est jamais simulée, elle n'a rien à faire dans le contrat de déterminisme (verrouillé par `pvp.test.ts`), et elle est constante sur la durée du match. `OnlineLobby` force `DeckRepository.flushSync()` **avant** `queue:join` : la synchro est debouncée à 500 ms, un choix fait juste avant d'entrer dans la file ne serait pas encore en base.
+Depuis, `opponent` porte **deux** faits dérivés du deck book serveur, par un seul point d'appel (`MatchRelay.deckDerived`) — les laisser se séparer voudrait dire qu'un client reconnecté n'a qu'une moitié de son adversaire :
+
+| Champ | Nature | Sert à |
+|---|---|---|
+| `variants` | cosmétique | l'art des cartes adverses |
+| `deck_attribute_counts` | **PAS cosmétique** | le choix du terrain de combat, donc des bonus de stats réels |
+
+⚠️ **`deck_attribute_counts` est la première valeur dérivée du serveur qui n'est pas cosmétique**, d'où un module à part : **`decks.js`** (racine — il ne requiert que `db` et `json-cache`, personne ne le requiert en retour). La loger dans `cosmetics.js` aurait donné à ce module un nom qui ment sur ce qu'il porte. Il possède aussi la **résolution du deck book** (`resolveDeck`, repli « nom inconnu → deck actif »), que `deckVariantMap` open-codait : deux lectures du même livre finissent par ne plus s'accorder.
+
+⚠️ **Le serveur envoie des COMPTES, pas une liste déjà seuillée.** Renvoyer les attributs filtrés mettrait `MIN_ATTRIBUTE_OCCURRENCES` **des deux côtés du fil**, à tenir synchronisé à la main — le piège de `XP_PER_LEVEL`, la seule valeur du projet dans ce cas, et une de trop. Le serveur **compte**, le client **seuille** (`BoardPicker.dominantAttributes`).
+
+⚠️ **Divulgation assumée** : l'adversaire apprend les attributs dominants du deck avant la première unité posée. La puce 🗺️ du terrain annonce déjà la même chose un round plus tard, et l'alternative — faire choisir le terrain par le serveur — mettrait de la logique de jeu dans un relais dont tout le principe est d'être **opaque**.
+
+⚠️ **`round:board_ready` n'est pas touché** — ni l'illustration ni le terrain n'y ont leur place : l'illustration n'est jamais simulée, et le terrain voyage par son **id** dans `round:go`, arbitré par le serveur. Le contrat de déterminisme (verrouillé par `pvp.test.ts`) est inchangé, et elles sont constantes sur la durée du match. `OnlineLobby` force `DeckRepository.flushSync()` **avant** `queue:join` : la synchro est debouncée à 500 ms, un choix fait juste avant d'entrer dans la file ne serait pas encore en base.
 
 ### Routes API
 
@@ -852,6 +865,8 @@ Le PvP est un **relais opaque** : aucune logique de jeu ne vit côté serveur, e
 
 La partie contre bot est donc **un solo** : `buildSession(deckName, 'ai', pseudo, botDeck)`, avec l'`EnemyAI` habituelle. Ce qui reste au serveur, et qui justifie qu'un WebSocket soit encore dans la boucle, c'est la **caisse**.
 
+⚠️ **Corollaire heureux pour le terrain** : le deck du bot voyageant en clair, la session `mode: 'ai'` le reçoit comme `enemyDeck` — un duel contre bot choisit donc son terrain sur les **deux vrais decks**, sans une ligne dans `BotController`, là où le PvP réel a dû faire dériver les attributs adverses par le serveur (cf. « Le tirage du terrain »).
+
 | | Duel réel | Duel bot |
 |---|---|---|
 | Contrôleur | `PvpController` | **`BotController`** (`client/src/game/`) |
@@ -1019,7 +1034,7 @@ Le reste de ce document nomme, domaine par domaine, le fichier qui verrouille ch
 | `client/src/test/http-harness.ts` | Le harnais : démarre `app.js` sur un port éphémère (pas un `*.test.ts`, donc jamais collecté seul) |
 | `client/src/test/http.test.ts` | Refus d'écriture anonyme, traversée de répertoire sur trois portes, write-guard, révocation de session au reset, plafonds de corps, recherche par souligné, écriture atomique |
 | `client/src/test/http-boot.test.ts` | Le refus de démarrer sans `ADMIN_PASS` — et l'absence d'effet de bord sur le disque |
-| `client/src/test/pvp-relay.test.ts` | L'arbitrage du relais : rapports concordants, divergents, forfait |
+| `client/src/test/pvp-relay.test.ts` | L'arbitrage du relais : rapports concordants, divergents, forfait ; la **dérivation serveur du deck adverse** et la **barrière du terrain** |
 
 Le harnais suit le patron des tests serveur existants (`createRequire`, `DATA_DIR` temporaire, env posées **avant** le premier `require`), avec deux différences qui comptent :
 
@@ -1096,8 +1111,12 @@ n'entre donc dans aucun bundle.
 appelant existant ne change** (`buildSession`, `MatchSimulator`,
 `PvpController`). Trois points de branchement : `Draw.drawHand`, le constructeur
 d'`EnemyAI`, et `GameSessionDeps.rand` (qui couvre les trois tirages de pioche
-garantie et l'IA qu'elle construit). `getRandomBoard` / `getAllMagies`
-étaient déjà injectés.
+garantie et l'IA qu'elle construit) — plus le **terrain**, dont le tirage
+(`BoardPicker`) consomme ce même flux depuis qu'il dépend des decks et de
+l'historique du duel. ⚠️ À **exactement un appel par combat**, au même point du
+flux qu'avant : ni plus, ni moins, sinon toutes les pioches et tous les choix
+d'IA qui suivent se décaleraient. `getAllBoards` / `getAllMagies` ne font plus
+que fournir un catalogue.
 
 ### Les trois constats qui commandent le protocole
 
@@ -1307,7 +1326,15 @@ du plafond de 1 Mo de `/api`.
 - **Ni magies ni Phase Shopping** : il faudrait une politique de magies pour
   l'IA, qui n'existe nulle part. C'est de la nouvelle IA de jeu, et une mauvaise
   politique fausserait le verdict sur les cartes. Les **terrains**, eux, sont
-  dedans (cases bloquées et ligne de vue pèsent sur les unités à distance).
+  dedans (cases bloquées et ligne de vue pèsent sur les unités à distance) —
+  et ils sont désormais **choisis** (pertinence vis-à-vis des deux decks, pas de
+  répétition dans une partie) au lieu d'être tirés uniformément.
+  ⚠️ **La ligne de base mesurée a bougé UNE FOIS, le jour du changement** : le
+  jeu de terrains candidats n'est plus le catalogue entier. Le diff « Δ hier »
+  de `/admin/sim` de ce jour-là dit « la règle a changé », pas « le jeu a
+  dérivé » — c'est la seule lecture juste, et elle ne se devine pas après coup.
+  Le flux semé, lui, reste **en phase** : un seul `rand` par combat, au même
+  point qu'avant (aucun golden de `sim.test.ts` n'a bougé).
 - **L'adversaire est `EnemyAI`**, constante et plus faible que l'auto-joueur.
   C'est ce que le handicap compense ; les cartes sont comparées entre elles dans
   des conditions identiques, jamais à un absolu.
@@ -1339,8 +1366,8 @@ PowerDatabase.getAllPowers()
 
 await BoardDatabase.init()
 BoardDatabase.getBoard(id)
-BoardDatabase.getAllBoards()
-BoardDatabase.getRandomBoard()   // injecté dans GameSession — tiré à chaque round de combat
+BoardDatabase.getAllBoards()     // injecté dans GameSession
+// ⚠️ plus de getRandomBoard : le tirage vit dans logic/BoardPicker.pickBoard
 
 await MagieDatabase.init()
 MagieDatabase.getAllMagies()
@@ -1826,7 +1853,7 @@ Les cases bloquées sont réinitialisées entre deux combats (`GameSession.start
 
 ## Board Terrain (Terrains de combat)
 
-Chaque combat tire aléatoirement un terrain depuis `BoardDatabase`. Le terrain est actif uniquement pendant la phase de combat.
+Chaque combat se joue sur un terrain, actif uniquement pendant la phase de combat. Il n'est **plus tiré au hasard** : `logic/BoardPicker.pickBoard` le choisit en fonction des **deux decks engagés**, et **ne le rejoue jamais dans le même duel** (cf. « Le tirage du terrain » plus bas).
 
 ### Modèle de données
 
@@ -1874,6 +1901,51 @@ Quatrième famille d'assets, sur le modèle des affiches de packs : triptyque ad
 | `draw_bonus` | Pioche supplémentaire (`value` cartes) — alimente `gameState.player_extra_draws`, joueur uniquement |
 
 Les effets sont appliqués via `applyStatBonus()` / `applyShield()`, donc nettoyés automatiquement par `resetCombatStats()` en fin de combat.
+
+### Le tirage du terrain
+
+Deux règles, et elles ne pèsent pas le même poids.
+
+| Règle | Nature |
+|---|---|
+| Le terrain est choisi pour **affecter au moins un des deux camps** (pertinence) | **préférence** |
+| Un terrain **ne revient jamais deux fois** dans un duel | **règle absolue** |
+
+Les 14 terrains livrés portent **tous** un `target_attributes`. Un tirage aveugle rendait donc, la plupart du temps, un terrain sans effet : un duel Dragon contre Machine qui tombait sur « Ocean » (Aquatique) jouait sur un décor, pas sur un terrain. Et revoir « Prairie » deux fois en cinq combats effaçait la seule variété que le mode apporte entre les rounds.
+
+**Pertinent** = le terrain porte un `target_attributes` qu'au moins **2 cartes** de l'un des deux decks portent. `MIN_ATTRIBUTE_OCCURRENCES` vit dans `logic/BoardPicker.ts` et **`data/DeckTags.ts` l'y importe** : c'est la même question (« quels attributs identifient ce deck ? ») posée pour deux usages, et un attribut porté par une seule carte sur vingt est un accident de composition, pas une couleur de deck.
+
+**L'échelle de repli**, dans cet ordre : ① pertinent **et** pas encore joué → ② pas encore joué → ③ tout le pool.
+
+⚠️ **LA NON-RÉPÉTITION L'EMPORTE SUR LA PERTINENCE**, et c'est tout l'arbitrage : s'il ne reste aucun terrain pertinent inutilisé, on tire parmi les **inutilisés non pertinents** plutôt que de rejouer le pertinent déjà vu. Revoir un terrain déjà joué se remarque à tous les coups ; jouer un terrain qui ne touche personne ne se remarque pas. 14 terrains pour 5 combats au maximum : la règle est toujours tenable, et l'échelon ③ n'existe que pour un catalogue amputé en admin — pas pour un duel.
+
+⚠️ **La pertinence se juge sur les DECKS, pas sur les unités posées**, alors que le terrain, lui, s'applique aux unités du board. Ce n'est pas une approximation par paresse : au moment où le rôle A doit choisir, il a envoyé son `board_ready` mais **n'a pas encore reçu celui de son adversaire**. Le deck est la seule chose connue des deux côtés, et c'est ce qui permet au solo, au duel contre bot et au PvP d'appliquer **littéralement la même règle**. Prix assumé : un terrain pertinent peut tomber sur un tour où aucune des cartes porteuses n'a été piochée.
+
+⚠️ **La pertinence est une PRÉFÉRENCE, pas une table fermée** — c'est ce qui distingue `BoardPicker` de `MagieOffer`, dont le `default: false` fait disparaître du jeu tout type d'effet oublié. Ici un terrain jugé non pertinent reste tirable à l'échelon ② : un oubli de règle ne peut que le rendre **moins probable**, jamais invisible. D'où un prédicat de trois lignes là où les magies exigeaient d'énumérer chaque type.
+
+| Cas | Verdict |
+|---|---|
+| `effect` absent ou `null` | **non pertinent** — `applyEffect` sort aussitôt, le terrain ne touche personne |
+| `target_attributes` vide/absent | **toujours pertinent** — l'effet vise alors *toutes* les unités des deux camps |
+| sinon | intersection non vide avec les attributs des deux decks |
+
+⚠️ **EXACTEMENT UN appel à `rand` par tirage, et AUCUN sur un pool vide.** Ce n'est pas une micro-optimisation : c'est ce qui garde le flux semé de la simulation **en phase**. Un appel de plus décalerait toutes les pioches et tous les choix d'IA qui suivent, et ferait bouger les 23 goldens de déterminisme de `sim.test.ts` pour une raison sans rapport avec le terrain. Vérifié : la suite complète passe **sans une seule mise à jour de snapshot**.
+
+⚠️ **Limite connue : `draw_bonus` ignore `target_attributes`** dans `applyEffect` (il crédite le joueur quoi qu'il arrive). Un terrain `draw_bonus` dont personne ne porte le ciblage serait donc jugé non pertinent alors qu'il agit. Aucun des 14 terrains livrés n'est dans ce cas.
+
+**PvP** — seul le rôle **A** tire (`session.pickCombatBoard()`, qui ne consomme rien), diffuse l'`id`, et **les deux clients rejouent l'id renvoyé par le serveur** dans `round:go`. Le contrat de déterminisme est intact : rien de neuf n'entre dans `round:board_ready`.
+
+⚠️ **C'est `startCombat` qui MARQUE le terrain comme joué, jamais `pickCombatBoard`.** On marque celui qui est **joué**, pas celui qui a été tiré : un `round:terrain_pick` perdu ne doit pas consommer un terrain que personne n'a vu. Et comme le marquage vit là, une seule ligne tient l'historique dans **tous** les modes — y compris ceux où le terrain arrive de l'extérieur (`agreedBoard`), donc pour les deux rôles.
+
+⚠️ **`deps.enemyDeck` est INUTILISABLE en PvP** : `buildSession` y retombe sur le deck du **joueur** (`enemyDeck ?? … ?? rawDeck`), faute d'un deck adverse à injecter. Sans `setEnemyDeckAttributeCounts`, le rôle A choisirait donc le terrain en comptant **deux fois son propre deck** — une erreur parfaitement silencieuse, puisqu'elle rend quand même un terrain pertinent pour quelqu'un. Les attributs adverses viennent du **serveur** (cf. « PvP — le serveur dérive »).
+
+**Duels contre bot : rien à brancher.** Le serveur envoie le vrai deck du bot (`bot: { deck }`) et `GameScreenPvp` bâtit une session `mode: 'ai'` avec ce deck comme `enemyDeck` : la dérivation du constructeur est déjà juste, `BotController` n'a pas une ligne à changer. Même chose pour le solo, l'Arcade, le Tournoi et le tutoriel, qui passent tous par `buildSession`.
+
+**Portée de l'historique : le DUEL, pas la journée.** Il vit dans la `GameSession`, dont la durée de vie est exactement celle du duel — rien à réinitialiser, rien à oublier de réinitialiser au prochain mode ajouté. Une run d'Arcade enchaîne 4 duels, donc 4 sessions : l'historique y repart bien à zéro à chaque duel.
+
+⚠️ **Rien n'est miroité côté serveur, et ce n'est pas un oubli.** Un `match.usedBoardIds` protégerait un chemin **injoignable** : aucun client n'envoie `match:rejoin`, et rien n'écoute `round:restart` — la reprise d'état de jeu PvP n'existe pas, un rechargement de page perd déjà la main, le cimetière, la vétérance et les PV. Faire de l'historique des terrains la seule chose durable serait une incohérence, au prix d'un invariant de plus (⚠️ `round:next_ready` devrait le laisser intact, contrairement à `lastTerrainBoardId` juste à côté) qu'aucun test ne pourrait exercer.
+
+Verrouillé par `client/src/test/board-picker.test.ts` (23 golden tests sur le module pur) et `client/src/test/board-selection.test.ts` (11 au niveau `GameSession`). Tous **éprouvés dans les deux sens** — 19 régressions réintroduites une par une (filtre de non-répétition retiré, échelons inversés, seuil ramené à 1, deck adverse ignoré, `setEnemyDeckAttributeCounts` sans effet, tri supprimé, `rand` appelé sur pool vide, marquage déplacé dans le tirage…), chacune fait passer la suite au rouge.
 
 ### Rendu en jeu
 
@@ -2616,11 +2688,13 @@ Un seul pont React ↔ Three : `client/src/components/board/Board3DCanvas.tsx` m
   - Les matchs **entre IA** sont simulés (`MatchSimulator`, headless déterministe), résolus dès l'ouverture d'un round.
   - Les matchs **du joueur** se **jouent** : chaque manche du Bo5 lance une vraie partie solo (`GameScreen` avec `params.tournament`), contre le deck public de l'adversaire injecté via `buildSession(..., enemyDeck)`. Le résultat est reporté dans le bracket au retour (`tournamentStore.finishGame`) : victoire/défaite créditée, égalité non comptée (manche rejouée), abandon = manche concédée.
   - Le bracket vit dans `stores/tournamentStore.ts` (et non dans l'état du composant) : l'écran Tournoi est démonté pendant qu'on joue. `pendingGame` est le contrat entre les deux écrans — posé avant de naviguer, consommé au montage de `GameScreen`, soldé au retour.
-- **PvP** (`OnlineLobby` + `GameScreenPvp` + `game/PvpController.ts`) : le lobby joue le **deck actif** (choisi au menu, aucune sélection ici), envoyé avec `queue:join`. Sur `match:found`, le lobby **présente l'adversaire** (avatar + pseudo + tag, overlay plein écran) pendant `MATCH_REVEAL_MS` (3 s) avant de naviguer — `MatchRelay.handleReady` n'a pas de chrono, les deux clients peuvent donc tenir cette pause chacun de leur côté. L'overlay **couvre le `◂`** à dessein : le match existe déjà côté serveur, et quitter pendant la présentation le laisserait orphelin. Le décompte affiché ne pilote rien, le départ est tenu par le `setTimeout` (annulé au démontage, sinon un retour navigateur ferait naviguer l'écran suivant). Sans adversaire au bout de 10 à 20 s (délai tiré), le serveur en sert un **artificiel** — même écran, même contrôleur d'écran, cf. « Adversaires artificiels ». Le serveur (`ws/`) fait matchmaking + relais **opaque** ; chaque client simule le combat localement (déterminisme → même vainqueur des deux côtés). L'adversaire est reconstruit **en miroir** (rows 7–10) depuis `net/PvpOpponentProvider.js`. `GameSession` a un mode `'pvp'` (pas d'EnemyAI, terrain convenu).
+- **PvP** (`OnlineLobby` + `GameScreenPvp` + `game/PvpController.ts`) : le lobby joue le **deck actif** (choisi au menu, aucune sélection ici), envoyé avec `queue:join`. Sur `match:found`, le lobby **présente l'adversaire** (avatar + pseudo + tag, overlay plein écran) pendant `MATCH_REVEAL_MS` (3 s) avant de naviguer — `MatchRelay.handleReady` n'a pas de chrono, les deux clients peuvent donc tenir cette pause chacun de leur côté. L'overlay **couvre le `◂`** à dessein : le match existe déjà côté serveur, et quitter pendant la présentation le laisserait orphelin. Le décompte affiché ne pilote rien, le départ est tenu par le `setTimeout` (annulé au démontage, sinon un retour navigateur ferait naviguer l'écran suivant). Sans adversaire au bout de 10 à 20 s (délai tiré), le serveur en sert un **artificiel** — même écran, même contrôleur d'écran, cf. « Adversaires artificiels ». Le serveur (`ws/`) fait matchmaking + relais **opaque** ; chaque client simule le combat localement (déterminisme → même vainqueur des deux côtés). L'adversaire est reconstruit **en miroir** (rows 7–10) depuis `net/PvpOpponentProvider.js`. `GameSession` a un mode `'pvp'` (pas d'EnemyAI, terrain convenu — tiré par le **seul rôle A** depuis sa session, qui porte les terrains déjà joués et les attributs des deux decks ; cf. « Le tirage du terrain »).
 
   **Parité avec le mode solo** : cimetière, menu d'options d'invocation et **Phase Shopping** sont présents en PvP. Le shopping n'est pas synchronisé — chaque joueur tire et applique ses magies localement ; le résultat est transmis à l'adversaire dans le payload `round:board_ready` du round suivant. Un chrono de 45 s le borne (passage automatique) pour ne pas bloquer l'adversaire à la barrière réseau ; le décalage résiduel est absorbé par la barrière `round:combat_start_ack`.
 
   **Contrat de déterminisme** : tout état persistant d'une unité doit voyager dans `round:board_ready`, sinon les deux clients simulent des combats différents. Le payload transporte par unité `card_id`, `position`, `veterancy_points`, `base` (stats de base, modifiées en permanence par les magies), `current_hp` (les PV ne se régénèrent pas entre rounds) et `shield` ; plus `player_hp` au niveau du message — chaque joueur est la source de vérité de ses propres PV (les magies globales type `player_hp_bonus` sont invisibles de l'adversaire). Verrouillé par `client/src/test/pvp.test.ts`.
+
+  ⚠️ **Le terrain n'entre pas dans ce payload et n'a rien à y faire** : son **id** voyage dans `round:go` (le serveur arbitre, les deux clients rejouent le même), et les **attributs du deck adverse** dans `match:found`, une fois pour tout le match. Le choix dépend désormais des deux decks, mais le contrat de déterminisme est inchangé — `pvp.test.ts` passe sans modification. La barrière `terrain_pick` → `combat_start_ack` → `round:go`, dont ce choix dépend entièrement, n'avait **aucune couverture** : elle en a deux depuis (`pvp-relay.test.ts`).
 
 ---
 
