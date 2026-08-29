@@ -211,6 +211,8 @@ export class Scene3D {
   _terrainTex: THREE.Texture | null = null;
   _terrainActive = false;
   _terrainToken = 0;
+  // Duel en ligne, rôle B : le fond de grille suit le miroir des rangées.
+  _terrainMirrored = false;
 
   _camCenterZ = 0;
   _camH = 6;
@@ -487,6 +489,19 @@ export class Scene3D {
     this._blockedProps.clear();
   }
 
+  /**
+   * En duel en ligne, le monde du rôle B est le reflet de celui de A : ses
+   * cases bloquées sont miroitées à l'application (`logic/BoardMirror`). Le
+   * fond de grille est le PLAN de ces mêmes obstacles — sans le retourner sur
+   * l'axe des rangées, le décor peint et les rochers du terrain ne seraient
+   * plus en face l'un de l'autre chez ce joueur.
+   *
+   * Posé une fois par `PvpController` ; faux partout ailleurs.
+   */
+  setTerrainMirrored(mirrored: boolean): void {
+    this._terrainMirrored = !!mirrored;
+  }
+
   // Pose (ou retire) l'illustration du terrain sous la grille. Appelée par
   // GameController au lancement du combat, avec `null` à sa fin.
   //
@@ -515,9 +530,14 @@ export class Scene3D {
           new THREE.PlaneGeometry(w, d),
           // Basic et non Standard : l'illustration ne doit pas être assombrie
           // par l'éclairage de scène. La teinte la rabat d'un cran.
-          new THREE.MeshBasicMaterial({ map: tex, color: TERRAIN_BG_TINT }),
+          // DoubleSide : une échelle négative (miroir du rôle B) inverse le
+          // sens d'enroulement des faces, et le plan disparaîtrait sous le
+          // culling par défaut.
+          new THREE.MeshBasicMaterial({ map: tex, color: TERRAIN_BG_TINT, side: THREE.DoubleSide }),
         );
         mesh.rotation.x = -Math.PI / 2;
+        // Le plan est en XY avant rotation : son Y local est l'axe des rangées.
+        if (this._terrainMirrored) mesh.scale.y = -1;
         mesh.position.set(0, TERRAIN_BG_Y, (zForRow(0) + zForRow(TOTAL_ROWS - 1)) / 2);
         mesh.renderOrder = -10;
         this.scene.add(mesh);

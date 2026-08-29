@@ -26,7 +26,14 @@
  * champ, sans savoir de quel côté il regarde.
  *
  * La transformation est une involution — la vue locale reste reconstructible.
+ *
+ * ⚠️ Elle ne porte PAS que sur les rangées : `'player'` / `'enemy'` sont eux
+ * aussi des valeurs du repère local (cf. `winnerCanon`).
  */
+// ⚠️ Recopié de `logic/BoardMirror.MIRROR_AXIS` plutôt qu'importé : ce module
+// est un outil de diagnostic FAIT POUR DISPARAÎTRE d'un bloc, et son absence
+// totale d'imports (ni React, ni Zustand, ni Three, ni `logic/`) est ce qui le
+// rend retirable sans rien toucher d'autre.
 const MIRROR_AXIS = 10;
 
 /**
@@ -102,6 +109,26 @@ export class CombatRecorder {
     return `${u?.side === 'player' ? this.role : this.otherRole}:${u?.card_id}`;
   }
 
+  /**
+   * ⚠️ `'player'` / `'enemy'` sont des valeurs du REPÈRE LOCAL, exactement comme
+   * une rangée — et c'est le seul champ de la forme canonique qui l'était resté.
+   * Sans cette traduction, un combat parfaitement identique des deux côtés se
+   * clôt sur `winner: 'enemy'` chez le perdant et `winner: 'player'` chez le
+   * gagnant : le diff s'arrête là, au dernier tick, et rend « diverged ».
+   *
+   * Le coût n'était pas cosmétique — TOUT duel sain était rapporté comme
+   * divergent, si bien que le verdict du fichier ne distinguait plus rien. Il
+   * l'a d'ailleurs masqué sur ses propres logs : le round 1 du duel qui a servi
+   * à écrire ceci est identique tick pour tick, et sortait quand même en rouge.
+   *
+   * `draw` et `timeout` ne désignent personne : ils traversent tels quels.
+   */
+  private winnerCanon(w: string | null | undefined): string | null {
+    if (w === 'player') return this.role;
+    if (w === 'enemy') return this.otherRole;
+    return w ?? null;
+  }
+
   /** Une seule fois, au lancement du combat. */
   header(combat: any, boardData: any): void {
     this.boardId = boardData?.id ?? null;
@@ -130,7 +157,7 @@ export class CombatRecorder {
       // Le note explicite de `client/src/test/helpers.ts`.
       events: (events ?? []).map((e) => this.serialize(e)),
     };
-    if (combat?.winner) this.winner = combat.winner;
+    if (combat?.winner) this.winner = this.winnerCanon(combat.winner);
     this.push(record);
   }
 
@@ -218,6 +245,11 @@ export class CombatRecorder {
 
   private serialize(v: any): any {
     if (this.isUnitLike(v)) return this.key(v);
+    // Le vainqueur d'un `combat_end` est nommé dans le repère local : il se
+    // traduit comme une rangée (cf. `winnerCanon`).
+    if (v !== null && typeof v === 'object' && v.type === 'combat_end') {
+      return { ...v, winner: this.winnerCanon(v.winner) };
+    }
     // Une position dans un événement (`move.from/to`, `freeze.cell`) doit être
     // normalisée comme le reste, sinon elle diverge par construction entre les
     // deux clients et noierait toutes les autres différences.

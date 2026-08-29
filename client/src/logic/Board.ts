@@ -96,6 +96,26 @@ export class Board {
     return this._blockedCells.has(key) || this._temporaryBlockedCells.has(key);
   }
 
+  /**
+   * Les blocages PERMANENTS du terrain, tels qu'ils sont réellement appliqués.
+   *
+   * ⚠️ C'est la seule lecture juste pour le rendu (les rochers de `Scene3D`) et
+   * pour l'enregistreur de duel : en PvP le rôle B applique les cases MIROITÉES
+   * (`GameSession.startCombat` + `logic/BoardMirror`), et relire
+   * `boardData.blocked_cells` y donnerait un jeu de cases que le pathfinding
+   * n'utilise pas — des obstacles invisibles d'un côté et des rochers posés sur
+   * des cases libres de l'autre. Le board est la source de vérité.
+   *
+   * Les blocages TEMPORAIRES (POWER_FREEZE) n'en font pas partie : ils naissent
+   * en cours de combat et ont leur propre rendu.
+   */
+  blockedCells(): Position[] {
+    return [...this._blockedCells].map(key => {
+      const [col, row] = key.split(',').map(Number);
+      return { col, row };
+    });
+  }
+
   clearBlockedCells(): void {
     this._blockedCells = new Set();
     this._temporaryBlockedCells = new Map();

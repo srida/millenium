@@ -16,6 +16,7 @@ import { GameSession, Phase } from '../logic/GameSession.js';
 import * as PvpConnection from '../net/PvpConnection.js';
 import { sendOwnBoard, waitForOpponentBoard, reconstructOpponentUnits, reset as resetOpponent } from '../net/PvpOpponentProvider.js';
 import type { BoardDef } from '../logic/types.js';
+import type { Scene3D } from '../three/Scene3D.js';
 import { useGameStore } from '../stores/gameStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import * as CardArt from '../data/CardArt.js';
@@ -41,6 +42,20 @@ export class PvpController extends GameController {
     this.pvp = pvp;
     this.role = role;
     this.opponentName = opponentName;
+  }
+
+  /**
+   * ⚠️ La scène est attachée par `Board3DCanvas` au montage, sans ordre garanti
+   * vis-à-vis de `begin()` — le drapeau se pose donc ICI et pas là-bas.
+   *
+   * Le rôle B joue dans le reflet du monde du rôle A : ses cases bloquées sont
+   * miroitées par la session (`mirrorTerrain`), et le fond de grille doit
+   * suivre le même retournement, sans quoi le décor peint et les rochers du
+   * terrain ne tomberaient plus au même endroit chez ce joueur.
+   */
+  attachScene(scene: Scene3D): void {
+    super.attachScene(scene);
+    scene.setTerrainMirrored(this.role === 'B');
   }
 
   begin(): void {

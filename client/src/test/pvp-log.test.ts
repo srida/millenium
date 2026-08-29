@@ -555,11 +555,20 @@ describe('CombatRecorder — la forme canonique', () => {
     expect(byKey(record('B', SYMETRIQUE))).toEqual({ 'A:CORE_001': '2,1', 'B:CORE_002': '2,9' });
   });
 
-  // ⚠️ LE TEST QUI VAUT LE LOT : sur un terrain non symétrique, les deux
-  // clients simulent bel et bien deux plateaux différents — et l'outil doit le
-  // dire, au tick 0, en nommant `blocked_cells`. C'est la panne que ce lot
-  // existe pour rendre visible.
-  it('attrape un terrain non symétrique, au tick 0, en nommant le champ', () => {
+  // ⚠️ LE TEST QUI A VALU LE LOT — et dont la panne est FERMÉE depuis.
+  //
+  // Il décrivait la production : les cases bloquées étaient appliquées verbatim
+  // des deux côtés, les deux clients simulaient donc deux plateaux différents
+  // dès qu'un terrain n'était pas invariant par le miroir (7 sur 14). C'est ce
+  // que l'outil a effectivement rendu visible sur un vrai duel, round 5.
+  //
+  // `GameSession.startCombat` miroite désormais le terrain pour le rôle B
+  // (`logic/BoardMirror`) et `GameController` journalise les cases TELLES
+  // QU'ELLES SONT JOUÉES : ce cas n'est donc plus atteignable en jeu — il reste
+  // ici comme détecteur de régression, en simulant deux clients qui ne
+  // s'accorderaient plus sur le terrain. Le duel réel, correction comprise, est
+  // rejoué de bout en bout par `pvp-determinism.test.ts`.
+  it('attrape deux clients en désaccord sur le terrain, au tick 0, en nommant le champ', () => {
     const d = pvplog.diff(record('A', ASYMETRIQUE), record('B', ASYMETRIQUE));
     expect(d).not.toBeNull();
     expect(d.kind).toBe('header');
