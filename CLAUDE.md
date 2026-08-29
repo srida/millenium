@@ -134,6 +134,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `/api/admin/db/*` | Site admin | Inspection de la base SQLite (`routes/admin-db.js`) |
 | `GET /admin/sim` | Site admin | Rapport de la simulation d'équilibrage (`sim-report.html`) |
 | `/api/admin/sim/*` | Site admin | Dépôt et historique des runs (`routes/admin-sim.js`) |
+| `/api/admin/pvp-logs/*` | Site admin | Logs de combat PvP — **outil de diagnostic temporaire** (`routes/admin-pvplog.js`) |
 
 ### Responsivité d'`admin.html` — navigation et pièges
 
@@ -238,6 +239,7 @@ rendrait `11px` même à l'échelle 0,4.
 | `GET /api/me/gifts` | Connecté | Cadeau quotidien + cadeaux ponctuels éligibles |
 | `POST /api/me/gifts/daily` | Connecté | Récupère le cadeau quotidien |
 | `POST /api/me/gifts/:id/claim` | Connecté | Récupère un cadeau ponctuel |
+| `POST /api/me/pvp-log` | Connecté | Dépôt d'une vue de combat PvP — **outil de diagnostic temporaire** |
 
 **Rate-limit** (`auth.rateLimit`, seaux en mémoire) : la clé est le **compte** quand il y en a un, l'IP sinon. ⚠️ Elle était l'IP dans tous les cas, et derrière le proxy de l'hébergeur `req.ip` est celui du **proxy** — identique pour tout le monde : tous les joueurs partageaient un seul seau par route (15 connexions par minute pour le jeu ENTIER), et le quota ne protégeait plus du bourrage d'identifiants, qui vient lui aussi d'une IP unique. `app.set('trust proxy', 1)` est l'autre moitié du correctif ; la valeur `1` est délibérée — plus permissive, un client forgerait son propre `X-Forwarded-For` et se donnerait une IP neuve à volonté. Les seaux expirés sont purgés par la routine d'entretien.
 
@@ -926,6 +928,212 @@ node scripts/build-bot-decks.js --check    # revalide le fichier livré (exit 1 
 - **Le hors-thème n'est qu'un dernier recours**, pour atteindre les 24 cartes : un tier plus court vaut mieux qu'une carte que rien dans le deck ne fait résonner. Les decks se construisent **à la suite** et s'évitent les uns les autres, pour que dix bots n'alignent pas les mêmes staples.
 - **Le pseudo est DÉCOUPLÉ du deck** et tiré à chaque match : les apparier serait le tell le plus facile du système (« ce pseudo joue toujours des dragons » se remarque au troisième duel). L'**avatar**, lui, vient des cartes du deck — comme un joueur qui porte une carte qu'il aime — et n'est retenu que si son PNG existe : un `<img>` vide dans le HUD adverse serait le tell le plus visible qu'on puisse laisser.
 - Verrouillé par `client/src/test/bots.test.ts` (19 golden tests, même harnais serveur que `shop.test.ts`). ⚠️ Il lit le catalogue de decks à son emplacement **réel** et le confronte au **vrai `data/cards.json`** : une carte supprimée en admin doit casser ici, pas en laissant un bot poser une main injouable devant un joueur.
+
+---
+
+## 🔬 Log de combat PvP par tick — OUTIL DE DIAGNOSTIC TEMPORAIRE
+
+> **Ce lot est fait pour disparaître.** Il ne corrige rien : il rend visible une
+> panne qu'aucun code du projet ne permettait de constater. Une fois la cause
+> établie et corrigée, tout ce qui suit se retire d'un bloc (§ « Comment le
+> retirer »).
+
+Un duel en ligne est simulé **en parallèle par les deux clients**, et le combat
+ne consomme **aucun hasard** (`CombatManager` ne reçoit ni `rand` ni graine).
+Les deux simulations sont donc censées être identiques au tick près. Des écarts
+ont pourtant été observés, et le seul signal existant était le `console.warn` de
+`ws/MatchRelay.handleReportResult` sur `result_mismatch` — c'est-à-dire à la
+toute fin, en disant seulement « les deux joueurs ne sont pas d'accord sur le
+vainqueur ». Il n'existait par ailleurs **aucune instrumentation** du chemin de
+combat : pas un `console.log`, pas de drapeau debug, et `Unit.toDebugInfo()`
+n'avait aucun appelant.
+
+Chaque combat PvP est donc enregistré **des deux côtés**, tick par tick, et
+`/admin` sert un fichier qui met les deux vues face à face en nommant la
+première différence.
+
+### La forme canonique — le point qui commande tout le reste
+
+Les deux clients ne voient pas le même monde : celui du rôle B est le **reflet**
+de celui de A (`mirrorRow = 10 - row`, `net/PvpOpponentProvider.js`). Un diff
+brut de deux vues locales ne dirait rien. **Le client normalise donc à la
+capture, dans le repère du rôle A** ; le serveur compare champ à champ sans
+jamais savoir de quel côté il regarde.
+
+| | Règle |
+|---|---|
+| Position | `row_canon = (role === 'B') ? 10 - row : row` — **uniforme**, mes unités comme celles d'en face. `col` ne se miroite pas. |
+| Propriétaire | `owner = (u.side === 'player') ? monRôle : l'autre` |
+| Identité | `` `${owner}:${card_id}` `` |
+
+⚠️ **Surtout pas l'`uid`.** Il voyage bien dans `round:board_ready`, mais
+`reconstructOpponentUnits` le **jette** et laisse `new Unit` en tirer un neuf
+d'un compteur de module : il n'a aucune valeur commune aux deux clients. La
+règle du doublon garantit qu'une `card_id` n'est pas vivante deux fois du même
+côté, donc `(owner, card_id)` désigne bien une unité et une seule. C'est déjà le
+choix de `refUnit` dans `client/src/test/helpers.ts`, et pour la même raison.
+
+⚠️ **Les positions PORTÉES PAR LES ÉVÉNEMENTS se normalisent aussi**
+(`move.from/to`, `freeze.cell`) : laissées brutes, elles divergeraient par
+construction entre les deux clients et noieraient toute autre différence.
+
+### Client — `client/src/game/CombatRecorder.ts`
+
+⚠️ **Il vit dans `game/` et PAS dans `logic/`**, et ce n'est pas du rangement :
+`logic/` est headless et verrouillé par des golden tests de déterminisme, il n'a
+aucune raison d'apprendre qu'un mode de jeu s'observe. L'enregistreur se branche
+sur le crochet **`onStep` que `GameController` possédait déjà** — il lit, il ne
+participe pas. Aucun import : ni React, ni Zustand, ni Three, ni `logic/`.
+
+- **En-tête** (une fois) : `board_id`, **`blocked_cells`** (tel que vu
+  localement), unités de départ. C'est ce dernier champ qui tranche à lui seul
+  le suspect n°1 ci-dessous.
+- **Par tick** : `t` (le `_stepCount` du moteur), **`order`** (l'ordre
+  d'initiative — le champ le plus diagnostique du fichier), une ligne compacte
+  par unité, et les événements.
+- ⚠️ **Les événements se copient EN PROFONDEUR à l'émission** : ils portent des
+  références vivantes vers les `Unit` et vers des objets (`dot`, `extra`) que
+  les steps suivants mutent. Le note explicite de `client/src/test/helpers.ts`.
+- ⚠️ **Plafond dur `MAX_LOG_BYTES = 700_000`**, et la troncature se **dit**
+  (`truncated: true`). Le corps d'une requête `/api` est plafonné à 1 Mo hors
+  routes d'upload : un log qui casse son POST ne vaut rien, et un fichier
+  silencieusement amputé est pire qu'un fichier absent. Pire cas mesuré
+  (12 unités × 333 ticks) ≈ 250 Ko — la troncature ne devrait jamais servir.
+- ⚠️ **Rien n'est enregistré en duel contre BOT** : la partie y est un solo, il
+  n'existe qu'un point de vue, et le match n'a aucune ligne dans `matches`.
+- ⚠️ **L'envoi est « pose et oublie »** : jamais attendu, jamais montré au
+  joueur, `catch` muet. Un outil de debug qui peut retarder une navigation ou
+  faire perdre un duel est pire que pas d'outil.
+- ⚠️ **Ne pas passer par le WebSocket** : `maxPayload` y vaut 64 Ko, et surtout
+  tout type inconnu est **relayé à l'adversaire** par le `default` de
+  `ws/pvpServer.handleMessage`, où il s'empilerait indéfiniment dans le tampon
+  de `PvpConnection`.
+
+Branchements : `PvpConnection.getMatchId()` (nouveau export),
+`GameController._newRecorder()` / `_flushRecorder()` (deux crochets `protected`,
+no-op dans la classe de base), surchargés par `PvpController`, et
+`AuthClient.postPvpLog`.
+
+### Serveur — `pvplog.js` + table `pvp_combat_logs`
+
+`pvplog.js` est une **feuille** : il ne requiert que `db`, et personne ne le
+requiert en retour hors des deux routeurs et de la purge d'`app.js`. Même statut
+que `decks.js` — un outil qu'on doit pouvoir retirer d'un bloc.
+
+⚠️ **`record` vérifie l'appartenance au match, et ce n'est pas décoratif** :
+c'est une écriture ouverte aux joueurs. Le match doit exister, le `user.id` doit
+être l'un des deux joueurs, et le `role` annoncé doit correspondre à sa **place
+réelle** — la clé primaire étant `(match_id, round, role)`, un rôle usurpé
+permettrait d'occuper la place de son adversaire et d'empêcher sa vue d'être
+enregistrée. Sans ces contrôles, le fichier qu'on lit ensuite pour arbitrer une
+divergence serait exactement ce qu'un tricheur y aurait écrit.
+
+⚠️ **`INSERT OR IGNORE` : le PREMIER écrit gagne.** Un renvoi ne doit pas
+pouvoir réécrire après coup ce qu'on est en train de diagnostiquer.
+
+**`diff(a, b)` s'arrête à la PREMIÈRE différence**, du plus structurant au plus
+fin — au-delà, tout diverge par ricochet et le rapport ne dirait plus rien de la
+cause :
+
+| `kind` | Ce qu'il compare |
+|---|---|
+| `header` | `board_id`, **`blocked_cells`** (en ENSEMBLE, pas en liste ordonnée), unités de départ |
+| `order` | l'ordre d'initiative du tick |
+| `state` | le vecteur d'une unité — **le champ fautif est NOMMÉ** |
+| `events` | un acte qui diffère à état et ordre identiques |
+| `length` | un côté plus court, ou un vainqueur différent |
+
+Le stockage est compact (lignes positionnelles + une légende `columns` écrite
+une fois) parce qu'il y a jusqu'à 333 ticks × 12 unités ; le **`detail` d'une
+divergence est entièrement expansé en champs nommés**, c'est le seul morceau du
+fichier qu'un humain ouvre vraiment.
+
+### Routes
+
+| Route | Accès | Description |
+|---|---|---|
+| `POST /api/me/pvp-log` | Connecté (20/min) | Dépôt d'une vue. ⚠️ N'existe QUE parce que `routes/online.js` est monté **avant** le write-guard global |
+| `GET /api/admin/pvp-logs` | Site admin | Liste + verdict par match |
+| `GET /api/admin/pvp-logs/:matchId` | Site admin | Le bundle complet |
+| `GET /api/admin/pvp-logs/:matchId/download` | Site admin | Le même en pièce jointe |
+| `DELETE /api/admin/pvp-logs/:matchId` | Site admin | Purge d'un match |
+
+`routes/admin-pvplog.js` est monté avec un **`requireSiteAdmin` explicite**,
+même raison qu'`admin-db.js` et `admin-sim.js` : les GET sous `/api` sont
+publics par défaut, et un log nomme les deux joueurs d'un duel.
+
+⚠️ **Le `:matchId` compose un NOM DE FICHIER** (`Content-Disposition`) → garde
+stricte sur la forme UUID réellement produite par `crypto.randomUUID`, **400**
+et non 404. Même raison que le `DATE_RE` d'`admin-sim.js` et que `safeAssetId` ;
+le 400 strict est le canari, un 404 signalerait une normalisation en amont.
+
+**Rétention** : `KEEP_DAYS = 7`, purgée dans le `runMaintenance` **existant**
+d'`app.js`. Pas de nouveau minuteur.
+
+### Admin — onglet `🔬 Logs PvP`
+
+Patron **sans barre latérale** de `#tab-db`, chargement paresseux au premier
+clic dans `switchTab`, ajouté à `NO_FAB_TABS`, et sélecteurs portés par
+`#main-tabs` (le piège `.tab` réutilisé). Réutilise `.db-table` / `.db-toolbar`
+/ `.db-pager` — seul le verdict a son propre style. La liste ne transporte que
+le verdict ; le **détail est chargé à la demande**, le bundle pesant
+potentiellement plusieurs centaines de Ko. Vérifié au navigateur en 1280 px et
+en 390 px (`scrollWidth <= clientWidth`, un seul `.main:not(.hidden)`, un seul
+`#main-tabs .tab.active`, le tableau défilant dans son conteneur).
+
+### ⚠️ Ce que le log est fait de prouver — quatre suspects, le premier mesuré
+
+1. **7 terrains sur 14 ont des cases bloquées non symétriques par le miroir.**
+   `GameSession.startCombat` applique `boardData.blocked_cells` **verbatim** des
+   deux côtés alors que le monde du rôle B est le reflet de celui de A : pour
+   que les deux simulations s'accordent, l'ensemble doit être invariant par
+   `row → 10-row`. Mesuré sur les données livrées : `BOARD_001, 008, 009, 010,
+   011, 013, 014` ne le sont pas (ex. `BOARD_014` : `[{3,6},{1,4}]` → miroir
+   `[{3,4},{1,6}]`). Ligne de vue et contournement BFS divergent dès le premier
+   tick. **Suspect n°1**, et le champ `blocked_cells` de l'en-tête le tranche
+   seul.
+2. **L'ordre des tableaux d'unités est inversé entre les deux clients.**
+   `Board.getUnitsOnSide` balaie col-major, row **croissante** : un camp aux
+   rows 0–3 sort dans l'ordre 0,1,2,3, le même camp miroité aux rows 7–10 sort
+   7,8,9,10 — l'ordre relatif **inverse**. Or ce tableau départage
+   `findAttackTarget` (`d < bestDist`, premier arrivé), le `reduce` de
+   provocation, `POWER_HEAL` et `_teleportPlan`.
+3. **Le tri d'initiative n'a pas de départage de camp** : `[...playerUnits,
+   ...enemyUnits]` met « mes » unités en tête sur chaque client ; à égalité
+   d'initiative, de vitesse **et** de `card_id` (possible — deux joueurs peuvent
+   jouer la même carte), le tri stable tranche dans deux sens opposés.
+4. **`Board.getNeighbors` n'est pas symétrique par réflexion** (`[col-1, col+1,
+   row-1, row+1]`) : le BFS rend le *premier* plus court chemin trouvé.
+
+### Tests
+
+`client/src/test/pvp-log.test.ts` (39 golden tests, harnais HTTP réel de
+`http-harness.ts`). Couvre les cinq natures de `diff`, l'arrêt à la première
+différence, les refus de `record` — **chacun prouvé par l'ABSENCE DE LIGNE en
+base, jamais par un code de statut** —, l'idempotence, les deux routes de bout
+en bout, la garde du nom de fichier, la rétention, et surtout **la forme
+canonique** : un même combat physique enregistré des deux côtés doit rendre le
+**même** log, et un terrain non symétrique doit ressortir en `header` au tick 0.
+
+⚠️ **13 régressions ont été réintroduites une par une**, chacune fait passer la
+suite au rouge : normalisation des rows retirée, clé d'unité prise sur le camp
+local, positions d'événements non normalisées, plafond de taille retiré,
+`blocked_cells` comparées dans l'ordre d'écriture ou pas comparées du tout,
+ordre d'initiative non comparé, diff rendant la dernière différence au lieu de
+la première, champ fautif non nommé, contrôle d'appartenance ou de rôle retiré,
+`INSERT OR IGNORE` passé en `OR REPLACE`, garde du nom de fichier retirée.
+
+### Comment le retirer
+
+Tout est **additif**, en sept points : la table `pvp_combat_logs` et ses
+statements dans `db.js`, `pvplog.js`, la route `POST /me/pvp-log` de
+`routes/online.js`, `routes/admin-pvplog.js` et son `app.use`, la purge dans
+`runMaintenance`, l'onglet d'`admin.html`, et côté client
+`CombatRecorder.ts` + les deux crochets `protected` de `GameController`,
+leurs surcharges dans `PvpController`, `getMatchId()` et `postPvpLog`.
+**Rien n'est touché dans `logic/`**, aucun payload réseau existant n'est
+modifié, et le contrat de déterminisme (`round:board_ready`, verrouillé par
+`pvp.test.ts`) est intact.
 
 ---
 

@@ -19,6 +19,8 @@ import type { BoardDef } from '../logic/types.js';
 import { useGameStore } from '../stores/gameStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import * as CardArt from '../data/CardArt.js';
+import { CombatRecorder } from './CombatRecorder.js';
+import * as AuthClient from '../data/AuthClient.js';
 
 interface PvpDeps {
   cardDb: { getCard(id: string): any };
@@ -183,6 +185,43 @@ export class PvpController extends GameController {
   private _applyOpponentDeck(): void {
     this.session.setEnemyDeckAttributeCounts(
       (PvpConnection as any).getOpponent()?.deck_attribute_counts);
+  }
+
+  // ── Log de combat par tick — OUTIL DE DIAGNOSTIC TEMPORAIRE ────────────────
+  //
+  // Les deux clients simulent le même combat en parallèle sans aucun hasard :
+  // ils sont censés produire le même tick, à l'unité près. Chacun enregistre
+  // donc sa vue et la dépose ; le serveur recolle les deux et nomme la première
+  // différence (cf. `pvplog.js`, `GET /api/admin/pvp-logs`).
+
+  /**
+   * ⚠️ Rien n'est enregistré en duel contre BOT : la partie y est un solo
+   * (`BotController`, session `mode: 'ai'`), il n'existe qu'un seul point de
+   * vue et donc rien à confronter. Le match n'a d'ailleurs aucune ligne dans
+   * `matches`, que `pvplog.record` exige pour valider l'appartenance.
+   *
+   * Le round est FIGÉ ici plutôt que relu à la fin : `_onCombatFinished`
+   * précède `nextRound()`, mais le figer supprime la question.
+   */
+  protected _newRecorder(): CombatRecorder | null {
+    if ((PvpConnection as any).getBotMatch()) return null;
+    const matchId = (PvpConnection as any).getMatchId();
+    if (!matchId) return null;
+    return new CombatRecorder({ matchId, round: this.session.gameState.round, role: this.role });
+  }
+
+  /**
+   * ⚠️ « Pose et oublie » : jamais attendu, jamais montré au joueur. Un outil
+   * de debug qui peut retarder une navigation ou faire échouer une fin de
+   * combat est pire que pas d'outil du tout — d'où le `void` et le `catch`
+   * muet. Appelé à la fin du combat ET au démontage (combat quitté en route),
+   * l'enregistreur étant remis à `null` pour que le second passage soit inerte.
+   */
+  protected _flushRecorder(): void {
+    const recorder = this._recorder;
+    this._recorder = null;
+    if (!recorder || recorder.isEmpty) return;
+    void AuthClient.postPvpLog(recorder.payload()).catch(() => { /* diagnostic : jamais bloquant */ });
   }
 
   private _pvpNotify(msg: string): void { useGameStore.getState().applySnapshot({ errorFlash: msg }); }

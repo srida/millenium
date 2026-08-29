@@ -10,6 +10,7 @@ const shop = require('../shop');
 const cosmetics = require('../cosmetics');
 const arcade = require('../arcade');
 const gifts = require('../gifts');
+const pvplog = require('../pvplog');
 
 const router = express.Router();
 
@@ -633,6 +634,32 @@ router.put('/me/decks', auth.requireUser, (req, res) => {
   if (data.length > 1_000_000) return res.status(413).json({ error: 'deck book trop volumineux' });
   stmt.upsertDeckBook.run({ user_id: req.user.id, data, updated_at: Date.now() });
   res.json({ ok: true });
+});
+
+// =====================================================================
+//  LOG DE COMBAT PvP (diagnostic temporaire — cf. pvplog.js)
+// =====================================================================
+//
+// ⚠️ Cette route N'EXISTE QUE parce que `routes/online.js` est monté AVANT le
+// write-guard global d'`app.js` : toute écriture sous `/api` déclarée plus bas
+// tombe derrière `requireSiteAdmin`. C'est donc la seule maison possible pour
+// un POST joueur.
+//
+// Le client dépose SA vue d'un combat ; le serveur ne la relit pas, il vérifie
+// seulement qu'elle a le droit d'être là (`pvplog.record`). C'est un outil de
+// debug : il ne décerne rien, ne débite rien, et un refus n'a aucun effet de
+// bord sur la partie en cours.
+router.post('/me/pvp-log', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
+  const body = req.body || {};
+  const result = pvplog.record(req.user, {
+    matchId: body.match_id,
+    round: body.round,
+    role: body.role,
+    payload: body.payload,
+    truncated: body.truncated,
+  });
+  if (!result.ok) return res.status(400).json({ error: result.error });
+  res.json({ ok: true, stored: result.stored });
 });
 
 module.exports = router;
