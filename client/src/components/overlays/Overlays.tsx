@@ -1,13 +1,104 @@
-// Overlays de la partie : menu d'options d'invocation, résultat de round,
-// fin de partie. La Phase Shopping vit dans components/shopping/.
+// Overlays de la partie : annonce de terrain, menu d'options d'invocation,
+// résultat de round, fin de partie. La Phase Shopping vit dans
+// components/shopping/.
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
-import { Avatar, Button, Modal } from '../ui/primitives.js';
+import { Avatar, Button, Illustration, Modal } from '../ui/primitives.js';
+import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
+import { boardEffectLabel, boardTargetsUnits } from '../../data/BoardInfo.js';
 import { AnimatedLevelGauge } from '../ui/ProgressionStats.js';
-import { END_ROUND_DURATION_S } from '../../game/timings.js';
+import { END_ROUND_DURATION_S, TERRAIN_ALERT_MS } from '../../game/timings.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
+
+/**
+ * L'annonce du terrain, à l'entrée en phase de combat.
+ *
+ * Le terrain décide de bonus de stats RÉELS et change à chaque round (cf. « Le
+ * tirage du terrain ») — mais sa seule trace à l'écran était la puce 🗺️ de la
+ * barre de combat, qu'il fallait taper pour lire l'effet. On l'annonce donc, le
+ * temps que le premier coup se prépare.
+ *
+ * ⚠️ Ce composant ne PILOTE rien : il n'a pas de minuteur à lui. Le départ du
+ * combat appartient au contrôleur, qui retient déjà le premier coup pour la
+ * cascade d'arrivée de l'IA. Deux horloges pour un même événement finiraient par
+ * ne plus s'accorder — l'annonce se contente de disparaître quand
+ * `terrainAlert` repasse à `null`.
+ *
+ * ⚠️ Pas de `Modal` : elle poserait un voile noir sur ce qu'on vient annoncer.
+ * Une couche transparente suffit, et c'est elle qui capte le tap qui passe
+ * l'annonce.
+ *
+ * ⚠️ `z-40`, pas plus : `TutorialCoach` est en `z-50` avec sa bulle en
+ * `pointer-events-auto`. Au-dessus, l'annonce lui volerait ses taps pendant
+ * deux secondes et demie et le tutoriel perdrait son bouton.
+ */
+export function TerrainAlert() {
+  const alert = useGameStore(s => s.terrainAlert);
+  const controller = useGameStore(s => s.controller);
+  if (!alert || !controller) return null;
+  const { board, boosted } = alert;
+  const targets = boardTargetsUnits(board.effect) ? (board.effect?.target_attributes ?? []) : [];
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center p-4"
+      onPointerDown={(e) => { e.stopPropagation(); controller.dismissTerrainAlert(); }}
+    >
+      <div
+        className="terrain-alert flex w-full max-w-xs flex-col items-center gap-2 rounded-2xl border border-gold/40 bg-surface/95 p-4 text-center shadow-2xl backdrop-blur"
+        style={{ ['--terrain-alert-dur' as string]: `${TERRAIN_ALERT_MS}ms` }}
+      >
+        <div className="text-[9px] uppercase tracking-widest text-white/40">Terrain de combat</div>
+        {/* La vignette CARRÉE (/illustrations), pas le fond de grille 5:11 de
+            /board-backgrounds — qui serait déformé dans un cadre carré. */}
+        {board._has_illustration
+          ? <Illustration id={board.id} className="h-24 w-24" framed lazy={false} />
+          : <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-line text-4xl">🗺️</div>}
+        <div className="text-base font-bold text-gold">{board.name}</div>
+        <div className="text-xs text-white/70">{boardEffectLabel(board.effect)}</div>
+        {targets.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-1">
+            {targets.map(id => (
+              <span key={id} className="flex items-center gap-1 rounded border border-gold/40 bg-gold/10 px-1.5 py-0.5 text-[10px] text-gold">
+                <AttrIcon id={id} className="h-3.5 w-3.5 text-[11px]" />
+                {attributeName(id)}
+              </span>
+            ))}
+          </div>
+        )}
+        {boosted && <BoostedCount player={boosted.player} enemy={boosted.enemy} />}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Qui est concerné, en clair — c'est ce qui fait la différence entre une
+ * annonce décorative et une information tactique.
+ *
+ * ⚠️ Un terrain qui ne touche personne le DIT. La sélection préfère un terrain
+ * pertinent mais cède devant la non-répétition (cf. « Le tirage du terrain ») :
+ * le cas arrive, et le taire laisserait le joueur croire à un bonus qu'il n'a
+ * pas. Les couleurs sont celles des deux camps, déjà lues partout ailleurs.
+ */
+function BoostedCount({ player, enemy }: { player: number; enemy: number }) {
+  if (player === 0 && enemy === 0) {
+    return <div className="text-[11px] text-white/40">Aucune unité en jeu n'en profite</div>;
+  }
+  return (
+    <div className="flex items-center gap-2 text-[11px]">
+      <span className={player > 0 ? 'font-semibold text-player' : 'text-white/30'}>
+        {player === 1 ? '1 des tiennes' : `${player} des tiennes`}
+      </span>
+      <span className="text-white/20">·</span>
+      <span className={enemy > 0 ? 'font-semibold text-enemy' : 'text-white/30'}>
+        {enemy === 1 ? '1 adverse' : `${enemy} adverses`}
+      </span>
+    </div>
+  );
+}
 
 export function SummonOptionMenu() {
   const menu = useGameStore(s => s.summonOptions);

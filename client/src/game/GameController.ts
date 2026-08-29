@@ -5,6 +5,8 @@
 // combat animé. Ne fait PARTIE ni de logic/ ni de three/ : couche app autorisée
 // à dépendre des deux + des stores.
 import { GameSession, Phase } from '../logic/GameSession.js';
+import { effectTargets } from '../logic/BoardEffect.js';
+import { boardTargetsUnits } from '../data/BoardInfo.js';
 import { matchesMaterial } from '../logic/InvocationManager.js';
 import { CombatAnimator3D } from '../three/CombatAnimator3D.js';
 import type { Scene3D } from '../three/Scene3D.js';
@@ -14,7 +16,7 @@ import { useGameStore, type GameSnapshot, type HandEntry } from '../stores/gameS
 import { useUiStore, type TooltipAnchor } from '../stores/uiStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
 import * as CardArt from '../data/CardArt.js';
-import { PREP_DURATION_S, COMBAT_DURATION_S, combatSecondsLeft } from './timings.js';
+import { PREP_DURATION_S, COMBAT_DURATION_S, combatSecondsLeft, TERRAIN_ALERT_MS } from './timings.js';
 import { CombatRecorder } from './CombatRecorder.js';
 
 interface SummonOptionMenu {
@@ -59,6 +61,15 @@ export class GameController {
   protected paused = false;
   private _errorTimer: ReturnType<typeof setTimeout> | null = null;
   private _revealTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Le départ du combat, tant qu'il est retenu par la cascade et/ou l'annonce
+   *  de terrain. C'est un CHAMP et non une closure locale parce qu'un tap du
+   *  joueur doit pouvoir déclencher le même départ que le minuteur — et une
+   *  seule fois : il se remet à `null` en partant, donc un double tap ne lance
+   *  pas deux combats. */
+  private _pendingCombatStart: (() => void) | null = null;
+  /** Instant au plus tôt où le combat peut partir : la cascade d'arrivée de
+   *  l'IA doit être terminée, même si le joueur passe l'annonce d'un tap. */
+  private _combatStartAt = 0;
   protected _combatRemaining = COMBAT_DURATION_S;
 
   constructor(session: GameSession) {
@@ -350,19 +361,56 @@ export class GameController {
     animator.setSpeed(this.combatSpeed);
     this.animator = animator;
     this.paused = false;
+    // L'annonce du terrain : ce qui va peser sur ce combat, dit AVANT le premier
+    // coup. Elle prolonge l'attente qui existait déjà pour la cascade au lieu de
+    // s'en ajouter une seconde — deux minuteurs pour un même départ finiraient
+    // par ne plus s'accorder. Les listes passées sont celles sur lesquelles
+    // `startCombat` vient d'appliquer l'effet : unités vivantes, IA déjà placée.
+    const terrainAlert = terrainAlertFor(boardData, this.session.getPlayerUnits(), this.session.enemyUnits);
+    const holdMs = Math.max(revealMs, terrainAlert ? TERRAIN_ALERT_MS : 0);
     // combatRemaining doit repartir de 60 dès l'entrée en combat : sans ça le
     // HUD affiche la valeur finale du combat précédent jusqu'au premier tick.
-    this.sync({ combatActive: true, combatRemaining: this._combatRemaining, boardTerrain: boardData });
-    if (revealMs > 0) {
-      this._revealTimer = setTimeout(() => {
-        this._revealTimer = null;
-        if (this.animator !== animator) return;   // combat quitté entre-temps
-        animator.start();
-        if (this.paused) animator.pause();        // Pause tapée pendant la cascade
-      }, revealMs);
-    } else {
+    this.sync({ combatActive: true, combatRemaining: this._combatRemaining, boardTerrain: boardData, terrainAlert });
+    // ⚠️ Le plancher est la CASCADE, pas l'annonce : un tap qui passe l'annonce
+    // ne doit pas lancer le premier coup pendant que l'adversaire est encore en
+    // l'air (`dismissTerrainAlert` réarme pour le reliquat).
+    this._combatStartAt = Date.now() + revealMs;
+    const begin = () => {
+      this._revealTimer = null;
+      this._pendingCombatStart = null;
+      if (this.animator !== animator) return;   // combat quitté entre-temps
+      this.sync({ terrainAlert: null });
       animator.start();
+      if (this.paused) animator.pause();        // Pause tapée pendant l'attente
+    };
+    if (holdMs > 0) {
+      this._pendingCombatStart = begin;
+      this._revealTimer = setTimeout(begin, holdMs);
+    } else {
+      begin();
     }
+  }
+
+  /**
+   * Passe l'annonce de terrain d'un tap. À 5 rounds par partie — et 4 duels
+   * enchaînés en Arcade — une attente non passable devient vite une corvée.
+   *
+   * ⚠️ Ne peut PAS faire partir le combat avant la fin de la cascade d'arrivée
+   * de l'IA : on réarme pour le reliquat plutôt que de démarrer sous des cartes
+   * encore en train de tomber.
+   */
+  dismissTerrainAlert(): void {
+    const begin = this._pendingCombatStart;
+    if (!begin) return;                          // déjà parti — geste sans objet
+    if (this._revealTimer) clearTimeout(this._revealTimer);
+    const left = this._combatStartAt - Date.now();
+    if (left > 0) {
+      this.sync({ terrainAlert: null });          // l'annonce s'en va tout de suite
+      this._revealTimer = setTimeout(begin, left);
+      return;
+    }
+    this._revealTimer = null;
+    begin();
   }
 
   setSpeed(s: number): void {
@@ -725,6 +773,7 @@ export class GameController {
   dispose(): void {
     if (this._errorTimer) clearTimeout(this._errorTimer);
     if (this._revealTimer) clearTimeout(this._revealTimer);
+    this._pendingCombatStart = null;
     this.animator?.stop();
     this.animator = null;
     // Combat quitté en cours de route : ce qui a été capturé part quand même.
@@ -739,4 +788,32 @@ export class GameController {
     // la fin de partie a déjà vidé la file.
     void useMissionStore.getState().flushMatch();
   }
+}
+
+/**
+ * Ce que l'annonce de terrain a à dire : le terrain, et combien d'unités de
+ * chaque camp son effet touche VRAIMENT.
+ *
+ * ⚠️ Le décompte passe par `effectTargets`, la fonction même dont
+ * `BoardEffect.applyEffect` se sert pour choisir ses cibles. C'est ce qui rend
+ * impossible d'annoncer au joueur un décompte que l'effet n'a pas appliqué —
+ * un second filtre écrit ici aurait fini par ne plus dire la même chose.
+ *
+ * ⚠️ `boosted: null` quand l'effet ne lit pas `target_attributes`
+ * (`draw_bonus`, qui crédite le joueur quoi qu'il arrive) : annoncer « 3 unités
+ * boostées » sous lui ferait mentir l'écran.
+ */
+export function terrainAlertFor(
+  board: import('../logic/types.js').BoardDef | null,
+  playerUnits: import('../logic/Unit.js').Unit[],
+  enemyUnits: import('../logic/Unit.js').Unit[],
+): import('../stores/gameStore.js').TerrainAlertSnapshot | null {
+  if (!board) return null;
+  const boosted = boardTargetsUnits(board.effect)
+    ? {
+      player: effectTargets(board.effect, playerUnits).length,
+      enemy: effectTargets(board.effect, enemyUnits).length,
+    }
+    : null;
+  return { board, boosted };
 }

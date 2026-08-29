@@ -8,12 +8,27 @@ interface BoardEffectContext {
   gameState?: GameState | null;
 }
 
+/**
+ * Les unités qu'un effet de terrain touche, parmi celles qu'on lui donne.
+ *
+ * ⚠️ Extrait d'`applyEffect`, qui l'appelle — et JAMAIS recopié ailleurs :
+ * l'annonce de terrain (`GameController`, à l'entrée en combat) compte ses
+ * unités boostées avec cette fonction. Deux expressions du même filtre, ce
+ * serait s'autoriser à annoncer au joueur un décompte que l'effet n'a pas
+ * appliqué.
+ *
+ * `target_attributes` vide ou absent = TOUTES les unités reçues.
+ */
+export function effectTargets(effect: BoardEffectDef | null | undefined, units: Unit[]): Unit[] {
+  if (!effect) return [];
+  const targets = effect.target_attributes;
+  if (!targets?.length) return units;
+  return units.filter(u => u.attributes.some(a => targets.includes(a)));
+}
+
 export function applyEffect(effect: BoardEffectDef | null | undefined, { playerUnits = [], enemyUnits = [], gameState = null }: BoardEffectContext = {}): void {
   if (!effect) return;
-  const all = [...playerUnits, ...enemyUnits];
-  const targets = effect.target_attributes?.length
-    ? all.filter(u => u.attributes.some(a => (effect.target_attributes as string[]).includes(a)))
-    : all;
+  const targets = effectTargets(effect, [...playerUnits, ...enemyUnits]);
   switch (effect.type) {
     case 'stat_bonus':
       for (const u of targets) u.applyStatBonus(effect.stat as string, effect.value as number);
