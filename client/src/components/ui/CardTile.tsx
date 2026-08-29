@@ -70,17 +70,17 @@ type CostHint = { kind: 'multi' } | { kind: 'type'; type: string; count?: number
 // costHint() ne décrit QUE la donnée (type d'invocation, compteur) : c'est ici,
 // pas dans le module data, que la description devient une icône réelle — image
 // posée en admin sur le catalogue des types d'invocation, sinon l'emoji de
-// repli. Le 🔀 « plusieurs recettes » n'est pas un type d'invocation du
-// catalogue à 5 entrées, il reste tel quel (même choix que le tooltip, qui ne
-// lui donne pas non plus d'icône dédiée).
+// repli. « Plusieurs recettes » (`summon_options`) est une entrée du même
+// catalogue (`type: 'multi'`), au même titre que fusion/heritage/… — l'admin
+// peut donc changer son icône exactement pareil.
 function renderHint(card: Card): ReactNode {
   const h = (costHint as (c: unknown) => CostHint)(card);
   if (!h) return null;
-  if (h.kind === 'multi') return '🔀';
+  const type = h.kind === 'multi' ? 'multi' : h.type;
   return (
     <span className="inline-flex items-center gap-0.5">
-      {h.count ? `×${h.count}` : null}
-      <SummonTypeIcon type={h.type} fallback={SUMMON_ICONS[h.type]} className="h-2.5 w-2.5 text-[9px]" />
+      {h.kind === 'type' && h.count ? `×${h.count}` : null}
+      <SummonTypeIcon type={type} fallback={SUMMON_ICONS[type] ?? '🔀'} className="h-2.5 w-2.5 text-[9px]" />
     </span>
   );
 }

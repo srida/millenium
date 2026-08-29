@@ -28,5 +28,11 @@
 		"type": "transformation",
 		"label": "Transformation",
 		"icon": "🔄"
+	},
+	{
+		"id": "SUMMON_MULTI",
+		"type": "multi",
+		"label": "Plusieurs recettes",
+		"icon": "🔀"
 	}
 ]
