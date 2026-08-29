@@ -1002,8 +1002,13 @@ participe pas. Aucun import : ni React, ni Zustand, ni Three, ni `logic/`.
 - ⚠️ **Rien n'est enregistré en duel contre BOT** : la partie y est un solo, il
   n'existe qu'un point de vue, et le match n'a aucune ligne dans `matches`.
 - ⚠️ **L'envoi est « pose et oublie »** : jamais attendu, jamais montré au
-  joueur, `catch` muet. Un outil de debug qui peut retarder une navigation ou
-  faire perdre un duel est pire que pas d'outil.
+  joueur. Un outil de debug qui peut retarder une navigation ou faire perdre un
+  duel est pire que pas d'outil. L'échec est en revanche **journalisé en
+  console** : le `catch` était muet, et une vue manquante devenait alors
+  indiscernable de trois causes très différentes — le client n'a pas essayé, le
+  serveur a refusé, ou le navigateur tournait encore sur un build sans
+  enregistreur. Un outil de diagnostic qui avale ses propres pannes ne
+  diagnostique plus rien.
 - ⚠️ **Ne pas passer par le WebSocket** : `maxPayload` y vaut 64 Ko, et surtout
   tout type inconnu est **relayé à l'adversaire** par le `default` de
   `ws/pvpServer.handleMessage`, où il s'empilerait indéfiniment dans le tampon
@@ -1077,9 +1082,33 @@ clic dans `switchTab`, ajouté à `NO_FAB_TABS`, et sélecteurs portés par
 `#main-tabs` (le piège `.tab` réutilisé). Réutilise `.db-table` / `.db-toolbar`
 / `.db-pager` — seul le verdict a son propre style. La liste ne transporte que
 le verdict ; le **détail est chargé à la demande**, le bundle pesant
-potentiellement plusieurs centaines de Ko. Vérifié au navigateur en 1280 px et
-en 390 px (`scrollWidth <= clientWidth`, un seul `.main:not(.hidden)`, un seul
-`#main-tabs .tab.active`, le tableau défilant dans son conteneur).
+potentiellement plusieurs centaines de Ko.
+
+⚠️ **Un panneau sans barre latérale doit être EXEMPTÉ du glissement mobile, et
+l'oubli est invisible sur desktop.** Dans `@media (max-width: 768px)`, `.content`
+est `position: absolute` + `translateX(105%)` : c'est le glissement
+sidebar ↔ détail. L'exemption était une **liste d'ids** (`#tab-stats`, `#tab-db`,
+`#tab-sim`) — l'onglet Logs PvP y a été oublié à sa création et son contenu
+partait donc **hors de l'écran** en portrait (mesuré : posé à x=430 dans un
+écran de 390, panneau vide, aucune erreur JS). La règle porte désormais sur
+l'**absence de `.sidebar`** (`.main:not(:has(.sidebar)) .content`) : les 11
+panneaux à barre latérale et les 4 sans se départagent tout seuls, et un onglet
+ajouté plus tard est couvert sans qu'on y pense. Même esprit que la feuille
+mobile, clonée de `#main-tabs`.
+
+⚠️ **Chaque côté parle de LUI-MÊME dans le détail.** La version d'avant lisait le
+nombre de ticks sur la seule vue A : sur un match où A n'a jamais déposé — le
+cas le plus fréquent quand quelque chose cloche, et celui du premier match réel
+enregistré — le panneau affichait cinq lignes « 0 tick(s) » et se lisait comme
+un écran vide, alors que B avait des centaines de ticks. La liste porte en plus
+une colonne **Vues** (`A + B` / `A seul` / `B seul`), dérivée par `pvplog`
+(`roles`) et jamais stockée : « un seul côté » sans dire lequel n'apprend rien,
+et c'est justement la question qu'on se pose quand une vue manque.
+
+Vérifié au navigateur en 1280 px et en 390 px, sur les **15 onglets** : contenu
+à l'écran pour les 4 sans barre latérale, glissement intact pour les 11 autres,
+`scrollWidth <= clientWidth`, un seul `.main:not(.hidden)`, un seul
+`#main-tabs .tab.active`, le tableau défilant dans son conteneur.
 
 ### ⚠️ Ce que le log est fait de prouver — quatre suspects, le premier mesuré
 

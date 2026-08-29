@@ -336,10 +336,18 @@ select.filter:focus { border-color: var(--accent); }
   .main.show-detail .sidebar  { transform: translateX(-105%); pointer-events: none; }
   .main.show-detail .content  { transform: translateX(0); pointer-events: auto; }
 
-  /* Stats, DB & Équilibrage — pas de sidebar, toujours visibles */
-  #tab-stats .content,
-  #tab-db .content,
-  #tab-sim .content {
+  /* Panneaux SANS barre latérale (Stats, Base SQL, Équilibrage, Logs PvP) :
+     rien ne glisse, le contenu est la seule chose à montrer.
+
+     ⚠️ La règle porte sur l'ABSENCE de `.sidebar`, et non sur une liste d'ids —
+     qui était le piège : `.content` est ici `position: absolute` + `translateX(105%)`
+     (le glissement sidebar ↔ détail), donc un panneau sans sidebar oublié dans la
+     liste part HORS DE L'ÉCRAN en portrait, à 105 % de sa largeur. Mesuré sur
+     l'onglet Logs PvP à sa création : contenu posé à x=430 dans un écran de 390.
+     La panne est invisible sur desktop, où ce bloc ne s'applique pas.
+     Formulé ainsi, tout onglet sans barre latérale ajouté plus tard est couvert
+     sans qu'on ait à y penser — comme la feuille mobile, clonée de #main-tabs. */
+  .main:not(:has(.sidebar)) .content {
     transform: none !important; position: relative !important;
     inset: auto !important; height: 100% !important;
   }
@@ -1063,10 +1071,19 @@ async function renderPvpLogs(offset = pvpOffset) {
       ? `round ${m.first_divergence.round}, tick ${m.first_divergence.tick} — ${esc(m.first_divergence.kind)}`
       : '<span class="db-null">—</span>';
     const rounds = m.rounds.map(r => r.round).join(', ') || '<span class="db-null">aucun</span>';
+    // « un seul côté » sans dire LEQUEL n'apprend rien : c'est justement la
+    // question qu'on se pose quand une vue manque.
+    const roles = (m.roles || []);
+    const sides = roles.length === 2
+      ? 'A + B'
+      : roles.length === 1
+        ? `<span style="color:var(--warn,#f0883e)">${roles[0]} seul</span>`
+        : '<span class="db-null">—</span>';
     return `<tr>
       <td>${esc(pvpDate(m.created_at))}</td>
       <td style="font-family:ui-monospace,monospace">${esc(m.match_id.slice(0, 8))}</td>
       <td>${rounds}</td>
+      <td>${sides}</td>
       <td><span class="pvp-verdict ${v.cls}">${v.label}</span></td>
       <td>${where}</td>
       <td style="white-space:nowrap">
@@ -1075,7 +1092,7 @@ async function renderPvpLogs(offset = pvpOffset) {
         <button class="pvp-act" onclick="deletePvpLog('${esc(m.match_id)}')">🗑</button>
       </td>
     </tr>
-    <tr id="pvp-detail-${esc(m.match_id)}" class="hidden"><td colspan="6"></td></tr>`;
+    <tr id="pvp-detail-${esc(m.match_id)}" class="hidden"><td colspan="7"></td></tr>`;
   }).join('');
 
   const from = data.total ? offset + 1 : 0;
@@ -1102,8 +1119,8 @@ async function renderPvpLogs(offset = pvpOffset) {
     </div>
     <div class="db-table-scroll">
       <table class="db-table">
-        <thead><tr><th>Date</th><th>Match</th><th>Rounds</th><th>Verdict</th><th>Première divergence</th><th></th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Aucun log enregistré pour le moment.</td></tr>'}</tbody>
+        <thead><tr><th>Date</th><th>Match</th><th>Rounds</th><th>Vues</th><th>Verdict</th><th>Première divergence</th><th></th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px">Aucun log enregistré pour le moment.</td></tr>'}</tbody>
       </table>
     </div>`;
   if (pvpOpenMatch) { const keep = pvpOpenMatch; pvpOpenMatch = null; togglePvpDetail(keep); }
@@ -1125,16 +1142,28 @@ async function togglePvpDetail(matchId) {
   catch (e) { cell.innerHTML = `<div class="pvp-detail">Erreur : ${esc(e.message)}</div>`; return; }
   if (data.error) { cell.innerHTML = `<div class="pvp-detail">Erreur : ${esc(data.error)}</div>`; return; }
 
+  // ⚠️ Chaque côté parle de LUI-MÊME. La version d'avant lisait le nombre de
+  // ticks sur `r.A` seul : sur un match où A n'a jamais déposé sa vue — le cas
+  // le plus fréquent quand quelque chose cloche — le panneau affichait cinq
+  // lignes « 0 tick(s) » et se lisait comme un écran vide, alors que B avait
+  // enregistré des centaines de ticks. Un outil de diagnostic ne doit jamais
+  // avoir l'air de n'avoir rien trouvé quand il a seulement une vue sur deux.
+  const side = (v, role) => (v
+    ? `<span style="color:var(--muted)">${role} : ${v.tick_count} tick(s), ${esc(String(v.winner ?? '—'))}${v.truncated ? ', <em>tronqué</em>' : ''}</span>`
+    : `<span style="color:var(--warn,#f0883e)">${role} : vue jamais déposée</span>`);
+
   const parts = data.rounds.map(r => {
     const v = PVP_VERDICTS[r.verdict] || PVP_VERDICTS.incomplete;
-    if (!r.divergence) {
-      return `<div><strong>Round ${r.round}</strong> <span class="pvp-verdict ${v.cls}">${v.label}</span>
-        <span style="color:var(--muted)"> — ${r.A ? r.A.tick_count : 0} tick(s)</span></div>`;
-    }
+    const board = r.A?.board_id ?? r.B?.board_id ?? null;
+    const head = `<strong>Round ${r.round}</strong> <span class="pvp-verdict ${v.cls}">${v.label}</span>`
+      + (board ? ` <span style="color:var(--muted)">${esc(board)}</span>` : '');
+    const sides = `<div style="margin:4px 0 0 2px;display:flex;gap:16px;flex-wrap:wrap">${side(r.A, 'A')}${side(r.B, 'B')}</div>`;
+    if (!r.divergence) return `<div style="margin-top:10px">${head}${sides}</div>`;
+
     const d = r.divergence;
-    return `<div style="margin-top:8px">
-      <strong>Round ${r.round}</strong> <span class="pvp-verdict ${v.cls}">${v.label}</span>
-      <span style="color:var(--muted)"> — tick ${d.tick}, ${esc(d.kind)} : ${esc(PVP_KINDS[d.kind] || '')}</span>
+    return `<div style="margin-top:10px">
+      ${head}${sides}
+      <div style="margin-top:6px;color:var(--muted)">tick ${d.tick} — <strong>${esc(d.kind)}</strong> : ${esc(PVP_KINDS[d.kind] || '')}</div>
       <pre>${esc(JSON.stringify(d.detail, null, 2))}</pre>
     </div>`;
   }).join('');

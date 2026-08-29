@@ -249,6 +249,10 @@ function bundle(matchId) {
     round: r.round,
     truncated: !!(r.A?.truncated || r.B?.truncated),
     verdict: verdictOf(r),
+    // Quels côtés ont déposé. Dérivé, jamais stocké — mais transporté jusqu'à
+    // la LISTE : « un seul côté » sans dire lequel n'apprend rien, et c'est
+    // précisément ce qu'on regarde quand une vue manque.
+    roles: ROLES.filter((role) => !!r[role]),
     divergence: r.A && r.B ? diff(r.A.payload, r.B.payload) : null,
     A: r.A?.payload ?? null,
     B: r.B?.payload ?? null,
@@ -292,7 +296,9 @@ function list({ limit = 25, offset = 0 } = {}) {
       match_id: row.match_id,
       created_at: row.created_at,
       truncated: !!row.truncated,
-      rounds: b ? b.rounds.map((r) => ({ round: r.round, verdict: r.verdict })) : [],
+      rounds: b ? b.rounds.map((r) => ({ round: r.round, verdict: r.verdict, roles: r.roles })) : [],
+      // Les rôles qui ont déposé au moins une vue sur tout le match.
+      roles: b ? ROLES.filter((role) => b.rounds.some((r) => r.roles.includes(role))) : [],
       verdict: b ? b.verdict : 'incomplete',
       first_divergence: b?.first_divergence
         ? { round: b.first_divergence.round, tick: b.first_divergence.tick, kind: b.first_divergence.kind }

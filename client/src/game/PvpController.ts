@@ -211,17 +211,27 @@ export class PvpController extends GameController {
   }
 
   /**
-   * ⚠️ « Pose et oublie » : jamais attendu, jamais montré au joueur. Un outil
+   * ⚠️ « Pose et oublie » : jamais attendu, jamais montré au JOUEUR. Un outil
    * de debug qui peut retarder une navigation ou faire échouer une fin de
-   * combat est pire que pas d'outil du tout — d'où le `void` et le `catch`
-   * muet. Appelé à la fin du combat ET au démontage (combat quitté en route),
-   * l'enregistreur étant remis à `null` pour que le second passage soit inerte.
+   * combat est pire que pas d'outil du tout — d'où le `void`. Appelé à la fin
+   * du combat ET au démontage (combat quitté en route), l'enregistreur étant
+   * remis à `null` pour que le second passage soit inerte.
+   *
+   * ⚠️ L'échec est en revanche JOURNALISÉ. Le `catch` était muet, et une vue
+   * manquante devenait alors indiscernable de trois causes très différentes :
+   * le client n'a pas essayé, le serveur a refusé, ou le navigateur tournait
+   * encore sur un build sans enregistreur. C'est exactement la question qu'on
+   * s'est posée sur le premier match enregistré, où le rôle A n'a jamais rien
+   * déposé. Un outil de diagnostic qui avale ses propres pannes ne diagnostique
+   * plus rien — et la console est le seul endroit où le dire sans toucher au
+   * joueur.
    */
   protected _flushRecorder(): void {
     const recorder = this._recorder;
     this._recorder = null;
     if (!recorder || recorder.isEmpty) return;
-    void AuthClient.postPvpLog(recorder.payload()).catch(() => { /* diagnostic : jamais bloquant */ });
+    void AuthClient.postPvpLog(recorder.payload())
+      .catch((e) => console.warn('[pvp-log] dépôt refusé ou impossible :', e?.message ?? e));
   }
 
   private _pvpNotify(msg: string): void { useGameStore.getState().applySnapshot({ errorFlash: msg }); }

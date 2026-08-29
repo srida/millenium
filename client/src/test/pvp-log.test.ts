@@ -314,6 +314,35 @@ describe('pvplog.bundle — ce que l\'admin télécharge', () => {
     expect(bundle.rounds[0].B).toBeNull();
   });
 
+  // ⚠️ « Un seul côté » sans dire LEQUEL n'apprend rien — et c'est très
+  // exactement la question qu'on se pose quand une vue manque. Constaté sur le
+  // premier match réel enregistré : le rôle A n'a jamais rien déposé, et ni la
+  // liste ni le détail ne le nommaient.
+  it('nomme les côtés qui ont déposé, round par round et sur le match', () => {
+    const [a, b] = [makeUser(h, 'brolesA'), makeUser(h, 'brolesB')];
+    const m = newMatch(h, a, b);
+    pvplog.record({ id: b }, { matchId: m, round: 1, role: 'B', payload: view({ role: 'B' }) });
+    pvplog.record({ id: b }, { matchId: m, round: 2, role: 'B', payload: view({ role: 'B', round: 2 }) });
+
+    expect(pvplog.bundle(m).rounds.map((r: any) => r.roles)).toEqual([['B'], ['B']]);
+    const row = pvplog.list().matches.find((x: any) => x.match_id === m);
+    expect(row.roles).toEqual(['B']);
+    expect(row.rounds).toEqual([
+      { round: 1, verdict: 'incomplete', roles: ['B'] },
+      { round: 2, verdict: 'incomplete', roles: ['B'] },
+    ]);
+  });
+
+  it('nomme les DEUX côtés quand les deux ont déposé', () => {
+    const [a, b] = [makeUser(h, 'brolesA2'), makeUser(h, 'brolesB2')];
+    const m = newMatch(h, a, b);
+    pvplog.record({ id: a }, { matchId: m, round: 1, role: 'A', payload: view() });
+    pvplog.record({ id: b }, { matchId: m, round: 1, role: 'B', payload: view({ role: 'B' }) });
+
+    expect(pvplog.bundle(m).rounds[0].roles).toEqual(['A', 'B']);
+    expect(pvplog.list().matches.find((x: any) => x.match_id === m).roles).toEqual(['A', 'B']);
+  });
+
   it('rend null sur un match sans le moindre log', () => {
     expect(pvplog.bundle(crypto.randomUUID())).toBeNull();
   });
