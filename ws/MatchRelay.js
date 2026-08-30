@@ -93,9 +93,9 @@ function createMatch(connA, connB) {
     // round à la même vitesse (récapitulatif 22 s, Phase Shopping 45 s, temps
     // de préparation 60 s), et un état de barrière global se fait écraser par
     // le message d'un joueur en retard. Cf. `round:next_ready`.
-    ackRound: null,
-    combatStartAcks: new Set(),
-    terrainByRound: new Map(),
+    //
+    // round → { acks:Set<role>, boards:Set<role>, boardId, timer }
+    barriers: new Map(),
     resultReports: {},
   };
 
@@ -141,6 +141,70 @@ function handleReady(matchId, userId) {
 // le serveur émet round:go aux deux simultanément (avec le terrain convenu),
 // plutôt que de relayer l'ack lui-même.
 /**
+ * Délai au bout duquel une barrière à moitié franchie est tranchée.
+ *
+ * ⚠️ Il ne borne PAS la lenteur d'un joueur, il détecte un client MORT — d'où sa
+ * générosité. Le pire écart légitime entre les deux acquittements se dérive des
+ * chronos du client, qui font tous avancer une partie même sans le moindre
+ * geste : écart d'animation entre ×1 et ×4 sur un long combat (~27 s),
+ * récapitulatif de fin de round (22 s), Phase Shopping (45 s), préparation
+ * (60 s) — soit ~155 s. En dessous, on couperait la partie d'un joueur qui joue.
+ */
+const BARRIER_TIMEOUT_MS = 180_000;
+
+/** L'état de barrière d'un round, créé à la demande. */
+function barrierFor(match, round) {
+  let b = match.barriers.get(round);
+  if (!b) {
+    b = { acks: new Set(), boards: new Set(), boardId: null, timer: null };
+    match.barriers.set(round, b);
+  }
+  return b;
+}
+
+/** Émet `round:go` aux deux joueurs et referme tout ce qui précède ce round. */
+function openBarrier(match, round) {
+  const boardId = match.barriers.get(round)?.boardId ?? null;
+  const payload = { matchId: match.id, round, boardId };
+  send(match.players.A.ws, 'round:go', payload);
+  send(match.players.B.ws, 'round:go', payload);
+  for (const [r, b] of match.barriers) {
+    if (r <= round) { clearTimeout(b.timer); match.barriers.delete(r); }
+  }
+}
+
+/**
+ * Un seul des deux joueurs a acquitté, et l'échéance est passée. Deux issues, et
+ * une seule règle : on joue le round si on PEUT le jouer, sinon on clôt.
+ *
+ * ⚠️ « Jouer sans lui » n'est pas une option ouverte : le client présent attend
+ * aussi le BOARD de son adversaire (`waitForOpponentBoard`), et le serveur n'en
+ * garde aucune copie — un `round:go` sans board déplacerait le gel au lieu de le
+ * lever. La grâce ne vaut donc que dans le cas où le board est bien arrivé et où
+ * seul l'acquittement manque ; sinon le joueur d'en face n'est plus là, et son
+ * adversaire a assez attendu.
+ *
+ * ⚠️ « Une seule grâce » est une CONSÉQUENCE, pas un compteur : après un
+ * `round:go` de grâce, un client toujours muet n'enverra pas non plus le board du
+ * round suivant — la barrière suivante tombera donc dans la seconde branche.
+ */
+function onBarrierTimeout(matchId, round) {
+  const match = findMatch(matchId);
+  if (!match || match.status !== 'active') return;
+  const barrier = match.barriers.get(round);
+  if (!barrier || barrier.acks.size !== 1) return;   // franchie ou périmée entre-temps
+
+  if (barrier.boards.size === 2) { openBarrier(match, round); return; }
+
+  const presentRole = [...barrier.acks][0];
+  console.warn(
+    `[PvP] Match ${matchId} (round ${round}) : barrière expirée, ` +
+    `le rôle ${otherRole(presentRole)} n'a pas annoncé son board — forfait.`,
+  );
+  endMatch(matchId, match.players[presentRole].userId, 'timeout');
+}
+
+/**
  * Le round dont parle un message de round. Les clients l'annoncent tous
  * (`board_ready`, `terrain_pick`, `combat_start_ack`) ; `match.round` n'est
  * qu'un repli pour un client antérieur au champ.
@@ -158,32 +222,24 @@ function relayMessage(matchId, fromUserId, msg) {
   if (msg.type === 'round:board_ready') {
     match.round = msg.round || match.round;
     stmt.updateMatchRound.run(match.round, matchId);
+    barrierFor(match, roundOf(msg, match)).boards.add(role);
   }
 
   // Le terrain est mémorisé POUR SON ROUND : le rôle A l'annonce au moment où
   // il tape PRÊT, donc potentiellement bien avant que son adversaire n'ait fini
   // le round précédent.
   if (msg.type === 'round:terrain_pick') {
-    match.terrainByRound.set(roundOf(msg, match), msg.boardId ?? null);
+    barrierFor(match, roundOf(msg, match)).boardId = msg.boardId ?? null;
   }
 
   if (msg.type === 'round:combat_start_ack') {
     const round = roundOf(msg, match);
-    // Un acquittement d'un AUTRE round ouvre une barrière neuve : celle du round
-    // précédent est close par construction, ses acquittements n'ont plus cours.
-    if (match.ackRound !== round) {
-      match.ackRound = round;
-      match.combatStartAcks = new Set();
-    }
-    match.combatStartAcks.add(role);
-    if (match.combatStartAcks.size === 2) {
-      const payload = { matchId, round, boardId: match.terrainByRound.get(round) ?? null };
-      send(match.players.A.ws, 'round:go', payload);
-      send(match.players.B.ws, 'round:go', payload);
-      // La barrière a servi ; les terrains des rounds passés ne servent plus.
-      match.combatStartAcks = new Set();
-      match.ackRound = null;
-      for (const r of match.terrainByRound.keys()) if (r <= round) match.terrainByRound.delete(r);
+    const barrier = barrierFor(match, round);
+    barrier.acks.add(role);
+    if (barrier.acks.size === 2) { openBarrier(match, round); return; }
+    // Premier acquittement : on arme l'échéance. Cf. `BARRIER_TIMEOUT_MS`.
+    if (!barrier.timer) {
+      barrier.timer = setTimeout(() => onBarrierTimeout(match.id, round), BARRIER_TIMEOUT_MS);
     }
     return;
   }
@@ -367,6 +423,10 @@ function endMatch(matchId, winnerUserId, reason) {
     clearTimeout(p.disconnectTimer);
     matchByUser.delete(p.userId);
   }
+  // Les échéances de barrière encore armées n'ont plus d'objet : le match est
+  // clos, et `onBarrierTimeout` s'en assure aussi de son côté (`status`).
+  for (const b of match.barriers.values()) clearTimeout(b.timer);
+  match.barriers.clear();
   matches.delete(matchId);
 }
 

@@ -16,7 +16,7 @@
 // la façon la plus simple qui soit : un client modifié en rôle A déclarait la
 // victoire à chaque partie et encaissait 70 XP — le plus gros gain du jeu —
 // quel que soit le rapport de son adversaire.
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -342,5 +342,88 @@ describe('barrière du terrain', () => {
     wsA.sent.length = 0;
     relay.relayMessage(matchId, A, { type: 'round:combat_start_ack', round: 2 });
     expect(wsA.last('round:go')).toBeNull();
+  });
+});
+
+
+// ── L'échéance : une barrière à moitié franchie ne dure pas ─────────────────
+//
+// Le blocage du match `d388310d` a été refermé par l'indexation par round, mais
+// il restait une seconde façon de figer un duel : un client qui n'acquitte
+// jamais — suspendu par l'OS, onglet gelé — sans se déconnecter pour autant.
+// Son adversaire attendait indéfiniment ; seule la déconnexion FRANCHE était
+// traitée.
+//
+// La règle est celle de Marvel Snap : on joue le round si on peut, sinon le
+// silencieux perd. ⚠️ « Jouer sans lui » n'est possible que si son BOARD est
+// arrivé — le serveur n'en garde aucune copie, et le client présent l'attend
+// aussi (`waitForOpponentBoard`).
+describe('échéance de la barrière', () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  const BARRIER_MS = 180_000;
+
+  /** Le tour complet d'un joueur qui tape PRÊT : board, terrain, acquittement. */
+  function pret(who: string, ws: any, round: number, boardId: string | null = null) {
+    relay.relayMessage(matchId, who, { type: 'round:board_ready', round, units: [], player_hp: 1000 });
+    if (boardId) relay.relayMessage(matchId, who, { type: 'round:terrain_pick', round, boardId });
+    relay.relayMessage(matchId, who, { type: 'round:combat_start_ack', round });
+    return ws;
+  }
+
+  // ⚠️ Mutation : échéance retirée → le test reste bloqué (round:go jamais émis,
+  // match toujours actif) et passe au rouge sur les deux attentes.
+  it('clôt le match quand l\'adversaire n\'a rien annoncé du tout', () => {
+    const avantA = xpOf(A);
+    pret(A, wsA, 2, 'BOARD_004');
+    expect(wsA.last('round:go')).toBeNull();
+
+    vi.advanceTimersByTime(BARRIER_MS);
+
+    expect(wsA.last('match:end')).not.toBeNull();
+    expect(wsA.last('match:end').winner).toBe('A');
+    expect(wsA.last('match:end').reason).toBe('timeout');
+    // Le forfait paie, comme la déconnexion : l'adversaire a bien remporté le match.
+    expect(xpOf(A)).not.toEqual(avantA);
+    expect(stmt.matchById.get(matchId).winner_user_id).toBe(A);
+  });
+
+  // La grâce : le board est bien arrivé, seul l'acquittement manque. Le round se
+  // joue — il n'y a aucune raison de couper une partie qu'on peut jouer.
+  it('joue le round quand seul l\'ACQUITTEMENT manque', () => {
+    pret(A, wsA, 2, 'BOARD_004');
+    relay.relayMessage(matchId, B, { type: 'round:board_ready', round: 2, units: [], player_hp: 1000 });
+
+    vi.advanceTimersByTime(BARRIER_MS);
+
+    expect(wsA.last('match:end')).toBeNull();
+    expect(wsA.last('round:go').round).toBe(2);
+    expect(wsB.last('round:go').boardId).toBe('BOARD_004');
+  });
+
+  // ⚠️ « Une seule grâce » n'est pas un compteur, c'est une conséquence : un
+  // client toujours muet n'annoncera pas non plus le board du round suivant, et
+  // la barrière suivante retombe donc sur le forfait.
+  it('la grâce ne se répète pas : au round suivant, le muet perd', () => {
+    pret(A, wsA, 2, 'BOARD_004');
+    relay.relayMessage(matchId, B, { type: 'round:board_ready', round: 2, units: [], player_hp: 1000 });
+    vi.advanceTimersByTime(BARRIER_MS);
+    expect(wsA.last('round:go').round).toBe(2);
+
+    pret(A, wsA, 3, 'BOARD_007');           // B ne dit plus rien
+    vi.advanceTimersByTime(BARRIER_MS);
+    expect(wsA.last('match:end').winner).toBe('A');
+  });
+
+  // L'échéance ne doit pas se déclencher sur une barrière déjà franchie.
+  it('une barrière franchie à temps ne clôt rien', () => {
+    pret(A, wsA, 2, 'BOARD_004');
+    pret(B, wsB, 2);
+    expect(wsA.last('round:go').round).toBe(2);
+
+    vi.advanceTimersByTime(BARRIER_MS * 3);
+    expect(wsA.last('match:end')).toBeNull();
+    expect(stmt.matchById.get(matchId).status).toBe('active');
   });
 });
