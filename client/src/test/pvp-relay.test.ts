@@ -281,11 +281,66 @@ describe('barrière du terrain', () => {
     expect(wsB.last('round:go').boardId).toBe('BOARD_007');
   });
 
-  it('round:next_ready remet le terrain à zéro pour le round suivant', () => {
+  // Le terrain d'un round ne fuit pas sur le suivant. C'était garanti par la
+  // remise à zéro qu'opérait `round:next_ready` ; ça l'est désormais par
+  // construction — chaque terrain est mémorisé POUR SON ROUND.
+  it('le terrain d\'un round ne vaut pas pour le suivant', () => {
     relay.relayMessage(matchId, A, { type: 'round:terrain_pick', round: 1, boardId: 'BOARD_007' });
     relay.relayMessage(matchId, A, { type: 'round:next_ready', round: 1 });
     relay.relayMessage(matchId, A, { type: 'round:combat_start_ack', round: 2 });
     relay.relayMessage(matchId, B, { type: 'round:combat_start_ack', round: 2 });
     expect(wsA.last('round:go').boardId).toBeNull();
+  });
+
+  // ⚠️ LE cas qui a bloqué un vrai duel (`d388310d`, round 4) : les deux joueurs
+  // ne traversent PAS la fin d'un round à la même vitesse. Récapitulatif 22 s,
+  // Phase Shopping 45 s, préparation 60 s — un joueur peut avoir tapé PRÊT pour
+  // le round suivant quand l'autre quitte à peine le précédent.
+  //
+  // `round:next_ready` vidait alors la barrière SANS REGARDER de quel round il
+  // parlait, effaçant l'acquittement déjà posé. Chaque client n'acquitte qu'une
+  // fois par round : la barrière ne repassait jamais à deux, et les deux
+  // joueurs restaient sur « En attente de l'adversaire… » indéfiniment.
+  //
+  // Mutation : `next_ready` remis à `combatStartAcks.clear()` → ROUGE.
+  it('un joueur EN RETARD ne peut pas effacer l\'acquittement de l\'autre', () => {
+    // Le rapide part au round 2 : terrain, board, acquittement.
+    relay.relayMessage(matchId, A, { type: 'round:next_ready', round: 1 });
+    relay.relayMessage(matchId, A, { type: 'round:terrain_pick', round: 2, boardId: 'BOARD_004' });
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_ack', round: 2 });
+    expect(wsA.last('round:go')).toBeNull();          // il attend, c'est normal
+
+    // Le lent quitte seulement maintenant le round 1 — son message est en
+    // retard d'un round, il ne doit rien emporter.
+    relay.relayMessage(matchId, B, { type: 'round:next_ready', round: 1 });
+    relay.relayMessage(matchId, B, { type: 'round:combat_start_ack', round: 2 });
+
+    expect(wsA.last('round:go'), 'la barrière doit s\'ouvrir').not.toBeNull();
+    expect(wsA.last('round:go').round).toBe(2);
+    expect(wsA.last('round:go').boardId).toBe('BOARD_004');
+    expect(wsB.last('round:go').boardId).toBe('BOARD_004');
+  });
+
+  // Corollaire : une barrière n'appartient qu'à son round. Un acquittement
+  // resté d'un round précédent ne compte pas pour le suivant, sans quoi un seul
+  // joueur suffirait à lancer le combat.
+  it('un acquittement d\'un autre round ne compte pas', () => {
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_ack', round: 2 });
+    relay.relayMessage(matchId, B, { type: 'round:combat_start_ack', round: 3 });
+    expect(wsA.last('round:go')).toBeNull();
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_ack', round: 3 });
+    expect(wsA.last('round:go').round).toBe(3);
+  });
+
+  // Et la barrière se referme : le round suivant repart de zéro, un seul
+  // acquittement ne relance pas le combat.
+  it('se referme après usage', () => {
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_ack', round: 1 });
+    relay.relayMessage(matchId, B, { type: 'round:combat_start_ack', round: 1 });
+    expect(wsA.last('round:go').round).toBe(1);
+
+    wsA.sent.length = 0;
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_ack', round: 2 });
+    expect(wsA.last('round:go')).toBeNull();
   });
 });

@@ -88,8 +88,14 @@ function createMatch(connA, connB) {
       A: { userId: connA.userId, ws: connA.ws, deckName: connA.deckName, connected: true, disconnectTimer: null },
       B: { userId: connB.userId, ws: connB.ws, deckName: connB.deckName, connected: true, disconnectTimer: null },
     },
-    lastTerrainBoardId: null,
+    // ⚠️ La barrière de lancement de combat est indexée par ROUND, et ce n'est
+    // pas de la précaution : les deux clients ne traversent pas la fin d'un
+    // round à la même vitesse (récapitulatif 22 s, Phase Shopping 45 s, temps
+    // de préparation 60 s), et un état de barrière global se fait écraser par
+    // le message d'un joueur en retard. Cf. `round:next_ready`.
+    ackRound: null,
     combatStartAcks: new Set(),
+    terrainByRound: new Map(),
     resultReports: {},
   };
 
@@ -134,6 +140,15 @@ function handleReady(matchId, userId) {
 // round:combat_start_ack forme une barrière : dès que les 2 joueurs ont acqu,
 // le serveur émet round:go aux deux simultanément (avec le terrain convenu),
 // plutôt que de relayer l'ack lui-même.
+/**
+ * Le round dont parle un message de round. Les clients l'annoncent tous
+ * (`board_ready`, `terrain_pick`, `combat_start_ack`) ; `match.round` n'est
+ * qu'un repli pour un client antérieur au champ.
+ */
+function roundOf(msg, match) {
+  return typeof msg.round === 'number' ? msg.round : match.round;
+}
+
 function relayMessage(matchId, fromUserId, msg) {
   const match = findMatch(matchId);
   if (!match) return;
@@ -145,26 +160,42 @@ function relayMessage(matchId, fromUserId, msg) {
     stmt.updateMatchRound.run(match.round, matchId);
   }
 
+  // Le terrain est mémorisé POUR SON ROUND : le rôle A l'annonce au moment où
+  // il tape PRÊT, donc potentiellement bien avant que son adversaire n'ait fini
+  // le round précédent.
   if (msg.type === 'round:terrain_pick') {
-    match.lastTerrainBoardId = msg.boardId;
+    match.terrainByRound.set(roundOf(msg, match), msg.boardId ?? null);
   }
 
   if (msg.type === 'round:combat_start_ack') {
+    const round = roundOf(msg, match);
+    // Un acquittement d'un AUTRE round ouvre une barrière neuve : celle du round
+    // précédent est close par construction, ses acquittements n'ont plus cours.
+    if (match.ackRound !== round) {
+      match.ackRound = round;
+      match.combatStartAcks = new Set();
+    }
     match.combatStartAcks.add(role);
     if (match.combatStartAcks.size === 2) {
-      match.combatStartAcks.clear();
-      const payload = { matchId, round: match.round, boardId: match.lastTerrainBoardId };
+      const payload = { matchId, round, boardId: match.terrainByRound.get(round) ?? null };
       send(match.players.A.ws, 'round:go', payload);
       send(match.players.B.ws, 'round:go', payload);
+      // La barrière a servi ; les terrains des rounds passés ne servent plus.
+      match.combatStartAcks = new Set();
+      match.ackRound = null;
+      for (const r of match.terrainByRound.keys()) if (r <= round) match.terrainByRound.delete(r);
     }
     return;
   }
 
-  if (msg.type === 'round:next_ready') {
-    // Reset des barrières pour le round suivant.
-    match.combatStartAcks.clear();
-    match.lastTerrainBoardId = null;
-  }
+  // ⚠️ `round:next_ready` ne RÉINITIALISE plus rien, et c'est la correction :
+  // il n'est qu'un relais. Il vidait auparavant la barrière et le terrain, sans
+  // regarder de quel round il parlait — si bien qu'un joueur encore en Phase
+  // Shopping du round N effaçait, en la quittant, l'acquittement que son
+  // adversaire venait de poser pour le round N+1. Chaque client n'acquitte
+  // qu'une fois par round : la barrière ne repassait donc JAMAIS à deux, et les
+  // deux joueurs restaient sur « En attente de l'adversaire… » pour toujours.
+  // Constaté sur le match `d388310d`, au round 4.
 
   const target = match.players[otherRole(role)];
   const outType = msg.type === 'round:board_ready' ? 'round:opponent_board' : msg.type;
