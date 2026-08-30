@@ -600,6 +600,19 @@ export class GameSession {
     const enemySurvivorsAtk = enemySurvivors.reduce((s, u) => s + u.atk, 0);
     this.gameState.applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, attributeResult);
 
+    // Ré-place les ennemis réanimés (revive d'attribut, côté adverse) — le
+    // pendant exact de la boucle joueur plus bas. `CombatManager._checkDeaths`
+    // les a retirés du plateau à leur mort, il faut donc leur rendre une case.
+    for (const u of attributeResult.enemyRevived ?? []) {
+      const target = u.initial_position && !this.board.isOccupied(u.initial_position)
+        ? u.initial_position : this.board.firstEmptyEnemyCell();
+      if (target) {
+        try { this.board.placeUnit(u, target); } catch { u.is_neutralized = true; }
+      } else {
+        u.is_neutralized = true;
+      }
+    }
+
     // Retire les ennemis morts ; les survivants restent
     for (const u of this.enemyUnits) if (u.is_neutralized) this.board.removeUnit(u);
     this.enemyGraveyard = this.enemyUnits.filter(u => u.is_neutralized);

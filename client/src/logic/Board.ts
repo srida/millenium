@@ -20,7 +20,7 @@ export class Board {
    * lequel il l'énumère. Deux ordres qui n'ont pas de sens commun (« la rangée
    * la plus petite » est inversée entre les deux clients) suffisent à faire
    * diverger un combat par ailleurs identique : ils départagent les égalités du
-   * choix de cible et du plus court chemin. Cf. `_rowScan` / `getNeighbors`.
+   * choix de cible et du plus court chemin. Cf. `rowScan` / `getNeighbors` / `rowNeighbourOffsets`.
    */
   mirroredFrame = false;
 
@@ -37,9 +37,23 @@ export class Board {
    * A, décroissantes pour le rôle B — si bien que les deux clients balaient le
    * plateau physique dans le même sens.
    */
-  _rowScan(): number[] {
+  rowScan(): number[] {
     const rows = Array.from({ length: this.rows }, (_, r) => r);
     return this.mirroredFrame ? rows.reverse() : rows;
+  }
+
+  /**
+   * Les deux décalages de rangée — « vers l'avant » puis « vers l'arrière » —
+   * dans l'ordre du repère de référence.
+   *
+   * ⚠️ Exposé parce que `getNeighbors` n'est PAS le seul énumérateur de cases
+   * voisines du moteur : `CombatManager._teleportPlan` a le sien, avec sa
+   * propre priorité (rangées avant colonnes). Deux copies de la règle, c'est
+   * l'occasion d'en corriger une et pas l'autre — c'est exactement ce qui est
+   * arrivé, et le duel `7ce04deb` l'a montré au tick 64.
+   */
+  rowNeighbourOffsets(): [number, number] {
+    return this.mirroredFrame ? [1, -1] : [-1, 1];
   }
 
   _emptyGrid(): (Unit | null)[][] {
@@ -107,7 +121,7 @@ export class Board {
   getUnitsOnSide(side: Side): Unit[] {
     const units: Unit[] = [];
     for (let c = 0; c < this.cols; c++)
-      for (const r of this._rowScan())
+      for (const r of this.rowScan())
         if (this.grid[c][r]?.side === side) units.push(this.grid[c][r] as Unit);
     return units;
   }
@@ -115,7 +129,7 @@ export class Board {
   getAllUnits(): Unit[] {
     const units: Unit[] = [];
     for (let c = 0; c < this.cols; c++)
-      for (const r of this._rowScan())
+      for (const r of this.rowScan())
         if (this.grid[c][r]) units.push(this.grid[c][r] as Unit);
     return units;
   }
@@ -189,7 +203,7 @@ export class Board {
    * inverse et les deux simulations divergent.
    */
   getNeighbors(pos: Position): Position[] {
-    const [before, after] = this.mirroredFrame ? [1, -1] : [-1, 1];
+    const [before, after] = this.rowNeighbourOffsets();
     return [
       { col: pos.col - 1, row: pos.row },
       { col: pos.col + 1, row: pos.row },

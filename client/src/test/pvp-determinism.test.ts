@@ -355,6 +355,44 @@ describe('Ordre du plateau — les deux clients énumèrent le même monde', () 
   });
 });
 
+interface Placed { card: any; col: number; row: number }
+
+/**
+ * Monte une session du rôle demandé et rejoue le combat jusqu'au bout, à
+ * travers le VRAI enregistreur.
+ *
+ * Les positions sont données dans le repère CANONIQUE ; chaque rôle les
+ * traduit dans le sien, exactement comme le fait `reconstructOpponentUnits`.
+ */
+function playAs(role: 'A' | 'B', a: Placed[], b: Placed[], board: BoardDef): any {
+  const mirrored = role === 'B';
+  const localRow = (row: number) => (mirrored ? MIRROR_AXIS - row : row);
+  const mine = mirrored ? b : a;
+  const theirs = mirrored ? a : b;
+
+  const byId = new Map([...a, ...b].map(p => [p.card.id, p.card]));
+  const s = new GameSession({
+    cardsByTier: { 1: [] },
+    enemyDeck: { 1: [] },
+    attributeList: [],
+    cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
+    getAllBoards: () => [],
+    getAllMagies: () => [],
+    mode: 'pvp',
+    mirroredRole: mirrored,
+  } as any);
+  s.startPreparation();
+  for (const p of mine) s.board.placeUnit(new (Unit as any)(p.card, 'player'), { col: p.col, row: localRow(p.row) });
+  for (const p of theirs) s.board.placeUnit(new (Unit as any)(p.card, 'enemy'), { col: p.col, row: localRow(p.row) });
+
+  const rec = new CombatRecorder({ matchId: 'm', round: 1, role });
+  const { combat } = s.startCombat(board);
+  // Le terrain journalisé est celui qui est JOUÉ, comme le fait GameController.
+  rec.header(combat, { ...board, blocked_cells: s.board.blockedCells() });
+  while (!combat.winner) rec.capture(combat, combat.step());
+  return rec.payload().payload;
+}
+
 // ===========================================================================
 //  Le filet : un MÊME combat physique, simulé dans les deux repères
 // ===========================================================================
@@ -364,44 +402,6 @@ describe('Ordre du plateau — les deux clients énumèrent le même monde', () 
 // combat physique, doivent rendre le MÊME log canonique — celui-là même que
 // `/api/admin/pvp-logs` compare.
 describe('Un même combat physique rend le même log dans les deux repères', () => {
-  interface Placed { card: any; col: number; row: number }
-
-  /**
-   * Monte une session du rôle demandé et rejoue le combat jusqu'au bout, à
-   * travers le VRAI enregistreur.
-   *
-   * Les positions sont données dans le repère CANONIQUE ; chaque rôle les
-   * traduit dans le sien, exactement comme le fait `reconstructOpponentUnits`.
-   */
-  function playAs(role: 'A' | 'B', a: Placed[], b: Placed[], board: BoardDef): any {
-    const mirrored = role === 'B';
-    const localRow = (row: number) => (mirrored ? MIRROR_AXIS - row : row);
-    const mine = mirrored ? b : a;
-    const theirs = mirrored ? a : b;
-
-    const byId = new Map([...a, ...b].map(p => [p.card.id, p.card]));
-    const s = new GameSession({
-      cardsByTier: { 1: [] },
-      enemyDeck: { 1: [] },
-      attributeList: [],
-      cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
-      getAllBoards: () => [],
-      getAllMagies: () => [],
-      mode: 'pvp',
-      mirroredRole: mirrored,
-    } as any);
-    s.startPreparation();
-    for (const p of mine) s.board.placeUnit(new (Unit as any)(p.card, 'player'), { col: p.col, row: localRow(p.row) });
-    for (const p of theirs) s.board.placeUnit(new (Unit as any)(p.card, 'enemy'), { col: p.col, row: localRow(p.row) });
-
-    const rec = new CombatRecorder({ matchId: 'm', round: 1, role });
-    const { combat } = s.startCombat(board);
-    // Le terrain journalisé est celui qui est JOUÉ, comme le fait GameController.
-    rec.header(combat, { ...board, blocked_cells: s.board.blockedCells() });
-    while (!combat.winner) rec.capture(combat, combat.step());
-    return rec.payload().payload;
-  }
-
   /** Un plateau semé : positions et stats variées, mais toujours les mêmes. */
   function scenario(seed: number): { a: Placed[]; b: Placed[]; board: BoardDef } {
     const rand = makeRandom(seed);
@@ -421,11 +421,11 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
       // détourne le ciblage de tout un camp.
       const power = pick([
         null, null,
-        { id: 'POWER_HEAL', speed: 12, value: null },
-        { id: 'POWER_TELEPORT', speed: 15, value: null },
-        { id: 'POWER_PUSH', speed: 10, value: null },
-        { id: 'POWER_TAUNT', speed: 14, value: null },
-        { id: 'POWER_FREEZE', speed: 18, value: null },
+        { id: 'POWER_HEAL', power_speed: 12, value: null },
+        { id: 'POWER_TELEPORT', power_speed: 15, value: null },
+        { id: 'POWER_PUSH', power_speed: 10, value: null },
+        { id: 'POWER_TAUNT', power_speed: 14, value: null },
+        { id: 'POWER_FREEZE', power_speed: 18, value: null },
       ]);
       return {
         col, row,
@@ -678,5 +678,138 @@ describe('Fin de combat — rien ne survit au round qui ne le doit', () => {
       }
       if (round < 3) { sA.startNextRound(); sB.startNextRound(); }
     }
+  });
+});
+
+// ===========================================================================
+//  Le SECOND énumérateur de voisines — la téléportation
+// ===========================================================================
+// Duel `7ce04deb`, round 5, tick 64 : la même téléportation atterrit en (3,1)
+// chez un client et en (3,3) chez l'autre. `CombatManager._teleportPlan` a sa
+// PROPRE liste de cases adjacentes, avec sa propre priorité (rangées avant
+// colonnes) — la correction faite à `Board.getNeighbors` ne l'atteignait pas.
+//
+// ⚠️ La leçon : une règle de repère recopiée à deux endroits, c'est une règle
+// qu'on corrige à un seul. Les deux passent désormais par
+// `Board.rowNeighbourOffsets()`.
+describe('Téléportation — la même case des deux côtés', () => {
+  const board: BoardDef = { id: 'BOARD_TP', name: 'Téléport', effect: null, blocked_cells: [] } as any;
+
+  /** Le porteur du pouvoir, loin de sa cible pour que le saut la rapproche. */
+  const TELEPORTEUR = makeCard({
+    id: 'TP', summon_type: 'normal', power: { id: 'POWER_TELEPORT', power_speed: 2, value: null } as any,
+    // ⚠️ Le pouvoir part dans la PHASE D'ATTAQUE : une vitesse d'attaque haute
+    // le retiendrait jusqu'à la fin du combat, jauge pleine ou non. La vitesse
+    // de DÉPLACEMENT, elle, reste énorme — l'unité ne doit pas marcher, sans
+    // quoi c'est le pathfinding qu'on éprouverait, pas la téléportation.
+    stats: { atk: 5, hp: 400, movement_speed: 99, attack_speed: 3, initiative: 9, range: 1 },
+  });
+  // La cible : la plus basse en PV, donc celle que le pouvoir vise.
+  const FAIBLE = makeCard({ id: 'FAIBLE', summon_type: 'normal', stats: { atk: 1, hp: 30, movement_speed: 99, attack_speed: 99, initiative: 1, range: 1 } });
+  const MUR = makeCard({ id: 'MUR', summon_type: 'normal', stats: { atk: 1, hp: 400, movement_speed: 99, attack_speed: 99, initiative: 2, range: 1 } });
+
+  // ⚠️ La cible est en (3,2) : ses deux voisines EN RANGÉE — (3,1) et (3,3) —
+  // sont libres, et ce sont elles que `_teleportPlan` regarde en premier. C'est
+  // exactement la configuration du duel.
+  // Mutation : liste d'adjacence figée à `[row-1, row+1]` → ROUGE.
+  it('choisit la même case physique quand les deux voisines en rangée sont libres', () => {
+    const a: Placed[] = [
+      { card: FAIBLE, col: 3, row: 2 },
+      { card: MUR, col: 0, row: 0 },
+    ];
+    const b: Placed[] = [{ card: TELEPORTEUR, col: 0, row: 9 }];
+
+    const vueA = playAs('A', a, b, board);
+    const vueB = playAs('B', a, b, board);
+
+    // Témoin : la téléportation a bien eu lieu, et sur une case en rangée.
+    const saut = vueA.ticks
+      .flatMap((t: any) => t.events)
+      .find((e: any) => e.power_id === 'POWER_TELEPORT');
+    expect(saut).toBeDefined();
+    expect(saut.extra.to.col).toBe(3);
+    expect([1, 3]).toContain(saut.extra.to.row);
+
+    expect(pvplog.diff(vueA, vueB)).toBeNull();
+  });
+});
+
+// ===========================================================================
+//  L'ÉPILOGUE — ce que le round devient après le dernier tick
+// ===========================================================================
+// Le combat n'est pas tout le round. `finishCombat` réanime (attribut
+// `revive`), retient les survivants et en déduit les dégâts — et tout cela
+// n'était calculé que pour `playerUnits`, c'est-à-dire pour le camp LOCAL.
+//
+// En duel, l'unité réanimée d'un joueur ressuscitait donc chez lui et restait
+// morte chez son adversaire : les deux clients ne comptaient pas les mêmes
+// survivants, donc pas les mêmes dégâts. Le duel `7ce04deb` l'a montré à
+// l'écran (quatre survivants d'un côté, trois de l'autre, 828 PV contre 860) —
+// et le log disait « ok », parce qu'il s'arrêtait au dernier tick.
+describe('Réanimation d\'attribut — les deux camps, et le log qui le voit', () => {
+  const REANIMATION = [{
+    id: 'ARCH_R', name: 'Renaissance', icon: '', timing: 'end_of_combat',
+    thresholds: [{ count: 1, medal: 'bronze', effects: [{ type: 'revive', hp_percent: 50 }] }],
+  }] as any;
+
+  const FRAGILE = (id: string) => makeCard({
+    id, summon_type: 'normal', attributes: ['ARCH_R'],
+    stats: { atk: 7, hp: 20, movement_speed: 99, attack_speed: 3, initiative: 1, range: 9 },
+  });
+  const COGNEUR = makeCard({
+    id: 'COGNEUR', summon_type: 'normal',
+    stats: { atk: 60, hp: 500, movement_speed: 99, attack_speed: 2, initiative: 9, range: 9 },
+  });
+
+  function duel(mirrored: boolean) {
+    const cartes = [FRAGILE('R_1'), COGNEUR];
+    const byId = new Map(cartes.map(c => [c.id, c]));
+    const s: any = new GameSession({
+      cardsByTier: { 1: [] }, enemyDeck: { 1: [] }, attributeList: REANIMATION,
+      cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
+      getAllBoards: () => [], getAllMagies: () => [], mode: 'pvp', mirroredRole: mirrored,
+    } as any);
+    s.startPreparation();
+    const row = (r: number) => (mirrored ? MIRROR_AXIS - r : r);
+    // Le camp A porte l'attribut et va perdre son unité ; le camp B cogne.
+    const own = mirrored ? COGNEUR : FRAGILE('R_1');
+    const theirs = mirrored ? FRAGILE('R_1') : COGNEUR;
+    s.board.placeUnit(new (Unit as any)(own, 'player'), { col: 2, row: row(mirrored ? 9 : 1) });
+    s.board.placeUnit(new (Unit as any)(theirs, 'enemy'), { col: 2, row: row(mirrored ? 1 : 9) });
+    return s;
+  }
+
+  // ⚠️ LE cas du duel : la réanimation doit valoir pour le camp d'en face aussi,
+  // sinon les deux clients ne comptent pas les mêmes survivants.
+  // Mutation : `applyEndOfCombat` restreint à `this.playerUnits` → ROUGE.
+  it('ressuscite aussi une unité du camp ADVERSE', () => {
+    const s = duel(true);   // le rôle B : l'unité à ARCH_R est chez l'adversaire
+    const { combat } = s.startCombat(null);
+    while (!combat.winner) combat.step();
+    const result = s.finishCombat();
+
+    const ressuscitee = s.enemyUnits.find((u: any) => u.card_id === 'R_1');
+    expect(ressuscitee, 'l\'unité adverse doit être de retour sur le plateau').toBeDefined();
+    expect(ressuscitee.is_neutralized).toBe(false);
+    expect(result.enemySurvivorsAtk).toBe(7);   // elle compte dans les dégâts
+  });
+
+  // ⚠️ Et le LOG doit le voir. Mutation : épilogue retiré de l'enregistreur, ou
+  // `_flushRecorder` remis AVANT `finishCombat` → le diff redevient aveugle.
+  it('l\'épilogue rend la divergence visible là où les ticks se taisent', () => {
+    const vues = [false, true].map((mirrored, i) => {
+      const s = duel(mirrored);
+      const rec = new CombatRecorder({ matchId: 'm', round: 1, role: i === 0 ? 'A' : 'B' });
+      const { combat } = s.startCombat(null);
+      rec.header(combat, { id: 'B', blocked_cells: [] });
+      while (!combat.winner) rec.capture(combat, combat.step());
+      rec.epilogue(s, s.finishCombat());
+      return rec.payload().payload;
+    });
+    // Les ticks s'accordent : la divergence, s'il y en avait une, serait
+    // ailleurs — c'est tout l'intérêt de l'épilogue.
+    expect(pvplog.diff(vues[0], vues[1])).toBeNull();
+    expect(vues[0].epilogue.survivors).toEqual(vues[1].epilogue.survivors);
+    expect(vues[0].epilogue.hp).toEqual(vues[1].epilogue.hp);
   });
 });

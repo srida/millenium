@@ -586,9 +586,18 @@ export class CombatManager {
     const isFree = p => this.board.isInBounds(p) && !this.board.isOccupied(p) && !this.board.isBlocked(p)
       && (p.col !== unit.position.col || p.row !== unit.position.row);
 
+    // ⚠️ Les deux voisines EN RANGÉE dans l'ordre du repère de référence, comme
+    // `Board.getNeighbors` : `row - 1` et `row + 1` désignent deux directions
+    // physiques opposées d'un client à l'autre, et c'est la PREMIÈRE case libre
+    // qui est retenue. C'est un second énumérateur de voisines, avec sa propre
+    // priorité (rangées avant colonnes) — la correction faite à `getNeighbors`
+    // ne l'atteignait pas. Constaté sur le duel `7ce04deb`, round 5, tick 64 :
+    // la même téléportation atterrissait une rangée au-dessus de la cible chez
+    // l'un et une rangée en dessous chez l'autre.
+    const [before, after] = this.board.rowNeighbourOffsets();
     const adjacent = [
-      { col: target.position.col, row: target.position.row - 1 },
-      { col: target.position.col, row: target.position.row + 1 },
+      { col: target.position.col, row: target.position.row + before },
+      { col: target.position.col, row: target.position.row + after },
       { col: target.position.col - 1, row: target.position.row },
       { col: target.position.col + 1, row: target.position.row },
     ].filter(isFree);
@@ -597,9 +606,11 @@ export class CombatManager {
 
     if (!destination) {
       // No free adjacent cell — fall back to the closest free cell on the board.
+      // ⚠️ Même raison pour le balayage : `d < bestDist` retient la première
+      // case rencontrée, l'ordre des rangées est donc de la logique de jeu.
       let bestDist = Infinity;
       for (let col = 0; col < this.board.cols; col++) {
-        for (let row = 0; row < this.board.rows; row++) {
+        for (const row of this.board.rowScan()) {
           const p = { col, row };
           if (!isFree(p)) continue;
           const d = Math.abs(p.col - target.position.col) + Math.abs(p.row - target.position.row);

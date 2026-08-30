@@ -496,8 +496,15 @@ export class GameController {
   protected _flushRecorder(): void { this._recorder = null; }
 
   protected _onCombatFinished(): void {
-    this._flushRecorder();
+    // ⚠️ La résolution de fin de combat AVANT l'expédition du log, et ce n'est
+    // pas un détail d'ordre : réanimation d'attribut, survivants retenus et
+    // dégâts encaissés ont lieu ici, APRÈS le dernier tick. Le log partait
+    // auparavant avant eux, et cette moitié du round était donc invisible —
+    // deux clients pouvaient jouer 162 ticks rigoureusement identiques puis
+    // décompter des survivants différents, sans que le fichier n'en dise rien.
     const result = this.session.finishCombat();
+    this._recorder?.epilogue(this.session, result);
+    this._flushRecorder();
     useMissionStore.getState().emit('combat_ended', {
       result: result.winner === 'player' ? 'win' : result.winner === 'enemy' ? 'loss' : result.winner,
       unit_count: this._combatUnitCount,

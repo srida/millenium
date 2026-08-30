@@ -119,7 +119,9 @@ function indexUnits(columns, units) {
  *   order  → même état, mais les unités n'agissent pas dans le même ordre ;
  *   state  → une unité diverge sur un champ, qui est nommé ;
  *   events → même état et même ordre, mais un acte diffère ;
- *   length → un côté s'arrête avant l'autre, ou ne désigne pas le même vainqueur.
+ *   length → un côté s'arrête avant l'autre, ou ne désigne pas le même vainqueur ;
+ *   epilogue → les ticks s'accordent, mais pas ce que le round en fait
+ *              (réanimation, survivants retenus, dégâts, PV).
  *
  * @returns {null | { kind, tick, detail }}
  */
@@ -194,6 +196,32 @@ function diff(a, b) {
   }
   if (a.winner !== b.winner) {
     return { kind: 'length', tick: common, detail: { field: 'winner', A: a.winner, B: b.winner } };
+  }
+
+  // ── Épilogue : ce que le round devient APRÈS le dernier tick ──────────────
+  // ⚠️ Le combat n'est pas tout le round. Réanimation d'attribut, survivants
+  // retenus et dégâts encaissés se décident dans `finishCombat`, une fois le
+  // dernier tick joué : deux clients peuvent s'accorder sur 162 ticks et
+  // décompter des survivants différents. Comparé en DERNIER, parce que c'est
+  // chronologiquement le dernier moment du round.
+  const epi = diffEpilogue(a.epilogue, b.epilogue);
+  if (epi) return { kind: 'epilogue', tick: common, detail: epi };
+
+  return null;
+}
+
+/** Premier champ de l'épilogue qui diffère, nommé. Absent des deux côtés = rien à dire. */
+function diffEpilogue(a, b) {
+  if (!a || !b) return null;   // log antérieur à l'épilogue : on ne conclut rien
+  if (a.winner !== b.winner) return { field: 'winner', A: a.winner, B: b.winner };
+  if (!sameList(a.survivors, b.survivors, JSON.stringify)) {
+    return { field: 'survivors', A: a.survivors, B: b.survivors };
+  }
+  for (const field of ['survivors_atk', 'hp']) {
+    for (const role of ['A', 'B']) {
+      const [x, y] = [a[field]?.[role], b[field]?.[role]];
+      if (x !== y) return { field, role, A: x, B: y, full: { A: a[field], B: b[field] } };
+    }
   }
   return null;
 }

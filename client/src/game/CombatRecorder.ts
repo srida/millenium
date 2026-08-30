@@ -86,6 +86,7 @@ export class CombatRecorder {
   private startUnits: any[][] = [];
   private ticks: TickRecord[] = [];
   private winner: string | null = null;
+  private _epilogue: any = null;
   private bytes = 0;
   private _truncated = false;
 
@@ -270,6 +271,47 @@ export class CombatRecorder {
     return v;
   }
 
+  /**
+   * L'ÉPILOGUE — ce que le round devient une fois le dernier tick joué.
+   *
+   * ⚠️ Le combat n'est pas tout le round : `GameSession.finishCombat` réanime
+   * (attribut `revive`), retient les survivants et en déduit les dégâts. Cette
+   * moitié-là n'était pas enregistrée, et c'est très exactement là que se
+   * logeait la divergence du duel `7ce04deb` — 162 ticks identiques des deux
+   * côtés, puis quatre survivants d'un côté et trois de l'autre. Un joueur
+   * voyait 828 PV là où son adversaire en affichait 860 ; le fichier, lui,
+   * disait « ok ».
+   *
+   * Tout est canonique, comme le reste : les unités par `owner:card_id`, et les
+   * PV par RÔLE. Les deux clients calculent la même paire (chacun est
+   * autoritaire sur ses propres PV, et les reçoit de l'autre au round suivant) —
+   * un désaccord ici est donc bien une divergence, pas une vue partielle.
+   */
+  epilogue(session: any, result: any): void {
+    const side = (own: boolean) => (own ? this.role : this.otherRole);
+    const atkOf = (units: any[]) => units
+      .map((u: any) => [this.key(u), u.atk] as [string, number])
+      .sort((a, b) => a[0].localeCompare(b[0]));
+
+    this._epilogue = {
+      winner: this.winnerCanon(result?.winner),
+      // Les survivants TELS QU'ILS COMPTENT pour les dégâts — donc réanimés
+      // inclus, `finishCombat` les recensant après la réanimation.
+      survivors: [
+        ...atkOf(session?.board?.getLivingUnitsOnSide?.('player') ?? []),
+        ...atkOf(session?.board?.getLivingUnitsOnSide?.('enemy') ?? []),
+      ].sort((a, b) => a[0].localeCompare(b[0])),
+      survivors_atk: {
+        [side(true)]: result?.playerSurvivorsAtk ?? 0,
+        [side(false)]: result?.enemySurvivorsAtk ?? 0,
+      },
+      hp: {
+        [side(true)]: session?.gameState?.player_hp ?? null,
+        [side(false)]: session?.gameState?.enemy_hp ?? null,
+      },
+    };
+  }
+
   get isEmpty(): boolean { return this.ticks.length === 0; }
 
   /** L'objet à poster sur `/api/me/pvp-log`. */
@@ -288,6 +330,7 @@ export class CombatRecorder {
         columns: [...UNIT_COLUMNS],
         start_units: this.startUnits,
         winner: this.winner,
+        epilogue: this._epilogue,
         tick_count: this.ticks.length,
         truncated: this._truncated,
         ticks: this.ticks,

@@ -108,7 +108,7 @@ describe('PvP — reconstruction du board adverse', () => {
   // ne doit pas le retrouver à la reconstruction. La carte en porte un ici,
   // sans quoi le cas ne prouverait rien.
   it('rejoue l\'ABSENCE de pouvoir sans retomber sur celui de la carte', () => {
-    const armed = makeCard({ id: 'PVP_P', power: { id: 'POWER_SHIELD', speed: 20, value: null } as any });
+    const armed = makeCard({ id: 'PVP_P', power: { id: 'POWER_SHIELD', power_speed: 20, value: null } as any });
     const db = { getCard: (id: string) => (id === armed.id ? (armed as any) : null) };
     const source = new (Unit as any)(armed, 'player') as Unit;
     expect(source.power_id).toBe('POWER_SHIELD');   // témoin

@@ -190,6 +190,7 @@ export class AttributeManager {
   applyEndOfCombat(playerNeutralized, enemyNeutralized) {
     const result = {
       revived: [],
+      enemyRevived: [],
       draw_bonus: 0,
       guaranteed_draws: [], // { category, attribute }
       board_slot_bonus: 0,
@@ -197,7 +198,33 @@ export class AttributeManager {
       shopping_bonus: 0,
     };
 
-    const attrIds = new Set(this.playerUnits.flatMap(u => u.attributes));
+    // ⚠️ La RÉANIMATION vaut pour les DEUX camps ; les autres effets de fin de
+    // combat sont des RESSOURCES DU JOUEUR (pioches, emplacements, magies de
+    // Shopping) et n'ont pas de sens en face.
+    //
+    // C'est la seule distinction qui compte ici, et elle a coûté un duel : tout
+    // `end_of_combat` ne regardait que `this.playerUnits`, si bien qu'en duel
+    // l'unité réanimée d'un joueur ressuscitait chez LUI et restait morte chez
+    // son adversaire. Les deux clients ne comptaient donc pas les mêmes
+    // survivants — donc pas les mêmes dégâts de fin de combat. Constaté sur le
+    // duel `7ce04deb` : un camp voyait quatre survivants, l'autre trois.
+    //
+    // ⚠️ Et c'est invisible dans le log de combat : la réanimation a lieu APRÈS
+    // le dernier tick, dans `finishCombat`. Cf. l'épilogue de `CombatRecorder`.
+    this._applyEndForSide(this.playerUnits, playerNeutralized, result, { resources: true });
+    this._applyEndForSide(this.enemyUnits, enemyNeutralized, result, { resources: false });
+
+    return result;
+  }
+
+  /**
+   * @param {Object} opts
+   * @param {boolean} opts.resources  Collecter aussi les effets de ressource du
+   *   joueur (pioches, emplacement, multiplicateur, Shopping). Faux pour le
+   *   camp d'en face, où ils n'ont aucun destinataire.
+   */
+  _applyEndForSide(units, neutralized, result, { resources }) {
+    const attrIds = new Set(units.flatMap(u => u.attributes));
 
     for (const attrId of attrIds) {
       const attr = this._attributeMap[attrId];
@@ -206,7 +233,7 @@ export class AttributeManager {
       // For end_of_combat, count ALL distinct units that participated (alive + neutralized)
       // so the threshold is met even if some attribute units died during combat
       const count = new Set(
-        this.playerUnits.filter(u => u.attributes.includes(attrId)).map(u => u.card_id)
+        units.filter(u => u.attributes.includes(attrId)).map(u => u.card_id)
       ).size;
       let best = null;
       for (const t of attr.thresholds) {
@@ -216,22 +243,24 @@ export class AttributeManager {
       const threshold = best;
 
       for (const effect of threshold.effects) {
-        switch (effect.type) {
-          case 'revive': {
-            const candidate = playerNeutralized[0];
-            if (candidate) {
-              const hpPct = (effect.hp_percent ?? 50) / 100;
-              candidate.current_hp = Math.floor(candidate.max_hp * hpPct);
-              candidate.is_neutralized = false;
-              candidate._deathEmitted = false;
-              candidate.dot_effects = [];
-              candidate.paralysis_remaining = 0;
-              candidate.attack_speed_modifier = 0;
-              playerNeutralized.splice(0, 1);
-              result.revived.push(candidate);
-            }
-            break;
+        if (effect.type === 'revive') {
+          const candidate = neutralized[0];
+          if (candidate) {
+            const hpPct = (effect.hp_percent ?? 50) / 100;
+            candidate.current_hp = Math.floor(candidate.max_hp * hpPct);
+            candidate.is_neutralized = false;
+            candidate._deathEmitted = false;
+            candidate.dot_effects = [];
+            candidate.paralysis_remaining = 0;
+            candidate.attack_speed_modifier = 0;
+            neutralized.splice(0, 1);
+            (resources ? result.revived : result.enemyRevived).push(candidate);
           }
+          continue;
+        }
+        if (!resources) continue;
+
+        switch (effect.type) {
           case 'draw_bonus':
             result.draw_bonus = Math.min(result.draw_bonus + effect.value, effect.max ?? Infinity);
             break;
@@ -250,8 +279,6 @@ export class AttributeManager {
         }
       }
     }
-
-    return result;
   }
 
   // ── POWER_DEBUFF support ──
