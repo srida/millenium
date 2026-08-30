@@ -62,6 +62,14 @@ export function updateUnitEl(el: HTMLElement, unit: Unit): void {
   const pwrFill = el.querySelector<HTMLElement>('.unit-pwr-fill');
   if (pwrFill) pwrFill.style.width = pwrPct + '%';
 
+  // ⚠️ La barre est TOUJOURS dans le balisage, et c'est sa visibilité qui suit
+  // l'unité — pas sa présence. `_inner` ne s'exécute qu'au spawn : une unité
+  // née sans pouvoir n'avait aucun élément à remplir, et la magie `grant_power`
+  // lui en posait un que la carte 3D ne pouvait plus montrer (le tooltip, lui,
+  // est rendu par React à chaque ouverture, d'où l'asymétrie constatée).
+  const pwrBar = el.querySelector<HTMLElement>('.unit-pwr-bar');
+  if (pwrBar) pwrBar.style.display = unit.power_id ? '' : 'none';
+
   _updateMedallion(el, unit);
   _updateVet(el, unit);
 }
@@ -72,9 +80,12 @@ function _inner(unit: Unit): string {
     ? Math.min(100, Math.round((unit.power_gauge / unit.power_speed) * 100))
     : 0;
 
-  const pwrBar = unit.power_id
-    ? `<div class="unit-pwr-bar"><div class="unit-pwr-fill" style="width:${pwrPct}%"></div></div>`
-    : '';
+  // Toujours émise, masquée tant que l'unité n'a pas de pouvoir : c'est
+  // `updateUnitEl` qui la révèle si une magie lui en donne un en cours de
+  // partie. `display: none` plutôt que l'attribut `hidden` — la règle
+  // `.unit-pwr-bar` ne pose pas de `display`, mais dépendre de la feuille de
+  // l'agent utilisateur pour un élément de jeu ne vaut pas l'économie.
+  const pwrBar = `<div class="unit-pwr-bar" style="display:${unit.power_id ? '' : 'none'}"><div class="unit-pwr-fill" style="width:${pwrPct}%"></div></div>`;
 
   return `
     <div class="unit-face">
