@@ -9,6 +9,20 @@ export class Board {
   // Temporary blocks (e.g. POWER_FREEZE), separate from the permanent terrain
   // blocks: key "col,row" → the combat step at which the freeze expires.
   _temporaryBlockedCells: Map<string, number>;
+  /**
+   * Ce plateau est-il décrit dans le MIROIR du repère de référence ?
+   *
+   * Vrai pour le seul rôle B d'un duel en ligne, dont le monde est le reflet de
+   * celui de A (`logic/BoardMirror`). Faux partout ailleurs — solo, arcade,
+   * tournoi, tutoriel, simulation et rôle A.
+   *
+   * ⚠️ Il ne change pas ce que le plateau CONTIENT, seulement l'ORDRE dans
+   * lequel il l'énumère. Deux ordres qui n'ont pas de sens commun (« la rangée
+   * la plus petite » est inversée entre les deux clients) suffisent à faire
+   * diverger un combat par ailleurs identique : ils départagent les égalités du
+   * choix de cible et du plus court chemin. Cf. `_rowScan` / `getNeighbors`.
+   */
+  mirroredFrame = false;
 
   constructor() {
     this.cols = 5;
@@ -16,6 +30,16 @@ export class Board {
     this.grid = this._emptyGrid();
     this._blockedCells = new Set();
     this._temporaryBlockedCells = new Map();
+  }
+
+  /**
+   * Les rangées dans l'ordre du repère de RÉFÉRENCE : croissantes pour le rôle
+   * A, décroissantes pour le rôle B — si bien que les deux clients balaient le
+   * plateau physique dans le même sens.
+   */
+  _rowScan(): number[] {
+    const rows = Array.from({ length: this.rows }, (_, r) => r);
+    return this.mirroredFrame ? rows.reverse() : rows;
   }
 
   _emptyGrid(): (Unit | null)[][] {
@@ -65,10 +89,25 @@ export class Board {
   isNeutralCell(pos: Position): boolean { return pos.row >= 4 && pos.row <= 6; }
   isEnemyCell(pos: Position): boolean   { return pos.row >= 7 && pos.row <= 10; }
 
+  /**
+   * ⚠️ L'ORDRE de ce tableau est de la LOGIQUE DE JEU, pas une commodité : il
+   * survit tel quel dans `CombatManager.playerUnits` / `enemyUnits` pour toute
+   * la durée du combat, et il départage les égalités — la cible retenue par
+   * `findAttackTarget` (`d < bestDist`, le premier arrivé gagne), le tri stable
+   * par distance de Chebyshev du déplacement, le `reduce` de provocation,
+   * `POWER_HEAL`, `_teleportPlan`, et l'ordre des `stat_change` d'attribut.
+   *
+   * Un balayage à rangée croissante rend donc l'ordre INVERSE d'un client à
+   * l'autre en duel : le même camp est en rows 0–3 chez son propriétaire et en
+   * 7–10 chez son adversaire. Constaté sur un vrai duel (match `a9c8c4a6`,
+   * round 2, tick 85) : à égalité de distance de Chebyshev entre quatre cibles,
+   * un client trouvait sa première candidate déjà à portée et ne bougeait pas,
+   * l'autre en trouvait une différente et avançait d'une case.
+   */
   getUnitsOnSide(side: Side): Unit[] {
     const units: Unit[] = [];
     for (let c = 0; c < this.cols; c++)
-      for (let r = 0; r < this.rows; r++)
+      for (const r of this._rowScan())
         if (this.grid[c][r]?.side === side) units.push(this.grid[c][r] as Unit);
     return units;
   }
@@ -76,7 +115,7 @@ export class Board {
   getAllUnits(): Unit[] {
     const units: Unit[] = [];
     for (let c = 0; c < this.cols; c++)
-      for (let r = 0; r < this.rows; r++)
+      for (const r of this._rowScan())
         if (this.grid[c][r]) units.push(this.grid[c][r] as Unit);
     return units;
   }
@@ -139,13 +178,23 @@ export class Board {
     }
   }
 
-  // Neighbours (4-directional) within bounds, excluding blocked cells
+  /**
+   * Voisines cardinales dans les limites du plateau, cases bloquées exclues.
+   *
+   * ⚠️ L'ordre compte : le BFS de `PathFinder.findPath` rend le PREMIER plus
+   * court chemin trouvé, et `stepTowardOrNearest` la PREMIÈRE voisine la plus
+   * proche. `row - 1` et `row + 1` désignant deux directions physiques opposées
+   * d'un client à l'autre, l'énumération est ordonnée dans le repère de
+   * référence — sans quoi deux chemins de même longueur se départagent en sens
+   * inverse et les deux simulations divergent.
+   */
   getNeighbors(pos: Position): Position[] {
+    const [before, after] = this.mirroredFrame ? [1, -1] : [-1, 1];
     return [
       { col: pos.col - 1, row: pos.row },
       { col: pos.col + 1, row: pos.row },
-      { col: pos.col, row: pos.row - 1 },
-      { col: pos.col, row: pos.row + 1 },
+      { col: pos.col, row: pos.row + before },
+      { col: pos.col, row: pos.row + after },
     ].filter(p => this.isInBounds(p) && !this.isBlocked(p));
   }
 

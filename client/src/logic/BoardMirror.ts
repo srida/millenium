@@ -38,6 +38,20 @@ export function mirrorCells<T extends { col: number; row: number }>(
 }
 
 /**
+ * La rangée d'une case dans le repère de RÉFÉRENCE (celui du rôle A), depuis
+ * une rangée locale.
+ *
+ * C'est la primitive de tout ce qui doit être *ordonné* de la même façon des
+ * deux côtés : balayage du plateau, énumération des voisins d'une case. Les
+ * deux clients ne peuvent pas s'accorder sur « la rangée la plus petite » —
+ * elles sont inversées — mais ils s'accordent tous les deux sur « la rangée la
+ * plus petite VUE DU RÔLE A ».
+ */
+export function referenceRow(row: number, mirrored: boolean): number {
+  return mirrored ? mirrorRow(row) : row;
+}
+
+/**
  * Un terrain est « symétrique » quand son ensemble de cases bloquées est
  * invariant par le miroir — les deux joueurs y affrontent alors la même
  * géographie.

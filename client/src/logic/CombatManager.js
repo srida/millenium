@@ -77,15 +77,36 @@ export class CombatManager {
     this._stepCount++;
     this.board.purgeExpiredTemporaryBlocks(this._stepCount);
 
-    const allUnits = [...this.playerUnits, ...this.enemyUnits];
+    // ⚠️ Les deux camps dans l'ordre du repère de RÉFÉRENCE, jamais « les
+    // miennes d'abord ». Ce tableau sert de tableau de balayage des morts
+    // (`_checkDeaths`, phase 5), et l'ordre y est de la logique de jeu : chaque
+    // mort déclenche les `stat_modifier` d'attribut, qui ne comptent que les
+    // unités ENCORE VIVANTES. Deux unités qui tombent au même tick, une de
+    // chaque camp, ne donnent donc pas les mêmes bonus selon l'ordre — et
+    // `[...playerUnits, ...enemyUnits]` met « mes » unités en tête sur CHAQUE
+    // client, donc dans l'ordre inverse d'un client à l'autre.
+    const allUnits = this._frameOrderedUnits();
     const livingUnits = allUnits.filter(u => u.isAlive());
 
     // Sort by initiative desc, tie-break by attack_speed desc, then card_id asc
     // card_id is absolute (same value on both PvP clients) — prevents ordering divergence on equal stats
+    //
+    // Le DERNIER départage est le camp, exprimé dans le repère de référence :
+    // l'égalité parfaite — même initiative, même vitesse ET même `card_id` —
+    // arrive dès que les deux joueurs jouent la même carte, et il ne restait
+    // alors que l'ordre du tableau d'entrée pour trancher.
+    //
+    // ⚠️ Il est REDONDANT avec `_frameOrderedUnits` tant que `sort` est stable
+    // (garanti depuis ES2019) : c'est ce dernier qui porte réellement la
+    // correction, et retirer ce départage-ci seul ne fait rien tomber. Il est
+    // gardé parce qu'il rend le tri AUTOSUFFISANT — l'invariant est écrit dans
+    // le comparateur, au lieu de dépendre de l'ordre dans lequel on lui a passé
+    // les unités. Le jour où ce tableau d'entrée change, le tri tient encore.
     livingUnits.sort((a, b) =>
       b.initiative - a.initiative ||
       b.effectiveAttackSpeed() - a.effectiveAttackSpeed() ||
-      a.card_id.localeCompare(b.card_id));
+      a.card_id.localeCompare(b.card_id) ||
+      this._frameSide(a) - this._frameSide(b));
 
     // ── 1. Passive ticks (power gauge, DOT, paralysis, power block) ──
     for (const u of livingUnits) {
@@ -225,6 +246,30 @@ export class CombatManager {
   // requireLOS: true for attack target resolution (a taunter out of sight no longer
   // forces targeting — falls back to normal enemy targeting), false for movement
   // (the unit should keep walking toward the taunter to regain line of sight).
+  /**
+   * Le camp d'une unité dans le repère de RÉFÉRENCE : 0 pour celui du rôle A,
+   * 1 pour celui du rôle B — la même valeur pour la même unité physique sur les
+   * deux clients, là où `side` ('player' / 'enemy') est purement local.
+   *
+   * Hors duel en ligne, le plateau n'est jamais miroité : le joueur est donc
+   * toujours 0, exactement l'ordre que la concaténation donnait déjà.
+   */
+  /**
+   * Les unités des deux camps, celui du rôle A d'abord — le même ordre sur les
+   * deux clients. Hors duel en ligne le plateau n'est jamais miroité : c'est
+   * exactement la concaténation historique.
+   */
+  _frameOrderedUnits() {
+    return this.board?.mirroredFrame
+      ? [...this.enemyUnits, ...this.playerUnits]
+      : [...this.playerUnits, ...this.enemyUnits];
+  }
+
+  _frameSide(unit) {
+    const isLocalPlayer = unit.side === 'player';
+    return (this.board?.mirroredFrame ? !isLocalPlayer : isLocalPlayer) ? 0 : 1;
+  }
+
   _targetCandidates(unit, { requireLOS }) {
     const enemies = this._enemies(unit).filter(e => e.isAlive());
     let taunters = enemies.filter(e => e.taunt_remaining > 0);

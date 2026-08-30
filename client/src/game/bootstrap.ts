@@ -76,8 +76,8 @@ function resolveDeck(deckName?: string): { deck: Record<string, string[]>; name:
  * @param enemyBonus Handicap plat (ATK/PV) appliqué à chaque unité de l'IA —
  *   le mode Arcade durcit ainsi ses quatre échelons. Absent partout ailleurs.
  * @param pvpRole Rôle du joueur local dans un duel en ligne. Il ne sert qu'à
- *   UNE chose : le monde du rôle B est le reflet de celui de A, ses cases
- *   bloquées doivent donc être miroitées à l'application (`mirrorTerrain`).
+ *   UNE chose : dire à la session que son monde est le MIROIR du repère de
+ *   référence (`mirroredRole`), le rôle B jouant le reflet du monde de A.
  *   `logic/` ne connaît pas les rôles — il ne reçoit que le booléen.
  */
 export function buildSession(
@@ -120,7 +120,7 @@ export function buildSession(
     getAllMagies: () => (MagieDatabase as any).getAllMagies(),
     mode,
     enemyBonus: enemyBonus ?? null,
-    mirrorTerrain: mode === 'pvp' && pvpRole === 'B',
+    mirroredRole: mode === 'pvp' && pvpRole === 'B',
   });
 }
 

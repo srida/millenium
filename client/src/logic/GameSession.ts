@@ -79,16 +79,24 @@ export interface GameSessionDeps {
    *  tous les modes existants. C'est un primitif générique : `logic/` ne sait
    *  pas que le mode Arcade s'en sert pour durcir ses quatre échelons. */
   enemyBonus?: { atk: number; hp: number } | null;
-  /** Le camp local occupe-t-il le RÉCIPROQUE du repère de description du
-   *  terrain ? En duel en ligne, le monde du rôle B est le reflet de celui de A
-   *  (`net/PvpOpponentProvider.mirrorRow`) : ses cases bloquées doivent être
-   *  miroitées à l'application, faute de quoi les deux clients simulent deux
-   *  plateaux différents. Posé UNE FOIS à la construction de la session, et non
-   *  passé à `startCombat` : il n'y aurait alors qu'à l'oublier sur un des
-   *  chemins d'appel pour que la divergence revienne en silence.
-   *  Absent partout ailleurs — solo, arcade, tournoi, tutoriel et rôle A sont
-   *  déjà dans le repère de description. */
-  mirrorTerrain?: boolean;
+  /** Le monde local est-il le MIROIR du repère de référence ? Vrai pour le seul
+   *  rôle B d'un duel en ligne, dont le plateau est le reflet de celui de A
+   *  (`logic/BoardMirror`). Absent partout ailleurs — solo, arcade, tournoi,
+   *  tutoriel, simulation et rôle A sont déjà dans le repère de référence, et
+   *  leur comportement est rigoureusement inchangé.
+   *
+   *  Il gouverne TROIS choses, qui sont la même : ce qui n'a pas le même sens
+   *  des deux côtés doit être exprimé dans un repère commun.
+   *    • les cases bloquées du terrain, appliquées miroitées (`startCombat`) ;
+   *    • l'ORDRE dans lequel le plateau s'énumère — balayage des unités et
+   *      voisines d'une case (`Board.mirroredFrame`), qui départage le choix de
+   *      cible et le plus court chemin ;
+   *    • le départage par camp de l'ordre d'initiative (`CombatManager`).
+   *
+   *  ⚠️ Posé UNE FOIS à la construction de la session, jamais passé en
+   *  paramètre : il n'y aurait sinon qu'à l'oublier sur un chemin d'appel pour
+   *  que la divergence revienne en silence. */
+  mirroredRole?: boolean;
 }
 
 export interface EndRoundResult {
@@ -172,6 +180,10 @@ export class GameSession {
 
   constructor(deps: GameSessionDeps) {
     this.deps = deps;
+    // Le repère du plateau est posé AVANT tout placement : c'est lui qui décide
+    // de l'ordre dans lequel le plateau s'énumère, et cet ordre est de la
+    // logique de jeu (cf. `Board.getUnitsOnSide`).
+    this.board.mirroredFrame = !!deps.mirroredRole;
     this.enemyAI = new EnemyAI(deps.enemyDeck, deps.cardDb as any, 'enemy', deps.rand ?? Math.random);
     this._playerDeckAttributes = deckAttributes(Object.values(deps.cardsByTier ?? {}).flat());
     this._enemyDeckAttributes = deckAttributes(
@@ -526,7 +538,7 @@ export class GameSession {
     // d'une unité : appliqué verbatim des deux côtés d'un duel, il décrit deux
     // plateaux différents (cf. `logic/BoardMirror`).
     this.board.setBlockedCells(
-      this.deps.mirrorTerrain
+      this.deps.mirroredRole
         ? mirrorCells(boardData?.blocked_cells)
         : (boardData?.blocked_cells || []),
     );

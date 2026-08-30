@@ -180,20 +180,29 @@ export class CombatRecorder {
   /**
    * ⚠️ Recopie EXACTEMENT le tri de `CombatManager.step()` — initiative
    * décroissante, vitesse d'attaque effective décroissante, `card_id`
-   * croissante. Le but n'est pas de le vérifier mais de le photographier : si
-   * le tri lui-même rend deux ordres différents sur les deux clients, c'est
-   * précisément ce qu'on veut voir apparaître dans le fichier.
+   * croissante, puis le CAMP dans le repère de référence. Le but n'est pas de
+   * le vérifier mais de le photographier : si le tri lui-même rend deux ordres
+   * différents sur les deux clients, c'est précisément ce qu'on veut voir
+   * apparaître dans le fichier.
+   *
+   * ⚠️ C'est une COPIE, donc une chose à tenir d'accord à la main — et elle a
+   * déjà dérivé une fois : le départage par camp ajouté au moteur manquait ici,
+   * et l'outil rapportait `order` divergent sur un duel que le moteur jouait
+   * pourtant à l'identique. Le camp est ici le préfixe de `key()`, qui est déjà
+   * canonique ('A' avant 'B').
    */
   private initiativeOrder(combat: any): string[] {
     const all = [...(combat?.playerUnits ?? []), ...(combat?.enemyUnits ?? [])];
     return all
       .filter((u: any) => u?.isAlive?.())
+      .map((u: any) => ({ u, key: this.key(u) }))
       .sort((a: any, b: any) => (
-        b.initiative - a.initiative
-        || b.effectiveAttackSpeed() - a.effectiveAttackSpeed()
-        || String(a.card_id).localeCompare(String(b.card_id))
+        b.u.initiative - a.u.initiative
+        || b.u.effectiveAttackSpeed() - a.u.effectiveAttackSpeed()
+        || String(a.u.card_id).localeCompare(String(b.u.card_id))
+        || a.key.localeCompare(b.key)
       ))
-      .map((u: any) => this.key(u));
+      .map((e: any) => e.key);
   }
 
   /**

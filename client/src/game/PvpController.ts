@@ -49,7 +49,7 @@ export class PvpController extends GameController {
    * vis-à-vis de `begin()` — le drapeau se pose donc ICI et pas là-bas.
    *
    * Le rôle B joue dans le reflet du monde du rôle A : ses cases bloquées sont
-   * miroitées par la session (`mirrorTerrain`), et le fond de grille doit
+   * miroitées par la session (`mirroredRole`), et le fond de grille doit
    * suivre le même retournement, sans quoi le décor peint et les rochers du
    * terrain ne tomberaient plus au même endroit chez ce joueur.
    */

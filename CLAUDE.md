@@ -1081,19 +1081,26 @@ potentiellement plusieurs centaines de Ko. Vérifié au navigateur en 1280 px et
 en 390 px (`scrollWidth <= clientWidth`, un seul `.main:not(.hidden)`, un seul
 `#main-tabs .tab.active`, le tableau défilant dans son conteneur).
 
-### ✅ Ce que le log a prouvé — trois causes, sur un seul duel
+### ✅ Ce que le log a prouvé — cinq causes, sur deux duels
 
 Le premier duel enregistré de bout en bout (match `779040f9`, 5 rounds) a
-tranché les quatre suspects d'un coup : le n°1 est confirmé, les trois autres ne
-se sont **pas** manifestés, et **deux causes que personne n'avait nommées** sont
-apparues. Les trois sont corrigées ; cf. « Duel en ligne — les trois causes de
-divergence » plus bas, et `client/src/test/pvp-determinism.test.ts`.
+tranché le suspect n°1 et fait apparaître **deux causes que personne n'avait
+nommées**. Le duel suivant (`a9c8c4a6`), une fois ces trois-là corrigées, a
+confirmé les **trois suspects restants**. Les cinq sont corrigées ; cf. « Duel
+en ligne — les cinq causes de divergence » plus bas, et
+`client/src/test/pvp-determinism.test.ts`.
 
-| Round du log | Ce qui divergeait | Nature |
-|---|---|---|
-| 5 | `blocked_cells` du terrain | **suspect n°1, confirmé** |
-| 2, 3, 4 | `attack_timer` / `move_timer` d'un survivant | cause **non anticipée** |
-| 1 | `combat_end.winner` | **fausse** divergence — l'outil lui-même |
+⚠️ **C'est l'ordre de découverte qui compte** : le diff s'arrête à la PREMIÈRE
+différence, donc chaque cause en masque d'autres. Un rapport « diverged » n'est
+jamais la liste des pannes, c'est la plus précoce.
+
+| Duel | Round | Ce qui divergeait | Nature |
+|---|---|---|---|
+| `779040f9` | 5 | `blocked_cells` du terrain | **suspect n°1, confirmé** |
+| `779040f9` | 2, 3, 4 | `attack_timer` / `move_timer` d'un survivant | cause **non anticipée** |
+| `779040f9` | 1 | `combat_end.winner` | **fausse** divergence — l'outil lui-même |
+| `a9c8c4a6` | 2 | la case où une unité se déplace | **suspects n°2 et n°4** |
+| `a9c8c4a6` | 3, 4 | l'ordre des `stat_change` d'attribut | **suspects n°2 et n°3** |
 
 ⚠️ **Le round 1 est le plus instructif** : 154 ticks rigoureusement identiques
 des deux côtés, et un verdict « diverged » quand même. `'player'` / `'enemy'`
@@ -1103,29 +1110,32 @@ divergent, et le verdict du fichier ne distinguait plus rien. Un outil de
 diagnostic qui crie au loup sur les cas sains est pire qu'un outil absent : il
 avait ce défaut dès sa première ligne, et seul un vrai duel pouvait le montrer.
 
-**Les trois suspects restants n'ont rien donné** — ils restent plausibles en
-théorie et ne sont pas corrigés (ils demanderaient de toucher au moteur de
-combat, que les golden tests verrouillent) :
+**Les trois suspects restants ne se sont pas manifestés sur CE duel** — ils ont
+tous les trois été confirmés par le **suivant** (`a9c8c4a6`), qui n'a pu les
+faire apparaître qu'une fois les trois premières causes retirées :
 
 2. **L'ordre des tableaux d'unités est inversé entre les deux clients.**
-   `Board.getUnitsOnSide` balaie col-major, row **croissante** : un camp aux
+   `Board.getUnitsOnSide` balayait col-major, row **croissante** : un camp aux
    rows 0–3 sort dans l'ordre 0,1,2,3, le même camp miroité aux rows 7–10 sort
    7,8,9,10 — l'ordre relatif **inverse**. Or ce tableau départage
-   `findAttackTarget` (`d < bestDist`, premier arrivé), le `reduce` de
-   provocation, `POWER_HEAL` et `_teleportPlan`.
+   `findAttackTarget` (`d < bestDist`, premier arrivé), le tri stable par
+   distance de Chebyshev du déplacement, le `reduce` de provocation,
+   `POWER_HEAL`, `_teleportPlan` et l'ordre des `stat_change` d'attribut.
 3. **Le tri d'initiative n'a pas de départage de camp** : `[...playerUnits,
    ...enemyUnits]` met « mes » unités en tête sur chaque client ; à égalité
    d'initiative, de vitesse **et** de `card_id` (possible — deux joueurs peuvent
-   jouer la même carte), le tri stable tranche dans deux sens opposés.
+   jouer la même carte), le tri stable tranche dans deux sens opposés. **Le même
+   tableau sert au balayage des morts**, dont l'ordre décide des `stat_modifier`
+   d'attribut (ils ne comptent que les unités encore vivantes).
 4. **`Board.getNeighbors` n'est pas symétrique par réflexion** (`[col-1, col+1,
    row-1, row+1]`) : le BFS rend le *premier* plus court chemin trouvé.
 
-⚠️ Aucun des trois ne s'est déclenché sur ce duel, et ce n'est pas une preuve
-d'innocence : le n°2 et le n°4 demandent une configuration précise (deux cibles
-à égale distance, deux plus courts chemins de même longueur), le n°3 une égalité
-parfaite d'initiative, de vitesse **et** de `card_id`. C'est exactement ce que
-le log est fait de trancher — il faut donc **continuer à en collecter**, et
-c'est pourquoi l'outil n'est pas retiré maintenant.
+⚠️ **La leçon de méthode : une divergence en cache une autre.** Le premier duel
+ne pouvait pas montrer ces trois-là — le diff s'arrête à la PREMIÈRE différence,
+et le terrain comme les horloges divergeaient dès le tick 0. Il a fallu deux
+duels et deux lots de corrections pour vider la pile. C'est aussi pourquoi le
+filet de `pvp-determinism.test.ts` ne teste pas une cause mais l'**invariant** :
+un même combat physique, simulé dans les deux repères, doit rendre le même log.
 
 ### Tests
 
@@ -1166,12 +1176,25 @@ modifié, et le contrat de déterminisme (`round:board_ready`, verrouillé par
 
 ---
 
-## ⚠️ Duel en ligne — les trois causes de divergence, et ce qui les ferme
+## ⚠️ Duel en ligne — les cinq causes de divergence, et ce qui les ferme
 
-Elles ont **la même forme** : une donnée qui n'est pas la même des deux côtés au
-tick 0. Le combat étant simulé localement sans qu'aucun résultat ne s'échange,
-tout ce qui diffère à ce moment-là fait diverger la partie entière — et un
-désaccord final prive **les deux** joueurs de leur gain (`result_mismatch`).
+Elles ont **la même forme, et une seule** : quelque chose qui n'a pas le même
+sens dans les deux repères. Le monde du rôle B est le reflet de celui de A, le
+combat est simulé localement des deux côtés sans qu'aucun résultat ne s'échange,
+et le moindre écart fait diverger la partie entière — un désaccord final privant
+**les deux** joueurs de leur gain (`result_mismatch`).
+
+Deux familles, découvertes par deux duels successifs :
+
+| | Ce qui n'était pas commun | Trouvé par |
+|---|---|---|
+| **Ce que le plateau CONTIENT** | les cases bloquées ; les horloges d'attaque et de déplacement ; le pouvoir donné par magie | duel `779040f9` |
+| **L'ORDRE dans lequel il s'énumère** | le balayage des unités ; les voisines d'une case ; le camp qui agit en premier | duel `a9c8c4a6` |
+
+⚠️ **La seconde famille ne pouvait pas apparaître avant que la première soit
+corrigée** : le diff s'arrête à la première différence, et le terrain divergeait
+dès le tick 0. Corollaire de méthode — une divergence en cache une autre, et
+c'est le **filet** (l'invariant, pas la cause) qui finit le travail.
 
 ### 1. Le terrain est une donnée POSITIONNELLE (`logic/BoardMirror.ts`)
 
@@ -1182,7 +1205,7 @@ ne simulaient pas le même plateau, et ligne de vue comme contournement BFS
 divergeaient (mesuré sur `BOARD_013` : première conséquence au tick 10).
 
 **Le terrain se traduit donc comme une position** — `GameSession.startCombat`
-applique `mirrorCells(blocked_cells)` quand `deps.mirrorTerrain` est levé, ce
+applique `mirrorCells(blocked_cells)` quand `deps.mirroredRole` est levé, ce
 que `buildSession` ne fait que pour le rôle **B** d'un duel. `logic/BoardMirror`
 est le **seul** module qui sache traduire une rangée d'un camp à l'autre :
 `net/PvpOpponentProvider` (placement des unités adverses) et lui partagent
@@ -1249,18 +1272,94 @@ la carte en porte un, et un repli qui rétablirait la valeur de la carte serait
 faux. Une clé absente (payload antérieur au champ) garde, elle, le pouvoir de la
 carte.
 
+### 4. Le plateau ne s'énumérait pas dans le même ordre (`Board.mirroredFrame`)
+
+`Board.getUnitsOnSide` balayait les rangées en ordre **croissant**. Le même camp
+étant en rows 0–3 chez son propriétaire et en 7–10 chez son adversaire, les deux
+clients obtenaient l'ordre relatif **inverse** — et cet ordre est de la logique
+de jeu : il survit tel quel dans `CombatManager.playerUnits` / `enemyUnits` pour
+toute la durée du combat et départage les égalités.
+
+Même problème pour `getNeighbors` : `row - 1` et `row + 1` désignent deux
+directions **physiques opposées** d'un client à l'autre, et le BFS de
+`findPath` rend le *premier* plus court chemin trouvé (`stepTowardOrNearest`, la
+première voisine la plus proche).
+
+Le plateau porte donc un drapeau **`mirroredFrame`**, posé une fois par
+`GameSession` : le balayage des rangées et l'énumération des voisines se font
+dans le repère de **référence** (celui du rôle A).
+
+- Constaté sur `a9c8c4a6`, round 2, tick 85 : quatre cibles à **égale distance
+  de Chebyshev**, le tri de déplacement étant stable. Un client a trouvé sa
+  première candidate déjà à portée et n'a pas bougé ; l'autre en a trouvé une
+  différente et a avancé d'une case.
+- Rounds 3 et 4 : le même ordre décidait de la suite des `stat_change` émis par
+  `AttributeManager._triggerStatModifiers`.
+- ⚠️ **Seul le rôle B change.** Le rôle A balaie exactement comme avant, donc
+  solo, arcade, tournoi, tutoriel et simulation d'équilibrage sont **inchangés
+  au bit près** — aucun golden n'a bougé. C'est la propriété qui rend ces
+  corrections sûres : elles n'introduisent pas un nouvel ordre, elles imposent
+  aux deux clients **celui qui existait déjà** d'un des deux côtés.
+
+### 5. Le camp qui agit en premier
+
+`[...playerUnits, ...enemyUnits]` met « mes » unités en tête sur **chaque**
+client. Ce tableau sert à deux choses, et les deux en dépendent :
+
+- le **balayage des morts** de la phase 5 — or chaque mort déclenche les
+  `stat_modifier` d'attribut, qui ne comptent que les unités **encore
+  vivantes** : deux unités qui tombent au même tick, une de chaque camp, ne
+  donnent pas les mêmes bonus selon l'ordre ;
+- le **tri d'initiative**, dont c'est le dernier recours à égalité parfaite
+  (même initiative, même vitesse, même `card_id` — ce qui arrive dès que les
+  deux joueurs jouent la même carte).
+
+`CombatManager._frameOrderedUnits()` rend les deux camps dans l'ordre du repère
+de référence. ⚠️ Le départage `_frameSide` ajouté au comparateur est
+**redondant** avec lui tant que `sort` est stable (garanti depuis ES2019) — le
+retirer seul ne fait rien tomber ; il est gardé parce qu'il rend le tri
+**autosuffisant** au lieu de dépendre de l'ordre du tableau qu'on lui passe.
+
+⚠️ **L'enregistreur RECOPIE ce tri** (`CombatRecorder.initiativeOrder`) et avait
+déjà dérivé : le départage par camp lui manquait, et l'outil rapportait `order`
+divergent sur un duel que le moteur jouait pourtant à l'identique. Même famille
+que la traduction du vainqueur — un outil de diagnostic qui crie au loup sur les
+cas sains est pire qu'un outil absent.
+
 ### Tests
 
-`client/src/test/pvp-determinism.test.ts` (13 golden tests) et les deux cas
-ajoutés à `pvp.test.ts`. Tous **éprouvés dans les deux sens** — miroir du terrain
-retiré, remise à zéro des horloges retirée **ou déplacée dans
-`resetCombatStats`**, traduction du vainqueur rendue identité, `power_*` retirés
-du payload : chacune de ces cinq régressions fait passer la suite au rouge.
+`client/src/test/pvp-determinism.test.ts` (20 golden tests) et les deux cas
+ajoutés à `pvp.test.ts`.
 
-⚠️ Le cas de bout en bout (« le duel du log ne diverge plus ») fait passer les
-cases bloquées par une **vraie `GameSession`** de chaque rôle, et non par un
-miroir écrit à la main dans le test : sans ça il ré-implémenterait la correction
-au lieu de l'exercer, et resterait vert avec le miroir retiré (constaté).
+**Le cœur du fichier n'est pas un test par cause, c'est le FILET** : deux
+`GameSession` complètes, l'une dans le repère de référence et l'autre dans son
+miroir, jouent le **même combat physique** et doivent rendre le même log
+canonique — celui-là même que `/api/admin/pvp-logs` compare. 300 combats semés
+(positions, stats et pouvoirs variés, sur un terrain aux cases symétriques pour
+que seul l'ORDRE puisse encore diverger), plus un cas d'égalité parfaite en
+goulet. **Ce filet attrape les cinq causes à la fois**, y compris celles que
+personne n'a encore nommées — c'est ce qui le distingue des tests par cause, qui
+ne défendent que ce qu'on savait déjà.
+
+⚠️ Il fait passer les cases bloquées par une **vraie `GameSession`** de chaque
+rôle, jamais par un miroir écrit à la main : sans ça il ré-implémenterait la
+correction au lieu de l'exercer, et resterait vert avec le miroir retiré
+(constaté). Même raison pour l'enregistreur : c'est le vrai `CombatRecorder` et
+le vrai `pvplog.diff` qui rendent le verdict.
+
+⚠️ Les 300 graines ne peuvent PAS produire l'égalité parfaite — elles nomment
+les cartes par leur camp (`A_0`, `B_0`), donc `card_id` tranche toujours. D'où
+le cas du **goulet**, où les deux camps jouent la même carte et se disputent la
+seule case libre de la rangée centrale. ⚠️ Et il faut une **course** pour que
+l'ordre d'action se voie : deux jumelles qui s'entretuent meurent de toute
+façon, la phase d'attaque résolvant tous les coups avant le décompte des morts.
+
+Tout est **éprouvé dans les deux sens** — miroir du terrain retiré, remise à
+zéro des horloges retirée ou déplacée dans `resetCombatStats`, traduction du
+vainqueur rendue identité, `power_*` retirés du payload, balayage des rangées
+toujours croissant, ordre des voisines figé, ordre de camp retiré du moteur, et
+départage manquant dans la copie de l'enregistreur : chacune de ces régressions
+fait passer la suite au rouge.
 
 
 ## Mode tutoriel
@@ -2269,7 +2368,7 @@ Les 14 terrains livrés portent **tous** un `target_attributes`. Un tirage aveug
 
 **PvP** — seul le rôle **A** tire (`session.pickCombatBoard()`, qui ne consomme rien), diffuse l'`id`, et **les deux clients rejouent l'id renvoyé par le serveur** dans `round:go`. Le contrat de déterminisme est intact : rien de neuf n'entre dans `round:board_ready`.
 
-⚠️ **Rejouer le même `id` ne suffit PAS à jouer le même plateau** : `blocked_cells` est une donnée **positionnelle**, et le monde du rôle B est le reflet de celui de A. Le rôle B applique donc les cases **miroitées** (`GameSession` + `logic/BoardMirror`, cf. « Duel en ligne — les trois causes de divergence ») — sans quoi une case décrite en rangée 4 est voisine du camp de A chez A et du camp de B chez B, et ligne de vue comme contournement BFS divergent dès les premiers ticks. Constaté sur un vrai duel (`BOARD_013`, première conséquence au tick 10). Corollaire : `Board.blockedCells()` est la seule lecture juste pour le rendu et pour le log — pas `boardData.blocked_cells`.
+⚠️ **Rejouer le même `id` ne suffit PAS à jouer le même plateau** : `blocked_cells` est une donnée **positionnelle**, et le monde du rôle B est le reflet de celui de A. Le rôle B applique donc les cases **miroitées** (`GameSession` + `logic/BoardMirror`, cf. « Duel en ligne — les cinq causes de divergence ») — sans quoi une case décrite en rangée 4 est voisine du camp de A chez A et du camp de B chez B, et ligne de vue comme contournement BFS divergent dès les premiers ticks. Constaté sur un vrai duel (`BOARD_013`, première conséquence au tick 10). Corollaire : `Board.blockedCells()` est la seule lecture juste pour le rendu et pour le log — pas `boardData.blocked_cells`.
 
 ⚠️ **C'est `startCombat` qui MARQUE le terrain comme joué, jamais `pickCombatBoard`.** On marque celui qui est **joué**, pas celui qui a été tiré : un `round:terrain_pick` perdu ne doit pas consommer un terrain que personne n'a vu. Et comme le marquage vit là, une seule ligne tient l'historique dans **tous** les modes — y compris ceux où le terrain arrive de l'extérieur (`agreedBoard`), donc pour les deux rôles.
 
@@ -3054,7 +3153,7 @@ Un seul pont React ↔ Three : `client/src/components/board/Board3DCanvas.tsx` m
 
   **Contrat de déterminisme** : tout état persistant d'une unité doit voyager dans `round:board_ready`, sinon les deux clients simulent des combats différents. Le payload transporte par unité `card_id`, `position`, `veterancy_points`, `base` (stats de base, modifiées en permanence par les magies), `current_hp` (les PV ne se régénèrent pas entre rounds), `shield` et **`power_id` / `power_speed` / `power_value`** (`grant_power` et `power_cooldown` réécrivent durablement le pouvoir d'une unité) ; plus `player_hp` au niveau du message — chaque joueur est la source de vérité de ses propres PV (les magies globales type `player_hp_bonus` sont invisibles de l'adversaire). Verrouillé par `client/src/test/pvp.test.ts`.
 
-  ⚠️ **Le contrat a une seconde moitié, qui a coûté trois rounds sur cinq à un vrai duel : un état qui n'a AUCUNE raison de survivre au combat doit être SUPPRIMÉ, pas transporté.** `attack_timer` et `move_timer` n'étaient remis à zéro nulle part et se reportaient d'un round sur l'autre chez leur propriétaire, quand l'unité reconstruite du réseau naissait avec des horloges neuves. Ils sont désormais remis à zéro à chaque `startCombat` et ne voyagent pas. Avant de grossir le payload, se demander pourquoi la donnée persiste. Cf. « Duel en ligne — les trois causes de divergence ».
+  ⚠️ **Le contrat a une seconde moitié, qui a coûté trois rounds sur cinq à un vrai duel : un état qui n'a AUCUNE raison de survivre au combat doit être SUPPRIMÉ, pas transporté.** `attack_timer` et `move_timer` n'étaient remis à zéro nulle part et se reportaient d'un round sur l'autre chez leur propriétaire, quand l'unité reconstruite du réseau naissait avec des horloges neuves. Ils sont désormais remis à zéro à chaque `startCombat` et ne voyagent pas. Avant de grossir le payload, se demander pourquoi la donnée persiste. Cf. « Duel en ligne — les cinq causes de divergence ».
 
   ⚠️ **Le terrain n'entre pas dans ce payload et n'a rien à y faire** : son **id** voyage dans `round:go` (le serveur arbitre, les deux clients rejouent le même), et les **attributs du deck adverse** dans `match:found`, une fois pour tout le match. Le choix dépend désormais des deux decks, mais le contrat de déterminisme est inchangé — `pvp.test.ts` passe sans modification. La barrière `terrain_pick` → `combat_start_ack` → `round:go`, dont ce choix dépend entièrement, n'avait **aucune couverture** : elle en a deux depuis (`pvp-relay.test.ts`).
 
