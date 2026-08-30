@@ -21,7 +21,7 @@
 //
 // ⚠️ Éprouvés dans les deux sens : la mutation qui doit faire tomber chaque cas
 // est nommée dans son commentaire.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { GameSession } from '../logic/GameSession.js';
 import type { GameSessionDeps } from '../logic/GameSession.js';
 import { mirrorRow, mirrorCells, isMirrorSymmetric, MIRROR_AXIS } from '../logic/BoardMirror.js';
@@ -29,6 +29,15 @@ import { CombatRecorder } from '../game/CombatRecorder.js';
 import { Board } from '../logic/Board.js';
 import { Unit } from '../logic/Unit.js';
 import { makeRandom } from '../logic/Random.js';
+
+// Le vrai payload réseau : c'est lui qui décide de ce qui traverse et de ce qui
+// reste chez le propriétaire des unités (cf. le filet multi-rounds, plus bas).
+const sent: any[] = [];
+vi.mock('../net/PvpConnection.js', () => ({
+  send: (type: string, payload: any) => { sent.push({ type, ...payload }); },
+  on: () => {}, off: () => {},
+}));
+const { sendOwnBoard, reconstructOpponentUnits } = await import('../net/PvpOpponentProvider.js');
 import { makeCard } from './helpers.js';
 import type { BoardDef } from '../logic/types.js';
 
@@ -510,5 +519,164 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
     const log = playAs('A', a, b, board);
     expect(log.tick_count).toBeGreaterThan(20);
     expect(['A', 'B', 'draw', 'timeout']).toContain(log.winner);
+  });
+});
+
+// ===========================================================================
+//  Ce qui SURVIT au combat — le filet multi-rounds
+// ===========================================================================
+// Duel `3ebfa22f` : rounds 1 à 4 rigoureusement identiques (850 ticks), puis
+// une seule unité en écart de 20 PV au round 5. Diagnostic, lu dans le log
+// lui-même : l'attribut Guerrier donne +20 PV à partir de TROIS porteurs, les
+// rounds 1 à 4 le calibrent exactement (2 porteurs → +10, 3 → +20), et le
+// round 5 n'en comptait plus qu'UN. C'est donc un bonus PÉRIMÉ.
+//
+// ⚠️ L'asymétrie qui transforme n'importe quelle rémanence en divergence : le
+// propriétaire garde ses objets `Unit` d'un round à l'autre, tandis que son
+// adversaire les RECONSTRUIT depuis `_base` à chaque round. Tout ce qui traîne
+// sur l'objet sans voyager diverge donc, systématiquement — et l'inverse n'est
+// jamais vrai. C'est la même règle que les horloges de combat.
+describe('Fin de combat — rien ne survit au round qui ne le doit', () => {
+  const HP_THRESHOLD = 2;
+  const HP_BONUS = 20;
+  // Un attribut de synergie : à partir de 2 porteurs, +20 PV pour chacun.
+  const SYNERGIE = [{
+    id: 'ARCH_T', name: 'Synergie', icon: '', timing: 'start_of_combat',
+    thresholds: [{ count: HP_THRESHOLD, medal: 'bronze', effects: [{ type: 'stat_bonus', stat: 'hp', value: HP_BONUS }] }],
+  }] as any;
+
+  const CARTE = (id: string, hp = 100, atk = 5) => makeCard({
+    id, summon_type: 'normal', attributes: ['ARCH_T'],
+    stats: { atk, hp, movement_speed: 9, attack_speed: 4, initiative: 5, range: 9 },
+  });
+
+  function sessionAvec(cartes: any[], ennemi: any | null) {
+    const byId = new Map(cartes.map(c => [c.id, c]));
+    const s: any = new GameSession({
+      cardsByTier: { 1: [] }, enemyDeck: { 1: [] }, attributeList: SYNERGIE,
+      cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
+      getAllBoards: () => [], getAllMagies: () => [], mode: 'pvp',
+    } as any);
+    s.startPreparation();
+    cartes.forEach((c, i) => s.board.placeUnit(new (Unit as any)(c, 'player'), { col: i, row: 0 }));
+    if (ennemi) s.board.placeUnit(new (Unit as any)(ennemi, 'enemy'), { col: 2, row: 10 });
+    return s;
+  }
+
+  // ⚠️ LE cas du duel. Mutation : la remise à zéro finale de `finishCombat`
+  // restreinte aux unités VIVANTES (`getLivingUnitsOnSide`) → ROUGE.
+  it('une unité tombée au combat ne garde PAS les bonus de son dernier round', () => {
+    const cartes = [CARTE('T_1'), CARTE('T_2')];   // 2 porteurs → palier atteint
+    const tueur = makeCard({ id: 'TUEUR', summon_type: 'normal', stats: { atk: 9999, hp: 9999, movement_speed: 1, attack_speed: 1, initiative: 9, range: 9 } });
+    const s = sessionAvec(cartes, tueur);
+
+    const { combat } = s.startCombat(null);
+    const cible = s.getPlayerUnits().find((u: any) => u.card_id === 'T_1');
+    expect(cible.max_hp).toBe(100 + HP_BONUS);   // témoin : le palier est bien actif
+    while (!combat.winner) combat.step();
+    s.finishCombat();
+
+    const morte = s.graveyard.find((u: any) => u.card_id === 'T_1');
+    expect(morte).toBeDefined();
+    expect(morte._stat_bonuses).toEqual({});
+    // Sans la purge, elle reste au cimetière avec un `max_hp` gonflé — et la
+    // magie `revive` la ramène à un pourcentage de CE maximum-là.
+    expect(morte.max_hp).toBe(100);
+  });
+
+  // La conséquence directe, celle que le duel a montrée : ressuscitée, l'unité
+  // repart d'un `max_hp` juste, et le round suivant ne bâtit pas dessus.
+  it('une unité ressuscitée repart des stats de sa CARTE, pas de l’ancien palier', () => {
+    const cartes = [CARTE('T_1'), CARTE('T_2')];
+    // ⚠️ Une ATK modérée : le joueur doit rester en vie, une magie ne
+    // s'applique pas à 0 PV (`canAffordMagie`).
+    const tueur = makeCard({ id: 'TUEUR', summon_type: 'normal', stats: { atk: 200, hp: 9999, movement_speed: 1, attack_speed: 1, initiative: 9, range: 9 } });
+    const s = sessionAvec(cartes, tueur);
+    const { combat } = s.startCombat(null);
+    while (!combat.winner) combat.step();
+    s.finishCombat();
+    expect(s.gameState.player_hp).toBeGreaterThan(0);
+
+    const morte = s.graveyard.find((u: any) => u.card_id === 'T_1');
+    s.applyMagieOnGraveyardUnit({ id: 'M', name: 'Renaissance', effect: { type: 'revive', value: 100 } } as any, morte);
+    expect(morte.max_hp).toBe(100);
+    expect(morte.current_hp).toBe(100);
+  });
+
+  // ⚠️ LE FILET, version MATCH : plusieurs rounds enchaînés, avec le vrai
+  // aller-retour réseau. C'est la seule forme qui exerce ce qu'un combat isolé
+  // ne peut pas voir — la rémanence d'un round sur l'autre chez le seul
+  // propriétaire des unités.
+  it('trois rounds enchaînés restent identiques des deux côtés', () => {
+    const CARTES = [CARTE('T_1', 100, 4), CARTE('T_2', 120, 4), CARTE('T_3', 90, 4)];
+    const byId = new Map(CARTES.map(c => [c.id, c]));
+    const cardDb = { getCard: (id: string) => (byId.get(id) as any) ?? null };
+
+    const build = (mirrored: boolean) => {
+      const s: any = new GameSession({
+        cardsByTier: { 1: [] }, enemyDeck: { 1: [] }, attributeList: SYNERGIE,
+        cardDb, getAllBoards: () => [], getAllMagies: () => [],
+        mode: 'pvp', mirroredRole: mirrored,
+      } as any);
+      s.startPreparation();
+      return s;
+    };
+    const sA = build(false), sB = build(true);
+
+    // ⚠️ Chaque camp pose ses unités dans SON repère local (rows 0–3) — c'est
+    // ce que fait le jeu, et c'est `reconstructOpponentUnits` qui les miroite
+    // chez l'adversaire. Les poser en coordonnées canoniques les ferait
+    // atterrir sur la zone ennemie du rôle B.
+    //
+    // Les deux camps alignent les mêmes trois cartes : c'est le miroir parfait,
+    // donc les égalités sont partout — exactement ce qu'on veut éprouver.
+    for (const s of [sA, sB]) {
+      CARTES.forEach((c, i) => s.board.placeUnit(new (Unit as any)(c, 'player'), { col: i, row: 1 }));
+    }
+
+    const board: BoardDef = { id: 'BOARD_M', name: 'Miroir', effect: null, blocked_cells: [{ col: 2, row: 5 }] } as any;
+
+    for (let round = 1; round <= 3; round++) {
+      // L'aller-retour réseau, avec le VRAI payload : chacun annonce ses unités,
+      // l'autre les reconstruit. C'est ici que toute rémanence non transmise
+      // chez le propriétaire devient une divergence.
+      sent.length = 0;
+      sendOwnBoard(round, sA.getPlayerUnits(), sA.gameState.player_hp);
+      const payloadA = sent.at(-1);
+      sendOwnBoard(round, sB.getPlayerUnits(), sB.gameState.player_hp);
+      const payloadB = sent.at(-1);
+
+      for (const [s, payload] of [[sA, payloadB], [sB, payloadA]] as [any, any][]) {
+        for (const u of s.board.getLivingUnitsOnSide('enemy')) s.board.removeUnit(u);
+        reconstructOpponentUnits(payload, s.board, cardDb);
+        s.enemyUnits = s.board.getLivingUnitsOnSide('enemy');
+      }
+
+      const logs: any[] = [];
+      for (const [s, role] of [[sA, 'A'], [sB, 'B']] as [any, 'A' | 'B'][]) {
+        const rec = new CombatRecorder({ matchId: 'm', round, role });
+        const { combat } = s.startCombat(board);
+        rec.header(combat, { ...board, blocked_cells: s.board.blockedCells() });
+        while (!combat.winner) rec.capture(combat, combat.step());
+        logs.push(rec.payload().payload);
+      }
+      const d = pvplog.diff(logs[0], logs[1]);
+      expect(d, `round ${round} · ${d ? `${d.kind} @ tick ${d.tick} · ${JSON.stringify(d.detail).slice(0, 260)}` : ''}`).toBeNull();
+
+      sA.finishCombat();
+      sB.finishCombat();
+
+      // ⚠️ Chaque camp ressuscite un de ses morts — c'est la Phase Shopping,
+      // et c'est le SEUL chemin qui ramène sur le plateau une unité sortie du
+      // combat neutralisée. Sans ce geste, le filet ne verrait jamais un bonus
+      // périmé : les morts resteraient morts, et leur `_stat_bonuses` avec eux.
+      for (const s of [sA, sB]) {
+        const morte = s.graveyard[0];
+        if (morte && s.gameState.player_hp > 0) {
+          s.applyMagieOnGraveyardUnit({ id: 'M', name: 'Renaissance', effect: { type: 'revive', value: 100 } } as any, morte);
+        }
+      }
+      if (round < 3) { sA.startNextRound(); sB.startNextRound(); }
+    }
   });
 });

@@ -586,6 +586,11 @@ export class GameSession {
     const enemyNeutralized = this.enemyUnits.filter(u => u.is_neutralized);
     const attributeResult = attributeManager.applyEndOfCombat(playerNeutralized, enemyNeutralized) as any;
 
+    // ⚠️ Tous les participants du combat, morts COMPRIS — capturés avant que
+    // les filtres ci-dessous ne retirent les neutralisés. C'est cette liste que
+    // la remise à zéro finale balaie (cf. plus bas).
+    const combatants = [...playerUnits, ...this.enemyUnits];
+
     const winner: RoundWinner = (combat.winner ?? 'draw') as RoundWinner;
     const playerSurvivors = playerUnits.filter(u => !u.is_neutralized);
     const enemySurvivors = this.enemyUnits.filter(u => !u.is_neutralized);
@@ -599,7 +604,6 @@ export class GameSession {
     for (const u of this.enemyUnits) if (u.is_neutralized) this.board.removeUnit(u);
     this.enemyGraveyard = this.enemyUnits.filter(u => u.is_neutralized);
     this.enemyUnits = this.enemyUnits.filter(u => !u.is_neutralized);
-    for (const u of this.enemyUnits) u.resetCombatStats();
     this._returnHome(this.enemyUnits, 'enemy');
 
     // Retire les unités joueur neutralisées
@@ -620,8 +624,25 @@ export class GameSession {
     // Unités encore neutralisées → cimetière pour la préparation suivante
     this.graveyard = playerUnits.filter(u => u.is_neutralized);
 
-    // Reset des bonus de combat sur les survivants joueur (pas d'empilement entre tours)
-    for (const u of this.board.getLivingUnitsOnSide('player')) u.resetCombatStats();
+    // Reset des bonus de combat : pas d'empilement d'un tour sur l'autre.
+    //
+    // ⚠️ Sur TOUS les participants, les NEUTRALISÉS compris — c'était la moitié
+    // manquante, et elle a coûté un duel. Seules les unités encore vivantes
+    // étaient balayées ; une unité tombée au combat gardait donc indéfiniment
+    // les bonus d'attribut de son dernier round, `max_hp` gonflé compris, tant
+    // qu'elle restait au cimetière. Le round suivant, `applyStartOfCombat`
+    // ajoutait les nouveaux bonus PAR-DESSUS les anciens.
+    //
+    // Invisible en solo (une seule simulation, et la synergie change rarement
+    // d'un tour à l'autre) ; systématique en duel, où l'adversaire RECONSTRUIT
+    // l'unité depuis `_base` à chaque round et ne peut donc hériter d'aucune
+    // dérive. Constaté sur le duel `3ebfa22f` : au round 5, une unité gardait
+    // le +20 PV d'un palier d'attribut que son camp n'atteignait plus.
+    //
+    // C'est le même geste que la remise à zéro des horloges de combat, et pour
+    // la même raison : un état qui n'a pas de raison de survivre au combat se
+    // supprime, il ne se transporte pas.
+    for (const u of combatants) u.resetCombatStats();
     this._returnHome(this.board.getLivingUnitsOnSide('player'), 'player');
 
     return {
