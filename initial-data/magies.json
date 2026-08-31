@@ -303,5 +303,49 @@
 			"type": "duplicate_graveyard_unit",
 			"value": 1
 		}
+	},
+	{
+		"id": "MAGIE_035",
+		"name": "Ascension",
+		"rarity": 3,
+		"effect": {
+			"type": "shift_tier_unit",
+			"value": 1
+		}
+	},
+	{
+		"id": "MAGIE_036",
+		"name": "Métamorphose",
+		"rarity": 2,
+		"effect": {
+			"type": "shift_tier_card",
+			"value": 1
+		}
+	},
+	{
+		"id": "MAGIE_037",
+		"name": "Retour aux sources",
+		"rarity": 1,
+		"effect": {
+			"type": "shift_tier_card",
+			"value": -1
+		}
+	},
+	{
+		"id": "MAGIE_038",
+		"name": "Quête du matériau",
+		"rarity": 2,
+		"effect": {
+			"type": "draw_material"
+		}
+	},
+	{
+		"id": "MAGIE_039",
+		"name": "Offrande de chair",
+		"rarity": 2,
+		"effect": {
+			"type": "sacrifice_card_hp",
+			"value": 100
+		}
 	}
 ]

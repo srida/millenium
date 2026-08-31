@@ -32,6 +32,17 @@ export interface SynergyEntry {
 export interface ShoppingState {
   magies: import('../logic/types.js').Magie[];
   awaitingTarget: 'unit' | 'graveyard' | 'hand' | null;
+  /**
+   * Ciblage de MAIN : les index de `session.hand` que cette magie peut servir
+   * — le pendant du `setHighlight` que le ciblage d'unité pose sur le board.
+   * `null` = toutes les cartes (`hand_to_graveyard`, `duplicate_card`,
+   * `sacrifice_card_hp`), le cas de trois magies sur cinq.
+   *
+   * ⚠️ Des INDEX et non des cartes : `HandEntry.idx` désigne l'exemplaire
+   * représentatif d'un groupe, et c'est lui que le tap transmet. Les
+   * exemplaires d'un même groupe portent la même carte, donc la même validité.
+   */
+  handTargets: number[] | null;
   banner: string | null;
 }
 

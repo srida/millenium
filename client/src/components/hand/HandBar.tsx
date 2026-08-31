@@ -21,10 +21,17 @@ export default function HandBar() {
   const controller = useGameStore(s => s.controller);
   const web = useWebLayout();
   // Visible pendant la préparation OU pendant un ciblage de MAIN
-  // (`hand_to_graveyard`, `duplicate_card`) — même règle que le cimetière, qui
+  // (`hand_to_graveyard`, `duplicate_card`…) — même règle que le cimetière, qui
   // reste montré pour le ciblage revive. On ne lit que `awaitingTarget` : une
   // magie de main de plus n'a rien à rebrancher ici.
   const targetingHand = shopping?.awaitingTarget === 'hand';
+  // ⚠️ Toutes les magies de main n'acceptent pas toutes les cartes :
+  // `shift_tier_card` veut un tier voisin dans le deck, `draw_material` une
+  // carte À MATÉRIELS. `null` = pas de restriction, le cas des trois autres.
+  // La liste est calculée par la session, jamais ici : le HUD montre la règle,
+  // il ne la tient pas (`GameController.resolveMagieHandTarget` la revérifie).
+  const handTargets = shopping?.handTargets ?? null;
+  const isTarget = (idx: number) => !handTargets || handTargets.includes(idx);
   if ((combatActive && !targetingHand) || !controller) return null;
 
   const empty = hand.length === 0 && <span className="col-span-2 px-2 py-6 text-xs text-white/40">Main vide</span>;
@@ -37,7 +44,7 @@ export default function HandBar() {
           <div className="grid grid-cols-2 content-start justify-items-center gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {empty}
             {hand.map(entry => (
-              <HandCard key={entry.key} entry={entry} targeting={targetingHand} rail />
+              <HandCard key={entry.key} entry={entry} targeting={targetingHand} targetable={isTarget(entry.idx)} rail />
             ))}
           </div>
         </div>
@@ -51,7 +58,7 @@ export default function HandBar() {
         <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {empty}
           {hand.map(entry => (
-            <HandCard key={entry.key} entry={entry} targeting={targetingHand} />
+            <HandCard key={entry.key} entry={entry} targeting={targetingHand} targetable={isTarget(entry.idx)} />
           ))}
         </div>
       </div>
@@ -59,24 +66,28 @@ export default function HandBar() {
   );
 }
 
-function HandCard({ entry, targeting = false, rail = false }: { entry: HandEntry; targeting?: boolean; rail?: boolean }) {
+function HandCard({ entry, targeting = false, targetable = true, rail = false }:
+  { entry: HandEntry; targeting?: boolean; targetable?: boolean; rail?: boolean }) {
   const controller = useGameStore(s => s.controller)!;
+  // En ciblage, « candidate » veut dire tapable : une carte que la magie ne
+  // peut pas servir s'éteint au lieu de se laisser choisir pour rien.
+  const candidate = targeting && targetable;
 
   return (
     <CardTile
       {...cardTileProps(entry.card)}
       // tap → sélection d'invocation ; en ciblage de magie, la carte est la
       // cible (une carte injouable l'est tout autant : c'est même souvent
-      // celle qu'on veut envoyer au cimetière).
+      // celle qu'on veut envoyer au cimetière ou brûler).
       onTap={() => {
-        if (targeting) controller.resolveMagieHandTarget(entry.idx);
-        else controller.selectCard(entry.selected ? null : entry.card, entry.selected ? null : entry.idx);
+        if (targeting) { if (candidate) controller.resolveMagieHandTarget(entry.idx); return; }
+        controller.selectCard(entry.selected ? null : entry.card, entry.selected ? null : entry.idx);
       }}
-      highlight={targeting ? 'candidate' : entry.selected ? 'selected' : 'none'}
+      highlight={candidate ? 'candidate' : entry.selected && !targeting ? 'selected' : 'none'}
       // La carte sélectionnée sort de la bande : vers le haut en bas d'écran,
       // vers le board (droite) quand la main est un rail vertical.
       lift={entry.selected && !targeting ? (rail ? 'right' : 'up') : 'none'}
-      dim={targeting || entry.playable ? 'none' : 'strong'}
+      dim={targeting ? (candidate ? 'none' : 'strong') : (entry.playable ? 'none' : 'strong')}
       badge={entry.count > 1 ? entry.count : null}
       stacked={entry.count > 1}
     />

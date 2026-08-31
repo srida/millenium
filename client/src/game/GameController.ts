@@ -534,7 +534,7 @@ export class GameController {
     const magies = this.session.getShoppingMagies();
     if (!magies.length) { this._proceedNextRound(); return; }
     this._shoppingMagies = magies;
-    this.sync({ endRound: null, shopping: { magies, awaitingTarget: null, banner: null } });
+    this.sync({ endRound: null, shopping: { magies, awaitingTarget: null, handTargets: null, banner: null } });
   }
 
   // ⚠️ Les trois gardes « aucune cible valide » ci-dessous sont devenues
@@ -555,15 +555,22 @@ export class GameController {
       if (!targets.length) { this._flashError('Aucune cible valide pour cette magie'); return; }
       this.scene?.setHighlight(targets.map(u => u.position!).filter(Boolean));
       this._pendingMagie = magie;
-      this.sync({ shopping: { magies: [], awaitingTarget: 'unit', banner: `${magie.name} — touche une unité de ton terrain` } });
+      this.sync({ shopping: { magies: [], awaitingTarget: 'unit', handTargets: null, banner: `${magie.name} — touche une unité de ton terrain` } });
     } else if (this.session.magieNeedsGraveyardTarget(magie)) {
       if (!this.session.graveyard.length) { this._flashError('Aucune unité au cimetière'); return; }
       this._pendingMagie = magie;
-      this.sync({ shopping: { magies: [], awaitingTarget: 'graveyard', banner: `${magie.name} — touche une unité du cimetière` } });
+      this.sync({ shopping: { magies: [], awaitingTarget: 'graveyard', handTargets: null, banner: `${magie.name} — touche une unité du cimetière` } });
     } else if (this.session.magieNeedsHandTarget(magie)) {
-      if (!this.session.hand.length) { this._flashError('Ta main est vide'); return; }
+      // ⚠️ Toutes les magies de main n'acceptent pas toutes les cartes :
+      // `shift_tier_card` et `draw_material` en écartent (cf.
+      // `GameSession.magieHandTargets`). La garde n'est donc PAS inatteignable
+      // ici, contrairement aux deux au-dessus : le filtre d'offre ne connaît
+      // que des tiers, il peut être optimiste d'un cheveu. Refuser sans
+      // consommer la magie est exactement la bonne issue.
+      const handTargets = this.session.magieHandTargets(magie);
+      if (!handTargets.length) { this._flashError('Aucune carte valide en main'); return; }
       this._pendingMagie = magie;
-      this.sync({ shopping: { magies: [], awaitingTarget: 'hand', banner: `${magie.name} — touche une carte de ta main` } });
+      this.sync({ shopping: { magies: [], awaitingTarget: 'hand', handTargets, banner: `${magie.name} — touche une carte de ta main` } });
     } else {
       this.session.applyGlobalMagie(magie);
       this._noteMagie(magie);
@@ -581,7 +588,7 @@ export class GameController {
     if (!this._pendingMagie) return;
     this._pendingMagie = null;
     this.scene?.clearHighlight();
-    this.sync({ shopping: { magies: this._shoppingMagies, awaitingTarget: null, banner: null } });
+    this.sync({ shopping: { magies: this._shoppingMagies, awaitingTarget: null, handTargets: null, banner: null } });
   }
 
   private _pendingMagie: Magie | null = null;
@@ -602,13 +609,21 @@ export class GameController {
   }
 
   // Ciblage magie sur une carte de la main (`hand_to_graveyard` la retire,
-  // `duplicate_card` la laisse et en ajoute une copie). L'index vient
-  // de l'entrée groupée du HUD : c'est l'exemplaire représentatif qui part,
-  // exactement comme à l'invocation (cf. HandEntry.idx).
+  // `duplicate_card` la laisse et en ajoute une copie, `shift_tier_card` la
+  // remplace, `draw_material` en tire un matériel, `sacrifice_card_hp` la brûle
+  // contre des PV). L'index vient de l'entrée groupée du HUD : c'est
+  // l'exemplaire représentatif qui part, exactement comme à l'invocation
+  // (cf. HandEntry.idx).
+  //
+  // ⚠️ La carte désignée doit être une CIBLE, pas seulement une carte de la
+  // main — même garde que `resolveMagieUnitTarget`, qui vérifie déjà que
+  // l'unité tapée est dans `magieUnitTargets`. Sans elle, le HUD serait le seul
+  // à tenir la règle.
   resolveMagieHandTarget(handIdx: number): void {
     if (!this._pendingMagie) return;
     if (!this.session.magieNeedsHandTarget(this._pendingMagie)) return;
     if (handIdx < 0 || handIdx >= this.session.hand.length) return;
+    if (!this.session.magieHandTargets(this._pendingMagie).includes(handIdx)) return;
     const magie = this._pendingMagie;
     this._pendingMagie = null;
     this.session.applyMagieOnHandCard(magie, handIdx);

@@ -30,6 +30,9 @@ const BARREN: MagieOfferContext = {
   duplicableGraveyardCount: 0,
   graveyardCount: 0,
   handCount: 0,
+  handTiers: [],
+  boardTiers: [],
+  materialSourceCount: 0,
   deckTiers: [],
   deckSummonTypes: [],
   damageMultiplierMatters: false,
@@ -50,6 +53,9 @@ const LUSH: MagieOfferContext = {
   duplicableGraveyardCount: 2,
   graveyardCount: 2,
   handCount: 5,
+  handTiers: [1, 2, 3, 4, 5],
+  boardTiers: [1, 2, 3, 4, 5],
+  materialSourceCount: 2,
   deckTiers: [1, 2, 3, 4, 5],
   deckSummonTypes: ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'],
   damageMultiplierMatters: true,
@@ -136,6 +142,7 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
     ['duplicate_unit', { type: 'duplicate_unit', value: 1 }, 'duplicableUnitCount', 1],
     ['duplicate_card', { type: 'duplicate_card', value: 1 }, 'handCount', 1],
     ['duplicate_graveyard_unit', { type: 'duplicate_graveyard_unit', value: 1 }, 'duplicableGraveyardCount', 1],
+    ['draw_material', { type: 'draw_material' }, 'materialSourceCount', 1],
   ];
 
   it.each(CASES)('%s : absente du contexte pauvre, présente dès que sa condition est remplie', (_name, effect, field, value) => {
@@ -165,6 +172,58 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
     const dup = magie({ type: 'duplicate_graveyard_unit', value: 1 });
     expect(isMagieRelevant(dup, { ...BARREN, graveyardCount: 2 })).toBe(false);
     expect(isMagieRelevant(dup, { ...BARREN, duplicableGraveyardCount: 1 })).toBe(true);
+  });
+
+  it('sacrifice_card_hp exige les DEUX conditions, jamais une seule', () => {
+    // Une main vide n'a rien à sacrifier ; à PV pleins, la magie brûlerait une
+    // carte pour rien. C'est le jumeau de `player_hp_bonus` côté gain, et il
+    // hérite donc de sa condition en plus de la sienne.
+    const sac = magie({ type: 'sacrifice_card_hp', value: 100 });
+    expect(isMagieRelevant(sac, { ...BARREN, handCount: 3 })).toBe(false);
+    expect(isMagieRelevant(sac, { ...BARREN, playerHpBelowCap: true })).toBe(false);
+    expect(isMagieRelevant(sac, { ...BARREN, handCount: 3, playerHpBelowCap: true })).toBe(true);
+  });
+
+  describe('shift_tier_* — une cible ET un pool où puiser', () => {
+    const card = (v?: number) => magie(v === undefined ? { type: 'shift_tier_card' } : { type: 'shift_tier_card', value: v });
+    const unit = (v: number) => magie({ type: 'shift_tier_unit', value: v });
+
+    it('rien en main / rien sur le board → jamais offerte', () => {
+      expect(isMagieRelevant(card(1), { ...BARREN, deckTiers: [1, 2, 3] })).toBe(false);
+      expect(isMagieRelevant(unit(1), { ...BARREN, deckTiers: [1, 2, 3] })).toBe(false);
+    });
+
+    it('une cible mais aucun tier voisin dans le deck → non plus', () => {
+      // Deck mono-tier 3 : le tier au-dessus n'existe pas, le remplacement
+      // n'aurait rien à rendre.
+      expect(isMagieRelevant(card(1), { ...BARREN, handTiers: [3], deckTiers: [3] })).toBe(false);
+      expect(isMagieRelevant(card(1), { ...BARREN, handTiers: [3], deckTiers: [3, 4] })).toBe(true);
+    });
+
+    it('le SENS du décalage compte : +1 et −1 ne regardent pas le même tier', () => {
+      const ctx = { ...BARREN, handTiers: [3], deckTiers: [2, 3] };
+      expect(isMagieRelevant(card(1), ctx)).toBe(false);   // pas de tier 4
+      expect(isMagieRelevant(card(-1), ctx)).toBe(true);   // tier 2 présent
+    });
+
+    it('une VALEUR à 0 — le défaut du champ d\'admin — vaut le tier du dessus', () => {
+      // Même repli que `duplicateCopies`, et lu par le MÊME `tierShift` que
+      // l'application : offerte sur un décalage, appliquée sur un autre serait
+      // le pire des deux mondes.
+      const ctx = { ...BARREN, handTiers: [2], deckTiers: [1, 2, 3] };
+      expect(isMagieRelevant(card(0), ctx)).toBe(true);
+      expect(isMagieRelevant(card(undefined), ctx)).toBe(true);
+      expect(isMagieRelevant(card(0), { ...BARREN, handTiers: [2], deckTiers: [1, 2] })).toBe(false);
+    });
+
+    it('les deux variantes lisent des tiers DIFFÉRENTS — main contre board', () => {
+      const inHand = { ...BARREN, handTiers: [1], boardTiers: [], deckTiers: [1, 2] };
+      const onBoard = { ...BARREN, handTiers: [], boardTiers: [1], deckTiers: [1, 2] };
+      expect(isMagieRelevant(card(1), inHand)).toBe(true);
+      expect(isMagieRelevant(unit(1), inHand)).toBe(false);
+      expect(isMagieRelevant(card(1), onBoard)).toBe(false);
+      expect(isMagieRelevant(unit(1), onBoard)).toBe(true);
+    });
   });
 
   it('guaranteed_draw : le deck doit porter LE tier demandé, pas un autre', () => {
