@@ -891,3 +891,188 @@ describe('Shopping — hand_to_graveyard (main → cimetière)', () => {
     expect(session.graveyard).toHaveLength(1);
   });
 });
+
+// ── Duplication (unité → carte en main, carte → carte en main) ──────────────
+//
+// ⚠️ Éprouvés DANS LES DEUX SENS (règle du projet) : `duplicateCopies` passée
+// en `??` → le cas « Valeur 0 » tombe ; la copie prise par référence → le cas
+// d'indépendance tombe ; `duplicate_card` retirant sa cible comme
+// `hand_to_graveyard` → le cas « l'originale reste » tombe ; les bonus de
+// l'unité recopiés sur la carte → le cas d'étanchéité tombe.
+
+describe('Shopping — duplicate_unit (unité du terrain → sa carte en main)', () => {
+  it('routage : la cible est une UNITÉ, jamais une carte de la main', () => {
+    const { session } = makeSession();
+    const m = magie({ type: 'duplicate_unit', value: 1 }) as any;
+    expect(session.magieNeedsUnitTarget(m)).toBe(true);
+    expect(session.magieNeedsHandTarget(m)).toBe(false);
+    expect(session.magieNeedsGraveyardTarget(m)).toBe(false);
+  });
+
+  it('ajoute la carte de l\'unité à la main, sans toucher au board', () => {
+    const plain = makeCard({ id: 'PLAIN' });
+    const { session } = makeSession({ cards: [plain] });
+    const unit = place(session, plain, { col: 2, row: 0 });
+
+    session.applyMagieOnUnit(magie({ type: 'duplicate_unit', value: 1 }) as any, unit);
+
+    expect(session.hand.map(c => c.id)).toEqual(['PLAIN']);
+    // L'unité dupliquée RESTE en jeu : on copie, on ne déplace pas.
+    expect(session.getPlayerUnits()).toHaveLength(1);
+    expect(session.graveyard).toHaveLength(0);
+  });
+
+  it('c\'est la CARTE DE CATALOGUE qui revient — les acquis de l\'unité ne voyagent pas', () => {
+    // Le cœur de la règle : une duplication n'est pas un clonage. Sans cette
+    // étanchéité, la magie rendrait deux fois un investissement de Shopping.
+    const plain = makeCard({ id: 'PLAIN', stats: { atk: 5 } as any });
+    const { session } = makeSession({ cards: [plain] });
+    const unit = place(session, plain, { col: 2, row: 0 });
+    // L'unité a été gonflée sur le terrain (magie de stat, vétérance…).
+    session.applyMagieOnUnit(magie({ type: 'stat_bonus', stat: 'atk', value: 20 }) as any, unit);
+    expect(unit.atk).toBe(25);
+
+    session.applyMagieOnUnit(magie({ type: 'duplicate_unit', value: 1 }) as any, unit);
+
+    expect((session.hand[0] as any).stats.atk).toBe(5);
+    expect((session.hand[0] as any)._shopping_bonus).toBeUndefined();
+  });
+
+  it('`value` compte les copies, et une Valeur à 0 en rend UNE', () => {
+    // ⚠️ Le défaut du champ « Valeur » de l'admin est 0 : lu en `??` il rendrait
+    // zéro copie — une magie offerte qui encaisse son contrecoup pour du vide.
+    const plain = makeCard({ id: 'PLAIN' });
+    for (const [value, expected] of [[3, 3], [0, 1], [undefined, 1], [-2, 1]] as const) {
+      const { session } = makeSession({ cards: [plain] });
+      const unit = place(session, plain, { col: 2, row: 0 });
+      session.applyMagieOnUnit(magie({ type: 'duplicate_unit', value }) as any, unit);
+      expect(session.hand).toHaveLength(expected);
+    }
+  });
+
+  it('la copie est un objet NEUF, indépendant de la carte de catalogue', () => {
+    const plain = makeCard({ id: 'PLAIN' });
+    const { session } = makeSession({ cards: [plain] });
+    const unit = place(session, plain, { col: 2, row: 0 });
+
+    session.applyMagieOnUnit(magie({ type: 'duplicate_unit', value: 2 }) as any, unit);
+
+    expect(session.hand[0]).not.toBe(plain);
+    expect(session.hand[0]).not.toBe(session.hand[1]);
+  });
+
+  it('RÈGLE DU DOUBLON : la copie n\'est jouable qu\'une fois l\'original parti', () => {
+    // Conséquence assumée, et c'est tout le sens de la magie : on met un
+    // remplaçant de côté, on ne pose pas un second corps.
+    const plain = makeCard({ id: 'PLAIN' });
+    const { session } = makeSession({ cards: [plain] });
+    const unit = place(session, plain, { col: 2, row: 0 });
+
+    session.applyMagieOnUnit(magie({ type: 'duplicate_unit', value: 1 }) as any, unit);
+    expect(session.isPlayable(session.hand[0] as any)).toBe(false);
+
+    session.board.removeUnit(unit);
+    expect(session.isPlayable(session.hand[0] as any)).toBe(true);
+  });
+
+  it('cibles : une unité dont la carte a quitté le catalogue n\'en est pas une', () => {
+    // Même geste que `defuse_fusion` / `power_cooldown` : la règle sert le
+    // ciblage ET la pertinence de l'offre, elle n'existe qu'à un endroit.
+    const known = makeCard({ id: 'KNOWN' });
+    const { session } = makeSession({ cards: [known] });
+    place(session, known, { col: 0, row: 0 });
+    place(session, makeCard({ id: 'GHOST' }), { col: 1, row: 0 });
+
+    const targets = session.magieUnitTargets(magie({ type: 'duplicate_unit', value: 1 }) as any);
+    expect(targets.map(u => u.card_id)).toEqual(['KNOWN']);
+  });
+
+  it('offre : absente board vide, présente dès une unité copiable', () => {
+    const plain = makeCard({ id: 'PLAIN' });
+    const { session } = makeSession({
+      cards: [plain], magies: [magie({ type: 'duplicate_unit', value: 1 }, { id: 'CLONE' })],
+    });
+    expect(session.getShoppingMagies()).toEqual([]);
+
+    place(session, plain, { col: 0, row: 0 });
+    expect(offeredIds(session)).toEqual(['CLONE']);
+  });
+});
+
+describe('Shopping — duplicate_card (carte de la main → carte en main)', () => {
+  it('routage : la cible est une carte de la MAIN', () => {
+    const { session } = makeSession();
+    const m = magie({ type: 'duplicate_card', value: 1 }) as any;
+    expect(session.magieNeedsHandTarget(m)).toBe(true);
+    expect(session.magieNeedsUnitTarget(m)).toBe(false);
+    expect(session.magieNeedsGraveyardTarget(m)).toBe(false);
+  });
+
+  it('l\'ORIGINALE reste en main — c\'est ce qui la sépare de hand_to_graveyard', () => {
+    const { session } = makeSession();
+    session.hand = [makeCard({ id: 'KEEP' }) as any, makeCard({ id: 'COPY_ME' }) as any];
+
+    const unit = session.applyMagieOnHandCard(magie({ type: 'duplicate_card', value: 1 }) as any, 1);
+
+    expect(session.hand.map(c => c.id)).toEqual(['KEEP', 'COPY_ME', 'COPY_ME']);
+    // Aucune unité créée : la duplication ne passe pas par le cimetière.
+    expect(unit).toBeNull();
+    expect(session.graveyard).toHaveLength(0);
+  });
+
+  it('copie la carte TELLE QU\'ELLE EST, remises de magie comprises', () => {
+    // Le joueur duplique la carte qu'il a sous les yeux, avec le coût que son
+    // tooltip annonce — pas une version que rien à l'écran n'annonce.
+    const { session } = makeSession();
+    session.hand = [{
+      ...makeCard({ id: 'SAC', summon_type: 'sacrifice', cost: { sacrifice: 1 } }),
+      _original_sacrifice: 3,
+    } as any];
+
+    session.applyMagieOnHandCard(magie({ type: 'duplicate_card', value: 1 }) as any, 0);
+
+    expect((session.hand[1] as any).cost.sacrifice).toBe(1);
+    expect((session.hand[1] as any)._original_sacrifice).toBe(3);
+    expect(session.hand[1]).not.toBe(session.hand[0]);
+  });
+
+  it('`value` compte les copies, et une Valeur à 0 en rend UNE', () => {
+    for (const [value, expected] of [[3, 4], [0, 2], [undefined, 2]] as const) {
+      const { session } = makeSession();
+      session.hand = [makeCard({ id: 'C' }) as any];
+      session.applyMagieOnHandCard(magie({ type: 'duplicate_card', value }) as any, 0);
+      expect(session.hand).toHaveLength(expected);
+    }
+  });
+
+  it('index hors bornes : ne touche à rien et ne coûte rien', () => {
+    const { session } = makeSession();
+    session.gameState.player_hp = 500;
+    session.hand = [makeCard({ id: 'A' }) as any];
+
+    expect(session.applyMagieOnHandCard(
+      magie({ type: 'duplicate_card', value: 1 }, { cost_hp: 80 }) as any, 7)).toBeNull();
+
+    expect(session.hand).toHaveLength(1);
+    expect(session.gameState.player_hp).toBe(500);
+  });
+
+  it('contrecoup : prélevé une seule fois, quel que soit le nombre de copies', () => {
+    const { session } = makeSession();
+    session.gameState.player_hp = 500;
+    session.hand = [makeCard({ id: 'C' }) as any];
+
+    session.applyMagieOnHandCard(magie({ type: 'duplicate_card', value: 3 }, { cost_hp: 80 }) as any, 0);
+
+    expect(session.gameState.player_hp).toBe(420);
+    expect(session.hand).toHaveLength(4);
+  });
+
+  it('offre : absente main vide, présente dès une carte en main', () => {
+    const { session } = makeSession({ magies: [magie({ type: 'duplicate_card', value: 1 }, { id: 'CONFORME' })] });
+    expect(session.getShoppingMagies()).toEqual([]);
+
+    session.hand = [makeCard({ id: 'PLAIN' }) as any];
+    expect(offeredIds(session)).toEqual(['CONFORME']);
+  });
+});

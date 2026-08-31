@@ -20,8 +20,10 @@ export default function HandBar() {
   const shopping = useGameStore(s => s.shopping);
   const controller = useGameStore(s => s.controller);
   const web = useWebLayout();
-  // Visible pendant la préparation OU pendant un ciblage hand_to_graveyard —
-  // même règle que le cimetière, qui reste montré pour le ciblage revive.
+  // Visible pendant la préparation OU pendant un ciblage de MAIN
+  // (`hand_to_graveyard`, `duplicate_card`) — même règle que le cimetière, qui
+  // reste montré pour le ciblage revive. On ne lit que `awaitingTarget` : une
+  // magie de main de plus n'a rien à rebrancher ici.
   const targetingHand = shopping?.awaitingTarget === 'hand';
   if ((combatActive && !targetingHand) || !controller) return null;
 

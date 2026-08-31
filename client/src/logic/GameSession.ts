@@ -20,7 +20,7 @@ import type { BoardPickContext, AttributeCounts } from './BoardPicker.js';
 // Modules JS encore non convertis : leurs annotations JSDoc (Card[][], null par
 // défaut…) sont trop étroites pour l'interop TS. Casts localisés en attendant
 // la conversion TS de ces modules (au fil des phases).
-import { applyEffect as _applyMagieEffect, needsUnitTarget, needsGraveyardTarget, needsHandTarget, magieCostHp, canAffordMagie } from './MagieEffect.js';
+import { applyEffect as _applyMagieEffect, needsUnitTarget, needsGraveyardTarget, needsHandTarget, magieCostHp, canAffordMagie, duplicateCopies } from './MagieEffect.js';
 import * as _InvocationManager from './InvocationManager.js';
 const applyMagieEffect = _applyMagieEffect as (magie: any, ctx: { gameState?: any; targetUnit?: any; targetUnits?: any[] }) => void;
 const InvocationManager = _InvocationManager as any;
@@ -719,6 +719,7 @@ export class GameSession {
       boardUnitCount: this.getPlayerUnits().length,
       defusableFusionCount: this._defusableFusions().length,
       poweredUnitCount: this._poweredUnits().length,
+      duplicableUnitCount: this._duplicableUnits().length,
       graveyardCount: this.graveyard.length,
       handCount: this.hand.length,
       deckTiers: [...new Set(deck.map(c => c.tier).filter((t): t is number => typeof t === 'number'))],
@@ -794,11 +795,24 @@ export class GameSession {
     return this.getPlayerUnits().filter(u => !!u.power_id);
   }
 
+  /**
+   * Unités du board dont la CARTE est retrouvable au catalogue — les seules
+   * qu'une magie `duplicate_unit` puisse copier. Troisième membre de la même
+   * famille que `_defusableFusions` et `_poweredUnits`, et pour la même raison :
+   * la règle sert le ciblage ET la pertinence de l'offre, elle ne doit exister
+   * qu'à UN endroit. Sans elle, une unité dont la carte a quitté le catalogue
+   * encaisserait le contrecoup sans rien rendre.
+   */
+  private _duplicableUnits(): Unit[] {
+    return this.getPlayerUnits().filter(u => !!this.deps.cardDb.getCard(u.card_id));
+  }
+
   magieUnitTargets(magie: Magie): Unit[] {
     if (magie.effect?.type === 'defuse_fusion') return this._defusableFusions();
     // Accélérer le pouvoir d'une unité qui n'en a pas ne ferait rien : elle
     // n'est pas une cible, exactement comme une non-fusion pour `defuse_fusion`.
     if (magie.effect?.type === 'power_cooldown') return this._poweredUnits();
+    if (magie.effect?.type === 'duplicate_unit') return this._duplicableUnits();
     return this.getPlayerUnits();
   }
 
@@ -808,22 +822,73 @@ export class GameSession {
     if (magie.effect?.type === 'defuse_fusion') { this._defuseFusion(unit); return; }
     if (magie.effect?.type === 'destroy_unit') { this._destroyUnit(unit); return; }
     if (magie.effect?.type === 'drain_life') { this._drainLife(unit); return; }
+    if (magie.effect?.type === 'duplicate_unit') { this._duplicateUnitCard(magie, unit); return; }
     applyMagieEffect(magie as any, { gameState: this.gameState, targetUnit: unit });
   }
 
   /**
-   * Envoie une carte de la MAIN au cimetière, sous forme d'unité neutralisée :
-   * elle y devient un matériau d'invocation (sacrifice / fusion / héritage /
-   * transformation) au même titre qu'une unité tombée au combat. Comme toute
-   * unité du cimetière, elle disparaît au lancement du combat si personne ne
-   * l'a consommée — la magie échange donc une carte contre un matériau, elle
-   * n'ajoute pas de corps sur le terrain.
+   * Duplication d'unité : c'est la CARTE qui revient en main, jamais l'unité.
+   * Rien de ce que l'unité a acquis sur le terrain ne voyage — bonus de
+   * Shopping (`_shopping_bonus`), vétérance, PV courants, bouclier, pouvoir
+   * posé par `grant_power` : la copie est l'entrée du catalogue, telle qu'une
+   * pioche la rendrait. C'est ce qui distingue une duplication d'un clonage, et
+   * ce qui empêche la magie de blanchir un investissement en le rendant deux
+   * fois.
+   *
+   * ⚠️ Conséquence assumée de la RÈGLE DU DOUBLON : tant que l'original vit, la
+   * copie n'est invocable qu'en désignant ce doublon comme matériau (sacrifice,
+   * fusion, héritage, transformation) — une invocation normale la refuse, et la
+   * main l'affiche grisée. Elle prend sa valeur quand l'original tombe : on met
+   * un remplaçant de côté, on ne pose pas un second corps.
+   */
+  private _duplicateUnitCard(magie: Magie, unit: Unit): void {
+    const card = this.deps.cardDb.getCard(unit.card_id);
+    if (!card) return;
+    this._pushHandCopies(card as Card, duplicateCopies(magie as any));
+  }
+
+  /**
+   * ⚠️ Chaque copie est un OBJET NEUF, jamais la référence source partagée.
+   * Deux cases de la main pointant sur le même objet seraient correctes
+   * aujourd'hui — `startPreparation` REMPLACE une carte retouchée par une magie
+   * de main (`this.hand[idx] = { ...this.hand[idx], … }`) au lieu de la muter,
+   * et `canUndoPreparation` compare la main par RÉFÉRENCE — mais la copie ne
+   * coûte rien et referme le cas par construction.
+   *
+   * La source est prise TELLE QU'ELLE EST, remises comprises
+   * (`_original_sacrifice`, `_removed_materials`, `_free_transformation`) : le
+   * joueur duplique la carte qu'il a sous les yeux, avec le coût que son
+   * tooltip annonce. La copie rejoint donc le même groupe que l'originale dans
+   * la main (badge ×N) — `GameController._groupHand` clé sur l'id ET le coût.
+   */
+  private _pushHandCopies(card: Card, copies: number): void {
+    for (let i = 0; i < copies; i++) this.hand.push({ ...card });
+  }
+
+  /**
+   * Les deux magies qui désignent une carte de la MAIN. Elles partagent le
+   * geste (taper une carte) et rien d'autre :
+   *
+   * - `duplicate_card` LAISSE la carte désignée et en ajoute une copie ;
+   * - `hand_to_graveyard` la RETIRE et l'envoie au cimetière sous forme d'unité
+   *   neutralisée, où elle devient un matériau d'invocation (sacrifice /
+   *   fusion / héritage / transformation) au même titre qu'une unité tombée au
+   *   combat. Comme toute unité du cimetière, elle disparaît au lancement du
+   *   combat si personne ne l'a consommée : la magie échange une carte contre
+   *   un matériau, elle n'ajoute pas de corps sur le terrain.
+   *
+   * L'unité rendue est celle du cimetière ; la duplication n'en crée aucune et
+   * rend `null`.
    */
   applyMagieOnHandCard(magie: Magie, handIdx: number): Unit | null {
     const card = this.hand[handIdx];
     if (!card) return null;
     if (!this.canAffordMagie(magie)) return null;
     this._payMagieCost(magie);
+    if (magie.effect?.type === 'duplicate_card') {
+      this._pushHandCopies(card, duplicateCopies(magie as any));
+      return null;
+    }
     this.hand.splice(handIdx, 1);
     const unit = new Unit(card, 'player');
     unit.is_neutralized = true;

@@ -40,6 +40,24 @@ export function canAffordMagie(magie, playerHp) {
 }
 
 /**
+ * Combien d'exemplaires rend une magie de duplication (`duplicate_unit`,
+ * `duplicate_card`). Lecture UNIQUE du champ : `GameSession` s'en sert pour
+ * livrer, `effectLabel` pour l'annoncer — deux lectures divergeraient.
+ *
+ * ⚠️ Le repli est celui de `powerValue` côté combat, et pour la même raison :
+ * une **Valeur laissée à 0** en admin (le défaut du champ) se lit « non
+ * renseignée » et rend UNE copie, jamais « zéro copie ». Une magie offerte qui
+ * ne rend rien est très précisément le blanc que le filtre d'offre existe pour
+ * supprimer — et elle aurait encaissé son contrecoup au passage.
+ * @param {any} magie
+ * @returns {number}
+ */
+export function duplicateCopies(magie) {
+  const raw = Number(magie?.effect?.value);
+  return Number.isFinite(raw) && raw > 0 ? Math.max(1, Math.round(raw)) : 1;
+}
+
+/**
  * Noms lisibles des pouvoirs, pour `effectLabel` seul. ⚠️ Doublon ASSUMÉ de
  * `POWER_NAMES` (`three/`) : `logic/` ne doit rien importer de la couche 3D, et
  * `powers.json` n'est pas accessible d'ici (le module est pur). Un id absent de
@@ -72,7 +90,7 @@ function guaranteedDrawLabel(e) {
 
 export function needsUnitTarget(magie) {
   return ['stat_bonus', 'stat_modifier', 'shield', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life',
-    'grant_power', 'power_cooldown'].includes(magie?.effect?.type);
+    'grant_power', 'power_cooldown', 'duplicate_unit'].includes(magie?.effect?.type);
 }
 
 export function needsGraveyardTarget(magie) {
@@ -81,8 +99,11 @@ export function needsGraveyardTarget(magie) {
 
 // Cible une carte de la MAIN (et non une unité du board ou du cimetière) —
 // troisième famille de ciblage, cf. GameSession.magieNeedsHandTarget.
+// ⚠️ Les deux membres n'y font PAS le même geste : `hand_to_graveyard` retire
+// la carte désignée, `duplicate_card` la laisse et en ajoute une copie. Seule
+// la façon de désigner est commune.
 export function needsHandTarget(magie) {
-  return magie?.effect?.type === 'hand_to_graveyard';
+  return ['hand_to_graveyard', 'duplicate_card'].includes(magie?.effect?.type);
 }
 
 export function effectLabel(magie) {
@@ -107,6 +128,14 @@ export function effectLabel(magie) {
     case 'destroy_unit':             return 'Détruit une unité alliée (libère son emplacement, devient un matériau disponible au cimetière)';
     case 'drain_life':               return 'Absorbe les PV d\'une unité alliée : elle part au cimetière et tu récupères ses PV courants';
     case 'hand_to_graveyard':        return 'Envoie une carte de ta main au cimetière (utilisable comme matériau)';
+    // Deux sources, une seule destination : la main. Le libellé nomme la source
+    // — c'est tout ce qui les distingue au moment du choix.
+    case 'duplicate_unit':           return duplicateCopies(magie) > 1
+      ? `Ajoute à ta main ${duplicateCopies(magie)} copies de la carte d'une unité de ton terrain`
+      : 'Ajoute à ta main une copie de la carte d\'une unité de ton terrain';
+    case 'duplicate_card':           return duplicateCopies(magie) > 1
+      ? `Duplique une carte de ta main en ${duplicateCopies(magie)} exemplaires`
+      : 'Duplique une carte de ta main (l\'originale est conservée)';
     case 'reduce_sacrifice_cost':    return `-${e.value ?? 1} sacrifice(s) sur une carte Sacrifice en main`;
     case 'free_transformation':      return 'Invoque une Transformation sans son monstre cible';
     case 'remove_heritage_material':   return 'Retire le matériel obligatoire d\'une carte Heritage en main';
@@ -251,6 +280,12 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       // Handled by GameSession._drainLife() — applyEffect is a no-op here
       break;
     case 'hand_to_graveyard':
+      // Handled by GameSession.applyMagieOnHandCard() — applyEffect is a no-op here
+      break;
+    case 'duplicate_unit':
+      // Handled by GameSession._duplicateUnitCard() — applyEffect is a no-op here
+      break;
+    case 'duplicate_card':
       // Handled by GameSession.applyMagieOnHandCard() — applyEffect is a no-op here
       break;
   }
