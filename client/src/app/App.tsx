@@ -33,13 +33,18 @@ import { SpaceBackground } from '../components/ui/SpaceBackground.js';
  *
  * ⚠️ Tout nouvel écran qui importe `three/` doit rejoindre cette liste, sinon
  * il ramène Scene3D dans le chunk d'entrée et annule le découpage d'un coup.
+ * Les écrans de DEV la rejoignent aussi, pour une raison plus simple : personne
+ * d'autre qu'un admin ne les ouvre.
  */
 const GameScreen = lazy(() => import('../screens/GameScreen.js'));
 const GameScreenPvp = lazy(() => import('../screens/GameScreenPvp.js'));
 const CombatLab = lazy(() => import('../dev/CombatLab.js'));
 const TestBench = lazy(() => import('../dev/TestBench.js'));
+// ⚠️ Celui-ci n'importe PAS `three/` — il est différé pour l'autre raison : un
+// écran de dev que seul un admin ouvre n'a rien à faire dans le chunk d'entrée.
+const AiLab = lazy(() => import('../dev/AiLab.js'));
 
-// Repli commun des quatre écrans différés. Volontairement nu : le décor spatial
+// Repli commun des écrans différés. Volontairement nu : le décor spatial
 // n'est pas monté sur ces écrans (cf. IMMERSIVE_SCREENS) et le chunk arrive en
 // une fraction de seconde — un écran de chargement travaillé clignoterait.
 const lazyFallback = (
@@ -72,6 +77,7 @@ const SCREENS: Record<ScreenName, ComponentType> = {
   game_pvp: GameScreenPvp,
   combatlab: CombatLab,
   testbench: TestBench,
+  ailab: AiLab,
 };
 
 /**
@@ -122,7 +128,7 @@ export default function App() {
     <>
       {!IMMERSIVE_SCREENS.has(screen) && <SpaceBackground />}
       {/* Un seul `Suspense` pour tout le routage : les écrans chargés en
-          statique ne suspendent jamais, seuls les quatre `lazy()` ci-dessus
+          statique ne suspendent jamais, seuls les `lazy()` ci-dessus
           l'utilisent. Une frontière par écran différé ferait quatre copies du
           même repli, et il faudrait penser à en ajouter une au prochain. */}
       <Suspense fallback={lazyFallback}>

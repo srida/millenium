@@ -66,6 +66,9 @@ export default function MainMenu() {
             <Button className="flex-1 text-xs opacity-70" onPointerDown={() => navigate('combatlab')}>
               CombatLab (dev)
             </Button>
+            <Button className="flex-1 text-xs opacity-70" onPointerDown={() => navigate('ailab')}>
+              Labo IA (dev)
+            </Button>
           </div>
         )}
       </div>
