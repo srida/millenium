@@ -249,6 +249,7 @@ progression.backfillAll();
 const MAINTENANCE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const { db, stmt: dbStmt } = require('./db');
 const pvplog = require('./pvplog');
+const ailog = require('./ailog');
 
 function runMaintenance({ closeStaleMatches = false } = {}) {
   const sessions = dbStmt.deleteExpiredSessions.run(Date.now()).changes;
@@ -258,17 +259,19 @@ function runMaintenance({ closeStaleMatches = false } = {}) {
   // Ko par vue. Ils se purgent ici plutôt que dans un minuteur à eux — c'est
   // déjà le rendez-vous quotidien du nettoyage.
   const pvpLogs = pvplog.purge();
+  // Runs du Labo IA : même rendez-vous, même raison — pas de minuteur à eux.
+  const aiRuns = ailog.purge();
   let matches = 0;
   if (closeStaleMatches) {
     matches = db.prepare(
       "UPDATE matches SET status = 'ended', ended_reason = 'server_restart', ended_at = ? WHERE status = 'active'",
     ).run(Date.now()).changes;
   }
-  if (sessions || resets || buckets || matches || pvpLogs) {
+  if (sessions || resets || buckets || matches || pvpLogs || aiRuns) {
     console.log(
       `[entretien] ${sessions} session(s) expirée(s), ${resets} jeton(s) de reset, ` +
       `${buckets} seau(x) de quota, ${matches} match(s) rouvert(s) refermé(s), ` +
-      `${pvpLogs} log(s) de combat PvP purgé(s)`,
+      `${pvpLogs} log(s) de combat PvP purgé(s), ${aiRuns} run(s) de Labo IA purgé(s)`,
     );
   }
 }
@@ -508,6 +511,12 @@ app.use('/api/admin/sim', requireSiteAdmin, require('./routes/admin-sim'));
 // garde explicite que ses deux voisins, et pour la même raison : un GET sous
 // /api est public par défaut, et un log nomme les deux joueurs d'un duel.
 app.use('/api/admin/pvp-logs', requireSiteAdmin, require('./routes/admin-pvplog'));
+
+// Runs du Labo IA — OUTIL DE DIAGNOSTIC (cf. ailog.js). Même garde explicite,
+// et elle couvre ici le DÉPÔT autant que la lecture : contrairement aux logs
+// PvP, qu'un joueur dépose au sortir de son duel, un run de labo ne peut venir
+// que de l'écran de dev.
+app.use('/api/admin/ai-logs', requireSiteAdmin, require('./routes/admin-ailog'));
 
 // Protect write operations on /api (reads stay public for the game)
 app.use('/api', (req, res, next) => {

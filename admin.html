@@ -304,6 +304,19 @@ select.filter:focus { border-color: var(--accent); }
 .pvp-detail pre { margin: 6px 0 0; white-space: pre; font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.5; }
 .pvp-note { color: var(--muted); font-size: 12px; margin-bottom: 12px; line-height: 1.6; }
 
+/* Runs du Labo IA (diagnostic). Réutilise .db-table / .db-toolbar / .db-pager et
+   les .pvp-act / .pvp-detail / .pvp-note du voisin : seuls les deux compteurs
+   posées/refusées ont besoin de leur propre style. */
+.ai-count { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; display: inline-block; }
+.ai-count.placed { background: rgba(46,160,67,.15); color: #3fb950; border: 1px solid rgba(46,160,67,.4); }
+.ai-count.refused { background: rgba(210,153,34,.15); color: #d29922; border: 1px solid rgba(210,153,34,.4); }
+.ai-count.zero { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+.ai-round { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 8px; }
+.ai-attempt { padding: 2px 0; }
+.ai-attempt.placed { color: #3fb950; }
+.ai-attempt.refused { color: var(--muted); }
+.ai-reason { color: #d29922; }
+
 /* ⚠️ CE BLOC DOIT RESTER LE DERNIER DE LA FEUILLE.
    Il vivait auparavant au milieu du fichier, AVANT les sections « Stats tab » et
    « DB explorer » : à spécificité égale, la dernière règle gagne, et une douzaine
@@ -463,6 +476,9 @@ select.filter:focus { border-color: var(--accent); }
       <!-- Outil de DIAGNOSTIC TEMPORAIRE (cf. pvplog.js) : les deux vues d'un même
            combat PvP, mises face à face pour trouver où elles divergent. -->
       <button class="tab" data-tab="pvplogs" title="Logs de combat PvP (diagnostic)">🔬 Logs PvP</button>
+      <!-- Runs du Labo IA (cf. ailog.js + client/src/dev/AiLab.tsx) : ce que
+           l'EnemyAI a tenté, posé et refusé, avec le motif de chaque refus. -->
+      <button class="tab" data-tab="ailogs" title="Décisions de l'IA (Labo IA)">🧠 Logs IA</button>
     </div>
     <button class="tab-menu-btn" id="tab-menu-btn" onclick="openTabSheet()" aria-haspopup="dialog" aria-controls="tab-sheet">
       <span class="burger" aria-hidden="true">☰</span><span class="label" id="current-tab-name">Cartes</span>
@@ -767,6 +783,13 @@ select.filter:focus { border-color: var(--accent); }
       <div class="empty"><span>Chargement...</span></div>
     </div>
   </div>
+
+  <!-- Runs du Labo IA — même patron sans sidebar que #tab-db / #tab-pvplogs. -->
+  <div id="tab-ailogs" class="main hidden">
+    <div class="content" id="ailogs-content" style="padding:20px;overflow:auto;width:100%">
+      <div class="empty"><span>Chargement...</span></div>
+    </div>
+  </div>
 </div>
 
 <!-- FAB -->
@@ -912,12 +935,13 @@ function switchTab(tab) {
     if (f && !f.src) f.src = '/admin/sim?embed=1&theme=dark';
   }
   if (tab === 'pvplogs') renderPvpLogs();
+  if (tab === 'ailogs') renderAiLogs();
   showList(); // reset panel on tab switch
 }
 
 // Onglets sans sidebar : le FAB (« + ») n'y a rien à ouvrir. `summontypes` est
 // un catalogue FERMÉ à 6 entrées : rien à créer non plus.
-const NO_FAB_TABS = new Set(['stats', 'db', 'sim', 'summontypes', 'pvplogs']);
+const NO_FAB_TABS = new Set(['stats', 'db', 'sim', 'summontypes', 'pvplogs', 'ailogs']);
 
 // Délégation : la barre et la feuille mobile partagent le même chemin de code.
 // Le garde `data-tab` est obligatoire — un clic ailleurs dans la barre ne doit rien faire.
@@ -1151,6 +1175,177 @@ async function deletePvpLog(matchId) {
     toast(`${data.deleted} ligne(s) supprimée(s).`);
     pvpOpenMatch = null;
     renderPvpLogs(pvpOffset);
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ================== LABO IA ==================
+//
+// Ce que l'EnemyAI a tenté à chaque round : les cartes posées, celles qu'elle a
+// refusées, et POURQUOI. Les runs sont déposés par l'écran de dev
+// (`client/src/dev/AiLab.tsx`) ; les règles vivent dans `ailog.js`.
+//
+// Même patron que l'explorateur SQL et les logs PvP : placeholder → apiFetch en
+// try/catch → contrôle de data.error → chaîne HTML construite avec esc().
+
+let aiOffset = 0;
+const AI_PAGE = 25;
+let aiOpenRun = null; // un seul détail déplié à la fois
+
+// Glose des motifs de refus d'`EnemyAI`.
+//
+// ⚠️ COPIE de `REASON_LABELS` (client/src/dev/aiLabRun.ts) : ce fichier ne peut
+// rien importer d'un module TS. Même situation que PVP_KINDS, qui recopie le
+// vocabulaire de pvplog.diff. La dérive est bénigne — un motif sans glose
+// s'affiche par son slug — mais un motif ajouté là-bas est à reporter ici.
+const AI_REASONS = {
+  board_full: 'plus de place — le cap de slots est atteint',
+  duplicate_on_board: 'un exemplaire de cette carte est déjà sur le terrain',
+  no_free_cell: 'aucune case libre dans la zone',
+  not_enough_material: 'pas assez de matériaux (terrain + cimetière)',
+  duplicate_needs_extra_material: 'le doublon consommé ne suffit pas',
+  would_exceed_slots: 'dépasserait le nombre de slots — pas assez de place libérée',
+  missing_material: 'matériau manquant',
+  no_transformation_target_id: 'la transformation ne désigne aucune cible',
+  transformation_target_mismatch: 'la carte déjà en jeu ne correspond pas à la cible',
+  no_transformation_target: 'cible absente du terrain et du cimetière',
+  all_options_failed: 'aucune de ses recettes ne passe',
+  unknown_summon_type: "voie d'invocation inconnue",
+};
+
+function aiReason(reason, detail) {
+  if (!reason) return '';
+  const base = AI_REASONS[reason] || reason;
+  const mat = detail && typeof detail.material === 'string' ? detail.material : null;
+  return mat ? `${base} : ${mat}` : base;
+}
+
+function aiDate(ms) {
+  return new Date(ms).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+async function renderAiLogs(offset = aiOffset) {
+  aiOffset = offset;
+  const el = document.getElementById('ailogs-content');
+  el.innerHTML = '<div class="empty"><span>Chargement...</span></div>';
+  let data;
+  try { data = await apiFetch(`/api/admin/ai-logs?limit=${AI_PAGE}&offset=${offset}`); }
+  catch (e) { el.innerHTML = `<div class="empty"><span>Erreur : ${esc(e.message)}</span></div>`; return; }
+  if (data.error) { el.innerHTML = `<div class="empty"><span>Erreur : ${esc(data.error)}</span></div>`; return; }
+
+  const rows = data.runs.map(r => `<tr>
+      <td>${esc(aiDate(r.created_at))}</td>
+      <td>${esc(r.label || '—')}</td>
+      <td style="font-family:ui-monospace,monospace">${esc(r.deck_id || '—')}</td>
+      <td>${r.rounds}</td>
+      <td>
+        <span class="ai-count ${r.placed ? 'placed' : 'zero'}">${r.placed} posée(s)</span>
+        <span class="ai-count ${r.refused ? 'refused' : 'zero'}">${r.refused} refus</span>
+      </td>
+      <td style="white-space:nowrap">
+        <button class="pvp-act" onclick="toggleAiDetail('${esc(r.id)}')">Détail</button>
+        <a class="pvp-act" href="/api/admin/ai-logs/${esc(r.id)}/download">⬇ Fichier</a>
+        <button class="pvp-act" onclick="deleteAiLog('${esc(r.id)}')">🗑</button>
+      </td>
+    </tr>
+    <tr id="ai-detail-${esc(r.id)}" class="hidden"><td colspan="6"></td></tr>`).join('');
+
+  const from = data.total ? offset + 1 : 0;
+  const to = Math.min(offset + AI_PAGE, data.total);
+  const prevDis = offset === 0 ? 'disabled' : '';
+  const nextDis = to >= data.total ? 'disabled' : '';
+
+  el.innerHTML = `
+    <div class="pvp-note">
+      Décisions de l'<strong>EnemyAI</strong> enregistrées depuis le <strong>Labo IA</strong>
+      (menu du jeu → « Labo IA (dev) »). Chaque tentative est rendue avec son issue et,
+      en cas de refus, avec son motif. Rétention : 30 jours.
+    </div>
+    <div class="db-toolbar">
+      <span style="color:var(--muted);font-size:13px">${data.total} run(s)</span>
+      <div class="db-pager">
+        <button class="db-pager-btn" ${prevDis} onclick="renderAiLogs(${Math.max(0, offset - AI_PAGE)})">‹</button>
+        <span>${from}–${to}</span>
+        <button class="db-pager-btn" ${nextDis} onclick="renderAiLogs(${offset + AI_PAGE})">›</button>
+      </div>
+    </div>
+    <div class="db-table-scroll">
+      <table class="db-table">
+        <thead><tr><th>Date</th><th>Libellé</th><th>Deck</th><th>Rounds</th><th>Décisions</th><th></th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Aucun run enregistré pour le moment.</td></tr>'}</tbody>
+      </table>
+    </div>`;
+  if (aiOpenRun) { const keep = aiOpenRun; aiOpenRun = null; toggleAiDetail(keep); }
+}
+
+// Le détail est chargé À LA DEMANDE : le payload porte la trace complète de tous
+// les rounds. La liste, elle, n'affiche que des colonnes dénormalisées, elle ne
+// touche jamais à un payload.
+async function toggleAiDetail(id) {
+  const row = document.getElementById(`ai-detail-${id}`);
+  if (!row) return;
+  if (aiOpenRun === id) { row.classList.add('hidden'); aiOpenRun = null; return; }
+  aiOpenRun = id;
+  row.classList.remove('hidden');
+  const cell = row.firstElementChild;
+  cell.innerHTML = '<div class="pvp-detail">Chargement...</div>';
+  let data;
+  try { data = await apiFetch(`/api/admin/ai-logs/${encodeURIComponent(id)}`); }
+  catch (e) { cell.innerHTML = `<div class="pvp-detail">Erreur : ${esc(e.message)}</div>`; return; }
+  if (data.error) { cell.innerHTML = `<div class="pvp-detail">Erreur : ${esc(data.error)}</div>`; return; }
+
+  const p = data.payload || {};
+  const byReason = p.refusals_by_reason || {};
+  const summary = Object.keys(byReason).length
+    ? Object.entries(byReason)
+        .map(([k, n]) => `<div class="ai-attempt refused">${esc(aiReason(k, null))} — <strong>×${n}</strong></div>`)
+        .join('')
+    : '<div style="color:var(--muted)">Aucun refus.</div>';
+
+  const parts = (p.rounds || []).map(r => {
+    const attempts = (r.events || []).filter(e => e.kind === 'attempt').map(e => {
+      if (e.outcome === 'placed') {
+        // `where` et non `cell` : on est dans le scope de la cellule du détail.
+        const where = e.cell ? ` en ${e.cell.col},${e.cell.row}` : '';
+        const cb = (e.consumed && e.consumed.board || []).map(u => u.card_id);
+        const cg = (e.consumed && e.consumed.graveyard || []).map(u => u.card_id);
+        const consumed = [
+          cb.length ? `terrain : ${cb.join(', ')}` : '',
+          cg.length ? `cimetière : ${cg.join(', ')}` : '',
+        ].filter(Boolean).join(' — ');
+        return `<div class="ai-attempt placed">✓ ${esc(e.card_id)} <span style="color:var(--muted)">(${esc(e.summon_type || '?')})</span>${esc(where)}${consumed ? ` <span style="color:var(--muted)">— consomme ${esc(consumed)}</span>` : ''}</div>`;
+      }
+      return `<div class="ai-attempt refused">✗ ${esc(e.card_id)} <span style="color:var(--muted)">(${esc(e.summon_type || '?')})</span> — <span class="ai-reason">${esc(aiReason(e.reason, e.detail))}</span></div>`;
+    }).join('');
+
+    const re = (r.events || []).find(e => e.kind === 'rearrange');
+    const dropped = re && re.dropped && re.dropped.length
+      ? `<div class="ai-reason">⚠ ${re.dropped.length} unité(s) jetée(s) au-delà du cap : ${esc(re.dropped.map(u => u.card_id).join(', '))}</div>`
+      : '';
+
+    return `<div class="ai-round">
+      <strong>Round ${r.round}</strong>
+      <span style="color:var(--muted)"> — main ${r.hand_source === 'draw' ? 'piochée' : 'composée'} :
+        ${esc((r.hand || []).join(', ') || '—')} ; ${(r.board_after || []).length} unité(s) sur ${r.slots} slots</span>
+      ${attempts || '<div style="color:var(--muted)">Aucune tentative.</div>'}
+      ${dropped}
+    </div>`;
+  }).join('');
+
+  cell.innerHTML = `<div class="pvp-detail">
+    <div><strong>Refus par motif</strong></div>${summary}
+    ${parts || '<div style="color:var(--muted)">Aucun round.</div>'}
+  </div>`;
+}
+
+async function deleteAiLog(id) {
+  if (!confirm('Supprimer ce run ?')) return;
+  try {
+    const res = await fetch(`/api/admin/ai-logs/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok || data.error) { toast(data.error || 'Erreur', 'err'); return; }
+    toast(`${data.deleted} run(s) supprimé(s).`);
+    aiOpenRun = null;
+    renderAiLogs(aiOffset);
   } catch (e) { toast(e.message, 'err'); }
 }
 

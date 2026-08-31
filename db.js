@@ -414,6 +414,30 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_pvp_logs_created ON pvp_combat_logs(created_at);
 `);
 
+// Runs du Labo IA — OUTIL DE DIAGNOSTIC, retirable d'un bloc (cf. ailog.js).
+//
+// Pas de FK, pas de `user_id` : un run n'appartient à personne, c'est une
+// observation du moteur. Le dépôt comme la lecture passent par
+// `requireSiteAdmin`, il n'y a donc pas d'auteur à contrôler.
+//
+// ⚠️ Les colonnes hors `payload` sont DÉNORMALISÉES à l'insertion, calculées
+// par le serveur depuis le payload. `pvplog.list` doit désérialiser chaque
+// payload pour rendre son verdict, ce qui l'a obligé à borner sa pagination
+// serré ; ici la liste ne parse jamais un payload.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ai_lab_runs (
+    id         TEXT    PRIMARY KEY,
+    created_at INTEGER NOT NULL,
+    label      TEXT    NOT NULL DEFAULT '',
+    deck_id    TEXT    NOT NULL DEFAULT '',
+    rounds     INTEGER NOT NULL DEFAULT 0,
+    placed     INTEGER NOT NULL DEFAULT 0,
+    refused    INTEGER NOT NULL DEFAULT 0,
+    payload    TEXT    NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_ai_lab_runs_created ON ai_lab_runs(created_at);
+`);
+
 // --- Prepared statements ---
 const stmt = {
   insertUser: db.prepare(`
@@ -663,6 +687,23 @@ const stmt = {
     'SELECT COUNT(DISTINCT match_id) AS n FROM pvp_combat_logs'),
   deletePvpLogsByMatch: db.prepare('DELETE FROM pvp_combat_logs WHERE match_id = ?'),
   deleteOldPvpLogs: db.prepare('DELETE FROM pvp_combat_logs WHERE created_at < ?'),
+
+  // Runs du Labo IA (cf. ailog.js). La liste ne touche jamais au payload : tout
+  // ce qu'elle affiche est déjà en colonnes.
+  insertAiRun: db.prepare(`
+    INSERT INTO ai_lab_runs (id, created_at, label, deck_id, rounds, placed, refused, payload)
+    VALUES (@id, @created_at, @label, @deck_id, @rounds, @placed, @refused, @payload)
+  `),
+  aiRunById: db.prepare('SELECT * FROM ai_lab_runs WHERE id = ?'),
+  aiRunList: db.prepare(`
+    SELECT id, created_at, label, deck_id, rounds, placed, refused
+    FROM ai_lab_runs
+    ORDER BY created_at DESC
+    LIMIT ? OFFSET ?
+  `),
+  aiRunCount: db.prepare('SELECT COUNT(*) AS n FROM ai_lab_runs'),
+  deleteAiRun: db.prepare('DELETE FROM ai_lab_runs WHERE id = ?'),
+  deleteOldAiRuns: db.prepare('DELETE FROM ai_lab_runs WHERE created_at < ?'),
 };
 
 module.exports = { db, stmt, DB_FILE };

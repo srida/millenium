@@ -254,3 +254,13 @@ export async function removeFriend(friendshipId) {
 export async function postPvpLog(body) {
   return api('/me/pvp-log', { method: 'POST', body });
 }
+
+// --- Runs du Labo IA (diagnostic — cf. dev/aiLabRun.ts) ---
+//
+// ⚠️ Route ADMIN, contrairement au log PvP juste au-dessus : un run ne peut
+// venir que de l'écran de dev, que seul un admin ouvre. Un compte sans droits
+// reçoit un 401 — l'écran le DIT au lieu de l'avaler, la trace restant de toute
+// façon lisible sur place.
+export async function postAiLog(body) {
+  return api('/admin/ai-logs', { method: 'POST', body });
+}

@@ -10,6 +10,18 @@ const HAND_SIZE = 5;
  * using the same summon rules as the player (normal, sacrifice, fusion,
  * heritage, transformation). Graveyard units (neutralized last combat) are
  * available as materials during the preparation phase.
+ *
+ * ── Observation des décisions ────────────────────────────────────────────────
+ * Les trois méthodes de délibération acceptent un `trace` OPTIONNEL : une
+ * fonction nue, appelée `trace?.(event)`. Elle n'ajoute aucun import — `logic/`
+ * reste headless et ignore qu'un écran l'observe, exactement comme il ignore
+ * d'où vient `rand`.
+ *
+ * ⚠️ Le sink est un PARAMÈTRE, jamais un état d'instance (pas de `setTrace()`).
+ * C'est ce qui rend structurellement impossible qu'une partie réelle se
+ * retrouve tracée par un observateur oublié sur l'objet : les appels de
+ * `GameSession._placeEnemyUnits` ne le passent pas, il n'existe donc pas pour
+ * eux. Le seul appelant qui le fournit est le Labo IA (`dev/aiLabRun.ts`).
  */
 export class EnemyAI {
   /**
@@ -31,10 +43,16 @@ export class EnemyAI {
   /**
    * Draw HAND_SIZE cards from the deck for the given round's eligible tiers.
    * Stored internally; call placeFromHand() to place them.
+   *
+   * ⚠️ La main est ÉCRASÉE : les cartes non posées au round précédent sont
+   * perdues, là où celle du joueur s'accumule. Asymétrie constatée, pas
+   * corrigée ici.
+   *
    * @param {number} round
+   * @param {?function(*): void} trace
    * @returns {Object[]} drawn cards
    */
-  drawHand(round) {
+  drawHand(round, trace = null) {
     const tiers = tiersForRound(round);
     const pool = [];
     for (const t of tiers) {
@@ -43,13 +61,27 @@ export class EnemyAI {
         if (card) pool.push(card);
       }
     }
-    if (pool.length === 0) { this._hand = []; return []; }
+    if (pool.length === 0) {
+      this._hand = [];
+      trace?.({ kind: 'draw', round, tiers, pool_size: 0, hand: [] });
+      return [];
+    }
     const hand = [];
     for (let i = 0; i < HAND_SIZE; i++) {
       hand.push(pool[Math.floor(this._rand() * pool.length)]);
     }
     this._hand = hand;
+    trace?.({ kind: 'draw', round, tiers, pool_size: pool.length, hand: hand.map(c => c.id) });
     return [...hand];
+  }
+
+  /**
+   * Impose la main au lieu de la piocher — le Labo IA compose un cas de test
+   * carte par carte. Aucun appelant en jeu : la pioche reste le seul chemin.
+   * @param {Object[]} cards
+   */
+  setHand(cards) {
+    this._hand = [...cards];
   }
 
   /**
@@ -61,26 +93,39 @@ export class EnemyAI {
    * @param {Board} board
    * @param {number} maxUnits
    * @param {Unit[]} graveyard - mutated: consumed units are spliced out
+   * @param {?function(*): void} trace
    * @returns {Unit[]} placed units
    */
-  placeFromHand(board, maxUnits = 5, graveyard = []) {
+  placeFromHand(board, maxUnits = 5, graveyard = [], trace = null) {
     let unplaced = [...this._hand];
     const placed = [];
+    let pass = 0;
 
     for (;;) {
       const before = placed.length;
       const remaining = [];
+      pass++;
 
       // Sort each pass: normal cards first so they are on board as materials.
       const sorted = [...unplaced].sort(
         (a, b) => _summonPriority(a) - _summonPriority(b)
       );
 
+      trace?.({ kind: 'pass_start', pass, order: sorted.map(c => c.id) });
+
       for (const card of sorted) {
-        const unit = _tryPlace(card, board, maxUnits, graveyard, this._side);
-        if (unit) placed.push(unit);
+        const res = _attempt(card, board, maxUnits, graveyard, this._side);
+        trace?.(_attemptEvent(pass, card, res));
+        if (res.unit) placed.push(res.unit);
         else remaining.push(card);
       }
+
+      trace?.({
+        kind: 'pass_end',
+        pass,
+        placed: placed.length - before,
+        unplaced: remaining.map(c => c.id),
+      });
 
       unplaced = remaining;
       if (placed.length === before || unplaced.length === 0) break;
@@ -104,10 +149,16 @@ export class EnemyAI {
    * Updates initial_position so units return here after combat.
    * @param {Board} board
    * @param {number} maxUnits
+   * @param {?function(*): void} trace
    */
-  rearrangeUnits(board, maxUnits = 5) {
+  rearrangeUnits(board, maxUnits = 5, trace = null) {
     const units = board.getLivingUnitsOnSide(this._side);
-    if (units.length === 0) return;
+    if (units.length === 0) {
+      trace?.({ kind: 'rearrange', before: [], after: [], dropped: [] });
+      return;
+    }
+
+    const before = units.map(u => _unitRow(u));
 
     for (const u of units) board.removeUnit(u);
 
@@ -117,6 +168,10 @@ export class EnemyAI {
     });
 
     const toPlace = sorted.slice(0, maxUnits);
+    // ⚠️ Les unités au-delà du cap sont retirées du board SANS mourir ni passer
+    // au cimetière — elles disparaissent, simplement. On les nomme ici, c'est
+    // la seule trace qu'il en reste.
+    const dropped = sorted.slice(maxUnits).map(u => _unitRow(u));
 
     const melee  = toPlace.filter(u => u.range <= 1);
     const ranged = toPlace.filter(u => u.range > 1);
@@ -147,6 +202,13 @@ export class EnemyAI {
       unit.initial_position = null; // reset so placeUnit assigns the new cell
       board.placeUnit(unit, pos);
     }
+
+    trace?.({
+      kind: 'rearrange',
+      before,
+      after: placements.map(({ unit }) => _unitRow(unit)),
+      dropped,
+    });
   }
 
   /** Damage multiplier formula, based on units on the board at start of combat (symmetric with player). */
@@ -164,49 +226,75 @@ export class EnemyAI {
 /**
  * Try to place a single card on the enemy board.
  * graveyard is mutated in-place when units are consumed as materials.
- * Returns the placed Unit on success, null otherwise.
+ *
+ * Remplace le `_tryPlace` d'avant : rend un RÉSULTAT au lieu d'un `Unit | null`.
+ *
+ *   succès → { unit, cell, consumed: { board: [...], graveyard: [...] }, option_index }
+ *   échec  → { unit: null, reason, detail }
+ *
+ * ⚠️ La valeur ajoutée ici est le MOTIF. Les quinze `return null` de la version
+ * d'avant étaient rigoureusement indiscernables : « pas la place », « doublon »,
+ * « matériau manquant » et « dépasserait les slots » sortaient tous comme la
+ * même absence de valeur, et la question « pourquoi l'IA n'a pas joué cette
+ * carte ? » n'avait aucune réponse observable, ni en jeu ni en test.
+ *
+ * ⚠️ AUCUNE condition, aucun ordre et aucune case ne changent par rapport à la
+ * version d'avant : ce sont des métadonnées, rien d'autre. Le critère de
+ * non-régression est que la suite entière passe sans une seule mise à jour de
+ * snapshot (goldens de `sim.test.ts`, `bots.test.ts`, `tutorial.test.ts`).
  */
-function _tryPlace(card, board, maxUnits, graveyard, side = 'enemy') {
+function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
   // Cards with multiple invocation options: prefer transformation, then try each in order
   if (Array.isArray(card.summon_options) && card.summon_options.length > 0) {
-    const sorted = [...card.summon_options].sort((a, b) =>
-      a.summon_type === 'transformation' ? -1 : b.summon_type === 'transformation' ? 1 : 0
-    );
-    for (const opt of sorted) {
+    // On indexe AVANT de trier pour garder l'index d'origine de chaque option :
+    // c'est lui qui la nomme, et le tri (stable, même comparateur, même ordre
+    // d'entrée) rend exactement la même séquence qu'auparavant.
+    const sorted = card.summon_options
+      .map((opt, index) => ({ opt, index }))
+      .sort((a, b) =>
+        a.opt.summon_type === 'transformation' ? -1 : b.opt.summon_type === 'transformation' ? 1 : 0
+      );
+    const tried = [];
+    for (const { opt, index } of sorted) {
       const variant = { ...card, summon_type: opt.summon_type, cost: opt.cost };
       delete variant.summon_options; // avoid re-entering this branch → infinite recursion
-      const result = _tryPlace(variant, board, maxUnits, graveyard, side);
-      if (result) return result;
+      const result = _attempt(variant, board, maxUnits, graveyard, side);
+      if (result.unit) return { ...result, option_index: index };
+      tried.push({ index, summon_type: opt.summon_type, reason: result.reason, detail: result.detail });
     }
-    return null;
+    return { unit: null, reason: 'all_options_failed', detail: { options: tried } };
   }
 
   const onBoard = board.getLivingUnitsOnSide(side).length;
 
   switch (card.summon_type) {
     case 'normal': {
-      if (onBoard >= maxUnits) return null;
+      if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
       // Pas de doublon (même card_id) sur le terrain, comme pour le joueur
-      if (board.getLivingUnitsOnSide(side).some(u => u.card_id === card.id)) return null;
+      if (board.getLivingUnitsOnSide(side).some(u => u.card_id === card.id)) return _refused('duplicate_on_board');
       const cells = _freeCells(board, side);
-      if (cells.length === 0) return null;
+      if (cells.length === 0) return _refused('no_free_cell');
       const unit = new Unit(card, side);
       board.placeUnit(unit, cells[0]);
-      return unit;
+      return _placedAt(unit, cells[0]);
     }
 
     case 'sacrifice': {
       const needed = card.cost?.sacrifice ?? 0;
       if (needed === 0) {
-        if (onBoard >= maxUnits) return null;
+        if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
         const cells = _freeCells(board, side);
-        if (cells.length === 0) return null;
+        if (cells.length === 0) return _refused('no_free_cell');
         const unit = new Unit(card, side);
         board.placeUnit(unit, cells[0]);
-        return unit;
+        return _placedAt(unit, cells[0]);
       }
       const boardUnits = board.getLivingUnitsOnSide(side);
-      if (boardUnits.length + graveyard.length < needed) return null;
+      if (boardUnits.length + graveyard.length < needed) {
+        return _refused('not_enough_material', {
+          needed, available: boardUnits.length + graveyard.length,
+        });
+      }
       // If the result card is already on board, that unit must be consumed as a sacrifice material
       const duplicate = boardUnits.find(u => u.card_id === card.id);
       let fromBoard, fromGraveCount;
@@ -215,30 +303,46 @@ function _tryPlace(card, board, maxUnits, graveyard, side = 'enemy') {
         const stillNeeded = needed - 1;
         fromGraveCount = Math.min(stillNeeded, graveyard.length);
         const fromBoardCount = stillNeeded - fromGraveCount;
-        if (fromBoardCount > otherBoard.length) return null;
+        // ⚠️ INATTEIGNABLE, et c'est démontrable : la garde ci-dessus a déjà
+        // écarté `board + grave < needed`, or cette condition se réduit
+        // exactement à `needed > board + grave`. Elle est gardée comme filet —
+        // le jour où la garde du dessus change, elle redevient le dernier
+        // rempart — mais aucun cas du labo ne peut la faire sortir.
+        if (fromBoardCount > otherBoard.length) {
+          return _refused('duplicate_needs_extra_material', {
+            needed, still_needed: stillNeeded, other_board: otherBoard.length,
+          });
+        }
         fromBoard = [...otherBoard.slice(0, fromBoardCount), duplicate];
       } else {
         fromGraveCount = Math.min(needed, graveyard.length);
         fromBoard = boardUnits.slice(0, needed - fromGraveCount);
       }
       // Net board change: -fromBoard.length + 1
-      if (onBoard - fromBoard.length + 1 > maxUnits) return null;
+      if (onBoard - fromBoard.length + 1 > maxUnits) {
+        return _refused('would_exceed_slots', {
+          on_board: onBoard, consumed_from_board: fromBoard.length, max_units: maxUnits,
+        });
+      }
+      const consumedGrave = graveyard.slice(0, fromGraveCount).map(_unitRef);
+      const consumedBoard = fromBoard.map(_unitRef);
       graveyard.splice(0, fromGraveCount);
       for (const u of fromBoard) board.removeUnit(u);
       const unit = new Unit(card, side);
-      board.placeUnit(unit, _freeCells(board, side)[0]);
-      return unit;
+      const cell = _freeCells(board, side)[0];
+      board.placeUnit(unit, cell);
+      return _placedAt(unit, cell, consumedBoard, consumedGrave);
     }
 
     case 'fusion': {
       const materials = card.cost?.materials ?? [];
       if (materials.length === 0) {
-        if (onBoard >= maxUnits) return null;
+        if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
         const cells = _freeCells(board, side);
-        if (cells.length === 0) return null;
+        if (cells.length === 0) return _refused('no_free_cell');
         const unit = new Unit(card, side);
         board.placeUnit(unit, cells[0]);
-        return unit;
+        return _placedAt(unit, cells[0]);
       }
       // Find each required material on board first, then in graveyard
       const boardPool = [...board.getLivingUnitsOnSide(side)];
@@ -256,36 +360,47 @@ function _tryPlace(card, board, maxUnits, graveyard, side = 'enemy') {
             usedGrave.push(gravePool[idx]);
             gravePool.splice(idx, 1);
           } else {
-            return null; // missing material
+            return _refused('missing_material', { material: matId, materials }); // missing material
           }
         }
       }
       // Net board change: -usedBoard.length + 1
-      if (onBoard - usedBoard.length + 1 > maxUnits) return null;
+      if (onBoard - usedBoard.length + 1 > maxUnits) {
+        return _refused('would_exceed_slots', {
+          on_board: onBoard, consumed_from_board: usedBoard.length, max_units: maxUnits,
+        });
+      }
+      const consumedBoard = usedBoard.map(_unitRef);
+      const consumedGrave = usedGrave.map(_unitRef);
       for (const u of usedBoard) board.removeUnit(u);
       for (const u of usedGrave) {
         const gi = graveyard.indexOf(u);
         if (gi !== -1) graveyard.splice(gi, 1);
       }
       const unit = new Unit(card, side);
-      board.placeUnit(unit, _freeCells(board, side)[0]);
-      return unit;
+      const cell = _freeCells(board, side)[0];
+      board.placeUnit(unit, cell);
+      return _placedAt(unit, cell, consumedBoard, consumedGrave);
     }
 
     case 'heritage': {
       const required = card.cost?.materials ?? [];
       const sacrifice = card.cost?.sacrifice ?? 0;
       if (sacrifice === 0 && required.length === 0) {
-        if (onBoard >= maxUnits) return null;
+        if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
         const cells = _freeCells(board, side);
-        if (cells.length === 0) return null;
+        if (cells.length === 0) return _refused('no_free_cell');
         const unit = new Unit(card, side);
         board.placeUnit(unit, cells[0]);
-        return unit;
+        return _placedAt(unit, cells[0]);
       }
       const boardPool = [...board.getLivingUnitsOnSide(side)];
       const gravePool = [...graveyard];
-      if (boardPool.length + gravePool.length < sacrifice) return null;
+      if (boardPool.length + gravePool.length < sacrifice) {
+        return _refused('not_enough_material', {
+          needed: sacrifice, available: boardPool.length + gravePool.length,
+        });
+      }
 
       const toConsumeBoard = [];
       const toConsumeGrave = [];
@@ -302,7 +417,7 @@ function _tryPlace(card, board, maxUnits, graveyard, side = 'enemy') {
             toConsumeGrave.push(gravePool[idx]);
             gravePool.splice(idx, 1);
           } else {
-            return null; // constraint unsatisfiable
+            return _refused('missing_material', { material: matId, materials: required }); // constraint unsatisfiable
           }
         }
       }
@@ -318,63 +433,123 @@ function _tryPlace(card, board, maxUnits, graveyard, side = 'enemy') {
       }
 
       // Net board change: -toConsumeBoard.length + 1
-      if (onBoard - toConsumeBoard.length + 1 > maxUnits) return null;
+      if (onBoard - toConsumeBoard.length + 1 > maxUnits) {
+        return _refused('would_exceed_slots', {
+          on_board: onBoard, consumed_from_board: toConsumeBoard.length, max_units: maxUnits,
+        });
+      }
 
+      const consumedBoard = toConsumeBoard.map(_unitRef);
+      const consumedGrave = toConsumeGrave.map(_unitRef);
       for (const u of toConsumeBoard) board.removeUnit(u);
       for (const u of toConsumeGrave) {
         const gi = graveyard.indexOf(u);
         if (gi !== -1) graveyard.splice(gi, 1);
       }
       const unit = new Unit(card, side);
-      board.placeUnit(unit, _freeCells(board, side)[0]);
-      return unit;
+      const cell = _freeCells(board, side)[0];
+      board.placeUnit(unit, cell);
+      return _placedAt(unit, cell, consumedBoard, consumedGrave);
     }
 
     case 'transformation': {
       const targetId = card.cost?.materials?.[0];
-      if (!targetId) return null;
+      if (!targetId) return _refused('no_transformation_target_id');
 
       const boardUnits = board.getLivingUnitsOnSide(side);
       // If result already on board, that copy must be consumed as the transformation material.
       // If it doesn't match targetId, the transformation would create a duplicate — invalid.
       const existingResult = boardUnits.find(u => u.card_id === card.id);
       if (existingResult) {
-        if (!materialLineageMatches(existingResult, targetId, [targetId])) return null;
+        if (!materialLineageMatches(existingResult, targetId, [targetId])) {
+          return _refused('transformation_target_mismatch', { target: targetId, on_board: existingResult.card_id });
+        }
         const pos = { ...existingResult.position };
+        const consumedBoard = [_unitRef(existingResult)];
         board.removeUnit(existingResult);
         const unit = new Unit(card, side);
         board.placeUnit(unit, pos);
-        return unit;
+        return _placedAt(unit, pos, consumedBoard);
       }
 
       // Board target: 1-for-1, no slot limit check
       const boardTarget = boardUnits.find(u => materialLineageMatches(u, targetId, [targetId]));
       if (boardTarget) {
         const pos = { ...boardTarget.position };
+        const consumedBoard = [_unitRef(boardTarget)];
         board.removeUnit(boardTarget);
         const unit = new Unit(card, side);
         board.placeUnit(unit, pos);
-        return unit;
+        return _placedAt(unit, pos, consumedBoard);
       }
 
       // Graveyard target: net +1 on board, need a free slot
       const graveIdx = graveyard.findIndex(u => materialLineageMatches(u, targetId, [targetId]));
       if (graveIdx !== -1) {
-        if (onBoard >= maxUnits) return null;
+        if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
         const cells = _freeCells(board, side);
-        if (cells.length === 0) return null;
+        if (cells.length === 0) return _refused('no_free_cell');
+        const consumedGrave = [_unitRef(graveyard[graveIdx])];
         graveyard.splice(graveIdx, 1);
         const unit = new Unit(card, side);
         board.placeUnit(unit, cells[0]);
-        return unit;
+        return _placedAt(unit, cells[0], [], consumedGrave);
       }
 
-      return null;
+      return _refused('no_transformation_target', { target: targetId });
     }
 
     default:
-      return null;
+      return _refused('unknown_summon_type', { summon_type: card.summon_type ?? null });
   }
+}
+
+function _refused(reason, detail = null) {
+  return { unit: null, reason, detail };
+}
+
+function _placedAt(unit, cell, consumedBoard = [], consumedGrave = []) {
+  return {
+    unit,
+    reason: null,
+    detail: null,
+    cell: cell ? { col: cell.col, row: cell.row } : null,
+    consumed: { board: consumedBoard, graveyard: consumedGrave },
+  };
+}
+
+/** Identité d'une unité dans la trace. L'`uid` distingue deux exemplaires de la même carte. */
+function _unitRef(unit) {
+  return { uid: unit.uid, card_id: unit.card_id };
+}
+
+/** Ligne d'unité de la trace de placement : identité + ce qui décide du rangement. */
+function _unitRow(unit) {
+  return {
+    uid: unit.uid,
+    card_id: unit.card_id,
+    col: unit.position?.col ?? null,
+    row: unit.position?.row ?? null,
+    range: unit.range,
+    max_hp: unit.max_hp,
+    atk: unit.atk,
+  };
+}
+
+/** Événement de tentative, dérivé du résultat de `_attempt`. */
+function _attemptEvent(pass, card, res) {
+  return {
+    kind: 'attempt',
+    pass,
+    card_id: card.id,
+    summon_type: card.summon_type ?? null,
+    option_index: res.option_index ?? null,
+    outcome: res.unit ? 'placed' : 'refused',
+    reason: res.reason ?? null,
+    detail: res.detail ?? null,
+    cell: res.cell ?? null,
+    consumed: res.consumed ?? { board: [], graveyard: [] },
+  };
 }
 
 // Normal cards placed first so they are on board as materials for later passes
@@ -391,4 +566,3 @@ function _freeCells(board, side = 'enemy') {
       if (!board.isOccupied({ col, row })) cells.push({ col, row });
   return cells;
 }
-

@@ -135,6 +135,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `GET /admin/sim` | Site admin | Rapport de la simulation d'équilibrage (`sim-report.html`) |
 | `/api/admin/sim/*` | Site admin | Dépôt et historique des runs (`routes/admin-sim.js`) |
 | `/api/admin/pvp-logs/*` | Site admin | Logs de combat PvP — **outil de diagnostic temporaire** (`routes/admin-pvplog.js`) |
+| `/api/admin/ai-logs/*` | Site admin | Runs du Labo IA — décisions de l'`EnemyAI` (`routes/admin-ailog.js`) |
 
 ### Responsivité d'`admin.html` — navigation et pièges
 
@@ -3087,6 +3088,175 @@ Arrangement post-placement (`rearrangeUnits`) :
 - Ordre de colonnes : `[2, 1, 3, 0, 4]` (centre vers bords)
 - HP le plus élevé → rangée la plus avancée dans chaque groupe
 - Maximum 3 unités par rangée, débordement vers la rangée suivante
+
+---
+
+## 🧠 Labo IA — observer les décisions de l'IA
+
+Ce qui répond à « pourquoi l'IA n'a pas joué cette fusion ? ». Écran `ailab`
+(`client/src/dev/AiLab.tsx`, `?screen=ailab`), pilote pur
+`client/src/dev/aiLabRun.ts`, dépôt serveur `ailog.js` + `routes/admin-ailog.js`,
+onglet **🧠 Logs IA** d'`admin.html`.
+
+Il existe parce que **`EnemyAI` n'émettait rien** — pas un `console.log`, pas un
+événement, aucun crochet — et surtout parce que son `_tryPlace` avait une
+quinzaine de `return null` **tous indiscernables** : « pas la place »,
+« doublon », « matériau manquant » et « dépasserait les slots » sortaient comme
+la même absence de valeur. La délibération de l'IA n'était observable nulle
+part, ni en jeu ni en test. C'est le préalable à des comportements d'IA par
+difficulté : on ne diversifie pas un comportement qu'on ne sait pas constater.
+
+### L'instrumentation d'`EnemyAI`
+
+`_tryPlace` est devenu **`_attempt`**, qui rend un résultat au lieu d'un
+`Unit | null` : `{ unit, cell, consumed, option_index }` ou
+`{ unit: null, reason, detail }`. Motifs (slugs stables) : `board_full`,
+`duplicate_on_board`, `no_free_cell`, `not_enough_material`,
+`would_exceed_slots`, `missing_material` (avec le matériau **nommé**),
+`no_transformation_target_id`, `transformation_target_mismatch`,
+`no_transformation_target`, `all_options_failed`, `unknown_summon_type`.
+
+⚠️ **L'observateur est un PARAMÈTRE, jamais un état d'instance.**
+`drawHand(round, trace)`, `placeFromHand(board, max, graveyard, trace)` et
+`rearrangeUnits(board, max, trace)` l'appellent en `trace?.(event)` — une
+fonction nue, donc aucun import neuf et `logic/` ignore qu'un écran l'observe
+(même geste que `deps.rand`). Il n'y a **pas** de `setTrace()` : une partie
+réelle ne peut structurellement pas se retrouver tracée par un sink oublié sur
+l'objet, et les trois appels de `GameSession._placeEnemyUnits` sont inchangés.
+`setHand(cards)` permet d'imposer une main ; aucun appelant en jeu.
+
+⚠️ **Addition de métadonnées, rien d'autre** : aucune condition, aucun ordre,
+aucune case ne change. Le critère de non-régression est dur et il a été tenu —
+la suite passe **sans une seule mise à jour de snapshot** (`sim.test.ts`,
+`bots.test.ts`, `tutorial.test.ts`, `enemy-placement.test.ts`).
+
+⚠️ **`duplicate_needs_extra_material` est INATTEIGNABLE**, et le nommer l'a
+montré : la garde `board + grave < needed` juste au-dessus se réduit exactement
+à la même inégalité et absorbe tous ses cas (vérifié exhaustivement). La branche
+reste comme filet si la garde du dessus bouge ; un test documente la subsomption
+plutôt que de prétendre la couvrir.
+
+### Le pilote est PUR, l'écran ne fait que rendre
+
+`runAiPlacement(input)` monte un `Board`, restaure survivants et cimetière,
+branche la trace, pioche (`hand: null`) ou impose la main, place, range et
+applique le handicap. Aucune dépendance React / Zustand / Three / DOM — c'est ce
+qui le rend testable dans une suite qui tourne en node **sans jsdom** (même
+partage que `data/tutorialScript.ts`). Il ne réimplémente **aucune** règle : une
+seconde copie finirait par ne plus dire la même chose que celle qui est jouée,
+ce que le labo existe justement pour constater.
+
+⚠️ **Les `uid` sont renumérotés en index LOCAUX au run** (`canonicaliseUids`).
+`Unit.uid` sort d'un compteur de module et grandit sur toute la vie de l'onglet :
+deux exécutions du même scénario rendaient deux traces différentes, impossibles
+à differ — alors que le log existe pour être comparé et envoyé. Même leçon que
+`CombatRecorder`, qui a écarté l'`uid` de sa forme canonique pour cette raison.
+
+Un run multi-rounds n'est qu'une **liste** de `AiLabRound` : le `board_after` de
+l'un devient les `survivors` du suivant, il n'y a aucun état caché à porter.
+
+### L'écran
+
+⚠️ **Grille 5×4, la seule zone de l'IA (rangées 7 à 10)** — pas le plateau
+entier : sans combat, ni la zone neutre ni le camp joueur ne portent
+d'information, et l'IA ne les lit de toute façon jamais. Les rangées gardent
+leurs **numéros réels**, pour que grille, trace et log se lisent dans le même
+repère.
+
+⚠️ **Pas de `Scene3D`, donc pas de Three.js.** Ce n'est pas une économie : c'est
+ce qui permet d'annoter chaque case (quelle passe l'a posée, quels matériaux ont
+été consommés), précisément ce qu'un board 3D ne sait pas montrer et qui est
+l'objet même de l'écran. L'écran n'est donc **pas** dans `IMMERSIVE_SCREENS`, et
+il est quand même en `lazy()` — pour l'autre raison : un écran de dev que seul un
+admin ouvre n'a rien à faire dans le chunk d'entrée (chunk propre de 18,5 Ko).
+
+⚠️ **Toute édition d'entrée efface le RÉSULTAT affiché** (`editInputs`). La
+grille rend `result.board_after` dès qu'un placement a eu lieu : un survivant
+ajouté ensuite serait invisible, et la case qu'on croit vide est déjà prise —
+deux matériaux ajoutés à la suite atterrissaient sur la même case et le second
+était silencieusement ignoré (constaté au navigateur).
+
+⚠️ **La provenance de la main est conservée** (`handFromDraw`) : une main
+piochée et non retouchée est repassée au pilote en `hand: null`, qui repioche —
+même graine, même round, donc la même main. C'est ce qui fait que le log dit
+« piochée » et reste **rejouable** ; une main recopiée en dur se rejoue à
+l'identique mais ne dit plus d'où elle vient.
+
+### Le dépôt — deux écarts avec les logs PvP, et ils simplifient
+
+`ailog.js` est une **feuille** (ne require que `db`), table `ai_lab_runs`, purge
+dans le `runMaintenance` **existant** (`KEEP_DAYS = 30`, pas de nouveau
+minuteur), `AuthClient.postAiLog`.
+
+- ⚠️ **Le dépôt est ADMIN, pas joueur** (`POST /api/admin/ai-logs`, sous le même
+  `requireSiteAdmin` explicite que la lecture). Un log PvP est écrit par un
+  joueur ordinaire, d'où les contrôles d'appartenance et de rôle de
+  `pvplog.record` ; un run de labo ne peut venir que de l'écran de dev. Il n'y a
+  donc ni match à vérifier, ni rôle à usurper, ni quota à régler. Un dépôt refusé
+  se **dit** à l'écran, la trace restant lisible sur place.
+- ⚠️ **Les colonnes de liste sont dénormalisées à l'INSERTION**, calculées par le
+  serveur. `pvplog.list` doit désérialiser chaque payload pour rendre son
+  verdict, ce qui l'a obligé à borner sa pagination serré ; ici la liste ne parse
+  **jamais** un payload.
+- **Aucun `diff`** : il n'y a qu'un point de vue. Ce qui remplace le verdict,
+  c'est le compte de refus **par motif**.
+- ⚠️ L'`id` compose un nom de fichier (`Content-Disposition`) → garde stricte sur
+  la forme `crypto.randomUUID`, **400** et non 404. Même raison que
+  `safeAssetId` et le `DATE_RE` d'`admin-sim.js`.
+
+⚠️ La glose française des motifs vit dans `aiLabRun.REASON_LABELS` ; `admin.html`
+en tient une **copie** (il ne peut rien importer d'un module TS), exactement
+comme `PVP_KINDS` recopie le vocabulaire de `pvplog.diff`. Un motif ajouté ici
+est à reporter là-bas — la dérive est bénigne, un motif sans glose s'affiche par
+son slug.
+
+### Ce que le labo rend mesurable (et qui n'est PAS corrigé)
+
+Les toucher déplacerait le placement de l'IA dans tous les modes et ferait bouger
+les goldens de `sim.test.ts` :
+
+- **L'IA ne regarde jamais le camp adverse** — `_tryPlace` et `rearrangeUnits` ne
+  lisent que `getLivingUnitsOnSide(this._side)`. C'est le premier levier d'un
+  futur comportement par difficulté.
+- **Aucun scoring** : tri fixe `_summonPriority`, puis « premier qui passe » ;
+  la case est toujours `_freeCells(...)[0]`, le matériau le premier trouvé.
+- **La main est écrasée à chaque round** (`this._hand = hand`) : les cartes non
+  posées sont perdues, là où celle du joueur s'accumule.
+- **`rearrangeUnits` jette en silence** les unités au-delà du cap (ni mort, ni
+  cimetière) — le labo les nomme dans `dropped`.
+- **`COL[i % 5]` avec `Math.floor(i / 3)`** (`EnemyAI.js`) : les deux modulos ne
+  s'accordent pas, l'intention « centre vers bords » n'est tenue que sur la
+  première rangée.
+- `EnemyAI.getHand()` et `computeMultiplier()` sont du **code mort** (aucun
+  appelant ; la formule vivante est `GameState._multiplier`).
+
+### Tests
+
+`client/src/test/ai-lab.test.ts` (34 golden tests sur le pilote pur) et
+`client/src/test/ai-log.test.ts` (12, harnais HTTP réel d'`http-harness.ts`).
+
+⚠️ Chaque motif de refus est prouvé par le **motif rendu ET l'état du board** —
+jamais par le seul fait qu'aucune unité n'est sortie : c'est exactement
+l'ambiguïté que le lot supprime, un test qui s'en contenterait la
+réintroduirait. Côté HTTP, chaque refus est prouvé par l'**absence de ligne en
+base**, jamais par un code de statut. Le test qui compte est celui de
+**non-régression** : trace branchée ou non, l'IA pose les mêmes unités aux mêmes
+cases.
+
+⚠️ L'écran n'est pas testé — la suite tourne en node sans jsdom, aucun test de
+composant n'est possible dans ce projet. Il se vérifie au navigateur (Chromium et
+Playwright préinstallés, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`, ne **pas**
+lancer `playwright install`).
+
+### Comment le retirer
+
+Tout est **additif**, en six points : la table `ai_lab_runs` et ses statements
+dans `db.js`, `ailog.js`, `routes/admin-ailog.js` et son `app.use`, la purge dans
+`runMaintenance`, l'onglet d'`admin.html`, et côté client `dev/AiLab.tsx` +
+`dev/aiLabRun.ts` + l'entrée `ailab` (uiStore/App/MainMenu) + `postAiLog`. Dans
+`logic/EnemyAI.js`, seuls les paramètres `trace` et `setHand` sont à retirer —
+les **motifs de refus**, eux, méritent de rester : ils ne coûtent rien et
+suppriment une ambiguïté qui a duré tout le projet.
 
 ---
 
