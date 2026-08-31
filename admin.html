@@ -3290,6 +3290,8 @@ const EFFECT_TYPE_LABELS = {
   destroy_unit: 'Détruire une unité',
   drain_life: 'Absorber les PV d\'une unité',
   hand_to_graveyard: 'Main → cimetière',
+  duplicate_unit: 'Dupliquer une unité (→ main)',
+  duplicate_card: 'Dupliquer une carte de la main',
   reduce_sacrifice_cost: 'Réduire coût sacrifice',
   free_transformation: 'Transformation gratuite',
   remove_heritage_material: 'Retirer matériel Heritage',
@@ -3351,6 +3353,7 @@ function renderMagieDetail() {
   // `guaranteed_draw` porte DEUX filtres facultatifs qui se cumulent : le tier
   // et la voie d'invocation. Les deux champs sortent donc ensemble.
   const showPower = effectType === 'grant_power';
+  const showDup = ['duplicate_unit', 'duplicate_card'].includes(effectType);
   const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
   const showValue = !noValue.includes(effectType);
   el.innerHTML = `
@@ -3418,6 +3421,8 @@ function renderMagieDetail() {
           <option value="grant_power" ${effectType === 'grant_power' ? 'selected' : ''}>Donner / remplacer le pouvoir d'une unité</option>
           <option value="power_cooldown" ${effectType === 'power_cooldown' ? 'selected' : ''}>Accélérer le pouvoir d'une unité</option>
           <option value="hand_to_graveyard" ${effectType === 'hand_to_graveyard' ? 'selected' : ''}>Envoyer une carte de la main au cimetière</option>
+          <option value="duplicate_unit" ${effectType === 'duplicate_unit' ? 'selected' : ''}>Dupliquer une unité du terrain → sa carte en main</option>
+          <option value="duplicate_card" ${effectType === 'duplicate_card' ? 'selected' : ''}>Dupliquer une carte de la main</option>
           <option value="reduce_sacrifice_cost" ${effectType === 'reduce_sacrifice_cost' ? 'selected' : ''}>Réduire coût de sacrifice (main)</option>
           <option value="free_transformation" ${effectType === 'free_transformation' ? 'selected' : ''}>Transformation gratuite (main)</option>
           <option value="remove_heritage_material" ${effectType === 'remove_heritage_material' ? 'selected' : ''}>Retirer matériel Heritage (main)</option>
@@ -3441,6 +3446,14 @@ function renderMagieDetail() {
       <div class="field" id="mf-value-field" style="${showValue ? '' : 'display:none'}">
         <label>Valeur</label>
         <input id="mf-effect-value" type="number" step="any" value="${effect.value ?? 0}">
+        <div id="mf-dup-note" style="${showDup ? '' : 'display:none'};font-size:11px;color:var(--muted);margin-top:4px">
+          Nombre de copies ajoutées à la main. <b>0 vaut 1 copie</b> — une magie qui ne
+          rendrait rien encaisserait son contrecoup pour du vide.<br>
+          ⚠️ En dupliquant une <b>unité</b>, c'est sa <b>carte de catalogue</b> qui revient :
+          ni bonus de Shopping, ni vétérance, ni pouvoir donné par magie. Et tant que
+          l'original vit, la copie n'est invocable qu'en le désignant comme matériau
+          (règle du doublon).
+        </div>
       </div>
       <div class="field" id="mf-power-field" style="${showPower ? '' : 'display:none'}">
         <label>Pouvoir donné</label>
@@ -3515,6 +3528,8 @@ function updateMagieEffectFields() {
   document.getElementById('mf-category-field').style.display = showTier ? '' : 'none';
   document.getElementById('mf-power-field').style.display = showPower ? '' : 'none';
   document.getElementById('mf-power-speed-field').style.display = showPower ? '' : 'none';
+  const dupNote = document.getElementById('mf-dup-note');
+  if (dupNote) dupNote.style.display = ['duplicate_unit', 'duplicate_card'].includes(type) ? '' : 'none';
 }
 
 function _collectMagieFields() {

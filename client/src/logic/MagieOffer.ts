@@ -45,6 +45,9 @@ export interface MagieOfferContext {
   /** Unités du joueur PORTANT un pouvoir — lu sur l'unité, pas sur sa carte
    *  (`grant_power` a pu lui en poser un). */
   poweredUnitCount: number;
+  /** Unités du board dont la CARTE est retrouvable au catalogue — les seules
+   *  qu'une duplication puisse copier (`GameSession._duplicableUnits`). */
+  duplicableUnitCount: number;
   graveyardCount: number;
   handCount: number;
   /** Tiers effectivement présents dans le DECK du joueur (pas dans sa main). */
@@ -103,6 +106,13 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     case 'defuse_fusion':            return ctx.defusableFusionCount > 0;
     case 'revive':                   return ctx.graveyardCount > 0;
     case 'hand_to_graveyard':        return ctx.handCount > 0;
+
+    // Les deux duplications se distinguent par leur SOURCE, et donc par le
+    // compteur qui les autorise. ⚠️ `duplicate_unit` ne se contente pas de
+    // `boardUnitCount` : une unité dont la carte a disparu du catalogue n'est
+    // pas copiable, et l'offrir ferait payer un contrecoup pour rien.
+    case 'duplicate_unit':           return ctx.duplicableUnitCount > 0;
+    case 'duplicate_card':           return ctx.handCount > 0;
 
     // ⚠️ Un tier absent du deck n'est PAS un no-op : `startPreparation` a un
     // double repli et pioche quand même — dans tout le deck, sans la

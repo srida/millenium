@@ -601,7 +601,8 @@ export class GameController {
     this._proceedNextRound();
   }
 
-  // Ciblage magie sur une carte de la main (hand_to_graveyard). L'index vient
+  // Ciblage magie sur une carte de la main (`hand_to_graveyard` la retire,
+  // `duplicate_card` la laisse et en ajoute une copie). L'index vient
   // de l'entrée groupée du HUD : c'est l'exemplaire représentatif qui part,
   // exactement comme à l'invocation (cf. HandEntry.idx).
   resolveMagieHandTarget(handIdx: number): void {

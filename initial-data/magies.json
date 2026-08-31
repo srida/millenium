@@ -276,5 +276,23 @@
 			"type": "guaranteed_draw",
 			"category": "fusion"
 		}
+	},
+	{
+		"id": "MAGIE_032",
+		"name": "Clonage",
+		"rarity": 3,
+		"effect": {
+			"type": "duplicate_unit",
+			"value": 1
+		}
+	},
+	{
+		"id": "MAGIE_033",
+		"name": "Copie conforme",
+		"rarity": 2,
+		"effect": {
+			"type": "duplicate_card",
+			"value": 1
+		}
 	}
 ]

@@ -26,6 +26,7 @@ const BARREN: MagieOfferContext = {
   boardUnitCount: 0,
   defusableFusionCount: 0,
   poweredUnitCount: 0,
+  duplicableUnitCount: 0,
   graveyardCount: 0,
   handCount: 0,
   deckTiers: [],
@@ -44,6 +45,7 @@ const LUSH: MagieOfferContext = {
   boardUnitCount: 3,
   defusableFusionCount: 1,
   poweredUnitCount: 2,
+  duplicableUnitCount: 3,
   graveyardCount: 2,
   handCount: 5,
   deckTiers: [1, 2, 3, 4, 5],
@@ -129,6 +131,8 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
     ['free_transformation', { type: 'free_transformation' }, 'deckHasTransformation', true],
     ['remove_heritage_material', { type: 'remove_heritage_material' }, 'deckHasHeritageMaterial', true],
     ['remove_fusion_material', { type: 'remove_fusion_material', value: 1 }, 'deckHasFusionMaterial', true],
+    ['duplicate_unit', { type: 'duplicate_unit', value: 1 }, 'duplicableUnitCount', 1],
+    ['duplicate_card', { type: 'duplicate_card', value: 1 }, 'handCount', 1],
   ];
 
   it.each(CASES)('%s : absente du contexte pauvre, présente dès que sa condition est remplie', (_name, effect, field, value) => {
@@ -138,6 +142,16 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
 
   it('draw_bonus est le SEUL effet qui ne dépend de rien', () => {
     expect(isMagieRelevant(magie({ type: 'draw_bonus', value: 1 }), BARREN)).toBe(true);
+  });
+
+  it('duplicate_unit ne se contente PAS de boardUnitCount', () => {
+    // ⚠️ Le piège : une unité sur le board dont la carte a quitté le catalogue
+    // n'est pas copiable. L'offrir ferait encaisser le contrecoup pour rien —
+    // exactement le « blanc » que ce filtre existe pour supprimer. Le compteur
+    // dédié est ce qui garde le ciblage et la pertinence d'accord.
+    const dup = magie({ type: 'duplicate_unit', value: 1 });
+    expect(isMagieRelevant(dup, { ...BARREN, boardUnitCount: 3 })).toBe(false);
+    expect(isMagieRelevant(dup, { ...BARREN, duplicableUnitCount: 1 })).toBe(true);
   });
 
   it('guaranteed_draw : le deck doit porter LE tier demandé, pas un autre', () => {
