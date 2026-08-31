@@ -1,12 +1,18 @@
 // Composition de l'offre de la Phase Shopping : quelles magies ont un effet
 // RÉEL dans l'état courant (pertinence), et laquelle sort (rareté).
 //
-// ⚠️ Module PLAT à dessein — il n'importe que des types. La pertinence d'une
-// magie est une question sur un ÉTAT, pas sur une session : la poser ici la rend
-// testable sans instancier une partie (la suite vitest tourne en node sans DOM),
-// et empêche `GameSession` d'être le seul endroit où la règle existe. C'est
-// `GameSession._offerContext()` qui traduit son état en `MagieOfferContext`, et
-// lui seul touche au deck du joueur.
+// ⚠️ Module PLAT à dessein — il n'importe que des types et les LECTEURS de
+// champ d'effet (`MagieEffect`, lui-même sans le moindre import). La pertinence
+// d'une magie est une question sur un ÉTAT, pas sur une session : la poser ici
+// la rend testable sans instancier une partie (la suite vitest tourne en node
+// sans DOM), et empêche `GameSession` d'être le seul endroit où la règle existe.
+// C'est `GameSession._offerContext()` qui traduit son état en
+// `MagieOfferContext`, et lui seul touche au deck du joueur.
+//
+// ⚠️ `tierShift` est IMPORTÉ et non recopié : le repli « 0 vaut +1 » doit être
+// le même ici et à l'application, sans quoi une magie serait offerte sur un
+// décalage et appliquée sur un autre.
+import { tierShift } from './MagieEffect.js';
 import type { Magie, MagieRarity } from './types.js';
 
 /**
@@ -53,6 +59,18 @@ export interface MagieOfferContext {
   duplicableGraveyardCount: number;
   graveyardCount: number;
   handCount: number;
+  /** Tiers des cartes de la MAIN — ce que `shift_tier_card` peut remplacer. */
+  handTiers: number[];
+  /** Tiers des unités du BOARD dont la carte est au catalogue — ce que
+   *  `shift_tier_unit` peut remplacer. Distinct de `handTiers` : les deux
+   *  magies ne désignent pas la même chose. */
+  boardTiers: number[];
+  /** Cartes de la main dont un matériel d'invocation peut être RENDU en main
+   *  (`draw_material`). ⚠️ Ni `handCount` ni « la carte a des matériels » ne
+   *  suffisent : un matériel désigné par attribut (`ARCH_*`) n'est une carte
+   *  que si le deck en porte une, et un id de matériel peut avoir quitté le
+   *  catalogue. Même famille que `duplicableUnitCount`. */
+  materialSourceCount: number;
   /** Tiers effectivement présents dans le DECK du joueur (pas dans sa main). */
   deckTiers: number[];
   /** Voies d'invocation présentes dans le DECK — le pendant de `deckTiers`
@@ -76,6 +94,11 @@ export interface MagieOfferContext {
    *  FAUX en PvP, où `enemy_hp` est réécrit chaque round depuis les PV
    *  autoritaires de l'adversaire — cf. `GameSession._offerContext`. */
   damageMultiplierMatters: boolean;
+}
+
+/** Une cible existe-t-elle dont le tier décalé de `shift` soit dans le deck ? */
+function _hasTierShift(targetTiers: readonly number[], deckTiers: readonly number[], shift: number): boolean {
+  return targetTiers.some(t => deckTiers.includes(t + shift));
 }
 
 /**
@@ -133,6 +156,25 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
       if (!effect.tier && !effect.category) return false;
       return (!effect.tier || ctx.deckTiers.includes(effect.tier))
         && (!effect.category || ctx.deckSummonTypes.includes(effect.category));
+
+    // Remplacement par tier : il faut une cible ET un pool où puiser. Le pool
+    // est le DECK du joueur, comme celui d'une pioche garantie — c'est la seule
+    // réserve de cartes qu'une partie connaisse.
+    //
+    // ⚠️ Optimiste d'un cheveu côté BOARD, et c'est assumé : le ciblage écarte
+    // en plus les unités dont tout le pool est DÉJÀ VIVANT sur le terrain (la
+    // règle du doublon, cf. `GameSession._boardTierShiftPool`), ce que des
+    // tiers seuls ne peuvent pas dire. Le cas demande que toutes les cartes du
+    // deck à ce tier soient posées en même temps ; il retombe alors sur la
+    // garde « Aucune cible valide » de `GameController.chooseMagie`, qui ne
+    // consomme pas la magie — le joueur en choisit une autre.
+    case 'shift_tier_card':          return _hasTierShift(ctx.handTiers, ctx.deckTiers, tierShift(magie));
+    case 'shift_tier_unit':          return _hasTierShift(ctx.boardTiers, ctx.deckTiers, tierShift(magie));
+    case 'draw_material':            return ctx.materialSourceCount > 0;
+    // ⚠️ Les DEUX conditions : une main vide n'a rien à sacrifier, et à PV
+    // pleins la magie brûlerait une carte pour rien. Même exigence que
+    // `player_hp_bonus`, dont c'est le jumeau côté gain.
+    case 'sacrifice_card_hp':        return ctx.handCount > 0 && ctx.playerHpBelowCap;
 
     case 'grant_power':              return ctx.boardUnitCount > 0;
     case 'power_cooldown':           return ctx.poweredUnitCount > 0;

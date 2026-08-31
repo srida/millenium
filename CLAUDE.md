@@ -2233,6 +2233,10 @@ Détection **automatique**, dérivée de `effect.type` — **aucun champ admin �
 | le cap partagé +1 slot est encore libre | `board_slot_bonus` |
 | `player_hp < PLAYER_HP_CAP` | `player_hp_bonus` |
 | le deck porte une carte du `summon_type` visé | `reduce_sacrifice_cost`, `free_transformation`, `remove_heritage_material`, `remove_fusion_material` |
+| une carte en main **et** le deck porte son tier voisin | `shift_tier_card` |
+| une unité au board **et** le deck porte son tier voisin | `shift_tier_unit` |
+| une carte en main dont un **matériel** est résolvable | `draw_material` |
+| une carte en main **et** `player_hp < PLAYER_HP_CAP` | `sacrifice_card_hp` |
 | toujours | `draw_bonus` |
 
 - La règle « Fusion avec matériaux » n'est écrite qu'**une fois** (`GameSession._defusableFusions`) : `magieUnitTargets` la sert au ciblage, `_offerContext` à la pertinence.
@@ -2287,15 +2291,21 @@ Champ **racine** `rarity: 1 | 2 | 3`. ⚠️ **Pas dans `effect`** : une magie s
 | `duplicate_unit` | `value` (nb de copies, déf. 1) | No-op dans `applyEffect` ; géré par `GameSession._duplicateUnitCard()` — cible une **unité du board** et ajoute sa **carte de catalogue** à la main. L'unité reste en jeu. |
 | `duplicate_graveyard_unit` | `value` (nb de copies, déf. 1) | No-op dans `applyEffect` ; géré par `GameSession._duplicateFromUnit()` — cible une unité du **cimetière** et ajoute sa **carte de catalogue** à la main. Le corps y **reste**, disponible comme matériau. |
 | `duplicate_card` | `value` (nb de copies, déf. 1) | No-op dans `applyEffect` ; géré par `GameSession.applyMagieOnHandCard()` — cible une carte de la **main** et en ajoute une copie. **L'originale est conservée.** |
+| `shift_tier_card` | `value` (décalage de tier, déf. **+1**) | No-op dans `applyEffect` ; géré par `GameSession.applyMagieOnHandCard()` — **remplace** une carte de la **main** par une carte du **deck** au tier voisin |
+| `shift_tier_unit` | `value` (décalage de tier, déf. **+1**) | No-op dans `applyEffect` ; géré par `GameSession._shiftTierUnit()` — **remplace** une unité du board par une unité bâtie sur une carte du **deck** au tier voisin, **sur sa case** |
+| `draw_material` | — | No-op dans `applyEffect` ; géré par `GameSession._drawMaterial()` — cible une carte de la **main** et ajoute à la main l'un de ses **matériels d'invocation**. La carte source reste en place |
+| `sacrifice_card_hp` | `value` (% des PV, déf. **100**) | No-op dans `applyEffect` ; géré par `GameSession.applyMagieOnHandCard()` — **brûle** une carte de la main et verse ses PV au joueur (plafond `PLAYER_HP_CAP`) |
 | `reduce_sacrifice_cost` | `value` (déf. 1) | `gameState.player_hand_modifiers.push({ type: 'reduce_sacrifice_cost', value })` — réduit le coût en sacrifices d'une carte Sacrifice en main |
 | `free_transformation` | — | `gameState.player_hand_modifiers.push({ type: 'free_transformation' })` — invoque une Transformation sans son monstre cible |
 | `remove_heritage_material` | — | `gameState.player_hand_modifiers.push({ type: 'remove_heritage_material' })` — retire le matériel Heritage obligatoire |
 | `remove_fusion_material` | `value` (déf. 1) | `gameState.player_hand_modifiers.push({ type: 'remove_fusion_material', value })` — retire N matériels requis d'une carte **Fusion** en main |
 
 **Helpers de routage** — **trois** familles de cibles, et elles s'excluent : `GameController.chooseMagie` les teste dans l'ordre unité → cimetière → main, un type reconnu par deux d'entre elles n'atteindrait jamais la troisième branche.
-- `needsUnitTarget(magie)` → `stat_bonus`, `stat_modifier`, `shield`, `heal`, `defuse_fusion`, `destroy_unit`, `drain_life`, `grant_power`, `power_cooldown`, `duplicate_unit` (cible une unité du board joueur — **vivante** : `magieUnitTargets` passe par `getPlayerUnits()`, aucun soin ne tombe donc sur un neutralisé encore posé après le combat)
+- `needsUnitTarget(magie)` → `stat_bonus`, `stat_modifier`, `shield`, `heal`, `defuse_fusion`, `destroy_unit`, `drain_life`, `grant_power`, `power_cooldown`, `duplicate_unit`, `shift_tier_unit` (cible une unité du board joueur — **vivante** : `magieUnitTargets` passe par `getPlayerUnits()`, aucun soin ne tombe donc sur un neutralisé encore posé après le combat)
 - `needsGraveyardTarget(magie)` → `revive` et `duplicate_graveyard_unit` (cible une unité du cimetière). ⚠️ Les deux n'en font **pas** le même usage : `revive` l'en **sort** pour la reposer sur le terrain, `duplicate_graveyard_unit` la **laisse** et ne rend que sa carte.
-- `needsHandTarget(magie)` → `hand_to_graveyard` et `duplicate_card` (cible une **carte de la main**). ⚠️ Les deux ne font **pas** le même geste : le premier **retire** la carte désignée, le second la **laisse** et en ajoute une copie. Seule la façon de désigner est commune.
+- `needsHandTarget(magie)` → `hand_to_graveyard`, `duplicate_card`, `shift_tier_card`, `draw_material` et `sacrifice_card_hp` (cible une **carte de la main**). ⚠️ Aucune n'y fait le même geste — seule la façon de **désigner** est commune : `hand_to_graveyard` retire la carte et la pose au cimetière, `duplicate_card` la laisse et en ajoute une copie, `shift_tier_card` la remplace, `draw_material` la laisse et ajoute l'un de ses matériels, `sacrifice_card_hp` la brûle contre des PV.
+  - ⚠️ **Et elles n'acceptent pas les mêmes cartes** : `GameSession.magieHandTargets(magie)` rend les **index** de `session.hand` qu'une magie peut réellement servir — le pendant exact de `magieUnitTargets` côté board, ajouté avec ces trois-là. `shift_tier_card` écarte une carte dont le tier voisin est absent du deck, `draw_material` une carte sans matériel résolvable ; les trois autres acceptent tout, **carte injouable comprise** — c'est même souvent celle qu'on veut brûler. Il voyage jusqu'au HUD par `shopping.handTargets` (`null` = aucune restriction), et `GameController.resolveMagieHandTarget` le **revérifie** : le HUD montre la règle, il ne la tient pas.
+  - ⚠️ `magieHandTargets` ne consomme **aucun** hasard, et c'est vérifié par golden test : il est interrogé à chaque rendu de la main, un `rand()` dépensé par une question d'affichage décalerait toute la pioche d'une partie semée.
 - Tous les autres types sont des effets globaux appliqués immédiatement — les magies d'**équipe** comprises (`team_stat_bonus`, `team_heal`) : elles frappent tout le board sans rien demander au joueur.
 
 ⚠️ **Chaque magie d'équipe est le pendant d'une magie à cible unique, et les deux ne se dosent pas pareil.** `heal` soigne **tout** parce qu'il ne touche qu'une unité ; `team_heal` porte un **montant** parce qu'il les touche toutes. Copier le barème de l'un sur l'autre est l'erreur qui rend l'une des deux sans objet.
@@ -2365,11 +2375,54 @@ Trois sources, **une seule destination : la main**. `duplicate_unit` copie la ca
 - **Rien côté PvP, rien côté réseau, rien côté HUD** : la main ne voyage pas dans `round:board_ready` (seules les unités du board y entrent), le ciblage réutilise les deux familles existantes (`unit` et `hand`), et l'application a lieu **avant** `startPreparation()` — donc avant la capture du point de retour de « Tout annuler », qui n'a rien à en savoir.
 - Verrouillé par 23 golden tests dans `shopping.test.ts` et 5 dans `magie-offer.test.ts`, tous **éprouvés dans les deux sens** : `duplicateCopies` passée en `??`, copie par référence au lieu d'un objet neuf, `duplicate_card` retirant sa cible, duplication du cimetière confondue avec `revive` (l'unité sortie du cimetière), contrecoup prélevé avant la résolution de la carte, ciblage non filtré par le catalogue, pertinence rabattue sur `boardUnitCount` ou sur `graveyardCount`, les types oubliés dans `isMagieRelevant` (le `default: false`) ou dans `needsGraveyardTarget`, et la copie emportant les acquis de l'unité — chacune de ces douze régressions fait passer la suite au rouge.
 
+### Remplacement par tier (`shift_tier_card`, `shift_tier_unit`)
+
+« Remplace une carte **ou** une unité par une carte du tier du dessus ou du dessous. » Deux effets pour un seul geste, parce que les familles de ciblage s'excluent : `shift_tier_card` désigne une carte de la **main**, `shift_tier_unit` une **unité du terrain**. Le `value` de l'effet porte le **décalage** — `1` le tier au-dessus, `-1` celui du dessous, `-2`/`2` fonctionnent aussi.
+
+⚠️ **Le pool est le DECK du joueur, jamais le catalogue.** C'est la seule réserve de cartes qu'une partie connaisse — celle où puisent déjà la pioche et les pioches garanties —, et c'est ce qui rend la magie lisible : on monte dans **son** deck. Corollaire : un deck mono-tier ne peut rien remplacer, et la magie n'est alors pas offerte.
+
+⚠️ **`tierShift` lit `effect.value` avec le repli de `duplicateCopies`, et pour la même raison** : une **Valeur laissée à 0** en admin est le *défaut du champ*, pas une intention — lue strictement, elle remplacerait une carte par une carte du **même tier**, contrecoup encaissé pour rien. Elle vaut donc `+1`. ⚠️ Et `MagieOffer` **importe** ce lecteur au lieu de le recopier : offerte sur un décalage et appliquée sur un autre serait le pire des deux mondes.
+
+⚠️ **Sur une unité, c'est une SUBSTITUTION, pas une mort ni une invocation.** L'ancienne quitte la partie sans passer par le **cimetière** — l'y laisser ferait payer la magie deux fois, une unité de plus *et* un matériau d'invocation. Et rien de ce qu'elle avait acquis ne survit (bonus de Shopping, vétérance, PV courants, bouclier, pouvoir posé par `grant_power`) : la nouvelle est bâtie sur l'entrée du catalogue, exactement comme la copie que rend `duplicate_unit`. Sans cette étanchéité, une chaîne d'ascensions capitaliserait les investissements des rounds précédents. La **case** est en revanche conservée, `initial_position` comprise : c'est le sens du mot « remplace ».
+
+⚠️ **La RÈGLE DU DOUBLON tient**, et c'est la seule différence entre les deux variantes : `_boardTierShiftPool` retire du tirage les cartes **déjà vivantes** sur le terrain. Une copie de plus en main est légale (`duplicate_card` en fabrique déjà), un second exemplaire vivant ne l'est pas — une magie n'ouvre pas une porte que l'invocation ferme. Une unité dont tout le pool est posé n'est donc **pas une cible**.
+
+⚠️ Corollaire assumé : **la pertinence de l'offre est optimiste d'un cheveu côté board.** `MagieOffer` ne connaît que des tiers, il ne peut pas voir le filtre du doublon. Le cas — toutes les cartes du deck à ce tier posées en même temps — retombe sur la garde « Aucune cible valide » de `GameController.chooseMagie`, qui **ne consomme pas la magie** : le joueur en choisit une autre. C'est la seule des trois gardes de ce bloc qui soit atteignable.
+
+- Rien côté rendu : `Scene3D.refresh()` est un diff indexé par `uid`, il despawn l'ancienne unité et spawn la nouvelle sans une ligne de plus — `GameController` l'appelle déjà après tout ciblage de magie.
+- Le remplacement posé en main est un **objet neuf**, jamais la référence du deck : `canUndoPreparation` compare la main par référence, et une retouche de main muterait sinon le deck lui-même.
+
+### Pioche d'un matériel (`draw_material`)
+
+« Pioche un matériel d'une carte sélectionnée. » On désigne une carte de la **main** ; l'un de ses matériels d'invocation rejoint la main. La carte source **reste en place** — c'est elle qu'on cherche à jouer.
+
+⚠️ **« A des matériels » ne suffit pas à en faire une cible.** Un id peut avoir quitté le catalogue, et surtout un matériel désigné par **attribut** (`ARCH_*`) n'est pas une carte : il n'en devient une que si le deck en porte une. Même piège que `duplicate_unit`, qui ne se contente pas de `boardUnitCount` — d'où `materialSourceCount` dans le contexte d'offre, et `_drawableMaterialIds` comme unique juge du ciblage *et* de la pertinence.
+
+⚠️ **Les deux sortes de matériel ne puisent pas au même endroit, et c'est délibéré** : un matériel nommé par **id** vient du **catalogue** (c'est la carte exacte que la recette exige, montée dans le deck ou non), un matériel d'**attribut** vient du **deck** (il ne nomme personne, il faut bien choisir).
+
+- **Double repli, dans l'esprit des pioches garanties** : on tire d'abord parmi les matériels que le joueur n'a **pas** (board, cimetière et main confondus) — les seuls qui débloquent quelque chose — et à défaut parmi tous. Sans ce tri, la magie rendrait le plus souvent le matériau déjà posé.
+- ⚠️ Le joueur ne **choisit pas** lequel : ce serait un second temps de ciblage (carte → matériel) et une famille de plus dans `awaitingTarget`. Le tirage suffit, et il est semé.
+
+### Sacrifice d'une carte contre des PV (`sacrifice_card_hp`)
+
+« Sacrifie une carte en main pour gagner ses PV en points de vie. » Troisième jumeau de `player_hp_bonus` et `drain_life` — la seule source de PV joueur qui se paie en **cartes** plutôt qu'en unités. `value` est un **pourcentage** (défaut 100, `0` valant 100 comme partout ailleurs), le gain est plafonné à `PLAYER_HP_CAP`.
+
+⚠️ **La carte est BRÛLÉE, elle ne va pas au cimetière** — c'est la seule chose qui la sépare de `hand_to_graveyard`, et l'y envoyer rendrait le choix entre les deux magies sans objet. On échange une carte contre des PV, on n'en garde pas le corps comme matériau.
+
+⚠️ **Les PV lus sont ceux de la CARTE** (`stats.hp`), pas des PV courants : rien n'a encore été posé. C'est la différence avec `drain_life`, qui absorbe une unité et verse donc ce qu'il en reste.
+
+⚠️ **La pertinence exige les DEUX conditions** — une main non vide *et* `player_hp < PLAYER_HP_CAP`. À PV pleins la magie brûlerait une carte pour rien, et une partie **commence** au plafond : elle n'est donc jamais offerte avant le premier round encaissé, ce qui est exactement l'intention.
+
+- Elle ne finance pas son propre contrecoup : le coût est prélevé **avant** l'effet et l'accessibilité se juge sur les PV d'avant, même règle que `drain_life`.
+- Verrouillé par 30 golden tests dans `shopping.test.ts` et 10 dans `magie-offer.test.ts`, tous **éprouvés dans les deux sens** : `tierShift` passé en `??`, filtre du doublon retiré, `magieHandTargets` rendu permissif, paiement déplacé avant la résolution, préférence du matériel manquant retirée, carte sacrifiée envoyée au cimetière, unité remplacée conservant ses acquis, matériel d'attribut non résolu — chacune de ces huit régressions fait passer la suite au rouge.
+
 **Traçage des bonus permanents** : `stat_bonus` / `stat_modifier` écrivent dans `unit._base` **et** cumulent le delta réel dans `unit._shopping_bonus[stat]`. `InvocationManager._transferShoppingBonuses` reporte ces bonus sur l'unité composite quand l'unité est consommée comme matériau (sacrifice/fusion/heritage) ou remplacée (transformation) — un investissement de Shopping n'est jamais perdu par une invocation. Sont transférés : les deltas de stats (**sommés** sur tous les matériaux), le bouclier restant (sommé) et les points de vétérance (**maximum**, pas somme).
 
 ### Admin panel
 
 Onglet "Magies" dans `admin.html` : CRUD complet, sélecteur `effect.type` avec champs conditionnels (`stat`, `value`, `tier`), import JSON en masse, gestion d'illustration. ID auto-généré au format `MAGIE_<next>`.
+
+⚠️ **Le champ `Valeur` ne veut pas dire la même chose d'un type à l'autre**, et c'est ce que les notes conditionnelles du formulaire portent : nombre de copies (`duplicate_*`), **décalage de tier** signé (`shift_tier_*`), **pourcentage** de PV (`sacrifice_card_hp`, `revive`), facteur de division (`power_cooldown`)… Le seul invariant qui les traverse toutes est le repli : **`0` est le défaut du champ, jamais une intention** — il vaut 1 copie, +1 tier, 100 %. Un type qui ne lit pas de valeur (`draw_material`, `heal`, `defuse_fusion`…) doit rejoindre les **deux** listes `noValue` du fichier — celle du rendu et celle de `_collectMagieFields` —, sans quoi un `value: 0` parasite est persisté dans le catalogue.
 
 ### Routes API
 
@@ -2847,6 +2900,10 @@ Effets supportés (`AttributeManager`) :
 | `board_slot_bonus` | `end_of_combat` | Passe par `grantLimitedBoardSlotBonus` — **cap +1 partagé avec les magies de slot** |
 | `damage_multiplier_bonus` | `end_of_combat` | S'ajoute au `player_multiplier` pour les dégâts de ce round |
 | `shopping_bonus` | `end_of_combat` | Magies supplémentaires à la Phase Shopping suivante (plafonné par `max`) |
+
+⚠️ **`shopping_bonus` — « +1 option à la Phase Shopping » — était IMPLÉMENTÉ mais inatteignable.** Toute la chaîne existait (`AttributeManager._applyEndForSide` → `attributeResult.shopping_bonus` → `GameState.player_extra_shopping_magies` → `GameSession.getShoppingMagies`), mais le type n'était offert **nulle part** : absent du `<select>` de l'onglet Attributs, aucun des 57 attributs livrés ne le porte, et l'infobulle de synergie l'annonçait au joueur sous son **slug brut** (`boardEffectLabel`, qui décrit aussi les effets d'attribut, n'avait pas son entrée). Les trois manquent sont comblés ; le barème, lui, reste à écrire en admin — aucun attribut livré ne l'utilise encore.
+
+⚠️ Corollaire de méthode : un effet d'attribut n'existe pour de bon qu'aux **trois** endroits à la fois — le moteur, le `<select>` de l'admin (avec son champ `max` si le type en accepte un) et le libellé français. Deux sur trois donnent une fonctionnalité que personne ne peut ni écrire ni lire.
 
 ### Timings
 

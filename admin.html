@@ -2526,7 +2526,7 @@ function _attrEffectFieldVisibility(type) {
     showStat: ['stat_bonus', 'stat_modifier'].includes(type),
     showValuePer: ['stat_bonus', 'shield'].includes(type),
     showTrigger: type === 'stat_modifier',
-    showMax: ['draw_bonus', 'board_slot_bonus'].includes(type),
+    showMax: ['draw_bonus', 'board_slot_bonus', 'shopping_bonus'].includes(type),
     showTarget: type === 'revive',
     showHpPercent: type === 'revive',
     showCategory: type === 'guaranteed_draw',
@@ -2551,6 +2551,7 @@ function renderEffectBlock(ef, ti, ei) {
             <option value="shield" ${type === 'shield' ? 'selected' : ''}>Bouclier</option>
             <option value="board_slot_bonus" ${type === 'board_slot_bonus' ? 'selected' : ''}>Slot de board supplémentaire</option>
             <option value="damage_multiplier_bonus" ${type === 'damage_multiplier_bonus' ? 'selected' : ''}>Multiplicateur de dégât supplémentaire (fin de combat)</option>
+            <option value="shopping_bonus" ${type === 'shopping_bonus' ? 'selected' : ''}>Magie supplémentaire à la Phase Shopping</option>
             <option value="effect_immunity" ${type === 'effect_immunity' ? 'selected' : ''}>Immunité aux effets négatifs (poison, paralysie, push, burn…)</option>
           </select>
         </div>
@@ -3293,6 +3294,10 @@ const EFFECT_TYPE_LABELS = {
   duplicate_unit: 'Dupliquer une unité (→ main)',
   duplicate_graveyard_unit: 'Dupliquer une unité du cimetière (→ main)',
   duplicate_card: 'Dupliquer une carte de la main',
+  shift_tier_card: 'Remplacer une carte (tier voisin)',
+  shift_tier_unit: 'Remplacer une unité (tier voisin)',
+  draw_material: 'Piocher un matériel',
+  sacrifice_card_hp: 'Sacrifier une carte → PV joueur',
   reduce_sacrifice_cost: 'Réduire coût sacrifice',
   free_transformation: 'Transformation gratuite',
   remove_heritage_material: 'Retirer matériel Heritage',
@@ -3355,7 +3360,9 @@ function renderMagieDetail() {
   // et la voie d'invocation. Les deux champs sortent donc ensemble.
   const showPower = effectType === 'grant_power';
   const showDup = ['duplicate_unit', 'duplicate_graveyard_unit', 'duplicate_card'].includes(effectType);
-  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
+  const showShift = ['shift_tier_card', 'shift_tier_unit'].includes(effectType);
+  const showSacHp = effectType === 'sacrifice_card_hp';
+  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material', 'draw_material'];
   const showValue = !noValue.includes(effectType);
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
@@ -3425,6 +3432,10 @@ function renderMagieDetail() {
           <option value="duplicate_unit" ${effectType === 'duplicate_unit' ? 'selected' : ''}>Dupliquer une unité du terrain → sa carte en main</option>
           <option value="duplicate_graveyard_unit" ${effectType === 'duplicate_graveyard_unit' ? 'selected' : ''}>Dupliquer une unité du cimetière → sa carte en main</option>
           <option value="duplicate_card" ${effectType === 'duplicate_card' ? 'selected' : ''}>Dupliquer une carte de la main</option>
+          <option value="shift_tier_card" ${effectType === 'shift_tier_card' ? 'selected' : ''}>Remplacer une carte de la main par une carte du tier voisin</option>
+          <option value="shift_tier_unit" ${effectType === 'shift_tier_unit' ? 'selected' : ''}>Remplacer une unité du terrain par une unité du tier voisin</option>
+          <option value="draw_material" ${effectType === 'draw_material' ? 'selected' : ''}>Piocher un matériel d'invocation d'une carte de la main</option>
+          <option value="sacrifice_card_hp" ${effectType === 'sacrifice_card_hp' ? 'selected' : ''}>Sacrifier une carte de la main → PV du joueur</option>
           <option value="reduce_sacrifice_cost" ${effectType === 'reduce_sacrifice_cost' ? 'selected' : ''}>Réduire coût de sacrifice (main)</option>
           <option value="free_transformation" ${effectType === 'free_transformation' ? 'selected' : ''}>Transformation gratuite (main)</option>
           <option value="remove_heritage_material" ${effectType === 'remove_heritage_material' ? 'selected' : ''}>Retirer matériel Heritage (main)</option>
@@ -3458,6 +3469,29 @@ function renderMagieDetail() {
           désigner comme matériau) — c'est un remplaçant qu'on met de côté. Depuis le
           <b>cimetière</b>, l'original n'est pas vivant : la copie est jouable tout de
           suite, et le corps reste disponible comme matériau.
+        </div>
+      </div>
+        <div id="mf-shift-note" style="${showShift ? '' : 'display:none'};font-size:11px;color:var(--muted);margin-top:4px">
+          Décalage de <b>tier</b> : <b>1</b> = le tier au-dessus, <b>−1</b> = le tier en dessous
+          (−2, 2… fonctionnent aussi). <b>0 vaut 1</b> — un décalage nul remplacerait une carte
+          par une carte du même tier, contrecoup encaissé pour rien.<br>
+          Le remplacement est tiré dans le <b>deck du joueur</b>, jamais dans tout le catalogue :
+          un tier voisin absent du deck rend la carte (ou l'unité) non ciblable, et la magie
+          n'est pas offerte s'il n'existe aucune cible.<br>
+          ⚠️ Sur une <b>unité</b>, c'est une <b>substitution</b> : l'ancienne quitte la partie
+          sans passer par le cimetière, et la nouvelle est bâtie sur l'entrée du catalogue —
+          ni bonus de Shopping, ni vétérance, ni PV courants, ni pouvoir donné par magie. Elle
+          garde en revanche la case. La règle du doublon est respectée : une carte déjà vivante
+          sur le terrain ne sort jamais du tirage.
+        </div>
+        <div id="mf-sachp-note" style="${showSacHp ? '' : 'display:none'};font-size:11px;color:var(--muted);margin-top:4px">
+          Pourcentage des PV de la carte versé au joueur. <b>0 vaut 100 %</b> — le défaut du champ
+          n'est pas une intention.<br>
+          Les PV lus sont ceux de la <b>carte</b> (rien n'est encore posé), et le gain est plafonné
+          à 1000 comme celui de « Bonus HP joueur ». La carte est <b>brûlée</b> : elle ne va pas au
+          cimetière, sinon la magie ferait double emploi avec « Envoyer une carte de la main au
+          cimetière ».<br>
+          ⚠️ La magie n'est pas offerte à PV pleins — elle brûlerait une carte pour rien.
         </div>
       </div>
       <div class="field" id="mf-power-field" style="${showPower ? '' : 'display:none'}">
@@ -3525,7 +3559,7 @@ function updateMagieEffectFields() {
   const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(type);
   const showTier = type === 'guaranteed_draw';
   const showPower = type === 'grant_power';
-  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
+  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material', 'draw_material'];
   const showValue = !noValue.includes(type);
   document.getElementById('mf-stat-field').style.display = showStat ? '' : 'none';
   document.getElementById('mf-value-field').style.display = showValue ? '' : 'none';
@@ -3535,12 +3569,16 @@ function updateMagieEffectFields() {
   document.getElementById('mf-power-speed-field').style.display = showPower ? '' : 'none';
   const dupNote = document.getElementById('mf-dup-note');
   if (dupNote) dupNote.style.display = ['duplicate_unit', 'duplicate_graveyard_unit', 'duplicate_card'].includes(type) ? '' : 'none';
+  const shiftNote = document.getElementById('mf-shift-note');
+  if (shiftNote) shiftNote.style.display = ['shift_tier_card', 'shift_tier_unit'].includes(type) ? '' : 'none';
+  const sacHpNote = document.getElementById('mf-sachp-note');
+  if (sacHpNote) sacHpNote.style.display = type === 'sacrifice_card_hp' ? '' : 'none';
 }
 
 function _collectMagieFields() {
   const effectType = document.getElementById('mf-effect-type')?.value || 'none';
   let effect = null;
-  const noValue = ['heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material'];
+  const noValue = ['heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material', 'draw_material'];
   if (effectType !== 'none') {
     effect = { type: effectType };
     if (effectType === 'guaranteed_draw') {

@@ -20,7 +20,7 @@ import type { BoardPickContext, AttributeCounts } from './BoardPicker.js';
 // Modules JS encore non convertis : leurs annotations JSDoc (Card[][], null par
 // défaut…) sont trop étroites pour l'interop TS. Casts localisés en attendant
 // la conversion TS de ces modules (au fil des phases).
-import { applyEffect as _applyMagieEffect, needsUnitTarget, needsGraveyardTarget, needsHandTarget, magieCostHp, canAffordMagie, duplicateCopies } from './MagieEffect.js';
+import { applyEffect as _applyMagieEffect, needsUnitTarget, needsGraveyardTarget, needsHandTarget, magieCostHp, canAffordMagie, duplicateCopies, tierShift, sacrificeHpPercent } from './MagieEffect.js';
 import * as _InvocationManager from './InvocationManager.js';
 const applyMagieEffect = _applyMagieEffect as (magie: any, ctx: { gameState?: any; targetUnit?: any; targetUnits?: any[] }) => void;
 const InvocationManager = _InvocationManager as any;
@@ -36,6 +36,11 @@ import type { MagieOfferContext } from './MagieOffer.js';
 import type { Card, Position, BoardDef, AttributeDef, Magie, RoundWinner } from './types.js';
 
 const HAND_SIZE = 5;
+
+/** Les tiers DISTINCTS d'une liste de cartes, entrées sans tier ignorées. */
+function _tiers(cards: readonly (Card | null | undefined)[]): number[] {
+  return [...new Set(cards.map(c => c?.tier).filter((t): t is number => typeof t === 'number'))];
+}
 
 export interface CardDbLike {
   getCard(id: string): Card | null;
@@ -714,7 +719,7 @@ export class GameSession {
    * ouvrir — et `MagieOffer` reste testable sans instancier une partie.
    */
   private _offerContext(): MagieOfferContext {
-    const deck = Object.values(this.deps.cardsByTier).flat();
+    const deck = this._deckCards();
     return {
       boardUnitCount: this.getPlayerUnits().length,
       defusableFusionCount: this._defusableFusions().length,
@@ -723,6 +728,9 @@ export class GameSession {
       duplicableGraveyardCount: this._duplicableGraveyardUnits().length,
       graveyardCount: this.graveyard.length,
       handCount: this.hand.length,
+      handTiers: _tiers(this.hand),
+      boardTiers: _tiers(this._duplicableUnits().map(u => this.deps.cardDb.getCard(u.card_id)!)),
+      materialSourceCount: this.hand.filter(c => this._drawableMaterialIds(c).length > 0).length,
       deckTiers: [...new Set(deck.map(c => c.tier).filter((t): t is number => typeof t === 'number'))],
       deckSummonTypes: [...new Set(deck.map(c => c.summon_type).filter((t): t is NonNullable<typeof t> => typeof t === 'string'))],
       // ⚠️ FAUX en PvP, et ce n'est pas une restriction arbitraire : `enemy_hp`
@@ -821,12 +829,144 @@ export class GameSession {
     return units.filter(u => !!this.deps.cardDb.getCard(u.card_id));
   }
 
+  /** Le deck du joueur à plat. Ne SORT pas de la session : les accesseurs
+   *  publics n'en rendent que des tiers, des booléens et des cartes tirées. */
+  private _deckCards(): Card[] {
+    return Object.values(this.deps.cardsByTier).flat();
+  }
+
+  /**
+   * Le pool de remplacement d'une cible de tier `tier`, décalée de `shift` :
+   * les cartes du DECK au tier voisin. Le deck et pas le catalogue — c'est la
+   * seule réserve de cartes qu'une partie connaisse, celle où puisent déjà la
+   * pioche et les pioches garanties.
+   *
+   * Un tier hors bornes ne demande aucune garde : `cardsByTier` n'a pas de case
+   * 0 ni 6, le pool est vide et la cible n'en est pas une.
+   */
+  private _tierShiftPool(tier: number | undefined, shift: number): Card[] {
+    if (typeof tier !== 'number') return [];
+    return this.deps.cardsByTier[tier + shift] ?? [];
+  }
+
+  /**
+   * Le même pool, pour un remplacement SUR LE TERRAIN — moins ce qui y est déjà
+   * vivant.
+   *
+   * ⚠️ C'est la RÈGLE DU DOUBLON, et c'est la seule différence entre les deux
+   * variantes de la magie : une copie de plus en main est légale (la règle ne
+   * pèse que sur le board, et `duplicate_card` en fabrique déjà), un second
+   * exemplaire VIVANT ne l'est pas. Une magie n'a pas à ouvrir une porte que
+   * l'invocation ferme.
+   */
+  private _boardTierShiftPool(tier: number | undefined, shift: number): Card[] {
+    const alive = new Set(this.getPlayerUnits().map(u => u.card_id));
+    return this._tierShiftPool(tier, shift).filter(c => !alive.has(c.id));
+  }
+
+  /** Unités du board qu'un `shift_tier_unit` peut effectivement remplacer.
+   *  Même famille que `_defusableFusions` / `_poweredUnits` : la règle sert le
+   *  ciblage ET la pertinence, elle ne doit exister qu'à un endroit. */
+  private _tierShiftUnits(shift: number): Unit[] {
+    return this._duplicableUnits().filter(u => {
+      const card = this.deps.cardDb.getCard(u.card_id);
+      return this._boardTierShiftPool(card?.tier, shift).length > 0;
+    });
+  }
+
+  /** Tire une carte de remplacement dans un pool. Objet NEUF, comme
+   *  `_pushHandCopies` : deux cases de la main ne partagent jamais une carte. */
+  private _pickFrom(pool: readonly Card[]): Card | null {
+    if (!pool.length) return null;
+    return { ...pool[Math.floor(this._rand() * pool.length)] };
+  }
+
+  // ── `draw_material` : rendre en main un matériel d'invocation ─────────────
+
+  /**
+   * Les matériels d'une carte qu'on sait rendre en main.
+   *
+   * ⚠️ PUR, aucun tirage : `magieHandTargets` l'interroge à chaque rendu de la
+   * main, et un `rand()` consommé par une question d'affichage décalerait tout
+   * le flux semé de la partie.
+   *
+   * ⚠️ « A des matériels » ne suffit pas : un id peut avoir quitté le
+   * catalogue, et un matériel désigné par ATTRIBUT (`ARCH_*`) n'est pas une
+   * carte — il n'en est une que si le deck en porte une. Même piège que
+   * `duplicate_unit`, qui ne se contente pas de `boardUnitCount`.
+   */
+  private _drawableMaterialIds(card: Card): string[] {
+    return [...new Set(card.cost?.materials ?? [])].filter(id => this._materialBearers(id).length > 0);
+  }
+
+  /** Les cartes qui peuvent tenir lieu de ce matériel : la carte nommée, ou —
+   *  pour un matériel d'attribut — les cartes du deck qui le portent. */
+  private _materialBearers(matId: string): Card[] {
+    if (InvocationManager.isAttributeMaterial(matId)) {
+      return this._deckCards().filter(c => c.attributes?.includes(matId));
+    }
+    // ⚠️ Le CATALOGUE et non le deck : un matériel nommé par id est la carte
+    // exacte que la recette exige, qu'elle soit dans le deck ou non. C'est le
+    // matériel d'attribut, qui ne nomme personne, qui doit puiser dans le deck.
+    const card = this.deps.cardDb.getCard(matId) as Card | null;
+    return card ? [card] : [];
+  }
+
+  /** Le joueur dispose-t-il déjà de ce matériel — sur le board, au cimetière ou
+   *  en main ? Sert à préférer ce qui MANQUE (cf. `_drawMaterial`). */
+  private _ownsMaterial(matId: string): boolean {
+    const units = [...this.getPlayerUnits(), ...this.graveyard];
+    if (units.some(u => InvocationManager.matchesMaterial(u, matId))) return true;
+    return this.hand.some(c => (InvocationManager.isAttributeMaterial(matId)
+      ? !!c.attributes?.includes(matId)
+      : (c.represented_ids?.includes(matId) ?? c.id === matId)));
+  }
+
+  /**
+   * Le matériel rendu en main. Double repli, dans l'esprit des pioches
+   * garanties : on tire d'abord parmi les matériels que le joueur n'a PAS —
+   * c'est le seul qui débloque quelque chose — et à défaut parmi tous.
+   * Sans ce tri, la magie rendrait souvent le matériau déjà posé sur le board.
+   */
+  private _drawMaterial(card: Card): Card | null {
+    const ids = this._drawableMaterialIds(card);
+    if (!ids.length) return null;
+    const missing = ids.filter(id => !this._ownsMaterial(id));
+    const pool = missing.length ? missing : ids;
+    const matId = pool[Math.floor(this._rand() * pool.length)];
+    return this._pickFrom(this._materialBearers(matId));
+  }
+
+  /**
+   * Les cartes de la main qu'une magie de main peut réellement servir, par
+   * INDEX dans `session.hand` — le pendant exact de `magieUnitTargets` côté
+   * board, et il a la même raison d'être : `shift_tier_card` sur une carte dont
+   * le tier voisin est absent du deck, ou `draw_material` sur une carte sans
+   * matériel, sont des taps qui consommeraient la magie pour rien.
+   *
+   * Les trois autres magies de main acceptent n'importe quelle carte — y
+   * compris une carte injouable, qui est même souvent celle qu'on veut envoyer
+   * au cimetière ou brûler.
+   */
+  magieHandTargets(magie: Magie): number[] {
+    const type = magie.effect?.type;
+    const ok = type === 'shift_tier_card'
+      ? (card: Card) => this._tierShiftPool(card.tier, tierShift(magie as any)).length > 0
+      : type === 'draw_material'
+        ? (card: Card) => this._drawableMaterialIds(card).length > 0
+        : () => true;
+    const targets: number[] = [];
+    this.hand.forEach((card, i) => { if (ok(card)) targets.push(i); });
+    return targets;
+  }
+
   magieUnitTargets(magie: Magie): Unit[] {
     if (magie.effect?.type === 'defuse_fusion') return this._defusableFusions();
     // Accélérer le pouvoir d'une unité qui n'en a pas ne ferait rien : elle
     // n'est pas une cible, exactement comme une non-fusion pour `defuse_fusion`.
     if (magie.effect?.type === 'power_cooldown') return this._poweredUnits();
     if (magie.effect?.type === 'duplicate_unit') return this._duplicableUnits();
+    if (magie.effect?.type === 'shift_tier_unit') return this._tierShiftUnits(tierShift(magie as any));
     return this.getPlayerUnits();
   }
 
@@ -836,6 +976,9 @@ export class GameSession {
     // elle-même et n'encaisse le contrecoup que si la copie part vraiment
     // (cf. `_duplicateFromUnit`).
     if (magie.effect?.type === 'duplicate_unit') { this._duplicateFromUnit(magie, unit); return; }
+    // ⚠️ Le remplacement par tier passe lui aussi AVANT le paiement, et pour la
+    // même raison : il peut ne rien trouver à poser.
+    if (magie.effect?.type === 'shift_tier_unit') { this._shiftTierUnit(magie, unit); return; }
     this._payMagieCost(magie);
     if (magie.effect?.type === 'defuse_fusion') { this._defuseFusion(unit); return; }
     if (magie.effect?.type === 'destroy_unit') { this._destroyUnit(unit); return; }
@@ -892,10 +1035,47 @@ export class GameSession {
   }
 
   /**
-   * Les deux magies qui désignent une carte de la MAIN. Elles partagent le
-   * geste (taper une carte) et rien d'autre :
+   * Remplacement d'une unité du terrain par une carte du tier voisin.
+   *
+   * ⚠️ C'est une SUBSTITUTION, pas une invocation ni une mort : l'unité
+   * remplacée quitte la partie — elle ne passe pas par le cimetière, où elle
+   * redeviendrait un matériau. Le joueur échange une unité contre une autre, il
+   * n'en garde pas la dépouille ; sans ça la magie paierait deux fois.
+   *
+   * ⚠️ Et rien de ce que l'unité avait acquis ne survit — bonus de Shopping,
+   * vétérance, PV courants, bouclier, pouvoir donné par magie : la nouvelle est
+   * bâtie sur l'entrée du catalogue, exactement comme la copie que rend
+   * `_duplicateFromUnit`. C'est ce qui empêche une chaîne d'ascensions de
+   * capitaliser les investissements du round précédent.
+   *
+   * La CASE, elle, est conservée (`initial_position` comprise) : c'est le sens
+   * même du mot « remplace », et le placement du joueur ne doit pas bouger sous
+   * ses yeux. `Scene3D.refresh()` — un diff indexé par uid — despawn l'ancienne
+   * et spawn la nouvelle sans une ligne de plus, `GameController` l'appelant
+   * déjà après tout ciblage de magie.
+   */
+  private _shiftTierUnit(magie: Magie, unit: Unit): void {
+    const card = this.deps.cardDb.getCard(unit.card_id);
+    const replacement = this._pickFrom(this._boardTierShiftPool(card?.tier, tierShift(magie as any)));
+    if (!replacement) return;
+    this._payMagieCost(magie);
+    const pos = { ...(unit.position as Position) };
+    this.board.removeUnit(unit);
+    const fresh = new Unit(replacement, 'player');
+    fresh.initial_position = { ...pos };
+    this.board.placeUnit(fresh, pos);
+  }
+
+  /**
+   * Les magies qui désignent une carte de la MAIN. Elles partagent le geste
+   * (taper une carte) et rien d'autre :
    *
    * - `duplicate_card` LAISSE la carte désignée et en ajoute une copie ;
+   * - `shift_tier_card` la REMPLACE par une carte du deck au tier voisin ;
+   * - `draw_material` la laisse et ajoute l'un de ses MATÉRIELS d'invocation ;
+   * - `sacrifice_card_hp` la BRÛLE contre des PV joueur — elle ne va pas au
+   *   cimetière, sinon elle ferait doublon avec `hand_to_graveyard` et rendrait
+   *   le choix entre les deux sans objet ;
    * - `hand_to_graveyard` la RETIRE et l'envoie au cimetière sous forme d'unité
    *   neutralisée, où elle devient un matériau d'invocation (sacrifice /
    *   fusion / héritage / transformation) au même titre qu'une unité tombée au
@@ -903,18 +1083,54 @@ export class GameSession {
    *   combat si personne ne l'a consommée : la magie échange une carte contre
    *   un matériau, elle n'ajoute pas de corps sur le terrain.
    *
-   * L'unité rendue est celle du cimetière ; la duplication n'en crée aucune et
-   * rend `null`.
+   * L'unité rendue est celle du cimetière ; les quatre autres n'en créent
+   * aucune et rendent `null`.
+   *
+   * ⚠️ Les deux effets qui peuvent ne RIEN trouver résolvent AVANT de payer —
+   * même règle que `_duplicateFromUnit` : un contrecoup prélevé pour une carte
+   * qui n'arrive jamais serait pire qu'un refus. `magieHandTargets` rend le cas
+   * inatteignable depuis l'écran ; ces gardes sont ce qui l'en empêchent pour
+   * de bon.
    */
   applyMagieOnHandCard(magie: Magie, handIdx: number): Unit | null {
     const card = this.hand[handIdx];
     if (!card) return null;
     if (!this.canAffordMagie(magie)) return null;
+    const type = magie.effect?.type;
+
+    if (type === 'shift_tier_card') {
+      const replacement = this._pickFrom(this._tierShiftPool(card.tier, tierShift(magie as any)));
+      if (!replacement) return null;
+      this._payMagieCost(magie);
+      // La case est écrasée, jamais mutée : `canUndoPreparation` compare la main
+      // par RÉFÉRENCE, et `_capturePreparation` en garde une copie plate.
+      this.hand[handIdx] = replacement;
+      return null;
+    }
+    if (type === 'draw_material') {
+      const material = this._drawMaterial(card);
+      if (!material) return null;
+      this._payMagieCost(magie);
+      this.hand.push(material);
+      return null;
+    }
+
     this._payMagieCost(magie);
-    if (magie.effect?.type === 'duplicate_card') {
+    if (type === 'duplicate_card') {
       this._pushHandCopies(card, duplicateCopies(magie as any));
       return null;
     }
+    if (type === 'sacrifice_card_hp') {
+      this.hand.splice(handIdx, 1);
+      // Les PV de la CARTE (`stats.hp`), pas ceux d'une unité : rien n'a encore
+      // été posé, il n'y a pas de PV courants à lire. Plafonné comme
+      // `player_hp_bonus` et `drain_life`, dont c'est le troisième jumeau — la
+      // seule source de PV joueur qui se paie en cartes plutôt qu'en unités.
+      const gained = Math.max(0, Math.round((card.stats?.hp ?? 0) * sacrificeHpPercent(magie as any) / 100));
+      this.gameState.player_hp = Math.min(this.gameState.player_hp + gained, PLAYER_HP_CAP);
+      return null;
+    }
+
     this.hand.splice(handIdx, 1);
     const unit = new Unit(card, 'player');
     unit.is_neutralized = true;

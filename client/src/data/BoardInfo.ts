@@ -54,6 +54,10 @@ export function boardEffectLabel(
     case 'guaranteed_draw':   return 'Pioche garantie';
     case 'revive':            return 'Réanimation';
     case 'board_slot_bonus':  return `+${effect.value} slot`;
+    // ⚠️ Effet d'ATTRIBUT, pas de terrain — cette fonction sert les deux (cf.
+    // `TooltipHost.describeEffects`). Sans son entrée ici, le palier de synergie
+    // annonçait « shopping_bonus » au joueur, en toutes lettres.
+    case 'shopping_bonus':    return `+${effect.value ?? 1} magie à la Phase Shopping`;
     // ⚠️ Repli sur le TYPE BRUT, jamais sur une chaîne vide : un type ajouté à
     // `BoardEffect.applyEffect` mais oublié ici doit se voir à l'écran plutôt
     // que de disparaître en silence.

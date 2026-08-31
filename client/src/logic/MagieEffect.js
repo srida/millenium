@@ -58,6 +58,47 @@ export function duplicateCopies(magie) {
 }
 
 /**
+ * De combien de tiers une magie de remplacement décale sa cible
+ * (`shift_tier_card`, `shift_tier_unit`). Lecture UNIQUE du champ : `GameSession`
+ * s'en sert pour composer le pool, `MagieOffer` pour la pertinence et
+ * `effectLabel` pour l'annoncer — trois lectures divergeraient.
+ *
+ * ⚠️ Même repli que `duplicateCopies`, et pour la même raison : une **Valeur
+ * laissée à 0** en admin est le DÉFAUT du champ, pas une intention. Lue
+ * strictement, elle rendrait un décalage nul — c'est-à-dire une magie qui
+ * remplace une carte par une carte du même tier, exactement le blanc que le
+ * filtre d'offre existe pour supprimer, contrecoup encaissé au passage. Le
+ * défaut est le tier du DESSUS, la lecture naturelle de « ascension ».
+ * @param {any} magie
+ * @returns {number}
+ */
+export function tierShift(magie) {
+  const raw = Number(magie?.effect?.value);
+  return Number.isFinite(raw) && raw !== 0 ? Math.trunc(raw) : 1;
+}
+
+/**
+ * Quel pourcentage des PV de la carte `sacrifice_card_hp` verse au joueur.
+ * ⚠️ Même repli encore : 0 (le défaut du champ) vaut 100 %, jamais « ne rend
+ * rien ». Le précédent est `revive`, dont la `value` est déjà un pourcentage.
+ * @param {any} magie
+ * @returns {number}
+ */
+export function sacrificeHpPercent(magie) {
+  const raw = Number(magie?.effect?.value);
+  return Number.isFinite(raw) && raw > 0 ? raw : 100;
+}
+
+/** « du tier au-dessus » / « de 2 tiers en dessous » — la seule chose que le
+ *  joueur ait à lire d'un `tierShift`. */
+function tierShiftLabel(magie) {
+  const shift = tierShift(magie);
+  const n = Math.abs(shift);
+  const dir = shift > 0 ? 'au-dessus' : 'en dessous';
+  return n === 1 ? `du tier ${dir}` : `de ${n} tiers ${dir}`;
+}
+
+/**
  * Noms lisibles des pouvoirs, pour `effectLabel` seul. ⚠️ Doublon ASSUMÉ de
  * `POWER_NAMES` (`three/`) : `logic/` ne doit rien importer de la couche 3D, et
  * `powers.json` n'est pas accessible d'ici (le module est pur). Un id absent de
@@ -90,7 +131,7 @@ function guaranteedDrawLabel(e) {
 
 export function needsUnitTarget(magie) {
   return ['stat_bonus', 'stat_modifier', 'shield', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life',
-    'grant_power', 'power_cooldown', 'duplicate_unit'].includes(magie?.effect?.type);
+    'grant_power', 'power_cooldown', 'duplicate_unit', 'shift_tier_unit'].includes(magie?.effect?.type);
 }
 
 // Cible une unité du CIMETIÈRE. ⚠️ Les deux membres n'en font pas le même
@@ -102,11 +143,19 @@ export function needsGraveyardTarget(magie) {
 
 // Cible une carte de la MAIN (et non une unité du board ou du cimetière) —
 // troisième famille de ciblage, cf. GameSession.magieNeedsHandTarget.
-// ⚠️ Les deux membres n'y font PAS le même geste : `hand_to_graveyard` retire
-// la carte désignée, `duplicate_card` la laisse et en ajoute une copie. Seule
-// la façon de désigner est commune.
+// ⚠️ Les membres n'y font PAS le même geste — seule la façon de DÉSIGNER est
+// commune : `hand_to_graveyard` retire la carte et la pose au cimetière,
+// `duplicate_card` la laisse et en ajoute une copie, `shift_tier_card` la
+// REMPLACE, `draw_material` la laisse et ajoute l'un de ses matériels,
+// `sacrifice_card_hp` la brûle contre des PV joueur.
+//
+// ⚠️ Et ils n'acceptent pas les mêmes cartes : `GameSession.magieHandTargets`
+// dit, magie par magie, lesquelles sont des cibles — le pendant exact de
+// `magieUnitTargets` côté board. Sans lui, `shift_tier_card` et `draw_material`
+// se laisseraient jouer sur une carte qu'elles ne peuvent pas servir.
 export function needsHandTarget(magie) {
-  return ['hand_to_graveyard', 'duplicate_card'].includes(magie?.effect?.type);
+  return ['hand_to_graveyard', 'duplicate_card', 'shift_tier_card', 'draw_material',
+    'sacrifice_card_hp'].includes(magie?.effect?.type);
 }
 
 export function effectLabel(magie) {
@@ -142,6 +191,14 @@ export function effectLabel(magie) {
     case 'duplicate_card':           return duplicateCopies(magie) > 1
       ? `Duplique une carte de ta main en ${duplicateCopies(magie)} exemplaires`
       : 'Duplique une carte de ta main (l\'originale est conservée)';
+    // Les deux remplacements par tier : même geste, deux provenances — comme
+    // les deux duplications d'unité. Le libellé nomme donc ce qu'on désigne.
+    case 'shift_tier_card':          return `Remplace une carte de ta main par une carte de ton deck ${tierShiftLabel(magie)}`;
+    case 'shift_tier_unit':          return `Remplace une unité de ton terrain par une unité de ton deck ${tierShiftLabel(magie)}`;
+    case 'draw_material':            return 'Ajoute à ta main un matériel d\'invocation d\'une carte de ta main';
+    case 'sacrifice_card_hp':        return sacrificeHpPercent(magie) === 100
+      ? 'Sacrifie une carte de ta main : tu gagnes ses PV en points de vie'
+      : `Sacrifie une carte de ta main : tu gagnes ${sacrificeHpPercent(magie)}% de ses PV en points de vie`;
     case 'reduce_sacrifice_cost':    return `-${e.value ?? 1} sacrifice(s) sur une carte Sacrifice en main`;
     case 'free_transformation':      return 'Invoque une Transformation sans son monstre cible';
     case 'remove_heritage_material':   return 'Retire le matériel obligatoire d\'une carte Heritage en main';
@@ -294,6 +351,14 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       break;
     case 'duplicate_card':
       // Handled by GameSession.applyMagieOnHandCard() — applyEffect is a no-op here
+      break;
+    case 'shift_tier_card':
+    case 'draw_material':
+    case 'sacrifice_card_hp':
+      // Handled by GameSession.applyMagieOnHandCard() — applyEffect is a no-op here
+      break;
+    case 'shift_tier_unit':
+      // Handled by GameSession._shiftTierUnit() — applyEffect is a no-op here
       break;
   }
 }

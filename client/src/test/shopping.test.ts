@@ -1187,3 +1187,344 @@ describe('Shopping — duplicate_graveyard_unit (cimetière → carte en main)',
     expect(session.getShoppingMagies()).toEqual([]);
   });
 });
+
+// ── Les quatre magies de « remplacement / matériel / sacrifice » ────────────
+//
+// Elles partagent une propriété que le reste du fichier n'avait pas à couvrir :
+// **elles peuvent ne rien trouver**. Une carte dont le tier voisin est absent du
+// deck, une carte sans matériel résolvable — ce sont des cibles invalides, pas
+// des effets vides, et c'est `magieHandTargets` / `magieUnitTargets` qui le dit.
+//
+// ⚠️ Tous éprouvés DANS LES DEUX SENS (règle du projet) : ciblage rendu
+// permissif, paiement déplacé avant la résolution, `tierShift` passé en `??`,
+// filtre du doublon retiré, préférence du matériel manquant retirée, carte
+// sacrifiée envoyée au cimetière — chacune de ces régressions passe au rouge.
+
+/** Session à DECK MULTI-TIERS. `makeSession` ne peuple que le tier 1 (et deux
+ *  tests s'appuient dessus) : il faut un deck complet pour éprouver un
+ *  décalage de tier. `extra` sont des cartes au CATALOGUE mais hors deck — le
+ *  cas d'un matériel nommé par id que le joueur n'a pas monté. */
+function tieredSession(opts: { byTier: Record<number, any[]>; extra?: any[]; magies?: any[]; rand?: () => number }) {
+  const all = [...Object.values(opts.byTier).flat(), ...(opts.extra ?? [])];
+  const byId = new Map(all.map((c: any) => [c.id, c]));
+  return new GameSession({
+    cardsByTier: opts.byTier,
+    enemyDeck: {},
+    attributeList: [],
+    cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
+    getAllBoards: () => [],
+    getAllMagies: () => opts.magies ?? [],
+    rand: opts.rand ?? (() => 0),
+  } as any);
+}
+
+describe('shift_tier_card — remplacer une carte de la main', () => {
+  const T1 = makeCard({ id: 'T1', tier: 1 });
+  const T2 = makeCard({ id: 'T2', tier: 2 });
+  const T3 = makeCard({ id: 'T3', tier: 3 });
+  const up = magie({ type: 'shift_tier_card', value: 1 }, { id: 'UP' });
+  const down = magie({ type: 'shift_tier_card', value: -1 }, { id: 'DOWN' });
+
+  it('remplace la carte désignée par une carte du deck au tier du DESSUS', () => {
+    const s = tieredSession({ byTier: { 1: [T1], 2: [T2] } });
+    s.hand = [T1 as any, T1 as any];
+    s.applyMagieOnHandCard(up as any, 0);
+    expect(s.hand.map(c => c.id)).toEqual(['T2', 'T1']);
+  });
+
+  it('une valeur NÉGATIVE va chercher le tier du dessous', () => {
+    const s = tieredSession({ byTier: { 2: [T2], 3: [T3] } });
+    s.hand = [T3 as any];
+    s.applyMagieOnHandCard(down as any, 0);
+    expect(s.hand.map(c => c.id)).toEqual(['T2']);
+  });
+
+  it('une VALEUR à 0 vaut le tier du dessus — le défaut du champ d\'admin', () => {
+    // ⚠️ Mutation : `tierShift` en `??` → décalage nul, la carte est remplacée
+    // par une carte de son PROPRE tier, contrecoup encaissé pour rien.
+    const s = tieredSession({ byTier: { 1: [T1], 2: [T2] } });
+    s.hand = [T1 as any];
+    s.applyMagieOnHandCard(magie({ type: 'shift_tier_card', value: 0 }) as any, 0);
+    expect(s.hand.map(c => c.id)).toEqual(['T2']);
+  });
+
+  it('tier voisin absent du deck : PAS une cible, et rien n\'est payé', () => {
+    const s = tieredSession({ byTier: { 1: [T1] }, magies: [up] });
+    s.hand = [T1 as any];
+    s.gameState.player_hp = 500;
+    expect(s.magieHandTargets(up as any)).toEqual([]);
+    // La magie n'est même pas offerte — mais la garde d'application tient seule.
+    expect(s.getShoppingMagies()).toEqual([]);
+    expect(s.applyMagieOnHandCard({ ...up, cost_hp: 100 } as any, 0)).toBeNull();
+    expect(s.hand.map(c => c.id)).toEqual(['T1']);
+    expect(s.gameState.player_hp).toBe(500);
+  });
+
+  it('le ciblage est par CARTE, pas par main : seules les cartes servables sortent', () => {
+    // T3 n'a pas de tier 4 dans ce deck ; T1 et T2 en ont un.
+    const s = tieredSession({ byTier: { 1: [T1], 2: [T2], 3: [T3] } });
+    s.hand = [T3 as any, T1 as any, T2 as any];
+    expect(s.magieHandTargets(up as any)).toEqual([1, 2]);
+  });
+
+  it('la carte posée en main est un OBJET NEUF, jamais la référence du deck', () => {
+    // Même règle que `_pushHandCopies` : deux cases pointant sur le même objet
+    // rendraient la comparaison par référence de `canUndoPreparation` fausse,
+    // et une retouche de main muterait le DECK.
+    const s = tieredSession({ byTier: { 1: [T1], 2: [T2] } });
+    s.hand = [T1 as any];
+    s.applyMagieOnHandCard(up as any, 0);
+    expect(s.hand[0]).not.toBe(T2);
+    expect(s.hand[0]).toEqual(T2);
+  });
+});
+
+describe('shift_tier_unit — remplacer une unité du terrain', () => {
+  const T1 = makeCard({ id: 'T1', tier: 1 });
+  const T1B = makeCard({ id: 'T1B', tier: 1 });
+  const T2 = makeCard({ id: 'T2', tier: 2 });
+  const up = magie({ type: 'shift_tier_unit', value: 1 }, { id: 'ASCENSION' });
+
+  it('remplace l\'unité SUR SA CASE, initial_position comprise', () => {
+    const s = tieredSession({ byTier: { 1: [T1], 2: [T2] } });
+    const old = new (Unit as any)(T1, 'player');
+    s.board.placeUnit(old, { col: 3, row: 2 });
+    s.applyMagieOnUnit(up as any, old);
+
+    const fresh = s.board.getUnit({ col: 3, row: 2 })!;
+    expect(fresh.card_id).toBe('T2');
+    expect(fresh.uid).not.toBe(old.uid);
+    expect(fresh.initial_position).toEqual({ col: 3, row: 2 });
+    expect(s.getPlayerUnits()).toHaveLength(1);
+  });
+
+  it('l\'ancienne unité quitte la partie — elle ne passe PAS par le cimetière', () => {
+    // C'est une substitution, pas une mort : garder la dépouille ferait payer
+    // la magie deux fois (une unité de plus ET un matériau d'invocation).
+    const s = tieredSession({ byTier: { 1: [T1], 2: [T2] } });
+    const old = new (Unit as any)(T1, 'player');
+    s.board.placeUnit(old, { col: 0, row: 0 });
+    s.applyMagieOnUnit(up as any, old);
+    expect(s.graveyard).toEqual([]);
+  });
+
+  it('rien de ce que l\'ancienne avait acquis ne survit', () => {
+    // Même étanchéité que la duplication : la nouvelle est bâtie sur l'entrée
+    // du catalogue, sinon une chaîne d'ascensions capitaliserait les
+    // investissements de Shopping des rounds précédents.
+    const s = tieredSession({ byTier: { 1: [T1], 2: [T2] } });
+    const old = new (Unit as any)(T1, 'player');
+    old.veterancy_points = 4;
+    old._shopping_bonus = { atk: 40 };
+    old.current_hp = 1;
+    old.shield = 25;
+    s.board.placeUnit(old, { col: 0, row: 0 });
+    s.applyMagieOnUnit(up as any, old);
+
+    const fresh: any = s.board.getUnit({ col: 0, row: 0 });
+    expect(fresh.veterancy_points).toBe(0);
+    expect(fresh._shopping_bonus).toBeUndefined();
+    expect(fresh.shield).toBe(0);
+    expect(fresh.current_hp).toBe(fresh.max_hp);
+  });
+
+  it('⚠️ RÈGLE DU DOUBLON : une carte déjà vivante ne sort jamais du tirage', () => {
+    // Le pool du tier 2 se réduit à T2, déjà posé : l'unité n'est donc pas une
+    // cible, et rien n'est prélevé. Une magie n'ouvre pas une porte que
+    // l'invocation ferme.
+    const s = tieredSession({ byTier: { 1: [T1], 2: [T2] } });
+    const old = new (Unit as any)(T1, 'player');
+    s.board.placeUnit(old, { col: 0, row: 0 });
+    s.board.placeUnit(new (Unit as any)(T2, 'player'), { col: 1, row: 0 });
+    s.gameState.player_hp = 500;
+
+    expect(s.magieUnitTargets(up as any)).toEqual([]);
+    s.applyMagieOnUnit({ ...up, cost_hp: 100 } as any, old);
+    expect(s.board.getUnit({ col: 0, row: 0 })).toBe(old);
+    expect(s.gameState.player_hp).toBe(500);
+  });
+
+  it('la même carte reste ciblable dès qu\'un autre tier 2 existe au deck', () => {
+    // L'autre sens du cas précédent : le filtre porte sur le POOL, pas sur la
+    // magie.
+    const s = tieredSession({ byTier: { 1: [T1], 2: [T2, makeCard({ id: 'T2B', tier: 2 })] } });
+    const old = new (Unit as any)(T1, 'player');
+    s.board.placeUnit(old, { col: 0, row: 0 });
+    s.board.placeUnit(new (Unit as any)(T2, 'player'), { col: 1, row: 0 });
+    expect(s.magieUnitTargets(up as any)).toEqual([old]);
+    s.applyMagieOnUnit(up as any, old);
+    expect(s.board.getUnit({ col: 0, row: 0 })!.card_id).toBe('T2B');
+  });
+
+  it('une unité sans tier voisin au deck n\'est pas une cible', () => {
+    const s = tieredSession({ byTier: { 1: [T1, T1B], 2: [T2] } });
+    const t1 = new (Unit as any)(T1, 'player');
+    const t2 = new (Unit as any)(T2, 'player');
+    s.board.placeUnit(t1, { col: 0, row: 0 });
+    s.board.placeUnit(t2, { col: 1, row: 0 });
+    // T2 → tier 3 : absent du deck. T1 → tier 2 : présent, mais T2 est vivant…
+    expect(s.magieUnitTargets(up as any)).toEqual([]);
+  });
+});
+
+describe('draw_material — rendre en main un matériel d\'invocation', () => {
+  const MAT_A = makeCard({ id: 'MAT_A', tier: 1 });
+  const MAT_B = makeCard({ id: 'MAT_B', tier: 1 });
+  const FUSION = makeCard({ id: 'FUSION', tier: 2, summon_type: 'fusion', cost: { materials: ['MAT_A', 'MAT_B'] } as any });
+  const draw = magie({ type: 'draw_material' }, { id: 'QUETE' });
+
+  it('ajoute un matériel à la main, et LAISSE la carte source', () => {
+    const s = tieredSession({ byTier: { 1: [MAT_A, MAT_B], 2: [FUSION] } });
+    s.hand = [FUSION as any];
+    s.applyMagieOnHandCard(draw as any, 0);
+    expect(s.hand.map(c => c.id)).toEqual(['FUSION', 'MAT_A']);
+  });
+
+  it('préfère le matériel qui MANQUE à celui que le joueur a déjà', () => {
+    // Sans ce tri, la magie rendrait le plus souvent le matériau déjà posé —
+    // c'est-à-dire rien d'utile. Double repli dans l'esprit des pioches
+    // garanties : à défaut de manquant, on tire parmi tous.
+    const s = tieredSession({ byTier: { 1: [MAT_A, MAT_B], 2: [FUSION] } });
+    s.hand = [FUSION as any];
+    s.board.placeUnit(new (Unit as any)(MAT_A, 'player'), { col: 0, row: 0 });
+    s.applyMagieOnHandCard(draw as any, 0);
+    expect(s.hand.map(c => c.id)).toEqual(['FUSION', 'MAT_B']);
+  });
+
+  it('le repli : tous les matériels possédés → on en rend un quand même', () => {
+    const s = tieredSession({ byTier: { 1: [MAT_A, MAT_B], 2: [FUSION] } });
+    s.hand = [FUSION as any];
+    s.board.placeUnit(new (Unit as any)(MAT_A, 'player'), { col: 0, row: 0 });
+    s.board.placeUnit(new (Unit as any)(MAT_B, 'player'), { col: 1, row: 0 });
+    s.applyMagieOnHandCard(draw as any, 0);
+    expect(s.hand).toHaveLength(2);
+  });
+
+  it('un matériel nommé par ATTRIBUT rend une carte du DECK qui le porte', () => {
+    // `ARCH_*` ne nomme pas une carte : sans cette résolution, la magie serait
+    // muette sur la moitié des recettes du catalogue.
+    const dragon = makeCard({ id: 'DRAGON', tier: 1, attributes: ['ARCH_DRAGON'] });
+    const byArch = makeCard({ id: 'ARCHFUSION', tier: 2, summon_type: 'fusion', cost: { materials: ['ARCH_DRAGON'] } as any });
+    const s = tieredSession({ byTier: { 1: [dragon], 2: [byArch] } });
+    s.hand = [byArch as any];
+    expect(s.magieHandTargets(draw as any)).toEqual([0]);
+    s.applyMagieOnHandCard(draw as any, 0);
+    expect(s.hand.map(c => c.id)).toEqual(['ARCHFUSION', 'DRAGON']);
+  });
+
+  it('un matériel d\'attribut que le DECK ne porte pas n\'est pas une cible', () => {
+    const byArch = makeCard({ id: 'ARCHFUSION', tier: 2, summon_type: 'fusion', cost: { materials: ['ARCH_DRAGON'] } as any });
+    const s = tieredSession({ byTier: { 1: [MAT_A], 2: [byArch] } });
+    s.hand = [byArch as any];
+    expect(s.magieHandTargets(draw as any)).toEqual([]);
+  });
+
+  it('un matériel nommé par ID vient du CATALOGUE, deck ou pas', () => {
+    // Une recette nomme la carte exacte qu'elle exige : la rendre est le geste
+    // de la magie, qu'elle soit montée dans le deck ou non.
+    const s = tieredSession({ byTier: { 2: [FUSION] }, extra: [MAT_A, MAT_B] });
+    s.hand = [FUSION as any];
+    s.applyMagieOnHandCard(draw as any, 0);
+    expect(s.hand.map(c => c.id)).toEqual(['FUSION', 'MAT_A']);
+  });
+
+  it('carte sans matériel, ou matériel sorti du catalogue : PAS une cible', () => {
+    const orphan = makeCard({ id: 'ORPHAN', tier: 2, summon_type: 'fusion', cost: { materials: ['GONE'] } as any });
+    const s = tieredSession({ byTier: { 1: [MAT_A], 2: [orphan] } });
+    s.hand = [MAT_A as any, orphan as any];
+    expect(s.magieHandTargets(draw as any)).toEqual([]);
+    s.gameState.player_hp = 500;
+    expect(s.applyMagieOnHandCard({ ...draw, cost_hp: 100 } as any, 1)).toBeNull();
+    expect(s.hand).toHaveLength(2);
+    expect(s.gameState.player_hp).toBe(500);
+  });
+
+  it('⚠️ magieHandTargets ne consomme AUCUN hasard', () => {
+    // Il est interrogé à chaque rendu de la main : un `rand()` consommé par une
+    // question d'affichage décalerait toute la pioche d'une partie semée.
+    let calls = 0;
+    const s = tieredSession({ byTier: { 1: [MAT_A, MAT_B], 2: [FUSION] }, rand: () => { calls++; return 0; } });
+    s.hand = [FUSION as any];
+    s.magieHandTargets(draw as any);
+    s.magieHandTargets(draw as any);
+    expect(calls).toBe(0);
+  });
+});
+
+describe('sacrifice_card_hp — brûler une carte contre des PV joueur', () => {
+  const BIG = makeCard({ id: 'BIG', tier: 1, stats: { hp: 240 } as any });
+  const sac = magie({ type: 'sacrifice_card_hp', value: 100 }, { id: 'OFFRANDE' });
+
+  it('la carte quitte la main et ses PV vont au joueur', () => {
+    const s = tieredSession({ byTier: { 1: [BIG] } });
+    s.hand = [BIG as any];
+    s.gameState.player_hp = 500;
+    s.applyMagieOnHandCard(sac as any, 0);
+    expect(s.hand).toEqual([]);
+    expect(s.gameState.player_hp).toBe(740);
+  });
+
+  it('⚠️ elle est BRÛLÉE, pas envoyée au cimetière', () => {
+    // C'est la seule chose qui la distingue de `hand_to_graveyard` : l'y
+    // envoyer rendrait le choix entre les deux magies sans objet.
+    const s = tieredSession({ byTier: { 1: [BIG] } });
+    s.hand = [BIG as any];
+    expect(s.applyMagieOnHandCard(sac as any, 0)).toBeNull();
+    expect(s.graveyard).toEqual([]);
+  });
+
+  it('la valeur est un POURCENTAGE, et 0 vaut 100 %', () => {
+    const s = tieredSession({ byTier: { 1: [BIG] } });
+    s.hand = [BIG as any, BIG as any];
+    s.gameState.player_hp = 100;
+    s.applyMagieOnHandCard(magie({ type: 'sacrifice_card_hp', value: 50 }) as any, 0);
+    expect(s.gameState.player_hp).toBe(220);
+    s.applyMagieOnHandCard(magie({ type: 'sacrifice_card_hp', value: 0 }) as any, 0);
+    expect(s.gameState.player_hp).toBe(460);
+  });
+
+  it('plafonné à 1000, comme player_hp_bonus et drain_life', () => {
+    const s = tieredSession({ byTier: { 1: [BIG] } });
+    s.hand = [BIG as any];
+    s.gameState.player_hp = 900;
+    s.applyMagieOnHandCard(sac as any, 0);
+    expect(s.gameState.player_hp).toBe(1000);
+  });
+
+  it('elle ne finance PAS son propre contrecoup', () => {
+    // Même règle que `drain_life` : le coût est prélevé AVANT l'effet, et
+    // l'accessibilité se juge sur les PV d'AVANT.
+    const s = tieredSession({ byTier: { 1: [BIG] } });
+    s.hand = [BIG as any];
+    s.gameState.player_hp = 60;
+    const costly = { ...sac, cost_hp: 100 };
+    expect(s.canAffordMagie(costly as any)).toBe(false);
+    s.applyMagieOnHandCard(costly as any, 0);
+    expect(s.gameState.player_hp).toBe(60);
+    expect(s.hand).toHaveLength(1);
+  });
+
+  it('offre : il faut une main ET des PV à regagner', () => {
+    const s = tieredSession({ byTier: { 1: [BIG] }, magies: [sac] });
+    s.gameState.player_hp = 500;
+    expect(s.getShoppingMagies()).toEqual([]);       // main vide
+    s.hand = [BIG as any];
+    expect(s.getShoppingMagies().map(m => m.id)).toEqual(['OFFRANDE']);
+    // Une partie COMMENCE à PLAYER_HP_CAP : la magie n'est donc pas offerte
+    // avant d'avoir encaissé, ce qui est exactement l'intention.
+    s.gameState.player_hp = 1000;
+    expect(s.getShoppingMagies()).toEqual([]);
+  });
+});
+
+describe('magieHandTargets — les trois magies « toutes cartes »', () => {
+  it('hand_to_graveyard, duplicate_card et sacrifice_card_hp ne filtrent rien', () => {
+    // Y compris une carte INJOUABLE : c'est même souvent celle qu'on veut
+    // envoyer au cimetière ou brûler.
+    const s = tieredSession({ byTier: { 1: [makeCard({ id: 'A' })] } });
+    s.hand = [makeCard({ id: 'A' }) as any, makeCard({ id: 'B', tier: 5 }) as any];
+    for (const type of ['hand_to_graveyard', 'duplicate_card', 'sacrifice_card_hp']) {
+      expect(s.magieHandTargets(magie({ type, value: 1 }) as any)).toEqual([0, 1]);
+    }
+  });
+});
