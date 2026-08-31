@@ -81,16 +81,30 @@ const SCREENS: Record<ScreenName, ComponentType> = {
 };
 
 /**
- * Écrans qui posent leur propre décor plein cadre : le board 3D y occupe toute
- * la fenêtre, le ciel serait invisible — et une boucle rAF de plus pendant un
- * combat WebGL est une dépense pure. Partout ailleurs le fond est le même,
- * monté ICI plutôt que par chaque écran : une seule instance, donc une seule
- * boucle, et le ciel ne se réinitialise pas à chaque navigation.
+ * Écrans qui posent leur propre décor plein cadre. Le board 3D en est le cas le
+ * plus visible — il occupe toute la fenêtre, le ciel serait invisible, et une
+ * boucle rAF de plus pendant un combat WebGL est une dépense pure — mais le
+ * critère est bien « l'écran peint son propre fond plein cadre », pas « l'écran
+ * a un canvas » : les bancs de dev le font avec un simple `bg-surface` sur une
+ * racine `h-dvh`. Partout ailleurs le fond est le même, monté ICI plutôt que par
+ * chaque écran : une seule instance, donc une seule boucle, et le ciel ne se
+ * réinitialise pas à chaque navigation.
  *
  * Typé `ScreenName` et non `string` : une faute de frappe y passait sans bruit,
  * et l'écran concerné se retrouvait avec deux décors superposés.
+ *
+ * ⚠️ **L'INVARIANT** : un écran est SOIT dans ce set, SOIT sa racine porte
+ * `relative z-10`. `.space-bg` est `position: fixed; z-index: 0` avec un fond
+ * OPAQUE : dans l'ordre de peinture CSS, un descendant positionné à `z-index: 0`
+ * passe APRÈS tous les descendants non positionnés — le décor recouvre donc
+ * intégralement un écran dont la racine est statique. Et comme il est
+ * `pointer-events: none`, l'écran reste tapable : invisible mais fonctionnel,
+ * c'est-à-dire une panne qu'aucun contrôle du DOM ne voit (`innerText`, les
+ * hauteurs de boîtes et `scrollWidth <= clientWidth` passent tous au vert).
+ * `ailab` a été livré en violation de cet invariant et l'écran était vide.
+ * Verrouillé par `client/src/test/ai-lab.test.ts`.
  */
-const IMMERSIVE_SCREENS = new Set<ScreenName>(['game', 'game_pvp', 'testbench', 'combatlab']);
+const IMMERSIVE_SCREENS = new Set<ScreenName>(['game', 'game_pvp', 'testbench', 'combatlab', 'ailab']);
 
 export default function App() {
   const screen = useUiStore(s => s.screen);

@@ -3195,9 +3195,33 @@ repère.
 ⚠️ **Pas de `Scene3D`, donc pas de Three.js.** Ce n'est pas une économie : c'est
 ce qui permet d'annoter chaque case (quelle passe l'a posée, quels matériaux ont
 été consommés), précisément ce qu'un board 3D ne sait pas montrer et qui est
-l'objet même de l'écran. L'écran n'est donc **pas** dans `IMMERSIVE_SCREENS`, et
-il est quand même en `lazy()` — pour l'autre raison : un écran de dev que seul un
-admin ouvre n'a rien à faire dans le chunk d'entrée (chunk propre de 18,5 Ko).
+l'objet même de l'écran. Il est quand même en `lazy()` — pour l'autre raison :
+un écran de dev que seul un admin ouvre n'a rien à faire dans le chunk d'entrée
+(chunk propre de 18,5 Ko).
+
+⚠️ **Il est en revanche dans `IMMERSIVE_SCREENS`, et l'oublier l'a rendu VIDE.**
+Ce set ne parle pas de canvas : il désigne les écrans qui **posent leur propre
+décor plein cadre**, ce que fait tout `bg-surface` sur une racine `h-dvh` — le
+board 3D n'en est qu'un cas. L'écran a d'abord été livré hors du set, avec la
+racine des bancs de dev *sans* leur précondition, et `.space-bg`
+(`position: fixed; z-index: 0`, fond **opaque**) l'a intégralement recouvert :
+dans l'ordre de peinture CSS, un descendant positionné à `z-index: 0` passe
+**après** tous les descendants non positionnés. Seuls surnageaient les
+sous-arbres eux-mêmes positionnés — les `CardTile`, la modale `CardPicker`.
+
+L'invariant, valable pour **tout** écran : *soit* il est dans
+`IMMERSIVE_SCREENS`, *soit* sa racine porte `relative z-10`. Vérifiable d'un
+coup d'œil — les seuls écrans du projet sans `z-10` sont exactement les
+immersifs. Verrouillé par `client/src/test/ai-lab.test.ts`.
+
+⚠️ **Et la leçon de vérification, qui vaut pour tout le projet : ce défaut est
+INVISIBLE à l'inspection du DOM.** `innerText` rend le texte, les boîtes ont
+leurs vraies dimensions, `scrollWidth <= clientWidth` passe au vert, et
+`.space-bg` étant `pointer-events: none`, même `elementFromPoint` désigne le bon
+élément. L'écran est parfaitement mesurable, parfaitement tapable, et
+parfaitement invisible. Il a été livré ainsi parce que la vérification au
+navigateur lisait le DOM et **ne regardait pas les captures d'écran**. Sur un
+écran, la seule preuve est le PIXEL.
 
 ⚠️ **Toute édition d'entrée efface le RÉSULTAT affiché** (`editInputs`). La
 grille rend `result.board_after` dès qu'un placement a eu lieu : un survivant
@@ -3401,7 +3425,7 @@ Décor animé commun — `components/ui/SpaceBackground.tsx` + `styles/space.css
 - ⚠️ **Le même raccourcissement touche TOUT `min-h-dvh` / `h-dvh`** — il n'est compensé que pour le décor. En jeu, `GameScreen` est en `h-dvh` : la barre de commandes (`PhaseControls`, `absolute bottom-0`) flotte donc 62 pt au-dessus du bas réel de l'écran en appli installée. Non traité ici : la correction demande de reprendre les ~25 usages de `dvh`, pas une ligne de fond.
 - ⚠️ **Le fond du DOCUMENT n'est PAS `--color-surface`**, et c'en est le point le plus contre-intuitif. La couche de décor est `position: fixed` : tout ce qu'elle ne peint pas laisse voir le canevas du document — rebond d'overscroll, bande sous l'indicateur d'accueil, instant où le viewport visuel dépasse celui de la mise en page. Or le décor **tend au quasi-noir à ses bords** (mesuré : `#080a13` en bas, `#0b0e1c` en haut, moyenne de la ligne de pixels du bord), là où `#0f1117` est plus clair de 7 points sur R et G. Sur un fond aussi sombre, l'écart relatif est énorme : la bande se lisait comme **une barre grise franche en bas de l'écran**, et surtout en **appli installée**, où l'absence de barre d'URL la rend permanente au lieu de passer avec le défilement. `<html>` porte donc un dégradé vertical entre les deux teintes mesurées (`--color-space-edge-top` → `--color-space-edge`, définies dans `space.css`), `no-repeat`, adossé à `background-color` : la zone au-delà de la boîte de `<html>` — page défilée, rebond bas — rend très exactement la teinte du bord qu'elle prolonge. Écart résiduel mesuré : **1,1/255 en bas, 0,8/255 en haut**. Il est posé sur `<html>` **seul** — un fond sur `<html>` est propagé au canevas, en poser un second sur `<body>` le repeindrait par-dessus dans la seule boîte du body.
 - ⚠️ **`--color-space-edge` est MIROITÉE hors CSS**, là où aucune variable ne peut voyager : `<meta name="theme-color">` (`index.html`) et `theme_color` du manifeste (`vite.config.ts`) — les trois se règlent ensemble. C'est **la teinte du bas** qu'elles suivent : Android peint ses deux barres système avec une seule couleur, et c'est celle du bas qui borde le décor sur toute sa largeur. `background_color` du manifeste, lui, **reste `#0f1117`** : c'est l'écran de démarrage, il précède l'écran de chargement de l'app (`bg-surface`), pas le décor. Deux couleurs, deux moments — les confondre était l'erreur.
-- **`IMMERSIVE_SCREENS`** (`game`, `game_pvp`, `testbench`, `combatlab`) ne le montent pas : le board 3D y occupe toute la fenêtre — le ciel serait invisible, et une boucle rAF de plus pendant un combat WebGL est une dépense pure.
+- **`IMMERSIVE_SCREENS`** (`game`, `game_pvp`, `testbench`, `combatlab`, `ailab`) ne le montent pas : ces écrans **posent leur propre décor plein cadre** — le ciel y serait invisible, et une boucle rAF de plus pendant un combat WebGL est une dépense pure. ⚠️ Le critère est bien « peint son propre fond plein cadre », pas « a un canvas » : un `bg-surface` sur une racine `h-dvh` suffit, et c'est le cas des trois bancs de dev. **Tout écran hors de ce set doit porter `relative z-10`** — sans quoi le décor, opaque et positionné, le recouvre intégralement (cf. « Labo IA »).
 - ⚠️ **Le `z-10` du `<main>` crée un contexte d'empilement.** Une `Modal` d'écran (`z-40`) y est donc confinée, là où `TooltipHost` et `RewardToasts` (`z-50`, montés par l'App) restent au-dessus — c'est **l'ordre qui prévalait déjà**, il n'y a rien à rattraper. Les modales en `createPortal(…, document.body)` (cf. `ConfirmBuy`) sortent du contexte et passent devant tout : inchangé.
 
 **Le partage CSS / canvas n'est pas arbitraire**, c'est la règle qui décide où va chaque couche :

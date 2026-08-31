@@ -9,10 +9,16 @@
 // Fixtures 100 % synthétiques (`helpers.makeCard`) : les motifs de refus ne
 // doivent pas dépendre du contenu du jeu.
 import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runAiPlacement, refusalCounts, placedCount } from '../dev/aiLabRun.js';
 import type { AiLabInput, AiTraceEvent } from '../dev/aiLabRun.js';
 import { EnemyAI } from '../logic/EnemyAI.js';
 import { makeCard, makeBoard } from './helpers.js';
+
+/** Racine de `client/src`, pour les tests qui lisent de vraies sources. */
+const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function db(cards: any[]) {
   const byId = new Map(cards.map(c => [c.id, c]));
@@ -468,5 +474,91 @@ describe('Round par round — aucun état caché', () => {
     });
     expect(r2.survivors_in.map(u => u.card_id)).toEqual(['N']);
     expect(r2.board_after.map(u => u.card_id).sort()).toEqual(['M', 'N']);
+  });
+});
+
+// ===========================================================================
+//  Le décor spatial — l'invariant de peinture des écrans
+// ===========================================================================
+//
+// Ce bloc n'est pas « à propos du Labo IA » : il défend TOUS les écrans. Il est
+// ici parce que c'est le Labo IA qui a payé pour l'apprendre.
+//
+// `.space-bg` est `position: fixed; z-index: 0` avec un fond OPAQUE. Dans
+// l'ordre de peinture CSS, un descendant positionné à `z-index: 0` passe APRÈS
+// tous les descendants NON positionnés : le décor recouvre donc intégralement
+// un écran dont la racine est statique. D'où l'invariant :
+//
+//     un écran est SOIT dans IMMERSIVE_SCREENS (le décor n'est pas monté),
+//     SOIT sa racine porte `relative z-10` (il passe au-dessus).
+//
+// ⚠️ Ce test existe parce que RIEN d'autre ne peut l'attraper. La suite tourne
+// en node sans jsdom — aucun test de composant n'est possible — et le symptôme
+// est invisible à toute inspection du DOM : `innerText` rend le texte, les
+// boîtes ont leurs vraies dimensions, `scrollWidth <= clientWidth` passe, et
+// `.space-bg` étant `pointer-events: none`, même le test de survol touche le bon
+// élément. L'écran est parfaitement mesurable, parfaitement tapable, et
+// parfaitement invisible. Seul un contrôle des PIXELS le voit — ou celui-ci.
+describe('Décor spatial — l\'invariant de peinture des écrans', () => {
+  const appSrc = fs.readFileSync(path.join(SRC, 'app/App.tsx'), 'utf8');
+
+  /** Les noms d'écran du registre, appariés à leur composant. */
+  const screenToComponent = new Map<string, string>();
+  for (const [, screen, component] of appSrc
+    .slice(appSrc.indexOf('const SCREENS'), appSrc.indexOf('};', appSrc.indexOf('const SCREENS')))
+    .matchAll(/^\s*(\w+):\s*(\w+),/gm)) {
+    screenToComponent.set(screen, component);
+  }
+
+  /** Le composant, apparié à son fichier source — import statique ou `lazy()`. */
+  const componentToFile = new Map<string, string>();
+  for (const [, component, file] of appSrc.matchAll(/^import\s+(\w+)\s+from\s+'\.\.\/(.+?)\.js';/gm)) {
+    componentToFile.set(component, file);
+  }
+  for (const [, component, file] of appSrc.matchAll(/const\s+(\w+)\s*=\s*lazy\(\(\)\s*=>\s*import\('\.\.\/(.+?)\.js'\)\)/g)) {
+    componentToFile.set(component, file);
+  }
+
+  const immersive = new Set(
+    (appSrc.match(/const IMMERSIVE_SCREENS = new Set<ScreenName>\(\[(.*?)\]\)/s)?.[1] ?? '')
+      .split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean),
+  );
+
+  it('le registre et les imports se résolvent — sinon le test passerait à vide', () => {
+    expect(screenToComponent.size).toBeGreaterThanOrEqual(19);
+    expect(immersive.size).toBeGreaterThanOrEqual(4);
+    for (const [screen, component] of screenToComponent) {
+      expect(componentToFile.get(component), `fichier introuvable pour l'écran « ${screen} »`)
+        .toBeTruthy();
+    }
+  });
+
+  it('chaque écran est SOIT immersif, SOIT posé en z-10 au-dessus du décor', () => {
+    const coupables: string[] = [];
+    for (const [screen, component] of screenToComponent) {
+      if (immersive.has(screen)) continue;
+      const src = fs.readFileSync(path.join(SRC, `${componentToFile.get(component)}.tsx`), 'utf8');
+      if (!/\bz-10\b/.test(src)) coupables.push(`${screen} (${componentToFile.get(component)}.tsx)`);
+    }
+    // Le message porte la raison : un futur lecteur ne doit pas avoir à
+    // retrouver l'ordre de peinture CSS tout seul.
+    expect(
+      coupables,
+      `Écrans peints SOUS le décor spatial (racine sans « relative z-10 », et absents de `
+      + `IMMERSIVE_SCREENS) : ${coupables.join(', ')}. Ils s'afficheront VIDES.`,
+    ).toEqual([]);
+  });
+
+  it('les écrans immersifs, eux, n\'ont pas besoin de z-10 — ils possèdent leur fond', () => {
+    // Le pendant : la liste ne doit pas se remplir d'écrans ordinaires, sans quoi
+    // l'invariant se viderait de son sens en désactivant le décor partout.
+    for (const screen of immersive) {
+      expect(screenToComponent.has(screen), `« ${screen} » n'est pas un écran connu`).toBe(true);
+      const src = fs.readFileSync(
+        path.join(SRC, `${componentToFile.get(screenToComponent.get(screen)!)}.tsx`), 'utf8');
+      // Ils posent tous leur propre fond plein cadre — c'est le critère du set.
+      expect(src, `« ${screen} » est immersif mais ne peint aucun fond plein cadre`)
+        .toMatch(/h-dvh[^"'`]*bg-|bg-[^"'`]*h-dvh/);
+    }
   });
 });
