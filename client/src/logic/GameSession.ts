@@ -720,6 +720,7 @@ export class GameSession {
       defusableFusionCount: this._defusableFusions().length,
       poweredUnitCount: this._poweredUnits().length,
       duplicableUnitCount: this._duplicableUnits().length,
+      duplicableGraveyardCount: this._duplicableGraveyardUnits().length,
       graveyardCount: this.graveyard.length,
       handCount: this.hand.length,
       deckTiers: [...new Set(deck.map(c => c.tier).filter((t): t is number => typeof t === 'number'))],
@@ -804,7 +805,20 @@ export class GameSession {
    * encaisserait le contrecoup sans rien rendre.
    */
   private _duplicableUnits(): Unit[] {
-    return this.getPlayerUnits().filter(u => !!this.deps.cardDb.getCard(u.card_id));
+    return this._cataloguedUnits(this.getPlayerUnits());
+  }
+
+  /** Le pendant au CIMETIÈRE : une unité neutralisée se copie comme une
+   *  vivante, c'est la même carte qu'on lit. */
+  private _duplicableGraveyardUnits(): Unit[] {
+    return this._cataloguedUnits(this.graveyard);
+  }
+
+  /** Le prédicat commun aux duplications d'unité : on ne copie que ce que le
+   *  catalogue sait rendre. Écrit une fois pour les deux provenances — deux
+   *  copies de la même question finiraient par ne plus y répondre pareil. */
+  private _cataloguedUnits(units: readonly Unit[]): Unit[] {
+    return units.filter(u => !!this.deps.cardDb.getCard(u.card_id));
   }
 
   magieUnitTargets(magie: Magie): Unit[] {
@@ -818,32 +832,44 @@ export class GameSession {
 
   applyMagieOnUnit(magie: Magie, unit: Unit): void {
     if (!this.canAffordMagie(magie)) return;
+    // ⚠️ La duplication passe AVANT le paiement : elle résout sa carte
+    // elle-même et n'encaisse le contrecoup que si la copie part vraiment
+    // (cf. `_duplicateFromUnit`).
+    if (magie.effect?.type === 'duplicate_unit') { this._duplicateFromUnit(magie, unit); return; }
     this._payMagieCost(magie);
     if (magie.effect?.type === 'defuse_fusion') { this._defuseFusion(unit); return; }
     if (magie.effect?.type === 'destroy_unit') { this._destroyUnit(unit); return; }
     if (magie.effect?.type === 'drain_life') { this._drainLife(unit); return; }
-    if (magie.effect?.type === 'duplicate_unit') { this._duplicateUnitCard(magie, unit); return; }
     applyMagieEffect(magie as any, { gameState: this.gameState, targetUnit: unit });
   }
 
   /**
-   * Duplication d'unité : c'est la CARTE qui revient en main, jamais l'unité.
-   * Rien de ce que l'unité a acquis sur le terrain ne voyage — bonus de
-   * Shopping (`_shopping_bonus`), vétérance, PV courants, bouclier, pouvoir
-   * posé par `grant_power` : la copie est l'entrée du catalogue, telle qu'une
-   * pioche la rendrait. C'est ce qui distingue une duplication d'un clonage, et
-   * ce qui empêche la magie de blanchir un investissement en le rendant deux
-   * fois.
+   * Duplication d'unité — **le même geste depuis le board et depuis le
+   * cimetière**, d'où une seule méthode : c'est la CARTE qui revient en main,
+   * jamais l'unité, et l'endroit où elle se trouvait n'y change rien.
    *
-   * ⚠️ Conséquence assumée de la RÈGLE DU DOUBLON : tant que l'original vit, la
-   * copie n'est invocable qu'en désignant ce doublon comme matériau (sacrifice,
-   * fusion, héritage, transformation) — une invocation normale la refuse, et la
-   * main l'affiche grisée. Elle prend sa valeur quand l'original tombe : on met
-   * un remplaçant de côté, on ne pose pas un second corps.
+   * Rien de ce que l'unité a acquis ne voyage — bonus de Shopping
+   * (`_shopping_bonus`), vétérance, PV courants, bouclier, pouvoir posé par
+   * `grant_power` : la copie est l'entrée du catalogue, telle qu'une pioche la
+   * rendrait. C'est ce qui distingue une duplication d'un clonage, et ce qui
+   * empêche la magie de blanchir un investissement en le rendant deux fois.
+   *
+   * ⚠️ Conséquence assumée de la RÈGLE DU DOUBLON, et **seulement depuis le
+   * board** : tant que l'original vit, la copie n'est invocable qu'en désignant
+   * ce doublon comme matériau (sacrifice, fusion, héritage, transformation) —
+   * une invocation normale la refuse, et la main l'affiche grisée. Une unité du
+   * CIMETIÈRE n'est pas vivante : sa copie est jouable tout de suite, ce qui
+   * fait des deux provenances deux magies au tempo opposé — un remplaçant mis
+   * de côté d'un côté, une seconde chance immédiate de l'autre.
+   *
+   * ⚠️ La carte est résolue AVANT le paiement : un contrecoup prélevé pour une
+   * copie qui n'arrive jamais serait pire qu'un refus. Le filtre d'offre rend
+   * le cas inatteignable, cette garde est ce qui l'en empêche pour de bon.
    */
-  private _duplicateUnitCard(magie: Magie, unit: Unit): void {
+  private _duplicateFromUnit(magie: Magie, unit: Unit): void {
     const card = this.deps.cardDb.getCard(unit.card_id);
     if (!card) return;
+    this._payMagieCost(magie);
     this._pushHandCopies(card as Card, duplicateCopies(magie as any));
   }
 
@@ -896,8 +922,17 @@ export class GameSession {
     return unit;
   }
 
+  /**
+   * Les deux magies qui désignent une unité du CIMETIÈRE, et elles n'en font
+   * pas le même usage :
+   *
+   * - `duplicate_graveyard_unit` la LAISSE où elle est et rend sa carte en
+   *   main — le corps reste donc disponible comme matériau d'invocation ;
+   * - `revive` la SORT du cimetière et la repose sur le terrain.
+   */
   applyMagieOnGraveyardUnit(magie: Magie, unit: Unit): void {
     if (!this.canAffordMagie(magie)) return;
+    if (magie.effect?.type === 'duplicate_graveyard_unit') { this._duplicateFromUnit(magie, unit); return; }
     this._payMagieCost(magie);
     applyMagieEffect(magie as any, { gameState: this.gameState, targetUnit: unit });
     const target = unit.initial_position && !this.board.isOccupied(unit.initial_position)

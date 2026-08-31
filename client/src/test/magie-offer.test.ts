@@ -27,6 +27,7 @@ const BARREN: MagieOfferContext = {
   defusableFusionCount: 0,
   poweredUnitCount: 0,
   duplicableUnitCount: 0,
+  duplicableGraveyardCount: 0,
   graveyardCount: 0,
   handCount: 0,
   deckTiers: [],
@@ -46,6 +47,7 @@ const LUSH: MagieOfferContext = {
   defusableFusionCount: 1,
   poweredUnitCount: 2,
   duplicableUnitCount: 3,
+  duplicableGraveyardCount: 2,
   graveyardCount: 2,
   handCount: 5,
   deckTiers: [1, 2, 3, 4, 5],
@@ -133,6 +135,7 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
     ['remove_fusion_material', { type: 'remove_fusion_material', value: 1 }, 'deckHasFusionMaterial', true],
     ['duplicate_unit', { type: 'duplicate_unit', value: 1 }, 'duplicableUnitCount', 1],
     ['duplicate_card', { type: 'duplicate_card', value: 1 }, 'handCount', 1],
+    ['duplicate_graveyard_unit', { type: 'duplicate_graveyard_unit', value: 1 }, 'duplicableGraveyardCount', 1],
   ];
 
   it.each(CASES)('%s : absente du contexte pauvre, présente dès que sa condition est remplie', (_name, effect, field, value) => {
@@ -152,6 +155,16 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
     const dup = magie({ type: 'duplicate_unit', value: 1 });
     expect(isMagieRelevant(dup, { ...BARREN, boardUnitCount: 3 })).toBe(false);
     expect(isMagieRelevant(dup, { ...BARREN, duplicableUnitCount: 1 })).toBe(true);
+  });
+
+  it('duplicate_graveyard_unit ne se contente PAS de graveyardCount', () => {
+    // Même piège que `duplicate_unit` côté board : `revive` se contente de
+    // `graveyardCount` parce qu'il ne lit que l'unité, là où la duplication lit
+    // sa CARTE. Une unité au cimetière dont la carte a quitté le catalogue
+    // n'est pas copiable.
+    const dup = magie({ type: 'duplicate_graveyard_unit', value: 1 });
+    expect(isMagieRelevant(dup, { ...BARREN, graveyardCount: 2 })).toBe(false);
+    expect(isMagieRelevant(dup, { ...BARREN, duplicableGraveyardCount: 1 })).toBe(true);
   });
 
   it('guaranteed_draw : le deck doit porter LE tier demandé, pas un autre', () => {

@@ -1076,3 +1076,114 @@ describe('Shopping — duplicate_card (carte de la main → carte en main)', () 
     expect(offeredIds(session)).toEqual(['CONFORME']);
   });
 });
+
+describe('Shopping — duplicate_graveyard_unit (cimetière → carte en main)', () => {
+  /** Une unité neutralisée au cimetière, comme en laisse un combat. */
+  function bury(session: any, card: any) {
+    const u = new (Unit as any)(card, 'player');
+    u.is_neutralized = true;
+    session.graveyard.push(u);
+    return u;
+  }
+
+  it('routage : la cible est une unité du CIMETIÈRE', () => {
+    const { session } = makeSession();
+    const m = magie({ type: 'duplicate_graveyard_unit', value: 1 }) as any;
+    expect(session.magieNeedsGraveyardTarget(m)).toBe(true);
+    expect(session.magieNeedsUnitTarget(m)).toBe(false);
+    expect(session.magieNeedsHandTarget(m)).toBe(false);
+  });
+
+  it('ajoute la carte à la main et LAISSE le corps au cimetière', () => {
+    // La différence de fond avec `revive`, qui l'en sort pour la reposer : le
+    // corps reste disponible comme matériau d'invocation.
+    const plain = makeCard({ id: 'PLAIN' });
+    const { session } = makeSession({ cards: [plain] });
+    const dead = bury(session, plain);
+
+    session.applyMagieOnGraveyardUnit(magie({ type: 'duplicate_graveyard_unit', value: 1 }) as any, dead);
+
+    expect(session.hand.map(c => c.id)).toEqual(['PLAIN']);
+    expect(session.graveyard).toEqual([dead]);
+    expect(dead.is_neutralized).toBe(true);
+    // Rien n'est posé sur le terrain — ce n'est pas une réanimation.
+    expect(session.getPlayerUnits()).toHaveLength(0);
+  });
+
+  it('la copie est JOUABLE tout de suite — l\'original n\'est pas vivant', () => {
+    // Le tempo qui l'oppose à `duplicate_unit` : depuis le board, la règle du
+    // doublon gèle la copie tant que l'original tient ; depuis le cimetière,
+    // il n'y a aucun doublon vivant à opposer.
+    const plain = makeCard({ id: 'PLAIN' });
+    const { session } = makeSession({ cards: [plain] });
+    const dead = bury(session, plain);
+
+    session.applyMagieOnGraveyardUnit(magie({ type: 'duplicate_graveyard_unit', value: 1 }) as any, dead);
+
+    expect(session.isPlayable(session.hand[0] as any)).toBe(true);
+  });
+
+  it('c\'est la CARTE DE CATALOGUE — les acquis de l\'unité morte ne voyagent pas', () => {
+    const plain = makeCard({ id: 'PLAIN', stats: { atk: 5 } as any });
+    const { session } = makeSession({ cards: [plain] });
+    const dead = bury(session, plain);
+    dead._base.atk = 42;
+    dead._shopping_bonus = { atk: 37 };
+
+    session.applyMagieOnGraveyardUnit(magie({ type: 'duplicate_graveyard_unit', value: 2 }) as any, dead);
+
+    expect((session.hand[0] as any).stats.atk).toBe(5);
+    expect((session.hand[0] as any)._shopping_bonus).toBeUndefined();
+    expect(session.hand).toHaveLength(2);
+    expect(session.hand[0]).not.toBe(session.hand[1]);
+  });
+
+  it('une unité dont la carte a quitté le catalogue ne coûte RIEN et ne rend RIEN', () => {
+    // ⚠️ La carte est résolue AVANT le paiement : un contrecoup prélevé pour
+    // une copie qui n'arrive jamais serait pire qu'un refus.
+    const { session } = makeSession({ cards: [makeCard({ id: 'KNOWN' })] });
+    session.gameState.player_hp = 500;
+    const ghost = bury(session, makeCard({ id: 'GHOST' }));
+
+    session.applyMagieOnGraveyardUnit(
+      magie({ type: 'duplicate_graveyard_unit', value: 1 }, { cost_hp: 80 }) as any, ghost);
+
+    expect(session.hand).toHaveLength(0);
+    expect(session.gameState.player_hp).toBe(500);
+  });
+
+  it('`revive` n\'est PAS touchée : elle sort toujours l\'unité du cimetière', () => {
+    // Les deux magies partagent la famille de ciblage, pas le geste.
+    const plain = makeCard({ id: 'PLAIN' });
+    const { session } = makeSession({ cards: [plain] });
+    const dead = bury(session, plain);
+
+    session.applyMagieOnGraveyardUnit(magie({ type: 'revive', value: 50 }) as any, dead);
+
+    expect(session.graveyard).toHaveLength(0);
+    expect(session.getPlayerUnits()).toHaveLength(1);
+    expect(session.hand).toHaveLength(0);
+  });
+
+  it('offre : absente cimetière vide, présente dès une unité au cimetière', () => {
+    const plain = makeCard({ id: 'PLAIN' });
+    const { session } = makeSession({
+      cards: [plain],
+      magies: [magie({ type: 'duplicate_graveyard_unit', value: 1 }, { id: 'EMPREINTE' })],
+    });
+    expect(session.getShoppingMagies()).toEqual([]);
+
+    bury(session, plain);
+    expect(offeredIds(session)).toEqual(['EMPREINTE']);
+  });
+
+  it('offre : une unité sur le BOARD ne la rend pas pertinente', () => {
+    const plain = makeCard({ id: 'PLAIN' });
+    const { session } = makeSession({
+      cards: [plain],
+      magies: [magie({ type: 'duplicate_graveyard_unit', value: 1 }, { id: 'EMPREINTE' })],
+    });
+    place(session, plain, { col: 0, row: 0 });
+    expect(session.getShoppingMagies()).toEqual([]);
+  });
+});

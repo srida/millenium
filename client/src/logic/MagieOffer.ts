@@ -48,6 +48,9 @@ export interface MagieOfferContext {
   /** Unités du board dont la CARTE est retrouvable au catalogue — les seules
    *  qu'une duplication puisse copier (`GameSession._duplicableUnits`). */
   duplicableUnitCount: number;
+  /** Le pendant au CIMETIÈRE. Distinct de `graveyardCount`, qui suffit à
+   *  `revive` : celui-ci ne lit que l'unité, la duplication lit sa carte. */
+  duplicableGraveyardCount: number;
   graveyardCount: number;
   handCount: number;
   /** Tiers effectivement présents dans le DECK du joueur (pas dans sa main). */
@@ -112,6 +115,7 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     // `boardUnitCount` : une unité dont la carte a disparu du catalogue n'est
     // pas copiable, et l'offrir ferait payer un contrecoup pour rien.
     case 'duplicate_unit':           return ctx.duplicableUnitCount > 0;
+    case 'duplicate_graveyard_unit': return ctx.duplicableGraveyardCount > 0;
     case 'duplicate_card':           return ctx.handCount > 0;
 
     // ⚠️ Un tier absent du deck n'est PAS un no-op : `startPreparation` a un

@@ -93,8 +93,11 @@ export function needsUnitTarget(magie) {
     'grant_power', 'power_cooldown', 'duplicate_unit'].includes(magie?.effect?.type);
 }
 
+// Cible une unité du CIMETIÈRE. ⚠️ Les deux membres n'en font pas le même
+// usage : `revive` l'en SORT pour la reposer sur le terrain, là où
+// `duplicate_graveyard_unit` la laisse en place et ne rend que sa carte.
 export function needsGraveyardTarget(magie) {
-  return magie?.effect?.type === 'revive';
+  return ['revive', 'duplicate_graveyard_unit'].includes(magie?.effect?.type);
 }
 
 // Cible une carte de la MAIN (et non une unité du board ou du cimetière) —
@@ -133,6 +136,9 @@ export function effectLabel(magie) {
     case 'duplicate_unit':           return duplicateCopies(magie) > 1
       ? `Ajoute à ta main ${duplicateCopies(magie)} copies de la carte d'une unité de ton terrain`
       : 'Ajoute à ta main une copie de la carte d\'une unité de ton terrain';
+    case 'duplicate_graveyard_unit': return duplicateCopies(magie) > 1
+      ? `Ajoute à ta main ${duplicateCopies(magie)} copies de la carte d'une unité de ton cimetière`
+      : 'Ajoute à ta main une copie de la carte d\'une unité de ton cimetière';
     case 'duplicate_card':           return duplicateCopies(magie) > 1
       ? `Duplique une carte de ta main en ${duplicateCopies(magie)} exemplaires`
       : 'Duplique une carte de ta main (l\'originale est conservée)';
@@ -283,7 +289,8 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       // Handled by GameSession.applyMagieOnHandCard() — applyEffect is a no-op here
       break;
     case 'duplicate_unit':
-      // Handled by GameSession._duplicateUnitCard() — applyEffect is a no-op here
+    case 'duplicate_graveyard_unit':
+      // Handled by GameSession._duplicateFromUnit() — applyEffect is a no-op here
       break;
     case 'duplicate_card':
       // Handled by GameSession.applyMagieOnHandCard() — applyEffect is a no-op here

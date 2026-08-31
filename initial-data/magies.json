@@ -294,5 +294,14 @@
 			"type": "duplicate_card",
 			"value": 1
 		}
+	},
+	{
+		"id": "MAGIE_034",
+		"name": "Empreinte funéraire",
+		"rarity": 2,
+		"effect": {
+			"type": "duplicate_graveyard_unit",
+			"value": 1
+		}
 	}
 ]
