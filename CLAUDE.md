@@ -3204,6 +3204,49 @@ Arrangement post-placement (`rearrangeUnits`) :
 - HP le plus élevé → rangée la plus avancée dans chaque groupe
 - Maximum 3 unités par rangée, débordement vers la rangée suivante
 
+### La main de l'IA s'accumule, comme celle du joueur
+
+`drawHand` **ajoute** les cartes piochées à la main au lieu de la remplacer —
+même geste que `GameSession.startPreparation` côté joueur
+(`[...this.hand, ...drawHand(…)]`), et la main n'a pas plus de plafond ici que
+là-bas.
+
+Elle était **écrasée** à chaque round (`this._hand = hand`), ce qui perdait
+précisément ce que `placeFromHand` avait pris soin de retenir — et les cartes
+retenues sont les plus intéressantes : une fusion tirée au round 1, alors que
+ses matériaux ne sont pas encore là, ne revenait **jamais**, quand bien même le
+round 3 les lui donnait. Pire, elle n'était même plus tirable, le pool de tiers
+ayant glissé vers le haut. L'IA rejouait donc une main neuve tous les tours,
+sans mémoire.
+
+⚠️ **Un pool VIDE ne défausse pas la main non plus.** C'était le second point
+d'écrasement, et le plus silencieux : un round dont les tiers ne sont pas
+représentés dans le deck vidait tout ce que l'IA tenait.
+
+⚠️ **Le nombre d'appels à `rand` est INCHANGÉ** — exactement `HAND_SIZE` dès que
+le pool n'est pas vide, zéro sinon, comme avant. C'est ce qui garde le flux semé
+de la simulation en phase ; en consommer un de plus décalerait toutes les
+pioches et tous les choix d'IA qui suivent.
+
+⚠️ **C'est un changement d'ÉQUILIBRAGE majeur, et il ne se voit dans aucun
+test.** Mesuré au détecteur (4 000 parties, même graine, vrai catalogue) : la
+ligne de base passe de **51,7 % à 39,5 %** — l'IA gagne **12 points**. La suite
+complète passe pourtant **sans une seule mise à jour** : `sim.test.ts` fige des
+scénarios inline sur des decks synthétiques minuscules (des normales de tier 1),
+où la règle du doublon plafonne de toute façon ce que l'IA peut poser — retenir
+des cartes injouables n'y change rien. Le trou de couverture est réel : l'effet
+n'existe que sur un vrai catalogue, où les voies spéciales abondent.
+
+⚠️ **Corollaire pour `/admin/sim` : la ligne de base a fait UN PAS, le jour du
+changement.** Le « Δ hier » de ce jour-là dit « la règle a changé », pas « le jeu
+a dérivé » — même lecture que le jour où le tirage du terrain est devenu
+sélectif. `ENEMY_HANDICAP` n'est **pas** recalibré pour autant : le figer est ce
+qui rend deux rapports comparables, et il vaut mieux une ligne de base à 39,5 %
+stable qu'un instrument recentré dont l'historique ne veut plus rien dire.
+
+Solo, Arcade, Tournoi et tutoriel sont tous concernés — c'est le même
+`EnemyAI`. Le PvP ne l'est pas (`_placeEnemyUnits` y est un no-op).
+
 ---
 
 ## 🧠 Labo IA — observer les décisions de l'IA
@@ -3359,8 +3402,9 @@ les goldens de `sim.test.ts` :
   futur comportement par difficulté.
 - **Aucun scoring** : tri fixe `_summonPriority`, puis « premier qui passe » ;
   la case est toujours `_freeCells(...)[0]`, le matériau le premier trouvé.
-- **La main est écrasée à chaque round** (`this._hand = hand`) : les cartes non
-  posées sont perdues, là où celle du joueur s'accumule.
+- ~~**La main est écrasée à chaque round**~~ — **CORRIGÉ**, cf. « La main de
+  l'IA s'accumule » ci-dessous. C'est le premier constat du labo à avoir été
+  soldé, et il a coûté **12 points de winrate** au joueur.
 - **`rearrangeUnits` jette en silence** les unités au-delà du cap (ni mort, ni
   cimetière) — le labo les nomme dans `dropped`.
 - **`COL[i % 5]` avec `Math.floor(i / 3)`** (`EnemyAI.js`) : les deux modulos ne

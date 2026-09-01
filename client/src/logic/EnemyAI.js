@@ -41,19 +41,33 @@ export class EnemyAI {
   }
 
   /**
-   * Draw HAND_SIZE cards from the deck for the given round's eligible tiers.
-   * Stored internally; call placeFromHand() to place them.
+   * Draw HAND_SIZE cards from the deck for the given round's eligible tiers,
+   * and ADD them to the hand. Call placeFromHand() to place them.
    *
-   * ⚠️ La main est ÉCRASÉE : les cartes non posées au round précédent sont
-   * perdues, là où celle du joueur s'accumule. Asymétrie constatée, pas
-   * corrigée ici.
+   * ⚠️ La main S'ACCUMULE, comme celle du joueur (`GameSession.startPreparation`
+   * fait le même `[...this.hand, ...drawHand(…)]`). Elle était ÉCRASÉE, ce qui
+   * perdait à chaque round les cartes que `placeFromHand` avait pris soin de
+   * retenir — et ce sont précisément les plus intéressantes : une fusion sortie
+   * au round 1 alors que ses matériaux n'étaient pas encore là ne revenait
+   * jamais, quand bien même le round 3 les lui donnait. L'IA repiochait une
+   * main neuve dans un pool de tiers plus haut, où la carte n'était même plus
+   * tirable.
+   *
+   * ⚠️ Un pool VIDE ne vide pas la main non plus : un round dont les tiers ne
+   * sont pas représentés dans le deck n'est pas une raison de défausser ce
+   * qu'on tenait. C'était le second point d'écrasement, et le plus silencieux.
+   *
+   * ⚠️ La main n'a PAS de plafond, exactement comme celle du joueur (« taille
+   * illimitée »). Le pire cas est borné par la partie : 5 rounds × 5 cartes,
+   * moins tout ce qui est posé.
    *
    * @param {number} round
    * @param {?function(*): void} trace
-   * @returns {Object[]} drawn cards
+   * @returns {Object[]} les cartes PIOCHÉES (pas la main entière)
    */
   drawHand(round, trace = null) {
     const tiers = tiersForRound(round);
+    const kept = [...this._hand];
     const pool = [];
     for (const t of tiers) {
       for (const id of (this._deck[String(t)] ?? [])) {
@@ -61,18 +75,27 @@ export class EnemyAI {
         if (card) pool.push(card);
       }
     }
-    if (pool.length === 0) {
-      this._hand = [];
-      trace?.({ kind: 'draw', round, tiers, pool_size: 0, hand: [] });
-      return [];
+    // ⚠️ Tirage AVEC REMISE, et exactement HAND_SIZE appels à `rand` dès que le
+    // pool n'est pas vide — comme avant. Le flux semé de la simulation compte
+    // ses appels : en consommer un de plus ou de moins décalerait toutes les
+    // pioches et tous les choix d'IA qui suivent.
+    const drawn = [];
+    if (pool.length > 0) {
+      for (let i = 0; i < HAND_SIZE; i++) {
+        drawn.push(pool[Math.floor(this._rand() * pool.length)]);
+      }
     }
-    const hand = [];
-    for (let i = 0; i < HAND_SIZE; i++) {
-      hand.push(pool[Math.floor(this._rand() * pool.length)]);
-    }
-    this._hand = hand;
-    trace?.({ kind: 'draw', round, tiers, pool_size: pool.length, hand: hand.map(c => c.id) });
-    return [...hand];
+    this._hand = [...kept, ...drawn];
+    trace?.({
+      kind: 'draw',
+      round,
+      tiers,
+      pool_size: pool.length,
+      kept: kept.map(c => c.id),
+      drawn: drawn.map(c => c.id),
+      hand: this._hand.map(c => c.id),
+    });
+    return [...drawn];
   }
 
   /**

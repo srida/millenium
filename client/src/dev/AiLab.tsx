@@ -135,7 +135,11 @@ export default function AiLab() {
     if (!result) return;
     setSurvivors(result.board_after.map(u => ({ card_id: u.card_id, col: u.col!, row: u.row! })));
     setGraveyard(result.graveyard_left);
-    setHand([]); setHandFromDraw(false);
+    // ⚠️ La main NON POSÉE se reporte, parce que c'est ce que fait l'IA en jeu :
+    // `drawHand` ajoute au lieu de remplacer. La vider ici ferait mentir le
+    // labo sur le seul point qu'il sert à observer.
+    setHand(result.hand_left);
+    setHandFromDraw(false);
     setRound(r => Math.min(5, r + 1));
     setResult(null);
   }

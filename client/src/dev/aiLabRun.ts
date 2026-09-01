@@ -50,7 +50,18 @@ export interface LabUnitRef {
 
 /** Les événements émis par `EnemyAI` à travers le sink de trace. */
 export type AiTraceEvent =
-  | { kind: 'draw'; round: number; tiers: number[]; pool_size: number; hand: string[] }
+  | {
+      kind: 'draw';
+      round: number;
+      tiers: number[];
+      pool_size: number;
+      /** Ce que l'IA tenait déjà — sa main s'accumule, comme celle du joueur. */
+      kept?: string[];
+      /** Les cartes ajoutées par CE tirage. */
+      drawn?: string[];
+      /** La main résultante : `kept` puis `drawn`. */
+      hand: string[];
+    }
   | { kind: 'pass_start'; pass: number; order: string[] }
   | {
       kind: 'attempt';
@@ -226,7 +237,8 @@ export function runAiPlacement(input: AiLabInput): AiLabRound {
     const cards = input.hand.map(resolve).filter(Boolean) as Card[];
     ai.setHand(cards);
     handSource = 'manual';
-    trace({ kind: 'draw', round, tiers: [], pool_size: cards.length, hand: cards.map(c => c.id) });
+    const ids = cards.map(c => c.id);
+    trace({ kind: 'draw', round, tiers: [], pool_size: cards.length, kept: [], drawn: ids, hand: ids });
   }
   const handIn = ai.getHand().map(c => c.id);
 

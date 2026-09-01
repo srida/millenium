@@ -15,7 +15,8 @@ import { fileURLToPath } from 'node:url';
 import { runAiPlacement, refusalCounts, placedCount } from '../dev/aiLabRun.js';
 import type { AiLabInput, AiTraceEvent } from '../dev/aiLabRun.js';
 import { EnemyAI } from '../logic/EnemyAI.js';
-import { makeCard, makeBoard } from './helpers.js';
+import { seededRandom } from '../logic/Random.js';
+import { makeCard, makeBoard, spawn } from './helpers.js';
 
 /** Racine de `client/src`, pour les tests qui lisent de vraies sources. */
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -392,6 +393,97 @@ describe('Pioche — semée, et court-circuitable', () => {
     const a = run({ cardDb: db(cards), deck, hand: null, seed: 's', round: 1 });
     const b = run({ cardDb: db(cards), deck, hand: null, seed: 's', round: 2 });
     expect(a.hand).not.toEqual(b.hand);
+  });
+
+  // ── La main s'accumule d'un round à l'autre ────────────────────────────────
+  //
+  // Ces cas pilotent `EnemyAI` directement : le pilote du labo construit une IA
+  // NEUVE à chaque appel (chaque round y est décrit de bout en bout), la
+  // rétention ne s'y observe donc pas. C'est bien l'instance qui la porte.
+  describe('Rétention de la main entre les rounds', () => {
+    // Une fusion dont les matériaux n'arrivent qu'après : le cas exact que
+    // l'écrasement rendait injouable pour toujours.
+    const n1 = makeCard({ id: 'N1', tier: 2, summon_type: 'normal' });
+    const n2 = makeCard({ id: 'N2', tier: 2, summon_type: 'normal' });
+    const fus = makeCard({ id: 'F', tier: 1, summon_type: 'fusion', cost: { materials: ['N1', 'N2'] } });
+    const deckByTier = { 1: ['F'], 2: ['N1', 'N2'] };
+
+    it('une carte non posée reste en main, et redevient jouable plus tard', () => {
+      const board = makeBoard();
+      const ai = new (EnemyAI as any)(deckByTier, db([n1, n2, fus]), 'enemy');
+
+      // Round 1 : seul le tier 1 est tirable, la fusion sort et ne passe pas.
+      ai.drawHand(1);
+      expect(ai.getHand().map((c: any) => c.id)).toEqual(['F', 'F', 'F', 'F', 'F']);
+      ai.placeFromHand(board, 5, []);
+      expect(board.getLivingUnitsOnSide('enemy')).toHaveLength(0);
+      // ⚠️ Cette rétention-CI marchait déjà : `placeFromHand` finit par
+      // `this._hand = unplaced`. C'est le `drawHand` du round suivant qui
+      // jetait le tout — d'où le cumul éprouvé par le cas d'à côté.
+      expect(ai.getHand()).toHaveLength(5);
+
+      // Round suivant, ses matériaux sont là (survivants ou pioche — peu
+      // importe d'où ils viennent, c'est la RÉTENTION qu'on éprouve ici, et
+      // les poser à la main la rend indépendante d'un tirage chanceux).
+      spawn(board, n1, 'enemy', { col: 0, row: 7 });
+      spawn(board, n2, 'enemy', { col: 1, row: 7 });
+
+      // Aucune pioche : c'est bien la main RETENUE qui joue.
+      ai.placeFromHand(board, 5, []);
+      expect(board.getLivingUnitsOnSide('enemy').map((u: any) => u.card_id)).toEqual(['F']);
+    });
+
+    it('la main retenue se cumule avec la pioche du round suivant', () => {
+      const ai = new (EnemyAI as any)(deckByTier, db([n1, n2, fus]), 'enemy');
+      ai.drawHand(1);
+      expect(ai.getHand()).toHaveLength(5);
+      ai.drawHand(2);
+      expect(ai.getHand()).toHaveLength(10);   // ⚠️ 5 avant le correctif
+      ai.drawHand(3);
+      expect(ai.getHand()).toHaveLength(15);
+    });
+
+    it('la pioche AJOUTE au lieu de remplacer, et la trace le dit', () => {
+      const ai = new (EnemyAI as any)(deckByTier, db([n1, n2, fus]), 'enemy');
+      ai.drawHand(1);
+      const events: any[] = [];
+      ai.drawHand(2, (e: any) => events.push(e));
+      const draw = events.find(e => e.kind === 'draw');
+      expect(draw.kept).toHaveLength(5);
+      expect(draw.drawn).toHaveLength(5);
+      expect(draw.hand).toEqual([...draw.kept, ...draw.drawn]);
+    });
+
+    it('un pool VIDE ne défausse pas la main', () => {
+      // Deck sans tier 3+ : au round 5 le pool est vide. La main tenue doit
+      // survivre — c'était le second point d'écrasement, et le plus silencieux.
+      const ai = new (EnemyAI as any)({ 1: ['F'] }, db([n1, n2, fus]), 'enemy');
+      ai.drawHand(1);
+      expect(ai.getHand()).toHaveLength(5);
+      const events: any[] = [];
+      ai.drawHand(5, (e: any) => events.push(e));
+      expect(ai.getHand()).toHaveLength(5);
+      expect(events[0]).toMatchObject({ pool_size: 0, drawn: [] });
+    });
+
+    it('un pool vide ne consomme AUCUN tirage — le flux semé reste en phase', () => {
+      // Deux IA sur le même flux : celle qui traverse un round vide doit
+      // ensuite tirer exactement ce que l'autre tire.
+      const mk = () => new (EnemyAI as any)({ 1: ['F'] }, db([n1, n2, fus]), 'enemy', seededRandom('phase'));
+      const a = mk(); a.drawHand(5); a.setHand([]); a.drawHand(1);
+      const b = mk(); b.drawHand(1);
+      expect(a.getHand().map((c: any) => c.id)).toEqual(b.getHand().map((c: any) => c.id));
+    });
+
+    it('placeFromHand ne retient que ce qu\'il n\'a pas posé', () => {
+      const board = makeBoard();
+      const ai = new (EnemyAI as any)({ 1: ['N1'] }, db([n1]), 'enemy');
+      ai.setHand([n1, n1, fus]);
+      ai.placeFromHand(board, 5, []);
+      // N1 posé une fois (règle du doublon), son doublon et la fusion retenus.
+      expect(board.getLivingUnitsOnSide('enemy')).toHaveLength(1);
+      expect(ai.getHand().map((c: any) => c.id).sort()).toEqual(['F', 'N1']);
+    });
   });
 
   it('la pioche respecte les tiers du round', () => {
