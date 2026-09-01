@@ -15,6 +15,8 @@ import * as MagieDatabase from '../../data/MagieDatabase.js';
 import * as BoardDatabase from '../../data/BoardDatabase.js';
 import AttrIcon from '../ui/AttrIcon.js';
 import { effectLabel } from '../../logic/MagieEffect.js';
+import { boardEffects } from '../../logic/BoardEffect.js';
+import { boardEffectLabel } from '../../data/BoardInfo.js';
 import type { Card, AttributeDef, BoardDef, Magie, PowerDef } from '../../logic/types.js';
 import type { ChapterBlock } from '../../data/tutorialContent.js';
 import CardTile, { cardTileProps } from '../ui/CardTile.js';
@@ -120,7 +122,11 @@ function BoardExamples({ limit }: { limit: number }) {
               <div className="text-xs font-semibold text-gold">{b.name}</div>
               <div className="text-[11px] leading-snug text-white/60">
                 {blocked > 0 ? `${blocked} case${blocked > 1 ? 's' : ''} bloquée${blocked > 1 ? 's' : ''}` : 'Aucun obstacle'}
-                {b.effect?.stat ? ` · +${b.effect.value} ${b.effect.stat.toUpperCase()}` : ''}
+                {/* ⚠️ Par `boardEffects`, jamais par `b.effect` : un terrain
+                    CUMULE ses effets, et la forme historique n'est plus la
+                    seule. Et par `boardEffectLabel`, qui dit « +10 ATQ » là où
+                    la clé brute disait « ATK » au joueur. */}
+                {boardEffects(b).map(e => ` · ${boardEffectLabel(e)}`).join('')}
               </div>
             </div>
           </div>

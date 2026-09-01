@@ -5,7 +5,7 @@
 // combat animé. Ne fait PARTIE ni de logic/ ni de three/ : couche app autorisée
 // à dépendre des deux + des stores.
 import { GameSession, Phase } from '../logic/GameSession.js';
-import { effectTargets } from '../logic/BoardEffect.js';
+import { boardEffects, effectTargets } from '../logic/BoardEffect.js';
 import { boardTargetsUnits } from '../data/BoardInfo.js';
 import { matchesMaterial } from '../logic/InvocationManager.js';
 import { CombatAnimator3D } from '../three/CombatAnimator3D.js';
@@ -830,9 +830,13 @@ export class GameController {
  * impossible d'annoncer au joueur un décompte que l'effet n'a pas appliqué —
  * un second filtre écrit ici aurait fini par ne plus dire la même chose.
  *
- * ⚠️ `boosted: null` quand l'effet ne lit pas `target_attributes`
- * (`draw_bonus`, qui crédite le joueur quoi qu'il arrive) : annoncer « 3 unités
- * boostées » sous lui ferait mentir l'écran.
+ * ⚠️ `boosted: null` quand AUCUN effet ne lit le ciblage (`draw_bonus`, qui
+ * crédite le joueur quoi qu'il arrive) : annoncer « 3 unités boostées » sous lui
+ * ferait mentir l'écran.
+ *
+ * ⚠️ Sur un terrain à plusieurs effets, on compte l'UNION des unités touchées,
+ * jamais la somme : une unité que deux effets boostent reste une unité. La
+ * phrase annoncée est « combien en profitent », pas « combien de bonus tombent ».
  */
 export function terrainAlertFor(
   board: import('../logic/types.js').BoardDef | null,
@@ -840,11 +844,12 @@ export function terrainAlertFor(
   enemyUnits: import('../logic/Unit.js').Unit[],
 ): import('../stores/gameStore.js').TerrainAlertSnapshot | null {
   if (!board) return null;
-  const boosted = boardTargetsUnits(board.effect)
-    ? {
-      player: effectTargets(board.effect, playerUnits).length,
-      enemy: effectTargets(board.effect, enemyUnits).length,
-    }
-    : null;
+  const targeting = boardEffects(board).filter(boardTargetsUnits);
+  const count = (units: import('../logic/Unit.js').Unit[]) => {
+    const touched = new Set<import('../logic/Unit.js').Unit>();
+    for (const effect of targeting) for (const u of effectTargets(effect, units)) touched.add(u);
+    return touched.size;
+  };
+  const boosted = targeting.length ? { player: count(playerUnits), enemy: count(enemyUnits) } : null;
   return { board, boosted };
 }

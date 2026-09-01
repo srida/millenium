@@ -6,8 +6,7 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { Avatar, Button, Illustration, Modal } from '../ui/primitives.js';
-import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
-import { boardEffectLabel, boardTargetsUnits } from '../../data/BoardInfo.js';
+import TerrainEffects from '../ui/TerrainEffects.js';
 import { AnimatedLevelGauge } from '../ui/ProgressionStats.js';
 import { END_ROUND_DURATION_S, TERRAIN_ALERT_MS } from '../../game/timings.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
@@ -39,7 +38,6 @@ export function TerrainAlert() {
   const controller = useGameStore(s => s.controller);
   if (!alert || !controller) return null;
   const { board, boosted } = alert;
-  const targets = boardTargetsUnits(board.effect) ? (board.effect?.target_attributes ?? []) : [];
 
   return (
     <div
@@ -57,17 +55,10 @@ export function TerrainAlert() {
           ? <Illustration id={board.id} className="h-24 w-24" framed lazy={false} />
           : <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-line text-4xl">🗺️</div>}
         <div className="text-base font-bold text-gold">{board.name}</div>
-        <div className="text-xs text-white/70">{boardEffectLabel(board.effect)}</div>
-        {targets.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-1">
-            {targets.map(id => (
-              <span key={id} className="flex items-center gap-1 rounded border border-gold/40 bg-gold/10 px-1.5 py-0.5 text-[10px] text-gold">
-                <AttrIcon id={id} className="h-3.5 w-3.5 text-[11px]" />
-                {attributeName(id)}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Un terrain porte désormais PLUSIEURS effets : ils s'annoncent tous,
+            chacun avec ce qu'il vise — c'est le composant partagé avec
+            l'infobulle 🗺️ qui les rend. */}
+        <TerrainEffects board={board} center />
         {boosted && <BoostedCount player={boosted.player} enemy={boosted.enemy} />}
       </div>
     </div>

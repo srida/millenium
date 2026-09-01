@@ -13,7 +13,7 @@ import { GameState, Phase, PLAYER_HP_CAP } from './GameState.js';
 import { EnemyAI } from './EnemyAI.js';
 import { AttributeManager } from './AttributeManager.js';
 import { CombatManager } from './CombatManager.js';
-import { applyEffect as applyBoardEffect } from './BoardEffect.js';
+import { applyBoardEffects } from './BoardEffect.js';
 import { mirrorCells } from './BoardMirror.js';
 import { pickBoard, deckAttributes, dominantAttributes } from './BoardPicker.js';
 import type { BoardPickContext, AttributeCounts } from './BoardPicker.js';
@@ -569,9 +569,10 @@ export class GameSession {
     const attributeManager = new AttributeManager(this.deps.attributeList, playerUnits, this.enemyUnits);
     attributeManager.applyStartOfCombat();
 
-    if (boardData?.effect) {
-      applyBoardEffect(boardData.effect, { playerUnits, enemyUnits: this.enemyUnits, gameState: this.gameState });
-    }
+    // ⚠️ TOUS les effets du terrain, pas seulement le premier : `effects` est
+    // une liste cumulée (cf. `BoardEffect.boardEffects`, seul lecteur des deux
+    // formes de la donnée).
+    applyBoardEffects(boardData, { playerUnits, enemyUnits: this.enemyUnits, gameState: this.gameState });
 
     const combat = new CombatManager(this.board, playerUnits, this.enemyUnits, attributeManager);
     this._combat = combat;

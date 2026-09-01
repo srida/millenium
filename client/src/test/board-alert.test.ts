@@ -115,6 +115,41 @@ describe('Annonce de terrain — ce qui est dit', () => {
     expect(alert.board.id).toBe('B');
   });
 
+  // ⚠️ Un terrain CUMULE désormais plusieurs effets : on annonce l'UNION des
+  // unités touchées, jamais la somme — une unité que deux effets boostent reste
+  // une unité, et la phrase dit « combien en profitent ».
+  // Mutation : addition des décomptes effet par effet → ROUGE (3 au lieu de 2).
+  it('sur un terrain à plusieurs effets, on compte les unités, pas les bonus', () => {
+    const board = {
+      id: 'B', name: 'B',
+      effects: [
+        { type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: ['ARCH_003'] },
+        { type: 'shield', value: 20, target_attributes: ['ARCH_003', 'ARCH_021'] },
+      ],
+    } as any as BoardDef;
+    const units = [{ attributes: ['ARCH_003'] }, { attributes: ['ARCH_021'] }, { attributes: ['ARCH_099'] }] as any[];
+
+    expect(terrainAlertFor(board, units, [])!.boosted).toEqual({ player: 2, enemy: 0 });
+  });
+
+  // Mutation : `board.effect` lu directement au lieu de `boardEffects` → ROUGE.
+  it('un terrain migré en `effects` s\'annonce comme les autres', () => {
+    const board = { id: 'B', name: 'B', effects: [{ type: 'stat_bonus', stat: 'atk', value: 5 }] } as any as BoardDef;
+    expect(terrainAlertFor(board, [{ attributes: [] }] as any, [])!.boosted).toEqual({ player: 1, enemy: 0 });
+  });
+
+  // Le décompte suit le ciblage par VOIE d'invocation comme celui par
+  // archétype : c'est `effectTargets` qui tranche, des deux côtés.
+  it('le décompte suit aussi le ciblage par voie d\'invocation', () => {
+    const board = {
+      id: 'B', name: 'B',
+      effects: [{ type: 'stat_bonus', stat: 'atk', value: 10, target_summon_types: ['fusion'] }],
+    } as any as BoardDef;
+    const units = [{ attributes: [], summon_key: 'fusion' }, { attributes: [], summon_key: 'normal' }] as any[];
+
+    expect(terrainAlertFor(board, units, [])!.boosted).toEqual({ player: 1, enemy: 0 });
+  });
+
   it('un terrain sans effet s\'annonce quand même, sans décompte', () => {
     const alert = terrainAlertFor(terrain('B', null), [{ attributes: [] }] as any, [] as any)!;
     expect(alert.boosted).toBeNull();

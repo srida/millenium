@@ -117,15 +117,32 @@ export interface BoardEffectDef {
   type: string; // stat_bonus | stat_modifier | shield | draw_bonus
   stat?: string;
   value?: number;
-  /** Vide/absent = toutes les unités des deux camps. */
+  /** Vide/absent = tous les archétypes. */
   target_attributes?: string[];
+  /**
+   * Voies d'invocation visées — clés du catalogue `summon_types` (`normal`,
+   * `sacrifice`, `fusion`, `heritage`, `transformation`, `multi`). Vide/absent
+   * = toutes.
+   *
+   * ⚠️ Les deux ciblages se CUMULENT (ET) : un effet qui porte les deux ne
+   * touche qu'une unité qui satisfait les deux. Cf. `BoardEffect.effectTargets`.
+   */
+  target_summon_types?: string[];
 }
 
 export interface BoardDef {
   id: string;
   name: string;
   blocked_cells?: Position[];
+  /**
+   * ⚠️ Forme HISTORIQUE — un seul effet, encore portée par les terrains livrés
+   * et par `data/boards.json` sur le volume. `effects` la remplace et l'emporte
+   * quand elle est présente ; `BoardEffect.boardEffects()` est le SEUL lecteur
+   * des deux, personne d'autre ne doit lire l'un ou l'autre champ.
+   */
   effect?: BoardEffectDef | null;
+  /** Effets CUMULÉS du terrain — tous appliqués, dans l'ordre de la liste. */
+  effects?: BoardEffectDef[] | null;
   _has_illustration?: boolean;
   // Fond de grille (vue de dessus 5:11) servi sur /board-backgrounds/<id>.
   // Calculé par le serveur à la lecture, jamais persisté — même statut que

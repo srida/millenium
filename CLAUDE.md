@@ -769,7 +769,7 @@ Deux extractions, toutes deux motivées par la même règle : ne pas se donner d
 - **Plafonds** : `MAX_LOT_AMOUNT = 100 000` par lot de monnaie, `MAX_LOTS_PER_GIFT = 12`. Pas une défiance envers l'admin — le zéro en trop, qui ne se rattrape pas une fois les gemmes distribuées.
 - ⚠️ **Supprimer un cadeau n'efface pas le registre** : recréer un cadeau sous un id déjà utilisé le laisse silencieusement inaccessible à qui avait pris le premier. Même piège que la prime de complétion d'un pack, mémorisée par id — l'écran d'admin le dit.
 - 🎀 et non 🎁 : les **Packs** occupent déjà ce glyphe, et deux onglets au même pictogramme se confondent au coup d'œil. ⚠️ Ça ne tient plus à une contrainte technique : `switchTab` appariait autrefois par **sous-chaîne de libellé** (`t.includes('cadeau')`), il lit désormais `data-tab` — un libellé se renomme donc librement.
-- **L'éditeur de lots est le seul champ répétable du panneau d'admin.** Il tient un état local `giftLots` (le DOM ne peut pas servir de source de vérité pour une liste dont on retire des éléments au milieu) et `_syncGiftDraft()` recopie la saisie **avant** chaque re-render — nom et description compris, sans quoi ajouter un lot effacerait le nom qu'on vient de taper.
+- **L'éditeur de lots est l'un des deux champs répétables du panneau d'admin** (l'autre est l'éditeur d'effets d'un terrain, calqué dessus). Il tient un état local `giftLots` (le DOM ne peut pas servir de source de vérité pour une liste dont on retire des éléments au milieu) et `_syncGiftDraft()` recopie la saisie **avant** chaque re-render — nom et description compris, sans quoi ajouter un lot effacerait le nom qu'on vient de taper.
 
 ### Client
 
@@ -2509,16 +2509,39 @@ Chaque combat se joue sur un terrain, actif uniquement pendant la phase de comba
   "_has_illustration": true,
   "_has_background": true,
   "blocked_cells": [{ "col": 2, "row": 5 }],
-  "effect": {
-    "type": "stat_bonus",
-    "stat": "atk",
-    "value": 10,
-    "target_attributes": ["ARCH_DRAGON"]
-  }
+  "effects": [
+    {
+      "type": "stat_bonus",
+      "stat": "atk",
+      "value": 10,
+      "target_attributes": ["ARCH_DRAGON"],
+      "target_summon_types": ["fusion", "multi"]
+    },
+    { "type": "shield", "value": 20 }
+  ]
 }
 ```
 
-`effect` peut être `null` (aucun effet). `target_attributes` vide = toutes les unités des deux joueurs.
+### Effets cumulés (`effects`) et ciblage par voie d'invocation
+
+Un terrain porte une **liste** d'effets, tous appliqués. Chacun vise, indépendamment des autres, des **archétypes** (`target_attributes`) et/ou des **voies d'invocation** (`target_summon_types`) — vide ou absent des deux côtés = toutes les unités des deux joueurs.
+
+⚠️ **`BoardEffect.boardEffects(board)` est le SEUL lecteur de la donnée**, et il lit **deux formes** : `effects` (la liste) l'emporte dès qu'elle porte quelque chose, `effect` (l'effet unique historique) sert de repli. Les 14 terrains livrés — et `data/boards.json` **sur le volume**, que `bootstrap()` ne recopie jamais sur un dossier peuplé — sont encore en `effect` : le repli n'est pas une politesse, c'est ce qui fait qu'**aucune migration n'est nécessaire**. L'admin, lui, écrit `effects` et n'écrit plus `effect` (le `PUT` remplace l'objet entier) : la migration se fait terrain par terrain, au premier enregistrement. Tout écran qui lirait `board.effect` afficherait « Aucun effet » sur un terrain migré — c'est arrivé au panneau ℹ du TestBench, constaté au navigateur.
+
+⚠️ **Les deux ciblages d'un même effet se cumulent en ET**, jamais en OU : « les Dragons invoqués par Fusion » est la seule lecture qu'un designer puisse tenir pour acquise en cochant les deux listes. Un OU se demande en posant **deux effets** sur le terrain — ce que `effects` permet, là où l'inverse ne serait pas exprimable.
+
+⚠️ **Le cumul est ADDITIF, et l'ordre de la liste n'y change rien** : tous les effets écrivent dans `_stat_bonuses` (ou dans le bouclier), jamais dans `_base` que `stat_modifier` relit. Deux « ×2 PV » donnent donc **×3** (deux fois +100 % du socle) et non ×4 — des multiplicateurs qui se composeraient feraient dépendre le résultat de l'ordre de saisie en admin.
+
+⚠️ **La voie lue est `unit.summon_key`, jamais `unit.summon_type`** : une carte à `summon_options` relève de **`multi`** (`Unit.summonKey`), la voie que le joueur lit sur sa vignette (`CardDatabase.costHint`) et dans son infobulle. Son `summon_type` de premier niveau n'est qu'un miroir de l'une de ses recettes, lu nulle part ailleurs — un terrain « Fusion » toucherait sinon, sans le dire, deux cartes marquées 🔀. Un terrain qui les veut désigne `multi`.
+
+⚠️ **La voie est dérivée de la DÉFINITION de carte, jamais de la recette réellement jouée.** `round:board_ready` ne transporte que `card_id` et l'adversaire reconstruit l'unité depuis le catalogue : keyer sur l'option retenue ferait diverger les deux clients d'un duel (cf. « les huit causes de divergence »). Rien de neuf ne voyage donc sur le réseau, et le contrat de déterminisme est intact.
+
+⚠️ **`target_summon_types` n'entre PAS dans la pertinence du tirage** (`BoardPicker.isBoardRelevant`) : le contexte ne porte que les attributs des deux decks, les seuls faits que le serveur dérive et envoie en PvP (`deck_attribute_counts`). Faire voyager la composition en voies serait un second fait dérivé pour un prédicat **presque toujours vrai** — un deck de 20 cartes porte quasi systématiquement plusieurs voies. Un ciblage de voie seul est donc lu comme « vise tout le monde » : optimiste, et sans conséquence puisque la pertinence n'est qu'une **préférence**. Un seul effet pertinent suffit d'ailleurs à rendre le terrain pertinent — l'exiger de tous rendrait un terrain d'autant moins tirable qu'il est riche.
+
+- **L'annonce d'entrée en combat compte l'UNION des unités touchées**, jamais la somme : une unité que deux effets boostent reste une unité, et la phrase dit « combien en profitent ».
+- **Un seul rendu pour les deux écrans** : `components/ui/TerrainEffects.tsx` (une ligne par effet + les puces de ce qu'il vise) sert l'annonce, l'infobulle 🗺️ et le panneau du TestBench — même raison d'être que `data/BoardInfo`, deux descriptions du même terrain finissent par ne plus dire la même chose.
+- **Admin** : l'onglet Terrains porte un éditeur d'effets **répétable** — le second du panneau après les lots de cadeau, et même discipline (`_syncBoardDraft()` recopie la saisie **avant** chaque re-render). ⚠️ Les **cases bloquées** en font partie : `renderBoardDetail` reconstruit `_boardBlockedSet` depuis `selectedBoard.blocked_cells`, si bien qu'ajouter un effet effacerait les cases qu'on venait de poser. Un `draw_bonus` n'y expose **aucun** ciblage : il crédite le joueur quoi qu'il arrive, lui en offrir un ferait promettre à l'écran ce que le combat ne fait pas.
+- Verrouillé par `client/src/test/board-effects.test.ts` (17 golden tests), **éprouvés dans les deux sens** : ciblage par voie ignoré, ET remplacé par OU, un seul effet appliqué, repli sur `effect` retiré, `summon_key` rabattu sur le champ brut — chacune de ces cinq régressions fait passer la suite au rouge (plus l'union du décompte et le `.some` de la pertinence, dans `board-alert` et `board-picker`).
 
 Un terrain porte **deux images distinctes**, calculées à la lecture et jamais persistées (même statut que `_has_illustration` sur une carte) — `POST`/`PUT`/`import` les effacent (`stripBoardComputed`) :
 
@@ -2545,6 +2568,8 @@ Quatrième famille d'assets, sur le modèle des affiches de packs : triptyque ad
 | `shield` | Bouclier initial (`value`) |
 | `draw_bonus` | Pioche supplémentaire (`value` cartes) — alimente `gameState.player_extra_draws`, joueur uniquement |
 
+Les trois premiers **visent des unités** (`BoardInfo.boardTargetsUnits`) et lisent donc les deux ciblages ; `draw_bonus` crédite le joueur **quoi qu'il arrive** et n'en lit aucun — l'admin ne lui en propose pas, et ni l'annonce ni l'infobulle n'affichent de cibles sous lui.
+
 Les effets sont appliqués via `applyStatBonus()` / `applyShield()`, donc nettoyés automatiquement par `resetCombatStats()` en fin de combat.
 
 ### Le tirage du terrain
@@ -2570,9 +2595,11 @@ Les 14 terrains livrés portent **tous** un `target_attributes`. Un tirage aveug
 
 | Cas | Verdict |
 |---|---|
-| `effect` absent ou `null` | **non pertinent** — `applyEffect` sort aussitôt, le terrain ne touche personne |
-| `target_attributes` vide/absent | **toujours pertinent** — l'effet vise alors *toutes* les unités des deux camps |
-| sinon | intersection non vide avec les attributs des deux decks |
+| aucun effet (`effects` vide **et** `effect` absent ou `null`) | **non pertinent** — `applyBoardEffects` n'a rien à appliquer, le terrain ne touche personne |
+| `target_attributes` vide/absent sur **un** des effets | **toujours pertinent** — cet effet vise alors *toutes* les unités des deux camps |
+| sinon | **un** effet au moins dont le ciblage croise les attributs des deux decks |
+
+⚠️ Le prédicat balaie `boardEffects(board)` — les deux formes de la donnée, et tous les effets d'un terrain qui en cumule.
 
 ⚠️ **EXACTEMENT UN appel à `rand` par tirage, et AUCUN sur un pool vide.** Ce n'est pas une micro-optimisation : c'est ce qui garde le flux semé de la simulation **en phase**. Un appel de plus décalerait toutes les pioches et tous les choix d'IA qui suivent, et ferait bouger les 23 goldens de déterminisme de `sim.test.ts` pour une raison sans rapport avec le terrain. Vérifié : la suite complète passe **sans une seule mise à jour de snapshot**.
 
@@ -2592,7 +2619,7 @@ Les 14 terrains livrés portent **tous** un `target_attributes`. Un tirage aveug
 
 ⚠️ **Rien n'est miroité côté serveur, et ce n'est pas un oubli.** Un `match.usedBoardIds` protégerait un chemin **injoignable** : aucun client n'envoie `match:rejoin`, et rien n'écoute `round:restart` — la reprise d'état de jeu PvP n'existe pas, un rechargement de page perd déjà la main, le cimetière, la vétérance et les PV. Faire de l'historique des terrains la seule chose durable serait une incohérence, au prix d'un invariant de plus (⚠️ `round:next_ready` devrait le laisser intact, contrairement à `lastTerrainBoardId` juste à côté) qu'aucun test ne pourrait exercer.
 
-Verrouillé par `client/src/test/board-picker.test.ts` (23 golden tests sur le module pur) et `client/src/test/board-selection.test.ts` (11 au niveau `GameSession`). Tous **éprouvés dans les deux sens** — 19 régressions réintroduites une par une (filtre de non-répétition retiré, échelons inversés, seuil ramené à 1, deck adverse ignoré, `setEnemyDeckAttributeCounts` sans effet, tri supprimé, `rand` appelé sur pool vide, marquage déplacé dans le tirage…), chacune fait passer la suite au rouge.
+Verrouillé par `client/src/test/board-picker.test.ts` (26 golden tests sur le module pur) et `client/src/test/board-selection.test.ts` (11 au niveau `GameSession`). Tous **éprouvés dans les deux sens** — 19 régressions réintroduites une par une (filtre de non-répétition retiré, échelons inversés, seuil ramené à 1, deck adverse ignoré, `setEnemyDeckAttributeCounts` sans effet, tri supprimé, `rand` appelé sur pool vide, marquage déplacé dans le tirage…), chacune fait passer la suite au rouge.
 
 ### L'annonce du terrain (entrée en combat)
 
@@ -2614,7 +2641,7 @@ Le terrain décide de bonus de stats **réels** et change à chaque round — ma
 - **Le composant ne pilote rien** : aucun minuteur à lui, il disparaît quand `terrainAlert` repasse à `null`. Le départ du combat appartient au contrôleur.
 - **L'animation** reprend la grammaire du toast de pouvoir (`power-toast-anim`) : un seul jeu d'images-clés qui **apparaît / tient / s'efface**, durée posée par une propriété personnalisée depuis `TERRAIN_ALERT_MS` — une seule source, sinon l'animation et l'attente dérivent. ⚠️ En `prefers-reduced-motion: reduce` l'annonce **reste affichée et le combat attend toujours** : c'est le mouvement qu'on retire, pas l'information.
 - **PvP** : même chemin (`_onRoundGo` → `_beginCombatAnimation`), et `revealMs` y vaut 0 — l'attente est donc entièrement celle de l'annonce. ⚠️ Aucune désynchronisation possible : le combat est simulé localement des deux côtés et le résultat n'est rapporté qu'à la fin ; un délai d'affichage ne traverse pas le réseau. Le chrono de combat ne dérive pas non plus, il est dérivé des **ticks** de l'animateur, jamais d'une horloge murale.
-- Verrouillé par `client/src/test/board-alert.test.ts` (10 golden tests) et `client/src/test/board-info.test.ts` (11). Tous **éprouvés dans les deux sens** — 8 régressions réintroduites une par une. ⚠️ Le rendu, lui, n'est pas testé : la suite tourne en node sans DOM. Il se vérifie au navigateur (cf. « Vérification » ci-dessous).
+- Verrouillé par `client/src/test/board-alert.test.ts` (13 golden tests) et `client/src/test/board-info.test.ts` (13). Tous **éprouvés dans les deux sens** — 8 régressions réintroduites une par une. ⚠️ Le rendu, lui, n'est pas testé : la suite tourne en node sans DOM. Il se vérifie au navigateur (cf. « Vérification » ci-dessous).
 
 ### Rendu en jeu
 
@@ -2671,6 +2698,8 @@ Propriétés runtime (`client/src/logic/Unit.ts`) :
 
 ```js
 uid                       // identifiant d'instance, unique par partie
+summon_key                // voie d'invocation ANNONCÉE ('multi' pour une carte à summon_options) —
+                          // ce que lit le ciblage des terrains, jamais le champ brut summon_type
 
 // Stats
 _base                     // stats de base gelées — SEUL endroit modifié en permanent (magies)

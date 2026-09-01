@@ -13,8 +13,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { boardEffectLabel, boardTargetsUnits } from '../data/BoardInfo.js';
+import { boardEffectLabel, boardTargetsUnits, boardTargetAttributes, boardTargetSummonTypes } from '../data/BoardInfo.js';
 import { statLabel, STAT_LABELS } from '../data/StatLabels.js';
+import { boardEffects } from '../logic/BoardEffect.js';
 import type { BoardDef } from '../logic/types.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -37,6 +38,24 @@ describe('BoardInfo — quels effets visent des unités', () => {
   it('un effet absent ne vise rien', () => {
     expect(boardTargetsUnits(null)).toBe(false);
     expect(boardTargetsUnits(undefined)).toBe(false);
+  });
+
+  // Les deux listes de puces de l'écran. Un effet qui ne vise pas d'unité n'en
+  // rend AUCUNE : c'est ce qui empêche `draw_bonus` d'afficher des archétypes
+  // ou des voies qu'il n'applique pas.
+  // Mutation : garde `boardTargetsUnits` retirée des deux lecteurs → ROUGE.
+  it('les cibles affichables sont vides sous un effet qui ne vise pas d\'unité', () => {
+    const draw = { type: 'draw_bonus', value: 1, target_attributes: ['ARCH_003'], target_summon_types: ['fusion'] } as any;
+    expect(boardTargetAttributes(draw)).toEqual([]);
+    expect(boardTargetSummonTypes(draw)).toEqual([]);
+  });
+
+  it('les deux familles de cibles se lisent séparément', () => {
+    const effect = { type: 'shield', value: 20, target_attributes: ['ARCH_003'], target_summon_types: ['fusion', 'multi'] } as any;
+    expect(boardTargetAttributes(effect)).toEqual(['ARCH_003']);
+    expect(boardTargetSummonTypes(effect)).toEqual(['fusion', 'multi']);
+    expect(boardTargetAttributes({ type: 'shield', value: 1 } as any)).toEqual([]);
+    expect(boardTargetSummonTypes({ type: 'shield', value: 1 } as any)).toEqual([]);
   });
 });
 
@@ -91,10 +110,16 @@ describe('BoardInfo — les catalogues livrés', () => {
   it('les 14 terrains livrés rendent tous un libellé non vide et chiffré', () => {
     expect(boards.length).toBeGreaterThan(0);
     for (const b of boards) {
-      const label = boardEffectLabel(b.effect);
-      expect(label).not.toBe('');
-      expect(label).not.toBe('Aucun effet');
-      expect(label).not.toBe(b.effect?.type);   // aucun type inconnu au catalogue
+      // ⚠️ Par `boardEffects` : un terrain migré en `effects` depuis l'admin
+      // n'a plus de `b.effect`, et le test passerait alors à côté de son sujet.
+      const effects = boardEffects(b);
+      expect(effects.length).toBeGreaterThan(0);
+      for (const e of effects) {
+        const label = boardEffectLabel(e);
+        expect(label).not.toBe('');
+        expect(label).not.toBe('Aucun effet');
+        expect(label).not.toBe(e.type);   // aucun type inconnu au catalogue
+      }
     }
   });
 
