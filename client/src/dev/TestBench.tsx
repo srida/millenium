@@ -9,7 +9,7 @@ import { Board } from '../logic/Board.js';
 import { Unit } from '../logic/Unit.js';
 import { CombatManager } from '../logic/CombatManager.js';
 import { AttributeManager } from '../logic/AttributeManager.js';
-import { applyEffect as applyBoardEffect } from '../logic/BoardEffect.js';
+import { applyBoardEffects } from '../logic/BoardEffect.js';
 import { Scene3D } from '../three/Scene3D.js';
 import { CombatAnimator3D } from '../three/CombatAnimator3D.js';
 import * as CardDatabase from '../data/CardDatabase.js';
@@ -19,6 +19,7 @@ import type { Card, Position, BoardDef } from '../logic/types.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Illustration } from '../components/ui/primitives.js';
+import TerrainEffects from '../components/ui/TerrainEffects.js';
 
 const SUMMON_TYPES = ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'];
 type Side = 'player' | 'enemy';
@@ -138,7 +139,7 @@ export default function TestBench() {
     const attributeList = (AttributeDatabase as any).getAllAttributes();
     const attributeManager = new (AttributeManager as any)(attributeList, players, enemies);
     attributeManager.applyStartOfCombat();
-    if (selectedBoard?.effect) applyBoardEffect(selectedBoard.effect as any, { playerUnits: players, enemyUnits: enemies } as any);
+    applyBoardEffects(selectedBoard, { playerUnits: players, enemyUnits: enemies } as any);
 
     const cm = new (CombatManager as any)(board, players, enemies, attributeManager);
     const animator = new CombatAnimator3D(cm, scene as any, {
@@ -269,7 +270,11 @@ export default function TestBench() {
                 <div className="min-w-0">
                   <div className="font-bold text-white">{selectedBoard.name}</div>
                   <div>{(selectedBoard as any).blocked_cells?.length ?? 0} cases bloquées</div>
-                  <div>{selectedBoard.effect ? `Effet : ${(selectedBoard.effect as any).type}` : 'Aucun effet'}</div>
+                  {/* Le rendu du jeu, pas un résumé maison : un terrain CUMULE
+                      plusieurs effets, et lire `board.effect` ici afficherait
+                      « Aucun effet » sur tout terrain migré en `effects`
+                      (constaté au navigateur). */}
+                  <TerrainEffects board={selectedBoard} />
                 </div>
               </div>
             )}

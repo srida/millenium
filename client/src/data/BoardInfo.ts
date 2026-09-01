@@ -27,6 +27,20 @@ export function boardTargetsUnits(effect: BoardEffectDef | null | undefined): bo
 }
 
 /**
+ * Les archétypes visés par un effet, pour l'affichage — `[]` quand l'effet ne
+ * vise pas d'unité (`draw_bonus`) ou ne restreint rien (« toutes les unités »,
+ * que l'appelant dit alors en clair).
+ */
+export function boardTargetAttributes(effect: BoardEffectDef | null | undefined): string[] {
+  return boardTargetsUnits(effect) ? (effect?.target_attributes ?? []) : [];
+}
+
+/** Idem pour les voies d'invocation visées (`normal`, `fusion`, `multi`…). */
+export function boardTargetSummonTypes(effect: BoardEffectDef | null | undefined): string[] {
+  return boardTargetsUnits(effect) ? (effect?.target_summon_types ?? []) : [];
+}
+
+/**
  * L'effet d'un terrain, en une ligne.
  *
  * `withTargets` ajoute les noms d'attributs entre parenthèses — l'infobulle ne
@@ -34,6 +48,11 @@ export function boardTargetsUnits(effect: BoardEffectDef | null | undefined): bo
  * un attribut se reconnaît à son pictogramme bien avant son nom), d'où le
  * paramètre. Les noms sont résolus par l'appelant, qui seul peut atteindre
  * `AttributeDatabase` sans faire entrer une database dans ce module pur.
+ *
+ * ⚠️ Les VOIES D'INVOCATION visées ne sont jamais dans ce libellé : elles
+ * s'affichent en puces, avec leur pictogramme (`boardTargetSummonTypes`), pour
+ * la raison même qui garde les archétypes hors du texte. Ce paramètre-ci ne
+ * sert plus qu'aux effets d'ATTRIBUT, qui n'ont pas de puces sous eux.
  *
  * ⚠️ Un effet absent rend « Aucun effet », jamais une chaîne vide : un blanc
  * dans l'annonce se lirait comme un bug d'affichage, pas comme un terrain neutre.

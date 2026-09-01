@@ -2,12 +2,15 @@
 // (pertinence vis-à-vis des deux decks), et lequel n'est pas déjà tombé
 // (non-répétition).
 //
-// ⚠️ Module PLAT à dessein — il n'importe que des types, comme `MagieOffer.ts`.
-// La pertinence est une question sur un ÉTAT, pas sur une session : la poser ici
-// la rend testable sans instancier une partie, ce qui compte dans une suite
-// vitest qui tourne en node sans DOM. C'est `GameSession._boardPickContext()`
-// qui traduit son état en `BoardPickContext`, et le deck du joueur ne sort
-// JAMAIS de la session — seule une liste d'ids d'attributs en sort.
+// ⚠️ Module PLAT à dessein — des types, et `boardEffects` pour ne pas se donner
+// une seconde lecture de la donnée (cf. `BoardEffect`, qui n'importe lui-même
+// que des types). La pertinence est une question sur un ÉTAT, pas sur une
+// session : la poser ici la rend testable sans instancier une partie, ce qui
+// compte dans une suite vitest qui tourne en node sans DOM. C'est
+// `GameSession._boardPickContext()` qui traduit son état en `BoardPickContext`,
+// et le deck du joueur ne sort JAMAIS de la session — seule une liste d'ids
+// d'attributs en sort.
+import { boardEffects } from './BoardEffect.js';
 import type { BoardDef, Card } from './types.js';
 
 /** Un attribut doit porter au moins 2 cartes du deck pour l'identifier.
@@ -92,13 +95,27 @@ export function deckAttributes(cards: readonly (Card | null | undefined)[]): str
  * `draw_bonus` dont personne ne porte le ciblage serait donc jugé non pertinent
  * alors qu'il agit. Aucun des 14 terrains livrés n'est dans ce cas ; le jour où
  * l'un le sera, c'est cette ligne qui bouge.
+ *
+ * ⚠️ UN SEUL effet pertinent suffit : un terrain qui cumule « +10 ATQ aux
+ * Dragons » et « Bouclier +20 aux Fusions » pèse sur un duel dès que l'un des
+ * deux porte. Exiger que tous portent le rendrait d'autant moins tirable qu'il
+ * est riche.
+ *
+ * ⚠️ `target_summon_types` n'entre PAS dans la pertinence, et c'est délibéré :
+ * le contexte ne porte que les attributs des deux decks — les seuls faits que
+ * le serveur dérive et envoie en PvP (`deck_attribute_counts`). Faire voyager
+ * la composition en voies d'invocation serait un second fait dérivé pour un
+ * prédicat presque toujours vrai : un deck de 20 cartes porte quasi
+ * systématiquement plusieurs voies. Un ciblage de voie seul est donc lu comme
+ * « vise tout le monde », ce qui n'est qu'un peu optimiste — et la pertinence
+ * n'est qu'une préférence.
  */
 export function isBoardRelevant(board: BoardDef, ctx: BoardPickContext): boolean {
-  const effect = board?.effect;
-  if (!effect?.type) return false;
-  const targets = effect.target_attributes;
-  if (!targets?.length) return true;
-  return targets.some(a => ctx.playerAttributes.includes(a) || ctx.enemyAttributes.includes(a));
+  return boardEffects(board).some(effect => {
+    const targets = effect.target_attributes;
+    if (!targets?.length) return true;
+    return targets.some(a => ctx.playerAttributes.includes(a) || ctx.enemyAttributes.includes(a));
+  });
 }
 
 /**

@@ -14,6 +14,7 @@ import {
   pickBoard, isBoardRelevant, deckAttributes, dominantAttributes, attributeCounts,
   MIN_ATTRIBUTE_OCCURRENCES,
 } from '../logic/BoardPicker.js';
+import { boardEffects } from '../logic/BoardEffect.js';
 import { makeRandom } from '../logic/Random.js';
 import type { BoardDef } from '../logic/types.js';
 
@@ -63,6 +64,39 @@ describe('BoardPicker — pertinence', () => {
   // Mutation : `if (!effect?.type) return true` → ROUGE.
   it('un terrain SANS effet ne touche personne, donc jamais pertinent', () => {
     expect(isBoardRelevant(terrain('B', null), ctx({ player: ['ARCH_003'] }))).toBe(false);
+  });
+
+  // ⚠️ Un terrain CUMULE désormais plusieurs effets, et un seul suffit : exiger
+  // que tous portent rendrait un terrain d'autant moins tirable qu'il est riche.
+  // Mutation : `.every` au lieu de `.some` → ROUGE.
+  it('un seul effet pertinent suffit sur un terrain qui en cumule', () => {
+    const board = {
+      id: 'B', name: 'B',
+      effects: [
+        { type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: ['ARCH_099'] },
+        { type: 'shield', value: 20, target_attributes: ['ARCH_003'] },
+      ],
+    } as any as BoardDef;
+    expect(isBoardRelevant(board, ctx({ player: ['ARCH_003'] }))).toBe(true);
+    expect(isBoardRelevant(board, ctx({ player: ['ARCH_042'] }))).toBe(false);
+  });
+
+  // Mutation : lecture directe de `board.effect` (repli non consulté) → ROUGE.
+  it('la forme historique `effect` reste lue par la pertinence', () => {
+    expect(isBoardRelevant(terrain('B', ['ARCH_003']), ctx({ player: ['ARCH_003'] }))).toBe(true);
+  });
+
+  // ⚠️ Le ciblage par VOIE d'invocation n'entre pas dans la pertinence : le
+  // contexte ne porte que les attributs des deux decks (les seuls faits que le
+  // serveur dérive et envoie en PvP). Un ciblage de voie seul est donc lu comme
+  // « vise tout le monde » — optimiste, et sans conséquence puisque la
+  // pertinence n'est qu'une préférence.
+  it('un ciblage de VOIE seul ne restreint pas la pertinence', () => {
+    const board = {
+      id: 'B', name: 'B',
+      effects: [{ type: 'stat_bonus', stat: 'atk', value: 10, target_summon_types: ['fusion'] }],
+    } as any as BoardDef;
+    expect(isBoardRelevant(board, ctx())).toBe(true);
   });
 });
 
@@ -207,7 +241,9 @@ describe('BoardPicker — le catalogue livré', () => {
   it('chaque terrain livré est offrable sous un contexte qui porte son ciblage', () => {
     expect(boards.length).toBeGreaterThan(0);
     for (const b of boards) {
-      const targets = b.effect?.target_attributes ?? [];
+      // ⚠️ Par `boardEffects`, jamais par `b.effect` : un terrain migré en
+      // `effects` depuis l'admin passerait à vide dans le second cas.
+      const targets = boardEffects(b).flatMap(e => e.target_attributes ?? []);
       expect(isBoardRelevant(b, ctx({ player: targets }))).toBe(true);
     }
   });

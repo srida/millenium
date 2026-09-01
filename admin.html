@@ -6502,6 +6502,59 @@ let _boardBlockedSet = new Set();
 let boardIllusBust = Date.now();
 let boardBgBust = Date.now();
 
+// Effets du terrain en cours d'édition — un terrain en CUMULE plusieurs.
+//
+// Deuxième champ répétable du panneau (après les lots de cadeau), et même
+// raison d'être : le DOM ne peut pas servir de source de vérité pour une liste
+// dont on retire des éléments au milieu. Même discipline aussi — `_syncBoardDraft()`
+// recopie la saisie en cours AVANT chaque re-render, sinon ajouter un effet
+// effacerait le nom qu'on vient de taper.
+let boardEffectsDraft = [];
+
+// Voies d'invocation ciblables. Le catalogue `summonTypes` fait foi (il porte
+// les libellés et les icônes, éditables dans l'onglet Invocation) ; cette liste
+// n'est que le repli tant qu'il n'est pas chargé.
+const BOARD_SUMMON_FALLBACK = [
+  { type: 'normal', label: 'Normale', icon: '✋' },
+  { type: 'sacrifice', label: 'Sacrifice', icon: '💀' },
+  { type: 'fusion', label: 'Fusion', icon: '⚗' },
+  { type: 'heritage', label: 'Héritage', icon: '🔮' },
+  { type: 'transformation', label: 'Transformation', icon: '🔄' },
+  { type: 'multi', label: 'Plusieurs recettes', icon: '🔀' },
+];
+
+// Les trois seuls effets qui VISENT des unités (cf. logic/BoardEffect et
+// data/BoardInfo.boardTargetsUnits) : `draw_bonus` crédite le joueur quoi qu'il
+// arrive, lui offrir un ciblage ferait promettre à l'écran ce que le combat ne
+// fait pas.
+const BOARD_EFFECTS_TARGETING = new Set(['stat_bonus', 'stat_modifier', 'shield']);
+
+function _summonTypeChoices() {
+  return (summonTypes && summonTypes.length ? summonTypes : BOARD_SUMMON_FALLBACK)
+    .map(s => ({ type: s.type, label: s.label || s.type, icon: s.icon || '' }));
+}
+
+function _summonTypeLabel(type) {
+  const found = _summonTypeChoices().find(s => s.type === type);
+  return found ? `${found.icon} ${found.label}`.trim() : type;
+}
+
+/**
+ * Les effets d'un terrain, sous leur forme de travail.
+ *
+ * ⚠️ Deux formes dans la donnée : `effects` (la liste) et `effect` (l'effet
+ * unique historique, encore porté par les 14 terrains livrés). Le lecteur du
+ * jeu — `BoardEffect.boardEffects` — applique exactement cette règle, liste
+ * d'abord. Enregistrer un terrain le convertit en `effects` et n'écrit plus
+ * `effect` (le PUT remplace l'objet entier) : la migration se fait à la main,
+ * terrain par terrain, et ne casse rien tant qu'elle n'est pas faite.
+ */
+function _boardEffectsFrom(board) {
+  const list = Array.isArray(board?.effects) ? board.effects.filter(e => e && e.type) : [];
+  const src = list.length ? list : (board?.effect?.type ? [board.effect] : []);
+  return JSON.parse(JSON.stringify(src));
+}
+
 function filterBoards() {
   const q = document.getElementById('board-search').value.toLowerCase();
   const filtered = boards.filter(b => !q || b.name.toLowerCase().includes(q) || b.id.toLowerCase().includes(q));
@@ -6526,22 +6579,143 @@ function renderBoardList(list = boards) {
 function selectBoard(id) {
   selectedBoard = boards.find(b => b.id === id);
   isNewBoard = false;
+  boardEffectsDraft = _boardEffectsFrom(selectedBoard);
   renderBoardList();
   renderBoardDetail();
   showDetail();
+}
+
+/** Une ligne d'effet : son type, ses champs, et les deux ciblages. */
+function _boardEffectHtml(e, i) {
+  const type = e.type || 'stat_bonus';
+  const needsStat = type === 'stat_bonus' || type === 'stat_modifier';
+  const targets = BOARD_EFFECTS_TARGETING.has(type);
+  const statOpts = [
+    ['atk','ATK'],['hp','HP'],['movement_speed','Vitesse mvt'],
+    ['attack_speed','Vitesse attaque'],['initiative','Initiative'],['range','Portée'],
+  ].map(([v,l]) => `<option value="${v}" ${e.stat===v?'selected':''}>${l}</option>`).join('');
+
+  return `
+    <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div class="field" style="flex:0 0 190px">
+          <label>Effet ${i + 1}</label>
+          <select id="bf-eff-${i}-type" onchange="changeBoardEffectType(${i}, this.value)">
+            <option value="stat_bonus"    ${type==='stat_bonus'   ?'selected':''}>Bonus de stat</option>
+            <option value="stat_modifier" ${type==='stat_modifier'?'selected':''}>Modificateur de stat</option>
+            <option value="shield"        ${type==='shield'       ?'selected':''}>Bouclier</option>
+            <option value="draw_bonus"    ${type==='draw_bonus'   ?'selected':''}>Bonus de pioche</option>
+          </select>
+        </div>
+        <div class="field" style="flex:0 0 160px;${needsStat?'':'display:none'}">
+          <label>Stat</label>
+          <select id="bf-eff-${i}-stat">${statOpts}</select>
+        </div>
+        <div class="field" style="flex:0 0 120px">
+          <label>Valeur</label>
+          <input type="number" step="any" id="bf-eff-${i}-value" value="${e.value ?? 0}">
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="removeBoardEffect(${i})" title="Retirer cet effet">✕</button>
+      </div>
+      ${targets ? `
+        <div style="margin-top:10px">
+          <label style="font-size:11px;color:var(--muted)">Archétypes ciblés <span style="font-weight:400">(vide = tous)</span></label>
+          <div class="attr-chips" id="bf-eff-${i}-attrs">
+            ${(e.target_attributes || []).map(aid => `
+              <span class="attr-chip" data-aid="${aid}" onclick="removeBoardTargetAttr(${i}, '${aid}')">
+                ${getAttrName(aid)} <span class="remove">×</span>
+              </span>
+            `).join('')}
+            <button class="attr-add" onclick="openBoardAttrPickModal(${i})">+ Ajouter</button>
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <label style="font-size:11px;color:var(--muted)">Voies d'invocation ciblées <span style="font-weight:400">(vide = toutes)</span></label>
+          <div class="attr-chips" id="bf-eff-${i}-kinds">
+            ${(e.target_summon_types || []).map(t => `
+              <span class="attr-chip" data-kind="${t}" onclick="removeBoardTargetKind(${i}, '${t}')">
+                ${esc(_summonTypeLabel(t))} <span class="remove">×</span>
+              </span>
+            `).join('')}
+            <button class="attr-add" onclick="openBoardKindPickModal(${i})">+ Ajouter</button>
+          </div>
+        </div>
+      ` : `<div style="margin-top:8px;font-size:11px;color:var(--muted)">Cet effet crédite le joueur : il ne vise aucune unité, donc aucun ciblage.</div>`}
+    </div>
+  `;
+}
+
+/** Relit les effets depuis le DOM — AVANT toute re-render, sinon la saisie en cours est perdue. */
+function _readBoardEffects() {
+  boardEffectsDraft = boardEffectsDraft.map((e, i) => {
+    const type = document.getElementById(`bf-eff-${i}-type`)?.value || e.type;
+    const raw = document.getElementById(`bf-eff-${i}-value`)?.value;
+    const out = { type, value: raw === '' || raw == null ? (e.value ?? 0) : Number(raw) };
+    if (type === 'stat_bonus' || type === 'stat_modifier') {
+      out.stat = document.getElementById(`bf-eff-${i}-stat`)?.value || e.stat || 'atk';
+    }
+    if (BOARD_EFFECTS_TARGETING.has(type)) {
+      const attrsEl = document.getElementById(`bf-eff-${i}-attrs`);
+      const kindsEl = document.getElementById(`bf-eff-${i}-kinds`);
+      out.target_attributes = attrsEl
+        ? [...attrsEl.querySelectorAll('.attr-chip')].map(el => el.dataset.aid)
+        : (e.target_attributes || []);
+      out.target_summon_types = kindsEl
+        ? [...kindsEl.querySelectorAll('.attr-chip')].map(el => el.dataset.kind)
+        : (e.target_summon_types || []);
+    }
+    return out;
+  });
+  return boardEffectsDraft;
+}
+
+/**
+ * Recopie la saisie en cours dans l'état AVANT une re-render.
+ *
+ * ⚠️ Les cases bloquées en font partie : `renderBoardDetail` reconstruit
+ * `_boardBlockedSet` depuis `selectedBoard.blocked_cells`, si bien qu'ajouter un
+ * effet effacerait les cases qu'on venait de poser. Même piège que le nom d'un
+ * cadeau dans `_syncGiftDraft`.
+ */
+function _syncBoardDraft() {
+  if (selectedBoard) {
+    const id = document.getElementById('bf-id')?.value.trim();
+    if (id) selectedBoard.id = id;
+    selectedBoard.name = document.getElementById('bf-name')?.value ?? selectedBoard.name;
+    selectedBoard.blocked_cells = [..._boardBlockedSet].map(k => { const [c, r] = k.split(','); return { col: +c, row: +r }; });
+  }
+  _readBoardEffects();
+}
+
+function changeBoardEffectType(i, type) {
+  _syncBoardDraft();
+  const prev = boardEffectsDraft[i] || {};
+  // Le ciblage survit tant que le nouveau type le LIT : perdre une liste
+  // d'archétypes choisie à la main en passant de « bonus de stat » à
+  // « bouclier » serait une punition sans raison — les deux visent les mêmes
+  // unités. Un type qui ne cible personne, lui, ne garde rien.
+  boardEffectsDraft[i] = BOARD_EFFECTS_TARGETING.has(type)
+    ? { type, value: prev.value ?? 0, stat: prev.stat || 'atk', target_attributes: prev.target_attributes || [], target_summon_types: prev.target_summon_types || [] }
+    : { type, value: prev.value ?? 0 };
+  renderBoardDetail();
+}
+
+function addBoardEffect() {
+  _syncBoardDraft();
+  boardEffectsDraft.push({ type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: [], target_summon_types: [] });
+  renderBoardDetail();
+}
+
+function removeBoardEffect(i) {
+  _syncBoardDraft();
+  boardEffectsDraft.splice(i, 1);
+  renderBoardDetail();
 }
 
 function renderBoardDetail() {
   const b = selectedBoard;
   _boardBlockedSet = new Set((b.blocked_cells || []).map(c => `${c.col},${c.row}`));
   const el = document.getElementById('board-detail');
-  const e  = b.effect;
-  const needsStat = e?.type === 'stat_bonus' || e?.type === 'stat_modifier';
-
-  const statOpts = [
-    ['atk','ATK'],['hp','HP'],['movement_speed','Vitesse mvt'],
-    ['attack_speed','Vitesse attaque'],['initiative','Initiative'],['range','Portée'],
-  ].map(([v,l]) => `<option value="${v}" ${e?.stat===v?'selected':''}>${l}</option>`).join('');
 
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
@@ -6553,37 +6727,20 @@ function renderBoardDetail() {
       <div class="field"><label>Nom</label><input id="bf-name" value="${esc(b.name)}"></div>
     </div>
 
-    <div class="section-title" style="margin-top:20px">Effet</div>
-    <div class="form-grid">
-      <div class="field">
-        <label>Type</label>
-        <select id="bf-effect-type" onchange="toggleBoardEffectFields()">
-          <option value="">Aucun effet</option>
-          <option value="stat_bonus"    ${e?.type==='stat_bonus'   ?'selected':''}>Bonus de stat</option>
-          <option value="stat_modifier" ${e?.type==='stat_modifier'?'selected':''}>Modificateur de stat</option>
-          <option value="shield"        ${e?.type==='shield'       ?'selected':''}>Bouclier</option>
-          <option value="draw_bonus"    ${e?.type==='draw_bonus'   ?'selected':''}>Bonus de pioche</option>
-        </select>
-      </div>
-      <div class="field" id="bf-stat-wrap" style="${needsStat?'':'display:none'}">
-        <label>Stat</label>
-        <select id="bf-effect-stat">${statOpts}</select>
-      </div>
-      <div class="field" id="bf-value-wrap" style="${e?.type?'':'display:none'}">
-        <label>Valeur</label>
-        <input type="number" id="bf-effect-value" value="${e?.value ?? 0}">
-      </div>
-    </div>
-    <div id="bf-target-wrap" style="${e?.type?'':'display:none'}">
-      <div class="section-title" style="margin-top:20px">Attributs cibles <span style="font-size:10px;font-weight:400;color:var(--muted)">(vide = tous les attributs)</span></div>
-      <div class="attr-chips" id="bf-attr-chips">
-        ${(e?.target_attributes || []).map(aid => `
-          <span class="attr-chip" data-aid="${aid}" onclick="removeBoardTargetAttr('${aid}')">
-            ${getAttrName(aid)} <span class="remove">×</span>
-          </span>
-        `).join('')}
-        <button class="attr-add" onclick="openBoardAttrPickModal()">+ Ajouter</button>
-      </div>
+    <div class="section-title" style="margin-top:20px">Effets <span style="font-size:10px;font-weight:400;color:var(--muted)">(cumulés — tous s'appliquent)</span></div>
+    ${boardEffectsDraft.map((eff, i) => _boardEffectHtml(eff, i)).join('')
+      || '<div class="empty" style="padding:12px"><span>Aucun effet — le terrain n\'apporte que ses cases bloquées.</span></div>'}
+    <div style="margin-bottom:8px"><button class="btn btn-secondary btn-sm" onclick="addBoardEffect()">+ Ajouter un effet</button></div>
+    <div style="font-size:12px;line-height:1.7;color:var(--muted);max-width:640px;margin-bottom:8px">
+      <p>Les effets <b>se cumulent</b> et l'ordre n'y change rien : ils s'ajoutent tous
+      aux stats de combat, jamais au socle de la carte. Deux « ×2 PV » sur un même
+      terrain donnent donc <b>×3</b> (deux fois +100 % du socle), pas ×4.</p>
+      <p>Les deux ciblages d'un effet se lisent <b>ET</b> : cocher « Dragon » et
+      « Fusion » ne touche que les Dragons invoqués par Fusion. Pour un <b>OU</b>,
+      poser <b>deux effets</b> sur le terrain.</p>
+      <p>⚠️ Une carte à <b>plusieurs recettes</b> relève de la voie « 🔀 Plusieurs
+      recettes », jamais de l'une des siennes : c'est ce que le joueur lit sur sa
+      vignette, et la recette réellement jouée ne voyage pas en duel en ligne.</p>
     </div>
 
     <div class="section-title" style="margin-top:20px">Cellules bloquées (zone neutre)</div>
@@ -6634,26 +6791,26 @@ function renderBoardDetail() {
   _renderBlockedCellsGrid();
 }
 
-function toggleBoardEffectFields() {
-  const type = document.getElementById('bf-effect-type').value;
-  const needsStat = type === 'stat_bonus' || type === 'stat_modifier';
-  document.getElementById('bf-stat-wrap').style.display   = needsStat ? '' : 'none';
-  document.getElementById('bf-value-wrap').style.display  = type ? '' : 'none';
-  document.getElementById('bf-target-wrap').style.display = type ? '' : 'none';
-}
-
-function removeBoardTargetAttr(aid) {
-  const chip = document.querySelector(`#bf-attr-chips .attr-chip[data-aid="${aid}"]`);
+// Les puces de ciblage se manipulent DANS LE DOM (sans re-render) : c'est ce
+// qui laisse intacte la saisie en cours des autres effets. `_readBoardEffects`
+// les relit au moment voulu.
+function removeBoardTargetAttr(i, aid) {
+  const chip = document.querySelector(`#bf-eff-${i}-attrs .attr-chip[data-aid="${aid}"]`);
   if (chip) chip.remove();
 }
 
-function openBoardAttrPickModal() {
-  const current = [...document.querySelectorAll('#bf-attr-chips .attr-chip')].map(el => el.dataset.aid);
+function removeBoardTargetKind(i, type) {
+  const chip = document.querySelector(`#bf-eff-${i}-kinds .attr-chip[data-kind="${type}"]`);
+  if (chip) chip.remove();
+}
+
+function openBoardAttrPickModal(i) {
+  const current = [...document.querySelectorAll(`#bf-eff-${i}-attrs .attr-chip`)].map(el => el.dataset.aid);
   showModal(`
     <h2>Ajouter un attribut cible</h2>
     <div style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto">
       ${attributes.filter(a => !current.includes(a.id)).map(a => `
-        <div class="list-item" style="border-radius:6px" onclick="addBoardTargetAttr('${a.id}')">
+        <div class="list-item" style="border-radius:6px" onclick="addBoardTargetAttr(${i}, '${a.id}')">
           <span style="font-size:16px">${a.icon || ''}</span>
           <div><div>${esc(a.name)}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${a.id}</div></div>
         </div>
@@ -6663,16 +6820,43 @@ function openBoardAttrPickModal() {
   `);
 }
 
-function addBoardTargetAttr(aid) {
-  const chipsEl = document.getElementById('bf-attr-chips');
+function addBoardTargetAttr(i, aid) {
+  const chipsEl = document.getElementById(`bf-eff-${i}-attrs`);
   if (!chipsEl || chipsEl.querySelector(`[data-aid="${aid}"]`)) { closeModal(); return; }
-  const addBtn = chipsEl.querySelector('.attr-add');
   const chip = document.createElement('span');
   chip.className = 'attr-chip';
   chip.dataset.aid = aid;
-  chip.onclick = () => removeBoardTargetAttr(aid);
+  chip.onclick = () => removeBoardTargetAttr(i, aid);
   chip.innerHTML = `${getAttrName(aid)} <span class="remove">×</span>`;
-  chipsEl.insertBefore(chip, addBtn);
+  chipsEl.insertBefore(chip, chipsEl.querySelector('.attr-add'));
+  closeModal();
+}
+
+function openBoardKindPickModal(i) {
+  const current = [...document.querySelectorAll(`#bf-eff-${i}-kinds .attr-chip`)].map(el => el.dataset.kind);
+  showModal(`
+    <h2>Ajouter une voie d'invocation cible</h2>
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto">
+      ${_summonTypeChoices().filter(s => !current.includes(s.type)).map(s => `
+        <div class="list-item" style="border-radius:6px" onclick="addBoardTargetKind(${i}, '${s.type}')">
+          <span style="font-size:16px">${esc(s.icon)}</span>
+          <div><div>${esc(s.label)}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${esc(s.type)}</div></div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">Fermer</button></div>
+  `);
+}
+
+function addBoardTargetKind(i, type) {
+  const chipsEl = document.getElementById(`bf-eff-${i}-kinds`);
+  if (!chipsEl || chipsEl.querySelector(`[data-kind="${type}"]`)) { closeModal(); return; }
+  const chip = document.createElement('span');
+  chip.className = 'attr-chip';
+  chip.dataset.kind = type;
+  chip.onclick = () => removeBoardTargetKind(i, type);
+  chip.innerHTML = `${esc(_summonTypeLabel(type))} <span class="remove">×</span>`;
+  chipsEl.insertBefore(chip, chipsEl.querySelector('.attr-add'));
   closeModal();
 }
 
@@ -6700,19 +6884,18 @@ function _renderBlockedCellsGrid() {
   }
 }
 
+/**
+ * ⚠️ On écrit `effects` et PLUS `effect` : le PUT remplace l'objet entier, la
+ * forme historique disparaît donc du terrain enregistré. C'est voulu — deux
+ * champs qui disent la même chose finissent par ne plus dire la même chose ; le
+ * jeu lit encore l'ancienne pour les terrains qu'on n'a pas touchés
+ * (`BoardEffect.boardEffects`).
+ */
 function _collectBoardFields() {
-  const type = document.getElementById('bf-effect-type').value;
-  let effect = null;
-  if (type) {
-    const needsStat = type === 'stat_bonus' || type === 'stat_modifier';
-    effect = { type, value: +document.getElementById('bf-effect-value').value };
-    if (needsStat) effect.stat = document.getElementById('bf-effect-stat').value;
-    effect.target_attributes = [...document.querySelectorAll('#bf-attr-chips .attr-chip')].map(el => el.dataset.aid);
-  }
   return {
     id:            document.getElementById('bf-id').value.trim(),
     name:          document.getElementById('bf-name').value.trim(),
-    effect,
+    effects:       _readBoardEffects().filter(e => e.type),
     blocked_cells: [..._boardBlockedSet].map(k => { const [c,r] = k.split(','); return { col:+c, row:+r }; }),
   };
 }
@@ -6730,6 +6913,7 @@ async function saveBoard() {
     _has_background: selectedBoard._has_background,
   };
   selectedBoard = boards[idx];
+  boardEffectsDraft = _boardEffectsFrom(selectedBoard);
   filterBoards();
   renderBoardDetail();
   toast('Terrain enregistré');
@@ -6749,7 +6933,8 @@ async function deleteBoard() {
 
 function openNewBoard() {
   const nextNum = String(boards.length + 1).padStart(3, '0');
-  selectedBoard = { id: `BOARD_${nextNum}`, name: '', effect: null, blocked_cells: [], _has_illustration: false, _has_background: false };
+  selectedBoard = { id: `BOARD_${nextNum}`, name: '', effects: [], blocked_cells: [], _has_illustration: false, _has_background: false };
+  boardEffectsDraft = [];
   isNewBoard = true;
   renderBoardList();
   renderBoardDetail();
@@ -6764,6 +6949,7 @@ async function createBoard() {
   if (res.error) return toast(res.error, 'err');
   boards.push({ ...board, _has_illustration: false, _has_background: false });
   selectedBoard = boards[boards.length - 1];
+  boardEffectsDraft = _boardEffectsFrom(selectedBoard);
   isNewBoard = false;
   filterBoards();
   renderBoardDetail();
@@ -6772,6 +6958,7 @@ async function createBoard() {
 
 function cancelNewBoard() {
   selectedBoard = null;
+  boardEffectsDraft = [];
   isNewBoard = false;
   filterBoards();
   document.getElementById('board-detail').innerHTML = '<div class="empty"><span>Sélectionne un terrain</span></div>';

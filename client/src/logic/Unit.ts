@@ -2,6 +2,26 @@ import type { Card, DotEffect, BurnStack, Position, Side } from './types.js';
 
 let _nextUid = 0;
 
+/**
+ * La voie d'invocation d'une carte, TELLE QU'ELLE EST ANNONCÉE au joueur — la
+ * clé du catalogue `summon_types`, `'multi'` compris.
+ *
+ * ⚠️ Une carte à `summon_options` porte plusieurs recettes ; son `summon_type`
+ * de premier niveau n'est qu'un miroir de l'une d'elles et n'est lu nulle part
+ * (ni `summon()`, ni le tooltip, ni la vignette, qui affichent toutes `multi`).
+ * Un terrain qui viserait « Fusion » toucherait donc, sans le dire, deux cartes
+ * que le joueur voit marquées 🔀 : elles relèvent de `multi`, et un terrain qui
+ * les veut le désigne.
+ *
+ * ⚠️ Dérivé de la DÉFINITION de carte, jamais de la recette réellement jouée :
+ * `round:board_ready` ne transporte que `card_id`, et l'adversaire reconstruit
+ * l'unité depuis le catalogue. Keyer sur l'option retenue ferait diverger les
+ * deux clients d'un duel (cf. « les huit causes de divergence »).
+ */
+export function summonKey(card: Pick<Card, 'summon_type' | 'summon_options'>): string {
+  return card.summon_options?.length ? 'multi' : (card.summon_type ?? 'normal');
+}
+
 
 interface BaseStats {
   atk: number;
@@ -21,6 +41,9 @@ export class Unit {
   side: Side;
   tier: number;
   summon_type: string;
+  /** Voie d'invocation annoncée — `summon_type`, ou `'multi'` (cf. `summonKey`).
+   *  C'est elle que lit le ciblage des terrains, jamais le champ brut. */
+  summon_key: string;
   attributes: string[];
 
   // Card IDs this unit "counts as" for fusion/heritage material matching.
@@ -91,6 +114,7 @@ export class Unit {
     this.side = side;
     this.tier = card.tier;
     this.summon_type = card.summon_type;
+    this.summon_key = summonKey(card);
     this.attributes = card.attributes || [];
 
     this.represented_ids = [...new Set([card.id, ...(card.represented_ids || [])])];

@@ -1,4 +1,4 @@
-import type { BoardEffectDef } from './types.js';
+import type { BoardDef, BoardEffectDef } from './types.js';
 import type { Unit } from './Unit.js';
 import type { GameState } from './GameState.js';
 
@@ -6,6 +6,28 @@ interface BoardEffectContext {
   playerUnits?: Unit[];
   enemyUnits?: Unit[];
   gameState?: GameState | null;
+}
+
+/**
+ * Les effets d'un terrain — le SEUL lecteur de `board.effects` et de
+ * `board.effect`.
+ *
+ * ⚠️ Deux formes dans la donnée, et une seule ici : `effects` (la liste
+ * cumulée) l'emporte dès qu'elle porte quelque chose, `effect` (l'effet unique
+ * historique) sert de repli. Les terrains livrés — et `data/boards.json` sur le
+ * volume, que `bootstrap()` ne recopie jamais — sont encore en `effect` : le
+ * repli n'est pas une politesse, c'est ce qui fait qu'aucune migration n'est
+ * nécessaire. L'admin, lui, écrit `effects` et n'écrit plus `effect` (le PUT
+ * remplace l'objet entier).
+ *
+ * ⚠️ Un effet sans `type` est ÉCARTÉ ici, une fois pour toutes : c'est ce qui
+ * dispense chaque appelant de sa propre garde, et un `null` traînant dans la
+ * liste (lot vide laissé en admin) ne peut pas atteindre le combat.
+ */
+export function boardEffects(board: BoardDef | null | undefined): BoardEffectDef[] {
+  const list = Array.isArray(board?.effects) ? board.effects.filter((e): e is BoardEffectDef => !!e?.type) : [];
+  if (list.length) return list;
+  return board?.effect?.type ? [board.effect] : [];
 }
 
 /**
@@ -17,13 +39,27 @@ interface BoardEffectContext {
  * serait s'autoriser à annoncer au joueur un décompte que l'effet n'a pas
  * appliqué.
  *
- * `target_attributes` vide ou absent = TOUTES les unités reçues.
+ * DEUX ciblages, chacun optionnel, et ils se CUMULENT (ET) :
+ *   - `target_attributes` — vide ou absent = tous les archétypes ;
+ *   - `target_summon_types` — vide ou absent = toutes les voies d'invocation.
+ *
+ * ⚠️ Le cumul est un ET et non un OU : « les Dragons invoqués par Fusion » est
+ * la seule lecture qu'un designer puisse tenir pour acquise en cochant les deux
+ * listes. Un OU se demande en posant DEUX effets sur le terrain, ce que
+ * `effects` permet désormais — l'inverse ne serait pas exprimable.
+ *
+ * ⚠️ La voie lue est `unit.summon_key`, jamais `unit.summon_type` : une carte à
+ * plusieurs recettes relève de `multi` (cf. `Unit.summonKey`).
  */
 export function effectTargets(effect: BoardEffectDef | null | undefined, units: Unit[]): Unit[] {
   if (!effect) return [];
-  const targets = effect.target_attributes;
-  if (!targets?.length) return units;
-  return units.filter(u => u.attributes.some(a => targets.includes(a)));
+  const attrs = effect.target_attributes;
+  const kinds = effect.target_summon_types;
+  if (!attrs?.length && !kinds?.length) return units;
+  return units.filter(u =>
+    (!attrs?.length || u.attributes.some(a => attrs.includes(a)))
+    && (!kinds?.length || kinds.includes(u.summon_key)),
+  );
 }
 
 export function applyEffect(effect: BoardEffectDef | null | undefined, { playerUnits = [], enemyUnits = [], gameState = null }: BoardEffectContext = {}): void {
@@ -44,4 +80,18 @@ export function applyEffect(effect: BoardEffectDef | null | undefined, { playerU
       if (gameState) gameState.player_extra_draws = (gameState.player_extra_draws || 0) + (effect.value as number);
       break;
   }
+}
+
+/**
+ * Tous les effets d'un terrain, appliqués — le point d'entrée du combat.
+ *
+ * ⚠️ Le cumul est ADDITIF et l'ORDRE de la liste n'y change rien : les trois
+ * effets qui touchent une unité écrivent dans `_stat_bonuses` (ou dans le
+ * bouclier), jamais dans `_base` que `stat_modifier` relit. Deux `×2 PV` sur un
+ * même terrain donnent donc `×3` (deux fois +100 % du socle) et non `×4` — un
+ * empilement de multiplicateurs se composerait, et ferait dépendre le résultat
+ * de l'ordre d'écriture en admin.
+ */
+export function applyBoardEffects(board: BoardDef | null | undefined, ctx: BoardEffectContext = {}): void {
+  for (const effect of boardEffects(board)) applyEffect(effect, ctx);
 }

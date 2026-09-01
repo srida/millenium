@@ -4,7 +4,24 @@
 // Résolu par `type` (la clé brute `normal`/`sacrifice`/…), pas par l'id du
 // catalogue admin — c'est ce que porte `SummonRecipe.summon_type` côté appelant.
 import { getSummonTypeByType } from '../../data/SummonTypeDatabase.js';
+import { SUMMON_LABELS } from '../../data/SummonInfo.js';
 import { Illustration } from './primitives.js';
+
+/**
+ * Le LIBELLÉ d'une voie d'invocation, avec le même filet que son icône —
+ * pendant exact d'`attributeName` dans `AttrIcon.tsx`.
+ *
+ * ⚠️ `getSummonTypeByType` JETTE tant que la database n'est pas initialisée,
+ * d'où le repli sur `SUMMON_LABELS` (qui ignore `multi`, absent du moteur) puis
+ * sur la clé brute : mieux vaut lire « multi » qu'un blanc.
+ */
+export function summonTypeName(type: string): string {
+  try {
+    const entry = (getSummonTypeByType as (type: string) => { label?: string } | null)(type);
+    if (entry?.label) return entry.label;
+  } catch { /* database non initialisée */ }
+  return SUMMON_LABELS[type] ?? type;
+}
 
 export default function SummonTypeIcon({ type, fallback, className = '' }: {
   type: string;
