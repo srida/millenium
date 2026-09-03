@@ -66,6 +66,22 @@ describe('GameState — fin de combat', () => {
     expect(gs.player_guaranteed_draws).toEqual([{ category: 'fusion', attribute: null }]);
     expect(gs.player_extra_shopping_magies).toBe(1);
   });
+
+  // Pendant ENNEMI des mêmes deux champs — la pioche a un destinataire des
+  // deux côtés, contrairement au Shopping (exclusivement joueur).
+  it('accumule enemy_extra_draws et enemy_guaranteed_draws', () => {
+    const gs = new (GameState as any)();
+    gs.startCombat(5, 5);
+    gs.applyEndOfCombat('player', 0, 0, {
+      enemy_draw_bonus: 3,
+      enemy_guaranteed_draws: [{ category: 'sacrifice', attribute: null }],
+    });
+    expect(gs.enemy_extra_draws).toBe(3);
+    expect(gs.enemy_guaranteed_draws).toEqual([{ category: 'sacrifice', attribute: null }]);
+    // Les champs joueur restent intouchés.
+    expect(gs.player_extra_draws).toBe(0);
+    expect(gs.player_guaranteed_draws).toEqual([]);
+  });
 });
 
 describe('GameState — bonus de slot partagé (cap +1)', () => {

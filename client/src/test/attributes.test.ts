@@ -129,6 +129,63 @@ describe('AttributeManager — end_of_combat', () => {
     expect(neutralized).toHaveLength(0); // retirée de la liste des morts
     expect(result.draw_bonus).toBe(1);
   });
+
+  // La pioche a un destinataire des DEUX côtés (`EnemyAI` pioche aussi),
+  // contrairement à l'emplacement, au multiplicateur et au Shopping —
+  // ressources exclusivement joueur, cf. les trois tests suivants.
+  it('draw_bonus côté ENNEMI crédite enemy_draw_bonus, pas draw_bonus', () => {
+    const attrs = [{
+      id: 'ARCH_SCOUT', name: 'Éclaireur', timing: 'end_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'draw_bonus', value: 2 }] }],
+    }];
+    const board = makeBoard();
+    const [e1] = units(board, [{ id: 'E1', attrs: ['ARCH_SCOUT'], col: 0, row: 7, side: 'enemy' }]);
+    const am = new (AttributeManager as any)(attrs, [], [e1]);
+    const result = am.applyEndOfCombat([], []);
+
+    expect(result.enemy_draw_bonus).toBe(2);
+    expect(result.draw_bonus).toBe(0);
+    // Rien n'affiche la provenance de la pioche adverse.
+    expect(result.draw_sources).toEqual([]);
+  });
+
+  it('guaranteed_draw côté ENNEMI alimente enemy_guaranteed_draws, pas guaranteed_draws', () => {
+    const attrs = [{
+      id: 'ARCH_FORGE', name: 'Forge', timing: 'end_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'guaranteed_draw', category: 'fusion', attribute: null }] }],
+    }];
+    const board = makeBoard();
+    const [e1] = units(board, [{ id: 'E1', attrs: ['ARCH_FORGE'], col: 0, row: 7, side: 'enemy' }]);
+    const am = new (AttributeManager as any)(attrs, [], [e1]);
+    const result = am.applyEndOfCombat([], []);
+
+    expect(result.enemy_guaranteed_draws).toEqual([{ category: 'fusion', attribute: null }]);
+    expect(result.guaranteed_draws).toEqual([]);
+  });
+
+  // Cap partagé (slot), dégâts (multiplicateur) et Shopping restent
+  // exclusivement JOUEUR : l'IA n'a ni Phase Shopping ni cap de slot dérivé de
+  // l'attribut, et le multiplicateur d'attribut est volontairement asymétrique
+  // (contrat de déterminisme PvP, cf. CLAUDE.md « damage_multiplier_bonus »).
+  it('board_slot_bonus / damage_multiplier_bonus / shopping_bonus côté ENNEMI ne donnent rien', () => {
+    const attrs = [
+      { id: 'ARCH_SLOT', name: 'S', timing: 'end_of_combat', thresholds: [{ count: 1, effects: [{ type: 'board_slot_bonus', value: 1 }] }] },
+      { id: 'ARCH_DMG', name: 'D', timing: 'end_of_combat', thresholds: [{ count: 1, effects: [{ type: 'damage_multiplier_bonus', value: 2 }] }] },
+      { id: 'ARCH_SHOP', name: 'H', timing: 'end_of_combat', thresholds: [{ count: 1, effects: [{ type: 'shopping_bonus', value: 1 }] }] },
+    ];
+    const board = makeBoard();
+    const [e1, e2, e3] = units(board, [
+      { id: 'E1', attrs: ['ARCH_SLOT'], col: 0, row: 7, side: 'enemy' },
+      { id: 'E2', attrs: ['ARCH_DMG'], col: 1, row: 7, side: 'enemy' },
+      { id: 'E3', attrs: ['ARCH_SHOP'], col: 2, row: 7, side: 'enemy' },
+    ]);
+    const am = new (AttributeManager as any)(attrs, [], [e1, e2, e3]);
+    const result = am.applyEndOfCombat([], []);
+
+    expect(result.board_slot_bonus).toBe(0);
+    expect(result.damage_multiplier_bonus).toBe(0);
+    expect(result.shopping_bonus).toBe(0);
+  });
 });
 
 describe('AttributeManager — reapplyBonuses (POWER_DEBUFF)', () => {

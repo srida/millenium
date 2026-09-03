@@ -1,5 +1,5 @@
 import { Unit } from './Unit.js';
-import { tiersForRound } from './Draw.js';
+import { tiersForRound, resolveGuaranteedDraws } from './Draw.js';
 import { matchesMaterial, materialLineageMatches, materialValueOf } from './InvocationManager.js';
 
 const HAND_SIZE = 5;
@@ -63,9 +63,15 @@ export class EnemyAI {
    *
    * @param {number} round
    * @param {?function(*): void} trace
+   * @param {number} extra  `enemy_extra_draws` accumulé par l'attribut
+   *   `draw_bonus` — pendant de `player_extra_draws`. Défaut à 0 : aucun
+   *   appelant existant n'a besoin d'y penser.
+   * @param {Object[]} guaranteed  `enemy_guaranteed_draws` à honorer ce
+   *   round — pendant de `player_guaranteed_draws`. Occupe des slots de la
+   *   main normale, exactement comme côté joueur (défaut : `[]`).
    * @returns {Object[]} les cartes PIOCHÉES (pas la main entière)
    */
-  drawHand(round, trace = null) {
+  drawHand(round, trace = null, extra = 0, guaranteed = []) {
     const tiers = tiersForRound(round);
     const kept = [...this._hand];
     const pool = [];
@@ -75,27 +81,46 @@ export class EnemyAI {
         if (card) pool.push(card);
       }
     }
-    // ⚠️ Tirage AVEC REMISE, et exactement HAND_SIZE appels à `rand` dès que le
-    // pool n'est pas vide — comme avant. Le flux semé de la simulation compte
-    // ses appels : en consommer un de plus ou de moins décalerait toutes les
-    // pioches et tous les choix d'IA qui suivent.
+    // ⚠️ Tirage AVEC REMISE. Sans bonus (le cas de TOUS les appelants avant
+    // l'attribut `draw_bonus`), exactement HAND_SIZE appels à `rand` dès que
+    // le pool n'est pas vide — inchangé au bit près. Le flux semé de la
+    // simulation compte ses appels : en consommer un de plus ou de moins
+    // décalerait toutes les pioches et tous les choix d'IA qui suivent. Un
+    // `extra`/`guaranteed` non vides sont une CAPACITÉ NOUVELLE (l'IA ne
+    // pouvait rien recevoir de tel avant) : le décalage qu'ils introduisent
+    // n'est déclenché que par un attribut qui n'existait pas dans ce chemin.
+    const randomCount = Math.max(0, HAND_SIZE + extra - guaranteed.length);
     const drawn = [];
     if (pool.length > 0) {
-      for (let i = 0; i < HAND_SIZE; i++) {
+      for (let i = 0; i < randomCount; i++) {
         drawn.push(pool[Math.floor(this._rand() * pool.length)]);
       }
     }
-    this._hand = [...kept, ...drawn];
+    // Pioches garanties : ignorent la restriction de tier du tour — cherche
+    // dans TOUT le deck, comme côté joueur (`GameSession.startPreparation`,
+    // même fonction partagée : `Draw.resolveGuaranteedDraws`).
+    let guaranteedDrawn = [];
+    if (guaranteed.length > 0) {
+      const fullPool = [];
+      for (const t of Object.keys(this._deck)) {
+        for (const id of this._deck[t]) {
+          const card = this._cardDb.getCard(id);
+          if (card) fullPool.push(card);
+        }
+      }
+      guaranteedDrawn = resolveGuaranteedDraws(fullPool, guaranteed, this._rand);
+    }
+    this._hand = [...kept, ...drawn, ...guaranteedDrawn];
     trace?.({
       kind: 'draw',
       round,
       tiers,
       pool_size: pool.length,
       kept: kept.map(c => c.id),
-      drawn: drawn.map(c => c.id),
+      drawn: [...drawn, ...guaranteedDrawn].map(c => c.id),
       hand: this._hand.map(c => c.id),
     });
-    return [...drawn];
+    return [...drawn, ...guaranteedDrawn];
   }
 
   /**
@@ -311,6 +336,10 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
     case 'sacrifice': {
       const needed = card.cost?.sacrifice ?? 0;
       if (needed === 0) {
+        // Sacrifice gratuit (coût nul dans la carte elle-même) : même règle de
+        // doublon qu'une invocation normale, comme côté joueur
+        // (`InvocationManager._canSummonForType`).
+        if (board.getLivingUnitsOnSide(side).some(u => u.card_id === card.id)) return _refused('duplicate_on_board');
         if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
         const cells = _freeCells(board, side);
         if (cells.length === 0) return _refused('no_free_cell');

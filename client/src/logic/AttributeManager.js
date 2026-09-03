@@ -199,11 +199,17 @@ export class AttributeManager {
       // Quel ATTRIBUT a crédité quelle pioche (cf. types.DrawSourceEntry). Pure
       // description : la popup de pioche le lit, aucun calcul ne s'en sert.
       draw_sources: [],
+      // Pendant de draw_bonus / guaranteed_draws pour l'IA — cf. `_applyEndForSide`.
+      enemy_draw_bonus: 0,
+      enemy_guaranteed_draws: [],
     };
 
-    // ⚠️ La RÉANIMATION vaut pour les DEUX camps ; les autres effets de fin de
-    // combat sont des RESSOURCES DU JOUEUR (pioches, emplacements, magies de
-    // Shopping) et n'ont pas de sens en face.
+    // ⚠️ La RÉANIMATION vaut pour les DEUX camps ; la PIOCHE aussi (l'IA pioche
+    // comme le joueur — cf. `EnemyAI.drawHand`). Les effets de ressource
+    // restants (emplacement, multiplicateur, Shopping) n'ont de destinataire
+    // que côté joueur : slot et multiplicateur touchent au board/aux dégâts
+    // dans des voies déjà asymétriques (déterminisme PvP), et Shopping n'existe
+    // structurellement pas pour l'IA.
     //
     // C'est la seule distinction qui compte ici, et elle a coûté un duel : tout
     // `end_of_combat` ne regardait que `this.playerUnits`, si bien qu'en duel
@@ -214,19 +220,28 @@ export class AttributeManager {
     //
     // ⚠️ Et c'est invisible dans le log de combat : la réanimation a lieu APRÈS
     // le dernier tick, dans `finishCombat`. Cf. l'épilogue de `CombatRecorder`.
-    this._applyEndForSide(this.playerUnits, playerNeutralized, result, { resources: true });
-    this._applyEndForSide(this.enemyUnits, enemyNeutralized, result, { resources: false });
+    this._applyEndForSide(this.playerUnits, playerNeutralized, result, {
+      resources: true,
+      draws: { bonusKey: 'draw_bonus', guaranteedKey: 'guaranteed_draws', sourcesKey: 'draw_sources' },
+    });
+    this._applyEndForSide(this.enemyUnits, enemyNeutralized, result, {
+      resources: false,
+      draws: { bonusKey: 'enemy_draw_bonus', guaranteedKey: 'enemy_guaranteed_draws', sourcesKey: null },
+    });
 
     return result;
   }
 
   /**
    * @param {Object} opts
-   * @param {boolean} opts.resources  Collecter aussi les effets de ressource du
-   *   joueur (pioches, emplacement, multiplicateur, Shopping). Faux pour le
-   *   camp d'en face, où ils n'ont aucun destinataire.
+   * @param {boolean} opts.resources  Collecter aussi les effets de ressource
+   *   exclusivement JOUEUR (emplacement, multiplicateur, Shopping). Faux pour
+   *   le camp d'en face, où ils n'ont aucun destinataire.
+   * @param {Object} opts.draws  Où écrire draw_bonus / guaranteed_draw pour CE
+   *   camp — la pioche, contrairement aux trois ressources ci-dessus, a un
+   *   destinataire des deux côtés.
    */
-  _applyEndForSide(units, neutralized, result, { resources }) {
+  _applyEndForSide(units, neutralized, result, { resources, draws }) {
     const attrIds = new Set(units.flatMap(u => u.attributes));
 
     for (const attrId of attrIds) {
@@ -261,25 +276,33 @@ export class AttributeManager {
           }
           continue;
         }
+
+        if (effect.type === 'draw_bonus') {
+          // ⚠️ La ligne du registre porte le crédit RÉEL, mesuré de part et
+          // d'autre du plafond : sous `max`, un attribut qui demande +3 n'en
+          // donne parfois qu'un, et la popup doit annoncer ce qui est arrivé
+          // en main, pas ce qui était demandé. Un attribut entièrement rogné
+          // n'inscrit donc rien. Pas de `sourcesKey` côté ennemi : rien
+          // n'affiche la provenance de sa pioche.
+          const before = result[draws.bonusKey];
+          result[draws.bonusKey] = Math.min(before + effect.value, effect.max ?? Infinity);
+          const granted = result[draws.bonusKey] - before;
+          if (granted > 0 && draws.sourcesKey) {
+            result[draws.sourcesKey].push({ kind: 'attribut', ref: attrId, value: granted });
+          }
+          continue;
+        }
+        if (effect.type === 'guaranteed_draw') {
+          result[draws.guaranteedKey].push({ category: effect.category, attribute: effect.attribute });
+          if (draws.sourcesKey) {
+            result[draws.sourcesKey].push({ kind: 'attribut', ref: attrId, value: 0, guaranteed: true });
+          }
+          continue;
+        }
+
         if (!resources) continue;
 
         switch (effect.type) {
-          case 'draw_bonus': {
-            // ⚠️ La ligne du registre porte le crédit RÉEL, mesuré de part et
-            // d'autre du plafond : sous `max`, un attribut qui demande +3 n'en
-            // donne parfois qu'un, et la popup doit annoncer ce qui est arrivé
-            // en main, pas ce qui était demandé. Un attribut entièrement rogné
-            // n'inscrit donc rien.
-            const before = result.draw_bonus;
-            result.draw_bonus = Math.min(before + effect.value, effect.max ?? Infinity);
-            const granted = result.draw_bonus - before;
-            if (granted > 0) result.draw_sources.push({ kind: 'attribut', ref: attrId, value: granted });
-            break;
-          }
-          case 'guaranteed_draw':
-            result.guaranteed_draws.push({ category: effect.category, attribute: effect.attribute });
-            result.draw_sources.push({ kind: 'attribut', ref: attrId, value: 0, guaranteed: true });
-            break;
           case 'board_slot_bonus':
             result.board_slot_bonus = Math.min(result.board_slot_bonus + effect.value, effect.max ?? Infinity);
             break;

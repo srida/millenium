@@ -30,7 +30,7 @@ const {
   materialCandidateCells, materialCandidateGraveyard, isPlayable,
   validCells, summonOptionsStatus,
 } = _InvocationRules as any;
-import { tiersForRound, drawHand } from './Draw.js';
+import { tiersForRound, drawHand, resolveGuaranteedDraws } from './Draw.js';
 import { pickMagies } from './MagieOffer.js';
 import type { MagieOfferContext } from './MagieOffer.js';
 import type { Card, Position, BoardDef, AttributeDef, DrawSummary, Magie, RoundWinner } from './types.js';
@@ -274,22 +274,7 @@ export class GameSession {
 
     // Pioches garanties : ignorent la restriction de tier du tour — cherche dans tout le deck
     const fullPool = Object.values(this.deps.cardsByTier).flat();
-    for (const draw of guaranteedDraws) {
-      const matches = fullPool.filter((c: any) =>
-        (!draw.tier      || c.tier === draw.tier) &&
-        (!draw.attribute || c.attributes?.includes(draw.attribute)) &&
-        (!draw.category  || c.summon_type === draw.category));
-      const rand = this._rand;
-      if (matches.length > 0) {
-        this.hand.push({ ...matches[Math.floor(rand() * matches.length)] });
-      } else {
-        const fallback = fullPool.filter((c: any) =>
-          (!draw.attribute || c.attributes?.includes(draw.attribute)) &&
-          (!draw.category  || c.summon_type === draw.category));
-        if (fallback.length > 0) this.hand.push({ ...fallback[Math.floor(rand() * fallback.length)] });
-        else if (fullPool.length > 0) this.hand.push({ ...fullPool[Math.floor(rand() * fullPool.length)] });
-      }
-    }
+    this.hand.push(...resolveGuaranteedDraws(fullPool as any, guaranteedDraws, this._rand));
 
     // Modifiers de main différés (magies choisies au tour précédent)
     if (this.gameState.player_hand_modifiers.length) {
@@ -420,7 +405,13 @@ export class GameSession {
   private _placeEnemyUnits(): void {
     if (this.deps.mode === 'pvp') return;
     // L'IA pioche et remplit ses slots vides (survivants restent, cimetière dispo)
-    this.enemyAI.drawHand(this.gameState.round);
+    // — bonus de pioche accumulés par l'attribut `draw_bonus`/`guaranteed_draw`
+    // du CAMP ENNEMI, consommés ici comme leurs pendants joueur le sont par
+    // `startPreparation`.
+    const extraDraws = this.gameState.enemy_extra_draws;
+    this.gameState.enemy_extra_draws = 0;
+    const guaranteedDraws = this.gameState.enemy_guaranteed_draws.splice(0);
+    this.enemyAI.drawHand(this.gameState.round, null, extraDraws, guaranteedDraws);
     this.enemyAI.placeFromHand(this.board, this.gameState.enemy_board_slots, this.enemyGraveyard);
     this.enemyAI.rearrangeUnits(this.board, this.gameState.enemy_board_slots);
     this.enemyUnits = this.board.getLivingUnitsOnSide('enemy');

@@ -168,11 +168,23 @@ export default function AiLab() {
     setNote(null);
   }
 
-  /** Reporte le board obtenu en survivants du round suivant — aucun état caché. */
+  /**
+   * Reporte le board obtenu en survivants du round suivant.
+   *
+   * ⚠️ Le cimetière n'est PAS reporté : en jeu, `finishCombat` REMPLACE
+   * `enemyGraveyard` par les seules unités neutralisées du combat qui vient
+   * de se jouer (`GameSession.ts`, `this.enemyGraveyard = this.enemyUnits
+   * .filter(u => u.is_neutralized)`) — tout ce qui n'a pas été consommé comme
+   * matériau pendant la préparation disparaît au lancement du combat suivant.
+   * Le labo ne simule aucun combat entre deux rounds ; il n'a donc aucune base
+   * pour deviner les nouvelles victimes, et la seule chose fidèle au jeu réel
+   * est de vider le cimetière plutôt que de laisser `graveyard_left`
+   * s'accumuler round après round.
+   */
   function nextRound() {
     if (!result) return;
     setSurvivors(result.board_after.map(u => ({ card_id: u.card_id, col: u.col!, row: u.row! })));
-    setGraveyard(result.graveyard_left);
+    setGraveyard([]);
     // ⚠️ La main NON POSÉE se reporte, ET l'IA repioche par-dessus : c'est ce
     // que fait `drawHand`, qui AJOUTE au lieu de remplacer. Reporter sans
     // relancer la pioche — ce que faisait l'écran — donnait un round 2 où
