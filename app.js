@@ -146,6 +146,11 @@ const MISSIONS_FILE  = path.join(DATA_DIR, 'missions.json');
 const GIFTS_FILE     = path.join(DATA_DIR, 'gifts.json');
 const VARIANTS_FILE  = variants.VARIANTS_FILE;
 const SUMMON_TYPES_FILE = path.join(DATA_DIR, 'summon_types.json');
+// Dos de cartes : cosmétique pur, montré par la popup de pioche. Leur art vit
+// dans ILLUS_DIR sous l'id du dos — comme les variantes et les icônes
+// d'attributs —, donc AUCUNE famille d'assets à créer : rien au proxy Vite, rien
+// à la liste d'exclusion du fallback SPA, rien à ASSETS de sync-data.js.
+const CARD_BACKS_FILE = path.join(DATA_DIR, 'card_backs.json');
 
 // --- Bootstrap: copy initial data to volume on first run ---
 function bootstrap() {
@@ -154,7 +159,7 @@ function bootstrap() {
   fs.mkdirSync(AVATARS_DIR, { recursive: true });
   fs.mkdirSync(POSTERS_DIR, { recursive: true });
   fs.mkdirSync(BOARD_BG_DIR, { recursive: true });
-  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'summon_types.json']) {
+  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'summon_types.json', 'card_backs.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -627,6 +632,19 @@ app.use('/api/summon-types', crud({
   validateCreate: () => ({ status: 403, body: { error: "Catalogue fixe : 6 types d'invocation, aucun ajout possible" } }),
 }));
 
+// Dos de cartes — le cosmétique que la popup de pioche met en scène. Catalogue
+// OUVERT (l'admin en crée et en supprime), art dans ILLUS_DIR sous l'id du dos.
+//
+// ⚠️ Le GET est PUBLIC comme tous les GET sous /api : c'est voulu, le client le
+// lit à l'initialisation (`data/CardBackDatabase.js`) et un invité doit voir un
+// dos comme les autres. Il n'y a rien de sensible dans un catalogue de dos.
+app.use('/api/card-backs', crud({
+  file: CARD_BACKS_FILE,
+  guard: requireSiteAdmin,
+  render: (list) => list.map(b => ({ ...b, _has_illustration: illustrationExists(b.id) })),
+  strip: (b) => { delete b._has_illustration; },
+}));
+
 
 
 
@@ -773,6 +791,41 @@ app.put('/api/summon-types/:id/illustration', async (req, res) => {
 });
 
 app.delete('/api/summon-types/:id/illustration', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = assetPath(ILLUS_DIR, id);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- Card backs API ---
+// Même triptyque : l'art d'un dos vit dans ILLUS_DIR sous son id, comme celui
+// des variantes et des icônes d'attributs. Rien à ajouter nulle part ailleurs.
+app.post('/api/card-backs/:id/illustration', async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { url } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    await savePng(ILLUS_DIR, id, await downloadUrl(url));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/card-backs/:id/illustration', async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    await savePng(ILLUS_DIR, id, Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/card-backs/:id/illustration', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
@@ -1400,6 +1453,9 @@ app.get('/api/export', (req, res) => {
     const sets       = readJson(SETS_FILE);
     const variantList = readJson(VARIANTS_FILE);
     const summonTypes = readJson(SUMMON_TYPES_FILE);
+    // L'art des dos de cartes est déjà dans ILLUS_DIR : il voyage avec les
+    // illustrations, sans famille d'assets supplémentaire (cf. variantes).
+    const cardBacks = readJson(CARD_BACKS_FILE);
     // Un cadeau n'a pas d'image propre : il emprunte celles de ses lots
     // (cartes, affiches de packs), déjà servies. Pas de famille d'assets.
     const giftList = readJson(GIFTS_FILE);
@@ -1409,7 +1465,7 @@ app.get('/api/export', (req, res) => {
     const avatars = listPngChecksums(AVATARS_DIR);
     const boardBackgrounds = listPngChecksums(BOARD_BG_DIR);
     const packPosters = listPngChecksums(POSTERS_DIR);
-    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, summonTypes, illustrations, avatars, packPosters, boardBackgrounds });
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, summonTypes, cardBacks, illustrations, avatars, packPosters, boardBackgrounds });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -78,15 +78,22 @@ export class PvpController extends GameController {
     this._listen('match:opponent_disconnected', () => this._pvpNotify('Adversaire déconnecté…'));
     this._listen('_socket_closed', () => this._pvpNotify('Connexion perdue'));
     PvpConnection.send('match:ready');
-    this.session.startPreparation();
+    const draw = this.session.startPreparation();
     this._clearSelection();
     this.scene?.refresh();
     this.sync({ pvpOpponent: this.opponentName });
+    // Même ouverture qu'en solo : annonce du tour puis popup de pioche. Les
+    // rounds suivants passent par `_proceedNextRound`, hérité tel quel.
+    this._openRound(draw);
   }
 
   // ── Déclenchement du combat : poignée de main réseau ────────────────────────
   startCombat(): void {
     if (this.session.phase !== Phase.PREPARATION || this._handshaking) return;
+    // ⚠️ Avant tout le reste : en duel le chrono de préparation ne gèle pas
+    // (l'adversaire attend à la barrière réseau), donc il peut tomber à 0 avec
+    // la popup encore à l'écran — elle recouvrirait toute la poignée de main.
+    this._closeRoundOpening();
     this._handshaking = true;
     // Le board part sur le réseau : plus question de « Tout annuler ». La phase
     // reste PREPARATION pendant toute la poignée de main (`pvpWaiting`), donc

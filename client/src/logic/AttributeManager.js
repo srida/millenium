@@ -185,7 +185,7 @@ export class AttributeManager {
    * Resolve end-of-combat effects.
    * @param {Unit[]} playerNeutralized - units neutralized this combat (player side)
    * @param {Unit[]} enemyNeutralized  - units neutralized this combat (enemy side)
-   * @returns {{ revived: Unit[], draw_bonus: number, guaranteed_draws: Object[], board_slot_bonus: number }}
+   * @returns {{ revived: Unit[], draw_bonus: number, guaranteed_draws: Object[], board_slot_bonus: number, draw_sources: Object[] }}
    */
   applyEndOfCombat(playerNeutralized, enemyNeutralized) {
     const result = {
@@ -196,6 +196,9 @@ export class AttributeManager {
       board_slot_bonus: 0,
       damage_multiplier_bonus: 0,
       shopping_bonus: 0,
+      // Quel ATTRIBUT a crédité quelle pioche (cf. types.DrawSourceEntry). Pure
+      // description : la popup de pioche le lit, aucun calcul ne s'en sert.
+      draw_sources: [],
     };
 
     // ⚠️ La RÉANIMATION vaut pour les DEUX camps ; les autres effets de fin de
@@ -261,11 +264,21 @@ export class AttributeManager {
         if (!resources) continue;
 
         switch (effect.type) {
-          case 'draw_bonus':
-            result.draw_bonus = Math.min(result.draw_bonus + effect.value, effect.max ?? Infinity);
+          case 'draw_bonus': {
+            // ⚠️ La ligne du registre porte le crédit RÉEL, mesuré de part et
+            // d'autre du plafond : sous `max`, un attribut qui demande +3 n'en
+            // donne parfois qu'un, et la popup doit annoncer ce qui est arrivé
+            // en main, pas ce qui était demandé. Un attribut entièrement rogné
+            // n'inscrit donc rien.
+            const before = result.draw_bonus;
+            result.draw_bonus = Math.min(before + effect.value, effect.max ?? Infinity);
+            const granted = result.draw_bonus - before;
+            if (granted > 0) result.draw_sources.push({ kind: 'attribut', ref: attrId, value: granted });
             break;
+          }
           case 'guaranteed_draw':
             result.guaranteed_draws.push({ category: effect.category, attribute: effect.attribute });
+            result.draw_sources.push({ kind: 'attribut', ref: attrId, value: 0, guaranteed: true });
             break;
           case 'board_slot_bonus':
             result.board_slot_bonus = Math.min(result.board_slot_bonus + effect.value, effect.max ?? Infinity);

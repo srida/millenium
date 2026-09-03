@@ -60,6 +60,22 @@ export interface TerrainAlertSnapshot {
   boosted: { player: number; enemy: number } | null;
 }
 
+/**
+ * Le changement de tour, annoncé à l'ouverture de la préparation, puis la
+ * pioche du tour.
+ *
+ * ⚠️ Les deux sont des ÉTATS, pas des minuteurs : `GameController` possède
+ * l'horloge qui les enchaîne (`roundIntro` → `drawPopup`), exactement comme il
+ * possède celle de `terrainAlert`. Deux horloges pour un même départ finiraient
+ * par ne plus s'accorder.
+ *
+ * ⚠️ La popup RÉVÈLE, elle ne PIOCHE pas : quand `drawPopup` apparaît, la main
+ * est déjà remplie. Cf. `DrawSummary`.
+ */
+export interface RoundIntroSnapshot {
+  round: number;
+}
+
 export interface SummonOptionMenuSnapshot {
   card: Card;
   options: { index: number; summon_type: string; label: string; ok: boolean }[];
@@ -85,6 +101,11 @@ export interface GameSnapshot {
   errorFlash: string | null;
   boardTerrain: import('../logic/types.js').BoardDef | null;
   terrainAlert: TerrainAlertSnapshot | null;
+  /** « TOUR 3 / 5 », le temps de `ROUND_INTRO_MS`, puis la popup de pioche. */
+  roundIntro: RoundIntroSnapshot | null;
+  /** La pioche du tour, en attente du tap qui la révèle. Gèle le chrono de
+   *  préparation en solo ; en PvP il continue (cf. `DRAW_POPUP_AUTO_MS`). */
+  drawPopup: import('../logic/types.js').DrawSummary | null;
   combatActive: boolean;
   combatRemaining: number;   // secondes restantes de combat
   speed: number;
@@ -110,7 +131,8 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   round: 1, phase: 'preparation', playerHp: 1000, enemyHp: 1000,
   playerMultiplier: 1, enemyMultiplier: 1, boardSlots: 5, placedCount: 0, canUndo: false,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
-  boardTerrain: null, terrainAlert: null, combatActive: false, combatRemaining: 60, speed: 2, paused: false,
+  boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,
+  combatActive: false, combatRemaining: 60, speed: 2, paused: false,
   prepRemaining: 60, endRound: null, shopping: null, shoppingRemaining: SHOPPING_DURATION_S, summonOptions: null,
   menuOpen: false, coachBlocking: false, gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
 };

@@ -49,6 +49,11 @@ function publicUser(u) {
   if (!u) return null;
   return {
     id: u.id, email: u.email, username: u.username, tag: u.tag, avatar: u.avatar,
+    // Dos de carte porté — `null` = celui par défaut, que le client résout.
+    // Il voyage ici et pas sur `/me/cosmetics` : la popup de pioche l'affiche
+    // dès le premier tour, avant que le moindre écran de boutique n'ait été
+    // ouvert (même raison que `pending_levels`).
+    card_back: u.card_back ?? null,
     created_at: u.created_at, is_admin: !!u.is_admin,
     // Progression : le détail de la collection reste sur /api/me/progression.
     level: u.level ?? 1, xp: u.xp ?? 0, gold: u.gold ?? 0, gems: u.gems ?? 0,

@@ -310,13 +310,24 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       if (gameState) gameState.grantLimitedBoardSlotBonus(e.value || 1);
       break;
     case 'draw_bonus':
-      if (gameState) gameState.player_extra_draws += (e.value || 1);
+      if (gameState) {
+        gameState.player_extra_draws += (e.value || 1);
+        // Le registre suit le crédit ligne à ligne (cf. types.DrawSourceEntry) :
+        // c'est ce qui permet à la popup de pioche de nommer la magie plutôt
+        // que d'annoncer un « +2 » venu de nulle part.
+        gameState.player_draw_sources.push({ kind: 'magie', ref: magie.id, value: (e.value || 1) });
+      }
       break;
     case 'guaranteed_draw':
       // Les deux filtres voyagent tels quels : `startPreparation` les ET-e, et
       // un champ absent n'y contraint rien. C'est la MÊME forme que celle des
       // effets d'attribut (`GuaranteedDraw`), consommée par le même code.
-      if (gameState) gameState.player_guaranteed_draws.push({ tier: e.tier, category: e.category });
+      if (gameState) {
+        gameState.player_guaranteed_draws.push({ tier: e.tier, category: e.category });
+        // `value: 0` — une pioche garantie prend un slot de la main normale,
+        // elle n'ajoute pas une carte (cf. `randomCount` dans startPreparation).
+        gameState.player_draw_sources.push({ kind: 'magie', ref: magie.id, value: 0, guaranteed: true });
+      }
       break;
     case 'damage_multiplier_bonus':
       if (gameState) gameState.player_damage_multiplier_bonus += (e.value || 0);

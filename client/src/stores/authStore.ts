@@ -8,6 +8,10 @@ import * as DeckRepository from '../data/DeckRepository.js';
 
 export interface AuthUser {
   id: string; username: string; email?: string; avatar?: string | null; is_admin?: boolean;
+  /** Dos de carte porté (id du catalogue `card_backs`). Cosmétique pur : il
+   *  n'apparaît que dans la popup de pioche. `null` / absent → le dos par
+   *  défaut, qui est aussi le repli de tout id inconnu. */
+  card_back?: string | null;
   /** Progression — servie par publicUser() ; la collection est sur /api/me/progression. */
   level?: number; xp?: number; gold?: number; gems?: number;
   /** Paliers de niveau gagnés mais pas encore récupérés (levels.js). */

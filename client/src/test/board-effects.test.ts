@@ -9,6 +9,7 @@
 // coup.
 import { describe, it, expect } from 'vitest';
 import { boardEffects, effectTargets, applyEffect, applyBoardEffects } from '../logic/BoardEffect.js';
+import { GameState } from '../logic/GameState.js';
 import { Unit, summonKey } from '../logic/Unit.js';
 import { makeCard } from './helpers.js';
 import type { BoardDef } from '../logic/types.js';
@@ -178,12 +179,33 @@ describe('Cumul des effets d\'un terrain', () => {
     expect(u.atk).toBe(5);
   });
 
+  // ⚠️ Un VRAI `GameState`, pas un objet littéral : celui-ci portait le seul
+  // champ que l'assertion regardait, si bien qu'il ne pouvait pas constater
+  // l'invariant du registre de provenance — écrit dans le même geste que le
+  // crédit, il vivait hors de portée du test.
   it('les effets qui créditent le joueur se cumulent aussi', () => {
-    const gameState: any = { player_extra_draws: 0 };
+    const gameState = new GameState();
     applyBoardEffects(
       { id: 'B', name: 'B', effects: [{ type: 'draw_bonus', value: 1 }, { type: 'draw_bonus', value: 2 }] } as any,
       { gameState } as any,
     );
     expect(gameState.player_extra_draws).toBe(3);
+  });
+
+  // Rouge si `applyBoardEffects` cesse de nommer le terrain (`sourceId`), ou si
+  // le crédit et son inscription se désolidarisent : la popup de pioche
+  // annoncerait alors un « +3 » venu de nulle part.
+  it('le crédit de pioche NOMME son terrain, et la somme du registre le vaut', () => {
+    const gameState = new GameState();
+    applyBoardEffects(
+      { id: 'BOARD_007', name: 'B', effects: [{ type: 'draw_bonus', value: 1 }, { type: 'draw_bonus', value: 2 }] } as any,
+      { gameState } as any,
+    );
+    expect(gameState.player_draw_sources).toEqual([
+      { kind: 'terrain', ref: 'BOARD_007', value: 1 },
+      { kind: 'terrain', ref: 'BOARD_007', value: 2 },
+    ]);
+    const sum = gameState.player_draw_sources.reduce((n, s) => n + s.value, 0);
+    expect(sum).toBe(gameState.player_extra_draws);
   });
 });

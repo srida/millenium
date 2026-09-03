@@ -6,6 +6,10 @@ interface BoardEffectContext {
   playerUnits?: Unit[];
   enemyUnits?: Unit[];
   gameState?: GameState | null;
+  /** Id du terrain d'où vient l'effet, posé par `applyBoardEffects`. Ne sert
+   *  qu'au registre de provenance des pioches (`draw_bonus`) : un effet
+   *  appliqué seul, hors de son terrain, n'a rien à nommer. */
+  sourceId?: string | null;
 }
 
 /**
@@ -62,7 +66,7 @@ export function effectTargets(effect: BoardEffectDef | null | undefined, units: 
   );
 }
 
-export function applyEffect(effect: BoardEffectDef | null | undefined, { playerUnits = [], enemyUnits = [], gameState = null }: BoardEffectContext = {}): void {
+export function applyEffect(effect: BoardEffectDef | null | undefined, { playerUnits = [], enemyUnits = [], gameState = null, sourceId = null }: BoardEffectContext = {}): void {
   if (!effect) return;
   const targets = effectTargets(effect, [...playerUnits, ...enemyUnits]);
   switch (effect.type) {
@@ -77,7 +81,13 @@ export function applyEffect(effect: BoardEffectDef | null | undefined, { playerU
       for (const u of targets) u.applyShield(effect.value as number);
       break;
     case 'draw_bonus':
-      if (gameState) gameState.player_extra_draws = (gameState.player_extra_draws || 0) + (effect.value as number);
+      if (gameState) {
+        gameState.player_extra_draws = (gameState.player_extra_draws || 0) + (effect.value as number);
+        // Provenance, pour la popup de pioche du tour suivant : un terrain
+        // crédite au lancement du combat, la main s'en aperçoit un round plus
+        // tard — sans le nom, le bonus paraîtrait sortir de nulle part.
+        gameState.player_draw_sources.push({ kind: 'terrain', ref: sourceId ?? '', value: effect.value as number });
+      }
       break;
   }
 }
@@ -93,5 +103,8 @@ export function applyEffect(effect: BoardEffectDef | null | undefined, { playerU
  * de l'ordre d'écriture en admin.
  */
 export function applyBoardEffects(board: BoardDef | null | undefined, ctx: BoardEffectContext = {}): void {
-  for (const effect of boardEffects(board)) applyEffect(effect, ctx);
+  // Le terrain se nomme ici et nulle part ailleurs : `applyEffect` ne reçoit
+  // qu'un effet, qui ne sait pas d'où il vient.
+  const scoped = { ...ctx, sourceId: board?.id ?? null };
+  for (const effect of boardEffects(board)) applyEffect(effect, scoped);
 }

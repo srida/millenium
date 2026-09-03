@@ -362,6 +362,15 @@ for (const [col, def] of [['level', 1], ['xp', 0], ['gold', 0], ['gems', 0]]) {
   }
 }
 
+// Dos de carte porté — cosmétique pur, montré par la popup de pioche. Colonne
+// TEXTE nullable, donc en dehors de la boucle ci-dessus : `NULL` vaut « le dos
+// par défaut », que le client résout lui-même (cf.
+// `CardBackDatabase.resolveCardBack`). Rien à rétro-remplir, et un compte qui
+// n'a jamais choisi suit le dos offert du jour où il change.
+if (!userColumnsV2.includes('card_back')) {
+  db.exec('ALTER TABLE users ADD COLUMN card_back TEXT');
+}
+
 // Dernier palier de niveau RÉCUPÉRÉ (levels.js). Les paliers en attente s'en
 // déduisent : `levels_claimed + 1 … level`. Une seule colonne suffit parce
 // qu'un palier ne se saute pas — ils se récupèrent dans l'ordre, tous à la fois.
@@ -452,7 +461,7 @@ const stmt = {
     SELECT printf('%04d', COALESCE(MAX(CAST(tag AS INTEGER)), 0) + 1) AS next_tag
     FROM users WHERE username_lc = ?
   `),
-  updateProfile: db.prepare('UPDATE users SET username = @username, username_lc = @username_lc, tag = @tag, avatar = @avatar WHERE id = @id'),
+  updateProfile: db.prepare('UPDATE users SET username = @username, username_lc = @username_lc, tag = @tag, avatar = @avatar, card_back = @card_back WHERE id = @id'),
   setUserAdmin: db.prepare('UPDATE users SET is_admin = ? WHERE id = ?'),
   // ⚠️ `ESCAPE '\'` n'est pas décoratif : SQLite n'a AUCUN caractère
   // d'échappement par défaut sur LIKE. `routes/online.js` échappe pourtant `%`

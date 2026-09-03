@@ -84,12 +84,12 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 
 | Famille | Dossier | Route |
 |---|---|---|
-| Cartes, terrains, magies, **variantes**, **icônes d'attributs** | `card_illustrations` (`ILLUS_DIR`) | `GET /illustrations/:id` |
+| Cartes, terrains, magies, **variantes**, **icônes d'attributs**, **dos de cartes** | `card_illustrations` (`ILLUS_DIR`) | `GET /illustrations/:id` |
 | Avatars de decks publics | `enemy_avatars` | `GET /avatars/:id` (repli serveur `PUBLIC_DECK_000.png`) |
 | Affiches de packs | `pack_posters` | `GET /pack-posters/:id` (404 franc, repli client 🎁) |
 | Fonds de grille de terrain | `board_backgrounds` | `GET /board-backgrounds/:id` (404 franc, décor par défaut) |
 
-⚠️ **Tout nouveau préfixe d'asset** doit être ajouté au proxy Vite (`client/vite.config.ts`), à la liste d'exclusion du fallback SPA (`app.js`), à `ASSETS` de `scripts/sync-data.js` et à `/api/export`. Une famille qui vit dans `card_illustrations` (variantes, icônes d'attributs) n'a **rien** de tout ça à faire.
+⚠️ **Tout nouveau préfixe d'asset** doit être ajouté au proxy Vite (`client/vite.config.ts`), à la liste d'exclusion du fallback SPA (`app.js`), à `ASSETS` de `scripts/sync-data.js` et à `/api/export`. Une famille qui vit dans `card_illustrations` (variantes, icônes d'attributs, dos de cartes) n'a **rien** de tout ça à faire.
 ⚠️ `npm run sync:push` **supprime les images distantes absentes en local** — faire un `sync:pull` d'abord, ou `--dry-run`.
 ⚠️ `bootstrap()` ne recopie **jamais** `initial-data/` sur un `data/` déjà peuplé : éditer `initial-data/` ne change rien à une installation existante. Passer par l'admin, par un `/import` en mode `replace`, ou éditer le fichier du volume.
 
@@ -124,7 +124,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `GET /` | Public | SPA React (`client/dist`, fallback SPA sauf préfixes d'assets et `/ws`) |
 | `GET /admin` | Site admin | Card Manager (`admin.html`) |
 | `GET /api/version` | Public | Version du build |
-| `GET /api/{cards,attributes,powers,boards,magies,missions,decks,sets,variants,gifts}` | Public | Les catalogues, avec leurs drapeaux calculés |
+| `GET /api/{cards,attributes,powers,boards,magies,missions,decks,sets,variants,gifts,card-backs}` | Public | Les catalogues, avec leurs drapeaux calculés |
 | `POST/PUT/DELETE /api/<entité>[/:id]` | Site admin | CRUD (`routes/crud-json.js` : ne valide que l'unicité de l'id) |
 | `POST /api/<entité>/import` | Site admin | Import en masse, mode `skip`/`replace` |
 | `POST/PUT/DELETE /api/<entité>/:id/illustration` | Site admin | Art (URL / base64 / suppression) |
@@ -383,14 +383,26 @@ Second **onglet** de `ShopScreen`. Tables `user_cosmetics`, `user_cosmetic_state
 |---|---|---|---|
 | **Avatar** | toute illustration existante (carte, terrain, magie) | **5 💎** | — |
 | **Variante** | illustration alternative d'une carte | **50 💎** | posséder la **carte** |
+| **Dos de carte** | `data/card_backs.json`, hors dos offerts, art existant | **`price_gems` du catalogue** | — |
 
-3 avatars + 3 variantes par jour, même rotation de 5 h. Les deux invariants de la boutique de cartes s'appliquent tels quels (zéro doublon, offre serveur ; l'achat porte `kind` **et** `id` → 409).
+3 avatars + 3 variantes + 2 dos par jour, même rotation de 5 h. Les deux invariants de la boutique de cartes s'appliquent tels quels (zéro doublon, offre serveur ; l'achat porte `kind` **et** `id` → 409).
 
 - **Ni reroll ni épingle** : les prix sont bas et un cosmétique manqué **revient** (il ne quitte pas le pool à l'achat).
 - **Pool d'avatars automatique**, sans curation ; les 7 avatars offerts (`DEFAULT_AVATARS`) en sont exclus. ⚠️ `avatarPool` itère `SOURCES` (`cards.json`/`boards.json`/`magies.json`) — il ne scanne pas le dossier, donc une icône d'attribut ne devient jamais un visage achetable.
 - **Dégénérescence assumée** : moins de trois candidats donnent moins de trois emplacements, voire zéro. Le client affiche un message, pas des cases vides.
 - `cosmetics.unlock(userId, kind, id)` débloque sans vendre. ⚠️ Un **avatar** exige que son **illustration existe** (`canUseAvatar` ne teste que la possession — un avatar offert sans PNG serait portable et cassé).
 - **Écarts assumés avec le brief** : gemmes uniquement (le brief dit golds), variantes achetables (le brief les classe non achetables). Cadres d'avatar et styles procéduraux n'existent pas.
+- ⚠️ **`OFFER_KEY` est une TABLE, pas un ternaire** : `kind === 'avatar' ? avatars : variants` servait le mauvais pool à tout `kind` inconnu. Avec la table, il ne trouve rien — donc il est refusé.
+
+### Dos de cartes
+
+Catalogue `data/card_backs.json` (`{ id, name, default?, price_gems }`), onglet 🂠 de l'admin, art dans `ILLUS_DIR` sous l'id du dos. Montré par la **popup de pioche**, et nulle part ailleurs. Colonne `users.card_back` (`NULL` = le dos par défaut), portée depuis `ProfileScreen`, validée par `cosmetics.canUseCardBack` au `PUT /api/profile/me` — trajet exact de l'avatar, à ceci près qu'on stocke l'**id nu** et non une URL.
+
+- **Le prix est ÉDITORIAL** : il vient du catalogue, `PRICE.card_back` n'est qu'un repli pour une entrée sans prix. C'est le seul cosmétique dans ce cas.
+- ⚠️ **`default: true` = offert**, jamais vendu, jamais tiré — le rôle de `DEFAULT_AVATARS`, mais en **donnée** (l'admin l'édite). `owned.card_backs` joint offerts et achetés : sans ça, un joueur qui n'a rien acheté verrait une grille vide alors qu'il porte bien un dos.
+- ⚠️ **Un dos retiré du catalogue cesse d'être portable**, même possédé (`canUseCardBack` teste l'existence **et** la possession) ; le client retombe alors sur le dos par défaut.
+- ⚠️ **Sans art, ni vendu ni portable** — la règle porte sur le **fichier** (`variants.illustrationExists`), comme partout ailleurs. Catalogue vide ou PNG absent → `DrawPopup` dessine un dos **procédural**, jamais un `<img>` cassé.
+- `data/CardBackDatabase.js` **ne jette pas** sur une réponse en erreur, contrairement aux autres databases : un dos n'est pas une donnée de jeu, un serveur en retard de déploiement ne doit pas empêcher de jouer.
 
 ### Variantes (`variants.js`)
 
@@ -530,6 +542,17 @@ Fin de partie : tour 5 terminé, un joueur à 0 PV, ou abandon par le menu.
 
 **Menu d'options** (`components/hud/GameMenu.tsx`, ouvert par ☰ de `PhaseControls`) : `menuOpen` du store est la source de vérité. En solo, l'ouvrir gèle le chrono de préparation ; **en PvP le chrono continue** — l'adversaire attend à la barrière réseau et ne doit pas pouvoir être bloqué. En PvP, « quitter » = `PvpController.forfeit()`.
 
+### Ouverture d'un tour (`components/overlays/RoundStart.tsx`)
+
+Deux beats avant que le joueur ne reprenne la main : l'annonce du changement de tour (`ROUND_INTRO_MS` 1,4 s) puis la **popup de pioche**, congédiée d'un tap sur le dos de carte.
+
+- ⚠️ **La popup RÉVÈLE, elle ne PIOCHE pas** : le tirage a déjà eu lieu quand elle s'affiche. Le différer jusqu'au tap décalerait le flux semé de `sim/` et du filet de déterminisme PvP, et déplacerait le point de capture de « Tout annuler ». **Le tap ne consomme aucun hasard** (verrouillé par golden test).
+- **Un seul minuteur, et il vit dans `GameController`** (`_openRound` / `_introTimer` / `_pendingDraw`) — même règle que `TERRAIN_ALERT_MS`. Le tap sur l'annonce et l'horloge ouvrent la **même** popup, une fois ; `dispose()` annule les deux.
+- ⚠️ Ouvert aux **deux** entrées de tour — `begin()` et `_proceedNextRound()` — sinon un round sur cinq n'aurait pas sa popup. `_closeRoundOpening()` est appelé par les deux `startCombat` : sans lui l'overlay reste posé sur tout le combat quand le chrono tombe à 0 par-dessous.
+- **Chronos** : en solo la popup **gèle** la préparation (`roundIntro`/`drawPopup` dans le prédicat du `PhaseTimer`, modèle `menuOpen`) ; **en PvP il continue**, et la popup se congédie seule (`DRAW_POPUP_AUTO_MS` 8 s). Rien n'y prend de branche sur `bot`.
+- Le tutoriel s'efface derrière elle : `gameCoachStep` rend `null` sur `roundOpening`, en **règle globale** (la popup revient à chaque tour, pas seulement au premier).
+- ⚠️ `prefers-reduced-motion` : la popup reste et **le tap reste requis** — c'est le vol des dos qu'on retire, pas l'information.
+
 ### « Tout annuler » — le point de retour d'un tour
 
 Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()` ; le contrôleur ne fait qu'appeler.
@@ -567,6 +590,13 @@ La main est **conservée entre les tours** (taille illimitée) ; les cartes non 
 - Elles **occupent un slot de la main normale** : `randomCount = 5 + extra_draws − guaranteed_draws.length`.
 - Elles **ignorent la restriction de tier du tour** : recherche dans tout le deck, filtrée par `tier`/`attribute`/`summon_type` selon les champs présents ; **repli progressif** (sans le tier, puis n'importe quelle carte).
 - Priorité de résolution : Transformation > Heritage > Fusion > normale.
+
+**Résumé de pioche** — `startPreparation()` rend un `DrawSummary` (tour, tiers, `baseCount`, `extraDraws`, garanties, `drawnCount`, `sources`), affiché par la popup de pioche. `startNextRound()` le relaie, ou `null` sur une fin de partie.
+
+- ⚠️ **`drawnCount` est MESURÉ** (`hand.length` après − avant), jamais recalculé : les garanties ont un double repli et un pool vide ne rend rien — une soustraction annoncerait des cartes que la main n'a pas. Même discipline que le décompte de `TerrainAlert`.
+- **Provenance des bonus** : `gameState.player_draw_sources` (`{ kind, ref, value, guaranteed? }`) raconte le même octroi que `player_extra_draws`. Trois émetteurs, un par source : `MagieEffect` (`draw_bonus`/`guaranteed_draw`), `AttributeManager.applyEndOfCombat` (via `draw_sources`, plafond `max` **déjà appliqué**) et `BoardEffect` (`applyBoardEffects` pose le `sourceId`).
+- ⚠️ **INVARIANT : `sum(sources.value) === extraDraws`**, et le registre se **vide avec** le compteur (`draw-summary.test.ts`). Un quatrième émetteur qui oublierait son inscription ferait annoncer un « +2 » venu de nulle part.
+- ⚠️ Le registre ne porte que des **ids** — `logic/` n'importe pas `data/`. `data/DrawInfo.ts` (pur) met la pioche en mots, `RoundStart.tsx` résout les noms.
 
 **Affichage** (`GameController._groupHand`) : `session.hand` reste une liste plate (l'ordre de pioche fait foi côté logique) ; l'instantané React regroupe les exemplaires identiques (badge ×N, `HandEntry.count`) et trie par tier puis nom. **`HandEntry.idx` pointe l'exemplaire représentatif** — c'est lui qui quitte la main à l'invocation. ⚠️ La signature de regroupement **inclut le coût** : une carte remisée par une magie de main ne fusionne pas avec un exemplaire normal.
 
@@ -1301,6 +1331,7 @@ Chaque database expose `init()` async ; les données sont cachées en mémoire a
 
 ```js
 CardDatabase.getCard(id) / getCardsByTier(tier) / getAllCards() / illustrationUrl(id) / costHint(card)
+CardBackDatabase.resolveCardBack(id) / defaultCardBack()            // ⚠️ init() ne jette jamais
 AttributeDatabase.getAttribute(id) / getAllAttributes()      // Array — injecté dans GameSession
 PowerDatabase.getPower(id) / getAllPowers()
 BoardDatabase.getBoard(id) / getAllBoards()                  // ⚠️ plus de getRandomBoard
@@ -1479,7 +1510,7 @@ Reprendre une PWA depuis les tâches de fond **n'est pas une navigation** : le n
 
 ## `admin.html` (Card Manager)
 
-Page autonome, **13 onglets**, aucun build. ⚠️ **Aucun test automatisé ne la couvre** (`npm test` est purement client) : la vérification se fait **au navigateur** (Chromium et Playwright préinstallés, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` — ne **pas** lancer `playwright install`).
+Page autonome, **14 onglets**, aucun build. ⚠️ **Aucun test automatisé ne la couvre** (`npm test` est purement client) : la vérification se fait **au navigateur** (Chromium et Playwright préinstallés, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` — ne **pas** lancer `playwright install`).
 
 **Ce qu'il faut mesurer plutôt que regarder** : `document.documentElement.scrollWidth <= clientWidth` (`body { overflow-x: hidden }` **masque** le symptôme), un seul `.main:not(.hidden)` et un seul `#main-tabs .tab.active` par onglet, les chips d'attributs toujours visibles et actifs après un `switchTab()`, et l'échelle réelle des SVG du rapport (`svg.getScreenCTM().a` — un `getComputedStyle` rendrait `11px` même à l'échelle 0,4).
 

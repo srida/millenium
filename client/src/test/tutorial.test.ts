@@ -153,6 +153,7 @@ describe('deck de la partie d\'entraînement', () => {
 const FRESH: GameCoachState = {
   round: 1, placedCount: 0, handSelected: false, synergyCount: 0,
   combatActive: false, hasEndRound: false, shopping: false, gameOver: false,
+  roundOpening: false,
 };
 
 /** Rejoue une transition d'état comme le fait le coach : avancer, puis lire. */

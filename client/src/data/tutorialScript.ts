@@ -39,6 +39,8 @@ export interface GameCoachState {
   hasEndRound: boolean;
   shopping: boolean;
   gameOver: boolean;
+  /** L'ouverture de tour est à l'écran (annonce du tour ou popup de pioche). */
+  roundOpening: boolean;
 }
 
 interface GameStepDef extends CoachStep {
@@ -148,6 +150,13 @@ export function advanceGameSteps(state: GameCoachState, seen: ReadonlySet<string
 
 /** Étape courante, ou `null` si le script est fini ou n'a rien à dire ici. */
 export function gameCoachStep(state: GameCoachState, seen: ReadonlySet<string>): CoachStep | null {
+  // ⚠️ L'ouverture de tour passe DEVANT le coach : la popup de pioche est
+  // modale et couvre la main, or la première étape dit « voici les 5 cartes que
+  // tu viens de piocher » et demande d'en taper une. Règle globale et non un
+  // `visible` par étape : la popup revient à chaque tour, pas seulement au
+  // premier. Le menu d'options est traité de même, mais côté composant — il
+  // gèle déjà la partie de son côté.
+  if (state.roundOpening) return null;
   const step = GAME_STEPS.find(s => !seen.has(s.id));
   if (!step) return null;
   if (step.visible && !step.visible(state)) return null;

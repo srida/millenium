@@ -1,4 +1,4 @@
-import type { EndOfCombatAttributeResult, GuaranteedDraw, HandModifier, RoundWinner } from './types.js';
+import type { DrawSourceEntry, EndOfCombatAttributeResult, GuaranteedDraw, HandModifier, RoundWinner } from './types.js';
 
 export const Phase = Object.freeze({
   PREPARATION: 'preparation',
@@ -46,6 +46,17 @@ export class GameState {
   // Carry-over from previous rounds
   player_extra_draws: number;              // accumulated draw_bonus
   player_guaranteed_draws: GuaranteedDraw[];
+  /**
+   * Le MÊME octroi que les deux champs ci-dessus, raconté : qui a crédité quoi.
+   * Purement descriptif — la popup de pioche le lit, aucun calcul ne s'en sert.
+   *
+   * ⚠️ INVARIANT : `sum(value) === player_extra_draws` et une entrée
+   * `guaranteed` par élément de `player_guaranteed_draws`. Écrit et vidé aux
+   * MÊMES instants que les deux (les trois se consomment ensemble dans
+   * `GameSession.startPreparation`) — un quatrième émetteur qui oublierait son
+   * inscription ferait mentir la popup, ce que `draw-summary.test.ts` refuse.
+   */
+  player_draw_sources: DrawSourceEntry[];
   player_hand_modifiers: HandModifier[];   // applied to drawn cards
   player_extra_shopping_magies: number;    // accumulated shopping_bonus
   /** Bonus PERMANENT de multiplicateur de dégâts, cumulé par les magies
@@ -74,6 +85,7 @@ export class GameState {
 
     this.player_extra_draws = 0;
     this.player_guaranteed_draws = [];
+    this.player_draw_sources = [];
     this.player_hand_modifiers = [];
     this.player_extra_shopping_magies = 0;
     this.player_damage_multiplier_bonus = 0;
@@ -135,6 +147,12 @@ export class GameState {
     }
     if (attributeResult.guaranteed_draws?.length) {
       this.player_guaranteed_draws.push(...attributeResult.guaranteed_draws);
+    }
+    // La provenance suit le crédit, dans le même `if`-bloc de fait : le manager
+    // n'inscrit une ligne que pour ce qu'il a réellement porté aux deux champs
+    // ci-dessus (plafond `max` déjà appliqué).
+    if (attributeResult.draw_sources?.length) {
+      this.player_draw_sources.push(...attributeResult.draw_sources);
     }
     if (attributeResult.shopping_bonus) {
       this.player_extra_shopping_magies += attributeResult.shopping_bonus;

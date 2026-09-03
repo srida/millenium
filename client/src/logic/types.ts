@@ -205,6 +205,27 @@ export interface HandModifier {
   value?: number;
 }
 
+/**
+ * D'OÙ vient une pioche supplémentaire — une ligne par octroi.
+ *
+ * `player_extra_draws` est UN nombre, écrit par trois modules qui ne se
+ * connaissent pas (magie, attribut, terrain) : la provenance y était perdue, et
+ * c'est justement ce que la popup de pioche doit montrer. Ce registre est le
+ * même octroi, raconté ; il n'entre dans aucun calcul.
+ *
+ * ⚠️ On stocke des IDS, jamais des libellés : `logic/` n'importe pas `data/`.
+ * C'est la couche React qui résout `ARCH_012` → « Magiciens Sombres ».
+ */
+export interface DrawSourceEntry {
+  kind: 'magie' | 'attribut' | 'terrain';
+  /** Id de la magie, de l'attribut ou du terrain qui a crédité la pioche. */
+  ref: string;
+  /** Cartes créditées. 0 pour une pioche garantie, qui prend un slot existant. */
+  value: number;
+  /** Pioche GARANTIE (un slot de la main normale, pas une carte de plus). */
+  guaranteed?: boolean;
+}
+
 /** Résultat de AttributeManager.applyEndOfCombat(). */
 export interface EndOfCombatAttributeResult {
   revived?: Unit[];
@@ -213,6 +234,37 @@ export interface EndOfCombatAttributeResult {
   board_slot_bonus?: number;
   damage_multiplier_bonus?: number;
   shopping_bonus?: number;
+  /** Provenance des deux précédents, attribut par attribut (cf. DrawSourceEntry).
+   *  ⚠️ Inscrit APRÈS le plafond `max` : le registre annonce ce qui est
+   *  réellement crédité, pas ce que l'effet demandait. */
+  draw_sources?: DrawSourceEntry[];
+}
+
+/**
+ * Ce que le tour vient de donner au joueur — rendu par
+ * `GameSession.startPreparation()` et affiché par la popup de pioche.
+ *
+ * ⚠️ La popup RÉVÈLE, elle ne PIOCHE pas : le tirage a déjà eu lieu quand ce
+ * résumé est rendu. Le différer jusqu'au tap du joueur décalerait le flux semé
+ * de la simulation et du filet de déterminisme PvP, et déplacerait le point de
+ * capture de « Tout annuler ».
+ */
+export interface DrawSummary {
+  round: number;
+  /** Les tiers piochables ce tour (`Draw.tiersForRound`). */
+  tiers: number[];
+  /** La pioche de base, avant tout bonus (`HAND_SIZE`). */
+  baseCount: number;
+  /** Cartes EN PLUS, consommées de `player_extra_draws`. */
+  extraDraws: number;
+  /** Pioches garanties honorées — elles occupent un slot de la main normale. */
+  guaranteed: GuaranteedDraw[];
+  /** Ce qui est RÉELLEMENT entré en main : mesuré, jamais recalculé. */
+  drawnCount: number;
+  /** Taille de la main après pioche (elle s'accumule entre les tours). */
+  handSizeAfter: number;
+  /** D'où viennent les bonus — vide au tour d'ouverture. */
+  sources: DrawSourceEntry[];
 }
 
 // ── Événements de combat (CombatManager.step()) ──

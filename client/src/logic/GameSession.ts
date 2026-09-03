@@ -33,7 +33,7 @@ const {
 import { tiersForRound, drawHand } from './Draw.js';
 import { pickMagies } from './MagieOffer.js';
 import type { MagieOfferContext } from './MagieOffer.js';
-import type { Card, Position, BoardDef, AttributeDef, Magie, RoundWinner } from './types.js';
+import type { Card, Position, BoardDef, AttributeDef, DrawSummary, Magie, RoundWinner } from './types.js';
 
 const HAND_SIZE = 5;
 
@@ -257,7 +257,7 @@ export class GameSession {
 
   // ── Préparation ────────────────────────────────────────────────────────
 
-  startPreparation(): void {
+  startPreparation(): DrawSummary {
     // Nettoie le terrain du combat précédent
     this.board.clearBlockedCells();
 
@@ -265,6 +265,10 @@ export class GameSession {
     const guaranteedDraws = this.gameState.player_guaranteed_draws.splice(0);
     const extraDraws = this.gameState.player_extra_draws;
     this.gameState.player_extra_draws = 0; // consommé — re-gagné chaque tour via attributs
+    // ⚠️ Le registre de provenance se vide AVEC les deux : les trois décrivent
+    // un seul et même octroi, celui de ce tour (cf. `player_draw_sources`).
+    const drawSources = this.gameState.player_draw_sources.splice(0);
+    const handSizeBefore = this.hand.length;
     const randomCount = Math.max(0, HAND_SIZE + extraDraws - guaranteedDraws.length);
     this.hand = [...this.hand, ...drawHand(this.deps.cardsByTier, this.gameState.round, randomCount, this._rand)];
 
@@ -334,6 +338,21 @@ export class GameSession {
     // font partie du début de tour, pas de ce que le joueur a fait ensuite.
     this.prepId++;
     this._prepSnapshot = this._capturePreparation();
+
+    // Ce que le tour vient de donner, pour la popup de pioche. ⚠️ `drawnCount`
+    // est MESURÉ et non recalculé : les pioches garanties ont un double repli
+    // et un pool vide ne rend rien — une soustraction en annoncerait des cartes
+    // que la main n'a pas. Même discipline que le décompte de `TerrainAlert`.
+    return {
+      round: this.gameState.round,
+      tiers: tiersForRound(this.gameState.round),
+      baseCount: HAND_SIZE,
+      extraDraws,
+      guaranteed: guaranteedDraws,
+      drawnCount: this.hand.length - handSizeBefore,
+      handSizeAfter: this.hand.length,
+      sources: drawSources,
+    };
   }
 
   // ── « Tout annuler » (bouton de la barre de préparation) ─────────────────
@@ -1211,10 +1230,13 @@ export class GameSession {
   isGameOver(): boolean { return this.gameState.isGameOver(); }
   getWinner() { return this.gameState.getWinner(); }
 
-  /** Avance au tour suivant et lance la préparation. */
-  startNextRound(): void {
+  /** Avance au tour suivant et lance la préparation. Rend le résumé de pioche du
+   *  nouveau tour, ou `null` si la partie est finie — il n'y a alors rien à
+   *  annoncer. */
+  startNextRound(): DrawSummary | null {
     this.gameState.nextRound();
-    if (this.gameState.phase !== Phase.GAME_OVER) this.startPreparation();
+    if (this.gameState.phase === Phase.GAME_OVER) return null;
+    return this.startPreparation();
   }
 }
 

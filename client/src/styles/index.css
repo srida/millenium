@@ -124,3 +124,46 @@ input, textarea, select { font-size: 1rem !important; }
 @media (prefers-reduced-motion: reduce) {
   .terrain-alert { animation: none; }
 }
+
+/* ── Ouverture d'un tour : annonce puis pioche (cf. `components/overlays/RoundStart`) ──
+   Même grammaire que l'annonce de terrain, et pour la même raison : la durée
+   vient du composant (`ROUND_INTRO_MS`), qui la tient du contrôleur — l'horloge
+   et l'animation ne peuvent donc pas dériver l'une de l'autre. */
+@keyframes round-intro-anim {
+  0%   { opacity: 0; transform: scale(.7); letter-spacing: .3em; }
+  20%  { opacity: 1; transform: scale(1); letter-spacing: normal; }
+  75%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.12); }
+}
+.round-intro {
+  animation: round-intro-anim var(--round-intro-dur, 1.4s) ease forwards;
+}
+
+/* Le dos de carte respire tant qu'on ne l'a pas touché — c'est ce qui dit qu'il
+   est tapable, sans y écrire « tapez ici ». */
+@keyframes draw-back-idle {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50%      { transform: translateY(-6px) rotate(1.5deg); }
+}
+.draw-back { animation: draw-back-idle 2.6s ease-in-out infinite; }
+/* Au tap, le paquet s'enfonce : la volée part de lui. */
+.draw-back-dealing { animation: none; transform: scale(.92); opacity: .35; transition: transform 180ms ease, opacity 180ms ease; }
+
+/* La volée vers la main. `--i` (l'index de la carte) est la SEULE chose que le
+   composant pose en ligne : le retard et la dérive latérale s'en dérivent ici,
+   la mise en forme reste entièrement en feuille. */
+@keyframes draw-fly-anim {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: translate(calc((var(--i) - 2) * 26px), 46dvh) scale(.5) rotate(calc((var(--i) - 2) * 8deg)); }
+}
+.draw-fly {
+  animation: draw-fly-anim var(--draw-deal-dur, 520ms) cubic-bezier(.4, 0, .2, 1) forwards;
+  animation-delay: calc(var(--i) * 45ms);
+}
+
+/* ⚠️ Le geste RESTE demandé, la popup reste affichée : c'est le mouvement qu'on
+   retire. `DrawPopup` court-circuite d'ailleurs la volée dans ce mode — cette
+   règle n'est que le filet si un chemin l'oubliait. */
+@media (prefers-reduced-motion: reduce) {
+  .round-intro, .draw-back, .draw-fly { animation: none; }
+}

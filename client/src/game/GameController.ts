@@ -10,13 +10,13 @@ import { boardTargetsUnits } from '../data/BoardInfo.js';
 import { matchesMaterial } from '../logic/InvocationManager.js';
 import { CombatAnimator3D } from '../three/CombatAnimator3D.js';
 import type { Scene3D } from '../three/Scene3D.js';
-import type { Card, Position, Magie } from '../logic/types.js';
+import type { Card, DrawSummary, Position, Magie } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
 import { useGameStore, type GameSnapshot, type HandEntry } from '../stores/gameStore.js';
 import { useUiStore, type TooltipAnchor } from '../stores/uiStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
 import * as CardArt from '../data/CardArt.js';
-import { PREP_DURATION_S, COMBAT_DURATION_S, combatSecondsLeft, TERRAIN_ALERT_MS } from './timings.js';
+import { PREP_DURATION_S, COMBAT_DURATION_S, combatSecondsLeft, TERRAIN_ALERT_MS, ROUND_INTRO_MS } from './timings.js';
 import { CombatRecorder } from './CombatRecorder.js';
 
 interface SummonOptionMenu {
@@ -61,6 +61,11 @@ export class GameController {
   protected paused = false;
   private _errorTimer: ReturnType<typeof setTimeout> | null = null;
   private _revealTimer: ReturnType<typeof setTimeout> | null = null;
+  /** L'annonce de changement de tour, et la pioche qu'elle précède. Même patron
+   *  que `_pendingCombatStart` : un CHAMP, pour que le tap et le minuteur
+   *  ouvrent la même popup une seule fois. */
+  private _introTimer: ReturnType<typeof setTimeout> | null = null;
+  private _pendingDraw: DrawSummary | null = null;
   /** Le départ du combat, tant qu'il est retenu par la cascade et/ou l'annonce
    *  de terrain. C'est un CHAMP et non une closure locale parce qu'un tap du
    *  joueur doit pouvoir déclencher le même départ que le minuteur — et une
@@ -86,7 +91,7 @@ export class GameController {
   // ── Cycle de partie ──────────────────────────────────────────────────────
 
   begin(): void {
-    this.session.startPreparation();
+    const draw = this.session.startPreparation();
     this._clearSelection();
     // Ouvre la file d'événements de missions : elle est vidée en fin de partie
     // (ou au démontage), un lot = une partie. Cf. stores/missionStore.
@@ -94,6 +99,50 @@ export class GameController {
     this._matchReported = false;
     this.scene?.refresh();
     this.sync(this._freshPhaseClocks());
+    this._openRound(draw);
+  }
+
+  /**
+   * Les deux beats d'ouverture d'un tour : l'annonce du changement de tour,
+   * puis la popup de pioche.
+   *
+   * ⚠️ UN SEUL minuteur, et il vit ici — pas dans le composant. C'est la règle
+   * de `TerrainAlert` : la couche React n'a que des états à rendre, le
+   * contrôleur possède l'horloge. Le champ (et non une closure) permet au tap
+   * de sauter l'annonce en déclenchant EXACTEMENT le même passage, une fois.
+   *
+   * ⚠️ Appelé à toutes les ouvertures de tour — `begin()` comme
+   * `_proceedNextRound()` — et par les deux contrôleurs : `PvpController`
+   * hérite de celui-ci et ne redéfinit ni l'un ni l'autre. Une popup posée sur
+   * un seul des deux chemins manquerait un round sur cinq.
+   */
+  protected _openRound(draw: DrawSummary | null): void {
+    if (this._introTimer) { clearTimeout(this._introTimer); this._introTimer = null; }
+    if (!draw) return;                       // partie finie : rien à ouvrir
+    this._pendingDraw = draw;
+    this.sync({ roundIntro: { round: draw.round }, drawPopup: null });
+    this._introTimer = setTimeout(() => this._openDrawPopup(), ROUND_INTRO_MS);
+  }
+
+  /** Passe l'annonce de tour d'un tap — le minuteur et le tap ouvrent la MÊME
+   *  popup, une seule fois (le champ se vide en partant). */
+  dismissRoundIntro(): void {
+    if (!this._pendingDraw) return;
+    this._openDrawPopup();
+  }
+
+  private _openDrawPopup(): void {
+    if (this._introTimer) { clearTimeout(this._introTimer); this._introTimer = null; }
+    const draw = this._pendingDraw;
+    if (!draw) return;
+    this._pendingDraw = null;
+    this.sync({ roundIntro: null, drawPopup: draw });
+  }
+
+  /** Le tap sur le dos de carte : la main est déjà là, on lève le voile. */
+  dismissDrawPopup(): void {
+    if (!useGameStore.getState().drawPopup) return;
+    this.sync({ drawPopup: null });
   }
 
   // Chronos remis à neuf en même temps que la phase de préparation : le
@@ -325,10 +374,26 @@ export class GameController {
 
   startCombat(): void {
     if (this.session.phase !== Phase.PREPARATION) return;
+    this._closeRoundOpening();
     this._committedPrepId = this.session.prepId;
     this._clearSelection();
     const { combat, boardData } = this.session.startCombat();
     this._beginCombatAnimation(combat, boardData);
+  }
+
+  /**
+   * Le combat part : ni l'annonce de tour ni la popup de pioche n'ont plus lieu
+   * d'être.
+   *
+   * ⚠️ Nécessaire même si la popup capte les taps : le chrono de préparation
+   * peut tomber à 0 par-dessous (c'est le cas normal en PvP, où il ne gèle
+   * pas), et l'overlay resterait alors posé sur tout le combat.
+   */
+  protected _closeRoundOpening(): void {
+    if (this._introTimer) { clearTimeout(this._introTimer); this._introTimer = null; }
+    this._pendingDraw = null;
+    const s = useGameStore.getState();
+    if (s.roundIntro || s.drawPopup) this.sync({ roundIntro: null, drawPopup: null });
   }
 
   // Lance l'animateur de combat sur un CombatManager déjà construit. Partagé
@@ -653,15 +718,16 @@ export class GameController {
   protected _proceedNextRound(): void {
     this._shoppingMagies = [];
     this._pendingMagie = null;
-    this.session.startNextRound();
+    const draw = this.session.startNextRound();
     this._clearSelection();
     if (this.session.phase === Phase.GAME_OVER) {
       this._reportMatchCompleted();
-      this.sync({ shopping: null, endRound: null, gameOver: true, winner: this.session.getWinner() });
+      this.sync({ shopping: null, endRound: null, roundIntro: null, drawPopup: null, gameOver: true, winner: this.session.getWinner() });
       return;
     }
     this.scene?.refresh();
     this.sync({ shopping: null, endRound: null, ...this._freshPhaseClocks() });
+    this._openRound(draw);
   }
 
   // ── Timer de préparation (piloté par GameScreen) ─────────────────────────
@@ -804,6 +870,11 @@ export class GameController {
   dispose(): void {
     if (this._errorTimer) clearTimeout(this._errorTimer);
     if (this._revealTimer) clearTimeout(this._revealTimer);
+    // Sans quoi une annonce de tour encore en vol republierait sur une partie
+    // démontée — et rouvrirait une popup de pioche sur l'écran suivant.
+    if (this._introTimer) clearTimeout(this._introTimer);
+    this._introTimer = null;
+    this._pendingDraw = null;
     this._pendingCombatStart = null;
     this.animator?.stop();
     this.animator = null;

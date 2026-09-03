@@ -39,17 +39,37 @@ export interface OwnedVariant {
   card_name: string | null;
 }
 
+/**
+ * Un dos de carte — le seul cosmétique dont le PRIX est éditorial : il vient du
+ * catalogue (saisi en admin), pas d'un barème par famille. `prices.card_back`
+ * n'est donc qu'un repli.
+ */
+export interface CosmeticCardBack {
+  id: string;
+  name: string;
+  price_gems: number;
+  purchased: boolean;
+}
+
+/** Dos possédé ou offert — le Profil dresse sa grille avec ça, sans relire le catalogue. */
+export interface OwnedCardBack {
+  id: string;
+  name: string;
+}
+
 export interface CosmeticSnapshot {
   day: string;
   next_rotation_at: number;
-  prices: { avatar: { gems: number }; variant: { gems: number } };
+  prices: { avatar: { gems: number }; variant: { gems: number }; card_back?: { gems: number } };
   avatars: CosmeticAvatar[];
   variants: CosmeticVariant[];
-  owned: { avatars: string[]; variants: OwnedVariant[] };
+  card_backs: CosmeticCardBack[];
+  owned: { avatars: string[]; variants: OwnedVariant[]; card_backs: OwnedCardBack[] };
   default_avatars: string[];
+  default_card_backs: string[];
 }
 
-export type CosmeticKind = 'avatar' | 'variant';
+export type CosmeticKind = 'avatar' | 'variant' | 'card_back';
 
 interface CosmeticStoreState {
   snapshot: CosmeticSnapshot | null;
@@ -63,6 +83,8 @@ interface CosmeticStoreState {
   ownedVariantsFor: (cardId: string) => OwnedVariant[];
   /** Avatars sélectionnables au Profil : les offerts, puis les achetés. */
   selectableAvatars: () => string[];
+  /** Dos de cartes portables au Profil — offerts et achetés confondus. */
+  selectableCardBacks: () => OwnedCardBack[];
   dismissNotice: () => void;
   reset: () => void;
 }
@@ -76,13 +98,25 @@ function pickSnapshot(data: any): CosmeticSnapshot {
     prices: data.prices ?? { avatar: { gems: 0 }, variant: { gems: 0 } },
     avatars: data.avatars ?? [],
     variants: data.variants ?? [],
+    card_backs: data.card_backs ?? [],
     owned: {
       avatars: data.owned?.avatars ?? [],
       variants: data.owned?.variants ?? [],
+      card_backs: data.owned?.card_backs ?? [],
     },
     default_avatars: data.default_avatars ?? [],
+    default_card_backs: data.default_card_backs ?? [],
   };
 }
+
+// Ce qu'on dit après un achat : chaque famille se PORTE ailleurs, et le message
+// doit dire où. Une table plutôt qu'un ternaire — avec trois familles, « tout ce
+// qui n'est pas un avatar » renverrait le joueur au DeckBuilder pour un dos.
+const BUY_NOTICE: Record<CosmeticKind, (label: string) => string> = {
+  avatar: (l) => `Avatar débloqué : ${l} — choisis-le dans ton profil.`,
+  variant: (l) => `Illustration débloquée : ${l} — choisis-la dans le DeckBuilder.`,
+  card_back: (l) => `Dos de carte débloqué : ${l} — choisis-le dans ton profil.`,
+};
 
 const channel = createSnapshotChannel<CosmeticSnapshot>({
   fetch: () => (AuthClient as any).getCosmetics(),
@@ -104,12 +138,7 @@ export const useCosmeticStore = create<CosmeticStoreState>((set, get) => ({
     set({ busy: true });
     try {
       const data = await (AuthClient as any).buyCosmetic({ kind, id });
-      set({
-        snapshot: pickSnapshot(data),
-        notice: kind === 'avatar'
-          ? `Avatar débloqué : ${label} — choisis-le dans ton profil.`
-          : `Illustration débloquée : ${label} — choisis-la dans le DeckBuilder.`,
-      });
+      set({ snapshot: pickSnapshot(data), notice: BUY_NOTICE[kind](label) });
       useAuthStore.getState().applyProgression(data.progression);
       return null;
     } catch (e: any) {
@@ -132,6 +161,11 @@ export const useCosmeticStore = create<CosmeticStoreState>((set, get) => ({
     // joueur qui n'a rien acheté ne doit pas voir une grille vide.
     return [...snap.default_avatars, ...snap.owned.avatars];
   },
+
+  // Le serveur joint déjà les offerts aux achetés (`owned.card_backs`) : il n'y
+  // a rien à recomposer ici, contrairement aux avatars dont les deux listes
+  // voyagent séparément pour des raisons historiques.
+  selectableCardBacks: () => get().snapshot?.owned.card_backs ?? [],
 
   dismissNotice: () => set({ notice: null }),
   reset: () => set({ snapshot: null, loading: false, busy: false, error: null, notice: null }),

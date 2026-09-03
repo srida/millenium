@@ -8,6 +8,7 @@ import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as BoardDatabase from '../data/BoardDatabase.js';
 import * as MagieDatabase from '../data/MagieDatabase.js';
 import * as SummonTypeDatabase from '../data/SummonTypeDatabase.js';
+import * as CardBackDatabase from '../data/CardBackDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import * as CardArt from '../data/CardArt.js';
 import { GameSession } from '../logic/GameSession.js';
@@ -24,6 +25,10 @@ export async function initGameData(): Promise<void> {
     (BoardDatabase as any).init(),
     (MagieDatabase as any).init(),
     (SummonTypeDatabase as any).init(),
+    // ⚠️ Ne jette jamais (cf. son en-tête) : un dos de carte n'est pas une
+    // donnée de jeu, et un serveur qui ne connaîtrait pas encore la route ne
+    // doit pas empêcher de jouer.
+    (CardBackDatabase as any).init(),
   ]);
   _dataReady = true;
 }

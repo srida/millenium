@@ -467,6 +467,10 @@ select.filter:focus { border-color: var(--accent); }
            pictogramme se confondent au coup d'œil. -->
       <button class="tab" data-tab="gifts">🎀 Cadeaux</button>
       <button class="tab" data-tab="variants">🎨 Variantes</button>
+      <!-- Dos de cartes : le cosmétique que la popup de pioche met en scène.
+           Leur art vit dans le dossier des ILLUSTRATIONS, sous l'id du dos —
+           comme les variantes : aucune famille d'assets à créer. -->
+      <button class="tab" data-tab="cardbacks">🂠 Dos de cartes</button>
       <button class="tab" data-tab="stats">📊 Stats</button>
       <button class="tab" data-tab="db">🗄️ Base SQL</button>
       <!-- Le rapport d'équilibrage est un onglet ordinaire : son panneau porte une
@@ -670,6 +674,26 @@ select.filter:focus { border-color: var(--accent); }
     </div>
   </div>
 
+  <!-- DOS DE CARTES TAB -->
+  <div id="tab-cardbacks" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="cardback-search" placeholder="Rechercher..." oninput="filterCardBacks()">
+          <span id="cardback-count" class="count">0</span>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="openNewCardBack()">+ Nouveau dos</button>
+          <button class="btn btn-secondary btn-sm" onclick="openImportModal('card-backs')">Importer JSON</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="cardback-list"></div>
+    </div>
+    <div class="content" id="cardback-detail">
+      <div class="empty"><span>Sélectionne un dos de carte</span></div>
+    </div>
+  </div>
+
   <!-- MISSIONS TAB -->
   <div id="tab-missions" class="main hidden">
     <div class="sidebar">
@@ -815,16 +839,16 @@ select.filter:focus { border-color: var(--accent); }
 // ================== STATE ==================
 // `packs` = les packs de boutique (data/sets.json, API /api/sets). Le code et la
 // donnée disent « set », l'interface dit « pack » : ici on est dans l'interface.
-let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [], summonTypes = [];
-let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null, selectedSummonType = null;
+let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [], summonTypes = [], cardBacks = [];
+let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null, selectedSummonType = null, selectedCardBack = null;
 let currentTab = 'cards';
-let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false, isNewGift = false;
+let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false, isNewGift = false, isNewCardBack = false;
 let selectionMode = false;
 const bulkSelected = new Set();
 
 // ================== INIT ==================
 async function init() {
-  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, summonTypes] = await Promise.all([
+  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, summonTypes, cardBacks] = await Promise.all([
     apiFetch('/api/cards'),
     apiFetch('/api/attributes'),
     apiFetch('/api/powers'),
@@ -836,6 +860,7 @@ async function init() {
     apiFetch('/api/variants'),
     apiFetch('/api/gifts'),
     apiFetch('/api/summon-types'),
+    apiFetch('/api/card-backs'),
   ]);
   populateAttributeFilter();
   populatePowerFilter();
@@ -850,6 +875,7 @@ async function init() {
   renderVariantList();
   renderGiftList();
   renderSummonTypeList();
+  renderCardBackList();
 }
 
 function populateAttributeFilter() {
@@ -4138,6 +4164,290 @@ async function deleteVariantIllustration() {
   toast('Illustration supprimée');
 }
 
+// ================== DOS DE CARTES ==================
+// Le cosmétique que la popup de pioche met en scène. Deux natures dans un seul
+// catalogue, et c'est la CASE « par défaut » qui les sépare :
+//   - le dos OFFERT (`default: true`) — porté par tout compte qui n'a rien
+//     acheté, y compris les invités ;
+//   - les dos ACHETABLES — `price_gems` > 0, vendus en boutique cosmétique.
+//
+// ⚠️ Comme les variantes, un dos SANS ILLUSTRATION n'est pas vendable : la règle
+// porte sur le fichier, pas sur un drapeau (cf. `shop.hasArt`).
+let cardBackBust = Date.now();
+
+function filterCardBacks() {
+  const q = document.getElementById('cardback-search')?.value.toLowerCase() || '';
+  const filtered = cardBacks.filter(b => !q
+    || b.id.toLowerCase().includes(q)
+    || (b.name || '').toLowerCase().includes(q));
+  renderCardBackList(filtered);
+}
+
+function renderCardBackList(list = cardBacks) {
+  document.getElementById('cardback-count').textContent = list.length;
+  const el = document.getElementById('cardback-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty" style="padding:24px"><span>Aucun dos de carte</span></div>';
+    return;
+  }
+  el.innerHTML = list.map(b => {
+    const isActive = selectedCardBack?.id === b.id;
+    // L'art EST le dos : sans lui il n'y a rien à porter, et la vignette le dit.
+    const thumb = b._has_illustration
+      ? `<img class="list-thumb" src="/illustrations/${esc(b.id)}?t=${cardBackBust}" alt="" loading="lazy">`
+      : `<div class="list-thumb-placeholder"><span style="font-size:14px;opacity:.4">🂠</span></div>`;
+    return `
+      <div class="list-item ${isActive ? 'selected' : ''}" onclick="selectCardBack('${b.id}')">
+        ${thumb}
+        <div style="flex:1;min-width:0">
+          <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b._has_illustration ? '' : '⚠️ '}${esc(b.name || b.id)}</span>
+          <div style="display:flex;gap:4px;margin-top:3px;align-items:center">
+            <span class="item-id">${esc(b.id)}</span>
+            ${b.default ? '<span class="item-id" style="color:var(--ok,#4ade80)">par défaut</span>' : ''}
+            ${!b.default && b.price_gems > 0 ? `<span class="item-id">💎 ${b.price_gems}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectCardBack(id) {
+  selectedCardBack = cardBacks.find(b => b.id === id) ?? null;
+  isNewCardBack = false;
+  renderCardBackList();
+  renderCardBackDetail();
+  showDetail();
+}
+
+function renderCardBackDetail() {
+  const b = selectedCardBack;
+  const el = document.getElementById('cardback-detail');
+  if (!b) {
+    el.innerHTML = '<div class="empty"><span>Sélectionne un dos de carte</span></div>';
+    return;
+  }
+  const hasIllus = b._has_illustration;
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header">
+      <div class="illustration-box" onclick="${isNewCardBack ? '' : 'openCardBackIllusModal()'}">
+        ${hasIllus
+          ? `<img src="/illustrations/${b.id}?t=${cardBackBust}" alt="">`
+          : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
+        <div class="illus-overlay">
+          ${hasIllus
+            ? `<span style="font-size:12px;color:white">Changer</span>
+               <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteCardBackIllustration()">Supprimer</button>`
+            : `<span style="font-size:12px;color:white">Ajouter une illustration</span>`}
+        </div>
+      </div>
+      <div class="detail-info">
+        <div class="detail-title">🂠 ${esc(b.name || b.id)}</div>
+        <div class="detail-meta"><span style="font-family:monospace">${esc(b.id)}</span></div>
+      </div>
+    </div>
+
+    ${hasIllus ? '' : `
+      <div style="background:rgba(240,180,60,.1);border:1px solid rgba(240,180,60,.35);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0b43c">
+        ⚠️ Sans illustration, ce dos n'est pas vendu en boutique — et s'il est « par défaut », la popup de pioche retombe sur son dos dessiné.
+      </div>`}
+
+    <div class="field">
+      <label>Nom</label>
+      <input id="cb-name" value="${esc(b.name || '')}" placeholder="Dos classique">
+    </div>
+
+    <div class="field">
+      <label>
+        <input type="checkbox" id="cb-default" ${b.default ? 'checked' : ''} style="width:auto;margin-right:6px">
+        Dos par défaut (offert à tous)
+      </label>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">
+        Le premier dos coché est celui que porte un compte neuf, et le repli de tout dos disparu du catalogue. Il n'est jamais vendu.
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Prix en gemmes</label>
+      <input type="number" id="cb-price" min="0" step="1" value="${Number(b.price_gems) || 0}">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">
+        0 = non vendu. Ignoré sur un dos par défaut.
+      </div>
+    </div>
+
+    <div class="detail-actions">
+      ${isNewCardBack
+        ? `<button class="btn btn-primary" onclick="createCardBack()">Créer</button>
+           <button class="btn btn-secondary" onclick="cancelNewCardBack()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveCardBack()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deleteCardBack()">Supprimer</button>`}
+    </div>
+  `;
+}
+
+// ⚠️ Repart de `...selectedCardBack` au lieu de reconstruire l'objet de zéro :
+// un `_collect…` qui repart de rien détruit tout champ qu'il ne connaît pas (ça
+// s'est produit sur `description` des magies et `difficulty` des decks publics).
+// Le sauvetage s'arrête au PREMIER NIVEAU, ce qui suffit ici — un dos est plat.
+function _collectCardBackFields() {
+  const out = {
+    ...selectedCardBack,
+    id: selectedCardBack.id,
+    name: document.getElementById('cb-name')?.value.trim() || selectedCardBack.id,
+    default: !!document.getElementById('cb-default')?.checked,
+    price_gems: parseInt(document.getElementById('cb-price')?.value, 10) || 0,
+  };
+  // Drapeau CALCULÉ à la lecture : le persister ferait mentir le catalogue dès
+  // qu'une image est ajoutée ou retirée hors de cette requête.
+  delete out._has_illustration;
+  return out;
+}
+
+async function saveCardBack() {
+  const back = _collectCardBackFields();
+  const res = await apiFetch(`/api/card-backs/${selectedCardBack.id}`, { method: 'PUT', body: back });
+  if (res.error) return toast(res.error, 'err');
+  const idx = cardBacks.findIndex(b => b.id === selectedCardBack.id);
+  if (idx !== -1) {
+    cardBacks[idx] = { ...back, _has_illustration: selectedCardBack._has_illustration };
+    selectedCardBack = cardBacks[idx];
+  }
+  filterCardBacks();
+  renderCardBackDetail();
+  toast('Dos enregistré');
+}
+
+async function deleteCardBack() {
+  if (!confirm(`Supprimer le dos ${selectedCardBack.id} ?`)) return;
+  const res = await apiFetch(`/api/card-backs/${selectedCardBack.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  cardBacks = cardBacks.filter(b => b.id !== selectedCardBack.id);
+  selectedCardBack = null;
+  filterCardBacks();
+  document.getElementById('cardback-detail').innerHTML = '<div class="empty"><span>Sélectionne un dos de carte</span></div>';
+  showList();
+  toast('Dos supprimé');
+}
+
+function openNewCardBack() {
+  let maxNum = 0;
+  for (const b of cardBacks) {
+    const match = b.id.match(/(\d+)$/);
+    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+  }
+  selectedCardBack = { id: `CARDBACK_${String(maxNum + 1).padStart(3, '0')}`, name: '', default: false, price_gems: 100, _has_illustration: false };
+  isNewCardBack = true;
+  renderCardBackList();
+  renderCardBackDetail();
+  showDetail();
+}
+
+async function createCardBack() {
+  const back = _collectCardBackFields();
+  const res = await apiFetch('/api/card-backs', { method: 'POST', body: back });
+  if (res.error) return toast(res.error, 'err');
+  cardBacks.push({ ...back, _has_illustration: false });
+  selectedCardBack = cardBacks[cardBacks.length - 1];
+  isNewCardBack = false;
+  filterCardBacks();
+  renderCardBackDetail();
+  toast('Dos créé — ajoute son illustration pour qu\'il soit portable');
+}
+
+function cancelNewCardBack() {
+  selectedCardBack = null;
+  isNewCardBack = false;
+  filterCardBacks();
+  document.getElementById('cardback-detail').innerHTML = '<div class="empty"><span>Sélectionne un dos de carte</span></div>';
+  showList();
+}
+
+function openCardBackIllusModal() {
+  if (!selectedCardBack) return;
+  const defaultQuery = `yugioh card back ${selectedCardBack.name || ''}`.trim();
+  showModal(`
+    <h2 style="margin-bottom:16px">Illustration — ${esc(selectedCardBack.name || selectedCardBack.id)}</h2>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Mots-clés</label>
+        <input id="cardback-illus-q" value="${esc(defaultQuery)}" style="font-family:monospace;font-size:12px">
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="openCardBackImageSearch()">Ouvrir Google Images</button>
+    </div>
+    <div class="field">
+      <label>Depuis une URL</label>
+      <div style="display:flex;gap:6px">
+        <input id="cardback-illus-url" type="text" placeholder="https://..." style="flex:1">
+        <button class="btn btn-secondary btn-sm" onclick="pasteCardBackIllusUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Depuis l'appareil</label>
+      <input type="file" accept="image/*" onchange="importCardBackIllustrationFromFile()" id="cardback-illus-file">
+    </div>
+    <span style="font-size:11px;color:var(--muted)">Sauvegardée sous <code>${selectedCardBack.id}.png</code> — format portrait (ratio 3:4), la popup la recadre au centre.</span>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="importCardBackIllustration()">Importer l'URL</button>
+    </div>
+  `, 'wide');
+}
+
+function openCardBackImageSearch() {
+  const q = document.getElementById('cardback-illus-q')?.value || '';
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
+}
+
+async function pasteCardBackIllusUrl() {
+  try {
+    const el = document.getElementById('cardback-illus-url');
+    if (el) el.value = await navigator.clipboard.readText();
+  } catch {
+    toast('Accès presse-papier refusé — collez manuellement (Ctrl+V)', 'err');
+  }
+}
+
+function _setCardBackIllusFlag(has) {
+  selectedCardBack._has_illustration = has;
+  const idx = cardBacks.findIndex(b => b.id === selectedCardBack.id);
+  if (idx !== -1) cardBacks[idx]._has_illustration = has;
+  cardBackBust = Date.now();
+  filterCardBacks();
+  renderCardBackDetail();
+}
+
+async function importCardBackIllustration() {
+  const url = document.getElementById('cardback-illus-url').value.trim();
+  if (!url) return toast('URL requise', 'err');
+  closeModal();
+  toast('Téléchargement en cours...', 'ok');
+  const res = await apiFetch(`/api/card-backs/${selectedCardBack.id}/illustration`, { method: 'POST', body: { url } });
+  if (res.error) return toast(res.error, 'err');
+  _setCardBackIllusFlag(true);
+  toast('Illustration importée');
+}
+
+async function importCardBackIllustrationFromFile() {
+  const file = document.getElementById('cardback-illus-file')?.files?.[0];
+  if (!file) return;
+  closeModal();
+  toast('Envoi en cours...', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/card-backs/${selectedCardBack.id}/illustration`, { method: 'PUT', body: { data } });
+  if (res.error) return toast(res.error, 'err');
+  _setCardBackIllusFlag(true);
+  toast('Illustration importée');
+}
+
+async function deleteCardBackIllustration() {
+  if (!confirm('Supprimer l\'illustration ?')) return;
+  const res = await apiFetch(`/api/card-backs/${selectedCardBack.id}/illustration`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  _setCardBackIllusFlag(false);
+  toast('Illustration supprimée');
+}
+
 // ================== MISSIONS ==================
 const EVENT_LABELS = {
   match_completed: 'Partie terminée',
@@ -5672,6 +5982,7 @@ function fabAction() {
   else if (currentTab === 'packs')      openNewPack();
   else if (currentTab === 'variants')   openNewVariant();
   else if (currentTab === 'gifts')      openNewGift();
+  else if (currentTab === 'cardbacks')  openNewCardBack();
 }
 
 // ================== UTILS ==================
@@ -6396,7 +6707,7 @@ async function confirmMassDelete() {
 let importType = null;
 let importItems = null;
 
-const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions', variants: 'variantes', gifts: 'cadeaux' };
+const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions', variants: 'variantes', gifts: 'cadeaux', 'card-backs': 'dos de cartes' };
 
 function openImportModal(type) {
   importType = type;
@@ -6496,6 +6807,10 @@ async function confirmImport() {
     gifts = await apiFetch('/api/gifts');
     selectedGift = null;
     filterGifts();
+  } else if (importType === 'card-backs') {
+    cardBacks = await apiFetch('/api/card-backs');
+    selectedCardBack = null;
+    filterCardBacks();
   }
 
   const parts = [];

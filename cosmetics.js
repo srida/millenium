@@ -35,7 +35,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 
 // --- Barème ---
 
-const DAILY = Object.freeze({ avatars: 3, variants: 3 });
+const DAILY = Object.freeze({ avatars: 3, variants: 3, card_backs: 2 });
 
 // Prix fixes, en gemmes uniquement. Un avatar coûte le dixième d'une variante :
 // l'un se change comme on change d'humeur, l'autre est un investissement sur
@@ -43,9 +43,22 @@ const DAILY = Object.freeze({ avatars: 3, variants: 3 });
 const PRICE = Object.freeze({
   avatar: Object.freeze({ gems: 5 }),
   variant: Object.freeze({ gems: 50 }),
+  // ⚠️ REPLI seulement : un dos porte son propre `price_gems`, saisi en admin
+  // (c'est le seul cosmétique dont le prix est éditorial — il n'y en a qu'une
+  // poignée, et ils ne se valent pas). Ce chiffre ne sert qu'à une entrée de
+  // catalogue à qui personne n'a donné de prix.
+  card_back: Object.freeze({ gems: 100 }),
 });
 
-const KINDS = Object.freeze(['avatar', 'variant']);
+const KINDS = Object.freeze(['avatar', 'variant', 'card_back']);
+
+/**
+ * La clé de chaque famille dans l'offre persistée. ⚠️ Une TABLE et non un
+ * ternaire : avec deux familles, `kind === 'avatar' ? … : …` traitait tout ce
+ * qui n'était pas un avatar comme une variante — un `kind` inconnu serait allé
+ * chercher dans le mauvais pool. Ici il ne trouve rien, donc il est refusé.
+ */
+const OFFER_KEY = Object.freeze({ avatar: 'avatars', variant: 'variants', card_back: 'card_backs' });
 
 // Avatars offerts à tout le monde, jamais vendus et jamais tirés. C'est la
 // liste que ProfileScreen codait en dur avant l'existence de cette boutique :
@@ -94,6 +107,45 @@ function avatarPool() {
 const cards = jsonCache(path.join(DATA_DIR, 'cards.json'), list =>
   new Map(list.filter(c => c && c.id).map(c => [c.id, c])));
 
+// --- Dos de cartes ---
+// Troisième famille, et la seule dont le catalogue est ÉDITORIAL de bout en
+// bout : l'admin écrit chaque entrée, y compris son prix. Comme les variantes,
+// l'art vit dans le dossier des illustrations sous l'id du dos.
+
+const cardBacksCatalog = jsonCache(path.join(DATA_DIR, 'card_backs.json'), list =>
+  list.filter(b => b && b.id));
+
+/**
+ * Les dos OFFERTS — ceux marqués `default` en admin. Ils sont portables par
+ * tout le monde, ne s'achètent jamais et ne sortent jamais du tirage : très
+ * exactement le rôle de `DEFAULT_AVATARS`, à ceci près que la liste est de la
+ * donnée et non du code (l'admin l'édite).
+ */
+function defaultCardBackIds() {
+  return cardBacksCatalog().filter(b => b.default).map(b => b.id);
+}
+
+/**
+ * Pool de dos vendables : ni offerts, ni gratuits, et dont l'ART EXISTE.
+ *
+ * ⚠️ Le filtre sur le fichier n'est pas une politesse : un dos sans PNG serait
+ * portable et vide, au moment le plus visible de la partie. Même règle que
+ * `shop.hasArt` pour les cartes et que `variants.illustrationExists` pour les
+ * avatars — elle porte sur le FICHIER, jamais sur un drapeau persisté.
+ */
+function cardBackPool() {
+  const offered = new Set(defaultCardBackIds());
+  return cardBacksCatalog()
+    .filter(b => !offered.has(b.id) && (Number(b.price_gems) || 0) > 0 && variants.illustrationExists(b.id))
+    .map(b => ({ id: b.id, name: b.name ?? b.id, price_gems: Number(b.price_gems) || PRICE.card_back.gems }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+
+/** Ce dos existe-t-il au catalogue ? (pool ou dos offert) */
+function cardBackExists(id) {
+  return cardBacksCatalog().some(b => b.id === id);
+}
+
 /**
  * Pool de variantes : celles dont la carte est POSSÉDÉE et dont l'art existe.
  * Une variante sans illustration n'est pas vendable — l'admin le signale, mais
@@ -125,6 +177,7 @@ function ownedOf(userId) {
   return {
     avatars: rows.filter(r => r.kind === 'avatar').map(r => r.cosmetic_id),
     variants: rows.filter(r => r.kind === 'variant').map(r => r.cosmetic_id),
+    card_backs: rows.filter(r => r.kind === 'card_back').map(r => r.cosmetic_id),
   };
 }
 
@@ -141,6 +194,21 @@ function canUseAvatar(user, avatarId) {
   if (!avatarId) return false;
   if (DEFAULT_AVATARS.includes(avatarId)) return true;
   return owns(user.id, 'avatar', avatarId);
+}
+
+/**
+ * Ce dos de carte est-il portable ? Même barrière que `canUseAvatar`, et pour
+ * la même raison : `PUT /profile/me` reçoit une chaîne du client.
+ *
+ * ⚠️ Un dos offert l'est pour tout le monde, mais il doit quand même EXISTER au
+ * catalogue : un id supprimé en admin ne reste pas portable (le client retombe
+ * alors sur le dos par défaut, cf. `CardBackDatabase.resolveCardBack`).
+ */
+function canUseCardBack(user, backId) {
+  if (!backId) return false;
+  if (!cardBackExists(backId)) return false;
+  if (defaultCardBackIds().includes(backId)) return true;
+  return owns(user.id, 'card_back', backId);
 }
 
 // --- Tirage ---
@@ -167,6 +235,7 @@ function buildOffer(user, { day }) {
   const ownedIds = ownedOf(user.id);
   const ownedAvatars = new Set(ownedIds.avatars);
   const ownedVariants = new Set(ownedIds.variants);
+  const ownedBacks = new Set(ownedIds.card_backs);
 
   const avatars = pick(
     avatarPool().filter(a => !ownedAvatars.has(a.id)),
@@ -178,12 +247,23 @@ function buildOffer(user, { day }) {
     DAILY.variants,
     seededRandom(user.id, day, 'variant'),
   );
+  // ⚠️ Sa propre graine (`'card_back'`), comme les deux autres familles : une
+  // graine partagée ferait bouger l'offre d'avatars le jour où le catalogue de
+  // dos change, alors que rien ne l'a touchée.
+  const backList = pick(
+    cardBackPool().filter(b => !ownedBacks.has(b.id)),
+    DAILY.card_backs,
+    seededRandom(user.id, day, 'card_back'),
+  );
 
   return {
     day,
     generated_at: Date.now(),
     avatars: avatars.map(a => ({ ...a, price_gems: PRICE.avatar.gems })),
     variants: variantList.map(v => ({ ...v, price_gems: PRICE.variant.gems })),
+    // Le prix d'un dos vient du CATALOGUE, pas du barème : `cardBackPool` l'a
+    // déjà posé, avec son repli.
+    card_backs: backList,
   };
 }
 
@@ -241,9 +321,15 @@ function unlock(userId, kind, id) {
   if (!KINDS.includes(kind)) return { ok: false, reason: 'Type de cosmétique inconnu.' };
   if (kind === 'variant' && !variants.byId(id)) return { ok: false, reason: 'Variante introuvable.' };
   if (kind === 'avatar' && !variants.illustrationExists(id)) return { ok: false, reason: 'Avatar introuvable.' };
+  // Un dos exige les DEUX : une entrée au catalogue (c'est elle qui le nomme et
+  // le tarife) et son art (sans PNG il serait portable et vide).
+  if (kind === 'card_back' && (!cardBackExists(id) || !variants.illustrationExists(id))) {
+    return { ok: false, reason: 'Dos de carte introuvable.' };
+  }
   // Un avatar offert d'office est déjà portable par tout le monde : rien à
   // débloquer, et surtout rien à inscrire en base — le pool le retire du tirage.
   if (kind === 'avatar' && DEFAULT_AVATARS.includes(id)) return { ok: true, already: true };
+  if (kind === 'card_back' && defaultCardBackIds().includes(id)) return { ok: true, already: true };
 
   const res = stmt.unlockCosmetic.run(userId, kind, id, Date.now());
   return { ok: true, already: res.changes === 0 };
@@ -269,7 +355,7 @@ const buy = db.transaction((user, kind, id) => {
     return { ok: false, reason: 'L\'offre a changé, recharge la boutique.', stale: true };
   }
 
-  const pool = kind === 'avatar' ? state.offer.avatars : state.offer.variants;
+  const pool = OFFER_KEY[kind] ? state.offer[OFFER_KEY[kind]] : null;
   const item = (pool ?? []).find(e => e.id === id);
   if (!item) return { ok: false, reason: 'L\'offre a changé, recharge la boutique.', stale: true };
   if (owns(user.id, kind, id)) return { ok: false, reason: 'Cosmétique déjà possédé.' };
@@ -283,6 +369,10 @@ const buy = db.transaction((user, kind, id) => {
   // catalogue depuis le tirage — mieux vaut refuser que vendre du vide.
   if (kind === 'variant' && !variants.byId(id)) {
     return { ok: false, reason: 'Variante introuvable.', stale: true };
+  }
+  // Même raison pour un dos retiré du catalogue depuis le tirage.
+  if (kind === 'card_back' && !cardBackExists(id)) {
+    return { ok: false, reason: 'Dos de carte introuvable.', stale: true };
   }
 
   progression.grant(user.id, { gems: -price });
@@ -337,6 +427,7 @@ function getSnapshot(user) {
   const ownedIds = ownedOf(user.id);
   const ownedAvatars = new Set(ownedIds.avatars);
   const ownedVariants = new Set(ownedIds.variants);
+  const ownedBacks = new Set(ownedIds.card_backs);
 
   // Les variantes possédées voyagent en OBJETS, pas en ids : le DeckBuilder a
   // besoin du card_id et du nom pour bâtir son sélecteur, et cette forme lui
@@ -356,8 +447,20 @@ function getSnapshot(user) {
     prices: PRICE,
     avatars: (offer?.avatars ?? []).map(a => ({ ...a, purchased: ownedAvatars.has(a.id) })),
     variants: (offer?.variants ?? []).map(v => ({ ...v, purchased: ownedVariants.has(v.id) })),
-    owned: { avatars: ownedIds.avatars, variants: ownedVariantDefs },
+    card_backs: (offer?.card_backs ?? []).map(b => ({ ...b, purchased: ownedBacks.has(b.id) })),
+    // Les dos POSSÉDÉS voyagent en objets (id + nom) pour que le Profil dresse
+    // sa grille sans relire le catalogue ; les OFFERTS sont joints à la liste,
+    // le joueur ne fait pas la différence entre « donné » et « acheté » quand
+    // il choisit ce qu'il porte.
+    owned: {
+      avatars: ownedIds.avatars,
+      variants: ownedVariantDefs,
+      card_backs: [...defaultCardBackIds(), ...ownedIds.card_backs]
+        .filter((id, i, all) => all.indexOf(id) === i && cardBackExists(id))
+        .map(id => ({ id, name: cardBacksCatalog().find(b => b.id === id)?.name ?? id })),
+    },
     default_avatars: [...DEFAULT_AVATARS],
+    default_card_backs: defaultCardBackIds(),
   };
 }
 
@@ -369,7 +472,8 @@ function refresh(user) {
 
 module.exports = {
   DAILY, PRICE, KINDS, DEFAULT_AVATARS,
-  avatarPool, variantPool, ownedOf, owns, canUseAvatar,
+  avatarPool, variantPool, cardBackPool, defaultCardBackIds, cardBackExists,
+  ownedOf, owns, canUseAvatar, canUseCardBack,
   buildOffer, sync, unlock, buy, deckVariantMap,
   getSnapshot, refresh,
 };

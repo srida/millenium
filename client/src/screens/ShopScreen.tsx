@@ -22,7 +22,7 @@ import type { Card } from '../logic/types.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
-import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant } from '../stores/cosmeticStore.js';
+import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant, type CosmeticCardBack } from '../stores/cosmeticStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
 import { Amount, Button, Countdown, Gauge, IconButton, Illustration, LoadState, Modal, Panel } from '../components/ui/primitives.js';
 import { CURRENCY, CURRENCY_BY_WIRE, fmt, type WireCurrency } from '../components/ui/currency.js';
@@ -224,11 +224,31 @@ function CosmeticsTab() {
             )}
           </section>
 
+          <section className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between px-1">
+              <h2 className="text-[10px] tracking-widest text-white/40">DOS DE CARTES DU JOUR</h2>
+              {/* ⚠️ Pas de prix en en-tête, contrairement aux deux autres
+                  familles : le prix d'un dos est ÉDITORIAL (saisi en admin,
+                  différent d'un dos à l'autre). Un « X 💎 pièce » mentirait. */}
+              <span className="text-[10px] text-white/30">prix à la pièce</span>
+            </div>
+            {snapshot.card_backs.length ? (
+              <div className="grid grid-cols-3 gap-2">
+                {snapshot.card_backs.map(b => <CardBackOffer key={b.id} back={b} />)}
+              </div>
+            ) : (
+              <Panel className="p-4 text-center text-xs text-white/40">
+                Aucun dos de carte à débloquer aujourd'hui.
+              </Panel>
+            )}
+          </section>
+
           <p className="px-1 text-[10px] leading-relaxed text-white/30">
             Nouvelle sélection chaque jour à 5 h, en même temps que les cartes. Les cosmétiques ne
             {' '}changent rien au jeu : un avatar se porte depuis ton profil, une illustration se
             {' '}choisit carte par carte dans le DeckBuilder — et l'adversaire la voit aussi. Tu ne
-            {' '}peux acheter que les illustrations des cartes que tu possèdes.
+            {' '}peux acheter que les illustrations des cartes que tu possèdes. Un dos de carte se
+            {' '}porte lui aussi depuis ton profil : c'est lui qu'on retourne au début de chaque tour.
           </p>
         </>
       )}
@@ -311,6 +331,22 @@ function VariantOffer({ variant }: { variant: CosmeticVariant }) {
       price={variant.price_gems}
       purchased={variant.purchased}
       onBuy={() => { void buy('variant', variant.id, variant.card_name); }}
+    />
+  );
+}
+
+function CardBackOffer({ back }: { back: CosmeticCardBack }) {
+  const buy = useCosmeticStore(s => s.buy);
+  return (
+    <CosmeticOffer
+      // Un dos porte son propre nom, contrairement à une variante : il ne
+      // dépend d'aucune carte, c'est un objet en soi.
+      illustrationId={back.id}
+      title={back.name}
+      subtitle="Dos de carte"
+      price={back.price_gems}
+      purchased={back.purchased}
+      onBuy={() => { void buy('card_back', back.id, back.name); }}
     />
   );
 }

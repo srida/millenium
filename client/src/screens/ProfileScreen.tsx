@@ -30,6 +30,9 @@ export default function ProfileScreen() {
 
   const [username, setUsername] = useState(user?.username ?? '');
   const [avatar, setAvatar] = useState<string>((user as any)?.avatar ?? '');
+  // Dos de carte porté. `''` = le dos par défaut : on n'écrit pas son id, pour
+  // qu'un joueur qui n'a rien choisi suive le dos offert du jour où il change.
+  const [cardBack, setCardBack] = useState<string>((user as any)?.card_back ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -39,6 +42,11 @@ export default function ProfileScreen() {
   const cosmeticSnapshot = useCosmeticStore(s => s.snapshot);
   useEffect(() => { void loadCosmetics(); }, [loadCosmetics]);
   const avatarIds = cosmeticSnapshot ? selectableAvatars() : FALLBACK_AVATARS;
+  const selectableCardBacks = useCosmeticStore(s => s.selectableCardBacks);
+  // Pas de repli codé en dur ici, contrairement aux avatars : sans instantané
+  // il n'y a rien de portable à proposer, et la section disparaît — mieux qu'une
+  // grille de dos qu'on ne saurait pas nommer.
+  const cardBacks = cosmeticSnapshot ? selectableCardBacks() : [];
 
   // Paliers de niveau : le BARÈME vient du serveur (levels.js) plutôt que
   // d'être recopié ici — les deux ne peuvent donc pas diverger. Pas de store
@@ -62,7 +70,11 @@ export default function ProfileScreen() {
   async function save() {
     setError(null); setSaved(false); setBusy(true);
     try {
-      const updated = await (AuthClient as any).updateProfile({ username: username.trim(), avatar: avatar.trim() || null });
+      const updated = await (AuthClient as any).updateProfile({
+        username: username.trim(),
+        avatar: avatar.trim() || null,
+        card_back: cardBack.trim() || null,
+      });
       setUser(updated);
       setSaved(true);
     } catch (e: any) {
@@ -128,6 +140,47 @@ export default function ProfileScreen() {
               );
             })}
           </div>
+          {/* Le dos de carte : ce qu'on retourne à l'ouverture de chaque tour.
+              La section n'existe que s'il y a un choix à faire — un seul dos
+              portable est un fait, pas une décision. */}
+          {cardBacks.length > 1 && (
+            <>
+              <div className="flex items-baseline justify-between">
+                <label className="text-[10px] tracking-widest text-white/40">DOS DE CARTE</label>
+                <button
+                  onPointerDown={() => navigate('shop')}
+                  className="text-[10px] text-white/40 underline"
+                >
+                  En débloquer d'autres →
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {cardBacks.map((b) => {
+                  const selected = cardBack === b.id;
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onPointerDown={() => { setCardBack(b.id); setSaved(false); }}
+                      aria-label={`Dos ${b.name}`}
+                      title={b.name}
+                      className={`aspect-[3/4] overflow-hidden rounded-lg border ${selected ? 'border-gold' : 'border-line'} bg-surface-raised active:opacity-80`}
+                    >
+                      {/* `onError` masque l'image : un dos dont le PNG a été
+                          retiré en admin doit laisser un cadre vide, pas une
+                          icône de fichier cassé. */}
+                      <img
+                        src={illustrationUrl(b.id)}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
           {error && <p className="text-xs text-danger">{error}</p>}
           {saved && <p className="text-xs text-success">✓ Profil enregistré</p>}
           <Button variant="primary" disabled={busy || !username.trim()} className="w-full" onPointerDown={save}>

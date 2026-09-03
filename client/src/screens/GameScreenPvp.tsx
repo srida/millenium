@@ -30,7 +30,8 @@ import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { TerrainAlert, SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import { PhaseTimer, Banners } from '../components/hud/PhaseTimer.js';
-import { PREP_DURATION_S, SHOPPING_DURATION_S } from '../game/timings.js';
+import { RoundIntro, DrawPopup } from '../components/overlays/RoundStart.js';
+import { PREP_DURATION_S, SHOPPING_DURATION_S, DRAW_POPUP_AUTO_MS } from '../game/timings.js';
 
 export default function GameScreenPvp() {
   const [controller, setControllerLocal] = useState<PvpController | BotController | null>(null);
@@ -122,6 +123,15 @@ export default function GameScreenPvp() {
       <Banners />
       <SummonOptionMenu />
       <WaitingOverlay />
+      {/* Ouverture de tour. ⚠️ La popup de pioche NE GÈLE PAS le chrono ici
+          (il n'apparaît pas dans le prédicat ci-dessus) : c'est la règle du
+          GameMenu — l'adversaire attend à la barrière réseau et ne doit pas
+          pouvoir être bloqué. En contrepartie elle se congédie seule, sinon un
+          joueur distrait jouerait sa préparation sous un voile. Rien de tout ça
+          ne prend de branche sur `bot` : le duel contre bot passe par le même
+          écran, et le joueur ne doit pas pouvoir les distinguer. */}
+      <RoundIntro />
+      <DrawPopup autoDismissMs={DRAW_POPUP_AUTO_MS} />
       <TerrainAlert />
       <EndRoundOverlay />
       <ShoppingLayer />

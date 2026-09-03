@@ -231,8 +231,24 @@ router.put('/profile/me', auth.requireUser, (req, res) => {
       avatar = `/illustrations/${id}`;
     }
   }
-  stmt.updateProfile.run({ id: current.id, username, username_lc, tag, avatar });
-  res.json({ user: auth.publicUser({ ...current, username, username_lc, tag, avatar }) });
+  // Le dos de carte suit exactement le trajet de l'avatar, et pour la même
+  // raison : la valeur vient du client et finit dans un `<img src>`. Différence
+  // de forme : on stocke l'ID NU et non une URL — la popup de pioche a besoin
+  // de l'entrée de catalogue (son nom, son prix), pas seulement de son art.
+  let card_back = current.card_back ?? null;
+  if (req.body.card_back !== undefined) {
+    const raw = String(req.body.card_back || '').trim();
+    if (!raw) {
+      card_back = null;                         // retour au dos par défaut
+    } else if (!cosmetics.canUseCardBack(current, raw)) {
+      return res.status(400).json({ error: 'Ce dos de carte n\'est pas débloqué.', field: 'card_back' });
+    } else {
+      card_back = raw;
+    }
+  }
+
+  stmt.updateProfile.run({ id: current.id, username, username_lc, tag, avatar, card_back });
+  res.json({ user: auth.publicUser({ ...current, username, username_lc, tag, avatar, card_back }) });
 });
 
 // =====================================================================

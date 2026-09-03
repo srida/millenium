@@ -34,12 +34,16 @@ export default function TutorialCoach() {
   const shopping = useGameStore(s => s.shopping !== null);
   const gameOver = useGameStore(s => s.gameOver);
   const menuOpen = useGameStore(s => s.menuOpen);
+  // L'ouverture de tour (annonce + popup de pioche) : le script s'efface
+  // derrière elle — la décision vit dans `gameCoachStep`, ici on ne fait que
+  // lui rapporter l'état.
+  const roundOpening = useGameStore(s => s.roundIntro !== null || s.drawPopup !== null);
 
   const [seen, setSeen] = useState<ReadonlySet<string>>(() => new Set<string>());
 
   const state = useMemo(
-    () => ({ round, placedCount, handSelected, synergyCount, combatActive, hasEndRound, shopping, gameOver }),
-    [round, placedCount, handSelected, synergyCount, combatActive, hasEndRound, shopping, gameOver],
+    () => ({ round, placedCount, handSelected, synergyCount, combatActive, hasEndRound, shopping, gameOver, roundOpening }),
+    [round, placedCount, handSelected, synergyCount, combatActive, hasEndRound, shopping, gameOver, roundOpening],
   );
 
   // Un combat ×2 défile trop vite pour qu'on y comprenne quoi que ce soit.

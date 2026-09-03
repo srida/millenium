@@ -18,6 +18,23 @@ export const COMBAT_DURATION_S = 60;     // miroir de COMBAT_TIMEOUT_MS côté l
  *  affichée. */
 export const TERRAIN_ALERT_MS = 2500;
 
+/** Annonce du changement de tour, à l'ouverture de la préparation.
+ *
+ *  ⚠️ Même règle que `TERRAIN_ALERT_MS` : c'est le CONTRÔLEUR qui tient ce
+ *  minuteur (il enchaîne sur la popup de pioche), la variable CSS n'en est
+ *  qu'un miroir. Un tap la saute et ouvre la popup tout de suite. */
+export const ROUND_INTRO_MS = 1400;
+
+/** Popup de pioche laissée sans réponse : au bout de ce délai elle se congédie
+ *  seule.
+ *
+ *  ⚠️ Armée en PvP UNIQUEMENT. En solo la popup gèle le chrono de préparation
+ *  et peut donc attendre indéfiniment ; en duel le chrono continue (l'adversaire
+ *  attend à la barrière réseau et ne doit pas pouvoir être bloqué), et une
+ *  popup oubliée à l'écran masquerait au joueur sa propre préparation. Rien
+ *  n'est perdu à ce congédiement : la main est déjà piochée. */
+export const DRAW_POPUP_AUTO_MS = 8000;
+
 // Secondes de combat restantes, dérivées des ticks (jamais d'horloge murale :
 // à ×2/×4 le combat consomme ses ticks plus vite, le chrono suit).
 export function combatSecondsLeft(remainingTicks: number): number {

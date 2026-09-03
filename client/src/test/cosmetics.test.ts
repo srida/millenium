@@ -52,6 +52,11 @@ function writeVariants(list: any[]) {
   fs.writeFileSync(path.join(TMP, 'variants.json'), JSON.stringify(list, null, '\t'));
 }
 
+/** Idem pour les dos de cartes — l'admin écrit à chaud, le cache suit le mtime. */
+function writeCardBacks(list: any[]) {
+  fs.writeFileSync(path.join(TMP, 'card_backs.json'), JSON.stringify(list, null, '\t'));
+}
+
 beforeAll(() => {
   TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'millenium-cosmetics-'));
   ILLUS = fs.mkdtempSync(path.join(os.tmpdir(), 'millenium-illus-'));
@@ -59,6 +64,7 @@ beforeAll(() => {
     fs.copyFileSync(path.join(ROOT, 'data', f), path.join(TMP, f));
   }
   writeVariants([]);
+  writeCardBacks([]);
   process.env.DATA_DIR = TMP;
   process.env.ILLUS_DIR = ILLUS;
   ({ stmt } = require(path.join(ROOT, 'db.js')));
@@ -114,8 +120,15 @@ describe('barème', () => {
     expect(cosmetics.PRICE.variant).toEqual({ gems: 50 });
   });
 
-  it('3 avatars et 3 variantes par jour', () => {
-    expect(cosmetics.DAILY).toEqual({ avatars: 3, variants: 3 });
+  it('3 avatars, 3 variantes et 2 dos de cartes par jour', () => {
+    expect(cosmetics.DAILY).toEqual({ avatars: 3, variants: 3, card_backs: 2 });
+  });
+
+  // ⚠️ Le prix d'un dos est ÉDITORIAL : `PRICE.card_back` n'est qu'un repli pour
+  // une entrée de catalogue sans prix. Le figer comme les deux autres familles
+  // laisserait croire que tous les dos coûtent la même chose.
+  it('un dos de carte porte SON prix, le barème n\'est qu\'un repli', () => {
+    expect(cosmetics.PRICE.card_back).toEqual({ gems: 100 });
   });
 
   it('la rotation est celle de la boutique de cartes, pas une copie', () => {
@@ -471,5 +484,125 @@ describe('variantes d\'un deck (transport PvP)', () => {
 
   it('rend une map vide quand le joueur n\'a pas de deck book', () => {
     expect(cosmetics.deckVariantMap(newUser()().id, 'X')).toEqual({});
+  });
+});
+
+// ── Dos de cartes ───────────────────────────────────────────────────────────
+// Troisième famille, et la seule dont le PRIX est éditorial. Les deux invariants
+// de la boutique s'y appliquent tels quels (zéro doublon, offre serveur), plus
+// deux règles qui lui appartiennent : un dos OFFERT ne se vend jamais, et un dos
+// SANS ART n'est ni vendu ni portable.
+describe('dos de cartes', () => {
+  it('le pool écarte les OFFERTS, les gratuits et ceux SANS ART', () => {
+    putArt('CB_PAID');
+    putArt('CB_FREE');
+    putArt('CB_ZERO');
+    // CB_NOART est au catalogue, avec un prix — mais son PNG n'existe pas.
+    writeCardBacks([
+      { id: 'CB_FREE', name: 'Offert', default: true, price_gems: 0 },
+      { id: 'CB_PAID', name: 'Payant', price_gems: 120 },
+      { id: 'CB_ZERO', name: 'Gratuit', price_gems: 0 },
+      { id: 'CB_NOART', name: 'Sans art', price_gems: 80 },
+    ]);
+    expect(cosmetics.cardBackPool().map((b: any) => b.id)).toEqual(['CB_PAID']);
+    expect(cosmetics.defaultCardBackIds()).toEqual(['CB_FREE']);
+  });
+
+  // ⚠️ Rouge si le prix venait du barème : `PRICE.card_back` vaut 100, le
+  // catalogue dit 120. Le barème n'est qu'un repli.
+  it('le prix vient du CATALOGUE, le barème n\'est qu\'un repli', () => {
+    writeCardBacks([
+      { id: 'CB_PAID', name: 'Payant', price_gems: 120 },
+      { id: 'CB_NOPRICE', name: 'Sans prix', price_gems: 55 },
+    ]);
+    putArt('CB_NOPRICE');
+    const pool = cosmetics.cardBackPool();
+    expect(pool.find((b: any) => b.id === 'CB_PAID').price_gems).toBe(120);
+    expect(pool.find((b: any) => b.id === 'CB_NOPRICE').price_gems).toBe(55);
+  });
+
+  it('un dos OFFERT est portable sans rien acheter, un dos payant non', () => {
+    writeCardBacks([
+      { id: 'CB_FREE', name: 'Offert', default: true },
+      { id: 'CB_PAID', name: 'Payant', price_gems: 120 },
+    ]);
+    const user = newUser();
+    expect(cosmetics.canUseCardBack(user(), 'CB_FREE')).toBe(true);
+    expect(cosmetics.canUseCardBack(user(), 'CB_PAID')).toBe(false);
+  });
+
+  // ⚠️ Un id absent du catalogue n'est JAMAIS portable, même si la ligne de
+  // possession existe encore : c'est la seule barrière entre `PUT /profile/me`
+  // et une chaîne arbitraire dans un `<img src>`. Rouge si `canUseCardBack` se
+  // contentait de la possession, comme `canUseAvatar` le fait pour les offerts.
+  it('un dos RETIRÉ du catalogue cesse d\'être portable, même possédé', () => {
+    writeCardBacks([{ id: 'CB_GONE', name: 'Éphémère', price_gems: 10 }]);
+    putArt('CB_GONE');
+    const user = newUser();
+    expect(cosmetics.unlock(user().id, 'card_back', 'CB_GONE').ok).toBe(true);
+    expect(cosmetics.canUseCardBack(user(), 'CB_GONE')).toBe(true);
+
+    writeCardBacks([{ id: 'CB_OTHER', name: 'Autre', price_gems: 10 }]);
+    expect(cosmetics.canUseCardBack(user(), 'CB_GONE')).toBe(false);
+  });
+
+  it('unlock refuse un dos hors catalogue et un dos sans art', () => {
+    writeCardBacks([{ id: 'CB_NOART', name: 'Sans art', price_gems: 80 }]);
+    const user = newUser();
+    expect(cosmetics.unlock(user().id, 'card_back', 'CB_NOART').ok).toBe(false);
+    expect(cosmetics.unlock(user().id, 'card_back', 'CB_INCONNU').ok).toBe(false);
+  });
+
+  it('l\'achat débite les gemmes du PRIX DU CATALOGUE, une seule fois', () => {
+    writeCardBacks([{ id: 'CB_BUY', name: 'Acheté', price_gems: 120 }]);
+    putArt('CB_BUY');
+    const user = newUser(1000);
+    rotate(user().id);
+    const snap = cosmetics.refresh(user());
+    expect(snap.card_backs.map((b: any) => b.id)).toContain('CB_BUY');
+
+    expect(cosmetics.buy(user(), 'card_back', 'CB_BUY').ok).toBe(true);
+    expect(user().gems).toBe(880);
+    // Zéro doublon : le second achat est refusé, et rien n'est débité.
+    expect(cosmetics.buy(user(), 'card_back', 'CB_BUY').ok).toBe(false);
+    expect(user().gems).toBe(880);
+  });
+
+  it('un dos possédé ne ressort jamais de l\'offre', () => {
+    writeCardBacks([{ id: 'CB_ONLY', name: 'Unique', price_gems: 10 }]);
+    putArt('CB_ONLY');
+    const user = newUser();
+    rotate(user().id);
+    cosmetics.refresh(user());
+    cosmetics.buy(user(), 'card_back', 'CB_ONLY');
+    rotate(user().id);
+    expect(cosmetics.refresh(user()).card_backs).toEqual([]);
+  });
+
+  // Le Profil dresse sa grille avec `owned.card_backs` seul : les offerts y sont
+  // joints, sinon un joueur qui n'a rien acheté verrait une grille vide alors
+  // qu'il porte bien un dos.
+  it('l\'instantané joint les OFFERTS aux achetés, sans doublon', () => {
+    writeCardBacks([
+      { id: 'CB_FREE', name: 'Offert', default: true },
+      { id: 'CB_PAID', name: 'Payant', price_gems: 10 },
+    ]);
+    putArt('CB_PAID');
+    const user = newUser();
+    rotate(user().id);
+    cosmetics.refresh(user());
+    cosmetics.buy(user(), 'card_back', 'CB_PAID');
+    const owned = cosmetics.getSnapshot(user()).owned.card_backs;
+    expect(owned.map((b: any) => b.id).sort()).toEqual(['CB_FREE', 'CB_PAID']);
+    expect(owned.find((b: any) => b.id === 'CB_FREE').name).toBe('Offert');
+  });
+
+  // ⚠️ `OFFER_KEY` est une TABLE et non un ternaire : avec deux familles,
+  // « tout ce qui n'est pas un avatar » allait chercher dans les variantes. Un
+  // `kind` inconnu doit être refusé, pas servi par le mauvais pool.
+  it('un kind inconnu est refusé, jamais servi par un autre pool', () => {
+    const user = newUser();
+    expect(cosmetics.buy(user(), 'chapeau', 'X').ok).toBe(false);
+    expect(cosmetics.KINDS).toEqual(['avatar', 'variant', 'card_back']);
   });
 });

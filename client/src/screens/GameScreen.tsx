@@ -18,6 +18,7 @@ import GameMenu from '../components/hud/GameMenu.js';
 import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { TerrainAlert, SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
+import { RoundIntro, DrawPopup } from '../components/overlays/RoundStart.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import TutorialCoach from '../components/tutorial/TutorialCoach.js';
 import { PhaseTimer, Banners } from '../components/hud/PhaseTimer.js';
@@ -125,12 +126,15 @@ export default function GameScreen() {
       )}
       {/* Chronos partagés avec GameScreenPvp. Le solo gèle en plus sur
           `coachBlocking` : une bulle du tutoriel qui attend un tap ne doit pas
-          voir le combat partir sous elle, ni la magie se choisir à sa place. */}
+          voir le combat partir sous elle, ni la magie se choisir à sa place.
+          Il gèle aussi sur l'ouverture de tour (`roundIntro`/`drawPopup`) : la
+          popup de pioche attend un geste, et hors réseau rien n'oblige à le
+          compter dans les 60 s de préparation. Même modèle que `menuOpen`. */}
       <PhaseTimer
         durationS={PREP_DURATION_S}
         field="prepRemaining"
         restartKey={round}
-        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.coachBlocking && !s.gameOver}
+        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.coachBlocking && !s.roundIntro && !s.drawPopup && !s.gameOver}
         onTimeout={() => controller.onPrepTimeout()}
       />
       {shoppingOpen && (
@@ -151,6 +155,11 @@ export default function GameScreen() {
           l'écran Arcade / Tournoi, où ils sont actionnables. */}
       <Banners />
       <SummonOptionMenu />
+      {/* Ouverture de tour : annonce du changement de tour puis popup de
+          pioche. Pas d'`autoDismissMs` ici — le chrono de préparation est gelé
+          tant que la popup est à l'écran, elle peut donc attendre le joueur. */}
+      <RoundIntro />
+      <DrawPopup />
       <TerrainAlert />
       <EndRoundOverlay />
       <ShoppingLayer />
