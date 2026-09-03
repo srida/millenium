@@ -12,7 +12,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runAiPlacement, refusalCounts, placedCount } from '../dev/aiLabRun.js';
+import { runAiPlacement, handAfterEdit, refusalCounts, placedCount } from '../dev/aiLabRun.js';
 import type { AiLabInput, AiTraceEvent } from '../dev/aiLabRun.js';
 import { EnemyAI } from '../logic/EnemyAI.js';
 import { seededRandom } from '../logic/Random.js';
@@ -766,6 +766,70 @@ describe('Pioche — semée, et court-circuitable', () => {
     const r = run({ cardDb: db(cards), deck: {}, hand: null, draw: true, seed: 's' });
     expect(r.hand).toEqual([]);
     expect(r.board_after).toEqual([]);
+  });
+});
+
+// ── Ce que l'écran AFFICHE de la main, après un placement ────────────────────
+//
+// L'écran ne peut pas être testé (node sans jsdom) : la règle vit donc dans
+// `handAfterEdit`, et c'est elle qui est éprouvée ici. Ce qu'elle défend, c'est
+// que retoucher le reliquat d'un placement ne fasse pas retomber le tirage une
+// seconde fois — la démonstration du doublon est le dernier cas du bloc.
+describe('Main affichée — les cartes posées la quittent', () => {
+  const n1 = makeCard({ id: 'N1', tier: 1, summon_type: 'normal' });
+  const n2 = makeCard({ id: 'N2', tier: 1, summon_type: 'normal' });
+
+  it('hand_left est la main d\'entrée MOINS ce qui a été posé', () => {
+    const r = run({ cardDb: db([n1, n2]), hand: ['N1', 'N1', 'N2'] });
+    // La règle du doublon interdit le second N1 : lui seul reste en main.
+    expect(r.hand).toEqual(['N1', 'N1', 'N2']);
+    expect(r.hand_left).toEqual(['N1']);
+  });
+
+  it('retoucher le reliquat d\'un placement COUPE la pioche', () => {
+    expect(handAfterEdit({ hand: ['N1', 'N2'], draw: true }, ['N1'], true))
+      .toEqual({ hand: ['N1'], draw: false });
+  });
+
+  it('avant tout placement, éditer la main ne touche pas à la pioche', () => {
+    expect(handAfterEdit({ hand: ['N1', 'N2'], draw: true }, ['N1'], false))
+      .toEqual({ hand: ['N1'], draw: true });
+    expect(handAfterEdit({ hand: ['N1'], draw: false }, ['N1', 'N2'], false))
+      .toEqual({ hand: ['N1', 'N2'], draw: false });
+  });
+
+  it('une main VIDÉE ne fige rien : la pioche reste armée', () => {
+    // Sans cette exception, « Vider » après un placement rendrait le round
+    // injouable — main vide ET pioche coupée, donc plus rien à délibérer.
+    expect(handAfterEdit({ hand: ['N1'], draw: true }, [], true))
+      .toEqual({ hand: [], draw: true });
+  });
+
+  it('la pioche déjà coupée le reste', () => {
+    expect(handAfterEdit({ hand: ['N1'], draw: false }, ['N1'], true))
+      .toEqual({ hand: ['N1'], draw: false });
+  });
+
+  // Le pourquoi de la coupure, joué en entier : c'est ce cas qui rend le test
+  // ci-dessus rouge si on rebranche la pioche.
+  it('garder le reliquat avec la pioche armée referait tomber la MÊME main', () => {
+    const deck1 = { 1: ['N1', 'N2'] };
+    const first = run({ cardDb: db([n1, n2]), deck: deck1, hand: null, draw: true, round: 1, seed: 's', slots: 1 });
+    expect(first.hand).toHaveLength(5);
+    expect(first.hand_left.length).toBeGreaterThan(0);
+
+    // Ce que ferait un « Placer » relancé sur le reliquat, pioche encore armée.
+    const armed = run({
+      cardDb: db([n1, n2]), deck: deck1, hand: first.hand_left, draw: true, round: 1, seed: 's', slots: 1,
+    });
+    expect(armed.hand).toEqual([...first.hand_left, ...first.hand]);
+
+    // Ce que fait l'écran, la pioche coupée par `handAfterEdit`.
+    const state = handAfterEdit({ hand: first.hand, draw: true }, first.hand_left, true);
+    const cut = run({
+      cardDb: db([n1, n2]), deck: deck1, hand: state.hand, draw: state.draw, round: 1, seed: 's', slots: 1,
+    });
+    expect(cut.hand).toEqual(first.hand_left);
   });
 });
 
