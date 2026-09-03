@@ -317,6 +317,37 @@ export function runAiPlacement(input: AiLabInput): AiLabRound {
   }, uids);
 }
 
+/** L'état de la main du labo : ce qu'elle tient, et si la pioche du round s'y ajoute. */
+export interface LabHandState {
+  hand: string[];
+  draw: boolean;
+}
+
+/**
+ * Ce que devient l'état de la main quand on la retouche à l'écran.
+ *
+ * `kept` est la main VOULUE, telle qu'on vient de l'éditer. Après un placement,
+ * l'écran n'affiche plus la main d'entrée mais `hand_left` — ce que l'IA tient
+ * ENCORE, les cartes posées en ayant disparu —, si bien que `kept` porte alors
+ * des cartes qui sortent du tirage du round.
+ *
+ * ⚠️ C'est là qu'est le piège : `EnemyAI.drawHand` AJOUTE à la main, et le
+ * tirage est SEMÉ sur (graine, round). Garder le reliquat d'un placement avec
+ * la pioche encore armée ferait donc retomber les mêmes cinq cartes par-dessus
+ * au « Placer » suivant, et l'IA délibérerait sur des doublons qu'elle n'a
+ * jamais eus en main. On coupe donc la pioche dès qu'on fige des cartes déjà
+ * tirées — le geste exact de « Figer la pioche ». Une main VIDÉE ne fige rien :
+ * la pioche y reste armée, sinon « Vider » rendrait le round injouable.
+ */
+export function handAfterEdit(
+  state: LabHandState,
+  kept: string[],
+  afterPlacement: boolean,
+): LabHandState {
+  const freezesDrawnCards = afterPlacement && kept.length > 0;
+  return { hand: kept, draw: freezesDrawnCards ? false : state.draw };
+}
+
 /**
  * Glose française des motifs de refus. Elle vit ICI, contre les slugs qu'elle
  * décrit : ce sont les mots d'`EnemyAI`, pas ceux d'un écran.

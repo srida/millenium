@@ -27,7 +27,7 @@ import * as AuthClient from '../data/AuthClient.js';
 import { initGameData } from '../game/bootstrap.js';
 import { useUiStore } from '../stores/uiStore.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
-import { runAiPlacement, reasonLabel, refusalCounts, AI_ROW_MIN, AI_ROW_MAX, AI_COLS } from './aiLabRun.js';
+import { runAiPlacement, handAfterEdit, reasonLabel, refusalCounts, AI_ROW_MIN, AI_ROW_MAX, AI_COLS } from './aiLabRun.js';
 import type { AiLabRound, AiTraceEvent, LabUnitInput } from './aiLabRun.js';
 
 type Card = any;
@@ -116,6 +116,20 @@ export default function AiLab() {
     setResult(null); setHistory([]); setRound(1); setNote(null);
   }
 
+  /**
+   * La main telle qu'elle doit se LIRE : une fois le placement joué, c'est ce
+   * que l'IA tient ENCORE (`hand_left`) — les cartes posées en ont disparu,
+   * comme celles du joueur quittent sa main à l'invocation.
+   *
+   * ⚠️ Dérivée du résultat, jamais recopiée dans l'entrée : c'est le partage
+   * exact de la grille, qui rend `board_after` sans toucher aux `survivors`
+   * d'entrée. L'entrée reste donc la description du round, et retaper
+   * « Placer » rejoue rigoureusement le même round. C'est « Round suivant » qui
+   * reporte le reliquat, et lui seul.
+   */
+  const handShown = result ? result.hand_left : hand;
+  const handPlaced = result ? result.hand.length - result.hand_left.length : 0;
+
   // ── Actions ────────────────────────────────────────────────────────────────
 
   /**
@@ -129,7 +143,7 @@ export default function AiLab() {
    * ce qu'on fige est donc exactement ce qui serait tombé.
    */
   function materialiseDraw() {
-    if (!deckId) return;
+    if (!deckId || result) return;
     const r = runAiPlacement({
       deck, cardDb, round, slots: 99, survivors: [], graveyard: [],
       hand, draw: true, seed, enemyBonus: null,
@@ -206,12 +220,29 @@ export default function AiLab() {
 
   function onPicked(cardId: string) {
     if (!pick) return;
-    editInputs(() => {
-      if (pick.kind === 'hand') setHand(h => [...h, cardId]);
-      else if (pick.kind === 'graveyard') setGraveyard(g => [...g, cardId]);
+    if (pick.kind === 'hand') editHand(h => [...h, cardId]);
+    else editInputs(() => {
+      if (pick.kind === 'graveyard') setGraveyard(g => [...g, cardId]);
       else setSurvivors(s => [...s, { card_id: cardId, col: pick.col, row: pick.row }]);
     });
     setPick(null);
+  }
+
+  /**
+   * Retouche la main en repartant de celle qui est AFFICHÉE.
+   *
+   * ⚠️ Après un placement, l'affichage vient de `hand_left` : éditer la liste
+   * d'ENTRÉE par index désignerait une autre carte que celle qu'on tape. On
+   * fige donc le reliquat dans l'entrée — ce qui coupe la pioche, cf.
+   * `handAfterEdit`. `forceDraw` porte le seul geste qui parle de la pioche
+   * elle-même : le choix explicite de la case à cocher l'emporte sur la coupure
+   * automatique.
+   */
+  function editHand(next: (shown: string[]) => string[], forceDraw?: boolean) {
+    const state = handAfterEdit({ hand, draw }, next(handShown), result !== null);
+    setResult(null);
+    setHand(state.hand);
+    setDraw(forceDraw ?? state.draw);
   }
 
   // ── Rendu ──────────────────────────────────────────────────────────────────
@@ -335,32 +366,48 @@ export default function AiLab() {
           <div className={panel}>
             <div className="flex items-center justify-between">
               <span className={label}>
-                {draw ? `Déjà en main (${hand.length})` : `Main imposée (${hand.length})`}
+                {result
+                  ? `Restées en main (${handShown.length})`
+                  : draw ? `Déjà en main (${hand.length})` : `Main imposée (${hand.length})`}
+                {handPlaced > 0 && (
+                  <span className="ml-1 normal-case tracking-normal text-green-300/70">
+                    — {handPlaced} posée(s)
+                  </span>
+                )}
               </span>
               <div className="flex flex-wrap items-center gap-1">
                 <label className="mr-1 flex cursor-pointer items-center gap-1 text-[11px] text-white/60">
                   <input
                     type="checkbox"
                     checked={draw}
-                    onChange={e => editInputs(() => setDraw(e.target.checked))}
+                    onChange={e => editHand(h => h, e.target.checked)}
                   />
                   🎲 pioche du round {round}
                 </label>
-                <button className={btn} disabled={!deckId} onPointerDown={materialiseDraw}>
+                <button
+                  className={btn}
+                  disabled={!deckId || !!result}
+                  title={result
+                    ? 'Le tirage de ce round est déjà tombé — « Round suivant » reporte le reliquat.'
+                    : 'Matérialise le tirage du round dans la main, pour le retoucher carte par carte.'}
+                  onPointerDown={materialiseDraw}
+                >
                   Figer la pioche
                 </button>
                 <button className={btn} onPointerDown={() => setPick({ kind: 'hand' })}>+ carte</button>
-                <button className={btn} disabled={!hand.length}
-                  onPointerDown={() => editInputs(() => setHand([]))}>Vider</button>
+                <button className={btn} disabled={!handShown.length}
+                  onPointerDown={() => editHand(() => [])}>Vider</button>
               </div>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
-              {hand.length === 0 && (
+              {handShown.length === 0 && (
                 <span className="text-[11px] text-white/30">
-                  Pioche, ou compose la main carte par carte pour reproduire un cas précis.
+                  {result
+                    ? 'Main vide — l\'IA a posé tout ce qu\'elle tenait.'
+                    : 'Pioche, ou compose la main carte par carte pour reproduire un cas précis.'}
                 </span>
               )}
-              {hand.map((id, i) => {
+              {handShown.map((id, i) => {
                 const card = cardDb.getCard(id);
                 if (!card) return (
                   <span key={`${id}-${i}`} className="text-[11px] text-red-300">{id} (inconnue)</span>
@@ -371,7 +418,7 @@ export default function AiLab() {
                       {...cardTileProps(card as Card)}
                       size="h-24 w-full"
                       tapOn="up"
-                      onTap={() => editInputs(() => setHand(h => h.filter((_, j) => j !== i)))}
+                      onTap={() => editHand(h => h.filter((_, j) => j !== i))}
                     />
                   </div>
                 );
@@ -381,6 +428,7 @@ export default function AiLab() {
               Tap une carte pour la retirer. La main de l'IA <strong>s'accumule</strong>, comme
               celle du joueur : ce qu'elle n'a pas posé revient au round suivant, et elle pioche
               par-dessus. Décoche la pioche pour lui imposer exactement ces cartes.
+              {result && ' Les cartes posées ont quitté la main ; « Round suivant » reporte le reliquat et repioche par-dessus. Retoucher cette main la fige et coupe la pioche.'}
             </div>
           </div>
 
