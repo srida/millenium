@@ -552,6 +552,7 @@ Deux beats avant que le joueur ne reprenne la main : l'annonce du changement de 
 - **Chronos** : en solo la popup **gèle** la préparation (`roundIntro`/`drawPopup` dans le prédicat du `PhaseTimer`, modèle `menuOpen`) ; **en PvP il continue**, et la popup se congédie seule (`DRAW_POPUP_AUTO_MS` 8 s). Rien n'y prend de branche sur `bot`.
 - Le tutoriel s'efface derrière elle : `gameCoachStep` rend `null` sur `roundOpening`, en **règle globale** (la popup revient à chaque tour, pas seulement au premier).
 - ⚠️ `prefers-reduced-motion` : la popup reste et **le tap reste requis** — c'est le vol des dos qu'on retire, pas l'information.
+- ⚠️ **`HandBar` se masque tant que `roundIntro`/`drawPopup` sont posés** : `session.hand` porte déjà les cartes du tour dès `startPreparation()`, et la bande les affichait en clair sous la popup avant le tap — le spoil que la popup existe pour éviter. Elle réapparaît au même instant que le tap ferme la popup.
 
 ### « Tout annuler » — le point de retour d'un tour
 

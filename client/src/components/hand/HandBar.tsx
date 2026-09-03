@@ -19,6 +19,14 @@ export default function HandBar() {
   const combatActive = useGameStore(s => s.combatActive);
   const shopping = useGameStore(s => s.shopping);
   const controller = useGameStore(s => s.controller);
+  // Ouverture de tour : la popup de pioche RÉVÈLE la main, elle ne la pioche
+  // pas — `session.hand` porte déjà les cartes du tour dès `startPreparation()`.
+  // Sans cette garde, la bande affichait les noms/illustrations en dessous de
+  // la popup avant même le tap : exactement le spoil qu'elle existe pour
+  // éviter. La main réapparaît au même instant que le tap ferme la popup
+  // (`dismissDrawPopup`), après le vol des dos.
+  const roundIntro = useGameStore(s => s.roundIntro);
+  const drawPopup = useGameStore(s => s.drawPopup);
   const web = useWebLayout();
   // Visible pendant la préparation OU pendant un ciblage de MAIN
   // (`hand_to_graveyard`, `duplicate_card`…) — même règle que le cimetière, qui
@@ -33,6 +41,7 @@ export default function HandBar() {
   const handTargets = shopping?.handTargets ?? null;
   const isTarget = (idx: number) => !handTargets || handTargets.includes(idx);
   if ((combatActive && !targetingHand) || !controller) return null;
+  if (roundIntro || drawPopup) return null;
 
   const empty = hand.length === 0 && <span className="col-span-2 px-2 py-6 text-xs text-white/40">Main vide</span>;
 
