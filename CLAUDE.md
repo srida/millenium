@@ -3446,11 +3446,59 @@ ajouté ensuite serait invisible, et la case qu'on croit vide est déjà prise �
 deux matériaux ajoutés à la suite atterrissaient sur la même case et le second
 était silencieusement ignoré (constaté au navigateur).
 
-⚠️ **La provenance de la main est conservée** (`handFromDraw`) : une main
-piochée et non retouchée est repassée au pilote en `hand: null`, qui repioche —
-même graine, même round, donc la même main. C'est ce qui fait que le log dit
-« piochée » et reste **rejouable** ; une main recopiée en dur se rejoue à
-l'identique mais ne dit plus d'où elle vient.
+### ⚠️ Le report ET la pioche — l'entrée qui manquait au pilote
+
+`runAiPlacement` prend **deux** champs pour la main, et pas un :
+
+| Champ | Sens |
+|---|---|
+| `hand` | ce que l'IA tient **déjà** en entrant dans le round (`null` ≡ rien) |
+| `draw` | piocher les 5 cartes du round **par-dessus** |
+
+Ils ne sont **pas exclusifs**, et c'est tout le sujet. Le pilote ne savait faire
+que l'un ou l'autre — piocher dans une main vide (`hand: null`), ou imposer une
+main sans piocher —, or `nextRound` reporte `hand_left` : à partir du round 2
+il partait donc dans la branche « main imposée » et **l'IA ne tirait plus une
+seule carte**. Un run multi-rounds montrait une main qui ne fait que rétrécir,
+c'est-à-dire **l'exact contraire** de ce que fait `drawHand`, qui ajoute.
+
+⚠️ **C'est le défaut le plus coûteux qu'un outil de diagnostic puisse avoir** :
+il ne se contentait pas de taire la rétention de main, il en affichait le
+contraire — sur le seul écran fait pour l'observer, et juste après le lot qui
+l'avait corrigée. Troisième fois que ce piège se referme dans ce projet, après
+le vainqueur non traduit et le tri d'initiative recopié de `CombatRecorder` :
+**un outil qui crie au loup sur un cas sain est pire qu'un outil absent.**
+
+Trois conséquences, toutes visibles à l'écran et dans le log :
+
+- `hand_source` a **trois** valeurs — `draw`, `manual`, et **`carry_draw`**, le
+  cas normal dès le round 2. Le rabattre sur « composée » ferait passer le
+  comportement du jeu pour une mise en scène du labo. La glose est recopiée
+  dans `admin.html` (`AI_HAND_SOURCES`), comme `AI_REASONS` l'est de
+  `REASON_LABELS` — le fichier ne peut rien importer d'un module TS.
+- `hand_carried` accompagne `hand` : on lit le report **et** le total.
+- ⚠️ **Ce qu'on tient ne décale pas le flux semé** : la pioche d'un round est la
+  même à graine et round égaux, main pleine ou vide. Verrouillé par golden test
+  (`avec.hand === ['HELD', ...seul.hand]`) — sans quoi reporter une carte
+  changerait ce qui tombe, et deux runs « identiques » ne le seraient plus.
+
+**Côté écran**, `handFromDraw` (le booléen « cette main sort telle quelle de la
+pioche ») disparaît au profit d'une case à cocher **`draw`, active par défaut** —
+l'état est désormais *visible* au lieu d'être déduit. Le bouton « **Figer la
+pioche** » remplace « Piocher » : il matérialise le tirage du round dans la main
+tenue et **décoche** la pioche, ce qui préserve le seul geste que l'ancien
+bouton servait — partir d'un vrai tirage puis le retoucher (« la pioche du
+round 3, mais sans cette fusion »). La rejouabilité est intacte : à graine et
+round égaux, une main non figée se repioche à l'identique.
+
+⚠️ **La note affichée sous la main disait, en toutes lettres, « L'IA ÉCRASE sa
+main à chaque pioche — les cartes non posées ne lui reviennent jamais ».** Vraie
+quand elle a été écrite, fausse depuis, et lue par-dessus l'épaule du joueur au
+moment précis où il cherchait à vérifier le contraire. Elle n'a été trouvée
+qu'**en regardant la capture d'écran** — aucun test, aucun `innerText`, aucune
+mesure ne peut attraper une phrase juste qui a cessé d'être vraie. Corollaire de
+la leçon d'`IMMERSIVE_SCREENS`, une marche plus haut : sur un écran, la seule
+preuve est le pixel, **et il faut le lire, pas seulement le capturer**.
 
 ### Le dépôt — deux écarts avec les logs PvP, et ils simplifient
 
@@ -3508,7 +3556,7 @@ les goldens de `sim.test.ts` :
 
 ### Tests
 
-`client/src/test/ai-lab.test.ts` (53 golden tests sur le pilote pur) et
+`client/src/test/ai-lab.test.ts` (58 golden tests sur le pilote pur) et
 `client/src/test/ai-log.test.ts` (12, harnais HTTP réel d'`http-harness.ts`).
 
 Les dix tests du **choix des matériaux** sont **éprouvés dans les deux sens** —
@@ -3516,6 +3564,11 @@ six régressions réintroduites une par une, chacune fait passer la suite au
 rouge : garde de tier neutralisée (3 rouges), garde passée en `>=` (11), coût
 des matériaux aplati (2), `material_value` laissée à 1 (2), cimetière servi
 après le terrain (1), et la trace remise au `summon_type` de façade (1).
+
+Les cinq tests du **report + pioche** le sont aussi : pilote redevenu exclusif
+(3 rouges) et `drawHand` remis à l'écrasement (6 rouges — dont les trois de la
+rétention de main, qui prouvent que le filet du labo et celui du moteur se
+tiennent).
 
 ⚠️ Chaque motif de refus est prouvé par le **motif rendu ET l'état du board** —
 jamais par le seul fait qu'aucune unité n'est sortie : c'est exactement

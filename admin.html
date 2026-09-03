@@ -1197,6 +1197,17 @@ let aiOpenRun = null; // un seul détail déplié à la fois
 // rien importer d'un module TS. Même situation que PVP_KINDS, qui recopie le
 // vocabulaire de pvplog.diff. La dérive est bénigne — un motif sans glose
 // s'affiche par son slug — mais un motif ajouté là-bas est à reporter ici.
+// D'où vient la main d'un round. ⚠️ `carry_draw` est le cas NORMAL à partir du
+// round 2 — l'IA garde ce qu'elle n'a pas posé et pioche par-dessus. Le lire
+// comme « composée » ferait passer le comportement du jeu pour une mise en
+// scène du labo. Copie de `aiLabRun.hand_source`, comme `AI_REASONS` l'est de
+// `REASON_LABELS` : ce fichier ne peut rien importer d'un module TS.
+const AI_HAND_SOURCES = {
+  draw: 'piochée',
+  manual: 'imposée',
+  carry_draw: 'reportée + piochée',
+};
+
 const AI_REASONS = {
   board_full: 'plus de place — le cap de slots est atteint',
   duplicate_on_board: 'un exemplaire de cette carte est déjà sur le terrain',
@@ -1324,7 +1335,7 @@ async function toggleAiDetail(id) {
 
     return `<div class="ai-round">
       <strong>Round ${r.round}</strong>
-      <span style="color:var(--muted)"> — main ${r.hand_source === 'draw' ? 'piochée' : 'composée'} :
+      <span style="color:var(--muted)"> — main ${AI_HAND_SOURCES[r.hand_source] || 'composée'} :
         ${esc((r.hand || []).join(', ') || '—')} ; ${(r.board_after || []).length} unité(s) sur ${r.slots} slots</span>
       ${attempts || '<div style="color:var(--muted)">Aucune tentative.</div>'}
       ${dropped}

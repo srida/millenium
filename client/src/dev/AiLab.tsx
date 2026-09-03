@@ -14,8 +14,12 @@
 // ⚠️ Pas de `Scene3D`, donc pas de Three.js : la grille est du DOM. Ce n'est pas
 // une économie, c'est ce qui permet d'ANNOTER chaque case (quelle passe l'a
 // posée, quels matériaux ont été consommés) — précisément ce qu'un board 3D ne
-// sait pas montrer, et qui est l'objet même de l'écran. L'écran n'est donc PAS
-// dans `IMMERSIVE_SCREENS`.
+// sait pas montrer, et qui est l'objet même de l'écran.
+//
+// ⚠️ Il est en revanche DANS `IMMERSIVE_SCREENS`, et l'oublier l'a rendu vide :
+// ce set désigne les écrans qui posent leur propre décor plein cadre — ce que
+// fait ce `bg-surface` sur une racine `h-dvh` —, pas ceux qui ont un canvas.
+// Cf. « Labo IA » dans CLAUDE.md.
 import { useEffect, useMemo, useState } from 'react';
 import * as CardDatabase from '../data/CardDatabase.js';
 import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
@@ -38,6 +42,17 @@ const btnOn = 'rounded border border-gold/70 bg-gold/15 px-2 py-1 text-xs text-g
 const panel = 'rounded-lg border border-white/10 bg-black/30 p-3';
 const label = 'text-[10px] uppercase tracking-wide text-white/40';
 
+/**
+ * D'où vient la main d'un round. ⚠️ `carry_draw` est le cas NORMAL dès le
+ * round 2 : lire « composée » sur un report + pioche ferait passer le
+ * comportement du jeu pour une mise en scène du labo.
+ */
+const HAND_SOURCE_LABELS: Record<AiLabRound['hand_source'], string> = {
+  draw: 'piochée',
+  manual: 'imposée',
+  carry_draw: 'reportée + piochée',
+};
+
 /** Où le sélecteur de cartes envoie ce qu'on choisit. */
 type PickTarget = { kind: 'hand' } | { kind: 'graveyard' } | { kind: 'cell'; col: number; row: number };
 
@@ -55,13 +70,14 @@ export default function AiLab() {
 
   const [survivors, setSurvivors] = useState<LabUnitInput[]>([]);
   const [graveyard, setGraveyard] = useState<string[]>([]);
+  // Ce que l'IA TIENT DÉJÀ en entrant dans le round : vide au round 1, le
+  // report de `hand_left` ensuite, plus ce qu'on y ajoute à la main.
   const [hand, setHand] = useState<string[]>([]);
-  // La main affichée vient-elle telle quelle de la pioche ? Si oui, le
-  // placement repasse `hand: null` et laisse le pilote repiocher — même graine,
-  // même round, donc rigoureusement la même main. C'est ce qui fait que le log
-  // dit « piochée » et reste REJOUABLE : une main recopiée en dur se rejoue à
-  // l'identique mais ne dit plus d'où elle vient.
-  const [handFromDraw, setHandFromDraw] = useState(false);
+  // ⚠️ Et elle pioche PAR-DESSUS, à chaque round, comme en jeu. Les deux ne
+  // sont pas exclusifs : l'écran ne savait faire que l'un ou l'autre, si bien
+  // qu'un run multi-rounds cessait de piocher dès le round 2 — la rétention de
+  // main était invisible sur l'écran fait pour l'observer.
+  const [draw, setDraw] = useState(true);
 
   const [result, setResult] = useState<AiLabRound | null>(null);
   const [history, setHistory] = useState<AiLabRound[]>([]);
@@ -96,23 +112,31 @@ export default function AiLab() {
   const nameOf = (id: string) => cardDb.getCard(id)?.name ?? id;
 
   function reset() {
-    setSurvivors([]); setGraveyard([]); setHand([]); setHandFromDraw(false);
+    setSurvivors([]); setGraveyard([]); setHand([]); setDraw(true);
     setResult(null); setHistory([]); setRound(1); setNote(null);
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  function drawHand() {
+  /**
+   * Matérialise la pioche du round DANS la main tenue, et coupe la pioche
+   * automatique — pour partir d'un vrai tirage puis le retoucher carte par
+   * carte. Sans ce bouton, « la pioche du round 3, mais sans cette fusion » ne
+   * serait pas exprimable.
+   *
+   * On passe par le pilote plutôt que d'appeler `EnemyAI` ici : c'est la même
+   * pioche semée que celle du placement, au même round et à la même graine —
+   * ce qu'on fige est donc exactement ce qui serait tombé.
+   */
+  function materialiseDraw() {
     if (!deckId) return;
-    // On passe par le pilote plutôt que d'appeler `EnemyAI` ici : c'est la même
-    // pioche semée que celle du placement, au même round et à la même graine.
     const r = runAiPlacement({
-      deck, cardDb, round, slots: 99, survivors: [], graveyard: [], hand: null,
-      seed, enemyBonus: null,
+      deck, cardDb, round, slots: 99, survivors: [], graveyard: [],
+      hand, draw: true, seed, enemyBonus: null,
     });
     setResult(null);
     setHand(r.hand);
-    setHandFromDraw(true);
+    setDraw(false);
     setNote(null);
   }
 
@@ -121,7 +145,7 @@ export default function AiLab() {
     const r = runAiPlacement({
       deck, cardDb, round, slots,
       survivors, graveyard,
-      hand: handFromDraw ? null : hand,
+      hand, draw,
       seed,
       enemyBonus: bonusAtk || bonusHp ? { atk: bonusAtk, hp: bonusHp } : null,
     });
@@ -135,11 +159,13 @@ export default function AiLab() {
     if (!result) return;
     setSurvivors(result.board_after.map(u => ({ card_id: u.card_id, col: u.col!, row: u.row! })));
     setGraveyard(result.graveyard_left);
-    // ⚠️ La main NON POSÉE se reporte, parce que c'est ce que fait l'IA en jeu :
-    // `drawHand` ajoute au lieu de remplacer. La vider ici ferait mentir le
-    // labo sur le seul point qu'il sert à observer.
+    // ⚠️ La main NON POSÉE se reporte, ET l'IA repioche par-dessus : c'est ce
+    // que fait `drawHand`, qui AJOUTE au lieu de remplacer. Reporter sans
+    // relancer la pioche — ce que faisait l'écran — donnait un round 2 où
+    // l'IA ne tirait plus une seule carte, et laissait croire l'inverse exact
+    // de ce qui est corrigé.
     setHand(result.hand_left);
-    setHandFromDraw(false);
+    setDraw(true);
     setRound(r => Math.min(5, r + 1));
     setResult(null);
   }
@@ -181,7 +207,7 @@ export default function AiLab() {
   function onPicked(cardId: string) {
     if (!pick) return;
     editInputs(() => {
-      if (pick.kind === 'hand') { setHand(h => [...h, cardId]); setHandFromDraw(false); }
+      if (pick.kind === 'hand') setHand(h => [...h, cardId]);
       else if (pick.kind === 'graveyard') setGraveyard(g => [...g, cardId]);
       else setSurvivors(s => [...s, { card_id: cardId, col: pick.col, row: pick.row }]);
     });
@@ -309,15 +335,23 @@ export default function AiLab() {
           <div className={panel}>
             <div className="flex items-center justify-between">
               <span className={label}>
-                Main de l'IA ({hand.length}){hand.length > 0 && (handFromDraw ? ' — piochée' : ' — composée')}
+                {draw ? `Déjà en main (${hand.length})` : `Main imposée (${hand.length})`}
               </span>
-              <div className="flex gap-1">
-                <button className={btn} disabled={!deckId} onPointerDown={drawHand}>
-                  🎲 Piocher (round {round})
+              <div className="flex flex-wrap items-center gap-1">
+                <label className="mr-1 flex cursor-pointer items-center gap-1 text-[11px] text-white/60">
+                  <input
+                    type="checkbox"
+                    checked={draw}
+                    onChange={e => editInputs(() => setDraw(e.target.checked))}
+                  />
+                  🎲 pioche du round {round}
+                </label>
+                <button className={btn} disabled={!deckId} onPointerDown={materialiseDraw}>
+                  Figer la pioche
                 </button>
                 <button className={btn} onPointerDown={() => setPick({ kind: 'hand' })}>+ carte</button>
                 <button className={btn} disabled={!hand.length}
-                  onPointerDown={() => editInputs(() => { setHand([]); setHandFromDraw(false); })}>Vider</button>
+                  onPointerDown={() => editInputs(() => setHand([]))}>Vider</button>
               </div>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -337,15 +371,16 @@ export default function AiLab() {
                       {...cardTileProps(card as Card)}
                       size="h-24 w-full"
                       tapOn="up"
-                      onTap={() => editInputs(() => { setHand(h => h.filter((_, j) => j !== i)); setHandFromDraw(false); })}
+                      onTap={() => editInputs(() => setHand(h => h.filter((_, j) => j !== i)))}
                     />
                   </div>
                 );
               })}
             </div>
             <div className="mt-2 text-[10px] text-white/35">
-              Tap une carte pour la retirer. ⚠️ L'IA ÉCRASE sa main à chaque pioche —
-              les cartes non posées d'un round ne lui reviennent jamais, contrairement au joueur.
+              Tap une carte pour la retirer. La main de l'IA <strong>s'accumule</strong>, comme
+              celle du joueur : ce qu'elle n'a pas posé revient au round suivant, et elle pioche
+              par-dessus. Décoche la pioche pour lui imposer exactement ces cartes.
             </div>
           </div>
 
@@ -488,8 +523,13 @@ function Trace({ result, nameOf }: { result: AiLabRound | null; nameOf: (id: str
       <div className={label}>Trace — round {result.round}</div>
 
       <div className="mt-2 text-[11px] text-white/50">
-        Main {result.hand_source === 'draw' ? 'piochée' : 'composée'} :{' '}
+        Main {HAND_SOURCE_LABELS[result.hand_source]} :{' '}
         {result.hand.length ? result.hand.join(', ') : '—'}
+        {result.hand_carried.length > 0 && (
+          <span className="text-white/35">
+            {' '}— dont {result.hand_carried.length} reportée(s) du round précédent
+          </span>
+        )}
       </div>
       {result.unknown_cards.length > 0 && (
         <div className="mt-1 text-[11px] text-red-300">

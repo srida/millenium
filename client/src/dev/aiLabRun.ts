@@ -90,8 +90,23 @@ export interface AiLabInput {
   survivors: LabUnitInput[];
   /** Cimetière de l'IA — matériaux disponibles, consommés en place. */
   graveyard: string[];
-  /** Main imposée. `null` ⇒ l'IA pioche elle-même dans son deck. */
+  /**
+   * Cartes que l'IA tient DÉJÀ en entrant dans le round (`null` ≡ aucune) —
+   * le report de ce qu'elle n'a pas posé au round précédent, ou une main
+   * composée à la main pour reproduire un cas.
+   */
   hand: string[] | null;
+  /**
+   * Piocher les 5 cartes du round PAR-DESSUS ce qu'elle tient.
+   *
+   * ⚠️ Les deux ne sont pas exclusifs, et c'est tout le sujet : en jeu l'IA
+   * pioche à CHAQUE round et sa main s'accumule (`EnemyAI.drawHand` ajoute au
+   * lieu de remplacer). Le labo ne savait faire que l'un ou l'autre — piocher
+   * dans une main vide, ou imposer une main sans piocher —, si bien qu'un run
+   * multi-rounds ne piochait plus rien dès le round 2 : la rétention de main
+   * y était invisible, sur l'écran fait pour l'observer.
+   */
+  draw: boolean;
   /** Graine lisible : un tirage douteux se rejoue au lieu de se raconter. */
   seed: string;
   /** Handicap plat par unité, le réglage de difficulté du mode Arcade. */
@@ -103,8 +118,15 @@ export interface AiLabRound {
   slots: number;
   seed: string;
   enemy_bonus: { atk: number; hp: number } | null;
-  /** La main d'où l'IA est partie, et d'où elle vient (pioche ou composition). */
-  hand_source: 'draw' | 'manual';
+  /**
+   * D'où vient la main de départ : `draw` (piochée seule), `manual` (imposée,
+   * sans pioche) ou `carry_draw` (report + pioche par-dessus — ce que fait
+   * l'IA en jeu à partir du round 2).
+   */
+  hand_source: 'draw' | 'manual' | 'carry_draw';
+  /** Les cartes DÉJÀ tenues à l'entrée du round, avant la pioche. */
+  hand_carried: string[];
+  /** La main complète au moment de placer : report + pioche. */
   hand: string[];
   survivors_in: LabUnitRow[];
   graveyard_in: string[];
@@ -246,17 +268,25 @@ export function runAiPlacement(input: AiLabInput): AiLabRound {
 
   const survivorsIn = board.getLivingUnitsOnSide('enemy').map(unitRow);
 
-  let handSource: 'draw' | 'manual';
-  if (input.hand === null) {
+  // Ce qu'elle tient déjà, PUIS la pioche par-dessus — l'ordre exact du jeu
+  // (`GameSession._placeEnemyUnits` appelle `drawHand` sur une IA qui a gardé
+  // sa main du round précédent).
+  const carried = (input.hand ?? []).map(resolve).filter(Boolean) as Card[];
+  if (carried.length > 0) ai.setHand(carried);
+  const handCarried = carried.map(c => c.id);
+
+  if (input.draw) {
     ai.drawHand(round, trace);
-    handSource = 'draw';
   } else {
-    const cards = input.hand.map(resolve).filter(Boolean) as Card[];
-    ai.setHand(cards);
-    handSource = 'manual';
-    const ids = cards.map(c => c.id);
-    trace({ kind: 'draw', round, tiers: [], pool_size: cards.length, kept: [], drawn: ids, hand: ids });
+    // Pas de pioche : la trace dit quand même de quoi la main est faite, pour
+    // que le log se lise pareil dans les deux cas.
+    trace({
+      kind: 'draw', round, tiers: [], pool_size: 0,
+      kept: handCarried, drawn: [], hand: handCarried,
+    });
   }
+  const handSource: AiLabRound['hand_source'] =
+    input.draw ? (handCarried.length > 0 ? 'carry_draw' : 'draw') : 'manual';
   const handIn = ai.getHand().map(c => c.id);
 
   ai.placeFromHand(board, slots, graveyard, trace);
@@ -275,6 +305,7 @@ export function runAiPlacement(input: AiLabInput): AiLabRound {
     seed,
     enemy_bonus: input.enemyBonus ?? null,
     hand_source: handSource,
+    hand_carried: handCarried,
     hand: handIn,
     survivors_in: survivorsIn,
     graveyard_in: input.graveyard,

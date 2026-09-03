@@ -29,7 +29,7 @@ function db(cards: any[]) {
 function run(over: Partial<AiLabInput> & { cardDb: any }): ReturnType<typeof runAiPlacement> {
   return runAiPlacement({
     deck: {}, round: 1, slots: 5, survivors: [], graveyard: [],
-    hand: [], seed: 'test', ...over,
+    hand: [], draw: false, seed: 'test', ...over,
   } as AiLabInput);
 }
 
@@ -544,13 +544,84 @@ describe('rearrangeUnits — ce qui est rangé, et ce qui est jeté', () => {
 });
 
 // ── Déterminisme et main imposée ─────────────────────────────────────────────
+// ── Le report ET la pioche, pas l'un OU l'autre ──────────────────────────────
+//
+// ⚠️ Le pilote ne savait faire que l'un des deux : piocher dans une main VIDE
+// (`hand: null`) ou imposer une main SANS piocher. Un run multi-rounds passait
+// donc `hand_left` en main imposée et l'IA ne tirait plus une seule carte à
+// partir du round 2 — le labo montrait l'exact contraire de ce que fait
+// `EnemyAI.drawHand`, qui AJOUTE. Sur l'écran fait pour observer la rétention
+// de main, c'est la dernière chose qui a le droit de mentir.
+describe('Main d\'entrée — le report se cumule à la pioche', () => {
+  const cards = ['A', 'B', 'C'].map(id => makeCard({ id, summon_type: 'normal' }));
+  const deck = { 1: ['A', 'B', 'C'] };
+  const held = makeCard({ id: 'HELD', summon_type: 'fusion', cost: { materials: ['ABSENT'] } });
+  const all = db([...cards, held]);
+
+  it('pioche PAR-DESSUS ce qui est déjà tenu', () => {
+    const seul = run({ cardDb: all, deck, hand: null, draw: true, seed: 's' });
+    const avec = run({ cardDb: all, deck, hand: ['HELD'], draw: true, seed: 's' });
+
+    expect(avec.hand_carried).toEqual(['HELD']);
+    expect(avec.hand[0]).toBe('HELD');
+    // La main complète = le report + EXACTEMENT la même pioche : ce qu'on tient
+    // ne doit pas décaler le flux semé.
+    expect(avec.hand).toEqual(['HELD', ...seul.hand]);
+    expect(avec.hand_source).toBe('carry_draw');
+  });
+
+  it('sans pioche, la main est EXACTEMENT celle qu\'on impose', () => {
+    const r = run({ cardDb: all, deck, hand: ['HELD'], draw: false, seed: 's' });
+    expect(r.hand).toEqual(['HELD']);
+    expect(r.hand_carried).toEqual(['HELD']);
+    expect(r.hand_source).toBe('manual');
+  });
+
+  it('les trois provenances se distinguent dans le log', () => {
+    expect(run({ cardDb: all, deck, hand: null, draw: true, seed: 's' }).hand_source).toBe('draw');
+    expect(run({ cardDb: all, deck, hand: ['A'], draw: true, seed: 's' }).hand_source).toBe('carry_draw');
+    expect(run({ cardDb: all, deck, hand: ['A'], draw: false, seed: 's' }).hand_source).toBe('manual');
+  });
+
+  // ⚠️ LE test du lot : l'enchaînement de rounds tel que l'écran le fait.
+  // Sur le code d'avant, `hand` au round 2 valait exactement `hand_left` du
+  // round 1 — aucune carte piochée.
+  it('un round enchaîné repioche par-dessus les cartes restées en main', () => {
+    // Une fusion dont le matériau n'existe pas : elle reste en main à coup sûr,
+    // round après round, et c'est elle qu'on suit.
+    const r1 = run({ cardDb: all, deck, hand: ['HELD'], draw: true, round: 1, seed: 's' });
+    expect(r1.hand_left).toContain('HELD');
+
+    const r2 = run({
+      cardDb: all, deck,
+      hand: r1.hand_left, draw: true, round: 2, seed: 's',
+    });
+    expect(r2.hand_carried).toEqual(r1.hand_left);
+    // Elle tient toujours son invendable ET elle a tiré : la main d'entrée du
+    // round 2 est STRICTEMENT plus grande que ce qui a été reporté.
+    expect(r2.hand).toContain('HELD');
+    expect(r2.hand.length).toBeGreaterThan(r1.hand_left.length);
+
+    const drawnAtR2 = r2.hand.slice(r2.hand_carried.length);
+    expect(drawnAtR2.length).toBeGreaterThan(0);
+  });
+
+  it('l\'événement `draw` de la trace nomme le gardé et le tiré séparément', () => {
+    const r = run({ cardDb: all, deck, hand: ['HELD'], draw: true, seed: 's' });
+    const ev = r.events.find(e => e.kind === 'draw') as any;
+    expect(ev.kept).toEqual(['HELD']);
+    expect(ev.drawn.length).toBeGreaterThan(0);
+    expect(ev.hand).toEqual(['HELD', ...ev.drawn]);
+  });
+});
+
 describe('Pioche — semée, et court-circuitable', () => {
   const cards = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(id => makeCard({ id, summon_type: 'normal' }));
   const deck = { 1: cards.map(c => c.id) };
 
   it('même graine ⇒ run rigoureusement identique, uid compris', () => {
-    const a = run({ cardDb: db(cards), deck, hand: null, seed: 'graine-1' });
-    const b = run({ cardDb: db(cards), deck, hand: null, seed: 'graine-1' });
+    const a = run({ cardDb: db(cards), deck, hand: null, draw: true, seed: 'graine-1' });
+    const b = run({ cardDb: db(cards), deck, hand: null, draw: true, seed: 'graine-1' });
     expect(a.hand).toEqual(b.hand);
     expect(a.hand_source).toBe('draw');
     // ⚠️ Le run ENTIER, pas seulement la main : c'est ce qui rend deux logs
@@ -566,14 +637,14 @@ describe('Pioche — semée, et court-circuitable', () => {
   });
 
   it('deux graines différentes ne donnent pas la même main', () => {
-    const a = run({ cardDb: db(cards), deck, hand: null, seed: 'graine-1' });
-    const b = run({ cardDb: db(cards), deck, hand: null, seed: 'graine-2' });
+    const a = run({ cardDb: db(cards), deck, hand: null, draw: true, seed: 'graine-1' });
+    const b = run({ cardDb: db(cards), deck, hand: null, draw: true, seed: 'graine-2' });
     expect(a.hand).not.toEqual(b.hand);
   });
 
   it('la graine tient compte du ROUND — deux rounds ne rejouent pas la même main', () => {
-    const a = run({ cardDb: db(cards), deck, hand: null, seed: 's', round: 1 });
-    const b = run({ cardDb: db(cards), deck, hand: null, seed: 's', round: 2 });
+    const a = run({ cardDb: db(cards), deck, hand: null, draw: true, seed: 's', round: 1 });
+    const b = run({ cardDb: db(cards), deck, hand: null, draw: true, seed: 's', round: 2 });
     expect(a.hand).not.toEqual(b.hand);
   });
 
@@ -677,7 +748,7 @@ describe('Pioche — semée, et court-circuitable', () => {
     const t1 = makeCard({ id: 'T1', tier: 1, summon_type: 'normal' });
     const t3 = makeCard({ id: 'T3', tier: 3, summon_type: 'normal' });
     const r = run({
-      cardDb: db([t1, t3]), deck: { 1: ['T1'], 3: ['T3'] }, hand: null, round: 1, seed: 's',
+      cardDb: db([t1, t3]), deck: { 1: ['T1'], 3: ['T3'] }, hand: null, draw: true, round: 1, seed: 's',
     });
     const draw = r.events.find(e => e.kind === 'draw') as any;
     expect(draw.tiers).toEqual([1]);
@@ -692,7 +763,7 @@ describe('Pioche — semée, et court-circuitable', () => {
   });
 
   it('un deck vide rend une main vide plutôt que de jeter', () => {
-    const r = run({ cardDb: db(cards), deck: {}, hand: null, seed: 's' });
+    const r = run({ cardDb: db(cards), deck: {}, hand: null, draw: true, seed: 's' });
     expect(r.hand).toEqual([]);
     expect(r.board_after).toEqual([]);
   });
