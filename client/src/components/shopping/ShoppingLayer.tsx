@@ -48,11 +48,15 @@ export default function ShoppingLayer() {
   }
 
   if (hidden) {
+    // Centré à l'écran, ni collé au Hud (barres de PV) ni au bas (main,
+    // cimetière, barre de phase — déjà visibles, puisque c'est justement ce
+    // qu'on vient de révéler) : le seul repère qui vaille sur toutes les
+    // tailles d'écran est le centre, indépendant des hauteurs de ces bandeaux.
     return (
-      <div className="pointer-events-none fixed inset-x-0 top-14 z-40 flex justify-center px-4">
+      <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center px-4">
         <Button
           variant="primary"
-          className="pointer-events-auto"
+          className="pointer-events-auto shadow-lg"
           onPointerDown={(e) => { e.stopPropagation(); setHidden(false); }}
         >
           👁️ Revoir les magies · {remaining}s
