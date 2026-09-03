@@ -1,4 +1,4 @@
-import type { Card } from './types.js';
+import type { Card, GuaranteedDraw } from './types.js';
 
 // Tiers available per round:
 // T1: R1  T2: R1+  T3: R3+  T4: R4+  T5: R5+
@@ -29,4 +29,44 @@ export function drawHand(
     hand.push({ ...pool[Math.floor(rand() * pool.length)] });
   }
   return hand;
+}
+
+/**
+ * Résout des pioches GARANTIES sur un pool — tout le deck, sans restriction
+ * de tier du tour. Une entrée = une carte, avec double repli : d'abord tous
+ * les filtres (`tier`/`attribute`/`category`), puis sans le tier, puis
+ * n'importe quelle carte du pool.
+ *
+ * Extrait de `GameSession.startPreparation` pour être PARTAGÉ avec `EnemyAI`
+ * — la pioche garantie a un destinataire des deux côtés (attributs
+ * `guaranteed_draw`), et une règle recopiée à deux endroits est une règle
+ * qu'on corrige à un seul. Comportement du joueur inchangé au bit près
+ * (mêmes filtres, même ordre de repli, même nombre d'appels à `rand` par
+ * entrée) — c'est un refactor, pas une nouvelle règle.
+ */
+export function resolveGuaranteedDraws(
+  fullPool: Card[],
+  guaranteedDraws: GuaranteedDraw[],
+  rand: () => number = Math.random,
+): Card[] {
+  const drawn: Card[] = [];
+  for (const draw of guaranteedDraws) {
+    const matches = fullPool.filter(c =>
+      (!draw.tier      || c.tier === draw.tier) &&
+      (!draw.attribute || c.attributes?.includes(draw.attribute)) &&
+      (!draw.category  || c.summon_type === draw.category));
+    if (matches.length > 0) {
+      drawn.push({ ...matches[Math.floor(rand() * matches.length)] });
+      continue;
+    }
+    const fallback = fullPool.filter(c =>
+      (!draw.attribute || c.attributes?.includes(draw.attribute)) &&
+      (!draw.category  || c.summon_type === draw.category));
+    if (fallback.length > 0) {
+      drawn.push({ ...fallback[Math.floor(rand() * fallback.length)] });
+    } else if (fullPool.length > 0) {
+      drawn.push({ ...fullPool[Math.floor(rand() * fullPool.length)] });
+    }
+  }
+  return drawn;
 }

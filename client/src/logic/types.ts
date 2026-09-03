@@ -238,6 +238,15 @@ export interface EndOfCombatAttributeResult {
    *  ⚠️ Inscrit APRÈS le plafond `max` : le registre annonce ce qui est
    *  réellement crédité, pas ce que l'effet demandait. */
   draw_sources?: DrawSourceEntry[];
+  /**
+   * Pendant de `draw_bonus` / `guaranteed_draws`, côté ENNEMI : contrairement
+   * aux autres ressources de fin de combat (slot, multiplicateur, Shopping),
+   * la pioche a un destinataire des deux côtés — `EnemyAI` pioche aussi. Pas
+   * de `enemy_draw_sources` : rien n'affiche la provenance de la pioche
+   * adverse, à la différence de la popup du joueur.
+   */
+  enemy_draw_bonus?: number;
+  enemy_guaranteed_draws?: GuaranteedDraw[];
 }
 
 /**

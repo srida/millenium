@@ -15,7 +15,7 @@ import { Unit } from '../logic/Unit.js';
 import { EnemyAI } from '../logic/EnemyAI.js';
 import { seededRandom } from '../logic/Random.js';
 import { materialValueOf } from '../logic/InvocationManager.js';
-import type { Card, Position } from '../logic/types.js';
+import type { Card, GuaranteedDraw, Position } from '../logic/types.js';
 
 /** La zone de l'IA — les seules rangées que le labo montre et manipule. */
 export const AI_ROW_MIN = 7;
@@ -111,6 +111,17 @@ export interface AiLabInput {
   seed: string;
   /** Handicap plat par unité, le réglage de difficulté du mode Arcade. */
   enemyBonus?: { atk: number; hp: number } | null;
+  /**
+   * `gameState.enemy_extra_draws` / `enemy_guaranteed_draws` du round —
+   * pendant enemy des bonus de pioche du joueur (attributs `draw_bonus` /
+   * `guaranteed_draw`). En jeu, `GameSession._placeEnemyUnits` les alimente
+   * depuis `AttributeManager.applyEndOfCombat` ; le labo ne joue aucun
+   * combat, donc pas de source automatique — on les pose ici pour reproduire
+   * le round qui aurait suivi un combat où l'IA a déclenché l'attribut.
+   * Défauts à « aucun bonus » : un run existant n'a rien à changer.
+   */
+  extraDraws?: number;
+  guaranteedDraws?: GuaranteedDraw[];
 }
 
 export interface AiLabRound {
@@ -276,7 +287,7 @@ export function runAiPlacement(input: AiLabInput): AiLabRound {
   const handCarried = carried.map(c => c.id);
 
   if (input.draw) {
-    ai.drawHand(round, trace);
+    ai.drawHand(round, trace, input.extraDraws ?? 0, input.guaranteedDraws ?? []);
   } else {
     // Pas de pioche : la trace dit quand même de quoi la main est faite, pour
     // que le log se lise pareil dans les deux cas.

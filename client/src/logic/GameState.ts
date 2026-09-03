@@ -58,6 +58,16 @@ export class GameState {
    */
   player_draw_sources: DrawSourceEntry[];
   player_hand_modifiers: HandModifier[];   // applied to drawn cards
+  /**
+   * Pendant enemy des deux champs ci-dessus : contrairement au slot, au
+   * multiplicateur et au Shopping (ressources exclusivement joueur), la
+   * pioche a un destinataire de CHAQUE côté — `EnemyAI` pioche aussi.
+   * Consommés par `GameSession._placeEnemyUnits`, comme leurs pendants
+   * joueur le sont par `startPreparation`. Pas de `enemy_draw_sources` :
+   * rien n'affiche la provenance de la pioche adverse.
+   */
+  enemy_extra_draws: number;
+  enemy_guaranteed_draws: GuaranteedDraw[];
   player_extra_shopping_magies: number;    // accumulated shopping_bonus
   /** Bonus PERMANENT de multiplicateur de dégâts, cumulé par les magies
    *  `damage_multiplier_bonus`. ⚠️ Volontairement HORS de `nextRound()`, qui
@@ -86,6 +96,8 @@ export class GameState {
     this.player_extra_draws = 0;
     this.player_guaranteed_draws = [];
     this.player_draw_sources = [];
+    this.enemy_extra_draws = 0;
+    this.enemy_guaranteed_draws = [];
     this.player_hand_modifiers = [];
     this.player_extra_shopping_magies = 0;
     this.player_damage_multiplier_bonus = 0;
@@ -156,6 +168,12 @@ export class GameState {
     }
     if (attributeResult.shopping_bonus) {
       this.player_extra_shopping_magies += attributeResult.shopping_bonus;
+    }
+    if (attributeResult.enemy_draw_bonus) {
+      this.enemy_extra_draws += attributeResult.enemy_draw_bonus;
+    }
+    if (attributeResult.enemy_guaranteed_draws?.length) {
+      this.enemy_guaranteed_draws.push(...attributeResult.enemy_guaranteed_draws);
     }
   }
 

@@ -104,6 +104,101 @@ describe('Placement de l\'IA (solo)', () => {
   });
 });
 
+// Pendant enemy des bonus de pioche du joueur (attribut `draw_bonus` /
+// `guaranteed_draw`) — jusqu'ici sans aucun destinataire côté IA.
+describe('EnemyAI.drawHand — bonus de pioche (draw_bonus / guaranteed_draw)', () => {
+  const tier1 = makeCard({ id: 'E1', tier: 1, summon_type: 'normal' });
+  const byId = new Map([tier1].map(c => [c.id, c]));
+  const cardDb = { getCard: (id: string) => byId.get(id) ?? null };
+
+  it('sans bonus, exactement HAND_SIZE cartes piochées — comportement inchangé', () => {
+    const ai = new (EnemyAI as any)({ 1: ['E1'] }, cardDb, 'enemy');
+    const drawn = ai.drawHand(1);
+    expect(drawn).toHaveLength(5);
+  });
+
+  it('extra ajoute des cartes AU-DESSUS de HAND_SIZE', () => {
+    const ai = new (EnemyAI as any)({ 1: ['E1'] }, cardDb, 'enemy');
+    const drawn = ai.drawHand(1, null, 2);
+    expect(drawn).toHaveLength(7);
+  });
+
+  it('une pioche garantie occupe un slot de la main normale, pas une carte en plus', () => {
+    const ai = new (EnemyAI as any)({ 1: ['E1'] }, cardDb, 'enemy');
+    const drawn = ai.drawHand(1, null, 0, [{ category: 'normal' }]);
+    expect(drawn).toHaveLength(5);
+  });
+
+  it('la pioche garantie cherche dans TOUT le deck, hors restriction de tier du tour', () => {
+    const t5 = makeCard({ id: 'E5', tier: 5, summon_type: 'fusion' });
+    const deckDb = { getCard: (id: string) => new Map([tier1, t5].map(c => [c.id, c])).get(id) ?? null };
+    // Round 1 : seul le tier 1 est piochable normalement (tiersForRound(1) = [1]).
+    const ai = new (EnemyAI as any)({ 1: ['E1'], 5: ['E5'] }, deckDb, 'enemy');
+    const drawn = ai.drawHand(1, null, 0, [{ tier: 5 }]);
+    expect(drawn.some((c: any) => c.id === 'E5')).toBe(true);
+  });
+});
+
+// Bout en bout : un attribut PORTÉ PAR L'IA doit atteindre `EnemyAI`, comme
+// il atteint le joueur via `startPreparation`. Avant ce câblage,
+// `AttributeManager` calculait bien l'effet côté ennemi mais le jetait
+// (`resources: false`) — rien ne le reliait à `EnemyAI.drawHand`.
+describe('Bonus de pioche par attribut, côté ENNEMI — bout en bout', () => {
+  function makeSessionWithAttrs(attributeList: any[]) {
+    const playerCard = makeCard({ id: 'P1', summon_type: 'normal' });
+    // Un SEUL card_id dans le deck ennemi : le tirage (avec remise, non semé
+    // ici) place forcément un exemplaire d'E1 — la règle du doublon refuse les
+    // suivants. Sans ça, un deck à 5 cartes distinctes tirées avec remise
+    // pourrait ne jamais inclure E1 dans les 5 cartes du round, rendant le
+    // test occasionnellement rouge sans rapport avec la règle éprouvée.
+    const enemyCard = makeCard({ id: 'E1', summon_type: 'normal', attributes: ['ARCH_SCOUT'] });
+    const byId = new Map([playerCard, enemyCard].map(c => [c.id, c]));
+    const deps: GameSessionDeps = {
+      cardsByTier: { 1: [playerCard as any] },
+      enemyDeck: { 1: ['E1'] },
+      attributeList,
+      cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
+      getAllBoards: () => [],
+      getAllMagies: () => [],
+    };
+    return new GameSession(deps);
+  }
+
+  it('draw_bonus déclenché par l\'IA alimente enemy_extra_draws puis se consomme au combat suivant', () => {
+    const attrs = [{
+      id: 'ARCH_SCOUT', name: 'Éclaireur', timing: 'end_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'draw_bonus', value: 2 }] }],
+    }];
+    const session = makeSessionWithAttrs(attrs);
+    session.startPreparation();
+    session.startCombat(); // place E1 (ARCH_SCOUT) parmi l'IA
+    session.finishCombat(); // aucun step joué → 'draw', personne n'est mort : le seuil tient
+
+    expect(session.gameState.enemy_extra_draws).toBe(2);
+
+    session.startNextRound();
+    session.startCombat(); // _placeEnemyUnits consomme le bonus
+    expect(session.gameState.enemy_extra_draws).toBe(0);
+  });
+
+  it('guaranteed_draw déclenché par l\'IA alimente enemy_guaranteed_draws puis se consomme au combat suivant', () => {
+    const attrs = [{
+      id: 'ARCH_SCOUT', name: 'Éclaireur', timing: 'end_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'guaranteed_draw', category: 'normal', attribute: null }] }],
+    }];
+    const session = makeSessionWithAttrs(attrs);
+    session.startPreparation();
+    session.startCombat();
+    session.finishCombat();
+
+    expect(session.gameState.enemy_guaranteed_draws).toEqual([{ category: 'normal', attribute: null }]);
+
+    session.startNextRound();
+    session.startCombat();
+    expect(session.gameState.enemy_guaranteed_draws).toEqual([]);
+  });
+});
+
 // Handicap plat donné aux unités de l'IA (`deps.enemyBonus`) — c'est le mode
 // Arcade qui s'en sert pour durcir ses quatre échelons, mais `logic/` n'en sait
 // rien : pour lui, c'est un modificateur de session comme un autre.
