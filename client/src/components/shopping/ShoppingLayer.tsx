@@ -6,6 +6,7 @@
 //                   dans le cimetière (GraveyardTray).
 // Toute la logique (application, ciblage, carry-over) vit dans GameSession ;
 // ici on ne fait que router les gestes vers le controller.
+import { useEffect, useState } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { canAffordMagie } from '../../logic/MagieEffect.js';
 import { Button, Modal } from '../ui/primitives.js';
@@ -18,6 +19,14 @@ export default function ShoppingLayer() {
   // Le verrou se dérive des PV de l'instantané : la règle vit dans
   // `MagieEffect`, l'écran ne fait que la lire.
   const playerHp = useGameStore(s => s.playerHp);
+  const round = useGameStore(s => s.round);
+  // Le joueur peut cacher la modale pour revoir main, cimetière et board avant
+  // de choisir : HandBar/GraveyardTray/le board restent montés en dessous
+  // (comme pendant le ciblage), seul le fond opaque de la Modal les masque.
+  // Ne pas confondre avec `awaitingTarget`, qui gère le ciblage d'une magie
+  // déjà choisie.
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => { setHidden(false); }, [round]);
   if (!shopping || !controller) return null;
 
   if (shopping.awaitingTarget) {
@@ -38,9 +47,29 @@ export default function ShoppingLayer() {
     );
   }
 
+  if (hidden) {
+    return (
+      <div className="pointer-events-none fixed inset-x-0 top-14 z-40 flex justify-center px-4">
+        <Button
+          variant="primary"
+          className="pointer-events-auto"
+          onPointerDown={(e) => { e.stopPropagation(); setHidden(false); }}
+        >
+          👁️ Revoir les magies · {remaining}s
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <Modal>
-      <div className="mb-2 text-center">
+      <div className="relative mb-2 text-center">
+        <button
+          onPointerDown={(e) => { e.stopPropagation(); setHidden(true); }}
+          className="absolute right-0 top-0 text-xs text-white/50 underline"
+        >
+          🙈 Cacher
+        </button>
         <div className="text-xs tracking-widest text-gold">✦ PHASE SHOPPING ✦</div>
         <div className="text-sm text-white/60">Choisis une magie</div>
         <div className="mt-1 text-xs font-semibold tabular-nums text-gold/80">{remaining}s</div>
