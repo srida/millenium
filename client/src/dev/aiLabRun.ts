@@ -14,6 +14,7 @@ import { Board } from '../logic/Board.js';
 import { Unit } from '../logic/Unit.js';
 import { EnemyAI } from '../logic/EnemyAI.js';
 import { seededRandom } from '../logic/Random.js';
+import { materialValueOf } from '../logic/InvocationManager.js';
 import type { Card, Position } from '../logic/types.js';
 
 /** La zone de l'IA — les seules rangées que le labo montre et manipule. */
@@ -189,6 +190,22 @@ function applyEnemyBonus(units: Unit[], bonus: { atk: number; hp: number } | nul
  * Un run multi-rounds n'est qu'une suite d'appels dont le `board_after` de l'un
  * devient les `survivors` du suivant — il n'y a aucun état caché à porter.
  */
+/**
+ * Une unité d'entrée, reconstruite depuis sa carte.
+ *
+ * ⚠️ `material_value` est DÉRIVÉE, elle n'est pas laissée à 1. Le labo rebâtit
+ * survivants et cimetière depuis leur seul `card_id` — tout le reste de leur
+ * histoire est perdu (PV courants, vétérance, bonus de Shopping), et c'est
+ * assumé. Mais celle-ci ne dépend que de la carte : la laisser à 1 ferait
+ * dépenser au labo plus d'unités que la vraie partie n'en dépense, sur une run
+ * multi-rounds — c'est-à-dire mentir sur la chose même que l'écran mesure.
+ */
+function rebuild(card: Card): Unit {
+  const unit = new Unit(card, 'enemy');
+  unit.material_value = materialValueOf(card);
+  return unit;
+}
+
 export function runAiPlacement(input: AiLabInput): AiLabRound {
   const { deck, cardDb, round, slots, seed } = input;
   const unknown: string[] = [];
@@ -210,7 +227,7 @@ export function runAiPlacement(input: AiLabInput): AiLabRound {
     if (!card) continue;
     const pos = { col: s.col, row: s.row };
     if (!board.isInBounds(pos) || !board.isEnemyCell(pos) || board.isOccupied(pos)) continue;
-    board.placeUnit(new Unit(card, 'enemy'), pos);
+    board.placeUnit(rebuild(card), pos);
   }
 
   // Cimetière : des unités hors board, que l'IA consomme comme matériaux.
@@ -219,7 +236,7 @@ export function runAiPlacement(input: AiLabInput): AiLabRound {
   for (const id of input.graveyard) {
     const card = resolve(id);
     if (!card) continue;
-    const u = new Unit(card, 'enemy');
+    const u = rebuild(card);
     u.is_neutralized = true;
     graveyard.push(u);
   }

@@ -173,13 +173,29 @@ describe('Motifs de refus — un par cas', () => {
     expect(attempts(r)[0].detail).toMatchObject({ target: 'BASE', on_board: 'T' });
   });
 
+  it('not_enough_material : le pool ne couvre pas le coût', () => {
+    const s = makeCard({ id: 'S', summon_type: 'sacrifice', cost: { sacrifice: 3 } });
+    const filler = makeCard({ id: 'X', summon_type: 'normal' });
+    const r = run({
+      cardDb: db([s, filler]),
+      survivors: [{ card_id: 'X', col: 1, row: 7 }],
+      hand: ['S'],
+    });
+    expect(refusalOf(r, 'S')).toBe('not_enough_material');
+    expect(r.board_after.map(u => u.card_id)).toEqual(['X']);
+  });
+
   // ⚠️ `duplicate_needs_extra_material` est INATTEIGNABLE, et le nommer l'a
-  // montré : la garde `board + grave < needed` juste au-dessus se réduit
-  // exactement à la même inégalité, elle absorbe donc tous ses cas. Le motif
-  // reste défini (filet si la garde du dessus bouge un jour), mais aucun état
-  // ne peut le produire — ce test le documente plutôt que de le prétendre
-  // couvert.
-  it('duplicate_needs_extra_material est absorbé par not_enough_material', () => {
+  // montré. Deux raisons qui se cumulent, la seconde ajoutée depuis :
+  //   1. la garde `board + grave < needed` juste au-dessus se réduit exactement
+  //      à la même inégalité, elle absorbe donc tous ses cas ;
+  //   2. depuis que l'IA dérive `material_value` comme le joueur, le doublon
+  //      d'une carte à sacrifice vaut à lui seul EXACTEMENT le coût de cette
+  //      carte — il ne peut plus jamais manquer quoi que ce soit après lui.
+  // Le motif reste défini (filet si la garde du dessus bouge un jour), mais
+  // aucun état ne peut le produire : ce test le documente plutôt que de le
+  // prétendre couvert.
+  it('le doublon d’une carte à sacrifice couvre son propre coût, à lui seul', () => {
     const s = makeCard({ id: 'S', summon_type: 'sacrifice', cost: { sacrifice: 3 } });
     const filler = makeCard({ id: 'X', summon_type: 'normal' });
     const r = run({
@@ -187,19 +203,13 @@ describe('Motifs de refus — un par cas', () => {
       survivors: [{ card_id: 'S', col: 2, row: 7 }, { card_id: 'X', col: 1, row: 7 }],
       hand: ['S'],
     });
-    expect(refusalOf(r, 'S')).toBe('not_enough_material');
-
-    // Et quand il y a assez de matériaux, le doublon est consommé sans erreur.
-    const ok = run({
-      cardDb: db([s, filler]),
-      survivors: [{ card_id: 'S', col: 2, row: 7 }, { card_id: 'X', col: 1, row: 7 }],
-      graveyard: ['X'],
-      hand: ['S'],
-    });
-    const a = attempts(ok).find(x => x.card_id === 'S')!;
+    const a = attempts(r).find(x => x.card_id === 'S')!;
     expect(a.outcome).toBe('placed');
-    expect(a.consumed.board.map(u => u.card_id).sort()).toEqual(['S', 'X']);
-    expect(a.consumed.graveyard.map(u => u.card_id)).toEqual(['X']);
+    // Le doublon, et RIEN d'autre : `X` reste sur le terrain. C'est très
+    // exactement ce que le lot cherche — dépenser le moins d'unités possible.
+    expect(a.consumed.board.map(u => u.card_id)).toEqual(['S']);
+    expect(a.consumed.graveyard).toEqual([]);
+    expect(r.board_after.map(u => u.card_id).sort()).toEqual(['S', 'X']);
   });
 
   it('unknown_summon_type : une voie que le moteur ne connaît pas', () => {
@@ -279,6 +289,178 @@ describe('Trace d\'un placement réussi', () => {
     // La transformation est tentée en PREMIER (tri de `_attempt`) alors qu'elle
     // est en position 1 du catalogue.
     expect(a.option_index).toBe(1);
+  });
+});
+
+// ── Ce que l'IA accepte de perdre ────────────────────────────────────────────
+//
+// Constaté sur un vrai run (deck « Jaden », round 3, log `ai_lab_runs`) : quatre
+// unités totalisant 700 PV et 50 ATK consommées en cascade pour n'en laisser
+// qu'UNE de 140 PV et 16 ATK — dont un Tier 3 mangé pour produire un Tier 2.
+// L'IA prenait le PREMIER candidat venu, dans l'ordre de balayage du plateau.
+//
+// ⚠️ Chaque cas est prouvé par le matériau EFFECTIVEMENT consommé et par l'état
+// du board, jamais par le seul motif : c'est le choix qu'on corrige, pas le
+// vocabulaire de la trace.
+describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => {
+  // Trois normales de même tier, de valeurs très différentes. `atk` pèse 20× les
+  // PV (métrique partagée avec `sim/autoPlayer`) : c'est CHEAP le moins cher.
+  const cheap = makeCard({ id: 'CHEAP', summon_type: 'normal', stats: { atk: 1, hp: 10 } as any });
+  const mid = makeCard({ id: 'MID', summon_type: 'normal', stats: { atk: 5, hp: 30 } as any });
+  const rich = makeCard({ id: 'RICH', summon_type: 'normal', stats: { atk: 20, hp: 200 } as any });
+
+  it('un sacrifice mange la moins chère des unités éligibles', () => {
+    const s = makeCard({ id: 'S', summon_type: 'sacrifice', cost: { sacrifice: 1 } });
+    const r = run({
+      cardDb: db([cheap, mid, rich, s]),
+      // Posées dans l'ordre RICH → MID → CHEAP : le balayage du plateau donne
+      // donc RICH en premier. C'est lui que l'ancienne IA mangeait.
+      survivors: [
+        { card_id: 'RICH', col: 0, row: 7 },
+        { card_id: 'MID', col: 1, row: 7 },
+        { card_id: 'CHEAP', col: 2, row: 7 },
+      ],
+      hand: ['S'],
+    });
+    const a = attempts(r).find(x => x.card_id === 'S')!;
+    expect(a.outcome).toBe('placed');
+    expect(a.consumed.board.map(u => u.card_id)).toEqual(['CHEAP']);
+    expect(r.board_after.map(u => u.card_id).sort()).toEqual(['MID', 'RICH', 'S']);
+  });
+
+  it('le cimetière passe avant le terrain : ces unités sont déjà perdues', () => {
+    const s = makeCard({ id: 'S', summon_type: 'sacrifice', cost: { sacrifice: 1 } });
+    const r = run({
+      cardDb: db([cheap, rich, s]),
+      // CHEAP est sur le terrain, RICH au cimetière : on préfère quand même le
+      // cimetière, dont la perte ne coûte pas une unité en jeu.
+      survivors: [{ card_id: 'CHEAP', col: 0, row: 7 }],
+      graveyard: ['RICH'],
+      hand: ['S'],
+    });
+    const a = attempts(r).find(x => x.card_id === 'S')!;
+    expect(a.consumed.board).toEqual([]);
+    expect(a.consumed.graveyard.map(u => u.card_id)).toEqual(['RICH']);
+    expect(r.board_after.map(u => u.card_id).sort()).toEqual(['CHEAP', 'S']);
+  });
+
+  it('une fusion prend le moins cher de chaque matériau demandé', () => {
+    // Deux exemplaires possibles pour le même matériau, désignés par ATTRIBUT :
+    // c'est là que le choix existe vraiment.
+    const weak = makeCard({ id: 'W', summon_type: 'normal', attributes: ['ARCH_X'], stats: { atk: 1, hp: 10 } as any });
+    const strong = makeCard({ id: 'G', summon_type: 'normal', attributes: ['ARCH_X'], stats: { atk: 30, hp: 300 } as any });
+    const f = makeCard({ id: 'F', summon_type: 'fusion', tier: 2, cost: { materials: ['ARCH_X'] } });
+    const r = run({
+      cardDb: db([weak, strong, f]),
+      survivors: [{ card_id: 'G', col: 0, row: 7 }, { card_id: 'W', col: 1, row: 7 }],
+      hand: ['F'],
+    });
+    const a = attempts(r).find(x => x.card_id === 'F')!;
+    expect(a.outcome).toBe('placed');
+    expect(a.consumed.board.map(u => u.card_id)).toEqual(['W']);
+    expect(r.board_after.map(u => u.card_id).sort()).toEqual(['F', 'G']);
+  });
+
+  it('un composite couvre plusieurs slots : moins d’unités dépensées', () => {
+    // COMPO est une carte à 3 sacrifices ; l'unité posée en vaut donc 3, comme
+    // chez le joueur. Un second sacrifice à 3 la mange SEULE.
+    const compo = makeCard({ id: 'COMPO', summon_type: 'sacrifice', cost: { sacrifice: 3 } });
+    const s = makeCard({ id: 'S', summon_type: 'sacrifice', tier: 2, cost: { sacrifice: 3 } });
+    const r = run({
+      cardDb: db([compo, mid, s]),
+      survivors: [
+        { card_id: 'COMPO', col: 0, row: 7 },
+        { card_id: 'MID', col: 1, row: 7 },
+      ],
+      hand: ['S'],
+    });
+    const a = attempts(r).find(x => x.card_id === 'S')!;
+    expect(a.outcome).toBe('placed');
+    expect(a.consumed.board.map(u => u.card_id)).toEqual(['COMPO']);
+    // MID survit : sans `material_value`, il aurait fallu trois unités.
+    expect(r.board_after.map(u => u.card_id).sort()).toEqual(['MID', 'S']);
+  });
+
+  it('material_outranks_result : un Tier 3 ne se sacrifie pas pour un Tier 2', () => {
+    const t3 = makeCard({ id: 'T3', summon_type: 'normal', tier: 3, stats: { atk: 20, hp: 250 } as any });
+    const t2 = makeCard({ id: 'T2', summon_type: 'sacrifice', tier: 2, cost: { sacrifice: 1 } });
+    const r = run({
+      cardDb: db([t3, t2]),
+      survivors: [{ card_id: 'T3', col: 0, row: 7 }],
+      hand: ['T2'],
+    });
+    expect(refusalOf(r, 'T2')).toBe('material_outranks_result');
+    // Le board est INTACT : c'est ça, la preuve — le refus n'a rien mangé.
+    expect(r.board_after.map(u => u.card_id)).toEqual(['T3']);
+  });
+
+  it('le tier écarte un candidat de fusion, et le motif le NOMME', () => {
+    const t3 = makeCard({ id: 'T3', summon_type: 'normal', tier: 3, attributes: ['ARCH_X'] });
+    const f = makeCard({ id: 'F', summon_type: 'fusion', tier: 1, cost: { materials: ['ARCH_X'] } });
+    const r = run({
+      cardDb: db([t3, f]),
+      survivors: [{ card_id: 'T3', col: 0, row: 7 }],
+      hand: ['F'],
+    });
+    const a = attempts(r).find(x => x.card_id === 'F')!;
+    expect(a.reason).toBe('material_outranks_result');
+    // ⚠️ `material_outranks_result` et `missing_material` ne se corrigent pas
+    // pareil — l'un dit d'aller chercher la carte, l'autre que l'échange n'en
+    // valait pas la peine. Le détail doit donc nommer le candidat écarté.
+    expect(a.detail).toMatchObject({
+      material: 'ARCH_X', candidate: 'T3', candidate_tier: 3, result_tier: 1,
+    });
+    expect(r.board_after.map(u => u.card_id)).toEqual(['T3']);
+  });
+
+  it('un PAIR reste consommable : la garde est `>`, pas `>=`', () => {
+    // Sans quoi des lignées entières se fermeraient — deux Tier 2 pour un Tier 2
+    // intermédiaire est une montée parfaitement légitime.
+    const a2 = makeCard({ id: 'A2', summon_type: 'normal', tier: 2 });
+    const s2 = makeCard({ id: 'S2', summon_type: 'sacrifice', tier: 2, cost: { sacrifice: 1 } });
+    const r = run({
+      cardDb: db([a2, s2]),
+      survivors: [{ card_id: 'A2', col: 0, row: 7 }],
+      hand: ['S2'],
+    });
+    const a = attempts(r).find(x => x.card_id === 'S2')!;
+    expect(a.outcome).toBe('placed');
+    expect(a.consumed.board.map(u => u.card_id)).toEqual(['A2']);
+  });
+
+  it('une transformation ne descend pas d’un tier', () => {
+    const t3 = makeCard({ id: 'T3', summon_type: 'normal', tier: 3 });
+    const down = makeCard({ id: 'DOWN', summon_type: 'transformation', tier: 1, cost: { materials: ['T3'] } });
+    const r = run({
+      cardDb: db([t3, down]),
+      survivors: [{ card_id: 'T3', col: 0, row: 7 }],
+      hand: ['DOWN'],
+    });
+    expect(refusalOf(r, 'DOWN')).toBe('material_outranks_result');
+    expect(r.board_after.map(u => u.card_id)).toEqual(['T3']);
+  });
+
+  it('la voie RETENUE est celle rapportée, pas le summon_type de façade', () => {
+    // ⚠️ Le log disait « transformation » là où l'IA venait de jouer l'option
+    // sacrifice : sur l'écran fait pour expliquer ses décisions, c'est la
+    // dernière chose qui a le droit de mentir.
+    const x = makeCard({ id: 'X', summon_type: 'normal' });
+    const multi = makeCard({
+      id: 'M', summon_type: 'transformation', cost: { materials: ['ABSENT'] },
+      summon_options: [
+        { summon_type: 'transformation', cost: { materials: ['ABSENT'] } },
+        { summon_type: 'sacrifice', cost: { sacrifice: 1 } },
+      ],
+    });
+    const r = run({
+      cardDb: db([x, multi]),
+      survivors: [{ card_id: 'X', col: 0, row: 7 }],
+      hand: ['M'],
+    });
+    const a = attempts(r).find(x2 => x2.card_id === 'M')!;
+    expect(a.outcome).toBe('placed');
+    expect(a.option_index).toBe(1);
+    expect(a.summon_type).toBe('sacrifice');
   });
 });
 
@@ -403,9 +585,14 @@ describe('Pioche — semée, et court-circuitable', () => {
   describe('Rétention de la main entre les rounds', () => {
     // Une fusion dont les matériaux n'arrivent qu'après : le cas exact que
     // l'écrasement rendait injouable pour toujours.
-    const n1 = makeCard({ id: 'N1', tier: 2, summon_type: 'normal' });
-    const n2 = makeCard({ id: 'N2', tier: 2, summon_type: 'normal' });
-    const fus = makeCard({ id: 'F', tier: 1, summon_type: 'fusion', cost: { materials: ['N1', 'N2'] } });
+    // ⚠️ Le tier de la CARTE et la clé du DECK sont deux choses : la clé dit à
+    // quel round la carte est tirable, le tier sert la garde « ne sacrifie pas
+    // plus haut que le résultat ». On met donc la fusion T2 dans le pool du
+    // round 1 pour que la rétention s'observe en deux rounds — avec une fusion
+    // T1 mangeant des T2, c'est la garde qui la refuserait, à juste titre.
+    const n1 = makeCard({ id: 'N1', tier: 1, summon_type: 'normal' });
+    const n2 = makeCard({ id: 'N2', tier: 1, summon_type: 'normal' });
+    const fus = makeCard({ id: 'F', tier: 2, summon_type: 'fusion', cost: { materials: ['N1', 'N2'] } });
     const deckByTier = { 1: ['F'], 2: ['N1', 'N2'] };
 
     it('une carte non posée reste en main, et redevient jouable plus tard', () => {

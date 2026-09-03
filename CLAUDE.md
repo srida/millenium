@@ -3247,6 +3247,94 @@ stable qu'un instrument recentré dont l'historique ne veut plus rien dire.
 Solo, Arcade, Tournoi et tutoriel sont tous concernés — c'est le même
 `EnemyAI`. Le PvP ne l'est pas (`_placeEnemyUnits` y est un no-op).
 
+### Ce que l'IA accepte de perdre — le choix des matériaux
+
+L'IA prenait le **premier candidat venu**, dans l'ordre de balayage du plateau,
+et ne savait pas ce qu'une unité vaut. Constaté sur un vrai run du labo (deck
+« Jaden », `PUBLIC_DECK_001`, round 3) : quatre unités totalisant **700 PV et
+50 ATK** consommées en cascade pour n'en laisser qu'**une, de 140 PV et 16 ATK**
+— chaque invocation dévorant celle que la précédente venait de créer, jusqu'à un
+**Tier 3 sacrifié pour produire un Tier 2**.
+
+Quatre règles, toutes dans `_attempt`, et une seule idée : **dépenser le moins
+possible, et jamais vers le bas.**
+
+| Règle | Nature |
+|---|---|
+| Une unité de tier **strictement supérieur** au résultat ne se consomme jamais | **règle dure** — la carte est refusée (`material_outranks_result`), pas jouée à perte |
+| À matériau éligible égal, on prend le **moins cher** | préférence |
+| Le **cimetière** passe avant le terrain sur un sacrifice | préférence |
+| `material_value` est **dérivée**, comme chez le joueur | correction d'une divergence |
+
+- ⚠️ **La garde de tier est `>` et non `>=`.** Consommer un **pair** reste
+  légitime — deux Tier 2 pour un Tier 3 passent par un intermédiaire de même
+  rang — et l'interdire fermerait des lignées entières : passée en `>=`, elle
+  fait tomber **11** tests d'`ai-lab.test.ts`, dont la moitié n'ont rien à voir
+  avec ce lot. C'est la mesure de ce qu'elle refermerait.
+- ⚠️ **`material_outranks_result` et `missing_material` ne se corrigent pas
+  pareil**, d'où deux motifs distincts : l'un dit « va chercher la carte »,
+  l'autre « l'échange n'en valait pas la peine ». Le détail **nomme le candidat
+  écarté** et les deux tiers.
+- **Le coût d'une unité est `atk × 20 + current_hp`** — la métrique de
+  `sim/autoPlayer.materialCost`, **importée dans l'esprit, pas recopiée par
+  hasard** : ce sont les survivants et leur ATK qui infligent les dégâts de fin
+  de combat. Départage par `uid` à coût égal, sinon le choix ne serait pas
+  déterministe.
+- ⚠️ **Le cimetière d'abord sur un sacrifice, le terrain d'abord sur une
+  fusion**, et ce n'est pas une incohérence : une unité du cimetière est déjà
+  perdue, sa consommation ne coûte rien ; mais une unité du **terrain** libère
+  une **case**, et c'est ce qui permet à une fusion de passer sur un plateau
+  plein.
+- ⚠️ **`material_value` était la vraie divergence de règles entre les deux
+  camps.** L'IA bâtit ses unités par `new Unit`, qui laisse le champ à 1 : ses
+  composites ne couvraient qu'**un** slot de sacrifice là où les mêmes cartes en
+  couvrent trois pour le joueur — elle payait donc trois unités ce que le joueur
+  paie avec une. La table vivait en clair dans les quatre branches de
+  `InvocationManager.summon` ; elle en est extraite en **`materialValueOf`**, que
+  l'IA et le labo appellent. Une copie aurait fini par donner deux valeurs à la
+  même carte selon le camp qui la joue — c'était déjà le cas.
+- ⚠️ **La trace disait la mauvaise recette.** Pour une carte à `summon_options`,
+  `_attemptEvent` rapportait le `summon_type` de **premier niveau** — qui n'est
+  qu'un miroir de l'une des options et n'est jamais lu par le moteur : le log
+  annonçait « transformation » là où l'IA venait de jouer un héritage à deux
+  sacrifices. Sur l'écran fait pour expliquer ses décisions, c'est la dernière
+  chose qui a le droit de mentir.
+- ⚠️ **`duplicate_needs_extra_material` est désormais DOUBLEMENT inatteignable** :
+  à la subsomption déjà documentée s'ajoute le fait que le doublon d'une carte à
+  sacrifice vaut à lui seul **exactement** le coût de cette carte.
+
+**Rejeu du round 3 de « Jaden » avec les quatre règles** — l'entrée est la même
+(4 unités, 700 PV, 50 ATK) :
+
+| | Sortie |
+|---|---|
+| Avant | **1** unité — 140 PV, 16 ATK |
+| Après | **3** unités — 680 PV, 60 ATK, dont deux Tier 3 |
+
+Le `CORE_125` (Tier 2) qui mangeait `EXTRA_092` (Tier 3) est maintenant refusé
+en `material_outranks_result` ; les deux héritages prennent leurs matériaux du
+moins cher au plus cher, et `CORE_124` (le plus cher du plateau) survit.
+
+⚠️ **C'est un changement d'équilibrage MAJEUR, et il ne se voit dans aucun
+test** — comme la rétention de main, et pour la même raison. Mesuré au détecteur
+(4 000 parties, **même graine**, vrai catalogue) : la ligne de base passe de
+**38,6 % à 15,9 %**, soit **22,6 points** de plus pour l'IA. Cumulé avec la
+rétention de main, l'IA a gagné ≈ **36 points** en deux lots. La suite complète
+passe pourtant **sans une seule mise à jour de snapshot** : `sim.test.ts` fige
+des scénarios inline sur des decks synthétiques de normales de tier 1, où aucun
+matériau n'est jamais choisi. Le trou de couverture est le même, et il est
+maintenant nommé deux fois — l'effet n'existe que sur un vrai catalogue.
+
+⚠️ **Conséquence non traitée : le tutoriel devient plus dur lui aussi**, alors
+qu'il est conçu pour être gagné. `buildTutorialDecks` choisit un adversaire
+faible, mais c'est le même `EnemyAI` qui le joue. Le levier propre est le
+**comportement par difficulté** que le labo existe pour préparer, pas un
+rétropédalage sur des règles justes.
+
+⚠️ Même corollaire pour `/admin/sim` que ci-dessus : le « Δ hier » du jour du
+changement dit « la règle a changé ». `ENEMY_HANDICAP` n'est **pas** recalibré —
+un instrument recentré est un historique perdu.
+
 ---
 
 ## 🧠 Labo IA — observer les décisions de l'IA
@@ -3400,11 +3488,16 @@ les goldens de `sim.test.ts` :
 - **L'IA ne regarde jamais le camp adverse** — `_tryPlace` et `rearrangeUnits` ne
   lisent que `getLivingUnitsOnSide(this._side)`. C'est le premier levier d'un
   futur comportement par difficulté.
-- **Aucun scoring** : tri fixe `_summonPriority`, puis « premier qui passe » ;
-  la case est toujours `_freeCells(...)[0]`, le matériau le premier trouvé.
+- **Aucun scoring de CARTE ni de CASE** : tri fixe `_summonPriority`, puis
+  « premier qui passe » ; la case est toujours `_freeCells(...)[0]`. Seul le
+  choix du **matériau** est désormais arbitré (cf. « Ce que l'IA accepte de
+  perdre »).
 - ~~**La main est écrasée à chaque round**~~ — **CORRIGÉ**, cf. « La main de
-  l'IA s'accumule » ci-dessous. C'est le premier constat du labo à avoir été
-  soldé, et il a coûté **12 points de winrate** au joueur.
+  l'IA s'accumule ». Premier constat du labo à avoir été soldé : **12 points de
+  winrate** repris au joueur.
+- ~~**Le matériau est le premier trouvé**~~ — **CORRIGÉ**, cf. « Ce que l'IA
+  accepte de perdre ». Second constat soldé, et le plus coûteux : **22,6 points**
+  de plus.
 - **`rearrangeUnits` jette en silence** les unités au-delà du cap (ni mort, ni
   cimetière) — le labo les nomme dans `dropped`.
 - **`COL[i % 5]` avec `Math.floor(i / 3)`** (`EnemyAI.js`) : les deux modulos ne
@@ -3415,8 +3508,14 @@ les goldens de `sim.test.ts` :
 
 ### Tests
 
-`client/src/test/ai-lab.test.ts` (34 golden tests sur le pilote pur) et
+`client/src/test/ai-lab.test.ts` (53 golden tests sur le pilote pur) et
 `client/src/test/ai-log.test.ts` (12, harnais HTTP réel d'`http-harness.ts`).
+
+Les dix tests du **choix des matériaux** sont **éprouvés dans les deux sens** —
+six régressions réintroduites une par une, chacune fait passer la suite au
+rouge : garde de tier neutralisée (3 rouges), garde passée en `>=` (11), coût
+des matériaux aplati (2), `material_value` laissée à 1 (2), cimetière servi
+après le terrain (1), et la trace remise au `summon_type` de façade (1).
 
 ⚠️ Chaque motif de refus est prouvé par le **motif rendu ET l'état du board** —
 jamais par le seul fait qu'aucune unité n'est sortie : c'est exactement

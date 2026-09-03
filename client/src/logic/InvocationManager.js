@@ -174,7 +174,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         ? _takeByMaterialValue(sacrificeTargets, needed)
         : _takeByMaterialValue(board.getLivingUnitsOnSide('player'), needed);
       for (const u of toRemove) board.removeUnit(u);
-      unit.material_value = card._original_sacrifice ?? needed;
+      unit.material_value = materialValueOf(card, type, cost);
       _transferShoppingBonuses(unit, toRemove);
       break;
     }
@@ -193,7 +193,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
           if (mat) { board.removeUnit(mat); consumed.push(mat); }
         }
       }
-      unit.material_value = (cost?.materials ?? []).length || 1;
+      unit.material_value = materialValueOf(card, type, cost);
       _transferShoppingBonuses(unit, consumed);
       break;
     }
@@ -222,7 +222,7 @@ export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx 
         for (const u of toConsume) board.removeUnit(u);
         consumed = toConsume;
       }
-      unit.material_value = cost?.sacrifice || 1;
+      unit.material_value = materialValueOf(card, type, cost);
       _transferShoppingBonuses(unit, consumed);
       break;
     }
@@ -347,6 +347,34 @@ export function materialLineageMatches(unit, matId, requiredMaterials) {
   return materialLineageLegit(unit, requiredMaterials);
 }
 const _materialLineageMatches = materialLineageMatches;
+
+/**
+ * Combien de slots de matériau vaut l'unité que cette carte produit.
+ *
+ * ⚠️ C'est le SEUL endroit du projet qui décide de `material_value` — `summon`
+ * s'en sert pour le joueur, `EnemyAI` pour l'IA, et `dev/aiLabRun` pour
+ * reconstruire un survivant d'un round sur l'autre. La table vivait en clair
+ * dans les quatre branches de `summon` ; recopiée côté IA, elle aurait fini par
+ * donner deux valeurs à la même carte selon le camp qui la joue — c'était déjà
+ * le cas, l'IA laissant tous ses composites à 1.
+ *
+ * `type`/`cost` sont explicites pour les appelants qui ont déjà résolu une
+ * `summon_option` (l'IA aplatit la carte avant d'invoquer) ; à défaut on
+ * retombe sur la première option, comme `summon(card, …, optionIndex ?? 0)`.
+ */
+export function materialValueOf(card, type = undefined, cost = undefined) {
+  const opt = type === undefined && hasSummonOptions(card) ? card.summon_options[0] : null;
+  const t = type ?? (opt ? opt.summon_type : card.summon_type);
+  const c = cost ?? (opt ? opt.cost : card.cost);
+  switch (t) {
+    // `_original_sacrifice` : le coût AVANT la remise d'une magie de main — un
+    // composite remisé revaut ce qu'il aurait coûté, pas ce qu'il a coûté.
+    case 'sacrifice': return card._original_sacrifice ?? (c?.sacrifice ?? 0);
+    case 'fusion': return (c?.materials ?? []).length || 1;
+    case 'heritage': return c?.sacrifice || 1;
+    default: return 1;   // normal et transformation : 1 pour 1
+  }
+}
 
 // Total material "slots" represented by a list of units.
 export function sumMaterialValue(units) {

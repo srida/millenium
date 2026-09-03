@@ -1,6 +1,6 @@
 import { Unit } from './Unit.js';
 import { tiersForRound } from './Draw.js';
-import { matchesMaterial, materialLineageMatches } from './InvocationManager.js';
+import { matchesMaterial, materialLineageMatches, materialValueOf } from './InvocationManager.js';
 
 const HAND_SIZE = 5;
 
@@ -282,7 +282,13 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
       const variant = { ...card, summon_type: opt.summon_type, cost: opt.cost };
       delete variant.summon_options; // avoid re-entering this branch → infinite recursion
       const result = _attempt(variant, board, maxUnits, graveyard, side);
-      if (result.unit) return { ...result, option_index: index };
+      // ⚠️ On rapporte la voie de l'OPTION RETENUE, pas le `summon_type` de
+      // premier niveau de la carte — qui n'est qu'un miroir de l'une des options
+      // et n'est jamais lu par le moteur. Le log disait « transformation » là où
+      // l'IA venait de jouer un héritage à deux sacrifices : sur l'écran fait
+      // pour expliquer ses décisions, c'est la dernière chose qui a le droit de
+      // mentir.
+      if (result.unit) return { ...result, option_index: index, summon_type: opt.summon_type };
       tried.push({ index, summon_type: opt.summon_type, reason: result.reason, detail: result.detail });
     }
     return { unit: null, reason: 'all_options_failed', detail: { options: tried } };
@@ -297,7 +303,7 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
       if (board.getLivingUnitsOnSide(side).some(u => u.card_id === card.id)) return _refused('duplicate_on_board');
       const cells = _freeCells(board, side);
       if (cells.length === 0) return _refused('no_free_cell');
-      const unit = new Unit(card, side);
+      const unit = _makeUnit(card, side);
       board.placeUnit(unit, cells[0]);
       return _placedAt(unit, cells[0]);
     }
@@ -308,50 +314,52 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
         if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
         const cells = _freeCells(board, side);
         if (cells.length === 0) return _refused('no_free_cell');
-        const unit = new Unit(card, side);
+        const unit = _makeUnit(card, side);
         board.placeUnit(unit, cells[0]);
         return _placedAt(unit, cells[0]);
       }
       const boardUnits = board.getLivingUnitsOnSide(side);
-      if (boardUnits.length + graveyard.length < needed) {
-        return _refused('not_enough_material', {
-          needed, available: boardUnits.length + graveyard.length,
-        });
-      }
-      // If the result card is already on board, that unit must be consumed as a sacrifice material
+      // Si le résultat est déjà sur le terrain, CET exemplaire doit être
+      // consommé (même règle du doublon que pour le joueur). Il porte le même
+      // `card_id`, donc le même tier : la garde de tier ne peut pas l'écarter.
       const duplicate = boardUnits.find(u => u.card_id === card.id);
-      let fromBoard, fromGraveCount;
-      if (duplicate) {
-        const otherBoard = boardUnits.filter(u => u !== duplicate);
-        const stillNeeded = needed - 1;
-        fromGraveCount = Math.min(stillNeeded, graveyard.length);
-        const fromBoardCount = stillNeeded - fromGraveCount;
-        // ⚠️ INATTEIGNABLE, et c'est démontrable : la garde ci-dessus a déjà
-        // écarté `board + grave < needed`, or cette condition se réduit
-        // exactement à `needed > board + grave`. Elle est gardée comme filet —
-        // le jour où la garde du dessus change, elle redevient le dernier
-        // rempart — mais aucun cas du labo ne peut la faire sortir.
-        if (fromBoardCount > otherBoard.length) {
-          return _refused('duplicate_needs_extra_material', {
-            needed, still_needed: stillNeeded, other_board: otherBoard.length,
-          });
-        }
-        fromBoard = [...otherBoard.slice(0, fromBoardCount), duplicate];
-      } else {
-        fromGraveCount = Math.min(needed, graveyard.length);
-        fromBoard = boardUnits.slice(0, needed - fromGraveCount);
+
+      // On dépense dans cet ordre : le doublon (obligatoire), puis le CIMETIÈRE
+      // — ces unités sont déjà hors jeu, les perdre ne coûte rien —, puis le
+      // terrain du moins cher au plus cher. Et jamais rien qui surclasse.
+      const fromBoard = duplicate ? [duplicate] : [];
+      const fromGrave = [];
+      let value = duplicate ? _materialValue(duplicate) : 0;
+      for (const u of _cheapestFirst(graveyard.filter(g => !_outranks(g, card)))) {
+        if (value >= needed) break;
+        fromGrave.push(u); value += _materialValue(u);
       }
+      for (const u of _cheapestFirst(boardUnits.filter(b => b !== duplicate && !_outranks(b, card)))) {
+        if (value >= needed) break;
+        fromBoard.push(u); value += _materialValue(u);
+      }
+
+      if (value < needed) {
+        const blocked = [...boardUnits, ...graveyard].some(u => _outranks(u, card));
+        return blocked
+          ? _refused('material_outranks_result', { needed, available: value, result_tier: card.tier ?? null })
+          : _refused('not_enough_material', { needed, available: value });
+      }
+
       // Net board change: -fromBoard.length + 1
       if (onBoard - fromBoard.length + 1 > maxUnits) {
         return _refused('would_exceed_slots', {
           on_board: onBoard, consumed_from_board: fromBoard.length, max_units: maxUnits,
         });
       }
-      const consumedGrave = graveyard.slice(0, fromGraveCount).map(_unitRef);
       const consumedBoard = fromBoard.map(_unitRef);
-      graveyard.splice(0, fromGraveCount);
+      const consumedGrave = fromGrave.map(_unitRef);
       for (const u of fromBoard) board.removeUnit(u);
-      const unit = new Unit(card, side);
+      for (const u of fromGrave) {
+        const gi = graveyard.indexOf(u);
+        if (gi !== -1) graveyard.splice(gi, 1);
+      }
+      const unit = _makeUnit(card, side);
       const cell = _freeCells(board, side)[0];
       board.placeUnit(unit, cell);
       return _placedAt(unit, cell, consumedBoard, consumedGrave);
@@ -363,7 +371,7 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
         if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
         const cells = _freeCells(board, side);
         if (cells.length === 0) return _refused('no_free_cell');
-        const unit = new Unit(card, side);
+        const unit = _makeUnit(card, side);
         board.placeUnit(unit, cells[0]);
         return _placedAt(unit, cells[0]);
       }
@@ -373,19 +381,29 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
       const usedBoard = [];
       const usedGrave = [];
       for (const matId of materials) {
-        let idx = boardPool.findIndex(u => materialLineageMatches(u, matId, materials));
-        if (idx !== -1) {
-          usedBoard.push(boardPool[idx]);
-          boardPool.splice(idx, 1);
-        } else {
-          idx = gravePool.findIndex(u => materialLineageMatches(u, matId, materials));
-          if (idx !== -1) {
-            usedGrave.push(gravePool[idx]);
-            gravePool.splice(idx, 1);
-          } else {
-            return _refused('missing_material', { material: matId, materials }); // missing material
-          }
+        const matches = u => materialLineageMatches(u, matId, materials);
+        // Le moins cher d'abord, dans chaque pool — le terrain reste servi
+        // avant le cimetière : consommer une unité posée LIBÈRE une case, et
+        // c'est ce qui permet à une fusion de passer sur un plateau plein.
+        const fromBoard = _takeCheapest(boardPool, card, matches);
+        if (fromBoard) { usedBoard.push(fromBoard); continue; }
+        const fromGrave = _takeCheapest(gravePool, card, matches);
+        if (fromGrave) { usedGrave.push(fromGrave); continue; }
+        // Rien d'éligible : est-ce qu'il MANQUAIT, ou est-ce que la garde de
+        // tier vient d'écarter le seul candidat ? Les deux se corrigent
+        // différemment — l'un demande d'aller chercher la carte, l'autre dit
+        // que l'échange n'en valait pas la peine.
+        const outranked = _blockedByTier(boardPool, card, matches)
+          ?? _blockedByTier(gravePool, card, matches);
+        if (outranked) {
+          return _refused('material_outranks_result', {
+            material: matId,
+            candidate: outranked.card_id,
+            candidate_tier: outranked.tier ?? null,
+            result_tier: card.tier ?? null,
+          });
         }
+        return _refused('missing_material', { material: matId, materials });
       }
       // Net board change: -usedBoard.length + 1
       if (onBoard - usedBoard.length + 1 > maxUnits) {
@@ -400,7 +418,7 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
         const gi = graveyard.indexOf(u);
         if (gi !== -1) graveyard.splice(gi, 1);
       }
-      const unit = new Unit(card, side);
+      const unit = _makeUnit(card, side);
       const cell = _freeCells(board, side)[0];
       board.placeUnit(unit, cell);
       return _placedAt(unit, cell, consumedBoard, consumedGrave);
@@ -413,7 +431,7 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
         if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
         const cells = _freeCells(board, side);
         if (cells.length === 0) return _refused('no_free_cell');
-        const unit = new Unit(card, side);
+        const unit = _makeUnit(card, side);
         board.placeUnit(unit, cells[0]);
         return _placedAt(unit, cells[0]);
       }
@@ -430,29 +448,42 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
 
       // Satisfy explicit material constraints first (board priority, then graveyard)
       for (const matId of required) {
-        let idx = boardPool.findIndex(u => matchesMaterial(u, matId));
-        if (idx !== -1) {
-          toConsumeBoard.push(boardPool[idx]);
-          boardPool.splice(idx, 1);
-        } else {
-          idx = gravePool.findIndex(u => matchesMaterial(u, matId));
-          if (idx !== -1) {
-            toConsumeGrave.push(gravePool[idx]);
-            gravePool.splice(idx, 1);
-          } else {
-            return _refused('missing_material', { material: matId, materials: required }); // constraint unsatisfiable
-          }
+        const matches = u => matchesMaterial(u, matId);
+        const fromBoard = _takeCheapest(boardPool, card, matches);
+        if (fromBoard) { toConsumeBoard.push(fromBoard); continue; }
+        const fromGrave = _takeCheapest(gravePool, card, matches);
+        if (fromGrave) { toConsumeGrave.push(fromGrave); continue; }
+        const outranked = _blockedByTier(boardPool, card, matches)
+          ?? _blockedByTier(gravePool, card, matches);
+        if (outranked) {
+          return _refused('material_outranks_result', {
+            material: matId,
+            candidate: outranked.card_id,
+            candidate_tier: outranked.tier ?? null,
+            result_tier: card.tier ?? null,
+          });
         }
+        return _refused('missing_material', { material: matId, materials: required });
       }
 
-      // Fill remaining sacrifice slots — prefer graveyard over board
-      let stillNeeded = sacrifice - toConsumeBoard.length - toConsumeGrave.length;
-      for (const u of gravePool.slice(0, stillNeeded)) {
-        toConsumeGrave.push(u);
-        stillNeeded--;
+      // Les slots de sacrifice restants — cimetière d'abord (déjà perdu), puis
+      // le terrain du moins cher au plus cher. Comptés en VALEUR : un composite
+      // couvre plusieurs slots, donc moins d'unités dépensées.
+      let stillNeeded = sacrifice
+        - [...toConsumeBoard, ...toConsumeGrave].reduce((s, u) => s + _materialValue(u), 0);
+      for (const u of _cheapestFirst(gravePool.filter(g => !_outranks(g, card)))) {
+        if (stillNeeded <= 0) break;
+        toConsumeGrave.push(u); stillNeeded -= _materialValue(u);
       }
-      for (const u of boardPool.slice(0, stillNeeded)) {
-        toConsumeBoard.push(u);
+      for (const u of _cheapestFirst(boardPool.filter(b => !_outranks(b, card)))) {
+        if (stillNeeded <= 0) break;
+        toConsumeBoard.push(u); stillNeeded -= _materialValue(u);
+      }
+      if (stillNeeded > 0) {
+        const blocked = [...boardPool, ...gravePool].some(u => _outranks(u, card));
+        return blocked
+          ? _refused('material_outranks_result', { needed: sacrifice, result_tier: card.tier ?? null })
+          : _refused('not_enough_material', { needed: sacrifice, available: sacrifice - stillNeeded });
       }
 
       // Net board change: -toConsumeBoard.length + 1
@@ -469,7 +500,7 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
         const gi = graveyard.indexOf(u);
         if (gi !== -1) graveyard.splice(gi, 1);
       }
-      const unit = new Unit(card, side);
+      const unit = _makeUnit(card, side);
       const cell = _freeCells(board, side)[0];
       board.placeUnit(unit, cell);
       return _placedAt(unit, cell, consumedBoard, consumedGrave);
@@ -490,35 +521,50 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
         const pos = { ...existingResult.position };
         const consumedBoard = [_unitRef(existingResult)];
         board.removeUnit(existingResult);
-        const unit = new Unit(card, side);
+        const unit = _makeUnit(card, side);
         board.placeUnit(unit, pos);
         return _placedAt(unit, pos, consumedBoard);
       }
 
-      // Board target: 1-for-1, no slot limit check
-      const boardTarget = boardUnits.find(u => materialLineageMatches(u, targetId, [targetId]));
+      // Board target: 1-for-1, no slot limit check. La cible la MOINS chère
+      // parmi celles qui conviennent, et jamais une qui surclasse le résultat —
+      // une transformation qui descend d'un tier est une perte sèche.
+      const matchesTarget = u => materialLineageMatches(u, targetId, [targetId]);
+      const boardTarget = _cheapestMatch(boardUnits, card, matchesTarget);
       if (boardTarget) {
         const pos = { ...boardTarget.position };
         const consumedBoard = [_unitRef(boardTarget)];
         board.removeUnit(boardTarget);
-        const unit = new Unit(card, side);
+        const unit = _makeUnit(card, side);
         board.placeUnit(unit, pos);
         return _placedAt(unit, pos, consumedBoard);
       }
 
       // Graveyard target: net +1 on board, need a free slot
-      const graveIdx = graveyard.findIndex(u => materialLineageMatches(u, targetId, [targetId]));
+      const graveTarget = _cheapestMatch(graveyard, card, matchesTarget);
+      const graveIdx = graveTarget ? graveyard.indexOf(graveTarget) : -1;
       if (graveIdx !== -1) {
         if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
         const cells = _freeCells(board, side);
         if (cells.length === 0) return _refused('no_free_cell');
         const consumedGrave = [_unitRef(graveyard[graveIdx])];
         graveyard.splice(graveIdx, 1);
-        const unit = new Unit(card, side);
+        const unit = _makeUnit(card, side);
         board.placeUnit(unit, cells[0]);
         return _placedAt(unit, cells[0], [], consumedGrave);
       }
 
+      // La cible existe peut-être, mais surclasse le résultat.
+      const outranked = _blockedByTier(boardUnits, card, matchesTarget)
+        ?? _blockedByTier(graveyard, card, matchesTarget);
+      if (outranked) {
+        return _refused('material_outranks_result', {
+          material: targetId,
+          candidate: outranked.card_id,
+          candidate_tier: outranked.tier ?? null,
+          result_tier: card.tier ?? null,
+        });
+      }
       return _refused('no_transformation_target', { target: targetId });
     }
 
@@ -546,6 +592,99 @@ function _unitRef(unit) {
   return { uid: unit.uid, card_id: unit.card_id };
 }
 
+// ── Choix des matériaux ───────────────────────────────────────────────────────
+//
+// L'IA prenait le PREMIER candidat venu, dans l'ordre de balayage du plateau.
+// Constaté sur un vrai run (deck « Jaden », round 3) : quatre unités totalisant
+// 700 PV et 50 ATK consommées en cascade pour n'en laisser qu'UNE de 140 PV et
+// 16 ATK — chaque invocation dévorant celle que la précédente venait de créer,
+// jusqu'à un Tier 3 sacrifié pour un Tier 2.
+
+/**
+ * Une unité de tier STRICTEMENT supérieur au résultat ne se sacrifie jamais.
+ *
+ * ⚠️ Règle DURE, pas une préférence : quand elle rend une invocation
+ * impossible, la carte est refusée (`material_outranks_result`) plutôt que
+ * jouée à perte. Un tier est l'échelle de puissance du jeu — descendre l'échelle
+ * en dépensant du matériel est toujours un mauvais échange, quelles que soient
+ * les stats.
+ *
+ * `>` et non `>=` : consommer un pair reste légitime (deux Tier 2 pour un Tier 3
+ * passent par un intermédiaire de même rang), et l'interdire fermerait des
+ * lignées entières.
+ */
+function _outranks(unit, card) {
+  return (unit.tier ?? 0) > (card.tier ?? 0);
+}
+
+/**
+ * Ce que coûte la perte d'une unité.
+ *
+ * ⚠️ MÊME métrique que l'auto-joueur (`sim/autoPlayer.materialCost`) : l'ATK
+ * pèse 20× les PV, parce que ce sont les survivants et leur ATK qui infligent
+ * les dégâts de fin de combat. Deux façons de dire « le moins cher » dans le
+ * même projet finiraient par ne plus désigner la même unité.
+ */
+function _materialCost(unit) {
+  return unit.atk * 20 + unit.current_hp;
+}
+
+/** Combien de slots de sacrifice une unité couvre (règle du joueur). */
+function _materialValue(unit) {
+  return unit.material_value ?? 1;
+}
+
+/**
+ * Le matériau ÉLIGIBLE le moins cher du pool, ou `null`. Ne mute rien.
+ * Départage par `uid` : à coût égal, le choix doit rester déterministe.
+ */
+function _cheapestMatch(pool, card, matches) {
+  let best = null;
+  for (const u of pool) {
+    if (!matches(u) || _outranks(u, card)) continue;
+    if (best === null) { best = u; continue; }
+    const d = _materialCost(u) - _materialCost(best);
+    if (d < 0 || (d === 0 && u.uid < best.uid)) best = u;
+  }
+  return best;
+}
+
+/** Le même, RETIRÉ du pool — pour les boucles qui consomment matériau par matériau. */
+function _takeCheapest(pool, card, matches) {
+  const best = _cheapestMatch(pool, card, matches);
+  if (best) pool.splice(pool.indexOf(best), 1);
+  return best;
+}
+
+/** Y a-t-il un candidat qui conviendrait, mais que son tier écarte ? */
+function _blockedByTier(pool, card, matches) {
+  return pool.find(u => matches(u) && _outranks(u, card)) ?? null;
+}
+
+/** Le moins cher d'abord — l'ordre dans lequel on accepte de perdre ses unités. */
+function _cheapestFirst(units) {
+  return [...units].sort(
+    (a, b) => _materialCost(a) - _materialCost(b) || a.uid - b.uid,
+  );
+}
+
+/**
+ * Crée l'unité du résultat, AVEC sa valeur de matériau.
+ *
+ * ⚠️ L'IA construisait ses unités par `new Unit`, qui laisse `material_value`
+ * à 1 : ses composites ne couvraient donc qu'UN slot de sacrifice là où les
+ * mêmes cartes en couvrent plusieurs pour le joueur. C'était une divergence de
+ * règles entre les deux camps, et une des raisons pour lesquelles l'IA
+ * dépensait tant d'unités — un composite bâti sur trois sacrifices en revaut
+ * trois. La table est celle du joueur (`InvocationManager.materialValueOf`),
+ * pas une copie : `card` est déjà aplatie ici, sa `summon_option` résolue.
+ */
+function _makeUnit(card, side) {
+  const unit = new Unit(card, side);
+  unit.material_value = materialValueOf(card, card.summon_type, card.cost);
+  return unit;
+}
+
 /** Ligne d'unité de la trace de placement : identité + ce qui décide du rangement. */
 function _unitRow(unit) {
   return {
@@ -565,7 +704,9 @@ function _attemptEvent(pass, card, res) {
     kind: 'attempt',
     pass,
     card_id: card.id,
-    summon_type: card.summon_type ?? null,
+    // La voie RETENUE quand la carte a plusieurs recettes (`res.summon_type`),
+    // sinon la sienne. Cf. la note de `_attempt` sur le miroir de premier niveau.
+    summon_type: res.summon_type ?? card.summon_type ?? null,
     option_index: res.option_index ?? null,
     outcome: res.unit ? 'placed' : 'refused',
     reason: res.reason ?? null,
