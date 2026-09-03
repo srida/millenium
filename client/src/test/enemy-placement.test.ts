@@ -83,6 +83,25 @@ describe('Placement de l\'IA (solo)', () => {
     expect(onBoard).not.toContain(survivor);
     expect(board.getUnit({ col: 2, row: 7 })).not.toBe(survivor);
   });
+
+  // Même règle que le joueur (`InvocationManager._canSummonForType`, cas
+  // `sacrifice` à `needed === 0`) : un sacrifice sans coût est une invocation
+  // normale déguisée, et doit donc refuser un second exemplaire vivant.
+  it('un sacrifice à coût nul ne pose jamais un second exemplaire de la même carte', () => {
+    const card = makeCard({ id: 'E_FREE', summon_type: 'sacrifice', cost: { sacrifice: 0 } });
+    const byId = new Map([card].map(c => [c.id, c]));
+    const board = makeBoard();
+
+    const ai = new (EnemyAI as any)({ 1: ['E_FREE'] }, { getCard: (id: string) => byId.get(id) ?? null }, 'enemy');
+    // Deux exemplaires de la même carte en main (tirage avec remise) : une
+    // main de joueur ne le permettrait jamais, la main de l'IA si.
+    ai.setHand([card, card]);
+    ai.placeFromHand(board, 5, []);
+
+    const onBoard = board.getLivingUnitsOnSide('enemy');
+    expect(onBoard).toHaveLength(1);
+    expect(ai.getHand().map((c: any) => c.id)).toEqual(['E_FREE']);
+  });
 });
 
 // Handicap plat donné aux unités de l'IA (`deps.enemyBonus`) — c'est le mode

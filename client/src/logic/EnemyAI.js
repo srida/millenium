@@ -311,6 +311,10 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
     case 'sacrifice': {
       const needed = card.cost?.sacrifice ?? 0;
       if (needed === 0) {
+        // Sacrifice gratuit (coût nul dans la carte elle-même) : même règle de
+        // doublon qu'une invocation normale, comme côté joueur
+        // (`InvocationManager._canSummonForType`).
+        if (board.getLivingUnitsOnSide(side).some(u => u.card_id === card.id)) return _refused('duplicate_on_board');
         if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
         const cells = _freeCells(board, side);
         if (cells.length === 0) return _refused('no_free_cell');
