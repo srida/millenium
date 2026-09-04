@@ -186,13 +186,24 @@
 		"categorie": "Archetype",
 		"thresholds": [
 			{
+				"count": 2,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "sacrifice",
+						"attribute": "ARCH_005"
+					}
+				]
+			},
+			{
 				"count": 3,
 				"medal": "platinum",
 				"effects": [
 					{
-						"type": "board_slot_bonus",
-						"value": 1,
-						"max": 1
+						"type": "guaranteed_draw",
+						"category": "heritage",
+						"attribute": "ARCH_005"
 					}
 				]
 			}
@@ -211,6 +222,7 @@
 				"effects": [
 					{
 						"type": "revive",
+						"value": 0,
 						"target": "neutralized_ally",
 						"hp_percent": 50
 					}
@@ -284,7 +296,19 @@
 		"icon": "👑",
 		"timing": "none",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "hp",
+						"value": 50
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_011",
@@ -452,10 +476,8 @@
 				"medal": "platinum",
 				"effects": [
 					{
-						"type": "stat_modifier",
-						"trigger": "on_enemy_neutralized",
-						"stat": "atk",
-						"value": 2
+						"type": "damage_multiplier_bonus",
+						"value": 1.5
 					}
 				]
 			}
@@ -474,8 +496,8 @@
 				"effects": [
 					{
 						"type": "stat_modifier",
-						"trigger": "on_ally_neutralized",
 						"stat": "atk",
+						"trigger": "on_ally_neutralized",
 						"value": 5
 					}
 				]
@@ -496,8 +518,8 @@
 					{
 						"type": "stat_bonus",
 						"stat": "atk",
-						"value_per": "active_unit",
-						"value": 1
+						"value": 1,
+						"value_per": "active_unit"
 					}
 				]
 			},
@@ -508,8 +530,8 @@
 					{
 						"type": "stat_bonus",
 						"stat": "atk",
-						"value_per": "active_unit",
-						"value": 3
+						"value": 3,
+						"value_per": "active_unit"
 					}
 				]
 			},
@@ -520,8 +542,8 @@
 					{
 						"type": "stat_bonus",
 						"stat": "atk",
-						"value_per": "active_unit",
-						"value": 5
+						"value": 5,
+						"value_per": "active_unit"
 					}
 				]
 			}
@@ -709,17 +731,41 @@
 		"id": "ARCH_026",
 		"name": "Chaos",
 		"icon": "☯️",
-		"timing": "none",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "revive",
+						"value": 1,
+						"target": "neutralized_ally",
+						"hp_percent": 30
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_027",
 		"name": "Salamandra",
 		"icon": "🔥",
-		"timing": "none",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "damage_multiplier_bonus",
+						"value": 1.5
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_028",
@@ -800,7 +846,7 @@
 		"categorie": "Type",
 		"thresholds": [
 			{
-				"count": 1,
+				"count": 2,
 				"medal": "platinum",
 				"effects": [
 					{
@@ -975,9 +1021,9 @@
 				"medal": "platinum",
 				"effects": [
 					{
-						"type": "stat_bonus",
-						"stat": "attack_speed",
-						"value": -2
+						"type": "guaranteed_draw",
+						"category": "fusion",
+						"attribute": "ARCH_036"
 					}
 				]
 			}
@@ -1126,7 +1172,9 @@
 				"medal": "platinum",
 				"effects": [
 					{
-						"type": "damage_multiplier_bonus",
+						"type": "stat_modifier",
+						"stat": "atk",
+						"trigger": "on_enemy_neutralized",
 						"value": 2
 					}
 				]
@@ -1139,7 +1187,19 @@
 		"icon": "🎲",
 		"timing": "start_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "power_charge",
+						"value": 1
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_045",
@@ -1147,15 +1207,65 @@
 		"icon": "🪽",
 		"timing": "start_of_combat",
 		"categorie": "Type",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "stat_modifier",
+						"stat": "attack_speed",
+						"trigger": "on_ally_neutralized",
+						"value": -1
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_modifier",
+						"stat": "attack_speed",
+						"trigger": "on_ally_neutralized",
+						"value": -2
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_modifier",
+						"stat": "attack_speed",
+						"trigger": "on_ally_neutralized",
+						"value": -3
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_046",
 		"name": "Slime",
 		"icon": "🫟",
-		"timing": "start_of_combat",
+		"timing": "during_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_modifier",
+						"stat": "hp",
+						"trigger": "on_ally_neutralized",
+						"value": 50
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_047",
@@ -1163,7 +1273,19 @@
 		"icon": "🦈",
 		"timing": "start_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 10
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_048",
@@ -1259,7 +1381,17 @@
 		"icon": "⚙️",
 		"timing": "start_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "effect_immunity"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_060",
@@ -1273,9 +1405,22 @@
 		"id": "ARCH_061",
 		"name": "Vampire",
 		"icon": "🧛‍♂️",
-		"timing": "start_of_combat",
+		"timing": "during_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_modifier",
+						"stat": "hp",
+						"trigger": "on_enemy_neutralized",
+						"value": 50
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_062",
@@ -1326,7 +1471,18 @@
 		"icon": "🪙",
 		"timing": "start_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "shield",
+						"value": 50
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_067",
@@ -1342,6 +1498,235 @@
 		"icon": "🦄",
 		"timing": "start_of_combat",
 		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "fusion",
+						"attribute": "ARCH_068"
+					},
+					{
+						"type": "guaranteed_draw",
+						"category": "transformation",
+						"attribute": "ARCH_068"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_069",
+		"name": "Jouet",
+		"icon": "🧸",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_070",
+		"name": "Garde",
+		"icon": "🐮",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "normal",
+						"attribute": "ARCH_070"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_071",
+		"name": "Tenyi",
+		"icon": "🪐",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 10
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_072",
+		"name": "Blindage",
+		"icon": "🛠️",
+		"timing": "end_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"category": "transformation",
+						"attribute": "ARCH_072"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_073",
+		"name": "Cybernetique",
+		"icon": "🦾",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_074",
+		"name": "Kayser",
+		"icon": "🦿",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_075",
+		"name": "Amazone",
+		"icon": "🦹‍♀️",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_076",
+		"name": "Ojama",
+		"icon": "👹",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_077",
+		"name": "Chimie",
+		"icon": "🧪",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_078",
+		"name": "Volcanique",
+		"icon": "🌋",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_079",
+		"name": "Fossile",
+		"icon": "🦴",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_080",
+		"name": "Venin",
+		"icon": "🐍",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_081",
+		"name": "Bête sacrée",
+		"icon": "🦁",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_082",
+		"name": "Nuage",
+		"icon": "☁️",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_083",
+		"name": "Destiné",
+		"icon": "🌑",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_084",
+		"name": "Vilain",
+		"icon": "🦹‍♂️",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_085",
+		"name": "Neo Space",
+		"icon": "👽",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_086",
+		"name": "Fusion",
+		"icon": "F",
+		"timing": "start_of_combat",
+		"categorie": "Invocation",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_087",
+		"name": "Héritage",
+		"icon": "H",
+		"timing": "start_of_combat",
+		"categorie": "Invocation",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_088",
+		"name": "Transformation",
+		"icon": "T",
+		"timing": "start_of_combat",
+		"categorie": "Invocation",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_089",
+		"name": "Sacrifice",
+		"icon": "S",
+		"timing": "start_of_combat",
+		"categorie": "Invocation",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_090",
+		"name": "Normal",
+		"icon": "N",
+		"timing": "start_of_combat",
+		"categorie": "Invocation",
 		"thresholds": []
 	}
 ]

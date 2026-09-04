@@ -2,40 +2,35 @@
 	{
 		"id": "MAGIC_001",
 		"name": "Pot de Cupidité",
-		"rarity": 2,
 		"description": "Piochez 2 cartes supplémentaires au début du prochain tour de combat.",
 		"effect": {
 			"type": "draw_bonus",
-			"value": 2,
-			"timing": "start_of_combat"
-		}
+			"value": 2
+		},
+		"rarity": 3
 	},
 	{
 		"id": "MAGIC_002",
 		"name": "Renforcement",
-		"rarity": 1,
-		"description": "Augmente l'ATK de toutes vos unités de 15 au début du combat.",
 		"effect": {
-			"type": "stat_bonus",
-			"stat": "atk",
-			"value": 15,
-			"timing": "start_of_combat",
-			"target_archetypes": []
-		}
+			"type": "team_stat_bonus",
+			"value": 5,
+			"stat": "atk"
+		},
+		"rarity": 1
 	},
 	{
 		"id": "MAGIC_003",
 		"name": "Monster Reborn",
-		"rarity": 2,
 		"effect": {
 			"type": "revive",
-			"value": 50
-		}
+			"value": 100
+		},
+		"rarity": 3
 	},
 	{
 		"id": "MAGIC_004",
 		"name": "Enceinte de château",
-		"rarity": 1,
 		"effect": {
 			"type": "shield",
 			"value": 40
@@ -44,43 +39,42 @@
 	{
 		"id": "MAGIC_005",
 		"name": "Médicament rouge",
-		"rarity": 2,
 		"effect": {
 			"type": "player_hp_bonus",
-			"value": 100
-		}
+			"value": 200
+		},
+		"rarity": 2
 	},
 	{
 		"id": "MAGIC_006",
 		"name": "Renfort de l’armée",
-		"rarity": 1,
 		"effect": {
 			"type": "guaranteed_draw",
 			"tier": 1
-		}
+		},
+		"rarity": 2
 	},
 	{
 		"id": "MAGIC_007",
 		"name": "Feu ardent",
-		"rarity": 3,
 		"effect": {
 			"type": "guaranteed_draw",
 			"tier": 5
-		}
+		},
+		"rarity": 2
 	},
 	{
 		"id": "MAGIC_009",
 		"name": "Recherche de fossiles",
-		"rarity": 2,
 		"effect": {
 			"type": "guaranteed_draw",
 			"tier": 3
-		}
+		},
+		"rarity": 2
 	},
 	{
 		"id": "MAGIC_010",
 		"name": "Longue vue",
-		"rarity": 1,
 		"effect": {
 			"type": "stat_bonus",
 			"value": 2,
@@ -90,15 +84,15 @@
 	{
 		"id": "MAGIC_011",
 		"name": "Médicament bleu",
-		"rarity": 1,
 		"effect": {
-			"type": "heal"
-		}
+			"type": "player_hp_bonus",
+			"value": 100
+		},
+		"rarity": 1
 	},
 	{
 		"id": "MAGIC_012",
 		"name": "Raigeki",
-		"rarity": 1,
 		"effect": {
 			"type": "stat_bonus",
 			"value": -5,
@@ -108,7 +102,6 @@
 	{
 		"id": "MAGIC_013",
 		"name": "Godspeed",
-		"rarity": 1,
 		"effect": {
 			"type": "stat_bonus",
 			"value": -5,
@@ -118,16 +111,15 @@
 	{
 		"id": "MAGIE_014",
 		"name": "Réaction en chaîne",
-		"rarity": 3,
 		"effect": {
 			"type": "board_slot_bonus",
 			"value": 1
-		}
+		},
+		"rarity": 3
 	},
 	{
 		"id": "MAGIE_015",
 		"name": "Fission",
-		"rarity": 2,
 		"effect": {
 			"type": "defuse_fusion"
 		}
@@ -135,16 +127,15 @@
 	{
 		"id": "MAGIE_016",
 		"name": "Bourse des âmes",
-		"rarity": 3,
 		"effect": {
 			"type": "reduce_sacrifice_cost",
 			"value": 2
-		}
+		},
+		"rarity": 2
 	},
 	{
 		"id": "MAGIE_017",
 		"name": "Ristourne",
-		"rarity": 1,
 		"effect": {
 			"type": "reduce_sacrifice_cost",
 			"value": 1
@@ -153,7 +144,6 @@
 	{
 		"id": "MAGIE_018",
 		"name": "Force spirituel",
-		"rarity": 3,
 		"effect": {
 			"type": "free_transformation"
 		}
@@ -161,116 +151,154 @@
 	{
 		"id": "MAGIE_019",
 		"name": "Préparation des rites",
-		"rarity": 2,
 		"effect": {
 			"type": "remove_heritage_material"
 		}
 	},
 	{
-		"id": "MAGIE_020",
-		"name": "Couteau dans le dos",
-		"rarity": 1,
-		"effect": {
-			"type": "destroy_unit"
-		}
-	},
-	{
 		"id": "MAGIE_021",
-		"name": "Bannière de guerre",
-		"rarity": 2,
+		"name": "Dian Keto",
 		"effect": {
-			"type": "team_stat_bonus",
-			"stat": "atk",
-			"value": 3
-		}
+			"type": "team_heal",
+			"value": 100
+		},
+		"rarity": 2
 	},
 	{
 		"id": "MAGIE_022",
-		"name": "Chair et sang",
-		"rarity": 2,
+		"name": "Jarre de cupidité",
 		"effect": {
-			"type": "drain_life"
-		}
+			"type": "draw_bonus",
+			"value": 1
+		},
+		"rarity": 1
 	},
 	{
 		"id": "MAGIE_023",
-		"name": "Rite d'abandon",
-		"rarity": 1,
+		"name": "Appel héroïque",
 		"effect": {
-			"type": "hand_to_graveyard"
-		}
+			"type": "guaranteed_draw",
+			"tier": 2
+		},
+		"rarity": 2
 	},
 	{
 		"id": "MAGIE_024",
-		"name": "Alliage instable",
-		"rarity": 2,
+		"name": "Appel des ténèbres",
+		"effect": {
+			"type": "guaranteed_draw",
+			"tier": 4
+		},
+		"rarity": 2
+	},
+	{
+		"id": "MAGIE_025",
+		"name": "Fusion instantanée",
 		"effect": {
 			"type": "remove_fusion_material",
 			"value": 1
 		}
 	},
 	{
-		"id": "MAGIE_025",
-		"name": "Vague de repos",
+		"id": "MAGIE_026",
+		"name": "Destruction de carte",
 		"rarity": 2,
 		"effect": {
-			"type": "team_heal",
-			"value": 40
+			"type": "hand_to_graveyard"
 		}
 	},
 	{
-		"id": "MAGIE_026",
-		"name": "Pacte de sang",
-		"rarity": 2,
-		"effect": {
-			"type": "team_stat_bonus",
-			"stat": "atk",
-			"value": 6
-		},
-		"cost_hp": 150
-	},
-	{
 		"id": "MAGIE_027",
-		"name": "Offrande écarlate",
-		"rarity": 3,
+		"name": "Absorption d’unité",
+		"rarity": 1,
 		"effect": {
-			"type": "guaranteed_draw",
-			"tier": 5
-		},
-		"cost_hp": 200
+			"type": "drain_life"
+		}
 	},
 	{
 		"id": "MAGIE_028",
-		"name": "Éveil brutal",
-		"rarity": 2,
+		"name": "Épée légendaire",
+		"rarity": 1,
 		"effect": {
-			"type": "grant_power",
-			"power_id": "POWER_SUPER_ATTACK",
-			"power_speed": 18,
-			"value": 0
+			"type": "stat_bonus",
+			"value": 15,
+			"stat": "atk"
 		}
 	},
 	{
 		"id": "MAGIE_029",
-		"name": "Second souffle",
-		"rarity": 1,
+		"name": "Charité gracieuse",
+		"rarity": 3,
 		"effect": {
-			"type": "power_cooldown",
-			"value": 2
-		}
+			"type": "draw_bonus",
+			"value": 3
+		},
+		"cost_hp": 200
 	},
 	{
 		"id": "MAGIE_030",
-		"name": "Fureur croissante",
-		"rarity": 3,
+		"name": "Hache du désespoir",
+		"rarity": 2,
 		"effect": {
-			"type": "damage_multiplier_bonus",
-			"value": 0.5
-		}
+			"type": "stat_bonus",
+			"value": 30,
+			"stat": "atk"
+		},
+		"cost_hp": 100
 	},
 	{
 		"id": "MAGIE_031",
-		"name": "Appel des rites",
+		"name": "Soin de l’âme",
+		"rarity": 1,
+		"effect": {
+			"type": "heal"
+		}
+	},
+	{
+		"id": "MAGIE_032",
+		"name": "Forteresse royale",
+		"rarity": 2,
+		"effect": {
+			"type": "shield",
+			"value": 100
+		}
+	},
+	{
+		"id": "MAGIE_033",
+		"name": "Épée empoisonnée",
+		"rarity": 1,
+		"effect": {
+			"type": "grant_power",
+			"value": 5,
+			"power_id": "POWER_POISON",
+			"power_speed": 60
+		}
+	},
+	{
+		"id": "MAGIE_034",
+		"name": "Aura enflammée",
+		"rarity": 1,
+		"effect": {
+			"type": "grant_power",
+			"value": 5,
+			"power_id": "POWER_BURN",
+			"power_speed": 60
+		}
+	},
+	{
+		"id": "MAGIE_035",
+		"name": "Hurlement sauvage",
+		"rarity": 1,
+		"effect": {
+			"type": "grant_power",
+			"value": 60,
+			"power_id": "POWER_TAUNT",
+			"power_speed": 60
+		}
+	},
+	{
+		"id": "MAGIE_036",
+		"name": "Super polymerisation",
 		"rarity": 2,
 		"effect": {
 			"type": "guaranteed_draw",
@@ -278,17 +306,106 @@
 		}
 	},
 	{
-		"id": "MAGIE_032",
-		"name": "Clonage",
+		"id": "MAGIE_037",
+		"name": "Préparation des rites",
+		"rarity": 2,
+		"effect": {
+			"type": "guaranteed_draw",
+			"category": "heritage"
+		}
+	},
+	{
+		"id": "MAGIE_038",
+		"name": "Métamorphose",
+		"rarity": 2,
+		"effect": {
+			"type": "guaranteed_draw",
+			"category": "transformation"
+		}
+	},
+	{
+		"id": "MAGIE_039",
+		"name": "Sacrifice royal",
+		"rarity": 2,
+		"effect": {
+			"type": "guaranteed_draw",
+			"category": "sacrifice"
+		}
+	},
+	{
+		"id": "MAGIE_040",
+		"name": "Pioche de défense",
+		"rarity": 1,
+		"effect": {
+			"type": "guaranteed_draw",
+			"category": "normal"
+		}
+	},
+	{
+		"id": "MAGIE_041",
+		"name": "Épée du tonnerre",
+		"rarity": 1,
+		"effect": {
+			"type": "grant_power",
+			"value": 40,
+			"power_id": "POWER_PARALYSIS",
+			"power_speed": 40
+		}
+	},
+	{
+		"id": "MAGIE_042",
+		"name": "Corne de l’unicorne",
+		"rarity": 1,
+		"effect": {
+			"type": "grant_power",
+			"value": 3,
+			"power_id": "POWER_PUSH",
+			"power_speed": 40
+		}
+	},
+	{
+		"id": "MAGIE_043",
+		"name": "Enterrement prématuré",
+		"rarity": 2,
+		"effect": {
+			"type": "revive",
+			"value": 50
+		},
+		"cost_hp": 50
+	},
+	{
+		"id": "MAGIE_044",
+		"name": "Épée de révélation de la lumière",
 		"rarity": 3,
+		"effect": {
+			"type": "team_stat_bonus",
+			"value": 30,
+			"stat": "hp"
+		}
+	},
+	{
+		"id": "MAGIE_045",
+		"name": "Force miroir",
+		"rarity": 3,
+		"effect": {
+			"type": "grant_power",
+			"value": 50,
+			"power_id": "POWER_AOE_ATTACK",
+			"power_speed": 40
+		}
+	},
+	{
+		"id": "MAGIE_046",
+		"name": "Doppleganger",
+		"rarity": 2,
 		"effect": {
 			"type": "duplicate_unit",
 			"value": 1
 		}
 	},
 	{
-		"id": "MAGIE_033",
-		"name": "Copie conforme",
+		"id": "MAGIE_047",
+		"name": "Multiplication",
 		"rarity": 2,
 		"effect": {
 			"type": "duplicate_card",
@@ -296,56 +413,57 @@
 		}
 	},
 	{
-		"id": "MAGIE_034",
-		"name": "Empreinte funéraire",
-		"rarity": 2,
+		"id": "MAGIE_048",
+		"name": "Réincarnation de monstre",
+		"rarity": 1,
 		"effect": {
 			"type": "duplicate_graveyard_unit",
 			"value": 1
 		}
 	},
 	{
-		"id": "MAGIE_035",
-		"name": "Ascension",
-		"rarity": 3,
+		"id": "MAGIE_049",
+		"name": "Accélérateur",
+		"rarity": 1,
+		"effect": {
+			"type": "power_cooldown",
+			"value": 2
+		}
+	},
+	{
+		"id": "MAGIE_050",
+		"name": "Level up",
+		"rarity": 2,
 		"effect": {
 			"type": "shift_tier_unit",
 			"value": 1
 		}
 	},
 	{
-		"id": "MAGIE_036",
-		"name": "Métamorphose",
-		"rarity": 2,
-		"effect": {
-			"type": "shift_tier_card",
-			"value": 1
-		}
-	},
-	{
-		"id": "MAGIE_037",
-		"name": "Retour aux sources",
+		"id": "MAGIE_051",
+		"name": "Absorption de carte",
 		"rarity": 1,
 		"effect": {
-			"type": "shift_tier_card",
-			"value": -1
+			"type": "sacrifice_card_hp",
+			"value": 0
 		}
 	},
 	{
-		"id": "MAGIE_038",
-		"name": "Quête du matériau",
+		"id": "MAGIE_052",
+		"name": "Un héros arrive",
 		"rarity": 2,
 		"effect": {
 			"type": "draw_material"
-		}
+		},
+		"cost_hp": 50
 	},
 	{
-		"id": "MAGIE_039",
-		"name": "Offrande de chair",
+		"id": "MAGIE_053",
+		"name": "Level down",
 		"rarity": 2,
 		"effect": {
-			"type": "sacrifice_card_hp",
-			"value": 100
+			"type": "shift_tier_unit",
+			"value": -1
 		}
 	}
 ]

@@ -4,5 +4,17 @@
 		"name": "Dos classique",
 		"default": true,
 		"price_gems": 0
+	},
+	{
+		"id": "CARDBACK_001",
+		"name": "Dos anime",
+		"default": false,
+		"price_gems": 100
+	},
+	{
+		"id": "CARDBACK_002",
+		"name": "Dos anime 2",
+		"default": false,
+		"price_gems": 100
 	}
 ]

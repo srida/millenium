@@ -212,7 +212,7 @@
 		"name": "Cimetière",
 		"effect": {
 			"type": "stat_bonus",
-			"value": 5,
+			"value": -5,
 			"stat": "movement_speed",
 			"target_attributes": [
 				"ARCH_029"
@@ -242,7 +242,7 @@
 		"name": "Vallée des rois",
 		"effect": {
 			"type": "stat_bonus",
-			"value": 5,
+			"value": -5,
 			"stat": "movement_speed",
 			"target_attributes": [
 				"ARCH_030"
@@ -268,7 +268,7 @@
 		"name": "Mur du Labyrinthe",
 		"effect": {
 			"type": "stat_bonus",
-			"value": 5,
+			"value": -5,
 			"stat": "movement_speed",
 			"target_attributes": [
 				"ARCH_041"
@@ -348,7 +348,7 @@
 		"name": "Nuit des machines",
 		"effect": {
 			"type": "stat_bonus",
-			"value": 5,
+			"value": -5,
 			"stat": "attack_speed",
 			"target_attributes": [
 				"ARCH_025"
@@ -414,6 +414,365 @@
 			{
 				"col": 2,
 				"row": 6
+			}
+		]
+	},
+	{
+		"id": "BOARD_016",
+		"name": "Mausolée de l’empereur",
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"value": 10,
+				"stat": "atk",
+				"target_attributes": [],
+				"target_summon_types": [
+					"sacrifice"
+				]
+			}
+		],
+		"blocked_cells": [
+			{
+				"col": 4,
+				"row": 6
+			},
+			{
+				"col": 0,
+				"row": 4
+			}
+		]
+	},
+	{
+		"id": "BOARD_017",
+		"name": "Porte fusion",
+		"effects": [
+			{
+				"type": "draw_bonus",
+				"value": 1
+			}
+		],
+		"blocked_cells": [
+			{
+				"col": 0,
+				"row": 4
+			},
+			{
+				"col": 3,
+				"row": 6
+			}
+		]
+	},
+	{
+		"id": "BOARD_018",
+		"name": "Fin du monde",
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"value": 20,
+				"stat": "atk",
+				"target_attributes": [],
+				"target_summon_types": [
+					"heritage"
+				]
+			}
+		],
+		"blocked_cells": [
+			{
+				"col": 2,
+				"row": 5
+			}
+		]
+	},
+	{
+		"id": "BOARD_019",
+		"name": "Pseudo espace",
+		"effects": [
+			{
+				"type": "shield",
+				"value": 50,
+				"target_attributes": [],
+				"target_summon_types": [
+					"transformation"
+				]
+			}
+		],
+		"blocked_cells": [
+			{
+				"col": 4,
+				"row": 4
+			},
+			{
+				"col": 4,
+				"row": 5
+			},
+			{
+				"col": 4,
+				"row": 6
+			}
+		]
+	},
+	{
+		"id": "BOARD_020",
+		"name": "Canyon",
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"value": 30,
+				"stat": "hp",
+				"target_attributes": [
+					"ARCH_050"
+				],
+				"target_summon_types": []
+			},
+			{
+				"type": "stat_bonus",
+				"value": -5,
+				"stat": "atk",
+				"target_attributes": [
+					"ARCH_049"
+				],
+				"target_summon_types": []
+			}
+		],
+		"blocked_cells": [
+			{
+				"col": 1,
+				"row": 4
+			},
+			{
+				"col": 4,
+				"row": 5
+			}
+		]
+	},
+	{
+		"id": "BOARD_021",
+		"name": "Terre dévastée",
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"value": -4,
+				"stat": "attack_speed",
+				"target_attributes": [],
+				"target_summon_types": [
+					"normal"
+				]
+			}
+		],
+		"blocked_cells": []
+	},
+	{
+		"id": "BOARD_022",
+		"name": "Colisée",
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"value": 10,
+				"stat": "atk",
+				"target_attributes": [],
+				"target_summon_types": []
+			}
+		],
+		"blocked_cells": [
+			{
+				"col": 1,
+				"row": 6
+			},
+			{
+				"col": 2,
+				"row": 6
+			},
+			{
+				"col": 3,
+				"row": 6
+			},
+			{
+				"col": 1,
+				"row": 4
+			},
+			{
+				"col": 2,
+				"row": 4
+			},
+			{
+				"col": 3,
+				"row": 4
+			}
+		]
+	},
+	{
+		"id": "BOARD_023",
+		"name": "Volcan",
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"value": 10,
+				"stat": "atk",
+				"target_attributes": [
+					"ARCH_048"
+				],
+				"target_summon_types": []
+			},
+			{
+				"type": "stat_bonus",
+				"value": -10,
+				"stat": "atk",
+				"target_attributes": [
+					"ARCH_053"
+				],
+				"target_summon_types": []
+			}
+		],
+		"blocked_cells": [
+			{
+				"col": 2,
+				"row": 5
+			},
+			{
+				"col": 0,
+				"row": 6
+			},
+			{
+				"col": 0,
+				"row": 4
+			},
+			{
+				"col": 4,
+				"row": 6
+			},
+			{
+				"col": 4,
+				"row": 4
+			}
+		]
+	},
+	{
+		"id": "BOARD_024",
+		"name": "Marais",
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"value": 10,
+				"stat": "atk",
+				"target_attributes": [
+					"ARCH_058"
+				],
+				"target_summon_types": []
+			},
+			{
+				"type": "stat_bonus",
+				"value": -10,
+				"stat": "atk",
+				"target_attributes": [
+					"ARCH_001",
+					"ARCH_002",
+					"ARCH_023"
+				],
+				"target_summon_types": []
+			}
+		],
+		"blocked_cells": [
+			{
+				"col": 1,
+				"row": 5
+			},
+			{
+				"col": 4,
+				"row": 5
+			}
+		]
+	},
+	{
+		"id": "BOARD_025",
+		"name": "Monde transparent",
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"value": 10,
+				"stat": "atk",
+				"target_attributes": [
+					"ARCH_048"
+				],
+				"target_summon_types": []
+			},
+			{
+				"type": "stat_bonus",
+				"value": 50,
+				"stat": "hp",
+				"target_attributes": [
+					"ARCH_049"
+				],
+				"target_summon_types": []
+			},
+			{
+				"type": "stat_bonus",
+				"value": -4,
+				"stat": "movement_speed",
+				"target_attributes": [
+					"ARCH_051"
+				],
+				"target_summon_types": []
+			},
+			{
+				"type": "shield",
+				"value": 100,
+				"target_attributes": [
+					"ARCH_050"
+				],
+				"target_summon_types": []
+			},
+			{
+				"type": "stat_bonus",
+				"value": -4,
+				"stat": "attack_speed",
+				"target_attributes": [
+					"ARCH_052"
+				],
+				"target_summon_types": []
+			},
+			{
+				"type": "stat_bonus",
+				"value": 1,
+				"stat": "range",
+				"target_attributes": [
+					"ARCH_054"
+				],
+				"target_summon_types": []
+			}
+		],
+		"blocked_cells": [
+			{
+				"col": 2,
+				"row": 5
+			}
+		]
+	},
+	{
+		"id": "BOARD_026",
+		"name": "Royaume vampire",
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"value": 50,
+				"stat": "hp",
+				"target_attributes": [
+					"ARCH_061"
+				],
+				"target_summon_types": []
+			}
+		],
+		"blocked_cells": [
+			{
+				"col": 2,
+				"row": 6
+			},
+			{
+				"col": 0,
+				"row": 4
+			},
+			{
+				"col": 4,
+				"row": 4
 			}
 		]
 	}

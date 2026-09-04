@@ -789,5 +789,225 @@
 	{
 		"id": "VAR_197",
 		"card_id": "STAPLE_242"
+	},
+	{
+		"id": "VAR_198",
+		"card_id": "EXTRA_053"
+	},
+	{
+		"id": "VAR_199",
+		"card_id": "BAKURA_008"
+	},
+	{
+		"id": "VAR_200",
+		"card_id": "CORE_010"
+	},
+	{
+		"id": "VAR_201",
+		"card_id": "STAPLE_258"
+	},
+	{
+		"id": "VAR_202",
+		"card_id": "CORE_106"
+	},
+	{
+		"id": "VAR_203",
+		"card_id": "CORE_042"
+	},
+	{
+		"id": "VAR_204",
+		"card_id": "STAPLE_178"
+	},
+	{
+		"id": "VAR_205",
+		"card_id": "CORE_042"
+	},
+	{
+		"id": "VAR_206",
+		"card_id": "CORE_042"
+	},
+	{
+		"id": "VAR_207",
+		"card_id": "STAPLE_063"
+	},
+	{
+		"id": "VAR_208",
+		"card_id": "STAPLE_464"
+	},
+	{
+		"id": "VAR_209",
+		"card_id": "STAPLE_293"
+	},
+	{
+		"id": "VAR_210",
+		"card_id": "STAPLE_294"
+	},
+	{
+		"id": "VAR_211",
+		"card_id": "STAPLE_296"
+	},
+	{
+		"id": "VAR_212",
+		"card_id": "STAPLE_299"
+	},
+	{
+		"id": "VAR_213",
+		"card_id": "STAPLE_300"
+	},
+	{
+		"id": "VAR_214",
+		"card_id": "STAPLE_300"
+	},
+	{
+		"id": "VAR_215",
+		"card_id": "YGX_001"
+	},
+	{
+		"id": "VAR_216",
+		"card_id": "YGX_001"
+	},
+	{
+		"id": "VAR_217",
+		"card_id": "YGX_001"
+	},
+	{
+		"id": "VAR_218",
+		"card_id": "STAPLE_063"
+	},
+	{
+		"id": "VAR_219",
+		"card_id": "STAPLE_308"
+	},
+	{
+		"id": "VAR_220",
+		"card_id": "STAPLE_317"
+	},
+	{
+		"id": "VAR_221",
+		"card_id": "STAPLE_321"
+	},
+	{
+		"id": "VAR_222",
+		"card_id": "STAPLE_475"
+	},
+	{
+		"id": "VAR_223",
+		"card_id": "STAPLE_328"
+	},
+	{
+		"id": "VAR_224",
+		"card_id": "STAPLE_347"
+	},
+	{
+		"id": "VAR_225",
+		"card_id": "STAPLE_349"
+	},
+	{
+		"id": "VAR_226",
+		"card_id": "STAPLE_386"
+	},
+	{
+		"id": "VAR_227",
+		"card_id": "STAPLE_366"
+	},
+	{
+		"id": "VAR_228",
+		"card_id": "STAPLE_371"
+	},
+	{
+		"id": "VAR_229",
+		"card_id": "STAPLE_370"
+	},
+	{
+		"id": "VAR_230",
+		"card_id": "STAPLE_391"
+	},
+	{
+		"id": "VAR_231",
+		"card_id": "STAPLE_407"
+	},
+	{
+		"id": "VAR_232",
+		"card_id": "MARIK_016"
+	},
+	{
+		"id": "VAR_233",
+		"card_id": "STAPLE_415"
+	},
+	{
+		"id": "VAR_234",
+		"card_id": "STAPLE_417"
+	},
+	{
+		"id": "VAR_235",
+		"card_id": "STAPLE_418"
+	},
+	{
+		"id": "VAR_236",
+		"card_id": "STAPLE_423"
+	},
+	{
+		"id": "VAR_237",
+		"card_id": "STAPLE_433"
+	},
+	{
+		"id": "VAR_238",
+		"card_id": "STAPLE_440"
+	},
+	{
+		"id": "VAR_239",
+		"card_id": "STAPLE_441"
+	},
+	{
+		"id": "VAR_240",
+		"card_id": "STAPLE_449"
+	},
+	{
+		"id": "VAR_241",
+		"card_id": "STAPLE_453"
+	},
+	{
+		"id": "VAR_242",
+		"card_id": "STAPLE_454"
+	},
+	{
+		"id": "VAR_243",
+		"card_id": "STAPLE_455"
+	},
+	{
+		"id": "VAR_244",
+		"card_id": "STAPLE_456"
+	},
+	{
+		"id": "VAR_245",
+		"card_id": "STAPLE_258"
+	},
+	{
+		"id": "VAR_246",
+		"card_id": "STAPLE_258"
+	},
+	{
+		"id": "VAR_247",
+		"card_id": "CORE_101"
+	},
+	{
+		"id": "VAR_248",
+		"card_id": "CORE_120"
+	},
+	{
+		"id": "VAR_249",
+		"card_id": "CORE_098"
+	},
+	{
+		"id": "VAR_250",
+		"card_id": "ZANE_001"
+	},
+	{
+		"id": "VAR_251",
+		"card_id": "ZANE_001"
+	},
+	{
+		"id": "VAR_252",
+		"card_id": "EXTRA_093"
 	}
 ]

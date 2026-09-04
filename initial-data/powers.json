@@ -3,7 +3,7 @@
 		"id": "POWER_HEAL",
 		"name": "Soin",
 		"description": "Soigne l’allié ayant le moins de points de vie.",
-		"icon": "💚"
+		"icon": "❤️"
 	},
 	{
 		"id": "POWER_SHIELD",
@@ -15,13 +15,13 @@
 		"id": "POWER_SUPER_ATTACK",
 		"name": "Super attaque",
 		"description": "Inflige de lourds dégâts à la cible actuelle.",
-		"icon": "💥"
+		"icon": "☄️"
 	},
 	{
 		"id": "POWER_AOE_ATTACK",
 		"name": "Attaque massive",
 		"description": "Inflige des dégâts à toutes les unités ennemies vivantes présentes sur le terrain au moment de l'activation.",
-		"icon": "☄️"
+		"icon": "🌪️"
 	},
 	{
 		"id": "POWER_POISON",
@@ -33,25 +33,25 @@
 		"id": "POWER_PUSH",
 		"name": "Poussée",
 		"description": "Repousse la cible d’une case.",
-		"icon": "👊"
+		"icon": "💨"
 	},
 	{
 		"id": "POWER_PARALYSIS",
 		"name": "Paralysie",
 		"description": "Réduit la vitesse d’attaque de la cible pendant un court laps de temps.",
-		"icon": "⚡"
+		"icon": "🪨"
 	},
 	{
 		"id": "POWER_DEBUFF",
 		"name": "Silence",
 		"description": "Supprime tous les bonus et modificateurs de statistiques de la cible (attributs, paralysie, etc.).",
-		"icon": "🔇"
+		"icon": "✨"
 	},
 	{
 		"id": "POWER_BLOCK",
 		"name": "Blocage",
 		"description": "Empêche la cible d'utiliser son pouvoir",
-		"icon": "🚫"
+		"icon": "🫥"
 	},
 	{
 		"id": "POWER_BURN",
@@ -63,7 +63,7 @@
 		"id": "POWER_TELEPORT",
 		"name": "Téléportation",
 		"description": "Se téléporte instantanément au contact de l'ennemi ayant le moins de PV.",
-		"icon": "🌀"
+		"icon": "⚡️"
 	},
 	{
 		"id": "POWER_FREEZE",
@@ -75,12 +75,12 @@
 		"id": "POWER_CONFUSION",
 		"name": "Confusion",
 		"description": "Confond la cible : elle attaque ses propres alliés pendant un court laps de temps.",
-		"icon": "😵"
+		"icon": "💫"
 	},
 	{
 		"id": "POWER_TAUNT",
 		"name": "Provocation",
 		"description": "Force toutes les unités ennemies à portée de vue à attaquer le lanceur pendant un court laps de temps.",
-		"icon": "📣"
+		"icon": "🤬"
 	}
 ]

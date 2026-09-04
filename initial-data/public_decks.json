@@ -32,16 +32,13 @@
 			],
 			"4": [
 				"CORE_126",
-				"CORE_129",
-				"CORE_131",
-				"CORE_132"
+				"CORE_129"
 			],
 			"5": [
-				"CORE_130",
-				"CORE_133"
+				"CORE_130"
 			]
 		},
-		"difficulty": 3
+		"difficulty": 4
 	},
 	{
 		"id": "PUBLIC_DECK_002",
@@ -87,7 +84,7 @@
 				"EXTRA_089"
 			]
 		},
-		"difficulty": 3
+		"difficulty": 4
 	},
 	{
 		"id": "PUBLIC_DECK_003",
@@ -165,7 +162,7 @@
 				"CORE_103"
 			]
 		},
-		"difficulty": 3
+		"difficulty": 4
 	},
 	{
 		"id": "PUBLIC_DECK_005",
@@ -204,7 +201,7 @@
 			],
 			"5": []
 		},
-		"difficulty": 3
+		"difficulty": 4
 	},
 	{
 		"id": "PUBLIC_DECK_006",
@@ -247,7 +244,7 @@
 				"MARIK_020"
 			]
 		},
-		"difficulty": 4
+		"difficulty": 3
 	},
 	{
 		"id": "PUBLIC_DECK_007",
@@ -441,50 +438,46 @@
 		"name": "Pegasus",
 		"deck": {
 			"1": [
-				"PEGASUS_014",
-				"PEGASUS_001",
-				"PEGASUS_002",
-				"PEGASUS_016",
-				"PEGASUS_017",
-				"PEGASUS_022",
 				"PEGASUS_005",
-				"PEGASUS_025"
+				"PEGASUS_025",
+				"PEGASUS_014",
+				"PEGASUS_036"
 			],
 			"2": [
-				"PEGASUS_008",
-				"PEGASUS_010",
+				"PEGASUS_011",
+				"PEGASUS_006",
+				"PEGASUS_001",
+				"PEGASUS_016",
+				"PEGASUS_022",
+				"PEGASUS_002",
+				"PEGASUS_017"
+			],
+			"3": [
+				"PEGASUS_023",
+				"PEGASUS_024",
+				"PEGASUS_007",
+				"PEGASUS_015",
 				"PEGASUS_013",
 				"EXTRA_095",
 				"PEGASUS_019",
-				"PEGASUS_021",
-				"PEGASUS_006",
-				"PEGASUS_011"
-			],
-			"3": [
-				"PEGASUS_009",
-				"PEGASUS_015",
-				"PEGASUS_030",
-				"PEGASUS_031",
-				"PEGASUS_034",
-				"PEGASUS_007",
-				"PEGASUS_023",
-				"PEGASUS_024"
+				"PEGASUS_008"
 			],
 			"4": [
-				"PEGASUS_020",
-				"PEGASUS_028",
+				"PEGASUS_026",
 				"PEGASUS_032",
-				"PEGASUS_035",
 				"PEGASUS_027",
-				"PEGASUS_032",
-				"PEGASUS_026"
+				"PEGASUS_009",
+				"PEGASUS_030",
+				"PEGASUS_034",
+				"PEGASUS_031",
+				"PEGASUS_020"
 			],
 			"5": [
-				"PEGASUS_029",
-				"PEGASUS_033"
+				"PEGASUS_033",
+				"PEGASUS_029"
 			]
 		},
-		"difficulty": 4
+		"difficulty": 3
 	},
 	{
 		"id": "PUBLIC_DECK_013",
@@ -566,7 +559,7 @@
 				"EXTRA_061"
 			]
 		},
-		"difficulty": 4
+		"difficulty": 3
 	},
 	{
 		"id": "PUBLIC_DECK_015",
