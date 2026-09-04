@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as CardDatabase from '../data/CardDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
+import { illustrationUrl } from '../data/CardArt.js';
 import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import { computeDeckTags } from '../data/DeckTags.js';
 import type { Card } from '../logic/types.js';
@@ -103,6 +104,19 @@ export default function DeckBuilder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
     [cosmeticSnapshot],
   );
+  // Dos de cartes débloqués (offerts + achetés) — même instantané que les
+  // variantes, `loadCosmetics` ci-dessus le couvre déjà.
+  // ⚠️ Passe par `useMemo`, jamais par un sélecteur Zustand inline : `?? []`
+  // alloue un tableau NEUF à chaque appel tant que `snapshot` est encore nul, et
+  // `useSyncExternalStore` y lit un « a changé » à chaque rendu — boucle de
+  // rendu (« Maximum update depth exceeded »), constatée à l'écran. Même garde
+  // que `ownedVariantsFor` juste au-dessus : la référence n'est recalculée que
+  // lorsque `cosmeticSnapshot` change réellement.
+  const ownedCardBacks = useMemo(
+    () => useCosmeticStore.getState().selectableCardBacks(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ownedVariantsFor : cosmeticSnapshot force la re-dérivation après un achat
+    [cosmeticSnapshot],
+  );
   const owns = useMemo(() => (id: string) => isAdminEdit || ownedIds.has(id), [ownedIds, isAdminEdit]);
   const ownedCount = useMemo(() => isAdminEdit ? allCards.length : allCards.filter(c => ownedIds.has(c.id)).length, [allCards, ownedIds, isAdminEdit]);
 
@@ -113,6 +127,9 @@ export default function DeckBuilder() {
   // « défaut » est une ABSENCE d'entrée, jamais une entrée qui pointe sur la
   // carte elle-même — le méta reste petit et le filtre serveur trivial.
   const [variants, setVariants] = useState<Record<string, string>>({});
+  // Dos de carte choisi pour CE deck — `null` = pas de choix, la popup de
+  // pioche retombe sur celui du profil (cf. RoundStart.tsx).
+  const [cardBack, setCardBack] = useState<string | null>(null);
   const [skinning, setSkinning] = useState<Card | null>(null);
   const [tab, setTab] = useState<'lib' | 'deck'>('lib');
   const [tierFilters, setTierFilters] = useState<number[]>([]);
@@ -152,6 +169,7 @@ export default function DeckBuilder() {
     }
     setColor((DeckRepository as any).getDeckColor?.(editName) ?? null);
     setVariants((DeckRepository as any).getDeckVariants?.(editName) ?? {});
+    setCardBack((DeckRepository as any).getDeckCardBack?.(editName) ?? null);
   }, [editName]);
 
   // Préchargement en mode admin (deck public) : source = /api/decks, pas
@@ -259,6 +277,7 @@ export default function DeckBuilder() {
       finalName,
       Object.fromEntries(Object.entries(variants).filter(([cardId]) => inDeck.has(cardId))),
     );
+    (DeckRepository as any).setDeckCardBack?.(finalName, cardBack);
     // Tous les modes de jeu partent du deck actif : sans deck actif valide (1er
     // deck créé, deck actif supprimé), on adopte celui qu'on vient d'enregistrer.
     if (!(DeckRepository as any).hasActiveDeck?.()) (DeckRepository as any).setActiveDeck(finalName);
@@ -323,8 +342,11 @@ export default function DeckBuilder() {
           onClear={() => setDeckData(EMPTY)}
           variants={variants} onSkin={setSkinning}
           // Pas de cosmétique en édition de deck public : il n'y a pas de
-          // « joueur » propriétaire, donc personne dont ce soient les variantes.
+          // « joueur » propriétaire, donc personne dont ce soient les variantes
+          // ni les dos de carte débloqués.
           ownedVariantsFor={isAdminEdit ? noVariants : ownedVariantsFor}
+          cardBack={cardBack} setCardBack={setCardBack}
+          ownedCardBacks={isAdminEdit ? [] : ownedCardBacks}
         />
       )}
 
@@ -471,7 +493,10 @@ function LibraryPanel({
   );
 }
 
-function DeckPanel({ deckData, tierMax, name, setName, color, setColor, showColor = true, onRemove, owns, onClear, variants = {}, onSkin, ownedVariantsFor }: any) {
+function DeckPanel({
+  deckData, tierMax, name, setName, color, setColor, showColor = true, onRemove, owns, onClear,
+  variants = {}, onSkin, ownedVariantsFor, cardBack = null, setCardBack, ownedCardBacks = [],
+}: any) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-3">
       <input
@@ -490,6 +515,48 @@ function DeckPanel({ deckData, tierMax, name, setName, color, setColor, showColo
                 className={`h-7 w-7 rounded-full ${color === c ? 'ring-2 ring-gold ring-offset-2 ring-offset-surface' : ''}`}
                 style={{ background: c }}
               />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Dos de carte : ce que la popup de pioche montre à l'ouverture de
+          chaque tour, PAR DECK — comme les variantes, jamais comme l'avatar
+          (qui reste un choix de profil). `null` = pas de choix pour ce deck,
+          on retombe sur celui du profil. La section n'existe que s'il y a un
+          choix à faire : un joueur sans aucun dos débloqué n'a rien à voir ici. */}
+      {showColor && ownedCardBacks.length > 0 && (
+        <div className="mt-3">
+          <div className="mb-1 text-[10px] tracking-widest text-white/40">DOS DE CARTE</div>
+          <div className="grid grid-cols-5 gap-2 sm:grid-cols-8">
+            <button
+              type="button"
+              onPointerDown={() => setCardBack(null)}
+              aria-label="Dos par défaut"
+              title="Dos par défaut (celui de ton profil)"
+              className={`flex aspect-[3/4] items-center justify-center overflow-hidden rounded-lg border text-lg text-white/40 ${cardBack === null ? 'border-gold' : 'border-line'} bg-surface-raised active:opacity-80`}
+            >
+              ✦
+            </button>
+            {ownedCardBacks.map((b: { id: string; name: string }) => (
+              <button
+                key={b.id}
+                type="button"
+                onPointerDown={() => setCardBack(b.id)}
+                aria-label={`Dos ${b.name}`}
+                title={b.name}
+                className={`aspect-[3/4] overflow-hidden rounded-lg border ${cardBack === b.id ? 'border-gold' : 'border-line'} bg-surface-raised active:opacity-80`}
+              >
+                <img
+                  src={illustrationUrl(b.id)}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  // Un dos retiré du catalogue depuis l'achat ne doit pas
+                  // laisser un cadre cassé — le tap reste possible (il retombe
+                  // sur le défaut à l'usage), seule l'image disparaît.
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                />
+              </button>
             ))}
           </div>
         </div>

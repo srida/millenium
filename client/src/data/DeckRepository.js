@@ -134,6 +134,21 @@ export function setDeckTags(name, tags) {
   _afterMutation();
 }
 
+// Dos de carte choisi pour CE deck — ce que la popup de pioche montre à
+// l'ouverture de chaque tour. `null` = pas de choix pour ce deck : on retombe
+// sur le dos du profil, puis sur le défaut du catalogue (cf. RoundStart.tsx,
+// qui compose les trois).
+export function getDeckCardBack(name) {
+  return loadMeta()[name]?.card_back ?? null;
+}
+
+export function setDeckCardBack(name, cardBackId) {
+  const meta = loadMeta();
+  meta[name] = { ...(meta[name] || {}), card_back: cardBackId };
+  saveMeta(meta);
+  _afterMutation();
+}
+
 // Illustrations choisies pour ce deck : { card_id: id_de_variante }. Une carte
 // absente de la map utilise son illustration d'origine — le « défaut » est
 // donc une absence d'entrée, jamais une entrée qui pointe sur la carte

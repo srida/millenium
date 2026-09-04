@@ -16,6 +16,7 @@ import { useAuthStore } from '../../stores/authStore.js';
 import { Illustration, Modal } from '../ui/primitives.js';
 import { attributeName } from '../ui/AttrIcon.js';
 import * as CardBackDatabase from '../../data/CardBackDatabase.js';
+import * as DeckRepository from '../../data/DeckRepository.js';
 import * as MagieDatabase from '../../data/MagieDatabase.js';
 import * as BoardDatabase from '../../data/BoardDatabase.js';
 import { drawBonusRows, drawnLabel, guaranteedDrawLabel } from '../../data/DrawInfo.js';
@@ -76,7 +77,20 @@ export function RoundIntro() {
 export function DrawPopup({ autoDismissMs = 0 }: { autoDismissMs?: number } = {}) {
   const summary = useGameStore(s => s.drawPopup);
   const controller = useGameStore(s => s.controller);
-  const cardBackId = useAuthStore(s => s.user?.card_back ?? null);
+  // ⚠️ Trois rangs, du plus spécifique au plus général : le dos CHOISI POUR CE
+  // DECK (DeckBuilder, onglet Deck), puis celui du PROFIL (ProfileScreen), puis
+  // le défaut du catalogue. Comme les variantes, jamais comme l'avatar : c'est
+  // le deck qu'on joue qui porte son identité visuelle, le profil n'est qu'un
+  // repli pour les decks qui n'ont rien choisi.
+  //
+  // ⚠️ Lu en DIRECT (pas via un store) : c'est le patron déjà suivi par
+  // OnlineLobby/ArcadeScreen/TournamentScreen pour `getActiveDeck()`, une
+  // lecture localStorage synchrone, aucune raison d'en faire un état à part.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- module JS sans .d.ts, même repli que les autres appelants de DeckRepository
+  const repo = DeckRepository as any;
+  const deckCardBackId = repo.getDeckCardBack?.(repo.getActiveDeck?.() ?? null) ?? null;
+  const profileCardBackId = useAuthStore(s => s.user?.card_back ?? null);
+  const cardBackId = deckCardBackId ?? profileCardBackId;
   const [dealing, setDealing] = useState(false);
   // Le tirage est déjà fait : ce verrou n'empêche pas une double pioche, il
   // empêche de relancer l'animation sous elle-même.

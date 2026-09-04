@@ -404,6 +404,8 @@ Catalogue `data/card_backs.json` (`{ id, name, default?, price_gems }`), onglet 
 - ⚠️ **Sans art, ni vendu ni portable** — la règle porte sur le **fichier** (`variants.illustrationExists`), comme partout ailleurs. Catalogue vide ou PNG absent → `DrawPopup` dessine un dos **procédural**, jamais un `<img>` cassé.
 - `data/CardBackDatabase.js` **ne jette pas** sur une réponse en erreur, contrairement aux autres databases : un dos n'est pas une donnée de jeu, un serveur en retard de déploiement ne doit pas empêcher de jouer.
 
+**Choix PAR DECK** — onglet Deck du DeckBuilder, section « Dos de carte » (n'existe que si le joueur a au moins un dos débloqué). Comme les variantes, jamais comme l'avatar : `DeckRepository.getDeckCardBack`/`setDeckCardBack`, même patron localStorage + sync que `getDeckColor`/`getDeckVariants`. `RoundStart.DrawPopup` résout trois rangs, du plus spécifique au plus général : le dos du **deck actif** (`DeckRepository.getActiveDeck()`, lu en direct comme partout ailleurs) → celui du **profil** (`ProfileScreen`) → le défaut du catalogue. `null` à un rang retombe sur le suivant.
+
 ### Variantes (`variants.js`)
 
 `{ id, card_id }` dans `data/variants.json` — **pas de nom propre** : une variante est une illustration de plus pour une carte. Elle s'annonce par le nom de sa **carte** (`card_name`) ; un `name` résiduel est **ignoré**. L'art vit dans `ILLUS_DIR`, donc aucune famille d'assets à créer.
