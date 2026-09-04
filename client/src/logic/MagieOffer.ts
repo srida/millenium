@@ -89,6 +89,13 @@ export interface MagieOfferContext {
   deckHasMaterialCost: boolean;
   /** Une carte du deck a-t-elle une condition qui NOMME un matériel ? */
   deckHasNamedRequirement: boolean;
+  /**
+   * Les attributs portés par ces cartes-là — ce qu'il faut pour juger une
+   * remise VISÉE (`effect.attribute`). ⚠️ Une liste vide ne veut pas dire
+   * « aucune carte retouchable » : une carte sans attribut n'y figure pas.
+   */
+  deckMaterialCostAttributes: string[];
+  deckNamedRequirementAttributes: string[];
   /** Le cap partagé +1 slot de board est-il encore libre ? */
   boardSlotBonusAvailable: boolean;
   /** `player_hp` est-il sous son plafond (`PLAYER_HP_CAP`) ? */
@@ -149,7 +156,7 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     // restriction de tier du tour. La magie n'est donc pas inerte, elle MENT :
     // son libellé promet un tier qu'elle ne rendra pas. On ne l'offre pas.
     // ⚠️ Les deux filtres sont FACULTATIFS et se cumulent : une magie qui ne
-    // porte qu'une `category` n'a pas de tier à valider, et l'ancienne écriture
+    // porte qu'un attribut n'a pas de tier à valider, et l'ancienne écriture
     // (`ctx.deckTiers.includes(effect.tier ?? 0)`) l'aurait rendue à JAMAIS
     // non pertinente — donc jamais offerte, en silence.
     case 'guaranteed_draw':
@@ -186,8 +193,18 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     case 'board_slot_bonus':         return ctx.boardSlotBonusAvailable;
     case 'player_hp_bonus':          return ctx.playerHpBelowCap;
 
-    case 'reduce_materials':         return ctx.deckHasMaterialCost;
-    case 'remove_requirements':      return ctx.deckHasNamedRequirement;
+    // ⚠️ Une remise VISÉE (`attribute`) doit trouver une carte qui porte
+    // l'attribut ET que le geste peut retoucher : les deux séparément se
+    // contentent d'un deck où les deux cartes sont différentes, et la magie
+    // serait alors offerte pour ne rien faire.
+    case 'reduce_materials':
+      return effect.attribute
+        ? ctx.deckMaterialCostAttributes.includes(effect.attribute)
+        : ctx.deckHasMaterialCost;
+    case 'remove_requirements':
+      return effect.attribute
+        ? ctx.deckNamedRequirementAttributes.includes(effect.attribute)
+        : ctx.deckHasNamedRequirement;
 
     // Le seul effet qui ne dépend de rien : la pioche du tour suivant a
     // toujours lieu.

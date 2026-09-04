@@ -87,7 +87,6 @@ export interface AttributeEffect {
   value_per?: string;
   /** stat_modifier : on_ally_neutralized | on_enemy_neutralized */
   trigger?: string;
-  category?: string;
   attribute?: string | null;
   hp_percent?: number;
   max?: number;
@@ -215,6 +214,14 @@ export interface HandModifier {
    */
   type: 'reduce_materials' | 'remove_requirements';
   value?: number;
+  /**
+   * Ne retoucher qu'une carte PORTANT cet attribut. Absent = n'importe laquelle.
+   *
+   * C'est ce qui redonne aux remises la visée qu'elles avaient quand elles
+   * nommaient une voie (« -1 matériel de Fusion »), mais en donnée : le moteur
+   * ne connaît toujours qu'un coût et un attribut.
+   */
+  attribute?: string | null;
 }
 
 /**

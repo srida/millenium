@@ -38,6 +38,8 @@ const BARREN: MagieOfferContext = {
   damageMultiplierMatters: false,
   deckHasMaterialCost: false,
   deckHasNamedRequirement: false,
+  deckMaterialCostAttributes: [],
+  deckNamedRequirementAttributes: [],
   boardSlotBonusAvailable: false,
   playerHpBelowCap: false,
 };
@@ -59,6 +61,8 @@ const LUSH: MagieOfferContext = {
   damageMultiplierMatters: true,
   deckHasMaterialCost: true,
   deckHasNamedRequirement: true,
+  deckMaterialCostAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088', 'ARCH_089'],
+  deckNamedRequirementAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088'],
   boardSlotBonusAvailable: true,
   playerHpBelowCap: true,
 };
@@ -142,6 +146,32 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
   it.each(CASES)('%s : absente du contexte pauvre, présente dès que sa condition est remplie', (_name, effect, field, value) => {
     expect(isMagieRelevant(magie(effect), BARREN)).toBe(false);
     expect(isMagieRelevant(magie(effect), { ...BARREN, [field]: value })).toBe(true);
+  });
+
+  // ⚠️ Une remise VISÉE demande UNE carte qui porte l'attribut ET que le geste
+  // puisse retoucher. Tester les deux séparément suffirait sur un deck où ce
+  // sont deux cartes différentes — la magie serait offerte pour ne rien faire,
+  // exactement ce que ce filtre existe pour empêcher.
+  // Mutation : `ctx.deckHasMaterialCost` seul → ROUGE sur le premier cas.
+  it('une remise VISÉE exige que l\'attribut soit porté par une carte RETOUCHABLE', () => {
+    const visee = magie({ type: 'reduce_materials', value: 1, attribute: 'ARCH_086' });
+
+    // Le deck a bien des cartes à coût… mais aucune ne porte l'attribut visé.
+    expect(isMagieRelevant(visee, {
+      ...BARREN, deckHasMaterialCost: true, deckMaterialCostAttributes: ['ARCH_089'],
+    })).toBe(false);
+
+    expect(isMagieRelevant(visee, {
+      ...BARREN, deckHasMaterialCost: true, deckMaterialCostAttributes: ['ARCH_086'],
+    })).toBe(true);
+  });
+
+  // Et sans attribut, la liste ne décide de rien : une carte retouchable qui ne
+  // porte AUCUN attribut n'y figure pas, mais la remise la retouchera bien.
+  it('une remise NON visée ne lit pas la liste d\'attributs', () => {
+    expect(isMagieRelevant(magie({ type: 'reduce_materials', value: 1 }), {
+      ...BARREN, deckHasMaterialCost: true, deckMaterialCostAttributes: [],
+    })).toBe(true);
   });
 
   it('draw_bonus est le SEUL effet qui ne dépend de rien', () => {

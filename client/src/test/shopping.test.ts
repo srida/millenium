@@ -386,6 +386,34 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
       .toEqual([{ materials: 1, requires: ['A'] }]);
   });
 
+  // ⚠️ L'attribut est ce qui rend « -1 matériel de Fusion » exprimable
+  // maintenant qu'il n'y a plus de voie à nommer : la remise doit tomber sur la
+  // carte VISÉE, pas sur la première retouchable venue.
+  // Mutation : ignorer `mod.attribute` dans le prédicat → ROUGE.
+  it('reduce_materials VISÉE : ne retouche que la carte qui porte l\'attribut', () => {
+    const { session } = makeSession();
+    session.applyGlobalMagie(magie({ type: 'reduce_materials', value: 1, attribute: 'ARCH_086' }) as any);
+    session.hand = [
+      makeCard({ id: 'AUTRE', summon_conditions: [{ materials: 3 }], attributes: ['ARCH_089'] }) as any,
+      makeCard({ id: 'VISEE', summon_conditions: [{ materials: 3 }], attributes: ['ARCH_086'] }) as any,
+    ];
+    session.startPreparation();
+
+    expect(session.hand.find(c => c.id === 'AUTRE')!.summon_conditions).toEqual([{ materials: 3 }]);
+    expect(session.hand.find(c => c.id === 'VISEE')!.summon_conditions).toEqual([{ materials: 2, requires: [] }]);
+  });
+
+  // Le pendant : aucune carte visée en main, et la remise est perdue plutôt que
+  // reportée sur une autre. Elle a été consommée par le tour, pas par la carte.
+  it('reduce_materials VISÉE : ne se rabat sur personne', () => {
+    const { session } = makeSession();
+    session.applyGlobalMagie(magie({ type: 'reduce_materials', value: 1, attribute: 'ARCH_086' }) as any);
+    session.hand = [makeCard({ id: 'AUTRE', summon_conditions: [{ materials: 3 }], attributes: ['ARCH_089'] }) as any];
+    session.startPreparation();
+
+    expect(session.hand.find(c => c.id === 'AUTRE')!.summon_conditions).toEqual([{ materials: 3 }]);
+  });
+
   it('reduce_materials : ne descend jamais sous zéro', () => {
     const { session } = makeSession();
     session.applyGlobalMagie(magie({ type: 'reduce_materials', value: 5 }) as any);

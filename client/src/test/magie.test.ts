@@ -171,8 +171,8 @@ describe('MagieEffect — effets globaux (gameState)', () => {
     applyEffect(magie({ type: 'reduce_materials', value: 1 }), { gameState: gs });
     applyEffect(magie({ type: 'remove_requirements' }), { gameState: gs });
     expect(gs.player_hand_modifiers).toEqual([
-      { type: 'reduce_materials', value: 1 },
-      { type: 'remove_requirements', value: 1 },
+      { type: 'reduce_materials', value: 1, attribute: null },
+      { type: 'remove_requirements', value: 1, attribute: null },
     ]);
   });
 
@@ -199,8 +199,21 @@ describe('MagieEffect — effets globaux (gameState)', () => {
     applyEffect(magie({ type: 'remove_requirements' }), { gameState: gs });
     applyEffect(magie({ type: 'remove_requirements', value: 2 }), { gameState: gs });
     expect(gs.player_hand_modifiers).toEqual([
-      { type: 'remove_requirements', value: 1 },
-      { type: 'remove_requirements', value: 2 },
+      { type: 'remove_requirements', value: 1, attribute: null },
+      { type: 'remove_requirements', value: 2, attribute: null },
+    ]);
+  });
+
+  // ⚠️ L'attribut VOYAGE jusqu'au modificateur : la magie est jouée un tour
+  // avant que la main retouchée n'existe, elle ne peut donc pas choisir la
+  // carte elle-même. S'il n'était pas transporté, la magie visée retomberait
+  // sur n'importe quelle carte — en silence.
+  // Mutation : ne pas recopier `attribute` dans le push → ROUGE.
+  it('la remise VISÉE transporte son attribut jusqu\'au tour suivant', () => {
+    const gs = new (GameState as any)();
+    applyEffect(magie({ type: 'reduce_materials', value: 2, attribute: 'ARCH_086' }), { gameState: gs });
+    expect(gs.player_hand_modifiers).toEqual([
+      { type: 'reduce_materials', value: 2, attribute: 'ARCH_086' },
     ]);
   });
 });

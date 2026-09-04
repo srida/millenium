@@ -835,7 +835,7 @@ Un monstre peut porter plusieurs attributs. **Un seul palier est actif à la foi
 | `stat_modifier` | `during_combat` | Déclenché par `trigger` : `on_ally_neutralized` / `on_enemy_neutralized` |
 | `revive` | `end_of_combat` | Réanime une unité neutralisée à `hp_percent` % (déf. 50) |
 | `draw_bonus` | `end_of_combat` | Pioches supplémentaires (plafonné par `max`) |
-| `guaranteed_draw` | `end_of_combat` | Pousse `{ tier, attribute }` dans `player_guaranteed_draws` |
+| `guaranteed_draw` | `end_of_combat` | Pousse `{ attribute }` dans `player_guaranteed_draws` |
 | `board_slot_bonus` | `end_of_combat` | Via `grantLimitedBoardSlotBonus` — **cap +1 partagé avec les magies de slot** |
 | `damage_multiplier_bonus` | `end_of_combat` | S'ajoute au `player_multiplier` **de ce round** |
 | `shopping_bonus` | `end_of_combat` | Magies supplémentaires au Shopping suivant (plafonné par `max`) |
@@ -1061,8 +1061,8 @@ Détection **automatique** dérivée de `effect.type` — **aucun champ admin à
 | le deck porte **le** tier demandé | `guaranteed_draw` |
 | le cap partagé +1 slot est encore libre | `board_slot_bonus` |
 | `player_hp < PLAYER_HP_CAP` | `player_hp_bonus` |
-| le deck porte une carte à coût en matériels | `reduce_materials` |
-| le deck porte une carte à exigence **nommée** | `remove_requirements` |
+| le deck porte une carte à coût en matériels — **portant l'`attribute`** s'il y en a un | `reduce_materials` |
+| le deck porte une carte à exigence **nommée** — même règle | `remove_requirements` |
 | une carte en main **et** le deck porte son tier voisin | `shift_tier_card` |
 | une unité au board **et** le deck porte son tier voisin | `shift_tier_unit` |
 | une carte en main dont un **matériel** est résolvable | `draw_material` |
@@ -1070,7 +1070,8 @@ Détection **automatique** dérivée de `effect.type` — **aucun champ admin à
 | toujours | `draw_bonus` |
 
 - ⚠️ **La table est FERMÉE (`default: false`)** : un `effect` nul ou d'un type inconnu traverse `applyEffect` sans rien faire. **Corollaire : un type ajouté à `applyEffect` mais oublié dans `isMagieRelevant` disparaît silencieusement du jeu.** `magie-offer.test.ts` relit `initial-data/magies.json` et exige que chaque magie livrée soit offrable sous un contexte permissif.
-- ⚠️ **Les deux modificateurs de main se testent sur le DECK, jamais sur la main** : ils sont **différés** au `startPreparation()` suivant, donc appliqués après une pioche de cinq cartes neuves. Chaque drapeau reprend le **prédicat exact** de `startPreparation` (`deckHasMaterialCost` / `deckHasNamedRequirement`) — une carte sans coût, ou sans exigence nommée, n'est jamais retouchée.
+- ⚠️ **Les deux modificateurs de main se testent sur le DECK, jamais sur la main** : ils sont **différés** au `startPreparation()` suivant, donc appliqués après une pioche de cinq cartes neuves. `_retouchable(type)` est le **prédicat exact** que `startPreparation` appliquera, et l'offre comme l'application l'appellent — une carte sans coût, ou sans exigence nommée, n'est jamais retouchée.
+- ⚠️ **Le booléen et la liste d'attributs ne disent pas la même chose, et la liste ne remplace pas le booléen** : une carte retouchable qui ne porte **aucun** attribut rend `deckHasMaterialCost` vrai sans rien ajouter à `deckMaterialCostAttributes`. Une remise visée lit la liste, une remise nue lit le booléen. Tester « attribut présent » et « carte retouchable » **séparément** offrirait la magie sur un deck où ce sont deux cartes différentes.
 - ⚠️ **`guaranteed_draw` hors deck n'est pas un no-op** : `startPreparation` a un **double repli** et pioche quand même, parfois au-dessus de ce que le round autorise. Le filtre supprime là un effet accidentellement bon, délibérément — la magie **promet un tier qu'elle ne rend pas**.
 - ⚠️ **`board_slot_bonus` est la seule magie qui peut s'appliquer sans erreur et ne rien donner** (`grantLimitedBoardSlotBonus` rend 0 en silence une fois le cap consommé) → `GameState.hasLimitedBoardSlotBonusLeft()`.
 - Les règles servant à la fois le **ciblage** et la **pertinence** n'existent qu'à un endroit : `_defusableFusions`, `_poweredUnits`, `_cataloguedUnits`, `_drawableMaterialIds`, `_boardTierShiftPool`.
@@ -1121,12 +1122,14 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 | `shift_tier_unit` | `value` | **Remplace** une unité du board par une unité du **deck** au tier voisin, **sur sa case** |
 | `draw_material` | — | Cible une carte de la main, ajoute l'un de ses **matériels**. La source reste en place |
 | `sacrifice_card_hp` | `value` (% des PV, déf. **100**) | **Brûle** une carte de la main et verse ses PV au joueur |
-| `reduce_materials` | `value` (déf. 1) | `player_hand_modifiers` — baisse le coût de N slots ; les `requires` sont rognées pour tenir dans le nouveau compte |
-| `remove_requirements` | `value` (déf. 1) | `player_hand_modifiers` — retire N exigences **nommées**, le compte de slots inchangé |
+| `reduce_materials` | `value` (déf. 1), `attribute` | `player_hand_modifiers` — baisse le coût de N slots ; les `requires` sont rognées pour tenir dans le nouveau compte |
+| `remove_requirements` | `value` (déf. 1), `attribute` | `player_hand_modifiers` — retire N exigences **nommées**, le compte de slots inchangé |
 
 Les `player_hand_modifiers` sont consommés **au tour suivant**, dans `startPreparation()`.
 
 ⚠️ **Les deux gestes sont ORTHOGONAUX** : `reduce_materials` baisse le prix, `remove_requirements` lève une contrainte. L'ancienne « retire un matériel de Fusion » faisait les deux à la fois — mais seulement parce que le coût d'une fusion **était** la longueur de sa liste de matériaux. Ce couplage n'existe plus, il faut donc choisir lequel des deux une magie porte.
+
+⚠️ **`attribute` est un filtre FACULTATIF, et il vaut pour les deux** : c'est lui qui rend « −1 matériel de Fusion » exprimable maintenant qu'il n'y a plus de voie à nommer. Absent, la remise tombe sur la première carte retouchable. Il **voyage** dans le `player_hand_modifiers` : la magie est jouée un tour avant que la main retouchée n'existe, elle ne peut donc pas désigner la carte elle-même. Une remise visée qui ne trouve personne est **perdue**, jamais reportée.
 
 **Trois familles de cibles, et elles s'excluent** — `GameController.chooseMagie` les teste dans l'ordre unité → cimetière → main ; un type reconnu par deux d'entre elles n'atteindrait jamais la troisième branche.
 

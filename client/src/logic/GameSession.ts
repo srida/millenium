@@ -62,6 +62,20 @@ function _tiers(cards: readonly (Card | null | undefined)[]): number[] {
  * condition qui garderait plus d'exigences que de slots serait insatisfiable,
  * donc une remise qui rend la carte injouable.
  */
+/**
+ * Une carte que ce geste peut retoucher. ⚠️ C'est LE prédicat que
+ * `startPreparation` appliquera un tour plus tard — l'offre et l'application
+ * posent la même question, sinon la magie est offerte pour ne rien faire.
+ */
+function _retouchable(type: 'reduce_materials' | 'remove_requirements') {
+  return (card: Card) => summonConditions(card).some(
+    cd => type === 'reduce_materials'
+      ? conditionMaterials(cd) > 0
+      : conditionRequires(cd).length > 0);
+}
+
+const _attributesOf = (cards: Card[]) => [...new Set(cards.flatMap(c => c.attributes ?? []))];
+
 function _discountCard(card: Card, type: 'reduce_materials' | 'remove_requirements', amount: number): Card {
   const before = summonConditions(card);
   const after: SummonCondition[] = before.map(cd => {
@@ -328,10 +342,16 @@ export class GameSession {
       // maintenant en données, plus en code.
       for (const mod of modifiers) {
         const amount = Math.max(1, mod.value || 1);
-        const idx = this.hand.findIndex(c => summonConditions(c).some(
-          cd => mod.type === 'reduce_materials'
-            ? conditionMaterials(cd) > 0
-            : conditionRequires(cd).length > 0));
+        // ⚠️ L'attribut est un filtre FACULTATIF, et il vaut pour les deux
+        // gestes : c'est lui qui rend « -1 matériel de Fusion » exprimable
+        // maintenant qu'il n'y a plus de voie à nommer. Absent, la remise tombe
+        // sur la première carte retouchable, comme avant.
+        const idx = this.hand.findIndex(c =>
+          (!mod.attribute || (c.attributes ?? []).includes(mod.attribute))
+          && summonConditions(c).some(
+            cd => mod.type === 'reduce_materials'
+              ? conditionMaterials(cd) > 0
+              : conditionRequires(cd).length > 0));
         if (idx === -1) continue;
         this.hand[idx] = _discountCard(this.hand[idx], mod.type, amount);
       }
@@ -786,8 +806,13 @@ export class GameSession {
       // `startPreparation()` suivant, donc appliqués après une pioche neuve.
       // Chaque prédicat est LE MÊME que celui que `startPreparation` appliquera
       // — une condition à coût nul n'est jamais retouchée par une remise.
-      deckHasMaterialCost:     deck.some(c => summonConditions(c).some(cd => conditionMaterials(cd) > 0)),
-      deckHasNamedRequirement: deck.some(c => summonConditions(c).some(cd => conditionRequires(cd).length > 0)),
+      // ⚠️ Le booléen et la liste ne disent PAS la même chose, et la liste ne
+      // peut pas remplacer le booléen : une carte retouchable qui ne porte
+      // aucun attribut rend le premier vrai et n'ajoute rien à la seconde.
+      deckHasMaterialCost:     deck.some(_retouchable('reduce_materials')),
+      deckHasNamedRequirement: deck.some(_retouchable('remove_requirements')),
+      deckMaterialCostAttributes:     _attributesOf(deck.filter(_retouchable('reduce_materials'))),
+      deckNamedRequirementAttributes: _attributesOf(deck.filter(_retouchable('remove_requirements'))),
       boardSlotBonusAvailable: this.gameState.hasLimitedBoardSlotBonusLeft(),
       playerHpBelowCap:        this.gameState.player_hp < PLAYER_HP_CAP,
     };

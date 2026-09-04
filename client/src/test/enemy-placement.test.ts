@@ -124,7 +124,7 @@ describe('EnemyAI.drawHand — bonus de pioche (draw_bonus / guaranteed_draw)', 
 
   it('une pioche garantie occupe un slot de la main normale, pas une carte en plus', () => {
     const ai = new (EnemyAI as any)({ 1: ['E1'] }, cardDb, 'enemy');
-    const drawn = ai.drawHand(1, null, 0, [{ category: 'normal' }]);
+    const drawn = ai.drawHand(1, null, 0, [{ attribute: 'ARCH_090' }]);
     expect(drawn).toHaveLength(5);
   });
 
@@ -181,13 +181,13 @@ describe('Bonus de pioche par attribut, côté ENNEMI — bout en bout', () => {
   it('guaranteed_draw déclenché par l\'IA alimente enemy_guaranteed_draws puis se consomme au combat suivant', () => {
     const attrs = [{
       id: 'ARCH_SCOUT', name: 'Éclaireur', timing: 'end_of_combat',
-      thresholds: [{ count: 1, effects: [{ type: 'guaranteed_draw', category: 'normal', attribute: null }] }] }];
+      thresholds: [{ count: 1, effects: [{ type: 'guaranteed_draw', attribute: 'ARCH_090' }] }] }];
     const session = makeSessionWithAttrs(attrs);
     session.startPreparation();
     session.startCombat();
     session.finishCombat();
 
-    expect(session.gameState.enemy_guaranteed_draws).toEqual([{ category: 'normal', attribute: null }]);
+    expect(session.gameState.enemy_guaranteed_draws).toEqual([{ attribute: 'ARCH_090' }]);
 
     session.startNextRound();
     session.startCombat();

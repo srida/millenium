@@ -128,6 +128,15 @@ function guaranteedDrawLabel(e) {
   return parts.length ? `Pioche garantie ${parts.join(' · ')} ce tour` : 'Pioche garantie ce tour';
 }
 
+/**
+ * Sur quelle carte une remise de main s'applique. Même règle d'ID que
+ * `guaranteedDrawLabel` : `logic/` ne sait pas nommer un attribut, l'appelant
+ * résout.
+ */
+function handModifierScope(e) {
+  return e.attribute ? `${e.attribute} de ta main` : 'de ta main';
+}
+
 export function needsUnitTarget(magie) {
   return ['stat_bonus', 'stat_modifier', 'shield', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life',
     'grant_power', 'power_cooldown', 'duplicate_unit', 'shift_tier_unit'].includes(magie?.effect?.type);
@@ -200,8 +209,8 @@ export function effectLabel(magie) {
       : `Sacrifie une carte de ta main : tu gagnes ${sacrificeHpPercent(magie)}% de ses PV en points de vie`;
     // Les deux remises d'invocation. Elles ne disent PAS la même chose : l'une
     // baisse le prix, l'autre lève une contrainte sans rien rendre moins cher.
-    case 'reduce_materials':         return `-${e.value ?? 1} matériel(s) requis sur une carte de ta main`;
-    case 'remove_requirements':      return `Retire ${e.value ?? 1} matériel(s) NOMMÉ(s) d'une carte de ta main`;
+    case 'reduce_materials':         return `-${e.value ?? 1} matériel(s) requis sur une carte ${handModifierScope(e)}`;
+    case 'remove_requirements':      return `Retire ${e.value ?? 1} matériel(s) NOMMÉ(s) d'une carte ${handModifierScope(e)}`;
     default: return e.type;
   }
 }
@@ -331,11 +340,14 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
     case 'damage_multiplier_bonus':
       if (gameState) gameState.player_damage_multiplier_bonus += (e.value || 0);
       break;
+    // ⚠️ `attribute` voyage jusqu'au modificateur : c'est `startPreparation`,
+    // un tour plus tard, qui choisira la carte — la magie ne peut pas la
+    // désigner elle-même, la main d'alors n'existe pas encore.
     case 'reduce_materials':
-      if (gameState) gameState.player_hand_modifiers.push({ type: 'reduce_materials', value: e.value ?? 1 });
-      break;
     case 'remove_requirements':
-      if (gameState) gameState.player_hand_modifiers.push({ type: 'remove_requirements', value: e.value ?? 1 });
+      if (gameState) gameState.player_hand_modifiers.push({
+        type: e.type, value: e.value ?? 1, attribute: e.attribute ?? null,
+      });
       break;
     case 'defuse_fusion':
       // Handled by GameScreen._defuseFusion() — applyEffect is a no-op here
