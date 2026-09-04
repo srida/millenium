@@ -8,7 +8,6 @@ import { getAttribute } from '../../data/AttributeDatabase.js';
 import { getCard } from '../../data/CardDatabase.js';
 import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
 import PowerIcon from '../ui/PowerIcon.js';
-import SummonTypeIcon from '../ui/SummonTypeIcon.js';
 import { Illustration } from '../ui/primitives.js';
 import {
   summonRecipes, recipeCostText, materialsLabel, recipeIsFree, type SummonRecipe,
@@ -89,13 +88,17 @@ function cardName(id: string): string {
   }
 }
 
-// Invocation — comment la carte se pose et ce qu'elle exige. Une carte à
-// `summon_options` affiche ses voies l'une sous l'autre : ce sont des
-// alternatives, pas un cumul.
+// Invocation — ce que la carte exige pour se poser. Une carte à plusieurs
+// CONDITIONS les affiche l'une sous l'autre : ce sont des alternatives, pas un
+// cumul.
+//
+// ⚠️ Plus une ligne ne nomme de voie. Ce que « Fusion » ou « Héritage »
+// disaient au joueur se lit dans les ATTRIBUTS de la carte, rendus juste
+// au-dessus comme n'importe quel archétype.
 function SummonBlock({ card }: { card: any }) {
   const recipes = summonRecipes(card);
-  // Une normale sans rien à exiger n'apprend rien : la carte se pose, point.
-  if (recipes.length === 1 && recipes[0].summon_type === 'normal' && recipeIsFree(recipes[0])) return null;
+  // Rien à exiger n'apprend rien : la carte se pose, point.
+  if (recipes.length === 1 && recipeIsFree(recipes[0])) return null;
 
   return (
     <div className="mt-2 rounded-lg border border-white/10 bg-white/5 p-2">
@@ -114,16 +117,15 @@ function RecipeRow({ recipe }: { recipe: SummonRecipe }) {
   return (
     <div>
       <div className="flex items-baseline gap-1.5">
-        <span className="flex items-center gap-1 text-[11px] font-bold text-white/85">
-          <SummonTypeIcon type={recipe.summon_type} fallback={recipe.icon} className="h-3.5 w-3.5 text-[11px]" />
-          {recipe.label}
+        {/* Le coût EST le titre de la ligne : il n'y a plus de voie à nommer. */}
+        <span className="text-[11px] font-bold tabular-nums text-white/85">
+          {cost ?? 'Se pose directement'}
         </span>
-        {cost && <span className="text-[10px] text-white/55">{cost}</span>}
       </div>
-      {recipe.materials.length > 0 && (
+      {recipe.requires.length > 0 && (
         <div className="mt-0.5 text-[10px] leading-snug text-white/55">
           <span className="text-white/40">{materialsLabel(recipe)} : </span>
-          {recipe.materials.map((m, i) => (
+          {recipe.requires.map((m, i) => (
             <span key={`${m.id}-${i}`}>
               {i > 0 && <span className="text-white/30"> + </span>}
               {m.kind === 'attribute'

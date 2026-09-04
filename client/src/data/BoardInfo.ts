@@ -45,9 +45,8 @@ export function boardTargetAttributes(effect: BoardEffectDef | null | undefined)
  * `AttributeDatabase` sans faire entrer une database dans ce module pur.
  *
  * ⚠️ Les VOIES D'INVOCATION visées ne sont jamais dans ce libellé : elles
- * s'affichent en puces, avec leur pictogramme (`boardTargetSummonTypes`), pour
- * la raison même qui garde les archétypes hors du texte. Ce paramètre-ci ne
- * sert plus qu'aux effets d'ATTRIBUT, qui n'ont pas de puces sous eux.
+ * s'affichent en puces, comme les archétypes et pour la même raison — il n'y a
+ * plus qu'un ciblage, `target_attributes`.
  *
  * ⚠️ Un effet absent rend « Aucun effet », jamais une chaîne vide : un blanc
  * dans l'annonce se lirait comme un bug d'affichage, pas comme un terrain neutre.

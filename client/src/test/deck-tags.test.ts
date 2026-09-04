@@ -158,6 +158,33 @@ describe('plafond', () => {
   });
 });
 
+// ── Les attributs d'INVOCATION ──────────────────────────────────────────────
+
+describe('les voies d\'invocation ne caractérisent pas un deck', () => {
+  // ⚠️ Depuis que les cinq voies sont des attributs, « Normal » est porté par
+  // 389 cartes sur 868 : il serait dominant dans presque tous les decks, et le
+  // tag ne distinguerait plus rien. Ils sont écartés ICI et seulement ici — le
+  // tirage du terrain les garde, un terrain a le droit de viser les Sacrifices.
+  //
+  // Mutation : retirer le filtre `isInvocationAttribute` → ROUGE.
+  it('un attribut d\'invocation dominant ne devient jamais un tag', () => {
+    // ARCH_090 « Normal » sur tout le deck, ARCH_002 sur la moitié : sans le
+    // filtre, c'est le premier qui sortirait en tête.
+    const deck = deckOf(
+      card(['ARCH_090', 'ARCH_002']), card(['ARCH_090', 'ARCH_002']),
+      card(['ARCH_090']), card(['ARCH_090']),
+    );
+    const tags = computeDeckTags(deck);
+    expect(tags).not.toContain('Normal');
+    expect(tags).toContain('Magicien');
+  });
+
+  it('un deck qui n\'a QUE des attributs d\'invocation n\'a aucun tag d\'archétype', () => {
+    const deck = deckOf(card(['ARCH_086']), card(['ARCH_086']), card(['ARCH_089']), card(['ARCH_089']));
+    expect(computeDeckTags(deck).filter(t => ['Fusion', 'Sacrifice'].includes(t))).toEqual([]);
+  });
+});
+
 // ── Robustesse ──────────────────────────────────────────────────────────────
 
 describe('robustesse', () => {

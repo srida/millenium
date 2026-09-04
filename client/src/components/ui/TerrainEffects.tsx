@@ -11,29 +11,26 @@
 // deux formes de la donnée (`effects` cumulés, `effect` historique) : un écran
 // qui lirait `board.effect` afficherait « Aucun effet » sur les terrains neufs.
 import { boardEffects } from '../../logic/BoardEffect.js';
-import { boardEffectLabel, boardTargetsUnits, boardTargetAttributes, boardTargetSummonTypes } from '../../data/BoardInfo.js';
+import { boardEffectLabel, boardTargetsUnits, boardTargetAttributes } from '../../data/BoardInfo.js';
 import AttrIcon, { attributeName } from './AttrIcon.js';
-import SummonTypeIcon, { summonTypeName } from './SummonTypeIcon.js';
 import type { BoardDef, BoardEffectDef } from '../../logic/types.js';
 
 const CHIP = 'flex items-center gap-1 rounded border border-gold/40 bg-gold/10 px-1.5 py-0.5 text-[10px] text-gold';
 
 /**
- * Les puces de ciblage d'un effet : les archétypes, puis les voies
- * d'invocation.
+ * Les puces de ciblage d'un effet — ses archétypes, et rien d'autre.
  *
- * ⚠️ Les deux familles se lisent COMME UN ET (« les Dragons invoqués par
- * Fusion »), ce qu'exprime `BoardEffect.effectTargets`. C'est pourquoi elles
- * sont posées sur la même ligne, sans séparateur qui les mettrait en
- * alternative.
+ * ⚠️ Il n'y a plus qu'UNE famille : les voies d'invocation sont devenues des
+ * attributs de carte comme les autres, elles passent donc par la même puce. Le
+ * ET entre deux familles n'existe plus, et `BoardEffect.effectTargets` non plus
+ * ne lit qu'un ciblage.
  */
 function TargetChips({ effect, center }: { effect: BoardEffectDef; center?: boolean }) {
   const attrs = boardTargetAttributes(effect);
-  const kinds = boardTargetSummonTypes(effect);
   if (!boardTargetsUnits(effect)) return null;
   // Aucun ciblage = toutes les unités des deux joueurs : le dire, sinon le
   // silence se lit comme « aucune cible ».
-  if (!attrs.length && !kinds.length) {
+  if (!attrs.length) {
     return <div className="mt-1 text-[10px] text-white/40">Toutes les unités</div>;
   }
   return (
@@ -42,12 +39,6 @@ function TargetChips({ effect, center }: { effect: BoardEffectDef; center?: bool
         <span key={id} className={CHIP}>
           <AttrIcon id={id} className="h-3.5 w-3.5 text-[11px]" />
           {attributeName(id)}
-        </span>
-      ))}
-      {kinds.map(type => (
-        <span key={type} className={CHIP}>
-          <SummonTypeIcon type={type} className="h-3.5 w-3.5 text-[11px]" />
-          {summonTypeName(type)}
         </span>
       ))}
     </div>

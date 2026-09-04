@@ -16,12 +16,10 @@
 // pointerup retombait sur la grille qui venait de se monter dessous.
 import { useRef, type ReactNode } from 'react';
 import type { Card } from '../../logic/types.js';
-import { costHint } from '../../data/CardDatabase.js';
 import { artFor } from '../../data/CardArt.js';
-import { SUMMON_ICONS } from '../../data/SummonInfo.js';
+import { summonCostOf } from '../../data/SummonInfo.js';
 import { useUiStore, type TooltipContent } from '../../stores/uiStore.js';
 import { Illustration } from './primitives.js';
-import SummonTypeIcon from './SummonTypeIcon.js';
 
 // Cadre : or = sélection / candidat, blanc = matériau retenu — même code couleur
 // que les unités du board (three/UnitCardEl.ts + styles/board3d.css).
@@ -50,7 +48,7 @@ export interface CardTileProps {
   illustrationId: string;
   name: string;
   tier?: number | null;             // null → ni badge T·, ni liseré de tier
-  hint?: ReactNode;                 // pastille de coût d'invocation (costHint + renderHint)
+  hint?: ReactNode;                 // pastille de coût d'invocation (cf. renderHint)
   badge?: number | null;            // badge ×N (exemplaires)
   stacked?: boolean;                // épaisseur de pile (plusieurs exemplaires)
   showName?: boolean;
@@ -65,24 +63,21 @@ export interface CardTileProps {
   onTap?: () => void;
 }
 
-type CostHint = { kind: 'multi' } | { kind: 'type'; type: string; count?: number } | null;
 
-// costHint() ne décrit QUE la donnée (type d'invocation, compteur) : c'est ici,
-// pas dans le module data, que la description devient une icône réelle — image
-// posée en admin sur le catalogue des types d'invocation, sinon l'emoji de
-// repli. « Plusieurs recettes » (`summon_options`) est une entrée du même
-// catalogue (`type: 'multi'`), au même titre que fusion/heritage/… — l'admin
-// peut donc changer son icône exactement pareil.
+// La pastille dit le COÛT, et rien d'autre : un chiffre, le nombre de
+// matériels de la voie la moins chère.
+//
+// ⚠️ Elle portait l'icône de la voie d'invocation, une notion que le moteur n'a
+// plus. Ce que ces icônes racontaient (« c'est une Fusion ») se lit maintenant
+// dans les ATTRIBUTS de la carte, affichés comme n'importe quel archétype —
+// c'est le tooltip qui les rend, pas la vignette, qui n'a la place que d'un
+// seul signe.
+//
+// Rien pour une carte sans condition : une vignette nue DIT qu'elle se pose.
 function renderHint(card: Card): ReactNode {
-  const h = (costHint as (c: unknown) => CostHint)(card);
-  if (!h) return null;
-  const type = h.kind === 'multi' ? 'multi' : h.type;
-  return (
-    <span className="inline-flex items-center gap-0.5">
-      {h.kind === 'type' && h.count ? `×${h.count}` : null}
-      <SummonTypeIcon type={type} fallback={SUMMON_ICONS[type] ?? '🔀'} className="h-2.5 w-2.5 text-[9px]" />
-    </span>
-  );
+  const cost = summonCostOf(card);
+  if (cost <= 0) return null;
+  return <span className="inline-flex items-center gap-0.5 tabular-nums">◈{cost}</span>;
 }
 
 // Props dérivées d'une carte du catalogue — évite de répéter costHint et le

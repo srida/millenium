@@ -20,3 +20,24 @@ export function getAllAttributes() {
   return list;
 }
 
+/**
+ * La catégorie qui porte les cinq anciennes voies d'invocation (Fusion,
+ * Héritage, Transformation, Sacrifice, Normal). Ce sont des attributs comme les
+ * autres pour le MOTEUR — un terrain peut les cibler, une mission les compter —
+ * mais pas pour ce qui CARACTÉRISE un deck : « Normal » est porté par 389
+ * cartes sur 868, il serait dominant partout et ne distinguerait rien.
+ *
+ * ⚠️ Le nom de la catégorie vit ICI et nulle part ailleurs.
+ */
+export const INVOCATION_CATEGORY = 'Invocation';
+
+/** Cet attribut décrit-il une voie d'invocation plutôt qu'un archétype ? */
+export function isInvocationAttribute(id) {
+  try {
+    return getAttribute(id)?.categorie === INVOCATION_CATEGORY;
+  } catch {
+    // Database non initialisée (bancs de dev) — même filet qu'`AttrIcon`.
+    return false;
+  }
+}
+

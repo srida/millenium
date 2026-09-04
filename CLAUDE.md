@@ -600,6 +600,8 @@ La main est **conservée entre les tours** (taille illimitée) ; les cartes non 
 - ⚠️ **INVARIANT : `sum(sources.value) === extraDraws`**, et le registre se **vide avec** le compteur (`draw-summary.test.ts`). Un quatrième émetteur qui oublierait son inscription ferait annoncer un « +2 » venu de nulle part.
 - ⚠️ Le registre ne porte que des **ids** — `logic/` n'importe pas `data/`. `data/DrawInfo.ts` (pur) met la pioche en mots, `RoundStart.tsx` résout les noms.
 
+**Le coût d'une carte s'affiche en un CHIFFRE**, jamais par une icône de voie : `data/SummonInfo.summonCostOf` (qui délègue à `InvocationManager.summonCost`) donne le nombre, `CardTile` le rend. Ce que les icônes racontaient — « c'est une Fusion » — se lit dans les **attributs** de la carte, au tooltip, comme n'importe quel archétype. Le `SynergyPanel` ne les montre pas : il n'affiche que les attributs à `thresholds`, et les cinq attributs d'invocation n'en ont aucun.
+
 **Affichage** (`GameController._groupHand`) : `session.hand` reste une liste plate (l'ordre de pioche fait foi côté logique) ; l'instantané React regroupe les exemplaires identiques (badge ×N, `HandEntry.count`) et trie par tier puis nom. **`HandEntry.idx` pointe l'exemplaire représentatif** — c'est lui qui quitte la main à l'invocation. ⚠️ La signature de regroupement **inclut le coût** : une carte remisée par une magie de main ne fusionne pas avec un exemplaire normal.
 
 ## Multiplicateur de dégâts
@@ -749,6 +751,8 @@ materialValueOf(card) / isAttributeMaterial(matId)
 - ⚠️ **`forcedCell` est le SEUL endroit qui répond à « où l'unité se pose »**, et ses trois appelants — la validation, la pose, l'IA — ne peuvent donc pas se contredire. C'est l'ancienne Transformation, énoncée sur le **coût** : à un matériel, le résultat prend la place de sa cible, d'où qu'elle vienne. La case retenue est celle que le matériel **occupe encore** (`board.getUnit(pos) === u`) : une unité retirée du board garde une `position` périmée, que quelqu'un d'autre occupe peut-être.
 - ⚠️ **Les matériaux partent AVANT la pose**, cimetière compris (un corps neutralisé occupe encore une case). C'est ce qui rend les règles 1 et 5 vraies sans une ligne pour les dire.
 - ⚠️ **Le cimetière ne libère aucun SLOT** (il n'en occupe pas) mais libère bien une **case**. La Transformation échappait au plafond par exception ; la règle unifiée ne regarde que ce qui est libéré, donc une condition payée au seul cimetière est refusée sur un board plein.
+
+`data/SummonInfo` (pur) met tout ça **en mots** pour le tooltip : `summonRecipes` (une par condition), `summonCostOf`, `recipeCostText`, `materialsLabel`, `recipeIsFree`. ⚠️ **« Matériels » vs « dont » se dérive du coût seul** : autant d'exigences nommées que de slots → elles sont toutes listées ; moins → les autres slots restent libres et les nommées sont prises *dedans*. C'était la distinction Fusion / Héritage, écrite en dur dans deux tables par voie.
 
 `InvocationRules` (pur, sans mutation) alimente l'UI : `isPlayable`, `needsMaterials`, `materialsComplete`, `forcedMaterials`, `validCells`, `materialCandidateCells`, `materialCandidateGraveyard`, `summonConditionsStatus`, `getUncoveredRequirements`, `hasEmptyPlayerCell`. `GameSession` les ré-expose en injectant board/main/cimetière/slots.
 
@@ -1349,9 +1353,9 @@ Verrouillé par `client/src/test/pvp.test.ts`.
 Chaque database expose `init()` async ; les données sont cachées en mémoire après le premier fetch. `initGameData` les initialise.
 
 ```js
-CardDatabase.getCard(id) / getCardsByTier(tier) / getAllCards() / illustrationUrl(id) / costHint(card)
+CardDatabase.getCard(id) / getCardsByTier(tier) / getAllCards() / illustrationUrl(id)   // ⚠️ plus de costHint
 CardBackDatabase.resolveCardBack(id) / defaultCardBack()            // ⚠️ init() ne jette jamais
-AttributeDatabase.getAttribute(id) / getAllAttributes()      // Array — injecté dans GameSession
+AttributeDatabase.getAttribute(id) / getAllAttributes() / isInvocationAttribute(id)
 PowerDatabase.getPower(id) / getAllPowers()
 BoardDatabase.getBoard(id) / getAllBoards()                  // ⚠️ plus de getRandomBoard
 MagieDatabase.getAllMagies()                                 // ⚠️ plus de getRandomMagies
@@ -1392,7 +1396,7 @@ Structure d'un deck : `{ "1": ["CORE_001", …], "2": […], "3": […], "4": [�
 
 - **L'adversaire solo se choisit parmi les decks publics**, jamais parmi ceux du joueur. Le deck public **voyage en clair** dans les params (`enemyDeck`), pas seulement par son nom : il ne vit pas dans `DeckRepository`. `enemyDeckName` n'est plus qu'un libellé.
 - **La carte d'un deck public ne montre pas la même chose** : la répartition par tier est réservée aux siens (devant un adversaire, on ne choisit pas une composition) — elle cède la place à sa **difficulté** (`DifficultyChip` : le libellé **et** 4 pastilles) et à ses **tags**.
-- **Tags** (`data/DeckTags.computeDeckTags`) : deux attributs dominants (≥ 2 cartes) puis un mot de profil (Mêlée / Distance / Brutal / Offensif), 3 max. **Un seul calcul, deux moments** : figés à l'enregistrement pour le deck du joueur, **dérivés à l'affichage** pour un deck public. ⚠️ **Le tri a DEUX critères** : effectif décroissant, puis `id` d'attribut — sans le second, un deck public réordonné en admin changeait de tags sans changer de contenu (même geste que le départage par `card_id` de l'initiative).
+- **Tags** (`data/DeckTags.computeDeckTags`) : deux attributs dominants (≥ 2 cartes) puis un mot de profil (Mêlée / Distance / Brutal / Offensif), 3 max. ⚠️ Les attributs de **catégorie `Invocation`** en sont écartés — et **seulement là** : le tirage du terrain les garde (un terrain a le droit de viser les Sacrifices). « Normal » est porté par 389 cartes sur 868, il serait dominant partout et ne distinguerait rien. `AttributeDatabase.isInvocationAttribute` est le seul endroit qui nomme cette catégorie. **Un seul calcul, deux moments** : figés à l'enregistrement pour le deck du joueur, **dérivés à l'affichage** pour un deck public. ⚠️ **Le tri a DEUX critères** : effectif décroissant, puis `id` d'attribut — sans le second, un deck public réordonné en admin changeait de tags sans changer de contenu (même geste que le départage par `card_id` de l'initiative).
 - Deux raccourcis en mode `'play'` : **🪞 Miroir** (état par défaut, `enemyId = null` → l'IA joue le deck du joueur) et **🎲 Aléatoire** (tire un deck public jouable, en évitant le tirage précédent). Ne retient que les decks ≥ 20 cartes.
 - **Tournoi et Duel en ligne n'ont pas d'étape de sélection** : ils consomment `getActiveDeck()` et n'affichent qu'un récap **en lecture seule** (`components/deck/SelectedDeck.tsx`). Seul cas navigable : aucun deck actif → CTA « Mes decks ». Un tournoi lancé garde son deck figé (`tournament.playerDeckName`).
 
