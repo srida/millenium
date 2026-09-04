@@ -3159,7 +3159,7 @@ function renderMagieDetail() {
           <option value="team_stat_bonus" ${effectType === 'team_stat_bonus' ? 'selected' : ''}>Bonus de stat — TOUTES tes unités</option>
           <option value="stat_modifier" ${effectType === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat</option>
           <option value="draw_bonus" ${effectType === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
-          <option value="guaranteed_draw" ${effectType === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (tier et/ou attribut)</option>
+          <option value="guaranteed_draw" ${effectType === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (tier, attributs, cartes)</option>
           <option value="damage_multiplier_bonus" ${effectType === 'damage_multiplier_bonus' ? 'selected' : ''}>Multiplicateur de dégâts (permanent)</option>
           <option value="heal" ${effectType === 'heal' ? 'selected' : ''}>Soin total (une unité)</option>
           <option value="team_heal" ${effectType === 'team_heal' ? 'selected' : ''}>Soin de masse — TOUTES tes unités (PV)</option>
@@ -3248,7 +3248,7 @@ function renderMagieDetail() {
         <input id="mf-effect-power-speed" type="number" min="1" step="1" value="${effect.power_speed ?? 20}">
       </div>
       <div class="field" id="mf-attribute-field" style="${showAttribute ? '' : 'display:none'}">
-        <label id="mf-attribute-label">${magieAttributeLabel(effectType)}</label>
+        <label id="mf-attribute-label">${magieAttributeLabel()}</label>
         <select id="mf-effect-attribute">
           <option value="" ${!effect.attribute ? 'selected' : ''}>— indifférent —</option>
           ${attributes.map(a => `<option value="${a.id}" ${effect.attribute === a.id ? 'selected' : ''}>${esc((a.icon || '') + ' ' + a.name)} — ${a.id}</option>`).join('')}
@@ -3264,6 +3264,10 @@ function renderMagieDetail() {
           <option value="4" ${effect.tier === 4 ? 'selected' : ''}>Tier 4</option>
           <option value="5" ${effect.tier === 5 ? 'selected' : ''}>Tier 5</option>
         </select>
+      </div>
+      <div class="field" id="mf-gd-field" style="${showTier ? '' : 'display:none'};grid-column:1/-1">
+        <label>Critères de la carte garantie (attributs et/ou cartes nommées)</label>
+        ${renderGuaranteedDrawCriteria(effect)}
       </div>
     </div>
 
@@ -3294,19 +3298,156 @@ function renderMagieDetail() {
 }
 
 /**
- * Les trois effets qui portent un filtre d'ATTRIBUT facultatif.
+ * ── Critères d'une pioche garantie ────────────────────────────────────────
+ *
+ * `guaranteed_draw` promet une carte. Ses critères se CUMULENT (ET) : le tier,
+ * chacun des attributs, et — seule exception — une liste de cartes ACCEPTABLES
+ * (OU entre elles). Un seul attribut ne suffisait pas à écrire « un Dragon de
+ * feu », et rien ne permettait de nommer une carte.
+ *
+ * ⚠️ Ces listes vivent dans le MODÈLE (`selectedMagie.effect`), pas dans le
+ * DOM : on ajoute et on retire par re-render, et le DOM ne peut pas servir de
+ * source de vérité pour une liste dont on enlève des éléments au milieu. Même
+ * patron que l'éditeur de recettes et que les lots de cadeau — d'où le
+ * `_syncMagieDraft()` qui recopie la saisie AVANT chaque re-render, sans quoi
+ * ajouter un critère effacerait ce qu'on venait de taper.
+ */
+function guaranteedDrawCriteriaOf(effect) {
+  const attrs = [
+    ...(effect && effect.attribute ? [effect.attribute] : []),
+    ...(Array.isArray(effect && effect.attributes) ? effect.attributes : []),
+  ].filter(Boolean);
+  return {
+    attributes: [...new Set(attrs)],
+    card_ids: [...new Set((Array.isArray(effect && effect.card_ids) ? effect.card_ids : []).filter(Boolean))],
+  };
+}
+
+function renderGuaranteedDrawCriteria(effect) {
+  const { attributes: attrIds, card_ids: cardIds } = guaranteedDrawCriteriaOf(effect);
+  const chips = [
+    ...attrIds.map(id => {
+      const a = attributes.find(x => x.id === id);
+      return { id, kind: 'attribute', label: `${(a && a.icon) || '🔷'} ${esc((a && a.name) || id)}` };
+    }),
+    ...cardIds.map(id => {
+      const c = cards.find(x => x.id === id);
+      return { id, kind: 'card', label: `🃏 ${esc((c && c.name) || id)}` };
+    }),
+  ];
+  return `
+    <div style="display:flex;flex-wrap:wrap;gap:6px;min-height:26px">
+      ${chips.length
+        ? chips.map(ch => `
+          <div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px">
+            <span style="font-size:12px">${ch.label}</span>
+            <span style="font-size:10px;color:var(--muted);font-family:monospace">${ch.id}</span>
+            <button onclick="removeGuaranteedDrawCriterion('${ch.kind}', '${ch.id}')">×</button>
+          </div>`).join('')
+        : '<span style="font-size:12px;color:var(--muted)">Aucun critère — la carte garantie sera prise au hasard dans le deck.</span>'}
+    </div>
+    <div style="position:relative;margin-top:8px">
+      <input type="text" id="mf-gd-search" placeholder="Ajouter un attribut ou une carte..." autocomplete="off"
+        oninput="filterGuaranteedDrawSearch()" onfocus="filterGuaranteedDrawSearch()" onblur="hideGuaranteedDrawDropdown()"
+        style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
+      <div id="mf-gd-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">
+      Les <b>attributs</b> se cumulent : deux attributs exigent une carte qui porte les deux.
+      Les <b>cartes nommées</b> sont des alternatives entre elles, et se cumulent au reste.<br>
+      ⚠️ La magie n'est <b>offerte</b> que si le deck du joueur peut tenir la promesse. Si rien ne
+      correspond au moment de piocher, le <b>tier</b> saute en premier ; le reste tient.
+    </div>`;
+}
+
+/** Recopie la saisie du formulaire dans le modèle avant un re-render. */
+function _syncMagieDraft() {
+  if (!selectedMagie) return;
+  Object.assign(selectedMagie, _collectMagieFields());
+}
+
+function removeGuaranteedDrawCriterion(kind, id) {
+  _syncMagieDraft();
+  const e = selectedMagie.effect || (selectedMagie.effect = { type: 'guaranteed_draw' });
+  const { attributes: attrIds, card_ids: cardIds } = guaranteedDrawCriteriaOf(e);
+  // ⚠️ `attribute` (le champ historique, au singulier) est REPLIÉ dans la liste
+  // et effacé : le laisser en place rendrait le retrait sans effet, le moteur
+  // lisant les deux écritures.
+  delete e.attribute;
+  e.attributes = attrIds.filter(x => !(kind === 'attribute' && x === id));
+  e.card_ids = cardIds.filter(x => !(kind === 'card' && x === id));
+  renderMagieDetail();
+}
+
+function addGuaranteedDrawCriterion(kind, id) {
+  _syncMagieDraft();
+  const e = selectedMagie.effect || (selectedMagie.effect = { type: 'guaranteed_draw' });
+  const { attributes: attrIds, card_ids: cardIds } = guaranteedDrawCriteriaOf(e);
+  delete e.attribute;
+  e.attributes = attrIds;
+  e.card_ids = cardIds;
+  const list = kind === 'attribute' ? e.attributes : e.card_ids;
+  if (!list.includes(id)) list.push(id);
+  renderMagieDetail();
+}
+
+function filterGuaranteedDrawSearch() {
+  const q = (document.getElementById('mf-gd-search')?.value || '').toLowerCase();
+  const { attributes: attrIds, card_ids: cardIds } = guaranteedDrawCriteriaOf(selectedMagie && selectedMagie.effect);
+  const matchedAttrs = attributes
+    .filter(a => !attrIds.includes(a.id))
+    .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
+    .slice(0, 10)
+    .map(a => ({ ...a, _gdType: 'attribute' }));
+  const matchedCards = cards
+    .filter(c => !cardIds.includes(c.id))
+    .filter(c => !q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q))
+    .slice(0, 20)
+    .map(c => ({ ...c, _gdType: 'card' }));
+  const dd = document.getElementById('mf-gd-dropdown');
+  if (!dd) return;
+  const results = [...matchedAttrs, ...matchedCards];
+  dd.innerHTML = results.length
+    ? results.map(x => {
+      const isAttr = x._gdType === 'attribute';
+      const sub = isAttr
+        ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px">Attribut</span>`
+        : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)}</span>`;
+      return `
+        <div onmousedown="addGuaranteedDrawCriterion('${x._gdType}', '${x.id}')"
+          style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
+          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          ${isAttr ? `<span style="font-size:16px">${x.icon || '🔷'}</span>` : ''}
+          <div>
+            <div style="font-size:13px">${esc(x.name)}</div>
+            <div style="margin-top:2px">${sub}</div>
+          </div>
+        </div>`;
+    }).join('')
+    : '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
+  dd.style.display = 'block';
+}
+
+function hideGuaranteedDrawDropdown() {
+  // Retardé pour que l'onmousedown d'une entrée parte d'abord.
+  setTimeout(() => {
+    const dd = document.getElementById('mf-gd-dropdown');
+    if (dd) dd.style.display = 'none';
+  }, 150);
+}
+
+/**
+ * Les deux effets qui portent un filtre d'ATTRIBUT facultatif.
  *
  * ⚠️ C'est lui qui rend « −1 matériel de Fusion » exprimable maintenant qu'il
  * n'y a plus de voie à nommer : les cinq voies sont devenues des attributs de
  * carte (ARCH_086…ARCH_090), visables comme n'importe quel archétype. Absent,
  * la remise tombe sur la première carte retouchable.
  */
-const MAGIE_ATTRIBUTE_TYPES = new Set(['guaranteed_draw', 'reduce_materials', 'remove_requirements']);
+const MAGIE_ATTRIBUTE_TYPES = new Set(['reduce_materials', 'remove_requirements']);
 
-function magieAttributeLabel(type) {
-  return type === 'guaranteed_draw'
-    ? "Attribut de la carte garantie (facultatif, se cumule au tier)"
-    : "Attribut visé par la remise (facultatif — sinon la première carte retouchable)";
+function magieAttributeLabel() {
+  return "Attribut visé par la remise (facultatif — sinon la première carte retouchable)";
 }
 
 function updateMagieEffectFields() {
@@ -3320,8 +3461,11 @@ function updateMagieEffectFields() {
   document.getElementById('mf-stat-field').style.display = showStat ? '' : 'none';
   document.getElementById('mf-value-field').style.display = showValue ? '' : 'none';
   document.getElementById('mf-tier-field').style.display = showTier ? '' : 'none';
+  // Le bloc de critères vit et meurt avec le tier : c'est le même effet.
+  const gdField = document.getElementById('mf-gd-field');
+  if (gdField) gdField.style.display = showTier ? '' : 'none';
   document.getElementById('mf-attribute-field').style.display = showAttribute ? '' : 'none';
-  document.getElementById('mf-attribute-label').textContent = magieAttributeLabel(type);
+  document.getElementById('mf-attribute-label').textContent = magieAttributeLabel();
   document.getElementById('mf-power-field').style.display = showPower ? '' : 'none';
   document.getElementById('mf-power-speed-field').style.display = showPower ? '' : 'none';
   const dupNote = document.getElementById('mf-dup-note');
@@ -3339,12 +3483,18 @@ function _collectMagieFields() {
   if (effectType !== 'none') {
     effect = { type: effectType };
     if (effectType === 'guaranteed_draw') {
-      // ⚠️ Les DEUX filtres sont facultatifs, et un champ vide ne doit pas être
+      // ⚠️ TOUS les critères sont facultatifs, et un champ vide ne doit pas être
       // écrit : `isMagieRelevant` traite l'absence comme « pas de contrainte »,
-      // là où un `tier: 0` ou un `attribute: ''` seraient des filtres
+      // là où un `tier: 0` ou un `attributes: ['']` seraient des filtres
       // impossibles à satisfaire — la magie ne sortirait jamais.
       const tier = parseInt(document.getElementById('mf-effect-tier')?.value, 10);
       if (tier) effect.tier = tier;
+      // ⚠️ Les deux listes viennent du MODÈLE et non du DOM (cf.
+      // `renderGuaranteedDrawCriteria`) : les relire ici depuis le formulaire
+      // les effacerait à chaque enregistrement.
+      const criteria = guaranteedDrawCriteriaOf(selectedMagie && selectedMagie.effect);
+      if (criteria.attributes.length) effect.attributes = criteria.attributes;
+      if (criteria.card_ids.length) effect.card_ids = criteria.card_ids;
     } else if (!noValue.includes(effectType)) {
       effect.value = parseFloat(document.getElementById('mf-effect-value')?.value) || 0;
     }

@@ -293,7 +293,15 @@ export class AttributeManager {
           continue;
         }
         if (effect.type === 'guaranteed_draw') {
-          result[draws.guaranteedKey].push({ attribute: effect.attribute ?? null });
+          // ⚠️ Les critères voyagent EN BLOC (cf. `types.GuaranteedDraw`) : un
+          // effet d'attribut peut nommer plusieurs attributs ou des cartes
+          // exactement comme une magie, et recopier le seul `attribute`
+          // perdait le reste en silence.
+          result[draws.guaranteedKey].push({
+            attribute: effect.attribute ?? null,
+            attributes: effect.attributes,
+            card_ids: effect.card_ids,
+          });
           if (draws.sourcesKey) {
             result[draws.sourcesKey].push({ kind: 'attribut', ref: attrId, value: 0, guaranteed: true });
           }

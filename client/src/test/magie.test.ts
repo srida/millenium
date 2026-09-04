@@ -55,6 +55,40 @@ describe('MagieEffect — routage du ciblage', () => {
     }
     expect(effectLabel({ id: 'X', name: 'X', effect: null } as any)).toBe('Aucun effet');
   });
+
+  // ⚠️ `logic/` ne sait pas nommer un attribut ni une carte — il n'importe pas
+  // `data/`. Les résolveurs sont INJECTÉS, et sans eux la Phase Shopping
+  // affichait « Pioche garantie ARCH_047 ce tour » au joueur.
+  // Mutation : réécrire `e.attribute` en clair dans le libellé → ROUGE.
+  describe('effectLabel — les ids se résolvent en noms', () => {
+    const names = {
+      attribute: (id: string) => (id === 'ARCH_047' ? 'Dragon' : id),
+      card: (id: string) => (id === 'CORE_005' ? 'Dragon Blanc' : id),
+    };
+
+    it('la pioche garantie nomme ses attributs et ses cartes', () => {
+      expect(effectLabel(magie({ type: 'guaranteed_draw', attribute: 'ARCH_047' }), names))
+        .toBe('Pioche garantie Dragon ce tour');
+      expect(effectLabel(magie({ type: 'guaranteed_draw', tier: 4, attributes: ['ARCH_047'] }), names))
+        .toBe('Pioche garantie Tier 4 · Dragon ce tour');
+      expect(effectLabel(magie({ type: 'guaranteed_draw', card_ids: ['CORE_005'] }), names))
+        .toBe('Pioche garantie Dragon Blanc ce tour');
+    });
+
+    it('les deux remises de main nomment l’attribut visé', () => {
+      expect(effectLabel(magie({ type: 'reduce_materials', value: 1, attribute: 'ARCH_047' }), names))
+        .toContain('Dragon de ta main');
+      expect(effectLabel(magie({ type: 'remove_requirements', value: 1, attribute: 'ARCH_047' }), names))
+        .toContain('Dragon de ta main');
+    });
+
+    // Le défaut ne MENT pas — l'id est la vérité — mais aucun écran ne s'en
+    // contente : c'est ce qui rend l'oubli d'un résolveur visible en relecture.
+    it('sans résolveur, l’id sort tel quel', () => {
+      expect(effectLabel(magie({ type: 'guaranteed_draw', attribute: 'ARCH_047' })))
+        .toBe('Pioche garantie ARCH_047 ce tour');
+    });
+  });
 });
 
 describe('MagieEffect — effets sur unité', () => {

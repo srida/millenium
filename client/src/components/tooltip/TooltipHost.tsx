@@ -5,13 +5,12 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { useUiStore, type TooltipAnchor, type TooltipContent } from '../../stores/uiStore.js';
 import { getPower } from '../../data/PowerDatabase.js';
 import { getAttribute } from '../../data/AttributeDatabase.js';
-import { getCard } from '../../data/CardDatabase.js';
 import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
 import PowerIcon from '../ui/PowerIcon.js';
 import { Illustration } from '../ui/primitives.js';
-import {
-  summonRecipes, recipeCostText, materialsLabel, recipeIsFree, type SummonRecipe,
-} from '../../data/SummonInfo.js';
+import RecipeRow from '../ui/SummonRecipe.js';
+import { cardName } from '../../data/gameNames.js';
+import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
 import { STAT_LABELS } from '../../data/StatLabels.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
 import TerrainEffects from '../ui/TerrainEffects.js';
@@ -77,17 +76,6 @@ function Keywords({ ids }: { ids: string[] }) {
   );
 }
 
-// Le tooltip est rendu depuis des écrans où CardDatabase n'est pas forcément
-// initialisée (TestBench, CombatLab et leurs cartes fabriquées) : un id qu'on
-// ne sait pas nommer se rend tel quel, il ne fait pas tomber l'affichage.
-function cardName(id: string): string {
-  try {
-    return (getCard as any)(id)?.name ?? id;
-  } catch {
-    return id;
-  }
-}
-
 // Invocation — ce que la carte exige pour se poser. Une carte à plusieurs
 // CONDITIONS les affiche l'une sous l'autre : ce sont des alternatives, pas un
 // cumul.
@@ -108,39 +96,6 @@ function SummonBlock({ card }: { card: any }) {
       <div className="mt-1 space-y-1.5">
         {recipes.map((r, i) => <RecipeRow key={r.index ?? i} recipe={r} />)}
       </div>
-    </div>
-  );
-}
-
-function RecipeRow({ recipe }: { recipe: SummonRecipe }) {
-  const cost = recipeCostText(recipe);
-  return (
-    <div>
-      <div className="flex items-baseline gap-1.5">
-        {/* Le coût EST le titre de la ligne : il n'y a plus de voie à nommer. */}
-        <span className="text-[11px] font-bold tabular-nums text-white/85">
-          {cost ?? 'Se pose directement'}
-        </span>
-      </div>
-      {recipe.requires.length > 0 && (
-        <div className="mt-0.5 text-[10px] leading-snug text-white/55">
-          <span className="text-white/40">{materialsLabel(recipe)} : </span>
-          {recipe.requires.map((m, i) => (
-            <span key={`${m.id}-${i}`}>
-              {i > 0 && <span className="text-white/30"> + </span>}
-              {m.kind === 'attribute'
-                // Un matériel d'attribut n'est pas une carte : n'importe quelle
-                // unité qui le porte convient. Le dire, sinon le joueur cherche
-                // une carte de ce nom.
-                // « tout porteur de X » plutôt que « tout X » : le nom d'un
-                // attribut n'a ni genre ni nombre fixes (Yeux Bleus, Dragon…),
-                // la tournure impersonnelle s'accorde donc toujours.
-                ? <span className="text-tier-4">tout porteur de {attributeName(m.id)}</span>
-                : <span className="text-player">{cardName(m.id)}</span>}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -182,9 +137,14 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
         {lineage.length > 0 && (
           <div className="mt-1 text-[11px] text-player">🧬 {lineage.map(cardName).join(', ')}</div>
         )}
+        {/* ⚠️ Le signe se DÉRIVE de la valeur : une magie de Shopping peut poser
+            un malus permanent (MAGIC_012 : −5 vitesse d'attaque), et le « + »
+            écrit en dur rendait « +-5 ». */}
         {shoppingEntries.length > 0 && (
           <div className="mt-1 text-[11px] text-gold">
-            🛒 {shoppingEntries.map(([stat, value]) => `+${value} ${STAT_LABELS[stat] ?? stat}`).join(', ')}
+            🛒 {shoppingEntries
+              .map(([stat, value]) => `${(value as number) > 0 ? '+' : '−'}${Math.abs(value as number)} ${STAT_LABELS[stat] ?? stat}`)
+              .join(', ')}
           </div>
         )}
         {isUnit && (data.veterancy_points ?? 0) >= 2 && (

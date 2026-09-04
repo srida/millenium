@@ -191,7 +191,10 @@ function _canSummonWith(card, condition, pos, board, graveyard, selectedMaterial
   const pool = [...available];
   for (const matId of required) {
     const idx = pool.findIndex(u => materialLineageMatches(u, matId, required));
-    if (idx === -1) return fail(`Matériel manquant sur le terrain ou au cimetière : ${matId}`);
+    // ⚠️ L'id ne sort pas dans le message : `logic/` ne sait pas le nommer (il
+    // n'importe pas `data/`), et un « ARCH_047 » en toast n'apprend rien. Le
+    // tooltip de la carte, lui, nomme déjà chaque matériel exigé.
+    if (idx === -1) return fail('Matériel manquant sur le terrain ou au cimetière');
     pool.splice(idx, 1);
   }
 
@@ -266,7 +269,7 @@ function _autoSelectMaterials(card, condition, board, graveyard) {
   }
 
   for (const matId of required) {
-    if (chosen.some(u => matchesMaterial(u, matId))) continue;
+    if (chosen.some(u => materialLineageMatches(u, matId, required))) continue;
     const idx = pool.findIndex(u => materialLineageMatches(u, matId, required));
     if (idx === -1) continue;
     chosen.push(pool[idx]);

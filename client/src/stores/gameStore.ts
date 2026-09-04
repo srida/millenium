@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Card, Position } from '../logic/types.js';
+import type { Card, Position, SummonCondition } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
 import type { PhaseValue } from '../logic/GameState.js';
 import type { GameController } from '../game/GameController.js';
@@ -76,9 +76,17 @@ export interface RoundIntroSnapshot {
   round: number;
 }
 
+/**
+ * Le menu de choix d'une carte à plusieurs conditions.
+ *
+ * ⚠️ Une option ne porte PLUS de libellé : il n'y a plus de voie d'invocation à
+ * nommer, une condition se dit par son coût. C'est `components/ui/SummonRecipe`
+ * qui la met en mots, exactement comme dans le tooltip. Le champ `label` avait
+ * survécu ici seul et rendait la modale muette.
+ */
 export interface SummonOptionMenuSnapshot {
   card: Card;
-  options: { index: number; summon_type: string; label: string; ok: boolean }[];
+  options: { index: number; condition: SummonCondition; ok: boolean; reason?: string }[];
 }
 
 // Instantané destiné à React — recalculé après chaque mutation par le controller.

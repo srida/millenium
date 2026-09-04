@@ -25,7 +25,7 @@ import { CombatRecorder } from './CombatRecorder.js';
  */
 interface SummonConditionMenu {
   card: Card;
-  options: { index: number; condition: SummonCondition; ok: boolean }[];
+  options: { index: number; condition: SummonCondition; ok: boolean; reason?: string }[];
 }
 
 export class GameController {
@@ -180,7 +180,7 @@ export class GameController {
         this.summonOptions = {
           card,
           options: statuses.map((s: any) => ({
-            index: s.index, condition: s.condition, ok: s.ok,
+            index: s.index, condition: s.condition, ok: s.ok, reason: s.reason,
           })),
         };
         this.sync();

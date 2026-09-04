@@ -7,6 +7,7 @@
 // possible dans ce projet. La décision vit donc ici, `DrawPopup` ne fait que la
 // rendre.
 import type { DrawSourceEntry, DrawSummary, GuaranteedDraw } from '../logic/types.js';
+import { guaranteedDrawCriteria } from '../logic/Draw.js';
 
 /** Le glyphe d'une source de pioche. Les trois sont déjà lus ailleurs dans le
  *  jeu : ✨ le Shopping, 🧬 la lignée d'une unité, 🗺️ le terrain. */
@@ -59,19 +60,26 @@ export function drawBonusRows(summary: DrawSummary | null | undefined): DrawBonu
 
 /**
  * Le filtre d'une pioche garantie, en français — « Tier 3 », « Fusion »,
- * « Dragon », ou la combinaison. Les trois champs sont facultatifs et se
- * cumulent (ET), exactement comme `GameSession.startPreparation` les applique.
+ * « Dragon », une carte nommée, ou la combinaison. Tous les critères sont
+ * facultatifs et se cumulent (ET), exactement comme `Draw.matchesGuaranteedDraw`
+ * les applique — c'est d'ailleurs `Draw.guaranteedDrawCriteria` qui les lit ici
+ * aussi, plutôt qu'une seconde lecture de la donnée brute.
  *
- * `attributeName` est injecté : ce module ne connaît pas `AttributeDatabase`.
+ * ⚠️ Les noms sont INJECTÉS : ce module ne connaît ni `AttributeDatabase` ni
+ * `CardDatabase`. Sans résolveur, un id brut sortirait à l'écran — c'est
+ * exactement ce que faisait `MagieEffect.effectLabel`.
  */
 export function guaranteedDrawLabel(
   draw: GuaranteedDraw | null | undefined,
   attributeName: (id: string) => string = (id) => id,
+  cardName: (id: string) => string = (id) => id,
 ): string {
   if (!draw) return '';
+  const { tier, attributes, cardIds } = guaranteedDrawCriteria(draw);
   const parts: string[] = [];
-  if (draw.tier) parts.push(`Tier ${draw.tier}`);
-  if (draw.attribute) parts.push(attributeName(draw.attribute));
+  if (tier) parts.push(`Tier ${tier}`);
+  parts.push(...attributes.map(attributeName));
+  if (cardIds.length) parts.push(cardIds.map(cardName).join(' ou '));
   return parts.length ? parts.join(' · ') : 'Au choix';
 }
 

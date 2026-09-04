@@ -414,6 +414,10 @@ Catalogue `data/card_backs.json` (`{ id, name, default?, price_gems }`), onglet 
 - **Avatar** → `ProfileScreen`. `PUT /api/profile/me` **valide l'appartenance** (`cosmetics.canUseAvatar`) et stocke la forme `/illustrations/<id>`.
 - **Variante** → **par deck**, dans le DeckBuilder (`meta[nom].variants = { card_id: variant_id }`, à côté de la couleur et des tags, donc déjà synchronisé). Revenir à l'origine **retire** l'entrée.
 
+⚠️ **`data/gameNames.ts` est le seul résolveur `id → nom`** (carte, attribut) : `logic/` n'importe pas `data/`, donc `MagieEffect.effectLabel(magie, names)` et `DrawInfo.guaranteedDrawLabel(draw, attributeName, cardName)` rendent des **ids bruts** tant qu'on ne leur passe rien. Tout écran de jeu doit passer `GAME_NAMES` — sans quoi la Phase Shopping annonce « Pioche garantie ARCH_047 ce tour ».
+
+⚠️ **`components/ui/SummonRecipe.tsx` est le seul rendu d'une recette d'invocation** — le tooltip de carte et le menu de conditions multiples (`SummonOptionMenu`) posent la même question et appellent le même composant. Le menu portait un `label` par voie que le contrôleur n'émet plus : ses boutons sortaient **vides**.
+
 ⚠️ **`client/src/data/CardArt.ts` est le seul point de résolution `card_id → id d'illustration`.** Deux tables, une par camp, et **aucun import** — c'est ce qui autorise `three/UnitCardEl.ts` à s'en servir. Trois invariants, dont aucun ne se voit à l'écran quand il casse : le repli systématique sur `cardId`, **l'étanchéité des deux tables** (les variantes de l'adversaire ne doivent jamais habiller les cartes du joueur) et la purge du seul camp adverse par `setEnemyVariants(null)`. Remplissage : `game/bootstrap.buildSession`, `deckStore.refresh()`, `PvpController.begin()`, `GameController.dispose()`.
 
 ---
@@ -590,8 +594,9 @@ La main est **conservée entre les tours** (taille illimitée) ; les cartes non 
 - ⚠️ C'est cet invariant qui autorise l'identité `(camp, card_id)` du log PvP et de `refUnit` : **le relâcher casse les deux**.
 
 **Pioches garanties** (`gameState.player_guaranteed_draws`, alimenté par les effets d'attribut `guaranteed_draw` et les magies du même nom) :
+- ⚠️ **`Draw.guaranteedDrawCriteria` est le SEUL lecteur de la forme brute** — la pioche, le filtre de pertinence et l'annonce y passent tous. Critères : `tier`, `attribute` (forme historique) fondu dans `attributes`, et `card_ids`. Tout se **cumule (ET)**, sauf `card_ids`, liste de cartes **acceptables** (OU entre elles).
 - Elles **occupent un slot de la main normale** : `randomCount = 5 + extra_draws − guaranteed_draws.length`.
-- Elles **ignorent la restriction de tier du tour** : recherche dans tout le deck, filtrée par `tier`/`attribute` selon les champs présents ; **repli progressif** (sans le tier, puis n'importe quelle carte).
+- Elles **ignorent la restriction de tier du tour** : recherche dans tout le deck, filtrée par les critères présents ; **repli progressif** — c'est le **tier** qui saute d'abord, puis n'importe quelle carte.
 
 **Résumé de pioche** — `startPreparation()` rend un `DrawSummary` (tour, tiers, `baseCount`, `extraDraws`, garanties, `drawnCount`, `sources`), affiché par la popup de pioche. `startNextRound()` le relaie, ou `null` sur une fin de partie.
 
@@ -761,6 +766,7 @@ materialValueOf(card) / isAttributeMaterial(matId)
 **Unités composites** — deux propriétés lues par `matchesMaterial` / `canSummon` :
 - **`represented_ids`** — les ids que l'unité « représente », **pré-déterminés sur la carte** (section « Lignée » de l'admin), jamais calculés à l'invocation. ⚠️ `Unit` y ajoute toujours son propre `card.id` : la donnée ne porte que la lignée **héritée**. Affiché au tooltip (🧬).
   - **Légitimité** (`materialLineageLegit`) : toute la lignée héritée d'un matériel doit être **elle-même exigée** par la condition en cours. « Aile de feu » (Avian + Burstinatrix) ne remplace pas Avian seul, mais comble à elle seule les deux exigences d'une condition qui demande les deux.
+  - ⚠️ **Elle ne pèse QUE sur les exigences nommées**, et `InvocationRules.getUncoveredRequirements` est le seul endroit qui la porte. Un slot **libre** (la condition nomme moins d'exigences qu'elle n'a de slots) se paie avec n'importe quelle unité — c'est ce qui rend une fusion sacrifiable. Exigée de toute la sélection, elle rendait insacrifiable toute unité composite.
 - **`material_value`** — le nombre de slots que l'unité représente si elle est consommée. ⚠️ C'est une **donnée de carte**, saisie en admin, lue par le constructeur d'`Unit` pour les **deux camps** : elle était dérivée en quatre exemplaires dans le `switch`, si bien que l'IA et le joueur n'avaient pas la même règle.
 
 Un matériel `ARCH_*` désigne **n'importe quelle** unité portant l'attribut, pas une carte (`isAttributeMaterial`).
