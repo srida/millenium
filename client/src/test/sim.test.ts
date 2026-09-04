@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { GameSession } from '../logic/GameSession.js';
 import { makeRandom, seededRandom } from '../logic/Random.js';
-import { primaryTier } from '../logic/Tiers.js';
+import { primaryTier, hasTier } from '../logic/Tiers.js';
 import { loadCatalog } from '../sim/catalog.js';
 import { buildDeck, deckCardIds, deckWithCard, deckWithoutCard, isSummonable, materialClosure } from '../sim/decks.js';
 import { MetricsCollector, effectSize, wilsonHalfWidth } from '../sim/metrics.js';
@@ -110,7 +110,9 @@ describe('Générateur de decks — la couverture des matériaux', () => {
       expect(new Set(ids).size).toBe(ids.length);
       for (const [tier, list] of Object.entries(deck)) {
         expect(list.length).toBeLessThanOrEqual(8);
-        for (const id of list) expect(String(cat.cardDb.getCard(id)!.tier)).toBe(tier);
+        // ⚠️ APPARTENANCE, pas égalité au champ historique : une carte peut
+        // porter plusieurs tiers, et c'est le résolveur qui fait foi.
+        for (const id of list) expect(hasTier(cat.cardDb.getCard(id)!, Number(tier))).toBe(true);
       }
     }
   });

@@ -12,7 +12,7 @@ import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import { computeDeckTags } from '../data/DeckTags.js';
 import { summonCostOf } from '../data/SummonInfo.js';
 import type { Card } from '../logic/types.js';
-import { primaryTier, hasTier } from '../logic/Tiers.js';
+import { primaryTier, tiersOf, hasTier } from '../logic/Tiers.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
@@ -51,6 +51,26 @@ const TIER_TEXT: Record<number, string> = {
 
 type DeckData = Record<number, Card[]>;
 const EMPTY: DeckData = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+
+/** La lane où cette carte est rangée, ou `null`. Une carte multi-tiers peut être
+ *  dans n'importe laquelle des siennes — on ne la déduit jamais d'un calcul. */
+function laneOf(d: DeckData, id: string): number | null {
+  return [1, 2, 3, 4, 5].find(t => d[t].some(x => x.id === id)) ?? null;
+}
+
+/**
+ * Où ranger une carte : le PLUS BAS de ses tiers qui a encore de la place, et on
+ * monte d'un cran quand il est plein. `null` = plus une seule de ses lanes n'a
+ * de place.
+ *
+ * ⚠️ C'est ce qui donne son sens au multi-tier : la carte COMBLE LES TROUS d'un
+ * deck au lieu d'occuper d'office le haut du panier. Et elle ne compte jamais
+ * que pour UNE carte, dans une seule lane — d'où l'unicité vérifiée sur tout le
+ * deck et jamais sur la seule lane visée.
+ */
+function laneFor(c: Card, d: DeckData, tierMax: Record<number, number>): number | null {
+  return tiersOf(c).find(t => d[t] && d[t].length < tierMax[t]) ?? null;
+}
 
 
 export default function DeckBuilder() {
@@ -237,14 +257,12 @@ export default function DeckBuilder() {
     // Garde-fou : la vignette verrouillée est déjà intapable, mais l'ajout ne
     // doit dépendre que de la collection, pas de l'état d'affichage.
     if (!owns(c.id)) return;
-    // ⚠️ La LANE d'une carte est son tier le plus haut. Une carte à plusieurs
-    // tiers n'est rangée qu'une fois : elle se pioche à tous les siens (le pool
-    // se dérive des cartes du deck, pas des clés), mais deux lanes en
-    // porteraient deux exemplaires.
-    const lane = primaryTier(c);
     setDeckData(d => {
-      if (d[lane].length >= tierMax[lane]) return d;
-      if (d[lane].some(x => x.id === c.id)) return d;
+      // ⚠️ Une carte multi-tiers ne compte QUE POUR UNE : l'unicité se vérifie
+      // sur tout le deck, jamais sur la seule lane visée.
+      if (laneOf(d, c.id) !== null) return d;
+      const lane = laneFor(c, d, tierMax);
+      if (lane === null) return d;
       return { ...d, [lane]: [...d[lane], c] };
     });
   }
@@ -254,8 +272,10 @@ export default function DeckBuilder() {
   // Retrait depuis la BIBLIOTHÈQUE, où l'on ne connaît pas l'index : la carte y
   // est unique (règle d'unicité), l'id suffit donc à la désigner.
   function removeCardById(c: Card) {
-    const lane = primaryTier(c);
-    setDeckData(d => ({ ...d, [lane]: d[lane].filter(x => x.id !== c.id) }));
+    setDeckData(d => {
+      const lane = laneOf(d, c.id);
+      return lane === null ? d : { ...d, [lane]: d[lane].filter(x => x.id !== c.id) };
+    });
   }
 
   const [saving, setSaving] = useState(false);
@@ -491,9 +511,9 @@ function LibraryPanel({
                 // place, et une carte verrouillée héritée d'un ancien deck
                 // reste retirable ici comme dans l'onglet Deck.
                 const locked = !owns(c.id);
-                const lane = primaryTier(c);
-                const inDeck = deckData[lane].some((x: Card) => x.id === c.id);
-                const full = deckData[lane].length >= tierMax[lane];
+                const inDeck = laneOf(deckData, c.id) !== null;
+                // « Plein » veut dire : plus une seule de ses lanes n'a de place.
+                const full = laneFor(c, deckData, tierMax) === null;
                 return (
                   <CardTile
                     key={c.id} {...cardTileProps(c)} size="h-auto w-full"

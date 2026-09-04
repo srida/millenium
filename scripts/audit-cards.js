@@ -24,6 +24,9 @@ const path = require('path');
 // ailleurs : on lui passe l'index construit sur le dossier qu'on audite, qui
 // n'est pas forcément celui du serveur.
 const { tierIndex, resolveTiers, TIER_CATEGORY } = require('../tiers');
+// Le contrat vit dans `card-contract.js` et nulle part ailleurs : le serveur le
+// refuse en 400 avec la MÊME fonction.
+const { REQUIRED_CATEGORIES, missingCategories } = require('../card-contract');
 
 const PROJECT = path.join(__dirname, '..');
 const DATA = fs.existsSync(path.join(PROJECT, 'data', 'cards.json'))
@@ -33,9 +36,6 @@ const DATA = fs.existsSync(path.join(PROJECT, 'data', 'cards.json'))
 const load = f => JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8'));
 const asArray = x => (Array.isArray(x) ? x : Object.values(x));
 
-/** Les catégories exigées. L'ordre est celui du rapport. */
-const REQUIRED = ['Tiers', 'Invocation', 'Element'];
-
 const CARDS = asArray(load('cards.json'));
 const ATTRS = asArray(load('attributes.json'));
 const byId = Object.fromEntries(ATTRS.map(a => [a.id, a]));
@@ -44,7 +44,7 @@ const INDEX = tierIndex(ATTRS);
 const tiersOf = card => resolveTiers(card, INDEX);
 
 function audit() {
-  const missing = Object.fromEntries(REQUIRED.map(c => [c, []]));
+  const missing = Object.fromEntries(REQUIRED_CATEGORIES.map(c => [c, []]));
   const unknownAttr = [];
   const tierMismatch = [];
   const multiTier = [];
@@ -52,8 +52,7 @@ function audit() {
 
   for (const c of CARDS) {
     const attrs = c.attributes ?? [];
-    const cats = new Set(attrs.map(id => byId[id]?.categorie).filter(Boolean));
-    for (const cat of REQUIRED) if (!cats.has(cat)) missing[cat].push(c.id);
+    for (const cat of missingCategories(c, ATTRS)) missing[cat].push(c.id);
 
     const unknown = attrs.filter(id => !byId[id]);
     if (unknown.length) unknownAttr.push(`${c.id} → ${unknown.join(', ')}`);
@@ -77,7 +76,7 @@ function audit() {
 }
 
 const r = audit();
-const errors = REQUIRED.reduce((n, c) => n + r.missing[c].length, 0)
+const errors = REQUIRED_CATEGORIES.reduce((n, c) => n + r.missing[c].length, 0)
   + r.unknownAttr.length + r.tierMismatch.length + r.attrsWithoutTier.length;
 
 if (process.argv.includes('--json')) {
@@ -93,7 +92,7 @@ const show = (label, list, cap = 12) => {
 };
 
 console.log(`Catalogue : ${DATA}  (${CARDS.length} cartes, ${ATTRS.length} attributs)`);
-for (const cat of REQUIRED) show(`✗ Sans attribut de catégorie « ${cat} »`, r.missing[cat]);
+for (const cat of REQUIRED_CATEGORIES) show(`✗ Sans attribut de catégorie « ${cat} »`, r.missing[cat]);
 show('✗ Attributs inconnus du catalogue', r.unknownAttr);
 show('✗ Champ `tier` en désaccord avec les attributs', r.tierMismatch);
 show('✗ Attribut de tier sans champ `tier`', r.attrsWithoutTier);

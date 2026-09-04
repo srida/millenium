@@ -23,6 +23,10 @@ import {
 
 let h: Harness;
 
+/** Le CONTRAT d'une carte : un tier, une voie d'invocation, un élément.
+ *  `card-contract.js` le refuse en 400 — toute création de carte le porte. */
+const CONFORME = ['ARCH_091', 'ARCH_090', 'ARCH_048'];
+
 beforeAll(async () => { h = await boot(); }, 30_000);
 afterAll(() => { h?.server.close(); });
 
@@ -190,6 +194,46 @@ describe('write-guard /api', () => {
     expect(res.body.length).toBeGreaterThan(0);
   });
 
+  // Une carte sans attribut de tier n'entre dans AUCUN pool de pioche : elle
+  // existe au catalogue et ne sort jamais. Le contrat est donc refusé en 400,
+  // à l'écriture, et non signalé après coup.
+  it('refuse une carte hors contrat, en création comme en modification', async () => {
+    const avant = (await request(h.server).get('/api/cards')).body.length;
+
+    // Sans tier : le pool de pioche ne la verrait jamais.
+    const sansTier = await request(h.server).post('/api/cards')
+      .set('Authorization', ADMIN_BASIC)
+      .send({ id: 'HORS_001', name: 'Sans tier', attributes: ['ARCH_090', 'ARCH_048'] });
+    expect(sansTier.status).toBe(400);
+    expect(sansTier.body.error).toContain('Tiers');
+
+    // ⚠️ Un refus ne se prouve pas par son statut : le catalogue doit être intact.
+    const apres = (await request(h.server).get('/api/cards')).body;
+    expect(apres.length).toBe(avant);
+    expect(apres.find((c: any) => c.id === 'HORS_001')).toBeUndefined();
+
+    // Le champ `tier` historique ne tient PAS lieu d'attribut : c'est tout le
+    // sens de la refonte.
+    const champSeul = await request(h.server).post('/api/cards')
+      .set('Authorization', ADMIN_BASIC)
+      .send({ id: 'HORS_002', name: 'Champ tier seul', tier: 3, attributes: ['ARCH_090', 'ARCH_048'] });
+    expect(champSeul.status).toBe(400);
+
+    // Et le PUT porte la même garde que le POST — sinon on créerait conforme
+    // pour retirer l'attribut juste après.
+    await request(h.server).post('/api/cards').set('Authorization', ADMIN_BASIC)
+      .send({ id: 'HORS_003', name: 'Conforme', attributes: CONFORME });
+    const amputee = await request(h.server).put('/api/cards/HORS_003')
+      .set('Authorization', ADMIN_BASIC)
+      .send({ id: 'HORS_003', name: 'Conforme', attributes: ['ARCH_090', 'ARCH_048'] });
+    expect(amputee.status).toBe(400);
+    const relu = (await request(h.server).get('/api/cards')).body
+      .find((c: any) => c.id === 'HORS_003');
+    expect(relu.attributes).toEqual(CONFORME);
+
+    await request(h.server).delete('/api/cards/HORS_003').set('Authorization', ADMIN_BASIC);
+  });
+
   // Le tier est un ATTRIBUT : le serveur le RÉSOUT à la lecture (`_tiers`) pour
   // que le client, l'admin et la simulation n'aient pas chacun leur version de
   // la règle. Comme `_has_illustration` et `_starter`, c'est un drapeau calculé
@@ -207,7 +251,7 @@ describe('write-guard /api', () => {
     const post = await request(h.server)
       .post('/api/cards')
       .set('Cookie', cookie)
-      .send({ id: 'TIERS_001', name: 'Carte calculée', attributes: ['ARCH_093'], _tiers: [1, 5] });
+      .send({ id: 'TIERS_001', name: 'Carte calculée', attributes: ['ARCH_093', 'ARCH_090', 'ARCH_048'], _tiers: [1, 5] });
     expect(post.status).toBe(200);
 
     const brut = JSON.parse(fs.readFileSync(path.join(h.DATA, 'cards.json'), 'utf8'));
@@ -228,7 +272,7 @@ describe('write-guard /api', () => {
     const res = await request(h.server)
       .post('/api/cards')
       .set('Cookie', cookie)
-      .send({ id: 'ADMIN_OK_001', name: 'Carte admin', tier: 1 });
+      .send({ id: 'ADMIN_OK_001', name: 'Carte admin', attributes: CONFORME });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true });
@@ -375,7 +419,7 @@ describe('écriture des catalogues', () => {
 
     const cree = await request(h.server).post('/api/cards')
       .set('Authorization', ADMIN_BASIC)
-      .send({ id, name: 'Carte atomique', tier: 3 });
+      .send({ id, name: 'Carte atomique', attributes: CONFORME });
     expect(cree.status).toBe(200);
 
     // ⚠️ Le cache de catalogue est invalidé EXPLICITEMENT par `writeJson`, et

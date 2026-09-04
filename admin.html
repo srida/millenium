@@ -509,11 +509,6 @@ select.filter:focus { border-color: var(--accent); }
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <select class="filter" id="filter-tier" onchange="filterCards()">
             <option value="">Tous tiers</option>
-            <option value="1">Tier 1</option>
-            <option value="2">Tier 2</option>
-            <option value="3">Tier 3</option>
-            <option value="4">Tier 4</option>
-            <option value="5">Tier 5</option>
           </select>
           <select class="filter" id="filter-summon" onchange="filterCards()">
             <option value="">Tous coûts</option>
@@ -842,6 +837,7 @@ async function init() {
     apiFetch('/api/card-backs'),
   ]);
   populateAttributeFilter();
+  populateTierFilter();
   populatePowerFilter();
   renderCardList();
   renderAttrList();
@@ -862,6 +858,16 @@ function populateAttributeFilter() {
   const sorted = [...attributes].sort((a, b) => a.name.localeCompare(b.name));
   sel.innerHTML = '<option value="">Tous attributs</option>' +
     sorted.map(a => `<option value="${a.id}">${a.icon ? a.icon + ' ' : ''}${a.name}</option>`).join('');
+}
+
+/** Le filtre par tier se DÉRIVE du catalogue d'attributs, comme les deux
+ *  voisins : un tier ajouté dans l'onglet Attributs apparaît ici sans qu'on
+ *  touche au HTML. */
+function populateTierFilter() {
+  const sel = document.getElementById('filter-tier');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Tous tiers</option>' +
+    tierAttrDefs().map(a => `<option value="${a.tier}">Tier ${a.tier}</option>`).join('');
 }
 
 function populatePowerFilter() {
@@ -1360,8 +1366,62 @@ async function deleteAiLog(id) {
 }
 
 // ================== CARDS ==================
+
+// ── Le tier est un ATTRIBUT ──────────────────────────────────────────────────
+// Les cinq tiers sont des attributs de catégorie `Tiers`, et une carte peut en
+// porter PLUSIEURS. La catégorie dit qu'un attribut est un tier, son champ
+// `tier` dit lequel — jamais un id en dur, jamais le libellé (qui se renomme
+// dans l'onglet Attributs, deux blocs plus bas).
+//
+// ⚠️ Cette page ne peut rien importer de `logic/Tiers.ts` ni de `tiers.js` : la
+// règle y est donc RECOPIÉE, comme la glose des motifs d'IA. Elle est courte, et
+// le drapeau `_tiers` servi par l'API la vérifie à chaque rechargement.
+const TIER_CATEGORY = 'Tiers';
+
+/** Les attributs de tier du catalogue, du plus bas au plus haut. */
+function tierAttrDefs() {
+  return attributes
+    .filter(a => a.categorie === TIER_CATEGORY && Number(a.tier) > 0)
+    .sort((x, y) => Number(x.tier) - Number(y.tier));
+}
+
+/** Les tiers d'une carte, triés. Repli sur le champ `tier` historique tant
+ *  qu'il existe (cartes jamais rouvertes depuis la refonte). */
+function cardTiers(c) {
+  const map = {};
+  for (const a of tierAttrDefs()) map[a.id] = Number(a.tier);
+  const out = [...new Set((c?.attributes || []).map(id => map[id]).filter(t => t != null))];
+  if (out.length) return out.sort((x, y) => x - y);
+  return Number(c?.tier) > 0 ? [Math.round(Number(c.tier))] : [];
+}
+
+/** Le tier d'une carte quand il en faut UN SEUL : le plus haut (sa puissance). */
+function cardTier(c) {
+  const t = cardTiers(c);
+  return t.length ? t[t.length - 1] : 1;
+}
+
+/** La carte porte-t-elle ce tier ? */
+function hasCardTier(c, t) {
+  return cardTiers(c).includes(Number(t));
+}
+
 function tierBadge(tier) {
   return `<span class="badge badge-tier${Math.round(tier)}">T${Math.round(tier)}</span>`;
+}
+
+/** Tous les tiers d'une carte, en badges. Une carte sans tier le DIT — elle est
+ *  hors contrat et ne se pioche nulle part. */
+function tierBadges(c) {
+  const t = cardTiers(c);
+  if (!t.length) return '<span class="badge" style="background:#e0533322;color:#e05333">sans tier</span>';
+  return t.map(tierBadge).join('');
+}
+
+/** « T2 » ou « T2·T4 » — la forme texte, pour les lignes monospace. */
+function tierText(c) {
+  const t = cardTiers(c);
+  return t.length ? `T${t.join('·T')}` : 'T—';
 }
 // ⚠️ Il n'y a plus de « voie » d'invocation. Une carte porte zéro, une ou
 // plusieurs CONDITIONS (`summon_conditions`), chacune réclamant un nombre de
@@ -1405,7 +1465,7 @@ function filterCards() {
   const options = document.getElementById('filter-options').value;
   const filtered = cards.filter(c =>
     (!q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)) &&
-    (!tier || Math.round(c.tier) == tier) &&
+    (!tier || hasCardTier(c, tier)) &&
     (!summon || (summon === '3+' ? summonCostOf(c) >= 3 : summonCostOf(c) === Number(summon))) &&
     (!illus || (illus === 'yes' ? c._has_illustration : !c._has_illustration)) &&
     (!options || (options === 'yes' ? hasMultipleConditions(c) : !hasMultipleConditions(c))) &&
@@ -1432,7 +1492,7 @@ function renderCardList(list = cards) {
         <div style="flex:1;min-width:0">
           <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
           <div style="display:flex;gap:4px;margin-top:3px">
-            ${tierBadge(c.tier)}
+            ${tierBadges(c)}
             <span class="badge" style="background:var(--surface2);color:${costColor(c)};font-size:10px">${costLabel(c)}</span>
             ${hasMultipleConditions(c) ? `<span class="badge" style="background:var(--surface2);color:#e07be0;font-size:10px">🔀 ${cardConditions(c).length}</span>` : ''}
           </div>
@@ -1513,7 +1573,7 @@ function renderCardDetail() {
       <div class="detail-info">
         <div class="detail-title">${c.name}</div>
         <div class="detail-meta">
-          ${tierBadge(c.tier)}
+          ${tierBadges(c)}
           <span class="badge badge-summon">${costLabel(c)}</span>
           ${hasMultipleConditions(c) ? `<span class="badge" style="background:#e07be022;color:#e07be0">🔀 ${cardConditions(c).length} recettes</span>` : ''}
           ${hasPower ? `<span class="badge badge-power">${getPowerName(c.power.id)}</span>` : ''}
@@ -1528,9 +1588,18 @@ function renderCardDetail() {
       <div class="field"><label>ID</label>${idFieldHtml}</div>
       <div class="field"><label>Nom</label><input id="f-name" value="${esc(c.name)}" placeholder="Nom de la carte"></div>
       <div class="field">
-        <label>Tier <span class="slider-val" id="f-tier-val">${Math.round(c.tier)}</span></label>
-        <input type="range" id="f-tier" min="1" max="5" step="1" value="${Math.round(c.tier)}" oninput="document.getElementById('f-tier-val').textContent=this.value">
-        <div class="slider-marks"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+        <label>Tiers</label>
+        <div class="tier-filter-chips" style="margin-bottom:0">
+          ${tierAttrDefs().map(a => `
+            <button type="button" class="tier-chip ${hasCardTier(c, a.tier) ? 'active' : ''}"
+                    style="${hasCardTier(c, a.tier) ? `color:${TIER_COLORS[a.tier] || 'inherit'}` : ''}"
+                    onclick="toggleCardTier('${a.id}')" title="${esc(a.name)}">T${a.tier}</button>
+          `).join('')}
+        </div>
+        <span style="font-size:11px;color:var(--muted);margin-top:4px">
+          Le tier est un <b>attribut</b> : ces chips écrivent dans les attributs de la carte, comme la section plus bas.
+          Plusieurs tiers sont permis — la carte se pioche alors à chacun d'eux.
+        </span>
       </div>
       <div class="field">
         <label>Valeur en matériel <span class="slider-val" id="f-matval-val">${cardMaterialValue(c)}</span></label>
@@ -1640,6 +1709,19 @@ function togglePowerFields() {
   if (valWrap) valWrap.style.display = hasPower ? '' : 'none';
 }
 
+/**
+ * Ajoute ou retire un attribut de TIER. Il n'y a pas de champ `tier` à écrire :
+ * les chips de l'en-tête et les chips d'attributs de la section du bas éditent
+ * la même liste, et c'est voulu — une seule donnée, deux endroits pour la voir.
+ */
+function toggleCardTier(aid) {
+  syncCardFromForm();
+  const attrs = selectedCard.attributes || (selectedCard.attributes = []);
+  const i = attrs.indexOf(aid);
+  if (i === -1) attrs.push(aid); else attrs.splice(i, 1);
+  renderCardDetail();
+}
+
 function removeCardAttribute(aid) {
   syncCardFromForm();
   selectedCard.attributes = (selectedCard.attributes || []).filter(a => a !== aid);
@@ -1685,7 +1767,7 @@ function renderRepresentedDropdown(results) {
           onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
           <div>
             <div style="font-size:13px">${esc(x.name)}</div>
-            <div style="margin-top:2px"><span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${costLabel(x)}</span></div>
+            <div style="margin-top:2px"><span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · ${tierText(x)} · ${costLabel(x)}</span></div>
           </div>
         </div>`).join('');
   }
@@ -1834,7 +1916,7 @@ function renderConditionDropdown(idx, results) {
       const isAttr = x._matType === 'attribute';
       const sub = isAttr
         ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px">Attribut</span>`
-        : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${costLabel(x)}</span>`;
+        : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · ${tierText(x)} · ${costLabel(x)}</span>`;
       return `
         <div onmousedown="addConditionRequire(${idx}, '${x.id}')"
           style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
@@ -1885,7 +1967,6 @@ function syncCardFromForm() {
   selectedCard.id = document.getElementById('f-id').value.trim();
   selectedCard.name = document.getElementById('f-name').value.trim();
   selectedCard.type = 'monster';
-  selectedCard.tier = parseFloat(document.getElementById('f-tier').value);
   selectedCard.material_value = parseInt(document.getElementById('f-matval').value, 10) || 1;
   selectedCard.stats = {
     atk: parseFloat(document.getElementById('f-atk').value) || 0,
@@ -1910,11 +1991,27 @@ function collectCardFromForm() {
     ? { id: powId, ...(powSpeed !== '' ? { power_speed: parseFloat(powSpeed) } : {}), ...(powVal !== '' ? { value: parseFloat(powVal) } : {}) }
     : {};
 
+  // ⚠️ On REPART de la carte au lieu de la reconstruire de zéro : un objet neuf
+  // détruit tout champ que ce formulaire ne connaît pas — `set` (le miroir du
+  // pack) en tête. Même règle que `_collectMagieFields`, et le sauvetage
+  // s'arrête au PREMIER niveau (stats, power et conditions sont bien
+  // reconstruits depuis la saisie).
+  const out = { ...selectedCard };
+  // Les drapeaux CALCULÉS ne se réécrivent jamais : le serveur les retire aussi,
+  // mais le corps n'a aucune raison de les porter.
+  delete out._has_illustration;
+  delete out._starter;
+  delete out._tiers;
+  // ⚠️ Le champ `tier` est HISTORIQUE : enregistrer une carte la finit de
+  // migrer. Le laisser vivre à côté des attributs, c'est se donner deux
+  // réponses à la même question — et une seule des deux serait lue.
+  delete out.tier;
+
   return {
+    ...out,
     id: document.getElementById('f-id').value.trim(),
     name: document.getElementById('f-name').value.trim(),
     type: 'monster',
-    tier: parseFloat(document.getElementById('f-tier').value),
     material_value: parseInt(document.getElementById('f-matval').value, 10) || 1,
     attributes: [...(selectedCard.attributes || [])],
     stats: {
@@ -1931,10 +2028,34 @@ function collectCardFromForm() {
   };
 }
 
+/**
+ * Le CONTRAT d'attributs d'une carte : au moins un tier, une voie d'invocation
+ * et un élément. `Type` n'en fait pas partie (aucune règle ne le lit).
+ *
+ * ⚠️ Le serveur refuse en 400 de toute façon — celle-ci est là pour NOMMER ce
+ * qui manque avant l'aller-retour, pas pour tenir la règle.
+ */
+const CARD_REQUIRED_CATEGORIES = [TIER_CATEGORY, 'Invocation', 'Element'];
+
+function missingCardCategories(card) {
+  const byId = Object.fromEntries(attributes.map(a => [a.id, a]));
+  const cats = new Set((card.attributes || []).map(id => byId[id]?.categorie).filter(Boolean));
+  return CARD_REQUIRED_CATEGORIES.filter(cat => !cats.has(cat));
+}
+
+/** → true si la carte peut partir. Sinon toast et refus. */
+function checkCardContract(card) {
+  const missing = missingCardCategories(card);
+  if (!missing.length) return true;
+  toast(`Attribut manquant : ${missing.join(', ')}`, 'err');
+  return false;
+}
+
 async function saveCard() {
   const updated = collectCardFromForm();
   const oldId = selectedCard.id;
   if (!updated.id || !updated.name) return toast('ID et nom requis', 'err');
+  if (!checkCardContract(updated)) return;
 
   const res = await apiFetch(`/api/cards/${oldId}`, { method: 'PUT', body: updated });
   if (res.error) return toast(res.error, 'err');
@@ -1984,6 +2105,8 @@ function onAttrCategoryChange() {
   if (!sel || !newWrap) return;
   newWrap.style.display = sel.value === '__new__' ? '' : 'none';
   if (sel.value === '__new__') document.getElementById('af-cat-new')?.focus();
+  const tierField = document.getElementById('af-tier-field');
+  if (tierField) tierField.style.display = getAttrCategoryValue() === TIER_CATEGORY ? '' : 'none';
 }
 
 function getAttrCategoryValue() {
@@ -2041,9 +2164,10 @@ function openNewCard() {
   const nextNum = getNextNumForSet(currentSet);
   const newId = `${currentSet}_${String(nextNum).padStart(3, '0')}`;
 
+  const firstTier = tierAttrDefs()[0];
   selectedCard = {
-    id: newId, name: '', type: 'monster', tier: 1, material_value: 1,
-    attributes: [], stats: { atk: 10, hp: 100, movement_speed: 10, attack_speed: 10, initiative: 4, range: 1 },
+    id: newId, name: '', type: 'monster', material_value: 1,
+    attributes: firstTier ? [firstTier.id] : [], stats: { atk: 10, hp: 100, movement_speed: 10, attack_speed: 10, initiative: 4, range: 1 },
     power: {}, summon_conditions: [], represented_ids: [], _has_illustration: false,
   };
   isNewCard = true;
@@ -2055,6 +2179,7 @@ function openNewCard() {
 async function createCard() {
   const card = collectCardFromForm();
   if (!card.id || !card.name) return toast('ID et nom requis', 'err');
+  if (!checkCardContract(card)) return;
   const res = await apiFetch('/api/cards', { method: 'POST', body: card });
   if (res.error) return toast(res.error, 'err');
   card._has_illustration = selectedCard._has_illustration || false;
@@ -2399,6 +2524,15 @@ function renderAttrDetail() {
           </div>
         </div>
       </div>
+      <div class="field" id="af-tier-field" style="${a.categorie === TIER_CATEGORY ? '' : 'display:none'}">
+        <label>Numéro de tier</label>
+        <input type="number" id="af-tier" min="1" step="1" value="${a.tier ?? ''}" placeholder="1 à 5">
+        <span style="font-size:11px;color:var(--muted);margin-top:4px">
+          ⚠️ Sur un attribut de catégorie « ${esc(TIER_CATEGORY)} » uniquement, et <b>obligatoire</b> :
+          la catégorie dit que c'est un tier, ce champ dit LEQUEL. Sans lui, aucune carte
+          ne se pioche par cet attribut — le nom ne sert à rien, il se renomme.
+        </span>
+      </div>
     </div>
 
     <div class="section-title">Seuils <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="addThreshold()">+ Seuil</button></div>
@@ -2520,7 +2654,7 @@ function renderEffectBlock(ef, ti, ei) {
           <label>Tier de la carte garantie</label>
           <select id="ef-${ti}-${ei}-tier">
             <option value="" ${!ef.tier ? 'selected' : ''}>— indifférent —</option>
-            ${[1, 2, 3, 4, 5].map(t => `<option value="${t}" ${ef.tier === t ? 'selected' : ''}>Tier ${t}</option>`).join('')}
+            ${tierAttrDefs().map(a => `<option value="${a.tier}" ${ef.tier === a.tier ? 'selected' : ''}>Tier ${a.tier}</option>`).join('')}
           </select>
         </div>
         <div class="field" id="ef-${ti}-${ei}-gd-field" style="${v.showGuaranteed ? '' : 'display:none'};grid-column:1/-1">
@@ -2628,12 +2762,26 @@ function collectAttrFromForm() {
     icon: document.getElementById('af-icon').value.trim(),
     timing: document.getElementById('af-timing').value,
     ...(cat ? { categorie: cat } : {}),
+    ...(cat === TIER_CATEGORY && Number(document.getElementById('af-tier')?.value) > 0
+      ? { tier: parseInt(document.getElementById('af-tier').value, 10) }
+      : {}),
     thresholds,
   };
 }
 
+/** Un attribut de tier SANS numéro n'est pas un tier : aucune carte ne se
+ *  pioche par lui, et rien à l'écran ne le dirait. */
+function checkAttrContract(attr) {
+  if (attr.categorie === TIER_CATEGORY && !(Number(attr.tier) > 0)) {
+    toast('Un attribut de catégorie « Tiers » exige son numéro de tier', 'err');
+    return false;
+  }
+  return true;
+}
+
 async function saveAttribute() {
   const updated = collectAttrFromForm();
+  if (!checkAttrContract(updated)) return;
   const oldId = selectedAttr.id;
   const res = await apiFetch(`/api/attributes/${oldId}`, { method: 'PUT', body: updated });
   if (res.error) return toast(res.error, 'err');
@@ -2677,6 +2825,7 @@ function openNewAttribute() {
 async function submitNewAttribute() {
   const attr = collectAttrFromForm();
   if (!attr.id || !attr.name) return toast('ID et nom requis', 'err');
+  if (!checkAttrContract(attr)) return;
   const res = await apiFetch('/api/attributes', { method: 'POST', body: attr });
   if (res.error) return toast(res.error, 'err');
   attr._has_illustration = false;
@@ -3282,11 +3431,7 @@ function renderMagieDetail() {
         <label>Tier de la carte garantie</label>
         <select id="mf-effect-tier">
           <option value="" ${!effect.tier ? 'selected' : ''}>— indifférent —</option>
-          <option value="1" ${effect.tier === 1 ? 'selected' : ''}>Tier 1</option>
-          <option value="2" ${effect.tier === 2 ? 'selected' : ''}>Tier 2</option>
-          <option value="3" ${effect.tier === 3 ? 'selected' : ''}>Tier 3</option>
-          <option value="4" ${effect.tier === 4 ? 'selected' : ''}>Tier 4</option>
-          <option value="5" ${effect.tier === 5 ? 'selected' : ''}>Tier 5</option>
+          ${tierAttrDefs().map(a => `<option value="${a.tier}" ${effect.tier === a.tier ? 'selected' : ''}>Tier ${a.tier}</option>`).join('')}
         </select>
       </div>
       <div class="field" id="mf-gd-field" style="${showTier ? '' : 'display:none'};grid-column:1/-1">
@@ -3474,7 +3619,7 @@ function filterGuaranteedDrawSearch(scope) {
       const isAttr = x._gdType === 'attribute';
       const sub = isAttr
         ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px">Attribut</span>`
-        : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)}</span>`;
+        : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · ${tierText(x)}</span>`;
       return `
         <div onmousedown="addGuaranteedDrawCriterion('${scope}', '${x._gdType}', '${x.id}')"
           style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
@@ -3873,7 +4018,7 @@ function renderVariantDetail() {
              <img src="/illustrations/${card.id}" alt="" style="width:34px;height:34px;object-fit:cover;border-radius:6px;flex-shrink:0" onerror="this.style.visibility='hidden'">
              <div style="flex:1">
                <div style="font-size:13px">${esc(card.name)}</div>
-               <div style="font-size:11px;color:var(--muted);font-family:monospace">${card.id} · T${Math.round(card.tier)}</div>
+               <div style="font-size:11px;color:var(--muted);font-family:monospace">${card.id} · ${tierText(card)}</div>
              </div>
              <button class="btn btn-secondary btn-sm" onclick="clearVariantCard()">Changer</button>
            </div>`
@@ -3915,7 +4060,7 @@ function filterVariantCardSearch() {
           onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
           <div>
             <div style="font-size:13px">${esc(c.name)}</div>
-            <div style="margin-top:2px"><span style="font-size:11px;color:var(--muted);font-family:monospace">${c.id} · T${Math.round(c.tier)}</span></div>
+            <div style="margin-top:2px"><span style="font-size:11px;color:var(--muted);font-family:monospace">${c.id} · ${tierText(c)}</span></div>
           </div>
         </div>`).join('')
     : '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
@@ -5015,6 +5160,24 @@ function selectPublicDeck(id) {
   showDetail();
 }
 
+/**
+ * Une lane du deck qui contient une carte ne portant PAS ce tier.
+ *
+ * Le pool de pioche d'un round se dérive des lanes : une carte rangée en 4 se
+ * pioche au tour 4, quels que soient ses attributs. Ce n'est donc pas une
+ * faute — c'est un écart, et il se voit ici plutôt qu'en partie. On ANNONCE
+ * sans bloquer, comme le sélecteur de packs : ce panneau est un tableau de
+ * bord, pas un validateur.
+ */
+function _deckLaneWarning(ids, tier) {
+  const off = ids
+    .map(id => cards.find(c => c.id === id))
+    .filter(c => c && !hasCardTier(c, tier))
+    .map(c => `${c.id} (${tierText(c)})`);
+  if (!off.length) return '';
+  return `<span style="font-size:11px;color:#f0a040;margin-top:4px">⚠ hors tier ${tier} : ${esc(off.join(', '))}</span>`;
+}
+
 function renderPublicDeckDetail() {
   const d = selectedPublicDeck;
   const deck = d.deck || {};
@@ -5069,6 +5232,7 @@ function renderPublicDeckDetail() {
         <div class="field">
           <label>Tier ${t}</label>
           <textarea id="df-tier-${t}" rows="2" style="width:100%;resize:vertical">${esc((deck[String(t)] || []).join(', '))}</textarea>
+          ${_deckLaneWarning(deck[String(t)] || [], t)}
         </div>
       `).join('')}
     </div>
@@ -5378,7 +5542,7 @@ function packTierSpread(ids) {
   const spread = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   for (const id of ids) {
     const c = cards.find(x => x.id === id);
-    if (c) spread[Math.round(c.tier)] = (spread[Math.round(c.tier)] || 0) + 1;
+    if (c) for (const t of cardTiers(c)) spread[t] = (spread[t] || 0) + 1;
   }
   return spread;
 }
@@ -5755,7 +5919,7 @@ function openPackPicker() {
         <input type="search" id="picker-search" placeholder="Rechercher..." oninput="renderPackPicker()" style="max-width:220px">
         <select class="filter" id="picker-tier" onchange="renderPackPicker()">
           <option value="">Tous tiers</option>
-          ${[1, 2, 3, 4, 5].map(t => `<option value="${t}">Tier ${t}</option>`).join('')}
+          ${tierAttrDefs().map(a => `<option value="${a.tier}">Tier ${a.tier}</option>`).join('')}
         </select>
         <select class="filter" id="picker-summon" onchange="renderPackPicker()">
           <option value="">Tous coûts</option>
@@ -5805,7 +5969,7 @@ function _pickerFiltered() {
 
   return cards.filter(c => {
     if (q && !c.name.toLowerCase().includes(q) && !c.id.toLowerCase().includes(q)) return false;
-    if (tier && Math.round(c.tier) != tier) return false;
+    if (tier && !hasCardTier(c, tier)) return false;
     if (summon && (summon === '3+' ? summonCostOf(c) < 3 : summonCostOf(c) !== Number(summon))) return false;
     if (attribute && !(c.attributes || []).includes(attribute)) return false;
     if (membership === 'picked' && !pickerSelected.has(c.id)) return false;
@@ -5844,7 +6008,7 @@ function renderPackPicker() {
         <div style="flex:1;min-width:0">
           <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)}</span>
           <div style="display:flex;gap:4px;margin-top:2px;align-items:center">
-            ${tierBadge(c.tier)}
+            ${tierBadges(c)}
             ${taken ? `<span class="badge" style="background:var(--surface2);color:#e0a04a;font-size:10px">${esc(taken.id)}</span>` : ''}
             ${starter ? `<span class="badge" style="background:var(--surface2);color:#7bd88f;font-size:10px">🎓 départ</span>` : ''}
           </div>
@@ -5976,7 +6140,7 @@ function stdDev(arr) {
 function computeTierStats() {
   const result = {};
   [1,2,3,4,5].forEach(tier => {
-    const tc = cards.filter(c => Math.round(c.tier) === tier && c.stats);
+    const tc = cards.filter(c => cardTier(c) === tier && c.stats);
     result[tier] = { count: tc.length, stats: {} };
     STAT_KEYS.forEach(key => {
       const vals = tc.map(c => c.stats[key]).filter(v => v != null && !isNaN(v));
@@ -5991,7 +6155,7 @@ function detectOutliers(tierStats) {
   const out = [];
   cards.forEach(card => {
     if (!card.stats) return;
-    const tier = Math.round(card.tier);
+    const tier = cardTier(card);
     const ts = tierStats[tier];
     if (!ts) return;
     STAT_KEYS.forEach(key => {
@@ -6009,7 +6173,7 @@ function detectOutliers(tierStats) {
 function computeCompositeTierStats() {
   const result = {};
   [1,2,3,4,5].forEach(tier => {
-    const tc = cards.filter(c => Math.round(c.tier) === tier && c.stats);
+    const tc = cards.filter(c => cardTier(c) === tier && c.stats);
     result[tier] = { count: tc.length };
     COMPOSITE_STATS.forEach(cs => {
       const vals = tc.map(c => cs.compute(c.stats)).filter(v => v != null && !isNaN(v) && isFinite(v));
@@ -6024,7 +6188,7 @@ function detectCompositeOutliers(compTierStats) {
   const out = [];
   cards.forEach(card => {
     if (!card.stats) return;
-    const tier = Math.round(card.tier);
+    const tier = cardTier(card);
     const ts = compTierStats[tier];
     if (!ts) return;
     COMPOSITE_STATS.forEach(cs => {
@@ -6066,11 +6230,11 @@ function detectBrokenLinks() {
 function computePowerStats() {
   const byPower = powers.map(p => {
     const used = cards.filter(c => c.power?.id === p.id);
-    const tierCounts = [1,2,3,4,5].map(t => used.filter(c => Math.round(c.tier) === t).length);
+    const tierCounts = [1,2,3,4,5].map(t => used.filter(c => cardTier(c) === t).length);
     return { power: p, cards: used, count: used.length, tierCounts };
   }).sort((a, b) => b.count - a.count);
   const noPower = cards.filter(c => !c.power?.id);
-  const noPowerTierCounts = [1,2,3,4,5].map(t => noPower.filter(c => Math.round(c.tier) === t).length);
+  const noPowerTierCounts = [1,2,3,4,5].map(t => noPower.filter(c => cardTier(c) === t).length);
   return { byPower, noPower, noPowerTierCounts };
 }
 
@@ -6088,11 +6252,11 @@ function renderStats() {
   const el = document.getElementById('stats-content');
   const ts = computeTierStats();
   const outliers = detectOutliers(ts);
-  const filteredOutliers = statsFilterTier ? outliers.filter(o => Math.round(o.card.tier) === statsFilterTier) : outliers;
+  const filteredOutliers = statsFilterTier ? outliers.filter(o => cardTier(o.card) === statsFilterTier) : outliers;
 
   const cts = computeCompositeTierStats();
   const compOutliers = detectCompositeOutliers(cts);
-  const filteredCompOutliers = statsFilterTier ? compOutliers.filter(o => Math.round(o.card.tier) === statsFilterTier) : compOutliers;
+  const filteredCompOutliers = statsFilterTier ? compOutliers.filter(o => cardTier(o.card) === statsFilterTier) : compOutliers;
   const fmtC = v => v >= 10 ? v.toFixed(1) : v >= 1 ? v.toFixed(2) : v.toFixed(3);
 
   const tierRow = (key) => [1,2,3,4,5].map(tier => {
@@ -6163,7 +6327,7 @@ function renderStats() {
         <div>Carte</div><div>Tier</div><div>Stat</div><div>Valeur vs Moy.</div><div>Position</div><div>Écart</div>
       </div>
       ${filteredOutliers.map(o => {
-        const tier = Math.round(o.card.tier);
+        const tier = cardTier(o.card);
         const col = TIER_COLORS[tier];
         const range = o.max - o.min;
         const pos = range > 0 ? ((o.value - o.min) / range * 100).toFixed(1) : 50;
@@ -6235,7 +6399,7 @@ function renderStats() {
         <div>Carte</div><div>Tier</div><div>Stat composite</div><div>Valeur vs Moy.</div><div>Position</div><div>Écart</div>
       </div>
       ${filteredCompOutliers.map(o => {
-        const tier = Math.round(o.card.tier);
+        const tier = cardTier(o.card);
         const col = TIER_COLORS[tier];
         const csCol = o.cs.color;
         const range = o.max - o.min;
@@ -6307,7 +6471,7 @@ function renderStats() {
   const { byPower, noPower, noPowerTierCounts } = computePowerStats();
   const powerCardChips = (list) => list.length === 0
     ? `<span style="font-size:11px;color:var(--muted)">Aucune carte</span>`
-    : list.map(c => `<span class="badge" style="background:var(--surface2);cursor:pointer" onclick="event.stopPropagation();jumpToCard('${c.id}')">${esc(c.name)} <span style="color:${TIER_COLORS[Math.round(c.tier)]}">T${Math.round(c.tier)}</span></span>`).join(' ');
+    : list.map(c => `<span class="badge" style="background:var(--surface2);cursor:pointer" onclick="event.stopPropagation();jumpToCard('${c.id}')">${esc(c.name)} <span style="color:${TIER_COLORS[cardTier(c)]}">T${cardTier(c)}</span></span>`).join(' ');
 
   const powerRows = byPower.map(ps => `
     <tr class="power-row" style="cursor:pointer" onclick="togglePowerExpand('${ps.power.id}')">
@@ -6351,7 +6515,7 @@ function renderStats() {
   const detailPowerId = statsPowerDetailId || (powers[0] && powers[0].id) || null;
   const detailPower = powers.find(p => p.id === detailPowerId);
   const detailCards = detailPower
-    ? cards.filter(c => c.power?.id === detailPower.id).sort((a, b) => Math.round(a.tier) - Math.round(b.tier) || a.name.localeCompare(b.name))
+    ? cards.filter(c => c.power?.id === detailPower.id).sort((a, b) => cardTier(a) - cardTier(b) || a.name.localeCompare(b.name))
     : [];
   const hasValue = detailCards.some(c => c.power.value != null);
   const hasSpeed = detailCards.some(c => c.power.power_speed != null);
@@ -6371,7 +6535,7 @@ function renderStats() {
           </thead>
           <tbody>
             ${detailCards.map(c => {
-              const tier = Math.round(c.tier);
+              const tier = cardTier(c);
               return `
                 <tr class="power-row" style="cursor:pointer" onclick="jumpToCard('${c.id}')">
                   <td style="text-align:left;font-weight:600">${esc(c.name)}</td>
@@ -6464,7 +6628,7 @@ function setThreshold(val) {
   document.getElementById('threshold-val').textContent = statsThreshold.toFixed(1) + 'σ';
   const ts = computeTierStats();
   const outliers = detectOutliers(ts);
-  const filtered = statsFilterTier ? outliers.filter(o => Math.round(o.card.tier) === statsFilterTier) : outliers;
+  const filtered = statsFilterTier ? outliers.filter(o => cardTier(o.card) === statsFilterTier) : outliers;
   // Re-render just the anomaly count + rows
   renderStats();
 }
@@ -6547,7 +6711,6 @@ function openMassEditModal() {
     <h2>Modifier en masse <span style="font-size:13px;font-weight:400;color:var(--muted)">${n} carte${n>1?'s':''}</span></h2>
     <div class="field"><label>Champ</label>
       <select id="mass-field" onchange="onMassFieldChange()">
-        <option value="tier">Tier</option>
         <option value="material_value">Valeur en matériel</option>
         <option value="power">Pouvoir</option>
       </select>
@@ -6565,9 +6728,7 @@ function onMassFieldChange() {
   const field = document.getElementById('mass-field')?.value;
   const wrap = document.getElementById('mass-value-wrap');
   if (!wrap) return;
-  if (field === 'tier') {
-    wrap.innerHTML = `<label>Tier</label><select id="mass-value">${[1,2,3,4,5].map(t=>`<option value="${t}">${t}</option>`).join('')}</select>`;
-  } else if (field === 'material_value') {
+  if (field === 'material_value') {
     wrap.innerHTML = `<label>Valeur en matériel</label><select id="mass-value">${[1,2,3,4,5].map(n=>`<option value="${n}">${n} slot${n>1?'s':''}</option>`).join('')}</select>`;
   } else if (field === 'power') {
     wrap.innerHTML = `<label>Pouvoir</label><select id="mass-value"><option value="">Aucun</option>${powers.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>`;
@@ -6584,8 +6745,10 @@ async function applyMassEdit() {
     if (!card) continue;
     const updated = { ...card };
     delete updated._has_illustration;
-    if (field === 'tier') updated.tier = parseInt(value);
-    else if (field === 'material_value') updated.material_value = parseInt(value, 10) || 1;
+    delete updated._starter;
+    delete updated._tiers;
+    delete updated.tier;
+    if (field === 'material_value') updated.material_value = parseInt(value, 10) || 1;
     else if (field === 'power') updated.power = value ? { id: value, power_speed: updated.power?.power_speed || 0, value: updated.power?.value ?? null } : {};
     await fetch(`/api/cards/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
   }
@@ -6624,6 +6787,9 @@ async function applyMassAttribute() {
     if (!card) continue;
     const updated = { ...card };
     delete updated._has_illustration;
+    delete updated._starter;
+    delete updated._tiers;
+    delete updated.tier;
     const attrs = [...(updated.attributes || [])];
     if (action === 'add' && !attrs.includes(attrId)) attrs.push(attrId);
     else if (action === 'remove') { const i = attrs.indexOf(attrId); if (i !== -1) attrs.splice(i, 1); }

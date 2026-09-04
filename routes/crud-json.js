@@ -45,6 +45,16 @@ function requireUniqueId(item, list) {
  * @param {Function} [o.strip]      (item) => void, avant toute écriture —
  *                                  retire les drapeaux calculés du corps reçu.
  * @param {Function} [o.validateCreate] (item, liste) => null | {status, body}
+ * @param {Function} [o.validate]   (item) => null | {status, body}, sur POST et
+ *                                  PUT — la règle qui vaut pour toute écriture
+ *                                  d'un élément, là où `validateCreate` ne
+ *                                  répond qu'à « cet id est-il libre ? ».
+ *                                  ⚠️ PAS sur `/import` : c'est le chemin des
+ *                                  machines (`sync-data.js` pousse un catalogue
+ *                                  entier), et une entrée non conforme y ferait
+ *                                  échouer la synchro plutôt que de se signaler.
+ *                                  L'audit (`npm run audit:cards`) couvre ce
+ *                                  chemin-là.
  */
 function crudRouter(o) {
   const {
@@ -53,6 +63,7 @@ function crudRouter(o) {
     render = (list) => list,
     strip = noop,
     validateCreate = requireUniqueId,
+    validate = () => null,
   } = o;
 
   const router = express.Router();
@@ -67,7 +78,7 @@ function crudRouter(o) {
     try {
       const list = readJson(file);
       const item = req.body;
-      const bad = validateCreate(item, list);
+      const bad = validateCreate(item, list) || validate(item);
       if (bad) return res.status(bad.status).json(bad.body);
       strip(item);
       list.push(item);
@@ -106,6 +117,8 @@ function crudRouter(o) {
       const idx = list.findIndex(x => x.id === req.params.id);
       if (idx === -1) return res.status(404).json({ error: 'Not found' });
       const updated = req.body;
+      const bad = validate(updated);
+      if (bad) return res.status(bad.status).json(bad.body);
       strip(updated);
       list[idx] = updated;
       writeJson(file, list);

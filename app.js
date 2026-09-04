@@ -57,6 +57,8 @@ const packs = require('./sets');
 const variants = require('./variants');
 // Résolution « attributs de tier → numéros ». Feuille, comme les deux au-dessus.
 const tiers = require('./tiers');
+// Le contrat d'attributs d'une carte — pur, partagé avec `scripts/audit-cards.js`.
+const cardContract = require('./card-contract');
 
 const app = express();
 
@@ -580,7 +582,16 @@ app.use('/api/cards', crud({
       _tiers: tiers.tiersOf(c),
     }));
   },
-  strip: (c) => { delete c._has_illustration; delete c._tiers; },
+  // ⚠️ Une carte sans attribut de tier n'entre dans AUCUN pool de pioche : elle
+  // existe au catalogue et ne sort jamais. Le refus est donc en 400, pas en
+  // avertissement — c'est le seul point de passage de toute écriture unitaire.
+  validate: (c) => {
+    const missing = cardContract.missingCategories(c, readJson(ATTRIBUTES_FILE));
+    return missing.length
+      ? { status: 400, body: { error: `Attribut manquant, catégorie : ${missing.join(', ')}` } }
+      : null;
+  },
+  strip: (c) => { delete c._has_illustration; delete c._starter; delete c._tiers; },
 }));
 
 // L'icône d'un attribut est une IMAGE dont l'art vit dans ILLUS_DIR sous l'id

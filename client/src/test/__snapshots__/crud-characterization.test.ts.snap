@@ -302,9 +302,13 @@ exports[`/api/cards > empreinte du quintuplet 1`] = `
     "fichier après écritures",
     [
       {
+        "attributes": [
+          "ARCH_091",
+          "ARCH_090",
+          "ARCH_048",
+        ],
         "id": "CHAR_001",
         "name": "Modifiée",
-        "tier": 1,
       },
     ],
   ],

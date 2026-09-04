@@ -116,7 +116,7 @@ module.exports = [
     // dépendance qu'il prendrait deviendrait une dépendance de tout le monde.
     // `tiers.js` de même : le tier étant devenu un attribut, missions, shop,
     // levels, gifts et cosmetics le lisent tous — il doit rester au fond.
-    files: ['sets.js', 'variants.js', 'asset-dirs.js', 'json-cache.js', 'tiers.js'],
+    files: ['sets.js', 'variants.js', 'asset-dirs.js', 'json-cache.js', 'tiers.js', 'card-contract.js'],
     rules: {
       'n/no-restricted-require': ['error', [
         ...SINKS,

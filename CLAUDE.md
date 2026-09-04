@@ -183,9 +183,10 @@ Toutes les mutations renvoient **l'instantané complet + la progression à jour*
 | `pvplog.js` · `ailog.js` | Outils de diagnostic (feuilles, retirables d'un bloc) |
 | `json-cache.js` · `asset-dirs.js` | Cache au mtime, chemins d'assets |
 | `tiers.js` | Résolution « attributs de catégorie `Tiers` → numéros » (jumeau de `logic/Tiers.ts`) |
+| `card-contract.js` | Les catégories d'attributs qu'une carte doit porter (pur, partagé avec l'audit) |
 
 **Règle anti-cycle** — elle n'est écrite nulle part ailleurs que ici :
-- **Feuilles** (ne requièrent que `db` / `json-cache`, personne ne les requiert en retour) : `sets.js`, `variants.js`, `decks.js`, `pvplog.js`, `ailog.js`, `asset-dirs.js`, `tiers.js`.
+- **Feuilles** (ne requièrent que `db` / `json-cache`, personne ne les requiert en retour) : `sets.js`, `variants.js`, `decks.js`, `pvplog.js`, `ailog.js`, `asset-dirs.js`, `tiers.js`, `card-contract.js`.
 - **Puits** (requièrent les autres, aucun ne doit les requérir) : `levels.js`, `gifts.js`.
 - `sets.js` existe parce que `shop.js` (boosters) et `progression.js` (dotation) en ont tous deux besoin, et que `shop.js` requiert déjà `progression.js`.
 - `cosmetics.js`, `gifts.js` et `arcade.js` importent **littéralement** le calendrier de `shop.js` : `const { dayKey, nextRotationAt, seededRandom } = require('./shop')`.
@@ -841,7 +842,11 @@ player_hp -= round(sum(survivingEnemyUnits.atk) × enemy_multiplier)
 
 Un monstre peut porter plusieurs attributs. **Un seul palier est actif à la fois** (le plus élevé atteint).
 
-**Cinq catégories** (`categorie`) : `Archetype`, `Type`, `Element`, `Invocation`, `Tiers`. **Contrat d'une carte : au moins un attribut de catégorie `Tiers`, `Invocation` et `Element`** — `Type` n'en fait **pas** partie (12 cartes livrées n'en portent aucun, et aucune règle ne le lit). Vérifié par `npm run audit:cards` (`--check` sort en 1).
+**Cinq catégories** (`categorie`) : `Archetype`, `Type`, `Element`, `Invocation`, `Tiers`. **Contrat d'une carte : au moins un attribut de catégorie `Tiers`, `Invocation` et `Element`** — `Type` n'en fait **pas** partie (12 cartes livrées n'en portent aucun, et aucune règle ne le lit).
+
+- **`card-contract.js` porte la règle, seul** (pur, sans `require`) : `POST` / `PUT /api/cards` refusent en **400** et `npm run audit:cards --check` sort en 1, avec la même fonction.
+- ⚠️ **`/import` n'est PAS gardé**, à dessein : c'est le chemin des machines (`sync-data.js` pousse un catalogue entier), et une entrée non conforme y ferait échouer la synchro au lieu de se signaler. C'est l'audit qui couvre ce chemin.
+- ⚠️ Une carte **sans attribut de tier** n'entre dans **aucun** pool de pioche : elle existe au catalogue et ne sort jamais. D'où le refus à l'écriture plutôt qu'un avertissement.
 
 ### Le tier est un ATTRIBUT
 
@@ -851,8 +856,9 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 - **`logic/Tiers.ts` est le seul résolveur côté client, `tiers.js` (racine) son JUMEAU serveur** — la frontière CJS / ESM-TS interdit un module partagé (même situation que `XP_PER_LEVEL` et `BASE_TICK_MS`). ⚠️ `test/tiers.test.ts` les fait répondre sur les 868 cartes : c'est le **seul** filet contre leur dérive.
 - **La résolution se fait UNE FOIS au chargement du catalogue** : le serveur pose `_tiers` sur `GET /api/cards` (calculé, jamais persisté), `sim/catalog.ts` décore le JSON brut, les scripts construisent leur propre index (`tierIndex(attributes)`). Le jeu ne fait plus que **lire**.
 - ⚠️ **`tiersOf` (ensemble) et `primaryTier` (le plus HAUT) ne répondent pas à la même question.** Ensemble : pool de pioche, lanes, filtres, `guaranteed_draw` (appartenance, jamais égalité). Scalaire : `Unit.tier` (échelle des VFX), garde `material_outranks_result` de l'IA, `tier_min` des missions, tris — tous demandent une **puissance**. `displayTier` est un troisième cas assumé : il rend `null` au lieu d'inventer un « T1 » sur une étiquette.
-- ⚠️ **Le pool de pioche se dérive des LANES du deck** (`bootstrap.buildSession`, `EnemyAI.drawHand`), pas du champ de la carte — c'était déjà vrai avant la refonte. La lane d'une carte est son `primaryTier`.
-- ⚠️ Le champ `tier` de `cards.json` est **historique** : plus rien ne le lit hors du repli de `tiersOf` (cartes écrites à la main dans les tests et les bancs de dev). `scripts/migrate-tiers.js` pose l'attribut manquant, sans le retirer.
+- ⚠️ **Le pool de pioche se dérive des LANES du deck** (`bootstrap.buildSession`, `EnemyAI.drawHand`), pas des attributs de la carte — c'était déjà vrai avant la refonte.
+- ⚠️ **Une carte multi-tiers ne compte QUE POUR UNE**, dans une seule lane : celle du **plus bas de ses tiers qui a encore de la place**, un cran au-dessus s'il est plein (`DeckBuilder.laneFor`). Elle **comble les trous** au lieu d'occuper d'office le haut du panier. Corollaire : l'unicité se vérifie sur **tout le deck** (`laneOf`), jamais sur la seule lane visée, et « tier plein » veut dire « plus une seule de ses lanes n'a de place ».
+- ⚠️ Le champ `tier` de `cards.json` est **historique** : plus rien ne le lit hors du repli de `tiersOf` (cartes écrites à la main dans les tests et les bancs de dev). `scripts/migrate-tiers.js` pose l'attribut manquant sans le retirer ; **l'admin, lui, le retire à chaque enregistrement** — une carte rouverte finit sa migration.
 
 | Effet | Timing | Détail |
 |---|---|---|

@@ -143,6 +143,10 @@ export function buildAggregates(
     .sort(byWeight);
 
   // ── Tiers ─────────────────────────────────────────────────────────────
+  // ⚠️ `row.tier` est le tier PRIMAIRE de la carte (le plus haut de ses
+  // attributs de tier) : une carte multi-tiers pèse dans UNE ligne, jamais
+  // dans deux. C'est une partition, pas une lentille — sans quoi les lignes ne
+  // sommeraient plus au total mesuré.
   const byTier = new Map<number, CardRow[]>();
   for (const row of played) {
     if (!byTier.has(row.tier)) byTier.set(row.tier, []);
