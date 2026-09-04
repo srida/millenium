@@ -1533,7 +1533,7 @@ Reprendre une PWA depuis les tâches de fond **n'est pas une navigation** : le n
 
 ## `admin.html` (Card Manager)
 
-Page autonome, **14 onglets**, aucun build. ⚠️ **Aucun test automatisé ne la couvre** (`npm test` est purement client) : la vérification se fait **au navigateur** (Chromium et Playwright préinstallés, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` — ne **pas** lancer `playwright install`).
+Page autonome, **16 onglets**, aucun build. ⚠️ **Aucun test automatisé ne la couvre** (`npm test` est purement client) : la vérification se fait **au navigateur** (Chromium et Playwright préinstallés, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` — ne **pas** lancer `playwright install`). ⚠️ Un `npm i playwright` récent réclame un build que le volume n'a pas : passer `executablePath: '/opt/pw-browsers/chromium-<build>/chrome-linux/chrome'` plutôt que de télécharger.
 
 **Ce qu'il faut mesurer plutôt que regarder** : `document.documentElement.scrollWidth <= clientWidth` (`body { overflow-x: hidden }` **masque** le symptôme), un seul `.main:not(.hidden)` et un seul `#main-tabs .tab.active` par onglet, les chips d'attributs toujours visibles et actifs après un `switchTab()`, et l'échelle réelle des SVG du rapport (`svg.getScreenCTM().a` — un `getComputedStyle` rendrait `11px` même à l'échelle 0,4).
 
@@ -1549,6 +1549,8 @@ Page autonome, **14 onglets**, aucun build. ⚠️ **Aucun test automatisé ne l
 - **Éditeurs répétables** (lots de cadeau, effets de terrain) : ils tiennent un état local (le DOM ne peut pas servir de source de vérité pour une liste dont on retire des éléments au milieu) et un `_sync…Draft()` recopie la saisie **avant** chaque re-render — sans quoi ajouter une ligne effacerait ce qu'on venait de taper.
 - ⚠️ **Un `_collect…Fields` qui reconstruit l'objet de zéro détruit tout champ qu'il ne connaît pas.** C'est arrivé à `description` (magies) et à `difficulty` (decks publics). Repartir de `...selectedX`, en s'arrêtant au **premier niveau**.
 - Les onglets sans barre latérale (`#tab-db`, Logs PvP, Logs IA) sont chargés **paresseusement** au premier clic et ajoutés à `NO_FAB_TABS`.
+- ⚠️ **Il n'y a plus d'onglet Invocation** (ni `summon_types.json`, ni `SummonTypeDatabase`, ni `/api/summon-types`) : les cinq voies sont des attributs de carte, éditables dans l'onglet Attributs comme n'importe quel archétype. L'onglet Cartes porte à leur place un **éditeur de recettes répétable** (`summon_conditions`) et le champ **`material_value`**.
+- L'éditeur de recettes **annonce sans bloquer** ce que le moteur refuserait : `requires.length > materials` est insatisfiable (la carte serait injouable en silence), et une recette à **un** matériel signale qu'elle imposera la case. Un matériel d'**attribut** est proposé sur **toutes** les recettes — l'ancien éditeur ne l'offrait que sur un « heritage », une règle qui n'existe plus.
 - ⚠️ La glose française des motifs / verdicts est **recopiée** dans `admin.html` (`AI_REASONS`, `AI_HAND_SOURCES`, `PVP_KINDS`) : le fichier ne peut rien importer d'un module TS. Un motif ajouté côté TS est à reporter là-bas ; la dérive est bénigne (un motif sans glose s'affiche par son slug).
 
 ## Simulation d'équilibrage (`client/src/sim/`)
