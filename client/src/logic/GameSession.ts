@@ -42,6 +42,12 @@ import type { Card, Position, BoardDef, AttributeDef, DrawSummary, Magie, RoundW
 
 const HAND_SIZE = 5;
 
+/** Sans doublon d'id, dans l'ordre de première apparition. */
+function _distinctCards(cards: readonly Card[]): Card[] {
+  const seen = new Set<string>();
+  return cards.filter(c => !seen.has(c.id) && seen.add(c.id));
+}
+
 /** Les tiers DISTINCTS d'une liste de cartes, entrées sans tier ignorées.
  *  ⚠️ Une carte à plusieurs tiers les apporte TOUS : c'est l'union. */
 function _tiers(cards: readonly (Card | null | undefined)[]): number[] {
@@ -248,7 +254,7 @@ export class GameSession {
     // logique de jeu (cf. `Board.getUnitsOnSide`).
     this.board.mirroredFrame = !!deps.mirroredRole;
     this.enemyAI = new EnemyAI(deps.enemyDeck, deps.cardDb as any, 'enemy', deps.rand ?? Math.random);
-    this._playerDeckAttributes = deckAttributes(Object.values(deps.cardsByTier ?? {}).flat());
+    this._playerDeckAttributes = deckAttributes(_distinctCards(Object.values(deps.cardsByTier ?? {}).flat()));
     this._enemyDeckAttributes = deckAttributes(
       Object.values(deps.enemyDeck ?? {})
         // ⚠️ Ni les decks publics ni les decks de bots ne sont validés par un
@@ -331,7 +337,7 @@ export class GameSession {
     this.hand = [...this.hand, ...drawHand(this.deps.cardsByTier, this.gameState.round, randomCount, this._rand)];
 
     // Pioches garanties : ignorent la restriction de tier du tour — cherche dans tout le deck
-    const fullPool = Object.values(this.deps.cardsByTier).flat();
+    const fullPool = this._deckCards();
     this.hand.push(...resolveGuaranteedDraws(fullPool as any, guaranteedDraws, this._rand));
 
     // Modifiers de main différés (magies choisies au tour précédent)
@@ -892,10 +898,17 @@ export class GameSession {
     return units.filter(u => !!this.deps.cardDb.getCard(u.card_id));
   }
 
-  /** Le deck du joueur à plat. Ne SORT pas de la session : les accesseurs
-   *  publics n'en rendent que des tiers, des booléens et des cartes tirées. */
+  /**
+   * Le deck du joueur à plat. Ne SORT pas de la session : les accesseurs
+   * publics n'en rendent que des tiers, des booléens et des cartes tirées.
+   *
+   * ⚠️ DÉDOUBLONNÉ : `cardsByTier` est un INDEX, pas une partition — une carte
+   * multi-tiers y figure dans chacune de ses cases. À plat, elle compterait
+   * deux fois : deux fois dans les attributs dominants du deck (donc le tirage
+   * du terrain), deux fois dans le sac des pioches garanties.
+   */
   private _deckCards(): Card[] {
-    return Object.values(this.deps.cardsByTier).flat();
+    return _distinctCards(Object.values(this.deps.cardsByTier).flat());
   }
 
   /**

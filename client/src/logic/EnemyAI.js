@@ -1,5 +1,5 @@
 import { Unit } from './Unit.js';
-import { tiersForRound, resolveGuaranteedDraws } from './Draw.js';
+import { tiersForRound, resolveGuaranteedDraws, deckPoolByTier, poolForRound } from './Draw.js';
 import { primaryTier } from './Tiers.js';
 import {
   materialLineageMatches, summonConditions, conditionMaterials, conditionRequires,
@@ -79,13 +79,11 @@ export class EnemyAI {
   drawHand(round, trace = null, extra = 0, guaranteed = []) {
     const tiers = tiersForRound(round);
     const kept = [...this._hand];
-    const pool = [];
-    for (const t of tiers) {
-      for (const id of (this._deck[String(t)] ?? [])) {
-        const card = this._cardDb.getCard(id);
-        if (card) pool.push(card);
-      }
-    }
+    // ⚠️ MÊME sac que le joueur, par les mêmes fonctions : le pool se dérive
+    // des TIERS DE LA CARTE (une carte multi-tiers se pioche à chacun des
+    // siens) et se dédoublonne par round. Le composer à la main ici, c'était
+    // se donner deux pioches qui finiraient par diverger.
+    const pool = poolForRound(deckPoolByTier(this._deck, this._cardDb), round);
     // ⚠️ Tirage AVEC REMISE. Sans bonus (le cas de TOUS les appelants avant
     // l'attribut `draw_bonus`), exactement HAND_SIZE appels à `rand` dès que
     // le pool n'est pas vide — inchangé au bit près. Le flux semé de la

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from 'vitest';
-import { resolveGuaranteedDraws } from '../logic/Draw.js';
+import { resolveGuaranteedDraws, deckPoolByTier, poolForRound, drawHand } from '../logic/Draw.js';
 import { makeCard } from './helpers.js';
 
 // Partagée par GameSession.startPreparation (joueur) et EnemyAI.drawHand
@@ -101,5 +101,61 @@ describe('Draw — critères multiples et cartes nommées', () => {
   it('une carte nommée absente du deck retombe sur tout le pool', () => {
     const drawn = resolveGuaranteedDraws(pool as any, [{ card_ids: ['ABSENTE'] }], () => 0);
     expect(drawn.map(c => c.id)).toEqual(['D']);
+  });
+});
+
+// ===========================================================================
+//  Le multi-tier — une carte peut se piocher à PLUSIEURS rounds
+// ===========================================================================
+// Aucune carte du catalogue livré n'est encore multi-tiers : ces cas sont donc
+// les SEULS à exercer la règle, et sans eux elle serait écrite sans être jouée.
+describe('Draw — une carte à plusieurs tiers', () => {
+  // ⚠️ `makeCard` pose le champ `tier` historique ; `_tiers` est la forme
+  // résolue que le serveur sert. On écrit les deux formes pour vérifier que
+  // c'est bien la RÉSOLUE qui commande.
+  const multi = { ...makeCard({ id: 'M', tier: 2, summon_conditions: [] }), _tiers: [2, 4] } as any;
+  const t2 = makeCard({ id: 'A', tier: 2, summon_conditions: [] }) as any;
+  const t4 = { ...makeCard({ id: 'B', tier: 2, summon_conditions: [] }), _tiers: [4] } as any;
+  const db = { getCard: (id: string) => [multi, t2, t4].find(c => c.id === id) ?? null };
+
+  it("entre dans CHAQUE case de l'index, quelle que soit sa lane", () => {
+    // Rangée en lane 2 — sa lane ne dit rien de ses tiers.
+    const byTier = deckPoolByTier({ 2: ['M', 'A'], 4: ['B'] }, db);
+    expect(byTier[2].map((c: any) => c.id)).toEqual(['M', 'A']);
+    expect(byTier[4].map((c: any) => c.id)).toEqual(['M', 'B']);
+    expect(byTier[1]).toEqual([]);
+    expect(byTier[3]).toEqual([]);
+  });
+
+  it('se pioche donc à plus de rounds — round 2 comme round 4', () => {
+    const byTier = deckPoolByTier({ 2: ['M', 'A'], 4: ['B'] }, db);
+    // Round 2 : tiers [1,2]. Round 5 : tiers [3,4,5].
+    expect(poolForRound(byTier, 2).map(c => c.id)).toEqual(['M', 'A']);
+    expect(poolForRound(byTier, 5).map(c => c.id)).toEqual(['M', 'B']);
+  });
+
+  it("⚠️ mais UNE SEULE FOIS dans le sac d'un round qui couvre ses deux tiers", () => {
+    const byTier = deckPoolByTier({ 2: ['M', 'A'], 4: ['B'] }, db);
+    // Round 4 : tiers [2,3,4] — les deux tiers de M sont éligibles.
+    const pool = poolForRound(byTier, 4);
+    expect(pool.map(c => c.id)).toEqual(['M', 'A', 'B']);
+    // Sans dédoublonnage elle sortirait deux fois plus souvent que ses voisines,
+    // ce qui n'est pas ce que « plusieurs tiers » veut dire.
+    expect(pool.filter(c => c.id === 'M')).toHaveLength(1);
+  });
+
+  it('et le tirage indexe ce sac-là', () => {
+    const byTier = deckPoolByTier({ 2: ['M', 'A'], 4: ['B'] }, db);
+    // `rand` renvoyant 0, c'est toujours le premier du sac.
+    expect(drawHand(byTier, 4, 3, () => 0).map(c => c.id)).toEqual(['M', 'M', 'M']);
+    // Round 1 : aucun de ses tiers n'est éligible, elle ne sort pas.
+    expect(drawHand(byTier, 1, 3, () => 0)).toEqual([]);
+  });
+
+  it('une carte rangée hors de ses tiers se pioche selon SES tiers', () => {
+    // `B` est tier 4 et rangée en lane 1 : c'est la carte qui décide.
+    const byTier = deckPoolByTier({ 1: ['B'] }, db);
+    expect(poolForRound(byTier, 1)).toEqual([]);
+    expect(poolForRound(byTier, 5).map(c => c.id)).toEqual(['B']);
   });
 });

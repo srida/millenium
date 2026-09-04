@@ -11,6 +11,7 @@ import * as CardBackDatabase from '../data/CardBackDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import * as CardArt from '../data/CardArt.js';
 import { GameSession } from '../logic/GameSession.js';
+import { deckPoolByTier } from '../logic/Draw.js';
 import type { Card } from '../logic/types.js';
 import { summonCost } from '../logic/InvocationManager.js';
 
@@ -109,15 +110,12 @@ export function buildSession(
   CardArt.setPlayerVariants(resolvedName ? (DeckRepository as any).getDeckVariants?.(resolvedName) : null);
   CardArt.setEnemyVariants(null);
 
-  const cardsByTier: Record<number, Card[]> = {};
-  for (let t = 1; t <= 5; t++) {
-    cardsByTier[t] = (rawDeck[String(t)] ?? [])
-      .map(id => (CardDatabase as any).getCard(id) as Card | null)
-      .filter(Boolean) as Card[];
-  }
-
   return new GameSession({
-    cardsByTier,
+    // ⚠️ Le pool se dérive des TIERS DE LA CARTE, pas de la lane où le
+    // DeckBuilder l'a rangée : une carte multi-tiers se pioche à chacun des
+    // siens. La règle vit dans `Draw.deckPoolByTier`, que la simulation appelle
+    // aussi — deux constructions de pool finiraient par ne plus s'accorder.
+    cardsByTier: deckPoolByTier(rawDeck, CardDatabase as any),
     enemyDeck: rawEnemyDeck,
     attributeList: (AttributeDatabase as any).getAllAttributes(),
     cardDb: CardDatabase as any,

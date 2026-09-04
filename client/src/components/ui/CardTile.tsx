@@ -16,7 +16,7 @@
 // pointerup retombait sur la grille qui venait de se monter dessous.
 import { useRef, type ReactNode } from 'react';
 import type { Card } from '../../logic/types.js';
-import { primaryTier } from '../../logic/Tiers.js';
+import { tiersOf } from '../../logic/Tiers.js';
 import { artFor } from '../../data/CardArt.js';
 import { summonCostOf } from '../../data/SummonInfo.js';
 import { useUiStore, type TooltipContent } from '../../stores/uiStore.js';
@@ -48,7 +48,11 @@ const TIER_RING: Record<number, string> = {
 export interface CardTileProps {
   illustrationId: string;
   name: string;
-  tier?: number | null;             // null → ni badge T·, ni liseré de tier
+  /** Les tiers de la carte. `null` ou vide → ni badge T·, ni liseré de tier.
+   *  ⚠️ Une LISTE : une carte peut porter plusieurs tiers, et le badge les dit
+   *  tous (`T2·4`). Le liseré, lui, prend le plus haut — une couleur ne se
+   *  partage pas. */
+  tiers?: readonly number[] | null;
   hint?: ReactNode;                 // pastille de coût d'invocation (cf. renderHint)
   badge?: number | null;            // badge ×N (exemplaires)
   stacked?: boolean;                // épaisseur de pile (plusieurs exemplaires)
@@ -87,18 +91,18 @@ function renderHint(card: Card): ReactNode {
 // utilisé (main, cimetière, DeckBuilder, boutique, TestBench). La prop reste
 // surchargeable — le DeckBuilder s'en sert pour prévisualiser un choix en
 // cours d'édition, avant qu'il ne soit enregistré.
-export function cardTileProps(card: Card): Pick<CardTileProps, 'illustrationId' | 'name' | 'tier' | 'hint' | 'tooltip'> {
+export function cardTileProps(card: Card): Pick<CardTileProps, 'illustrationId' | 'name' | 'tiers' | 'hint' | 'tooltip'> {
   return {
     illustrationId: artFor(card.id),
     name: card.name,
-    tier: primaryTier(card),
+    tiers: tiersOf(card),
     hint: renderHint(card),
     tooltip: { kind: 'card', card },
   };
 }
 
 export default function CardTile({
-  illustrationId, name, tier = null, hint = null, badge = null,
+  illustrationId, name, tiers = null, hint = null, badge = null,
   stacked = false, showName = true, size = 'h-28',
   highlight = 'none', dim = 'none', lift = 'none',
   locked = false, disabled = false, tapOn = 'down', tooltip = null, onTap,
@@ -140,7 +144,8 @@ export default function CardTile({
       className={[
         'relative aspect-[5/7] flex-shrink-0 overflow-hidden rounded-lg border-2 ring-1 ring-inset transition-transform',
         size,
-        tier != null ? (TIER_RING[tier] ?? 'ring-white/10') : 'ring-white/10',
+        // Le liseré prend le tier le PLUS HAUT : une couleur ne se partage pas.
+        tiers?.length ? (TIER_RING[tiers[tiers.length - 1]] ?? 'ring-white/10') : 'ring-white/10',
         HIGHLIGHT[highlight],
         DIM[dim],
         LIFT[lift],
@@ -155,8 +160,10 @@ export default function CardTile({
           <div className="truncate text-[9px] font-semibold leading-tight text-white">{name}</div>
         </div>
       )}
-      {tier != null && (
-        <span className="absolute left-0.5 top-0.5 rounded bg-black/70 px-1 text-[9px] font-bold text-white">T{tier}</span>
+      {tiers != null && tiers.length > 0 && (
+        <span className="absolute left-0.5 top-0.5 rounded bg-black/70 px-1 text-[9px] font-bold text-white">
+          T{tiers.join('·')}
+        </span>
       )}
       {hint && <span className="absolute right-0.5 top-0.5 rounded bg-black/70 px-1 text-[9px]">{hint}</span>}
       {badge != null && badge > 0 && (

@@ -194,15 +194,16 @@ export const CHAPTERS: Chapter[] = [
     id: 'tiers',
     icon: '⭐',
     title: 'Les tiers',
-    blurb: 'De 1 à 5 : la puissance, et le moment où elle arrive.',
+    blurb: 'De 1 à 5 : la puissance, et les tours où elle arrive.',
     blocks: [
-      { kind: 'text', text: "Chaque carte porte un **tier**, de 1 à 5. Il dit deux choses : sa puissance, et à partir de quel tour tu peux la piocher." },
+      { kind: 'text', text: "Chaque carte porte au moins un **tier**, de 1 à 5. Il dit deux choses : sa puissance, et à quels tours tu peux la piocher." },
       { kind: 'cards', caption: 'Un exemple par tier', pick: oneCardPerTier },
       { kind: 'bullets', items: [
         "**Tier 1 et 2** — ton socle. Peu chères, disponibles tôt, souvent posables sans rien payer.",
         "**Tier 3** — le tournant : c'est là que les recettes commencent à nommer les cartes qu'elles réclament.",
         "**Tier 4 et 5** — les finisseuses. Elles coûtent des matériels et n'arrivent qu'aux derniers tours, quand le multiplicateur les rend décisives.",
       ] },
+      { kind: 'text', text: "Certaines cartes portent **plusieurs tiers** : elles se piochent à chacun d'eux, et comblent les trous d'un deck. Elles ne comptent jamais que pour **une** carte." },
       { kind: 'note', text: "Dans un deck : **8 cartes maximum par tier**, et **un seul exemplaire** de chaque carte. Un deck trop lourd en tier 5 ne pioche rien au tour 1." },
     ],
   },
