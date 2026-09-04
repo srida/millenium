@@ -73,19 +73,29 @@ export interface MagieOfferContext {
   materialSourceCount: number;
   /** Tiers effectivement présents dans le DECK du joueur (pas dans sa main). */
   deckTiers: number[];
-  /** Voies d'invocation présentes dans le DECK — le pendant de `deckTiers`
-   *  pour une pioche garantie filtrée par `category`. */
-  deckSummonTypes: string[];
-  // ⚠️ Les quatre drapeaux suivants portent sur le DECK, jamais sur la main :
+  /** Attributs présents dans le DECK — le pendant de `deckTiers` pour une
+   *  pioche garantie filtrée par `attribute`. Les voies d'invocation étant
+   *  devenues des attributs, elles y figurent comme les autres. */
+  deckAttributes: string[];
+  // ⚠️ Les deux drapeaux suivants portent sur le DECK, jamais sur la main :
   // les modificateurs de main sont DIFFÉRÉS au `startPreparation()` suivant,
   // donc appliqués après une pioche de cinq cartes neuves — la main du moment
   // ne dit rien de ce qu'ils vont trouver. Chacun reprend le prédicat EXACT que
-  // `startPreparation` appliquera : tester le seul `summon_type` déplacerait le
-  // mensonge au lieu de le supprimer.
-  deckHasSacrificeCost: boolean;
-  deckHasTransformation: boolean;
-  deckHasHeritageMaterial: boolean;
-  deckHasFusionMaterial: boolean;
+  // `startPreparation` appliquera.
+  //
+  // Ils étaient QUATRE, un par voie d'invocation remisable ; il n'y a plus que
+  // deux gestes possibles sur une condition, donc deux questions à poser.
+  /** Une carte du deck a-t-elle une condition qui coûte des matériels ? */
+  deckHasMaterialCost: boolean;
+  /** Une carte du deck a-t-elle une condition qui NOMME un matériel ? */
+  deckHasNamedRequirement: boolean;
+  /**
+   * Les attributs portés par ces cartes-là — ce qu'il faut pour juger une
+   * remise VISÉE (`effect.attribute`). ⚠️ Une liste vide ne veut pas dire
+   * « aucune carte retouchable » : une carte sans attribut n'y figure pas.
+   */
+  deckMaterialCostAttributes: string[];
+  deckNamedRequirementAttributes: string[];
   /** Le cap partagé +1 slot de board est-il encore libre ? */
   boardSlotBonusAvailable: boolean;
   /** `player_hp` est-il sous son plafond (`PLAYER_HP_CAP`) ? */
@@ -146,16 +156,16 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     // restriction de tier du tour. La magie n'est donc pas inerte, elle MENT :
     // son libellé promet un tier qu'elle ne rendra pas. On ne l'offre pas.
     // ⚠️ Les deux filtres sont FACULTATIFS et se cumulent : une magie qui ne
-    // porte qu'une `category` n'a pas de tier à valider, et l'ancienne écriture
+    // porte qu'un attribut n'a pas de tier à valider, et l'ancienne écriture
     // (`ctx.deckTiers.includes(effect.tier ?? 0)`) l'aurait rendue à JAMAIS
     // non pertinente — donc jamais offerte, en silence.
     case 'guaranteed_draw':
       // Sans AUCUN filtre, la magie ne promet rien de nommable : elle déplace
       // un slot de pioche aléatoire vers… une pioche aléatoire. C'est le cas
       // « blanc » que ce filtre existe pour supprimer, et il reste rejeté.
-      if (!effect.tier && !effect.category) return false;
+      if (!effect.tier && !effect.attribute) return false;
       return (!effect.tier || ctx.deckTiers.includes(effect.tier))
-        && (!effect.category || ctx.deckSummonTypes.includes(effect.category));
+        && (!effect.attribute || ctx.deckAttributes.includes(effect.attribute));
 
     // Remplacement par tier : il faut une cible ET un pool où puiser. Le pool
     // est le DECK du joueur, comme celui d'une pioche garantie — c'est la seule
@@ -183,10 +193,18 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     case 'board_slot_bonus':         return ctx.boardSlotBonusAvailable;
     case 'player_hp_bonus':          return ctx.playerHpBelowCap;
 
-    case 'reduce_sacrifice_cost':    return ctx.deckHasSacrificeCost;
-    case 'free_transformation':      return ctx.deckHasTransformation;
-    case 'remove_heritage_material': return ctx.deckHasHeritageMaterial;
-    case 'remove_fusion_material':   return ctx.deckHasFusionMaterial;
+    // ⚠️ Une remise VISÉE (`attribute`) doit trouver une carte qui porte
+    // l'attribut ET que le geste peut retoucher : les deux séparément se
+    // contentent d'un deck où les deux cartes sont différentes, et la magie
+    // serait alors offerte pour ne rien faire.
+    case 'reduce_materials':
+      return effect.attribute
+        ? ctx.deckMaterialCostAttributes.includes(effect.attribute)
+        : ctx.deckHasMaterialCost;
+    case 'remove_requirements':
+      return effect.attribute
+        ? ctx.deckNamedRequirementAttributes.includes(effect.attribute)
+        : ctx.deckHasNamedRequirement;
 
     // Le seul effet qui ne dépend de rien : la pioche du tour suivant a
     // toujours lieu.

@@ -7,12 +7,12 @@ import * as PowerDatabase from '../data/PowerDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as BoardDatabase from '../data/BoardDatabase.js';
 import * as MagieDatabase from '../data/MagieDatabase.js';
-import * as SummonTypeDatabase from '../data/SummonTypeDatabase.js';
 import * as CardBackDatabase from '../data/CardBackDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import * as CardArt from '../data/CardArt.js';
 import { GameSession } from '../logic/GameSession.js';
 import type { Card } from '../logic/types.js';
+import { summonCost } from '../logic/InvocationManager.js';
 
 let _dataReady = false;
 
@@ -24,7 +24,6 @@ export async function initGameData(): Promise<void> {
     (AttributeDatabase as any).init(),
     (BoardDatabase as any).init(),
     (MagieDatabase as any).init(),
-    (SummonTypeDatabase as any).init(),
     // ⚠️ Ne jette jamais (cf. son en-tête) : un dos de carte n'est pas une
     // donnée de jeu, et un serveur qui ne connaîtrait pas encore la route ne
     // doit pas empêcher de jouer.
@@ -48,8 +47,9 @@ function autoDeck(): Record<string, string[]> {
   const deck: Record<string, string[]> = {};
   for (let t = 1; t <= 5; t++) {
     const cards = (CardDatabase as any).getCardsByTier(t) as Card[];
-    // Cartes normales en priorité pour garantir un board jouable sans matériaux.
-    const sorted = [...cards].sort((a, b) => (a.summon_type === 'normal' ? -1 : 1) - (b.summon_type === 'normal' ? -1 : 1));
+    // Cartes sans condition en priorité, pour garantir un board jouable sans
+    // matériaux — c'est le coût qui le dit, plus une voie nommée.
+    const sorted = [...cards].sort((a, b) => summonCost(a) - summonCost(b));
     deck[String(t)] = sorted.slice(0, 8).map(c => c.id);
   }
   return deck;

@@ -12,23 +12,31 @@
 // tier n'entre que si le deck couvre déjà ses matériaux (ids ET attributs), et
 // une fusion retenue au tier 3 alimente à son tour la couverture du tier 4.
 import { isAttributeMaterial } from '../logic/InvocationManager.js';
-import type { Card } from '../logic/types.js';
+import type { Card, SummonCondition } from '../logic/types.js';
 
 export type Deck = Record<string, string[]>;
 
 /** Le plafond du DeckBuilder : `min(8, pool_size)` cartes par tier. */
 export const PER_TIER = 8;
 
-/** Les recettes d'une carte : ses `summon_options`, ou son `cost` unique. */
-function recipesOf(card: Card) {
-  return card.summon_options?.length ? card.summon_options.map(o => o.cost) : [card.cost];
+/** Les conditions d'une carte ; une liste vide = aucune exigence. */
+function conditionsOf(card: Card): SummonCondition[] {
+  return card.summon_conditions ?? [];
 }
 
-/** Une recette suffit. Un matériau `ARCH_*` désigne n'importe quel porteur de
+/** Les matériels NOMMÉS d'une condition — les seuls qu'une couverture puisse
+ *  garantir ; un coût purement chiffré se paie avec n'importe quoi. */
+function requiresOf(condition: SummonCondition | undefined): string[] {
+  return condition?.requires ?? [];
+}
+
+/** Une condition suffit. Un matériau `ARCH_*` désigne n'importe quel porteur de
  *  l'attribut, pas une carte — d'où les deux couvertures. */
 export function isSummonable(card: Card, ids: Set<string>, attrs: Set<string>): boolean {
-  return recipesOf(card).some(cost =>
-    (cost?.materials ?? []).every(m => (isAttributeMaterial(m) ? attrs.has(m) : ids.has(m))));
+  const conditions = conditionsOf(card);
+  if (conditions.length === 0) return true;
+  return conditions.some(cd =>
+    requiresOf(cd).every(m => (isAttributeMaterial(m) ? attrs.has(m) : ids.has(m))));
 }
 
 /** Tirage sans remise de `count` éléments. */
@@ -41,7 +49,10 @@ function sample<T>(pool: T[], count: number, rand: () => number): T[] {
   return out;
 }
 
-const isNormal = (c: Card) => (c.summon_type ?? 'normal') === 'normal';
+/** Posable sans rien consommer : une carte sans condition, ou dont une
+ *  condition ne coûte aucun matériel. C'était « summon_type === normal ». */
+const isNormal = (c: Card) =>
+  conditionsOf(c).length === 0 || conditionsOf(c).some(cd => (cd.materials ?? 0) === 0);
 
 /**
  * Un deck aléatoire mais JOUABLE : socle de cartes posables aux tiers 1-2, puis
@@ -133,7 +144,7 @@ export function deckWithCard(
   for (const id of ids) {
     const c = cardDb.getCard(id);
     if (!c) continue;
-    for (const cost of recipesOf(c)) for (const m of cost?.materials ?? []) needed.add(m);
+    for (const cd of conditionsOf(c)) for (const m of requiresOf(cd)) needed.add(m);
   }
   const droppable = slots.filter(id => !needed.has(id));
   if (droppable.length === 0) return null;
@@ -187,9 +198,9 @@ export function materialClosure(
 
   const resolve = (c: Card, depth: number): boolean => {
     if (depth > 4) return false;
-    const recipes = [...recipesOf(c)].sort(
-      (a, b) => (a?.materials?.length ?? 0) - (b?.materials?.length ?? 0));
-    const mats = recipes[0]?.materials ?? [];
+    const recipes = [...conditionsOf(c)].sort(
+      (a, b) => requiresOf(a).length - requiresOf(b).length);
+    const mats = requiresOf(recipes[0]);
     for (const m of mats) {
       if (isAttributeMaterial(m)) {
         if (attrs.has(m)) continue;

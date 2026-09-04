@@ -457,7 +457,6 @@ select.filter:focus { border-color: var(--accent); }
       <button class="tab active" data-tab="cards">Cartes</button>
       <button class="tab" data-tab="attributes">Attributs</button>
       <button class="tab" data-tab="powers">Pouvoirs</button>
-      <button class="tab" data-tab="summontypes">Invocation</button>
       <button class="tab" data-tab="boards">Terrains</button>
       <button class="tab" data-tab="magies">Magies</button>
       <button class="tab" data-tab="missions">Missions</button>
@@ -517,12 +516,11 @@ select.filter:focus { border-color: var(--accent); }
             <option value="5">Tier 5</option>
           </select>
           <select class="filter" id="filter-summon" onchange="filterCards()">
-            <option value="">Tous types</option>
-            <option value="normal">Normal</option>
-            <option value="sacrifice">Sacrifice</option>
-            <option value="fusion">Fusion</option>
-            <option value="heritage">Heritage</option>
-            <option value="transformation">Transformation</option>
+            <option value="">Tous coûts</option>
+            <option value="0">◈ Sans coût</option>
+            <option value="1">◈1 matériel</option>
+            <option value="2">◈2 matériels</option>
+            <option value="3+">◈3 et plus</option>
           </select>
           <select class="filter" id="filter-illus" onchange="filterCards()">
             <option value="">Toutes</option>
@@ -530,9 +528,9 @@ select.filter:focus { border-color: var(--accent); }
             <option value="yes">Avec illus.</option>
           </select>
           <select class="filter" id="filter-options" onchange="filterCards()">
-            <option value="">Toutes invocations</option>
-            <option value="yes">🔀 Avec options alt.</option>
-            <option value="no">Sans options alt.</option>
+            <option value="">Toutes recettes</option>
+            <option value="yes">🔀 Plusieurs recettes</option>
+            <option value="no">Une seule recette</option>
           </select>
           <select class="filter" id="filter-attribute" onchange="filterCards()">
             <option value="">Tous attributs</option>
@@ -593,24 +591,6 @@ select.filter:focus { border-color: var(--accent); }
     </div>
     <div class="content" id="power-detail">
       <div class="empty"><span>Sélectionne un pouvoir</span></div>
-    </div>
-  </div>
-
-  <!-- SUMMON TYPES TAB — catalogue FERMÉ à 6 entrées (normal/sacrifice/fusion/
-       heritage/transformation, plus « multi » pour les cartes à recettes
-       alternatives). Pas de recherche, pas de + Nouveau, pas de suppression :
-       on n'y édite que le libellé et l'icône. -->
-  <div id="tab-summontypes" class="main hidden">
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <div style="display:flex;gap:8px;align-items:center">
-          <span class="count" id="summontype-count">6</span> types d'invocation
-        </div>
-      </div>
-      <div class="sidebar-list" id="summontype-list"></div>
-    </div>
-    <div class="content" id="summontype-detail">
-      <div class="empty"><span>Sélectionne un type d'invocation</span></div>
     </div>
   </div>
 
@@ -839,8 +819,8 @@ select.filter:focus { border-color: var(--accent); }
 // ================== STATE ==================
 // `packs` = les packs de boutique (data/sets.json, API /api/sets). Le code et la
 // donnée disent « set », l'interface dit « pack » : ici on est dans l'interface.
-let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [], summonTypes = [], cardBacks = [];
-let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null, selectedSummonType = null, selectedCardBack = null;
+let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [], cardBacks = [];
+let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null, selectedCardBack = null;
 let currentTab = 'cards';
 let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false, isNewGift = false, isNewCardBack = false;
 let selectionMode = false;
@@ -848,7 +828,7 @@ const bulkSelected = new Set();
 
 // ================== INIT ==================
 async function init() {
-  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, summonTypes, cardBacks] = await Promise.all([
+  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, cardBacks] = await Promise.all([
     apiFetch('/api/cards'),
     apiFetch('/api/attributes'),
     apiFetch('/api/powers'),
@@ -859,7 +839,6 @@ async function init() {
     apiFetch('/api/missions'),
     apiFetch('/api/variants'),
     apiFetch('/api/gifts'),
-    apiFetch('/api/summon-types'),
     apiFetch('/api/card-backs'),
   ]);
   populateAttributeFilter();
@@ -874,7 +853,6 @@ async function init() {
   renderMissionList();
   renderVariantList();
   renderGiftList();
-  renderSummonTypeList();
   renderCardBackList();
 }
 
@@ -965,9 +943,8 @@ function switchTab(tab) {
   showList(); // reset panel on tab switch
 }
 
-// Onglets sans sidebar : le FAB (« + ») n'y a rien à ouvrir. `summontypes` est
-// un catalogue FERMÉ à 6 entrées : rien à créer non plus.
-const NO_FAB_TABS = new Set(['stats', 'db', 'sim', 'summontypes', 'pvplogs', 'ailogs']);
+// Onglets sans sidebar : le FAB (« + ») n'y a rien à ouvrir.
+const NO_FAB_TABS = new Set(['stats', 'db', 'sim', 'pvplogs', 'ailogs']);
 
 // Délégation : la barre et la feuille mobile partagent le même chemin de code.
 // Le garde `data-tab` est obligatoire — un clic ailleurs dans la barre ne doit rien faire.
@@ -1238,15 +1215,11 @@ const AI_REASONS = {
   board_full: 'plus de place — le cap de slots est atteint',
   duplicate_on_board: 'un exemplaire de cette carte est déjà sur le terrain',
   no_free_cell: 'aucune case libre dans la zone',
-  not_enough_material: 'pas assez de matériaux (terrain + cimetière)',
-  duplicate_needs_extra_material: 'le doublon consommé ne suffit pas',
+  not_enough_material: 'pas assez de matériels (terrain + cimetière)',
   would_exceed_slots: 'dépasserait le nombre de slots — pas assez de place libérée',
-  missing_material: 'matériau manquant',
-  no_transformation_target_id: 'la transformation ne désigne aucune cible',
-  transformation_target_mismatch: 'la carte déjà en jeu ne correspond pas à la cible',
-  no_transformation_target: 'cible absente du terrain et du cimetière',
-  all_options_failed: 'aucune de ses recettes ne passe',
-  unknown_summon_type: "voie d'invocation inconnue",
+  missing_material: 'matériel nommé manquant',
+  material_outranks_result: "le seul matériel disponible est d'un tier plus haut que le résultat",
+  all_conditions_failed: 'aucune de ses recettes ne passe',
 };
 
 function aiReason(reason, detail) {
@@ -1349,9 +1322,9 @@ async function toggleAiDetail(id) {
           cb.length ? `terrain : ${cb.join(', ')}` : '',
           cg.length ? `cimetière : ${cg.join(', ')}` : '',
         ].filter(Boolean).join(' — ');
-        return `<div class="ai-attempt placed">✓ ${esc(e.card_id)} <span style="color:var(--muted)">(${esc(e.summon_type || '?')})</span>${esc(where)}${consumed ? ` <span style="color:var(--muted)">— consomme ${esc(consumed)}</span>` : ''}</div>`;
+        return `<div class="ai-attempt placed">✓ ${esc(e.card_id)} <span style="color:var(--muted)">${e.condition_index != null ? `(recette ${e.condition_index + 1})` : ''}</span>${esc(where)}${consumed ? ` <span style="color:var(--muted)">— consomme ${esc(consumed)}</span>` : ''}</div>`;
       }
-      return `<div class="ai-attempt refused">✗ ${esc(e.card_id)} <span style="color:var(--muted)">(${esc(e.summon_type || '?')})</span> — <span class="ai-reason">${esc(aiReason(e.reason, e.detail))}</span></div>`;
+      return `<div class="ai-attempt refused">✗ ${esc(e.card_id)} — <span class="ai-reason">${esc(aiReason(e.reason, e.detail))}</span></div>`;
     }).join('');
 
     const re = (r.events || []).find(e => e.kind === 'rearrange');
@@ -1390,15 +1363,36 @@ async function deleteAiLog(id) {
 function tierBadge(tier) {
   return `<span class="badge badge-tier${Math.round(tier)}">T${Math.round(tier)}</span>`;
 }
-function summonLabel(t) {
-  return { normal: 'Normal', sacrifice: 'Sacrifice', fusion: 'Fusion', heritage: 'Heritage', transformation: 'Transfo' }[t] || t;
+// ⚠️ Il n'y a plus de « voie » d'invocation. Une carte porte zéro, une ou
+// plusieurs CONDITIONS (`summon_conditions`), chacune réclamant un nombre de
+// slots de matériau (`materials`, comptés en `material_value`) dont une partie
+// peut être NOMMÉE (`requires`). Son coût est le minimum de ces `materials` —
+// même définition que `InvocationManager.summonCost`, dont ceci est le pendant
+// d'admin. Ces quatre lecteurs sont les seuls du fichier à ouvrir la donnée.
+function cardConditions(c) {
+  return Array.isArray(c && c.summon_conditions) ? c.summon_conditions : [];
 }
-function summonColor(t) {
-  return { normal: '#78c8a8', sacrifice: '#f0a040', fusion: '#c878e0', heritage: '#6ab4e8', transformation: '#ff8040' }[t] || '#888';
+function conditionMaterials(cd) {
+  const n = cd && cd.materials;
+  return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : 0;
 }
-// Une option définie suffit : le type et le coût classiques sont alors ignorés par le jeu.
-function hasSummonOptions(c) {
-  return !!(c.summon_options && c.summon_options.length);
+function conditionRequires(cd) {
+  return Array.isArray(cd && cd.requires) ? cd.requires : [];
+}
+function summonCostOf(c) {
+  const conditions = cardConditions(c);
+  return conditions.length ? Math.min(...conditions.map(conditionMaterials)) : 0;
+}
+/** Le coût en un chiffre, exactement ce que la vignette du jeu affiche. */
+function costLabel(c) {
+  const n = summonCostOf(c);
+  return n > 0 ? `◈${n}` : 'Direct';
+}
+function costColor(c) {
+  return summonCostOf(c) > 0 ? '#c878e0' : '#78c8a8';
+}
+function hasMultipleConditions(c) {
+  return cardConditions(c).length > 1;
 }
 
 function filterCards() {
@@ -1412,9 +1406,9 @@ function filterCards() {
   const filtered = cards.filter(c =>
     (!q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)) &&
     (!tier || Math.round(c.tier) == tier) &&
-    (!summon || c.summon_type === summon) &&
+    (!summon || (summon === '3+' ? summonCostOf(c) >= 3 : summonCostOf(c) === Number(summon))) &&
     (!illus || (illus === 'yes' ? c._has_illustration : !c._has_illustration)) &&
-    (!options || (options === 'yes' ? hasSummonOptions(c) : !hasSummonOptions(c))) &&
+    (!options || (options === 'yes' ? hasMultipleConditions(c) : !hasMultipleConditions(c))) &&
     (!attribute || (c.attributes || []).includes(attribute)) &&
     (!power || (power === 'none' ? !(c.power && c.power.id) : (c.power && c.power.id === power)))
   );
@@ -1439,8 +1433,8 @@ function renderCardList(list = cards) {
           <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
           <div style="display:flex;gap:4px;margin-top:3px">
             ${tierBadge(c.tier)}
-            <span class="badge" style="background:var(--surface2);color:${summonColor(c.summon_type)};font-size:10px">${summonLabel(c.summon_type)}</span>
-            ${hasSummonOptions(c) ? `<span class="badge" style="background:var(--surface2);color:#e07be0;font-size:10px">🔀 ${c.summon_options.length}</span>` : ''}
+            <span class="badge" style="background:var(--surface2);color:${costColor(c)};font-size:10px">${costLabel(c)}</span>
+            ${hasMultipleConditions(c) ? `<span class="badge" style="background:var(--surface2);color:#e07be0;font-size:10px">🔀 ${cardConditions(c).length}</span>` : ''}
           </div>
         </div>
       </div>`;
@@ -1520,8 +1514,8 @@ function renderCardDetail() {
         <div class="detail-title">${c.name}</div>
         <div class="detail-meta">
           ${tierBadge(c.tier)}
-          <span class="badge badge-summon">${summonLabel(c.summon_type)}</span>
-          ${hasSummonOptions(c) ? `<span class="badge" style="background:#e07be022;color:#e07be0">🔀 ${c.summon_options.length} options alt.</span>` : ''}
+          <span class="badge badge-summon">${costLabel(c)}</span>
+          ${hasMultipleConditions(c) ? `<span class="badge" style="background:#e07be022;color:#e07be0">🔀 ${cardConditions(c).length} recettes</span>` : ''}
           ${hasPower ? `<span class="badge badge-power">${getPowerName(c.power.id)}</span>` : ''}
           <span class="badge ${hasIllus ? 'badge-illus' : 'badge-no-illus'}">${hasIllus ? '🖼 Illus.' : 'Pas d\'illus.'}</span>
         </div>
@@ -1538,10 +1532,11 @@ function renderCardDetail() {
         <input type="range" id="f-tier" min="1" max="5" step="1" value="${Math.round(c.tier)}" oninput="document.getElementById('f-tier-val').textContent=this.value">
         <div class="slider-marks"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
       </div>
-      <div class="field"><label>Type d'invocation</label>
-        <select id="f-summon" onchange="onSummonTypeChange(this.value)">
-          ${['normal','sacrifice','fusion','heritage','transformation'].map(s => `<option value="${s}" ${c.summon_type===s?'selected':''}>${summonLabel(s)}</option>`).join('')}
-        </select>
+      <div class="field">
+        <label>Valeur en matériel <span class="slider-val" id="f-matval-val">${cardMaterialValue(c)}</span></label>
+        <input type="range" id="f-matval" min="1" max="5" step="1" value="${cardMaterialValue(c)}" oninput="document.getElementById('f-matval-val').textContent=this.value">
+        <div class="slider-marks"><span>1</span><span>3</span><span>5</span></div>
+        <span style="font-size:11px;color:var(--muted);margin-top:4px">Slots que l'unité représente quand elle est CONSOMMÉE comme matériel. C'est une donnée, jamais dérivée : les deux camps la lisent.</span>
       </div>
     </div>
 
@@ -1583,41 +1578,20 @@ function renderCardDetail() {
       <div class="field" id="f-power-val-wrap"><label>Valeur</label><input type="number" id="f-power-val" value="${hasPower && c.power.value != null ? c.power.value : ''}" step="0.5" placeholder="optionnel"></div>
     </div>
 
-    <div class="section-title">Coût d'invocation</div>
-    <div class="form-grid">
-      <div class="field">
-        <label>Sacrifices requis <span class="slider-val" id="f-sac-val">${Math.min(3,Math.max(0,c.cost.sacrifice||0))}</span></label>
-        <input type="range" id="f-sac" min="0" max="3" step="1" value="${Math.min(3,Math.max(0,c.cost.sacrifice||0))}" oninput="document.getElementById('f-sac-val').textContent=this.value">
-        <div class="slider-marks"><span>0</span><span>1</span><span>2</span><span>3</span></div>
-      </div>
+    <div class="section-title">Recettes d'invocation</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+      La carte est jouable dès qu'<strong style="color:var(--text)">une seule</strong> recette est satisfaite. Une recette réclame un nombre de <strong style="color:var(--text)">matériels</strong> — des unités du terrain ou du cimetière, comptées en « valeur en matériel » — dont une partie peut être <strong style="color:var(--text)">nommée</strong>. Aucune recette : la carte se pose directement.
     </div>
-    <div id="materials-section">
-      <div id="material-section-label" style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">${c.summon_type === 'heritage' ? 'Matériaux de Heritage' : 'Matériaux de fusion/heritage'}</div>
-      <div class="materials-list" id="materials-list">
-        ${(c.cost.materials || []).map(mid => {
-          const isAttr = !cards.find(x => x.id === mid) && !!attributes.find(x => x.id === mid);
-          return `
-          <div class="material-item" data-mid="${mid}">
-            <span style="display:flex;align-items:center;gap:6px">
-              ${isAttr ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px;white-space:nowrap">Attribut</span>` : ''}
-              <span>${esc(getMaterialName(mid))}</span>
-              <span style="font-size:10px;color:var(--muted);font-family:monospace">${mid}</span>
-            </span>
-            <button onclick="removeMaterial('${mid}')">×</button>
-          </div>`;
-        }).join('')}
-      </div>
-      <div style="position:relative;margin-top:8px" id="material-search-wrap">
-        <input type="text" id="material-search" placeholder="${c.summon_type === 'heritage' ? 'Rechercher une carte ou un attribut...' : 'Rechercher une carte à ajouter...'}" autocomplete="off"
-          oninput="filterMaterialSearch()" onfocus="showMaterialDropdown()" onblur="hideMaterialDropdown()"
-          style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
-        <div id="material-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
-      </div>
+    <div id="conditions-list">
+      ${cardConditions(c).map((cd, idx) => conditionRowHtml(cd, idx)).join('')
+        || `<div style="font-size:12px;color:var(--muted);padding:12px;border:1px dashed var(--border);border-radius:8px;margin-bottom:10px">Aucune recette — la carte se pose sans rien consommer.</div>`}
     </div>
+    <button class="btn btn-secondary btn-sm" onclick="addCondition()" style="margin-bottom:20px">+ Ajouter une recette</button>
 
     <div class="section-title">Lignée (cartes représentées)</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
-      IDs de cartes que cette carte « représente » en plus d'elle-même pour le matching de matériaux fusion/heritage/transformation (ex : une fusion Avian+Burstinatrix doit lister Avian et Burstinatrix ici pour pouvoir combler leurs slots dans une fusion ultérieure qui les requiert).
+      IDs de cartes que cette carte « représente » en plus d'elle-même quand elle sert de <strong style="color:var(--text)">matériel</strong> (ex : une composite Avian+Burstinatrix doit lister Avian et Burstinatrix ici pour combler leurs slots dans une recette ultérieure qui les nomme).
+      ⚠️ La lignée doit être <strong style="color:var(--text)">entièrement exigée</strong> par la recette qui la consomme : cette carte ne remplace pas Avian seul, mais comble à elle seule les deux exigences d'une recette qui demande les deux.
     </div>
     <div class="materials-list" id="represented-list">
       ${(c.represented_ids || []).map(rid => `
@@ -1635,15 +1609,6 @@ function renderCardDetail() {
         style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
       <div id="represented-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
     </div>
-
-    <div class="section-title">Options d'invocation alternatives</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
-      Permet d'invoquer le même monstre par plusieurs méthodes différentes (ex : transformation depuis une carte précise OU sacrifice de plusieurs monstres). ${hasSummonOptions(c) ? `<strong style="color:var(--text)">Le type et le coût classiques ci-dessus sont ignorés</strong> tant qu'au moins une option est définie ici.` : `Tant qu'aucune option n'est ajoutée, le type et le coût classiques ci-dessus s'appliquent normalement.`}
-    </div>
-    <div id="summon-options-list">
-      ${(c.summon_options || []).map((opt, idx) => optionRowHtml(opt, idx)).join('')}
-    </div>
-    <button class="btn btn-secondary btn-sm" onclick="addSummonOption()" style="margin-bottom:20px">+ Ajouter une option alternative</button>
 
     <div class="section-title">Attributs</div>
     <div class="attr-chips" id="attr-chips">
@@ -1678,12 +1643,6 @@ function togglePowerFields() {
 function removeCardAttribute(aid) {
   syncCardFromForm();
   selectedCard.attributes = (selectedCard.attributes || []).filter(a => a !== aid);
-  renderCardDetail();
-}
-
-function removeMaterial(mid) {
-  syncCardFromForm();
-  selectedCard.cost.materials = (selectedCard.cost.materials || []).filter(m => m !== mid);
   renderCardDetail();
 }
 
@@ -1726,7 +1685,7 @@ function renderRepresentedDropdown(results) {
           onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
           <div>
             <div style="font-size:13px">${esc(x.name)}</div>
-            <div style="margin-top:2px"><span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${summonLabel(x.summon_type)}</span></div>
+            <div style="margin-top:2px"><span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${costLabel(x)}</span></div>
           </div>
         </div>`).join('');
   }
@@ -1744,85 +1703,54 @@ function hideRepresentedDropdown() {
   }, 150);
 }
 
-function filterMaterialSearch() {
-  const q = document.getElementById('material-search')?.value.toLowerCase() || '';
-  const summon = document.getElementById('f-summon')?.value;
-  const current = selectedCard.cost?.materials || [];
-
-  const matchedCards = cards
-    .filter(x => x.id !== selectedCard.id && !current.includes(x.id))
-    .filter(x => !q || x.name.toLowerCase().includes(q) || x.id.toLowerCase().includes(q))
-    .slice(0, 20)
-    .map(x => ({ ...x, _matType: 'card' }));
-
-  let results = matchedCards;
-
-  if (summon === 'heritage') {
-    const matchedAttrs = attributes
-      .filter(a => !current.includes(a.id))
-      .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
-      .slice(0, 10)
-      .map(a => ({ ...a, _matType: 'attribute' }));
-    results = [...matchedAttrs, ...matchedCards];
-  }
-
-  renderMaterialDropdown(results);
+/** `material_value` est une DONNÉE de carte, jamais dérivée — même défaut que
+ *  `Unit.materialValueOf` : absente ou aberrante, elle vaut 1. */
+function cardMaterialValue(c) {
+  const n = c && c.material_value;
+  return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : 1;
 }
 
-function renderMaterialDropdown(results) {
-  const dd = document.getElementById('material-dropdown');
-  if (!dd) return;
-  if (!results.length) {
-    dd.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
-  } else {
-    dd.innerHTML = results.map(x => {
-      const isAttr = x._matType === 'attribute';
-      const sub = isAttr
-        ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px">Attribut</span>`
-        : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${summonLabel(x.summon_type)}</span>`;
-      return `
-        <div onmousedown="addMaterial('${x.id}')"
-          style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
-          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-          ${isAttr ? `<span style="font-size:16px">${x.icon || '🔷'}</span>` : ''}
-          <div>
-            <div style="font-size:13px">${esc(x.name)}</div>
-            <div style="margin-top:2px">${sub}</div>
-          </div>
-        </div>`;
-    }).join('');
-  }
-  dd.style.display = 'block';
-}
-
-function optionMaterialsLabel(type) {
-  return type === 'heritage' ? 'Matériaux de Heritage' : 'Matériaux de fusion/heritage/transformation';
-}
-
-function optionRowHtml(opt, idx) {
-  const sac = Math.min(3, Math.max(0, opt.cost?.sacrifice || 0));
-  const mats = opt.cost?.materials || [];
+/**
+ * Une recette, sous sa forme éditable.
+ *
+ * ⚠️ L'invariant du moteur est `requires.length <= materials` : une recette qui
+ * nommerait plus de matériels qu'elle n'en consomme est INSATISFIABLE, et la
+ * carte serait injouable sans que rien ne le dise. L'éditeur l'annonce — il
+ * n'interdit pas la saisie (même discipline que le sélecteur de packs : un
+ * tableau de bord, pas un validateur), mais il ne laisse pas passer en silence.
+ */
+function conditionRowHtml(cd, idx) {
+  const materials = conditionMaterials(cd);
+  const requires = conditionRequires(cd);
+  const over = requires.length > materials;
+  // Le mot qui introduit la liste se dérive du COÛT seul, exactement comme
+  // `data/SummonInfo.materialsLabel` — l'admin doit lire ce que le joueur lira.
+  const label = requires.length < materials
+    ? 'Matériels nommés — les autres slots restent libres'
+    : 'Matériels nommés — la recette nomme tous ses slots';
   return `
     <div class="option-row" data-idx="${idx}" style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--surface2)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <span style="font-weight:600;font-size:12px;color:var(--muted)">Option ${idx + 1}</span>
-        <button class="btn btn-danger btn-sm" onclick="removeSummonOption(${idx})">× Retirer</button>
+        <span style="font-weight:600;font-size:12px;color:var(--muted)">Recette ${idx + 1}</span>
+        <button class="btn btn-danger btn-sm" onclick="removeCondition(${idx})">× Retirer</button>
       </div>
       <div class="form-grid">
-        <div class="field"><label>Type d'invocation</label>
-          <select id="opt-summon-${idx}" onchange="onOptionSummonTypeChange(${idx}, this.value)">
-            ${['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'].map(s => `<option value="${s}" ${opt.summon_type === s ? 'selected' : ''}>${summonLabel(s)}</option>`).join('')}
-          </select>
-        </div>
         <div class="field">
-          <label>Sacrifices requis <span class="slider-val" id="opt-sac-val-${idx}">${sac}</span></label>
-          <input type="range" id="opt-sac-${idx}" min="0" max="3" step="1" value="${sac}" oninput="document.getElementById('opt-sac-val-${idx}').textContent=this.value">
-          <div class="slider-marks"><span>0</span><span>1</span><span>2</span><span>3</span></div>
+          <label>Matériels à réunir <span class="slider-val" id="cond-mat-val-${idx}">${materials}</span></label>
+          <input type="range" id="cond-mat-${idx}" min="0" max="6" step="1" value="${materials}"
+                 oninput="document.getElementById('cond-mat-val-${idx}').textContent=this.value">
+          <div class="slider-marks"><span>0</span><span>3</span><span>6</span></div>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600" id="opt-material-label-${idx}">${optionMaterialsLabel(opt.summon_type)}</div>
-      <div class="materials-list" id="opt-materials-list-${idx}">
-        ${mats.map(mid => {
+      ${over ? `<div style="margin-top:8px;font-size:11px;color:#f0a040;background:#f0a04018;border:1px solid #f0a04044;border-radius:6px;padding:8px 10px">
+        ⚠ ${requires.length} matériels nommés pour ${materials} slot${materials > 1 ? 's' : ''} : cette recette est <strong>insatisfiable</strong>. Monte le compte de matériels, ou retire une exigence.
+      </div>` : ''}
+      ${materials === 1 ? `<div style="margin-top:8px;font-size:11px;color:var(--muted)">
+        📍 Un seul matériel : l'unité invoquée prendra <strong style="color:var(--text)">la case</strong> de celui qu'elle consomme.
+      </div>` : ''}
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">${label}</div>
+      <div class="materials-list" id="cond-requires-${idx}">
+        ${requires.map(mid => {
           const isAttr = isMaterialAttribute(mid);
           return `
           <div class="material-item" data-mid="${mid}">
@@ -1831,81 +1759,73 @@ function optionRowHtml(opt, idx) {
               <span>${esc(getMaterialName(mid))}</span>
               <span style="font-size:10px;color:var(--muted);font-family:monospace">${mid}</span>
             </span>
-            <button onclick="removeOptionMaterial(${idx}, '${mid}')">×</button>
+            <button onclick="removeConditionRequire(${idx}, '${mid}')">×</button>
           </div>`;
         }).join('')}
       </div>
-      <div style="position:relative;margin-top:8px" id="opt-material-search-wrap-${idx}">
-        <input type="text" id="opt-material-search-${idx}" placeholder="Rechercher une carte ou un attribut..." autocomplete="off"
-          oninput="filterOptionMaterialSearch(${idx})" onfocus="showOptionMaterialDropdown(${idx})" onblur="hideOptionMaterialDropdown(${idx})"
+      <div style="position:relative;margin-top:8px">
+        <input type="text" id="cond-search-${idx}" placeholder="Rechercher une carte ou un attribut..." autocomplete="off"
+          oninput="filterConditionSearch(${idx})" onfocus="filterConditionSearch(${idx})" onblur="hideConditionDropdown(${idx})"
           style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
-        <div id="opt-material-dropdown-${idx}" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
+        <div id="cond-dropdown-${idx}" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
       </div>
     </div>`;
 }
 
-function addSummonOption() {
+function addCondition() {
   syncCardFromForm();
-  if (!selectedCard.summon_options) selectedCard.summon_options = [];
-  selectedCard.summon_options.push({ summon_type: 'normal', cost: { sacrifice: 0, materials: [] } });
+  if (!Array.isArray(selectedCard.summon_conditions)) selectedCard.summon_conditions = [];
+  selectedCard.summon_conditions.push({ materials: 1, requires: [] });
   renderCardDetail();
 }
 
-function removeSummonOption(idx) {
+function removeCondition(idx) {
   syncCardFromForm();
-  selectedCard.summon_options.splice(idx, 1);
+  selectedCard.summon_conditions.splice(idx, 1);
   renderCardDetail();
 }
 
-function onOptionSummonTypeChange(idx, val) {
+function removeConditionRequire(idx, mid) {
   syncCardFromForm();
-  selectedCard.summon_options[idx].summon_type = val;
+  const cd = selectedCard.summon_conditions[idx];
+  cd.requires = conditionRequires(cd).filter(m => m !== mid);
   renderCardDetail();
 }
 
-function removeOptionMaterial(idx, mid) {
+function addConditionRequire(idx, id) {
   syncCardFromForm();
-  const opt = selectedCard.summon_options[idx];
-  opt.cost.materials = (opt.cost.materials || []).filter(m => m !== mid);
-  renderCardDetail();
-}
-
-function addOptionMaterial(idx, id) {
-  syncCardFromForm();
-  const opt = selectedCard.summon_options[idx];
-  if (!opt.cost.materials) opt.cost.materials = [];
-  if (!opt.cost.materials.includes(id)) {
-    opt.cost.materials.push(id);
+  const cd = selectedCard.summon_conditions[idx];
+  if (!Array.isArray(cd.requires)) cd.requires = [];
+  if (!cd.requires.includes(id)) {
+    cd.requires.push(id);
     renderCardDetail();
   }
 }
 
-function filterOptionMaterialSearch(idx) {
-  const q = document.getElementById(`opt-material-search-${idx}`)?.value.toLowerCase() || '';
-  const summonType = document.getElementById(`opt-summon-${idx}`)?.value;
-  const current = selectedCard.summon_options[idx]?.cost?.materials || [];
-
+/**
+ * ⚠️ Cartes ET attributs, sur TOUTES les recettes : `matchesMaterial` accepte
+ * les deux partout depuis qu'il n'y a plus de voie. Le vieil éditeur ne
+ * proposait les attributs que sur un « heritage » — une règle qui n'existe plus
+ * et qui, gardée, aurait rendu la moitié du catalogue inexprimable.
+ */
+function filterConditionSearch(idx) {
+  const q = document.getElementById(`cond-search-${idx}`)?.value.toLowerCase() || '';
+  const current = conditionRequires(selectedCard.summon_conditions?.[idx]);
+  const matchedAttrs = attributes
+    .filter(a => !current.includes(a.id))
+    .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
+    .slice(0, 10)
+    .map(a => ({ ...a, _matType: 'attribute' }));
   const matchedCards = cards
     .filter(x => x.id !== selectedCard.id && !current.includes(x.id))
     .filter(x => !q || x.name.toLowerCase().includes(q) || x.id.toLowerCase().includes(q))
     .slice(0, 20)
     .map(x => ({ ...x, _matType: 'card' }));
-
-  let results = matchedCards;
-  if (summonType === 'heritage') {
-    const matchedAttrs = attributes
-      .filter(a => !current.includes(a.id))
-      .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
-      .slice(0, 10)
-      .map(a => ({ ...a, _matType: 'attribute' }));
-    results = [...matchedAttrs, ...matchedCards];
-  }
-
-  renderOptionMaterialDropdown(idx, results);
+  renderConditionDropdown(idx, [...matchedAttrs, ...matchedCards]);
 }
 
-function renderOptionMaterialDropdown(idx, results) {
-  const dd = document.getElementById(`opt-material-dropdown-${idx}`);
+function renderConditionDropdown(idx, results) {
+  const dd = document.getElementById(`cond-dropdown-${idx}`);
   if (!dd) return;
   if (!results.length) {
     dd.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
@@ -1914,9 +1834,9 @@ function renderOptionMaterialDropdown(idx, results) {
       const isAttr = x._matType === 'attribute';
       const sub = isAttr
         ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px">Attribut</span>`
-        : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${summonLabel(x.summon_type)}</span>`;
+        : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)} · ${costLabel(x)}</span>`;
       return `
-        <div onmousedown="addOptionMaterial(${idx}, '${x.id}')"
+        <div onmousedown="addConditionRequire(${idx}, '${x.id}')"
           style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
           onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
           ${isAttr ? `<span style="font-size:16px">${x.icon || '🔷'}</span>` : ''}
@@ -1930,61 +1850,31 @@ function renderOptionMaterialDropdown(idx, results) {
   dd.style.display = 'block';
 }
 
-function showOptionMaterialDropdown(idx) {
-  filterOptionMaterialSearch(idx);
-}
-
-function hideOptionMaterialDropdown(idx) {
-  // Delay so onmousedown on items fires first
+function hideConditionDropdown(idx) {
+  // Retardé pour que l'onmousedown d'une entrée parte d'abord.
   setTimeout(() => {
-    const dd = document.getElementById(`opt-material-dropdown-${idx}`);
+    const dd = document.getElementById(`cond-dropdown-${idx}`);
     if (dd) dd.style.display = 'none';
   }, 150);
 }
 
-function collectSummonOptionsFromForm() {
-  if (!selectedCard.summon_options || !selectedCard.summon_options.length) return undefined;
-  return selectedCard.summon_options.map((opt, idx) => {
-    const typeEl = document.getElementById(`opt-summon-${idx}`);
-    const sacEl = document.getElementById(`opt-sac-${idx}`);
+/**
+ * Relit les recettes depuis le formulaire.
+ *
+ * ⚠️ Seul le compte de matériels vit dans le DOM ; les exigences nommées vivent
+ * dans le modèle (on les ajoute et les retire par re-render). Sans cette
+ * relecture, ajouter une exigence effacerait le curseur qu'on venait de bouger
+ * — le piège des éditeurs répétables, déjà payé sur les lots de cadeau et les
+ * effets de terrain.
+ */
+function collectConditionsFromForm() {
+  return cardConditions(selectedCard).map((cd, idx) => {
+    const el = document.getElementById(`cond-mat-${idx}`);
     return {
-      summon_type: typeEl ? typeEl.value : opt.summon_type,
-      cost: {
-        sacrifice: sacEl ? (parseFloat(sacEl.value) || 0) : (opt.cost?.sacrifice || 0),
-        materials: [...(opt.cost?.materials || [])],
-      },
+      materials: el ? (parseInt(el.value, 10) || 0) : conditionMaterials(cd),
+      requires: [...conditionRequires(cd)],
     };
   });
-}
-
-function onSummonTypeChange(val) {
-  syncCardFromForm();
-  const label = document.getElementById('material-section-label');
-  const input = document.getElementById('material-search');
-  if (label) label.textContent = val === 'heritage' ? 'Matériaux de Heritage' : 'Matériaux de fusion/heritage';
-  if (input) input.placeholder = val === 'heritage' ? 'Rechercher une carte ou un attribut...' : 'Rechercher une carte à ajouter...';
-  filterMaterialSearch();
-}
-
-function showMaterialDropdown() {
-  filterMaterialSearch();
-}
-
-function hideMaterialDropdown() {
-  // Delay so onmousedown on items fires first
-  setTimeout(() => {
-    const dd = document.getElementById('material-dropdown');
-    if (dd) dd.style.display = 'none';
-  }, 150);
-}
-
-function addMaterial(id) {
-  syncCardFromForm();
-  if (!selectedCard.cost.materials) selectedCard.cost.materials = [];
-  if (!selectedCard.cost.materials.includes(id)) {
-    selectedCard.cost.materials.push(id);
-    renderCardDetail();
-  }
 }
 
 function syncCardFromForm() {
@@ -1996,7 +1886,7 @@ function syncCardFromForm() {
   selectedCard.name = document.getElementById('f-name').value.trim();
   selectedCard.type = 'monster';
   selectedCard.tier = parseFloat(document.getElementById('f-tier').value);
-  selectedCard.summon_type = document.getElementById('f-summon').value;
+  selectedCard.material_value = parseInt(document.getElementById('f-matval').value, 10) || 1;
   selectedCard.stats = {
     atk: parseFloat(document.getElementById('f-atk').value) || 0,
     hp: parseFloat(document.getElementById('f-hp').value) || 0,
@@ -2008,12 +1898,8 @@ function syncCardFromForm() {
   selectedCard.power = powId
     ? { id: powId, ...(powSpeed !== '' ? { power_speed: parseFloat(powSpeed) } : {}), ...(powVal !== '' ? { value: parseFloat(powVal) } : {}) }
     : {};
-  selectedCard.cost = {
-    sacrifice: parseFloat(document.getElementById('f-sac').value) || 0,
-    materials: selectedCard.cost?.materials || [],
-  };
+  selectedCard.summon_conditions = collectConditionsFromForm();
   selectedCard.represented_ids = selectedCard.represented_ids || [];
-  selectedCard.summon_options = collectSummonOptionsFromForm();
 }
 
 function collectCardFromForm() {
@@ -2029,7 +1915,7 @@ function collectCardFromForm() {
     name: document.getElementById('f-name').value.trim(),
     type: 'monster',
     tier: parseFloat(document.getElementById('f-tier').value),
-    summon_type: document.getElementById('f-summon').value,
+    material_value: parseInt(document.getElementById('f-matval').value, 10) || 1,
     attributes: [...(selectedCard.attributes || [])],
     stats: {
       atk: parseFloat(document.getElementById('f-atk').value),
@@ -2040,12 +1926,8 @@ function collectCardFromForm() {
       range: parseFloat(document.getElementById('f-range').value),
     },
     power,
-    cost: {
-      sacrifice: parseFloat(document.getElementById('f-sac').value),
-      materials: [...(selectedCard.cost.materials || [])],
-    },
+    summon_conditions: collectConditionsFromForm(),
     represented_ids: [...(selectedCard.represented_ids || [])],
-    summon_options: collectSummonOptionsFromForm(),
   };
 }
 
@@ -2160,9 +2042,9 @@ function openNewCard() {
   const newId = `${currentSet}_${String(nextNum).padStart(3, '0')}`;
 
   selectedCard = {
-    id: newId, name: '', type: 'monster', tier: 1, summon_type: 'normal',
+    id: newId, name: '', type: 'monster', tier: 1, material_value: 1,
     attributes: [], stats: { atk: 10, hp: 100, movement_speed: 10, attack_speed: 10, initiative: 4, range: 1 },
-    power: {}, cost: { sacrifice: 0, materials: [] }, represented_ids: [], _has_illustration: false,
+    power: {}, summon_conditions: [], represented_ids: [], _has_illustration: false,
   };
   isNewCard = true;
   renderCardList();
@@ -2555,7 +2437,6 @@ function renderThresholdBlock(th, ti) {
 
 const ATTR_EFFECT_STATS = ['atk', 'hp', 'attack_speed', 'movement_speed', 'range', 'initiative', 'power_charge'];
 const ATTR_EFFECT_TRIGGERS = ['on_enemy_neutralized', 'on_ally_neutralized'];
-const ATTR_EFFECT_CATEGORIES = ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'];
 const ATTR_EFFECT_TARGETS = ['neutralized_ally'];
 
 function _attrEffectFieldVisibility(type) {
@@ -2566,7 +2447,7 @@ function _attrEffectFieldVisibility(type) {
     showMax: ['draw_bonus', 'board_slot_bonus', 'shopping_bonus'].includes(type),
     showTarget: type === 'revive',
     showHpPercent: type === 'revive',
-    showCategory: type === 'guaranteed_draw',
+    showAttribute: type === 'guaranteed_draw',
     showValue: !['guaranteed_draw', 'effect_immunity'].includes(type),
   };
 }
@@ -2583,7 +2464,7 @@ function renderEffectBlock(ef, ti, ei) {
             <option value="stat_bonus" ${type === 'stat_bonus' ? 'selected' : ''}>Bonus de stat</option>
             <option value="stat_modifier" ${type === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat (sur trigger)</option>
             <option value="draw_bonus" ${type === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
-            <option value="guaranteed_draw" ${type === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (par catégorie)</option>
+            <option value="guaranteed_draw" ${type === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (par attribut)</option>
             <option value="revive" ${type === 'revive' ? 'selected' : ''}>Réanimation (%HP)</option>
             <option value="shield" ${type === 'shield' ? 'selected' : ''}>Bouclier</option>
             <option value="board_slot_bonus" ${type === 'board_slot_bonus' ? 'selected' : ''}>Slot de board supplémentaire</option>
@@ -2632,10 +2513,11 @@ function renderEffectBlock(ef, ti, ei) {
           <label>% PV max</label>
           <input id="ef-${ti}-${ei}-hppercent" type="number" min="1" max="100" value="${ef.hp_percent ?? 50}">
         </div>
-        <div class="field" id="ef-${ti}-${ei}-category-field" style="${v.showCategory ? '' : 'display:none'}">
-          <label>Catégorie d'invocation</label>
-          <select id="ef-${ti}-${ei}-category">
-            ${ATTR_EFFECT_CATEGORIES.map(c => `<option value="${c}" ${ef.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+        <div class="field" id="ef-${ti}-${ei}-attribute-field" style="${v.showAttribute ? '' : 'display:none'}">
+          <label>Attribut garanti (vide = n'importe lequel)</label>
+          <select id="ef-${ti}-${ei}-attribute">
+            <option value="" ${!ef.attribute ? 'selected' : ''}>— indifférent —</option>
+            ${attributes.map(a => `<option value="${a.id}" ${ef.attribute === a.id ? 'selected' : ''}>${esc((a.icon || '') + ' ' + a.name)} — ${a.id}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -2653,7 +2535,7 @@ function updateEffectFields(ti, ei) {
   document.getElementById(`ef-${ti}-${ei}-max-field`).style.display = v.showMax ? '' : 'none';
   document.getElementById(`ef-${ti}-${ei}-target-field`).style.display = v.showTarget ? '' : 'none';
   document.getElementById(`ef-${ti}-${ei}-hppercent-field`).style.display = v.showHpPercent ? '' : 'none';
-  document.getElementById(`ef-${ti}-${ei}-category-field`).style.display = v.showCategory ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-attribute-field`).style.display = v.showAttribute ? '' : 'none';
 }
 
 function _collectEffectFromFields(ti, ei) {
@@ -2673,9 +2555,13 @@ function _collectEffectFromFields(ti, ei) {
   }
   if (v.showTarget) ef.target = document.getElementById(`ef-${ti}-${ei}-target`).value;
   if (v.showHpPercent) ef.hp_percent = parseInt(document.getElementById(`ef-${ti}-${ei}-hppercent`).value) || 0;
-  if (v.showCategory) {
-    ef.category = document.getElementById(`ef-${ti}-${ei}-category`).value;
-    ef.attribute = selectedAttr.id; // guaranteed_draw se réfère toujours à l'attribut courant
+  // ⚠️ L'attribut garanti est SAISI, il n'est plus forcé à l'attribut porteur :
+  // `resolveGuaranteedDraws` lit `effect.attribute` et rien d'autre. Vide, la
+  // pioche ne porte aucun filtre d'attribut — l'absence vaut « n'importe
+  // lequel », là où une chaîne vide serait un filtre insatisfiable.
+  if (v.showAttribute) {
+    const attribute = document.getElementById(`ef-${ti}-${ei}-attribute`).value;
+    if (attribute) ef.attribute = attribute;
   }
   return ef;
 }
@@ -3130,184 +3016,6 @@ async function deletePowerIcon() {
   toast('Icône supprimée');
 }
 
-// ================== SUMMON TYPES ==================
-// Catalogue FERMÉ à 6 entrées (normal/sacrifice/fusion/heritage/transformation,
-// plus « multi » pour les cartes à recettes alternatives — summon_options),
-// pas de recherche, pas de création, pas de suppression — on n'y édite que le
-// libellé et l'icône (`id` et `type` restent affichés en lecture seule, `type`
-// étant la clé de résolution lue par le jeu).
-function renderSummonTypeList() {
-  document.getElementById('summontype-count').textContent = summonTypes.length;
-  document.getElementById('summontype-list').innerHTML = summonTypes.map(s => `
-    <div class="list-item ${selectedSummonType && selectedSummonType.id === s.id ? 'selected' : ''}" onclick="selectSummonType('${s.id}')">
-      ${s._has_illustration
-        ? `<img class="list-thumb" src="/illustrations/${s.id}?t=${summonIconBust}" alt="" loading="lazy" style="object-fit:contain">`
-        : `<span style="font-size:18px">${s.icon || '❓'}</span>`}
-      <div>
-        <div class="item-name">${s.label}</div>
-        <div class="item-id">${s.type}</div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function selectSummonType(id) {
-  selectedSummonType = summonTypes.find(s => s.id === id);
-  renderSummonTypeList();
-  renderSummonTypeDetail();
-  showDetail();
-}
-
-function renderSummonTypeDetail() {
-  const s = selectedSummonType;
-  const el = document.getElementById('summontype-detail');
-  el.innerHTML = `
-    <button class="back-btn" onclick="showList()">Retour à la liste</button>
-    <div class="detail-header" style="align-items:center;gap:16px">
-      <div class="illustration-box" onclick="openSummonIconModal()">
-        ${s._has_illustration
-          ? `<img src="/illustrations/${s.id}?t=${summonIconBust}" alt="" style="object-fit:contain">`
-          : `<div style="font-size:48px">${s.icon || '❓'}</div>`}
-        <div class="illus-overlay">
-          ${s._has_illustration ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteSummonIcon()">Supprimer</button>` : ''}
-          <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openSummonIconModal()">Importer</button>
-        </div>
-      </div>
-      <div>
-        <div class="detail-title">${s.label}</div>
-        <div style="font-family:monospace;font-size:11px;color:var(--muted)">${s.id} · type=${s.type}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:6px;max-width:320px;line-height:1.5">
-          L'icône est enregistrée sous <code>${s.id}.png</code>. Sans image, l'emoji ci-dessous prend le relais.
-        </div>
-      </div>
-    </div>
-    <div class="section-title">Identité</div>
-    <div class="form-grid">
-      <div class="field"><label>Nom affiché</label><input id="sf-label" value="${esc(s.label)}"></div>
-      <div class="field"><label>Emoji — repli sans image</label><input id="sf-icon" value="${s.icon || ''}"></div>
-    </div>
-    <div class="actions">
-      <button class="btn btn-primary" onclick="saveSummonType()">Enregistrer</button>
-    </div>
-  `;
-}
-
-async function saveSummonType() {
-  const updated = {
-    id: selectedSummonType.id,
-    type: selectedSummonType.type,
-    label: document.getElementById('sf-label').value.trim(),
-    icon: document.getElementById('sf-icon').value.trim(),
-  };
-  const res = await apiFetch(`/api/summon-types/${selectedSummonType.id}`, { method: 'PUT', body: updated });
-  if (res.error) return toast(res.error, 'err');
-  const idx = summonTypes.findIndex(s => s.id === selectedSummonType.id);
-  // Le serveur ne renvoie pas les drapeaux calculés : on le rattache à la main.
-  updated._has_illustration = selectedSummonType._has_illustration || false;
-  summonTypes[idx] = updated;
-  selectedSummonType = updated;
-  renderSummonTypeList();
-  renderSummonTypeDetail();
-  toast('Type d\'invocation enregistré');
-}
-
-// --- Icône d'un type d'invocation --------------------------------------------
-// Même mécanisme que les attributs et les pouvoirs.
-let summonIconBust = Date.now();
-
-function _setSummonIconFlag(has) {
-  selectedSummonType._has_illustration = has;
-  const idx = summonTypes.findIndex(s => s.id === selectedSummonType.id);
-  if (idx !== -1) summonTypes[idx]._has_illustration = has;
-  summonIconBust = Date.now();
-  renderSummonTypeList();
-  renderSummonTypeDetail();
-}
-
-function openSummonIconModal() {
-  if (!selectedSummonType) return;
-  const name = selectedSummonType.label || selectedSummonType.id;
-  showModal(`
-    <h2 style="margin-bottom:6px">Icône — ${esc(name)}</h2>
-    <p style="color:var(--muted);font-size:12px;margin-bottom:16px">
-      Affichée en jeu dans le bloc INVOCATION du tooltip d'une carte. Prévoir un
-      <strong>carré</strong> à fond transparent — l'image n'est jamais rognée,
-      elle est mise à l'échelle.
-    </p>
-    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
-      <div class="field" style="margin-bottom:10px">
-        <label>Mots-clés</label>
-        <input id="summon-icon-q" value="${esc(`${name} icon png transparent`)}" style="font-family:monospace;font-size:12px">
-      </div>
-      <button class="btn btn-secondary btn-sm" onclick="openSummonIconSearch()">Ouvrir Google Images</button>
-    </div>
-    <div class="field">
-      <label>Depuis une URL</label>
-      <div style="display:flex;gap:6px">
-        <input id="summon-icon-url" type="text" placeholder="https://..." style="flex:1">
-        <button class="btn btn-secondary btn-sm" onclick="pasteSummonIconUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
-      </div>
-    </div>
-    <div style="text-align:center;color:var(--muted);font-size:11px;margin:10px 0">— ou —</div>
-    <div class="field">
-      <label>Depuis l'appareil</label>
-      <input type="file" accept="image/*" onchange="importSummonIconFromFile()" id="summon-icon-file">
-    </div>
-    <span style="font-size:11px;color:var(--muted)">Sauvegardée sous <code>${selectedSummonType.id}.png</code></span>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
-      <button class="btn btn-primary" onclick="importSummonIcon()">Importer l'URL</button>
-    </div>
-  `, 'wide');
-}
-
-function openSummonIconSearch() {
-  const q = document.getElementById('summon-icon-q')?.value.trim();
-  if (!q) return toast('Renseigne des mots-clés', 'err');
-  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
-}
-
-async function pasteSummonIconUrl() {
-  try {
-    const el = document.getElementById('summon-icon-url');
-    if (el) el.value = (await navigator.clipboard.readText()).trim();
-  } catch {
-    toast('Accès presse-papier refusé — collez manuellement (Ctrl+V)', 'err');
-  }
-}
-
-async function importSummonIcon() {
-  const url = document.getElementById('summon-icon-url').value.trim();
-  if (!url) return toast('URL requise', 'err');
-  closeModal();
-  toast('Téléchargement en cours...', 'ok');
-  const res = await apiFetch(`/api/summon-types/${selectedSummonType.id}/illustration`, { method: 'POST', body: { url } });
-  if (res.error) return toast(res.error, 'err');
-  _setSummonIconFlag(true);
-  toast('Icône importée');
-}
-
-async function importSummonIconFromFile() {
-  const file = document.getElementById('summon-icon-file')?.files?.[0];
-  if (!file) return;
-  closeModal();
-  toast('Envoi en cours...', 'ok');
-  const data = await fileToBase64(file);
-  const res = await apiFetch(`/api/summon-types/${selectedSummonType.id}/illustration`, { method: 'PUT', body: { data } });
-  if (res.error) return toast(res.error, 'err');
-  _setSummonIconFlag(true);
-  toast('Icône importée');
-}
-
-async function deleteSummonIcon() {
-  if (!confirm('Supprimer l\'icône ? L\'emoji reprendra sa place.')) return;
-  const res = await apiFetch(`/api/summon-types/${selectedSummonType.id}/illustration`, { method: 'DELETE' });
-  if (res.error) return toast(res.error, 'err');
-  _setSummonIconFlag(false);
-  toast('Icône supprimée');
-}
-
 // ================== MAGIES ==================
 const EFFECT_TYPE_LABELS = {
   stat_bonus: 'Bonus de stat',
@@ -3335,10 +3043,8 @@ const EFFECT_TYPE_LABELS = {
   shift_tier_unit: 'Remplacer une unité (tier voisin)',
   draw_material: 'Piocher un matériel',
   sacrifice_card_hp: 'Sacrifier une carte → PV joueur',
-  reduce_sacrifice_cost: 'Réduire coût sacrifice',
-  free_transformation: 'Transformation gratuite',
-  remove_heritage_material: 'Retirer matériel Heritage',
-  remove_fusion_material: 'Retirer matériel Fusion',
+  reduce_materials: 'Baisser le coût en matériels',
+  remove_requirements: 'Lever des exigences nommées',
 };
 
 // Rareté d'une magie : 1 Commune · 2 Rare · 3 Légendaire. Pondère le tirage de
@@ -3394,12 +3100,14 @@ function renderMagieDetail() {
   const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(effectType);
   const showTier = effectType === 'guaranteed_draw';
   // `guaranteed_draw` porte DEUX filtres facultatifs qui se cumulent : le tier
-  // et la voie d'invocation. Les deux champs sortent donc ensemble.
+  // et l'attribut. Les deux remises de main, elles, ne lisent que l'attribut —
+  // d'où deux drapeaux et non un seul.
+  const showAttribute = MAGIE_ATTRIBUTE_TYPES.has(effectType);
   const showPower = effectType === 'grant_power';
   const showDup = ['duplicate_unit', 'duplicate_graveyard_unit', 'duplicate_card'].includes(effectType);
   const showShift = ['shift_tier_card', 'shift_tier_unit'].includes(effectType);
   const showSacHp = effectType === 'sacrifice_card_hp';
-  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material', 'draw_material'];
+  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'draw_material'];
   const showValue = !noValue.includes(effectType);
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
@@ -3451,7 +3159,7 @@ function renderMagieDetail() {
           <option value="team_stat_bonus" ${effectType === 'team_stat_bonus' ? 'selected' : ''}>Bonus de stat — TOUTES tes unités</option>
           <option value="stat_modifier" ${effectType === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat</option>
           <option value="draw_bonus" ${effectType === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
-          <option value="guaranteed_draw" ${effectType === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (tier et/ou voie d'invocation)</option>
+          <option value="guaranteed_draw" ${effectType === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (tier et/ou attribut)</option>
           <option value="damage_multiplier_bonus" ${effectType === 'damage_multiplier_bonus' ? 'selected' : ''}>Multiplicateur de dégâts (permanent)</option>
           <option value="heal" ${effectType === 'heal' ? 'selected' : ''}>Soin total (une unité)</option>
           <option value="team_heal" ${effectType === 'team_heal' ? 'selected' : ''}>Soin de masse — TOUTES tes unités (PV)</option>
@@ -3473,10 +3181,8 @@ function renderMagieDetail() {
           <option value="shift_tier_unit" ${effectType === 'shift_tier_unit' ? 'selected' : ''}>Remplacer une unité du terrain par une unité du tier voisin</option>
           <option value="draw_material" ${effectType === 'draw_material' ? 'selected' : ''}>Piocher un matériel d'invocation d'une carte de la main</option>
           <option value="sacrifice_card_hp" ${effectType === 'sacrifice_card_hp' ? 'selected' : ''}>Sacrifier une carte de la main → PV du joueur</option>
-          <option value="reduce_sacrifice_cost" ${effectType === 'reduce_sacrifice_cost' ? 'selected' : ''}>Réduire coût de sacrifice (main)</option>
-          <option value="free_transformation" ${effectType === 'free_transformation' ? 'selected' : ''}>Transformation gratuite (main)</option>
-          <option value="remove_heritage_material" ${effectType === 'remove_heritage_material' ? 'selected' : ''}>Retirer matériel Heritage (main)</option>
-          <option value="remove_fusion_material" ${effectType === 'remove_fusion_material' ? 'selected' : ''}>Retirer matériel(s) Fusion (main)</option>
+          <option value="reduce_materials" ${effectType === 'reduce_materials' ? 'selected' : ''}>Baisser le coût en matériels (main)</option>
+          <option value="remove_requirements" ${effectType === 'remove_requirements' ? 'selected' : ''}>Lever des exigences nommées (main)</option>
           </optgroup>
         </select>
       </div>
@@ -3541,15 +3247,11 @@ function renderMagieDetail() {
         <label>Vitesse de chargement (seuil de jauge, plus bas = plus rapide)</label>
         <input id="mf-effect-power-speed" type="number" min="1" step="1" value="${effect.power_speed ?? 20}">
       </div>
-      <div class="field" id="mf-category-field" style="${showTier ? '' : 'display:none'}">
-        <label>Voie d'invocation garantie (facultatif, se cumule au tier)</label>
-        <select id="mf-effect-category">
-          <option value="" ${!effect.category ? 'selected' : ''}>— indifférente —</option>
-          <option value="normal" ${effect.category === 'normal' ? 'selected' : ''}>Normale</option>
-          <option value="sacrifice" ${effect.category === 'sacrifice' ? 'selected' : ''}>Sacrifice</option>
-          <option value="fusion" ${effect.category === 'fusion' ? 'selected' : ''}>Fusion</option>
-          <option value="heritage" ${effect.category === 'heritage' ? 'selected' : ''}>Héritage</option>
-          <option value="transformation" ${effect.category === 'transformation' ? 'selected' : ''}>Transformation</option>
+      <div class="field" id="mf-attribute-field" style="${showAttribute ? '' : 'display:none'}">
+        <label id="mf-attribute-label">${magieAttributeLabel(effectType)}</label>
+        <select id="mf-effect-attribute">
+          <option value="" ${!effect.attribute ? 'selected' : ''}>— indifférent —</option>
+          ${attributes.map(a => `<option value="${a.id}" ${effect.attribute === a.id ? 'selected' : ''}>${esc((a.icon || '') + ' ' + a.name)} — ${a.id}</option>`).join('')}
         </select>
       </div>
       <div class="field" id="mf-tier-field" style="${showTier ? '' : 'display:none'}">
@@ -3591,17 +3293,35 @@ function renderMagieDetail() {
   `;
 }
 
+/**
+ * Les trois effets qui portent un filtre d'ATTRIBUT facultatif.
+ *
+ * ⚠️ C'est lui qui rend « −1 matériel de Fusion » exprimable maintenant qu'il
+ * n'y a plus de voie à nommer : les cinq voies sont devenues des attributs de
+ * carte (ARCH_086…ARCH_090), visables comme n'importe quel archétype. Absent,
+ * la remise tombe sur la première carte retouchable.
+ */
+const MAGIE_ATTRIBUTE_TYPES = new Set(['guaranteed_draw', 'reduce_materials', 'remove_requirements']);
+
+function magieAttributeLabel(type) {
+  return type === 'guaranteed_draw'
+    ? "Attribut de la carte garantie (facultatif, se cumule au tier)"
+    : "Attribut visé par la remise (facultatif — sinon la première carte retouchable)";
+}
+
 function updateMagieEffectFields() {
   const type = document.getElementById('mf-effect-type')?.value || 'none';
   const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(type);
   const showTier = type === 'guaranteed_draw';
+  const showAttribute = MAGIE_ATTRIBUTE_TYPES.has(type);
   const showPower = type === 'grant_power';
-  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material', 'draw_material'];
+  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'draw_material'];
   const showValue = !noValue.includes(type);
   document.getElementById('mf-stat-field').style.display = showStat ? '' : 'none';
   document.getElementById('mf-value-field').style.display = showValue ? '' : 'none';
   document.getElementById('mf-tier-field').style.display = showTier ? '' : 'none';
-  document.getElementById('mf-category-field').style.display = showTier ? '' : 'none';
+  document.getElementById('mf-attribute-field').style.display = showAttribute ? '' : 'none';
+  document.getElementById('mf-attribute-label').textContent = magieAttributeLabel(type);
   document.getElementById('mf-power-field').style.display = showPower ? '' : 'none';
   document.getElementById('mf-power-speed-field').style.display = showPower ? '' : 'none';
   const dupNote = document.getElementById('mf-dup-note');
@@ -3615,20 +3335,22 @@ function updateMagieEffectFields() {
 function _collectMagieFields() {
   const effectType = document.getElementById('mf-effect-type')?.value || 'none';
   let effect = null;
-  const noValue = ['heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'free_transformation', 'remove_heritage_material', 'draw_material'];
+  const noValue = ['heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'draw_material'];
   if (effectType !== 'none') {
     effect = { type: effectType };
     if (effectType === 'guaranteed_draw') {
       // ⚠️ Les DEUX filtres sont facultatifs, et un champ vide ne doit pas être
       // écrit : `isMagieRelevant` traite l'absence comme « pas de contrainte »,
-      // là où un `tier: 0` ou une `category: ''` seraient des filtres
+      // là où un `tier: 0` ou un `attribute: ''` seraient des filtres
       // impossibles à satisfaire — la magie ne sortirait jamais.
       const tier = parseInt(document.getElementById('mf-effect-tier')?.value, 10);
       if (tier) effect.tier = tier;
-      const cat = document.getElementById('mf-effect-category')?.value || '';
-      if (cat) effect.category = cat;
     } else if (!noValue.includes(effectType)) {
       effect.value = parseFloat(document.getElementById('mf-effect-value')?.value) || 0;
+    }
+    if (MAGIE_ATTRIBUTE_TYPES.has(effectType)) {
+      const attribute = document.getElementById('mf-effect-attribute')?.value || '';
+      if (attribute) effect.attribute = attribute;
     }
     if (['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(effectType)) {
       effect.stat = document.getElementById('mf-effect-stat')?.value || 'atk';
@@ -4464,14 +4186,14 @@ const EVENT_FIELD_CONFIG = {
   match_completed: ['result', 'rounds_min'],
   combat_started: ['unit_count_min', 'attribute_count_min', 'max_attribute_units_min'],
   combat_ended: ['result', 'unit_count_max', 'units_lost_max'],
-  summon_performed: ['summon_type', 'tier_min'],
+  summon_performed: ['attribute', 'tier_min'],
   power_triggered: [],
   magic_selected: ['effect_type', 'effect_type_in'],
   deck_saved: ['card_count_min'],
 };
 
 // Tous les champs de filtre possibles, tous conservés dans le DOM et affichés/masqués selon l'event choisi
-const ALL_FILTER_KEYS = ['result', 'rounds_min', 'unit_count_min', 'unit_count_max', 'units_lost_max', 'attribute_count_min', 'max_attribute_units_min', 'card_count_min', 'tier_min', 'summon_type', 'effect_type', 'effect_type_in'];
+const ALL_FILTER_KEYS = ['result', 'rounds_min', 'unit_count_min', 'unit_count_max', 'units_lost_max', 'attribute_count_min', 'max_attribute_units_min', 'card_count_min', 'tier_min', 'attribute', 'effect_type', 'effect_type_in'];
 
 function filterMissions() {
   const q = document.getElementById('mission-search').value.toLowerCase();
@@ -4511,14 +4233,14 @@ function _filterFieldHtml(key, filters) {
       <option value="draw" ${v === 'draw' ? 'selected' : ''}>Égalité</option>
       <option value="timeout" ${v === 'timeout' ? 'selected' : ''}>Timeout</option>
     </select>`;
-  } else if (key === 'summon_type') {
-    input = `<select id="msf-filter-summon_type">
+  } else if (key === 'attribute') {
+    // ⚠️ `summon_performed` porte la LISTE des attributs de la carte, et les
+    // cinq voies historiques en sont devenues cinq (ARCH_086…ARCH_090). Une
+    // mission « invoque 3 Fusions » se dit donc comme n'importe quel archétype
+    // — c'est exactement ce que `missions.eventMatches` teste.
+    input = `<select id="msf-filter-attribute">
       <option value="">—</option>
-      <option value="normal" ${v === 'normal' ? 'selected' : ''}>Normal</option>
-      <option value="sacrifice" ${v === 'sacrifice' ? 'selected' : ''}>Sacrifice</option>
-      <option value="fusion" ${v === 'fusion' ? 'selected' : ''}>Fusion</option>
-      <option value="heritage" ${v === 'heritage' ? 'selected' : ''}>Héritage</option>
-      <option value="transformation" ${v === 'transformation' ? 'selected' : ''}>Transformation</option>
+      ${attributes.map(a => `<option value="${a.id}" ${v === a.id ? 'selected' : ''}>${esc((a.icon || '') + ' ' + a.name)} — ${a.id}</option>`).join('')}
     </select>`;
   } else if (key === 'effect_type') {
     input = `<input id="msf-filter-effect_type" value="${esc(v ?? '')}" placeholder="ex. revive">`;
@@ -4531,7 +4253,7 @@ function _filterFieldHtml(key, filters) {
     result: 'Résultat', rounds_min: 'Tours joués (min)', unit_count_min: 'Unités sur le terrain (min)',
     unit_count_max: 'Unités sur le terrain (max)', units_lost_max: 'Unités perdues (max)',
     attribute_count_min: 'Attributs actifs (min)', max_attribute_units_min: 'Unités du même attribut (min)',
-    card_count_min: 'Cartes dans le deck (min)', tier_min: 'Tier (min)', summon_type: 'Type d\'invocation',
+    card_count_min: 'Cartes dans le deck (min)', tier_min: 'Tier (min)', attribute: 'Attribut de la carte invoquée',
     effect_type: 'Type d\'effet de magie', effect_type_in: 'Types d\'effet de magie (liste)',
   };
   return `<div class="field" id="msf-field-${key}" style="display:none"><label>${labels[key]}</label>${input}</div>`;
@@ -4601,7 +4323,12 @@ function renderMissionDetail() {
       </div>
     </div>
     <div class="form-grid" id="msf-req-fields" style="${req ? '' : 'display:none'}">
-      <div class="field"><label>Type d'invocation requis</label><input id="msf-req-summon-type" value="${esc(req?.summon_type || '')}" placeholder="ex. fusion"></div>
+      <div class="field"><label>Attribut requis</label>
+        <select id="msf-req-attribute">
+          <option value="">—</option>
+          ${attributes.map(a => `<option value="${a.id}" ${req?.attribute === a.id ? 'selected' : ''}>${esc((a.icon || '') + ' ' + a.name)} — ${a.id}</option>`).join('')}
+        </select>
+      </div>
       <div class="field"><label>Tier minimum requis</label><input id="msf-req-tier-min" type="number" value="${req?.tier_min ?? ''}"></div>
       <div class="field"><label>Nombre de cartes possédées</label><input id="msf-req-count" type="number" value="${req?.count ?? 1}"></div>
     </div>
@@ -4646,9 +4373,9 @@ function _collectMissionFields() {
     if (key === 'effect_type_in') {
       const arr = raw.split(',').map(s => s.trim()).filter(Boolean);
       if (arr.length) filters[key] = arr;
-    } else if (field.tagName === 'SELECT' && key !== 'result' && key !== 'summon_type') {
+    } else if (field.tagName === 'SELECT' && key !== 'result' && key !== 'attribute') {
       filters[key] = raw;
-    } else if (['result', 'summon_type', 'effect_type'].includes(key)) {
+    } else if (['result', 'attribute', 'effect_type'].includes(key)) {
       filters[key] = raw;
     } else {
       filters[key] = Number(raw);
@@ -4659,10 +4386,10 @@ function _collectMissionFields() {
   let requirements;
   if (reqEnabled) {
     const owns = {};
-    const summonType = document.getElementById('msf-req-summon-type')?.value.trim();
+    const attribute = document.getElementById('msf-req-attribute')?.value.trim();
     const tierMin = document.getElementById('msf-req-tier-min')?.value;
     const count = document.getElementById('msf-req-count')?.value;
-    if (summonType) owns.summon_type = summonType;
+    if (attribute) owns.attribute = attribute;
     if (tierMin !== '' && tierMin != null) owns.tier_min = Number(tierMin);
     owns.count = count !== '' && count != null ? Number(count) : 1;
     requirements = { owns_cards_matching: owns };
@@ -5463,8 +5190,7 @@ function packMissingMaterials(ids, exceptId = null) {
   for (const id of ids) {
     const c = cards.find(x => x.id === id);
     if (!c) continue;
-    const mats = [...(c.cost?.materials || [])];
-    for (const opt of c.summon_options || []) mats.push(...(opt.cost?.materials || []));
+    const mats = cardConditions(c).flatMap(conditionRequires);
     for (const m of mats) {
       if (!m || String(m).startsWith('ARCH_')) continue;
       if (!inPack.has(m) && !starterPackWith(m, exceptId)) missing.add(m);
@@ -5820,12 +5546,11 @@ function openPackPicker() {
           ${[1, 2, 3, 4, 5].map(t => `<option value="${t}">Tier ${t}</option>`).join('')}
         </select>
         <select class="filter" id="picker-summon" onchange="renderPackPicker()">
-          <option value="">Tous types</option>
-          <option value="normal">Normal</option>
-          <option value="sacrifice">Sacrifice</option>
-          <option value="fusion">Fusion</option>
-          <option value="heritage">Heritage</option>
-          <option value="transformation">Transformation</option>
+          <option value="">Tous coûts</option>
+          <option value="0">◈ Sans coût</option>
+          <option value="1">◈1 matériel</option>
+          <option value="2">◈2 matériels</option>
+          <option value="3+">◈3 et plus</option>
         </select>
         <select class="filter" id="picker-attribute" onchange="renderPackPicker()">
           <option value="">Tous attributs</option>
@@ -5869,7 +5594,7 @@ function _pickerFiltered() {
   return cards.filter(c => {
     if (q && !c.name.toLowerCase().includes(q) && !c.id.toLowerCase().includes(q)) return false;
     if (tier && Math.round(c.tier) != tier) return false;
-    if (summon && c.summon_type !== summon) return false;
+    if (summon && (summon === '3+' ? summonCostOf(c) < 3 : summonCostOf(c) !== Number(summon))) return false;
     if (attribute && !(c.attributes || []).includes(attribute)) return false;
     if (membership === 'picked' && !pickerSelected.has(c.id)) return false;
     if (membership === 'taken' && !packClaiming(c.id, exceptId)) return false;
@@ -6114,9 +5839,13 @@ function detectBrokenLinks() {
     if (card.power?.id && !powerIds.has(card.power.id)) {
       broken.push({ card, type: 'power', refId: card.power.id });
     }
-    for (const mid of (card.cost?.materials || [])) {
-      const valid = cardIds.has(mid) || (card.summon_type === 'heritage' && attrIds.has(mid));
-      if (!valid) broken.push({ card, type: 'material', refId: mid });
+    // ⚠️ Un matériel désigné par ATTRIBUT est légitime sur n'importe quelle
+    // recette depuis qu'il n'y a plus de voie — `matchesMaterial` accepte les
+    // deux partout. Le tester par voie ne signalerait plus rien de vrai.
+    for (const cd of cardConditions(card)) {
+      for (const mid of conditionRequires(cd)) {
+        if (!cardIds.has(mid) && !attrIds.has(mid)) broken.push({ card, type: 'material', refId: mid });
+      }
     }
   }
   return broken;
@@ -6607,7 +6336,7 @@ function openMassEditModal() {
     <div class="field"><label>Champ</label>
       <select id="mass-field" onchange="onMassFieldChange()">
         <option value="tier">Tier</option>
-        <option value="summon_type">Type d'invocation</option>
+        <option value="material_value">Valeur en matériel</option>
         <option value="power">Pouvoir</option>
       </select>
     </div>
@@ -6626,8 +6355,8 @@ function onMassFieldChange() {
   if (!wrap) return;
   if (field === 'tier') {
     wrap.innerHTML = `<label>Tier</label><select id="mass-value">${[1,2,3,4,5].map(t=>`<option value="${t}">${t}</option>`).join('')}</select>`;
-  } else if (field === 'summon_type') {
-    wrap.innerHTML = `<label>Type d'invocation</label><select id="mass-value">${['normal','sacrifice','fusion','heritage','transformation'].map(s=>`<option value="${s}">${summonLabel(s)}</option>`).join('')}</select>`;
+  } else if (field === 'material_value') {
+    wrap.innerHTML = `<label>Valeur en matériel</label><select id="mass-value">${[1,2,3,4,5].map(n=>`<option value="${n}">${n} slot${n>1?'s':''}</option>`).join('')}</select>`;
   } else if (field === 'power') {
     wrap.innerHTML = `<label>Pouvoir</label><select id="mass-value"><option value="">Aucun</option>${powers.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>`;
   }
@@ -6644,7 +6373,7 @@ async function applyMassEdit() {
     const updated = { ...card };
     delete updated._has_illustration;
     if (field === 'tier') updated.tier = parseInt(value);
-    else if (field === 'summon_type') updated.summon_type = value;
+    else if (field === 'material_value') updated.material_value = parseInt(value, 10) || 1;
     else if (field === 'power') updated.power = value ? { id: value, power_speed: updated.power?.power_speed || 0, value: updated.power?.value ?? null } : {};
     await fetch(`/api/cards/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
   }
@@ -6837,33 +6566,11 @@ let boardBgBust = Date.now();
 // effacerait le nom qu'on vient de taper.
 let boardEffectsDraft = [];
 
-// Voies d'invocation ciblables. Le catalogue `summonTypes` fait foi (il porte
-// les libellés et les icônes, éditables dans l'onglet Invocation) ; cette liste
-// n'est que le repli tant qu'il n'est pas chargé.
-const BOARD_SUMMON_FALLBACK = [
-  { type: 'normal', label: 'Normale', icon: '✋' },
-  { type: 'sacrifice', label: 'Sacrifice', icon: '💀' },
-  { type: 'fusion', label: 'Fusion', icon: '⚗' },
-  { type: 'heritage', label: 'Héritage', icon: '🔮' },
-  { type: 'transformation', label: 'Transformation', icon: '🔄' },
-  { type: 'multi', label: 'Plusieurs recettes', icon: '🔀' },
-];
-
 // Les trois seuls effets qui VISENT des unités (cf. logic/BoardEffect et
 // data/BoardInfo.boardTargetsUnits) : `draw_bonus` crédite le joueur quoi qu'il
 // arrive, lui offrir un ciblage ferait promettre à l'écran ce que le combat ne
 // fait pas.
 const BOARD_EFFECTS_TARGETING = new Set(['stat_bonus', 'stat_modifier', 'shield']);
-
-function _summonTypeChoices() {
-  return (summonTypes && summonTypes.length ? summonTypes : BOARD_SUMMON_FALLBACK)
-    .map(s => ({ type: s.type, label: s.label || s.type, icon: s.icon || '' }));
-}
-
-function _summonTypeLabel(type) {
-  const found = _summonTypeChoices().find(s => s.type === type);
-  return found ? `${found.icon} ${found.label}`.trim() : type;
-}
 
 /**
  * Les effets d'un terrain, sous leur forme de travail.
@@ -6955,17 +6662,6 @@ function _boardEffectHtml(e, i) {
             <button class="attr-add" onclick="openBoardAttrPickModal(${i})">+ Ajouter</button>
           </div>
         </div>
-        <div style="margin-top:8px">
-          <label style="font-size:11px;color:var(--muted)">Voies d'invocation ciblées <span style="font-weight:400">(vide = toutes)</span></label>
-          <div class="attr-chips" id="bf-eff-${i}-kinds">
-            ${(e.target_summon_types || []).map(t => `
-              <span class="attr-chip" data-kind="${t}" onclick="removeBoardTargetKind(${i}, '${t}')">
-                ${esc(_summonTypeLabel(t))} <span class="remove">×</span>
-              </span>
-            `).join('')}
-            <button class="attr-add" onclick="openBoardKindPickModal(${i})">+ Ajouter</button>
-          </div>
-        </div>
       ` : `<div style="margin-top:8px;font-size:11px;color:var(--muted)">Cet effet crédite le joueur : il ne vise aucune unité, donc aucun ciblage.</div>`}
     </div>
   `;
@@ -6982,13 +6678,9 @@ function _readBoardEffects() {
     }
     if (BOARD_EFFECTS_TARGETING.has(type)) {
       const attrsEl = document.getElementById(`bf-eff-${i}-attrs`);
-      const kindsEl = document.getElementById(`bf-eff-${i}-kinds`);
       out.target_attributes = attrsEl
         ? [...attrsEl.querySelectorAll('.attr-chip')].map(el => el.dataset.aid)
         : (e.target_attributes || []);
-      out.target_summon_types = kindsEl
-        ? [...kindsEl.querySelectorAll('.attr-chip')].map(el => el.dataset.kind)
-        : (e.target_summon_types || []);
     }
     return out;
   });
@@ -7021,14 +6713,14 @@ function changeBoardEffectType(i, type) {
   // « bouclier » serait une punition sans raison — les deux visent les mêmes
   // unités. Un type qui ne cible personne, lui, ne garde rien.
   boardEffectsDraft[i] = BOARD_EFFECTS_TARGETING.has(type)
-    ? { type, value: prev.value ?? 0, stat: prev.stat || 'atk', target_attributes: prev.target_attributes || [], target_summon_types: prev.target_summon_types || [] }
+    ? { type, value: prev.value ?? 0, stat: prev.stat || 'atk', target_attributes: prev.target_attributes || [] }
     : { type, value: prev.value ?? 0 };
   renderBoardDetail();
 }
 
 function addBoardEffect() {
   _syncBoardDraft();
-  boardEffectsDraft.push({ type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: [], target_summon_types: [] });
+  boardEffectsDraft.push({ type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: [] });
   renderBoardDetail();
 }
 
@@ -7061,12 +6753,13 @@ function renderBoardDetail() {
       <p>Les effets <b>se cumulent</b> et l'ordre n'y change rien : ils s'ajoutent tous
       aux stats de combat, jamais au socle de la carte. Deux « ×2 PV » sur un même
       terrain donnent donc <b>×3</b> (deux fois +100 % du socle), pas ×4.</p>
-      <p>Les deux ciblages d'un effet se lisent <b>ET</b> : cocher « Dragon » et
-      « Fusion » ne touche que les Dragons invoqués par Fusion. Pour un <b>OU</b>,
-      poser <b>deux effets</b> sur le terrain.</p>
-      <p>⚠️ Une carte à <b>plusieurs recettes</b> relève de la voie « 🔀 Plusieurs
-      recettes », jamais de l'une des siennes : c'est ce que le joueur lit sur sa
-      vignette, et la recette réellement jouée ne voyage pas en duel en ligne.</p>
+      <p>Plusieurs archétypes cochés se lisent <b>OU</b> : une unité touchée est
+      celle qui porte <b>l'un</b> d'entre eux. Pour un <b>ET</b>, poser
+      <b>deux effets</b> sur le terrain.</p>
+      <p>⚠️ Il n'y a plus qu'un seul ciblage. Les cinq voies d'invocation sont
+      devenues des <b>attributs de carte</b> (ARCH_086…ARCH_090) : un terrain qui
+      visait les Fusions se règle donc ici, comme n'importe quel archétype. Une
+      carte à plusieurs recettes les porte <b>toutes</b>.</p>
     </div>
 
     <div class="section-title" style="margin-top:20px">Cellules bloquées (zone neutre)</div>
@@ -7125,11 +6818,6 @@ function removeBoardTargetAttr(i, aid) {
   if (chip) chip.remove();
 }
 
-function removeBoardTargetKind(i, type) {
-  const chip = document.querySelector(`#bf-eff-${i}-kinds .attr-chip[data-kind="${type}"]`);
-  if (chip) chip.remove();
-}
-
 function openBoardAttrPickModal(i) {
   const current = [...document.querySelectorAll(`#bf-eff-${i}-attrs .attr-chip`)].map(el => el.dataset.aid);
   showModal(`
@@ -7154,34 +6842,6 @@ function addBoardTargetAttr(i, aid) {
   chip.dataset.aid = aid;
   chip.onclick = () => removeBoardTargetAttr(i, aid);
   chip.innerHTML = `${getAttrName(aid)} <span class="remove">×</span>`;
-  chipsEl.insertBefore(chip, chipsEl.querySelector('.attr-add'));
-  closeModal();
-}
-
-function openBoardKindPickModal(i) {
-  const current = [...document.querySelectorAll(`#bf-eff-${i}-kinds .attr-chip`)].map(el => el.dataset.kind);
-  showModal(`
-    <h2>Ajouter une voie d'invocation cible</h2>
-    <div style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto">
-      ${_summonTypeChoices().filter(s => !current.includes(s.type)).map(s => `
-        <div class="list-item" style="border-radius:6px" onclick="addBoardTargetKind(${i}, '${s.type}')">
-          <span style="font-size:16px">${esc(s.icon)}</span>
-          <div><div>${esc(s.label)}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${esc(s.type)}</div></div>
-        </div>
-      `).join('')}
-    </div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">Fermer</button></div>
-  `);
-}
-
-function addBoardTargetKind(i, type) {
-  const chipsEl = document.getElementById(`bf-eff-${i}-kinds`);
-  if (!chipsEl || chipsEl.querySelector(`[data-kind="${type}"]`)) { closeModal(); return; }
-  const chip = document.createElement('span');
-  chip.className = 'attr-chip';
-  chip.dataset.kind = type;
-  chip.onclick = () => removeBoardTargetKind(i, type);
-  chip.innerHTML = `${esc(_summonTypeLabel(type))} <span class="remove">×</span>`;
   chipsEl.insertBefore(chip, chipsEl.querySelector('.attr-add'));
   closeModal();
 }

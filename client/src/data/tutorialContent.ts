@@ -10,7 +10,8 @@
 // Le module est PUR : aucun import de React, de Zustand ni de la couche data/
 // (les databases sont interrogées par les composants). C'est ce qui permet de
 // le tester en node, sans jsdom ni serveur.
-import type { Card, SummonType } from '../logic/types.js';
+import type { Card } from '../logic/types.js';
+import { summonRecipes, summonCostOf, type SummonRecipe } from './SummonInfo.js';
 
 // ── Sélecteurs ──────────────────────────────────────────────────────────────
 
@@ -23,20 +24,31 @@ function firstWhere(cards: Card[], pred: (c: Card) => boolean, limit = 1): Card[
   return byId(cards.filter(pred)).slice(0, limit);
 }
 
-/** Une carte représentative d'un type d'invocation, en préférant les tiers bas (plus lisibles). */
-function oneOfSummonType(type: SummonType): CardPick {
+/**
+ * Une carte illustrant une FORME de recette, en préférant les tiers bas (plus
+ * lisibles). Le prédicat porte sur une recette, pas sur la carte : il suffit
+ * qu'une des voies de la carte ait la forme cherchée.
+ *
+ * ⚠️ Il n'y a plus de voie d'invocation à nommer — le chapitre montre donc ce
+ * qu'une recette COÛTE et ce qu'elle NOMME, ce dont les cinq voies historiques
+ * n'étaient chacune qu'un cas particulier.
+ */
+function oneRecipeLike(pred: (r: SummonRecipe) => boolean): CardPick {
   return (cards) => {
-    const matching = cards.filter(c => (c.summon_type ?? 'normal') === type);
+    const matching = cards.filter(c => summonRecipes(c).some(pred));
     const sorted = [...matching].sort((a, b) => (a.tier - b.tier) || a.id.localeCompare(b.id));
     return sorted.slice(0, 1);
   };
 }
 
+/** Ce qui se pose sans rien consommer — le socle de n'importe quel deck. */
+const isFree = (c: Card) => summonCostOf(c) === 0;
+
 /** Une carte par tier existant, de 1 à 5. */
 const oneCardPerTier: CardPick = (cards) => {
   const out: Card[] = [];
   for (let t = 1; t <= 5; t++) {
-    const pick = firstWhere(cards, c => c.tier === t && (c.summon_type ?? 'normal') === 'normal')[0]
+    const pick = firstWhere(cards, c => c.tier === t && isFree(c))[0]
       ?? firstWhere(cards, c => c.tier === t)[0];
     if (pick) out.push(pick);
   }
@@ -79,7 +91,7 @@ export const CHAPTERS: Chapter[] = [
     blocks: [
       { kind: 'text', text: "Une **carte** est une définition : un nom, un tier, des statistiques, parfois un pouvoir. Elle vit dans ton deck, puis dans ta main. Tant qu'elle est une carte, elle ne fait rien." },
       { kind: 'text', text: "Quand tu la poses sur le terrain, elle devient une **unité** : un exemplaire vivant, avec ses propres points de vie, son bouclier, sa jauge de pouvoir et sa position. Deux unités issues de la même carte sont deux unités distinctes." },
-      { kind: 'cards', caption: 'Une carte, telle qu\'elle apparaît dans ta main', pick: (cards) => firstWhere(cards, c => c.tier === 1 && (c.summon_type ?? 'normal') === 'normal') },
+      { kind: 'cards', caption: 'Une carte, telle qu\'elle apparaît dans ta main', pick: (cards) => firstWhere(cards, c => c.tier === 1 && isFree(c)) },
       { kind: 'bullets', items: [
         "L'unité **persiste d'un tour à l'autre** : une survivante est toujours là au tour suivant, avec les PV qu'il lui reste.",
         "Les bonus de combat (attributs, terrain) sont **remis à zéro** après chaque combat, puis recalculés.",
@@ -123,8 +135,8 @@ export const CHAPTERS: Chapter[] = [
       { kind: 'note', text: "**5 unités maximum** sur le terrain (6 avec certaines synergies d'attributs)." },
       { kind: 'text', text: "Une unité qui tombe au combat est **neutralisée**. Elle ne disparaît pas pour autant : elle reste sur le terrain jusqu'à la fin de la préparation suivante, et rejoint ton **cimetière**." },
       { kind: 'bullets', items: [
-        "Les unités neutralisées sont **utilisables comme matériaux** d'invocation (sacrifice, fusion, héritage, transformation) pendant toute la préparation suivante.",
-        "Une unité prise au cimetière **ne consomme pas d'emplacement** lors d'une transformation : elle est déjà hors jeu.",
+        "Les unités neutralisées sont **utilisables comme matériels** d'invocation pendant toute la préparation suivante.",
+        "Une unité au cimetière **n'occupe aucun emplacement** — mais elle n'en libère aucun non plus : une recette payée uniquement au cimetière est refusée sur un terrain plein.",
         "Celles que tu n'as pas consommées sont **définitivement retirées** au lancement du combat suivant.",
       ] },
       { kind: 'note', text: "Une défaite n'est donc pas une perte sèche : ce qui tombe au tour 2 peut devenir le matériau de ta grosse invocation du tour 3." },
@@ -186,9 +198,9 @@ export const CHAPTERS: Chapter[] = [
       { kind: 'text', text: "Chaque carte porte un **tier**, de 1 à 5. Il dit deux choses : sa puissance, et à partir de quel tour tu peux la piocher." },
       { kind: 'cards', caption: 'Un exemple par tier', pick: oneCardPerTier },
       { kind: 'bullets', items: [
-        "**Tier 1 et 2** — ton socle. Peu chères, disponibles tôt, souvent invocables normalement.",
-        "**Tier 3** — le tournant : c'est là qu'arrivent les fusions et les héritages.",
-        "**Tier 4 et 5** — les finisseuses. Elles coûtent des matériaux et n'arrivent qu'aux derniers tours, quand le multiplicateur les rend décisives.",
+        "**Tier 1 et 2** — ton socle. Peu chères, disponibles tôt, souvent posables sans rien payer.",
+        "**Tier 3** — le tournant : c'est là que les recettes commencent à nommer les cartes qu'elles réclament.",
+        "**Tier 4 et 5** — les finisseuses. Elles coûtent des matériels et n'arrivent qu'aux derniers tours, quand le multiplicateur les rend décisives.",
       ] },
       { kind: 'note', text: "Dans un deck : **8 cartes maximum par tier**, et **un seul exemplaire** de chaque carte. Un deck trop lourd en tier 5 ne pioche rien au tour 1." },
     ],
@@ -196,19 +208,22 @@ export const CHAPTERS: Chapter[] = [
   {
     id: 'summoning',
     icon: '🔮',
-    title: "Les types d'invocation",
-    blurb: 'Cinq façons de poser une carte, dont quatre coûtent quelque chose.',
+    title: "L'invocation",
+    blurb: 'Ce qu\'une carte coûte, et ce qu\'elle consomme pour se payer.',
     blocks: [
-      { kind: 'text', text: "Poser une carte n'est gratuit que pour les invocations normales. Les autres consomment des unités déjà en jeu — ou au cimetière." },
-      { kind: 'cards', caption: 'Normale — on la pose, et c\'est tout', pick: oneOfSummonType('normal') },
-      { kind: 'cards', caption: 'Sacrifice — consomme un nombre d\'unités alliées', pick: oneOfSummonType('sacrifice') },
-      { kind: 'cards', caption: 'Fusion — exige des cartes précises comme matériaux', pick: oneOfSummonType('fusion') },
-      { kind: 'cards', caption: 'Héritage — un matériau précis, plus des sacrifices', pick: oneOfSummonType('heritage') },
-      { kind: 'cards', caption: 'Transformation — remplace une unité en jeu, à sa place', pick: oneOfSummonType('transformation') },
-      { kind: 'text', text: "Une invocation peut **en enchaîner une autre** dans la même préparation : la nouvelle unité devient aussitôt un matériau possible." },
-      { kind: 'note', text: "🧬 **La lignée.** Une unité composite « représente » les cartes qui l'ont produite. Elle peut donc servir de matériau à leur place plus tard — à condition que toute sa lignée soit requise par la nouvelle invocation." },
-      { kind: 'note', text: "🚫 **La règle du doublon.** Jamais deux exemplaires vivants de la même carte sur ton terrain. Une invocation spéciale peut passer par-dessus, à condition que le doublon soit **sélectionné comme matériau**." },
-      { kind: 'text', text: "Certaines cartes proposent **plusieurs recettes** (🔀). Tapes-en une et un menu te laisse choisir laquelle utiliser." },
+      { kind: 'text', text: "Une carte porte **zéro, une ou plusieurs recettes**. Une recette réclame un nombre de **matériels** : des unités que tu as déjà — sur le terrain ou au cimetière — et que l'invocation consomme. Le chiffre ◈ de la vignette annonce le coût de sa recette **la moins chère**." },
+      { kind: 'cards', caption: 'Aucune recette — elle se pose, et c\'est tout', pick: (cards) => firstWhere(cards, isFree) },
+      { kind: 'cards', caption: 'Un coût chiffré — n\'importe quelles unités à toi feront l\'affaire', pick: oneRecipeLike(r => r.materials > 1 && r.requires.length === 0) },
+      { kind: 'text', text: "Une recette peut aussi **nommer** ce qu'elle veut : une carte précise, ou n'importe quelle unité portant un **attribut** donné. Et selon qu'elle nomme tous ses matériels ou seulement une partie, elle ne se lit pas pareil." },
+      { kind: 'cards', caption: 'Matériels — la recette nomme tout ce qu\'elle consomme', pick: oneRecipeLike(r => r.materials > 1 && r.requires.length === r.materials) },
+      { kind: 'cards', caption: '« dont » — elle en nomme une partie, le reste est libre', pick: oneRecipeLike(r => r.requires.length > 0 && r.requires.length < r.materials) },
+      { kind: 'note', text: "📍 **Une recette à un seul matériel remplace sa cible** : la nouvelle unité prend **la case** de celle qu'elle consomme. C'est la seule fois où tu ne choisis pas où poser." },
+      { kind: 'cards', caption: 'Un seul matériel — l\'unité arrive à sa place', pick: oneRecipeLike(r => r.materials === 1) },
+      { kind: 'text', text: "Certaines cartes proposent **plusieurs recettes** (🔀) : tapes-en une et un menu te laisse choisir laquelle payer. Il suffit qu'**une seule** soit satisfaite." },
+      { kind: 'cards', caption: 'Plusieurs recettes pour la même carte', pick: (cards) => firstWhere(cards, c => summonRecipes(c).length > 1) },
+      { kind: 'text', text: "Une invocation peut **en enchaîner une autre** dans la même préparation : la nouvelle unité devient aussitôt un matériel possible." },
+      { kind: 'note', text: "🧬 **La lignée.** Une unité composite « représente » les cartes qui l'ont produite. Elle peut donc servir de matériel à leur place plus tard — à condition que toute sa lignée soit réclamée par la nouvelle recette." },
+      { kind: 'note', text: "🚫 **La règle du doublon.** Jamais deux exemplaires vivants de la même carte sur ton terrain. Une recette peut passer par-dessus, à une condition : que le doublon soit lui-même **sélectionné comme matériel**." },
     ],
   },
   {

@@ -1,22 +1,25 @@
 /// <reference types="node" />
-// Golden tests de `data/SummonInfo` — la lecture présentable des recettes
+// Golden tests de `data/SummonInfo` — la lecture présentable des conditions
 // d'invocation affichée par le tooltip de carte.
 //
 // La suite tourne en node pur, sans jsdom : aucun composant n'est testable.
-// C'est exactement pourquoi toute la lecture (quelles voies, quels matériels,
-// quel coût) vit dans des fonctions pures — le tooltip ne fait que les rendre.
+// C'est exactement pourquoi toute la lecture (quel coût, quels matériels, quel
+// mot pour les introduire) vit dans des fonctions pures — le tooltip ne fait
+// que les rendre.
 //
 // Le catalogue est lu depuis `initial-data/cards.json`, versionné et toujours
 // présent (`data/` n'est créé qu'au démarrage du serveur). Une donnée qui
-// dériverait — un matériel pointant sur un id inconnu, une voie d'invocation
-// inédite — casse ici, plutôt qu'en affichant un identifiant brut au joueur.
+// dériverait — un matériel pointant sur un id inconnu — casse ici, plutôt qu'en
+// affichant un identifiant brut au joueur.
+//
+// ⚠️ Ce fichier ne connaît plus aucune des cinq voies. Ce qu'elles disaient se
+// dérive du COÛT, et c'est précisément ce que ces tests verrouillent.
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  summonRecipes, recipeCostText, materialsLabel, recipeIsFree,
-  SUMMON_LABELS, SUMMON_ICONS,
+  summonRecipes, summonCostOf, recipeCostText, materialsLabel, recipeIsFree,
 } from '../data/SummonInfo.js';
 import type { Card } from '../logic/types.js';
 
@@ -26,182 +29,156 @@ const CARDS = readJson('cards.json') as Card[];
 const ATTRIBUTES = readJson('attributes.json') as { id: string }[];
 
 const card = (over: Partial<Card>): Card => ({
-  id: 'X', name: 'X', tier: 1, summon_type: 'normal',
+  id: 'X', name: 'X', tier: 1, summon_conditions: [],
   stats: { atk: 1, hp: 1, movement_speed: 1, attack_speed: 1, initiative: 1, range: 1 },
-  ...over,
+  ...over
 } as Card);
 
-// ── Une recette par voie ────────────────────────────────────────────────────
+// ── Une recette par condition ───────────────────────────────────────────────
 
-describe('summonRecipes — cartes à voie unique', () => {
-  it('rend une seule recette, sans index d\'option', () => {
-    const [r] = summonRecipes(card({ summon_type: 'normal' }));
-    expect(summonRecipes(card({ summon_type: 'normal' }))).toHaveLength(1);
-    expect(r.index).toBeNull();
-    expect(r.label).toBe(SUMMON_LABELS.normal);
-    expect(r.icon).toBe(SUMMON_ICONS.normal);
+describe('summonRecipes — cartes à condition unique', () => {
+  it('une carte SANS condition rend quand même une recette, à coût nul', () => {
+    const rs = summonRecipes(card({ summon_conditions: [] }));
+    expect(rs).toHaveLength(1);
+    expect(rs[0].index).toBeNull();
+    expect(rs[0].materials).toBe(0);
+    expect(recipeIsFree(rs[0])).toBe(true);
+    expect(recipeCostText(rs[0])).toBeNull();
   });
 
-  it('n\'exige rien d\'une normale — le tooltip peut taire le bloc', () => {
-    const [r] = summonRecipes(card({ summon_type: 'normal', cost: { sacrifice: 0, materials: [] } }));
-    expect(recipeIsFree(r)).toBe(true);
-    expect(recipeCostText(r)).toBeNull();
+  it('compte les matériels et accorde le pluriel', () => {
+    expect(recipeCostText(summonRecipes(card({ summon_conditions: [{ materials: 2 }] }))[0])).toBe('2 matériels');
+    expect(recipeCostText(summonRecipes(card({ summon_conditions: [{ materials: 1 }] }))[0])).toBe('1 matériel');
   });
 
-  it('compte les tributs d\'un sacrifice, et rien d\'autre', () => {
-    const [r] = summonRecipes(card({ summon_type: 'sacrifice', cost: { sacrifice: 2, materials: [] } }));
-    expect(r.sacrifice).toBe(2);
-    expect(r.materials).toEqual([]);
-    expect(recipeCostText(r)).toBe('2 tributs');
-    expect(recipeIsFree(r)).toBe(false);
-  });
-
-  it('accorde le singulier sur un tribut unique', () => {
-    const [r] = summonRecipes(card({ summon_type: 'sacrifice', cost: { sacrifice: 1, materials: [] } }));
-    expect(recipeCostText(r)).toBe('1 tribut');
-  });
-
-  it('liste les matériaux d\'une fusion, sans tribut', () => {
-    const [r] = summonRecipes(card({ summon_type: 'fusion', cost: { sacrifice: 0, materials: ['CORE_005', 'CORE_006'] } }));
-    expect(r.materials.map(m => m.id)).toEqual(['CORE_005', 'CORE_006']);
-    expect(r.materials.every(m => m.kind === 'card')).toBe(true);
-    expect(r.sacrifice).toBe(0);
+  // ⚠️ C'était la distinction Fusion / Héritage, écrite en dur dans deux tables
+  // par voie. Elle tombe du coût seul : autant d'exigences que de slots → on
+  // les liste toutes ; moins d'exigences que de slots → les autres slots sont
+  // libres, et les nommées sont prises DEDANS.
+  // Mutation : rendre toujours « Matériels » → ROUGE sur le cas « dont ».
+  it('« Matériels » quand la condition nomme TOUS ses slots', () => {
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 2, requires: ['CORE_005', 'CORE_006'] }] }));
+    expect(r.requires.map(m => m.id)).toEqual(['CORE_005', 'CORE_006']);
+    expect(r.requires.every(m => m.kind === 'card')).toBe(true);
     expect(materialsLabel(r)).toBe('Matériels');
   });
 
-  it('dit d\'un héritage que ses matériaux sont PRIS DANS ses tributs', () => {
-    const [r] = summonRecipes(card({ summon_type: 'heritage', cost: { sacrifice: 2, materials: ['CORE_005'] } }));
-    expect(r.sacrifice).toBe(2);
-    expect(r.materials.map(m => m.id)).toEqual(['CORE_005']);
-    // « dont » et non « Matériel » : le matériau est compté dans les 2 tributs,
-    // il ne s'y ajoute pas (cf. InvocationManager, cas heritage).
+  it('« dont » quand elle en nomme MOINS — les autres slots restent libres', () => {
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 2, requires: ['CORE_005'] }] }));
+    expect(r.materials).toBe(2);
+    expect(r.requires.map(m => m.id)).toEqual(['CORE_005']);
     expect(materialsLabel(r)).toBe('dont');
+    expect(recipeCostText(r)).toBe('2 matériels');
   });
 
-  it('nomme la cible d\'une transformation, qui n\'est pas un matériau', () => {
-    const [r] = summonRecipes(card({ summon_type: 'transformation', cost: { sacrifice: 0, materials: ['CORE_055'] } }));
-    expect(r.materials.map(m => m.id)).toEqual(['CORE_055']);
-    expect(materialsLabel(r)).toBe('Transforme');
+  it('« Matériel » au singulier sur une condition à un seul slot nommé', () => {
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 1, requires: ['CORE_055'] }] }));
+    expect(materialsLabel(r)).toBe('Matériel');
   });
 
   it('distingue un matériel d\'ATTRIBUT d\'un matériel de carte', () => {
-    const [r] = summonRecipes(card({ summon_type: 'heritage', cost: { sacrifice: 1, materials: ['ARCH_005'] } }));
-    expect(r.materials).toEqual([{ id: 'ARCH_005', kind: 'attribute' }]);
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 1, requires: ['ARCH_005'] }] }));
+    expect(r.requires).toEqual([{ id: 'ARCH_005', kind: 'attribute' }]);
   });
 
-  it('ignore un coût que la voie ne lit pas', () => {
-    // Un `sacrifice` posé sur une fusion, des `materials` posés sur un
-    // sacrifice : InvocationManager ne les vérifie jamais.
-    const [fusion] = summonRecipes(card({ summon_type: 'fusion', cost: { sacrifice: 3, materials: ['CORE_005'] } }));
-    expect(fusion.sacrifice).toBe(0);
-    const [sacr] = summonRecipes(card({ summon_type: 'sacrifice', cost: { sacrifice: 1, materials: ['CORE_005'] } }));
-    expect(sacr.materials).toEqual([]);
+  it('une condition sans exigence nommée n\'a rien à lister', () => {
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 3 }] }));
+    expect(r.requires).toEqual([]);
+    expect(recipeIsFree(r)).toBe(false);
   });
 });
 
-// ── Les alternatives (`summon_options`) ─────────────────────────────────────
+// ── summonCostOf — le chiffre de la vignette ────────────────────────────────
 
-describe('summonRecipes — cartes à alternatives', () => {
+describe('summonCostOf — la voie la moins chère', () => {
+  // ⚠️ Même définition que `InvocationManager.summonCost`, dont c'est le
+  // pendant d'affichage : une vignette qui annoncerait un autre chiffre que
+  // celui que le moteur applique serait pire qu'aucun chiffre.
+  it('rend zéro sans condition, le minimum sinon', () => {
+    expect(summonCostOf(card({ summon_conditions: [] }))).toBe(0);
+    expect(summonCostOf(card({ summon_conditions: [{ materials: 3 }] }))).toBe(3);
+    expect(summonCostOf(card({
+      summon_conditions: [{ materials: 3, requires: ['A'] }, { materials: 1, requires: ['B'] }],
+    }))).toBe(1);
+  });
+});
+
+// ── Les conditions multiples ────────────────────────────────────────────────
+
+describe('summonRecipes — cartes à conditions multiples', () => {
   const dual = card({
-    summon_type: 'transformation',
-    cost: { sacrifice: 0, materials: ['CORE_035'] },
-    summon_options: [
-      { summon_type: 'sacrifice', cost: { sacrifice: 2, materials: [] } },
-      { summon_type: 'transformation', cost: { sacrifice: 0, materials: ['CORE_035'] } },
-    ],
+    summon_conditions: [{ materials: 2 }, { materials: 1, requires: ['CORE_035'] }],
   });
 
-  it('rend une recette par option, indexée dans l\'ordre', () => {
+  it('rend une recette par condition, indexée dans l\'ordre', () => {
     const rs = summonRecipes(dual);
     expect(rs.map(r => r.index)).toEqual([0, 1]);
-    expect(rs.map(r => r.summon_type)).toEqual(['sacrifice', 'transformation']);
+    expect(rs.map(r => r.materials)).toEqual([2, 1]);
   });
 
-  it('lit chaque option, jamais le coût de premier niveau', () => {
-    // Le summon_type/cost de la carte n'est qu'un miroir de l'une des options :
-    // `summon()` ne regarde que `summon_options[index]`.
-    const [first] = summonRecipes(dual);
-    expect(first.sacrifice).toBe(2);
-    expect(first.materials).toEqual([]);
+  it('chaque recette porte SES exigences, pas celles de sa voisine', () => {
+    const rs = summonRecipes(dual);
+    expect(rs[0].requires).toEqual([]);
+    expect(rs[1].requires.map(m => m.id)).toEqual(['CORE_035']);
   });
 });
 
-// ── Les modificateurs de main posés par les magies ──────────────────────────
+// ── Les remises posées par une magie ────────────────────────────────────────
 
 describe('summonRecipes — coûts remisés par une magie', () => {
-  it('annonce une transformation sans cible (free_transformation)', () => {
+  // Le coût affiché est celui qui RESTE — c'est lui que le joueur doit réunir —
+  // mais la remise se dit, sinon la carte a l'air d'avoir toujours exigé si peu.
+  it('annonce un coût baissé sans cacher son origine', () => {
     const [r] = summonRecipes(card({
-      summon_type: 'transformation', cost: { sacrifice: 0, materials: ['CORE_055'] },
-      _free_transformation: true,
+      summon_conditions: [{ materials: 1, requires: ['A'] }],
+      _discounted_from: [{ materials: 3, requires: ['A', 'B', 'C'] }],
     }));
-    expect(r.free).toBe(true);
-    expect(r.materials).toEqual([]);
-    expect(recipeCostText(r)).toBe('sans cible (magie)');
+    expect(r.materials).toBe(1);
+    expect(r.discountedFrom).toEqual({ materials: 3, requires: 3 });
+    expect(recipeCostText(r)).toBe('1 matériel · au lieu de 3 (magie)');
   });
 
-  it('annonce un coût de sacrifice réduit sans cacher son origine', () => {
+  // ⚠️ Les deux gestes sont ORTHOGONAUX : une exigence levée ne baisse pas le
+  // prix. Les annoncer pareil ferait mentir l'infobulle sur ce qui reste à
+  // payer. Mutation : dire « au lieu de N » dans les deux cas → ROUGE.
+  it('annonce une exigence LEVÉE, qui ne baisse pas le coût', () => {
     const [r] = summonRecipes(card({
-      summon_type: 'sacrifice', cost: { sacrifice: 1, materials: [] }, _original_sacrifice: 2,
+      summon_conditions: [{ materials: 2, requires: ['A'] }],
+      _discounted_from: [{ materials: 2, requires: ['A', 'B'] }],
     }));
-    expect(r.sacrifice).toBe(1);
-    expect(r.discountedFrom).toBe(2);
-    expect(recipeCostText(r)).toBe('1 tribut · réduit de 2');
+    expect(r.materials).toBe(2);
+    expect(recipeCostText(r)).toBe('2 matériels · 1 exigence(s) levée(s) (magie)');
   });
 
-  it('ne signale aucune remise quand le coût n\'a pas bougé', () => {
-    const [r] = summonRecipes(card({
-      summon_type: 'sacrifice', cost: { sacrifice: 2, materials: [] }, _original_sacrifice: 2,
+  // ⚠️ `_discounted_from` vit sur la CARTE, donc sur TOUTES ses conditions. Une
+  // remise qui n'a pas touché cette voie-là ne doit rien y annoncer.
+  // Mutation : signaler la remise dès que `_discounted_from` existe → ROUGE.
+  it('ne signale rien sur une condition que la remise n\'a pas bougée', () => {
+    const [inchangee, remisee] = summonRecipes(card({
+      summon_conditions: [{ materials: 2 }, { materials: 1, requires: [] }],
+      _discounted_from: [{ materials: 2 }, { materials: 3, requires: ['A'] }],
     }));
+    expect(inchangee.discountedFrom).toBeNull();
+    expect(recipeCostText(inchangee)).toBe('2 matériels');
+    expect(remisee.discountedFrom).toEqual({ materials: 3, requires: 1 });
+  });
+
+  it('une carte intacte ne signale aucune remise', () => {
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 1, requires: ['CORE_001'] }] }));
     expect(r.discountedFrom).toBeNull();
-  });
-
-  it('annonce les matériels retirés d\'une fusion (remove_fusion_material)', () => {
-    // Le coût affiché est celui qui RESTE — c'est lui que le joueur doit
-    // réunir — mais la remise se dit, sinon la carte a l'air d'avoir toujours
-    // exigé si peu.
-    const [r] = summonRecipes(card({
-      summon_type: 'fusion', cost: { sacrifice: 0, materials: ['CORE_001'] }, _removed_materials: 2,
-    }));
-    expect(r.materials.map(m => m.id)).toEqual(['CORE_001']);
-    expect(r.materialsRemoved).toBe(2);
-    expect(recipeCostText(r)).toBe('2 matériels retirés (magie)');
-  });
-
-  it('une fusion intacte ne signale aucun matériel retiré', () => {
-    const [r] = summonRecipes(card({ summon_type: 'fusion', cost: { sacrifice: 0, materials: ['CORE_001'] } }));
-    expect(r.materialsRemoved).toBeNull();
-    expect(recipeCostText(r)).toBeNull();
-  });
-
-  it('la marque ne déteint pas sur une autre voie que la fusion', () => {
-    // `_removed_materials` vit sur la CARTE : une carte à summon_options le
-    // porterait pour toutes ses recettes si le champ n'était pas gardé par le
-    // type — un héritage annoncerait alors une remise qu'il n'a pas reçue.
-    const [r] = summonRecipes(card({
-      summon_type: 'heritage', cost: { sacrifice: 2, materials: ['CORE_001'] }, _removed_materials: 1,
-    }));
-    expect(r.materialsRemoved).toBeNull();
+    expect(recipeCostText(r)).toBe('1 matériel');
   });
 });
 
 // ── Le catalogue réel ───────────────────────────────────────────────────────
 
 describe('catalogue livré', () => {
-  it('donne un libellé et une icône à chaque voie d\'invocation présente', () => {
-    const types = new Set<string>();
-    for (const c of CARDS) for (const r of summonRecipes(c)) types.add(r.summon_type);
-    for (const t of types) {
-      expect(SUMMON_LABELS[t], t).toBeTruthy();
-      expect(SUMMON_ICONS[t], t).toBeTruthy();
-    }
-  });
-
   it('n\'expose que des matériels nommables — aucun id orphelin au tooltip', () => {
     const cardIds = new Set(CARDS.map(c => c.id));
     const attrIds = new Set(ATTRIBUTES.map(a => a.id));
     for (const c of CARDS) {
       for (const r of summonRecipes(c)) {
-        for (const m of r.materials) {
+        for (const m of r.requires) {
           const known = m.kind === 'attribute' ? attrIds.has(m.id) : cardIds.has(m.id);
           expect(known, `${c.id} → ${m.id}`).toBe(true);
         }
@@ -209,19 +186,26 @@ describe('catalogue livré', () => {
     }
   });
 
-  it('donne à chaque carte de haut tier quelque chose à exiger', () => {
-    // Une fusion / héritage / transformation sans exigence lisible serait une
-    // carte dont le tooltip ne dirait rien de son invocation.
-    const composite = CARDS.filter(c => ['fusion', 'heritage', 'transformation'].includes(c.summon_type));
-    expect(composite.length).toBeGreaterThan(0);
-    for (const c of composite) {
-      const rs = summonRecipes(c);
-      expect(rs.some(r => !recipeIsFree(r)), c.id).toBe(true);
+  it('respecte l\'invariant du moteur : jamais plus d\'exigences que de slots', () => {
+    // Une condition qui nommerait plus de matériels qu'elle n'en consomme est
+    // insatisfiable — et le tooltip promettrait une carte injouable.
+    for (const c of CARDS) {
+      for (const r of summonRecipes(c)) {
+        expect(r.requires.length, c.id).toBeLessThanOrEqual(r.materials);
+      }
+    }
+  });
+
+  it('donne à chaque carte à coût quelque chose à annoncer', () => {
+    const withCost = CARDS.filter(c => summonCostOf(c) > 0);
+    expect(withCost.length).toBeGreaterThan(0);
+    for (const c of withCost) {
+      expect(summonRecipes(c).some(r => !recipeIsFree(r)), c.id).toBe(true);
     }
   });
 
   it('rend le même résultat à chaque appel (aucun état caché)', () => {
-    const c = CARDS.find(x => Array.isArray(x.summon_options) && x.summon_options.length > 0)!;
+    const c = CARDS.find(x => (x.summon_conditions ?? []).length > 1)!;
     expect(summonRecipes(c)).toEqual(summonRecipes(c));
   });
 });

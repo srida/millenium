@@ -210,7 +210,10 @@ function meetsRequirements(ownedIds, def) {
   for (const id of ownedIds) {
     const c = cards.get(id);
     if (!c) continue;
-    if (m.summon_type && c.summon_type !== m.summon_type) continue;
+    // Le filtre porte sur un ATTRIBUT et non sur une « voie » d'invocation :
+    // celles-ci sont devenues des attributs de carte comme les autres, et une
+    // carte à plusieurs voies les porte toutes.
+    if (m.attribute && !(c.attributes ?? []).includes(m.attribute)) continue;
     if (m.tier_min != null && !(Number(c.tier) >= m.tier_min)) continue;
     if (++n >= (m.count ?? 1)) return true;
   }
@@ -321,7 +324,10 @@ function eventMatches(ev, obj) {
   if (!ev || ev.type !== obj.event) return false;
   const f = obj.filters || {};
   const num = v => Number(v);
-  if (f.summon_type && ev.summon_type !== f.summon_type) return false;
+  // ⚠️ `summon_performed` porte désormais la LISTE des attributs de la carte,
+  // là où il portait une voie unique : une carte à plusieurs voies compte pour
+  // chacune d'elles.
+  if (f.attribute && !(ev.attributes ?? []).includes(f.attribute)) return false;
   if (f.tier_min != null && !(num(ev.tier) >= f.tier_min)) return false;
   if (f.result && ev.result !== f.result) return false;
   if (f.rounds_min != null && !(num(ev.rounds_played) >= f.rounds_min)) return false;

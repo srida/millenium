@@ -1,25 +1,24 @@
-// SummonInfo — lecture PRÉSENTABLE des recettes d'invocation d'une carte.
+// SummonInfo — lecture PRÉSENTABLE des conditions d'invocation d'une carte.
 //
-// Pur, sans aucun import : ni React, ni Zustand, ni base de données. Les
-// matériels sont rendus par leur **id** ; c'est l'appelant qui résout les noms
-// (le tooltip via CardDatabase). C'est ce qui rend le module testable dans la
-// suite vitest, qui tourne en node sans jsdom — même raison que
-// `data/tutorialScript.ts`.
+// Pur, sans aucun import de React / Zustand / base de données. Les matériels
+// sont rendus par leur **id** ; c'est l'appelant qui résout les noms (le
+// tooltip via CardDatabase). C'est ce qui rend le module testable dans la suite
+// vitest, qui tourne en node sans jsdom — même raison que `data/BoardInfo.ts`.
 //
-// Une carte à `summon_options` porte plusieurs recettes ; sa `summon_type` /
-// son `cost` de premier niveau ne sont alors qu'un miroir de l'une d'elles et
-// ne sont PAS lus (`summon()` ne regarde que les options).
-import type { Card, SummonCost, SummonType } from '../logic/types.js';
-import { isAttributeMaterial } from '../logic/InvocationManager.js';
-
-export const SUMMON_LABELS: Record<string, string> = {
-  normal: 'Normale', sacrifice: 'Sacrifice', fusion: 'Fusion',
-  heritage: 'Héritage', transformation: 'Transformation',
-};
-
-export const SUMMON_ICONS: Record<string, string> = {
-  normal: '✋', sacrifice: '💀', fusion: '⚗', heritage: '🔮', transformation: '🔄',
-};
+// ⚠️ **Aucune des cinq voies historiques n'existe plus ici.** Il n'y a qu'un
+// COÛT — un nombre de slots de matériau, dont certains peuvent être nommés — et
+// tout ce que le tooltip disait par voie se dérive maintenant de ce coût :
+//   « Transformation » = une condition à un matériel nommé ;
+//   « Fusion »         = autant d'exigences nommées que de slots ;
+//   « Héritage »       = moins d'exigences que de slots (d'où le « dont ») ;
+//   « Sacrifice »      = aucune exigence nommée ;
+//   « Normale »        = aucune condition.
+// Les libellés restent lisibles par le joueur sous forme d'ATTRIBUTS de carte,
+// affichés comme n'importe quel autre archétype.
+import type { Card, SummonCondition } from '../logic/types.js';
+import {
+  isAttributeMaterial, summonConditions, conditionMaterials, conditionRequires,
+} from '../logic/InvocationManager.js';
 
 /**
  * Un matériel exigé. `kind: 'attribute'` désigne **n'importe quelle** unité
@@ -33,59 +32,61 @@ export interface SummonMaterial {
 }
 
 export interface SummonRecipe {
-  /** Index dans `summon_options`, ou `null` quand la carte n'a qu'une recette. */
+  /** Index dans `summon_conditions`, ou `null` quand la carte n'en a aucune. */
   index: number | null;
-  summon_type: SummonType;
-  label: string;
-  icon: string;
-  /** Matériels requis (fusion / héritage) ou monstre à transformer. */
-  materials: SummonMaterial[];
-  /** Nombre de tributs (sacrifice / héritage). */
-  sacrifice: number;
-  /** Transformation offerte par une magie : plus de cible à désigner. */
-  free: boolean;
-  /** Coût en tributs d'origine quand une magie l'a réduit, sinon `null`. */
-  discountedFrom: number | null;
-  /** Matériels retirés par une magie (remove_fusion_material), sinon `null`. */
-  materialsRemoved: number | null;
+  /** Slots de matériau exigés, comptés en `material_value`. Zéro = pose directe. */
+  materials: number;
+  /** Les exigences NOMMÉES — un sous-ensemble des slots ci-dessus. */
+  requires: SummonMaterial[];
+  /** Le coût d'AVANT la remise quand une magie est passée par là, sinon `null`. */
+  discountedFrom: { materials: number; requires: number } | null;
 }
 
-// Ce que chaque voie LIT réellement dans son coût (cf. InvocationManager) : un
-// `sacrifice` posé sur une fusion, ou des `materials` posés sur un sacrifice,
-// ne sont jamais vérifiés — les afficher ferait mentir le tooltip.
-const READS_MATERIALS: Record<string, boolean> = {
-  normal: false, sacrifice: false, fusion: true, heritage: true, transformation: true,
-};
-const READS_SACRIFICE: Record<string, boolean> = {
-  normal: false, sacrifice: true, fusion: false, heritage: true, transformation: false,
-};
+function material(id: string): SummonMaterial {
+  return { id, kind: isAttributeMaterial(id) ? 'attribute' : 'card' };
+}
 
-function recipe(card: Card, type: SummonType, cost: SummonCost | undefined, index: number | null): SummonRecipe {
-  const free = type === 'transformation' && card._free_transformation === true;
-  const sacrifice = READS_SACRIFICE[type] ? (cost?.sacrifice ?? 0) : 0;
-  const original = card._original_sacrifice ?? null;
+function recipe(condition: SummonCondition | null, index: number | null, before: SummonCondition | null): SummonRecipe {
+  const materials = condition ? conditionMaterials(condition) : 0;
+  const requires = condition ? conditionRequires(condition) : [];
+  const original = before
+    ? { materials: conditionMaterials(before), requires: conditionRequires(before).length }
+    : null;
   return {
     index,
-    summon_type: type,
-    label: SUMMON_LABELS[type] ?? type,
-    icon: SUMMON_ICONS[type] ?? '',
-    materials: free || !READS_MATERIALS[type] ? [] : (cost?.materials ?? []).map(id => ({
-      id, kind: isAttributeMaterial(id) ? 'attribute' as const : 'card' as const,
-    })),
-    sacrifice,
-    free,
-    discountedFrom: type === 'sacrifice' && original !== null && original !== sacrifice ? original : null,
-    materialsRemoved: type === 'fusion' && (card._removed_materials ?? 0) > 0 ? card._removed_materials! : null,
+    materials,
+    requires: requires.map(material),
+    // Une remise qui n'a rien changé à CETTE condition ne s'annonce pas : la
+    // magie a bien été jouée, mais pas sur cette voie-là.
+    discountedFrom: original && (original.materials !== materials || original.requires !== requires.length)
+      ? original
+      : null,
   };
 }
 
-/** Les voies d'invocation de la carte — une par `summon_options`, sinon une seule. */
+/**
+ * Les voies d'invocation de la carte — une par condition. Une carte SANS
+ * condition en rend quand même une (coût nul) : l'appelant a toujours une
+ * recette à lire, et `recipeIsFree` lui dit qu'il n'y a rien à afficher.
+ */
 export function summonRecipes(card: Card): SummonRecipe[] {
-  const options = card.summon_options;
-  if (Array.isArray(options) && options.length > 0) {
-    return options.map((opt, index) => recipe(card, opt.summon_type, opt.cost, index));
-  }
-  return [recipe(card, card.summon_type ?? 'normal', card.cost, null)];
+  const conditions = summonConditions(card);
+  const before = card._discounted_from ?? null;
+  if (conditions.length === 0) return [recipe(null, null, null)];
+  return conditions.map((cd, index) => recipe(cd, index, before?.[index] ?? null));
+}
+
+/**
+ * Le coût de la carte en un seul chiffre : sa voie la moins chère. C'est ce que
+ * la vignette affiche — un nombre, sans icône de voie ni libellé, puisqu'il n'y
+ * a plus de voie à nommer.
+ *
+ * ⚠️ Même définition que `InvocationManager.summonCost`, dont il est le pendant
+ * d'affichage ; il la RÉUTILISE plutôt que de la recalculer.
+ */
+export function summonCostOf(card: Card): number {
+  const recipes = summonRecipes(card);
+  return Math.min(...recipes.map(r => r.materials));
 }
 
 /**
@@ -95,26 +96,31 @@ export function summonRecipes(card: Card): SummonRecipe[] {
  */
 export function recipeCostText(r: SummonRecipe): string | null {
   const parts: string[] = [];
-  if (r.sacrifice > 0) parts.push(`${r.sacrifice} tribut${r.sacrifice > 1 ? 's' : ''}`);
-  if (r.free) parts.push('sans cible (magie)');
-  if (r.discountedFrom !== null) parts.push(`réduit de ${r.discountedFrom}`);
-  if (r.materialsRemoved !== null) parts.push(`${r.materialsRemoved} matériel${r.materialsRemoved > 1 ? 's' : ''} retiré${r.materialsRemoved > 1 ? 's' : ''} (magie)`);
+  if (r.materials > 0) parts.push(`${r.materials} matériel${r.materials > 1 ? 's' : ''}`);
+  if (r.discountedFrom !== null) {
+    // La remise se dit sur ce qu'elle a réellement bougé : baisser le prix et
+    // lever une contrainte sont deux gestes distincts (cf. `reduce_materials`
+    // et `remove_requirements`), et les confondre ferait mentir l'infobulle.
+    if (r.discountedFrom.materials !== r.materials) parts.push(`au lieu de ${r.discountedFrom.materials} (magie)`);
+    else parts.push(`${r.discountedFrom.requires - r.requires.length} exigence(s) levée(s) (magie)`);
+  }
   return parts.length ? parts.join(' · ') : null;
 }
 
 /**
- * Libellé du bloc « matériels ». Trois sens différents, d'où trois mots :
- * la transformation désigne une **cible** qu'elle remplace ; l'héritage
- * contraint les tributs déjà comptés (« dont »), il n'en exige pas en plus ;
- * la fusion, elle, liste bien ses matériaux.
+ * Libellé du bloc « matériels ». Deux sens, et ils se dérivent du coût seul :
+ * quand la condition nomme AUTANT d'exigences qu'elle a de slots, elle les
+ * liste tous (« Matériels ») ; quand elle en nomme moins, les autres slots
+ * restent libres et les exigences sont prises **dedans** (« dont »).
+ *
+ * C'était la distinction Fusion / Héritage, écrite en dur ; elle tombe du coût.
  */
 export function materialsLabel(r: SummonRecipe): string {
-  if (r.summon_type === 'transformation') return 'Transforme';
-  if (r.summon_type === 'heritage') return 'dont';
-  return r.materials.length > 1 ? 'Matériels' : 'Matériel';
+  if (r.requires.length < r.materials) return 'dont';
+  return r.requires.length > 1 ? 'Matériels' : 'Matériel';
 }
 
-/** Une carte n'exigeant rien du tout (normale, sans tribut ni matériel). */
+/** Une carte n'exigeant rien du tout : elle se pose, point. */
 export function recipeIsFree(r: SummonRecipe): boolean {
-  return r.materials.length === 0 && r.sacrifice === 0 && !r.free && r.discountedFrom === null;
+  return r.materials === 0 && r.requires.length === 0 && r.discountedFrom === null;
 }

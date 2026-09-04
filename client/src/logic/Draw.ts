@@ -34,8 +34,8 @@ export function drawHand(
 /**
  * Résout des pioches GARANTIES sur un pool — tout le deck, sans restriction
  * de tier du tour. Une entrée = une carte, avec double repli : d'abord tous
- * les filtres (`tier`/`attribute`/`category`), puis sans le tier, puis
- * n'importe quelle carte du pool.
+ * les filtres (`tier`/`attribute`), puis sans le tier, puis n'importe quelle
+ * carte du pool.
  *
  * Extrait de `GameSession.startPreparation` pour être PARTAGÉ avec `EnemyAI`
  * — la pioche garantie a un destinataire des deux côtés (attributs
@@ -53,15 +53,13 @@ export function resolveGuaranteedDraws(
   for (const draw of guaranteedDraws) {
     const matches = fullPool.filter(c =>
       (!draw.tier      || c.tier === draw.tier) &&
-      (!draw.attribute || c.attributes?.includes(draw.attribute)) &&
-      (!draw.category  || c.summon_type === draw.category));
+      (!draw.attribute || c.attributes?.includes(draw.attribute)));
     if (matches.length > 0) {
       drawn.push({ ...matches[Math.floor(rand() * matches.length)] });
       continue;
     }
     const fallback = fullPool.filter(c =>
-      (!draw.attribute || c.attributes?.includes(draw.attribute)) &&
-      (!draw.category  || c.summon_type === draw.category));
+      (!draw.attribute || c.attributes?.includes(draw.attribute)));
     if (fallback.length > 0) {
       drawn.push({ ...fallback[Math.floor(rand() * fallback.length)] });
     } else if (fullPool.length > 0) {

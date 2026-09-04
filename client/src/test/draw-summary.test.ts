@@ -26,9 +26,9 @@ const HAND_SIZE = 5;
 
 function makeSession(opts: { cards?: any[]; rand?: () => number; attributes?: any[] } = {}) {
   const cards = opts.cards ?? [
-    makeCard({ id: 'T1', tier: 1, summon_type: 'normal' }),
-    makeCard({ id: 'T2', tier: 2, summon_type: 'normal' }),
-    makeCard({ id: 'T3', tier: 3, summon_type: 'normal' }),
+    makeCard({ id: 'T1', tier: 1, summon_conditions: [] }),
+    makeCard({ id: 'T2', tier: 2, summon_conditions: [] }),
+    makeCard({ id: 'T3', tier: 3, summon_conditions: [] })
   ];
   const byId = new Map(cards.map(c => [c.id, c]));
   const byTier: Record<number, any[]> = {};
@@ -40,7 +40,7 @@ function makeSession(opts: { cards?: any[]; rand?: () => number; attributes?: an
     cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
     getAllBoards: () => [],
     getAllMagies: () => [],
-    rand: opts.rand,
+    rand: opts.rand
   };
   return new GameSession(deps);
 }
@@ -118,7 +118,7 @@ describe('DrawSummary — les bonus, et leur provenance', () => {
     const draw = s.startPreparation();
     expect(draw.sources).toEqual([
       { kind: 'magie', ref: 'MAGIC_A', value: 2 },
-      { kind: 'terrain', ref: 'BOARD_1', value: 1 },
+      { kind: 'terrain', ref: 'BOARD_1', value: 1 }
     ]);
   });
 
@@ -128,8 +128,7 @@ describe('DrawSummary — les bonus, et leur provenance', () => {
   it('un attribut plafonné inscrit le crédit RÉEL, pas ce qu\'il demandait', () => {
     const attr = {
       id: 'ARCH_D', name: 'Pioche', timing: 'end_of_combat',
-      thresholds: [{ count: 1, effects: [{ type: 'draw_bonus', value: 3, max: 1 }] }],
-    };
+      thresholds: [{ count: 1, effects: [{ type: 'draw_bonus', value: 3, max: 1 }] }] };
     const u = new (Unit as any)(makeCard({ id: 'T1', tier: 1, attributes: ['ARCH_D'] }), 'player');
     const mgr = new (AttributeManager as any)([attr], [u], []);
     const result = mgr.applyEndOfCombat([], []);
@@ -197,13 +196,12 @@ describe('DrawInfo — la pioche mise en mots', () => {
         { kind: 'attribut', ref: 'ARCH_D', value: 1 },
         { kind: 'attribut', ref: 'ARCH_D', value: 1 },
         { kind: 'attribut', ref: 'ARCH_D', value: 0, guaranteed: true },
-        { kind: 'magie', ref: 'MAGIC_A', value: 2 },
-      ],
-    } as any);
+        { kind: 'magie', ref: 'MAGIC_A', value: 2 }
+      ] } as any);
     expect(rows.map(r => [r.kind, r.ref, r.amount, r.guaranteed])).toEqual([
       ['attribut', 'ARCH_D', 2, false],
       ['attribut', 'ARCH_D', 0, true],
-      ['magie', 'MAGIC_A', 2, false],
+      ['magie', 'MAGIC_A', 2, false]
     ]);
   });
 
@@ -214,11 +212,14 @@ describe('DrawInfo — la pioche mise en mots', () => {
     expect(drawnLabel({ drawnCount: 0, baseCount: 5, extraDraws: 2 } as any)).toBe('0 cartes');
   });
 
-  it('dit le filtre d\'une pioche garantie, les trois champs se cumulant', () => {
+  // ⚠️ Le filtre `category` (la voie d'invocation) a disparu : les voies sont
+  // devenues des attributs, et `attribute` les nomme déjà. Un second filtre
+  // aurait voulu dire deux façons d'exprimer la même exigence.
+  it('dit le filtre d\'une pioche garantie, les deux champs se cumulant', () => {
     expect(guaranteedDrawLabel({ tier: 3 })).toBe('Tier 3');
-    expect(guaranteedDrawLabel({ category: 'fusion' })).toBe('Fusion');
-    expect(guaranteedDrawLabel({ tier: 5, category: 'sacrifice' })).toBe('Tier 5 · Sacrifice');
     expect(guaranteedDrawLabel({ attribute: 'ARCH_D' }, () => 'Dragons')).toBe('Dragons');
+    expect(guaranteedDrawLabel({ tier: 5, attribute: 'ARCH_086' }, () => 'Fusion'))
+      .toBe('Tier 5 · Fusion');
     expect(guaranteedDrawLabel({})).toBe('Au choix');
   });
 });

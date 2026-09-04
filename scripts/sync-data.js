@@ -75,7 +75,6 @@ const ENTITIES = [
   { type: 'gifts',      file: 'gifts.json',      importPath: '/api/gifts/import',      deletePath: id => `/api/gifts/${id}` },
   // Catalogue fermé à 5 entrées, pas d'entrée ASSETS non plus (même dossier
   // que les attributs et les variantes, sous l'id de chaque type).
-  { type: 'summonTypes', file: 'summon_types.json', importPath: '/api/summon-types/import', deletePath: id => `/api/summon-types/${id}` },
   // Les dos de cartes non plus n'ont pas d'entrée ASSETS : leur art vit dans le
   // dossier des illustrations, sous l'id du dos.
   { type: 'cardBacks',  file: 'card_backs.json', importPath: '/api/card-backs/import', deletePath: id => `/api/card-backs/${id}` },

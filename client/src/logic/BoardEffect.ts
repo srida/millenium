@@ -43,27 +43,21 @@ export function boardEffects(board: BoardDef | null | undefined): BoardEffectDef
  * serait s'autoriser à annoncer au joueur un décompte que l'effet n'a pas
  * appliqué.
  *
- * DEUX ciblages, chacun optionnel, et ils se CUMULENT (ET) :
- *   - `target_attributes` — vide ou absent = tous les archétypes ;
- *   - `target_summon_types` — vide ou absent = toutes les voies d'invocation.
+ * UN SEUL ciblage : `target_attributes` — vide ou absent = tous les archétypes.
  *
- * ⚠️ Le cumul est un ET et non un OU : « les Dragons invoqués par Fusion » est
- * la seule lecture qu'un designer puisse tenir pour acquise en cochant les deux
- * listes. Un OU se demande en posant DEUX effets sur le terrain, ce que
- * `effects` permet désormais — l'inverse ne serait pas exprimable.
+ * ⚠️ Le second ciblage (`target_summon_types`) a disparu avec les voies
+ * d'invocation : celles-ci sont devenues des attributs comme les autres, donc
+ * « les Dragons invoqués par Fusion » s'écrit avec les deux ids dans cette
+ * seule liste. Le OU se demande toujours en posant DEUX effets sur le terrain.
  *
- * ⚠️ La voie lue est `unit.summon_key`, jamais `unit.summon_type` : une carte à
- * plusieurs recettes relève de `multi` (cf. `Unit.summonKey`).
+ * ⚠️ La liste est cumulative en OU entre ses entrées : une unité est touchée
+ * dès qu'elle porte **l'un** des attributs visés.
  */
 export function effectTargets(effect: BoardEffectDef | null | undefined, units: Unit[]): Unit[] {
   if (!effect) return [];
   const attrs = effect.target_attributes;
-  const kinds = effect.target_summon_types;
-  if (!attrs?.length && !kinds?.length) return units;
-  return units.filter(u =>
-    (!attrs?.length || u.attributes.some(a => attrs.includes(a)))
-    && (!kinds?.length || kinds.includes(u.summon_key)),
-  );
+  if (!attrs?.length) return units;
+  return units.filter(u => u.attributes.some(a => attrs.includes(a)));
 }
 
 export function applyEffect(effect: BoardEffectDef | null | undefined, { playerUnits = [], enemyUnits = [], gameState = null, sourceId = null }: BoardEffectContext = {}): void {

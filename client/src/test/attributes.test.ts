@@ -152,14 +152,14 @@ describe('AttributeManager — end_of_combat', () => {
   it('guaranteed_draw côté ENNEMI alimente enemy_guaranteed_draws, pas guaranteed_draws', () => {
     const attrs = [{
       id: 'ARCH_FORGE', name: 'Forge', timing: 'end_of_combat',
-      thresholds: [{ count: 1, effects: [{ type: 'guaranteed_draw', category: 'fusion', attribute: null }] }],
+      thresholds: [{ count: 1, effects: [{ type: 'guaranteed_draw', attribute: 'ARCH_086' }] }],
     }];
     const board = makeBoard();
     const [e1] = units(board, [{ id: 'E1', attrs: ['ARCH_FORGE'], col: 0, row: 7, side: 'enemy' }]);
     const am = new (AttributeManager as any)(attrs, [], [e1]);
     const result = am.applyEndOfCombat([], []);
 
-    expect(result.enemy_guaranteed_draws).toEqual([{ category: 'fusion', attribute: null }]);
+    expect(result.enemy_guaranteed_draws).toEqual([{ attribute: 'ARCH_086' }]);
     expect(result.guaranteed_draws).toEqual([]);
   });
 

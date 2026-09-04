@@ -48,13 +48,31 @@ export interface Aggregates {
   caveats: string[];
 }
 
-const SUMMON_LABELS: Record<string, string> = {
-  normal: 'invocation normale',
-  sacrifice: 'sacrifice',
-  fusion: 'fusion',
-  heritage: 'héritage',
-  transformation: 'transformation',
-};
+/** Les seuls nombres que l'émission prononce en toutes lettres. */
+const EN_TOUTES_LETTRES = [
+  'zéro', 'un', 'deux', 'trois', 'quatre', 'cinq',
+  'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze',
+];
+
+/**
+ * Le nom parlé d'un coût d'invocation. Remplace la table des cinq voies —
+ * l'émission dit maintenant « les invocations à deux matériels » là où elle
+ * disait « les fusions », ce qui reste vrai quand le catalogue change de
+ * vocabulaire.
+ *
+ * ⚠️ Le compte s'écrit EN TOUTES LETTRES. Ce n'est pas une coquetterie : le
+ * script est lu à voix haute, et surtout `show.ts` exige que tout CHIFFRE
+ * prononcé soit passé par l'un de ses formateurs — un coût n'est pas une
+ * mesure, il n'a rien à y faire. En lettres, il n'y a pas de chiffre à
+ * enregistrer, et le contrôle reste entier pour les vraies mesures. Au-delà de
+ * la table, le chiffre revient et le test le signalera : un coût à treize
+ * matériels serait de toute façon la nouvelle à annoncer.
+ */
+export function summonCostLabel(cost: number): string {
+  if (cost <= 0) return 'invocation sans condition';
+  if (cost === 1) return 'invocation à un matériel';
+  return `invocation à ${EN_TOUTES_LETTRES[cost] ?? cost} matériels`;
+}
 
 /** Sous le seuil, une famille n'est pas rendue : elle ne mesurerait rien. */
 const MIN_PLAYED = 200;
@@ -111,14 +129,14 @@ export function buildAggregates(
     .sort(byWeight);
 
   // ── Voies d'invocation ────────────────────────────────────────────────
-  const byType = new Map<string, CardRow[]>();
+  const byType = new Map<number, CardRow[]>();
   for (const row of played) {
-    const t = row.summon_type || 'normal';
+    const t = row.summon_cost;
     if (!byType.has(t)) byType.set(t, []);
     byType.get(t)!.push(row);
   }
   const typeRows = [...byType.entries()]
-    .map(([t, group]) => fold(t, SUMMON_LABELS[t] ?? t, group, baseline))
+    .map(([t, group]) => fold(String(t), summonCostLabel(t), group, baseline))
     // Même seuil que les attributs : une voie vue trois fois n'a pas de winrate,
     // elle a un accident. « fusion ferme la marche à 0,0 % » venait de là.
     .filter((r): r is FamilyRow => !!r && r.played >= MIN_PLAYED)

@@ -26,10 +26,14 @@ const applyMagieEffect = _applyMagieEffect as (magie: any, ctx: { gameState?: an
 const InvocationManager = _InvocationManager as any;
 import * as _InvocationRules from './InvocationRules.js';
 const {
-  needsMaterials, materialsComplete, transformTargetCells,
+  needsMaterials, materialsComplete, forcedMaterials,
   materialCandidateCells, materialCandidateGraveyard, isPlayable,
-  validCells, summonOptionsStatus,
+  validCells, summonConditionsStatus,
 } = _InvocationRules as any;
+import {
+  summonConditions, conditionMaterials, conditionRequires,
+} from './InvocationManager.js';
+import type { SummonCondition } from './types.js';
 import { tiersForRound, drawHand, resolveGuaranteedDraws } from './Draw.js';
 import { pickMagies } from './MagieOffer.js';
 import type { MagieOfferContext } from './MagieOffer.js';
@@ -40,6 +44,58 @@ const HAND_SIZE = 5;
 /** Les tiers DISTINCTS d'une liste de cartes, entrées sans tier ignorées. */
 function _tiers(cards: readonly (Card | null | undefined)[]): number[] {
   return [...new Set(cards.map(c => c?.tier).filter((t): t is number => typeof t === 'number'))];
+}
+
+/**
+ * Applique une remise de magie à TOUTES les conditions d'une carte en main.
+ *
+ * Les deux gestes sont ORTHOGONAUX, et c'est délibéré : `reduce_materials`
+ * baisse le prix, `remove_requirements` lève une contrainte sans rendre la
+ * carte moins chère. L'ancienne « retire un matériel de Fusion » faisait les
+ * deux à la fois, mais seulement parce que le coût d'une fusion ÉTAIT la
+ * longueur de sa liste — un couplage qui n'existe plus dans les données.
+ *
+ * ⚠️ Rend une carte NEUVE, jamais une mutation : `canUndoPreparation` compare
+ * la main par référence, et la carte vient du deck.
+ *
+ * ⚠️ L'invariant `requires.length <= materials` est rétabli après coup — une
+ * condition qui garderait plus d'exigences que de slots serait insatisfiable,
+ * donc une remise qui rend la carte injouable.
+ */
+/**
+ * Une carte que ce geste peut retoucher. ⚠️ C'est LE prédicat que
+ * `startPreparation` appliquera un tour plus tard — l'offre et l'application
+ * posent la même question, sinon la magie est offerte pour ne rien faire.
+ */
+function _retouchable(type: 'reduce_materials' | 'remove_requirements') {
+  return (card: Card) => summonConditions(card).some(
+    cd => type === 'reduce_materials'
+      ? conditionMaterials(cd) > 0
+      : conditionRequires(cd).length > 0);
+}
+
+const _attributesOf = (cards: Card[]) => [...new Set(cards.flatMap(c => c.attributes ?? []))];
+
+function _discountCard(card: Card, type: 'reduce_materials' | 'remove_requirements', amount: number): Card {
+  const before = summonConditions(card);
+  const after: SummonCondition[] = before.map(cd => {
+    const materials = conditionMaterials(cd);
+    const requires = conditionRequires(cd);
+    if (type === 'reduce_materials') {
+      if (materials === 0) return cd;
+      const left = Math.max(0, materials - amount);
+      return { materials: left, requires: requires.slice(0, left) };
+    }
+    if (requires.length === 0) return cd;
+    return { materials, requires: requires.slice(0, Math.max(0, requires.length - amount)) };
+  });
+  return {
+    ...card,
+    // Mémorise l'état d'AVANT la première remise seulement : deux magies
+    // enchaînées se lisent contre la carte d'origine, pas l'une contre l'autre.
+    _discounted_from: card._discounted_from ?? before,
+    summon_conditions: after,
+  };
 }
 
 export interface CardDbLike {
@@ -279,37 +335,25 @@ export class GameSession {
     // Modifiers de main différés (magies choisies au tour précédent)
     if (this.gameState.player_hand_modifiers.length) {
       const modifiers = this.gameState.player_hand_modifiers.splice(0);
+      // Les quatre remises d'invocation se réduisent à DEUX gestes sur une
+      // condition : baisser son nombre de matériels, ou lui retirer des
+      // exigences nommées. L'ancienne « transformation offerte » n'était que
+      // les deux appliqués assez large pour vider la condition — elle s'écrit
+      // maintenant en données, plus en code.
       for (const mod of modifiers) {
-        if (mod.type === 'reduce_sacrifice_cost') {
-          const idx = this.hand.findIndex(c => c.summon_type === 'sacrifice' && (c.cost?.sacrifice ?? 0) > 0);
-          if (idx !== -1) {
-            const original = this.hand[idx]._original_sacrifice ?? this.hand[idx].cost?.sacrifice ?? 0;
-            this.hand[idx] = { ...this.hand[idx], _original_sacrifice: original, cost: { ...this.hand[idx].cost, sacrifice: Math.max(0, original - (mod.value || 1)) } };
-          }
-        } else if (mod.type === 'free_transformation') {
-          const idx = this.hand.findIndex(c => c.summon_type === 'transformation');
-          if (idx !== -1) this.hand[idx] = { ...this.hand[idx], _free_transformation: true };
-        } else if (mod.type === 'remove_heritage_material') {
-          const idx = this.hand.findIndex(c => c.summon_type === 'heritage' && (c.cost?.materials?.length ?? 0) > 0);
-          if (idx !== -1) this.hand[idx] = { ...this.hand[idx], cost: { ...this.hand[idx].cost, materials: [] } };
-        } else if (mod.type === 'remove_fusion_material') {
-          // Jumeau de remove_heritage_material, mais la fusion ne perd QU'UNE
-          // partie de ses matériels : on retire les derniers de la liste, et
-          // `_removed_materials` garde la trace pour le tooltip (même rôle
-          // qu'`_original_sacrifice`). Une fusion à un seul matériel tombe à
-          // zéro : elle s'invoque alors comme une normale, ce qui est bien
-          // l'effet voulu.
-          const idx = this.hand.findIndex(c => c.summon_type === 'fusion' && (c.cost?.materials?.length ?? 0) > 0);
-          if (idx !== -1) {
-            const materials = this.hand[idx].cost?.materials ?? [];
-            const removed = Math.min(materials.length, Math.max(1, mod.value || 1));
-            this.hand[idx] = {
-              ...this.hand[idx],
-              _removed_materials: (this.hand[idx]._removed_materials ?? 0) + removed,
-              cost: { ...this.hand[idx].cost, materials: materials.slice(0, materials.length - removed) },
-            };
-          }
-        }
+        const amount = Math.max(1, mod.value || 1);
+        // ⚠️ L'attribut est un filtre FACULTATIF, et il vaut pour les deux
+        // gestes : c'est lui qui rend « -1 matériel de Fusion » exprimable
+        // maintenant qu'il n'y a plus de voie à nommer. Absent, la remise tombe
+        // sur la première carte retouchable, comme avant.
+        const idx = this.hand.findIndex(c =>
+          (!mod.attribute || (c.attributes ?? []).includes(mod.attribute))
+          && summonConditions(c).some(
+            cd => mod.type === 'reduce_materials'
+              ? conditionMaterials(cd) > 0
+              : conditionRequires(cd).length > 0));
+        if (idx === -1) continue;
+        this.hand[idx] = _discountCard(this.hand[idx], mod.type, amount);
       }
     }
 
@@ -457,39 +501,45 @@ export class GameSession {
     return isPlayable(card as any, this.board, this.graveyard, this.gameState.player_board_slots);
   }
 
-  needsMaterials(card: Card): boolean {
-    return needsMaterials(card as any, this.board, this.graveyard);
+  needsMaterials(card: Card, conditionIndex: number | null = null): boolean {
+    return needsMaterials(card as any, conditionIndex);
   }
 
-  materialsComplete(card: Card, mats: Unit[]): boolean {
-    return materialsComplete(card as any, mats);
+  materialsComplete(card: Card, mats: Unit[], conditionIndex: number | null = null): boolean {
+    return materialsComplete(card as any, mats, conditionIndex, this.board);
   }
 
-  summonOptionsStatus(card: Card) {
-    return summonOptionsStatus(card as any, this.board, this.graveyard, this.gameState.player_board_slots);
+  summonConditionsStatus(card: Card) {
+    return summonConditionsStatus(card as any, this.board, this.graveyard, this.gameState.player_board_slots);
   }
 
-  validCells(card: Card, selectedMaterials: Unit[]): Position[] {
+  /**
+   * La sélection que l'UI peut poser d'office quand la condition n'admet qu'une
+   * seule lecture — ce qui préserve le geste en UN TAP de l'ancienne
+   * Transformation, où taper le monstre à remplacer suffisait.
+   */
+  forcedMaterials(card: Card, conditionIndex: number | null = null): Unit[] {
+    return forcedMaterials(card as any, this.board, this.graveyard, conditionIndex);
+  }
+
+  validCells(card: Card, selectedMaterials: Unit[], conditionIndex: number | null = null): Position[] {
     return validCells(card as any, {
-      board: this.board, hand: this.hand, graveyard: this.graveyard,
+      board: this.board, graveyard: this.graveyard,
       selectedMaterials, playerBoardSlots: this.gameState.player_board_slots,
+      conditionIndex,
     });
   }
 
-  materialCandidateCells(card: Card, selectedMaterials: Unit[]): Position[] {
-    return materialCandidateCells(card as any, selectedMaterials, this.board);
+  materialCandidateCells(card: Card, selectedMaterials: Unit[], conditionIndex: number | null = null): Position[] {
+    return materialCandidateCells(card as any, selectedMaterials, this.board, conditionIndex);
   }
 
-  transformTargetCells(card: Card): Position[] {
-    return transformTargetCells(card as any, this.board);
+  materialCandidateGraveyard(card: Card, selectedMaterials: Unit[], conditionIndex: number | null = null): Unit[] {
+    return materialCandidateGraveyard(card as any, selectedMaterials, this.graveyard, this.board, conditionIndex);
   }
 
-  materialCandidateGraveyard(card: Card, selectedMaterials: Unit[]): Unit[] {
-    return materialCandidateGraveyard(card as any, selectedMaterials, this.graveyard, this.board);
-  }
-
-  canSummon(card: Card, pos: Position, selectedMaterials: Unit[]) {
-    return InvocationManager.canSummon(card as any, pos, this.board, this.hand, this.graveyard, selectedMaterials);
+  canSummon(card: Card, pos: Position, selectedMaterials: Unit[], conditionIndex: number | null = null) {
+    return InvocationManager.canSummon(card as any, pos, this.board, this.hand, this.graveyard, selectedMaterials, conditionIndex);
   }
 
   exceedsBoardSlots(card: Card, selectedMaterials: Unit[]): boolean {
@@ -497,8 +547,8 @@ export class GameSession {
   }
 
   /** Exécute l'invocation (validée en amont). Retourne l'unité placée ou null. */
-  place(card: Card, pos: Position, selectedMaterials: Unit[], handIdx: number | null): Unit | null {
-    const unit = InvocationManager.summon(card as any, pos, this.board, this.hand, selectedMaterials.length > 0 ? selectedMaterials : null, handIdx);
+  place(card: Card, pos: Position, selectedMaterials: Unit[], handIdx: number | null, conditionIndex: number | null = null): Unit | null {
+    const unit = InvocationManager.summon(card as any, pos, this.board, this.hand, selectedMaterials.length > 0 ? selectedMaterials : null, handIdx, conditionIndex);
     // Retire les unités de cimetière consommées
     for (const u of selectedMaterials) {
       const gi = this.graveyard.indexOf(u);
@@ -743,7 +793,7 @@ export class GameSession {
       boardTiers: _tiers(this._duplicableUnits().map(u => this.deps.cardDb.getCard(u.card_id)!)),
       materialSourceCount: this.hand.filter(c => this._drawableMaterialIds(c).length > 0).length,
       deckTiers: [...new Set(deck.map(c => c.tier).filter((t): t is number => typeof t === 'number'))],
-      deckSummonTypes: [...new Set(deck.map(c => c.summon_type).filter((t): t is NonNullable<typeof t> => typeof t === 'string'))],
+      deckAttributes: [...new Set(deck.flatMap(c => c.attributes ?? []))],
       // ⚠️ FAUX en PvP, et ce n'est pas une restriction arbitraire : `enemy_hp`
       // y est RÉÉCRIT à chaque round depuis le `player_hp` autoritaire de
       // l'adversaire (`PvpController._onRoundGo`), qui a calculé ses propres
@@ -752,15 +802,17 @@ export class GameSession {
       // c'est-à-dire un `result_mismatch` qui prive les DEUX joueurs de leur
       // gain. Une magie qui ne peut que nuire n'est pas offerte.
       damageMultiplierMatters: this.deps.mode !== 'pvp',
-      // ⚠️ Le DECK et non la main : les quatre modificateurs sont différés au
+      // ⚠️ Le DECK et non la main : les modificateurs sont différés au
       // `startPreparation()` suivant, donc appliqués après une pioche neuve.
       // Chaque prédicat est LE MÊME que celui que `startPreparation` appliquera
-      // — le `summon_type` seul ne suffit pas, une fusion sans matériaux ou un
-      // sacrifice à coût nul ne seraient jamais retouchés.
-      deckHasSacrificeCost:    deck.some(c => c.summon_type === 'sacrifice' && (c.cost?.sacrifice ?? 0) > 0),
-      deckHasTransformation:   deck.some(c => c.summon_type === 'transformation'),
-      deckHasHeritageMaterial: deck.some(c => c.summon_type === 'heritage' && (c.cost?.materials?.length ?? 0) > 0),
-      deckHasFusionMaterial:   deck.some(c => c.summon_type === 'fusion' && (c.cost?.materials?.length ?? 0) > 0),
+      // — une condition à coût nul n'est jamais retouchée par une remise.
+      // ⚠️ Le booléen et la liste ne disent PAS la même chose, et la liste ne
+      // peut pas remplacer le booléen : une carte retouchable qui ne porte
+      // aucun attribut rend le premier vrai et n'ajoute rien à la seconde.
+      deckHasMaterialCost:     deck.some(_retouchable('reduce_materials')),
+      deckHasNamedRequirement: deck.some(_retouchable('remove_requirements')),
+      deckMaterialCostAttributes:     _attributesOf(deck.filter(_retouchable('reduce_materials'))),
+      deckNamedRequirementAttributes: _attributesOf(deck.filter(_retouchable('remove_requirements'))),
       boardSlotBonusAvailable: this.gameState.hasLimitedBoardSlotBonusLeft(),
       playerHpBelowCap:        this.gameState.player_hp < PLAYER_HP_CAP,
     };
@@ -771,15 +823,16 @@ export class GameSession {
   magieNeedsHandTarget(magie: Magie): boolean { return needsHandTarget(magie as any); }
 
   /**
-   * Unités du board joueur qu'une magie `defuse_fusion` peut séparer : des
-   * fusions, et seulement celles qui ont des matériaux à rendre. Extrait pour
-   * que la règle n'existe qu'à UN endroit — `magieUnitTargets` la sert au
-   * ciblage, `_offerContext` à la pertinence de l'offre.
+   * Unités du board joueur qu'une magie `defuse_fusion` peut séparer : celles
+   * dont une condition NOMME des matériels, seules à savoir quoi rendre. Un
+   * simple coût chiffré ne dit pas quelles cartes rendre — il n'y a rien à
+   * défusionner. Extrait pour que la règle n'existe qu'à UN endroit :
+   * `magieUnitTargets` la sert au ciblage, `_offerContext` à la pertinence.
    */
   private _defusableFusions(): Unit[] {
     return this.getPlayerUnits().filter(u => {
       const c = this.deps.cardDb.getCard(u.card_id);
-      return c?.summon_type === 'fusion' && (c.cost?.materials?.length ?? 0) > 0;
+      return !!c && summonConditions(c).some(cd => conditionRequires(cd).length > 0);
     });
   }
 
@@ -907,7 +960,8 @@ export class GameSession {
    * `duplicate_unit`, qui ne se contente pas de `boardUnitCount`.
    */
   private _drawableMaterialIds(card: Card): string[] {
-    return [...new Set(card.cost?.materials ?? [])].filter(id => this._materialBearers(id).length > 0);
+    const named = summonConditions(card).flatMap(cd => conditionRequires(cd));
+    return [...new Set(named)].filter(id => this._materialBearers(id).length > 0);
   }
 
   /** Les cartes qui peuvent tenir lieu de ce matériel : la carte nommée, ou —
@@ -1178,7 +1232,10 @@ export class GameSession {
 
   private _defuseFusion(fusionUnit: Unit): void {
     const fusionCard = this.deps.cardDb.getCard(fusionUnit.card_id);
-    const materials = fusionCard?.cost?.materials ?? [];
+    // Les matériels NOMMÉS, toutes conditions confondues : ce sont les seuls
+    // qu'on sache rendre. Un coût purement chiffré ne désigne aucune carte —
+    // `_defusableFusions` écarte déjà ces unités du ciblage.
+    const materials = [...new Set(summonConditions(fusionCard!).flatMap(cd => conditionRequires(cd)))];
     this.board.removeUnit(fusionUnit);
     for (const matId of materials) {
       const matCard = this.deps.cardDb.getCard(matId);

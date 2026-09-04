@@ -17,13 +17,12 @@
 import type { GameSession } from '../logic/GameSession.js';
 import type { Card, Position } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
+import { summonCost } from '../logic/InvocationManager.js';
 
-/** Ordre d'essai des voies d'invocation, repris de `EnemyAI._summonPriority` :
- *  les normales d'abord, parce qu'une fois posées elles deviennent les
- *  matériaux des suivantes. */
-const SUMMON_ORDER: Record<string, number> = {
-  normal: 0, transformation: 1, fusion: 2, heritage: 3, sacrifice: 4,
-};
+/** Ordre d'essai des cartes, repris de `EnemyAI._summonPriority` : les moins
+ *  chères d'abord, parce qu'une fois posées elles deviennent les matériaux des
+ *  suivantes — et une carte sans condition ne coûte rien. */
+const summonOrder = (card: Card): number => summonCost(card);
 
 /** Colonnes du centre vers les bords — mêmes que `EnemyAI.rearrangeUnits`. */
 const COLS = [2, 1, 3, 0, 4];
@@ -37,15 +36,16 @@ function materialCost(u: Unit): number {
   return (u.atk ?? 0) * 20 + (u.current_hp ?? 0);
 }
 
-/** Les voies d'invocation à essayer pour une carte, dans l'ordre. Une carte à
- *  `summon_options` est développée en cartes « résolues » — même geste que
- *  `EnemyAI._tryPlace`, qui construit un variant et supprime `summon_options`
- *  pour ne pas rentrer deux fois dans la branche. */
-function variantsOf(card: Card): Card[] {
-  if (!card.summon_options?.length) return [card];
-  return [...card.summon_options]
-    .map(opt => ({ ...card, summon_type: opt.summon_type, cost: opt.cost, summon_options: undefined }) as Card)
-    .sort((a, b) => (SUMMON_ORDER[a.summon_type] ?? 5) - (SUMMON_ORDER[b.summon_type] ?? 5));
+/** Les conditions à essayer pour une carte, dans l'ordre — la moins chère
+ *  d'abord. Rend des INDEX et non des cartes reconstruites : la carte n'a plus
+ *  à être aplatie, toute l'API de `GameSession` prend un `conditionIndex`. */
+function conditionOrder(card: Card): (number | null)[] {
+  const conditions = card.summon_conditions ?? [];
+  if (conditions.length === 0) return [null];
+  return conditions
+    .map((c, index) => ({ cost: Math.max(0, c.materials ?? 0), index }))
+    .sort((a, b) => a.cost - b.cost)
+    .map(e => e.index);
 }
 
 /**
@@ -56,13 +56,13 @@ function variantsOf(card: Card): Card[] {
  * Le cimetière est servi EN PREMIER : ses unités sont déjà hors jeu, les
  * consommer ne coûte aucune unité vivante.
  */
-function selectMaterials(session: GameSession, card: Card): Unit[] | null {
-  if (!session.needsMaterials(card)) return [];
+function selectMaterials(session: GameSession, card: Card, conditionIndex: number | null): Unit[] | null {
+  if (!session.needsMaterials(card, conditionIndex)) return [];
   const mats: Unit[] = [];
   for (let guard = 0; guard < 12; guard++) {
-    if (session.materialsComplete(card, mats)) return mats;
-    const fromGrave = session.materialCandidateGraveyard(card, mats);
-    const fromBoard = session.materialCandidateCells(card, mats)
+    if (session.materialsComplete(card, mats, conditionIndex)) return mats;
+    const fromGrave = session.materialCandidateGraveyard(card, mats, conditionIndex);
+    const fromBoard = session.materialCandidateCells(card, mats, conditionIndex)
       .map((p: Position) => session.board.getUnit(p))
       .filter((u): u is Unit => !!u);
     const pool = fromGrave.length > 0 ? fromGrave : fromBoard;
@@ -72,7 +72,7 @@ function selectMaterials(session: GameSession, card: Card): Unit[] | null {
     pool.sort((a, b) => materialCost(a) - materialCost(b) || a.uid - b.uid);
     mats.push(pool[0]);
   }
-  return session.materialsComplete(card, mats) ? mats : null;
+  return session.materialsComplete(card, mats, conditionIndex) ? mats : null;
 }
 
 /** La meilleure case parmi celles autorisées : mêlée devant, distance derrière,
@@ -106,19 +106,17 @@ export function playPreparation(session: GameSession): Unit[] {
   for (let sweep = 0; sweep < 40; sweep++) {
     const entries = session.hand
       .map((card, idx) => ({ card, idx }))
-      .sort((a, b) =>
-        (SUMMON_ORDER[a.card.summon_type] ?? 5) - (SUMMON_ORDER[b.card.summon_type] ?? 5) ||
-        a.idx - b.idx);
+      .sort((a, b) => summonOrder(a.card) - summonOrder(b.card) || a.idx - b.idx);
 
     let progressed = false;
     for (const { card, idx } of entries) {
-      for (const variant of variantsOf(card)) {
-        if (!session.isPlayable(variant)) continue;
-        const mats = selectMaterials(session, variant);
+      if (!session.isPlayable(card)) continue;
+      for (const conditionIndex of conditionOrder(card)) {
+        const mats = selectMaterials(session, card, conditionIndex);
         if (mats === null) continue;
-        const cells = session.validCells(variant, mats);
+        const cells = session.validCells(card, mats, conditionIndex);
         if (cells.length === 0) continue;
-        const unit = session.place(variant, bestCell(cells, variant), mats, idx);
+        const unit = session.place(card, bestCell(cells, card), mats, idx, conditionIndex);
         if (unit) { placed.push(unit); progressed = true; break; }
       }
       if (progressed) break;

@@ -20,6 +20,8 @@ import {
 } from '../data/tutorialScript.js';
 import { buildTutorialDecks } from '../game/tutorialDeck.js';
 import type { Card } from '../logic/types.js';
+import { summonCost } from '../logic/InvocationManager.js';
+import { summonRecipes } from '../data/SummonInfo.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const CARDS = JSON.parse(fs.readFileSync(path.join(ROOT, 'initial-data', 'cards.json'), 'utf8')) as Card[];
@@ -67,14 +69,67 @@ describe('codex du tutoriel', () => {
     }
   });
 
-  it('illustre les cinq types d\'invocation dans le chapitre qui les enseigne', () => {
+  // ⚠️ Le chapitre ne cite plus « une carte de chaque voie » — il n'y a plus de
+  // voies. Ce qu'il enseigne désormais, ce sont les FORMES qu'une recette peut
+  // prendre, et chacune doit avoir son exemple : un chapitre qui illustrerait
+  // trois fois la même forme n'apprendrait qu'un tiers de la règle.
+  //
+  // ⚠️ L'assertion porte sur CHAQUE bloc, dans l'ordre, et jamais sur l'union
+  // des cartes montrées : une carte à plusieurs recettes en porte souvent
+  // plusieurs formes à elle seule, si bien qu'un `some` global reste vert alors
+  // que deux légendes montrent la même carte. C'est la légende qui enseigne, et
+  // elle n'est juste que si SA carte porte la forme qu'elle annonce.
+  //
+  // Mutation : faire pointer deux légendes sur le même sélecteur → ROUGE.
+  it('illustre chaque forme de recette dans le chapitre qui les enseigne', () => {
+    /** Les formes que le chapitre enseigne, dans l'ordre de ses blocs. */
+    const SHAPES: [string, (c: Card) => boolean][] = [
+      ['aucune recette', c => summonCost(c) === 0],
+      // ⚠️ `materials > 1`, et pas `> 0` : à un seul matériel la recette impose
+      // en plus la case, ce que le bloc suivant enseigne — les deux légendes
+      // tomberaient sur la même carte, et l'une des deux n'apprendrait rien.
+      ['coût nu, sans exigence nommée', c => summonRecipes(c).some(r => r.materials > 1 && r.requires.length === 0)],
+      ['« Matériels » — tous les slots nommés', c => summonRecipes(c).some(r => r.materials > 1 && r.requires.length === r.materials)],
+      ['« dont » — une partie nommée seulement', c => summonRecipes(c).some(r => r.requires.length > 0 && r.requires.length < r.materials)],
+      ['un seul matériel — la case est imposée', c => summonRecipes(c).some(r => r.materials === 1)],
+      ['plusieurs recettes', c => summonRecipes(c).length > 1],
+    ];
+
     const chapter = CHAPTERS.find(c => c.id === 'summoning')!;
-    const types = chapter.blocks
-      .filter(b => b.kind === 'cards')
-      .flatMap(b => (b as { pick: (c: Card[]) => Card[] }).pick(CARDS))
-      .map(c => c.summon_type ?? 'normal');
-    for (const t of ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation']) {
-      expect(types, t).toContain(t);
+    const blocks = chapter.blocks.filter(b => b.kind === 'cards') as { caption?: string; pick: (c: Card[]) => Card[] }[];
+    expect(blocks).toHaveLength(SHAPES.length);
+
+    const shown: Card[] = [];
+    blocks.forEach((block, i) => {
+      const [label, holds] = SHAPES[i];
+      const picked = block.pick(CARDS);
+      expect(picked.length, label).toBeGreaterThan(0);
+      for (const card of picked) {
+        expect(holds(card), `${label} → ${card.id} (${card.name})`).toBe(true);
+        shown.push(card);
+      }
+    });
+
+    // Une carte montrée deux fois sous deux légendes différentes n'enseigne la
+    // seconde à personne.
+    expect(new Set(shown.map(c => c.id)).size).toBe(shown.length);
+  });
+
+  // Le chapitre a perdu son vocabulaire de voies en même temps que le moteur.
+  // Le laisser traîner dans une légende ou une note ferait enseigner au joueur
+  // une notion que plus aucun écran ne lui montrera.
+  it('ne nomme plus aucune des cinq voies historiques', () => {
+    const VOIES = /\b(sacrifice|fusion|héritage|heritage|transformation)s?\b/i;
+    for (const chapter of CHAPTERS) {
+      for (const block of chapter.blocks) {
+        const texts = [
+          'text' in block ? block.text : null,
+          'caption' in block ? block.caption : null,
+          ...('items' in block ? block.items : []),
+          ...('rows' in block ? block.rows.flat() : []),
+        ].filter((t): t is string => !!t);
+        for (const t of texts) expect(VOIES.test(t), `${chapter.id} · ${t}`).toBe(false);
+      }
     }
   });
 });
@@ -93,7 +148,7 @@ describe('deck de la partie d\'entraînement', () => {
     const byId = new Map(CARDS.map(c => [c.id, c]));
     const tier1 = player['1'].map(id => byId.get(id)!);
     expect(tier1.length).toBeGreaterThan(0);
-    expect(tier1.every(c => (c.summon_type ?? 'normal') === 'normal')).toBe(true);
+    expect(tier1.every(c => summonCost(c) === 0)).toBe(true);
   });
 
   it('remplit les cinq tiers des deux côtés, sans doublon', () => {
@@ -118,8 +173,9 @@ describe('deck de la partie d\'entraînement', () => {
       for (let t = 1; t <= 5; t++) {
         for (const id of deck[String(t)]) {
           const card = byId.get(id)!;
-          const costs = card.summon_options?.length ? card.summon_options.map(o => o.cost) : [card.cost];
-          const ok = costs.some(cost => (cost?.materials ?? []).every(m => ids.has(m) || attrs.has(m)));
+          const conditions = card.summon_conditions ?? [];
+          const ok = conditions.length === 0
+            || conditions.some(cd => (cd.requires ?? []).every(m => ids.has(m) || attrs.has(m)));
           expect(ok, `${card.name} (${id}) exige des matériaux absents du deck`).toBe(true);
         }
         // La couverture ne s'ouvre qu'après le tier : une carte ne peut pas être

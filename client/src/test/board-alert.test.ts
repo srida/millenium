@@ -28,7 +28,7 @@ import type { BoardDef } from '../logic/types.js';
 vi.mock('../data/AuthClient.js', () => ({
   me: vi.fn(), getUser: () => null, isLoggedIn: () => false, isReady: () => true,
   logout: vi.fn(), claimReward: vi.fn(), pullDecks: vi.fn(), pushDecks: vi.fn(),
-  sendMissionEvents: vi.fn(),
+  sendMissionEvents: vi.fn()
 }));
 
 const { GameController, terrainAlertFor } = await import('../game/GameController.js');
@@ -43,9 +43,9 @@ function terrain(id: string, effect: any): BoardDef {
 /** Session dont les deux camps portent des attributs connus. */
 function makeController(opts: { board?: BoardDef | null; playerAttrs?: string[][]; enemyAttrs?: string[][] } = {}) {
   const playerCards = (opts.playerAttrs ?? [['ARCH_003']]).map((attributes, i) =>
-    makeCard({ id: `P${i}`, summon_type: 'normal', attributes }));
+    makeCard({ id: `P${i}`, summon_conditions: [], attributes }));
   const enemyCards = (opts.enemyAttrs ?? []).map((attributes, i) =>
-    makeCard({ id: `E${i}`, summon_type: 'normal', attributes }));
+    makeCard({ id: `E${i}`, summon_conditions: [], attributes }));
   const byId = new Map([...playerCards, ...enemyCards].map(c => [c.id, c]));
   const deps: GameSessionDeps = {
     cardsByTier: { 1: playerCards as any },
@@ -53,8 +53,7 @@ function makeController(opts: { board?: BoardDef | null; playerAttrs?: string[][
     attributeList: [],
     cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
     getAllBoards: () => (opts.board ? [opts.board] : []),
-    getAllMagies: () => [],
-  };
+    getAllMagies: () => [] };
   const session = new GameSession(deps);
   const controller = new (GameController as any)(session);
   return { session, controller };
@@ -77,7 +76,7 @@ describe('Annonce de terrain — ce qui est dit', () => {
   // Mutation : compter sur `target_attributes` au lieu de `effectTargets` → ROUGE.
   it('le décompte annoncé est exactement ce que l\'effet a boosté', () => {
     const units = [
-      { attributes: ['ARCH_003'] }, { attributes: ['ARCH_003'] }, { attributes: ['ARCH_001'] },
+      { attributes: ['ARCH_003'] }, { attributes: ['ARCH_003'] }, { attributes: ['ARCH_001'] }
     ] as any[];
     const enemies = [{ attributes: ['ARCH_003'] }] as any[];
     const effect = { type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: ['ARCH_003'] };
@@ -100,7 +99,7 @@ describe('Annonce de terrain — ce qui est dit', () => {
     const alert = terrainAlertFor(
       terrain('B', { type: 'stat_bonus', stat: 'atk', value: 5, target_attributes: [] }),
       [{ attributes: [] }, { attributes: ['X'] }] as any,
-      [{ attributes: [] }] as any,
+      [{ attributes: [] }] as any
     )!;
     expect(alert.boosted).toEqual({ player: 2, enemy: 1 });
   });
@@ -109,7 +108,7 @@ describe('Annonce de terrain — ce qui est dit', () => {
   it('draw_bonus n\'annonce AUCUN décompte — il ne vise pas les unités', () => {
     const alert = terrainAlertFor(
       terrain('B', { type: 'draw_bonus', value: 1, target_attributes: ['ARCH_003'] }),
-      [{ attributes: ['ARCH_003'] }] as any, [] as any,
+      [{ attributes: ['ARCH_003'] }] as any, [] as any
     )!;
     expect(alert.boosted).toBeNull();
     expect(alert.board.id).toBe('B');
@@ -124,9 +123,8 @@ describe('Annonce de terrain — ce qui est dit', () => {
       id: 'B', name: 'B',
       effects: [
         { type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: ['ARCH_003'] },
-        { type: 'shield', value: 20, target_attributes: ['ARCH_003', 'ARCH_021'] },
-      ],
-    } as any as BoardDef;
+        { type: 'shield', value: 20, target_attributes: ['ARCH_003', 'ARCH_021'] }
+      ] } as any as BoardDef;
     const units = [{ attributes: ['ARCH_003'] }, { attributes: ['ARCH_021'] }, { attributes: ['ARCH_099'] }] as any[];
 
     expect(terrainAlertFor(board, units, [])!.boosted).toEqual({ player: 2, enemy: 0 });
@@ -138,14 +136,14 @@ describe('Annonce de terrain — ce qui est dit', () => {
     expect(terrainAlertFor(board, [{ attributes: [] }] as any, [])!.boosted).toEqual({ player: 1, enemy: 0 });
   });
 
-  // Le décompte suit le ciblage par VOIE d'invocation comme celui par
-  // archétype : c'est `effectTargets` qui tranche, des deux côtés.
-  it('le décompte suit aussi le ciblage par voie d\'invocation', () => {
+  // Le décompte suit le ciblage par ATTRIBUT D'INVOCATION comme n'importe quel
+  // autre archétype : c'est `effectTargets` qui tranche, des deux côtés. Il n'y
+  // a plus de second ciblage à tenir d'accord avec le premier.
+  it('le décompte suit le ciblage par attribut d\'invocation', () => {
     const board = {
       id: 'B', name: 'B',
-      effects: [{ type: 'stat_bonus', stat: 'atk', value: 10, target_summon_types: ['fusion'] }],
-    } as any as BoardDef;
-    const units = [{ attributes: [], summon_key: 'fusion' }, { attributes: [], summon_key: 'normal' }] as any[];
+      effects: [{ type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: ['ARCH_086'] }] } as any as BoardDef;
+    const units = [{ attributes: ['ARCH_086'] }, { attributes: ['ARCH_090'] }] as any[];
 
     expect(terrainAlertFor(board, units, [])!.boosted).toEqual({ player: 1, enemy: 0 });
   });

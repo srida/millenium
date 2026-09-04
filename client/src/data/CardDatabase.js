@@ -32,17 +32,7 @@ export function getAllCards() {
 }
 
 
-// Décrit la pastille de coût d'invocation d'une carte — description
-// STRUCTURÉE, pas un rendu : ce module n'importe pas React, c'est CardTile.tsx
-// qui décide de l'icône réelle (image admin ou emoji de repli) à partir d'elle.
-export function costHint(card) {
-  if (Array.isArray(card.summon_options) && card.summon_options.length > 0) return { kind: 'multi' };
-  if (card.summon_type === 'sacrifice') {
-    const n = card.cost?.sacrifice ?? 0;
-    return n > 0 ? { kind: 'type', type: 'sacrifice', count: n } : null;
-  }
-  if (['fusion', 'heritage', 'transformation'].includes(card.summon_type)) {
-    return { kind: 'type', type: card.summon_type };
-  }
-  return null;
-}
+// ⚠️ `costHint` a disparu : elle décrivait une pastille PAR VOIE d'invocation,
+// une notion que le moteur n'a plus. Le coût d'une carte est un nombre, et il
+// se lit en un seul endroit — `data/SummonInfo.summonCostOf`, qui délègue à
+// `InvocationManager.summonCost`.

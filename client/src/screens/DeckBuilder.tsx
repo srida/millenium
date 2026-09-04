@@ -10,6 +10,7 @@ import * as DeckRepository from '../data/DeckRepository.js';
 import { illustrationUrl } from '../data/CardArt.js';
 import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import { computeDeckTags } from '../data/DeckTags.js';
+import { summonCostOf } from '../data/SummonInfo.js';
 import type { Card } from '../logic/types.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
@@ -26,9 +27,19 @@ import { updateProgress } from '../data/tutorialProgress.js';
 const MIN_DECK = 20;
 /** Édition admin d'un deck public : aucun joueur, donc aucune variante. */
 const noVariants = () => [];
-const SUMMON_LABELS: Record<string, string> = {
-  normal: 'Normale', sacrifice: 'Sacrifice', fusion: 'Fusion', heritage: 'Héritage', transformation: 'Transfo.',
-};
+// Le filtre d'invocation porte sur le COÛT, plus sur une voie : les cinq voies
+// sont devenues des attributs, et le `<select>` d'attributs juste au-dessus les
+// propose déjà. Ce qu'on ne pouvait PAS demander avant et qu'on peut
+// maintenant : « ce que je peux poser sans rien payer », ou « ce qui coûte
+// deux matériels », quel que soit l'archétype.
+const COST_FILTERS: { key: number; label: string }[] = [
+  { key: 0, label: 'Sans coût' },
+  { key: 1, label: '1 matériel' },
+  { key: 2, label: '2 matériels' },
+  { key: 3, label: '3+ matériels' },
+];
+/** Le seau de coût d'une carte : au-delà de 3, tout tombe dans le dernier. */
+const costBucket = (card: Card) => Math.min(3, summonCostOf(card));
 const DECK_COLORS = [
   '#d8564e', '#e4c65a', '#7cd88a', '#2f7d4f', '#6fc0e6', '#2f5bd8', '#e08a3a', '#a86ee7', '#e58ab8',
   '#f5f0e6', '#d9c7a3', '#9a9a9a', '#8b5a2b',
@@ -133,7 +144,7 @@ export default function DeckBuilder() {
   const [skinning, setSkinning] = useState<Card | null>(null);
   const [tab, setTab] = useState<'lib' | 'deck'>('lib');
   const [tierFilters, setTierFilters] = useState<number[]>([]);
-  const [summonFilters, setSummonFilters] = useState<string[]>([]);
+  const [costFilters, setCostFilters] = useState<number[]>([]);
   const [attributeFilter, setAttributeFilter] = useState('');
   const [search, setSearch] = useState('');
   const allAttributes = useMemo(() => (AttributeDatabase as any).getAllAttributes()
@@ -202,7 +213,7 @@ export default function DeckBuilder() {
   const filtered = allCards.filter(c => {
     if (!showLocked && !owns(c.id)) return false;
     if (tierFilters.length && !tierFilters.includes(c.tier)) return false;
-    if (summonFilters.length && !summonFilters.includes((c as any).summon_type ?? 'normal')) return false;
+    if (costFilters.length && !costFilters.includes(costBucket(c))) return false;
     if (attributeFilter && !(c.attributes ?? []).includes(attributeFilter)) return false;
     if (search.trim() && !c.name.toLowerCase().includes(search.trim().toLowerCase())) return false;
     return true;
@@ -331,7 +342,7 @@ export default function DeckBuilder() {
           showLocked={showLocked} setShowLocked={setShowLocked}
           search={search} setSearch={setSearch}
           tierFilters={tierFilters} setTierFilters={setTierFilters}
-          summonFilters={summonFilters} setSummonFilters={setSummonFilters}
+          costFilters={costFilters} setCostFilters={setCostFilters}
           attributeFilter={attributeFilter} setAttributeFilter={setAttributeFilter} allAttributes={allAttributes}
           onAdd={addCard} onRemove={removeCardById}
         />
@@ -410,7 +421,7 @@ function Chip({ active, onTap, children }: { active: boolean; onTap: () => void;
 
 function LibraryPanel({
   cards, total, ownedCount, deckData, tierMax, owns, showLocked, setShowLocked, search, setSearch,
-  tierFilters, setTierFilters, summonFilters, setSummonFilters,
+  tierFilters, setTierFilters, costFilters, setCostFilters,
   attributeFilter, setAttributeFilter, allAttributes, onAdd, onRemove,
 }: any) {
   return (
@@ -439,9 +450,9 @@ function LibraryPanel({
           ))}
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {Object.entries(SUMMON_LABELS).map(([k, label]) => (
-            <Chip key={k} active={summonFilters.includes(k)}
-              onTap={() => setSummonFilters((f: string[]) => f.includes(k) ? f.filter(x => x !== k) : [...f, k])}>
+          {COST_FILTERS.map(({ key, label }) => (
+            <Chip key={key} active={costFilters.includes(key)}
+              onTap={() => setCostFilters((f: number[]) => f.includes(key) ? f.filter(x => x !== key) : [...f, key])}>
               {label}
             </Chip>
           ))}

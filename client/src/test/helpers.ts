@@ -11,12 +11,13 @@ export interface CardFixture {
   id: string;
   name: string;
   tier: number;
-  summon_type: string;
   attributes: string[];
   represented_ids?: string[];
   power?: { id: string; power_speed: number; value?: number | null } | null;
-  cost?: { sacrifice?: number; materials?: string[] };
-  summon_options?: { summon_type: string; cost?: { sacrifice?: number; materials?: string[] } }[];
+  /** Les voies d'invocation. Absent = aucune condition (l'ancienne « normale »). */
+  summon_conditions?: { materials: number; requires?: string[] }[];
+  /** Ce que la carte vaut comme matériau. Absent = 1. */
+  material_value?: number;
   stats: {
     atk: number; hp: number; movement_speed: number;
     attack_speed: number; initiative: number; range: number;
@@ -31,7 +32,6 @@ export function makeCard(overrides: Partial<CardFixture> & { id?: string } = {})
     id: overrides.id ?? `FIX_${String(++cardSeq).padStart(3, '0')}`,
     name: overrides.name ?? overrides.id ?? 'Fixture',
     tier: 1,
-    summon_type: 'normal',
     attributes: [],
     power: null,
     ...rest,

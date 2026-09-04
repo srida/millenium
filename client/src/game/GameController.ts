@@ -7,10 +7,9 @@
 import { GameSession, Phase } from '../logic/GameSession.js';
 import { boardEffects, effectTargets } from '../logic/BoardEffect.js';
 import { boardTargetsUnits } from '../data/BoardInfo.js';
-import { matchesMaterial } from '../logic/InvocationManager.js';
 import { CombatAnimator3D } from '../three/CombatAnimator3D.js';
 import type { Scene3D } from '../three/Scene3D.js';
-import type { Card, DrawSummary, Position, Magie } from '../logic/types.js';
+import type { Card, DrawSummary, Position, Magie, SummonCondition } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
 import { useGameStore, type GameSnapshot, type HandEntry } from '../stores/gameStore.js';
 import { useUiStore, type TooltipAnchor } from '../stores/uiStore.js';
@@ -19,15 +18,15 @@ import * as CardArt from '../data/CardArt.js';
 import { PREP_DURATION_S, COMBAT_DURATION_S, combatSecondsLeft, TERRAIN_ALERT_MS, ROUND_INTRO_MS } from './timings.js';
 import { CombatRecorder } from './CombatRecorder.js';
 
-interface SummonOptionMenu {
+/**
+ * Le menu de choix d'une carte à plusieurs conditions. Il ne porte plus de
+ * LIBELLÉ : une condition se dit par son coût (« 3 matériels, dont X »), que
+ * l'UI compose depuis la donnée. La table des cinq voies vivait ici.
+ */
+interface SummonConditionMenu {
   card: Card;
-  options: { index: number; summon_type: string; label: string; ok: boolean }[];
+  options: { index: number; condition: SummonCondition; ok: boolean }[];
 }
-
-const SUMMON_LABELS: Record<string, string> = {
-  normal: 'Normal', sacrifice: 'Sacrifice', fusion: 'Fusion',
-  heritage: 'Héritage', transformation: 'Transformation',
-};
 
 export class GameController {
   session: GameSession;
@@ -40,11 +39,17 @@ export class GameController {
   protected _recorder: CombatRecorder | null = null;
 
   // État d'interaction (préparation)
-  private selectedCard: Card | null = null;        // carte effective (option résolue)
+  private selectedCard: Card | null = null;        // la carte telle quelle
+  /** La condition retenue quand la carte en a plusieurs ; `null` sinon.
+   *  ⚠️ La carte n'est PLUS aplatie : elle voyage intacte et c'est cet index
+   *  qui dit par quelle voie on la joue. Reconstruire une carte « résolue »
+   *  fabriquait un objet que la main ne contenait pas, et dont la lignée
+   *  d'origine était perdue pour tout ce qui la relisait ensuite. */
+  private selectedConditionIndex: number | null = null;
   private selectedHandIdx: number | null = null;   // index dans session.hand
   private selectedMaterials: Unit[] = [];
   private selectedBoardPos: Position | null = null;
-  private summonOptions: SummonOptionMenu | null = null;
+  private summonOptions: SummonConditionMenu | null = null;
 
   // « Tout annuler » — deux repères indexés sur `session.prepId`, qui change de
   // lui-même à chaque ouverture de tour : aucun des deux n'a donc de remise à
@@ -162,10 +167,12 @@ export class GameController {
     this.selectedBoardPos = null;
     this.scene?.setSelectedPos(null);
 
-    if (card && (card.summon_options?.length ?? 0) > 0) {
-      const statuses = this.session.summonOptionsStatus(card) || [];
+    this.selectedConditionIndex = null;
+
+    if (card) {
+      const statuses = this.session.summonConditionsStatus(card) || [];
       const playable = statuses.filter((s: any) => s.ok);
-      if (playable.length > 1) {
+      if (statuses.length > 0 && playable.length > 1) {
         this.selectedCard = null;
         this.selectedHandIdx = handIdx;
         this.scene?.clearHighlight();
@@ -173,42 +180,48 @@ export class GameController {
         this.summonOptions = {
           card,
           options: statuses.map((s: any) => ({
-            index: s.index, summon_type: s.summon_type,
-            label: SUMMON_LABELS[s.summon_type] ?? s.summon_type, ok: s.ok,
+            index: s.index, condition: s.condition, ok: s.ok,
           })),
         };
         this.sync();
         return;
       }
-      const chosen = playable[0] ?? statuses[0];
-      card = chosen ? this._effectiveCard(card, chosen.index) : card;
+      // Une seule voie jouable (ou aucune) : elle est retenue d'office.
+      if (statuses.length > 0) this.selectedConditionIndex = (playable[0] ?? statuses[0]).index;
     }
 
     this.selectedCard = card;
     this.selectedHandIdx = handIdx;
+    this._preselectForcedMaterials();
     this._applyHighlights();
     this.sync();
   }
 
   chooseSummonOption(index: number): void {
     if (!this.summonOptions) return;
-    const card = this._effectiveCard(this.summonOptions.card, index);
+    const card = this.summonOptions.card;
     this._closeSummonMenu();
     this.selectedCard = card;
+    this.selectedConditionIndex = index;
+    this._preselectForcedMaterials();
     this._applyHighlights();
     this.sync();
+  }
+
+  /**
+   * Pose d'office les matériaux quand la condition n'admet qu'une seule
+   * lecture — ce qui garde le geste en UN TAP : taper le monstre à remplacer
+   * suffisait pour une Transformation, et doit continuer à suffire.
+   */
+  private _preselectForcedMaterials(): void {
+    if (!this.selectedCard) return;
+    const forced = this.session.forcedMaterials(this.selectedCard, this.selectedConditionIndex);
+    if (forced.length > 0) this.selectedMaterials = forced;
   }
 
   cancelSelection(): void {
     this._clearSelection();
     this.sync();
-  }
-
-  private _effectiveCard(card: Card, idx: number): Card {
-    const opt = (card.summon_options as any)[idx];
-    const rest: any = { ...(card as any) };
-    delete rest.summon_options;
-    return { ...rest, summon_type: opt.summon_type, cost: opt.cost };
   }
 
   // ── Interactions board (callbacks Scene3D) ──────────────────────────────
@@ -217,7 +230,8 @@ export class GameController {
     if (this.summonOptions) return;
     useUiStore.getState().hideTooltip();
     if (this.selectedCard) {
-      if (this.session.needsMaterials(this.selectedCard) && !this.session.materialsComplete(this.selectedCard, this.selectedMaterials)) {
+      if (this.session.needsMaterials(this.selectedCard, this.selectedConditionIndex)
+          && !this.session.materialsComplete(this.selectedCard, this.selectedMaterials, this.selectedConditionIndex)) {
         this._flashError("Sélectionne les matériaux d'abord");
         return;
       }
@@ -242,26 +256,32 @@ export class GameController {
     if (unit.side !== 'player') return;
 
     // Mode sélection de matériaux
-    if (this.selectedCard && this.session.needsMaterials(this.selectedCard)) {
+    if (this.selectedCard && this.session.needsMaterials(this.selectedCard, this.selectedConditionIndex)) {
+      const card = this.selectedCard;
+      const condIdx = this.selectedConditionIndex;
       const idx = this.selectedMaterials.indexOf(unit);
       if (idx !== -1) {
         this.selectedMaterials.splice(idx, 1);
       } else {
-        const candidates = this.session.materialCandidateCells(this.selectedCard, this.selectedMaterials);
-        if (candidates.some(p => p.col === pos.col && p.row === pos.row)) this.selectedMaterials.push(unit);
+        const candidates = this.session.materialCandidateCells(card, this.selectedMaterials, condIdx);
+        if (candidates.some(p => p.col === pos.col && p.row === pos.row)) {
+          // ⚠️ Le tap qui COMPLÈTE la sélection pose directement, sans second
+          // geste : sur une condition à un matériel, la case du matériel EST
+          // celle du résultat, il n'y a donc rien à désigner ensuite. C'était le
+          // geste écrit en dur pour la Transformation ; il vaut maintenant pour
+          // toute condition qui se solde d'une seule unité.
+          const mats = [...this.selectedMaterials, unit];
+          if (this.session.materialsComplete(card, mats, condIdx)
+              && this.session.canSummon(card, pos, mats, condIdx).ok) {
+            this.selectedMaterials = mats;
+            this._tryPlace(card, pos);
+            return;
+          }
+          this.selectedMaterials.push(unit);
+        }
       }
       this._applyHighlights();
       this.sync();
-      return;
-    }
-
-    // Transformation : taper l'unité cible déclenche l'invocation
-    if (this.selectedCard && this.selectedCard.summon_type === 'transformation' && !this.selectedCard._free_transformation) {
-      const targetId = this.selectedCard.cost?.materials?.[0];
-      if (targetId && matchesMaterial(unit, targetId) && unit.isAlive()) {
-        this.selectedMaterials = [unit];
-        this._tryPlace(this.selectedCard, pos);
-      }
       return;
     }
 
@@ -306,8 +326,8 @@ export class GameController {
   // Tap sur une unité du cimetière (matériau) — appelé depuis GraveyardTray React.
   tapGraveyardUnit(unit: Unit): void {
     useUiStore.getState().hideTooltip();
-    if (this.session.phase === Phase.PREPARATION && this.selectedCard && this.session.needsMaterials(this.selectedCard)) {
-      const candidates = this.session.materialCandidateGraveyard(this.selectedCard, this.selectedMaterials);
+    if (this.session.phase === Phase.PREPARATION && this.selectedCard && this.session.needsMaterials(this.selectedCard, this.selectedConditionIndex)) {
+      const candidates = this.session.materialCandidateGraveyard(this.selectedCard, this.selectedMaterials, this.selectedConditionIndex);
       const idx = this.selectedMaterials.indexOf(unit);
       if (idx !== -1) this.selectedMaterials.splice(idx, 1);
       else if (candidates.includes(unit)) this.selectedMaterials.push(unit);
@@ -317,7 +337,7 @@ export class GameController {
   }
 
   private _tryPlace(card: Card, pos: Position): void {
-    const result = this.session.canSummon(card, pos, this.selectedMaterials) as any;
+    const result = this.session.canSummon(card, pos, this.selectedMaterials, this.selectedConditionIndex) as any;
     if (!result.ok) { this._flashError(result.reason); return; }
     if (this.session.exceedsBoardSlots(card, this.selectedMaterials)) {
       this._flashError(`Maximum ${this.session.gameState.player_board_slots} unités sur le terrain`);
@@ -327,9 +347,12 @@ export class GameController {
       this._markPrepId = this.session.prepId;
       this._eventMark = useMissionStore.getState().eventMark();
     }
-    this.session.place(card, pos, this.selectedMaterials, this.selectedHandIdx);
+    this.session.place(card, pos, this.selectedMaterials, this.selectedHandIdx, this.selectedConditionIndex);
+    // ⚠️ L'événement porte les ATTRIBUTS de la carte, plus une voie
+    // d'invocation : les cinq voies sont devenues des attributs, et c'est sur
+    // eux que les missions filtrent désormais.
     useMissionStore.getState().emit('summon_performed', {
-      card_id: card.id, tier: card.tier, summon_type: card.summon_type,
+      card_id: card.id, tier: card.tier, attributes: card.attributes ?? [],
     });
     this._clearSelection();
     this.scene?.refresh();
@@ -746,12 +769,11 @@ export class GameController {
       scene.clearMaterialHighlight();
       return;
     }
-    scene.setHighlight(this.session.validCells(this.selectedCard, this.selectedMaterials));
+    scene.setHighlight(this.session.validCells(this.selectedCard, this.selectedMaterials, this.selectedConditionIndex));
     scene.setMaterialCandidates([
-      ...this.session.materialCandidateCells(this.selectedCard, this.selectedMaterials),
-      ...this.session.transformTargetCells(this.selectedCard),
+      ...this.session.materialCandidateCells(this.selectedCard, this.selectedMaterials, this.selectedConditionIndex),
     ]);
-    const complete = this.session.materialsComplete(this.selectedCard, this.selectedMaterials);
+    const complete = this.session.materialsComplete(this.selectedCard, this.selectedMaterials, this.selectedConditionIndex);
     scene.setMaterialSelected(
       this.selectedMaterials.filter(u => !this.session.graveyard.includes(u)).map(u => ({ ...(u.position as Position) })),
       complete,
@@ -787,15 +809,15 @@ export class GameController {
 
   // Main affichée : les exemplaires identiques sont empilés sous une seule
   // entrée (compteur ×N) et l'ordre est stable — tier croissant puis nom — au
-  // lieu de l'ordre de pioche. La signature inclut le coût car les magies de
-  // main (sacrifice remisé, transformation gratuite) ne modifient QU'UN
-  // exemplaire : le fondre avec un exemplaire normal masquerait la remise.
+  // lieu de l'ordre de pioche. La signature inclut les CONDITIONS car une
+  // remise de magie ne modifie QU'UN exemplaire : le fondre avec un exemplaire
+  // au plein tarif masquerait la remise que le tooltip annonce.
   private _groupHand(): HandEntry[] {
     const groups: { entry: HandEntry; indices: number[] }[] = [];
     const byKey = new Map<string, { entry: HandEntry; indices: number[] }>();
 
     this.session.hand.forEach((card, i) => {
-      const key = `${card.id}|${JSON.stringify((card as any).cost ?? null)}|${(card as any)._free_transformation ? 'F' : ''}`;
+      const key = `${card.id}|${JSON.stringify(card.summon_conditions ?? null)}`;
       const found = byKey.get(key);
       if (found) { found.entry.count += 1; found.indices.push(i); return; }
       const group = {
@@ -822,7 +844,7 @@ export class GameController {
 
     const matSet = new Set(this.selectedMaterials);
     const gcandidates = this.selectedCard
-      ? new Set(this.session.materialCandidateGraveyard(this.selectedCard, this.selectedMaterials))
+      ? new Set(this.session.materialCandidateGraveyard(this.selectedCard, this.selectedMaterials, this.selectedConditionIndex))
       : new Set<Unit>();
     const graveyard = this.session.graveyard.map(unit => ({
       uid: unit.uid, unit,
@@ -838,7 +860,8 @@ export class GameController {
     }));
 
     let invocationBanner: string | null = null;
-    if (this.selectedCard && this.session.needsMaterials(this.selectedCard) && !this.session.materialsComplete(this.selectedCard, this.selectedMaterials)) {
+    if (this.selectedCard && this.session.needsMaterials(this.selectedCard, this.selectedConditionIndex)
+        && !this.session.materialsComplete(this.selectedCard, this.selectedMaterials, this.selectedConditionIndex)) {
       invocationBanner = 'Sélectionne les matériaux d\'invocation';
     }
 

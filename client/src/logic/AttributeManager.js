@@ -192,7 +192,7 @@ export class AttributeManager {
       revived: [],
       enemyRevived: [],
       draw_bonus: 0,
-      guaranteed_draws: [], // { category, attribute }
+      guaranteed_draws: [], // { tier?, attribute? } — cf. types.GuaranteedDraw
       board_slot_bonus: 0,
       damage_multiplier_bonus: 0,
       shopping_bonus: 0,
@@ -293,7 +293,7 @@ export class AttributeManager {
           continue;
         }
         if (effect.type === 'guaranteed_draw') {
-          result[draws.guaranteedKey].push({ category: effect.category, attribute: effect.attribute });
+          result[draws.guaranteedKey].push({ attribute: effect.attribute ?? null });
           if (draws.sourcesKey) {
             result[draws.sourcesKey].push({ kind: 'attribut', ref: attrId, value: 0, guaranteed: true });
           }

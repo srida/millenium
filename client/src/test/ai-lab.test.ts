@@ -29,7 +29,7 @@ function db(cards: any[]) {
 function run(over: Partial<AiLabInput> & { cardDb: any }): ReturnType<typeof runAiPlacement> {
   return runAiPlacement({
     deck: {}, round: 1, slots: 5, survivors: [], graveyard: [],
-    hand: [], draw: false, seed: 'test', ...over,
+    hand: [], draw: false, seed: 'test', ...over
   } as AiLabInput);
 }
 
@@ -46,11 +46,11 @@ const refusalOf = (r: { events: AiTraceEvent[] }, cardId: string) =>
 // poser exactement les mêmes unités aux mêmes cases qu'à vide.
 describe('Non-régression — observer ne change rien', () => {
   const cards = [
-    makeCard({ id: 'N1', summon_type: 'normal', stats: { range: 1, hp: 40 } as any }),
-    makeCard({ id: 'N2', summon_type: 'normal', stats: { range: 3, hp: 20 } as any }),
-    makeCard({ id: 'N3', summon_type: 'normal', stats: { range: 1, hp: 90 } as any }),
-    makeCard({ id: 'F1', summon_type: 'fusion', cost: { materials: ['N1', 'N2'] } }),
-    makeCard({ id: 'S1', summon_type: 'sacrifice', cost: { sacrifice: 2 } }),
+    makeCard({ id: 'N1', summon_conditions: [], stats: { range: 1, hp: 40 } as any }),
+    makeCard({ id: 'N2', summon_conditions: [], stats: { range: 3, hp: 20 } as any }),
+    makeCard({ id: 'N3', summon_conditions: [], stats: { range: 1, hp: 90 } as any }),
+    makeCard({ id: 'F1', summon_conditions: [{ materials: 2, requires: ['N1', 'N2'] }] }),
+    makeCard({ id: 'S1', summon_conditions: [{ materials: 2 }] })
   ];
 
   function play(withTrace: boolean) {
@@ -90,7 +90,7 @@ describe('Non-régression — observer ne change rien', () => {
 // que le lot supprime, un test qui s'en contenterait la réintroduirait.
 describe('Motifs de refus — un par cas', () => {
   it('board_full : le cap est atteint', () => {
-    const cards = ['A', 'B', 'C', 'D', 'E', 'F'].map(id => makeCard({ id, summon_type: 'normal' }));
+    const cards = ['A', 'B', 'C', 'D', 'E', 'F'].map(id => makeCard({ id, summon_conditions: [] }));
     const r = run({ cardDb: db(cards), hand: cards.map(c => c.id), slots: 5 });
     expect(r.board_after).toHaveLength(5);
     expect(refusalOf(r, 'F')).toBe('board_full');
@@ -99,7 +99,7 @@ describe('Motifs de refus — un par cas', () => {
   });
 
   it('duplicate_on_board : deux exemplaires vivants de la même carte', () => {
-    const n = makeCard({ id: 'N', summon_type: 'normal' });
+    const n = makeCard({ id: 'N', summon_conditions: [] });
     const r = run({ cardDb: db([n]), hand: ['N', 'N'] });
     expect(r.board_after.map(u => u.card_id)).toEqual(['N']);
     expect(refusalOf(r, 'N')).toBe(null);       // le premier exemplaire passe
@@ -111,7 +111,7 @@ describe('Motifs de refus — un par cas', () => {
   });
 
   it('not_enough_material : moins de matériaux que de sacrifices demandés', () => {
-    const s = makeCard({ id: 'S', summon_type: 'sacrifice', cost: { sacrifice: 3 } });
+    const s = makeCard({ id: 'S', summon_conditions: [{ materials: 3 }] });
     const r = run({ cardDb: db([s]), hand: ['S'] });
     expect(r.board_after).toHaveLength(0);
     expect(refusalOf(r, 'S')).toBe('not_enough_material');
@@ -119,8 +119,8 @@ describe('Motifs de refus — un par cas', () => {
   });
 
   it('missing_material : la fusion NOMME le matériau qui manque', () => {
-    const n1 = makeCard({ id: 'N1', summon_type: 'normal' });
-    const f = makeCard({ id: 'F', summon_type: 'fusion', cost: { materials: ['N1', 'N2'] } });
+    const n1 = makeCard({ id: 'N1', summon_conditions: [] });
+    const f = makeCard({ id: 'F', summon_conditions: [{ materials: 2, requires: ['N1', 'N2'] }] });
     const r = run({ cardDb: db([n1, f]), hand: ['N1', 'F'] });
     expect(r.board_after.map(u => u.card_id)).toEqual(['N1']);
     expect(refusalOf(r, 'F')).toBe('missing_material');
@@ -132,55 +132,55 @@ describe('Motifs de refus — un par cas', () => {
   it('would_exceed_slots : la fusion ne consomme pas assez de place', () => {
     // 5 unités sur 5 slots, une fusion dont l'unique matériau est au CIMETIÈRE :
     // elle ne libère aucune case du board, le solde net serait +1.
-    const surv = ['A', 'B', 'C', 'D', 'E'].map(id => makeCard({ id, summon_type: 'normal' }));
-    const mat = makeCard({ id: 'M', summon_type: 'normal' });
-    const f = makeCard({ id: 'F', summon_type: 'fusion', cost: { materials: ['M'] } });
+    const surv = ['A', 'B', 'C', 'D', 'E'].map(id => makeCard({ id, summon_conditions: [] }));
+    const mat = makeCard({ id: 'M', summon_conditions: [] });
+    const f = makeCard({ id: 'F', summon_conditions: [{ materials: 1, requires: ['M'] }] });
     const r = run({
       cardDb: db([...surv, mat, f]),
       survivors: surv.map((c, i) => ({ card_id: c.id, col: i, row: 7 })),
       graveyard: ['M'],
       hand: ['F'],
-      slots: 5,
+      slots: 5
     });
     expect(r.board_after).toHaveLength(5);
     expect(refusalOf(r, 'F')).toBe('would_exceed_slots');
     expect(attempts(r)[0].detail).toMatchObject({ on_board: 5, consumed_from_board: 0, max_units: 5 });
   });
 
-  it('no_transformation_target : la cible n\'est ni sur le board ni au cimetière', () => {
-    const t = makeCard({ id: 'T', summon_type: 'transformation', cost: { materials: ['BASE'] } });
+  // ⚠️ Les TROIS motifs propres à la Transformation ont disparu, et c'est le
+  // signe que la refonte a réussi : `no_transformation_target`,
+  // `no_transformation_target_id` et `transformation_target_mismatch` disaient
+  // tous « il manque un matériel nommé », dans le vocabulaire d'une seule voie.
+  // Un seul motif les remplace, et il NOMME le matériel — ce que deux des trois
+  // ne faisaient pas.
+  it('missing_material : le matériel nommé n\'est ni sur le board ni au cimetière', () => {
+    const t = makeCard({ id: 'T', summon_conditions: [{ materials: 1, requires: ['BASE'] }] });
     const r = run({ cardDb: db([t]), hand: ['T'] });
     expect(r.board_after).toHaveLength(0);
-    expect(refusalOf(r, 'T')).toBe('no_transformation_target');
-    expect(attempts(r)[0].detail).toMatchObject({ target: 'BASE' });
+    expect(refusalOf(r, 'T')).toBe('missing_material');
+    expect(attempts(r)[0].detail).toMatchObject({ material: 'BASE' });
   });
 
-  it('no_transformation_target_id : la transformation ne désigne aucune cible', () => {
-    const t = makeCard({ id: 'T', summon_type: 'transformation', cost: {} });
-    const r = run({ cardDb: db([t]), hand: ['T'] });
-    expect(refusalOf(r, 'T')).toBe('no_transformation_target_id');
-  });
-
-  it('transformation_target_mismatch : le résultat est déjà là et ne matche pas la cible', () => {
-    const base = makeCard({ id: 'BASE', summon_type: 'normal' });
-    const t = makeCard({ id: 'T', summon_type: 'transformation', cost: { materials: ['BASE'] } });
+  it('un doublon présent ne dispense pas des matériels nommés', () => {
+    // Le doublon de T est bien consommable — mais il ne couvre pas l'exigence
+    // BASE, qui reste introuvable. Refus, et le motif dit lequel.
+    const base = makeCard({ id: 'BASE', summon_conditions: [] });
+    const t = makeCard({ id: 'T', summon_conditions: [{ materials: 1, requires: ['BASE'] }] });
     const r = run({
       cardDb: db([base, t]),
       survivors: [{ card_id: 'T', col: 2, row: 7 }],
-      hand: ['T'],
-    });
-    expect(refusalOf(r, 'T')).toBe('transformation_target_mismatch');
-    expect(attempts(r)[0].detail).toMatchObject({ target: 'BASE', on_board: 'T' });
+      hand: ['T'] });
+    expect(refusalOf(r, 'T')).toBe('missing_material');
+    expect(attempts(r)[0].detail).toMatchObject({ material: 'BASE' });
   });
 
   it('not_enough_material : le pool ne couvre pas le coût', () => {
-    const s = makeCard({ id: 'S', summon_type: 'sacrifice', cost: { sacrifice: 3 } });
-    const filler = makeCard({ id: 'X', summon_type: 'normal' });
+    const s = makeCard({ id: 'S', summon_conditions: [{ materials: 3 }] });
+    const filler = makeCard({ id: 'X', summon_conditions: [] });
     const r = run({
       cardDb: db([s, filler]),
       survivors: [{ card_id: 'X', col: 1, row: 7 }],
-      hand: ['S'],
-    });
+      hand: ['S'] });
     expect(refusalOf(r, 'S')).toBe('not_enough_material');
     expect(r.board_after.map(u => u.card_id)).toEqual(['X']);
   });
@@ -195,14 +195,15 @@ describe('Motifs de refus — un par cas', () => {
   // Le motif reste défini (filet si la garde du dessus bouge un jour), mais
   // aucun état ne peut le produire : ce test le documente plutôt que de le
   // prétendre couvert.
-  it('le doublon d’une carte à sacrifice couvre son propre coût, à lui seul', () => {
-    const s = makeCard({ id: 'S', summon_type: 'sacrifice', cost: { sacrifice: 3 } });
-    const filler = makeCard({ id: 'X', summon_type: 'normal' });
+  it('le doublon d’une carte à coût 3 couvre son propre coût, à lui seul', () => {
+    // ⚠️ `material_value` est une DONNÉE de carte : c'est elle qui dit qu'un
+    // exemplaire posé en vaut trois, plus une dérivation du coût payé.
+    const s = makeCard({ id: 'S', summon_conditions: [{ materials: 3 }], material_value: 3 });
+    const filler = makeCard({ id: 'X', summon_conditions: [] });
     const r = run({
       cardDb: db([s, filler]),
       survivors: [{ card_id: 'S', col: 2, row: 7 }, { card_id: 'X', col: 1, row: 7 }],
-      hand: ['S'],
-    });
+      hand: ['S'] });
     const a = attempts(r).find(x => x.card_id === 'S')!;
     expect(a.outcome).toBe('placed');
     // Le doublon, et RIEN d'autre : `X` reste sur le terrain. C'est très
@@ -212,34 +213,38 @@ describe('Motifs de refus — un par cas', () => {
     expect(r.board_after.map(u => u.card_id).sort()).toEqual(['S', 'X']);
   });
 
-  it('unknown_summon_type : une voie que le moteur ne connaît pas', () => {
-    const weird = makeCard({ id: 'W', summon_type: 'rituel' });
+  it('une condition à coût nul se pose comme une carte sans condition', () => {
+    // ⚠️ Il n'y a plus de motif `unknown_summon_type` : le moteur ne lit plus
+    // de voie, seulement un coût. Une condition qui n'exige rien est donc
+    // toujours payable, jamais « inconnue ».
+    const weird = makeCard({ id: 'W', summon_conditions: [{ materials: 0 }] });
     const r = run({ cardDb: db([weird]), hand: ['W'] });
-    expect(refusalOf(r, 'W')).toBe('unknown_summon_type');
-    expect(attempts(r)[0].detail).toMatchObject({ summon_type: 'rituel' });
+    expect(refusalOf(r, 'W')).toBeNull();
+    expect(r.board_after.map(u => u.card_id)).toEqual(['W']);
   });
 
-  it('all_options_failed : chaque option est nommée avec SON motif', () => {
+  it('all_conditions_failed : chaque option est nommée avec SON motif', () => {
     const multi = makeCard({
-      id: 'M', summon_type: 'fusion',
-      summon_options: [
-        { summon_type: 'fusion', cost: { materials: ['ABSENT'] } },
-        { summon_type: 'sacrifice', cost: { sacrifice: 4 } },
-      ],
-    });
+      id: 'M',
+      summon_conditions: [
+        { materials: 1, requires: ['ABSENT'] },
+        { materials: 4 },
+      ] });
     const r = run({ cardDb: db([multi]), hand: ['M'] });
-    expect(refusalOf(r, 'M')).toBe('all_options_failed');
-    const opts = (attempts(r)[0].detail as any).options;
-    // ⚠️ L'index est celui d'ORIGINE, pas celui du tri : c'est lui qui nomme
-    // l'option dans le catalogue.
+    expect(refusalOf(r, 'M')).toBe('all_conditions_failed');
+    const opts = (attempts(r)[0].detail as any).conditions;
+    // ⚠️ L'index est celui d'ORIGINE, pas celui du tri par coût croissant :
+    // c'est lui qui nomme la condition dans le catalogue.
     expect(opts).toEqual([
-      { index: 0, summon_type: 'fusion', reason: 'missing_material', detail: { material: 'ABSENT', materials: ['ABSENT'] } },
-      { index: 1, summon_type: 'sacrifice', reason: 'not_enough_material', detail: { needed: 4, available: 0 } },
+      { index: 0, condition: { materials: 1, requires: ['ABSENT'] },
+        reason: 'missing_material', detail: { material: 'ABSENT', materials: ['ABSENT'] } },
+      { index: 1, condition: { materials: 4 },
+        reason: 'not_enough_material', detail: { needed: 4, available: 0 } }
     ]);
   });
 
   it('refusalCounts agrège les motifs sur plusieurs rounds', () => {
-    const s = makeCard({ id: 'S', summon_type: 'sacrifice', cost: { sacrifice: 3 } });
+    const s = makeCard({ id: 'S', summon_conditions: [{ materials: 3 }] });
     const r1 = run({ cardDb: db([s]), hand: ['S'] });
     const r2 = run({ cardDb: db([s]), hand: ['S'], round: 2 });
     expect(refusalCounts([r1, r2])).toEqual({ not_enough_material: 2 });
@@ -250,15 +255,14 @@ describe('Motifs de refus — un par cas', () => {
 // ── Ce que la trace dit d'un SUCCÈS ──────────────────────────────────────────
 describe('Trace d\'un placement réussi', () => {
   it('nomme la case et les matériaux consommés, board et cimetière séparés', () => {
-    const n1 = makeCard({ id: 'N1', summon_type: 'normal' });
-    const n2 = makeCard({ id: 'N2', summon_type: 'normal' });
-    const f = makeCard({ id: 'F', summon_type: 'fusion', cost: { materials: ['N1', 'N2'] } });
+    const n1 = makeCard({ id: 'N1', summon_conditions: [] });
+    const n2 = makeCard({ id: 'N2', summon_conditions: [] });
+    const f = makeCard({ id: 'F', summon_conditions: [{ materials: 2, requires: ['N1', 'N2'] }] });
     const r = run({
       cardDb: db([n1, n2, f]),
       survivors: [{ card_id: 'N1', col: 0, row: 7 }],
       graveyard: ['N2'],
-      hand: ['F'],
-    });
+      hand: ['F'] });
     const a = attempts(r).find(x => x.card_id === 'F')!;
     expect(a.outcome).toBe('placed');
     expect(a.cell).toEqual({ col: 0, row: 7 });
@@ -271,24 +275,22 @@ describe('Trace d\'un placement réussi', () => {
   });
 
   it('l\'option retenue d\'une carte multi-voies est nommée par son index d\'origine', () => {
-    const base = makeCard({ id: 'BASE', summon_type: 'normal' });
+    const base = makeCard({ id: 'BASE', summon_conditions: [] });
     const multi = makeCard({
-      id: 'M', summon_type: 'fusion',
-      summon_options: [
-        { summon_type: 'sacrifice', cost: { sacrifice: 4 } },
-        { summon_type: 'transformation', cost: { materials: ['BASE'] } },
-      ],
-    });
+      id: 'M',
+      summon_conditions: [
+        { materials: 4 },
+        { materials: 1, requires: ['BASE'] },
+      ] });
     const r = run({
       cardDb: db([base, multi]),
       survivors: [{ card_id: 'BASE', col: 2, row: 7 }],
-      hand: ['M'],
-    });
+      hand: ['M'] });
     const a = attempts(r).find(x => x.card_id === 'M')!;
     expect(a.outcome).toBe('placed');
     // La transformation est tentée en PREMIER (tri de `_attempt`) alors qu'elle
     // est en position 1 du catalogue.
-    expect(a.option_index).toBe(1);
+    expect(a.condition_index).toBe(1);
   });
 });
 
@@ -305,12 +307,12 @@ describe('Trace d\'un placement réussi', () => {
 describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => {
   // Trois normales de même tier, de valeurs très différentes. `atk` pèse 20× les
   // PV (métrique partagée avec `sim/autoPlayer`) : c'est CHEAP le moins cher.
-  const cheap = makeCard({ id: 'CHEAP', summon_type: 'normal', stats: { atk: 1, hp: 10 } as any });
-  const mid = makeCard({ id: 'MID', summon_type: 'normal', stats: { atk: 5, hp: 30 } as any });
-  const rich = makeCard({ id: 'RICH', summon_type: 'normal', stats: { atk: 20, hp: 200 } as any });
+  const cheap = makeCard({ id: 'CHEAP', summon_conditions: [], stats: { atk: 1, hp: 10 } as any });
+  const mid = makeCard({ id: 'MID', summon_conditions: [], stats: { atk: 5, hp: 30 } as any });
+  const rich = makeCard({ id: 'RICH', summon_conditions: [], stats: { atk: 20, hp: 200 } as any });
 
   it('un sacrifice mange la moins chère des unités éligibles', () => {
-    const s = makeCard({ id: 'S', summon_type: 'sacrifice', cost: { sacrifice: 1 } });
+    const s = makeCard({ id: 'S', summon_conditions: [{ materials: 1 }] });
     const r = run({
       cardDb: db([cheap, mid, rich, s]),
       // Posées dans l'ordre RICH → MID → CHEAP : le balayage du plateau donne
@@ -318,10 +320,9 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
       survivors: [
         { card_id: 'RICH', col: 0, row: 7 },
         { card_id: 'MID', col: 1, row: 7 },
-        { card_id: 'CHEAP', col: 2, row: 7 },
+        { card_id: 'CHEAP', col: 2, row: 7 }
       ],
-      hand: ['S'],
-    });
+      hand: ['S'] });
     const a = attempts(r).find(x => x.card_id === 'S')!;
     expect(a.outcome).toBe('placed');
     expect(a.consumed.board.map(u => u.card_id)).toEqual(['CHEAP']);
@@ -329,15 +330,14 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
   });
 
   it('le cimetière passe avant le terrain : ces unités sont déjà perdues', () => {
-    const s = makeCard({ id: 'S', summon_type: 'sacrifice', cost: { sacrifice: 1 } });
+    const s = makeCard({ id: 'S', summon_conditions: [{ materials: 1 }] });
     const r = run({
       cardDb: db([cheap, rich, s]),
       // CHEAP est sur le terrain, RICH au cimetière : on préfère quand même le
       // cimetière, dont la perte ne coûte pas une unité en jeu.
       survivors: [{ card_id: 'CHEAP', col: 0, row: 7 }],
       graveyard: ['RICH'],
-      hand: ['S'],
-    });
+      hand: ['S'] });
     const a = attempts(r).find(x => x.card_id === 'S')!;
     expect(a.consumed.board).toEqual([]);
     expect(a.consumed.graveyard.map(u => u.card_id)).toEqual(['RICH']);
@@ -347,14 +347,13 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
   it('une fusion prend le moins cher de chaque matériau demandé', () => {
     // Deux exemplaires possibles pour le même matériau, désignés par ATTRIBUT :
     // c'est là que le choix existe vraiment.
-    const weak = makeCard({ id: 'W', summon_type: 'normal', attributes: ['ARCH_X'], stats: { atk: 1, hp: 10 } as any });
-    const strong = makeCard({ id: 'G', summon_type: 'normal', attributes: ['ARCH_X'], stats: { atk: 30, hp: 300 } as any });
-    const f = makeCard({ id: 'F', summon_type: 'fusion', tier: 2, cost: { materials: ['ARCH_X'] } });
+    const weak = makeCard({ id: 'W', summon_conditions: [], attributes: ['ARCH_X'], stats: { atk: 1, hp: 10 } as any });
+    const strong = makeCard({ id: 'G', summon_conditions: [], attributes: ['ARCH_X'], stats: { atk: 30, hp: 300 } as any });
+    const f = makeCard({ id: 'F', summon_conditions: [{ materials: 1, requires: ['ARCH_X'] }], tier: 2  });
     const r = run({
       cardDb: db([weak, strong, f]),
       survivors: [{ card_id: 'G', col: 0, row: 7 }, { card_id: 'W', col: 1, row: 7 }],
-      hand: ['F'],
-    });
+      hand: ['F'] });
     const a = attempts(r).find(x => x.card_id === 'F')!;
     expect(a.outcome).toBe('placed');
     expect(a.consumed.board.map(u => u.card_id)).toEqual(['W']);
@@ -362,18 +361,18 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
   });
 
   it('un composite couvre plusieurs slots : moins d’unités dépensées', () => {
-    // COMPO est une carte à 3 sacrifices ; l'unité posée en vaut donc 3, comme
-    // chez le joueur. Un second sacrifice à 3 la mange SEULE.
-    const compo = makeCard({ id: 'COMPO', summon_type: 'sacrifice', cost: { sacrifice: 3 } });
-    const s = makeCard({ id: 'S', summon_type: 'sacrifice', tier: 2, cost: { sacrifice: 3 } });
+    // COMPO déclare `material_value: 3` ; l'unité posée en vaut donc 3, pour
+    // l'IA comme pour le joueur — le champ est lu par `new Unit`, une seule
+    // fois, pour les deux camps. Une seconde carte à 3 la mange SEULE.
+    const compo = makeCard({ id: 'COMPO', summon_conditions: [{ materials: 3 }], material_value: 3 });
+    const s = makeCard({ id: 'S', summon_conditions: [{ materials: 3 }], tier: 2 });
     const r = run({
       cardDb: db([compo, mid, s]),
       survivors: [
         { card_id: 'COMPO', col: 0, row: 7 },
-        { card_id: 'MID', col: 1, row: 7 },
+        { card_id: 'MID', col: 1, row: 7 }
       ],
-      hand: ['S'],
-    });
+      hand: ['S'] });
     const a = attempts(r).find(x => x.card_id === 'S')!;
     expect(a.outcome).toBe('placed');
     expect(a.consumed.board.map(u => u.card_id)).toEqual(['COMPO']);
@@ -382,33 +381,31 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
   });
 
   it('material_outranks_result : un Tier 3 ne se sacrifie pas pour un Tier 2', () => {
-    const t3 = makeCard({ id: 'T3', summon_type: 'normal', tier: 3, stats: { atk: 20, hp: 250 } as any });
-    const t2 = makeCard({ id: 'T2', summon_type: 'sacrifice', tier: 2, cost: { sacrifice: 1 } });
+    const t3 = makeCard({ id: 'T3', summon_conditions: [], tier: 3, stats: { atk: 20, hp: 250 } as any });
+    const t2 = makeCard({ id: 'T2', summon_conditions: [{ materials: 1 }], tier: 2  });
     const r = run({
       cardDb: db([t3, t2]),
       survivors: [{ card_id: 'T3', col: 0, row: 7 }],
-      hand: ['T2'],
-    });
+      hand: ['T2'] });
     expect(refusalOf(r, 'T2')).toBe('material_outranks_result');
     // Le board est INTACT : c'est ça, la preuve — le refus n'a rien mangé.
     expect(r.board_after.map(u => u.card_id)).toEqual(['T3']);
   });
 
   it('le tier écarte un candidat de fusion, et le motif le NOMME', () => {
-    const t3 = makeCard({ id: 'T3', summon_type: 'normal', tier: 3, attributes: ['ARCH_X'] });
-    const f = makeCard({ id: 'F', summon_type: 'fusion', tier: 1, cost: { materials: ['ARCH_X'] } });
+    const t3 = makeCard({ id: 'T3', summon_conditions: [], tier: 3, attributes: ['ARCH_X'] });
+    const f = makeCard({ id: 'F', summon_conditions: [{ materials: 1, requires: ['ARCH_X'] }], tier: 1  });
     const r = run({
       cardDb: db([t3, f]),
       survivors: [{ card_id: 'T3', col: 0, row: 7 }],
-      hand: ['F'],
-    });
+      hand: ['F'] });
     const a = attempts(r).find(x => x.card_id === 'F')!;
     expect(a.reason).toBe('material_outranks_result');
     // ⚠️ `material_outranks_result` et `missing_material` ne se corrigent pas
     // pareil — l'un dit d'aller chercher la carte, l'autre que l'échange n'en
     // valait pas la peine. Le détail doit donc nommer le candidat écarté.
     expect(a.detail).toMatchObject({
-      material: 'ARCH_X', candidate: 'T3', candidate_tier: 3, result_tier: 1,
+      material: 'ARCH_X', candidate: 'T3', candidate_tier: 3, result_tier: 1
     });
     expect(r.board_after.map(u => u.card_id)).toEqual(['T3']);
   });
@@ -416,60 +413,56 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
   it('un PAIR reste consommable : la garde est `>`, pas `>=`', () => {
     // Sans quoi des lignées entières se fermeraient — deux Tier 2 pour un Tier 2
     // intermédiaire est une montée parfaitement légitime.
-    const a2 = makeCard({ id: 'A2', summon_type: 'normal', tier: 2 });
-    const s2 = makeCard({ id: 'S2', summon_type: 'sacrifice', tier: 2, cost: { sacrifice: 1 } });
+    const a2 = makeCard({ id: 'A2', summon_conditions: [], tier: 2 });
+    const s2 = makeCard({ id: 'S2', summon_conditions: [{ materials: 1 }], tier: 2  });
     const r = run({
       cardDb: db([a2, s2]),
       survivors: [{ card_id: 'A2', col: 0, row: 7 }],
-      hand: ['S2'],
-    });
+      hand: ['S2'] });
     const a = attempts(r).find(x => x.card_id === 'S2')!;
     expect(a.outcome).toBe('placed');
     expect(a.consumed.board.map(u => u.card_id)).toEqual(['A2']);
   });
 
   it('une transformation ne descend pas d’un tier', () => {
-    const t3 = makeCard({ id: 'T3', summon_type: 'normal', tier: 3 });
-    const down = makeCard({ id: 'DOWN', summon_type: 'transformation', tier: 1, cost: { materials: ['T3'] } });
+    const t3 = makeCard({ id: 'T3', summon_conditions: [], tier: 3 });
+    const down = makeCard({ id: 'DOWN', summon_conditions: [{ materials: 1, requires: ['T3'] }], tier: 1  });
     const r = run({
       cardDb: db([t3, down]),
       survivors: [{ card_id: 'T3', col: 0, row: 7 }],
-      hand: ['DOWN'],
-    });
+      hand: ['DOWN'] });
     expect(refusalOf(r, 'DOWN')).toBe('material_outranks_result');
     expect(r.board_after.map(u => u.card_id)).toEqual(['T3']);
   });
 
-  it('la voie RETENUE est celle rapportée, pas le summon_type de façade', () => {
-    // ⚠️ Le log disait « transformation » là où l'IA venait de jouer l'option
-    // sacrifice : sur l'écran fait pour expliquer ses décisions, c'est la
-    // dernière chose qui a le droit de mentir.
-    const x = makeCard({ id: 'X', summon_type: 'normal' });
+  it('la condition RETENUE est celle rapportée, par son index d\'origine', () => {
+    // ⚠️ Le log nommait la voie de façade là où l'IA venait d'en jouer une
+    // autre : sur l'écran fait pour expliquer ses décisions, c'est la dernière
+    // chose qui a le droit de mentir.
+    const x = makeCard({ id: 'X', summon_conditions: [] });
     const multi = makeCard({
-      id: 'M', summon_type: 'transformation', cost: { materials: ['ABSENT'] },
-      summon_options: [
-        { summon_type: 'transformation', cost: { materials: ['ABSENT'] } },
-        { summon_type: 'sacrifice', cost: { sacrifice: 1 } },
-      ],
-    });
+      id: 'M',
+      summon_conditions: [
+        { materials: 1, requires: ['ABSENT'] },
+        { materials: 1 },
+      ] });
     const r = run({
       cardDb: db([x, multi]),
       survivors: [{ card_id: 'X', col: 0, row: 7 }],
-      hand: ['M'],
-    });
+      hand: ['M'] });
     const a = attempts(r).find(x2 => x2.card_id === 'M')!;
     expect(a.outcome).toBe('placed');
-    expect(a.option_index).toBe(1);
-    expect(a.summon_type).toBe('sacrifice');
+    // L'index est celui d'ORIGINE, pas celui du tri par coût croissant.
+    expect(a.condition_index).toBe(1);
   });
 });
 
 // ── La structure en passes ───────────────────────────────────────────────────
 describe('Passes — le point fixe de placeFromHand', () => {
   it('une fusion trouve ses matériaux dès la passe 1 : les normales passent devant', () => {
-    const n1 = makeCard({ id: 'N1', summon_type: 'normal' });
-    const n2 = makeCard({ id: 'N2', summon_type: 'normal' });
-    const f = makeCard({ id: 'F', summon_type: 'fusion', cost: { materials: ['N1', 'N2'] } });
+    const n1 = makeCard({ id: 'N1', summon_conditions: [] });
+    const n2 = makeCard({ id: 'N2', summon_conditions: [] });
+    const f = makeCard({ id: 'F', summon_conditions: [{ materials: 2, requires: ['N1', 'N2'] }] });
     const r = run({ cardDb: db([n1, n2, f]), hand: ['F', 'N1', 'N2'] });
 
     const starts = r.events.filter(e => e.kind === 'pass_start') as any[];
@@ -481,14 +474,20 @@ describe('Passes — le point fixe de placeFromHand', () => {
     expect(r.board_after.map(u => u.card_id)).toEqual(['F']);
   });
 
-  it('une fusion qui attend un SACRIFICE sort à la passe 2', () => {
-    // Le tri ne sauve que ce qui est en amont : `sacrifice` (4) vient APRÈS
-    // `fusion` (2), donc la fusion est tentée avant que son matériau existe.
-    // C'est le seul cas où la boucle de point fixe sert vraiment.
-    const n = makeCard({ id: 'N', summon_type: 'normal' });
-    const s = makeCard({ id: 'S', summon_type: 'sacrifice', cost: { sacrifice: 1 } });
-    const f = makeCard({ id: 'F', summon_type: 'fusion', cost: { materials: ['S'] } });
-    const r = run({ cardDb: db([n, s, f]), hand: ['N', 'S', 'F'] });
+  it('une carte qui attend un matériau PLUS CHER qu\'elle sort à la passe 2', () => {
+    // Le tri par coût croissant ne sauve que ce qui est en amont : `S` coûte 2,
+    // `F` coûte 1, donc F est tentée AVANT que son matériau existe. C'est le
+    // seul cas où la boucle de point fixe sert vraiment — et il s'est raréfié,
+    // le tri par coût rangeant désormais la plupart des dépendances d'office.
+    const n = makeCard({ id: 'N', summon_conditions: [] });
+    const s = makeCard({ id: 'S', summon_conditions: [{ materials: 2 }] });
+    const f = makeCard({ id: 'F', summon_conditions: [{ materials: 1, requires: ['S'] }] });
+    const fodderA = makeCard({ id: 'FODDER_A', summon_conditions: [] });
+    const fodderB = makeCard({ id: 'FODDER_B', summon_conditions: [] });
+    const r = run({
+      cardDb: db([n, s, f, fodderA, fodderB]),
+      survivors: [{ card_id: 'FODDER_A', col: 0, row: 7 }, { card_id: 'FODDER_B', col: 1, row: 7 }],
+      hand: ['N', 'S', 'F'] });
 
     const starts = r.events.filter(e => e.kind === 'pass_start') as any[];
     expect(starts).toHaveLength(2);
@@ -497,13 +496,14 @@ describe('Passes — le point fixe de placeFromHand', () => {
     const fusion = attempts(r).filter(a => a.card_id === 'F');
     expect(fusion[0]).toMatchObject({ pass: 1, outcome: 'refused', reason: 'missing_material' });
     expect(fusion[1]).toMatchObject({ pass: 2, outcome: 'placed' });
-    expect(r.board_after.map(u => u.card_id)).toEqual(['F']);
+    // `S` a payé avec les deux survivants, puis `F` a mangé `S` : `N` survit.
+    expect(r.board_after.map(u => u.card_id).sort()).toEqual(['F', 'N']);
     expect(r.hand_left).toEqual([]);
   });
 
   it('pass_end compte les posées et nomme ce qui reste', () => {
-    const n = makeCard({ id: 'N', summon_type: 'normal' });
-    const t = makeCard({ id: 'T', summon_type: 'transformation', cost: { materials: ['ABSENT'] } });
+    const n = makeCard({ id: 'N', summon_conditions: [] });
+    const t = makeCard({ id: 'T', summon_conditions: [{ materials: 1, requires: ['ABSENT'] }] });
     const r = run({ cardDb: db([n, t]), hand: ['N', 'T'] });
     const ends = r.events.filter(e => e.kind === 'pass_end') as any[];
     expect(ends[0]).toMatchObject({ pass: 1, placed: 1, unplaced: ['T'] });
@@ -517,12 +517,12 @@ describe('rearrangeUnits — ce qui est rangé, et ce qui est jeté', () => {
     // 6 survivants pour 5 slots : `rearrangeUnits` en retire une du board sans
     // qu'elle meure ni passe au cimetière. Elle disparaissait en silence.
     const surv = ['A', 'B', 'C', 'D', 'E', 'F'].map((id, i) =>
-      makeCard({ id, summon_type: 'normal', stats: { hp: 10 + i } as any }));
+      makeCard({ id, summon_conditions: [], stats: { hp: 10 + i } as any }));
     const r = run({
       cardDb: db(surv),
       survivors: surv.map((c, i) => ({ card_id: c.id, col: i % 5, row: 7 + Math.floor(i / 5) })),
       hand: [],
-      slots: 5,
+      slots: 5
     });
     const re = r.events.find(e => e.kind === 'rearrange') as any;
     expect(re.before).toHaveLength(6);
@@ -534,8 +534,8 @@ describe('rearrangeUnits — ce qui est rangé, et ce qui est jeté', () => {
   });
 
   it('mêlée devant, distance derrière', () => {
-    const melee = makeCard({ id: 'ML', summon_type: 'normal', stats: { range: 1 } as any });
-    const ranged = makeCard({ id: 'RG', summon_type: 'normal', stats: { range: 4 } as any });
+    const melee = makeCard({ id: 'ML', summon_conditions: [], stats: { range: 1 } as any });
+    const ranged = makeCard({ id: 'RG', summon_conditions: [], stats: { range: 4 } as any });
     const r = run({ cardDb: db([melee, ranged]), hand: ['ML', 'RG'] });
     const rows = Object.fromEntries(r.board_after.map(u => [u.card_id, u.row]));
     expect(rows.ML).toBe(7);
@@ -553,9 +553,9 @@ describe('rearrangeUnits — ce qui est rangé, et ce qui est jeté', () => {
 // `EnemyAI.drawHand`, qui AJOUTE. Sur l'écran fait pour observer la rétention
 // de main, c'est la dernière chose qui a le droit de mentir.
 describe('Main d\'entrée — le report se cumule à la pioche', () => {
-  const cards = ['A', 'B', 'C'].map(id => makeCard({ id, summon_type: 'normal' }));
+  const cards = ['A', 'B', 'C'].map(id => makeCard({ id, summon_conditions: [] }));
   const deck = { 1: ['A', 'B', 'C'] };
-  const held = makeCard({ id: 'HELD', summon_type: 'fusion', cost: { materials: ['ABSENT'] } });
+  const held = makeCard({ id: 'HELD', summon_conditions: [{ materials: 1, requires: ['ABSENT'] }] });
   const all = db([...cards, held]);
 
   it('pioche PAR-DESSUS ce qui est déjà tenu', () => {
@@ -594,7 +594,7 @@ describe('Main d\'entrée — le report se cumule à la pioche', () => {
 
     const r2 = run({
       cardDb: all, deck,
-      hand: r1.hand_left, draw: true, round: 2, seed: 's',
+      hand: r1.hand_left, draw: true, round: 2, seed: 's'
     });
     expect(r2.hand_carried).toEqual(r1.hand_left);
     // Elle tient toujours son invendable ET elle a tiré : la main d'entrée du
@@ -616,7 +616,7 @@ describe('Main d\'entrée — le report se cumule à la pioche', () => {
 });
 
 describe('Pioche — semée, et court-circuitable', () => {
-  const cards = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(id => makeCard({ id, summon_type: 'normal' }));
+  const cards = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map(id => makeCard({ id, summon_conditions: [] }));
   const deck = { 1: cards.map(c => c.id) };
 
   it('même graine ⇒ run rigoureusement identique, uid compris', () => {
@@ -661,9 +661,9 @@ describe('Pioche — semée, et court-circuitable', () => {
     // plus haut que le résultat ». On met donc la fusion T2 dans le pool du
     // round 1 pour que la rétention s'observe en deux rounds — avec une fusion
     // T1 mangeant des T2, c'est la garde qui la refuserait, à juste titre.
-    const n1 = makeCard({ id: 'N1', tier: 1, summon_type: 'normal' });
-    const n2 = makeCard({ id: 'N2', tier: 1, summon_type: 'normal' });
-    const fus = makeCard({ id: 'F', tier: 2, summon_type: 'fusion', cost: { materials: ['N1', 'N2'] } });
+    const n1 = makeCard({ id: 'N1', tier: 1, summon_conditions: [] });
+    const n2 = makeCard({ id: 'N2', tier: 1, summon_conditions: [] });
+    const fus = makeCard({ id: 'F', tier: 2, summon_conditions: [{ materials: 2, requires: ['N1', 'N2'] }] });
     const deckByTier = { 1: ['F'], 2: ['N1', 'N2'] };
 
     it('une carte non posée reste en main, et redevient jouable plus tard', () => {
@@ -745,10 +745,10 @@ describe('Pioche — semée, et court-circuitable', () => {
   });
 
   it('la pioche respecte les tiers du round', () => {
-    const t1 = makeCard({ id: 'T1', tier: 1, summon_type: 'normal' });
-    const t3 = makeCard({ id: 'T3', tier: 3, summon_type: 'normal' });
+    const t1 = makeCard({ id: 'T1', tier: 1, summon_conditions: [] });
+    const t3 = makeCard({ id: 'T3', tier: 3, summon_conditions: [] });
     const r = run({
-      cardDb: db([t1, t3]), deck: { 1: ['T1'], 3: ['T3'] }, hand: null, draw: true, round: 1, seed: 's',
+      cardDb: db([t1, t3]), deck: { 1: ['T1'], 3: ['T3'] }, hand: null, draw: true, round: 1, seed: 's'
     });
     const draw = r.events.find(e => e.kind === 'draw') as any;
     expect(draw.tiers).toEqual([1]);
@@ -776,8 +776,8 @@ describe('Pioche — semée, et court-circuitable', () => {
 // que retoucher le reliquat d'un placement ne fasse pas retomber le tirage une
 // seconde fois — la démonstration du doublon est le dernier cas du bloc.
 describe('Main affichée — les cartes posées la quittent', () => {
-  const n1 = makeCard({ id: 'N1', tier: 1, summon_type: 'normal' });
-  const n2 = makeCard({ id: 'N2', tier: 1, summon_type: 'normal' });
+  const n1 = makeCard({ id: 'N1', tier: 1, summon_conditions: [] });
+  const n2 = makeCard({ id: 'N2', tier: 1, summon_conditions: [] });
 
   it('hand_left est la main d\'entrée MOINS ce qui a été posé', () => {
     const r = run({ cardDb: db([n1, n2]), hand: ['N1', 'N1', 'N2'] });
@@ -820,14 +820,14 @@ describe('Main affichée — les cartes posées la quittent', () => {
 
     // Ce que ferait un « Placer » relancé sur le reliquat, pioche encore armée.
     const armed = run({
-      cardDb: db([n1, n2]), deck: deck1, hand: first.hand_left, draw: true, round: 1, seed: 's', slots: 1,
+      cardDb: db([n1, n2]), deck: deck1, hand: first.hand_left, draw: true, round: 1, seed: 's', slots: 1
     });
     expect(armed.hand).toEqual([...first.hand_left, ...first.hand]);
 
     // Ce que fait l'écran, la pioche coupée par `handAfterEdit`.
     const state = handAfterEdit({ hand: first.hand, draw: true }, first.hand_left, true);
     const cut = run({
-      cardDb: db([n1, n2]), deck: deck1, hand: state.hand, draw: state.draw, round: 1, seed: 's', slots: 1,
+      cardDb: db([n1, n2]), deck: deck1, hand: state.hand, draw: state.draw, round: 1, seed: 's', slots: 1
     });
     expect(cut.hand).toEqual(first.hand_left);
   });
@@ -836,14 +836,14 @@ describe('Main affichée — les cartes posées la quittent', () => {
 // ── Handicap et robustesse d'entrée ──────────────────────────────────────────
 describe('Handicap — le réglage de difficulté existant', () => {
   it('écrit dans _base et laisse _stat_bonuses intact', () => {
-    const n = makeCard({ id: 'N', summon_type: 'normal', stats: { atk: 5, hp: 30 } as any });
+    const n = makeCard({ id: 'N', summon_conditions: [], stats: { atk: 5, hp: 30 } as any });
     const r = run({ cardDb: db([n]), hand: ['N'], enemyBonus: { atk: 4, hp: 40 } });
     expect(r.board_after[0]).toMatchObject({ atk: 9, max_hp: 70 });
     expect(r.enemy_bonus).toEqual({ atk: 4, hp: 40 });
   });
 
   it('absent, il ne touche à rien', () => {
-    const n = makeCard({ id: 'N', summon_type: 'normal', stats: { atk: 5, hp: 30 } as any });
+    const n = makeCard({ id: 'N', summon_conditions: [], stats: { atk: 5, hp: 30 } as any });
     const r = run({ cardDb: db([n]), hand: ['N'] });
     expect(r.board_after[0]).toMatchObject({ atk: 5, max_hp: 30 });
   });
@@ -851,27 +851,26 @@ describe('Handicap — le réglage de difficulté existant', () => {
 
 describe('Entrées douteuses — un run rejoué depuis un JSON édité à la main', () => {
   it('une carte inconnue est NOMMÉE au lieu de faire tomber le run', () => {
-    const n = makeCard({ id: 'N', summon_type: 'normal' });
+    const n = makeCard({ id: 'N', summon_conditions: [] });
     const r = run({ cardDb: db([n]), hand: ['N', 'FANTOME'], graveyard: ['AUTRE'] });
     expect(r.unknown_cards.sort()).toEqual(['AUTRE', 'FANTOME']);
     expect(r.board_after.map(u => u.card_id)).toEqual(['N']);
   });
 
   it('un survivant hors de la zone de l\'IA est ignoré', () => {
-    const n = makeCard({ id: 'N', summon_type: 'normal' });
+    const n = makeCard({ id: 'N', summon_conditions: [] });
     const r = run({ cardDb: db([n]), survivors: [{ card_id: 'N', col: 2, row: 0 }], hand: [] });
     expect(r.survivors_in).toEqual([]);
     expect(r.board_after).toEqual([]);
   });
 
   it('deux survivants sur la même case : le second est ignoré, pas fatal', () => {
-    const a = makeCard({ id: 'A', summon_type: 'normal' });
-    const b = makeCard({ id: 'B', summon_type: 'normal' });
+    const a = makeCard({ id: 'A', summon_conditions: [] });
+    const b = makeCard({ id: 'B', summon_conditions: [] });
     const r = run({
       cardDb: db([a, b]),
       survivors: [{ card_id: 'A', col: 2, row: 7 }, { card_id: 'B', col: 2, row: 7 }],
-      hand: [],
-    });
+      hand: [] });
     expect(r.survivors_in.map(u => u.card_id)).toEqual(['A']);
   });
 });
@@ -879,12 +878,12 @@ describe('Entrées douteuses — un run rejoué depuis un JSON édité à la mai
 // ── L'enchaînement des rounds ────────────────────────────────────────────────
 describe('Round par round — aucun état caché', () => {
   it('le board_after d\'un round devient les survivants du suivant', () => {
-    const n = makeCard({ id: 'N', summon_type: 'normal' });
-    const m = makeCard({ id: 'M', summon_type: 'normal' });
+    const n = makeCard({ id: 'N', summon_conditions: [] });
+    const m = makeCard({ id: 'M', summon_conditions: [] });
     const r1 = run({ cardDb: db([n, m]), hand: ['N'], round: 1 });
     const r2 = run({
       cardDb: db([n, m]), round: 2, hand: ['M'],
-      survivors: r1.board_after.map(u => ({ card_id: u.card_id, col: u.col!, row: u.row! })),
+      survivors: r1.board_after.map(u => ({ card_id: u.card_id, col: u.col!, row: u.row! }))
     });
     expect(r2.survivors_in.map(u => u.card_id)).toEqual(['N']);
     expect(r2.board_after.map(u => u.card_id).sort()).toEqual(['M', 'N']);
@@ -935,7 +934,7 @@ describe('Décor spatial — l\'invariant de peinture des écrans', () => {
 
   const immersive = new Set(
     (appSrc.match(/const IMMERSIVE_SCREENS = new Set<ScreenName>\(\[(.*?)\]\)/s)?.[1] ?? '')
-      .split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean),
+      .split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean)
   );
 
   it('le registre et les imports se résolvent — sinon le test passerait à vide', () => {
@@ -959,7 +958,7 @@ describe('Décor spatial — l\'invariant de peinture des écrans', () => {
     expect(
       coupables,
       `Écrans peints SOUS le décor spatial (racine sans « relative z-10 », et absents de `
-      + `IMMERSIVE_SCREENS) : ${coupables.join(', ')}. Ils s'afficheront VIDES.`,
+      + `IMMERSIVE_SCREENS) : ${coupables.join(', ')}. Ils s'afficheront VIDES.`
     ).toEqual([]);
   });
 

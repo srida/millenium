@@ -87,7 +87,7 @@ export function buildReport(
       significant: detector.rows.filter(r => r.significant).length,
     },
     cards: detector.rows.map(r => ({
-      id: r.card_id, name: r.name, tier: r.tier, type: r.summon_type,
+      id: r.card_id, name: r.name, tier: r.tier, cost: r.summon_cost,
       in_deck: r.inDeck, played: r.played, summons: r.summons, combats: r.combats,
       play_rate: r4(r.playRate), winrate: r4(r.winrate), ci: r4(r.ci), delta: r4(r.delta),
       significant: r.significant,

@@ -9,9 +9,9 @@ import { EnemyAI } from '../logic/EnemyAI.js';
 import { makeBoard, makeCard, spawn } from './helpers.js';
 
 function makeSession(mode?: 'ai' | 'pvp', enemyBonus?: { atk: number; hp: number } | null) {
-  const playerCard = makeCard({ id: 'P1', summon_type: 'normal' });
+  const playerCard = makeCard({ id: 'P1', summon_conditions: [] });
   // 5 cartes ennemies distinctes : l'IA ne pose pas deux fois la même carte.
-  const enemyCards = ['E1', 'E2', 'E3', 'E4', 'E5'].map(id => makeCard({ id, summon_type: 'normal' }));
+  const enemyCards = ['E1', 'E2', 'E3', 'E4', 'E5'].map(id => makeCard({ id, summon_conditions: [] }));
   const byId = new Map([playerCard, ...enemyCards].map(c => [c.id, c]));
   const deps: GameSessionDeps = {
     cardsByTier: { 1: [playerCard as any] },
@@ -21,7 +21,7 @@ function makeSession(mode?: 'ai' | 'pvp', enemyBonus?: { atk: number; hp: number
     getAllBoards: () => [],
     getAllMagies: () => [],
     ...(mode ? { mode } : {}),
-    ...(enemyBonus !== undefined ? { enemyBonus } : {}),
+    ...(enemyBonus !== undefined ? { enemyBonus } : {})
   };
   return new GameSession(deps);
 }
@@ -62,10 +62,9 @@ describe('Placement de l\'IA (solo)', () => {
   // sans purge sa carte resterait affichée tout le combat alors qu'il n'est plus
   // dans board.grid.
   it('une transformation de l\'IA retire du board le survivant qu\'elle remplace', () => {
-    const base = makeCard({ id: 'E_BASE', summon_type: 'normal' });
+    const base = makeCard({ id: 'E_BASE', summon_conditions: [] });
     const evolved = makeCard({
-      id: 'E_EVO', summon_type: 'transformation', cost: { materials: ['E_BASE'] },
-    });
+      id: 'E_EVO', summon_conditions: [{ materials: 1, requires: ['E_BASE'] }] });
     const byId = new Map([base, evolved].map(c => [c.id, c]));
 
     const board = makeBoard();
@@ -88,7 +87,7 @@ describe('Placement de l\'IA (solo)', () => {
   // `sacrifice` à `needed === 0`) : un sacrifice sans coût est une invocation
   // normale déguisée, et doit donc refuser un second exemplaire vivant.
   it('un sacrifice à coût nul ne pose jamais un second exemplaire de la même carte', () => {
-    const card = makeCard({ id: 'E_FREE', summon_type: 'sacrifice', cost: { sacrifice: 0 } });
+    const card = makeCard({ id: 'E_FREE', summon_conditions: [{ materials: 0 }] });
     const byId = new Map([card].map(c => [c.id, c]));
     const board = makeBoard();
 
@@ -107,7 +106,7 @@ describe('Placement de l\'IA (solo)', () => {
 // Pendant enemy des bonus de pioche du joueur (attribut `draw_bonus` /
 // `guaranteed_draw`) — jusqu'ici sans aucun destinataire côté IA.
 describe('EnemyAI.drawHand — bonus de pioche (draw_bonus / guaranteed_draw)', () => {
-  const tier1 = makeCard({ id: 'E1', tier: 1, summon_type: 'normal' });
+  const tier1 = makeCard({ id: 'E1', tier: 1, summon_conditions: [] });
   const byId = new Map([tier1].map(c => [c.id, c]));
   const cardDb = { getCard: (id: string) => byId.get(id) ?? null };
 
@@ -125,12 +124,12 @@ describe('EnemyAI.drawHand — bonus de pioche (draw_bonus / guaranteed_draw)', 
 
   it('une pioche garantie occupe un slot de la main normale, pas une carte en plus', () => {
     const ai = new (EnemyAI as any)({ 1: ['E1'] }, cardDb, 'enemy');
-    const drawn = ai.drawHand(1, null, 0, [{ category: 'normal' }]);
+    const drawn = ai.drawHand(1, null, 0, [{ attribute: 'ARCH_090' }]);
     expect(drawn).toHaveLength(5);
   });
 
   it('la pioche garantie cherche dans TOUT le deck, hors restriction de tier du tour', () => {
-    const t5 = makeCard({ id: 'E5', tier: 5, summon_type: 'fusion' });
+    const t5 = makeCard({ id: 'E5', tier: 5, summon_conditions: [{ materials: 0 }] });
     const deckDb = { getCard: (id: string) => new Map([tier1, t5].map(c => [c.id, c])).get(id) ?? null };
     // Round 1 : seul le tier 1 est piochable normalement (tiersForRound(1) = [1]).
     const ai = new (EnemyAI as any)({ 1: ['E1'], 5: ['E5'] }, deckDb, 'enemy');
@@ -145,13 +144,13 @@ describe('EnemyAI.drawHand — bonus de pioche (draw_bonus / guaranteed_draw)', 
 // (`resources: false`) — rien ne le reliait à `EnemyAI.drawHand`.
 describe('Bonus de pioche par attribut, côté ENNEMI — bout en bout', () => {
   function makeSessionWithAttrs(attributeList: any[]) {
-    const playerCard = makeCard({ id: 'P1', summon_type: 'normal' });
+    const playerCard = makeCard({ id: 'P1', summon_conditions: [] });
     // Un SEUL card_id dans le deck ennemi : le tirage (avec remise, non semé
     // ici) place forcément un exemplaire d'E1 — la règle du doublon refuse les
     // suivants. Sans ça, un deck à 5 cartes distinctes tirées avec remise
     // pourrait ne jamais inclure E1 dans les 5 cartes du round, rendant le
     // test occasionnellement rouge sans rapport avec la règle éprouvée.
-    const enemyCard = makeCard({ id: 'E1', summon_type: 'normal', attributes: ['ARCH_SCOUT'] });
+    const enemyCard = makeCard({ id: 'E1', summon_conditions: [], attributes: ['ARCH_SCOUT'] });
     const byId = new Map([playerCard, enemyCard].map(c => [c.id, c]));
     const deps: GameSessionDeps = {
       cardsByTier: { 1: [playerCard as any] },
@@ -159,16 +158,14 @@ describe('Bonus de pioche par attribut, côté ENNEMI — bout en bout', () => {
       attributeList,
       cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
       getAllBoards: () => [],
-      getAllMagies: () => [],
-    };
+      getAllMagies: () => [] };
     return new GameSession(deps);
   }
 
   it('draw_bonus déclenché par l\'IA alimente enemy_extra_draws puis se consomme au combat suivant', () => {
     const attrs = [{
       id: 'ARCH_SCOUT', name: 'Éclaireur', timing: 'end_of_combat',
-      thresholds: [{ count: 1, effects: [{ type: 'draw_bonus', value: 2 }] }],
-    }];
+      thresholds: [{ count: 1, effects: [{ type: 'draw_bonus', value: 2 }] }] }];
     const session = makeSessionWithAttrs(attrs);
     session.startPreparation();
     session.startCombat(); // place E1 (ARCH_SCOUT) parmi l'IA
@@ -184,14 +181,13 @@ describe('Bonus de pioche par attribut, côté ENNEMI — bout en bout', () => {
   it('guaranteed_draw déclenché par l\'IA alimente enemy_guaranteed_draws puis se consomme au combat suivant', () => {
     const attrs = [{
       id: 'ARCH_SCOUT', name: 'Éclaireur', timing: 'end_of_combat',
-      thresholds: [{ count: 1, effects: [{ type: 'guaranteed_draw', category: 'normal', attribute: null }] }],
-    }];
+      thresholds: [{ count: 1, effects: [{ type: 'guaranteed_draw', attribute: 'ARCH_090' }] }] }];
     const session = makeSessionWithAttrs(attrs);
     session.startPreparation();
     session.startCombat();
     session.finishCombat();
 
-    expect(session.gameState.enemy_guaranteed_draws).toEqual([{ category: 'normal', attribute: null }]);
+    expect(session.gameState.enemy_guaranteed_draws).toEqual([{ attribute: 'ARCH_090' }]);
 
     session.startNextRound();
     session.startCombat();

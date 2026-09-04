@@ -34,7 +34,8 @@
 		"effect": {
 			"type": "shield",
 			"value": 40
-		}
+		},
+		"rarity": 1
 	},
 	{
 		"id": "MAGIC_005",
@@ -79,7 +80,8 @@
 			"type": "stat_bonus",
 			"value": 2,
 			"stat": "range"
-		}
+		},
+		"rarity": 1
 	},
 	{
 		"id": "MAGIC_011",
@@ -97,7 +99,8 @@
 			"type": "stat_bonus",
 			"value": -5,
 			"stat": "attack_speed"
-		}
+		},
+		"rarity": 1
 	},
 	{
 		"id": "MAGIC_013",
@@ -106,7 +109,8 @@
 			"type": "stat_bonus",
 			"value": -5,
 			"stat": "movement_speed"
-		}
+		},
+		"rarity": 1
 	},
 	{
 		"id": "MAGIE_014",
@@ -122,13 +126,14 @@
 		"name": "Fission",
 		"effect": {
 			"type": "defuse_fusion"
-		}
+		},
+		"rarity": 1
 	},
 	{
 		"id": "MAGIE_016",
 		"name": "Bourse des âmes",
 		"effect": {
-			"type": "reduce_sacrifice_cost",
+			"type": "reduce_materials",
 			"value": 2
 		},
 		"rarity": 2
@@ -137,23 +142,28 @@
 		"id": "MAGIE_017",
 		"name": "Ristourne",
 		"effect": {
-			"type": "reduce_sacrifice_cost",
+			"type": "reduce_materials",
 			"value": 1
-		}
+		},
+		"rarity": 1
 	},
 	{
 		"id": "MAGIE_018",
 		"name": "Force spirituel",
 		"effect": {
-			"type": "free_transformation"
-		}
+			"type": "reduce_materials",
+			"value": 1
+		},
+		"rarity": 1
 	},
 	{
 		"id": "MAGIE_019",
 		"name": "Préparation des rites",
 		"effect": {
-			"type": "remove_heritage_material"
-		}
+			"type": "remove_requirements",
+			"value": 1
+		},
+		"rarity": 1
 	},
 	{
 		"id": "MAGIE_021",
@@ -195,9 +205,10 @@
 		"id": "MAGIE_025",
 		"name": "Fusion instantanée",
 		"effect": {
-			"type": "remove_fusion_material",
+			"type": "reduce_materials",
 			"value": 1
-		}
+		},
+		"rarity": 1
 	},
 	{
 		"id": "MAGIE_026",
@@ -302,7 +313,7 @@
 		"rarity": 2,
 		"effect": {
 			"type": "guaranteed_draw",
-			"category": "fusion"
+			"attribute": "ARCH_086"
 		}
 	},
 	{
@@ -311,7 +322,7 @@
 		"rarity": 2,
 		"effect": {
 			"type": "guaranteed_draw",
-			"category": "heritage"
+			"attribute": "ARCH_087"
 		}
 	},
 	{
@@ -320,7 +331,7 @@
 		"rarity": 2,
 		"effect": {
 			"type": "guaranteed_draw",
-			"category": "transformation"
+			"attribute": "ARCH_088"
 		}
 	},
 	{
@@ -329,7 +340,7 @@
 		"rarity": 2,
 		"effect": {
 			"type": "guaranteed_draw",
-			"category": "sacrifice"
+			"attribute": "ARCH_089"
 		}
 	},
 	{
@@ -338,7 +349,7 @@
 		"rarity": 1,
 		"effect": {
 			"type": "guaranteed_draw",
-			"category": "normal"
+			"attribute": "ARCH_090"
 		}
 	},
 	{

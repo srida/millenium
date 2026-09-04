@@ -17,6 +17,7 @@
 import type { Aggregates, FamilyRow } from './aggregate.js';
 import type { CardRow } from './metrics.js';
 import type { AbResult, DetectorResult } from './protocol.js';
+import { summonCostLabel } from './aggregate.js';
 
 export interface ShowCard {
   id: string;
@@ -321,7 +322,7 @@ export function buildShow(input: ShowInput): Show {
         'Ce n’est pas un problème de puissance mais de constructibilité : leurs matériaux ne se réunissent jamais en jeu, et aucun chiffre d’équilibrage ne les concerne tant que ce n’est pas réglé.',
         `${nb(jamaisRetenues)} autres cartes n’ont même jamais été retenues dans un deck, faute de matériaux couverts.`,
       ],
-      cards: inj.map(c => silently(() => ({ id: c.card_id, name: c.name, note: `tier ${c.tier} · ${c.summon_type} · ${nb(c.inDeck)} fois en deck, jamais invoquée` }))),
+      cards: inj.map(c => silently(() => ({ id: c.card_id, name: c.name, note: `tier ${c.tier} · ${summonCostLabel(c.summon_cost)} · ${nb(c.inDeck)} fois en deck, jamais invoquée` }))),
     });
   }
 
@@ -386,7 +387,9 @@ export function buildShow(input: ShowInput): Show {
     phrases.push(`Entre l’attaque et la résistance, ${atk.winrate >= tank.winrate ? `l’attaque prend l’avantage, ${pct(atk.winrate)} contre ${pct(tank.winrate)}` : `c’est la résistance qui prend l’avantage, ${pct(tank.winrate)} contre ${pct(atk.winrate)}`}.`);
   }
   if (voies.length >= 2) {
-    phrases.push(`Du côté des voies d’invocation, la voie ${voies[0].label} mène à ${pct(voies[0].winrate)}, et la voie ${voies[voies.length - 1].label} ferme la marche à ${pct(voies[voies.length - 1].winrate)}.`);
+    // Le libellé porte déjà le mot « invocation » : « la voie invocation à
+    // deux matériels » se dirait mal.
+    phrases.push(`Du côté des coûts d’invocation, l’${voies[0].label} mène à ${pct(voies[0].winrate)}, et l’${voies[voies.length - 1].label} ferme la marche à ${pct(voies[voies.length - 1].winrate)}.`);
   }
   segments.push({ id: 'styles', title: 'Les façons de jouer', sentences: phrases, cards: [...styleCards(st), ...styleCards(voies)] });
 

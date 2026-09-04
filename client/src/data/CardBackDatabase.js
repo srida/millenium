@@ -1,6 +1,6 @@
 // Catalogue des DOS DE CARTE — `data/card_backs.json`, édité depuis le panneau
-// d'administration (onglet 🂠 Dos de cartes). Même patron que
-// SummonTypeDatabase.js.
+// d'administration (onglet 🂠 Dos de cartes). Même patron que les autres
+// databases : un `init()` async, puis un cache mémoire.
 //
 // Un dos de carte est un cosmétique pur : il n'a aucun effet de jeu, il ne
 // voyage dans aucun payload de round, et deux joueurs aux dos différents jouent

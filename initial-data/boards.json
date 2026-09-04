@@ -425,9 +425,8 @@
 				"type": "stat_bonus",
 				"value": 10,
 				"stat": "atk",
-				"target_attributes": [],
-				"target_summon_types": [
-					"sacrifice"
+				"target_attributes": [
+					"ARCH_089"
 				]
 			}
 		],
@@ -470,9 +469,8 @@
 				"type": "stat_bonus",
 				"value": 20,
 				"stat": "atk",
-				"target_attributes": [],
-				"target_summon_types": [
-					"heritage"
+				"target_attributes": [
+					"ARCH_087"
 				]
 			}
 		],
@@ -490,9 +488,8 @@
 			{
 				"type": "shield",
 				"value": 50,
-				"target_attributes": [],
-				"target_summon_types": [
-					"transformation"
+				"target_attributes": [
+					"ARCH_088"
 				]
 			}
 		],
@@ -521,8 +518,7 @@
 				"stat": "hp",
 				"target_attributes": [
 					"ARCH_050"
-				],
-				"target_summon_types": []
+				]
 			},
 			{
 				"type": "stat_bonus",
@@ -530,8 +526,7 @@
 				"stat": "atk",
 				"target_attributes": [
 					"ARCH_049"
-				],
-				"target_summon_types": []
+				]
 			}
 		],
 		"blocked_cells": [
@@ -553,9 +548,8 @@
 				"type": "stat_bonus",
 				"value": -4,
 				"stat": "attack_speed",
-				"target_attributes": [],
-				"target_summon_types": [
-					"normal"
+				"target_attributes": [
+					"ARCH_090"
 				]
 			}
 		],
@@ -569,8 +563,7 @@
 				"type": "stat_bonus",
 				"value": 10,
 				"stat": "atk",
-				"target_attributes": [],
-				"target_summon_types": []
+				"target_attributes": []
 			}
 		],
 		"blocked_cells": [
@@ -610,8 +603,7 @@
 				"stat": "atk",
 				"target_attributes": [
 					"ARCH_048"
-				],
-				"target_summon_types": []
+				]
 			},
 			{
 				"type": "stat_bonus",
@@ -619,8 +611,7 @@
 				"stat": "atk",
 				"target_attributes": [
 					"ARCH_053"
-				],
-				"target_summon_types": []
+				]
 			}
 		],
 		"blocked_cells": [
@@ -656,8 +647,7 @@
 				"stat": "atk",
 				"target_attributes": [
 					"ARCH_058"
-				],
-				"target_summon_types": []
+				]
 			},
 			{
 				"type": "stat_bonus",
@@ -667,8 +657,7 @@
 					"ARCH_001",
 					"ARCH_002",
 					"ARCH_023"
-				],
-				"target_summon_types": []
+				]
 			}
 		],
 		"blocked_cells": [
@@ -692,8 +681,7 @@
 				"stat": "atk",
 				"target_attributes": [
 					"ARCH_048"
-				],
-				"target_summon_types": []
+				]
 			},
 			{
 				"type": "stat_bonus",
@@ -701,8 +689,7 @@
 				"stat": "hp",
 				"target_attributes": [
 					"ARCH_049"
-				],
-				"target_summon_types": []
+				]
 			},
 			{
 				"type": "stat_bonus",
@@ -710,16 +697,14 @@
 				"stat": "movement_speed",
 				"target_attributes": [
 					"ARCH_051"
-				],
-				"target_summon_types": []
+				]
 			},
 			{
 				"type": "shield",
 				"value": 100,
 				"target_attributes": [
 					"ARCH_050"
-				],
-				"target_summon_types": []
+				]
 			},
 			{
 				"type": "stat_bonus",
@@ -727,8 +712,7 @@
 				"stat": "attack_speed",
 				"target_attributes": [
 					"ARCH_052"
-				],
-				"target_summon_types": []
+				]
 			},
 			{
 				"type": "stat_bonus",
@@ -736,8 +720,7 @@
 				"stat": "range",
 				"target_attributes": [
 					"ARCH_054"
-				],
-				"target_summon_types": []
+				]
 			}
 		],
 		"blocked_cells": [
@@ -757,8 +740,7 @@
 				"stat": "hp",
 				"target_attributes": [
 					"ARCH_061"
-				],
-				"target_summon_types": []
+				]
 			}
 		],
 		"blocked_cells": [

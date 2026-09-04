@@ -29,37 +29,50 @@ export interface CardPower {
   value?: number | null;
 }
 
-export type SummonType = 'normal' | 'sacrifice' | 'fusion' | 'heritage' | 'transformation';
-
-export interface SummonCost {
-  sacrifice?: number;
-  materials?: string[];
-}
-
-export interface SummonOption {
-  summon_type: SummonType;
-  cost?: SummonCost;
+/**
+ * Une condition d'invocation : ce que la carte exige pour être posée.
+ *
+ * `materials` est le nombre de **slots** de matériau à consommer (compté en
+ * `material_value`, pas en unités) ; `requires` contraint une partie de ces
+ * slots à des cartes ou des attributs (`ARCH_*`) précis — la sémantique « dont »,
+ * jamais « en plus ». D'où l'invariant `requires.length <= materials`.
+ *
+ * Une carte sans condition (`summon_conditions` absent ou vide) se pose
+ * directement : c'est l'ancienne invocation « normale ».
+ */
+export interface SummonCondition {
+  materials: number;
+  requires?: string[];
 }
 
 export interface Card {
   id: string;
   name: string;
   tier: number;
-  summon_type: SummonType;
   stats: CardStats;
-  cost?: SummonCost;
   power?: CardPower | null;
   attributes?: string[];
   /** Lignée : IDs que l'unité résultante « représente » pour le matching de matériaux. */
   represented_ids?: string[];
-  summon_options?: SummonOption[];
+  /**
+   * Les voies d'invocation de la carte : la carte est jouable dès qu'**une**
+   * condition est satisfaite. Absent ou vide = aucune condition.
+   */
+  summon_conditions?: SummonCondition[];
+  /**
+   * Combien de slots de matériau vaut l'unité produite quand elle est
+   * consommée. Donnée de carte (saisie en admin), plus jamais dérivée de la
+   * recette jouée — sans quoi une carte à conditions multiples vaudrait deux
+   * choses différentes selon la voie empruntée, et l'IA une troisième.
+   */
+  material_value?: number;
   _has_illustration?: boolean;
-  /** Posé par le modifier de main free_transformation (magie). */
-  _free_transformation?: boolean;
-  /** Coût sacrifice d'origine quand reduce_sacrifice_cost l'a modifié. */
-  _original_sacrifice?: number;
-  /** Nombre de matériels retirés par remove_fusion_material (magie). */
-  _removed_materials?: number;
+  /**
+   * Conditions remisées par une magie de main, et la condition d'origine pour
+   * que le tooltip puisse dire ce qui a été retiré. Posé sur la copie en main,
+   * jamais sur la carte du catalogue.
+   */
+  _discounted_from?: SummonCondition[];
 }
 
 // ── Attributs (synergies) ──
@@ -74,7 +87,6 @@ export interface AttributeEffect {
   value_per?: string;
   /** stat_modifier : on_ally_neutralized | on_enemy_neutralized */
   trigger?: string;
-  category?: string;
   attribute?: string | null;
   hp_percent?: number;
   max?: number;
@@ -117,17 +129,13 @@ export interface BoardEffectDef {
   type: string; // stat_bonus | stat_modifier | shield | draw_bonus
   stat?: string;
   value?: number;
-  /** Vide/absent = tous les archétypes. */
-  target_attributes?: string[];
   /**
-   * Voies d'invocation visées — clés du catalogue `summon_types` (`normal`,
-   * `sacrifice`, `fusion`, `heritage`, `transformation`, `multi`). Vide/absent
-   * = toutes.
-   *
-   * ⚠️ Les deux ciblages se CUMULENT (ET) : un effet qui porte les deux ne
-   * touche qu'une unité qui satisfait les deux. Cf. `BoardEffect.effectTargets`.
+   * Vide/absent = tous les archétypes. Les voies d'invocation étant désormais
+   * des attributs comme les autres (catégorie « Invocation »), un terrain qui
+   * veut viser le Sacrifice nomme son attribut ici — il n'y a plus qu'un seul
+   * ciblage, donc plus de cumul en ET à tenir.
    */
-  target_summon_types?: string[];
+  target_attributes?: string[];
 }
 
 export interface BoardDef {
@@ -157,11 +165,10 @@ export interface MagieEffectDef {
   stat?: string;
   value?: number;
   tier?: number;
-  /** `guaranteed_draw` : voie d'invocation exigée (`summon_type` de la carte).
-   *  Se cumule avec `tier` — les deux filtres sont ET-és par `startPreparation`.
-   *  Nommé `category` et non `summon_type` pour coller à `GuaranteedDraw`, la
-   *  forme que le moteur consomme déjà pour les effets d'attribut. */
-  category?: string;
+  /** `guaranteed_draw` : attribut exigé. Se cumule avec `tier` — les deux
+   *  filtres sont ET-és par `startPreparation`. Les voies d'invocation étant
+   *  devenues des attributs, il n'y a plus de second filtre à tenir. */
+  attribute?: string;
   /** `grant_power` : le pouvoir posé sur l'unité, et sa vitesse de chargement.
    *  ⚠️ La vitesse est OBLIGATOIRE — sans elle l'unité hérite de 9999
    *  (`Unit`), c'est-à-dire d'un pouvoir qui ne part jamais. */
@@ -195,14 +202,26 @@ export type RoundWinner = 'player' | 'enemy' | 'draw' | 'timeout';
 
 export interface GuaranteedDraw {
   tier?: number;
-  category?: string;
   attribute?: string | null;
 }
 
 export interface HandModifier {
-  type: 'reduce_sacrifice_cost' | 'free_transformation' | 'remove_heritage_material'
-    | 'remove_fusion_material';
+  /**
+   * Les quatre remises d'invocation se réduisent à deux gestes sur une
+   * condition : baisser son nombre de matériels, ou lui retirer des exigences
+   * nommées. L'ancienne « transformation offerte » est les deux à la fois, et
+   * s'écrit donc comme une remise assez large pour vider la condition.
+   */
+  type: 'reduce_materials' | 'remove_requirements';
   value?: number;
+  /**
+   * Ne retoucher qu'une carte PORTANT cet attribut. Absent = n'importe laquelle.
+   *
+   * C'est ce qui redonne aux remises la visée qu'elles avaient quand elles
+   * nommaient une voie (« -1 matériel de Fusion »), mais en donnée : le moteur
+   * ne connaît toujours qu'un coût et un attribut.
+   */
+  attribute?: string | null;
 }
 
 /**

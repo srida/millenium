@@ -34,12 +34,12 @@ const BARREN: MagieOfferContext = {
   boardTiers: [],
   materialSourceCount: 0,
   deckTiers: [],
-  deckSummonTypes: [],
+  deckAttributes: [],
   damageMultiplierMatters: false,
-  deckHasSacrificeCost: false,
-  deckHasTransformation: false,
-  deckHasHeritageMaterial: false,
-  deckHasFusionMaterial: false,
+  deckHasMaterialCost: false,
+  deckHasNamedRequirement: false,
+  deckMaterialCostAttributes: [],
+  deckNamedRequirementAttributes: [],
   boardSlotBonusAvailable: false,
   playerHpBelowCap: false,
 };
@@ -57,12 +57,12 @@ const LUSH: MagieOfferContext = {
   boardTiers: [1, 2, 3, 4, 5],
   materialSourceCount: 2,
   deckTiers: [1, 2, 3, 4, 5],
-  deckSummonTypes: ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation'],
+  deckAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088', 'ARCH_089', 'ARCH_090'],
   damageMultiplierMatters: true,
-  deckHasSacrificeCost: true,
-  deckHasTransformation: true,
-  deckHasHeritageMaterial: true,
-  deckHasFusionMaterial: true,
+  deckHasMaterialCost: true,
+  deckHasNamedRequirement: true,
+  deckMaterialCostAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088', 'ARCH_089'],
+  deckNamedRequirementAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088'],
   boardSlotBonusAvailable: true,
   playerHpBelowCap: true,
 };
@@ -135,10 +135,8 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
     ['guaranteed_draw', { type: 'guaranteed_draw', tier: 3 }, 'deckTiers', [3]],
     ['board_slot_bonus', { type: 'board_slot_bonus', value: 1 }, 'boardSlotBonusAvailable', true],
     ['player_hp_bonus', { type: 'player_hp_bonus', value: 100 }, 'playerHpBelowCap', true],
-    ['reduce_sacrifice_cost', { type: 'reduce_sacrifice_cost', value: 1 }, 'deckHasSacrificeCost', true],
-    ['free_transformation', { type: 'free_transformation' }, 'deckHasTransformation', true],
-    ['remove_heritage_material', { type: 'remove_heritage_material' }, 'deckHasHeritageMaterial', true],
-    ['remove_fusion_material', { type: 'remove_fusion_material', value: 1 }, 'deckHasFusionMaterial', true],
+    ['reduce_materials', { type: 'reduce_materials', value: 1 }, 'deckHasMaterialCost', true],
+    ['remove_requirements', { type: 'remove_requirements', value: 1 }, 'deckHasNamedRequirement', true],
     ['duplicate_unit', { type: 'duplicate_unit', value: 1 }, 'duplicableUnitCount', 1],
     ['duplicate_card', { type: 'duplicate_card', value: 1 }, 'handCount', 1],
     ['duplicate_graveyard_unit', { type: 'duplicate_graveyard_unit', value: 1 }, 'duplicableGraveyardCount', 1],
@@ -148,6 +146,32 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
   it.each(CASES)('%s : absente du contexte pauvre, présente dès que sa condition est remplie', (_name, effect, field, value) => {
     expect(isMagieRelevant(magie(effect), BARREN)).toBe(false);
     expect(isMagieRelevant(magie(effect), { ...BARREN, [field]: value })).toBe(true);
+  });
+
+  // ⚠️ Une remise VISÉE demande UNE carte qui porte l'attribut ET que le geste
+  // puisse retoucher. Tester les deux séparément suffirait sur un deck où ce
+  // sont deux cartes différentes — la magie serait offerte pour ne rien faire,
+  // exactement ce que ce filtre existe pour empêcher.
+  // Mutation : `ctx.deckHasMaterialCost` seul → ROUGE sur le premier cas.
+  it('une remise VISÉE exige que l\'attribut soit porté par une carte RETOUCHABLE', () => {
+    const visee = magie({ type: 'reduce_materials', value: 1, attribute: 'ARCH_086' });
+
+    // Le deck a bien des cartes à coût… mais aucune ne porte l'attribut visé.
+    expect(isMagieRelevant(visee, {
+      ...BARREN, deckHasMaterialCost: true, deckMaterialCostAttributes: ['ARCH_089'],
+    })).toBe(false);
+
+    expect(isMagieRelevant(visee, {
+      ...BARREN, deckHasMaterialCost: true, deckMaterialCostAttributes: ['ARCH_086'],
+    })).toBe(true);
+  });
+
+  // Et sans attribut, la liste ne décide de rien : une carte retouchable qui ne
+  // porte AUCUN attribut n'y figure pas, mais la remise la retouchera bien.
+  it('une remise NON visée ne lit pas la liste d\'attributs', () => {
+    expect(isMagieRelevant(magie({ type: 'reduce_materials', value: 1 }), {
+      ...BARREN, deckHasMaterialCost: true, deckMaterialCostAttributes: [],
+    })).toBe(true);
   });
 
   it('draw_bonus est le SEUL effet qui ne dépend de rien', () => {
