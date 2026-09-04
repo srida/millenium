@@ -48,15 +48,40 @@ const MIN_TOTAL = 24;
  *  court qu'une carte de haut tier plus faible que le socle qu'elle remplace. */
 const FLOOR = { 3: 600, 4: 800, 5: 1100 };
 
-const isNormal = c => (c.summon_type ?? 'normal') === 'normal';
 const hasAttr = (c, a) => (c.attributes || []).includes(a);
 const rawPower = c => (c.stats?.atk ?? 0) * 20 + (c.stats?.hp ?? 0);
-const costsOf = c => (c.summon_options?.length ? c.summon_options.map(o => o.cost) : [c.cost]);
 
-/** Une recette suffit. Un matériau `ARCH_*` désigne n'importe quel porteur. */
+// ⚠️ Il n'y a plus de « voie » d'invocation : une carte porte zéro, une ou
+// plusieurs RECETTES (`summon_conditions`), chacune réclamant un nombre de
+// slots (`materials`) dont une partie peut être NOMMÉE (`requires`). Ces trois
+// lecteurs sont les seuls du script à ouvrir la donnée — mêmes définitions que
+// `InvocationManager.summonCost` et `game/tutorialDeck.ts`.
+const conditionsOf = c => (Array.isArray(c.summon_conditions) ? c.summon_conditions : []);
+const materialsOf = cd => (Number.isFinite(cd?.materials) && cd.materials > 0 ? cd.materials : 0);
+const requiresOf = cd => (Array.isArray(cd?.requires) ? cd.requires : []);
+
+/** Le coût de la carte : sa recette la moins chère. Zéro = elle se pose. */
+function summonCostOf(c) {
+  const cds = conditionsOf(c);
+  return cds.length ? Math.min(...cds.map(materialsOf)) : 0;
+}
+
+/**
+ * Une recette suffit, et seuls les matériels NOMMÉS se couvrent : un coût
+ * purement chiffré se paie avec n'importe quelle unité déjà posée, donc il
+ * n'impose rien au deck. Un matériel `ARCH_*` désigne n'importe quel porteur.
+ *
+ * ⚠️ Même règle que `game/tutorialDeck.ts` et `sim/decks.ts` — les trois
+ * répondent à « ce deck peut-il seulement invoquer cette carte ? ».
+ */
 function summonable(card, ids, attrs) {
-  return costsOf(card).some(cost =>
-    ((cost && cost.materials) || []).every(m => (m.startsWith('ARCH_') ? attrs.has(m) : ids.has(m))));
+  const cds = conditionsOf(card);
+  // ⚠️ AUCUNE recette = pose directe, donc toujours invocable. Sans ce cas,
+  // `[].some(...)` rend false et le script déclare injouable la moitié du
+  // catalogue — précisément les cartes qui ne coûtent rien.
+  if (cds.length === 0) return true;
+  return cds.some(cd =>
+    requiresOf(cd).every(m => (m.startsWith('ARCH_') ? attrs.has(m) : ids.has(m))));
 }
 
 function themeScore(c, theme) {
@@ -116,7 +141,11 @@ function buildDeck(theme) {
   //    tier 2 se paie avec le tier 1 déjà en jeu).
   for (const t of [1, 2]) {
     const base = ALL.filter(c => c.tier === t && !used.has(c.id) && eligible(c)
-      && (isNormal(c) || (c.summon_type === 'sacrifice' && t === 2)));
+      // Ce qui se pose sans rien payer, plus — au tier 2 seulement — un coût
+      // purement CHIFFRÉ, que le tier 1 déjà en jeu acquitte. Une recette qui
+      // nomme ses matériels n'a pas sa place dans le socle.
+      && (summonCostOf(c) === 0
+          || (t === 2 && conditionsOf(c).some(cd => materialsOf(cd) > 0 && requiresOf(cd).length === 0))));
     const onTheme = base.filter(c => themeScore(c, theme) > 0).sort(sort);
     const rest = base.filter(c => themeScore(c, theme) === 0).sort(sort);
     const picked = [];
@@ -182,7 +211,7 @@ function validate(entry) {
   for (const t of [1, 2, 3, 4, 5]) {
     const cur = (entry.deck[String(t)] || []).map(id => byId[id]).filter(Boolean);
     for (const c of cur) {
-      if (!summonable(c, ids, attrs)) errs.push(`INJOUABLE : ${c.id} (${c.name}, ${c.summon_type})`);
+      if (!summonable(c, ids, attrs)) errs.push(`INJOUABLE : ${c.id} (${c.name}, coût ${summonCostOf(c)})`);
     }
     cur.forEach(c => { ids.add(c.id); (c.attributes || []).forEach(a => attrs.add(a)); });
   }

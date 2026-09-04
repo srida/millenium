@@ -11,33 +11,33 @@
         "CORE_024",
         "CORE_009",
         "CORE_035",
+        "STAPLE_457",
         "YGX_008",
         "EXTRA_082",
-        "EXTRA_039",
-        "STAPLE_090"
+        "STAPLE_315"
       ],
       "2": [
         "CORE_033",
+        "CORE_111",
         "CORE_006",
+        "STAPLE_361",
         "STAPLE_217",
         "CORE_043",
-        "MAKO_012",
-        "EXTRA_030",
-        "STAPLE_066"
+        "STAPLE_329"
       ],
       "3": [
         "CORE_086",
         "REX_012",
         "STAPLE_184",
         "CORE_002",
-        "STAPLE_216",
-        "STAPLE_211"
+        "STAPLE_432",
+        "STAPLE_216"
       ],
       "4": [
         "CORE_087",
         "EXTRA_034",
-        "STAPLE_218",
-        "MAKO_013"
+        "STAPLE_346",
+        "STAPLE_244"
       ],
       "5": [
         "CORE_088",
@@ -69,21 +69,21 @@
         "KEITH_008",
         "KEITH_007",
         "STAPLE_120",
-        "STAPLE_054"
+        "STAPLE_443"
       ],
       "3": [
         "YGX_001",
         "YGX_004",
         "YGX_021",
         "YGX_019",
-        "KEITH_012",
+        "STAPLE_335",
         "STAPLE_186"
       ],
       "4": [
         "YGX_012",
         "YGX_023",
-        "YGX_013",
-        "EXTRA_029"
+        "EXTRA_029",
+        "STAPLE_307"
       ],
       "5": [
         "YGX_022",
@@ -105,30 +105,30 @@
         "CORE_051",
         "STAPLE_015",
         "STAPLE_136",
-        "MARIK_010",
-        "STAPLE_145"
+        "STAPLE_387",
+        "STAPLE_460"
       ],
       "2": [
         "CORE_001",
         "STAPLE_147",
         "CORE_003",
         "STAPLE_144",
-        "EXTRA_086",
-        "STAPLE_022",
-        "CORE_050"
+        "STAPLE_383",
+        "STAPLE_442",
+        "EXTRA_086"
       ],
       "3": [
+        "STAPLE_269",
         "CORE_105",
         "STAPLE_071",
         "STAPLE_215",
-        "EXTRA_038",
-        "STAPLE_028"
+        "EXTRA_038"
       ],
       "4": [
+        "STAPLE_266",
         "CORE_077",
         "STAPLE_121",
-        "STAPLE_174",
-        "STAPLE_077"
+        "STAPLE_174"
       ],
       "5": [
         "EXTRA_089"
@@ -148,9 +148,9 @@
         "MAKO_002",
         "MAKO_005",
         "CORE_041",
+        "STAPLE_285",
         "MARIK_007",
-        "MAKO_003",
-        "CORE_074"
+        "STAPLE_435"
       ],
       "2": [
         "STAPLE_161",
@@ -158,8 +158,8 @@
         "MAKO_006",
         "PARA_003",
         "STAPLE_131",
-        "EXTRA_051",
-        "REX_010"
+        "MAKO_012",
+        "STAPLE_462"
       ],
       "3": [
         "MAKO_011",
@@ -171,7 +171,9 @@
       ],
       "4": [
         "EXTRA_024",
-        "MAKO_013"
+        "MAKO_013",
+        "STAPLE_352",
+        "STAPLE_463"
       ],
       "5": [
         "EXTRA_025",
@@ -200,21 +202,22 @@
         "EXTRA_001",
         "HAGA_014",
         "EXTRA_009",
+        "STAPLE_410",
         "EXTRA_005",
         "KEITH_007",
-        "STAPLE_034",
-        "PARA_001"
+        "STAPLE_290"
       ],
       "3": [
         "EXTRA_010",
         "HAGA_013",
+        "STAPLE_411",
         "HAGA_011",
         "MARIK_016",
-        "STAPLE_097",
-        "MARIK_017"
+        "STAPLE_097"
       ],
       "4": [
         "HAGA_012",
+        "STAPLE_412",
         "EXTRA_004",
         "STAPLE_077"
       ],
@@ -234,12 +237,11 @@
       "1": [
         "STAPLE_124",
         "STAPLE_169",
+        "STAPLE_441",
         "BONZ_005",
         "BONZ_003",
         "BONZ_001",
-        "BONZ_002",
-        "BAKURA_005",
-        "STAPLE_153"
+        "BONZ_002"
       ],
       "2": [
         "BAKURA_008",
@@ -247,24 +249,26 @@
         "STAPLE_084",
         "STAPLE_156",
         "STAPLE_132",
-        "BONZ_010",
-        "EXTRA_049"
+        "STAPLE_404",
+        "BONZ_010"
       ],
       "3": [
         "BONZ_007",
         "BONZ_013",
+        "STAPLE_303",
         "STAPLE_155",
         "BONZ_015",
-        "STAPLE_154",
-        "EXTRA_054"
+        "MARIK_017"
       ],
       "4": [
-        "EXTRA_060",
-        "STAPLE_174"
+        "STAPLE_405",
+        "STAPLE_284",
+        "STAPLE_392",
+        "EXTRA_060"
       ],
       "5": [
-        "STAPLE_229",
-        "STAPLE_175"
+        "STAPLE_466",
+        "STAPLE_229"
       ]
     }
   },
@@ -282,8 +286,8 @@
         "CORE_023",
         "CORE_080",
         "CORE_046",
-        "CORE_075",
-        "CORE_032"
+        "CORE_074",
+        "CORE_075"
       ],
       "2": [
         "CORE_039",
@@ -305,8 +309,8 @@
       "4": [
         "STAPLE_201",
         "STAPLE_203",
-        "STAPLE_198",
-        "STAPLE_150"
+        "STAPLE_276",
+        "STAPLE_100"
       ],
       "5": [
         "STAPLE_175",
@@ -324,21 +328,21 @@
     "deck": {
       "1": [
         "STAPLE_173",
+        "STAPLE_430",
+        "STAPLE_350",
+        "STAPLE_358",
         "MARIK_005",
-        "CORE_117",
-        "STAPLE_002",
-        "CORE_029",
-        "STAPLE_116",
-        "EXTRA_063"
+        "STAPLE_340",
+        "CORE_117"
       ],
       "2": [
         "CORE_078",
         "STAPLE_069",
         "CORE_012",
         "STAPLE_063",
-        "STAPLE_112",
-        "MARIK_011",
-        "MARIK_012"
+        "STAPLE_192",
+        "EXTRA_049",
+        "STAPLE_034"
       ],
       "3": [
         "CORE_114",
@@ -350,12 +354,13 @@
       ],
       "4": [
         "STAPLE_234",
+        "STAPLE_423",
         "STAPLE_174",
-        "STAPLE_056"
+        "STAPLE_284"
       ],
       "5": [
         "STAPLE_235",
-        "STAPLE_229"
+        "STAPLE_253"
       ]
     }
   },
@@ -368,40 +373,40 @@
     "difficulty": 2,
     "deck": {
       "1": [
+        "STAPLE_330",
+        "STAPLE_339",
+        "STAPLE_398",
         "CORE_014",
+        "STAPLE_364",
         "MAI_003",
-        "MAKO_007",
-        "STAPLE_163",
-        "STAPLE_061",
-        "MAI_002",
-        "CORE_026"
+        "MAKO_007"
       ],
       "2": [
+        "STAPLE_382",
         "REX_008",
-        "PARA_006",
-        "STAPLE_040",
-        "STAPLE_099",
-        "STAPLE_004",
-        "STAPLE_110",
-        "CORE_118"
+        "STAPLE_365",
+        "STAPLE_445",
+        "STAPLE_314",
+        "STAPLE_454",
+        "STAPLE_297"
       ],
       "3": [
+        "STAPLE_455",
         "STAPLE_140",
         "STAPLE_151",
         "STAPLE_053",
         "STAPLE_118",
-        "STAPLE_102",
-        "MAKO_010"
+        "STAPLE_324"
       ],
       "4": [
-        "STAPLE_043",
-        "BAKURA_012",
         "STAPLE_056",
-        "MAI_015"
+        "STAPLE_456",
+        "STAPLE_043",
+        "STAPLE_366"
       ],
       "5": [
         "STAPLE_109",
-        "STAPLE_175"
+        "STAPLE_253"
       ]
     }
   },
@@ -418,35 +423,35 @@
         "REX_002",
         "REX_001",
         "EXTRA_013",
+        "STAPLE_295",
         "REX_005",
-        "EXTRA_018",
-        "EXTRA_014"
+        "EXTRA_018"
       ],
       "2": [
+        "STAPLE_291",
         "EXTRA_012",
         "REX_007",
         "EXTRA_017",
+        "STAPLE_296",
         "REX_011",
-        "REX_004",
-        "STAPLE_101",
-        "REX_008"
+        "REX_004"
       ],
       "3": [
         "REX_013",
+        "STAPLE_292",
+        "STAPLE_320",
+        "STAPLE_467",
         "REX_006",
-        "STAPLE_216",
-        "REX_012",
-        "KEITH_006",
-        "MARIK_017"
+        "STAPLE_216"
       ],
       "4": [
+        "STAPLE_469",
         "STAPLE_127",
-        "STAPLE_203",
-        "STAPLE_043",
-        "BAKURA_012"
+        "BAKURA_012",
+        "STAPLE_203"
       ],
       "5": [
-        "STAPLE_175"
+        "STAPLE_468"
       ]
     }
   }

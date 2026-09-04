@@ -55,6 +55,16 @@ export interface CardRow extends CardMetrics {
   significant: boolean;
 }
 
+/**
+ * Poses en dessous desquelles une carte n'est jamais dite « significative ».
+ *
+ * ⚠️ C'est un seuil de LISIBILITÉ, pas de vérité : sous cette barre l'intervalle
+ * de Wilson est si large qu'aucun écart ne peut le franchir. Un run de 1 500
+ * parties ne place la carte médiane que ~29 fois — d'où le protocole à ~60 000
+ * parties. Exporté pour que le seuil n'existe qu'à un endroit.
+ */
+export const MIN_PLAYED = 100;
+
 export class MetricsCollector {
   private rows = new Map<string, CardMetrics>();
   games = 0;
@@ -118,7 +128,7 @@ export class MetricsCollector {
   }
 
   /** @param minPlayed en dessous, la ligne est rendue mais jamais « significative ». */
-  toRows(minPlayed = 100): CardRow[] {
+  toRows(minPlayed = MIN_PLAYED): CardRow[] {
     const base = this.baseline;
     return [...this.rows.values()].map(m => {
       const winrate = m.played > 0 ? m.wins / m.played : null;

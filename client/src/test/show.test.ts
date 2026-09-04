@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { loadCatalog } from '../sim/catalog.js';
 import { buildAggregates } from '../sim/aggregate.js';
 import { runDetector } from '../sim/protocol.js';
+import { MIN_PLAYED } from '../sim/metrics.js';
 import { buildShow, classify, recordedNumbers } from '../sim/show.js';
 import type { DetectorResult } from '../sim/protocol.js';
 
@@ -119,11 +120,24 @@ describe('Émission — la forme', () => {
 
   it('s’allonge quand le run a plus à dire', () => {
     // C'est l'invariant utile, là où une fourchette fixe n'en est pas un : un run
-    // qui trouve plus de cartes significatives produit une émission plus longue.
+    // qui a plus à dire produit une émission plus longue.
+    //
+    // ⚠️ « Plus à dire » se mesure sur les lignes JUGEABLES, jamais sur les
+    // lignes significatives. La significativité demande en plus que l'écart
+    // franchisse son intervalle de Wilson, ce qui à 1 500 parties tient à deux
+    // cartes près : le compte y vaut 0 ou 2 selon le vent, et un test qui en
+    // dépend mesure le bruit, pas la règle. Le protocole du projet le dit
+    // lui-même — il faut ~60 000 parties pour trancher à ±2 points, soit onze
+    // minutes, ce qu'une suite unitaire ne peut pas payer.
+    //
+    // Le nombre de lignes jugeables, lui, croît avec les parties jouées sans
+    // rien devoir au hasard : c'est exactement la porte devant laquelle la
+    // significativité attend.
+    // Mutation : échanger `petit` et `grand` → ROUGE sur les deux assertions.
     const petit = makeShow(300, 'petit');
     const grand = makeShow(1500, 'grand');
-    expect(grand.detector.rows.filter(r => r.significant).length)
-      .toBeGreaterThan(petit.detector.rows.filter(r => r.significant).length);
+    const jugeables = (r: DetectorResult) => r.rows.filter(x => x.played >= MIN_PLAYED).length;
+    expect(jugeables(grand.detector)).toBeGreaterThan(jugeables(petit.detector));
     expect(grand.show.words).toBeGreaterThan(petit.show.words);
   });
 
