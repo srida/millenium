@@ -190,6 +190,36 @@ describe('write-guard /api', () => {
     expect(res.body.length).toBeGreaterThan(0);
   });
 
+  // Le tier est un ATTRIBUT : le serveur le RÉSOUT à la lecture (`_tiers`) pour
+  // que le client, l'admin et la simulation n'aient pas chacun leur version de
+  // la règle. Comme `_has_illustration` et `_starter`, c'est un drapeau calculé
+  // — et un drapeau calculé qu'on persiste devient un mensonge le jour où la
+  // donnée change sans lui.
+  it('`_tiers` est SERVI, et jamais RÉÉCRIT dans le catalogue', async () => {
+    const liste = await request(h.server).get('/api/cards');
+    const carte = liste.body.find((c: any) => c.id === 'CORE_001');
+    expect(carte._tiers).toEqual([2]);
+    expect(liste.body.every((c: any) => Array.isArray(c._tiers) && c._tiers.length > 0)).toBe(true);
+
+    const admin = makeUser(h, 'tiers_admin');
+    h.stmt.setUserAdmin.run(1, admin);
+    const { cookie } = login(h, admin);
+    const post = await request(h.server)
+      .post('/api/cards')
+      .set('Cookie', cookie)
+      .send({ id: 'TIERS_001', name: 'Carte calculée', attributes: ['ARCH_093'], _tiers: [1, 5] });
+    expect(post.status).toBe(200);
+
+    const brut = JSON.parse(fs.readFileSync(path.join(h.DATA, 'cards.json'), 'utf8'));
+    const stockee = brut.find((c: any) => c.id === 'TIERS_001');
+    expect(stockee._tiers).toBeUndefined();
+    // Et la lecture le recalcule depuis les ATTRIBUTS, pas depuis ce qu'on a posté.
+    const relu = await request(h.server).get('/api/cards');
+    expect(relu.body.find((c: any) => c.id === 'TIERS_001')._tiers).toEqual([3]);
+
+    await request(h.server).delete('/api/cards/TIERS_001').set('Cookie', cookie);
+  });
+
   it('un admin applicatif (is_admin) passe, lui', async () => {
     const admin = makeUser(h, 'vrai_admin');
     h.stmt.setUserAdmin.run(1, admin);

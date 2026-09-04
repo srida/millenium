@@ -1,5 +1,6 @@
 import { Unit } from './Unit.js';
 import { tiersForRound, resolveGuaranteedDraws } from './Draw.js';
+import { primaryTier } from './Tiers.js';
 import {
   materialLineageMatches, summonConditions, conditionMaterials, conditionRequires,
   conditionIsFree, summonCost, forcedCell,
@@ -378,7 +379,7 @@ function _attemptWith(card, condition, board, maxUnits, graveyard, side) {
         material: matId,
         candidate: outranked.card_id,
         candidate_tier: outranked.tier ?? null,
-        result_tier: card.tier ?? null,
+        result_tier: primaryTier(card),
       });
     }
     return _refused('missing_material', { material: matId, materials: required });
@@ -399,7 +400,7 @@ function _attemptWith(card, condition, board, maxUnits, graveyard, side) {
   if (stillNeeded > 0) {
     const blocked = [...boardPool, ...gravePool].some(u => _outranks(u, card));
     return blocked
-      ? _refused('material_outranks_result', { needed, result_tier: card.tier ?? null })
+      ? _refused('material_outranks_result', { needed, result_tier: primaryTier(card) })
       : _refused('not_enough_material', { needed, available: needed - stillNeeded });
   }
 
@@ -476,9 +477,14 @@ function _unitRef(unit) {
  * `>` et non `>=` : consommer un pair reste légitime (deux Tier 2 pour un Tier 3
  * passent par un intermédiaire de même rang), et l'interdire fermerait des
  * lignées entières.
+ *
+ * ⚠️ Des deux côtés, le tier retenu est le PLUS HAUT (`unit.tier` l'est déjà par
+ * construction) : la question posée est « laquelle est la plus puissante », et
+ * une carte multi-tiers ne doit pas se faire dévorer parce qu'elle porte aussi
+ * un tier bas.
  */
 function _outranks(unit, card) {
-  return (unit.tier ?? 0) > (card.tier ?? 0);
+  return (unit.tier ?? 0) > primaryTier(card);
 }
 
 /**

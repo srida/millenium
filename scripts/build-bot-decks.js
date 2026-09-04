@@ -18,6 +18,9 @@
 // injouables — et un bot qui ne pose rien est pire qu'un bot absent.
 const fs = require('fs');
 const path = require('path');
+// « Quel attribut est quel tier » ne vit qu'en un endroit (`tiers.js`) : ce
+// script lit son propre dossier de données, il en construit donc l'index.
+const { tierIndex, resolveTiers } = require('../tiers');
 
 const PROJECT = path.join(__dirname, '..');
 const DATA = fs.existsSync(path.join(PROJECT, 'data', 'cards.json'))
@@ -31,6 +34,11 @@ const asArray = x => (Array.isArray(x) ? x : Object.values(x));
 const ALL = asArray(load('cards.json'));
 const ATTRS = asArray(load('attributes.json'));
 const attrName = Object.fromEntries(ATTRS.map(a => [a.id, a.name]));
+
+const TIER_INDEX = tierIndex(ATTRS);
+/** Les tiers d'une carte. Une carte multi-tiers est éligible à chacun d'eux. */
+const tiersOf = c => resolveTiers(c, TIER_INDEX);
+const atTier = (c, t) => tiersOf(c).includes(t);
 
 // ---------------------------------------------------------------- règles
 
@@ -140,7 +148,7 @@ function buildDeck(theme) {
   // 1. Le socle : tiers 1-2, ce qui se pose sans matériau (le sacrifice au
   //    tier 2 se paie avec le tier 1 déjà en jeu).
   for (const t of [1, 2]) {
-    const base = ALL.filter(c => c.tier === t && !used.has(c.id) && eligible(c)
+    const base = ALL.filter(c => atTier(c, t) && !used.has(c.id) && eligible(c)
       // Ce qui se pose sans rien payer, plus — au tier 2 seulement — un coût
       // purement CHIFFRÉ, que le tier 1 déjà en jeu acquitte. Une recette qui
       // nomme ses matériels n'a pas sa place dans le socle.
@@ -160,7 +168,7 @@ function buildDeck(theme) {
   //    fusion de tier 3 retenue alimente à son tour la couverture du tier 4.
   const spare = {};
   for (const t of [3, 4, 5]) {
-    const ok = ALL.filter(c => c.tier === t && !used.has(c.id) && eligible(c)
+    const ok = ALL.filter(c => atTier(c, t) && !used.has(c.id) && eligible(c)
       && rawPower(c) >= FLOOR[t] && summonable(c, ids, attrs));
     const strict = ok.filter(c => theme.core.some(a => hasAttr(c, a)));
     const soft = ok.filter(c => !strict.includes(c) && themeScore(c, theme) > 0);
@@ -201,7 +209,7 @@ function validate(entry) {
     if (list.length > 8) errs.push(`tier ${t} : ${list.length} cartes (maximum 8)`);
     for (const id of list) {
       if (!byId[id]) errs.push(`id inconnu : ${id}`);
-      else if (String(byId[id].tier) !== String(t)) errs.push(`${id} est tier ${byId[id].tier}, rangé en ${t}`);
+      else if (!atTier(byId[id], Number(t))) errs.push(`${id} n'est pas tier ${t} (T${tiersOf(byId[id]).join('·T') || '—'})`);
     }
   }
 
@@ -234,7 +242,11 @@ function report(entries) {
     const flat = Object.values(e.deck).flat();
     const cards = flat.map(id => byId[id]).filter(Boolean);
     const cnt = {};
-    cards.forEach(c => (c.attributes || []).forEach(a => { cnt[a] = (cnt[a] || 0) + 1; }));
+    // ⚠️ Les attributs de TIER sont écartés du résumé : portés par toutes les
+    // cartes, ils sortiraient en tête et ne diraient rien du thème.
+    cards.forEach(c => (c.attributes || []).forEach(a => {
+      if (TIER_INDEX[a] == null) cnt[a] = (cnt[a] || 0) + 1;
+    }));
     const top = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 4)
       .map(([a, n]) => `${attrName[a]}·${n}`).join(' ');
     const errs = validate(e);

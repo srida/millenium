@@ -1,4 +1,5 @@
 import type { Card, GuaranteedDraw } from './types.js';
+import { hasTier } from './Tiers.js';
 
 // Tiers available per round:
 // T1: R1  T2: R1+  T3: R3+  T4: R4+  T5: R5+
@@ -65,7 +66,9 @@ export function matchesGuaranteedDraw(
   criteria: GuaranteedDrawCriteria,
   { ignoreTier = false } = {},
 ): boolean {
-  if (!ignoreTier && criteria.tier && card.tier !== criteria.tier) return false;
+  // ⚠️ APPARTENANCE, pas égalité : une carte à plusieurs tiers satisfait la
+  // promesse dès qu'elle porte celui qui est demandé.
+  if (!ignoreTier && criteria.tier && !hasTier(card, criteria.tier)) return false;
   if (criteria.cardIds.length > 0 && !criteria.cardIds.includes(card.id)) return false;
   return criteria.attributes.every(id => card.attributes?.includes(id));
 }

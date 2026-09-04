@@ -48,7 +48,19 @@ export interface SummonCondition {
 export interface Card {
   id: string;
   name: string;
-  tier: number;
+  /**
+   * ⚠️ HISTORIQUE — le tier d'une carte est un ATTRIBUT (catégorie `Tiers`),
+   * et une carte peut en porter plusieurs. Ce champ ne se lit plus qu'au
+   * travers de `logic/Tiers.tiersOf`, comme repli tant qu'il n'a pas quitté les
+   * données. Rien de neuf ne doit l'écrire ni le lire directement.
+   */
+  tier?: number;
+  /**
+   * Les tiers RÉSOLUS depuis les attributs, triés. Calculé au chargement du
+   * catalogue et jamais persisté — même statut que `_has_illustration` et
+   * `_starter`. Se lit par `logic/Tiers.tiersOf`, jamais à la main.
+   */
+  _tiers?: number[];
   stats: CardStats;
   power?: CardPower | null;
   attributes?: string[];
@@ -113,6 +125,12 @@ export interface AttributeDef {
   /** Emoji — REPLI quand aucune image n'a été importée depuis l'admin. */
   icon?: string;
   categorie?: string;
+  /**
+   * Sur un attribut de catégorie `Tiers` uniquement : QUEL tier il désigne.
+   * La catégorie dit qu'un attribut est un tier, ce champ dit lequel — cf.
+   * `logic/Tiers.ts`, seul lecteur des deux.
+   */
+  tier?: number;
   timing: AttributeTiming;
   thresholds: AttributeThreshold[];
   /**

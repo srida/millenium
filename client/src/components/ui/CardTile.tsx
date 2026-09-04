@@ -16,6 +16,7 @@
 // pointerup retombait sur la grille qui venait de se monter dessous.
 import { useRef, type ReactNode } from 'react';
 import type { Card } from '../../logic/types.js';
+import { primaryTier } from '../../logic/Tiers.js';
 import { artFor } from '../../data/CardArt.js';
 import { summonCostOf } from '../../data/SummonInfo.js';
 import { useUiStore, type TooltipContent } from '../../stores/uiStore.js';
@@ -90,7 +91,7 @@ export function cardTileProps(card: Card): Pick<CardTileProps, 'illustrationId' 
   return {
     illustrationId: artFor(card.id),
     name: card.name,
-    tier: card.tier,
+    tier: primaryTier(card),
     hint: renderHint(card),
     tooltip: { kind: 'card', card },
   };

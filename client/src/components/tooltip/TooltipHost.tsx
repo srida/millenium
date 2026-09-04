@@ -11,6 +11,7 @@ import { Illustration } from '../ui/primitives.js';
 import RecipeRow from '../ui/SummonRecipe.js';
 import { cardName } from '../../data/gameNames.js';
 import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
+import { primaryTier } from '../../logic/Tiers.js';
 import { materialValueOf } from '../../logic/Unit.js';
 import type { Card } from '../../logic/types.js';
 import { STAT_LABELS } from '../../data/StatLabels.js';
@@ -119,7 +120,7 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
       <div>
         <div className="flex items-center justify-between">
           <span className="text-sm font-bold">{data.name}</span>
-          <span className="rounded border border-gold/40 px-1.5 text-[10px] font-bold text-gold">T{data.tier}</span>
+          <span className="rounded border border-gold/40 px-1.5 text-[10px] font-bold text-gold">T{isUnit ? data.tier : primaryTier(data)}</span>
         </div>
         <StatsRow stats={stats} />
         <Keywords ids={data.attributes ?? []} />

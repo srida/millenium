@@ -101,7 +101,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 - ⚠️ `writeJson` écrit de façon **atomique** (`<file>.tmp` puis `renameSync`) et invalide le cache. L'hébergeur envoie un `SIGTERM` à chaque déploiement.
 - **Deux plafonds de corps** : 1 Mo en général, 20 Mo sur les seules routes d'upload d'image. ⚠️ Le choix se fait **avant** le parsing — `express.json` ignore une requête dont le corps est déjà lu.
 - `downloadUrl` (import d'illustration par URL) borne redirections (5), délai (10 s) et taille (10 Mo), et **refuse les adresses privées** (127/8, 10/8, 172.16/12, 192.168/16, 169.254/16, CGNAT, IPv6 locales, tout protocole hors http(s)). La redirection repasse par le contrôle.
-- Les drapeaux calculés (`_has_illustration`, `_starter`, `_has_avatar`, `_has_poster`, `_has_background`) ne sont **jamais persistés** : calculés à la lecture, retirés à l'écriture (`POST`/`PUT`/`import`).
+- Les drapeaux calculés (`_has_illustration`, `_starter`, `_tiers`, `_has_avatar`, `_has_poster`, `_has_background`) ne sont **jamais persistés** : calculés à la lecture, retirés à l'écriture (`POST`/`PUT`/`import`).
 
 ### Accès et sécurité
 
@@ -182,9 +182,10 @@ Toutes les mutations renvoient **l'instantané complet + la progression à jour*
 | `bots.js` | Identités et decks des adversaires artificiels |
 | `pvplog.js` · `ailog.js` | Outils de diagnostic (feuilles, retirables d'un bloc) |
 | `json-cache.js` · `asset-dirs.js` | Cache au mtime, chemins d'assets |
+| `tiers.js` | Résolution « attributs de catégorie `Tiers` → numéros » (jumeau de `logic/Tiers.ts`) |
 
 **Règle anti-cycle** — elle n'est écrite nulle part ailleurs que ici :
-- **Feuilles** (ne requièrent que `db` / `json-cache`, personne ne les requiert en retour) : `sets.js`, `variants.js`, `decks.js`, `pvplog.js`, `ailog.js`, `asset-dirs.js`.
+- **Feuilles** (ne requièrent que `db` / `json-cache`, personne ne les requiert en retour) : `sets.js`, `variants.js`, `decks.js`, `pvplog.js`, `ailog.js`, `asset-dirs.js`, `tiers.js`.
 - **Puits** (requièrent les autres, aucun ne doit les requérir) : `levels.js`, `gifts.js`.
 - `sets.js` existe parce que `shop.js` (boosters) et `progression.js` (dotation) en ont tous deux besoin, et que `shop.js` requiert déjà `progression.js`.
 - `cosmetics.js`, `gifts.js` et `arcade.js` importent **littéralement** le calendrier de `shop.js` : `const { dayKey, nextRotationAt, seededRandom } = require('./shop')`.
@@ -839,6 +840,19 @@ player_hp -= round(sum(survivingEnemyUnits.atk) × enemy_multiplier)
 ## Attributs (`AttributeManager`)
 
 Un monstre peut porter plusieurs attributs. **Un seul palier est actif à la fois** (le plus élevé atteint).
+
+**Cinq catégories** (`categorie`) : `Archetype`, `Type`, `Element`, `Invocation`, `Tiers`. **Contrat d'une carte : au moins un attribut de catégorie `Tiers`, `Invocation` et `Element`** — `Type` n'en fait **pas** partie (12 cartes livrées n'en portent aucun, et aucune règle ne le lit). Vérifié par `npm run audit:cards` (`--check` sort en 1).
+
+### Le tier est un ATTRIBUT
+
+Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`), exactement comme les cinq voies d'invocation. **Une carte peut en porter plusieurs** : elle se pioche à chacun de ses tiers.
+
+- ⚠️ **La catégorie dit qu'un attribut est un tier, son champ `tier` dit LEQUEL.** Aucun id en dur (le catalogue est éditable), aucune dérivation depuis le `name` (« Tier 3 » se renomme en admin).
+- **`logic/Tiers.ts` est le seul résolveur côté client, `tiers.js` (racine) son JUMEAU serveur** — la frontière CJS / ESM-TS interdit un module partagé (même situation que `XP_PER_LEVEL` et `BASE_TICK_MS`). ⚠️ `test/tiers.test.ts` les fait répondre sur les 868 cartes : c'est le **seul** filet contre leur dérive.
+- **La résolution se fait UNE FOIS au chargement du catalogue** : le serveur pose `_tiers` sur `GET /api/cards` (calculé, jamais persisté), `sim/catalog.ts` décore le JSON brut, les scripts construisent leur propre index (`tierIndex(attributes)`). Le jeu ne fait plus que **lire**.
+- ⚠️ **`tiersOf` (ensemble) et `primaryTier` (le plus HAUT) ne répondent pas à la même question.** Ensemble : pool de pioche, lanes, filtres, `guaranteed_draw` (appartenance, jamais égalité). Scalaire : `Unit.tier` (échelle des VFX), garde `material_outranks_result` de l'IA, `tier_min` des missions, tris — tous demandent une **puissance**. `displayTier` est un troisième cas assumé : il rend `null` au lieu d'inventer un « T1 » sur une étiquette.
+- ⚠️ **Le pool de pioche se dérive des LANES du deck** (`bootstrap.buildSession`, `EnemyAI.drawHand`), pas du champ de la carte — c'était déjà vrai avant la refonte. La lane d'une carte est son `primaryTier`.
+- ⚠️ Le champ `tier` de `cards.json` est **historique** : plus rien ne le lit hors du repli de `tiersOf` (cartes écrites à la main dans les tests et les bancs de dev). `scripts/migrate-tiers.js` pose l'attribut manquant, sans le retirer.
 
 | Effet | Timing | Détail |
 |---|---|---|

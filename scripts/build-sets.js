@@ -33,6 +33,7 @@
 // générateur de point de départ.
 const fs = require('fs');
 const path = require('path');
+const { tierIndex, resolveTiers } = require('../tiers');
 
 const ROOT = path.join(__dirname, '..');
 const DIRS = ['data', 'initial-data'].map(d => path.join(ROOT, d));
@@ -48,6 +49,12 @@ const attributes = read(path.join(DIRS[0], 'attributes.json'));
 
 const ARCHETYPES = new Map(
   attributes.filter(a => a.categorie === 'Archetype').map(a => [a.id, a.name]));
+
+// Le tier est un ATTRIBUT : la règle vit dans `tiers.js`, l'index se construit
+// sur le dossier que CE script a choisi de lire.
+const TIER_INDEX = tierIndex(attributes);
+/** Le tier d'une carte quand il en faut un seul : le plus haut. */
+const tierOf = c => (resolveTiers(c, TIER_INDEX).at(-1) ?? 1);
 const byId = new Map(cards.map(c => [c.id, c]));
 
 /** Matériaux d'une carte, toutes options d'invocation confondues. */
@@ -162,7 +169,7 @@ const roman = n => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X',
 const output = sets.map((s, i) => {
   const id = `SET_${String(i + 1).padStart(2, '0')}`;
   const tiers = {};
-  for (const c of s.cards) tiers[c.tier] = (tiers[c.tier] ?? 0) + 1;
+  for (const c of s.cards) for (const t of resolveTiers(c, TIER_INDEX)) tiers[t] = (tiers[t] ?? 0) + 1;
   const top = [...s.archetypes.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
   // Un archétype « porteur » doit pouvoir soutenir seul un deck de 20 cartes
   // (brief §2.3) — sur le pool actuel c'est le seuil qu'on peut vérifier.
@@ -171,7 +178,7 @@ const output = sets.map((s, i) => {
     .map(([attribute, card_count]) => ({
       attribute, name: ARCHETYPES.get(attribute), card_count, carries_deck: card_count >= 20,
     }));
-  const signature = [...s.cards].sort((a, b) => b.tier - a.tier || a.id.localeCompare(b.id))[0];
+  const signature = [...s.cards].sort((a, b) => tierOf(b) - tierOf(a) || a.id.localeCompare(b.id))[0];
 
   return {
     id,

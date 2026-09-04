@@ -18,6 +18,7 @@
 // Module pur : il prend le catalogue en argument et ne connaît ni les
 // databases, ni les stores. C'est ce qui le rend testable en node.
 import type { Card, SummonCondition } from '../logic/types.js';
+import { hasTier } from '../logic/Tiers.js';
 
 export type DeckIds = Record<string, string[]>;
 
@@ -122,8 +123,8 @@ function buildDeck(
   //    si le pool de départ ne suffit pas.
   for (const t of BASE_TIERS) {
     const count = perTier[t] ?? 0;
-    const preferred = sortBy(pool.filter(c => c.tier === t && isNormal(c)), rank);
-    const rest = sortBy(all.filter(c => c.tier === t && isNormal(c)), rank);
+    const preferred = sortBy(pool.filter(c => hasTier(c, t) && isNormal(c)), rank);
+    const rest = sortBy(all.filter(c => hasTier(c, t) && isNormal(c)), rank);
     const picked: CatalogCard[] = [];
     const seen = new Set<string>();
     for (const c of [...preferred, ...rest]) {
@@ -140,7 +141,7 @@ function buildDeck(
   //    qu'une fusion de tier 3 peut servir de matériau à un tier 4.
   for (const t of HIGH_TIERS) {
     const count = perTier[t] ?? 0;
-    const candidates = all.filter(c => c.tier === t && summonableFrom(c, owned.ids, owned.attrs));
+    const candidates = all.filter(c => hasTier(c, t) && summonableFrom(c, owned.ids, owned.attrs));
     commit(t, sortBy(candidates, rank).slice(0, count));
   }
 

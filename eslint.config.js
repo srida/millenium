@@ -114,7 +114,9 @@ module.exports = [
     // `json-cache.js` y figure pour la même raison qu'`asset-dirs.js` : sept
     // modules de règles le requièrent, dont les feuilles du graphe. La moindre
     // dépendance qu'il prendrait deviendrait une dépendance de tout le monde.
-    files: ['sets.js', 'variants.js', 'asset-dirs.js', 'json-cache.js'],
+    // `tiers.js` de même : le tier étant devenu un attribut, missions, shop,
+    // levels, gifts et cosmetics le lisent tous — il doit rester au fond.
+    files: ['sets.js', 'variants.js', 'asset-dirs.js', 'json-cache.js', 'tiers.js'],
     rules: {
       'n/no-restricted-require': ['error', [
         ...SINKS,

@@ -12,6 +12,7 @@ import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import { computeDeckTags } from '../data/DeckTags.js';
 import { summonCostOf } from '../data/SummonInfo.js';
 import type { Card } from '../logic/types.js';
+import { primaryTier, hasTier } from '../logic/Tiers.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
@@ -89,7 +90,9 @@ export default function DeckBuilder() {
   };
 
   const allCards = useMemo(() => (CardDatabase as any).getAllCards()
-    .slice().sort((a: Card, b: Card) => a.tier !== b.tier ? a.tier - b.tier : a.name.localeCompare(b.name, 'fr')) as Card[], []);
+    .slice().sort((a: Card, b: Card) => primaryTier(a) !== primaryTier(b)
+      ? primaryTier(a) - primaryTier(b)
+      : a.name.localeCompare(b.name, 'fr')) as Card[], []);
   const tierMax = useMemo(() => {
     const m: Record<number, number> = {};
     for (let t = 1; t <= 5; t++) m[t] = Math.min(8, (CardDatabase as any).getCardsByTier(t).length);
@@ -212,7 +215,7 @@ export default function DeckBuilder() {
 
   const filtered = allCards.filter(c => {
     if (!showLocked && !owns(c.id)) return false;
-    if (tierFilters.length && !tierFilters.includes(c.tier)) return false;
+    if (tierFilters.length && !tierFilters.some(t => hasTier(c, t))) return false;
     if (costFilters.length && !costFilters.includes(costBucket(c))) return false;
     if (attributeFilter && !(c.attributes ?? []).includes(attributeFilter)) return false;
     if (search.trim() && !c.name.toLowerCase().includes(search.trim().toLowerCase())) return false;
@@ -234,10 +237,15 @@ export default function DeckBuilder() {
     // Garde-fou : la vignette verrouillée est déjà intapable, mais l'ajout ne
     // doit dépendre que de la collection, pas de l'état d'affichage.
     if (!owns(c.id)) return;
+    // ⚠️ La LANE d'une carte est son tier le plus haut. Une carte à plusieurs
+    // tiers n'est rangée qu'une fois : elle se pioche à tous les siens (le pool
+    // se dérive des cartes du deck, pas des clés), mais deux lanes en
+    // porteraient deux exemplaires.
+    const lane = primaryTier(c);
     setDeckData(d => {
-      if (d[c.tier].length >= tierMax[c.tier]) return d;
-      if (d[c.tier].some(x => x.id === c.id)) return d;
-      return { ...d, [c.tier]: [...d[c.tier], c] };
+      if (d[lane].length >= tierMax[lane]) return d;
+      if (d[lane].some(x => x.id === c.id)) return d;
+      return { ...d, [lane]: [...d[lane], c] };
     });
   }
   function removeCard(tier: number, idx: number) {
@@ -246,7 +254,8 @@ export default function DeckBuilder() {
   // Retrait depuis la BIBLIOTHÈQUE, où l'on ne connaît pas l'index : la carte y
   // est unique (règle d'unicité), l'id suffit donc à la désigner.
   function removeCardById(c: Card) {
-    setDeckData(d => ({ ...d, [c.tier]: d[c.tier].filter(x => x.id !== c.id) }));
+    const lane = primaryTier(c);
+    setDeckData(d => ({ ...d, [lane]: d[lane].filter(x => x.id !== c.id) }));
   }
 
   const [saving, setSaving] = useState(false);
@@ -482,8 +491,9 @@ function LibraryPanel({
                 // place, et une carte verrouillée héritée d'un ancien deck
                 // reste retirable ici comme dans l'onglet Deck.
                 const locked = !owns(c.id);
-                const inDeck = deckData[c.tier].some((x: Card) => x.id === c.id);
-                const full = deckData[c.tier].length >= tierMax[c.tier];
+                const lane = primaryTier(c);
+                const inDeck = deckData[lane].some((x: Card) => x.id === c.id);
+                const full = deckData[lane].length >= tierMax[lane];
                 return (
                   <CardTile
                     key={c.id} {...cardTileProps(c)} size="h-auto w-full"

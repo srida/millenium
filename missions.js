@@ -21,6 +21,7 @@ const { db, stmt } = require('./db');
 // Cache mémoire au mtime, partagé par tous les catalogues (cf. json-cache.js).
 const { jsonCache } = require('./json-cache');
 const progression = require('./progression');
+const tiers = require('./tiers');
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const MISSIONS_FILE = path.join(DATA_DIR, 'missions.json');
@@ -214,7 +215,9 @@ function meetsRequirements(ownedIds, def) {
     // celles-ci sont devenues des attributs de carte comme les autres, et une
     // carte à plusieurs voies les porte toutes.
     if (m.attribute && !(c.attributes ?? []).includes(m.attribute)) continue;
-    if (m.tier_min != null && !(Number(c.tier) >= m.tier_min)) continue;
+    // ⚠️ Le tier retenu est le PLUS HAUT de la carte : `tier_min` demande une
+    // puissance minimale, pas un round de pioche.
+    if (m.tier_min != null && !(tiers.primaryTier(c) >= m.tier_min)) continue;
     if (++n >= (m.count ?? 1)) return true;
   }
   return false;

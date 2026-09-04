@@ -1,4 +1,5 @@
 import type { Card, DotEffect, BurnStack, Position, Side } from './types.js';
+import { primaryTier } from './Tiers.js';
 
 let _nextUid = 0;
 
@@ -35,6 +36,12 @@ export class Unit {
   card_id: string;
   name: string;
   side: Side;
+  /**
+   * Le tier de l'unité, en UN chiffre : le plus haut de sa carte. Une unité
+   * n'en porte qu'un parce que ses deux seuls lecteurs (l'échelle des effets
+   * visuels de `three/`, la garde de matériau de l'IA) demandent une puissance,
+   * pas un ensemble de rounds. Les tiers complets se lisent sur la CARTE.
+   */
   tier: number;
   attributes: string[];
 
@@ -105,7 +112,7 @@ export class Unit {
     this.card_id = card.id;
     this.name = card.name;
     this.side = side;
-    this.tier = card.tier;
+    this.tier = primaryTier(card);
     this.attributes = card.attributes || [];
 
     this.represented_ids = [...new Set([card.id, ...(card.represented_ids || [])])];

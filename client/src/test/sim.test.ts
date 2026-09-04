@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { GameSession } from '../logic/GameSession.js';
 import { makeRandom, seededRandom } from '../logic/Random.js';
+import { primaryTier } from '../logic/Tiers.js';
 import { loadCatalog } from '../sim/catalog.js';
 import { buildDeck, deckCardIds, deckWithCard, deckWithoutCard, isSummonable, materialClosure } from '../sim/decks.js';
 import { MetricsCollector, effectSize, wilsonHalfWidth } from '../sim/metrics.js';
@@ -123,7 +124,7 @@ describe('Générateur de decks — la couverture des matériaux', () => {
 
   it('la fermeture de matériaux rend une carte de haut tier invocable', () => {
     const fusion = cat.cards.find(c =>
-      c.tier >= 4 && (c.summon_conditions ?? []).some(cd => (cd.requires ?? []).length >= 2))!;
+      primaryTier(c) >= 4 && (c.summon_conditions ?? []).some(cd => (cd.requires ?? []).length >= 2))!;
     const closure = materialClosure(fusion, cat.cards, cat.cardDb);
     expect(closure).not.toBeNull();
     const ids = new Set([fusion.id, ...closure!.map(c => c.id)]);

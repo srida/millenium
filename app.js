@@ -55,6 +55,8 @@ const packs = require('./sets');
 // Catalogue des variantes d'illustration (onglet Variantes). Propriétaire du
 // dossier d'illustrations : leur art y vit sous l'id de la variante.
 const variants = require('./variants');
+// Résolution « attributs de tier → numéros ». Feuille, comme les deux au-dessus.
+const tiers = require('./tiers');
 
 const app = express();
 
@@ -563,6 +565,10 @@ const crud = (opts) => crudRouter({ readJson, writeJson, ...opts });
 //
 // ⚠️ `render` reçoit la LISTE et non chaque carte : `starterCardIds()` relit
 // sets.json (cache au mtime), le refaire 653 fois par requête serait absurde.
+// `_tiers` résout les attributs de tier de la carte (catégorie `Tiers`) en
+// numéros — calculé, jamais persisté, comme les deux drapeaux voisins. C'est ce
+// qui évite au client, à l'admin et à la simulation de redériver chacun une
+// règle qui vit dans `tiers.js`.
 app.use('/api/cards', crud({
   file: CARDS_FILE,
   render: (list) => {
@@ -571,9 +577,10 @@ app.use('/api/cards', crud({
       ...c,
       _has_illustration: illustrationExists(c.id),
       _starter: starter.has(c.id),
+      _tiers: tiers.tiersOf(c),
     }));
   },
-  strip: (c) => { delete c._has_illustration; },
+  strip: (c) => { delete c._has_illustration; delete c._tiers; },
 }));
 
 // L'icône d'un attribut est une IMAGE dont l'art vit dans ILLUS_DIR sous l'id

@@ -57,6 +57,7 @@ const progression = require('./progression');
 const cosmetics = require('./cosmetics');
 const packs = require('./sets');
 const variants = require('./variants');
+const tiers = require('./tiers');
 // Même rotation que la boutique — pas une copie, les mêmes fonctions.
 const shop = require('./shop');
 const { dayKey, nextRotationAt } = shop;
@@ -373,7 +374,7 @@ function lotView(lot) {
   switch (lot.type) {
     case 'card': {
       const card = shop.cards().get(lot.id);
-      return { ...base, label: card?.name ?? lot.id, tier: Number(card?.tier) || null };
+      return { ...base, label: card?.name ?? lot.id, tier: tiers.displayTier(card) };
     }
     case 'pack': {
       const def = packs.byId(lot.id);

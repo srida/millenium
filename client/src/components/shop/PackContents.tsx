@@ -21,6 +21,7 @@ import { createPortal } from 'react-dom';
 import * as CardDatabase from '../../data/CardDatabase.js';
 import * as AttributeDatabase from '../../data/AttributeDatabase.js';
 import type { Card } from '../../logic/types.js';
+import { primaryTier, tiersOf, hasTier } from '../../logic/Tiers.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { useCollectionStore } from '../../stores/collectionStore.js';
 import type { ShopSet } from '../../stores/shopStore.js';
@@ -110,7 +111,7 @@ export default function PackContents({ set, onClose }: { set: ShopSet; onClose: 
     () => set.card_ids
       .map(id => (CardDatabase as any).getCard(id) as Card | null)
       .filter((c): c is Card => !!c)
-      .sort((a, b) => a.tier - b.tier || a.name.localeCompare(b.name, 'fr')),
+      .sort((a, b) => primaryTier(a) - primaryTier(b) || a.name.localeCompare(b.name, 'fr')),
     [set.card_ids],
   );
 
@@ -118,9 +119,12 @@ export default function PackContents({ set, onClose }: { set: ShopSet; onClose: 
   // peut rien filtrer est du bruit — et la répartition par tier est justement
   // ce qu'on vient lire (depuis que le booster tire uniformément, la
   // composition du pack EST la distribution des drops).
+  // ⚠️ Une carte à plusieurs tiers compte dans CHACUN : la somme des chips peut
+  // donc dépasser le nombre de cartes du pack. C'est une lentille, pas une
+  // partition.
   const tiers = useMemo(() => {
     const count = new Map<number, number>();
-    for (const c of cards) count.set(c.tier, (count.get(c.tier) ?? 0) + 1);
+    for (const c of cards) for (const t of tiersOf(c)) count.set(t, (count.get(t) ?? 0) + 1);
     return [...count.entries()].sort((a, b) => a[0] - b[0]);
   }, [cards]);
 
@@ -140,7 +144,7 @@ export default function PackContents({ set, onClose }: { set: ShopSet; onClose: 
   const missingTotal = cards.filter(c => !owns(c.id)).length;
 
   const shown = useMemo(() => cards.filter(c => {
-    if (tierFilters.length && !tierFilters.includes(c.tier)) return false;
+    if (tierFilters.length && !tierFilters.some(t => hasTier(c, t))) return false;
     if (attributeFilter && !(c.attributes ?? []).includes(attributeFilter)) return false;
     if (ownership !== 'all' && (ownership === 'owned') !== ownedIds.has(c.id)) return false;
     return true;

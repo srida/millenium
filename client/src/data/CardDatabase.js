@@ -1,3 +1,5 @@
+import { tiersOf } from '../logic/Tiers.js';
+
 let cards = null;
 let byId = null;
 let byTier = null;
@@ -8,10 +10,17 @@ export async function init() {
   if (!res.ok) throw new Error(`CardDatabase: fetch failed (${res.status})`);
   cards = await res.json();
   byId = Object.fromEntries(cards.map(c => [c.id, c]));
+  // ⚠️ Le tier est un ATTRIBUT, et une carte peut en porter plusieurs : elle
+  // entre alors dans PLUSIEURS cases. Les tiers sont déjà résolus par le
+  // serveur (`_tiers`, calculé et jamais persisté) — on ne fait que les lire,
+  // et l'ORDRE d'insertion reste celui de `cards.json` : c'est lui que la
+  // pioche semée indexe.
   byTier = {};
   for (const c of cards) {
-    if (!byTier[c.tier]) byTier[c.tier] = [];
-    byTier[c.tier].push(c);
+    for (const t of tiersOf(c)) {
+      if (!byTier[t]) byTier[t] = [];
+      byTier[t].push(c);
+    }
   }
   return cards;
 }
