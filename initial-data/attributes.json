@@ -1728,5 +1728,45 @@
 		"timing": "start_of_combat",
 		"categorie": "Invocation",
 		"thresholds": []
+	},
+	{
+		"id": "ARCH_091",
+		"name": "Tier 1",
+		"icon": "1",
+		"timing": "start_of_combat",
+		"categorie": "Tiers",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_092",
+		"name": "Tier 2",
+		"icon": "2",
+		"timing": "start_of_combat",
+		"categorie": "Tiers",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_093",
+		"name": "Tier 3",
+		"icon": "3",
+		"timing": "start_of_combat",
+		"categorie": "Tiers",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_094",
+		"name": "Tier 4",
+		"icon": "4",
+		"timing": "start_of_combat",
+		"categorie": "Tiers",
+		"thresholds": []
+	},
+	{
+		"id": "ARCH_095",
+		"name": "Tier 5",
+		"icon": "5",
+		"timing": "start_of_combat",
+		"categorie": "Tiers",
+		"thresholds": []
 	}
 ]
