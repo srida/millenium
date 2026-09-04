@@ -10,7 +10,8 @@
 			"ARCH_004",
 			"ARCH_007",
 			"ARCH_054",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 25,
@@ -44,7 +45,8 @@
 			"ARCH_055",
 			"ARCH_052",
 			"ARCH_051",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -76,7 +78,8 @@
 			"ARCH_004",
 			"ARCH_007",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -103,7 +106,8 @@
 			"ARCH_019",
 			"ARCH_004",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 2,
@@ -132,7 +136,8 @@
 			"ARCH_009",
 			"ARCH_004",
 			"ARCH_056",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -162,7 +167,8 @@
 			"ARCH_045",
 			"ARCH_048",
 			"ARCH_051",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -194,7 +200,8 @@
 			"ARCH_048",
 			"ARCH_051",
 			"ARCH_056",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -231,7 +238,8 @@
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -260,7 +268,8 @@
 			"ARCH_045",
 			"ARCH_051",
 			"ARCH_048",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -287,7 +296,8 @@
 			"ARCH_028",
 			"ARCH_004",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -317,7 +327,8 @@
 			"ARCH_009",
 			"ARCH_056",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -355,7 +366,8 @@
 			"ARCH_004",
 			"ARCH_054",
 			"ARCH_052",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 25,
@@ -384,7 +396,8 @@
 			"ARCH_016",
 			"ARCH_056",
 			"ARCH_048",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -413,7 +426,8 @@
 			"ARCH_004",
 			"ARCH_022",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -442,7 +456,8 @@
 			"ARCH_004",
 			"ARCH_022",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -474,7 +489,8 @@
 			"ARCH_054",
 			"ARCH_051",
 			"ARCH_050",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 21,
@@ -514,7 +530,8 @@
 			"ARCH_021",
 			"ARCH_004",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -542,7 +559,8 @@
 			"ARCH_004",
 			"ARCH_051",
 			"ARCH_052",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -574,7 +592,8 @@
 			"ARCH_021",
 			"ARCH_004",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -603,7 +622,8 @@
 			"ARCH_021",
 			"ARCH_004",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -631,7 +651,8 @@
 			"ARCH_021",
 			"ARCH_004",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -658,7 +679,8 @@
 			"ARCH_019",
 			"ARCH_017",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -687,7 +709,8 @@
 			"ARCH_001",
 			"ARCH_017",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -718,7 +741,8 @@
 			"ARCH_051",
 			"ARCH_048",
 			"ARCH_004",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -746,7 +770,8 @@
 			"ARCH_001",
 			"ARCH_017",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -774,7 +799,8 @@
 			"ARCH_001",
 			"ARCH_017",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -801,7 +827,8 @@
 			"ARCH_019",
 			"ARCH_017",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -831,7 +858,8 @@
 			"ARCH_017",
 			"ARCH_054",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -860,7 +888,8 @@
 			"ARCH_002",
 			"ARCH_017",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 18,
@@ -889,7 +918,8 @@
 			"ARCH_001",
 			"ARCH_017",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 18,
@@ -917,7 +947,8 @@
 			"ARCH_005",
 			"ARCH_017",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -947,7 +978,8 @@
 			"ARCH_018",
 			"ARCH_056",
 			"ARCH_048",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -982,7 +1014,8 @@
 			"ARCH_045",
 			"ARCH_048",
 			"ARCH_054",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -1014,7 +1047,8 @@
 			"ARCH_001",
 			"ARCH_018",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -1044,7 +1078,8 @@
 			"ARCH_045",
 			"ARCH_051",
 			"ARCH_048",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -1072,7 +1107,8 @@
 			"ARCH_010",
 			"ARCH_018",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 18,
@@ -1099,7 +1135,8 @@
 			"ARCH_002",
 			"ARCH_018",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -1127,7 +1164,8 @@
 			"ARCH_018",
 			"ARCH_048",
 			"ARCH_051",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 24,
@@ -1166,7 +1204,8 @@
 			"ARCH_018",
 			"ARCH_056",
 			"ARCH_048",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -1194,7 +1233,8 @@
 			"ARCH_001",
 			"ARCH_018",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -1224,7 +1264,8 @@
 			"ARCH_035",
 			"ARCH_049",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -1257,7 +1298,8 @@
 			"ARCH_056",
 			"ARCH_051",
 			"ARCH_055",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -1291,7 +1333,8 @@
 			"ARCH_045",
 			"ARCH_051",
 			"ARCH_055",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -1319,7 +1362,8 @@
 			"ARCH_045",
 			"ARCH_055",
 			"ARCH_051",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -1348,7 +1392,8 @@
 			"ARCH_017",
 			"ARCH_056",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -1376,7 +1421,8 @@
 			"ARCH_001",
 			"ARCH_017",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -1406,7 +1452,8 @@
 			"ARCH_017",
 			"ARCH_056",
 			"ARCH_055",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 18,
@@ -1436,7 +1483,8 @@
 			"ARCH_017",
 			"ARCH_056",
 			"ARCH_055",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -1466,7 +1514,8 @@
 			"ARCH_017",
 			"ARCH_056",
 			"ARCH_055",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -1494,7 +1543,8 @@
 			"ARCH_002",
 			"ARCH_004",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -1523,7 +1573,8 @@
 			"ARCH_004",
 			"ARCH_007",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -1551,7 +1602,8 @@
 			"ARCH_004",
 			"ARCH_011",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -1580,7 +1632,8 @@
 			"ARCH_004",
 			"ARCH_011",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -1609,7 +1662,8 @@
 			"ARCH_004",
 			"ARCH_011",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -1638,7 +1692,8 @@
 			"ARCH_004",
 			"ARCH_014",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -1666,7 +1721,8 @@
 			"ARCH_004",
 			"ARCH_014",
 			"ARCH_056",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -1703,7 +1759,8 @@
 			"ARCH_004",
 			"ARCH_012",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -1732,7 +1789,8 @@
 			"ARCH_004",
 			"ARCH_012",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -1761,7 +1819,8 @@
 			"ARCH_004",
 			"ARCH_012",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -1790,7 +1849,8 @@
 			"ARCH_004",
 			"ARCH_012",
 			"ARCH_056",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -1831,7 +1891,8 @@
 			"ARCH_004",
 			"ARCH_015",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -1860,7 +1921,8 @@
 			"ARCH_004",
 			"ARCH_015",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -1889,7 +1951,8 @@
 			"ARCH_004",
 			"ARCH_015",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -1920,7 +1983,8 @@
 			"ARCH_056",
 			"ARCH_055",
 			"ARCH_086",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 38,
@@ -1978,7 +2042,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "CORE_066",
@@ -1993,7 +2058,8 @@
 			"ARCH_007",
 			"ARCH_056",
 			"ARCH_054",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 29,
@@ -2033,7 +2099,8 @@
 			"ARCH_012",
 			"ARCH_056",
 			"ARCH_055",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 40,
@@ -2093,7 +2160,8 @@
 			"ARCH_056",
 			"ARCH_055",
 			"ARCH_052",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -2132,7 +2200,8 @@
 			"ARCH_055",
 			"ARCH_056",
 			"ARCH_052",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -2175,7 +2244,8 @@
 			"ARCH_013",
 			"ARCH_056",
 			"ARCH_055",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -2216,7 +2286,8 @@
 			"ARCH_013",
 			"ARCH_056",
 			"ARCH_055",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -2257,7 +2328,8 @@
 			"ARCH_013",
 			"ARCH_056",
 			"ARCH_055",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -2296,7 +2368,8 @@
 			"ARCH_018",
 			"ARCH_048",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -2327,7 +2400,8 @@
 			"ARCH_035",
 			"ARCH_056",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -2355,7 +2429,8 @@
 			"ARCH_018",
 			"ARCH_056",
 			"ARCH_051",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -2391,7 +2466,8 @@
 			"ARCH_056",
 			"ARCH_048",
 			"ARCH_051",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 17,
@@ -2430,7 +2506,8 @@
 			"ARCH_007",
 			"ARCH_026",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 28,
@@ -2471,7 +2548,8 @@
 			"ARCH_054",
 			"ARCH_051",
 			"ARCH_045",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -2504,7 +2582,8 @@
 			"ARCH_017",
 			"ARCH_005",
 			"ARCH_055",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 7,
@@ -2531,7 +2610,8 @@
 			"ARCH_001",
 			"ARCH_018",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -2560,7 +2640,8 @@
 			"ARCH_001",
 			"ARCH_018",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -2589,7 +2670,8 @@
 			"ARCH_018",
 			"ARCH_035",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -2617,7 +2699,8 @@
 			"ARCH_014",
 			"ARCH_004",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -2646,7 +2729,8 @@
 			"ARCH_014",
 			"ARCH_004",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -2684,7 +2768,8 @@
 			"ARCH_023",
 			"ARCH_004",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 3,
@@ -2718,7 +2803,8 @@
 			"ARCH_045",
 			"ARCH_048",
 			"ARCH_055",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -2748,7 +2834,8 @@
 			"ARCH_045",
 			"ARCH_048",
 			"ARCH_055",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 36,
@@ -2787,7 +2874,8 @@
 			"ARCH_045",
 			"ARCH_048",
 			"ARCH_055",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 40,
@@ -2827,7 +2915,8 @@
 			"ARCH_045",
 			"ARCH_048",
 			"ARCH_050",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -2869,7 +2958,8 @@
 			"ARCH_048",
 			"ARCH_054",
 			"ARCH_052",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 32,
@@ -2907,7 +2997,8 @@
 			"ARCH_001",
 			"ARCH_018",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -2935,7 +3026,8 @@
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 5,
@@ -2969,7 +3061,8 @@
 			"ARCH_024",
 			"ARCH_051",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -2999,7 +3092,8 @@
 			"ARCH_024",
 			"ARCH_048",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -3028,7 +3122,8 @@
 			"ARCH_006",
 			"ARCH_024",
 			"ARCH_052",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -3057,7 +3152,8 @@
 			"ARCH_006",
 			"ARCH_024",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -3086,7 +3182,8 @@
 			"ARCH_006",
 			"ARCH_024",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -3115,7 +3212,8 @@
 			"ARCH_006",
 			"ARCH_024",
 			"ARCH_052",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -3155,7 +3253,8 @@
 			"ARCH_024",
 			"ARCH_049",
 			"ARCH_050",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 10,
@@ -3195,7 +3294,8 @@
 			"ARCH_024",
 			"ARCH_056",
 			"ARCH_048",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -3236,7 +3336,8 @@
 			"ARCH_024",
 			"ARCH_051",
 			"ARCH_048",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -3276,7 +3377,8 @@
 			"ARCH_004",
 			"ARCH_011",
 			"ARCH_056",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 35,
@@ -3321,7 +3423,8 @@
 			"ARCH_045",
 			"ARCH_052",
 			"ARCH_055",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 45,
@@ -3359,7 +3462,8 @@
 			"ARCH_045",
 			"ARCH_054",
 			"ARCH_048",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -3399,7 +3503,8 @@
 			"ARCH_007",
 			"ARCH_056",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -3438,7 +3543,8 @@
 			"ARCH_056",
 			"ARCH_054",
 			"ARCH_048",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -3477,7 +3583,8 @@
 			"ARCH_010",
 			"ARCH_056",
 			"ARCH_048",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 28,
@@ -3513,7 +3620,8 @@
 			"ARCH_021",
 			"ARCH_050",
 			"ARCH_056",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 21,
@@ -3551,7 +3659,8 @@
 			"ARCH_051",
 			"ARCH_056",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -3588,7 +3697,8 @@
 			"ARCH_010",
 			"ARCH_056",
 			"ARCH_052",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -3623,7 +3733,8 @@
 			"ARCH_048",
 			"ARCH_051",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -3660,7 +3771,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": true
 	},
 	{
 		"id": "CORE_112",
@@ -3672,7 +3784,8 @@
 			"ARCH_002",
 			"ARCH_018",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -3708,7 +3821,8 @@
 			"ARCH_018",
 			"ARCH_056",
 			"ARCH_048",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -3745,7 +3859,8 @@
 			"ARCH_018",
 			"ARCH_052",
 			"ARCH_048",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -3781,7 +3896,8 @@
 			"ARCH_045",
 			"ARCH_048",
 			"ARCH_050",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -3817,7 +3933,8 @@
 			"ARCH_045",
 			"ARCH_048",
 			"ARCH_051",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -3851,7 +3968,8 @@
 			"ARCH_017",
 			"ARCH_019",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 7,
@@ -3885,7 +4003,8 @@
 			"ARCH_035",
 			"ARCH_049",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 10,
@@ -3917,7 +4036,8 @@
 			"ARCH_055",
 			"ARCH_052",
 			"ARCH_045",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -3958,7 +4078,8 @@
 			"ARCH_006",
 			"ARCH_024",
 			"ARCH_055",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 25,
@@ -3999,7 +4120,8 @@
 			"ARCH_024",
 			"ARCH_048",
 			"ARCH_051",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -4036,7 +4158,8 @@
 			"ARCH_024",
 			"ARCH_051",
 			"ARCH_052",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -4074,7 +4197,8 @@
 			"ARCH_051",
 			"ARCH_052",
 			"ARCH_048",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -4117,7 +4241,8 @@
 			"ARCH_024",
 			"ARCH_049",
 			"ARCH_048",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -4157,7 +4282,8 @@
 			"ARCH_006",
 			"ARCH_024",
 			"ARCH_049",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -4197,7 +4323,8 @@
 			"ARCH_006",
 			"ARCH_024",
 			"ARCH_055",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -4241,7 +4368,8 @@
 			"ARCH_024",
 			"ARCH_049",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 24,
@@ -4283,7 +4411,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "CORE_128",
@@ -4297,7 +4426,8 @@
 			"ARCH_024",
 			"ARCH_050",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 22,
@@ -4340,7 +4470,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "CORE_129",
@@ -4354,7 +4485,8 @@
 			"ARCH_024",
 			"ARCH_048",
 			"ARCH_055",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 28,
@@ -4391,7 +4523,8 @@
 			"ARCH_055",
 			"ARCH_052",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 40,
@@ -4432,7 +4565,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "MARIK_001",
@@ -4444,7 +4578,8 @@
 			"ARCH_019",
 			"ARCH_030",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -4473,7 +4608,8 @@
 			"ARCH_030",
 			"ARCH_054",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -4502,7 +4638,8 @@
 			"ARCH_030",
 			"ARCH_025",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -4531,7 +4668,8 @@
 			"ARCH_025",
 			"ARCH_056",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -4565,7 +4703,8 @@
 			"ARCH_035",
 			"ARCH_058",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -4600,7 +4739,8 @@
 			"ARCH_046",
 			"ARCH_049",
 			"ARCH_052",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -4630,7 +4770,8 @@
 			"ARCH_046",
 			"ARCH_054",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -4660,7 +4801,8 @@
 			"ARCH_046",
 			"ARCH_049",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 6,
@@ -4688,7 +4830,8 @@
 			"ARCH_019",
 			"ARCH_030",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -4718,7 +4861,8 @@
 			"ARCH_025",
 			"ARCH_056",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -4748,7 +4892,8 @@
 			"ARCH_019",
 			"ARCH_054",
 			"ARCH_056",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -4776,7 +4921,8 @@
 			"ARCH_019",
 			"ARCH_030",
 			"ARCH_054",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -4804,7 +4950,8 @@
 			"ARCH_019",
 			"ARCH_030",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 35,
@@ -4838,7 +4985,8 @@
 			"ARCH_030",
 			"ARCH_033",
 			"ARCH_054",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 25,
@@ -4872,7 +5020,8 @@
 			"ARCH_048",
 			"ARCH_050",
 			"ARCH_028",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -4904,7 +5053,8 @@
 			"ARCH_031",
 			"ARCH_030",
 			"ARCH_048",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 0,
@@ -4940,7 +5090,8 @@
 			"ARCH_045",
 			"ARCH_048",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -4979,7 +5130,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "MARIK_020",
@@ -4993,7 +5145,8 @@
 			"ARCH_030",
 			"ARCH_045",
 			"ARCH_048",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 40,
@@ -5028,7 +5181,8 @@
 		"attributes": [
 			"ARCH_025",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -5055,7 +5209,8 @@
 		"attributes": [
 			"ARCH_025",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -5083,7 +5238,8 @@
 			"ARCH_025",
 			"ARCH_033",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -5111,7 +5267,8 @@
 			"ARCH_025",
 			"ARCH_044",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 17,
@@ -5140,7 +5297,8 @@
 			"ARCH_044",
 			"ARCH_048",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -5173,7 +5331,8 @@
 			"ARCH_003",
 			"ARCH_056",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 24,
@@ -5202,7 +5361,8 @@
 			"ARCH_048",
 			"ARCH_033",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -5230,7 +5390,8 @@
 			"ARCH_025",
 			"ARCH_044",
 			"ARCH_056",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -5258,7 +5419,8 @@
 			"ARCH_025",
 			"ARCH_044",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -5290,7 +5452,8 @@
 			"ARCH_019",
 			"ARCH_044",
 			"ARCH_054",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -5321,7 +5484,8 @@
 			"ARCH_056",
 			"ARCH_054",
 			"ARCH_066",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 32,
@@ -5357,7 +5521,8 @@
 			"ARCH_044",
 			"ARCH_055",
 			"ARCH_056",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -5388,7 +5553,8 @@
 		"attributes": [
 			"ARCH_001",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -5417,7 +5583,8 @@
 			"ARCH_044",
 			"ARCH_056",
 			"ARCH_055",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -5445,7 +5612,8 @@
 			"ARCH_025",
 			"ARCH_033",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -5472,7 +5640,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -5500,7 +5669,8 @@
 			"ARCH_033",
 			"ARCH_051",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -5527,7 +5697,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -5554,7 +5725,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -5586,7 +5758,8 @@
 			"ARCH_033",
 			"ARCH_050",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -5618,7 +5791,8 @@
 			"ARCH_033",
 			"ARCH_050",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 8,
@@ -5655,7 +5829,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "HAGA_008",
@@ -5666,7 +5841,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 0,
@@ -5698,7 +5874,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 11,
@@ -5728,7 +5905,8 @@
 			"ARCH_051",
 			"ARCH_045",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -5763,7 +5941,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "HAGA_012",
@@ -5775,7 +5954,8 @@
 			"ARCH_033",
 			"ARCH_051",
 			"ARCH_045",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 36,
@@ -5808,7 +5988,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -5840,7 +6021,8 @@
 			"ARCH_033",
 			"ARCH_041",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -5868,7 +6050,8 @@
 			"ARCH_034",
 			"ARCH_050",
 			"ARCH_048",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -5896,7 +6079,8 @@
 			"ARCH_034",
 			"ARCH_003",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -5922,7 +6106,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -5949,7 +6134,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -5976,7 +6162,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -6005,7 +6192,8 @@
 			"ARCH_003",
 			"ARCH_048",
 			"ARCH_056",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -6037,7 +6225,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 17,
@@ -6065,7 +6254,8 @@
 			"ARCH_034",
 			"ARCH_021",
 			"ARCH_050",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -6092,7 +6282,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_051",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -6120,7 +6311,8 @@
 			"ARCH_034",
 			"ARCH_035",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -6148,7 +6340,8 @@
 			"ARCH_034",
 			"ARCH_003",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -6178,7 +6371,8 @@
 			"ARCH_045",
 			"ARCH_051",
 			"ARCH_054",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -6205,7 +6399,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -6236,7 +6431,8 @@
 		"attributes": [
 			"ARCH_035",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -6264,7 +6460,8 @@
 			"ARCH_035",
 			"ARCH_047",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -6292,7 +6489,8 @@
 			"ARCH_035",
 			"ARCH_021",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -6320,7 +6518,8 @@
 			"ARCH_035",
 			"ARCH_047",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 21,
@@ -6348,7 +6547,8 @@
 			"ARCH_035",
 			"ARCH_047",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -6378,7 +6578,8 @@
 			"ARCH_047",
 			"ARCH_018",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -6406,7 +6607,8 @@
 			"ARCH_021",
 			"ARCH_051",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -6437,7 +6639,8 @@
 		"attributes": [
 			"ARCH_035",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -6465,7 +6668,8 @@
 			"ARCH_035",
 			"ARCH_021",
 			"ARCH_049",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 24,
@@ -6498,7 +6702,8 @@
 			"ARCH_035",
 			"ARCH_047",
 			"ARCH_049",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -6529,7 +6734,8 @@
 			"ARCH_003",
 			"ARCH_045",
 			"ARCH_049",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -6558,7 +6764,8 @@
 			"ARCH_049",
 			"ARCH_003",
 			"ARCH_089",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 32,
@@ -6596,7 +6803,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": true
 	},
 	{
 		"id": "MAKO_014",
@@ -6608,7 +6816,8 @@
 			"ARCH_035",
 			"ARCH_002",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -6635,7 +6844,8 @@
 			"ARCH_035",
 			"ARCH_019",
 			"ARCH_049",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -6669,7 +6879,8 @@
 			"ARCH_021",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -6699,7 +6910,8 @@
 			"ARCH_021",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -6729,7 +6941,8 @@
 			"ARCH_021",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 11,
@@ -6758,7 +6971,8 @@
 			"ARCH_001",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -6789,7 +7003,8 @@
 			"ARCH_003",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -6819,7 +7034,8 @@
 			"ARCH_021",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -6861,7 +7077,8 @@
 			"ARCH_003",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 28,
@@ -6896,7 +7113,8 @@
 			"ARCH_001",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 32,
@@ -6927,7 +7145,8 @@
 			"ARCH_035",
 			"ARCH_054",
 			"ARCH_049",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 14,
@@ -6961,7 +7180,8 @@
 			"ARCH_054",
 			"ARCH_035",
 			"ARCH_049",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 8,
@@ -6993,7 +7213,8 @@
 			"ARCH_002",
 			"ARCH_054",
 			"ARCH_039",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 1,
@@ -7022,7 +7243,8 @@
 			"ARCH_054",
 			"ARCH_039",
 			"ARCH_019",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 10,
@@ -7057,7 +7279,8 @@
 			"ARCH_054",
 			"ARCH_039",
 			"ARCH_019",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 20,
@@ -7095,7 +7318,8 @@
 			"ARCH_019",
 			"ARCH_020",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 25,
@@ -7132,7 +7356,8 @@
 			"ARCH_003",
 			"ARCH_045",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -7169,7 +7394,8 @@
 			"ARCH_002",
 			"ARCH_007",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 20,
@@ -7201,7 +7427,8 @@
 			"ARCH_002",
 			"ARCH_054",
 			"ARCH_039",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -7230,7 +7457,8 @@
 			"ARCH_002",
 			"ARCH_007",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 25,
@@ -7262,7 +7490,8 @@
 			"ARCH_001",
 			"ARCH_043",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -7289,7 +7518,8 @@
 		"attributes": [
 			"ARCH_039",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -7316,7 +7546,8 @@
 		"attributes": [
 			"ARCH_039",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -7344,7 +7575,8 @@
 			"ARCH_039",
 			"ARCH_029",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -7373,7 +7605,8 @@
 			"ARCH_043",
 			"ARCH_054",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -7400,7 +7633,8 @@
 		"attributes": [
 			"ARCH_043",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -7429,7 +7663,8 @@
 			"ARCH_029",
 			"ARCH_043",
 			"ARCH_054",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -7459,7 +7694,8 @@
 		"attributes": [
 			"ARCH_043",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -7493,7 +7729,8 @@
 			"ARCH_043",
 			"ARCH_054",
 			"ARCH_018",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 6,
@@ -7521,7 +7758,8 @@
 			"ARCH_029",
 			"ARCH_003",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -7549,7 +7787,8 @@
 			"ARCH_029",
 			"ARCH_001",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -7577,7 +7816,8 @@
 			"ARCH_029",
 			"ARCH_001",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -7604,7 +7844,8 @@
 		"attributes": [
 			"ARCH_029",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -7632,7 +7873,8 @@
 			"ARCH_040",
 			"ARCH_029",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -7660,7 +7902,8 @@
 			"ARCH_040",
 			"ARCH_029",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 25,
@@ -7695,7 +7938,8 @@
 			"ARCH_029",
 			"ARCH_003",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -7725,7 +7969,8 @@
 			"ARCH_029",
 			"ARCH_002",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -7753,7 +7998,8 @@
 			"ARCH_029",
 			"ARCH_003",
 			"ARCH_054",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -7785,7 +8031,8 @@
 			"ARCH_040",
 			"ARCH_029",
 			"ARCH_054",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -7817,7 +8064,8 @@
 		"attributes": [
 			"ARCH_029",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -7847,7 +8095,8 @@
 			"ARCH_042",
 			"ARCH_041",
 			"ARCH_052",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 26,
@@ -7879,7 +8128,8 @@
 			"ARCH_042",
 			"ARCH_041",
 			"ARCH_051",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -7911,7 +8161,8 @@
 			"ARCH_041",
 			"ARCH_035",
 			"ARCH_049",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 25,
@@ -7944,7 +8195,8 @@
 			"ARCH_049",
 			"ARCH_052",
 			"ARCH_051",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 40,
@@ -7984,7 +8236,8 @@
 			"ARCH_041",
 			"ARCH_021",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -8012,7 +8265,8 @@
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -8040,7 +8294,8 @@
 			"ARCH_019",
 			"ARCH_054",
 			"ARCH_050",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -8070,7 +8325,8 @@
 			"ARCH_025",
 			"ARCH_056",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -8097,7 +8353,8 @@
 			"ARCH_041",
 			"ARCH_002",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 20,
@@ -8123,7 +8380,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -8150,7 +8408,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -8177,7 +8436,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -8204,7 +8464,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 33,
@@ -8241,7 +8502,8 @@
 			"ARCH_033",
 			"ARCH_025",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -8272,7 +8534,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 22,
@@ -8305,7 +8568,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -8338,7 +8602,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 40,
@@ -8373,7 +8638,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -8400,7 +8666,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -8429,7 +8696,8 @@
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 25,
@@ -8458,7 +8726,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -8485,7 +8754,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -8512,7 +8782,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 7,
@@ -8539,7 +8810,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 36,
@@ -8575,7 +8847,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -8611,7 +8884,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -8638,7 +8912,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -8665,7 +8940,8 @@
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -8700,7 +8976,8 @@
 			"ARCH_035",
 			"ARCH_047",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -8731,7 +9008,8 @@
 			"ARCH_047",
 			"ARCH_049",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -8774,7 +9052,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "EXTRA_022",
@@ -8788,7 +9067,8 @@
 			"ARCH_018",
 			"ARCH_047",
 			"ARCH_049",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 43,
@@ -8825,7 +9105,8 @@
 			"ARCH_035",
 			"ARCH_047",
 			"ARCH_049",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -8853,7 +9134,8 @@
 			"ARCH_035",
 			"ARCH_047",
 			"ARCH_049",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 38,
@@ -8890,7 +9172,8 @@
 			"ARCH_035",
 			"ARCH_047",
 			"ARCH_049",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 48,
@@ -8928,7 +9211,8 @@
 			"ARCH_047",
 			"ARCH_049",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 22,
@@ -8969,7 +9253,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "EXTRA_027",
@@ -8983,7 +9268,8 @@
 			"ARCH_049",
 			"ARCH_054",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 24,
@@ -9022,7 +9308,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "EXTRA_028",
@@ -9035,7 +9322,8 @@
 			"ARCH_025",
 			"ARCH_044",
 			"ARCH_056",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 37,
@@ -9073,7 +9361,8 @@
 			"ARCH_025",
 			"ARCH_044",
 			"ARCH_056",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -9109,7 +9398,8 @@
 			"ARCH_044",
 			"ARCH_048",
 			"ARCH_055",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -9139,7 +9429,8 @@
 			"ARCH_048",
 			"ARCH_056",
 			"ARCH_044",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -9169,7 +9460,8 @@
 			"ARCH_044",
 			"ARCH_055",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -9198,7 +9490,8 @@
 			"ARCH_025",
 			"ARCH_044",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -9230,7 +9523,8 @@
 			"ARCH_048",
 			"ARCH_056",
 			"ARCH_066",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 34,
@@ -9268,7 +9562,8 @@
 			"ARCH_054",
 			"ARCH_056",
 			"ARCH_066",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 10,
@@ -9305,7 +9600,8 @@
 			"ARCH_048",
 			"ARCH_055",
 			"ARCH_056",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 26,
@@ -9344,7 +9640,8 @@
 			"ARCH_001",
 			"ARCH_021",
 			"ARCH_051",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 22,
@@ -9375,7 +9672,8 @@
 			"ARCH_045",
 			"ARCH_051",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 24,
@@ -9404,7 +9702,8 @@
 			"ARCH_036",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -9433,7 +9732,8 @@
 			"ARCH_001",
 			"ARCH_021",
 			"ARCH_051",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -9462,7 +9762,8 @@
 			"ARCH_036",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -9490,7 +9791,8 @@
 			"ARCH_036",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -9519,7 +9821,8 @@
 			"ARCH_048",
 			"ARCH_051",
 			"ARCH_003",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 42,
@@ -9554,7 +9857,8 @@
 			"ARCH_001",
 			"ARCH_021",
 			"ARCH_051",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -9591,7 +9895,8 @@
 			"ARCH_001",
 			"ARCH_021",
 			"ARCH_051",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -9630,7 +9935,8 @@
 			"ARCH_021",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 31,
@@ -9666,7 +9972,8 @@
 			"ARCH_021",
 			"ARCH_051",
 			"ARCH_045",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -9703,7 +10010,8 @@
 			"ARCH_035",
 			"ARCH_046",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 10,
@@ -9736,7 +10044,8 @@
 			"ARCH_019",
 			"ARCH_025",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 12,
@@ -9768,7 +10077,8 @@
 			"ARCH_019",
 			"ARCH_030",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -9797,7 +10107,8 @@
 			"ARCH_035",
 			"ARCH_049",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 17,
@@ -9826,7 +10137,8 @@
 			"ARCH_030",
 			"ARCH_001",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 13,
@@ -9856,7 +10168,8 @@
 			"ARCH_046",
 			"ARCH_049",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 5,
@@ -9890,7 +10203,8 @@
 			"ARCH_019",
 			"ARCH_030",
 			"ARCH_054",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 29,
@@ -9919,7 +10233,8 @@
 			"ARCH_046",
 			"ARCH_049",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -9953,7 +10268,8 @@
 			"ARCH_030",
 			"ARCH_033",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -9986,7 +10302,8 @@
 			"ARCH_054",
 			"ARCH_050",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 40,
@@ -10027,7 +10344,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "EXTRA_058",
@@ -10042,7 +10360,8 @@
 			"ARCH_046",
 			"ARCH_049",
 			"ARCH_054",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 32,
@@ -10074,7 +10393,8 @@
 			"ARCH_035",
 			"ARCH_054",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -10105,7 +10425,8 @@
 			"ARCH_054",
 			"ARCH_056",
 			"ARCH_025",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -10141,7 +10462,8 @@
 			"ARCH_019",
 			"ARCH_054",
 			"ARCH_001",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 40,
@@ -10178,7 +10500,8 @@
 			"ARCH_043",
 			"ARCH_019",
 			"ARCH_054",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -10212,7 +10535,8 @@
 			"ARCH_019",
 			"ARCH_054",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 18,
@@ -10240,7 +10564,8 @@
 			"ARCH_043",
 			"ARCH_019",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -10273,7 +10598,8 @@
 			"ARCH_043",
 			"ARCH_019",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 33,
@@ -10309,7 +10635,8 @@
 			"ARCH_029",
 			"ARCH_054",
 			"ARCH_056",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 25,
@@ -10347,7 +10674,8 @@
 			"ARCH_021",
 			"ARCH_049",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -10375,7 +10703,8 @@
 			"ARCH_041",
 			"ARCH_056",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 29,
@@ -10404,7 +10733,8 @@
 			"ARCH_001",
 			"ARCH_041",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -10431,7 +10761,8 @@
 			"ARCH_019",
 			"ARCH_041",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -10462,7 +10793,8 @@
 			"ARCH_049",
 			"ARCH_052",
 			"ARCH_051",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 50,
@@ -10497,7 +10829,8 @@
 			"ARCH_042",
 			"ARCH_049",
 			"ARCH_052",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 33,
@@ -10536,7 +10869,8 @@
 			"ARCH_041",
 			"ARCH_052",
 			"ARCH_051",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -10575,7 +10909,8 @@
 			"ARCH_042",
 			"ARCH_051",
 			"ARCH_049",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 31,
@@ -10614,7 +10949,8 @@
 			"ARCH_041",
 			"ARCH_056",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -10648,7 +10984,8 @@
 			"ARCH_041",
 			"ARCH_054",
 			"ARCH_050",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 36,
@@ -10683,7 +11020,8 @@
 			"ARCH_021",
 			"ARCH_023",
 			"ARCH_055",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 14,
@@ -10718,7 +11056,8 @@
 			"ARCH_025",
 			"ARCH_011",
 			"ARCH_056",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -10749,7 +11088,8 @@
 			"ARCH_011",
 			"ARCH_025",
 			"ARCH_056",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -10780,7 +11120,8 @@
 			"ARCH_011",
 			"ARCH_025",
 			"ARCH_056",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 36,
@@ -10819,7 +11160,8 @@
 			"ARCH_022",
 			"ARCH_054",
 			"ARCH_051",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 34,
@@ -10860,7 +11202,8 @@
 			"ARCH_003",
 			"ARCH_051",
 			"ARCH_048",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -10890,7 +11233,8 @@
 			"ARCH_003",
 			"ARCH_045",
 			"ARCH_052",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 40,
@@ -10923,7 +11267,8 @@
 			"ARCH_031",
 			"ARCH_001",
 			"ARCH_050",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 40,
@@ -10962,7 +11307,8 @@
 			"ARCH_045",
 			"ARCH_055",
 			"ARCH_056",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 50,
@@ -11002,7 +11348,8 @@
 			"ARCH_002",
 			"ARCH_017",
 			"ARCH_055",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -11040,7 +11387,8 @@
 			"ARCH_045",
 			"ARCH_055",
 			"ARCH_054",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 50,
@@ -11081,7 +11429,8 @@
 			"ARCH_017",
 			"ARCH_045",
 			"ARCH_055",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -11114,7 +11463,8 @@
 			"ARCH_026",
 			"ARCH_054",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 40,
@@ -11157,7 +11507,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "EXTRA_090",
@@ -11171,7 +11522,8 @@
 			"ARCH_024",
 			"ARCH_052",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -11213,7 +11565,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "EXTRA_091",
@@ -11227,7 +11580,8 @@
 			"ARCH_024",
 			"ARCH_048",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 22,
@@ -11270,7 +11624,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "EXTRA_092",
@@ -11284,7 +11639,8 @@
 			"ARCH_024",
 			"ARCH_051",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 20,
@@ -11327,7 +11683,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "EXTRA_093",
@@ -11343,7 +11700,8 @@
 			"ARCH_054",
 			"ARCH_066",
 			"ARCH_087",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 45,
@@ -11386,7 +11744,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "EXTRA_094",
@@ -11401,7 +11760,8 @@
 			"ARCH_048",
 			"ARCH_056",
 			"ARCH_066",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 25,
@@ -11436,7 +11796,8 @@
 		"attributes": [
 			"ARCH_038",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 0,
@@ -11469,7 +11830,8 @@
 			"ARCH_038",
 			"ARCH_054",
 			"ARCH_050",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 12,
@@ -11506,7 +11868,8 @@
 			"ARCH_021",
 			"ARCH_038",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 11,
@@ -11539,7 +11902,8 @@
 			"ARCH_038",
 			"ARCH_051",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 20,
@@ -11573,7 +11937,8 @@
 			"ARCH_054",
 			"ARCH_055",
 			"ARCH_056",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 14,
@@ -11611,7 +11976,8 @@
 			"ARCH_048",
 			"ARCH_054",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -11645,7 +12011,8 @@
 			"ARCH_048",
 			"ARCH_054",
 			"ARCH_050",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 22,
@@ -11684,7 +12051,8 @@
 			"ARCH_038",
 			"ARCH_054",
 			"ARCH_056",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -11723,7 +12091,8 @@
 			"ARCH_038",
 			"ARCH_048",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 24,
@@ -11762,7 +12131,8 @@
 			"ARCH_045",
 			"ARCH_051",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 13,
@@ -11794,7 +12164,8 @@
 			"ARCH_002",
 			"ARCH_039",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 10,
@@ -11830,7 +12201,8 @@
 			"ARCH_002",
 			"ARCH_039",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 15,
@@ -11865,7 +12237,8 @@
 			"ARCH_002",
 			"ARCH_039",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -11892,7 +12265,8 @@
 			"ARCH_002",
 			"ARCH_039",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 31,
@@ -11929,7 +12303,8 @@
 			"ARCH_039",
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 50,
@@ -11966,7 +12341,8 @@
 			"ARCH_021",
 			"ARCH_038",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 10,
@@ -12006,7 +12382,8 @@
 			"ARCH_052",
 			"ARCH_054",
 			"ARCH_055",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 45,
@@ -12043,7 +12420,8 @@
 			"ARCH_021",
 			"ARCH_038",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 22,
@@ -12079,7 +12457,8 @@
 			"ARCH_021",
 			"ARCH_038",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 5,
@@ -12117,7 +12496,8 @@
 			"ARCH_039",
 			"ARCH_038",
 			"ARCH_054",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 34,
@@ -12155,7 +12535,8 @@
 			"ARCH_038",
 			"ARCH_002",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 5,
@@ -12192,7 +12573,8 @@
 			"ARCH_021",
 			"ARCH_038",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 27,
@@ -12225,7 +12607,8 @@
 			"ARCH_021",
 			"ARCH_038",
 			"ARCH_054",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 37,
@@ -12263,7 +12646,8 @@
 			"ARCH_056",
 			"ARCH_025",
 			"ARCH_057",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -12298,7 +12682,8 @@
 			"ARCH_057",
 			"ARCH_025",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -12329,7 +12714,8 @@
 			"ARCH_056",
 			"ARCH_057",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -12362,7 +12748,8 @@
 			"ARCH_003",
 			"ARCH_025",
 			"ARCH_011",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -12420,7 +12807,8 @@
 			"ARCH_057",
 			"ARCH_025",
 			"ARCH_021",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -12477,7 +12865,8 @@
 			"ARCH_057",
 			"ARCH_025",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 15,
@@ -12508,7 +12897,8 @@
 			"ARCH_057",
 			"ARCH_025",
 			"ARCH_059",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 18,
@@ -12541,7 +12931,8 @@
 			"ARCH_003",
 			"ARCH_025",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -12570,7 +12961,8 @@
 			"ARCH_056",
 			"ARCH_057",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -12604,7 +12996,8 @@
 			"ARCH_057",
 			"ARCH_025",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -12634,7 +13027,8 @@
 			"ARCH_056",
 			"ARCH_057",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -12668,7 +13062,8 @@
 			"ARCH_025",
 			"ARCH_045",
 			"ARCH_051",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -12704,7 +13099,8 @@
 			"ARCH_056",
 			"ARCH_057",
 			"ARCH_025",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -12735,7 +13131,8 @@
 			"ARCH_056",
 			"ARCH_057",
 			"ARCH_025",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 15,
@@ -12768,7 +13165,8 @@
 			"ARCH_056",
 			"ARCH_057",
 			"ARCH_025",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 27,
@@ -12807,7 +13205,8 @@
 			"ARCH_057",
 			"ARCH_048",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -12839,7 +13238,8 @@
 			"ARCH_045",
 			"ARCH_003",
 			"ARCH_051",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -12874,7 +13274,8 @@
 			"ARCH_056",
 			"ARCH_057",
 			"ARCH_025",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 10,
@@ -12912,7 +13313,8 @@
 			"ARCH_056",
 			"ARCH_057",
 			"ARCH_025",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -12950,7 +13352,8 @@
 			"ARCH_059",
 			"ARCH_001",
 			"ARCH_025",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 45,
@@ -12987,7 +13390,8 @@
 			"ARCH_056",
 			"ARCH_057",
 			"ARCH_025",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 33,
@@ -13024,7 +13428,8 @@
 			"ARCH_056",
 			"ARCH_057",
 			"ARCH_025",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 44,
@@ -13065,7 +13470,8 @@
 			"ARCH_025",
 			"ARCH_048",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 10,
@@ -13101,7 +13507,8 @@
 			"ARCH_007",
 			"ARCH_054",
 			"ARCH_055",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -13128,7 +13535,8 @@
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -13159,7 +13567,8 @@
 		"attributes": [
 			"ARCH_052",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -13189,7 +13598,8 @@
 			"ARCH_023",
 			"ARCH_001",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -13221,7 +13631,8 @@
 			"ARCH_001",
 			"ARCH_054",
 			"ARCH_056",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -13249,7 +13660,8 @@
 			"ARCH_051",
 			"ARCH_045",
 			"ARCH_021",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 24,
@@ -13283,7 +13695,8 @@
 			"ARCH_055",
 			"ARCH_051",
 			"ARCH_023",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 14,
@@ -13315,7 +13728,8 @@
 		"attributes": [
 			"ARCH_055",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 2,
@@ -13348,7 +13762,8 @@
 			"ARCH_056",
 			"ARCH_054",
 			"ARCH_001",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -13379,7 +13794,8 @@
 			"ARCH_055",
 			"ARCH_056",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 8,
@@ -13410,7 +13826,8 @@
 			"ARCH_052",
 			"ARCH_056",
 			"ARCH_045",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -13443,7 +13860,8 @@
 			"ARCH_052",
 			"ARCH_001",
 			"ARCH_025",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -13474,7 +13892,8 @@
 		"attributes": [
 			"ARCH_001",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 14,
@@ -13508,7 +13927,8 @@
 			"ARCH_051",
 			"ARCH_055",
 			"ARCH_023",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -13541,7 +13961,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -13568,7 +13989,8 @@
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -13598,7 +14020,8 @@
 			"ARCH_007",
 			"ARCH_026",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -13632,7 +14055,8 @@
 			"ARCH_054",
 			"ARCH_049",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 16,
@@ -13666,7 +14090,8 @@
 			"ARCH_035",
 			"ARCH_045",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 3,
@@ -13695,7 +14120,8 @@
 			"ARCH_056",
 			"ARCH_054",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -13724,7 +14150,8 @@
 			"ARCH_002",
 			"ARCH_063",
 			"ARCH_054",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -13751,7 +14178,8 @@
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -13783,7 +14211,8 @@
 			"ARCH_048",
 			"ARCH_056",
 			"ARCH_025",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -13814,7 +14243,8 @@
 			"ARCH_054",
 			"ARCH_019",
 			"ARCH_029",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 21,
@@ -13845,7 +14275,8 @@
 			"ARCH_001",
 			"ARCH_056",
 			"ARCH_035",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -13875,7 +14306,8 @@
 		"attributes": [
 			"ARCH_054",
 			"ARCH_002",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 26,
@@ -13911,7 +14343,8 @@
 			"ARCH_001",
 			"ARCH_003",
 			"ARCH_002",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -13944,7 +14377,8 @@
 		"attributes": [
 			"ARCH_001",
 			"ARCH_056",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 20,
@@ -13979,7 +14413,8 @@
 			"ARCH_050",
 			"ARCH_054",
 			"ARCH_056",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -14012,7 +14447,8 @@
 			"ARCH_054",
 			"ARCH_019",
 			"ARCH_028",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -14041,7 +14477,8 @@
 			"ARCH_054",
 			"ARCH_019",
 			"ARCH_029",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 15,
@@ -14092,7 +14529,8 @@
 			"ARCH_058",
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 14,
@@ -14126,7 +14564,8 @@
 			"ARCH_035",
 			"ARCH_049",
 			"ARCH_056",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 29,
@@ -14185,7 +14624,8 @@
 			"ARCH_025",
 			"ARCH_019",
 			"ARCH_065",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 24,
@@ -14219,7 +14659,8 @@
 			"ARCH_054",
 			"ARCH_025",
 			"ARCH_028",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 15,
@@ -14256,7 +14697,8 @@
 			"ARCH_050",
 			"ARCH_058",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -14286,7 +14728,8 @@
 			"ARCH_045",
 			"ARCH_023",
 			"ARCH_002",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -14317,7 +14760,8 @@
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 14,
@@ -14350,7 +14794,8 @@
 			"ARCH_050",
 			"ARCH_058",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -14382,7 +14827,8 @@
 			"ARCH_050",
 			"ARCH_001",
 			"ARCH_019",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -14417,7 +14863,8 @@
 			"ARCH_050",
 			"ARCH_021",
 			"ARCH_028",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 33,
@@ -14471,7 +14918,8 @@
 			"ARCH_054",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -14501,7 +14949,8 @@
 			"ARCH_001",
 			"ARCH_028",
 			"ARCH_056",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -14533,7 +14982,8 @@
 			"ARCH_048",
 			"ARCH_050",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 30,
@@ -14561,7 +15011,8 @@
 			"ARCH_050",
 			"ARCH_056",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 24,
@@ -14590,7 +15041,8 @@
 			"ARCH_055",
 			"ARCH_003",
 			"ARCH_026",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 30,
@@ -14628,7 +15080,8 @@
 			"ARCH_050",
 			"ARCH_025",
 			"ARCH_028",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 20,
@@ -14665,7 +15118,8 @@
 			"ARCH_054",
 			"ARCH_055",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 3,
@@ -14697,7 +15151,8 @@
 			"ARCH_054",
 			"ARCH_058",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 10,
@@ -14730,7 +15185,8 @@
 			"ARCH_051",
 			"ARCH_045",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -14760,7 +15216,8 @@
 			"ARCH_051",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -14794,7 +15251,8 @@
 			"ARCH_056",
 			"ARCH_025",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -14825,7 +15283,8 @@
 			"ARCH_048",
 			"ARCH_051",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 10,
@@ -14858,7 +15317,8 @@
 			"ARCH_054",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 33,
@@ -14913,7 +15373,8 @@
 			"ARCH_017",
 			"ARCH_054",
 			"ARCH_029",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -14948,7 +15409,8 @@
 			"ARCH_050",
 			"ARCH_019",
 			"ARCH_028",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 10,
@@ -14986,7 +15448,8 @@
 			"ARCH_053",
 			"ARCH_002",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 12,
@@ -15021,7 +15484,8 @@
 			"ARCH_052",
 			"ARCH_028",
 			"ARCH_025",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 25,
@@ -15059,7 +15523,8 @@
 			"ARCH_054",
 			"ARCH_019",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -15086,7 +15551,8 @@
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 37,
@@ -15116,7 +15582,8 @@
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 25,
@@ -15149,7 +15616,8 @@
 			"ARCH_054",
 			"ARCH_019",
 			"ARCH_001",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 25,
@@ -15182,7 +15650,8 @@
 			"ARCH_017",
 			"ARCH_051",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -15210,7 +15679,8 @@
 		"attributes": [
 			"ARCH_054",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 15,
@@ -15242,7 +15712,8 @@
 			"ARCH_054",
 			"ARCH_048",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -15272,7 +15743,8 @@
 			"ARCH_055",
 			"ARCH_025",
 			"ARCH_023",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -15301,7 +15773,8 @@
 			"ARCH_030",
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -15333,7 +15806,8 @@
 			"ARCH_001",
 			"ARCH_019",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -15365,7 +15839,8 @@
 			"ARCH_021",
 			"ARCH_001",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 22,
@@ -15406,7 +15881,8 @@
 					"materials": []
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_071",
@@ -15420,7 +15896,8 @@
 			"ARCH_054",
 			"ARCH_028",
 			"ARCH_002",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 10,
@@ -15477,7 +15954,8 @@
 			"ARCH_001",
 			"ARCH_021",
 			"ARCH_019",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 32,
@@ -15515,7 +15993,8 @@
 			"ARCH_001",
 			"ARCH_023",
 			"ARCH_050",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 18,
@@ -15546,7 +16025,8 @@
 			"ARCH_023",
 			"ARCH_002",
 			"ARCH_052",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 24,
@@ -15577,7 +16057,8 @@
 			"ARCH_025",
 			"ARCH_023",
 			"ARCH_052",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 13,
@@ -15606,7 +16087,8 @@
 			"ARCH_051",
 			"ARCH_055",
 			"ARCH_023",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -15634,7 +16116,8 @@
 			"ARCH_054",
 			"ARCH_058",
 			"ARCH_002",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 29,
@@ -15667,7 +16150,8 @@
 			"ARCH_056",
 			"ARCH_023",
 			"ARCH_025",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 35,
@@ -15697,7 +16181,8 @@
 			"ARCH_056",
 			"ARCH_025",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -15725,7 +16210,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_087",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 33,
@@ -15765,7 +16251,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_081",
@@ -15778,7 +16265,8 @@
 			"ARCH_002",
 			"ARCH_021",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -15806,7 +16294,8 @@
 			"ARCH_055",
 			"ARCH_023",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 12,
@@ -15835,7 +16324,8 @@
 			"ARCH_056",
 			"ARCH_051",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 17,
@@ -15863,7 +16353,8 @@
 			"ARCH_054",
 			"ARCH_057",
 			"ARCH_029",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -15896,7 +16387,8 @@
 			"ARCH_055",
 			"ARCH_023",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -15930,7 +16422,8 @@
 			"ARCH_019",
 			"ARCH_001",
 			"ARCH_025",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -15963,7 +16456,8 @@
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 19,
@@ -15999,7 +16493,8 @@
 			"ARCH_021",
 			"ARCH_025",
 			"ARCH_028",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 16,
@@ -16028,7 +16523,8 @@
 			"ARCH_051",
 			"ARCH_054",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 17,
@@ -16058,7 +16554,8 @@
 			"ARCH_048",
 			"ARCH_050",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -16092,7 +16589,8 @@
 			"ARCH_050",
 			"ARCH_025",
 			"ARCH_028",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -16132,7 +16630,8 @@
 			"ARCH_025",
 			"ARCH_028",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 10,
@@ -16175,7 +16674,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_093",
@@ -16189,7 +16689,8 @@
 			"ARCH_056",
 			"ARCH_021",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 14,
@@ -16221,7 +16722,8 @@
 			"ARCH_048",
 			"ARCH_001",
 			"ARCH_063",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 18,
@@ -16248,7 +16750,8 @@
 		"attributes": [
 			"ARCH_048",
 			"ARCH_023",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -16277,7 +16780,8 @@
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_003",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 19,
@@ -16311,7 +16815,8 @@
 			"ARCH_050",
 			"ARCH_058",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -16339,7 +16844,8 @@
 			"ARCH_007",
 			"ARCH_054",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -16367,7 +16873,8 @@
 			"ARCH_050",
 			"ARCH_021",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 12,
@@ -16395,7 +16902,8 @@
 			"ARCH_050",
 			"ARCH_001",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 42,
@@ -16427,7 +16935,8 @@
 		"attributes": [
 			"ARCH_050",
 			"ARCH_034",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -16457,7 +16966,8 @@
 			"ARCH_056",
 			"ARCH_025",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -16485,7 +16995,8 @@
 			"ARCH_050",
 			"ARCH_057",
 			"ARCH_028",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 10,
@@ -16516,7 +17027,8 @@
 		"attributes": [
 			"ARCH_049",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 16,
@@ -16544,7 +17056,8 @@
 		"attributes": [
 			"ARCH_051",
 			"ARCH_023",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 15,
@@ -16572,7 +17085,8 @@
 			"ARCH_050",
 			"ARCH_054",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -16600,7 +17114,8 @@
 			"ARCH_055",
 			"ARCH_023",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -16632,7 +17147,8 @@
 			"ARCH_049",
 			"ARCH_021",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 3,
@@ -16665,7 +17181,8 @@
 			"ARCH_003",
 			"ARCH_035",
 			"ARCH_045",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 40,
@@ -16694,7 +17211,8 @@
 			"ARCH_057",
 			"ARCH_021",
 			"ARCH_028",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 10,
@@ -16722,7 +17240,8 @@
 			"ARCH_054",
 			"ARCH_045",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -16749,7 +17268,8 @@
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 25,
@@ -16777,7 +17297,8 @@
 			"ARCH_051",
 			"ARCH_055",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -16805,7 +17326,8 @@
 			"ARCH_050",
 			"ARCH_057",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -16838,7 +17360,8 @@
 			"ARCH_056",
 			"ARCH_025",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -16867,7 +17390,8 @@
 			"ARCH_056",
 			"ARCH_019",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -16895,7 +17419,8 @@
 			"ARCH_054",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -16928,7 +17453,8 @@
 			"ARCH_019",
 			"ARCH_045",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -16958,7 +17484,8 @@
 			"ARCH_021",
 			"ARCH_045",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 3,
@@ -16989,7 +17516,8 @@
 			"ARCH_054",
 			"ARCH_056",
 			"ARCH_025",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -17020,7 +17548,8 @@
 			"ARCH_054",
 			"ARCH_025",
 			"ARCH_002",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 34,
@@ -17053,7 +17582,8 @@
 			"ARCH_054",
 			"ARCH_019",
 			"ARCH_045",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -17086,7 +17616,8 @@
 			"ARCH_057",
 			"ARCH_050",
 			"ARCH_028",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 15,
@@ -17114,7 +17645,8 @@
 			"ARCH_054",
 			"ARCH_019",
 			"ARCH_029",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -17142,7 +17674,8 @@
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 10,
@@ -17177,7 +17710,8 @@
 			"ARCH_053",
 			"ARCH_021",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 14,
@@ -17210,7 +17744,8 @@
 			"ARCH_057",
 			"ARCH_028",
 			"ARCH_003",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 28,
@@ -17242,7 +17777,8 @@
 			"ARCH_049",
 			"ARCH_002",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 16,
@@ -17274,7 +17810,8 @@
 			"ARCH_051",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 16,
@@ -17306,7 +17843,8 @@
 			"ARCH_050",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 16,
@@ -17337,7 +17875,8 @@
 		"attributes": [
 			"ARCH_049",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -17368,7 +17907,8 @@
 			"ARCH_050",
 			"ARCH_021",
 			"ARCH_029",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -17398,7 +17938,8 @@
 			"ARCH_056",
 			"ARCH_048",
 			"ARCH_025",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 5,
@@ -17434,7 +17975,8 @@
 			"ARCH_049",
 			"ARCH_023",
 			"ARCH_035",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 25,
@@ -17475,7 +18017,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_135",
@@ -17487,7 +18030,8 @@
 			"ARCH_043",
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 18,
@@ -17524,7 +18068,8 @@
 			"ARCH_056",
 			"ARCH_002",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -17554,7 +18099,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_027",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -17582,7 +18128,8 @@
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -17612,7 +18159,8 @@
 			"ARCH_035",
 			"ARCH_045",
 			"ARCH_021",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 14,
@@ -17668,7 +18216,8 @@
 			"ARCH_021",
 			"ARCH_035",
 			"ARCH_045",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -17725,7 +18274,8 @@
 			"ARCH_025",
 			"ARCH_001",
 			"ARCH_022",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -17759,7 +18309,8 @@
 			"ARCH_052",
 			"ARCH_025",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 14,
@@ -17787,7 +18338,8 @@
 			"ARCH_050",
 			"ARCH_052",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 21,
@@ -17815,7 +18367,8 @@
 			"ARCH_007",
 			"ARCH_054",
 			"ARCH_002",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 17,
@@ -17843,7 +18396,8 @@
 			"ARCH_054",
 			"ARCH_002",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -17871,7 +18425,8 @@
 			"ARCH_054",
 			"ARCH_019",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 17,
@@ -17904,7 +18459,8 @@
 			"ARCH_054",
 			"ARCH_055",
 			"ARCH_002",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -17933,7 +18489,8 @@
 			"ARCH_049",
 			"ARCH_001",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 19,
@@ -17963,7 +18520,8 @@
 			"ARCH_054",
 			"ARCH_019",
 			"ARCH_001",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -17991,7 +18549,8 @@
 			"ARCH_054",
 			"ARCH_001",
 			"ARCH_087",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 37,
@@ -18034,7 +18593,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_151",
@@ -18047,7 +18607,8 @@
 			"ARCH_057",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 29,
@@ -18080,7 +18641,8 @@
 		"attributes": [
 			"ARCH_054",
 			"ARCH_029",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 3,
@@ -18108,7 +18670,8 @@
 		"attributes": [
 			"ARCH_054",
 			"ARCH_029",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -18144,7 +18707,8 @@
 			"ARCH_021",
 			"ARCH_029",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 22,
@@ -18185,7 +18749,8 @@
 					"materials": []
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_156",
@@ -18197,7 +18762,8 @@
 			"ARCH_050",
 			"ARCH_054",
 			"ARCH_029",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -18226,7 +18792,8 @@
 			"ARCH_050",
 			"ARCH_028",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -18256,7 +18823,8 @@
 			"ARCH_003",
 			"ARCH_028",
 			"ARCH_035",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 38,
@@ -18292,7 +18860,8 @@
 			"ARCH_051",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 19,
@@ -18323,7 +18892,8 @@
 			"ARCH_021",
 			"ARCH_035",
 			"ARCH_047",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -18353,7 +18923,8 @@
 			"ARCH_047",
 			"ARCH_035",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 26,
@@ -18386,7 +18957,8 @@
 			"ARCH_050",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -18414,7 +18986,8 @@
 			"ARCH_051",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -18443,7 +19016,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_003",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 26,
@@ -18479,7 +19053,8 @@
 			"ARCH_054",
 			"ARCH_057",
 			"ARCH_019",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -18508,7 +19083,8 @@
 			"ARCH_057",
 			"ARCH_028",
 			"ARCH_019",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -18536,7 +19112,8 @@
 			"ARCH_048",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -18570,7 +19147,8 @@
 			"ARCH_021",
 			"ARCH_035",
 			"ARCH_058",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 17,
@@ -18602,7 +19180,8 @@
 			"ARCH_019",
 			"ARCH_029",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -18632,7 +19211,8 @@
 			"ARCH_056",
 			"ARCH_019",
 			"ARCH_020",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 20,
@@ -18666,7 +19246,8 @@
 			"ARCH_049",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 12,
@@ -18696,7 +19277,8 @@
 			"ARCH_001",
 			"ARCH_019",
 			"ARCH_020",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -18730,7 +19312,8 @@
 			"ARCH_056",
 			"ARCH_019",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -18758,7 +19341,8 @@
 			"ARCH_054",
 			"ARCH_002",
 			"ARCH_019",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 33,
@@ -18791,7 +19375,8 @@
 			"ARCH_050",
 			"ARCH_019",
 			"ARCH_001",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 40,
@@ -18826,7 +19411,8 @@
 			"ARCH_050",
 			"ARCH_021",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 15,
@@ -18854,7 +19440,8 @@
 			"ARCH_048",
 			"ARCH_054",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 21,
@@ -18885,7 +19472,8 @@
 			"ARCH_001",
 			"ARCH_003",
 			"ARCH_019",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 34,
@@ -18925,7 +19513,8 @@
 			"ARCH_048",
 			"ARCH_003",
 			"ARCH_066",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 45,
@@ -18965,7 +19554,8 @@
 			"ARCH_050",
 			"ARCH_001",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -19006,7 +19596,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_181",
@@ -19022,7 +19613,8 @@
 			"ARCH_056",
 			"ARCH_023",
 			"ARCH_001",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -19063,7 +19655,8 @@
 			"ARCH_001",
 			"ARCH_019",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 29,
@@ -19104,7 +19697,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_183",
@@ -19115,7 +19709,8 @@
 		"attributes": [
 			"ARCH_054",
 			"ARCH_002",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 25,
@@ -19153,7 +19748,8 @@
 			"ARCH_048",
 			"ARCH_003",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 29,
@@ -19193,7 +19789,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_185",
@@ -19208,7 +19805,8 @@
 			"ARCH_055",
 			"ARCH_001",
 			"ARCH_002",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 22,
@@ -19251,7 +19849,8 @@
 			"ARCH_025",
 			"ARCH_012",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -19292,7 +19891,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_187",
@@ -19308,7 +19908,8 @@
 			"ARCH_009",
 			"ARCH_026",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 40,
@@ -19351,7 +19952,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_188",
@@ -19367,7 +19969,8 @@
 			"ARCH_054",
 			"ARCH_009",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 35,
@@ -19410,7 +20013,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_189",
@@ -19429,7 +20033,8 @@
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 44,
@@ -19468,7 +20073,8 @@
 			"ARCH_052",
 			"ARCH_023",
 			"ARCH_002",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 15,
@@ -19506,7 +20112,8 @@
 			"ARCH_054",
 			"ARCH_002",
 			"ARCH_023",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 28,
@@ -19545,7 +20152,8 @@
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -19586,7 +20194,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_193",
@@ -19603,7 +20212,8 @@
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_035",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 29,
@@ -19640,7 +20250,8 @@
 			"ARCH_004",
 			"ARCH_050",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -19669,7 +20280,8 @@
 			"ARCH_018",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 14,
@@ -19706,7 +20318,8 @@
 			"ARCH_018",
 			"ARCH_050",
 			"ARCH_001",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -19743,7 +20356,8 @@
 			"ARCH_018",
 			"ARCH_001",
 			"ARCH_048",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -19781,7 +20395,8 @@
 			"ARCH_048",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 36,
@@ -19821,7 +20436,8 @@
 			"ARCH_048",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -19878,7 +20494,8 @@
 			"ARCH_018",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -19916,7 +20533,8 @@
 			"ARCH_018",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 38,
@@ -19953,7 +20571,8 @@
 			"ARCH_048",
 			"ARCH_001",
 			"ARCH_027",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 32,
@@ -19993,7 +20612,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 36,
@@ -20034,7 +20654,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_204",
@@ -20050,7 +20671,8 @@
 			"ARCH_003",
 			"ARCH_035",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -20091,7 +20713,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_205",
@@ -20107,7 +20730,8 @@
 			"ARCH_001",
 			"ARCH_028",
 			"ARCH_012",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 38,
@@ -20150,7 +20774,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -20183,7 +20808,8 @@
 			"ARCH_054",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -20216,7 +20842,8 @@
 			"ARCH_056",
 			"ARCH_055",
 			"ARCH_001",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -20258,7 +20885,8 @@
 			"ARCH_055",
 			"ARCH_001",
 			"ARCH_086",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 36,
@@ -20316,7 +20944,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_210",
@@ -20331,7 +20960,8 @@
 			"ARCH_001",
 			"ARCH_004",
 			"ARCH_015",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 45,
@@ -20393,7 +21023,8 @@
 			"ARCH_003",
 			"ARCH_002",
 			"ARCH_009",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -20432,7 +21063,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_087",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -20475,7 +21107,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_213",
@@ -20489,7 +21122,8 @@
 			"ARCH_021",
 			"ARCH_019",
 			"ARCH_003",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 15,
@@ -20524,7 +21158,8 @@
 			"ARCH_054",
 			"ARCH_021",
 			"ARCH_019",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -20563,7 +21198,8 @@
 			"ARCH_002",
 			"ARCH_029",
 			"ARCH_087",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -20602,7 +21238,8 @@
 					"materials": []
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_216",
@@ -20615,7 +21252,8 @@
 			"ARCH_050",
 			"ARCH_003",
 			"ARCH_034",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -20645,7 +21283,8 @@
 			"ARCH_051",
 			"ARCH_003",
 			"ARCH_045",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 25,
@@ -20673,7 +21312,8 @@
 			"ARCH_051",
 			"ARCH_055",
 			"ARCH_003",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -20713,7 +21353,8 @@
 			"ARCH_003",
 			"ARCH_001",
 			"ARCH_068",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 29,
@@ -20755,7 +21396,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_003",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 24,
@@ -20792,7 +21434,8 @@
 			"ARCH_056",
 			"ARCH_055",
 			"ARCH_025",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 20,
@@ -20832,7 +21475,8 @@
 			"ARCH_056",
 			"ARCH_050",
 			"ARCH_001",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -20874,7 +21518,8 @@
 			"ARCH_025",
 			"ARCH_035",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 25,
@@ -20915,7 +21560,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_224",
@@ -20929,7 +21575,8 @@
 			"ARCH_054",
 			"ARCH_052",
 			"ARCH_019",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 34,
@@ -20970,7 +21617,8 @@
 			"ARCH_048",
 			"ARCH_019",
 			"ARCH_003",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 42,
@@ -21010,7 +21658,8 @@
 			"ARCH_048",
 			"ARCH_003",
 			"ARCH_028",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 45,
@@ -21049,7 +21698,8 @@
 			"ARCH_054",
 			"ARCH_051",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -21083,7 +21733,8 @@
 			"ARCH_003",
 			"ARCH_020",
 			"ARCH_008",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 36,
@@ -21124,7 +21775,8 @@
 			"ARCH_001",
 			"ARCH_019",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 38,
@@ -21166,7 +21818,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_230",
@@ -21177,7 +21830,8 @@
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -21207,7 +21861,8 @@
 			"ARCH_054",
 			"ARCH_051",
 			"ARCH_001",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 31,
@@ -21241,7 +21896,8 @@
 			"ARCH_058",
 			"ARCH_025",
 			"ARCH_028",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -21270,7 +21926,8 @@
 			"ARCH_054",
 			"ARCH_023",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -21304,7 +21961,8 @@
 			"ARCH_019",
 			"ARCH_045",
 			"ARCH_001",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -21342,7 +22000,8 @@
 			"ARCH_019",
 			"ARCH_045",
 			"ARCH_001",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 42,
@@ -21379,7 +22038,8 @@
 			"ARCH_055",
 			"ARCH_023",
 			"ARCH_035",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -21418,7 +22078,8 @@
 			"ARCH_002",
 			"ARCH_087",
 			"ARCH_086",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 25,
@@ -21470,7 +22131,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_238",
@@ -21484,7 +22146,8 @@
 			"ARCH_051",
 			"ARCH_025",
 			"ARCH_048",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 13,
@@ -21515,7 +22178,8 @@
 			"ARCH_025",
 			"ARCH_021",
 			"ARCH_048",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -21544,7 +22208,8 @@
 			"ARCH_056",
 			"ARCH_055",
 			"ARCH_025",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 40,
@@ -21588,7 +22253,8 @@
 			"ARCH_055",
 			"ARCH_051",
 			"ARCH_025",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 20,
@@ -21630,7 +22296,8 @@
 			"ARCH_005",
 			"ARCH_026",
 			"ARCH_017",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 40,
@@ -21668,7 +22335,8 @@
 			"ARCH_004",
 			"ARCH_054",
 			"ARCH_002",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 35,
@@ -21705,7 +22373,8 @@
 			"ARCH_068",
 			"ARCH_048",
 			"ARCH_003",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 29,
@@ -21763,7 +22432,8 @@
 			"ARCH_017",
 			"ARCH_051",
 			"ARCH_003",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -21822,7 +22492,8 @@
 			"ARCH_055",
 			"ARCH_003",
 			"ARCH_068",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -21853,7 +22524,8 @@
 			"ARCH_056",
 			"ARCH_048",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -21887,7 +22559,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_003",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 36,
@@ -21924,7 +22597,8 @@
 			"ARCH_022",
 			"ARCH_054",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -21954,7 +22628,8 @@
 			"ARCH_058",
 			"ARCH_021",
 			"ARCH_019",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -21989,7 +22664,8 @@
 			"ARCH_058",
 			"ARCH_019",
 			"ARCH_021",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 31,
@@ -22027,7 +22703,8 @@
 			"ARCH_054",
 			"ARCH_001",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 29,
@@ -22062,7 +22739,8 @@
 			"ARCH_050",
 			"ARCH_019",
 			"ARCH_021",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 40,
@@ -22097,7 +22775,8 @@
 			"ARCH_050",
 			"ARCH_028",
 			"ARCH_069",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -22126,7 +22805,8 @@
 			"ARCH_069",
 			"ARCH_050",
 			"ARCH_028",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 20,
@@ -22163,7 +22843,8 @@
 			"ARCH_050",
 			"ARCH_003",
 			"ARCH_028",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -22203,7 +22884,8 @@
 			"ARCH_021",
 			"ARCH_025",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 18,
@@ -22246,7 +22928,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_258",
@@ -22260,7 +22943,8 @@
 			"ARCH_054",
 			"ARCH_051",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 25,
@@ -22291,7 +22975,8 @@
 			"ARCH_048",
 			"ARCH_050",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 24,
@@ -22325,7 +23010,8 @@
 			"ARCH_050",
 			"ARCH_001",
 			"ARCH_003",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 29,
@@ -22367,7 +23053,8 @@
 			"ARCH_001",
 			"ARCH_056",
 			"ARCH_003",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -22408,7 +23095,8 @@
 			"ARCH_001",
 			"ARCH_003",
 			"ARCH_055",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 31,
@@ -22448,7 +23136,8 @@
 			"ARCH_051",
 			"ARCH_003",
 			"ARCH_002",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -22489,7 +23178,8 @@
 			"ARCH_052",
 			"ARCH_053",
 			"ARCH_003",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 43,
@@ -22533,7 +23223,8 @@
 			"ARCH_055",
 			"ARCH_001",
 			"ARCH_003",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 45,
@@ -22570,7 +23261,8 @@
 			"ARCH_022",
 			"ARCH_054",
 			"ARCH_002",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 32,
@@ -22629,7 +23321,8 @@
 			"ARCH_056",
 			"ARCH_002",
 			"ARCH_003",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -22671,7 +23364,8 @@
 			"ARCH_051",
 			"ARCH_003",
 			"ARCH_002",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 28,
@@ -22710,7 +23404,8 @@
 			"ARCH_007",
 			"ARCH_054",
 			"ARCH_002",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -22752,7 +23447,8 @@
 			"ARCH_056",
 			"ARCH_002",
 			"ARCH_001",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -22795,7 +23491,8 @@
 			"ARCH_054",
 			"ARCH_003",
 			"ARCH_002",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -22835,7 +23532,8 @@
 			"ARCH_009",
 			"ARCH_054",
 			"ARCH_056",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 29,
@@ -22876,7 +23574,8 @@
 			"ARCH_021",
 			"ARCH_019",
 			"ARCH_002",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 20,
@@ -22915,7 +23614,8 @@
 			"ARCH_055",
 			"ARCH_053",
 			"ARCH_003",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 29,
@@ -22975,7 +23675,8 @@
 			"ARCH_055",
 			"ARCH_053",
 			"ARCH_003",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 20,
@@ -23034,7 +23735,8 @@
 			"ARCH_051",
 			"ARCH_001",
 			"ARCH_003",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 25,
@@ -23094,7 +23796,8 @@
 			"ARCH_048",
 			"ARCH_001",
 			"ARCH_025",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 25,
@@ -23136,7 +23839,8 @@
 			"ARCH_001",
 			"ARCH_025",
 			"ARCH_068",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 25,
@@ -23173,7 +23877,8 @@
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 15,
@@ -23207,7 +23912,8 @@
 			"ARCH_027",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -23246,7 +23952,8 @@
 			"ARCH_021",
 			"ARCH_035",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 7,
@@ -23275,7 +23982,8 @@
 			"ARCH_044",
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -23303,7 +24011,8 @@
 			"ARCH_050",
 			"ARCH_057",
 			"ARCH_028",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 17,
@@ -23333,7 +24042,8 @@
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_030",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 34,
@@ -23371,7 +24081,8 @@
 			"ARCH_021",
 			"ARCH_035",
 			"ARCH_049",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -23400,7 +24111,8 @@
 			"ARCH_055",
 			"ARCH_051",
 			"ARCH_023",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 33,
@@ -23434,7 +24146,8 @@
 			"ARCH_063",
 			"ARCH_048",
 			"ARCH_001",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -23463,7 +24176,8 @@
 			"ARCH_054",
 			"ARCH_035",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 9,
@@ -23492,7 +24206,8 @@
 			"ARCH_044",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 25,
@@ -23524,7 +24239,8 @@
 			"ARCH_058",
 			"ARCH_055",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -23551,7 +24267,8 @@
 		"attributes": [
 			"ARCH_050",
 			"ARCH_034",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 15,
@@ -23580,7 +24297,8 @@
 			"ARCH_050",
 			"ARCH_055",
 			"ARCH_034",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 25,
@@ -23614,7 +24332,8 @@
 			"ARCH_056",
 			"ARCH_025",
 			"ARCH_034",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -23648,7 +24367,8 @@
 			"ARCH_056",
 			"ARCH_025",
 			"ARCH_034",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 40,
@@ -23688,7 +24408,8 @@
 			"ARCH_028",
 			"ARCH_029",
 			"ARCH_034",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -23719,7 +24440,8 @@
 			"ARCH_028",
 			"ARCH_029",
 			"ARCH_034",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 8,
@@ -23749,7 +24471,8 @@
 			"ARCH_050",
 			"ARCH_021",
 			"ARCH_034",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -23780,7 +24503,8 @@
 			"ARCH_054",
 			"ARCH_048",
 			"ARCH_001",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -23815,7 +24539,8 @@
 			"ARCH_048",
 			"ARCH_027",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 11,
@@ -23850,7 +24575,8 @@
 			"ARCH_057",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -23879,7 +24605,8 @@
 			"ARCH_050",
 			"ARCH_021",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -23909,7 +24636,8 @@
 			"ARCH_050",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 18,
@@ -23936,7 +24664,8 @@
 		"attributes": [
 			"ARCH_048",
 			"ARCH_029",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -23970,7 +24699,8 @@
 			"ARCH_054",
 			"ARCH_003",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 9,
@@ -23998,7 +24728,8 @@
 			"ARCH_049",
 			"ARCH_001",
 			"ARCH_035",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -24031,7 +24762,8 @@
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -24060,7 +24792,8 @@
 			"ARCH_051",
 			"ARCH_003",
 			"ARCH_025",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 29,
@@ -24092,7 +24825,8 @@
 			"ARCH_049",
 			"ARCH_021",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -24121,7 +24855,8 @@
 			"ARCH_058",
 			"ARCH_050",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -24150,7 +24885,8 @@
 			"ARCH_050",
 			"ARCH_028",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 14,
@@ -24179,7 +24915,8 @@
 			"ARCH_053",
 			"ARCH_054",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -24208,7 +24945,8 @@
 			"ARCH_054",
 			"ARCH_056",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 9,
@@ -24236,7 +24974,8 @@
 			"ARCH_055",
 			"ARCH_056",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -24263,7 +25002,8 @@
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -24296,7 +25036,8 @@
 			"ARCH_048",
 			"ARCH_054",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -24327,7 +25068,8 @@
 			"ARCH_021",
 			"ARCH_001",
 			"ARCH_070",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -24357,7 +25099,8 @@
 			"ARCH_021",
 			"ARCH_001",
 			"ARCH_070",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -24385,7 +25128,8 @@
 			"ARCH_054",
 			"ARCH_019",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -24414,7 +25158,8 @@
 			"ARCH_051",
 			"ARCH_048",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 17,
@@ -24449,7 +25194,8 @@
 			"ARCH_052",
 			"ARCH_034",
 			"ARCH_025",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -24477,7 +25223,8 @@
 		"attributes": [
 			"ARCH_048",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -24505,7 +25252,8 @@
 			"ARCH_049",
 			"ARCH_055",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 11,
@@ -24536,7 +25284,8 @@
 			"ARCH_052",
 			"ARCH_054",
 			"ARCH_003",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -24572,7 +25321,8 @@
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 24,
@@ -24601,7 +25351,8 @@
 			"ARCH_051",
 			"ARCH_002",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -24630,7 +25381,8 @@
 			"ARCH_050",
 			"ARCH_021",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 14,
@@ -24659,7 +25411,8 @@
 			"ARCH_049",
 			"ARCH_001",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -24689,7 +25442,8 @@
 			"ARCH_021",
 			"ARCH_035",
 			"ARCH_065",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 4,
@@ -24718,7 +25472,8 @@
 			"ARCH_048",
 			"ARCH_050",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -24746,7 +25501,8 @@
 			"ARCH_050",
 			"ARCH_021",
 			"ARCH_054",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 18,
@@ -24775,7 +25531,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -24802,7 +25559,8 @@
 		"attributes": [
 			"ARCH_050",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -24829,7 +25587,8 @@
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -24858,7 +25617,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -24892,7 +25652,8 @@
 			"ARCH_001",
 			"ARCH_025",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -24929,7 +25690,8 @@
 					"materials": []
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_336",
@@ -24941,7 +25703,8 @@
 			"ARCH_050",
 			"ARCH_001",
 			"ARCH_023",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -24969,7 +25732,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 28,
@@ -25001,7 +25765,8 @@
 			"ARCH_055",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -25031,7 +25796,8 @@
 			"ARCH_023",
 			"ARCH_045",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -25059,7 +25825,8 @@
 			"ARCH_043",
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -25092,7 +25859,8 @@
 			"ARCH_052",
 			"ARCH_021",
 			"ARCH_035",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 25,
@@ -25125,7 +25893,8 @@
 			"ARCH_058",
 			"ARCH_055",
 			"ARCH_023",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -25160,7 +25929,8 @@
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_001",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -25223,7 +25993,8 @@
 			"ARCH_042",
 			"ARCH_055",
 			"ARCH_001",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -25254,7 +26025,8 @@
 			"ARCH_056",
 			"ARCH_048",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 19,
@@ -25286,7 +26058,8 @@
 		"attributes": [
 			"ARCH_048",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 32,
@@ -25313,7 +26086,8 @@
 		"attributes": [
 			"ARCH_048",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -25343,7 +26117,8 @@
 			"ARCH_021",
 			"ARCH_025",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -25374,7 +26149,8 @@
 			"ARCH_048",
 			"ARCH_019",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -25403,7 +26179,8 @@
 			"ARCH_056",
 			"ARCH_050",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -25432,7 +26209,8 @@
 			"ARCH_049",
 			"ARCH_001",
 			"ARCH_035",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 26,
@@ -25467,7 +26245,8 @@
 			"ARCH_056",
 			"ARCH_028",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -25498,7 +26277,8 @@
 			"ARCH_001",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -25527,7 +26307,8 @@
 			"ARCH_056",
 			"ARCH_025",
 			"ARCH_055",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -25555,7 +26336,8 @@
 			"ARCH_050",
 			"ARCH_051",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -25584,7 +26366,8 @@
 			"ARCH_058",
 			"ARCH_021",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 11,
@@ -25615,7 +26398,8 @@
 			"ARCH_019",
 			"ARCH_028",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -25643,7 +26427,8 @@
 			"ARCH_056",
 			"ARCH_025",
 			"ARCH_033",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -25673,7 +26458,8 @@
 			"ARCH_001",
 			"ARCH_035",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -25701,7 +26487,8 @@
 		"attributes": [
 			"ARCH_048",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 25,
@@ -25733,7 +26520,8 @@
 			"ARCH_056",
 			"ARCH_055",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -25767,7 +26555,8 @@
 			"ARCH_002",
 			"ARCH_035",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 12,
@@ -25807,7 +26596,8 @@
 					"materials": []
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_364",
@@ -25821,7 +26611,8 @@
 			"ARCH_051",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -25852,7 +26643,8 @@
 			"ARCH_021",
 			"ARCH_045",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -25893,7 +26685,8 @@
 					"materials": []
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_366",
@@ -25907,7 +26700,8 @@
 			"ARCH_054",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -25944,7 +26738,8 @@
 			"ARCH_055",
 			"ARCH_001",
 			"ARCH_023",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 9,
@@ -25974,7 +26769,8 @@
 			"ARCH_001",
 			"ARCH_023",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -26014,7 +26810,8 @@
 					"materials": []
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_369",
@@ -26027,7 +26824,8 @@
 			"ARCH_056",
 			"ARCH_003",
 			"ARCH_072",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -26057,7 +26855,8 @@
 			"ARCH_003",
 			"ARCH_072",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -26098,7 +26897,8 @@
 					"materials": []
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_371",
@@ -26112,7 +26912,8 @@
 			"ARCH_003",
 			"ARCH_072",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -26153,7 +26954,8 @@
 					"materials": []
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_372",
@@ -26167,7 +26969,8 @@
 			"ARCH_056",
 			"ARCH_003",
 			"ARCH_072",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -26202,7 +27005,8 @@
 		"attributes": [
 			"ARCH_048",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -26230,7 +27034,8 @@
 			"ARCH_051",
 			"ARCH_003",
 			"ARCH_048",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -26257,7 +27062,8 @@
 		"attributes": [
 			"ARCH_050",
 			"ARCH_033",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -26293,7 +27099,8 @@
 			"ARCH_056",
 			"ARCH_010",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -26327,7 +27134,8 @@
 			"ARCH_021",
 			"ARCH_002",
 			"ARCH_086",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -26372,7 +27180,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_379",
@@ -26387,7 +27196,8 @@
 			"ARCH_028",
 			"ARCH_025",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 15,
@@ -26430,7 +27240,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_380",
@@ -26443,7 +27254,8 @@
 			"ARCH_050",
 			"ARCH_001",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -26472,7 +27284,8 @@
 			"ARCH_056",
 			"ARCH_023",
 			"ARCH_001",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 23,
@@ -26508,7 +27321,8 @@
 			"ARCH_050",
 			"ARCH_021",
 			"ARCH_045",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -26538,7 +27352,8 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_002",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -26573,7 +27388,8 @@
 			"ARCH_054",
 			"ARCH_025",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 28,
@@ -26603,7 +27419,8 @@
 			"ARCH_035",
 			"ARCH_021",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -26634,7 +27451,8 @@
 			"ARCH_055",
 			"ARCH_003",
 			"ARCH_071",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 25,
@@ -26669,7 +27487,8 @@
 			"ARCH_021",
 			"ARCH_001",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 18,
@@ -26697,7 +27516,8 @@
 			"ARCH_042",
 			"ARCH_050",
 			"ARCH_028",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -26729,7 +27549,8 @@
 			"ARCH_054",
 			"ARCH_002",
 			"ARCH_003",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -26768,7 +27589,8 @@
 			"ARCH_050",
 			"ARCH_001",
 			"ARCH_029",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -26800,7 +27622,8 @@
 			"ARCH_021",
 			"ARCH_001",
 			"ARCH_019",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -26829,7 +27652,8 @@
 			"ARCH_054",
 			"ARCH_057",
 			"ARCH_002",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 32,
@@ -26864,7 +27688,8 @@
 			"ARCH_054",
 			"ARCH_029",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -26895,7 +27720,8 @@
 			"ARCH_029",
 			"ARCH_021",
 			"ARCH_019",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 28,
@@ -26933,7 +27759,8 @@
 			"ARCH_051",
 			"ARCH_048",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -26961,7 +27788,8 @@
 			"ARCH_050",
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 22,
@@ -26989,7 +27817,8 @@
 			"ARCH_054",
 			"ARCH_019",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -27018,7 +27847,8 @@
 			"ARCH_050",
 			"ARCH_021",
 			"ARCH_028",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 18,
@@ -27046,7 +27876,8 @@
 			"ARCH_058",
 			"ARCH_055",
 			"ARCH_023",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -27075,7 +27906,8 @@
 			"ARCH_056",
 			"ARCH_028",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 24,
@@ -27103,7 +27935,8 @@
 			"ARCH_048",
 			"ARCH_001",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 10,
@@ -27131,7 +27964,8 @@
 			"ARCH_051",
 			"ARCH_054",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -27162,7 +27996,8 @@
 			"ARCH_048",
 			"ARCH_054",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 35,
@@ -27194,7 +28029,8 @@
 		"attributes": [
 			"ARCH_054",
 			"ARCH_029",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 17,
@@ -27224,7 +28060,8 @@
 			"ARCH_052",
 			"ARCH_029",
 			"ARCH_088",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 28,
@@ -27267,7 +28104,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_406",
@@ -27281,7 +28119,8 @@
 			"ARCH_056",
 			"ARCH_019",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 19,
@@ -27309,7 +28148,8 @@
 			"ARCH_048",
 			"ARCH_002",
 			"ARCH_054",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -27362,7 +28202,8 @@
 		"attributes": [
 			"ARCH_050",
 			"ARCH_033",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -27391,7 +28232,8 @@
 			"ARCH_050",
 			"ARCH_033",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -27432,7 +28274,8 @@
 					"materials": []
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_411",
@@ -27443,7 +28286,8 @@
 		"attributes": [
 			"ARCH_051",
 			"ARCH_033",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -27480,7 +28324,8 @@
 			"ARCH_051",
 			"ARCH_033",
 			"ARCH_052",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 36,
@@ -27518,7 +28363,8 @@
 			"ARCH_057",
 			"ARCH_028",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -27547,7 +28393,8 @@
 			"ARCH_057",
 			"ARCH_028",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 12,
@@ -27575,7 +28422,8 @@
 			"ARCH_050",
 			"ARCH_001",
 			"ARCH_028",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -27603,7 +28451,8 @@
 			"ARCH_050",
 			"ARCH_003",
 			"ARCH_028",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -27637,7 +28486,8 @@
 			"ARCH_050",
 			"ARCH_001",
 			"ARCH_028",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -27665,7 +28515,8 @@
 			"ARCH_050",
 			"ARCH_001",
 			"ARCH_028",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -27703,7 +28554,8 @@
 			"ARCH_057",
 			"ARCH_050",
 			"ARCH_028",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -27737,7 +28589,8 @@
 			"ARCH_057",
 			"ARCH_050",
 			"ARCH_028",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 16,
@@ -27790,7 +28643,8 @@
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 3,
@@ -27819,7 +28673,8 @@
 			"ARCH_054",
 			"ARCH_060",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -27854,7 +28709,8 @@
 			"ARCH_049",
 			"ARCH_019",
 			"ARCH_028",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -27890,7 +28746,8 @@
 			"ARCH_051",
 			"ARCH_055",
 			"ARCH_002",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 16,
@@ -27964,7 +28821,8 @@
 			"ARCH_054",
 			"ARCH_002",
 			"ARCH_028",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -27998,7 +28856,8 @@
 			"ARCH_050",
 			"ARCH_003",
 			"ARCH_019",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -28028,7 +28887,8 @@
 			"ARCH_056",
 			"ARCH_025",
 			"ARCH_019",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -28061,7 +28921,8 @@
 			"ARCH_001",
 			"ARCH_056",
 			"ARCH_010",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 31,
@@ -28096,7 +28957,8 @@
 			"ARCH_019",
 			"ARCH_001",
 			"ARCH_002",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 31,
@@ -28133,7 +28995,8 @@
 			"ARCH_052",
 			"ARCH_019",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 8,
@@ -28162,7 +29025,8 @@
 			"ARCH_051",
 			"ARCH_003",
 			"ARCH_063",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -28191,7 +29055,8 @@
 			"ARCH_050",
 			"ARCH_048",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 29,
@@ -28218,7 +29083,8 @@
 		"attributes": [
 			"ARCH_050",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -28247,7 +29113,8 @@
 			"ARCH_051",
 			"ARCH_003",
 			"ARCH_019",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 22,
@@ -28284,7 +29151,8 @@
 			"ARCH_058",
 			"ARCH_035",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -28313,7 +29181,8 @@
 			"ARCH_052",
 			"ARCH_002",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -28342,7 +29211,8 @@
 			"ARCH_056",
 			"ARCH_054",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -28372,7 +29242,8 @@
 			"ARCH_048",
 			"ARCH_021",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 26,
@@ -28406,7 +29277,8 @@
 			"ARCH_058",
 			"ARCH_002",
 			"ARCH_023",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -28439,7 +29311,8 @@
 			"ARCH_055",
 			"ARCH_023",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 5,
@@ -28472,7 +29345,8 @@
 			"ARCH_057",
 			"ARCH_029",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -28506,7 +29380,8 @@
 			"ARCH_054",
 			"ARCH_002",
 			"ARCH_025",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 24,
@@ -28536,7 +29411,8 @@
 			"ARCH_054",
 			"ARCH_025",
 			"ARCH_019",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -28569,7 +29445,8 @@
 			"ARCH_054",
 			"ARCH_019",
 			"ARCH_001",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 33,
@@ -28601,7 +29478,8 @@
 			"ARCH_050",
 			"ARCH_001",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 23,
@@ -28630,7 +29508,8 @@
 			"ARCH_051",
 			"ARCH_050",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 5,
@@ -28658,7 +29537,8 @@
 			"ARCH_060",
 			"ARCH_048",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 13,
@@ -28685,7 +29565,8 @@
 		"attributes": [
 			"ARCH_051",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -28716,7 +29597,8 @@
 		"attributes": [
 			"ARCH_053",
 			"ARCH_021",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -28744,7 +29626,8 @@
 			"ARCH_051",
 			"ARCH_001",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 17,
@@ -28774,7 +29657,8 @@
 			"ARCH_025",
 			"ARCH_035",
 			"ARCH_090",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 27,
@@ -28811,7 +29695,8 @@
 					"materials": []
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_452",
@@ -28823,7 +29708,8 @@
 			"ARCH_055",
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 10,
@@ -28851,7 +29737,8 @@
 			"ARCH_050",
 			"ARCH_021",
 			"ARCH_034",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 4,
@@ -28882,7 +29769,8 @@
 			"ARCH_021",
 			"ARCH_034",
 			"ARCH_088",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -28917,7 +29805,8 @@
 					"materials": []
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_455",
@@ -28932,7 +29821,8 @@
 			"ARCH_021",
 			"ARCH_025",
 			"ARCH_034",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 29,
@@ -28970,7 +29860,8 @@
 			"ARCH_021",
 			"ARCH_025",
 			"ARCH_034",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 38,
@@ -29014,7 +29905,8 @@
 			"ARCH_021",
 			"ARCH_023",
 			"ARCH_034",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 45,
@@ -29050,7 +29942,8 @@
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 12,
@@ -29082,7 +29975,8 @@
 			"ARCH_048",
 			"ARCH_054",
 			"ARCH_019",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
@@ -29114,7 +30008,8 @@
 			"ARCH_054",
 			"ARCH_052",
 			"ARCH_002",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 16,
@@ -29146,7 +30041,8 @@
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_035",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -29186,7 +30082,8 @@
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_035",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 19,
@@ -29218,7 +30115,8 @@
 			"ARCH_019",
 			"ARCH_021",
 			"ARCH_035",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 36,
@@ -29257,7 +30155,8 @@
 			"ARCH_057",
 			"ARCH_019",
 			"ARCH_021",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -29296,7 +30195,8 @@
 			"ARCH_028",
 			"ARCH_021",
 			"ARCH_019",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 40,
@@ -29333,7 +30233,8 @@
 			"ARCH_054",
 			"ARCH_057",
 			"ARCH_002",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 42,
@@ -29365,7 +30266,8 @@
 		"attributes": [
 			"ARCH_050",
 			"ARCH_034",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 30,
@@ -29395,7 +30297,8 @@
 			"ARCH_052",
 			"ARCH_055",
 			"ARCH_034",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 45,
@@ -29433,7 +30336,8 @@
 			"ARCH_052",
 			"ARCH_025",
 			"ARCH_034",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 33,
@@ -29468,7 +30372,8 @@
 			"ARCH_056",
 			"ARCH_054",
 			"ARCH_003",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 26,
@@ -29504,7 +30409,8 @@
 		"attributes": [
 			"ARCH_038",
 			"ARCH_055",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 0,
@@ -29540,7 +30446,8 @@
 			"ARCH_055",
 			"ARCH_054",
 			"ARCH_023",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 20,
@@ -29579,7 +30486,8 @@
 			"ARCH_001",
 			"ARCH_070",
 			"ARCH_086",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 30,
@@ -29622,7 +30530,8 @@
 					]
 				}
 			}
-		]
+		],
+		"_starter": false
 	},
 	{
 		"id": "STAPLE_473",
@@ -29635,7 +30544,8 @@
 			"ARCH_070",
 			"ARCH_001",
 			"ARCH_021",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 20,
@@ -29671,7 +30581,8 @@
 			"ARCH_056",
 			"ARCH_048",
 			"ARCH_002",
-			"ARCH_088"
+			"ARCH_088",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 32,
@@ -29707,7 +30618,8 @@
 		"attributes": [
 			"ARCH_048",
 			"ARCH_021",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 23,
@@ -29737,7 +30649,8 @@
 			"ARCH_051",
 			"ARCH_050",
 			"ARCH_003",
-			"ARCH_087"
+			"ARCH_087",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 35,
@@ -29775,7 +30688,8 @@
 			"ARCH_048",
 			"ARCH_051",
 			"ARCH_003",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -29810,7 +30724,8 @@
 			"ARCH_071",
 			"ARCH_003",
 			"ARCH_051",
-			"ARCH_089"
+			"ARCH_089",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -29844,7 +30759,8 @@
 			"ARCH_055",
 			"ARCH_003",
 			"ARCH_052",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 15,
@@ -29874,7 +30790,8 @@
 			"ARCH_054",
 			"ARCH_001",
 			"ARCH_029",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 20,
@@ -29906,7 +30823,8 @@
 			"ARCH_003",
 			"ARCH_019",
 			"ARCH_001",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 33,
@@ -29946,7 +30864,8 @@
 			"ARCH_056",
 			"ARCH_025",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 21,
@@ -29977,7 +30896,8 @@
 			"ARCH_055",
 			"ARCH_025",
 			"ARCH_003",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 11,
@@ -30010,7 +30930,8 @@
 			"ARCH_055",
 			"ARCH_025",
 			"ARCH_003",
-			"ARCH_086"
+			"ARCH_086",
+			"ARCH_093"
 		],
 		"stats": {
 			"atk": 28,
