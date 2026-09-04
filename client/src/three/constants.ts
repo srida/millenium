@@ -6,7 +6,16 @@ import type { Unit } from '../logic/Unit.js';
 // carte, particules de pouvoir). Défini ici et non dans Scene3D pour que
 // CombatAnimator3D puisse le lire sans faire entrer Three.js dans son graphe de
 // modules — il ne dépend aujourd'hui de Scene3D que par un import de TYPE.
-export const LOW_END_DEVICE = (navigator.hardwareConcurrency || 8) <= 4;
+//
+// ⚠️ La garde `typeof` n'est PAS décorative : c'est une constante de module,
+// donc elle est évaluée à l'IMPORT. `CombatAnimator3D` la lit, `GameController`
+// lit `CombatAnimator3D`, et la suite tourne en `environment: 'node'` — un
+// `navigator` nu jette avant qu'un test ait pu poser le moindre global, et les
+// fichiers qui pilotent une partie tombent en bloc, sans qu'aucun cas ne
+// s'exécute. `globalThis.navigator` n'existe qu'à partir de Node 21 : le défaut
+// est donc invisible sur un runtime récent et fatal sur le Node 20 de la CI.
+const HARDWARE_CONCURRENCY = typeof navigator === 'undefined' ? 0 : navigator.hardwareConcurrency;
+export const LOW_END_DEVICE = (HARDWARE_CONCURRENCY || 8) <= 4;
 
 export interface ElementStyle {
   color: number;
