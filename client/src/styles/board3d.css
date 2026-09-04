@@ -93,6 +93,24 @@
   text-shadow: 0 0 3px rgba(0,0,0,.9);
 }
 
+/* Valeur en matériel — bas-gauche, hors carte.
+   ⚠️ ABSENTE quand l'unité vaut 1 : c'est le défaut, et une pastille sur chaque
+   unité ne distinguerait rien. Le tooltip d'une unité, lui, la dit toujours —
+   c'est là qu'on va CHERCHER la réponse, ici qu'on la remarque en balayant.
+   Cyan : ni l'or de la vétérance, ni aucune teinte du médaillon d'état. */
+.unit-mat-badge {
+  position: absolute; bottom: -4px; left: -4px; z-index: 5;
+  min-width: 17px; height: 17px; padding: 0 3px; border-radius: 9px;
+  background: rgba(8,26,34,.82);
+  border: 1px solid rgba(122,205,224,.85);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  box-shadow: 0 0 10px -2px rgba(122,205,224,.55);
+  align-items: center; justify-content: center;
+  font: 700 8px var(--font-display); color: #9fdcea; line-height: 1;
+  text-shadow: 0 0 3px rgba(0,0,0,.9);
+  pointer-events: none;
+}
+
 /* Status medallion — top-right, outside card */
 .unit-medallion {
   position: absolute; top: -4px; right: -4px; z-index: 5;

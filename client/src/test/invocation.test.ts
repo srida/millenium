@@ -7,7 +7,7 @@ import {
   canSummon, summon, matchesMaterial, materialLineageLegit,
   materialLineageMatches, sumMaterialValue, exceedsBoardSlots,
 } from '../logic/InvocationManager.js';
-import { materialCandidateCells, materialsComplete } from '../logic/InvocationRules.js';
+import { materialCandidateCells, materialsComplete, getUncoveredRequirements } from '../logic/InvocationRules.js';
 import { makeBoard, makeCard, spawn } from './helpers.js';
 
 // canSummon retourne { ok, reason } ou { options } (cartes à summon_options) ;
@@ -385,5 +385,65 @@ describe('lignée et slots libres', () => {
     // Et la fusion est bien proposée dès le premier tap, il reste du mou.
     expect(materialCandidateCells(mixed as any, [], board, null))
       .toContainEqual({ col: 1, row: 0 });
+  });
+});
+
+// ── Une unité couvre autant d'exigences qu'elle paie de slots ──────────────
+//
+// Cas réel : « Chimère la bête illusion » (EXTRA_081) exige CORE_014, CORE_015
+// et CORE_078 sur 3 slots. « Chimère le roi des bêtes fantôme » (CORE_016) vaut
+// 2 slots et représente CORE_014 ET CORE_015 — elle comble donc les deux, et
+// « Bête de Gilfer » (CORE_078) paie le troisième. L'appariement retirait
+// l'unité dès la PREMIÈRE exigence couverte : CORE_015 était déclarée
+// manquante, et l'invocation refusée sans que rien ne le dise.
+describe('couverture des exigences nommées', () => {
+  const A = makeCard({ id: 'A' });
+  const B = makeCard({ id: 'B' });
+  const AB = makeCard({ id: 'AB', represented_ids: ['A', 'B'], material_value: 2 });
+  const C = makeCard({ id: 'C' });
+  const ABC = makeCard({
+    id: 'ABC', tier: 4,
+    summon_conditions: [{ materials: 3, requires: ['A', 'B', 'C'] }],
+  });
+
+  // Mutation : retirer l'unité après une exigence (`pool.splice`) → ROUGE.
+  it('un composite qui vaut 2 comble les DEUX exigences qu’il représente', () => {
+    const board = makeBoard();
+    const ab = spawn(board, AB, 'player', { col: 0, row: 0 });
+    const c = spawn(board, C, 'player', { col: 1, row: 0 });
+
+    expect(getUncoveredRequirements(['A', 'B', 'C'], [ab, c])).toEqual([]);
+    expect(materialsComplete(ABC as any, [ab, c], null, board)).toBe(true);
+    expect(can(ABC as any, { col: 2, row: 0 }, board, [], [], [ab, c]).ok).toBe(true);
+  });
+
+  // Le pendant : il n'en couvre pas PLUS qu'il ne paie de slots.
+  it('il ne couvre pas plus d’exigences qu’il ne vaut', () => {
+    const board = makeBoard();
+    // Vaut 1 slot, mais représente A et B : il ne peut en tenir qu'une.
+    const cheap = spawn(board, makeCard({ id: 'CHEAP', represented_ids: ['A', 'B'] }),
+      'player', { col: 0, row: 0 });
+    expect(getUncoveredRequirements(['A', 'B'], [cheap])).toEqual(['B']);
+  });
+
+  // ⚠️ L'appariement est un COUPLAGE, pas un premier venu : donner A à l'unité
+  // polyvalente laisserait B introuvable alors qu'un échange le couvre.
+  // Mutation : premier candidat sans chemin augmentant → ROUGE.
+  it('délogé au besoin : le spécialiste prend A, le polyvalent prend B', () => {
+    const board = makeBoard();
+    const polyvalent = spawn(board, makeCard({ id: 'POLY', represented_ids: ['A', 'B'] }),
+      'player', { col: 0, row: 0 });
+    const specialiste = spawn(board, A, 'player', { col: 1, row: 0 });
+    // POLY est en tête de liste et matche A : sans échange, B tombe.
+    expect(getUncoveredRequirements(['A', 'B'], [polyvalent, specialiste])).toEqual([]);
+  });
+
+  // La lignée reste tenue : un composite ne comble que ce qui est exigé.
+  it('la légitimité de lignée n’est pas levée par la capacité', () => {
+    const board = makeBoard();
+    const ab = spawn(board, AB, 'player', { col: 0, row: 0 });
+    // La condition ne demande QUE A : la lignée B d'AB déborde.
+    expect(getUncoveredRequirements(['A'], [ab])).toEqual(['A']);
+    void B;
   });
 });

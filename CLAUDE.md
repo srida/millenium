@@ -749,7 +749,7 @@ materialValueOf(card) / isAttributeMaterial(matId)
 1. **Où l'unité se pose.** Une condition à **UN matériel** impose la case de ce matériel ; sinon la case doit être libre, ou occupée par un matériau consommé (il part avant la pose).
 2. **Le doublon** — cf. la règle du doublon, plus haut.
 3. **Quantité** — `sum(material_value)` des unités disponibles (terrain **et** cimetière) ≥ `materials`.
-4. **Exigences nommées** — appariées à des unités **distinctes** (glouton), chacune une doublure légitime (lignée).
+4. **Exigences nommées** — couvertes par `getUncoveredRequirements`, chacune par une doublure légitime (lignée).
 5. **Slots** — `vivants − matériaux_du_board + 1 ≤ plafond`.
 
 - ⚠️ **`summonCost(card)` est le SEUL endroit qui répond à « quel genre d'invocation est-ce »** (le minimum de `materials` sur ses conditions). Il y en avait trois : la table de priorité de l'IA, celle de l'auto-joueur, et l'agrégat par voie du rapport d'équilibrage.
@@ -768,8 +768,9 @@ materialValueOf(card) / isAttributeMaterial(matId)
 **Unités composites** — deux propriétés lues par `matchesMaterial` / `canSummon` :
 - **`represented_ids`** — les ids que l'unité « représente », **pré-déterminés sur la carte** (section « Lignée » de l'admin), jamais calculés à l'invocation. ⚠️ `Unit` y ajoute toujours son propre `card.id` : la donnée ne porte que la lignée **héritée**. Affiché au tooltip (🧬).
   - **Légitimité** (`materialLineageLegit`) : toute la lignée héritée d'un matériel doit être **elle-même exigée** par la condition en cours. « Aile de feu » (Avian + Burstinatrix) ne remplace pas Avian seul, mais comble à elle seule les deux exigences d'une condition qui demande les deux.
-  - ⚠️ **Elle ne pèse QUE sur les exigences nommées**, et `InvocationRules.getUncoveredRequirements` est le seul endroit qui la porte. Un slot **libre** (la condition nomme moins d'exigences qu'elle n'a de slots) se paie avec n'importe quelle unité — c'est ce qui rend une fusion sacrifiable. Exigée de toute la sélection, elle rendait insacrifiable toute unité composite.
-- **`material_value`** — le nombre de slots que l'unité représente si elle est consommée. ⚠️ C'est une **donnée de carte**, saisie en admin, lue par le constructeur d'`Unit` pour les **deux camps** : elle était dérivée en quatre exemplaires dans le `switch`, si bien que l'IA et le joueur n'avaient pas la même règle.
+  - ⚠️ **Elle ne pèse QUE sur les exigences nommées**, et `getUncoveredRequirements` est le seul endroit qui la porte. Un slot **libre** (la condition nomme moins d'exigences qu'elle n'a de slots) se paie avec n'importe quelle unité — c'est ce qui rend une fusion sacrifiable. Exigée de toute la sélection, elle rendait insacrifiable toute unité composite.
+  - ⚠️ **`InvocationManager.getUncoveredRequirements` est la SEULE écriture de l'appariement exigences ↔ matériaux** (`canSummon` règle 4, `materialsComplete`, `_candidates` y passent ; `InvocationRules` le ré-exporte). Une unité couvre **autant d'exigences qu'elle paie de slots** (`material_value`) : CORE_016 vaut 2 et représente ses deux matériaux, elle les comble tous les deux. Et c'est un vrai **couplage** (chemins augmentants), pas un premier venu — le glouton laissait une exigence introuvable alors qu'un échange la couvrait.
+- **`material_value`** — le nombre de slots que l'unité représente si elle est consommée. ⚠️ C'est une **donnée de carte**, saisie en admin, lue par le constructeur d'`Unit` pour les **deux camps** : elle était dérivée en quatre exemplaires dans le `switch`, si bien que l'IA et le joueur n'avaient pas la même règle. **Affichée** : pastille `◈N` au bas-gauche de la carte 3D (`unit-mat-badge`) **au-dessus de 1 seulement** — 1 est le défaut, une pastille partout ne distinguerait rien ; le tooltip d'une **unité** la dit toujours, c'est là qu'on vient chercher la réponse.
 
 Un matériel `ARCH_*` désigne **n'importe quelle** unité portant l'attribut, pas une carte (`isAttributeMaterial`).
 

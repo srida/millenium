@@ -186,17 +186,13 @@ function _canSummonWith(card, condition, pos, board, graveyard, selectedMaterial
   if (sumMaterialValue(available) < needed)
     return fail(`Requiert ${needed} matériel(s) sur le terrain ou au cimetière`);
 
-  // 4. Exigences nommées — appariées à des unités DISTINCTES (glouton), chacune
-  //    devant être une doublure légitime (lignée).
-  const pool = [...available];
-  for (const matId of required) {
-    const idx = pool.findIndex(u => materialLineageMatches(u, matId, required));
-    // ⚠️ L'id ne sort pas dans le message : `logic/` ne sait pas le nommer (il
-    // n'importe pas `data/`), et un « ARCH_047 » en toast n'apprend rien. Le
-    // tooltip de la carte, lui, nomme déjà chaque matériel exigé.
-    if (idx === -1) return fail('Matériel manquant sur le terrain ou au cimetière');
-    pool.splice(idx, 1);
-  }
+  // 4. Exigences nommées — chacune tenue par une doublure légitime (lignée),
+  //    sans qu'une unité en porte plus qu'elle ne paie de slots.
+  // ⚠️ L'id ne sort pas dans le message : `logic/` ne sait pas le nommer (il
+  // n'importe pas `data/`), et un « ARCH_047 » en toast n'apprend rien. Le
+  // tooltip de la carte, lui, nomme déjà chaque matériel exigé.
+  if (getUncoveredRequirements(required, available).length > 0)
+    return fail('Matériel manquant sur le terrain ou au cimetière');
 
   return ok();
 }
@@ -352,6 +348,49 @@ export function materialLineageLegit(unit, requiredMaterials) {
   if (requiredMaterials.includes(unit.card_id)) return true;
   const inherited = (unit.represented_ids ?? [unit.card_id]).filter(id => id !== unit.card_id);
   return inherited.every(id => requiredMaterials.includes(id));
+}
+
+/**
+ * Le sous-ensemble de `required` que `units` ne couvre pas — la SEULE écriture
+ * de l'appariement exigences ↔ matériaux. `canSummon` (règle 4), la complétude
+ * de la sélection et le filtrage des candidats y passent tous ; recopiée, la
+ * règle finissait par refuser à un endroit ce qu'elle acceptait à l'autre.
+ *
+ * ⚠️ Une unité couvre AUTANT d'exigences qu'elle paie de slots
+ * (`material_value`), pas une seule. « Chimère le roi des bêtes fantôme » vaut
+ * 2 et représente ses deux matériaux : elle les comble tous les deux. C'est la
+ * règle énoncée par « Aile de feu comble à elle seule les deux exigences d'une
+ * condition qui demande les deux » — l'ancien glouton, qui retirait l'unité
+ * après une exigence, la contredisait et rendait ces invocations impossibles.
+ *
+ * ⚠️ C'est un vrai COUPLAGE (chemins augmentants), pas un premier venu : avec
+ * deux exigences A et B et deux unités dont l'une ne sait faire que A, prendre
+ * la polyvalente pour A laisserait B introuvable alors qu'un échange le
+ * couvrait. L'ordre de parcours est fixe, donc le verdict est déterministe.
+ */
+export function getUncoveredRequirements(required, units) {
+  const capacity = units.map(u => Math.max(1, u.material_value ?? 1));
+  const load = units.map(() => 0);
+  const holder = required.map(() => -1);   // exigence → index d'unité, ou -1
+
+  // Kuhn : on tente d'installer l'exigence `ri`, quitte à déloger une exigence
+  // déjà portée par une unité saturée vers une autre unité qui la couvre.
+  const seat = (ri, seen) => {
+    for (let ui = 0; ui < units.length; ui++) {
+      if (seen[ui] || !materialLineageMatches(units[ui], required[ri], required)) continue;
+      seen[ui] = true;
+      if (load[ui] < capacity[ui]) { holder[ri] = ui; load[ui]++; return true; }
+      for (let other = 0; other < required.length; other++) {
+        if (holder[other] !== ui) continue;
+        holder[other] = -1; load[ui]--;
+        if (seat(other, seen)) { holder[ri] = ui; load[ui]++; return true; }
+        holder[other] = ui; load[ui]++;
+      }
+    }
+    return false;
+  };
+
+  return required.filter((matId, ri) => !seat(ri, units.map(() => false)));
 }
 
 // matchesMaterial + materialLineageLegit — le test à utiliser pour un candidat.

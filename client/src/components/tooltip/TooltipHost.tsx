@@ -11,6 +11,8 @@ import { Illustration } from '../ui/primitives.js';
 import RecipeRow from '../ui/SummonRecipe.js';
 import { cardName } from '../../data/gameNames.js';
 import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
+import { materialValueOf } from '../../logic/Unit.js';
+import type { Card } from '../../logic/types.js';
 import { STAT_LABELS } from '../../data/StatLabels.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
 import TerrainEffects from '../ui/TerrainEffects.js';
@@ -134,6 +136,16 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
         )}
         {!isUnit && <SummonBlock card={data} />}
         {isUnit && data.shield > 0 && <div className="mt-1 text-[11px] text-gold">🛡 Bouclier : {data.shield}</div>}
+        {/* Ce que l'unité VAUT comme matériau — la question qu'on ne pouvait
+            trancher qu'en tentant l'invocation. ⚠️ Sur une UNITÉ elle se dit
+            toujours (c'est ici qu'on vient chercher la réponse) ; sur une carte
+            en main, seulement au-dessus de 1 — le défaut n'apprend rien à qui
+            n'a encore rien posé. La pastille du plateau suit la même règle. */}
+        {(isUnit || (data.material_value ?? 1) > 1) && (
+          <div className="mt-1 text-[11px] text-tier-2">
+            ◈ Vaut {materialValueOf(data as Card)} matériel{materialValueOf(data as Card) > 1 ? 's' : ''} une fois consommée
+          </div>
+        )}
         {lineage.length > 0 && (
           <div className="mt-1 text-[11px] text-player">🧬 {lineage.map(cardName).join(', ')}</div>
         )}

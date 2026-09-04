@@ -46,6 +46,7 @@ export function createUnitEl(unit: Unit, { selected = false, materialSelected = 
   el.innerHTML = _inner(unit);
   _updateMedallion(el, unit);
   _updateVet(el, unit);
+  _updateMaterialValue(el, unit);
   return el;
 }
 
@@ -72,6 +73,7 @@ export function updateUnitEl(el: HTMLElement, unit: Unit): void {
 
   _updateMedallion(el, unit);
   _updateVet(el, unit);
+  _updateMaterialValue(el, unit);
 }
 
 function _inner(unit: Unit): string {
@@ -107,6 +109,7 @@ function _inner(unit: Unit): string {
     </div>
     <div class="unit-vet-badge" style="display:none"></div>
     <div class="unit-medallion" style="display:none"></div>
+    <div class="unit-mat-badge" style="display:none"></div>
   `.trim();
 }
 
@@ -161,6 +164,26 @@ function _updateMedallion(el: HTMLElement, unit: Unit): void {
     `box-shadow:0 0 10px -2px ${spec.glow}`,
   ].join(';');
   medallion.innerHTML = `<div class="unit-medallion-inner">${_effectIconSvg(buff, spec.ink)}${valHtml}</div>`;
+}
+
+/**
+ * Ce que l'unité VAUT comme matériau, en un chiffre.
+ *
+ * ⚠️ Rien quand elle vaut 1 : c'est le défaut de toute carte, et une pastille
+ * sur chaque unité du plateau ne distinguerait plus rien. Le joueur ne pouvait
+ * pas savoir ce qu'une unité valait avant de TENTER l'invocation — c'est
+ * précisément ce que ce chiffre répond.
+ *
+ * ⚠️ Le glyphe est celui du COÛT en main (`CardTile`) : c'est la même monnaie —
+ * là un prix, ici une valeur. Le tooltip lève l'ambiguïté en toutes lettres.
+ */
+function _updateMaterialValue(el: HTMLElement, unit: Unit): void {
+  const badge = el.querySelector<HTMLElement>('.unit-mat-badge');
+  if (!badge) return;
+  const value = unit.material_value ?? 1;
+  if (value <= 1) { badge.style.display = 'none'; return; }
+  badge.style.display = 'flex';
+  badge.textContent = `◈${Math.round(value)}`;
 }
 
 function _updateVet(el: HTMLElement, unit: Unit): void {

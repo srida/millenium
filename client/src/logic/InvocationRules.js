@@ -1,5 +1,5 @@
 import {
-  materialLineageMatches, sumMaterialValue,
+  materialLineageMatches, sumMaterialValue, getUncoveredRequirements,
   canSummon, exceedsBoardSlots, summonConditions, conditionAt, conditionMaterials,
   conditionRequires, conditionIsFree,
 } from './InvocationManager.js';
@@ -185,24 +185,17 @@ function _playableWith(card, condition, board, graveyard, maxSlots) {
 }
 
 /**
- * Le sous-ensemble de `required` que `selectedUnits` ne couvre pas encore
- * (glouton, stable dans l'ordre). Une unité ne couvre qu'UNE exigence.
+ * ⚠️ La couverture des exigences nommées vit dans le MOTEUR
+ * (`InvocationManager.getUncoveredRequirements`), et `canSummon` la lit au même
+ * endroit : elle était écrite deux fois, donc corrigée à une seule. Ré-exportée
+ * ici parce qu'elle fait partie de ce que cette couche offre à l'UI.
  *
- * ⚠️ Le test est `materialLineageMatches` et non `matchesMaterial` : c'est ICI,
- * et nulle part ailleurs, que la légitimité de lignée pèse — une doublure ne
- * tient le rôle d'une exigence nommée que si tout ce dont elle hérite est
- * lui-même exigé. Portée sur la sélection entière, la règle interdisait de
- * dépenser une unité composite dans un slot LIBRE ; portée ici, elle dit
- * exactement ce qu'elle a toujours voulu dire.
+ * ⚠️ C'est là, et nulle part ailleurs, que la légitimité de lignée pèse — une
+ * doublure ne tient le rôle d'une exigence nommée que si tout ce dont elle
+ * hérite est lui-même exigé. Portée sur la sélection entière, la règle
+ * interdisait de dépenser une unité composite dans un slot LIBRE.
  */
-export function getUncoveredRequirements(required, selectedUnits) {
-  const pool = [...selectedUnits];
-  return required.filter(matId => {
-    const idx = pool.findIndex(u => materialLineageMatches(u, matId, required));
-    if (idx !== -1) { pool.splice(idx, 1); return false; }
-    return true;
-  });
-}
+export { getUncoveredRequirements };
 
 export function hasEmptyPlayerCell(board) {
   for (let r = 0; r <= 3; r++)
