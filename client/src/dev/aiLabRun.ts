@@ -68,8 +68,10 @@ export type AiTraceEvent =
       kind: 'attempt';
       pass: number;
       card_id: string;
-      summon_type: string | null;
-      option_index: number | null;
+      /** L'index de la condition RETENUE quand la carte en a plusieurs.
+       *  Remplace le couple `summon_type`/`option_index` : il n'y a plus de
+       *  voie à nommer, seulement la condition qu'on a réussi à payer. */
+      condition_index: number | null;
       outcome: 'placed' | 'refused';
       reason: string | null;
       detail: Record<string, unknown> | null;
@@ -376,11 +378,7 @@ export const REASON_LABELS: Record<string, string> = {
   duplicate_needs_extra_material: 'le doublon consommé ne suffit pas',
   would_exceed_slots: 'dépasserait le nombre de slots — pas assez de place libérée',
   missing_material: 'matériau manquant',
-  no_transformation_target_id: 'la transformation ne désigne aucune cible',
-  transformation_target_mismatch: 'la carte déjà en jeu ne correspond pas à la cible',
-  no_transformation_target: 'cible absente du terrain et du cimetière',
-  all_options_failed: 'aucune de ses recettes ne passe',
-  unknown_summon_type: 'voie d\'invocation inconnue',
+  all_conditions_failed: 'aucune de ses conditions ne passe',
 };
 
 /** Le motif, glosé, avec le détail qui le rend actionnable (le matériau nommé). */

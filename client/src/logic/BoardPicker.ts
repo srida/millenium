@@ -101,14 +101,14 @@ export function deckAttributes(cards: readonly (Card | null | undefined)[]): str
  * deux porte. Exiger que tous portent le rendrait d'autant moins tirable qu'il
  * est riche.
  *
- * ⚠️ `target_summon_types` n'entre PAS dans la pertinence, et c'est délibéré :
- * le contexte ne porte que les attributs des deux decks — les seuls faits que
- * le serveur dérive et envoie en PvP (`deck_attribute_counts`). Faire voyager
- * la composition en voies d'invocation serait un second fait dérivé pour un
- * prédicat presque toujours vrai : un deck de 20 cartes porte quasi
- * systématiquement plusieurs voies. Un ciblage de voie seul est donc lu comme
- * « vise tout le monde », ce qui n'est qu'un peu optimiste — et la pertinence
- * n'est qu'une préférence.
+ * ⚠️ Le second ciblage (`target_summon_types`) a disparu : les voies
+ * d'invocation sont devenues des attributs, donc un terrain qui vise « les
+ * Fusions » le dit dans `target_attributes` et entre dans la pertinence comme
+ * n'importe quel archétype — sans un second fait à faire voyager en PvP.
+ * Contrepartie : ces attributs-là sont portés par presque tout deck, donc un
+ * terrain qui ne vise qu'eux sera presque toujours jugé pertinent. La
+ * pertinence n'étant qu'une préférence, ça ne peut rendre un terrain que PLUS
+ * probable, jamais invisible.
  */
 export function isBoardRelevant(board: BoardDef, ctx: BoardPickContext): boolean {
   return boardEffects(board).some(effect => {

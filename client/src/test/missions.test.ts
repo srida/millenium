@@ -50,7 +50,7 @@ function newUser() {
   const id = crypto.randomUUID();
   stmt.insertUser.run({
     id, email: `${id}@test.local`, username: 'T', username_lc: 't',
-    tag: String(++_tagSeq).padStart(4, '0'), password_hash: 'x', avatar: null, created_at: Date.now(),
+    tag: String(++_tagSeq).padStart(4, '0'), password_hash: 'x', avatar: null, created_at: Date.now()
   });
   progression.initUser(id);
   return () => stmt.userById.get(id);
@@ -60,7 +60,7 @@ function newUser() {
 function fullMatch(extra: any[] = []) {
   const events: any[] = [];
   for (let r = 0; r < 5; r++) {
-    events.push({ type: 'summon_performed', summon_type: 'normal', tier: 2, combat_index: r });
+    events.push({ type: 'summon_performed', summon_conditions: [], tier: 2, combat_index: r });
     events.push({ type: 'combat_started', unit_count: 5, attribute_count: 2, max_attribute_units: 3, combat_index: r });
     events.push({ type: 'combat_ended', result: 'win', units_lost: 0, unit_count: 5, combat_index: r });
   }
@@ -134,7 +134,7 @@ describe('correspondance des événements', () => {
     const events = [
       { type: 'power_triggered', combat_index: 0 },
       { type: 'power_triggered', combat_index: 0 },
-      { type: 'power_triggered', combat_index: 1 },
+      { type: 'power_triggered', combat_index: 1 }
     ];
     expect(missions.batchDelta(events, obj('power_triggered', {}, 'single_combat'))).toEqual({ add: 0, atLeast: 2 });
     expect(missions.batchDelta(events, obj('power_triggered', {}, 'cumulative'))).toEqual({ add: 3, atLeast: 0 });
@@ -221,10 +221,9 @@ describe('garde-fous anti-farm', () => {
       matchId: 'concede',
       events: [
         { type: 'combat_started', unit_count: 3, combat_index: 0 },
-        { type: 'summon_performed', summon_type: 'normal', tier: 1, combat_index: 0 },
-        { type: 'match_completed', result: 'win', rounds_played: 1 },
-      ],
-    });
+        { type: 'summon_performed', summon_conditions: [], tier: 1, combat_index: 0 },
+        { type: 'match_completed', result: 'win', rounds_played: 1 }
+      ] });
     expect(res.countable).toBe(false);
     expect(res.completed).toEqual([]);
     expect(progression.getProgression(user())).toEqual(before);
@@ -238,9 +237,8 @@ describe('garde-fous anti-farm', () => {
       events: [
         { type: 'combat_started', unit_count: 0, combat_index: 0 },
         { type: 'combat_started', unit_count: 0, combat_index: 1 },
-        { type: 'match_completed', result: 'loss', rounds_played: 5 },
-      ],
-    });
+        { type: 'match_completed', result: 'loss', rounds_played: 5 }
+      ] });
     expect(res.countable).toBe(false);
   });
 
@@ -250,8 +248,7 @@ describe('garde-fous anti-farm', () => {
     const res = missions.applyEvents(user(), {
       matchId: null,
       // Un client qui enverrait des invocations sans partie ne doit rien gagner.
-      events: [{ type: 'summon_performed', summon_type: 'fusion', tier: 5 }],
-    });
+      events: [{ type: 'summon_performed', summon_conditions: [{ materials: 0 }], tier: 5 }] });
     expect(res.completed).toEqual([]);
   });
 });
@@ -265,14 +262,14 @@ describe('complétion et barème', () => {
     db.prepare('DELETE FROM user_missions WHERE user_id = ?').run(user().id);
     stmt.insertMission.run({
       id: 'fixed-1', user_id: user().id, mission_id: 'MISSION_A_006',
-      slot_weight: 2, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now(),
+      slot_weight: 2, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now()
     });
 
     const before = progression.getProgression(user());
     const res = missions.applyEvents(user(), {
       matchId: 'm1',
       // Le client prétend valoir 99 999 golds : le champ est ignoré.
-      events: fullMatch([{ type: 'match_completed', result: 'win', rounds_played: 5, gold: 99_999 }]),
+      events: fullMatch([{ type: 'match_completed', result: 'win', rounds_played: 5, gold: 99_999 }])
     });
 
     expect(res.countable).toBe(true);
@@ -296,7 +293,7 @@ describe('complétion et barème', () => {
     db.prepare('DELETE FROM user_missions WHERE user_id = ?').run(user().id);
     stmt.insertMission.run({
       id: 'fixed-claim', user_id: user().id, mission_id: 'MISSION_A_001',
-      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now(),
+      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now()
     });
 
     // Encore active : rien à récupérer.
@@ -326,7 +323,7 @@ describe('complétion et barème', () => {
     db.prepare('DELETE FROM user_missions WHERE user_id = ?').run(user().id);
     stmt.insertMission.run({
       id: 'fixed-stale', user_id: user().id, mission_id: 'MISSION_A_001',
-      slot_weight: 1, target: 1, issued_day: '2020-01-01#0', issued_at: Date.now(),
+      slot_weight: 1, target: 1, issued_day: '2020-01-01#0', issued_at: Date.now()
     });
     missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
 
@@ -350,7 +347,7 @@ describe('complétion et barème', () => {
     db.prepare('DELETE FROM user_missions WHERE user_id = ?').run(user().id);
     stmt.insertMission.run({
       id: 'fixed-2', user_id: user().id, mission_id: 'MISSION_A_001',
-      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now(),
+      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now()
     });
     missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
     const afterFirst = progression.getProgression(user());
@@ -368,7 +365,7 @@ describe('complétion et barème', () => {
     db.prepare('DELETE FROM user_missions WHERE user_id = ?').run(user().id);
     stmt.insertMission.run({
       id: 'fixed-gauge', user_id: user().id, mission_id: 'MISSION_A_001',
-      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now(),
+      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now()
     });
 
     missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
@@ -388,7 +385,7 @@ describe('complétion et barème', () => {
     db.prepare('UPDATE user_mission_state SET weekly_points = ? WHERE user_id = ?').run(first - 1, user().id);
     stmt.insertMission.run({
       id: 'fixed-3', user_id: user().id, mission_id: 'MISSION_A_001',
-      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now(),
+      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now()
     });
 
     const res = missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
@@ -456,7 +453,7 @@ describe('complétion et barème', () => {
       .run(missions.WEEKLY_MAX, user().id);
     stmt.insertMission.run({
       id: 'fixed-cap', user_id: user().id, mission_id: 'MISSION_A_001',
-      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now(),
+      slot_weight: 1, target: 1, issued_day: missions.cycleKey(), issued_at: Date.now()
     });
     missions.applyEvents(user(), { matchId: 'm1', events: fullMatch() });
 
@@ -479,7 +476,7 @@ describe('complétion et barème', () => {
     }
     // Dotation totale de la semaine, inchangée par la refonte des paliers.
     const total = ms.reduce((acc: any, m: any) => ({
-      xp: acc.xp + m.rewards.xp, gold: acc.gold + m.rewards.gold, gems: acc.gems + m.rewards.gems,
+      xp: acc.xp + m.rewards.xp, gold: acc.gold + m.rewards.gold, gems: acc.gems + m.rewards.gems
     }), { xp: 0, gold: 0, gems: 0 });
     expect(total).toEqual({ xp: 35, gold: 900, gems: 85 });
   });

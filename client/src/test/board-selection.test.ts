@@ -15,7 +15,7 @@ import type { BoardDef } from '../logic/types.js';
 function terrain(id: string, attrs: string[] | null = []): BoardDef {
   return {
     id, name: id,
-    effect: attrs === null ? null : { type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: attrs },
+    effect: attrs === null ? null : { type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: attrs }
   } as BoardDef;
 }
 
@@ -29,9 +29,9 @@ interface Opts {
 
 function makeSession(opts: Opts = {}): GameSession {
   const playerCards = (opts.playerAttrs ?? [[]]).map((attributes, i) =>
-    makeCard({ id: `P${i}`, summon_type: 'normal', attributes }));
+    makeCard({ id: `P${i}`, summon_conditions: [], attributes }));
   const enemyCards = (opts.enemyAttrs ?? [[]]).map((attributes, i) =>
-    makeCard({ id: `E${i}`, summon_type: 'normal', attributes }));
+    makeCard({ id: `E${i}`, summon_conditions: [], attributes }));
   const byId = new Map([...playerCards, ...enemyCards].map(c => [c.id, c]));
   const deps: GameSessionDeps = {
     cardsByTier: { 1: playerCards as any },
@@ -41,7 +41,7 @@ function makeSession(opts: Opts = {}): GameSession {
     getAllBoards: () => opts.boards ?? [],
     getAllMagies: () => [],
     mode: opts.mode ?? 'ai',
-    rand: makeRandom(opts.seed ?? 2026),
+    rand: makeRandom(opts.seed ?? 2026)
   };
   return new GameSession(deps);
 }
@@ -145,7 +145,7 @@ describe('Terrain d\'un duel — l\'override PvP', () => {
         boards: pool, mode: 'pvp',
         playerAttrs: [['ARCH_003'], ['ARCH_003']],
         enemyAttrs: [['ARCH_003'], ['ARCH_003']],   // le miroir, comme buildSession le produit
-        seed: seed + 1,
+        seed: seed + 1
       });
       s.setEnemyDeckAttributeCounts({ ARCH_029: 4 });
       // ARCH_003 reste porté par le deck du JOUEUR : les deux terrains sont donc

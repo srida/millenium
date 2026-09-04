@@ -10,18 +10,24 @@
 import { describe, it, expect } from 'vitest';
 import { boardEffects, effectTargets, applyEffect, applyBoardEffects } from '../logic/BoardEffect.js';
 import { GameState } from '../logic/GameState.js';
-import { Unit, summonKey } from '../logic/Unit.js';
+import { Unit } from '../logic/Unit.js';
 import { makeCard } from './helpers.js';
 import type { BoardDef } from '../logic/types.js';
 
-function unit(over: { id?: string; attributes?: string[]; summon_type?: string; multi?: boolean; hp?: number } = {}): Unit {
+function unit(over: { id?: string; attributes?: string[]; hp?: number } = {}): Unit {
   const card = makeCard({
-    id: over.id, attributes: over.attributes ?? [], summon_type: over.summon_type ?? 'normal',
+    id: over.id, attributes: over.attributes ?? [],
     stats: { hp: over.hp ?? 30 } as any,
-    ...(over.multi ? { summon_options: [{ summon_type: 'heritage' }, { summon_type: 'fusion' }] } : {}),
   });
   return new (Unit as any)(card, 'player');
 }
+
+// Les voies d'invocation sont devenues des attributs comme les autres : un
+// terrain qui veut viser « les Fusions » nomme ARCH_FUSION dans la MÊME liste
+// que les archétypes. Il n'y a donc plus qu'un ciblage, et plus de cumul en ET.
+const ARCH_FUSION = 'ARCH_086';
+const ARCH_NORMALE = 'ARCH_090';
+const ARCH_HERITAGE = 'ARCH_087';
 
 const STAT = (over: any = {}) => ({ type: 'stat_bonus', stat: 'atk', value: 10, ...over });
 
@@ -61,67 +67,69 @@ describe('boardEffects — le seul lecteur de la donnée', () => {
   });
 });
 
-describe('Ciblage par voie d\'invocation', () => {
-  const fusion = () => unit({ id: 'F', summon_type: 'fusion' });
-  const normale = () => unit({ id: 'N', summon_type: 'normal' });
+describe("Ciblage par attribut d'invocation", () => {
+  const fusion = () => unit({ id: 'F', attributes: [ARCH_FUSION] });
+  const normale = () => unit({ id: 'N', attributes: [ARCH_NORMALE] });
 
-  // Mutation : `target_summon_types` ignoré par `effectTargets` → ROUGE.
-  it('ne touche que les unités invoquées par la voie visée', () => {
+  // Mutation : `target_attributes` ignoré par `effectTargets` → ROUGE.
+  it('ne touche que les unités portant l\'attribut visé', () => {
     const units = [fusion(), normale()];
-    expect(effectTargets(STAT({ target_summon_types: ['fusion'] }), units).map(u => u.card_id)).toEqual(['F']);
+    expect(effectTargets(STAT({ target_attributes: [ARCH_FUSION] }), units).map(u => u.card_id))
+      .toEqual(['F']);
   });
 
-  it('plusieurs voies visées se lisent comme un OU entre elles', () => {
-    const units = [fusion(), normale(), unit({ id: 'H', summon_type: 'heritage' })];
-    expect(effectTargets(STAT({ target_summon_types: ['fusion', 'heritage'] }), units).map(u => u.card_id))
+  it('plusieurs attributs visés se lisent comme un OU entre eux', () => {
+    const units = [fusion(), normale(), unit({ id: 'H', attributes: [ARCH_HERITAGE] })];
+    expect(effectTargets(STAT({ target_attributes: [ARCH_FUSION, ARCH_HERITAGE] }), units).map(u => u.card_id))
       .toEqual(['F', 'H']);
   });
 
   // Mutation : liste vide traitée comme « personne » → ROUGE.
   it('une liste vide ou absente ne restreint rien', () => {
     const units = [fusion(), normale()];
-    expect(effectTargets(STAT({ target_summon_types: [] }), units)).toHaveLength(2);
+    expect(effectTargets(STAT({ target_attributes: [] }), units)).toHaveLength(2);
     expect(effectTargets(STAT(), units)).toHaveLength(2);
   });
 
-  // ⚠️ L'invariant du lot : les deux ciblages se CUMULENT (ET).
-  // Mutation : OU entre les deux ciblages → ROUGE.
-  it('archétype ET voie : une seule des deux conditions ne suffit pas', () => {
-    const dragonFusion = unit({ id: 'DF', attributes: ['ARCH_003'], summon_type: 'fusion' });
-    const dragonNormal = unit({ id: 'DN', attributes: ['ARCH_003'], summon_type: 'normal' });
-    const machineFusion = unit({ id: 'MF', attributes: ['ARCH_021'], summon_type: 'fusion' });
-    const effect = STAT({ target_attributes: ['ARCH_003'], target_summon_types: ['fusion'] });
+  // ⚠️ Ce que le second ciblage permettait — « les Dragons invoqués par
+  // Fusion » — s'écrit maintenant en posant DEUX effets, exactement comme un
+  // OU s'écrivait déjà. Un seul ciblage ne peut plus exprimer un ET, et c'est
+  // le prix assumé d'avoir supprimé `target_summon_types`.
+  // Mutation : ET entre les entrées de la liste → ROUGE.
+  it('une seule liste : ses entrées sont un OU, jamais un ET', () => {
+    const dragonFusion = unit({ id: 'DF', attributes: ['ARCH_003', ARCH_FUSION] });
+    const dragonNormal = unit({ id: 'DN', attributes: ['ARCH_003', ARCH_NORMALE] });
+    const machineFusion = unit({ id: 'MF', attributes: ['ARCH_021', ARCH_FUSION] });
+    const effect = STAT({ target_attributes: ['ARCH_003', ARCH_FUSION] });
 
     expect(effectTargets(effect, [dragonFusion, dragonNormal, machineFusion]).map(u => u.card_id))
-      .toEqual(['DF']);
+      .toEqual(['DF', 'DN', 'MF']);
   });
 
-  // ⚠️ Une carte à plusieurs recettes relève de `multi`, et de rien d'autre :
-  // c'est ce que le joueur lit sur sa vignette, et la recette réellement jouée
-  // ne voyage pas dans `round:board_ready`.
-  // Mutation : `summon_key` rabattu sur `unit.summon_type` → ROUGE.
-  it('une carte à plusieurs recettes relève de « multi », pas de son type miroir', () => {
-    const multi = unit({ id: 'M', summon_type: 'fusion', multi: true });
-    expect(multi.summon_type).toBe('fusion');   // le champ brut, miroir d'une des recettes
-    expect(multi.summon_key).toBe('multi');
-
-    expect(effectTargets(STAT({ target_summon_types: ['fusion'] }), [multi])).toEqual([]);
-    expect(effectTargets(STAT({ target_summon_types: ['multi'] }), [multi])).toHaveLength(1);
+  // ⚠️ Une carte à plusieurs conditions porte l'attribut de CHACUNE : un
+  // terrain qui vise la Fusion la touche, même invoquée par sa condition
+  // Héritage. C'est un assouplissement assumé — l'attribut décrit la carte,
+  // pas la recette réellement jouée, qui elle ne voyage pas dans
+  // `round:board_ready`.
+  // Mutation : ne garder qu'un seul attribut d'invocation par carte → ROUGE.
+  it('une carte à plusieurs conditions porte l\'attribut de chacune', () => {
+    const multi = unit({ id: 'M', attributes: [ARCH_FUSION, ARCH_HERITAGE] });
+    expect(effectTargets(STAT({ target_attributes: [ARCH_FUSION] }), [multi])).toHaveLength(1);
+    expect(effectTargets(STAT({ target_attributes: [ARCH_HERITAGE] }), [multi])).toHaveLength(1);
+    expect(effectTargets(STAT({ target_attributes: [ARCH_NORMALE] }), [multi])).toEqual([]);
   });
 
-  it('summonKey se lit sur la DÉFINITION de carte, sans recette jouée', () => {
-    expect(summonKey({ summon_type: 'heritage' } as any)).toBe('heritage');
-    expect(summonKey({ summon_type: 'fusion', summon_options: [{ summon_type: 'heritage' }] } as any)).toBe('multi');
-    expect(summonKey({} as any)).toBe('normal');
-  });
-
+  // ⚠️ L'invariant qui empêche l'annonce de terrain de mentir : le décompte
+  // affiché passe par `effectTargets`, et l'effet réel doit passer par la
+  // MÊME fonction. Mutation : un second filtre dans `applyEffect` → ROUGE.
   it('l\'effet APPLIQUÉ suit exactement le même filtre', () => {
     const fu = fusion(); const no = normale();
-    applyEffect(STAT({ value: 7, target_summon_types: ['fusion'] }), { playerUnits: [fu, no] } as any);
+    applyEffect(STAT({ value: 7, target_attributes: [ARCH_FUSION] }), { playerUnits: [fu, no] } as any);
     expect(fu.atk).toBe(12);
     expect(no.atk).toBe(5);
   });
 });
+
 
 describe('Cumul des effets d\'un terrain', () => {
   // Mutation : `applyBoardEffects` n'appliquant que le premier effet → ROUGE.
@@ -129,8 +137,7 @@ describe('Cumul des effets d\'un terrain', () => {
     const u = unit({ attributes: ['ARCH_003'] });
     const board = {
       id: 'B', name: 'B',
-      effects: [STAT({ value: 10 }), { type: 'shield', value: 20 }, { type: 'stat_bonus', stat: 'hp', value: 15 }],
-    } as any;
+      effects: [STAT({ value: 10 }), { type: 'shield', value: 20 }, { type: 'stat_bonus', stat: 'hp', value: 15 }] } as any;
 
     applyBoardEffects(board, { playerUnits: [u] } as any);
 
@@ -140,15 +147,14 @@ describe('Cumul des effets d\'un terrain', () => {
   });
 
   it('chaque effet garde SON ciblage', () => {
-    const dragon = unit({ id: 'D', attributes: ['ARCH_003'], summon_type: 'normal' });
-    const fusion = unit({ id: 'F', attributes: ['ARCH_021'], summon_type: 'fusion' });
+    const dragon = unit({ id: 'D', attributes: ['ARCH_003'] });
+    const fusion = unit({ id: 'F', attributes: ['ARCH_021', ARCH_FUSION] });
     const board = {
       id: 'B', name: 'B',
       effects: [
         STAT({ value: 10, target_attributes: ['ARCH_003'] }),
-        { type: 'shield', value: 20, target_summon_types: ['fusion'] },
-      ],
-    } as any;
+        { type: 'shield', value: 20, target_attributes: [ARCH_FUSION] }
+      ] } as any;
 
     applyBoardEffects(board, { playerUnits: [dragon, fusion] } as any);
 
@@ -187,7 +193,7 @@ describe('Cumul des effets d\'un terrain', () => {
     const gameState = new GameState();
     applyBoardEffects(
       { id: 'B', name: 'B', effects: [{ type: 'draw_bonus', value: 1 }, { type: 'draw_bonus', value: 2 }] } as any,
-      { gameState } as any,
+      { gameState } as any
     );
     expect(gameState.player_extra_draws).toBe(3);
   });
@@ -199,11 +205,11 @@ describe('Cumul des effets d\'un terrain', () => {
     const gameState = new GameState();
     applyBoardEffects(
       { id: 'BOARD_007', name: 'B', effects: [{ type: 'draw_bonus', value: 1 }, { type: 'draw_bonus', value: 2 }] } as any,
-      { gameState } as any,
+      { gameState } as any
     );
     expect(gameState.player_draw_sources).toEqual([
       { kind: 'terrain', ref: 'BOARD_007', value: 1 },
-      { kind: 'terrain', ref: 'BOARD_007', value: 2 },
+      { kind: 'terrain', ref: 'BOARD_007', value: 2 }
     ]);
     const sum = gameState.player_draw_sources.reduce((n, s) => n + s.value, 0);
     expect(sum).toBe(gameState.player_extra_draws);

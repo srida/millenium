@@ -25,8 +25,7 @@ function makeSession(cards: any[] = [], pool: any[] = []): GameSession {
     attributeList: [],
     cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
     getAllBoards: () => [],
-    getAllMagies: () => [],
-  };
+    getAllMagies: () => [] };
   return new GameSession(deps);
 }
 
@@ -111,21 +110,23 @@ describe('Tout annuler — invocation normale', () => {
   });
 
   it('une carte remisée par une magie de main retrouve sa remise', () => {
-    const sac = makeCard({ id: 'SAC', summon_type: 'sacrifice', cost: { sacrifice: 2 } });
+    const sac = makeCard({ id: 'SAC', summon_conditions: [{ materials: 2 }] });
     const session = makeSession([sac]);
     session.hand = [{ ...sac } as any];
-    session.gameState.player_hand_modifiers.push({ type: 'reduce_sacrifice_cost', value: 2 } as any);
+    session.gameState.player_hand_modifiers.push({ type: 'reduce_materials', value: 2 } as any);
     session.startPreparation();
 
     const remised = session.hand[0];
-    expect((remised as any).cost.sacrifice).toBe(0);
-    expect((remised as any)._original_sacrifice).toBe(2);
+    expect((remised as any).summon_conditions).toEqual([{ materials: 0, requires: [] }]);
+    expect((remised as any)._discounted_from).toEqual([{ materials: 2 }]);
 
     // Coût tombé à 0 → l'invocation ne consomme aucun matériau.
     session.place(remised, { col: 0, row: 0 }, [], 0);
     expect(session.undoPreparation()).toBe(true);
+    // ⚠️ La MÊME référence revient en main : `undoPreparation` ne clone rien,
+    // c'est ce qui rend la remise intacte plutôt que recalculée.
     expect(session.hand[0]).toBe(remised);
-    expect((session.hand[0] as any).cost.sacrifice).toBe(0);
+    expect((session.hand[0] as any).summon_conditions).toEqual([{ materials: 0, requires: [] }]);
   });
 });
 
@@ -134,7 +135,7 @@ describe('Tout annuler — invocations composites', () => {
     const m1 = makeCard({ id: 'M1' });
     const m2 = makeCard({ id: 'M2' });
     const m3 = makeCard({ id: 'M3' });
-    const fus = makeCard({ id: 'FUS', tier: 2, summon_type: 'fusion', cost: { materials: ['M1', 'M2', 'M3'] } });
+    const fus = makeCard({ id: 'FUS', tier: 2, summon_conditions: [{ materials: 3, requires: ['M1', 'M2', 'M3'] }] });
     const session = makeSession([m1, m2, m3, fus]);
 
     const u1 = place(session, m1, { col: 0, row: 0 });
@@ -153,7 +154,7 @@ describe('Tout annuler — invocations composites', () => {
     u1._recomputeStats();
     const u1Before = {
       uid: u1.uid, atk: u1.atk, base: { ...u1._base }, bonus: { ...u1._shopping_bonus },
-      hp: u1.current_hp, shield: u1.shield, vet: u1.veterancy_points,
+      hp: u1.current_hp, shield: u1.shield, vet: u1.veterancy_points
     };
 
     session.startPreparation();
@@ -179,7 +180,7 @@ describe('Tout annuler — invocations composites', () => {
 
   it('une transformation rend sa cible à SA case (l\'invocation avait pris la sienne)', () => {
     const target = makeCard({ id: 'TGT' });
-    const evo = makeCard({ id: 'EVO', tier: 2, summon_type: 'transformation', cost: { materials: ['TGT'] } });
+    const evo = makeCard({ id: 'EVO', tier: 2, summon_conditions: [{ materials: 1, requires: ['TGT'] }] });
     const session = makeSession([target, evo]);
     const u = place(session, target, { col: 4, row: 3 });
     session.hand = [{ ...evo } as any];
@@ -196,7 +197,7 @@ describe('Tout annuler — invocations composites', () => {
   it('trois invocations chaînées se défont d\'un seul geste', () => {
     const a = makeCard({ id: 'CA' });
     const b = makeCard({ id: 'CB' });
-    const fus = makeCard({ id: 'CF', tier: 2, summon_type: 'fusion', cost: { materials: ['CA', 'CB'] } });
+    const fus = makeCard({ id: 'CF', tier: 2, summon_conditions: [{ materials: 2, requires: ['CA', 'CB'] }] });
     const session = makeSession([a, b, fus]);
     session.hand = [{ ...a }, { ...b }, { ...fus }] as any;
     session.startPreparation();

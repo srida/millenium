@@ -71,15 +71,9 @@ export function guaranteedDrawLabel(
   if (!draw) return '';
   const parts: string[] = [];
   if (draw.tier) parts.push(`Tier ${draw.tier}`);
-  if (draw.category) parts.push(SUMMON_LABELS[draw.category] ?? draw.category);
   if (draw.attribute) parts.push(attributeName(draw.attribute));
   return parts.length ? parts.join(' · ') : 'Au choix';
 }
-
-const SUMMON_LABELS: Record<string, string> = {
-  normal: 'Normal', sacrifice: 'Sacrifice', fusion: 'Fusion',
-  heritage: 'Héritage', transformation: 'Transformation', multi: 'Plusieurs recettes',
-};
 
 /**
  * Le gros chiffre de la popup : ce qui est RÉELLEMENT entré en main.

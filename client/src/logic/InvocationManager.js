@@ -1,267 +1,257 @@
-import { Unit } from './Unit.js';
+import { Unit, materialValueOf } from './Unit.js';
+
+// Ré-exporté ici parce que c'est la question « que vaut cette carte comme
+// matériau ? », qui appartient au vocabulaire de l'invocation ; la définition
+// vit dans `Unit`, seul endroit qui l'écrit.
+export { materialValueOf };
 
 /**
- * Validates and executes summons for all 5 types.
+ * Valide et exécute les invocations.
  *
- * hand: Card[] (mutable — cards are spliced out on summon)
+ * Une carte porte zéro, une ou plusieurs CONDITIONS (`summon_conditions`) ; elle
+ * est jouable dès qu'une seule est satisfaite. Une condition exige un nombre de
+ * slots de matériau (`materials`, compté en `material_value`) dont une partie
+ * peut être nommée (`requires` : ids de carte ou d'attribut). Aucune condition
+ * = invocation directe.
+ *
+ * ⚠️ Il n'y a plus de « voie » d'invocation : les cinq notions historiques
+ * (normale, sacrifice, fusion, héritage, transformation) sont devenues des
+ * ATTRIBUTS de carte, purement descriptifs. Le moteur ne connaît qu'un coût.
+ *
+ * hand: Card[] (mutable — les cartes en sont retirées à l'invocation)
  * board: Board
  */
 
-// Transformation is always 1-for-1 (replaces its target in place), so it never counts against the slot limit.
-// A free_transformation (no target consumed) takes a brand new cell, so it must count like a normal summon.
-export function exceedsBoardSlots(card, selectedMaterials, board, graveyard, playerBoardSlots, type = card.summon_type) {
-  if (type === 'transformation' && !card._free_transformation) return false;
+/** Les conditions d'une carte ; `[]` quand elle n'en a aucune. */
+export function summonConditions(card) {
+  const list = card?.summon_conditions;
+  return Array.isArray(list) ? list : [];
+}
+
+/** La condition d'index `i`, ou la première ; `null` si la carte n'en a aucune. */
+export function conditionAt(card, index = null) {
+  const list = summonConditions(card);
+  if (list.length === 0) return null;
+  return list[index ?? 0] ?? null;
+}
+
+/** Combien de slots de matériau cette condition réclame. */
+export function conditionMaterials(condition) {
+  return Math.max(0, condition?.materials ?? 0);
+}
+
+/** Les exigences nommées de cette condition — un sous-ensemble de ses slots. */
+export function conditionRequires(condition) {
+  return condition?.requires ?? [];
+}
+
+/** Une condition qui n'exige rien : la carte se pose directement. */
+export function conditionIsFree(condition) {
+  return conditionMaterials(condition) === 0 && conditionRequires(condition).length === 0;
+}
+
+/**
+ * Ce que la carte coûte au moins, en slots de matériau — sa voie la moins
+ * chère. Zéro pour une carte sans condition.
+ *
+ * ⚠️ SEUL endroit qui répond à « quel genre d'invocation est-ce ». Il y en
+ * avait trois : la table de priorité de l'IA, celle de l'auto-joueur, et
+ * l'agrégat par voie du rapport d'équilibrage — trois copies d'une même
+ * question, dont la simulation mesurait la version la plus ancienne.
+ */
+export function summonCost(card) {
+  const conditions = summonConditions(card);
+  if (conditions.length === 0) return 0;
+  return Math.min(...conditions.map(conditionMaterials));
+}
+
+/**
+ * La carte a-t-elle plusieurs voies ? Ne sert qu'à l'UI (menu de choix) et à
+ * l'IA (essayer chaque condition) — le moteur, lui, raisonne toujours sur UNE
+ * condition résolue.
+ */
+export function hasMultipleConditions(card) {
+  return summonConditions(card).length > 1;
+}
+
+/**
+ * Une invocation ne coûte un slot de board que pour ce qu'elle n'a pas libéré
+ * elle-même : les matériaux pris SUR LE BOARD rendent leur case, ceux pris au
+ * CIMETIÈRE n'en rendent aucune.
+ *
+ * ⚠️ La Transformation n'a plus de cas particulier : consommer un matériau du
+ * board et reposer une unité donne `vivants − 1 + 1`, soit exactement zéro slot
+ * consommé — la règle générale le dit déjà. Corollaire assumé : une condition
+ * satisfaite depuis le seul cimetière est désormais refusée sur un board plein,
+ * là où la Transformation y échappait par exception.
+ */
+export function exceedsBoardSlots(card, selectedMaterials, board, graveyard, playerBoardSlots) {
   const materialsOnBoard = selectedMaterials.filter(u => !graveyard.includes(u)).length;
   const afterPlace = board.getLivingUnitsOnSide('player').length - materialsOnBoard + 1;
   return afterPlace > playerBoardSlots;
 }
 
-// A card opts into multiple summoning alternatives (e.g. transformation from one specific
-// monster OR sacrifice of several others, for the same resulting monster) via this field.
-// When absent, the card behaves exactly as before via its own summon_type/cost.
-export function hasSummonOptions(card) {
-  return Array.isArray(card.summon_options) && card.summon_options.length > 0;
-}
-
-export function canSummon(card, pos, board, hand, graveyard = [], selectedMaterials = [], optionIndex = null) {
+/**
+ * Peut-on poser `card` en `pos` ?
+ *
+ * Sans `conditionIndex`, une carte à plusieurs conditions rend l'état de CHACUNE
+ * (`{ options: [...] }`) au lieu d'un verdict — c'est ce que l'UI affiche dans
+ * son menu de choix. Avec un index, le verdict porte sur cette seule condition.
+ */
+export function canSummon(card, pos, board, hand, graveyard = [], selectedMaterials = [], conditionIndex = null) {
   if (!board.isInBounds(pos)) return fail('Position hors limites');
   if (!board.isPlayerCell(pos)) return fail('Placement uniquement sur le côté joueur (rangées 0–3)');
 
-  if (hasSummonOptions(card)) {
-    if (optionIndex !== null && optionIndex !== undefined) {
-      const opt = card.summon_options[optionIndex];
-      if (!opt) return fail("Option d'invocation invalide");
-      return _canSummonForType(card, opt.summon_type, opt.cost, pos, board, hand, graveyard, selectedMaterials);
-    }
-    // No option chosen yet: report the playability of every alternative for this cell.
+  const conditions = summonConditions(card);
+  if (conditions.length > 1 && (conditionIndex === null || conditionIndex === undefined)) {
     return {
-      options: card.summon_options.map((opt, index) => {
-        const res = _canSummonForType(card, opt.summon_type, opt.cost, pos, board, hand, graveyard, selectedMaterials);
-        return { index, summon_type: opt.summon_type, cost: opt.cost, ok: res.ok, reason: res.reason };
+      options: conditions.map((condition, index) => {
+        const res = _canSummonWith(card, condition, pos, board, graveyard, selectedMaterials);
+        return { index, condition, ok: res.ok, reason: res.reason };
       }),
     };
   }
 
-  return _canSummonForType(card, card.summon_type, card.cost, pos, board, hand, graveyard, selectedMaterials);
-}
-
-function _canSummonForType(card, type, cost, pos, board, hand, graveyard, selectedMaterials) {
-  // La transformation place la carte sur la case de la cible (déjà occupée)
-  if (type !== 'transformation' && board.isOccupied(pos)) return fail('Case occupée');
-  // Pas de doublon (même card_id) sur le terrain joueur — uniquement pour un placement normal :
-  // sacrifice/fusion/heritage/transformation peuvent légitimement se jouer par-dessus un doublon existant
-  if (type === 'normal') {
-    const duplicate = board.getLivingUnitsOnSide('player').some(u => u.card_id === card.id);
-    if (duplicate) return fail('Cette carte est déjà présente sur le terrain');
+  if (conditionIndex !== null && conditionIndex !== undefined && conditions.length > 0) {
+    const condition = conditions[conditionIndex];
+    if (!condition) return fail("Condition d'invocation invalide");
+    return _canSummonWith(card, condition, pos, board, graveyard, selectedMaterials);
   }
-  switch (type) {
-    case 'normal':
-      return ok();
 
-    case 'sacrifice': {
-      const needed = cost?.sacrifice ?? 0;
-      if (needed === 0) {
-        // Sacrifice gratuit (coût réduit par magie) : même règle de doublon que l'invocation normale
-        if (board.getLivingUnitsOnSide('player').some(u => u.card_id === card.id))
-          return fail('Cette carte est déjà présente sur le terrain');
-        return ok();
-      }
-      // Si un doublon de la carte invoquée est déjà vivant sur le terrain, il doit être
-      // sélectionné comme matériau (sinon on se retrouverait avec deux exemplaires vivants).
-      const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id);
-      if (duplicate && !selectedMaterials.includes(duplicate)) {
-        return fail('Le doublon présent sur le terrain doit être sélectionné comme matériau');
-      }
-      const total = _sumMaterialValue(board.getLivingUnitsOnSide('player')) + _sumMaterialValue(graveyard);
-      if (total < needed) return fail(`Requiert ${needed} unité(s) sur le terrain ou au cimetière`);
-      return ok();
-    }
-
-    case 'fusion': {
-      const materials = cost?.materials ?? [];
-      if (materials.length === 0) return ok();
-      const playerUnits = board.getUnitsOnSide('player');
-      for (const matId of materials) {
-        const onBoard = playerUnits.find(u => _materialLineageMatches(u, matId, materials) && u.isAlive());
-        const inGrave = graveyard.find(u => _materialLineageMatches(u, matId, materials));
-        if (!onBoard && !inGrave)
-          return fail(`Matériau manquant sur le terrain ou au cimetière : ${matId}`);
-      }
-      // Si un doublon du résultat de cette fusion est déjà vivant sur le terrain, il doit
-      // être sélectionné comme matériau pour être consommé.
-      const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id);
-      if (duplicate && !selectedMaterials.includes(duplicate)) {
-        return fail('Le doublon présent sur le terrain doit être sélectionné comme matériau');
-      }
-      return ok();
-    }
-
-    case 'heritage': {
-      const required = cost?.materials ?? [];
-      const sacrifice = cost?.sacrifice ?? 0;
-      const allUnits = [...board.getUnitsOnSide('player'), ...graveyard];
-      // sacrifice = total material slots to consume; materials = constraints among those units
-      if (_sumMaterialValue(allUnits) < sacrifice)
-        return fail(`Requiert ${sacrifice} unité(s) sur le terrain ou au cimetière`);
-      // Check each material requirement can be matched by some available unit
-      const pool = [...allUnits];
-      for (const matId of required) {
-        const idx = pool.findIndex(u => _matchesMaterial(u, matId));
-        if (idx === -1) return fail(`Matériau Heritage manquant : ${matId}`);
-        pool.splice(idx, 1);
-      }
-      // Si un doublon du résultat de cette heritage est déjà vivant sur le terrain, il doit
-      // être sélectionné comme matériau pour être consommé.
-      const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id);
-      if (duplicate && !selectedMaterials.includes(duplicate)) {
-        return fail('Le doublon présent sur le terrain doit être sélectionné comme matériau');
-      }
-      return ok();
-    }
-
-    case 'transformation': {
-      if (card._free_transformation) {
-        if (board.isOccupied(pos)) return fail('Case occupée');
-        return ok();
-      }
-      const targetId = cost?.materials?.[0];
-      if (!targetId) return fail('Pas de cible de transformation définie');
-      const onBoard = board.getUnitsOnSide('player').find(u => _materialLineageMatches(u, targetId, [targetId]) && u.isAlive());
-      const inGrave = graveyard.find(u => _materialLineageMatches(u, targetId, [targetId]));
-      if (!onBoard && !inGrave) return fail(`Requiert ${targetId} sur le terrain ou au cimetière`);
-      // Si un doublon du résultat de cette transformation est déjà vivant sur le terrain,
-      // c'est lui qui doit être consommé comme matériau (sinon on se retrouverait avec
-      // deux exemplaires vivants du résultat).
-      const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id);
-      if (duplicate && selectedMaterials[0] !== duplicate) {
-        return fail('Le doublon présent sur le terrain doit être utilisé comme matériau de la transformation');
-      }
-      return ok();
-    }
-
-    default:
-      return fail(`Type d'invocation inconnu : ${type}`);
-  }
+  return _canSummonWith(card, conditions[0] ?? null, pos, board, graveyard, selectedMaterials);
 }
 
 /**
- * Execute the summon. Assumes canSummon() returned ok.
- * @param {Object} card  - card data object
- * @param {{col,row}} pos - target cell on player board
- * @param {Board} board
- * @param {Card[]} hand  - mutable hand array
- * @param {Card[][]} sacrificeTargets - for sacrifice/heritage: which board units to remove
- *        (if null, removes the first N living player units)
- * @param {number} handIdx
- * @param {number} optionIndex - when card.summon_options exists, the chosen alternative's index
- * @returns {Unit}
+ * Les cinq règles, et rien d'autre. Elles remplacent les cinq branches par voie
+ * d'invocation : chacune était un cas particulier de l'une d'elles.
  */
-export function summon(card, pos, board, hand, sacrificeTargets = null, handIdx = null, optionIndex = null) {
-  const opt = hasSummonOptions(card) ? card.summon_options[optionIndex ?? 0] : null;
-  const type = opt ? opt.summon_type : card.summon_type;
-  const cost = opt ? opt.cost : card.cost;
-  const unit = new Unit(card, 'player');
+function _canSummonWith(card, condition, pos, board, graveyard, selectedMaterials) {
+  const living = board.getLivingUnitsOnSide('player');
 
-  switch (type) {
-    case 'normal':
-      _removeFromHand(hand, card.id, handIdx);
-      break;
-
-    case 'sacrifice': {
-      _removeFromHand(hand, card.id, handIdx);
-      const needed = cost?.sacrifice ?? 0;
-      const toRemove = sacrificeTargets
-        ? _takeByMaterialValue(sacrificeTargets, needed)
-        : _takeByMaterialValue(board.getLivingUnitsOnSide('player'), needed);
-      for (const u of toRemove) board.removeUnit(u);
-      unit.material_value = materialValueOf(card, type, cost);
-      _transferShoppingBonuses(unit, toRemove);
-      break;
-    }
-
-    case 'fusion': {
-      _removeFromHand(hand, card.id, handIdx);
-      const consumed = [];
-      if (sacrificeTargets && sacrificeTargets.length > 0) {
-        for (const u of sacrificeTargets) { board.removeUnit(u); consumed.push(u); }
-      } else {
-        // AI fallback: auto-select matching units
-        const fusionMaterials = cost?.materials ?? [];
-        const fusionUnits = board.getUnitsOnSide('player');
-        for (const matId of fusionMaterials) {
-          const mat = fusionUnits.find(u => _materialLineageMatches(u, matId, fusionMaterials) && u.isAlive() && !consumed.includes(u));
-          if (mat) { board.removeUnit(mat); consumed.push(mat); }
-        }
-      }
-      unit.material_value = materialValueOf(card, type, cost);
-      _transferShoppingBonuses(unit, consumed);
-      break;
-    }
-
-    case 'heritage': {
-      _removeFromHand(hand, card.id, handIdx);
-      let consumed;
-      if (sacrificeTargets && sacrificeTargets.length > 0) {
-        consumed = sacrificeTargets;
-        for (const u of sacrificeTargets) board.removeUnit(u);
-      } else {
-        // AI fallback: pick required materials first, fill remaining slots with any unit
-        const sacrifice = cost?.sacrifice ?? 0;
-        const pool = board.getLivingUnitsOnSide('player').slice();
-        const toConsume = [];
-        for (const matId of (cost?.materials ?? [])) {
-          const idx = pool.findIndex(u => _matchesMaterial(u, matId));
-          if (idx !== -1) { toConsume.push(pool[idx]); pool.splice(idx, 1); }
-        }
-        let remaining = sacrifice - toConsume.reduce((s, u) => s + (u.material_value ?? 1), 0);
-        for (const u of pool) {
-          if (remaining <= 0) break;
-          toConsume.push(u);
-          remaining -= (u.material_value ?? 1);
-        }
-        for (const u of toConsume) board.removeUnit(u);
-        consumed = toConsume;
-      }
-      unit.material_value = materialValueOf(card, type, cost);
-      _transferShoppingBonuses(unit, consumed);
-      break;
-    }
-
-    case 'transformation': {
-      _removeFromHand(hand, card.id, handIdx);
-      if (!card._free_transformation) {
-        const targetId = cost?.materials?.[0];
-        // Prefer the explicitly-passed unit (fixes same-name ambiguity). Otherwise fall back to
-        // the exact same resolution the UI used to pick/highlight the target cell — using a
-        // plain "first match" here instead would silently consume a different unit than the one
-        // the player tapped, losing whatever Shopping Phase bonus was on the intended unit.
-        const targetUnit = sacrificeTargets?.find(u => _materialLineageMatches(u, targetId, [targetId]))
-          ?? resolveTransformationTarget({ ...card, cost }, board);
-        if (targetUnit) {
-          // Une unité encore sur le board cède sa case ; une unité du cimetière n'a plus
-          // de case valide (sa .position est l'ancienne position de combat) — garder le pos
-          // tapé par le joueur dans ce cas.
-          if (board.getUnit(targetUnit.position) === targetUnit) {
-            pos = { ...targetUnit.position };
-          }
-          board.removeUnit(targetUnit);
-          _transferShoppingBonuses(unit, [targetUnit]);
-        }
-      }
-      break;
-    }
+  // 1. La case doit être libre, OU occupée par une unité qu'on consomme —
+  //    c'est ce qui permet de reposer le résultat sur la case d'un matériau
+  //    (l'ancienne Transformation, généralisée à toutes les conditions).
+  if (board.isOccupied(pos)) {
+    const occupant = board.getUnit(pos);
+    if (!selectedMaterials.includes(occupant))
+      return fail('Case occupée');
   }
 
+  // 2. Jamais deux exemplaires vivants de la même carte : un doublon présent
+  //    doit être consommé. Sans condition il n'y a aucun matériau à
+  //    sélectionner, donc la carte est refusée — l'ancienne règle du placement
+  //    normal tombe d'elle-même, il n'y a rien à écrire pour elle.
+  const duplicate = living.find(u => u.card_id === card.id);
+  if (duplicate && !selectedMaterials.includes(duplicate)) {
+    return fail('Le doublon présent sur le terrain doit être sélectionné comme matériau');
+  }
+
+  if (!condition || conditionIsFree(condition)) return ok();
+
+  const needed = conditionMaterials(condition);
+  const required = conditionRequires(condition);
+
+  // 3. Quantité — disponible partout (terrain + cimetière) ; c'est la
+  //    sélection, pas cette garde, qui décide d'où viennent les matériaux.
+  const available = [...board.getUnitsOnSide('player').filter(u => u.isAlive()), ...graveyard];
+  if (sumMaterialValue(available) < needed)
+    return fail(`Requiert ${needed} matériel(s) sur le terrain ou au cimetière`);
+
+  // 4. Exigences nommées — appariées à des unités DISTINCTES (glouton), chacune
+  //    devant être une doublure légitime (lignée).
+  const pool = [...available];
+  for (const matId of required) {
+    const idx = pool.findIndex(u => materialLineageMatches(u, matId, required));
+    if (idx === -1) return fail(`Matériel manquant sur le terrain ou au cimetière : ${matId}`);
+    pool.splice(idx, 1);
+  }
+
+  return ok();
+}
+
+/**
+ * Exécute l'invocation. Suppose que `canSummon` a rendu ok.
+ *
+ * @param {Object} card
+ * @param {{col,row}} pos
+ * @param {Board} board
+ * @param {Card[]} hand - main mutable
+ * @param {Unit[]} materials - les unités à consommer ; `null` laisse l'appelant
+ *        (l'IA) s'en remettre à une sélection automatique.
+ * @param {number} handIdx
+ * @param {number} conditionIndex - la condition retenue quand la carte en a plusieurs
+ * @returns {Unit}
+ */
+export function summon(card, pos, board, hand, materials = null, handIdx = null, conditionIndex = null) {
+  const condition = conditionAt(card, conditionIndex);
+  const unit = new Unit(card, 'player');
+
+  _removeFromHand(hand, card.id, handIdx);
+
+  const consumed = (condition && !conditionIsFree(condition))
+    ? (materials?.length ? [...materials] : _autoSelectMaterials(card, condition, board, []))
+    : [];
+
+  // ⚠️ Les matériaux partent AVANT la pose : `pos` peut être la case de l'un
+  // d'eux (règle 1), et `placeUnit` jette sur une case occupée. C'est aussi ce
+  // qui fait que l'unité produite reprend la case de son matériau sans une
+  // ligne pour le dire — l'ancienne Transformation n'était que ce cas-là.
+  for (const u of consumed) board.removeUnit(u);
+
+  _transferShoppingBonuses(unit, consumed);
   board.placeUnit(unit, pos);
   return unit;
 }
 
-// Carries Shopping Phase bonuses from consumed/replaced units onto the resulting composite
-// unit: permanent stat bonuses (stat_bonus/stat_modifier magies — including any negative
-// stat traded off against another, e.g. -5 attack_speed for +15 atk) plus any still-unused
-// shield (shield magie), which would otherwise be silently lost. Also carries over
-// veterancy points — taking the highest value among consumed units rather than summing,
-// so chaining materials can't be used to farm veterancy.
+/**
+ * Le jeu de matériaux qu'une condition consomme quand personne ne l'a désigné.
+ *
+ * ⚠️ Sert DEUX appelants qui ne doivent pas diverger : l'IA, qui invoque sans
+ * passer par l'UI, et la pré-sélection du joueur quand la condition n'admet
+ * qu'une seule lecture. Les exigences nommées d'abord (elles contraignent),
+ * le remplissage ensuite.
+ */
+export function autoSelectMaterials(card, condition, board, graveyard = []) {
+  return _autoSelectMaterials(card, condition, board, graveyard);
+}
+
+function _autoSelectMaterials(card, condition, board, graveyard) {
+  if (!condition || conditionIsFree(condition)) return [];
+  const required = conditionRequires(condition);
+  const needed = conditionMaterials(condition);
+  const onBoard = board.getLivingUnitsOnSide('player');
+  const pool = [...onBoard, ...graveyard];
+  const chosen = [];
+
+  // Un doublon vivant du résultat DOIT être consommé (règle 2) : il passe donc
+  // en tête, avant même les exigences nommées, sinon la sélection automatique
+  // produirait un jeu que `canSummon` refuse.
+  const duplicate = onBoard.find(u => u.card_id === card.id);
+  if (duplicate) {
+    chosen.push(duplicate);
+    pool.splice(pool.indexOf(duplicate), 1);
+  }
+
+  for (const matId of required) {
+    if (chosen.some(u => matchesMaterial(u, matId))) continue;
+    const idx = pool.findIndex(u => materialLineageMatches(u, matId, required));
+    if (idx === -1) continue;
+    chosen.push(pool[idx]);
+    pool.splice(idx, 1);
+  }
+
+  for (const u of pool) {
+    if (sumMaterialValue(chosen) >= needed) break;
+    chosen.push(u);
+  }
+  return chosen;
+}
+
+// Reporte les bonus de Phase Shopping des unités consommées sur le composite :
+// deltas de stats permanents (magies stat_bonus/stat_modifier, y compris un
+// malus consenti contre un bonus) et bouclier restant, qui seraient sinon
+// perdus en silence. Les points de vétérance suivent en MAXIMUM et non en
+// somme — enchaîner les matériaux ne doit pas permettre de la farmer.
 function _transferShoppingBonuses(unit, consumedUnits) {
   const summed = {};
   let shieldTotal = 0;
@@ -299,97 +289,42 @@ function _removeFromHand(hand, cardId, atIdx = null) {
 function ok()         { return { ok: true,  reason: '' }; }
 function fail(reason) { return { ok: false, reason }; }
 
-// A material requirement designates an ATTRIBUTE (any unit carrying it) rather than one
-// specific card. Single source of truth for that prefix rule — the tooltip reads it too,
-// to name the requirement in the attribute database instead of the card one.
+// Une exigence désigne un ATTRIBUT (n'importe quelle unité qui le porte) plutôt
+// qu'une carte précise. Seul endroit qui décide de ce préfixe — le tooltip le
+// lit aussi, pour nommer l'exigence dans la base d'attributs et non celle des
+// cartes.
 export function isAttributeMaterial(matId) {
   return typeof matId === 'string' && matId.startsWith('ARCH_');
 }
 
-// A material requirement matches either a specific card ID or an attribute ID.
-// Transformation results count as the original monster (represented_ids).
+// Une exigence est satisfaite par un id de carte ou par un attribut. Un
+// composite compte pour les cartes qu'il représente (represented_ids).
 export function matchesMaterial(unit, matId) {
   if (isAttributeMaterial(matId)) return unit.attributes?.includes(matId) ?? false;
   return unit.represented_ids?.includes(matId) ?? unit.card_id === matId;
 }
-const _matchesMaterial = matchesMaterial;
 
-// Single source of truth for "which board unit does this Transformation consume when the
-// player didn't explicitly tap a specific unit". Mirrors InvocationRules.transformTargetCells'
-// preference (an existing duplicate of the transformation's own result, to avoid ending up with
-// two living copies) so the cell the UI highlights always matches the unit actually consumed.
-export function resolveTransformationTarget(card, board) {
-  const targetId = card.cost?.materials?.[0];
-  if (!targetId) return null;
-  const matches = board.getLivingUnitsOnSide('player').filter(u => materialLineageMatches(u, targetId, [targetId]));
-  return matches.find(u => u.card_id === card.id) ?? matches[0] ?? null;
-}
-
-// A composite unit (built via a previous fusion/heritage/transformation) can only stand in for a
-// fusion material slot if every id it itself was built from is also required by THIS fusion.
-// Ex: "Aile de feu" (fusion d'Avian+Burstinatrix) ne peut pas remplacer Avian seul pour Marin
-// (qui ne requiert pas Burstinatrix), mais peut remplacer Avian+Burstinatrix à la fois pour
-// Electrum (qui requiert les deux) puisqu'elle ne "représente" rien hors de ce qui est demandé.
-// Exception : si la carte elle-même (son propre card_id) est un des matériaux requis, elle est
-// utilisée comme elle-même (pas comme substitut) — sa lignée d'origine n'a alors pas d'importance.
-// Ex: "Géant du tonnerre" (lui-même issu d'une Fusion) reste un matériel valide pour la
-// Transformation "Géant du Tonnerre Voltaïques" qui le requiert nommément.
+/**
+ * Une unité composite ne peut tenir le rôle d'une exigence que si TOUTE la
+ * lignée dont elle hérite est elle-même exigée par la condition en cours.
+ * Ex. « Aile de feu » (Avian + Burstinatrix) ne remplace pas Avian seul, mais
+ * comble à elle seule les deux exigences d'une condition qui demande les deux.
+ * Exception : si la carte est nommée pour elle-même, sa lignée n'importe pas.
+ */
 export function materialLineageLegit(unit, requiredMaterials) {
   if (requiredMaterials.includes(unit.card_id)) return true;
   const inherited = (unit.represented_ids ?? [unit.card_id]).filter(id => id !== unit.card_id);
   return inherited.every(id => requiredMaterials.includes(id));
 }
 
-// matchesMaterial + materialLineageLegit combined — the check to use for fusion material candidates.
+// matchesMaterial + materialLineageLegit — le test à utiliser pour un candidat.
 export function materialLineageMatches(unit, matId, requiredMaterials) {
   if (!matchesMaterial(unit, matId)) return false;
-  if (matId.startsWith('ARCH_')) return true;
+  if (isAttributeMaterial(matId)) return true;
   return materialLineageLegit(unit, requiredMaterials);
 }
-const _materialLineageMatches = materialLineageMatches;
 
-/**
- * Combien de slots de matériau vaut l'unité que cette carte produit.
- *
- * ⚠️ C'est le SEUL endroit du projet qui décide de `material_value` — `summon`
- * s'en sert pour le joueur, `EnemyAI` pour l'IA, et `dev/aiLabRun` pour
- * reconstruire un survivant d'un round sur l'autre. La table vivait en clair
- * dans les quatre branches de `summon` ; recopiée côté IA, elle aurait fini par
- * donner deux valeurs à la même carte selon le camp qui la joue — c'était déjà
- * le cas, l'IA laissant tous ses composites à 1.
- *
- * `type`/`cost` sont explicites pour les appelants qui ont déjà résolu une
- * `summon_option` (l'IA aplatit la carte avant d'invoquer) ; à défaut on
- * retombe sur la première option, comme `summon(card, …, optionIndex ?? 0)`.
- */
-export function materialValueOf(card, type = undefined, cost = undefined) {
-  const opt = type === undefined && hasSummonOptions(card) ? card.summon_options[0] : null;
-  const t = type ?? (opt ? opt.summon_type : card.summon_type);
-  const c = cost ?? (opt ? opt.cost : card.cost);
-  switch (t) {
-    // `_original_sacrifice` : le coût AVANT la remise d'une magie de main — un
-    // composite remisé revaut ce qu'il aurait coûté, pas ce qu'il a coûté.
-    case 'sacrifice': return card._original_sacrifice ?? (c?.sacrifice ?? 0);
-    case 'fusion': return (c?.materials ?? []).length || 1;
-    case 'heritage': return c?.sacrifice || 1;
-    default: return 1;   // normal et transformation : 1 pour 1
-  }
-}
-
-// Total material "slots" represented by a list of units.
+// Total des slots représentés par une liste d'unités.
 export function sumMaterialValue(units) {
   return units.reduce((sum, u) => sum + (u.material_value ?? 1), 0);
-}
-const _sumMaterialValue = sumMaterialValue;
-
-// Take units one by one until their combined material_value reaches `needed`.
-function _takeByMaterialValue(units, needed) {
-  const taken = [];
-  let total = 0;
-  for (const u of units) {
-    if (total >= needed) break;
-    taken.push(u);
-    total += (u.material_value ?? 1);
-  }
-  return taken;
 }

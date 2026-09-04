@@ -47,9 +47,9 @@ describe('MagieEffect — routage du ciblage', () => {
 
   it('effectLabel couvre tous les types sans planter', () => {
     for (const t of ['stat_bonus', 'stat_modifier', 'draw_bonus', 'guaranteed_draw', 'heal', 'revive', 'shield',
-      'player_hp_bonus', 'board_slot_bonus', 'defuse_fusion', 'destroy_unit', 'reduce_sacrifice_cost',
-      'free_transformation', 'remove_heritage_material', 'team_stat_bonus', 'drain_life',
-      'hand_to_graveyard', 'remove_fusion_material', 'team_heal', 'grant_power',
+      'player_hp_bonus', 'board_slot_bonus', 'defuse_fusion', 'destroy_unit', 'reduce_materials',
+      'remove_requirements', 'team_stat_bonus', 'drain_life',
+      'hand_to_graveyard', 'team_heal', 'grant_power',
       'power_cooldown', 'damage_multiplier_bonus']) {
       expect(typeof effectLabel(magie({ type: t, stat: 'atk', value: 2, tier: 3 }))).toBe('string');
     }
@@ -168,13 +168,11 @@ describe('MagieEffect — effets globaux (gameState)', () => {
     applyEffect(magie({ type: 'guaranteed_draw', tier: 3 }), { gameState: gs });
     expect(gs.player_guaranteed_draws).toEqual([{ tier: 3 }]);
 
-    applyEffect(magie({ type: 'reduce_sacrifice_cost', value: 1 }), { gameState: gs });
-    applyEffect(magie({ type: 'free_transformation' }), { gameState: gs });
-    applyEffect(magie({ type: 'remove_heritage_material' }), { gameState: gs });
+    applyEffect(magie({ type: 'reduce_materials', value: 1 }), { gameState: gs });
+    applyEffect(magie({ type: 'remove_requirements' }), { gameState: gs });
     expect(gs.player_hand_modifiers).toEqual([
-      { type: 'reduce_sacrifice_cost', value: 1 },
-      { type: 'free_transformation' },
-      { type: 'remove_heritage_material' },
+      { type: 'reduce_materials', value: 1 },
+      { type: 'remove_requirements', value: 1 },
     ]);
   });
 
@@ -196,13 +194,13 @@ describe('MagieEffect — effets globaux (gameState)', () => {
     expect(gs.player_hp).toBe(hpBefore);
   });
 
-  it('remove_fusion_material : empile un modifier de main avec son compte', () => {
+  it('remove_requirements : empile un modifier de main avec son compte', () => {
     const gs = new (GameState as any)();
-    applyEffect(magie({ type: 'remove_fusion_material' }), { gameState: gs });
-    applyEffect(magie({ type: 'remove_fusion_material', value: 2 }), { gameState: gs });
+    applyEffect(magie({ type: 'remove_requirements' }), { gameState: gs });
+    applyEffect(magie({ type: 'remove_requirements', value: 2 }), { gameState: gs });
     expect(gs.player_hand_modifiers).toEqual([
-      { type: 'remove_fusion_material', value: 1 },
-      { type: 'remove_fusion_material', value: 2 },
+      { type: 'remove_requirements', value: 1 },
+      { type: 'remove_requirements', value: 2 },
     ]);
   });
 });
@@ -296,15 +294,18 @@ describe('MagieEffect — damage_multiplier_bonus & pioche par voie', () => {
     expect(gs.player_damage_multiplier_bonus).toBe(0.75);
   });
 
-  it('guaranteed_draw transporte tier ET category, chacun facultatif', () => {
+  // ⚠️ Le filtre `category` (la voie d'invocation) a disparu : les voies sont
+  // devenues des attributs, et `attribute` les nomme déjà. Deux champs pour la
+  // même exigence, c'était deux endroits où l'écrire — et un seul où la lire.
+  it('guaranteed_draw transporte tier ET attribute, chacun facultatif', () => {
     const gs = new (GameState as any)();
     applyEffect(magie({ type: 'guaranteed_draw', tier: 3 }), { gameState: gs });
-    applyEffect(magie({ type: 'guaranteed_draw', category: 'fusion' }), { gameState: gs });
-    applyEffect(magie({ type: 'guaranteed_draw', tier: 5, category: 'sacrifice' }), { gameState: gs });
+    applyEffect(magie({ type: 'guaranteed_draw', attribute: 'ARCH_086' }), { gameState: gs });
+    applyEffect(magie({ type: 'guaranteed_draw', tier: 5, attribute: 'ARCH_089' }), { gameState: gs });
     expect(gs.player_guaranteed_draws).toEqual([
-      { tier: 3, category: undefined },
-      { tier: undefined, category: 'fusion' },
-      { tier: 5, category: 'sacrifice' },
+      { tier: 3, attribute: undefined },
+      { tier: undefined, attribute: 'ARCH_086' },
+      { tier: 5, attribute: 'ARCH_089' },
     ]);
   });
 });

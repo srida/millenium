@@ -20,6 +20,7 @@ import {
 } from '../data/tutorialScript.js';
 import { buildTutorialDecks } from '../game/tutorialDeck.js';
 import type { Card } from '../logic/types.js';
+import { summonCost } from '../logic/InvocationManager.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const CARDS = JSON.parse(fs.readFileSync(path.join(ROOT, 'initial-data', 'cards.json'), 'utf8')) as Card[];
@@ -72,10 +73,12 @@ describe('codex du tutoriel', () => {
     const types = chapter.blocks
       .filter(b => b.kind === 'cards')
       .flatMap(b => (b as { pick: (c: Card[]) => Card[] }).pick(CARDS))
-      .map(c => c.summon_type ?? 'normal');
-    for (const t of ['normal', 'sacrifice', 'fusion', 'heritage', 'transformation']) {
-      expect(types, t).toContain(t);
-    }
+      .map(c => summonCost(c));
+    // ⚠️ Le chapitre ne cite plus « une carte de chaque voie » — il n'y a plus
+    // de voies. Il doit montrer au moins une carte SANS condition et une qui en
+    // porte une : c'est la distinction que le tutoriel enseigne.
+    expect(types).toContain(0);
+    expect(types.some(n => n > 0)).toBe(true);
   });
 });
 
@@ -93,7 +96,7 @@ describe('deck de la partie d\'entraînement', () => {
     const byId = new Map(CARDS.map(c => [c.id, c]));
     const tier1 = player['1'].map(id => byId.get(id)!);
     expect(tier1.length).toBeGreaterThan(0);
-    expect(tier1.every(c => (c.summon_type ?? 'normal') === 'normal')).toBe(true);
+    expect(tier1.every(c => summonCost(c) === 0)).toBe(true);
   });
 
   it('remplit les cinq tiers des deux côtés, sans doublon', () => {
@@ -118,8 +121,9 @@ describe('deck de la partie d\'entraînement', () => {
       for (let t = 1; t <= 5; t++) {
         for (const id of deck[String(t)]) {
           const card = byId.get(id)!;
-          const costs = card.summon_options?.length ? card.summon_options.map(o => o.cost) : [card.cost];
-          const ok = costs.some(cost => (cost?.materials ?? []).every(m => ids.has(m) || attrs.has(m)));
+          const conditions = card.summon_conditions ?? [];
+          const ok = conditions.length === 0
+            || conditions.some(cd => (cd.requires ?? []).every(m => ids.has(m) || attrs.has(m)));
           expect(ok, `${card.name} (${id}) exige des matériaux absents du deck`).toBe(true);
         }
         // La couverture ne s'ouvre qu'après le tier : une carte ne peut pas être

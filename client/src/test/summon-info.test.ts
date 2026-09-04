@@ -16,7 +16,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   summonRecipes, recipeCostText, materialsLabel, recipeIsFree,
-  SUMMON_LABELS, SUMMON_ICONS,
+  SUMMON_LABELS, SUMMON_ICONS
 } from '../data/SummonInfo.js';
 import type { Card } from '../logic/types.js';
 
@@ -26,30 +26,30 @@ const CARDS = readJson('cards.json') as Card[];
 const ATTRIBUTES = readJson('attributes.json') as { id: string }[];
 
 const card = (over: Partial<Card>): Card => ({
-  id: 'X', name: 'X', tier: 1, summon_type: 'normal',
+  id: 'X', name: 'X', tier: 1, summon_conditions: [],
   stats: { atk: 1, hp: 1, movement_speed: 1, attack_speed: 1, initiative: 1, range: 1 },
-  ...over,
+  ...over
 } as Card);
 
 // ── Une recette par voie ────────────────────────────────────────────────────
 
 describe('summonRecipes — cartes à voie unique', () => {
   it('rend une seule recette, sans index d\'option', () => {
-    const [r] = summonRecipes(card({ summon_type: 'normal' }));
-    expect(summonRecipes(card({ summon_type: 'normal' }))).toHaveLength(1);
+    const [r] = summonRecipes(card({ summon_conditions: [] }));
+    expect(summonRecipes(card({ summon_conditions: [] }))).toHaveLength(1);
     expect(r.index).toBeNull();
     expect(r.label).toBe(SUMMON_LABELS.normal);
     expect(r.icon).toBe(SUMMON_ICONS.normal);
   });
 
   it('n\'exige rien d\'une normale — le tooltip peut taire le bloc', () => {
-    const [r] = summonRecipes(card({ summon_type: 'normal', cost: { sacrifice: 0, materials: [] } }));
+    const [r] = summonRecipes(card({ summon_conditions: [] }));
     expect(recipeIsFree(r)).toBe(true);
     expect(recipeCostText(r)).toBeNull();
   });
 
   it('compte les tributs d\'un sacrifice, et rien d\'autre', () => {
-    const [r] = summonRecipes(card({ summon_type: 'sacrifice', cost: { sacrifice: 2, materials: [] } }));
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 2 }] }));
     expect(r.sacrifice).toBe(2);
     expect(r.materials).toEqual([]);
     expect(recipeCostText(r)).toBe('2 tributs');
@@ -57,12 +57,12 @@ describe('summonRecipes — cartes à voie unique', () => {
   });
 
   it('accorde le singulier sur un tribut unique', () => {
-    const [r] = summonRecipes(card({ summon_type: 'sacrifice', cost: { sacrifice: 1, materials: [] } }));
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 1 }] }));
     expect(recipeCostText(r)).toBe('1 tribut');
   });
 
   it('liste les matériaux d\'une fusion, sans tribut', () => {
-    const [r] = summonRecipes(card({ summon_type: 'fusion', cost: { sacrifice: 0, materials: ['CORE_005', 'CORE_006'] } }));
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 2, requires: ['CORE_005', 'CORE_006'] }] }));
     expect(r.materials.map(m => m.id)).toEqual(['CORE_005', 'CORE_006']);
     expect(r.materials.every(m => m.kind === 'card')).toBe(true);
     expect(r.sacrifice).toBe(0);
@@ -70,7 +70,7 @@ describe('summonRecipes — cartes à voie unique', () => {
   });
 
   it('dit d\'un héritage que ses matériaux sont PRIS DANS ses tributs', () => {
-    const [r] = summonRecipes(card({ summon_type: 'heritage', cost: { sacrifice: 2, materials: ['CORE_005'] } }));
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 2, requires: ['CORE_005'] }] }));
     expect(r.sacrifice).toBe(2);
     expect(r.materials.map(m => m.id)).toEqual(['CORE_005']);
     // « dont » et non « Matériel » : le matériau est compté dans les 2 tributs,
@@ -79,22 +79,22 @@ describe('summonRecipes — cartes à voie unique', () => {
   });
 
   it('nomme la cible d\'une transformation, qui n\'est pas un matériau', () => {
-    const [r] = summonRecipes(card({ summon_type: 'transformation', cost: { sacrifice: 0, materials: ['CORE_055'] } }));
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 1, requires: ['CORE_055'] }] }));
     expect(r.materials.map(m => m.id)).toEqual(['CORE_055']);
     expect(materialsLabel(r)).toBe('Transforme');
   });
 
   it('distingue un matériel d\'ATTRIBUT d\'un matériel de carte', () => {
-    const [r] = summonRecipes(card({ summon_type: 'heritage', cost: { sacrifice: 1, materials: ['ARCH_005'] } }));
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 1, requires: ['ARCH_005'] }] }));
     expect(r.materials).toEqual([{ id: 'ARCH_005', kind: 'attribute' }]);
   });
 
   it('ignore un coût que la voie ne lit pas', () => {
     // Un `sacrifice` posé sur une fusion, des `materials` posés sur un
     // sacrifice : InvocationManager ne les vérifie jamais.
-    const [fusion] = summonRecipes(card({ summon_type: 'fusion', cost: { sacrifice: 3, materials: ['CORE_005'] } }));
+    const [fusion] = summonRecipes(card({ summon_conditions: [{ materials: 1, requires: ['CORE_005'] }] }));
     expect(fusion.sacrifice).toBe(0);
-    const [sacr] = summonRecipes(card({ summon_type: 'sacrifice', cost: { sacrifice: 1, materials: ['CORE_005'] } }));
+    const [sacr] = summonRecipes(card({ summon_conditions: [{ materials: 1 }] }));
     expect(sacr.materials).toEqual([]);
   });
 });
@@ -103,13 +103,11 @@ describe('summonRecipes — cartes à voie unique', () => {
 
 describe('summonRecipes — cartes à alternatives', () => {
   const dual = card({
-    summon_type: 'transformation',
-    cost: { sacrifice: 0, materials: ['CORE_035'] },
+    summon_conditions: [{ materials: 1, requires: ['CORE_035'] }],
     summon_options: [
-      { summon_type: 'sacrifice', cost: { sacrifice: 2, materials: [] } },
-      { summon_type: 'transformation', cost: { sacrifice: 0, materials: ['CORE_035'] } },
-    ],
-  });
+      { summon_conditions: [{ materials: 2 }] },
+      { summon_conditions: [{ materials: 1, requires: ['CORE_035'] }] }
+    ] });
 
   it('rend une recette par option, indexée dans l\'ordre', () => {
     const rs = summonRecipes(dual);
@@ -131,8 +129,8 @@ describe('summonRecipes — cartes à alternatives', () => {
 describe('summonRecipes — coûts remisés par une magie', () => {
   it('annonce une transformation sans cible (free_transformation)', () => {
     const [r] = summonRecipes(card({
-      summon_type: 'transformation', cost: { sacrifice: 0, materials: ['CORE_055'] },
-      _free_transformation: true,
+      summon_conditions: [{ materials: 1, requires: ['CORE_055'] }],
+      _free_transformation: true
     }));
     expect(r.free).toBe(true);
     expect(r.materials).toEqual([]);
@@ -141,7 +139,7 @@ describe('summonRecipes — coûts remisés par une magie', () => {
 
   it('annonce un coût de sacrifice réduit sans cacher son origine', () => {
     const [r] = summonRecipes(card({
-      summon_type: 'sacrifice', cost: { sacrifice: 1, materials: [] }, _original_sacrifice: 2,
+      summon_conditions: [{ materials: 1 }],  _original_sacrifice: 2
     }));
     expect(r.sacrifice).toBe(1);
     expect(r.discountedFrom).toBe(2);
@@ -150,7 +148,7 @@ describe('summonRecipes — coûts remisés par une magie', () => {
 
   it('ne signale aucune remise quand le coût n\'a pas bougé', () => {
     const [r] = summonRecipes(card({
-      summon_type: 'sacrifice', cost: { sacrifice: 2, materials: [] }, _original_sacrifice: 2,
+      summon_conditions: [{ materials: 2 }],  _original_sacrifice: 2
     }));
     expect(r.discountedFrom).toBeNull();
   });
@@ -160,7 +158,7 @@ describe('summonRecipes — coûts remisés par une magie', () => {
     // réunir — mais la remise se dit, sinon la carte a l'air d'avoir toujours
     // exigé si peu.
     const [r] = summonRecipes(card({
-      summon_type: 'fusion', cost: { sacrifice: 0, materials: ['CORE_001'] }, _removed_materials: 2,
+      summon_conditions: [{ materials: 1, requires: ['CORE_001'] }],  _removed_materials: 2
     }));
     expect(r.materials.map(m => m.id)).toEqual(['CORE_001']);
     expect(r.materialsRemoved).toBe(2);
@@ -168,7 +166,7 @@ describe('summonRecipes — coûts remisés par une magie', () => {
   });
 
   it('une fusion intacte ne signale aucun matériel retiré', () => {
-    const [r] = summonRecipes(card({ summon_type: 'fusion', cost: { sacrifice: 0, materials: ['CORE_001'] } }));
+    const [r] = summonRecipes(card({ summon_conditions: [{ materials: 1, requires: ['CORE_001'] }] }));
     expect(r.materialsRemoved).toBeNull();
     expect(recipeCostText(r)).toBeNull();
   });
@@ -178,7 +176,7 @@ describe('summonRecipes — coûts remisés par une magie', () => {
     // porterait pour toutes ses recettes si le champ n'était pas gardé par le
     // type — un héritage annoncerait alors une remise qu'il n'a pas reçue.
     const [r] = summonRecipes(card({
-      summon_type: 'heritage', cost: { sacrifice: 2, materials: ['CORE_001'] }, _removed_materials: 1,
+      summon_conditions: [{ materials: 2, requires: ['CORE_001'] }],  _removed_materials: 1
     }));
     expect(r.materialsRemoved).toBeNull();
   });

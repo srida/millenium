@@ -35,11 +35,6 @@ export function boardTargetAttributes(effect: BoardEffectDef | null | undefined)
   return boardTargetsUnits(effect) ? (effect?.target_attributes ?? []) : [];
 }
 
-/** Idem pour les voies d'invocation visées (`normal`, `fusion`, `multi`…). */
-export function boardTargetSummonTypes(effect: BoardEffectDef | null | undefined): string[] {
-  return boardTargetsUnits(effect) ? (effect?.target_summon_types ?? []) : [];
-}
-
 /**
  * L'effet d'un terrain, en une ligne.
  *

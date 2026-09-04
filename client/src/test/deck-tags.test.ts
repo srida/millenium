@@ -27,7 +27,7 @@ import type { Card } from '../logic/types.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const ATTRIBUTES = JSON.parse(
-  fs.readFileSync(path.join(ROOT, 'initial-data', 'attributes.json'), 'utf8'),
+  fs.readFileSync(path.join(ROOT, 'initial-data', 'attributes.json'), 'utf8')
 ) as { id: string; name: string }[];
 
 // `AttributeDatabase.init()` passe par `fetch` : on le sert depuis le catalogue
@@ -35,7 +35,7 @@ const ATTRIBUTES = JSON.parse(
 // `computeDeckTags` interroge en production.
 beforeAll(async () => {
   (globalThis as unknown as { fetch: unknown }).fetch = async () => ({
-    ok: true, status: 200, json: async () => ATTRIBUTES,
+    ok: true, status: 200, json: async () => ATTRIBUTES
   });
   await (AttributeDatabase as unknown as { init: () => Promise<unknown> }).init();
 });
@@ -44,8 +44,8 @@ const nameOf = (id: string) => ATTRIBUTES.find(a => a.id === id)!.name;
 
 /** Carte minimale : seuls `attributes` et `stats` pèsent sur les tags. */
 const card = (attributes: string[], atk = 10, range = 1): Card => ({
-  id: `C${Math.random()}`, name: 'X', tier: 1, summon_type: 'normal', attributes,
-  stats: { atk, hp: 100, movement_speed: 1, attack_speed: 1, initiative: 1, range },
+  id: `C${Math.random()}`, name: 'X', tier: 1, summon_conditions: [], attributes,
+  stats: { atk, hp: 100, movement_speed: 1, attack_speed: 1, initiative: 1, range }
 } as unknown as Card);
 
 const deckOf = (...cards: Card[]) => cards;
@@ -74,7 +74,7 @@ describe('attributs dominants', () => {
 
   it('ne retient jamais plus de deux attributs', () => {
     const tags = computeDeckTags(deckOf(
-      card([A]), card([A]), card([B]), card([B]), card([C]), card([C]),
+      card([A]), card([A]), card([B]), card([B]), card([C]), card([C])
     ));
     const attrTags = tags.filter(t => [nameOf(A), nameOf(B), nameOf(C)].includes(t));
     expect(attrTags).toHaveLength(2);
@@ -152,7 +152,7 @@ describe('plafond', () => {
     const A = ATTRIBUTES[0].id, B = ATTRIBUTES[1].id, C = ATTRIBUTES[2].id;
     const deck = deckOf(
       card([A, B, C], 40, 1), card([A, B, C], 40, 1),
-      card([A, B, C], 40, 1), card([A, B, C], 40, 1),
+      card([A, B, C], 40, 1), card([A, B, C], 40, 1)
     );
     expect(computeDeckTags(deck).length).toBeLessThanOrEqual(3);
   });

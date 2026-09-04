@@ -17,7 +17,7 @@
 //
 // Module pur : il prend le catalogue en argument et ne connaît ni les
 // databases, ni les stores. C'est ce qui le rend testable en node.
-import type { Card, SummonCost } from '../logic/types.js';
+import type { Card, SummonCondition } from '../logic/types.js';
 
 export type DeckIds = Record<string, string[]>;
 
@@ -36,8 +36,11 @@ const ENEMY_PER_TIER: Record<number, number> = { 1: 4, 2: 3, 3: 2, 4: 1, 5: 1 };
 const BASE_TIERS = [1, 2];
 const HIGH_TIERS = [3, 4, 5];
 
+/** Posable sans rien consommer : aucune condition, ou une condition à coût
+ *  nul. C'était « summon_type === normal ». */
 function isNormal(c: Card): boolean {
-  return (c.summon_type ?? 'normal') === 'normal';
+  const conditions = c.summon_conditions ?? [];
+  return conditions.length === 0 || conditions.some(cd => (cd.materials ?? 0) === 0);
 }
 
 /**
@@ -67,19 +70,23 @@ function starterPool(cards: CatalogCard[]): CatalogCard[] {
   return prefixed.length ? prefixed : cards;
 }
 
-/** Toutes les recettes d'une carte : ses alternatives, ou son coût unique. */
-function costsOf(card: Card): (SummonCost | undefined)[] {
-  return card.summon_options?.length ? card.summon_options.map(o => o.cost) : [card.cost];
+/** Toutes les conditions d'une carte. */
+function conditionsOf(card: Card): SummonCondition[] {
+  return card.summon_conditions ?? [];
 }
 
 /**
- * La carte est invocable avec ce que le deck contient déjà. Un matériau est
- * désigné soit par id de carte, soit par attribut (`ARCH_*`) — auquel cas
- * n'importe quel porteur convient. Il suffit qu'UNE recette soit satisfaite.
+ * La carte est invocable avec ce que le deck contient déjà. Seuls les
+ * matériels NOMMÉS se couvrent : un coût purement chiffré se paie avec
+ * n'importe quelle unité déjà posée. Un matériel est désigné soit par id de
+ * carte, soit par attribut (`ARCH_*`) — auquel cas n'importe quel porteur
+ * convient. Il suffit qu'UNE condition soit satisfaite.
  */
 function summonableFrom(card: Card, ids: Set<string>, attrs: Set<string>): boolean {
-  return costsOf(card).some(cost =>
-    (cost?.materials ?? []).every(m => ids.has(m) || attrs.has(m)));
+  const conditions = conditionsOf(card);
+  if (conditions.length === 0) return true;
+  return conditions.some(cd =>
+    (cd.requires ?? []).every(m => ids.has(m) || attrs.has(m)));
 }
 
 /** Accumulateur de ce que le deck « couvre » : ses cartes et leurs attributs. */

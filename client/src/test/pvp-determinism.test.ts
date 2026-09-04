@@ -35,7 +35,7 @@ import { makeRandom } from '../logic/Random.js';
 const sent: any[] = [];
 vi.mock('../net/PvpConnection.js', () => ({
   send: (type: string, payload: any) => { sent.push({ type, ...payload }); },
-  on: () => {}, off: () => {},
+  on: () => {}, off: () => {}
 }));
 const { sendOwnBoard, reconstructOpponentUnits } = await import('../net/PvpOpponentProvider.js');
 import { makeCard } from './helpers.js';
@@ -49,12 +49,12 @@ const pvplog = createRequire(import.meta.url)('../../../pvplog.js');
 // miroir — 7 des 14 terrains du jeu sont dans ce cas.
 const ASYMETRIQUE: BoardDef = {
   id: 'BOARD_013', name: 'Nuit des machines', effect: null,
-  blocked_cells: [{ col: 0, row: 4 }, { col: 1, row: 6 }, { col: 3, row: 4 }, { col: 4, row: 6 }],
+  blocked_cells: [{ col: 0, row: 4 }, { col: 1, row: 6 }, { col: 3, row: 4 }, { col: 4, row: 6 }]
 } as any;
 // Le témoin : sans lui, les cas suivants passeraient aussi avec le miroir cassé.
 const SYMETRIQUE: BoardDef = {
   id: 'BOARD_007', name: 'Symétrique', effect: null,
-  blocked_cells: [{ col: 2, row: 4 }, { col: 2, row: 5 }, { col: 2, row: 6 }],
+  blocked_cells: [{ col: 2, row: 4 }, { col: 2, row: 5 }, { col: 2, row: 6 }]
 } as any;
 
 const cellKeys = (cells: { col: number; row: number }[]) =>
@@ -88,7 +88,7 @@ describe('BoardMirror — le repère partagé des deux clients', () => {
 //  Round 5 — le terrain est une donnée POSITIONNELLE
 // ===========================================================================
 function session(opts: { mirroredRole?: boolean } = {}): GameSession {
-  const card = makeCard({ id: 'P0', summon_type: 'normal' });
+  const card = makeCard({ id: 'P0', summon_conditions: [] });
   const deps: GameSessionDeps = {
     cardsByTier: { 1: [card] as any },
     enemyDeck: { 1: [] },
@@ -97,7 +97,7 @@ function session(opts: { mirroredRole?: boolean } = {}): GameSession {
     getAllBoards: () => [],
     getAllMagies: () => [],
     mode: 'pvp',
-    mirroredRole: opts.mirroredRole,
+    mirroredRole: opts.mirroredRole
   };
   return new GameSession(deps);
 }
@@ -153,8 +153,8 @@ describe('Terrain — les deux clients doivent décrire le MÊME plateau', () =>
 describe('Horloges de combat — remises à zéro à chaque combat', () => {
   /** Une session solo qui laisse survivre les deux camps (PV hauts, ATK basse). */
   function duelSansMort(): GameSession {
-    const mine = makeCard({ id: 'P0', summon_type: 'normal', stats: { atk: 3, hp: 500, movement_speed: 3, attack_speed: 5, initiative: 5, range: 1 } });
-    const his = makeCard({ id: 'E0', summon_type: 'normal', stats: { atk: 3, hp: 500, movement_speed: 3, attack_speed: 7, initiative: 4, range: 1 } });
+    const mine = makeCard({ id: 'P0', summon_conditions: [], stats: { atk: 3, hp: 500, movement_speed: 3, attack_speed: 5, initiative: 5, range: 1 } });
+    const his = makeCard({ id: 'E0', summon_conditions: [], stats: { atk: 3, hp: 500, movement_speed: 3, attack_speed: 7, initiative: 4, range: 1 } });
     const byId = new Map([mine, his].map(c => [c.id, c]));
     const s = new GameSession({
       cardsByTier: { 1: [mine] as any },
@@ -162,8 +162,7 @@ describe('Horloges de combat — remises à zéro à chaque combat', () => {
       attributeList: [],
       cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
       getAllBoards: () => [],
-      getAllMagies: () => [],
-    } as any);
+      getAllMagies: () => [] } as any);
     s.startPreparation();
     s.place(s.hand[0] as any, { col: 2, row: 0 }, [], 0);
     return s;
@@ -227,7 +226,7 @@ describe('CombatRecorder — le vainqueur est nommé dans le repère local', () 
       confusion_remaining: 0, taunt_remaining: 0,
       dot_effects: [], burn_stacks: [],
       isAlive: () => true,
-      effectiveAttackSpeed: () => 4,
+      effectiveAttackSpeed: () => 4
     };
   }
 
@@ -309,7 +308,7 @@ describe('Ordre du plateau — les deux clients énumèrent le même monde', () 
     const b = new Board();
     b.mirroredFrame = mirrored;
     for (const [col, row] of cells) {
-      const c = makeCard({ id: `U${col}${row}`, summon_type: 'normal' });
+      const c = makeCard({ id: `U${col}${row}`, summon_conditions: [] });
       const u = new (Unit as any)(c, 'player') as Unit;
       b.placeUnit(u, { col, row: mirrored ? MIRROR_AXIS - row : row });
     }
@@ -379,7 +378,7 @@ function playAs(role: 'A' | 'B', a: Placed[], b: Placed[], board: BoardDef): any
     getAllBoards: () => [],
     getAllMagies: () => [],
     mode: 'pvp',
-    mirroredRole: mirrored,
+    mirroredRole: mirrored
   } as any);
   s.startPreparation();
   for (const p of mine) s.board.placeUnit(new (Unit as any)(p.card, 'player'), { col: p.col, row: localRow(p.row) });
@@ -425,20 +424,20 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
         { id: 'POWER_TELEPORT', power_speed: 15, value: null },
         { id: 'POWER_PUSH', power_speed: 10, value: null },
         { id: 'POWER_TAUNT', power_speed: 14, value: null },
-        { id: 'POWER_FREEZE', power_speed: 18, value: null },
+        { id: 'POWER_FREEZE', power_speed: 18, value: null }
       ]);
       return {
         col, row,
         card: makeCard({
-          id: `${side}_${i}`, summon_type: 'normal', power: power as any,
+          id: `${side}_${i}`, summon_conditions: [], power: power as any,
           stats: {
             atk: pick([6, 9, 14]), hp: pick([60, 90, 130]),
             movement_speed: pick([2, 3, 4]), attack_speed: pick([3, 5, 8]),
             // Initiative et range volontairement peu variées : ce sont les
             // ÉGALITÉS qu'on cherche à provoquer, pas les départages.
-            initiative: pick([4, 5]), range: pick([1, 2]),
-          },
-        }),
+            initiative: pick([4, 5]), range: pick([1, 2])
+          }
+        })
       };
     };
     return {
@@ -448,8 +447,7 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
       // seul l'ORDRE d'énumération peut encore faire diverger ce combat.
       board: {
         id: 'BOARD_005', name: 'Duel', effect: null,
-        blocked_cells: [{ col: 0, row: 5 }, { col: 2, row: 4 }, { col: 2, row: 6 }, { col: 4, row: 5 }],
-      } as any,
+        blocked_cells: [{ col: 0, row: 5 }, { col: 2, row: 4 }, { col: 2, row: 6 }, { col: 4, row: 5 }] } as any
     };
   }
 
@@ -491,8 +489,8 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
   // du tri dans `CombatManager`).
   it('tranche l\'égalité PARFAITE — même initiative, même vitesse, même carte', () => {
     const twin = () => makeCard({
-      id: 'MIRROR_1', summon_type: 'normal',
-      stats: { atk: 1, hp: 40, movement_speed: 1, attack_speed: 2, initiative: 5, range: 1 },
+      id: 'MIRROR_1', summon_conditions: [],
+      stats: { atk: 1, hp: 40, movement_speed: 1, attack_speed: 2, initiative: 5, range: 1 }
     });
     const a: Placed[] = [{ card: twin(), col: 2, row: 3 }];
     const b: Placed[] = [{ card: twin(), col: 2, row: 7 }];
@@ -500,8 +498,7 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
     // par le miroir (row 5 est l'axe, 4 ↔ 6), donc le terrain n'est pas en cause.
     const goulet: BoardDef = {
       id: 'BOARD_GOULET', name: 'Goulet', effect: null,
-      blocked_cells: [{ col: 0, row: 5 }, { col: 1, row: 5 }, { col: 3, row: 5 }, { col: 4, row: 5 }],
-    } as any;
+      blocked_cells: [{ col: 0, row: 5 }, { col: 1, row: 5 }, { col: 3, row: 5 }, { col: 4, row: 5 }] } as any;
 
     const vueA = playAs('A', a, b, goulet);
     const vueB = playAs('B', a, b, goulet);
@@ -542,12 +539,11 @@ describe('Fin de combat — rien ne survit au round qui ne le doit', () => {
   // Un attribut de synergie : à partir de 2 porteurs, +20 PV pour chacun.
   const SYNERGIE = [{
     id: 'ARCH_T', name: 'Synergie', icon: '', timing: 'start_of_combat',
-    thresholds: [{ count: HP_THRESHOLD, medal: 'bronze', effects: [{ type: 'stat_bonus', stat: 'hp', value: HP_BONUS }] }],
-  }] as any;
+    thresholds: [{ count: HP_THRESHOLD, medal: 'bronze', effects: [{ type: 'stat_bonus', stat: 'hp', value: HP_BONUS }] }] }] as any;
 
   const CARTE = (id: string, hp = 100, atk = 5) => makeCard({
-    id, summon_type: 'normal', attributes: ['ARCH_T'],
-    stats: { atk, hp, movement_speed: 9, attack_speed: 4, initiative: 5, range: 9 },
+    id, summon_conditions: [], attributes: ['ARCH_T'],
+    stats: { atk, hp, movement_speed: 9, attack_speed: 4, initiative: 5, range: 9 }
   });
 
   function sessionAvec(cartes: any[], ennemi: any | null) {
@@ -555,7 +551,7 @@ describe('Fin de combat — rien ne survit au round qui ne le doit', () => {
     const s: any = new GameSession({
       cardsByTier: { 1: [] }, enemyDeck: { 1: [] }, attributeList: SYNERGIE,
       cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
-      getAllBoards: () => [], getAllMagies: () => [], mode: 'pvp',
+      getAllBoards: () => [], getAllMagies: () => [], mode: 'pvp'
     } as any);
     s.startPreparation();
     cartes.forEach((c, i) => s.board.placeUnit(new (Unit as any)(c, 'player'), { col: i, row: 0 }));
@@ -567,7 +563,7 @@ describe('Fin de combat — rien ne survit au round qui ne le doit', () => {
   // restreinte aux unités VIVANTES (`getLivingUnitsOnSide`) → ROUGE.
   it('une unité tombée au combat ne garde PAS les bonus de son dernier round', () => {
     const cartes = [CARTE('T_1'), CARTE('T_2')];   // 2 porteurs → palier atteint
-    const tueur = makeCard({ id: 'TUEUR', summon_type: 'normal', stats: { atk: 9999, hp: 9999, movement_speed: 1, attack_speed: 1, initiative: 9, range: 9 } });
+    const tueur = makeCard({ id: 'TUEUR', summon_conditions: [], stats: { atk: 9999, hp: 9999, movement_speed: 1, attack_speed: 1, initiative: 9, range: 9 } });
     const s = sessionAvec(cartes, tueur);
 
     const { combat } = s.startCombat(null);
@@ -590,7 +586,7 @@ describe('Fin de combat — rien ne survit au round qui ne le doit', () => {
     const cartes = [CARTE('T_1'), CARTE('T_2')];
     // ⚠️ Une ATK modérée : le joueur doit rester en vie, une magie ne
     // s'applique pas à 0 PV (`canAffordMagie`).
-    const tueur = makeCard({ id: 'TUEUR', summon_type: 'normal', stats: { atk: 200, hp: 9999, movement_speed: 1, attack_speed: 1, initiative: 9, range: 9 } });
+    const tueur = makeCard({ id: 'TUEUR', summon_conditions: [], stats: { atk: 200, hp: 9999, movement_speed: 1, attack_speed: 1, initiative: 9, range: 9 } });
     const s = sessionAvec(cartes, tueur);
     const { combat } = s.startCombat(null);
     while (!combat.winner) combat.step();
@@ -616,7 +612,7 @@ describe('Fin de combat — rien ne survit au round qui ne le doit', () => {
       const s: any = new GameSession({
         cardsByTier: { 1: [] }, enemyDeck: { 1: [] }, attributeList: SYNERGIE,
         cardDb, getAllBoards: () => [], getAllMagies: () => [],
-        mode: 'pvp', mirroredRole: mirrored,
+        mode: 'pvp', mirroredRole: mirrored
       } as any);
       s.startPreparation();
       return s;
@@ -697,16 +693,16 @@ describe('Téléportation — la même case des deux côtés', () => {
 
   /** Le porteur du pouvoir, loin de sa cible pour que le saut la rapproche. */
   const TELEPORTEUR = makeCard({
-    id: 'TP', summon_type: 'normal', power: { id: 'POWER_TELEPORT', power_speed: 2, value: null } as any,
+    id: 'TP', summon_conditions: [], power: { id: 'POWER_TELEPORT', power_speed: 2, value: null } as any,
     // ⚠️ Le pouvoir part dans la PHASE D'ATTAQUE : une vitesse d'attaque haute
     // le retiendrait jusqu'à la fin du combat, jauge pleine ou non. La vitesse
     // de DÉPLACEMENT, elle, reste énorme — l'unité ne doit pas marcher, sans
     // quoi c'est le pathfinding qu'on éprouverait, pas la téléportation.
-    stats: { atk: 5, hp: 400, movement_speed: 99, attack_speed: 3, initiative: 9, range: 1 },
+    stats: { atk: 5, hp: 400, movement_speed: 99, attack_speed: 3, initiative: 9, range: 1 }
   });
   // La cible : la plus basse en PV, donc celle que le pouvoir vise.
-  const FAIBLE = makeCard({ id: 'FAIBLE', summon_type: 'normal', stats: { atk: 1, hp: 30, movement_speed: 99, attack_speed: 99, initiative: 1, range: 1 } });
-  const MUR = makeCard({ id: 'MUR', summon_type: 'normal', stats: { atk: 1, hp: 400, movement_speed: 99, attack_speed: 99, initiative: 2, range: 1 } });
+  const FAIBLE = makeCard({ id: 'FAIBLE', summon_conditions: [], stats: { atk: 1, hp: 30, movement_speed: 99, attack_speed: 99, initiative: 1, range: 1 } });
+  const MUR = makeCard({ id: 'MUR', summon_conditions: [], stats: { atk: 1, hp: 400, movement_speed: 99, attack_speed: 99, initiative: 2, range: 1 } });
 
   // ⚠️ La cible est en (3,2) : ses deux voisines EN RANGÉE — (3,1) et (3,3) —
   // sont libres, et ce sont elles que `_teleportPlan` regarde en premier. C'est
@@ -715,7 +711,7 @@ describe('Téléportation — la même case des deux côtés', () => {
   it('choisit la même case physique quand les deux voisines en rangée sont libres', () => {
     const a: Placed[] = [
       { card: FAIBLE, col: 3, row: 2 },
-      { card: MUR, col: 0, row: 0 },
+      { card: MUR, col: 0, row: 0 }
     ];
     const b: Placed[] = [{ card: TELEPORTEUR, col: 0, row: 9 }];
 
@@ -749,16 +745,15 @@ describe('Téléportation — la même case des deux côtés', () => {
 describe('Réanimation d\'attribut — les deux camps, et le log qui le voit', () => {
   const REANIMATION = [{
     id: 'ARCH_R', name: 'Renaissance', icon: '', timing: 'end_of_combat',
-    thresholds: [{ count: 1, medal: 'bronze', effects: [{ type: 'revive', hp_percent: 50 }] }],
-  }] as any;
+    thresholds: [{ count: 1, medal: 'bronze', effects: [{ type: 'revive', hp_percent: 50 }] }] }] as any;
 
   const FRAGILE = (id: string) => makeCard({
-    id, summon_type: 'normal', attributes: ['ARCH_R'],
-    stats: { atk: 7, hp: 20, movement_speed: 99, attack_speed: 3, initiative: 1, range: 9 },
+    id, summon_conditions: [], attributes: ['ARCH_R'],
+    stats: { atk: 7, hp: 20, movement_speed: 99, attack_speed: 3, initiative: 1, range: 9 }
   });
   const COGNEUR = makeCard({
-    id: 'COGNEUR', summon_type: 'normal',
-    stats: { atk: 60, hp: 500, movement_speed: 99, attack_speed: 2, initiative: 9, range: 9 },
+    id: 'COGNEUR', summon_conditions: [],
+    stats: { atk: 60, hp: 500, movement_speed: 99, attack_speed: 2, initiative: 9, range: 9 }
   });
 
   function duel(mirrored: boolean) {
@@ -767,7 +762,7 @@ describe('Réanimation d\'attribut — les deux camps, et le log qui le voit', (
     const s: any = new GameSession({
       cardsByTier: { 1: [] }, enemyDeck: { 1: [] }, attributeList: REANIMATION,
       cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
-      getAllBoards: () => [], getAllMagies: () => [], mode: 'pvp', mirroredRole: mirrored,
+      getAllBoards: () => [], getAllMagies: () => [], mode: 'pvp', mirroredRole: mirrored
     } as any);
     s.startPreparation();
     const row = (r: number) => (mirrored ? MIRROR_AXIS - r : r);

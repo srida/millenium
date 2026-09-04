@@ -13,12 +13,16 @@
 //    donc l'intervalle partout, et l'écart n'est retenu que s'il le dépasse.
 import type { Card } from '../logic/types.js';
 import type { GameResult } from './runGame.js';
+import { summonCost } from '../logic/InvocationManager.js';
 
 export interface CardMetrics {
   card_id: string;
   name: string;
   tier: number;
-  summon_type: string;
+  /** Coût en matériels de la condition la moins chère — remplace l'ancienne
+   *  `summon_type` : c'est la même question (« quel genre d'invocation ? »)
+   *  posée à la donnée plutôt qu'à une table de cinq noms. */
+  summon_cost: number;
   /** Parties où la carte était dans le deck du joueur. */
   inDeck: number;
   /** Parties où elle a effectivement été posée. */
@@ -69,7 +73,7 @@ export class MetricsCollector {
         card_id: cardId,
         name: c?.name ?? cardId,
         tier: c?.tier ?? 0,
-        summon_type: c?.summon_type ?? 'normal',
+        summon_cost: summonCost(c),
         inDeck: 0, played: 0, wins: 0, summons: 0, combats: 0, survived: 0,
         damageDealt: 0, damageTaken: 0,
       };

@@ -16,6 +16,7 @@ import { runGame } from '../sim/runGame.js';
 import { runDetector } from '../sim/protocol.js';
 import { buildReport } from '../sim/report.js';
 import type { Card } from '../logic/types.js';
+import { summonCost } from '../logic/InvocationManager.js';
 
 const cat = loadCatalog();
 
@@ -121,7 +122,8 @@ describe('Générateur de decks — la couverture des matériaux', () => {
   });
 
   it('la fermeture de matériaux rend une carte de haut tier invocable', () => {
-    const fusion = cat.cards.find(c => c.tier >= 4 && (c.cost?.materials?.length ?? 0) >= 2)!;
+    const fusion = cat.cards.find(c =>
+      c.tier >= 4 && (c.summon_conditions ?? []).some(cd => (cd.requires ?? []).length >= 2))!;
     const closure = materialClosure(fusion, cat.cards, cat.cardDb);
     expect(closure).not.toBeNull();
     const ids = new Set([fusion.id, ...closure!.map(c => c.id)]);
@@ -130,7 +132,7 @@ describe('Générateur de decks — la couverture des matériaux', () => {
 });
 
 describe('Protocole A/B — les deux bras ne diffèrent que par la carte', () => {
-  const card = cat.cards.find(c => c.tier === 1 && (c.summon_type ?? 'normal') === 'normal')!;
+  const card = cat.cards.find(c => c.tier === 1 && summonCost(c) === 0)!;
 
   it('le bras « avec » contient la carte, le bras « sans » ne la contient pas', () => {
     const rand = seededRandom('ab');
@@ -172,7 +174,7 @@ describe('Auto-joueur — il joue sous les règles du JOUEUR', () => {
     });
   }
 
-  const normal = cat.cards.find(c => c.tier === 1 && (c.summon_type ?? 'normal') === 'normal')!;
+  const normal = cat.cards.find(c => c.tier === 1 && summonCost(c) === 0)!;
 
   it('respecte la règle du doublon : une seule unité vivante par card_id', () => {
     // Le deck ne contient qu'une carte : la main en tire cinq exemplaires

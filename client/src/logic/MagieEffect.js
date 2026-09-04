@@ -112,20 +112,19 @@ const POWER_LABELS = {
   POWER_TELEPORT: 'Téléportation', POWER_FREEZE: 'Gel',
 };
 
-const SUMMON_LABELS = {
-  normal: 'Normale', sacrifice: 'Sacrifice', fusion: 'Fusion',
-  heritage: 'Héritage', transformation: 'Transformation',
-};
-
 /**
  * `guaranteed_draw` porte deux filtres FACULTATIFS qui se cumulent : le tier et
- * la voie d'invocation. Le libellé doit dire lequel des trois cas on a sous les
- * yeux, sinon deux magies très différentes se lisent pareil.
+ * l'attribut. Le libellé doit dire lequel des trois cas on a sous les yeux,
+ * sinon deux magies très différentes se lisent pareil.
+ *
+ * ⚠️ L'attribut est rendu par son ID : `logic/` n'importe pas `data/` et n'a
+ * donc pas de quoi le nommer. C'est l'appelant qui résout — même règle que le
+ * registre de provenance des pioches (`data/DrawInfo.ts`).
  */
 function guaranteedDrawLabel(e) {
   const parts = [];
   if (e.tier) parts.push(`Tier ${e.tier}`);
-  if (e.category) parts.push(SUMMON_LABELS[e.category] || e.category);
+  if (e.attribute) parts.push(e.attribute);
   return parts.length ? `Pioche garantie ${parts.join(' · ')} ce tour` : 'Pioche garantie ce tour';
 }
 
@@ -199,10 +198,10 @@ export function effectLabel(magie) {
     case 'sacrifice_card_hp':        return sacrificeHpPercent(magie) === 100
       ? 'Sacrifie une carte de ta main : tu gagnes ses PV en points de vie'
       : `Sacrifie une carte de ta main : tu gagnes ${sacrificeHpPercent(magie)}% de ses PV en points de vie`;
-    case 'reduce_sacrifice_cost':    return `-${e.value ?? 1} sacrifice(s) sur une carte Sacrifice en main`;
-    case 'free_transformation':      return 'Invoque une Transformation sans son monstre cible';
-    case 'remove_heritage_material':   return 'Retire le matériel obligatoire d\'une carte Heritage en main';
-    case 'remove_fusion_material':     return `Retire ${e.value ?? 1} matériel(s) requis d'une carte Fusion en main`;
+    // Les deux remises d'invocation. Elles ne disent PAS la même chose : l'une
+    // baisse le prix, l'autre lève une contrainte sans rien rendre moins cher.
+    case 'reduce_materials':         return `-${e.value ?? 1} matériel(s) requis sur une carte de ta main`;
+    case 'remove_requirements':      return `Retire ${e.value ?? 1} matériel(s) NOMMÉ(s) d'une carte de ta main`;
     default: return e.type;
   }
 }
@@ -323,7 +322,7 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       // un champ absent n'y contraint rien. C'est la MÊME forme que celle des
       // effets d'attribut (`GuaranteedDraw`), consommée par le même code.
       if (gameState) {
-        gameState.player_guaranteed_draws.push({ tier: e.tier, category: e.category });
+        gameState.player_guaranteed_draws.push({ tier: e.tier, attribute: e.attribute });
         // `value: 0` — une pioche garantie prend un slot de la main normale,
         // elle n'ajoute pas une carte (cf. `randomCount` dans startPreparation).
         gameState.player_draw_sources.push({ kind: 'magie', ref: magie.id, value: 0, guaranteed: true });
@@ -332,17 +331,11 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
     case 'damage_multiplier_bonus':
       if (gameState) gameState.player_damage_multiplier_bonus += (e.value || 0);
       break;
-    case 'reduce_sacrifice_cost':
-      if (gameState) gameState.player_hand_modifiers.push({ type: 'reduce_sacrifice_cost', value: e.value ?? 1 });
+    case 'reduce_materials':
+      if (gameState) gameState.player_hand_modifiers.push({ type: 'reduce_materials', value: e.value ?? 1 });
       break;
-    case 'free_transformation':
-      if (gameState) gameState.player_hand_modifiers.push({ type: 'free_transformation' });
-      break;
-    case 'remove_heritage_material':
-      if (gameState) gameState.player_hand_modifiers.push({ type: 'remove_heritage_material' });
-      break;
-    case 'remove_fusion_material':
-      if (gameState) gameState.player_hand_modifiers.push({ type: 'remove_fusion_material', value: e.value ?? 1 });
+    case 'remove_requirements':
+      if (gameState) gameState.player_hand_modifiers.push({ type: 'remove_requirements', value: e.value ?? 1 });
       break;
     case 'defuse_fusion':
       // Handled by GameScreen._defuseFusion() — applyEffect is a no-op here

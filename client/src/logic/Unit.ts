@@ -3,25 +3,21 @@ import type { Card, DotEffect, BurnStack, Position, Side } from './types.js';
 let _nextUid = 0;
 
 /**
- * La voie d'invocation d'une carte, TELLE QU'ELLE EST ANNONCÉE au joueur — la
- * clé du catalogue `summon_types`, `'multi'` compris.
+ * Combien de slots de matériau vaut l'unité que cette carte produit.
  *
- * ⚠️ Une carte à `summon_options` porte plusieurs recettes ; son `summon_type`
- * de premier niveau n'est qu'un miroir de l'une d'elles et n'est lu nulle part
- * (ni `summon()`, ni le tooltip, ni la vignette, qui affichent toutes `multi`).
- * Un terrain qui viserait « Fusion » toucherait donc, sans le dire, deux cartes
- * que le joueur voit marquées 🔀 : elles relèvent de `multi`, et un terrain qui
- * les veut le désigne.
+ * ⚠️ C'est désormais une DONNÉE de carte (saisie en admin), plus une table
+ * dérivée de la voie d'invocation jouée : la même carte valait deux choses
+ * selon le camp qui la posait (l'IA laissait tous ses composites à 1), et une
+ * carte à recettes multiples deux choses selon la recette. Lue ici, dans le
+ * constructeur, les deux camps ne peuvent structurellement plus diverger.
  *
- * ⚠️ Dérivé de la DÉFINITION de carte, jamais de la recette réellement jouée :
- * `round:board_ready` ne transporte que `card_id`, et l'adversaire reconstruit
- * l'unité depuis le catalogue. Keyer sur l'option retenue ferait diverger les
- * deux clients d'un duel (cf. « les huit causes de divergence »).
+ * ⚠️ Vit dans `Unit` et non dans `InvocationManager`, qui importe déjà ce
+ * module — l'y loger fermerait un cycle d'imports pour une ligne.
  */
-export function summonKey(card: Pick<Card, 'summon_type' | 'summon_options'>): string {
-  return card.summon_options?.length ? 'multi' : (card.summon_type ?? 'normal');
+export function materialValueOf(card: Pick<Card, 'material_value'>): number {
+  const value = card?.material_value;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : 1;
 }
-
 
 interface BaseStats {
   atk: number;
@@ -40,18 +36,15 @@ export class Unit {
   name: string;
   side: Side;
   tier: number;
-  summon_type: string;
-  /** Voie d'invocation annoncée — `summon_type`, ou `'multi'` (cf. `summonKey`).
-   *  C'est elle que lit le ciblage des terrains, jamais le champ brut. */
-  summon_key: string;
   attributes: string[];
 
-  // Card IDs this unit "counts as" for fusion/heritage material matching.
+  // Card IDs this unit "counts as" when it stands in for a summon requirement.
   // Pre-determined on the card definition (admin panel) rather than computed at summon time.
   represented_ids: string[];
-  // How many material "slots" this unit counts as when consumed as a
-  // sacrifice/heritage material (set by InvocationManager.summon for
-  // fusion/heritage/sacrifice results).
+  // How many material "slots" this unit counts as when consumed. Read straight
+  // off the card, like represented_ids — never derived from the condition that
+  // produced it, which is what used to give the AI and the player two different
+  // values for the same card.
   material_value: number;
   power_id: string | null;
   power_speed: number;
@@ -113,12 +106,10 @@ export class Unit {
     this.name = card.name;
     this.side = side;
     this.tier = card.tier;
-    this.summon_type = card.summon_type;
-    this.summon_key = summonKey(card);
     this.attributes = card.attributes || [];
 
     this.represented_ids = [...new Set([card.id, ...(card.represented_ids || [])])];
-    this.material_value = 1;
+    this.material_value = materialValueOf(card);
     this.power_id = card.power?.id ?? null;
     this.power_speed = card.power?.power_speed ?? 9999;
     this.power_value = card.power?.value ?? null;

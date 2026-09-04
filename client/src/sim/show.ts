@@ -17,6 +17,7 @@
 import type { Aggregates, FamilyRow } from './aggregate.js';
 import type { CardRow } from './metrics.js';
 import type { AbResult, DetectorResult } from './protocol.js';
+import { summonCostLabel } from './aggregate.js';
 
 export interface ShowCard {
   id: string;
@@ -321,7 +322,7 @@ export function buildShow(input: ShowInput): Show {
         'Ce n’est pas un problème de puissance mais de constructibilité : leurs matériaux ne se réunissent jamais en jeu, et aucun chiffre d’équilibrage ne les concerne tant que ce n’est pas réglé.',
         `${nb(jamaisRetenues)} autres cartes n’ont même jamais été retenues dans un deck, faute de matériaux couverts.`,
       ],
-      cards: inj.map(c => silently(() => ({ id: c.card_id, name: c.name, note: `tier ${c.tier} · ${c.summon_type} · ${nb(c.inDeck)} fois en deck, jamais invoquée` }))),
+      cards: inj.map(c => silently(() => ({ id: c.card_id, name: c.name, note: `tier ${c.tier} · ${summonCostLabel(c.summon_cost)} · ${nb(c.inDeck)} fois en deck, jamais invoquée` }))),
     });
   }
 

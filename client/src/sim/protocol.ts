@@ -15,6 +15,7 @@ import type { Catalog } from './catalog.js';
 import { buildDeck, deckCardIds, deckWithoutCard, isSummonable, materialClosure, type Deck } from './decks.js';
 import { MetricsCollector, wilsonHalfWidth, type CardRow } from './metrics.js';
 import { runGame } from './runGame.js';
+import { summonCost } from '../logic/InvocationManager.js';
 
 /**
  * Handicap plat donné à chaque unité de l'IA pendant TOUTE la simulation.
@@ -41,7 +42,7 @@ export interface DetectorResult {
   timeoutsPerGame: number;
   roundsPerGame: number;
   /** Cartes du catalogue jamais posées, avec ce qui les en a empêchées. */
-  neverPlayed: { card_id: string; name: string; tier: number; summon_type: string; inDeck: number }[];
+  neverPlayed: { card_id: string; name: string; tier: number; summon_cost: number; inDeck: number }[];
 }
 
 /**
@@ -78,7 +79,7 @@ export function runDetector(cat: Catalog, games: number, seed: string): Detector
     .filter(c => (seen.get(c.id)?.played ?? 0) === 0)
     .map(c => ({
       card_id: c.id, name: c.name, tier: c.tier,
-      summon_type: c.summon_type ?? 'normal',
+      summon_cost: summonCost(c),
       inDeck: seen.get(c.id)?.inDeck ?? 0,
     }));
 
