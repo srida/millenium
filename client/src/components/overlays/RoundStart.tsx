@@ -20,6 +20,7 @@ import * as DeckRepository from '../../data/DeckRepository.js';
 import * as MagieDatabase from '../../data/MagieDatabase.js';
 import * as BoardDatabase from '../../data/BoardDatabase.js';
 import { drawBonusRows, drawnLabel, guaranteedDrawLabel } from '../../data/DrawInfo.js';
+import { cardName } from '../../data/gameNames.js';
 import { ROUND_INTRO_MS } from '../../game/timings.js';
 import type { DrawBonusRow } from '../../data/DrawInfo.js';
 
@@ -146,7 +147,7 @@ export function DrawPopup({ autoDismissMs = 0 }: { autoDismissMs?: number } = {}
             {summary.guaranteed.map((g, i) => (
               <div key={`g${i}`} className="flex items-center justify-between text-[11px]">
                 <span className="truncate text-white/70">🎯 Pioche garantie</span>
-                <span className="text-gold">{guaranteedDrawLabel(g, attributeName)}</span>
+                <span className="text-gold">{guaranteedDrawLabel(g, attributeName, cardName)}</span>
               </div>
             ))}
           </div>

@@ -794,6 +794,7 @@ export class GameSession {
       materialSourceCount: this.hand.filter(c => this._drawableMaterialIds(c).length > 0).length,
       deckTiers: [...new Set(deck.map(c => c.tier).filter((t): t is number => typeof t === 'number'))],
       deckAttributes: [...new Set(deck.flatMap(c => c.attributes ?? []))],
+      deckCardIds: [...new Set(deck.map(c => c.id))],
       // ⚠️ FAUX en PvP, et ce n'est pas une restriction arbitraire : `enemy_hp`
       // y est RÉÉCRIT à chaque round depuis le `player_hp` autoritaire de
       // l'adversaire (`PvpController._onRoundGo`), qui a calculé ses propres

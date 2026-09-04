@@ -200,9 +200,21 @@ export interface Magie {
 
 export type RoundWinner = 'player' | 'enemy' | 'draw' | 'timeout';
 
+/**
+ * Ce qu'une pioche garantie PROMET. Tous les critères sont facultatifs et se
+ * CUMULENT (ET) — une carte doit satisfaire tout ce qui est écrit.
+ *
+ * ⚠️ `attribute` (singulier) et `attributes` (liste) disent la même chose et se
+ * cumulent : le premier est la forme historique, qu'aucune migration n'a à
+ * réécrire. `card_ids` est le seul critère qui soit un OU entre ses entrées —
+ * c'est une liste de cartes ACCEPTABLES, pas une liste de conditions.
+ * Cf. `Draw.guaranteedDrawCriteria`, seul lecteur de cette forme.
+ */
 export interface GuaranteedDraw {
   tier?: number;
   attribute?: string | null;
+  attributes?: string[];
+  card_ids?: string[];
 }
 
 export interface HandModifier {

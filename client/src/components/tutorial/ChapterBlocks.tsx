@@ -15,6 +15,7 @@ import * as MagieDatabase from '../../data/MagieDatabase.js';
 import * as BoardDatabase from '../../data/BoardDatabase.js';
 import AttrIcon from '../ui/AttrIcon.js';
 import { effectLabel } from '../../logic/MagieEffect.js';
+import { GAME_NAMES } from '../../data/gameNames.js';
 import { boardEffects } from '../../logic/BoardEffect.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
 import type { Card, AttributeDef, BoardDef, Magie, PowerDef } from '../../logic/types.js';
@@ -99,7 +100,7 @@ function MagieExamples({ limit }: { limit: number }) {
           <div className="min-w-0">
             <div className="text-xs font-semibold text-gold">{m.name}</div>
             {/* La description est facultative dans les données — l'effet, lui, est toujours descriptible. */}
-            <div className="text-[11px] leading-snug text-white/60">{(m as any).description ?? effectLabel(m)}</div>
+            <div className="text-[11px] leading-snug text-white/60">{(m as any).description ?? effectLabel(m, GAME_NAMES)}</div>
           </div>
         </div>
       ))}

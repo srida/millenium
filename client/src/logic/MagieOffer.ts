@@ -13,6 +13,10 @@
 // le même ici et à l'application, sans quoi une magie serait offerte sur un
 // décalage et appliquée sur un autre.
 import { tierShift } from './MagieEffect.js';
+// ⚠️ IMPORTÉ et non recopié, exactement comme `tierShift` : les critères d'une
+// pioche garantie doivent se lire pareil à l'offre, à la pioche et à l'annonce.
+// `Draw` est lui aussi plat (il n'importe que des types).
+import { guaranteedDrawCriteria, hasGuaranteedDrawCriteria } from './Draw.js';
 import type { Magie, MagieRarity } from './types.js';
 
 /**
@@ -77,6 +81,10 @@ export interface MagieOfferContext {
    *  pioche garantie filtrée par `attribute`. Les voies d'invocation étant
    *  devenues des attributs, elles y figurent comme les autres. */
   deckAttributes: string[];
+  /** Ids des cartes du DECK — le pendant des deux précédents pour une pioche
+   *  garantie qui NOMME ses cartes. ⚠️ Ce sont des ids, pas des cartes : le deck
+   *  ne sort pas de la session, `_offerContext` en dérive ce qu'il faut. */
+  deckCardIds: string[];
   // ⚠️ Les deux drapeaux suivants portent sur le DECK, jamais sur la main :
   // les modificateurs de main sont DIFFÉRÉS au `startPreparation()` suivant,
   // donc appliqués après une pioche de cinq cartes neuves — la main du moment
@@ -159,13 +167,21 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     // porte qu'un attribut n'a pas de tier à valider, et l'ancienne écriture
     // (`ctx.deckTiers.includes(effect.tier ?? 0)`) l'aurait rendue à JAMAIS
     // non pertinente — donc jamais offerte, en silence.
-    case 'guaranteed_draw':
-      // Sans AUCUN filtre, la magie ne promet rien de nommable : elle déplace
+    case 'guaranteed_draw': {
+      // Sans AUCUN critère, la magie ne promet rien de nommable : elle déplace
       // un slot de pioche aléatoire vers… une pioche aléatoire. C'est le cas
       // « blanc » que ce filtre existe pour supprimer, et il reste rejeté.
-      if (!effect.tier && !effect.attribute) return false;
-      return (!effect.tier || ctx.deckTiers.includes(effect.tier))
-        && (!effect.attribute || ctx.deckAttributes.includes(effect.attribute));
+      if (!hasGuaranteedDrawCriteria(effect)) return false;
+      const { tier, attributes, cardIds } = guaranteedDrawCriteria(effect);
+      // ⚠️ Chaque critère est vérifié SÉPARÉMENT contre le deck : le contexte
+      // ne porte que des listes, pas les cartes, donc « un Tier 4 » et « un
+      // Dragon » ne prouvent pas « un Dragon de Tier 4 ». C'est indulgent d'un
+      // cheveu, comme la pertinence du remplacement par tier — et l'inverse
+      // (exporter le deck) coûterait la règle qui le garde dans la session.
+      return (!tier || ctx.deckTiers.includes(tier))
+        && attributes.every(id => ctx.deckAttributes.includes(id))
+        && (cardIds.length === 0 || cardIds.some(id => ctx.deckCardIds.includes(id)));
+    }
 
     // Remplacement par tier : il faut une cible ET un pool où puiser. Le pool
     // est le DECK du joueur, comme celui d'une pioche garantie — c'est la seule

@@ -1,5 +1,5 @@
 import {
-  matchesMaterial, materialLineageLegit, materialLineageMatches, sumMaterialValue,
+  materialLineageMatches, sumMaterialValue,
   canSummon, exceedsBoardSlots, summonConditions, conditionAt, conditionMaterials,
   conditionRequires, conditionIsFree, autoSelectMaterials,
 } from './InvocationManager.js';
@@ -38,7 +38,11 @@ export function materialsComplete(card, mats, conditionIndex = null, board = nul
   if (!condition || conditionIsFree(condition)) return true;
 
   const required = conditionRequires(condition);
-  if (!mats.every(u => materialLineageLegit(u, required))) return false;
+  // ⚠️ La lignée ne pèse QUE sur les exigences nommées, et c'est
+  // `getUncoveredRequirements` qui la porte : une unité qui paie un slot LIBRE
+  // n'est la doublure de personne. Exigée de toute la sélection, elle rendait
+  // insacrifiable la moindre unité composite (une fusion hérite d'une lignée
+  // qu'un coût nu ne nomme jamais).
   if (getUncoveredRequirements(required, mats).length > 0) return false;
   if (sumMaterialValue(mats) < conditionMaterials(condition)) return false;
 
@@ -63,8 +67,7 @@ export function forcedMaterials(card, board, graveyard = [], conditionIndex = nu
   const condition = _condition(card, conditionIndex);
   if (!condition || conditionIsFree(condition)) return [];
 
-  const usable = [...board.getLivingUnitsOnSide('player'), ...graveyard]
-    .filter(u => materialLineageLegit(u, conditionRequires(condition)));
+  const usable = usableMaterials(condition, [...board.getLivingUnitsOnSide('player'), ...graveyard]);
 
   // Le choix n'est forcé que si TOUT ce qui est utilisable est exactement ce
   // qu'il faut : un slot de mou, et c'est au joueur de dire ce qu'il sacrifie.
@@ -72,6 +75,23 @@ export function forcedMaterials(card, board, graveyard = [], conditionIndex = nu
 
   const auto = autoSelectMaterials(card, condition, board, graveyard);
   return materialsComplete(card, auto, conditionIndex, board) ? auto : [];
+}
+
+/**
+ * Ce qu'une condition sait consommer, parmi des unités disponibles.
+ *
+ * ⚠️ La lignée d'une unité composite ne la disqualifie QUE comme doublure d'une
+ * exigence nommée. Dès qu'une condition laisse un slot LIBRE (elle nomme moins
+ * d'exigences qu'elle n'a de slots), ce slot se paie avec n'importe quoi — une
+ * fusion, une transformation, ce qu'on veut. C'était l'ancienne règle du
+ * Sacrifice et des slots libres de l'Héritage ; l'appliquer à toute la
+ * sélection rendait insacrifiable la moitié du catalogue.
+ */
+export function usableMaterials(condition, units) {
+  const required = conditionRequires(condition);
+  if (required.length < conditionMaterials(condition)) return units;
+  // Tous les slots sont nommés : seules les doublures légitimes servent.
+  return units.filter(u => required.some(matId => materialLineageMatches(u, matId, required)));
 }
 
 /** Positions des unités du board encore sélectionnables comme matériau. */
@@ -120,13 +140,14 @@ function _candidates(card, condition, alreadySelected, available, board) {
 
   const uncovered = getUncoveredRequirements(required, alreadySelected);
   const remainingSlots = needed - sumMaterialValue(alreadySelected);
-  const legit = available.filter(u => materialLineageLegit(u, required));
 
   if (uncovered.length > 0 && uncovered.length >= remainingSlots) {
-    // Plus de mou : seules les unités qui couvrent une exigence restante.
-    return withDuplicate(legit.filter(u => uncovered.some(matId => materialLineageMatches(u, matId, required))));
+    // Plus de mou : seules les unités qui couvrent une exigence restante — et
+    // c'est le seul cas où la lignée pèse, cf. `usableMaterials`.
+    return withDuplicate(available.filter(u => uncovered.some(matId => materialLineageMatches(u, matId, required))));
   }
-  return withDuplicate(legit);
+  // Il reste du mou : un slot libre se paie avec n'importe quelle unité.
+  return withDuplicate(available);
 }
 
 /**
@@ -137,11 +158,10 @@ function _candidates(card, condition, alreadySelected, available, board) {
 export function summonConditionsStatus(card, board, graveyard = [], maxSlots = Infinity) {
   const conditions = summonConditions(card);
   if (conditions.length <= 1) return null;
-  return conditions.map((condition, index) => ({
-    index,
-    condition,
-    ok: _isPlayableWith(card, condition, board, graveyard, maxSlots),
-  }));
+  return conditions.map((condition, index) => {
+    const verdict = _playableWith(card, condition, board, graveyard, maxSlots);
+    return { index, condition, ok: verdict.ok, reason: verdict.reason };
+  });
 }
 
 /**
@@ -151,45 +171,64 @@ export function summonConditionsStatus(card, board, graveyard = [], maxSlots = I
  */
 export function isPlayable(card, board, graveyard = [], maxSlots = Infinity) {
   const conditions = summonConditions(card);
-  if (conditions.length === 0) return _isPlayableWith(card, null, board, graveyard, maxSlots);
-  return conditions.some(condition => _isPlayableWith(card, condition, board, graveyard, maxSlots));
+  if (conditions.length === 0) return _playableWith(card, null, board, graveyard, maxSlots).ok;
+  return conditions.some(condition => _playableWith(card, condition, board, graveyard, maxSlots).ok);
 }
 
-function _isPlayableWith(card, condition, board, graveyard, maxSlots) {
+/**
+ * ⚠️ Rend un MOTIF et pas seulement un booléen : le menu de conditions grise
+ * les voies impossibles, et un bouton éteint sans raison laisse chercher. Le
+ * motif est celui de la première règle qui refuse — même discipline que
+ * `canSummon`, dont c'est le pendant « sans case ».
+ */
+function _playableWith(card, condition, board, graveyard, maxSlots) {
+  const no = (reason) => ({ ok: false, reason });
   const living = board.getLivingUnitsOnSide('player');
   const duplicate = living.find(u => u.card_id === card.id);
 
   if (!condition || conditionIsFree(condition)) {
     // Sans matériau à consommer, un doublon vivant interdit la pose et il n'y a
     // pas de case à libérer : il faut donc une case déjà vide.
-    if (duplicate) return false;
-    if (living.length >= maxSlots) return false;
-    return hasEmptyPlayerCell(board);
+    if (duplicate) return no('Un exemplaire vit déjà sur le terrain');
+    if (living.length >= maxSlots) return no('Plus de slot libre');
+    return hasEmptyPlayerCell(board) ? { ok: true, reason: '' } : no('Aucune case libre');
   }
 
   const required = conditionRequires(condition);
   const available = [...living, ...graveyard];
-  if (sumMaterialValue(available) < conditionMaterials(condition)) return false;
-  if (getUncoveredRequirements(required, available.filter(u => materialLineageLegit(u, required))).length > 0)
-    return false;
+  if (sumMaterialValue(available) < conditionMaterials(condition))
+    return no(`Requiert ${conditionMaterials(condition)} matériel(s) sur le terrain ou au cimetière`);
+  const uncovered = getUncoveredRequirements(required, available);
+  // ⚠️ Le motif ne NOMME pas ce qui manque : `logic/` ne sait pas traduire un id
+  // de carte ou d'attribut en nom, et un `ARCH_047` lâché dans une modale est
+  // du bruit. La recette affichée juste au-dessus, elle, les nomme déjà.
+  if (uncovered.length > 0)
+    return no(uncovered.length > 1 ? 'Matériels manquants' : 'Matériel manquant');
 
   // Le doublon, s'il existe, est consommable : il compte parmi les matériaux.
   // ⚠️ Un coût satisfait uniquement au cimetière ne libère aucun SLOT (le
   // cimetière n'en occupe pas), il faut donc que le plafond soit encore ouvert.
-  if (living.length >= maxSlots && !available.some(u => living.includes(u))) return false;
+  if (living.length >= maxSlots && !available.some(u => living.includes(u))) return no('Plus de slot libre');
   // Une CASE, en revanche, il y en a toujours une : `summon` retire du board
   // tous les matériaux consommés, cimetière compris.
-  return true;
+  return { ok: true, reason: '' };
 }
 
 /**
  * Le sous-ensemble de `required` que `selectedUnits` ne couvre pas encore
  * (glouton, stable dans l'ordre). Une unité ne couvre qu'UNE exigence.
+ *
+ * ⚠️ Le test est `materialLineageMatches` et non `matchesMaterial` : c'est ICI,
+ * et nulle part ailleurs, que la légitimité de lignée pèse — une doublure ne
+ * tient le rôle d'une exigence nommée que si tout ce dont elle hérite est
+ * lui-même exigé. Portée sur la sélection entière, la règle interdisait de
+ * dépenser une unité composite dans un slot libre (cf. `usableMaterials`) ;
+ * portée ici, elle dit exactement ce qu'elle a toujours voulu dire.
  */
 export function getUncoveredRequirements(required, selectedUnits) {
   const pool = [...selectedUnits];
   return required.filter(matId => {
-    const idx = pool.findIndex(u => matchesMaterial(u, matId));
+    const idx = pool.findIndex(u => materialLineageMatches(u, matId, required));
     if (idx !== -1) { pool.splice(idx, 1); return false; }
     return true;
   });

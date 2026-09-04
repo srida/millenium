@@ -1,3 +1,5 @@
+import { guaranteedDrawCriteria } from './Draw.js';
+
 export const STAT_NAMES = {
   atk: 'ATK', hp: 'HP', attack_speed: 'Vit. attaque',
   movement_speed: 'Vit. déplacement', range: 'Portée', initiative: 'Initiative',
@@ -113,28 +115,42 @@ const POWER_LABELS = {
 };
 
 /**
- * `guaranteed_draw` porte deux filtres FACULTATIFS qui se cumulent : le tier et
- * l'attribut. Le libellé doit dire lequel des trois cas on a sous les yeux,
- * sinon deux magies très différentes se lisent pareil.
+ * Les noms que `logic/` ne sait pas résoudre — `logic/` n'importe pas `data/`.
+ * L'appelant injecte de quoi nommer un attribut et une carte ; à défaut, l'id
+ * sort tel quel.
  *
- * ⚠️ L'attribut est rendu par son ID : `logic/` n'importe pas `data/` et n'a
- * donc pas de quoi le nommer. C'est l'appelant qui résout — même règle que le
- * registre de provenance des pioches (`data/DrawInfo.ts`).
+ * ⚠️ Ce n'est PAS un détail d'affichage : sans résolveur, la Phase Shopping
+ * proposait des magies libellées « Pioche garantie ARCH_047 ce tour ». Le défaut
+ * ne ment pas (l'id est la vérité), mais aucun écran ne doit s'en contenter.
  */
-function guaranteedDrawLabel(e) {
+const RAW_NAMES = { attribute: (id) => id, card: (id) => id };
+
+/**
+ * `guaranteed_draw` porte des critères FACULTATIFS qui se cumulent : le tier,
+ * un ou plusieurs attributs, et une liste de cartes acceptables. Le libellé doit
+ * dire lequel des cas on a sous les yeux, sinon deux magies très différentes se
+ * lisent pareil.
+ *
+ * ⚠️ Les critères sont lus par `Draw.guaranteedDrawCriteria`, comme le moteur de
+ * pioche et le filtre de pertinence : trois lectures de la même donnée
+ * finiraient par ne plus annoncer ce qui est réellement piochré.
+ */
+function guaranteedDrawLabel(e, names) {
+  const { tier, attributes, cardIds } = guaranteedDrawCriteria(e);
   const parts = [];
-  if (e.tier) parts.push(`Tier ${e.tier}`);
-  if (e.attribute) parts.push(e.attribute);
+  if (tier) parts.push(`Tier ${tier}`);
+  parts.push(...attributes.map(names.attribute));
+  if (cardIds.length) parts.push(cardIds.map(names.card).join(' ou '));
   return parts.length ? `Pioche garantie ${parts.join(' · ')} ce tour` : 'Pioche garantie ce tour';
 }
 
 /**
- * Sur quelle carte une remise de main s'applique. Même règle d'ID que
+ * Sur quelle carte une remise de main s'applique. Même règle de nommage que
  * `guaranteedDrawLabel` : `logic/` ne sait pas nommer un attribut, l'appelant
  * résout.
  */
-function handModifierScope(e) {
-  return e.attribute ? `${e.attribute} de ta main` : 'de ta main';
+function handModifierScope(e, names) {
+  return e.attribute ? `${names.attribute(e.attribute)} de ta main` : 'de ta main';
 }
 
 export function needsUnitTarget(magie) {
@@ -166,15 +182,23 @@ export function needsHandTarget(magie) {
     'sacrifice_card_hp'].includes(magie?.effect?.type);
 }
 
-export function effectLabel(magie) {
+/**
+ * La description d'une magie, en français.
+ *
+ * @param names — de quoi nommer un attribut (`names.attribute`) et une carte
+ *   (`names.card`). ⚠️ À FOURNIR par tout écran de jeu : le défaut rend les ids
+ *   bruts, ce qui affichait « ARCH_047 » là où le joueur attend « Dragon ».
+ */
+export function effectLabel(magie, names = RAW_NAMES) {
   const e = magie?.effect;
+  names = { ...RAW_NAMES, ...names };
   if (!e) return 'Aucun effet';
   switch (e.type) {
     case 'stat_bonus':       return `+${e.value} ${STAT_NAMES[e.stat] || e.stat} sur une unité (permanent)`;
     case 'team_stat_bonus':  return `+${e.value} ${STAT_NAMES[e.stat] || e.stat} sur TOUTES tes unités (permanent)`;
     case 'stat_modifier':    return `×${e.value} ${STAT_NAMES[e.stat] || e.stat} sur une unité (permanent)`;
     case 'draw_bonus':       return `+${e.value} carte${e.value > 1 ? 's' : ''} supplémentaire${e.value > 1 ? 's' : ''} ce tour`;
-    case 'guaranteed_draw':  return guaranteedDrawLabel(e);
+    case 'guaranteed_draw':  return guaranteedDrawLabel(e, names);
     case 'heal':             return 'Soigne ENTIÈREMENT une unité (PV au maximum)';
     case 'team_heal':        return `Soigne toutes tes unités de ${e.value} PV`;
     case 'revive':           return `Réanime une unité du cimetière à ${e.value}% de ses PV`;
@@ -209,8 +233,8 @@ export function effectLabel(magie) {
       : `Sacrifie une carte de ta main : tu gagnes ${sacrificeHpPercent(magie)}% de ses PV en points de vie`;
     // Les deux remises d'invocation. Elles ne disent PAS la même chose : l'une
     // baisse le prix, l'autre lève une contrainte sans rien rendre moins cher.
-    case 'reduce_materials':         return `-${e.value ?? 1} matériel(s) requis sur une carte ${handModifierScope(e)}`;
-    case 'remove_requirements':      return `Retire ${e.value ?? 1} matériel(s) NOMMÉ(s) d'une carte ${handModifierScope(e)}`;
+    case 'reduce_materials':         return `-${e.value ?? 1} matériel(s) requis sur une carte ${handModifierScope(e, names)}`;
+    case 'remove_requirements':      return `Retire ${e.value ?? 1} matériel(s) NOMMÉ(s) d'une carte ${handModifierScope(e, names)}`;
     default: return e.type;
   }
 }
@@ -327,11 +351,16 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       }
       break;
     case 'guaranteed_draw':
-      // Les deux filtres voyagent tels quels : `startPreparation` les ET-e, et
-      // un champ absent n'y contraint rien. C'est la MÊME forme que celle des
+      // Les critères voyagent tels quels : `Draw.matchesGuaranteedDraw` les ET-e,
+      // et un champ absent n'y contraint rien. C'est la MÊME forme que celle des
       // effets d'attribut (`GuaranteedDraw`), consommée par le même code.
+      // ⚠️ Recopier champ à champ est ce qui perdait `attributes` et `card_ids`
+      // en route : la forme est portée par le type, pas par cette ligne.
       if (gameState) {
-        gameState.player_guaranteed_draws.push({ tier: e.tier, attribute: e.attribute });
+        gameState.player_guaranteed_draws.push({
+          tier: e.tier, attribute: e.attribute,
+          attributes: e.attributes, card_ids: e.card_ids,
+        });
         // `value: 0` — une pioche garantie prend un slot de la main normale,
         // elle n'ajoute pas une carte (cf. `randomCount` dans startPreparation).
         gameState.player_draw_sources.push({ kind: 'magie', ref: magie.id, value: 0, guaranteed: true });

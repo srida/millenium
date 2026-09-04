@@ -7,6 +7,7 @@ import {
   canSummon, summon, matchesMaterial, materialLineageLegit,
   materialLineageMatches, sumMaterialValue, exceedsBoardSlots,
 } from '../logic/InvocationManager.js';
+import { materialCandidateCells, materialsComplete } from '../logic/InvocationRules.js';
 import { makeBoard, makeCard, spawn } from './helpers.js';
 
 // canSummon retourne { ok, reason } ou { options } (cartes à summon_options) ;
@@ -336,5 +337,53 @@ describe('la règle du doublon vaut pour toutes les cartes', () => {
 
     expect(can(boss as any, { col: 3, row: 0 }, board, [], [], [a, b]).ok).toBe(false);
     expect(can(boss as any, { col: 3, row: 0 }, board, [], [], [twin, a]).ok).toBe(true);
+  });
+});
+
+// ── Un slot LIBRE se paie avec n'importe quoi, lignée comprise ─────────────
+//
+// ⚠️ La légitimité de lignée ne dit qu'UNE chose : « cette unité peut-elle
+// tenir le rôle d'une exigence NOMMÉE ? ». Portée sur toute la sélection, elle
+// refusait de dépenser une unité composite dans un slot que la condition ne
+// nomme pas — donc de sacrifier la moindre fusion ou transformation, alors que
+// c'est précisément ce que leur `material_value` élevée est censée payer.
+describe('lignée et slots libres', () => {
+  const SACRIFICE = makeCard({ id: 'SACRIFICE', summon_conditions: [{ materials: 2 }] });
+
+  // Mutation : refiltrer les candidats par `materialLineageLegit` → ROUGE.
+  it('une fusion est un candidat pour un coût nu, et vaut ses slots', () => {
+    const board = makeBoard();
+    const fw = spawn(board, FIREWING, 'player', { col: 0, row: 0 });
+
+    expect(materialCandidateCells(SACRIFICE as any, [], board, null))
+      .toEqual([{ col: 0, row: 0 }]);
+    expect(materialsComplete(SACRIFICE as any, [fw], null, board)).toBe(true);
+    expect(can(SACRIFICE as any, { col: 1, row: 0 }, board, [], [], [fw]).ok).toBe(true);
+  });
+
+  // Le pendant : un slot NOMMÉ garde sa règle de lignée, elle n'est pas levée.
+  // Mutation : ignorer la lignée dans `getUncoveredRequirements` → ROUGE.
+  it('une fusion ne comble toujours pas une exigence nommée qu’elle déborde', () => {
+    const board = makeBoard();
+    const fw = spawn(board, FIREWING, 'player', { col: 0, row: 0 });
+    const needsAvian = makeCard({ id: 'NEEDS_AVIAN', summon_conditions: [{ materials: 1, requires: ['AVIAN'] }] });
+
+    expect(materialsComplete(needsAvian as any, [fw], null, board)).toBe(false);
+    expect(materialCandidateCells(needsAvian as any, [], board, null)).toEqual([]);
+  });
+
+  // Le mou dans une condition MIXTE : l'exigence nommée reste tenue par une
+  // doublure légitime, le slot restant accepte la fusion.
+  it('condition mixte : l’exigence est nommée, le slot restant est libre', () => {
+    const board = makeBoard();
+    const avian = spawn(board, AVIAN, 'player', { col: 0, row: 0 });
+    const fw = spawn(board, FIREWING, 'player', { col: 1, row: 0 });
+    const mixed = makeCard({ id: 'MIXED', summon_conditions: [{ materials: 3, requires: ['AVIAN'] }] });
+
+    // FIREWING vaut 2 slots, AVIAN 1 : les trois slots sont payés.
+    expect(materialsComplete(mixed as any, [avian, fw], null, board)).toBe(true);
+    // Et la fusion est bien proposée dès le premier tap, il reste du mou.
+    expect(materialCandidateCells(mixed as any, [], board, null))
+      .toContainEqual({ col: 1, row: 0 });
   });
 });

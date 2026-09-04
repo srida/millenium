@@ -7,6 +7,8 @@ import { useUiStore } from '../../stores/uiStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { Avatar, Button, Illustration, Modal } from '../ui/primitives.js';
 import TerrainEffects from '../ui/TerrainEffects.js';
+import RecipeRow from '../ui/SummonRecipe.js';
+import { summonRecipes } from '../../data/SummonInfo.js';
 import { AnimatedLevelGauge } from '../ui/ProgressionStats.js';
 import { END_ROUND_DURATION_S, TERRAIN_ALERT_MS } from '../../game/timings.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
@@ -91,13 +93,24 @@ function BoostedCount({ player, enemy }: { player: number; enemy: number }) {
   );
 }
 
+/**
+ * Le choix entre les CONDITIONS d'une carte qui en porte plusieurs.
+ *
+ * ⚠️ Chaque bouton se lit comme une ligne du tooltip — même composant, donc la
+ * même règle d'affichage. Il affichait un `label` par voie d'invocation, une
+ * notion que le moteur n'a plus : le contrôleur ne l'émet plus, et les boutons
+ * étaient rendus VIDES (le joueur voyait une modale de flèches sans texte).
+ */
 export function SummonOptionMenu() {
   const menu = useGameStore(s => s.summonOptions);
   const controller = useGameStore(s => s.controller);
   if (!menu || !controller) return null;
+  // Les recettes sont indexées comme les conditions : `summonRecipes` en rend
+  // une par condition, dans l'ordre, et l'option porte cet index.
+  const recipes = summonRecipes(menu.card);
   return (
     <Modal onClose={() => controller.cancelSelection()}>
-      <div className="text-xs tracking-widest text-white/50">MODE D'INVOCATION</div>
+      <div className="text-xs tracking-widest text-white/50">CONDITION D'INVOCATION</div>
       <div className="mb-2 text-base font-bold">{menu.card.name}</div>
       <div className="space-y-2">
         {menu.options.map(o => (
@@ -105,10 +118,17 @@ export function SummonOptionMenu() {
             key={o.index}
             disabled={!o.ok}
             onPointerDown={(e) => { e.stopPropagation(); controller.chooseSummonOption(o.index); }}
-            className="flex w-full min-h-tap items-center justify-between rounded-lg border border-line bg-surface-raised px-3 text-sm disabled:opacity-40"
+            className="flex w-full min-h-tap items-center justify-between gap-2 rounded-lg border border-line bg-surface-raised px-3 py-2 text-left text-sm disabled:opacity-40"
           >
-            <span className="font-semibold text-gold">{o.label}</span>
-            <span className="text-white/40">▸</span>
+            <span className="min-w-0">
+              {recipes[o.index]
+                ? <RecipeRow recipe={recipes[o.index]} />
+                : <span className="font-semibold text-gold">Condition {o.index + 1}</span>}
+              {/* Une voie refusée dit POURQUOI : le bouton grisé seul laisse
+                  chercher, et la raison vient déjà de `canSummon`. */}
+              {!o.ok && o.reason && <div className="mt-0.5 text-[10px] text-enemy">{o.reason}</div>}
+            </span>
+            <span className="flex-shrink-0 text-white/40">▸</span>
           </button>
         ))}
       </div>

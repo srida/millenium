@@ -10,6 +10,7 @@
 // l'ordre où elles sont sorties, et une Légendaire tombe en position 1, 2 ou 3.
 // Trier ferait de la position un spoiler, et rendrait le liseré redondant.
 import { effectLabel, magieCostHp } from '../../logic/MagieEffect.js';
+import { GAME_NAMES } from '../../data/gameNames.js';
 import { rarityOf, RARITY_LABELS } from '../../logic/MagieOffer.js';
 import type { Magie, MagieRarity } from '../../logic/types.js';
 import { Illustration } from '../ui/primitives.js';
@@ -70,7 +71,7 @@ export default function MagieCard(
             </span>
           )}
         </div>
-        <div className="text-[11px] leading-tight text-white/60">{(effectLabel as any)(magie)}</div>
+        <div className="text-[11px] leading-tight text-white/60">{(effectLabel as any)(magie, GAME_NAMES)}</div>
         {!affordable && (
           <div className="mt-0.5 text-[10px] font-semibold leading-tight text-red-400">
             PV insuffisants pour le contrecoup

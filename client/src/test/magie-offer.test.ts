@@ -35,6 +35,7 @@ const BARREN: MagieOfferContext = {
   materialSourceCount: 0,
   deckTiers: [],
   deckAttributes: [],
+  deckCardIds: [],
   damageMultiplierMatters: false,
   deckHasMaterialCost: false,
   deckHasNamedRequirement: false,
@@ -58,6 +59,7 @@ const LUSH: MagieOfferContext = {
   materialSourceCount: 2,
   deckTiers: [1, 2, 3, 4, 5],
   deckAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088', 'ARCH_089', 'ARCH_090'],
+  deckCardIds: [],
   damageMultiplierMatters: true,
   deckHasMaterialCost: true,
   deckHasNamedRequirement: true,
@@ -338,7 +340,15 @@ describe('Catalogue livré — initial-data/magies.json', () => {
   const catalogue: Magie[] = require(path.join(root, 'initial-data', 'magies.json'));
 
   it('chaque magie livrée est offrable dans un état riche', () => {
-    const orphans = catalogue.filter(m => !isMagieRelevant(m, LUSH)).map(m => `${m.id} (${m.effect?.type})`);
+    // ⚠️ Le deck « riche » porte les cartes que le catalogue NOMME : une pioche
+    // garantie qui désigne des cartes n'est pertinente que si le deck en tient
+    // une, et un `deckCardIds` vide la rendrait orpheline ici sans qu'elle ait
+    // le moindre défaut.
+    const lush: MagieOfferContext = {
+      ...LUSH,
+      deckCardIds: [...new Set(catalogue.flatMap(m => (m.effect as any)?.card_ids ?? []))],
+    };
+    const orphans = catalogue.filter(m => !isMagieRelevant(m, lush)).map(m => `${m.id} (${m.effect?.type})`);
     expect(orphans).toEqual([]);
   });
 
