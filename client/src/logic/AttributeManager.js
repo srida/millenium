@@ -298,6 +298,7 @@ export class AttributeManager {
           // exactement comme une magie, et recopier le seul `attribute`
           // perdait le reste en silence.
           result[draws.guaranteedKey].push({
+            tier: effect.tier,
             attribute: effect.attribute ?? null,
             attributes: effect.attributes,
             card_ids: effect.card_ids,

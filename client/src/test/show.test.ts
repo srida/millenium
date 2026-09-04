@@ -52,10 +52,27 @@ function makeShow(games = 400, seed = 'emission') {
 
 const phrases = (show: ReturnType<typeof buildShow>) => show.segments.flatMap(s => s.sentences);
 
+/**
+ * Les NOMS du catalogue qui portent un chiffre, du plus long au plus court.
+ *
+ * ⚠️ Un nom n'est pas une mesure : le catalogue livré compte des attributs qui
+ * s'appellent « Tier 5 » et des cartes numérotées. Les compter comme des
+ * chiffres prononcés faisait crier au loup sur un cas parfaitement sain — le
+ * défaut qu'un outil de diagnostic ne peut pas se permettre (cf. CLAUDE.md).
+ * Le test reste entier pour ce qu'il vise : un nombre écrit en dur dans un
+ * gabarit n'est le nom de personne.
+ */
+const NOMS_CHIFFRES = [...cat.attributes, ...cat.cards]
+  .map((x: { name?: string }) => x.name ?? '')
+  .filter(n => /\d/.test(n))
+  .sort((a, b) => b.length - a.length);
+
 /** Tout nombre écrit dans le script, tel quel (les formateurs produisent la
- *  même forme, virgule décimale comprise). */
+ *  même forme, virgule décimale comprise) — les noms mis à part. */
 function nombresDits(show: ReturnType<typeof buildShow>): string[] {
-  return phrases(show).join(' ').match(/\d+(?:,\d+)?/g) ?? [];
+  let texte = phrases(show).join(' ');
+  for (const nom of NOMS_CHIFFRES) texte = texte.split(nom).join(' ');
+  return texte.match(/\d+(?:,\d+)?/g) ?? [];
 }
 
 describe('Émission — aucun chiffre inventé', () => {
@@ -166,7 +183,13 @@ describe('Émission — la forme', () => {
     const jugeables = (r: DetectorResult) => r.rows.filter(x => x.played >= MIN_PLAYED).length;
     expect(jugeables(grand.detector)).toBeGreaterThan(jugeables(petit.detector));
     expect(grand.show.words).toBeGreaterThan(petit.show.words);
-  });
+    // ⚠️ Délai EXPLICITE : ce cas est le seul à payer un run de 1 500 parties en
+    // plus du run mémoïsé, et il tournait à ~28 s contre les 30 s par défaut de
+    // vitest — deux secondes de marge, c'est-à-dire aucune. Un runner un peu
+    // chargé le faisait tomber en « Test timed out », un rouge qui ne dit rien
+    // du jeu. Le seuil ne remplace aucune assertion : il dit seulement que
+    // c'est une simulation longue, pas un blocage.
+  }, 120_000);
 
   it('n’emploie aucun symbole que les voix rendent mal', () => {
     // Δ, ±, →, « +12pt » et « A/B » se prononcent de façon imprévisible d'une

@@ -242,10 +242,11 @@ export function summon(card, pos, board, hand, materials = null, handIdx = null,
 /**
  * Le jeu de matériaux qu'une condition consomme quand personne ne l'a désigné.
  *
- * ⚠️ Sert DEUX appelants qui ne doivent pas diverger : l'IA, qui invoque sans
- * passer par l'UI, et la pré-sélection du joueur quand la condition n'admet
- * qu'une seule lecture. Les exigences nommées d'abord (elles contraignent),
- * le remplissage ensuite.
+ * ⚠️ N'existe que pour l'IA, qui invoque sans passer par l'UI. **Le joueur ne
+ * passe jamais par là** : rien n'est désigné à sa place, il tape ses matériaux
+ * lui-même (cf. `InvocationRules`, et le liseré blanc de `board3d.css` qui
+ * annonce une unité déjà retenue). Les exigences nommées d'abord (elles
+ * contraignent), le remplissage ensuite.
  */
 export function autoSelectMaterials(card, condition, board, graveyard = []) {
   return _autoSelectMaterials(card, condition, board, graveyard);

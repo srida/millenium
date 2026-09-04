@@ -192,7 +192,6 @@ export class GameController {
 
     this.selectedCard = card;
     this.selectedHandIdx = handIdx;
-    this._preselectForcedMaterials();
     this._applyHighlights();
     this.sync();
   }
@@ -203,21 +202,22 @@ export class GameController {
     this._closeSummonMenu();
     this.selectedCard = card;
     this.selectedConditionIndex = index;
-    this._preselectForcedMaterials();
     this._applyHighlights();
     this.sync();
   }
 
   /**
-   * Pose d'office les matériaux quand la condition n'admet qu'une seule
-   * lecture — ce qui garde le geste en UN TAP : taper le monstre à remplacer
-   * suffisait pour une Transformation, et doit continuer à suffire.
+   * ⚠️ RIEN n'est pré-sélectionné à la sélection d'une carte, et c'est la règle :
+   * le liseré BLANC dit « matériau retenu » (`board3d.css`), donc le poser avant
+   * que le joueur n'ait désigné quoi que ce soit annonce une dépense qu'il n'a
+   * pas consentie — et pire, son premier tap sur la cible la DÉSÉLECTIONNAIT
+   * (`onUnitTap` bascule).
+   *
+   * Le geste en UN TAP de l'ancienne Transformation n'en a pas besoin : c'est
+   * `onUnitTap` qui le porte, en posant directement dès que le tap COMPLÈTE la
+   * sélection. Le joueur voit donc ses cibles en ORANGE (candidat), en tape une,
+   * et l'unité est posée.
    */
-  private _preselectForcedMaterials(): void {
-    if (!this.selectedCard) return;
-    const forced = this.session.forcedMaterials(this.selectedCard, this.selectedConditionIndex);
-    if (forced.length > 0) this.selectedMaterials = forced;
-  }
 
   cancelSelection(): void {
     this._clearSelection();

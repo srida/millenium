@@ -87,9 +87,19 @@ export interface AttributeEffect {
   value_per?: string;
   /** stat_modifier : on_ally_neutralized | on_enemy_neutralized */
   trigger?: string;
-  attribute?: string | null;
   hp_percent?: number;
   max?: number;
+  /**
+   * `guaranteed_draw` : les critères de la carte promise, **exactement** ceux
+   * d'une magie du même type (cf. `GuaranteedDraw`) — l'effet d'attribut et
+   * l'effet de magie alimentent la même file et sont résolus par le même
+   * `Draw.resolveGuaranteedDraws`. Les tenir séparés donnait deux pouvoirs
+   * d'expression différents pour une seule mécanique.
+   */
+  tier?: number;
+  attribute?: string | null;
+  attributes?: string[];
+  card_ids?: string[];
 }
 
 export interface AttributeThreshold {
@@ -164,11 +174,17 @@ export interface MagieEffectDef {
   type: string;
   stat?: string;
   value?: number;
+  /**
+   * `guaranteed_draw` : les critères de la carte promise — tier, attributs
+   * (cumulés), cartes acceptables. ⚠️ **Exactement** ceux d'un effet d'ATTRIBUT
+   * du même type (cf. `AttributeEffect` et `GuaranteedDraw`) : les deux
+   * alimentent la même file et sont résolus par le même
+   * `Draw.resolveGuaranteedDraws`.
+   */
   tier?: number;
-  /** `guaranteed_draw` : attribut exigé. Se cumule avec `tier` — les deux
-   *  filtres sont ET-és par `startPreparation`. Les voies d'invocation étant
-   *  devenues des attributs, il n'y a plus de second filtre à tenir. */
   attribute?: string;
+  attributes?: string[];
+  card_ids?: string[];
   /** `grant_power` : le pouvoir posé sur l'unité, et sa vitesse de chargement.
    *  ⚠️ La vitesse est OBLIGATOIRE — sans elle l'unité hérite de 9999
    *  (`Unit`), c'est-à-dire d'un pouvoir qui ne part jamais. */

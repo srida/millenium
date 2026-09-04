@@ -26,7 +26,7 @@ const applyMagieEffect = _applyMagieEffect as (magie: any, ctx: { gameState?: an
 const InvocationManager = _InvocationManager as any;
 import * as _InvocationRules from './InvocationRules.js';
 const {
-  needsMaterials, materialsComplete, forcedMaterials,
+  needsMaterials, materialsComplete,
   materialCandidateCells, materialCandidateGraveyard, isPlayable,
   validCells, summonConditionsStatus,
 } = _InvocationRules as any;
@@ -518,10 +518,6 @@ export class GameSession {
    * seule lecture — ce qui préserve le geste en UN TAP de l'ancienne
    * Transformation, où taper le monstre à remplacer suffisait.
    */
-  forcedMaterials(card: Card, conditionIndex: number | null = null): Unit[] {
-    return forcedMaterials(card as any, this.board, this.graveyard, conditionIndex);
-  }
-
   validCells(card: Card, selectedMaterials: Unit[], conditionIndex: number | null = null): Position[] {
     return validCells(card as any, {
       board: this.board, graveyard: this.graveyard,

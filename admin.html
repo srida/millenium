@@ -2447,7 +2447,10 @@ function _attrEffectFieldVisibility(type) {
     showMax: ['draw_bonus', 'board_slot_bonus', 'shopping_bonus'].includes(type),
     showTarget: type === 'revive',
     showHpPercent: type === 'revive',
-    showAttribute: type === 'guaranteed_draw',
+    // ⚠️ MÊMES champs qu'une magie `guaranteed_draw` : tier + critères. Les deux
+    // effets alimentent la même file, un attribut ne doit pas savoir promettre
+    // moins qu'une magie.
+    showGuaranteed: type === 'guaranteed_draw',
     showValue: !['guaranteed_draw', 'effect_immunity'].includes(type),
   };
 }
@@ -2464,7 +2467,7 @@ function renderEffectBlock(ef, ti, ei) {
             <option value="stat_bonus" ${type === 'stat_bonus' ? 'selected' : ''}>Bonus de stat</option>
             <option value="stat_modifier" ${type === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat (sur trigger)</option>
             <option value="draw_bonus" ${type === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
-            <option value="guaranteed_draw" ${type === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (par attribut)</option>
+            <option value="guaranteed_draw" ${type === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (tier, attributs, cartes)</option>
             <option value="revive" ${type === 'revive' ? 'selected' : ''}>Réanimation (%HP)</option>
             <option value="shield" ${type === 'shield' ? 'selected' : ''}>Bouclier</option>
             <option value="board_slot_bonus" ${type === 'board_slot_bonus' ? 'selected' : ''}>Slot de board supplémentaire</option>
@@ -2513,12 +2516,16 @@ function renderEffectBlock(ef, ti, ei) {
           <label>% PV max</label>
           <input id="ef-${ti}-${ei}-hppercent" type="number" min="1" max="100" value="${ef.hp_percent ?? 50}">
         </div>
-        <div class="field" id="ef-${ti}-${ei}-attribute-field" style="${v.showAttribute ? '' : 'display:none'}">
-          <label>Attribut garanti (vide = n'importe lequel)</label>
-          <select id="ef-${ti}-${ei}-attribute">
-            <option value="" ${!ef.attribute ? 'selected' : ''}>— indifférent —</option>
-            ${attributes.map(a => `<option value="${a.id}" ${ef.attribute === a.id ? 'selected' : ''}>${esc((a.icon || '') + ' ' + a.name)} — ${a.id}</option>`).join('')}
+        <div class="field" id="ef-${ti}-${ei}-tier-field" style="${v.showGuaranteed ? '' : 'display:none'}">
+          <label>Tier de la carte garantie</label>
+          <select id="ef-${ti}-${ei}-tier">
+            <option value="" ${!ef.tier ? 'selected' : ''}>— indifférent —</option>
+            ${[1, 2, 3, 4, 5].map(t => `<option value="${t}" ${ef.tier === t ? 'selected' : ''}>Tier ${t}</option>`).join('')}
           </select>
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-gd-field" style="${v.showGuaranteed ? '' : 'display:none'};grid-column:1/-1">
+          <label>Critères de la carte garantie (attributs et/ou cartes nommées)</label>
+          ${v.showGuaranteed ? renderGuaranteedDrawCriteria(ef, `attr-${ti}-${ei}`) : ''}
         </div>
       </div>
     </div>
@@ -2535,7 +2542,15 @@ function updateEffectFields(ti, ei) {
   document.getElementById(`ef-${ti}-${ei}-max-field`).style.display = v.showMax ? '' : 'none';
   document.getElementById(`ef-${ti}-${ei}-target-field`).style.display = v.showTarget ? '' : 'none';
   document.getElementById(`ef-${ti}-${ei}-hppercent-field`).style.display = v.showHpPercent ? '' : 'none';
-  document.getElementById(`ef-${ti}-${ei}-attribute-field`).style.display = v.showAttribute ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-tier-field`).style.display = v.showGuaranteed ? '' : 'none';
+  // ⚠️ Le bloc de critères est RENDU, pas seulement masqué : il n'existe dans le
+  // balisage que pour un `guaranteed_draw`, sinon il n'y aurait rien à révéler
+  // quand on bascule le type sur ce dernier.
+  const gd = document.getElementById(`ef-${ti}-${ei}-gd-field`);
+  if (gd) {
+    gd.style.display = v.showGuaranteed ? '' : 'none';
+    if (v.showGuaranteed) { _syncAttrDraft(); renderAttrDetail(); }
+  }
 }
 
 function _collectEffectFromFields(ti, ei) {
@@ -2555,35 +2570,44 @@ function _collectEffectFromFields(ti, ei) {
   }
   if (v.showTarget) ef.target = document.getElementById(`ef-${ti}-${ei}-target`).value;
   if (v.showHpPercent) ef.hp_percent = parseInt(document.getElementById(`ef-${ti}-${ei}-hppercent`).value) || 0;
-  // ⚠️ L'attribut garanti est SAISI, il n'est plus forcé à l'attribut porteur :
-  // `resolveGuaranteedDraws` lit `effect.attribute` et rien d'autre. Vide, la
-  // pioche ne porte aucun filtre d'attribut — l'absence vaut « n'importe
-  // lequel », là où une chaîne vide serait un filtre insatisfiable.
-  if (v.showAttribute) {
-    const attribute = document.getElementById(`ef-${ti}-${ei}-attribute`).value;
-    if (attribute) ef.attribute = attribute;
+  // ⚠️ Un critère VIDE ne s'écrit pas : l'absence vaut « n'importe lequel », là
+  // où un `tier: 0` ou un `attributes: ['']` seraient insatisfiables — la pioche
+  // ne rendrait alors jamais ce qu'elle promet.
+  // ⚠️ Le tier vient du DOM, les deux listes du MODÈLE : elles s'éditent par
+  // re-render (cf. `renderGuaranteedDrawCriteria`), les relire ici depuis le
+  // formulaire les effacerait à chaque enregistrement.
+  if (v.showGuaranteed) {
+    const tier = parseInt(document.getElementById(`ef-${ti}-${ei}-tier`)?.value, 10);
+    if (tier) ef.tier = tier;
+    const criteria = guaranteedDrawCriteriaOf(selectedAttr?.thresholds?.[ti]?.effects?.[ei]);
+    if (criteria.attributes.length) ef.attributes = criteria.attributes;
+    if (criteria.card_ids.length) ef.card_ids = criteria.card_ids;
   }
   return ef;
 }
 
 function addThreshold() {
+  _syncAttrDraft();
   if (!selectedAttr.thresholds) selectedAttr.thresholds = [];
   selectedAttr.thresholds.push({ count: 2, medal: 'silver', effects: [{ type: 'stat_bonus', stat: 'atk', value: 1 }] });
   renderAttrDetail();
 }
 
 function removeThreshold(ti) {
+  _syncAttrDraft();
   selectedAttr.thresholds.splice(ti, 1);
   renderAttrDetail();
 }
 
 function addEffect(ti) {
+  _syncAttrDraft();
   if (!selectedAttr.thresholds[ti].effects) selectedAttr.thresholds[ti].effects = [];
   selectedAttr.thresholds[ti].effects.push({ type: 'stat_bonus', stat: 'atk', value: 1 });
   renderAttrDetail();
 }
 
 function removeEffect(ti, ei) {
+  _syncAttrDraft();
   selectedAttr.thresholds[ti].effects.splice(ei, 1);
   renderAttrDetail();
 }
@@ -3267,7 +3291,7 @@ function renderMagieDetail() {
       </div>
       <div class="field" id="mf-gd-field" style="${showTier ? '' : 'display:none'};grid-column:1/-1">
         <label>Critères de la carte garantie (attributs et/ou cartes nommées)</label>
-        ${renderGuaranteedDrawCriteria(effect)}
+        ${renderGuaranteedDrawCriteria(effect, 'magie')}
       </div>
     </div>
 
@@ -3323,7 +3347,31 @@ function guaranteedDrawCriteriaOf(effect) {
   };
 }
 
-function renderGuaranteedDrawCriteria(effect) {
+/**
+ * ⚠️ L'éditeur est PARTAGÉ par les magies et les attributs, via un `scope` qui
+ * dit où vivent les critères — `'magie'` pour `selectedMagie.effect`,
+ * `` `attr-<ti>-<ei>` `` pour un effet de palier. Les deux familles alimentent la
+ * MÊME file de pioches garanties et le même `Draw.resolveGuaranteedDraws` : leur
+ * donner deux éditeurs, c'était leur donner deux pouvoirs d'expression pour une
+ * seule mécanique — un attribut ne savait nommer qu'un attribut.
+ */
+function _gdScope(scope) {
+  if (scope === 'magie') {
+    return {
+      effect: () => (selectedMagie.effect || (selectedMagie.effect = { type: 'guaranteed_draw' })),
+      sync: _syncMagieDraft,
+      render: renderMagieDetail,
+    };
+  }
+  const [, ti, ei] = scope.split('-');
+  return {
+    effect: () => selectedAttr.thresholds[+ti].effects[+ei],
+    sync: _syncAttrDraft,
+    render: renderAttrDetail,
+  };
+}
+
+function renderGuaranteedDrawCriteria(effect, scope) {
   const { attributes: attrIds, card_ids: cardIds } = guaranteedDrawCriteriaOf(effect);
   const chips = [
     ...attrIds.map(id => {
@@ -3342,21 +3390,20 @@ function renderGuaranteedDrawCriteria(effect) {
           <div style="display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px">
             <span style="font-size:12px">${ch.label}</span>
             <span style="font-size:10px;color:var(--muted);font-family:monospace">${ch.id}</span>
-            <button onclick="removeGuaranteedDrawCriterion('${ch.kind}', '${ch.id}')">×</button>
+            <button onclick="removeGuaranteedDrawCriterion('${scope}', '${ch.kind}', '${ch.id}')">×</button>
           </div>`).join('')
         : '<span style="font-size:12px;color:var(--muted)">Aucun critère — la carte garantie sera prise au hasard dans le deck.</span>'}
     </div>
     <div style="position:relative;margin-top:8px">
-      <input type="text" id="mf-gd-search" placeholder="Ajouter un attribut ou une carte..." autocomplete="off"
-        oninput="filterGuaranteedDrawSearch()" onfocus="filterGuaranteedDrawSearch()" onblur="hideGuaranteedDrawDropdown()"
+      <input type="text" id="gd-${scope}-search" placeholder="Ajouter un attribut ou une carte..." autocomplete="off"
+        oninput="filterGuaranteedDrawSearch('${scope}')" onfocus="filterGuaranteedDrawSearch('${scope}')" onblur="hideGuaranteedDrawDropdown('${scope}')"
         style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
-      <div id="mf-gd-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
+      <div id="gd-${scope}-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
     </div>
     <div style="font-size:11px;color:var(--muted);margin-top:6px">
       Les <b>attributs</b> se cumulent : deux attributs exigent une carte qui porte les deux.
       Les <b>cartes nommées</b> sont des alternatives entre elles, et se cumulent au reste.<br>
-      ⚠️ La magie n'est <b>offerte</b> que si le deck du joueur peut tenir la promesse. Si rien ne
-      correspond au moment de piocher, le <b>tier</b> saute en premier ; le reste tient.
+      ⚠️ Si rien ne correspond au moment de piocher, le <b>tier</b> saute en premier ; le reste tient.
     </div>`;
 }
 
@@ -3366,9 +3413,23 @@ function _syncMagieDraft() {
   Object.assign(selectedMagie, _collectMagieFields());
 }
 
-function removeGuaranteedDrawCriterion(kind, id) {
-  _syncMagieDraft();
-  const e = selectedMagie.effect || (selectedMagie.effect = { type: 'guaranteed_draw' });
+/**
+ * Le pendant côté attributs.
+ *
+ * ⚠️ `addEffect` / `removeEffect` / `addThreshold` re-rendaient SANS relire le
+ * formulaire : ajouter un effet effaçait ce qu'on venait de taper dans les
+ * autres. C'est le piège des éditeurs répétables, déjà payé sur les lots de
+ * cadeau et les effets de terrain.
+ */
+function _syncAttrDraft() {
+  if (!selectedAttr) return;
+  Object.assign(selectedAttr, collectAttrFromForm());
+}
+
+function removeGuaranteedDrawCriterion(scope, kind, id) {
+  const ctx = _gdScope(scope);
+  ctx.sync();
+  const e = ctx.effect();
   const { attributes: attrIds, card_ids: cardIds } = guaranteedDrawCriteriaOf(e);
   // ⚠️ `attribute` (le champ historique, au singulier) est REPLIÉ dans la liste
   // et effacé : le laisser en place rendrait le retrait sans effet, le moteur
@@ -3376,24 +3437,25 @@ function removeGuaranteedDrawCriterion(kind, id) {
   delete e.attribute;
   e.attributes = attrIds.filter(x => !(kind === 'attribute' && x === id));
   e.card_ids = cardIds.filter(x => !(kind === 'card' && x === id));
-  renderMagieDetail();
+  ctx.render();
 }
 
-function addGuaranteedDrawCriterion(kind, id) {
-  _syncMagieDraft();
-  const e = selectedMagie.effect || (selectedMagie.effect = { type: 'guaranteed_draw' });
+function addGuaranteedDrawCriterion(scope, kind, id) {
+  const ctx = _gdScope(scope);
+  ctx.sync();
+  const e = ctx.effect();
   const { attributes: attrIds, card_ids: cardIds } = guaranteedDrawCriteriaOf(e);
   delete e.attribute;
   e.attributes = attrIds;
   e.card_ids = cardIds;
   const list = kind === 'attribute' ? e.attributes : e.card_ids;
   if (!list.includes(id)) list.push(id);
-  renderMagieDetail();
+  ctx.render();
 }
 
-function filterGuaranteedDrawSearch() {
-  const q = (document.getElementById('mf-gd-search')?.value || '').toLowerCase();
-  const { attributes: attrIds, card_ids: cardIds } = guaranteedDrawCriteriaOf(selectedMagie && selectedMagie.effect);
+function filterGuaranteedDrawSearch(scope) {
+  const q = (document.getElementById(`gd-${scope}-search`)?.value || '').toLowerCase();
+  const { attributes: attrIds, card_ids: cardIds } = guaranteedDrawCriteriaOf(_gdScope(scope).effect());
   const matchedAttrs = attributes
     .filter(a => !attrIds.includes(a.id))
     .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
@@ -3404,7 +3466,7 @@ function filterGuaranteedDrawSearch() {
     .filter(c => !q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q))
     .slice(0, 20)
     .map(c => ({ ...c, _gdType: 'card' }));
-  const dd = document.getElementById('mf-gd-dropdown');
+  const dd = document.getElementById(`gd-${scope}-dropdown`);
   if (!dd) return;
   const results = [...matchedAttrs, ...matchedCards];
   dd.innerHTML = results.length
@@ -3414,7 +3476,7 @@ function filterGuaranteedDrawSearch() {
         ? `<span style="font-size:10px;background:#6ab4e822;color:#6ab4e8;border-radius:4px;padding:1px 5px">Attribut</span>`
         : `<span style="font-size:11px;color:var(--muted);font-family:monospace">${x.id} · T${Math.round(x.tier)}</span>`;
       return `
-        <div onmousedown="addGuaranteedDrawCriterion('${x._gdType}', '${x.id}')"
+        <div onmousedown="addGuaranteedDrawCriterion('${scope}', '${x._gdType}', '${x.id}')"
           style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
           onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
           ${isAttr ? `<span style="font-size:16px">${x.icon || '🔷'}</span>` : ''}
@@ -3428,10 +3490,10 @@ function filterGuaranteedDrawSearch() {
   dd.style.display = 'block';
 }
 
-function hideGuaranteedDrawDropdown() {
+function hideGuaranteedDrawDropdown(scope) {
   // Retardé pour que l'onmousedown d'une entrée parte d'abord.
   setTimeout(() => {
-    const dd = document.getElementById('mf-gd-dropdown');
+    const dd = document.getElementById(`gd-${scope}-dropdown`);
     if (dd) dd.style.display = 'none';
   }, 150);
 }

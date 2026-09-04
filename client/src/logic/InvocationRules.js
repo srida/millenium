@@ -1,7 +1,7 @@
 import {
   materialLineageMatches, sumMaterialValue,
   canSummon, exceedsBoardSlots, summonConditions, conditionAt, conditionMaterials,
-  conditionRequires, conditionIsFree, autoSelectMaterials,
+  conditionRequires, conditionIsFree,
 } from './InvocationManager.js';
 
 /**
@@ -56,43 +56,13 @@ export function materialsComplete(card, mats, conditionIndex = null, board = nul
 }
 
 /**
- * La sélection que l'UI peut poser d'office parce que la condition n'en admet
- * qu'une seule lecture — c'est ce qui préserve le geste en UN TAP de l'ancienne
- * Transformation (taper le monstre à remplacer suffisait).
- *
- * ⚠️ Ne pré-sélectionne QUE si le choix est forcé : dès qu'un matériau est
- * substituable, c'est au joueur de trancher (il sait, lui, ce qu'il veut garder).
+ * ⚠️ Il n'y a PAS de pré-sélection de matériaux, et c'est délibéré : l'UI ne
+ * désigne jamais un matériau à la place du joueur. Le liseré blanc annonce une
+ * unité RETENUE — la poser avant tout geste annonce une dépense que personne
+ * n'a consentie. Le geste en un tap de l'ancienne Transformation est porté par
+ * `GameController.onUnitTap`, qui pose directement dès que le tap complète la
+ * sélection ; il n'a rien à pré-cocher pour ça.
  */
-export function forcedMaterials(card, board, graveyard = [], conditionIndex = null) {
-  const condition = _condition(card, conditionIndex);
-  if (!condition || conditionIsFree(condition)) return [];
-
-  const usable = usableMaterials(condition, [...board.getLivingUnitsOnSide('player'), ...graveyard]);
-
-  // Le choix n'est forcé que si TOUT ce qui est utilisable est exactement ce
-  // qu'il faut : un slot de mou, et c'est au joueur de dire ce qu'il sacrifie.
-  if (sumMaterialValue(usable) !== conditionMaterials(condition)) return [];
-
-  const auto = autoSelectMaterials(card, condition, board, graveyard);
-  return materialsComplete(card, auto, conditionIndex, board) ? auto : [];
-}
-
-/**
- * Ce qu'une condition sait consommer, parmi des unités disponibles.
- *
- * ⚠️ La lignée d'une unité composite ne la disqualifie QUE comme doublure d'une
- * exigence nommée. Dès qu'une condition laisse un slot LIBRE (elle nomme moins
- * d'exigences qu'elle n'a de slots), ce slot se paie avec n'importe quoi — une
- * fusion, une transformation, ce qu'on veut. C'était l'ancienne règle du
- * Sacrifice et des slots libres de l'Héritage ; l'appliquer à toute la
- * sélection rendait insacrifiable la moitié du catalogue.
- */
-export function usableMaterials(condition, units) {
-  const required = conditionRequires(condition);
-  if (required.length < conditionMaterials(condition)) return units;
-  // Tous les slots sont nommés : seules les doublures légitimes servent.
-  return units.filter(u => required.some(matId => materialLineageMatches(u, matId, required)));
-}
 
 /** Positions des unités du board encore sélectionnables comme matériau. */
 export function materialCandidateCells(card, alreadySelected, board, conditionIndex = null) {
@@ -143,7 +113,7 @@ function _candidates(card, condition, alreadySelected, available, board) {
 
   if (uncovered.length > 0 && uncovered.length >= remainingSlots) {
     // Plus de mou : seules les unités qui couvrent une exigence restante — et
-    // c'est le seul cas où la lignée pèse, cf. `usableMaterials`.
+    // c'est le seul cas où la lignée pèse.
     return withDuplicate(available.filter(u => uncovered.some(matId => materialLineageMatches(u, matId, required))));
   }
   // Il reste du mou : un slot libre se paie avec n'importe quelle unité.
@@ -222,8 +192,8 @@ function _playableWith(card, condition, board, graveyard, maxSlots) {
  * et nulle part ailleurs, que la légitimité de lignée pèse — une doublure ne
  * tient le rôle d'une exigence nommée que si tout ce dont elle hérite est
  * lui-même exigé. Portée sur la sélection entière, la règle interdisait de
- * dépenser une unité composite dans un slot libre (cf. `usableMaterials`) ;
- * portée ici, elle dit exactement ce qu'elle a toujours voulu dire.
+ * dépenser une unité composite dans un slot LIBRE ; portée ici, elle dit
+ * exactement ce qu'elle a toujours voulu dire.
  */
 export function getUncoveredRequirements(required, selectedUnits) {
   const pool = [...selectedUnits];
