@@ -759,7 +759,9 @@ materialValueOf(card) / isAttributeMaterial(matId)
 
 `data/SummonInfo` (pur) met tout ça **en mots** pour le tooltip : `summonRecipes` (une par condition), `summonCostOf`, `recipeCostText`, `materialsLabel`, `recipeIsFree`. ⚠️ **« Matériels » vs « dont » se dérive du coût seul** : autant d'exigences nommées que de slots → elles sont toutes listées ; moins → les autres slots restent libres et les nommées sont prises *dedans*. C'était la distinction Fusion / Héritage, écrite en dur dans deux tables par voie.
 
-`InvocationRules` (pur, sans mutation) alimente l'UI : `isPlayable`, `needsMaterials`, `materialsComplete`, `forcedMaterials`, `validCells`, `materialCandidateCells`, `materialCandidateGraveyard`, `summonConditionsStatus`, `getUncoveredRequirements`, `hasEmptyPlayerCell`. `GameSession` les ré-expose en injectant board/main/cimetière/slots.
+`InvocationRules` (pur, sans mutation) alimente l'UI : `isPlayable`, `needsMaterials`, `materialsComplete`, `validCells`, `materialCandidateCells`, `materialCandidateGraveyard`, `summonConditionsStatus`, `getUncoveredRequirements`, `hasEmptyPlayerCell`. `GameSession` les ré-expose en injectant board/main/cimetière/slots.
+
+⚠️ **RIEN n'est pré-sélectionné** : l'UI ne désigne jamais un matériau à la place du joueur. Le liseré **blanc** dit « matériau retenu » (`board3d.css`), l'**orange** « candidat » — poser du blanc avant tout geste annonce une dépense non consentie, et le premier tap sur la cible la **désélectionnait** (`onUnitTap` bascule). Le geste en UN TAP est porté par `onUnitTap`, qui pose directement dès que le tap **complète** la sélection.
 
 **Conditions multiples** — tous les points d'entrée acceptent un `conditionIndex` ; `null` = la première (`summon`) ou l'évaluation de **toutes** (`canSummon`). `isPlayable` est vrai dès qu'**une** condition l'est. L'IA les essaie de la **moins chère à la plus chère** — c'était « la transformation d'abord », qui disait la même chose.
 
@@ -845,7 +847,7 @@ Un monstre peut porter plusieurs attributs. **Un seul palier est actif à la foi
 | `stat_modifier` | `during_combat` | Déclenché par `trigger` : `on_ally_neutralized` / `on_enemy_neutralized` |
 | `revive` | `end_of_combat` | Réanime une unité neutralisée à `hp_percent` % (déf. 50) |
 | `draw_bonus` | `end_of_combat` | Pioches supplémentaires (plafonné par `max`) |
-| `guaranteed_draw` | `end_of_combat` | Pousse `{ attribute }` dans `player_guaranteed_draws` |
+| `guaranteed_draw` | `end_of_combat` | Pousse les critères dans `player_guaranteed_draws` — ⚠️ **les mêmes qu'une magie** (`tier`, `attributes`, `card_ids`) : même file, même `Draw.resolveGuaranteedDraws`, donc même éditeur d'admin |
 | `board_slot_bonus` | `end_of_combat` | Via `grantLimitedBoardSlotBonus` — **cap +1 partagé avec les magies de slot** |
 | `damage_multiplier_bonus` | `end_of_combat` | S'ajoute au `player_multiplier` **de ce round** |
 | `shopping_bonus` | `end_of_combat` | Magies supplémentaires au Shopping suivant (plafonné par `max`) |

@@ -67,6 +67,26 @@ describe('BoardInfo — le libellé d\'un effet', () => {
     expect(boardEffectLabel({ type: 'board_slot_bonus', value: 1 } as any)).toBe('+1 slot');
   });
 
+  // ⚠️ Une pioche garantie d'ATTRIBUT DIT ce qu'elle promet, avec les mêmes mots
+  // que la magie et que la popup de pioche — c'est `DrawInfo.guaranteedDrawLabel`
+  // qui les écrit, pour les trois. Sans ses critères, deux effets très
+  // différents se lisaient tous les deux « Pioche garantie ».
+  // Mutation : revenir au libellé nu → ROUGE.
+  it('une pioche garantie annonce ses critères, et les NOMME', () => {
+    const attrs = (ids: string[]) => ids.map(id => (id === 'ARCH_003' ? 'Dragon' : id)).join(', ');
+    const card = (id: string) => (id === 'CORE_001' ? 'Magicien sombre' : id);
+
+    expect(boardEffectLabel({ type: 'guaranteed_draw', tier: 4 } as any))
+      .toBe('Pioche garantie Tier 4');
+    expect(boardEffectLabel({ type: 'guaranteed_draw', attributes: ['ARCH_003'] } as any, attrs, card))
+      .toBe('Pioche garantie Dragon');
+    expect(boardEffectLabel({ type: 'guaranteed_draw', tier: 4, attributes: ['ARCH_003'], card_ids: ['CORE_001'] } as any, attrs, card))
+      .toBe('Pioche garantie Tier 4 · Dragon · Magicien sombre');
+    // Sans critère, rien à annoncer — et surtout pas un « Au choix » qui se
+    // lirait comme une promesse.
+    expect(boardEffectLabel({ type: 'guaranteed_draw' } as any, attrs, card)).toBe('Pioche garantie');
+  });
+
   // ⚠️ Mutation : repli sur '' → ROUGE. Un blanc dans l'annonce se lirait comme
   // un bug d'affichage, pas comme un terrain neutre.
   it('un effet absent rend « Aucun effet », jamais une chaîne vide', () => {

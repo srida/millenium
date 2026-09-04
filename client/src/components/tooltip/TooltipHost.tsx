@@ -208,6 +208,8 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
 // dessous avec leur icône.
 function describeEffects(effects: any[], withTargets = true): string {
   return (effects ?? []).map((e: any) =>
-    boardEffectLabel(e, withTargets ? (ids) => ids.map(attributeName).join(', ') : undefined),
+    // ⚠️ `cardName` est passé même sans cibles : une pioche garantie peut NOMMER
+    // des cartes, et sans résolveur c'est un id brut qui sort à l'écran.
+    boardEffectLabel(e, withTargets ? (ids) => ids.map(attributeName).join(', ') : undefined, cardName),
   ).join(', ');
 }

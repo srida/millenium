@@ -11,7 +11,9 @@
 // (`TerrainAlert`). Deux descriptions du même terrain, c'est deux descriptions
 // qui finissent par ne plus dire la même chose.
 import { statLabel } from './StatLabels.js';
-import type { BoardEffectDef } from '../logic/types.js';
+import { guaranteedDrawLabel } from './DrawInfo.js';
+import { hasGuaranteedDrawCriteria } from '../logic/Draw.js';
+import type { AttributeEffect, BoardEffectDef } from '../logic/types.js';
 
 /**
  * Cet effet lit-il `target_attributes` ?
@@ -52,19 +54,33 @@ export function boardTargetAttributes(effect: BoardEffectDef | null | undefined)
  * dans l'annonce se lirait comme un bug d'affichage, pas comme un terrain neutre.
  */
 export function boardEffectLabel(
-  effect: BoardEffectDef | null | undefined,
+  // ⚠️ Sert les DEUX familles — un effet de terrain et un effet d'attribut (cf.
+  // `TooltipHost.describeEffects`) : `guaranteed_draw` n'existe que du second
+  // côté, et ses critères ne vivent que dans `AttributeEffect`.
+  effect: BoardEffectDef | AttributeEffect | null | undefined,
   attributeNames?: (ids: string[]) => string,
+  /** ⚠️ Une pioche garantie peut NOMMER des cartes : sans résolveur, leur id
+   *  brut sort à l'écran. Même règle que `MagieEffect.effectLabel`. */
+  cardName: (id: string) => string = (id) => id,
 ): string {
   if (!effect?.type) return 'Aucun effet';
-  const targets = attributeNames && effect.target_attributes?.length
-    ? ` (${attributeNames(effect.target_attributes)})`
-    : '';
+  const targetAttrs = (effect as BoardEffectDef).target_attributes;
+  const targets = attributeNames && targetAttrs?.length ? ` (${attributeNames(targetAttrs)})` : '';
   switch (effect.type) {
     case 'stat_bonus':        return `+${effect.value} ${statLabel(effect.stat as string)}${targets}`;
     case 'stat_modifier':     return `×${effect.value} ${statLabel(effect.stat as string)}${targets}`;
     case 'shield':            return `Bouclier +${effect.value}${targets}`;
     case 'draw_bonus':        return `+${effect.value} pioche`;
-    case 'guaranteed_draw':   return 'Pioche garantie';
+    // ⚠️ Les critères se disent avec la MÊME fonction que la magie et que la
+    // popup de pioche (`DrawInfo.guaranteedDrawLabel`) : trois libellés de la
+    // même promesse finiraient par ne pas annoncer ce qui est réellement pioché.
+    case 'guaranteed_draw': {
+      // ⚠️ Ce type n'existe que côté ATTRIBUT : un terrain ne pioche pas.
+      const draw = effect as AttributeEffect;
+      return hasGuaranteedDrawCriteria(draw)
+        ? `Pioche garantie ${guaranteedDrawLabel(draw, id => attributeNames?.([id]) ?? id, cardName)}`
+        : 'Pioche garantie';
+    }
     case 'revive':            return 'Réanimation';
     case 'board_slot_bonus':  return `+${effect.value} slot`;
     // ⚠️ Effet d'ATTRIBUT, pas de terrain — cette fonction sert les deux (cf.

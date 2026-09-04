@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from 'vitest';
 import { AttributeManager } from '../logic/AttributeManager.js';
+import { guaranteedDrawCriteria } from '../logic/Draw.js';
 import { makeBoard, makeCard, spawn } from './helpers.js';
 
 function units(board: any, defs: { id: string; attrs?: string[]; col: number; row: number; side?: 'player' | 'enemy' }[]) {
@@ -147,6 +148,43 @@ describe('AttributeManager — end_of_combat', () => {
     expect(result.draw_bonus).toBe(0);
     // Rien n'affiche la provenance de la pioche adverse.
     expect(result.draw_sources).toEqual([]);
+  });
+
+  // ⚠️ Un effet d'attribut et une magie du même type alimentent la MÊME file et
+  // sont résolus par le même `Draw.resolveGuaranteedDraws` : leur donner deux
+  // pouvoirs d'expression, c'était laisser l'attribut ne savoir promettre qu'un
+  // attribut, là où la magie sait nommer un tier et des cartes.
+  // Mutation : ne recopier que `effect.attribute` dans le push → ROUGE.
+  it('guaranteed_draw d’attribut porte les MÊMES critères qu’une magie', () => {
+    const attrs = [{
+      id: 'ARCH_ORACLE', name: 'Oracle', timing: 'end_of_combat',
+      thresholds: [{
+        count: 1,
+        effects: [{
+          type: 'guaranteed_draw',
+          tier: 4,
+          attributes: ['ARCH_003', 'ARCH_009'],
+          card_ids: ['CORE_001', 'CORE_002'],
+        }],
+      }],
+    }];
+    const board = makeBoard();
+    const [p1] = units(board, [{ id: 'P1', attrs: ['ARCH_ORACLE'], col: 0, row: 0 }]);
+    const am = new (AttributeManager as any)(attrs, [p1], []);
+    const result = am.applyEndOfCombat([], []);
+
+    expect(result.guaranteed_draws).toEqual([{
+      tier: 4,
+      attribute: null,
+      attributes: ['ARCH_003', 'ARCH_009'],
+      card_ids: ['CORE_001', 'CORE_002'],
+    }]);
+    // Et ces critères se relisent EXACTEMENT comme ceux d'une magie.
+    expect(guaranteedDrawCriteria(result.guaranteed_draws[0])).toEqual({
+      tier: 4,
+      attributes: ['ARCH_003', 'ARCH_009'],
+      cardIds: ['CORE_001', 'CORE_002'],
+    });
   });
 
   it('guaranteed_draw côté ENNEMI alimente enemy_guaranteed_draws, pas guaranteed_draws', () => {
