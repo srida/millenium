@@ -13,7 +13,27 @@ import type { DetectorResult } from '../sim/protocol.js';
 
 const cat = loadCatalog();
 
-function makeShow(games = 400, seed = 'emission') {
+/**
+ * ⚠️ MÉMOÏSÉ par (parties, graine), et ce n'est pas un confort.
+ *
+ * `runDetector` est **semé**, donc pur : deux appels aux mêmes arguments
+ * rendent le même rapport. Huit cas de ce fichier demandent le run par défaut
+ * — sans cache, la simulation est rejouée huit fois à l'identique, et le
+ * fichier pèse 85 s à lui seul sur les ~79 s de la suite entière.
+ *
+ * Ce n'est pas qu'une question de lenteur : un worker qui monopolise un cœur
+ * aussi longtemps ne répond plus à l'appel RPC par lequel il rapporte ses
+ * tâches, et vitest tombe en `Timeout calling "onTaskUpdate"`. Cette erreur
+ * n'échoue AUCUN test — elle sort en « unhandled error » — mais elle fait
+ * sortir le process en **1**, donc rouge en CI derrière 1065 tests verts.
+ *
+ * Les résultats sont partagés entre cas : rien ne doit les muter. `classify`
+ * ne fait que lire (`filter`/`map` rendent des tableaux neufs, le `sort` porte
+ * sur l'un d'eux), et aucun cas n'écrit dans `detector` ni dans `show`.
+ */
+const _runs = new Map<string, ReturnType<typeof buildRun>>();
+
+function buildRun(games: number, seed: string) {
   const detector = runDetector(cat, games, seed);
   const aggregates = buildAggregates(detector.rows, cat.cards, cat.attributes, detector.baseline);
   return {
@@ -21,6 +41,13 @@ function makeShow(games = 400, seed = 'emission') {
     aggregates,
     show: buildShow({ date: '2026-08-25', detector, aggregates, ab: [], catalogCards: cat.fingerprint.cards }),
   };
+}
+
+function makeShow(games = 400, seed = 'emission') {
+  const key = `${games}|${seed}`;
+  let run = _runs.get(key);
+  if (!run) { run = buildRun(games, seed); _runs.set(key, run); }
+  return run;
 }
 
 const phrases = (show: ReturnType<typeof buildShow>) => show.segments.flatMap(s => s.sentences);
