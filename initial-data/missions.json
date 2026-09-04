@@ -52,8 +52,8 @@
     "family": "mechanical",
     "slot_weight": 2,
     "label": "Réussir {target} invocation par Fusion",
-    "objective": { "event": "summon_performed", "filters": { "summon_type": "fusion" }, "target": 1, "scope": "cumulative" },
-    "requirements": { "owns_cards_matching": { "summon_type": "fusion", "count": 2 } },
+    "objective": { "event": "summon_performed", "filters": { "attribute": "ARCH_086" }, "target": 1, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "attribute": "ARCH_086", "count": 2 } },
     "tags": ["fusion", "exploration"]
   },
   {
@@ -61,8 +61,8 @@
     "family": "mechanical",
     "slot_weight": 3,
     "label": "Réussir {target} invocations par Fusion",
-    "objective": { "event": "summon_performed", "filters": { "summon_type": "fusion" }, "target": 3, "scope": "cumulative" },
-    "requirements": { "owns_cards_matching": { "summon_type": "fusion", "count": 3 } },
+    "objective": { "event": "summon_performed", "filters": { "attribute": "ARCH_086" }, "target": 3, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "attribute": "ARCH_086", "count": 3 } },
     "tags": ["fusion", "exploration"]
   },
   {
@@ -70,8 +70,8 @@
     "family": "mechanical",
     "slot_weight": 2,
     "label": "Réussir {target} invocation par Héritage",
-    "objective": { "event": "summon_performed", "filters": { "summon_type": "heritage" }, "target": 1, "scope": "cumulative" },
-    "requirements": { "owns_cards_matching": { "summon_type": "heritage", "count": 2 } },
+    "objective": { "event": "summon_performed", "filters": { "attribute": "ARCH_087" }, "target": 1, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "attribute": "ARCH_087", "count": 2 } },
     "tags": ["heritage", "exploration"]
   },
   {
@@ -79,8 +79,8 @@
     "family": "mechanical",
     "slot_weight": 2,
     "label": "Réussir {target} invocation par Transformation",
-    "objective": { "event": "summon_performed", "filters": { "summon_type": "transformation" }, "target": 1, "scope": "cumulative" },
-    "requirements": { "owns_cards_matching": { "summon_type": "transformation", "count": 2 } },
+    "objective": { "event": "summon_performed", "filters": { "attribute": "ARCH_088" }, "target": 1, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "attribute": "ARCH_088", "count": 2 } },
     "tags": ["transformation", "exploration"]
   },
   {
@@ -88,8 +88,8 @@
     "family": "mechanical",
     "slot_weight": 1,
     "label": "Invoquer {target} monstres par Sacrifice",
-    "objective": { "event": "summon_performed", "filters": { "summon_type": "sacrifice" }, "target": 2, "scope": "cumulative" },
-    "requirements": { "owns_cards_matching": { "summon_type": "sacrifice", "count": 2 } },
+    "objective": { "event": "summon_performed", "filters": { "attribute": "ARCH_089" }, "target": 2, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "attribute": "ARCH_089", "count": 2 } },
     "tags": ["sacrifice"]
   },
   {
@@ -97,8 +97,8 @@
     "family": "mechanical",
     "slot_weight": 3,
     "label": "Invoquer {target} monstres par Sacrifice",
-    "objective": { "event": "summon_performed", "filters": { "summon_type": "sacrifice" }, "target": 6, "scope": "cumulative" },
-    "requirements": { "owns_cards_matching": { "summon_type": "sacrifice", "count": 3 } },
+    "objective": { "event": "summon_performed", "filters": { "attribute": "ARCH_089" }, "target": 6, "scope": "cumulative" },
+    "requirements": { "owns_cards_matching": { "attribute": "ARCH_089", "count": 3 } },
     "tags": ["sacrifice"]
   },
   {

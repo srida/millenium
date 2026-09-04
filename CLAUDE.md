@@ -285,7 +285,7 @@ Dotation hebdo totale : 35 XP / 900 golds / 85 gemmes. Revenu quotidien : 650 go
 - ⚠️ **Une mission terminée mais non récupérée n'est jamais purgée** — `deleteStaleClaimedMissions` n'emporte que les soldées. Le crédit est différé, pas confisqué.
 - ⚠️ **Un palier atteint et jamais réclamé est soldé d'office au changement de semaine**, avant la remise à zéro : une jauge qui repart de zéro ne peut pas porter ses restes.
 - Corollaire assumé : thésauriser des missions terminées concentre la jauge sur une semaine. Ça ne crée aucune valeur (plafond 25) — non traité.
-- **Filtrage par collection** (`requirements.owns_cards_matching`) : une mission Fusion ne sort pas si le joueur n'a pas assez de cartes Fusion.
+- **Filtrage par collection** (`requirements.owns_cards_matching`) : une mission Fusion ne sort pas si le joueur n'a pas assez de cartes Fusion. ⚠️ Le filtre porte sur un **attribut** (`attribute`), des deux côtés — l'objectif comme l'éligibilité. Une carte à plusieurs conditions compte pour chacune de ses voies.
 - Le cache de `catalog()` est invalidé au mtime : l'admin écrit à chaud.
 
 ### Flux d'événements
@@ -296,7 +296,7 @@ Le système ne lit **jamais** l'état du jeu : il consomme des **événements no
 |---|---|---|
 | `combat_started` | `unit_count`, `attribute_count`, `max_attribute_units` | `_beginCombatAnimation` |
 | `combat_ended` | `result`, `unit_count`, `units_lost` | `_onCombatFinished` |
-| `summon_performed` | `card_id`, `tier`, `summon_type` | `_tryPlace` |
+| `summon_performed` | `card_id`, `tier`, `attributes` | `_tryPlace` |
 | `power_triggered` | `power_id` | flux `onStep` de `CombatManager` |
 | `magic_selected` | `magic_id`, `effect_type` | `_noteMagie` |
 | `match_completed` | `result`, `rounds_played` | `_reportMatchCompleted` |
@@ -585,14 +585,13 @@ Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()`
 
 La main est **conservée entre les tours** (taille illimitée) ; les cartes non jouées s'accumulent, sans effet sur le pool de tiers.
 
-**Règle du doublon** (`InvocationManager._canSummonForType`, **côté joueur uniquement**) : jamais deux exemplaires vivants de la même `card_id` sur le board joueur.
-- Invocation **normale** (et sacrifice dont le coût est tombé à 0) : refusée si un doublon est vivant (carte grisée en main).
-- **Sacrifice / Fusion / Heritage / Transformation** : autorisées par-dessus un doublon, **à condition que ce doublon soit sélectionné comme matériau** (ou comme cible).
+**Règle du doublon** (`InvocationManager._canSummonWith`, **côté joueur uniquement**) : jamais deux exemplaires vivants de la même `card_id` sur le board joueur. La règle vaut pour **toutes** les cartes, sans exception de coût : un doublon vivant refuse l'invocation **sauf s'il figure lui-même parmi les matériaux consommés**.
+- ⚠️ Elle ne se branche nulle part sur « invocation normale » : une carte **sans condition** n'a aucun matériau à sélectionner, donc le doublon ne peut jamais y figurer, donc elle est refusée. Il n'y a rien d'écrit pour ce cas.
+- ⚠️ C'est cet invariant qui autorise l'identité `(camp, card_id)` du log PvP et de `refUnit` : **le relâcher casse les deux**.
 
 **Pioches garanties** (`gameState.player_guaranteed_draws`, alimenté par les effets d'attribut `guaranteed_draw` et les magies du même nom) :
 - Elles **occupent un slot de la main normale** : `randomCount = 5 + extra_draws − guaranteed_draws.length`.
-- Elles **ignorent la restriction de tier du tour** : recherche dans tout le deck, filtrée par `tier`/`attribute`/`summon_type` selon les champs présents ; **repli progressif** (sans le tier, puis n'importe quelle carte).
-- Priorité de résolution : Transformation > Heritage > Fusion > normale.
+- Elles **ignorent la restriction de tier du tour** : recherche dans tout le deck, filtrée par `tier`/`attribute` selon les champs présents ; **repli progressif** (sans le tier, puis n'importe quelle carte).
 
 **Résumé de pioche** — `startPreparation()` rend un `DrawSummary` (tour, tiers, `baseCount`, `extraDraws`, garanties, `drawnCount`, `sources`), affiché par la popup de pioche. `startNextRound()` le relaie, ou `null` sur une fin de partie.
 
@@ -653,7 +652,7 @@ board.blockedCells()                          // ⚠️ la SEULE lecture juste p
   "blocked_cells": [{ "col": 2, "row": 5 }],
   "effects": [
     { "type": "stat_bonus", "stat": "atk", "value": 10,
-      "target_attributes": ["ARCH_DRAGON"], "target_summon_types": ["fusion", "multi"] },
+      "target_attributes": ["ARCH_DRAGON"] },
     { "type": "shield", "value": 20 }
   ]
 }
@@ -669,10 +668,9 @@ Actif **pendant le combat uniquement** (en préparation le terrain n'est pas enc
 | `draw_bonus` | Pioche supplémentaire — **joueur uniquement, sans ciblage** |
 
 - ⚠️ **`BoardEffect.boardEffects(board)` est le SEUL lecteur de la donnée**, et il lit **deux formes** : `effects` (la liste) l'emporte dès qu'elle porte quelque chose, `effect` (l'effet unique historique) sert de repli. Les 14 terrains livrés sont encore en `effect` — le repli est ce qui dispense de migration. L'admin écrit `effects`. Tout écran qui lirait `board.effect` afficherait « Aucun effet » sur un terrain migré.
-- ⚠️ **Les deux ciblages d'un même effet se cumulent en ET**, jamais en OU. Un OU se demande en posant **deux effets**.
 - ⚠️ **Le cumul est ADDITIF et l'ordre de la liste n'y change rien** : tous les effets écrivent dans `_stat_bonuses` (ou le bouclier), jamais dans `_base` que `stat_modifier` relit. Deux « ×2 PV » donnent **×3**, pas ×4.
-- ⚠️ **La voie lue est `unit.summon_key`, jamais `unit.summon_type`** : une carte à `summon_options` relève de **`multi`**. Son `summon_type` de premier niveau n'est qu'un miroir d'une de ses recettes. La voie est dérivée de la **définition de carte**, jamais de la recette jouée (sinon les deux clients d'un duel divergent).
-- Les trois premiers types **visent des unités** (`BoardInfo.boardTargetsUnits`) et lisent les ciblages ; `draw_bonus` n'en lit aucun — ni l'admin, ni l'annonce, ni l'infobulle ne lui en proposent.
+- ⚠️ **Il n'y a plus qu'UN ciblage, `target_attributes`** : les cinq voies d'invocation sont devenues des attributs de carte (`ARCH_086`…`ARCH_090`), donc `BoardEffect.effectTargets` est le seul filtre, et une carte à plusieurs conditions les porte **toutes**.
+- Les trois premiers types **visent des unités** (`BoardInfo.boardTargetsUnits`) et lisent le ciblage ; `draw_bonus` n'en lit aucun — ni l'admin, ni l'annonce, ni l'infobulle ne lui en proposent.
 - Effets appliqués via `applyStatBonus()` / `applyShield()`, donc nettoyés par `resetCombatStats()`.
 - Éditeur d'effets **répétable** en admin. ⚠️ `_syncBoardDraft()` recopie la saisie avant chaque re-render, **cases bloquées comprises** (`renderBoardDetail` reconstruit `_boardBlockedSet` depuis `selectedBoard.blocked_cells`, donc ajouter un effet effacerait les cases qu'on vient de poser).
 
@@ -724,28 +722,42 @@ Deux règles, de poids inégal :
 
 ## Invocation (`InvocationManager`)
 
-Cinq voies : **Normal** (placement direct), **Sacrifice** (consomme des unités alliées), **Fusion** (matériaux spécifiques), **Heritage** (matériau + tributs), **Transformation** (remplace une unité en jeu, conserve sa position). Une invocation peut être immédiatement suivie d'une autre (**chaînage**).
+Une carte porte **zéro, une ou plusieurs CONDITIONS** (`summon_conditions`) ; elle est jouable dès qu'**une** est satisfaite. Une condition réclame un nombre de slots de matériau (`materials`, compté en `material_value`) dont une partie peut être **nommée** (`requires` : ids de carte ou d'attribut, `requires.length <= materials`). Aucune condition = placement direct. Une invocation peut être immédiatement suivie d'une autre (**chaînage**).
+
+⚠️ **Il n'y a plus de « voie » d'invocation.** Les cinq notions historiques (normale, sacrifice, fusion, héritage, transformation) sont devenues des **attributs de carte** (`ARCH_086`…`ARCH_090`), purement descriptifs ; le moteur ne connaît qu'un coût. Chacune des cinq branches de l'ancien `switch` était un cas particulier de l'une des règles ci-dessous.
 
 ```js
-canSummon(card, pos, board, hand, graveyard, selectedMaterials, optionIndex)
-  → { ok, reason }                          // + { options: [...] } si la carte a des summon_options
-summon(card, pos, board, hand, sacrificeTargets, handIdx, optionIndex) → Unit | null
-exceedsBoardSlots(card, selectedMaterials, board, graveyard, playerBoardSlots, type?)
-hasSummonOptions(card) / resolveTransformationTarget(card, board)
+canSummon(card, pos, board, hand, graveyard, selectedMaterials, conditionIndex)
+  → { ok, reason }                          // + { options: [...] } si la carte a plusieurs conditions
+summon(card, pos, board, hand, materials, handIdx, conditionIndex) → Unit
+summonConditions / conditionAt / conditionMaterials / conditionRequires / conditionIsFree
+summonCost(card) / hasMultipleConditions(card) / autoSelectMaterials(card, condition, board, graveyard)
+forcedCell(condition, materials, board) / exceedsBoardSlots(...)
 matchesMaterial / materialLineageLegit / materialLineageMatches / sumMaterialValue
-materialValueOf(card, type) / isAttributeMaterial(matId)
+materialValueOf(card) / isAttributeMaterial(matId)
 ```
 
-`InvocationRules` (pur, sans mutation) alimente l'UI : `isPlayable`, `needsMaterials`, `materialsComplete`, `validCells`, `materialCandidateCells`, `materialCandidateGraveyard`, `transformTargetCells`, `summonOptionsStatus`, `getUncoveredRequirements`, `hasEmptyPlayerCell`. `GameSession` les ré-expose en injectant board/main/cimetière/slots.
+**Les cinq règles de `_canSummonWith`**, et rien d'autre :
 
-**Alternatives (`summon_options`)** — 19 cartes : chaque option porte son propre `summon_type` et son `cost`. Tous les points d'entrée acceptent un `optionIndex` ; `null` = première option (`summon`) ou évaluation de **toutes** les options (`canSummon`). `isPlayable` est vrai dès qu'**une** option est jouable.
+1. **Où l'unité se pose.** Une condition à **UN matériel** impose la case de ce matériel ; sinon la case doit être libre, ou occupée par un matériau consommé (il part avant la pose).
+2. **Le doublon** — cf. la règle du doublon, plus haut.
+3. **Quantité** — `sum(material_value)` des unités disponibles (terrain **et** cimetière) ≥ `materials`.
+4. **Exigences nommées** — appariées à des unités **distinctes** (glouton), chacune une doublure légitime (lignée).
+5. **Slots** — `vivants − matériaux_du_board + 1 ≤ plafond`.
 
-**Unités composites** — deux propriétés lues par `_matchesMaterial` / `canSummon` :
-- **`represented_ids`** — les ids que l'unité « représente ». **Pré-déterminé sur la carte** (champ `represented_ids`, section « Lignée » de l'admin), pas calculé à l'invocation : une carte Fusion/Heritage/Transformation doit lister explicitement ses matériaux et leur lignée. Affiché au tooltip (🧬) quand la lignée dépasse la carte.
-  - **Légitimité** (`materialLineageLegit`) : toute la lignée héritée d'un matériel doit être **elle-même requise** par l'invocation en cours. « Aile de feu » (Avian + Burstinatrix) ne peut pas remplacer Avian seul, mais peut combler à elle seule les deux slots d'une fusion qui les requiert tous les deux.
-- **`material_value`** — le nombre de slots que l'unité représente si elle est consommée. Fixé par `materialValueOf` : Fusion → `cost.materials.length`, Heritage → `cost.sacrifice`, Sacrifice → `cost.sacrifice`, Normal/Transformation → 1.
-  - ⚠️ Les coûts `sacrifice`/`heritage` sont vérifiés via la **somme des `material_value`** (`sumMaterialValue`), pas via le **nombre** d'unités.
-  - ⚠️ `materialValueOf` est extrait exprès : l'IA bâtit ses unités par `new Unit`, qui laisse le champ à 1 — la table vivait en clair dans les quatre branches de `summon`, et les deux camps n'avaient donc **pas** la même règle.
+- ⚠️ **`summonCost(card)` est le SEUL endroit qui répond à « quel genre d'invocation est-ce »** (le minimum de `materials` sur ses conditions). Il y en avait trois : la table de priorité de l'IA, celle de l'auto-joueur, et l'agrégat par voie du rapport d'équilibrage.
+- ⚠️ **`forcedCell` est le SEUL endroit qui répond à « où l'unité se pose »**, et ses trois appelants — la validation, la pose, l'IA — ne peuvent donc pas se contredire. C'est l'ancienne Transformation, énoncée sur le **coût** : à un matériel, le résultat prend la place de sa cible, d'où qu'elle vienne. La case retenue est celle que le matériel **occupe encore** (`board.getUnit(pos) === u`) : une unité retirée du board garde une `position` périmée, que quelqu'un d'autre occupe peut-être.
+- ⚠️ **Les matériaux partent AVANT la pose**, cimetière compris (un corps neutralisé occupe encore une case). C'est ce qui rend les règles 1 et 5 vraies sans une ligne pour les dire.
+- ⚠️ **Le cimetière ne libère aucun SLOT** (il n'en occupe pas) mais libère bien une **case**. La Transformation échappait au plafond par exception ; la règle unifiée ne regarde que ce qui est libéré, donc une condition payée au seul cimetière est refusée sur un board plein.
+
+`InvocationRules` (pur, sans mutation) alimente l'UI : `isPlayable`, `needsMaterials`, `materialsComplete`, `forcedMaterials`, `validCells`, `materialCandidateCells`, `materialCandidateGraveyard`, `summonConditionsStatus`, `getUncoveredRequirements`, `hasEmptyPlayerCell`. `GameSession` les ré-expose en injectant board/main/cimetière/slots.
+
+**Conditions multiples** — tous les points d'entrée acceptent un `conditionIndex` ; `null` = la première (`summon`) ou l'évaluation de **toutes** (`canSummon`). `isPlayable` est vrai dès qu'**une** condition l'est. L'IA les essaie de la **moins chère à la plus chère** — c'était « la transformation d'abord », qui disait la même chose.
+
+**Unités composites** — deux propriétés lues par `matchesMaterial` / `canSummon` :
+- **`represented_ids`** — les ids que l'unité « représente », **pré-déterminés sur la carte** (section « Lignée » de l'admin), jamais calculés à l'invocation. ⚠️ `Unit` y ajoute toujours son propre `card.id` : la donnée ne porte que la lignée **héritée**. Affiché au tooltip (🧬).
+  - **Légitimité** (`materialLineageLegit`) : toute la lignée héritée d'un matériel doit être **elle-même exigée** par la condition en cours. « Aile de feu » (Avian + Burstinatrix) ne remplace pas Avian seul, mais comble à elle seule les deux exigences d'une condition qui demande les deux.
+- **`material_value`** — le nombre de slots que l'unité représente si elle est consommée. ⚠️ C'est une **donnée de carte**, saisie en admin, lue par le constructeur d'`Unit` pour les **deux camps** : elle était dérivée en quatre exemplaires dans le `switch`, si bien que l'IA et le joueur n'avaient pas la même règle.
 
 Un matériel `ARCH_*` désigne **n'importe quelle** unité portant l'attribut, pas une carte (`isAttributeMaterial`).
 
@@ -753,7 +765,7 @@ Un matériel `ARCH_*` désigne **n'importe quelle** unité portant l'attribut, p
 
 ```js
 uid                    // identifiant d'instance, unique par partie
-summon_key             // voie ANNONCÉE ('multi' pour une carte à summon_options) — ce que lit le ciblage des terrains
+material_value         // slots représentés si l'unité est consommée — DONNÉE de carte, jamais dérivée
 
 _base                  // stats de base gelées — SEUL endroit modifié en PERMANENT (magies, handicap IA)
 _stat_bonuses          // bonus plats du combat en cours (attributs, terrain, vétérance)
@@ -823,7 +835,7 @@ Un monstre peut porter plusieurs attributs. **Un seul palier est actif à la foi
 | `stat_modifier` | `during_combat` | Déclenché par `trigger` : `on_ally_neutralized` / `on_enemy_neutralized` |
 | `revive` | `end_of_combat` | Réanime une unité neutralisée à `hp_percent` % (déf. 50) |
 | `draw_bonus` | `end_of_combat` | Pioches supplémentaires (plafonné par `max`) |
-| `guaranteed_draw` | `end_of_combat` | Pousse `{ category, attribute }` dans `player_guaranteed_draws` |
+| `guaranteed_draw` | `end_of_combat` | Pousse `{ tier, attribute }` dans `player_guaranteed_draws` |
 | `board_slot_bonus` | `end_of_combat` | Via `grantLimitedBoardSlotBonus` — **cap +1 partagé avec les magies de slot** |
 | `damage_multiplier_bonus` | `end_of_combat` | S'ajoute au `player_multiplier` **de ce round** |
 | `shopping_bonus` | `end_of_combat` | Magies supplémentaires au Shopping suivant (plafonné par `max`) |
@@ -1049,7 +1061,8 @@ Détection **automatique** dérivée de `effect.type` — **aucun champ admin à
 | le deck porte **le** tier demandé | `guaranteed_draw` |
 | le cap partagé +1 slot est encore libre | `board_slot_bonus` |
 | `player_hp < PLAYER_HP_CAP` | `player_hp_bonus` |
-| le deck porte une carte du `summon_type` visé | `reduce_sacrifice_cost`, `free_transformation`, `remove_heritage_material`, `remove_fusion_material` |
+| le deck porte une carte à coût en matériels | `reduce_materials` |
+| le deck porte une carte à exigence **nommée** | `remove_requirements` |
 | une carte en main **et** le deck porte son tier voisin | `shift_tier_card` |
 | une unité au board **et** le deck porte son tier voisin | `shift_tier_unit` |
 | une carte en main dont un **matériel** est résolvable | `draw_material` |
@@ -1057,7 +1070,7 @@ Détection **automatique** dérivée de `effect.type` — **aucun champ admin à
 | toujours | `draw_bonus` |
 
 - ⚠️ **La table est FERMÉE (`default: false`)** : un `effect` nul ou d'un type inconnu traverse `applyEffect` sans rien faire. **Corollaire : un type ajouté à `applyEffect` mais oublié dans `isMagieRelevant` disparaît silencieusement du jeu.** `magie-offer.test.ts` relit `initial-data/magies.json` et exige que chaque magie livrée soit offrable sous un contexte permissif.
-- ⚠️ **Les quatre modificateurs de main se testent sur le DECK, jamais sur la main** : ils sont **différés** au `startPreparation()` suivant, donc appliqués après une pioche de cinq cartes neuves. Chaque drapeau reprend le **prédicat exact** de `startPreparation` — `summon_type` **et** `cost.sacrifice > 0` / `cost.materials.length > 0` : tester le seul `summon_type` déplacerait le mensonge (une Fusion sans matériaux n'est jamais retouchée).
+- ⚠️ **Les deux modificateurs de main se testent sur le DECK, jamais sur la main** : ils sont **différés** au `startPreparation()` suivant, donc appliqués après une pioche de cinq cartes neuves. Chaque drapeau reprend le **prédicat exact** de `startPreparation` (`deckHasMaterialCost` / `deckHasNamedRequirement`) — une carte sans coût, ou sans exigence nommée, n'est jamais retouchée.
 - ⚠️ **`guaranteed_draw` hors deck n'est pas un no-op** : `startPreparation` a un **double repli** et pioche quand même, parfois au-dessus de ce que le round autorise. Le filtre supprime là un effet accidentellement bon, délibérément — la magie **promet un tier qu'elle ne rend pas**.
 - ⚠️ **`board_slot_bonus` est la seule magie qui peut s'appliquer sans erreur et ne rien donner** (`grantLimitedBoardSlotBonus` rend 0 en silence une fois le cap consommé) → `GameState.hasLimitedBoardSlotBonusLeft()`.
 - Les règles servant à la fois le **ciblage** et la **pertinence** n'existent qu'à un endroit : `_defusableFusions`, `_poweredUnits`, `_cataloguedUnits`, `_drawableMaterialIds`, `_boardTierShiftPool`.
@@ -1093,7 +1106,7 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 | `player_hp_bonus` | `value` | `player_hp = min(player_hp + value, 1000)` |
 | `board_slot_bonus` | `value` | `grantLimitedBoardSlotBonus(value \|\| 1)` — **cap partagé +1 sur toute la partie**, pool commun avec l'attribut Yeux Bleus |
 | `draw_bonus` | `value` | `player_extra_draws += (value \|\| 1)` |
-| `guaranteed_draw` | `tier`, `category` | Pousse dans `player_guaranteed_draws` — les **deux filtres sont facultatifs et se cumulent** |
+| `guaranteed_draw` | `tier`, `attribute` | Pousse dans `player_guaranteed_draws` — les **deux filtres sont facultatifs et se cumulent** |
 | `grant_power` | `power_id`, `power_speed`, `value` | Pose (ou **remplace**) le pouvoir, remet la jauge à zéro, lève un blocage en cours |
 | `power_cooldown` | `value` (facteur, déf. 2) | **DIVISE** `power_speed` (plancher 1). Ne cible que les unités **portant** un pouvoir |
 | `damage_multiplier_bonus` | `value` | **Permanent et cumulatif**, s'ajoute au multiplicateur du joueur à chaque fin de combat |
@@ -1108,12 +1121,12 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 | `shift_tier_unit` | `value` | **Remplace** une unité du board par une unité du **deck** au tier voisin, **sur sa case** |
 | `draw_material` | — | Cible une carte de la main, ajoute l'un de ses **matériels**. La source reste en place |
 | `sacrifice_card_hp` | `value` (% des PV, déf. **100**) | **Brûle** une carte de la main et verse ses PV au joueur |
-| `reduce_sacrifice_cost` | `value` (déf. 1) | `player_hand_modifiers` — réduit le coût en sacrifices |
-| `free_transformation` | — | `player_hand_modifiers` — invoque une Transformation sans son monstre cible |
-| `remove_heritage_material` | — | `player_hand_modifiers` — retire le matériel Heritage obligatoire |
-| `remove_fusion_material` | `value` (déf. 1) | `player_hand_modifiers` — retire N matériels d'une **Fusion** |
+| `reduce_materials` | `value` (déf. 1) | `player_hand_modifiers` — baisse le coût de N slots ; les `requires` sont rognées pour tenir dans le nouveau compte |
+| `remove_requirements` | `value` (déf. 1) | `player_hand_modifiers` — retire N exigences **nommées**, le compte de slots inchangé |
 
 Les `player_hand_modifiers` sont consommés **au tour suivant**, dans `startPreparation()`.
+
+⚠️ **Les deux gestes sont ORTHOGONAUX** : `reduce_materials` baisse le prix, `remove_requirements` lève une contrainte. L'ancienne « retire un matériel de Fusion » faisait les deux à la fois — mais seulement parce que le coût d'une fusion **était** la longueur de sa liste de matériaux. Ce couplage n'existe plus, il faut donc choisir lequel des deux une magie porte.
 
 **Trois familles de cibles, et elles s'excluent** — `GameController.chooseMagie` les teste dans l'ordre unité → cimetière → main ; un type reconnu par deux d'entre elles n'atteindrait jamais la troisième branche.
 
@@ -1139,7 +1152,7 @@ Les `player_hand_modifiers` sont consommés **au tour suivant**, dans `startPrep
 - **`draw_material`** — ⚠️ « a des matériels » ne suffit pas : un id peut avoir quitté le catalogue, et un matériel désigné par **attribut** n'est pas une carte. Un matériel nommé par **id** vient du **catalogue** (la carte exacte que la recette exige), un matériel d'**attribut** vient du **deck**. **Double repli** : on tire d'abord parmi les matériels que le joueur n'a **pas** (board, cimetière et main confondus), à défaut parmi tous. Le joueur ne choisit pas lequel (ce serait un second temps de ciblage).
 - **`sacrifice_card_hp`** — ⚠️ la carte est **brûlée**, elle ne va pas au cimetière (sinon le choix avec `hand_to_graveyard` serait sans objet). Les PV lus sont ceux de la **carte** (`stats.hp`). La pertinence exige les **deux** conditions (main non vide *et* `player_hp < PLAYER_HP_CAP`) : une partie **commence** au plafond, la magie n'est donc jamais offerte avant le premier round encaissé.
 - ⚠️ **`value` à 0 vaut TOUJOURS le défaut** (`||`, jamais `??`) : `duplicateCopies` → 1 copie, `tierShift` → +1 tier, pourcentages → 100. `0` est le **défaut du champ** de l'admin, jamais une intention. ⚠️ `MagieOffer` **importe** `tierShift` au lieu de le recopier — offerte sur un décalage et appliquée sur un autre serait le pire des deux mondes.
-- **La copie est prise TELLE QU'ELLE EST**, remises comprises (`_original_sacrifice`, `_removed_materials`, `_free_transformation`) : le joueur duplique la carte que son tooltip annonce, et elle rejoint le même groupe (badge ×N).
+- **La copie est prise TELLE QU'ELLE EST**, remises comprises (`_discounted_from` garde les conditions d'origine) : le joueur duplique la carte que son tooltip annonce, et elle rejoint le même groupe (badge ×N).
 - Un remplacement posé en main est un **objet neuf**, jamais la référence du deck (`canUndoPreparation` compare la main par référence, une retouche muterait le deck).
 - **Rien côté PvP / réseau / HUD** pour les duplications et remplacements : la main ne voyage pas dans `round:board_ready`, le ciblage réutilise les familles existantes, et l'application précède la capture du point de retour.
 
@@ -1603,7 +1616,7 @@ Répond à « pourquoi l'IA n'a pas joué cette fusion ? ». Écran `dev/AiLab.t
 
 Il existe parce que `EnemyAI` **n'émettait rien**, et surtout parce que son `_tryPlace` avait une quinzaine de `return null` **tous indiscernables**. C'est le préalable à des comportements par difficulté : on ne diversifie pas un comportement qu'on ne sait pas constater.
 
-**`_tryPlace` est devenu `_attempt`**, qui rend `{ unit, cell, consumed, option_index }` ou `{ unit: null, reason, detail }`. Motifs (slugs stables) : `board_full`, `duplicate_on_board`, `no_free_cell`, `not_enough_material`, `would_exceed_slots`, `missing_material` (le matériau **nommé**), `material_outranks_result`, `no_transformation_target_id`, `transformation_target_mismatch`, `no_transformation_target`, `all_options_failed`, `unknown_summon_type`.
+**`_tryPlace` est devenu `_attempt`**, qui rend `{ unit, cell, consumed, option_index }` ou `{ unit: null, reason, detail }`. Motifs (slugs stables) : `board_full`, `duplicate_on_board`, `no_free_cell`, `not_enough_material`, `would_exceed_slots`, `missing_material` (le matériau **nommé**), `material_outranks_result`, `all_conditions_failed`.
 
 - ⚠️ **L'observateur est un PARAMÈTRE, jamais un état d'instance** : `drawHand(round, trace)`, `placeFromHand(board, max, graveyard, trace)`, `rearrangeUnits(board, max, trace)` l'appellent en `trace?.(event)` — une fonction nue, donc aucun import neuf et `logic/` ignore qu'un écran l'observe (même geste que `deps.rand`). **Il n'y a pas de `setTrace()`** : une partie réelle ne peut structurellement pas se retrouver tracée par un sink oublié sur l'objet.
 - ⚠️ **Addition de métadonnées, rien d'autre** : aucune condition, aucun ordre, aucune case ne change. La suite passe **sans une seule mise à jour de snapshot**.
@@ -1623,7 +1636,7 @@ Il existe parce que `EnemyAI` **n'émettait rien**, et surtout parce que son `_t
 
 ## TestBench (`?screen=testbench`) et CombatLab (`?screen=combatlab`)
 
-`TestBench` réutilise `Scene3D` + `CombatAnimator3D` directement, sans `GameController` : placement libre pour les deux équipes (pas de règles d'invocation, pas de main, pas de deck), filtre par `summon_type`, suppression au clic droit / appui long, board inspector live, bouton Pause, **sélecteur de terrain manuel** (cases visibles immédiatement, effets appliqués au lancement, bouton ℹ). Pas de tours, pas de PV joueur, pas de multiplicateur.
+`TestBench` réutilise `Scene3D` + `CombatAnimator3D` directement, sans `GameController` : placement libre pour les deux équipes (pas de règles d'invocation, pas de main, pas de deck), filtre par coût d'invocation, suppression au clic droit / appui long, board inspector live, bouton Pause, **sélecteur de terrain manuel** (cases visibles immédiatement, effets appliqués au lancement, bouton ℹ). Pas de tours, pas de PV joueur, pas de multiplicateur.
 
 `CombatLab` déclenche les 14 pouvoirs à la main, en passant par le **vrai** `_apply` de l'animateur.
 

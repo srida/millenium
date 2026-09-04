@@ -257,34 +257,32 @@ export class GameController {
 
     // Mode sélection de matériaux
     if (this.selectedCard && this.session.needsMaterials(this.selectedCard, this.selectedConditionIndex)) {
+      const card = this.selectedCard;
+      const condIdx = this.selectedConditionIndex;
       const idx = this.selectedMaterials.indexOf(unit);
       if (idx !== -1) {
         this.selectedMaterials.splice(idx, 1);
       } else {
-        const candidates = this.session.materialCandidateCells(this.selectedCard, this.selectedMaterials, this.selectedConditionIndex);
-        if (candidates.some(p => p.col === pos.col && p.row === pos.row)) this.selectedMaterials.push(unit);
+        const candidates = this.session.materialCandidateCells(card, this.selectedMaterials, condIdx);
+        if (candidates.some(p => p.col === pos.col && p.row === pos.row)) {
+          // ⚠️ Le tap qui COMPLÈTE la sélection pose directement, sans second
+          // geste : sur une condition à un matériel, la case du matériel EST
+          // celle du résultat, il n'y a donc rien à désigner ensuite. C'était le
+          // geste écrit en dur pour la Transformation ; il vaut maintenant pour
+          // toute condition qui se solde d'une seule unité.
+          const mats = [...this.selectedMaterials, unit];
+          if (this.session.materialsComplete(card, mats, condIdx)
+              && this.session.canSummon(card, pos, mats, condIdx).ok) {
+            this.selectedMaterials = mats;
+            this._tryPlace(card, pos);
+            return;
+          }
+          this.selectedMaterials.push(unit);
+        }
       }
       this._applyHighlights();
       this.sync();
       return;
-    }
-
-    // Une condition à UN SEUL matériau se joue d'un tap sur ce matériau : la
-    // case libérée est celle où le résultat se pose. C'était le geste écrit en
-    // dur pour la Transformation ; il vaut désormais pour toute condition qui
-    // ne consomme qu'une unité, la Transformation n'en étant qu'un cas.
-    if (this.selectedCard && this.session.needsMaterials(this.selectedCard, this.selectedConditionIndex)) {
-      const candidates = this.session.materialCandidateCells(
-        this.selectedCard, this.selectedMaterials, this.selectedConditionIndex);
-      if (unit.isAlive() && candidates.some(p => p.col === pos.col && p.row === pos.row)) {
-        const mats = [...this.selectedMaterials, unit];
-        if (this.session.materialsComplete(this.selectedCard, mats, this.selectedConditionIndex)
-            && this.session.canSummon(this.selectedCard, pos, mats, this.selectedConditionIndex).ok) {
-          this.selectedMaterials = mats;
-          this._tryPlace(this.selectedCard, pos);
-          return;
-        }
-      }
     }
 
     // Désélectionne la carte en main (carte sans matériaux)

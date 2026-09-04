@@ -240,7 +240,66 @@ describe('exceedsBoardSlots — le cimetière ne libère aucune case', () => {
   });
 });
 
-describe('la règle du doublon n’a plus de branche « invocation normale »', () => {
+// Une condition à UN matériel ne consomme qu'une unité : le résultat prend sa
+// case. C'est l'ancienne Transformation, mais énoncée sur le COÛT — elle vaut
+// donc pour n'importe quelle condition à un matériel, sacrifice compris, et
+// quelle que soit la provenance du matériel.
+describe('forcedCell — une condition à UN matériel impose la case de son matériel', () => {
+  const ONE = makeCard({ id: 'BOSS', summon_conditions: [{ materials: 1, requires: ['FODDER'] }] });
+  const FODDER = makeCard({ id: 'FODDER' });
+
+  // Mutation : rendre `null` depuis `forcedCell` (case libre au choix) → ROUGE.
+  it('refuse une case libre ailleurs, alors qu’elle est vide et légale', () => {
+    const board = makeBoard();
+    const fodder = spawn(board, FODDER, 'player', { col: 2, row: 1 });
+
+    expect(can(ONE as any, { col: 0, row: 0 }, board, [], [], [fodder]).ok).toBe(false);
+    expect(can(ONE as any, { col: 2, row: 1 }, board, [], [], [fodder]).ok).toBe(true);
+  });
+
+  // ⚠️ Le chemin de l'IA ne passe PAS par `canSummon` : si la pose ne relisait
+  // pas la même règle, les deux camps ne joueraient pas au même jeu.
+  // Mutation : `board.placeUnit(unit, pos)` sans `forcedCell` → ROUGE.
+  it('la pose ignore la case demandée et reprend celle du matériel', () => {
+    const board = makeBoard();
+    const fodder = spawn(board, FODDER, 'player', { col: 2, row: 1 });
+    const hand = [ONE];
+
+    const unit = summon(ONE as any, { col: 0, row: 0 } as any, board, hand as any, [fodder], 0);
+    expect(unit!.position).toEqual({ col: 2, row: 1 });
+    expect(board.getUnit({ col: 0, row: 0 })).toBeNull();
+  });
+
+  // Un corps neutralisé occupe encore sa case ; `summon` le retire du board
+  // comme les autres, donc le résultat peut s'y poser.
+  // Mutation : ne retirer que les matériaux vivants → ROUGE (placeUnit jette).
+  it('un matériel pris au CIMETIÈRE cède aussi sa case', () => {
+    const board = makeBoard();
+    const dead = spawn(board, FODDER, 'player', { col: 3, row: 2 });
+    dead.is_neutralized = true;
+
+    expect(can(ONE as any, { col: 3, row: 2 }, board, [], [dead], [dead]).ok).toBe(true);
+    const unit = summon(ONE as any, { col: 3, row: 2 } as any, board, [ONE] as any, [dead], 0);
+    expect(unit!.position).toEqual({ col: 3, row: 2 });
+  });
+
+  // Le pendant : au-delà d'un matériel, plus rien n'est imposé — c'est le
+  // joueur qui décide où poser parmi les cases libérées ou vides.
+  // Mutation : imposer la case dès qu'un matériau est sur le board → ROUGE.
+  it('à DEUX matériels, la case redevient au choix', () => {
+    const board = makeBoard();
+    const a = spawn(board, makeCard({ id: 'A' }), 'player', { col: 0, row: 0 });
+    const b = spawn(board, makeCard({ id: 'B' }), 'player', { col: 1, row: 0 });
+    const two = makeCard({ id: 'BOSS2', summon_conditions: [{ materials: 2, requires: ['A', 'B'] }] });
+
+    expect(can(two as any, { col: 4, row: 3 }, board, [], [], [a, b]).ok).toBe(true);
+    expect(can(two as any, { col: 0, row: 0 }, board, [], [], [a, b]).ok).toBe(true);
+  });
+});
+
+// La règle du doublon vaut pour TOUTE carte, sans exception de voie : un
+// exemplaire vivant interdit la pose, et la seule sortie est de le consommer.
+describe('la règle du doublon vaut pour toutes les cartes', () => {
   // ⚠️ Elle tombe de la règle générale : une carte SANS condition n'a aucun
   // matériau à sélectionner, donc le doublon vivant ne peut jamais y figurer,
   // donc elle est refusée. Il n'y a rien d'écrit pour ce cas.
@@ -261,5 +320,21 @@ describe('la règle du doublon n’a plus de branche « invocation normale »', 
 
     expect(can(boss as any, { col: 1, row: 0 }, board, [], [], []).ok).toBe(false);
     expect(can(boss as any, { col: 0, row: 0 }, board, [], [], [twin]).ok).toBe(true);
+  });
+
+  // ⚠️ Le cas que le coût ne masque pas : deux matériels DISPONIBLES, la case
+  // au choix, et pourtant refusé tant que le doublon n'est pas de la fête.
+  // Sans quoi deux exemplaires vivraient — et le log PvP, qui identifie une
+  // unité par `(camp, card_id)`, ne saurait plus les distinguer.
+  // Mutation : garde de doublon retirée → ROUGE.
+  it('payer le coût ailleurs ne dispense pas de manger le doublon', () => {
+    const board = makeBoard();
+    const boss = makeCard({ id: 'BOSS', summon_conditions: [{ materials: 2 }] });
+    const twin = spawn(board, boss, 'player', { col: 0, row: 0 });
+    const a = spawn(board, makeCard({ id: 'A' }), 'player', { col: 1, row: 0 });
+    const b = spawn(board, makeCard({ id: 'B' }), 'player', { col: 2, row: 0 });
+
+    expect(can(boss as any, { col: 3, row: 0 }, board, [], [], [a, b]).ok).toBe(false);
+    expect(can(boss as any, { col: 3, row: 0 }, board, [], [], [twin, a]).ok).toBe(true);
   });
 });

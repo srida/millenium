@@ -2,7 +2,7 @@ import { Unit } from './Unit.js';
 import { tiersForRound, resolveGuaranteedDraws } from './Draw.js';
 import {
   materialLineageMatches, summonConditions, conditionMaterials, conditionRequires,
-  conditionIsFree, summonCost,
+  conditionIsFree, summonCost, forcedCell,
 } from './InvocationManager.js';
 
 const HAND_SIZE = 5;
@@ -414,15 +414,22 @@ function _attemptWith(card, condition, board, maxUnits, graveyard, side) {
 
   const consumedBoard = toConsumeBoard.map(_unitRef);
   const consumedGrave = toConsumeGrave.map(_unitRef);
-  // La case d'un matériau consommé sur le terrain revient au résultat : c'est
-  // l'ancienne Transformation, obtenue sans une ligne qui la nomme.
+  // La case imposée se lit AVANT le retrait : elle vient de la position des
+  // matériaux. Même fonction que le joueur — l'IA ne peut donc pas poser
+  // ailleurs que là où `canSummon` l'y autoriserait.
+  const imposed = forcedCell(condition, [...toConsumeBoard, ...toConsumeGrave], board);
+  // À défaut de case imposée, celle d'un matériau du terrain revient au
+  // résultat plutôt qu'une case neuve : elle vient de se libérer.
   const inherited = toConsumeBoard[0]?.position ? { ...toConsumeBoard[0].position } : null;
-  for (const u of toConsumeBoard) board.removeUnit(u);
+  // Un corps du cimetière occupe encore une case : il part du board comme les
+  // autres, sans quoi le résultat ne pourrait pas s'y poser (et le cadavre
+  // resterait affiché tout le combat).
+  for (const u of [...toConsumeBoard, ...toConsumeGrave]) board.removeUnit(u);
   for (const u of toConsumeGrave) {
     const gi = graveyard.indexOf(u);
     if (gi !== -1) graveyard.splice(gi, 1);
   }
-  const cell = inherited ?? _freeCells(board, side)[0];
+  const cell = imposed ?? inherited ?? _freeCells(board, side)[0];
   if (!cell) return _refused('no_free_cell');
   const unit = _makeUnit(card, side);
   board.placeUnit(unit, cell);

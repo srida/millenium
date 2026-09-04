@@ -174,10 +174,12 @@ function _isPlayableWith(card, condition, board, graveyard, maxSlots) {
     return false;
 
   // Le doublon, s'il existe, est consommable : il compte parmi les matériaux.
-  // Reste à savoir s'il y aura une case — celle d'un matériau du board, ou une
-  // case vide. Un coût satisfait uniquement au cimetière n'en libère aucune.
+  // ⚠️ Un coût satisfait uniquement au cimetière ne libère aucun SLOT (le
+  // cimetière n'en occupe pas), il faut donc que le plafond soit encore ouvert.
   if (living.length >= maxSlots && !available.some(u => living.includes(u))) return false;
-  return hasEmptyPlayerCell(board) || living.length > 0;
+  // Une CASE, en revanche, il y en a toujours une : `summon` retire du board
+  // tous les matériaux consommés, cimetière compris.
+  return true;
 }
 
 /**
@@ -203,10 +205,13 @@ export function hasEmptyPlayerCell(board) {
 /**
  * Les cases où `card` peut être posée compte tenu de la sélection en cours.
  *
- * ⚠️ Les cases des matériaux sélectionnés SUR LE BOARD en font partie : elles
- * seront libres au moment de la pose. C'est cette ligne, et elle seule, qui
- * rend la Transformation (poser sur la case de sa cible) à partir de la règle
- * générale.
+ * ⚠️ Les cases des matériaux sélectionnés en font partie : elles seront libres
+ * au moment de la pose. Cimetière COMPRIS — un corps neutralisé occupe encore
+ * une case, et `summon` le retire du board comme les autres. L'exclure ici
+ * rendait injouable, faute de case, toute condition payée au seul cimetière.
+ *
+ * Sur une condition à un matériel, `canSummon` n'en laissera passer qu'une : la
+ * case de ce matériel.
  */
 export function validCells(card, { board, graveyard, selectedMaterials, playerBoardSlots, conditionIndex = null }) {
   if (needsMaterials(card, conditionIndex)
@@ -216,7 +221,7 @@ export function validCells(card, { board, graveyard, selectedMaterials, playerBo
 
   const freed = new Set(
     selectedMaterials
-      .filter(u => !graveyard.includes(u) && u.position)
+      .filter(u => u.position && board.getUnit(u.position) === u)
       .map(u => `${u.position.col},${u.position.row}`)
   );
 

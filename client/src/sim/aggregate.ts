@@ -48,18 +48,30 @@ export interface Aggregates {
   caveats: string[];
 }
 
+/** Les seuls nombres que l'émission prononce en toutes lettres. */
+const EN_TOUTES_LETTRES = [
+  'zéro', 'un', 'deux', 'trois', 'quatre', 'cinq',
+  'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze',
+];
+
 /**
  * Le nom parlé d'un coût d'invocation. Remplace la table des cinq voies —
  * l'émission dit maintenant « les invocations à deux matériels » là où elle
  * disait « les fusions », ce qui reste vrai quand le catalogue change de
  * vocabulaire.
  *
- * ⚠️ Écrit pour être DIT : pas de chiffre collé à un mot, pas d'abréviation.
+ * ⚠️ Le compte s'écrit EN TOUTES LETTRES. Ce n'est pas une coquetterie : le
+ * script est lu à voix haute, et surtout `show.ts` exige que tout CHIFFRE
+ * prononcé soit passé par l'un de ses formateurs — un coût n'est pas une
+ * mesure, il n'a rien à y faire. En lettres, il n'y a pas de chiffre à
+ * enregistrer, et le contrôle reste entier pour les vraies mesures. Au-delà de
+ * la table, le chiffre revient et le test le signalera : un coût à treize
+ * matériels serait de toute façon la nouvelle à annoncer.
  */
 export function summonCostLabel(cost: number): string {
   if (cost <= 0) return 'invocation sans condition';
   if (cost === 1) return 'invocation à un matériel';
-  return `invocation à ${cost} matériels`;
+  return `invocation à ${EN_TOUTES_LETTRES[cost] ?? cost} matériels`;
 }
 
 /** Sous le seuil, une famille n'est pas rendue : elle ne mesurerait rien. */

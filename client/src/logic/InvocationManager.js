@@ -75,6 +75,31 @@ export function hasMultipleConditions(card) {
 }
 
 /**
+ * La case que la condition IMPOSE au résultat, ou `null` quand le joueur choisit.
+ *
+ * Une condition à UN matériel ne consomme jamais qu'une seule unité (l'invariant
+ * `requires.length <= materials` interdit d'en nommer deux) : le résultat prend
+ * sa case. C'est l'ancienne Transformation — mais énoncée sur le COÛT et non sur
+ * une voie, elle vaut maintenant pour toute condition à un matériel, qu'il vienne
+ * du terrain ou du cimetière.
+ *
+ * ⚠️ SEUL endroit qui répond à « où l'unité se pose ». Trois appelants s'en
+ * servent — la validation, la pose, et l'IA — et c'est ce qui garantit qu'ils ne
+ * peuvent pas se contredire.
+ *
+ * ⚠️ La case est celle que le matériel OCCUPE ENCORE, pas celle que son champ
+ * `position` annonce : une unité retirée du board (corps purgé au lancement du
+ * combat, unité détruite par une magie) garde une position périmée, que
+ * quelqu'un d'autre occupe peut-être déjà. Ce qui n'occupe rien n'impose rien.
+ */
+export function forcedCell(condition, materials, board) {
+  if (conditionMaterials(condition) !== 1) return null;
+  const material = materials?.length === 1 ? materials[0] : null;
+  if (!material?.position || board?.getUnit(material.position) !== material) return null;
+  return { ...material.position };
+}
+
+/**
  * Une invocation ne coûte un slot de board que pour ce qu'elle n'a pas libéré
  * elle-même : les matériaux pris SUR LE BOARD rendent leur case, ceux pris au
  * CIMETIÈRE n'en rendent aucune.
@@ -128,10 +153,14 @@ export function canSummon(card, pos, board, hand, graveyard = [], selectedMateri
 function _canSummonWith(card, condition, pos, board, graveyard, selectedMaterials) {
   const living = board.getLivingUnitsOnSide('player');
 
-  // 1. La case doit être libre, OU occupée par une unité qu'on consomme —
-  //    c'est ce qui permet de reposer le résultat sur la case d'un matériau
-  //    (l'ancienne Transformation, généralisée à toutes les conditions).
-  if (board.isOccupied(pos)) {
+  // 1. Où l'unité se pose. Une condition à UN matériel impose la case de ce
+  //    matériel — le résultat prend sa place. Sinon la case doit être libre, ou
+  //    occupée par une unité qu'on consomme (elle partira avant la pose).
+  const imposed = forcedCell(condition, selectedMaterials, board);
+  if (imposed) {
+    if (pos.col !== imposed.col || pos.row !== imposed.row)
+      return fail('Cette invocation prend la place de son matériel');
+  } else if (board.isOccupied(pos)) {
     const occupant = board.getUnit(pos);
     if (!selectedMaterials.includes(occupant))
       return fail('Case occupée');
@@ -192,14 +221,18 @@ export function summon(card, pos, board, hand, materials = null, handIdx = null,
     ? (materials?.length ? [...materials] : _autoSelectMaterials(card, condition, board, []))
     : [];
 
-  // ⚠️ Les matériaux partent AVANT la pose : `pos` peut être la case de l'un
-  // d'eux (règle 1), et `placeUnit` jette sur une case occupée. C'est aussi ce
-  // qui fait que l'unité produite reprend la case de son matériau sans une
-  // ligne pour le dire — l'ancienne Transformation n'était que ce cas-là.
+  // ⚠️ Les matériaux partent AVANT la pose — ceux du cimetière compris, leur
+  // corps occupant encore une case : `pos` peut être la case de l'un d'eux, et
+  // `placeUnit` jette sur une case occupée.
+  // ⚠️ La case imposée se lit AVANT le retrait : après, le matériel n'occupe
+  // plus rien et n'imposerait plus rien.
+  const cell = forcedCell(condition, consumed, board) ?? pos;
   for (const u of consumed) board.removeUnit(u);
 
   _transferShoppingBonuses(unit, consumed);
-  board.placeUnit(unit, pos);
+  // `canSummon` a déjà refusé toute autre case ; on relit la même règle plutôt
+  // que de faire confiance à `pos`, parce que l'IA invoque sans passer par elle.
+  board.placeUnit(unit, cell);
   return unit;
 }
 
