@@ -84,6 +84,18 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     const user = get().user;
     if (!user) return;
 
+    const pending = p.pending_levels ?? user.pending_levels;
+
+    // ⚠️ Un instantané IDENTIQUE ne réécrit PAS `user`. Ce n'est pas une
+    // économie de rendu : l'identité de `user` est une dépendance d'effet dans
+    // tout le client (`[user, load]` sur les quatre boutons du menu). Un objet
+    // neuf à chaque réponse relançait la lecture, qui réappliquait la
+    // progression, qui rendait un objet neuf — les quatre routes d'instantané
+    // (missions, boutique, cadeaux, arcade) bouclaient sans fin sur le menu
+    // principal. La règle : une valeur inchangée ne produit pas d'état neuf.
+    if (user.level === p.level && user.xp === p.xp && user.gold === p.gold
+      && user.gems === p.gems && user.pending_levels === pending) return;
+
     // Toutes les réponses qui créditent de l'XP passent par ici — partie solo,
     // tournoi, PvP, missions, arcade, cadeaux. C'est donc le seul endroit où
     // brancher l'annonce du niveau, et il n'y en a pas d'autre à tenir à jour.
@@ -100,7 +112,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       user: {
         ...user,
         level: p.level, xp: p.xp, gold: p.gold, gems: p.gems,
-        pending_levels: p.pending_levels ?? user.pending_levels,
+        pending_levels: pending,
       },
       ...(crossed.length ? { levelToasts: [...get().levelToasts, ...crossed] } : {}),
     });

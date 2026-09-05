@@ -163,10 +163,14 @@ function TutorialInvite() {
 function MissionsButton() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
+  // ⚠️ L'ID, jamais l'objet : `user` change d'IDENTITÉ à chaque réponse qui
+  //    porte une progression, et une lecture forcée en dépendance d'un objet
+  //    qu'elle fait elle-même changer boucle sans fin (cf. authStore).
+  const userId = user?.id ?? null;
   const snapshot = useMissionStore(s => s.snapshot);
   const load = useMissionStore(s => s.load);
 
-  useEffect(() => { if (user) void load(true); }, [user, load]);
+  useEffect(() => { if (userId) void load(true); }, [userId, load]);
 
   if (!user) return null;
 
@@ -200,10 +204,14 @@ function MissionsButton() {
 function ArcadeButton() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
+  // ⚠️ L'ID, jamais l'objet : `user` change d'IDENTITÉ à chaque réponse qui
+  //    porte une progression, et une lecture forcée en dépendance d'un objet
+  //    qu'elle fait elle-même changer boucle sans fin (cf. authStore).
+  const userId = user?.id ?? null;
   const snapshot = useArcadeStore(s => s.snapshot);
   const load = useArcadeStore(s => s.load);
 
-  useEffect(() => { if (user) void load(true); }, [user, load]);
+  useEffect(() => { if (userId) void load(true); }, [userId, load]);
 
   if (!user) {
     return (
@@ -239,10 +247,14 @@ function ArcadeButton() {
 function ShopButton() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
+  // ⚠️ L'ID, jamais l'objet : `user` change d'IDENTITÉ à chaque réponse qui
+  //    porte une progression, et une lecture forcée en dépendance d'un objet
+  //    qu'elle fait elle-même changer boucle sans fin (cf. authStore).
+  const userId = user?.id ?? null;
   const snapshot = useShopStore(s => s.snapshot);
   const load = useShopStore(s => s.load);
 
-  useEffect(() => { if (user) void load(true); }, [user, load]);
+  useEffect(() => { if (userId) void load(true); }, [userId, load]);
 
   if (!user) return null;
 
@@ -266,10 +278,14 @@ function ShopButton() {
 function GiftsButton() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
+  // ⚠️ L'ID, jamais l'objet : `user` change d'IDENTITÉ à chaque réponse qui
+  //    porte une progression, et une lecture forcée en dépendance d'un objet
+  //    qu'elle fait elle-même changer boucle sans fin (cf. authStore).
+  const userId = user?.id ?? null;
   const snapshot = useGiftStore(s => s.snapshot);
   const load = useGiftStore(s => s.load);
 
-  useEffect(() => { if (user) void load(true); }, [user, load]);
+  useEffect(() => { if (userId) void load(true); }, [userId, load]);
 
   if (!user) return null;
 

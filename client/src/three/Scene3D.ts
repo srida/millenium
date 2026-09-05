@@ -2529,6 +2529,12 @@ export class Scene3D {
     this._dropletTex?.dispose();
     this._windTex?.dispose();
     this.renderer.dispose();
+    // ⚠️ `dispose()` libère les ressources GPU mais PAS le contexte WebGL :
+    // three ne le rend qu'à la collecte du canvas. Un navigateur en plafonne le
+    // nombre par page (16 chez Chrome) — sans cette ligne, chaque partie jouée
+    // en laissait un vivant, et au bout de quelques lancements la création du
+    // suivant échouait (« Error creating WebGL context »), écran de jeu figé.
+    this.renderer.forceContextLoss();
     this.renderer.domElement.remove();
     this.cssRenderer.domElement.remove();
   }
