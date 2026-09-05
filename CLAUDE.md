@@ -1395,6 +1395,8 @@ MagieDatabase.getAllMagies()                                 // ⚠️ plus de g
 PublicDeckDatabase.getAllDecks() / avatarUrl(id) / difficultyOf(deck) / difficultyLabel(n)
 ```
 
+⚠️ **Une valeur inchangée ne produit pas d'état neuf** : `authStore.applyProgression` **sort sans écrire** quand `level/xp/gold/gems/pending_levels` sont identiques. L'identité de `user` est une dépendance d'effet dans tout le client (les quatre boutons du menu rechargent leur instantané sur `[userId, load]`) — un objet neuf à chaque réponse relançait la lecture qui l'avait produit, et les quatre routes d'instantané bouclaient sans fin sur l'accueil. Corollaire : un effet qui dépend du compte dépend de **`user?.id`**, jamais de l'objet.
+
 **DeckRepository** persiste en `localStorage` (decks + méta couleur/tags/variantes) ; chaque mutation planifie un push serveur debouncé si l'utilisateur est connecté, tout reste local en invité.
 
 ```js
@@ -1484,6 +1486,10 @@ Un seul pont React ↔ Three : `components/board/Board3DCanvas.tsx` monte un `<c
 2. **Une carte CSS3D occupe une case ENTIÈRE et masque tout ce qu'il y a dessous** (`CARD_PX × CSS_SCALE` = 1 unité = 1 case, et le `CSS3DRenderer` rend dans un élément DOM **empilé au-dessus** du canvas WebGL — aucun tampon de profondeur partagé). **Rien de ce qui est dessiné à moins de ~0,5 unité du centre d'une unité n'est visible, quelle que soit sa hauteur `y`** → dômes (rayon 0,9), orbites (0,76), convergences (1,5), sceau de Blocage à `scale: 1.7`.
 
 ⚠️ **Corollaire de blending** : `AdditiveBlending` d'une couleur **sombre** n'enregistre presque rien sur un plateau sombre (les rayons de Provocation en `0xc83020` étaient invisibles). Les traits fins passent par `brighten()` de `PowerVfx.ts`.
+
+⚠️ **Le contexte WebGL se REND à la main** : `renderer.dispose()` libère les ressources GPU mais **pas** le contexte, que three ne lâche qu'à la collecte du canvas. `Scene3D.destroy()` appelle donc `forceContextLoss()` — sans lui, chaque partie jouée en laissait un vivant et, le plafond de l'onglet atteint (16 chez Chrome), la création du suivant échouait : écran de jeu figé, l'erreur seulement en console.
+
+⚠️ **Les deux pannes du rendu 3D sont gardées dans `Board3DCanvas`**, pas ailleurs : la création qui **échoue** (`new Scene3D` dans un `try`) et le contexte **perdu** en cours de partie (`webglcontextlost`). Une exception jetée depuis l'effet de montage remonte au commit React, qui démonte tout l'écran — le jeu se fige sans un mot. L'écouteur se retire **avant** `dispose()` : `forceContextLoss()` émet lui-même l'événement, tout démontage normal afficherait sinon l'écran de panne.
 
 ⚠️ **Corollaire de perf** : `Scene3D._animate` fait du **rendu à la demande** (il saute la frame quand `anims`, `bursts`, `_shake` et `_needsRender` sont vides). Un effet qui doit vivre longtemps se pose **statique** et se retire par un disposer — une animation permanente annulerait cette économie pour tout le combat.
 
