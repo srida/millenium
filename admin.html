@@ -83,7 +83,14 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .detail-header { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 24px; }
 .illustration-box { width: 120px; height: 120px; background: var(--surface2); border: 2px dashed var(--border); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; cursor: pointer; flex-shrink: 0; position: relative; overflow: hidden; }
 .illustration-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
-.illustration-box .illus-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.7); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; opacity: 0; transition: opacity .2s; }
+/* ⚠️ L'encart ROGNE (`overflow: hidden`, exigé par le rayon de l'image) : un
+   bouton qui ne tient pas dans la boîte n'est pas décalé, il DISPARAÎT. C'est
+   ce qui est arrivé en mobile au troisième bouton — « Importer » — le jour où
+   le téléchargement s'est ajouté aux deux existants. D'où le `overflow-y: auto`
+   ici : le filet qui garantit qu'un bouton reste ATTEIGNABLE quoi qu'on ajoute,
+   plutôt que retiré de l'écran sans un mot. */
+.illustration-box .illus-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.7); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 4px; overflow-y: auto; opacity: 0; transition: opacity .2s; }
+.illustration-box .illus-overlay > * { flex-shrink: 0; }
 .illustration-box:hover .illus-overlay { opacity: 1; }
 .illus-text { font-size: 11px; color: var(--muted); text-align: center; }
 
@@ -401,7 +408,18 @@ select.filter:focus { border-color: var(--accent); }
 
   /* Illustration overlay always visible on touch */
   .illustration-box .illus-overlay { opacity: 1; }
-  .illustration-box { width: 90px; height: 90px; }
+
+  /* ⚠️ L'encart est PLUS GRAND en mobile qu'en desktop, ce qui a l'air d'un
+     contresens et n'en est pas : le survol n'existant pas au doigt, l'overlay y
+     est posé en permanence, et il doit donc contenir ses commandes en entier.
+     Or `.btn` y porte la cible tactile de 44 px — trois boutons réclament
+     3×44 + 2×4 + 8 = 148 px. Dans les 90 px d'avant, le troisième (« Importer »)
+     n'était pas décalé : il était ROGNÉ, donc invisible et intapable.
+     Rétrécir les boutons aurait rendu la cible tactile inférieure à 44 px, ce
+     que le projet refuse partout ailleurs — c'est la boîte qui cède. */
+  .illustration-box { width: 156px; height: 156px; }
+  .illustration-box .illus-overlay { gap: 4px; padding: 4px; }
+  .illustration-box .illus-overlay .btn { width: 100%; }
 
   /* Stats */
   #tab-stats .content { padding: 12px !important; }
@@ -525,35 +543,15 @@ select.filter:focus { border-color: var(--accent); }
           <input type="search" id="card-search" class="qbar" data-query="card" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('card')" onkeydown="onQueryKey(event, 'card')">
           <span id="card-count" class="count">0</span>
         </div>
-        <!-- Les filtres ÉCRIVENT dans la barre : ils n'ont pas d'état à eux, ils
-             composent la requête. Un chip allumé ne peut donc pas contredire ce
-             qui est écrit au-dessus, et tout ce qu'ils savent faire se retape à
-             la main (l'inverse n'est pas vrai : la barre va bien plus loin). -->
+        <!-- Les cinq `<select>` d'avant ont été RETIRÉS : la barre dit tout ce
+             qu'ils disaient, en mieux (`cout:0`, `illustration:non`,
+             `attribut:dragon`, `pouvoir:vide`, `recettes>=2`) et l'autocomplétion
+             les propose au fil de la frappe. Les garder aurait fait deux
+             manières de poser la même question, dont une bien plus pauvre — et
+             quatre rangées de commandes dans une barre latérale étroite.
+             Restent les tiers : un tap, le filtre le plus fréquent du fichier.
+             Ils n'ont pas d'état à eux, ils ÉCRIVENT dans la requête. -->
         <div id="filter-tier-chips" style="display:flex;gap:5px;flex-wrap:wrap"></div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <select class="filter" id="filter-summon" onchange="setQueryFacet('card', 'cout', this.value)">
-            <option value="">Tous coûts</option>
-            <option value="0">◈ Sans coût</option>
-            <option value="1">◈1 matériel</option>
-            <option value="2">◈2 matériels</option>
-          </select>
-          <select class="filter" id="filter-illus" onchange="setQueryFacet('card', 'illustration', this.value)">
-            <option value="">Toutes</option>
-            <option value="non">Sans illus.</option>
-            <option value="oui">Avec illus.</option>
-          </select>
-          <select class="filter" id="filter-options" onchange="setQueryFacet('card', 'recettes', this.value, '&gt;=')">
-            <option value="">Toutes recettes</option>
-            <option value="2">🔀 Plusieurs recettes</option>
-          </select>
-          <select class="filter" id="filter-attribute" onchange="setQueryFacet('card', 'attribut', this.value)">
-            <option value="">Tous attributs</option>
-          </select>
-          <select class="filter" id="filter-power" onchange="setQueryFacet('card', 'pouvoir', this.value)">
-            <option value="">Tous pouvoirs</option>
-            <option value="vide">Aucun pouvoir</option>
-          </select>
-        </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-primary btn-sm" onclick="openNewCard()">+ Nouvelle carte</button>
           <button class="btn btn-secondary btn-sm" onclick="openImportModal('cards')">Importer JSON</button>
@@ -1063,17 +1061,8 @@ function toggleQueryFacet(kind, field, value) {
   setQueryText(kind, CQ.toggleFacet(queryText(kind), QUERY_SCHEMAS[kind], field, value));
 }
 
-function setQueryFacet(kind, field, value, op) {
-  if (!CQ) return;
-  setQueryText(kind, CQ.setFacet(queryText(kind), QUERY_SCHEMAS[kind], field, value, op));
-}
-
 function queryFacetOn(kind, field, value) {
   return !!CQ && CQ.hasFacet(queryText(kind), QUERY_SCHEMAS[kind], field, value);
-}
-
-function queryFacetValue(kind, field) {
-  return CQ ? (CQ.readFacet(queryText(kind), QUERY_SCHEMAS[kind], field)[0] ?? '') : '';
 }
 
 // --- Complétion ---------------------------------------------------------
@@ -1227,9 +1216,7 @@ async function init() {
     magie: filterMagies, variant: filterVariants, cardback: filterCardBacks,
     mission: filterMissions, gift: filterGifts, deck: filterPublicDecks, pack: filterPacks,
   });
-  populateAttributeFilter();
   populateTierFilter();
-  populatePowerFilter();
   renderCardList();
   renderAttrList();
   renderPowerList();
@@ -1243,28 +1230,17 @@ async function init() {
   renderCardBackList();
 }
 
-function populateAttributeFilter() {
-  const sel = document.getElementById('filter-attribute');
-  if (!sel) return;
-  const sorted = [...attributes].sort((a, b) => a.name.localeCompare(b.name));
-  sel.innerHTML = '<option value="">Tous attributs</option>' +
-    sorted.map(a => `<option value="${a.id}">${a.icon ? a.icon + ' ' : ''}${a.name}</option>`).join('');
-}
-
-/** Le filtre par tier se DÉRIVE du catalogue d'attributs, comme les deux
- *  voisins : un tier ajouté dans l'onglet Attributs apparaît ici sans qu'on
- *  touche au HTML. Les chips sont rendus par `syncCardFilterControls`, qui les
- *  relit depuis la requête à chaque filtrage. */
+/** Les chips de tier se DÉRIVENT du catalogue d'attributs : un tier ajouté dans
+ *  l'onglet Attributs apparaît ici sans qu'on touche au HTML. Ils sont rendus
+ *  par `syncCardFilterControls`, qui les relit depuis la requête à chaque
+ *  filtrage.
+ *
+ *  ⚠️ Les listes d'attributs et de pouvoirs ne se peuplent plus ici : elles
+ *  vivent dans le SCHÉMA (`attributeOptions` / `powerOptions`), d'où
+ *  l'autocomplétion de la barre les tire. Une seule source, et elle sert la
+ *  frappe au lieu d'un `<select>` de trois cents lignes. */
 function populateTierFilter() {
   syncCardFilterControls();
-}
-
-function populatePowerFilter() {
-  const sel = document.getElementById('filter-power');
-  if (!sel) return;
-  const sorted = [...powers].sort((a, b) => a.name.localeCompare(b.name));
-  sel.innerHTML = '<option value="">Tous pouvoirs</option><option value="vide">Aucun pouvoir</option>' +
-    sorted.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
 }
 
 // ================== API ==================
@@ -1860,18 +1836,6 @@ function syncCardFilterControls() {
       <button type="button" class="qbar-chip ${queryFacetOn('card', 'tier', a.tier) ? 'on' : ''}"
               onclick="toggleQueryFacet('card', 'tier', ${a.tier})"
               title="${esc(a.name)}">T${a.tier}</button>`).join('');
-  }
-  for (const [id, field] of [
-    ['filter-summon', 'cout'], ['filter-illus', 'illustration'],
-    ['filter-options', 'recettes'], ['filter-attribute', 'attribut'], ['filter-power', 'pouvoir'],
-  ]) {
-    const sel = document.getElementById(id);
-    if (!sel) continue;
-    const v = queryFacetValue('card', field);
-    // Une valeur que le `<select>` ne propose pas (`cout>=7` tapé à la main)
-    // le laisse à vide : la barre reste la source de vérité, la commande dit
-    // seulement qu'elle n'a rien à montrer.
-    sel.value = [...sel.options].some(o => o.value === v) ? v : '';
   }
 }
 

@@ -252,6 +252,39 @@ describe('autocomplétion', () => {
     expect(Q.suggest('tier:', 5, withOptions)!.items.length).toBeGreaterThan(1);
   });
 
+  // ⚠️ Sans les mots-clés, la liste n'enseignait que la moitié du langage : on
+  // découvrait `tier:` en tapant, mais rien ne disait qu'un `OU` existait — il
+  // fallait avoir ouvert l'aide. Un langage dont la moitié ne se découvre pas
+  // là où on l'écrit n'est appris par personne.
+  it('propose les connecteurs derrière un terme achevé', () => {
+    const labels = (src: string) => (Q.suggest(src, src.length, schema)?.items ?? []).map((i: any) => i.label);
+    expect(labels('tier:3 ').slice(0, 3)).toEqual(['ET', 'OU', 'NON']);
+    expect(labels('dragon ').slice(0, 3)).toEqual(['ET', 'OU', 'NON']);
+    // Filtrés par ce qui est déjà tapé.
+    expect(labels('tier:3 O')).toContain('OU');
+    expect(labels('tier:3 O')).not.toContain('ET');
+  });
+
+  // ⚠️ `ET` / `OU` n'ont de sens que derrière quelque chose à relier. En tête de
+  // requête, après une parenthèse ouvrante ou après un connecteur, les offrir
+  // produirait une requête que l'analyseur devrait rattraper. `NON` est un
+  // préfixe : il a sa place partout où un terme peut commencer.
+  it('ne propose PAS de connecteur là où il n\'y a rien à relier', () => {
+    const labels = (src: string) => (Q.suggest(src, src.length, schema)?.items ?? []).map((i: any) => i.label);
+    for (const src of ['', '(', 'tier:3 ET ', 'tier:3 OU ']) {
+      expect(labels(src), `« ${src} »`).not.toContain('ET');
+      expect(labels(src), `« ${src} »`).not.toContain('OU');
+      expect(labels(src), `« ${src} »`).toContain('NON');
+    }
+  });
+
+  it('un connecteur choisi s\'insère avec son espace', () => {
+    const s = Q.suggest('tier:3 ', 7, schema)!;
+    expect(Q.applySuggestion('tier:3 ', s, 'OU ')).toEqual({ text: 'tier:3 OU ', caret: 10 });
+    // Et la requête obtenue s'analyse (un connecteur en attente est toléré).
+    expect(Q.filterByQuery(SAMPLE, 'tier:3 OU ', schema).error).toBeNull();
+  });
+
   it('propose les valeurs déclarées par le schéma', () => {
     const withOptions = Q.cardQuerySchema({
       summonCost,
