@@ -594,15 +594,53 @@ export function suggest(src, caret, schema) {
     }
   }
 
-  // Sinon → un nom de champ.
+  // Sinon → un connecteur, puis un nom de champ.
   const wordChunk = at && at.kind === 'word' ? at : null;
   const typed = wordChunk ? fold(wordChunk.text) : '';
-  const items = (schema?.fields ?? [])
-    .filter(f => !typed || fold(f.key).includes(typed) || fold(f.label).includes(typed)
-                 || (f.aliases ?? []).some(a => fold(a).includes(typed)))
-    .map(f => ({ value: `${f.key}:`, label: `${f.key}:`, hint: f.label }));
+  const items = [
+    ...connectorSuggestions(chunks, wordChunk ? idx - 1 : beforeIdx, typed),
+    ...(schema?.fields ?? [])
+      .filter(f => !typed || fold(f.key).includes(typed) || fold(f.label).includes(typed)
+                   || (f.aliases ?? []).some(a => fold(a).includes(typed)))
+      .map(f => ({ value: `${f.key}:`, label: `${f.key}:`, hint: f.label })),
+  ];
   if (!items.length) return null;
   return { kind: 'field', start: wordChunk ? wordChunk.start : pos, end: wordChunk ? wordChunk.end : pos, items };
+}
+
+/**
+ * Les MOTS-CLÉS de la grammaire, proposés comme les champs.
+ *
+ * ⚠️ Sans eux, la liste n'enseignait que la moitié du langage : on découvrait
+ * `tier:` en tapant, mais rien ne disait qu'un `OU` existait — il fallait avoir
+ * lu l'aide. Un langage dont la moitié ne se découvre qu'ailleurs que là où on
+ * l'écrit n'est appris par personne.
+ *
+ * ⚠️ Ils viennent EN TÊTE quand un terme complet précède le curseur : c'est
+ * exactement le moment où relier est le geste suivant, et où un nom de champ ne
+ * ferait qu'un ET de plus — celui que la grammaire pose déjà toute seule.
+ */
+const QUERY_KEYWORDS = [
+  { value: 'ET ', label: 'ET', hint: 'les deux à la fois', join: true },
+  { value: 'OU ', label: 'OU', hint: 'l\'un ou l\'autre', join: true },
+  { value: 'NON ', label: 'NON', hint: 'exclut ce qui suit', join: false },
+];
+
+function connectorSuggestions(chunks, beforeIdx, typed) {
+  const prev = beforeIdx >= 0 ? chunks[beforeIdx] : null;
+  // ⚠️ `ET` / `OU` ne se proposent QUE derrière un terme achevé. Derrière un
+  // opérateur, une parenthèse ouvrante, un autre connecteur — ou en tête de
+  // requête — il n'y a rien à relier, et les offrir produirait une requête que
+  // l'analyseur devrait rattraper. `NON`, lui, est un préfixe : il a sa place
+  // partout où un terme peut commencer.
+  let joinable = false;
+  if (prev && prev.kind !== 'op' && prev.kind !== '(') {
+    joinable = !(prev.kind === 'word' && !prev.quoted
+      && (AND_WORDS.has(fold(prev.text)) || OR_WORDS.has(fold(prev.text)) || NOT_WORDS.has(fold(prev.text))));
+  }
+  return QUERY_KEYWORDS
+    .filter(k => (k.join ? joinable : true))
+    .filter(k => !typed || fold(k.label).startsWith(typed));
 }
 
 function defaultValueHints(field) {
