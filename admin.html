@@ -1539,26 +1539,7 @@ function renderCardDetail() {
   const hasIllus = c._has_illustration;
   const hasPower = c.power && c.power.id;
 
-  let idFieldHtml;
-  if (isNewCard) {
-    const allSets = getSets();
-    const lastSet = localStorage.getItem('lastSet') || '';
-    const curSet = allSets.includes(lastSet) ? lastSet : allSets[0];
-    const nextN = getNextNumForSet(curSet);
-    const initId = `${curSet}_${String(nextN).padStart(3, '0')}`;
-    selectedCard.id = initId;
-    const setOpts = allSets.map(s => `<option value="${s}" ${s === curSet ? 'selected' : ''}>${s}</option>`).join('');
-    idFieldHtml = `
-      <div class="set-picker-row">
-        <select id="f-set" onchange="onSetChange()" style="flex:1;min-width:90px">${setOpts}<option value="__new__">+ Nouveau set…</option></select>
-        <div id="f-set-new-wrap" style="display:none;flex:1"><input id="f-set-new" placeholder="NOM_DU_SET" oninput="syncIdFromSet()" style="width:100%;font-family:monospace;text-transform:uppercase"></div>
-        <span class="set-sep">_</span>
-        <input type="number" id="f-num" min="1" value="${nextN}" oninput="syncIdFromSet()" class="set-num">
-      </div>
-      <input id="f-id" value="${initId}" class="set-result-id" placeholder="CORE_001">`;
-  } else {
-    idFieldHtml = `<input id="f-id" value="${esc(c.id)}" placeholder="CORE_001">`;
-  }
+  const idFieldHtml = isNewCard ? idPickerHtml('card', c.id) : idFieldHtmlFor('card', c.id);
 
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
@@ -2081,14 +2062,193 @@ async function deleteCard() {
   toast('Carte supprimée');
 }
 
-function getSets() {
-  const sets = new Set();
-  for (const c of cards) {
-    const m = c.id.match(/^(.+)_(\d+)$/);
-    if (m) sets.add(m[1]);
+// ================== CHAMP ID — UN SEUL MODÈLE POUR TOUS LES ONGLETS ==================
+//
+// Le champ ID d'une fiche NEUVE est le même partout : un sélecteur de PRÉFIXE
+// (ceux déjà présents dans la collection, plus « + Nouveau préfixe… »), un
+// NUMÉRO pré-rempli au premier libre de ce préfixe, et l'id calculé en dessous.
+// C'est le champ que l'onglet Cartes portait seul ; les dix autres l'ont
+// désormais, par la même fonction — un id n'a plus de règle par onglet.
+//
+// ⚠️ Le numéro se cherche PAR PRÉFIXE, jamais sur les chiffres de fin toutes
+// entrées confondues : sans ancrage, une magie neuve `MAGIE_*` héritait du plus
+// grand numéro des `MAGIC_*`, et les deux séries se poussaient l'une l'autre.
+//
+// ⚠️ Le numéro se cherche au MAX + 1, jamais à `liste.length + 1` : une entrée
+// supprimée au milieu fait retomber `length + 1` sur un id déjà pris, et la
+// création part alors en 409 (c'était le cas des terrains).
+//
+// ⚠️ L'onglet Pouvoirs est la seule EXCEPTION, et elle est de fond : un id de
+// pouvoir est SÉMANTIQUE (`POWER_FREEZE`), lu en dur par `logic/CombatManager`.
+// Un `POWER_015` auto-incrémenté serait un pouvoir que le moteur ignore. Cet
+// onglet garde donc un id libre, avec la liste des ids que le moteur connaît.
+const ID_PICKERS = {
+  card:     { field: 'f-id',   fallback: 'CORE',        remember: 'lastSet', items: () => cards,       sel: () => selectedCard },
+  attr:     { field: 'af-id',  fallback: 'ARCH',        items: () => attributes,  sel: () => selectedAttr },
+  board:    { field: 'bf-id',  fallback: 'BOARD',       items: () => boards,      sel: () => selectedBoard },
+  magie:    { field: 'mf-id',  fallback: 'MAGIE',       items: () => magies,      sel: () => selectedMagie },
+  mission:  { field: 'msf-id', fallback: 'MISSION_A',   items: () => missions,    sel: () => selectedMission },
+  deck:     { field: 'df-id',  fallback: 'PUBLIC_DECK', items: () => publicDecks, sel: () => selectedPublicDeck },
+  pack:     { field: 'pkf-id', fallback: 'SET',         items: () => packs,       sel: () => selectedPack },
+  gift:     { field: 'gf-id',  fallback: 'GIFT',        items: () => gifts,       sel: () => selectedGift },
+  variant:  { field: 'vf-id',  fallback: 'VAR',         items: () => variants,    sel: () => selectedVariant },
+  cardback: { field: 'cbf-id', fallback: 'CARDBACK',    items: () => cardBacks,   sel: () => selectedCardBack },
+};
+
+/** `CORE_001` → `['CORE', '001']`. Le seul découpage d'un id du projet. */
+const ID_SHAPE = /^(.+)_(\d+)$/;
+
+function idPickerMemoryKey(kind) {
+  return ID_PICKERS[kind].remember || `adminIdPrefix:${kind}`;
+}
+
+/** Les préfixes présents dans la collection, avec leur effectif. */
+function idPrefixCounts(kind) {
+  const counts = new Map();
+  for (const it of ID_PICKERS[kind].items()) {
+    const m = String(it?.id || '').match(ID_SHAPE);
+    if (m) counts.set(m[1], (counts.get(m[1]) || 0) + 1);
   }
-  if (sets.size === 0) sets.add('CORE');
-  return [...sets].sort();
+  return counts;
+}
+
+function idPrefixesOf(kind) {
+  const counts = idPrefixCounts(kind);
+  if (!counts.size) return [ID_PICKERS[kind].fallback];
+  return [...counts.keys()].sort();
+}
+
+/** Le préfixe proposé par défaut : le dernier utilisé s'il existe toujours,
+ *  sinon le plus REPRÉSENTÉ — pas le premier alphabétique. Sur les magies,
+ *  `MAGIC` précède `MAGIE` alors que la série vivante est la seconde. */
+function defaultIdPrefix(kind) {
+  const counts = idPrefixCounts(kind);
+  let remembered = null;
+  try { remembered = localStorage.getItem(idPickerMemoryKey(kind)); } catch { /* stockage refusé */ }
+  if (remembered && counts.has(remembered)) return remembered;
+  let best = null, bestN = -1;
+  for (const [p, n] of counts) if (n > bestN) { best = p; bestN = n; }
+  return best || remembered || ID_PICKERS[kind].fallback;
+}
+
+/** Le premier numéro libre POUR CE PRÉFIXE (max + 1). */
+function nextIdNum(kind, prefix) {
+  const re = new RegExp(`^${String(prefix).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_(\\d+)$`);
+  let max = 0;
+  for (const it of ID_PICKERS[kind].items()) {
+    const m = String(it?.id || '').match(re);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  }
+  return max + 1;
+}
+
+/** La largeur du numéro pour ce préfixe : celle des ids existants, 3 au moins.
+ *  Une série écrite en `CARDBACK_000` ne doit pas se poursuivre en `_4`. */
+function idNumWidth(kind, prefix) {
+  const re = new RegExp(`^${String(prefix).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_(\\d+)$`);
+  let w = 3;
+  for (const it of ID_PICKERS[kind].items()) {
+    const m = String(it?.id || '').match(re);
+    if (m) w = Math.max(w, m[1].length);
+  }
+  return w;
+}
+
+function composeId(kind, prefix, num) {
+  return `${prefix}_${String(num).padStart(idNumWidth(kind, prefix), '0')}`;
+}
+
+/** L'id que proposera une fiche neuve. C'est le seul générateur d'id du fichier. */
+function nextIdFor(kind, prefix) {
+  const p = prefix || defaultIdPrefix(kind);
+  return composeId(kind, p, nextIdNum(kind, p));
+}
+
+/** Le champ ID d'une fiche NEUVE.
+ *  ⚠️ `currentId` FAIT FOI et n'est jamais recalculé au rendu : une duplication
+ *  arrive avec son id déjà choisi, et le recalcul l'écrasait — c'est ce qui
+ *  obligeait `duplicateCard()` à ré-injecter son id dans le formulaire après
+ *  coup, puis à le reforcer sur `selectedCard`. */
+function idPickerHtml(kind, currentId) {
+  const cfg = ID_PICKERS[kind];
+  const m = String(currentId || '').match(ID_SHAPE);
+  const prefix = m ? m[1] : defaultIdPrefix(kind);
+  const num = m ? parseInt(m[2], 10) : nextIdNum(kind, prefix);
+  const known = idPrefixesOf(kind);
+  const unknownPrefix = !known.includes(prefix);
+  const opts = known.map(p =>
+    `<option value="${esc(p)}"${!unknownPrefix && p === prefix ? ' selected' : ''}>${esc(p)}</option>`).join('');
+  return `
+    <div class="set-picker-row">
+      <select id="idp-${kind}-prefix" onchange="onIdPrefixChange('${kind}')" style="flex:1;min-width:90px">
+        ${opts}<option value="__new__"${unknownPrefix ? ' selected' : ''}>+ Nouveau préfixe…</option>
+      </select>
+      <div id="idp-${kind}-new-wrap" style="display:${unknownPrefix ? '' : 'none'};flex:1">
+        <input id="idp-${kind}-new" value="${unknownPrefix ? esc(prefix) : ''}" placeholder="PREFIXE"
+               oninput="onIdNewPrefixInput('${kind}')" style="width:100%;font-family:monospace;text-transform:uppercase">
+      </div>
+      <span class="set-sep">_</span>
+      <input type="number" id="idp-${kind}-num" min="1" value="${num}" oninput="syncIdFromPicker('${kind}')" class="set-num">
+    </div>
+    <input id="${cfg.field}" value="${esc(currentId || '')}" class="set-result-id" placeholder="${esc(cfg.fallback)}_001">`;
+}
+
+/** Le champ ID d'une fiche EXISTANTE : l'id nu, modifiable ou non. */
+function idFieldHtmlFor(kind, id, { readonly = false } = {}) {
+  const cfg = ID_PICKERS[kind];
+  return `<input id="${cfg.field}" value="${esc(id || '')}" placeholder="${esc(cfg.fallback)}_001"${readonly ? ' disabled' : ''}>`;
+}
+
+function onIdPrefixChange(kind) {
+  const sel = document.getElementById(`idp-${kind}-prefix`);
+  if (!sel) return;
+  const isNew = sel.value === '__new__';
+  const wrap = document.getElementById(`idp-${kind}-new-wrap`);
+  if (wrap) wrap.style.display = isNew ? '' : 'none';
+  if (isNew) document.getElementById(`idp-${kind}-new`)?.focus();
+  else {
+    const num = document.getElementById(`idp-${kind}-num`);
+    if (num) num.value = nextIdNum(kind, sel.value);
+  }
+  syncIdFromPicker(kind);
+}
+
+/** Saisie d'un préfixe à la main : le numéro suit CE préfixe.
+ *  ⚠️ Le recalcul vit ici et pas dans `syncIdFromPicker`, qui est aussi
+ *  l'`oninput` du numéro — il s'y écraserait à chaque frappe, et le champ ne
+ *  serait plus saisissable. */
+function onIdNewPrefixInput(kind) {
+  const typed = document.getElementById(`idp-${kind}-new`)?.value.trim().toUpperCase() || '';
+  const num = document.getElementById(`idp-${kind}-num`);
+  if (num && typed) num.value = nextIdNum(kind, typed);
+  syncIdFromPicker(kind);
+}
+
+function idPickerPrefix(kind) {
+  const sel = document.getElementById(`idp-${kind}-prefix`);
+  if (!sel) return '';
+  return sel.value === '__new__'
+    ? (document.getElementById(`idp-${kind}-new`)?.value.trim().toUpperCase() || '')
+    : sel.value;
+}
+
+/** Recompose l'id et le REPORTE sur la fiche en cours — le champ affiché et
+ *  l'objet sélectionné ne peuvent donc pas se contredire. */
+function syncIdFromPicker(kind) {
+  const cfg = ID_PICKERS[kind];
+  const prefix = idPickerPrefix(kind);
+  if (!prefix) return;
+  const num = parseInt(document.getElementById(`idp-${kind}-num`)?.value, 10) || 1;
+  const id = composeId(kind, prefix, num);
+  const field = document.getElementById(cfg.field);
+  if (field) field.value = id;
+  const obj = cfg.sel();
+  if (obj) obj.id = id;
+  if (kind === 'card') {
+    const badge = document.getElementById('detail-card-id-display');
+    if (badge) badge.textContent = id;
+  }
+  try { localStorage.setItem(idPickerMemoryKey(kind), prefix); } catch { /* stockage refusé */ }
 }
 
 function getAttrCategories() {
@@ -2117,56 +2277,10 @@ function getAttrCategoryValue() {
     : (sel.value === '__none__' ? '' : sel.value);
 }
 
-function getNextNumForSet(setName) {
-  const escaped = setName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(`^${escaped}_(\\d+)$`);
-  let max = 0;
-  for (const c of cards) {
-    const m = c.id.match(re);
-    if (m) max = Math.max(max, parseInt(m[1]));
-  }
-  return max + 1;
-}
-
-function onSetChange() {
-  const sel = document.getElementById('f-set');
-  const newWrap = document.getElementById('f-set-new-wrap');
-  if (!sel) return;
-  if (sel.value === '__new__') {
-    if (newWrap) newWrap.style.display = '';
-    document.getElementById('f-set-new')?.focus();
-  } else {
-    if (newWrap) newWrap.style.display = 'none';
-    const numInput = document.getElementById('f-num');
-    if (numInput) numInput.value = getNextNumForSet(sel.value);
-  }
-  syncIdFromSet();
-}
-
-function syncIdFromSet() {
-  const sel = document.getElementById('f-set');
-  if (!sel) return;
-  const setName = sel.value === '__new__'
-    ? (document.getElementById('f-set-new')?.value.trim().toUpperCase() || '')
-    : sel.value;
-  const num = parseInt(document.getElementById('f-num')?.value) || 1;
-  const idInput = document.getElementById('f-id');
-  if (idInput && setName) {
-    idInput.value = `${setName}_${String(num).padStart(3, '0')}`;
-    localStorage.setItem('lastSet', setName);
-  }
-}
-
 function openNewCard() {
-  const allSets = getSets();
-  const lastSet = localStorage.getItem('lastSet') || '';
-  const currentSet = allSets.includes(lastSet) ? lastSet : allSets[0];
-  const nextNum = getNextNumForSet(currentSet);
-  const newId = `${currentSet}_${String(nextNum).padStart(3, '0')}`;
-
   const firstTier = tierAttrDefs()[0];
   selectedCard = {
-    id: newId, name: '', type: 'monster', material_value: 1,
+    id: nextIdFor('card'), name: '', type: 'monster', material_value: 1,
     attributes: firstTier ? [firstTier.id] : [], stats: { atk: 10, hp: 100, movement_speed: 10, attack_speed: 10, initiative: 4, range: 1 },
     power: {}, summon_conditions: [], represented_ids: [], _has_illustration: false,
   };
@@ -2203,57 +2317,18 @@ function duplicateCard() {
   if (!selectedCard) return;
   syncCardFromForm();
 
-  // Extrait le préfixe et trouve le prochain numéro disponible pour ce préfixe
-  const idMatch = selectedCard.id.match(/^(.+?)_(\d+)$/);
-  const prefix = idMatch ? idMatch[1] : 'CORE';
-  const padLen  = idMatch ? idMatch[2].length : 3;
-  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const prefixRe = new RegExp(`^${escaped}_(\\d+)$`);
-
-  const nextNum = cards.reduce((max, c) => {
-    const m = c.id.match(prefixRe);
-    return m ? Math.max(max, parseInt(m[1])) : max;
-  }, 0) + 1;
-
-  const newId = `${prefix}_${String(nextNum).padStart(Math.max(padLen, 3), '0')}`;
+  // Le préfixe de la carte dupliquée est CONSERVÉ : une copie reste dans sa
+  // série. Seul le numéro avance, au premier libre de ce préfixe.
+  const prefix = (selectedCard.id.match(ID_SHAPE) || [])[1] || ID_PICKERS.card.fallback;
 
   // Deep-clone de la carte courante, nouvel ID, pas d'illustration
   selectedCard = JSON.parse(JSON.stringify(selectedCard));
-  selectedCard.id = newId;
+  selectedCard.id = nextIdFor('card', prefix);
   selectedCard._has_illustration = false;
 
   isNewCard = true;
   renderCardList();
-  renderCardDetail();
-
-  // renderCardDetail() écrase selectedCard.id via le set-picker auto.
-  // On réinjecte notre ID calculé dans le set picker, puis on sync.
-  const setEl  = document.getElementById('f-set');
-  const numEl  = document.getElementById('f-num');
-  const newWrp = document.getElementById('f-set-new-wrap');
-  if (setEl) {
-    const inList = [...setEl.options].some(o => o.value === prefix);
-    if (inList) {
-      setEl.value = prefix;
-      if (newWrp) newWrp.style.display = 'none';
-    } else {
-      // Le set n'existe pas encore : utilise le champ "nouveau set"
-      setEl.value = '__new__';
-      if (newWrp) newWrp.style.display = '';
-      const newSetEl = document.getElementById('f-set-new');
-      if (newSetEl) newSetEl.value = prefix;
-    }
-    if (numEl) numEl.value = nextNum;
-    syncIdFromSet();   // met à jour f-id
-    // syncIdFromSet ne touche pas selectedCard.id, on le force ici
-    const finalId = document.getElementById('f-id')?.value;
-    if (finalId && selectedCard) {
-      selectedCard.id = finalId;
-      const badge = document.getElementById('detail-card-id-display');
-      if (badge) badge.textContent = finalId;
-    }
-  }
-
+  renderCardDetail();   // le picker part de `selectedCard.id`, rien à ré-injecter
   showDetail();
   toast(`Carte dupliquée — modifie puis clique "Créer la carte"`);
 }
@@ -2502,7 +2577,7 @@ function renderAttrDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="af-id" value="${a.id}"></div>
+      <div class="field"><label>ID</label>${isNewAttr ? idPickerHtml('attr', a.id) : idFieldHtmlFor('attr', a.id)}</div>
       <div class="field"><label>Nom</label><input id="af-name" value="${esc(a.name)}"></div>
       <div class="field"><label>Emoji — repli sans image</label><input id="af-icon" value="${a.icon || ''}"></div>
       <div class="field"><label>Timing</label>
@@ -2808,12 +2883,8 @@ async function deleteAttribute() {
 }
 
 function openNewAttribute() {
-  const nextNum = attributes.reduce((max, a) => {
-    const m = a.id.match(/ARCH_(\d+)/);
-    return m ? Math.max(max, parseInt(m[1])) : max;
-  }, 0) + 1;
   selectedAttr = {
-    id: `ARCH_${String(nextNum).padStart(3, '0')}`,
+    id: nextIdFor('attr'),
     name: '', icon: '', timing: 'start_of_combat', thresholds: [], _has_illustration: false,
   };
   isNewAttr = true;
@@ -3008,7 +3079,16 @@ function renderPowerDetail() {
     </div>
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="pf-id" value="${p.id}"></div>
+      <div class="field">
+        <label>ID</label>
+        <input id="pf-id" value="${esc(p.id)}" placeholder="POWER_…" style="font-family:monospace">
+        ${isNewPower ? `<span style="font-size:11px;color:var(--muted);margin-top:4px">
+          ⚠️ Seul onglet dont l'ID ne s'auto-incrémente pas, et c'est délibéré : un id de pouvoir est
+          <strong>sémantique</strong>, lu en dur par le moteur de combat. Un <code>POWER_015</code> tiré d'un compteur
+          serait un pouvoir que rien n'exécute. Cette fiche ne fait que <em>nommer et illustrer</em> un pouvoir
+          que <code>logic/CombatManager</code> implémente déjà.
+        </span>` : ''}
+      </div>
       <div class="field"><label>Nom</label><input id="pf-name" value="${esc(p.name)}"></div>
       <div class="field"><label>Emoji — repli sans image</label><input id="pf-icon" value="${p.icon || ''}"></div>
     </div>
@@ -3056,7 +3136,7 @@ async function deletePower() {
 }
 
 function openNewPower() {
-  selectedPower = { id: 'POWER_NEW', name: '', description: '', icon: '' };
+  selectedPower = { id: '', name: '', description: '', icon: '' };
   isNewPower = true;
   renderPowerList();
   renderPowerDetail();
@@ -3310,7 +3390,7 @@ function renderMagieDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="mf-id" value="${esc(m.id)}"></div>
+      <div class="field"><label>ID</label>${isNewMagie ? idPickerHtml('magie', m.id) : idFieldHtmlFor('magie', m.id)}</div>
       <div class="field"><label>Nom</label><input id="mf-name" value="${esc(m.name)}"></div>
       <div class="field">
         <label>Rareté</label>
@@ -3776,13 +3856,7 @@ async function deleteMagie() {
 }
 
 function openNewMagie() {
-  let maxNum = 0;
-  for (const m of magies) {
-    const match = m.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  const nextId = `MAGIE_${String(maxNum + 1).padStart(3, '0')}`;
-  selectedMagie = { id: nextId, name: '', rarity: 1, effect: null, _has_illustration: false };
+  selectedMagie = { id: nextIdFor('magie'), name: '', rarity: 1, effect: null, _has_illustration: false };
   isNewMagie = true;
   renderMagieList();
   renderMagieDetail();
@@ -4012,6 +4086,14 @@ function renderVariantDetail() {
       </div>`}
 
     <div class="field">
+      <label>ID</label>
+      ${isNewVariant ? idPickerHtml('variant', v.id) : idFieldHtmlFor('variant', v.id, { readonly: true })}
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">
+        L'illustration est nommée par cet id — il ne se renomme donc pas après coup.
+      </span>
+    </div>
+
+    <div class="field">
       <label>Carte visée</label>
       ${card
         ? `<div style="display:flex;gap:10px;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px">
@@ -4123,12 +4205,7 @@ async function deleteVariant() {
 }
 
 function openNewVariant() {
-  let maxNum = 0;
-  for (const v of variants) {
-    const match = v.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  selectedVariant = { id: `VAR_${String(maxNum + 1).padStart(3, '0')}`, card_id: '', name: '', _has_illustration: false };
+  selectedVariant = { id: nextIdFor('variant'), card_id: '', name: '', _has_illustration: false };
   isNewVariant = true;
   renderVariantList();
   renderVariantDetail();
@@ -4332,6 +4409,14 @@ function renderCardBackDetail() {
       </div>`}
 
     <div class="field">
+      <label>ID</label>
+      ${isNewCardBack ? idPickerHtml('cardback', b.id) : idFieldHtmlFor('cardback', b.id, { readonly: true })}
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">
+        L'illustration est nommée par cet id — il ne se renomme donc pas après coup.
+      </span>
+    </div>
+
+    <div class="field">
       <label>Nom</label>
       <input id="cb-name" value="${esc(b.name || '')}" placeholder="Dos classique">
     </div>
@@ -4409,12 +4494,7 @@ async function deleteCardBack() {
 }
 
 function openNewCardBack() {
-  let maxNum = 0;
-  for (const b of cardBacks) {
-    const match = b.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  selectedCardBack = { id: `CARDBACK_${String(maxNum + 1).padStart(3, '0')}`, name: '', default: false, price_gems: 100, _has_illustration: false };
+  selectedCardBack = { id: nextIdFor('cardback'), name: '', default: false, price_gems: 100, _has_illustration: false };
   isNewCardBack = true;
   renderCardBackList();
   renderCardBackDetail();
@@ -4637,7 +4717,7 @@ function renderMissionDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="msf-id" value="${esc(m.id)}"></div>
+      <div class="field"><label>ID</label>${isNewMission ? idPickerHtml('mission', m.id) : idFieldHtmlFor('mission', m.id)}</div>
       <div class="field"><label>Famille</label><input id="msf-family" value="${esc(m.family || '')}" placeholder="ex. presence, mechanical, synergy, shopping, meta"></div>
       <div class="field">
         <label>Poids de slot (difficulté)</label>
@@ -4798,13 +4878,7 @@ async function deleteMission() {
 }
 
 function openNewMission() {
-  let maxNum = 0;
-  for (const m of missions) {
-    const match = m.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  const nextId = `MISSION_NEW_${String(maxNum + 1).padStart(3, '0')}`;
-  selectedMission = { id: nextId, family: '', slot_weight: 1, label: '', objective: { event: 'match_completed', filters: {}, target: 1, scope: 'cumulative' }, tags: [] };
+  selectedMission = { id: nextIdFor('mission'), family: '', slot_weight: 1, label: '', objective: { event: 'match_completed', filters: {}, target: 1, scope: 'cumulative' }, tags: [] };
   isNewMission = true;
   renderMissionList();
   renderMissionDetail();
@@ -4992,7 +5066,7 @@ function renderGiftDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="gf-id" value="${esc(g.id)}" ${isNewGift ? '' : 'disabled'}></div>
+      <div class="field"><label>ID</label>${isNewGift ? idPickerHtml('gift', g.id) : idFieldHtmlFor('gift', g.id, { readonly: true })}</div>
       <div class="field"><label>Nom (vu par le joueur)</label><input id="gf-name" value="${esc(g.name || '')}"></div>
       <div class="field" style="grid-column:1/-1"><label>Description (optionnelle)</label><input id="gf-description" value="${esc(g.description || '')}" placeholder="ex. Compensation suite à l'interruption du 12 août."></div>
     </div>
@@ -5071,12 +5145,7 @@ async function deleteGift() {
 }
 
 function openNewGift() {
-  let maxNum = 0;
-  for (const g of gifts) {
-    const match = g.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  selectedGift = { id: `GIFT_${String(maxNum + 1).padStart(3, '0')}`, name: '', description: '', contents: [] };
+  selectedGift = { id: nextIdFor('gift'), name: '', description: '', contents: [] };
   giftLots = [{ type: 'gold' }];
   isNewGift = true;
   renderGiftList();
@@ -5208,7 +5277,7 @@ function renderPublicDeckDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="df-id" value="${esc(d.id)}"></div>
+      <div class="field"><label>ID</label>${isNewPublicDeck ? idPickerHtml('deck', d.id) : idFieldHtmlFor('deck', d.id)}</div>
       <div class="field"><label>Nom</label><input id="df-name" value="${esc(d.name)}"></div>
       <div class="field">
         <label>Difficulté (mode Arcade)</label>
@@ -5294,13 +5363,7 @@ async function deletePublicDeck() {
 }
 
 function openNewPublicDeck() {
-  let maxNum = 0;
-  for (const d of publicDecks) {
-    const match = d.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  const nextId = `PUBLIC_DECK_${String(maxNum + 1).padStart(3, '0')}`;
-  selectedPublicDeck = { id: nextId, name: '', difficulty: 1, deck: { "1": [], "2": [], "3": [], "4": [], "5": [] } };
+  selectedPublicDeck = { id: nextIdFor('deck'), name: '', difficulty: 1, deck: { "1": [], "2": [], "3": [], "4": [], "5": [] } };
   isNewPublicDeck = true;
   renderPublicDeckList();
   renderPublicDeckDetail();
@@ -5603,8 +5666,8 @@ function packArchetypes(ids, limit = 3) {
  * chaque re-rendu.
  */
 function _stashPackFormEdits() {
-  if (!selectedPack || !document.getElementById('pf-id')) return;
-  selectedPack.id = document.getElementById('pf-id').value.trim() || selectedPack.id;
+  if (!selectedPack || !document.getElementById('pkf-id')) return;
+  selectedPack.id = document.getElementById('pkf-id').value.trim() || selectedPack.id;
   selectedPack.name = document.getElementById('pf-name').value.trim();
   if (document.getElementById('pf-starter')?.checked) selectedPack.starter = true;
   else delete selectedPack.starter;
@@ -5659,7 +5722,7 @@ function renderPackDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="pf-id" value="${esc(p.id)}"></div>
+      <div class="field"><label>ID</label>${isNewPack ? idPickerHtml('pack', p.id) : idFieldHtmlFor('pack', p.id)}</div>
       <div class="field"><label>Nom</label><input id="pf-name" value="${esc(p.name || '')}"></div>
     </div>
     ${isNewPack ? '' : `<div class="illus-text" style="text-align:left;margin-top:-8px;margin-bottom:8px">
@@ -5720,7 +5783,7 @@ function _collectPackFields() {
   const ids = packCardIds(selectedPack);
   const out = {
     ...selectedPack,
-    id: document.getElementById('pf-id')?.value.trim() || '',
+    id: document.getElementById('pkf-id')?.value.trim() || '',
     name: document.getElementById('pf-name')?.value.trim() || '',
     card_count: ids.length,
     archetypes: packArchetypes(ids),
@@ -5787,12 +5850,7 @@ async function deletePack() {
 }
 
 function openNewPack() {
-  let maxNum = 0;
-  for (const p of packs) {
-    const match = p.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  selectedPack = { id: `SET_${String(maxNum + 1).padStart(3, '0')}`, name: '', cards: [], booster_enabled: true };
+  selectedPack = { id: nextIdFor('pack'), name: '', cards: [], booster_enabled: true };
   isNewPack = true;
   renderPackList();
   renderPackDetail();
@@ -7119,7 +7177,7 @@ function renderBoardDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="bf-id" value="${esc(b.id)}"></div>
+      <div class="field"><label>ID</label>${isNewBoard ? idPickerHtml('board', b.id) : idFieldHtmlFor('board', b.id)}</div>
       <div class="field"><label>Nom</label><input id="bf-name" value="${esc(b.name)}"></div>
     </div>
 
@@ -7296,8 +7354,7 @@ async function deleteBoard() {
 }
 
 function openNewBoard() {
-  const nextNum = String(boards.length + 1).padStart(3, '0');
-  selectedBoard = { id: `BOARD_${nextNum}`, name: '', effects: [], blocked_cells: [], _has_illustration: false, _has_background: false };
+  selectedBoard = { id: nextIdFor('board'), name: '', effects: [], blocked_cells: [], _has_illustration: false, _has_background: false };
   boardEffectsDraft = [];
   isNewBoard = true;
   renderBoardList();
