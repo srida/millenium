@@ -2571,15 +2571,22 @@ function renderThresholdBlock(th, ti) {
 
 const ATTR_EFFECT_STATS = ['atk', 'hp', 'attack_speed', 'movement_speed', 'range', 'initiative', 'power_charge'];
 const ATTR_EFFECT_TRIGGERS = ['on_enemy_neutralized', 'on_ally_neutralized'];
-const ATTR_EFFECT_TARGETS = ['neutralized_ally'];
 
+// ⚠️ Deux champs ont été RETIRÉS d'ici parce que le moteur ne les lit pas, et
+// qu'un formulaire qui propose ce qui n'existe pas est pire qu'un formulaire
+// pauvre — c'est ainsi que six seuils sont restés muets sans que rien le dise :
+//   · `value_per` sur un `shield` — le barème du bouclier est FIXE
+//     (× alliés vivants, toujours), il n'est pas configurable ;
+//   · `target` sur un `revive` — la cible est toujours la première unité
+//     neutralisée, le `<select>` n'avait qu'une option et personne ne la lisait.
+// Les données qui portent encore ces champs sont inoffensives : le moteur les
+// ignore, et le prochain enregistrement les retire.
 function _attrEffectFieldVisibility(type) {
   return {
     showStat: ['stat_bonus', 'stat_modifier'].includes(type),
-    showValuePer: ['stat_bonus', 'shield'].includes(type),
+    showValuePer: type === 'stat_bonus',
     showTrigger: type === 'stat_modifier',
     showMax: ['draw_bonus', 'board_slot_bonus', 'shopping_bonus'].includes(type),
-    showTarget: type === 'revive',
     showHpPercent: type === 'revive',
     // ⚠️ MÊMES champs qu'une magie `guaranteed_draw` : tier + critères. Les deux
     // effets alimentent la même file, un attribut ne doit pas savoir promettre
@@ -2633,18 +2640,20 @@ function renderEffectBlock(ef, ti, ei) {
           <label>Multiplié par (optionnel)</label>
           <select id="ef-${ti}-${ei}-valueper">
             <option value="" ${!ef.value_per ? 'selected' : ''}>— Aucun —</option>
-            ${valuePerOptions.map(id => `<option value="${id}" ${ef.value_per === id ? 'selected' : ''}>${id === 'active_unit' ? 'active_unit (unités alliées vivantes)' : id}</option>`).join('')}
+            ${valuePerOptions.map(id => `<option value="${id}" ${ef.value_per === id ? 'selected' : ''}>${id === 'active_unit' ? 'active_unit — mes alliés vivants' : `${id} — les ennemis qui le portent`}</option>`).join('')}
           </select>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">
+            Deux lectures, et elles ne regardent pas le même camp :
+            <b>active_unit</b> compte les <b>alliés vivants</b> de ce côté-ci
+            (« +2 ATK par allié »), un <b>id d'attribut</b> compte les unités
+            <b>d'en face</b> qui le portent (« +5 ATK par Dragon adverse »).<br>
+            ⚠️ Un multiplicateur qui ne compte rien donne un bonus <b>nul</b> —
+            l'effet est alors muet, sans le dire.
+          </div>
         </div>
         <div class="field" id="ef-${ti}-${ei}-max-field" style="${v.showMax ? '' : 'display:none'}">
           <label>Maximum (optionnel)</label>
           <input id="ef-${ti}-${ei}-max" type="number" min="1" value="${ef.max ?? ''}">
-        </div>
-        <div class="field" id="ef-${ti}-${ei}-target-field" style="${v.showTarget ? '' : 'display:none'}">
-          <label>Cible</label>
-          <select id="ef-${ti}-${ei}-target">
-            ${ATTR_EFFECT_TARGETS.map(t => `<option value="${t}" ${ef.target === t ? 'selected' : ''}>${t}</option>`).join('')}
-          </select>
         </div>
         <div class="field" id="ef-${ti}-${ei}-hppercent-field" style="${v.showHpPercent ? '' : 'display:none'}">
           <label>% PV max</label>
@@ -2674,7 +2683,6 @@ function updateEffectFields(ti, ei) {
   document.getElementById(`ef-${ti}-${ei}-value-field`).style.display = v.showValue ? '' : 'none';
   document.getElementById(`ef-${ti}-${ei}-valueper-field`).style.display = v.showValuePer ? '' : 'none';
   document.getElementById(`ef-${ti}-${ei}-max-field`).style.display = v.showMax ? '' : 'none';
-  document.getElementById(`ef-${ti}-${ei}-target-field`).style.display = v.showTarget ? '' : 'none';
   document.getElementById(`ef-${ti}-${ei}-hppercent-field`).style.display = v.showHpPercent ? '' : 'none';
   document.getElementById(`ef-${ti}-${ei}-tier-field`).style.display = v.showGuaranteed ? '' : 'none';
   // ⚠️ Le bloc de critères est RENDU, pas seulement masqué : il n'existe dans le
@@ -2702,7 +2710,6 @@ function _collectEffectFromFields(ti, ei) {
     const max = document.getElementById(`ef-${ti}-${ei}-max`).value;
     if (max) ef.max = parseInt(max);
   }
-  if (v.showTarget) ef.target = document.getElementById(`ef-${ti}-${ei}-target`).value;
   if (v.showHpPercent) ef.hp_percent = parseInt(document.getElementById(`ef-${ti}-${ei}-hppercent`).value) || 0;
   // ⚠️ Un critère VIDE ne s'écrit pas : l'absence vaut « n'importe lequel », là
   // où un `tier: 0` ou un `attributes: ['']` seraient insatisfiables — la pioche

@@ -16,6 +16,25 @@
 export const VETERANCY_THRESHOLD = 2;
 export const VETERANCY_ATK_PER_POINT = 2;
 export const VETERANCY_HP_PER_POINT = 15;
+
+/**
+ * La sentinelle de `value_per` qui compte les alliés VIVANTS de ce camp-ci,
+ * là où un id d'attribut compte les unités ADVERSES qui le portent.
+ *
+ * ⚠️ `value_per` a donc DEUX lectures, et l'oubli de la seconde a coûté six
+ * effets muets : `active_unit` n'étant l'attribut de personne, le filtre par
+ * attribut rendait 0, donc un bonus nul, donc `ARCH_019` (Démon) et `ARCH_020`
+ * (Archdémon) ne donnaient RIEN à aucun de leurs trois seuils. Le sentinelle
+ * était pourtant proposé — et libellé « unités alliées vivantes » — par l'onglet
+ * Attributs depuis toujours : c'est l'admin qui disait vrai, le moteur qui ne
+ * savait pas le faire.
+ *
+ * ⚠️ Ce n'est PAS un id d'attribut, et rien ne garantit qu'il n'en devienne un :
+ * la sentinelle est testée AVANT le filtre par attribut, un attribut qui
+ * porterait ce nom serait donc masqué. Le préfixe des ids étant `ARCH_`, le cas
+ * ne peut pas se produire par accident.
+ */
+export const ALLY_COUNT_SCALE = 'active_unit';
 export class AttributeManager {
   /**
    * @param {Object[]} attributeList   - raw data from AttributeDatabase
@@ -97,6 +116,23 @@ export class AttributeManager {
     }
   }
 
+  /**
+   * Par quoi le `value` d'un `stat_bonus` est multiplié — cf. `ALLY_COUNT_SCALE`.
+   * Absent : ×1. `active_unit` : les alliés vivants de CE camp. Un id
+   * d'attribut : les unités d'EN FACE qui le portent.
+   *
+   * ⚠️ Le bouclier ne passe PAS par ici, et ce n'est pas un oubli : son barème
+   * est fixe (× alliés vivants, toujours), et `ARCH_066` porte un `shield: 50`
+   * sans `value_per` qui en dépend — le faire tomber à ×1 lui retirerait 200
+   * points de bouclier sur un board plein.
+   */
+  _valueScale(effect, units) {
+    if (!effect.value_per) return 1;
+    if (effect.value_per === ALLY_COUNT_SCALE) return units.filter(u => u.isAlive()).length;
+    const otherUnits = units === this.playerUnits ? this.enemyUnits : this.playerUnits;
+    return otherUnits.filter(u => u.isAlive() && u.attributes.includes(effect.value_per)).length;
+  }
+
   _applyStartForSide(units) {
     const attrIds = new Set(units.flatMap(u => u.attributes));
     for (const attrId of attrIds) {
@@ -108,12 +144,7 @@ export class AttributeManager {
       for (const effect of threshold.effects) {
         switch (effect.type) {
           case 'stat_bonus': {
-            // value_per: scale bonus by the count of enemy units carrying that attribute
-            const otherUnits = units === this.playerUnits ? this.enemyUnits : this.playerUnits;
-            const multiplier = effect.value_per
-              ? otherUnits.filter(u => u.isAlive() && u.attributes.includes(effect.value_per)).length
-              : 1;
-            const bonus = effect.value * multiplier;
+            const bonus = effect.value * this._valueScale(effect, units);
             if (bonus === 0) break;
             for (const u of units.filter(u => u.isAlive() && u.attributes.includes(attrId))) {
               u.applyStatBonus(effect.stat, bonus);
@@ -123,7 +154,9 @@ export class AttributeManager {
           }
 
           case 'shield':
-            // shield value = effect.value * number of active ally units on this side
+            // ⚠️ Barème FIXE : `value` × alliés vivants de ce camp, toujours.
+            // `value_per` n'est pas lu ici (cf. `_valueScale`) — l'échelle du
+            // bouclier n'est pas configurable, elle est la règle du type.
             for (const u of units.filter(u => u.isAlive() && u.attributes.includes(attrId))) {
               const shieldAmount = effect.value * units.filter(x => x.isAlive()).length;
               u.applyShield(shieldAmount);

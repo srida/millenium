@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from 'vitest';
-import { AttributeManager } from '../logic/AttributeManager.js';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { AttributeManager, ALLY_COUNT_SCALE } from '../logic/AttributeManager.js';
 import { guaranteedDrawCriteria } from '../logic/Draw.js';
 import { makeBoard, makeCard, spawn } from './helpers.js';
 
@@ -47,6 +50,38 @@ describe('AttributeManager — comptage des seuils', () => {
     const am = new (AttributeManager as any)(attrs, [hunter], [prey1, prey2]);
     am.applyStartOfCombat();
     expect(hunter.atk).toBe(5 + 3 * 2);
+  });
+
+  // ⚠️ Régression : `value_per: 'active_unit'` est la SECONDE lecture du champ
+  // (les alliés vivants de ce camp), et le moteur ne connaissait que la
+  // première (les ennemis portant l'attribut nommé). La sentinelle n'étant
+  // l'attribut de personne, le filtre rendait 0, le bonus valait 0, et le
+  // `break` sur bonus nul faisait sortir — `ARCH_019` (Démon) et `ARCH_020`
+  // (Archdémon) ne donnaient donc RIEN, à leurs trois seuils chacun.
+  it('value_per active_unit : bonus multiplié par les alliés VIVANTS de ce camp', () => {
+    const attrs = [{
+      id: 'ARCH_HORDE', name: 'Horde', timing: 'start_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'stat_bonus', stat: 'atk', value: 2, value_per: 'active_unit' }] }],
+    }];
+    const board = makeBoard();
+    const [carrier, ally1, ally2] = units(board, [
+      { id: 'CARRIER', attrs: ['ARCH_HORDE'], col: 0, row: 0 },
+      { id: 'ALLY_1', col: 1, row: 0 },
+      { id: 'ALLY_2', col: 2, row: 0 },
+    ]);
+    // Une unité d'en face, pour prouver que la sentinelle ne compte PAS le camp
+    // adverse : sous l'ancienne lecture, ce côté-ci ne pesait rien du tout.
+    const foe = spawn(board, makeCard({ id: 'FOE' }), 'enemy', { col: 0, row: 7 });
+    const am = new (AttributeManager as any)(attrs, [carrier, ally1, ally2], [foe]);
+    am.applyStartOfCombat();
+    expect(carrier.atk).toBe(5 + 2 * 3);
+
+    // Et seuls les VIVANTS comptent — le manager se reconstruit à chaque combat.
+    ally2.is_neutralized = true;
+    const am2 = new (AttributeManager as any)(attrs, [carrier, ally1, ally2], [foe]);
+    for (const u of [carrier, ally1]) u.resetCombatStats();
+    am2.applyStartOfCombat();
+    expect(carrier.atk).toBe(5 + 2 * 2);
   });
 
   it('shield : valeur × alliés vivants', () => {
@@ -269,5 +304,41 @@ describe('AttributeManager — getActiveSynergies', () => {
     expect(syn[0].count).toBe(2);
     expect(syn[0].activeThreshold.count).toBe(1);
     expect(syn[0].nextThreshold.count).toBe(3);
+  });
+});
+
+describe('Catalogue livré — initial-data/attributes.json', () => {
+  const require = createRequire(import.meta.url);
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+  const catalogue: any[] = require(path.join(root, 'initial-data', 'attributes.json'));
+  const ids = new Set(catalogue.map(a => a.id));
+
+  const effects = catalogue.flatMap(a =>
+    (a.thresholds ?? []).flatMap((t: any) =>
+      (t.effects ?? []).map((e: any) => ({ attr: a.id, name: a.name, effect: e }))));
+
+  // ⚠️ LE filet de la classe de bug : un `value_per` qui ne désigne ni la
+  // sentinelle ni un attribut existant ne peut RIEN compter — il rend 0, donc
+  // un bonus nul, donc un effet muet. C'est exactement ce qui est arrivé à
+  // `active_unit` : proposé par l'admin, écrit dans la donnée, jamais reconnu
+  // par le moteur. Un effet mort ne se voit pas à l'écran, et aucun autre test
+  // ne le regarde — il n'y a que la donnée pour le dire.
+  it('chaque value_per désigne la sentinelle ou un attribut existant', () => {
+    const bad = effects
+      .filter(({ effect }) => effect.value_per)
+      .filter(({ effect }) => effect.value_per !== ALLY_COUNT_SCALE && !ids.has(effect.value_per))
+      .map(({ attr, name, effect }) => `${attr} (${name}) → value_per: ${effect.value_per}`);
+    expect(bad).toEqual([]);
+  });
+
+  // Le pendant du précédent, côté effet plutôt que côté échelle : un
+  // `stat_bonus` sans `stat` s'applique sur `undefined`, un `value` absent
+  // multiplie `undefined` — deux façons de plus d'être muet sans le dire.
+  it('chaque stat_bonus / stat_modifier nomme sa stat et sa valeur', () => {
+    const bad = effects
+      .filter(({ effect }) => effect.type === 'stat_bonus' || effect.type === 'stat_modifier')
+      .filter(({ effect }) => !effect.stat || typeof effect.value !== 'number')
+      .map(({ attr, name, effect }) => `${attr} (${name}) → ${JSON.stringify(effect)}`);
+    expect(bad).toEqual([]);
   });
 });
