@@ -135,6 +135,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `GET /admin/sim`, `/api/admin/sim/*` | Site admin | Rapport et historique de la simulation d'équilibrage |
 | `/api/admin/pvp-logs/*` | Site admin | Logs de combat PvP (**outil temporaire**) |
 | `/api/admin/ai-logs/*` | Site admin | Runs du Labo IA |
+| `GET /api/effect-kinds` | Site admin | Le registre des primitives d'effet, servi tel quel à `admin.html` |
 
 ⚠️ `PUT /api/decks/:id` **fusionne** au lieu de remplacer : le formulaire admin poste le deck complet, le DeckBuilder en iframe ne poste que `{ id, name, deck }`. Un remplacement franc effaçait `difficulty`. Corollaire : `_collectPublicDeckFields` reconstruit l'objet de zéro, toute nouvelle donnée de deck doit y être relue.
 ⚠️ `POST /api/sets` et `PUT/DELETE /api/sets/:id` **réalignent le miroir `card.set`**.
@@ -899,7 +900,9 @@ getActiveSynergies(units)                  // → [{ attr, count, activeThreshol
 La réponse **unique** à « quels effets existent » : 29 primitives, **27 magie · 10 attribut · 4 terrain**. Lu par `logic/EffectKinds.ts` (plat, sans connaissance de domaine).
 
 - ⚠️ **C'est du CODE, jamais une donnée de volume** : une primitive que le registre annonce et que le moteur n'implémente pas est exactement le bug d'`active_unit`, à l'envers.
-- ⚠️ **JSON et non TS**, pour qu'il ait **deux lecteurs** : le client l'importe, et le serveur pourra le servir tel quel à `admin.html`, qui ne sait rien importer d'un module TS. C'est ce qui évite le jumeau que `tiers.js`/`Tiers.ts` a coûté.
+- ⚠️ **JSON et non TS**, pour qu'il ait **deux lecteurs** : le client l'importe, et `GET /api/effect-kinds` le sert tel quel à `admin.html`, qui ne sait rien importer d'un module TS. C'est ce qui évite le jumeau que `tiers.js`/`Tiers.ts` a coûté.
+- **Les trois formulaires d'effet de l'admin en sont GÉNÉRÉS** — `<select>`, visibilité des champs et collecte. Trois champs d'admin fantômes ont été retirés au passage (`value_per` sur un `shield`, `target` puis `value` sur un `revive`), et six écritures cohérentes par type d'effet sont devenues une.
+- **Deux libellés, deux questions** : `admin_label` (explicite, pour le `<select>` — c'est là qu'on choisit) et `admin_short` (pastilles et listes). ⚠️ La forme courte est **facultative** et retombe sur la longue : un type neuf sort long, jamais en id brut. `admin_group: "advanced"` le range sous « Effets avancés ».
 - **Une section par DOMAINE** : les trois familles partagent des **noms**, pas des définitions. `stat_bonus` est permanent et désigné par le joueur sur une magie, porté par les unités du seuil sur un attribut, filtré par `target_attributes` sur un terrain.
 - En dérivent : les trois familles de ciblage (`needsUnitTarget`/`GraveyardTarget`/`HandTarget`), la table de pertinence de `MagieOffer` (dont le `default: false` est désormais **structurel**), et les deux générateurs de libellés. **Pas** l'application de l'effet.
 - `params` dit les champs que le type **lit**. ⚠️ Un `params` qui ment est le défaut le plus coûteux du fichier : le formulaire proposerait un champ que le moteur ignore.
@@ -1231,7 +1234,7 @@ N'importe quelle magie peut coûter des **PV du joueur**. Champ de **premier niv
 
 ### Admin (onglet Magies)
 
-⚠️ **Le champ `Valeur` ne veut pas dire la même chose d'un type à l'autre** (copies, décalage de tier signé, pourcentage, facteur de division…) — d'où les notes conditionnelles du formulaire. Le seul invariant : **`0` est le défaut du champ, jamais une intention**. Un type qui ne lit pas de valeur doit rejoindre les **deux** listes `noValue` du fichier (celle du rendu **et** celle de `_collectMagieFields`), sinon un `value: 0` parasite est persisté.
+⚠️ **Le champ `Valeur` ne veut pas dire la même chose d'un type à l'autre** (copies, décalage de tier signé, pourcentage, facteur de division…) — d'où les notes conditionnelles du formulaire, seules choses encore nommées par type. Le seul invariant : **`0` est le défaut du champ, jamais une intention**. Qu'un type lise `value` ou non se déclare dans le **registre** (`params`), et le formulaire l'en déduit — il n'y a plus de liste `noValue` à tenir.
 
 ---
 
