@@ -12,7 +12,7 @@ import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import { computeDeckTags } from '../data/DeckTags.js';
 import { summonCostOf } from '../data/SummonInfo.js';
 import type { Card } from '../logic/types.js';
-import { primaryTier, tiersOf, hasTier } from '../logic/Tiers.js';
+import { primaryTier, tiersOf } from '../logic/Tiers.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
@@ -21,6 +21,8 @@ import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { Button } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
+import QueryBar from '../components/ui/QueryBar.js';
+import * as Query from '../../../card-query.mjs';
 import IllustrationPicker from '../components/deck/IllustrationPicker.js';
 import DeckCoach from '../components/tutorial/DeckCoach.js';
 import { updateProgress } from '../data/tutorialProgress.js';
@@ -33,14 +35,15 @@ const noVariants = () => [];
 // propose déjà. Ce qu'on ne pouvait PAS demander avant et qu'on peut
 // maintenant : « ce que je peux poser sans rien payer », ou « ce qui coûte
 // deux matériels », quel que soit l'archétype.
-const COST_FILTERS: { key: number; label: string }[] = [
+// ⚠️ Le dernier seau porte `>=` et non `:`. Le catalogue monte à 5 matériels :
+// écrit en égalité, « 3+ » manquait les deux cartes les plus chères du jeu —
+// un filtre qui a l'air juste parce que le cas rare est rare.
+const COST_FILTERS: { key: number; label: string; op?: string }[] = [
   { key: 0, label: 'Sans coût' },
   { key: 1, label: '1 matériel' },
   { key: 2, label: '2 matériels' },
-  { key: 3, label: '3+ matériels' },
+  { key: 3, label: '3+ matériels', op: '>=' },
 ];
-/** Le seau de coût d'une carte : au-delà de 3, tout tombe dans le dernier. */
-const costBucket = (card: Card) => Math.min(3, summonCostOf(card));
 const DECK_COLORS = [
   '#d8564e', '#e4c65a', '#7cd88a', '#2f7d4f', '#6fc0e6', '#2f5bd8', '#e08a3a', '#a86ee7', '#e58ab8',
   '#f5f0e6', '#d9c7a3', '#9a9a9a', '#8b5a2b',
@@ -166,16 +169,17 @@ export default function DeckBuilder() {
   const [cardBack, setCardBack] = useState<string | null>(null);
   const [skinning, setSkinning] = useState<Card | null>(null);
   const [tab, setTab] = useState<'lib' | 'deck'>('lib');
-  const [tierFilters, setTierFilters] = useState<number[]>([]);
-  const [costFilters, setCostFilters] = useState<number[]>([]);
-  const [attributeFilter, setAttributeFilter] = useState('');
-  const [search, setSearch] = useState('');
+  // ⚠️ UNE seule source de vérité pour le filtrage : la requête. Les chips
+  // n'ont pas d'état à eux, ils écrivent dedans (`Query.toggleFacet`) et se
+  // relisent depuis elle (`Query.hasFacet`). C'est ce qui interdit
+  // structurellement qu'un chip allumé contredise ce qui est écrit dans la
+  // barre — les quatre `useState` de filtres qu'il remplace, eux, le pouvaient.
+  const [query, setQuery] = useState('');
   const allAttributes = useMemo(() => (AttributeDatabase as any).getAllAttributes()
     .slice().sort((a: any, b: any) => a.name.localeCompare(b.name, 'fr')), []);
   // Les cartes non possédées sont masquées par défaut (la bibliothèque montre ce
   // avec quoi on peut jouer) ; ce chip les révèle, verrouillées et intapables,
   // pour qu'on voie ce qu'il reste à débloquer.
-  const [showLocked, setShowLocked] = useState(false);
 
   // Préchargement en mode édition
   // Decks enregistrés avant la règle d'unicité : on retire les doublons au
@@ -233,14 +237,35 @@ export default function DeckBuilder() {
   const tierOk = [1, 2, 3, 4, 5].every(t => deckData[t].length <= tierMax[t]);
   const valid = name.trim().length > 0 && total >= MIN_DECK && tierOk;
 
-  const filtered = allCards.filter(c => {
-    if (!showLocked && !owns(c.id)) return false;
-    if (tierFilters.length && !tierFilters.some(t => hasTier(c, t))) return false;
-    if (costFilters.length && !costFilters.includes(costBucket(c))) return false;
-    if (attributeFilter && !(c.attributes ?? []).includes(attributeFilter)) return false;
-    if (search.trim() && !c.name.toLowerCase().includes(search.trim().toLowerCase())) return false;
-    return true;
-  });
+  // Le schéma des cartes vient du module PARTAGÉ avec l'admin ; le
+  // DeckBuilder n'y ajoute que ce que l'admin ne connaît pas — la collection du
+  // joueur, qui n'existe pas de l'autre côté.
+  const schema = useMemo(() => {
+    const base = Query.cardQuerySchema({
+      summonCost: summonCostOf,
+      attributeName: (id: string) => {
+        try { return (AttributeDatabase as any).getAttribute(id)?.name ?? id; } catch { return id; }
+      },
+      attributeOptions: () => allAttributes.map((a: any) => ({ value: a.id, label: a.name })),
+      tierOptions: () => [1, 2, 3, 4, 5].map(t => ({ value: String(t), label: String(t) })),
+    });
+    return {
+      ...base,
+      fields: [
+        ...base.fields,
+        { key: 'debloquee', aliases: ['possedee', 'owned'], label: 'Débloquée dans ma collection',
+          type: 'bool', get: (c: Card) => owns(c.id) },
+      ],
+    };
+  }, [allAttributes, owns]);
+
+  // ⚠️ Les cartes verrouillées sont écartées AVANT la requête, sauf quand la
+  // requête parle elle-même de `debloquee` : le chip 🔒 est un `debloquee:non`
+  // comme un autre, et le masquage par défaut ne doit pas le contredire.
+  const asksAboutOwnership = Query.readFacet(query, schema, 'debloquee').length > 0;
+  const pool = asksAboutOwnership ? allCards : allCards.filter(c => owns(c.id));
+  const { items: filtered, error: queryError } = Query.filterByQuery(pool, query, schema) as
+    { items: Card[]; error: string | null };
 
   // Cartes du deck chargé que le joueur ne possède pas (deck bâti avant un
   // changement de collection). Elles sont signalées, PAS supprimées d'office :
@@ -368,11 +393,7 @@ export default function DeckBuilder() {
         <LibraryPanel
           cards={filtered} total={allCards.length} ownedCount={ownedCount}
           deckData={deckData} tierMax={tierMax} owns={owns}
-          showLocked={showLocked} setShowLocked={setShowLocked}
-          search={search} setSearch={setSearch}
-          tierFilters={tierFilters} setTierFilters={setTierFilters}
-          costFilters={costFilters} setCostFilters={setCostFilters}
-          attributeFilter={attributeFilter} setAttributeFilter={setAttributeFilter} allAttributes={allAttributes}
+          query={query} setQuery={setQuery} queryError={queryError} schema={schema}
           onAdd={addCard} onRemove={removeCardById}
         />
       ) : (
@@ -449,44 +470,42 @@ function Chip({ active, onTap, children }: { active: boolean; onTap: () => void;
 }
 
 function LibraryPanel({
-  cards, total, ownedCount, deckData, tierMax, owns, showLocked, setShowLocked, search, setSearch,
-  tierFilters, setTierFilters, costFilters, setCostFilters,
-  attributeFilter, setAttributeFilter, allAttributes, onAdd, onRemove,
+  cards, total, ownedCount, deckData, tierMax, owns, query, setQuery, queryError, schema, onAdd, onRemove,
 }: any) {
+  // Les chips ÉCRIVENT dans la requête et se relisent depuis elle. Tout ce
+  // qu'ils savent faire se retape donc à la main — et l'inverse n'est pas vrai :
+  // la barre va bien plus loin qu'eux (`atk>=30`, `pouvoir:vide`, un OU).
+  const on = (field: string, value: string | number, op = ':') =>
+    Query.hasFacetOp(query, schema, field, value, op);
+  const toggle = (field: string, value: string | number, op = ':') =>
+    setQuery(Query.toggleFacet(query, schema, field, value, { op }));
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="space-y-2 border-b border-line p-3">
-        <input
-          type="search" placeholder="Rechercher une carte…" value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-white placeholder:text-white/30"
+        <QueryBar
+          value={query} onChange={setQuery} schema={schema} error={queryError}
+          placeholder="Rechercher… ex. tier:4 atk>=30"
+          examples={Query.CARD_QUERY_EXAMPLES}
         />
-        <select
-          value={attributeFilter} onChange={(e) => setAttributeFilter(e.target.value)}
-          className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-white"
-        >
-          <option value="">Tous les attributs</option>
-          {allAttributes.map((a: any) => (
-            <option key={a.id} value={a.id}>{a.name}</option>
-          ))}
-        </select>
         <div className="flex flex-wrap gap-1.5">
           {[1, 2, 3, 4, 5].map(t => (
-            <Chip key={t} active={tierFilters.includes(t)}
-              onTap={() => setTierFilters((f: number[]) => f.includes(t) ? f.filter(x => x !== t) : [...f, t])}>
+            <Chip key={t} active={on('tier', t)} onTap={() => toggle('tier', t)}>
               <span className={TIER_TEXT[t]}>T{t}</span>
             </Chip>
           ))}
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {COST_FILTERS.map(({ key, label }) => (
-            <Chip key={key} active={costFilters.includes(key)}
-              onTap={() => setCostFilters((f: number[]) => f.includes(key) ? f.filter(x => x !== key) : [...f, key])}>
-              {label}
-            </Chip>
+          {COST_FILTERS.map(({ key, label, op }) => (
+            <Chip key={key} active={on('cout', key, op)} onTap={() => toggle('cout', key, op)}>{label}</Chip>
           ))}
           {ownedCount < total && (
-            <Chip active={showLocked} onTap={() => setShowLocked((v: boolean) => !v)}>🔒 Verrouillées</Chip>
+            // Le chip « verrouillées » n'est plus un mode d'affichage à part :
+            // c'est un terme de la requête comme les autres, et il se lit dans
+            // la barre. `debloquee:non` montre EXACTEMENT ce qui reste à obtenir
+            // — ce que l'ancien bouton ne savait pas faire, lui qui ajoutait le
+            // verrouillé au possédé sans pouvoir l'isoler.
+            <Chip active={on('debloquee', 'non')} onTap={() => toggle('debloquee', 'non')}>🔒 À débloquer</Chip>
           )}
         </div>
         <div className="text-[11px] text-white/40">

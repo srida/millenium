@@ -105,6 +105,14 @@ export default defineConfig({
   resolve: { dedupe: ['react', 'react-dom'] },
   optimizeDeps: { include: ['react', 'react-dom', 'react/jsx-runtime', 'zustand'] },
   server: {
+    // ⚠️ `card-query.mjs` vit À LA RACINE du dépôt, pas sous `client/` : c'est
+    // le seul fichier que le bundle partage avec `admin.html`, qui n'a pas de
+    // build et ne peut donc rien lire d'ici. Le build s'en accommode tout seul
+    // (rollup suit l'import), mais le SERVEUR DE DÉV refuse par défaut tout
+    // fichier hors de sa racine — et il le refuse en 403, pas en 404 : sans
+    // cette ligne, `npm run build` passe et `npm run client:dev` sert un écran
+    // blanc. Le cas de panne le plus déroutant possible.
+    fs: { allow: ['..'] },
     proxy: {
       '/api': 'http://localhost:3742',
       '/illustrations': 'http://localhost:3742',
