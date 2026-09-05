@@ -19,6 +19,14 @@
     "attribut, et filtré par `target_attributes` sur un terrain. D'où une section par",
     "domaine : ce qui est commun est le nom, et rien d'autre.",
     "",
+    "CHAMPS À LA RACINE D'UN TYPE — la seule présentation que le registre porte, parce qu'il",
+    "est le seul à savoir quels types existent :",
+    "  admin_label — le texte du <select> de l'admin. Explicite, pas court : c'est là qu'on",
+    "                choisit, et le mauvais choix ne se voit qu'en jouant.",
+    "  admin_short — la forme COURTE, pour une pastille ou une ligne de liste. Absente, le",
+    "                libellé long fait office : un type neuf sort long, jamais en id brut.",
+    "  admin_group — \"advanced\" range le type sous « Effets avancés ». Absent = liste de tête.",
+    "",
     "CHAMPS D'UNE SECTION DE DOMAINE :",
     "  target     — la famille de CIBLAGE (magie seule) : unit | graveyard | hand | global.",
     "  relevance  — quand la magie a un effet réel (magie seule). {gt0:<compteur>} |",
@@ -53,6 +61,7 @@
 
   "team_stat_bonus": {
     "admin_label": "Bonus de stat — TOUTES tes unités",
+    "admin_short": "Bonus de stat (équipe)",
     "magie": {
       "target": "global",
       "relevance": { "gt0": "boardUnitCount" },
@@ -99,6 +108,7 @@
 
   "heal": {
     "admin_label": "Soin total (une unité)",
+    "admin_short": "Soin total",
     "magie": {
       "target": "unit",
       "relevance": { "gt0": "boardUnitCount" },
@@ -109,6 +119,7 @@
 
   "team_heal": {
     "admin_label": "Soin de masse — TOUTES tes unités (PV)",
+    "admin_short": "Soin de masse",
     "magie": {
       "target": "global",
       "relevance": { "gt0": "boardUnitCount" },
@@ -119,6 +130,7 @@
 
   "revive": {
     "admin_label": "Réanimation (%HP)",
+    "admin_short": "Réanimation",
     "magie": {
       "target": "graveyard",
       "relevance": { "gt0": "graveyardCount" },
@@ -133,6 +145,7 @@
 
   "draw_bonus": {
     "admin_label": "Pioche supplémentaire",
+    "admin_short": "Pioche",
     "magie": {
       "target": "global",
       "relevance": "always",
@@ -151,6 +164,7 @@
 
   "guaranteed_draw": {
     "admin_label": "Pioche garantie (tier, attributs, cartes)",
+    "admin_short": "Pioche garantie",
     "magie": {
       "target": "global",
       "relevance": { "fn": "guaranteedDraw" },
@@ -165,6 +179,8 @@
 
   "grant_power": {
     "admin_label": "Donner / remplacer le pouvoir d'une unité",
+    "admin_short": "Donner un pouvoir",
+    "admin_group": "advanced",
     "magie": {
       "target": "unit",
       "relevance": { "gt0": "boardUnitCount" },
@@ -175,6 +191,8 @@
 
   "power_cooldown": {
     "admin_label": "Accélérer le pouvoir d'une unité",
+    "admin_short": "Accélérer un pouvoir",
+    "admin_group": "advanced",
     "magie": {
       "target": "unit",
       "relevance": { "gt0": "poweredUnitCount" },
@@ -185,6 +203,7 @@
 
   "damage_multiplier_bonus": {
     "admin_label": "Multiplicateur de dégâts (permanent)",
+    "admin_short": "Multiplicateur de dégâts",
     "magie": {
       "target": "global",
       "relevance": { "flag": "damageMultiplierMatters" },
@@ -210,6 +229,7 @@
 
   "board_slot_bonus": {
     "admin_label": "Slot de board supplémentaire",
+    "admin_short": "Slot de board",
     "magie": {
       "target": "global",
       "relevance": { "flag": "boardSlotBonusAvailable" },
@@ -224,6 +244,7 @@
 
   "shopping_bonus": {
     "admin_label": "Magie supplémentaire à la Phase Shopping",
+    "admin_short": "Magie de Shopping",
     "attribute": {
       "params": ["value", "max"],
       "label": { "fn": "shoppingBonus" }
@@ -232,6 +253,7 @@
 
   "effect_immunity": {
     "admin_label": "Immunité aux effets négatifs (poison, paralysie, push, burn…)",
+    "admin_short": "Immunité aux effets",
     "attribute": {
       "params": [],
       "_label_note": "⚠️ `null` = AUCUN libellé écrit — cf. damage_multiplier_bonus.",
@@ -241,6 +263,8 @@
 
   "defuse_fusion": {
     "admin_label": "Séparer une Fusion en ses matériaux",
+    "admin_short": "Séparer une fusion",
+    "admin_group": "advanced",
     "magie": {
       "target": "unit",
       "relevance": { "gt0": "defusableFusionCount" },
@@ -251,6 +275,8 @@
 
   "destroy_unit": {
     "admin_label": "Détruire une unité alliée",
+    "admin_short": "Détruire une unité",
+    "admin_group": "advanced",
     "magie": {
       "target": "unit",
       "relevance": { "gt0": "boardUnitCount" },
@@ -261,6 +287,8 @@
 
   "drain_life": {
     "admin_label": "Absorber les PV d'une unité alliée",
+    "admin_short": "Absorber les PV d'une unité",
+    "admin_group": "advanced",
     "magie": {
       "target": "unit",
       "relevance": { "gt0": "boardUnitCount" },
@@ -271,6 +299,8 @@
 
   "hand_to_graveyard": {
     "admin_label": "Envoyer une carte de la main au cimetière",
+    "admin_short": "Main → cimetière",
+    "admin_group": "advanced",
     "magie": {
       "target": "hand",
       "relevance": { "gt0": "handCount" },
@@ -281,6 +311,8 @@
 
   "duplicate_unit": {
     "admin_label": "Dupliquer une unité du terrain → sa carte en main",
+    "admin_short": "Dupliquer une unité (→ main)",
+    "admin_group": "advanced",
     "magie": {
       "target": "unit",
       "relevance": { "gt0": "duplicableUnitCount" },
@@ -291,6 +323,8 @@
 
   "duplicate_graveyard_unit": {
     "admin_label": "Dupliquer une unité du cimetière → sa carte en main",
+    "admin_short": "Dupliquer une unité du cimetière (→ main)",
+    "admin_group": "advanced",
     "magie": {
       "target": "graveyard",
       "relevance": { "gt0": "duplicableGraveyardCount" },
@@ -301,6 +335,7 @@
 
   "duplicate_card": {
     "admin_label": "Dupliquer une carte de la main",
+    "admin_group": "advanced",
     "magie": {
       "target": "hand",
       "relevance": { "gt0": "handCount" },
@@ -311,6 +346,8 @@
 
   "shift_tier_card": {
     "admin_label": "Remplacer une carte de la main par une carte du tier voisin",
+    "admin_short": "Remplacer une carte (tier voisin)",
+    "admin_group": "advanced",
     "magie": {
       "target": "hand",
       "relevance": { "fn": "shiftTierCard" },
@@ -321,6 +358,8 @@
 
   "shift_tier_unit": {
     "admin_label": "Remplacer une unité du terrain par une unité du tier voisin",
+    "admin_short": "Remplacer une unité (tier voisin)",
+    "admin_group": "advanced",
     "magie": {
       "target": "unit",
       "relevance": { "fn": "shiftTierUnit" },
@@ -331,6 +370,8 @@
 
   "draw_material": {
     "admin_label": "Piocher un matériel d'invocation d'une carte de la main",
+    "admin_short": "Piocher un matériel",
+    "admin_group": "advanced",
     "magie": {
       "target": "hand",
       "relevance": { "gt0": "materialSourceCount" },
@@ -341,6 +382,8 @@
 
   "sacrifice_card_hp": {
     "admin_label": "Sacrifier une carte de la main → PV du joueur",
+    "admin_short": "Sacrifier une carte → PV joueur",
+    "admin_group": "advanced",
     "magie": {
       "target": "hand",
       "relevance": { "fn": "sacrificeCardHp" },
@@ -351,6 +394,8 @@
 
   "reduce_materials": {
     "admin_label": "Baisser le coût en matériels (main)",
+    "admin_short": "Baisser le coût en matériels",
+    "admin_group": "advanced",
     "magie": {
       "target": "global",
       "relevance": { "fn": "reduceMaterials" },
@@ -361,6 +406,8 @@
 
   "remove_requirements": {
     "admin_label": "Lever des exigences nommées (main)",
+    "admin_short": "Lever des exigences nommées",
+    "admin_group": "advanced",
     "magie": {
       "target": "global",
       "relevance": { "fn": "removeRequirements" },

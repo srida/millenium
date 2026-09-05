@@ -526,6 +526,38 @@ app.use('/api/admin/pvp-logs', requireSiteAdmin, require('./routes/admin-pvplog'
 // que de l'écran de dev.
 app.use('/api/admin/ai-logs', requireSiteAdmin, require('./routes/admin-ailog'));
 
+// Le REGISTRE DES PRIMITIVES D'EFFET, servi tel quel à `admin.html` pour qu'il
+// génère ses trois formulaires d'effet (magie, attribut, terrain).
+//
+// ⚠️ C'est du CODE, pas une donnée de volume : le fichier vit sous
+// `client/src/logic/`, lu par le client à la compilation et par cette route à
+// l'exécution — UN fichier, DEUX lecteurs. Il n'est ni copié dans `DATA_DIR`,
+// ni éditable en admin : une primitive que le registre annonce et que le moteur
+// n'implémente pas est un effet muet, exactement ce que ce registre existe pour
+// empêcher.
+// ⚠️ Garde EXPLICITE comme ses trois voisins : un GET sous /api est public par
+// défaut, et le registre décrit des règles de jeu non publiées.
+// ⚠️ `readJson` n'est pas utilisable ici — il ne lit que sous `DATA_DIR`. Le
+// cache au mtime est repris à l'identique, le fichier ne bougeant qu'au
+// déploiement.
+const EFFECT_KINDS_FILE = path.join(__dirname, 'client', 'src', 'logic', 'effect-kinds.json');
+let _effectKindsCache = null;
+app.get('/api/effect-kinds', requireSiteAdmin, (req, res) => {
+  try {
+    const mtime = fs.statSync(EFFECT_KINDS_FILE).mtimeMs;
+    if (!_effectKindsCache || _effectKindsCache.mtime !== mtime) {
+      _effectKindsCache = { mtime, data: JSON.parse(fs.readFileSync(EFFECT_KINDS_FILE, 'utf8')) };
+    }
+    res.json(_effectKindsCache.data);
+  } catch (err) {
+    // ⚠️ Un 500 FRANC, jamais un objet vide : sans registre l'admin ne peut
+    // proposer aucun type d'effet, et un formulaire vide se lirait comme
+    // « ce jeu n'a pas d'effets » plutôt que comme une panne.
+    console.error('[effect-kinds] lecture impossible :', err.message);
+    res.status(500).json({ error: 'effect_kinds_unavailable' });
+  }
+});
+
 // Protect write operations on /api (reads stay public for the game)
 app.use('/api', (req, res, next) => {
   if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) return requireSiteAdmin(req, res, next);

@@ -520,3 +520,45 @@ describe('POST/PUT /api/magies — contrecoup (cost_hp)', () => {
     expect((await request(h.server).get('/api/magies')).body).toEqual(avant);
   });
 });
+
+// ===========================================================================
+//  GET /api/effect-kinds — le registre servi à admin.html
+// ===========================================================================
+// ⚠️ Le registre est la SEULE source de « quels effets existent », et
+// `admin.html` génère ses trois formulaires depuis cette route. Elle est donc
+// une dépendance dure de l'admin, mais d'un genre particulier : rien ne casse
+// bruyamment si elle tombe — les `<select>` sortent VIDES, ce qui se lit comme
+// « ce jeu n'a pas d'effets » plutôt que comme une panne. D'où ces trois
+// verrous, et le 500 franc côté serveur plutôt qu'un objet vide.
+describe('GET /api/effect-kinds', () => {
+  it('sert le registre, identique au fichier que le client importe', async () => {
+    const rep = await request(h.server).get('/api/effect-kinds').set('Authorization', ADMIN_BASIC);
+    expect(rep.status).toBe(200);
+    // ⚠️ La comparaison porte sur le FICHIER du dépôt, pas sur une copie : c'est
+    // ce qui attrape un déplacement ou un renommage du registre, la seule panne
+    // qui rendrait l'admin muette sans qu'aucun autre test bouge.
+    const fichier = JSON.parse(fs.readFileSync(
+      path.join(__dirname, '..', 'logic', 'effect-kinds.json'), 'utf8'));
+    expect(rep.body).toEqual(fichier);
+  });
+
+  it('est FERMÉ à un anonyme — un GET sous /api est public par défaut', async () => {
+    // Le write-guard global ne couvre que les écritures : sans la garde
+    // explicite de la route, le registre serait lisible de tous.
+    expect((await request(h.server).get('/api/effect-kinds')).status).toBe(401);
+  });
+
+  it('porte de quoi peupler les trois formulaires', async () => {
+    const rep = await request(h.server).get('/api/effect-kinds').set('Authorization', ADMIN_BASIC);
+    const types = Object.keys(rep.body).filter(k => !k.startsWith('$'));
+    // ⚠️ Un domaine VIDE est le mode de panne à attraper : le `<select>`
+    // correspondant n'aurait aucune option, et l'onglet paraîtrait cassé sans
+    // qu'aucune erreur ne soit levée.
+    for (const domaine of ['magie', 'attribute', 'board']) {
+      expect(types.filter(t => rep.body[t][domaine]).length).toBeGreaterThan(0);
+    }
+    // Chaque type doit savoir se nommer dans le `<select>` — un id brut y serait
+    // illisible pour le rédacteur.
+    expect(types.filter(t => !rep.body[t].admin_label)).toEqual([]);
+  });
+});

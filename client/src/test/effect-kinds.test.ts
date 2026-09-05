@@ -24,6 +24,7 @@ import { createRequire } from 'node:module';
 import {
   allKinds, kindsFor, specOf, targetFamily, relevanceRule, paramsOf, renderLabel,
 } from '../logic/EffectKinds.js';
+import registry from '../logic/effect-kinds.json';
 import { effectLabel, needsUnitTarget, needsGraveyardTarget, needsHandTarget } from '../logic/MagieEffect.js';
 import { boardEffectLabel } from '../data/BoardInfo.js';
 import type { MagieOfferContext } from '../logic/MagieOffer.js';
@@ -123,6 +124,31 @@ describe('Registre des primitives — cohérence interne', () => {
         }
       }
     }
+    expect(bad).toEqual([]);
+  });
+
+  // ⚠️ Les trois formulaires d'admin sont GÉNÉRÉS depuis ces champs, et
+  // `admin.html` n'est couverte par aucun test — c'est ici, et nulle part
+  // ailleurs, que leur absence se voit autrement qu'à l'œil.
+  it('chaque type sait se nommer dans le <select> de l\'admin', () => {
+    const raw = registry as unknown as Record<string, { admin_label?: string }>;
+    expect(allKinds().filter(t => !raw[t].admin_label)).toEqual([]);
+  });
+
+  it('admin_group ne prend que la valeur qui range sous « Effets avancés »', () => {
+    // Un groupe mal orthographié ne jette pas : le type retombe dans la liste de
+    // tête, et personne ne s'aperçoit qu'il a changé de place.
+    const raw = registry as unknown as Record<string, { admin_group?: string }>;
+    const bad = allKinds().filter(t => raw[t].admin_group && raw[t].admin_group !== 'advanced');
+    expect(bad).toEqual([]);
+  });
+
+  it('la forme courte, quand elle existe, est plus courte que le libellé', () => {
+    // Sinon elle ne sert à rien et devient un second libellé à tenir à jour.
+    const raw = registry as unknown as Record<string, { admin_label: string; admin_short?: string }>;
+    const bad = allKinds()
+      .filter(t => raw[t].admin_short && raw[t].admin_short!.length >= raw[t].admin_label.length)
+      .map(t => `${t} : « ${raw[t].admin_short} » ≥ « ${raw[t].admin_label} »`);
     expect(bad).toEqual([]);
   });
 

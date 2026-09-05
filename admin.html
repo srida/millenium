@@ -821,6 +821,71 @@ let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false
 let selectionMode = false;
 const bulkSelected = new Set();
 
+// ================== REGISTRE DES PRIMITIVES D'EFFET ==================
+// Le jumeau de `client/src/logic/EffectKinds.ts`, servi par
+// `GET /api/effect-kinds` — le MÊME fichier, pas une recopie. C'est ce qui
+// permet à ce fichier, qui ne sait rien importer d'un module TS, de générer les
+// trois formulaires d'effet sans réécrire ce que le jeu sait déjà.
+//
+// ⚠️ Ce que ce registre remplace, et pourquoi c'est le cœur du lot : les trois
+// éditeurs (magie, attribut, terrain) énuméraient chacun leurs types dans un
+// `<select>` écrit à la main, décidaient de la visibilité de leurs champs dans
+// une table à part, et les relisaient dans une troisième. Un type d'effet
+// coûtait donc six écritures cohérentes, et rien ne les tenait ensemble. Trois
+// champs fantômes s'y étaient déjà glissés (`value_per` sur un `shield`,
+// `target` puis `value` sur un `revive`) — proposés par le formulaire, jamais
+// lus par le moteur.
+let effectKinds = {};
+
+/** Les types d'un domaine, dans l'ordre du registre. */
+function effectKindsFor(domain) {
+  return Object.keys(effectKinds).filter(id => !id.startsWith('$') && effectKinds[id][domain]);
+}
+
+/**
+ * Ce type LIT-IL ce champ, dans ce domaine ?
+ *
+ * ⚠️ LA question du formulaire, et la seule. Un champ proposé que le moteur
+ * n'ouvre pas laisse croire qu'on a réglé quelque chose ; un champ manquant rend
+ * une mécanique inatteignable. Les deux pannes sont muettes.
+ */
+function effectKindReads(type, domain, param) {
+  return !!effectKinds[type]?.[domain]?.params?.includes(param);
+}
+
+/** Le libellé humain d'un type — son `id` brut s'il n'est pas au registre. */
+function effectKindLabel(type) {
+  return effectKinds[type]?.admin_label || type;
+}
+
+/**
+ * La forme COURTE, pour une pastille ou une ligne de liste — là où le libellé
+ * explicite du `<select>` déborderait.
+ *
+ * ⚠️ Repli sur le libellé long, jamais sur l'id : un type ajouté au registre
+ * sans forme courte sort long et lisible, au lieu de montrer `shift_tier_card`
+ * au rédacteur. C'est ce repli qui rend le second champ facultatif, donc
+ * oubliable sans conséquence.
+ */
+function effectKindShort(type) {
+  return effectKinds[type]?.admin_short || effectKindLabel(type);
+}
+
+/**
+ * Les `<option>` d'un domaine. `extra` place un choix en tête (« Aucun »), et
+ * les types marqués `admin_group: "advanced"` sont rassemblés dans un
+ * `<optgroup>` — sur 27 entrées, une liste plate ne se lit plus.
+ */
+function effectKindOptions(domain, selected, extra = null) {
+  const opt = id => `<option value="${id}" ${selected === id ? 'selected' : ''}>${esc(effectKindLabel(id))}</option>`;
+  const ids = effectKindsFor(domain);
+  const plain = ids.filter(id => effectKinds[id].admin_group !== 'advanced');
+  const advanced = ids.filter(id => effectKinds[id].admin_group === 'advanced');
+  const head = extra ? `<option value="${extra.value}" ${selected === extra.value ? 'selected' : ''}>${extra.label}</option>` : '';
+  return head + plain.map(opt).join('')
+    + (advanced.length ? `<optgroup label="Effets avancés">${advanced.map(opt).join('')}</optgroup>` : '');
+}
+
 // ================== INIT ==================
 async function init() {
   [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, cardBacks] = await Promise.all([
@@ -836,6 +901,7 @@ async function init() {
     apiFetch('/api/gifts'),
     apiFetch('/api/card-backs'),
   ]);
+  effectKinds = await apiFetch('/api/effect-kinds');
   populateAttributeFilter();
   populateTierFilter();
   populatePowerFilter();
@@ -2572,27 +2638,31 @@ function renderThresholdBlock(th, ti) {
 const ATTR_EFFECT_STATS = ['atk', 'hp', 'attack_speed', 'movement_speed', 'range', 'initiative', 'power_charge'];
 const ATTR_EFFECT_TRIGGERS = ['on_enemy_neutralized', 'on_ally_neutralized'];
 
-// ⚠️ Deux champs ont été RETIRÉS d'ici parce que le moteur ne les lit pas, et
-// qu'un formulaire qui propose ce qui n'existe pas est pire qu'un formulaire
-// pauvre — c'est ainsi que six seuils sont restés muets sans que rien le dise :
-//   · `value_per` sur un `shield` — le barème du bouclier est FIXE
-//     (× alliés vivants, toujours), il n'est pas configurable ;
-//   · `target` sur un `revive` — la cible est toujours la première unité
-//     neutralisée, le `<select>` n'avait qu'une option et personne ne la lisait.
-// Les données qui portent encore ces champs sont inoffensives : le moteur les
-// ignore, et le prochain enregistrement les retire.
+// ⚠️ La visibilité des champs se LIT dans le registre, elle n'est plus décidée
+// ici. C'est cette table, écrite à la main, qui proposait trois champs que le
+// moteur ne lit pas — `value_per` sur un `shield` (dont le barème est FIXE :
+// × alliés vivants, toujours), `target` puis `value` sur un `revive` (qui ne
+// lit que `hp_percent`). Un formulaire qui propose ce qui n'existe pas est pire
+// qu'un formulaire pauvre : c'est ainsi que six seuils sont restés muets sans
+// que rien le dise. Les données qui portent encore ces champs sont
+// inoffensives — le moteur les ignore, et le prochain enregistrement les retire.
+//
+// ⚠️ `showGuaranteed` se lit sur `card_ids` et non sur `tier` : les deux
+// voyagent ensemble sur `guaranteed_draw`, mais `tier` seul est un critère
+// qu'un autre type pourrait un jour porter sans être une pioche garantie.
 function _attrEffectFieldVisibility(type) {
+  const reads = (p) => effectKindReads(type, 'attribute', p);
   return {
-    showStat: ['stat_bonus', 'stat_modifier'].includes(type),
-    showValuePer: type === 'stat_bonus',
-    showTrigger: type === 'stat_modifier',
-    showMax: ['draw_bonus', 'board_slot_bonus', 'shopping_bonus'].includes(type),
-    showHpPercent: type === 'revive',
+    showStat: reads('stat'),
+    showValuePer: reads('value_per'),
+    showTrigger: reads('trigger'),
+    showMax: reads('max'),
+    showHpPercent: reads('hp_percent'),
     // ⚠️ MÊMES champs qu'une magie `guaranteed_draw` : tier + critères. Les deux
     // effets alimentent la même file, un attribut ne doit pas savoir promettre
     // moins qu'une magie.
-    showGuaranteed: type === 'guaranteed_draw',
-    showValue: !['guaranteed_draw', 'effect_immunity'].includes(type),
+    showGuaranteed: reads('card_ids'),
+    showValue: reads('value'),
   };
 }
 
@@ -2605,16 +2675,7 @@ function renderEffectBlock(ef, ti, ei) {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <div class="field" style="flex:1"><label>Type</label>
           <select id="ef-${ti}-${ei}-type" onchange="updateEffectFields(${ti},${ei})">
-            <option value="stat_bonus" ${type === 'stat_bonus' ? 'selected' : ''}>Bonus de stat</option>
-            <option value="stat_modifier" ${type === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat (sur trigger)</option>
-            <option value="draw_bonus" ${type === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
-            <option value="guaranteed_draw" ${type === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (tier, attributs, cartes)</option>
-            <option value="revive" ${type === 'revive' ? 'selected' : ''}>Réanimation (%HP)</option>
-            <option value="shield" ${type === 'shield' ? 'selected' : ''}>Bouclier</option>
-            <option value="board_slot_bonus" ${type === 'board_slot_bonus' ? 'selected' : ''}>Slot de board supplémentaire</option>
-            <option value="damage_multiplier_bonus" ${type === 'damage_multiplier_bonus' ? 'selected' : ''}>Multiplicateur de dégât supplémentaire (fin de combat)</option>
-            <option value="shopping_bonus" ${type === 'shopping_bonus' ? 'selected' : ''}>Magie supplémentaire à la Phase Shopping</option>
-            <option value="effect_immunity" ${type === 'effect_immunity' ? 'selected' : ''}>Immunité aux effets négatifs (poison, paralysie, push, burn…)</option>
+            ${effectKindOptions('attribute', type)}
           </select>
         </div>
         <button class="btn btn-danger btn-sm" style="margin-top:16px" onclick="removeEffect(${ti},${ei})">×</button>
@@ -3197,35 +3258,6 @@ async function deletePowerIcon() {
 }
 
 // ================== MAGIES ==================
-const EFFECT_TYPE_LABELS = {
-  stat_bonus: 'Bonus de stat',
-  team_stat_bonus: 'Bonus de stat (équipe)',
-  stat_modifier: 'Modificateur de stat',
-  draw_bonus: 'Pioche',
-  revive: 'Réanimation',
-  heal: 'Soin total',
-  team_heal: 'Soin de masse',
-  shield: 'Bouclier',
-  player_hp_bonus: 'Bonus HP joueur',
-  board_slot_bonus: 'Slot de board',
-  guaranteed_draw: 'Pioche garantie',
-  grant_power: 'Donner un pouvoir',
-  power_cooldown: 'Accélérer un pouvoir',
-  damage_multiplier_bonus: 'Multiplicateur de dégâts',
-  defuse_fusion: 'Séparer une fusion',
-  destroy_unit: 'Détruire une unité',
-  drain_life: 'Absorber les PV d\'une unité',
-  hand_to_graveyard: 'Main → cimetière',
-  duplicate_unit: 'Dupliquer une unité (→ main)',
-  duplicate_graveyard_unit: 'Dupliquer une unité du cimetière (→ main)',
-  duplicate_card: 'Dupliquer une carte de la main',
-  shift_tier_card: 'Remplacer une carte (tier voisin)',
-  shift_tier_unit: 'Remplacer une unité (tier voisin)',
-  draw_material: 'Piocher un matériel',
-  sacrifice_card_hp: 'Sacrifier une carte → PV joueur',
-  reduce_materials: 'Baisser le coût en matériels',
-  remove_requirements: 'Lever des exigences nommées',
-};
 
 // Rareté d'une magie : 1 Commune · 2 Rare · 3 Légendaire. Pondère le tirage de
 // la Phase Shopping (client : logic/MagieOffer.ts). ⚠️ FACULTATIVE dans la
@@ -3256,7 +3288,7 @@ function renderMagieList(list = magies) {
         : `<div style="width:40px;height:40px;background:var(--surface2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px">✨</div>`}
       <div style="min-width:0">
         <div class="item-name">${esc(m.name)}${magieRarityBadge(m)}</div>
-        <div class="item-id">${m.id}${m.effect ? ` · ${EFFECT_TYPE_LABELS[m.effect.type] || m.effect.type}` : ''}${m.cost_hp > 0 ? ` · <span style="color:#fca5a5">−${m.cost_hp} PV</span>` : ''}</div>
+        <div class="item-id">${m.id}${m.effect ? ` · ${esc(effectKindShort(m.effect.type))}` : ''}${m.cost_hp > 0 ? ` · <span style="color:#fca5a5">−${m.cost_hp} PV</span>` : ''}</div>
       </div>
     </div>
   `).join('');
@@ -3277,18 +3309,25 @@ function renderMagieDetail() {
   const effect = m.effect || {};
   const effectType = effect.type || 'none';
   const rarity = magieRarity(m);
-  const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(effectType);
-  const showTier = effectType === 'guaranteed_draw';
+  // ⚠️ Un seul lecteur, le registre — c'est lui qui dit quels champs le moteur
+  // lit. La liste `noValue`, écrite ici ET dans `_collectMagieFields`, disparaît
+  // avec : deux énumérations du même fait finissaient par ne plus se
+  // correspondre, et un `value: 0` parasite se persistait en silence.
+  const reads = (p) => effectKindReads(effectType, 'magie', p);
+  const showStat = reads('stat');
   // `guaranteed_draw` porte DEUX filtres facultatifs qui se cumulent : le tier
   // et l'attribut. Les deux remises de main, elles, ne lisent que l'attribut —
   // d'où deux drapeaux et non un seul.
-  const showAttribute = MAGIE_ATTRIBUTE_TYPES.has(effectType);
-  const showPower = effectType === 'grant_power';
+  const showTier = reads('card_ids');
+  const showAttribute = reads('attribute');
+  const showPower = reads('power_id');
+  const showValue = reads('value');
+  // Les trois notes restent nommées par TYPE : ce sont des gloses éditoriales
+  // sur le sens de « Valeur », pas des champs. Le registre dit quels champs
+  // existent, pas ce qu'il faut en penser.
   const showDup = ['duplicate_unit', 'duplicate_graveyard_unit', 'duplicate_card'].includes(effectType);
   const showShift = ['shift_tier_card', 'shift_tier_unit'].includes(effectType);
   const showSacHp = effectType === 'sacrifice_card_hp';
-  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'draw_material'];
-  const showValue = !noValue.includes(effectType);
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
     <div class="detail-header">
@@ -3307,7 +3346,7 @@ function renderMagieDetail() {
         <div class="detail-title">✨ ${esc(m.name)}</div>
         <div class="detail-meta">
           <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(m.id)}</span>
-          ${m.effect ? `<span class="badge badge-power">${EFFECT_TYPE_LABELS[effectType] || effectType}</span>` : ''}
+          ${m.effect ? `<span class="badge badge-power">${esc(effectKindShort(effectType))}</span>` : ''}
           ${magieRarityBadge(m)}
           ${m.cost_hp > 0 ? `<span class="badge" style="background:rgba(239,68,68,.2);color:#fca5a5">−${m.cost_hp} PV</span>` : ''}
           ${hasIllus ? `<span class="badge badge-illus">Illustration ✓</span>` : `<span class="badge badge-no-illus">Sans illustration</span>`}
@@ -3334,36 +3373,7 @@ function renderMagieDetail() {
       <div class="field">
         <label>Type d'effet</label>
         <select id="mf-effect-type" onchange="updateMagieEffectFields()">
-          <option value="none" ${effectType === 'none' ? 'selected' : ''}>Aucun</option>
-          <option value="stat_bonus" ${effectType === 'stat_bonus' ? 'selected' : ''}>Bonus de stat</option>
-          <option value="team_stat_bonus" ${effectType === 'team_stat_bonus' ? 'selected' : ''}>Bonus de stat — TOUTES tes unités</option>
-          <option value="stat_modifier" ${effectType === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat</option>
-          <option value="draw_bonus" ${effectType === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
-          <option value="guaranteed_draw" ${effectType === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (tier, attributs, cartes)</option>
-          <option value="damage_multiplier_bonus" ${effectType === 'damage_multiplier_bonus' ? 'selected' : ''}>Multiplicateur de dégâts (permanent)</option>
-          <option value="heal" ${effectType === 'heal' ? 'selected' : ''}>Soin total (une unité)</option>
-          <option value="team_heal" ${effectType === 'team_heal' ? 'selected' : ''}>Soin de masse — TOUTES tes unités (PV)</option>
-          <option value="revive" ${effectType === 'revive' ? 'selected' : ''}>Réanimation (%HP)</option>
-          <option value="shield" ${effectType === 'shield' ? 'selected' : ''}>Bouclier</option>
-          <option value="player_hp_bonus" ${effectType === 'player_hp_bonus' ? 'selected' : ''}>Bonus HP joueur</option>
-          <option value="board_slot_bonus" ${effectType === 'board_slot_bonus' ? 'selected' : ''}>Slot de board supplémentaire</option>
-          <optgroup label="Effets avancés">
-          <option value="defuse_fusion" ${effectType === 'defuse_fusion' ? 'selected' : ''}>Séparer une Fusion en ses matériaux</option>
-          <option value="destroy_unit" ${effectType === 'destroy_unit' ? 'selected' : ''}>Détruire une unité alliée</option>
-          <option value="drain_life" ${effectType === 'drain_life' ? 'selected' : ''}>Absorber les PV d'une unité alliée</option>
-          <option value="grant_power" ${effectType === 'grant_power' ? 'selected' : ''}>Donner / remplacer le pouvoir d'une unité</option>
-          <option value="power_cooldown" ${effectType === 'power_cooldown' ? 'selected' : ''}>Accélérer le pouvoir d'une unité</option>
-          <option value="hand_to_graveyard" ${effectType === 'hand_to_graveyard' ? 'selected' : ''}>Envoyer une carte de la main au cimetière</option>
-          <option value="duplicate_unit" ${effectType === 'duplicate_unit' ? 'selected' : ''}>Dupliquer une unité du terrain → sa carte en main</option>
-          <option value="duplicate_graveyard_unit" ${effectType === 'duplicate_graveyard_unit' ? 'selected' : ''}>Dupliquer une unité du cimetière → sa carte en main</option>
-          <option value="duplicate_card" ${effectType === 'duplicate_card' ? 'selected' : ''}>Dupliquer une carte de la main</option>
-          <option value="shift_tier_card" ${effectType === 'shift_tier_card' ? 'selected' : ''}>Remplacer une carte de la main par une carte du tier voisin</option>
-          <option value="shift_tier_unit" ${effectType === 'shift_tier_unit' ? 'selected' : ''}>Remplacer une unité du terrain par une unité du tier voisin</option>
-          <option value="draw_material" ${effectType === 'draw_material' ? 'selected' : ''}>Piocher un matériel d'invocation d'une carte de la main</option>
-          <option value="sacrifice_card_hp" ${effectType === 'sacrifice_card_hp' ? 'selected' : ''}>Sacrifier une carte de la main → PV du joueur</option>
-          <option value="reduce_materials" ${effectType === 'reduce_materials' ? 'selected' : ''}>Baisser le coût en matériels (main)</option>
-          <option value="remove_requirements" ${effectType === 'remove_requirements' ? 'selected' : ''}>Lever des exigences nommées (main)</option>
-          </optgroup>
+          ${effectKindOptions('magie', effectType, { value: 'none', label: 'Aucun' })}
         </select>
       </div>
     </div>
@@ -3658,7 +3668,6 @@ function hideGuaranteedDrawDropdown(scope) {
  * carte (ARCH_086…ARCH_090), visables comme n'importe quel archétype. Absent,
  * la remise tombe sur la première carte retouchable.
  */
-const MAGIE_ATTRIBUTE_TYPES = new Set(['reduce_materials', 'remove_requirements']);
 
 function magieAttributeLabel() {
   return "Attribut visé par la remise (facultatif — sinon la première carte retouchable)";
@@ -3666,12 +3675,14 @@ function magieAttributeLabel() {
 
 function updateMagieEffectFields() {
   const type = document.getElementById('mf-effect-type')?.value || 'none';
-  const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(type);
-  const showTier = type === 'guaranteed_draw';
-  const showAttribute = MAGIE_ATTRIBUTE_TYPES.has(type);
-  const showPower = type === 'grant_power';
-  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'draw_material'];
-  const showValue = !noValue.includes(type);
+  // ⚠️ Les MÊMES lectures que `renderMagieDetail`, sur la même source : le
+  // rendu initial et la bascule de type ne peuvent plus se contredire.
+  const reads = (p) => effectKindReads(type, 'magie', p);
+  const showStat = reads('stat');
+  const showTier = reads('card_ids');
+  const showAttribute = reads('attribute');
+  const showPower = reads('power_id');
+  const showValue = reads('value');
   document.getElementById('mf-stat-field').style.display = showStat ? '' : 'none';
   document.getElementById('mf-value-field').style.display = showValue ? '' : 'none';
   document.getElementById('mf-tier-field').style.display = showTier ? '' : 'none';
@@ -3693,10 +3704,14 @@ function updateMagieEffectFields() {
 function _collectMagieFields() {
   const effectType = document.getElementById('mf-effect-type')?.value || 'none';
   let effect = null;
-  const noValue = ['heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'draw_material'];
+  // ⚠️ La TROISIÈME lecture du registre, et la seule qui écrive. Les branches
+  // sont désormais indépendantes (plus de `else if`) : c'est le registre qui
+  // dit lesquelles s'appliquent, un type ne peut donc plus en masquer une autre
+  // par l'ordre du fichier.
+  const reads = (p) => effectKindReads(effectType, 'magie', p);
   if (effectType !== 'none') {
     effect = { type: effectType };
-    if (effectType === 'guaranteed_draw') {
+    if (reads('card_ids')) {
       // ⚠️ TOUS les critères sont facultatifs, et un champ vide ne doit pas être
       // écrit : `isMagieRelevant` traite l'absence comme « pas de contrainte »,
       // là où un `tier: 0` ou un `attributes: ['']` seraient des filtres
@@ -3709,17 +3724,18 @@ function _collectMagieFields() {
       const criteria = guaranteedDrawCriteriaOf(selectedMagie && selectedMagie.effect);
       if (criteria.attributes.length) effect.attributes = criteria.attributes;
       if (criteria.card_ids.length) effect.card_ids = criteria.card_ids;
-    } else if (!noValue.includes(effectType)) {
+    }
+    if (reads('value')) {
       effect.value = parseFloat(document.getElementById('mf-effect-value')?.value) || 0;
     }
-    if (MAGIE_ATTRIBUTE_TYPES.has(effectType)) {
+    if (reads('attribute')) {
       const attribute = document.getElementById('mf-effect-attribute')?.value || '';
       if (attribute) effect.attribute = attribute;
     }
-    if (['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(effectType)) {
+    if (reads('stat')) {
       effect.stat = document.getElementById('mf-effect-stat')?.value || 'atk';
     }
-    if (effectType === 'grant_power') {
+    if (reads('power_id')) {
       effect.power_id = document.getElementById('mf-effect-power')?.value || '';
       // ⚠️ Sans vitesse explicite, l'unité hérite du 9999 d'`Unit` — le défaut
       // de « pas de pouvoir » — et le pouvoir donné ne partirait JAMAIS.
@@ -6955,7 +6971,7 @@ let boardEffectsDraft = [];
 // data/BoardInfo.boardTargetsUnits) : `draw_bonus` crédite le joueur quoi qu'il
 // arrive, lui offrir un ciblage ferait promettre à l'écran ce que le combat ne
 // fait pas.
-const BOARD_EFFECTS_TARGETING = new Set(['stat_bonus', 'stat_modifier', 'shield']);
+const boardEffectTargets = (type) => effectKindReads(type, 'board', 'target_attributes');
 
 /**
  * Les effets d'un terrain, sous leur forme de travail.
@@ -7006,8 +7022,8 @@ function selectBoard(id) {
 /** Une ligne d'effet : son type, ses champs, et les deux ciblages. */
 function _boardEffectHtml(e, i) {
   const type = e.type || 'stat_bonus';
-  const needsStat = type === 'stat_bonus' || type === 'stat_modifier';
-  const targets = BOARD_EFFECTS_TARGETING.has(type);
+  const needsStat = effectKindReads(type, 'board', 'stat');
+  const targets = boardEffectTargets(type);
   const statOpts = [
     ['atk','ATK'],['hp','HP'],['movement_speed','Vitesse mvt'],
     ['attack_speed','Vitesse attaque'],['initiative','Initiative'],['range','Portée'],
@@ -7019,10 +7035,7 @@ function _boardEffectHtml(e, i) {
         <div class="field" style="flex:0 0 190px">
           <label>Effet ${i + 1}</label>
           <select id="bf-eff-${i}-type" onchange="changeBoardEffectType(${i}, this.value)">
-            <option value="stat_bonus"    ${type==='stat_bonus'   ?'selected':''}>Bonus de stat</option>
-            <option value="stat_modifier" ${type==='stat_modifier'?'selected':''}>Modificateur de stat</option>
-            <option value="shield"        ${type==='shield'       ?'selected':''}>Bouclier</option>
-            <option value="draw_bonus"    ${type==='draw_bonus'   ?'selected':''}>Bonus de pioche</option>
+            ${effectKindOptions('board', type)}
           </select>
         </div>
         <div class="field" style="flex:0 0 160px;${needsStat?'':'display:none'}">
@@ -7058,10 +7071,10 @@ function _readBoardEffects() {
     const type = document.getElementById(`bf-eff-${i}-type`)?.value || e.type;
     const raw = document.getElementById(`bf-eff-${i}-value`)?.value;
     const out = { type, value: raw === '' || raw == null ? (e.value ?? 0) : Number(raw) };
-    if (type === 'stat_bonus' || type === 'stat_modifier') {
+    if (effectKindReads(type, 'board', 'stat')) {
       out.stat = document.getElementById(`bf-eff-${i}-stat`)?.value || e.stat || 'atk';
     }
-    if (BOARD_EFFECTS_TARGETING.has(type)) {
+    if (boardEffectTargets(type)) {
       const attrsEl = document.getElementById(`bf-eff-${i}-attrs`);
       out.target_attributes = attrsEl
         ? [...attrsEl.querySelectorAll('.attr-chip')].map(el => el.dataset.aid)
@@ -7097,7 +7110,7 @@ function changeBoardEffectType(i, type) {
   // d'archétypes choisie à la main en passant de « bonus de stat » à
   // « bouclier » serait une punition sans raison — les deux visent les mêmes
   // unités. Un type qui ne cible personne, lui, ne garde rien.
-  boardEffectsDraft[i] = BOARD_EFFECTS_TARGETING.has(type)
+  boardEffectsDraft[i] = boardEffectTargets(type)
     ? { type, value: prev.value ?? 0, stat: prev.stat || 'atk', target_attributes: prev.target_attributes || [] }
     : { type, value: prev.value ?? 0 };
   renderBoardDetail();
