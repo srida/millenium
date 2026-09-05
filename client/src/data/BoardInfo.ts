@@ -13,6 +13,7 @@
 import { statLabel } from './StatLabels.js';
 import { guaranteedDrawLabel } from './DrawInfo.js';
 import { hasGuaranteedDrawCriteria } from '../logic/Draw.js';
+import { specIn, renderLabel } from '../logic/EffectKinds.js';
 import type { AttributeEffect, BoardEffectDef } from '../logic/types.js';
 
 /**
@@ -66,30 +67,39 @@ export function boardEffectLabel(
   if (!effect?.type) return 'Aucun effet';
   const targetAttrs = (effect as BoardEffectDef).target_attributes;
   const targets = attributeNames && targetAttrs?.length ? ` (${attributeNames(targetAttrs)})` : '';
-  switch (effect.type) {
-    case 'stat_bonus':        return `+${effect.value} ${statLabel(effect.stat as string)}${targets}`;
-    case 'stat_modifier':     return `×${effect.value} ${statLabel(effect.stat as string)}${targets}`;
-    case 'shield':            return `Bouclier +${effect.value}${targets}`;
-    case 'draw_bonus':        return `+${effect.value} pioche`;
-    // ⚠️ Les critères se disent avec la MÊME fonction que la magie et que la
-    // popup de pioche (`DrawInfo.guaranteedDrawLabel`) : trois libellés de la
-    // même promesse finiraient par ne pas annoncer ce qui est réellement pioché.
-    case 'guaranteed_draw': {
-      // ⚠️ Ce type n'existe que côté ATTRIBUT : un terrain ne pioche pas.
-      const draw = effect as AttributeEffect;
-      return hasGuaranteedDrawCriteria(draw)
-        ? `Pioche garantie ${guaranteedDrawLabel(draw, id => attributeNames?.([id]) ?? id, cardName)}`
-        : 'Pioche garantie';
-    }
-    case 'revive':            return 'Réanimation';
-    case 'board_slot_bonus':  return `+${effect.value} slot`;
-    // ⚠️ Effet d'ATTRIBUT, pas de terrain — cette fonction sert les deux (cf.
-    // `TooltipHost.describeEffects`). Sans son entrée ici, le palier de synergie
-    // annonçait « shopping_bonus » au joueur, en toutes lettres.
-    case 'shopping_bonus':    return `+${effect.value ?? 1} magie à la Phase Shopping`;
-    // ⚠️ Repli sur le TYPE BRUT, jamais sur une chaîne vide : un type ajouté à
-    // `BoardEffect.applyEffect` mais oublié ici doit se voir à l'écran plutôt
-    // que de disparaître en silence.
-    default:                  return effect.type;
+  // ⚠️ Les deux domaines sont interrogés dans cet ordre parce que cette
+  // fonction ne peut PAS savoir lequel elle décrit : elle ne reçoit qu'un objet
+  // d'effet, jamais son porteur. Là où les deux coexistent, leurs gabarits sont
+  // identiques — la préférence n'arbitre donc rien aujourd'hui.
+  const rule = specIn(effect.type, ['board', 'attribute'])?.label;
+  // ⚠️ Repli sur le TYPE BRUT, jamais sur une chaîne vide : un type ajouté à
+  // `BoardEffect.applyEffect` mais oublié dans le registre doit se voir à
+  // l'écran plutôt que de disparaître en silence.
+  if (rule === undefined || rule === null) return effect.type;
+  if (typeof rule === 'string') {
+    return renderLabel(rule, { ...effect, stat: statLabel(effect.stat as string), targets });
   }
+  return BOARD_LABEL_FNS[rule.fn](effect, attributeNames, cardName);
 }
+
+/** Les libellés qui se ramifient — cf. `MagieEffect.MAGIE_LABEL_FNS`. */
+const BOARD_LABEL_FNS: Record<string, (
+  effect: BoardEffectDef | AttributeEffect,
+  attributeNames?: (ids: string[]) => string,
+  cardName?: (id: string) => string,
+) => string> = {
+  // ⚠️ Les critères se disent avec la MÊME fonction que la magie et que la
+  // popup de pioche (`DrawInfo.guaranteedDrawLabel`) : trois libellés de la
+  // même promesse finiraient par ne pas annoncer ce qui est réellement pioché.
+  // ⚠️ Ce type n'existe que côté ATTRIBUT : un terrain ne pioche pas.
+  guaranteedDrawAttribute: (effect, attributeNames, cardName) => {
+    const draw = effect as AttributeEffect;
+    return hasGuaranteedDrawCriteria(draw)
+      ? `Pioche garantie ${guaranteedDrawLabel(draw, id => attributeNames?.([id]) ?? id, cardName ?? ((id) => id))}`
+      : 'Pioche garantie';
+  },
+  // ⚠️ Effet d'ATTRIBUT, pas de terrain — cette fonction sert les deux (cf.
+  // `TooltipHost.describeEffects`). Sans son entrée ici, le palier de synergie
+  // annonçait « shopping_bonus » au joueur, en toutes lettres.
+  shoppingBonus: (effect) => `+${effect.value ?? 1} magie à la Phase Shopping`,
+};

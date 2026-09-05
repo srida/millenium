@@ -1,0 +1,371 @@
+{
+  "$comment": [
+    "LE REGISTRE DES PRIMITIVES D'EFFET — la réponse unique à « quels effets existent ».",
+    "",
+    "⚠️ C'est du CODE, pas une donnée de volume : il voyage avec un commit et n'est jamais",
+    "recopié dans data/. Une primitive que le registre annonce et que le moteur n'implémente",
+    "pas est exactement le bug qui a rendu ARCH_019 et ARCH_020 muets pendant des mois.",
+    "`effect-kinds.test.ts` fait se recouvrir le registre et les switch du moteur, dans les",
+    "deux sens.",
+    "",
+    "⚠️ JSON et non TS pour qu'il ait DEUX lecteurs : `logic/EffectKinds.ts` l'importe, et le",
+    "serveur pourra le servir tel quel — c'est ainsi qu'admin.html, qui ne sait rien importer",
+    "d'un module TS, générera ses formulaires sans qu'on recopie ce fichier. Aucune route ne",
+    "le sert encore : personne ne le lit hors du client. Pas de jumeau CJS/ESM à tenir",
+    "synchronisé à la main non plus — c'est précisément ce que `tiers.js`/`Tiers.ts` a coûté.",
+    "",
+    "⚠️ Les trois familles partagent des NOMS, pas des définitions. `stat_bonus` est",
+    "permanent et désigné par le joueur sur une magie, porté par les unités du seuil sur un",
+    "attribut, et filtré par `target_attributes` sur un terrain. D'où une section par",
+    "domaine : ce qui est commun est le nom, et rien d'autre.",
+    "",
+    "CHAMPS D'UNE SECTION DE DOMAINE :",
+    "  target     — la famille de CIBLAGE (magie seule) : unit | graveyard | hand | global.",
+    "  relevance  — quand la magie a un effet réel (magie seule). {gt0:<compteur>} |",
+    "               {flag:<booléen>} | \"always\" | {fn:<nom>} pour les cinq cas irréguliers.",
+    "  params     — les champs que le type LIT. Fait foi pour le formulaire d'admin, et",
+    "               c'est ce qui remplace les deux listes `noValue` recopiées dans le fichier.",
+    "  label      — gabarit `{param}`, ou {fn:<nom>} quand la phrase se ramifie.",
+    "",
+    "⚠️ Un `params` qui ne dit pas la vérité est le défaut le plus coûteux du fichier : le",
+    "formulaire proposerait un champ que le moteur ignore, et l'auteur croirait avoir réglé",
+    "quelque chose. C'est comme ça que `value_per` s'est retrouvé sur un `shield` et `target`",
+    "sur un `revive`."
+  ],
+
+  "stat_bonus": {
+    "admin_label": "Bonus de stat",
+    "magie": {
+      "target": "unit",
+      "relevance": { "gt0": "boardUnitCount" },
+      "params": ["stat", "value"],
+      "label": "+{value} {stat} sur une unité (permanent)"
+    },
+    "attribute": {
+      "params": ["stat", "value", "value_per"],
+      "label": "+{value} {stat}{targets}"
+    },
+    "board": {
+      "params": ["stat", "value", "target_attributes"],
+      "label": "+{value} {stat}{targets}"
+    }
+  },
+
+  "team_stat_bonus": {
+    "admin_label": "Bonus de stat — TOUTES tes unités",
+    "magie": {
+      "target": "global",
+      "relevance": { "gt0": "boardUnitCount" },
+      "params": ["stat", "value"],
+      "label": "+{value} {stat} sur TOUTES tes unités (permanent)"
+    }
+  },
+
+  "stat_modifier": {
+    "admin_label": "Modificateur de stat",
+    "magie": {
+      "target": "unit",
+      "relevance": { "gt0": "boardUnitCount" },
+      "params": ["stat", "value"],
+      "label": "×{value} {stat} sur une unité (permanent)"
+    },
+    "attribute": {
+      "params": ["stat", "value", "trigger"],
+      "label": "×{value} {stat}{targets}"
+    },
+    "board": {
+      "params": ["stat", "value", "target_attributes"],
+      "label": "×{value} {stat}{targets}"
+    }
+  },
+
+  "shield": {
+    "admin_label": "Bouclier",
+    "magie": {
+      "target": "unit",
+      "relevance": { "gt0": "boardUnitCount" },
+      "params": ["value"],
+      "label": "+{value} bouclier sur une unité"
+    },
+    "attribute": {
+      "params": ["value"],
+      "label": "Bouclier +{value}{targets}"
+    },
+    "board": {
+      "params": ["value", "target_attributes"],
+      "label": "Bouclier +{value}{targets}"
+    }
+  },
+
+  "heal": {
+    "admin_label": "Soin total (une unité)",
+    "magie": {
+      "target": "unit",
+      "relevance": { "gt0": "boardUnitCount" },
+      "params": [],
+      "label": "Soigne ENTIÈREMENT une unité (PV au maximum)"
+    }
+  },
+
+  "team_heal": {
+    "admin_label": "Soin de masse — TOUTES tes unités (PV)",
+    "magie": {
+      "target": "global",
+      "relevance": { "gt0": "boardUnitCount" },
+      "params": ["value"],
+      "label": "Soigne toutes tes unités de {value} PV"
+    }
+  },
+
+  "revive": {
+    "admin_label": "Réanimation (%HP)",
+    "magie": {
+      "target": "graveyard",
+      "relevance": { "gt0": "graveyardCount" },
+      "params": ["value"],
+      "label": "Réanime une unité du cimetière à {value}% de ses PV"
+    },
+    "attribute": {
+      "params": ["hp_percent"],
+      "label": "Réanimation"
+    }
+  },
+
+  "draw_bonus": {
+    "admin_label": "Pioche supplémentaire",
+    "magie": {
+      "target": "global",
+      "relevance": "always",
+      "params": ["value"],
+      "label": { "fn": "drawBonus" }
+    },
+    "attribute": {
+      "params": ["value", "max"],
+      "label": "+{value} pioche"
+    },
+    "board": {
+      "params": ["value"],
+      "label": "+{value} pioche"
+    }
+  },
+
+  "guaranteed_draw": {
+    "admin_label": "Pioche garantie (tier, attributs, cartes)",
+    "magie": {
+      "target": "global",
+      "relevance": { "fn": "guaranteedDraw" },
+      "params": ["tier", "attributes", "card_ids"],
+      "label": { "fn": "guaranteedDrawMagie" }
+    },
+    "attribute": {
+      "params": ["tier", "attributes", "card_ids"],
+      "label": { "fn": "guaranteedDrawAttribute" }
+    }
+  },
+
+  "grant_power": {
+    "admin_label": "Donner / remplacer le pouvoir d'une unité",
+    "magie": {
+      "target": "unit",
+      "relevance": { "gt0": "boardUnitCount" },
+      "params": ["power_id", "power_speed", "value"],
+      "label": { "fn": "grantPower" }
+    }
+  },
+
+  "power_cooldown": {
+    "admin_label": "Accélérer le pouvoir d'une unité",
+    "magie": {
+      "target": "unit",
+      "relevance": { "gt0": "poweredUnitCount" },
+      "params": ["value"],
+      "label": "Charge le pouvoir d'une unité {value} fois plus vite"
+    }
+  },
+
+  "damage_multiplier_bonus": {
+    "admin_label": "Multiplicateur de dégâts (permanent)",
+    "magie": {
+      "target": "global",
+      "relevance": { "flag": "damageMultiplierMatters" },
+      "params": ["value"],
+      "label": "+{value} au multiplicateur de dégâts, jusqu'à la fin de la partie"
+    },
+    "attribute": {
+      "params": ["value"],
+      "_label_note": "⚠️ `null` = AUCUN libellé écrit : l'id brut sort à l'écran, ce que fait déjà le `default` de `boardEffectLabel`. C'est la vérité d'aujourd'hui, pas une intention — un palier de synergie affiche donc « damage_multiplier_bonus » au joueur, en toutes lettres.",
+      "label": null
+    }
+  },
+
+  "player_hp_bonus": {
+    "admin_label": "Bonus HP joueur",
+    "magie": {
+      "target": "global",
+      "relevance": { "flag": "playerHpBelowCap" },
+      "params": ["value"],
+      "label": "+{value} PV joueur"
+    }
+  },
+
+  "board_slot_bonus": {
+    "admin_label": "Slot de board supplémentaire",
+    "magie": {
+      "target": "global",
+      "relevance": { "flag": "boardSlotBonusAvailable" },
+      "params": ["value"],
+      "label": { "fn": "boardSlotBonus" }
+    },
+    "attribute": {
+      "params": ["value", "max"],
+      "label": "+{value} slot"
+    }
+  },
+
+  "shopping_bonus": {
+    "admin_label": "Magie supplémentaire à la Phase Shopping",
+    "attribute": {
+      "params": ["value", "max"],
+      "label": { "fn": "shoppingBonus" }
+    }
+  },
+
+  "effect_immunity": {
+    "admin_label": "Immunité aux effets négatifs (poison, paralysie, push, burn…)",
+    "attribute": {
+      "params": [],
+      "_label_note": "⚠️ `null` = AUCUN libellé écrit — cf. damage_multiplier_bonus.",
+      "label": null
+    }
+  },
+
+  "defuse_fusion": {
+    "admin_label": "Séparer une Fusion en ses matériaux",
+    "magie": {
+      "target": "unit",
+      "relevance": { "gt0": "defusableFusionCount" },
+      "params": [],
+      "label": "Sépare un monstre Fusion en ses matériaux"
+    }
+  },
+
+  "destroy_unit": {
+    "admin_label": "Détruire une unité alliée",
+    "magie": {
+      "target": "unit",
+      "relevance": { "gt0": "boardUnitCount" },
+      "params": [],
+      "label": "Détruit une unité alliée (libère son emplacement, devient un matériau disponible au cimetière)"
+    }
+  },
+
+  "drain_life": {
+    "admin_label": "Absorber les PV d'une unité alliée",
+    "magie": {
+      "target": "unit",
+      "relevance": { "gt0": "boardUnitCount" },
+      "params": [],
+      "label": "Absorbe les PV d'une unité alliée : elle part au cimetière et tu récupères ses PV courants"
+    }
+  },
+
+  "hand_to_graveyard": {
+    "admin_label": "Envoyer une carte de la main au cimetière",
+    "magie": {
+      "target": "hand",
+      "relevance": { "gt0": "handCount" },
+      "params": [],
+      "label": "Envoie une carte de ta main au cimetière (utilisable comme matériau)"
+    }
+  },
+
+  "duplicate_unit": {
+    "admin_label": "Dupliquer une unité du terrain → sa carte en main",
+    "magie": {
+      "target": "unit",
+      "relevance": { "gt0": "duplicableUnitCount" },
+      "params": ["value"],
+      "label": { "fn": "duplicateUnit" }
+    }
+  },
+
+  "duplicate_graveyard_unit": {
+    "admin_label": "Dupliquer une unité du cimetière → sa carte en main",
+    "magie": {
+      "target": "graveyard",
+      "relevance": { "gt0": "duplicableGraveyardCount" },
+      "params": ["value"],
+      "label": { "fn": "duplicateGraveyardUnit" }
+    }
+  },
+
+  "duplicate_card": {
+    "admin_label": "Dupliquer une carte de la main",
+    "magie": {
+      "target": "hand",
+      "relevance": { "gt0": "handCount" },
+      "params": ["value"],
+      "label": { "fn": "duplicateCard" }
+    }
+  },
+
+  "shift_tier_card": {
+    "admin_label": "Remplacer une carte de la main par une carte du tier voisin",
+    "magie": {
+      "target": "hand",
+      "relevance": { "fn": "shiftTierCard" },
+      "params": ["value"],
+      "label": { "fn": "shiftTierCard" }
+    }
+  },
+
+  "shift_tier_unit": {
+    "admin_label": "Remplacer une unité du terrain par une unité du tier voisin",
+    "magie": {
+      "target": "unit",
+      "relevance": { "fn": "shiftTierUnit" },
+      "params": ["value"],
+      "label": { "fn": "shiftTierUnit" }
+    }
+  },
+
+  "draw_material": {
+    "admin_label": "Piocher un matériel d'invocation d'une carte de la main",
+    "magie": {
+      "target": "hand",
+      "relevance": { "gt0": "materialSourceCount" },
+      "params": [],
+      "label": "Ajoute à ta main un matériel d'invocation d'une carte de ta main"
+    }
+  },
+
+  "sacrifice_card_hp": {
+    "admin_label": "Sacrifier une carte de la main → PV du joueur",
+    "magie": {
+      "target": "hand",
+      "relevance": { "fn": "sacrificeCardHp" },
+      "params": ["value"],
+      "label": { "fn": "sacrificeCardHp" }
+    }
+  },
+
+  "reduce_materials": {
+    "admin_label": "Baisser le coût en matériels (main)",
+    "magie": {
+      "target": "global",
+      "relevance": { "fn": "reduceMaterials" },
+      "params": ["value", "attribute"],
+      "label": { "fn": "reduceMaterials" }
+    }
+  },
+
+  "remove_requirements": {
+    "admin_label": "Lever des exigences nommées (main)",
+    "magie": {
+      "target": "global",
+      "relevance": { "fn": "removeRequirements" },
+      "params": ["value", "attribute"],
+      "label": { "fn": "removeRequirements" }
+    }
+  }
+}

@@ -17,6 +17,11 @@ import { tierShift } from './MagieEffect.js';
 // pioche garantie doivent se lire pareil à l'offre, à la pioche et à l'annonce.
 // `Draw` est lui aussi plat (il n'importe que des types).
 import { guaranteedDrawCriteria, hasGuaranteedDrawCriteria } from './Draw.js';
+// ⚠️ Le registre est le SEUL endroit qui dise encore quels types existent : la
+// table de pertinence en dérive au lieu d'énumérer. C'est ce qui referme le
+// piège documenté juste en dessous — un type ajouté au moteur et oublié ici
+// disparaissait du jeu sans un mot.
+import { relevanceRule } from './EffectKinds.js';
 import type { Magie, MagieRarity } from './types.js';
 
 /**
@@ -133,102 +138,80 @@ function _hasTierShift(targetTiers: readonly number[], deckTiers: readonly numbe
 export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
   const effect = magie?.effect;
   if (!effect?.type) return false;
-  switch (effect.type) {
-    // Il faut au moins une unité vivante sur le board — à cible unique comme en
-    // équipe : `applyGlobalMagie` passe `getPlayerUnits()`, et une boucle sur un
-    // tableau vide n'est pas un effet.
-    case 'stat_bonus':
-    case 'stat_modifier':
-    case 'shield':
-    case 'heal':
-    case 'team_stat_bonus':
-    case 'team_heal':
-    case 'destroy_unit':
-    case 'drain_life':
-      return ctx.boardUnitCount > 0;
-
-    case 'defuse_fusion':            return ctx.defusableFusionCount > 0;
-    case 'revive':                   return ctx.graveyardCount > 0;
-    case 'hand_to_graveyard':        return ctx.handCount > 0;
-
-    // Les deux duplications se distinguent par leur SOURCE, et donc par le
-    // compteur qui les autorise. ⚠️ `duplicate_unit` ne se contente pas de
-    // `boardUnitCount` : une unité dont la carte a disparu du catalogue n'est
-    // pas copiable, et l'offrir ferait payer un contrecoup pour rien.
-    case 'duplicate_unit':           return ctx.duplicableUnitCount > 0;
-    case 'duplicate_graveyard_unit': return ctx.duplicableGraveyardCount > 0;
-    case 'duplicate_card':           return ctx.handCount > 0;
-
-    // ⚠️ Un tier absent du deck n'est PAS un no-op : `startPreparation` a un
-    // double repli et pioche quand même — dans tout le deck, sans la
-    // restriction de tier du tour. La magie n'est donc pas inerte, elle MENT :
-    // son libellé promet un tier qu'elle ne rendra pas. On ne l'offre pas.
-    // ⚠️ Les deux filtres sont FACULTATIFS et se cumulent : une magie qui ne
-    // porte qu'un attribut n'a pas de tier à valider, et l'ancienne écriture
-    // (`ctx.deckTiers.includes(effect.tier ?? 0)`) l'aurait rendue à JAMAIS
-    // non pertinente — donc jamais offerte, en silence.
-    case 'guaranteed_draw': {
-      // Sans AUCUN critère, la magie ne promet rien de nommable : elle déplace
-      // un slot de pioche aléatoire vers… une pioche aléatoire. C'est le cas
-      // « blanc » que ce filtre existe pour supprimer, et il reste rejeté.
-      if (!hasGuaranteedDrawCriteria(effect)) return false;
-      const { tier, attributes, cardIds } = guaranteedDrawCriteria(effect);
-      // ⚠️ Chaque critère est vérifié SÉPARÉMENT contre le deck : le contexte
-      // ne porte que des listes, pas les cartes, donc « un Tier 4 » et « un
-      // Dragon » ne prouvent pas « un Dragon de Tier 4 ». C'est indulgent d'un
-      // cheveu, comme la pertinence du remplacement par tier — et l'inverse
-      // (exporter le deck) coûterait la règle qui le garde dans la session.
-      return (!tier || ctx.deckTiers.includes(tier))
-        && attributes.every(id => ctx.deckAttributes.includes(id))
-        && (cardIds.length === 0 || cardIds.some(id => ctx.deckCardIds.includes(id)));
-    }
-
-    // Remplacement par tier : il faut une cible ET un pool où puiser. Le pool
-    // est le DECK du joueur, comme celui d'une pioche garantie — c'est la seule
-    // réserve de cartes qu'une partie connaisse.
-    //
-    // ⚠️ Optimiste d'un cheveu côté BOARD, et c'est assumé : le ciblage écarte
-    // en plus les unités dont tout le pool est DÉJÀ VIVANT sur le terrain (la
-    // règle du doublon, cf. `GameSession._boardTierShiftPool`), ce que des
-    // tiers seuls ne peuvent pas dire. Le cas demande que toutes les cartes du
-    // deck à ce tier soient posées en même temps ; il retombe alors sur la
-    // garde « Aucune cible valide » de `GameController.chooseMagie`, qui ne
-    // consomme pas la magie — le joueur en choisit une autre.
-    case 'shift_tier_card':          return _hasTierShift(ctx.handTiers, ctx.deckTiers, tierShift(magie));
-    case 'shift_tier_unit':          return _hasTierShift(ctx.boardTiers, ctx.deckTiers, tierShift(magie));
-    case 'draw_material':            return ctx.materialSourceCount > 0;
-    // ⚠️ Les DEUX conditions : une main vide n'a rien à sacrifier, et à PV
-    // pleins la magie brûlerait une carte pour rien. Même exigence que
-    // `player_hp_bonus`, dont c'est le jumeau côté gain.
-    case 'sacrifice_card_hp':        return ctx.handCount > 0 && ctx.playerHpBelowCap;
-
-    case 'grant_power':              return ctx.boardUnitCount > 0;
-    case 'power_cooldown':           return ctx.poweredUnitCount > 0;
-    case 'damage_multiplier_bonus':  return ctx.damageMultiplierMatters;
-
-    case 'board_slot_bonus':         return ctx.boardSlotBonusAvailable;
-    case 'player_hp_bonus':          return ctx.playerHpBelowCap;
-
-    // ⚠️ Une remise VISÉE (`attribute`) doit trouver une carte qui porte
-    // l'attribut ET que le geste peut retoucher : les deux séparément se
-    // contentent d'un deck où les deux cartes sont différentes, et la magie
-    // serait alors offerte pour ne rien faire.
-    case 'reduce_materials':
-      return effect.attribute
-        ? ctx.deckMaterialCostAttributes.includes(effect.attribute)
-        : ctx.deckHasMaterialCost;
-    case 'remove_requirements':
-      return effect.attribute
-        ? ctx.deckNamedRequirementAttributes.includes(effect.attribute)
-        : ctx.deckHasNamedRequirement;
-
-    // Le seul effet qui ne dépend de rien : la pioche du tour suivant a
-    // toujours lieu.
-    case 'draw_bonus':               return true;
-
-    default:                         return false;
-  }
+  const rule = relevanceRule(effect.type);
+  // ⚠️ LE `default: false`, désormais structurel : un type que le registre ne
+  // déclare pas, ou qu'il déclare sans règle de pertinence, n'est pas offert.
+  // La table reste FERMÉE — elle a seulement cessé d'être recopiée à la main.
+  if (!rule) return false;
+  if (rule === 'always') return true;
+  // Les deux formes régulières couvrent 21 des 27 types : un compteur du
+  // contexte à comparer à zéro, ou un booléen à lire tel quel.
+  if ('gt0' in rule) return (ctx[rule.gt0 as keyof MagieOfferContext] as number) > 0;
+  if ('flag' in rule) return !!ctx[rule.flag as keyof MagieOfferContext];
+  return RELEVANCE_FNS[rule.fn](effect, magie, ctx);
 }
+
+/**
+ * Les six pertinences qui ne se réduisent pas à un compteur — parce qu'elles
+ * croisent PLUSIEURS faits, pas parce qu'elles sont compliquées. Le registre les
+ * nomme, elles vivent ici : `EffectKinds` ne connaît pas `MagieOfferContext`.
+ */
+const RELEVANCE_FNS: Record<string,
+  (effect: NonNullable<Magie['effect']>, magie: Magie, ctx: MagieOfferContext) => boolean> = {
+
+  // ⚠️ Un tier absent du deck n'est PAS un no-op : `startPreparation` a un
+  // double repli et pioche quand même — dans tout le deck, sans la restriction
+  // de tier du tour. La magie n'est donc pas inerte, elle MENT : son libellé
+  // promet un tier qu'elle ne rendra pas. On ne l'offre pas.
+  // ⚠️ Les filtres sont FACULTATIFS et se cumulent : une magie qui ne porte
+  // qu'un attribut n'a pas de tier à valider, et l'ancienne écriture
+  // (`ctx.deckTiers.includes(effect.tier ?? 0)`) l'aurait rendue à JAMAIS non
+  // pertinente — donc jamais offerte, en silence.
+  guaranteedDraw: (effect, _magie, ctx) => {
+    // Sans AUCUN critère, la magie ne promet rien de nommable : elle déplace un
+    // slot de pioche aléatoire vers… une pioche aléatoire. C'est le cas
+    // « blanc » que ce filtre existe pour supprimer, et il reste rejeté.
+    if (!hasGuaranteedDrawCriteria(effect)) return false;
+    const { tier, attributes, cardIds } = guaranteedDrawCriteria(effect);
+    // ⚠️ Chaque critère est vérifié SÉPARÉMENT contre le deck : le contexte ne
+    // porte que des listes, pas les cartes, donc « un Tier 4 » et « un Dragon »
+    // ne prouvent pas « un Dragon de Tier 4 ». C'est indulgent d'un cheveu,
+    // comme la pertinence du remplacement par tier — et l'inverse (exporter le
+    // deck) coûterait la règle qui le garde dans la session.
+    return (!tier || ctx.deckTiers.includes(tier))
+      && attributes.every(id => ctx.deckAttributes.includes(id))
+      && (cardIds.length === 0 || cardIds.some(id => ctx.deckCardIds.includes(id)));
+  },
+
+  // Remplacement par tier : il faut une cible ET un pool où puiser. Le pool est
+  // le DECK du joueur, comme celui d'une pioche garantie — c'est la seule
+  // réserve de cartes qu'une partie connaisse.
+  //
+  // ⚠️ Optimiste d'un cheveu côté BOARD, et c'est assumé : le ciblage écarte en
+  // plus les unités dont tout le pool est DÉJÀ VIVANT sur le terrain (la règle
+  // du doublon, cf. `GameSession._boardTierShiftPool`), ce que des tiers seuls
+  // ne peuvent pas dire. Le cas demande que toutes les cartes du deck à ce tier
+  // soient posées en même temps ; il retombe alors sur la garde « Aucune cible
+  // valide » de `GameController.chooseMagie`, qui ne consomme pas la magie.
+  shiftTierCard: (_effect, magie, ctx) => _hasTierShift(ctx.handTiers, ctx.deckTiers, tierShift(magie)),
+  shiftTierUnit: (_effect, magie, ctx) => _hasTierShift(ctx.boardTiers, ctx.deckTiers, tierShift(magie)),
+
+  // ⚠️ Les DEUX conditions : une main vide n'a rien à sacrifier, et à PV pleins
+  // la magie brûlerait une carte pour rien. Même exigence que `player_hp_bonus`,
+  // dont c'est le jumeau côté gain.
+  sacrificeCardHp: (_effect, _magie, ctx) => ctx.handCount > 0 && ctx.playerHpBelowCap,
+
+  // ⚠️ Une remise VISÉE (`attribute`) doit trouver une carte qui porte
+  // l'attribut ET que le geste peut retoucher : les deux séparément se
+  // contentent d'un deck où ce sont deux cartes différentes, et la magie serait
+  // alors offerte pour ne rien faire.
+  reduceMaterials: (effect, _magie, ctx) => effect.attribute
+    ? ctx.deckMaterialCostAttributes.includes(effect.attribute)
+    : ctx.deckHasMaterialCost,
+  removeRequirements: (effect, _magie, ctx) => effect.attribute
+    ? ctx.deckNamedRequirementAttributes.includes(effect.attribute)
+    : ctx.deckHasNamedRequirement,
+};
 
 /**
  * L'offre : on FILTRE d'abord, on tire ensuite — roulette pondérée par rareté,

@@ -1,4 +1,5 @@
 import { guaranteedDrawCriteria } from './Draw.js';
+import { specOf, renderLabel, targetFamily } from './EffectKinds.js';
 
 export const STAT_NAMES = {
   atk: 'ATK', hp: 'HP', attack_speed: 'Vit. attaque',
@@ -153,16 +154,19 @@ function handModifierScope(e, names) {
   return e.attribute ? `${names.attribute(e.attribute)} de ta main` : 'de ta main';
 }
 
+// ⚠️ Les trois familles de ciblage se LISENT dans le registre, elles ne sont
+// plus recopiées en trois listes. Une magie dont le type est inconnu du registre
+// rend `null` et n'appartient donc à aucune famille — `GameController.chooseMagie`
+// la traite alors comme globale, exactement comme avant.
 export function needsUnitTarget(magie) {
-  return ['stat_bonus', 'stat_modifier', 'shield', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life',
-    'grant_power', 'power_cooldown', 'duplicate_unit', 'shift_tier_unit'].includes(magie?.effect?.type);
+  return targetFamily(magie?.effect?.type) === 'unit';
 }
 
 // Cible une unité du CIMETIÈRE. ⚠️ Les deux membres n'en font pas le même
 // usage : `revive` l'en SORT pour la reposer sur le terrain, là où
 // `duplicate_graveyard_unit` la laisse en place et ne rend que sa carte.
 export function needsGraveyardTarget(magie) {
-  return ['revive', 'duplicate_graveyard_unit'].includes(magie?.effect?.type);
+  return targetFamily(magie?.effect?.type) === 'graveyard';
 }
 
 // Cible une carte de la MAIN (et non une unité du board ou du cimetière) —
@@ -178,8 +182,7 @@ export function needsGraveyardTarget(magie) {
 // `magieUnitTargets` côté board. Sans lui, `shift_tier_card` et `draw_material`
 // se laisseraient jouer sur une carte qu'elles ne peuvent pas servir.
 export function needsHandTarget(magie) {
-  return ['hand_to_graveyard', 'duplicate_card', 'shift_tier_card', 'draw_material',
-    'sacrifice_card_hp'].includes(magie?.effect?.type);
+  return targetFamily(magie?.effect?.type) === 'hand';
 }
 
 /**
@@ -193,51 +196,56 @@ export function effectLabel(magie, names = RAW_NAMES) {
   const e = magie?.effect;
   names = { ...RAW_NAMES, ...names };
   if (!e) return 'Aucun effet';
-  switch (e.type) {
-    case 'stat_bonus':       return `+${e.value} ${STAT_NAMES[e.stat] || e.stat} sur une unité (permanent)`;
-    case 'team_stat_bonus':  return `+${e.value} ${STAT_NAMES[e.stat] || e.stat} sur TOUTES tes unités (permanent)`;
-    case 'stat_modifier':    return `×${e.value} ${STAT_NAMES[e.stat] || e.stat} sur une unité (permanent)`;
-    case 'draw_bonus':       return `+${e.value} carte${e.value > 1 ? 's' : ''} supplémentaire${e.value > 1 ? 's' : ''} ce tour`;
-    case 'guaranteed_draw':  return guaranteedDrawLabel(e, names);
-    case 'heal':             return 'Soigne ENTIÈREMENT une unité (PV au maximum)';
-    case 'team_heal':        return `Soigne toutes tes unités de ${e.value} PV`;
-    case 'revive':           return `Réanime une unité du cimetière à ${e.value}% de ses PV`;
-    case 'shield':           return `+${e.value} bouclier sur une unité`;
-    case 'grant_power':      return `Donne le pouvoir ${POWER_LABELS[e.power_id] || e.power_id || '?'} à une unité (remplace le sien)`;
-    case 'power_cooldown':   return `Charge le pouvoir d'une unité ${e.value} fois plus vite`;
-    case 'damage_multiplier_bonus': return `+${e.value} au multiplicateur de dégâts, jusqu'à la fin de la partie`;
-    case 'player_hp_bonus':  return `+${e.value} PV joueur`;
-    case 'board_slot_bonus':         return `+${e.value} slot${e.value > 1 ? 's' : ''} de board permanent${e.value > 1 ? 's' : ''}`;
-    case 'defuse_fusion':            return 'Sépare un monstre Fusion en ses matériaux';
-    case 'destroy_unit':             return 'Détruit une unité alliée (libère son emplacement, devient un matériau disponible au cimetière)';
-    case 'drain_life':               return 'Absorbe les PV d\'une unité alliée : elle part au cimetière et tu récupères ses PV courants';
-    case 'hand_to_graveyard':        return 'Envoie une carte de ta main au cimetière (utilisable comme matériau)';
-    // Deux sources, une seule destination : la main. Le libellé nomme la source
-    // — c'est tout ce qui les distingue au moment du choix.
-    case 'duplicate_unit':           return duplicateCopies(magie) > 1
-      ? `Ajoute à ta main ${duplicateCopies(magie)} copies de la carte d'une unité de ton terrain`
-      : 'Ajoute à ta main une copie de la carte d\'une unité de ton terrain';
-    case 'duplicate_graveyard_unit': return duplicateCopies(magie) > 1
-      ? `Ajoute à ta main ${duplicateCopies(magie)} copies de la carte d'une unité de ton cimetière`
-      : 'Ajoute à ta main une copie de la carte d\'une unité de ton cimetière';
-    case 'duplicate_card':           return duplicateCopies(magie) > 1
-      ? `Duplique une carte de ta main en ${duplicateCopies(magie)} exemplaires`
-      : 'Duplique une carte de ta main (l\'originale est conservée)';
-    // Les deux remplacements par tier : même geste, deux provenances — comme
-    // les deux duplications d'unité. Le libellé nomme donc ce qu'on désigne.
-    case 'shift_tier_card':          return `Remplace une carte de ta main par une carte de ton deck ${tierShiftLabel(magie)}`;
-    case 'shift_tier_unit':          return `Remplace une unité de ton terrain par une unité de ton deck ${tierShiftLabel(magie)}`;
-    case 'draw_material':            return 'Ajoute à ta main un matériel d\'invocation d\'une carte de ta main';
-    case 'sacrifice_card_hp':        return sacrificeHpPercent(magie) === 100
-      ? 'Sacrifie une carte de ta main : tu gagnes ses PV en points de vie'
-      : `Sacrifie une carte de ta main : tu gagnes ${sacrificeHpPercent(magie)}% de ses PV en points de vie`;
-    // Les deux remises d'invocation. Elles ne disent PAS la même chose : l'une
-    // baisse le prix, l'autre lève une contrainte sans rien rendre moins cher.
-    case 'reduce_materials':         return `-${e.value ?? 1} matériel(s) requis sur une carte ${handModifierScope(e, names)}`;
-    case 'remove_requirements':      return `Retire ${e.value ?? 1} matériel(s) NOMMÉ(s) d'une carte ${handModifierScope(e, names)}`;
-    default: return e.type;
+  const rule = specOf(e.type, 'magie')?.label;
+  // ⚠️ Type inconnu du registre (`undefined`) ou sans libellé écrit (`null`) :
+  // l'id BRUT sort, comme le faisait le `default` du switch. Un blanc se lirait
+  // comme un bug d'affichage ; l'id se lit comme un libellé qui manque.
+  if (rule === undefined || rule === null) return e.type;
+  if (typeof rule === 'string') {
+    return renderLabel(rule, { ...e, stat: STAT_NAMES[e.stat] || e.stat });
   }
+  return MAGIE_LABEL_FNS[rule.fn](e, magie, names);
 }
+
+/**
+ * Les libellés qui ne tiennent pas dans un gabarit — parce que la phrase se
+ * RAMIFIE (un pluriel, un défaut, une liste de critères), pas parce qu'elle est
+ * longue. Le registre les nomme, ils vivent ici : `logic/EffectKinds` ne connaît
+ * ni le français, ni `POWER_LABELS`, et n'a pas à les apprendre.
+ *
+ * ⚠️ Une entrée nommée par le registre et absente d'ici jette à l'appel. C'est
+ * délibéré et c'est le seul endroit du lot qui le fasse : un libellé muet est
+ * précisément ce qu'on ne veut plus découvrir en jouant. `effect-kinds.test.ts`
+ * fait le tour des deux tables avant qu'un joueur n'y arrive.
+ */
+const MAGIE_LABEL_FNS = {
+  drawBonus: (e) => `+${e.value} carte${e.value > 1 ? 's' : ''} supplémentaire${e.value > 1 ? 's' : ''} ce tour`,
+  guaranteedDrawMagie: (e, _magie, names) => guaranteedDrawLabel(e, names),
+  grantPower: (e) => `Donne le pouvoir ${POWER_LABELS[e.power_id] || e.power_id || '?'} à une unité (remplace le sien)`,
+  boardSlotBonus: (e) => `+${e.value} slot${e.value > 1 ? 's' : ''} de board permanent${e.value > 1 ? 's' : ''}`,
+  // Deux sources, une seule destination : la main. Le libellé nomme la source
+  // — c'est tout ce qui les distingue au moment du choix.
+  duplicateUnit: (_e, magie) => duplicateCopies(magie) > 1
+    ? `Ajoute à ta main ${duplicateCopies(magie)} copies de la carte d'une unité de ton terrain`
+    : 'Ajoute à ta main une copie de la carte d\'une unité de ton terrain',
+  duplicateGraveyardUnit: (_e, magie) => duplicateCopies(magie) > 1
+    ? `Ajoute à ta main ${duplicateCopies(magie)} copies de la carte d'une unité de ton cimetière`
+    : 'Ajoute à ta main une copie de la carte d\'une unité de ton cimetière',
+  duplicateCard: (_e, magie) => duplicateCopies(magie) > 1
+    ? `Duplique une carte de ta main en ${duplicateCopies(magie)} exemplaires`
+    : 'Duplique une carte de ta main (l\'originale est conservée)',
+  // Les deux remplacements par tier : même geste, deux provenances — comme les
+  // deux duplications d'unité. Le libellé nomme donc ce qu'on désigne.
+  shiftTierCard: (_e, magie) => `Remplace une carte de ta main par une carte de ton deck ${tierShiftLabel(magie)}`,
+  shiftTierUnit: (_e, magie) => `Remplace une unité de ton terrain par une unité de ton deck ${tierShiftLabel(magie)}`,
+  sacrificeCardHp: (_e, magie) => sacrificeHpPercent(magie) === 100
+    ? 'Sacrifie une carte de ta main : tu gagnes ses PV en points de vie'
+    : `Sacrifie une carte de ta main : tu gagnes ${sacrificeHpPercent(magie)}% de ses PV en points de vie`,
+  // Les deux remises d'invocation. Elles ne disent PAS la même chose : l'une
+  // baisse le prix, l'autre lève une contrainte sans rien rendre moins cher.
+  reduceMaterials: (e, _magie, names) => `-${e.value ?? 1} matériel(s) requis sur une carte ${handModifierScope(e, names)}`,
+  removeRequirements: (e, _magie, names) => `Retire ${e.value ?? 1} matériel(s) NOMMÉ(s) d'une carte ${handModifierScope(e, names)}`,
+};
 
 /**
  * `targetUnits` porte les magies d'équipe (team_stat_bonus) : elles n'ont pas
