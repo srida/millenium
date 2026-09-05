@@ -864,7 +864,7 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 
 | Effet | Timing | Détail |
 |---|---|---|
-| `stat_bonus` | `start_of_combat` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step) |
+| `stat_bonus` | `start_of_combat` | Bonus plat ; `value_per` optionnel — **deux lectures** (cf. plus bas). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step) |
 | `shield` | `start_of_combat` | `value` × nombre d'**alliés vivants** |
 | `effect_immunity` | `start_of_combat` | Pose `is_effect_immune` — annule les pouvoirs de debuff |
 | `stat_modifier` | `during_combat` | Déclenché par `trigger` : `on_ally_neutralized` / `on_enemy_neutralized` |
@@ -891,7 +891,22 @@ getActiveSynergies(units)                  // → [{ attr, count, activeThreshol
 - ⚠️ Les seuils `during_combat` sont **verrouillés au début du combat** : les morts en cours de combat ne désactivent pas les effets déjà actifs.
 - Tous les bonus d'attribut sont réinitialisés en fin de combat. ⚠️ `finishCombat` balaie **tous les participants** (`combatants`, capturé avant les filtres), neutralisés compris — sinon une unité morte garde ses bonus, `max_hp` gonflé compris, et le round suivant les recumule.
 - ⚠️ `applyEndOfCombat` traite les **deux camps** (`_applyEndForSide`) : `revive` remet une unité sur le plateau et vaut donc des deux côtés ; les effets de **ressource** (pioches, slot, multiplicateur, shopping) restent au joueur, seul destinataire possible.
-- ⚠️ **Un effet d'attribut n'existe pour de bon qu'aux TROIS endroits à la fois** : le moteur, le `<select>` de l'onglet Attributs (avec son champ `max` si le type en accepte un), et le libellé français (`BoardInfo.boardEffectLabel`). Deux sur trois donnent une fonctionnalité que personne ne peut ni écrire ni lire — c'est arrivé à `shopping_bonus`.
+- ⚠️ **`value_per` a DEUX lectures, et elles ne regardent pas le même camp** : un **id d'attribut** compte les unités **adverses** qui le portent ; la sentinelle **`active_unit`** compte les **alliés vivants** de ce camp-ci. Le moteur ne connaissait que la première — `active_unit` n'étant l'attribut de personne, le filtre rendait 0, le bonus valait 0, et `ARCH_019`/`ARCH_020` ne donnaient **rien** à leurs trois seuils. ⚠️ Le **bouclier** ne lit pas `value_per` : son barème est **fixe** (× alliés vivants, toujours), et `ARCH_066` porte un `shield: 50` nu qui en dépend.
+- ⚠️ **Un effet n'existe pour de bon qu'aux DEUX endroits à la fois** : le **moteur** (appliquer l'effet reste du code) et le **registre**. C'étaient trois — le `<select>` de l'admin et le libellé français en **dérivent** désormais. Le manque se voit au test, plus en jouant : c'est ce qui est arrivé à `shopping_bonus`, écrit dans le moteur et introuvable partout ailleurs.
+
+### Le registre des primitives d'effet (`logic/effect-kinds.json`)
+
+La réponse **unique** à « quels effets existent » : 29 primitives, **27 magie · 10 attribut · 4 terrain**. Lu par `logic/EffectKinds.ts` (plat, sans connaissance de domaine).
+
+- ⚠️ **C'est du CODE, jamais une donnée de volume** : une primitive que le registre annonce et que le moteur n'implémente pas est exactement le bug d'`active_unit`, à l'envers.
+- ⚠️ **JSON et non TS**, pour qu'il ait **deux lecteurs** : le client l'importe, et le serveur pourra le servir tel quel à `admin.html`, qui ne sait rien importer d'un module TS. C'est ce qui évite le jumeau que `tiers.js`/`Tiers.ts` a coûté.
+- **Une section par DOMAINE** : les trois familles partagent des **noms**, pas des définitions. `stat_bonus` est permanent et désigné par le joueur sur une magie, porté par les unités du seuil sur un attribut, filtré par `target_attributes` sur un terrain.
+- En dérivent : les trois familles de ciblage (`needsUnitTarget`/`GraveyardTarget`/`HandTarget`), la table de pertinence de `MagieOffer` (dont le `default: false` est désormais **structurel**), et les deux générateurs de libellés. **Pas** l'application de l'effet.
+- `params` dit les champs que le type **lit**. ⚠️ Un `params` qui ment est le défaut le plus coûteux du fichier : le formulaire proposerait un champ que le moteur ignore.
+- `label` : gabarit `{param}` (interpolation seule — pas de condition, pas de pluriel), ou `{ fn }` quand la phrase se ramifie. `null` = aucun libellé écrit, **l'id brut sort à l'écran** — un libellé qui manque doit se voir.
+- ⚠️ Les **résolveurs nommés vivent chez leur lecteur** : `EffectKinds` ne connaît ni le français, ni `POWER_LABELS`, ni `MagieOfferContext`.
+- ⚠️ **Deux vocabulaires de stats coexistent** — `MagieEffect.STAT_NAMES` dit « ATK », `data/StatLabels` dit « ATQ ». Le gabarit ne résout pas `{stat}` : l'appelant passe la chaîne déjà nommée. Les unifier serait un changement d'affichage.
+- `effect-kinds.test.ts` fait se recouvrir registre et moteurs **dans les deux sens**, et `fixtures/effect-labels.golden.json` fige les **172** libellés du catalogue livré.
 
 **L'icône d'un attribut est une image ; l'emoji n'est que le repli.** Art dans `ILLUS_DIR` sous l'`id` de l'attribut, importé depuis l'onglet Attributs. Le champ `icon` du JSON reste l'emoji de repli.
 - **`components/ui/AttrIcon.tsx` est le seul composant qui décide du repli** (image si `_has_illustration`, emoji sinon, rien si ni l'un ni l'autre). Quatre sites : puce du `SynergyPanel` (`h-4`), titre du tooltip d'attribut (`h-7`), chips `Keywords` (`h-3.5`), codex (`h-5`).
