@@ -157,6 +157,16 @@ export interface BoardEffectDef {
    * ciblage, donc plus de cumul en ET à tenir.
    */
   target_attributes?: string[];
+  /**
+   * Par quoi `value` est multipliée — même vocabulaire que sur un attribut
+   * (`logic/EffectScale`), et pour la même raison : c'était déjà la question
+   * qu'un attribut posait, la reposer autrement ici aurait donné deux réponses.
+   *
+   * ⚠️ Un effet de terrain touche les DEUX camps : l'échelle se compte donc
+   * dans le camp de chaque unité TOUCHÉE, pas dans un camp de l'effet — il n'en
+   * a pas. Absent = ×1, ce que portent les 25 terrains livrés.
+   */
+  value_per?: string;
 }
 
 export interface BoardDef {

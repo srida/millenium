@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AttributeManager, ALLY_COUNT_SCALE } from '../logic/AttributeManager.js';
+import { scaleAttributeId, ENEMY_COUNT_SCALE, FLAT_SCALE } from '../logic/EffectScale.js';
 import { guaranteedDrawCriteria } from '../logic/Draw.js';
 import { makeBoard, makeCard, spawn } from './helpers.js';
 
@@ -323,11 +324,36 @@ describe('Catalogue livré — initial-data/attributes.json', () => {
   // `active_unit` : proposé par l'admin, écrit dans la donnée, jamais reconnu
   // par le moteur. Un effet mort ne se voit pas à l'écran, et aucun autre test
   // ne le regarde — il n'y a que la donnée pour le dire.
-  it('chaque value_per désigne la sentinelle ou un attribut existant', () => {
+  it('chaque value_per désigne une sentinelle ou un attribut existant', () => {
+    // ⚠️ Le vocabulaire s'est élargi (`ally:`, `enemy:`, `enemy_unit`, `one`)
+    // sans qu'aucune forme ancienne change de sens — d'où `scaleAttributeId`,
+    // qui rend l'attribut d'une échelle QUELLE QUE SOIT sa forme, ou `null`
+    // pour les sentinelles. Recopier la liste des formes ici en ferait une
+    // seconde définition du vocabulaire.
+    const sentinelles = [ALLY_COUNT_SCALE, ENEMY_COUNT_SCALE, FLAT_SCALE];
     const bad = effects
       .filter(({ effect }) => effect.value_per)
-      .filter(({ effect }) => effect.value_per !== ALLY_COUNT_SCALE && !ids.has(effect.value_per))
+      .filter(({ effect }) => {
+        if (sentinelles.includes(effect.value_per)) return false;
+        const id = scaleAttributeId(effect.value_per);
+        return !id || !ids.has(id);
+      })
       .map(({ attr, name, effect }) => `${attr} (${name}) → value_per: ${effect.value_per}`);
+    expect(bad).toEqual([]);
+  });
+
+  // ⚠️ Le pendant du précédent, sur la cible : `reviveIndex` retombe sur « la
+  // première morte » pour tout ce qu'il ne reconnaît pas. Le repli évite un
+  // `revive` muet, mais il masque aussi une faute de saisie — c'est ici qu'elle
+  // doit se voir.
+  it('chaque cible de revive est une cible que le moteur reconnaît', () => {
+    // `neutralized_ally` est la forme HISTORIQUE de `first` — quatre
+    // attributs livrés la portent, et le moteur la reconnaît comme telle.
+    const connues = ['first', 'neutralized_ally', 'highest_hp', 'highest_atk'];
+    const bad = effects
+      .filter(({ effect }) => effect.type === 'revive' && effect.target)
+      .filter(({ effect }) => !connues.includes(effect.target))
+      .map(({ attr, name, effect }) => `${attr} (${name}) → target: ${effect.target}`);
     expect(bad).toEqual([]);
   });
 

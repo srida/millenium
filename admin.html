@@ -871,6 +871,57 @@ function effectKindShort(type) {
   return effectKinds[type]?.admin_short || effectKindLabel(type);
 }
 
+/** L'échelle qui s'applique quand `value_per` est vide, ou `null` s'il n'y en a pas. */
+function effectScaleDefault(type, domain) {
+  return effectKinds[type]?.[domain]?.scale_default || null;
+}
+
+/**
+ * Le `<select>` de l'échelle (`value_per`) — LE MÊME dans les trois éditeurs.
+ *
+ * ⚠️ Le vocabulaire vit dans `logic/EffectScale` et s'est élargi sans rien
+ * renommer : un id d'attribut NU garde son sens historique (les porteurs d'en
+ * face), et `enemy:` le dit explicitement pour qui l'écrit aujourd'hui. C'est
+ * ce qui dispense de migrer 93 attributs.
+ *
+ * ⚠️ « Aucun » ne veut pas dire ×1 partout : le bouclier d'attribut multiplie
+ * par les alliés vivants même sans échelle. Le libellé le DIT quand c'est le
+ * cas, et `one` est le seul moyen d'y renoncer.
+ */
+function effectScaleOptions(selected, type, domain) {
+  const sel = (v) => (selected || '') === v ? 'selected' : '';
+  const defaut = effectScaleDefault(type, domain);
+  const vide = defaut
+    ? `— Aucune (le défaut du type : ${esc(defaut)}) —`
+    : '— Aucune (×1) —';
+  const attrs = [...attributes].sort((a, b) => a.id.localeCompare(b.id));
+  return `
+    <option value="" ${sel('')}>${vide}</option>
+    <option value="one" ${sel('one')}>one — ×1, explicitement</option>
+    <option value="active_unit" ${sel('active_unit')}>active_unit — mes alliés vivants</option>
+    <option value="enemy_unit" ${sel('enemy_unit')}>enemy_unit — les ennemis vivants</option>
+    <optgroup label="Par ALLIÉ portant l'attribut">
+      ${attrs.map(a => `<option value="ally:${a.id}" ${sel('ally:' + a.id)}>${esc(a.id)} — ${esc(a.name)}</option>`).join('')}
+    </optgroup>
+    <optgroup label="Par ENNEMI portant l'attribut">
+      ${attrs.map(a => `<option value="${a.id}" ${sel(a.id)}>${esc(a.id)} — ${esc(a.name)}</option>`).join('')}
+    </optgroup>`;
+}
+
+/** La note qui accompagne l'échelle — écrite une fois, montrée partout. */
+function effectScaleNote(domain) {
+  const camp = domain === 'board'
+    ? `⚠️ Sur un terrain, l'échelle se compte <b>dans le camp de chaque unité touchée</b> :
+       l'effet frappe les deux camps, il n'a pas de camp à lui. « +2 ATK par allié »
+       donne donc à chacun son propre compte.`
+    : `Elle compte soit <b>de mon côté</b> (alliés), soit <b>d'en face</b> (ennemis) —
+       un id d'attribut seul désigne les <b>ennemis</b> qui le portent, forme historique.`;
+  return `<div style="font-size:11px;color:var(--muted);margin-top:4px">
+    Multiplie le <b>montant</b>. ${camp}<br>
+    ⚠️ Une échelle qui ne compte rien donne <b>zéro</b> — l'effet est alors muet, sans le dire.
+  </div>`;
+}
+
 /**
  * Les `<option>` d'un domaine. `extra` place un choix en tête (« Aucun »), et
  * les types marqués `admin_group: "advanced"` sont rassemblés dans un
@@ -2637,6 +2688,23 @@ function renderThresholdBlock(th, ti) {
 
 const ATTR_EFFECT_STATS = ['atk', 'hp', 'attack_speed', 'movement_speed', 'range', 'initiative', 'power_charge'];
 const ATTR_EFFECT_TRIGGERS = ['on_enemy_neutralized', 'on_ally_neutralized'];
+// ⚠️ Les valeurs sont celles que `AttributeManager.reviveIndex` reconnaît, et
+// `first` y est le repli de tout ce qu'il ne reconnaît pas : une cible mal
+// saisie relève la première morte au lieu de ne rien relever.
+/** ⚠️ `neutralized_ally` est la forme HISTORIQUE de `first`, portée par quatre
+ *  attributs livrés : sans cette normalisation le `<select>` retomberait sur sa
+ *  première option par hasard plutôt que par règle, et un enregistrement
+ *  écrirait une cible que l'auteur n'a pas choisie. */
+function reviveTargetOf(ef) {
+  const t = ef?.target;
+  return !t || t === 'neutralized_ally' ? 'first' : t;
+}
+
+const REVIVE_TARGETS = [
+  ['first', 'La première morte (défaut)'],
+  ['highest_hp', 'La plus résistante (PV max)'],
+  ['highest_atk', 'La plus offensive (ATK)'],
+];
 
 // ⚠️ La visibilité des champs se LIT dans le registre, elle n'est plus décidée
 // ici. C'est cette table, écrite à la main, qui proposait trois champs que le
@@ -2658,6 +2726,7 @@ function _attrEffectFieldVisibility(type) {
     showTrigger: reads('trigger'),
     showMax: reads('max'),
     showHpPercent: reads('hp_percent'),
+    showTarget: reads('target'),
     // ⚠️ MÊMES champs qu'une magie `guaranteed_draw` : tier + critères. Les deux
     // effets alimentent la même file, un attribut ne doit pas savoir promettre
     // moins qu'une magie.
@@ -2669,7 +2738,6 @@ function _attrEffectFieldVisibility(type) {
 function renderEffectBlock(ef, ti, ei) {
   const type = ef.type || 'stat_bonus';
   const v = _attrEffectFieldVisibility(type);
-  const valuePerOptions = ['active_unit', ...attributes.map(a => a.id)];
   return `
     <div class="effect-block" id="ef-${ti}-${ei}">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -2699,22 +2767,23 @@ function renderEffectBlock(ef, ti, ei) {
         </div>
         <div class="field" id="ef-${ti}-${ei}-valueper-field" style="${v.showValuePer ? '' : 'display:none'}">
           <label>Multiplié par (optionnel)</label>
-          <select id="ef-${ti}-${ei}-valueper">
-            <option value="" ${!ef.value_per ? 'selected' : ''}>— Aucun —</option>
-            ${valuePerOptions.map(id => `<option value="${id}" ${ef.value_per === id ? 'selected' : ''}>${id === 'active_unit' ? 'active_unit — mes alliés vivants' : `${id} — les ennemis qui le portent`}</option>`).join('')}
-          </select>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px">
-            Deux lectures, et elles ne regardent pas le même camp :
-            <b>active_unit</b> compte les <b>alliés vivants</b> de ce côté-ci
-            (« +2 ATK par allié »), un <b>id d'attribut</b> compte les unités
-            <b>d'en face</b> qui le portent (« +5 ATK par Dragon adverse »).<br>
-            ⚠️ Un multiplicateur qui ne compte rien donne un bonus <b>nul</b> —
-            l'effet est alors muet, sans le dire.
-          </div>
+          <select id="ef-${ti}-${ei}-valueper">${effectScaleOptions(ef.value_per, type, 'attribute')}</select>
+          ${effectScaleNote('attribute')}
         </div>
         <div class="field" id="ef-${ti}-${ei}-max-field" style="${v.showMax ? '' : 'display:none'}">
           <label>Maximum (optionnel)</label>
           <input id="ef-${ti}-${ei}-max" type="number" min="1" value="${ef.max ?? ''}">
+        </div>
+        <div class="field" id="ef-${ti}-${ei}-target-field" style="${v.showTarget ? '' : 'display:none'}">
+          <label>Quelle unité relever</label>
+          <select id="ef-${ti}-${ei}-target">
+            ${REVIVE_TARGETS.map(([val, lab]) => `<option value="${val}" ${reviveTargetOf(ef) === val ? 'selected' : ''}>${lab}</option>`).join('')}
+          </select>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">
+            Parmi les unités <b>neutralisées pendant ce combat</b>. À stat égale,
+            départage par id de carte — une réanimation change les survivants,
+            donc les dégâts, et les deux clients d'un duel doivent relever la même.
+          </div>
         </div>
         <div class="field" id="ef-${ti}-${ei}-hppercent-field" style="${v.showHpPercent ? '' : 'display:none'}">
           <label>% PV max</label>
@@ -2742,9 +2811,22 @@ function updateEffectFields(ti, ei) {
   document.getElementById(`ef-${ti}-${ei}-stat-field`).style.display = v.showStat ? '' : 'none';
   document.getElementById(`ef-${ti}-${ei}-trigger-field`).style.display = v.showTrigger ? '' : 'none';
   document.getElementById(`ef-${ti}-${ei}-value-field`).style.display = v.showValue ? '' : 'none';
-  document.getElementById(`ef-${ti}-${ei}-valueper-field`).style.display = v.showValuePer ? '' : 'none';
+  const vpField = document.getElementById(`ef-${ti}-${ei}-valueper-field`);
+  vpField.style.display = v.showValuePer ? '' : 'none';
+  // ⚠️ Les OPTIONS se reconstruisent, elles ne sont pas seulement révélées : le
+  // libellé « Aucune » dépend du type (le bouclier a un défaut, pas le bonus de
+  // stat), et un `<select>` bâti une fois au rendu annoncerait le défaut du
+  // type PRÉCÉDENT. Même piège que le bloc de critères d'une pioche garantie,
+  // et même remède — sauf qu'ici la sélection courante doit survivre.
+  if (v.showValuePer) {
+    const sel = document.getElementById(`ef-${ti}-${ei}-valueper`);
+    const garde = sel.value;
+    sel.innerHTML = effectScaleOptions(garde, type, 'attribute');
+    sel.value = garde;
+  }
   document.getElementById(`ef-${ti}-${ei}-max-field`).style.display = v.showMax ? '' : 'none';
   document.getElementById(`ef-${ti}-${ei}-hppercent-field`).style.display = v.showHpPercent ? '' : 'none';
+  document.getElementById(`ef-${ti}-${ei}-target-field`).style.display = v.showTarget ? '' : 'none';
   document.getElementById(`ef-${ti}-${ei}-tier-field`).style.display = v.showGuaranteed ? '' : 'none';
   // ⚠️ Le bloc de critères est RENDU, pas seulement masqué : il n'existe dans le
   // balisage que pour un `guaranteed_draw`, sinon il n'y aurait rien à révéler
@@ -2772,6 +2854,12 @@ function _collectEffectFromFields(ti, ei) {
     if (max) ef.max = parseInt(max);
   }
   if (v.showHpPercent) ef.hp_percent = parseInt(document.getElementById(`ef-${ti}-${ei}-hppercent`).value) || 0;
+  // ⚠️ `first` est le DÉFAUT du moteur : ne pas l'écrire garde la donnée
+  // livrée telle quelle, et évite de semer un champ dans 93 attributs.
+  if (v.showTarget) {
+    const t = document.getElementById(`ef-${ti}-${ei}-target`)?.value;
+    if (t && t !== 'first') ef.target = t;
+  }
   // ⚠️ Un critère VIDE ne s'écrit pas : l'absence vaut « n'importe lequel », là
   // où un `tier: 0` ou un `attributes: ['']` seraient insatisfiables — la pioche
   // ne rendrait alors jamais ce qu'elle promet.
@@ -7023,6 +7111,7 @@ function selectBoard(id) {
 function _boardEffectHtml(e, i) {
   const type = e.type || 'stat_bonus';
   const needsStat = effectKindReads(type, 'board', 'stat');
+  const scales = effectKindReads(type, 'board', 'value_per');
   const targets = boardEffectTargets(type);
   const statOpts = [
     ['atk','ATK'],['hp','HP'],['movement_speed','Vitesse mvt'],
@@ -7046,6 +7135,10 @@ function _boardEffectHtml(e, i) {
           <label>Valeur</label>
           <input type="number" step="any" id="bf-eff-${i}-value" value="${e.value ?? 0}">
         </div>
+        <div class="field" style="flex:1 1 240px;${scales ? '' : 'display:none'}">
+          <label>Multiplié par (optionnel)</label>
+          <select id="bf-eff-${i}-valueper">${scales ? effectScaleOptions(e.value_per, type, 'board') : ''}</select>
+        </div>
         <button class="btn btn-danger btn-sm" onclick="removeBoardEffect(${i})" title="Retirer cet effet">✕</button>
       </div>
       ${targets ? `
@@ -7061,6 +7154,7 @@ function _boardEffectHtml(e, i) {
           </div>
         </div>
       ` : `<div style="margin-top:8px;font-size:11px;color:var(--muted)">Cet effet crédite le joueur : il ne vise aucune unité, donc aucun ciblage.</div>`}
+      ${scales ? effectScaleNote('board') : ''}
     </div>
   `;
 }
@@ -7073,6 +7167,13 @@ function _readBoardEffects() {
     const out = { type, value: raw === '' || raw == null ? (e.value ?? 0) : Number(raw) };
     if (effectKindReads(type, 'board', 'stat')) {
       out.stat = document.getElementById(`bf-eff-${i}-stat`)?.value || e.stat || 'atk';
+    }
+    // ⚠️ Une échelle vide ne s'ÉCRIT pas : l'absence vaut ×1 (et, sur un
+    // bouclier d'attribut, le défaut du type). Semer `value_per: ""` dans 25
+    // terrains rendrait le champ illisible sans rien changer au combat.
+    if (effectKindReads(type, 'board', 'value_per')) {
+      const vp = document.getElementById(`bf-eff-${i}-valueper`)?.value || '';
+      if (vp) out.value_per = vp; else delete out.value_per;
     }
     if (boardEffectTargets(type)) {
       const attrsEl = document.getElementById(`bf-eff-${i}-attrs`);
@@ -7110,9 +7211,14 @@ function changeBoardEffectType(i, type) {
   // d'archétypes choisie à la main en passant de « bonus de stat » à
   // « bouclier » serait une punition sans raison — les deux visent les mêmes
   // unités. Un type qui ne cible personne, lui, ne garde rien.
+  const kept = { type, value: prev.value ?? 0 };
+  // L'échelle survit au même titre que le ciblage, et pour la même raison :
+  // la reperdre en passant de « bonus de stat » à « bouclier » serait une
+  // punition sans raison — les deux la lisent.
+  if (effectKindReads(type, 'board', 'value_per') && prev.value_per) kept.value_per = prev.value_per;
   boardEffectsDraft[i] = boardEffectTargets(type)
-    ? { type, value: prev.value ?? 0, stat: prev.stat || 'atk', target_attributes: prev.target_attributes || [] }
-    : { type, value: prev.value ?? 0 };
+    ? { ...kept, stat: prev.stat || 'atk', target_attributes: prev.target_attributes || [] }
+    : kept;
   renderBoardDetail();
 }
 

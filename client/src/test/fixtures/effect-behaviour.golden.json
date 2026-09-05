@@ -1,0 +1,3864 @@
+{
+ "attributes": {
+  "ARCH_001": {
+   "start": [
+    {
+     "unit": "P_A",
+     "max_hp": 110,
+     "current_hp": 110
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 110,
+     "current_hp": 110
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 110,
+     "current_hp": 110
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 110,
+     "current_hp": 110
+    }
+   ],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_A",
+     "max_hp": 110,
+     "current_hp": 110
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 110,
+     "current_hp": 110
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 110,
+     "current_hp": 110
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 110,
+     "current_hp": 110
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "max_hp": 110,
+     "current_hp": 110
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 110,
+     "current_hp": 110
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 110,
+     "current_hp": 110
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 110,
+     "current_hp": 110
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_002": {
+   "start": [
+    {
+     "unit": "P_A",
+     "attack_speed": 1
+    },
+    {
+     "unit": "P_B",
+     "attack_speed": 1
+    },
+    {
+     "unit": "E_A",
+     "attack_speed": 1
+    },
+    {
+     "unit": "E_B",
+     "attack_speed": 1
+    }
+   ],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_A",
+     "attack_speed": 1
+    },
+    {
+     "unit": "P_B",
+     "attack_speed": 1
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "attack_speed": 1
+    },
+    {
+     "unit": "E_B",
+     "attack_speed": 1
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "attack_speed": 1
+    },
+    {
+     "unit": "P_B",
+     "attack_speed": 1
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "attack_speed": 1
+    },
+    {
+     "unit": "E_B",
+     "attack_speed": 1
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_003": {
+   "start": [
+    {
+     "unit": "P_A",
+     "atk": 11
+    },
+    {
+     "unit": "P_B",
+     "atk": 11
+    },
+    {
+     "unit": "E_A",
+     "atk": 11
+    },
+    {
+     "unit": "E_B",
+     "atk": 11
+    }
+   ],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_A",
+     "atk": 11
+    },
+    {
+     "unit": "P_B",
+     "atk": 11
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "atk": 11
+    },
+    {
+     "unit": "E_B",
+     "atk": 11
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "atk": 11
+    },
+    {
+     "unit": "P_B",
+     "atk": 11
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "atk": 11
+    },
+    {
+     "unit": "E_B",
+     "atk": 11
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_004": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_005": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_005"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_005",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_005"
+     }
+    ]
+   }
+  },
+  "ARCH_006": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_007": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_007"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_007",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_007"
+     }
+    ]
+   }
+  },
+  "ARCH_008": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_008"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_008",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_008"
+     }
+    ]
+   }
+  },
+  "ARCH_009": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_009"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_009",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_009"
+     }
+    ]
+   }
+  },
+  "ARCH_010": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_011": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_011"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_011",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_011"
+     }
+    ]
+   }
+  },
+  "ARCH_012": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_012"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_012",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_012"
+     }
+    ]
+   }
+  },
+  "ARCH_013": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_013"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_013",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_013"
+     }
+    ]
+   }
+  },
+  "ARCH_014": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_014"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_014",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_014"
+     }
+    ]
+   }
+  },
+  "ARCH_015": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_015"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_015",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_015"
+     }
+    ]
+   }
+  },
+  "ARCH_016": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_017": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_018": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_019": {
+   "start": [
+    {
+     "unit": "P_A",
+     "atk": 13
+    },
+    {
+     "unit": "P_B",
+     "atk": 13
+    },
+    {
+     "unit": "E_A",
+     "atk": 13
+    },
+    {
+     "unit": "E_B",
+     "atk": 13
+    }
+   ],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_A",
+     "atk": 13
+    },
+    {
+     "unit": "P_B",
+     "atk": 13
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "atk": 13
+    },
+    {
+     "unit": "E_B",
+     "atk": 13
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "atk": 13
+    },
+    {
+     "unit": "P_B",
+     "atk": 13
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "atk": 13
+    },
+    {
+     "unit": "E_B",
+     "atk": 13
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_020": {
+   "start": [
+    {
+     "unit": "P_A",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 130,
+     "current_hp": 130
+    }
+   ],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_A",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 130,
+     "current_hp": 130
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 130,
+     "current_hp": 130
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_021": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_022": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_022"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_022",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_022"
+     }
+    ]
+   }
+  },
+  "ARCH_023": {
+   "start": [
+    {
+     "unit": "P_A",
+     "shield": 3
+    },
+    {
+     "unit": "P_B",
+     "shield": 3
+    },
+    {
+     "unit": "E_A",
+     "shield": 3
+    },
+    {
+     "unit": "E_B",
+     "shield": 3
+    }
+   ],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_A",
+     "shield": 3
+    },
+    {
+     "unit": "P_B",
+     "shield": 3
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "shield": 3
+    },
+    {
+     "unit": "E_B",
+     "shield": 3
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "shield": 3
+    },
+    {
+     "unit": "P_B",
+     "shield": 3
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "shield": 3
+    },
+    {
+     "unit": "E_B",
+     "shield": 3
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_024": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_024"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_024",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_024"
+     }
+    ]
+   }
+  },
+  "ARCH_025": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_026": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "current_hp": 30
+    },
+    {
+     "unit": "E_C",
+     "current_hp": 30
+    }
+   ],
+   "result": {
+    "revived": [
+     "P_C"
+    ],
+    "enemyRevived": [
+     "E_C"
+    ],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_027": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 1.5,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_028": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_029": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "current_hp": 75
+    },
+    {
+     "unit": "E_C",
+     "current_hp": 75
+    }
+   ],
+   "result": {
+    "revived": [
+     "P_C"
+    ],
+    "enemyRevived": [
+     "E_C"
+    ],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_030": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_031": {
+   "start": [
+    {
+     "unit": "P_A",
+     "atk": 25
+    },
+    {
+     "unit": "P_B",
+     "atk": 25
+    },
+    {
+     "unit": "E_A",
+     "atk": 25
+    },
+    {
+     "unit": "E_B",
+     "atk": 25
+    }
+   ],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_A",
+     "atk": 25
+    },
+    {
+     "unit": "P_B",
+     "atk": 25
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "atk": 25
+    },
+    {
+     "unit": "E_B",
+     "atk": 25
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "atk": 25
+    },
+    {
+     "unit": "P_B",
+     "atk": 25
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "atk": 25
+    },
+    {
+     "unit": "E_B",
+     "atk": 25
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_033": {
+   "start": [],
+   "events": [
+    {
+     "type": "stat_change",
+     "unit": "E_A",
+     "stat": "hp",
+     "value": 10
+    },
+    {
+     "type": "stat_change",
+     "unit": "E_B",
+     "stat": "hp",
+     "value": 10
+    }
+   ],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 110,
+     "current_hp": 110
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 110,
+     "current_hp": 110
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 110,
+     "current_hp": 110
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 110,
+     "current_hp": 110
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_034": {
+   "start": [
+    {
+     "unit": "P_A",
+     "atk": 12
+    },
+    {
+     "unit": "P_B",
+     "atk": 12
+    },
+    {
+     "unit": "E_A",
+     "atk": 12
+    },
+    {
+     "unit": "E_B",
+     "atk": 12
+    }
+   ],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_A",
+     "atk": 12
+    },
+    {
+     "unit": "P_B",
+     "atk": 12
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "atk": 12
+    },
+    {
+     "unit": "E_B",
+     "atk": 12
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "atk": 12
+    },
+    {
+     "unit": "P_B",
+     "atk": 12
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "atk": 12
+    },
+    {
+     "unit": "E_B",
+     "atk": 12
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_035": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_036": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_038": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_038"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_038",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_038"
+     }
+    ]
+   }
+  },
+  "ARCH_039": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 1,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_039",
+      "value": 1
+     }
+    ],
+    "enemy_draw_bonus": 1,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_040": {
+   "start": [
+    {
+     "unit": "P_A",
+     "max_hp": 200,
+     "current_hp": 200
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 200,
+     "current_hp": 200
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 200,
+     "current_hp": 200
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 200,
+     "current_hp": 200
+    }
+   ],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_A",
+     "max_hp": 200,
+     "current_hp": 200
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 200,
+     "current_hp": 200
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 200,
+     "current_hp": 200
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 200,
+     "current_hp": 200
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "max_hp": 200,
+     "current_hp": 200
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 200,
+     "current_hp": 200
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 200,
+     "current_hp": 200
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 200,
+     "current_hp": 200
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_041": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_042": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_043": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_044": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_045": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_046": {
+   "start": [],
+   "events": [
+    {
+     "type": "stat_change",
+     "unit": "P_A",
+     "stat": "hp",
+     "value": 50
+    },
+    {
+     "type": "stat_change",
+     "unit": "P_B",
+     "stat": "hp",
+     "value": 50
+    }
+   ],
+   "during": [
+    {
+     "unit": "P_A",
+     "max_hp": 150,
+     "current_hp": 150
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 150,
+     "current_hp": 150
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "max_hp": 150,
+     "current_hp": 150
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 150,
+     "current_hp": 150
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_047": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_059": {
+   "start": [
+    {
+     "unit": "P_A",
+     "immune": true
+    },
+    {
+     "unit": "P_B",
+     "immune": true
+    },
+    {
+     "unit": "E_A",
+     "immune": true
+    },
+    {
+     "unit": "E_B",
+     "immune": true
+    }
+   ],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_A",
+     "immune": true
+    },
+    {
+     "unit": "P_B",
+     "immune": true
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "immune": true
+    },
+    {
+     "unit": "E_B",
+     "immune": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "immune": true
+    },
+    {
+     "unit": "P_B",
+     "immune": true
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "immune": true
+    },
+    {
+     "unit": "E_B",
+     "immune": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_061": {
+   "start": [],
+   "events": [
+    {
+     "type": "stat_change",
+     "unit": "E_A",
+     "stat": "hp",
+     "value": 50
+    },
+    {
+     "type": "stat_change",
+     "unit": "E_B",
+     "stat": "hp",
+     "value": 50
+    }
+   ],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 150,
+     "current_hp": 150
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 150,
+     "current_hp": 150
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 150,
+     "current_hp": 150
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 150,
+     "current_hp": 150
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_064": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 1,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_064",
+      "value": 1
+     }
+    ],
+    "enemy_draw_bonus": 1,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_066": {
+   "start": [
+    {
+     "unit": "P_A",
+     "shield": 150
+    },
+    {
+     "unit": "P_B",
+     "shield": 150
+    },
+    {
+     "unit": "E_A",
+     "shield": 150
+    },
+    {
+     "unit": "E_B",
+     "shield": 150
+    }
+   ],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_A",
+     "shield": 150
+    },
+    {
+     "unit": "P_B",
+     "shield": 150
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "shield": 150
+    },
+    {
+     "unit": "E_B",
+     "shield": 150
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "shield": 150
+    },
+    {
+     "unit": "P_B",
+     "shield": 150
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "shield": 150
+    },
+    {
+     "unit": "E_B",
+     "shield": 150
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_068": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_070": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_070"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_070",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_070"
+     }
+    ]
+   }
+  },
+  "ARCH_071": {
+   "start": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "P_C",
+     "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": []
+   }
+  },
+  "ARCH_072": {
+   "start": [],
+   "events": [],
+   "during": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "end": [
+    {
+     "unit": "P_C",
+     "neutralized": true
+    }
+   ],
+   "result": {
+    "revived": [],
+    "enemyRevived": [],
+    "draw_bonus": 0,
+    "guaranteed_draws": [
+     {
+      "attribute": "ARCH_072"
+     }
+    ],
+    "board_slot_bonus": 0,
+    "damage_multiplier_bonus": 0,
+    "shopping_bonus": 0,
+    "draw_sources": [
+     {
+      "kind": "attribut",
+      "ref": "ARCH_072",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "enemy_draw_bonus": 0,
+    "enemy_guaranteed_draws": [
+     {
+      "attribute": "ARCH_072"
+     }
+    ]
+   }
+  }
+ },
+ "boards": {
+  "BOARD_002": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_003": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_004": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_005": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_006": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_007": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_001": {
+   "units": [
+    {
+     "unit": "P_A",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 130,
+     "current_hp": 130
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_008": {
+   "units": [],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_009": {
+   "units": [],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_010": {
+   "units": [],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_011": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_013": {
+   "units": [
+    {
+     "unit": "P_A",
+     "attack_speed": 1
+    },
+    {
+     "unit": "P_B",
+     "attack_speed": 1
+    },
+    {
+     "unit": "E_A",
+     "attack_speed": 1
+    },
+    {
+     "unit": "E_B",
+     "attack_speed": 1
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_014": {
+   "units": [
+    {
+     "unit": "P_A",
+     "max_hp": 150,
+     "current_hp": 150
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 150,
+     "current_hp": 150
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 150,
+     "current_hp": 150
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 150,
+     "current_hp": 150
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_015": {
+   "units": [
+    {
+     "unit": "P_A",
+     "range": 2
+    },
+    {
+     "unit": "P_B",
+     "range": 2
+    },
+    {
+     "unit": "E_A",
+     "range": 2
+    },
+    {
+     "unit": "E_B",
+     "range": 2
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_016": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_017": {
+   "units": [],
+   "draws": 1,
+   "sources": [
+    {
+     "kind": "terrain",
+     "ref": "BOARD_017",
+     "value": 1
+    }
+   ]
+  },
+  "BOARD_018": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 30
+    },
+    {
+     "unit": "P_B",
+     "atk": 30
+    },
+    {
+     "unit": "E_A",
+     "atk": 30
+    },
+    {
+     "unit": "E_B",
+     "atk": 30
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_019": {
+   "units": [
+    {
+     "unit": "P_A",
+     "shield": 50
+    },
+    {
+     "unit": "P_B",
+     "shield": 50
+    },
+    {
+     "unit": "E_A",
+     "shield": 50
+    },
+    {
+     "unit": "E_B",
+     "shield": 50
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_020": {
+   "units": [
+    {
+     "unit": "P_A",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 130,
+     "current_hp": 130
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 130,
+     "current_hp": 130
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_021": {
+   "units": [
+    {
+     "unit": "P_A",
+     "attack_speed": 1
+    },
+    {
+     "unit": "P_B",
+     "attack_speed": 1
+    },
+    {
+     "unit": "E_A",
+     "attack_speed": 1
+    },
+    {
+     "unit": "E_B",
+     "attack_speed": 1
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_022": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "P_C",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_C",
+     "atk": 20
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_023": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_024": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_025": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 20
+    },
+    {
+     "unit": "P_B",
+     "atk": 20
+    },
+    {
+     "unit": "E_A",
+     "atk": 20
+    },
+    {
+     "unit": "E_B",
+     "atk": 20
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  },
+  "BOARD_026": {
+   "units": [
+    {
+     "unit": "P_A",
+     "max_hp": 150,
+     "current_hp": 150
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 150,
+     "current_hp": 150
+    },
+    {
+     "unit": "E_A",
+     "max_hp": 150,
+     "current_hp": 150
+    },
+    {
+     "unit": "E_B",
+     "max_hp": 150,
+     "current_hp": 150
+    }
+   ],
+   "draws": 0,
+   "sources": []
+  }
+ },
+ "magies": {
+  "MAGIC_001": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 2,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIC_001",
+      "value": 2
+     }
+    ],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIC_002": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 15,
+     "base": "{\"atk\":15,\"hp\":100,\"movement_speed\":1,\"attack_speed\":2,\"initiative\":5,\"range\":1}",
+     "shopping": "{\"atk\":5}"
+    },
+    {
+     "unit": "P_B",
+     "atk": 15,
+     "base": "{\"atk\":15,\"hp\":100,\"movement_speed\":1,\"attack_speed\":2,\"initiative\":5,\"range\":1}",
+     "shopping": "{\"atk\":5}"
+    },
+    {
+     "unit": "P_C",
+     "atk": 15,
+     "base": "{\"atk\":15,\"hp\":100,\"movement_speed\":1,\"attack_speed\":2,\"initiative\":5,\"range\":1}",
+     "shopping": "{\"atk\":5}"
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIC_003": {
+   "units": [
+    {
+     "unit": "P_A",
+     "current_hp": 100
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIC_004": {
+   "units": [
+    {
+     "unit": "P_A",
+     "shield": 40
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIC_005": {
+   "units": [],
+   "state": {
+    "player_hp": 700,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIC_006": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIC_006",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "guaranteed": [
+     {
+      "tier": 1
+     }
+    ],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIC_007": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIC_007",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "guaranteed": [
+     {
+      "tier": 5
+     }
+    ],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIC_009": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIC_009",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "guaranteed": [
+     {
+      "tier": 3
+     }
+    ],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIC_010": {
+   "units": [
+    {
+     "unit": "P_A",
+     "range": 3,
+     "base": "{\"atk\":10,\"hp\":100,\"movement_speed\":1,\"attack_speed\":2,\"initiative\":5,\"range\":3}",
+     "shopping": "{\"range\":2}"
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIC_011": {
+   "units": [],
+   "state": {
+    "player_hp": 600,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIC_012": {
+   "units": [
+    {
+     "unit": "P_A",
+     "attack_speed": 1,
+     "base": "{\"atk\":10,\"hp\":100,\"movement_speed\":1,\"attack_speed\":1,\"initiative\":5,\"range\":1}",
+     "shopping": "{\"attack_speed\":-1}"
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIC_013": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_014": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 1,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_015": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_016": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [
+     {
+      "type": "reduce_materials",
+      "value": 2,
+      "attribute": null
+     }
+    ],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_017": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [
+     {
+      "type": "reduce_materials",
+      "value": 1,
+      "attribute": null
+     }
+    ],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_018": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [
+     {
+      "type": "reduce_materials",
+      "value": 1,
+      "attribute": null
+     }
+    ],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_019": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [
+     {
+      "type": "remove_requirements",
+      "value": 1,
+      "attribute": null
+     }
+    ],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_021": {
+   "units": [
+    {
+     "unit": "P_A",
+     "current_hp": 100
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_022": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 1,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIE_022",
+      "value": 1
+     }
+    ],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_023": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIE_023",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "guaranteed": [
+     {
+      "tier": 2
+     }
+    ],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_024": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIE_024",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "guaranteed": [
+     {
+      "tier": 4
+     }
+    ],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_025": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [
+     {
+      "type": "reduce_materials",
+      "value": 1,
+      "attribute": null
+     }
+    ],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_026": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_027": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_028": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 25,
+     "base": "{\"atk\":25,\"hp\":100,\"movement_speed\":1,\"attack_speed\":2,\"initiative\":5,\"range\":1}",
+     "shopping": "{\"atk\":15}"
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_029": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 3,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIE_029",
+      "value": 3
+     }
+    ],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_030": {
+   "units": [
+    {
+     "unit": "P_A",
+     "atk": 40,
+     "base": "{\"atk\":40,\"hp\":100,\"movement_speed\":1,\"attack_speed\":2,\"initiative\":5,\"range\":1}",
+     "shopping": "{\"atk\":30}"
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_031": {
+   "units": [
+    {
+     "unit": "P_A",
+     "current_hp": 100
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_032": {
+   "units": [
+    {
+     "unit": "P_A",
+     "shield": 100
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_033": {
+   "units": [
+    {
+     "unit": "P_A",
+     "power": "[\"POWER_POISON\",60,5]"
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_034": {
+   "units": [
+    {
+     "unit": "P_A",
+     "power": "[\"POWER_BURN\",60,5]"
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_035": {
+   "units": [
+    {
+     "unit": "P_A",
+     "power": "[\"POWER_TAUNT\",60,60]"
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_036": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIE_036",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "guaranteed": [
+     {
+      "attribute": "ARCH_086"
+     }
+    ],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_037": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIE_037",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "guaranteed": [
+     {
+      "attribute": "ARCH_087"
+     }
+    ],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_038": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIE_038",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "guaranteed": [
+     {
+      "attribute": "ARCH_088"
+     }
+    ],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_039": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIE_039",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "guaranteed": [
+     {
+      "attribute": "ARCH_089"
+     }
+    ],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_040": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [
+     {
+      "kind": "magie",
+      "ref": "MAGIE_040",
+      "value": 0,
+      "guaranteed": true
+     }
+    ],
+    "guaranteed": [
+     {
+      "attribute": "ARCH_090"
+     }
+    ],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_041": {
+   "units": [
+    {
+     "unit": "P_A",
+     "power": "[\"POWER_PARALYSIS\",40,40]"
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_042": {
+   "units": [
+    {
+     "unit": "P_A",
+     "power": "[\"POWER_PUSH\",40,3]"
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_043": {
+   "units": [
+    {
+     "unit": "P_A",
+     "current_hp": 50
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_044": {
+   "units": [
+    {
+     "unit": "P_A",
+     "max_hp": 130,
+     "current_hp": 70,
+     "base": "{\"atk\":10,\"hp\":130,\"movement_speed\":1,\"attack_speed\":2,\"initiative\":5,\"range\":1}",
+     "shopping": "{\"hp\":30}"
+    },
+    {
+     "unit": "P_B",
+     "max_hp": 130,
+     "current_hp": 130,
+     "base": "{\"atk\":10,\"hp\":130,\"movement_speed\":1,\"attack_speed\":2,\"initiative\":5,\"range\":1}",
+     "shopping": "{\"hp\":30}"
+    },
+    {
+     "unit": "P_C",
+     "max_hp": 130,
+     "current_hp": 130,
+     "base": "{\"atk\":10,\"hp\":130,\"movement_speed\":1,\"attack_speed\":2,\"initiative\":5,\"range\":1}",
+     "shopping": "{\"hp\":30}"
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_045": {
+   "units": [
+    {
+     "unit": "P_A",
+     "power": "[\"POWER_AOE_ATTACK\",40,50]"
+    }
+   ],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_046": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_047": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_048": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_049": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_050": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_051": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_052": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  },
+  "MAGIE_053": {
+   "units": [],
+   "state": {
+    "player_hp": 500,
+    "draws": 0,
+    "sources": [],
+    "guaranteed": [],
+    "modifiers": [],
+    "slot": 0,
+    "multiplier": 0
+   }
+  }
+ }
+}

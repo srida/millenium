@@ -210,6 +210,55 @@ export class Unit {
     if (stat === 'hp') this.current_hp += value;
   }
 
+  /**
+   * Le JUMEAU PERMANENT d'`applyStatBonus` : il écrit dans `_base`, que
+   * `resetCombatStats()` ne balaie pas, et trace le delta réellement accordé
+   * dans `_shopping_bonus`.
+   *
+   * ⚠️ Ce geste était écrit TROIS fois dans `MagieEffect` (`stat_bonus`,
+   * `team_stat_bonus`, `stat_modifier`) et nulle part ailleurs — plancher à 1,
+   * traçage, recalcul et rattrapage de `current_hp` recopiés à chaque fois. Sa
+   * place est ici, à côté du bonus de combat : c'est l'unité qui possède ses
+   * stats, et les deux portées sont la même question posée à deux échéances.
+   *
+   * ⚠️ Le traçage n'est pas un détail comptable : `_shopping_bonus` est ce que
+   * `InvocationManager._transferShoppingBonuses` reporte sur un composite quand
+   * l'unité est consommée. Un bonus permanent non tracé serait perdu à la
+   * première fusion, et le joueur paierait deux fois son investissement.
+   *
+   * ⚠️ Le delta rendu est celui qui a VRAIMENT été appliqué, plancher compris :
+   * `-10` sur une stat à 5 n'en retire que 4. Tracer la demande plutôt que
+   * l'octroi ferait dériver le composite.
+   *
+   * @returns le delta réel appliqué à `_base[stat]`
+   */
+  applyPermanentStat(stat: string, delta: number): number {
+    const before = this._base[stat] ?? 0;
+    this._base[stat] = Math.max(1, before + delta);
+    const granted = this._base[stat] - before;
+    if (granted) {
+      this._shopping_bonus = this._shopping_bonus || {};
+      this._shopping_bonus[stat] = (this._shopping_bonus[stat] || 0) + granted;
+    }
+    this._recomputeStats();
+    // ⚠️ `current_hp` suit le socle, mais PLAFONNÉ : une unité blessée ne se
+    // soigne pas parce qu'on augmente son maximum.
+    if (stat === 'hp') this.current_hp = Math.min(this.max_hp, this.current_hp + delta);
+    return granted;
+  }
+
+  /**
+   * Le multiplicateur permanent — `×value` sur le socle, converti en delta.
+   *
+   * ⚠️ Il relit `_base`, donc deux `×2` successifs donnent `×4` là où deux
+   * bonus de terrain donnent `×3` : ce sont deux compositions différentes, et
+   * c'est la portée qui les sépare. Cf. `BoardEffect.applyBoardEffects`.
+   */
+  applyPermanentModifier(stat: string, factor: number): number {
+    const base = this._base[stat] ?? 0;
+    return this.applyPermanentStat(stat, Math.round(base * (factor - 1)));
+  }
+
   // Called by during_combat stat_modifier effects (rage stacks, etc.)
   applyStatModifier(stat: string, value: number): void {
     if (stat === 'atk') {

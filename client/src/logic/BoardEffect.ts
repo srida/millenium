@@ -1,6 +1,7 @@
 import type { BoardDef, BoardEffectDef } from './types.js';
 import type { Unit } from './Unit.js';
 import type { GameState } from './GameState.js';
+import { effectScale } from './EffectScale.js';
 
 interface BoardEffectContext {
   playerUnits?: Unit[];
@@ -63,16 +64,37 @@ export function effectTargets(effect: BoardEffectDef | null | undefined, units: 
 export function applyEffect(effect: BoardEffectDef | null | undefined, { playerUnits = [], enemyUnits = [], gameState = null, sourceId = null }: BoardEffectContext = {}): void {
   if (!effect) return;
   const targets = effectTargets(effect, [...playerUnits, ...enemyUnits]);
+  /**
+   * Le multiplicateur, calculé DANS LE CAMP DE LA CIBLE.
+   *
+   * ⚠️ C'est la seule lecture qui ait un sens ici : un effet de terrain touche
+   * les DEUX camps à la fois, donc « mes alliés » n'existe pas au niveau de
+   * l'effet — seulement au niveau de l'unité qu'il frappe. « +2 ATK par allié »
+   * sur un terrain donne donc à chaque camp son propre compte, ce qui est la
+   * lecture qu'un joueur en fait spontanément.
+   *
+   * ⚠️ Sans `value_per`, `effectScale` rend 1 : les 25 terrains livrés, qui n'en
+   * portent aucun, sont inchangés au chiffre près.
+   */
+  const scaleFor = (u: Unit) => effectScale(
+    effect.value_per,
+    u.side === 'player' ? playerUnits : enemyUnits,
+    u.side === 'player' ? enemyUnits : playerUnits,
+  );
   switch (effect.type) {
     case 'stat_bonus':
-      for (const u of targets) u.applyStatBonus(effect.stat as string, effect.value as number);
+      for (const u of targets) u.applyStatBonus(effect.stat as string, (effect.value as number) * scaleFor(u));
       break;
     case 'stat_modifier':
       // Convert multiplicative to additive equivalent so resetCombatStats() cleans it up
+      // ⚠️ L'échelle ne s'applique PAS ici, et ce n'est pas un oubli : `value`
+      // y est un facteur (`×2`), pas un montant. Le multiplier par un nombre
+      // d'unités ferait de « ×2 » un « ×6 » sur un board plein — un ordre de
+      // grandeur, pas un réglage.
       for (const u of targets) u.applyStatBonus(effect.stat as string, Math.round(u._base[effect.stat as string] * ((effect.value as number) - 1)));
       break;
     case 'shield':
-      for (const u of targets) u.applyShield(effect.value as number);
+      for (const u of targets) u.applyShield((effect.value as number) * scaleFor(u));
       break;
     case 'draw_bonus':
       if (gameState) {

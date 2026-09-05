@@ -242,3 +242,30 @@ describe('Catalogue livré — les libellés ne bougent pas', () => {
     expect(Object.keys(golden).length).toBeGreaterThan(150);
   });
 });
+
+describe('Registre — l\'échelle et son défaut', () => {
+  const raw = registry as unknown as Record<string, Record<string, { params?: string[]; scale_default?: string }>>;
+  const domains = ['magie', 'attribute', 'board'] as const;
+
+  it('un scale_default ne se pose que là où le type LIT value_per', () => {
+    // ⚠️ Sinon le formulaire annoncerait un barème que le moteur n'applique
+    // pas — la forme la plus subtile du champ fantôme, puisqu'elle porte sur
+    // un défaut plutôt que sur un champ.
+    const bad: string[] = [];
+    for (const d of domains) {
+      for (const t of kindsFor(d)) {
+        if (raw[t][d].scale_default && !paramsOf(t, d).includes('value_per')) bad.push(`${d}/${t}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it('les deux moteurs qui lisent une échelle sont les seuls à en déclarer', () => {
+    // ⚠️ La magie n'en a AUCUNE, et c'est structurel : `MagieEffect.applyEffect`
+    // ne reçoit pas le camp adverse, donc « par ennemi portant X » n'y est pas
+    // calculable. Déclarer l'échelle là-bas la rendrait saisissable et inerte.
+    const withScale = domains.flatMap(d => kindsFor(d).filter(t => paramsOf(t, d).includes('value_per')).map(t => `${d}/${t}`));
+    expect(withScale.filter(x => x.startsWith('magie/'))).toEqual([]);
+    expect(withScale.length).toBeGreaterThan(0);
+  });
+});

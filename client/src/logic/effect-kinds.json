@@ -34,11 +34,31 @@
     "  params     — les champs que le type LIT. Fait foi pour le formulaire d'admin, et",
     "               c'est ce qui remplace les deux listes `noValue` recopiées dans le fichier.",
     "  label      — gabarit `{param}`, ou {fn:<nom>} quand la phrase se ramifie.",
+    "  scale_default — l'échelle qui s'applique quand `value_per` est ABSENT. Seul le bouclier",
+    "               d'attribut en a une ; partout ailleurs l'absence vaut ×1.",
     "",
     "⚠️ Un `params` qui ne dit pas la vérité est le défaut le plus coûteux du fichier : le",
     "formulaire proposerait un champ que le moteur ignore, et l'auteur croirait avoir réglé",
     "quelque chose. C'est comme ça que `value_per` s'est retrouvé sur un `shield` et `target`",
-    "sur un `revive`."
+    "sur un `revive`.",
+    "",
+    "L'ÉCHELLE (`value_per`) — le vocabulaire vit dans `logic/EffectScale`, seul lecteur.",
+    "Elle multiplie un MONTANT, jamais un facteur : `stat_modifier` ne la lit donc pas, un",
+    "« ×2 » multiplié par cinq alliés serait un ordre de grandeur, pas un réglage.",
+    "⚠️ Le bouclier d'ATTRIBUT a une échelle par défaut (× alliés vivants) que les autres",
+    "types n'ont pas : c'est son barème historique, dont `ARCH_066` tire 150 points d'un",
+    "`shield: 50` nu. `one` est le seul moyen d'y renoncer.",
+    "⚠️ Sur un TERRAIN, l'échelle se compte dans le camp de chaque unité TOUCHÉE : un effet",
+    "de terrain frappe les deux camps, il n'a pas de camp à lui.",
+    "",
+    "LA PORTÉE — pourquoi elle n'est PAS un paramètre, alors que les deux gestes existent :",
+    "un `stat_bonus` de magie écrit dans `_base` (permanent), celui d'un attribut ou d'un",
+    "terrain dans `_stat_bonuses` (le combat en cours). ⚠️ La différence n'est pas un oubli à",
+    "généraliser, c'est une conséquence du TEMPO : une magie s'applique UNE fois, au Shopping,",
+    "là où un attribut et un terrain se réappliquent à chaque combat. Un bonus permanent y",
+    "cumulerait — « +5 ATK » deviendrait +25 au cinquième round — et aucun défaut ne protège",
+    "de ça. Les deux gestes vivent sur `Unit` (`applyStatBonus` / `applyPermanentStat`) ;",
+    "c'est le type qui choisit, pas l'auteur de la donnée."
   ],
 
   "stat_bonus": {
@@ -54,7 +74,7 @@
       "label": "+{value} {stat}{targets}"
     },
     "board": {
-      "params": ["stat", "value", "target_attributes"],
+      "params": ["stat", "value", "value_per", "target_attributes"],
       "label": "+{value} {stat}{targets}"
     }
   },
@@ -97,11 +117,12 @@
       "label": "+{value} bouclier sur une unité"
     },
     "attribute": {
-      "params": ["value"],
+      "params": ["value", "value_per"],
+      "scale_default": "active_unit",
       "label": "Bouclier +{value}{targets}"
     },
     "board": {
-      "params": ["value", "target_attributes"],
+      "params": ["value", "value_per", "target_attributes"],
       "label": "Bouclier +{value}{targets}"
     }
   },
@@ -138,7 +159,7 @@
       "label": "Réanime une unité du cimetière à {value}% de ses PV"
     },
     "attribute": {
-      "params": ["hp_percent"],
+      "params": ["hp_percent", "target"],
       "label": "Réanimation"
     }
   },

@@ -1,3 +1,6 @@
+import { effectScale, ALLY_COUNT_SCALE } from './EffectScale.js';
+import { specOf } from './EffectKinds.js';
+
 /**
  * AttributeManager
  *
@@ -18,23 +21,53 @@ export const VETERANCY_ATK_PER_POINT = 2;
 export const VETERANCY_HP_PER_POINT = 15;
 
 /**
- * La sentinelle de `value_per` qui compte les alliés VIVANTS de ce camp-ci,
- * là où un id d'attribut compte les unités ADVERSES qui le portent.
- *
- * ⚠️ `value_per` a donc DEUX lectures, et l'oubli de la seconde a coûté six
- * effets muets : `active_unit` n'étant l'attribut de personne, le filtre par
- * attribut rendait 0, donc un bonus nul, donc `ARCH_019` (Démon) et `ARCH_020`
- * (Archdémon) ne donnaient RIEN à aucun de leurs trois seuils. Le sentinelle
- * était pourtant proposé — et libellé « unités alliées vivantes » — par l'onglet
- * Attributs depuis toujours : c'est l'admin qui disait vrai, le moteur qui ne
- * savait pas le faire.
- *
- * ⚠️ Ce n'est PAS un id d'attribut, et rien ne garantit qu'il n'en devienne un :
- * la sentinelle est testée AVANT le filtre par attribut, un attribut qui
- * porterait ce nom serait donc masqué. Le préfixe des ids étant `ARCH_`, le cas
- * ne peut pas se produire par accident.
+ * ⚠️ RÉ-EXPORT, pas une définition : le vocabulaire des échelles vit dans
+ * `logic/EffectScale`, que `BoardEffect` lit aussi. Les tests et l'audit du
+ * catalogue le nomment par ici — le ré-export garde ce chemin valide sans
+ * autoriser une seconde définition.
  */
-export const ALLY_COUNT_SCALE = 'active_unit';
+export { ALLY_COUNT_SCALE };
+
+/**
+ * QUELLE unité neutralisée un `revive` d'attribut relève.
+ *
+ * ⚠️ `first` est le défaut et reproduit exactement ce qui existait — la
+ * première morte, dans l'ordre des décès. C'était la seule règle possible, et
+ * elle n'était écrite nulle part : un `neutralized[0]` nu ne se lit pas comme
+ * un choix. Le nommer est ce qui rend les autres exprimables.
+ *
+ * ⚠️ Le départage se fait par `card_id`, comme l'ordre d'initiative et pour la
+ * même raison : c'est la seule valeur ABSOLUE, identique sur les deux clients
+ * PvP. Une réanimation a lieu APRÈS le dernier tick — elle change les
+ * survivants, donc les dégâts de fin de combat — et deux clients qui relèvent
+ * deux unités différentes divergent sans qu'aucun tick ne diffère.
+ *
+ * ⚠️ Une cible inconnue retombe sur `first` plutôt que de ne rien relever : un
+ * `revive` muet est le mode de panne que ce lot existe pour supprimer.
+ */
+export function reviveIndex(target, neutralized) {
+  if (!neutralized.length) return 0;
+  const rank = {
+    // ⚠️ `first` et `neutralized_ally` disent la même chose. Le second est la
+    // forme HISTORIQUE, portée par quatre attributs livrés — elle n'avait aucun
+    // lecteur tant que la cible n'existait pas, et la migrer maintenant qu'elle
+    // en a un serait réécrire des données pour ne rien changer. Même geste que
+    // l'id d'attribut nu d'une échelle : on élargit le vocabulaire, on ne
+    // renomme pas ce qui est déjà écrit.
+    first: null,
+    neutralized_ally: null,
+    highest_hp: (u) => u.max_hp,
+    highest_atk: (u) => u.atk,
+  }[target];
+  if (!rank) return 0;
+  let best = 0;
+  for (let i = 1; i < neutralized.length; i++) {
+    const d = rank(neutralized[i]) - rank(neutralized[best]);
+    if (d > 0 || (d === 0 && neutralized[i].card_id.localeCompare(neutralized[best].card_id) < 0)) best = i;
+  }
+  return best;
+}
+
 export class AttributeManager {
   /**
    * @param {Object[]} attributeList   - raw data from AttributeDatabase
@@ -117,20 +150,18 @@ export class AttributeManager {
   }
 
   /**
-   * Par quoi le `value` d'un `stat_bonus` est multiplié — cf. `ALLY_COUNT_SCALE`.
-   * Absent : ×1. `active_unit` : les alliés vivants de CE camp. Un id
-   * d'attribut : les unités d'EN FACE qui le portent.
+   * Par quoi le `value` d'un effet est multiplié — cf. `logic/EffectScale`, seul
+   * lecteur du vocabulaire.
    *
-   * ⚠️ Le bouclier ne passe PAS par ici, et ce n'est pas un oubli : son barème
-   * est fixe (× alliés vivants, toujours), et `ARCH_066` porte un `shield: 50`
-   * sans `value_per` qui en dépend — le faire tomber à ×1 lui retirerait 200
-   * points de bouclier sur un board plein.
+   * ⚠️ Le `defaut` n'est PAS une commodité : c'est ce qui a rendu le barème du
+   * bouclier configurable sans le changer. Il multipliait par les alliés
+   * vivants, toujours, sans que rien ne le nomme — `ARCH_066` porte un
+   * `shield: 50` nu qui en tire 150. Le défaut déclare cette règle au lieu de
+   * l'enfouir, et `one` permet désormais d'y renoncer pour un bouclier plat.
    */
-  _valueScale(effect, units) {
-    if (!effect.value_per) return 1;
-    if (effect.value_per === ALLY_COUNT_SCALE) return units.filter(u => u.isAlive()).length;
+  _valueScale(effect, units, defaut = null) {
     const otherUnits = units === this.playerUnits ? this.enemyUnits : this.playerUnits;
-    return otherUnits.filter(u => u.isAlive() && u.attributes.includes(effect.value_per)).length;
+    return effectScale(effect.value_per ?? defaut, units, otherUnits);
   }
 
   _applyStartForSide(units) {
@@ -153,15 +184,23 @@ export class AttributeManager {
             break;
           }
 
-          case 'shield':
-            // ⚠️ Barème FIXE : `value` × alliés vivants de ce camp, toujours.
-            // `value_per` n'est pas lu ici (cf. `_valueScale`) — l'échelle du
-            // bouclier n'est pas configurable, elle est la règle du type.
+          case 'shield': {
+            // ⚠️ Le bouclier a une échelle PAR DÉFAUT (× alliés vivants) là où
+            // `stat_bonus` n'en a pas : c'est son barème historique, et le
+            // retirer coûterait 100 points à `ARCH_066`. Il se surcharge comme
+            // n'importe quelle autre, `one` compris.
+            // ⚠️ Le défaut se LIT dans le registre, il n'est plus écrit ici :
+            // c'est ce qui fait que le formulaire d'admin et le moteur
+            // annoncent le même barème. Le retirer du registre coûterait 100
+            // points de bouclier à `ARCH_066` — `effect-behaviour` le voit.
+            const defaut = specOf('shield', 'attribute')?.scale_default ?? null;
+            const amount = effect.value * this._valueScale(effect, units, defaut);
+            if (amount === 0) break;
             for (const u of units.filter(u => u.isAlive() && u.attributes.includes(attrId))) {
-              const shieldAmount = effect.value * units.filter(x => x.isAlive()).length;
-              u.applyShield(shieldAmount);
+              u.applyShield(amount);
             }
             break;
+          }
 
           case 'effect_immunity':
             for (const u of units.filter(u => u.isAlive() && u.attributes.includes(attrId))) {
@@ -295,7 +334,8 @@ export class AttributeManager {
 
       for (const effect of threshold.effects) {
         if (effect.type === 'revive') {
-          const candidate = neutralized[0];
+          const idx = reviveIndex(effect.target, neutralized);
+          const candidate = neutralized[idx];
           if (candidate) {
             const hpPct = (effect.hp_percent ?? 50) / 100;
             candidate.current_hp = Math.floor(candidate.max_hp * hpPct);
@@ -304,7 +344,7 @@ export class AttributeManager {
             candidate.dot_effects = [];
             candidate.paralysis_remaining = 0;
             candidate.attack_speed_modifier = 0;
-            neutralized.splice(0, 1);
+            neutralized.splice(idx, 1);
             (resources ? result.revived : result.enemyRevived).push(candidate);
           }
           continue;

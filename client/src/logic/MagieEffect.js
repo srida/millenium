@@ -6,14 +6,6 @@ export const STAT_NAMES = {
   movement_speed: 'Vit. déplacement', range: 'Portée', initiative: 'Initiative',
 };
 
-// Records the actual permanent _base delta granted by a Shopping Phase magie, so that
-// InvocationManager can transfer it onto a composite unit if this unit is later consumed
-// as material (sacrifice/fusion/heritage) or replaced (transformation).
-function _trackShoppingBonus(unit, stat, delta) {
-  if (!delta) return;
-  unit._shopping_bonus = unit._shopping_bonus || {};
-  unit._shopping_bonus[stat] = (unit._shopping_bonus[stat] || 0) + delta;
-}
 
 /**
  * Contrecoup : ce que la magie coûte en PV JOUEUR. Champ de premier niveau
@@ -260,34 +252,19 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
   if (!e) return;
   switch (e.type) {
     case 'stat_bonus':
-      if (targetUnit) {
-        // Modify _base for permanence (survives resetCombatStats between rounds)
-        const before = targetUnit._base[e.stat] ?? 0;
-        targetUnit._base[e.stat] = Math.max(1, before + e.value);
-        _trackShoppingBonus(targetUnit, e.stat, targetUnit._base[e.stat] - before);
-        targetUnit._recomputeStats();
-        if (e.stat === 'hp') targetUnit.current_hp = Math.min(targetUnit.max_hp, targetUnit.current_hp + e.value);
-      }
+      if (targetUnit) targetUnit.applyPermanentStat(e.stat, e.value);
       break;
     case 'team_stat_bonus':
       // Le même geste que stat_bonus, répété sur chaque unité du joueur : le
       // bonus est permanent (_base) et tracé (_shopping_bonus), donc transféré
       // à une invocation composite si l'unité est consommée comme matériau.
-      for (const unit of (targetUnits || [])) {
-        const was = unit._base[e.stat] ?? 0;
-        unit._base[e.stat] = Math.max(1, was + e.value);
-        _trackShoppingBonus(unit, e.stat, unit._base[e.stat] - was);
-        unit._recomputeStats();
-        if (e.stat === 'hp') unit.current_hp = Math.min(unit.max_hp, unit.current_hp + e.value);
-      }
+      for (const unit of (targetUnits || [])) unit.applyPermanentStat(e.stat, e.value);
       break;
     case 'stat_modifier':
-      if (targetUnit) {
-        const base = targetUnit._base[e.stat] ?? 0;
-        targetUnit._base[e.stat] = Math.max(1, base + Math.round(base * (e.value - 1)));
-        _trackShoppingBonus(targetUnit, e.stat, targetUnit._base[e.stat] - base);
-        targetUnit._recomputeStats();
-      }
+      // ⚠️ Pas de rattrapage de `current_hp` ici, contrairement au bonus plat —
+      // c'est le comportement d'origine : un ×2 PV double le maximum sans
+      // soigner. Le geste vit sur `Unit`, la nuance dans le choix de méthode.
+      if (targetUnit) targetUnit.applyPermanentModifier(e.stat, e.value);
       break;
     case 'heal':
       // Soin TOTAL : `value` n'est pas lu. `heal()` plafonne déjà à `max_hp`,
