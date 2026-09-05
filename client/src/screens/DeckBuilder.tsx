@@ -12,6 +12,7 @@ import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import { computeDeckTags } from '../data/DeckTags.js';
 import { summonCostOf } from '../data/SummonInfo.js';
 import type { Card } from '../logic/types.js';
+import { primaryTier, tiersOf, hasTier } from '../logic/Tiers.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
@@ -51,6 +52,26 @@ const TIER_TEXT: Record<number, string> = {
 type DeckData = Record<number, Card[]>;
 const EMPTY: DeckData = { 1: [], 2: [], 3: [], 4: [], 5: [] };
 
+/** La lane où cette carte est rangée, ou `null`. Une carte multi-tiers peut être
+ *  dans n'importe laquelle des siennes — on ne la déduit jamais d'un calcul. */
+function laneOf(d: DeckData, id: string): number | null {
+  return [1, 2, 3, 4, 5].find(t => d[t].some(x => x.id === id)) ?? null;
+}
+
+/**
+ * Où ranger une carte : le PLUS BAS de ses tiers qui a encore de la place, et on
+ * monte d'un cran quand il est plein. `null` = plus une seule de ses lanes n'a
+ * de place.
+ *
+ * ⚠️ C'est ce qui donne son sens au multi-tier : la carte COMBLE LES TROUS d'un
+ * deck au lieu d'occuper d'office le haut du panier. Et elle ne compte jamais
+ * que pour UNE carte, dans une seule lane — d'où l'unicité vérifiée sur tout le
+ * deck et jamais sur la seule lane visée.
+ */
+function laneFor(c: Card, d: DeckData, tierMax: Record<number, number>): number | null {
+  return tiersOf(c).find(t => d[t] && d[t].length < tierMax[t]) ?? null;
+}
+
 
 export default function DeckBuilder() {
   const navigate = useUiStore(s => s.navigate);
@@ -89,7 +110,9 @@ export default function DeckBuilder() {
   };
 
   const allCards = useMemo(() => (CardDatabase as any).getAllCards()
-    .slice().sort((a: Card, b: Card) => a.tier !== b.tier ? a.tier - b.tier : a.name.localeCompare(b.name, 'fr')) as Card[], []);
+    .slice().sort((a: Card, b: Card) => primaryTier(a) !== primaryTier(b)
+      ? primaryTier(a) - primaryTier(b)
+      : a.name.localeCompare(b.name, 'fr')) as Card[], []);
   const tierMax = useMemo(() => {
     const m: Record<number, number> = {};
     for (let t = 1; t <= 5; t++) m[t] = Math.min(8, (CardDatabase as any).getCardsByTier(t).length);
@@ -212,7 +235,7 @@ export default function DeckBuilder() {
 
   const filtered = allCards.filter(c => {
     if (!showLocked && !owns(c.id)) return false;
-    if (tierFilters.length && !tierFilters.includes(c.tier)) return false;
+    if (tierFilters.length && !tierFilters.some(t => hasTier(c, t))) return false;
     if (costFilters.length && !costFilters.includes(costBucket(c))) return false;
     if (attributeFilter && !(c.attributes ?? []).includes(attributeFilter)) return false;
     if (search.trim() && !c.name.toLowerCase().includes(search.trim().toLowerCase())) return false;
@@ -235,9 +258,12 @@ export default function DeckBuilder() {
     // doit dépendre que de la collection, pas de l'état d'affichage.
     if (!owns(c.id)) return;
     setDeckData(d => {
-      if (d[c.tier].length >= tierMax[c.tier]) return d;
-      if (d[c.tier].some(x => x.id === c.id)) return d;
-      return { ...d, [c.tier]: [...d[c.tier], c] };
+      // ⚠️ Une carte multi-tiers ne compte QUE POUR UNE : l'unicité se vérifie
+      // sur tout le deck, jamais sur la seule lane visée.
+      if (laneOf(d, c.id) !== null) return d;
+      const lane = laneFor(c, d, tierMax);
+      if (lane === null) return d;
+      return { ...d, [lane]: [...d[lane], c] };
     });
   }
   function removeCard(tier: number, idx: number) {
@@ -246,7 +272,10 @@ export default function DeckBuilder() {
   // Retrait depuis la BIBLIOTHÈQUE, où l'on ne connaît pas l'index : la carte y
   // est unique (règle d'unicité), l'id suffit donc à la désigner.
   function removeCardById(c: Card) {
-    setDeckData(d => ({ ...d, [c.tier]: d[c.tier].filter(x => x.id !== c.id) }));
+    setDeckData(d => {
+      const lane = laneOf(d, c.id);
+      return lane === null ? d : { ...d, [lane]: d[lane].filter(x => x.id !== c.id) };
+    });
   }
 
   const [saving, setSaving] = useState(false);
@@ -482,8 +511,9 @@ function LibraryPanel({
                 // place, et une carte verrouillée héritée d'un ancien deck
                 // reste retirable ici comme dans l'onglet Deck.
                 const locked = !owns(c.id);
-                const inDeck = deckData[c.tier].some((x: Card) => x.id === c.id);
-                const full = deckData[c.tier].length >= tierMax[c.tier];
+                const inDeck = laneOf(deckData, c.id) !== null;
+                // « Plein » veut dire : plus une seule de ses lanes n'a de place.
+                const full = laneFor(c, deckData, tierMax) === null;
                 return (
                   <CardTile
                     key={c.id} {...cardTileProps(c)} size="h-auto w-full"

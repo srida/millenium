@@ -11,6 +11,7 @@
 // unités réanimées et ne pose aucun terrain. Mesurer l'équilibrage dessus
 // mesurerait un jeu que personne ne joue.
 import { GameSession } from '../logic/GameSession.js';
+import { deckPoolByTier } from '../logic/Draw.js';
 import { MAX_COMBAT_TICKS } from '../logic/CombatManager.js';
 import type { AttributeDef, BoardDef, Card } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
@@ -53,15 +54,10 @@ export interface RunGameDeps {
 export function runGame(deps: RunGameDeps): GameResult {
   const { rand } = deps;
 
-  const cardsByTier: Record<number, Card[]> = {};
-  for (let t = 1; t <= 5; t++) {
-    cardsByTier[t] = (deps.playerDeck[String(t)] ?? [])
-      .map(id => deps.cardDb.getCard(id))
-      .filter((c): c is Card => !!c);
-  }
-
   const session = new GameSession({
-    cardsByTier,
+    // Même construction que `game/bootstrap` — la simulation pioche dans le
+    // même pool que le jeu, sans quoi elle ne mesurerait pas le jeu.
+    cardsByTier: deckPoolByTier(deps.playerDeck, deps.cardDb),
     enemyDeck: deps.enemyDeck,
     attributeList: deps.attributeList,
     cardDb: deps.cardDb,

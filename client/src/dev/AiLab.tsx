@@ -25,6 +25,7 @@ import * as CardDatabase from '../data/CardDatabase.js';
 import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import * as AuthClient from '../data/AuthClient.js';
 import { initGameData } from '../game/bootstrap.js';
+import { hasTier } from '../logic/Tiers.js';
 import { useUiStore } from '../stores/uiStore.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import { runAiPlacement, handAfterEdit, reasonLabel, refusalCounts, AI_ROW_MIN, AI_ROW_MAX, AI_COLS } from './aiLabRun.js';
@@ -694,7 +695,7 @@ function CardPicker({ cards, deckIds, title, onPick, onClose }: {
     const q = search.trim().toLowerCase();
     return cards
       .filter(c => (!deckOnly || inDeck.has(c.id)))
-      .filter(c => (tier === null || c.tier === tier))
+      .filter(c => (tier === null || hasTier(c, tier)))
       .filter(c => (!q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)))
       .slice(0, 120);
   }, [cards, inDeck, deckOnly, tier, search]);

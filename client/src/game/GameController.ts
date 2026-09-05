@@ -6,6 +6,7 @@
 // à dépendre des deux + des stores.
 import { GameSession, Phase } from '../logic/GameSession.js';
 import { boardEffects, effectTargets } from '../logic/BoardEffect.js';
+import { primaryTier } from '../logic/Tiers.js';
 import { boardTargetsUnits } from '../data/BoardInfo.js';
 import { CombatAnimator3D } from '../three/CombatAnimator3D.js';
 import type { Scene3D } from '../three/Scene3D.js';
@@ -352,7 +353,7 @@ export class GameController {
     // d'invocation : les cinq voies sont devenues des attributs, et c'est sur
     // eux que les missions filtrent désormais.
     useMissionStore.getState().emit('summon_performed', {
-      card_id: card.id, tier: card.tier, attributes: card.attributes ?? [],
+      card_id: card.id, tier: primaryTier(card), attributes: card.attributes ?? [],
     });
     this._clearSelection();
     this.scene?.refresh();
@@ -834,7 +835,7 @@ export class GameController {
 
     return groups
       .map(g => g.entry)
-      .sort((a, b) => (a.card.tier ?? 0) - (b.card.tier ?? 0) || a.card.name.localeCompare(b.card.name));
+      .sort((a, b) => primaryTier(a.card) - primaryTier(b.card) || a.card.name.localeCompare(b.card.name));
   }
 
   // Recalcule l'instantané React depuis session + état de sélection.

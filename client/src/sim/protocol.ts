@@ -16,6 +16,7 @@ import { buildDeck, deckCardIds, deckWithoutCard, isSummonable, materialClosure,
 import { MetricsCollector, wilsonHalfWidth, type CardRow } from './metrics.js';
 import { runGame } from './runGame.js';
 import { summonCost } from '../logic/InvocationManager.js';
+import { primaryTier } from '../logic/Tiers.js';
 
 /**
  * Handicap plat donné à chaque unité de l'IA pendant TOUTE la simulation.
@@ -78,7 +79,7 @@ export function runDetector(cat: Catalog, games: number, seed: string): Detector
   const neverPlayed = cat.cards
     .filter(c => (seen.get(c.id)?.played ?? 0) === 0)
     .map(c => ({
-      card_id: c.id, name: c.name, tier: c.tier,
+      card_id: c.id, name: c.name, tier: primaryTier(c),
       summon_cost: summonCost(c),
       inDeck: seen.get(c.id)?.inDeck ?? 0,
     }));
@@ -119,7 +120,7 @@ export function runAb(cat: Catalog, cards: Card[], gamesPerArm: number, seed: st
   for (const card of cards) {
     const closure = materialClosure(card, cat.cards, cat.cardDb);
     if (closure === null) {
-      out.push({ card_id: card.id, name: card.name, tier: card.tier, delta: null, withRate: null, withoutRate: null, ci: null, games: 0, untestable: 'matériaux introuvables au catalogue' });
+      out.push({ card_id: card.id, name: card.name, tier: primaryTier(card), delta: null, withRate: null, withoutRate: null, ci: null, games: 0, untestable: 'matériaux introuvables au catalogue' });
       continue;
     }
 
@@ -132,7 +133,7 @@ export function runAb(cat: Catalog, cards: Card[], gamesPerArm: number, seed: st
     const attrs = new Set<string>();
     for (const id of ids) for (const a of cat.cardDb.getCard(id)?.attributes ?? []) attrs.add(a);
     if (!ids.has(card.id) || !isSummonable(card, ids, attrs) || !withoutDeck) {
-      out.push({ card_id: card.id, name: card.name, tier: card.tier, delta: null, withRate: null, withoutRate: null, ci: null, games: 0, untestable: 'deck témoin impossible (plafond de 8 par tier)' });
+      out.push({ card_id: card.id, name: card.name, tier: primaryTier(card), delta: null, withRate: null, withoutRate: null, ci: null, games: 0, untestable: 'deck témoin impossible (plafond de 8 par tier)' });
       continue;
     }
 
@@ -161,7 +162,7 @@ export function runAb(cat: Catalog, cards: Card[], gamesPerArm: number, seed: st
       wilsonHalfWidth(wWith, gamesPerArm) ** 2 + wilsonHalfWidth(wWithout, gamesPerArm) ** 2);
 
     out.push({
-      card_id: card.id, name: card.name, tier: card.tier,
+      card_id: card.id, name: card.name, tier: primaryTier(card),
       delta: pWith - pWithout, withRate: pWith, withoutRate: pWithout,
       ci, games: gamesPerArm * 2, untestable: null,
     });

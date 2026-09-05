@@ -302,9 +302,13 @@ exports[`/api/cards > empreinte du quintuplet 1`] = `
     "fichier après écritures",
     [
       {
+        "attributes": [
+          "ARCH_091",
+          "ARCH_090",
+          "ARCH_048",
+        ],
         "id": "CHAR_001",
         "name": "Modifiée",
-        "tier": 1,
       },
     ],
   ],
@@ -994,6 +998,7 @@ exports[`drapeaux calculés > présents à la lecture, absents du fichier 1`] = 
     [
       "_has_illustration",
       "_starter",
+      "_tiers",
     ],
   ],
   [

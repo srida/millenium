@@ -656,21 +656,23 @@ describe('Pioche — semée, et court-circuitable', () => {
   describe('Rétention de la main entre les rounds', () => {
     // Une fusion dont les matériaux n'arrivent qu'après : le cas exact que
     // l'écrasement rendait injouable pour toujours.
-    // ⚠️ Le tier de la CARTE et la clé du DECK sont deux choses : la clé dit à
-    // quel round la carte est tirable, le tier sert la garde « ne sacrifie pas
-    // plus haut que le résultat ». On met donc la fusion T2 dans le pool du
-    // round 1 pour que la rétention s'observe en deux rounds — avec une fusion
-    // T1 mangeant des T2, c'est la garde qui la refuserait, à juste titre.
+    // ⚠️ C'est le TIER DE LA CARTE qui dit à quels rounds elle se pioche — la
+    // lane du deck ne sert qu'au rangement. La fusion est donc tier 1 comme ses
+    // matériaux, et le deck ne contient qu'ELLE : le pool du round 1 est alors
+    // réduit à un seul candidat, ce qui rend la main prévisible sans figer un
+    // tirage. Les matériaux sont posés à la MAIN sur le plateau — la rétention
+    // ne doit pas dépendre d'une pioche chanceuse.
     const n1 = makeCard({ id: 'N1', tier: 1, summon_conditions: [] });
     const n2 = makeCard({ id: 'N2', tier: 1, summon_conditions: [] });
-    const fus = makeCard({ id: 'F', tier: 2, summon_conditions: [{ materials: 2, requires: ['N1', 'N2'] }] });
-    const deckByTier = { 1: ['F'], 2: ['N1', 'N2'] };
+    const fus = makeCard({ id: 'F', tier: 1, summon_conditions: [{ materials: 2, requires: ['N1', 'N2'] }] });
+    const deckByTier = { 1: ['F'] };
 
     it('une carte non posée reste en main, et redevient jouable plus tard', () => {
       const board = makeBoard();
       const ai = new (EnemyAI as any)(deckByTier, db([n1, n2, fus]), 'enemy');
 
-      // Round 1 : seul le tier 1 est tirable, la fusion sort et ne passe pas.
+      // Round 1 : la fusion est le seul candidat du pool, et elle ne passe pas
+      // — ses matériaux ne sont pas encore sur le plateau.
       ai.drawHand(1);
       expect(ai.getHand().map((c: any) => c.id)).toEqual(['F', 'F', 'F', 'F', 'F']);
       ai.placeFromHand(board, 5, []);

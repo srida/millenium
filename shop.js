@@ -31,6 +31,7 @@ const progression = require('./progression');
 const missions = require('./missions');
 const packs = require('./sets');
 const variants = require('./variants');
+const tiers = require('./tiers');
 
 // --- Barème (brief §3.3, §3.4, §3.5) ---
 
@@ -214,7 +215,7 @@ function drawSlot(slot, pool, rand) {
   return {
     slot,
     card_id: drawn.id,
-    tier: Number(drawn.tier) || 1,
+    tier: tiers.primaryTier(drawn),
     price_golds: SLOT_PRICE.golds,
     price_gems: SLOT_PRICE.gems,
     purchased: false,
@@ -586,7 +587,7 @@ const deliverBooster = db.transaction((user, def, rand = null) => {
   return {
     ok: true,
     set_id: def.id,
-    cards: drawn.map(c => ({ card_id: c.id, tier: Number(c.tier) || 1 })),
+    cards: drawn.map(c => ({ card_id: c.id, tier: tiers.primaryTier(c) })),
     ...settleCollection(user.id, drawn.map(c => c.id)),
   };
 });

@@ -3,7 +3,6 @@
 		"id": "CORE_001",
 		"name": "Magicien sombre",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_004",
@@ -35,7 +34,6 @@
 		"id": "CORE_002",
 		"name": "Dragon blanc aux yeux bleus",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_005",
@@ -71,7 +69,6 @@
 		"id": "CORE_003",
 		"name": "Magicienne des ténèbres",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_004",
@@ -96,7 +93,6 @@
 		"id": "CORE_004",
 		"name": "Kuriboh",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_004",
@@ -121,7 +117,6 @@
 		"id": "CORE_005",
 		"name": "Gaïa le chevalier implacable",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_009",
@@ -150,7 +145,6 @@
 		"id": "CORE_006",
 		"name": "Malédiction du dragon",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_009",
@@ -177,7 +171,6 @@
 		"id": "CORE_007",
 		"name": "Gaïa le dragon champion",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
@@ -221,7 +214,6 @@
 		"id": "CORE_008",
 		"name": "Gardien celte",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
@@ -245,7 +237,6 @@
 		"id": "CORE_009",
 		"name": "Dragon ailée de la forteresse",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_004",
@@ -271,7 +262,6 @@
 		"id": "CORE_010",
 		"name": "Soldat géant de pierre",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_028",
 			"ARCH_004",
@@ -295,7 +285,6 @@
 		"id": "CORE_011",
 		"name": "Soldat du lustre noir",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
@@ -336,7 +325,6 @@
 		"id": "CORE_012",
 		"name": "Squelette malfaisant",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_020",
@@ -366,7 +354,6 @@
 		"id": "CORE_013",
 		"name": "Buster Blader",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
@@ -397,7 +384,6 @@
 		"id": "CORE_014",
 		"name": "Gazelle le roi des bêtes mythique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_004",
@@ -423,7 +409,6 @@
 		"id": "CORE_015",
 		"name": "Berformet",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_004",
@@ -449,7 +434,6 @@
 		"id": "CORE_016",
 		"name": "Chimère le roi des bêtes fantome",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_021",
@@ -494,7 +478,6 @@
 		"id": "CORE_017",
 		"name": "Castor Guerrier",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_021",
@@ -519,7 +502,6 @@
 		"id": "CORE_018",
 		"name": "Elfe mystique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_023",
 			"ARCH_004",
@@ -548,7 +530,6 @@
 		"id": "CORE_019",
 		"name": "Lutin sauvage",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_021",
@@ -574,7 +555,6 @@
 		"id": "CORE_020",
 		"name": "Cimetiere de mammouth",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_029",
 			"ARCH_021",
@@ -600,7 +580,6 @@
 		"id": "CORE_021",
 		"name": "Croc blanc",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_004",
@@ -624,7 +603,6 @@
 		"id": "CORE_022",
 		"name": "Hitotsu le géant",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_017",
@@ -649,7 +627,6 @@
 		"id": "CORE_023",
 		"name": "Boeuf à la hache",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
@@ -674,7 +651,6 @@
 		"id": "CORE_024",
 		"name": "Dragon Koumori",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_017",
@@ -703,7 +679,6 @@
 		"id": "CORE_025",
 		"name": "Le Juge",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_017",
@@ -727,7 +702,6 @@
 		"id": "CORE_026",
 		"name": "Cavalier mystique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
@@ -752,7 +726,6 @@
 		"id": "CORE_027",
 		"name": "Ryukishin le puissant",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_017",
@@ -777,7 +750,6 @@
 		"id": "CORE_028",
 		"name": "Spadassin vengeur",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_001",
@@ -804,7 +776,6 @@
 		"id": "CORE_029",
 		"name": "La-jinn le génie de la lampe",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_002",
@@ -830,7 +801,6 @@
 		"id": "CORE_030",
 		"name": "Kaiser insolent",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
@@ -855,7 +825,6 @@
 		"id": "CORE_031",
 		"name": "Seigneur des D",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_005",
@@ -881,7 +850,6 @@
 		"id": "CORE_032",
 		"name": "Guerrier Roquette",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_025",
@@ -912,7 +880,6 @@
 		"id": "CORE_033",
 		"name": "Dragon Noir aux yeux rouge",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_008",
@@ -948,7 +915,6 @@
 		"id": "CORE_034",
 		"name": "Le chevalier de Landstar",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_018",
@@ -973,7 +939,6 @@
 		"id": "CORE_035",
 		"name": "Bébé dragon",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_018",
@@ -999,7 +964,6 @@
 		"id": "CORE_036",
 		"name": "Gearfried le chevalier de fer",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_010",
@@ -1024,7 +988,6 @@
 		"id": "CORE_037",
 		"name": "Le magicien du temps",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_018",
@@ -1048,7 +1011,6 @@
 		"id": "CORE_038",
 		"name": "Le dragon millenaire",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_018",
@@ -1088,7 +1050,6 @@
 		"id": "CORE_039",
 		"name": "Chevalier flamboyant",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_027",
@@ -1115,7 +1076,6 @@
 		"id": "CORE_040",
 		"name": "Giltia le chevalier des ténèbres",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_018",
@@ -1139,7 +1099,6 @@
 		"id": "CORE_041",
 		"name": "Kayser Hyppocampe",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_005",
@@ -1167,7 +1126,6 @@
 		"id": "CORE_042",
 		"name": "Paladin du dragon blanc",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_001",
@@ -1207,7 +1165,6 @@
 		"id": "CORE_043",
 		"name": "Dragon étincelant d'émeraude",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_045",
@@ -1236,7 +1193,6 @@
 		"id": "CORE_044",
 		"name": "Dragon étincelant de rubis",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_045",
@@ -1261,7 +1217,6 @@
 		"id": "CORE_045",
 		"name": "Vorse le raider",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_001",
@@ -1288,7 +1243,6 @@
 		"id": "CORE_046",
 		"name": "Chevalier épée",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_017",
@@ -1313,7 +1267,6 @@
 		"id": "CORE_047",
 		"name": "Tete de canon X",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_013",
@@ -1340,7 +1293,6 @@
 		"id": "CORE_048",
 		"name": "Tete de dragon Y",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_013",
@@ -1367,7 +1319,6 @@
 		"id": "CORE_049",
 		"name": "Tank de métal Z",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_013",
@@ -1394,7 +1345,6 @@
 		"id": "CORE_050",
 		"name": "Le mystèrieux",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_004",
@@ -1419,7 +1369,6 @@
 		"id": "CORE_051",
 		"name": "Valkyrie de magicien",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_004",
@@ -1444,7 +1393,6 @@
 		"id": "CORE_052",
 		"name": "Gadget Jaune",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_004",
@@ -1470,7 +1418,6 @@
 		"id": "CORE_053",
 		"name": "Gadget Rouge",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_004",
@@ -1496,7 +1443,6 @@
 		"id": "CORE_054",
 		"name": "Gadget Vert",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_004",
@@ -1522,7 +1468,6 @@
 		"id": "CORE_055",
 		"name": "Spadassin silencieux",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
@@ -1547,7 +1492,6 @@
 		"id": "CORE_057",
 		"name": "Spadassin silencieux LV2",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
@@ -1586,7 +1530,6 @@
 		"id": "CORE_058",
 		"name": "Alpha le guerrier magnetique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_028",
 			"ARCH_004",
@@ -1612,7 +1555,6 @@
 		"id": "CORE_059",
 		"name": "Beta le guerrier magnetique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_028",
 			"ARCH_004",
@@ -1638,7 +1580,6 @@
 		"id": "CORE_060",
 		"name": "Gamma le guerrier magnetique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_028",
 			"ARCH_004",
@@ -1664,7 +1605,6 @@
 		"id": "CORE_061",
 		"name": "Valkyrion le guerrier magnetique",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_028",
 			"ARCH_004",
@@ -1707,7 +1647,6 @@
 		"id": "CORE_062",
 		"name": "Chevalier de la reine",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
@@ -1733,7 +1672,6 @@
 		"id": "CORE_063",
 		"name": "Chevalier du roi",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
@@ -1759,7 +1697,6 @@
 		"id": "CORE_064",
 		"name": "Chevalier du valet",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
@@ -1785,7 +1722,6 @@
 		"id": "CORE_065",
 		"name": "Alakan le chevalier harlequin",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
@@ -1842,7 +1778,6 @@
 		"id": "CORE_066",
 		"name": "Paladin des ténèbres",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_002",
@@ -1884,7 +1819,6 @@
 		"id": "CORE_067",
 		"name": "Imperion Magnum",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_028",
@@ -1931,7 +1865,6 @@
 		"id": "CORE_068",
 		"name": "Buster Blader le Spadassin destructeur",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_003",
@@ -1973,7 +1906,6 @@
 		"id": "CORE_069",
 		"name": "Canon dragon XYZ",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_017",
@@ -2019,7 +1951,6 @@
 		"id": "CORE_070",
 		"name": "Canon dragon XY",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_017",
@@ -2062,7 +1993,6 @@
 		"id": "CORE_071",
 		"name": "Canon tank XZ",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_017",
@@ -2105,7 +2035,6 @@
 		"id": "CORE_072",
 		"name": "Dragon tank YZ",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_017",
@@ -2147,7 +2076,6 @@
 		"id": "CORE_073",
 		"name": "Dragon météore",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_018",
@@ -2173,7 +2101,6 @@
 		"id": "CORE_074",
 		"name": "Glaive de l'alligator",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
@@ -2200,7 +2127,6 @@
 		"id": "CORE_075",
 		"name": "Petit guerrier ailé",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_018",
@@ -2229,7 +2155,6 @@
 		"id": "CORE_076",
 		"name": "Dragon du glaive de l'alligator",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_001",
@@ -2273,7 +2198,6 @@
 		"id": "CORE_077",
 		"name": "Magicien du chaos",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_004",
@@ -2313,7 +2237,6 @@
 		"id": "CORE_078",
 		"name": "Bête de Gilfer",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_004",
@@ -2351,7 +2274,6 @@
 		"id": "CORE_079",
 		"name": "Kaibaman",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_017",
@@ -2376,7 +2298,6 @@
 		"id": "CORE_080",
 		"name": "Axe raider",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_018",
@@ -2401,7 +2322,6 @@
 		"id": "CORE_081",
 		"name": "Tigre à la hache",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
@@ -2426,7 +2346,6 @@
 		"id": "CORE_082",
 		"name": "Garoozis",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
@@ -2452,7 +2371,6 @@
 		"id": "CORE_083",
 		"name": "Magicien silencieux",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_014",
@@ -2478,7 +2396,6 @@
 		"id": "CORE_084",
 		"name": "Magicien silencieux lvl 2",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_014",
@@ -2518,7 +2435,6 @@
 		"id": "CORE_085",
 		"name": "Marshmallow",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_023",
@@ -2548,7 +2464,6 @@
 		"id": "CORE_086",
 		"name": "Gandoora",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_004",
@@ -2579,7 +2494,6 @@
 		"id": "CORE_087",
 		"name": "Gandoora X",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_004",
@@ -2620,7 +2534,6 @@
 		"id": "CORE_088",
 		"name": "Gandoora Gigarayon",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_004",
@@ -2661,7 +2574,6 @@
 		"id": "CORE_089",
 		"name": "Dragon noir météore",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_008",
@@ -2703,7 +2615,6 @@
 		"id": "CORE_090",
 		"name": "Dragon crane noir",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_008",
@@ -2747,7 +2658,6 @@
 		"id": "CORE_091",
 		"name": "Guerrier panthere",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_001",
@@ -2773,7 +2683,6 @@
 		"id": "CORE_092",
 		"name": "Gardna au grand bouclier",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_004",
@@ -2802,7 +2711,6 @@
 		"id": "CORE_093",
 		"name": "Avian",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -2829,7 +2737,6 @@
 		"id": "CORE_094",
 		"name": "Burstinatrix",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -2856,7 +2763,6 @@
 		"id": "CORE_095",
 		"name": "Sparkman",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -2882,7 +2788,6 @@
 		"id": "CORE_096",
 		"name": "Clayman",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -2908,7 +2813,6 @@
 		"id": "CORE_097",
 		"name": "Bulleman",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -2934,7 +2838,6 @@
 		"id": "CORE_098",
 		"name": "Géant du tonnerre",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -2975,7 +2878,6 @@
 		"id": "CORE_099",
 		"name": "Boule de boue",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -3017,7 +2919,6 @@
 		"id": "CORE_100",
 		"name": "Artilleur de flamme",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -3060,7 +2961,6 @@
 		"id": "CORE_101",
 		"name": "Aile de feu",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -3103,7 +3003,6 @@
 		"id": "CORE_102",
 		"name": "Fortin la forteresse mobile",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_004",
@@ -3147,7 +3046,6 @@
 		"id": "CORE_103",
 		"name": "Ultime dragon blanc aux yeux bleus",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_005",
@@ -3187,7 +3085,6 @@
 		"id": "CORE_104",
 		"name": "Dragoon le soldat aux yeux rouge",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_002",
@@ -3231,7 +3128,6 @@
 		"id": "CORE_105",
 		"name": "Chevalier magicien des ténèbres",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_002",
@@ -3271,7 +3167,6 @@
 		"id": "CORE_106",
 		"name": "Chevalier du flamboiement des ténèbres",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_007",
@@ -3313,7 +3208,6 @@
 		"id": "CORE_107",
 		"name": "Spadassin mirage",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_027",
@@ -3351,7 +3245,6 @@
 		"id": "CORE_108",
 		"name": "Cavalier enragé",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_017",
@@ -3389,7 +3282,6 @@
 		"id": "CORE_109",
 		"name": "Paladin du dragon noir",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_001",
@@ -3430,7 +3322,6 @@
 		"id": "CORE_110",
 		"name": "Gilford l'eclair",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_018",
@@ -3465,7 +3356,6 @@
 		"id": "CORE_111",
 		"name": "Dragon centenaire",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_018",
@@ -3505,7 +3395,6 @@
 		"id": "CORE_112",
 		"name": "Magicien du temps de demain",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_018",
@@ -3540,7 +3429,6 @@
 		"id": "CORE_113",
 		"name": "Gearfried aux yeux rouge",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_008",
@@ -3578,7 +3466,6 @@
 		"id": "CORE_114",
 		"name": "Squelette malfaisant aux yeux rouges",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_008",
 			"ARCH_019",
@@ -3617,7 +3504,6 @@
 		"id": "CORE_115",
 		"name": "Dragon météore aux yeux rouges",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_008",
@@ -3655,7 +3541,6 @@
 		"id": "CORE_116",
 		"name": "Bébé dragon aux yeux rouges",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_008",
@@ -3693,7 +3578,6 @@
 		"id": "CORE_117",
 		"name": "Saggy le bouffon des ténèbres",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_017",
@@ -3722,7 +3606,6 @@
 		"id": "CORE_118",
 		"name": "Tortue catapulte",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_021",
@@ -3750,7 +3633,6 @@
 		"id": "CORE_119",
 		"name": "Tempête",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -3796,7 +3678,6 @@
 		"id": "CORE_120",
 		"name": "Aile de photon",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -3838,7 +3719,6 @@
 		"id": "CORE_121",
 		"name": "Alie d'explosion",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -3877,7 +3757,6 @@
 		"id": "CORE_122",
 		"name": "Aile du tonnerre",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -3916,7 +3795,6 @@
 		"id": "CORE_123",
 		"name": "Heliosphere",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -3962,7 +3840,6 @@
 		"id": "CORE_124",
 		"name": "Vapoguerisseur",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -4005,7 +3882,6 @@
 		"id": "CORE_125",
 		"name": "Marin",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -4047,7 +3923,6 @@
 		"id": "CORE_126",
 		"name": "Electrum",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -4092,7 +3967,6 @@
 		"id": "CORE_127",
 		"name": "Neo Bulleman",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -4137,7 +4011,6 @@
 		"id": "CORE_128",
 		"name": "Neo Clayman",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -4183,7 +4056,6 @@
 		"id": "CORE_129",
 		"name": "Sunrise",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -4221,7 +4093,6 @@
 		"id": "CORE_130",
 		"name": "Grandfusion",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -4266,7 +4137,6 @@
 		"id": "MARIK_001",
 		"name": "Newdoria",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_030",
@@ -4291,7 +4161,6 @@
 		"id": "MARIK_002",
 		"name": "Gil Garth",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_030",
@@ -4317,7 +4186,6 @@
 		"id": "MARIK_003",
 		"name": "Drillago",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_030",
@@ -4343,7 +4211,6 @@
 		"id": "MARIK_004",
 		"name": "Viser Des",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_025",
@@ -4373,7 +4240,6 @@
 		"id": "MARIK_005",
 		"name": "Seigneur Poison",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_030",
@@ -4404,7 +4270,6 @@
 		"id": "MARIK_006",
 		"name": "Anguille de Plasma",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_035",
@@ -4432,7 +4297,6 @@
 		"id": "MARIK_007",
 		"name": "Jam Revigorant",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_035",
@@ -4459,7 +4323,6 @@
 		"id": "MARIK_008",
 		"name": "Défenseur du Jam",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_035",
@@ -4486,7 +4349,6 @@
 		"id": "MARIK_009",
 		"name": "Melchid aux Quatre Visages",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_030",
@@ -4511,7 +4373,6 @@
 		"id": "MARIK_010",
 		"name": "Byser Shock",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_030",
@@ -4538,7 +4399,6 @@
 		"id": "MARIK_011",
 		"name": "Makyura le Destructeur",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_030",
@@ -4569,7 +4429,6 @@
 		"id": "MARIK_012",
 		"name": "Helpoemer",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_030",
@@ -4598,7 +4457,6 @@
 		"id": "MARIK_015",
 		"name": "Bête Masquée des Gardius",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_030",
@@ -4634,7 +4492,6 @@
 		"id": "MARIK_016",
 		"name": "Bête Mystique Serket",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_033",
@@ -4667,7 +4524,6 @@
 		"id": "MARIK_017",
 		"name": "Golem de Lave",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_019",
@@ -4702,7 +4558,6 @@
 		"id": "MARIK_018",
 		"name": "Ra — Mode Sphère",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_031",
 			"ARCH_030",
@@ -4736,7 +4591,6 @@
 		"id": "MARIK_019",
 		"name": "Ra le Dragon Ailé",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_031",
 			"ARCH_003",
@@ -4778,7 +4632,6 @@
 		"id": "MARIK_020",
 		"name": "Ra — Phoenix Immortel",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_031",
 			"ARCH_003",
@@ -4818,7 +4671,6 @@
 		"id": "KEITH_001",
 		"name": "Mécanochasseur",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_056",
@@ -4842,7 +4694,6 @@
 		"id": "KEITH_002",
 		"name": "Gardien Métal",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_056",
@@ -4866,7 +4717,6 @@
 		"id": "KEITH_003",
 		"name": "Escargot Mécanique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_033",
@@ -4891,7 +4741,6 @@
 		"id": "KEITH_004",
 		"name": "Machine Pendule",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_044",
@@ -4916,7 +4765,6 @@
 		"id": "KEITH_005",
 		"name": "Sphère Explosive",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_044",
@@ -4946,7 +4794,6 @@
 		"id": "KEITH_006",
 		"name": "Dragon Métal Rare",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_003",
@@ -4971,7 +4818,6 @@
 		"id": "KEITH_007",
 		"name": "Araignée Lanceur",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_044",
@@ -4998,7 +4844,6 @@
 		"id": "KEITH_008",
 		"name": "Roi des Machines",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_044",
@@ -5027,7 +4872,6 @@
 		"id": "KEITH_009",
 		"name": "Machine Roulette",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_044",
@@ -5056,7 +4900,6 @@
 		"id": "KEITH_010",
 		"name": "Zoa",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_044",
@@ -5085,7 +4928,6 @@
 		"id": "KEITH_011",
 		"name": "Metalzoa",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_019",
@@ -5124,7 +4966,6 @@
 		"id": "KEITH_012",
 		"name": "Dragon Barrel",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_003",
@@ -5159,7 +5000,6 @@
 		"id": "KEITH_013",
 		"name": "Chasseur Épéiste",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_056",
@@ -5183,7 +5023,6 @@
 		"id": "KEITH_014",
 		"name": "Canon Lance-Torpilles",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_044",
@@ -5209,7 +5048,6 @@
 		"id": "KEITH_015",
 		"name": "Scorpion Blindé",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_033",
@@ -5234,7 +5072,6 @@
 		"id": "HAGA_001",
 		"name": "Insecte de Base",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -5258,7 +5095,6 @@
 		"id": "HAGA_002",
 		"name": "Kamakiri Volant",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_051",
@@ -5283,7 +5119,6 @@
 		"id": "HAGA_003",
 		"name": "Soldat Insecte du Ciel",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_056",
@@ -5307,7 +5142,6 @@
 		"id": "HAGA_005",
 		"name": "Bug Mangeur",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -5335,7 +5169,6 @@
 		"id": "HAGA_006",
 		"name": "Parasite Paracide",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -5364,7 +5197,6 @@
 		"id": "HAGA_007",
 		"name": "Larve de Mite",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -5402,7 +5234,6 @@
 		"id": "HAGA_008",
 		"name": "Cocon d'Évolution",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -5431,7 +5262,6 @@
 		"id": "HAGA_009",
 		"name": "Chevalier Cafard",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -5456,7 +5286,6 @@
 		"id": "HAGA_011",
 		"name": "Grande Mite",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_051",
@@ -5492,7 +5321,6 @@
 		"id": "HAGA_012",
 		"name": "Ultime Grande Mite",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_051",
@@ -5528,7 +5356,6 @@
 		"id": "HAGA_013",
 		"name": "Reine des Insectes",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -5560,7 +5387,6 @@
 		"id": "HAGA_014",
 		"name": "Jirai Gumo",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_041",
@@ -5585,7 +5411,6 @@
 		"id": "REX_001",
 		"name": "Rex à Deux Têtes",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -5610,7 +5435,6 @@
 		"id": "REX_002",
 		"name": "Dragon Rampant",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_003",
@@ -5634,7 +5458,6 @@
 		"id": "REX_003",
 		"name": "Trakadon",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -5658,7 +5481,6 @@
 		"id": "REX_004",
 		"name": "Mégastrateur",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -5682,7 +5504,6 @@
 		"id": "REX_005",
 		"name": "Anthrosaurus",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -5706,7 +5527,6 @@
 		"id": "REX_006",
 		"name": "Dragon à l'Épée",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_003",
@@ -5742,7 +5562,6 @@
 		"id": "REX_007",
 		"name": "Brachiosaure",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -5770,7 +5589,6 @@
 		"id": "REX_008",
 		"name": "Grand Lion de Guerre",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_021",
@@ -5799,7 +5617,6 @@
 		"id": "REX_009",
 		"name": "Ptérodactyle",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_051",
@@ -5823,7 +5640,6 @@
 		"id": "REX_010",
 		"name": "Megalodon",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_035",
@@ -5848,7 +5664,6 @@
 		"id": "REX_011",
 		"name": "Dragon Terrestre",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_003",
@@ -5873,7 +5688,6 @@
 		"id": "REX_012",
 		"name": "Serpent Dragon Noctambule",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_034",
@@ -5904,7 +5718,6 @@
 		"id": "REX_013",
 		"name": "Tyranno Noir",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -5936,7 +5749,6 @@
 		"id": "MAKO_001",
 		"name": "Poisson aux 7 Couleurs",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_049",
@@ -5960,7 +5772,6 @@
 		"id": "MAKO_002",
 		"name": "Kraken Diabolique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_047",
@@ -5985,7 +5796,6 @@
 		"id": "MAKO_003",
 		"name": "Grand Requin Blanc",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_021",
@@ -6010,7 +5820,6 @@
 		"id": "MAKO_004",
 		"name": "Kairyu-Shin",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_047",
@@ -6035,7 +5844,6 @@
 		"id": "MAKO_005",
 		"name": "Méduse",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_047",
@@ -6060,7 +5868,6 @@
 		"id": "MAKO_006",
 		"name": "Légendaire Pêcheur",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_001",
@@ -6087,7 +5894,6 @@
 		"id": "MAKO_007",
 		"name": "Oiseau Tornade",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_051",
@@ -6116,7 +5922,6 @@
 		"id": "MAKO_008",
 		"name": "Mer Kamen",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_049",
@@ -6140,7 +5945,6 @@
 		"id": "MAKO_010",
 		"name": "Bête Amphibie",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_021",
@@ -6174,7 +5978,6 @@
 		"id": "MAKO_011",
 		"name": "Baleine Forteresse",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_047",
@@ -6206,7 +6009,6 @@
 		"id": "MAKO_012",
 		"name": "Dragon Aquatique",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_003",
@@ -6235,7 +6037,6 @@
 		"id": "MAKO_013",
 		"name": "Seigneur des Profondeurs",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_047",
@@ -6277,7 +6078,6 @@
 		"id": "MAKO_014",
 		"name": "Sirène Enchantée",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_002",
@@ -6301,7 +6101,6 @@
 		"id": "MAKO_015",
 		"name": "Léviathan",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_019",
@@ -6334,7 +6133,6 @@
 		"id": "MAI_002",
 		"name": "Harpie Lady 1",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_001",
@@ -6361,7 +6159,6 @@
 		"id": "MAI_003",
 		"name": "Harpie Lady 2",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_001",
@@ -6388,7 +6185,6 @@
 		"id": "MAI_004",
 		"name": "Harpie Lady 3",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_001",
@@ -6415,7 +6211,6 @@
 		"id": "MAI_005",
 		"name": "Cyber Harpie",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_001",
@@ -6448,7 +6243,6 @@
 		"id": "MAI_006",
 		"name": "Dragon Familier de Harpie",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_003",
@@ -6478,7 +6272,6 @@
 		"id": "MAI_007",
 		"name": "Sœurs Harpies",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_001",
@@ -6523,7 +6316,6 @@
 		"id": "MAI_014",
 		"name": "Dragon Harpie Ultime",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_003",
@@ -6560,7 +6352,6 @@
 		"id": "MAI_015",
 		"name": "Reine des Harpies",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_001",
@@ -6592,7 +6383,6 @@
 		"id": "PEGASUS_001",
 		"name": "Toon Sirène",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_038",
 			"ARCH_035",
@@ -6627,7 +6417,6 @@
 		"id": "PEGASUS_002",
 		"name": "Toon Alligator",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_038",
 			"ARCH_021",
@@ -6663,7 +6452,6 @@
 		"id": "PEGASUS_005",
 		"name": "Idole aux Milles Yeux",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_054",
@@ -6688,7 +6476,6 @@
 		"id": "PEGASUS_006",
 		"name": "L’abandonné",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_054",
@@ -6725,7 +6512,6 @@
 		"id": "PEGASUS_007",
 		"name": "L’abandonné aux Milles Yeux",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_054",
@@ -6765,7 +6551,6 @@
 		"id": "PEGASUS_008",
 		"name": "Toon Crâne Invoqué",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_038",
 			"ARCH_019",
@@ -6804,7 +6589,6 @@
 		"id": "PEGASUS_009",
 		"name": "Dragon Blanc Toon",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_038",
 			"ARCH_003",
@@ -6843,7 +6627,6 @@
 		"id": "PEGASUS_010",
 		"name": "Toon Magicienne des ténèbres",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_038",
 			"ARCH_002",
@@ -6878,7 +6661,6 @@
 		"id": "PEGASUS_011",
 		"name": "Mage Masqué Illusoire",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_054",
@@ -6903,7 +6685,6 @@
 		"id": "PEGASUS_013",
 		"name": "Toon Magicien Sombre",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_038",
 			"ARCH_002",
@@ -6938,7 +6719,6 @@
 		"id": "BAKURA_001",
 		"name": "Chevalier sans Tête",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_043",
@@ -6963,7 +6743,6 @@
 		"id": "BAKURA_003",
 		"name": "Clown Grossier",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_039",
 			"ARCH_054",
@@ -6987,7 +6766,6 @@
 		"id": "BAKURA_004",
 		"name": "Clown Rêveur",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_039",
 			"ARCH_054",
@@ -7011,7 +6789,6 @@
 		"id": "BAKURA_005",
 		"name": "Clown Zombie",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_039",
 			"ARCH_029",
@@ -7036,7 +6813,6 @@
 		"id": "BAKURA_006",
 		"name": "Comte du Trépas",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_043",
@@ -7062,7 +6838,6 @@
 		"id": "BAKURA_007",
 		"name": "Fantôme des Songes Perdus",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_054",
@@ -7086,7 +6861,6 @@
 		"id": "BAKURA_008",
 		"name": "Necrofear des Ténèbres",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_029",
@@ -7119,7 +6893,6 @@
 		"id": "BAKURA_009",
 		"name": "Esprit Sombre Silencieux",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_054",
@@ -7148,7 +6921,6 @@
 		"id": "BAKURA_011",
 		"name": "Pilleur de Tombe",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_043",
@@ -7174,7 +6946,6 @@
 		"id": "BONZ_001",
 		"name": "Dragon Zombie",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_029",
 			"ARCH_003",
@@ -7199,7 +6970,6 @@
 		"id": "BONZ_002",
 		"name": "Zombie Blindé",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_029",
 			"ARCH_001",
@@ -7224,7 +6994,6 @@
 		"id": "BONZ_003",
 		"name": "Zombie Zanki",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_029",
 			"ARCH_001",
@@ -7249,7 +7018,6 @@
 		"id": "BONZ_004",
 		"name": "13ième Tombe",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_029",
 			"ARCH_054",
@@ -7273,7 +7041,6 @@
 		"id": "BONZ_005",
 		"name": "Citrouille Effrayante",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_040",
 			"ARCH_029",
@@ -7298,7 +7065,6 @@
 		"id": "BONZ_007",
 		"name": "Roi Citrouille",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_040",
 			"ARCH_029",
@@ -7335,7 +7101,6 @@
 		"id": "BONZ_008",
 		"name": "Dragon Zombie Géant",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_029",
 			"ARCH_003",
@@ -7367,7 +7132,6 @@
 		"id": "BONZ_010",
 		"name": "Nécromancien des Morts",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_029",
 			"ARCH_002",
@@ -7392,7 +7156,6 @@
 		"id": "BONZ_013",
 		"name": "Dragon Mort-Vivant",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_029",
 			"ARCH_003",
@@ -7425,7 +7188,6 @@
 		"id": "BONZ_014",
 		"name": "Princesse Citrouille",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_040",
 			"ARCH_029",
@@ -7459,7 +7221,6 @@
 		"id": "BONZ_015",
 		"name": "Armée des Morts",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_029",
 			"ARCH_054",
@@ -7490,7 +7251,6 @@
 		"id": "PARA_001",
 		"name": "Sanga du Tonnerre",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_042",
 			"ARCH_041",
@@ -7523,7 +7283,6 @@
 		"id": "PARA_002",
 		"name": "Kazejin",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_042",
 			"ARCH_041",
@@ -7555,7 +7314,6 @@
 		"id": "PARA_003",
 		"name": "Suijin",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_042",
 			"ARCH_041",
@@ -7587,7 +7345,6 @@
 		"id": "PARA_004",
 		"name": "Gardien de la Porte",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_042",
 			"ARCH_001",
@@ -7632,7 +7389,6 @@
 		"id": "PARA_006",
 		"name": "Ver du Donjon",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_041",
 			"ARCH_021",
@@ -7656,7 +7412,6 @@
 		"id": "PARA_008",
 		"name": "Chimère des Ténèbres",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_041",
 			"ARCH_019",
@@ -7681,7 +7436,6 @@
 		"id": "PARA_011",
 		"name": "Ombre Murale",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_041",
 			"ARCH_019",
@@ -7713,7 +7467,6 @@
 		"id": "PARA_012",
 		"name": "Tank du Labyrinthe",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_041",
 			"ARCH_025",
@@ -7738,7 +7491,6 @@
 		"id": "PARA_013",
 		"name": "Maître du Labyrinthe",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_041",
 			"ARCH_002",
@@ -7762,7 +7514,6 @@
 		"id": "EXTRA_001",
 		"name": "Scarabée hercule",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -7786,7 +7537,6 @@
 		"id": "EXTRA_002",
 		"name": "Gokibore",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -7810,7 +7560,6 @@
 		"id": "EXTRA_003",
 		"name": "Pinchopper",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -7834,7 +7583,6 @@
 		"id": "EXTRA_004",
 		"name": "Reine insecte metamorphosée",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -7872,7 +7620,6 @@
 		"id": "EXTRA_005",
 		"name": "Bio armure d'insecte",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_025",
@@ -7901,7 +7648,6 @@
 		"id": "EXTRA_006",
 		"name": "Insecte mangeur d'homme imitateur",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -7936,7 +7682,6 @@
 		"id": "EXTRA_007",
 		"name": "Parasite paranoiaque",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -7971,7 +7716,6 @@
 		"id": "EXTRA_008",
 		"name": "Grand Insecte ultime",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -8008,7 +7752,6 @@
 		"id": "EXTRA_009",
 		"name": "Princesse Insecte",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -8032,7 +7775,6 @@
 		"id": "EXTRA_010",
 		"name": "Chargeur Dévastateur",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -8063,7 +7805,6 @@
 		"id": "EXTRA_011",
 		"name": "Gokipole",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_033",
 			"ARCH_050",
@@ -8094,7 +7835,6 @@
 		"id": "EXTRA_012",
 		"name": "Dragon bras d'épée",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -8122,7 +7862,6 @@
 		"id": "EXTRA_013",
 		"name": "Bête folle à l'épée",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -8146,7 +7885,6 @@
 		"id": "EXTRA_014",
 		"name": "Tomosaure",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -8170,7 +7908,6 @@
 		"id": "EXTRA_015",
 		"name": "Puissant dino roi rex",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -8208,7 +7945,6 @@
 		"id": "EXTRA_016",
 		"name": "Dino roi rex à double tête",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -8246,7 +7982,6 @@
 		"id": "EXTRA_017",
 		"name": "Rex le géant",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -8270,7 +8005,6 @@
 		"id": "EXTRA_018",
 		"name": "Gilasaure",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -8294,7 +8028,6 @@
 		"id": "EXTRA_019",
 		"name": "Zuttomosaure",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_034",
 			"ARCH_050",
@@ -8330,7 +8063,6 @@
 		"id": "EXTRA_020",
 		"name": "Baleine Citadelle",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_047",
@@ -8355,7 +8087,6 @@
 		"id": "EXTRA_021",
 		"name": "Le pêcheur légendaire 2",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_035",
@@ -8402,7 +8133,6 @@
 		"id": "EXTRA_022",
 		"name": "Le pêcheur légendaire 3",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_035",
@@ -8443,7 +8173,6 @@
 		"id": "EXTRA_023",
 		"name": "Orca meca forteresse",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_047",
@@ -8472,7 +8201,6 @@
 		"id": "EXTRA_024",
 		"name": "Mega baleine forteresse",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_047",
@@ -8511,7 +8239,6 @@
 		"id": "EXTRA_025",
 		"name": "Seigneur Dragon Océan - Kairyu-Shin",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_047",
@@ -8550,7 +8277,6 @@
 		"id": "EXTRA_026",
 		"name": "Méduse Électrique",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_047",
@@ -8593,7 +8319,6 @@
 		"id": "EXTRA_027",
 		"name": "Kraken de la Mort",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_047",
@@ -8637,7 +8362,6 @@
 		"id": "EXTRA_028",
 		"name": "Revolver Dragon Desperado",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_025",
@@ -8677,7 +8401,6 @@
 		"id": "EXTRA_029",
 		"name": "Roi-Machine Parfait",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_025",
@@ -8714,7 +8437,6 @@
 		"id": "EXTRA_030",
 		"name": "Dragon à Recul",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_025",
@@ -8745,7 +8467,6 @@
 		"id": "EXTRA_031",
 		"name": "Araignée Explosion BM-4",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_033",
@@ -8772,7 +8493,6 @@
 		"id": "EXTRA_032",
 		"name": "Dragon Double Barillet",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_025",
@@ -8799,7 +8519,6 @@
 		"id": "EXTRA_033",
 		"name": "Roi-Machine Prototype",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_025",
@@ -8825,7 +8544,6 @@
 		"id": "EXTRA_034",
 		"name": "Dragon noir métallique aux yeux rouges",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_008",
@@ -8867,7 +8585,6 @@
 		"id": "EXTRA_035",
 		"name": "Illusioniste métalique",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_025",
@@ -8905,7 +8622,6 @@
 		"id": "EXTRA_036",
 		"name": "Dragon Gatling",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_025",
@@ -8948,7 +8664,6 @@
 		"id": "EXTRA_037",
 		"name": "Oracle Harpie",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_001",
@@ -8974,7 +8689,6 @@
 		"id": "EXTRA_038",
 		"name": "Parfumeuse Harpie",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_002",
@@ -9002,7 +8716,6 @@
 		"id": "EXTRA_039",
 		"name": "Bébé Dragon, Familier de Harpie",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_036",
@@ -9028,7 +8741,6 @@
 		"id": "EXTRA_040",
 		"name": "Jo, l'Homme-Oiseau Prompt",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_001",
@@ -9058,7 +8770,6 @@
 		"id": "EXTRA_041",
 		"name": "Frère de Harpie",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_036",
@@ -9084,7 +8795,6 @@
 		"id": "EXTRA_042",
 		"name": "Fille Harpie",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_045",
@@ -9109,7 +8819,6 @@
 		"id": "EXTRA_043",
 		"name": "Dragon de Harpie - Souffle de Feu Terrible",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_048",
@@ -9146,7 +8855,6 @@
 		"id": "EXTRA_044",
 		"name": "Harpiste Harpie",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_001",
@@ -9185,7 +8893,6 @@
 		"id": "EXTRA_045",
 		"name": "Médium Harpie",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_001",
@@ -9225,7 +8932,6 @@
 		"id": "EXTRA_046",
 		"name": "Cyber-Griffes Dame Harpie",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_001",
@@ -9263,7 +8969,6 @@
 		"id": "EXTRA_047",
 		"name": "Chef d'Orchestre Harpie",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_001",
@@ -9303,7 +9008,6 @@
 		"id": "EXTRA_048",
 		"name": "Gélatine Humanoïde",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_035",
@@ -9333,7 +9037,6 @@
 		"id": "EXTRA_049",
 		"name": "Jeroid des Ténèbres",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_019",
@@ -9363,7 +9066,6 @@
 		"id": "EXTRA_050",
 		"name": "Juragedo",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_030",
@@ -9388,7 +9090,6 @@
 		"id": "EXTRA_051",
 		"name": "Lekunga",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_035",
@@ -9414,7 +9115,6 @@
 		"id": "EXTRA_052",
 		"name": "Bowganian",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_030",
@@ -9440,7 +9140,6 @@
 		"id": "EXTRA_053",
 		"name": "Slime Métallique",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_035",
 			"ARCH_030",
@@ -9478,7 +9177,6 @@
 		"id": "EXTRA_054",
 		"name": "Démon Légendaire",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_030",
@@ -9506,7 +9204,6 @@
 		"id": "EXTRA_055",
 		"name": "Réacteur Slime",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_035",
@@ -9544,7 +9241,6 @@
 		"id": "EXTRA_056",
 		"name": "Ver Drakonien",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_033",
@@ -9569,7 +9265,6 @@
 		"id": "EXTRA_057",
 		"name": "Dieu Égyptien Slime",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_031",
@@ -9616,7 +9311,6 @@
 		"id": "EXTRA_058",
 		"name": "Ver Drakonien Humanoïde",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_033",
@@ -9652,7 +9346,6 @@
 		"id": "EXTRA_059",
 		"name": "Granadora",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_035",
@@ -9678,7 +9371,6 @@
 		"id": "EXTRA_060",
 		"name": "Malédiction Necrofear",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_001",
@@ -9718,7 +9410,6 @@
 		"id": "EXTRA_061",
 		"name": "Zorc - Maître des Ténèbres",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_019",
@@ -9758,7 +9449,6 @@
 		"id": "EXTRA_062",
 		"name": "Noyau Diabound",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_019",
@@ -9791,7 +9481,6 @@
 		"id": "EXTRA_063",
 		"name": "Cavalier Squelette Deathcalibur",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_001",
@@ -9818,7 +9507,6 @@
 		"id": "EXTRA_064",
 		"name": "Esprit Noir de la Malice",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_019",
@@ -9853,7 +9541,6 @@
 		"id": "EXTRA_065",
 		"name": "Esprit Noir du Bannissement",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_019",
@@ -9888,7 +9575,6 @@
 		"id": "EXTRA_066",
 		"name": "Duc de la Disparition",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_001",
@@ -9928,7 +9614,6 @@
 		"id": "EXTRA_067",
 		"name": "Gardien des Ténèbres",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_041",
@@ -9955,7 +9640,6 @@
 		"id": "EXTRA_068",
 		"name": "Char Lourd du Labyrinthe",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_041",
@@ -9987,7 +9671,6 @@
 		"id": "EXTRA_069",
 		"name": "Dompteur de Monstres",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_041",
@@ -10011,7 +9694,6 @@
 		"id": "EXTRA_070",
 		"name": "Goule d'Ombre",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_041",
@@ -10035,7 +9717,6 @@
 		"id": "EXTRA_071",
 		"name": "Association du Gardien de la Porte",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_025",
@@ -10075,7 +9756,6 @@
 		"id": "EXTRA_072",
 		"name": "Gardien de la Porte de l'Eau et du Tonnerre",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_041",
 			"ARCH_042",
@@ -10116,7 +9796,6 @@
 		"id": "EXTRA_073",
 		"name": "Gardien de la Porte du Tonnerre et du Vent",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_042",
 			"ARCH_041",
@@ -10157,7 +9836,6 @@
 		"id": "EXTRA_074",
 		"name": "Gardien de la Porte du Vent et de l'Eau",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_041",
 			"ARCH_042",
@@ -10198,7 +9876,6 @@
 		"id": "EXTRA_075",
 		"name": "Défenseur du Labyrinthe",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_041",
@@ -10234,7 +9911,6 @@
 		"id": "EXTRA_076",
 		"name": "Goule d'Ombre du Labyrinthe",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_041",
@@ -10271,7 +9947,6 @@
 		"id": "EXTRA_077",
 		"name": "Moremarshmallon",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_021",
@@ -10308,7 +9983,6 @@
 		"id": "EXTRA_078",
 		"name": "Gadget Argent",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_025",
@@ -10341,7 +10015,6 @@
 		"id": "EXTRA_079",
 		"name": "Gadget Or",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_011",
@@ -10374,7 +10047,6 @@
 		"id": "EXTRA_080",
 		"name": "Gadget Platine",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_011",
@@ -10413,7 +10085,6 @@
 		"id": "EXTRA_081",
 		"name": "Chimère la bête illusion",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_019",
@@ -10458,7 +10129,6 @@
 		"id": "EXTRA_082",
 		"name": "Griffore",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_003",
@@ -10484,7 +10154,6 @@
 		"id": "EXTRA_083",
 		"name": "Sliffer le dragon du ciel",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_031",
@@ -10519,7 +10188,6 @@
 		"id": "EXTRA_084",
 		"name": "Obelisk le tourmenteur",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_031",
@@ -10553,7 +10221,6 @@
 		"id": "EXTRA_085",
 		"name": "Chevalier maître des dragons",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_017",
@@ -10601,7 +10268,6 @@
 		"id": "EXTRA_086",
 		"name": "Prêtresse aux yeux bleus",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_005",
 			"ARCH_002",
@@ -10634,7 +10300,6 @@
 		"id": "EXTRA_087",
 		"name": "Magia le maître des dragons",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_003",
@@ -10682,7 +10347,6 @@
 		"id": "EXTRA_088",
 		"name": "Esprit aux yeux bleus",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_005",
@@ -10716,7 +10380,6 @@
 		"id": "EXTRA_089",
 		"name": "Magicien sombre de la destruction",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_004",
@@ -10763,7 +10426,6 @@
 		"id": "EXTRA_090",
 		"name": "Neo Sparkman",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_006",
 			"ARCH_001",
@@ -10808,7 +10470,6 @@
 		"id": "EXTRA_091",
 		"name": "Neo Burstinatrix",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -10854,7 +10515,6 @@
 		"id": "EXTRA_092",
 		"name": "Neo Avian",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_006",
@@ -10900,7 +10560,6 @@
 		"id": "EXTRA_093",
 		"name": "Metalzoa Parfait",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_019",
 			"ARCH_025",
@@ -10948,7 +10607,6 @@
 		"id": "EXTRA_094",
 		"name": "Chevalier flamboyant de métal",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_018",
@@ -10989,7 +10647,6 @@
 		"id": "PEGASUS_014",
 		"name": "Monde des toons",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_038",
 			"ARCH_054",
@@ -11017,7 +10674,6 @@
 		"id": "PEGASUS_015",
 		"name": "Forteresse des toons",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_038",
@@ -11057,7 +10713,6 @@
 		"id": "PEGASUS_016",
 		"name": "Lapin des ténèbres",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_038",
@@ -11091,7 +10746,6 @@
 		"id": "EXTRA_095",
 		"name": "Dragon perroquet",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_038",
@@ -11126,7 +10780,6 @@
 		"id": "PEGASUS_017",
 		"name": "Soldat canon toon",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_038",
@@ -11166,7 +10819,6 @@
 		"id": "PEGASUS_018",
 		"name": "Jigen Bakudan",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_025",
 			"ARCH_039",
@@ -11197,7 +10849,6 @@
 		"id": "PEGASUS_019",
 		"name": "Manga Ryu-Ran",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_038",
@@ -11237,7 +10888,6 @@
 		"id": "PEGASUS_020",
 		"name": "Soldat du lustre noir toon",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_009",
@@ -11279,7 +10929,6 @@
 		"id": "PEGASUS_021",
 		"name": "Dragon toon aux yeux rouges",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_008",
@@ -11320,7 +10969,6 @@
 		"id": "PEGASUS_022",
 		"name": "Dame harpie toon",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_036",
 			"ARCH_038",
@@ -11356,7 +11004,6 @@
 		"id": "PEGASUS_023",
 		"name": "Idole aux yeux d’or",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_039",
@@ -11394,7 +11041,6 @@
 		"id": "PEGASUS_024",
 		"name": "Illusionniste aux yeux millénaires",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_039",
@@ -11431,7 +11077,6 @@
 		"id": "PEGASUS_025",
 		"name": "Illusionniste des ténèbres",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_039",
@@ -11455,7 +11100,6 @@
 		"id": "PEGASUS_026",
 		"name": "Magicien illusionniste anonyme",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_039",
@@ -11493,7 +11137,6 @@
 		"id": "PEGASUS_027",
 		"name": "L’abandonné aux yeux millénaires",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_039",
@@ -11533,7 +11176,6 @@
 		"id": "PEGASUS_028",
 		"name": "Doppleganger le mimetique",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_038",
@@ -11572,7 +11214,6 @@
 		"id": "PEGASUS_029",
 		"name": "Dragon ultime aux yeux bleus toon",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_005",
@@ -11614,7 +11255,6 @@
 		"id": "PEGASUS_030",
 		"name": "Lapin des ténèbres malin",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_038",
@@ -11652,7 +11292,6 @@
 		"id": "PEGASUS_031",
 		"name": "Chat comique",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_038",
@@ -11691,7 +11330,6 @@
 		"id": "PEGASUS_032",
 		"name": "Mage illusionniste aux yeux noirs",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_039",
@@ -11732,7 +11370,6 @@
 		"id": "PEGASUS_033",
 		"name": "Monde des toons le monde parfait",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_038",
 			"ARCH_002",
@@ -11771,7 +11408,6 @@
 		"id": "PEGASUS_034",
 		"name": "Bickuribox",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_038",
@@ -11806,7 +11442,6 @@
 		"id": "PEGASUS_035",
 		"name": "Boîte maléfique",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_021",
 			"ARCH_038",
@@ -11845,7 +11480,6 @@
 		"id": "YGX_001",
 		"name": "Golem Mécanique Antique",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -11880,7 +11514,6 @@
 		"id": "YGX_002",
 		"name": "Bête mécanique antique",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -11908,7 +11541,6 @@
 		"id": "YGX_003",
 		"name": "Soldat mécanique antique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_059",
@@ -11936,7 +11568,6 @@
 		"id": "YGX_004",
 		"name": "Dragon gadjiltron",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -11983,7 +11614,6 @@
 		"id": "YGX_005",
 		"name": "Chimère gadjiltron",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_011",
 			"ARCH_059",
@@ -12029,7 +11659,6 @@
 		"id": "YGX_006",
 		"name": "Ingénieur mécanique antique",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -12057,7 +11686,6 @@
 		"id": "YGX_007",
 		"name": "Chevalier mécanique antique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_056",
@@ -12085,7 +11713,6 @@
 		"id": "YGX_008",
 		"name": "Vouivre mécanique antique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -12114,7 +11741,6 @@
 		"id": "YGX_009",
 		"name": "Boîte mécanique antique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -12144,7 +11770,6 @@
 		"id": "YGX_010",
 		"name": "Chien de chasse mécanique antique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -12171,7 +11796,6 @@
 		"id": "YGX_011",
 		"name": "Gadget mécanique antique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_011",
@@ -12199,7 +11823,6 @@
 		"id": "YGX_012",
 		"name": "Dragon réacteur mécanique antique",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_059",
@@ -12241,7 +11864,6 @@
 		"id": "YGX_014",
 		"name": "Armature mécanique antique",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -12274,7 +11896,6 @@
 		"id": "YGX_015",
 		"name": "Baliste mécanique antique",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -12308,7 +11929,6 @@
 		"id": "YGX_016",
 		"name": "Commandant mécanique antique",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_059",
@@ -12348,7 +11968,6 @@
 		"id": "YGX_017",
 		"name": "Dragon mécanique antique",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_059",
@@ -12376,7 +11995,6 @@
 		"id": "YGX_019",
 		"name": "Hydre mécanique antique",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -12416,7 +12034,6 @@
 		"id": "YGX_020",
 		"name": "Statut mécanique antique",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -12455,7 +12072,6 @@
 		"id": "YGX_021",
 		"name": "Tank mécanique antique",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_059",
@@ -12492,7 +12108,6 @@
 		"id": "YGX_022",
 		"name": "Géant mécanique antique",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_055",
@@ -12535,7 +12150,6 @@
 		"id": "YGX_023",
 		"name": "Golem megatone mécanique antique",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -12574,7 +12188,6 @@
 		"id": "YGX_024",
 		"name": "Golem mécanique antique ultime",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -12615,7 +12228,6 @@
 		"id": "YGX_025",
 		"name": "Obusier mécanique antique",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_059",
 			"ARCH_056",
@@ -12655,7 +12267,6 @@
 		"id": "STAPLE_001",
 		"name": "Magicienne de la foi",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_007",
@@ -12681,7 +12292,6 @@
 		"id": "STAPLE_002",
 		"name": "Marchant ésotérique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -12709,7 +12319,6 @@
 		"id": "STAPLE_003",
 		"name": "Dragon du tonnerre",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_052",
 			"ARCH_003",
@@ -12733,7 +12342,6 @@
 		"id": "STAPLE_004",
 		"name": "Parsharth",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_055",
@@ -12764,7 +12372,6 @@
 		"id": "STAPLE_005",
 		"name": "Dame guerrière D.D",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_054",
@@ -12789,7 +12396,6 @@
 		"id": "STAPLE_006",
 		"name": "Crâne sacrée",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_045",
@@ -12825,7 +12431,6 @@
 		"id": "STAPLE_007",
 		"name": "Ange brillant",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_051",
@@ -12855,7 +12460,6 @@
 		"id": "STAPLE_008",
 		"name": "Jowgen le spiritualiste",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_002",
@@ -12883,7 +12487,6 @@
 		"id": "STAPLE_009",
 		"name": "Sasuke le ninja",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_060",
 			"ARCH_056",
@@ -12916,7 +12519,6 @@
 		"id": "STAPLE_010",
 		"name": "Barrière roulette",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_056",
@@ -12942,7 +12544,6 @@
 		"id": "STAPLE_011",
 		"name": "Zaborg",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_062",
@@ -12977,7 +12578,6 @@
 		"id": "STAPLE_012",
 		"name": "Le createur",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_052",
@@ -13011,7 +12611,6 @@
 		"id": "STAPLE_013",
 		"name": "Senju au 1000 mains",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_054",
@@ -13046,7 +12645,6 @@
 		"id": "STAPLE_014",
 		"name": "Ange gardien Joan",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_055",
@@ -13078,7 +12676,6 @@
 		"id": "STAPLE_015",
 		"name": "Fracas le guerrier magique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_007",
 			"ARCH_054",
@@ -13105,7 +12702,6 @@
 		"id": "STAPLE_016",
 		"name": "Sangan",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -13130,7 +12726,6 @@
 		"id": "STAPLE_017",
 		"name": "Sorcier du chaos",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_007",
@@ -13167,7 +12762,6 @@
 		"id": "STAPLE_018",
 		"name": "Genovirus",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_049",
@@ -13197,7 +12791,6 @@
 		"id": "STAPLE_019",
 		"name": "Serpent sinistre",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_035",
@@ -13224,7 +12817,6 @@
 		"id": "STAPLE_021",
 		"name": "Dekoichi",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_054",
@@ -13250,7 +12842,6 @@
 		"id": "STAPLE_022",
 		"name": "Tsukuyomi",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_002",
 			"ARCH_063",
@@ -13279,7 +12870,6 @@
 		"id": "STAPLE_023",
 		"name": "Agresseur nocturne",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -13311,7 +12901,6 @@
 		"id": "STAPLE_024",
 		"name": "Soldat cipher",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_056",
@@ -13344,7 +12933,6 @@
 		"id": "STAPLE_025",
 		"name": "Zombyra la ténébreuse",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -13370,7 +12958,6 @@
 		"id": "STAPLE_026",
 		"name": "Mobius",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_062",
 			"ARCH_053",
@@ -13404,7 +12991,6 @@
 		"id": "STAPLE_027",
 		"name": "Kycoo le destructeur de fantôme",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_002",
@@ -13439,7 +13025,6 @@
 		"id": "STAPLE_028",
 		"name": "Prêtre d'asura",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_063",
 			"ARCH_048",
@@ -13477,7 +13062,6 @@
 		"id": "STAPLE_029",
 		"name": "Forces exilés",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_056",
@@ -13512,7 +13096,6 @@
 		"id": "STAPLE_030",
 		"name": "Don Zaloog",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_001",
 			"ARCH_050",
@@ -13546,7 +13129,6 @@
 		"id": "STAPLE_031",
 		"name": "Morphojarre",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_064",
 			"ARCH_050",
@@ -13574,7 +13156,6 @@
 		"id": "STAPLE_032",
 		"name": "Moissoneur d'esprit",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -13613,7 +13194,6 @@
 		"id": "STAPLE_034",
 		"name": "Tomate mystique",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_058",
 			"ARCH_054",
@@ -13643,7 +13223,6 @@
 		"id": "STAPLE_035",
 		"name": "Soldat des abysses",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_047",
 			"ARCH_035",
@@ -13687,7 +13266,6 @@
 		"id": "STAPLE_036",
 		"name": "Jinzo",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_054",
@@ -13724,7 +13302,6 @@
 		"id": "STAPLE_037",
 		"name": "Cyberjarre",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_064",
 			"ARCH_056",
@@ -13765,7 +13342,6 @@
 		"id": "STAPLE_038",
 		"name": "Gyaku-Gire Panda",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_058",
@@ -13791,7 +13367,6 @@
 		"id": "STAPLE_039",
 		"name": "Lily fée des injections",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_045",
@@ -13825,7 +13400,6 @@
 		"id": "STAPLE_040",
 		"name": "Rat géant",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
@@ -13854,7 +13428,6 @@
 		"id": "STAPLE_041",
 		"name": "Koala Des",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_058",
@@ -13880,7 +13453,6 @@
 		"id": "STAPLE_042",
 		"name": "Troupe d'assaut gobeline",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_054",
@@ -13920,7 +13492,6 @@
 		"id": "STAPLE_043",
 		"name": "Gigantes",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
@@ -13962,7 +13533,6 @@
 		"id": "STAPLE_044",
 		"name": "Spadassin D.D",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_056",
@@ -13991,7 +13561,6 @@
 		"id": "STAPLE_045",
 		"name": "Granmarg",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_062",
 			"ARCH_050",
@@ -14026,7 +13595,6 @@
 		"id": "STAPLE_046",
 		"name": "Gorille berserk",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_050",
@@ -14055,7 +13623,6 @@
 		"id": "STAPLE_047",
 		"name": "Wanghu roi des tigres",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_056",
@@ -14080,7 +13647,6 @@
 		"id": "STAPLE_048",
 		"name": "Dragon empereur du chaos",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_055",
@@ -14117,7 +13683,6 @@
 		"id": "STAPLE_049",
 		"name": "Fiberjarre",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_064",
 			"ARCH_054",
@@ -14160,7 +13725,6 @@
 		"id": "STAPLE_050",
 		"name": "Scientifique fou",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_055",
@@ -14189,7 +13753,6 @@
 		"id": "STAPLE_051",
 		"name": "Sorcière de la forêt noire",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_058",
@@ -14217,7 +13780,6 @@
 		"id": "STAPLE_052",
 		"name": "Yata-Garasu",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_063",
 			"ARCH_054",
@@ -14245,7 +13807,6 @@
 		"id": "STAPLE_053",
 		"name": "Phénix sacré de Nephtis",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_051",
@@ -14279,7 +13840,6 @@
 		"id": "STAPLE_054",
 		"name": "Bounder psychique",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_065",
 			"ARCH_054",
@@ -14307,7 +13867,6 @@
 		"id": "STAPLE_055",
 		"name": "Dragon, Behemot à 2 têtes",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_054",
@@ -14335,7 +13894,6 @@
 		"id": "STAPLE_056",
 		"name": "Manticore des ténèbres",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_022",
 			"ARCH_048",
@@ -14381,7 +13939,6 @@
 		"id": "STAPLE_057",
 		"name": "Seigneur vampire",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_061",
 			"ARCH_017",
@@ -14412,7 +13969,6 @@
 		"id": "STAPLE_058",
 		"name": "Morphojarre 2",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_064",
 			"ARCH_054",
@@ -14453,7 +14009,6 @@
 		"id": "STAPLE_059",
 		"name": "Aqua Madoor",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_053",
@@ -14483,7 +14038,6 @@
 		"id": "STAPLE_060",
 		"name": "Jarre absorbante",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_064",
 			"ARCH_065",
@@ -14525,7 +14079,6 @@
 		"id": "STAPLE_061",
 		"name": "Bazoo le mangeur d'âme",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_054",
@@ -14551,7 +14104,6 @@
 		"id": "STAPLE_062",
 		"name": "Behemot le roi des bêtes",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
@@ -14582,7 +14134,6 @@
 		"id": "BAKURA_012",
 		"name": "Green baboon",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
@@ -14614,7 +14165,6 @@
 		"id": "STAPLE_063",
 		"name": "Sombrelame",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_054",
@@ -14649,7 +14199,6 @@
 		"id": "STAPLE_064",
 		"name": "Lance dragon",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_051",
@@ -14675,7 +14224,6 @@
 		"id": "STAPLE_065",
 		"name": "Maha Vailo",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_002",
@@ -14702,7 +14250,6 @@
 		"id": "STAPLE_066",
 		"name": "Kaiser Glider",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_054",
@@ -14733,7 +14280,6 @@
 		"id": "STAPLE_067",
 		"name": "Abysse étincelante",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_055",
@@ -14760,7 +14306,6 @@
 		"id": "STAPLE_068",
 		"name": "Grand ancien Tiki",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_054",
@@ -14786,7 +14331,6 @@
 		"id": "STAPLE_069",
 		"name": "Bête de Talwar",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_020",
 			"ARCH_054",
@@ -14818,7 +14362,6 @@
 		"id": "STAPLE_070",
 		"name": "Opticlops",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_054",
@@ -14863,7 +14406,6 @@
 		"id": "STAPLE_071",
 		"name": "Mur des illusions",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_007",
 			"ARCH_039",
@@ -14907,7 +14449,6 @@
 		"id": "STAPLE_072",
 		"name": "La bête masquée",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_054",
@@ -14948,7 +14489,6 @@
 		"id": "STAPLE_073",
 		"name": "Mudora",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_055",
@@ -14976,7 +14516,6 @@
 		"id": "STAPLE_074",
 		"name": "Zolga",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_054",
@@ -15004,7 +14543,6 @@
 		"id": "STAPLE_075",
 		"name": "Kelbek",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_056",
@@ -15032,7 +14570,6 @@
 		"id": "STAPLE_076",
 		"name": "Skelengel",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_055",
@@ -15057,7 +14594,6 @@
 		"id": "STAPLE_077",
 		"name": "Alchimiste dimensionnel",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_058",
@@ -15090,7 +14626,6 @@
 		"id": "STAPLE_078",
 		"name": "Ange O7",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_056",
@@ -15120,7 +14655,6 @@
 		"id": "STAPLE_079",
 		"name": "Démon Megacyber",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_065",
 			"ARCH_054",
@@ -15147,7 +14681,6 @@
 		"id": "STAPLE_080",
 		"name": "Freed le général implacable",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
@@ -15188,7 +14721,6 @@
 		"id": "STAPLE_081",
 		"name": "Hannibal Nécromancien",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_002",
@@ -15214,7 +14746,6 @@
 		"id": "STAPLE_082",
 		"name": "Chasseur de la lumière",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_023",
@@ -15239,7 +14770,6 @@
 		"id": "STAPLE_083",
 		"name": "Ninja d’intervention",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_060",
 			"ARCH_056",
@@ -15265,7 +14795,6 @@
 		"id": "STAPLE_084",
 		"name": "Momie régénérante",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_057",
@@ -15295,7 +14824,6 @@
 		"id": "STAPLE_085",
 		"name": "Banisseur de rayonnement",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_023",
@@ -15323,7 +14851,6 @@
 		"id": "STAPLE_086",
 		"name": "Dokurider",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_054",
@@ -15362,7 +14889,6 @@
 		"id": "STAPLE_087",
 		"name": "Performance de l’épée",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
@@ -15397,7 +14923,6 @@
 		"id": "STAPLE_088",
 		"name": "Cheval de Troie",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_058",
 			"ARCH_050",
@@ -15425,7 +14950,6 @@
 		"id": "STAPLE_089",
 		"name": "Dragon chasseur",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_054",
@@ -15451,7 +14975,6 @@
 		"id": "STAPLE_090",
 		"name": "Dragon détonant",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_048",
@@ -15481,7 +15004,6 @@
 		"id": "STAPLE_091",
 		"name": "Inpachi Ardent",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_058",
@@ -15522,7 +15044,6 @@
 		"id": "STAPLE_092",
 		"name": "Charbon d’Inpachi",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_050",
@@ -15569,7 +15090,6 @@
 		"id": "STAPLE_093",
 		"name": "Tortue OVNI",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_050",
@@ -15600,7 +15120,6 @@
 		"id": "STAPLE_094",
 		"name": "Esprit des flammes",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_001",
@@ -15625,7 +15144,6 @@
 		"id": "STAPLE_095",
 		"name": "Lutin du brasier",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_023",
@@ -15649,7 +15167,6 @@
 		"id": "STAPLE_096",
 		"name": "Garde royaux tempête de feu",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_019",
@@ -15686,7 +15203,6 @@
 		"id": "STAPLE_097",
 		"name": "Koala géant",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_058",
@@ -15715,7 +15231,6 @@
 		"id": "STAPLE_098",
 		"name": "Apprenti magicien",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_007",
 			"ARCH_054",
@@ -15740,7 +15255,6 @@
 		"id": "STAPLE_099",
 		"name": "Kangourou Des",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
@@ -15765,7 +15279,6 @@
 		"id": "STAPLE_100",
 		"name": "Maître d’Oz",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_001",
@@ -15792,7 +15305,6 @@
 		"id": "STAPLE_101",
 		"name": "Brachios noir",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_034",
@@ -15817,7 +15329,6 @@
 		"id": "STAPLE_102",
 		"name": "Chien de meute mécanique",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_052",
 			"ARCH_056",
@@ -15847,7 +15358,6 @@
 		"id": "STAPLE_103",
 		"name": "Statue de pierre des aztèques",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_057",
@@ -15876,7 +15386,6 @@
 		"id": "STAPLE_104",
 		"name": "Baudroie Barbue",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_035",
@@ -15901,7 +15410,6 @@
 		"id": "STAPLE_105",
 		"name": "Prodige de l’ouragan",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_023",
@@ -15925,7 +15433,6 @@
 		"id": "STAPLE_106",
 		"name": "Wombat Des",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_054",
@@ -15950,7 +15457,6 @@
 		"id": "STAPLE_107",
 		"name": "Magicienne blanche Pikeru",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_023",
@@ -15979,7 +15485,6 @@
 		"id": "STAPLE_108",
 		"name": "Koala des mers",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_021",
@@ -16005,7 +15510,6 @@
 		"id": "STAPLE_109",
 		"name": "Nuage bruyant le serpent tempête",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_051",
@@ -16039,7 +15543,6 @@
 		"id": "STAPLE_110",
 		"name": "Phalène des sables",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_057",
 			"ARCH_021",
@@ -16064,7 +15567,6 @@
 		"id": "STAPLE_111",
 		"name": "Versago le destructeur",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_045",
@@ -16089,7 +15591,6 @@
 		"id": "STAPLE_112",
 		"name": "Hades le gouverneur des ténèbres",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -16117,7 +15618,6 @@
 		"id": "STAPLE_113",
 		"name": "Dragon mirage",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_055",
@@ -16142,7 +15642,6 @@
 		"id": "STAPLE_114",
 		"name": "Dragon totem",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_057",
@@ -16171,7 +15670,6 @@
 		"id": "STAPLE_115",
 		"name": "Gustaph chevaucher du chaos",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_056",
@@ -16197,7 +15695,6 @@
 		"id": "STAPLE_116",
 		"name": "Motard Vibrolame",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_056",
@@ -16223,7 +15720,6 @@
 		"id": "STAPLE_117",
 		"name": "Survivant D.D",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_056",
@@ -16251,7 +15747,6 @@
 		"id": "STAPLE_118",
 		"name": "Destructeur D.D",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_054",
@@ -16278,7 +15773,6 @@
 		"id": "STAPLE_119",
 		"name": "Corbeau D.D",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_054",
@@ -16308,7 +15802,6 @@
 		"id": "STAPLE_120",
 		"name": "Avion de reconnaissance D.D",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_056",
@@ -16340,7 +15833,6 @@
 		"id": "STAPLE_121",
 		"name": "Maître D.D",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_025",
@@ -16373,7 +15865,6 @@
 		"id": "STAPLE_122",
 		"name": "Gran Maju",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_054",
@@ -16407,7 +15898,6 @@
 		"id": "STAPLE_123",
 		"name": "Homoncule Doré",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_057",
@@ -16437,7 +15927,6 @@
 		"id": "STAPLE_124",
 		"name": "D Boyz",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -16463,7 +15952,6 @@
 		"id": "STAPLE_125",
 		"name": "Roi Gobelin",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -16498,7 +15986,6 @@
 		"id": "STAPLE_126",
 		"name": "Mere Grizzly",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_053",
@@ -16528,7 +16015,6 @@
 		"id": "STAPLE_127",
 		"name": "Dragon Obsidien",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_057",
@@ -16561,7 +16047,6 @@
 		"id": "STAPLE_128",
 		"name": "Esprit de l’eau",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_063",
 			"ARCH_053",
@@ -16591,7 +16076,6 @@
 		"id": "STAPLE_129",
 		"name": "Esprit du vent",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_063",
 			"ARCH_051",
@@ -16621,7 +16105,6 @@
 		"id": "STAPLE_130",
 		"name": "Esprit de la terre",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_056",
@@ -16650,7 +16133,6 @@
 		"id": "STAPLE_131",
 		"name": "Saumon roi de la terreur",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_035",
@@ -16675,7 +16157,6 @@
 		"id": "STAPLE_132",
 		"name": "Koala vampire",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_061",
 			"ARCH_054",
@@ -16703,7 +16184,6 @@
 		"id": "STAPLE_133",
 		"name": "Roue du cauchemar",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_056",
@@ -16741,7 +16221,6 @@
 		"id": "STAPLE_134",
 		"name": "Aqua chœur",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_049",
@@ -16784,7 +16263,6 @@
 		"id": "STAPLE_135",
 		"name": "Spectre Zoma",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_054",
@@ -16821,7 +16299,6 @@
 		"id": "STAPLE_136",
 		"name": "Magicien du tourment",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_007",
 			"ARCH_054",
@@ -16848,7 +16325,6 @@
 		"id": "STAPLE_137",
 		"name": "Chevalier commandeur",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_048",
@@ -16876,7 +16352,6 @@
 		"id": "STAPLE_138",
 		"name": "Capitaine en maraude",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
@@ -16900,7 +16375,6 @@
 		"id": "STAPLE_139",
 		"name": "Orque à air",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_051",
@@ -16944,7 +16418,6 @@
 		"id": "STAPLE_140",
 		"name": "Dents du vol",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_051",
@@ -16988,7 +16461,6 @@
 		"id": "STAPLE_141",
 		"name": "Golgoil",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_057",
@@ -17024,7 +16496,6 @@
 		"id": "STAPLE_142",
 		"name": "Cyber Maraudeur",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_065",
 			"ARCH_054",
@@ -17051,7 +16522,6 @@
 		"id": "STAPLE_143",
 		"name": "Kong Voltaïque",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_052",
@@ -17080,7 +16550,6 @@
 		"id": "STAPLE_144",
 		"name": "Enchanteur écarlate",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_007",
 			"ARCH_054",
@@ -17109,7 +16578,6 @@
 		"id": "STAPLE_145",
 		"name": "Lexion le bouffon démoniaque",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_002",
@@ -17134,7 +16602,6 @@
 		"id": "STAPLE_146",
 		"name": "Double coston",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -17162,7 +16629,6 @@
 		"id": "STAPLE_147",
 		"name": "Magicien maître du chaos",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_007",
 			"ARCH_026",
@@ -17193,7 +16659,6 @@
 		"id": "STAPLE_148",
 		"name": "Guerrier de l’Atlantide",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_047",
 			"ARCH_049",
@@ -17220,7 +16685,6 @@
 		"id": "STAPLE_149",
 		"name": "Âme possédée",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_054",
@@ -17250,7 +16714,6 @@
 		"id": "STAPLE_150",
 		"name": "Manju aux 10.000 mains",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_001",
@@ -17294,7 +16757,6 @@
 		"id": "STAPLE_151",
 		"name": "Tornade du désert",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_057",
@@ -17331,7 +16793,6 @@
 		"id": "STAPLE_153",
 		"name": "Crâne serviteur",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_029",
@@ -17356,7 +16817,6 @@
 		"id": "STAPLE_154",
 		"name": "Roi des crânes serviteurs",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_029",
@@ -17390,7 +16850,6 @@
 		"id": "STAPLE_155",
 		"name": "Grand mammouth de l’au delà",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_054",
@@ -17434,7 +16893,6 @@
 		"id": "STAPLE_156",
 		"name": "Le tombeau vide",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_054",
@@ -17464,7 +16922,6 @@
 		"id": "STAPLE_157",
 		"name": "Résident des profondeurs",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_028",
@@ -17493,7 +16950,6 @@
 		"id": "STAPLE_158",
 		"name": "Résident des abysses",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_050",
@@ -17533,7 +16989,6 @@
 		"id": "STAPLE_159",
 		"name": "Canard supersonique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_021",
@@ -17565,7 +17020,6 @@
 		"id": "STAPLE_160",
 		"name": "Destructeur du grand Bleu",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_021",
@@ -17596,7 +17050,6 @@
 		"id": "STAPLE_161",
 		"name": "Dragon levia dédale",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_047",
@@ -17631,7 +17084,6 @@
 		"id": "STAPLE_162",
 		"name": "Dai Grepher",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_056",
@@ -17656,7 +17108,6 @@
 		"id": "STAPLE_163",
 		"name": "Oiseau supersonique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_021",
@@ -17681,7 +17132,6 @@
 		"id": "STAPLE_164",
 		"name": "Ryu Senshi",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_056",
@@ -17720,7 +17170,6 @@
 		"id": "STAPLE_165",
 		"name": "Cauchemar de Thebes",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_057",
@@ -17749,7 +17198,6 @@
 		"id": "STAPLE_166",
 		"name": "Garde barrière",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_057",
@@ -17779,7 +17227,6 @@
 		"id": "STAPLE_167",
 		"name": "Forgeron Kotetsu",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_056",
@@ -17808,7 +17255,6 @@
 		"id": "STAPLE_168",
 		"name": "Skreech",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_019",
@@ -17836,7 +17282,6 @@
 		"id": "STAPLE_169",
 		"name": "Sangsue",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_061",
 			"ARCH_054",
@@ -17865,7 +17310,6 @@
 		"id": "STAPLE_170",
 		"name": "Crâne chevalier",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_056",
@@ -17902,7 +17346,6 @@
 		"id": "STAPLE_171",
 		"name": "Chevalier du littorale",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_056",
@@ -17927,7 +17370,6 @@
 		"id": "STAPLE_172",
 		"name": "Méfist le général abominable",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_056",
@@ -17962,7 +17404,6 @@
 		"id": "STAPLE_173",
 		"name": "Archdemon lancier",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_020",
 			"ARCH_054",
@@ -17989,7 +17430,6 @@
 		"id": "STAPLE_174",
 		"name": "Prométhée roi des ombres",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_002",
@@ -18021,7 +17461,6 @@
 		"id": "STAPLE_175",
 		"name": "Gaap maître de la guerre",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_051",
@@ -18059,7 +17498,6 @@
 		"id": "STAPLE_176",
 		"name": "Loup a deux têtes",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_050",
@@ -18085,7 +17523,6 @@
 		"id": "STAPLE_177",
 		"name": "Dragon noir d’encre",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_054",
@@ -18110,7 +17547,6 @@
 		"id": "STAPLE_178",
 		"name": "Dragon à la lame des ténèbres",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_054",
@@ -18152,7 +17588,6 @@
 		"id": "STAPLE_179",
 		"name": "Dragon noir métallique aux yeux rouges des ténèbres",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_008",
 			"ARCH_054",
@@ -18194,7 +17629,6 @@
 		"id": "STAPLE_180",
 		"name": "Gardien celte noble",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_010",
@@ -18238,7 +17672,6 @@
 		"id": "STAPLE_181",
 		"name": "Gardien celte mystique",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_010",
@@ -18282,7 +17715,6 @@
 		"id": "STAPLE_182",
 		"name": "Neo Vorse Raider",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_054",
@@ -18326,7 +17758,6 @@
 		"id": "STAPLE_183",
 		"name": "Neo Maha Vailo",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_002",
@@ -18362,7 +17793,6 @@
 		"id": "STAPLE_184",
 		"name": "Neo Kaiser Glider",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_054",
@@ -18405,7 +17835,6 @@
 		"id": "STAPLE_185",
 		"name": "Dictator of D",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_005",
 			"ARCH_017",
@@ -18448,7 +17877,6 @@
 		"id": "STAPLE_186",
 		"name": "Gardiens géant d’acier",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_050",
@@ -18494,7 +17922,6 @@
 		"id": "STAPLE_187",
 		"name": "Soldat du lustre noir de lumière",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_055",
@@ -18542,7 +17969,6 @@
 		"id": "STAPLE_188",
 		"name": "Soldat du lustre noir des ténèbres",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_026",
@@ -18590,7 +18016,6 @@
 		"id": "STAPLE_189",
 		"name": "Chimère le roi des illusions",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_022",
@@ -18634,7 +18059,6 @@
 		"id": "STAPLE_190",
 		"name": "Elfe mystique de la foudre blanche",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_005",
@@ -18677,7 +18101,6 @@
 		"id": "STAPLE_191",
 		"name": "Elfe des ténèbres",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_007",
 			"ARCH_054",
@@ -18715,7 +18138,6 @@
 		"id": "STAPLE_192",
 		"name": "Neo Lutin Sauvage",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_017",
@@ -18760,7 +18182,6 @@
 		"id": "STAPLE_193",
 		"name": "Roi des lutins sauvages",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_017",
@@ -18804,7 +18225,6 @@
 		"id": "STAPLE_194",
 		"name": "Lutin à corne",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_050",
@@ -18830,7 +18250,6 @@
 		"id": "STAPLE_195",
 		"name": "Guerrier de Landstar",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_056",
@@ -18869,7 +18288,6 @@
 		"id": "STAPLE_196",
 		"name": "Lieutenant de Landstar",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_050",
@@ -18908,7 +18326,6 @@
 		"id": "STAPLE_197",
 		"name": "Tirailleur de Landstar",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_001",
@@ -18946,7 +18363,6 @@
 		"id": "STAPLE_198",
 		"name": "Chevalier flamboyant ultime",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_027",
@@ -18988,7 +18404,6 @@
 		"id": "STAPLE_199",
 		"name": "Chevalier des flammes combattantes",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_027",
@@ -19035,7 +18450,6 @@
 		"id": "STAPLE_200",
 		"name": "Gear-Giltia",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_056",
@@ -19075,7 +18489,6 @@
 		"id": "STAPLE_201",
 		"name": "Gearfried déchaîné",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_056",
@@ -19113,7 +18526,6 @@
 		"id": "STAPLE_202",
 		"name": "Gearfried Phenix",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_048",
@@ -19154,7 +18566,6 @@
 		"id": "STAPLE_203",
 		"name": "Gilford la légende",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_050",
@@ -19197,7 +18608,6 @@
 		"id": "STAPLE_204",
 		"name": "Neo Kayser Hypocampe",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_005",
 			"ARCH_017",
@@ -19242,7 +18652,6 @@
 		"id": "STAPLE_205",
 		"name": "Bersekion",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_050",
@@ -19289,7 +18698,6 @@
 		"id": "STAPLE_206",
 		"name": "Chevalier du Joker",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_015",
@@ -19324,7 +18732,6 @@
 		"id": "STAPLE_207",
 		"name": "Garde impériaux",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_015",
@@ -19359,7 +18766,6 @@
 		"id": "STAPLE_208",
 		"name": "Quinte Flush Royale",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_015",
@@ -19402,7 +18808,6 @@
 		"id": "STAPLE_209",
 		"name": "Lady Alakan",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_015",
@@ -19459,7 +18864,6 @@
 		"id": "STAPLE_210",
 		"name": "Extra Alakan",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_055",
@@ -19509,7 +18913,6 @@
 		"id": "STAPLE_211",
 		"name": "Malédiction du dragon magique",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_048",
@@ -19551,7 +18954,6 @@
 		"id": "STAPLE_212",
 		"name": "Soldat Gaïa le chevalier implacable",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_009",
@@ -19597,7 +18999,6 @@
 		"id": "STAPLE_213",
 		"name": "Kurifore",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_054",
@@ -19635,7 +19036,6 @@
 		"id": "STAPLE_214",
 		"name": "Kuriboh multiplié",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_054",
@@ -19675,7 +19075,6 @@
 		"id": "STAPLE_215",
 		"name": "Tête de cheveux de serpent",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -19716,7 +19115,6 @@
 		"id": "STAPLE_216",
 		"name": "Dragon tri-corne",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_050",
@@ -19747,7 +19145,6 @@
 		"id": "STAPLE_217",
 		"name": "Seiyaryu",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_051",
@@ -19777,7 +19174,6 @@
 		"id": "STAPLE_218",
 		"name": "Seiyaryu radiant",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_055",
@@ -19815,7 +19211,6 @@
 		"id": "STAPLE_219",
 		"name": "Dragon à l’épée aux yeux rouge",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_008",
 			"ARCH_018",
@@ -19859,7 +19254,6 @@
 		"id": "STAPLE_220",
 		"name": "Seigneur du rouge",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_008",
 			"ARCH_018",
@@ -19900,7 +19294,6 @@
 		"id": "STAPLE_221",
 		"name": "Fortin la forteresse magique",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_011",
@@ -19943,7 +19336,6 @@
 		"id": "STAPLE_222",
 		"name": "Max Raider",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_056",
@@ -19983,7 +19375,6 @@
 		"id": "STAPLE_223",
 		"name": "Cyber Alligator",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_056",
@@ -20029,7 +19420,6 @@
 		"id": "STAPLE_224",
 		"name": "Squelette malfaisant tout puissant",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_020",
@@ -20070,7 +19460,6 @@
 		"id": "STAPLE_225",
 		"name": "Dragon archdémon aux yeux rouge",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_008",
 			"ARCH_020",
@@ -20113,7 +19502,6 @@
 		"id": "STAPLE_226",
 		"name": "Dragon noir comète",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_008",
 			"ARCH_018",
@@ -20155,7 +19543,6 @@
 		"id": "STAPLE_227",
 		"name": "Dragon clair de lune aux yeux rouges",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_008",
 			"ARCH_018",
@@ -20183,7 +19570,6 @@
 		"id": "STAPLE_228",
 		"name": "Squelette malfaisant draconique",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_018",
@@ -20228,7 +19614,6 @@
 		"id": "STAPLE_229",
 		"name": "Freed le general corrompu",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_020",
 			"ARCH_054",
@@ -20274,7 +19659,6 @@
 		"id": "STAPLE_230",
 		"name": "Freed le general en devenir",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
@@ -20298,7 +19682,6 @@
 		"id": "STAPLE_231",
 		"name": "Grand maître Hanzo",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_060",
 			"ARCH_056",
@@ -20335,7 +19718,6 @@
 		"id": "STAPLE_232",
 		"name": "Inpachi",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_058",
@@ -20362,7 +19744,6 @@
 		"id": "STAPLE_233",
 		"name": "Magicienne noir Curan",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_023",
@@ -20391,7 +19772,6 @@
 		"id": "STAPLE_234",
 		"name": "Gran Maju Garzett",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_054",
@@ -20431,7 +19811,6 @@
 		"id": "STAPLE_235",
 		"name": "Lord Gran Maju Garzett",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_054",
@@ -20471,7 +19850,6 @@
 		"id": "STAPLE_236",
 		"name": "Aqua choeur synchronisé",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_055",
@@ -20511,7 +19889,6 @@
 		"id": "STAPLE_237",
 		"name": "Magicien erradicateur des ténèbres",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_007",
 			"ARCH_054",
@@ -20563,7 +19940,6 @@
 		"id": "STAPLE_238",
 		"name": "Catapulte à vent W",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_013",
 			"ARCH_056",
@@ -20590,7 +19966,6 @@
 		"id": "STAPLE_239",
 		"name": "Tigre Jet V",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_013",
 			"ARCH_056",
@@ -20618,7 +19993,6 @@
 		"id": "STAPLE_240",
 		"name": "Canon dragon catapulte VWXYZ",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_013",
 			"ARCH_056",
@@ -20663,7 +20037,6 @@
 		"id": "STAPLE_241",
 		"name": "Tigre Catapulte VW",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_013",
 			"ARCH_056",
@@ -20705,7 +20078,6 @@
 		"id": "STAPLE_242",
 		"name": "Dragon blanc aux yeux bleus Chaos Max",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_055",
@@ -20747,7 +20119,6 @@
 		"id": "STAPLE_243",
 		"name": "Magicien sombre chaos max",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_007",
 			"ARCH_026",
@@ -20787,7 +20158,6 @@
 		"id": "STAPLE_244",
 		"name": "Dragon destruction",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_068",
@@ -20833,7 +20203,6 @@
 		"id": "STAPLE_245",
 		"name": "Dragon Explosion du tyran",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_068",
 			"ARCH_017",
@@ -20879,7 +20248,6 @@
 		"id": "STAPLE_246",
 		"name": "Critias",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_053",
@@ -20911,7 +20279,6 @@
 		"id": "STAPLE_247",
 		"name": "Chevalier Valkyrie",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_027",
@@ -20939,7 +20306,6 @@
 		"id": "STAPLE_248",
 		"name": "Gaïa le dragon champion inarretable",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_009",
@@ -20983,7 +20349,6 @@
 		"id": "STAPLE_249",
 		"name": "Maître Tao",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_022",
 			"ARCH_054",
@@ -21008,7 +20373,6 @@
 		"id": "STAPLE_250",
 		"name": "Coatl du champ de maïs",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_022",
 			"ARCH_050",
@@ -21043,7 +20407,6 @@
 		"id": "STAPLE_251",
 		"name": "Griffres de Shurilane",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_022",
 			"ARCH_054",
@@ -21084,7 +20447,6 @@
 		"id": "STAPLE_252",
 		"name": "Chevalier epeiste du miroir",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_022",
 			"ARCH_056",
@@ -21119,7 +20481,6 @@
 		"id": "STAPLE_253",
 		"name": "Gardien chimère",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_022",
 			"ARCH_054",
@@ -21158,7 +20519,6 @@
 		"id": "STAPLE_254",
 		"name": "Homme Bloc",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_050",
@@ -21185,7 +20545,6 @@
 		"id": "STAPLE_255",
 		"name": "Golem en briques",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_069",
 			"ARCH_050",
@@ -21223,7 +20582,6 @@
 		"id": "STAPLE_256",
 		"name": "Dragon en briques",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_069",
 			"ARCH_050",
@@ -21262,7 +20620,6 @@
 		"id": "STAPLE_257",
 		"name": "Tortue electromagnetique",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_012",
 			"ARCH_056",
@@ -21310,7 +20667,6 @@
 		"id": "STAPLE_258",
 		"name": "Timée",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_068",
@@ -21342,7 +20698,6 @@
 		"id": "STAPLE_259",
 		"name": "Hermocrate",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_068",
@@ -21374,7 +20729,6 @@
 		"id": "STAPLE_260",
 		"name": "Chevalier Légendaire Hermocrate",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_068",
@@ -21418,7 +20772,6 @@
 		"id": "STAPLE_261",
 		"name": "Chevalier Légendaire Timée",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_068",
@@ -21461,7 +20814,6 @@
 		"id": "STAPLE_262",
 		"name": "Chevalier Légendaire Critias",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_010",
 			"ARCH_017",
@@ -21504,7 +20856,6 @@
 		"id": "STAPLE_263",
 		"name": "Timée le dragon magique",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_068",
@@ -21547,7 +20898,6 @@
 		"id": "STAPLE_264",
 		"name": "Dragon tyran aux yeux bleus",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_005",
 			"ARCH_017",
@@ -21591,7 +20941,6 @@
 		"id": "STAPLE_265",
 		"name": "Chevalier légendaire du destin",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_017",
@@ -21635,7 +20984,6 @@
 		"id": "STAPLE_266",
 		"name": "Magicien du cauchemar",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_007",
 			"ARCH_022",
@@ -21678,7 +21026,6 @@
 		"id": "STAPLE_267",
 		"name": "Magicien sombre le chevalier légendaire",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_007",
@@ -21722,7 +21069,6 @@
 		"id": "STAPLE_268",
 		"name": "Magicienne des ténèbres la chevalière légendaire",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_007",
@@ -21767,7 +21113,6 @@
 		"id": "STAPLE_269",
 		"name": "Les magiciens des ténèbres",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_007",
@@ -21807,7 +21152,6 @@
 		"id": "STAPLE_270",
 		"name": "Maître du chaos",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_007",
@@ -21852,7 +21196,6 @@
 		"id": "STAPLE_271",
 		"name": "Magicien sombre le cavalier dragon",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_007",
@@ -21897,7 +21240,6 @@
 		"id": "STAPLE_272",
 		"name": "Magicien sombre le cavalier des ténèbres",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_007",
@@ -21939,7 +21281,6 @@
 		"id": "STAPLE_273",
 		"name": "Magikuriboh",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_007",
@@ -21981,7 +21322,6 @@
 		"id": "STAPLE_274",
 		"name": "Dragon force miroir",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_068",
@@ -22028,7 +21368,6 @@
 		"id": "STAPLE_275",
 		"name": "Dragon virus destructeur",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_068",
@@ -22076,7 +21415,6 @@
 		"id": "STAPLE_276",
 		"name": "Arc de la déesse",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_068",
@@ -22123,7 +21461,6 @@
 		"id": "STAPLE_277",
 		"name": "Canon roquette",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_068",
@@ -22166,7 +21503,6 @@
 		"id": "STAPLE_278",
 		"name": "Marteau du magicien du temps",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_054",
@@ -22210,7 +21546,6 @@
 		"id": "STAPLE_279",
 		"name": "Shogun défense totale",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
@@ -22242,7 +21577,6 @@
 		"id": "STAPLE_280",
 		"name": "Chevalier flamboyant de la flamme bleu",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_018",
@@ -22283,7 +21617,6 @@
 		"id": "STAPLE_281",
 		"name": "Soldat penguin",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_056",
@@ -22311,7 +21644,6 @@
 		"id": "STAPLE_282",
 		"name": "Chasseur de précision",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_044",
 			"ARCH_054",
@@ -22336,7 +21668,6 @@
 		"id": "STAPLE_283",
 		"name": "Sphinx gardien",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_057",
@@ -22365,7 +21696,6 @@
 		"id": "STAPLE_284",
 		"name": "La fin d’anubis",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_057",
@@ -22403,7 +21733,6 @@
 		"id": "STAPLE_285",
 		"name": "Incarnation d’Apophis",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_054",
@@ -22432,7 +21761,6 @@
 		"id": "STAPLE_286",
 		"name": "Shinato",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_063",
 			"ARCH_055",
@@ -22469,7 +21797,6 @@
 		"id": "STAPLE_287",
 		"name": "Hino-Kagu-Tsushi",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_063",
 			"ARCH_048",
@@ -22498,7 +21825,6 @@
 		"id": "STAPLE_288",
 		"name": "Penguin du cauchemar",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_054",
@@ -22525,7 +21851,6 @@
 		"id": "STAPLE_289",
 		"name": "Orgoth",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_044",
 			"ARCH_056",
@@ -22558,7 +21883,6 @@
 		"id": "STAPLE_290",
 		"name": "Dragon matéria",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_058",
 			"ARCH_055",
@@ -22587,7 +21911,6 @@
 		"id": "STAPLE_291",
 		"name": "Sauropod Brachion",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_034",
@@ -22616,7 +21939,6 @@
 		"id": "STAPLE_292",
 		"name": "Tyranno Infinité",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_055",
@@ -22652,7 +21974,6 @@
 		"id": "STAPLE_293",
 		"name": "Dynabase",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_025",
@@ -22682,7 +22003,6 @@
 		"id": "STAPLE_294",
 		"name": "Dynatank",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_056",
@@ -22723,7 +22043,6 @@
 		"id": "STAPLE_295",
 		"name": "Pachycephalo fossile",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_057",
@@ -22751,7 +22070,6 @@
 		"id": "STAPLE_296",
 		"name": "Flint Cragger",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_052",
 			"ARCH_050",
@@ -22779,7 +22097,6 @@
 		"id": "STAPLE_297",
 		"name": "Mammouth aux longues defenses",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_053",
 			"ARCH_050",
@@ -22806,7 +22123,6 @@
 		"id": "STAPLE_298",
 		"name": "Chérubin le chevalier de feu",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_027",
 			"ARCH_056",
@@ -22845,7 +22161,6 @@
 		"id": "STAPLE_299",
 		"name": "Dragon du feu noir",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_027",
@@ -22875,7 +22190,6 @@
 		"id": "STAPLE_300",
 		"name": "Reflet infernal",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_067",
 			"ARCH_051",
@@ -22902,7 +22216,6 @@
 		"id": "STAPLE_301",
 		"name": "Tigre tortue",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_050",
@@ -22929,7 +22242,6 @@
 		"id": "STAPLE_302",
 		"name": "Kagemusha de la flamme bleue",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_050",
@@ -22955,7 +22267,6 @@
 		"id": "STAPLE_303",
 		"name": "Fantôme de flamme",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_029",
@@ -22988,7 +22299,6 @@
 		"id": "STAPLE_304",
 		"name": "Seigneur des ténèbres à deux bouches",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_052",
 			"ARCH_054",
@@ -23014,7 +22324,6 @@
 		"id": "STAPLE_305",
 		"name": "Le furieux roi des mers",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_001",
@@ -23047,7 +22356,6 @@
 		"id": "STAPLE_306",
 		"name": "Chauve souris Meda",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_054",
@@ -23074,7 +22382,6 @@
 		"id": "STAPLE_307",
 		"name": "Dragon métallique",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_051",
@@ -23108,7 +22415,6 @@
 		"id": "STAPLE_308",
 		"name": "Seadra perçant",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_021",
@@ -23134,7 +22440,6 @@
 		"id": "STAPLE_309",
 		"name": "Loup fleuri",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_058",
 			"ARCH_050",
@@ -23159,7 +22464,6 @@
 		"id": "STAPLE_310",
 		"name": "Ogre d’acier",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_050",
@@ -23185,7 +22489,6 @@
 		"id": "STAPLE_311",
 		"name": "Chapeau magique blanc",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_053",
@@ -23212,7 +22515,6 @@
 		"id": "STAPLE_312",
 		"name": "Sorcier masqué",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_056",
@@ -23237,7 +22539,6 @@
 		"id": "STAPLE_313",
 		"name": "Attaquant au sol Bugroth",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_056",
@@ -23262,7 +22563,6 @@
 		"id": "STAPLE_314",
 		"name": "Leorme",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
@@ -23290,7 +22590,6 @@
 		"id": "STAPLE_315",
 		"name": "Dragon des ténèbres",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_004",
 			"ARCH_048",
@@ -23317,7 +22616,6 @@
 		"id": "STAPLE_316",
 		"name": "Garde des marais",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_058",
@@ -23344,7 +22642,6 @@
 		"id": "STAPLE_317",
 		"name": "Garde de lave",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_050",
@@ -23371,7 +22668,6 @@
 		"id": "STAPLE_318",
 		"name": "Roi de Yamimakai",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -23396,7 +22692,6 @@
 		"id": "STAPLE_319",
 		"name": "Roi musicien",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_044",
 			"ARCH_051",
@@ -23427,7 +22722,6 @@
 		"id": "STAPLE_320",
 		"name": "Cybersaurus",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_055",
@@ -23459,7 +22753,6 @@
 		"id": "STAPLE_321",
 		"name": "Cerberus de flammes",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_021",
@@ -23487,7 +22780,6 @@
 		"id": "STAPLE_322",
 		"name": "Dame de la foi",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_055",
@@ -23515,7 +22807,6 @@
 		"id": "STAPLE_323",
 		"name": "Dragon du tonnerre à deux têtes",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_052",
 			"ARCH_054",
@@ -23554,7 +22845,6 @@
 		"id": "STAPLE_324",
 		"name": "Garnecia Elephantis",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
@@ -23582,7 +22872,6 @@
 		"id": "STAPLE_325",
 		"name": "Dark witch",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_051",
@@ -23608,7 +22897,6 @@
 		"id": "STAPLE_326",
 		"name": "Tortue géante mangeuse de flammes",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_050",
@@ -23635,7 +22923,6 @@
 		"id": "STAPLE_327",
 		"name": "Archere pourpre",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_001",
@@ -23661,7 +22948,6 @@
 		"id": "STAPLE_328",
 		"name": "Kappa psychique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_021",
@@ -23688,7 +22974,6 @@
 		"id": "STAPLE_329",
 		"name": "Ryu-Ran",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_050",
@@ -23717,7 +23002,6 @@
 		"id": "STAPLE_330",
 		"name": "Zèbre des ténèbres",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
@@ -23742,7 +23026,6 @@
 		"id": "STAPLE_331",
 		"name": "Sanglier soldat",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_056",
@@ -23768,7 +23051,6 @@
 		"id": "STAPLE_332",
 		"name": "M Guerrier n1",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_001",
@@ -23792,7 +23074,6 @@
 		"id": "STAPLE_333",
 		"name": "M Guerrier n2",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
@@ -23816,7 +23097,6 @@
 		"id": "STAPLE_334",
 		"name": "Dragoness le chevalier malveillant",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_056",
@@ -23850,7 +23130,6 @@
 		"id": "STAPLE_335",
 		"name": "Garde puissant LV2",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_056",
@@ -23889,7 +23168,6 @@
 		"id": "STAPLE_336",
 		"name": "Gemini elf",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_001",
@@ -23914,7 +23192,6 @@
 		"id": "STAPLE_337",
 		"name": "Dame panthère",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
@@ -23947,7 +23224,6 @@
 		"id": "STAPLE_338",
 		"name": "Ste Jeanne",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_056",
@@ -23976,7 +23252,6 @@
 		"id": "STAPLE_339",
 		"name": "Marie l’ange déchue",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_054",
@@ -24003,7 +23278,6 @@
 		"id": "STAPLE_340",
 		"name": "Le secret du portrait",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_054",
@@ -24032,7 +23306,6 @@
 		"id": "STAPLE_341",
 		"name": "Serpent géant foudroyant",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_052",
@@ -24067,7 +23340,6 @@
 		"id": "STAPLE_342",
 		"name": "Lutin onirique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_058",
 			"ARCH_055",
@@ -24096,7 +23368,6 @@
 		"id": "STAPLE_343",
 		"name": "Ultime guerrier d’une autre planète",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_056",
@@ -24147,7 +23418,6 @@
 		"id": "STAPLE_344",
 		"name": "Guerrier de Riryoku",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_042",
 			"ARCH_055",
@@ -24179,7 +23449,6 @@
 		"id": "STAPLE_345",
 		"name": "Champion des flammes",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_027",
 			"ARCH_056",
@@ -24210,7 +23479,6 @@
 		"id": "STAPLE_346",
 		"name": "Dragon de feu à deux têtes",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_003",
@@ -24238,7 +23506,6 @@
 		"id": "STAPLE_347",
 		"name": "Soldat enflammé",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_001",
@@ -24262,7 +23529,6 @@
 		"id": "STAPLE_349",
 		"name": "Cyber faucon",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_056",
@@ -24289,7 +23555,6 @@
 		"id": "STAPLE_350",
 		"name": "Oni tank T34",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_044",
 			"ARCH_056",
@@ -24317,7 +23582,6 @@
 		"id": "STAPLE_351",
 		"name": "Overdrive",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_056",
@@ -24343,7 +23607,6 @@
 		"id": "STAPLE_352",
 		"name": "Guerrier des abysses",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_047",
 			"ARCH_049",
@@ -24381,7 +23644,6 @@
 		"id": "STAPLE_353",
 		"name": "Spikebot",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_028",
@@ -24406,7 +23668,6 @@
 		"id": "STAPLE_354",
 		"name": "Chevalier Hayabusa",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_018",
 			"ARCH_051",
@@ -24435,7 +23696,6 @@
 		"id": "STAPLE_355",
 		"name": "Gradius",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_025",
@@ -24460,7 +23720,6 @@
 		"id": "STAPLE_356",
 		"name": "Tigre blanc clairvoyant",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_051",
@@ -24485,7 +23744,6 @@
 		"id": "STAPLE_357",
 		"name": "Tortue île",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_058",
@@ -24512,7 +23770,6 @@
 		"id": "STAPLE_358",
 		"name": "Rocket jumper",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_050",
@@ -24539,7 +23796,6 @@
 		"id": "STAPLE_359",
 		"name": "Ciseau des KA-2",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_025",
@@ -24565,7 +23821,6 @@
 		"id": "STAPLE_360",
 		"name": "Chevalier sirène",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_001",
@@ -24592,7 +23847,6 @@
 		"id": "STAPLE_361",
 		"name": "Dragon d’éclat solaire",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_003",
@@ -24624,7 +23878,6 @@
 		"id": "STAPLE_362",
 		"name": "Armure de camouflage optique",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_055",
@@ -24653,7 +23906,6 @@
 		"id": "STAPLE_363",
 		"name": "Neo aqua madoor",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_053",
@@ -24695,7 +23947,6 @@
 		"id": "STAPLE_364",
 		"name": "Horus dragon de la flamme noire LV1",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_054",
@@ -24722,7 +23973,6 @@
 		"id": "STAPLE_365",
 		"name": "Horus dragon de la flamme noire LV2",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_051",
@@ -24766,7 +24016,6 @@
 		"id": "STAPLE_366",
 		"name": "Horus dragon de la flamme noire LV3",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_051",
@@ -24806,7 +24055,6 @@
 		"id": "STAPLE_367",
 		"name": "Spadassin mystique LV1",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_055",
@@ -24832,7 +24080,6 @@
 		"id": "STAPLE_368",
 		"name": "Spadassin mystique LV2",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_056",
@@ -24874,7 +24121,6 @@
 		"id": "STAPLE_369",
 		"name": "Dragon armé LV1",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_056",
@@ -24900,7 +24146,6 @@
 		"id": "STAPLE_370",
 		"name": "Dragon armé LV2",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_056",
@@ -24943,7 +24188,6 @@
 		"id": "STAPLE_371",
 		"name": "Dragon armé LV3",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_056",
@@ -24986,7 +24230,6 @@
 		"id": "STAPLE_372",
 		"name": "Dragon armé LV4",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_051",
@@ -25026,7 +24269,6 @@
 		"id": "STAPLE_373",
 		"name": "Gosse suprême du baseball",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_001",
@@ -25050,7 +24292,6 @@
 		"id": "STAPLE_374",
 		"name": "Dragon masqué",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_003",
@@ -25075,7 +24316,6 @@
 		"id": "STAPLE_375",
 		"name": "Insecte mangeur de noble",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_033",
@@ -25112,7 +24352,6 @@
 		"id": "STAPLE_376",
 		"name": "Pénombre femme soldat",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_010",
@@ -25141,7 +24380,6 @@
 		"id": "STAPLE_377",
 		"name": "Sanwitch",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -25188,7 +24426,6 @@
 		"id": "STAPLE_379",
 		"name": "Inpachi technobois",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_056",
@@ -25235,7 +24472,6 @@
 		"id": "STAPLE_380",
 		"name": "Garde puissant LV1",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_050",
@@ -25261,7 +24497,6 @@
 		"id": "STAPLE_381",
 		"name": "Spadassin mystique LV3",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_056",
@@ -25299,7 +24534,6 @@
 		"id": "STAPLE_382",
 		"name": "Roc de la vallée des brumes",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_050",
@@ -25329,7 +24563,6 @@
 		"id": "STAPLE_383",
 		"name": "Thestalos",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_062",
 			"ARCH_048",
@@ -25365,7 +24598,6 @@
 		"id": "STAPLE_384",
 		"name": "Dragon Fusilier",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_044",
 			"ARCH_056",
@@ -25392,7 +24624,6 @@
 		"id": "STAPLE_385",
 		"name": "Poisson Lune spatiale",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_055",
@@ -25420,7 +24651,6 @@
 		"id": "STAPLE_386",
 		"name": "Dragon divin Ragnarok",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_052",
@@ -25456,7 +24686,6 @@
 		"id": "STAPLE_387",
 		"name": "Chiron le mage",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_054",
@@ -25483,7 +24712,6 @@
 		"id": "STAPLE_388",
 		"name": "Golem sentinelle",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_042",
 			"ARCH_050",
@@ -25508,7 +24736,6 @@
 		"id": "STAPLE_389",
 		"name": "Roi Dragoon",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_005",
 			"ARCH_071",
@@ -25552,7 +24779,6 @@
 		"id": "STAPLE_390",
 		"name": "Maître Kyonshee",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_050",
@@ -25579,7 +24805,6 @@
 		"id": "STAPLE_391",
 		"name": "Chevalier mystique du chacal",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_054",
@@ -25611,7 +24836,6 @@
 		"id": "STAPLE_392",
 		"name": "Homme avec Wdjat",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_054",
@@ -25648,7 +24872,6 @@
 		"id": "STAPLE_393",
 		"name": "Cheval du cauchemar",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_054",
@@ -25675,7 +24898,6 @@
 		"id": "STAPLE_394",
 		"name": "Moissonneur cauchemardesque",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_054",
@@ -25717,7 +24939,6 @@
 		"id": "STAPLE_395",
 		"name": "Kiryu",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_048",
@@ -25742,7 +24963,6 @@
 		"id": "STAPLE_396",
 		"name": "Orc gigantesque",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_054",
@@ -25767,7 +24987,6 @@
 		"id": "STAPLE_397",
 		"name": "Bête folle D.D",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_019",
@@ -25792,7 +25011,6 @@
 		"id": "STAPLE_398",
 		"name": "Angus gigantesque",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_050",
@@ -25818,7 +25036,6 @@
 		"id": "STAPLE_399",
 		"name": "Chevalier lutin",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_058",
 			"ARCH_055",
@@ -25843,7 +25060,6 @@
 		"id": "STAPLE_400",
 		"name": "Armure Exe",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_056",
@@ -25869,7 +25085,6 @@
 		"id": "STAPLE_401",
 		"name": "Footballeur de combat",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_001",
@@ -25894,7 +25109,6 @@
 		"id": "STAPLE_402",
 		"name": "Dragon extra dimensionnel",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_054",
@@ -25922,7 +25136,6 @@
 		"id": "STAPLE_403",
 		"name": "Dragon furieux",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_054",
@@ -25956,7 +25169,6 @@
 		"id": "STAPLE_404",
 		"name": "Crainte des ténèbres",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_029",
@@ -25981,7 +25193,6 @@
 		"id": "STAPLE_405",
 		"name": "Désespoir des ténèbres",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_052",
@@ -26026,7 +25237,6 @@
 		"id": "STAPLE_406",
 		"name": "Archdemon soldat",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_020",
 			"ARCH_054",
@@ -26053,7 +25263,6 @@
 		"id": "STAPLE_407",
 		"name": "Seigneur de la flamme légendaire",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_002",
@@ -26095,7 +25304,6 @@
 		"id": "STAPLE_409",
 		"name": "Insecte ultime LV1",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_033",
@@ -26120,7 +25328,6 @@
 		"id": "STAPLE_410",
 		"name": "Insecte ultime LV2",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_033",
@@ -26161,7 +25368,6 @@
 		"id": "STAPLE_411",
 		"name": "Insecte ultime LV3",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_033",
@@ -26199,7 +25405,6 @@
 		"id": "STAPLE_412",
 		"name": "Insecte ultime LV4",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_033",
@@ -26238,7 +25443,6 @@
 		"id": "STAPLE_413",
 		"name": "Hieracosphinx",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_057",
@@ -26268,7 +25472,6 @@
 		"id": "STAPLE_414",
 		"name": "Cryosphinx",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_053",
 			"ARCH_057",
@@ -26294,7 +25497,6 @@
 		"id": "STAPLE_415",
 		"name": "Golem à mines",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_001",
@@ -26319,7 +25521,6 @@
 		"id": "STAPLE_416",
 		"name": "Dragon megarock",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_003",
@@ -26355,7 +25556,6 @@
 		"id": "STAPLE_417",
 		"name": "Moine combattant",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_001",
@@ -26380,7 +25580,6 @@
 		"id": "STAPLE_418",
 		"name": "Maître moine",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_001",
@@ -26418,7 +25617,6 @@
 		"id": "STAPLE_419",
 		"name": "Statue gardien",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_042",
@@ -26449,7 +25647,6 @@
 		"id": "STAPLE_420",
 		"name": "Gardien oublié",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_042",
@@ -26493,7 +25690,6 @@
 		"id": "STAPLE_421",
 		"name": "Guerrier demi bouclier",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
@@ -26517,7 +25713,6 @@
 		"id": "STAPLE_422",
 		"name": "Ninja blanc",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_054",
@@ -26546,7 +25741,6 @@
 		"id": "STAPLE_423",
 		"name": "Reshef l’être des ténèbres",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_054",
@@ -26584,7 +25778,6 @@
 		"id": "STAPLE_424",
 		"name": "Doriado maîtresse elementaire",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_049",
@@ -26641,7 +25834,6 @@
 		"id": "STAPLE_425",
 		"name": "Charmeur de dragon",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_039",
 			"ARCH_048",
@@ -26672,7 +25864,6 @@
 		"id": "STAPLE_426",
 		"name": "Chercheur de dragon",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_054",
@@ -26704,7 +25895,6 @@
 		"id": "STAPLE_427",
 		"name": "Cyberstein",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_056",
@@ -26738,7 +25928,6 @@
 		"id": "STAPLE_428",
 		"name": "Soldat lumineux",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_001",
@@ -26772,7 +25961,6 @@
 		"id": "STAPLE_429",
 		"name": "Dark Balter le terrible",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_020",
 			"ARCH_054",
@@ -26812,7 +26000,6 @@
 		"id": "STAPLE_430",
 		"name": "Dresseuse des ombres",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_020",
 			"ARCH_054",
@@ -26839,7 +26026,6 @@
 		"id": "STAPLE_431",
 		"name": "Esprit Ryu",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_017",
 			"ARCH_051",
@@ -26866,7 +26052,6 @@
 		"id": "STAPLE_432",
 		"name": "Dragon tyran",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_048",
@@ -26895,7 +26080,6 @@
 		"id": "STAPLE_433",
 		"name": "Dragon des cavernes",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_003",
@@ -26919,7 +26103,6 @@
 		"id": "STAPLE_434",
 		"name": "Dragon crâne demon",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_051",
@@ -26958,7 +26141,6 @@
 		"id": "STAPLE_435",
 		"name": "Princesse reptile",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_058",
@@ -26985,7 +26167,6 @@
 		"id": "STAPLE_436",
 		"name": "Nyan nyan du tonnerre",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_052",
 			"ARCH_002",
@@ -27010,7 +26191,6 @@
 		"id": "STAPLE_437",
 		"name": "Soldat susa",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_063",
 			"ARCH_056",
@@ -27036,7 +26216,6 @@
 		"id": "STAPLE_438",
 		"name": "Dragon Yamata",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_063",
 			"ARCH_054",
@@ -27071,7 +26250,6 @@
 		"id": "STAPLE_439",
 		"name": "Long nez le geant",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_063",
 			"ARCH_054",
@@ -27101,7 +26279,6 @@
 		"id": "STAPLE_440",
 		"name": "Otohimé",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_063",
 			"ARCH_054",
@@ -27132,7 +26309,6 @@
 		"id": "STAPLE_441",
 		"name": "Tortue pyramide",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_057",
@@ -27163,7 +26339,6 @@
 		"id": "STAPLE_442",
 		"name": "Magicien cybernétique",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_054",
@@ -27193,7 +26368,6 @@
 		"id": "STAPLE_443",
 		"name": "Cyber Archdemon",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_020",
 			"ARCH_056",
@@ -27228,7 +26402,6 @@
 		"id": "STAPLE_444",
 		"name": "Troupe d’assaut gobeline d’élite",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_054",
@@ -27263,7 +26436,6 @@
 		"id": "STAPLE_445",
 		"name": "Lei lei guerrier indomptable",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_001",
@@ -27288,7 +26460,6 @@
 		"id": "STAPLE_446",
 		"name": "Âme tigre",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_051",
@@ -27314,7 +26485,6 @@
 		"id": "STAPLE_447",
 		"name": "Ninja cramoisie",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_060",
 			"ARCH_048",
@@ -27339,7 +26509,6 @@
 		"id": "STAPLE_448",
 		"name": "Lézard de grand vent",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_003",
@@ -27367,7 +26536,6 @@
 		"id": "STAPLE_449",
 		"name": "Fenrir",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_053",
 			"ARCH_021",
@@ -27391,7 +26559,6 @@
 		"id": "STAPLE_450",
 		"name": "Silpheed",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_051",
 			"ARCH_001",
@@ -27416,7 +26583,6 @@
 		"id": "STAPLE_451",
 		"name": "Bugroth amphibie MK3",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_056",
@@ -27455,7 +26621,6 @@
 		"id": "STAPLE_452",
 		"name": "Guerrier du disque",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_055",
 			"ARCH_056",
@@ -27480,7 +26645,6 @@
 		"id": "STAPLE_453",
 		"name": "Gigobyte LV1",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_021",
@@ -27506,7 +26670,6 @@
 		"id": "STAPLE_454",
 		"name": "Gigobyte LV2",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_052",
@@ -27545,7 +26708,6 @@
 		"id": "STAPLE_455",
 		"name": "Gigobyte LV3",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_052",
@@ -27583,7 +26745,6 @@
 		"id": "STAPLE_456",
 		"name": "Gigobyte LV4",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_052",
@@ -27627,7 +26788,6 @@
 		"id": "STAPLE_457",
 		"name": "Gigobyte LV5",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_052",
@@ -27666,7 +26826,6 @@
 		"id": "STAPLE_458",
 		"name": "Soldat chtonien",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_001",
@@ -27694,7 +26853,6 @@
 		"id": "STAPLE_459",
 		"name": "Incinérateur infernal",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_054",
@@ -27727,7 +26885,6 @@
 		"id": "STAPLE_460",
 		"name": "Magicien a rafale",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_054",
 			"ARCH_052",
@@ -27752,7 +26909,6 @@
 		"id": "STAPLE_461",
 		"name": "Apophis le dieu des marais",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_054",
@@ -27794,7 +26950,6 @@
 		"id": "STAPLE_462",
 		"name": "Apophis le serpent",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_056",
@@ -27823,7 +26978,6 @@
 		"id": "STAPLE_463",
 		"name": "Apophis le dieu serpent",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_054",
@@ -27866,7 +27020,6 @@
 		"id": "STAPLE_464",
 		"name": "Bête divine Serket",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_054",
@@ -27906,7 +27059,6 @@
 		"id": "STAPLE_465",
 		"name": "Anubis le dernier juge",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_054",
@@ -27947,7 +27099,6 @@
 		"id": "STAPLE_466",
 		"name": "Odion",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_054",
@@ -27983,7 +27134,6 @@
 		"id": "STAPLE_467",
 		"name": "Tyranno ultime",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_034",
@@ -28012,7 +27162,6 @@
 		"id": "STAPLE_468",
 		"name": "Tyranno conducteur ultime",
 		"type": "monster",
-		"tier": 5,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_052",
@@ -28052,7 +27201,6 @@
 		"id": "STAPLE_469",
 		"name": "Tyranno conducteur",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_052",
@@ -28087,7 +27235,6 @@
 		"id": "STAPLE_470",
 		"name": "Dragon des flammes combattantes",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_027",
@@ -28128,7 +27275,6 @@
 		"id": "PEGASUS_036",
 		"name": "Monde des toons 2",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_038",
 			"ARCH_055",
@@ -28159,7 +27305,6 @@
 		"id": "STAPLE_471",
 		"name": "Change cœur",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_043",
 			"ARCH_055",
@@ -28197,7 +27342,6 @@
 		"id": "STAPLE_472",
 		"name": "Roi des gardes",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_050",
@@ -28244,7 +27388,6 @@
 		"id": "STAPLE_473",
 		"name": "Cadet des gardes",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_056",
 			"ARCH_070",
@@ -28281,7 +27424,6 @@
 		"id": "STAPLE_474",
 		"name": "Roi du heavy metal",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_066",
 			"ARCH_044",
@@ -28322,7 +27464,6 @@
 		"id": "STAPLE_475",
 		"name": "Pégase aux ailes de feu",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_048",
 			"ARCH_021",
@@ -28350,7 +27491,6 @@
 		"id": "STAPLE_476",
 		"name": "Dragon divin Titanomakhia",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_071",
 			"ARCH_052",
@@ -28391,7 +27531,6 @@
 		"id": "STAPLE_477",
 		"name": "Dragon divin Apocralyphe",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_071",
 			"ARCH_048",
@@ -28426,7 +27565,6 @@
 		"id": "STAPLE_478",
 		"name": "Dragon divin Aquabizarre",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_049",
 			"ARCH_053",
@@ -28461,7 +27599,6 @@
 		"id": "STAPLE_479",
 		"name": "Dragon divin Excellion",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_071",
 			"ARCH_056",
@@ -28489,7 +27626,6 @@
 		"id": "STAPLE_480",
 		"name": "Changchi le spiridao",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_054",
@@ -28516,7 +27652,6 @@
 		"id": "STAPLE_481",
 		"name": "Lame funeste",
 		"type": "monster",
-		"tier": 4,
 		"attributes": [
 			"ARCH_052",
 			"ARCH_054",
@@ -28558,7 +27693,6 @@
 		"id": "ZANE_001",
 		"name": "Cyber Dragon",
 		"type": "monster",
-		"tier": 2,
 		"attributes": [
 			"ARCH_073",
 			"ARCH_074",
@@ -28586,7 +27720,6 @@
 		"id": "ZANE_002",
 		"name": "Cyber Dragon Proto",
 		"type": "monster",
-		"tier": 1,
 		"attributes": [
 			"ARCH_073",
 			"ARCH_074",
@@ -28616,7 +27749,6 @@
 		"id": "ZANE_003",
 		"name": "Cyber dragon Jumelé",
 		"type": "monster",
-		"tier": 3,
 		"attributes": [
 			"ARCH_073",
 			"ARCH_074",

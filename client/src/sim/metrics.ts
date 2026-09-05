@@ -14,6 +14,7 @@
 import type { Card } from '../logic/types.js';
 import type { GameResult } from './runGame.js';
 import { summonCost } from '../logic/InvocationManager.js';
+import { primaryTier } from '../logic/Tiers.js';
 
 export interface CardMetrics {
   card_id: string;
@@ -82,7 +83,7 @@ export class MetricsCollector {
       r = {
         card_id: cardId,
         name: c?.name ?? cardId,
-        tier: c?.tier ?? 0,
+        tier: c ? primaryTier(c) : 0,
         summon_cost: summonCost(c),
         inDeck: 0, played: 0, wins: 0, summons: 0, combats: 0, survived: 0,
         damageDealt: 0, damageTaken: 0,

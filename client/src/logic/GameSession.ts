@@ -35,15 +35,23 @@ import {
 } from './InvocationManager.js';
 import type { SummonCondition } from './types.js';
 import { tiersForRound, drawHand, resolveGuaranteedDraws } from './Draw.js';
+import { tiersOf } from './Tiers.js';
 import { pickMagies } from './MagieOffer.js';
 import type { MagieOfferContext } from './MagieOffer.js';
 import type { Card, Position, BoardDef, AttributeDef, DrawSummary, Magie, RoundWinner } from './types.js';
 
 const HAND_SIZE = 5;
 
-/** Les tiers DISTINCTS d'une liste de cartes, entrées sans tier ignorées. */
+/** Sans doublon d'id, dans l'ordre de première apparition. */
+function _distinctCards(cards: readonly Card[]): Card[] {
+  const seen = new Set<string>();
+  return cards.filter(c => !seen.has(c.id) && seen.add(c.id));
+}
+
+/** Les tiers DISTINCTS d'une liste de cartes, entrées sans tier ignorées.
+ *  ⚠️ Une carte à plusieurs tiers les apporte TOUS : c'est l'union. */
 function _tiers(cards: readonly (Card | null | undefined)[]): number[] {
-  return [...new Set(cards.map(c => c?.tier).filter((t): t is number => typeof t === 'number'))];
+  return [...new Set(cards.flatMap(c => tiersOf(c)))];
 }
 
 /**
@@ -246,7 +254,7 @@ export class GameSession {
     // logique de jeu (cf. `Board.getUnitsOnSide`).
     this.board.mirroredFrame = !!deps.mirroredRole;
     this.enemyAI = new EnemyAI(deps.enemyDeck, deps.cardDb as any, 'enemy', deps.rand ?? Math.random);
-    this._playerDeckAttributes = deckAttributes(Object.values(deps.cardsByTier ?? {}).flat());
+    this._playerDeckAttributes = deckAttributes(_distinctCards(Object.values(deps.cardsByTier ?? {}).flat()));
     this._enemyDeckAttributes = deckAttributes(
       Object.values(deps.enemyDeck ?? {})
         // ⚠️ Ni les decks publics ni les decks de bots ne sont validés par un
@@ -329,7 +337,7 @@ export class GameSession {
     this.hand = [...this.hand, ...drawHand(this.deps.cardsByTier, this.gameState.round, randomCount, this._rand)];
 
     // Pioches garanties : ignorent la restriction de tier du tour — cherche dans tout le deck
-    const fullPool = Object.values(this.deps.cardsByTier).flat();
+    const fullPool = this._deckCards();
     this.hand.push(...resolveGuaranteedDraws(fullPool as any, guaranteedDraws, this._rand));
 
     // Modifiers de main différés (magies choisies au tour précédent)
@@ -788,7 +796,7 @@ export class GameSession {
       handTiers: _tiers(this.hand),
       boardTiers: _tiers(this._duplicableUnits().map(u => this.deps.cardDb.getCard(u.card_id)!)),
       materialSourceCount: this.hand.filter(c => this._drawableMaterialIds(c).length > 0).length,
-      deckTiers: [...new Set(deck.map(c => c.tier).filter((t): t is number => typeof t === 'number'))],
+      deckTiers: _tiers(deck),
       deckAttributes: [...new Set(deck.flatMap(c => c.attributes ?? []))],
       deckCardIds: [...new Set(deck.map(c => c.id))],
       // ⚠️ FAUX en PvP, et ce n'est pas une restriction arbitraire : `enemy_hp`
@@ -890,10 +898,17 @@ export class GameSession {
     return units.filter(u => !!this.deps.cardDb.getCard(u.card_id));
   }
 
-  /** Le deck du joueur à plat. Ne SORT pas de la session : les accesseurs
-   *  publics n'en rendent que des tiers, des booléens et des cartes tirées. */
+  /**
+   * Le deck du joueur à plat. Ne SORT pas de la session : les accesseurs
+   * publics n'en rendent que des tiers, des booléens et des cartes tirées.
+   *
+   * ⚠️ DÉDOUBLONNÉ : `cardsByTier` est un INDEX, pas une partition — une carte
+   * multi-tiers y figure dans chacune de ses cases. À plat, elle compterait
+   * deux fois : deux fois dans les attributs dominants du deck (donc le tirage
+   * du terrain), deux fois dans le sac des pioches garanties.
+   */
   private _deckCards(): Card[] {
-    return Object.values(this.deps.cardsByTier).flat();
+    return _distinctCards(Object.values(this.deps.cardsByTier).flat());
   }
 
   /**
@@ -904,10 +919,18 @@ export class GameSession {
    *
    * Un tier hors bornes ne demande aucune garde : `cardsByTier` n'a pas de case
    * 0 ni 6, le pool est vide et la cible n'en est pas une.
+   *
+   * ⚠️ La cible est une CARTE et non un chiffre : elle peut porter plusieurs
+   * tiers, et le pool est alors l'UNION de leurs voisins — « le tier au-dessus »
+   * d'une carte qui en a deux en a deux aussi. L'union est dédoublonnée par id
+   * en gardant l'ordre du deck : c'est cet ordre que `_pickFrom` indexe, donc
+   * ce qui garde le flux semé en phase.
    */
-  private _tierShiftPool(tier: number | undefined, shift: number): Card[] {
-    if (typeof tier !== 'number') return [];
-    return this.deps.cardsByTier[tier + shift] ?? [];
+  private _tierShiftPool(card: Card | null | undefined, shift: number): Card[] {
+    const seen = new Set<string>();
+    return tiersOf(card)
+      .flatMap(t => this.deps.cardsByTier[t + shift] ?? [])
+      .filter(c => !seen.has(c.id) && seen.add(c.id));
   }
 
   /**
@@ -920,9 +943,9 @@ export class GameSession {
    * exemplaire VIVANT ne l'est pas. Une magie n'a pas à ouvrir une porte que
    * l'invocation ferme.
    */
-  private _boardTierShiftPool(tier: number | undefined, shift: number): Card[] {
+  private _boardTierShiftPool(card: Card | null | undefined, shift: number): Card[] {
     const alive = new Set(this.getPlayerUnits().map(u => u.card_id));
-    return this._tierShiftPool(tier, shift).filter(c => !alive.has(c.id));
+    return this._tierShiftPool(card, shift).filter(c => !alive.has(c.id));
   }
 
   /** Unités du board qu'un `shift_tier_unit` peut effectivement remplacer.
@@ -931,7 +954,7 @@ export class GameSession {
   private _tierShiftUnits(shift: number): Unit[] {
     return this._duplicableUnits().filter(u => {
       const card = this.deps.cardDb.getCard(u.card_id);
-      return this._boardTierShiftPool(card?.tier, shift).length > 0;
+      return this._boardTierShiftPool(card, shift).length > 0;
     });
   }
 
@@ -1013,7 +1036,7 @@ export class GameSession {
   magieHandTargets(magie: Magie): number[] {
     const type = magie.effect?.type;
     const ok = type === 'shift_tier_card'
-      ? (card: Card) => this._tierShiftPool(card.tier, tierShift(magie as any)).length > 0
+      ? (card: Card) => this._tierShiftPool(card, tierShift(magie as any)).length > 0
       : type === 'draw_material'
         ? (card: Card) => this._drawableMaterialIds(card).length > 0
         : () => true;
@@ -1118,7 +1141,7 @@ export class GameSession {
    */
   private _shiftTierUnit(magie: Magie, unit: Unit): void {
     const card = this.deps.cardDb.getCard(unit.card_id);
-    const replacement = this._pickFrom(this._boardTierShiftPool(card?.tier, tierShift(magie as any)));
+    const replacement = this._pickFrom(this._boardTierShiftPool(card, tierShift(magie as any)));
     if (!replacement) return;
     this._payMagieCost(magie);
     const pos = { ...(unit.position as Position) };
@@ -1161,7 +1184,7 @@ export class GameSession {
     const type = magie.effect?.type;
 
     if (type === 'shift_tier_card') {
-      const replacement = this._pickFrom(this._tierShiftPool(card.tier, tierShift(magie as any)));
+      const replacement = this._pickFrom(this._tierShiftPool(card, tierShift(magie as any)));
       if (!replacement) return null;
       this._payMagieCost(magie);
       // La case est écrasée, jamais mutée : `canUndoPreparation` compare la main

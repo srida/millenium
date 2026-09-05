@@ -82,12 +82,19 @@ function writeSets(list: any[]) {
 // l'environnement de test posé (`beforeAll`).
 const packSize = () => shop.BOOSTER.card_count + 1;
 
+// ⚠️ La composition en TIERS n'a jamais rien prouvé ici : le pack n'a besoin
+// que d'assez de cartes pour survivre à plusieurs boosters, et deux packs
+// nommés côte à côte ne doivent pas se recouvrir. `offset` désigne donc une
+// FENÊTRE, et deux offsets distincts donnent deux packs disjoints.
 function commercialPack(id = 'PACK_A', offset = 0) {
   const size = packSize();
   const pool = CARDS.filter(c => !STARTER_CARDS.includes(c.id));
-  const low = pool.filter(c => Number(c.tier) <= 2).slice(offset, offset + size).map(c => c.id);
-  const high = pool.filter(c => Number(c.tier) >= 3).slice(offset, offset + size).map(c => c.id);
-  return { id, name: 'Pack commercial', cards: [...low, ...high], completion_reward: { gems: 300 } };
+  const start = offset * 2 * size;
+  return {
+    id, name: 'Pack commercial',
+    cards: pool.slice(start, start + 2 * size).map(c => c.id),
+    completion_reward: { gems: 300 },
+  };
 }
 
 const STARTER_PACK = { id: 'PACK_START', name: 'Fondations', starter: true, cards: STARTER_CARDS };

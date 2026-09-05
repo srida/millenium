@@ -20,6 +20,7 @@ import { AttributeManager } from '../logic/AttributeManager.js';
 import { Unit } from '../logic/Unit.js';
 import { makeRandom, hashSeed } from '../logic/Random.js';
 import { makeCard } from './helpers.js';
+import { tiersOf } from '../logic/Tiers.js';
 import { drawBonusRows, drawnLabel, guaranteedDrawLabel } from '../data/DrawInfo.js';
 
 const HAND_SIZE = 5;
@@ -32,7 +33,7 @@ function makeSession(opts: { cards?: any[]; rand?: () => number; attributes?: an
   ];
   const byId = new Map(cards.map(c => [c.id, c]));
   const byTier: Record<number, any[]> = {};
-  for (const c of cards) (byTier[c.tier ?? 1] ??= []).push(c);
+  for (const c of cards) for (const t of tiersOf(c)) (byTier[t] ??= []).push(c);
   const deps: GameSessionDeps = {
     cardsByTier: byTier,
     enemyDeck: {},

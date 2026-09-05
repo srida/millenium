@@ -13,6 +13,7 @@
 // une fusion retenue au tier 3 alimente à son tour la couverture du tier 4.
 import { isAttributeMaterial } from '../logic/InvocationManager.js';
 import type { Card, SummonCondition } from '../logic/types.js';
+import { primaryTier, tiersOf, hasTier } from '../logic/Tiers.js';
 
 export type Deck = Record<string, string[]>;
 
@@ -68,8 +69,12 @@ export function buildDeck(pool: Card[], rand: () => number, seed: Card[] = []): 
   const used = new Set<string>();
 
   const take = (c: Card) => {
-    const t = String(c.tier);
-    if (!deck[t] || deck[t].length >= PER_TIER || used.has(c.id)) return false;
+    if (used.has(c.id)) return false;
+    // ⚠️ MÊME règle de lane que le DeckBuilder : le plus bas des tiers de la
+    // carte qui a encore de la place, un cran au-dessus s'il est plein. Une
+    // carte multi-tiers comble les trous, et ne compte que pour UNE.
+    const t = tiersOf(c).map(String).find((k: string) => deck[k] && deck[k].length < PER_TIER);
+    if (!t) return false;
     deck[t].push(c.id);
     used.add(c.id);
     ids.add(c.id);
@@ -93,7 +98,7 @@ export function buildDeck(pool: Card[], rand: () => number, seed: Card[] = []): 
   for (const t of [1, 2, 3, 4, 5]) {
     const key = String(t);
     for (let pass = 0; pass < 3 && deck[key].length < PER_TIER; pass++) {
-      const ok = pool.filter(c => c.tier === t && !used.has(c.id) && isSummonable(c, ids, attrs));
+      const ok = pool.filter(c => hasTier(c, t) && !used.has(c.id) && isSummonable(c, ids, attrs));
       if (ok.length === 0) break;
       const before = deck[key].length;
       for (const c of sample(ok, PER_TIER - before, rand)) take(c);
@@ -124,7 +129,7 @@ export function deckWithCard(
   cardDb: { getCard(id: string): Card | null },
   rand: () => number,
 ): Deck | null {
-  const t = String(card.tier);
+  const t = String(primaryTier(card));
   if (!deck[t]) return null;
   if (deck[t].includes(card.id)) return cloneDeck(deck);
 
@@ -194,7 +199,7 @@ export function materialClosure(
   const bearerOf = (attrId: string): Card | null =>
     pool
       .filter(c => (c.attributes ?? []).includes(attrId) && isNormal(c))
-      .sort((a, b) => a.tier - b.tier || a.id.localeCompare(b.id))[0] ?? null;
+      .sort((a, b) => primaryTier(a) - primaryTier(b) || a.id.localeCompare(b.id))[0] ?? null;
 
   const resolve = (c: Card, depth: number): boolean => {
     if (depth > 4) return false;

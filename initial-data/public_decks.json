@@ -300,7 +300,6 @@
 			"2": [
 				"EXTRA_007",
 				"EXTRA_011",
-				"EXTRA_006",
 				"EXTRA_005",
 				"HAGA_007",
 				"EXTRA_009",
@@ -309,7 +308,8 @@
 			"3": [
 				"HAGA_011",
 				"HAGA_013",
-				"EXTRA_010"
+				"EXTRA_010",
+				"EXTRA_006"
 			],
 			"4": [
 				"EXTRA_004",
@@ -541,7 +541,6 @@
 				"BAKURA_008",
 				"BAKURA_011",
 				"EXTRA_064",
-				"BONZ_007",
 				"BONZ_008",
 				"BONZ_010"
 			],
@@ -549,7 +548,8 @@
 				"EXTRA_062",
 				"EXTRA_066",
 				"BONZ_013",
-				"BONZ_015"
+				"BONZ_015",
+				"BONZ_007"
 			],
 			"4": [
 				"EXTRA_060",

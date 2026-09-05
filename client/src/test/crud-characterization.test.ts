@@ -42,7 +42,12 @@ const ID = 'CHAR_001';
 
 /** Corps minimal accepté par chaque entité (certaines exigent un champ de plus). */
 const ENTITIES = [
-  { route: 'cards', file: 'cards.json', extra: { name: 'Empreinte', tier: 1 } },
+  // ⚠️ Les cartes portent un CONTRAT d'attributs (`card-contract.js`) : sans
+  // tier, sans voie d'invocation et sans élément, POST et PUT répondent 400. Le
+  // corps minimal d'une carte les porte donc — l'empreinte mesure le quintuplet,
+  // pas le contrat (`http.test.ts` s'en charge). ⚠️ `/import` n'est PAS gardé,
+  // et les trois lignes d'import ci-dessous le montrent.
+  { route: 'cards', file: 'cards.json', extra: { name: 'Empreinte', attributes: ['ARCH_091', 'ARCH_090', 'ARCH_048'] } },
   { route: 'attributes', file: 'attributes.json', extra: { name: 'Empreinte', icon: '🔧' } },
   { route: 'powers', file: 'powers.json', extra: { name: 'Empreinte' } },
   { route: 'boards', file: 'boards.json', extra: { name: 'Empreinte' } },

@@ -27,6 +27,7 @@ const { jsonCache } = require('./json-cache');
 const { db, stmt } = require('./db');
 const progression = require('./progression');
 const variants = require('./variants');
+const tiers = require('./tiers');
 const decks = require('./decks');
 // Même rotation que la boutique de cartes — pas une copie, la même fonction.
 const { dayKey, nextRotationAt, seededRandom } = require('./shop');
@@ -164,7 +165,7 @@ function variantPool(user) {
         id: v.id,
         card_id: v.card_id,
         card_name: card?.name ?? v.card_id,
-        tier: card?.tier ?? null,
+        tier: tiers.displayTier(card),
       };
     })
     .sort((a, b) => a.id.localeCompare(b.id));

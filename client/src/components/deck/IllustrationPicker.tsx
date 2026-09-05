@@ -67,7 +67,7 @@ function Choice({
       <CardTile
         illustrationId={illustrationId}
         name={label}
-        tier={null}
+        tiers={null}
         showName={false}
         size="h-auto w-full"
         tapOn="up"

@@ -12,6 +12,7 @@
 // le tester en node, sans jsdom ni serveur.
 import type { Card } from '../logic/types.js';
 import { summonRecipes, summonCostOf, type SummonRecipe } from './SummonInfo.js';
+import { primaryTier, hasTier } from '../logic/Tiers.js';
 
 // ── Sélecteurs ──────────────────────────────────────────────────────────────
 
@@ -36,7 +37,7 @@ function firstWhere(cards: Card[], pred: (c: Card) => boolean, limit = 1): Card[
 function oneRecipeLike(pred: (r: SummonRecipe) => boolean): CardPick {
   return (cards) => {
     const matching = cards.filter(c => summonRecipes(c).some(pred));
-    const sorted = [...matching].sort((a, b) => (a.tier - b.tier) || a.id.localeCompare(b.id));
+    const sorted = [...matching].sort((a, b) => (primaryTier(a) - primaryTier(b)) || a.id.localeCompare(b.id));
     return sorted.slice(0, 1);
   };
 }
@@ -48,8 +49,8 @@ const isFree = (c: Card) => summonCostOf(c) === 0;
 const oneCardPerTier: CardPick = (cards) => {
   const out: Card[] = [];
   for (let t = 1; t <= 5; t++) {
-    const pick = firstWhere(cards, c => c.tier === t && isFree(c))[0]
-      ?? firstWhere(cards, c => c.tier === t)[0];
+    const pick = firstWhere(cards, c => hasTier(c, t) && isFree(c))[0]
+      ?? firstWhere(cards, c => hasTier(c, t))[0];
     if (pick) out.push(pick);
   }
   return out;
@@ -91,7 +92,7 @@ export const CHAPTERS: Chapter[] = [
     blocks: [
       { kind: 'text', text: "Une **carte** est une définition : un nom, un tier, des statistiques, parfois un pouvoir. Elle vit dans ton deck, puis dans ta main. Tant qu'elle est une carte, elle ne fait rien." },
       { kind: 'text', text: "Quand tu la poses sur le terrain, elle devient une **unité** : un exemplaire vivant, avec ses propres points de vie, son bouclier, sa jauge de pouvoir et sa position. Deux unités issues de la même carte sont deux unités distinctes." },
-      { kind: 'cards', caption: 'Une carte, telle qu\'elle apparaît dans ta main', pick: (cards) => firstWhere(cards, c => c.tier === 1 && isFree(c)) },
+      { kind: 'cards', caption: 'Une carte, telle qu\'elle apparaît dans ta main', pick: (cards) => firstWhere(cards, c => hasTier(c, 1) && isFree(c)) },
       { kind: 'bullets', items: [
         "L'unité **persiste d'un tour à l'autre** : une survivante est toujours là au tour suivant, avec les PV qu'il lui reste.",
         "Les bonus de combat (attributs, terrain) sont **remis à zéro** après chaque combat, puis recalculés.",
@@ -115,7 +116,7 @@ export const CHAPTERS: Chapter[] = [
         ['4', 'Tier 2 à 4'],
         ['5', 'Tier 3 à 5'],
       ] },
-      { kind: 'cards', caption: 'Trois cartes d\'une même main', pick: (cards) => [1, 2, 3].flatMap(t => firstWhere(cards, c => c.tier === t)) },
+      { kind: 'cards', caption: 'Trois cartes d\'une même main', pick: (cards) => [1, 2, 3].flatMap(t => firstWhere(cards, c => hasTier(c, t))) },
       { kind: 'note', text: "Les exemplaires identiques sont **empilés** sous une seule vignette, avec un badge ×N. Une carte grisée est injouable pour l'instant : matériaux manquants, terrain plein, ou doublon déjà en jeu." },
     ],
   },
@@ -193,15 +194,16 @@ export const CHAPTERS: Chapter[] = [
     id: 'tiers',
     icon: '⭐',
     title: 'Les tiers',
-    blurb: 'De 1 à 5 : la puissance, et le moment où elle arrive.',
+    blurb: 'De 1 à 5 : la puissance, et les tours où elle arrive.',
     blocks: [
-      { kind: 'text', text: "Chaque carte porte un **tier**, de 1 à 5. Il dit deux choses : sa puissance, et à partir de quel tour tu peux la piocher." },
+      { kind: 'text', text: "Chaque carte porte au moins un **tier**, de 1 à 5. Il dit deux choses : sa puissance, et à quels tours tu peux la piocher." },
       { kind: 'cards', caption: 'Un exemple par tier', pick: oneCardPerTier },
       { kind: 'bullets', items: [
         "**Tier 1 et 2** — ton socle. Peu chères, disponibles tôt, souvent posables sans rien payer.",
         "**Tier 3** — le tournant : c'est là que les recettes commencent à nommer les cartes qu'elles réclament.",
         "**Tier 4 et 5** — les finisseuses. Elles coûtent des matériels et n'arrivent qu'aux derniers tours, quand le multiplicateur les rend décisives.",
       ] },
+      { kind: 'text', text: "Certaines cartes portent **plusieurs tiers** : elles se piochent à chacun d'eux, et comblent les trous d'un deck. Elles ne comptent jamais que pour **une** carte." },
       { kind: 'note', text: "Dans un deck : **8 cartes maximum par tier**, et **un seul exemplaire** de chaque carte. Un deck trop lourd en tier 5 ne pioche rien au tour 1." },
     ],
   },

@@ -7,6 +7,7 @@
     "start": "node --env-file-if-exists=.env server.js",
     "build": "npm --prefix client install && npm --prefix client run build",
     "client:dev": "npm --prefix client run dev",
+    "audit:cards": "node scripts/audit-cards.js",
     "sync:pull": "node scripts/sync-data.js pull",
     "sync:push": "node scripts/sync-data.js push",
     "lint": "eslint .",

@@ -1,5 +1,6 @@
 import { Unit } from './Unit.js';
-import { tiersForRound, resolveGuaranteedDraws } from './Draw.js';
+import { tiersForRound, resolveGuaranteedDraws, deckPoolByTier, poolForRound } from './Draw.js';
+import { primaryTier } from './Tiers.js';
 import {
   materialLineageMatches, summonConditions, conditionMaterials, conditionRequires,
   conditionIsFree, summonCost, forcedCell,
@@ -78,13 +79,11 @@ export class EnemyAI {
   drawHand(round, trace = null, extra = 0, guaranteed = []) {
     const tiers = tiersForRound(round);
     const kept = [...this._hand];
-    const pool = [];
-    for (const t of tiers) {
-      for (const id of (this._deck[String(t)] ?? [])) {
-        const card = this._cardDb.getCard(id);
-        if (card) pool.push(card);
-      }
-    }
+    // ⚠️ MÊME sac que le joueur, par les mêmes fonctions : le pool se dérive
+    // des TIERS DE LA CARTE (une carte multi-tiers se pioche à chacun des
+    // siens) et se dédoublonne par round. Le composer à la main ici, c'était
+    // se donner deux pioches qui finiraient par diverger.
+    const pool = poolForRound(deckPoolByTier(this._deck, this._cardDb), round);
     // ⚠️ Tirage AVEC REMISE. Sans bonus (le cas de TOUS les appelants avant
     // l'attribut `draw_bonus`), exactement HAND_SIZE appels à `rand` dès que
     // le pool n'est pas vide — inchangé au bit près. Le flux semé de la
@@ -378,7 +377,7 @@ function _attemptWith(card, condition, board, maxUnits, graveyard, side) {
         material: matId,
         candidate: outranked.card_id,
         candidate_tier: outranked.tier ?? null,
-        result_tier: card.tier ?? null,
+        result_tier: primaryTier(card),
       });
     }
     return _refused('missing_material', { material: matId, materials: required });
@@ -399,7 +398,7 @@ function _attemptWith(card, condition, board, maxUnits, graveyard, side) {
   if (stillNeeded > 0) {
     const blocked = [...boardPool, ...gravePool].some(u => _outranks(u, card));
     return blocked
-      ? _refused('material_outranks_result', { needed, result_tier: card.tier ?? null })
+      ? _refused('material_outranks_result', { needed, result_tier: primaryTier(card) })
       : _refused('not_enough_material', { needed, available: needed - stillNeeded });
   }
 
@@ -476,9 +475,14 @@ function _unitRef(unit) {
  * `>` et non `>=` : consommer un pair reste légitime (deux Tier 2 pour un Tier 3
  * passent par un intermédiaire de même rang), et l'interdire fermerait des
  * lignées entières.
+ *
+ * ⚠️ Des deux côtés, le tier retenu est le PLUS HAUT (`unit.tier` l'est déjà par
+ * construction) : la question posée est « laquelle est la plus puissante », et
+ * une carte multi-tiers ne doit pas se faire dévorer parce qu'elle porte aussi
+ * un tier bas.
  */
 function _outranks(unit, card) {
-  return (unit.tier ?? 0) > (card.tier ?? 0);
+  return (unit.tier ?? 0) > primaryTier(card);
 }
 
 /**

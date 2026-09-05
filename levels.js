@@ -59,6 +59,7 @@ const progression = require('./progression');
 // une occasion de la laisser diverger de la première.
 const shop = require('./shop');
 const cosmetics = require('./cosmetics');
+const tiers = require('./tiers');
 
 // --- Barème ---
 
@@ -156,7 +157,7 @@ function pools(user) {
   return {
     card: shop.sellableCards()
       .filter(c => !ownedCards.has(c.id))
-      .map(c => ({ id: c.id, label: c.name ?? c.id, tier: Number(c.tier) || null }))
+      .map(c => ({ id: c.id, label: c.name ?? c.id, tier: tiers.displayTier(c) }))
       .sort((a, b) => a.id.localeCompare(b.id)),
     avatar: cosmetics.avatarPool()
       .filter(a => !ownedAvatars.has(a.id))

@@ -1,4 +1,5 @@
 import type { Card, GuaranteedDraw } from './types.js';
+import { hasTier, tiersOf } from './Tiers.js';
 
 // Tiers available per round:
 // T1: R1  T2: R1+  T3: R3+  T4: R4+  T5: R5+
@@ -11,6 +12,56 @@ export function tiersForRound(round: number): number[] {
   return [3, 4, 5];
 }
 
+/**
+ * Le pool de pioche d'un deck, indexé par tier.
+ *
+ * ⚠️ **Les LANES du deck ne servent qu'au RANGEMENT** : c'est la carte qui dit
+ * à quels tiers elle se pioche. Une carte à deux tiers entre donc dans deux
+ * cases — elle sort à plus de rounds, sans jamais compter deux fois dans une
+ * même main (cf. `drawHand`). Une carte rangée dans une lane qui n'est pas un
+ * de ses tiers se pioche selon SES tiers, pas selon sa case : l'admin signale
+ * l'écart sur les decks publics, le jeu ne le rejoue pas.
+ *
+ * ⚠️ L'ORDRE est celui des lanes puis des cartes : c'est lui que la pioche
+ * semée indexe.
+ */
+export function deckPoolByTier(
+  deck: Record<string, string[]> | null | undefined,
+  cardDb: { getCard(id: string): Card | null },
+): Record<number, Card[]> {
+  const byTier: Record<number, Card[]> = {};
+  for (let t = 1; t <= 5; t++) byTier[t] = [];
+  for (let lane = 1; lane <= 5; lane++) {
+    for (const id of deck?.[String(lane)] ?? []) {
+      const card = cardDb.getCard(id);
+      if (!card) continue;
+      for (const t of tiersOf(card)) (byTier[t] ??= []).push(card);
+    }
+  }
+  return byTier;
+}
+
+/** Sans doublon d'id, dans l'ordre de première apparition. */
+function _distinct(cards: Card[]): Card[] {
+  const seen = new Set<string>();
+  return cards.filter(c => !seen.has(c.id) && seen.add(c.id));
+}
+
+/**
+ * Le sac d'un round : les cartes des tiers éligibles, **dédoublonnées**.
+ *
+ * ⚠️ Le dédoublonnage est la seconde moitié de la règle du multi-tier : un
+ * round dont deux tiers sont éligibles verrait sinon la carte deux fois dans le
+ * sac, donc deux fois plus souvent. Le multi-tier élargit les rounds où elle
+ * sort, jamais sa part dans un round donné.
+ *
+ * ⚠️ Les deux camps piochent par ici (`drawHand` et `EnemyAI.drawHand`) : deux
+ * façons de composer le sac finiraient par ne plus donner le même jeu.
+ */
+export function poolForRound(cardsByTier: Record<number, Card[]>, round: number): Card[] {
+  return _distinct(tiersForRound(round).flatMap(t => cardsByTier[t] ?? []));
+}
+
 // Draw `count` cards randomly from the eligible tiers (duplicates allowed).
 // `rand` est injecté pour que la simulation d'équilibrage puisse SEMER la
 // pioche (cf. logic/Random.ts) ; le défaut laisse le jeu inchangé.
@@ -20,7 +71,7 @@ export function drawHand(
   count: number,
   rand: () => number = Math.random,
 ): Card[] {
-  const pool = tiersForRound(round).flatMap(t => cardsByTier[t] ?? []);
+  const pool = poolForRound(cardsByTier, round);
   if (pool.length === 0) return [];
   const hand: Card[] = [];
   for (let i = 0; i < count; i++) {
@@ -65,7 +116,9 @@ export function matchesGuaranteedDraw(
   criteria: GuaranteedDrawCriteria,
   { ignoreTier = false } = {},
 ): boolean {
-  if (!ignoreTier && criteria.tier && card.tier !== criteria.tier) return false;
+  // ⚠️ APPARTENANCE, pas égalité : une carte à plusieurs tiers satisfait la
+  // promesse dès qu'elle porte celui qui est demandé.
+  if (!ignoreTier && criteria.tier && !hasTier(card, criteria.tier)) return false;
   if (criteria.cardIds.length > 0 && !criteria.cardIds.includes(card.id)) return false;
   return criteria.attributes.every(id => card.attributes?.includes(id));
 }

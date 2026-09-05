@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AttributeDef, BoardDef, Card } from '../logic/types.js';
+import { tierIndex, resolveTiers } from '../logic/Tiers.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(HERE, '../../..');
@@ -43,15 +44,19 @@ export interface Catalog {
 function hashCatalog(cards: Card[]): string {
   let h = 2166136261;
   for (const c of cards) {
-    const s = `${c.id}:${c.tier}:${c.stats?.atk}:${c.stats?.hp}:${c.stats?.range}:${c.power?.id ?? ''}:${c.power?.value ?? ''}`;
+    const s = `${c.id}:${(c._tiers ?? []).join('-')}:${c.stats?.atk}:${c.stats?.hp}:${c.stats?.range}:${c.power?.id ?? ''}:${c.power?.value ?? ''}`;
     for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
   }
   return (h >>> 0).toString(16).padStart(8, '0');
 }
 
 export function loadCatalog(): Catalog {
-  const cards = load<Card>(DATA_DIR, 'cards.json');
   const attributes = load<AttributeDef>(DATA_DIR, 'attributes.json');
+  // ⚠️ Le tier est un ATTRIBUT : on résout `_tiers` ici, exactement comme le
+  // serveur le fait sur `GET /api/cards`. C'est la seule décoration du
+  // catalogue brut, et sans elle la simulation jouerait un deck sans tiers.
+  const index = tierIndex(attributes);
+  const cards = load<Card>(DATA_DIR, 'cards.json').map(c => ({ ...c, _tiers: resolveTiers(c, index) }));
   const boards = load<BoardDef>(DATA_DIR, 'boards.json');
   const botDecks = load<{ id: string; name: string; deck: Record<string, string[]> }>(CODE_DIR, 'bot_decks.json');
 

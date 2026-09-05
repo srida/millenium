@@ -22,9 +22,18 @@ import { buildTutorialDecks } from '../game/tutorialDeck.js';
 import type { Card } from '../logic/types.js';
 import { summonCost } from '../logic/InvocationManager.js';
 import { summonRecipes } from '../data/SummonInfo.js';
+import { tierIndex, resolveTiers } from '../logic/Tiers.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-const CARDS = JSON.parse(fs.readFileSync(path.join(ROOT, 'initial-data', 'cards.json'), 'utf8')) as Card[];
+const read = (f: string) => JSON.parse(fs.readFileSync(path.join(ROOT, 'initial-data', f), 'utf8'));
+
+// ⚠️ Le catalogue est DÉCORÉ, comme le serveur le fait sur `GET /api/cards` :
+// le tier est un attribut, et `_tiers` est la forme résolue que tout le jeu
+// lit. Un JSON brut donnerait un catalogue sans aucun tier — le tutoriel
+// n'aurait plus une seule carte à proposer, et le test le prouverait pour de
+// mauvaises raisons.
+const TIERS = tierIndex(read('attributes.json'));
+const CARDS = (read('cards.json') as Card[]).map(c => ({ ...c, _tiers: resolveTiers(c, TIERS) }));
 
 // ── Le codex ────────────────────────────────────────────────────────────────
 

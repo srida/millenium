@@ -101,7 +101,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 - ⚠️ `writeJson` écrit de façon **atomique** (`<file>.tmp` puis `renameSync`) et invalide le cache. L'hébergeur envoie un `SIGTERM` à chaque déploiement.
 - **Deux plafonds de corps** : 1 Mo en général, 20 Mo sur les seules routes d'upload d'image. ⚠️ Le choix se fait **avant** le parsing — `express.json` ignore une requête dont le corps est déjà lu.
 - `downloadUrl` (import d'illustration par URL) borne redirections (5), délai (10 s) et taille (10 Mo), et **refuse les adresses privées** (127/8, 10/8, 172.16/12, 192.168/16, 169.254/16, CGNAT, IPv6 locales, tout protocole hors http(s)). La redirection repasse par le contrôle.
-- Les drapeaux calculés (`_has_illustration`, `_starter`, `_has_avatar`, `_has_poster`, `_has_background`) ne sont **jamais persistés** : calculés à la lecture, retirés à l'écriture (`POST`/`PUT`/`import`).
+- Les drapeaux calculés (`_has_illustration`, `_starter`, `_tiers`, `_has_avatar`, `_has_poster`, `_has_background`) ne sont **jamais persistés** : calculés à la lecture, retirés à l'écriture (`POST`/`PUT`/`import`).
 
 ### Accès et sécurité
 
@@ -182,9 +182,11 @@ Toutes les mutations renvoient **l'instantané complet + la progression à jour*
 | `bots.js` | Identités et decks des adversaires artificiels |
 | `pvplog.js` · `ailog.js` | Outils de diagnostic (feuilles, retirables d'un bloc) |
 | `json-cache.js` · `asset-dirs.js` | Cache au mtime, chemins d'assets |
+| `tiers.js` | Résolution « attributs de catégorie `Tiers` → numéros » (jumeau de `logic/Tiers.ts`) |
+| `card-contract.js` | Les catégories d'attributs qu'une carte doit porter (pur, partagé avec l'audit) |
 
 **Règle anti-cycle** — elle n'est écrite nulle part ailleurs que ici :
-- **Feuilles** (ne requièrent que `db` / `json-cache`, personne ne les requiert en retour) : `sets.js`, `variants.js`, `decks.js`, `pvplog.js`, `ailog.js`, `asset-dirs.js`.
+- **Feuilles** (ne requièrent que `db` / `json-cache`, personne ne les requiert en retour) : `sets.js`, `variants.js`, `decks.js`, `pvplog.js`, `ailog.js`, `asset-dirs.js`, `tiers.js`, `card-contract.js`.
 - **Puits** (requièrent les autres, aucun ne doit les requérir) : `levels.js`, `gifts.js`.
 - `sets.js` existe parce que `shop.js` (boosters) et `progression.js` (dotation) en ont tous deux besoin, et que `shop.js` requiert déjà `progression.js`.
 - `cosmetics.js`, `gifts.js` et `arcade.js` importent **littéralement** le calendrier de `shop.js` : `const { dayKey, nextRotationAt, seededRandom } = require('./shop')`.
@@ -840,6 +842,26 @@ player_hp -= round(sum(survivingEnemyUnits.atk) × enemy_multiplier)
 
 Un monstre peut porter plusieurs attributs. **Un seul palier est actif à la fois** (le plus élevé atteint).
 
+**Cinq catégories** (`categorie`) : `Archetype`, `Type`, `Element`, `Invocation`, `Tiers`. **Contrat d'une carte : au moins un attribut de catégorie `Tiers`, `Invocation` et `Element`** — `Type` n'en fait **pas** partie (12 cartes livrées n'en portent aucun, et aucune règle ne le lit).
+
+- **`card-contract.js` porte la règle, seul** (pur, sans `require`) : `POST` / `PUT /api/cards` refusent en **400** et `npm run audit:cards --check` sort en 1, avec la même fonction.
+- ⚠️ **`/import` n'est PAS gardé**, à dessein : c'est le chemin des machines (`sync-data.js` pousse un catalogue entier), et une entrée non conforme y ferait échouer la synchro au lieu de se signaler. C'est l'audit qui couvre ce chemin.
+- ⚠️ Une carte **sans attribut de tier** n'entre dans **aucun** pool de pioche : elle existe au catalogue et ne sort jamais. D'où le refus à l'écriture plutôt qu'un avertissement.
+
+### Le tier est un ATTRIBUT
+
+Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`), exactement comme les cinq voies d'invocation. **Une carte peut en porter plusieurs** : elle se pioche à chacun de ses tiers.
+
+- ⚠️ **La catégorie dit qu'un attribut est un tier, son champ `tier` dit LEQUEL.** Aucun id en dur (le catalogue est éditable), aucune dérivation depuis le `name` (« Tier 3 » se renomme en admin).
+- **`logic/Tiers.ts` est le seul résolveur côté client, `tiers.js` (racine) son JUMEAU serveur** — la frontière CJS / ESM-TS interdit un module partagé (même situation que `XP_PER_LEVEL` et `BASE_TICK_MS`). ⚠️ `test/tiers.test.ts` les fait répondre sur les 868 cartes : c'est le **seul** filet contre leur dérive.
+- **La résolution se fait UNE FOIS au chargement du catalogue** : le serveur pose `_tiers` sur `GET /api/cards` (calculé, jamais persisté), `sim/catalog.ts` décore le JSON brut, les scripts construisent leur propre index (`tierIndex(attributes)`). Le jeu ne fait plus que **lire**. ⚠️ Corollaire pour les tests : **un test qui lit `cards.json` à la main doit DÉCORER** (`tierIndex` + `resolveTiers`, cf. `tutorial.test.ts`), sinon il travaille sur un catalogue sans un seul tier.
+- ⚠️ **`tiersOf` (ensemble) et `primaryTier` (le plus HAUT) ne répondent pas à la même question.** Ensemble : pool de pioche, lanes, filtres, `guaranteed_draw` (appartenance, jamais égalité). Scalaire : `Unit.tier` (échelle des VFX), garde `material_outranks_result` de l'IA, `tier_min` des missions, tris — tous demandent une **puissance**. `displayTier` est un troisième cas assumé : il rend `null` au lieu d'inventer un « T1 » sur une étiquette.
+- ⚠️ **Le pool de pioche se dérive des TIERS DE LA CARTE**, pas de la lane où elle est rangée : `Draw.deckPoolByTier` en est le seul constructeur (`bootstrap.buildSession`, `sim/runGame`, `EnemyAI.drawHand`), et `Draw.poolForRound` le seul assembleur du sac d'un round. Une carte rangée hors de ses tiers se pioche selon **les siens** — l'admin signale l'écart sur un deck public, le jeu ne le rejoue pas.
+- ⚠️ **Le sac d'un round est DÉDOUBLONNÉ** : un round qui couvre deux tiers d'une même carte la verrait sinon deux fois, donc deux fois plus souvent. Le multi-tier élargit les rounds où une carte sort, **jamais sa part dans un round**. Même raison pour `_deckCards()` : `cardsByTier` est un **index**, pas une partition — à plat sans dédoublonnage, une carte pèserait deux fois dans les attributs dominants du deck (donc dans le tirage du terrain) et dans le sac des pioches garanties.
+- ⚠️ **Une carte multi-tiers ne compte QUE POUR UNE**, dans une seule lane : celle du **plus bas de ses tiers qui a encore de la place**, un cran au-dessus s'il est plein (`DeckBuilder.laneFor`). Elle **comble les trous** au lieu d'occuper d'office le haut du panier. Corollaire : l'unicité se vérifie sur **tout le deck** (`laneOf`), jamais sur la seule lane visée, et « tier plein » veut dire « plus une seule de ses lanes n'a de place ».
+- **Affichage** : `CardTile` prend une **liste** (`tiers`) et rend `T2·4` ; le liseré, lui, prend le plus haut (une couleur ne se partage pas). Le tooltip dit tous les tiers d'une **carte**, un seul pour une **unité**. ⚠️ Les attributs de tier sont **écartés des chips** `Keywords` (le badge vient de le dire) et de `DeckTags` (toute carte en porte un : ils seraient dominants dans chaque deck). Ils restent dans le tirage du terrain — un terrain a le droit de viser les Tier 5.
+- ⚠️ **Le champ `tier` n'existe plus, et `tiersOf` n'a AUCUN repli** : une carte sans attribut de tier rend `[]` et n'entre dans aucun pool. C'est le contrat d'écriture (400) et l'audit qui garantissent qu'elle n'existe pas, jamais une clause de lecture — un repli ferait taire exactement ce que le contrat existe pour signaler. `scripts/migrate-tiers.js --write` pose l'attribut **puis retire le champ** (jamais sur une orpheline : le champ y est la dernière information) ; `audit:cards` compte un champ résiduel comme une **faute**. Les fixtures de test écrivent `_tiers` — `makeCard({ tier: N })` n'est qu'un raccourci qui le traduit.
+
 | Effet | Timing | Détail |
 |---|---|---|
 | `stat_bonus` | `start_of_combat` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step) |
@@ -1405,7 +1427,7 @@ Structure d'un deck : `{ "1": ["CORE_001", …], "2": […], "3": […], "4": [�
 
 - **L'adversaire solo se choisit parmi les decks publics**, jamais parmi ceux du joueur. Le deck public **voyage en clair** dans les params (`enemyDeck`), pas seulement par son nom : il ne vit pas dans `DeckRepository`. `enemyDeckName` n'est plus qu'un libellé.
 - **La carte d'un deck public ne montre pas la même chose** : la répartition par tier est réservée aux siens (devant un adversaire, on ne choisit pas une composition) — elle cède la place à sa **difficulté** (`DifficultyChip` : le libellé **et** 4 pastilles) et à ses **tags**.
-- **Tags** (`data/DeckTags.computeDeckTags`) : deux attributs dominants (≥ 2 cartes) puis un mot de profil (Mêlée / Distance / Brutal / Offensif), 3 max. ⚠️ Les attributs de **catégorie `Invocation`** en sont écartés — et **seulement là** : le tirage du terrain les garde (un terrain a le droit de viser les Sacrifices). « Normal » est porté par 389 cartes sur 868, il serait dominant partout et ne distinguerait rien. `AttributeDatabase.isInvocationAttribute` est le seul endroit qui nomme cette catégorie. **Un seul calcul, deux moments** : figés à l'enregistrement pour le deck du joueur, **dérivés à l'affichage** pour un deck public. ⚠️ **Le tri a DEUX critères** : effectif décroissant, puis `id` d'attribut — sans le second, un deck public réordonné en admin changeait de tags sans changer de contenu (même geste que le départage par `card_id` de l'initiative).
+- **Tags** (`data/DeckTags.computeDeckTags`) : deux attributs dominants (≥ 2 cartes) puis un mot de profil (Mêlée / Distance / Brutal / Offensif), 3 max. ⚠️ Les attributs de catégorie **`Invocation` et `Tiers`** en sont écartés — et **seulement là** : le tirage du terrain les garde tous les deux (un terrain a le droit de viser les Sacrifices, ou les Tier 5). « Normal » est porté par 389 cartes sur 868, il serait dominant partout et ne distinguerait rien. `AttributeDatabase.isInvocationAttribute` / `isTierAttribute` sont les seuls endroits qui nomment ces catégories côté affichage. **Un seul calcul, deux moments** : figés à l'enregistrement pour le deck du joueur, **dérivés à l'affichage** pour un deck public. ⚠️ **Le tri a DEUX critères** : effectif décroissant, puis `id` d'attribut — sans le second, un deck public réordonné en admin changeait de tags sans changer de contenu (même geste que le départage par `card_id` de l'initiative).
 - Deux raccourcis en mode `'play'` : **🪞 Miroir** (état par défaut, `enemyId = null` → l'IA joue le deck du joueur) et **🎲 Aléatoire** (tire un deck public jouable, en évitant le tirage précédent). Ne retient que les decks ≥ 20 cartes.
 - **Tournoi et Duel en ligne n'ont pas d'étape de sélection** : ils consomment `getActiveDeck()` et n'affichent qu'un récap **en lecture seule** (`components/deck/SelectedDeck.tsx`). Seul cas navigable : aucun deck actif → CTA « Mes decks ». Un tournoi lancé garde son deck figé (`tournament.playerDeckName`).
 

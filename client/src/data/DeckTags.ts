@@ -8,7 +8,7 @@
 // partie de son méta), un deck public les dérive à l'affichage (DeckSelector) —
 // il n'a pas de méta local où les ranger et sa composition change en admin.
 import * as AttributeDatabase from './AttributeDatabase.js';
-import { isInvocationAttribute } from './AttributeDatabase.js';
+import { isInvocationAttribute, isTierAttribute } from './AttributeDatabase.js';
 import { MIN_ATTRIBUTE_OCCURRENCES } from '../logic/BoardPicker.js';
 import type { Card } from '../logic/types.js';
 
@@ -30,12 +30,14 @@ export function computeDeckTags(cards: Card[]): string[] {
   // changerait de tags sans avoir changé de contenu. L'`id` d'attribut est une
   // valeur ABSOLUE ; même geste que le départage par `card_id` de l'ordre
   // d'initiative dans `CombatManager`, et pour la même raison.
-  // ⚠️ Les attributs d'INVOCATION sont écartés, et seulement ici : le tirage du
-  // terrain les garde (un terrain a le droit de viser les Sacrifices). Ils
-  // décrivent un coût, pas un thème — « Normal », porté par 389 cartes, serait
-  // dominant dans tous les decks et ne distinguerait rien.
+  // ⚠️ Les attributs d'INVOCATION et de TIER sont écartés, et seulement ici : le
+  // tirage du terrain les garde tous les deux (un terrain a le droit de viser
+  // les Sacrifices, ou les Tier 5). Ils décrivent un coût et un rang, pas un
+  // thème — « Normal » est porté par 389 cartes, et un tier par TOUTES : ils
+  // seraient dominants dans chaque deck et ne distingueraient rien.
   const dominant = Object.entries(attrCounts)
-    .filter(([id, c]) => c >= MIN_ATTRIBUTE_OCCURRENCES && !isInvocationAttribute(id))
+    .filter(([id, c]) => c >= MIN_ATTRIBUTE_OCCURRENCES
+      && !isInvocationAttribute(id) && !isTierAttribute(id))
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, 2)
     .map(([id]) => (AttributeDatabase as any).getAttribute(id)?.name ?? id);

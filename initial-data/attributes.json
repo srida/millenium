@@ -1735,6 +1735,7 @@
 		"icon": "1",
 		"timing": "start_of_combat",
 		"categorie": "Tiers",
+		"tier": 1,
 		"thresholds": []
 	},
 	{
@@ -1743,6 +1744,7 @@
 		"icon": "2",
 		"timing": "start_of_combat",
 		"categorie": "Tiers",
+		"tier": 2,
 		"thresholds": []
 	},
 	{
@@ -1751,6 +1753,7 @@
 		"icon": "3",
 		"timing": "start_of_combat",
 		"categorie": "Tiers",
+		"tier": 3,
 		"thresholds": []
 	},
 	{
@@ -1759,6 +1762,7 @@
 		"icon": "4",
 		"timing": "start_of_combat",
 		"categorie": "Tiers",
+		"tier": 4,
 		"thresholds": []
 	},
 	{
@@ -1767,6 +1771,7 @@
 		"icon": "5",
 		"timing": "start_of_combat",
 		"categorie": "Tiers",
+		"tier": 5,
 		"thresholds": []
 	}
 ]

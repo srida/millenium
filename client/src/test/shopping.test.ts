@@ -10,6 +10,7 @@ import type { GameSessionDeps } from '../logic/GameSession.js';
 import { Unit } from '../logic/Unit.js';
 import { makeRandom } from '../logic/Random.js';
 import { makeCard } from './helpers.js';
+import { hasTier } from '../logic/Tiers.js';
 
 function magie(effect: any, over: any = {}) {
   return { id: over.id ?? 'MAGIC_T', name: over.name ?? 'Test', effect, ...over };
@@ -30,7 +31,7 @@ function makeSession(opts: { cards?: any[]; magies?: any[]; rand?: () => number;
   const byId = new Map(cards.map(c => [c.id, c]));
   const magiePool = opts.magies ?? [];
   const deps: GameSessionDeps = {
-    cardsByTier: { 1: cards.filter(c => (c.tier ?? 1) === 1) },
+    cardsByTier: { 1: cards.filter(c => hasTier(c, 1)) },
     enemyDeck: {},
     attributeList: [],
     cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },

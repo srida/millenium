@@ -4,13 +4,14 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useUiStore, type TooltipAnchor, type TooltipContent } from '../../stores/uiStore.js';
 import { getPower } from '../../data/PowerDatabase.js';
-import { getAttribute } from '../../data/AttributeDatabase.js';
+import { getAttribute, isTierAttribute } from '../../data/AttributeDatabase.js';
 import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
 import PowerIcon from '../ui/PowerIcon.js';
 import { Illustration } from '../ui/primitives.js';
 import RecipeRow from '../ui/SummonRecipe.js';
 import { cardName } from '../../data/gameNames.js';
 import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
+import { primaryTier, tiersOf } from '../../logic/Tiers.js';
 import { materialValueOf } from '../../logic/Unit.js';
 import type { Card } from '../../logic/types.js';
 import { STAT_LABELS } from '../../data/StatLabels.js';
@@ -62,10 +63,14 @@ function StatsRow({ stats }: { stats: Record<string, number> }) {
 }
 
 function Keywords({ ids }: { ids: string[] }) {
-  if (!ids.length) return null;
+  // ⚠️ Les attributs de TIER sont écartés : le badge de l'en-tête vient de les
+  // dire, deux lignes plus haut. Les voies d'invocation, elles, RESTENT — c'est
+  // ici qu'on lit « c'est une Fusion », et rien d'autre ne le dit.
+  const shown = ids.filter(id => !isTierAttribute(id));
+  if (!shown.length) return null;
   return (
     <div className="mt-2 flex flex-wrap gap-1">
-      {ids.map(id => {
+      {shown.map(id => {
         const attr = (getAttribute as any)(id);
         return (
           <span key={id} className="inline-flex items-center gap-1 rounded border border-tier-4/40 bg-tier-4/10 px-2 py-0.5 text-[10px] text-tier-4">
@@ -119,7 +124,10 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
       <div>
         <div className="flex items-center justify-between">
           <span className="text-sm font-bold">{data.name}</span>
-          <span className="rounded border border-gold/40 px-1.5 text-[10px] font-bold text-gold">T{data.tier}</span>
+          {/* Une CARTE dit tous ses tiers ; une UNITÉ n'en porte qu'un (sa puissance). */}
+          <span className="rounded border border-gold/40 px-1.5 text-[10px] font-bold text-gold">
+            T{isUnit ? data.tier : (tiersOf(data).join('·') || primaryTier(data))}
+          </span>
         </div>
         <StatsRow stats={stats} />
         <Keywords ids={data.attributes ?? []} />
