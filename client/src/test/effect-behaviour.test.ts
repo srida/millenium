@@ -33,6 +33,25 @@ describe('Comportement des effets — catalogue livré', () => {
     expect(actual.magies).toEqual(golden.magies);
   });
 
+  // ⚠️ LE filet du lot des zones : ces onze magies sont des no-op dans
+  // `MagieEffect.applyEffect` — tout leur travail vit dans `GameSession`, et
+  // aucun autre golden ne le regarde. Chaque cas est joué DEUX fois, sans puis
+  // avec contrecoup : le moment du prélèvement diffère d'une magie à l'autre
+  // (avant l'effet, ou seulement si la résolution aboutit), et c'est l'invariant
+  // le plus facile à perdre en refactorant.
+  it('chaque magie avancée déplace exactement ce qu\'elle déplaçait', () => {
+    expect(actual.zones).toEqual(golden.zones);
+  });
+
+  it('aucune magie avancée n\'est observée en train de ne RIEN faire', () => {
+    // Un cas inerte rendrait le golden vert quoi qu'on change — la panne la
+    // plus coûteuse d'un filet, puisqu'elle est invisible.
+    const inertes = Object.entries(actual.zones as Record<string, any>)
+      .filter(([, v]) => JSON.stringify(v.before) === JSON.stringify(v.after))
+      .map(([k]) => k);
+    expect(inertes).toEqual([]);
+  });
+
   it('le golden couvre bien tout le catalogue', () => {
     // Sans ça, un catalogue amputé rendrait les trois cas ci-dessus verts à
     // vide — la panne la plus bête qu'un golden puisse avoir.

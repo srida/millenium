@@ -321,7 +321,9 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       }
       break;
     case 'player_hp_bonus':
-      if (gameState) gameState.player_hp = Math.min(gameState.player_hp + e.value, 1000);
+      // ⚠️ Le plafond n'est plus écrit ici : `gainPlayerHp` le porte, et il
+      // était le seul des trois crédits à le coder en dur (`1000`).
+      if (gameState) gameState.gainPlayerHp(e.value);
       break;
     case 'board_slot_bonus':
       if (gameState) gameState.grantLimitedBoardSlotBonus(e.value || 1);

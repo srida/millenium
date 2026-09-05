@@ -1573,3 +1573,73 @@ describe('magieHandTargets — les trois magies « toutes cartes »', () => {
     }
   });
 });
+
+// ============================================================================
+//  Le contrecoup n'est pas prélevé quand la RÉSOLUTION échoue
+// ============================================================================
+// ⚠️ Distinct du refus faute de PV, déjà couvert plus haut : ici le joueur PEUT
+// payer, mais la magie ne trouve rien à faire — pas de carte au tier voisin, pas
+// de matériel résolvable, une carte disparue du catalogue. Quatre magies
+// résolvent donc AVANT de payer, chacune avec son commentaire dans
+// `GameSession` ; rien de structurel ne le garantit, et c'est très exactement
+// l'invariant qu'un refactor de ces onze magies fait tomber en premier.
+//
+// Le filtre d'offre rend ces états inatteignables depuis l'écran. Ces gardes
+// sont ce qui les empêche pour de bon — et ce test, la seule chose qui dise
+// qu'elles tiennent encore.
+describe('Shopping — résolution impossible : rien n\'est prélevé', () => {
+  const cher = (effect: any) => magie(effect, { cost_hp: 60 }) as any;
+
+  /** Une session dont le deck ne porte QUE du tier 1 : aucun tier voisin. */
+  function sansVoisin() {
+    const { session } = makeSession({ cards: [makeCard({ id: 'SEUL', tier: 1, summon_conditions: [] })] });
+    session.gameState.player_hp = 500;
+    return session;
+  }
+
+  it('shift_tier_card : la main et les PV sont intacts', () => {
+    const s = sansVoisin();
+    s.hand = [makeCard({ id: 'SEUL', tier: 1 }) as any];
+    expect(s.canAffordMagie(cher({ type: 'shift_tier_card', value: 1 }))).toBe(true);
+    s.applyMagieOnHandCard(cher({ type: 'shift_tier_card', value: 1 }), 0);
+    expect(s.hand.map((c: any) => c.id)).toEqual(['SEUL']);
+    expect(s.gameState.player_hp).toBe(500);
+  });
+
+  it('shift_tier_unit : l\'unité reste sur sa case, les PV sont intacts', () => {
+    const s = sansVoisin();
+    const u = place(s, makeCard({ id: 'SEUL', tier: 1 }), { col: 2, row: 1 });
+    s.applyMagieOnUnit(cher({ type: 'shift_tier_unit', value: 1 }), u);
+    expect(s.board.getUnit({ col: 2, row: 1 })).toBe(u);
+    expect(s.gameState.player_hp).toBe(500);
+  });
+
+  it('draw_material : une carte SANS matériel ne coûte rien', () => {
+    const s = sansVoisin();
+    s.hand = [makeCard({ id: 'SEUL', tier: 1, summon_conditions: [] }) as any];
+    s.applyMagieOnHandCard(cher({ type: 'draw_material' }), 0);
+    expect(s.hand).toHaveLength(1);
+    expect(s.gameState.player_hp).toBe(500);
+  });
+
+  it('duplicate_unit : une carte absente du CATALOGUE ne coûte rien', () => {
+    // ⚠️ Le cas n'est pas théorique : une unité posée survit à la suppression
+    // de sa carte en admin, et `_duplicateFromUnit` résout par `cardDb`.
+    const s = sansVoisin();
+    const u = place(s, makeCard({ id: 'DISPARUE', tier: 1 }), { col: 0, row: 0 });
+    s.applyMagieOnUnit(cher({ type: 'duplicate_unit', value: 1 }), u);
+    expect(s.hand).toHaveLength(0);
+    expect(s.gameState.player_hp).toBe(500);
+  });
+
+  it('duplicate_graveyard_unit : même règle depuis le cimetière', () => {
+    const s = sansVoisin();
+    const mort = new (Unit as any)(makeCard({ id: 'DISPARUE', tier: 1 }), 'player');
+    mort.is_neutralized = true;
+    s.graveyard.push(mort);
+    s.applyMagieOnGraveyardUnit(cher({ type: 'duplicate_graveyard_unit', value: 1 }), mort);
+    expect(s.hand).toHaveLength(0);
+    expect(s.graveyard).toHaveLength(1);
+    expect(s.gameState.player_hp).toBe(500);
+  });
+});

@@ -218,6 +218,31 @@ export class GameState {
     return this.phase;
   }
 
+  /**
+   * Créditer les PV du joueur, plafonnés.
+   *
+   * ⚠️ Le geste vit ICI parce que c'est `GameState` qui possède `player_hp` et
+   * son plafond. Il était écrit TROIS fois — `player_hp_bonus` (magie),
+   * `sacrifice_card_hp` et `drain_life` (session) — et le premier plafonnait à
+   * un **`1000` littéral** quand les deux autres lisaient `PLAYER_HP_CAP`.
+   * Les trois valent la même chose aujourd'hui ; le jour où `STARTING_HP`
+   * bouge, seul le littéral resterait en arrière, et rien ne le dirait.
+   *
+   * ⚠️ Un montant négatif ou illisible ne RETIRE rien : les trois sources sont
+   * des gains (un bonus, des PV absorbés, une carte brûlée). Retirer des PV au
+   * joueur est le travail d'`applyEndOfCombat` et du contrecoup, qui ont chacun
+   * leur propre chemin — un crédit qui sait débiter finirait par le faire par
+   * accident.
+   *
+   * @returns les PV réellement gagnés, plafond compris
+   */
+  gainPlayerHp(amount: number): number {
+    const gain = Math.max(0, Math.round(Number(amount) || 0));
+    const before = this.player_hp;
+    this.player_hp = Math.min(this.player_hp + gain, PLAYER_HP_CAP);
+    return this.player_hp - before;
+  }
+
   isGameOver(): boolean {
     return this.phase === Phase.GAME_OVER || this.player_hp <= 0 || this.enemy_hp <= 0 || this.round >= MAX_ROUNDS;
   }

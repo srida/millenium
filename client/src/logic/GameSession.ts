@@ -1211,16 +1211,12 @@ export class GameSession {
       // été posé, il n'y a pas de PV courants à lire. Plafonné comme
       // `player_hp_bonus` et `drain_life`, dont c'est le troisième jumeau — la
       // seule source de PV joueur qui se paie en cartes plutôt qu'en unités.
-      const gained = Math.max(0, Math.round((card.stats?.hp ?? 0) * sacrificeHpPercent(magie as any) / 100));
-      this.gameState.player_hp = Math.min(this.gameState.player_hp + gained, PLAYER_HP_CAP);
+      this.gameState.gainPlayerHp((card.stats?.hp ?? 0) * sacrificeHpPercent(magie as any) / 100);
       return null;
     }
 
     this.hand.splice(handIdx, 1);
-    const unit = new Unit(card, 'player');
-    unit.is_neutralized = true;
-    this.graveyard.push(unit);
-    return unit;
+    return this._sendToGraveyard(new Unit(card, 'player'));
   }
 
   /**
@@ -1267,16 +1263,34 @@ export class GameSession {
         matUnit.initial_position = { ...cell };
         this.board.placeUnit(matUnit, cell);
       } else {
-        matUnit.is_neutralized = true;
-        this.graveyard.push(matUnit);
+        this._sendToGraveyard(matUnit);
       }
     }
   }
 
-  private _destroyUnit(unit: Unit): void {
-    this.board.removeUnit(unit);
+  /**
+   * Poser une unité au cimetière — le geste, sans le motif.
+   *
+   * ⚠️ Il était écrit TROIS fois : `destroy_unit`, la queue de
+   * `hand_to_graveyard`, et la branche de débordement de `defuse_fusion`. Les
+   * trois faisaient la même chose (neutraliser puis empiler) pour trois raisons
+   * différentes, et c'est le genre de répétition qu'on ne corrige qu'à un seul
+   * endroit le jour où le cimetière change de forme.
+   *
+   * ⚠️ `removeUnit` n'est PAS fait ici : une carte de la main et un matériel
+   * défusionné ne sont posés sur aucune case. C'est à l'appelant de retirer du
+   * board ce qui y était — un `removeUnit` inconditionnel masquerait la
+   * différence entre « je détruis ce qui est posé » et « je crée un corps ».
+   */
+  private _sendToGraveyard(unit: Unit): Unit {
     unit.is_neutralized = true;
     this.graveyard.push(unit);
+    return unit;
+  }
+
+  private _destroyUnit(unit: Unit): void {
+    this.board.removeUnit(unit);
+    this._sendToGraveyard(unit);
   }
 
   /**
@@ -1288,9 +1302,9 @@ export class GameSession {
    * qu'absorber une unité intacte.
    */
   private _drainLife(unit: Unit): void {
-    const drained = Math.max(0, Math.round(unit.current_hp));
+    const drained = unit.current_hp;
     this._destroyUnit(unit);
-    this.gameState.player_hp = Math.min(this.gameState.player_hp + drained, PLAYER_HP_CAP);
+    this.gameState.gainPlayerHp(drained);
   }
 
   // ── Fin de partie / tour suivant ────────────────────────────────────────
