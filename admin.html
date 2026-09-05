@@ -1547,6 +1547,7 @@ function renderCardDetail() {
       <div class="illustration-box" id="illus-box">
         ${hasIllus ? `<img src="/illustrations/${c.id}" id="illus-img" alt="">` : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
         <div class="illus-overlay">
+          ${hasIllus ? downloadAssetBtn('illustrations', c.id) : ''}
           ${hasIllus ? `<button class="btn btn-danger btn-sm" onclick="deleteIllustration()">Supprimer</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="openIllusModal()">Importer URL</button>
         </div>
@@ -2428,6 +2429,48 @@ async function importIllustrationFromFile() {
   toast('Illustration importée');
 }
 
+// ================== TÉLÉCHARGEMENT D'UN ASSET ==================
+//
+// Le pendant de l'import : l'admin savait poser une image et l'effacer, jamais
+// la reprendre. Les quatre familles d'assets passent par ici, c'est le seul
+// enregistreur du fichier.
+//
+// ⚠️ Passe par un BLOB et non par un `<a href download>` posé dans le document.
+// Les routes d'assets rendent un 404 franc quand le fichier n'existe pas
+// (`/pack-posters`, `/board-backgrounds`) : un lien nu enregistrerait alors la
+// page d'erreur sous le nom du PNG, sans rien dire. Le blob permet de lire le
+// statut d'abord.
+//
+// ⚠️ `cache: 'no-store'` plutôt qu'un cache-buster dans l'URL : les vignettes
+// portent le leur pour se rafraîchir à l'écran, mais un `?t=` recopié ici
+// finirait dans le nom du fichier enregistré sur certains navigateurs.
+async function downloadAsset(url, filename) {
+  try {
+    const res = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+    if (!res.ok) return toast(`Image introuvable (${res.status})`, 'err');
+    const href = URL.createObjectURL(await res.blob());
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Révoqué au tour d'après : révoquer dans la foulée du clic annule
+    // l'enregistrement sur les navigateurs qui lisent le blob après coup.
+    setTimeout(() => URL.revokeObjectURL(href), 60_000);
+  } catch (e) {
+    toast('Téléchargement impossible : ' + e.message, 'err');
+  }
+}
+
+/** Le bouton ⬇ de l'encart d'image. `id` compose le nom du fichier enregistré,
+ *  qui est celui du volume (`<id>.png`) — un aller-retour reste possible. */
+function downloadAssetBtn(route, id, label = '⬇ Télécharger') {
+  const safe = esc(String(id));
+  return `<button class="btn btn-secondary btn-sm" title="Enregistrer ${safe}.png sur l'appareil"
+    onclick="event.stopPropagation();downloadAsset('/${route}/${encodeURIComponent(id)}','${safe}.png')">${label}</button>`;
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -2560,6 +2603,7 @@ function renderAttrDetail() {
           ? `<img src="/illustrations/${a.id}?t=${attrIconBust}" alt="" style="object-fit:contain">`
           : `<div style="font-size:48px">${a.icon || '❓'}</div>`}
         ${isNewAttr ? '' : `<div class="illus-overlay">
+          ${a._has_illustration ? downloadAssetBtn('illustrations', a.id) : ''}
           ${a._has_illustration ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteAttrIcon()">Supprimer</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openAttrIconModal()">Importer</button>
         </div>`}
@@ -3063,6 +3107,7 @@ function renderPowerDetail() {
           ? `<img src="/illustrations/${p.id}?t=${powerIconBust}" alt="" style="object-fit:contain">`
           : `<div style="font-size:48px">${p.icon || '⚡'}</div>`}
         ${isNewPower ? '' : `<div class="illus-overlay">
+          ${p._has_illustration ? downloadAssetBtn('illustrations', p.id) : ''}
           ${p._has_illustration ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePowerIcon()">Supprimer</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openPowerIconModal()">Importer</button>
         </div>`}
@@ -3372,6 +3417,7 @@ function renderMagieDetail() {
         <div class="illus-overlay">
           ${hasIllus
             ? `<span style="font-size:12px;color:white">Changer</span>
+               ${downloadAssetBtn('illustrations', m.id)}
                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteMagieIllustration()">Supprimer</button>`
             : `<span style="font-size:12px;color:white">Ajouter une illustration</span>`}
         </div>
@@ -4070,6 +4116,7 @@ function renderVariantDetail() {
         <div class="illus-overlay">
           ${hasIllus
             ? `<span style="font-size:12px;color:white">Changer</span>
+               ${downloadAssetBtn('illustrations', v.id)}
                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteVariantIllustration()">Supprimer</button>`
             : `<span style="font-size:12px;color:white">Ajouter une illustration</span>`}
         </div>
@@ -4393,6 +4440,7 @@ function renderCardBackDetail() {
         <div class="illus-overlay">
           ${hasIllus
             ? `<span style="font-size:12px;color:white">Changer</span>
+               ${downloadAssetBtn('illustrations', b.id)}
                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteCardBackIllustration()">Supprimer</button>`
             : `<span style="font-size:12px;color:white">Ajouter une illustration</span>`}
         </div>
@@ -5260,6 +5308,7 @@ function renderPublicDeckDetail() {
         <div class="illus-overlay">
           ${hasAvatar
             ? `<span style="font-size:12px;color:white">Changer</span>
+               ${downloadAssetBtn('avatars', d.id)}
                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteDeckAvatar()">Supprimer</button>`
             : `<span style="font-size:12px;color:white">Ajouter un avatar</span>`}
         </div>
@@ -5704,6 +5753,7 @@ function renderPackDetail() {
           ? `<img src="/pack-posters/${esc(p.id)}?t=${posterBust}" alt="">
              <div class="illus-overlay">
                <span style="font-size:12px;color:white">Changer</span>
+               ${downloadAssetBtn('pack-posters', p.id)}
                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePackPoster()">Supprimer</button>
              </div>`
           : `<span class="illus-text">${isNewPack ? 'Affiche : après création' : 'Ajouter une affiche'}</span>`}
@@ -7211,6 +7261,7 @@ function renderBoardDetail() {
           ? `<img src="/illustrations/${b.id}?t=${boardIllusBust}" alt="">`
           : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
         ${isNewBoard ? '' : `<div class="illus-overlay">
+          ${b._has_illustration ? downloadAssetBtn('illustrations', b.id) : ''}
           ${b._has_illustration ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteBoardIllustration()">Supprimer</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openBoardIllusModal()">Importer</button>
         </div>`}
@@ -7229,6 +7280,7 @@ function renderBoardDetail() {
           ? `<img src="/board-backgrounds/${b.id}?t=${boardBgBust}" alt="">`
           : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
         ${isNewBoard ? '' : `<div class="illus-overlay">
+          ${b._has_background ? downloadAssetBtn('board-backgrounds', b.id) : ''}
           ${b._has_background ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteBoardBg()">Supprimer</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openBoardBgModal()">Importer</button>
         </div>`}
