@@ -325,6 +325,20 @@ app.use(express.static(CLIENT_DIST));
 // Admin (protected)
 app.get('/admin', requireSiteAdmin, (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
+// Le langage de requête des barres de recherche. UN seul fichier pour les deux
+// écrans : `admin.html` le charge ici par `import()`, le client l'a dans son
+// bundle. L'écrire deux fois aurait donné deux grammaires qui divergent au
+// premier champ ajouté.
+//
+// ⚠️ Le type MIME est posé À LA MAIN. Express 4 s'appuie sur `mime@1`, qui ne
+// connaît pas l'extension `.mjs` : laissé à `sendFile`, le fichier part en
+// `application/octet-stream` et le navigateur REFUSE de l'exécuter comme
+// module, sans autre message qu'un échec d'import.
+app.get('/admin/card-query.js', requireSiteAdmin, (req, res) => {
+  res.type('text/javascript');
+  res.sendFile(path.join(__dirname, 'card-query.mjs'));
+});
+
 // Rapport de la simulation d'équilibrage — page autonome, servie comme
 // admin.html : elle va chercher ses données sur /api/admin/sim, qui porte le
 // même garde. Enregistrée AVANT le fallback SPA (fin de fichier), qui n'exclut

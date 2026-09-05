@@ -161,6 +161,25 @@ input[type=search]:focus { border-color: var(--accent); }
 select.filter { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: 6px; outline: none; font-size: 12px; }
 select.filter:focus { border-color: var(--accent); }
 
+/* Barre de requête — cf. card-query.mjs. Le `?` et la liste de complétion
+   vivent DANS le champ : le langage doit s'apprendre sans quitter la barre. */
+.qbar-wrap { position: relative; flex: 1; min-width: 0; }
+.qbar-row { display: flex; gap: 6px; align-items: center; }
+.qbar-row input[type=search] { flex: 1; min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.qbar-help { flex-shrink: 0; width: 26px; height: 30px; border-radius: 6px; border: 1px solid var(--border);
+             background: var(--surface2); color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 700; }
+.qbar-help:hover { color: var(--text); border-color: var(--accent); }
+.qbar-err { margin-top: 5px; font-size: 11px; color: #f0b43c; line-height: 1.4; }
+.qbar-drop { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 40; max-height: 260px; overflow-y: auto;
+             background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+.qbar-opt { display: flex; gap: 8px; align-items: baseline; padding: 7px 10px; cursor: pointer; font-size: 12px; }
+.qbar-opt:hover, .qbar-opt.active { background: var(--surface2); }
+.qbar-opt code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); }
+.qbar-opt span { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qbar-chip { border: 1px solid var(--border); background: var(--surface2); color: var(--muted); border-radius: 999px;
+             padding: 4px 10px; font-size: 11px; cursor: pointer; }
+.qbar-chip.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
+
 /* Count badge */
 .count { background: var(--surface2); color: var(--muted); font-size: 11px; padding: 2px 7px; border-radius: 10px; margin-left: auto; }
 
@@ -503,36 +522,36 @@ select.filter:focus { border-color: var(--accent); }
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="search" id="card-search" placeholder="Rechercher..." oninput="filterCards()">
+          <input type="search" id="card-search" class="qbar" data-query="card" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('card')" onkeydown="onQueryKey(event, 'card')">
           <span id="card-count" class="count">0</span>
         </div>
+        <!-- Les filtres ÉCRIVENT dans la barre : ils n'ont pas d'état à eux, ils
+             composent la requête. Un chip allumé ne peut donc pas contredire ce
+             qui est écrit au-dessus, et tout ce qu'ils savent faire se retape à
+             la main (l'inverse n'est pas vrai : la barre va bien plus loin). -->
+        <div id="filter-tier-chips" style="display:flex;gap:5px;flex-wrap:wrap"></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <select class="filter" id="filter-tier" onchange="filterCards()">
-            <option value="">Tous tiers</option>
-          </select>
-          <select class="filter" id="filter-summon" onchange="filterCards()">
+          <select class="filter" id="filter-summon" onchange="setQueryFacet('card', 'cout', this.value)">
             <option value="">Tous coûts</option>
             <option value="0">◈ Sans coût</option>
             <option value="1">◈1 matériel</option>
             <option value="2">◈2 matériels</option>
-            <option value="3+">◈3 et plus</option>
           </select>
-          <select class="filter" id="filter-illus" onchange="filterCards()">
+          <select class="filter" id="filter-illus" onchange="setQueryFacet('card', 'illustration', this.value)">
             <option value="">Toutes</option>
-            <option value="no">Sans illus.</option>
-            <option value="yes">Avec illus.</option>
+            <option value="non">Sans illus.</option>
+            <option value="oui">Avec illus.</option>
           </select>
-          <select class="filter" id="filter-options" onchange="filterCards()">
+          <select class="filter" id="filter-options" onchange="setQueryFacet('card', 'recettes', this.value, '&gt;=')">
             <option value="">Toutes recettes</option>
-            <option value="yes">🔀 Plusieurs recettes</option>
-            <option value="no">Une seule recette</option>
+            <option value="2">🔀 Plusieurs recettes</option>
           </select>
-          <select class="filter" id="filter-attribute" onchange="filterCards()">
+          <select class="filter" id="filter-attribute" onchange="setQueryFacet('card', 'attribut', this.value)">
             <option value="">Tous attributs</option>
           </select>
-          <select class="filter" id="filter-power" onchange="filterCards()">
+          <select class="filter" id="filter-power" onchange="setQueryFacet('card', 'pouvoir', this.value)">
             <option value="">Tous pouvoirs</option>
-            <option value="none">Aucun pouvoir</option>
+            <option value="vide">Aucun pouvoir</option>
           </select>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -554,7 +573,7 @@ select.filter:focus { border-color: var(--accent); }
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="search" id="attr-search" placeholder="Rechercher..." oninput="filterAttributes()">
+          <input type="search" id="attr-search" class="qbar" data-query="attr" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('attr')" onkeydown="onQueryKey(event, 'attr')">
           <span id="attr-count" class="count">0</span>
         </div>
         <div style="display:flex;gap:6px">
@@ -574,7 +593,7 @@ select.filter:focus { border-color: var(--accent); }
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="search" id="power-search" placeholder="Rechercher..." oninput="filterPowers()">
+          <input type="search" id="power-search" class="qbar" data-query="power" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('power')" onkeydown="onQueryKey(event, 'power')">
           <span id="power-count" class="count">0</span>
         </div>
         <div style="display:flex;gap:6px">
@@ -594,7 +613,7 @@ select.filter:focus { border-color: var(--accent); }
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="search" id="board-search" placeholder="Rechercher..." oninput="filterBoards()">
+          <input type="search" id="board-search" class="qbar" data-query="board" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('board')" onkeydown="onQueryKey(event, 'board')">
           <span id="board-count" class="count">0</span>
         </div>
         <div style="display:flex;gap:6px">
@@ -614,7 +633,7 @@ select.filter:focus { border-color: var(--accent); }
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="search" id="magie-search" placeholder="Rechercher..." oninput="filterMagies()">
+          <input type="search" id="magie-search" class="qbar" data-query="magie" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('magie')" onkeydown="onQueryKey(event, 'magie')">
           <span id="magie-count" class="count">0</span>
         </div>
         <div style="display:flex;gap:6px">
@@ -634,7 +653,7 @@ select.filter:focus { border-color: var(--accent); }
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="search" id="variant-search" placeholder="Rechercher..." oninput="filterVariants()">
+          <input type="search" id="variant-search" class="qbar" data-query="variant" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('variant')" onkeydown="onQueryKey(event, 'variant')">
           <span id="variant-count" class="count">0</span>
         </div>
         <div style="display:flex;gap:6px">
@@ -654,7 +673,7 @@ select.filter:focus { border-color: var(--accent); }
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="search" id="cardback-search" placeholder="Rechercher..." oninput="filterCardBacks()">
+          <input type="search" id="cardback-search" class="qbar" data-query="cardback" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('cardback')" onkeydown="onQueryKey(event, 'cardback')">
           <span id="cardback-count" class="count">0</span>
         </div>
         <div style="display:flex;gap:6px">
@@ -674,7 +693,7 @@ select.filter:focus { border-color: var(--accent); }
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="search" id="mission-search" placeholder="Rechercher..." oninput="filterMissions()">
+          <input type="search" id="mission-search" class="qbar" data-query="mission" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('mission')" onkeydown="onQueryKey(event, 'mission')">
           <span id="mission-count" class="count">0</span>
         </div>
         <div style="display:flex;gap:6px">
@@ -694,7 +713,7 @@ select.filter:focus { border-color: var(--accent); }
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="search" id="gift-search" placeholder="Rechercher..." oninput="filterGifts()">
+          <input type="search" id="gift-search" class="qbar" data-query="gift" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('gift')" onkeydown="onQueryKey(event, 'gift')">
           <span id="gift-count" class="count">0</span>
         </div>
         <div style="display:flex;gap:6px">
@@ -714,7 +733,7 @@ select.filter:focus { border-color: var(--accent); }
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="search" id="deck-search" placeholder="Rechercher..." oninput="filterPublicDecks()">
+          <input type="search" id="deck-search" class="qbar" data-query="deck" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('deck')" onkeydown="onQueryKey(event, 'deck')">
           <span id="deck-count" class="count">0</span>
         </div>
         <div style="display:flex;gap:6px">
@@ -733,7 +752,7 @@ select.filter:focus { border-color: var(--accent); }
     <div class="sidebar">
       <div class="sidebar-header">
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="search" id="pack-search" placeholder="Rechercher..." oninput="filterPacks()">
+          <input type="search" id="pack-search" class="qbar" data-query="pack" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('pack')" onkeydown="onQueryKey(event, 'pack')">
           <span id="pack-count" class="count">0</span>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -821,8 +840,373 @@ let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false
 let selectionMode = false;
 const bulkSelected = new Set();
 
+// ================== LANGAGE DE REQUÊTE ==================
+//
+// Les onze barres de recherche partagent une grammaire (`card-query.mjs`,
+// racine — le MÊME fichier que le DeckBuilder importe dans son bundle). Chaque
+// onglet ne fournit que son SCHÉMA : quels champs existent, de quel type, et
+// comment les lire.
+//
+// ⚠️ Chargé par un `import()` DYNAMIQUE et attendu dans `init()`. Un
+// `<script type="module">` serait différé sans qu'on puisse l'ordonner
+// vis-à-vis du script classique qui porte tout le reste du fichier ; l'attendre
+// explicitement est la seule façon d'être sûr que la première recherche ne
+// tombe pas sur un module absent.
+let CQ = null;
+
+/** Le schéma de l'onglet courant, ou celui qu'on nomme. */
+const QUERY_SCHEMAS = {};
+
+function buildQuerySchemas() {
+  const num = (key, label, get, aliases) => ({ key, label, type: 'number', get, aliases });
+  const txt = (key, label, get, aliases) => ({ key, label, type: 'text', get, aliases });
+  const bool = (key, label, get, aliases) => ({ key, label, type: 'bool', get, aliases });
+  const list = (key, label, get, aliases, options) => ({ key, label, type: 'enum', get, aliases, options });
+  const opts = (arr, value, label) => () => arr.map(x => ({ value: value(x), label: label(x) }));
+
+  // Les cartes : le schéma vient du module partagé. Seuls les deux dérivés qui
+  // n'existent pas des deux côtés à l'identique lui sont injectés.
+  QUERY_SCHEMAS.card = CQ.cardQuerySchema({
+    summonCost: summonCostOf,
+    attributeName: id => (attributes.find(a => a.id === id)?.name ?? id),
+    powerName: id => (powers.find(p => p.id === id)?.name ?? id),
+    attributeOptions: opts(attributes, a => a.id, a => `${a.icon || ''} ${a.name}`.trim()),
+    powerOptions: opts(powers, p => p.id, p => p.name),
+    packOptions: opts(packs, p => p.id, p => p.name || p.id),
+    tierOptions: () => tierAttrDefs().map(a => ({ value: String(a.tier), label: `${a.tier}`, hint: a.name })),
+  });
+
+  QUERY_SCHEMAS.attr = {
+    text: ['nom', 'id'],
+    fields: [
+      txt('id', 'Identifiant', a => a.id),
+      txt('nom', 'Nom', a => a.name, ['name']),
+      txt('categorie', 'Catégorie', a => a.categorie, ['cat']),
+      num('tier', 'Tier désigné', a => a.tier),
+      txt('timing', 'Moment d\'application', a => a.timing),
+      txt('effet', 'Type d\'effet', a => (a.thresholds ?? []).map(t => t.effect?.type), ['effect']),
+      num('paliers', 'Nombre de paliers', a => (a.thresholds ?? []).length, ['seuils']),
+      bool('illustration', 'A une icône', a => !!a._has_illustration, ['illus', 'icone']),
+    ],
+  };
+
+  QUERY_SCHEMAS.power = {
+    text: ['nom', 'id'],
+    fields: [
+      txt('id', 'Identifiant', p => p.id),
+      txt('nom', 'Nom', p => p.name, ['name']),
+      txt('description', 'Description', p => p.description, ['desc']),
+      bool('illustration', 'A une icône', p => !!p._has_illustration, ['illus', 'icone']),
+      // Un pouvoir n'a d'existence que porté : « lequel ne sert nulle part ? »
+      // n'avait aucune réponse dans l'admin.
+      num('cartes', 'Cartes qui le portent', p => cards.filter(c => c.power?.id === p.id).length, ['usages']),
+    ],
+  };
+
+  QUERY_SCHEMAS.board = {
+    text: ['nom', 'id'],
+    fields: [
+      txt('id', 'Identifiant', b => b.id),
+      txt('nom', 'Nom', b => b.name, ['name']),
+      txt('effet', 'Type d\'effet', b => _boardEffectsFrom(b).map(e => e.type), ['effect']),
+      txt('stat', 'Statistique visée', b => _boardEffectsFrom(b).map(e => e.stat)),
+      list('cible', 'Attribut ciblé', b => _boardEffectsFrom(b).flatMap(e => e.target_attributes ?? []), ['target']),
+      num('effets', 'Nombre d\'effets', b => _boardEffectsFrom(b).length),
+      num('bloquees', 'Cases bloquées', b => (b.blocked_cells ?? []).length, ['blocked']),
+      bool('illustration', 'A une illustration', b => !!b._has_illustration, ['illus']),
+      bool('fond', 'A un fond de grille', b => !!b._has_background, ['background']),
+    ],
+  };
+
+  QUERY_SCHEMAS.magie = {
+    text: ['nom', 'id'],
+    fields: [
+      txt('id', 'Identifiant', m => m.id),
+      txt('nom', 'Nom', m => m.name, ['name']),
+      txt('effet', 'Type d\'effet', m => m.effect?.type, ['effect'],),
+      txt('stat', 'Statistique visée', m => m.effect?.stat),
+      num('valeur', 'Valeur de l\'effet', m => m.effect?.value),
+      num('rarete', 'Rareté (1–3)', m => Number(m.rarity) || 1, ['rarity']),
+      num('cout_pv', 'Contrecoup en PV', m => Number(m.cost_hp) || 0, ['cost_hp', 'contrecoup']),
+      bool('illustration', 'A une illustration', m => !!m._has_illustration, ['illus']),
+    ],
+  };
+
+  QUERY_SCHEMAS.variant = {
+    text: ['carte', 'id'],
+    fields: [
+      txt('id', 'Identifiant', v => v.id),
+      txt('carte', 'Carte visée (id ou nom)', v => [v.card_id, getCardName(v.card_id)], ['card_id']),
+      bool('illustration', 'A une illustration', v => !!v._has_illustration, ['illus']),
+      bool('orpheline', 'Sa carte a disparu du catalogue', v => !cards.find(c => c.id === v.card_id)),
+    ],
+  };
+
+  QUERY_SCHEMAS.cardback = {
+    text: ['nom', 'id'],
+    fields: [
+      txt('id', 'Identifiant', b => b.id),
+      txt('nom', 'Nom', b => b.name, ['name']),
+      num('prix', 'Prix en gemmes', b => Number(b.price_gems) || 0, ['price_gems', 'gemmes']),
+      bool('defaut', 'Dos offert', b => !!b.default, ['default', 'offert']),
+      bool('illustration', 'A une illustration', b => !!b._has_illustration, ['illus']),
+    ],
+  };
+
+  QUERY_SCHEMAS.mission = {
+    text: ['libelle', 'id'],
+    fields: [
+      txt('id', 'Identifiant', m => m.id),
+      txt('libelle', 'Libellé', m => m.label, ['label', 'nom']),
+      txt('famille', 'Famille', m => m.family, ['family']),
+      num('slot', 'Difficulté (1–3)', m => Number(m.slot_weight) || 1, ['slot_weight', 'difficulte']),
+      txt('evenement', 'Événement écouté', m => m.objective?.event, ['event']),
+      txt('portee', 'Portée', m => m.objective?.scope, ['scope']),
+      num('cible', 'Objectif chiffré', m => m.objective?.target, ['target']),
+      list('tag', 'Étiquette', m => m.tags ?? [], ['tags']),
+      bool('collection', 'Filtrée par la collection', m => !!m.requirements?.owns_cards_matching),
+    ],
+  };
+
+  QUERY_SCHEMAS.gift = {
+    text: ['nom', 'id'],
+    fields: [
+      txt('id', 'Identifiant', g => g.id),
+      txt('nom', 'Nom', g => g.name, ['name']),
+      txt('description', 'Description', g => g.description, ['desc']),
+      txt('lot', 'Type de lot', g => (g.contents ?? []).map(l => l.type), ['contenu', 'type']),
+      num('lots', 'Nombre de lots', g => (g.contents ?? []).length),
+      txt('cree', 'Date de création', g => String(g.created_at ?? '').slice(0, 10), ['created_at']),
+    ],
+  };
+
+  QUERY_SCHEMAS.deck = {
+    text: ['nom', 'id'],
+    fields: [
+      txt('id', 'Identifiant', d => d.id),
+      txt('nom', 'Nom', d => d.name, ['name']),
+      num('difficulte', 'Difficulté (1–4)', d => Number(d.difficulty) || 1, ['difficulty']),
+      num('cartes', 'Nombre de cartes', d => _deckCardIds(d).length, ['taille']),
+      list('carte', 'Contient cette carte', d => _deckCardIds(d), ['contient']),
+      bool('avatar', 'A un avatar', d => !!d._has_avatar),
+      // Un deck public de moins de 20 cartes n'est jamais proposé — ni au
+      // DeckSelector, ni à l'Arcade. C'était invisible depuis l'admin.
+      bool('jouable', 'Au moins 20 cartes', d => _deckCardIds(d).length >= 20),
+    ],
+  };
+
+  QUERY_SCHEMAS.pack = {
+    text: ['nom', 'id'],
+    fields: [
+      txt('id', 'Identifiant', p => p.id),
+      txt('nom', 'Nom', p => p.name, ['name']),
+      num('cartes', 'Nombre de cartes', p => (p.cards ?? []).length, ['taille']),
+      list('carte', 'Contient cette carte', p => p.cards ?? [], ['contient']),
+      list('archetype', 'Archétype', p => p.archetypes ?? [], ['archetypes']),
+      bool('booster', 'Booster ouvert', p => p.booster_enabled !== false),
+      bool('depart', 'Pack de départ', p => !!p.starter, ['starter']),
+      num('prime', 'Prime de complétion (gemmes)', p => Number(p.completion_reward?.gems) || 0),
+      bool('affiche', 'A une affiche', p => !!p._has_poster, ['poster']),
+    ],
+  };
+}
+
+/** Les ids d'un deck public, toutes lanes confondues. */
+function _deckCardIds(d) {
+  return [1, 2, 3, 4, 5].flatMap(t => (d.deck?.[String(t)] ?? []));
+}
+
+// ================== LA BARRE ==================
+//
+// Le champ de recherche EST le filtre : les chips et les `<select>` n'ont pas
+// d'état à eux, ils écrivent dans la requête. C'est ce qui interdit
+// structurellement qu'un chip allumé contredise la barre — le bug le plus
+// banal d'une barre d'outils de filtrage, et le plus difficile à voir.
+
+/** La requête courante d'un onglet. */
+function queryText(kind) {
+  return document.querySelector(`input.qbar[data-query="${kind}"]`)?.value ?? '';
+}
+
+/** Filtre une liste par la barre de l'onglet, et affiche le verdict.
+ *  ⚠️ Une requête fautive laisse la liste ENTIÈRE et se contente du message :
+ *  vider l'écran à chaque frappe ferait clignoter tout le contenu. */
+function runQuery(kind, list) {
+  const err = document.getElementById(`qerr-${kind}`);
+  if (!CQ) {                       // module pas encore là : repli texte simple
+    const q = queryText(kind).toLowerCase().trim();
+    if (err) err.hidden = true;
+    return q ? list.filter(x => `${x.name ?? ''} ${x.label ?? ''} ${x.id}`.toLowerCase().includes(q)) : list;
+  }
+  const res = CQ.filterByQuery(list, queryText(kind), QUERY_SCHEMAS[kind]);
+  if (err) { err.textContent = res.error || ''; err.hidden = !res.error; }
+  return res.items;
+}
+
+/** Une frappe : on refiltre, et on propose. */
+function onQueryInput(kind) {
+  QUERY_REFRESH[kind]?.();
+  renderQuerySuggest(kind);
+}
+
+/** Écrit dans la barre depuis un chip ou un `<select>`, puis refiltre. */
+function setQueryText(kind, text) {
+  const input = document.querySelector(`input.qbar[data-query="${kind}"]`);
+  if (!input) return;
+  input.value = text;
+  QUERY_REFRESH[kind]?.();
+  hideQuerySuggest(kind);
+}
+
+function toggleQueryFacet(kind, field, value) {
+  if (!CQ) return;
+  setQueryText(kind, CQ.toggleFacet(queryText(kind), QUERY_SCHEMAS[kind], field, value));
+}
+
+function setQueryFacet(kind, field, value, op) {
+  if (!CQ) return;
+  setQueryText(kind, CQ.setFacet(queryText(kind), QUERY_SCHEMAS[kind], field, value, op));
+}
+
+function queryFacetOn(kind, field, value) {
+  return !!CQ && CQ.hasFacet(queryText(kind), QUERY_SCHEMAS[kind], field, value);
+}
+
+function queryFacetValue(kind, field) {
+  return CQ ? (CQ.readFacet(queryText(kind), QUERY_SCHEMAS[kind], field)[0] ?? '') : '';
+}
+
+// --- Complétion ---------------------------------------------------------
+// L'aide en ligne d'un langage de requête, c'est la liste qui s'ouvre pendant
+// qu'on tape : personne ne lit une page de syntaxe avant de chercher une carte.
+
+let querySuggest = null;   // { kind, range, items, index }
+
+function renderQuerySuggest(kind) {
+  const drop = document.getElementById(`qdrop-${kind}`);
+  const input = document.querySelector(`input.qbar[data-query="${kind}"]`);
+  if (!drop || !input || !CQ) return;
+  const s = CQ.suggest(input.value, input.selectionStart, QUERY_SCHEMAS[kind]);
+  if (!s || !s.items.length) return hideQuerySuggest(kind);
+  querySuggest = { kind, range: { start: s.start, end: s.end }, items: s.items, index: 0 };
+  drop.innerHTML = s.items.map((it, i) => `
+    <div class="qbar-opt ${i === 0 ? 'active' : ''}" data-i="${i}"
+         onmousedown="event.preventDefault();applyQuerySuggest('${kind}', ${i})">
+      <code>${esc(it.label ?? it.value)}</code><span>${esc(it.hint ?? '')}</span>
+    </div>`).join('');
+  drop.hidden = false;
+}
+
+function hideQuerySuggest(kind) {
+  const drop = document.getElementById(`qdrop-${kind}`);
+  if (drop) { drop.hidden = true; drop.innerHTML = ''; }
+  if (querySuggest?.kind === kind) querySuggest = null;
+}
+
+function applyQuerySuggest(kind, i) {
+  const input = document.querySelector(`input.qbar[data-query="${kind}"]`);
+  if (!input || !querySuggest || querySuggest.kind !== kind) return;
+  const item = querySuggest.items[i ?? querySuggest.index];
+  if (!item) return;
+  const next = CQ.applySuggestion(input.value, querySuggest.range, item.value);
+  input.value = next.text;
+  input.focus();
+  input.setSelectionRange(next.caret, next.caret);
+  QUERY_REFRESH[kind]?.();
+  // Compléter un NOM de champ enchaîne sur ses valeurs : le geste utile est
+  // « tier: » puis « 3 », pas « tier: » puis se demander quoi taper.
+  renderQuerySuggest(kind);
+}
+
+function moveQuerySuggest(kind, delta) {
+  const drop = document.getElementById(`qdrop-${kind}`);
+  if (!querySuggest || querySuggest.kind !== kind || !drop) return;
+  const n = querySuggest.items.length;
+  querySuggest.index = (querySuggest.index + delta + n) % n;
+  drop.querySelectorAll('.qbar-opt').forEach((el, i) => el.classList.toggle('active', i === querySuggest.index));
+  drop.querySelector('.qbar-opt.active')?.scrollIntoView({ block: 'nearest' });
+}
+
+function onQueryKey(e, kind) {
+  const open = querySuggest?.kind === kind && !document.getElementById(`qdrop-${kind}`)?.hidden;
+  if (e.key === 'ArrowDown') { e.preventDefault(); return open ? moveQuerySuggest(kind, 1) : renderQuerySuggest(kind); }
+  if (e.key === 'ArrowUp') { e.preventDefault(); return moveQuerySuggest(kind, -1); }
+  if (e.key === 'Escape') { e.preventDefault(); return hideQuerySuggest(kind); }
+  if ((e.key === 'Enter' || e.key === 'Tab') && open) { e.preventDefault(); return applyQuerySuggest(kind); }
+}
+
+// --- Aide ---------------------------------------------------------------
+
+function openQueryHelp(kind) {
+  const schema = QUERY_SCHEMAS[kind];
+  if (!schema) return;
+  const examples = kind === 'card' ? CQ.CARD_QUERY_EXAMPLES : [];
+  showModal(`
+    <h2 style="margin-bottom:6px">Rechercher</h2>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:14px">
+      Un mot cherche dans le nom et l'identifiant. Les termes se cumulent en <b>ET</b> implicite.
+    </p>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12px;margin-bottom:16px">
+      ${[
+        ['<code>tier:3</code>', 'égal / contient'],
+        ['<code>atk&gt;=50</code>', '<code>&gt;</code> <code>&gt;=</code> <code>&lt;</code> <code>&lt;=</code> <code>!=</code> sur les nombres'],
+        ['<code>tier:3,4</code>', 'l\'un de — la virgule est un OU'],
+        ['<code>a OU b</code>', 'OU explicite (<code>OU</code>, <code>OR</code>, <code>|</code>)'],
+        ['<code>-illustration</code>', 'négation (<code>-</code>, <code>NON</code>, <code>NOT</code>)'],
+        ['<code>(a OU b) c</code>', 'parenthèses'],
+        ['<code>pouvoir:vide</code>', 'champ absent'],
+        ['<code>nom~"deux mots"</code>', 'guillemets pour les espaces'],
+      ].map(([a, b]) => `<div style="font-family:monospace;color:var(--accent)">${a}</div><div style="color:var(--muted)">${b}</div>`).join('')}
+    </div>
+    ${examples.length ? `
+      <div class="section-title">Exemples — cliquer pour essayer</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+        ${examples.map(e => `<button class="qbar-chip" onclick="closeModal();setQueryText('${kind}', ${JSON.stringify(e.q).replace(/"/g, '&quot;')})" title="${esc(e.why)}">${esc(e.q)}</button>`).join('')}
+      </div>` : ''}
+    <div class="section-title">Champs de cet onglet</div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:12px;max-height:300px;overflow:auto">
+      ${schema.fields.map(f => `
+        <div style="font-family:monospace;color:var(--accent);white-space:nowrap">${esc(f.key)}${f.aliases?.length ? `<span style="color:var(--muted)"> · ${esc(f.aliases.join(' · '))}</span>` : ''}</div>
+        <div style="color:var(--muted)">${esc(f.label)}</div>`).join('')}
+    </div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">Fermer</button></div>
+  `, 'wide');
+}
+
+/** Ce que chaque onglet doit rejouer quand sa requête change. Rempli à l'init :
+ *  les fonctions de filtrage sont déclarées plus bas dans le fichier. */
+const QUERY_REFRESH = {};
+
+/** Enveloppe chaque barre de son bouton d'aide, de sa ligne d'erreur et de sa
+ *  liste de complétion. Fait en JS et pas dans le HTML : onze copies du même
+ *  balisage auraient divergé au premier ajustement. */
+function attachQueryBars() {
+  for (const input of document.querySelectorAll('input.qbar')) {
+    const kind = input.dataset.query;
+    const wrap = document.createElement('div');
+    wrap.className = 'qbar-wrap';
+    input.parentNode.insertBefore(wrap, input);
+    wrap.innerHTML = `<div class="qbar-row"></div><div class="qbar-err" id="qerr-${kind}" hidden></div>
+                      <div class="qbar-drop" id="qdrop-${kind}" hidden></div>`;
+    const row = wrap.querySelector('.qbar-row');
+    row.appendChild(input);
+    row.insertAdjacentHTML('beforeend',
+      `<button type="button" class="qbar-help" title="Aide et champs disponibles" onclick="openQueryHelp('${kind}')">?</button>`);
+    input.placeholder = kind === 'card' ? 'Rechercher… ex. tier:4 atk>=30' : 'Rechercher…';
+    input.addEventListener('blur', () => setTimeout(() => hideQuerySuggest(kind), 120));
+  }
+}
+
 // ================== INIT ==================
 async function init() {
+  const [modules] = await Promise.all([
+    // ⚠️ Attendu AVANT le premier rendu de liste : un onglet qui filtrerait
+    // sans le module retomberait sur la recherche par sous-chaîne, et un chip
+    // cliqué avant l'arrivée du module ne ferait rien du tout.
+    import('/admin/card-query.js'),
+  ]);
+  CQ = modules;
+
   [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, cardBacks] = await Promise.all([
     apiFetch('/api/cards'),
     apiFetch('/api/attributes'),
@@ -836,6 +1220,13 @@ async function init() {
     apiFetch('/api/gifts'),
     apiFetch('/api/card-backs'),
   ]);
+  buildQuerySchemas();
+  attachQueryBars();
+  Object.assign(QUERY_REFRESH, {
+    card: filterCards, attr: filterAttributes, power: filterPowers, board: filterBoards,
+    magie: filterMagies, variant: filterVariants, cardback: filterCardBacks,
+    mission: filterMissions, gift: filterGifts, deck: filterPublicDecks, pack: filterPacks,
+  });
   populateAttributeFilter();
   populateTierFilter();
   populatePowerFilter();
@@ -862,19 +1253,17 @@ function populateAttributeFilter() {
 
 /** Le filtre par tier se DÉRIVE du catalogue d'attributs, comme les deux
  *  voisins : un tier ajouté dans l'onglet Attributs apparaît ici sans qu'on
- *  touche au HTML. */
+ *  touche au HTML. Les chips sont rendus par `syncCardFilterControls`, qui les
+ *  relit depuis la requête à chaque filtrage. */
 function populateTierFilter() {
-  const sel = document.getElementById('filter-tier');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">Tous tiers</option>' +
-    tierAttrDefs().map(a => `<option value="${a.tier}">Tier ${a.tier}</option>`).join('');
+  syncCardFilterControls();
 }
 
 function populatePowerFilter() {
   const sel = document.getElementById('filter-power');
   if (!sel) return;
   const sorted = [...powers].sort((a, b) => a.name.localeCompare(b.name));
-  sel.innerHTML = '<option value="">Tous pouvoirs</option><option value="none">Aucun pouvoir</option>' +
+  sel.innerHTML = '<option value="">Tous pouvoirs</option><option value="vide">Aucun pouvoir</option>' +
     sorted.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
 }
 
@@ -1456,23 +1845,34 @@ function hasMultipleConditions(c) {
 }
 
 function filterCards() {
-  const q = document.getElementById('card-search').value.toLowerCase();
-  const tier = document.getElementById('filter-tier').value;
-  const summon = document.getElementById('filter-summon').value;
-  const illus = document.getElementById('filter-illus').value;
-  const attribute = document.getElementById('filter-attribute').value;
-  const power = document.getElementById('filter-power').value;
-  const options = document.getElementById('filter-options').value;
-  const filtered = cards.filter(c =>
-    (!q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q)) &&
-    (!tier || hasCardTier(c, tier)) &&
-    (!summon || (summon === '3+' ? summonCostOf(c) >= 3 : summonCostOf(c) === Number(summon))) &&
-    (!illus || (illus === 'yes' ? c._has_illustration : !c._has_illustration)) &&
-    (!options || (options === 'yes' ? hasMultipleConditions(c) : !hasMultipleConditions(c))) &&
-    (!attribute || (c.attributes || []).includes(attribute)) &&
-    (!power || (power === 'none' ? !(c.power && c.power.id) : (c.power && c.power.id === power)))
-  );
-  renderCardList(filtered);
+  renderCardList(runQuery('card', cards));
+  syncCardFilterControls();
+}
+
+/** Les commandes REFLÈTENT la requête, elles ne la doublent pas. Écrire
+ *  `tier:3` à la main allume le chip ; l'éteindre retire le terme. Sans cette
+ *  relecture, un chip et la barre pourraient afficher deux filtres différents —
+ *  c'est le défaut classique d'une barre d'outils posée à côté d'un champ. */
+function syncCardFilterControls() {
+  const chips = document.getElementById('filter-tier-chips');
+  if (chips) {
+    chips.innerHTML = tierAttrDefs().map(a => `
+      <button type="button" class="qbar-chip ${queryFacetOn('card', 'tier', a.tier) ? 'on' : ''}"
+              onclick="toggleQueryFacet('card', 'tier', ${a.tier})"
+              title="${esc(a.name)}">T${a.tier}</button>`).join('');
+  }
+  for (const [id, field] of [
+    ['filter-summon', 'cout'], ['filter-illus', 'illustration'],
+    ['filter-options', 'recettes'], ['filter-attribute', 'attribut'], ['filter-power', 'pouvoir'],
+  ]) {
+    const sel = document.getElementById(id);
+    if (!sel) continue;
+    const v = queryFacetValue('card', field);
+    // Une valeur que le `<select>` ne propose pas (`cout>=7` tapé à la main)
+    // le laisse à vide : la barre reste la source de vérité, la commande dit
+    // seulement qu'elle n'a rien à montrer.
+    sel.value = [...sel.options].some(o => o.value === v) ? v : '';
+  }
 }
 
 function renderCardList(list = cards) {
@@ -1539,26 +1939,7 @@ function renderCardDetail() {
   const hasIllus = c._has_illustration;
   const hasPower = c.power && c.power.id;
 
-  let idFieldHtml;
-  if (isNewCard) {
-    const allSets = getSets();
-    const lastSet = localStorage.getItem('lastSet') || '';
-    const curSet = allSets.includes(lastSet) ? lastSet : allSets[0];
-    const nextN = getNextNumForSet(curSet);
-    const initId = `${curSet}_${String(nextN).padStart(3, '0')}`;
-    selectedCard.id = initId;
-    const setOpts = allSets.map(s => `<option value="${s}" ${s === curSet ? 'selected' : ''}>${s}</option>`).join('');
-    idFieldHtml = `
-      <div class="set-picker-row">
-        <select id="f-set" onchange="onSetChange()" style="flex:1;min-width:90px">${setOpts}<option value="__new__">+ Nouveau set…</option></select>
-        <div id="f-set-new-wrap" style="display:none;flex:1"><input id="f-set-new" placeholder="NOM_DU_SET" oninput="syncIdFromSet()" style="width:100%;font-family:monospace;text-transform:uppercase"></div>
-        <span class="set-sep">_</span>
-        <input type="number" id="f-num" min="1" value="${nextN}" oninput="syncIdFromSet()" class="set-num">
-      </div>
-      <input id="f-id" value="${initId}" class="set-result-id" placeholder="CORE_001">`;
-  } else {
-    idFieldHtml = `<input id="f-id" value="${esc(c.id)}" placeholder="CORE_001">`;
-  }
+  const idFieldHtml = isNewCard ? idPickerHtml('card', c.id) : idFieldHtmlFor('card', c.id);
 
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
@@ -1566,6 +1947,7 @@ function renderCardDetail() {
       <div class="illustration-box" id="illus-box">
         ${hasIllus ? `<img src="/illustrations/${c.id}" id="illus-img" alt="">` : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
         <div class="illus-overlay">
+          ${hasIllus ? downloadAssetBtn('illustrations', c.id) : ''}
           ${hasIllus ? `<button class="btn btn-danger btn-sm" onclick="deleteIllustration()">Supprimer</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="openIllusModal()">Importer URL</button>
         </div>
@@ -2081,14 +2463,193 @@ async function deleteCard() {
   toast('Carte supprimée');
 }
 
-function getSets() {
-  const sets = new Set();
-  for (const c of cards) {
-    const m = c.id.match(/^(.+)_(\d+)$/);
-    if (m) sets.add(m[1]);
+// ================== CHAMP ID — UN SEUL MODÈLE POUR TOUS LES ONGLETS ==================
+//
+// Le champ ID d'une fiche NEUVE est le même partout : un sélecteur de PRÉFIXE
+// (ceux déjà présents dans la collection, plus « + Nouveau préfixe… »), un
+// NUMÉRO pré-rempli au premier libre de ce préfixe, et l'id calculé en dessous.
+// C'est le champ que l'onglet Cartes portait seul ; les dix autres l'ont
+// désormais, par la même fonction — un id n'a plus de règle par onglet.
+//
+// ⚠️ Le numéro se cherche PAR PRÉFIXE, jamais sur les chiffres de fin toutes
+// entrées confondues : sans ancrage, une magie neuve `MAGIE_*` héritait du plus
+// grand numéro des `MAGIC_*`, et les deux séries se poussaient l'une l'autre.
+//
+// ⚠️ Le numéro se cherche au MAX + 1, jamais à `liste.length + 1` : une entrée
+// supprimée au milieu fait retomber `length + 1` sur un id déjà pris, et la
+// création part alors en 409 (c'était le cas des terrains).
+//
+// ⚠️ L'onglet Pouvoirs est la seule EXCEPTION, et elle est de fond : un id de
+// pouvoir est SÉMANTIQUE (`POWER_FREEZE`), lu en dur par `logic/CombatManager`.
+// Un `POWER_015` auto-incrémenté serait un pouvoir que le moteur ignore. Cet
+// onglet garde donc un id libre, avec la liste des ids que le moteur connaît.
+const ID_PICKERS = {
+  card:     { field: 'f-id',   fallback: 'CORE',        remember: 'lastSet', items: () => cards,       sel: () => selectedCard },
+  attr:     { field: 'af-id',  fallback: 'ARCH',        items: () => attributes,  sel: () => selectedAttr },
+  board:    { field: 'bf-id',  fallback: 'BOARD',       items: () => boards,      sel: () => selectedBoard },
+  magie:    { field: 'mf-id',  fallback: 'MAGIE',       items: () => magies,      sel: () => selectedMagie },
+  mission:  { field: 'msf-id', fallback: 'MISSION_A',   items: () => missions,    sel: () => selectedMission },
+  deck:     { field: 'df-id',  fallback: 'PUBLIC_DECK', items: () => publicDecks, sel: () => selectedPublicDeck },
+  pack:     { field: 'pkf-id', fallback: 'SET',         items: () => packs,       sel: () => selectedPack },
+  gift:     { field: 'gf-id',  fallback: 'GIFT',        items: () => gifts,       sel: () => selectedGift },
+  variant:  { field: 'vf-id',  fallback: 'VAR',         items: () => variants,    sel: () => selectedVariant },
+  cardback: { field: 'cbf-id', fallback: 'CARDBACK',    items: () => cardBacks,   sel: () => selectedCardBack },
+};
+
+/** `CORE_001` → `['CORE', '001']`. Le seul découpage d'un id du projet. */
+const ID_SHAPE = /^(.+)_(\d+)$/;
+
+function idPickerMemoryKey(kind) {
+  return ID_PICKERS[kind].remember || `adminIdPrefix:${kind}`;
+}
+
+/** Les préfixes présents dans la collection, avec leur effectif. */
+function idPrefixCounts(kind) {
+  const counts = new Map();
+  for (const it of ID_PICKERS[kind].items()) {
+    const m = String(it?.id || '').match(ID_SHAPE);
+    if (m) counts.set(m[1], (counts.get(m[1]) || 0) + 1);
   }
-  if (sets.size === 0) sets.add('CORE');
-  return [...sets].sort();
+  return counts;
+}
+
+function idPrefixesOf(kind) {
+  const counts = idPrefixCounts(kind);
+  if (!counts.size) return [ID_PICKERS[kind].fallback];
+  return [...counts.keys()].sort();
+}
+
+/** Le préfixe proposé par défaut : le dernier utilisé s'il existe toujours,
+ *  sinon le plus REPRÉSENTÉ — pas le premier alphabétique. Sur les magies,
+ *  `MAGIC` précède `MAGIE` alors que la série vivante est la seconde. */
+function defaultIdPrefix(kind) {
+  const counts = idPrefixCounts(kind);
+  let remembered = null;
+  try { remembered = localStorage.getItem(idPickerMemoryKey(kind)); } catch { /* stockage refusé */ }
+  if (remembered && counts.has(remembered)) return remembered;
+  let best = null, bestN = -1;
+  for (const [p, n] of counts) if (n > bestN) { best = p; bestN = n; }
+  return best || remembered || ID_PICKERS[kind].fallback;
+}
+
+/** Le premier numéro libre POUR CE PRÉFIXE (max + 1). */
+function nextIdNum(kind, prefix) {
+  const re = new RegExp(`^${String(prefix).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_(\\d+)$`);
+  let max = 0;
+  for (const it of ID_PICKERS[kind].items()) {
+    const m = String(it?.id || '').match(re);
+    if (m) max = Math.max(max, parseInt(m[1], 10));
+  }
+  return max + 1;
+}
+
+/** La largeur du numéro pour ce préfixe : celle des ids existants, 3 au moins.
+ *  Une série écrite en `CARDBACK_000` ne doit pas se poursuivre en `_4`. */
+function idNumWidth(kind, prefix) {
+  const re = new RegExp(`^${String(prefix).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_(\\d+)$`);
+  let w = 3;
+  for (const it of ID_PICKERS[kind].items()) {
+    const m = String(it?.id || '').match(re);
+    if (m) w = Math.max(w, m[1].length);
+  }
+  return w;
+}
+
+function composeId(kind, prefix, num) {
+  return `${prefix}_${String(num).padStart(idNumWidth(kind, prefix), '0')}`;
+}
+
+/** L'id que proposera une fiche neuve. C'est le seul générateur d'id du fichier. */
+function nextIdFor(kind, prefix) {
+  const p = prefix || defaultIdPrefix(kind);
+  return composeId(kind, p, nextIdNum(kind, p));
+}
+
+/** Le champ ID d'une fiche NEUVE.
+ *  ⚠️ `currentId` FAIT FOI et n'est jamais recalculé au rendu : une duplication
+ *  arrive avec son id déjà choisi, et le recalcul l'écrasait — c'est ce qui
+ *  obligeait `duplicateCard()` à ré-injecter son id dans le formulaire après
+ *  coup, puis à le reforcer sur `selectedCard`. */
+function idPickerHtml(kind, currentId) {
+  const cfg = ID_PICKERS[kind];
+  const m = String(currentId || '').match(ID_SHAPE);
+  const prefix = m ? m[1] : defaultIdPrefix(kind);
+  const num = m ? parseInt(m[2], 10) : nextIdNum(kind, prefix);
+  const known = idPrefixesOf(kind);
+  const unknownPrefix = !known.includes(prefix);
+  const opts = known.map(p =>
+    `<option value="${esc(p)}"${!unknownPrefix && p === prefix ? ' selected' : ''}>${esc(p)}</option>`).join('');
+  return `
+    <div class="set-picker-row">
+      <select id="idp-${kind}-prefix" onchange="onIdPrefixChange('${kind}')" style="flex:1;min-width:90px">
+        ${opts}<option value="__new__"${unknownPrefix ? ' selected' : ''}>+ Nouveau préfixe…</option>
+      </select>
+      <div id="idp-${kind}-new-wrap" style="display:${unknownPrefix ? '' : 'none'};flex:1">
+        <input id="idp-${kind}-new" value="${unknownPrefix ? esc(prefix) : ''}" placeholder="PREFIXE"
+               oninput="onIdNewPrefixInput('${kind}')" style="width:100%;font-family:monospace;text-transform:uppercase">
+      </div>
+      <span class="set-sep">_</span>
+      <input type="number" id="idp-${kind}-num" min="1" value="${num}" oninput="syncIdFromPicker('${kind}')" class="set-num">
+    </div>
+    <input id="${cfg.field}" value="${esc(currentId || '')}" class="set-result-id" placeholder="${esc(cfg.fallback)}_001">`;
+}
+
+/** Le champ ID d'une fiche EXISTANTE : l'id nu, modifiable ou non. */
+function idFieldHtmlFor(kind, id, { readonly = false } = {}) {
+  const cfg = ID_PICKERS[kind];
+  return `<input id="${cfg.field}" value="${esc(id || '')}" placeholder="${esc(cfg.fallback)}_001"${readonly ? ' disabled' : ''}>`;
+}
+
+function onIdPrefixChange(kind) {
+  const sel = document.getElementById(`idp-${kind}-prefix`);
+  if (!sel) return;
+  const isNew = sel.value === '__new__';
+  const wrap = document.getElementById(`idp-${kind}-new-wrap`);
+  if (wrap) wrap.style.display = isNew ? '' : 'none';
+  if (isNew) document.getElementById(`idp-${kind}-new`)?.focus();
+  else {
+    const num = document.getElementById(`idp-${kind}-num`);
+    if (num) num.value = nextIdNum(kind, sel.value);
+  }
+  syncIdFromPicker(kind);
+}
+
+/** Saisie d'un préfixe à la main : le numéro suit CE préfixe.
+ *  ⚠️ Le recalcul vit ici et pas dans `syncIdFromPicker`, qui est aussi
+ *  l'`oninput` du numéro — il s'y écraserait à chaque frappe, et le champ ne
+ *  serait plus saisissable. */
+function onIdNewPrefixInput(kind) {
+  const typed = document.getElementById(`idp-${kind}-new`)?.value.trim().toUpperCase() || '';
+  const num = document.getElementById(`idp-${kind}-num`);
+  if (num && typed) num.value = nextIdNum(kind, typed);
+  syncIdFromPicker(kind);
+}
+
+function idPickerPrefix(kind) {
+  const sel = document.getElementById(`idp-${kind}-prefix`);
+  if (!sel) return '';
+  return sel.value === '__new__'
+    ? (document.getElementById(`idp-${kind}-new`)?.value.trim().toUpperCase() || '')
+    : sel.value;
+}
+
+/** Recompose l'id et le REPORTE sur la fiche en cours — le champ affiché et
+ *  l'objet sélectionné ne peuvent donc pas se contredire. */
+function syncIdFromPicker(kind) {
+  const cfg = ID_PICKERS[kind];
+  const prefix = idPickerPrefix(kind);
+  if (!prefix) return;
+  const num = parseInt(document.getElementById(`idp-${kind}-num`)?.value, 10) || 1;
+  const id = composeId(kind, prefix, num);
+  const field = document.getElementById(cfg.field);
+  if (field) field.value = id;
+  const obj = cfg.sel();
+  if (obj) obj.id = id;
+  if (kind === 'card') {
+    const badge = document.getElementById('detail-card-id-display');
+    if (badge) badge.textContent = id;
+  }
+  try { localStorage.setItem(idPickerMemoryKey(kind), prefix); } catch { /* stockage refusé */ }
 }
 
 function getAttrCategories() {
@@ -2117,56 +2678,10 @@ function getAttrCategoryValue() {
     : (sel.value === '__none__' ? '' : sel.value);
 }
 
-function getNextNumForSet(setName) {
-  const escaped = setName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(`^${escaped}_(\\d+)$`);
-  let max = 0;
-  for (const c of cards) {
-    const m = c.id.match(re);
-    if (m) max = Math.max(max, parseInt(m[1]));
-  }
-  return max + 1;
-}
-
-function onSetChange() {
-  const sel = document.getElementById('f-set');
-  const newWrap = document.getElementById('f-set-new-wrap');
-  if (!sel) return;
-  if (sel.value === '__new__') {
-    if (newWrap) newWrap.style.display = '';
-    document.getElementById('f-set-new')?.focus();
-  } else {
-    if (newWrap) newWrap.style.display = 'none';
-    const numInput = document.getElementById('f-num');
-    if (numInput) numInput.value = getNextNumForSet(sel.value);
-  }
-  syncIdFromSet();
-}
-
-function syncIdFromSet() {
-  const sel = document.getElementById('f-set');
-  if (!sel) return;
-  const setName = sel.value === '__new__'
-    ? (document.getElementById('f-set-new')?.value.trim().toUpperCase() || '')
-    : sel.value;
-  const num = parseInt(document.getElementById('f-num')?.value) || 1;
-  const idInput = document.getElementById('f-id');
-  if (idInput && setName) {
-    idInput.value = `${setName}_${String(num).padStart(3, '0')}`;
-    localStorage.setItem('lastSet', setName);
-  }
-}
-
 function openNewCard() {
-  const allSets = getSets();
-  const lastSet = localStorage.getItem('lastSet') || '';
-  const currentSet = allSets.includes(lastSet) ? lastSet : allSets[0];
-  const nextNum = getNextNumForSet(currentSet);
-  const newId = `${currentSet}_${String(nextNum).padStart(3, '0')}`;
-
   const firstTier = tierAttrDefs()[0];
   selectedCard = {
-    id: newId, name: '', type: 'monster', material_value: 1,
+    id: nextIdFor('card'), name: '', type: 'monster', material_value: 1,
     attributes: firstTier ? [firstTier.id] : [], stats: { atk: 10, hp: 100, movement_speed: 10, attack_speed: 10, initiative: 4, range: 1 },
     power: {}, summon_conditions: [], represented_ids: [], _has_illustration: false,
   };
@@ -2203,57 +2718,18 @@ function duplicateCard() {
   if (!selectedCard) return;
   syncCardFromForm();
 
-  // Extrait le préfixe et trouve le prochain numéro disponible pour ce préfixe
-  const idMatch = selectedCard.id.match(/^(.+?)_(\d+)$/);
-  const prefix = idMatch ? idMatch[1] : 'CORE';
-  const padLen  = idMatch ? idMatch[2].length : 3;
-  const escaped = prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const prefixRe = new RegExp(`^${escaped}_(\\d+)$`);
-
-  const nextNum = cards.reduce((max, c) => {
-    const m = c.id.match(prefixRe);
-    return m ? Math.max(max, parseInt(m[1])) : max;
-  }, 0) + 1;
-
-  const newId = `${prefix}_${String(nextNum).padStart(Math.max(padLen, 3), '0')}`;
+  // Le préfixe de la carte dupliquée est CONSERVÉ : une copie reste dans sa
+  // série. Seul le numéro avance, au premier libre de ce préfixe.
+  const prefix = (selectedCard.id.match(ID_SHAPE) || [])[1] || ID_PICKERS.card.fallback;
 
   // Deep-clone de la carte courante, nouvel ID, pas d'illustration
   selectedCard = JSON.parse(JSON.stringify(selectedCard));
-  selectedCard.id = newId;
+  selectedCard.id = nextIdFor('card', prefix);
   selectedCard._has_illustration = false;
 
   isNewCard = true;
   renderCardList();
-  renderCardDetail();
-
-  // renderCardDetail() écrase selectedCard.id via le set-picker auto.
-  // On réinjecte notre ID calculé dans le set picker, puis on sync.
-  const setEl  = document.getElementById('f-set');
-  const numEl  = document.getElementById('f-num');
-  const newWrp = document.getElementById('f-set-new-wrap');
-  if (setEl) {
-    const inList = [...setEl.options].some(o => o.value === prefix);
-    if (inList) {
-      setEl.value = prefix;
-      if (newWrp) newWrp.style.display = 'none';
-    } else {
-      // Le set n'existe pas encore : utilise le champ "nouveau set"
-      setEl.value = '__new__';
-      if (newWrp) newWrp.style.display = '';
-      const newSetEl = document.getElementById('f-set-new');
-      if (newSetEl) newSetEl.value = prefix;
-    }
-    if (numEl) numEl.value = nextNum;
-    syncIdFromSet();   // met à jour f-id
-    // syncIdFromSet ne touche pas selectedCard.id, on le force ici
-    const finalId = document.getElementById('f-id')?.value;
-    if (finalId && selectedCard) {
-      selectedCard.id = finalId;
-      const badge = document.getElementById('detail-card-id-display');
-      if (badge) badge.textContent = finalId;
-    }
-  }
-
+  renderCardDetail();   // le picker part de `selectedCard.id`, rien à ré-injecter
   showDetail();
   toast(`Carte dupliquée — modifie puis clique "Créer la carte"`);
 }
@@ -2353,6 +2829,48 @@ async function importIllustrationFromFile() {
   toast('Illustration importée');
 }
 
+// ================== TÉLÉCHARGEMENT D'UN ASSET ==================
+//
+// Le pendant de l'import : l'admin savait poser une image et l'effacer, jamais
+// la reprendre. Les quatre familles d'assets passent par ici, c'est le seul
+// enregistreur du fichier.
+//
+// ⚠️ Passe par un BLOB et non par un `<a href download>` posé dans le document.
+// Les routes d'assets rendent un 404 franc quand le fichier n'existe pas
+// (`/pack-posters`, `/board-backgrounds`) : un lien nu enregistrerait alors la
+// page d'erreur sous le nom du PNG, sans rien dire. Le blob permet de lire le
+// statut d'abord.
+//
+// ⚠️ `cache: 'no-store'` plutôt qu'un cache-buster dans l'URL : les vignettes
+// portent le leur pour se rafraîchir à l'écran, mais un `?t=` recopié ici
+// finirait dans le nom du fichier enregistré sur certains navigateurs.
+async function downloadAsset(url, filename) {
+  try {
+    const res = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+    if (!res.ok) return toast(`Image introuvable (${res.status})`, 'err');
+    const href = URL.createObjectURL(await res.blob());
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Révoqué au tour d'après : révoquer dans la foulée du clic annule
+    // l'enregistrement sur les navigateurs qui lisent le blob après coup.
+    setTimeout(() => URL.revokeObjectURL(href), 60_000);
+  } catch (e) {
+    toast('Téléchargement impossible : ' + e.message, 'err');
+  }
+}
+
+/** Le bouton ⬇ de l'encart d'image. `id` compose le nom du fichier enregistré,
+ *  qui est celui du volume (`<id>.png`) — un aller-retour reste possible. */
+function downloadAssetBtn(route, id, label = '⬇ Télécharger') {
+  const safe = esc(String(id));
+  return `<button class="btn btn-secondary btn-sm" title="Enregistrer ${safe}.png sur l'appareil"
+    onclick="event.stopPropagation();downloadAsset('/${route}/${encodeURIComponent(id)}','${safe}.png')">${label}</button>`;
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -2444,11 +2962,7 @@ function confirmAttrPick() {
 }
 
 // ================== ATTRIBUTES ==================
-function filterAttributes() {
-  const q = document.getElementById('attr-search').value.toLowerCase();
-  const filtered = attributes.filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q));
-  renderAttrList(filtered);
-}
+function filterAttributes() { renderAttrList(runQuery('attr', attributes)); }
 
 function renderAttrList(list = attributes) {
   document.getElementById('attr-count').textContent = list.length;
@@ -2485,6 +2999,7 @@ function renderAttrDetail() {
           ? `<img src="/illustrations/${a.id}?t=${attrIconBust}" alt="" style="object-fit:contain">`
           : `<div style="font-size:48px">${a.icon || '❓'}</div>`}
         ${isNewAttr ? '' : `<div class="illus-overlay">
+          ${a._has_illustration ? downloadAssetBtn('illustrations', a.id) : ''}
           ${a._has_illustration ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteAttrIcon()">Supprimer</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openAttrIconModal()">Importer</button>
         </div>`}
@@ -2502,7 +3017,7 @@ function renderAttrDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="af-id" value="${a.id}"></div>
+      <div class="field"><label>ID</label>${isNewAttr ? idPickerHtml('attr', a.id) : idFieldHtmlFor('attr', a.id)}</div>
       <div class="field"><label>Nom</label><input id="af-name" value="${esc(a.name)}"></div>
       <div class="field"><label>Emoji — repli sans image</label><input id="af-icon" value="${a.icon || ''}"></div>
       <div class="field"><label>Timing</label>
@@ -2808,12 +3323,8 @@ async function deleteAttribute() {
 }
 
 function openNewAttribute() {
-  const nextNum = attributes.reduce((max, a) => {
-    const m = a.id.match(/ARCH_(\d+)/);
-    return m ? Math.max(max, parseInt(m[1])) : max;
-  }, 0) + 1;
   selectedAttr = {
-    id: `ARCH_${String(nextNum).padStart(3, '0')}`,
+    id: nextIdFor('attr'),
     name: '', icon: '', timing: 'start_of_combat', thresholds: [], _has_illustration: false,
   };
   isNewAttr = true;
@@ -2952,11 +3463,7 @@ async function deleteAttrIcon() {
 
 
 // ================== POWERS ==================
-function filterPowers() {
-  const q = document.getElementById('power-search').value.toLowerCase();
-  const filtered = powers.filter(p => !q || p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
-  renderPowerList(filtered);
-}
+function filterPowers() { renderPowerList(runQuery('power', powers)); }
 
 function renderPowerList(list = powers) {
   document.getElementById('power-count').textContent = list.length;
@@ -2992,6 +3499,7 @@ function renderPowerDetail() {
           ? `<img src="/illustrations/${p.id}?t=${powerIconBust}" alt="" style="object-fit:contain">`
           : `<div style="font-size:48px">${p.icon || '⚡'}</div>`}
         ${isNewPower ? '' : `<div class="illus-overlay">
+          ${p._has_illustration ? downloadAssetBtn('illustrations', p.id) : ''}
           ${p._has_illustration ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePowerIcon()">Supprimer</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openPowerIconModal()">Importer</button>
         </div>`}
@@ -3008,7 +3516,16 @@ function renderPowerDetail() {
     </div>
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="pf-id" value="${p.id}"></div>
+      <div class="field">
+        <label>ID</label>
+        <input id="pf-id" value="${esc(p.id)}" placeholder="POWER_…" style="font-family:monospace">
+        ${isNewPower ? `<span style="font-size:11px;color:var(--muted);margin-top:4px">
+          ⚠️ Seul onglet dont l'ID ne s'auto-incrémente pas, et c'est délibéré : un id de pouvoir est
+          <strong>sémantique</strong>, lu en dur par le moteur de combat. Un <code>POWER_015</code> tiré d'un compteur
+          serait un pouvoir que rien n'exécute. Cette fiche ne fait que <em>nommer et illustrer</em> un pouvoir
+          que <code>logic/CombatManager</code> implémente déjà.
+        </span>` : ''}
+      </div>
       <div class="field"><label>Nom</label><input id="pf-name" value="${esc(p.name)}"></div>
       <div class="field"><label>Emoji — repli sans image</label><input id="pf-icon" value="${p.icon || ''}"></div>
     </div>
@@ -3056,7 +3573,7 @@ async function deletePower() {
 }
 
 function openNewPower() {
-  selectedPower = { id: 'POWER_NEW', name: '', description: '', icon: '' };
+  selectedPower = { id: '', name: '', description: '', icon: '' };
   isNewPower = true;
   renderPowerList();
   renderPowerDetail();
@@ -3234,11 +3751,7 @@ function magieRarityBadge(m) {
   return r > 1 ? ` <span class="badge ${MAGIE_RARITY_BADGE[r]}">${MAGIE_RARITY_LABELS[r]}</span>` : '';
 }
 
-function filterMagies() {
-  const q = document.getElementById('magie-search').value.toLowerCase();
-  const filtered = magies.filter(m => !q || m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q));
-  renderMagieList(filtered);
-}
+function filterMagies() { renderMagieList(runQuery('magie', magies)); }
 
 function renderMagieList(list = magies) {
   document.getElementById('magie-count').textContent = list.length;
@@ -3292,6 +3805,7 @@ function renderMagieDetail() {
         <div class="illus-overlay">
           ${hasIllus
             ? `<span style="font-size:12px;color:white">Changer</span>
+               ${downloadAssetBtn('illustrations', m.id)}
                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteMagieIllustration()">Supprimer</button>`
             : `<span style="font-size:12px;color:white">Ajouter une illustration</span>`}
         </div>
@@ -3310,7 +3824,7 @@ function renderMagieDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="mf-id" value="${esc(m.id)}"></div>
+      <div class="field"><label>ID</label>${isNewMagie ? idPickerHtml('magie', m.id) : idFieldHtmlFor('magie', m.id)}</div>
       <div class="field"><label>Nom</label><input id="mf-name" value="${esc(m.name)}"></div>
       <div class="field">
         <label>Rareté</label>
@@ -3776,13 +4290,7 @@ async function deleteMagie() {
 }
 
 function openNewMagie() {
-  let maxNum = 0;
-  for (const m of magies) {
-    const match = m.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  const nextId = `MAGIE_${String(maxNum + 1).padStart(3, '0')}`;
-  selectedMagie = { id: nextId, name: '', rarity: 1, effect: null, _has_illustration: false };
+  selectedMagie = { id: nextIdFor('magie'), name: '', rarity: 1, effect: null, _has_illustration: false };
   isNewMagie = true;
   renderMagieList();
   renderMagieDetail();
@@ -3930,17 +4438,7 @@ function _variantCard(v) {
   return cards.find(c => c.id === v?.card_id) ?? null;
 }
 
-function filterVariants() {
-  const q = document.getElementById('variant-search')?.value.toLowerCase() || '';
-  const filtered = variants.filter(v => {
-    if (!q) return true;
-    const card = _variantCard(v);
-    return v.id.toLowerCase().includes(q)
-      || (v.card_id || '').toLowerCase().includes(q)
-      || (card?.name || '').toLowerCase().includes(q);
-  });
-  renderVariantList(filtered);
-}
+function filterVariants() { renderVariantList(runQuery('variant', variants)); }
 
 function renderVariantList(list = variants) {
   document.getElementById('variant-count').textContent = list.length;
@@ -3996,6 +4494,7 @@ function renderVariantDetail() {
         <div class="illus-overlay">
           ${hasIllus
             ? `<span style="font-size:12px;color:white">Changer</span>
+               ${downloadAssetBtn('illustrations', v.id)}
                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteVariantIllustration()">Supprimer</button>`
             : `<span style="font-size:12px;color:white">Ajouter une illustration</span>`}
         </div>
@@ -4010,6 +4509,14 @@ function renderVariantDetail() {
       <div style="background:rgba(240,180,60,.1);border:1px solid rgba(240,180,60,.35);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0b43c">
         ⚠️ Sans illustration, cette variante n'est pas vendue en boutique.
       </div>`}
+
+    <div class="field">
+      <label>ID</label>
+      ${isNewVariant ? idPickerHtml('variant', v.id) : idFieldHtmlFor('variant', v.id, { readonly: true })}
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">
+        L'illustration est nommée par cet id — il ne se renomme donc pas après coup.
+      </span>
+    </div>
 
     <div class="field">
       <label>Carte visée</label>
@@ -4123,12 +4630,7 @@ async function deleteVariant() {
 }
 
 function openNewVariant() {
-  let maxNum = 0;
-  for (const v of variants) {
-    const match = v.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  selectedVariant = { id: `VAR_${String(maxNum + 1).padStart(3, '0')}`, card_id: '', name: '', _has_illustration: false };
+  selectedVariant = { id: nextIdFor('variant'), card_id: '', name: '', _has_illustration: false };
   isNewVariant = true;
   renderVariantList();
   renderVariantDetail();
@@ -4254,13 +4756,7 @@ async function deleteVariantIllustration() {
 // porte sur le fichier, pas sur un drapeau (cf. `shop.hasArt`).
 let cardBackBust = Date.now();
 
-function filterCardBacks() {
-  const q = document.getElementById('cardback-search')?.value.toLowerCase() || '';
-  const filtered = cardBacks.filter(b => !q
-    || b.id.toLowerCase().includes(q)
-    || (b.name || '').toLowerCase().includes(q));
-  renderCardBackList(filtered);
-}
+function filterCardBacks() { renderCardBackList(runQuery('cardback', cardBacks)); }
 
 function renderCardBackList(list = cardBacks) {
   document.getElementById('cardback-count').textContent = list.length;
@@ -4316,6 +4812,7 @@ function renderCardBackDetail() {
         <div class="illus-overlay">
           ${hasIllus
             ? `<span style="font-size:12px;color:white">Changer</span>
+               ${downloadAssetBtn('illustrations', b.id)}
                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteCardBackIllustration()">Supprimer</button>`
             : `<span style="font-size:12px;color:white">Ajouter une illustration</span>`}
         </div>
@@ -4330,6 +4827,14 @@ function renderCardBackDetail() {
       <div style="background:rgba(240,180,60,.1);border:1px solid rgba(240,180,60,.35);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0b43c">
         ⚠️ Sans illustration, ce dos n'est pas vendu en boutique — et s'il est « par défaut », la popup de pioche retombe sur son dos dessiné.
       </div>`}
+
+    <div class="field">
+      <label>ID</label>
+      ${isNewCardBack ? idPickerHtml('cardback', b.id) : idFieldHtmlFor('cardback', b.id, { readonly: true })}
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">
+        L'illustration est nommée par cet id — il ne se renomme donc pas après coup.
+      </span>
+    </div>
 
     <div class="field">
       <label>Nom</label>
@@ -4409,12 +4914,7 @@ async function deleteCardBack() {
 }
 
 function openNewCardBack() {
-  let maxNum = 0;
-  for (const b of cardBacks) {
-    const match = b.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  selectedCardBack = { id: `CARDBACK_${String(maxNum + 1).padStart(3, '0')}`, name: '', default: false, price_gems: 100, _has_illustration: false };
+  selectedCardBack = { id: nextIdFor('cardback'), name: '', default: false, price_gems: 100, _has_illustration: false };
   isNewCardBack = true;
   renderCardBackList();
   renderCardBackDetail();
@@ -4552,11 +5052,7 @@ const EVENT_FIELD_CONFIG = {
 // Tous les champs de filtre possibles, tous conservés dans le DOM et affichés/masqués selon l'event choisi
 const ALL_FILTER_KEYS = ['result', 'rounds_min', 'unit_count_min', 'unit_count_max', 'units_lost_max', 'attribute_count_min', 'max_attribute_units_min', 'card_count_min', 'tier_min', 'attribute', 'effect_type', 'effect_type_in'];
 
-function filterMissions() {
-  const q = document.getElementById('mission-search').value.toLowerCase();
-  const filtered = missions.filter(m => !q || m.id.toLowerCase().includes(q) || (m.label || '').toLowerCase().includes(q) || (m.family || '').toLowerCase().includes(q));
-  renderMissionList(filtered);
-}
+function filterMissions() { renderMissionList(runQuery('mission', missions)); }
 
 function renderMissionList(list = missions) {
   document.getElementById('mission-count').textContent = list.length;
@@ -4637,7 +5133,7 @@ function renderMissionDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="msf-id" value="${esc(m.id)}"></div>
+      <div class="field"><label>ID</label>${isNewMission ? idPickerHtml('mission', m.id) : idFieldHtmlFor('mission', m.id)}</div>
       <div class="field"><label>Famille</label><input id="msf-family" value="${esc(m.family || '')}" placeholder="ex. presence, mechanical, synergy, shopping, meta"></div>
       <div class="field">
         <label>Poids de slot (difficulté)</label>
@@ -4798,13 +5294,7 @@ async function deleteMission() {
 }
 
 function openNewMission() {
-  let maxNum = 0;
-  for (const m of missions) {
-    const match = m.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  const nextId = `MISSION_NEW_${String(maxNum + 1).padStart(3, '0')}`;
-  selectedMission = { id: nextId, family: '', slot_weight: 1, label: '', objective: { event: 'match_completed', filters: {}, target: 1, scope: 'cumulative' }, tags: [] };
+  selectedMission = { id: nextIdFor('mission'), family: '', slot_weight: 1, label: '', objective: { event: 'match_completed', filters: {}, target: 1, scope: 'cumulative' }, tags: [] };
   isNewMission = true;
   renderMissionList();
   renderMissionDetail();
@@ -4856,11 +5346,7 @@ const LOT_FIELD_CONFIG = {
 // Lots du cadeau en cours d'édition. Réinitialisé à chaque sélection.
 let giftLots = [];
 
-function filterGifts() {
-  const q = document.getElementById('gift-search').value.toLowerCase();
-  const filtered = gifts.filter(g => !q || g.id.toLowerCase().includes(q) || (g.name || '').toLowerCase().includes(q));
-  renderGiftList(filtered);
-}
+function filterGifts() { renderGiftList(runQuery('gift', gifts)); }
 
 function renderGiftList(list = gifts) {
   document.getElementById('gift-count').textContent = list.length;
@@ -4992,7 +5478,7 @@ function renderGiftDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="gf-id" value="${esc(g.id)}" ${isNewGift ? '' : 'disabled'}></div>
+      <div class="field"><label>ID</label>${isNewGift ? idPickerHtml('gift', g.id) : idFieldHtmlFor('gift', g.id, { readonly: true })}</div>
       <div class="field"><label>Nom (vu par le joueur)</label><input id="gf-name" value="${esc(g.name || '')}"></div>
       <div class="field" style="grid-column:1/-1"><label>Description (optionnelle)</label><input id="gf-description" value="${esc(g.description || '')}" placeholder="ex. Compensation suite à l'interruption du 12 août."></div>
     </div>
@@ -5071,12 +5557,7 @@ async function deleteGift() {
 }
 
 function openNewGift() {
-  let maxNum = 0;
-  for (const g of gifts) {
-    const match = g.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  selectedGift = { id: `GIFT_${String(maxNum + 1).padStart(3, '0')}`, name: '', description: '', contents: [] };
+  selectedGift = { id: nextIdFor('gift'), name: '', description: '', contents: [] };
   giftLots = [{ type: 'gold' }];
   isNewGift = true;
   renderGiftList();
@@ -5112,11 +5593,7 @@ function cancelNewGift() {
 // l'avatar par défaut), le navigateur ne verrait donc jamais un remplacement.
 let avatarBust = Date.now();
 
-function filterPublicDecks() {
-  const q = document.getElementById('deck-search').value.toLowerCase();
-  const filtered = publicDecks.filter(d => !q || d.name.toLowerCase().includes(q) || d.id.toLowerCase().includes(q));
-  renderPublicDeckList(filtered);
-}
+function filterPublicDecks() { renderPublicDeckList(runQuery('deck', publicDecks)); }
 
 function deckTotalCards(deck) {
   return [1, 2, 3, 4, 5].reduce((sum, t) => sum + ((deck?.[String(t)]?.length) || 0), 0);
@@ -5191,6 +5668,7 @@ function renderPublicDeckDetail() {
         <div class="illus-overlay">
           ${hasAvatar
             ? `<span style="font-size:12px;color:white">Changer</span>
+               ${downloadAssetBtn('avatars', d.id)}
                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteDeckAvatar()">Supprimer</button>`
             : `<span style="font-size:12px;color:white">Ajouter un avatar</span>`}
         </div>
@@ -5208,7 +5686,7 @@ function renderPublicDeckDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="df-id" value="${esc(d.id)}"></div>
+      <div class="field"><label>ID</label>${isNewPublicDeck ? idPickerHtml('deck', d.id) : idFieldHtmlFor('deck', d.id)}</div>
       <div class="field"><label>Nom</label><input id="df-name" value="${esc(d.name)}"></div>
       <div class="field">
         <label>Difficulté (mode Arcade)</label>
@@ -5294,13 +5772,7 @@ async function deletePublicDeck() {
 }
 
 function openNewPublicDeck() {
-  let maxNum = 0;
-  for (const d of publicDecks) {
-    const match = d.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  const nextId = `PUBLIC_DECK_${String(maxNum + 1).padStart(3, '0')}`;
-  selectedPublicDeck = { id: nextId, name: '', difficulty: 1, deck: { "1": [], "2": [], "3": [], "4": [], "5": [] } };
+  selectedPublicDeck = { id: nextIdFor('deck'), name: '', difficulty: 1, deck: { "1": [], "2": [], "3": [], "4": [], "5": [] } };
   isNewPublicDeck = true;
   renderPublicDeckList();
   renderPublicDeckDetail();
@@ -5494,12 +5966,7 @@ function packHolding(cardId, exceptId = null) {
   return packClaiming(cardId, exceptId) ?? starterPackWith(cardId, exceptId);
 }
 
-function filterPacks() {
-  const q = (document.getElementById('pack-search')?.value || '').toLowerCase();
-  const filtered = packs.filter(p =>
-    !q || (p.name || '').toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
-  renderPackList(filtered);
-}
+function filterPacks() { renderPackList(runQuery('pack', packs)); }
 
 function renderPackList(list = packs) {
   const el = document.getElementById('pack-list');
@@ -5603,8 +6070,8 @@ function packArchetypes(ids, limit = 3) {
  * chaque re-rendu.
  */
 function _stashPackFormEdits() {
-  if (!selectedPack || !document.getElementById('pf-id')) return;
-  selectedPack.id = document.getElementById('pf-id').value.trim() || selectedPack.id;
+  if (!selectedPack || !document.getElementById('pkf-id')) return;
+  selectedPack.id = document.getElementById('pkf-id').value.trim() || selectedPack.id;
   selectedPack.name = document.getElementById('pf-name').value.trim();
   if (document.getElementById('pf-starter')?.checked) selectedPack.starter = true;
   else delete selectedPack.starter;
@@ -5641,6 +6108,7 @@ function renderPackDetail() {
           ? `<img src="/pack-posters/${esc(p.id)}?t=${posterBust}" alt="">
              <div class="illus-overlay">
                <span style="font-size:12px;color:white">Changer</span>
+               ${downloadAssetBtn('pack-posters', p.id)}
                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePackPoster()">Supprimer</button>
              </div>`
           : `<span class="illus-text">${isNewPack ? 'Affiche : après création' : 'Ajouter une affiche'}</span>`}
@@ -5659,7 +6127,7 @@ function renderPackDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="pf-id" value="${esc(p.id)}"></div>
+      <div class="field"><label>ID</label>${isNewPack ? idPickerHtml('pack', p.id) : idFieldHtmlFor('pack', p.id)}</div>
       <div class="field"><label>Nom</label><input id="pf-name" value="${esc(p.name || '')}"></div>
     </div>
     ${isNewPack ? '' : `<div class="illus-text" style="text-align:left;margin-top:-8px;margin-bottom:8px">
@@ -5720,7 +6188,7 @@ function _collectPackFields() {
   const ids = packCardIds(selectedPack);
   const out = {
     ...selectedPack,
-    id: document.getElementById('pf-id')?.value.trim() || '',
+    id: document.getElementById('pkf-id')?.value.trim() || '',
     name: document.getElementById('pf-name')?.value.trim() || '',
     card_count: ids.length,
     archetypes: packArchetypes(ids),
@@ -5787,12 +6255,7 @@ async function deletePack() {
 }
 
 function openNewPack() {
-  let maxNum = 0;
-  for (const p of packs) {
-    const match = p.id.match(/(\d+)$/);
-    if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-  }
-  selectedPack = { id: `SET_${String(maxNum + 1).padStart(3, '0')}`, name: '', cards: [], booster_enabled: true };
+  selectedPack = { id: nextIdFor('pack'), name: '', cards: [], booster_enabled: true };
   isNewPack = true;
   renderPackList();
   renderPackDetail();
@@ -6966,11 +7429,7 @@ function _boardEffectsFrom(board) {
   return JSON.parse(JSON.stringify(src));
 }
 
-function filterBoards() {
-  const q = document.getElementById('board-search').value.toLowerCase();
-  const filtered = boards.filter(b => !q || b.name.toLowerCase().includes(q) || b.id.toLowerCase().includes(q));
-  renderBoardList(filtered);
-}
+function filterBoards() { renderBoardList(runQuery('board', boards)); }
 
 function renderBoardList(list = boards) {
   document.getElementById('board-count').textContent = list.length;
@@ -7119,7 +7578,7 @@ function renderBoardDetail() {
 
     <div class="section-title">Identité</div>
     <div class="form-grid">
-      <div class="field"><label>ID</label><input id="bf-id" value="${esc(b.id)}"></div>
+      <div class="field"><label>ID</label>${isNewBoard ? idPickerHtml('board', b.id) : idFieldHtmlFor('board', b.id)}</div>
       <div class="field"><label>Nom</label><input id="bf-name" value="${esc(b.name)}"></div>
     </div>
 
@@ -7153,6 +7612,7 @@ function renderBoardDetail() {
           ? `<img src="/illustrations/${b.id}?t=${boardIllusBust}" alt="">`
           : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
         ${isNewBoard ? '' : `<div class="illus-overlay">
+          ${b._has_illustration ? downloadAssetBtn('illustrations', b.id) : ''}
           ${b._has_illustration ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteBoardIllustration()">Supprimer</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openBoardIllusModal()">Importer</button>
         </div>`}
@@ -7171,6 +7631,7 @@ function renderBoardDetail() {
           ? `<img src="/board-backgrounds/${b.id}?t=${boardBgBust}" alt="">`
           : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
         ${isNewBoard ? '' : `<div class="illus-overlay">
+          ${b._has_background ? downloadAssetBtn('board-backgrounds', b.id) : ''}
           ${b._has_background ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteBoardBg()">Supprimer</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openBoardBgModal()">Importer</button>
         </div>`}
@@ -7296,8 +7757,7 @@ async function deleteBoard() {
 }
 
 function openNewBoard() {
-  const nextNum = String(boards.length + 1).padStart(3, '0');
-  selectedBoard = { id: `BOARD_${nextNum}`, name: '', effects: [], blocked_cells: [], _has_illustration: false, _has_background: false };
+  selectedBoard = { id: nextIdFor('board'), name: '', effects: [], blocked_cells: [], _has_illustration: false, _has_background: false };
   boardEffectsDraft = [];
   isNewBoard = true;
   renderBoardList();

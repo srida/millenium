@@ -123,6 +123,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 |---|---|---|
 | `GET /` | Public | SPA React (`client/dist`, fallback SPA sauf préfixes d'assets et `/ws`) |
 | `GET /admin` | Site admin | Card Manager (`admin.html`) |
+| `GET /admin/card-query.js` | Site admin | Le langage de requête (`card-query.mjs`), partagé avec le client |
 | `GET /api/version` | Public | Version du build |
 | `GET /api/{cards,attributes,powers,boards,magies,missions,decks,sets,variants,gifts,card-backs}` | Public | Les catalogues, avec leurs drapeaux calculés |
 | `POST/PUT/DELETE /api/<entité>[/:id]` | Site admin | CRUD (`routes/crud-json.js` : ne valide que l'unicité de l'id) |
@@ -184,6 +185,7 @@ Toutes les mutations renvoient **l'instantané complet + la progression à jour*
 | `json-cache.js` · `asset-dirs.js` | Cache au mtime, chemins d'assets |
 | `tiers.js` | Résolution « attributs de catégorie `Tiers` → numéros » (jumeau de `logic/Tiers.ts`) |
 | `card-contract.js` | Les catégories d'attributs qu'une carte doit porter (pur, partagé avec l'audit) |
+| `card-query.mjs` | Le langage de requête des barres de recherche (pur, partagé `admin.html` ↔ client) |
 
 **Règle anti-cycle** — elle n'est écrite nulle part ailleurs que ici :
 - **Feuilles** (ne requièrent que `db` / `json-cache`, personne ne les requiert en retour) : `sets.js`, `variants.js`, `decks.js`, `pvplog.js`, `ailog.js`, `asset-dirs.js`, `tiers.js`, `card-contract.js`.
@@ -1583,6 +1585,53 @@ Page autonome, **16 onglets**, aucun build. ⚠️ **Aucun test automatisé ne l
 - ⚠️ **Il n'y a plus d'onglet Invocation** (ni `summon_types.json`, ni `SummonTypeDatabase`, ni `/api/summon-types`) : les cinq voies sont des attributs de carte, éditables dans l'onglet Attributs comme n'importe quel archétype. L'onglet Cartes porte à leur place un **éditeur de recettes répétable** (`summon_conditions`) et le champ **`material_value`**.
 - L'éditeur de recettes **annonce sans bloquer** ce que le moteur refuserait : `requires.length > materials` est insatisfiable (la carte serait injouable en silence), et une recette à **un** matériel signale qu'elle imposera la case. Un matériel d'**attribut** est proposé sur **toutes** les recettes — l'ancien éditeur ne l'offrait que sur un « heritage », une règle qui n'existe plus.
 - ⚠️ La glose française des motifs / verdicts est **recopiée** dans `admin.html` (`AI_REASONS`, `AI_HAND_SOURCES`, `PVP_KINDS`) : le fichier ne peut rien importer d'un module TS. Un motif ajouté côté TS est à reporter là-bas ; la dérive est bénigne (un motif sans glose s'affiche par son slug).
+
+### Le champ ID d'une fiche neuve
+
+`idPickerHtml(kind, id)` est le **seul** champ ID d'une fiche neuve, `nextIdFor(kind[, prefix])` le **seul** générateur d'id du fichier : un sélecteur de préfixe (ceux déjà présents dans la collection, plus « + Nouveau préfixe… »), un numéro pré-rempli, l'id calculé en dessous. Dix onglets le partagent (`ID_PICKERS`).
+
+- ⚠️ Le numéro se cherche **par préfixe** et **au max + 1**. Les deux moitiés ont été fausses : `liste.length + 1` (terrains) retombait sur un id déjà pris après une suppression, et « le plus grand nombre de fin toutes entrées confondues » (magies) faisait hériter une `MAGIE_*` neuve du numéro des `MAGIC_*`.
+- La largeur du numéro suit celle des ids existants de la série : `CARDBACK_000` se poursuit en `_003`, pas en `_3`.
+- ⚠️ `currentId` **fait foi** et n'est jamais recalculé au rendu : une duplication arrive avec son id déjà choisi. Le recalcul l'écrasait, d'où les trente lignes de ré-injection que `duplicateCard()` portait.
+- Le préfixe par défaut : le dernier utilisé (localStorage) s'il existe encore, sinon **le plus représenté** — pas le premier alphabétique, qui servait `MAGIC` alors que la série vivante est `MAGIE`.
+- ⚠️ **Les POUVOIRS sont l'exception, et elle est de fond** : un id de pouvoir est *sémantique* (`POWER_FREEZE`), lu en dur par `logic/CombatManager`. Un `POWER_015` tiré d'un compteur serait un pouvoir que rien n'exécute. L'onglet garde un id libre et le dit à l'écran.
+- Variantes et dos de cartes ont un ID **en lecture seule** hors création : l'illustration est nommée par lui, le renommer la détacherait en silence (même piège que les attributs).
+
+### Télécharger un asset
+
+`downloadAsset(url, filename)` est le seul enregistreur du fichier ; `downloadAssetBtn(route, id)` le bouton ⬇ que les **dix** encarts d'image partagent (les quatre familles). Le nom enregistré est celui du volume, `<id>.png`.
+
+- ⚠️ Passe par un **blob**, pas par un `<a href download>` : `/pack-posters` et `/board-backgrounds` rendent un 404 franc, et un lien nu enregistrerait la page d'erreur sous le nom du PNG sans rien dire.
+- ⚠️ `cache: 'no-store'` plutôt qu'un `?t=` recopié de la vignette — un cache-buster dans l'URL finit dans le nom du fichier enregistré sur certains navigateurs.
+
+## Le langage de requête (`card-query.mjs`, racine)
+
+Les barres de recherche parlent toutes la même grammaire, à la façon d'un JQL. **Un seul moteur, partagé** : `admin.html` le charge par `import('/admin/card-query.js')` (route dans `app.js`, `requireSiteAdmin`), le client l'importe dans son bundle. Le module est **pur, sans aucun import**.
+
+```
+dragon                     texte libre (les champs de `schema.text`)
+tier:3 atk>=50             ET implicite
+tier:4 OU tier:5           OU explicite ; NON / NOT / `-` pour la négation
+tier:3,4                   liste = « l'un de » ; niée, « aucun d'eux »
+(a OU b) ET c              parenthèses ; précédence NON > ET > OU
+pouvoir:vide               champ absent
+-illustration              un champ BOOLÉEN s'écrit en un mot
+nom~"deux mots"            guillemets pour les espaces
+```
+
+Un **schéma** (`{ fields, text }`) dit quels champs existent et comment les lire : `admin.html` en décrit onze (un par onglet), le DeckBuilder réutilise `cardQuerySchema(deps)` et lui ajoute `debloquee` (la collection, qui n'existe pas côté admin). Les deux dérivés qui diffèrent d'un côté à l'autre — coût d'invocation, mise en mots d'un id — sont **injectés**, sur le modèle de `deps.rand`.
+
+- ⚠️ **Les chips et les `<select>` n'ont pas d'état à eux : ils ÉCRIVENT dans la requête** (`toggleFacet` / `setFacet`) et s'y relisent (`hasFacet`). C'est ce qui interdit structurellement qu'un chip allumé contredise la barre. Le DeckBuilder y a perdu quatre `useState` de filtres.
+- ⚠️ **Une requête à moitié tapée est l'état NORMAL d'une barre.** `champ:` sans valeur se lit « ce champ n'est pas vide », un connecteur en fin de requête est ignoré, et une faute franche **laisse la liste entière** en affichant son message — vider l'écran à chaque frappe ferait clignoter tout le contenu.
+- ⚠️ **Seul le guillemet double ouvre une chaîne.** L'apostrophe est une lettre de ce catalogue (« Épée d'Argent ») : en faire un délimiteur coupait un nom sur deux. Le pliage (`fold`) retire accents et casse.
+- ⚠️ **Un mot nu qui EST un champ booléen se lit comme ce booléen.** Sans cette lecture, `-illustration` — la négation la plus évidente du lot — cherchait le mot « illustration » dans les *noms* et rendait tout le catalogue.
+- ⚠️ **Une requête à OU de premier niveau se parenthèse avant qu'on lui ajoute un ET** : `a OU b` + un chip donnerait `a OU b ET tier:3`, qui ne filtre que la branche droite — le chip aurait l'air posé et la moitié de la liste lui échapperait.
+- ⚠️ **L'ET étant implicite, `topLevelTerms` a besoin d'une machine à états** : `tier:3 atk>50` ne porte aucun connecteur écrit, et un découpage naïf en fait un terme géant que le chip ne retrouve plus — il s'allume sans jamais s'éteindre.
+- ⚠️ **Un chip d'inégalité passe son opérateur** (`toggleFacet(..., { op: '>=' })`) : « 3+ matériels » écrit `cout>=3`. En égalité, il manquait les coûts 4 et 5 — un filtre qui a l'air juste parce que le cas rare est rare.
+- ⚠️ **La liste de complétion se ferme sur une valeur déjà complète** : posée à 4 px sous la barre, elle recouvre les chips, qui deviennent intapables sur un téléphone. Défaut invisible en test de fonction, vu au navigateur.
+- ⚠️ **`fs: { allow: ['..'] }` dans `client/vite.config.ts` est la condition d'existence du partage** : le fichier vit à la racine, le build le suit tout seul mais le **serveur de dév** refuse par défaut tout fichier hors de `client/` — en **403**, pas en 404. Sans cette ligne, `npm run build` passe et `npm run client:dev` sert un écran blanc.
+- ⚠️ Le type MIME de la route `/admin/card-query.js` est posé **à la main** : `mime@1` (Express 4) ne connaît pas `.mjs`, et le navigateur refuse d'exécuter comme module ce qui arrive en `application/octet-stream`.
+- `client/src/test/card-query.test.ts` couvre la grammaire, les facettes et la complétion, puis rejoue le tout **sur le catalogue livré** — dont un cas qui exige que chaque exemple montré sous la barre rende au moins un résultat.
 
 ## Simulation d'équilibrage (`client/src/sim/`)
 
