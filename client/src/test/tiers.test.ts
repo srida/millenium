@@ -76,16 +76,6 @@ describe('les deux résolveurs disent la même chose', () => {
     expect(hasTier(decorated, 3)).toBe(false);
   });
 
-  it("sur une carte de l'admin — champ `tier`, pas encore l'attribut", () => {
-    // ⚠️ Le cas qui ferait disparaître une carte en silence : l'onglet Cartes
-    // écrit encore le champ historique, donc `_tiers` sort VIDE. Un tableau
-    // vide n'est pas une réponse, et les deux jumeaux portent le même repli.
-    const c = { ...card('ADMIN_001', ['ARCH_002']), tier: 3, _tiers: [] } as Card;
-    expect(tiersOf(c)).toEqual([3]);
-    expect(primaryTier(c)).toBe(3);
-    expect(server.tiersOf({ id: 'ADMIN_001', attributes: ['ARCH_002'], tier: 3 })).toEqual([3]);
-  });
-
   it("sur une carte sans aucun tier : un repli côté règle, RIEN côté étiquette", () => {
     const c = card('NOTIER_001', []);
     expect(resolveTiers(c, INDEX)).toEqual([]);
@@ -129,12 +119,11 @@ describe('le contrat du catalogue livré', () => {
     expect(missing).toEqual({ Tiers: [], Invocation: [], Element: [] });
   });
 
-  it('le champ historique `tier` reste D’ACCORD avec les attributs', () => {
-    // ⚠️ C'est l'invariant qui fait du passage aux attributs un REFACTOR et non
-    // une nouvelle règle : tant que le champ existe, il doit dire la même chose
-    // que la carte. Ce test disparaît avec le champ, pas avant.
-    const faux = CARDS.filter(c => c.tier != null && !resolveTiers(c, INDEX).includes(Number(c.tier)));
-    expect(faux.map(c => c.id)).toEqual([]);
+  it('le champ historique `tier` a QUITTÉ les données', () => {
+    // ⚠️ Le champ ne se lit plus nulle part : le laisser traîner dans les
+    // données rouvrirait la porte à une seconde source de vérité, muette et
+    // désaccordable. L'attribut fait foi, seul.
+    expect(CARDS.filter(c => (c as any).tier !== undefined).map(c => c.id)).toEqual([]);
   });
 
   it('les cinq attributs de tier portent bien 1 à 5', () => {
@@ -142,17 +131,29 @@ describe('le contrat du catalogue livré', () => {
   });
 });
 
-describe('la lecture est tolérante', () => {
-  it('une carte écrite à la main (tests, bancs de dev) garde son champ `tier` pour repli', () => {
-    // Le repli existe pour les cartes synthétiques et pour un client servi par
-    // un serveur en retard de déploiement. Il disparaît avec le champ.
-    expect(tiersOf({ id: 'X', name: 'X', tier: 3 } as Card)).toEqual([3]);
-    expect(primaryTier({ id: 'X', name: 'X', tier: 3 } as Card)).toBe(3);
+describe('il n’y a plus de repli', () => {
+  it('un champ `tier` résiduel n’est PAS lu — l’attribut fait seul foi', () => {
+    // Le repli a existé le temps de la migration. Le garder ferait taire
+    // exactement ce que le contrat d'écriture existe pour signaler : une carte
+    // sans attribut de tier, qui n'entre dans aucun pool de pioche.
+    const residuel = { id: 'X', name: 'X', tier: 3, stats: {} as any } as unknown as Card;
+    expect(tiersOf(residuel)).toEqual([]);
+    expect(displayTier(residuel)).toBeNull();
+    expect(server.tiersOf(residuel)).toEqual([]);
   });
 
-  it('`_tiers` PRIME sur le champ : c’est le résolu qui fait foi', () => {
-    const c = { id: 'X', name: 'X', tier: 1, _tiers: [4] } as Card;
-    expect(tiersOf(c)).toEqual([4]);
+  it('`_tiers` est la seule forme lue côté client', () => {
+    const c = { id: 'X', name: 'X', _tiers: [2, 4], stats: {} as any } as Card;
+    expect(tiersOf(c)).toEqual([2, 4]);
     expect(primaryTier(c)).toBe(4);
+    expect(hasTier(c, 2)).toBe(true);
+    expect(hasTier(c, 3)).toBe(false);
+  });
+
+  it('une carte sans tier retombe sur DEFAULT_TIER là où un CHIFFRE est exigé', () => {
+    const nu = { id: 'X', name: 'X', attributes: [], stats: {} as any } as Card;
+    expect(tiersOf(nu)).toEqual([]);
+    expect(primaryTier(nu)).toBe(DEFAULT_TIER);
+    expect(server.primaryTier(nu)).toBe(DEFAULT_TIER);
   });
 });

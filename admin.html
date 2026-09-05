@@ -1385,14 +1385,14 @@ function tierAttrDefs() {
     .sort((x, y) => Number(x.tier) - Number(y.tier));
 }
 
-/** Les tiers d'une carte, triés. Repli sur le champ `tier` historique tant
- *  qu'il existe (cartes jamais rouvertes depuis la refonte). */
+/** Les tiers d'une carte, triés. ⚠️ Aucun repli sur un champ `tier` : il a
+ *  quitté les données, et une carte sans attribut de tier n'a pas de tier —
+ *  c'est précisément ce que l'écran doit MONTRER, pas rattraper. */
 function cardTiers(c) {
   const map = {};
   for (const a of tierAttrDefs()) map[a.id] = Number(a.tier);
   const out = [...new Set((c?.attributes || []).map(id => map[id]).filter(t => t != null))];
-  if (out.length) return out.sort((x, y) => x - y);
-  return Number(c?.tier) > 0 ? [Math.round(Number(c.tier))] : [];
+  return out.sort((x, y) => x - y);
 }
 
 /** Le tier d'une carte quand il en faut UN SEUL : le plus haut (sa puissance). */

@@ -10,7 +10,11 @@ import { CombatManager } from '../logic/CombatManager.js';
 export interface CardFixture {
   id: string;
   name: string;
-  tier: number;
+  /** Les tiers RÉSOLUS de la carte — la forme que le jeu lit (`logic/Tiers`).
+   *  Les fixtures les écrivent en clair : elles n'ont pas de catalogue
+   *  d'attributs sous la main pour les résoudre, et c'est déjà le travail de
+   *  `tiers.test.ts`. */
+  _tiers: number[];
   attributes: string[];
   represented_ids?: string[];
   power?: { id: string; power_speed: number; value?: number | null } | null;
@@ -26,12 +30,22 @@ export interface CardFixture {
 
 let cardSeq = 0;
 
-export function makeCard(overrides: Partial<CardFixture> & { id?: string } = {}): CardFixture {
-  const { stats, ...rest } = overrides;
+/**
+ * Une carte de test.
+ *
+ * ⚠️ `tier: N` est accepté en RACCOURCI et traduit en `_tiers: [N]` : le champ
+ * `tier` n'existe plus dans les données, mais des centaines de fixtures le
+ * nomment et elles ne parlent que d'un seul tier. Écrire `_tiers` directement
+ * reste possible, et c'est le seul moyen d'obtenir une carte multi-tiers.
+ */
+export function makeCard(
+  overrides: Partial<CardFixture> & { id?: string; tier?: number } = {},
+): CardFixture {
+  const { stats, tier, ...rest } = overrides;
   return {
     id: overrides.id ?? `FIX_${String(++cardSeq).padStart(3, '0')}`,
     name: overrides.name ?? overrides.id ?? 'Fixture',
-    tier: 1,
+    _tiers: tier != null ? [tier] : [1],
     attributes: [],
     power: null,
     ...rest,

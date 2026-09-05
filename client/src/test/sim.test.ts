@@ -135,7 +135,7 @@ describe('Générateur de decks — la couverture des matériaux', () => {
 });
 
 describe('Protocole A/B — les deux bras ne diffèrent que par la carte', () => {
-  const card = cat.cards.find(c => c.tier === 1 && summonCost(c) === 0)!;
+  const card = cat.cards.find(c => hasTier(c, 1) && summonCost(c) === 0)!;
 
   it('le bras « avec » contient la carte, le bras « sans » ne la contient pas', () => {
     const rand = seededRandom('ab');
@@ -177,7 +177,7 @@ describe('Auto-joueur — il joue sous les règles du JOUEUR', () => {
     });
   }
 
-  const normal = cat.cards.find(c => c.tier === 1 && summonCost(c) === 0)!;
+  const normal = cat.cards.find(c => hasTier(c, 1) && summonCost(c) === 0)!;
 
   it('respecte la règle du doublon : une seule unité vivante par card_id', () => {
     // Le deck ne contient qu'une carte : la main en tire cinq exemplaires

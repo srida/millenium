@@ -65,19 +65,14 @@ export function resolveTiers(card: Pick<Card, 'attributes'>, index: TierIndex): 
 /**
  * Les tiers d'une carte déjà résolue. `[]` si elle n'en porte aucun.
  *
- * ⚠️ Le repli sur le champ `tier` est TEMPORAIRE : il tient le temps que le
- * champ historique quitte les données (il sert aux cartes écrites à la main
- * dans les tests et à un client servi par un serveur en retard de déploiement).
- * Il disparaît avec le champ.
+ * ⚠️ Il n'y a PLUS de repli : le champ `tier` a quitté les données, et une
+ * carte sans attribut de tier n'entre donc dans aucun pool de pioche. C'est le
+ * contrat d'écriture (`card-contract.js`, 400 en POST/PUT) et l'audit
+ * (`npm run audit:cards`) qui garantissent qu'elle n'existe pas — pas une
+ * clause de lecture qui inventerait un tier.
  */
 export function tiersOf(card: Card | null | undefined): number[] {
-  if (!card) return [];
-  // ⚠️ `_tiers` VIDE n'est pas une réponse, c'est une absence de réponse : une
-  // carte créée depuis l'admin porte encore un champ `tier` et pas l'attribut,
-  // et la laisser sans tier la ferait disparaître de tous les pools de pioche
-  // en silence. Le repli s'applique donc aussi à la liste vide.
-  if (card._tiers?.length) return card._tiers;
-  return typeof card.tier === 'number' ? [card.tier] : [];
+  return card?._tiers ?? [];
 }
 
 /**

@@ -67,15 +67,13 @@ const index = jsonCache(ATTRIBUTES_FILE, tierIndex);
 /**
  * Les tiers d'une carte, triés, sans doublon. `[]` si elle n'en porte aucun.
  *
- * ⚠️ Repli TEMPORAIRE sur le champ `tier` historique : une carte créée depuis
- * l'admin porte encore ce champ et pas l'attribut, et la servir sans tier la
- * ferait disparaître de tous les pools de pioche en silence. Le repli disparaît
- * avec le champ ; son jumeau TS porte exactement la même clause.
+ * ⚠️ Il n'y a PLUS de repli sur un champ `tier` : il a quitté les données. Une
+ * carte sans attribut de tier n'entre dans aucun pool de pioche, et c'est le
+ * contrat d'écriture (`card-contract.js`) qui garantit qu'elle n'existe pas —
+ * pas une clause de lecture. Son jumeau TS porte exactement la même règle.
  */
 function tiersOf(card) {
-  const resolved = resolveTiers(card, index());
-  if (resolved.length) return resolved;
-  return Number.isFinite(Number(card?.tier)) && Number(card.tier) > 0 ? [Number(card.tier)] : [];
+  return resolveTiers(card, index());
 }
 
 /**

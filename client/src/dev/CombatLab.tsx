@@ -68,7 +68,9 @@ function freeCellNear(board: any, pos: Position): Position | null {
 // le proxy /illustrations, attributs Élément (ARCH_048+) pour les particules.
 function card(id: string, over: any = {}) {
   return {
-    id, name: id, tier: over.tier ?? 2, summon_type: 'normal',
+    // ⚠️ `_tiers` et non un champ `tier` : c'est la forme RÉSOLUE que le jeu
+    // lit (`logic/Tiers`). Ici elle sert l'échelle des effets visuels.
+    id, name: id, _tiers: [over.tier ?? 2], summon_type: 'normal',
     attributes: over.attributes ?? [], power: over.power ?? null,
     stats: {
       atk: 6, hp: 40, movement_speed: 1, attack_speed: 2, initiative: 5, range: 1,

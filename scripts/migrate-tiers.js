@@ -4,17 +4,21 @@
 //   node scripts/migrate-tiers.js            # rapport, n'écrit rien
 //   node scripts/migrate-tiers.js --write    # applique
 //
-// IDEMPOTENT : une carte qui porte déjà l'attribut de son tier n'est pas
-// touchée, et le champ `tier` est CONSERVÉ (son retrait est un lot à part, une
-// fois que plus personne ne le lit). Relancer le script deux fois ne change
-// rien la seconde fois.
+// IDEMPOTENT : une carte déjà migrée n'est pas touchée. Relancer le script deux
+// fois ne change rien la seconde fois.
 //
-// Deux réparations, dans cet ordre :
+// Trois réparations, dans cet ordre :
 //   1. `attributes.json` — un attribut de catégorie `Tiers` sans champ `tier`
 //      le reçoit, déduit du chiffre de son `name` ou de son `icon`. C'est le
 //      seul endroit du projet où ce chiffre se devine : le résolveur
 //      (`tiers.js`) refuse de le faire, un renommage en admin le casserait.
 //   2. `cards.json` — la carte reçoit l'attribut correspondant à son champ.
+//   3. le champ `tier` est RETIRÉ — plus personne ne le lit, et le laisser
+//      rouvrirait une seconde source de vérité, muette et désaccordable.
+//
+// ⚠️ Le retrait ne vaut que pour une carte qui porte bien un attribut de tier :
+// sur une orpheline, le champ est la seule information restante et le supprimer
+// effacerait ce que le rapport existe pour signaler.
 //
 // Cible : `data/` s'il existe (le volume, donc la prod), sinon `initial-data/`.
 // En prod : `npm run sync:pull` → ce script → `npm run sync:push`.
@@ -70,15 +74,23 @@ if (Object.keys(tierAttrOf).length === 0) {
 // --- 2. Les cartes portent-elles l'attribut de leur tier ? ---
 const known = new Set(Object.values(tierAttrOf));
 const fixedCards = [];
+const droppedField = [];
 const orphans = [];
 for (const c of cards) {
   const attrs = c.attributes ?? (c.attributes = []);
-  if (attrs.some(id => known.has(id))) continue;          // déjà migrée
-  const t = Number(c.tier);
-  const attr = tierAttrOf[t];
-  if (!attr) { orphans.push(`${c.id} (tier ${c.tier ?? '—'})`); continue; }
-  attrs.push(attr);
-  fixedCards.push(`${c.id} → ${attr} (T${t})`);
+  if (!attrs.some(id => known.has(id))) {
+    const t = Number(c.tier);
+    const attr = tierAttrOf[t];
+    if (!attr) { orphans.push(`${c.id} (tier ${c.tier ?? '—'})`); continue; }
+    attrs.push(attr);
+    fixedCards.push(`${c.id} → ${attr} (T${t})`);
+  }
+  // 3. Le champ n'a plus de lecteur : il part. On n'arrive ici qu'avec un
+  //    attribut de tier posé — une orpheline a fait `continue` au-dessus.
+  if (c.tier !== undefined) {
+    droppedField.push(`${c.id} (champ tier ${c.tier})`);
+    delete c.tier;
+  }
 }
 
 const show = (label, list, cap = 10) => {
@@ -91,9 +103,10 @@ const show = (label, list, cap = 10) => {
 console.log(`Catalogue : ${DATA}  (${cards.length} cartes)`);
 show('Attributs de tier complétés', fixedAttrs);
 show('Cartes à rattacher', fixedCards);
+show('Champ `tier` à retirer', droppedField);
 show("✗ Cartes sans tier exploitable (aucun attribut de tier ne correspond)", orphans);
 
-if (!fixedAttrs.length && !fixedCards.length) {
+if (!fixedAttrs.length && !fixedCards.length && !droppedField.length) {
   console.log('\n✓ Rien à faire — catalogue déjà migré.');
   process.exit(orphans.length ? 1 : 0);
 }
@@ -104,6 +117,6 @@ if (!WRITE) {
 }
 
 if (fixedAttrs.length) save('attributes.json', attributes);
-if (fixedCards.length) save('cards.json', cards);
+if (fixedCards.length || droppedField.length) save('cards.json', cards);
 console.log(`\n✓ Écrit dans ${DATA}.`);
 process.exit(orphans.length ? 1 : 0);

@@ -41,6 +41,8 @@ let CARDS: any[];
 let byId: Record<string, any>;
 let TMP: string;
 let ILLUS: string;
+/** Les tiers d'une carte, résolus depuis les VRAIS attributs (cf. `tiers.js`). */
+let tiersOf: (card: any) => number[];
 
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
@@ -80,7 +82,10 @@ function summonable(card: any, ids: Set<string>, attrs: Set<string>) {
 beforeAll(() => {
   TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'millenium-bots-'));
   ILLUS = fs.mkdtempSync(path.join(os.tmpdir(), 'millenium-bots-illus-'));
-  for (const f of ['cards.json', 'boards.json', 'magies.json']) {
+  // ⚠️ `attributes.json` est du voyage : le tier d'une carte est un ATTRIBUT,
+  // donc sans lui aucune carte n'a de tier et le contrôle des lanes ci-dessous
+  // ne prouverait plus rien.
+  for (const f of ['cards.json', 'boards.json', 'magies.json', 'attributes.json']) {
     fs.copyFileSync(path.join(ROOT, 'data', f), path.join(TMP, f));
   }
   fs.writeFileSync(path.join(TMP, 'variants.json'), '[]');
@@ -93,6 +98,10 @@ beforeAll(() => {
   // Catalogue entièrement illustré : c'est l'état nominal, et sans art le pool
   // d'avatars serait vide — le fichier ne prouverait plus rien.
   for (const c of CARDS) fs.writeFileSync(path.join(ILLUS, `${c.id}.png`), PNG);
+
+  const { tierIndex, resolveTiers } = require(path.join(ROOT, 'tiers.js'));
+  const index = tierIndex(JSON.parse(fs.readFileSync(path.join(TMP, 'attributes.json'), 'utf8')));
+  tiersOf = (card: any) => resolveTiers(card, index);
 
   ({ stmt } = require(path.join(ROOT, 'db.js')));
   progression = require(path.join(ROOT, 'progression.js'));
@@ -121,7 +130,10 @@ describe('catalogue de decks', () => {
         expect((ids as string[]).length, `${def.id} T${tier}`).toBeLessThanOrEqual(8);
         for (const id of ids as string[]) {
           expect(byId[id], `${def.id} → ${id}`).toBeTruthy();
-          expect(String(byId[id].tier), `${def.id} → ${id}`).toBe(tier);
+          // ⚠️ APPARTENANCE, pas égalité : le tier est un ATTRIBUT et une carte
+          // peut en porter plusieurs. La lane est un RANGEMENT — elle doit être
+          // l'un des tiers de la carte, pas « le » tier de la carte.
+          expect(tiersOf(byId[id]), `${def.id} → ${id}`).toContain(Number(tier));
         }
       }
     }

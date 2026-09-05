@@ -46,9 +46,8 @@ const tiersOf = card => resolveTiers(card, INDEX);
 function audit() {
   const missing = Object.fromEntries(REQUIRED_CATEGORIES.map(c => [c, []]));
   const unknownAttr = [];
-  const tierMismatch = [];
+  const legacyField = [];
   const multiTier = [];
-  const noTierField = [];
 
   for (const c of CARDS) {
     const attrs = c.attributes ?? [];
@@ -59,12 +58,11 @@ function audit() {
 
     const ts = tiersOf(c);
     if (ts.length > 1) multiTier.push(`${c.id} → T${ts.join('·T')}`);
-    // Le champ historique doit rester d'accord avec les attributs tant qu'il
-    // existe : c'est la garantie que le Lot 1 est un refactor et non une
-    // nouvelle règle. Une carte sans champ `tier` est déjà migrée, pas fautive.
-    if (c.tier == null) noTierField.push(c.id);
-    else if (!ts.includes(Number(c.tier))) {
-      tierMismatch.push(`${c.id} → champ tier ${c.tier}, attributs ${ts.length ? `T${ts.join('·T')}` : '—'}`);
+    // ⚠️ Le champ `tier` est désormais une FAUTE et non un reliquat toléré :
+    // plus personne ne le lit, donc il ne peut que raconter autre chose que la
+    // carte. `scripts/migrate-tiers.js --write` le retire.
+    if (c.tier !== undefined) {
+      legacyField.push(`${c.id} → champ tier ${c.tier}, attributs ${ts.length ? `T${ts.join('·T')}` : '—'}`);
     }
   }
 
@@ -72,12 +70,12 @@ function audit() {
     .filter(a => a.categorie === TIER_CATEGORY && !(Number(a.tier) > 0))
     .map(a => a.id);
 
-  return { missing, unknownAttr, tierMismatch, multiTier, noTierField, attrsWithoutTier };
+  return { missing, unknownAttr, legacyField, multiTier, attrsWithoutTier };
 }
 
 const r = audit();
 const errors = REQUIRED_CATEGORIES.reduce((n, c) => n + r.missing[c].length, 0)
-  + r.unknownAttr.length + r.tierMismatch.length + r.attrsWithoutTier.length;
+  + r.unknownAttr.length + r.legacyField.length + r.attrsWithoutTier.length;
 
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify({ source: DATA, cards: CARDS.length, errors, ...r }, null, 2));
@@ -94,10 +92,9 @@ const show = (label, list, cap = 12) => {
 console.log(`Catalogue : ${DATA}  (${CARDS.length} cartes, ${ATTRS.length} attributs)`);
 for (const cat of REQUIRED_CATEGORIES) show(`✗ Sans attribut de catégorie « ${cat} »`, r.missing[cat]);
 show('✗ Attributs inconnus du catalogue', r.unknownAttr);
-show('✗ Champ `tier` en désaccord avec les attributs', r.tierMismatch);
+show('✗ Champ `tier` résiduel (le retirer : scripts/migrate-tiers.js --write)', r.legacyField);
 show('✗ Attribut de tier sans champ `tier`', r.attrsWithoutTier);
 show('· Cartes multi-tiers', r.multiTier);
-show('· Cartes sans champ `tier` (déjà migrées)', r.noTierField, 4);
 console.log(errors ? `\n${errors} carte(s) hors contrat.` : '\n✓ Contrat respecté.');
 
 process.exit(process.argv.includes('--check') && errors ? 1 : 0);
