@@ -1631,10 +1631,30 @@ Un **schéma** (`{ fields, text }`) dit quels champs existent et comment les lir
 - ⚠️ **Un chip d'inégalité passe son opérateur** (`toggleFacet(..., { op: '>=' })`) : « 3+ matériels » écrit `cout>=3`. En égalité, il manquait les coûts 4 et 5 — un filtre qui a l'air juste parce que le cas rare est rare.
 - ⚠️ **La liste de complétion se ferme sur une valeur déjà complète** : posée à 4 px sous la barre, elle recouvre les chips, qui deviennent intapables sur un téléphone. Défaut invisible en test de fonction, vu au navigateur.
 - **La liste propose les CONNECTEURS avant les champs** (`ET`, `OU`, `NON`) : sans eux elle n'enseignait que la moitié du langage — on découvrait `tier:` en tapant, mais rien ne disait qu'un `OU` existait. ⚠️ `ET` / `OU` ne se proposent **que derrière un terme achevé** ; en tête de requête, après `(` ou après un connecteur, il n'y a rien à relier. `NON` est un préfixe : il a sa place partout où un terme peut commencer.
-- **L'onglet Cartes n'a plus qu'une barre et les chips de tier.** Les cinq `<select>` (coût, illustration, recettes, attribut, pouvoir) ont été retirés : la barre dit tout ce qu'ils disaient, en mieux, et l'autocomplétion les propose au fil de la frappe. Les garder aurait fait deux manières de poser la même question, dont une bien plus pauvre. Les listes d'attributs et de pouvoirs vivent désormais dans le **schéma** (`attributeOptions` / `powerOptions`), d'où la complétion les tire — plus aucun `<select>` de trois cents lignes à peupler.
+- **L'onglet Cartes n'a plus qu'une barre et les chips de tier.** Les cinq `<select>` (coût, illustration, recettes, attribut, pouvoir) ont été retirés : la barre dit tout ce qu'ils disaient, en mieux, et l'autocomplétion les propose au fil de la frappe. Les garder aurait fait deux manières de poser la même question, dont une bien plus pauvre. Les listes d'attributs et de pouvoirs vivent désormais dans le **schéma** (`attributeOptions` / `powerOptions`), d'où la complétion les tire — plus aucun `<select>` de trois cents lignes à peupler. Même geste dans le **DeckBuilder** : ne restent que les chips de tier et 🔒, les quatre seaux de coût étant dits mieux par `cout:0` / `cout>=3` / `cout:1,2`.
 - ⚠️ **`fs: { allow: ['..'] }` dans `client/vite.config.ts` est la condition d'existence du partage** : le fichier vit à la racine, le build le suit tout seul mais le **serveur de dév** refuse par défaut tout fichier hors de `client/` — en **403**, pas en 404. Sans cette ligne, `npm run build` passe et `npm run client:dev` sert un écran blanc.
 - ⚠️ Le type MIME de la route `/admin/card-query.js` est posé **à la main** : `mime@1` (Express 4) ne connaît pas `.mjs`, et le navigateur refuse d'exécuter comme module ce qui arrive en `application/octet-stream`.
 - `client/src/test/card-query.test.ts` couvre la grammaire, les facettes et la complétion, puis rejoue le tout **sur le catalogue livré** — dont un cas qui exige que chaque exemple montré sous la barre rende au moins un résultat.
+
+### Le tri (`sortableFields` / `sortItems`)
+
+Un **critère** (`<select>`) et un **sens** (bouton ↑/↓), à côté de la barre. Onze onglets d'admin (`QUERY_SORT`, `setQuerySortKey`, `toggleQuerySortDir`) et le DeckBuilder (`components/ui/SortControl.tsx`) le partagent.
+
+- ⚠️ **Le tri vit À CÔTÉ de la requête, jamais DEDANS** : `filterByQuery` répond « lesquelles », `sortItems` « dans quel ordre ». Le glisser dans la grammaire aurait donné un terme qui ne filtre rien, donc une négation et un `OU` sans réponse.
+- **Les critères viennent du SCHÉMA**, sans second inventaire : `sortableFields` = les champs moins ceux marqués `sortable: false` (`attribut`, `materiau`, `lignee` — des listes ouvertes, dont l'ordre ne veut rien dire).
+- ⚠️ **Un champ multivalué se classe sur son EXTRÊME DANS LE SENS DU TRI** (max en décroissant, min en croissant) : une carte à deux tiers doit remonter en tête sur `tier ↓` *et* sur `tier ↑`. Prendre toujours le premier la ferait sautiller d'un sens à l'autre.
+- ⚠️ **Une valeur absente est TOUJOURS dernière**, dans les deux sens : c'est une absence, pas un zéro ni un « aaa ». Départage par `id` — deux cartes de même ATK ne doivent pas changer de place d'un rendu à l'autre.
+- `sortItems` rend une **copie** (le pool vient d'un `useMemo`), et on trie **après** avoir filtré.
+- **« Ordre du catalogue » (`key: ''`) reste joignable** : sans lui le tri serait une porte sans retour. Le bouton de sens s'**éteint** sans critère plutôt que de basculer un état que rien ne lit.
+
+### L'ordre d'obtention (DeckBuilder seul)
+
+Le seul critère que le **client seul** peut porter : il ne se lit ni sur la carte ni dans le catalogue, mais dans la collection du joueur — d'où son absence côté admin, qui n'a pas de joueur.
+
+- `user_cards.unlocked_at` existait depuis toujours et n'était lu par personne. **Deux statements, deux questions** : `unlockedCards` (`ORDER BY card_id`) répond « que possède ce joueur » — un ensemble, dont cinq modules font un `Set` ; `unlockedCardsOrdered` (`ORDER BY unlocked_at, card_id`) « dans quel ordre les a-t-il obtenues ». ⚠️ Trier le premier par date aurait servi les deux **en changeant sous eux l'ordre d'un ensemble dont ils ne demandent rien**.
+- `card_id` départage : les cinq cartes d'un booster partagent leur horodatage, et un ordre instable ferait sautiller la grille.
+- ⚠️ **Un admin (et un invité) n'a pas d'historique** : sa collection est *calculée* du catalogue, l'ordre y retombe. Dégradation honnête — l'écran trie ce qu'il reçoit, il n'invente pas une date.
+- Trajet : `progression.unlockedCardIdsByDate` → `GET /api/me/progression` (`unlocked_cards`) → `collectionStore.ownedRank` / `rankOf` (les cartes gagnées en séance s'ajoutent **à la fin**). Verrouillé par `collection-order.test.ts`.
 
 ## Simulation d'équilibrage (`client/src/sim/`)
 

@@ -217,6 +217,63 @@ describe('facettes', () => {
   });
 });
 
+// Le tri se pose sur les MÊMES champs que le filtre : un second inventaire de
+// critères aurait dérivé du premier au premier champ ajouté.
+describe('tri', () => {
+  const order = (key: string, dir: 'asc' | 'desc' = 'asc') =>
+    Q.sortItems(SAMPLE, schema, { key, dir }).map((c: any) => c.id);
+
+  it('classe dans les deux sens', () => {
+    expect(order('atk')).toEqual(['CQ_A', 'CQ_B', 'CQ_C']);          // 25 · 70 · 90
+    expect(order('atk', 'desc')).toEqual(['CQ_C', 'CQ_B', 'CQ_A']);
+    expect(order('nom')).toEqual(['CQ_C', 'CQ_B', 'CQ_A']);          // dragon · épée · magicien
+  });
+
+  it('ne réordonne rien sans critère, ni sur un champ inconnu', () => {
+    expect(Q.sortItems(SAMPLE, schema, {}).map((c: any) => c.id)).toEqual(['CQ_A', 'CQ_B', 'CQ_C']);
+    expect(order('zorglub')).toEqual(['CQ_A', 'CQ_B', 'CQ_C']);
+  });
+
+  it('rend une COPIE — la liste d\'entrée n\'est jamais réordonnée sur place', () => {
+    const before = SAMPLE.map(c => c.id);
+    Q.sortItems(SAMPLE, schema, { key: 'atk', dir: 'desc' });
+    expect(SAMPLE.map(c => c.id)).toEqual(before);
+  });
+
+  // ⚠️ RÉGRESSION. Un champ multivalué classé sur un extrême FIXE (« le premier
+  // de la liste ») met la carte au même rang dans les deux sens — ce qui n'est
+  // le bon rang dans aucun. CQ_B porte les tiers 1 et 4 : elle doit ouvrir le
+  // classement croissant (par son 1) ET le fermer en décroissant (par son 4).
+  it('classe un champ multivalué sur son extrême DANS LE SENS DU TRI', () => {
+    expect(order('tier')).toEqual(['CQ_B', 'CQ_A', 'CQ_C']);          // min : 1 · 3 · 5
+    expect(order('tier', 'desc')).toEqual(['CQ_C', 'CQ_B', 'CQ_A']);  // max : 5 · 4 · 3
+  });
+
+  // ⚠️ Une carte sans pouvoir n'est ni « avant » ni « après » les autres quand
+  // on classe par pouvoir : elle est hors sujet. La queue est la seule place
+  // qui ne mente pas — en croissant COMME en décroissant.
+  it('renvoie les valeurs absentes en queue dans les DEUX sens', () => {
+    expect(order('pouvoir')[0]).toBe('CQ_A');                          // la seule qui en a un
+    expect(order('pouvoir', 'desc')[0]).toBe('CQ_A');
+    expect(order('pouvoir').slice(1).sort()).toEqual(['CQ_B', 'CQ_C']);
+  });
+
+  it('refuse les listes ouvertes, qui n\'ont pas d\'ordre à elles', () => {
+    const keys = Q.sortableFields(schema).map((f: any) => f.key);
+    expect(keys).toContain('tier');
+    expect(keys).toContain('atk');
+    for (const open of ['attribut', 'materiau', 'lignee']) expect(keys).not.toContain(open);
+    // Demandé quand même, il ne réordonne pas plutôt que de trier sur rien.
+    expect(order('attribut')).toEqual(['CQ_A', 'CQ_B', 'CQ_C']);
+  });
+
+  it('départage par id — deux valeurs égales gardent un ordre stable', () => {
+    const tied = [card('Z', { stats: { atk: 5, hp: 1 } }), card('A', { stats: { atk: 5, hp: 1 } })];
+    expect(Q.sortItems(tied, schema, { key: 'atk' }).map((c: any) => c.id)).toEqual(['A', 'Z']);
+    expect(Q.sortItems(tied, schema, { key: 'atk', dir: 'desc' }).map((c: any) => c.id)).toEqual(['A', 'Z']);
+  });
+});
+
 describe('autocomplétion', () => {
   it('propose un champ sur un mot nu', () => {
     const s = Q.suggest('tie', 3, schema)!;

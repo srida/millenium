@@ -553,6 +553,18 @@ const stmt = {
     INSERT OR IGNORE INTO user_cards (user_id, card_id, unlocked_at) VALUES (?, ?, ?)
   `),
   unlockedCards: db.prepare('SELECT card_id FROM user_cards WHERE user_id = ? ORDER BY card_id'),
+  // ⚠️ Les deux statements lisent les mêmes lignes et ne posent PAS la même
+  // question : le premier répond « que possède ce joueur » (un ensemble, dont
+  // cinq modules de règles font un `Set`), le second « dans quel ORDRE les
+  // a-t-il obtenues » (une séquence). Trier le premier par `unlocked_at`
+  // aurait servi les deux, mais aurait changé sous eux l'ordre d'un ensemble
+  // dont ils ne demandent rien — le genre de couplage qui ne se voit qu'au
+  // jour où l'un d'eux se met à lire le premier élément.
+  // `card_id` départage : deux cartes d'un même booster partagent leur
+  // horodatage à la milliseconde près, et un ordre instable ferait sautiller
+  // la grille d'un chargement à l'autre.
+  unlockedCardsOrdered: db.prepare(
+    'SELECT card_id FROM user_cards WHERE user_id = ? ORDER BY unlocked_at, card_id'),
   countUnlockedCards: db.prepare('SELECT COUNT(*) AS c FROM user_cards WHERE user_id = ?'),
   hasUnlockedCard: db.prepare('SELECT 1 FROM user_cards WHERE user_id = ? AND card_id = ?'),
   usersWithoutCards: db.prepare(`

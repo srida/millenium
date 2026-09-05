@@ -171,7 +171,7 @@ select.filter:focus { border-color: var(--accent); }
 /* Barre de requête — cf. card-query.mjs. Le `?` et la liste de complétion
    vivent DANS le champ : le langage doit s'apprendre sans quitter la barre. */
 .qbar-wrap { position: relative; flex: 1; min-width: 0; }
-.qbar-row { display: flex; gap: 6px; align-items: center; }
+.qbar-row { display: flex; gap: 6px; align-items: center; position: relative; }
 .qbar-row input[type=search] { flex: 1; min-width: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .qbar-help { flex-shrink: 0; width: 26px; height: 30px; border-radius: 6px; border: 1px solid var(--border);
              background: var(--surface2); color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 700; }
@@ -183,6 +183,11 @@ select.filter:focus { border-color: var(--accent); }
 .qbar-opt:hover, .qbar-opt.active { background: var(--surface2); }
 .qbar-opt code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); }
 .qbar-opt span { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qsort-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+.qsort-key { flex: 1; min-width: 0; }
+.qsort-dir { flex-shrink: 0; width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border);
+             background: var(--surface2); color: var(--text); cursor: pointer; font-size: 14px; }
+.qsort-dir:disabled { opacity: .35; cursor: default; }
 .qbar-chip { border: 1px solid var(--border); background: var(--surface2); color: var(--muted); border-radius: 999px;
              padding: 4px 10px; font-size: 11px; cursor: pointer; }
 .qbar-chip.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
@@ -1038,7 +1043,39 @@ function runQuery(kind, list) {
   }
   const res = CQ.filterByQuery(list, queryText(kind), QUERY_SCHEMAS[kind]);
   if (err) { err.textContent = res.error || ''; err.hidden = !res.error; }
-  return res.items;
+  // Trier APRÈS filtrer : l'inverse classerait des fiches qu'on jette ensuite.
+  return CQ.sortItems(res.items, QUERY_SCHEMAS[kind], QUERY_SORT[kind] || {});
+}
+
+// ================== TRI ==================
+//
+// Le tri se pose sur les MÊMES champs que le filtre — le schéma décrit une fois
+// ce qu'une fiche porte, et les deux questions s'y servent. Il vit À CÔTÉ de la
+// requête et non dedans : filtrer et ordonner sont deux axes indépendants, et
+// une requête inchangée doit se relire dans l'autre sens sans être réécrite.
+const QUERY_SORT = {};
+
+function setQuerySortKey(kind, key) {
+  QUERY_SORT[kind] = { key, dir: QUERY_SORT[kind]?.dir || 'asc' };
+  syncSortControls(kind);
+  QUERY_REFRESH[kind]?.();
+}
+
+function toggleQuerySortDir(kind) {
+  const cur = QUERY_SORT[kind] || {};
+  if (!cur.key) return;                    // le sens n'a pas de sens sans critère
+  QUERY_SORT[kind] = { key: cur.key, dir: cur.dir === 'desc' ? 'asc' : 'desc' };
+  syncSortControls(kind);
+  QUERY_REFRESH[kind]?.();
+}
+
+function syncSortControls(kind) {
+  const btn = document.getElementById(`qsort-dir-${kind}`);
+  if (!btn) return;
+  const { key, dir } = QUERY_SORT[kind] || {};
+  btn.textContent = dir === 'desc' ? '↓' : '↑';
+  btn.title = dir === 'desc' ? 'Décroissant' : 'Croissant';
+  btn.disabled = !key;
 }
 
 /** Une frappe : on refiltre, et on propose. */
@@ -1175,14 +1212,34 @@ function attachQueryBars() {
     const wrap = document.createElement('div');
     wrap.className = 'qbar-wrap';
     input.parentNode.insertBefore(wrap, input);
-    wrap.innerHTML = `<div class="qbar-row"></div><div class="qbar-err" id="qerr-${kind}" hidden></div>
-                      <div class="qbar-drop" id="qdrop-${kind}" hidden></div>`;
+    // ⚠️ La liste de complétion est ancrée à la RANGÉE du champ, pas à
+    // l'enveloppe : depuis que le tri s'y ajoute, un ancrage sur l'enveloppe
+    // l'aurait fait apparaître SOUS la commande de tri, détachée du champ
+    // qu'elle complète.
+    wrap.innerHTML = `<div class="qbar-row"><div class="qbar-drop" id="qdrop-${kind}" hidden></div></div>
+                      <div class="qbar-err" id="qerr-${kind}" hidden></div>`;
     const row = wrap.querySelector('.qbar-row');
     row.appendChild(input);
     row.insertAdjacentHTML('beforeend',
       `<button type="button" class="qbar-help" title="Aide et champs disponibles" onclick="openQueryHelp('${kind}')">?</button>`);
     input.placeholder = kind === 'card' ? 'Rechercher… ex. tier:4 atk>=30' : 'Rechercher…';
     input.addEventListener('blur', () => setTimeout(() => hideQuerySuggest(kind), 120));
+
+    // ⚠️ Les critères viennent du SCHÉMA, jamais d'une liste écrite ici : un
+    // second inventaire aurait dérivé du premier au premier champ ajouté. Les
+    // listes ouvertes (attributs, matériaux, lignée) s'en excluent elles-mêmes
+    // — les ranger reviendrait à trier sur leur premier élément.
+    const opts = CQ.sortableFields(QUERY_SCHEMAS[kind])
+      .map(f => `<option value="${esc(f.key)}">${esc(f.label)}</option>`).join('');
+    wrap.insertAdjacentHTML('beforeend', `
+      <div class="qsort-row">
+        <select class="filter qsort-key" id="qsort-key-${kind}" onchange="setQuerySortKey('${kind}', this.value)">
+          <option value="">Ordre du catalogue</option>${opts}
+        </select>
+        <button type="button" class="qsort-dir" id="qsort-dir-${kind}"
+                onclick="toggleQuerySortDir('${kind}')" title="Croissant" disabled>↑</button>
+      </div>`);
+    QUERY_SORT[kind] = { key: '', dir: 'asc' };
   }
 }
 

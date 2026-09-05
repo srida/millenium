@@ -152,6 +152,21 @@ function unlockedCardIds(user) {
   return stmt.unlockedCards.all(user.id).map(r => r.card_id);
 }
 
+/**
+ * Les mêmes ids, dans l'ORDRE OÙ ILS ONT ÉTÉ OBTENUS — la dotation de départ
+ * d'abord, puis chaque achat, cadeau et palier dans l'ordre où ils sont tombés.
+ *
+ * ⚠️ Un ADMIN n'a pas d'historique : sa collection est calculée du catalogue
+ * (cf. `unlockedCardIds`), l'ordre retombe donc sur celui du catalogue. Même
+ * chose pour un invité, qui n'a pas de compte. C'est une dégradation honnête —
+ * l'écran trie sur ce qu'il reçoit, il n'invente pas une date.
+ */
+function unlockedCardIdsByDate(user) {
+  if (!user) return [];
+  if (user.is_admin) return allCardIds();
+  return stmt.unlockedCardsOrdered.all(user.id).map(r => r.card_id);
+}
+
 function ownsCard(user, cardId) {
   if (!user) return false;
   if (user.is_admin) return allCardIds().includes(cardId);
@@ -209,6 +224,6 @@ module.exports = {
   DEFAULTS, ADMIN_GRANTS, STARTER_PREFIX, XP_PER_LEVEL, REWARDS, CLIENT_CLAIMABLE,
   allCardIds, starterCardIds,
   initUser, applyAdminGrants, unlockCard, unlockCards, grant, reward,
-  unlockedCardIds, ownsCard, getProgression, pendingLevelCount,
+  unlockedCardIds, unlockedCardIdsByDate, ownsCard, getProgression, pendingLevelCount,
   backfillAll,
 };

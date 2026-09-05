@@ -349,7 +349,12 @@ router.delete('/friends/:id', auth.requireUser, (req, res) => {
 router.get('/me/progression', auth.requireUser, (req, res) => {
   res.json({
     ...progression.getProgression(req.user),
-    unlocked_cards: progression.unlockedCardIds(req.user),
+    // ⚠️ Dans l'ordre d'OBTENTION, pas alphabétique : c'est la seule
+    // information que le client ne peut pas recalculer (elle vit dans
+    // `user_cards.unlocked_at`), et le DeckBuilder en fait un tri.
+    // Personne ne dépend de l'ordre par ailleurs — `collectionStore` en fait
+    // un `Set` et n'interroge que l'appartenance.
+    unlocked_cards: progression.unlockedCardIdsByDate(req.user),
     // Barème des paliers + prochaines marches. Il VOYAGE au lieu d'être recopié
     // côté client : le profil annonce ce qui attend le joueur sans avoir à
     // connaître la règle (même raison que le montant du cadeau quotidien).

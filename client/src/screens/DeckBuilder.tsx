@@ -22,6 +22,7 @@ import { Button } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import QueryBar from '../components/ui/QueryBar.js';
+import SortControl, { type SortState } from '../components/ui/SortControl.js';
 import * as Query from '../../../card-query.mjs';
 import IllustrationPicker from '../components/deck/IllustrationPicker.js';
 import DeckCoach from '../components/tutorial/DeckCoach.js';
@@ -30,20 +31,6 @@ import { updateProgress } from '../data/tutorialProgress.js';
 const MIN_DECK = 20;
 /** Édition admin d'un deck public : aucun joueur, donc aucune variante. */
 const noVariants = () => [];
-// Le filtre d'invocation porte sur le COÛT, plus sur une voie : les cinq voies
-// sont devenues des attributs, et le `<select>` d'attributs juste au-dessus les
-// propose déjà. Ce qu'on ne pouvait PAS demander avant et qu'on peut
-// maintenant : « ce que je peux poser sans rien payer », ou « ce qui coûte
-// deux matériels », quel que soit l'archétype.
-// ⚠️ Le dernier seau porte `>=` et non `:`. Le catalogue monte à 5 matériels :
-// écrit en égalité, « 3+ » manquait les deux cartes les plus chères du jeu —
-// un filtre qui a l'air juste parce que le cas rare est rare.
-const COST_FILTERS: { key: number; label: string; op?: string }[] = [
-  { key: 0, label: 'Sans coût' },
-  { key: 1, label: '1 matériel' },
-  { key: 2, label: '2 matériels' },
-  { key: 3, label: '3+ matériels', op: '>=' },
-];
 const DECK_COLORS = [
   '#d8564e', '#e4c65a', '#7cd88a', '#2f7d4f', '#6fc0e6', '#2f5bd8', '#e08a3a', '#a86ee7', '#e58ab8',
   '#f5f0e6', '#d9c7a3', '#9a9a9a', '#8b5a2b',
@@ -127,6 +114,7 @@ export default function DeckBuilder() {
   // Non pertinent en édition admin d'un deck public : le catalogue entier est
   // disponible (il n'y a pas de « joueur » propriétaire d'un deck public).
   const ownedIds = useCollectionStore(s => s.ownedIds);
+  const rankOf = useCollectionStore(s => s.rankOf);
   const collectionLoaded = useCollectionStore(s => s.loaded);
   useEffect(() => { if (!isAdminEdit) void useCollectionStore.getState().load(true); }, [isAdminEdit]);
   // Variantes possédées : même raison de recharger au montage que la
@@ -175,6 +163,10 @@ export default function DeckBuilder() {
   // structurellement qu'un chip allumé contredise ce qui est écrit dans la
   // barre — les quatre `useState` de filtres qu'il remplace, eux, le pouvaient.
   const [query, setQuery] = useState('');
+  // Le tri vit À CÔTÉ de la requête et non dedans : filtrer et ordonner sont
+  // deux axes indépendants, et une requête inchangée doit se relire dans
+  // l'autre sens sans être réécrite. Vide = l'ordre du catalogue, celui d'avant.
+  const [sort, setSort] = useState<SortState>({ key: '', dir: 'asc' });
   const allAttributes = useMemo(() => (AttributeDatabase as any).getAllAttributes()
     .slice().sort((a: any, b: any) => a.name.localeCompare(b.name, 'fr')), []);
   // Les cartes non possédées sont masquées par défaut (la bibliothèque montre ce
@@ -255,17 +247,25 @@ export default function DeckBuilder() {
         ...base.fields,
         { key: 'debloquee', aliases: ['possedee', 'owned'], label: 'Débloquée dans ma collection',
           type: 'bool', get: (c: Card) => owns(c.id) },
+        // ⚠️ Le seul champ que le CLIENT SEUL peut porter : il ne se lit ni sur
+        // la carte ni dans le catalogue, mais dans la collection du joueur
+        // (`user_cards.unlocked_at`, servi en ordre par /me/progression). C'est
+        // aussi pour ça qu'il n'existe pas côté admin, qui n'a pas de joueur.
+        { key: 'obtention', aliases: ['obtenue', 'acquisition'], label: 'Ordre d\'obtention',
+          type: 'number', get: (c: Card) => rankOf(c.id) },
       ],
     };
-  }, [allAttributes, owns]);
+  }, [allAttributes, owns, rankOf]);
 
   // ⚠️ Les cartes verrouillées sont écartées AVANT la requête, sauf quand la
   // requête parle elle-même de `debloquee` : le chip 🔒 est un `debloquee:non`
   // comme un autre, et le masquage par défaut ne doit pas le contredire.
   const asksAboutOwnership = Query.readFacet(query, schema, 'debloquee').length > 0;
   const pool = asksAboutOwnership ? allCards : allCards.filter(c => owns(c.id));
-  const { items: filtered, error: queryError } = Query.filterByQuery(pool, query, schema) as
+  const { items: matching, error: queryError } = Query.filterByQuery(pool, query, schema) as
     { items: Card[]; error: string | null };
+  // Trier APRÈS filtrer : l'inverse classerait des cartes qu'on jette ensuite.
+  const filtered = Query.sortItems(matching, schema, sort) as Card[];
 
   // Cartes du deck chargé que le joueur ne possède pas (deck bâti avant un
   // changement de collection). Elles sont signalées, PAS supprimées d'office :
@@ -394,6 +394,7 @@ export default function DeckBuilder() {
           cards={filtered} total={allCards.length} ownedCount={ownedCount}
           deckData={deckData} tierMax={tierMax} owns={owns}
           query={query} setQuery={setQuery} queryError={queryError} schema={schema}
+          sort={sort} setSort={setSort}
           onAdd={addCard} onRemove={removeCardById}
         />
       ) : (
@@ -470,7 +471,8 @@ function Chip({ active, onTap, children }: { active: boolean; onTap: () => void;
 }
 
 function LibraryPanel({
-  cards, total, ownedCount, deckData, tierMax, owns, query, setQuery, queryError, schema, onAdd, onRemove,
+  cards, total, ownedCount, deckData, tierMax, owns, query, setQuery, queryError, schema,
+  sort, setSort, onAdd, onRemove,
 }: any) {
   // Les chips ÉCRIVENT dans la requête et se relisent depuis elle. Tout ce
   // qu'ils savent faire se retape donc à la main — et l'inverse n'est pas vrai :
@@ -488,16 +490,15 @@ function LibraryPanel({
           placeholder="Rechercher… ex. tier:4 atk>=30"
           examples={Query.CARD_QUERY_EXAMPLES}
         />
+        {/* Les seuls chips qui restent : le tier, filtre le plus fréquent, et
+            l'accès à ce qu'on ne possède pas. Les quatre seaux de COÛT sont
+            partis — la barre les dit mieux (`cout:0`, `cout>=3`, mais aussi
+            `cout:1,2`) et l'autocomplétion les propose au fil de la frappe. */}
         <div className="flex flex-wrap gap-1.5">
           {[1, 2, 3, 4, 5].map(t => (
             <Chip key={t} active={on('tier', t)} onTap={() => toggle('tier', t)}>
               <span className={TIER_TEXT[t]}>T{t}</span>
             </Chip>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {COST_FILTERS.map(({ key, label, op }) => (
-            <Chip key={key} active={on('cout', key, op)} onTap={() => toggle('cout', key, op)}>{label}</Chip>
           ))}
           {ownedCount < total && (
             // Le chip « verrouillées » n'est plus un mode d'affichage à part :
@@ -508,6 +509,9 @@ function LibraryPanel({
             <Chip active={on('debloquee', 'non')} onTap={() => toggle('debloquee', 'non')}>🔒 À débloquer</Chip>
           )}
         </div>
+        {/* Plein cadre au doigt, borné au-delà : un `<select>` de 1200 px pour
+            « Ordre du catalogue » pèse plus lourd que la barre de recherche. */}
+        <SortControl schema={schema} value={sort} onChange={setSort} className="sm:max-w-xs" />
         <div className="text-[11px] text-white/40">
           {ownedCount}/{total} cartes débloquées · {cards.length} affichée{cards.length > 1 ? 's' : ''} · 1 exemplaire par deck
         </div>

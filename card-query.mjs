@@ -383,6 +383,84 @@ export function filterByQuery(items, src, schema) {
 }
 
 // --------------------------------------------------------------------------
+// Tri
+// --------------------------------------------------------------------------
+//
+// Le tri se pose sur les MÊMES champs que le filtre : le schéma décrit une fois
+// ce qu'une fiche porte, et les deux questions — « lesquelles ? » et « dans
+// quel ordre ? » — s'y servent. Un second inventaire de critères aurait dérivé
+// du premier au premier champ ajouté.
+//
+// ⚠️ Le tri n'est PAS dans la requête, et c'est délibéré : filtrer et ordonner
+// sont deux axes indépendants (une requête inchangée se relit dans l'autre
+// sens sans être réécrite), et l'encoder dans la grammaire aurait obligé la
+// chirurgie des facettes à préserver un terme qui n'en est pas un.
+
+/** Les champs sur lesquels un tri a un sens. Un champ le refuse en posant
+ *  `sortable: false` — les listes ouvertes (attributs, matériaux, lignée) n'ont
+ *  pas d'ordre à elles, les ranger reviendrait à trier sur leur premier
+ *  élément, c'est-à-dire sur rien. */
+export function sortableFields(schema) {
+  return (schema?.fields ?? []).filter(f => f.sortable !== false);
+}
+
+/**
+ * La valeur qui classe un élément, dans la direction demandée.
+ *
+ * ⚠️ Un champ MULTIVALUÉ se classe sur son EXTRÊME DANS LE SENS DU TRI : en
+ * croissant son minimum, en décroissant son maximum. Une carte Tier 1·4 se
+ * range donc parmi les Tier 1 quand on remonte, et parmi les Tier 4 quand on
+ * descend — les deux fois là où le joueur la cherche. Un extrême fixe (« le
+ * premier de la liste ») mettait cette carte au même rang dans les deux sens,
+ * ce qui n'est le bon rang dans aucun.
+ */
+function sortKey(field, item, dir) {
+  const vals = valuesOf(field, item);
+  if (!vals.length) return null;
+  if (field.type === 'number') {
+    const nums = vals.map(Number).filter(Number.isFinite);
+    if (!nums.length) return null;
+    return dir === 'desc' ? Math.max(...nums) : Math.min(...nums);
+  }
+  if (field.type === 'bool') return vals.some(v => v === true || TRUE_WORDS.has(fold(v))) ? 1 : 0;
+  const folded = vals.map(fold).filter(Boolean);
+  if (!folded.length) return null;
+  return folded.reduce((a, b) => (dir === 'desc' ? (b > a ? b : a) : (b < a ? b : a)));
+}
+
+/**
+ * Trie une COPIE de la liste. `key` absent (ou champ inconnu) rend la liste
+ * telle quelle — l'ordre du catalogue est un ordre, et le tri par défaut.
+ *
+ * ⚠️ Une valeur ABSENTE va toujours à la fin, dans les deux sens. Une carte
+ * sans pouvoir n'est ni « avant » ni « après » les autres quand on classe par
+ * pouvoir : elle est hors sujet, et la place en queue est la seule qui ne
+ * mente pas. L'inverser en décroissant l'aurait mise en tête du classement
+ * d'un champ qu'elle ne porte pas.
+ *
+ * ⚠️ Départage par `id` : sans lui, deux fiches de même valeur s'échangeraient
+ * d'un rendu à l'autre (le tri de `Array.prototype.sort` est stable, mais la
+ * liste d'entrée, elle, vient d'un filtre qui a pu changer). Même geste que le
+ * départage par `card_id` de l'ordre d'initiative.
+ */
+export function sortItems(items, schema, { key = '', dir = 'asc' } = {}) {
+  const list = [...(items ?? [])];
+  const field = key ? resolveField(schema, key) : null;
+  if (!field || field.sortable === false) return list;
+  const sign = dir === 'desc' ? -1 : 1;
+  return list.sort((a, b) => {
+    const ka = sortKey(field, a, dir);
+    const kb = sortKey(field, b, dir);
+    if (ka === null && kb === null) return String(a?.id ?? '').localeCompare(String(b?.id ?? ''));
+    if (ka === null) return 1;
+    if (kb === null) return -1;
+    if (ka < kb) return -sign;
+    if (ka > kb) return sign;
+    return String(a?.id ?? '').localeCompare(String(b?.id ?? ''));
+  });
+}
+
+// --------------------------------------------------------------------------
 // Facettes — les chips et les <select> écrivent DANS la requête
 // --------------------------------------------------------------------------
 //
@@ -696,9 +774,12 @@ export function cardQuerySchema(deps = {}) {
       { key: 'cout', aliases: ['cost', 'materiels'], label: 'Coût en matériels', type: 'number', get: c => summonCost(c) },
       { key: 'recettes', aliases: ['conditions'], label: 'Nombre de recettes', type: 'number', get: c => (c.summon_conditions ?? []).length },
       {
+        // ⚠️ `sortable: false` sur les listes OUVERTES : une carte porte quatre
+        // attributs sans ordre entre eux, les ranger reviendrait à trier sur le
+        // premier — c'est-à-dire sur rien.
         key: 'attribut', aliases: ['attr', 'attributs'], label: 'Attribut (id ou nom)', type: 'enum',
         get: c => labelled(c.attributes, attributeName),
-        options: deps.attributeOptions,
+        options: deps.attributeOptions, sortable: false,
       },
       {
         key: 'pouvoir', aliases: ['power'], label: 'Pouvoir (id ou nom)', type: 'enum',
@@ -709,9 +790,9 @@ export function cardQuerySchema(deps = {}) {
         // Les matériaux que ses recettes CONSOMMENT — « qui mange CORE_001 ? »
         // n'avait aucune réponse ailleurs que dans une relecture du JSON.
         key: 'materiau', aliases: ['materiaux', 'requiert'], label: 'Matériau exigé (id de carte ou d\'attribut)', type: 'enum',
-        get: c => (c.summon_conditions ?? []).flatMap(cond => cond?.requires ?? []),
+        get: c => (c.summon_conditions ?? []).flatMap(cond => cond?.requires ?? []), sortable: false,
       },
-      { key: 'lignee', aliases: ['represente', 'represented_ids'], label: 'Lignée représentée', type: 'enum', get: c => c.represented_ids ?? [] },
+      { key: 'lignee', aliases: ['represente', 'represented_ids'], label: 'Lignée représentée', type: 'enum', get: c => c.represented_ids ?? [], sortable: false },
       { key: 'valeur', aliases: ['material_value'], label: 'Valeur en matériel', type: 'number', get: c => c.material_value ?? 1 },
       { key: 'pack', aliases: ['set'], label: 'Pack commercial', type: 'enum', get: c => c.set, options: deps.packOptions },
       { key: 'type', label: 'Type de fiche', type: 'text', get: c => c.type },
