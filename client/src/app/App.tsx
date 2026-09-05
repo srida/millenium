@@ -40,9 +40,11 @@ const GameScreen = lazy(() => import('../screens/GameScreen.js'));
 const GameScreenPvp = lazy(() => import('../screens/GameScreenPvp.js'));
 const CombatLab = lazy(() => import('../dev/CombatLab.js'));
 const TestBench = lazy(() => import('../dev/TestBench.js'));
-// ⚠️ Celui-ci n'importe PAS `three/` — il est différé pour l'autre raison : un
-// écran de dev que seul un admin ouvre n'a rien à faire dans le chunk d'entrée.
+// ⚠️ Ces deux-là n'importent PAS `three/` — ils sont différés pour l'autre
+// raison : un écran de dev que seul un admin ouvre n'a rien à faire dans le
+// chunk d'entrée.
 const AiLab = lazy(() => import('../dev/AiLab.js'));
+const EffectBench = lazy(() => import('../dev/EffectBench.js'));
 
 // Repli commun des écrans différés. Volontairement nu : le décor spatial
 // n'est pas monté sur ces écrans (cf. IMMERSIVE_SCREENS) et le chunk arrive en
@@ -78,6 +80,7 @@ const SCREENS: Record<ScreenName, ComponentType> = {
   combatlab: CombatLab,
   testbench: TestBench,
   ailab: AiLab,
+  effectbench: EffectBench,
 };
 
 /**
@@ -104,7 +107,7 @@ const SCREENS: Record<ScreenName, ComponentType> = {
  * `ailab` a été livré en violation de cet invariant et l'écran était vide.
  * Verrouillé par `client/src/test/ai-lab.test.ts`.
  */
-const IMMERSIVE_SCREENS = new Set<ScreenName>(['game', 'game_pvp', 'testbench', 'combatlab', 'ailab']);
+const IMMERSIVE_SCREENS = new Set<ScreenName>(['game', 'game_pvp', 'testbench', 'combatlab', 'ailab', 'effectbench']);
 
 export default function App() {
   const screen = useUiStore(s => s.screen);

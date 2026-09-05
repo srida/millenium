@@ -22,70 +22,37 @@ import { fileURLToPath } from 'node:url';
 import { AttributeManager } from '../logic/AttributeManager.js';
 import { applyBoardEffects } from '../logic/BoardEffect.js';
 import { applyEffect as applyMagieEffect } from '../logic/MagieEffect.js';
-import { GameSession } from '../logic/GameSession.js';
 import { GameState } from '../logic/GameState.js';
-import { Unit } from '../logic/Unit.js';
-import { makeBoard, makeCard, spawn } from './helpers.js';
+import {
+  benchScene, readUnit, deltaUnit, zoneScene, zoneSnapshot,
+  type UnitProfile,
+} from '../dev/effectBenchRun.js';
 
 const require = createRequire(import.meta.url);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const load = (f: string) => require(path.join(ROOT, 'initial-data', f));
 
-/** L'état d'une unité qu'un effet peut toucher. */
-function readUnit(u: any) {
-  return {
-    atk: u.atk, max_hp: u.max_hp, current_hp: u.current_hp, shield: u.shield,
-    attack_speed: u.attack_speed, movement_speed: u.movement_speed,
-    initiative: u.initiative, range: u.range,
-    immune: !!u.is_effect_immune, neutralized: !!u.is_neutralized,
-    base: JSON.stringify(u._base),
-    shopping: JSON.stringify(u._shopping_bonus ?? null),
-    power: JSON.stringify([u.power_id ?? null, u.power_speed, u.power_value ?? null]),
-  };
-}
-
 /**
- * L'ÉCART d'une unité par rapport à son état neuf — jamais son état complet.
+ * La scène de CE filet — deux porteuses et une non-porteuse par camp, aucune
+ * neutralisée, des stats rondes.
  *
- * ⚠️ Deux raisons, et la seconde compte plus que la première. La fixture passe
- * de 630 Ko à quelques dizaines : c'est agréable. Mais surtout elle devient
- * LISIBLE — on y lit « ARCH_019 → P_A atk +3 » au lieu de six unités inertes
- * répétées quatre fois. Un golden qu'on ne peut pas lire ne se relit jamais, et
- * un changement qu'on ne relit pas se valide au `--update`.
+ * ⚠️ Le constructeur de scène et le relevé d'unité vivent dans
+ * `dev/effectBenchRun` et sont IMPORTÉS : ce sont les mêmes primitives que le
+ * Banc d'essai, et deux définitions de « ce qu'un effet peut toucher »
+ * finiraient par ne pas s'accorder sur ce que « rien ne s'est passé » veut dire.
+ *
+ * ⚠️ Le PROFIL, lui, reste celui d'origine : les stats à 1 et l'absence de
+ * pouvoir font partie de ce que le golden fige. Le banc, qui pose des questions
+ * différentes, se donne de la marge (cf. `BENCH_PROFILE`) — c'est un réglage de
+ * scène, pas une règle, et les deux ont le droit de différer tant qu'une seule
+ * fonction les construit.
  */
-function deltaUnit(u: any, before: ReturnType<typeof readUnit>) {
-  const after = readUnit(u) as Record<string, unknown>;
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(after)) {
-    if (v !== (before as Record<string, unknown>)[k]) out[k] = v;
-  }
-  return Object.keys(out).length ? { unit: u.card_id, ...out } : null;
-}
+const GOLDEN_PROFILE: UnitProfile = {
+  atk: 10, hp: 100, movement_speed: 1, attack_speed: 2, initiative: 5, range: 1, power: null,
+};
 
-/**
- * Une scène neutre, reconstruite à chaque cas.
- *
- * ⚠️ Les DEUX camps portent l'attribut testé : `_applyStartForSide` traite les
- * deux, et une échelle qui compte « les unités d'en face » n'a rien à compter
- * si l'autre camp est vide. Un filet monté sur un seul côté serait aveugle à la
- * moitié de ce qu'il surveille.
- */
-function scene(attrId: string) {
-  const board = makeBoard();
-  const mk = (id: string, side: 'player' | 'enemy', col: number, row: number, attrs: string[]) =>
-    spawn(board, makeCard({ id, attributes: attrs, stats: { atk: 10, hp: 100 } as any }), side, { col, row });
-  const player = [
-    mk('P_A', 'player', 0, 0, [attrId]),
-    mk('P_B', 'player', 1, 0, [attrId]),
-    mk('P_C', 'player', 2, 0, []),
-  ];
-  const enemy = [
-    mk('E_A', 'enemy', 0, 10, [attrId]),
-    mk('E_B', 'enemy', 1, 10, [attrId]),
-    mk('E_C', 'enemy', 2, 10, []),
-  ];
-  return { board, player, enemy };
-}
+const scene = (attrId: string) =>
+  benchScene(attrId, { carriers: 2, extras: 1, dead: 0, profile: GOLDEN_PROFILE });
 
 /**
  * Chaque attribut livré, joué en entier : début de combat, une mort (pour les
@@ -146,7 +113,8 @@ export function boardBehaviour(): Record<string, unknown> {
     const { player, enemy } = scene(aimed);
     const all = player.concat(enemy);
     const pristine = all.map(readUnit);
-    const gameState: any = { player_extra_draws: 0, player_draw_sources: [] };
+    // Un VRAI `GameState`, comme pour les magies et pour la même raison.
+    const gameState = new GameState() as any;
     applyBoardEffects(bd, { playerUnits: player, enemyUnits: enemy, gameState });
     out[bd.id] = {
       units: all.map((u, i) => deltaUnit(u, pristine[i])).filter(Boolean),
@@ -212,68 +180,6 @@ export function allBehaviour() {
 // mauvais endroit, une case perdue, un contrecoup prélevé pour rien ne se
 // voient que dans l'inventaire des zones.
 
-/** Un deck synthétique couvrant trois tiers — de quoi nourrir les pools. */
-function zoneCards() {
-  const at = (id: string, tier: number, over: Record<string, unknown> = {}) =>
-    makeCard({ id, tier, stats: { atk: 10, hp: 100 } as any, ...over });
-  return [
-    at('T1_A', 1), at('T1_B', 1), at('T1_C', 1),
-    at('T2_A', 2), at('T2_B', 2),
-    // La fusion : deux matériels NOMMÉS, seuls ceux que `defuse_fusion` sait rendre.
-    at('T2_FUSION', 2, { summon_conditions: [{ materials: 2, requires: ['T1_A', 'T1_B'] }] }),
-    at('T3_A', 3),
-  ];
-}
-
-/** L'inventaire des quatre zones — ce que ces magies déplacent, et rien d'autre. */
-function zones(session: any) {
-  return {
-    hand: session.hand.map((c: any) => c.id),
-    board: session.board.getUnitsOnSide('player')
-      .map((u: any) => `${u.card_id}@${u.position.col},${u.position.row}${u.is_neutralized ? ' †' : ''}`)
-      .sort(),
-    graveyard: session.graveyard.map((u: any) => u.card_id).sort(),
-    player_hp: session.gameState.player_hp,
-  };
-}
-
-/**
- * La scène des zones, reconstruite pour chaque magie.
- *
- * ⚠️ `rand` est FIGÉ : trois de ces magies tirent (`_pickFrom`, `_drawMaterial`)
- * et un flux libre rendrait le golden différent à chaque exécution. Un tirage
- * constant n'appauvrit rien ici — ce qu'on surveille est le DÉPLACEMENT, pas
- * lequel des candidats sort.
- */
-function zoneScene() {
-  const cards = zoneCards();
-  const byId = new Map(cards.map(c => [c.id, c]));
-  const session: any = new GameSession({
-    cardsByTier: { 1: cards.filter(c => c._tiers.includes(1)), 2: cards.filter(c => c._tiers.includes(2)), 3: cards.filter(c => c._tiers.includes(3)) },
-    enemyDeck: {}, attributeList: [],
-    cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
-    getAllBoards: () => [], getAllMagies: () => [],
-    rand: () => 0.42,
-  } as any);
-  // ⚠️ Le troisième est la FUSION : `draw_material` a besoin d'une carte qui
-  // NOMME des matériels, sans quoi il ne trouve rien à rendre et le filet le
-  // regarderait ne rien faire — vert quoi qu'on change.
-  session.hand = [{ ...byId.get('T1_A') }, { ...byId.get('T2_A') }, { ...byId.get('T2_FUSION') }];
-  const place = (id: string, col: number) => {
-    const u = new Unit(byId.get(id) as any, 'player');
-    u.initial_position = { col, row: 0 };
-    session.board.placeUnit(u, { col, row: 0 });
-    return u;
-  };
-  const fusion = place('T2_FUSION', 0);
-  const plain = place('T1_C', 1);
-  const dead = new Unit(byId.get('T1_B') as any, 'player');
-  dead.is_neutralized = true;
-  session.graveyard.push(dead);
-  session.gameState.player_hp = 500;
-  return { session, fusion, plain, dead };
-}
-
 /** Où chacune des onze se joue — l'entrée d'application n'est pas la même. */
 const ZONE_CASES: Record<string, { via: 'unit' | 'fusion' | 'graveyard' | 'hand'; idx?: number; effect: Record<string, unknown> }> = {
   duplicate_unit: { via: 'unit', effect: { type: 'duplicate_unit', value: 2 } },
@@ -299,11 +205,11 @@ export function magieZoneBehaviour(): Record<string, unknown> {
     for (const cost of [0, 40]) {
       const { session, fusion, plain, dead } = zoneScene();
       const magie: any = { id: 'Z', name: 'Z', effect, ...(cost ? { cost_hp: cost } : {}) };
-      const before = zones(session);
+      const before = zoneSnapshot(session);
       if (via === 'hand') session.applyMagieOnHandCard(magie, idx);
       else if (via === 'graveyard') session.applyMagieOnGraveyardUnit(magie, dead);
       else session.applyMagieOnUnit(magie, via === 'fusion' ? fusion : plain);
-      out[`${name}${cost ? '+cost' : ''}`] = { before, after: zones(session) };
+      out[`${name}${cost ? '+cost' : ''}`] = { before, after: zoneSnapshot(session) };
     }
   }
   return out;

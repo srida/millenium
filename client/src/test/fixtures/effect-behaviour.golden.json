@@ -5,22 +5,26 @@
     {
      "unit": "P_A",
      "max_hp": 110,
-     "current_hp": 110
+     "current_hp": 110,
+     "bonuses": "{\"hp\":10}"
     },
     {
      "unit": "P_B",
      "max_hp": 110,
-     "current_hp": 110
+     "current_hp": 110,
+     "bonuses": "{\"hp\":10}"
     },
     {
      "unit": "E_A",
      "max_hp": 110,
-     "current_hp": 110
+     "current_hp": 110,
+     "bonuses": "{\"hp\":10}"
     },
     {
      "unit": "E_B",
      "max_hp": 110,
-     "current_hp": 110
+     "current_hp": 110,
+     "bonuses": "{\"hp\":10}"
     }
    ],
    "events": [],
@@ -28,12 +32,14 @@
     {
      "unit": "P_A",
      "max_hp": 110,
-     "current_hp": 110
+     "current_hp": 110,
+     "bonuses": "{\"hp\":10}"
     },
     {
      "unit": "P_B",
      "max_hp": 110,
-     "current_hp": 110
+     "current_hp": 110,
+     "bonuses": "{\"hp\":10}"
     },
     {
      "unit": "P_C",
@@ -42,24 +48,28 @@
     {
      "unit": "E_A",
      "max_hp": 110,
-     "current_hp": 110
+     "current_hp": 110,
+     "bonuses": "{\"hp\":10}"
     },
     {
      "unit": "E_B",
      "max_hp": 110,
-     "current_hp": 110
+     "current_hp": 110,
+     "bonuses": "{\"hp\":10}"
     }
    ],
    "end": [
     {
      "unit": "P_A",
      "max_hp": 110,
-     "current_hp": 110
+     "current_hp": 110,
+     "bonuses": "{\"hp\":10}"
     },
     {
      "unit": "P_B",
      "max_hp": 110,
-     "current_hp": 110
+     "current_hp": 110,
+     "bonuses": "{\"hp\":10}"
     },
     {
      "unit": "P_C",
@@ -68,12 +78,14 @@
     {
      "unit": "E_A",
      "max_hp": 110,
-     "current_hp": 110
+     "current_hp": 110,
+     "bonuses": "{\"hp\":10}"
     },
     {
      "unit": "E_B",
      "max_hp": 110,
-     "current_hp": 110
+     "current_hp": 110,
+     "bonuses": "{\"hp\":10}"
     }
    ],
    "result": {
@@ -93,30 +105,36 @@
    "start": [
     {
      "unit": "P_A",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-1}"
     },
     {
      "unit": "P_B",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-1}"
     },
     {
      "unit": "E_A",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-1}"
     },
     {
      "unit": "E_B",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-1}"
     }
    ],
    "events": [],
    "during": [
     {
      "unit": "P_A",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-1}"
     },
     {
      "unit": "P_B",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-1}"
     },
     {
      "unit": "P_C",
@@ -124,21 +142,25 @@
     },
     {
      "unit": "E_A",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-1}"
     },
     {
      "unit": "E_B",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-1}"
     }
    ],
    "end": [
     {
      "unit": "P_A",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-1}"
     },
     {
      "unit": "P_B",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-1}"
     },
     {
      "unit": "P_C",
@@ -146,11 +168,13 @@
     },
     {
      "unit": "E_A",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-1}"
     },
     {
      "unit": "E_B",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-1}"
     }
    ],
    "result": {
@@ -170,30 +194,36 @@
    "start": [
     {
      "unit": "P_A",
-     "atk": 11
+     "atk": 11,
+     "bonuses": "{\"atk\":1}"
     },
     {
      "unit": "P_B",
-     "atk": 11
+     "atk": 11,
+     "bonuses": "{\"atk\":1}"
     },
     {
      "unit": "E_A",
-     "atk": 11
+     "atk": 11,
+     "bonuses": "{\"atk\":1}"
     },
     {
      "unit": "E_B",
-     "atk": 11
+     "atk": 11,
+     "bonuses": "{\"atk\":1}"
     }
    ],
    "events": [],
    "during": [
     {
      "unit": "P_A",
-     "atk": 11
+     "atk": 11,
+     "bonuses": "{\"atk\":1}"
     },
     {
      "unit": "P_B",
-     "atk": 11
+     "atk": 11,
+     "bonuses": "{\"atk\":1}"
     },
     {
      "unit": "P_C",
@@ -201,21 +231,25 @@
     },
     {
      "unit": "E_A",
-     "atk": 11
+     "atk": 11,
+     "bonuses": "{\"atk\":1}"
     },
     {
      "unit": "E_B",
-     "atk": 11
+     "atk": 11,
+     "bonuses": "{\"atk\":1}"
     }
    ],
    "end": [
     {
      "unit": "P_A",
-     "atk": 11
+     "atk": 11,
+     "bonuses": "{\"atk\":1}"
     },
     {
      "unit": "P_B",
-     "atk": 11
+     "atk": 11,
+     "bonuses": "{\"atk\":1}"
     },
     {
      "unit": "P_C",
@@ -223,11 +257,13 @@
     },
     {
      "unit": "E_A",
-     "atk": 11
+     "atk": 11,
+     "bonuses": "{\"atk\":1}"
     },
     {
      "unit": "E_B",
-     "atk": 11
+     "atk": 11,
+     "bonuses": "{\"atk\":1}"
     }
    ],
    "result": {
@@ -802,30 +838,36 @@
    "start": [
     {
      "unit": "P_A",
-     "atk": 13
+     "atk": 13,
+     "bonuses": "{\"atk\":3}"
     },
     {
      "unit": "P_B",
-     "atk": 13
+     "atk": 13,
+     "bonuses": "{\"atk\":3}"
     },
     {
      "unit": "E_A",
-     "atk": 13
+     "atk": 13,
+     "bonuses": "{\"atk\":3}"
     },
     {
      "unit": "E_B",
-     "atk": 13
+     "atk": 13,
+     "bonuses": "{\"atk\":3}"
     }
    ],
    "events": [],
    "during": [
     {
      "unit": "P_A",
-     "atk": 13
+     "atk": 13,
+     "bonuses": "{\"atk\":3}"
     },
     {
      "unit": "P_B",
-     "atk": 13
+     "atk": 13,
+     "bonuses": "{\"atk\":3}"
     },
     {
      "unit": "P_C",
@@ -833,21 +875,25 @@
     },
     {
      "unit": "E_A",
-     "atk": 13
+     "atk": 13,
+     "bonuses": "{\"atk\":3}"
     },
     {
      "unit": "E_B",
-     "atk": 13
+     "atk": 13,
+     "bonuses": "{\"atk\":3}"
     }
    ],
    "end": [
     {
      "unit": "P_A",
-     "atk": 13
+     "atk": 13,
+     "bonuses": "{\"atk\":3}"
     },
     {
      "unit": "P_B",
-     "atk": 13
+     "atk": 13,
+     "bonuses": "{\"atk\":3}"
     },
     {
      "unit": "P_C",
@@ -855,11 +901,13 @@
     },
     {
      "unit": "E_A",
-     "atk": 13
+     "atk": 13,
+     "bonuses": "{\"atk\":3}"
     },
     {
      "unit": "E_B",
-     "atk": 13
+     "atk": 13,
+     "bonuses": "{\"atk\":3}"
     }
    ],
    "result": {
@@ -880,22 +928,26 @@
     {
      "unit": "P_A",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "P_B",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "E_A",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "E_B",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     }
    ],
    "events": [],
@@ -903,12 +955,14 @@
     {
      "unit": "P_A",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "P_B",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "P_C",
@@ -917,24 +971,28 @@
     {
      "unit": "E_A",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "E_B",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     }
    ],
    "end": [
     {
      "unit": "P_A",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "P_B",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "P_C",
@@ -943,12 +1001,14 @@
     {
      "unit": "E_A",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "E_B",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     }
    ],
    "result": {
@@ -965,18 +1025,67 @@
    }
   },
   "ARCH_021": {
-   "start": [],
+   "start": [
+    {
+     "unit": "P_A",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "P_B",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "E_A",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "E_B",
+     "bonuses": "{\"movement_speed\":-1}"
+    }
+   ],
    "events": [],
    "during": [
     {
+     "unit": "P_A",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "P_B",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
      "unit": "P_C",
      "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "E_B",
+     "bonuses": "{\"movement_speed\":-1}"
     }
    ],
    "end": [
     {
+     "unit": "P_A",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "P_B",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
      "unit": "P_C",
      "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "E_B",
+     "bonuses": "{\"movement_speed\":-1}"
     }
    ],
    "result": {
@@ -1343,30 +1452,36 @@
    "start": [
     {
      "unit": "P_A",
-     "atk": 25
+     "atk": 25,
+     "bonuses": "{\"atk\":15}"
     },
     {
      "unit": "P_B",
-     "atk": 25
+     "atk": 25,
+     "bonuses": "{\"atk\":15}"
     },
     {
      "unit": "E_A",
-     "atk": 25
+     "atk": 25,
+     "bonuses": "{\"atk\":15}"
     },
     {
      "unit": "E_B",
-     "atk": 25
+     "atk": 25,
+     "bonuses": "{\"atk\":15}"
     }
    ],
    "events": [],
    "during": [
     {
      "unit": "P_A",
-     "atk": 25
+     "atk": 25,
+     "bonuses": "{\"atk\":15}"
     },
     {
      "unit": "P_B",
-     "atk": 25
+     "atk": 25,
+     "bonuses": "{\"atk\":15}"
     },
     {
      "unit": "P_C",
@@ -1374,21 +1489,25 @@
     },
     {
      "unit": "E_A",
-     "atk": 25
+     "atk": 25,
+     "bonuses": "{\"atk\":15}"
     },
     {
      "unit": "E_B",
-     "atk": 25
+     "atk": 25,
+     "bonuses": "{\"atk\":15}"
     }
    ],
    "end": [
     {
      "unit": "P_A",
-     "atk": 25
+     "atk": 25,
+     "bonuses": "{\"atk\":15}"
     },
     {
      "unit": "P_B",
-     "atk": 25
+     "atk": 25,
+     "bonuses": "{\"atk\":15}"
     },
     {
      "unit": "P_C",
@@ -1396,11 +1515,13 @@
     },
     {
      "unit": "E_A",
-     "atk": 25
+     "atk": 25,
+     "bonuses": "{\"atk\":15}"
     },
     {
      "unit": "E_B",
-     "atk": 25
+     "atk": 25,
+     "bonuses": "{\"atk\":15}"
     }
    ],
    "result": {
@@ -1481,30 +1602,36 @@
    "start": [
     {
      "unit": "P_A",
-     "atk": 12
+     "atk": 12,
+     "bonuses": "{\"atk\":2}"
     },
     {
      "unit": "P_B",
-     "atk": 12
+     "atk": 12,
+     "bonuses": "{\"atk\":2}"
     },
     {
      "unit": "E_A",
-     "atk": 12
+     "atk": 12,
+     "bonuses": "{\"atk\":2}"
     },
     {
      "unit": "E_B",
-     "atk": 12
+     "atk": 12,
+     "bonuses": "{\"atk\":2}"
     }
    ],
    "events": [],
    "during": [
     {
      "unit": "P_A",
-     "atk": 12
+     "atk": 12,
+     "bonuses": "{\"atk\":2}"
     },
     {
      "unit": "P_B",
-     "atk": 12
+     "atk": 12,
+     "bonuses": "{\"atk\":2}"
     },
     {
      "unit": "P_C",
@@ -1512,21 +1639,25 @@
     },
     {
      "unit": "E_A",
-     "atk": 12
+     "atk": 12,
+     "bonuses": "{\"atk\":2}"
     },
     {
      "unit": "E_B",
-     "atk": 12
+     "atk": 12,
+     "bonuses": "{\"atk\":2}"
     }
    ],
    "end": [
     {
      "unit": "P_A",
-     "atk": 12
+     "atk": 12,
+     "bonuses": "{\"atk\":2}"
     },
     {
      "unit": "P_B",
-     "atk": 12
+     "atk": 12,
+     "bonuses": "{\"atk\":2}"
     },
     {
      "unit": "P_C",
@@ -1534,11 +1665,13 @@
     },
     {
      "unit": "E_A",
-     "atk": 12
+     "atk": 12,
+     "bonuses": "{\"atk\":2}"
     },
     {
      "unit": "E_B",
-     "atk": 12
+     "atk": 12,
+     "bonuses": "{\"atk\":2}"
     }
    ],
    "result": {
@@ -1555,18 +1688,67 @@
    }
   },
   "ARCH_035": {
-   "start": [],
+   "start": [
+    {
+     "unit": "P_A",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "P_B",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "E_A",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "E_B",
+     "bonuses": "{\"movement_speed\":-1}"
+    }
+   ],
    "events": [],
    "during": [
     {
+     "unit": "P_A",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "P_B",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
      "unit": "P_C",
      "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "E_B",
+     "bonuses": "{\"movement_speed\":-1}"
     }
    ],
    "end": [
     {
+     "unit": "P_A",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "P_B",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
      "unit": "P_C",
      "neutralized": true
+    },
+    {
+     "unit": "E_A",
+     "bonuses": "{\"movement_speed\":-1}"
+    },
+    {
+     "unit": "E_B",
+     "bonuses": "{\"movement_speed\":-1}"
     }
    ],
    "result": {
@@ -1692,22 +1874,26 @@
     {
      "unit": "P_A",
      "max_hp": 200,
-     "current_hp": 200
+     "current_hp": 200,
+     "bonuses": "{\"hp\":100}"
     },
     {
      "unit": "P_B",
      "max_hp": 200,
-     "current_hp": 200
+     "current_hp": 200,
+     "bonuses": "{\"hp\":100}"
     },
     {
      "unit": "E_A",
      "max_hp": 200,
-     "current_hp": 200
+     "current_hp": 200,
+     "bonuses": "{\"hp\":100}"
     },
     {
      "unit": "E_B",
      "max_hp": 200,
-     "current_hp": 200
+     "current_hp": 200,
+     "bonuses": "{\"hp\":100}"
     }
    ],
    "events": [],
@@ -1715,12 +1901,14 @@
     {
      "unit": "P_A",
      "max_hp": 200,
-     "current_hp": 200
+     "current_hp": 200,
+     "bonuses": "{\"hp\":100}"
     },
     {
      "unit": "P_B",
      "max_hp": 200,
-     "current_hp": 200
+     "current_hp": 200,
+     "bonuses": "{\"hp\":100}"
     },
     {
      "unit": "P_C",
@@ -1729,24 +1917,28 @@
     {
      "unit": "E_A",
      "max_hp": 200,
-     "current_hp": 200
+     "current_hp": 200,
+     "bonuses": "{\"hp\":100}"
     },
     {
      "unit": "E_B",
      "max_hp": 200,
-     "current_hp": 200
+     "current_hp": 200,
+     "bonuses": "{\"hp\":100}"
     }
    ],
    "end": [
     {
      "unit": "P_A",
      "max_hp": 200,
-     "current_hp": 200
+     "current_hp": 200,
+     "bonuses": "{\"hp\":100}"
     },
     {
      "unit": "P_B",
      "max_hp": 200,
-     "current_hp": 200
+     "current_hp": 200,
+     "bonuses": "{\"hp\":100}"
     },
     {
      "unit": "P_C",
@@ -1755,12 +1947,14 @@
     {
      "unit": "E_A",
      "max_hp": 200,
-     "current_hp": 200
+     "current_hp": 200,
+     "bonuses": "{\"hp\":100}"
     },
     {
      "unit": "E_B",
      "max_hp": 200,
-     "current_hp": 200
+     "current_hp": 200,
+     "bonuses": "{\"hp\":100}"
     }
    ],
    "result": {
@@ -2329,30 +2523,36 @@
    "start": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "events": [],
    "during": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_C",
@@ -2360,21 +2560,25 @@
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "end": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_C",
@@ -2382,11 +2586,13 @@
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "result": {
@@ -2451,19 +2657,23 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "draws": 0,
@@ -2473,19 +2683,23 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "draws": 0,
@@ -2495,19 +2709,23 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "draws": 0,
@@ -2517,19 +2735,23 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "draws": 0,
@@ -2539,19 +2761,23 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "draws": 0,
@@ -2561,19 +2787,23 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "draws": 0,
@@ -2584,39 +2814,94 @@
     {
      "unit": "P_A",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "P_B",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "E_A",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "E_B",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     }
    ],
    "draws": 0,
    "sources": []
   },
   "BOARD_008": {
-   "units": [],
+   "units": [
+    {
+     "unit": "P_A",
+     "bonuses": "{\"movement_speed\":-5}"
+    },
+    {
+     "unit": "P_B",
+     "bonuses": "{\"movement_speed\":-5}"
+    },
+    {
+     "unit": "E_A",
+     "bonuses": "{\"movement_speed\":-5}"
+    },
+    {
+     "unit": "E_B",
+     "bonuses": "{\"movement_speed\":-5}"
+    }
+   ],
    "draws": 0,
    "sources": []
   },
   "BOARD_009": {
-   "units": [],
+   "units": [
+    {
+     "unit": "P_A",
+     "bonuses": "{\"movement_speed\":-5}"
+    },
+    {
+     "unit": "P_B",
+     "bonuses": "{\"movement_speed\":-5}"
+    },
+    {
+     "unit": "E_A",
+     "bonuses": "{\"movement_speed\":-5}"
+    },
+    {
+     "unit": "E_B",
+     "bonuses": "{\"movement_speed\":-5}"
+    }
+   ],
    "draws": 0,
    "sources": []
   },
   "BOARD_010": {
-   "units": [],
+   "units": [
+    {
+     "unit": "P_A",
+     "bonuses": "{\"movement_speed\":-5}"
+    },
+    {
+     "unit": "P_B",
+     "bonuses": "{\"movement_speed\":-5}"
+    },
+    {
+     "unit": "E_A",
+     "bonuses": "{\"movement_speed\":-5}"
+    },
+    {
+     "unit": "E_B",
+     "bonuses": "{\"movement_speed\":-5}"
+    }
+   ],
    "draws": 0,
    "sources": []
   },
@@ -2624,19 +2909,23 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "draws": 0,
@@ -2646,19 +2935,23 @@
    "units": [
     {
      "unit": "P_A",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-5}"
     },
     {
      "unit": "P_B",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-5}"
     },
     {
      "unit": "E_A",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-5}"
     },
     {
      "unit": "E_B",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-5}"
     }
    ],
    "draws": 0,
@@ -2669,22 +2962,26 @@
     {
      "unit": "P_A",
      "max_hp": 150,
-     "current_hp": 150
+     "current_hp": 150,
+     "bonuses": "{\"hp\":50}"
     },
     {
      "unit": "P_B",
      "max_hp": 150,
-     "current_hp": 150
+     "current_hp": 150,
+     "bonuses": "{\"hp\":50}"
     },
     {
      "unit": "E_A",
      "max_hp": 150,
-     "current_hp": 150
+     "current_hp": 150,
+     "bonuses": "{\"hp\":50}"
     },
     {
      "unit": "E_B",
      "max_hp": 150,
-     "current_hp": 150
+     "current_hp": 150,
+     "bonuses": "{\"hp\":50}"
     }
    ],
    "draws": 0,
@@ -2694,19 +2991,23 @@
    "units": [
     {
      "unit": "P_A",
-     "range": 2
+     "range": 2,
+     "bonuses": "{\"range\":1}"
     },
     {
      "unit": "P_B",
-     "range": 2
+     "range": 2,
+     "bonuses": "{\"range\":1}"
     },
     {
      "unit": "E_A",
-     "range": 2
+     "range": 2,
+     "bonuses": "{\"range\":1}"
     },
     {
      "unit": "E_B",
-     "range": 2
+     "range": 2,
+     "bonuses": "{\"range\":1}"
     }
    ],
    "draws": 0,
@@ -2716,19 +3017,23 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "draws": 0,
@@ -2749,19 +3054,23 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 30
+     "atk": 30,
+     "bonuses": "{\"atk\":20}"
     },
     {
      "unit": "P_B",
-     "atk": 30
+     "atk": 30,
+     "bonuses": "{\"atk\":20}"
     },
     {
      "unit": "E_A",
-     "atk": 30
+     "atk": 30,
+     "bonuses": "{\"atk\":20}"
     },
     {
      "unit": "E_B",
-     "atk": 30
+     "atk": 30,
+     "bonuses": "{\"atk\":20}"
     }
    ],
    "draws": 0,
@@ -2794,22 +3103,26 @@
     {
      "unit": "P_A",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "P_B",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "E_A",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     },
     {
      "unit": "E_B",
      "max_hp": 130,
-     "current_hp": 130
+     "current_hp": 130,
+     "bonuses": "{\"hp\":30}"
     }
    ],
    "draws": 0,
@@ -2819,19 +3132,23 @@
    "units": [
     {
      "unit": "P_A",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-4}"
     },
     {
      "unit": "P_B",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-4}"
     },
     {
      "unit": "E_A",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-4}"
     },
     {
      "unit": "E_B",
-     "attack_speed": 1
+     "attack_speed": 1,
+     "bonuses": "{\"attack_speed\":-4}"
     }
    ],
    "draws": 0,
@@ -2841,27 +3158,33 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_C",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_C",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "draws": 0,
@@ -2871,19 +3194,23 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "draws": 0,
@@ -2893,19 +3220,23 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "draws": 0,
@@ -2915,19 +3246,23 @@
    "units": [
     {
      "unit": "P_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "P_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_A",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     },
     {
      "unit": "E_B",
-     "atk": 20
+     "atk": 20,
+     "bonuses": "{\"atk\":10}"
     }
    ],
    "draws": 0,
@@ -2938,22 +3273,26 @@
     {
      "unit": "P_A",
      "max_hp": 150,
-     "current_hp": 150
+     "current_hp": 150,
+     "bonuses": "{\"hp\":50}"
     },
     {
      "unit": "P_B",
      "max_hp": 150,
-     "current_hp": 150
+     "current_hp": 150,
+     "bonuses": "{\"hp\":50}"
     },
     {
      "unit": "E_A",
      "max_hp": 150,
-     "current_hp": 150
+     "current_hp": 150,
+     "bonuses": "{\"hp\":50}"
     },
     {
      "unit": "E_B",
      "max_hp": 150,
-     "current_hp": 150
+     "current_hp": 150,
+     "bonuses": "{\"hp\":50}"
     }
    ],
    "draws": 0,

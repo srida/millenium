@@ -804,6 +804,8 @@ attack_timer / move_timer                        // ⚠️ remis à zéro à cha
 
 Les unités persistent entre les tours. Détruites → retirées définitivement. Survivantes → retour à `initial_position`.
 
+⚠️ **`_recomputeStats()` ne relit `_stat_bonuses` que pour `atk`, `hp`, `attack_speed` et `range`** : `movement_speed` et `initiative` y sont recopiées de `_base` telles quelles. Un bonus de **combat** (attribut, terrain, vétérance) sur ces deux stats est donc appliqué, enregistré… et invisible — 11 effets livrés sont dans ce cas, cf. le Banc d'essai. Les bonus **permanents** (magies) y échappent : ils écrivent dans `_base`.
+
 **Traçage des bonus permanents** : `stat_bonus` / `stat_modifier` écrivent dans `_base` **et** cumulent le delta réel dans `_shopping_bonus[stat]`. `InvocationManager._transferShoppingBonuses` reporte sur le composite quand l'unité est consommée ou remplacée : deltas de stats **sommés** sur tous les matériaux, bouclier restant **sommé**, points de vétérance en **maximum** (jamais la somme — enchaîner les invocations ne permet pas de farmer la vétérance).
 
 **Vétérance** : +1 point par combat survécu (`finishCombat`, les deux camps). À partir de `VETERANCY_THRESHOLD = 2`, bonus appliqué par `AttributeManager._applyVeterancyBonuses()` au `start_of_combat` :
@@ -913,7 +915,8 @@ La réponse **unique** à « quels effets existent » : 29 primitives, **27 magi
 - `label` : gabarit `{param}` (interpolation seule — pas de condition, pas de pluriel), ou `{ fn }` quand la phrase se ramifie. `null` = aucun libellé écrit, **l'id brut sort à l'écran** — un libellé qui manque doit se voir.
 - ⚠️ Les **résolveurs nommés vivent chez leur lecteur** : `EffectKinds` ne connaît ni le français, ni `POWER_LABELS`, ni `MagieOfferContext`.
 - ⚠️ **Deux vocabulaires de stats coexistent** — `MagieEffect.STAT_NAMES` dit « ATK », `data/StatLabels` dit « ATQ ». Le gabarit ne résout pas `{stat}` : l'appelant passe la chaîne déjà nommée. Les unifier serait un changement d'affichage.
-- `effect-kinds.test.ts` fait se recouvrir registre et moteurs **dans les deux sens**. Deux goldens le complètent : `effect-labels.golden.json` fige les **172 libellés** du catalogue, `effect-behaviour.golden.json` ce que les 53 attributs, 25 terrains et 51 magies **font** (écarts seulement, via le harnais `test/effect-behaviour.ts`), **plus les onze magies avancées au niveau des ZONES** (main / board / cimetière / PV, 22 cas, chacun sans puis avec contrecoup — elles sont des no-op dans `applyEffect`, aucun autre filet ne les voit). ⚠️ Le harnais monte un **vrai `GameState`** : un faux qui doit miroiter une API jette à la première méthode ajoutée, en « Failed Suite » — tests verts, code de sortie 1. ⚠️ Le second est le seul filet contre une dérive de chiffres : généraliser une échelle ou un barème ne change **aucun mot** à l'écran.
+- `effect-kinds.test.ts` fait se recouvrir registre et moteurs **dans les deux sens**. Deux goldens le complètent : `effect-labels.golden.json` fige les **172 libellés** du catalogue, `effect-behaviour.golden.json` ce que les 53 attributs, 25 terrains et 51 magies **font** (écarts seulement, via le harnais `test/effect-behaviour.ts`), **plus les onze magies avancées au niveau des ZONES** (main / board / cimetière / PV, 22 cas, chacun sans puis avec contrecoup — elles sont des no-op dans `applyEffect`, aucun autre filet ne les voit). ⚠️ Le harnais monte un **vrai `GameState`** : un faux qui doit miroiter une API jette à la première méthode ajoutée, en « Failed Suite » — tests verts, code de sortie 1. ⚠️ Le second est le seul filet contre une dérive de chiffres : généraliser une échelle ou un barème ne change **aucun mot** à l'écran. ⚠️ Son relevé (`readUnit`, partagé avec le Banc d'essai) porte `_stat_bonuses` **à côté** des stats qu'il produit : c'est le couple qui rend visible un bonus inscrit que plus aucune stat ne relit.
+- Un **troisième** filet, à une autre maille : le **Banc d'essai des effets** joue chaque effet SEUL et nomme ceux qui ne font rien (cf. plus bas). Le golden fige ce qu'un attribut *entier* applique ; le banc isole chacun de ses effets.
 
 **L'icône d'un attribut est une image ; l'emoji n'est que le repli.** Art dans `ILLUS_DIR` sous l'`id` de l'attribut, importé depuis l'onglet Attributs. Le champ `icon` du JSON reste l'emoji de repli.
 - **`components/ui/AttrIcon.tsx` est le seul composant qui décide du repli** (image si `_has_illustration`, emoji sinon, rien si ni l'un ni l'autre). Quatre sites : puce du `SynergyPanel` (`h-4`), titre du tooltip d'attribut (`h-7`), chips `Keywords` (`h-3.5`), codex (`h-5`).
@@ -1699,6 +1702,25 @@ Il existe parce que `EnemyAI` **n'émettait rien**, et surtout parce que son `_t
 1. **Sur un écran, la seule preuve est le PIXEL.** Le labo a été livré intégralement invisible (racine sans `z-10`, recouverte par `.space-bg`) et ce défaut est **indétectable à l'inspection du DOM** : `innerText` rend le texte, les boîtes ont leurs vraies dimensions, `scrollWidth <= clientWidth` passe au vert, et `.space-bg` étant `pointer-events: none`, même `elementFromPoint` désigne le bon élément. L'écran était parfaitement mesurable, parfaitement tapable, et parfaitement invisible.
 2. **Et il faut LIRE le pixel, pas seulement le capturer.** Une note affichée sous la main disait, en toutes lettres, « L'IA écrase sa main à chaque pioche » — vraie quand elle a été écrite, fausse depuis, et lue par-dessus l'épaule du joueur au moment précis où il cherchait à vérifier le contraire. Aucun test, aucun `innerText`, aucune mesure ne peut attraper une phrase juste qui a cessé d'être vraie.
 
+## Banc d'essai des effets (`?screen=effectbench`)
+
+Répond à « cet effet fait-il quelque chose ? ». Écran `dev/EffectBench.tsx`, pilote pur `dev/effectBenchRun.ts`, filet `test/effect-bench.test.ts`. Applique **chaque effet écrit dans les trois catalogues**, un par un, à une scène type, et nomme ceux qui ne font rien. `ARCH_019` est le précédent : un effet muet n'a ni écran, ni message, ni trace — il ressemble exactement à un effet faible.
+
+**Scène** : 5 porteuses + 1 non-porteuse vivantes et **3 neutralisées** par camp (les trois cibles d'un `revive` doivent être distinguables). Chaque effet est joué SEUL et en entier : début de combat, une mort, fin de combat.
+
+- ⚠️ **La granularité est l'EFFET, pas son porteur** — c'est tout l'écart avec `effect-behaviour.golden` : à la maille de l'attribut, un seuil dont un effet sur deux fonctionne se lit « actif ».
+- ⚠️ **Trois verdicts** : `actif` · `muet` · `descriptif` (aucun effet écrit — 40 archétypes purs, qui noieraient les vrais muets s'ils étaient comptés avec eux).
+- ⚠️ **Chaque valeur de `BENCH_PROFILE` est un faux positif évité** : de la marge sur chaque stat (les stats ont un plancher à 1, un « −5 DEP » sur une unité à 1 ne retire rien) et **un pouvoir de départ** (`power_cooldown` ne touche que les unités qui en portent un).
+- ⚠️ **Les onze magies déléguées à `GameSession` sont rejouées dans la scène des ZONES**, et la liste des onze n'est écrite nulle part : le banc rejoue **chaque** magie et regarde ce qui a bougé. Sans ça elles seraient toutes déclarées muettes — le pire faux positif possible.
+- ⚠️ **Le contrecoup (`cost_hp`) est retiré** avant la mesure : une magie sans effet mais avec un coût ferait bouger les PV du joueur et passerait pour active.
+- ⚠️ **La scène ne porte que ce que le CATALOGUE peut porter** : un `value_per` ou un `target_attributes` qui nomme un attribut inexistant ne se voit pas offrir de porteurs.
+- `ATTRIBUTE_TIMINGS` dit quelle horloge lit quel type — c'est la lecture d'`AttributeManager`, dont les trois passes se partagent les types sans qu'aucune ne l'écrive. **Prouvée par le comportement** : chaque type est joué sous les trois horloges et ne doit agir que sous la sienne.
+- `readUnit` / `deltaUnit` / `benchScene` sont **partagés avec `test/effect-behaviour.ts`** (un seul constructeur de scène, deux profils) : deux définitions de « ce qu'un effet peut toucher » ne s'accorderaient pas sur ce que « rien ne s'est passé » veut dire.
+
+⚠️ **Le catalogue livré porte 21 effets muets**, figés par `effect-bench.test.ts` — **un inventaire à vider, pas une liste de fautes acceptées**. Deux familles, deux endroits où corriger :
+- **mauvaise horloge** (10 effets, `ARCH_010/017/036/042/043/045/068`) : le `timing` vit sur l'**attribut**, pas sur l'effet — la DONNÉE est à déplacer, et rien dans l'admin ne le signale.
+- **stat inscrite jamais relue** (11 effets, `ARCH_021`, `ARCH_035`, `BOARD_008/009/010/025`) : ⚠️ **`Unit._recomputeStats` recopie `_base.movement_speed` et `_base.initiative` sans jamais y ajouter `_stat_bonuses`** — tout bonus d'attribut ou de terrain sur ces deux stats est appliqué, enregistré, et invisible. Le MOTEUR est à compléter. (Les magies y échappent : elles passent par `applyPermanentStat`, qui écrit dans `_base`.)
+
 ## TestBench (`?screen=testbench`) et CombatLab (`?screen=combatlab`)
 
 `TestBench` réutilise `Scene3D` + `CombatAnimator3D` directement, sans `GameController` : placement libre pour les deux équipes (pas de règles d'invocation, pas de main, pas de deck), filtre par coût d'invocation, suppression au clic droit / appui long, board inspector live, bouton Pause, **sélecteur de terrain manuel** (cases visibles immédiatement, effets appliqués au lancement, bouton ℹ). Pas de tours, pas de PV joueur, pas de multiplicateur.
@@ -1709,7 +1731,7 @@ Il existe parce que `EnemyAI` **n'émettait rien**, et surtout parce que son `_t
 
 # Tests
 
-`npm test` = vitest, **en node SANS DOM**. ⚠️ **Aucun test de composant n'est possible dans ce projet** — c'est ce qui explique que toute décision testable vive dans une **fonction pure** (`data/tutorialScript.ts`, `data/SummonInfo.ts`, `data/BoardInfo.ts`, `logic/MagieOffer.ts`, `logic/BoardPicker.ts`, `dev/aiLabRun.ts`, `sim/show.ts`). Le rendu se vérifie **au navigateur**.
+`npm test` = vitest, **en node SANS DOM**. ⚠️ **Aucun test de composant n'est possible dans ce projet** — c'est ce qui explique que toute décision testable vive dans une **fonction pure** (`data/tutorialScript.ts`, `data/SummonInfo.ts`, `data/BoardInfo.ts`, `logic/MagieOffer.ts`, `logic/BoardPicker.ts`, `dev/aiLabRun.ts`, `dev/effectBenchRun.ts`, `sim/show.ts`). Le rendu se vérifie **au navigateur**.
 
 | Harnais | Usage |
 |---|---|

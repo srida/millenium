@@ -67,12 +67,26 @@ describe('Comportement des effets — catalogue livré', () => {
   it('ARCH_019 (Démon) échelonne sur les alliés vivants', () => {
     // 10 d'ATK + 1 × 3 alliés vivants. Ce chiffre valait 10 avant le lot 0 :
     // l'attribut ne donnait rien.
-    expect(actual.attributes.ARCH_019.start).toContainEqual({ unit: 'P_A', atk: 13 });
+    expect(actual.attributes.ARCH_019.start)
+      .toContainEqual(expect.objectContaining({ unit: 'P_A', atk: 13 }));
   });
 
   it('ARCH_066 garde son bouclier × alliés vivants, sans value_per', () => {
     // 50 × 3 alliés. Le barème du bouclier est FIXE : le rendre configurable
     // avec un défaut « ×1 » retirerait 100 points à cette unité, en silence.
-    expect(actual.attributes.ARCH_066.start).toContainEqual({ unit: 'P_A', shield: 150 });
+    expect(actual.attributes.ARCH_066.start)
+      .toContainEqual(expect.objectContaining({ unit: 'P_A', shield: 150 }));
+  });
+
+  // ⚠️ Le relevé porte le REGISTRE des bonus (`_stat_bonuses`) à côté des stats
+  // qu'il est censé produire, et c'est ce couple qui rend visible une classe
+  // entière que le filet ne voyait pas : `Unit._recomputeStats` ne relit ni
+  // `movement_speed` ni `initiative`, si bien qu'un bonus d'attribut ou de
+  // terrain sur ces deux stats est INSCRIT et jamais lu. Six seuils livrés sont
+  // dans ce cas ; ils passaient ici pour des lignes vides.
+  it('ARCH_021 (Bête) inscrit son malus de DEP sans qu\'aucune stat ne le reprenne', () => {
+    const [porteuse] = actual.attributes.ARCH_021.start;
+    expect(porteuse.bonuses).toBe('{"movement_speed":-1}');
+    expect(porteuse.movement_speed).toBeUndefined();
   });
 });
