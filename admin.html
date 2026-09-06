@@ -30,16 +30,24 @@
 body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; overflow-x: hidden; }
 
 /* Layout */
-.app { display: flex; flex-direction: column; height: 100dvh; }
-.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: flex-start; gap: 16px; flex-shrink: 0; }
-.topbar h1 { padding-top: 4px; white-space: nowrap; flex-shrink: 0; }
+/* ⚠️ `overflow: hidden` sur `.app` est la garantie, pas une conséquence : c'est lui
+   qui interdit tout scroll de PAGE, quoi que la topbar ou un panneau fassent par
+   ailleurs. `.sidebar-list` et `.content` restent les seuls `overflow-y: auto`. */
+.app { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+.topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.topbar h1 { white-space: nowrap; flex-shrink: 0; }
 .topbar h1 { font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: 0.5px; }
-/* ⚠️ `#main-tabs` et non `.tabs` : la modale du sélecteur d'attributs porte la même
-   classe. Les 13 libellés demandent ~1400 px ; sans `flex-wrap` la barre débordait,
-   et `body { overflow-x: hidden }` MASQUAIT le débordement — les derniers onglets
-   étaient inatteignables entre 769 px et ~1700 px, donc sur tout portable 13". */
-.tabs { display: flex; gap: 4px; }
-#main-tabs { flex-wrap: wrap; }
+/* ⚠️ `#main-tabs` est un `<select>` NATIF, pas une barre de boutons : la bande de
+   15 libellés en `flex-wrap` passait sur plusieurs lignes et gonflait la topbar
+   au-delà de `100dvh`, ce qui glissait toute la page en scroll vertical malgré
+   `.main { overflow: hidden }`. Un `<select>` tient sur une seule ligne à largeur
+   fixe, quel que soit le nombre d'onglets. */
+.tab-select {
+  min-width: 220px; max-width: 320px; flex-shrink: 0;
+  background: var(--surface2); color: var(--text); font-size: 14px; font-weight: 600;
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: pointer;
+}
+.tab-select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 /* Navigation mobile — masqués hors du @media de fin de feuille. */
 .tab-menu-btn { display: none; align-items: center; gap: 8px; background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; font-weight: 600; padding: 0 12px; min-height: 44px; cursor: pointer; }
 .tab-menu-btn .burger { font-size: 17px; line-height: 1; }
@@ -490,41 +498,39 @@ select.filter:focus { border-color: var(--accent); }
   <div class="topbar">
     <a href="/" style="color:var(--muted);text-decoration:none;font-size:20px;line-height:1;padding:4px 8px;border-radius:6px;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">←</a>
     <h1>Millenium — Card Manager</h1>
-    <!-- ⚠️ `id="main-tabs"` n'est pas décoratif : `.tabs` et `.tab` sont RÉUTILISÉS
-         ailleurs (flèches du pager SQL, chips de catégorie du sélecteur d'attributs).
-         Tout sélecteur de navigation — CSS comme JS — doit passer par cet id, sinon
-         masquer la barre en mobile emporte les chips, et la délégation de clic
-         capte le pager. -->
-    <div class="tabs" id="main-tabs">
-      <button class="tab active" data-tab="cards">Cartes</button>
-      <button class="tab" data-tab="attributes">Attributs</button>
-      <button class="tab" data-tab="powers">Pouvoirs</button>
-      <button class="tab" data-tab="boards">Terrains</button>
-      <button class="tab" data-tab="magies">Magies</button>
-      <button class="tab" data-tab="missions">Missions</button>
-      <button class="tab" data-tab="decks">Decks publics</button>
-      <button class="tab" data-tab="packs">🎁 Packs</button>
+    <!-- ⚠️ `id="main-tabs"` est le SEUL inventaire des onglets : la feuille mobile
+         (`openTabSheet`) clone ses `<option>` à chaque ouverture, donc un onglet
+         ajouté ici y apparaît sans qu'on y pense — une seule liste dans le fichier. -->
+    <select class="tab-select" id="main-tabs" onchange="switchTab(this.value)" aria-label="Onglet">
+      <option value="cards">Cartes</option>
+      <option value="attributes">Attributs</option>
+      <option value="powers">Pouvoirs</option>
+      <option value="boards">Terrains</option>
+      <option value="magies">Magies</option>
+      <option value="missions">Missions</option>
+      <option value="decks">Decks publics</option>
+      <option value="packs">🎁 Packs</option>
       <!-- 🎀 et non 🎁 : les Packs occupent déjà ce glyphe, deux onglets au même
            pictogramme se confondent au coup d'œil. -->
-      <button class="tab" data-tab="gifts">🎀 Cadeaux</button>
-      <button class="tab" data-tab="variants">🎨 Variantes</button>
+      <option value="gifts">🎀 Cadeaux</option>
+      <option value="variants">🎨 Variantes</option>
       <!-- Dos de cartes : le cosmétique que la popup de pioche met en scène.
            Leur art vit dans le dossier des ILLUSTRATIONS, sous l'id du dos —
            comme les variantes : aucune famille d'assets à créer. -->
-      <button class="tab" data-tab="cardbacks">🂠 Dos de cartes</button>
-      <button class="tab" data-tab="stats">📊 Stats</button>
-      <button class="tab" data-tab="db">🗄️ Base SQL</button>
+      <option value="cardbacks">🂠 Dos de cartes</option>
+      <option value="stats">📊 Stats</option>
+      <option value="db">🗄️ Base SQL</option>
       <!-- Le rapport d'équilibrage est un onglet ordinaire : son panneau porte une
            iframe sur /admin/sim, chargée au premier clic. La page reste servie en
            autonome à cette URL — c'est là que la routine quotidienne dépose son run. -->
-      <button class="tab" data-tab="sim" title="Rapport de la simulation d'équilibrage">⚖️ Équilibrage</button>
+      <option value="sim">⚖️ Équilibrage</option>
       <!-- Outil de DIAGNOSTIC TEMPORAIRE (cf. pvplog.js) : les deux vues d'un même
            combat PvP, mises face à face pour trouver où elles divergent. -->
-      <button class="tab" data-tab="pvplogs" title="Logs de combat PvP (diagnostic)">🔬 Logs PvP</button>
+      <option value="pvplogs">🔬 Logs PvP</option>
       <!-- Runs du Labo IA (cf. ailog.js + client/src/dev/AiLab.tsx) : ce que
            l'EnemyAI a tenté, posé et refusé, avec le motif de chaque refus. -->
-      <button class="tab" data-tab="ailogs" title="Décisions de l'IA (Labo IA)">🧠 Logs IA</button>
-    </div>
+      <option value="ailogs">🧠 Logs IA</option>
+    </select>
     <button class="tab-menu-btn" id="tab-menu-btn" onclick="openTabSheet()" aria-haspopup="dialog" aria-controls="tab-sheet">
       <span class="burger" aria-hidden="true">☰</span><span class="label" id="current-tab-name">Cartes</span>
     </button>
@@ -1312,17 +1318,18 @@ async function apiFetch(url, options = {}) {
 
 // ================== TABS ==================
 // ================== NAVIGATION MOBILE (feuille plein écran) ==================
-// 13 onglets ne tiennent pas dans une bande horizontale : la feuille les montre tous
-// d'un coup, sans défilement latéral. Les entrées sont clonées depuis `#main-tabs` à
-// CHAQUE ouverture — un onglet ajouté au balisage y apparaît sans qu'on y pense.
+// 15 onglets ne tiennent pas dans une bande horizontale : la feuille les montre tous
+// d'un coup, sans défilement latéral. Les entrées sont clonées depuis les `<option>`
+// de `#main-tabs` à CHAQUE ouverture — un onglet ajouté au balisage y apparaît sans
+// qu'on y pense.
 function openTabSheet() {
   const body = document.getElementById('tab-sheet-body');
   body.innerHTML = '';
-  document.querySelectorAll('#main-tabs .tab').forEach(t => {
+  document.querySelectorAll('#main-tabs option').forEach(o => {
     const b = document.createElement('button');
-    b.className = 'sheet-item' + (t.dataset.tab === currentTab ? ' active' : '');
-    b.dataset.tab = t.dataset.tab;
-    b.textContent = t.textContent.trim();
+    b.className = 'sheet-item' + (o.value === currentTab ? ' active' : '');
+    b.dataset.tab = o.value;
+    b.textContent = o.textContent.trim();
     body.appendChild(b);
   });
   document.getElementById('tab-sheet').classList.add('open');
@@ -1343,15 +1350,12 @@ function switchTab(tab) {
   document.querySelectorAll('.main').forEach(el => el.classList.add('hidden'));
   document.getElementById(`tab-${tab}`).classList.remove('hidden');
 
-  // ⚠️ Portée `#main-tabs` et non `.tab` : les flèches du pager SQL et les chips de
-  // catégorie du sélecteur d'attributs portent la même classe. Un `querySelectorAll`
-  // global leur retirait leur `.active` à chaque changement d'onglet.
-  document.querySelectorAll('#main-tabs .tab').forEach(el =>
-    el.classList.toggle('active', el.dataset.tab === tab));
+  const select = document.getElementById('main-tabs');
+  if (select) select.value = tab;
   document.querySelectorAll('#tab-sheet [data-tab]').forEach(el =>
     el.classList.toggle('active', el.dataset.tab === tab));
 
-  const label = document.querySelector(`#main-tabs .tab[data-tab="${tab}"]`);
+  const label = document.querySelector(`#main-tabs option[value="${tab}"]`);
   const cur = document.getElementById('current-tab-name');
   if (label && cur) cur.textContent = label.textContent.trim();
 
@@ -1374,10 +1378,10 @@ function switchTab(tab) {
 // Onglets sans sidebar : le FAB (« + ») n'y a rien à ouvrir.
 const NO_FAB_TABS = new Set(['stats', 'db', 'sim', 'pvplogs', 'ailogs']);
 
-// Délégation : la barre et la feuille mobile partagent le même chemin de code.
-// Le garde `data-tab` est obligatoire — un clic ailleurs dans la barre ne doit rien faire.
+// Délégation pour la feuille mobile : le `<select>` desktop passe par son propre
+// `onchange` (ci-dessus dans le balisage), pas par cette délégation de clic.
 document.addEventListener('click', (e) => {
-  const el = e.target.closest('#main-tabs [data-tab], #tab-sheet [data-tab]');
+  const el = e.target.closest('#tab-sheet [data-tab]');
   if (!el || !el.dataset.tab) return;
   switchTab(el.dataset.tab);
   closeTabSheet();
