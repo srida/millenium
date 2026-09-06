@@ -191,14 +191,32 @@ select.filter:focus { border-color: var(--accent); }
 .qbar-opt:hover, .qbar-opt.active { background: var(--surface2); }
 .qbar-opt code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent); }
 .qbar-opt span { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.qsort-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
-.qsort-key { flex: 1; min-width: 0; }
-.qsort-dir { flex-shrink: 0; width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border);
-             background: var(--surface2); color: var(--text); cursor: pointer; font-size: 14px; }
+/* Tri — FUSIONNÉ en un seul widget (champ + sens) : bordure partagée, pas de
+   jointure visible entre les deux, pour tenir sur la même ligne que les
+   boutons d'action (`.list-actions`). */
+.qsort-row { display: flex; flex: 1 1 70px; min-width: 40px; align-items: center; }
+.qsort-key { flex: 1; min-width: 0; border-top-right-radius: 0; border-bottom-right-radius: 0;
+             border-right: none; padding: 6px 4px 6px 8px; font-size: 11px;
+             overflow: hidden; text-overflow: ellipsis; }
+.qsort-dir { flex-shrink: 0; width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--border);
+             border-top-left-radius: 0; border-bottom-left-radius: 0;
+             background: var(--surface2); color: var(--text); cursor: pointer; font-size: 13px; }
 .qsort-dir:disabled { opacity: .35; cursor: default; }
 .qbar-chip { border: 1px solid var(--border); background: var(--surface2); color: var(--muted); border-radius: 999px;
              padding: 4px 10px; font-size: 11px; cursor: pointer; }
 .qbar-chip.on { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
+
+/* Ligne d'actions d'un onglet (tri fusionné + ajout + import + sélection) :
+   TOUJOURS sur une seule ligne, d'où les boutons en icône plutôt qu'en texte. */
+.list-actions { display: flex; gap: 6px; align-items: center; }
+.btn-icon { flex-shrink: 0; width: 30px; height: 30px; padding: 0; border-radius: 6px;
+            border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+            cursor: pointer; font-size: 15px; line-height: 1; display: inline-flex;
+            align-items: center; justify-content: center; }
+.btn-icon:hover { background: var(--border); }
+.btn-icon.active { border-color: var(--accent); color: var(--accent); }
+.btn-icon-primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+.btn-icon-primary:hover { background: #7b73ff; }
 
 /* Count badge */
 .count { background: var(--surface2); color: var(--muted); font-size: 11px; padding: 2px 7px; border-radius: 10px; margin-left: auto; }
@@ -418,6 +436,7 @@ select.filter:focus { border-color: var(--accent); }
   /* Buttons */
   .btn { min-height: 44px; font-size: 14px; }
   .actions { flex-wrap: wrap; gap: 8px; }
+  .btn-icon, .qsort-dir { width: 44px; height: 44px; font-size: 16px; }
 
   /* Illustration overlay always visible on touch */
   .illustration-box .illus-overlay { opacity: 1; }
@@ -563,10 +582,11 @@ select.filter:focus { border-color: var(--accent); }
              Restent les tiers : un tap, le filtre le plus fréquent du fichier.
              Ils n'ont pas d'état à eux, ils ÉCRIVENT dans la requête. -->
         <div id="filter-tier-chips" style="display:flex;gap:5px;flex-wrap:wrap"></div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn btn-primary btn-sm" onclick="openNewCard()">+ Nouvelle carte</button>
-          <button class="btn btn-secondary btn-sm" onclick="openImportModal('cards')">Importer JSON</button>
-          <button class="btn btn-secondary btn-sm" id="btn-select-mode" onclick="toggleSelectionMode()">Sélectionner</button>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-card"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewCard()" title="Nouvelle carte">+</button>
+          <button class="btn-icon" onclick="openImportModal('cards')" title="Importer JSON">⬆</button>
+          <button class="btn-icon" id="btn-select-mode" onclick="toggleSelectionMode()" title="Sélectionner">☑</button>
         </div>
       </div>
       <div id="mass-toolbar" style="display:none"></div>
@@ -585,9 +605,10 @@ select.filter:focus { border-color: var(--accent); }
           <input type="search" id="attr-search" class="qbar" data-query="attr" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('attr')" onkeydown="onQueryKey(event, 'attr')">
           <span id="attr-count" class="count">0</span>
         </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-primary btn-sm" onclick="openNewAttribute()">+ Nouvel attribut</button>
-          <button class="btn btn-secondary btn-sm" onclick="openImportModal('attributes')">Importer JSON</button>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-attr"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewAttribute()" title="Nouvel attribut">+</button>
+          <button class="btn-icon" onclick="openImportModal('attributes')" title="Importer JSON">⬆</button>
         </div>
       </div>
       <div class="sidebar-list" id="attr-list"></div>
@@ -605,9 +626,10 @@ select.filter:focus { border-color: var(--accent); }
           <input type="search" id="power-search" class="qbar" data-query="power" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('power')" onkeydown="onQueryKey(event, 'power')">
           <span id="power-count" class="count">0</span>
         </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-primary btn-sm" onclick="openNewPower()">+ Nouveau pouvoir</button>
-          <button class="btn btn-secondary btn-sm" onclick="openImportModal('powers')">Importer JSON</button>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-power"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewPower()" title="Nouveau pouvoir">+</button>
+          <button class="btn-icon" onclick="openImportModal('powers')" title="Importer JSON">⬆</button>
         </div>
       </div>
       <div class="sidebar-list" id="power-list"></div>
@@ -625,9 +647,10 @@ select.filter:focus { border-color: var(--accent); }
           <input type="search" id="board-search" class="qbar" data-query="board" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('board')" onkeydown="onQueryKey(event, 'board')">
           <span id="board-count" class="count">0</span>
         </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-primary btn-sm" onclick="openNewBoard()">+ Nouveau terrain</button>
-          <button class="btn btn-secondary btn-sm" onclick="openImportModal('boards')">Importer JSON</button>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-board"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewBoard()" title="Nouveau terrain">+</button>
+          <button class="btn-icon" onclick="openImportModal('boards')" title="Importer JSON">⬆</button>
         </div>
       </div>
       <div class="sidebar-list" id="board-list"></div>
@@ -645,9 +668,10 @@ select.filter:focus { border-color: var(--accent); }
           <input type="search" id="magie-search" class="qbar" data-query="magie" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('magie')" onkeydown="onQueryKey(event, 'magie')">
           <span id="magie-count" class="count">0</span>
         </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-primary btn-sm" onclick="openNewMagie()">+ Nouvelle magie</button>
-          <button class="btn btn-secondary btn-sm" onclick="openImportModal('magies')">Importer JSON</button>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-magie"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewMagie()" title="Nouvelle magie">+</button>
+          <button class="btn-icon" onclick="openImportModal('magies')" title="Importer JSON">⬆</button>
         </div>
       </div>
       <div class="sidebar-list" id="magie-list"></div>
@@ -665,9 +689,10 @@ select.filter:focus { border-color: var(--accent); }
           <input type="search" id="variant-search" class="qbar" data-query="variant" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('variant')" onkeydown="onQueryKey(event, 'variant')">
           <span id="variant-count" class="count">0</span>
         </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-primary btn-sm" onclick="openNewVariant()">+ Nouvelle variante</button>
-          <button class="btn btn-secondary btn-sm" onclick="openImportModal('variants')">Importer JSON</button>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-variant"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewVariant()" title="Nouvelle variante">+</button>
+          <button class="btn-icon" onclick="openImportModal('variants')" title="Importer JSON">⬆</button>
         </div>
       </div>
       <div class="sidebar-list" id="variant-list"></div>
@@ -685,9 +710,10 @@ select.filter:focus { border-color: var(--accent); }
           <input type="search" id="cardback-search" class="qbar" data-query="cardback" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('cardback')" onkeydown="onQueryKey(event, 'cardback')">
           <span id="cardback-count" class="count">0</span>
         </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-primary btn-sm" onclick="openNewCardBack()">+ Nouveau dos</button>
-          <button class="btn btn-secondary btn-sm" onclick="openImportModal('card-backs')">Importer JSON</button>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-cardback"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewCardBack()" title="Nouveau dos">+</button>
+          <button class="btn-icon" onclick="openImportModal('card-backs')" title="Importer JSON">⬆</button>
         </div>
       </div>
       <div class="sidebar-list" id="cardback-list"></div>
@@ -705,9 +731,10 @@ select.filter:focus { border-color: var(--accent); }
           <input type="search" id="mission-search" class="qbar" data-query="mission" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('mission')" onkeydown="onQueryKey(event, 'mission')">
           <span id="mission-count" class="count">0</span>
         </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-primary btn-sm" onclick="openNewMission()">+ Nouvelle mission</button>
-          <button class="btn btn-secondary btn-sm" onclick="openImportModal('missions')">Importer JSON</button>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-mission"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewMission()" title="Nouvelle mission">+</button>
+          <button class="btn-icon" onclick="openImportModal('missions')" title="Importer JSON">⬆</button>
         </div>
       </div>
       <div class="sidebar-list" id="mission-list"></div>
@@ -725,9 +752,10 @@ select.filter:focus { border-color: var(--accent); }
           <input type="search" id="gift-search" class="qbar" data-query="gift" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('gift')" onkeydown="onQueryKey(event, 'gift')">
           <span id="gift-count" class="count">0</span>
         </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-primary btn-sm" onclick="openNewGift()">+ Nouveau cadeau</button>
-          <button class="btn btn-secondary btn-sm" onclick="openImportModal('gifts')">Importer JSON</button>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-gift"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewGift()" title="Nouveau cadeau">+</button>
+          <button class="btn-icon" onclick="openImportModal('gifts')" title="Importer JSON">⬆</button>
         </div>
       </div>
       <div class="sidebar-list" id="gift-list"></div>
@@ -745,8 +773,9 @@ select.filter:focus { border-color: var(--accent); }
           <input type="search" id="deck-search" class="qbar" data-query="deck" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('deck')" onkeydown="onQueryKey(event, 'deck')">
           <span id="deck-count" class="count">0</span>
         </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-primary btn-sm" onclick="openNewPublicDeck()">+ Nouveau deck</button>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-deck"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewPublicDeck()" title="Nouveau deck">+</button>
         </div>
       </div>
       <div class="sidebar-list" id="deck-list"></div>
@@ -764,9 +793,10 @@ select.filter:focus { border-color: var(--accent); }
           <input type="search" id="pack-search" class="qbar" data-query="pack" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('pack')" onkeydown="onQueryKey(event, 'pack')">
           <span id="pack-count" class="count">0</span>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn btn-primary btn-sm" onclick="openNewPack()">+ Nouveau pack</button>
-          <button class="btn btn-secondary btn-sm" onclick="openImportModal('sets')">Importer JSON</button>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-pack"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewPack()" title="Nouveau pack">+</button>
+          <button class="btn-icon" onclick="openImportModal('sets')" title="Importer JSON">⬆</button>
         </div>
       </div>
       <div class="sidebar-list" id="pack-list"></div>
@@ -1210,8 +1240,9 @@ function openQueryHelp(kind) {
 const QUERY_REFRESH = {};
 
 /** Enveloppe chaque barre de son bouton d'aide, de sa ligne d'erreur et de sa
- *  liste de complétion. Fait en JS et pas dans le HTML : onze copies du même
- *  balisage auraient divergé au premier ajustement. */
+ *  liste de complétion, puis pose le tri dans le slot `#qsort-<kind>` de la
+ *  ligne d'actions de l'onglet. Fait en JS et pas dans le HTML : onze copies
+ *  du même balisage auraient divergé au premier ajustement. */
 function attachQueryBars() {
   for (const input of document.querySelectorAll('input.qbar')) {
     const kind = input.dataset.query;
@@ -1219,9 +1250,8 @@ function attachQueryBars() {
     wrap.className = 'qbar-wrap';
     input.parentNode.insertBefore(wrap, input);
     // ⚠️ La liste de complétion est ancrée à la RANGÉE du champ, pas à
-    // l'enveloppe : depuis que le tri s'y ajoute, un ancrage sur l'enveloppe
-    // l'aurait fait apparaître SOUS la commande de tri, détachée du champ
-    // qu'elle complète.
+    // l'enveloppe : un ancrage sur l'enveloppe l'aurait fait apparaître SOUS
+    // la ligne d'erreur, détachée du champ qu'elle complète.
     wrap.innerHTML = `<div class="qbar-row"><div class="qbar-drop" id="qdrop-${kind}" hidden></div></div>
                       <div class="qbar-err" id="qerr-${kind}" hidden></div>`;
     const row = wrap.querySelector('.qbar-row');
@@ -1235,16 +1265,20 @@ function attachQueryBars() {
     // second inventaire aurait dérivé du premier au premier champ ajouté. Les
     // listes ouvertes (attributs, matériaux, lignée) s'en excluent elles-mêmes
     // — les ranger reviendrait à trier sur leur premier élément.
+    // ⚠️ Le tri est injecté dans le SLOT `#qsort-<kind>` de la ligne d'actions
+    // (`.list-actions`), pas ajouté à la suite de la barre : c'est ce qui le
+    // met sur la même ligne que les boutons d'ajout / import / sélection.
     const opts = CQ.sortableFields(QUERY_SCHEMAS[kind])
       .map(f => `<option value="${esc(f.key)}">${esc(f.label)}</option>`).join('');
-    wrap.insertAdjacentHTML('beforeend', `
-      <div class="qsort-row">
-        <select class="filter qsort-key" id="qsort-key-${kind}" onchange="setQuerySortKey('${kind}', this.value)">
-          <option value="">Ordre du catalogue</option>${opts}
+    const sortSlot = document.getElementById(`qsort-${kind}`);
+    if (sortSlot) {
+      sortSlot.innerHTML = `
+        <select class="filter qsort-key" id="qsort-key-${kind}" onchange="setQuerySortKey('${kind}', this.value)" title="Trier par">
+          <option value="">Défaut</option>${opts}
         </select>
         <button type="button" class="qsort-dir" id="qsort-dir-${kind}"
-                onclick="toggleQuerySortDir('${kind}')" title="Croissant" disabled>↑</button>
-      </div>`);
+                onclick="toggleQuerySortDir('${kind}')" title="Croissant" disabled>↑</button>`;
+    }
     QUERY_SORT[kind] = { key: '', dir: 'asc' };
   }
 }
@@ -7137,7 +7171,11 @@ function toggleSelectionMode() {
   selectionMode = !selectionMode;
   if (!selectionMode) bulkSelected.clear();
   const btn = document.getElementById('btn-select-mode');
-  if (btn) btn.textContent = selectionMode ? 'Terminer' : 'Sélectionner';
+  if (btn) {
+    btn.textContent = selectionMode ? '✕' : '☑';
+    btn.title = selectionMode ? 'Terminer' : 'Sélectionner';
+    btn.classList.toggle('active', selectionMode);
+  }
   filterCards();
   renderMassToolbar();
 }
