@@ -1918,7 +1918,7 @@ function renderCardList(list = cards) {
           <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name}</span>
           <div style="display:flex;gap:4px;margin-top:3px">
             ${tierBadges(c)}
-            <span class="badge" style="background:var(--surface2);color:${costColor(c)};font-size:10px">${costLabel(c)}</span>
+            <span class="badge" style="background:var(--surface2);color:#78c8a8;font-size:10px">◈${cardMaterialValue(c)}</span>
             ${hasMultipleConditions(c) ? `<span class="badge" style="background:var(--surface2);color:#e07be0;font-size:10px">🔀 ${cardConditions(c).length}</span>` : ''}
           </div>
         </div>
