@@ -1,5 +1,5 @@
 // Primitives du design system Millenium (Tailwind v4, mobile-first, tap ≥ 44px).
-import { useEffect, useState, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEventHandler, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
 import { illustrationUrl } from '../../data/CardArt.js';
@@ -7,17 +7,69 @@ import { illustrationUrl } from '../../data/CardArt.js';
 type Variant = 'primary' | 'ghost' | 'danger';
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-gold/20 border-gold text-gold hover:bg-gold/30',
-  ghost: 'bg-surface-raised border-line text-white/90 hover:bg-white/5',
-  danger: 'bg-danger/15 border-danger text-danger hover:bg-danger/25',
+  primary: 'bg-gradient-to-b from-gold/30 to-gold/10 border-gold/70 text-gold hover:brightness-110',
+  ghost: 'bg-gradient-to-b from-white/10 to-white/[0.03] border-line text-white/90 hover:brightness-110',
+  danger: 'bg-gradient-to-b from-danger/30 to-danger/10 border-danger/70 text-danger hover:brightness-110',
 };
 
+// Un bouton d'INTERFACE, pas un lien de page web : l'enfoncement se voit
+// (relief qui se creuse) et se sent (un temps de course avant que l'action ne
+// parte), comme sous un moteur de jeu. Sans ça un `onPointerDown` déclenche
+// au premier contact du doigt — y compris celui d'un geste de défilement qui
+// commence sur le bouton — d'où l'impression de commandes trop nerveuses.
+const SQUASH_DELAY_MS = 90;
+
+/**
+ * Anime l'enfoncement d'un bouton et RETARDE l'action de `SQUASH_DELAY_MS` :
+ * le temps de course se voit avant que le geste ne compte. Si le doigt QUITTE
+ * le bouton avant l'échéance (glissade, début de défilement), l'action est
+ * annulée — c'est ce qui absorbe le tap accidentel plutôt que la vitesse de
+ * réaction du joueur.
+ */
+function usePressSquash(onPointerDown: PointerEventHandler<HTMLButtonElement> | undefined, disabled: boolean | undefined) {
+  const [squashed, setSquashed] = useState(false);
+  const timer = useRef<number | null>(null);
+
+  const clearTimer = () => {
+    if (timer.current !== null) { window.clearTimeout(timer.current); timer.current = null; }
+  };
+  useEffect(() => clearTimer, []);
+
+  const handleDown: PointerEventHandler<HTMLButtonElement> = (e) => {
+    if (disabled) return;
+    setSquashed(true);
+    if (onPointerDown) {
+      clearTimer();
+      timer.current = window.setTimeout(() => onPointerDown(e), SQUASH_DELAY_MS);
+    }
+  };
+  const release = () => setSquashed(false);
+  const cancelPending = () => { clearTimer(); setSquashed(false); };
+
+  return {
+    squashed,
+    handlers: {
+      onPointerDown: handleDown,
+      onPointerUp: release,
+      onPointerLeave: cancelPending,
+      onPointerCancel: cancelPending,
+    },
+  };
+}
+
+const BUTTON_BASE = 'inline-flex min-h-tap items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold tracking-wide transition-[transform,box-shadow,filter] duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 disabled:scale-100';
+const SHADOW_IDLE = 'shadow-[0_2px_0_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.12)]';
+const SHADOW_SQUASHED = 'translate-y-[2px] scale-[0.98] shadow-[inset_0_1px_3px_0_rgba(0,0,0,0.45)]';
+
 export function Button({
-  variant = 'ghost', className = '', children, ...rest
+  variant = 'ghost', className = '', children, onPointerDown, disabled, ...rest
 }: { variant?: Variant } & ButtonHTMLAttributes<HTMLButtonElement>) {
+  const { squashed, handlers } = usePressSquash(onPointerDown, disabled);
   return (
     <button
-      className={`inline-flex min-h-tap items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold tracking-wide transition-colors active:opacity-80 disabled:cursor-not-allowed disabled:opacity-40 ${VARIANTS[variant]} ${className}`}
+      disabled={disabled}
+      className={`${BUTTON_BASE} ${VARIANTS[variant]} ${squashed && !disabled ? SHADOW_SQUASHED : SHADOW_IDLE} ${className}`}
+      {...handlers}
       {...rest}
     >
       {children}
@@ -85,6 +137,8 @@ export function IconButton({
   className?: string;
   onTap: () => void;
 }) {
+  const { squashed, handlers } = usePressSquash(compact ? onTap : undefined, disabled);
+
   if (!compact) {
     return (
       <Button
@@ -98,13 +152,13 @@ export function IconButton({
     <button
       type="button"
       disabled={disabled}
-      onPointerDown={onTap}
       title={label}
       aria-label={label}
       aria-pressed={pressed}
       className={`group -my-2 flex min-h-tap min-w-tap items-center justify-center disabled:cursor-not-allowed disabled:opacity-30 ${className}`}
+      {...handlers}
     >
-      <span className={`flex h-7 w-7 items-center justify-center rounded-md border text-[11px] transition-opacity group-active:opacity-70 ${chipClassName}`}>
+      <span className={`flex h-7 w-7 items-center justify-center rounded-md border text-[11px] transition-[transform,box-shadow] duration-100 ease-out ${squashed && !disabled ? 'scale-90 shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.5)]' : 'shadow-[0_1px_0_0_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.15)]'} ${chipClassName}`}>
         {icon}
       </span>
     </button>
