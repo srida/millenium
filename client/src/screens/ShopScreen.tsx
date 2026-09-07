@@ -98,7 +98,7 @@ export default function ShopScreen() {
         {notice && (
           <button
             onPointerDown={dismissNotice}
-            className="rounded-lg border border-gold/50 bg-gold/10 px-3 py-2 text-left text-xs text-gold"
+            className="rounded-lg border border-gold bg-[color-mix(in_srgb,var(--color-gold)_16%,var(--color-surface-raised))] px-3 py-2 text-left text-xs text-gold"
           >
             🏅 {notice}
           </button>
@@ -181,7 +181,7 @@ function CosmeticsTab() {
       {notice && (
         <button
           onPointerDown={dismissNotice}
-          className="rounded-lg border border-gold/50 bg-gold/10 px-3 py-2 text-left text-xs text-gold"
+          className="rounded-lg border border-gold bg-[color-mix(in_srgb,var(--color-gold)_16%,var(--color-surface-raised))] px-3 py-2 text-left text-xs text-gold"
         >
           ✨ {notice}
         </button>
@@ -513,7 +513,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
                 disabled={busy}
                 onTap={async () => setErr(await reroll(slot.slot))}
                 label="Changer cette proposition (1 gratuit par jour)"
-                chipClassName="border-line text-white/50"
+                chipClassName="border-line bg-surface-raised text-white/50"
               />
             )}
             <IconButton
@@ -527,7 +527,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
                   ? 'Conserver celui-ci demain (déplace l\'épingle posée sur un autre emplacement)'
                   : 'Conserver cette carte à la prochaine rotation'}
               pressed={slot.pinned}
-              chipClassName={slot.pinned ? 'border-tier-5 bg-tier-5/15 text-tier-5' : 'border-line text-white/50'}
+              chipClassName={slot.pinned ? 'border-tier-5 bg-tier-5 text-black' : 'border-line bg-surface-raised text-white/50'}
             />
           </>
         )}

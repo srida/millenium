@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { CHAPTERS, type Chapter } from '../data/tutorialContent.js';
 import { getProgress, markChapterRead, updateProgress, type TutorialProgress } from '../data/tutorialProgress.js';
-import { Button } from '../components/ui/primitives.js';
+import { Button, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_GOLD, usePressSquash } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import ChapterBlockView from '../components/tutorial/ChapterBlocks.js';
 
@@ -92,7 +92,7 @@ function TableOfContents({
             <button
               key={c.id}
               onPointerDown={() => onOpen(idx)}
-              className="flex min-h-tap items-start gap-3 rounded-xl border border-line bg-surface-raised/70 p-3 text-left active:opacity-80"
+              className="flex min-h-tap items-start gap-3 rounded-xl border border-line bg-surface-raised p-3 text-left active:opacity-80"
             >
               <span className="text-xl leading-none" aria-hidden>{c.icon}</span>
               <span className="min-w-0 flex-1">
@@ -129,10 +129,12 @@ function TableOfContents({
 }
 
 function PracticeButton({ label, hint, done, onTap }: { label: string; hint: string; done: boolean; onTap: () => void }) {
+  const { squashed, handlers } = usePressSquash<HTMLButtonElement>(onTap, false);
   return (
     <button
-      onPointerDown={onTap}
-      className="flex min-h-tap flex-col items-start justify-center rounded-xl border border-gold/50 bg-gold/10 px-4 py-2.5 text-left active:opacity-80"
+      type="button"
+      className={`flex min-h-tap flex-col items-start justify-center rounded-xl border px-4 py-2.5 text-left transition-[transform,box-shadow] duration-100 ease-out ${SURFACE_GOLD} ${squashed ? SHADOW_SQUASHED : SHADOW_IDLE}`}
+      {...handlers}
     >
       <span className="flex w-full items-center gap-2">
         <span className="text-sm font-semibold text-gold">{label}</span>

@@ -17,7 +17,7 @@
 //
 // Le Tournoi et « Jouer » (le duel en ligne) ne passent plus par ici : ils
 // consomment le deck actif.
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import * as CardDatabase from '../data/CardDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
@@ -25,7 +25,7 @@ import { computeDeckTags } from '../data/DeckTags.js';
 import type { Card } from '../logic/types.js';
 import { useDeckStore, type DeckSummary } from '../stores/deckStore.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
-import { Button, IconButton, Modal } from '../components/ui/primitives.js';
+import { Button, IconButton, Modal, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_DANGER, SURFACE_GOLD, SURFACE_NEUTRAL, usePressSquash } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 
@@ -181,21 +181,15 @@ export default function DeckSelector() {
               <div className="h-px flex-1 bg-line" />
             </div>
             <div className="flex gap-2">
-              <button
-                onPointerDown={() => setEnemyId(null)}
-                className={`min-h-tap flex-1 rounded-xl border px-3 py-2 text-left active:opacity-80 ${enemyId === null ? 'border-enemy bg-enemy/10' : 'border-line bg-surface-raised/70'}`}
-              >
+              <SelectionButton tone={enemyId === null ? 'danger' : 'neutral'} onPointerDown={() => setEnemyId(null)}>
                 <span className="block text-sm font-semibold">🪞 Miroir</span>
                 <span className="block text-[10px] text-white/50">l'IA joue ton deck</span>
-              </button>
+              </SelectionButton>
               {drawable.length > 0 && (
-                <button
-                  onPointerDown={randomEnemy}
-                  className="min-h-tap flex-1 rounded-xl border border-line bg-surface-raised/70 px-3 py-2 text-left active:opacity-80"
-                >
+                <SelectionButton tone="neutral" onPointerDown={randomEnemy}>
                   <span className="block text-sm font-semibold">🎲 Aléatoire</span>
                   <span className="block text-[10px] text-white/50">tire un deck au hasard</span>
-                </button>
+                </SelectionButton>
               )}
             </div>
             {publicDecks === null && <div className="py-8 text-center text-xs text-white/40">Chargement des decks…</div>}
@@ -284,6 +278,23 @@ export default function DeckSelector() {
   );
 }
 
+// Bouton à deux lignes (titre + sous-titre) — Miroir / Aléatoire ci-dessus.
+// Même relief et même délai que `Button` (cf. `primitives.tsx`), sur une mise
+// en page que la primitive générique ne porte pas.
+function SelectionButton({ tone, onPointerDown, children }: { tone: 'gold' | 'danger' | 'neutral'; onPointerDown: () => void; children: ReactNode }) {
+  const { squashed, handlers } = usePressSquash<HTMLButtonElement>(onPointerDown, false);
+  const surface = tone === 'gold' ? SURFACE_GOLD : tone === 'danger' ? SURFACE_DANGER : SURFACE_NEUTRAL;
+  return (
+    <button
+      type="button"
+      className={`min-h-tap flex-1 rounded-xl border px-3 py-2 text-left transition-[transform,box-shadow] duration-100 ease-out ${surface} ${squashed ? SHADOW_SQUASHED : SHADOW_IDLE}`}
+      {...handlers}
+    >
+      {children}
+    </button>
+  );
+}
+
 function DeckCard({
   deck, avatar, difficulty, active, foe, showActions, onSelect, onEdit, onDuplicate, onRename, onDelete,
 }: {
@@ -292,12 +303,16 @@ function DeckCard({
 }) {
   const valid = deck.count >= MIN_DECK;
   const hex = deck.color ?? '#a86ee7';
-  const border = foe ? 'border-enemy' : active && showActions ? 'border-gold' : 'border-line';
+  const surface = foe ? SURFACE_DANGER : active && showActions ? SURFACE_GOLD : SURFACE_NEUTRAL;
+  const { squashed, handlers } = usePressSquash<HTMLDivElement>(onSelect, false);
   return (
     <div
-      onPointerDown={onSelect}
-      // `min-w-0` : item de grille, cf. `BoosterCard` (ShopScreen).
-      className={`min-w-0 rounded-xl border bg-surface-raised/70 p-3 transition-colors ${border}`}
+      // `min-w-0` : item de grille, cf. `BoosterCard` (ShopScreen). La carte
+      // EST le bouton de sélection : même relief et même délai que les
+      // boutons du menu (`usePressSquash`), la couleur en dit l'état plutôt
+      // qu'un simple liseré sur fond translucide.
+      className={`min-w-0 rounded-xl border p-3 transition-[transform,box-shadow] duration-100 ease-out ${surface} ${squashed ? SHADOW_SQUASHED : SHADOW_IDLE}`}
+      {...handlers}
     >
       <div className="flex items-center gap-2">
         {/* Deck public : son portrait. Deck du joueur : la pastille de couleur,

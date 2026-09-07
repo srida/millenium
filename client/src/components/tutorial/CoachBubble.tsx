@@ -31,7 +31,7 @@ export function CoachBubble({
         <button
           type="button"
           onPointerDown={(e) => { e.stopPropagation(); onAction?.(); }}
-          className="mt-2 min-h-tap w-full rounded-lg border border-gold bg-gold/20 text-sm font-semibold text-gold active:opacity-80"
+          className="mt-2 min-h-tap w-full rounded-lg border border-gold bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-sm font-semibold text-gold active:opacity-80"
         >
           {action}
         </button>
