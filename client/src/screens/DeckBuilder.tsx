@@ -18,7 +18,7 @@ import { useDeckStore } from '../stores/deckStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
 import { useCosmeticStore } from '../stores/cosmeticStore.js';
-import { Button } from '../components/ui/primitives.js';
+import { Button, usePressSquash } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import QueryBar from '../components/ui/QueryBar.js';
@@ -462,11 +462,62 @@ export default function DeckBuilder() {
 }
 
 function Chip({ active, onTap, children }: { active: boolean; onTap: () => void; children: ReactNode }) {
+  const { handlers } = usePressSquash<HTMLButtonElement>(onTap, false);
   return (
     <button
-      onPointerDown={onTap}
+      type="button"
       className={`min-h-tap rounded-full border px-3 text-xs font-semibold ${active ? 'border-gold bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'border-line bg-surface-raised text-white/60'}`}
+      {...handlers}
     >{children}</button>
+  );
+}
+
+// Pastille de couleur du deck, dans la section « Deck » — panneau qui
+// défile. Même garde-fou anti-défilement que le reste du menu.
+function ColorSwatchButton({ color, active, onTap }: { color: string; active: boolean; onTap: () => void }) {
+  const { handlers } = usePressSquash<HTMLButtonElement>(onTap, false);
+  return (
+    <button
+      type="button"
+      className={`h-7 w-7 rounded-full ${active ? 'ring-2 ring-gold ring-offset-2 ring-offset-surface' : ''}`}
+      style={{ background: color }}
+      {...handlers}
+    />
+  );
+}
+
+function CardBackButton({ active, onTap, ariaLabel, title, children }: {
+  active: boolean; onTap: () => void; ariaLabel: string; title: string; children: ReactNode;
+}) {
+  const { handlers } = usePressSquash<HTMLButtonElement>(onTap, false);
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      title={title}
+      className={`flex aspect-[3/4] items-center justify-center overflow-hidden rounded-lg border text-lg text-white/40 ${active ? 'border-gold' : 'border-line'} bg-surface-raised active:opacity-80`}
+      {...handlers}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Bouton skin (🎨), FRÈRE de la vignette qu'il habille (cf. commentaire à
+// l'appel) — le `stopPropagation` doit donc survivre au partage du hook.
+function SkinButton({ card, skinned, onTap }: { card: Card; skinned: boolean; onTap: () => void }) {
+  const { handlers } = usePressSquash<HTMLButtonElement>(onTap, false);
+  return (
+    <button
+      type="button"
+      title="Choisir l'illustration"
+      aria-label={`Illustration de ${card.name}`}
+      className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border bg-surface/90 text-[11px] ${skinned ? 'border-gold' : 'border-line'}`}
+      {...handlers}
+      onPointerDown={(e) => { e.stopPropagation(); handlers.onPointerDown(e); }}
+    >
+      🎨
+    </button>
   );
 }
 
@@ -561,6 +612,7 @@ function DeckPanel({
   deckData, tierMax, name, setName, color, setColor, showColor = true, onRemove, owns, onClear,
   variants = {}, onSkin, ownedVariantsFor, cardBack = null, setCardBack, ownedCardBacks = [],
 }: any) {
+  const clearHandlers = usePressSquash<HTMLButtonElement>(onClear, false).handlers;
   return (
     <div className="min-h-0 flex-1 overflow-y-auto p-3">
       <input
@@ -574,11 +626,7 @@ function DeckPanel({
           <div className="mb-1 text-[10px] tracking-widest text-white/40">COULEUR DU DECK</div>
           <div className="flex flex-wrap gap-2">
             {DECK_COLORS.map(c => (
-              <button
-                key={c} onPointerDown={() => setColor(c)}
-                className={`h-7 w-7 rounded-full ${color === c ? 'ring-2 ring-gold ring-offset-2 ring-offset-surface' : ''}`}
-                style={{ background: c }}
-              />
+              <ColorSwatchButton key={c} color={c} active={color === c} onTap={() => setColor(c)} />
             ))}
           </div>
         </div>
@@ -593,23 +641,15 @@ function DeckPanel({
         <div className="mt-3">
           <div className="mb-1 text-[10px] tracking-widest text-white/40">DOS DE CARTE</div>
           <div className="grid grid-cols-5 gap-2 sm:grid-cols-8">
-            <button
-              type="button"
-              onPointerDown={() => setCardBack(null)}
-              aria-label="Dos par défaut"
-              title="Dos par défaut (celui de ton profil)"
-              className={`flex aspect-[3/4] items-center justify-center overflow-hidden rounded-lg border text-lg text-white/40 ${cardBack === null ? 'border-gold' : 'border-line'} bg-surface-raised active:opacity-80`}
-            >
-              ✦
-            </button>
+            <CardBackButton
+              active={cardBack === null} onTap={() => setCardBack(null)}
+              ariaLabel="Dos par défaut" title="Dos par défaut (celui de ton profil)"
+            >✦</CardBackButton>
             {ownedCardBacks.map((b: { id: string; name: string }) => (
-              <button
+              <CardBackButton
                 key={b.id}
-                type="button"
-                onPointerDown={() => setCardBack(b.id)}
-                aria-label={`Dos ${b.name}`}
-                title={b.name}
-                className={`aspect-[3/4] overflow-hidden rounded-lg border ${cardBack === b.id ? 'border-gold' : 'border-line'} bg-surface-raised active:opacity-80`}
+                active={cardBack === b.id} onTap={() => setCardBack(b.id)}
+                ariaLabel={`Dos ${b.name}`} title={b.name}
               >
                 <img
                   src={illustrationUrl(b.id)}
@@ -620,7 +660,7 @@ function DeckPanel({
                   // sur le défaut à l'usage), seule l'image disparaît.
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                 />
-              </button>
+              </CardBackButton>
             ))}
           </div>
         </div>
@@ -661,17 +701,7 @@ function DeckPanel({
                               de la vignette — un pointerdown qui l'atteint n'arme
                               jamais le retrait (et un <button> imbriqué serait du
                               HTML invalide). */}
-                          {skins.length > 0 && (
-                            <button
-                              type="button"
-                              title="Choisir l'illustration"
-                              aria-label={`Illustration de ${c.name}`}
-                              onPointerDown={(e) => { e.stopPropagation(); onSkin?.(c); }}
-                              className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border bg-surface/90 text-[11px] ${skinned ? 'border-gold' : 'border-line'}`}
-                            >
-                              🎨
-                            </button>
-                          )}
+                          {skins.length > 0 && <SkinButton card={c} skinned={skinned} onTap={() => onSkin?.(c)} />}
                         </div>
                       );
                     })}
@@ -682,7 +712,7 @@ function DeckPanel({
         })}
       </div>
 
-      <button onPointerDown={onClear} className="mt-4 w-full text-center text-xs text-white/40 underline">
+      <button type="button" className="mt-4 w-full text-center text-xs text-white/40 underline" {...clearHandlers}>
         Vider le deck
       </button>
     </div>

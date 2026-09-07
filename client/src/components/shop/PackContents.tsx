@@ -25,7 +25,7 @@ import { primaryTier, tiersOf, hasTier } from '../../logic/Tiers.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { useCollectionStore } from '../../stores/collectionStore.js';
 import type { ShopSet } from '../../stores/shopStore.js';
-import { Button, Gauge } from '../ui/primitives.js';
+import { Button, Gauge, usePressSquash } from '../ui/primitives.js';
 import CardTile, { cardTileProps } from '../ui/CardTile.js';
 
 const TIER_TEXT: Record<number, string> = {
@@ -69,11 +69,12 @@ export function PackPoster({ set, className }: { set: ShopSet; className: string
 }
 
 function Chip({ active, onTap, children }: { active: boolean; onTap: () => void; children: ReactNode }) {
+  const { handlers } = usePressSquash<HTMLButtonElement>(onTap, false);
   return (
     <button
       type="button"
-      onPointerDown={onTap}
       className={`min-h-tap rounded-full border px-3 text-xs font-semibold ${active ? 'border-gold bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'border-line bg-surface-raised text-white/60'}`}
+      {...handlers}
     >{children}</button>
   );
 }

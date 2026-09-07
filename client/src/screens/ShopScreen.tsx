@@ -24,7 +24,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
 import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant, type CosmeticCardBack } from '../stores/cosmeticStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
-import { Amount, Button, Countdown, Gauge, IconButton, Illustration, LoadState, Modal, Panel } from '../components/ui/primitives.js';
+import { Amount, Button, Countdown, Gauge, IconButton, Illustration, LoadState, Modal, Panel, usePressSquash } from '../components/ui/primitives.js';
 import { CURRENCY, CURRENCY_BY_WIRE, fmt, type WireCurrency } from '../components/ui/currency.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
@@ -591,6 +591,7 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
 
   const missing = set.card_count - set.owned_count;
   const disabled = busy || set.complete || !set.booster_enabled;
+  const openContents = usePressSquash<HTMLButtonElement>(() => setContents(true), false);
 
   // `card_count` est un plafond : quand il reste moins de cartes que ça dans le
   // pack, le booster rend ce qu'il reste, au plein tarif. La confirmation est
@@ -621,9 +622,9 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
           et le tap d'achat ne doit pas ouvrir la vue au passage. */}
       <button
         type="button"
-        onPointerDown={() => setContents(true)}
         aria-label={`Voir le contenu du pack ${set.name}`}
         className="flex w-full items-start gap-2 text-left"
+        {...openContents.handlers}
       >
         <PackPoster set={set} className="h-12 w-12" />
         <div className="min-w-0 flex-1">
