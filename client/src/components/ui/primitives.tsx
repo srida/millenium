@@ -6,10 +6,21 @@ import { illustrationUrl } from '../../data/CardArt.js';
 
 type Variant = 'primary' | 'ghost' | 'danger';
 
+// Surfaces OPAQUES (aucun canal alpha) : un bouton de jeu est peint, il ne
+// laisse rien voir au travers. `color-mix` teinte un dégradé de bevel à
+// partir des couleurs du thème sans jamais recourir à une couleur `/NN`
+// (qui resterait transparente quel que soit ce qu'il y a dessous — carte,
+// illustration, panneau en scroll). Exportées : `DeckSelector` (sélection de
+// deck / d'adversaire) réutilise ces mêmes surfaces plutôt que d'inventer les
+// siennes — « une règle n'existe qu'à un endroit ».
+export const SURFACE_GOLD = 'bg-gradient-to-b from-[color-mix(in_srgb,var(--color-gold)_32%,var(--color-surface-raised))] to-[color-mix(in_srgb,var(--color-gold)_14%,var(--color-surface))] border-gold';
+export const SURFACE_NEUTRAL = 'bg-gradient-to-b from-[color-mix(in_srgb,white_10%,var(--color-surface-raised))] to-surface border-line';
+export const SURFACE_DANGER = 'bg-gradient-to-b from-[color-mix(in_srgb,var(--color-danger)_32%,var(--color-surface-raised))] to-[color-mix(in_srgb,var(--color-danger)_14%,var(--color-surface))] border-danger';
+
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-gradient-to-b from-gold/30 to-gold/10 border-gold/70 text-gold hover:brightness-110',
-  ghost: 'bg-gradient-to-b from-white/10 to-white/[0.03] border-line text-white/90 hover:brightness-110',
-  danger: 'bg-gradient-to-b from-danger/30 to-danger/10 border-danger/70 text-danger hover:brightness-110',
+  primary: `${SURFACE_GOLD} text-gold hover:brightness-110`,
+  ghost: `${SURFACE_NEUTRAL} text-white/90 hover:brightness-110`,
+  danger: `${SURFACE_DANGER} text-danger hover:brightness-110`,
 };
 
 // Un bouton d'INTERFACE, pas un lien de page web : l'enfoncement se voit
@@ -25,8 +36,15 @@ const SQUASH_DELAY_MS = 45;
  * le bouton avant l'échéance (glissade, début de défilement), l'action est
  * annulée — c'est ce qui absorbe le tap accidentel plutôt que la vitesse de
  * réaction du joueur.
+ *
+ * Générique sur l'élément (`<button>` comme un `<div>` tap-cible, ex. la
+ * carte de deck du `DeckSelector`) : exportée pour que tout ce qui se
+ * comporte comme un bouton du jeu — sans être un `<button>` — porte le même
+ * relief et le même délai, au lieu d'un second mécanisme réinventé à côté.
  */
-function usePressSquash(onPointerDown: PointerEventHandler<HTMLButtonElement> | undefined, disabled: boolean | undefined) {
+export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
+  onPointerDown: PointerEventHandler<T> | undefined, disabled: boolean | undefined,
+) {
   const [squashed, setSquashed] = useState(false);
   const timer = useRef<number | null>(null);
 
@@ -35,7 +53,7 @@ function usePressSquash(onPointerDown: PointerEventHandler<HTMLButtonElement> | 
   };
   useEffect(() => clearTimer, []);
 
-  const handleDown: PointerEventHandler<HTMLButtonElement> = (e) => {
+  const handleDown: PointerEventHandler<T> = (e) => {
     if (disabled) return;
     setSquashed(true);
     if (onPointerDown) {
@@ -58,13 +76,13 @@ function usePressSquash(onPointerDown: PointerEventHandler<HTMLButtonElement> | 
 }
 
 const BUTTON_BASE = 'inline-flex min-h-tap items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold tracking-wide transition-[transform,box-shadow,filter] duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 disabled:scale-100';
-const SHADOW_IDLE = 'shadow-[0_2px_0_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.12)]';
-const SHADOW_SQUASHED = 'translate-y-[2px] scale-[0.98] shadow-[inset_0_1px_3px_0_rgba(0,0,0,0.45)]';
+export const SHADOW_IDLE = 'shadow-[0_2px_0_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.12)]';
+export const SHADOW_SQUASHED = 'translate-y-[2px] scale-[0.98] shadow-[inset_0_1px_3px_0_rgba(0,0,0,0.45)]';
 
 export function Button({
   variant = 'ghost', className = '', children, onPointerDown, disabled, ...rest
 }: { variant?: Variant } & ButtonHTMLAttributes<HTMLButtonElement>) {
-  const { squashed, handlers } = usePressSquash(onPointerDown, disabled);
+  const { squashed, handlers } = usePressSquash<HTMLButtonElement>(onPointerDown, disabled);
   return (
     <button
       disabled={disabled}
@@ -132,7 +150,10 @@ export function IconButton({
   compact?: boolean;
   pressed?: boolean;
   disabled?: boolean;
-  /** Habillage du chip en mode `compact` (bordure/fond/teinte selon l'état). */
+  /** Habillage du chip en mode `compact` (bordure/fond/teinte selon l'état).
+   *  ⚠️ Doit fournir un FOND OPAQUE (`bg-surface-raised`, `SURFACE_GOLD`…) —
+   *  le chip n'en pose aucun par défaut, pour ne jamais faire cohabiter deux
+   *  classes `bg-*` concurrentes sur le même élément (cf. `CardTile`). */
   chipClassName?: string;
   className?: string;
   onTap: () => void;

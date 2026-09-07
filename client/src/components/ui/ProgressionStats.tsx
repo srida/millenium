@@ -13,7 +13,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../stores/authStore.js';
 import type { AuthUser, LevelReward } from '../../stores/authStore.js';
-import { Amount, Button, CountBadge, Gauge, Illustration, Modal, Panel } from './primitives.js';
+import { Amount, Button, CountBadge, Gauge, Illustration, Modal, Panel, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_NEUTRAL, usePressSquash } from './primitives.js';
 import { CURRENCIES, CURRENCY, fmt, XP_ICON } from './currency.js';
 
 // Palier de niveau — doit rester aligné sur `XP_PER_LEVEL` de progression.js
@@ -102,15 +102,16 @@ export function ProgressionPills({ user, className = '', onOpen }: { user: AuthU
 export function ProfilePill({ user, onPointerDown, compact = false, className = '' }: { user: AuthUser; onPointerDown?: () => void; compact?: boolean; className?: string }) {
   const avatar = (user.avatar ?? '').trim();
   const isImg = /^(https?:|data:|\/)/i.test(avatar);
+  const { squashed, handlers } = usePressSquash<HTMLButtonElement>(onPointerDown, false);
 
   return (
     <button
-      onPointerDown={onPointerDown}
       title="Profil"
       aria-label={`Profil de ${user.username}`}
-      className={`flex min-h-tap items-center gap-2 rounded-full border border-line bg-surface-raised/70 px-2 py-1 active:opacity-80 ${compact ? 'pr-2 sm:pr-3' : 'pr-3'} ${className}`}
+      className={`flex min-h-tap items-center gap-2 rounded-full border px-2 py-1 transition-[transform,box-shadow] duration-100 ease-out ${SURFACE_NEUTRAL} ${squashed ? SHADOW_SQUASHED : SHADOW_IDLE} ${compact ? 'pr-2 sm:pr-3' : 'pr-3'} ${className}`}
+      {...handlers}
     >
-      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-gold/40 bg-surface text-xs">
+      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-gold bg-surface text-xs">
         {avatar
           ? (isImg ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : <span>{avatar.slice(0, 2)}</span>)
           : <span>{user.username.slice(0, 1).toUpperCase()}</span>}

@@ -66,7 +66,7 @@ export default function AuthScreen() {
             <button
               key={m}
               onPointerDown={() => { setMode(m); setError(null); setNotice(null); }}
-              className={`min-h-tap flex-1 text-sm font-semibold ${mode === m ? 'bg-gold/20 text-gold' : 'bg-surface-raised text-white/60'}`}
+              className={`min-h-tap flex-1 text-sm font-semibold ${mode === m ? 'bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'bg-surface-raised text-white/60'}`}
             >
               {m === 'login' ? 'Se connecter' : "S'inscrire"}
             </button>

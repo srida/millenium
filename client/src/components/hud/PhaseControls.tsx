@@ -97,7 +97,7 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
               <button
                 key={s}
                 onPointerDown={(e) => { e.stopPropagation(); controller.setSpeed(s); }}
-                className={`min-h-tap px-2 text-sm font-semibold ${s === speed ? 'bg-gold/20 text-gold' : 'bg-surface-raised text-white/70'}`}
+                className={`min-h-tap px-2 text-sm font-semibold ${s === speed ? 'bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'bg-surface-raised text-white/70'}`}
               >×{s}</button>
             ))}
           </div>

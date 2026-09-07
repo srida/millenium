@@ -73,7 +73,7 @@ function Chip({ active, onTap, children }: { active: boolean; onTap: () => void;
     <button
       type="button"
       onPointerDown={onTap}
-      className={`min-h-tap rounded-full border px-3 text-xs font-semibold ${active ? 'border-gold bg-gold/20 text-gold' : 'border-line bg-surface-raised text-white/60'}`}
+      className={`min-h-tap rounded-full border px-3 text-xs font-semibold ${active ? 'border-gold bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'border-line bg-surface-raised text-white/60'}`}
     >{children}</button>
   );
 }

@@ -150,7 +150,7 @@ function WeeklyGauge({ points, max, milestones }: { points: number; max: number;
                   disabled={busy === ms.points}
                   onPointerDown={() => void claim(ms.points)}
                   aria-label={`Récupérer le palier ${ms.points}`}
-                  className={`${chip} border-success bg-success/25 font-semibold text-success active:opacity-70 disabled:opacity-40`}
+                  className={`${chip} border-success bg-[color-mix(in_srgb,var(--color-success)_25%,var(--color-surface-raised))] font-semibold text-success active:opacity-70 disabled:opacity-40`}
                 >
                   {busy === ms.points ? '…' : <>🎁 <RewardList rewards={ms.rewards} className="text-success" /></>}
                 </button>

@@ -318,7 +318,7 @@ function ActiveDeckPill() {
   return (
     <button
       onPointerDown={() => navigate('deck_selector', { mode: 'manage' })}
-      className={`flex min-h-tap items-center gap-2 rounded-full border bg-surface-raised/70 px-3 py-1.5 active:opacity-80 ${deck ? 'border-line' : 'border-dashed border-gold/50'}`}
+      className={`flex min-h-tap items-center gap-2 rounded-full border bg-surface-raised px-3 py-1.5 active:opacity-80 ${deck ? 'border-line' : 'border-dashed border-gold'}`}
     >
       <span
         className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
