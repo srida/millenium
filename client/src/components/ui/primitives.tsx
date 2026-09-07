@@ -17,7 +17,7 @@ const VARIANTS: Record<Variant, string> = {
 // parte), comme sous un moteur de jeu. Sans ça un `onPointerDown` déclenche
 // au premier contact du doigt — y compris celui d'un geste de défilement qui
 // commence sur le bouton — d'où l'impression de commandes trop nerveuses.
-const SQUASH_DELAY_MS = 90;
+const SQUASH_DELAY_MS = 45;
 
 /**
  * Anime l'enfoncement d'un bouton et RETARDE l'action de `SQUASH_DELAY_MS` :
