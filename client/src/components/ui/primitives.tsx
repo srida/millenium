@@ -30,12 +30,22 @@ const VARIANTS: Record<Variant, string> = {
 // commence sur le bouton — d'où l'impression de commandes trop nerveuses.
 const SQUASH_DELAY_MS = 45;
 
+// Distance (px CSS) au-delà de laquelle un pointeur qui bouge n'est plus un
+// tap mais un défilement — même tolérance que `CardTile`. ⚠️ Ne PAS compter
+// sur `onPointerLeave` seul pour l'attraper : un pointeur TACTILE garde une
+// capture implicite sur sa cible de départ pendant tout le glissé, il ne
+// change pas de cible et ne déclenche donc PAS `pointerleave` en scrollant —
+// c'est `onPointerMove`, seul événement qui continue d'arriver, qui doit
+// mesurer l'écart.
+export const TAP_MOVE_TOLERANCE_PX = 10;
+
 /**
  * Anime l'enfoncement d'un bouton et RETARDE l'action de `SQUASH_DELAY_MS` :
  * le temps de course se voit avant que le geste ne compte. Si le doigt QUITTE
- * le bouton avant l'échéance (glissade, début de défilement), l'action est
- * annulée — c'est ce qui absorbe le tap accidentel plutôt que la vitesse de
- * réaction du joueur.
+ * le bouton avant l'échéance (glissade, début de défilement) OU s'en éloigne
+ * de plus de `TAP_MOVE_TOLERANCE_PX` sans le quitter (scroll tactile, cf.
+ * ci-dessus), l'action est annulée — c'est ce qui absorbe le geste de
+ * défilement commencé sur un bouton, plutôt que de le lire comme un tap.
  *
  * Générique sur l'élément (`<button>` comme un `<div>` tap-cible, ex. la
  * carte de deck du `DeckSelector`) : exportée pour que tout ce qui se
@@ -47,6 +57,7 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
 ) {
   const [squashed, setSquashed] = useState(false);
   const timer = useRef<number | null>(null);
+  const start = useRef<{ x: number; y: number } | null>(null);
 
   const clearTimer = () => {
     if (timer.current !== null) { window.clearTimeout(timer.current); timer.current = null; }
@@ -55,19 +66,27 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
 
   const handleDown: PointerEventHandler<T> = (e) => {
     if (disabled) return;
+    start.current = { x: e.clientX, y: e.clientY };
     setSquashed(true);
     if (onPointerDown) {
       clearTimer();
       timer.current = window.setTimeout(() => onPointerDown(e), SQUASH_DELAY_MS);
     }
   };
-  const release = () => setSquashed(false);
-  const cancelPending = () => { clearTimer(); setSquashed(false); };
+  const handleMove: PointerEventHandler<T> = (e) => {
+    if (!start.current) return;
+    const dx = e.clientX - start.current.x;
+    const dy = e.clientY - start.current.y;
+    if (dx * dx + dy * dy > TAP_MOVE_TOLERANCE_PX * TAP_MOVE_TOLERANCE_PX) cancelPending();
+  };
+  const release = () => { setSquashed(false); start.current = null; };
+  const cancelPending = () => { clearTimer(); setSquashed(false); start.current = null; };
 
   return {
     squashed,
     handlers: {
       onPointerDown: handleDown,
+      onPointerMove: handleMove,
       onPointerUp: release,
       onPointerLeave: cancelPending,
       onPointerCancel: cancelPending,
