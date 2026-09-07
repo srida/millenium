@@ -45,6 +45,16 @@ const TIER_RING: Record<number, string> = {
   1: 'ring-tier-1/50', 2: 'ring-tier-2/50', 3: 'ring-tier-3/50', 4: 'ring-tier-4/50', 5: 'ring-tier-5/50',
 };
 
+// Ombre « posée sur la table » : la carte flotte légèrement au repos, et se
+// tasse au tap (`active:`) — même geste que le relief des boutons
+// (`primitives.tsx`), sans le délai : ici le tap reste au `pointerdown`, geste
+// documenté en tête de fichier, indispensable en préparation chronométrée.
+// Combinée en un seul `shadow-[...]` avec l'empilement (`stacked`) : deux
+// classes `shadow-[...]` distinctes sur le même élément ne s'additionnent pas,
+// l'une écrase l'autre selon l'ordre de génération de la feuille Tailwind.
+const TABLE_SHADOW = 'shadow-[0_4px_6px_-1px_rgba(0,0,0,0.5),0_2px_4px_-2px_rgba(0,0,0,0.35)]';
+const TABLE_SHADOW_STACKED = 'shadow-[0_4px_6px_-1px_rgba(0,0,0,0.5),0_2px_4px_-2px_rgba(0,0,0,0.35),3px_3px_0_0_var(--color-surface-raised),4px_4px_0_0_var(--color-line)]';
+
 export interface CardTileProps {
   illustrationId: string;
   name: string;
@@ -142,16 +152,17 @@ export default function CardTile({
       onPointerCancel={cancelTap}
       title={name}
       className={[
-        'relative aspect-[5/7] flex-shrink-0 overflow-hidden rounded-lg border-2 ring-1 ring-inset transition-transform',
+        'relative aspect-[5/7] flex-shrink-0 overflow-hidden rounded-lg border-2 ring-1 ring-inset transition-[transform,box-shadow] duration-100 ease-out',
         size,
         // Le liseré prend le tier le PLUS HAUT : une couleur ne se partage pas.
         tiers?.length ? (TIER_RING[tiers[tiers.length - 1]] ?? 'ring-white/10') : 'ring-white/10',
         HIGHLIGHT[highlight],
         DIM[dim],
         LIFT[lift],
-        disabled ? '' : 'active:scale-95',
         // Épaisseur de pile : la carte porte visiblement plusieurs exemplaires.
-        stacked ? 'mr-1 shadow-[3px_3px_0_0_var(--color-surface-raised),4px_4px_0_0_var(--color-line)]' : '',
+        stacked ? 'mr-1' : '',
+        stacked ? TABLE_SHADOW_STACKED : TABLE_SHADOW,
+        disabled ? '' : 'active:scale-95 active:shadow-[0_1px_2px_0_rgba(0,0,0,0.45)]',
       ].join(' ')}
     >
       <Illustration id={illustrationId} alt={name} className="pointer-events-none absolute inset-0 h-full w-full" />
