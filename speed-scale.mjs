@@ -1,4 +1,13 @@
-// L'ÉCHELLE DE VITESSE — un compteur de 0 à 100, où plus haut veut dire plus vite.
+// L'ÉCHELLE DE TICKS — un compteur de 0 à 100, où plus haut veut dire PLUS FORT.
+//
+// Deux lectures d'une seule fenêtre (2 à 77 ticks), et c'est tout le module :
+//   • un RYTHME (`ticksForRate`) — attaque, déplacement, chargement de pouvoir.
+//     Plus haut = période plus COURTE = plus rapide.
+//   • une DURÉE (`ticksForDuration`) — paralysie, blocage, confusion,
+//     provocation. Plus haut = effet plus LONG.
+// Les deux montent donc dans le sens du joueur, alors qu'elles vont en sens
+// inverse en ticks. C'est la seule façon d'avoir un chiffre unique dont « 100 »
+// veut toujours dire « au maximum ».
 //
 // Les trois rythmes d'une unité (attaque, déplacement, chargement de pouvoir)
 // se paramétraient en **ticks**, c'est-à-dire en PÉRIODE : le seuil que
@@ -41,7 +50,13 @@ export const TICKS_AT_MAX = 2;
  */
 export const TICKS_PER_POINT = (TICKS_AT_MIN - TICKS_AT_MAX) / (RATE_MAX - RATE_MIN);
 
-/** Le compteur ramené dans ses bornes, arrondi à l'entier. */
+/**
+ * Le compteur ramené dans ses bornes, arrondi à l'entier.
+ *
+ * ⚠️ C'est LE clamp du compteur, pour ses deux lectures : un rythme comme une
+ * durée vivent sur le même 0–100. Un second clamp par lecture serait deux
+ * bornes à tenir d'accord.
+ */
 export function clampRate(rate) {
   const n = Number(rate);
   if (!Number.isFinite(n)) return RATE_MIN;
@@ -118,3 +133,70 @@ export const LEGACY_TICK_FIELD = Object.freeze({
   movement_rate: 'movement_speed',
   power_rate: 'power_speed',
 });
+
+// ---------------------------------------------------------------------------
+// Les DURÉES — la même fenêtre, lue dans l'autre sens.
+// ---------------------------------------------------------------------------
+
+/**
+ * Combien de ticks dure un effet au compteur `duration`.
+ *
+ * Même fenêtre que les rythmes (2 à 77 ticks) et même pas de 0,75 tick par
+ * point, mais montante : `0 → 2 ticks`, `100 → 77`. Partager la fenêtre est
+ * délibéré — une seconde paire de bornes serait un second réglage à tenir, et
+ * l'écart entre les deux ne se verrait nulle part.
+ *
+ * ⚠️ Le SENS est inversé par rapport à `ticksForRate`, et il le faut : sur un
+ * rythme, plus de ticks veut dire plus lent ; sur une durée, plus de ticks veut
+ * dire plus long. Les traduire dans le même sens ferait de « 100 » la paralysie
+ * la plus COURTE — exactement le contresens que le compteur existe pour lever.
+ *
+ * ⚠️ L'arrondi est AU SUPÉRIEUR, comme celui des rythmes : c'est le nombre de
+ * ticks qui monte, jamais le compteur. Comme là-bas, ce n'est pas lui qui rend
+ * `durationForTicks` inversible — c'est la largeur de l'intervalle.
+ *
+ * Repère : le combat est coupé à ~333 ticks, une durée de 77 en couvre donc
+ * moins d'un quart. Le plafond n'a jamais valeur d'« immobilisé tout le round ».
+ */
+export function ticksForDuration(duration) {
+  return Math.ceil(TICKS_AT_MAX + TICKS_PER_POINT * clampRate(duration));
+}
+
+/**
+ * Le compteur qui rend exactement cette durée en ticks — l'inverse de
+ * `ticksForDuration`, utilisé par la reprise de données.
+ *
+ * ⚠️ Même argument d'inversibilité que `rateForTicks`, et il tient pour la même
+ * raison : l'ensemble des compteurs qui donnent `t` ticks est
+ * `](t − 3) / 0,75 ; (t − 2) / 0,75]`, large de 1,33 — il contient donc toujours
+ * un entier, et le plus grand est celui-ci. D'où
+ * `ticksForDuration(durationForTicks(t)) === t` pour tout `t` entier de 2 à 77 :
+ * la reprise des 86 cartes concernées ne change aucun combat, hors la seule qui
+ * dépassait la fenêtre.
+ *
+ * ⚠️ Une valeur illisible rend le compteur MINIMAL, jamais le maximal : se
+ * tromper dans le sens du plus long donnerait à un pouvoir muet la paralysie la
+ * plus dure du jeu.
+ */
+export function durationForTicks(ticks) {
+  const t = Number(ticks);
+  if (!Number.isFinite(t)) return RATE_MIN;
+  return clampRate(Math.floor((t - TICKS_AT_MAX) / TICKS_PER_POINT));
+}
+
+/**
+ * Les pouvoirs dont la `value` chiffrait une DURÉE en ticks, et qui portent
+ * désormais un compteur dans `power.duration`.
+ *
+ * ⚠️ C'est la liste que lisent le combat, la reprise de données, le contrat de
+ * carte et l'admin. Les DIX autres pouvoirs gardent `power.value`, qui n'a
+ * jamais voulu dire des ticks chez eux (des dégâts, un bouclier, un nombre de
+ * cases). C'est d'ailleurs ce qui rend la reprise idempotente : sur ces
+ * quatre-là, un `value` résiduel ne peut signifier qu'« encore en ticks ».
+ */
+export const DURATION_POWERS = Object.freeze([
+  'POWER_PARALYSIS',
+  'POWER_BLOCK',
+  'POWER_CONFUSION',
+  'POWER_TAUNT',
+]);

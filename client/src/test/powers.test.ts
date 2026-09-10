@@ -1,10 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Golden tests du champ `power.value` des cartes (admin : « Valeur »).
+// Golden tests des DEUX chiffres d'un pouvoir de carte : `power.value`
+// (admin : « Valeur ») et `power.duration` (admin : « Durée de l'effet »).
 //
-// Chaque pouvoir chiffré lit cette valeur ; sans elle, il retombe sur sa
-// constante. Ce fichier verrouille les DEUX branches pour chacun — une
-// surcharge silencieusement ignorée (l'état d'avant) ne se voit nulle part
-// dans le jeu : la carte annonce 100 de soin et en rend 40.
+// ⚠️ Ils s'EXCLUENT : les quatre pouvoirs de durée (paralysie, blocage,
+// confusion, provocation) lisent `duration`, un compteur 0–100 ; les dix autres
+// lisent `value`, qui n'a jamais chiffré des ticks chez eux.
+//
+// Chaque pouvoir chiffré lit son champ ; sans lui, il retombe sur sa constante.
+// Ce fichier verrouille les DEUX branches pour chacun — une surcharge
+// silencieusement ignorée (l'état d'avant) ne se voit nulle part dans le jeu :
+// la carte annonce 100 de soin et en rend 40.
 //
 // On tape `_firePower` directement : c'est le seul entonnoir par lequel passe
 // un pouvoir, et le viser en clair évite de faire dépendre l'assertion d'un
@@ -89,8 +94,9 @@ describe('power.value — surcharge par carte', () => {
     expect(a.target2.current_hp).toBe(490);
   });
 
-  it('POWER_PARALYSIS : `value` = durée en steps, la sévérité est fixe', () => {
-    const a = arena({ id: 'POWER_PARALYSIS', power_rate: 100, value: 8 });
+  it('POWER_PARALYSIS : `duration` = COMPTEUR de durée, la sévérité est fixe', () => {
+    // Compteur 8 → 8 ticks (`ticksForDuration` : 2 + 0,75 × 8 = 8).
+    const a = arena({ id: 'POWER_PARALYSIS', power_rate: 100, duration: 8 });
     a.fire();
     expect(a.target.paralysis_remaining).toBe(8);
     // attack_speed DOUBLÉ : le modificateur vaut l'attack_speed de la cible (2)
@@ -98,7 +104,7 @@ describe('power.value — surcharge par carte', () => {
     expect(a.target.effectiveAttackPeriod()).toBe(4);
   });
 
-  it('POWER_PARALYSIS sans `value` : 20 steps', () => {
+  it('POWER_PARALYSIS sans `duration` : 20 steps', () => {
     const a = arena({ id: 'POWER_PARALYSIS', power_rate: 100 });
     a.fire();
     expect(a.target.paralysis_remaining).toBe(20);
@@ -117,26 +123,28 @@ describe('power.value — surcharge par carte', () => {
     expect(a.target.effectiveAttackPeriod()).toBe(18);
   });
 
-  it('POWER_BLOCK : `value` = nombre de steps', () => {
-    const a = arena({ id: 'POWER_BLOCK', power_rate: 100, value: 40 });
+  it('POWER_BLOCK : `duration` = COMPTEUR de durée', () => {
+    // Compteur 50 → 40 ticks (2 + 0,75 × 50 = 39,5, arrondi au supérieur).
+    const a = arena({ id: 'POWER_BLOCK', power_rate: 100, duration: 50 });
     a.fire();
     expect(a.target.is_power_blocked).toBe(true);
     expect(a.target.power_block_remaining).toBe(40);
   });
 
-  it('POWER_BLOCK sans `value` : 25 steps', () => {
+  it('POWER_BLOCK sans `duration` : 25 steps', () => {
     const a = arena({ id: 'POWER_BLOCK', power_rate: 100 });
     a.fire();
     expect(a.target.power_block_remaining).toBe(25);
   });
 
-  it('POWER_CONFUSION : `value` = nombre de steps', () => {
-    const a = arena({ id: 'POWER_CONFUSION', power_rate: 100, value: 35 });
+  it('POWER_CONFUSION : `duration` = COMPTEUR de durée', () => {
+    // Compteur 44 → 35 ticks.
+    const a = arena({ id: 'POWER_CONFUSION', power_rate: 100, duration: 44 });
     a.fire();
     expect(a.target.confusion_remaining).toBe(35);
   });
 
-  it('POWER_CONFUSION sans `value` : 20 steps', () => {
+  it('POWER_CONFUSION sans `duration` : 20 steps', () => {
     const a = arena({ id: 'POWER_CONFUSION', power_rate: 100 });
     a.fire();
     expect(a.target.confusion_remaining).toBe(20);
@@ -283,5 +291,83 @@ describe('POWER_BURN — durée infinie', () => {
     const hp = a.target.current_hp;
     a.combat._applyBurnStacks(a.target, []);
     expect(hp - a.target.current_hp).toBe(12);   // 3 piles × 4, sur une attaque
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Les quatre DURÉES — `power.duration`, un compteur 0–100, jamais `power.value`.
+// ---------------------------------------------------------------------------
+describe('power.duration — les quatre pouvoirs de durée', () => {
+  // ⚠️ LE cas de la bascule, et la panne qu'il interdit : un catalogue non
+  // repris porte encore `value` EN TICKS. Le moteur ne le lit plus, donc il
+  // retombe sur son repli — la carte annonce 60 et l'effet dure 20, sans qu'une
+  // seule ligne ne le dise nulle part.
+  // Mutation : faire lire `power_value` à `powerDurationTicks` → ROUGE.
+  it('lisent `duration`, et IGNORENT un `value` resté en ticks', () => {
+    const migre = arena({ id: 'POWER_BLOCK', power_rate: 100, duration: 50 });
+    migre.fire();
+    expect(migre.target.power_block_remaining).toBe(40);
+
+    const vieux = arena({ id: 'POWER_BLOCK', power_rate: 100, value: 50 });
+    vieux.fire();
+    // 25 = le repli du moteur, PAS les 50 ticks que la vieille carte annonçait.
+    expect(vieux.target.power_block_remaining).toBe(25);
+  });
+
+  // ⚠️ Le sens du compteur, éprouvé là où il compte : dans le combat, pas dans
+  // la table de conversion. Mutation : `ticksForRate` à la place de
+  // `ticksForDuration` dans `CombatManager` → ROUGE (100 rendrait 2 ticks).
+  it('un compteur PLUS HAUT dure PLUS LONGTEMPS', () => {
+    // ⚠️ 1 et non 0 : `0` est le défaut du champ et retombe sur le repli du
+    // pouvoir (cf. le cas plus bas). Le plancher réel de l'échelle est ici.
+    const court = arena({ id: 'POWER_CONFUSION', power_rate: 100, duration: 1 });
+    const long = arena({ id: 'POWER_CONFUSION', power_rate: 100, duration: 100 });
+    court.fire(); long.fire();
+    expect(court.target.confusion_remaining).toBe(3);
+    expect(long.target.confusion_remaining).toBe(77);
+    expect(long.target.confusion_remaining).toBeGreaterThan(court.target.confusion_remaining);
+  });
+
+  // Le bornage EST la fonctionnalité demandée : plus rien ne dure au-delà de la
+  // fenêtre, quoi qu'on saisisse.
+  it('BORNENT : une durée aberrante retombe sur le plafond', () => {
+    const a = arena({ id: 'POWER_PARALYSIS', power_rate: 100, duration: 5000 });
+    a.fire();
+    expect(a.target.paralysis_remaining).toBe(77);
+  });
+
+  // ⚠️ `||` et non `??`, comme `powerValue` : un compteur laissé à 0 en admin
+  // est le DÉFAUT DU CHAMP, jamais l'intention « cette paralysie dure deux
+  // ticks ». C'est le seul écart avec les rythmes, où 0 est légitime.
+  // Mutation : passer `powerDurationTicks` en `??` → ROUGE.
+  it('une durée à 0 vaut le REPLI du pouvoir, pas deux ticks', () => {
+    const a = arena({ id: 'POWER_PARALYSIS', power_rate: 100, duration: 0 });
+    a.fire();
+    expect(a.target.paralysis_remaining).toBe(20);
+  });
+
+  // La provocation n'avait aucun test avant la bascule — elle est le seul des
+  // quatre à se poser sur le LANCEUR, pas sur la cible.
+  it('POWER_TAUNT chiffre la durée sur le LANCEUR', () => {
+    const a = arena({ id: 'POWER_TAUNT', power_rate: 100, duration: 77 });
+    a.fire();
+    expect(a.caster.taunt_remaining).toBe(60);
+    expect(a.target.taunt_remaining).toBe(0);
+  });
+
+  it('POWER_TAUNT sans `duration` : 20 steps', () => {
+    const a = arena({ id: 'POWER_TAUNT', power_rate: 100 });
+    a.fire();
+    expect(a.caster.taunt_remaining).toBe(20);
+  });
+
+  // ⚠️ La DURÉE est un compteur, la SÉVÉRITÉ reste en ticks — et le restera :
+  // un doublement de période ne s'écrit pas comme un delta de compteur constant.
+  it('la paralysie double la période quelle que soit la durée saisie', () => {
+    const a = arena({ id: 'POWER_PARALYSIS', power_rate: 100, duration: 24 });
+    a.target.attack_period = 9;
+    a.fire();
+    expect(a.target.paralysis_remaining).toBe(20);   // la durée, en compteur
+    expect(a.target.effectiveAttackPeriod()).toBe(18); // la sévérité, en ticks
   });
 });

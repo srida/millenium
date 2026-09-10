@@ -324,6 +324,11 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
         // avec « champ non saisi » et rendrait le pouvoir muet.
         targetUnit.power_rate = clampRate(e.power_rate ?? targetUnit.power_rate ?? 0);
         targetUnit.power_value = e.value ?? null;
+        // ⚠️ La durée voyage AVEC le pouvoir : une paralysie donnée sans elle
+        // retomberait sur le repli du moteur, pas sur celle qu'annonce la magie.
+        // Les deux champs se posent ensemble parce qu'un pouvoir donné n'hérite
+        // de rien de l'ancien — ni sa valeur, ni sa durée.
+        targetUnit.power_duration = e.duration ?? null;
         // La jauge repart de zéro : héritée pleine de l'ancien pouvoir, le
         // nouveau se déclencherait au premier step, ce que rien n'annonce.
         targetUnit.power_gauge = 0;

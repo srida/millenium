@@ -56,6 +56,7 @@ export function sendOwnBoard(round, units, playerHp) {
       power_id: u.power_id ?? null,
       power_rate: u.power_rate ?? null,
       power_value: u.power_value ?? null,
+      power_duration: u.power_duration ?? null,
     })),
   };
   PvpConnection.send('round:board_ready', payload);
@@ -104,6 +105,7 @@ export function reconstructOpponentUnits(payload, board, cardDb) {
     if ('power_id' in entry) {
       unit.power_id = entry.power_id ?? null;
       unit.power_value = entry.power_value ?? null;
+      unit.power_duration = entry.power_duration ?? null;
       // ⚠️ `'power_rate' in entry` et non `typeof === 'number'` : `null` est la
       // valeur qui dit « ce pouvoir ne part jamais », et l'ignorer rendrait à
       // l'unité reconstruite un rythme que son propriétaire n'a pas.

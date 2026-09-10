@@ -1510,8 +1510,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		},
 		"summon_conditions": [
 			{
@@ -1886,8 +1886,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 30,
-			"power_rate": 63
+			"power_rate": 63,
+			"duration": 37
 		},
 		"summon_conditions": [
 			{
@@ -2054,8 +2054,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -2217,8 +2217,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		},
 		"summon_conditions": [
 			{
@@ -2700,8 +2700,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -3021,8 +3021,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -3227,8 +3227,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 45,
-			"power_rate": 43
+			"power_rate": 43,
+			"duration": 57
 		},
 		"summon_conditions": [
 			{
@@ -3696,8 +3696,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -4030,8 +4030,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -4229,8 +4229,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 30,
-			"power_rate": 63
+			"power_rate": 63,
+			"duration": 37
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -4889,8 +4889,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 25,
-			"power_rate": 70
+			"power_rate": 70,
+			"duration": 30
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -5186,8 +5186,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 20,
-			"power_rate": 76
+			"power_rate": 76,
+			"duration": 24
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -6494,8 +6494,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 25,
-			"power_rate": 70
+			"power_rate": 70,
+			"duration": 30
 		},
 		"summon_conditions": [
 			{
@@ -6530,8 +6530,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 20,
-			"power_rate": 76
+			"power_rate": 76,
+			"duration": 24
 		},
 		"summon_conditions": [
 			{
@@ -6569,8 +6569,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		},
 		"summon_conditions": [
 			{
@@ -6909,8 +6909,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -7268,8 +7268,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 30,
-			"power_rate": 63
+			"power_rate": 63,
+			"duration": 37
 		},
 		"summon_conditions": [
 			{
@@ -7365,8 +7365,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -7732,8 +7732,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -8044,8 +8044,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -8295,8 +8295,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -8951,8 +8951,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -8988,8 +8988,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -9055,8 +9055,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 55,
-			"power_rate": 30
+			"power_rate": 30,
+			"duration": 70
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -9391,8 +9391,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -9738,8 +9738,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -9774,8 +9774,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -10065,8 +10065,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -10173,8 +10173,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -10324,8 +10324,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		},
 		"summon_conditions": [
 			{
@@ -10400,8 +10400,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		},
 		"summon_conditions": [
 			{
@@ -11117,8 +11117,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -11155,8 +11155,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 20,
-			"power_rate": 76
+			"power_rate": 76,
+			"duration": 24
 		},
 		"summon_conditions": [
 			{
@@ -11498,8 +11498,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -12130,8 +12130,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 30,
-			"power_rate": 63
+			"power_rate": 63,
+			"duration": 37
 		},
 		"summon_conditions": [
 			{
@@ -12308,8 +12308,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -12563,8 +12563,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -12627,8 +12627,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -13007,8 +13007,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 80,
-			"power_rate": 0
+			"power_rate": 0,
+			"duration": 100
 		},
 		"summon_conditions": [
 			{
@@ -13078,8 +13078,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -13287,8 +13287,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		},
 		"summon_conditions": [
 			{
@@ -13416,8 +13416,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -13509,8 +13509,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -13580,8 +13580,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -14027,8 +14027,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -14425,8 +14425,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -14469,8 +14469,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -14611,8 +14611,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -14905,8 +14905,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -15109,8 +15109,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -15659,8 +15659,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 20,
-			"power_rate": 76
+			"power_rate": 76,
+			"duration": 24
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -15850,8 +15850,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -15968,8 +15968,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 30,
-			"power_rate": 63
+			"power_rate": 63,
+			"duration": 37
 		},
 		"summon_conditions": [
 			{
@@ -16731,8 +16731,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -17328,8 +17328,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -17389,8 +17389,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -17735,8 +17735,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -17855,8 +17855,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -17899,8 +17899,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -18785,8 +18785,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -18828,8 +18828,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -19054,8 +19054,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 20,
-			"power_rate": 76
+			"power_rate": 76,
+			"duration": 24
 		},
 		"summon_conditions": [
 			{
@@ -19094,8 +19094,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -19354,8 +19354,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -19439,8 +19439,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -19592,8 +19592,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -20877,8 +20877,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -21002,8 +21002,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -21434,8 +21434,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		},
 		"summon_conditions": [
 			{
@@ -21524,8 +21524,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		},
 		"summon_conditions": [
 			{
@@ -21868,8 +21868,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [
 			{
@@ -22579,8 +22579,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -23324,8 +23324,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -23895,8 +23895,8 @@
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -24917,8 +24917,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		},
 		"summon_conditions": [
 			{
@@ -25636,8 +25636,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 60,
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -25666,8 +25666,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -26298,8 +26298,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -26327,8 +26327,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -27323,8 +27323,8 @@
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
-			"value": 20,
-			"power_rate": 76
+			"power_rate": 76,
+			"duration": 24
 		},
 		"summon_conditions": [
 			{
@@ -27363,8 +27363,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -27406,8 +27406,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 64
 		},
 		"summon_conditions": [
 			{
@@ -27672,8 +27672,8 @@
 		},
 		"power": {
 			"id": "POWER_TAUNT",
-			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		},
 		"summon_conditions": [
 			{

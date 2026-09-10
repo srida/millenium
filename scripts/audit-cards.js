@@ -26,7 +26,7 @@ const path = require('path');
 const { tierIndex, resolveTiers, TIER_CATEGORY } = require('../tiers');
 // Le contrat vit dans `card-contract.js` et nulle part ailleurs : le serveur le
 // refuse en 400 avec la MÊME fonction.
-const { REQUIRED_CATEGORIES, missingCategories } = require('../card-contract');
+const { REQUIRED_CATEGORIES, missingCategories, missingRates, missingDurations } = require('../card-contract');
 
 const PROJECT = path.join(__dirname, '..');
 const DATA = fs.existsSync(path.join(PROJECT, 'data', 'cards.json'))
@@ -47,6 +47,8 @@ function audit() {
   const missing = Object.fromEntries(REQUIRED_CATEGORIES.map(c => [c, []]));
   const unknownAttr = [];
   const legacyField = [];
+  const badRates = [];
+  const badDurations = [];
   const multiTier = [];
 
   for (const c of CARDS) {
@@ -55,6 +57,17 @@ function audit() {
 
     const unknown = attrs.filter(id => !byId[id]);
     if (unknown.length) unknownAttr.push(`${c.id} → ${unknown.join(', ')}`);
+
+    // ⚠️ Même statut que le champ `tier` résiduel : une carte sans compteur de
+    // vitesse n'est pas visiblement cassée, elle est JOUABLE ET FAUSSE (rythme
+    // 0, donc 77 ticks). C'est l'audit qui couvre le chemin des machines,
+    // `/import` n'étant pas gardé.
+    const rates = missingRates(c);
+    if (rates.length) badRates.push(`${c.id} → ${rates.join(' · ')}`);
+
+    // Même famille de faute : la DURÉE des quatre pouvoirs qui en portent une.
+    const durations = missingDurations(c);
+    if (durations.length) badDurations.push(`${c.id} → ${durations.join(' · ')}`);
 
     const ts = tiersOf(c);
     if (ts.length > 1) multiTier.push(`${c.id} → T${ts.join('·T')}`);
@@ -70,12 +83,13 @@ function audit() {
     .filter(a => a.categorie === TIER_CATEGORY && !(Number(a.tier) > 0))
     .map(a => a.id);
 
-  return { missing, unknownAttr, legacyField, multiTier, attrsWithoutTier };
+  return { missing, unknownAttr, legacyField, badRates, badDurations, multiTier, attrsWithoutTier };
 }
 
 const r = audit();
 const errors = REQUIRED_CATEGORIES.reduce((n, c) => n + r.missing[c].length, 0)
-  + r.unknownAttr.length + r.legacyField.length + r.attrsWithoutTier.length;
+  + r.unknownAttr.length + r.legacyField.length + r.badRates.length + r.badDurations.length
+  + r.attrsWithoutTier.length;
 
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify({ source: DATA, cards: CARDS.length, errors, ...r }, null, 2));
@@ -93,6 +107,8 @@ console.log(`Catalogue : ${DATA}  (${CARDS.length} cartes, ${ATTRS.length} attri
 for (const cat of REQUIRED_CATEGORIES) show(`✗ Sans attribut de catégorie « ${cat} »`, r.missing[cat]);
 show('✗ Attributs inconnus du catalogue', r.unknownAttr);
 show('✗ Champ `tier` résiduel (le retirer : scripts/migrate-tiers.js --write)', r.legacyField);
+show('✗ Vitesse manquante ou en ticks (reprise : scripts/migrate-speeds.js --write)', r.badRates);
+show('✗ Durée de pouvoir invalide ou en ticks (reprise : scripts/migrate-speeds.js --write)', r.badDurations);
 show('✗ Attribut de tier sans champ `tier`', r.attrsWithoutTier);
 show('· Cartes multi-tiers', r.multiTier);
 console.log(errors ? `\n${errors} carte(s) hors contrat.` : '\n✓ Contrat respecté.');

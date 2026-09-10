@@ -52,12 +52,22 @@ export default function TooltipHost() {
 function StatsRow({ stats }: { stats: Record<string, number> }) {
   return (
     <div className="mt-2 flex overflow-hidden rounded-lg border border-white/10 bg-white/5">
-      {Object.entries(STAT_LABELS).map(([k, label]) => (
-        <div key={k} className="flex flex-1 flex-col items-center gap-0.5 border-r border-white/5 py-1.5 last:border-r-0">
-          <span className="text-[8px] tracking-widest text-white/40">{label}</span>
-          <span className="text-xs font-bold tabular-nums">{stats[k]}</span>
-        </div>
-      ))}
+      {Object.entries(STAT_LABELS).map(([k, label]) => {
+        // ⚠️ Une valeur absente s'écrit « — », jamais rien : `{undefined}` rend
+        // une case VIDE sous son intitulé, ce qui se lit comme un défaut de
+        // mise en page et non comme une donnée manquante. C'est exactement ce
+        // qu'a produit un catalogue non repris sur l'échelle de vitesse — VIT
+        // et DEP sortaient blancs, et la seule chose que ça évoquait était un
+        // bug d'affichage. Un tiret nomme l'absence.
+        const value = stats[k];
+        const shown = Number.isFinite(value) ? value : '—';
+        return (
+          <div key={k} className="flex flex-1 flex-col items-center gap-0.5 border-r border-white/5 py-1.5 last:border-r-0">
+            <span className="text-[8px] tracking-widest text-white/40">{label}</span>
+            <span className={`text-xs font-bold tabular-nums${Number.isFinite(value) ? '' : ' text-white/30'}`}>{shown}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }

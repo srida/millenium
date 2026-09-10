@@ -1,19 +1,32 @@
 #!/usr/bin/env node
-// Reprise de données : les trois vitesses passent de la PÉRIODE EN TICKS au
-// COMPTEUR 0–100 (`speed-scale.mjs`), où plus haut veut dire plus vite.
+// Reprise de données : tout ce qui se chiffrait en TICKS passe au COMPTEUR
+// 0–100 (`speed-scale.mjs`), où plus haut veut toujours dire « plus fort ».
 //
-//   node scripts/migrate-speeds.js            # rapport, n'écrit rien
-//   node scripts/migrate-speeds.js --write    # applique
+// Deux familles, deux sens de conversion :
+//   • les trois VITESSES (attaque, déplacement, chargement) — plus haut = plus
+//     rapide, donc moins de ticks ;
+//   • les quatre DURÉES (paralysie, blocage, confusion, provocation) — plus
+//     haut = plus long, donc plus de ticks. Elles changent aussi de CHAMP
+//     (`power.value` → `power.duration`), et c'est ce qui rend la reprise
+//     idempotente : sur ces quatre pouvoirs-là, `value` ne peut plus vouloir
+//     dire que « encore en ticks ».
+//
+//   node scripts/migrate-speeds.js                    # rapport, n'écrit rien
+//   node scripts/migrate-speeds.js --write            # applique
+//   node scripts/migrate-speeds.js --initial-data     # vise la SEMENCE du dépôt
 //
 // IDEMPOTENT : une entrée déjà migrée n'est pas touchée. Relancer le script
 // deux fois ne change rien la seconde fois.
 //
 // Quatre catalogues, dans cet ordre :
 //   1. `cards.json`     — `stats.attack_speed` / `stats.movement_speed` et
-//                         `power.power_speed` deviennent leurs compteurs.
+//                         `power.power_speed` deviennent leurs compteurs ;
+//                         `power.value` devient `power.duration` sur les
+//                         quatre pouvoirs de durée.
 //   2. `magies.json`    — la STAT d'un effet est renommée, sa VALEUR retournée
-//                         (un « −5 tick » devient un « +7 compteur »), et
-//                         `grant_power.power_speed` devient `power_rate`.
+//                         (un « −5 tick » devient un « +7 compteur »),
+//                         `grant_power.power_speed` devient `power_rate`, et
+//                         son `value` devient `duration` sur un pouvoir de durée.
 //   3. `attributes.json`— idem, seuil par seuil.
 //   4. `boards.json`    — idem, sur les deux formes (`effect` et `effects`).
 //
@@ -30,11 +43,19 @@
 //
 // Cible : `data/` s'il existe (le volume, donc la prod), sinon `initial-data/`.
 // En prod : `npm run sync:pull` → ce script → `npm run sync:push`.
+//
+// ⚠️ `--initial-data` force la SEMENCE du dépôt, même quand `data/` existe. Les
+// deux dossiers sont à reprendre, et ce ne sont pas les mêmes données :
+// `bootstrap()` ne recopie JAMAIS `initial-data/` sur un `data/` déjà peuplé,
+// donc migrer l'un ne migre pas l'autre — et une installation neuve naîtrait au
+// vieux format. Sans ce drapeau il fallait déplacer des fichiers à la main pour
+// atteindre le second, ce qui est exactement le geste qui finit par en effacer un.
 const fs = require('fs');
 const path = require('path');
 
 const PROJECT = path.join(__dirname, '..');
-const DATA = fs.existsSync(path.join(PROJECT, 'data', 'cards.json'))
+const DATA = (!process.argv.includes('--initial-data')
+  && fs.existsSync(path.join(PROJECT, 'data', 'cards.json')))
   ? path.join(PROJECT, 'data')
   : path.join(PROJECT, 'initial-data');
 
@@ -58,6 +79,7 @@ async function main() {
   // une panne.
   const {
     rateForTicks, ticksForRate, rateDeltaForTickDelta, TICKS_AT_MIN, LEGACY_TICK_FIELD,
+    durationForTicks, ticksForDuration, DURATION_POWERS,
   } = await import(path.join(PROJECT, 'speed-scale.mjs'));
 
   const report = { cards: 0, clamped: [], magies: 0, attributes: 0, boards: 0, refused: [] };
@@ -83,6 +105,35 @@ async function main() {
       touched = true;
     }
     return touched;
+  }
+
+  /**
+   * La DURÉE d'un pouvoir : `value` en ticks devient `duration` en compteur,
+   * sur les seuls `DURATION_POWERS`.
+   *
+   * `holder` porte l'id du pouvoir sous `idKey` — `id` sur une carte,
+   * `power_id` sur un effet `grant_power` de magie. Les dix autres pouvoirs ne
+   * sont pas touchés : leur `value` n'a jamais chiffré des ticks.
+   *
+   * ⚠️ Idempotent par la SÉPARATION DES CHAMPS, pas par une heuristique sur la
+   * valeur : `40` ne se distingue pas de `40` d'une exécution à l'autre, mais
+   * `value` et `duration` se distinguent toujours. Un `value` qui traînerait à
+   * côté d'un `duration` déjà posé est un résidu, et il part sans écraser.
+   */
+  function convertDuration(holder, idKey, label) {
+    if (!holder || !DURATION_POWERS.includes(holder[idKey])) return false;
+    if (!('value' in holder)) return false;
+    const t = holder.value;
+    delete holder.value;
+    if ('duration' in holder) return true; // déjà migré : `value` n'était qu'un résidu
+    holder.duration = durationForTicks(t);
+    if (Number.isFinite(Number(t)) && ticksForDuration(holder.duration) !== Number(t)) {
+      report.clamped.push(
+        `${label} : ${holder[idKey]} value ${t} → duration ${holder.duration} `
+        + `(${ticksForDuration(holder.duration)} ticks au lieu de ${t})`,
+      );
+    }
+    return true;
   }
 
   /**
@@ -126,7 +177,10 @@ async function main() {
   for (const c of cards) {
     const label = `${c.id} (« ${c.name} »)`;
     let touched = convertAbsolute(c.stats, label);
-    if (c.power) touched = convertAbsolute(c.power, `${label} — pouvoir`) || touched;
+    if (c.power) {
+      touched = convertAbsolute(c.power, `${label} — pouvoir`) || touched;
+      touched = convertDuration(c.power, 'id', `${label} — pouvoir`) || touched;
+    }
     if (touched) report.cards++;
   }
 
@@ -134,7 +188,13 @@ async function main() {
   const magies = load('magies.json');
   for (const m of magies) {
     // Une magie porte UN effet, et son `stat_modifier` est un multiplicateur.
-    if (convertEffect(m.effect, `${m.id} (« ${m.name} »)`, { modifierIsDelta: false })) report.magies++;
+    const label = `${m.id} (« ${m.name} »)`;
+    let touched = convertEffect(m.effect, label, { modifierIsDelta: false });
+    // ⚠️ Un `grant_power` qui donne un pouvoir de durée chiffrait la sienne dans
+    // le même `value` que les autres — la laisser en ticks ferait durer la
+    // paralysie donnée le REPLI du moteur, pas ce que la magie annonce.
+    touched = convertDuration(m.effect, 'power_id', label) || touched;
+    if (touched) report.magies++;
   }
 
   // ------------------------------------------------------------ 3. attributs

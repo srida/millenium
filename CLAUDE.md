@@ -184,7 +184,7 @@ Toutes les mutations renvoient **l'instantané complet + la progression à jour*
 | `bots.js` | Identités et decks des adversaires artificiels |
 | `pvplog.js` · `ailog.js` | Outils de diagnostic (feuilles, retirables d'un bloc) |
 | `json-cache.js` · `asset-dirs.js` | Cache au mtime, chemins d'assets |
-| `speed-scale.mjs` | Compteur de vitesse 0–100 ↔ ticks (pur, ESM, partagé racine ↔ client ↔ `admin.html`) |
+| `speed-scale.mjs` | Compteur 0–100 ↔ ticks, rythmes ET durées (pur, ESM, partagé racine ↔ client ↔ `admin.html`) |
 | `tiers.js` | Résolution « attributs de catégorie `Tiers` → numéros » (jumeau de `logic/Tiers.ts`) |
 | `card-contract.js` | Les catégories d'attributs qu'une carte doit porter (pur, partagé avec l'audit) |
 | `card-query.mjs` | Le langage de requête des barres de recherche (pur, partagé `admin.html` ↔ client) |
@@ -782,26 +782,36 @@ materialValueOf(card) / isAttributeMaterial(matId)
 
 Un matériel `ARCH_*` désigne **n'importe quelle** unité portant l'attribut, pas une carte (`isAttributeMaterial`).
 
-## L'échelle de vitesse (`speed-scale.mjs`, racine)
+## L'échelle de ticks (`speed-scale.mjs`, racine)
 
-Les trois rythmes d'une unité — attaque, déplacement, chargement de pouvoir — se paramètrent sur **un compteur de 0 à 100, où plus haut veut dire plus vite**. Une seule échelle pour les trois.
+Tout ce qui se chiffrait en ticks se paramètre sur **un compteur de 0 à 100, où plus haut veut toujours dire plus fort**. Une seule fenêtre (2 à 77 ticks), **deux lectures qui vont en sens inverse en ticks** :
+
+| Lecture | Ce qu'elle chiffre | 0 | 100 |
+|---|---|---|---|
+| **Rythme** (`ticksForRate`) | attaque, déplacement, chargement de pouvoir | 77 ticks (lent) | 2 ticks (rapide) |
+| **Durée** (`ticksForDuration`) | paralysie, blocage, confusion, provocation | 2 ticks (bref) | 77 ticks (long) |
 
 ```js
-ticksForRate(rate)          // 0 → 77 ticks · 100 → 2 ticks · ceil(77 − 0,75 × C)
-rateForTicks(ticks)         // l'inverse exact, pour la reprise de données
-clampRate(v) / rateDeltaForTickDelta(d) / RATE_STATS
+ticksForRate(rate)          // ceil(77 − 0,75 × C) · rateForTicks : l'inverse exact
+ticksForDuration(d)         // ceil(2 + 0,75 × C) · durationForTicks : l'inverse exact
+clampRate(v)                // LE clamp du compteur, pour ses deux lectures
+rateDeltaForTickDelta(d) / RATE_STATS / DURATION_POWERS
 ```
 
 - **Pur, sans aucun import**, à la racine — comme `card-query.mjs`, et pour la même raison : le bundle client l'importe, `admin.html` le charge par `GET /admin/speed-scale.js`, les scripts Node par un `import()`. Deux tables de conversion donneraient à l'admin un chiffre et au combat un autre, et **l'écart serait muet** — un combat un peu plus lent ne ressemble pas à une panne.
-- **Les données ne portent que le compteur** : `stats.attack_rate`, `stats.movement_rate`, `power.power_rate`. Les périodes en ticks (`attack_period`, `movement_period`, `powerPeriod()`) sont **dérivées** dans `Unit._recomputeStats`, jamais saisies ni persistées.
+- **Les données ne portent que le compteur** : `stats.attack_rate`, `stats.movement_rate`, `power.power_rate`, `power.duration`. Les ticks (`attack_period`, `movement_period`, `powerPeriod()`, les quatre décomptes de statut) sont **dérivés**, jamais saisis ni persistés.
+- ⚠️ **Le sens de la durée est INVERSÉ par rapport au rythme, et il le faut** : les traduire dans le même sens ferait de « 100 » la paralysie la plus COURTE — le contresens exact que le compteur existe pour lever.
 - ⚠️ **L'échelle est LINÉAIRE EN PÉRIODE, pas en cadence.** C'est ce qui rend les bonus **additifs** : `+4` vaut exactement « 3 ticks de moins », où qu'il tombe et quel que soit le nombre de bonus déjà appliqués. Prix assumé : un point ne coûte pas le même pourcentage de rythme partout (de 99 à 100 on gagne 27 % d'attaques, de 0 à 1 on en gagne 1 %).
-- ⚠️ **L'arrondi est AU SUPÉRIEUR** pour qu'une période ne soit jamais plus courte que le compteur ne le dit. Ce n'est **pas** lui qui rend l'aller-retour exact : c'est la largeur de l'intervalle (1,33 compteur par tick, donc toujours un entier dedans). `Math.round` inverserait tout aussi bien les valeurs du catalogue — le cas ne se voit qu'au compteur 1, saisi à la main.
+- ⚠️ **L'arrondi est AU SUPÉRIEUR dans les deux lectures** : c'est le nombre de ticks qui monte, jamais le compteur. Une période n'est donc jamais plus courte, ni une durée plus brève, que le compteur ne le dit. Ce n'est **pas** lui qui rend l'aller-retour exact : c'est la largeur de l'intervalle (1,33 compteur par tick, donc toujours un entier dedans). `Math.round` inverserait tout aussi bien les valeurs du catalogue — le cas ne se voit qu'au compteur 1, saisi à la main.
 - ⚠️ **`ticksForRate(rateForTicks(t)) === t` pour tout `t` de 2 à 77** : les horloges sont entières et comparées en `>=`, donc un seuil de 2,75 déclenche au même tick qu'un seuil de 3. **La reprise des 868 cartes n'a donc changé aucun combat**, sauf les 6 pouvoirs au-delà de 77 ticks (80, 120, 250), écrêtés — c'est le plafonnement voulu.
 - ⚠️ **`power_rate: null` ne veut pas dire « lent », il veut dire « jamais »** (`powerPeriod() → Infinity`). Une sentinelle distincte est indispensable depuis que **0 est une valeur légitime** (77 ticks), là où l'ancien seuil en ticks ne pouvait pas valoir zéro. Tout lecteur passe par `??`, jamais `||`.
 - **Le bornage EST la fonctionnalité** : `_recomputeStats` écrête l'empilement des bonus à [0, 100], donc plus rien ne descend sous 2 ticks.
-- ⚠️ **La paralysie reste chiffrée en TICKS** (`attack_period_modifier`), seule exception : elle DOUBLE la période, et un doublement ne s'écrit pas comme un delta de compteur constant (−19 points sur une unité rapide, −51 sur une lente).
-- **Reprise de données** : `node scripts/migrate-speeds.js [--write]`, idempotent, écriture atomique, cible `data/` s'il existe sinon `initial-data/`. Il **refuse** un `stat_modifier` multiplicateur sur un rythme (un multiplicateur de période n'a pas d'équivalent en compteur) plutôt que d'inventer.
-- ⚠️ **Le catalogue n'occupe que le HAUT de l'échelle** : les vitesses d'attaque livrées tiennent entre 76 et 99, les déplacements entre 76 et 96 (visible tel quel dans l'onglet Stats de l'admin). C'est la conséquence directe de la conversion littérale — le rééquilibrage qui répartira les cartes sur les 100 points reste **à faire**, à la main, en admin.
+- ⚠️ **`power.duration` et `power.value` S'EXCLUENT** : les quatre pouvoirs de `DURATION_POWERS` lisent la durée et n'ont plus de `value` ; les dix autres l'inverse (`value` n'y a jamais chiffré des ticks). C'est cette séparation qui rend la reprise **idempotente** — `40` ne se distingue pas de `40`, `value` et `duration` toujours.
+- ⚠️ **Une durée ABSENTE reste conforme**, contrairement à un compteur de vitesse : le moteur porte un repli par pouvoir (24 / 30 / 24 / 24, soit 20 / 25 / 20 / 20 ticks) et trois cartes livrées s'en servent. Corollaire : `powerDurationTicks` lit en `||` comme `powerValue`, donc **un compteur 0 vaut le repli**, pas deux ticks — le seul écart avec les rythmes, où 0 est légitime.
+- ⚠️ **Seule la SÉVÉRITÉ de la paralysie reste en TICKS** (`attack_period_modifier`) : elle DOUBLE la période, et un doublement ne s'écrit pas comme un delta de compteur constant (−19 points sur une unité rapide, −51 sur une lente). Sa durée, elle, est un compteur comme les autres.
+- ⚠️ **Une installation existante N'EST PAS reprise toute seule** : `bootstrap()` ne recopie jamais `initial-data/` sur un `data/` déjà peuplé, donc le volume garde son `attack_speed` en ticks. La panne est **muette et plausible** — `clampRate(undefined)` rend **0**, donc le rythme le plus LENT : les unités jouent au ralenti, l'admin affiche le milieu du curseur, le tooltip laisse deux cases blanches. Trois gardes la nomment désormais : `cardContract.missingRates` / `missingDurations` (**400** à l'écriture), `audit:cards --check` (sortie 1) et un avertissement `[catalogue]` au **démarrage du serveur**, qui nomme le remède.
+- **Reprise de données** : `node scripts/migrate-speeds.js [--write] [--initial-data]`, idempotent, écriture atomique. Cible `data/` s'il existe, sinon `initial-data/` ; ⚠️ **`--initial-data` force la semence**, et les DEUX dossiers sont à reprendre — migrer l'un ne migre pas l'autre. Il **refuse** un `stat_modifier` multiplicateur sur un rythme (un multiplicateur de période n'a pas d'équivalent en compteur) plutôt que d'inventer.
+- ⚠️ **Le catalogue n'occupe que le HAUT de l'échelle** : les vitesses d'attaque livrées tiennent entre 76 et 99, les déplacements entre 76 et 96 (visible tel quel dans l'onglet Stats de l'admin). Les durées, elles, s'étalent de 24 à 100. C'est la conséquence directe de la conversion littérale — le rééquilibrage qui répartira les cartes sur les 100 points reste **à faire**, à la main, en admin.
 
 ## Modèle d'unité (`logic/Unit.ts`)
 
@@ -816,7 +826,8 @@ atk / max_hp / current_hp / initiative / range
 movement_rate / attack_rate                      // COMPTEURS 0–100, plus haut = plus vite
 movement_period / attack_period                  // seuils en ticks, DÉRIVÉS des compteurs
 shield / power_gauge
-power_id / power_rate / power_value              // réécrits durablement par grant_power et power_cooldown
+power_id / power_rate / power_value / power_duration  // réécrits durablement par grant_power
+                                                 // et power_cooldown ; ⚠️ power_duration EXCLUT power_value
                                                  // ⚠️ power_rate NULL = ne part jamais (powerPeriod() → Infinity)
 
 dot_effects            // poison — pulse sur un timer global
@@ -832,6 +843,8 @@ attack_timer / move_timer                        // ⚠️ remis à zéro à cha
 ```
 
 Les unités persistent entre les tours. Détruites → retirées définitivement. Survivantes → retour à `initial_position`.
+
+⚠️ **Une stat absente s'affiche « — », jamais rien** (`TooltipHost.StatsRow`) : `{undefined}` rend une case VIDE sous son intitulé, qui se lit comme un défaut de mise en page et non comme une donnée manquante. C'est ce qu'a produit un catalogue non repris — VIT et DEP sortaient blancs, et la seule chose que ça évoquait était un bug d'affichage.
 
 ⚠️ **Les deux rythmes passent par `_stat_bonuses`, jamais par une écriture directe sur la stat effective** (le geste d'`atk` dans `applyStatModifier`) : ils sont **recalculés depuis `_base`** à chaque `_recomputeStats()`, donc un bonus posé à côté serait effacé au premier `stat_bonus` venu. C'est ce qui rendait muets tous les effets de déplacement livrés et le seul `stat_modifier` de rythme du catalogue (`ARCH_045` Volant).
 
@@ -876,7 +889,8 @@ Un monstre peut porter plusieurs attributs. **Un seul palier est actif à la foi
 
 **Cinq catégories** (`categorie`) : `Archetype`, `Type`, `Element`, `Invocation`, `Tiers`. **Contrat d'une carte : au moins un attribut de catégorie `Tiers`, `Invocation` et `Element`** — `Type` n'en fait **pas** partie (12 cartes livrées n'en portent aucun, et aucune règle ne le lit).
 
-- **`card-contract.js` porte la règle, seul** (pur, sans `require`) : `POST` / `PUT /api/cards` refusent en **400** et `npm run audit:cards --check` sort en 1, avec la même fonction.
+- **`card-contract.js` porte la règle, seul** (pur, sans `require`) : `POST` / `PUT /api/cards` refusent en **400** et `npm run audit:cards --check` sort en 1, avec la même fonction. Il porte aussi **`missingRates`** (les deux compteurs de vitesse) et **`missingDurations`** (la durée des quatre pouvoirs qui en lisent une) — dans les deux cas, un champ en ticks résiduel est une **faute**, pas une information.
+- ⚠️ **`RATE_FIELDS` et `DURATION_POWERS` (`card-contract.js`) sont les JUMEAUX de `RATE_STATS` / `LEGACY_TICK_FIELD` / `DURATION_POWERS` (`speed-scale.mjs`)**, séparés par la frontière CJS / ESM comme `tiers.js` et `logic/Tiers.ts`. `speed-scale.test.ts` les fait répondre la même chose — c'est le seul filet contre leur dérive.
 - ⚠️ **`/import` n'est PAS gardé**, à dessein : c'est le chemin des machines (`sync-data.js` pousse un catalogue entier), et une entrée non conforme y ferait échouer la synchro au lieu de se signaler. C'est l'audit qui couvre ce chemin.
 - ⚠️ Une carte **sans attribut de tier** n'entre dans **aucun** pool de pioche : elle existe au catalogue et ne sort jamais. D'où le refus à l'écriture plutôt qu'un avertissement.
 
@@ -946,18 +960,19 @@ Une unité a **zéro ou un** pouvoir. La jauge gagne `1 + _stat_bonuses.power_ch
 | `POWER_AOE_ATTACK` | `atk` sur **tous** les ennemis vivants | dégâts plats par cible |
 | `POWER_POISON` | DOT `max(1, atk/2)`, 1 pulse tous les `DOT_INTERVAL` (3) steps, **jusqu'à la fin du round** | dégâts par pulse |
 | `POWER_BURN` | `max(1, atk/2)` **à chacune des attaques de la cible**, jusqu'à la fin du round | dégâts par attaque |
-| `POWER_PARALYSIS` | **période d'attaque doublée** pendant 20 steps — ralentit, ne bloque pas | la **durée en steps** |
+| `POWER_PARALYSIS` | **période d'attaque doublée** pendant 20 steps — ralentit, ne bloque pas | ⏱ **compteur de durée** |
 | `POWER_PUSH` | Repousse de 2 cases en ligne droite (s'arrête aux bords, unités, cases bloquées) | nombre de cases |
 | `POWER_DEBUFF` | `resetCombatStats()` sur la cible — efface bonus **et** statuts | — |
-| `POWER_BLOCK` | Empêche la cible d'utiliser son pouvoir 25 steps | nombre de steps |
-| `POWER_CONFUSION` | 20 steps : la cible prend ses **propres alliés** pour cibles | nombre de steps |
-| `POWER_TAUNT` | 20 steps : le lanceur force les ennemis à le cibler | nombre de steps |
+| `POWER_BLOCK` | Empêche la cible d'utiliser son pouvoir 25 steps | ⏱ **compteur de durée** |
+| `POWER_CONFUSION` | 20 steps : la cible prend ses **propres alliés** pour cibles | ⏱ **compteur de durée** |
+| `POWER_TAUNT` | 20 steps : le lanceur force les ennemis à le cibler | ⏱ **compteur de durée** |
 | `POWER_TELEPORT` | Au contact de l'ennemi au plus bas PV. Sans destination, la jauge **reste pleine** | — |
 | `POWER_FREEZE` | Repousse d'1 case et **gèle la case libérée** jusqu'à la fin du round | — |
 
+- ⏱ = **`power.duration`, un compteur 0–100** (`ticksForDuration`), jamais `power.value` — ces quatre-là ne lisent plus la colonne « Valeur ». `powerDurationTicks` en est le seul lecteur ; un `value` résiduel y est du tick que personne ne lit, refusé en **400**.
 - ⚠️ **`powerValue(unit, fallback)` est le seul lecteur de `power_value`, et il utilise `||` et non `??`** : une **Valeur laissée à 0** en admin est le *défaut du champ*, pas une intention. Lue strictement, elle donnerait un blocage de 0 step — un pouvoir qui consomme sa jauge sans effet.
 - **Un montant plat n'est pas un multiplicateur** : `HAGA_008` a `atk: 1, hp: 400, value: 80` — sous `atk × 2` ce mur se poserait un bouclier de 2. Le soin est indexé sur le `max_hp` du **lanceur** : un soigneur ne doit pas soigner moins parce qu'il est fragile.
-- ⚠️ **La paralysie chiffre sa DURÉE, pas sa sévérité** (seul pouvoir dont le sens de `value` a changé) : un `+6` plat coûtait trois quarts de ses attaques à une unité rapide et rien à une lente. Un doublement coûte **la moitié** quel que soit le rythme. Un second tir **rafraîchit** au lieu d'empiler.
+- ⚠️ **La paralysie chiffre sa DURÉE, pas sa sévérité** (seul pouvoir dont le sens du champ a changé) : un `+6` plat coûtait trois quarts de ses attaques à une unité rapide et rien à une lente. Un doublement coûte **la moitié** quel que soit le rythme. Un second tir **rafraîchit** au lieu d'empiler.
 - ⚠️ **Poison et brûlure n'expirent pas** (plus de `DOT_PULSES` / `BURN_ATTACKS`) : ils courent jusqu'à la fin du round, et n'ont que les purges de statuts pour sortie. Ce qui les sépare est leur **horloge** : le poison bat sur l'horloge globale, la brûlure sur les **attaques de la cible** — d'où un contre-jeu que le poison n'a pas (une cible paralysée, hors de portée ou sans cible cesse de brûler). ⚠️ Corollaire assumé : **les piles cumulent sans plafond** ; le jour où ça pose problème, le geste est de **rafraîchir**, pas de rétablir un compteur.
 - Un pouvoir ne part **jamais** en préparation. Un `power_id` inconnu retombe sur une attaque normale.
 - Une unité `is_effect_immune` annule poison, burn, paralysie, push, freeze, block et confusion — l'événement `power` est émis avec `extra: { immune: true }`.
@@ -1175,7 +1190,7 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 | `board_slot_bonus` | `value` | `grantLimitedBoardSlotBonus(value \|\| 1)` — **cap partagé +1 sur toute la partie**, pool commun avec l'attribut Yeux Bleus |
 | `draw_bonus` | `value` | `player_extra_draws += (value \|\| 1)` |
 | `guaranteed_draw` | `tier`, `attribute` | Pousse dans `player_guaranteed_draws` — les **deux filtres sont facultatifs et se cumulent** |
-| `grant_power` | `power_id`, `power_rate`, `value` | Pose (ou **remplace**) le pouvoir, remet la jauge à zéro, lève un blocage en cours |
+| `grant_power` | `power_id`, `power_rate`, `value` **ou** `duration` | Pose (ou **remplace**) le pouvoir, remet la jauge à zéro, lève un blocage en cours. ⚠️ Le chiffre suit le pouvoir donné : `duration` sur les quatre pouvoirs de durée, `value` sur les dix autres — et rien n'est hérité de l'ancien |
 | `power_cooldown` | `value` (facteur, déf. 2) | **DIVISE la PÉRIODE** du pouvoir, puis la retraduit en compteur (plancher 2 ticks). Ne cible que les unités **portant** un pouvoir |
 | `damage_multiplier_bonus` | `value` | **Permanent et cumulatif**, s'ajoute au multiplicateur du joueur à chaque fin de combat |
 | `defuse_fusion` | — | `GameSession._defuseFusion()` — sépare la fusion en ses matériaux (au cimetière s'il n'y a plus de slot) |
@@ -1307,7 +1322,7 @@ Les toucher déplacerait le placement dans tous les modes et ferait bouger les g
 
 ⚠️ **Tout état persistant d'une unité doit voyager dans `round:board_ready`**, sinon les deux clients simulent des combats différents. Le payload transporte par unité :
 
-`card_id` · `position` · `veterancy_points` · `base` (stats de base, modifiées en permanent par les magies) · `current_hp` (les PV ne se régénèrent pas entre rounds) · `shield` · **`power_id` / `power_rate` / `power_value`** (`grant_power` et `power_cooldown` réécrivent durablement le pouvoir ; `power_rate` voyage y compris à `null`, qui veut dire « ne part jamais ») — plus **`player_hp`** au niveau du message, chaque joueur étant la source de vérité de ses propres PV.
+`card_id` · `position` · `veterancy_points` · `base` (stats de base, modifiées en permanent par les magies) · `current_hp` (les PV ne se régénèrent pas entre rounds) · `shield` · **`power_id` / `power_rate` / `power_value` / `power_duration`** (`grant_power` et `power_cooldown` réécrivent durablement le pouvoir ; `power_rate` voyage y compris à `null`, qui veut dire « ne part jamais » ; sans `power_duration`, l'adversaire rejoue une paralysie du **repli** là où son propriétaire en joue une de 60) — plus **`player_hp`** au niveau du message, chaque joueur étant la source de vérité de ses propres PV.
 
 Verrouillé par `client/src/test/pvp.test.ts`.
 
@@ -1633,11 +1648,13 @@ Page autonome, **16 onglets**, aucun build. ⚠️ **Aucun test automatisé ne l
 - ⚠️ **Les POUVOIRS sont l'exception, et elle est de fond** : un id de pouvoir est *sémantique* (`POWER_FREEZE`), lu en dur par `logic/CombatManager`. Un `POWER_015` tiré d'un compteur serait un pouvoir que rien n'exécute. L'onglet garde un id libre et le dit à l'écran.
 - Variantes et dos de cartes ont un ID **en lecture seule** hors création : l'illustration est nommée par lui, le renommer la détacherait en silence (même piège que les attributs).
 
-### Le curseur de vitesse
+### Le curseur de compteur
 
-`rateSliderHtml(id, label, value, { allowEmpty })` est le **seul** curseur de compteur du fichier (vitesse d'attaque, de déplacement, de pouvoir) ; `rateFromSlider(id)` sa seule lecture. 0 à 100, avec l'équivalent en ticks affiché sous le curseur — un **indice** recalculé en direct par `SPEED.ticksForRate`, jamais par une formule recopiée.
+`counterSliderHtml(id, label, value, { allowEmpty, kind, emptyLabel })` est le **seul** curseur de compteur du fichier ; `counterFromSlider(id)` sa seule lecture. 0 à 100, avec l'équivalent en ticks affiché sous le curseur — un **indice** recalculé en direct par `SPEED.ticksFor<kind>`, jamais par une formule recopiée.
 
-- ⚠️ `allowEmpty` (la seule vitesse de pouvoir) ajoute une case « aucune vitesse » : `null` (« ne part jamais ») et le compteur `0` (le plus lent) sont **deux choses**, et un curseur seul ne saurait pas les distinguer. `rateFromSlider` rend `null`, jamais `0`.
+- `kind: 'Rate'` (défaut) sert les trois vitesses, `kind: 'Duration'` la durée des quatre pouvoirs qui en lisent une. ⚠️ Le `kind` nomme la moitié de `SPEED` à appeler **au rendu ET dans le `oninput`** : les laisser se séparer donnerait un curseur qui s'annonce autrement qu'il ne joue.
+- ⚠️ `allowEmpty` sert les deux champs où le vide EST une valeur, et il ne veut pas dire la même chose : sur une vitesse de pouvoir, « ne part jamais » (à distinguer du compteur 0, le plus lent) ; sur une durée, « le repli du pouvoir s'applique ». `counterFromSlider` rend `null`, jamais `0`.
+- ⚠️ **« Valeur » et « Durée » s'EXCLUENT** — fiche carte, édition en masse, onglet Stats et formulaire de magie. Montrer les deux laisse saisir un champ que le moteur ne lira jamais, et le contrat le refuse en **400**. Sur une magie, la bascule suit le **pouvoir donné**, pas le type d'effet : la règle est donc écrite dans le gabarit *et* dans `updateMagieEffectFields()` — le second n'est pas rejoué après un rendu de détail.
 - ⚠️ Une case à cocher posée dans un `.field` hérite de deux règles qui ne la visaient pas : `.field input` lui impose `width: 100%` (elle sortait en barre pleine largeur) et `.field label` la met en capitales. La classe `.field-check` neutralise les deux — **au-dessus** du bloc `@media (max-width: 768px)`, comme toute règle desktop.
 
 ### Télécharger un asset
