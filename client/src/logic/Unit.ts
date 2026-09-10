@@ -72,6 +72,19 @@ export class Unit {
    */
   power_rate: number | null;
   power_value: number | null;
+  /**
+   * Le compteur de DURÉE du pouvoir, 0–100 (`speed-scale.mjs`), pour les seuls
+   * pouvoirs de `DURATION_POWERS` (paralysie, blocage, confusion, provocation).
+   *
+   * ⚠️ Un champ à part de `power_value`, et pas par goût : `value` chiffre dix
+   * choses différentes selon le pouvoir (des dégâts, un bouclier, des cases),
+   * et c'est le seul cas où elle chiffrait des TICKS. Les séparer est ce qui
+   * rend la reprise de données idempotente — sur ces quatre pouvoirs, un
+   * `value` résiduel ne peut vouloir dire qu'« encore en ticks ».
+   *
+   * `null` = pas de durée saisie, donc le repli du pouvoir (`CombatManager`).
+   */
+  power_duration: number | null;
 
   // Frozen base stats (for reset)
   _base: BaseStats;
@@ -155,6 +168,7 @@ export class Unit {
     this.power_id = card.power?.id ?? null;
     this.power_rate = card.power?.power_rate ?? null;
     this.power_value = card.power?.value ?? null;
+    this.power_duration = card.power?.duration ?? null;
 
     this._base = {
       atk: card.stats.atk,

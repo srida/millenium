@@ -83,4 +83,63 @@ function missingRates(card) {
   return problems;
 }
 
-module.exports = { REQUIRED_CATEGORIES, missingCategories, RATE_FIELDS, missingRates };
+/**
+ * Les quatre pouvoirs dont la `value` chiffrait une DURÉE en ticks et qui
+ * portent désormais un compteur 0–100 dans `power.duration`.
+ *
+ * ⚠️ Jumeau de `DURATION_POWERS` (`speed-scale.mjs`), pour la raison qui vaut
+ * déjà pour `RATE_FIELDS` : la frontière CJS / ESM. `speed-scale.test.ts` les
+ * fait répondre la même chose.
+ */
+const DURATION_POWERS = Object.freeze([
+  'POWER_PARALYSIS',
+  'POWER_BLOCK',
+  'POWER_CONFUSION',
+  'POWER_TAUNT',
+]);
+
+/**
+ * Ce qui cloche dans la durée du pouvoir d'une carte. `[]` = conforme.
+ *
+ * Trois fautes, et une seule absence tolérée :
+ *
+ *  1. `value` sur un pouvoir de durée — le champ EN TICKS d'avant la bascule.
+ *     Le laisser passer, c'est faire vivre deux formats dont un seul est lu, et
+ *     la panne serait muette : le moteur retomberait sur son repli, donc une
+ *     paralysie annoncée 60 durerait 20 ticks sans qu'on le voie nulle part.
+ *  2. `duration` sur un pouvoir qui n'en lit pas — un champ sans lecteur, signe
+ *     d'un `power.id` changé sans nettoyage.
+ *  3. `duration` illisible ou hors de [0, 100] — le compteur est borné, c'est
+ *     tout son propos.
+ *
+ * ⚠️ Une durée ABSENTE reste conforme, contrairement aux compteurs de vitesse :
+ * le moteur porte un repli par pouvoir (`CombatManager`), et trois cartes
+ * livrées s'en servent. L'exiger transformerait un défaut de champ documenté en
+ * refus d'écriture.
+ */
+function missingDurations(card) {
+  const problems = [];
+  const power = card?.power;
+  if (!power || !power.id) return problems;
+  const isDuration = DURATION_POWERS.includes(power.id);
+
+  if (isDuration && 'value' in power) {
+    problems.push(`power.value sur ${power.id} (champ en ticks résiduel — voir scripts/migrate-speeds.js)`);
+  }
+  if (!isDuration && 'duration' in power) {
+    problems.push(`power.duration sur ${power.id} (ce pouvoir ne lit aucune durée)`);
+  }
+  if (isDuration && power.duration != null && power.duration !== '') {
+    const n = Number(power.duration);
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      problems.push(`power.duration (compteur hors de 0–100 : ${power.duration})`);
+    }
+  }
+  return problems;
+}
+
+module.exports = {
+  REQUIRED_CATEGORIES, missingCategories,
+  RATE_FIELDS, missingRates,
+  DURATION_POWERS, missingDurations,
+};

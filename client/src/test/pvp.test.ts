@@ -104,6 +104,21 @@ describe('PvP — reconstruction du board adverse', () => {
     expect(rebuilt.power_value).toBe(40);
   });
 
+  // ⚠️ La DURÉE d'un pouvoir donné voyage au même titre que sa valeur : sans
+  // elle, l'adversaire rejoue une paralysie du repli du moteur (20 ticks) là où
+  // son propriétaire en joue une de 60 — les deux combats divergent au premier
+  // tir, et le désaccord final prive LES DEUX joueurs de leur gain.
+  // Mutation : retirer `power_duration` du payload → ROUGE.
+  it('rejoue la DURÉE d\'un pouvoir donné par une magie', () => {
+    const source = veteranUnit(new Board());
+    source.power_id = 'POWER_PARALYSIS';
+    source.power_rate = 50;
+    source.power_duration = 77;
+    const { rebuilt } = roundTrip(source);
+    expect(rebuilt.power_id).toBe('POWER_PARALYSIS');
+    expect(rebuilt.power_duration).toBe(77);
+  });
+
   // Le pouvoir de la CARTE n'est pas un repli : une unité qui n'en porte plus
   // ne doit pas le retrouver à la reconstruction. La carte en porte un ici,
   // sans quoi le cas ne prouverait rien.

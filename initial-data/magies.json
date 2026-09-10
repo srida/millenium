@@ -302,9 +302,9 @@
 		"rarity": 1,
 		"effect": {
 			"type": "grant_power",
-			"value": 60,
 			"power_id": "POWER_TAUNT",
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 77
 		}
 	},
 	{
@@ -358,9 +358,9 @@
 		"rarity": 1,
 		"effect": {
 			"type": "grant_power",
-			"value": 40,
 			"power_id": "POWER_PARALYSIS",
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 50
 		}
 	},
 	{

@@ -33,6 +33,15 @@ export interface CardPower {
   /** Compteur de chargement, 0–100. Absent = le pouvoir ne part JAMAIS. */
   power_rate?: number;
   value?: number | null;
+  /**
+   * Compteur de DURÉE, 0–100, sur les seuls `DURATION_POWERS` (paralysie,
+   * blocage, confusion, provocation).
+   *
+   * ⚠️ Sur ces quatre pouvoirs, `value` est le champ EN TICKS d'avant la
+   * bascule et vaut une faute (`card-contract.missingDurations`). Sur les dix
+   * autres, c'est l'inverse : ils gardent `value` et n'ont pas de durée.
+   */
+  duration?: number | null;
 }
 
 /**
@@ -209,6 +218,8 @@ export interface MagieEffectDef {
    *  ⚠️ Et `0` en est une valeur LÉGITIME (77 ticks), pas une absence. */
   power_id?: string;
   power_rate?: number;
+  /** `grant_power` d'un pouvoir de durée : le compteur 0–100 qu'il pose. */
+  duration?: number | null;
 }
 
 /** Palier de rareté d'une magie : 1 Commune · 2 Rare · 3 Légendaire. */

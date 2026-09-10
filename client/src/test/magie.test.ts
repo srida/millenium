@@ -283,6 +283,30 @@ describe('MagieEffect — pouvoirs (grant_power / power_cooldown)', () => {
     expect(u.isPowerReady()).toBe(false);
   });
 
+  // ⚠️ Un `grant_power` de pouvoir de durée pose sa DURÉE, pas une valeur : le
+  // moteur ne lit plus `value` sur ces quatre-là, donc la laisser en ticks
+  // ferait durer la paralysie donnée le REPLI du moteur (20 ticks) et non les
+  // 60 que la magie annonce — sans qu'une ligne ne le dise.
+  // Mutation : retirer l'écriture de `power_duration` de `grant_power` → ROUGE.
+  it('grant_power pose la DURÉE d\'un pouvoir de durée', () => {
+    const u = freshUnit();
+    applyEffect(
+      magie({ type: 'grant_power', power_id: 'POWER_PARALYSIS', power_rate: 50, duration: 77 }),
+      { targetUnit: u },
+    );
+    expect(u.power_id).toBe('POWER_PARALYSIS');
+    expect(u.power_duration).toBe(77);
+  });
+
+  // Un pouvoir donné n'hérite RIEN de l'ancien — ni sa valeur, ni sa durée.
+  it('grant_power efface la durée de l\'ancien pouvoir', () => {
+    const u = freshUnit({ power: { id: 'POWER_TAUNT', power_rate: 63, duration: 77 } });
+    expect(u.power_duration).toBe(77);   // témoin
+    applyEffect(magie({ type: 'grant_power', power_id: 'POWER_POISON', power_rate: 92, value: 5 }), { targetUnit: u });
+    expect(u.power_duration).toBeNull();
+    expect(u.power_value).toBe(5);
+  });
+
   it('grant_power lève un blocage de pouvoir en cours', () => {
     const u = freshUnit({ power: { id: 'POWER_HEAL', power_rate: 76, value: null } });
     u.is_power_blocked = true;

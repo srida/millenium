@@ -214,12 +214,24 @@ function logCatalogueFormat() {
   }
   if (!Array.isArray(cards) || cards.length === 0) return;
   const stale = cards.filter(c => cardContract.missingRates(c).length);
-  if (!stale.length) return;
-  console.warn(
-    `[catalogue] ⚠ ${stale.length} carte(s) sur ${cards.length} n'ont pas de compteur de vitesse ` +
-    `(ex. ${stale.slice(0, 3).map(c => c.id).join(', ')}). Elles joueront au rythme le PLUS LENT ` +
-    '(0/100, soit 77 ticks) sans autre signe. Reprise : `node scripts/migrate-speeds.js --write`.',
-  );
+  if (stale.length) {
+    console.warn(
+      `[catalogue] ⚠ ${stale.length} carte(s) sur ${cards.length} n'ont pas de compteur de vitesse ` +
+      `(ex. ${stale.slice(0, 3).map(c => c.id).join(', ')}). Elles joueront au rythme le PLUS LENT ` +
+      '(0/100, soit 77 ticks) sans autre signe. Reprise : `node scripts/migrate-speeds.js --write`.',
+    );
+  }
+  // Même panne, même remède, autre symptôme : ces cartes-là jouent au repli du
+  // moteur au lieu de la durée qu'elles annoncent.
+  const durations = cards.filter(c => cardContract.missingDurations(c).length);
+  if (durations.length) {
+    console.warn(
+      `[catalogue] ⚠ ${durations.length} carte(s) sur ${cards.length} portent une durée de pouvoir ` +
+      `invalide (ex. ${durations.slice(0, 3).map(c => c.id).join(', ')}). Paralysie, blocage, confusion ` +
+      'et provocation y dureront le REPLI du moteur, pas ce que la carte annonce. ' +
+      'Reprise : `node scripts/migrate-speeds.js --write`.',
+    );
+  }
 }
 
 // Récapitulatif des dossiers d'images réellement utilisés. Une famille dont la
@@ -657,8 +669,16 @@ app.use('/api/cards', crud({
     // vitesse est JOUABLE ET FAUSSE (rythme 0, donc 77 ticks) au lieu d'être
     // visiblement cassée. Cf. `cardContract.missingRates`.
     const rates = cardContract.missingRates(c);
-    return rates.length
-      ? { status: 400, body: { error: `Vitesse invalide : ${rates.join(', ')}` } }
+    if (rates.length) {
+      return { status: 400, body: { error: `Vitesse invalide : ${rates.join(', ')}` } };
+    }
+    // ⚠️ Et même statut encore pour la DURÉE des quatre pouvoirs qui en portent
+    // une : un `power.value` résiduel y est du tick, que plus personne ne lit —
+    // le moteur retomberait sur son repli et une paralysie annoncée 60 durerait
+    // 20 ticks, en silence. Cf. `cardContract.missingDurations`.
+    const durations = cardContract.missingDurations(c);
+    return durations.length
+      ? { status: 400, body: { error: `Durée de pouvoir invalide : ${durations.join(', ')}` } }
       : null;
   },
   strip: (c) => { delete c._has_illustration; delete c._starter; delete c._tiers; },

@@ -1,20 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// L'ÉCHELLE DE VITESSE — le compteur 0–100 qui a remplacé les trois périodes
-// en ticks.
+// L'ÉCHELLE DE TICKS — le compteur 0–100 qui a remplacé les périodes et les
+// durées chiffrées en ticks.
 //
-// Ce fichier tient trois choses, et elles ne se recouvrent pas :
-//   1. l'échelle elle-même (bornes, aller-retour, additivité) ;
+// Ce fichier tient quatre choses, et elles ne se recouvrent pas :
+//   1. l'échelle elle-même (bornes, aller-retour, additivité), dans ses DEUX
+//      lectures — un RYTHME descend en ticks quand le compteur monte, une
+//      DURÉE monte avec lui ;
 //   2. le CATALOGUE LIVRÉ, qui doit y être entièrement passé — c'est le seul
 //      filet contre une reprise de données à moitié faite, exactement comme
 //      `tiers.test.ts` l'est pour le champ `tier` ;
 //   3. les deux effets qui étaient MUETS avant la bascule et qui ne doivent
-//      plus l'être. Chacun est éprouvé dans les deux sens (cf. la mutation
-//      annoncée en tête de cas).
+//      plus l'être ;
+//   4. le CONTRAT de carte, qui refuse en 400 un champ resté en ticks.
+// Chaque cas de régression est éprouvé dans les deux sens (cf. la mutation
+// annoncée en tête de cas).
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ticksForRate, rateForTicks, clampRate, rateDeltaForTickDelta,
+  ticksForDuration, durationForTicks, DURATION_POWERS,
   TICKS_AT_MIN, TICKS_AT_MAX, TICKS_PER_POINT, RATE_STATS, LEGACY_TICK_FIELD,
 } from '../../../speed-scale.mjs';
 // ⚠️ Le contrat est en CJS (requis par `app.js` et l'audit) : `createRequire`
@@ -25,7 +30,9 @@ import { makeCard } from './helpers.js';
 
 const ROOT = join(__dirname, '../../..');
 const readCatalog = (f: string) => JSON.parse(readFileSync(join(ROOT, 'initial-data', f), 'utf8'));
-const { RATE_FIELDS, missingRates } = createRequire(import.meta.url)(join(ROOT, 'card-contract.js'));
+const {
+  RATE_FIELDS, missingRates, DURATION_POWERS: CONTRACT_DURATION_POWERS, missingDurations,
+} = createRequire(import.meta.url)(join(ROOT, 'card-contract.js'));
 
 describe('speed-scale — l\'échelle', () => {
   it('tient ses deux bornes', () => {
@@ -286,5 +293,154 @@ describe('speed-scale — le contrat de carte', () => {
     for (const [rate, legacy] of Object.entries(RATE_FIELDS)) {
       expect((LEGACY_TICK_FIELD as Record<string, string>)[rate]).toBe(legacy);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// LES DURÉES — la même fenêtre de ticks, lue dans l'autre sens.
+// ---------------------------------------------------------------------------
+
+describe('speed-scale — l\'échelle de durée', () => {
+  // ⚠️ LE cas qui distingue les deux lectures, et le contresens qu'il interdit.
+  // Mutation : faire rendre `ticksForRate` à `ticksForDuration` → ROUGE.
+  it('MONTE avec le compteur, là où le rythme descend', () => {
+    expect(ticksForDuration(0)).toBe(TICKS_AT_MAX);   // 2 ticks : le plus bref
+    expect(ticksForDuration(100)).toBe(TICKS_AT_MIN); // 77 ticks : le plus long
+    // Le sens, énoncé sans dépendre d'une borne : plus de compteur, plus long.
+    for (let c = 1; c <= 100; c++) {
+      expect(ticksForDuration(c)).toBeGreaterThanOrEqual(ticksForDuration(c - 1));
+    }
+    expect(ticksForDuration(100)).toBeGreaterThan(ticksForDuration(0));
+    // …et c'est exactement l'inverse du rythme, sur la MÊME fenêtre.
+    expect(ticksForRate(100)).toBe(ticksForDuration(0));
+    expect(ticksForRate(0)).toBe(ticksForDuration(100));
+  });
+
+  it('est ADDITIVE : +4 compteur vaut +3 ticks, où qu\'on tombe', () => {
+    for (const base of [0, 13, 40, 61, 96]) {
+      expect(ticksForDuration(base + 4) - ticksForDuration(base)).toBe(3);
+    }
+  });
+
+  // ⚠️ Le bornage EST la fonctionnalité : c'est ce que la demande appelait
+  // « limiter ces statistiques ». Mutation : retirer `clampRate` de
+  // `ticksForDuration` → ROUGE.
+  it('BORNE : rien ne dure plus de 77 ticks, ni moins de 2', () => {
+    expect(ticksForDuration(250)).toBe(TICKS_AT_MIN);
+    expect(ticksForDuration(-50)).toBe(TICKS_AT_MAX);
+    expect(ticksForDuration('n\'importe quoi' as never)).toBe(TICKS_AT_MAX);
+  });
+
+  // ⚠️ C'est la LARGEUR de l'intervalle (1,33 compteur par tick) qui porte la
+  // garantie, pas l'arrondi. Sans elle, la reprise des 83 cartes changerait des
+  // combats en silence.
+  it('l\'aller-retour est EXACT sur toute la fenêtre', () => {
+    for (let t = TICKS_AT_MAX; t <= TICKS_AT_MIN; t++) {
+      expect(ticksForDuration(durationForTicks(t))).toBe(t);
+    }
+    expect(TICKS_PER_POINT).toBeLessThan(1); // la raison, en un chiffre
+  });
+
+  // ⚠️ Le sens de l'arrondi : une durée annoncée ne peut pas être PLUS COURTE
+  // que le compteur ne le dit. Mutation : `Math.floor` → ROUGE (compteur 1 vaut
+  // 2,75 ticks exacts, donc 3 au supérieur et 2 à l'inférieur).
+  it('n\'annonce jamais une durée plus courte que le compteur', () => {
+    for (let c = 0; c <= 100; c++) {
+      expect(ticksForDuration(c)).toBeGreaterThanOrEqual(TICKS_AT_MAX + TICKS_PER_POINT * c);
+    }
+    expect(ticksForDuration(1)).toBe(3);
+  });
+
+  // ⚠️ Une valeur illisible rend le compteur MINIMAL, jamais le maximal : se
+  // tromper de sens donnerait à un pouvoir muet la paralysie la plus dure.
+  it('une durée illisible est BRÈVE, pas éternelle', () => {
+    expect(durationForTicks(undefined as never)).toBe(0);
+    expect(durationForTicks(NaN)).toBe(0);
+  });
+});
+
+describe('speed-scale — le catalogue livré, côté durées', () => {
+  const cards = readCatalog('cards.json');
+  const magies = readCatalog('magies.json');
+
+  // ⚠️ Le filet contre une reprise à moitié faite, jumeau exact de celui des
+  // rythmes : sur ces quatre pouvoirs, un `value` résiduel est du TICK que plus
+  // personne ne lit — le moteur retomberait sur son repli, en silence.
+  it('plus aucune carte ne porte de `power.value` sur un pouvoir de durée', () => {
+    const fautives = cards.filter((c: any) =>
+      DURATION_POWERS.includes(c.power?.id) && 'value' in (c.power ?? {}));
+    expect(fautives.map((c: any) => c.id)).toEqual([]);
+  });
+
+  it('aucun pouvoir SANS durée ne porte de `power.duration`', () => {
+    const fautives = cards.filter((c: any) =>
+      c.power?.id && !DURATION_POWERS.includes(c.power.id) && 'duration' in c.power);
+    expect(fautives.map((c: any) => c.id)).toEqual([]);
+  });
+
+  it('toutes les durées livrées tiennent dans les bornes', () => {
+    const hors = cards
+      .filter((c: any) => c.power?.duration != null)
+      .filter((c: any) => c.power.duration < 0 || c.power.duration > 100);
+    expect(hors.map((c: any) => c.id)).toEqual([]);
+  });
+
+  // ⚠️ Une magie `grant_power` chiffrait la durée du pouvoir donné dans le même
+  // `value` que les autres. La laisser en ticks ferait durer la paralysie
+  // donnée le REPLI du moteur, pas ce que la magie annonce.
+  it('les `grant_power` de durée portent `duration` et non `value`', () => {
+    const grants = magies.filter((m: any) =>
+      m.effect?.type === 'grant_power' && DURATION_POWERS.includes(m.effect.power_id));
+    expect(grants.length).toBeGreaterThan(0); // sinon le cas ne prouve rien
+    for (const m of grants) {
+      expect(m.effect).not.toHaveProperty('value');
+      expect(typeof m.effect.duration).toBe('number');
+    }
+  });
+});
+
+describe('speed-scale — le contrat de durée', () => {
+  const power = (p: any) => ({ id: 'X', stats: {}, power: p });
+
+  // Mutation : vider `missingDurations` → ROUGE.
+  it('refuse un `power.value` resté en ticks, et nomme le remède', () => {
+    const problems = missingDurations(power({ id: 'POWER_PARALYSIS', value: 40 }));
+    expect(problems.join(' | ')).toContain('POWER_PARALYSIS');
+    expect(problems.join(' | ')).toContain('migrate-speeds');
+  });
+
+  it('refuse une `duration` sur un pouvoir qui n\'en lit aucune', () => {
+    expect(missingDurations(power({ id: 'POWER_SUPER_ATTACK', duration: 40 })))
+      .toHaveLength(1);
+    // …et laisse sa `value` tranquille : c'est l'inverse exact.
+    expect(missingDurations(power({ id: 'POWER_SUPER_ATTACK', value: 100 })))
+      .toEqual([]);
+  });
+
+  it('refuse une durée hors de 0–100', () => {
+    expect(missingDurations(power({ id: 'POWER_BLOCK', duration: 140 }))).toHaveLength(1);
+    expect(missingDurations(power({ id: 'POWER_BLOCK', duration: -1 }))).toHaveLength(1);
+    expect(missingDurations(power({ id: 'POWER_BLOCK', duration: 0 }))).toEqual([]);
+  });
+
+  // ⚠️ Une durée ABSENTE reste conforme, contrairement aux compteurs de
+  // vitesse : le moteur porte un repli par pouvoir, et trois cartes livrées
+  // s'en servent. L'exiger ferait échouer leur enregistrement.
+  it('tolère une durée ABSENTE — le repli du moteur est une intention', () => {
+    expect(missingDurations(power({ id: 'POWER_BLOCK', power_rate: 36 }))).toEqual([]);
+    expect(missingDurations({ id: 'X', stats: {} })).toEqual([]);
+  });
+
+  it('laisse passer le catalogue livré', () => {
+    const fautives = readCatalog('cards.json').filter((c: any) => missingDurations(c).length);
+    expect(fautives.map((c: any) => c.id)).toEqual([]);
+  });
+
+  // ⚠️ Jumelles séparées par la frontière CJS / ESM, comme `RATE_FIELDS` et
+  // `RATE_STATS`. Seul filet contre leur dérive : une liste qui gagnerait un
+  // pouvoir d'un seul côté laisserait passer à l'écriture ce que le combat lit
+  // — ou refuserait ce qu'il ne lit pas.
+  it('le contrat et l\'échelle nomment les mêmes pouvoirs de durée', () => {
+    expect([...CONTRACT_DURATION_POWERS].sort()).toEqual([...DURATION_POWERS].sort());
   });
 });

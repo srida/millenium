@@ -1,14 +1,21 @@
 import { chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, hasLineOfSight, stepToward, stepTowardOrNearest } from './PathFinder.js';
+// L'échelle vit à la racine (cf. l'en-tête de `speed-scale.mjs`) : une seule
+// fenêtre de ticks pour les rythmes ET les durées.
+import { ticksForDuration } from '../../../speed-scale.mjs';
 
 // Power constants — every one of them is a FALLBACK: the card's own
 // `power.value` (admin field "Valeur") overrides it when set, see powerValue().
 const POWER_SUPER_ATTACK_MULT = 3;
 const POWER_HEAL_RATIO = 0.4;        // % of healer max_hp
 const POWER_SHIELD_MULT = 2;         // × atk
-const POWER_PARALYSIS_TICKS = 20;    // duration in steps
-const POWER_BLOCK_TICKS = 25;
-const POWER_CONFUSION_TICKS = 20;
-const POWER_TAUNT_TICKS = 20;
+// Les quatre DURÉES sont des compteurs 0–100 (`speed-scale.mjs`), pas des ticks
+// — comme les rythmes, et pour la même raison : bornées, lisibles, et « 100 »
+// veut dire « au maximum ». Les repli ci-dessous sont donc eux aussi des
+// compteurs ; le tick affiché en commentaire est ce qu'ils valent à l'arrivée.
+const POWER_PARALYSIS_DURATION = 24; // 20 ticks
+const POWER_BLOCK_DURATION = 30;     // 25 ticks
+const POWER_CONFUSION_DURATION = 24; // 20 ticks
+const POWER_TAUNT_DURATION = 24;     // 20 ticks
 const DOT_DAMAGE_DIVISOR = 2;
 const DOT_INTERVAL = 3;              // global steps between DOT pulses
 const BURN_DAMAGE_DIVISOR = 2;
@@ -28,6 +35,21 @@ const RANGELESS_POWERS = new Set(['POWER_HEAL', 'POWER_TAUNT', 'POWER_TELEPORT']
 // a silent no-op power is the one authoring mistake that costs a card its
 // whole identity without saying so anywhere.
 const powerValue = (unit, fallback) => unit.power_value || fallback;
+
+// La DURÉE d'un effet, en ticks, depuis le compteur 0–100 de la carte.
+//
+// ⚠️ Le champ lu est `power_duration` et non `power_value` : `value` chiffre
+// dix choses différentes selon le pouvoir, et c'est le seul cas où elle
+// chiffrait des ticks. Les séparer est ce qui permet à la reprise de données de
+// reconnaître un catalogue déjà repris (cf. `speed-scale.DURATION_POWERS`).
+//
+// ⚠️ `||` et non `??`, exactement comme `powerValue` et pour la même raison :
+// un compteur laissé à 0 en admin est le DÉFAUT DU CHAMP, jamais l'intention
+// « cette paralysie dure deux ticks ». C'est le seul écart avec les rythmes, où
+// 0 est une valeur légitime — là-bas le champ est obligatoire, ici il ne l'est
+// pas, et le repli du pouvoir est ce qui donne son identité à une carte muette.
+const powerDurationTicks = (unit, fallbackCounter) =>
+  ticksForDuration(unit.power_duration || fallbackCounter);
 
 // Mirrors CombatAnimator3D's BASE_TICK_MS (180ms/tick at speed ×1) — kept in
 // sync manually since logic/ never imports from ui/. A combat that's still
@@ -470,14 +492,17 @@ export class CombatManager {
         // The severity is fixed: the attack PERIOD is doubled, so the effect
         // costs the target half its attacks whatever its rhythm — a flat +6 was
         // crippling on a fast unit and unnoticeable on a slow one.
-        // `value` is therefore the DURATION in steps. Stored as a plain delta so
-        // effectiveAttackPeriod() stays additive; a second hit REFRESHES it
-        // instead of stacking — doubled is a ceiling, not a step.
+        // La carte ne chiffre donc que la DURÉE, par un compteur 0–100. Le
+        // ralentissement est stocké en delta plat pour qu'effectiveAttackPeriod()
+        // reste additive ; un second tir RAFRAÎCHIT au lieu d'empiler — le
+        // doublement est un plafond, pas une marche.
         //
-        // ⚠️ C'est le seul effet de rythme qui reste chiffré en TICKS et non en
-        // compteur, parce qu'un doublement de période ne s'écrit pas comme un
-        // delta de compteur constant (cf. `Unit.attack_period_modifier`).
-        const paralysisTicks = powerValue(unit, POWER_PARALYSIS_TICKS);
+        // ⚠️ Ne pas confondre les deux moitiés : la DURÉE est un compteur comme
+        // les autres, mais la SÉVÉRITÉ (`attack_period_modifier`) reste chiffrée
+        // en TICKS et le restera — un doublement de période ne s'écrit pas comme
+        // un delta de compteur constant (−19 points sur une unité rapide, −51
+        // sur une lente).
+        const paralysisTicks = powerDurationTicks(unit, POWER_PARALYSIS_DURATION);
         primaryTarget.attack_period_modifier = primaryTarget.attack_period;
         primaryTarget.paralysis_remaining = paralysisTicks;
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: paralysisTicks } });
@@ -551,7 +576,7 @@ export class CombatManager {
           events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
           break;
         }
-        const block_ticks = powerValue(unit, POWER_BLOCK_TICKS);
+        const block_ticks = powerDurationTicks(unit, POWER_BLOCK_DURATION);
         primaryTarget.is_power_blocked = true;
         primaryTarget.power_block_remaining = block_ticks;
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: block_ticks } });
@@ -563,14 +588,14 @@ export class CombatManager {
           events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
           break;
         }
-        const confusion_ticks = powerValue(unit, POWER_CONFUSION_TICKS);
+        const confusion_ticks = powerDurationTicks(unit, POWER_CONFUSION_DURATION);
         primaryTarget.confusion_remaining = confusion_ticks;
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: confusion_ticks } });
         break;
       }
 
       case 'POWER_TAUNT': {
-        const taunt_ticks = powerValue(unit, POWER_TAUNT_TICKS);
+        const taunt_ticks = powerDurationTicks(unit, POWER_TAUNT_DURATION);
         unit.taunt_remaining = taunt_ticks;
         events.push({ type: 'power', unit, targets: [unit], power_id: pid, extra: { ticks: taunt_ticks } });
         break;

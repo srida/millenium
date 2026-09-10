@@ -26,7 +26,7 @@ const path = require('path');
 const { tierIndex, resolveTiers, TIER_CATEGORY } = require('../tiers');
 // Le contrat vit dans `card-contract.js` et nulle part ailleurs : le serveur le
 // refuse en 400 avec la MÊME fonction.
-const { REQUIRED_CATEGORIES, missingCategories, missingRates } = require('../card-contract');
+const { REQUIRED_CATEGORIES, missingCategories, missingRates, missingDurations } = require('../card-contract');
 
 const PROJECT = path.join(__dirname, '..');
 const DATA = fs.existsSync(path.join(PROJECT, 'data', 'cards.json'))
@@ -48,6 +48,7 @@ function audit() {
   const unknownAttr = [];
   const legacyField = [];
   const badRates = [];
+  const badDurations = [];
   const multiTier = [];
 
   for (const c of CARDS) {
@@ -64,6 +65,10 @@ function audit() {
     const rates = missingRates(c);
     if (rates.length) badRates.push(`${c.id} → ${rates.join(' · ')}`);
 
+    // Même famille de faute : la DURÉE des quatre pouvoirs qui en portent une.
+    const durations = missingDurations(c);
+    if (durations.length) badDurations.push(`${c.id} → ${durations.join(' · ')}`);
+
     const ts = tiersOf(c);
     if (ts.length > 1) multiTier.push(`${c.id} → T${ts.join('·T')}`);
     // ⚠️ Le champ `tier` est désormais une FAUTE et non un reliquat toléré :
@@ -78,12 +83,13 @@ function audit() {
     .filter(a => a.categorie === TIER_CATEGORY && !(Number(a.tier) > 0))
     .map(a => a.id);
 
-  return { missing, unknownAttr, legacyField, badRates, multiTier, attrsWithoutTier };
+  return { missing, unknownAttr, legacyField, badRates, badDurations, multiTier, attrsWithoutTier };
 }
 
 const r = audit();
 const errors = REQUIRED_CATEGORIES.reduce((n, c) => n + r.missing[c].length, 0)
-  + r.unknownAttr.length + r.legacyField.length + r.badRates.length + r.attrsWithoutTier.length;
+  + r.unknownAttr.length + r.legacyField.length + r.badRates.length + r.badDurations.length
+  + r.attrsWithoutTier.length;
 
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify({ source: DATA, cards: CARDS.length, errors, ...r }, null, 2));
@@ -102,6 +108,7 @@ for (const cat of REQUIRED_CATEGORIES) show(`✗ Sans attribut de catégorie « 
 show('✗ Attributs inconnus du catalogue', r.unknownAttr);
 show('✗ Champ `tier` résiduel (le retirer : scripts/migrate-tiers.js --write)', r.legacyField);
 show('✗ Vitesse manquante ou en ticks (reprise : scripts/migrate-speeds.js --write)', r.badRates);
+show('✗ Durée de pouvoir invalide ou en ticks (reprise : scripts/migrate-speeds.js --write)', r.badDurations);
 show('✗ Attribut de tier sans champ `tier`', r.attrsWithoutTier);
 show('· Cartes multi-tiers', r.multiTier);
 console.log(errors ? `\n${errors} carte(s) hors contrat.` : '\n✓ Contrat respecté.');
