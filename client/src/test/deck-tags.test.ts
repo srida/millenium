@@ -45,7 +45,7 @@ const nameOf = (id: string) => ATTRIBUTES.find(a => a.id === id)!.name;
 /** Carte minimale : seuls `attributes` et `stats` pèsent sur les tags. */
 const card = (attributes: string[], atk = 10, range = 1): Card => ({
   id: `C${Math.random()}`, name: 'X', tier: 1, summon_conditions: [], attributes,
-  stats: { atk, hp: 100, movement_speed: 1, attack_speed: 1, initiative: 1, range }
+  stats: { atk, hp: 100, movement_rate: 100, attack_rate: 100, initiative: 1, range }
 } as unknown as Card);
 
 const deckOf = (...cards: Card[]) => cards;

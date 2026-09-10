@@ -17,15 +17,21 @@ export type Side = 'player' | 'enemy';
 export interface CardStats {
   atk: number;
   hp: number;
-  movement_speed: number;
-  attack_speed: number;
+  /**
+   * Les deux rythmes, en COMPTEUR de 0 à 100 : plus haut = plus vite
+   * (`speed-scale.mjs`). Ce sont des périodes en ticks qui étaient saisies ici,
+   * donc à l'envers — tous les bonus livrés s'écrivaient en négatif.
+   */
+  movement_rate: number;
+  attack_rate: number;
   initiative: number;
   range: number;
 }
 
 export interface CardPower {
   id: string;
-  power_speed?: number;
+  /** Compteur de chargement, 0–100. Absent = le pouvoir ne part JAMAIS. */
+  power_rate?: number;
   value?: number | null;
 }
 
@@ -140,7 +146,8 @@ export interface PowerDef {
   id: string;
   name: string;
   description?: string;
-  power_speed?: number;
+  /** Compteur de chargement par défaut du pouvoir, 0–100. */
+  power_rate?: number;
   value?: number | null;
 }
 
@@ -196,11 +203,12 @@ export interface MagieEffectDef {
   attribute?: string;
   attributes?: string[];
   card_ids?: string[];
-  /** `grant_power` : le pouvoir posé sur l'unité, et sa vitesse de chargement.
-   *  ⚠️ La vitesse est OBLIGATOIRE — sans elle l'unité hérite de 9999
-   *  (`Unit`), c'est-à-dire d'un pouvoir qui ne part jamais. */
+  /** `grant_power` : le pouvoir posé sur l'unité, et son compteur de
+   *  chargement (0–100). ⚠️ Le compteur est OBLIGATOIRE — sans lui l'unité
+   *  garde le `null` d'`Unit`, c'est-à-dire un pouvoir qui ne part jamais.
+   *  ⚠️ Et `0` en est une valeur LÉGITIME (77 ticks), pas une absence. */
   power_id?: string;
-  power_speed?: number;
+  power_rate?: number;
 }
 
 /** Palier de rareté d'une magie : 1 Commune · 2 Rare · 3 Légendaire. */

@@ -129,6 +129,17 @@ body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', syste
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
 .field textarea { resize: vertical; min-height: 60px; }
 .field select option { background: var(--surface2); }
+/* Une case à cocher posée DANS un `.field` hérite de deux règles qui ne la
+   visaient pas : `.field input` lui impose `width: 100%` — elle sortait en
+   barre pleine largeur, détachée de son texte — et `.field label` la met en
+   capitales espacées, qui est le registre d'un intitulé, pas d'une option.
+   ⚠️ Posée ICI, au-dessus du bloc `@media (max-width: 768px)` de fin de
+   feuille : à spécificité égale, la dernière règle gagne. */
+.field .field-check {
+  display: flex; align-items: center; gap: 6px; margin-top: 6px; cursor: pointer;
+  text-transform: none; letter-spacing: 0; font-weight: 400;
+}
+.field .field-check input[type="checkbox"] { width: auto; flex: none; margin: 0; padding: 0; }
 .field input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; padding: 0; border: none; background: none; height: 20px; }
 .field input[type=range]:focus { border-color: transparent; }
 .slider-val { font-size: 12px; font-weight: 700; color: var(--accent); background: rgba(108,99,255,.15); border-radius: 4px; padding: 1px 6px; margin-left: 5px; font-family: monospace; }
@@ -893,6 +904,12 @@ const bulkSelected = new Set();
 // tombe pas sur un module absent.
 let CQ = null;
 
+// L'ÉCHELLE DE VITESSE (`speed-scale.mjs`, racine), chargée par la même route
+// et pour la même raison que le moteur de requête : la conversion compteur ↔
+// ticks doit être LA MÊME ici et en combat. Ce fichier ne peut rien importer du
+// bundle, mais il peut importer le module que le bundle importe.
+let SPEED = null;
+
 /** Le schéma de l'onglet courant, ou celui qu'on nomme. */
 const QUERY_SCHEMAS = {};
 
@@ -1285,13 +1302,15 @@ function attachQueryBars() {
 
 // ================== INIT ==================
 async function init() {
-  const [modules] = await Promise.all([
+  const modules = await Promise.all([
     // ⚠️ Attendu AVANT le premier rendu de liste : un onglet qui filtrerait
     // sans le module retomberait sur la recherche par sous-chaîne, et un chip
     // cliqué avant l'arrivée du module ne ferait rien du tout.
     import('/admin/card-query.js'),
+    import('/admin/speed-scale.js'),
   ]);
-  CQ = modules;
+  CQ = modules[0];
+  SPEED = modules[1];
 
   [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, cardBacks] = await Promise.all([
     apiFetch('/api/cards'),
@@ -2059,16 +2078,8 @@ function renderCardDetail() {
         <input type="range" id="f-range" min="1" max="4" step="1" value="${Math.min(4,Math.max(1,Math.round(c.stats.range)))}" oninput="document.getElementById('f-range-val').textContent=this.value">
         <div class="slider-marks"><span>1</span><span>2</span><span>3</span><span>4</span></div>
       </div>
-      <div class="field">
-        <label>Vit. déplacement <span class="slider-val" id="f-move-val">${Math.min(20,Math.max(5,Math.round(c.stats.movement_speed/5)*5))}</span></label>
-        <input type="range" id="f-move" min="5" max="20" step="5" value="${Math.min(20,Math.max(5,Math.round(c.stats.movement_speed/5)*5))}" oninput="document.getElementById('f-move-val').textContent=this.value">
-        <div class="slider-marks"><span>5</span><span>10</span><span>15</span><span>20</span></div>
-      </div>
-      <div class="field">
-        <label>Vit. attaque <span class="slider-val" id="f-aspeed-val">${Math.min(20,Math.max(1,Math.round(c.stats.attack_speed)))}</span></label>
-        <input type="range" id="f-aspeed" min="1" max="20" step="1" value="${Math.min(20,Math.max(1,Math.round(c.stats.attack_speed)))}" oninput="document.getElementById('f-aspeed-val').textContent=this.value">
-        <div class="slider-marks"><span>1</span><span>20</span></div>
-      </div>
+      ${rateSliderHtml('f-move', 'Vit. déplacement', c.stats.movement_rate)}
+      ${rateSliderHtml('f-aspeed', 'Vit. attaque', c.stats.attack_rate)}
       <div class="field">
         <label>Initiative <span class="slider-val" id="f-init-val">${Math.min(10,Math.max(1,Math.round(c.stats.initiative)))}</span></label>
         <input type="range" id="f-init" min="1" max="10" step="1" value="${Math.min(10,Math.max(1,Math.round(c.stats.initiative)))}" oninput="document.getElementById('f-init-val').textContent=this.value">
@@ -2084,7 +2095,7 @@ function renderCardDetail() {
           ${powers.map(p => `<option value="${p.id}" ${hasPower && c.power.id===p.id?'selected':''}>${p.name}</option>`).join('')}
         </select>
       </div>
-      <div class="field" id="f-power-speed-wrap"><label>Vitesse pouvoir</label><input type="number" id="f-power-speed" value="${hasPower && c.power.power_speed != null ? c.power.power_speed : ''}" step="0.5" placeholder="ex: 60"></div>
+      <div class="field" id="f-power-speed-wrap">${rateSliderHtml('f-power-speed', 'Vitesse pouvoir', hasPower ? c.power.power_rate : null, { allowEmpty: true })}</div>
       <div class="field" id="f-power-val-wrap"><label>Valeur</label><input type="number" id="f-power-val" value="${hasPower && c.power.value != null ? c.power.value : ''}" step="0.5" placeholder="optionnel"></div>
     </div>
 
@@ -2400,11 +2411,44 @@ function collectConditionsFromForm() {
   });
 }
 
+/**
+ * Le compteur saisi par un curseur `rateSliderHtml`, ou `null` quand la case
+ * « aucune vitesse » est cochée.
+ *
+ * ⚠️ `null` et `0` sont DEUX choses : `null` dit « ce pouvoir ne part jamais »,
+ * `0` dit « le plus lent de l'échelle » (77 ticks). Les confondre — ce que
+ * ferait un `|| 0` — rendrait tirable un pouvoir qu'on a voulu muet.
+ */
+function rateFromSlider(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  if (document.getElementById(id + '-none')?.checked) return null;
+  return SPEED.clampRate(el.value);
+}
+
+/** Les deux rythmes d'une carte, lus des curseurs. */
+function cardRatesFromForm() {
+  return {
+    movement_rate: rateFromSlider('f-move') ?? 0,
+    attack_rate: rateFromSlider('f-aspeed') ?? 0,
+  };
+}
+
+/** Le bloc `power` d'une carte, lu du formulaire. */
+function cardPowerFromForm() {
+  const powId = document.getElementById('f-power-id')?.value;
+  if (!powId) return {};
+  const powVal = document.getElementById('f-power-val')?.value;
+  const rate = rateFromSlider('f-power-speed');
+  return {
+    id: powId,
+    ...(rate != null ? { power_rate: rate } : {}),
+    ...(powVal !== '' && powVal != null ? { value: parseFloat(powVal) } : {}),
+  };
+}
+
 function syncCardFromForm() {
   if (!selectedCard || !document.getElementById('f-id')) return;
-  const powId = document.getElementById('f-power-id')?.value;
-  const powSpeed = document.getElementById('f-power-speed')?.value;
-  const powVal = document.getElementById('f-power-val')?.value;
   selectedCard.id = document.getElementById('f-id').value.trim();
   selectedCard.name = document.getElementById('f-name').value.trim();
   selectedCard.type = 'monster';
@@ -2412,25 +2456,17 @@ function syncCardFromForm() {
   selectedCard.stats = {
     atk: parseFloat(document.getElementById('f-atk').value) || 0,
     hp: parseFloat(document.getElementById('f-hp').value) || 0,
-    movement_speed: parseFloat(document.getElementById('f-move').value) || 0,
-    attack_speed: parseFloat(document.getElementById('f-aspeed').value) || 0,
+    ...cardRatesFromForm(),
     initiative: parseFloat(document.getElementById('f-init').value) || 0,
     range: parseFloat(document.getElementById('f-range').value) || 0,
   };
-  selectedCard.power = powId
-    ? { id: powId, ...(powSpeed !== '' ? { power_speed: parseFloat(powSpeed) } : {}), ...(powVal !== '' ? { value: parseFloat(powVal) } : {}) }
-    : {};
+  selectedCard.power = cardPowerFromForm();
   selectedCard.summon_conditions = collectConditionsFromForm();
   selectedCard.represented_ids = selectedCard.represented_ids || [];
 }
 
 function collectCardFromForm() {
-  const powId = document.getElementById('f-power-id').value;
-  const powSpeed = document.getElementById('f-power-speed')?.value;
-  const powVal = document.getElementById('f-power-val')?.value;
-  const power = powId
-    ? { id: powId, ...(powSpeed !== '' ? { power_speed: parseFloat(powSpeed) } : {}), ...(powVal !== '' ? { value: parseFloat(powVal) } : {}) }
-    : {};
+  const power = cardPowerFromForm();
 
   // ⚠️ On REPART de la carte au lieu de la reconstruire de zéro : un objet neuf
   // détruit tout champ que ce formulaire ne connaît pas — `set` (le miroir du
@@ -2458,8 +2494,7 @@ function collectCardFromForm() {
     stats: {
       atk: parseFloat(document.getElementById('f-atk').value),
       hp: parseFloat(document.getElementById('f-hp').value),
-      movement_speed: parseFloat(document.getElementById('f-move').value),
-      attack_speed: parseFloat(document.getElementById('f-aspeed').value),
+      ...cardRatesFromForm(),
       initiative: parseFloat(document.getElementById('f-init').value),
       range: parseFloat(document.getElementById('f-range').value),
     },
@@ -2618,6 +2653,48 @@ function composeId(kind, prefix, num) {
   return `${prefix}_${String(num).padStart(idNumWidth(kind, prefix), '0')}`;
 }
 
+/**
+ * Le curseur d'un COMPTEUR DE VITESSE (0–100), et le seul du fichier.
+ *
+ * Les trois rythmes se saisissaient en ticks, à l'envers (plus bas = plus vite),
+ * sur trois échelles différentes — et rien à l'écran ne disait dans quel sens
+ * lire. Ici : une seule échelle, le sens naturel, et l'équivalent en ticks
+ * affiché en clair sous le curseur. Ce chiffre est un INDICE, pas une saisie —
+ * il se recalcule en direct par la conversion du jeu (`SPEED.ticksForRate`),
+ * jamais par une formule recopiée ici.
+ *
+ * ⚠️ `allowEmpty` sert au seul champ « vitesse pouvoir » : y laisser vide veut
+ * dire « ce pouvoir ne part jamais », ce qui n'est PAS la même chose que le
+ * compteur 0 (le plus lent, 77 ticks). Un curseur seul ne saurait pas dire la
+ * différence, d'où la case à cocher qui l'accompagne.
+ */
+function rateSliderHtml(id, label, value, { allowEmpty = false } = {}) {
+  const has = value != null && value !== '';
+  const v = has ? SPEED.clampRate(value) : 50;
+  const ticks = t => `${SPEED.ticksForRate(t)} ticks`;
+  // L'indice se met à jour sans passer par un re-render : le curseur est un
+  // champ de saisie, le reconstruire sous le doigt casserait le glissement.
+  const oninput = `document.getElementById('${id}-val').textContent=this.value;`
+    + `document.getElementById('${id}-ticks').textContent=SPEED.ticksForRate(this.value)+' ticks'`;
+  const toggle = allowEmpty ? `
+      <label class="field-check">
+        <input type="checkbox" id="${id}-none" ${has ? '' : 'checked'}
+               onchange="document.getElementById('${id}').disabled=this.checked">
+        <span>Aucune vitesse — le pouvoir ne part jamais</span>
+      </label>` : '';
+  return `
+      <div class="field">
+        <label>${label} <span class="slider-val" id="${id}-val">${v}</span></label>
+        <input type="range" id="${id}" min="0" max="100" step="1" value="${v}"
+               ${allowEmpty && !has ? 'disabled' : ''} oninput="${oninput}">
+        <div class="slider-marks"><span>0 — lent</span><span>100 — rapide</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">
+          = <span id="${id}-ticks">${ticks(v)}</span>
+          <span style="opacity:.6">(de ${SPEED.ticksForRate(0)} à ${SPEED.ticksForRate(100)} ticks)</span>
+        </div>${toggle}
+      </div>`;
+}
+
 /** L'id que proposera une fiche neuve. C'est le seul générateur d'id du fichier. */
 function nextIdFor(kind, prefix) {
   const p = prefix || defaultIdPrefix(kind);
@@ -2741,7 +2818,7 @@ function openNewCard() {
   const firstTier = tierAttrDefs()[0];
   selectedCard = {
     id: nextIdFor('card'), name: '', type: 'monster', material_value: 1,
-    attributes: firstTier ? [firstTier.id] : [], stats: { atk: 10, hp: 100, movement_speed: 10, attack_speed: 10, initiative: 4, range: 1 },
+    attributes: firstTier ? [firstTier.id] : [], stats: { atk: 10, hp: 100, movement_rate: 50, attack_rate: 50, initiative: 4, range: 1 },
     power: {}, summon_conditions: [], represented_ids: [], _has_illustration: false,
   };
   isNewCard = true;
@@ -3143,7 +3220,7 @@ function renderThresholdBlock(th, ti) {
   `;
 }
 
-const ATTR_EFFECT_STATS = ['atk', 'hp', 'attack_speed', 'movement_speed', 'range', 'initiative', 'power_charge'];
+const ATTR_EFFECT_STATS = ['atk', 'hp', 'attack_rate', 'movement_rate', 'range', 'initiative', 'power_charge'];
 const ATTR_EFFECT_TRIGGERS = ['on_enemy_neutralized', 'on_ally_neutralized'];
 const ATTR_EFFECT_TARGETS = ['neutralized_ally'];
 
@@ -3939,8 +4016,8 @@ function renderMagieDetail() {
         <select id="mf-effect-stat">
           <option value="atk" ${effect.stat === 'atk' ? 'selected' : ''}>ATK</option>
           <option value="hp" ${effect.stat === 'hp' ? 'selected' : ''}>HP</option>
-          <option value="attack_speed" ${effect.stat === 'attack_speed' ? 'selected' : ''}>Vitesse d'attaque</option>
-          <option value="movement_speed" ${effect.stat === 'movement_speed' ? 'selected' : ''}>Vitesse de déplacement</option>
+          <option value="attack_rate" ${effect.stat === 'attack_rate' ? 'selected' : ''}>Vitesse d'attaque (compteur 0–100)</option>
+          <option value="movement_rate" ${effect.stat === 'movement_rate' ? 'selected' : ''}>Vitesse de déplacement (compteur 0–100)</option>
           <option value="range" ${effect.stat === 'range' ? 'selected' : ''}>Portée</option>
           <option value="initiative" ${effect.stat === 'initiative' ? 'selected' : ''}>Initiative</option>
         </select>
@@ -3990,8 +4067,11 @@ function renderMagieDetail() {
         </select>
       </div>
       <div class="field" id="mf-power-speed-field" style="${showPower ? '' : 'display:none'}">
-        <label>Vitesse de chargement (seuil de jauge, plus bas = plus rapide)</label>
-        <input id="mf-effect-power-speed" type="number" min="1" step="1" value="${effect.power_speed ?? 20}">
+        <label>Vitesse de chargement (compteur 0–100, plus haut = plus rapide)</label>
+        <input id="mf-effect-power-speed" type="number" min="0" max="100" step="1" value="${effect.power_rate ?? 50}">
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">
+          ⚠️ Obligatoire : sans compteur, l'unité reçoit un pouvoir qui ne part JAMAIS.
+        </div>
       </div>
       <div class="field" id="mf-attribute-field" style="${showAttribute ? '' : 'display:none'}">
         <label id="mf-attribute-label">${magieAttributeLabel()}</label>
@@ -4289,7 +4369,7 @@ function _collectMagieFields() {
       effect.power_id = document.getElementById('mf-effect-power')?.value || '';
       // ⚠️ Sans vitesse explicite, l'unité hérite du 9999 d'`Unit` — le défaut
       // de « pas de pouvoir » — et le pouvoir donné ne partirait JAMAIS.
-      effect.power_speed = Math.max(1, parseInt(document.getElementById('mf-effect-power-speed')?.value, 10) || 20);
+      effect.power_rate = SPEED.clampRate(document.getElementById('mf-effect-power-speed')?.value ?? 50);
     }
   }
   // Le contrecoup est un champ de PREMIER NIVEAU, pas un champ d'`effect` : il
@@ -6637,14 +6717,19 @@ function toast(msg, type = 'ok') {
 }
 
 // ================== STATS ==================
-const STAT_LABELS = { atk: 'ATK', hp: 'HP', movement_speed: 'Déplacement', attack_speed: 'Vit. Attaque', initiative: 'Initiative', range: 'Portée' };
-const STAT_KEYS = ['atk', 'hp', 'movement_speed', 'attack_speed', 'initiative', 'range'];
+const STAT_LABELS = { atk: 'ATK', hp: 'HP', movement_rate: 'Déplacement', attack_rate: 'Vit. Attaque', initiative: 'Initiative', range: 'Portée' };
+const STAT_KEYS = ['atk', 'hp', 'movement_rate', 'attack_rate', 'initiative', 'range'];
 const TIER_COLORS = { 1: '#78c8a8', 2: '#6ab4e8', 3: '#c878e0', 4: '#f0a040', 5: '#f05050' };
 
 const COMPOSITE_STATS = [
-  { key: 'offensive', label: 'Score Offensif', formula: 'ATK × (100 / Vit. Attaque)', color: '#f05050', note: 'Dégâts sur 100 ticks', compute: s => (s.atk != null && s.attack_speed != null) ? s.atk * (100 / s.attack_speed) : null },
+  // ⚠️ Le score offensif se calcule sur la PÉRIODE, pas sur le compteur : ce
+  // qu'il mesure, ce sont des dégâts sur 100 ticks, donc « combien d'attaques
+  // tiennent dans 100 ticks ». Appliqué au compteur, il ferait un produit sans
+  // unité qui a l'air d'un score et n'en est pas — le genre de chiffre qu'on ne
+  // remarque faux qu'après l'avoir cru.
+  { key: 'offensive', label: 'Score Offensif', formula: 'ATK × (100 / période d\'attaque)', color: '#f05050', note: 'Dégâts sur 100 ticks', compute: s => (s.atk != null && s.attack_rate != null) ? s.atk * (100 / SPEED.ticksForRate(s.attack_rate)) : null },
   { key: 'defensive', label: 'Ratio Défensif',  formula: 'ATK / HP',            color: '#6ab4e8', note: 'Élevé = glass canon · Faible = tank', compute: s => (s.atk != null && s.hp != null && s.hp > 0) ? s.atk / s.hp : null },
-  { key: 'mobility',  label: 'Score Mobilité',  formula: 'Déplacement / Portée', color: '#78c8a8', note: 'Mobilité relative à la portée', compute: s => (s.movement_speed != null && s.range != null && s.range > 0) ? s.movement_speed / s.range : null }
+  { key: 'mobility',  label: 'Score Mobilité',  formula: 'Vit. déplacement / Portée', color: '#78c8a8', note: 'Mobilité relative à la portée', compute: s => (s.movement_rate != null && s.range != null && s.range > 0) ? s.movement_rate / s.range : null }
 ];
 
 let statsFilterTier = 0;
@@ -7040,7 +7125,7 @@ function renderStats() {
     ? cards.filter(c => c.power?.id === detailPower.id).sort((a, b) => cardTier(a) - cardTier(b) || a.name.localeCompare(b.name))
     : [];
   const hasValue = detailCards.some(c => c.power.value != null);
-  const hasSpeed = detailCards.some(c => c.power.power_speed != null);
+  const hasSpeed = detailCards.some(c => c.power.power_rate != null);
 
   const powerDetailRows = detailCards.length === 0
     ? `<div class="no-anomalies">Aucune carte n'utilise ce pouvoir</div>`
@@ -7063,7 +7148,7 @@ function renderStats() {
                   <td style="text-align:left;font-weight:600">${esc(c.name)}</td>
                   <td><span class="badge" style="background:${TIER_COLORS[tier]}22;color:${TIER_COLORS[tier]}">T${tier}</span></td>
                   ${hasValue ? `<td>${c.power.value != null ? c.power.value : '<span style="color:var(--muted)">—</span>'}</td>` : ''}
-                  ${hasSpeed ? `<td>${c.power.power_speed != null ? c.power.power_speed : '<span style="color:var(--muted)">—</span>'}</td>` : ''}
+                  ${hasSpeed ? `<td>${c.power.power_rate != null ? `${c.power.power_rate} <span style="color:var(--muted)">(${SPEED.ticksForRate(c.power.power_rate)}t)</span>` : '<span style="color:var(--muted)">—</span>'}</td>` : ''}
                 </tr>
               `;
             }).join('')}
@@ -7275,7 +7360,7 @@ async function applyMassEdit() {
     delete updated._tiers;
     delete updated.tier;
     if (field === 'material_value') updated.material_value = parseInt(value, 10) || 1;
-    else if (field === 'power') updated.power = value ? { id: value, power_speed: updated.power?.power_speed || 0, value: updated.power?.value ?? null } : {};
+    else if (field === 'power') updated.power = value ? { id: value, power_rate: updated.power?.power_rate ?? 50, value: updated.power?.value ?? null } : {};
     await fetch(`/api/cards/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
   }
   toast(`${ids.length} carte${ids.length>1?'s':''} modifiée${ids.length>1?'s':''}`, 'ok');
@@ -7524,8 +7609,8 @@ function _boardEffectHtml(e, i) {
   const needsStat = type === 'stat_bonus' || type === 'stat_modifier';
   const targets = BOARD_EFFECTS_TARGETING.has(type);
   const statOpts = [
-    ['atk','ATK'],['hp','HP'],['movement_speed','Vitesse mvt'],
-    ['attack_speed','Vitesse attaque'],['initiative','Initiative'],['range','Portée'],
+    ['atk','ATK'],['hp','HP'],['movement_rate','Vitesse mvt (0–100)'],
+    ['attack_rate','Vitesse attaque (0–100)'],['initiative','Initiative'],['range','Portée'],
   ].map(([v,l]) => `<option value="${v}" ${e.stat===v?'selected':''}>${l}</option>`).join('');
 
   return `

@@ -54,7 +54,7 @@ export function sendOwnBoard(round, units, playerHp) {
       current_hp: u.current_hp,
       shield: u.shield || 0,
       power_id: u.power_id ?? null,
-      power_speed: u.power_speed,
+      power_rate: u.power_rate ?? null,
       power_value: u.power_value ?? null,
     })),
   };
@@ -104,7 +104,10 @@ export function reconstructOpponentUnits(payload, board, cardDb) {
     if ('power_id' in entry) {
       unit.power_id = entry.power_id ?? null;
       unit.power_value = entry.power_value ?? null;
-      if (typeof entry.power_speed === 'number') unit.power_speed = entry.power_speed;
+      // ⚠️ `'power_rate' in entry` et non `typeof === 'number'` : `null` est la
+      // valeur qui dit « ce pouvoir ne part jamais », et l'ignorer rendrait à
+      // l'unité reconstruite un rythme que son propriétaire n'a pas.
+      if ('power_rate' in entry) unit.power_rate = entry.power_rate ?? null;
     }
     const pos = { col: entry.position.col, row: mirrorRow(entry.position.row) };
     board.placeUnit(unit, pos);

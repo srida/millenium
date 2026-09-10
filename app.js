@@ -339,6 +339,16 @@ app.get('/admin/card-query.js', requireSiteAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'card-query.mjs'));
 });
 
+// L'ÉCHELLE DE VITESSE (compteur 0–100 ↔ ticks), même montage et même raison
+// que `card-query.js` juste au-dessus : `admin.html` ne peut rien importer du
+// bundle, et une seconde table de conversion donnerait à l'admin un chiffre et
+// au combat un autre — un écart qui ne ressemblerait à aucune panne.
+// ⚠️ Même piège de MIME : le type est posé à la main.
+app.get('/admin/speed-scale.js', requireSiteAdmin, (req, res) => {
+  res.type('text/javascript');
+  res.sendFile(path.join(__dirname, 'speed-scale.mjs'));
+});
+
 // Rapport de la simulation d'équilibrage — page autonome, servie comme
 // admin.html : elle va chercher ses données sur /api/admin/sim, qui porte le
 // même garde. Enregistrée AVANT le fallback SPA (fin de fichier), qui n'exclut

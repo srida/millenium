@@ -65,8 +65,8 @@
 				"effects": [
 					{
 						"type": "stat_bonus",
-						"stat": "attack_speed",
-						"value": -1
+						"stat": "attack_rate",
+						"value": 1
 					}
 				]
 			},
@@ -76,8 +76,8 @@
 				"effects": [
 					{
 						"type": "stat_bonus",
-						"stat": "attack_speed",
-						"value": -2
+						"stat": "attack_rate",
+						"value": 3
 					}
 				]
 			},
@@ -87,8 +87,8 @@
 				"effects": [
 					{
 						"type": "stat_bonus",
-						"stat": "attack_speed",
-						"value": -3
+						"stat": "attack_rate",
+						"value": 4
 					}
 				]
 			},
@@ -98,8 +98,8 @@
 				"effects": [
 					{
 						"type": "stat_bonus",
-						"stat": "attack_speed",
-						"value": -5
+						"stat": "attack_rate",
+						"value": 7
 					}
 				]
 			}
@@ -607,8 +607,8 @@
 				"effects": [
 					{
 						"type": "stat_bonus",
-						"stat": "movement_speed",
-						"value": -1
+						"stat": "movement_rate",
+						"value": 1
 					}
 				]
 			},
@@ -618,8 +618,8 @@
 				"effects": [
 					{
 						"type": "stat_bonus",
-						"stat": "movement_speed",
-						"value": -3
+						"stat": "movement_rate",
+						"value": 4
 					}
 				]
 			}
@@ -969,8 +969,8 @@
 				"effects": [
 					{
 						"type": "stat_bonus",
-						"stat": "movement_speed",
-						"value": -1
+						"stat": "movement_rate",
+						"value": 1
 					}
 				]
 			},
@@ -980,8 +980,8 @@
 				"effects": [
 					{
 						"type": "stat_bonus",
-						"stat": "movement_speed",
-						"value": -3
+						"stat": "movement_rate",
+						"value": 4
 					}
 				]
 			},
@@ -991,8 +991,8 @@
 				"effects": [
 					{
 						"type": "stat_bonus",
-						"stat": "movement_speed",
-						"value": -5
+						"stat": "movement_rate",
+						"value": 7
 					}
 				]
 			},
@@ -1002,8 +1002,8 @@
 				"effects": [
 					{
 						"type": "stat_bonus",
-						"stat": "movement_speed",
-						"value": -10
+						"stat": "movement_rate",
+						"value": 13
 					}
 				]
 			}
@@ -1214,9 +1214,9 @@
 				"effects": [
 					{
 						"type": "stat_modifier",
-						"stat": "attack_speed",
+						"stat": "attack_rate",
 						"trigger": "on_ally_neutralized",
-						"value": -1
+						"value": 1
 					}
 				]
 			},
@@ -1226,9 +1226,9 @@
 				"effects": [
 					{
 						"type": "stat_modifier",
-						"stat": "attack_speed",
+						"stat": "attack_rate",
 						"trigger": "on_ally_neutralized",
-						"value": -2
+						"value": 3
 					}
 				]
 			},
@@ -1238,9 +1238,9 @@
 				"effects": [
 					{
 						"type": "stat_modifier",
-						"stat": "attack_speed",
+						"stat": "attack_rate",
 						"trigger": "on_ally_neutralized",
-						"value": -3
+						"value": 4
 					}
 				]
 			}

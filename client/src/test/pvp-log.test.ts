@@ -497,7 +497,7 @@ describe('CombatRecorder — la forme canonique', () => {
       confusion_remaining: 0, taunt_remaining: 0,
       dot_effects: [], burn_stacks: [],
       isAlive: () => hp > 0,
-      effectiveAttackSpeed: () => 4,
+      effectiveAttackPeriod: () => 4,
     };
   }
 

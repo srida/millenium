@@ -552,12 +552,12 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
 });
 
 describe('Shopping — pouvoirs, multiplicateur, pioche par voie', () => {
-  const powered = (id: string, speed: number) =>
-    makeCard({ id, power: { id: 'POWER_HEAL', power_speed: speed, value: null } as any });
+  const powered = (id: string, rate: number) =>
+    makeCard({ id, power: { id: 'POWER_HEAL', power_rate: rate, value: null } as any });
 
   it('power_cooldown ne cible QUE les unités portant un pouvoir', () => {
     const { session } = makeSession();
-    const avec = place(session, powered('P', 20), { col: 0, row: 0 });
+    const avec = place(session, powered('P', 76), { col: 0, row: 0 });
     place(session, makeCard({ id: 'SANS' }), { col: 1, row: 0 });
 
     expect(session.magieUnitTargets(magie({ type: 'power_cooldown', value: 2 }) as any)).toEqual([avec]);
@@ -573,7 +573,7 @@ describe('Shopping — pouvoirs, multiplicateur, pioche par voie', () => {
     const u = place(session, makeCard({ id: 'SANS' }), { col: 0, row: 0 });
     expect(session.magieUnitTargets(magie({ type: 'power_cooldown', value: 2 }) as any)).toHaveLength(0);
 
-    session.applyMagieOnUnit(magie({ type: 'grant_power', power_id: 'POWER_FREEZE', power_speed: 16 }) as any, u);
+    session.applyMagieOnUnit(magie({ type: 'grant_power', power_id: 'POWER_FREEZE', power_rate: 82 }) as any, u);
 
     expect(session.magieUnitTargets(magie({ type: 'power_cooldown', value: 2 }) as any)).toEqual([u]);
   });
@@ -581,10 +581,11 @@ describe('Shopping — pouvoirs, multiplicateur, pioche par voie', () => {
   it('le pouvoir donné est PERMANENT — il survit à resetCombatStats', () => {
     const { session } = makeSession();
     const u = place(session, makeCard({ id: 'A' }), { col: 0, row: 0 });
-    session.applyMagieOnUnit(magie({ type: 'grant_power', power_id: 'POWER_TAUNT', power_speed: 9 }) as any, u);
+    session.applyMagieOnUnit(magie({ type: 'grant_power', power_id: 'POWER_TAUNT', power_rate: 91 }) as any, u);
     u.resetCombatStats();
     expect(u.power_id).toBe('POWER_TAUNT');
-    expect(u.power_speed).toBe(9);
+    expect(u.power_rate).toBe(91);
+    expect(u.powerPeriod()).toBe(9);
   });
 
   it('damage_multiplier_bonus atteint les DÉGÂTS réellement infligés, et dure', () => {

@@ -1,5 +1,9 @@
 import type { Card, DotEffect, BurnStack, Position, Side } from './types.js';
 import { primaryTier } from './Tiers.js';
+// L'échelle de vitesse vit À LA RACINE et nulle part ailleurs (cf. l'en-tête de
+// `speed-scale.mjs`) : le bundle client, `admin.html` et les scripts Node y
+// lisent la même table. Pur, sans import — il n'entre dans aucune frontière.
+import { clampRate, ticksForRate, RATE_STATS } from '../../../speed-scale.mjs';
 
 let _nextUid = 0;
 
@@ -23,8 +27,9 @@ export function materialValueOf(card: Pick<Card, 'material_value'>): number {
 interface BaseStats {
   atk: number;
   hp: number;
-  movement_speed: number;
-  attack_speed: number;
+  /** Compteurs 0–100, plus haut = plus vite (cf. `speed-scale.mjs`). */
+  movement_rate: number;
+  attack_rate: number;
   initiative: number;
   range: number;
   // _transferShoppingBonuses / MagieEffect écrivent des stats arbitraires dans _base
@@ -54,7 +59,18 @@ export class Unit {
   // values for the same card.
   material_value: number;
   power_id: string | null;
-  power_speed: number;
+  /**
+   * Le compteur de chargement du pouvoir, 0–100 (`speed-scale.mjs`).
+   *
+   * ⚠️ `null` ne veut PAS dire « lent », il veut dire « jamais » :
+   * `powerPeriod()` rend alors `Infinity`. C'est le rôle que tenait le `9999`
+   * d'avant, et il faut un sentinelle distincte parce que 0 est désormais une
+   * valeur légitime (77 ticks, donc quatre tirs par combat). Le piège qu'il
+   * signale est celui d'une magie `grant_power` sans vitesse : l'admin impose
+   * le champ, et une unité qui hériterait d'un pouvoir muet doit rester muette
+   * plutôt que de gagner par surprise le pouvoir le plus lent de l'échelle.
+   */
+  power_rate: number | null;
   power_value: number | null;
 
   // Frozen base stats (for reset)
@@ -75,8 +91,17 @@ export class Unit {
   atk: number;
   max_hp: number;
   current_hp: number;
-  movement_speed: number;
-  attack_speed: number;
+  /**
+   * Les deux rythmes, en COMPTEUR (0–100, plus haut = plus vite) : c'est la
+   * forme que lisent l'écran, les bonus et les données. Le combat, lui, ne
+   * connaît que les périodes en ticks ci-dessous — la traduction se fait une
+   * fois, dans `_recomputeStats`.
+   */
+  movement_rate: number;
+  attack_rate: number;
+  /** Seuils en ticks dérivés des compteurs. Jamais saisis, jamais persistés. */
+  movement_period: number;
+  attack_period: number;
   initiative: number;
   range: number;
 
@@ -86,7 +111,17 @@ export class Unit {
   dot_effects: DotEffect[];
   burn_stacks: BurnStack[]; // self-inflicted on this unit's next attacks
   paralysis_remaining: number; // steps left of paralysis
-  attack_speed_modifier: number; // added to attack_speed while paralyzed
+  /**
+   * Ce que la paralysie ajoute à la PÉRIODE d'attaque, en ticks.
+   *
+   * ⚠️ Le seul état de rythme qui reste chiffré en ticks, et c'est délibéré :
+   * la paralysie DOUBLE la période (« la moitié de ses attaques, quel que soit
+   * le rythme »), or un doublement ne s'écrit pas comme un delta de compteur
+   * constant — il vaut −19 points sur une unité rapide et −51 sur une lente.
+   * Exprimé ici, il reste exactement ce qu'il était. Un bonus, lui, n'a rien à
+   * faire dans cet espace : il passe par `_stat_bonuses.attack_rate`.
+   */
+  attack_period_modifier: number;
   is_power_blocked: boolean;
   power_block_remaining: number;
   confusion_remaining: number; // steps left of confusion (targets own allies)
@@ -118,14 +153,14 @@ export class Unit {
     this.represented_ids = [...new Set([card.id, ...(card.represented_ids || [])])];
     this.material_value = materialValueOf(card);
     this.power_id = card.power?.id ?? null;
-    this.power_speed = card.power?.power_speed ?? 9999;
+    this.power_rate = card.power?.power_rate ?? null;
     this.power_value = card.power?.value ?? null;
 
     this._base = {
       atk: card.stats.atk,
       hp: card.stats.hp,
-      movement_speed: card.stats.movement_speed,
-      attack_speed: card.stats.attack_speed,
+      movement_rate: clampRate(card.stats.movement_rate),
+      attack_rate: clampRate(card.stats.attack_rate),
       initiative: card.stats.initiative,
       range: card.stats.range,
     };
@@ -135,8 +170,10 @@ export class Unit {
     this.atk = card.stats.atk;
     this.max_hp = card.stats.hp;
     this.current_hp = card.stats.hp;
-    this.movement_speed = card.stats.movement_speed;
-    this.attack_speed = card.stats.attack_speed;
+    this.movement_rate = this._base.movement_rate;
+    this.attack_rate = this._base.attack_rate;
+    this.movement_period = ticksForRate(this.movement_rate);
+    this.attack_period = ticksForRate(this.attack_rate);
     this.initiative = card.stats.initiative;
     this.range = card.stats.range;
 
@@ -145,7 +182,7 @@ export class Unit {
     this.dot_effects = [];
     this.burn_stacks = [];
     this.paralysis_remaining = 0;
-    this.attack_speed_modifier = 0;
+    this.attack_period_modifier = 0;
     this.is_power_blocked = false;
     this.power_block_remaining = 0;
     this.confusion_remaining = 0;
@@ -164,12 +201,25 @@ export class Unit {
 
   // --- Combat queries ---
 
-  effectiveAttackSpeed(): number {
-    return Math.max(1, this.attack_speed + this.attack_speed_modifier);
+  /**
+   * La période d'attaque réellement jouée, en ticks : le seuil que
+   * `attack_timer` doit atteindre. Plus haute = plus lente.
+   */
+  effectiveAttackPeriod(): number {
+    return Math.max(1, this.attack_period + this.attack_period_modifier);
+  }
+
+  /**
+   * Le seuil de jauge du pouvoir, en ticks. `Infinity` quand aucune vitesse
+   * n'est déclarée — cf. `power_rate` : un pouvoir sans rythme ne part jamais,
+   * il ne part pas lentement.
+   */
+  powerPeriod(): number {
+    return this.power_rate == null ? Infinity : ticksForRate(this.power_rate);
   }
 
   isPowerReady(): boolean {
-    return !!this.power_id && !this.is_power_blocked && this.power_gauge >= this.power_speed;
+    return !!this.power_id && !this.is_power_blocked && this.power_gauge >= this.powerPeriod();
   }
 
   isAlive(): boolean {
@@ -217,6 +267,13 @@ export class Unit {
     } else if (stat === 'hp') {
       this.max_hp += value;
       this.current_hp = Math.min(this.current_hp + value, this.max_hp);
+    } else if (RATE_STATS.includes(stat)) {
+      // ⚠️ Un rythme passe par `_stat_bonuses`, jamais par une écriture directe
+      // sur la stat effective comme `atk` : les compteurs sont RECALCULÉS depuis
+      // `_base` à chaque `_recomputeStats()`, donc un bonus posé à côté serait
+      // effacé au premier `stat_bonus` venu. C'est ce qui rendait muet le seul
+      // attribut du catalogue qui s'en sert (`ARCH_045` Volant).
+      this.applyStatBonus(stat, value);
     }
   }
 
@@ -239,7 +296,7 @@ export class Unit {
   resetCombatStats(): void {
     this._stat_bonuses = {};
     this.power_gauge = 0;
-    this.attack_speed_modifier = 0;
+    this.attack_period_modifier = 0;
     this.paralysis_remaining = 0;
     this.is_power_blocked = false;
     this.power_block_remaining = 0;
@@ -255,8 +312,18 @@ export class Unit {
   _recomputeStats(): void {
     this.atk = Math.max(1, this._base.atk + (this._stat_bonuses.atk || 0));
     this.max_hp = Math.max(1, this._base.hp + (this._stat_bonuses.hp || 0));
-    this.attack_speed = Math.max(1, this._base.attack_speed + (this._stat_bonuses.attack_speed || 0));
-    this.movement_speed = this._base.movement_speed;
+    // ⚠️ Les deux rythmes se cumulent puis s'ÉCRÊTENT à [0, 100], et c'est tout
+    // le propos de l'échelle : un empilement de bonus ne peut plus descendre
+    // sous 2 ticks. La borne est dans `clampRate`, jamais recopiée ici.
+    //
+    // ⚠️ Le déplacement lisait `_base` SEUL et ignorait son bonus : tous les
+    // effets de déplacement livrés (attributs Bête et Aquatique, terrains
+    // Cimetière, Vallée des rois, Mur du Labyrinthe, Monde transparent) étaient
+    // muets. Ils s'appliquent depuis que cette ligne lit `_stat_bonuses`.
+    this.attack_rate = clampRate(this._base.attack_rate + (this._stat_bonuses.attack_rate || 0));
+    this.movement_rate = clampRate(this._base.movement_rate + (this._stat_bonuses.movement_rate || 0));
+    this.attack_period = ticksForRate(this.attack_rate);
+    this.movement_period = ticksForRate(this.movement_rate);
     this.initiative = this._base.initiative;
     this.range = Math.max(1, this._base.range + (this._stat_bonuses.range || 0));
   }
@@ -267,7 +334,8 @@ export class Unit {
       uid: this.uid, name: this.name, side: this.side,
       hp: `${this.current_hp}/${this.max_hp}`, shield: this.shield,
       atk: this.atk, pos: this.position,
-      power: `${this.power_gauge}/${this.power_speed}`,
+      rates: `atq ${this.attack_rate} (${this.attack_period}t) · dep ${this.movement_rate} (${this.movement_period}t)`,
+      power: `${this.power_gauge}/${this.powerPeriod()}`,
     };
   }
 }

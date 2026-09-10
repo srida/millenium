@@ -19,16 +19,16 @@ function arena(power: any, casterStats: any = {}) {
   const board = makeBoard();
   const caster = spawn(board, makeCard({
     id: 'P_CASTER', power,
-    stats: { atk: 10, hp: 200, attack_speed: 2, initiative: 5, movement_speed: 1, range: 3, ...casterStats },
+    stats: { atk: 10, hp: 200, attack_rate: 100, initiative: 5, movement_rate: 100, range: 3, ...casterStats },
   }), 'player', { col: 2, row: 3 });
   const ally = spawn(board, makeCard({
-    id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_speed: 2, initiative: 4, movement_speed: 1, range: 1 },
+    id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_rate: 100, initiative: 4, movement_rate: 100, range: 1 },
   }), 'player', { col: 1, row: 3 });
   const target = spawn(board, makeCard({
-    id: 'E_TARGET', stats: { atk: 5, hp: 500, attack_speed: 2, initiative: 3, movement_speed: 1, range: 1 },
+    id: 'E_TARGET', stats: { atk: 5, hp: 500, attack_rate: 100, initiative: 3, movement_rate: 100, range: 1 },
   }), 'enemy', { col: 2, row: 7 });
   const target2 = spawn(board, makeCard({
-    id: 'E_TARGET_2', stats: { atk: 5, hp: 500, attack_speed: 2, initiative: 3, movement_speed: 1, range: 1 },
+    id: 'E_TARGET_2', stats: { atk: 5, hp: 500, attack_rate: 100, initiative: 3, movement_rate: 100, range: 1 },
   }), 'enemy', { col: 3, row: 7 });
 
   const combat = new (CombatManager as any)(board, [caster, ally], [target, target2], null);
@@ -38,135 +38,138 @@ function arena(power: any, casterStats: any = {}) {
 
 describe('power.value — surcharge par carte', () => {
   it('POWER_HEAL : `value` = PV plats rendus', () => {
-    const a = arena({ id: 'POWER_HEAL', power_speed: 1, value: 80 });
+    const a = arena({ id: 'POWER_HEAL', power_rate: 100, value: 80 });
     a.ally.current_hp = 10;
     a.fire();
     expect(a.ally.current_hp).toBe(90);
   });
 
   it('POWER_HEAL sans `value` : 40 % du max_hp du LANCEUR', () => {
-    const a = arena({ id: 'POWER_HEAL', power_speed: 1 });   // caster max_hp = 200
+    const a = arena({ id: 'POWER_HEAL', power_rate: 100 });   // caster max_hp = 200
     a.ally.current_hp = 10;
     a.fire();
     expect(a.ally.current_hp).toBe(10 + 80);
   });
 
   it('POWER_SHIELD : `value` = bouclier plat — le seul barème utilisable par un mur à 1 ATK', () => {
-    const a = arena({ id: 'POWER_SHIELD', power_speed: 1, value: 80 }, { atk: 1 });
+    const a = arena({ id: 'POWER_SHIELD', power_rate: 100, value: 80 }, { atk: 1 });
     a.fire();
     expect(a.caster.shield).toBe(80);
   });
 
   it('POWER_SHIELD sans `value` : atk × 2', () => {
-    const a = arena({ id: 'POWER_SHIELD', power_speed: 1 });  // atk = 10
+    const a = arena({ id: 'POWER_SHIELD', power_rate: 100 });  // atk = 10
     a.fire();
     expect(a.caster.shield).toBe(20);
   });
 
   it('POWER_SUPER_ATTACK : `value` = dégâts plats', () => {
-    const a = arena({ id: 'POWER_SUPER_ATTACK', power_speed: 1, value: 150 });
+    const a = arena({ id: 'POWER_SUPER_ATTACK', power_rate: 100, value: 150 });
     a.fire();
     expect(a.target.current_hp).toBe(500 - 150);
   });
 
   it('POWER_SUPER_ATTACK sans `value` : atk × 3', () => {
-    const a = arena({ id: 'POWER_SUPER_ATTACK', power_speed: 1 });
+    const a = arena({ id: 'POWER_SUPER_ATTACK', power_rate: 100 });
     a.fire();
     expect(a.target.current_hp).toBe(500 - 30);
   });
 
   it('POWER_AOE_ATTACK : `value` = dégâts plats, sur TOUS les ennemis vivants', () => {
-    const a = arena({ id: 'POWER_AOE_ATTACK', power_speed: 1, value: 50 });
+    const a = arena({ id: 'POWER_AOE_ATTACK', power_rate: 100, value: 50 });
     a.fire();
     expect(a.target.current_hp).toBe(450);
     expect(a.target2.current_hp).toBe(450);
   });
 
   it('POWER_AOE_ATTACK sans `value` : atk', () => {
-    const a = arena({ id: 'POWER_AOE_ATTACK', power_speed: 1 });
+    const a = arena({ id: 'POWER_AOE_ATTACK', power_rate: 100 });
     a.fire();
     expect(a.target.current_hp).toBe(490);
     expect(a.target2.current_hp).toBe(490);
   });
 
   it('POWER_PARALYSIS : `value` = durée en steps, la sévérité est fixe', () => {
-    const a = arena({ id: 'POWER_PARALYSIS', power_speed: 1, value: 8 });
+    const a = arena({ id: 'POWER_PARALYSIS', power_rate: 100, value: 8 });
     a.fire();
     expect(a.target.paralysis_remaining).toBe(8);
     // attack_speed DOUBLÉ : le modificateur vaut l'attack_speed de la cible (2)
-    expect(a.target.attack_speed_modifier).toBe(2);
-    expect(a.target.effectiveAttackSpeed()).toBe(4);
+    expect(a.target.attack_period_modifier).toBe(2);
+    expect(a.target.effectiveAttackPeriod()).toBe(4);
   });
 
   it('POWER_PARALYSIS sans `value` : 20 steps', () => {
-    const a = arena({ id: 'POWER_PARALYSIS', power_speed: 1 });
+    const a = arena({ id: 'POWER_PARALYSIS', power_rate: 100 });
     a.fire();
     expect(a.target.paralysis_remaining).toBe(20);
-    expect(a.target.effectiveAttackSpeed()).toBe(4);
+    expect(a.target.effectiveAttackPeriod()).toBe(4);
   });
 
-  it('POWER_PARALYSIS : le doublement suit l\'attack_speed de la CIBLE, et ne s\'empile pas', () => {
-    const a = arena({ id: 'POWER_PARALYSIS', power_speed: 1 });
-    a.target.attack_speed = 9;
+  it('POWER_PARALYSIS : le doublement suit la PÉRIODE de la CIBLE, et ne s\'empile pas', () => {
+    const a = arena({ id: 'POWER_PARALYSIS', power_rate: 100 });
+    // ⚠️ La période est posée directement : c'est elle que la paralysie double,
+    // et c'est le seul état de rythme qui reste en ticks. Passer par le
+    // compteur ne testerait pas le doublement mais la conversion.
+    a.target.attack_period = 9;
     a.fire();
-    expect(a.target.effectiveAttackSpeed()).toBe(18);
+    expect(a.target.effectiveAttackPeriod()).toBe(18);
     a.fire();                                        // second tir : rafraîchit
-    expect(a.target.effectiveAttackSpeed()).toBe(18);
+    expect(a.target.effectiveAttackPeriod()).toBe(18);
   });
 
   it('POWER_BLOCK : `value` = nombre de steps', () => {
-    const a = arena({ id: 'POWER_BLOCK', power_speed: 1, value: 40 });
+    const a = arena({ id: 'POWER_BLOCK', power_rate: 100, value: 40 });
     a.fire();
     expect(a.target.is_power_blocked).toBe(true);
     expect(a.target.power_block_remaining).toBe(40);
   });
 
   it('POWER_BLOCK sans `value` : 25 steps', () => {
-    const a = arena({ id: 'POWER_BLOCK', power_speed: 1 });
+    const a = arena({ id: 'POWER_BLOCK', power_rate: 100 });
     a.fire();
     expect(a.target.power_block_remaining).toBe(25);
   });
 
   it('POWER_CONFUSION : `value` = nombre de steps', () => {
-    const a = arena({ id: 'POWER_CONFUSION', power_speed: 1, value: 35 });
+    const a = arena({ id: 'POWER_CONFUSION', power_rate: 100, value: 35 });
     a.fire();
     expect(a.target.confusion_remaining).toBe(35);
   });
 
   it('POWER_CONFUSION sans `value` : 20 steps', () => {
-    const a = arena({ id: 'POWER_CONFUSION', power_speed: 1 });
+    const a = arena({ id: 'POWER_CONFUSION', power_rate: 100 });
     a.fire();
     expect(a.target.confusion_remaining).toBe(20);
   });
 
   it('POWER_POISON : `value` = dégâts PAR PULSE', () => {
-    const a = arena({ id: 'POWER_POISON', power_speed: 1, value: 5 });
+    const a = arena({ id: 'POWER_POISON', power_rate: 100, value: 5 });
     a.fire();
     expect(a.target.dot_effects).toHaveLength(1);
     expect(a.target.dot_effects[0].damage).toBe(5);
   });
 
   it('POWER_POISON sans `value` : max(1, floor(atk / 2))', () => {
-    const a = arena({ id: 'POWER_POISON', power_speed: 1 });   // atk = 10
+    const a = arena({ id: 'POWER_POISON', power_rate: 100 });   // atk = 10
     a.fire();
     expect(a.target.dot_effects[0].damage).toBe(5);
   });
 
   it('POWER_POISON : le plancher à 1 tient pour un lanceur à 1 ATK', () => {
-    const a = arena({ id: 'POWER_POISON', power_speed: 1 }, { atk: 1 });
+    const a = arena({ id: 'POWER_POISON', power_rate: 100 }, { atk: 1 });
     a.fire();
     expect(a.target.dot_effects[0].damage).toBe(1);
   });
 
   it('POWER_BURN : `value` = dégâts PAR ATTAQUE de la cible', () => {
-    const a = arena({ id: 'POWER_BURN', power_speed: 1, value: 12 });
+    const a = arena({ id: 'POWER_BURN', power_rate: 100, value: 12 });
     a.fire();
     expect(a.target.burn_stacks).toHaveLength(1);
     expect(a.target.burn_stacks[0].damage).toBe(12);
   });
 
   it('POWER_BURN sans `value` : max(1, floor(atk / 2))', () => {
-    const a = arena({ id: 'POWER_BURN', power_speed: 1 });   // atk = 10
+    const a = arena({ id: 'POWER_BURN', power_rate: 100 });   // atk = 10
     a.fire();
     expect(a.target.burn_stacks[0].damage).toBe(5);
   });
@@ -176,16 +179,16 @@ describe('power.value — surcharge par carte', () => {
   // défaut. Le cas s'est produit (CORE_077, POWER_BLOCK value: 0) et l'aurait
   // rendu inerte sans que rien ne le signale.
   it('`value: 0` est lu comme absent, sur tous les pouvoirs chiffrés', () => {
-    const block = arena({ id: 'POWER_BLOCK', power_speed: 1, value: 0 });
+    const block = arena({ id: 'POWER_BLOCK', power_rate: 100, value: 0 });
     block.fire();
     expect(block.target.power_block_remaining).toBe(25);   // le cas CORE_077
 
-    const heal = arena({ id: 'POWER_HEAL', power_speed: 1, value: 0 });
+    const heal = arena({ id: 'POWER_HEAL', power_rate: 100, value: 0 });
     heal.ally.current_hp = 10;
     heal.fire();
     expect(heal.ally.current_hp).toBe(90);              // 40 % de 200, pas 0
 
-    const push = arena({ id: 'POWER_PUSH', power_speed: 1, value: 0 });
+    const push = arena({ id: 'POWER_PUSH', power_rate: 100, value: 0 });
     const before = { ...push.target.position };
     push.fire();
     expect(push.target.position).not.toEqual(before);   // repoussé de 2, pas de 0
@@ -194,7 +197,7 @@ describe('power.value — surcharge par carte', () => {
 
 describe('POWER_POISON — durée infinie', () => {
   it('pulse toujours bien au-delà des 5 pulses de l\'ancien barème', () => {
-    const a = arena({ id: 'POWER_POISON', power_speed: 9999, value: 5 });
+    const a = arena({ id: 'POWER_POISON', power_rate: 0, value: 5 });
     a.fire();
 
     // 20 pulses = 4× l'ancienne durée. Le DOT bat tous les 3 steps.
@@ -208,7 +211,7 @@ describe('POWER_POISON — durée infinie', () => {
   });
 
   it('le poison ne survit PAS au combat : resetCombatStats le purge', () => {
-    const a = arena({ id: 'POWER_POISON', power_speed: 1, value: 5 });
+    const a = arena({ id: 'POWER_POISON', power_rate: 100, value: 5 });
     a.fire();
     expect(a.target.dot_effects).toHaveLength(1);
     a.target.resetCombatStats();
@@ -216,15 +219,15 @@ describe('POWER_POISON — durée infinie', () => {
   });
 
   it('POWER_DEBUFF nettoie un poison devenu permanent', () => {
-    const a = arena({ id: 'POWER_POISON', power_speed: 1, value: 5 });
+    const a = arena({ id: 'POWER_POISON', power_rate: 100, value: 5 });
     a.fire();
-    const cleanser = arena({ id: 'POWER_DEBUFF', power_speed: 1 });
+    const cleanser = arena({ id: 'POWER_DEBUFF', power_rate: 100 });
     cleanser.combat._firePower(cleanser.caster, a.target, []);
     expect(a.target.dot_effects).toEqual([]);
   });
 
   it('⚠️ les poisons CUMULENT, et plus rien ne les fait expirer', () => {
-    const a = arena({ id: 'POWER_POISON', power_speed: 1, value: 5 });
+    const a = arena({ id: 'POWER_POISON', power_rate: 100, value: 5 });
     a.fire(); a.fire(); a.fire();
     expect(a.target.dot_effects).toHaveLength(3);
 
@@ -236,7 +239,7 @@ describe('POWER_POISON — durée infinie', () => {
 
 describe('POWER_BURN — durée infinie', () => {
   it('brûle bien au-delà des 3 attaques de l\'ancien barème', () => {
-    const a = arena({ id: 'POWER_BURN', power_speed: 1, value: 4 });
+    const a = arena({ id: 'POWER_BURN', power_rate: 100, value: 4 });
     a.fire();
 
     let pulses = 0;
@@ -253,9 +256,12 @@ describe('POWER_BURN — durée infinie', () => {
     // La différence de fond avec le poison, et désormais la SEULE chose qui
     // borne la brûlure : personne n'attaque ici, donc rien ne brûle, là où un
     // poison aurait pulsé sept fois en 20 steps.
-    const a = arena({ id: 'POWER_BURN', power_speed: 1, value: 4 });
+    const a = arena({ id: 'POWER_BURN', power_rate: 100, value: 4 });
     a.fire();
-    for (const u of [a.caster, a.ally, a.target, a.target2]) u.attack_speed = 9999;
+    // ⚠️ 9999 ticks, écrit sur la PÉRIODE et non sur le compteur : « n'agit
+    // jamais » n'est plus exprimable sur une échelle bornée à 77 ticks, et
+    // c'est justement ce bornage qu'on ne veut pas tester ici.
+    for (const u of [a.caster, a.ally, a.target, a.target2]) u.attack_period = 9999;
 
     const hp = a.target.current_hp;
     for (let i = 0; i < 20 && !a.combat.isOver; i++) a.combat.step();
@@ -263,14 +269,14 @@ describe('POWER_BURN — durée infinie', () => {
   });
 
   it('le feu ne survit PAS au combat : resetCombatStats le purge', () => {
-    const a = arena({ id: 'POWER_BURN', power_speed: 1, value: 4 });
+    const a = arena({ id: 'POWER_BURN', power_rate: 100, value: 4 });
     a.fire();
     a.target.resetCombatStats();
     expect(a.target.burn_stacks).toEqual([]);
   });
 
   it('⚠️ les brûlures CUMULENT, et plus rien ne les fait expirer', () => {
-    const a = arena({ id: 'POWER_BURN', power_speed: 1, value: 4 });
+    const a = arena({ id: 'POWER_BURN', power_rate: 100, value: 4 });
     a.fire(); a.fire(); a.fire();
     expect(a.target.burn_stacks).toHaveLength(3);
 
