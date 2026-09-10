@@ -98,24 +98,76 @@ chaque site d'appel :
 `hp`, `attack_speed`, `range`. `movement_speed` et `initiative` sont lues
 **depuis `_base` seul**.
 
-Conséquence mesurée sur le catalogue :
+⚠️ `power_charge` **n'est pas** dans ce cas, alors qu'il n'est pas non plus dans
+`_recomputeStats` : `CombatManager` le lit directement sur `_stat_bonuses`
+(`u.power_gauge += 1 + (u._stat_bonuses.power_charge || 0)`). Une stat vivante
+peut donc être lue ailleurs — d'où l'audit ci-dessous plutôt qu'une lecture de
+`_recomputeStats` seule.
 
-```
-ATTRIBUTS : 6 effets morts   ARCH_021 Bête (×2), ARCH_035 Aquatique (×4)
-TERRAINS  : 4 effets morts   BOARD_008, BOARD_009, BOARD_010, BOARD_025
-```
+**Première famille d'effets morts — la stat n'est jamais relue (10) :**
 
-**Dix effets écrits en donnée, appliqués par le moteur sans erreur, et sans le
-moindre effet en jeu.** Les quatre terrains annoncent même leur `−5 mouvement`
-dans `TerrainAlert`, avec le décompte des unités touchées. Le même
-`stat_bonus movement_speed` porté par une **magie** fonctionnerait, lui, parce
-qu'il écrit dans `_base`.
+| Porteur | Palier | Effet | Valeur |
+|---|---|---|---|
+| `ARCH_021` Bête | 2 · 3 | `stat_bonus movement_speed` | −1 · −3 |
+| `ARCH_035` Aquatique | 2 · 3 · 4 · 5 | `stat_bonus movement_speed` | −1 · −3 · −5 · −10 |
+| `BOARD_008` Cimetière | — | `stat_bonus movement_speed` | −5 |
+| `BOARD_009` Vallée des rois | — | `stat_bonus movement_speed` | −5 |
+| `BOARD_010` Mur du Labyrinthe | — | `stat_bonus movement_speed` | −5 |
+| `BOARD_025` Monde transparent | — | `stat_bonus movement_speed` | −4 |
+
+Les quatre terrains **annoncent** leur `−5 mouvement` dans `TerrainAlert`, avec
+le décompte des unités touchées. Le même `stat_bonus movement_speed` porté par
+une **magie** fonctionnerait, lui, parce qu'il écrit dans `_base`.
 
 C'est le symptôme exact de l'architecture actuelle : **le registre d'écriture et
 le registre de lecture sont décorrélés, et rien ne peut dire qu'un effet ne fait
 rien.**
 
-### 1.4 Les triggers qui existent déjà, sans porter ce nom
+### 1.4 Le `timing` vit sur l'attribut, la forme de l'effet vit sur l'effet
+
+Seconde famille, plus grosse, et d'un autre mécanisme : `AttributeManager` a
+**trois passes**, chacune ne connaissant qu'une poignée de types. Un effet dont
+le type n'est pas au menu de la passe correspondant au `timing` de **son
+attribut** est sauté sans un mot.
+
+| Passe | Condition | Types exécutés |
+|---|---|---|
+| `_applyStartForSide` | `attr.timing === 'start_of_combat'` | `stat_bonus` · `shield` · `effect_immunity` |
+| `_triggerStatModifiers` | `attr.timing === 'during_combat'` | `stat_modifier` **avec** un `trigger` connu |
+| `_applyEndForSide` | `attr.timing === 'end_of_combat'` | `revive` · `draw_bonus` · `guaranteed_draw` · `board_slot_bonus` · `damage_multiplier_bonus` · `shopping_bonus` |
+
+**Seconde famille d'effets morts — le type n'est pas au menu du timing (11) :**
+
+| Porteur | `timing` | Effet écrit | Pourquoi il meurt |
+|---|---|---|---|
+| `ARCH_010` Noble | `none` | `stat_bonus hp 50` (palier 3) | `none` n'a aucune passe |
+| `ARCH_017` Rage de Vaincre | `during_combat` | `damage_multiplier_bonus 1.5` | la passe ne lit que `stat_modifier` |
+| `ARCH_036` Harpie | `start_of_combat` | `guaranteed_draw` | type de fin de combat |
+| `ARCH_042` Gardiens | `start_of_combat` | `guaranteed_draw` ×2 (paliers 1 et 2) | idem |
+| `ARCH_068` Dragon légendaires | `start_of_combat` | `guaranteed_draw` ×2 (même palier) | idem |
+| `ARCH_043` Spectre | `end_of_combat` | `stat_modifier atk 2` + `trigger` | forme de `during_combat` |
+| `ARCH_045` Volant | `start_of_combat` | `stat_modifier attack_speed` ×3 (−1 · −2 · −3) + `trigger` | forme de `during_combat` |
+
+⚠️ **`ARCH_043` Spectre est documenté à tort dans `CLAUDE.md`** comme portant un
+`damage_multiplier_bonus` de +2 avec une asymétrie PvP assumée. La donnée dit
+`stat_modifier atk 2`, et l'effet **ne s'exécute pas** : la justification d'un
+choix de déterminisme repose donc sur un effet qui n'existe pas.
+
+⚠️ Les cinq `guaranteed_draw` de cette famille portent un champ **`category`**
+(`"fusion"`, `"sacrifice"`, `"transformation"`) qui n'existe plus depuis que les
+voies d'invocation sont des attributs. Réparer leur `timing` ne les rendrait donc
+pas à ce qui était écrit : `guaranteedDrawCriteria` ignore `category` et ne
+retiendrait que le filtre `attribute`. **C'est une décision de design, pas une
+correction mécanique.**
+
+**Total : 21 effets morts sur 13 porteurs.** Rapporté aux 88 effets d'attribut du
+catalogue, **11 ne s'exécutent jamais — 12,5 %**.
+
+⚠️ Mesuré sur `initial-data/`. Le catalogue **joué** vit dans `data/`, sur le
+volume, que `bootstrap()` ne réécrit jamais et que l'admin édite à chaud :
+l'audit doit être rejoué après un `npm run sync:pull` avant toute décision.
+
+### 1.5 Les triggers qui existent déjà, sans porter ce nom
 
 | Point de branchement | Où | Qui s'y accroche |
 |---|---|---|
@@ -132,7 +184,7 @@ rien.**
 **`fin de combat` est le timing le plus chargé du jeu** (6 des 10 types
 d'attribut) et il ne figure pas dans la liste de triggers proposée.
 
-### 1.5 Les quatre files d'« effets en attente », toutes écrites à la main
+### 1.6 Les cinq files d'« effets en attente », toutes écrites à la main
 
 Un effet qui ne s'applique pas tout de suite a aujourd'hui sa propre file, son
 propre point de consommation et sa propre règle de vidage :
@@ -156,8 +208,10 @@ application**. C'est le premier candidat à la mutualisation.
    (`stat_bonus`) masque trois règles différentes.
 2. **Le vocabulaire n'est pas fermé** : 27 types de magie, dont 13 à un seul
    exemplaire. Ajouter une magie coûte du code à **six** endroits.
-3. **Rien ne relie l'écriture à la lecture** : 10 effets livrés ne font rien, et
-   c'est indétectable autrement qu'en lisant `_recomputeStats`.
+3. **Rien ne relie l'écriture à la lecture** : **21 effets livrés ne font rien**,
+   par deux mécanismes distincts — une stat jamais relue (10) et un type absent
+   du menu de son timing (11). Aucun des deux n'est détectable autrement qu'en
+   lisant le moteur ligne à ligne.
 4. **La pertinence est une table écrite à la main** (`MagieOffer`), et
    `CLAUDE.md` en documente déjà le piège : *« un type ajouté à `applyEffect`
    mais oublié dans `isMagieRelevant` disparaît silencieusement du jeu »*. Elle
@@ -310,7 +364,7 @@ déjà actifs »*). Sans le champ, elle redevient du code.
 
 ### 3.6 Un effet doit pouvoir POSER un effet
 
-Les cinq files de la section 1.5 sont toutes ce cas. Dans le modèle cible, il
+Les cinq files de la section 1.6 sont toutes ce cas. Dans le modèle cible, il
 n'y en a plus qu'une : **un registre d'effets actifs**, où une tâche peut
 inscrire un nouvel effet avec sa durée.
 
@@ -404,7 +458,8 @@ Champs modifiables, par ressource — **c'est ça, la partie « codée » incomp
 
 **55 branches → 7 actions × ~30 champs typés.** Et surtout : les 3 gestes de
 `stat_bonus` deviennent 1 geste + 1 champ `durée`, ce qui **supprime par
-construction** les 10 effets morts de la section 1.3.
+construction** les 10 effets morts de la section 1.3 ; le champ `trigger`,
+porté par l'EFFET et non par son porteur, supprime les 11 de la section 1.4.
 
 ### 4.3 Ce qui n'entre PAS dans le moteur
 
@@ -456,7 +511,7 @@ l'oracle de migration — il faut s'en servir, pas le contourner.
 
 | Étape | Contenu | Fin quand |
 |---|---|---|
-| **0 — Geler** | Tests de caractérisation sur les 51 magies × 8 attributs types × 25 terrains. Aucun code de production touché. | La suite décrit le comportement actuel, y compris les 10 effets morts. |
+| **0 — Geler** | Tests de caractérisation sur les 51 magies × 8 attributs types × 25 terrains. Aucun code de production touché. | La suite décrit le comportement actuel, **y compris les 21 effets morts**. |
 | **1 — Le moteur à côté** | Le moteur + un **compilateur** pur `magie \| attribut \| terrain → Effet[]`. Mode ombre : les deux chemins s'exécutent, on **compare**. Le geste de `CombatRecorder`, appliqué aux effets. | 100 % des effets livrés compilent et produisent le même état. |
 | **2 — Bascule, par porteur** | **Terrain** (33 effets, 1 lecteur) → **attribut** (88 effets, 3 timings) → **magie** (51) → **tâches** de pouvoir. | À chaque bascule : `lint:all` + `test` verts **et la ligne de base du détecteur ne bouge pas**. |
 | **3 — L'admin** | UN éditeur d'effet, partagé par les 4 onglets. Le filtre = `card-query.mjs`. | Un effet neuf s'écrit sans toucher au code. |
@@ -485,7 +540,7 @@ dans la boucle de combat, là où une divergence coûte un duel aux deux joueurs
      négociable** : c'est le seul instrument qui sache dire qu'une bascule n'a
      rien changé.
    - **Le moteur doit exprimer 100 % de l'existant avant qu'une seule bascule
-     ait lieu** — les 4 types sans magie et les 10 effets morts compris. Donc
+     ait lieu** — les 4 types sans magie et les 21 effets morts compris. Donc
      la question 4 ci-dessous se tranche à l'**étape 0**, pas à l'étape 4 : on
      ne compile pas un effet qui n'a pas de sémantique.
    - **Aucun trigger neuf avant la fin de l'unification.** `à_l_invocation` et
@@ -495,18 +550,39 @@ dans la boucle de combat, là où une divergence coûte un duel aux deux joueurs
    - **Corollaire heureux : le schéma de départ est plus PETIT.** Il n'a besoin
      que des triggers et des actions que l'existant exerce réellement. Tout le
      reste de la section 3.5 attend l'étape 4.
-2. **Les pouvoirs entrent-ils ?** *Recommandation : leurs tâches oui, leur
-   ordonnanceur non.*
-3. **L'IA porte-t-elle des effets ?** Aujourd'hui les ressources joueur (slot,
-   multiplicateur, shopping) n'ont pas de destinataire adverse, mais la pioche
-   et `revive` valent des deux côtés. Le sélecteur `camp` rend la question
-   posable — il faut y répondre une fois.
-4. **Les 10 effets morts** : on les répare (`_recomputeStats` lit toutes les
-   stats) ou on les supprime ? *Réparer change l'équilibrage de 2 attributs et
-   4 terrains — c'est mesurable au détecteur, et c'est la bonne façon de le
-   faire.*
-5. **Registre d'effets actifs dans le payload PvP** — il voyage, ou seuls ses
-   effets écrits voyagent ?
+2. ~~**Les pouvoirs entrent-ils ?**~~ **TRANCHÉ : hors POC.** Le POC porte sur le
+   **terrain seul**. Les pouvoirs ne sont ni compilés ni basculés ; leur
+   ordonnanceur (`CombatManager`) n'est pas touché.
+3. ~~**L'IA porte-t-elle des effets ?**~~ **TRANCHÉ : oui, comme un vrai joueur.**
+   Le sélecteur `camp` existe donc dès le premier schéma, et
+   `_applyEndForSide(resources: false)` est appelé à disparaître.
+   ⚠️ **Mais c'est un changement de comportement**, donc il ne peut pas atterrir
+   pendant les étapes 0 à 2, dont le critère est « zéro changement observable » :
+   aujourd'hui `enemy_board_slots` existe sans qu'aucun effet ne le crédite, et
+   `enemy_multiplier` n'a aucune voie de bonus. **Le moteur doit savoir
+   l'exprimer dès le départ ; le branchement se fait à l'étape 4**, et il se
+   mesure au détecteur comme n'importe quel changement d'équilibrage.
+4. ~~**Les effets morts**~~ **À TRANCHER — c'est le seul point bloquant de
+   l'étape 0**, et il porte maintenant sur **21 effets, pas 10** (cf. §1.3 et
+   §1.4). Trois lots qui n'appellent pas la même réponse :
+   - **Les 10 « stat jamais relue »** (dont les 4 terrains du POC) : réparer en
+     faisant lire toutes les stats à `_recomputeStats()`. Mécanique, mesurable.
+   - **Les 6 « mauvais timing » de forme claire** (`ARCH_010`, `ARCH_017`,
+     `ARCH_043`, `ARCH_045` ×3) : l'intention est lisible dans la donnée, il
+     suffit de corriger le `timing` du porteur.
+   - **Les 5 `guaranteed_draw` à `category`** (`ARCH_036`, `ARCH_042` ×2,
+     `ARCH_068` ×2) : leur critère (`"fusion"`, `"sacrifice"`,
+     `"transformation"`) n'existe plus. **Aucune réparation mécanique ne les
+     rend à ce qui était écrit** — c'est une décision de design.
+5. ~~**Registre d'effets actifs dans le payload PvP**~~ **TRANCHÉ : il voyage.**
+   `durée: round` devient donc exprimable en duel. Trois contraintes qui en
+   découlent, à tenir dès le premier schéma :
+   - le registre est **ordonné par une clé absolue**, jamais par ordre
+     d'insertion (précédent : le départage par `card_id` de l'initiative) ;
+   - ses entrées ne portent **que des ids et des valeurs**, jamais une
+     référence d'objet ni un `uid` (cf. le contrat : l'`uid` n'a aucune valeur
+     commune aux deux clients) ;
+   - toute entrée portant une **position** passe par `BoardMirror`.
 6. **Combien de triggers au lancement ?** *Recommandation : les 9 qui ont déjà
    un point de branchement. `unité_blessée` et `avant/après_attaque` sont du
    contenu neuf — ils attendent l'étape 4.*
