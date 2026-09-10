@@ -73,7 +73,7 @@ function card(id: string, over: any = {}) {
     id, name: id, _tiers: [over.tier ?? 2], summon_type: 'normal',
     attributes: over.attributes ?? [], power: over.power ?? null,
     stats: {
-      atk: 6, hp: 40, movement_rate: 100, attack_rate: 100, initiative: 5, range: 1,
+      atk: 6, hp: 40, movement_rate: 100, attack_rate: 100, range: 1,
       ...(over.stats ?? {}),
     },
   };
@@ -95,14 +95,14 @@ function buildSetup(): LabSetup {
 
   const players = [
     spawn(card('CORE_001', { tier: 3, attributes: ['ARCH_048'], stats: { atk: 8, hp: 55, attack_rate: 100 } }), 'player', { col: 1, row: 3 }),
-    spawn(card('CORE_002', { tier: 2, attributes: ['ARCH_052'], stats: { atk: 6, hp: 30, range: 3, attack_rate: 99, initiative: 7 } }), 'player', { col: 2, row: 2 }),
+    spawn(card('CORE_002', { tier: 2, attributes: ['ARCH_052'], stats: { atk: 6, hp: 30, range: 3, attack_rate: 99 } }), 'player', { col: 2, row: 2 }),
     spawn(card('CORE_003', { tier: 4, attributes: ['ARCH_049'], power: { id: 'POWER_HEAL', power_rate: 94 }, stats: { atk: 4, hp: 38, range: 3, attack_rate: 99 } }), 'player', { col: 3, row: 3 }),
-    spawn(card('CORE_004', { tier: 5, attributes: ['ARCH_050'], stats: { atk: 9, hp: 48, attack_rate: 100, initiative: 4 } }), 'player', { col: 2, row: 3 }),
+    spawn(card('CORE_004', { tier: 5, attributes: ['ARCH_050'], stats: { atk: 9, hp: 48, attack_rate: 100 } }), 'player', { col: 2, row: 3 }),
   ];
   const enemies = [
     spawn(card('CORE_010', { tier: 3, attributes: ['ARCH_056'], stats: { atk: 7, hp: 50, attack_rate: 100 } }), 'enemy', { col: 2, row: 7 }),
     spawn(card('CORE_011', { tier: 2, attributes: ['ARCH_054'], power: { id: 'POWER_POISON', power_rate: 96 }, stats: { atk: 5, hp: 32, range: 2, attack_rate: 99 } }), 'enemy', { col: 1, row: 7 }),
-    spawn(card('CORE_014', { tier: 4, attributes: ['ARCH_051'], power: { id: 'POWER_SUPER_ATTACK', power_rate: 92 }, stats: { atk: 7, hp: 42, attack_rate: 100, initiative: 6 } }), 'enemy', { col: 3, row: 8 }),
+    spawn(card('CORE_014', { tier: 4, attributes: ['ARCH_051'], power: { id: 'POWER_SUPER_ATTACK', power_rate: 92 }, stats: { atk: 7, hp: 42, attack_rate: 100 } }), 'enemy', { col: 3, row: 8 }),
     spawn(card('CORE_015', { tier: 5, attributes: ['ARCH_053'], power: { id: 'POWER_FREEZE', power_rate: 95 }, stats: { atk: 6, hp: 36, range: 2, attack_rate: 99 } }), 'enemy', { col: 2, row: 9 }),
   ];
   return { board, players, enemies };

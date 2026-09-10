@@ -234,16 +234,18 @@ describe('speed-scale — l\'unité', () => {
     expect(lourd.movement_period).toBe(77);
   });
 
-  // ⚠️ Le départage d'initiative compare la PÉRIODE, donc la plus lente
-  // d'abord — c'est ce qu'il faisait quand la stat était elle-même une période.
-  // Le comparer sur le compteur inverserait l'ordre d'action de toutes les
-  // égalités d'initiative, en silence, et ferait diverger un PvP.
-  // Mutation : comparer `attack_rate` dans `CombatManager` → ROUGE.
-  it('la période, et non le compteur, ordonne les égalités d\'initiative', () => {
-    const rapide = unit({ attack_rate: 100 });
-    const lent = unit({ attack_rate: 40 });
+  // ⚠️ Le compteur et la période vont en SENS INVERSE, et l'ordre d'action du
+  // combat se règle désormais sur le COMPTEUR de déplacement (plus haut = plus
+  // tôt) : les confondre inverserait cet ordre en silence, des deux côtés d'un
+  // PvP. Le cas d'ordre lui-même vit dans `action-order.test.ts` ; celui-ci ne
+  // tient que le sens des deux lectures.
+  it('le compteur monte quand la période descend', () => {
+    const rapide = unit({ attack_rate: 100, movement_rate: 100 });
+    const lent = unit({ attack_rate: 40, movement_rate: 40 });
     expect(lent.effectiveAttackPeriod()).toBeGreaterThan(rapide.effectiveAttackPeriod());
     expect(lent.attack_rate).toBeLessThan(rapide.attack_rate);
+    expect(lent.movement_period).toBeGreaterThan(rapide.movement_period);
+    expect(lent.movement_rate).toBeLessThan(rapide.movement_rate);
   });
 });
 
@@ -259,7 +261,7 @@ describe('speed-scale — le contrat de carte', () => {
   it('refuse une carte restée en TICKS, et le dit champ par champ', () => {
     const legacy = {
       id: 'VIEILLE', name: 'Vieille',
-      stats: { atk: 5, hp: 30, movement_speed: 10, attack_speed: 14, initiative: 5, range: 1 },
+      stats: { atk: 5, hp: 30, movement_speed: 10, attack_speed: 14, range: 1 },
       power: { id: 'POWER_HEAL', power_speed: 60 },
     };
     const problems = missingRates(legacy);
@@ -271,7 +273,7 @@ describe('speed-scale — le contrat de carte', () => {
   });
 
   it('refuse une carte dont le compteur est simplement ABSENT', () => {
-    expect(missingRates({ id: 'X', stats: { atk: 5, hp: 30, initiative: 5, range: 1 } }))
+    expect(missingRates({ id: 'X', stats: { atk: 5, hp: 30, range: 1 } }))
       .toHaveLength(2);
     // ⚠️ `0` est une valeur LÉGITIME : le contrat teste la présence, pas la
     // vérité. Le confondre avec une absence interdirait le pouvoir le plus lent.

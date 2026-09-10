@@ -153,8 +153,8 @@ describe('Terrain — les deux clients doivent décrire le MÊME plateau', () =>
 describe('Horloges de combat — remises à zéro à chaque combat', () => {
   /** Une session solo qui laisse survivre les deux camps (PV hauts, ATK basse). */
   function duelSansMort(): GameSession {
-    const mine = makeCard({ id: 'P0', summon_conditions: [], stats: { atk: 3, hp: 500, movement_rate: 99, attack_rate: 96, initiative: 5, range: 1 } });
-    const his = makeCard({ id: 'E0', summon_conditions: [], stats: { atk: 3, hp: 500, movement_rate: 99, attack_rate: 94, initiative: 4, range: 1 } });
+    const mine = makeCard({ id: 'P0', summon_conditions: [], stats: { atk: 3, hp: 500, movement_rate: 99, attack_rate: 96, range: 1 } });
+    const his = makeCard({ id: 'E0', summon_conditions: [], stats: { atk: 3, hp: 500, movement_rate: 99, attack_rate: 94, range: 1 } });
     const byId = new Map([mine, his].map(c => [c.id, c]));
     const s = new GameSession({
       cardsByTier: { 1: [mine] as any },
@@ -220,7 +220,7 @@ describe('CombatRecorder — le vainqueur est nommé dans le repère local', () 
   function u(cardId: string, side: 'player' | 'enemy', col: number, row: number) {
     return {
       card_id: cardId, side, position: { col, row },
-      current_hp: 100, max_hp: 100, shield: 0, atk: 10, initiative: 5,
+      current_hp: 100, max_hp: 100, shield: 0, atk: 10,
       power_gauge: 0, attack_timer: 0, move_timer: 0,
       paralysis_remaining: 0, power_block_remaining: 0,
       confusion_remaining: 0, taunt_remaining: 0,
@@ -433,9 +433,9 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
           stats: {
             atk: pick([6, 9, 14]), hp: pick([60, 90, 130]),
             movement_rate: pick([100, 99, 98]), attack_rate: pick([99, 96, 92]),
-            // Initiative et range volontairement peu variées : ce sont les
-            // ÉGALITÉS qu'on cherche à provoquer, pas les départages.
-            initiative: pick([4, 5]), range: pick([1, 2])
+            // Portée volontairement peu variée : ce sont les ÉGALITÉS qu'on
+            // cherche à provoquer, pas les départages.
+            range: pick([1, 2])
           }
         })
       };
@@ -472,7 +472,7 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
   // ⚠️ Le cas que les 300 graines ne peuvent PAS produire : elles nomment les
   // cartes par leur camp (`A_0`, `B_0`), si bien que le départage par `card_id`
   // tranche toujours. Or deux joueurs peuvent parfaitement jouer LA MÊME carte
-  // — c'est même le cas du miroir. À initiative, vitesse et `card_id` égaux, il
+  // — c'est même le cas du miroir. À tier, ATQ, vitesse et `card_id` égaux, il
   // ne restait que la concaténation `[...playerUnits, ...enemyUnits]`, qui met
   // « mes » unités en tête sur CHAQUE client : les deux clients faisaient donc
   // agir les deux unités dans l'ordre inverse l'un de l'autre.
@@ -487,10 +487,10 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
   // départage `_frameSide` — → ROUGE. Retirer le seul `_frameSide` ne suffit
   // pas : les deux se recouvrent tant que `sort` est stable (cf. le commentaire
   // du tri dans `CombatManager`).
-  it('tranche l\'égalité PARFAITE — même initiative, même vitesse, même carte', () => {
+  it('tranche l\'égalité PARFAITE — même tier, même ATQ, même vitesse, même carte', () => {
     const twin = () => makeCard({
       id: 'MIRROR_1', summon_conditions: [],
-      stats: { atk: 1, hp: 40, movement_rate: 100, attack_rate: 100, initiative: 5, range: 1 }
+      stats: { atk: 1, hp: 40, movement_rate: 100, attack_rate: 100, range: 1 }
     });
     const a: Placed[] = [{ card: twin(), col: 2, row: 3 }];
     const b: Placed[] = [{ card: twin(), col: 2, row: 7 }];
@@ -543,7 +543,7 @@ describe('Fin de combat — rien ne survit au round qui ne le doit', () => {
 
   const CARTE = (id: string, hp = 100, atk = 5) => makeCard({
     id, summon_conditions: [], attributes: ['ARCH_T'],
-    stats: { atk, hp, movement_rate: 91, attack_rate: 98, initiative: 5, range: 9 }
+    stats: { atk, hp, movement_rate: 91, attack_rate: 98, range: 9 }
   });
 
   function sessionAvec(cartes: any[], ennemi: any | null) {
@@ -563,7 +563,7 @@ describe('Fin de combat — rien ne survit au round qui ne le doit', () => {
   // restreinte aux unités VIVANTES (`getLivingUnitsOnSide`) → ROUGE.
   it('une unité tombée au combat ne garde PAS les bonus de son dernier round', () => {
     const cartes = [CARTE('T_1'), CARTE('T_2')];   // 2 porteurs → palier atteint
-    const tueur = makeCard({ id: 'TUEUR', summon_conditions: [], stats: { atk: 9999, hp: 9999, movement_rate: 100, attack_rate: 100, initiative: 9, range: 9 } });
+    const tueur = makeCard({ id: 'TUEUR', summon_conditions: [], stats: { atk: 9999, hp: 9999, movement_rate: 100, attack_rate: 100, range: 9 } });
     const s = sessionAvec(cartes, tueur);
 
     const { combat } = s.startCombat(null);
@@ -586,7 +586,7 @@ describe('Fin de combat — rien ne survit au round qui ne le doit', () => {
     const cartes = [CARTE('T_1'), CARTE('T_2')];
     // ⚠️ Une ATK modérée : le joueur doit rester en vie, une magie ne
     // s'applique pas à 0 PV (`canAffordMagie`).
-    const tueur = makeCard({ id: 'TUEUR', summon_conditions: [], stats: { atk: 200, hp: 9999, movement_rate: 100, attack_rate: 100, initiative: 9, range: 9 } });
+    const tueur = makeCard({ id: 'TUEUR', summon_conditions: [], stats: { atk: 200, hp: 9999, movement_rate: 100, attack_rate: 100, range: 9 } });
     const s = sessionAvec(cartes, tueur);
     const { combat } = s.startCombat(null);
     while (!combat.winner) combat.step();
@@ -698,11 +698,11 @@ describe('Téléportation — la même case des deux côtés', () => {
     // le retiendrait jusqu'à la fin du combat, jauge pleine ou non. La vitesse
     // de DÉPLACEMENT, elle, reste énorme — l'unité ne doit pas marcher, sans
     // quoi c'est le pathfinding qu'on éprouverait, pas la téléportation.
-    stats: { atk: 5, hp: 400, movement_rate: 0, attack_rate: 99, initiative: 9, range: 1 }
+    stats: { atk: 5, hp: 400, movement_rate: 0, attack_rate: 99, range: 1 }
   });
   // La cible : la plus basse en PV, donc celle que le pouvoir vise.
-  const FAIBLE = makeCard({ id: 'FAIBLE', summon_conditions: [], stats: { atk: 1, hp: 30, movement_rate: 0, attack_rate: 0, initiative: 1, range: 1 } });
-  const MUR = makeCard({ id: 'MUR', summon_conditions: [], stats: { atk: 1, hp: 400, movement_rate: 0, attack_rate: 0, initiative: 2, range: 1 } });
+  const FAIBLE = makeCard({ id: 'FAIBLE', summon_conditions: [], stats: { atk: 1, hp: 30, movement_rate: 0, attack_rate: 0, range: 1 } });
+  const MUR = makeCard({ id: 'MUR', summon_conditions: [], stats: { atk: 1, hp: 400, movement_rate: 0, attack_rate: 0, range: 1 } });
 
   // ⚠️ La cible est en (3,2) : ses deux voisines EN RANGÉE — (3,1) et (3,3) —
   // sont libres, et ce sont elles que `_teleportPlan` regarde en premier. C'est
@@ -749,11 +749,11 @@ describe('Réanimation d\'attribut — les deux camps, et le log qui le voit', (
 
   const FRAGILE = (id: string) => makeCard({
     id, summon_conditions: [], attributes: ['ARCH_R'],
-    stats: { atk: 7, hp: 20, movement_rate: 0, attack_rate: 99, initiative: 1, range: 9 }
+    stats: { atk: 7, hp: 20, movement_rate: 0, attack_rate: 99, range: 9 }
   });
   const COGNEUR = makeCard({
     id: 'COGNEUR', summon_conditions: [],
-    stats: { atk: 60, hp: 500, movement_rate: 0, attack_rate: 100, initiative: 9, range: 9 }
+    stats: { atk: 60, hp: 500, movement_rate: 0, attack_rate: 100, range: 9 }
   });
 
   function duel(mirrored: boolean) {

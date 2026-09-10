@@ -160,7 +160,7 @@ export interface GameSessionDeps {
    *    • l'ORDRE dans lequel le plateau s'énumère — balayage des unités et
    *      voisines d'une case (`Board.mirroredFrame`), qui départage le choix de
    *      cible et le plus court chemin ;
-   *    • le départage par camp de l'ordre d'initiative (`CombatManager`).
+   *    • le départage par camp de l'ordre d'action (`CombatManager`).
    *
    *  ⚠️ Posé UNE FOIS à la construction de la session, jamais passé en
    *  paramètre : il n'y aurait sinon qu'à l'oublier sur un chemin d'appel pour

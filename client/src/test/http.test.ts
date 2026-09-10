@@ -34,7 +34,7 @@ const CONFORME = ['ARCH_091', 'ARCH_090', 'ARCH_048'];
  * exige les deux compteurs — pour qu'une carte ne puisse plus être *jouable et
  * fausse* au rythme 0 — l'omission est refusée en 400, ici comme en admin.
  */
-const STATS = { atk: 10, hp: 100, attack_rate: 60, movement_rate: 55, initiative: 4, range: 1 };
+const STATS = { atk: 10, hp: 100, attack_rate: 60, movement_rate: 55, range: 1 };
 
 beforeAll(async () => { h = await boot(); }, 30_000);
 afterAll(() => { h?.server.close(); });

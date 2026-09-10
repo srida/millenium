@@ -30,7 +30,6 @@ interface BaseStats {
   /** Compteurs 0–100, plus haut = plus vite (cf. `speed-scale.mjs`). */
   movement_rate: number;
   attack_rate: number;
-  initiative: number;
   range: number;
   // _transferShoppingBonuses / MagieEffect écrivent des stats arbitraires dans _base
   [stat: string]: number;
@@ -115,7 +114,6 @@ export class Unit {
   /** Seuils en ticks dérivés des compteurs. Jamais saisis, jamais persistés. */
   movement_period: number;
   attack_period: number;
-  initiative: number;
   range: number;
 
   // Runtime state
@@ -175,7 +173,6 @@ export class Unit {
       hp: card.stats.hp,
       movement_rate: clampRate(card.stats.movement_rate),
       attack_rate: clampRate(card.stats.attack_rate),
-      initiative: card.stats.initiative,
       range: card.stats.range,
     };
 
@@ -188,7 +185,6 @@ export class Unit {
     this.attack_rate = this._base.attack_rate;
     this.movement_period = ticksForRate(this.movement_rate);
     this.attack_period = ticksForRate(this.attack_rate);
-    this.initiative = card.stats.initiative;
     this.range = card.stats.range;
 
     this.shield = 0;
@@ -338,7 +334,6 @@ export class Unit {
     this.movement_rate = clampRate(this._base.movement_rate + (this._stat_bonuses.movement_rate || 0));
     this.attack_period = ticksForRate(this.attack_rate);
     this.movement_period = ticksForRate(this.movement_rate);
-    this.initiative = this._base.initiative;
     this.range = Math.max(1, this._base.range + (this._stat_bonuses.range || 0));
   }
 

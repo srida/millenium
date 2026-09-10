@@ -50,7 +50,7 @@ const ENTITIES = [
   // ⚠️ `stats` porte les deux COMPTEURS de vitesse : depuis que le contrat les
   // exige (pour qu'une carte ne puisse plus être jouable au rythme 0 sans que
   // rien ne le dise), une carte qui n'en a pas est refusée en 400.
-  { route: 'cards', file: 'cards.json', extra: { name: 'Empreinte', attributes: ['ARCH_091', 'ARCH_090', 'ARCH_048'], stats: { atk: 10, hp: 100, attack_rate: 60, movement_rate: 55, initiative: 4, range: 1 } } },
+  { route: 'cards', file: 'cards.json', extra: { name: 'Empreinte', attributes: ['ARCH_091', 'ARCH_090', 'ARCH_048'], stats: { atk: 10, hp: 100, attack_rate: 60, movement_rate: 55, range: 1 } } },
   { route: 'attributes', file: 'attributes.json', extra: { name: 'Empreinte', icon: '🔧' } },
   { route: 'powers', file: 'powers.json', extra: { name: 'Empreinte' } },
   { route: 'boards', file: 'boards.json', extra: { name: 'Empreinte' } },

@@ -29,7 +29,7 @@ export function computeDeckTags(cards: Card[]): string[] {
   // différents — et un deck public, dont la composition se réordonne en admin,
   // changerait de tags sans avoir changé de contenu. L'`id` d'attribut est une
   // valeur ABSOLUE ; même geste que le départage par `card_id` de l'ordre
-  // d'initiative dans `CombatManager`, et pour la même raison.
+  // d'action dans `CombatManager`, et pour la même raison.
   // ⚠️ Les attributs d'INVOCATION et de TIER sont écartés, et seulement ici : le
   // tirage du terrain les garde tous les deux (un terrain a le droit de viser
   // les Sacrifices, ou les Tier 5). Ils décrivent un coût et un rang, pas un

@@ -20,7 +20,7 @@ vi.mock('../net/PvpConnection.js', () => ({
 
 const { sendOwnBoard, reconstructOpponentUnits } = await import('../net/PvpOpponentProvider.js');
 
-const CARD = makeCard({ id: 'PVP_A', name: 'Sujet', stats: { atk: 10, hp: 40, movement_rate: 100, attack_rate: 100, initiative: 5, range: 1 } });
+const CARD = makeCard({ id: 'PVP_A', name: 'Sujet', stats: { atk: 10, hp: 40, movement_rate: 100, attack_rate: 100, range: 1 } });
 const cardDb = { getCard: (id: string) => (id === CARD.id ? (CARD as any) : null) };
 
 // Reproduit une unité telle qu'elle est en fin de préparation d'un round > 1 :

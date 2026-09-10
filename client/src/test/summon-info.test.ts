@@ -30,7 +30,7 @@ const ATTRIBUTES = readJson('attributes.json') as { id: string }[];
 
 const card = (over: Partial<Card>): Card => ({
   id: 'X', name: 'X', tier: 1, summon_conditions: [],
-  stats: { atk: 1, hp: 1, movement_rate: 100, attack_rate: 100, initiative: 1, range: 1 },
+  stats: { atk: 1, hp: 1, movement_rate: 100, attack_rate: 100, range: 1 },
   ...over
 } as Card);
 
