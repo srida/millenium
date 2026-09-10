@@ -88,7 +88,14 @@ export class CombatManager {
     const allUnits = this._frameOrderedUnits();
     const livingUnits = allUnits.filter(u => u.isAlive());
 
-    // Sort by initiative desc, tie-break by attack_speed desc, then card_id asc
+    // Sort by initiative desc, tie-break by attack PERIOD desc, then card_id asc
+    //
+    // ⚠️ Le départage se fait sur la PÉRIODE en ticks, donc la plus LENTE
+    // d'abord — c'est ce qu'il faisait déjà quand la stat de la carte était
+    // elle-même une période. Le compteur a retourné le sens de la donnée, pas
+    // celui de ce tri : le comparer sur `attack_rate` inverserait l'ordre
+    // d'action de toutes les égalités d'initiative, silencieusement, et ferait
+    // diverger les deux clients d'un PvP en cours de déploiement.
     // card_id is absolute (same value on both PvP clients) — prevents ordering divergence on equal stats
     //
     // Le DERNIER départage est le camp, exprimé dans le repère de référence :
@@ -104,7 +111,7 @@ export class CombatManager {
     // les unités. Le jour où ce tableau d'entrée change, le tri tient encore.
     livingUnits.sort((a, b) =>
       b.initiative - a.initiative ||
-      b.effectiveAttackSpeed() - a.effectiveAttackSpeed() ||
+      b.effectiveAttackPeriod() - a.effectiveAttackPeriod() ||
       a.card_id.localeCompare(b.card_id) ||
       this._frameSide(a) - this._frameSide(b));
 
@@ -117,7 +124,7 @@ export class CombatManager {
       // Paralysis countdown
       if (u.paralysis_remaining > 0) {
         u.paralysis_remaining--;
-        if (u.paralysis_remaining === 0) u.attack_speed_modifier = 0;
+        if (u.paralysis_remaining === 0) u.attack_period_modifier = 0;
       }
 
       // Power block countdown
@@ -149,7 +156,7 @@ export class CombatManager {
     for (const u of livingUnits) {
       if (!u.isAlive()) continue;
       u.move_timer++;
-      if (u.move_timer < u.movement_speed) continue;
+      if (u.move_timer < u.movement_period) continue;
       u.move_timer = 0;
 
       const candidates = this._targetCandidates(u, { requireLOS: false });
@@ -187,7 +194,7 @@ export class CombatManager {
     for (const u of livingUnits) {
       if (!u.isAlive()) continue;
       u.attack_timer++;
-      if (u.attack_timer < u.effectiveAttackSpeed()) continue;
+      if (u.attack_timer < u.effectiveAttackPeriod()) continue;
       u.attack_timer = 0;
 
       const candidates = this._targetCandidates(u, { requireLOS: true });
@@ -381,7 +388,7 @@ export class CombatManager {
       || u.dot_effects.length > 0
       || u.burn_stacks.length > 0
       || u.paralysis_remaining > 0
-      || u.attack_speed_modifier !== 0
+      || u.attack_period_modifier !== 0
       || u.is_power_blocked
       || u.confusion_remaining > 0
       || u.taunt_remaining > 0
@@ -460,14 +467,18 @@ export class CombatManager {
           events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
           break;
         }
-        // The severity is fixed: attack_speed DOUBLED (higher = slower), so the
-        // effect costs the target half its attacks whatever its rhythm — a flat
-        // +6 was crippling on a fast unit and unnoticeable on a slow one.
+        // The severity is fixed: the attack PERIOD is doubled, so the effect
+        // costs the target half its attacks whatever its rhythm — a flat +6 was
+        // crippling on a fast unit and unnoticeable on a slow one.
         // `value` is therefore the DURATION in steps. Stored as a plain delta so
-        // effectiveAttackSpeed() stays additive; a second hit REFRESHES it
+        // effectiveAttackPeriod() stays additive; a second hit REFRESHES it
         // instead of stacking — doubled is a ceiling, not a step.
+        //
+        // ⚠️ C'est le seul effet de rythme qui reste chiffré en TICKS et non en
+        // compteur, parce qu'un doublement de période ne s'écrit pas comme un
+        // delta de compteur constant (cf. `Unit.attack_period_modifier`).
         const paralysisTicks = powerValue(unit, POWER_PARALYSIS_TICKS);
-        primaryTarget.attack_speed_modifier = primaryTarget.attack_speed;
+        primaryTarget.attack_period_modifier = primaryTarget.attack_period;
         primaryTarget.paralysis_remaining = paralysisTicks;
         events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { ticks: paralysisTicks } });
         break;

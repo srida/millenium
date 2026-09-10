@@ -254,13 +254,14 @@ describe('MagieEffect — effets globaux (gameState)', () => {
 
 describe('MagieEffect — pouvoirs (grant_power / power_cooldown)', () => {
   it('grant_power pose pouvoir, vitesse et valeur, et REMET la jauge à zéro', () => {
-    const u = freshUnit({ power: { id: 'POWER_HEAL', power_speed: 30, value: null } });
+    const u = freshUnit({ power: { id: 'POWER_HEAL', power_rate: 63, value: null } });
     u.power_gauge = 29; // presque prêt à lancer l'ANCIEN pouvoir
 
-    applyEffect(magie({ type: 'grant_power', power_id: 'POWER_FREEZE', power_speed: 12, value: 5 }), { targetUnit: u });
+    applyEffect(magie({ type: 'grant_power', power_id: 'POWER_FREEZE', power_rate: 87, value: 5 }), { targetUnit: u });
 
     expect(u.power_id).toBe('POWER_FREEZE');
-    expect(u.power_speed).toBe(12);
+    expect(u.power_rate).toBe(87);
+    expect(u.powerPeriod()).toBe(12);
     expect(u.power_value).toBe(5);
     // Sans cette remise à zéro, le pouvoir NEUF partirait au premier step sur
     // une jauge héritée de l'ancien — rien à l'écran ne l'annoncerait.
@@ -270,64 +271,74 @@ describe('MagieEffect — pouvoirs (grant_power / power_cooldown)', () => {
   it('grant_power donne un pouvoir à une unité qui n\'en avait aucun', () => {
     const u = freshUnit();
     expect(u.power_id).toBeNull();
-    expect(u.power_speed).toBe(9999); // le défaut « pas de pouvoir »
+    // ⚠️ `null`, et non un compteur : « pas de pouvoir » ne peut pas s'écrire
+    // avec une valeur de l'échelle, puisque 0 y est le pouvoir le plus lent.
+    expect(u.power_rate).toBeNull();
+    expect(u.powerPeriod()).toBe(Infinity);
 
-    applyEffect(magie({ type: 'grant_power', power_id: 'POWER_TAUNT', power_speed: 15 }), { targetUnit: u });
+    applyEffect(magie({ type: 'grant_power', power_id: 'POWER_TAUNT', power_rate: 83 }), { targetUnit: u });
 
     expect(u.power_id).toBe('POWER_TAUNT');
-    expect(u.power_speed).toBe(15);
+    expect(u.powerPeriod()).toBe(15);
     expect(u.isPowerReady()).toBe(false);
   });
 
   it('grant_power lève un blocage de pouvoir en cours', () => {
-    const u = freshUnit({ power: { id: 'POWER_HEAL', power_speed: 20, value: null } });
+    const u = freshUnit({ power: { id: 'POWER_HEAL', power_rate: 76, value: null } });
     u.is_power_blocked = true;
     u.power_block_remaining = 10;
-    applyEffect(magie({ type: 'grant_power', power_id: 'POWER_POISON', power_speed: 8 }), { targetUnit: u });
+    applyEffect(magie({ type: 'grant_power', power_id: 'POWER_POISON', power_rate: 92 }), { targetUnit: u });
     expect(u.is_power_blocked).toBe(false);
     expect(u.power_block_remaining).toBe(0);
   });
 
   it('grant_power sans power_id ne touche à rien', () => {
-    const u = freshUnit({ power: { id: 'POWER_HEAL', power_speed: 20, value: null } });
-    applyEffect(magie({ type: 'grant_power', power_speed: 5 }), { targetUnit: u });
+    const u = freshUnit({ power: { id: 'POWER_HEAL', power_rate: 76, value: null } });
+    applyEffect(magie({ type: 'grant_power', power_rate: 96 }), { targetUnit: u });
     expect(u.power_id).toBe('POWER_HEAL');
-    expect(u.power_speed).toBe(20);
+    expect(u.powerPeriod()).toBe(20);
   });
 
   it('power_cooldown DIVISE le seuil de jauge, il ne le soustrait pas', () => {
-    // `power_speed` est un seuil : −4 plat ne veut pas dire la même chose sur
-    // un pouvoir à 6 et sur un pouvoir à 40. La division, elle, veut dire
+    // La période est un seuil : −4 plat ne veut pas dire la même chose sur un
+    // pouvoir à 6 ticks et sur un pouvoir à 40. La division, elle, veut dire
     // « deux fois plus souvent » quel que soit le rythme de départ.
-    const lent = freshUnit({ power: { id: 'POWER_AOE_ATTACK', power_speed: 40, value: null } });
-    const vif = freshUnit({ power: { id: 'POWER_HEAL', power_speed: 6, value: null } });
+    // ⚠️ Elle opère sur les TICKS, pas sur le compteur : sur l'échelle
+    // linéaire, un même delta de compteur ne divise pas la période d'autant.
+    const lent = freshUnit({ power: { id: 'POWER_AOE_ATTACK', power_rate: 50, value: null } });
+    const vif = freshUnit({ power: { id: 'POWER_HEAL', power_rate: 95, value: null } });
 
     applyEffect(magie({ type: 'power_cooldown', value: 2 }), { targetUnit: lent });
     applyEffect(magie({ type: 'power_cooldown', value: 2 }), { targetUnit: vif });
 
-    expect(lent.power_speed).toBe(20);
-    expect(vif.power_speed).toBe(3);
+    expect(lent.powerPeriod()).toBe(20); // 40 ticks ÷ 2
+    expect(vif.powerPeriod()).toBe(3);   // 6 ticks ÷ 2
   });
 
-  it('power_cooldown ne descend jamais sous 1, et se cumule', () => {
-    const u = freshUnit({ power: { id: 'POWER_HEAL', power_speed: 10, value: null } });
+  it('power_cooldown bute sur le PLANCHER de l\'échelle, et s\'y tient', () => {
+    // ⚠️ Le plancher est celui du compteur — 100, donc 2 ticks — et non plus 1
+    // tick : c'est exactement le bornage que l'échelle existe pour poser. Une
+    // division absurde ne peut plus fabriquer un pouvoir qui part à chaque tick.
+    const u = freshUnit({ power: { id: 'POWER_HEAL', power_rate: 90, value: null } });
     applyEffect(magie({ type: 'power_cooldown', value: 100 }), { targetUnit: u });
-    expect(u.power_speed).toBe(1);
+    expect(u.power_rate).toBe(100);
+    expect(u.powerPeriod()).toBe(2);
     applyEffect(magie({ type: 'power_cooldown', value: 2 }), { targetUnit: u });
-    expect(u.power_speed).toBe(1);
+    expect(u.powerPeriod()).toBe(2);
   });
 
   it('power_cooldown ne fait rien sur une unité SANS pouvoir', () => {
     const u = freshUnit();
     applyEffect(magie({ type: 'power_cooldown', value: 2 }), { targetUnit: u });
-    expect(u.power_speed).toBe(9999);
+    expect(u.power_rate).toBeNull();
+    expect(u.powerPeriod()).toBe(Infinity);
   });
 
   it('power_cooldown : une valeur absente ou absurde retombe sur un doublement', () => {
     for (const v of [undefined, 0, -3]) {
-      const u = freshUnit({ power: { id: 'POWER_HEAL', power_speed: 20, value: null } });
+      const u = freshUnit({ power: { id: 'POWER_HEAL', power_rate: 76, value: null } });
       applyEffect(magie({ type: 'power_cooldown', value: v }), { targetUnit: u });
-      expect(u.power_speed, String(v)).toBe(10);
+      expect(u.powerPeriod(), String(v)).toBe(10);
     }
   });
 });

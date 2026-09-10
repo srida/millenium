@@ -767,8 +767,12 @@ export function cardQuerySchema(deps = {}) {
       { key: 'tier', aliases: ['t'], label: 'Tier (1–5)', type: 'number', get: c => c._tiers ?? [], options: deps.tierOptions },
       { key: 'atk', aliases: ['attaque'], label: 'Attaque', type: 'number', get: stat('atk') },
       { key: 'pv', aliases: ['hp', 'vie'], label: 'Points de vie', type: 'number', get: stat('hp') },
-      { key: 'vitesse', aliases: ['movement_speed', 'deplacement'], label: 'Vitesse de déplacement', type: 'number', get: stat('movement_speed') },
-      { key: 'cadence', aliases: ['attack_speed'], label: 'Vitesse d\'attaque', type: 'number', get: stat('attack_speed') },
+      // ⚠️ Les deux rythmes sont des COMPTEURS 0–100 (plus haut = plus vite),
+      // plus des périodes en ticks : `vitesse>=80` désigne désormais les cartes
+      // RAPIDES, là où la même requête servait les lentes. Les alias gardent
+      // les anciens noms de champ pour ne pas casser une requête enregistrée.
+      { key: 'vitesse', aliases: ['movement_rate', 'movement_speed', 'deplacement'], label: 'Vitesse de déplacement (0–100)', type: 'number', get: stat('movement_rate') },
+      { key: 'cadence', aliases: ['attack_rate', 'attack_speed'], label: 'Vitesse d\'attaque (0–100)', type: 'number', get: stat('attack_rate') },
       { key: 'initiative', aliases: ['init'], label: 'Initiative', type: 'number', get: stat('initiative') },
       { key: 'portee', aliases: ['range'], label: 'Portée', type: 'number', get: stat('range') },
       { key: 'cout', aliases: ['cost', 'materiels'], label: 'Coût en matériels', type: 'number', get: c => summonCost(c) },

@@ -21,17 +21,17 @@ function arena(power: any, opts: { casterStats?: any; targetPower?: any } = {}) 
   const board = makeBoard();
   const caster = spawn(board, makeCard({
     id: 'P_CASTER', power,
-    stats: { atk: 10, hp: 200, attack_speed: 2, initiative: 5, movement_speed: 1, range: 3, ...opts.casterStats },
+    stats: { atk: 10, hp: 200, attack_rate: 100, initiative: 5, movement_rate: 100, range: 3, ...opts.casterStats },
   }), 'player', { col: 2, row: 3 });
   const ally = spawn(board, makeCard({
-    id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_speed: 2, initiative: 4, movement_speed: 1, range: 1 },
+    id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_rate: 100, initiative: 4, movement_rate: 100, range: 1 },
   }), 'player', { col: 1, row: 3 });
   const target = spawn(board, makeCard({
     id: 'E_TARGET', power: opts.targetPower ?? null,
-    stats: { atk: 5, hp: 500, attack_speed: 2, initiative: 3, movement_speed: 1, range: 1 },
+    stats: { atk: 5, hp: 500, attack_rate: 100, initiative: 3, movement_rate: 100, range: 1 },
   }), 'enemy', { col: 2, row: 7 });
   const target2 = spawn(board, makeCard({
-    id: 'E_TARGET_2', stats: { atk: 5, hp: 500, attack_speed: 2, initiative: 3, movement_speed: 1, range: 1 },
+    id: 'E_TARGET_2', stats: { atk: 5, hp: 500, attack_rate: 100, initiative: 3, movement_rate: 100, range: 1 },
   }), 'enemy', { col: 3, row: 7 });
 
   const combat = new (CombatManager as any)(board, [caster, ally], [target, target2], null);
@@ -42,17 +42,17 @@ function arena(power: any, opts: { casterStats?: any; targetPower?: any } = {}) 
 describe('pertinence d\'un pouvoir vis-à-vis de sa cible', () => {
   // ── POWER_BLOCK : l'exemple canonique — bloquer un pouvoir absent ──
   it('POWER_BLOCK se tait sur une cible SANS pouvoir', () => {
-    const a = arena({ id: 'POWER_BLOCK', power_speed: 1 });   // E_TARGET n'a pas de pouvoir
+    const a = arena({ id: 'POWER_BLOCK', power_rate: 100 });   // E_TARGET n'a pas de pouvoir
     expect(a.relevant()).toBe(false);
   });
 
   it('POWER_BLOCK part sur une cible qui en a un', () => {
-    const a = arena({ id: 'POWER_BLOCK', power_speed: 1 }, { targetPower: { id: 'POWER_HEAL', power_speed: 5 } });
+    const a = arena({ id: 'POWER_BLOCK', power_rate: 100 }, { targetPower: { id: 'POWER_HEAL', power_rate: 96 } });
     expect(a.relevant()).toBe(true);
   });
 
   it('POWER_BLOCK ne se rejoue pas sur une cible DÉJÀ bloquée — power_block_remaining est ASSIGNÉ, le rejeu pourrait raccourcir', () => {
-    const a = arena({ id: 'POWER_BLOCK', power_speed: 1 }, { targetPower: { id: 'POWER_HEAL', power_speed: 5 } });
+    const a = arena({ id: 'POWER_BLOCK', power_rate: 100 }, { targetPower: { id: 'POWER_HEAL', power_rate: 96 } });
     a.target.is_power_blocked = true;
     a.target.power_block_remaining = 25;
     expect(a.relevant()).toBe(false);
@@ -63,7 +63,7 @@ describe('pertinence d\'un pouvoir vis-à-vis de sa cible', () => {
 
   // ── POWER_DEBUFF : l'autre exemple — dissiper le vide ──
   it('POWER_DEBUFF se tait sur une cible qui ne porte RIEN', () => {
-    const a = arena({ id: 'POWER_DEBUFF', power_speed: 1 });
+    const a = arena({ id: 'POWER_DEBUFF', power_rate: 100 });
     expect(a.relevant()).toBe(false);
   });
 
@@ -72,14 +72,14 @@ describe('pertinence d\'un pouvoir vis-à-vis de sa cible', () => {
       u => u.applyStatBonus('atk', 5),
       u => u.dot_effects.push({ damage: 3, interval: 3, timer: 0 }),
       u => u.burn_stacks.push({ damage: 3 }),
-      u => { u.paralysis_remaining = 10; u.attack_speed_modifier = 2; },
+      u => { u.paralysis_remaining = 10; u.attack_period_modifier = 2; },
       u => { u.is_power_blocked = true; },
       u => { u.confusion_remaining = 10; },
       u => { u.taunt_remaining = 10; },
       u => { u.is_effect_immune = true; },
     ];
     for (const apply of cases) {
-      const a = arena({ id: 'POWER_DEBUFF', power_speed: 1 });
+      const a = arena({ id: 'POWER_DEBUFF', power_rate: 100 });
       expect(a.relevant()).toBe(false);
       apply(a.target);
       expect(a.relevant()).toBe(true);
@@ -90,27 +90,27 @@ describe('pertinence d\'un pouvoir vis-à-vis de sa cible', () => {
     // La compter rendrait le pouvoir pertinent contre tout ennemi doté d'un
     // pouvoir — c'est-à-dire annulerait le filtre sur celui qui en avait le
     // plus besoin. Décision assumée, pas un oubli.
-    const a = arena({ id: 'POWER_DEBUFF', power_speed: 1 }, { targetPower: { id: 'POWER_HEAL', power_speed: 40 } });
+    const a = arena({ id: 'POWER_DEBUFF', power_rate: 100 }, { targetPower: { id: 'POWER_HEAL', power_rate: 50 } });
     a.target.power_gauge = 39;
     expect(a.relevant()).toBe(false);
   });
 
   // ── POWER_HEAL ──
   it('POWER_HEAL se tait quand tout le camp est à PV pleins, part dès qu\'un allié est blessé', () => {
-    const a = arena({ id: 'POWER_HEAL', power_speed: 1 });
+    const a = arena({ id: 'POWER_HEAL', power_rate: 100 });
     expect(a.relevant()).toBe(false);
     a.ally.current_hp = 10;
     expect(a.relevant()).toBe(true);
   });
 
   it('POWER_HEAL part aussi pour le lanceur lui-même — il est son propre allié', () => {
-    const a = arena({ id: 'POWER_HEAL', power_speed: 1 });
+    const a = arena({ id: 'POWER_HEAL', power_rate: 100 });
     a.caster.current_hp = 10;
     expect(a.relevant()).toBe(true);
   });
 
   it('POWER_HEAL ignore un allié NEUTRALISÉ : le soin ne relève pas', () => {
-    const a = arena({ id: 'POWER_HEAL', power_speed: 1 });
+    const a = arena({ id: 'POWER_HEAL', power_rate: 100 });
     a.ally.current_hp = 0;
     a.ally.is_neutralized = true;
     expect(a.relevant()).toBe(false);
@@ -118,27 +118,27 @@ describe('pertinence d\'un pouvoir vis-à-vis de sa cible', () => {
 
   // ── POWER_PARALYSIS / POWER_CONFUSION / POWER_TAUNT : statuts ASSIGNÉS ──
   it('POWER_PARALYSIS ne se rejoue pas sur une cible déjà paralysée', () => {
-    const a = arena({ id: 'POWER_PARALYSIS', power_speed: 1 });
+    const a = arena({ id: 'POWER_PARALYSIS', power_rate: 100 });
     expect(a.relevant()).toBe(true);
     a.target.paralysis_remaining = 20;
     expect(a.relevant()).toBe(false);
   });
 
   it('POWER_CONFUSION se tait sur un ennemi SEUL — il n\'a personne à retourner contre lui', () => {
-    const a = arena({ id: 'POWER_CONFUSION', power_speed: 1 });
+    const a = arena({ id: 'POWER_CONFUSION', power_rate: 100 });
     expect(a.relevant()).toBe(true);
     a.target2.is_neutralized = true;
     expect(a.relevant()).toBe(false);
   });
 
   it('POWER_CONFUSION ne se rejoue pas sur une cible déjà confuse', () => {
-    const a = arena({ id: 'POWER_CONFUSION', power_speed: 1 });
+    const a = arena({ id: 'POWER_CONFUSION', power_rate: 100 });
     a.target.confusion_remaining = 20;
     expect(a.relevant()).toBe(false);
   });
 
   it('POWER_TAUNT ne se rejoue pas tant que la provocation du lanceur court', () => {
-    const a = arena({ id: 'POWER_TAUNT', power_speed: 1 });
+    const a = arena({ id: 'POWER_TAUNT', power_rate: 100 });
     expect(a.relevant()).toBe(true);
     a.caster.taunt_remaining = 20;
     expect(a.relevant()).toBe(false);
@@ -146,26 +146,26 @@ describe('pertinence d\'un pouvoir vis-à-vis de sa cible', () => {
 
   // ── POWER_PUSH / POWER_FREEZE : la retraite doit être possible ──
   it('POWER_PUSH se tait quand la cible est adossée au bord du board', () => {
-    const a = arena({ id: 'POWER_PUSH', power_speed: 1 });
+    const a = arena({ id: 'POWER_PUSH', power_rate: 100 });
     expect(a.relevant()).toBe(true);
     a.board.moveUnit(a.target, { col: 2, row: a.board.rows - 1 });
     expect(a.relevant()).toBe(false);
   });
 
   it('POWER_PUSH se tait quand une unité occupe la case de retraite', () => {
-    const a = arena({ id: 'POWER_PUSH', power_speed: 1 });
+    const a = arena({ id: 'POWER_PUSH', power_rate: 100 });
     a.board.moveUnit(a.target2, { col: 2, row: 8 });   // juste derrière E_TARGET
     expect(a.relevant()).toBe(false);
   });
 
   it('POWER_PUSH se tait quand la case de retraite est bloquée par le terrain', () => {
-    const a = arena({ id: 'POWER_PUSH', power_speed: 1 });
+    const a = arena({ id: 'POWER_PUSH', power_rate: 100 });
     a.board.setBlockedCells([{ col: 2, row: 8 }]);
     expect(a.relevant()).toBe(false);
   });
 
   it('POWER_FREEZE suit la MÊME règle : sans retraite, la case gelée serait celle où la cible se tient encore', () => {
-    const a = arena({ id: 'POWER_FREEZE', power_speed: 1 });
+    const a = arena({ id: 'POWER_FREEZE', power_rate: 100 });
     expect(a.relevant()).toBe(true);
     a.board.moveUnit(a.target, { col: 2, row: a.board.rows - 1 });
     expect(a.relevant()).toBe(false);
@@ -173,7 +173,7 @@ describe('pertinence d\'un pouvoir vis-à-vis de sa cible', () => {
 
   // ── POWER_TELEPORT : le saut doit rapprocher ──
   it('POWER_TELEPORT se tait quand le lanceur est DÉJÀ au contact du plus faible', () => {
-    const a = arena({ id: 'POWER_TELEPORT', power_speed: 1 });
+    const a = arena({ id: 'POWER_TELEPORT', power_rate: 100 });
     a.target.current_hp = 1;                              // le plus faible
     expect(a.relevant()).toBe(true);                      // (2,3) → loin
     a.board.moveUnit(a.caster, { col: 2, row: 6 });        // au contact de (2,7)
@@ -181,7 +181,7 @@ describe('pertinence d\'un pouvoir vis-à-vis de sa cible', () => {
   });
 
   it('POWER_TELEPORT se tait sans aucun ennemi vivant', () => {
-    const a = arena({ id: 'POWER_TELEPORT', power_speed: 1 });
+    const a = arena({ id: 'POWER_TELEPORT', power_rate: 100 });
     a.target.is_neutralized = true;
     a.target2.is_neutralized = true;
     expect(a.relevant()).toBe(false);
@@ -190,24 +190,24 @@ describe('pertinence d\'un pouvoir vis-à-vis de sa cible', () => {
   // ── Ce qui n'est PAS filtré ──
   it('les pouvoirs qui posent toujours quelque chose ne sont jamais retenus', () => {
     for (const id of ['POWER_SUPER_ATTACK', 'POWER_AOE_ATTACK', 'POWER_SHIELD', 'POWER_POISON', 'POWER_BURN']) {
-      expect(arena({ id, power_speed: 1 }).relevant()).toBe(true);
+      expect(arena({ id, power_rate: 100 }).relevant()).toBe(true);
     }
   });
 
   it('poison et brûlure CUMULENT : une cible déjà touchée reste une cible valide', () => {
-    const a = arena({ id: 'POWER_POISON', power_speed: 1 });
+    const a = arena({ id: 'POWER_POISON', power_rate: 100 });
     a.target.dot_effects.push({ damage: 3, interval: 3, timer: 0 });
     expect(a.relevant()).toBe(true);
   });
 
   it('⚠️ l\'IMMUNITÉ n\'est pas un motif de retenue — la déflexion est un contre que le joueur a gagné', () => {
-    const a = arena({ id: 'POWER_PARALYSIS', power_speed: 1 });
+    const a = arena({ id: 'POWER_PARALYSIS', power_rate: 100 });
     a.target.is_effect_immune = true;
     expect(a.relevant()).toBe(true);
   });
 
   it('un pouvoir inconnu part (et retombe sur l\'attaque normale, comme avant)', () => {
-    expect(arena({ id: 'POWER_INEXISTANT', power_speed: 1 }).relevant()).toBe(true);
+    expect(arena({ id: 'POWER_INEXISTANT', power_rate: 100 }).relevant()).toBe(true);
   });
 });
 
@@ -217,40 +217,40 @@ describe('conséquence en combat : la jauge est RETENUE, pas dépensée', () => 
     const board = makeBoard();
     const caster = spawn(board, makeCard({
       id: 'P_CASTER', power,
-      stats: { atk: 10, hp: 500, attack_speed: 2, initiative: 9, movement_speed: 1, range: 3 },
+      stats: { atk: 10, hp: 500, attack_rate: 100, initiative: 9, movement_rate: 100, range: 3 },
     }), 'player', { col: 2, row: 5 });
     const target = spawn(board, makeCard({
       id: 'E_TARGET', power: targetPower,
-      stats: { atk: 1, hp: 500, attack_speed: 2, initiative: 1, movement_speed: 99, range: 1 },
+      stats: { atk: 1, hp: 500, attack_rate: 100, initiative: 1, movement_rate: 0, range: 1 },
     }), 'enemy', { col: 2, row: 7 });
     const combat = new (CombatManager as any)(board, [caster], [target], null);
     return { combat, caster, target };
   }
 
   it('sans cible valable : la jauge reste PLEINE et l\'unité attaque normalement', () => {
-    const d = duel({ id: 'POWER_BLOCK', power_speed: 3 });   // la cible n'a pas de pouvoir
+    const d = duel({ id: 'POWER_BLOCK', power_rate: 99 });   // la cible n'a pas de pouvoir
     const events: any[] = [];
     for (let i = 0; i < 10; i++) events.push(...d.combat.step());
 
     expect(events.some(e => e.type === 'power')).toBe(false);
     expect(events.some(e => e.type === 'attack')).toBe(true);
-    expect(d.caster.power_gauge).toBeGreaterThanOrEqual(d.caster.power_speed);
+    expect(d.caster.power_gauge).toBeGreaterThanOrEqual(d.caster.powerPeriod());
   });
 
   it('la charge retenue part au premier tick où la cible la mérite', () => {
-    const d = duel({ id: 'POWER_BLOCK', power_speed: 3 });
+    const d = duel({ id: 'POWER_BLOCK', power_rate: 99 });
     for (let i = 0; i < 10; i++) d.combat.step();
     expect(d.caster.power_gauge).toBeGreaterThanOrEqual(3);
 
     d.target.power_id = 'POWER_HEAL';   // la cible devient bloquable
-    // Deux steps : le lanceur n'agit qu'un tick sur deux (attack_speed = 2).
+    // Deux steps : le lanceur n'agit qu'un tick sur deux (période = 2 ticks).
     const events = [...d.combat.step(), ...d.combat.step()];
     expect(events.some(e => e.type === 'power' && e.power_id === 'POWER_BLOCK')).toBe(true);
-    expect(d.caster.power_gauge).toBeLessThan(d.caster.power_speed);
+    expect(d.caster.power_gauge).toBeLessThan(d.caster.powerPeriod());
   });
 
   it('un pouvoir pertinent part comme avant — le filtre n\'est pas un frein général', () => {
-    const d = duel({ id: 'POWER_SUPER_ATTACK', power_speed: 3 });
+    const d = duel({ id: 'POWER_SUPER_ATTACK', power_rate: 99 });
     const events: any[] = [];
     for (let i = 0; i < 10; i++) events.push(...d.combat.step());
     expect(events.filter(e => e.type === 'power').length).toBeGreaterThan(0);
@@ -265,16 +265,16 @@ describe('pouvoirs SANS PORTÉE : soin, provocation, téléportation', () => {
     const board = makeBoard();
     const caster = spawn(board, makeCard({
       id: 'P_CASTER', power,
-      stats: { atk: 10, hp: 200, attack_speed: 2, initiative: 9, movement_speed: 99, range: opts.range ?? 1 },
+      stats: { atk: 10, hp: 200, attack_rate: 100, initiative: 9, movement_rate: 0, range: opts.range ?? 1 },
     }), 'player', { col: 2, row: 0 });
     const ally = spawn(board, makeCard({
-      id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_speed: 2, initiative: 8, movement_speed: 99, range: 1 },
+      id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_rate: 100, initiative: 8, movement_rate: 0, range: 1 },
     }), 'player', { col: 1, row: 0 });
     const foe = spawn(board, makeCard({
-      id: 'E_FOE', stats: { atk: 5, hp: 500, attack_speed: 2, initiative: 1, movement_speed: 99, range: 1 },
+      id: 'E_FOE', stats: { atk: 5, hp: 500, attack_rate: 100, initiative: 1, movement_rate: 0, range: 1 },
     }), 'enemy', { col: 2, row: 10 });
     const foe2 = spawn(board, makeCard({
-      id: 'E_FOE_2', stats: { atk: 5, hp: 500, attack_speed: 2, initiative: 1, movement_speed: 99, range: 1 },
+      id: 'E_FOE_2', stats: { atk: 5, hp: 500, attack_rate: 100, initiative: 1, movement_rate: 0, range: 1 },
     }), 'enemy', { col: 4, row: 10 });
     if (opts.allyHp !== undefined) ally.current_hp = opts.allyHp;
 
@@ -282,8 +282,11 @@ describe('pouvoirs SANS PORTÉE : soin, provocation, téléportation', () => {
     // Un seul tick d'action, sans laisser personne marcher : le sujet est le
     // tir hors de portée, pas la course qui finirait par mettre à portée.
     const tick = () => {
-      for (const u of [caster, ally, foe, foe2]) u.movement_speed = 9999;
-      caster.power_gauge = caster.power_speed;
+      // ⚠️ Écrit sur la PÉRIODE, pas sur le compteur : « ne marche jamais »
+      // n'est pas exprimable sur une échelle bornée à 77 ticks, et ce n'est
+      // pas ce bornage que ce test regarde.
+      for (const u of [caster, ally, foe, foe2]) u.movement_period = 9999;
+      caster.power_gauge = caster.powerPeriod();
       const events: any[] = [];
       for (let i = 0; i < 2; i++) events.push(...combat.step());
       return events;
@@ -292,21 +295,21 @@ describe('pouvoirs SANS PORTÉE : soin, provocation, téléportation', () => {
   }
 
   it('POWER_HEAL part hors de portée — un soigneur de ligne arrière ne pouvait sinon JAMAIS soigner', () => {
-    const d = distant({ id: 'POWER_HEAL', power_speed: 3, value: 40 }, { allyHp: 10 });
+    const d = distant({ id: 'POWER_HEAL', power_rate: 99, value: 40 }, { allyHp: 10 });
     const events = d.tick();
     expect(events.some(e => e.type === 'power' && e.power_id === 'POWER_HEAL')).toBe(true);
     expect(d.ally.current_hp).toBe(50);
   });
 
   it('POWER_TAUNT part hors de portée — le tank provoque AVANT le contact, c\'est tout son intérêt', () => {
-    const d = distant({ id: 'POWER_TAUNT', power_speed: 3 });
+    const d = distant({ id: 'POWER_TAUNT', power_rate: 99 });
     const events = d.tick();
     expect(events.some(e => e.type === 'power' && e.power_id === 'POWER_TAUNT')).toBe(true);
     expect(d.caster.taunt_remaining).toBeGreaterThan(0);
   });
 
   it('POWER_TELEPORT part hors de portée — il devait être à portée pour se mettre à portée', () => {
-    const d = distant({ id: 'POWER_TELEPORT', power_speed: 3 });
+    const d = distant({ id: 'POWER_TELEPORT', power_rate: 99 });
     const before = Math.abs(d.caster.position.row - d.foe.position.row);
     const events = d.tick();
     expect(events.some(e => e.type === 'power' && e.power_id === 'POWER_TELEPORT')).toBe(true);
@@ -319,30 +322,30 @@ describe('pouvoirs SANS PORTÉE : soin, provocation, téléportation', () => {
     for (const id of ['POWER_SUPER_ATTACK', 'POWER_AOE_ATTACK', 'POWER_SHIELD', 'POWER_POISON',
                       'POWER_BURN', 'POWER_PARALYSIS', 'POWER_PUSH', 'POWER_FREEZE',
                       'POWER_BLOCK', 'POWER_CONFUSION', 'POWER_DEBUFF']) {
-      const d = distant({ id, power_speed: 3 });
+      const d = distant({ id, power_rate: 99 });
       const events = d.tick();
       expect(events.some(e => e.type === 'power')).toBe(false);
       expect(events.some(e => e.type === 'attack')).toBe(false);   // rien à frapper non plus
-      expect(d.caster.power_gauge).toBeGreaterThanOrEqual(d.caster.power_speed);
+      expect(d.caster.power_gauge).toBeGreaterThanOrEqual(d.caster.powerPeriod());
     }
   });
 
   it('un pouvoir sans portée mais SANS OBJET reste muet : le soin sur un camp à PV pleins', () => {
-    const d = distant({ id: 'POWER_HEAL', power_speed: 3 });   // personne n'est blessé
+    const d = distant({ id: 'POWER_HEAL', power_rate: 99 });   // personne n'est blessé
     expect(d.tick().some(e => e.type === 'power')).toBe(false);
-    expect(d.caster.power_gauge).toBeGreaterThanOrEqual(d.caster.power_speed);
+    expect(d.caster.power_gauge).toBeGreaterThanOrEqual(d.caster.powerPeriod());
   });
 
   it('⚠️ la garde de cible nulle : un pouvoir à cible interrogé sans cible ne part pas', () => {
     // Le seul filet si RANGELESS_POWERS accueillait un jour un pouvoir qui lit
     // `primaryTarget` — sans elle, la lecture jetterait en plein combat.
-    const d = distant({ id: 'POWER_BLOCK', power_speed: 3 });
+    const d = distant({ id: 'POWER_BLOCK', power_rate: 99 });
     expect(d.combat._isPowerRelevant(d.caster, null)).toBe(false);
     expect(d.combat._isPowerRelevant(d.caster, d.foe)).toBe(false);   // E_FOE n'a pas de pouvoir
   });
 
   it('la brûlure pulse sur un tir hors de portée : le pouvoir REMPLACE l\'attaque, il ne s\'y soustrait pas', () => {
-    const d = distant({ id: 'POWER_TAUNT', power_speed: 3 });
+    const d = distant({ id: 'POWER_TAUNT', power_rate: 99 });
     d.caster.burn_stacks.push({ damage: 7 });
     const hp = d.caster.current_hp;
     const events = d.tick();
@@ -351,9 +354,9 @@ describe('pouvoirs SANS PORTÉE : soin, provocation, téléportation', () => {
   });
 
   it('hors de portée et sans pouvoir à lancer, l\'unité n\'émet RIEN — elle se contente d\'avancer', () => {
-    const d = distant({ id: 'POWER_SUPER_ATTACK', power_speed: 3 });
+    const d = distant({ id: 'POWER_SUPER_ATTACK', power_rate: 99 });
     d.caster.power_gauge = 0;
-    for (const u of [d.caster, d.ally, d.foe, d.foe2]) u.movement_speed = 9999;
+    for (const u of [d.caster, d.ally, d.foe, d.foe2]) u.movement_period = 9999;
     const events: any[] = d.combat.step();
     expect(events.filter(e => e.unit === d.caster || e.attacker === d.caster)).toEqual([]);
   });

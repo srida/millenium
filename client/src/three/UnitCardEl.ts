@@ -57,9 +57,7 @@ export function updateUnitEl(el: HTMLElement, unit: Unit): void {
   const hpFill = el.querySelector<HTMLElement>('.unit-hp-fill');
   if (hpFill) hpFill.style.width = hpPct + '%';
 
-  const pwrPct = unit.power_id
-    ? Math.min(100, Math.round((unit.power_gauge / unit.power_speed) * 100))
-    : 0;
+  const pwrPct = _powerPct(unit);
   const pwrFill = el.querySelector<HTMLElement>('.unit-pwr-fill');
   if (pwrFill) pwrFill.style.width = pwrPct + '%';
 
@@ -76,11 +74,24 @@ export function updateUnitEl(el: HTMLElement, unit: Unit): void {
   _updateMaterialValue(el, unit);
 }
 
+/**
+ * Le remplissage de la jauge, en pourcent.
+ *
+ * ⚠️ `powerPeriod()` rend `Infinity` sur une unité dont le pouvoir n'a pas de
+ * compteur déclaré — la division rend alors 0, ce qui est exactement ce qu'il
+ * faut montrer : une jauge qui n'avancera jamais. Un `NaN` (l'ancien `/ 0`)
+ * aurait posé `width: NaN%`, donc une barre restée à sa largeur précédente.
+ */
+function _powerPct(unit: Unit): number {
+  if (!unit.power_id) return 0;
+  const period = unit.powerPeriod();
+  if (!Number.isFinite(period) || period <= 0) return 0;
+  return Math.min(100, Math.round((unit.power_gauge / period) * 100));
+}
+
 function _inner(unit: Unit): string {
   const hpPct = unit.max_hp > 0 ? Math.round((unit.current_hp / unit.max_hp) * 100) : 0;
-  const pwrPct = unit.power_id
-    ? Math.min(100, Math.round((unit.power_gauge / unit.power_speed) * 100))
-    : 0;
+  const pwrPct = _powerPct(unit);
 
   // Toujours émise, masquée tant que l'unité n'a pas de pouvoir : c'est
   // `updateUnitEl` qui la révèle si une magie lui en donne un en cours de

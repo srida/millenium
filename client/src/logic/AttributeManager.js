@@ -270,7 +270,7 @@ export class AttributeManager {
             candidate._deathEmitted = false;
             candidate.dot_effects = [];
             candidate.paralysis_remaining = 0;
-            candidate.attack_speed_modifier = 0;
+            candidate.attack_period_modifier = 0;
             neutralized.splice(0, 1);
             (resources ? result.revived : result.enemyRevived).push(candidate);
           }

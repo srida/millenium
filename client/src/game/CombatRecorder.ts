@@ -48,7 +48,7 @@ const MIRROR_AXIS = 10;
  */
 export const UNIT_COLUMNS = [
   'key', 'col', 'row', 'hp', 'max_hp', 'shield', 'atk', 'initiative',
-  'attack_speed_eff', 'gauge', 'attack_timer', 'move_timer',
+  'attack_period_eff', 'gauge', 'attack_timer', 'move_timer',
   'paralysis', 'block', 'confusion', 'taunt', 'dots', 'burns', 'alive',
 ] as const;
 
@@ -199,7 +199,7 @@ export class CombatRecorder {
       .map((u: any) => ({ u, key: this.key(u) }))
       .sort((a: any, b: any) => (
         b.u.initiative - a.u.initiative
-        || b.u.effectiveAttackSpeed() - a.u.effectiveAttackSpeed()
+        || b.u.effectiveAttackPeriod() - a.u.effectiveAttackPeriod()
         || String(a.u.card_id).localeCompare(String(b.u.card_id))
         || a.key.localeCompare(b.key)
       ))
@@ -229,7 +229,7 @@ export class CombatRecorder {
       u.shield ?? 0,
       u.atk,
       u.initiative,
-      u.effectiveAttackSpeed?.() ?? u.attack_speed,
+      u.effectiveAttackPeriod?.() ?? u.attack_period,
       u.power_gauge ?? 0,
       u.attack_timer ?? 0,
       u.move_timer ?? 0,

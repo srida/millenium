@@ -117,7 +117,7 @@ describe('BoardInfo — le libellé d\'un effet', () => {
 
   it('une stat inconnue retombe sur sa clé brute', () => {
     expect(statLabel('inconnue')).toBe('inconnue');
-    expect(Object.keys(STAT_LABELS)).toContain('movement_speed');
+    expect(Object.keys(STAT_LABELS)).toContain('movement_rate');
   });
 });
 

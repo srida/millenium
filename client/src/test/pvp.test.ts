@@ -20,7 +20,7 @@ vi.mock('../net/PvpConnection.js', () => ({
 
 const { sendOwnBoard, reconstructOpponentUnits } = await import('../net/PvpOpponentProvider.js');
 
-const CARD = makeCard({ id: 'PVP_A', name: 'Sujet', stats: { atk: 10, hp: 40, movement_speed: 1, attack_speed: 2, initiative: 5, range: 1 } });
+const CARD = makeCard({ id: 'PVP_A', name: 'Sujet', stats: { atk: 10, hp: 40, movement_rate: 100, attack_rate: 100, initiative: 5, range: 1 } });
 const cardDb = { getCard: (id: string) => (id === CARD.id ? (CARD as any) : null) };
 
 // Reproduit une unité telle qu'elle est en fin de préparation d'un round > 1 :
@@ -96,11 +96,11 @@ describe('PvP — reconstruction du board adverse', () => {
   it('rejoue un pouvoir DONNÉ ou accéléré par une magie', () => {
     const source = veteranUnit(new Board());
     source.power_id = 'POWER_HEAL';     // magie grant_power
-    source.power_speed = 7;             // puis power_cooldown (÷2)
+    source.power_rate = 93;             // puis power_cooldown (÷2)
     source.power_value = 40;
     const { rebuilt } = roundTrip(source);
     expect(rebuilt.power_id).toBe('POWER_HEAL');
-    expect(rebuilt.power_speed).toBe(7);
+    expect(rebuilt.power_rate).toBe(93);
     expect(rebuilt.power_value).toBe(40);
   });
 
@@ -108,7 +108,7 @@ describe('PvP — reconstruction du board adverse', () => {
   // ne doit pas le retrouver à la reconstruction. La carte en porte un ici,
   // sans quoi le cas ne prouverait rien.
   it('rejoue l\'ABSENCE de pouvoir sans retomber sur celui de la carte', () => {
-    const armed = makeCard({ id: 'PVP_P', power: { id: 'POWER_SHIELD', power_speed: 20, value: null } as any });
+    const armed = makeCard({ id: 'PVP_P', power: { id: 'POWER_SHIELD', power_rate: 76, value: null } as any });
     const db = { getCard: (id: string) => (id === armed.id ? (armed as any) : null) };
     const source = new (Unit as any)(armed, 'player') as Unit;
     expect(source.power_id).toBe('POWER_SHIELD');   // témoin

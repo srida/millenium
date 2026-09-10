@@ -114,8 +114,8 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
     const data: any = isUnit ? content.unit : content.card;
     const power = data.power_id ? (getPower as any)(data.power_id) : (data.power?.id ? (getPower as any)(data.power.id) : null);
     const stats = isUnit
-      ? { atk: data.atk, hp: data.current_hp, attack_speed: data.attack_speed, range: data.range, movement_speed: data.movement_speed }
-      : { atk: data.stats.atk, hp: data.stats.hp, attack_speed: data.stats.attack_speed, range: data.stats.range, movement_speed: data.stats.movement_speed };
+      ? { atk: data.atk, hp: data.current_hp, attack_rate: data.attack_rate, range: data.range, movement_rate: data.movement_rate }
+      : { atk: data.stats.atk, hp: data.stats.hp, attack_rate: data.stats.attack_rate, range: data.stats.range, movement_rate: data.stats.movement_rate };
     const lineage = isUnit ? (data.represented_ids ?? []).filter((id: string) => id !== data.card_id) : [];
     const shoppingBonus: Record<string, number> = isUnit ? (data._shopping_bonus ?? {}) : {};
     const shoppingEntries = Object.entries(shoppingBonus).filter(([, v]) => v);
@@ -137,8 +137,17 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
               <PowerIcon id={data.power_id} fallback="⚡" className="h-3.5 w-3.5 text-[11px]" />
               {power.name ?? data.power_id}
             </div>
+            {/* ⚠️ La jauge se dit en TICKS, pas en compteur : c'est une
+                progression (« 12 sur 20 »), pas un réglage. Le compteur est ce
+                qu'on paramètre, la période ce qu'on regarde avancer. Un
+                pouvoir sans compteur déclaré rend `Infinity` — on le nomme
+                plutôt que de laisser lire « 12/Infinity ». */}
             {isUnit
-              ? <div className="text-[10px] text-white/60">Jauge {data.power_gauge}/{data.power_speed}</div>
+              ? <div className="text-[10px] text-white/60">
+                  {Number.isFinite(data.powerPeriod?.() ?? Infinity)
+                    ? `Jauge ${data.power_gauge}/${data.powerPeriod()}`
+                    : 'Aucune vitesse de chargement — ce pouvoir ne part jamais'}
+                </div>
               : power.description && <div className="text-[10px] text-white/60">{power.description}</div>}
           </div>
         )}

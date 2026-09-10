@@ -17,14 +17,14 @@ export interface CardFixture {
   _tiers: number[];
   attributes: string[];
   represented_ids?: string[];
-  power?: { id: string; power_speed: number; value?: number | null } | null;
+  power?: { id: string; power_rate: number; value?: number | null } | null;
   /** Les voies d'invocation. Absent = aucune condition (l'ancienne « normale »). */
   summon_conditions?: { materials: number; requires?: string[] }[];
   /** Ce que la carte vaut comme matériau. Absent = 1. */
   material_value?: number;
   stats: {
-    atk: number; hp: number; movement_speed: number;
-    attack_speed: number; initiative: number; range: number;
+    atk: number; hp: number; movement_rate: number;
+    attack_rate: number; initiative: number; range: number;
   };
 }
 
@@ -50,7 +50,7 @@ export function makeCard(
     power: null,
     ...rest,
     stats: {
-      atk: 5, hp: 30, movement_speed: 1, attack_speed: 2, initiative: 5, range: 1,
+      atk: 5, hp: 30, movement_rate: 100, attack_rate: 100, initiative: 5, range: 1,
       ...stats,
     },
   };

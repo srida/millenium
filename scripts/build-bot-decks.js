@@ -103,10 +103,10 @@ function themeScore(c, theme) {
 function profileScore(c, profile) {
   const st = c.stats || {};
   switch (profile) {
-    case 'aggro':    return st.atk * 30 - (st.attack_speed || 10) * 8 + (st.hp || 0) * 0.4;
+    case 'aggro':    return st.atk * 30 + (st.attack_rate ?? 60) * 8 + (st.hp || 0) * 0.4;
     case 'tank':     return (st.hp || 0) * 1.6 + st.atk * 8;
     case 'distance': return ((st.range || 1) >= 2 ? 400 : 0) + st.atk * 18 + (st.hp || 0) * 0.5;
-    case 'pouvoirs': return (c.power?.id ? 350 - (c.power.power_speed || 60) * 2 : 0) + st.atk * 14 + (st.hp || 0) * 0.6;
+    case 'pouvoirs': return (c.power?.id ? 100 + (c.power.power_rate ?? 20) * 2 : 0) + st.atk * 14 + (st.hp || 0) * 0.6;
     case 'essaim':   return st.atk * 16 + (st.hp || 0) * 0.7;
     default:         return rawPower(c);
   }

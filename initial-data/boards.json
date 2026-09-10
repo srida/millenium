@@ -212,8 +212,8 @@
 		"name": "Cimetière",
 		"effect": {
 			"type": "stat_bonus",
-			"value": -5,
-			"stat": "movement_speed",
+			"value": 7,
+			"stat": "movement_rate",
 			"target_attributes": [
 				"ARCH_029"
 			]
@@ -242,8 +242,8 @@
 		"name": "Vallée des rois",
 		"effect": {
 			"type": "stat_bonus",
-			"value": -5,
-			"stat": "movement_speed",
+			"value": 7,
+			"stat": "movement_rate",
 			"target_attributes": [
 				"ARCH_030"
 			]
@@ -268,8 +268,8 @@
 		"name": "Mur du Labyrinthe",
 		"effect": {
 			"type": "stat_bonus",
-			"value": -5,
-			"stat": "movement_speed",
+			"value": 7,
+			"stat": "movement_rate",
 			"target_attributes": [
 				"ARCH_041"
 			]
@@ -348,8 +348,8 @@
 		"name": "Nuit des machines",
 		"effect": {
 			"type": "stat_bonus",
-			"value": -5,
-			"stat": "attack_speed",
+			"value": 7,
+			"stat": "attack_rate",
 			"target_attributes": [
 				"ARCH_025"
 			]
@@ -546,8 +546,8 @@
 		"effects": [
 			{
 				"type": "stat_bonus",
-				"value": -4,
-				"stat": "attack_speed",
+				"value": 5,
+				"stat": "attack_rate",
 				"target_attributes": [
 					"ARCH_090"
 				]
@@ -693,8 +693,8 @@
 			},
 			{
 				"type": "stat_bonus",
-				"value": -4,
-				"stat": "movement_speed",
+				"value": 5,
+				"stat": "movement_rate",
 				"target_attributes": [
 					"ARCH_051"
 				]
@@ -708,8 +708,8 @@
 			},
 			{
 				"type": "stat_bonus",
-				"value": -4,
-				"stat": "attack_speed",
+				"value": 5,
+				"stat": "attack_rate",
 				"target_attributes": [
 					"ARCH_052"
 				]

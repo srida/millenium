@@ -1,8 +1,9 @@
 import { guaranteedDrawCriteria } from './Draw.js';
+import { clampRate, rateForTicks, RATE_STATS } from '../../../speed-scale.mjs';
 
 export const STAT_NAMES = {
-  atk: 'ATK', hp: 'HP', attack_speed: 'Vit. attaque',
-  movement_speed: 'Vit. déplacement', range: 'Portée', initiative: 'Initiative',
+  atk: 'ATK', hp: 'HP', attack_rate: 'Vit. attaque',
+  movement_rate: 'Vit. déplacement', range: 'Portée', initiative: 'Initiative',
 };
 
 // Records the actual permanent _base delta granted by a Shopping Phase magie, so that
@@ -12,6 +13,25 @@ function _trackShoppingBonus(unit, stat, delta) {
   if (!delta) return;
   unit._shopping_bonus = unit._shopping_bonus || {};
   unit._shopping_bonus[stat] = (unit._shopping_bonus[stat] || 0) + delta;
+}
+
+/**
+ * Écrit une stat de base en respectant SA borne, et rend le delta réellement
+ * consenti (celui qu'il faut tracer, jamais celui qui était demandé).
+ *
+ * ⚠️ Les deux rythmes ne se plafonnent pas comme les autres stats : un compteur
+ * vit dans [0, 100] — 0 est légitime (le plus lent), et le plafond 100 est
+ * précisément la limite que l'échelle existe pour poser. Le `Math.max(1, …)`
+ * commun les aurait laissés monter sans fin d'un côté et interdit le zéro de
+ * l'autre. C'est la seule bifurcation par stat du fichier, et elle lit la borne
+ * dans `speed-scale.mjs` plutôt que de la recopier.
+ */
+function _writeBaseStat(unit, stat, next) {
+  const before = unit._base[stat] ?? 0;
+  unit._base[stat] = RATE_STATS.includes(stat) ? clampRate(next) : Math.max(1, next);
+  const delta = unit._base[stat] - before;
+  _trackShoppingBonus(unit, stat, delta);
+  return delta;
 }
 
 /**
@@ -254,9 +274,7 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
     case 'stat_bonus':
       if (targetUnit) {
         // Modify _base for permanence (survives resetCombatStats between rounds)
-        const before = targetUnit._base[e.stat] ?? 0;
-        targetUnit._base[e.stat] = Math.max(1, before + e.value);
-        _trackShoppingBonus(targetUnit, e.stat, targetUnit._base[e.stat] - before);
+        _writeBaseStat(targetUnit, e.stat, (targetUnit._base[e.stat] ?? 0) + e.value);
         targetUnit._recomputeStats();
         if (e.stat === 'hp') targetUnit.current_hp = Math.min(targetUnit.max_hp, targetUnit.current_hp + e.value);
       }
@@ -266,9 +284,7 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       // bonus est permanent (_base) et tracé (_shopping_bonus), donc transféré
       // à une invocation composite si l'unité est consommée comme matériau.
       for (const unit of (targetUnits || [])) {
-        const was = unit._base[e.stat] ?? 0;
-        unit._base[e.stat] = Math.max(1, was + e.value);
-        _trackShoppingBonus(unit, e.stat, unit._base[e.stat] - was);
+        _writeBaseStat(unit, e.stat, (unit._base[e.stat] ?? 0) + e.value);
         unit._recomputeStats();
         if (e.stat === 'hp') unit.current_hp = Math.min(unit.max_hp, unit.current_hp + e.value);
       }
@@ -276,8 +292,7 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
     case 'stat_modifier':
       if (targetUnit) {
         const base = targetUnit._base[e.stat] ?? 0;
-        targetUnit._base[e.stat] = Math.max(1, base + Math.round(base * (e.value - 1)));
-        _trackShoppingBonus(targetUnit, e.stat, targetUnit._base[e.stat] - base);
+        _writeBaseStat(targetUnit, e.stat, base + Math.round(base * (e.value - 1)));
         targetUnit._recomputeStats();
       }
       break;
@@ -300,9 +315,14 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       if (targetUnit && e.power_id) {
         targetUnit.power_id = e.power_id;
         // ⚠️ La vitesse est posée telle quelle, sans repli sur l'ancienne : un
-        // pouvoir donné sans vitesse hériterait de 9999 (le défaut d'`Unit`
-        // pour « pas de pouvoir ») et ne partirait jamais. L'admin l'impose.
-        targetUnit.power_speed = Math.max(1, e.power_speed ?? targetUnit.power_speed);
+        // pouvoir donné sans vitesse garde le `null` d'`Unit` (« pas de
+        // pouvoir ») et ne partirait jamais. L'admin l'impose.
+        //
+        // ⚠️ `??` et non `||` : le compteur 0 est une valeur LÉGITIME depuis
+        // l'échelle 0–100 (le pouvoir le plus lent, 77 ticks), là où l'ancien
+        // seuil en ticks ne pouvait pas valoir zéro. Un `||` le confondrait
+        // avec « champ non saisi » et rendrait le pouvoir muet.
+        targetUnit.power_rate = clampRate(e.power_rate ?? targetUnit.power_rate ?? 0);
         targetUnit.power_value = e.value ?? null;
         // La jauge repart de zéro : héritée pleine de l'ancien pouvoir, le
         // nouveau se déclencherait au premier step, ce que rien n'annonce.
@@ -312,14 +332,18 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
       }
       break;
     case 'power_cooldown':
-      // `power_speed` est un SEUIL de jauge : plus il est bas, plus le pouvoir
-      // part souvent. « Charger N fois plus vite » est donc une DIVISION, pas
-      // une soustraction — un −4 plat ne veut pas dire la même chose sur un
-      // pouvoir à 6 et sur un pouvoir à 40, exactement le piège qui a fait
-      // passer POWER_PARALYSIS d'une sévérité plate à un doublement.
-      if (targetUnit && targetUnit.power_id) {
+      // « Charger N fois plus vite » est une DIVISION de la PÉRIODE, pas une
+      // soustraction — un −4 plat ne veut pas dire la même chose sur un pouvoir
+      // à 6 ticks et sur un pouvoir à 40, exactement le piège qui a fait passer
+      // POWER_PARALYSIS d'une sévérité plate à un doublement.
+      //
+      // ⚠️ L'opération se fait donc en TICKS et le résultat se retraduit en
+      // compteur. L'écrire en compteur (« +N points ») serait une autre magie :
+      // sur l'échelle linéaire, un delta constant divise la période d'autant
+      // moins que l'unité est déjà rapide. On garde le geste, pas la forme.
+      if (targetUnit && targetUnit.power_id && targetUnit.power_rate != null) {
         const factor = e.value > 0 ? e.value : 2;
-        targetUnit.power_speed = Math.max(1, Math.round(targetUnit.power_speed / factor));
+        targetUnit.power_rate = rateForTicks(Math.max(1, Math.round(targetUnit.powerPeriod() / factor)));
       }
       break;
     case 'revive':
@@ -329,7 +353,7 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
         targetUnit.dot_effects = [];
         targetUnit.burn_stacks = [];
         targetUnit.paralysis_remaining = 0;
-        targetUnit.attack_speed_modifier = 0;
+        targetUnit.attack_period_modifier = 0;
         targetUnit.is_power_blocked = false;
         targetUnit.power_block_remaining = 0;
         targetUnit.current_hp = Math.max(1, Math.round(targetUnit.max_hp * (e.value / 100)));
