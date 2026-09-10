@@ -15,13 +15,17 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ticksForRate, rateForTicks, clampRate, rateDeltaForTickDelta,
-  TICKS_AT_MIN, TICKS_AT_MAX, TICKS_PER_POINT, RATE_STATS,
+  TICKS_AT_MIN, TICKS_AT_MAX, TICKS_PER_POINT, RATE_STATS, LEGACY_TICK_FIELD,
 } from '../../../speed-scale.mjs';
+// ⚠️ Le contrat est en CJS (requis par `app.js` et l'audit) : `createRequire`
+// est la seule façon de le lire depuis un test ESM.
+import { createRequire } from 'node:module';
 import { Unit } from '../logic/Unit.js';
 import { makeCard } from './helpers.js';
 
 const ROOT = join(__dirname, '../../..');
 const readCatalog = (f: string) => JSON.parse(readFileSync(join(ROOT, 'initial-data', f), 'utf8'));
+const { RATE_FIELDS, missingRates } = createRequire(import.meta.url)(join(ROOT, 'card-contract.js'));
 
 describe('speed-scale — l\'échelle', () => {
   it('tient ses deux bornes', () => {
@@ -233,5 +237,54 @@ describe('speed-scale — l\'unité', () => {
     const lent = unit({ attack_rate: 40 });
     expect(lent.effectiveAttackPeriod()).toBeGreaterThan(rapide.effectiveAttackPeriod());
     expect(lent.attack_rate).toBeLessThan(rapide.attack_rate);
+  });
+});
+
+describe('speed-scale — le contrat de carte', () => {
+  // ⚠️ LE cas qui manquait, et la panne qu'il a coûtée : `bootstrap()` ne
+  // recopie jamais `initial-data/` sur un `data/` déjà peuplé, donc toute
+  // installation antérieure à la bascule garde son `attack_speed` en ticks.
+  // `Unit` lisait alors `clampRate(undefined)` — c'est-à-dire 0, le rythme le
+  // PLUS LENT — et rien nulle part ne le disait : les unités jouaient au
+  // ralenti, l'admin affichait le milieu du curseur, et le tooltip laissait
+  // deux cases blanches. Le contrat est ce qui rend ce silence impossible.
+  // Mutation : vider `missingRates` → ROUGE.
+  it('refuse une carte restée en TICKS, et le dit champ par champ', () => {
+    const legacy = {
+      id: 'VIEILLE', name: 'Vieille',
+      stats: { atk: 5, hp: 30, movement_speed: 10, attack_speed: 14, initiative: 5, range: 1 },
+      power: { id: 'POWER_HEAL', power_speed: 60 },
+    };
+    const problems = missingRates(legacy);
+    expect(problems.join(' | ')).toContain('attack_speed');
+    expect(problems.join(' | ')).toContain('movement_speed');
+    expect(problems.join(' | ')).toContain('power_speed');
+    // Le remède est NOMMÉ : un refus qui ne dit pas quoi faire se re-diagnostique.
+    expect(problems.join(' | ')).toContain('migrate-speeds');
+  });
+
+  it('refuse une carte dont le compteur est simplement ABSENT', () => {
+    expect(missingRates({ id: 'X', stats: { atk: 5, hp: 30, initiative: 5, range: 1 } }))
+      .toHaveLength(2);
+    // ⚠️ `0` est une valeur LÉGITIME : le contrat teste la présence, pas la
+    // vérité. Le confondre avec une absence interdirait le pouvoir le plus lent.
+    expect(missingRates({ id: 'X', stats: { atk: 5, hp: 30, attack_rate: 0, movement_rate: 0 } }))
+      .toEqual([]);
+  });
+
+  it('laisse passer le catalogue livré', () => {
+    const fautives = readCatalog('cards.json').filter((c: any) => missingRates(c).length);
+    expect(fautives.map((c: any) => c.id)).toEqual([]);
+  });
+
+  // ⚠️ Les deux listes sont des JUMELLES séparées par la frontière CJS / ESM
+  // (`card-contract.js` est requis par `app.js` et l'audit ; `speed-scale.mjs`
+  // est importé par le bundle et `admin.html`). C'est le seul filet contre leur
+  // dérive — exactement le rôle que `tiers.test.ts` tient pour `tiers.js`.
+  it('le contrat et l\'échelle nomment les mêmes rythmes', () => {
+    expect(Object.keys(RATE_FIELDS).sort()).toEqual([...RATE_STATS].sort());
+    for (const [rate, legacy] of Object.entries(RATE_FIELDS)) {
+      expect((LEGACY_TICK_FIELD as Record<string, string>)[rate]).toBe(legacy);
+    }
   });
 });

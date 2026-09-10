@@ -29,4 +29,58 @@ function missingCategories(card, attributes) {
   return REQUIRED_CATEGORIES.filter(cat => !cats.has(cat));
 }
 
-module.exports = { REQUIRED_CATEGORIES, missingCategories };
+/**
+ * Les deux COMPTEURS DE VITESSE qu'une carte doit porter, et le champ en ticks
+ * que chacun a remplacé.
+ *
+ * ⚠️ **Jumeau assumé de `RATE_STATS` / `LEGACY_TICK_FIELD` (`speed-scale.mjs`)**,
+ * pour la raison qui interdit déjà un module partagé à `tiers.js` et
+ * `logic/Tiers.ts` : la frontière CJS / ESM. Ce fichier est requis par `app.js`
+ * et l'audit (CJS) ; `speed-scale.mjs` est importé par le bundle et
+ * `admin.html` (ESM). `speed-scale.test.ts` les fait répondre la même chose —
+ * c'est le seul filet contre leur dérive.
+ *
+ * ⚠️ Les deux listes ne posent d'ailleurs pas la même question :
+ * `speed-scale.RATE_STATS` dit « quelles STATS D'EFFET sont des rythmes »
+ * (bonus de magie, d'attribut, de terrain) ; celle-ci dit « quels CHAMPS une
+ * carte doit porter ». Elles se recouvrent aujourd'hui sur deux noms.
+ */
+const RATE_FIELDS = Object.freeze({
+  attack_rate: 'attack_speed',
+  movement_rate: 'movement_speed',
+});
+
+/**
+ * Ce qui cloche dans les vitesses d'une carte. `[]` = conforme.
+ *
+ * ⚠️ Le refus est en **400**, comme celui du tier, et pour la même raison : une
+ * carte sans compteur n'est pas *invalide à l'écran*, elle est **jouable et
+ * fausse**. `Unit` lit `clampRate(undefined)`, c'est-à-dire **0**, donc le
+ * rythme le plus lent de l'échelle — l'unité bouge et frappe une fois toutes
+ * les 77 ticks, sans qu'une seule ligne ne le signale nulle part. C'est
+ * exactement le repli muet que le contrat existe pour rendre impossible.
+ *
+ * ⚠️ Un champ de TICKS résiduel est compté comme une faute, pas comme une
+ * information : il ne peut venir que d'un catalogue jamais repris
+ * (`scripts/migrate-speeds.js`), et le laisser passer laisserait vivre deux
+ * formats dont un seul est lu. Même règle que le champ `tier` résiduel.
+ */
+function missingRates(card) {
+  const problems = [];
+  const stats = card?.stats ?? {};
+  for (const [rate, legacy] of Object.entries(RATE_FIELDS)) {
+    if (legacy in stats) {
+      problems.push(`${legacy} (champ en ticks résiduel — voir scripts/migrate-speeds.js)`);
+      continue;
+    }
+    if (!Number.isFinite(Number(stats[rate])) || stats[rate] === null || stats[rate] === '') {
+      problems.push(`${rate} (compteur de vitesse manquant)`);
+    }
+  }
+  if (card?.power && 'power_speed' in card.power) {
+    problems.push('power.power_speed (champ en ticks résiduel — voir scripts/migrate-speeds.js)');
+  }
+  return problems;
+}
+
+module.exports = { REQUIRED_CATEGORIES, missingCategories, RATE_FIELDS, missingRates };

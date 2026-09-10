@@ -26,6 +26,15 @@ let h: Harness;
 /** Le CONTRAT d'une carte : un tier, une voie d'invocation, un élément.
  *  `card-contract.js` le refuse en 400 — toute création de carte le porte. */
 const CONFORME = ['ARCH_091', 'ARCH_090', 'ARCH_048'];
+/**
+ * Des stats conformes au contrat de vitesse.
+ *
+ * ⚠️ Ces fixtures écrivaient des cartes SANS `stats` : personne ne le vérifiait,
+ * et une carte pareille n'a pourtant jamais été jouable. Depuis que le contrat
+ * exige les deux compteurs — pour qu'une carte ne puisse plus être *jouable et
+ * fausse* au rythme 0 — l'omission est refusée en 400, ici comme en admin.
+ */
+const STATS = { atk: 10, hp: 100, attack_rate: 60, movement_rate: 55, initiative: 4, range: 1 };
 
 beforeAll(async () => { h = await boot(); }, 30_000);
 afterAll(() => { h?.server.close(); });
@@ -203,7 +212,7 @@ describe('write-guard /api', () => {
     // Sans tier : le pool de pioche ne la verrait jamais.
     const sansTier = await request(h.server).post('/api/cards')
       .set('Authorization', ADMIN_BASIC)
-      .send({ id: 'HORS_001', name: 'Sans tier', attributes: ['ARCH_090', 'ARCH_048'] });
+      .send({ id: 'HORS_001', name: 'Sans tier', attributes: ['ARCH_090', 'ARCH_048'], stats: STATS });
     expect(sansTier.status).toBe(400);
     expect(sansTier.body.error).toContain('Tiers');
 
@@ -216,16 +225,16 @@ describe('write-guard /api', () => {
     // sens de la refonte.
     const champSeul = await request(h.server).post('/api/cards')
       .set('Authorization', ADMIN_BASIC)
-      .send({ id: 'HORS_002', name: 'Champ tier seul', tier: 3, attributes: ['ARCH_090', 'ARCH_048'] });
+      .send({ id: 'HORS_002', name: 'Champ tier seul', tier: 3, attributes: ['ARCH_090', 'ARCH_048'], stats: STATS });
     expect(champSeul.status).toBe(400);
 
     // Et le PUT porte la même garde que le POST — sinon on créerait conforme
     // pour retirer l'attribut juste après.
     await request(h.server).post('/api/cards').set('Authorization', ADMIN_BASIC)
-      .send({ id: 'HORS_003', name: 'Conforme', attributes: CONFORME });
+      .send({ id: 'HORS_003', name: 'Conforme', attributes: CONFORME, stats: STATS });
     const amputee = await request(h.server).put('/api/cards/HORS_003')
       .set('Authorization', ADMIN_BASIC)
-      .send({ id: 'HORS_003', name: 'Conforme', attributes: ['ARCH_090', 'ARCH_048'] });
+      .send({ id: 'HORS_003', name: 'Conforme', attributes: ['ARCH_090', 'ARCH_048'], stats: STATS });
     expect(amputee.status).toBe(400);
     const relu = (await request(h.server).get('/api/cards')).body
       .find((c: any) => c.id === 'HORS_003');
@@ -251,7 +260,7 @@ describe('write-guard /api', () => {
     const post = await request(h.server)
       .post('/api/cards')
       .set('Cookie', cookie)
-      .send({ id: 'TIERS_001', name: 'Carte calculée', attributes: ['ARCH_093', 'ARCH_090', 'ARCH_048'], _tiers: [1, 5] });
+      .send({ id: 'TIERS_001', name: 'Carte calculée', attributes: ['ARCH_093', 'ARCH_090', 'ARCH_048'], _tiers: [1, 5], stats: STATS });
     expect(post.status).toBe(200);
 
     const brut = JSON.parse(fs.readFileSync(path.join(h.DATA, 'cards.json'), 'utf8'));
@@ -272,7 +281,7 @@ describe('write-guard /api', () => {
     const res = await request(h.server)
       .post('/api/cards')
       .set('Cookie', cookie)
-      .send({ id: 'ADMIN_OK_001', name: 'Carte admin', attributes: CONFORME });
+      .send({ id: 'ADMIN_OK_001', name: 'Carte admin', attributes: CONFORME, stats: STATS });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true });
@@ -419,7 +428,7 @@ describe('écriture des catalogues', () => {
 
     const cree = await request(h.server).post('/api/cards')
       .set('Authorization', ADMIN_BASIC)
-      .send({ id, name: 'Carte atomique', attributes: CONFORME });
+      .send({ id, name: 'Carte atomique', attributes: CONFORME, stats: STATS });
     expect(cree.status).toBe(200);
 
     // ⚠️ Le cache de catalogue est invalidé EXPLICITEMENT par `writeJson`, et

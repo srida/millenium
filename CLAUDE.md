@@ -800,6 +800,7 @@ clampRate(v) / rateDeltaForTickDelta(d) / RATE_STATS
 - ⚠️ **`power_rate: null` ne veut pas dire « lent », il veut dire « jamais »** (`powerPeriod() → Infinity`). Une sentinelle distincte est indispensable depuis que **0 est une valeur légitime** (77 ticks), là où l'ancien seuil en ticks ne pouvait pas valoir zéro. Tout lecteur passe par `??`, jamais `||`.
 - **Le bornage EST la fonctionnalité** : `_recomputeStats` écrête l'empilement des bonus à [0, 100], donc plus rien ne descend sous 2 ticks.
 - ⚠️ **La paralysie reste chiffrée en TICKS** (`attack_period_modifier`), seule exception : elle DOUBLE la période, et un doublement ne s'écrit pas comme un delta de compteur constant (−19 points sur une unité rapide, −51 sur une lente).
+- ⚠️ **Une installation existante N'EST PAS reprise toute seule** : `bootstrap()` ne recopie jamais `initial-data/` sur un `data/` déjà peuplé, donc le volume garde son `attack_speed` en ticks. La panne est **muette et plausible** — `clampRate(undefined)` rend **0**, donc le rythme le plus LENT : les unités jouent au ralenti, l'admin affiche le milieu du curseur, le tooltip laisse deux cases blanches. Trois gardes la nomment désormais : `cardContract.missingRates` (**400** à l'écriture), `audit:cards --check` (sortie 1) et un avertissement `[catalogue]` au **démarrage du serveur**, qui nomme le remède.
 - **Reprise de données** : `node scripts/migrate-speeds.js [--write]`, idempotent, écriture atomique, cible `data/` s'il existe sinon `initial-data/`. Il **refuse** un `stat_modifier` multiplicateur sur un rythme (un multiplicateur de période n'a pas d'équivalent en compteur) plutôt que d'inventer.
 - ⚠️ **Le catalogue n'occupe que le HAUT de l'échelle** : les vitesses d'attaque livrées tiennent entre 76 et 99, les déplacements entre 76 et 96 (visible tel quel dans l'onglet Stats de l'admin). C'est la conséquence directe de la conversion littérale — le rééquilibrage qui répartira les cartes sur les 100 points reste **à faire**, à la main, en admin.
 
@@ -832,6 +833,8 @@ attack_timer / move_timer                        // ⚠️ remis à zéro à cha
 ```
 
 Les unités persistent entre les tours. Détruites → retirées définitivement. Survivantes → retour à `initial_position`.
+
+⚠️ **Une stat absente s'affiche « — », jamais rien** (`TooltipHost.StatsRow`) : `{undefined}` rend une case VIDE sous son intitulé, qui se lit comme un défaut de mise en page et non comme une donnée manquante. C'est ce qu'a produit un catalogue non repris — VIT et DEP sortaient blancs, et la seule chose que ça évoquait était un bug d'affichage.
 
 ⚠️ **Les deux rythmes passent par `_stat_bonuses`, jamais par une écriture directe sur la stat effective** (le geste d'`atk` dans `applyStatModifier`) : ils sont **recalculés depuis `_base`** à chaque `_recomputeStats()`, donc un bonus posé à côté serait effacé au premier `stat_bonus` venu. C'est ce qui rendait muets tous les effets de déplacement livrés et le seul `stat_modifier` de rythme du catalogue (`ARCH_045` Volant).
 
@@ -876,7 +879,8 @@ Un monstre peut porter plusieurs attributs. **Un seul palier est actif à la foi
 
 **Cinq catégories** (`categorie`) : `Archetype`, `Type`, `Element`, `Invocation`, `Tiers`. **Contrat d'une carte : au moins un attribut de catégorie `Tiers`, `Invocation` et `Element`** — `Type` n'en fait **pas** partie (12 cartes livrées n'en portent aucun, et aucune règle ne le lit).
 
-- **`card-contract.js` porte la règle, seul** (pur, sans `require`) : `POST` / `PUT /api/cards` refusent en **400** et `npm run audit:cards --check` sort en 1, avec la même fonction.
+- **`card-contract.js` porte la règle, seul** (pur, sans `require`) : `POST` / `PUT /api/cards` refusent en **400** et `npm run audit:cards --check` sort en 1, avec la même fonction. Il porte aussi **`missingRates`** — les deux compteurs de vitesse, et le refus d'un champ en ticks résiduel.
+- ⚠️ **`RATE_FIELDS` (`card-contract.js`) est le JUMEAU de `RATE_STATS` / `LEGACY_TICK_FIELD` (`speed-scale.mjs`)**, séparés par la frontière CJS / ESM comme `tiers.js` et `logic/Tiers.ts`. `speed-scale.test.ts` les fait répondre la même chose — c'est le seul filet contre leur dérive.
 - ⚠️ **`/import` n'est PAS gardé**, à dessein : c'est le chemin des machines (`sync-data.js` pousse un catalogue entier), et une entrée non conforme y ferait échouer la synchro au lieu de se signaler. C'est l'audit qui couvre ce chemin.
 - ⚠️ Une carte **sans attribut de tier** n'entre dans **aucun** pool de pioche : elle existe au catalogue et ne sort jamais. D'où le refus à l'écriture plutôt qu'un avertissement.
 

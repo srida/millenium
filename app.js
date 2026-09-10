@@ -180,7 +180,46 @@ function bootstrap() {
     console.log('[bootstrap] avatar par défaut copié sur le volume');
   }
   logAssetDirs();
+  logCatalogueFormat();
   logTimezone();
+}
+
+/**
+ * Le catalogue SERVI est-il repris sur l'échelle de vitesse 0–100 ?
+ *
+ * ⚠️ `bootstrap()` ne recopie JAMAIS `initial-data/` sur un `data/` déjà peuplé
+ * (c'est la règle du volume) : toute installation antérieure à la bascule garde
+ * donc son `attack_speed` en ticks, que plus personne ne lit. La panne qui en
+ * découle est **muette et plausible** — `clampRate(undefined)` rend 0, les
+ * unités jouent au rythme le plus lent de l'échelle, et l'admin affiche le
+ * milieu du curseur. Rien, nulle part, ne dit pourquoi.
+ *
+ * D'où cette ligne au démarrage : c'est le seul endroit qui voie le catalogue
+ * réellement servi, et le seul moment où l'on peut nommer le remède avant que
+ * quelqu'un ne passe une soirée à chercher.
+ */
+function logCatalogueFormat() {
+  // ⚠️ Lecture DIRECTE, jamais `readJson` : `bootstrap()` s'exécute au niveau
+  // module, AVANT la déclaration `const _jsonCache` — l'appeler ici tombe dans
+  // sa zone morte temporelle et jette un `ReferenceError`. Le cache au mtime
+  // n'a de toute façon rien à faire dans un contrôle qui ne tourne qu'une fois.
+  let cards = [];
+  try {
+    cards = JSON.parse(fs.readFileSync(CARDS_FILE, 'utf-8'));
+  } catch (err) {
+    // ⚠️ On ne se tait PAS sur un échec : un contrôle muet quand il n'a pas pu
+    // s'exécuter ne vaut rien — c'est très exactement la panne qu'il cherche.
+    if (err.code !== 'ENOENT') console.warn(`[catalogue] ⚠ illisible (${err.message}) — contrôle des vitesses non effectué.`);
+    return;
+  }
+  if (!Array.isArray(cards) || cards.length === 0) return;
+  const stale = cards.filter(c => cardContract.missingRates(c).length);
+  if (!stale.length) return;
+  console.warn(
+    `[catalogue] ⚠ ${stale.length} carte(s) sur ${cards.length} n'ont pas de compteur de vitesse ` +
+    `(ex. ${stale.slice(0, 3).map(c => c.id).join(', ')}). Elles joueront au rythme le PLUS LENT ` +
+    '(0/100, soit 77 ticks) sans autre signe. Reprise : `node scripts/migrate-speeds.js --write`.',
+  );
 }
 
 // Récapitulatif des dossiers d'images réellement utilisés. Une famille dont la
@@ -611,8 +650,15 @@ app.use('/api/cards', crud({
   // avertissement — c'est le seul point de passage de toute écriture unitaire.
   validate: (c) => {
     const missing = cardContract.missingCategories(c, readJson(ATTRIBUTES_FILE));
-    return missing.length
-      ? { status: 400, body: { error: `Attribut manquant, catégorie : ${missing.join(', ')}` } }
+    if (missing.length) {
+      return { status: 400, body: { error: `Attribut manquant, catégorie : ${missing.join(', ')}` } };
+    }
+    // ⚠️ Même statut, et même raison, que le tier : une carte sans compteur de
+    // vitesse est JOUABLE ET FAUSSE (rythme 0, donc 77 ticks) au lieu d'être
+    // visiblement cassée. Cf. `cardContract.missingRates`.
+    const rates = cardContract.missingRates(c);
+    return rates.length
+      ? { status: 400, body: { error: `Vitesse invalide : ${rates.join(', ')}` } }
       : null;
   },
   strip: (c) => { delete c._has_illustration; delete c._starter; delete c._tiers; },
