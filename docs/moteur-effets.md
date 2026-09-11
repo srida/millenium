@@ -16,7 +16,8 @@ première moitié**, déjà faite par une autre route.
 |---|---|
 | **L'échelle 0–100** (`speed-scale.mjs`) remplace les périodes en ticks : `attack_speed`/`movement_speed`/`power_speed` deviennent `attack_rate`/`movement_rate`/`power_rate`, **plus haut = plus rapide**. Les durées de pouvoir (paralysie, blocage, confusion, provocation) passent sur la même fenêtre, dans `power.duration`. | §1.3 : **la première famille d'effets morts est corrigée**, et la question du signe (§7) est tranchée par l'échelle elle-même. |
 | **La stat `initiative` est retirée** — l'ordre d'action se dérive. | Le vocabulaire de stats perd une entrée ; le §4.1 en tient compte. |
-| **La famille 2 a été reprise en donnée** (`timing` et formes d'effet réalignés). | §1.4 : **21 effets morts → 2**. |
+| **Les deux familles ont été reprises en donnée** (`timing` et formes d'effet réalignés, puis les deux derniers reliquats). | §1.4 bis : **21 effets morts → 0**. |
+| **Le catalogue est passé de 868 à 953 cartes.** | Les chiffres du §1.1 sont ceux de la rédaction ; seuls ceux du §1.4 bis sont à jour. |
 
 **Les deux corrections que cette branche portait sont donc caduques** :
 `_recomputeStats` relit désormais les deux rythmes, et `applyStatModifier`
@@ -27,21 +28,30 @@ elles.
 **Ce qui reste vrai, et c'est l'essentiel :** le diagnostic de fond du §2 n'a pas
 bougé d'un pouce. Les quatre moteurs ne partagent toujours rien, le vocabulaire
 de stats n'existe toujours pas en un seul endroit, et **rien ne sait encore dire
-qu'un effet ne fait rien**. Les deux familles ont été réparées à la main, une
-par une — c'est exactement ce que le moteur générique existe pour rendre
-impossible.
+qu'un effet ne fait rien**. Les 21 ont été trouvés par un audit écrit à la main
+et réparés un par un ; le compteur est à zéro parce qu'on est allé les chercher,
+pas parce que quelque chose les surveille. C'est exactement ce que le moteur
+générique existe pour rendre impossible.
 
-### ⚠️ Le catalogue du VOLUME n'est pas migré
+### ⚠️ Le `data/` d'un conteneur de dév vieillit sans le dire
 
-Mesuré dans ce conteneur : `data/` porte encore `movement_speed`,
-`attack_speed`, `power_speed` et `initiative`, alors que le code ne lit plus que
-les compteurs. Ce que le moteur en fait, carte par carte :
+**Ce n'est pas une alerte sur la production** — la version précédente de cette
+section en tirait une, à tort, et le piège vaut d'être écrit pour lui-même.
+
+`bootstrap()` peuple un `data/` vide depuis `initial-data/`, et **la suite de
+tests suffit à le déclencher**. Le dossier qui en sort est daté du jour où il a
+été créé et **ne se remet jamais à jour** : `bootstrap()` ne recopie jamais
+`initial-data/` sur un `data/` déjà peuplé. Une session de dév d'avant une
+reprise de données laisse donc un catalogue figé à l'état d'avant, sans un mot.
+
+Constaté ici : un `data/` du 10 septembre (868 cartes, en ticks) survivait à la
+bascule vers les compteurs du 11. Ce que le moteur actuel en fait :
 
 ```
-CORE_001  VOLUME    dep 0 (77t) · atq 0 (77t) · POWER_DEBUFF seuil Infinity
-CORE_001  VERSIONNÉ dep 90 (10t) · atq 84 (14t) · POWER_DEBUFF seuil 60
+CORE_001  data/ périmé  dep 0 (77t) · atq 0 (77t) · POWER_DEBUFF seuil Infinity
+CORE_001  initial-data/ dep 90 (10t) · atq 84 (14t) · POWER_DEBUFF seuil 60
 
-Sur les 868 cartes du volume :
+Sur les 868 cartes de cette copie périmée :
   au plancher de l'échelle (77 ticks pour les deux rythmes) : 868
   pouvoirs qui ne partiront jamais                          : 436 / 436
 ```
@@ -50,18 +60,17 @@ Un compteur absent rend `NaN`, que `clampRate` ramène à `RATE_MIN` — **le pl
 lent**. Un `power_rate` absent rend `null`, et `powerPeriod()` rend `Infinity` :
 le pouvoir **ne part jamais**. Les deux replis sont justes pris un par un ; posés
 sur un catalogue entier resté en ticks, ils donnent un jeu au ralenti et sans un
-seul pouvoir.
+seul pouvoir. C'est exactement la panne muette que `CLAUDE.md` documente, et que
+les trois gardes de `main` (contrat en **400**, `audit:cards --check`,
+avertissement `[catalogue]` au démarrage) existent pour nommer.
 
-⚠️ **Ce `data/` peut n'être qu'une copie locale périmée** (`bootstrap()` ne
-réécrit jamais un `data/` peuplé, et un `sync:pull` d'une session antérieure
-suffit à l'expliquer). **À vérifier avant toute autre chose** par un
-`npm run sync:pull` puis une relecture des trois champs. Si le volume de
-production est dans cet état, c'est une panne de jeu, pas une dette de
-migration.
-
-⚠️ Corollaire pour la mesure : `sim/catalog.ts` charge `data/` **en priorité**.
-Tant que le volume est dans cet état, le détecteur d'équilibrage — l'oracle de
-la bascule, §6 — mesure un jeu qui n'est pas celui qu'on joue.
+⚠️ **Ce qui est à retenir pour la MESURE, et c'est le vrai enjeu ici** :
+`sim/catalog.ts` charge `data/` **en priorité**, `initial-data/` seulement en
+repli. Un détecteur d'équilibrage lancé dans un conteneur qui traîne un `data/`
+périmé mesure donc un jeu que personne ne joue — et **rien ne le signale** : le
+run aboutit, la ligne de base sort, elle est simplement fausse. Or ce détecteur
+est l'oracle de la bascule (§6). **Avant toute mesure qui compte, vérifier la
+date et la forme de `data/`**, ou l'effacer pour que `bootstrap()` le refasse.
 
 ---
 
@@ -225,26 +234,28 @@ correction mécanique.**
 **Total à la rédaction : 21 effets morts sur 13 porteurs**, soit 12,5 % des
 effets d'attribut du catalogue.
 
-### 1.4 bis — Le même audit, rejoué le 11 septembre : **2 effets morts**
+### 1.4 bis — Le même audit, rejoué le 11 septembre : **0 effet mort**
 
-La reprise de donnée a soldé les deux familles, à deux entrées près. Rejoué
-contre les trois passes d'`AttributeManager` et la liste de `case` de
-`BoardEffect`, sur `initial-data/` :
+Rejoué contre les trois passes d'`AttributeManager` et la liste de `case` de
+`BoardEffect`, sur les 953 cartes, 93 attributs et 25 terrains d'`initial-data/`
+**la dette est soldée en entier** :
 
-| Porteur | `timing` | Effet écrit | Pourquoi il meurt |
-|---|---|---|---|
-| `ARCH_020` Archdémon | `start_of_combat` | `revive` (palier 3, `hp_percent: 10`) | `revive` est un type de **fin** de combat |
-| `ARCH_073` Cybernetique | `start_of_combat` | `guaranteed_draw` ×2 (paliers 1 et 3) | idem |
+| Famille | À la rédaction | Ce qui l'a emportée |
+|---|---|---|
+| 1 — la stat n'est jamais relue | 10 | la bascule vers l'échelle 0–100 (`_recomputeStats` relit les deux rythmes) |
+| 2 — le type n'est pas au menu du `timing` | 11 | la reprise de `timing` en donnée, `category` comprise |
+| dernier reliquat (`ARCH_020`, `ARCH_073`) | 2 | deux `timing` passés en `end_of_combat` |
 
-Même forme que la famille 2 : le type n'est pas au menu de la passe que le
-`timing` désigne. `_applyEndForSide` sort sur
-`attr.timing !== 'end_of_combat'` — l'effet n'est jamais atteint, sans un mot.
-Deux `timing` à passer en `end_of_combat` les rendent au jeu.
+⚠️ **Zéro est un instantané, pas une propriété.** Rien dans le jeu ne calcule ce
+chiffre : il sort d'un script d'audit écrit à la main, rejoué à la demande. Les
+21 ont vécu des mois sans que personne les voie, et un 22ᵉ écrit demain en admin
+serait tout aussi muet. C'est **la** justification du moteur générique, et le
+critère auquel le mesurer : un effet doit pouvoir dire qu'il ne fait rien.
 
-⚠️ Mesuré sur `initial-data/`. Le catalogue **joué** vit dans `data/`, sur le
-volume, que `bootstrap()` ne réécrit jamais et que l'admin édite à chaud :
-l'audit doit être rejoué après un `npm run sync:pull` avant toute décision —
-et §0 dit pourquoi ce n'est plus une précaution de principe.
+⚠️ Mesuré sur `initial-data/`. Le catalogue **joué** vit dans `data/`, que
+`bootstrap()` ne réécrit jamais et que l'admin édite à chaud : sur une
+installation en service, l'audit ne vaut qu'après un `npm run sync:pull` — et
+§0 dit ce qui arrive quand on oublie de regarder la date de ce dossier.
 
 ### 1.5 Les triggers qui existent déjà, sans porter ce nom
 
@@ -665,18 +676,17 @@ dans la boucle de combat, là où une divergence coûte un duel aux deux joueurs
    `enemy_multiplier` n'a aucune voie de bonus. **Le moteur doit savoir
    l'exprimer dès le départ ; le branchement se fait à l'étape 4**, et il se
    mesure au détecteur comme n'importe quel changement d'équilibrage.
-4. ~~**Les effets morts**~~ **TRANCHÉ — et soldé en donnée.** Les 21 sont
-   tombés à **2** (§1.4 bis) : la bascule vers l'échelle 0–100 a emporté la
-   famille « stat jamais relue », et la reprise de `timing` a emporté la
-   famille « mauvais timing », `category` compris. **L'étape 0 n'est plus
-   bloquée.**
-   Restent `ARCH_020` et `ARCH_073`, deux `timing` à passer en
-   `end_of_combat` — même geste que les précédents, aucune décision de design.
-   ⚠️ Deux garde-fous à retenir de l'épisode, parce que c'est le moteur
-   générique qui devra les porter : les 21 ont été trouvés **par un audit
-   écrit à la main**, et réparés **un par un**. Rien dans la suite ne les
-   voyait, et rien ne verrait les deux qui restent. Un effet doit pouvoir dire
-   qu'il ne fait rien — c'est le §2 en une phrase.
+4. ~~**Les effets morts**~~ **TRANCHÉ — et soldé en donnée : 21 → 0**
+   (§1.4 bis). La bascule vers l'échelle 0–100 a emporté la famille « stat
+   jamais relue », la reprise de `timing` a emporté la famille « mauvais
+   timing » (`category` comprise), et les deux derniers reliquats sont passés
+   en `end_of_combat`. **L'étape 0 n'est plus bloquée par rien.**
+   ⚠️ Ce que l'épisode laisse au moteur générique, et c'est le seul point à en
+   retenir : les 21 ont été trouvés **par un audit écrit à la main**, et
+   réparés **un par un**. Rien dans la suite ne les voyait ; rien ne verrait le
+   22ᵉ. Le zéro d'aujourd'hui est un instantané, pas une garantie — la garantie,
+   c'est le moteur qui doit la porter. Un effet doit pouvoir dire qu'il ne fait
+   rien : c'est le §2 en une phrase, et le critère d'acceptation de l'étape 1.
 5. ~~**Registre d'effets actifs dans le payload PvP**~~ **TRANCHÉ : il voyage.**
    `durée: round` devient donc exprimable en duel. Trois contraintes qui en
    découlent, à tenir dès le premier schéma :
