@@ -121,6 +121,14 @@ export const STATS = Object.freeze([
  *                 c'est la frontière du §6.5 : l'ÉLIGIBILITÉ d'une cible
  *                 (`GameSession.magieHandTargets`) n'est pas un effet.
  *
+ * `masqueSi` nomme une condition que l'éditeur sait résoudre. ⚠️ Elle reste un
+ * MOT, pas un calcul : la seule qui existe demande de savoir quels pouvoirs
+ * lisent une durée, ce qui vit dans `speed-scale.mjs` — et ce fichier n'importe
+ * rien, à dessein. Le vocabulaire déclare la règle, l'éditeur la résout.
+ *
+ * `declenche` dit qu'un autre champ dépend de celui-ci, donc que l'éditeur doit
+ * se re-rendre quand il change.
+ *
  * `offert` dit si l'ÉDITEUR le propose. ⚠️ Les deux questions sont distinctes, et
  * la table doit répondre aux deux : un champ encore LU par le moteur mais qu'on
  * ne veut plus voir écrire est une forme HISTORIQUE — la déclarer `offert: false`
@@ -128,7 +136,7 @@ export const STATS = Object.freeze([
  * rendrait invisible du test, et on serait revenu à un champ lu que rien ne
  * documente : exactement la panne que ce fichier existe pour fermer.
  */
-const CHAMP_DEFAUT = { saisie: 'nombre', defaut: 0, facultatif: false, lecteur: 'moteur', offert: true };
+const CHAMP_DEFAUT = { saisie: 'nombre', defaut: 0, facultatif: false, lecteur: 'moteur', offert: true, declenche: false };
 
 export const CHAMPS = Object.freeze({
   stat: { label: 'Stat ciblée', saisie: 'choix', options: 'stats', defaut: 'atk' },
@@ -157,7 +165,13 @@ export const CHAMPS = Object.freeze({
     aide: 'Restreint les cartes de la main que la magie peut viser. Vide = toutes.',
   },
   target_attributes: { label: 'Archétypes ciblés', saisie: 'attributs_multi', facultatif: true, defaut: [] },
-  power_id: { label: 'Pouvoir donné', saisie: 'choix', options: 'pouvoirs', defaut: '' },
+  power_id: {
+    label: 'Pouvoir donné', saisie: 'choix', options: 'pouvoirs', defaut: '',
+    // ⚠️ `declenche` dit qu'un AUTRE champ dépend de celui-ci : le changer doit
+    // re-rendre l'éditeur, sinon « Valeur » resterait à l'écran sur un pouvoir
+    // qui lit une durée.
+    declenche: true,
+  },
   power_rate: {
     label: 'Vitesse du pouvoir', saisie: 'compteur', defaut: 50,
     // ⚠️ Obligatoire : sans lui l'unité garde le `null` d'`Unit` (« pas de
@@ -214,12 +228,18 @@ export const TYPES = Object.freeze({
   },
   stat_modifier: {
     label: 'Modificateur de stat (multiplicateur)',
+    court: 'Modificateur de stat',
     terrain: { quand: 'debut_combat', champs: { stat: {}, value: { label: 'Facteur (1 = aucun effet)', defaut: 1 }, target_attributes: {} } },
-    attribut: { quand: 'selon_trigger', champs: { stat: {}, value: {}, trigger: {} } },
+    // ⚠️ `trigger` avant `value` : l'ordre des champs est celui que
+    // `readEffectFromForm` écrit, donc celui du JSON enregistré. Le faire
+    // coller à la donnée livrée évite de réécrire 10 attributs à la première
+    // ouverture de fiche — du bruit de diff qui ressemble à un changement.
+    attribut: { quand: 'selon_trigger', champs: { stat: {}, trigger: {}, value: {} } },
     magie: { quand: 'immediat', champs: { stat: {}, value: { label: 'Facteur (1 = aucun effet)', defaut: 1 } } },
   },
   team_stat_bonus: {
     label: 'Bonus de stat — TOUTES tes unités',
+    court: 'Bonus de stat (équipe)',
     magie: { quand: 'immediat', champs: { stat: {}, value: {} } },
   },
   shield: {
@@ -234,20 +254,24 @@ export const TYPES = Object.freeze({
   },
   heal: {
     label: 'Soin TOTAL (une unité)',
+    court: 'Soin total',
     // ⚠️ Aucun champ : le soin suit le max COURANT, bonus et vétérance compris.
     // `value` n'est PAS lu — des entrées anciennes en portent un, il est ignoré.
     magie: { quand: 'immediat', champs: {} },
   },
   team_heal: {
     label: 'Soin de masse — TOUTES tes unités',
+    court: 'Soin de masse',
     magie: { quand: 'immediat', champs: { value: { label: 'PV rendus' } } },
   },
   effect_immunity: {
     label: 'Immunité aux effets négatifs (poison, paralysie, push, burn…)',
+    court: 'Immunité aux effets',
     attribut: { quand: 'debut_combat', champs: {} },
   },
   revive: {
     label: 'Réanimation d’une unité du cimetière',
+    court: 'Réanimation',
     // ⚠️ Les deux porteurs ne chiffrent pas le pourcentage dans le même champ,
     // et la donnée livrée le fait déjà : l'attribut écrit `hp_percent`, la magie
     // écrit `value`. Le schéma le DIT au lieu de laisser deux éditeurs le
@@ -257,6 +281,7 @@ export const TYPES = Object.freeze({
   },
   grant_power: {
     label: 'Donner / remplacer le pouvoir d’une unité',
+    court: 'Donner un pouvoir',
     // ⚠️ `value` et `duration` S'EXCLUENT, et c'est le POUVOIR DONNÉ qui
     // tranche, pas le type d'effet : les quatre pouvoirs de `DURATION_POWERS`
     // lisent la durée, les dix autres la valeur. Les deux sont donc facultatifs
@@ -266,25 +291,28 @@ export const TYPES = Object.freeze({
       quand: 'immediat',
       champs: {
         power_id: {}, power_rate: {},
-        value: { label: 'Valeur du pouvoir', facultatif: true },
-        duration: { facultatif: true },
+        value: { label: 'Valeur du pouvoir', facultatif: true, masqueSi: 'pouvoir_de_duree' },
+        duration: { facultatif: true, masqueSi: 'pouvoir_sans_duree' },
       },
     },
   },
   power_cooldown: {
     label: 'Accélérer le pouvoir d’une unité',
+    court: 'Accélérer un pouvoir',
     magie: { quand: 'immediat', champs: { value: { label: 'Facteur de division', defaut: 2 } } },
   },
 
   // ── Ce qui touche le joueur ──────────────────────────────────────────────
   draw_bonus: {
     label: 'Pioche supplémentaire',
+    court: 'Pioche',
     terrain: { quand: 'debut_combat', champs: { value: { label: 'Cartes en plus', defaut: 1 } } },
     attribut: { quand: 'fin_combat', champs: { value: { label: 'Cartes en plus', defaut: 1 }, max: {} } },
     magie: { quand: 'immediat', champs: { value: { label: 'Cartes en plus', defaut: 1 } } },
   },
   guaranteed_draw: {
     label: 'Pioche garantie (tier, attributs, cartes)',
+    court: 'Pioche garantie',
     // ⚠️ MÊMES champs des deux côtés : les deux effets alimentent la même file
     // (`player_guaranteed_draws`) et passent par le même
     // `Draw.resolveGuaranteedDraws`. Un attribut ne doit pas savoir promettre
@@ -298,46 +326,56 @@ export const TYPES = Object.freeze({
   },
   board_slot_bonus: {
     label: 'Slot de board supplémentaire',
+    court: 'Slot de board',
     attribut: { quand: 'fin_combat', champs: { value: { defaut: 1 }, max: {} } },
     magie: { quand: 'immediat', champs: { value: { defaut: 1 } } },
   },
   damage_multiplier_bonus: {
     label: 'Multiplicateur de dégâts supplémentaire',
+    court: 'Multiplicateur de dégâts',
     attribut: { quand: 'fin_combat', champs: { value: {}, max: {} } },
     magie: { quand: 'immediat', champs: { value: {} } },
   },
   shopping_bonus: {
     label: 'Magie supplémentaire à la Phase Shopping',
+    court: 'Magie de Shopping en plus',
     attribut: { quand: 'fin_combat', champs: { value: { defaut: 1 }, max: {} } },
   },
   player_hp_bonus: {
     label: 'Bonus de PV du joueur',
+    court: 'Bonus PV joueur',
     magie: { quand: 'immediat', champs: { value: {} } },
   },
 
   // ── Ce qui déplace des entités entre conteneurs ──────────────────────────
   destroy_unit: {
     label: 'Détruire une unité alliée (→ cimetière)',
+    court: 'Détruire une unité',
     magie: { quand: 'immediat', champs: {} },
   },
   drain_life: {
     label: 'Absorber les PV d’une unité alliée',
+    court: 'Absorber les PV d’une unité',
     magie: { quand: 'immediat', champs: {} },
   },
   hand_to_graveyard: {
     label: 'Envoyer une carte de la main au cimetière',
+    court: 'Main → cimetière',
     magie: { quand: 'immediat', champs: {} },
   },
   sacrifice_card_hp: {
     label: 'Sacrifier une carte de la main → PV du joueur',
+    court: 'Sacrifier une carte → PV joueur',
     magie: { quand: 'immediat', champs: { value: { label: '% des PV de la carte', defaut: 100 } } },
   },
   duplicate_unit: {
     label: 'Dupliquer une unité du terrain → sa carte en main',
+    court: 'Dupliquer une unité',
     magie: { quand: 'immediat', champs: { value: { label: 'Nombre de copies', defaut: 1 } } },
   },
   duplicate_graveyard_unit: {
     label: 'Dupliquer une unité du cimetière → sa carte en main',
+    court: 'Dupliquer une unité du cimetière',
     magie: { quand: 'immediat', champs: { value: { label: 'Nombre de copies', defaut: 1 } } },
   },
   duplicate_card: {
@@ -346,32 +384,38 @@ export const TYPES = Object.freeze({
   },
   shift_tier_card: {
     label: 'Remplacer une carte de la main par une carte du tier voisin',
+    court: 'Remplacer une carte (tier voisin)',
     magie: { quand: 'immediat', champs: { value: { label: 'Décalage de tier (signé)', defaut: 1 } } },
   },
   shift_tier_unit: {
     label: 'Remplacer une unité du terrain par une unité du tier voisin',
+    court: 'Remplacer une unité (tier voisin)',
     magie: { quand: 'immediat', champs: { value: { label: 'Décalage de tier (signé)', defaut: 1 } } },
   },
 
   // ── Ce qui retouche une CARTE ────────────────────────────────────────────
   reduce_materials: {
     label: 'Baisser le coût en matériels (main)',
+    court: 'Baisser le coût en matériels',
     magie: { quand: 'immediat', champs: { value: { label: 'Slots retirés', defaut: 1 }, attribute: {} } },
   },
   remove_requirements: {
     label: 'Lever des exigences nommées (main)',
+    court: 'Lever des exigences nommées',
     magie: { quand: 'immediat', champs: { value: { label: 'Exigences levées', defaut: 1 }, attribute: {} } },
   },
 
   // ── Les deux que le moteur ne traduit pas ────────────────────────────────
   defuse_fusion: {
     label: 'Séparer une Fusion en ses matériaux',
+    court: 'Séparer une fusion',
     moteur: false,
     raison: 'Lit la lignée de la carte et replie sur le cimetière si le board est plein — c’est une règle d’invocation, et l’invocation n’entre pas dans le moteur.',
     magie: { quand: 'immediat', champs: {} },
   },
   draw_material: {
     label: 'Piocher un matériel d’invocation d’une carte de la main',
+    court: 'Piocher un matériel',
     moteur: false,
     raison: 'Consomme DEUX tirages (quel matériel, puis quelle carte le porte) là où le moteur n’en fait qu’un — les aplatir changerait la distribution et le flux semé.',
     magie: { quand: 'immediat', champs: {} },
@@ -413,9 +457,19 @@ export function champsOfferts(porteur, type) {
   return champsDe(porteur, type).filter(c => c.offert);
 }
 
-/** Le libellé français d'un type — le seul, pour tout le projet. */
-export function libelleType(type) {
-  return TYPES[type]?.label ?? type;
+/**
+ * Le libellé français d'un type — le seul, pour tout le projet.
+ *
+ * ⚠️ Deux rendus d'une seule donnée, jamais deux tables : `label` explique
+ * (c'est ce qu'on lit dans un `<select>` pour CHOISIR), `court` désigne (c'est
+ * ce qu'on lit dans une liste pour RECONNAÎTRE). Même geste que `CardTile`, qui
+ * prend la liste des tiers quand le liseré prend le plus haut. Un type sans
+ * `court` est déjà assez court.
+ */
+export function libelleType(type, { court = false } = {}) {
+  const def = TYPES[type];
+  if (!def) return type;
+  return court ? (def.court ?? def.label) : def.label;
 }
 
 /** Un porteur accepte-t-il ce type ? */

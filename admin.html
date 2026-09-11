@@ -910,6 +910,12 @@ let CQ = null;
 // bundle, mais il peut importer le module que le bundle importe.
 let SPEED = null;
 
+// LE VOCABULAIRE D'EFFETS (`effect-schema.mjs`, racine), même route et même
+// raison : un effet n'existait pour de bon qu'aux TROIS endroits à la fois — le
+// moteur, le `<select>` de son onglet, le libellé français — et deux sur trois
+// donnent une fonctionnalité que personne ne peut ni écrire ni lire.
+let EFX = null;
+
 /** Le schéma de l'onglet courant, ou celui qu'on nomme. */
 const QUERY_SCHEMAS = {};
 
@@ -1308,9 +1314,11 @@ async function init() {
     // cliqué avant l'arrivée du module ne ferait rien du tout.
     import('/admin/card-query.js'),
     import('/admin/speed-scale.js'),
+    import('/admin/effect-schema.js'),
   ]);
   CQ = modules[0];
   SPEED = modules[1];
+  EFX = modules[2];
 
   [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, cardBacks] = await Promise.all([
     apiFetch('/api/cards'),
@@ -3231,6 +3239,305 @@ function renderAttrDetail() {
   `;
 }
 
+// ================== L'ÉDITEUR D'EFFET — UN SEUL, POUR TROIS ONGLETS ==================
+//
+// Le vocabulaire vient de `effect-schema.mjs` (racine), chargé par
+// `GET /admin/effect-schema.js` comme le moteur de requête et l'échelle de
+// vitesse. Les trois onglets — Terrains, Attributs, Magies — rendent leurs
+// effets avec ces trois fonctions, et rien d'autre.
+//
+// ⚠️ **Ce que ça supprime, et c'était la panne.** Un effet n'existait pour de
+// bon qu'aux TROIS endroits à la fois : le moteur, le `<select>` de son onglet,
+// et son libellé français. Deux sur trois donnent une fonctionnalité que
+// personne ne peut ni écrire ni lire — c'est arrivé à `shopping_bonus`. Il y
+// avait ici trois listes de types, trois tables de visibilité de champs, deux
+// listes `noValue` à tenir d'accord entre elles, et un dictionnaire de libellés.
+// Tout ça est devenu une table, éprouvée contre le compilateur par
+// `client/src/test/effect-schema.test.ts`.
+//
+// ⚠️ Le `quand` est AFFICHÉ, jamais demandé : il se dérive du TYPE, et c'est ce
+// découplage qui manquait (un `revive` posé sous un `start_of_combat` ne partait
+// jamais — onze effets sont morts de ça). L'auteur doit le lire, pas le choisir.
+
+/**
+ * Les notes éditoriales d'un type — de la PROSE, pas du vocabulaire.
+ *
+ * ⚠️ Elles restent ici et non dans `effect-schema.mjs` : ce module est importé
+ * par le bundle du jeu, il n'a pas à transporter du HTML d'admin. Un type sans
+ * note n'affiche rien — ce n'est pas un quatrième endroit à tenir d'accord, rien
+ * n'en dépend.
+ */
+const EFFECT_NOTES = {
+  duplicate_unit: `Nombre de copies ajoutées à la main. <b>0 vaut 1 copie</b> — une magie qui ne
+    rendrait rien encaisserait son contrecoup pour du vide.<br>
+    ⚠️ En dupliquant une <b>unité</b>, c'est sa <b>carte de catalogue</b> qui revient :
+    ni bonus de Shopping, ni vétérance, ni pouvoir donné par magie.<br>
+    ⚠️ Depuis le <b>terrain</b>, la règle du doublon rend la copie injouable tant que
+    l'original vit (sauf à le désigner comme matériau) — c'est un remplaçant qu'on met
+    de côté. Depuis le <b>cimetière</b>, la copie est jouable tout de suite.`,
+  shift_tier_card: `Décalage de <b>tier</b> : <b>1</b> = le tier au-dessus, <b>−1</b> = celui en dessous.
+    <b>0 vaut 1</b> — un décalage nul remplacerait une carte par une carte du même tier,
+    contrecoup encaissé pour rien.<br>
+    Le remplacement est tiré dans le <b>deck du joueur</b>, jamais dans tout le catalogue :
+    un tier voisin absent du deck rend la carte non ciblable, et la magie n'est pas offerte
+    s'il n'existe aucune cible.`,
+  sacrifice_card_hp: `Pourcentage des PV de la carte versé au joueur. <b>0 vaut 100 %</b> — le défaut du
+    champ n'est pas une intention.<br>
+    Les PV lus sont ceux de la <b>carte</b> (rien n'est encore posé), et le gain est plafonné
+    à 1000. La carte est <b>brûlée</b> : elle ne va pas au cimetière, sinon la magie ferait
+    double emploi avec « Envoyer une carte de la main au cimetière ».<br>
+    ⚠️ La magie n'est pas offerte à PV pleins — elle brûlerait une carte pour rien.`,
+  power_cooldown: `Le facteur <b>DIVISE la période</b> du pouvoir : un −4 plat ne veut pas dire la même
+    chose sur un pouvoir à 6 ticks et sur un pouvoir à 40. Plancher au compteur 100 (2 ticks).
+    Une valeur absente, nulle ou négative vaut un doublement.`,
+  grant_power: `⚠️ La jauge est remise à ZÉRO et un blocage en cours est levé — un pouvoir hérité
+    plein partirait au premier step.`,
+  heal: `Soin <b>TOTAL</b>, et il n'y a rien à chiffrer : il suit le max <b>courant</b> de l'unité,
+    bonus de Shopping et vétérance compris. Un chiffre figé y serait vite faux.`,
+  team_heal: `Chiffré, là où le soin d'une seule unité est total : un soin de masse complet n'aurait
+    aucun contrepoids.`,
+};
+
+/** Le libellé d'une option d'un `<select>` de champ, selon la source déclarée. */
+function _effectFieldOptions(champ, valeur) {
+  const opt = (v, l, sel) => `<option value="${v}" ${sel ? 'selected' : ''}>${l}</option>`;
+  const vide = champ.facultatif ? opt('', '— indifférent —', !valeur) : '';
+  switch (champ.options) {
+    case 'stats':
+      return EFX.STATS.map(([v, l]) => opt(v, l, valeur === v)).join('');
+    case 'triggers':
+      return EFX.TRIGGERS.map(([v, l]) => opt(v, l, valeur === v)).join('');
+    case 'attributs':
+      return vide + attributes.map(a => opt(a.id, `${esc((a.icon || '') + ' ' + a.name)} — ${a.id}`, valeur === a.id)).join('');
+    case 'pouvoirs':
+      return vide + powers.map(p => opt(p.id, esc(p.name), valeur === p.id)).join('');
+    case 'tiers':
+      return vide + tierAttrDefs().map(a => opt(a.tier, `Tier ${a.tier}`, Number(valeur) === Number(a.tier))).join('');
+    default:
+      return vide;
+  }
+}
+
+/**
+ * La résolution des conditions `masqueSi` du schéma.
+ *
+ * ⚠️ La seule qui existe est l'exclusion « Valeur / Durée » d'un `grant_power`,
+ * et c'est le POUVOIR DONNÉ qui tranche, pas le type d'effet : `grant_power` en
+ * donne quatorze, dont quatre seulement lisent une durée. La règle était écrite
+ * DEUX fois — dans le gabarit et dans la fonction de mise à jour — et l'une des
+ * deux avait fini par l'oublier.
+ */
+function _effectFieldMasque(champ, effet) {
+  if (!champ.masqueSi) return false;
+  const duree = SPEED.DURATION_POWERS.includes(effet?.power_id);
+  return champ.masqueSi === 'pouvoir_de_duree' ? duree : !duree;
+}
+
+/** Un champ, rendu selon sa `saisie`. Rend `''` quand un autre champ le porte. */
+function _effectFieldHtml(champ, effet, prefixe, ctx) {
+  const id = `${prefixe}-${champ.id}`;
+  const valeur = effet?.[champ.id];
+  const aide = champ.aide ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">${champ.aide}</div>` : '';
+
+  switch (champ.saisie) {
+    case 'choix':
+      return `<div class="field"><label>${champ.label}</label>
+        <select id="${id}" ${champ.declenche && ctx.onRerender ? `onchange="${ctx.onRerender}"` : ''}
+        >${_effectFieldOptions(champ, valeur)}</select>${aide}</div>`;
+
+    case 'compteur':
+    case 'compteur_duree':
+      // ⚠️ Le curseur de compteur est LE curseur du fichier (`counterSliderHtml`)
+      // et sa lecture LA lecture (`counterFromSlider`) : les ticks affichés
+      // viennent de `SPEED`, jamais d'une formule recopiée.
+      return `<div class="field">${counterSliderHtml(id, champ.label, valeur ?? champ.defaut,
+        { kind: champ.saisie === 'compteur_duree' ? 'Duration' : 'Rate' })}${aide}</div>`;
+
+    case 'criteres':
+      // ⚠️ Les deux listes de critères sont UN widget. Il est rendu sur la
+      // première des deux et la seconde ne rend rien — les séparer donnerait
+      // deux éditeurs pour un seul « ET ».
+      if (champ.id !== 'attributes') return '';
+      return `<div class="field" style="grid-column:1/-1">
+        <label>Critères de la carte garantie (attributs et/ou cartes nommées)</label>
+        ${renderGuaranteedDrawCriteria(effet, ctx.gdScope)}</div>`;
+
+    case 'attributs_multi':
+      return `<div class="field" style="grid-column:1/-1">
+        <label>${champ.label} <span style="font-weight:400;color:var(--muted)">(vide = tous)</span></label>
+        <div class="attr-chips" id="${id}">
+          ${(Array.isArray(valeur) ? valeur : []).map(aid => `
+            <span class="attr-chip" data-aid="${aid}" onclick="removeEffectTargetAttr('${id}', '${aid}')">
+              ${getAttrName(aid)} <span class="remove">×</span>
+            </span>`).join('')}
+          <button class="attr-add" onclick="openEffectAttrPickModal('${id}')">+ Ajouter</button>
+        </div></div>`;
+
+    default:
+      return `<div class="field"><label>${champ.label}</label>
+        <input id="${id}" type="number" step="any" value="${valeur ?? (champ.facultatif ? '' : champ.defaut)}">${aide}</div>`;
+  }
+}
+
+/**
+ * L'éditeur complet d'UN effet : le type, le moment, les champs, la note.
+ *
+ * `ctx.onTypeChange` est le geste de l'onglet au changement de type (il doit
+ * recopier la saisie puis re-rendre) ; `ctx.onRerender` le même geste sans
+ * changer de type, pour un champ dont un autre dépend ; `ctx.gdScope` dit où
+ * vivent les critères de pioche garantie ; `ctx.avecAucun` ajoute l'option
+ * « pas d'effet ».
+ */
+function effectEditorHtml(porteur, effet, prefixe, ctx = {}) {
+  const types = EFX.typesPour(porteur);
+  const type = effet?.type || (ctx.avecAucun ? '' : types[0].id);
+  const def = types.find(t => t.id === type);
+  const quand = EFX.quandDe(porteur, type, effet);
+
+  const options = (ctx.avecAucun ? `<option value="" ${!type ? 'selected' : ''}>— Aucun —</option>` : '')
+    + types.map(t => `<option value="${t.id}" ${type === t.id ? 'selected' : ''}>${t.label}</option>`).join('');
+
+  // ⚠️ Un champ qui n'est plus OFFERT reste dans le vocabulaire (le moteur le
+  // lit encore) : c'est `champsOfferts` qui décide de ce qui s'écrit, jamais
+  // `champsDe`. Cf. la forme historique `attribute` d'une pioche garantie.
+  const champs = def
+    ? EFX.champsOfferts(porteur, type).filter(c => !_effectFieldMasque(c, effet))
+    : [];
+
+  const moment = def && quand
+    ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ Part <b>${EFX.QUAND_LABELS[quand]}</b> — dérivé du type, pas réglable.</div>`
+    : '';
+  // ⚠️ La frontière du moteur générique s'AFFICHE. Ces effets fonctionnent
+  // normalement ; ils gardent seulement leur chemin écrit à la main. Laisser
+  // l'information dans un commentaire du compilateur la rendait invisible de
+  // l'auteur du contenu.
+  const horsMoteur = def && !def.moteur
+    ? `<div style="font-size:11px;color:#e0b050;margin-top:4px">⚙️ Hors moteur générique : ${def.raison}</div>`
+    : '';
+  const note = EFFECT_NOTES[type]
+    ? `<div style="grid-column:1/-1;font-size:11px;color:var(--muted)">${EFFECT_NOTES[type]}</div>`
+    : '';
+
+  return `
+    <div class="field"><label>Type d'effet</label>
+      <select id="${prefixe}-type" ${ctx.onTypeChange ? `onchange="${ctx.onTypeChange}"` : ''}>${options}</select>
+      ${moment}${horsMoteur}
+    </div>
+    <div class="form-grid" style="margin-top:10px" id="${prefixe}-fields">
+      ${champs.map(c => _effectFieldHtml(c, effet, prefixe, ctx)).join('')}${note}
+    </div>
+  `;
+}
+
+/**
+ * L'effet relu depuis le formulaire.
+ *
+ * ⚠️ Il ne porte QUE les champs offerts par son type. C'est ce qui remplace les
+ * deux listes `noValue` que la magie tenait à la main : un `value: 0` parasite
+ * ne peut plus se persister sur un type qui ne lit pas de valeur.
+ *
+ * ⚠️ Les listes (critères, archétypes ciblés) viennent du MODÈLE ou des chips,
+ * jamais d'un `<input>` : elles s'éditent par re-render, et le DOM ne peut pas
+ * servir de source de vérité pour une liste dont on retire un élément au milieu.
+ */
+function readEffectFromForm(porteur, prefixe, precedent) {
+  const type = document.getElementById(`${prefixe}-type`)?.value ?? precedent?.type ?? '';
+  if (!type) return null;
+  const out = { type };
+
+  for (const champ of EFX.champsOfferts(porteur, type)) {
+    // ⚠️ Le lecteur applique le MÊME masque que le rendu, et il le lit sur ce
+    // qu'on vient de saisir : un champ que l'éditeur n'a pas montré ne doit pas
+    // se persister, sinon un `grant_power` de paralysie garderait la `value`
+    // d'avant — du tick que le moteur ne lit plus.
+    if (_effectFieldMasque(champ, out)) continue;
+    const id = `${prefixe}-${champ.id}`;
+    if (champ.saisie === 'criteres') {
+      // ⚠️ Un critère VIDE ne s'écrit pas : l'absence vaut « n'importe lequel »,
+      // là où un `attributes: ['']` serait insatisfiable — la pioche ne rendrait
+      // alors jamais ce qu'elle promet.
+      const crit = guaranteedDrawCriteriaOf(precedent);
+      if (champ.id === 'attributes' && crit.attributes.length) out.attributes = crit.attributes;
+      if (champ.id === 'card_ids' && crit.card_ids.length) out.card_ids = crit.card_ids;
+      continue;
+    }
+    if (champ.saisie === 'attributs_multi') {
+      const el = document.getElementById(id);
+      out[champ.id] = el
+        ? [...el.querySelectorAll('.attr-chip')].map(c => c.dataset.aid)
+        : (precedent?.[champ.id] || []);
+      continue;
+    }
+    if (champ.saisie === 'compteur' || champ.saisie === 'compteur_duree') {
+      out[champ.id] = counterFromSlider(id) ?? champ.defaut;
+      continue;
+    }
+    const brut = document.getElementById(id)?.value;
+    if (brut === undefined) { if (precedent?.[champ.id] !== undefined) out[champ.id] = precedent[champ.id]; continue; }
+    if (champ.saisie === 'choix') {
+      if (brut === '' && champ.facultatif) continue;
+      out[champ.id] = champ.options === 'tiers' ? parseInt(brut, 10) : brut;
+      continue;
+    }
+    if (brut === '' && champ.facultatif) continue;
+    out[champ.id] = Number(brut) || 0;
+  }
+  return out;
+}
+
+/**
+ * L'effet après un changement de type : les champs que le NOUVEAU type lit
+ * aussi sont conservés, les autres partent.
+ *
+ * ⚠️ Perdre une liste d'archétypes choisie à la main en passant de « bonus de
+ * stat » à « bouclier » serait une punition sans raison — les deux visent les
+ * mêmes unités. Un champ que le nouveau type ne lit pas, lui, ne survit pas :
+ * il serait du bruit que le moteur ne lira jamais.
+ */
+function _effetTypeChange(porteur, type, precedent) {
+  if (!type) return null;
+  const out = EFX.effetNeuf(porteur, type);
+  for (const champ of EFX.champsOfferts(porteur, type)) {
+    if (precedent?.[champ.id] !== undefined) out[champ.id] = precedent[champ.id];
+  }
+  return out;
+}
+
+// ⚠️ Les puces de ciblage se manipulent DANS LE DOM, sans re-render : c'est ce
+// qui laisse intacte la saisie en cours des autres effets de la même fiche.
+// `readEffectFromForm` les relit au moment voulu.
+function removeEffectTargetAttr(chipsId, aid) {
+  const chip = document.querySelector(`#${chipsId} .attr-chip[data-aid="${aid}"]`);
+  if (chip) chip.remove();
+}
+
+function openEffectAttrPickModal(chipsId) {
+  const current = [...document.querySelectorAll(`#${chipsId} .attr-chip`)].map(el => el.dataset.aid);
+  showModal(`
+    <h2>Ajouter un attribut cible</h2>
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto">
+      ${attributes.filter(a => !current.includes(a.id)).map(a => `
+        <div class="list-item" style="border-radius:6px" onclick="addEffectTargetAttr('${chipsId}', '${a.id}')">
+          <span style="font-size:16px">${a.icon || ''}</span>
+          <div><div>${esc(a.name)}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${a.id}</div></div>
+        </div>`).join('')}
+    </div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">Fermer</button></div>
+  `);
+}
+
+function addEffectTargetAttr(chipsId, aid) {
+  closeModal();
+  const box = document.getElementById(chipsId);
+  if (!box || box.querySelector(`.attr-chip[data-aid="${aid}"]`)) return;
+  const chip = document.createElement('span');
+  chip.className = 'attr-chip';
+  chip.dataset.aid = aid;
+  chip.innerHTML = `${getAttrName(aid)} <span class="remove">×</span>`;
+  chip.onclick = () => removeEffectTargetAttr(chipsId, aid);
+  box.insertBefore(chip, box.querySelector('.attr-add'));
+}
+
 function renderThresholdBlock(th, ti) {
   const medals = ['bronze','silver','gold','platinum'];
   return `
@@ -3250,161 +3557,45 @@ function renderThresholdBlock(th, ti) {
   `;
 }
 
-const ATTR_EFFECT_STATS = ['atk', 'hp', 'attack_rate', 'movement_rate', 'range', 'power_charge'];
-const ATTR_EFFECT_TRIGGERS = ['on_enemy_neutralized', 'on_ally_neutralized'];
-const ATTR_EFFECT_TARGETS = ['neutralized_ally'];
-
-function _attrEffectFieldVisibility(type) {
-  return {
-    showStat: ['stat_bonus', 'stat_modifier'].includes(type),
-    showValuePer: ['stat_bonus', 'shield'].includes(type),
-    showTrigger: type === 'stat_modifier',
-    showMax: ['draw_bonus', 'board_slot_bonus', 'shopping_bonus'].includes(type),
-    showTarget: type === 'revive',
-    showHpPercent: type === 'revive',
-    // ⚠️ MÊMES champs qu'une magie `guaranteed_draw` : tier + critères. Les deux
-    // effets alimentent la même file, un attribut ne doit pas savoir promettre
-    // moins qu'une magie.
-    showGuaranteed: type === 'guaranteed_draw',
-    showValue: !['guaranteed_draw', 'effect_immunity'].includes(type),
-  };
-}
-
 function renderEffectBlock(ef, ti, ei) {
-  const type = ef.type || 'stat_bonus';
-  const v = _attrEffectFieldVisibility(type);
-  const valuePerOptions = ['active_unit', ...attributes.map(a => a.id)];
   return `
     <div class="effect-block" id="ef-${ti}-${ei}">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <div class="field" style="flex:1"><label>Type</label>
-          <select id="ef-${ti}-${ei}-type" onchange="updateEffectFields(${ti},${ei})">
-            <option value="stat_bonus" ${type === 'stat_bonus' ? 'selected' : ''}>Bonus de stat</option>
-            <option value="stat_modifier" ${type === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat (sur trigger)</option>
-            <option value="draw_bonus" ${type === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
-            <option value="guaranteed_draw" ${type === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (tier, attributs, cartes)</option>
-            <option value="revive" ${type === 'revive' ? 'selected' : ''}>Réanimation (%HP)</option>
-            <option value="shield" ${type === 'shield' ? 'selected' : ''}>Bouclier</option>
-            <option value="board_slot_bonus" ${type === 'board_slot_bonus' ? 'selected' : ''}>Slot de board supplémentaire</option>
-            <option value="damage_multiplier_bonus" ${type === 'damage_multiplier_bonus' ? 'selected' : ''}>Multiplicateur de dégât supplémentaire (fin de combat)</option>
-            <option value="shopping_bonus" ${type === 'shopping_bonus' ? 'selected' : ''}>Magie supplémentaire à la Phase Shopping</option>
-            <option value="effect_immunity" ${type === 'effect_immunity' ? 'selected' : ''}>Immunité aux effets négatifs (poison, paralysie, push, burn…)</option>
-          </select>
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">
+        <div style="flex:1;min-width:0">
+          ${effectEditorHtml('attribut', ef, `ef-${ti}-${ei}`, {
+            onTypeChange: `changeEffectType(${ti},${ei},this.value)`,
+            onRerender: '_syncAttrDraft(); renderAttrDetail();',
+            gdScope: `attr-${ti}-${ei}`,
+          })}
         </div>
         <button class="btn btn-danger btn-sm" style="margin-top:16px" onclick="removeEffect(${ti},${ei})">×</button>
-      </div>
-      <div class="form-grid" id="ef-${ti}-${ei}-fields">
-        <div class="field" id="ef-${ti}-${ei}-stat-field" style="${v.showStat ? '' : 'display:none'}">
-          <label>Stat ciblée</label>
-          <select id="ef-${ti}-${ei}-stat">
-            ${ATTR_EFFECT_STATS.map(s => `<option value="${s}" ${ef.stat === s ? 'selected' : ''}>${s}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field" id="ef-${ti}-${ei}-trigger-field" style="${v.showTrigger ? '' : 'display:none'}">
-          <label>Déclencheur</label>
-          <select id="ef-${ti}-${ei}-trigger">
-            ${ATTR_EFFECT_TRIGGERS.map(t => `<option value="${t}" ${ef.trigger === t ? 'selected' : ''}>${t}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field" id="ef-${ti}-${ei}-value-field" style="${v.showValue ? '' : 'display:none'}">
-          <label>Valeur</label>
-          <input id="ef-${ti}-${ei}-value" type="number" step="any" value="${ef.value ?? 0}">
-        </div>
-        <div class="field" id="ef-${ti}-${ei}-valueper-field" style="${v.showValuePer ? '' : 'display:none'}">
-          <label>Multiplié par (optionnel)</label>
-          <select id="ef-${ti}-${ei}-valueper">
-            <option value="" ${!ef.value_per ? 'selected' : ''}>— Aucun —</option>
-            ${valuePerOptions.map(id => `<option value="${id}" ${ef.value_per === id ? 'selected' : ''}>${id === 'active_unit' ? 'active_unit (unités alliées vivantes)' : id}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field" id="ef-${ti}-${ei}-max-field" style="${v.showMax ? '' : 'display:none'}">
-          <label>Maximum (optionnel)</label>
-          <input id="ef-${ti}-${ei}-max" type="number" min="1" value="${ef.max ?? ''}">
-        </div>
-        <div class="field" id="ef-${ti}-${ei}-target-field" style="${v.showTarget ? '' : 'display:none'}">
-          <label>Cible</label>
-          <select id="ef-${ti}-${ei}-target">
-            ${ATTR_EFFECT_TARGETS.map(t => `<option value="${t}" ${ef.target === t ? 'selected' : ''}>${t}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field" id="ef-${ti}-${ei}-hppercent-field" style="${v.showHpPercent ? '' : 'display:none'}">
-          <label>% PV max</label>
-          <input id="ef-${ti}-${ei}-hppercent" type="number" min="1" max="100" value="${ef.hp_percent ?? 50}">
-        </div>
-        <div class="field" id="ef-${ti}-${ei}-tier-field" style="${v.showGuaranteed ? '' : 'display:none'}">
-          <label>Tier de la carte garantie</label>
-          <select id="ef-${ti}-${ei}-tier">
-            <option value="" ${!ef.tier ? 'selected' : ''}>— indifférent —</option>
-            ${tierAttrDefs().map(a => `<option value="${a.tier}" ${ef.tier === a.tier ? 'selected' : ''}>Tier ${a.tier}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field" id="ef-${ti}-${ei}-gd-field" style="${v.showGuaranteed ? '' : 'display:none'};grid-column:1/-1">
-          <label>Critères de la carte garantie (attributs et/ou cartes nommées)</label>
-          ${v.showGuaranteed ? renderGuaranteedDrawCriteria(ef, `attr-${ti}-${ei}`) : ''}
-        </div>
       </div>
     </div>
   `;
 }
 
-function updateEffectFields(ti, ei) {
-  const type = document.getElementById(`ef-${ti}-${ei}-type`).value;
-  const v = _attrEffectFieldVisibility(type);
-  document.getElementById(`ef-${ti}-${ei}-stat-field`).style.display = v.showStat ? '' : 'none';
-  document.getElementById(`ef-${ti}-${ei}-trigger-field`).style.display = v.showTrigger ? '' : 'none';
-  document.getElementById(`ef-${ti}-${ei}-value-field`).style.display = v.showValue ? '' : 'none';
-  document.getElementById(`ef-${ti}-${ei}-valueper-field`).style.display = v.showValuePer ? '' : 'none';
-  document.getElementById(`ef-${ti}-${ei}-max-field`).style.display = v.showMax ? '' : 'none';
-  document.getElementById(`ef-${ti}-${ei}-target-field`).style.display = v.showTarget ? '' : 'none';
-  document.getElementById(`ef-${ti}-${ei}-hppercent-field`).style.display = v.showHpPercent ? '' : 'none';
-  document.getElementById(`ef-${ti}-${ei}-tier-field`).style.display = v.showGuaranteed ? '' : 'none';
-  // ⚠️ Le bloc de critères est RENDU, pas seulement masqué : il n'existe dans le
-  // balisage que pour un `guaranteed_draw`, sinon il n'y aurait rien à révéler
-  // quand on bascule le type sur ce dernier.
-  const gd = document.getElementById(`ef-${ti}-${ei}-gd-field`);
-  if (gd) {
-    gd.style.display = v.showGuaranteed ? '' : 'none';
-    if (v.showGuaranteed) { _syncAttrDraft(); renderAttrDetail(); }
-  }
+/**
+ * ⚠️ Le changement de type RE-REND, il ne masque plus des champs. Les trois
+ * onglets faisaient pareil à trois endroits, et l'un d'eux (les critères de
+ * pioche garantie) devait déjà re-rendre parce que son bloc n'existait pas dans
+ * le balisage quand le type était autre. Une seule règle vaut mieux qu'une règle
+ * et son exception.
+ */
+function changeEffectType(ti, ei, type) {
+  _syncAttrDraft();
+  const liste = selectedAttr.thresholds[ti].effects;
+  liste[ei] = _effetTypeChange('attribut', type, liste[ei]);
+  renderAttrDetail();
 }
 
 function _collectEffectFromFields(ti, ei) {
-  const type = document.getElementById(`ef-${ti}-${ei}-type`).value;
-  const v = _attrEffectFieldVisibility(type);
-  const ef = { type };
-  if (v.showStat) ef.stat = document.getElementById(`ef-${ti}-${ei}-stat`).value;
-  if (v.showTrigger) ef.trigger = document.getElementById(`ef-${ti}-${ei}-trigger`).value;
-  if (v.showValue) ef.value = parseFloat(document.getElementById(`ef-${ti}-${ei}-value`).value) || 0;
-  if (v.showValuePer) {
-    const valuePer = document.getElementById(`ef-${ti}-${ei}-valueper`).value;
-    if (valuePer) ef.value_per = valuePer;
-  }
-  if (v.showMax) {
-    const max = document.getElementById(`ef-${ti}-${ei}-max`).value;
-    if (max) ef.max = parseInt(max);
-  }
-  if (v.showTarget) ef.target = document.getElementById(`ef-${ti}-${ei}-target`).value;
-  if (v.showHpPercent) ef.hp_percent = parseInt(document.getElementById(`ef-${ti}-${ei}-hppercent`).value) || 0;
-  // ⚠️ Un critère VIDE ne s'écrit pas : l'absence vaut « n'importe lequel », là
-  // où un `tier: 0` ou un `attributes: ['']` seraient insatisfiables — la pioche
-  // ne rendrait alors jamais ce qu'elle promet.
-  // ⚠️ Le tier vient du DOM, les deux listes du MODÈLE : elles s'éditent par
-  // re-render (cf. `renderGuaranteedDrawCriteria`), les relire ici depuis le
-  // formulaire les effacerait à chaque enregistrement.
-  if (v.showGuaranteed) {
-    const tier = parseInt(document.getElementById(`ef-${ti}-${ei}-tier`)?.value, 10);
-    if (tier) ef.tier = tier;
-    const criteria = guaranteedDrawCriteriaOf(selectedAttr?.thresholds?.[ti]?.effects?.[ei]);
-    if (criteria.attributes.length) ef.attributes = criteria.attributes;
-    if (criteria.card_ids.length) ef.card_ids = criteria.card_ids;
-  }
-  return ef;
+  return readEffectFromForm('attribut', `ef-${ti}-${ei}`, selectedAttr?.thresholds?.[ti]?.effects?.[ei]);
 }
 
 function addThreshold() {
   _syncAttrDraft();
   if (!selectedAttr.thresholds) selectedAttr.thresholds = [];
-  selectedAttr.thresholds.push({ count: 2, medal: 'silver', effects: [{ type: 'stat_bonus', stat: 'atk', value: 1 }] });
+  selectedAttr.thresholds.push({ count: 2, medal: 'silver', effects: [EFX.effetNeuf('attribut', 'stat_bonus')] });
   renderAttrDetail();
 }
 
@@ -3417,7 +3608,7 @@ function removeThreshold(ti) {
 function addEffect(ti) {
   _syncAttrDraft();
   if (!selectedAttr.thresholds[ti].effects) selectedAttr.thresholds[ti].effects = [];
-  selectedAttr.thresholds[ti].effects.push({ type: 'stat_bonus', stat: 'atk', value: 1 });
+  selectedAttr.thresholds[ti].effects.push(EFX.effetNeuf('attribut', 'stat_bonus'));
   renderAttrDetail();
 }
 
@@ -3873,35 +4064,6 @@ async function deletePowerIcon() {
 }
 
 // ================== MAGIES ==================
-const EFFECT_TYPE_LABELS = {
-  stat_bonus: 'Bonus de stat',
-  team_stat_bonus: 'Bonus de stat (équipe)',
-  stat_modifier: 'Modificateur de stat',
-  draw_bonus: 'Pioche',
-  revive: 'Réanimation',
-  heal: 'Soin total',
-  team_heal: 'Soin de masse',
-  shield: 'Bouclier',
-  player_hp_bonus: 'Bonus HP joueur',
-  board_slot_bonus: 'Slot de board',
-  guaranteed_draw: 'Pioche garantie',
-  grant_power: 'Donner un pouvoir',
-  power_cooldown: 'Accélérer un pouvoir',
-  damage_multiplier_bonus: 'Multiplicateur de dégâts',
-  defuse_fusion: 'Séparer une fusion',
-  destroy_unit: 'Détruire une unité',
-  drain_life: 'Absorber les PV d\'une unité',
-  hand_to_graveyard: 'Main → cimetière',
-  duplicate_unit: 'Dupliquer une unité (→ main)',
-  duplicate_graveyard_unit: 'Dupliquer une unité du cimetière (→ main)',
-  duplicate_card: 'Dupliquer une carte de la main',
-  shift_tier_card: 'Remplacer une carte (tier voisin)',
-  shift_tier_unit: 'Remplacer une unité (tier voisin)',
-  draw_material: 'Piocher un matériel',
-  sacrifice_card_hp: 'Sacrifier une carte → PV joueur',
-  reduce_materials: 'Baisser le coût en matériels',
-  remove_requirements: 'Lever des exigences nommées',
-};
 
 // Rareté d'une magie : 1 Commune · 2 Rare · 3 Légendaire. Pondère le tirage de
 // la Phase Shopping (client : logic/MagieOffer.ts). ⚠️ FACULTATIVE dans la
@@ -3928,7 +4090,7 @@ function renderMagieList(list = magies) {
         : `<div style="width:40px;height:40px;background:var(--surface2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px">✨</div>`}
       <div style="min-width:0">
         <div class="item-name">${esc(m.name)}${magieRarityBadge(m)}</div>
-        <div class="item-id">${m.id}${m.effect ? ` · ${EFFECT_TYPE_LABELS[m.effect.type] || m.effect.type}` : ''}${m.cost_hp > 0 ? ` · <span style="color:#fca5a5">−${m.cost_hp} PV</span>` : ''}</div>
+        <div class="item-id">${m.id}${m.effect ? ` · ${EFX.libelleType(m.effect.type, { court: true })}` : ''}${m.cost_hp > 0 ? ` · <span style="color:#fca5a5">−${m.cost_hp} PV</span>` : ''}</div>
       </div>
     </div>
   `).join('');
@@ -3946,27 +4108,9 @@ function renderMagieDetail() {
   const m = selectedMagie;
   const el = document.getElementById('magie-detail');
   const hasIllus = m._has_illustration;
-  const effect = m.effect || {};
-  const effectType = effect.type || 'none';
+  const effect = m.effect || null;
+  const effectType = effect?.type || '';
   const rarity = magieRarity(m);
-  const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(effectType);
-  const showTier = effectType === 'guaranteed_draw';
-  // `guaranteed_draw` porte DEUX filtres facultatifs qui se cumulent : le tier
-  // et l'attribut. Les deux remises de main, elles, ne lisent que l'attribut —
-  // d'où deux drapeaux et non un seul.
-  const showAttribute = MAGIE_ATTRIBUTE_TYPES.has(effectType);
-  const showPower = effectType === 'grant_power';
-  const showDup = ['duplicate_unit', 'duplicate_graveyard_unit', 'duplicate_card'].includes(effectType);
-  const showShift = ['shift_tier_card', 'shift_tier_unit'].includes(effectType);
-  const showSacHp = effectType === 'sacrifice_card_hp';
-  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'draw_material'];
-  // ⚠️ « Valeur » et « Durée » s'excluent, et la règle doit être écrite ICI
-  // AUSSI : `updateMagieEffectFields()` n'est pas rejoué après le rendu du
-  // détail, donc un gabarit qui l'ignore ouvre la fiche avec les deux champs
-  // à l'écran — dont un que le moteur ne lira jamais.
-  const grantsDuration = effectType === 'grant_power'
-    && SPEED.DURATION_POWERS.includes(effect.power_id);
-  const showValue = !noValue.includes(effectType) && !grantsDuration;
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
     <div class="detail-header">
@@ -3986,7 +4130,7 @@ function renderMagieDetail() {
         <div class="detail-title">✨ ${esc(m.name)}</div>
         <div class="detail-meta">
           <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(m.id)}</span>
-          ${m.effect ? `<span class="badge badge-power">${EFFECT_TYPE_LABELS[effectType] || effectType}</span>` : ''}
+          ${effect ? `<span class="badge badge-power">${EFX.libelleType(effectType)}</span>` : ''}
           ${magieRarityBadge(m)}
           ${m.cost_hp > 0 ? `<span class="badge" style="background:rgba(239,68,68,.2);color:#fca5a5">−${m.cost_hp} PV</span>` : ''}
           ${hasIllus ? `<span class="badge badge-illus">Illustration ✓</span>` : `<span class="badge badge-no-illus">Sans illustration</span>`}
@@ -4009,132 +4153,12 @@ function renderMagieDetail() {
       </div>
     </div>
     <div class="section-title" style="margin-top:20px">Effet</div>
-    <div class="form-grid">
-      <div class="field">
-        <label>Type d'effet</label>
-        <select id="mf-effect-type" onchange="updateMagieEffectFields()">
-          <option value="none" ${effectType === 'none' ? 'selected' : ''}>Aucun</option>
-          <option value="stat_bonus" ${effectType === 'stat_bonus' ? 'selected' : ''}>Bonus de stat</option>
-          <option value="team_stat_bonus" ${effectType === 'team_stat_bonus' ? 'selected' : ''}>Bonus de stat — TOUTES tes unités</option>
-          <option value="stat_modifier" ${effectType === 'stat_modifier' ? 'selected' : ''}>Modificateur de stat</option>
-          <option value="draw_bonus" ${effectType === 'draw_bonus' ? 'selected' : ''}>Pioche supplémentaire</option>
-          <option value="guaranteed_draw" ${effectType === 'guaranteed_draw' ? 'selected' : ''}>Pioche garantie (tier, attributs, cartes)</option>
-          <option value="damage_multiplier_bonus" ${effectType === 'damage_multiplier_bonus' ? 'selected' : ''}>Multiplicateur de dégâts (permanent)</option>
-          <option value="heal" ${effectType === 'heal' ? 'selected' : ''}>Soin total (une unité)</option>
-          <option value="team_heal" ${effectType === 'team_heal' ? 'selected' : ''}>Soin de masse — TOUTES tes unités (PV)</option>
-          <option value="revive" ${effectType === 'revive' ? 'selected' : ''}>Réanimation (%HP)</option>
-          <option value="shield" ${effectType === 'shield' ? 'selected' : ''}>Bouclier</option>
-          <option value="player_hp_bonus" ${effectType === 'player_hp_bonus' ? 'selected' : ''}>Bonus HP joueur</option>
-          <option value="board_slot_bonus" ${effectType === 'board_slot_bonus' ? 'selected' : ''}>Slot de board supplémentaire</option>
-          <optgroup label="Effets avancés">
-          <option value="defuse_fusion" ${effectType === 'defuse_fusion' ? 'selected' : ''}>Séparer une Fusion en ses matériaux</option>
-          <option value="destroy_unit" ${effectType === 'destroy_unit' ? 'selected' : ''}>Détruire une unité alliée</option>
-          <option value="drain_life" ${effectType === 'drain_life' ? 'selected' : ''}>Absorber les PV d'une unité alliée</option>
-          <option value="grant_power" ${effectType === 'grant_power' ? 'selected' : ''}>Donner / remplacer le pouvoir d'une unité</option>
-          <option value="power_cooldown" ${effectType === 'power_cooldown' ? 'selected' : ''}>Accélérer le pouvoir d'une unité</option>
-          <option value="hand_to_graveyard" ${effectType === 'hand_to_graveyard' ? 'selected' : ''}>Envoyer une carte de la main au cimetière</option>
-          <option value="duplicate_unit" ${effectType === 'duplicate_unit' ? 'selected' : ''}>Dupliquer une unité du terrain → sa carte en main</option>
-          <option value="duplicate_graveyard_unit" ${effectType === 'duplicate_graveyard_unit' ? 'selected' : ''}>Dupliquer une unité du cimetière → sa carte en main</option>
-          <option value="duplicate_card" ${effectType === 'duplicate_card' ? 'selected' : ''}>Dupliquer une carte de la main</option>
-          <option value="shift_tier_card" ${effectType === 'shift_tier_card' ? 'selected' : ''}>Remplacer une carte de la main par une carte du tier voisin</option>
-          <option value="shift_tier_unit" ${effectType === 'shift_tier_unit' ? 'selected' : ''}>Remplacer une unité du terrain par une unité du tier voisin</option>
-          <option value="draw_material" ${effectType === 'draw_material' ? 'selected' : ''}>Piocher un matériel d'invocation d'une carte de la main</option>
-          <option value="sacrifice_card_hp" ${effectType === 'sacrifice_card_hp' ? 'selected' : ''}>Sacrifier une carte de la main → PV du joueur</option>
-          <option value="reduce_materials" ${effectType === 'reduce_materials' ? 'selected' : ''}>Baisser le coût en matériels (main)</option>
-          <option value="remove_requirements" ${effectType === 'remove_requirements' ? 'selected' : ''}>Lever des exigences nommées (main)</option>
-          </optgroup>
-        </select>
-      </div>
-    </div>
-    <div class="form-grid" style="margin-top:10px">
-      <div class="field" id="mf-stat-field" style="${showStat ? '' : 'display:none'}">
-        <label>Stat ciblée</label>
-        <select id="mf-effect-stat">
-          <option value="atk" ${effect.stat === 'atk' ? 'selected' : ''}>ATK</option>
-          <option value="hp" ${effect.stat === 'hp' ? 'selected' : ''}>HP</option>
-          <option value="attack_rate" ${effect.stat === 'attack_rate' ? 'selected' : ''}>Vitesse d'attaque (compteur 0–100)</option>
-          <option value="movement_rate" ${effect.stat === 'movement_rate' ? 'selected' : ''}>Vitesse de déplacement (compteur 0–100)</option>
-          <option value="range" ${effect.stat === 'range' ? 'selected' : ''}>Portée</option>
-        </select>
-      </div>
-      <div class="field" id="mf-value-field" style="${showValue ? '' : 'display:none'}">
-        <label>Valeur</label>
-        <input id="mf-effect-value" type="number" step="any" value="${effect.value ?? 0}">
-        <div id="mf-dup-note" style="${showDup ? '' : 'display:none'};font-size:11px;color:var(--muted);margin-top:4px">
-          Nombre de copies ajoutées à la main. <b>0 vaut 1 copie</b> — une magie qui ne
-          rendrait rien encaisserait son contrecoup pour du vide.<br>
-          ⚠️ En dupliquant une <b>unité</b>, c'est sa <b>carte de catalogue</b> qui revient :
-          ni bonus de Shopping, ni vétérance, ni pouvoir donné par magie.<br>
-          ⚠️ Les deux provenances n'ont pas le même tempo : depuis le <b>terrain</b>, la
-          règle du doublon rend la copie injouable tant que l'original vit (sauf à le
-          désigner comme matériau) — c'est un remplaçant qu'on met de côté. Depuis le
-          <b>cimetière</b>, l'original n'est pas vivant : la copie est jouable tout de
-          suite, et le corps reste disponible comme matériau.
-        </div>
-      </div>
-        <div id="mf-shift-note" style="${showShift ? '' : 'display:none'};font-size:11px;color:var(--muted);margin-top:4px">
-          Décalage de <b>tier</b> : <b>1</b> = le tier au-dessus, <b>−1</b> = le tier en dessous
-          (−2, 2… fonctionnent aussi). <b>0 vaut 1</b> — un décalage nul remplacerait une carte
-          par une carte du même tier, contrecoup encaissé pour rien.<br>
-          Le remplacement est tiré dans le <b>deck du joueur</b>, jamais dans tout le catalogue :
-          un tier voisin absent du deck rend la carte (ou l'unité) non ciblable, et la magie
-          n'est pas offerte s'il n'existe aucune cible.<br>
-          ⚠️ Sur une <b>unité</b>, c'est une <b>substitution</b> : l'ancienne quitte la partie
-          sans passer par le cimetière, et la nouvelle est bâtie sur l'entrée du catalogue —
-          ni bonus de Shopping, ni vétérance, ni PV courants, ni pouvoir donné par magie. Elle
-          garde en revanche la case. La règle du doublon est respectée : une carte déjà vivante
-          sur le terrain ne sort jamais du tirage.
-        </div>
-        <div id="mf-sachp-note" style="${showSacHp ? '' : 'display:none'};font-size:11px;color:var(--muted);margin-top:4px">
-          Pourcentage des PV de la carte versé au joueur. <b>0 vaut 100 %</b> — le défaut du champ
-          n'est pas une intention.<br>
-          Les PV lus sont ceux de la <b>carte</b> (rien n'est encore posé), et le gain est plafonné
-          à 1000 comme celui de « Bonus HP joueur ». La carte est <b>brûlée</b> : elle ne va pas au
-          cimetière, sinon la magie ferait double emploi avec « Envoyer une carte de la main au
-          cimetière ».<br>
-          ⚠️ La magie n'est pas offerte à PV pleins — elle brûlerait une carte pour rien.
-        </div>
-      </div>
-      <div class="field" id="mf-power-field" style="${showPower ? '' : 'display:none'}">
-        <label>Pouvoir donné</label>
-        <select id="mf-effect-power" onchange="updateMagieEffectFields()">
-          ${powers.map(p => `<option value="${p.id}" ${effect.power_id === p.id ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field" id="mf-power-duration-field" style="${grantsDuration ? '' : 'display:none'}">
-        <label>Durée de l'effet (compteur 0–100, plus haut = plus long)</label>
-        <input id="mf-effect-power-duration" type="number" min="0" max="100" step="1" value="${effect.duration ?? 50}">
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">
-          ⚠️ Paralysie, blocage, confusion et provocation chiffrent une DURÉE, pas une valeur :
-          le champ « Valeur » ci-dessus ne les concerne pas. Sans durée, l'unité joue le repli du moteur.
-        </div>
-      </div>
-      <div class="field" id="mf-power-speed-field" style="${showPower ? '' : 'display:none'}">
-        <label>Vitesse de chargement (compteur 0–100, plus haut = plus rapide)</label>
-        <input id="mf-effect-power-speed" type="number" min="0" max="100" step="1" value="${effect.power_rate ?? 50}">
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">
-          ⚠️ Obligatoire : sans compteur, l'unité reçoit un pouvoir qui ne part JAMAIS.
-        </div>
-      </div>
-      <div class="field" id="mf-attribute-field" style="${showAttribute ? '' : 'display:none'}">
-        <label id="mf-attribute-label">${magieAttributeLabel()}</label>
-        <select id="mf-effect-attribute">
-          <option value="" ${!effect.attribute ? 'selected' : ''}>— indifférent —</option>
-          ${attributes.map(a => `<option value="${a.id}" ${effect.attribute === a.id ? 'selected' : ''}>${esc((a.icon || '') + ' ' + a.name)} — ${a.id}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field" id="mf-tier-field" style="${showTier ? '' : 'display:none'}">
-        <label>Tier de la carte garantie</label>
-        <select id="mf-effect-tier">
-          <option value="" ${!effect.tier ? 'selected' : ''}>— indifférent —</option>
-          ${tierAttrDefs().map(a => `<option value="${a.tier}" ${effect.tier === a.tier ? 'selected' : ''}>Tier ${a.tier}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field" id="mf-gd-field" style="${showTier ? '' : 'display:none'};grid-column:1/-1">
-        <label>Critères de la carte garantie (attributs et/ou cartes nommées)</label>
-        ${renderGuaranteedDrawCriteria(effect, 'magie')}
-      </div>
-    </div>
+    ${effectEditorHtml('magie', effect, 'mf-effect', {
+      onTypeChange: 'changeMagieEffectType(this.value)',
+      onRerender: '_syncMagieDraft(); renderMagieDetail();',
+      gdScope: 'magie',
+      avecAucun: true,
+    })}
 
     <div class="section-title" style="margin-top:20px">Contrecoup</div>
     <div class="form-grid">
@@ -4340,99 +4364,28 @@ function hideGuaranteedDrawDropdown(scope) {
 }
 
 /**
- * Les deux effets qui portent un filtre d'ATTRIBUT facultatif.
+ * Le changement de type d'effet d'une magie — même geste que les deux autres
+ * onglets : on recopie la saisie, on remplace l'effet, on re-rend.
  *
- * ⚠️ C'est lui qui rend « −1 matériel de Fusion » exprimable maintenant qu'il
- * n'y a plus de voie à nommer : les cinq voies sont devenues des attributs de
- * carte (ARCH_086…ARCH_090), visables comme n'importe quel archétype. Absent,
- * la remise tombe sur la première carte retouchable.
+ * ⚠️ Il RE-REND au lieu de masquer des champs. La version d'avant toggait une
+ * douzaine de `style.display`, et la règle « Valeur et Durée s'excluent » devait
+ * être écrite DEUX fois — dans le gabarit et ici — parce que le gabarit n'était
+ * pas rejoué. Écrite une fois sur deux, elle ouvrait la fiche avec un champ que
+ * le moteur ne lit jamais.
  */
-const MAGIE_ATTRIBUTE_TYPES = new Set(['reduce_materials', 'remove_requirements']);
-
-function magieAttributeLabel() {
-  return "Attribut visé par la remise (facultatif — sinon la première carte retouchable)";
-}
-
-function updateMagieEffectFields() {
-  const type = document.getElementById('mf-effect-type')?.value || 'none';
-  const showStat = ['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(type);
-  const showTier = type === 'guaranteed_draw';
-  const showAttribute = MAGIE_ATTRIBUTE_TYPES.has(type);
-  const showPower = type === 'grant_power';
-  const noValue = ['none', 'guaranteed_draw', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'draw_material'];
-  // ⚠️ « Valeur » et « Durée » s'excluent ici comme sur la fiche carte : un
-  // `grant_power` de paralysie n'a pas de valeur à saisir, il a une durée.
-  const grantsDuration = type === 'grant_power'
-    && SPEED.DURATION_POWERS.includes(document.getElementById('mf-effect-power')?.value);
-  const showValue = !noValue.includes(type) && !grantsDuration;
-  document.getElementById('mf-stat-field').style.display = showStat ? '' : 'none';
-  document.getElementById('mf-value-field').style.display = showValue ? '' : 'none';
-  document.getElementById('mf-tier-field').style.display = showTier ? '' : 'none';
-  // Le bloc de critères vit et meurt avec le tier : c'est le même effet.
-  const gdField = document.getElementById('mf-gd-field');
-  if (gdField) gdField.style.display = showTier ? '' : 'none';
-  document.getElementById('mf-attribute-field').style.display = showAttribute ? '' : 'none';
-  document.getElementById('mf-attribute-label').textContent = magieAttributeLabel();
-  document.getElementById('mf-power-field').style.display = showPower ? '' : 'none';
-  document.getElementById('mf-power-speed-field').style.display = showPower ? '' : 'none';
-  // ⚠️ La durée suit le POUVOIR choisi, pas le type d'effet : `grant_power` est
-  // un seul type qui donne quatorze pouvoirs, dont quatre seulement en lisent une.
-  const durField = document.getElementById('mf-power-duration-field');
-  if (durField) durField.style.display = grantsDuration ? '' : 'none';
-  const dupNote = document.getElementById('mf-dup-note');
-  if (dupNote) dupNote.style.display = ['duplicate_unit', 'duplicate_graveyard_unit', 'duplicate_card'].includes(type) ? '' : 'none';
-  const shiftNote = document.getElementById('mf-shift-note');
-  if (shiftNote) shiftNote.style.display = ['shift_tier_card', 'shift_tier_unit'].includes(type) ? '' : 'none';
-  const sacHpNote = document.getElementById('mf-sachp-note');
-  if (sacHpNote) sacHpNote.style.display = type === 'sacrifice_card_hp' ? '' : 'none';
+function changeMagieEffectType(type) {
+  _syncMagieDraft();
+  selectedMagie.effect = _effetTypeChange('magie', type, selectedMagie.effect);
+  renderMagieDetail();
 }
 
 function _collectMagieFields() {
-  const effectType = document.getElementById('mf-effect-type')?.value || 'none';
-  let effect = null;
-  const noValue = ['heal', 'defuse_fusion', 'destroy_unit', 'drain_life', 'hand_to_graveyard', 'draw_material'];
-  if (effectType !== 'none') {
-    effect = { type: effectType };
-    if (effectType === 'guaranteed_draw') {
-      // ⚠️ TOUS les critères sont facultatifs, et un champ vide ne doit pas être
-      // écrit : `isMagieRelevant` traite l'absence comme « pas de contrainte »,
-      // là où un `tier: 0` ou un `attributes: ['']` seraient des filtres
-      // impossibles à satisfaire — la magie ne sortirait jamais.
-      const tier = parseInt(document.getElementById('mf-effect-tier')?.value, 10);
-      if (tier) effect.tier = tier;
-      // ⚠️ Les deux listes viennent du MODÈLE et non du DOM (cf.
-      // `renderGuaranteedDrawCriteria`) : les relire ici depuis le formulaire
-      // les effacerait à chaque enregistrement.
-      const criteria = guaranteedDrawCriteriaOf(selectedMagie && selectedMagie.effect);
-      if (criteria.attributes.length) effect.attributes = criteria.attributes;
-      if (criteria.card_ids.length) effect.card_ids = criteria.card_ids;
-    } else if (!noValue.includes(effectType)) {
-      effect.value = parseFloat(document.getElementById('mf-effect-value')?.value) || 0;
-    }
-    if (MAGIE_ATTRIBUTE_TYPES.has(effectType)) {
-      const attribute = document.getElementById('mf-effect-attribute')?.value || '';
-      if (attribute) effect.attribute = attribute;
-    }
-    if (['stat_bonus', 'team_stat_bonus', 'stat_modifier'].includes(effectType)) {
-      effect.stat = document.getElementById('mf-effect-stat')?.value || 'atk';
-    }
-    if (effectType === 'grant_power') {
-      effect.power_id = document.getElementById('mf-effect-power')?.value || '';
-      // ⚠️ Sans vitesse explicite, l'unité hérite du 9999 d'`Unit` — le défaut
-      // de « pas de pouvoir » — et le pouvoir donné ne partirait JAMAIS.
-      effect.power_rate = SPEED.clampRate(document.getElementById('mf-effect-power-speed')?.value ?? 50);
-      // ⚠️ Et sur les quatre pouvoirs de durée, la magie doit poser la SIENNE :
-      // sans elle, la paralysie donnée dure le repli du moteur et non ce que la
-      // magie annonce. `value` n'a plus rien à y faire — c'est l'ancien champ
-      // en ticks, que le moteur ne lit plus sur ces pouvoirs.
-      if (SPEED.DURATION_POWERS.includes(effect.power_id)) {
-        effect.duration = SPEED.clampRate(document.getElementById('mf-effect-power-duration')?.value ?? 50);
-        delete effect.value;
-      } else {
-        delete effect.duration;
-      }
-    }
-  }
+  // ⚠️ `readEffectFromForm` ne rend QUE les champs que le type lit. C'est ce qui
+  // remplace les deux listes `noValue` que cette fonction et son gabarit
+  // tenaient d'accord à la main : un `value: 0` parasite ne peut plus se
+  // persister sur un `heal`, qui n'en lit pas.
+  const effect = readEffectFromForm('magie', 'mf-effect', selectedMagie && selectedMagie.effect);
+
   // Le contrecoup est un champ de PREMIER NIVEAU, pas un champ d'`effect` : il
   // est orthogonal au type d'effet. Absent quand il vaut 0, pour ne pas semer
   // `"cost_hp": 0` dans tout le catalogue.
@@ -7634,11 +7587,10 @@ let boardBgBust = Date.now();
 // effacerait le nom qu'on vient de taper.
 let boardEffectsDraft = [];
 
-// Les trois seuls effets qui VISENT des unités (cf. logic/BoardEffect et
-// data/BoardInfo.boardTargetsUnits) : `draw_bonus` crédite le joueur quoi qu'il
-// arrive, lui offrir un ciblage ferait promettre à l'écran ce que le combat ne
-// fait pas.
-const BOARD_EFFECTS_TARGETING = new Set(['stat_bonus', 'stat_modifier', 'shield']);
+// ⚠️ Quels effets de terrain VISENT des unités n'est plus écrit ici : c'est le
+// schéma qui déclare `target_attributes`, et il ne le déclare pas sur
+// `draw_bonus` — celui-là crédite le joueur quoi qu'il arrive, lui offrir un
+// ciblage ferait promettre à l'écran ce que le combat ne fait pas.
 
 /**
  * Les effets d'un terrain, sous leur forme de travail.
@@ -7682,72 +7634,27 @@ function selectBoard(id) {
   showDetail();
 }
 
-/** Une ligne d'effet : son type, ses champs, et les deux ciblages. */
+/** Une ligne d'effet de terrain : l'éditeur partagé, plus le bouton de retrait. */
 function _boardEffectHtml(e, i) {
-  const type = e.type || 'stat_bonus';
-  const needsStat = type === 'stat_bonus' || type === 'stat_modifier';
-  const targets = BOARD_EFFECTS_TARGETING.has(type);
-  const statOpts = [
-    ['atk','ATK'],['hp','HP'],['movement_rate','Vitesse mvt (0–100)'],
-    ['attack_rate','Vitesse attaque (0–100)'],['range','Portée'],
-  ].map(([v,l]) => `<option value="${v}" ${e.stat===v?'selected':''}>${l}</option>`).join('');
-
   return `
     <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
-      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-        <div class="field" style="flex:0 0 190px">
-          <label>Effet ${i + 1}</label>
-          <select id="bf-eff-${i}-type" onchange="changeBoardEffectType(${i}, this.value)">
-            <option value="stat_bonus"    ${type==='stat_bonus'   ?'selected':''}>Bonus de stat</option>
-            <option value="stat_modifier" ${type==='stat_modifier'?'selected':''}>Modificateur de stat</option>
-            <option value="shield"        ${type==='shield'       ?'selected':''}>Bouclier</option>
-            <option value="draw_bonus"    ${type==='draw_bonus'   ?'selected':''}>Bonus de pioche</option>
-          </select>
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Effet ${i + 1}</div>
+          ${effectEditorHtml('terrain', e, `bf-eff-${i}`, {
+            onTypeChange: `changeBoardEffectType(${i}, this.value)`,
+            onRerender: '_syncBoardDraft(); renderBoardDetail();',
+          })}
         </div>
-        <div class="field" style="flex:0 0 160px;${needsStat?'':'display:none'}">
-          <label>Stat</label>
-          <select id="bf-eff-${i}-stat">${statOpts}</select>
-        </div>
-        <div class="field" style="flex:0 0 120px">
-          <label>Valeur</label>
-          <input type="number" step="any" id="bf-eff-${i}-value" value="${e.value ?? 0}">
-        </div>
-        <button class="btn btn-danger btn-sm" onclick="removeBoardEffect(${i})" title="Retirer cet effet">✕</button>
+        <button class="btn btn-danger btn-sm" style="margin-top:16px" onclick="removeBoardEffect(${i})" title="Retirer cet effet">✕</button>
       </div>
-      ${targets ? `
-        <div style="margin-top:10px">
-          <label style="font-size:11px;color:var(--muted)">Archétypes ciblés <span style="font-weight:400">(vide = tous)</span></label>
-          <div class="attr-chips" id="bf-eff-${i}-attrs">
-            ${(e.target_attributes || []).map(aid => `
-              <span class="attr-chip" data-aid="${aid}" onclick="removeBoardTargetAttr(${i}, '${aid}')">
-                ${getAttrName(aid)} <span class="remove">×</span>
-              </span>
-            `).join('')}
-            <button class="attr-add" onclick="openBoardAttrPickModal(${i})">+ Ajouter</button>
-          </div>
-        </div>
-      ` : `<div style="margin-top:8px;font-size:11px;color:var(--muted)">Cet effet crédite le joueur : il ne vise aucune unité, donc aucun ciblage.</div>`}
     </div>
   `;
 }
 
 /** Relit les effets depuis le DOM — AVANT toute re-render, sinon la saisie en cours est perdue. */
 function _readBoardEffects() {
-  boardEffectsDraft = boardEffectsDraft.map((e, i) => {
-    const type = document.getElementById(`bf-eff-${i}-type`)?.value || e.type;
-    const raw = document.getElementById(`bf-eff-${i}-value`)?.value;
-    const out = { type, value: raw === '' || raw == null ? (e.value ?? 0) : Number(raw) };
-    if (type === 'stat_bonus' || type === 'stat_modifier') {
-      out.stat = document.getElementById(`bf-eff-${i}-stat`)?.value || e.stat || 'atk';
-    }
-    if (BOARD_EFFECTS_TARGETING.has(type)) {
-      const attrsEl = document.getElementById(`bf-eff-${i}-attrs`);
-      out.target_attributes = attrsEl
-        ? [...attrsEl.querySelectorAll('.attr-chip')].map(el => el.dataset.aid)
-        : (e.target_attributes || []);
-    }
-    return out;
-  });
+  boardEffectsDraft = boardEffectsDraft.map((e, i) => readEffectFromForm('terrain', `bf-eff-${i}`, e));
   return boardEffectsDraft;
 }
 
@@ -7771,20 +7678,13 @@ function _syncBoardDraft() {
 
 function changeBoardEffectType(i, type) {
   _syncBoardDraft();
-  const prev = boardEffectsDraft[i] || {};
-  // Le ciblage survit tant que le nouveau type le LIT : perdre une liste
-  // d'archétypes choisie à la main en passant de « bonus de stat » à
-  // « bouclier » serait une punition sans raison — les deux visent les mêmes
-  // unités. Un type qui ne cible personne, lui, ne garde rien.
-  boardEffectsDraft[i] = BOARD_EFFECTS_TARGETING.has(type)
-    ? { type, value: prev.value ?? 0, stat: prev.stat || 'atk', target_attributes: prev.target_attributes || [] }
-    : { type, value: prev.value ?? 0 };
+  boardEffectsDraft[i] = _effetTypeChange('terrain', type, boardEffectsDraft[i]);
   renderBoardDetail();
 }
 
 function addBoardEffect() {
   _syncBoardDraft();
-  boardEffectsDraft.push({ type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: [] });
+  boardEffectsDraft.push(EFX.effetNeuf('terrain', 'stat_bonus'));
   renderBoardDetail();
 }
 
@@ -7874,42 +7774,6 @@ function renderBoardDetail() {
     </div>
   `;
   _renderBlockedCellsGrid();
-}
-
-// Les puces de ciblage se manipulent DANS LE DOM (sans re-render) : c'est ce
-// qui laisse intacte la saisie en cours des autres effets. `_readBoardEffects`
-// les relit au moment voulu.
-function removeBoardTargetAttr(i, aid) {
-  const chip = document.querySelector(`#bf-eff-${i}-attrs .attr-chip[data-aid="${aid}"]`);
-  if (chip) chip.remove();
-}
-
-function openBoardAttrPickModal(i) {
-  const current = [...document.querySelectorAll(`#bf-eff-${i}-attrs .attr-chip`)].map(el => el.dataset.aid);
-  showModal(`
-    <h2>Ajouter un attribut cible</h2>
-    <div style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto">
-      ${attributes.filter(a => !current.includes(a.id)).map(a => `
-        <div class="list-item" style="border-radius:6px" onclick="addBoardTargetAttr(${i}, '${a.id}')">
-          <span style="font-size:16px">${a.icon || ''}</span>
-          <div><div>${esc(a.name)}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${a.id}</div></div>
-        </div>
-      `).join('')}
-    </div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">Fermer</button></div>
-  `);
-}
-
-function addBoardTargetAttr(i, aid) {
-  const chipsEl = document.getElementById(`bf-eff-${i}-attrs`);
-  if (!chipsEl || chipsEl.querySelector(`[data-aid="${aid}"]`)) { closeModal(); return; }
-  const chip = document.createElement('span');
-  chip.className = 'attr-chip';
-  chip.dataset.aid = aid;
-  chip.onclick = () => removeBoardTargetAttr(i, aid);
-  chip.innerHTML = `${getAttrName(aid)} <span class="remove">×</span>`;
-  chipsEl.insertBefore(chip, chipsEl.querySelector('.attr-add'));
-  closeModal();
 }
 
 function _renderBlockedCellsGrid() {
