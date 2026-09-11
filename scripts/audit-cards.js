@@ -47,6 +47,7 @@ function audit() {
   const missing = Object.fromEntries(REQUIRED_CATEGORIES.map(c => [c, []]));
   const unknownAttr = [];
   const legacyField = [];
+  const legacyInitiative = [];
   const badRates = [];
   const badDurations = [];
   const multiTier = [];
@@ -77,19 +78,31 @@ function audit() {
     if (c.tier !== undefined) {
       legacyField.push(`${c.id} → champ tier ${c.tier}, attributs ${ts.length ? `T${ts.join('·T')}` : '—'}`);
     }
+    // ⚠️ Même famille : `stats.initiative` n'a plus AUCUN lecteur depuis que
+    // l'ordre d'action se dérive du tier, de l'ATQ et de la vitesse de
+    // déplacement. Il est inerte — donc pas un refus en 400, contrairement au
+    // champ `tier` ou à une vitesse restée en ticks, qui rendaient la carte
+    // JOUABLE ET FAUSSE. Mais le laisser vivre, c'est laisser l'admin le
+    // rééditer et croire qu'il règle quelque chose : l'audit le nomme.
+    if (c.stats && c.stats.initiative !== undefined) {
+      legacyInitiative.push(`${c.id} → stats.initiative ${c.stats.initiative}`);
+    }
   }
 
   const attrsWithoutTier = ATTRS
     .filter(a => a.categorie === TIER_CATEGORY && !(Number(a.tier) > 0))
     .map(a => a.id);
 
-  return { missing, unknownAttr, legacyField, badRates, badDurations, multiTier, attrsWithoutTier };
+  return {
+    missing, unknownAttr, legacyField, legacyInitiative,
+    badRates, badDurations, multiTier, attrsWithoutTier,
+  };
 }
 
 const r = audit();
 const errors = REQUIRED_CATEGORIES.reduce((n, c) => n + r.missing[c].length, 0)
-  + r.unknownAttr.length + r.legacyField.length + r.badRates.length + r.badDurations.length
-  + r.attrsWithoutTier.length;
+  + r.unknownAttr.length + r.legacyField.length + r.legacyInitiative.length
+  + r.badRates.length + r.badDurations.length + r.attrsWithoutTier.length;
 
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify({ source: DATA, cards: CARDS.length, errors, ...r }, null, 2));
@@ -107,6 +120,7 @@ console.log(`Catalogue : ${DATA}  (${CARDS.length} cartes, ${ATTRS.length} attri
 for (const cat of REQUIRED_CATEGORIES) show(`✗ Sans attribut de catégorie « ${cat} »`, r.missing[cat]);
 show('✗ Attributs inconnus du catalogue', r.unknownAttr);
 show('✗ Champ `tier` résiduel (le retirer : scripts/migrate-tiers.js --write)', r.legacyField);
+show('✗ Champ `stats.initiative` résiduel (le retirer : scripts/migrate-initiative.js --write)', r.legacyInitiative);
 show('✗ Vitesse manquante ou en ticks (reprise : scripts/migrate-speeds.js --write)', r.badRates);
 show('✗ Durée de pouvoir invalide ou en ticks (reprise : scripts/migrate-speeds.js --write)', r.badDurations);
 show('✗ Attribut de tier sans champ `tier`', r.attrsWithoutTier);

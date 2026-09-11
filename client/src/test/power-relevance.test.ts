@@ -21,17 +21,17 @@ function arena(power: any, opts: { casterStats?: any; targetPower?: any } = {}) 
   const board = makeBoard();
   const caster = spawn(board, makeCard({
     id: 'P_CASTER', power,
-    stats: { atk: 10, hp: 200, attack_rate: 100, initiative: 5, movement_rate: 100, range: 3, ...opts.casterStats },
+    stats: { atk: 10, hp: 200, attack_rate: 100, movement_rate: 100, range: 3, ...opts.casterStats },
   }), 'player', { col: 2, row: 3 });
   const ally = spawn(board, makeCard({
-    id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_rate: 100, initiative: 4, movement_rate: 100, range: 1 },
+    id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_rate: 100, movement_rate: 100, range: 1 },
   }), 'player', { col: 1, row: 3 });
   const target = spawn(board, makeCard({
     id: 'E_TARGET', power: opts.targetPower ?? null,
-    stats: { atk: 5, hp: 500, attack_rate: 100, initiative: 3, movement_rate: 100, range: 1 },
+    stats: { atk: 5, hp: 500, attack_rate: 100, movement_rate: 100, range: 1 },
   }), 'enemy', { col: 2, row: 7 });
   const target2 = spawn(board, makeCard({
-    id: 'E_TARGET_2', stats: { atk: 5, hp: 500, attack_rate: 100, initiative: 3, movement_rate: 100, range: 1 },
+    id: 'E_TARGET_2', stats: { atk: 5, hp: 500, attack_rate: 100, movement_rate: 100, range: 1 },
   }), 'enemy', { col: 3, row: 7 });
 
   const combat = new (CombatManager as any)(board, [caster, ally], [target, target2], null);
@@ -217,11 +217,11 @@ describe('conséquence en combat : la jauge est RETENUE, pas dépensée', () => 
     const board = makeBoard();
     const caster = spawn(board, makeCard({
       id: 'P_CASTER', power,
-      stats: { atk: 10, hp: 500, attack_rate: 100, initiative: 9, movement_rate: 100, range: 3 },
+      stats: { atk: 10, hp: 500, attack_rate: 100, movement_rate: 100, range: 3 },
     }), 'player', { col: 2, row: 5 });
     const target = spawn(board, makeCard({
       id: 'E_TARGET', power: targetPower,
-      stats: { atk: 1, hp: 500, attack_rate: 100, initiative: 1, movement_rate: 0, range: 1 },
+      stats: { atk: 1, hp: 500, attack_rate: 100, movement_rate: 0, range: 1 },
     }), 'enemy', { col: 2, row: 7 });
     const combat = new (CombatManager as any)(board, [caster], [target], null);
     return { combat, caster, target };
@@ -265,16 +265,16 @@ describe('pouvoirs SANS PORTÉE : soin, provocation, téléportation', () => {
     const board = makeBoard();
     const caster = spawn(board, makeCard({
       id: 'P_CASTER', power,
-      stats: { atk: 10, hp: 200, attack_rate: 100, initiative: 9, movement_rate: 0, range: opts.range ?? 1 },
+      stats: { atk: 10, hp: 200, attack_rate: 100, movement_rate: 0, range: opts.range ?? 1 },
     }), 'player', { col: 2, row: 0 });
     const ally = spawn(board, makeCard({
-      id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_rate: 100, initiative: 8, movement_rate: 0, range: 1 },
+      id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_rate: 100, movement_rate: 0, range: 1 },
     }), 'player', { col: 1, row: 0 });
     const foe = spawn(board, makeCard({
-      id: 'E_FOE', stats: { atk: 5, hp: 500, attack_rate: 100, initiative: 1, movement_rate: 0, range: 1 },
+      id: 'E_FOE', stats: { atk: 5, hp: 500, attack_rate: 100, movement_rate: 0, range: 1 },
     }), 'enemy', { col: 2, row: 10 });
     const foe2 = spawn(board, makeCard({
-      id: 'E_FOE_2', stats: { atk: 5, hp: 500, attack_rate: 100, initiative: 1, movement_rate: 0, range: 1 },
+      id: 'E_FOE_2', stats: { atk: 5, hp: 500, attack_rate: 100, movement_rate: 0, range: 1 },
     }), 'enemy', { col: 4, row: 10 });
     if (opts.allyHp !== undefined) ally.current_hp = opts.allyHp;
 

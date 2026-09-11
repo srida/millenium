@@ -51,7 +51,7 @@ export interface DetectorResult {
  *
  * ⚠️ Ce n'est pas une précaution de principe : le siège n'est pas neutre.
  * `CombatManager` trie `[...playerUnits, ...enemyUnits]` et, à égalité totale
- * d'initiative, de vitesse d'attaque et de `card_id`, le tri stable laisse le
+ * de tier, d'ATQ, de vitesse et de `card_id`, le tri stable laisse le
  * joueur frapper le premier — mesuré à 61 % pour le côté A sur un miroir. Le
  * départage par `card_id` porte le déterminisme PvP, on n'y touche pas : on
  * joue les deux sens.

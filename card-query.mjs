@@ -441,7 +441,7 @@ function sortKey(field, item, dir) {
  * ⚠️ Départage par `id` : sans lui, deux fiches de même valeur s'échangeraient
  * d'un rendu à l'autre (le tri de `Array.prototype.sort` est stable, mais la
  * liste d'entrée, elle, vient d'un filtre qui a pu changer). Même geste que le
- * départage par `card_id` de l'ordre d'initiative.
+ * départage par `card_id` de l'ordre d'action du combat.
  */
 export function sortItems(items, schema, { key = '', dir = 'asc' } = {}) {
   const list = [...(items ?? [])];
@@ -773,7 +773,6 @@ export function cardQuerySchema(deps = {}) {
       // les anciens noms de champ pour ne pas casser une requête enregistrée.
       { key: 'vitesse', aliases: ['movement_rate', 'movement_speed', 'deplacement'], label: 'Vitesse de déplacement (0–100)', type: 'number', get: stat('movement_rate') },
       { key: 'cadence', aliases: ['attack_rate', 'attack_speed'], label: 'Vitesse d\'attaque (0–100)', type: 'number', get: stat('attack_rate') },
-      { key: 'initiative', aliases: ['init'], label: 'Initiative', type: 'number', get: stat('initiative') },
       { key: 'portee', aliases: ['range'], label: 'Portée', type: 'number', get: stat('range') },
       { key: 'cout', aliases: ['cost', 'materiels'], label: 'Coût en matériels', type: 'number', get: c => summonCost(c) },
       { key: 'recettes', aliases: ['conditions'], label: 'Nombre de recettes', type: 'number', get: c => (c.summon_conditions ?? []).length },

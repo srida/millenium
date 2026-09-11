@@ -3,7 +3,7 @@ import { clampRate, rateForTicks, RATE_STATS } from '../../../speed-scale.mjs';
 
 export const STAT_NAMES = {
   atk: 'ATK', hp: 'HP', attack_rate: 'Vit. attaque',
-  movement_rate: 'Vit. déplacement', range: 'Portée', initiative: 'Initiative',
+  movement_rate: 'Vit. déplacement', range: 'Portée',
 };
 
 // Records the actual permanent _base delta granted by a Shopping Phase magie, so that

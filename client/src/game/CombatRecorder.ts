@@ -47,7 +47,7 @@ const MIRROR_AXIS = 10;
  * de `refUnit` dans `client/src/test/helpers.ts`, et pour la même raison.
  */
 export const UNIT_COLUMNS = [
-  'key', 'col', 'row', 'hp', 'max_hp', 'shield', 'atk', 'initiative',
+  'key', 'col', 'row', 'hp', 'max_hp', 'shield', 'atk', 'movement_rate',
   'attack_period_eff', 'gauge', 'attack_timer', 'move_timer',
   'paralysis', 'block', 'confusion', 'taunt', 'dots', 'burns', 'alive',
 ] as const;
@@ -148,10 +148,10 @@ export class CombatRecorder {
     if (this._truncated) return;
     const record: TickRecord = {
       t: this.tickOf(combat),
-      // L'ordre d'initiative recalculé à l'identique du moteur : c'est lui qui
+      // L'ordre d'action recalculé à l'identique du moteur : c'est lui qui
       // commande tout le reste du tick, et le symptôme le plus lisible d'une
       // divergence de tri ou d'ordre de tableau.
-      order: this.initiativeOrder(combat),
+      order: this.actionOrder(combat),
       units: this.snapshotUnits(combat),
       // ⚠️ Copie PROFONDE à l'émission : les objets d'événement (`dot`,
       // `extra`) portent des références vivantes que les steps suivants mutent.
@@ -179,27 +179,28 @@ export class CombatRecorder {
   }
 
   /**
-   * ⚠️ Recopie EXACTEMENT le tri de `CombatManager.step()` — initiative
-   * décroissante, vitesse d'attaque effective décroissante, `card_id`
+   * ⚠️ Recopie EXACTEMENT le tri de `CombatManager.step()` — tier décroissant,
+   * ATQ décroissante, vitesse de déplacement décroissante, `card_id`
    * croissante, puis le CAMP dans le repère de référence. Le but n'est pas de
    * le vérifier mais de le photographier : si le tri lui-même rend deux ordres
    * différents sur les deux clients, c'est précisément ce qu'on veut voir
    * apparaître dans le fichier.
    *
    * ⚠️ C'est une COPIE, donc une chose à tenir d'accord à la main — et elle a
-   * déjà dérivé une fois : le départage par camp ajouté au moteur manquait ici,
-   * et l'outil rapportait `order` divergent sur un duel que le moteur jouait
-   * pourtant à l'identique. Le camp est ici le préfixe de `key()`, qui est déjà
-   * canonique ('A' avant 'B').
+   * déjà dérivé deux fois : le départage par camp ajouté au moteur manquait
+   * ici, et l'outil rapportait `order` divergent sur un duel que le moteur
+   * jouait pourtant à l'identique ; puis le retrait de l'initiative. Le camp
+   * est ici le préfixe de `key()`, qui est déjà canonique ('A' avant 'B').
    */
-  private initiativeOrder(combat: any): string[] {
+  private actionOrder(combat: any): string[] {
     const all = [...(combat?.playerUnits ?? []), ...(combat?.enemyUnits ?? [])];
     return all
       .filter((u: any) => u?.isAlive?.())
       .map((u: any) => ({ u, key: this.key(u) }))
       .sort((a: any, b: any) => (
-        b.u.initiative - a.u.initiative
-        || b.u.effectiveAttackPeriod() - a.u.effectiveAttackPeriod()
+        b.u.tier - a.u.tier
+        || b.u.atk - a.u.atk
+        || b.u.movement_rate - a.u.movement_rate
         || String(a.u.card_id).localeCompare(String(b.u.card_id))
         || a.key.localeCompare(b.key)
       ))
@@ -228,7 +229,7 @@ export class CombatRecorder {
       u.max_hp,
       u.shield ?? 0,
       u.atk,
-      u.initiative,
+      u.movement_rate,
       u.effectiveAttackPeriod?.() ?? u.attack_period,
       u.power_gauge ?? 0,
       u.attack_timer ?? 0,

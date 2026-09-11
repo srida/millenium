@@ -169,7 +169,7 @@ function diff(a, b) {
       return { kind: 'length', tick, detail: { field: 't', A: ta.t, B: tb.t } };
     }
 
-    // L'ordre d'initiative en premier : c'est lui qui décide de tout le reste du
+    // L'ordre d'action en premier : c'est lui qui décide de tout le reste du
     // tick, et il est le symptôme le plus lisible d'une divergence de tri ou
     // d'ordre de tableau.
     if (!sameList(ta.order, tb.order)) {

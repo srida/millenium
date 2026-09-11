@@ -313,7 +313,6 @@ exports[`/api/cards > empreinte du quintuplet 1`] = `
           "atk": 10,
           "attack_rate": 60,
           "hp": 100,
-          "initiative": 4,
           "movement_rate": 55,
           "range": 1,
         },

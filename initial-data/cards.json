@@ -14,7 +14,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 210,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -48,7 +47,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 250,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 79,
 			"movement_rate": 90
@@ -80,7 +78,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 170,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -103,7 +100,6 @@
 		"stats": {
 			"atk": 2,
 			"hp": 100,
-			"initiative": 1,
 			"range": 1,
 			"attack_rate": 98,
 			"movement_rate": 90
@@ -128,7 +124,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 210,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 96
@@ -158,7 +153,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 160,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 96
@@ -186,7 +180,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 230,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -224,7 +217,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -249,7 +241,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 140,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -272,7 +263,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 250,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -298,7 +288,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 280,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -337,7 +326,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 120,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -366,7 +354,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 210,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -395,7 +382,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -420,7 +406,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -448,7 +433,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 230,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 96
@@ -489,7 +473,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -513,7 +496,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 250,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -541,7 +523,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -566,7 +547,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -590,7 +570,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -613,7 +592,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -638,7 +616,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -665,7 +642,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 120,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -689,7 +665,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 180,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -713,7 +688,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -736,7 +710,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -762,7 +735,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 160,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -787,7 +759,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -812,7 +783,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 160,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 96
@@ -836,7 +806,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -862,7 +831,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 96
@@ -893,7 +861,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 210,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 96
@@ -925,7 +892,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 120,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -951,7 +917,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 80,
-			"initiative": 3,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -975,7 +940,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -998,7 +962,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 90
@@ -1022,7 +985,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 200,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 83
@@ -1062,7 +1024,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 160,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -1086,7 +1047,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 150,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -1112,7 +1072,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -1141,7 +1100,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 160,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -1176,7 +1134,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 210,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 90
@@ -1204,7 +1161,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 160,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -1229,7 +1185,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 170,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -1253,7 +1208,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -1279,7 +1233,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 160,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -1305,7 +1258,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -1331,7 +1283,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 130,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 90
@@ -1355,7 +1306,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 160,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -1380,7 +1330,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 90
@@ -1404,7 +1353,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -1429,7 +1377,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -1454,7 +1401,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -1479,7 +1425,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -1503,7 +1448,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 280,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -1541,7 +1485,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 170,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -1566,7 +1509,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -1591,7 +1533,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -1616,7 +1557,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 380,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -1658,7 +1598,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -1683,7 +1622,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -1708,7 +1646,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -1735,7 +1672,6 @@
 		"stats": {
 			"atk": 38,
 			"hp": 250,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -1791,7 +1727,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 270,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -1832,7 +1767,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 400,
-			"initiative": 10,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -1879,7 +1813,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -1919,7 +1852,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 260,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -1963,7 +1895,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 190,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 79,
 			"movement_rate": 96
@@ -2005,7 +1936,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 210,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 79,
 			"movement_rate": 83
@@ -2047,7 +1977,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 220,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 79,
 			"movement_rate": 90
@@ -2087,7 +2016,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 200,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -2114,7 +2042,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -2138,7 +2065,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -2170,7 +2096,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 150,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -2210,7 +2135,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 260,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -2252,7 +2176,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 220,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 96
@@ -2285,7 +2208,6 @@
 		"stats": {
 			"atk": 7,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -2308,7 +2230,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 130,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -2333,7 +2254,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -2358,7 +2278,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -2382,7 +2301,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -2407,7 +2325,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 250,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -2446,7 +2363,6 @@
 		"stats": {
 			"atk": 3,
 			"hp": 250,
-			"initiative": 1,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 83
@@ -2476,7 +2392,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 300,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -2506,7 +2421,6 @@
 		"stats": {
 			"atk": 36,
 			"hp": 320,
-			"initiative": 10,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -2546,7 +2460,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 400,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -2587,7 +2500,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 320,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 79,
 			"movement_rate": 90
@@ -2630,7 +2542,6 @@
 		"stats": {
 			"atk": 32,
 			"hp": 280,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -2669,7 +2580,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 96
@@ -2693,7 +2603,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 260,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 83
@@ -2723,7 +2632,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -2749,7 +2657,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 80,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -2774,7 +2681,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 100,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -2799,7 +2705,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 250,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -2824,7 +2729,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 120,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -2849,7 +2753,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 150,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -2890,7 +2793,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 300,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -2931,7 +2833,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 250,
-			"initiative": 6,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -2973,7 +2874,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 190,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -3014,7 +2914,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 500,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -3060,7 +2959,6 @@
 		"stats": {
 			"atk": 45,
 			"hp": 400,
-			"initiative": 10,
 			"range": 4,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -3099,7 +2997,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 300,
-			"initiative": 10,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -3140,7 +3037,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 210,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -3180,7 +3076,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 210,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -3220,7 +3115,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 250,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -3257,7 +3151,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 360,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -3296,7 +3189,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 220,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -3334,7 +3226,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -3369,7 +3260,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 220,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -3405,7 +3295,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 160,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -3442,7 +3331,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 220,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -3480,7 +3368,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 200,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -3517,7 +3404,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 300,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -3554,7 +3440,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 160,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -3589,7 +3474,6 @@
 		"stats": {
 			"atk": 7,
 			"hp": 150,
-			"initiative": 3,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -3619,7 +3503,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 200,
-			"initiative": 5,
 			"range": 3,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -3647,7 +3530,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 280,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -3689,7 +3571,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 210,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -3731,7 +3612,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 200,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -3769,7 +3649,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 160,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -3808,7 +3687,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 280,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -3852,7 +3730,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 190,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -3893,7 +3770,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 140,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 96
@@ -3934,7 +3810,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 300,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -3979,7 +3854,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 160,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -4023,7 +3897,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 400,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -4068,7 +3941,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 250,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -4106,7 +3978,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 400,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -4147,7 +4018,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 130,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -4172,7 +4042,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -4197,7 +4066,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 110,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -4222,7 +4090,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 90,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 83
@@ -4252,7 +4119,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -4283,7 +4149,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 3,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -4309,7 +4174,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 200,
-			"initiative": 1,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 83
@@ -4335,7 +4199,6 @@
 		"stats": {
 			"atk": 6,
 			"hp": 250,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 83
@@ -4359,7 +4222,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 160,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -4385,7 +4247,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 140,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -4411,7 +4272,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 160,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -4439,7 +4299,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 180,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -4467,7 +4326,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 250,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -4502,7 +4360,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 200,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -4536,7 +4393,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 350,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -4568,7 +4424,6 @@
 		"stats": {
 			"atk": 0,
 			"hp": 500,
-			"initiative": 10,
 			"range": 4,
 			"attack_rate": 76,
 			"movement_rate": 76
@@ -4604,7 +4459,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 350,
-			"initiative": 10,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -4644,7 +4498,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 450,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -4680,7 +4533,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 150,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -4703,7 +4555,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 170,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -4727,7 +4578,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 140,
-			"initiative": 3,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 83
@@ -4751,7 +4601,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -4776,7 +4625,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -4805,7 +4653,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 190,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 96
@@ -4830,7 +4677,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 200,
-			"initiative": 5,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -4854,7 +4700,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 210,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -4882,7 +4727,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 180,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -4910,7 +4754,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 220,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -4941,7 +4784,6 @@
 		"stats": {
 			"atk": 32,
 			"hp": 320,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -4978,7 +4820,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 270,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 96
@@ -5009,7 +4850,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 170,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -5034,7 +4874,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 160,
-			"initiative": 5,
 			"range": 3,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -5058,7 +4897,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -5081,7 +4919,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 100,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -5105,7 +4942,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 90,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -5128,7 +4964,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 110,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -5151,7 +4986,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 150,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -5179,7 +5013,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 83
@@ -5207,7 +5040,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 100,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 83
@@ -5243,7 +5075,6 @@
 		"stats": {
 			"atk": 0,
 			"hp": 400,
-			"initiative": 2,
 			"range": 4,
 			"attack_rate": 76,
 			"movement_rate": 76
@@ -5271,7 +5102,6 @@
 		"stats": {
 			"atk": 11,
 			"hp": 90,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -5297,7 +5127,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 250,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -5331,7 +5160,6 @@
 		"stats": {
 			"atk": 36,
 			"hp": 320,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -5365,7 +5193,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 250,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -5397,7 +5224,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 160,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -5421,7 +5247,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -5445,7 +5270,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 130,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -5467,7 +5291,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 150,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -5490,7 +5313,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -5513,7 +5335,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 120,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -5538,7 +5359,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 210,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -5571,7 +5391,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 280,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -5599,7 +5418,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 210,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -5626,7 +5444,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 100,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -5650,7 +5467,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 120,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 83
@@ -5674,7 +5490,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -5700,7 +5515,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 270,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 96
@@ -5727,7 +5541,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 280,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -5758,7 +5571,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -5782,7 +5594,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 200,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -5806,7 +5617,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 130,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -5830,7 +5640,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 200,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -5854,7 +5663,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 100,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -5880,7 +5688,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 200,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -5904,7 +5711,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 130,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -5931,7 +5737,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -5955,7 +5760,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 260,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -5988,7 +5792,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 330,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -6020,7 +5823,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 210,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -6049,7 +5851,6 @@
 		"stats": {
 			"atk": 32,
 			"hp": 270,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -6088,7 +5889,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 150,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -6111,7 +5911,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -6145,7 +5944,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -6171,7 +5969,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 110,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -6197,7 +5994,6 @@
 		"stats": {
 			"atk": 11,
 			"hp": 170,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -6222,7 +6018,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 150,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -6254,7 +6049,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 200,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -6284,7 +6078,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 270,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -6327,7 +6120,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 260,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -6363,7 +6155,6 @@
 		"stats": {
 			"atk": 32,
 			"hp": 280,
-			"initiative": 10,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -6394,7 +6185,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 150,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -6429,7 +6219,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 140,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -6462,7 +6251,6 @@
 		"stats": {
 			"atk": 1,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 83
@@ -6487,7 +6275,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 150,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 90
@@ -6523,7 +6310,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 300,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 99,
 			"movement_rate": 83
@@ -6562,7 +6348,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 200,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -6600,7 +6385,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 250,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -6638,7 +6422,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 160,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -6671,7 +6454,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 160,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -6696,7 +6478,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 210,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -6729,7 +6510,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -6752,7 +6532,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -6775,7 +6554,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 90,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -6799,7 +6577,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -6824,7 +6601,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 160,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -6847,7 +6623,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -6872,7 +6647,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 200,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -6902,7 +6676,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 80,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 90
@@ -6932,7 +6705,6 @@
 		"stats": {
 			"atk": 6,
 			"hp": 150,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 99,
 			"movement_rate": 96
@@ -6956,7 +6728,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 100,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -6980,7 +6751,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -7004,7 +6774,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 130,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -7027,7 +6796,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -7051,7 +6819,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 250,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 83
@@ -7075,7 +6842,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 350,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -7111,7 +6877,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 200,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -7142,7 +6907,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 160,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -7166,7 +6930,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 260,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -7198,7 +6961,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 150,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -7230,7 +6992,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 280,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -7261,7 +7022,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 200,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -7293,7 +7053,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 200,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -7325,7 +7084,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 210,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 88,
 			"movement_rate": 96
@@ -7358,7 +7116,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 450,
-			"initiative": 10,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -7399,7 +7156,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 200,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -7423,7 +7179,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 110,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 96
@@ -7447,7 +7202,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 220,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 83
@@ -7478,7 +7232,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -7501,7 +7254,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -7523,7 +7275,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 210,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -7546,7 +7297,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -7569,7 +7319,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -7592,7 +7341,6 @@
 		"stats": {
 			"atk": 33,
 			"hp": 380,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -7630,7 +7378,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 120,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -7657,7 +7404,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 160,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -7691,7 +7437,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 110,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 96
@@ -7725,7 +7470,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 500,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -7761,7 +7505,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 170,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -7784,7 +7527,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 260,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -7814,7 +7556,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 210,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 90
@@ -7844,7 +7585,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 260,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -7871,7 +7611,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -7894,7 +7633,6 @@
 		"stats": {
 			"atk": 7,
 			"hp": 90,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -7917,7 +7655,6 @@
 		"stats": {
 			"atk": 36,
 			"hp": 350,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -7954,7 +7691,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 280,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -7991,7 +7727,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 210,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -8014,7 +7749,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 60,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -8037,7 +7771,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 230,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -8073,7 +7806,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 170,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -8100,7 +7832,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 200,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -8145,7 +7876,6 @@
 		"stats": {
 			"atk": 43,
 			"hp": 340,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -8183,7 +7913,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 160,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -8211,7 +7940,6 @@
 		"stats": {
 			"atk": 38,
 			"hp": 360,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -8249,7 +7977,6 @@
 		"stats": {
 			"atk": 48,
 			"hp": 420,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 96
@@ -8288,7 +8015,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 300,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -8331,7 +8057,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 300,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -8373,7 +8098,6 @@
 		"stats": {
 			"atk": 37,
 			"hp": 320,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 88,
 			"movement_rate": 83
@@ -8412,7 +8136,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 380,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -8449,7 +8172,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 160,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -8479,7 +8201,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -8505,7 +8226,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 80,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -8530,7 +8250,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 70,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -8558,7 +8277,6 @@
 		"stats": {
 			"atk": 34,
 			"hp": 300,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 83
@@ -8597,7 +8315,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 250,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 96,
 			"movement_rate": 96
@@ -8635,7 +8352,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 180,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 95,
 			"movement_rate": 90
@@ -8675,7 +8391,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 240,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -8702,7 +8417,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 150,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -8727,7 +8441,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 160,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -8752,7 +8465,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 130,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -8781,7 +8493,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -8805,7 +8516,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -8830,7 +8540,6 @@
 		"stats": {
 			"atk": 42,
 			"hp": 440,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -8866,7 +8575,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 280,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -8904,7 +8612,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 280,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -8944,7 +8651,6 @@
 		"stats": {
 			"atk": 31,
 			"hp": 340,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -8981,7 +8687,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 280,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -9019,7 +8724,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 300,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 83
@@ -9048,7 +8752,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 240,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -9076,7 +8779,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -9101,7 +8803,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 210,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -9126,7 +8827,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 110,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 95,
 			"movement_rate": 90
@@ -9152,7 +8852,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 400,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 90
@@ -9187,7 +8886,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 210,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -9216,7 +8914,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 250,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 83
@@ -9251,7 +8948,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 140,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -9280,7 +8976,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 400,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -9324,7 +9019,6 @@
 		"stats": {
 			"atk": 32,
 			"hp": 360,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -9357,7 +9051,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -9384,7 +9077,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 400,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -9421,7 +9113,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 400,
-			"initiative": 10,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -9459,7 +9150,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 360,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -9493,7 +9183,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 96
@@ -9517,7 +9206,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 160,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -9551,7 +9239,6 @@
 		"stats": {
 			"atk": 33,
 			"hp": 200,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -9588,7 +9275,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 210,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -9627,7 +9313,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 190,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -9651,7 +9336,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 280,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -9681,7 +9365,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 90,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -9704,7 +9387,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -9731,7 +9413,6 @@
 		"stats": {
 			"atk": 50,
 			"hp": 500,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -9767,7 +9448,6 @@
 		"stats": {
 			"atk": 33,
 			"hp": 290,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -9807,7 +9487,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 280,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -9847,7 +9526,6 @@
 		"stats": {
 			"atk": 31,
 			"hp": 250,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -9887,7 +9565,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 250,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -9922,7 +9599,6 @@
 		"stats": {
 			"atk": 36,
 			"hp": 400,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -9958,7 +9634,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 400,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -9994,7 +9669,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 170,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -10026,7 +9700,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 250,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -10058,7 +9731,6 @@
 		"stats": {
 			"atk": 36,
 			"hp": 340,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -10098,7 +9770,6 @@
 		"stats": {
 			"atk": 34,
 			"hp": 370,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 96
@@ -10140,7 +9811,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -10166,7 +9836,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 400,
-			"initiative": 10,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -10199,7 +9868,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 400,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -10238,7 +9906,6 @@
 		"stats": {
 			"atk": 50,
 			"hp": 500,
-			"initiative": 10,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -10279,7 +9946,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 160,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -10317,7 +9983,6 @@
 		"stats": {
 			"atk": 50,
 			"hp": 500,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -10359,7 +10024,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 80,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -10393,7 +10057,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 350,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -10438,7 +10101,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 240,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -10482,7 +10144,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 240,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -10527,7 +10188,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 250,
-			"initiative": 6,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -10574,7 +10234,6 @@
 		"stats": {
 			"atk": 45,
 			"hp": 400,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -10620,7 +10279,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 220,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -10656,7 +10314,6 @@
 		"stats": {
 			"atk": 0,
 			"hp": 100,
-			"initiative": 4,
 			"range": 4,
 			"attack_rate": 76,
 			"movement_rate": 76
@@ -10685,7 +10342,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 400,
-			"initiative": 8,
 			"range": 4,
 			"attack_rate": 76,
 			"movement_rate": 76
@@ -10723,7 +10379,6 @@
 		"stats": {
 			"atk": 11,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -10757,7 +10412,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 160,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -10792,7 +10446,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 91,
 			"movement_rate": 83
@@ -10831,7 +10484,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 60,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -10861,7 +10513,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 260,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 76
@@ -10901,7 +10552,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -10941,7 +10591,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 210,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -10981,7 +10630,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -11014,7 +10662,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 200,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -11051,7 +10698,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 300,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -11087,7 +10733,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 150,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -11110,7 +10755,6 @@
 		"stats": {
 			"atk": 31,
 			"hp": 350,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -11148,7 +10792,6 @@
 		"stats": {
 			"atk": 50,
 			"hp": 300,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 76,
 			"movement_rate": 96
@@ -11186,7 +10829,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 200,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 98,
 			"movement_rate": 96
@@ -11227,7 +10869,6 @@
 		"stats": {
 			"atk": 45,
 			"hp": 380,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -11265,7 +10906,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 300,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -11302,7 +10942,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 100,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 98,
 			"movement_rate": 96
@@ -11341,7 +10980,6 @@
 		"stats": {
 			"atk": 34,
 			"hp": 360,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -11380,7 +11018,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 500,
-			"initiative": 10,
 			"range": 4,
 			"attack_rate": 76,
 			"movement_rate": 76
@@ -11418,7 +11055,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 250,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -11452,7 +11088,6 @@
 		"stats": {
 			"atk": 37,
 			"hp": 350,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -11491,7 +11126,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -11526,7 +11160,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 170,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -11553,7 +11186,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -11582,7 +11214,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -11627,7 +11258,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 160,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -11671,7 +11301,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 170,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -11698,7 +11327,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 90,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -11727,7 +11355,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -11752,7 +11379,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -11782,7 +11408,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -11808,7 +11433,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -11838,7 +11462,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 340,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -11875,7 +11498,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 220,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -11907,7 +11529,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 240,
-			"initiative": 6,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -11941,7 +11562,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 140,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -11981,7 +11601,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 110,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -12009,7 +11628,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 210,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -12045,7 +11663,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 6,
 			"range": 4,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -12084,7 +11701,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 220,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 82,
 			"movement_rate": 96
@@ -12123,7 +11739,6 @@
 		"stats": {
 			"atk": 45,
 			"hp": 450,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -12161,7 +11776,6 @@
 		"stats": {
 			"atk": 33,
 			"hp": 330,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -12199,7 +11813,6 @@
 		"stats": {
 			"atk": 44,
 			"hp": 440,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -12241,7 +11854,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 300,
-			"initiative": 8,
 			"range": 4,
 			"attack_rate": 92,
 			"movement_rate": 76
@@ -12278,7 +11890,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 60,
-			"initiative": 2,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -12301,7 +11912,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 60,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 83
@@ -12328,7 +11938,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 210,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -12354,7 +11963,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 160,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 83
@@ -12382,7 +11990,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 50,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -12406,7 +12013,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 170,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -12441,7 +12047,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 100,
-			"initiative": 4,
 			"range": 4,
 			"attack_rate": 83,
 			"movement_rate": 90
@@ -12469,7 +12074,6 @@
 		"stats": {
 			"atk": 2,
 			"hp": 130,
-			"initiative": 3,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 83
@@ -12498,7 +12102,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 70,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -12529,7 +12132,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 260,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 76
@@ -12556,7 +12158,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 100,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -12589,7 +12190,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 320,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 76
@@ -12620,7 +12220,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 99,
 			"movement_rate": 90
@@ -12655,7 +12254,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 250,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -12688,7 +12286,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -12711,7 +12308,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -12737,7 +12333,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 220,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -12772,7 +12367,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -12802,7 +12396,6 @@
 		"stats": {
 			"atk": 3,
 			"hp": 50,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 96
@@ -12827,7 +12420,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -12852,7 +12444,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 160,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -12879,7 +12470,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 240,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -12911,7 +12501,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 180,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -12943,7 +12532,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 70,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -12970,7 +12558,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 100,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -13000,7 +12587,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 240,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -13037,7 +12623,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 220,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -13071,7 +12656,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 200,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -13107,7 +12691,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 160,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -13141,7 +12724,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 76
@@ -13166,7 +12748,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 100,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 98,
 			"movement_rate": 96
@@ -13204,7 +12785,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 83
@@ -13234,7 +12814,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 190,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -13280,7 +12859,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 100,
-			"initiative": 6,
 			"range": 3,
 			"attack_rate": 94,
 			"movement_rate": 83
@@ -13314,7 +12892,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 150,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 90,
 			"movement_rate": 76
@@ -13352,7 +12929,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -13378,7 +12954,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 190,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -13409,7 +12984,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -13438,7 +13012,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -13466,7 +13039,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 50,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -13502,7 +13074,6 @@
 		"stats": {
 			"atk": 33,
 			"hp": 370,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -13543,7 +13114,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 100,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -13573,7 +13143,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 100,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 76
@@ -13605,7 +13174,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 100,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -13633,7 +13201,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 120,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -13658,7 +13225,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -13697,7 +13263,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 200,
-			"initiative": 8,
 			"range": 4,
 			"attack_rate": 90,
 			"movement_rate": 76
@@ -13735,7 +13300,6 @@
 		"stats": {
 			"atk": 3,
 			"hp": 100,
-			"initiative": 3,
 			"range": 4,
 			"attack_rate": 76,
 			"movement_rate": 96
@@ -13763,7 +13327,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -13792,7 +13355,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 98,
 			"movement_rate": 96
@@ -13818,7 +13380,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 240,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -13852,7 +13413,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 210,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 76
@@ -13879,7 +13439,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -13908,7 +13467,6 @@
 		"stats": {
 			"atk": 33,
 			"hp": 310,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -13950,7 +13508,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 150,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -13981,7 +13538,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 76
@@ -14020,7 +13576,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 240,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -14051,7 +13606,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 250,
-			"initiative": 10,
 			"range": 4,
 			"attack_rate": 90,
 			"movement_rate": 76
@@ -14090,7 +13644,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -14113,7 +13666,6 @@
 		"stats": {
 			"atk": 37,
 			"hp": 320,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -14143,7 +13695,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 320,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -14176,7 +13727,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 160,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -14209,7 +13759,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 50,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -14233,7 +13782,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 200,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -14261,7 +13809,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 100,
-			"initiative": 6,
 			"range": 3,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -14291,7 +13838,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 180,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -14316,7 +13862,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 80,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -14344,7 +13889,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 180,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -14376,7 +13920,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 140,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -14418,7 +13961,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 400,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 76
@@ -14462,7 +14004,6 @@
 		"stats": {
 			"atk": 32,
 			"hp": 360,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -14501,7 +14042,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -14528,7 +14068,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 170,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -14555,7 +14094,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 220,
-			"initiative": 5,
 			"range": 3,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -14580,7 +14118,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"initiative": 3,
 			"range": 3,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -14604,7 +14141,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 270,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -14637,7 +14173,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 380,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 76
@@ -14667,7 +14202,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 110,
-			"initiative": 6,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -14691,7 +14225,6 @@
 		"stats": {
 			"atk": 33,
 			"hp": 230,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -14732,7 +14265,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -14756,7 +14288,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 210,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -14781,7 +14312,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -14805,7 +14335,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 200,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 80,
 			"movement_rate": 76
@@ -14834,7 +14363,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 30,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -14864,7 +14392,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 250,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -14898,7 +14425,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 300,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 90
@@ -14935,7 +14461,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -14960,7 +14485,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -14986,7 +14510,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 50,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -15016,7 +14539,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 50,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -15057,7 +14579,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 300,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 79,
 			"movement_rate": 76
@@ -15102,7 +14623,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 80,
 			"movement_rate": 76
@@ -15130,7 +14650,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 190,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -15153,7 +14672,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 30,
-			"initiative": 3,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -15178,7 +14696,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -15213,7 +14730,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 290,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 76,
 			"movement_rate": 76
@@ -15241,7 +14757,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"initiative": 3,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -15265,7 +14780,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 190,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -15289,7 +14803,6 @@
 		"stats": {
 			"atk": 42,
 			"hp": 270,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 76,
 			"movement_rate": 76
@@ -15314,7 +14827,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -15340,7 +14852,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 170,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -15368,7 +14879,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 250,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 79,
 			"movement_rate": 76
@@ -15395,7 +14905,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -15419,7 +14928,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 96
@@ -15443,7 +14951,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 79,
 			"movement_rate": 83
@@ -15467,7 +14974,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -15495,7 +15001,6 @@
 		"stats": {
 			"atk": 3,
 			"hp": 160,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -15524,7 +15029,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 400,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 96
@@ -15553,7 +15057,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 200,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -15577,7 +15080,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -15600,7 +15102,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 160,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -15628,7 +15129,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 140,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -15652,7 +15152,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"initiative": 2,
 			"range": 4,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -15681,7 +15180,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -15706,7 +15204,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 82,
 			"movement_rate": 96
@@ -15730,7 +15227,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 40,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -15759,7 +15255,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 230,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -15785,7 +15280,6 @@
 		"stats": {
 			"atk": 3,
 			"hp": 20,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 96
@@ -15812,7 +15306,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 200,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -15843,7 +15336,6 @@
 		"stats": {
 			"atk": 34,
 			"hp": 400,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -15876,7 +15368,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 230,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -15909,7 +15400,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 300,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 80,
 			"movement_rate": 76
@@ -15937,7 +15427,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 76
@@ -15961,7 +15450,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 390,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -15997,7 +15485,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -16026,7 +15513,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 350,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -16059,7 +15545,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 120,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 96
@@ -16087,7 +15572,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 120,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -16115,7 +15599,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -16142,7 +15625,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 170,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -16169,7 +15651,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -16195,7 +15676,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 96
@@ -16232,7 +15712,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 300,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -16273,7 +15752,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 300,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 76
@@ -16311,7 +15789,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 170,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -16337,7 +15814,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -16361,7 +15837,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -16387,7 +15862,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 220,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -16430,7 +15904,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 220,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -16474,7 +15947,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 260,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -16508,7 +15980,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -16532,7 +16003,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 110,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -16560,7 +16030,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 220,
-			"initiative": 6,
 			"range": 3,
 			"attack_rate": 83,
 			"movement_rate": 90
@@ -16588,7 +16057,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 150,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -16612,7 +16080,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -16641,7 +16108,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 190,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 82,
 			"movement_rate": 90
@@ -16670,7 +16136,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 120,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -16696,7 +16161,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 120,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 96
@@ -16724,7 +16188,6 @@
 		"stats": {
 			"atk": 37,
 			"hp": 200,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 80,
 			"movement_rate": 83
@@ -16768,7 +16231,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 200,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 96
@@ -16802,7 +16264,6 @@
 		"stats": {
 			"atk": 3,
 			"hp": 30,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 90
@@ -16826,7 +16287,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 100,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 90
@@ -16863,7 +16323,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 160,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -16903,7 +16362,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 120,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -16932,7 +16390,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 140,
-			"initiative": 7,
 			"range": 4,
 			"attack_rate": 79,
 			"movement_rate": 76
@@ -16962,7 +16419,6 @@
 		"stats": {
 			"atk": 38,
 			"hp": 250,
-			"initiative": 9,
 			"range": 4,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -16999,7 +16455,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 50,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -17031,7 +16486,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 200,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -17061,7 +16515,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 130,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 82,
 			"movement_rate": 83
@@ -17094,7 +16547,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -17118,7 +16570,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 100,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -17143,7 +16594,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 130,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -17180,7 +16630,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 150,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -17209,7 +16658,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 220,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -17237,7 +16685,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 50,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -17267,7 +16714,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -17295,7 +16741,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -17321,7 +16766,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 350,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -17356,7 +16800,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 190,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -17382,7 +16825,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 240,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 96
@@ -17416,7 +16858,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 140,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -17440,7 +16881,6 @@
 		"stats": {
 			"atk": 33,
 			"hp": 340,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 82,
 			"movement_rate": 83
@@ -17473,7 +16913,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 360,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -17509,7 +16948,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 96
@@ -17533,7 +16971,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 160,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -17560,7 +16997,6 @@
 		"stats": {
 			"atk": 34,
 			"hp": 320,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -17601,7 +17037,6 @@
 		"stats": {
 			"atk": 45,
 			"hp": 420,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -17642,7 +17077,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 180,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -17686,7 +17120,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 300,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -17728,7 +17161,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 300,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -17767,7 +17199,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 300,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -17806,7 +17237,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 260,
-			"initiative": 8,
 			"range": 4,
 			"attack_rate": 86,
 			"movement_rate": 76
@@ -17848,7 +17278,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 180,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -17892,7 +17321,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 300,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -17936,7 +17364,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 350,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 83
@@ -17983,7 +17410,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 400,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -18033,7 +17459,6 @@
 		"stats": {
 			"atk": 44,
 			"hp": 470,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 96
@@ -18073,7 +17498,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 250,
-			"initiative": 6,
 			"range": 3,
 			"attack_rate": 83,
 			"movement_rate": 76
@@ -18112,7 +17536,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 50,
-			"initiative": 6,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 76
@@ -18152,7 +17575,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 240,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -18197,7 +17619,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 340,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -18235,7 +17656,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -18260,7 +17680,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 190,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -18298,7 +17717,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 70,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -18336,7 +17754,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 170,
-			"initiative": 5,
 			"range": 4,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -18375,7 +17792,6 @@
 		"stats": {
 			"atk": 36,
 			"hp": 320,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -18416,7 +17832,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 240,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -18460,7 +17875,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 360,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -18499,7 +17913,6 @@
 		"stats": {
 			"atk": 38,
 			"hp": 260,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -18537,7 +17950,6 @@
 		"stats": {
 			"atk": 32,
 			"hp": 190,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -18578,7 +17990,6 @@
 		"stats": {
 			"atk": 36,
 			"hp": 360,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -18622,7 +18033,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 300,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -18666,7 +18076,6 @@
 		"stats": {
 			"atk": 38,
 			"hp": 350,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -18710,7 +18119,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -18744,7 +18152,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 220,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -18778,7 +18185,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 340,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -18821,7 +18227,6 @@
 		"stats": {
 			"atk": 36,
 			"hp": 350,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -18877,7 +18282,6 @@
 		"stats": {
 			"atk": 45,
 			"hp": 450,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -18926,7 +18330,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 230,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -18966,7 +18369,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 230,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -19011,7 +18413,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 150,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 83
@@ -19047,7 +18448,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 100,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 96,
 			"movement_rate": 96
@@ -19087,7 +18487,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 140,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 76
@@ -19126,7 +18525,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 250,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 76
@@ -19156,7 +18554,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 200,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -19184,7 +18581,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 300,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -19225,7 +18621,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 240,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -19268,7 +18663,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 320,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -19306,7 +18700,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 400,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -19347,7 +18740,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 260,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 90
@@ -19390,7 +18782,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 120,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -19432,7 +18823,6 @@
 		"stats": {
 			"atk": 34,
 			"hp": 170,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 90
@@ -19474,7 +18864,6 @@
 		"stats": {
 			"atk": 42,
 			"hp": 460,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 80,
 			"movement_rate": 76
@@ -19515,7 +18904,6 @@
 		"stats": {
 			"atk": 45,
 			"hp": 380,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 83,
 			"movement_rate": 76
@@ -19555,7 +18943,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 80,
-			"initiative": 3,
 			"range": 3,
 			"attack_rate": 80,
 			"movement_rate": 83
@@ -19585,7 +18972,6 @@
 		"stats": {
 			"atk": 36,
 			"hp": 320,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -19627,7 +19013,6 @@
 		"stats": {
 			"atk": 38,
 			"hp": 430,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 90
@@ -19668,7 +19053,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 150,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -19694,7 +19078,6 @@
 		"stats": {
 			"atk": 31,
 			"hp": 270,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -19729,7 +19112,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -19754,7 +19136,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 80,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -19784,7 +19165,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 290,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -19823,7 +19203,6 @@
 		"stats": {
 			"atk": 42,
 			"hp": 360,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 82,
 			"movement_rate": 83
@@ -19861,7 +19240,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 400,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -19901,7 +19279,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 210,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -19952,7 +19329,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 150,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -19979,7 +19355,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -20004,7 +19379,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 350,
-			"initiative": 9,
 			"range": 4,
 			"attack_rate": 80,
 			"movement_rate": 76
@@ -20049,7 +19423,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 210,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -20092,7 +19465,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 150,
-			"initiative": 8,
 			"range": 4,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -20131,7 +19503,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 310,
-			"initiative": 7,
 			"range": 4,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -20169,7 +19540,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 240,
-			"initiative": 8,
 			"range": 4,
 			"attack_rate": 86,
 			"movement_rate": 76
@@ -20214,7 +19584,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 230,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -20260,7 +19629,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 240,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -20291,7 +19659,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 190,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -20321,7 +19688,6 @@
 		"stats": {
 			"atk": 36,
 			"hp": 310,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -20359,7 +19725,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 90,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -20385,7 +19750,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 180,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -20420,7 +19784,6 @@
 		"stats": {
 			"atk": 31,
 			"hp": 230,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -20459,7 +19822,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 340,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 76
@@ -20494,7 +19856,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 400,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -20530,7 +19891,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -20555,7 +19915,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 250,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 76
@@ -20593,7 +19952,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 350,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 76
@@ -20634,7 +19992,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 300,
-			"initiative": 7,
 			"range": 4,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -20679,7 +20036,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 250,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -20710,7 +20066,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 260,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -20744,7 +20099,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 310,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -20787,7 +20141,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -20829,7 +20182,6 @@
 		"stats": {
 			"atk": 31,
 			"hp": 290,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -20870,7 +20222,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 350,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -20912,7 +20263,6 @@
 		"stats": {
 			"atk": 43,
 			"hp": 390,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -20957,7 +20307,6 @@
 		"stats": {
 			"atk": 45,
 			"hp": 450,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -20995,7 +20344,6 @@
 		"stats": {
 			"atk": 32,
 			"hp": 270,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -21041,7 +20389,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -21084,7 +20431,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 280,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -21124,7 +20470,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 230,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -21167,7 +20512,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 350,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -21211,7 +20555,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 240,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -21252,7 +20595,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 230,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 96
@@ -21294,7 +20636,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 200,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -21334,7 +20675,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 380,
-			"initiative": 9,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -21381,7 +20721,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 350,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -21427,7 +20766,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 320,
-			"initiative": 9,
 			"range": 4,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -21474,7 +20812,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 350,
-			"initiative": 8,
 			"range": 4,
 			"attack_rate": 91,
 			"movement_rate": 83
@@ -21517,7 +20854,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 350,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -21555,7 +20891,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 250,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 76
@@ -21589,7 +20924,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -21629,7 +20963,6 @@
 		"stats": {
 			"atk": 7,
 			"hp": 50,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 90
@@ -21654,7 +20987,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 60,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -21678,7 +21010,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 240,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -21708,7 +21039,6 @@
 		"stats": {
 			"atk": 34,
 			"hp": 180,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -21747,7 +21077,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -21772,7 +21101,6 @@
 		"stats": {
 			"atk": 33,
 			"hp": 300,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -21807,7 +21135,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 220,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -21836,7 +21163,6 @@
 		"stats": {
 			"atk": 9,
 			"hp": 180,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -21861,7 +21187,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 240,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -21893,7 +21218,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 160,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 88,
 			"movement_rate": 96
@@ -21920,7 +21244,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 300,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -21949,7 +21272,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 250,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -21984,7 +21306,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 200,
-			"initiative": 3,
 			"range": 4,
 			"attack_rate": 76,
 			"movement_rate": 76
@@ -22014,7 +21335,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 300,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 96
@@ -22055,7 +21375,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 130,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -22082,7 +21401,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 260,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -22108,7 +21426,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 100,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -22135,7 +21452,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 160,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -22171,7 +21487,6 @@
 		"stats": {
 			"atk": 11,
 			"hp": 120,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -22202,7 +21517,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -22227,7 +21541,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 150,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -22253,7 +21566,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 40,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -22276,7 +21588,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 180,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -22310,7 +21621,6 @@
 		"stats": {
 			"atk": 9,
 			"hp": 70,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -22334,7 +21644,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 260,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -22368,7 +21677,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 70,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -22393,7 +21701,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 270,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -22425,7 +21732,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 130,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -22450,7 +21756,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -22475,7 +21780,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -22500,7 +21804,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 70,
-			"initiative": 4,
 			"range": 4,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -22525,7 +21828,6 @@
 		"stats": {
 			"atk": 9,
 			"hp": 140,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 92,
 			"movement_rate": 83
@@ -22549,7 +21851,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 100,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -22572,7 +21873,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 160,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -22601,7 +21901,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 80,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -22628,7 +21927,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 150,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -22654,7 +21952,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -22678,7 +21975,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 150,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -22703,7 +21999,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 150,
-			"initiative": 5,
 			"range": 4,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -22734,7 +22029,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 240,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -22762,7 +22056,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 180,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 96
@@ -22790,7 +22083,6 @@
 		"stats": {
 			"atk": 11,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 90
@@ -22817,7 +22109,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 300,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -22854,7 +22145,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 250,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 76
@@ -22883,7 +22173,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 170,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -22908,7 +22197,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -22933,7 +22221,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 150,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -22959,7 +22246,6 @@
 		"stats": {
 			"atk": 4,
 			"hp": 100,
-			"initiative": 2,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 90
@@ -22984,7 +22270,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 260,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -23012,7 +22297,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 40,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -23037,7 +22321,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 50,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -23060,7 +22343,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -23083,7 +22365,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -23108,7 +22389,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 190,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -23142,7 +22422,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 300,
-			"initiative": 6,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -23178,7 +22457,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 90,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -23202,7 +22480,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 260,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -23234,7 +22511,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 200,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -23264,7 +22540,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -23288,7 +22563,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 150,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 76
@@ -23317,7 +22591,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 250,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 88,
 			"movement_rate": 83
@@ -23350,7 +22623,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 120,
-			"initiative": 3,
 			"range": 4,
 			"attack_rate": 76,
 			"movement_rate": 90
@@ -23381,7 +22653,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 290,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -23428,7 +22699,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 320,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -23460,7 +22730,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 230,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -23488,7 +22757,6 @@
 		"stats": {
 			"atk": 32,
 			"hp": 270,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -23515,7 +22783,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 110,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 90
@@ -23541,7 +22808,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -23568,7 +22834,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 170,
-			"initiative": 4,
 			"range": 4,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -23593,7 +22858,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 150,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -23618,7 +22882,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 320,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -23654,7 +22917,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 170,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -23681,7 +22943,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 70,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -23706,7 +22967,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 80,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -23730,7 +22990,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 80,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -23755,7 +23014,6 @@
 		"stats": {
 			"atk": 11,
 			"hp": 200,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -23782,7 +23040,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -23806,7 +23063,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -23832,7 +23088,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 70,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -23856,7 +23111,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 200,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -23888,7 +23142,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 190,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -23918,7 +23171,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 300,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -23959,7 +23211,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 80,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -23986,7 +23237,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 170,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -24028,7 +23278,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 280,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -24066,7 +23315,6 @@
 		"stats": {
 			"atk": 9,
 			"hp": 100,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -24092,7 +23340,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 160,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -24132,7 +23379,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 80,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -24158,7 +23404,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 170,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -24200,7 +23445,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 170,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -24242,7 +23486,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"initiative": 10,
 			"range": 4,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -24278,7 +23521,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 100,
-			"initiative": 3,
 			"range": 4,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -24302,7 +23544,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -24325,7 +23566,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 160,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -24362,7 +23602,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 140,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -24392,7 +23631,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 180,
-			"initiative": 6,
 			"range": 3,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -24439,7 +23677,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 350,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -24483,7 +23720,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -24508,7 +23744,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 170,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -24545,7 +23780,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 140,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -24575,7 +23809,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 100,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -24610,7 +23843,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 200,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -24636,7 +23868,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 76
@@ -24663,7 +23894,6 @@
 		"stats": {
 			"atk": 25,
 			"hp": 200,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -24698,7 +23928,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 100,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 82,
 			"movement_rate": 96
@@ -24722,7 +23951,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 180,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 82,
 			"movement_rate": 83
@@ -24750,7 +23978,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 240,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -24790,7 +24017,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 50,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -24818,7 +24044,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 120,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -24847,7 +24072,6 @@
 		"stats": {
 			"atk": 32,
 			"hp": 220,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -24883,7 +24107,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 100,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -24910,7 +24133,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 200,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 95,
 			"movement_rate": 96
@@ -24949,7 +24171,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 150,
-			"initiative": 5,
 			"range": 3,
 			"attack_rate": 83,
 			"movement_rate": 96
@@ -24973,7 +24194,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 50,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -24997,7 +24217,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -25022,7 +24241,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 60,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -25046,7 +24264,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -25071,7 +24288,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 140,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -25095,7 +24311,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 210,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -25119,7 +24334,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 150,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -25146,7 +24360,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 200,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -25178,7 +24391,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -25204,7 +24416,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 300,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -25249,7 +24460,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 150,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -25273,7 +24483,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 200,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 90,
 			"movement_rate": 90
@@ -25313,7 +24522,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 60,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -25338,7 +24546,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 120,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -25377,7 +24584,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 220,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -25415,7 +24621,6 @@
 		"stats": {
 			"atk": 36,
 			"hp": 320,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -25454,7 +24659,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 120,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -25483,7 +24687,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 240,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -25507,7 +24710,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 190,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -25531,7 +24733,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 290,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -25566,7 +24767,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 100,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -25590,7 +24790,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 150,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -25629,7 +24828,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -25659,7 +24857,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 280,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 83
@@ -25699,7 +24896,6 @@
 		"stats": {
 			"atk": 3,
 			"hp": 180,
-			"initiative": 3,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -25724,7 +24920,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 80,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -25755,7 +24950,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 150,
-			"initiative": 9,
 			"range": 4,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -25791,7 +24985,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 200,
-			"initiative": 5,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -25846,7 +25039,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 180,
-			"initiative": 4,
 			"range": 3,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -25876,7 +25068,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 210,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -25906,7 +25097,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 250,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -25939,7 +25129,6 @@
 		"stats": {
 			"atk": 31,
 			"hp": 240,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -25974,7 +25163,6 @@
 		"stats": {
 			"atk": 31,
 			"hp": 200,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -26012,7 +25200,6 @@
 		"stats": {
 			"atk": 8,
 			"hp": 70,
-			"initiative": 3,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -26037,7 +25224,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 3,
 			"range": 1,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -26062,7 +25248,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 250,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -26089,7 +25274,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 200,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 80,
 			"movement_rate": 76
@@ -26114,7 +25298,6 @@
 		"stats": {
 			"atk": 22,
 			"hp": 300,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -26152,7 +25335,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 200,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -26177,7 +25359,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 80,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -26202,7 +25383,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 160,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -26228,7 +25408,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 310,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -26262,7 +25441,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 170,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -26291,7 +25469,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 100,
-			"initiative": 4,
 			"range": 4,
 			"attack_rate": 76,
 			"movement_rate": 76
@@ -26320,7 +25497,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 76
@@ -26350,7 +25526,6 @@
 		"stats": {
 			"atk": 24,
 			"hp": 100,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -26380,7 +25555,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 200,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -26413,7 +25587,6 @@
 		"stats": {
 			"atk": 33,
 			"hp": 50,
-			"initiative": 7,
 			"range": 1,
 			"attack_rate": 83,
 			"movement_rate": 90
@@ -26446,7 +25619,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 50,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -26471,7 +25643,6 @@
 		"stats": {
 			"atk": 5,
 			"hp": 210,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 94,
 			"movement_rate": 96
@@ -26495,7 +25666,6 @@
 		"stats": {
 			"atk": 13,
 			"hp": 130,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -26518,7 +25688,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 70,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -26545,7 +25714,6 @@
 		"stats": {
 			"atk": 14,
 			"hp": 120,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 96
@@ -26569,7 +25737,6 @@
 		"stats": {
 			"atk": 17,
 			"hp": 70,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 92,
 			"movement_rate": 96
@@ -26595,7 +25762,6 @@
 		"stats": {
 			"atk": 27,
 			"hp": 200,
-			"initiative": 7,
 			"range": 3,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -26631,7 +25797,6 @@
 		"stats": {
 			"atk": 10,
 			"hp": 100,
-			"initiative": 3,
 			"range": 3,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -26655,7 +25820,6 @@
 		"stats": {
 			"atk": 4,
 			"hp": 50,
-			"initiative": 2,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -26682,7 +25846,6 @@
 		"stats": {
 			"atk": 18,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -26721,7 +25884,6 @@
 		"stats": {
 			"atk": 29,
 			"hp": 290,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -26760,7 +25922,6 @@
 		"stats": {
 			"atk": 38,
 			"hp": 380,
-			"initiative": 9,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -26805,7 +25966,6 @@
 		"stats": {
 			"atk": 45,
 			"hp": 450,
-			"initiative": 10,
 			"range": 1,
 			"attack_rate": 92,
 			"movement_rate": 90
@@ -26835,7 +25995,6 @@
 		"stats": {
 			"atk": 12,
 			"hp": 140,
-			"initiative": 4,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -26863,7 +26022,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 180,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 83,
 			"movement_rate": 83
@@ -26895,7 +26053,6 @@
 		"stats": {
 			"atk": 16,
 			"hp": 120,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -26923,7 +26080,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 280,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -26964,7 +26120,6 @@
 		"stats": {
 			"atk": 19,
 			"hp": 180,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 84,
 			"movement_rate": 76
@@ -26992,7 +26147,6 @@
 		"stats": {
 			"atk": 36,
 			"hp": 360,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 83
@@ -27032,7 +26186,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 200,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 90,
 			"movement_rate": 83
@@ -27072,7 +26225,6 @@
 		"stats": {
 			"atk": 40,
 			"hp": 200,
-			"initiative": 9,
 			"range": 4,
 			"attack_rate": 82,
 			"movement_rate": 76
@@ -27110,7 +26262,6 @@
 		"stats": {
 			"atk": 42,
 			"hp": 340,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -27143,7 +26294,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 220,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 88,
 			"movement_rate": 90
@@ -27173,7 +26323,6 @@
 		"stats": {
 			"atk": 45,
 			"hp": 450,
-			"initiative": 10,
 			"range": 3,
 			"attack_rate": 84,
 			"movement_rate": 83
@@ -27212,7 +26361,6 @@
 		"stats": {
 			"atk": 33,
 			"hp": 250,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 86,
 			"movement_rate": 96
@@ -27247,7 +26395,6 @@
 		"stats": {
 			"atk": 26,
 			"hp": 280,
-			"initiative": 8,
 			"range": 3,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -27284,7 +26431,6 @@
 		"stats": {
 			"atk": 0,
 			"hp": 100,
-			"initiative": 4,
 			"range": 4,
 			"attack_rate": 76,
 			"movement_rate": 76
@@ -27316,7 +26462,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 200,
-			"initiative": 6,
 			"range": 4,
 			"attack_rate": 83,
 			"movement_rate": 76
@@ -27356,7 +26501,6 @@
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -27399,7 +26543,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 200,
-			"initiative": 6,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -27436,7 +26579,6 @@
 		"stats": {
 			"atk": 32,
 			"hp": 300,
-			"initiative": 9,
 			"range": 4,
 			"attack_rate": 91,
 			"movement_rate": 90
@@ -27473,7 +26615,6 @@
 		"stats": {
 			"atk": 23,
 			"hp": 180,
-			"initiative": 7,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 96
@@ -27503,7 +26644,6 @@
 		"stats": {
 			"atk": 35,
 			"hp": 200,
-			"initiative": 9,
 			"range": 3,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -27542,7 +26682,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 250,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -27577,7 +26716,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 150,
-			"initiative": 6,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 83
@@ -27611,7 +26749,6 @@
 		"stats": {
 			"atk": 15,
 			"hp": 100,
-			"initiative": 4,
 			"range": 2,
 			"attack_rate": 86,
 			"movement_rate": 90
@@ -27637,7 +26774,6 @@
 		"stats": {
 			"atk": 20,
 			"hp": 50,
-			"initiative": 5,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -27665,7 +26801,6 @@
 		"stats": {
 			"atk": 33,
 			"hp": 300,
-			"initiative": 8,
 			"range": 1,
 			"attack_rate": 91,
 			"movement_rate": 96
@@ -27706,7 +26841,6 @@
 		"stats": {
 			"atk": 21,
 			"hp": 160,
-			"initiative": 5,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -27733,7 +26867,6 @@
 		"stats": {
 			"atk": 11,
 			"hp": 60,
-			"initiative": 3,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 90
@@ -27762,7 +26895,6 @@
 		"stats": {
 			"atk": 28,
 			"hp": 240,
-			"initiative": 8,
 			"range": 2,
 			"attack_rate": 87,
 			"movement_rate": 83

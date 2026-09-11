@@ -24,7 +24,7 @@ export interface CardFixture {
   material_value?: number;
   stats: {
     atk: number; hp: number; movement_rate: number;
-    attack_rate: number; initiative: number; range: number;
+    attack_rate: number; range: number;
   };
 }
 
@@ -50,7 +50,7 @@ export function makeCard(
     power: null,
     ...rest,
     stats: {
-      atk: 5, hp: 30, movement_rate: 100, attack_rate: 100, initiative: 5, range: 1,
+      atk: 5, hp: 30, movement_rate: 100, attack_rate: 100, range: 1,
       ...stats,
     },
   };

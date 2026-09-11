@@ -2080,11 +2080,6 @@ function renderCardDetail() {
       </div>
       ${counterSliderHtml('f-move', 'Vit. déplacement', c.stats.movement_rate)}
       ${counterSliderHtml('f-aspeed', 'Vit. attaque', c.stats.attack_rate)}
-      <div class="field">
-        <label>Initiative <span class="slider-val" id="f-init-val">${Math.min(10,Math.max(1,Math.round(c.stats.initiative)))}</span></label>
-        <input type="range" id="f-init" min="1" max="10" step="1" value="${Math.min(10,Math.max(1,Math.round(c.stats.initiative)))}" oninput="document.getElementById('f-init-val').textContent=this.value">
-        <div class="slider-marks"><span>1</span><span>10</span></div>
-      </div>
     </div>
 
     <div class="section-title">Pouvoir</div>
@@ -2478,7 +2473,6 @@ function syncCardFromForm() {
     atk: parseFloat(document.getElementById('f-atk').value) || 0,
     hp: parseFloat(document.getElementById('f-hp').value) || 0,
     ...cardRatesFromForm(),
-    initiative: parseFloat(document.getElementById('f-init').value) || 0,
     range: parseFloat(document.getElementById('f-range').value) || 0,
   };
   selectedCard.power = cardPowerFromForm();
@@ -2516,7 +2510,6 @@ function collectCardFromForm() {
       atk: parseFloat(document.getElementById('f-atk').value),
       hp: parseFloat(document.getElementById('f-hp').value),
       ...cardRatesFromForm(),
-      initiative: parseFloat(document.getElementById('f-init').value),
       range: parseFloat(document.getElementById('f-range').value),
     },
     power,
@@ -2855,7 +2848,7 @@ function openNewCard() {
   const firstTier = tierAttrDefs()[0];
   selectedCard = {
     id: nextIdFor('card'), name: '', type: 'monster', material_value: 1,
-    attributes: firstTier ? [firstTier.id] : [], stats: { atk: 10, hp: 100, movement_rate: 50, attack_rate: 50, initiative: 4, range: 1 },
+    attributes: firstTier ? [firstTier.id] : [], stats: { atk: 10, hp: 100, movement_rate: 50, attack_rate: 50, range: 1 },
     power: {}, summon_conditions: [], represented_ids: [], _has_illustration: false,
   };
   isNewCard = true;
@@ -3257,7 +3250,7 @@ function renderThresholdBlock(th, ti) {
   `;
 }
 
-const ATTR_EFFECT_STATS = ['atk', 'hp', 'attack_rate', 'movement_rate', 'range', 'initiative', 'power_charge'];
+const ATTR_EFFECT_STATS = ['atk', 'hp', 'attack_rate', 'movement_rate', 'range', 'power_charge'];
 const ATTR_EFFECT_TRIGGERS = ['on_enemy_neutralized', 'on_ally_neutralized'];
 const ATTR_EFFECT_TARGETS = ['neutralized_ally'];
 
@@ -4062,7 +4055,6 @@ function renderMagieDetail() {
           <option value="attack_rate" ${effect.stat === 'attack_rate' ? 'selected' : ''}>Vitesse d'attaque (compteur 0–100)</option>
           <option value="movement_rate" ${effect.stat === 'movement_rate' ? 'selected' : ''}>Vitesse de déplacement (compteur 0–100)</option>
           <option value="range" ${effect.stat === 'range' ? 'selected' : ''}>Portée</option>
-          <option value="initiative" ${effect.stat === 'initiative' ? 'selected' : ''}>Initiative</option>
         </select>
       </div>
       <div class="field" id="mf-value-field" style="${showValue ? '' : 'display:none'}">
@@ -6786,8 +6778,8 @@ function toast(msg, type = 'ok') {
 }
 
 // ================== STATS ==================
-const STAT_LABELS = { atk: 'ATK', hp: 'HP', movement_rate: 'Déplacement', attack_rate: 'Vit. Attaque', initiative: 'Initiative', range: 'Portée' };
-const STAT_KEYS = ['atk', 'hp', 'movement_rate', 'attack_rate', 'initiative', 'range'];
+const STAT_LABELS = { atk: 'ATK', hp: 'HP', movement_rate: 'Déplacement', attack_rate: 'Vit. Attaque', range: 'Portée' };
+const STAT_KEYS = ['atk', 'hp', 'movement_rate', 'attack_rate', 'range'];
 const TIER_COLORS = { 1: '#78c8a8', 2: '#6ab4e8', 3: '#c878e0', 4: '#f0a040', 5: '#f05050' };
 
 const COMPOSITE_STATS = [
@@ -7697,7 +7689,7 @@ function _boardEffectHtml(e, i) {
   const targets = BOARD_EFFECTS_TARGETING.has(type);
   const statOpts = [
     ['atk','ATK'],['hp','HP'],['movement_rate','Vitesse mvt (0–100)'],
-    ['attack_rate','Vitesse attaque (0–100)'],['initiative','Initiative'],['range','Portée'],
+    ['attack_rate','Vitesse attaque (0–100)'],['range','Portée'],
   ].map(([v,l]) => `<option value="${v}" ${e.stat===v?'selected':''}>${l}</option>`).join('');
 
   return `

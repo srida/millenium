@@ -102,7 +102,7 @@ describe('pvplog.diff — deux vues d\'un même combat', () => {
     expect(d.detail.field).toBe('board_id');
   });
 
-  it('nomme un ordre d\'initiative permuté, au bon tick', () => {
+  it('nomme un ordre d\'action permuté, au bon tick', () => {
     const b = clone(view());
     b.ticks[1].order = ['B:CORE_002', 'A:CORE_001'];
 
@@ -491,7 +491,7 @@ describe('CombatRecorder — la forme canonique', () => {
   function u(cardId: string, side: 'player' | 'enemy', col: number, row: number, hp = 100) {
     return {
       card_id: cardId, side, position: { col, row },
-      current_hp: hp, max_hp: 100, shield: 0, atk: 10, initiative: 5,
+      current_hp: hp, max_hp: 100, shield: 0, atk: 10,
       power_gauge: 0, attack_timer: 0, move_timer: 0,
       paralysis_remaining: 0, power_block_remaining: 0,
       confusion_remaining: 0, taunt_remaining: 0,

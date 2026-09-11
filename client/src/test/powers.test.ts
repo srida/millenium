@@ -13,7 +13,7 @@
 //
 // On tape `_firePower` directement : c'est le seul entonnoir par lequel passe
 // un pouvoir, et le viser en clair évite de faire dépendre l'assertion d'un
-// scénario de combat (positions, portées, initiative) qui n'est pas le sujet.
+// scénario de combat (positions, portées, ordre d'action) qui n'est pas le sujet.
 import { describe, it, expect } from 'vitest';
 import { makeBoard, makeCard, spawn } from './helpers.js';
 import { CombatManager } from '../logic/CombatManager.js';
@@ -24,16 +24,16 @@ function arena(power: any, casterStats: any = {}) {
   const board = makeBoard();
   const caster = spawn(board, makeCard({
     id: 'P_CASTER', power,
-    stats: { atk: 10, hp: 200, attack_rate: 100, initiative: 5, movement_rate: 100, range: 3, ...casterStats },
+    stats: { atk: 10, hp: 200, attack_rate: 100, movement_rate: 100, range: 3, ...casterStats },
   }), 'player', { col: 2, row: 3 });
   const ally = spawn(board, makeCard({
-    id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_rate: 100, initiative: 4, movement_rate: 100, range: 1 },
+    id: 'P_ALLY', stats: { atk: 5, hp: 100, attack_rate: 100, movement_rate: 100, range: 1 },
   }), 'player', { col: 1, row: 3 });
   const target = spawn(board, makeCard({
-    id: 'E_TARGET', stats: { atk: 5, hp: 500, attack_rate: 100, initiative: 3, movement_rate: 100, range: 1 },
+    id: 'E_TARGET', stats: { atk: 5, hp: 500, attack_rate: 100, movement_rate: 100, range: 1 },
   }), 'enemy', { col: 2, row: 7 });
   const target2 = spawn(board, makeCard({
-    id: 'E_TARGET_2', stats: { atk: 5, hp: 500, attack_rate: 100, initiative: 3, movement_rate: 100, range: 1 },
+    id: 'E_TARGET_2', stats: { atk: 5, hp: 500, attack_rate: 100, movement_rate: 100, range: 1 },
   }), 'enemy', { col: 3, row: 7 });
 
   const combat = new (CombatManager as any)(board, [caster, ally], [target, target2], null);

@@ -110,20 +110,34 @@ export class CombatManager {
     const allUnits = this._frameOrderedUnits();
     const livingUnits = allUnits.filter(u => u.isAlive());
 
-    // Sort by initiative desc, tie-break by attack PERIOD desc, then card_id asc
+    // L'ORDRE D'ACTION : tier décroissant, ATQ décroissante, vitesse de
+    // DÉPLACEMENT décroissante, `card_id` croissante, puis le camp.
     //
-    // ⚠️ Le départage se fait sur la PÉRIODE en ticks, donc la plus LENTE
-    // d'abord — c'est ce qu'il faisait déjà quand la stat de la carte était
-    // elle-même une période. Le compteur a retourné le sens de la donnée, pas
-    // celui de ce tri : le comparer sur `attack_rate` inverserait l'ordre
-    // d'action de toutes les égalités d'initiative, silencieusement, et ferait
-    // diverger les deux clients d'un PvP en cours de déploiement.
-    // card_id is absolute (same value on both PvP clients) — prevents ordering divergence on equal stats
+    // ⚠️ Il n'y a plus de stat d'initiative. Elle ne se lisait nulle part
+    // ailleurs que dans ce tri, et ne pouvait donc s'expliquer par rien de ce
+    // que le joueur voit sur la carte : quatre critères qu'il lit déjà la
+    // remplacent, du plus parlant au plus arbitraire — « la plus grosse
+    // frappe en premier ».
+    //
+    // ⚠️ Les trois premiers critères sont des valeurs de COMBAT, donc bonus
+    // compris (`_recomputeStats`) : un buff d'ATQ fait passer devant. Les
+    // trois voyagent déjà dans `round:board_ready` — `tier` se dérive du
+    // catalogue commun aux deux clients, `atk` et `movement_rate` de `base` —
+    // donc le contrat de déterminisme est tenu sans un champ de plus.
+    //
+    // ⚠️ La vitesse se compare ici sur le COMPTEUR (plus haut = plus rapide),
+    // et non sur la période en ticks comme le faisait le départage d'avant :
+    // celui-ci héritait d'une donnée qui ÉTAIT une période, ce qui n'est plus
+    // le cas d'aucune. Le compteur a de surcroît le grain le plus fin — deux
+    // compteurs voisins retombent souvent sur le même nombre de ticks.
+    //
+    // ⚠️ `card_id` est une valeur ABSOLUE, identique sur les deux clients d'un
+    // PvP, là où l'ordre d'insertion dans le tableau ne l'est pas.
     //
     // Le DERNIER départage est le camp, exprimé dans le repère de référence :
-    // l'égalité parfaite — même initiative, même vitesse ET même `card_id` —
-    // arrive dès que les deux joueurs jouent la même carte, et il ne restait
-    // alors que l'ordre du tableau d'entrée pour trancher.
+    // l'égalité parfaite — même tier, même ATQ, même vitesse ET même
+    // `card_id` — arrive dès que les deux joueurs jouent la même carte, et il
+    // ne restait alors que l'ordre du tableau d'entrée pour trancher.
     //
     // ⚠️ Il est REDONDANT avec `_frameOrderedUnits` tant que `sort` est stable
     // (garanti depuis ES2019) : c'est ce dernier qui porte réellement la
@@ -132,8 +146,9 @@ export class CombatManager {
     // le comparateur, au lieu de dépendre de l'ordre dans lequel on lui a passé
     // les unités. Le jour où ce tableau d'entrée change, le tri tient encore.
     livingUnits.sort((a, b) =>
-      b.initiative - a.initiative ||
-      b.effectiveAttackPeriod() - a.effectiveAttackPeriod() ||
+      b.tier - a.tier ||
+      b.atk - a.atk ||
+      b.movement_rate - a.movement_rate ||
       a.card_id.localeCompare(b.card_id) ||
       this._frameSide(a) - this._frameSide(b));
 

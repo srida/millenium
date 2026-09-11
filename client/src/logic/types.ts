@@ -24,7 +24,6 @@ export interface CardStats {
    */
   movement_rate: number;
   attack_rate: number;
-  initiative: number;
   range: number;
 }
 

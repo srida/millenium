@@ -15,22 +15,27 @@
 // les `move` du step 1 sont au step 2, et le reste en découle.
 //
 // ⚠️ Le glissement est ENTIÈREMENT expliqué par ce plancher : les périodes
-// d'attaque, elles, sont inchangées au tick près (2 ticks reste 2, 3 reste 3),
-// et le départage d'initiative compare toujours la période, jamais le
-// compteur. Une divergence qui NE se réduirait pas à un décalage des `move`
-// voudrait dire autre chose, et resterait à expliquer.
+// d'attaque, elles, sont inchangées au tick près (2 ticks reste 2, 3 reste 3).
+// Une divergence qui NE se réduirait pas à un décalage des `move` voudrait dire
+// autre chose, et resterait à expliquer.
+//
+// ⚠️ SECONDE MISE À JOUR VOLONTAIRE — retrait de la stat d'initiative. L'ordre
+// d'action est désormais « tier décroissant, ATQ décroissante, vitesse de
+// déplacement décroissante, `card_id` », et ces scénarios réglaient justement
+// leur ordre par l'initiative. Les snapshots ont été régénérés en bloc : c'est
+// le comportement qui a changé, pas un test qui aurait cédé.
 import { describe, it, expect } from 'vitest';
 import { makeBoard, makeCard, spawn, runCombat, countEventTypes } from './helpers.js';
 import { AttributeManager } from '../logic/AttributeManager.js';
 import { MAX_COMBAT_TICKS } from '../logic/CombatManager.js';
 
 describe('combat déterministe — golden events', () => {
-  it('S1 — mêlée basique 2v2 (mouvement, ciblage, initiative, morts)', () => {
+  it('S1 — mêlée basique 2v2 (mouvement, ciblage, ordre d\'action, morts)', () => {
     const board = makeBoard();
-    const p1 = spawn(board, makeCard({ id: 'P_BRUTE', stats: { atk: 8, hp: 40, attack_rate: 100, initiative: 5, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 3 });
-    const p2 = spawn(board, makeCard({ id: 'P_SQUIRE', stats: { atk: 5, hp: 30, attack_rate: 99, initiative: 3, movement_rate: 100, range: 1 } }), 'player', { col: 1, row: 3 });
-    const e1 = spawn(board, makeCard({ id: 'E_ORC', stats: { atk: 6, hp: 35, attack_rate: 100, initiative: 4, movement_rate: 100, range: 1 } }), 'enemy', { col: 2, row: 7 });
-    const e2 = spawn(board, makeCard({ id: 'E_GOBLIN', stats: { atk: 4, hp: 22, attack_rate: 99, initiative: 6, movement_rate: 100, range: 1 } }), 'enemy', { col: 3, row: 7 });
+    const p1 = spawn(board, makeCard({ id: 'P_BRUTE', stats: { atk: 8, hp: 40, attack_rate: 100, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 3 });
+    const p2 = spawn(board, makeCard({ id: 'P_SQUIRE', stats: { atk: 5, hp: 30, attack_rate: 99, movement_rate: 100, range: 1 } }), 'player', { col: 1, row: 3 });
+    const e1 = spawn(board, makeCard({ id: 'E_ORC', stats: { atk: 6, hp: 35, attack_rate: 100, movement_rate: 100, range: 1 } }), 'enemy', { col: 2, row: 7 });
+    const e2 = spawn(board, makeCard({ id: 'E_GOBLIN', stats: { atk: 4, hp: 22, attack_rate: 99, movement_rate: 100, range: 1 } }), 'enemy', { col: 3, row: 7 });
 
     const result = runCombat(board, [p1, p2], [e1, e2]);
     expect(result.winner).not.toBeNull();
@@ -41,10 +46,10 @@ describe('combat déterministe — golden events', () => {
     const board = makeBoard();
     board.setBlockedCells([{ col: 1, row: 5 }, { col: 2, row: 5 }, { col: 3, row: 5 }]);
 
-    const archer = spawn(board, makeCard({ id: 'P_ARCHER', stats: { atk: 6, hp: 25, attack_rate: 100, initiative: 6, movement_rate: 100, range: 4 } }), 'player', { col: 2, row: 2 });
-    const tank = spawn(board, makeCard({ id: 'P_TANK', stats: { atk: 4, hp: 45, attack_rate: 99, initiative: 4, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 3 });
-    const brute = spawn(board, makeCard({ id: 'E_BRUTE', stats: { atk: 7, hp: 40, attack_rate: 100, initiative: 5, movement_rate: 100, range: 1 } }), 'enemy', { col: 2, row: 8 });
-    const eArcher = spawn(board, makeCard({ id: 'E_ARCHER', stats: { atk: 5, hp: 20, attack_rate: 99, initiative: 7, movement_rate: 100, range: 3 } }), 'enemy', { col: 1, row: 9 });
+    const archer = spawn(board, makeCard({ id: 'P_ARCHER', stats: { atk: 6, hp: 25, attack_rate: 100, movement_rate: 100, range: 4 } }), 'player', { col: 2, row: 2 });
+    const tank = spawn(board, makeCard({ id: 'P_TANK', stats: { atk: 4, hp: 45, attack_rate: 99, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 3 });
+    const brute = spawn(board, makeCard({ id: 'E_BRUTE', stats: { atk: 7, hp: 40, attack_rate: 100, movement_rate: 100, range: 1 } }), 'enemy', { col: 2, row: 8 });
+    const eArcher = spawn(board, makeCard({ id: 'E_ARCHER', stats: { atk: 5, hp: 20, attack_rate: 99, movement_rate: 100, range: 3 } }), 'enemy', { col: 1, row: 9 });
 
     const result = runCombat(board, [archer, tank], [brute, eArcher]);
     expect(result.winner).not.toBeNull();
@@ -53,10 +58,10 @@ describe('combat déterministe — golden events', () => {
 
   it('S3 — pouvoirs de soutien : HEAL, SHIELD, SUPER_ATTACK, AOE_ATTACK', () => {
     const board = makeBoard();
-    const healer = spawn(board, makeCard({ id: 'P_HEALER', power: { id: 'POWER_HEAL', power_rate: 95 }, stats: { atk: 3, hp: 30, attack_rate: 100, initiative: 4, movement_rate: 100, range: 3 } }), 'player', { col: 1, row: 2 });
-    const striker = spawn(board, makeCard({ id: 'P_STRIKER', power: { id: 'POWER_SUPER_ATTACK', power_rate: 94 }, stats: { atk: 7, hp: 35, attack_rate: 100, initiative: 6, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 3 });
-    const shielder = spawn(board, makeCard({ id: 'E_SHIELDER', power: { id: 'POWER_SHIELD', power_rate: 96 }, stats: { atk: 6, hp: 30, attack_rate: 100, initiative: 5, movement_rate: 100, range: 1 } }), 'enemy', { col: 2, row: 7 });
-    const bomber = spawn(board, makeCard({ id: 'E_BOMBER', power: { id: 'POWER_AOE_ATTACK', power_rate: 92 }, stats: { atk: 5, hp: 28, attack_rate: 99, initiative: 3, movement_rate: 100, range: 3 } }), 'enemy', { col: 3, row: 8 });
+    const healer = spawn(board, makeCard({ id: 'P_HEALER', power: { id: 'POWER_HEAL', power_rate: 95 }, stats: { atk: 3, hp: 30, attack_rate: 100, movement_rate: 100, range: 3 } }), 'player', { col: 1, row: 2 });
+    const striker = spawn(board, makeCard({ id: 'P_STRIKER', power: { id: 'POWER_SUPER_ATTACK', power_rate: 94 }, stats: { atk: 7, hp: 35, attack_rate: 100, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 3 });
+    const shielder = spawn(board, makeCard({ id: 'E_SHIELDER', power: { id: 'POWER_SHIELD', power_rate: 96 }, stats: { atk: 6, hp: 30, attack_rate: 100, movement_rate: 100, range: 1 } }), 'enemy', { col: 2, row: 7 });
+    const bomber = spawn(board, makeCard({ id: 'E_BOMBER', power: { id: 'POWER_AOE_ATTACK', power_rate: 92 }, stats: { atk: 5, hp: 28, attack_rate: 99, movement_rate: 100, range: 3 } }), 'enemy', { col: 3, row: 8 });
 
     const result = runCombat(board, [healer, striker], [shielder, bomber]);
     expect(result.winner).not.toBeNull();
@@ -65,10 +70,10 @@ describe('combat déterministe — golden events', () => {
 
   it('S4 — pouvoirs de contrôle : POISON, PARALYSIS, PUSH, BLOCK', () => {
     const board = makeBoard();
-    const poisoner = spawn(board, makeCard({ id: 'P_POISONER', power: { id: 'POWER_POISON', power_rate: 96 }, stats: { atk: 6, hp: 30, attack_rate: 100, initiative: 6, movement_rate: 100, range: 2 } }), 'player', { col: 2, row: 3 });
-    const pusher = spawn(board, makeCard({ id: 'P_PUSHER', power: { id: 'POWER_PUSH', power_rate: 94, value: 2 }, stats: { atk: 5, hp: 35, attack_rate: 100, initiative: 4, movement_rate: 100, range: 1 } }), 'player', { col: 1, row: 3 });
-    const paralyzer = spawn(board, makeCard({ id: 'E_PARALYZER', power: { id: 'POWER_PARALYSIS', power_rate: 95 }, stats: { atk: 6, hp: 32, attack_rate: 100, initiative: 5, movement_rate: 100, range: 2 } }), 'enemy', { col: 2, row: 7 });
-    const blocker = spawn(board, makeCard({ id: 'E_BLOCKER', power: { id: 'POWER_BLOCK', power_rate: 98 }, stats: { atk: 5, hp: 30, attack_rate: 99, initiative: 3, movement_rate: 100, range: 1 } }), 'enemy', { col: 1, row: 7 });
+    const poisoner = spawn(board, makeCard({ id: 'P_POISONER', power: { id: 'POWER_POISON', power_rate: 96 }, stats: { atk: 6, hp: 30, attack_rate: 100, movement_rate: 100, range: 2 } }), 'player', { col: 2, row: 3 });
+    const pusher = spawn(board, makeCard({ id: 'P_PUSHER', power: { id: 'POWER_PUSH', power_rate: 94, value: 2 }, stats: { atk: 5, hp: 35, attack_rate: 100, movement_rate: 100, range: 1 } }), 'player', { col: 1, row: 3 });
+    const paralyzer = spawn(board, makeCard({ id: 'E_PARALYZER', power: { id: 'POWER_PARALYSIS', power_rate: 95 }, stats: { atk: 6, hp: 32, attack_rate: 100, movement_rate: 100, range: 2 } }), 'enemy', { col: 2, row: 7 });
+    const blocker = spawn(board, makeCard({ id: 'E_BLOCKER', power: { id: 'POWER_BLOCK', power_rate: 98 }, stats: { atk: 5, hp: 30, attack_rate: 99, movement_rate: 100, range: 1 } }), 'enemy', { col: 1, row: 7 });
 
     const result = runCombat(board, [poisoner, pusher], [paralyzer, blocker]);
     expect(result.winner).not.toBeNull();
@@ -82,12 +87,12 @@ describe('combat déterministe — golden events', () => {
       { id: 'ARCH_IMMU', name: 'Immunisé', timing: 'start_of_combat', thresholds: [{ count: 1, effects: [{ type: 'effect_immunity' }] }] },
     ];
 
-    const burner = spawn(board, makeCard({ id: 'P_BURNER', power: { id: 'POWER_BURN', power_rate: 96 }, stats: { atk: 6, hp: 30, attack_rate: 100, initiative: 6, movement_rate: 100, range: 2 } }), 'player', { col: 1, row: 3 });
-    const taunter = spawn(board, makeCard({ id: 'P_TAUNTER', power: { id: 'POWER_TAUNT', power_rate: 98 }, stats: { atk: 4, hp: 45, attack_rate: 99, initiative: 5, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 3 });
-    const teleporter = spawn(board, makeCard({ id: 'P_TELEPORTER', power: { id: 'POWER_TELEPORT', power_rate: 95 }, stats: { atk: 7, hp: 25, attack_rate: 100, initiative: 7, movement_rate: 100, range: 1 } }), 'player', { col: 3, row: 3 });
-    const freezer = spawn(board, makeCard({ id: 'E_FREEZER', power: { id: 'POWER_FREEZE', power_rate: 96 }, stats: { atk: 5, hp: 30, attack_rate: 100, initiative: 6, movement_rate: 100, range: 2 } }), 'enemy', { col: 1, row: 7 });
-    const confuser = spawn(board, makeCard({ id: 'E_CONFUSER', power: { id: 'POWER_CONFUSION', power_rate: 95 }, stats: { atk: 5, hp: 28, attack_rate: 99, initiative: 4, movement_rate: 100, range: 3 } }), 'enemy', { col: 2, row: 8 });
-    const immune = spawn(board, makeCard({ id: 'E_IMMUNE', attributes: ['ARCH_IMMU'], stats: { atk: 6, hp: 38, attack_rate: 100, initiative: 5, movement_rate: 100, range: 1 } }), 'enemy', { col: 3, row: 7 });
+    const burner = spawn(board, makeCard({ id: 'P_BURNER', power: { id: 'POWER_BURN', power_rate: 96 }, stats: { atk: 6, hp: 30, attack_rate: 100, movement_rate: 100, range: 2 } }), 'player', { col: 1, row: 3 });
+    const taunter = spawn(board, makeCard({ id: 'P_TAUNTER', power: { id: 'POWER_TAUNT', power_rate: 98 }, stats: { atk: 4, hp: 45, attack_rate: 99, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 3 });
+    const teleporter = spawn(board, makeCard({ id: 'P_TELEPORTER', power: { id: 'POWER_TELEPORT', power_rate: 95 }, stats: { atk: 7, hp: 25, attack_rate: 100, movement_rate: 100, range: 1 } }), 'player', { col: 3, row: 3 });
+    const freezer = spawn(board, makeCard({ id: 'E_FREEZER', power: { id: 'POWER_FREEZE', power_rate: 96 }, stats: { atk: 5, hp: 30, attack_rate: 100, movement_rate: 100, range: 2 } }), 'enemy', { col: 1, row: 7 });
+    const confuser = spawn(board, makeCard({ id: 'E_CONFUSER', power: { id: 'POWER_CONFUSION', power_rate: 95 }, stats: { atk: 5, hp: 28, attack_rate: 99, movement_rate: 100, range: 3 } }), 'enemy', { col: 2, row: 8 });
+    const immune = spawn(board, makeCard({ id: 'E_IMMUNE', attributes: ['ARCH_IMMU'], stats: { atk: 6, hp: 38, attack_rate: 100, movement_rate: 100, range: 1 } }), 'enemy', { col: 3, row: 7 });
 
     const playerUnits = [burner, taunter, teleporter];
     const enemyUnits = [freezer, confuser, immune];
@@ -108,13 +113,18 @@ describe('combat déterministe — golden events', () => {
       { id: 'ARCH_RAGE', name: 'Rage', timing: 'during_combat', thresholds: [{ count: 2, effects: [{ type: 'stat_modifier', stat: 'atk', value: 3, trigger: 'on_ally_neutralized' }] }] },
     ];
 
-    const w1 = spawn(board, makeCard({ id: 'P_W1', attributes: ['ARCH_WARRIOR', 'ARCH_RAGE'], stats: { atk: 7, hp: 40, attack_rate: 100, initiative: 6, movement_rate: 100, range: 1 } }), 'player', { col: 1, row: 3 });
-    const w2 = spawn(board, makeCard({ id: 'P_W2', attributes: ['ARCH_WARRIOR', 'ARCH_RAGE'], stats: { atk: 6, hp: 35, attack_rate: 100, initiative: 5, movement_rate: 100, range: 1 } }), 'player', { col: 3, row: 3 });
-    const guard = spawn(board, makeCard({ id: 'P_GUARD', attributes: ['ARCH_GUARD'], stats: { atk: 4, hp: 30, attack_rate: 99, initiative: 4, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 2 });
-    // Le bait est en ligne de front (row 3) pour mourir tôt et déclencher la RAGE
-    const bait = spawn(board, makeCard({ id: 'P_BAIT', stats: { atk: 2, hp: 8, attack_rate: 99, initiative: 8, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 3 });
-    const e1 = spawn(board, makeCard({ id: 'E_BRUTE_1', stats: { atk: 9, hp: 60, attack_rate: 100, initiative: 5, movement_rate: 100, range: 1 } }), 'enemy', { col: 2, row: 7 });
-    const e2 = spawn(board, makeCard({ id: 'E_BRUTE_2', stats: { atk: 8, hp: 55, attack_rate: 100, initiative: 4, movement_rate: 100, range: 1 } }), 'enemy', { col: 1, row: 7 });
+    const w1 = spawn(board, makeCard({ id: 'P_W1', attributes: ['ARCH_WARRIOR', 'ARCH_RAGE'], stats: { atk: 7, hp: 40, attack_rate: 100, movement_rate: 100, range: 1 } }), 'player', { col: 1, row: 2 });
+    const w2 = spawn(board, makeCard({ id: 'P_W2', attributes: ['ARCH_WARRIOR', 'ARCH_RAGE'], stats: { atk: 6, hp: 35, attack_rate: 100, movement_rate: 100, range: 1 } }), 'player', { col: 3, row: 2 });
+    const guard = spawn(board, makeCard({ id: 'P_GUARD', attributes: ['ARCH_GUARD'], stats: { atk: 4, hp: 30, attack_rate: 99, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 1 });
+    // ⚠️ Le bait est SEUL en ligne de front (row 3, les trois autres en row 2 et
+    // 1) : c'est ce qui le désigne comme la cible la plus proche des deux
+    // brutes, donc ce qui le fait mourir tôt et déclencher la RAGE. Il tenait
+    // auparavant sa mort de l'initiative la plus haute du plateau ; sans elle,
+    // rangé sur la même ligne que les autres, il n'était plus jamais visé et le
+    // scénario ne prouvait plus rien — un `stat_change` qui n'arrive pas.
+    const bait = spawn(board, makeCard({ id: 'P_BAIT', stats: { atk: 2, hp: 8, attack_rate: 99, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 3 });
+    const e1 = spawn(board, makeCard({ id: 'E_BRUTE_1', stats: { atk: 9, hp: 60, attack_rate: 100, movement_rate: 100, range: 1 } }), 'enemy', { col: 2, row: 7 });
+    const e2 = spawn(board, makeCard({ id: 'E_BRUTE_2', stats: { atk: 8, hp: 55, attack_rate: 100, movement_rate: 100, range: 1 } }), 'enemy', { col: 1, row: 7 });
 
     // Vétérance : w1 a survécu à 3 combats → +6 atk / +45 hp au start (2/pt, 15/pt)
     w1.veterancy_points = 3;
@@ -139,8 +149,8 @@ describe('combat déterministe — golden events', () => {
 
   it('S7 — timeout : combat interminable coupé à MAX_COMBAT_TICKS', () => {
     const board = makeBoard();
-    const p = spawn(board, makeCard({ id: 'P_WALL', stats: { atk: 1, hp: 500, attack_rate: 99, initiative: 5, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 3 });
-    const e = spawn(board, makeCard({ id: 'E_WALL', stats: { atk: 1, hp: 500, attack_rate: 99, initiative: 5, movement_rate: 100, range: 1 } }), 'enemy', { col: 2, row: 7 });
+    const p = spawn(board, makeCard({ id: 'P_WALL', stats: { atk: 1, hp: 500, attack_rate: 99, movement_rate: 100, range: 1 } }), 'player', { col: 2, row: 3 });
+    const e = spawn(board, makeCard({ id: 'E_WALL', stats: { atk: 1, hp: 500, attack_rate: 99, movement_rate: 100, range: 1 } }), 'enemy', { col: 2, row: 7 });
 
     const result = runCombat(board, [p], [e]);
     expect(result.winner).toBe('timeout');

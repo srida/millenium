@@ -822,7 +822,7 @@ material_value         // slots représentés si l'unité est consommée — DON
 _base                  // stats de base gelées — SEUL endroit modifié en PERMANENT (magies, handicap IA)
 _stat_bonuses          // bonus plats du combat en cours (attributs, terrain, vétérance)
 _shopping_bonus        // delta permanent cumulé des magies — transféré aux invocations composites
-atk / max_hp / current_hp / initiative / range
+atk / max_hp / current_hp / range
 movement_rate / attack_rate                      // COMPTEURS 0–100, plus haut = plus vite
 movement_period / attack_period                  // seuils en ticks, DÉRIVÉS des compteurs
 shield / power_gauge
@@ -1058,7 +1058,7 @@ Une **grammaire** par pouvoir — direction, silhouette, locus —, car c'est el
 
 `POWER_TELEPORT` émet `power` + `move`, `POWER_FREEZE` émet `power` + `freeze` : le `power` sert au toast/flash, le second porte la donnée de l'animateur.
 
-**Cinq phases par step**, sur les unités vivantes triées par initiative :
+**Cinq phases par step**, sur les unités vivantes triées par l'ordre d'action :
 1. Ticks passifs (jauge, décomptes paralysie/block/confusion/taunt, pulses de DOT)
 2. Morts dues aux DOT → fin de combat éventuelle
 3. Déplacements (`move_timer >= movement_period`)
@@ -1069,7 +1069,12 @@ Une **grammaire** par pouvoir — direction, silhouette, locus —, car c'est el
 
 **Timeout** : `MAX_COMBAT_TICKS = 60_000 / 180` (≈ 333 steps, 60 s à ×1) → `winner = 'timeout'`, **les deux joueurs encaissent**.
 
-**Ordre d'initiative** : `initiative` décroissante → `effectiveAttackPeriod()` décroissante (donc la plus LENTE d'abord) → **`card_id` croissant** (`localeCompare`). ⚠️ Le départage compare la **période**, jamais le compteur : le compteur a retourné le sens de la donnée, pas celui de ce tri, et le comparer inverserait l'ordre d'action de toutes les égalités d'initiative — en silence, et des deux côtés d'un PvP. ⚠️ Le 3ᵉ critère n'est pas cosmétique : c'est une valeur **absolue**, identique sur les deux clients PvP, là où l'ordre d'insertion dans le tableau ne l'est pas.
+**Ordre d'action** : `tier` décroissant → `atk` décroissante → `movement_rate` décroissant → **`card_id` croissant** (`localeCompare`) → le camp (`_frameSide`). Verrouillé par `action-order.test.ts`.
+
+- ⚠️ **Il n'y a plus de stat d'initiative.** Elle ne se lisait NULLE PART ailleurs que dans ce tri — aucun écran, aucune magie, aucun terrain — et ne s'expliquait donc par rien de ce que le joueur voit sur la carte. Quatre valeurs qu'il lit déjà la remplacent, du plus parlant au plus arbitraire : « la plus grosse frappe en premier ». `scripts/migrate-initiative.js` retire le champ ; `audit:cards` compte un résidu comme une faute.
+- ⚠️ **Les trois premiers critères sont des valeurs de COMBAT, bonus compris** (`_recomputeStats`), pas des champs de carte : un buff d'ATQ fait passer devant. Les trois voyagent **déjà** dans `round:board_ready` — `tier` se dérive du catalogue commun aux deux clients, `atk` et `movement_rate` de `base` — donc le contrat de déterminisme est tenu sans un champ de plus.
+- ⚠️ **La vitesse se compare sur le COMPTEUR** (plus haut = plus tôt), et non sur la période en ticks comme le faisait le départage d'avant : celui-ci héritait d'une donnée qui **était** une période, ce qui n'est plus le cas d'aucune. Le compteur a de surcroît le grain le plus fin — deux compteurs voisins retombent souvent sur le même nombre de ticks.
+- ⚠️ Le 4ᵉ critère n'est pas cosmétique : c'est une valeur **absolue**, identique sur les deux clients PvP, là où l'ordre d'insertion dans le tableau ne l'est pas.
 
 **Ciblage** — pool résolu par `_targetCandidates(unit, { requireLOS })` :
 1. **Provocation** — un ennemi à `taunt_remaining > 0` est la seule cible (le plus proche s'il y en a plusieurs). En résolution d'attaque (`requireLOS: true`), un provocateur hors LOS ne force plus rien ; en déplacement, l'unité marche vers lui pour regagner la LOS.
@@ -1353,7 +1358,7 @@ Verrouillé par `client/src/test/pvp.test.ts`.
 - ⚠️ **`logic/BoardMirror` est le seul module qui sache traduire une rangée d'un camp à l'autre** : `net/PvpOpponentProvider` et lui partagent un unique `mirrorRow`.
 - ⚠️ Le drapeau de miroir est posé à la **construction** de la session, pas passé à `startCombat` : il n'y aurait sinon qu'à l'oublier sur un chemin d'appel pour que la divergence revienne en silence.
 - ⚠️ **Seul le rôle B change.** Le rôle A balaie exactement comme avant → solo, arcade, tournoi, tutoriel et simulation sont **inchangés au bit près**. C'est la propriété qui rend ces corrections sûres : elles n'introduisent pas un nouvel ordre, elles imposent aux deux clients **celui qui existait déjà** d'un des deux côtés.
-- ⚠️ **Une règle de repère recopiée à deux endroits est une règle qu'on corrige à un seul.** C'est arrivé trois fois (l'énumérateur de la téléportation, le tri d'initiative recopié par `CombatRecorder`, la traduction du vainqueur). **Avant d'ajouter un énumérateur de cases, se demander si `Board` n'en a pas déjà un.**
+- ⚠️ **Une règle de repère recopiée à deux endroits est une règle qu'on corrige à un seul.** C'est arrivé trois fois (l'énumérateur de la téléportation, le tri d'ordre d'action recopié par `CombatRecorder`, la traduction du vainqueur). **Avant d'ajouter un énumérateur de cases, se demander si `Board` n'en a pas déjà un.**
 - ⚠️ **Le déterminisme ne demande PAS que le terrain soit symétrique** — c'est le miroir à l'application qui le garantit. Le **fond de grille** suit (`Scene3D.setTerrainMirrored`, posé par `PvpController.attachScene` — la scène est attachée par `Board3DCanvas` sans ordre garanti vis-à-vis de `begin()`) : plan retourné sur l'axe des rangées (`scale.y = -1`, d'où le `DoubleSide` — une échelle négative inverse l'enroulement des faces).
 - ⚠️ **Le combat n'est pas tout le round** : ce qui arrive **après le dernier tick** (la réanimation d'attribut, donc les survivants et les dégâts) peut diverger sans qu'aucun tick ne diffère. D'où l'épilogue du log.
 
@@ -1404,7 +1409,7 @@ Verrouillé par `client/src/test/pvp.test.ts`.
 
 ⚠️ **Deux leçons de méthode, valables au-delà de cet outil :**
 1. **Une divergence en cache une autre** — le diff s'arrête à la première différence, donc un rapport « diverged » n'est jamais la liste des pannes, c'est la plus précoce.
-2. **Un outil de diagnostic qui crie au loup sur les cas sains est pire qu'un outil absent.** Arrivé trois fois : le vainqueur non traduit (`'player'`/`'enemy'` sont des valeurs du repère **local**, donc *tout* duel sain était rapporté divergent), le tri d'initiative recopié sans son départage, et le labo IA qui affichait le contraire de la rétention de main.
+2. **Un outil de diagnostic qui crie au loup sur les cas sains est pire qu'un outil absent.** Arrivé trois fois : le vainqueur non traduit (`'player'`/`'enemy'` sont des valeurs du repère **local**, donc *tout* duel sain était rapporté divergent), le tri d'ordre d'action recopié sans son départage, et le labo IA qui affichait le contraire de la rétention de main.
 
 ---
 
@@ -1476,7 +1481,7 @@ Structure d'un deck : `{ "1": ["CORE_001", …], "2": […], "3": […], "4": [�
 
 - **L'adversaire solo se choisit parmi les decks publics**, jamais parmi ceux du joueur. Le deck public **voyage en clair** dans les params (`enemyDeck`), pas seulement par son nom : il ne vit pas dans `DeckRepository`. `enemyDeckName` n'est plus qu'un libellé.
 - **La carte d'un deck public ne montre pas la même chose** : la répartition par tier est réservée aux siens (devant un adversaire, on ne choisit pas une composition) — elle cède la place à sa **difficulté** (`DifficultyChip` : le libellé **et** 4 pastilles) et à ses **tags**.
-- **Tags** (`data/DeckTags.computeDeckTags`) : deux attributs dominants (≥ 2 cartes) puis un mot de profil (Mêlée / Distance / Brutal / Offensif), 3 max. ⚠️ Les attributs de catégorie **`Invocation` et `Tiers`** en sont écartés — et **seulement là** : le tirage du terrain les garde tous les deux (un terrain a le droit de viser les Sacrifices, ou les Tier 5). « Normal » est porté par 389 cartes sur 868, il serait dominant partout et ne distinguerait rien. `AttributeDatabase.isInvocationAttribute` / `isTierAttribute` sont les seuls endroits qui nomment ces catégories côté affichage. **Un seul calcul, deux moments** : figés à l'enregistrement pour le deck du joueur, **dérivés à l'affichage** pour un deck public. ⚠️ **Le tri a DEUX critères** : effectif décroissant, puis `id` d'attribut — sans le second, un deck public réordonné en admin changeait de tags sans changer de contenu (même geste que le départage par `card_id` de l'initiative).
+- **Tags** (`data/DeckTags.computeDeckTags`) : deux attributs dominants (≥ 2 cartes) puis un mot de profil (Mêlée / Distance / Brutal / Offensif), 3 max. ⚠️ Les attributs de catégorie **`Invocation` et `Tiers`** en sont écartés — et **seulement là** : le tirage du terrain les garde tous les deux (un terrain a le droit de viser les Sacrifices, ou les Tier 5). « Normal » est porté par 389 cartes sur 868, il serait dominant partout et ne distinguerait rien. `AttributeDatabase.isInvocationAttribute` / `isTierAttribute` sont les seuls endroits qui nomment ces catégories côté affichage. **Un seul calcul, deux moments** : figés à l'enregistrement pour le deck du joueur, **dérivés à l'affichage** pour un deck public. ⚠️ **Le tri a DEUX critères** : effectif décroissant, puis `id` d'attribut — sans le second, un deck public réordonné en admin changeait de tags sans changer de contenu (même geste que le départage par `card_id` de l'ordre d'action).
 - Deux raccourcis en mode `'play'` : **🪞 Miroir** (état par défaut, `enemyId = null` → l'IA joue le deck du joueur) et **🎲 Aléatoire** (tire un deck public jouable, en évitant le tirage précédent). Ne retient que les decks ≥ 20 cartes.
 - **Tournoi et Duel en ligne n'ont pas d'étape de sélection** : ils consomment `getActiveDeck()` et n'affichent qu'un récap **en lecture seule** (`components/deck/SelectedDeck.tsx`). Seul cas navigable : aucun deck actif → CTA « Mes decks ». Un tournoi lancé garde son deck figé (`tournament.playerDeckName`).
 
@@ -1740,7 +1745,7 @@ cd client && npx vite-node src/sim/run.ts -- --games=60000 --ab-top=20 --seed=20
 **Le hasard est SEMÉ** : `rand` est une dep injectée, défaut `Math.random` — **aucun appelant existant ne change**. Quatre points de branchement : `Draw.drawHand`, le constructeur d'`EnemyAI`, `GameSessionDeps.rand`, et le **terrain** (`BoardPicker`). ⚠️ À **exactement un appel par combat**, au même point du flux qu'avant : un appel de plus décalerait toutes les pioches et tous les choix d'IA qui suivent.
 
 **Les trois constats qui commandent le protocole** :
-1. ⚠️ **Le siège n'est pas neutre** — à égalité totale d'initiative, de vitesse et de `card_id`, le tri stable laisse le joueur frapper le premier : **61 % pour le côté A sur un miroir strict**. Le départage par `card_id` porte le déterminisme PvP, on n'y touche pas : on joue **chaque appariement dans les deux sens** et on ne mesure que le siège du joueur.
+1. ⚠️ **Le siège n'est pas neutre** — à égalité totale de tier, d'ATQ, de vitesse et de `card_id`, le tri stable laisse le joueur frapper le premier : **61 % pour le côté A sur un miroir strict**. Le départage par `card_id` porte le déterminisme PvP, on n'y touche pas : on joue **chaque appariement dans les deux sens** et on ne mesure que le siège du joueur.
 2. ⚠️ **Appartenir au deck n'est pas être posée** — sans filtre de couverture, **130 cartes sur 653 ne sont jamais posées** en 1000 parties. Le dénominateur d'un winrate est donc le nombre de parties où la carte a été **posée**.
 3. ⚠️ **1000 parties par jour ne mesurent rien** (46 poses par carte en médiane, ±14 points). Il faut ~2400 observations pour ±2 points, soit ~60 000 parties — 11 minutes.
 
