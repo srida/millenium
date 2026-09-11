@@ -97,7 +97,7 @@ export interface Monde {
    * USAGE, et ignore d'où ils viennent. Même patron que `deps.rand` et que
    * `catalogue`.
    */
-  pool?: (source: 'tier_voisin' | 'materiau', ctx: { carte: Card | null; decalage?: number }) => Card[];
+  pool?: (source: 'tier_voisin', ctx: { carte: Card | null; decalage?: number }) => Card[];
   /**
    * Les substitutions à opérer sur le board, rendues à l'appelant.
    *
@@ -559,15 +559,28 @@ function appliqueRemplacer(t: TacheRemplacer, monde: Monde, trace: Trace): void 
     return { ...pool[Math.floor(r() * pool.length)] };
   };
 
-  if (t.source === 'materiau') {
+  // ⚠️ **Le remplacement d'une CARTE de la main est un geste à part**, et il ne
+  // se déduit pas de celui du board : il n'y a ni case à conserver, ni unité à
+  // construire, ni substitution à rendre à l'appelant — on écrase une case de
+  // la main, et c'est tout.
+  //
+  // ⚠️ La case est ÉCRASÉE, jamais mutée : `canUndoPreparation` compare la main
+  // par RÉFÉRENCE, et la carte vient du deck — une retouche en place le
+  // muterait.
+  //
+  // ⚠️ AUCUNE magie livrée ne porte ce type (`shift_tier_card` : 0 sur 51), donc
+  // le mode ombre ne l'exerçait pas et cette branche a manqué un temps sans que
+  // rien ne le dise. Ce sont les cas synthétiques de `shopping.test.ts` qui
+  // l'ont attrapée.
+  if (t.cible.conteneur === 'main') {
     if (!monde.main?.length) { trace.neant.push('(main vide)'); return; }
-    const carte = monde.main[monde.cibleMain ?? 0];
+    const idx = monde.cibleMain ?? 0;
+    const carte = monde.main[idx];
     if (!carte) { trace.neant.push('(aucune carte désignée)'); return; }
-    const choisi = tire(monde.pool?.('materiau', { carte }) ?? []);
-    if (!choisi) { trace.neant.push('(aucun matériel résolvable)'); return; }
-    // ⚠️ `draw_material` AJOUTE : la carte source reste en place.
-    monde.main.push(choisi);
-    trace.applique.push(`main+${choisi.id}`);
+    const remplacante = tire(monde.pool?.('tier_voisin', { carte, decalage: t.decalage }) ?? []);
+    if (!remplacante) { trace.neant.push('(aucun remplaçant)'); return; }
+    monde.main[idx] = remplacante;
+    trace.applique.push(`main ${carte.id}→${remplacante.id}`);
     return;
   }
 

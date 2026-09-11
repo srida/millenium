@@ -437,6 +437,17 @@ const MANQUE: Record<string, string> = {
   // propriétaire — le §4.3 dit explicitement que l'invocation n'entre pas dans
   // le moteur.
   defuse_fusion: 'lecture de la lignée + repli de placement (règle d\'invocation)',
+  // ⚠️ `draw_material` consomme DEUX tirages là où `remplacer` n'en fait qu'un :
+  // le premier choisit QUEL matériel (en préférant ceux qui manquent), le second
+  // QUELLE carte le porte — un matériel d'attribut en a plusieurs dans le deck.
+  // Aplatir les deux en un seul pool changerait la distribution (un matériel à
+  // trois porteurs deviendrait trois fois plus probable) et le nombre d'appels,
+  // donc tout le flux semé qui suit.
+  //
+  // ⚠️ **Le mode ombre ne pouvait PAS le voir** : il compare l'ÉTAT, et sur un
+  // pool à un seul candidat les deux chemins rendent la même carte. C'est ce
+  // qui a fait croire ce type traduisible — cf. `docs/moteur-effets.md` §6.5.
+  draw_material: 'deux tirages (quel matériel, puis quelle carte le porte)',
 };
 
 /**
@@ -665,16 +676,6 @@ export function compileMagie(magie: MagieLike): CompilationResult {
         action: 'remplacer',
         cible: { conteneur: 'main', camp: 'allie', combien: 'un' },
         source: 'tier_voisin', decalage: (e.value as number) || 1,
-      }]);
-      return { effets, refus };
-
-    case 'draw_material':
-      // ⚠️ La carte source RESTE en place : la magie AJOUTE un matériel, elle ne
-      // remplace rien. C'est ce qui la distingue de `shift_tier_card`.
-      pousse([{
-        action: 'remplacer',
-        cible: { conteneur: 'main', camp: 'allie', combien: 'un' },
-        source: 'materiau',
       }]);
       return { effets, refus };
 

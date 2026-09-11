@@ -277,8 +277,16 @@ export interface TacheAjouter {
 export interface TacheRemplacer {
   action: 'remplacer';
   cible: Selecteur;
-  /** Ce que le pool doit fournir. */
-  source: 'tier_voisin' | 'materiau';
+  /**
+   * Ce que le pool doit fournir.
+   *
+   * ⚠️ UNE seule source, et c'est un choix mesuré : `draw_material` en
+   * demandait une seconde, mais il consomme DEUX tirages (quel matériel, puis
+   * quelle carte le porte) là où `remplacer` n'en fait qu'un. Le traduire
+   * changerait la distribution ET le nombre d'appels à `rand` — cf. `MANQUE`
+   * dans `compile.ts`.
+   */
+  source: 'tier_voisin';
   /** Le décalage de tier, pour `tier_voisin`. */
   decalage?: number;
 }

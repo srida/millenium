@@ -992,7 +992,64 @@ durabilité d'un bonus à l'intérieur du combat. Les deux écarts n'ont été v
 juge de la bascule », rendue concrète : une suite verte n'est pas une preuve de
 no-op, elle est une preuve sur ce que la suite sait regarder.
 
-**Reste à basculer** : magie (51), puis les tâches de pouvoir.
+**✅ MAGIE BASCULÉE — 49 des 51.** Les quatre chemins d'application de
+`GameSession` passent par un point d'entrée unique, `_runMagie`, qui prépare le
+MONDE et verse ce que le moteur a accumulé. Le détecteur rend un rapport
+**identique** à celui d'après la bascule des attributs : le no-op est strict
+(le détecteur ne joue pas de magies, mais c'est aussi ce que dit la suite).
+
+**Ce qui reste chez l'appelant n'est pas un reliquat, c'est une frontière** :
+l'ÉLIGIBILITÉ d'une cible (le sélecteur dit « une unité alliée », pas « une
+unité qui a un pouvoir »), la RÉSOLVABILITÉ (une magie qui peut ne rien trouver
+pose sa question AVANT — sinon le contrecoup, première tâche compilée, partirait
+à vide), et la POSE sur le plateau (`Board.placeUnit` jette sur une case
+occupée). Le moteur dit qui revient du cimetière et qui remplace qui ;
+`_placeRevived` et `_substituteUnit` font le geste.
+
+**⚠️ La bascule a démenti le mode ombre sur DEUX types, et c'est le résultat le
+plus instructif de toute l'étape 2** — il dit exactement ce qu'une comparaison
+d'état ne peut pas voir :
+
+1. **`draw_material` n'était pas traduisible**, alors qu'il était compté comme
+   tel. Il consomme **DEUX tirages** (quel matériel manque, puis quelle carte le
+   porte) là où `remplacer` n'en fait qu'un. Les aplatir changerait la
+   DISTRIBUTION (un matériel à trois porteurs deviendrait trois fois plus
+   probable) et le nombre d'appels à `rand`, donc tout le flux semé. Le mode
+   ombre ne pouvait pas le voir : il compare l'ÉTAT, et son harnais n'avait
+   qu'un candidat par pool — les deux chemins rendaient la même carte. La
+   branche `source: 'materiau'` a été **retirée** du moteur plutôt que laissée
+   inatteignable, et le type est refusé nommément.
+2. **`shift_tier_card` était vert sans qu'aucune branche existe.** `remplacer`
+   ne savait traiter que le board ; la branche « main » n'avait jamais été
+   écrite. **Aucune magie livrée ne porte ce type (0 sur 51)**, donc aucun cas
+   ne l'exerçait — ce sont les terrains synthétiques de `shopping.test.ts` qui
+   l'ont attrapée à la bascule.
+
+⚠️ **Et le mode ombre des magies a été consommé comme les deux autres — mais ici
+la mesure a demandé un vrai travail avant le retrait.** Sur cinq mutations du
+compilateur, **quatre restaient vertes sur toute la suite**, dont le REGISTRE
+d'écriture (`_base` vs `_stat_bonuses`), qui est la règle la plus importante du
+porteur. Le snapshot de l'étape 0 n'y peut rien : il observe l'état juste après
+l'application, où les deux registres rendent la même stat effective. Quatre cas
+ont donc été écrits dans l'oracle **avant** de retirer quoi que ce soit :
+
+| Règle | Comment elle se prouve |
+|---|---|
+| un bonus de magie SURVIT à `resetCombatStats()` | on applique, puis on balaie, puis on relit |
+| le contrecoup part AVANT l'effet | `drain_life` + `cost_hp` : la magie ne se finance pas elle-même |
+| une magie impayable ne fait RIEN | ⚠️ **double garde** (session + compilateur) : muter les deux |
+| une magie d'unité n'est pas une magie d'ÉQUIPE | ⚠️ **double garde** (monde restreint + sélecteur `un`) : muter les deux |
+
+⚠️ **Les doubles gardes sont désormais un motif reconnu, et non un défaut** :
+trois fois sur cette étape (les ressources adverses, l'accessibilité d'une magie,
+le ciblage unique), une règle est tenue à deux endroits qui se couvrent. Aucune
+moitié n'est prouvable seule, et **une mutation isolée y donne un faux
+négatif** — il faut muter la paire. C'est écrit à chaque site, parce que rien
+dans la couleur d'un test ne le dit.
+
+**L'étape 2 est terminée.** Les tâches de pouvoir restent **hors périmètre**
+(décision 2 du §7) : elles vivent dans la boucle de combat, là où une divergence
+coûte un duel aux deux joueurs, et le §4.3 les avait déjà écartées.
 
 ### 6.3 Ce que l'étape 1 a appris sur la façon de prouver
 

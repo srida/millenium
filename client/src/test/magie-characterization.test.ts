@@ -420,3 +420,108 @@ describe('Magies livrées — un contrecoup ne se prélève jamais à vide', () 
     },
   );
 });
+
+describe('Magies livrées — les trois règles que le snapshot ne peut pas voir', () => {
+  // ⚠️ **CES TROIS CAS ONT ÉTÉ ÉCRITS À LA BASCULE, et la mesure disait qu'il
+  // le fallait** : sur cinq mutations du compilateur de magie, QUATRE restaient
+  // vertes sur toute la suite. Le snapshot de ce fichier n'y peut rien — il
+  // observe l'état juste après l'application, où ces trois règles ne laissent
+  // aucune trace :
+  //
+  //   • le REGISTRE (`_base` vs `_stat_bonuses`) rend la même stat effective ;
+  //   • l'ORDRE du contrecoup ne se voit que si l'effet rend des PV ;
+  //   • la GARDE d'accessibilité ne se voit que sur une magie impayable.
+  //
+  // Aucune magie livrée ne croise ces cas, d'où trois magies SYNTHÉTIQUES.
+
+  // ⚠️ La règle la plus importante du porteur : une magie écrit dans `_base`,
+  // donc son effet SURVIT au combat et voyage dans `round:board_ready` (§5.3).
+  // C'est ce qui la distingue d'un bonus de terrain ou d'attribut.
+  // Mutation : `duree: 'combat'` dans le compilateur → ROUGE.
+  it('un bonus de magie SURVIT à la fin du combat', () => {
+    const s = makeSession();
+    const cible = s.getPlayerUnits()[0];
+    const avant = cible.atk;
+    s.applyMagieOnUnit({ id: 'M', name: 'Lame', cost_hp: 0,
+      effect: { type: 'stat_bonus', stat: 'atk', value: 30 } } as any, cible);
+    expect(cible.atk, 'le bonus est posé').toBe(avant + 30);
+
+    // `resetCombatStats()` balaie `_stat_bonuses` — un bonus de COMBAT
+    // disparaîtrait ici, un bonus de MAGIE non.
+    cible.resetCombatStats();
+    expect(cible.atk, 'et il survit au balayage de fin de combat').toBe(avant + 30);
+  });
+
+  // ⚠️ `drain_life` rend des PV au joueur ET coûte des PV : si le contrecoup
+  // partait APRÈS, la magie financerait son propre coût avec ce qu'elle
+  // rapporte. C'est la seule raison pour laquelle le compilateur émet le
+  // contrecoup en PREMIÈRE tâche.
+  // Mutation : le contrecoup en dernier → ROUGE.
+  it('le contrecoup part AVANT l\'effet, donc une magie ne se finance pas elle-même', () => {
+    const s = makeSession();
+    const cible = s.getPlayerUnits()[0];
+    const pv = cible.current_hp;
+    const avant = s.gameState.player_hp;
+    s.applyMagieOnUnit({ id: 'M', name: 'Absorption', cost_hp: 50,
+      effect: { type: 'drain_life' } } as any, cible);
+    // −50 de contrecoup, puis + les PV COURANTS de l'unité drainée.
+    expect(s.gameState.player_hp).toBe(Math.min(avant - 50 + pv, 1000));
+  });
+
+  // ⚠️ Une magie impayable ne s'applique pas DU TOUT — elle n'ampute rien au
+  // passage. La garde et le paiement ne se désolidarisent jamais.
+  //
+  // ⚠️ **DEUX gardes qui se couvrent**, donc aucune prouvable seule : celle de
+  // la session (`canAffordMagie`, en tête des quatre chemins) et celle du
+  // compilateur (`condition.pvJoueurSuperieurA`, jugée sur les PV d'AVANT).
+  // Retirer l'une ne fait rouge aucun test ; les retirer ENSEMBLE fait rouge
+  // celui-ci. Même situation que les ressources adverses côté attribut — une
+  // mutation isolée y donne un faux négatif.
+  it('une magie impayable ne prélève RIEN et ne fait RIEN', () => {
+    const s = makeSession();
+    s.gameState.player_hp = 40;
+    const cible = s.getPlayerUnits()[0];
+    const atk = cible.atk;
+    // ⚠️ La comparaison est STRICTE : payer laisse toujours 1 PV. À 40 PV, un
+    // coût de 40 est déjà refusé.
+    const magie = { id: 'M', name: 'Trop chère', cost_hp: 40,
+      effect: { type: 'stat_bonus', stat: 'atk', value: 30 } } as any;
+    expect(s.canAffordMagie(magie), 'le HUD la verrouille').toBe(false);
+
+    // ⚠️ Et même forcée, elle ne fait rien : la règle ne dépend pas du rendu.
+    s.applyMagieOnUnit(magie, cible);
+    expect(s.gameState.player_hp, 'aucun PV prélevé').toBe(40);
+    expect(cible.atk, 'aucun bonus posé').toBe(atk);
+  });
+});
+
+describe('Magies livrées — une magie d\'unité n\'est pas une magie d\'ÉQUIPE', () => {
+  // ⚠️ Ce cas vient du mode ombre, qui était le SEUL à l'attraper avant la
+  // bascule. La distinction ne se lit pas dans le snapshot : celui-ci n'applique
+  // chaque magie qu'à une cible, et une magie d'équipe posée sur une seule unité
+  // fait exactement ce qu'une magie d'unité ferait.
+  //
+  // Mutation : `uneUnite()` rendant `combien: 'tous'` → ROUGE.
+  //
+  // ⚠️ **DEUX gardes qui se couvrent, une troisième fois** : l'appelant
+  // restreint le MONDE (`unitesAlliees: [unit]`) et le sélecteur restreint la
+  // CIBLE (`combien: 'un'`). Retirer l'une ne fait rouge aucun test ; les
+  // retirer ensemble, si.
+  it('un `stat_bonus` ne touche QUE la cible désignée', () => {
+    const s = makeSession();
+    const [cible, ...autres] = s.getPlayerUnits();
+    const avant = autres.map(u => u.atk);
+    s.applyMagieOnUnit({ id: 'M', name: 'Lame', cost_hp: 0,
+      effect: { type: 'stat_bonus', stat: 'atk', value: 30 } } as any, cible);
+    expect(autres.map(u => u.atk), 'les autres ne bougent pas').toEqual(avant);
+  });
+
+  it('un `team_stat_bonus` touche TOUT le board du joueur', () => {
+    const s = makeSession();
+    const toutes = s.getPlayerUnits();
+    const avant = toutes.map(u => u.atk);
+    s.applyGlobalMagie({ id: 'M', name: 'Renfort', cost_hp: 0,
+      effect: { type: 'team_stat_bonus', stat: 'atk', value: 30 } } as any);
+    expect(toutes.map(u => u.atk)).toEqual(avant.map(a => a + 30));
+  });
+});

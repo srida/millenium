@@ -1186,6 +1186,9 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 
 ### Types d'effets (`logic/MagieEffect.js`)
 
+⚠️ **Les quatre chemins d'application de `GameSession` passent par le MOTEUR** (`logic/effects/` : `compileMagie` puis `executer`, via l'unique `_runMagie`). Ce qui reste dans la session est une **frontière de responsabilité**, pas un reliquat : l'éligibilité d'une cible (`magieUnitTargets` / `magieHandTargets`), la résolvabilité (une magie qui peut ne rien trouver pose sa question AVANT — le contrecoup est la première tâche compilée) et la **pose sur le plateau** (`_placeRevived`, `_substituteUnit` — `Board.placeUnit` jette sur une case occupée).
+⚠️ **Deux types restent hors du moteur, et pour deux raisons différentes** : `defuse_fusion` lit une **règle d'invocation** (lignée + repli au cimetière), et `draw_material` consomme **deux tirages** (quel matériel, puis quelle carte le porte) là où `remplacer` n'en fait qu'un — les aplatir changerait la distribution et le flux semé.
+
 `effectLabel(magie)` génère la description ; `applyEffect(magie, { gameState, targetUnit, targetUnits })` applique. ⚠️ `targetUnits` n'est **pas** une variante de `targetUnit` : il porte les magies d'**équipe**, qui n'ont aucune cible à désigner — seul `applyGlobalMagie` le remplit.
 
 | `type` | Champs | Effet |

@@ -4,28 +4,38 @@
 // Le troisième porteur, et le plus dispersé : 13 des 23 types ne portent qu'UNE
 // magie (§1.1). C'est ce fichier qui a servi à décider si la bascule des magies
 // valait la chandelle, en chiffrant ce qui manquait au moteur type par type.
-// Cf. `docs/moteur-effets.md` §6.4. Verdict : 50 des 51.
+// Cf. `docs/moteur-effets.md` §6.4 et §6.5. Verdict : 49 des 51.
 //
 // Ce fichier a donc deux rôles, et le second vaut autant que le premier :
 //   1. prouver que ce qui compile produit le MÊME état que `GameSession` ;
 //   2. **pinner exactement ce qui ne compile pas, et pourquoi.** La frontière
 //      doit bouger exprès, jamais par accident.
 //
-// ⚠️ Le chemin actuel passe par une vraie `GameSession`, pas par `applyEffect`
-// seul : 11 des 23 types vivent dans la session. Comparer au seul `MagieEffect`
-// prouverait une moitié de porteur.
+// ⚠️ **CE MODE OMBRE A ÉTÉ CONSOMMÉ PAR SA PROPRE BASCULE**, comme ceux du
+// terrain et des attributs avant lui : `GameSession` EST désormais le
+// compilateur plus le moteur, donc comparer les deux chemins reviendrait à
+// comparer le moteur à lui-même. Les comparaisons d'état sont parties ; ce qui
+// garde les 51 magies livrées est le snapshot de
+// `magie-characterization.test.ts`, enregistré AVANT la bascule.
+//
+// ⚠️ **Et la bascule a démenti ce fichier sur DEUX points**, qu'il faut lire
+// comme la limite du procédé plutôt que comme des accidents :
+//   1. `draw_material` y était « traduit » alors qu'il consomme DEUX tirages
+//      là où le moteur n'en fait qu'un — la comparaison d'ÉTAT ne voit pas le
+//      flux de hasard, et sur un pool à un seul candidat les deux chemins
+//      rendent la même carte ;
+//   2. `shift_tier_card` y était vert sans qu'aucune branche « main » de
+//      `remplacer` n'existe — AUCUNE magie livrée ne porte ce type (0 sur 51),
+//      donc aucun cas ne l'exerçait.
+// Deux silences, tous deux invisibles à un mode ombre vert.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GameSession } from '../logic/GameSession.js';
-import type { GameSessionDeps } from '../logic/GameSession.js';
 import { compileMagie, compileMagies } from '../logic/effects/compile.js';
 import { executer, ressourcesVides } from '../logic/effects/engine.js';
 import type { Ressources } from '../logic/effects/engine.js';
-import { needsUnitTarget, needsGraveyardTarget, needsHandTarget } from '../logic/MagieEffect.js';
 import { Unit } from '../logic/Unit.js';
-import { makeRandom, hashSeed } from '../logic/Random.js';
 import { makeCard } from './helpers.js';
 import { tiersOf } from '../logic/Tiers.js';
 import type { Magie } from '../logic/types.js';
@@ -33,7 +43,6 @@ import type { Magie } from '../logic/types.js';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const read = (f: string) => JSON.parse(readFileSync(path.join(ROOT, 'initial-data', f), 'utf8'));
 const magies: Magie[] = read('magies.json');
-const attributes: any[] = read('attributes.json');
 
 // Le même plateau d'essai que l'oracle de l'étape 0 — chaque pièce répond d'une
 // famille de magies.
@@ -83,27 +92,6 @@ for (const c of DECK) for (const t of tiersOf(c as any)) (BY_TIER[t] ??= []).pus
 
 const PLACES = ['DECK_T1', 'DECK_POUVOIR', 'DECK_T2'];
 
-function makeSession(): GameSession {
-  const deps: GameSessionDeps = {
-    cardsByTier: BY_TIER, enemyDeck: {}, attributeList: attributes,
-    cardDb: { getCard: (id: string) => (BY_ID.get(id) as any) ?? null } as any,
-    getAllBoards: () => [], getAllMagies: () => [], rand: makeRandom(hashSeed('ombre-magies')),
-  };
-  const s = new GameSession(deps);
-  s.startPreparation();
-  s.hand = [BY_ID.get('DECK_MAT')!, BY_ID.get('DECK_T1')!,
-    ...INVOC.map(a => BY_ID.get(`DECK_COUT_${a}`)!)] as any[];
-  PLACES.forEach((id, col) => {
-    const u = new (Unit as any)(BY_ID.get(id), 'player') as Unit;
-    s.board.placeUnit(u, { col, row: 0 });
-    u.current_hp = Math.max(1, Math.round(u.max_hp / 2));
-  });
-  const mort = new (Unit as any)(BY_ID.get('DECK_T2'), 'player') as Unit;
-  mort.is_neutralized = true; mort.current_hp = 0;
-  s.graveyard.push(mort);
-  s.gameState.player_hp = 700;
-  return s;
-}
 
 /** Le même monde que la session, hors session, pour le chemin compilé. */
 function monde() {
@@ -147,46 +135,12 @@ function garanties(list: any[]): string[] {
   return list.map(d => [d.tier ?? '—', (d.attributes ?? []).join('|') || (d.attribute ?? '—'), (d.card_ids ?? []).join('|') || '—'].join(':'));
 }
 
-/** Le chemin ACTUEL — une vraie `GameSession`, par la famille de ciblage. */
-function cheminActuel(m: Magie) {
-  const s = makeSession();
-  const avantPv = s.gameState.player_hp;
-  if (needsUnitTarget(m as any)) {
-    // La PREMIÈRE cible recevable, jamais un choix de l'oracle : la session
-    // porte déjà la règle (`power_cooldown` ne vise que les porteurs de pouvoir).
-    const cibles = s.magieUnitTargets(m);
-    if (cibles.length) s.applyMagieOnUnit(m, cibles[0]);
-  } else if (needsGraveyardTarget(m as any)) {
-    if (s.graveyard.length) s.applyMagieOnGraveyardUnit(m, s.graveyard[0]);
-  } else if (needsHandTarget(m as any)) {
-    const idx = s.magieHandTargets(m);
-    const pick = idx === null ? 0 : idx[0];
-    if (pick !== undefined) s.applyMagieOnHandCard(m, pick);
-  } else {
-    s.applyGlobalMagie(m);
-  }
-  const g = s.gameState;
-  const vivantes = s.board.getLivingUnitsOnSide('player');
-  // ⚠️ **L'observation d'APRÈS est ce qui prouve le REGISTRE.** Une magie écrit
-  // dans `_base`, donc son effet SURVIT à `resetCombatStats()` — c'est sa
-  // définition, et ce qui la distingue d'un bonus de terrain ou d'attribut.
-  // Sans cette seconde lecture, les deux registres rendent la même stat
-  // effective et le mode ombre reste vert quelle que soit la durée compilée
-  // (vérifié : muter `partie` en `combat` ne faisait tomber aucun cas).
-  const apresReset = vivantes.map(u => { const c = Object.create(Object.getPrototypeOf(u)); Object.assign(c, u); return c as Unit; });
-  for (const u of apresReset) u.resetCombatStats();
-  return {
-    board: vivantes.map(etatUnite),
-    apres_reset: apresReset.map(etatUnite),
-    main: etatMain(s.hand as any[]),
-    cimetiere: s.graveyard.map(etatUnite),
-    pv: g.player_hp - avantPv,
-    pioches: g.player_extra_draws,
-    garanties: garanties(g.player_guaranteed_draws),
-    slots: g.player_board_slots,
-    multiplicateur: g.player_damage_multiplier_bonus,
-  };
-}
+// ⚠️ **`cheminActuel` a été SUPPRIMÉ à la bascule** : `GameSession` EST le
+// chemin compilé, donc la fonction qui l'appelait pour le comparer au moteur
+// comparait le moteur à lui-même. Les quatre règles qu'elle prouvait encore ont
+// été DÉPLACÉES dans `magie-characterization.test.ts` avant le retrait, et
+// chacune y est éprouvée par sa mutation — c'est la mesure qui a décidé du
+// déplacement, pas l'intuition.
 
 /** Le chemin COMPILÉ — le compilateur puis le moteur générique. */
 function cheminCompile(m: Magie) {
@@ -287,13 +241,11 @@ const REFUSEES = new Set(refus.map(r => r.porteur.split('#')[0]));
 const TRADUITES = magies.filter(m => !REFUSEES.has(m.id));
 
 describe('Mode ombre — le compilateur de magie', () => {
-  it.each(TRADUITES.map(m => [`${m.id} ${m.name} (${m.effect?.type})`, m.id] as const))(
-    '%s — les deux chemins rendent le MÊME état',
-    (_nom, id) => {
-      const m = magies.find(x => x.id === id)!;
-      expect(cheminCompile(m).etat).toEqual(cheminActuel(m));
-    },
-  );
+  // ⚠️ **Le cas qui vivait ici — « les deux chemins rendent le même état », un
+  // par magie traduite — a été RETIRÉ à la bascule.** Il avait fait son travail :
+  // c'est lui qui autorisait à remplacer un chemin par l'autre, et c'est sa
+  // mesure type par type qui a servi à décider d'aller au bout. Ce qui garde les
+  // 51 magies livrées est le snapshot de `magie-characterization.test.ts`.
 
   it('aucune tâche n\'est ignorée à l\'exécution', () => {
     const ignores = TRADUITES.flatMap(m => cheminCompile(m).trace.ignore.map(x => `${m.id} → ${x}`));
@@ -334,7 +286,10 @@ describe('Mode ombre — la discipline d\'appel à `rand`', () => {
 
   it('le catalogue porte bien des magies qui tirent', () => {
     // Sans ce garde-fou, les deux cas suivants passeraient sur une liste vide.
-    expect(REMPLACANTES.map(m => m.id)).toEqual(['MAGIE_050', 'MAGIE_052', 'MAGIE_053']);
+    // ⚠️ `MAGIE_052` (`draw_material`) N'Y EST PLUS : elle est refusée depuis la
+    // bascule, parce qu'elle consomme deux tirages là où `remplacer` n'en fait
+    // qu'un. C'est ce cas-ci qui l'aurait dit si on l'avait su plus tôt.
+    expect(REMPLACANTES.map(m => m.id)).toEqual(['MAGIE_050', 'MAGIE_053']);
   });
 
   it('un pool non vide coûte EXACTEMENT un appel', () => {
@@ -407,18 +362,28 @@ describe('Mode ombre — ce que le vocabulaire ne couvre PAS encore', () => {
       .map(([manque, types]) => `${manque} : ${[...new Set(types)].sort().join(', ')}`)
       .sort();
     expect(resume).toEqual([
+      'deux tirages (quel matériel, puis quelle carte le porte) : draw_material',
       "lecture de la lignée + repli de placement (règle d'invocation) : defuse_fusion",
     ]);
   });
 
   it('la part traduite est mesurée, pas estimée', () => {
     expect(TRADUITES.length + REFUSEES.size).toBe(new Set(magies.map(m => m.id)).size);
-    // 50 des 51 magies livrées entrent dans le vocabulaire du moteur. La
-    // dernière est `defuse_fusion`, qui ne lit pas un CHAMP mais une RÈGLE
-    // d'invocation (la lignée d'un composite, et le repli au cimetière quand il
-    // n'y a plus de case) — la traduire demanderait de donner au moteur
-    // `InvocationManager`, c'est-à-dire de recopier la règle du doublon.
-    expect(TRADUITES).toHaveLength(50);
-    expect(REFUSEES.size).toBe(1);
+    // 49 des 51 magies livrées entrent dans le vocabulaire du moteur, et les
+    // deux refus n'ont PAS la même nature :
+    //
+    //   • `defuse_fusion` ne lit pas un CHAMP mais une RÈGLE d'invocation (la
+    //     lignée d'un composite, et le repli au cimetière quand il n'y a plus de
+    //     case) — le traduire demanderait de donner `InvocationManager` au
+    //     moteur, c'est-à-dire de recopier la règle du doublon ;
+    //   • `draw_material` serait exprimable, mais il consomme DEUX tirages
+    //     (quel matériel manque, puis quelle carte le porte) là où `remplacer`
+    //     n'en fait qu'un. Les aplatir changerait la DISTRIBUTION et le nombre
+    //     d'appels à `rand`, donc tout le flux semé qui suit.
+    //
+    // ⚠️ Le second n'a été vu qu'à la BASCULE : ce fichier le comptait traduit,
+    // parce qu'une comparaison d'état ne voit pas le flux de hasard.
+    expect(TRADUITES).toHaveLength(49);
+    expect(REFUSEES.size).toBe(2);
   });
 });
