@@ -973,6 +973,25 @@ deux ne fait tomber aucun test ; les retirer **ensemble** fait rouge. Ce n'est
 pas un défaut — c'est la propriété d'une double garde, et elle mérite d'être
 écrite, parce qu'une mutation isolée y donne un faux négatif.
 
+⚠️ **Et le mode ombre des attributs a été consommé à son tour** — même geste
+que pour le terrain, même raison. Mais cette fois **la perte a été mesurée
+avant de retirer quoi que ce soit** : sur huit mutations du compilateur
+d'attribut, **sept restent rouges sans lui** (l'oracle de l'étape 0,
+`attributes.test.ts`, les goldens, le filet PvP). La huitième — le `quand`
+dérivé du `timing` du porteur au lieu du TYPE, c'est-à-dire la panne des onze
+effets morts — n'est attrapée que par ce fichier, parce qu'aucun attribut livré
+ne l'exerce. Elle vit dans le bloc « ce que le schéma rend impossible », qui ne
+compare rien : elle reste, et le fichier avec.
+
+⚠️ **Une leçon sur ce que l'oracle de l'étape 0 NE couvre PAS.** Le snapshot des
+57 attributs n'a pas bougé d'un caractère à la bascule — alors que deux
+comportements ont changé. Ce n'est pas une contradiction : l'oracle exerce **un
+palier à la fois**, donc il ne peut voir ni l'ordre entre deux attributs, ni la
+durabilité d'un bonus à l'intérieur du combat. Les deux écarts n'ont été vus
+**que par le détecteur**. C'est la justification du §6, « le détecteur est le
+juge de la bascule », rendue concrète : une suite verte n'est pas une preuve de
+no-op, elle est une preuve sur ce que la suite sait regarder.
+
 **Reste à basculer** : magie (51), puis les tâches de pouvoir.
 
 ### 6.3 Ce que l'étape 1 a appris sur la façon de prouver

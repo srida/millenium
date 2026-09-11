@@ -1,0 +1,83 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Mode ombre — les branches que le catalogue n'exerce pas > les attributs synthétiques rendent exactement cet état 1`] = `
+{
+  "ARCH_SYNTH_PIOCHE@2": {
+    "ennemi": [
+      "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+      "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+    ],
+    "joueur": [
+      "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+      "pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+    ],
+    "ressources": {
+      "garanties": [],
+      "multiplicateur": 0,
+      "pioches": 4,
+      "reanimees": [],
+      "shopping": 0,
+      "slots": 0,
+    },
+    "sources": [
+      "attribut:ARCH_SYNTH_PIOCHE:3:false",
+      "attribut:ARCH_SYNTH_PIOCHE:1:false",
+    ],
+  },
+  "ARCH_SYNTH_SHOP@2": {
+    "ennemi": [
+      "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+      "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+    ],
+    "joueur": [
+      "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+      "pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+    ],
+    "ressources": {
+      "garanties": [],
+      "multiplicateur": 0,
+      "pioches": 0,
+      "reanimees": [],
+      "shopping": 2,
+      "slots": 0,
+    },
+    "sources": [],
+  },
+  "ARCH_SYNTH_SHOP_DEFAUT@1": {
+    "ennemi": [
+      "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+    ],
+    "joueur": [
+      "pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+    ],
+    "ressources": {
+      "garanties": [],
+      "multiplicateur": 0,
+      "pioches": 0,
+      "reanimees": [],
+      "shopping": 1,
+      "slots": 0,
+    },
+    "sources": [],
+  },
+  "ARCH_SYNTH_SLOT@2": {
+    "ennemi": [
+      "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+      "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+    ],
+    "joueur": [
+      "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+      "pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+    ],
+    "ressources": {
+      "garanties": [],
+      "multiplicateur": 0,
+      "pioches": 0,
+      "reanimees": [],
+      "shopping": 0,
+      "slots": 1,
+    },
+    "sources": [],
+  },
+}
+`;

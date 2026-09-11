@@ -3,7 +3,17 @@
 //
 // Le deuxième porteur, et de loin le plus révélateur : c'est lui qui a produit
 // onze des vingt-et-un effets morts, et pour une raison que le schéma supprime
-// par construction. Cf. `docs/moteur-effets.md` §6.2.
+// par construction. Cf. `docs/moteur-effets.md` §6.2 et §6.5.
+//
+// ⚠️ **CE MODE OMBRE A ÉTÉ CONSOMMÉ PAR SA PROPRE BASCULE**, comme celui du
+// terrain avant lui : `AttributeManager` EST désormais le compilateur plus le
+// moteur, donc comparer les deux chemins reviendrait à comparer le moteur à
+// lui-même. Les comparaisons d'état sont parties ; ce qui reste prouve encore
+// quelque chose, et a été VÉRIFIÉ tel : sur huit mutations du compilateur, une
+// seule n'est attrapée que par ce fichier — le refus « timing incohérent »,
+// c'est-à-dire exactement la panne des onze effets morts, qu'aucun attribut
+// livré n'exerce. Les sept autres tombent sur l'oracle de l'étape 0, sur
+// `attributes.test.ts`, sur les goldens ou sur le filet PvP.
 //
 // ⚠️ **Le `quand` est dérivé de l'EFFET, jamais de son porteur.** Aujourd'hui le
 // `timing` vit sur l'attribut et la forme de l'effet sur l'effet, et rien ne les
@@ -21,7 +31,6 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AttributeManager } from '../logic/AttributeManager.js';
 import { compileAttribute, compileAttributes } from '../logic/effects/compile.js';
 import { executer, ressourcesVides } from '../logic/effects/engine.js';
 import type { Ressources } from '../logic/effects/engine.js';
@@ -83,51 +92,15 @@ function etatRessources(r: {
 // Les deux chemins
 // ───────────────────────────────────────────────────────────────────────────
 
-/**
- * Le chemin ACTUEL — `AttributeManager`, dans la passe que le `timing` désigne.
- *
- * ⚠️ Les tableaux sont liés à des VARIABLES : `_triggerStatModifiers` reconnaît
- * le camp par égalité de référence. Un tableau neuf portant les mêmes unités
- * lirait le cache du camp adverse et ne déclencherait rien.
- */
-function cheminActuel(attr: any, seuil: any, catalogue: any[] = attributes) {
-  const { player, enemy } = casting(attr.id, seuil.count, valuePer(seuil));
-  const mgr = new (AttributeManager as any)(catalogue, player, enemy);
-  const morts: Unit[] = [];
-  let res: any = null;
+// ⚠️ **`cheminActuel` a été SUPPRIMÉ à la bascule**, et c'est le point de ce
+// fichier depuis : `AttributeManager` EST le chemin compilé, donc la fonction
+// qui l'appelait pour le comparer au moteur comparait le moteur à lui-même.
+// Elle portait un piège de harnais qui garde sa valeur, et qui vit désormais
+// dans `attribute-characterization.test.ts` : les tableaux d'unités sont liés à
+// des VARIABLES, parce que `_triggerStatModifiers` reconnaît le camp par
+// ÉGALITÉ DE RÉFÉRENCE — un tableau neuf portant les mêmes unités lit le cache
+// du camp adverse et ne déclenche rien.
 
-  mgr.applyStartOfCombat();
-  if (attr.timing === 'during_combat') {
-    const allie = player[player.length - 1];
-    allie.is_neutralized = true;
-    mgr.onUnitNeutralized(allie, player, enemy);
-    const adverse = enemy[enemy.length - 1];
-    adverse.is_neutralized = true;
-    mgr.onUnitNeutralized(adverse, player, enemy);
-  } else if (attr.timing === 'end_of_combat') {
-    const mort = player[player.length - 1];
-    mort.is_neutralized = true;
-    mort.current_hp = 0;
-    morts.push(mort);
-    res = mgr.applyEndOfCombat(morts, []);
-  }
-
-  return {
-    joueur: player.map(etatUnite),
-    ennemi: enemy.map(etatUnite),
-    ressources: etatRessources({
-      pioches: res?.draw_bonus ?? 0,
-      garanties: res?.guaranteed_draws ?? [],
-      slots: res?.board_slot_bonus ?? 0,
-      mult: res?.damage_multiplier_bonus ?? 0,
-      shop: res?.shopping_bonus ?? 0,
-      reanimees: (res?.revived ?? []).map((u: Unit) => u.card_id),
-    }),
-    sources: (res?.draw_sources ?? []).map((s: any) => `${s.kind}:${s.ref}:${s.value}:${s.guaranteed ?? false}`),
-  };
-}
-
-/** Le chemin COMPILÉ — le compilateur puis le moteur générique. */
 /**
  * Le chemin COMPILÉ — le compilateur puis le moteur générique.
  *
@@ -236,14 +209,18 @@ describe('Mode ombre — le compilateur d\'attribut', () => {
     }
   });
 
-  // ⚠️ LE critère d'acceptation, côté exécution — un cas par PALIER, pas par
-  // attribut : deux paliers d'un même attribut ne font pas la même chose, et
-  // c'est ce que l'étape 0 a figé.
-  it.each(PALIERS)('%s — les deux chemins rendent le MÊME état', (_nom, attrId, count) => {
-    const attr = attributes.find(a => a.id === attrId)!;
-    const seuil = attr.thresholds.find((t: any) => t.count === count)!;
-    expect(cheminCompile(attr, seuil).etat).toEqual(cheminActuel(attr, seuil));
-  });
+  // ⚠️ **Le cas qui vivait ici — « les deux chemins rendent le même état », un
+  // par palier livré — a été RETIRÉ à la bascule** (§6.5). Il avait fait son
+  // travail : c'est lui qui autorisait à remplacer un chemin par l'autre. Une
+  // fois `AttributeManager` devenu le chemin compilé, il comparait le moteur à
+  // lui-même. Ce qui garde les 106 paliers livrés est le snapshot de
+  // `attribute-characterization.test.ts`, enregistré AVANT la bascule.
+  //
+  // ⚠️ Et il faut dire ce que ce snapshot NE couvre PAS, sous peine de croire
+  // qu'il couvre tout : il exerce **un palier à la fois**, donc il ne voit ni
+  // l'ordre entre deux attributs, ni la durabilité d'un bonus à l'intérieur du
+  // combat. C'est précisément par là que la bascule a changé deux
+  // comportements — et c'est le DÉTECTEUR, pas la suite, qui les a vus.
 
   it('aucune tâche n\'est ignorée à l\'exécution', () => {
     const ignores: string[] = [];
@@ -316,14 +293,21 @@ describe('Mode ombre — les branches que le catalogue n\'exerce pas', () => {
   // d'accord sur un silence.
   const catalogue = [...attributes, ...SYNTHETIQUES];
 
-  it.each(SYNTHETIQUES.flatMap(a => a.thresholds.map((t: any) => [`${a.id} · palier ${t.count}`, a.id, t.count] as const)))(
-    '%s — les deux chemins rendent le MÊME état',
-    (_nom, attrId, count) => {
-      const attr = catalogue.find(a => a.id === attrId)!;
-      const seuil = attr.thresholds.find((t: any) => t.count === count)!;
-      expect(cheminCompile(attr, seuil).etat).toEqual(cheminActuel(attr, seuil, catalogue));
-    },
-  );
+  // ⚠️ **Un SNAPSHOT, depuis la bascule, et non plus une comparaison.** Ces
+  // attributs n'existent pas dans la donnée : ils existent pour que les deux
+  // types que le catalogue n'exerce jamais (`board_slot_bonus`,
+  // `shopping_bonus`) et le seul plafond `max` qui morde soient épinglés
+  // quelque part. L'oracle des 57 livrés ne peut pas le faire — il n'en porte
+  // aucun exemplaire — et il n'y a plus de second chemin à qui les comparer.
+  it('les attributs synthétiques rendent exactement cet état', () => {
+    const etats = Object.fromEntries(
+      SYNTHETIQUES.flatMap((a: any) => a.thresholds.map((t: any) => {
+        const attr = catalogue.find(x => x.id === a.id)!;
+        return [`${a.id}@${t.count}`, cheminCompile(attr, t).etat];
+      })),
+    );
+    expect(etats).toMatchSnapshot();
+  });
 
   it('le compilateur traduit les types que le catalogue n\'exerce pas', () => {
     const { effets, refus } = compileAttributes(SYNTHETIQUES, ATTR_IDS);
