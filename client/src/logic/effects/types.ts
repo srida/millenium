@@ -122,7 +122,16 @@ export type Duree = typeof DUREES[number];
  */
 export const CHAMPS_UNITE = Object.freeze({
   atk: 'atk',
+  /**
+   * ⚠️ `pv` est le MAXIMUM (la stat), `pv_courant` la jauge. Les séparer n'est
+   * pas un raffinement : un `stat_bonus hp` de magie augmente le socle ET la
+   * jauge, là où un `heal` ne touche que la jauge. Un seul nom pour les deux
+   * rendrait l'un des deux gestes inexprimable.
+   */
   pv: 'hp',
+  pv_courant: 'current_hp',
+  pouvoir: 'power_id',
+  vitesse_pouvoir: 'power_rate',
   bouclier: 'bouclier',
   vitesse_attaque: 'attack_rate',
   vitesse_deplacement: 'movement_rate',
@@ -192,6 +201,14 @@ export interface TacheModifier {
   criteres?: GuaranteedDraw;
   /** Ce que le registre de provenance inscrit comme origine. */
   provenance?: 'attribut' | 'terrain' | 'magie';
+  /**
+   * Le pouvoir POSÉ par la tâche (`champ: 'pouvoir'`), avec ses trois chiffres.
+   *
+   * ⚠️ Ils voyagent ENSEMBLE parce qu'un pouvoir donné n'hérite rien de
+   * l'ancien. Et `duree` et `valeur` s'excluent : les quatre pouvoirs de
+   * `DURATION_POWERS` lisent la première, les dix autres la seconde.
+   */
+  pouvoir?: { id: string; rate?: number | null; valeur?: number | null; duree?: number | null };
 }
 
 /** `deplacer` — change une entité de conteneur (la réanimation, aujourd'hui). */
@@ -255,8 +272,16 @@ export interface Trigger {
  * donnée, donc se donner deux sources pour une même question.
  */
 export interface Condition {
-  attribut: string;
-  minimum: number;
+  attribut?: string;
+  minimum?: number;
+  /**
+   * Les PV joueur qu'il faut avoir — STRICTEMENT — pour que l'effet parte.
+   *
+   * ⚠️ Strictement, et c'est la règle du contrecoup : payer laisse toujours au
+   * moins 1 PV (`canAffordMagie` compare en `>`). Une magie impayable ne
+   * s'applique pas du tout — elle n'ampute rien au passage.
+   */
+  pvJoueurSuperieurA?: number;
 }
 
 export interface Effet {

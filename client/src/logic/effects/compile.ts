@@ -385,3 +385,223 @@ export function compileAttributes(attrs: readonly AttributeLike[], connus?: Read
   }
   return out;
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// Les MAGIES
+//
+// ⚠️ **Le porteur où le moteur générique paie le moins, et c'est mesuré.** Côté
+// magies, un type d'effet ≈ une intention de design ≈ UNE carte : 13 types sur
+// 23 ne portent qu'une seule magie (§1.1). Les 51 magies livrées se répartissent
+// ainsi devant le vocabulaire du moteur :
+//
+//   • 29 magies (10 types) entrent dans le vocabulaire tel quel ;
+//   •  7 magies (2 types) demandent deux champs d'unité — faits ici ;
+//   •  7 magies (7 types) demandent des actions de CONTENEUR (main, cimetière) ;
+//   •  3 magies (2 types) demandent un POOL de deck, donc `rand` et le deck lui-
+//      même, que `GameSession` ne laisse pas sortir ;
+//   •  5 magies (2 types) demandent `poser_effet` — un effet qui pose un effet,
+//      consommé au tour suivant.
+//
+// Les trois derniers lots ne sont pas traduits, et ils ne sont pas ignorés : ils
+// sortent en **refus nommés**. C'est la donnée qui manquait pour décider si le
+// jeu vaut la chandelle — cf. `docs/moteur-effets.md` §6.4.
+// ───────────────────────────────────────────────────────────────────────────
+
+/** La forme minimale d'une magie que le compilateur lit — jamais `data/`. */
+export interface MagieLike {
+  id: string;
+  cost_hp?: number;
+  effect?: MagieEffectLike | null;
+}
+
+/** Les champs qu'un effet de magie peut porter — la donnée, telle qu'elle est. */
+export interface MagieEffectLike {
+  type: string;
+  stat?: string;
+  value?: number;
+  power_id?: string;
+  power_rate?: number;
+  duration?: number;
+  tier?: number;
+  attribute?: string;
+  attributes?: string[];
+  card_ids?: string[];
+}
+
+/** Ce qui manque au moteur pour traduire un type, quand ça manque. */
+const MANQUE: Record<string, string> = {
+  destroy_unit: 'action de conteneur (board → cimetière)',
+  drain_life: 'action de conteneur (board → cimetière) + PV joueur',
+  hand_to_graveyard: 'action de conteneur (main → cimetière)',
+  duplicate_unit: 'action de conteneur (ajouter à la main)',
+  duplicate_graveyard_unit: 'action de conteneur (ajouter à la main)',
+  duplicate_card: 'action de conteneur (ajouter à la main)',
+  defuse_fusion: 'action de conteneur + lecture du catalogue',
+  sacrifice_card_hp: 'action de conteneur (retirer de la main)',
+  shift_tier_card: 'pool de deck (donc rand, et le deck ne sort pas de la session)',
+  shift_tier_unit: 'pool de deck (donc rand, et le deck ne sort pas de la session)',
+  draw_material: 'pool de deck (donc rand, et le deck ne sort pas de la session)',
+  reduce_materials: 'poser_effet (différé au tour suivant)',
+  remove_requirements: 'poser_effet (différé au tour suivant)',
+};
+
+/**
+ * Compile UNE magie.
+ *
+ * ⚠️ Le `quand` est `immediat` : une magie part au tap du joueur, pendant la
+ * Phase Shopping. Elle n'a pas de déclencheur à attendre — c'est le seul porteur
+ * dont le moment est un geste et non un état du jeu.
+ *
+ * ⚠️ La `duree` est `partie` pour tout ce qui touche une unité, et c'est la
+ * règle la plus importante du porteur : une magie écrit dans `_base`, donc son
+ * effet SURVIT à `resetCombatStats()` et **voyage dans `round:board_ready`**
+ * (§5.3). C'est ce qui la distingue d'un bonus de terrain ou d'attribut, qui ne
+ * valent que pour le combat en cours.
+ */
+export function compileMagie(magie: MagieLike): CompilationResult {
+  const effets: Effet[] = [];
+  const refus: CompilationResult['refus'] = [];
+  const porteur = magie?.id ?? '';
+  const e = magie?.effect;
+  if (!e?.type) return { effets, refus };
+
+  const id = `${porteur}#0`;
+  const refuse = (raison: string, detail: string) => refus.push({ porteur: id, raison, detail });
+
+  /** La cible d'une magie à unité unique — le joueur l'a désignée. */
+  const uneUnite = (): Selecteur => ({ conteneur: 'board', camp: 'allie', combien: 'un' });
+  const toutesUnites = (): Selecteur => ({ conteneur: 'board', camp: 'allie', combien: 'tous' });
+  const leJoueur = (): Selecteur => ({ conteneur: 'joueur', camp: 'allie', combien: 'un' });
+  const trigger = { quand: 'immediat' as const };
+
+  /**
+   * Le CONTRECOUP (`cost_hp`) — un champ de premier niveau, orthogonal au type
+   * d'effet, que les quatre chemins d'application prélèvent.
+   *
+   * ⚠️ **Il part EN PREMIER dans la liste de tâches**, et ce n'est pas un
+   * détail d'ordre : `GameSession._payMagieCost` prélève AVANT l'effet, faute de
+   * quoi `drain_life` financerait son propre contrecoup. Une liste de tâches est
+   * résolue dans l'ordre ; le mettre en tête est la seule façon de le dire.
+   *
+   * ⚠️ Et la garde l'accompagne toujours : une magie impayable ne s'applique pas
+   * DU TOUT, elle n'ampute pas au passage. Les deux ne se désolidarisent jamais.
+   */
+  const cout = Number(magie.cost_hp) || 0;
+  const condition = cout > 0 ? { pvJoueurSuperieurA: cout } : undefined;
+  const contrecoup: Tache[] = cout > 0
+    ? [{ action: 'modifier', cible: leJoueur(), champ: 'pv', operateur: '-', valeur: cout, duree: 'partie' }]
+    : [];
+
+  const pousse = (taches: Tache[]) => effets.push({ id, porteur, condition, trigger, taches: [...contrecoup, ...taches] });
+
+  if (MANQUE[e.type]) { refuse('vocabulaire manquant', `${e.type} — ${MANQUE[e.type]}`); return { effets, refus }; }
+
+  switch (e.type) {
+    case 'stat_bonus':
+    case 'team_stat_bonus':
+    case 'stat_modifier': {
+      const champ = CHAMP_PAR_STAT[e.stat as string];
+      if (!champ) { refuse('champ inconnu', `${e.type} → stat '${e.stat}'`); return { effets, refus }; }
+      pousse([{
+        action: 'modifier',
+        cible: e.type === 'team_stat_bonus' ? toutesUnites() : uneUnite(),
+        champ,
+        operateur: e.type === 'stat_modifier' ? '*' : '+',
+        valeur: e.value as number,
+        // ⚠️ `partie`, pas `combat` : une magie est un achat permanent.
+        duree: 'partie',
+      }]);
+      return { effets, refus };
+    }
+
+    case 'heal':
+      // ⚠️ Soin TOTAL, et `value` n'est PAS lu — des entrées anciennes en
+      // portent un. Le `=` dit « au maximum », qui suit le max COURANT (bonus
+      // et vétérance compris), jamais un chiffre figé.
+      pousse([{ action: 'modifier', cible: uneUnite(), champ: 'pv_courant', operateur: '=', valeur: 0, duree: 'partie' }]);
+      return { effets, refus };
+
+    case 'team_heal':
+      // Chiffré, là où `heal` est total : un soin de masse complet n'aurait
+      // aucun contrepoids.
+      pousse([{ action: 'modifier', cible: toutesUnites(), champ: 'pv_courant', operateur: '+', valeur: e.value as number, duree: 'partie' }]);
+      return { effets, refus };
+
+    case 'shield':
+      pousse([{ action: 'modifier', cible: uneUnite(), champ: 'bouclier', operateur: '+', valeur: e.value as number, duree: 'partie' }]);
+      return { effets, refus };
+
+    case 'revive':
+      pousse([{
+        action: 'deplacer',
+        cible: { conteneur: 'cimetiere', camp: 'allie', combien: 'un' },
+        destination: 'board',
+        pourcentagePv: (e.value as number) ?? 50,
+      }]);
+      return { effets, refus };
+
+    case 'grant_power':
+      if (!e.power_id) { refuse('pouvoir sans id', 'grant_power'); return { effets, refus }; }
+      pousse([{
+        action: 'modifier', cible: uneUnite(), champ: 'pouvoir',
+        operateur: '=', valeur: 0, duree: 'partie',
+        pouvoir: {
+          id: e.power_id as string,
+          rate: (e.power_rate as number) ?? null,
+          valeur: (e.value as number) ?? null,
+          duree: (e.duration as number) ?? null,
+        },
+      }]);
+      return { effets, refus };
+
+    case 'power_cooldown':
+      pousse([{
+        action: 'modifier', cible: uneUnite(), champ: 'vitesse_pouvoir',
+        operateur: '/', valeur: (e.value as number) ?? 2, duree: 'partie',
+      }]);
+      return { effets, refus };
+
+    case 'player_hp_bonus':
+      pousse([{ action: 'modifier', cible: leJoueur(), champ: 'pv', operateur: '+', valeur: e.value as number, duree: 'partie' }]);
+      return { effets, refus };
+
+    case 'board_slot_bonus':
+      pousse([{ action: 'modifier', cible: leJoueur(), champ: 'slots_board', operateur: '+', valeur: (e.value as number) || 1, duree: 'partie', provenance: 'magie' }]);
+      return { effets, refus };
+
+    case 'draw_bonus':
+      pousse([{ action: 'modifier', cible: leJoueur(), champ: 'pioches', operateur: '+', valeur: (e.value as number) || 1, duree: 'round', provenance: 'magie' }]);
+      return { effets, refus };
+
+    case 'damage_multiplier_bonus':
+      pousse([{ action: 'modifier', cible: leJoueur(), champ: 'multiplicateur', operateur: '+', valeur: e.value as number, duree: 'partie' }]);
+      return { effets, refus };
+
+    case 'guaranteed_draw':
+      pousse([{
+        action: 'modifier', cible: leJoueur(), champ: 'pioches_garanties',
+        operateur: '+', valeur: 0, duree: 'round', provenance: 'magie',
+        criteres: {
+          tier: e.tier as number | undefined,
+          attribute: (e.attribute as string) ?? null,
+          attributes: e.attributes as string[] | undefined,
+          card_ids: e.card_ids as string[] | undefined,
+        },
+      }]);
+      return { effets, refus };
+
+    default:
+      refuse('type non traduit', e.type as string);
+      return { effets, refus };
+  }
+}
+
+export function compileMagies(magies: readonly MagieLike[]): CompilationResult {
+  const out: CompilationResult = { effets: [], refus: [] };
+  for (const m of magies) {
+    const r = compileMagie(m);
+    out.effets.push(...r.effets);
+    out.refus.push(...r.refus);
+  }
+  return out;
+}

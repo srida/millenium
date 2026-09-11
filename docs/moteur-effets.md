@@ -777,7 +777,51 @@ plafond du compilateur — **aucun cas ne tombait**. D'où un second bloc
 d'attributs synthétiques. **C'est désormais un réflexe à avoir pour chaque
 porteur : mesurer ce que le catalogue exerce AVANT de croire le mode ombre.**
 
-**Reste le compilateur de magie**, puis la bascule (étape 2).
+**⚠️ MAGIES — PARTIEL, et c'est le résultat le plus utile de l'étape.**
+`effects-shadow-magies.test.ts` : **36 des 51 magies** entrent dans le
+vocabulaire du moteur et produisent le même état qu'une vraie `GameSession`.
+Les 15 autres sont **refusées nommément**, et la frontière est figée par un test :
+
+| Ce qui manque | Types | Magies |
+|---|---|---|
+| actions de **conteneur** (main, cimetière, board) | `duplicate_unit` · `duplicate_graveyard_unit` · `duplicate_card` · `drain_life` · `hand_to_graveyard` · `sacrifice_card_hp` · `defuse_fusion` | 7 |
+| **pool de deck** — donc `rand`, et le deck ne sort pas de la session | `shift_tier_unit` · `draw_material` | 3 |
+| **`poser_effet`** — un effet qui pose un effet, consommé au tour suivant | `reduce_materials` · `remove_requirements` | 5 |
+
+Deux choses trouvées en chemin, qui manquaient au compilateur :
+
+- **Le contrecoup (`cost_hp`) est une TÂCHE, et elle part en premier.** Champ de
+  premier niveau, orthogonal au type d'effet, que les quatre chemins
+  d'application prélèvent — **avant** l'effet, faute de quoi `drain_life`
+  financerait son propre contrecoup. Une liste de tâches est résolue dans
+  l'ordre ; le mettre en tête est la seule façon de le dire. La garde
+  d'accessibilité l'accompagne toujours (`condition.pvJoueurSuperieurA`) : une
+  magie impayable ne s'applique pas **du tout**, elle n'ampute rien au passage.
+- **`pv` (le maximum) et `pv_courant` (la jauge) sont deux champs.** Un
+  `stat_bonus hp` monte le socle *et* la jauge ; un `heal` ne touche que la
+  jauge. Un seul nom rendrait l'un des deux gestes inexprimable.
+
+### 6.4 Le compilateur de magie : ce que la mesure dit
+
+Le §1.1 l'annonçait, l'étape 1 le chiffre : **côté magies, un type d'effet ≈ une
+intention de design ≈ une carte.** 13 des 23 types ne portent qu'UNE magie. Les
+15 magies non traduites demandent **trois mécanismes neufs** — des actions de
+conteneur, un pool de deck injecté (avec son flux de hasard à garder stable), et
+des effets différés — pour un gain qui se compte en cartes, pas en familles.
+
+C'est une **décision à prendre avant d'aller plus loin**, et elle n'est pas
+technique :
+
+- **Option A — s'arrêter à deux porteurs.** Terrain et attribut basculent
+  (étape 2) ; les magies restent codées à la main. Le moteur sert là où il paie :
+  121 effets d'attribut et de terrain sur un vocabulaire de 8 types.
+- **Option B — aller au bout.** Trois mécanismes de plus, dont un qui touche au
+  déterminisme (`rand` dans le moteur), pour 15 magies.
+
+Rien dans ce document ne tranche : les deux sont défendables, et la mesure
+ci-dessus est là pour que le choix se fasse sur des chiffres.
+
+**Puis la bascule (étape 2).**
 
 ### 6.3 Ce que l'étape 1 a appris sur la façon de prouver
 

@@ -25,6 +25,7 @@
 import type { Unit } from '../Unit.js';
 import type { GuaranteedDraw, DrawSourceEntry } from '../types.js';
 import { CHAMPS_UNITE, cleDeTri } from './types.js';
+import { clampRate, rateForTicks } from '../../../../speed-scale.mjs';
 import type { Effet, Tache, TacheModifier, TacheDeplacer, TachePoserStatut, Selecteur, ChampUnite } from './types.js';
 
 /**
@@ -83,6 +84,8 @@ export interface Monde {
    * lèvera, à l'étape 4, et elle deviendra alors un `camp` comme un autre.
    */
   ressourcesLimitees?: boolean;
+  /** Les PV du joueur AVANT le lot — lus par les conditions, jamais écrits. */
+  pvJoueur?: number;
   /** Nom du porteur, posé par `executer` pour les registres de provenance. */
   source?: string;
 }
@@ -157,6 +160,44 @@ function appliqueSurUnite(t: TacheModifier, u: Unit, mult: number, trace: Trace)
   const champ = t.champ as ChampUnite;
   const nom = CHAMPS_UNITE[champ];
 
+  // ⚠️ La JAUGE de PV, pas la stat : `heal()` plafonne déjà au maximum courant,
+  // vétérance et bonus compris. `=` veut dire « au maximum » (le soin total
+  // d'une magie), `+` un montant chiffré (le soin d'équipe).
+  if (champ === 'pv_courant') {
+    const montant = t.operateur === '=' ? u.max_hp : t.valeur * mult;
+    u.heal(montant);
+    trace.applique.push(`${u.card_id}·pv→${u.current_hp}`);
+    return;
+  }
+
+  // Le POUVOIR d'une unité : un id et ses trois chiffres, posés ensemble.
+  // ⚠️ Un pouvoir donné n'hérite RIEN de l'ancien — ni sa valeur, ni sa durée,
+  // ni sa jauge. C'est ce que fait `grant_power`, et l'oublier donnerait à
+  // l'unité un pouvoir neuf qui garde les chiffres du précédent.
+  if (champ === 'pouvoir') {
+    if (!t.pouvoir) { trace.ignore.push(`${u.card_id}·pouvoir (aucun id)`); return; }
+    u.power_id = t.pouvoir.id;
+    u.power_rate = clampRate(t.pouvoir.rate ?? u.power_rate ?? 0);
+    u.power_value = t.pouvoir.valeur ?? null;
+    u.power_duration = t.pouvoir.duree ?? null;
+    u.power_gauge = 0;
+    u.is_power_blocked = false;
+    u.power_block_remaining = 0;
+    trace.applique.push(`${u.card_id}·pouvoir→${t.pouvoir.id}`);
+    return;
+  }
+
+  // ⚠️ La vitesse de pouvoir se DIVISE en TICKS puis se retraduit en compteur :
+  // sur l'échelle linéaire, un delta de compteur constant ne diviserait pas la
+  // période d'autant. On garde le geste, pas la forme (cf. `power_cooldown`).
+  if (champ === 'vitesse_pouvoir') {
+    if (!u.power_id || u.power_rate == null) { trace.applique.push(`${u.card_id}·(sans pouvoir)`); return; }
+    const facteur = t.valeur > 0 ? t.valeur : 2;
+    u.power_rate = rateForTicks(Math.max(1, Math.round(u.powerPeriod() / facteur)));
+    trace.applique.push(`${u.card_id}·vitesse_pouvoir→${u.power_rate}`);
+    return;
+  }
+
   if (champ === 'bouclier') {
     // Le bouclier n'est pas une stat : il n'a ni socle ni recalcul, et
     // `resetCombatStats` l'efface tout seul. Un seul opérateur a du sens.
@@ -179,6 +220,11 @@ function appliqueSurUnite(t: TacheModifier, u: Unit, mult: number, trace: Trace)
   if (t.duree === 'partie') {
     u._base[nom] = Math.max(1, socle + d);
     u._recomputeStats();
+    // ⚠️ Un bonus de PV permanent monte AUSSI la jauge : sans ça l'unité
+    // gagnerait un maximum qu'elle ne peut pas atteindre. `applyStatBonus` le
+    // fait pour le registre de combat ; le registre permanent doit le faire
+    // aussi, et c'est le seul endroit où les deux diffèrent.
+    if (champ === 'pv') u.current_hp = Math.min(u.max_hp, u.current_hp + d);
   } else {
     u.applyStatBonus(nom, d);
   }
@@ -190,7 +236,10 @@ function appliqueSurJoueur(t: TacheModifier, monde: Monde, trace: Trace): void {
   const cible = t.cible.camp === 'ennemi' ? monde.ressourcesEnnemies : monde.ressources;
   if (!cible) { trace.ignore.push(`joueur·${t.champ} (pas de registre pour ce camp)`); return; }
 
-  const d = t.valeur;
+  // ⚠️ L'OPÉRATEUR compte aussi sur une ressource : un contrecoup s'écrit `-`,
+  // et le lire comme un `+` rendrait des PV au lieu d'en prélever. L'accumulateur
+  // part de zéro, donc `delta(t, 0)` rend exactement le signe voulu.
+  const d = delta(t, 0);
   // ⚠️ Skip DÉLIBÉRÉ, et tracé : le camp adverse ne reçoit que la pioche.
   if (monde.ressourcesLimitees && t.champ !== 'pioches' && t.champ !== 'pioches_garanties') {
     trace.applique.push(`(${t.champ} réservé au joueur)`);
@@ -317,6 +366,13 @@ export function executer(effets: readonly Effet[], quand: string, monde: Monde):
     .sort((a, b) => cleDeTri(a).localeCompare(cleDeTri(b)));
 
   for (const e of aJouer) {
+    // ⚠️ Une condition de PV se juge sur les PV D'AVANT l'effet, jamais après :
+    // sinon un effet qui rend des PV financerait son propre contrecoup.
+    const seuil = e.condition?.pvJoueurSuperieurA;
+    if (seuil != null && (monde.pvJoueur ?? 0) <= seuil) {
+      trace.applique.push(`${e.porteur}·(inabordable)`);
+      continue;
+    }
     for (const t of e.taches) appliqueTache(t, { ...monde, source: e.porteur }, trace);
   }
   return trace;
