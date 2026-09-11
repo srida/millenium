@@ -687,6 +687,7 @@ Actif **pendant le combat uniquement** (en préparation le terrain n'est pas enc
 - ⚠️ **Il n'y a plus qu'UN ciblage, `target_attributes`** : les cinq voies d'invocation sont devenues des attributs de carte (`ARCH_086`…`ARCH_090`), donc `BoardEffect.effectTargets` est le seul filtre, et une carte à plusieurs conditions les porte **toutes**.
 - Les trois premiers types **visent des unités** (`BoardInfo.boardTargetsUnits`) et lisent le ciblage ; `draw_bonus` n'en lit aucun — ni l'admin, ni l'annonce, ni l'infobulle ne lui en proposent.
 - Effets appliqués via `applyStatBonus()` / `applyShield()`, donc nettoyés par `resetCombatStats()`.
+- ⚠️ **`applyBoardEffects` EST le moteur d'effets générique** (`logic/effects/` : `compileBoard` puis `executer`) — il n'y a plus de `switch` par type dans `BoardEffect.ts`, qui ne garde que la **lecture** de la donnée. Le compilateur porte l'intention (`operateur: '*'` pour `stat_modifier`), le moteur choisit le registre selon la `durée`. Un effet qui nomme une stat que `_recomputeStats` ne relit pas est **refusé nommément** (`applyBoardEffects` rend la liste) au lieu d'être appliqué sans effet.
 - Éditeur d'effets **répétable** en admin. ⚠️ `_syncBoardDraft()` recopie la saisie avant chaque re-render, **cases bloquées comprises** (`renderBoardDetail` reconstruit `_boardBlockedSet` depuis `selectedBoard.blocked_cells`, donc ajouter un effet effacerait les cases qu'on vient de poser).
 
 ### Le tirage du terrain (`logic/BoardPicker.pickBoard`)

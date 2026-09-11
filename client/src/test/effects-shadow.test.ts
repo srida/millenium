@@ -1,26 +1,30 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // ÉTAPE 1 du moteur d'effets générique — LE MODE OMBRE, sur le terrain.
 //
-// Les deux chemins s'exécutent sur le même monde et on **compare l'état**, pas
-// l'intention : le moteur actuel (`BoardEffect.applyBoardEffects`) d'un côté, le
-// compilateur + le moteur générique de l'autre. Cf. `docs/moteur-effets.md` §6.
+// ⚠️ **CE MODE OMBRE A ÉTÉ CONSOMMÉ PAR SA PROPRE BASCULE** (étape 2, §6.5).
+// `BoardEffect.applyBoardEffects` EST désormais le compilateur plus le moteur :
+// comparer les deux chemins reviendrait à comparer le moteur à lui-même, et un
+// test vacieux est pire qu'un test absent — il occupe la place de celui qui
+// prouverait quelque chose. Les comparaisons d'état ont donc été retirées, et
+// ce qui les remplace est écrit noir sur blanc à chaque bloc.
 //
-// ⚠️ C'est le geste de `CombatRecorder` appliqué aux effets, et il en porte la
-// leçon la plus chère : **un outil de diagnostic qui crie au loup sur les cas
-// sains est pire qu'un outil absent.** D'où la comparaison sur l'état final des
-// unités et des ressources, jamais sur la forme des tâches — deux chemins qui
-// écrivent le même état par des routes différentes sont d'accord, et c'est tout
-// ce qu'on leur demande.
+// **Ce qui garde le terrain maintenant**, et qui l'a toujours gardé :
+//   - `board-characterization.test.ts` — l'oracle des 25 terrains livrés, dont
+//     le snapshot a été enregistré AVANT la bascule. C'est lui qui a prouvé que
+//     le nouveau chemin rend le même état, au caractère près ;
+//   - `board-effects.test.ts` — les RÈGLES sur des terrains synthétiques ;
+//   - `board-alert.test.ts` — l'annonce ne peut pas contredire l'effet ;
+//   - `draw-summary.test.ts` — `sum(sources.value) === extraDraws`.
 //
-// ⚠️ Le critère d'acceptation de l'étape 1 est **zéro refus et zéro écart** sur
-// les 25 terrains livrés. Tant qu'il n'est pas tenu, aucune bascule (étape 2) ne
-// peut commencer : on ne remplace pas un chemin par un autre tant qu'on n'a pas
-// prouvé qu'ils disent la même chose.
+// Ce fichier garde ce que ces quatre-là ne disent pas : la **compilation**
+// (zéro refus, un effet par effet source), les **invariants du schéma** (ordre
+// absolu, clés uniques, tables fermées, zéro hasard) et les deux branches que
+// le catalogue n'exerce pas.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { applyBoardEffects, boardEffects } from '../logic/BoardEffect.js';
+import { boardEffects } from '../logic/BoardEffect.js';
 import { compileBoard, compileBoards } from '../logic/effects/compile.js';
 import { executer, ressourcesVides } from '../logic/effects/engine.js';
 import type { Ressources } from '../logic/effects/engine.js';
@@ -74,15 +78,6 @@ function etat(player: Unit[], enemy: Unit[], g: GameState) {
   };
 }
 
-/** Joue un terrain par le chemin ACTUEL et rend l'état. */
-function cheminActuel(b: BoardDef) {
-  const player = cast('player');
-  const enemy = cast('enemy');
-  const g = new GameState();
-  applyBoardEffects(b, { playerUnits: player, enemyUnits: enemy, gameState: g });
-  return etat(player, enemy, g);
-}
-
 /**
  * Verse un accumulateur de ressources dans un `GameState`.
  *
@@ -131,23 +126,13 @@ describe('Mode ombre — le compilateur de terrain', () => {
     expect(effets).toHaveLength(sources);
   });
 
-  // ⚠️ LE critère d'acceptation de l'étape 1, côté exécution. C'est ce test qui
-  // autorise la bascule du terrain : tant qu'il est vert, remplacer un chemin
-  // par l'autre ne change rien d'observable.
-  //
-  // ⚠️ Il ne couvre que ce que le CATALOGUE porte — `stat_bonus` et `shield`.
-  // Les deux autres branches du compilateur ont leur propre bloc plus bas ; ne
-  // pas attendre de ce cas-ci qu'il voie une régression du multiplicateur ou de
-  // la pioche, il n'en a aucun exemplaire à jouer.
-  // Mutation : `duree: 'partie'` sur les bonus de stat → ROUGE (le registre
-  // change, donc `resetCombatStats` ne nettoie plus).
-  it.each(boards.map(b => [b.id, b.name] as const))(
-    '%s %s — les deux chemins rendent le MÊME état',
-    (id) => {
-      const b = boards.find(x => x.id === id)!;
-      expect(cheminCompile(b).etat).toEqual(cheminActuel(b));
-    },
-  );
+  // ⚠️ **Le cas qui vivait ici — « les deux chemins rendent le même état », un
+  // par terrain livré — a été RETIRÉ à la bascule.** Il avait fait son travail :
+  // c'est lui qui autorisait à remplacer un chemin par l'autre. Une fois le
+  // remplacement fait, il comparait le moteur à lui-même. Ce qui garde les 25
+  // terrains livrés est le snapshot de `board-characterization.test.ts`,
+  // enregistré AVANT la bascule et inchangé après — et c'est une preuve plus
+  // forte, parce qu'elle survit à la disparition de l'ancien chemin.
 
   // Le moteur ne doit rien laisser tomber en route : une tâche qu'aucun registre
   // ne sait écrire est tracée. Sur les terrains livrés, il n'y en a aucune.
@@ -222,13 +207,32 @@ const SYNTHETIQUES: BoardDef[] = [
 ] as any;
 
 describe('Mode ombre — les branches que le catalogue n\'exerce pas', () => {
-  it.each(SYNTHETIQUES.map(b => [b.id, b.name] as const))(
-    '%s %s — les deux chemins rendent le MÊME état',
-    (id) => {
-      const b = SYNTHETIQUES.find(x => x.id === id)!;
-      expect(cheminCompile(b).etat).toEqual(cheminActuel(b));
-    },
-  );
+  // ⚠️ **Un SNAPSHOT, depuis la bascule, et non plus une comparaison.** Ces cinq
+  // terrains n'existent pas dans la donnée : ils existent pour que les deux
+  // branches que le catalogue n'exerce jamais — le multiplicateur et la pioche —
+  // soient épinglées quelque part. L'oracle des 25 livrés ne peut pas le faire
+  // (il n'en porte aucun exemplaire), et il n'y a plus de second chemin à qui
+  // les comparer. Le snapshot, lui, dit ce que le moteur DOIT rendre.
+  //
+  // Le cas qui vaut à lui seul le déplacement est `SYNTH_MULT2` : deux « ×2 PV »
+  // donnent **×3**, jamais ×4.
+  // Mutation : composer les multiplicateurs → ROUGE.
+  it('les cinq terrains synthétiques rendent exactement cet état', () => {
+    // ⚠️ Seulement ce qui a BOUGÉ. Le casting porte une unité par attribut visé
+    // du catalogue, des deux côtés : un snapshot complet ferait 370 lignes dont
+    // 340 de témoins inchangés, et personne n'y lirait le `×3`.
+    const temoin = cheminCompile({ id: 'RIEN', name: 'Rien', effects: [] } as any).etat;
+    const etats = Object.fromEntries(SYNTHETIQUES.map(b => {
+      const e = cheminCompile(b).etat;
+      const bouge = (camp: 'joueur' | 'ennemi') =>
+        e[camp].filter((l, i) => l !== temoin[camp][i]);
+      return [b.id, {
+        joueur: bouge('joueur'), ennemi: bouge('ennemi'),
+        pioches: e.pioches, sources: e.sources,
+      }];
+    }));
+    expect(etats).toMatchSnapshot();
+  });
 
   // ⚠️ Le `draw_bonus` porte un INVARIANT que l'égalité d'état seule ne
   // montrerait pas bien : `sum(sources.value) === extraDraws`, vérifié par

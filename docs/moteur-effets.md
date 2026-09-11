@@ -865,6 +865,64 @@ design — il venait de ce que la remise ne savait pas désigner de cible.
 
 **Puis la bascule (étape 2).**
 
+### 6.5 État de l'étape 2 — la bascule
+
+**✅ TERRAIN BASCULÉ.** `BoardEffect.applyBoardEffects` **est** désormais
+`compileBoard` + `executer`. Le `switch` de quatre `case` a disparu du fichier,
+qui garde la **lecture** de la donnée (`boardEffects`, `effectTargets`) — que
+l'UI, `BoardPicker` et l'annonce de terrain partagent — et perd l'exécution.
+
+Deux conséquences qui ne se devinent pas :
+
+- **La conversion du multiplicateur a changé de couche.** Elle vivait dans
+  `applyEffect` (`_base[stat] × (value − 1)`) ; le compilateur garde maintenant
+  l'INTENTION (`operateur: '*'`) et c'est le moteur, seul à connaître les
+  registres, qui traduit. Un opérateur de plus ne se réécrira donc pas à chaque
+  porteur.
+- **`applyBoardEffects` REND ses refus** au lieu de se taire. Un effet nommant
+  une stat que `_recomputeStats` ne relit pas — la première famille d'effets
+  morts du §1.4 — est désormais un refus nommé, disponible pour qui veut le
+  lire. ⚠️ Pas de `console.warn` : `logic/` n'en contient aucun, et ce n'est pas
+  au moteur de décider comment une panne de donnée se raconte.
+
+**Comment on a prouvé que c'était un no-op**, et c'est la méthode pour les
+porteurs suivants :
+
+1. **Le snapshot de `board-characterization.test.ts` n'a pas bougé d'un
+   caractère.** Il a été enregistré contre l'ANCIEN chemin, à l'étape 0 ; il
+   garde le nouveau. C'est le seul artefact qui survit à la disparition d'un
+   chemin — et c'est pour ça que l'étape 0 précédait tout le reste.
+2. **Le détecteur rend un rapport IDENTIQUE**, horodatage mis à part : 1 200
+   parties semées sur les 953 cartes de `data/`, avant et après. ⚠️ **1 200 et
+   non 60 000, et ce n'est pas une économie** : une bascule censée ne rien
+   changer se juge par un diff DÉTERMINISTE, pas par une comparaison de lignes
+   de base. La puissance statistique sert à comparer deux jeux différents ; ici
+   on prouve que c'est le même, et un seul écart suffirait à le dire.
+3. **Seize mutations** — sept sur le compilateur, deux sur le moteur, sept sur
+   les conteneurs — toutes rouges, et toutes attrapées par au moins un test qui
+   **survit à la bascule**.
+
+⚠️ **Un mode ombre est CONSOMMÉ par sa propre bascule.** Une fois
+`applyBoardEffects` devenu le chemin compilé, `effects-shadow.test.ts`
+comparait le moteur à lui-même : ses deux `it.each` de comparaison d'état ont
+été retirés, et le fichier ne garde que ce qui prouve encore quelque chose (la
+compilation, les invariants du schéma, et un **snapshot** des deux branches que
+le catalogue n'exerce pas). **Le laisser vert sans le relire aurait été pire que
+de le supprimer** : un test vacieux occupe la place de celui qui prouverait
+quelque chose, et sa couleur ne dit rien de ce qu'il couvre.
+
+⚠️ **Une doublure de test a dû devenir une vraie `Unit`.** `board-alert.test.ts`
+comptait les appels à `applyStatBonus` sur un objet duck-typé ; le moteur
+demande en plus `isAlive()` et `_base`. Maintenir la doublure serait tenir une
+seconde implémentation de ce qu'on mesure — elle a été remplacée par de vraies
+unités dont on lit le **bonus posé**, ce qui est de toute façon un témoin plus
+juste que le nombre d'appels. ⚠️ Le filtre `isAlive()` n'est PAS un changement
+de comportement : le seul appelant de production lui passe déjà
+`getLivingUnitsOnSide`.
+
+**Reste à basculer** : attribut (88 effets, 3 timings), magie (51), puis les
+tâches de pouvoir.
+
 ### 6.3 Ce que l'étape 1 a appris sur la façon de prouver
 
 **Six fois sur trois porteurs**, un test qui semblait probant ne l'était pas :

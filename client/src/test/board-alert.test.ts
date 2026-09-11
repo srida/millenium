@@ -16,6 +16,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GameSession } from '../logic/GameSession.js';
 import type { GameSessionDeps } from '../logic/GameSession.js';
 import { makeCard } from './helpers.js';
+import { Unit } from '../logic/Unit.js';
 import type { BoardDef } from '../logic/types.js';
 
 (globalThis as any).window = { location: { search: '' }, addEventListener() {}, removeEventListener() {} };
@@ -84,11 +85,23 @@ describe('Annonce de terrain — ce qui est dit', () => {
     const alert = terrainAlertFor(terrain('B', effect), units, enemies)!;
 
     // Ce que l'effet fait RÉELLEMENT : on le pose et on compte qui a été touché.
-    const p = units.map(u => ({ ...u, applyStatBonus: vi.fn() }));
-    const e = enemies.map(u => ({ ...u, applyStatBonus: vi.fn() }));
+    //
+    // ⚠️ De VRAIES `Unit`, et on lit le BONUS POSÉ — plus une doublure qui
+    // compte les appels à `applyStatBonus`. Depuis que le terrain passe par le
+    // moteur générique, ce qu'une doublure doit savoir répondre (`isAlive`,
+    // `_base`, les registres) est devenu la moitié d'une `Unit` : la maintenir
+    // reviendrait à tenir une seconde implémentation de ce qu'on mesure. Et
+    // l'ATQ posée est un témoin plus juste que le nombre d'appels — c'est
+    // l'effet, pas le geste.
+    const real = (attrs: string[], side: 'player' | 'enemy', i: number) => new (Unit as any)(
+      makeCard({ id: `${side}${i}`, attributes: attrs, stats: { atk: 20, hp: 100, movement_rate: 50, attack_rate: 50, range: 1 } as any }),
+      side,
+    ) as any;
+    const p = units.map((u, i) => real(u.attributes, 'player', i));
+    const e = enemies.map((u, i) => real(u.attributes, 'enemy', i));
     applyEffect(effect as any, { playerUnits: p as any, enemyUnits: e as any });
-    const boostedPlayer = p.filter(u => u.applyStatBonus.mock.calls.length > 0).length;
-    const boostedEnemy = e.filter(u => u.applyStatBonus.mock.calls.length > 0).length;
+    const boostedPlayer = p.filter(u => (u._stat_bonuses.atk ?? 0) > 0).length;
+    const boostedEnemy = e.filter(u => (u._stat_bonuses.atk ?? 0) > 0).length;
 
     expect(alert.boosted).toEqual({ player: boostedPlayer, enemy: boostedEnemy });
     expect(alert.boosted).toEqual({ player: 2, enemy: 1 });
