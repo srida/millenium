@@ -570,7 +570,7 @@
 		"id": "ARCH_020",
 		"name": "Archdémon",
 		"icon": "💀",
-		"timing": "start_of_combat",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
 		"thresholds": [
 			{
@@ -1602,7 +1602,7 @@
 		"id": "ARCH_073",
 		"name": "Cybernetique",
 		"icon": "🦾",
-		"timing": "start_of_combat",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
 		"thresholds": [
 			{
