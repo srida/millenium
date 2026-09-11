@@ -300,6 +300,7 @@
 			"2": [
 				"EXTRA_007",
 				"EXTRA_011",
+				"EXTRA_006",
 				"EXTRA_005",
 				"HAGA_007",
 				"EXTRA_009",
@@ -308,8 +309,7 @@
 			"3": [
 				"HAGA_011",
 				"HAGA_013",
-				"EXTRA_010",
-				"EXTRA_006"
+				"EXTRA_010"
 			],
 			"4": [
 				"EXTRA_004",
@@ -541,6 +541,7 @@
 				"BAKURA_008",
 				"BAKURA_011",
 				"EXTRA_064",
+				"BONZ_007",
 				"BONZ_008",
 				"BONZ_010"
 			],
@@ -548,8 +549,7 @@
 				"EXTRA_062",
 				"EXTRA_066",
 				"BONZ_013",
-				"BONZ_015",
-				"BONZ_007"
+				"BONZ_015"
 			],
 			"4": [
 				"EXTRA_060",
@@ -602,5 +602,197 @@
 			]
 		},
 		"difficulty": 2
+	},
+	{
+		"id": "PUBLIC_DECK_016",
+		"name": "Zane",
+		"difficulty": 3,
+		"deck": {
+			"1": [
+				"ZANE_010",
+				"ZANE_008",
+				"ZANE_002",
+				"ZANE_020",
+				"ZANE_018",
+				"ZANE_009"
+			],
+			"2": [
+				"ZANE_014",
+				"ZANE_015",
+				"ZANE_001",
+				"ZANE_016",
+				"ZANE_017",
+				"ZANE_004",
+				"ZANE_005"
+			],
+			"3": [
+				"ZANE_011",
+				"ZANE_003",
+				"ZANE_021"
+			],
+			"4": [
+				"ZANE_019",
+				"ZANE_007",
+				"ZANE_013",
+				"ZANE_006"
+			],
+			"5": [
+				"ZANE_012"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_017",
+		"name": "Alexis",
+		"difficulty": 2,
+		"deck": {
+			"1": [
+				"ALEXIS_020",
+				"ALEXIS_016",
+				"ALEXIS_010",
+				"ALEXIS_009",
+				"ALEXIS_012",
+				"ALEXIS_001",
+				"ALEXIS_002"
+			],
+			"2": [
+				"ALEXIS_017",
+				"ALEXIS_005",
+				"ALEXIS_013",
+				"ALEXIS_015",
+				"ALEXIS_004",
+				"ALEXIS_003"
+			],
+			"3": [
+				"ALEXIS_021",
+				"ALEXIS_011",
+				"ALEXIS_018",
+				"ALEXIS_014",
+				"ALEXIS_006",
+				"ALEXIS_007"
+			],
+			"4": [
+				"ALEXIS_019",
+				"ALEXIS_022",
+				"ALEXIS_008"
+			],
+			"5": [
+				"ALEXIS_023"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_018",
+		"name": "Chazz",
+		"difficulty": 2,
+		"deck": {
+			"1": [
+				"STAPLE_369",
+				"CHAZZ_001",
+				"CHAZZ_003",
+				"CHAZZ_002",
+				"CORE_049",
+				"CORE_047",
+				"CORE_048",
+				"STAPLE_458"
+			],
+			"2": [
+				"STAPLE_238",
+				"CHAZZ_004",
+				"STAPLE_370",
+				"CHAZZ_006",
+				"CHAZZ_008",
+				"CHAZZ_007",
+				"STAPLE_239"
+			],
+			"3": [
+				"CORE_069",
+				"STAPLE_371",
+				"CHAZZ_005",
+				"STAPLE_241",
+				"STAPLE_459"
+			],
+			"4": [
+				"STAPLE_240",
+				"STAPLE_372",
+				"CHAZZ_009"
+			],
+			"5": []
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_019",
+		"name": "Bastien",
+		"difficulty": 1,
+		"deck": {
+			"1": [
+				"BASTIEN_005",
+				"BASTIEN_001",
+				"BASTIEN_012",
+				"BASTIEN_002",
+				"BASTIEN_014",
+				"BASTIEN_013"
+			],
+			"2": [
+				"BASTIEN_019",
+				"BASTIEN_004",
+				"BASTIEN_018"
+			],
+			"3": [
+				"BASTIEN_003",
+				"BASTIEN_006",
+				"BASTIEN_010",
+				"BASTIEN_016",
+				"BASTIEN_009",
+				"BASTIEN_015"
+			],
+			"4": [
+				"BASTIEN_011",
+				"BASTIEN_020",
+				"BASTIEN_007",
+				"BASTIEN_017"
+			],
+			"5": [
+				"BASTIEN_008"
+			]
+		}
+	},
+	{
+		"id": "PUBLIC_DECK_020",
+		"name": "Camula",
+		"difficulty": 1,
+		"deck": {
+			"1": [
+				"CAMULA_003",
+				"CAMULA_002",
+				"CAMULA_001",
+				"STAPLE_169",
+				"CAMULA_004",
+				"STAPLE_393"
+			],
+			"2": [
+				"CAMULA_008",
+				"CAMULA_014",
+				"STAPLE_132",
+				"CAMULA_005",
+				"CAMULA_011",
+				"STAPLE_057"
+			],
+			"3": [
+				"CAMULA_013",
+				"CAMULA_007",
+				"CAMULA_009",
+				"CAMULA_006",
+				"STAPLE_032"
+			],
+			"4": [
+				"CAMULA_010",
+				"CAMULA_012",
+				"STAPLE_394"
+			],
+			"5": [
+				"CAMULA_015"
+			]
+		}
 	}
 ]

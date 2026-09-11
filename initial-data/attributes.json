@@ -191,8 +191,9 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "sacrifice",
-						"attribute": "ARCH_005"
+						"card_ids": [
+							"CORE_002"
+						]
 					}
 				]
 			},
@@ -202,8 +203,9 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "heritage",
-						"attribute": "ARCH_005"
+						"card_ids": [
+							"CORE_103"
+						]
 					}
 				]
 			}
@@ -243,8 +245,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "heritage",
-						"attribute": "ARCH_007"
+						"attributes": [
+							"ARCH_087",
+							"ARCH_007"
+						]
 					}
 				]
 			}
@@ -263,8 +267,9 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "fusion",
-						"attribute": "ARCH_008"
+						"attributes": [
+							"ARCH_008"
+						]
 					}
 				]
 			}
@@ -283,8 +288,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "fusion",
-						"attribute": "ARCH_009"
+						"attributes": [
+							"ARCH_086",
+							"ARCH_009"
+						]
 					}
 				]
 			}
@@ -294,7 +301,7 @@
 		"id": "ARCH_010",
 		"name": "Noble",
 		"icon": "👑",
-		"timing": "none",
+		"timing": "start_of_combat",
 		"categorie": "Archetype",
 		"thresholds": [
 			{
@@ -323,8 +330,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "normal",
-						"attribute": "ARCH_011"
+						"attributes": [
+							"ARCH_090",
+							"ARCH_011"
+						]
 					}
 				]
 			},
@@ -334,8 +343,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "fusion",
-						"attribute": "ARCH_011"
+						"attributes": [
+							"ARCH_086",
+							"ARCH_011"
+						]
 					}
 				]
 			}
@@ -354,8 +365,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "normal",
-						"attribute": "ARCH_012"
+						"attributes": [
+							"ARCH_090",
+							"ARCH_012"
+						]
 					}
 				]
 			},
@@ -365,8 +378,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "fusion",
-						"attribute": "ARCH_012"
+						"attributes": [
+							"ARCH_086",
+							"ARCH_012"
+						]
 					}
 				]
 			}
@@ -385,8 +400,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "fusion",
-						"attribute": "ARCH_013"
+						"attributes": [
+							"ARCH_086",
+							"ARCH_013"
+						]
 					}
 				]
 			}
@@ -405,8 +422,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "transformation",
-						"attribute": "ARCH_014"
+						"attributes": [
+							"ARCH_088",
+							"ARCH_014"
+						]
 					}
 				]
 			}
@@ -425,8 +444,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "normal",
-						"attribute": "ARCH_015"
+						"attributes": [
+							"ARCH_090",
+							"ARCH_015"
+						]
 					}
 				]
 			},
@@ -436,8 +457,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "fusion",
-						"attribute": "ARCH_015"
+						"attributes": [
+							"ARCH_086",
+							"ARCH_015"
+						]
 					}
 				]
 			}
@@ -468,7 +491,7 @@
 		"id": "ARCH_017",
 		"name": "Rage de Vaincre",
 		"icon": "😡",
-		"timing": "during_combat",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
 		"thresholds": [
 			{
@@ -516,10 +539,8 @@
 				"medal": "silver",
 				"effects": [
 					{
-						"type": "stat_bonus",
-						"stat": "atk",
-						"value": 1,
-						"value_per": "active_unit"
+						"type": "shield",
+						"value": 10
 					}
 				]
 			},
@@ -528,10 +549,8 @@
 				"medal": "gold",
 				"effects": [
 					{
-						"type": "stat_bonus",
-						"stat": "atk",
-						"value": 3,
-						"value_per": "active_unit"
+						"type": "shield",
+						"value": 30
 					}
 				]
 			},
@@ -540,10 +559,8 @@
 				"medal": "platinum",
 				"effects": [
 					{
-						"type": "stat_bonus",
-						"stat": "atk",
-						"value": 5,
-						"value_per": "active_unit"
+						"type": "shield",
+						"value": 50
 					}
 				]
 			}
@@ -557,38 +574,14 @@
 		"categorie": "Archetype",
 		"thresholds": [
 			{
-				"count": 2,
-				"medal": "silver",
-				"effects": [
-					{
-						"type": "stat_bonus",
-						"stat": "hp",
-						"value_per": "active_unit",
-						"value": 10
-					}
-				]
-			},
-			{
 				"count": 3,
-				"medal": "gold",
-				"effects": [
-					{
-						"type": "stat_bonus",
-						"stat": "hp",
-						"value_per": "active_unit",
-						"value": 30
-					}
-				]
-			},
-			{
-				"count": 4,
 				"medal": "platinum",
 				"effects": [
 					{
-						"type": "stat_bonus",
-						"stat": "hp",
-						"value_per": "active_unit",
-						"value": 50
+						"type": "revive",
+						"value": 1,
+						"target": "neutralized_ally",
+						"hp_percent": 10
 					}
 				]
 			}
@@ -638,8 +631,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "fusion",
-						"attribute": "ARCH_022"
+						"attributes": [
+							"ARCH_086",
+							"ARCH_022"
+						]
 					}
 				]
 			}
@@ -700,8 +695,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "normal",
-						"attribute": "ARCH_024"
+						"attributes": [
+							"ARCH_090",
+							"ARCH_024"
+						]
 					}
 				]
 			}
@@ -1013,7 +1010,7 @@
 		"id": "ARCH_036",
 		"name": "Harpie",
 		"icon": "🦅",
-		"timing": "start_of_combat",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
 		"thresholds": [
 			{
@@ -1022,8 +1019,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "fusion",
-						"attribute": "ARCH_036"
+						"attributes": [
+							"ARCH_086",
+							"ARCH_036"
+						]
 					}
 				]
 			}
@@ -1042,8 +1041,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "normal",
-						"attribute": "ARCH_038"
+						"attributes": [
+							"ARCH_090",
+							"ARCH_038"
+						]
 					}
 				]
 			}
@@ -1133,7 +1134,7 @@
 		"id": "ARCH_042",
 		"name": "Gardiens",
 		"icon": "🚪",
-		"timing": "start_of_combat",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
 		"thresholds": [
 			{
@@ -1142,8 +1143,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "sacrifice",
-						"attribute": "ARCH_042"
+						"attributes": [
+							"ARCH_089",
+							"ARCH_042"
+						]
 					}
 				]
 			},
@@ -1153,8 +1156,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "fusion",
-						"attribute": "ARCH_042"
+						"attributes": [
+							"ARCH_086",
+							"ARCH_042"
+						]
 					}
 				]
 			}
@@ -1164,7 +1169,7 @@
 		"id": "ARCH_043",
 		"name": "Spectre",
 		"icon": "👁️‍🗨️",
-		"timing": "end_of_combat",
+		"timing": "during_combat",
 		"categorie": "Archetype",
 		"thresholds": [
 			{
@@ -1205,7 +1210,7 @@
 		"id": "ARCH_045",
 		"name": "Volant",
 		"icon": "🪽",
-		"timing": "start_of_combat",
+		"timing": "during_combat",
 		"categorie": "Type",
 		"thresholds": [
 			{
@@ -1496,7 +1501,7 @@
 		"id": "ARCH_068",
 		"name": "Dragon légendaires",
 		"icon": "🦄",
-		"timing": "start_of_combat",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
 		"thresholds": [
 			{
@@ -1505,13 +1510,17 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "fusion",
-						"attribute": "ARCH_068"
+						"attributes": [
+							"ARCH_089",
+							"ARCH_068"
+						]
 					},
 					{
 						"type": "guaranteed_draw",
-						"category": "transformation",
-						"attribute": "ARCH_068"
+						"attributes": [
+							"ARCH_086",
+							"ARCH_068"
+						]
 					}
 				]
 			}
@@ -1538,8 +1547,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "normal",
-						"attribute": "ARCH_070"
+						"attributes": [
+							"ARCH_089",
+							"ARCH_070"
+						]
 					}
 				]
 			}
@@ -1578,8 +1589,10 @@
 				"effects": [
 					{
 						"type": "guaranteed_draw",
-						"category": "transformation",
-						"attribute": "ARCH_072"
+						"attributes": [
+							"ARCH_088",
+							"ARCH_072"
+						]
 					}
 				]
 			}
@@ -1591,15 +1604,69 @@
 		"icon": "🦾",
 		"timing": "start_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"attributes": [
+							"ARCH_090",
+							"ARCH_073"
+						]
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"attributes": [
+							"ARCH_087",
+							"ARCH_073"
+						]
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_074",
 		"name": "Kayser",
 		"icon": "🦿",
-		"timing": "start_of_combat",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"attributes": [
+							"ARCH_074",
+							"ARCH_090"
+						]
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"attributes": [
+							"ARCH_074",
+							"ARCH_086"
+						]
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_075",
@@ -1613,17 +1680,73 @@
 		"id": "ARCH_076",
 		"name": "Ojama",
 		"icon": "👹",
-		"timing": "start_of_combat",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"attributes": [
+							"ARCH_090",
+							"ARCH_076"
+						]
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"attributes": [
+							"ARCH_086",
+							"ARCH_076"
+						]
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_077",
 		"name": "Chimie",
 		"icon": "🧪",
-		"timing": "start_of_combat",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"attributes": [
+							"ARCH_090",
+							"ARCH_077",
+							"ARCH_091"
+						]
+					}
+				]
+			},
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"attributes": [
+							"ARCH_087",
+							"ARCH_077",
+							"ARCH_093"
+						]
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_078",
@@ -1735,8 +1858,8 @@
 		"icon": "1",
 		"timing": "start_of_combat",
 		"categorie": "Tiers",
-		"tier": 1,
-		"thresholds": []
+		"thresholds": [],
+		"tier": 1
 	},
 	{
 		"id": "ARCH_092",
@@ -1744,8 +1867,8 @@
 		"icon": "2",
 		"timing": "start_of_combat",
 		"categorie": "Tiers",
-		"tier": 2,
-		"thresholds": []
+		"thresholds": [],
+		"tier": 2
 	},
 	{
 		"id": "ARCH_093",
@@ -1753,8 +1876,8 @@
 		"icon": "3",
 		"timing": "start_of_combat",
 		"categorie": "Tiers",
-		"tier": 3,
-		"thresholds": []
+		"thresholds": [],
+		"tier": 3
 	},
 	{
 		"id": "ARCH_094",
@@ -1762,8 +1885,8 @@
 		"icon": "4",
 		"timing": "start_of_combat",
 		"categorie": "Tiers",
-		"tier": 4,
-		"thresholds": []
+		"thresholds": [],
+		"tier": 4
 	},
 	{
 		"id": "ARCH_095",
@@ -1771,7 +1894,7 @@
 		"icon": "5",
 		"timing": "start_of_combat",
 		"categorie": "Tiers",
-		"tier": 5,
-		"thresholds": []
+		"thresholds": [],
+		"tier": 5
 	}
 ]

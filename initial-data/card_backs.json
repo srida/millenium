@@ -16,5 +16,29 @@
 		"name": "Dos anime 2",
 		"default": false,
 		"price_gems": 100
+	},
+	{
+		"id": "CARDBACK_003",
+		"name": "Dos manga",
+		"default": false,
+		"price_gems": 100
+	},
+	{
+		"id": "CARDBACK_004",
+		"name": "Dos manga coloré",
+		"default": false,
+		"price_gems": 100
+	},
+	{
+		"id": "CARDBACK_005",
+		"name": "Saison 0",
+		"default": false,
+		"price_gems": 100
+	},
+	{
+		"id": "CARDBACK_006",
+		"name": "Dos Bandai",
+		"default": false,
+		"price_gems": 100
 	}
 ]

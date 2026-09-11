@@ -51,7 +51,9 @@
 		"name": "Renfort de l’armée",
 		"effect": {
 			"type": "guaranteed_draw",
-			"tier": 1
+			"attributes": [
+				"ARCH_091"
+			]
 		},
 		"rarity": 2
 	},
@@ -60,7 +62,9 @@
 		"name": "Feu ardent",
 		"effect": {
 			"type": "guaranteed_draw",
-			"tier": 5
+			"attributes": [
+				"ARCH_095"
+			]
 		},
 		"rarity": 2
 	},
@@ -69,7 +73,9 @@
 		"name": "Recherche de fossiles",
 		"effect": {
 			"type": "guaranteed_draw",
-			"tier": 3
+			"attributes": [
+				"ARCH_093"
+			]
 		},
 		"rarity": 2
 	},
@@ -134,7 +140,8 @@
 		"name": "Bourse des âmes",
 		"effect": {
 			"type": "reduce_materials",
-			"value": 2
+			"value": 2,
+			"attribute": "ARCH_089"
 		},
 		"rarity": 2
 	},
@@ -143,7 +150,8 @@
 		"name": "Ristourne",
 		"effect": {
 			"type": "reduce_materials",
-			"value": 1
+			"value": 1,
+			"attribute": "ARCH_089"
 		},
 		"rarity": 1
 	},
@@ -152,7 +160,8 @@
 		"name": "Force spirituel",
 		"effect": {
 			"type": "reduce_materials",
-			"value": 1
+			"value": 1,
+			"attribute": "ARCH_088"
 		},
 		"rarity": 1
 	},
@@ -161,7 +170,8 @@
 		"name": "Préparation des rites",
 		"effect": {
 			"type": "remove_requirements",
-			"value": 1
+			"value": 1,
+			"attribute": "ARCH_087"
 		},
 		"rarity": 1
 	},
@@ -188,7 +198,9 @@
 		"name": "Appel héroïque",
 		"effect": {
 			"type": "guaranteed_draw",
-			"tier": 2
+			"attributes": [
+				"ARCH_092"
+			]
 		},
 		"rarity": 2
 	},
@@ -197,7 +209,9 @@
 		"name": "Appel des ténèbres",
 		"effect": {
 			"type": "guaranteed_draw",
-			"tier": 4
+			"attributes": [
+				"ARCH_094"
+			]
 		},
 		"rarity": 2
 	},
@@ -206,7 +220,8 @@
 		"name": "Fusion instantanée",
 		"effect": {
 			"type": "reduce_materials",
-			"value": 1
+			"value": 1,
+			"attribute": "ARCH_086"
 		},
 		"rarity": 1
 	},

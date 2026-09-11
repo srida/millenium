@@ -1581,7 +1581,8 @@
 			"CORE_058",
 			"CORE_059",
 			"CORE_060"
-		]
+		],
+		"set": "SET_009"
 	},
 	{
 		"id": "CORE_062",
@@ -1708,7 +1709,8 @@
 			"CORE_062",
 			"CORE_063",
 			"CORE_064"
-		]
+		],
+		"set": "SET_009"
 	},
 	{
 		"id": "CORE_066",
@@ -1748,7 +1750,8 @@
 		"material_value": 2,
 		"represented_ids": [
 			"CORE_001"
-		]
+		],
+		"set": "SET_009"
 	},
 	{
 		"id": "CORE_067",
@@ -1790,10 +1793,11 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": [
 			"CORE_061"
-		]
+		],
+		"set": "SET_009"
 	},
 	{
 		"id": "CORE_068",
@@ -1833,7 +1837,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_013"
-		]
+		],
+		"set": "SET_009"
 	},
 	{
 		"id": "CORE_069",
@@ -1999,7 +2004,8 @@
 		"represented_ids": [
 			"CORE_049",
 			"CORE_048"
-		]
+		],
+		"set": "SET_009"
 	},
 	{
 		"id": "CORE_073",
@@ -2155,7 +2161,8 @@
 		"material_value": 2,
 		"represented_ids": [
 			"CORE_001"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "CORE_078",
@@ -2521,7 +2528,8 @@
 		"material_value": 2,
 		"represented_ids": [
 			"CORE_033"
-		]
+		],
+		"set": "SET_012"
 	},
 	{
 		"id": "CORE_090",
@@ -2563,7 +2571,8 @@
 		"material_value": 2,
 		"represented_ids": [
 			"CORE_033"
-		]
+		],
+		"set": "SET_012"
 	},
 	{
 		"id": "CORE_091",
@@ -2614,7 +2623,8 @@
 		},
 		"summon_conditions": [],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_010"
 	},
 	{
 		"id": "CORE_093",
@@ -2775,7 +2785,8 @@
 		"represented_ids": [
 			"CORE_095",
 			"CORE_096"
-		]
+		],
+		"set": "SET_011"
 	},
 	{
 		"id": "CORE_099",
@@ -2815,7 +2826,8 @@
 		"represented_ids": [
 			"CORE_096",
 			"CORE_097"
-		]
+		],
+		"set": "SET_011"
 	},
 	{
 		"id": "CORE_100",
@@ -2945,11 +2957,11 @@
 		"id": "CORE_103",
 		"name": "Ultime dragon blanc aux yeux bleus",
 		"type": "monster",
+		"material_value": 3,
 		"attributes": [
 			"ARCH_003",
 			"ARCH_005",
 			"ARCH_017",
-			"ARCH_026",
 			"ARCH_045",
 			"ARCH_052",
 			"ARCH_055",
@@ -2970,14 +2982,15 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 3,
+				"materials": 4,
 				"requires": [
 					"CORE_002"
 				]
 			}
 		],
-		"material_value": 3,
-		"represented_ids": []
+		"represented_ids": [
+			"CORE_002"
+		]
 	},
 	{
 		"id": "CORE_104",
@@ -3097,7 +3110,8 @@
 		"represented_ids": [
 			"CORE_001",
 			"CORE_039"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "CORE_107",
@@ -3133,7 +3147,8 @@
 			}
 		],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_010"
 	},
 	{
 		"id": "CORE_108",
@@ -3241,7 +3256,8 @@
 			}
 		],
 		"material_value": 2,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_013"
 	},
 	{
 		"id": "CORE_111",
@@ -3879,7 +3895,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_097"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "CORE_128",
@@ -3923,7 +3940,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_096"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "CORE_129",
@@ -3989,7 +4007,7 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 3,
+				"materials": 5,
 				"requires": [
 					"ARCH_006"
 				]
@@ -4001,8 +4019,9 @@
 				]
 			}
 		],
-		"material_value": 1,
-		"represented_ids": []
+		"material_value": 5,
+		"represented_ids": [],
+		"set": "SET_014"
 	},
 	{
 		"id": "MARIK_001",
@@ -4101,7 +4120,8 @@
 		},
 		"summon_conditions": [],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_009"
 	},
 	{
 		"id": "MARIK_005",
@@ -4181,7 +4201,8 @@
 		"power": {},
 		"summon_conditions": [],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_009"
 	},
 	{
 		"id": "MARIK_008",
@@ -4408,7 +4429,8 @@
 			}
 		],
 		"material_value": 2,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_009"
 	},
 	{
 		"id": "MARIK_018",
@@ -4423,7 +4445,7 @@
 		],
 		"stats": {
 			"atk": 0,
-			"hp": 500,
+			"hp": 300,
 			"range": 4,
 			"attack_rate": 76,
 			"movement_rate": 76
@@ -4435,7 +4457,8 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 2
+				"materials": 2,
+				"requires": []
 			}
 		],
 		"material_value": 2,
@@ -4470,7 +4493,8 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 3
+				"materials": 3,
+				"requires": []
 			},
 			{
 				"materials": 1,
@@ -4479,8 +4503,9 @@
 				]
 			}
 		],
-		"material_value": 1,
-		"represented_ids": []
+		"material_value": 3,
+		"represented_ids": [],
+		"set": "SET_009"
 	},
 	{
 		"id": "MARIK_020",
@@ -4515,10 +4540,11 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": [
 			"MARIK_019"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "KEITH_001",
@@ -4738,7 +4764,8 @@
 		},
 		"summon_conditions": [],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_010"
 	},
 	{
 		"id": "KEITH_010",
@@ -4801,8 +4828,9 @@
 				]
 			}
 		],
-		"material_value": 1,
-		"represented_ids": []
+		"material_value": 2,
+		"represented_ids": [],
+		"set": "SET_010"
 	},
 	{
 		"id": "KEITH_012",
@@ -4835,7 +4863,8 @@
 			}
 		],
 		"material_value": 2,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_010"
 	},
 	{
 		"id": "KEITH_013",
@@ -5024,7 +5053,8 @@
 		},
 		"summon_conditions": [],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_013"
 	},
 	{
 		"id": "HAGA_007",
@@ -5060,7 +5090,8 @@
 			}
 		],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_015"
 	},
 	{
 		"id": "HAGA_008",
@@ -5074,7 +5105,7 @@
 		],
 		"stats": {
 			"atk": 0,
-			"hp": 400,
+			"hp": 300,
 			"range": 4,
 			"attack_rate": 76,
 			"movement_rate": 76
@@ -5134,7 +5165,8 @@
 		"power": {},
 		"summon_conditions": [
 			{
-				"materials": 2
+				"materials": 2,
+				"requires": []
 			},
 			{
 				"materials": 1,
@@ -5143,8 +5175,9 @@
 				]
 			}
 		],
-		"material_value": 1,
-		"represented_ids": []
+		"material_value": 2,
+		"represented_ids": [],
+		"set": "SET_015"
 	},
 	{
 		"id": "HAGA_012",
@@ -5177,8 +5210,9 @@
 				]
 			}
 		],
-		"material_value": 1,
-		"set": "SET_015"
+		"material_value": 2,
+		"set": "SET_015",
+		"represented_ids": []
 	},
 	{
 		"id": "HAGA_013",
@@ -5861,7 +5895,8 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 3
+				"materials": 3,
+				"requires": []
 			},
 			{
 				"materials": 1,
@@ -5870,7 +5905,7 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": [
 			"STAPLE_161"
 		]
@@ -6201,7 +6236,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "PEGASUS_002",
@@ -6235,7 +6271,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "PEGASUS_005",
@@ -6293,7 +6330,8 @@
 			}
 		],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_010"
 	},
 	{
 		"id": "PEGASUS_007",
@@ -6331,7 +6369,8 @@
 		"material_value": 2,
 		"represented_ids": [
 			"PEGASUS_006"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "PEGASUS_008",
@@ -6368,7 +6407,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "PEGASUS_009",
@@ -6405,7 +6445,8 @@
 		"material_value": 2,
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "PEGASUS_010",
@@ -6438,7 +6479,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "PEGASUS_011",
@@ -6494,7 +6536,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "BAKURA_001",
@@ -7858,7 +7901,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"MAKO_006"
-		]
+		],
+		"set": "SET_013"
 	},
 	{
 		"id": "EXTRA_022",
@@ -8039,7 +8083,8 @@
 			}
 		],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_013"
 	},
 	{
 		"id": "EXTRA_027",
@@ -8081,7 +8126,8 @@
 			}
 		],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_013"
 	},
 	{
 		"id": "EXTRA_028",
@@ -8297,7 +8343,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_033"
-		]
+		],
+		"set": "SET_012"
 	},
 	{
 		"id": "EXTRA_035",
@@ -8333,7 +8380,8 @@
 			}
 		],
 		"material_value": 2,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_012"
 	},
 	{
 		"id": "EXTRA_036",
@@ -8352,14 +8400,14 @@
 		"stats": {
 			"atk": 26,
 			"hp": 180,
-			"range": 3,
+			"movement_rate": 90,
 			"attack_rate": 95,
-			"movement_rate": 90
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
-			"value": 50,
-			"power_rate": 0
+			"power_rate": 10,
+			"value": 50
 		},
 		"summon_conditions": [
 			{
@@ -8558,7 +8606,8 @@
 			}
 		],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_012"
 	},
 	{
 		"id": "EXTRA_044",
@@ -8595,7 +8644,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"MAI_002"
-		]
+		],
+		"set": "SET_012"
 	},
 	{
 		"id": "EXTRA_045",
@@ -8669,7 +8719,8 @@
 			}
 		],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_012"
 	},
 	{
 		"id": "EXTRA_047",
@@ -8707,7 +8758,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"MAI_004"
-		]
+		],
+		"set": "SET_012"
 	},
 	{
 		"id": "EXTRA_048",
@@ -8724,18 +8776,15 @@
 		"stats": {
 			"atk": 10,
 			"hp": 300,
-			"range": 1,
+			"movement_rate": 83,
 			"attack_rate": 92,
-			"movement_rate": 83
+			"range": 1
 		},
-		"power": {
-			"id": "POWER_HEAL",
-			"value": 50,
-			"power_rate": 0
-		},
+		"power": {},
 		"summon_conditions": [],
 		"material_value": 1,
-		"set": "SET_013"
+		"set": "SET_013",
+		"represented_ids": []
 	},
 	{
 		"id": "EXTRA_049",
@@ -8763,7 +8812,8 @@
 		},
 		"summon_conditions": [],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_013"
 	},
 	{
 		"id": "EXTRA_050",
@@ -8961,6 +9011,7 @@
 		"id": "EXTRA_057",
 		"name": "Dieu Égyptien Slime",
 		"type": "monster",
+		"material_value": 3,
 		"attributes": [
 			"ARCH_030",
 			"ARCH_031",
@@ -8999,8 +9050,8 @@
 				]
 			}
 		],
-		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_013"
 	},
 	{
 		"id": "EXTRA_058",
@@ -9430,7 +9481,7 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": []
 	},
 	{
@@ -9794,7 +9845,8 @@
 			"CORE_014",
 			"CORE_015",
 			"CORE_078"
-		]
+		],
+		"set": "SET_013"
 	},
 	{
 		"id": "EXTRA_082",
@@ -9851,7 +9903,8 @@
 			}
 		],
 		"material_value": 3,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_009"
 	},
 	{
 		"id": "EXTRA_084",
@@ -9883,7 +9936,8 @@
 			}
 		],
 		"material_value": 3,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_009"
 	},
 	{
 		"id": "EXTRA_085",
@@ -9917,7 +9971,7 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 2,
+				"materials": 5,
 				"requires": [
 					"CORE_103",
 					"CORE_011"
@@ -9994,7 +10048,7 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 2,
+				"materials": 5,
 				"requires": [
 					"CORE_103",
 					"CORE_077"
@@ -10080,10 +10134,11 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": [
 			"CORE_001"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "EXTRA_090",
@@ -10126,7 +10181,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_095"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "EXTRA_091",
@@ -10170,7 +10226,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_094"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "EXTRA_092",
@@ -10214,7 +10271,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_093"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "EXTRA_093",
@@ -10257,10 +10315,11 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": [
 			"KEITH_010"
-		]
+		],
+		"set": "SET_012"
 	},
 	{
 		"id": "EXTRA_094",
@@ -10299,7 +10358,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_039"
-		]
+		],
+		"set": "SET_012"
 	},
 	{
 		"id": "PEGASUS_014",
@@ -10325,7 +10385,8 @@
 		},
 		"summon_conditions": [],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_010"
 	},
 	{
 		"id": "PEGASUS_015",
@@ -10395,7 +10456,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "EXTRA_095",
@@ -10428,7 +10490,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "PEGASUS_017",
@@ -10466,7 +10529,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "PEGASUS_018",
@@ -10533,7 +10597,8 @@
 		"material_value": 2,
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "PEGASUS_020",
@@ -10646,7 +10711,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"PEGASUS_014"
-		]
+		],
+		"set": "SET_010"
 	},
 	{
 		"id": "PEGASUS_023",
@@ -11750,7 +11816,7 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 3,
+				"materials": 4,
 				"requires": [
 					"YGX_001"
 				]
@@ -12173,7 +12239,8 @@
 			}
 		],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_011"
 	},
 	{
 		"id": "STAPLE_012",
@@ -12572,7 +12639,8 @@
 			}
 		],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_011"
 	},
 	{
 		"id": "STAPLE_027",
@@ -12587,9 +12655,9 @@
 		"stats": {
 			"atk": 26,
 			"hp": 240,
-			"range": 2,
+			"movement_rate": 90,
 			"attack_rate": 92,
-			"movement_rate": 90
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -12837,7 +12905,7 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 2,
 		"represented_ids": [],
 		"set": "SET_015"
 	},
@@ -12874,7 +12942,8 @@
 			}
 		],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_012"
 	},
 	{
 		"id": "STAPLE_037",
@@ -13158,7 +13227,8 @@
 			}
 		],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_011"
 	},
 	{
 		"id": "STAPLE_046",
@@ -13236,14 +13306,15 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 2,
+				"materials": 3,
 				"requires": [
 					"ARCH_026"
 				]
 			}
 		],
-		"material_value": 2,
-		"represented_ids": []
+		"material_value": 3,
+		"represented_ids": [],
+		"set": "SET_013"
 	},
 	{
 		"id": "STAPLE_049",
@@ -13490,7 +13561,7 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 2,
 		"represented_ids": []
 	},
 	{
@@ -13587,7 +13658,8 @@
 		},
 		"summon_conditions": [],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_013"
 	},
 	{
 		"id": "STAPLE_060",
@@ -13943,7 +14015,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_022"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_071",
@@ -14335,14 +14408,14 @@
 		"stats": {
 			"atk": 18,
 			"hp": 200,
-			"range": 1,
+			"movement_rate": 76,
 			"attack_rate": 80,
-			"movement_rate": 76
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_HEAL",
-			"value": 20,
-			"power_rate": 0
+			"power_rate": 0,
+			"value": 20
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -14510,14 +14583,14 @@
 		"stats": {
 			"atk": 10,
 			"hp": 50,
-			"range": 1,
+			"movement_rate": 83,
 			"attack_rate": 83,
-			"movement_rate": 83
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
-			"value": 80,
-			"power_rate": 0
+			"power_rate": 0,
+			"value": 80
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -14605,7 +14678,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"STAPLE_232"
-		]
+		],
+		"set": "SET_016"
 	},
 	{
 		"id": "STAPLE_093",
@@ -15736,7 +15810,8 @@
 			}
 		],
 		"material_value": 2,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_015"
 	},
 	{
 		"id": "STAPLE_135",
@@ -16201,7 +16276,7 @@
 			{
 				"materials": 3,
 				"requires": [
-					"ARCH_001"
+					"ARCH_087"
 				]
 			},
 			{
@@ -16211,7 +16286,7 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": [
 			"STAPLE_013"
 		]
@@ -16346,7 +16421,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_020"
-		]
+		],
+		"set": "SET_015"
 	},
 	{
 		"id": "STAPLE_156",
@@ -17100,7 +17176,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_008"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_181",
@@ -17184,7 +17261,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_045"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_183",
@@ -17259,7 +17337,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"STAPLE_066"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_185",
@@ -17344,7 +17423,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_010"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_187",
@@ -17387,10 +17467,11 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": [
 			"CORE_005"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_188",
@@ -17433,10 +17514,11 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": [
 			"CORE_005"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_189",
@@ -17598,7 +17680,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_019"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_193",
@@ -18001,7 +18084,8 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 3
+				"materials": 3,
+				"requires": []
 			},
 			{
 				"materials": 1,
@@ -18010,10 +18094,11 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": [
 			"CORE_110"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_204",
@@ -18056,7 +18141,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_041"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_205",
@@ -18263,7 +18349,8 @@
 			"CORE_062",
 			"CORE_063",
 			"CORE_064"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_210",
@@ -18305,7 +18392,7 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": [
 			"CORE_062",
 			"CORE_063",
@@ -18364,7 +18451,7 @@
 			"ARCH_001",
 			"ARCH_087",
 			"ARCH_088",
-			"ARCH_093"
+			"ARCH_094"
 		],
 		"stats": {
 			"atk": 28,
@@ -18392,10 +18479,11 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 2,
 		"represented_ids": [
 			"CORE_005"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_213",
@@ -18508,7 +18596,8 @@
 			}
 		],
 		"material_value": 1,
-		"represented_ids": []
+		"represented_ids": [],
+		"set": "SET_016"
 	},
 	{
 		"id": "STAPLE_216",
@@ -18805,7 +18894,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"CORE_074"
-		]
+		],
+		"set": "SET_014"
 	},
 	{
 		"id": "STAPLE_224",
@@ -19035,7 +19125,7 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": [
 			"STAPLE_080"
 		]
@@ -19308,7 +19398,7 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 3,
 		"represented_ids": [
 			"CORE_001"
 		]
@@ -19481,7 +19571,7 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 2,
 		"represented_ids": [
 			"CORE_002"
 		],
@@ -19867,13 +19957,13 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 2,
+				"materials": 3,
 				"requires": [
 					"ARCH_022"
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 3,
 		"represented_ids": []
 	},
 	{
@@ -20523,14 +20613,14 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 2,
+				"materials": 3,
 				"requires": [
 					"CORE_001",
 					"CORE_011"
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 3,
 		"represented_ids": [
 			"CORE_001"
 		],
@@ -23462,10 +23552,11 @@
 				]
 			},
 			{
-				"materials": 3
+				"materials": 3,
+				"requires": []
 			}
 		],
-		"material_value": 1,
+		"material_value": 2,
 		"represented_ids": [
 			"STAPLE_370"
 		]
@@ -23703,7 +23794,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"STAPLE_232"
-		]
+		],
+		"set": "SET_016"
 	},
 	{
 		"id": "STAPLE_380",
@@ -24439,10 +24531,11 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 2,
 		"represented_ids": [
 			"STAPLE_404"
-		]
+		],
+		"set": "SET_016"
 	},
 	{
 		"id": "STAPLE_406",
@@ -24569,7 +24662,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"STAPLE_409"
-		]
+		],
+		"set": "SET_015"
 	},
 	{
 		"id": "STAPLE_411",
@@ -25097,18 +25191,19 @@
 		"stats": {
 			"atk": 27,
 			"hp": 250,
-			"range": 2,
+			"movement_rate": 76,
 			"attack_rate": 84,
-			"movement_rate": 76
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
-			"value": 100,
-			"power_rate": 0
+			"power_rate": 0,
+			"value": 100
 		},
 		"summon_conditions": [
 			{
-				"materials": 2
+				"materials": 2,
+				"requires": []
 			}
 		],
 		"material_value": 2,
@@ -25865,7 +25960,8 @@
 		"material_value": 1,
 		"represented_ids": [
 			"STAPLE_453"
-		]
+		],
+		"set": "SET_016"
 	},
 	{
 		"id": "STAPLE_455",
@@ -25949,6 +26045,7 @@
 		"id": "STAPLE_457",
 		"name": "Gigobyte LV5",
 		"type": "monster",
+		"material_value": 3,
 		"attributes": [
 			"ARCH_050",
 			"ARCH_052",
@@ -25961,7 +26058,7 @@
 			"ARCH_023",
 			"ARCH_034",
 			"ARCH_090",
-			"ARCH_091"
+			"ARCH_095"
 		],
 		"stats": {
 			"atk": 45,
@@ -25975,8 +26072,14 @@
 			"value": 70,
 			"power_rate": 36
 		},
-		"summon_conditions": [],
-		"material_value": 1,
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"STAPLE_456"
+				]
+			}
+		],
 		"represented_ids": [
 			"STAPLE_456"
 		],
@@ -26525,7 +26628,7 @@
 				]
 			}
 		],
-		"material_value": 1,
+		"material_value": 2,
 		"represented_ids": []
 	},
 	{
@@ -26830,7 +26933,6 @@
 		"type": "monster",
 		"attributes": [
 			"ARCH_073",
-			"ARCH_074",
 			"ARCH_055",
 			"ARCH_056",
 			"ARCH_025",
@@ -26856,7 +26958,6 @@
 		"type": "monster",
 		"attributes": [
 			"ARCH_073",
-			"ARCH_074",
 			"ARCH_056",
 			"ARCH_055",
 			"ARCH_025",
@@ -26882,9 +26983,9 @@
 		"id": "ZANE_003",
 		"name": "Cyber dragon Jumelé",
 		"type": "monster",
+		"material_value": 2,
 		"attributes": [
 			"ARCH_073",
-			"ARCH_074",
 			"ARCH_056",
 			"ARCH_055",
 			"ARCH_025",
@@ -26909,14 +27010,2793 @@
 				"materials": 2,
 				"requires": [
 					"ZANE_001",
-					"ZANE_002"
+					"ARCH_073"
+				]
+			}
+		],
+		"represented_ids": [
+			"ZANE_001"
+		]
+	},
+	{
+		"id": "ZANE_004",
+		"name": "Cyber Dragon Barrière",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_093",
+			"ARCH_092",
+			"ARCH_073",
+			"ARCH_003",
+			"ARCH_025",
+			"ARCH_055",
+			"ARCH_056",
+			"ARCH_088"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 280,
+			"range": 2,
+			"attack_rate": 87,
+			"movement_rate": 83
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"value": 50,
+			"power_rate": 23
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ZANE_001"
+				]
+			}
+		],
+		"represented_ids": [
+			"ZANE_001"
+		]
+	},
+	{
+		"id": "ZANE_005",
+		"name": "Cyber Dragon Laser",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_093",
+			"ARCH_092",
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_056",
+			"ARCH_087",
+			"ARCH_003",
+			"ARCH_025"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 180,
+			"range": 3,
+			"attack_rate": 92,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_rate": 23
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ZANE_001",
+					"ARCH_073"
+				]
+			}
+		],
+		"represented_ids": [
+			"ZANE_001"
+		]
+	},
+	{
+		"id": "ZANE_006",
+		"name": "Ultime Cyber Dragon",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_056",
+			"ARCH_087",
+			"ARCH_003",
+			"ARCH_025",
+			"ARCH_094"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 280,
+			"range": 3,
+			"attack_rate": 83,
+			"movement_rate": 76
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"value": 80,
+			"power_rate": 23
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"ZANE_001",
+					"ARCH_073"
+				]
+			}
+		],
+		"represented_ids": [
+			"ZANE_001"
+		]
+	},
+	{
+		"id": "ZANE_007",
+		"name": "Chimeratech Overdragon",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_094",
+			"ARCH_073",
+			"ARCH_074",
+			"ARCH_055",
+			"ARCH_056",
+			"ARCH_052",
+			"ARCH_054",
+			"ARCH_087",
+			"ARCH_025",
+			"ARCH_003"
+		],
+		"stats": {
+			"atk": 32,
+			"hp": 320,
+			"range": 2,
+			"attack_rate": 83,
+			"movement_rate": 76
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"value": 35,
+			"power_rate": 23
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"ZANE_001"
+				]
+			}
+		],
+		"represented_ids": [
+			"ZANE_001"
+		]
+	},
+	{
+		"id": "ZANE_008",
+		"name": "Corne Cyberdark",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_074",
+			"ARCH_056",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_025"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 80,
+			"range": 1,
+			"attack_rate": 92,
+			"movement_rate": 90
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ZANE_009",
+		"name": "Queue Cyberdark",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_074",
+			"ARCH_056",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_025"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 80,
+			"range": 1,
+			"attack_rate": 92,
+			"movement_rate": 90
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ZANE_010",
+		"name": "Ailes Cyberdark",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_074",
+			"ARCH_056",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_025"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 80,
+			"range": 1,
+			"attack_rate": 92,
+			"movement_rate": 90
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ZANE_011",
+		"name": "Dragon Cyberdark",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_074",
+			"ARCH_056",
+			"ARCH_054",
+			"ARCH_025",
+			"ARCH_003",
+			"ARCH_093",
+			"ARCH_086"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 300,
+			"range": 2,
+			"attack_rate": 92,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"value": 5,
+			"power_rate": 23
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"ZANE_008",
+					"ZANE_009",
+					"ZANE_010"
+				]
+			}
+		],
+		"represented_ids": [
+			"ZANE_008",
+			"ZANE_009",
+			"ZANE_010"
+		]
+	},
+	{
+		"id": "ZANE_012",
+		"name": "Ultime Dragon Cyberdark",
+		"type": "monster",
+		"material_value": 5,
+		"attributes": [
+			"ARCH_095",
+			"ARCH_074",
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_054",
+			"ARCH_052",
+			"ARCH_056",
+			"ARCH_086",
+			"ARCH_025",
+			"ARCH_003"
+		],
+		"stats": {
+			"atk": 50,
+			"hp": 500,
+			"range": 4,
+			"attack_rate": 83,
+			"movement_rate": 76
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_rate": 63,
+			"duration": 37
+		},
+		"summon_conditions": [
+			{
+				"materials": 6,
+				"requires": [
+					"ZANE_006",
+					"ZANE_011"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ZANE_013",
+		"name": "Dragon Cyberdarkness",
+		"type": "monster",
+		"material_value": 5,
+		"attributes": [
+			"ARCH_074",
+			"ARCH_056",
+			"ARCH_054",
+			"ARCH_025",
+			"ARCH_003",
+			"ARCH_094",
+			"ARCH_087"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 400,
+			"range": 3,
+			"attack_rate": 87,
+			"movement_rate": 83
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_rate": 23,
+			"duration": 77
+		},
+		"summon_conditions": [
+			{
+				"materials": 5,
+				"requires": [
+					"ZANE_008",
+					"ZANE_009",
+					"ZANE_010",
+					"ARCH_074"
+				]
+			}
+		],
+		"represented_ids": [
+			"ZANE_008",
+			"ZANE_009",
+			"ZANE_010"
+		]
+	},
+	{
+		"id": "ZANE_014",
+		"name": "Canon Cyberdark",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_074",
+			"ARCH_056",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_003",
+			"ARCH_092"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 80,
+			"range": 2,
+			"attack_rate": 92,
+			"movement_rate": 96
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ZANE_015",
+		"name": "Chimere Cyberdark",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_074",
+			"ARCH_056",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_003",
+			"ARCH_092",
+			"ARCH_073"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 210,
+			"range": 1,
+			"attack_rate": 90,
+			"movement_rate": 90
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ZANE_016",
+		"name": "Griffe Cyberdark",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_074",
+			"ARCH_056",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_003",
+			"ARCH_092"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 80,
+			"range": 1,
+			"attack_rate": 94,
+			"movement_rate": 96
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ZANE_017",
+		"name": "Wurm Cyberdark",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_074",
+			"ARCH_056",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_003",
+			"ARCH_092",
+			"ARCH_073",
+			"ARCH_025"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 210,
+			"range": 1,
+			"attack_rate": 87,
+			"movement_rate": 83
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": [
+			"ZANE_001"
+		]
+	},
+	{
+		"id": "ZANE_018",
+		"name": "Cyber Phenix",
+		"type": "monster",
+		"attributes": [
+			"ARCH_073",
+			"ARCH_056",
+			"ARCH_025",
+			"ARCH_003",
+			"ARCH_090",
+			"ARCH_091",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 160,
+			"range": 2,
+			"attack_rate": 83,
+			"movement_rate": 90
+		},
+		"power": {},
+		"summon_conditions": [],
+		"material_value": 1,
+		"represented_ids": []
+	},
+	{
+		"id": "ZANE_019",
+		"name": "Cyber Eltanin",
+		"type": "monster",
+		"material_value": 5,
+		"attributes": [
+			"ARCH_094",
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_056",
+			"ARCH_052",
+			"ARCH_087",
+			"ARCH_025",
+			"ARCH_003",
+			"ARCH_095"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 350,
+			"range": 4,
+			"attack_rate": 76,
+			"movement_rate": 76
+		},
+		"power": {},
+		"summon_conditions": [
+			{
+				"materials": 5,
+				"requires": [
+					"ARCH_073"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ZANE_020",
+		"name": "Cyber Naga",
+		"type": "monster",
+		"attributes": [
+			"ARCH_073",
+			"ARCH_056",
+			"ARCH_025",
+			"ARCH_003",
+			"ARCH_090",
+			"ARCH_091",
+			"ARCH_054"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 50,
+			"range": 2,
+			"attack_rate": 94,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_rate": 50
+		},
+		"summon_conditions": [],
+		"material_value": 1,
+		"represented_ids": []
+	},
+	{
+		"id": "ZANE_021",
+		"name": "Cyber Rush Dragon",
+		"type": "monster",
+		"attributes": [
+			"ARCH_073",
+			"ARCH_056",
+			"ARCH_025",
+			"ARCH_003",
+			"ARCH_090",
+			"ARCH_048",
+			"ARCH_093"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 260,
+			"range": 2,
+			"attack_rate": 87,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"value": 5,
+			"power_rate": 23
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ZANE_001",
+					"ZANE_018"
 				]
 			}
 		],
 		"material_value": 2,
 		"represented_ids": [
-			"ZANE_001",
-			"ZANE_002"
+			"ZANE_001"
+		]
+	},
+	{
+		"id": "ALEXIS_001",
+		"name": "Œuf Cyberangel",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_090",
+			"ARCH_023",
+			"ARCH_025"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 50,
+			"range": 4,
+			"attack_rate": 76,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"value": 20,
+			"power_rate": 50
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_002",
+		"name": "Petit Cyberangel",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_090",
+			"ARCH_023",
+			"ARCH_025",
+			"ARCH_091"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 50,
+			"range": 4,
+			"attack_rate": 76,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_FREEZE",
+			"power_rate": 50
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_003",
+		"name": "Natasha Cyberangel",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_023",
+			"ARCH_025",
+			"ARCH_092",
+			"ARCH_088"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 200,
+			"range": 2,
+			"attack_rate": 92,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_CONFUSION",
+			"power_rate": 50,
+			"duration": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_001"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_002"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_004",
+		"name": "Idaten Cyberangel",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_023",
+			"ARCH_025",
+			"ARCH_092",
+			"ARCH_088"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 200,
+			"range": 2,
+			"attack_rate": 92,
+			"movement_rate": 96
+		},
+		"power": {},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_001"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_002"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_005",
+		"name": "Benten Cyberangel",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_023",
+			"ARCH_025",
+			"ARCH_092",
+			"ARCH_088"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 150,
+			"range": 1,
+			"attack_rate": 90,
+			"movement_rate": 90
+		},
+		"power": {},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_001"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_002"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_006",
+		"name": "Daikini Cyberangel",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_023",
+			"ARCH_025",
+			"ARCH_088",
+			"ARCH_093"
+		],
+		"stats": {
+			"atk": 37,
+			"hp": 240,
+			"range": 1,
+			"attack_rate": 83,
+			"movement_rate": 83
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"value": 40,
+			"power_rate": 23
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_003"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_004"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_005"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_007",
+		"name": "Izana Cyberangel",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_023",
+			"ARCH_025",
+			"ARCH_088",
+			"ARCH_093"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 360,
+			"range": 3,
+			"attack_rate": 87,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"value": 30,
+			"power_rate": 23
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_003"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_004"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_005"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_008",
+		"name": "Vrash Cyberangel",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_023",
+			"ARCH_025",
+			"ARCH_088",
+			"ARCH_094"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 400,
+			"range": 3,
+			"attack_rate": 90,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"value": 40,
+			"power_rate": 23
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_006"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_007"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_009",
+		"name": "Cyber danseuse étoile",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_073",
+			"ARCH_090",
+			"ARCH_001",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 160,
+			"range": 1,
+			"attack_rate": 90,
+			"movement_rate": 90
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_010",
+		"name": "Cyber patineuse",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_073",
+			"ARCH_053",
+			"ARCH_090",
+			"ARCH_001"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 150,
+			"range": 1,
+			"attack_rate": 90,
+			"movement_rate": 90
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_011",
+		"name": "Cyber trancheuse",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_093",
+			"ARCH_073",
+			"ARCH_056",
+			"ARCH_053",
+			"ARCH_086",
+			"ARCH_001"
+		],
+		"stats": {
+			"atk": 27,
+			"hp": 180,
+			"range": 1,
+			"attack_rate": 94,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ALEXIS_009",
+					"ALEXIS_010"
+				]
+			}
+		],
+		"represented_ids": [
+			"ALEXIS_009"
+		]
+	},
+	{
+		"id": "ALEXIS_012",
+		"name": "Cyber tutu",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_073",
+			"ARCH_090",
+			"ARCH_001",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 80,
+			"range": 1,
+			"attack_rate": 94,
+			"movement_rate": 90
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_013",
+		"name": "Cyber gymnaste",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_073",
+			"ARCH_090",
+			"ARCH_001",
+			"ARCH_092",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 160,
+			"range": 1,
+			"attack_rate": 95,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_TAUNT",
+			"power_rate": 36,
+			"duration": 64
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_014",
+		"name": "Cyber prima",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_073",
+			"ARCH_001",
+			"ARCH_050",
+			"ARCH_093",
+			"ARCH_089"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 160,
+			"range": 2,
+			"attack_rate": 86,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_DEBUFF",
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": []
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_015",
+		"name": "Cyber tutubon",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_092",
+			"ARCH_073",
+			"ARCH_055",
+			"ARCH_056",
+			"ARCH_051",
+			"ARCH_088",
+			"ARCH_001"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 180,
+			"range": 1,
+			"attack_rate": 94,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"value": 30,
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_012"
+				]
+			},
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_073"
+				]
+			}
+		],
+		"represented_ids": [
+			"ALEXIS_012"
+		]
+	},
+	{
+		"id": "ALEXIS_016",
+		"name": "Enchanteresse des neiges",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_053",
+			"ARCH_090",
+			"ARCH_002"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 120,
+			"range": 2,
+			"attack_rate": 82,
+			"movement_rate": 83
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_017",
+		"name": "Princesse Blizzard",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_053",
+			"ARCH_002",
+			"ARCH_092",
+			"ARCH_093",
+			"ARCH_087",
+			"ARCH_073"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 210,
+			"range": 3,
+			"attack_rate": 90,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_FREEZE",
+			"power_rate": 63
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_073",
+					"ALEXIS_016"
+				]
+			}
+		],
+		"represented_ids": [
+			"ALEXIS_016"
+		]
+	},
+	{
+		"id": "ALEXIS_018",
+		"name": "Reine de glace",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_053",
+			"ARCH_002",
+			"ARCH_093",
+			"ARCH_087",
+			"ARCH_088"
+		],
+		"stats": {
+			"atk": 29,
+			"hp": 210,
+			"range": 2,
+			"attack_rate": 86,
+			"movement_rate": 83
+		},
+		"power": {
+			"id": "POWER_FREEZE",
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_053"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_016"
+				]
+			}
+		],
+		"represented_ids": [
+			"ALEXIS_016"
+		]
+	},
+	{
+		"id": "ALEXIS_019",
+		"name": "Maîtresse de glace",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_053",
+			"ARCH_002",
+			"ARCH_087",
+			"ARCH_088",
+			"ARCH_094"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 300,
+			"range": 2,
+			"attack_rate": 88,
+			"movement_rate": 83
+		},
+		"power": {
+			"id": "POWER_FREEZE",
+			"power_rate": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_018"
+				]
+			},
+			{
+				"materials": 2,
+				"requires": [
+					"ALEXIS_016"
+				]
+			}
+		],
+		"represented_ids": [
+			"ALEXIS_016"
+		]
+	},
+	{
+		"id": "ALEXIS_020",
+		"name": "Dragon de neige",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_053",
+			"ARCH_090",
+			"ARCH_003"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 90,
+			"range": 2,
+			"attack_rate": 84,
+			"movement_rate": 76
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ALEXIS_021",
+		"name": "Dragon flocon de neige",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_053",
+			"ARCH_003",
+			"ARCH_093",
+			"ARCH_088"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 180,
+			"range": 3,
+			"attack_rate": 87,
+			"movement_rate": 83
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"value": 3,
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_020"
+				]
+			}
+		],
+		"represented_ids": [
+			"ALEXIS_020"
+		]
+	},
+	{
+		"id": "ALEXIS_022",
+		"name": "Dragon de la nuit blanche",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_053",
+			"ARCH_003",
+			"ARCH_088",
+			"ARCH_095",
+			"ARCH_073",
+			"ARCH_087",
+			"ARCH_094"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 300,
+			"range": 4,
+			"attack_rate": 90,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"value": 5,
+			"power_rate": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"ALEXIS_020",
+					"ARCH_073"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_021"
+				]
+			}
+		],
+		"represented_ids": [
+			"ALEXIS_020"
+		]
+	},
+	{
+		"id": "ALEXIS_023",
+		"name": "Reine de la nuit blanche",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_053",
+			"ARCH_002",
+			"ARCH_087",
+			"ARCH_088",
+			"ARCH_095",
+			"ARCH_073"
+		],
+		"stats": {
+			"atk": 39,
+			"hp": 210,
+			"range": 3,
+			"attack_rate": 91,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_FREEZE",
+			"power_rate": 63
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ALEXIS_019"
+				]
+			},
+			{
+				"materials": 3,
+				"requires": [
+					"ALEXIS_016",
+					"ARCH_073"
+				]
+			}
+		],
+		"represented_ids": [
+			"ALEXIS_016"
+		]
+	},
+	{
+		"id": "CHAZZ_001",
+		"name": "Ojama Jaune",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_021",
+			"ARCH_019",
+			"ARCH_076"
+		],
+		"stats": {
+			"atk": 1,
+			"hp": 100,
+			"range": 1,
+			"attack_rate": 96,
+			"movement_rate": 96
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "CHAZZ_002",
+		"name": "Ojama Vert",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_021",
+			"ARCH_019",
+			"ARCH_076"
+		],
+		"stats": {
+			"atk": 1,
+			"hp": 100,
+			"range": 1,
+			"attack_rate": 96,
+			"movement_rate": 96
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "CHAZZ_003",
+		"name": "Ojama Noir",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_021",
+			"ARCH_019",
+			"ARCH_076"
+		],
+		"stats": {
+			"atk": 1,
+			"hp": 100,
+			"range": 1,
+			"attack_rate": 96,
+			"movement_rate": 96
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "CHAZZ_004",
+		"name": "Chevalier Ojama",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_054",
+			"ARCH_021",
+			"ARCH_019",
+			"ARCH_092",
+			"ARCH_056",
+			"ARCH_001",
+			"ARCH_087",
+			"ARCH_076"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 250,
+			"range": 1,
+			"attack_rate": 96,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"value": 50,
+			"power_rate": 63
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_076"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "CHAZZ_005",
+		"name": "Ojama roi",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_054",
+			"ARCH_021",
+			"ARCH_019",
+			"ARCH_056",
+			"ARCH_001",
+			"ARCH_087",
+			"ARCH_093",
+			"ARCH_050",
+			"ARCH_023",
+			"ARCH_086",
+			"ARCH_076"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 300,
+			"range": 1,
+			"attack_rate": 96,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"value": 100,
+			"power_rate": 63
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"ARCH_076",
+					"CHAZZ_004"
+				]
+			},
+			{
+				"materials": 3,
+				"requires": [
+					"CHAZZ_001",
+					"CHAZZ_002",
+					"CHAZZ_003"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "CHAZZ_006",
+		"name": "Ojama Bleu",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_021",
+			"ARCH_019",
+			"ARCH_092",
+			"ARCH_076"
+		],
+		"stats": {
+			"atk": 1,
+			"hp": 100,
+			"range": 1,
+			"attack_rate": 96,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_FREEZE",
+			"power_rate": 50
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "CHAZZ_007",
+		"name": "Ojama Rouge",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_021",
+			"ARCH_019",
+			"ARCH_092",
+			"ARCH_076"
+		],
+		"stats": {
+			"atk": 1,
+			"hp": 100,
+			"range": 1,
+			"attack_rate": 96,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"value": 5,
+			"power_rate": 50
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "CHAZZ_008",
+		"name": "Ojama Rose",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_021",
+			"ARCH_019",
+			"ARCH_092",
+			"ARCH_076"
+		],
+		"stats": {
+			"atk": 1,
+			"hp": 100,
+			"range": 1,
+			"attack_rate": 96,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"value": 50,
+			"power_rate": 63
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "CHAZZ_009",
+		"name": "Ojama empereur",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_054",
+			"ARCH_021",
+			"ARCH_019",
+			"ARCH_056",
+			"ARCH_001",
+			"ARCH_087",
+			"ARCH_050",
+			"ARCH_023",
+			"ARCH_086",
+			"ARCH_094",
+			"ARCH_076"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 300,
+			"range": 1,
+			"attack_rate": 96,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_CONFUSION",
+			"power_rate": 50,
+			"duration": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"CHAZZ_005"
+				]
+			},
+			{
+				"materials": 5,
+				"requires": [
+					"ARCH_076"
+				]
+			}
+		],
+		"represented_ids": [
+			"CHAZZ_005"
+		]
+	},
+	{
+		"id": "BASTIEN_001",
+		"name": "Hydrogeddon",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_077",
+			"ARCH_050",
+			"ARCH_049",
+			"ARCH_090",
+			"ARCH_021",
+			"ARCH_034"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 100,
+			"range": 1,
+			"attack_rate": 86,
+			"movement_rate": 83
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_002",
+		"name": "Oxygeddon",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_077",
+			"ARCH_049",
+			"ARCH_090",
+			"ARCH_021",
+			"ARCH_034",
+			"ARCH_051",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 120,
+			"range": 2,
+			"attack_rate": 83,
+			"movement_rate": 83
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_003",
+		"name": "Dragon de l’eau",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_093",
+			"ARCH_077",
+			"ARCH_049",
+			"ARCH_003",
+			"ARCH_087"
+		],
+		"stats": {
+			"atk": 28,
+			"hp": 260,
+			"range": 4,
+			"attack_rate": 94,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"value": 40,
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"BASTIEN_001",
+					"BASTIEN_002"
+				]
+			}
+		],
+		"represented_ids": [
+			"BASTIEN_001",
+			"BASTIEN_002"
+		]
+	},
+	{
+		"id": "BASTIEN_004",
+		"name": "Duoterrion",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_092",
+			"ARCH_049",
+			"ARCH_050",
+			"ARCH_089",
+			"ARCH_021",
+			"ARCH_034",
+			"ARCH_077"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 160,
+			"range": 1,
+			"attack_rate": 86,
+			"movement_rate": 83
+		},
+		"power": {},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": []
+			}
+		],
+		"represented_ids": [
+			"BASTIEN_001"
+		]
+	},
+	{
+		"id": "BASTIEN_005",
+		"name": "Carboneddon",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_077",
+			"ARCH_050",
+			"ARCH_090",
+			"ARCH_021",
+			"ARCH_034",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 60,
+			"range": 1,
+			"attack_rate": 94,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"value": 5,
+			"power_rate": 63
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_006",
+		"name": "Dragon du feu",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_093",
+			"ARCH_077",
+			"ARCH_048",
+			"ARCH_086",
+			"ARCH_003"
+		],
+		"stats": {
+			"atk": 27,
+			"hp": 270,
+			"range": 3,
+			"attack_rate": 91,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"value": 5,
+			"power_rate": 63
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"BASTIEN_002",
+					"BASTIEN_005"
+				]
+			}
+		],
+		"represented_ids": [
+			"BASTIEN_002",
+			"BASTIEN_005"
+		]
+	},
+	{
+		"id": "BASTIEN_007",
+		"name": "Dragon de l’eau rassemblé",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_094",
+			"ARCH_049",
+			"ARCH_088",
+			"ARCH_003",
+			"ARCH_077"
+		],
+		"stats": {
+			"atk": 38,
+			"hp": 360,
+			"range": 4,
+			"attack_rate": 92,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"value": 40,
+			"power_rate": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"BASTIEN_003"
+				]
+			}
+		],
+		"represented_ids": [
+			"BASTIEN_003"
+		]
+	},
+	{
+		"id": "BASTIEN_008",
+		"name": "Dragon de l’eau et du feu",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_095",
+			"ARCH_077",
+			"ARCH_049",
+			"ARCH_048",
+			"ARCH_086",
+			"ARCH_003"
+		],
+		"stats": {
+			"atk": 45,
+			"hp": 390,
+			"range": 4,
+			"attack_rate": 92,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"value": 50,
+			"power_rate": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 6,
+				"requires": [
+					"BASTIEN_003",
+					"BASTIEN_006"
+				]
+			}
+		],
+		"represented_ids": [
+			"BASTIEN_003",
+			"BASTIEN_006"
+		]
+	},
+	{
+		"id": "BASTIEN_009",
+		"name": "Mathématicien",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_093",
+			"ARCH_054",
+			"ARCH_048",
+			"ARCH_049",
+			"ARCH_051",
+			"ARCH_050",
+			"ARCH_087",
+			"ARCH_002",
+			"ARCH_077"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 300,
+			"range": 3,
+			"attack_rate": 86,
+			"movement_rate": 76
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"value": 40,
+			"power_rate": 23
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_077"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_010",
+		"name": "Hyozanryu",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_093",
+			"ARCH_077",
+			"ARCH_050",
+			"ARCH_051",
+			"ARCH_089",
+			"ARCH_003"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 280,
+			"range": 2,
+			"attack_rate": 86,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"value": 50,
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": []
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_011",
+		"name": "Litmus le maudit",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_094",
+			"ARCH_077",
+			"ARCH_056",
+			"ARCH_087",
+			"ARCH_001"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 400,
+			"range": 1,
+			"attack_rate": 92,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_rate": 23
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"ARCH_077"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_012",
+		"name": "Oméga plus le guerrier magnetique",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_012",
+			"ARCH_056",
+			"ARCH_050",
+			"ARCH_090",
+			"ARCH_028"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 190,
+			"range": 2,
+			"attack_rate": 87,
+			"movement_rate": 83
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_013",
+		"name": "Sigma plus le guerrier magnetique",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_012",
+			"ARCH_056",
+			"ARCH_050",
+			"ARCH_090",
+			"ARCH_028"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 150,
+			"range": 1,
+			"attack_rate": 83,
+			"movement_rate": 83
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_014",
+		"name": "Sigma moins le guerrier magnetique",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_012",
+			"ARCH_056",
+			"ARCH_050",
+			"ARCH_090",
+			"ARCH_028"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 180,
+			"range": 1,
+			"attack_rate": 83,
+			"movement_rate": 76
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_015",
+		"name": "Tellusion le guerrier magnetique",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_012",
+			"ARCH_056",
+			"ARCH_050",
+			"ARCH_028",
+			"ARCH_093",
+			"ARCH_086"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 250,
+			"range": 1,
+			"attack_rate": 83,
+			"movement_rate": 83
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_rate": 23,
+			"duration": 77
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"BASTIEN_013",
+					"BASTIEN_014"
+				]
+			}
+		],
+		"represented_ids": [
+			"BASTIEN_013",
+			"BASTIEN_014"
+		]
+	},
+	{
+		"id": "BASTIEN_016",
+		"name": "Magnum plasma le guerrier conducteur",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_012",
+			"ARCH_056",
+			"ARCH_050",
+			"ARCH_028",
+			"ARCH_093",
+			"ARCH_052",
+			"ARCH_087"
+		],
+		"stats": {
+			"atk": 23,
+			"hp": 280,
+			"range": 3,
+			"attack_rate": 83,
+			"movement_rate": 83
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_rate": 23,
+			"duration": 77
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_012"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_017",
+		"name": "Magnum plus moins le guerrier conducteur linéaire",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_012",
+			"ARCH_056",
+			"ARCH_050",
+			"ARCH_028",
+			"ARCH_052",
+			"ARCH_094",
+			"ARCH_088"
+		],
+		"stats": {
+			"atk": 27,
+			"hp": 380,
+			"range": 4,
+			"attack_rate": 86,
+			"movement_rate": 83
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_rate": 23
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"BASTIEN_016"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_018",
+		"name": "Epsilon le guerrier magnétique",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_092",
+			"ARCH_012",
+			"ARCH_056",
+			"ARCH_050",
+			"ARCH_090",
+			"ARCH_028"
+		],
+		"stats": {
+			"atk": 13,
+			"hp": 150,
+			"range": 2,
+			"attack_rate": 91,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_rate": 36
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_019",
+		"name": "Delta le guerrier magnétique",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_092",
+			"ARCH_012",
+			"ARCH_056",
+			"ARCH_050",
+			"ARCH_090",
+			"ARCH_028"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 140,
+			"range": 1,
+			"attack_rate": 92,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"value": 30,
+			"power_rate": 36
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "BASTIEN_020",
+		"name": "Dragon de l’eau léger",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_094",
+			"ARCH_049",
+			"ARCH_077",
+			"ARCH_090",
+			"ARCH_003"
+		],
+		"stats": {
+			"atk": 18,
+			"hp": 160,
+			"range": 3,
+			"attack_rate": 92,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"value": 20,
+			"power_rate": 63
+		},
+		"summon_conditions": [],
+		"represented_ids": [
+			"BASTIEN_003"
+		]
+	},
+	{
+		"id": "CAMULA_001",
+		"name": "Familier Vampire",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_051",
+			"ARCH_090",
+			"ARCH_021",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 50,
+			"range": 1,
+			"attack_rate": 96,
+			"movement_rate": 96
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "CAMULA_002",
+		"name": "Domestique Vampire",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_021"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 50,
+			"range": 1,
+			"attack_rate": 94,
+			"movement_rate": 96
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "CAMULA_003",
+		"name": "Dame Vampire",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_019"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 150,
+			"range": 1,
+			"attack_rate": 87,
+			"movement_rate": 90
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "CAMULA_004",
+		"name": "Sorcière Vampire",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_029",
+			"ARCH_002"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 150,
+			"range": 2,
+			"attack_rate": 83,
+			"movement_rate": 90
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "CAMULA_005",
+		"name": "Malédiction du Vampire",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_092",
+			"ARCH_019"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 80,
+			"range": 2,
+			"attack_rate": 94,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_rate": 36
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "CAMULA_006",
+		"name": "Vampire Genesis",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_019",
+			"ARCH_093",
+			"ARCH_088",
+			"ARCH_087"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 210,
+			"range": 1,
+			"attack_rate": 91,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"value": 30,
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"STAPLE_057"
+				]
+			},
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_061"
+				]
+			}
+		],
+		"represented_ids": [
+			"STAPLE_057"
+		]
+	},
+	{
+		"id": "CAMULA_007",
+		"name": "Fléau Ecarlate",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_019",
+			"ARCH_093",
+			"ARCH_087"
+		],
+		"stats": {
+			"atk": 22,
+			"hp": 220,
+			"range": 1,
+			"attack_rate": 94,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"value": 5,
+			"power_rate": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ARCH_061"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "CAMULA_008",
+		"name": "Baron rouge",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_092",
+			"ARCH_019",
+			"ARCH_001",
+			"ARCH_089"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 100,
+			"range": 1,
+			"attack_rate": 90,
+			"movement_rate": 96
+		},
+		"power": {},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": []
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "CAMULA_009",
+		"name": "Vampire de l'ombre",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_019",
+			"ARCH_093",
+			"ARCH_090",
+			"ARCH_001"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 50,
+			"range": 1,
+			"attack_rate": 94,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"value": 40,
+			"power_rate": 50
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "CAMULA_010",
+		"name": "Bram le chevalier vampirique",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_019",
+			"ARCH_001",
+			"ARCH_094",
+			"ARCH_086"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 100,
+			"range": 1,
+			"attack_rate": 94,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"value": 40,
+			"power_rate": 63
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"CAMULA_009",
+					"CAMULA_008"
+				]
+			}
+		],
+		"represented_ids": [
+			"CAMULA_009",
+			"CAMULA_008"
+		]
+	},
+	{
+		"id": "CAMULA_011",
+		"name": "Vampire aspirante",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_092",
+			"ARCH_051",
+			"ARCH_002",
+			"ARCH_045",
+			"ARCH_023"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 160,
+			"range": 4,
+			"attack_rate": 94,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"value": 40,
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"CAMULA_001",
+					"CAMULA_002"
+				]
+			}
+		],
+		"represented_ids": [
+			"CAMULA_001",
+			"CAMULA_002"
+		]
+	},
+	{
+		"id": "CAMULA_012",
+		"name": "Sheridan",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_019",
+			"ARCH_094",
+			"ARCH_088"
+		],
+		"stats": {
+			"atk": 36,
+			"hp": 200,
+			"range": 1,
+			"attack_rate": 94,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"value": 5,
+			"power_rate": 63
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"CAMULA_007"
+				]
+			}
+		],
+		"represented_ids": [
+			"CAMULA_007"
+		]
+	},
+	{
+		"id": "CAMULA_013",
+		"name": "Duc Vampire",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_093",
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_088",
+			"ARCH_087",
+			"ARCH_019"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 120,
+			"range": 1,
+			"attack_rate": 91,
+			"movement_rate": 96
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"value": 5,
+			"power_rate": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"CAMULA_005"
+				]
+			},
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_061"
+				]
+			}
+		],
+		"represented_ids": [
+			"CAMULA_005"
+		]
+	},
+	{
+		"id": "CAMULA_014",
+		"name": "Dragon Vampire",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_092",
+			"ARCH_089",
+			"ARCH_003"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 100,
+			"range": 2,
+			"attack_rate": 83,
+			"movement_rate": 83
+		},
+		"power": {},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": []
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "CAMULA_015",
+		"name": "Dragulas",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_061",
+			"ARCH_054",
+			"ARCH_003",
+			"ARCH_095",
+			"ARCH_087"
+		],
+		"stats": {
+			"atk": 34,
+			"hp": 480,
+			"range": 3,
+			"attack_rate": 88,
+			"movement_rate": 90
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"value": 10,
+			"power_rate": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"CAMULA_014"
+				]
+			}
+		],
+		"represented_ids": [
+			"CAMULA_014"
 		]
 	}
 ]

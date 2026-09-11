@@ -1009,5 +1009,89 @@
 	{
 		"id": "VAR_252",
 		"card_id": "EXTRA_093"
+	},
+	{
+		"id": "VAR_253",
+		"card_id": "ZANE_006"
+	},
+	{
+		"id": "VAR_254",
+		"card_id": "ZANE_006"
+	},
+	{
+		"id": "VAR_255",
+		"card_id": "ZANE_001"
+	},
+	{
+		"id": "VAR_256",
+		"card_id": "ZANE_006"
+	},
+	{
+		"id": "VAR_257",
+		"card_id": "ZANE_008"
+	},
+	{
+		"id": "VAR_258",
+		"card_id": "ZANE_009"
+	},
+	{
+		"id": "VAR_259",
+		"card_id": "ZANE_010"
+	},
+	{
+		"id": "VAR_260",
+		"card_id": "ZANE_011"
+	},
+	{
+		"id": "VAR_261",
+		"card_id": "ALEXIS_009"
+	},
+	{
+		"id": "VAR_262",
+		"card_id": "ALEXIS_009"
+	},
+	{
+		"id": "VAR_263",
+		"card_id": "ALEXIS_012"
+	},
+	{
+		"id": "VAR_264",
+		"card_id": "ALEXIS_013"
+	},
+	{
+		"id": "VAR_265",
+		"card_id": "ALEXIS_014"
+	},
+	{
+		"id": "VAR_266",
+		"card_id": "ALEXIS_014"
+	},
+	{
+		"id": "VAR_267",
+		"card_id": "ALEXIS_007"
+	},
+	{
+		"id": "VAR_268",
+		"card_id": "ALEXIS_006"
+	},
+	{
+		"id": "VAR_269",
+		"card_id": "BASTIEN_001"
+	},
+	{
+		"id": "VAR_270",
+		"card_id": "BASTIEN_002"
+	},
+	{
+		"id": "VAR_271",
+		"card_id": "BASTIEN_005"
+	},
+	{
+		"id": "VAR_272",
+		"card_id": "BASTIEN_009"
+	},
+	{
+		"id": "VAR_273",
+		"card_id": "BASTIEN_010"
 	}
 ]

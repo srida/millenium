@@ -446,8 +446,12 @@
 		"name": "Porte fusion",
 		"effects": [
 			{
-				"type": "draw_bonus",
-				"value": 1
+				"type": "stat_bonus",
+				"value": 5,
+				"stat": "movement_rate",
+				"target_attributes": [
+					"ARCH_086"
+				]
 			}
 		],
 		"blocked_cells": [
