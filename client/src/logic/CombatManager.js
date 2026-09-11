@@ -254,7 +254,14 @@ export class CombatManager {
         // tick (e.g. POWER_TELEPORT with no free cell) — in that case the gauge
         // stays full so the unit retries on a later tick instead of wasting it.
         const fired = this._firePower(u, powerTarget, events);
-        if (fired !== false) u.power_gauge = 0;
+        if (fired !== false) {
+          u.power_gauge = 0;
+          // ⚠️ APRÈS la résolution, et seulement si le pouvoir est PARTI : un
+          // `_firePower` qui rend `false` a échoué (téléport sans case libre) et
+          // garde sa jauge. Déclencher là-dessus ferait payer un effet pour un
+          // pouvoir que personne n'a vu.
+          this._onPowerFired(u, events);
+        }
       } else if (reachable) {
         this._normalAttack(u, target, events);
       } else {
@@ -440,6 +447,18 @@ export class CombatManager {
     if (dirCol === 0 && dirRow === 0) return false;
     const next = { col: target.position.col + dirCol, row: target.position.row + dirRow };
     return this.board.isInBounds(next) && !this.board.isOccupied(next) && !this.board.isBlocked(next);
+  }
+
+  /**
+   * Le trigger `pouvoir_utilise`, relayé à `AttributeManager`.
+   *
+   * ⚠️ Même patron que la mort d'une unité : la boucle de combat ne connaît
+   * aucun effet, elle NOMME un moment. C'est le §4.3 tenu — les tâches entrent
+   * dans le moteur, l'ordonnanceur n'y entre pas.
+   */
+  _onPowerFired(caster, events) {
+    if (!this.attributeManager?.onPowerFired) return;
+    events.push(...this.attributeManager.onPowerFired(caster, this.playerUnits, this.enemyUnits));
   }
 
   _firePower(unit, primaryTarget, events) {

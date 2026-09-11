@@ -111,13 +111,25 @@ export class AttributeManager {
     }
   }
 
-  // Snapshot which during_combat attributes are active on each side at combat start.
-  // Once locked, mid-combat unit deaths cannot drop a threshold below its unlock level.
+  /**
+   * Les paliers actifs de chaque camp, figés AU DÉBUT DU COMBAT. Une fois
+   * verrouillés, les morts en cours de combat ne peuvent plus faire retomber un
+   * palier sous son niveau de déblocage.
+   *
+   * ⚠️ **Le filtre `timing === 'during_combat'` a sauté**, et c'est le même
+   * couplage que tout ce chantier retire : il triait sur le `timing` du
+   * PORTEUR, or un effet nomme désormais son propre moment. Un `stat_bonus`
+   * posé à `on_power_fired` sous un attribut `start_of_combat` ne trouvait donc
+   * aucun palier verrouillé, et ne partait jamais — un effet mort, de la famille
+   * exacte qu'on ferme depuis le début.
+   *
+   * ⚠️ Élargir ne change RIEN au comportement d'aujourd'hui : les entrées de
+   * plus ne sont lues que par les triggers de combat, et seul `stat_modifier`
+   * en déclenchait — lui exige toujours `during_combat`.
+   */
   _lockDuringCombatThresholds() {
     this._duringCombatThresholds = new Map();
     for (const attrId of Object.keys(this._attributeMap)) {
-      const attr = this._attributeMap[attrId];
-      if (attr.timing !== 'during_combat') continue;
       this._duringCombatThresholds.set(attrId, {
         player: this._activeThreshold(attrId, this.playerUnits),
         enemy:  this._activeThreshold(attrId, this.enemyUnits),
@@ -193,6 +205,25 @@ export class AttributeManager {
    * Called by CombatManager when a unit is neutralized.
    * Returns extra events (stat changes) for the animator.
    */
+  /**
+   * `pouvoir_utilise` — le second trigger de combat, et le pendant exact de
+   * `onUnitNeutralized`.
+   *
+   * ⚠️ Les paliers sont ceux **VERROUILLÉS au début du combat**, comme pour un
+   * `stat_modifier` : un pouvoir qui part au tick 200 ne doit pas voir un palier
+   * que les morts ont entre-temps défait. Recompter ici donnerait deux règles de
+   * seuil pour deux triggers qui vivent au même endroit.
+   *
+   * ⚠️ Le camp est celui du LANCEUR. Un pouvoir adverse ne déclenche pas les
+   * attributs du joueur — et c'est le sélecteur qui le dit, pas une branche.
+   */
+  onPowerFired(caster, playerUnits, enemyUnits) {
+    const events = [];
+    const side = caster.side === 'player' ? playerUnits : enemyUnits;
+    this._triggerAuMoment('pouvoir_utilise', side, events);
+    return events;
+  }
+
   onUnitNeutralized(deadUnit, playerUnits, enemyUnits) {
     const events = [];
     const allySide = deadUnit.side === 'player' ? playerUnits : enemyUnits;
@@ -214,6 +245,20 @@ export class AttributeManager {
    * `CombatManager` passe.
    */
   _triggerStatModifiers(trigger, affectedUnits, referenceUnits, events) {
+    this._triggerAuMoment(trigger === 'on_ally_neutralized' ? 'allie_detruit' : 'ennemi_detruit', affectedUnits, events);
+  }
+
+  /**
+   * Le geste commun aux triggers de COMBAT : paliers verrouillés, un camp, et
+   * les écritures relayées en `stat_change`.
+   *
+   * ⚠️ **`affectedUnits` est comparé par RÉFÉRENCE à `this.playerUnits`** —
+   * c'est le piège de harnais le mieux documenté du lot (§6.1) : un tableau
+   * neuf portant les mêmes unités lit le cache du camp d'en face et ne
+   * déclenche rien. Inchangé, et volontairement : c'est ce que `CombatManager`
+   * passe.
+   */
+  _triggerAuMoment(quand, affectedUnits, events) {
     const isPlayerSide = affectedUnits === this.playerUnits;
     // ⚠️ Les paliers sont ceux VERROUILLÉS au début du combat, jamais recomptés :
     // les morts en cours de combat ne désactivent pas un effet déjà débloqué.
@@ -225,7 +270,6 @@ export class AttributeManager {
     }
 
     const other = isPlayerSide ? this.enemyUnits : this.playerUnits;
-    const quand = trigger === 'on_ally_neutralized' ? 'allie_detruit' : 'ennemi_detruit';
     const trace = executer(
       this._effetsDesPaliers(actifs), quand,
       this._monde(affectedUnits, other, ressourcesVides(), [], !isPlayerSide),

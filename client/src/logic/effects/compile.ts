@@ -231,9 +231,9 @@ export { CHAMPS_JOUEUR };
  * ne saurait dire ce qu'il fait.
  */
 const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
-  stat_bonus: ['debut_combat', 'a_l_invocation'],
-  shield: ['debut_combat', 'a_l_invocation'],
-  effect_immunity: ['debut_combat', 'a_l_invocation'],
+  stat_bonus: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  shield: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  effect_immunity: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   revive: ['fin_combat'],
   draw_bonus: ['fin_combat'],
   guaranteed_draw: ['fin_combat'],
@@ -255,6 +255,10 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
  * même chose.
  */
 export const QUANDS_AVEC_MEMOIRE: readonly Quand[] = ['a_l_invocation'];
+// ⚠️ `pouvoir_utilise` n'y est PAS : `AttributeManager` est reconstruit à chaque
+// combat, donc il pourrait tenir un `une_fois_par_combat` mais jamais un
+// `une_fois_par_partie` — offrir la moitié d'une table serait pire que rien.
+// Il y entrera le jour où la mémoire vivra là où la partie vit.
 
 /** Les moments qu'un type sait honorer — exporté pour le test jumeau du schéma. */
 export function quandsPourType(type: string): readonly Quand[] {
@@ -272,6 +276,7 @@ const QUAND_PAR_TIMING: Record<string, Quand> = {
   start_of_combat: 'debut_combat',
   end_of_combat: 'fin_combat',
   on_summon: 'a_l_invocation',
+  on_power_fired: 'pouvoir_utilise',
 };
 
 /**

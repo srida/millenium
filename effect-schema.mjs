@@ -87,6 +87,7 @@ export const TIMING_PAR_QUAND = Object.freeze({
   debut_combat: 'start_of_combat',
   fin_combat: 'end_of_combat',
   a_l_invocation: 'on_summon',
+  pouvoir_utilise: 'on_power_fired',
 });
 
 /**
@@ -297,7 +298,7 @@ export const TYPES = Object.freeze({
   stat_bonus: {
     label: 'Bonus de stat',
     terrain: { quands: ['debut_combat'], champs: { stat: {}, value: {}, target_attributes: {} } },
-    attribut: { quands: ['debut_combat', 'a_l_invocation'], champs: { stat: {}, value: {}, value_per: {} } },
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: { stat: {}, value: {}, value_per: {} } },
     magie: { quands: ['immediat'], champs: { stat: {}, value: {} } },
   },
   stat_modifier: {
@@ -323,7 +324,7 @@ export const TYPES = Object.freeze({
     // d'attribut est TOUJOURS × alliés vivants, le compilateur pose
     // `parAllieVivant: true` sans jamais lire `value_per`. Le champ était
     // décoratif, et c'est lui qui rendait `active_unit` proposable (§6.1).
-    attribut: { quands: ['debut_combat', 'a_l_invocation'], champs: { value: {} } },
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: { value: {} } },
     magie: { quands: ['immediat'], champs: { value: {} } },
   },
   heal: {
@@ -341,7 +342,7 @@ export const TYPES = Object.freeze({
   effect_immunity: {
     label: 'Immunité aux effets négatifs (poison, paralysie, push, burn…)',
     court: 'Immunité aux effets',
-    attribut: { quands: ['debut_combat', 'a_l_invocation'], champs: {} },
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
   },
   revive: {
     label: 'Réanimation d’une unité du cimetière',
