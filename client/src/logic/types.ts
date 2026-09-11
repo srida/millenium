@@ -262,25 +262,6 @@ export interface GuaranteedDraw {
   card_ids?: string[];
 }
 
-export interface HandModifier {
-  /**
-   * Les quatre remises d'invocation se réduisent à deux gestes sur une
-   * condition : baisser son nombre de matériels, ou lui retirer des exigences
-   * nommées. L'ancienne « transformation offerte » est les deux à la fois, et
-   * s'écrit donc comme une remise assez large pour vider la condition.
-   */
-  type: 'reduce_materials' | 'remove_requirements';
-  value?: number;
-  /**
-   * Ne retoucher qu'une carte PORTANT cet attribut. Absent = n'importe laquelle.
-   *
-   * C'est ce qui redonne aux remises la visée qu'elles avaient quand elles
-   * nommaient une voie (« -1 matériel de Fusion »), mais en donnée : le moteur
-   * ne connaît toujours qu'un coût et un attribut.
-   */
-  attribute?: string | null;
-}
-
 /**
  * D'OÙ vient une pioche supplémentaire — une ligne par octroi.
  *

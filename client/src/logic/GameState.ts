@@ -1,4 +1,4 @@
-import type { DrawSourceEntry, EndOfCombatAttributeResult, GuaranteedDraw, HandModifier, RoundWinner } from './types.js';
+import type { DrawSourceEntry, EndOfCombatAttributeResult, GuaranteedDraw, RoundWinner } from './types.js';
 
 export const Phase = Object.freeze({
   PREPARATION: 'preparation',
@@ -57,7 +57,6 @@ export class GameState {
    * inscription ferait mentir la popup, ce que `draw-summary.test.ts` refuse.
    */
   player_draw_sources: DrawSourceEntry[];
-  player_hand_modifiers: HandModifier[];   // applied to drawn cards
   /**
    * Pendant enemy des deux champs ci-dessus : contrairement au slot, au
    * multiplicateur et au Shopping (ressources exclusivement joueur), la
@@ -98,7 +97,6 @@ export class GameState {
     this.player_draw_sources = [];
     this.enemy_extra_draws = 0;
     this.enemy_guaranteed_draws = [];
-    this.player_hand_modifiers = [];
     this.player_extra_shopping_magies = 0;
     this.player_damage_multiplier_bonus = 0;
   }

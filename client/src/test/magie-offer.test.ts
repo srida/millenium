@@ -37,10 +37,10 @@ const BARREN: MagieOfferContext = {
   deckAttributes: [],
   deckCardIds: [],
   damageMultiplierMatters: false,
-  deckHasMaterialCost: false,
-  deckHasNamedRequirement: false,
-  deckMaterialCostAttributes: [],
-  deckNamedRequirementAttributes: [],
+  handHasMaterialCost: false,
+  handHasNamedRequirement: false,
+  handMaterialCostAttributes: [],
+  handNamedRequirementAttributes: [],
   boardSlotBonusAvailable: false,
   playerHpBelowCap: false,
 };
@@ -61,10 +61,10 @@ const LUSH: MagieOfferContext = {
   deckAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088', 'ARCH_089', 'ARCH_090'],
   deckCardIds: [],
   damageMultiplierMatters: true,
-  deckHasMaterialCost: true,
-  deckHasNamedRequirement: true,
-  deckMaterialCostAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088', 'ARCH_089'],
-  deckNamedRequirementAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088'],
+  handHasMaterialCost: true,
+  handHasNamedRequirement: true,
+  handMaterialCostAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088', 'ARCH_089'],
+  handNamedRequirementAttributes: ['ARCH_086', 'ARCH_087', 'ARCH_088'],
   boardSlotBonusAvailable: true,
   playerHpBelowCap: true,
 };
@@ -137,8 +137,8 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
     ['guaranteed_draw', { type: 'guaranteed_draw', tier: 3 }, 'deckTiers', [3]],
     ['board_slot_bonus', { type: 'board_slot_bonus', value: 1 }, 'boardSlotBonusAvailable', true],
     ['player_hp_bonus', { type: 'player_hp_bonus', value: 100 }, 'playerHpBelowCap', true],
-    ['reduce_materials', { type: 'reduce_materials', value: 1 }, 'deckHasMaterialCost', true],
-    ['remove_requirements', { type: 'remove_requirements', value: 1 }, 'deckHasNamedRequirement', true],
+    ['reduce_materials', { type: 'reduce_materials', value: 1 }, 'handHasMaterialCost', true],
+    ['remove_requirements', { type: 'remove_requirements', value: 1 }, 'handHasNamedRequirement', true],
     ['duplicate_unit', { type: 'duplicate_unit', value: 1 }, 'duplicableUnitCount', 1],
     ['duplicate_card', { type: 'duplicate_card', value: 1 }, 'handCount', 1],
     ['duplicate_graveyard_unit', { type: 'duplicate_graveyard_unit', value: 1 }, 'duplicableGraveyardCount', 1],
@@ -154,17 +154,17 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
   // puisse retoucher. Tester les deux séparément suffirait sur un deck où ce
   // sont deux cartes différentes — la magie serait offerte pour ne rien faire,
   // exactement ce que ce filtre existe pour empêcher.
-  // Mutation : `ctx.deckHasMaterialCost` seul → ROUGE sur le premier cas.
+  // Mutation : `ctx.handHasMaterialCost` seul → ROUGE sur le premier cas.
   it('une remise VISÉE exige que l\'attribut soit porté par une carte RETOUCHABLE', () => {
     const visee = magie({ type: 'reduce_materials', value: 1, attribute: 'ARCH_086' });
 
     // Le deck a bien des cartes à coût… mais aucune ne porte l'attribut visé.
     expect(isMagieRelevant(visee, {
-      ...BARREN, deckHasMaterialCost: true, deckMaterialCostAttributes: ['ARCH_089'],
+      ...BARREN, handHasMaterialCost: true, handMaterialCostAttributes: ['ARCH_089'],
     })).toBe(false);
 
     expect(isMagieRelevant(visee, {
-      ...BARREN, deckHasMaterialCost: true, deckMaterialCostAttributes: ['ARCH_086'],
+      ...BARREN, handHasMaterialCost: true, handMaterialCostAttributes: ['ARCH_086'],
     })).toBe(true);
   });
 
@@ -172,7 +172,7 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
   // porte AUCUN attribut n'y figure pas, mais la remise la retouchera bien.
   it('une remise NON visée ne lit pas la liste d\'attributs', () => {
     expect(isMagieRelevant(magie({ type: 'reduce_materials', value: 1 }), {
-      ...BARREN, deckHasMaterialCost: true, deckMaterialCostAttributes: [],
+      ...BARREN, handHasMaterialCost: true, handMaterialCostAttributes: [],
     })).toBe(true);
   });
 

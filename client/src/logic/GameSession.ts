@@ -340,30 +340,6 @@ export class GameSession {
     const fullPool = this._deckCards();
     this.hand.push(...resolveGuaranteedDraws(fullPool as any, guaranteedDraws, this._rand));
 
-    // Modifiers de main différés (magies choisies au tour précédent)
-    if (this.gameState.player_hand_modifiers.length) {
-      const modifiers = this.gameState.player_hand_modifiers.splice(0);
-      // Les quatre remises d'invocation se réduisent à DEUX gestes sur une
-      // condition : baisser son nombre de matériels, ou lui retirer des
-      // exigences nommées. L'ancienne « transformation offerte » n'était que
-      // les deux appliqués assez large pour vider la condition — elle s'écrit
-      // maintenant en données, plus en code.
-      for (const mod of modifiers) {
-        const amount = Math.max(1, mod.value || 1);
-        // ⚠️ L'attribut est un filtre FACULTATIF, et il vaut pour les deux
-        // gestes : c'est lui qui rend « -1 matériel de Fusion » exprimable
-        // maintenant qu'il n'y a plus de voie à nommer. Absent, la remise tombe
-        // sur la première carte retouchable, comme avant.
-        const idx = this.hand.findIndex(c =>
-          (!mod.attribute || (c.attributes ?? []).includes(mod.attribute))
-          && summonConditions(c).some(
-            cd => mod.type === 'reduce_materials'
-              ? conditionMaterials(cd) > 0
-              : conditionRequires(cd).length > 0));
-        if (idx === -1) continue;
-        this.hand[idx] = _discountCard(this.hand[idx], mod.type, amount);
-      }
-    }
 
     // L'adversaire ne joue PAS ici : en solo l'IA place ses unités au
     // lancement du combat (startCombat), une fois le joueur prêt ; en PvP
@@ -814,10 +790,14 @@ export class GameSession {
       // ⚠️ Le booléen et la liste ne disent PAS la même chose, et la liste ne
       // peut pas remplacer le booléen : une carte retouchable qui ne porte
       // aucun attribut rend le premier vrai et n'ajoute rien à la seconde.
-      deckHasMaterialCost:     deck.some(_retouchable('reduce_materials')),
-      deckHasNamedRequirement: deck.some(_retouchable('remove_requirements')),
-      deckMaterialCostAttributes:     _attributesOf(deck.filter(_retouchable('reduce_materials'))),
-      deckNamedRequirementAttributes: _attributesOf(deck.filter(_retouchable('remove_requirements'))),
+      // ⚠️ Sur la MAIN, plus sur le deck : les deux remises sont immédiates
+      // depuis qu'elles ciblent. Une main vide ne les offre donc plus — et
+      // c'est juste : différées, elles promettaient une remise sur des cartes
+      // qui n'existaient pas encore.
+      handHasMaterialCost:     this.hand.some(_retouchable('reduce_materials')),
+      handHasNamedRequirement: this.hand.some(_retouchable('remove_requirements')),
+      handMaterialCostAttributes:     _attributesOf(this.hand.filter(_retouchable('reduce_materials'))),
+      handNamedRequirementAttributes: _attributesOf(this.hand.filter(_retouchable('remove_requirements'))),
       boardSlotBonusAvailable: this.gameState.hasLimitedBoardSlotBonusLeft(),
       playerHpBelowCap:        this.gameState.player_hp < PLAYER_HP_CAP,
     };
@@ -1035,11 +1015,20 @@ export class GameSession {
    */
   magieHandTargets(magie: Magie): number[] {
     const type = magie.effect?.type;
+    const attribut = (magie.effect as { attribute?: string } | undefined)?.attribute;
     const ok = type === 'shift_tier_card'
       ? (card: Card) => this._tierShiftPool(card, tierShift(magie as any)).length > 0
       : type === 'draw_material'
         ? (card: Card) => this._drawableMaterialIds(card).length > 0
-        : () => true;
+        // ⚠️ Les deux remises n'acceptent que ce qu'elles peuvent RETOUCHER, et
+        // le filtre d'attribut fait partie de la question : une carte qui ne
+        // porte pas l'attribut visé n'est pas une cible, même si elle a un coût.
+        // Les tester séparément offrirait la magie sur une main où ce sont deux
+        // cartes différentes.
+        : (type === 'reduce_materials' || type === 'remove_requirements')
+          ? (card: Card) => (!attribut || (card.attributes ?? []).includes(attribut))
+            && _retouchable(type)(card)
+          : () => true;
     const targets: number[] = [];
     this.hand.forEach((card, i) => { if (ok(card)) targets.push(i); });
     return targets;
@@ -1197,6 +1186,20 @@ export class GameSession {
       if (!material) return null;
       this._payMagieCost(magie);
       this.hand.push(material);
+      return null;
+    }
+
+    // ⚠️ Les deux remises d'invocation, IMMÉDIATES et sur la carte DÉSIGNÉE.
+    // Elles passent avant le paiement pour la même raison que les autres magies
+    // de main : une remise qui ne trouve pas sa cible ne doit rien prélever.
+    // `magieHandTargets` rend le cas inatteignable depuis l'écran ; cette garde
+    // est ce qui l'en empêche pour de bon.
+    if (type === 'reduce_materials' || type === 'remove_requirements') {
+      if (!_retouchable(type)(card)) return null;
+      this._payMagieCost(magie);
+      // La case est ÉCRASÉE, jamais mutée : `canUndoPreparation` compare la main
+      // par référence, et une retouche en place muterait le deck lui-même.
+      this.hand[handIdx] = _discountCard(card, type, Math.max(1, (magie.effect as { value?: number }).value || 1));
       return null;
     }
 

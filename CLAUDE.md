@@ -1148,8 +1148,8 @@ Détection **automatique** dérivée de `effect.type` — **aucun champ admin à
 | le deck porte **le** tier demandé | `guaranteed_draw` |
 | le cap partagé +1 slot est encore libre | `board_slot_bonus` |
 | `player_hp < PLAYER_HP_CAP` | `player_hp_bonus` |
-| le deck porte une carte à coût en matériels — **portant l'`attribute`** s'il y en a un | `reduce_materials` |
-| le deck porte une carte à exigence **nommée** — même règle | `remove_requirements` |
+| une carte **en main** à coût en matériels — **portant l'`attribute`** s'il y en a un | `reduce_materials` |
+| une carte **en main** à exigence **nommée** — même règle | `remove_requirements` |
 | une carte en main **et** le deck porte son tier voisin | `shift_tier_card` |
 | une unité au board **et** le deck porte son tier voisin | `shift_tier_unit` |
 | une carte en main dont un **matériel** est résolvable | `draw_material` |
@@ -1157,7 +1157,7 @@ Détection **automatique** dérivée de `effect.type` — **aucun champ admin à
 | toujours | `draw_bonus` |
 
 - ⚠️ **La table est FERMÉE (`default: false`)** : un `effect` nul ou d'un type inconnu traverse `applyEffect` sans rien faire. **Corollaire : un type ajouté à `applyEffect` mais oublié dans `isMagieRelevant` disparaît silencieusement du jeu.** `magie-offer.test.ts` relit `initial-data/magies.json` et exige que chaque magie livrée soit offrable sous un contexte permissif.
-- ⚠️ **Les deux modificateurs de main se testent sur le DECK, jamais sur la main** : ils sont **différés** au `startPreparation()` suivant, donc appliqués après une pioche de cinq cartes neuves. `_retouchable(type)` est le **prédicat exact** que `startPreparation` appliquera, et l'offre comme l'application l'appellent — une carte sans coût, ou sans exigence nommée, n'est jamais retouchée.
+- ⚠️ **Les deux remises se testent sur la MAIN** — elles sont immédiates et ciblées. `_retouchable(type)` est le **prédicat exact** qu'`applyMagieOnHandCard` appliquera, et l'offre, le ciblage et l'application l'appellent tous les trois : une carte sans coût, ou sans exigence nommée, n'est jamais une cible. ⚠️ Corollaire : **une main vide ne les offre plus**. Différées, elles se jugeaient sur le deck et pouvaient promettre une remise que la pioche ne servait jamais.
 - ⚠️ **Le booléen et la liste d'attributs ne disent pas la même chose, et la liste ne remplace pas le booléen** : une carte retouchable qui ne porte **aucun** attribut rend `deckHasMaterialCost` vrai sans rien ajouter à `deckMaterialCostAttributes`. Une remise visée lit la liste, une remise nue lit le booléen. Tester « attribut présent » et « carte retouchable » **séparément** offrirait la magie sur un deck où ce sont deux cartes différentes.
 - ⚠️ **`guaranteed_draw` hors deck n'est pas un no-op** : `startPreparation` a un **double repli** et pioche quand même, parfois au-dessus de ce que le round autorise. Le filtre supprime là un effet accidentellement bon, délibérément — la magie **promet un tier qu'elle ne rend pas**.
 - ⚠️ **`board_slot_bonus` est la seule magie qui peut s'appliquer sans erreur et ne rien donner** (`grantLimitedBoardSlotBonus` rend 0 en silence une fois le cap consommé) → `GameState.hasLimitedBoardSlotBonusLeft()`.
@@ -1209,20 +1209,20 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 | `shift_tier_unit` | `value` | **Remplace** une unité du board par une unité du **deck** au tier voisin, **sur sa case** |
 | `draw_material` | — | Cible une carte de la main, ajoute l'un de ses **matériels**. La source reste en place |
 | `sacrifice_card_hp` | `value` (% des PV, déf. **100**) | **Brûle** une carte de la main et verse ses PV au joueur |
-| `reduce_materials` | `value` (déf. 1), `attribute` | `player_hand_modifiers` — baisse le coût de N slots ; les `requires` sont rognées pour tenir dans le nouveau compte |
-| `remove_requirements` | `value` (déf. 1), `attribute` | `player_hand_modifiers` — retire N exigences **nommées**, le compte de slots inchangé |
+| `reduce_materials` | `value` (déf. 1), `attribute` | Cible une carte de la **main** : baisse son coût de N slots ; les `requires` sont rognées pour tenir dans le nouveau compte |
+| `remove_requirements` | `value` (déf. 1), `attribute` | Cible une carte de la **main** : retire N exigences **nommées**, le compte de slots inchangé |
 
-Les `player_hand_modifiers` sont consommés **au tour suivant**, dans `startPreparation()`.
+⚠️ **Les deux remises sont IMMÉDIATES et CIBLÉES** : le joueur désigne la carte de sa main, `applyMagieOnHandCard` fait le geste au tap. Elles étaient différées au `startPreparation()` suivant — un état de round entier (`player_hand_modifiers`, supprimé) pour un effet que personne ne choisissait, puisque la remise tombait sur la première carte retouchable de la main fraîchement piochée.
 
 ⚠️ **Les deux gestes sont ORTHOGONAUX** : `reduce_materials` baisse le prix, `remove_requirements` lève une contrainte. L'ancienne « retire un matériel de Fusion » faisait les deux à la fois — mais seulement parce que le coût d'une fusion **était** la longueur de sa liste de matériaux. Ce couplage n'existe plus, il faut donc choisir lequel des deux une magie porte.
 
-⚠️ **`attribute` est un filtre FACULTATIF, et il vaut pour les deux** : c'est lui qui rend « −1 matériel de Fusion » exprimable maintenant qu'il n'y a plus de voie à nommer. Absent, la remise tombe sur la première carte retouchable. Il **voyage** dans le `player_hand_modifiers` : la magie est jouée un tour avant que la main retouchée n'existe, elle ne peut donc pas désigner la carte elle-même. Une remise visée qui ne trouve personne est **perdue**, jamais reportée.
+⚠️ **`attribute` est un filtre FACULTATIF, et il vaut pour les deux** : c'est lui qui rend « −1 matériel de Fusion » exprimable maintenant qu'il n'y a plus de voie à nommer. Il fait partie de la question que pose **`magieHandTargets`** — une carte qui ne le porte pas n'est pas une cible, même si elle a un coût. Absent, toute carte retouchable de la main est une cible.
 
 **Trois familles de cibles, et elles s'excluent** — `GameController.chooseMagie` les teste dans l'ordre unité → cimetière → main ; un type reconnu par deux d'entre elles n'atteindrait jamais la troisième branche.
 
 - `needsUnitTarget` → `stat_bonus`, `stat_modifier`, `shield`, `heal`, `defuse_fusion`, `destroy_unit`, `drain_life`, `grant_power`, `power_cooldown`, `duplicate_unit`, `shift_tier_unit`. ⚠️ `magieUnitTargets` passe par `getPlayerUnits()` — **vivantes seulement**, aucun soin ne tombe sur un neutralisé encore posé.
 - `needsGraveyardTarget` → `revive` et `duplicate_graveyard_unit`. ⚠️ Ils n'en font **pas** le même usage : `revive` l'**en sort**, `duplicate_graveyard_unit` la **laisse**.
-- `needsHandTarget` → `hand_to_graveyard`, `duplicate_card`, `shift_tier_card`, `draw_material`, `sacrifice_card_hp`. ⚠️ Aucune n'y fait le même geste — seule la façon de **désigner** est commune. Et elles n'acceptent pas les mêmes cartes : **`magieHandTargets(magie)`** rend les index recevables (`shift_tier_card` écarte un tier voisin absent du deck, `draw_material` une carte sans matériel résolvable ; les trois autres acceptent tout, **carte injouable comprise** — c'est souvent celle qu'on veut brûler). Il voyage par `shopping.handTargets` (`null` = aucune restriction) et `resolveMagieHandTarget` le **revérifie** : le HUD montre la règle, il ne la tient pas.
+- `needsHandTarget` → `hand_to_graveyard`, `duplicate_card`, `shift_tier_card`, `draw_material`, `sacrifice_card_hp`, **`reduce_materials`**, **`remove_requirements`**. ⚠️ Aucune n'y fait le même geste — seule la façon de **désigner** est commune. Et elles n'acceptent pas les mêmes cartes : **`magieHandTargets(magie)`** rend les index recevables (`shift_tier_card` écarte un tier voisin absent du deck, `draw_material` une carte sans matériel résolvable, les deux remises une carte sans coût / sans exigence nommée ou ne portant pas l'`attribute` visé ; les trois autres acceptent tout, **carte injouable comprise** — c'est souvent celle qu'on veut brûler). Il voyage par `shopping.handTargets` (`null` = aucune restriction) et `resolveMagieHandTarget` le **revérifie** : le HUD montre la règle, il ne la tient pas.
 - ⚠️ `magieHandTargets` ne consomme **aucun** hasard (vérifié par golden test) : il est interrogé à chaque rendu de la main, un `rand()` dépensé par une question d'affichage décalerait toute la pioche.
 - Tous les autres types sont **globaux**, les magies d'équipe comprises.
 

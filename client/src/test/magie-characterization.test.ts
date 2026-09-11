@@ -61,8 +61,18 @@ const DECK = [
     stats: { atk: 10 * t, hp: 100 * t, movement_rate: 50, attack_rate: 50, range: 2 } as any,
     summon_conditions: [],
   })),
-  // Une carte à COÛT, portant un attribut d'invocation : ce que `reduce_materials`
-  // et `remove_requirements` retouchent, et la seule source de `draw_material`.
+  // Une carte à COÛT **par attribut d'invocation visé** : les quatre
+  // `reduce_materials` livrées ciblent `ARCH_086`, `ARCH_088` et `ARCH_089`, et
+  // `remove_requirements` cible `ARCH_087`. Une seule carte porteuse laisserait
+  // les trois autres sans cible — et l'oracle figerait quatre silences qui
+  // ressemblent à des effets morts sans en être.
+  ...INVOC.map((attr, i) => makeCard({
+    id: `DECK_COUT_${attr}`, name: `Composite ${attr}`, tier: 3, attributes: [attr],
+    stats: { atk: 40, hp: 300, movement_rate: 50, attack_rate: 50, range: 1 } as any,
+    summon_conditions: [{ materials: 2 + i, requires: ['DECK_T1', 'DECK_T2'] }],
+    represented_ids: ['DECK_T1', 'DECK_T2'],
+    material_value: 2,
+  })),
   makeCard({
     id: 'DECK_FUSION', name: 'Composite', tier: 3, attributes: [INVOC[1]],
     stats: { atk: 40, hp: 300, movement_rate: 50, attack_rate: 50, range: 1 } as any,
@@ -99,7 +109,10 @@ function makeSession(): GameSession {
   // l'effet de la magie, pas le tirage qui l'a précédé. Une main aléatoire
   // ferait bouger le snapshot au moindre changement du flux semé.
   s.startPreparation();
-  s.hand = [BY_ID.get('DECK_FUSION')!, BY_ID.get('DECK_T2')!, BY_ID.get('DECK_T1')!] as any[];
+  s.hand = [
+    BY_ID.get('DECK_FUSION')!, BY_ID.get('DECK_T2')!, BY_ID.get('DECK_T1')!,
+    ...INVOC.map(a => BY_ID.get(`DECK_COUT_${a}`)!),
+  ] as any[];
 
   const place = (id: string, col: number) => {
     const u = new (Unit as any)(BY_ID.get(id), 'player') as Unit;
@@ -153,8 +166,15 @@ function snapshot(s: GameSession) {
     slots: g.player_board_slots,
     multiplicateur: g.player_damage_multiplier_bonus ?? 0,
     shopping: g.player_extra_shopping_magies ?? 0,
-    retouches: (g.player_hand_modifiers ?? []).map((m: any) => `${m.type}:${m.value ?? '—'}:${m.attribute ?? 'tous'}`),
-    main: s.hand.map((c: any) => c.id),
+    // ⚠️ Le coût, et pas seulement l'id : une remise ne change PAS l'identité
+    // de la carte, elle change ce qu'elle réclame. Observer l'id seul rendait
+    // les cinq remises invisibles — l'oracle les figeait comme des « rien ».
+    main: s.hand.map((c: any) => {
+      const cd = (c.summon_conditions ?? [])
+        .map((x: any) => `${x.materials ?? 0}m${(x.requires ?? []).length ? `+${x.requires.join('/')}` : ''}`)
+        .join(' | ');
+      return cd ? `${c.id}[${cd}]` : c.id;
+    }),
     board: s.board.getLivingUnitsOnSide('player').map(unit),
     cimetiere: s.graveyard.map(unit),
   };

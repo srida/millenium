@@ -159,45 +159,45 @@ exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 51 magi
   },
   {
     "change": {
-      "retouches": "[] → ["reduce_materials:2:ARCH_089"]",
+      "main": "["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"] → ["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"]",
     },
-    "cible": "—",
+    "cible": "DECK_COUT_ARCH_089",
     "contrecoup": 0,
     "effet": "reduce_materials · 2 · ARCH_089",
-    "famille": "globale",
+    "famille": "main",
     "id": "MAGIE_016",
     "nom": "Bourse des âmes",
   },
   {
     "change": {
-      "retouches": "[] → ["reduce_materials:1:ARCH_089"]",
+      "main": "["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"] → ["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"]",
     },
-    "cible": "—",
+    "cible": "DECK_COUT_ARCH_089",
     "contrecoup": 0,
     "effet": "reduce_materials · 1 · ARCH_089",
-    "famille": "globale",
+    "famille": "main",
     "id": "MAGIE_017",
     "nom": "Ristourne",
   },
   {
     "change": {
-      "retouches": "[] → ["reduce_materials:1:ARCH_088"]",
+      "main": "["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"] → ["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"]",
     },
-    "cible": "—",
+    "cible": "DECK_COUT_ARCH_088",
     "contrecoup": 0,
     "effet": "reduce_materials · 1 · ARCH_088",
-    "famille": "globale",
+    "famille": "main",
     "id": "MAGIE_018",
     "nom": "Force spirituel",
   },
   {
     "change": {
-      "retouches": "[] → ["remove_requirements:1:ARCH_087"]",
+      "main": "["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"] → ["DECK_FUSION[2m+DECK_T1]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"]",
     },
-    "cible": "—",
+    "cible": "DECK_FUSION",
     "contrecoup": 0,
     "effet": "remove_requirements · 1 · ARCH_087",
-    "famille": "globale",
+    "famille": "main",
     "id": "MAGIE_019",
     "nom": "Préparation des rites",
   },
@@ -247,19 +247,19 @@ exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 51 magi
   },
   {
     "change": {
-      "retouches": "[] → ["reduce_materials:1:ARCH_086"]",
+      "main": "["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"] → ["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[1m+DECK_T1]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"]",
     },
-    "cible": "—",
+    "cible": "DECK_COUT_ARCH_086",
     "contrecoup": 0,
     "effet": "reduce_materials · 1 · ARCH_086",
-    "famille": "globale",
+    "famille": "main",
     "id": "MAGIE_025",
     "nom": "Fusion instantanée",
   },
   {
     "change": {
       "cimetiere": "["DECK_T2 · — · pv 0/200 · atq 20 · dep 50 · vit 50 · por 2 · bcl 0 · pouvoir —:—:—:—"] → ["DECK_T2 · — · pv 0/200 · atq 20 · dep 50 · vit 50 · por 2 · bcl 0 · pouvoir —:—:—:—","DECK_FUSION · — · pv 300/300 · atq 40 · dep 50 · vit 50 · por 1 · bcl 0 · pouvoir —:—:—:—"]",
-      "main": "["DECK_FUSION","DECK_T2","DECK_T1"] → ["DECK_T2","DECK_T1"]",
+      "main": "["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"] → ["DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"]",
     },
     "cible": "DECK_FUSION",
     "contrecoup": 0,
@@ -485,7 +485,7 @@ exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 51 magi
   },
   {
     "change": {
-      "main": "["DECK_FUSION","DECK_T2","DECK_T1"] → ["DECK_FUSION","DECK_T2","DECK_T1","DECK_T1"]",
+      "main": "["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"] → ["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]","DECK_T1"]",
     },
     "cible": "DECK_T1",
     "contrecoup": 0,
@@ -496,7 +496,7 @@ exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 51 magi
   },
   {
     "change": {
-      "main": "["DECK_FUSION","DECK_T2","DECK_T1"] → ["DECK_FUSION","DECK_T2","DECK_T1","DECK_FUSION"]",
+      "main": "["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"] → ["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]","DECK_FUSION[2m+DECK_T1/DECK_T2]"]",
     },
     "cible": "DECK_FUSION",
     "contrecoup": 0,
@@ -507,7 +507,7 @@ exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 51 magi
   },
   {
     "change": {
-      "main": "["DECK_FUSION","DECK_T2","DECK_T1"] → ["DECK_FUSION","DECK_T2","DECK_T1","DECK_T2"]",
+      "main": "["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"] → ["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]","DECK_T2"]",
     },
     "cible": "DECK_T2",
     "contrecoup": 0,
@@ -540,7 +540,7 @@ exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 51 magi
   },
   {
     "change": {
-      "main": "["DECK_FUSION","DECK_T2","DECK_T1"] → ["DECK_T2","DECK_T1"]",
+      "main": "["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"] → ["DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"]",
       "pv_joueur": "700 → 1000",
     },
     "cible": "DECK_FUSION",
@@ -552,7 +552,7 @@ exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 51 magi
   },
   {
     "change": {
-      "main": "["DECK_FUSION","DECK_T2","DECK_T1"] → ["DECK_FUSION","DECK_T2","DECK_T1","DECK_T2"]",
+      "main": "["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]"] → ["DECK_FUSION[2m+DECK_T1/DECK_T2]","DECK_T2","DECK_T1","DECK_COUT_ARCH_086[2m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_087[3m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_088[4m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_089[5m+DECK_T1/DECK_T2]","DECK_COUT_ARCH_090[6m+DECK_T1/DECK_T2]","DECK_T2"]",
       "pv_joueur": "700 → 650",
     },
     "cible": "DECK_FUSION",

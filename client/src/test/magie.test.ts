@@ -194,20 +194,13 @@ describe('MagieEffect — effets globaux (gameState)', () => {
     expect(gs.player_board_slots).toBe(6);
   });
 
-  it('draw_bonus / guaranteed_draw / modifiers de main', () => {
+  it('draw_bonus / guaranteed_draw', () => {
     const gs = new (GameState as any)();
     applyEffect(magie({ type: 'draw_bonus', value: 2 }), { gameState: gs });
     expect(gs.player_extra_draws).toBe(2);
 
     applyEffect(magie({ type: 'guaranteed_draw', tier: 3 }), { gameState: gs });
     expect(gs.player_guaranteed_draws).toEqual([{ tier: 3 }]);
-
-    applyEffect(magie({ type: 'reduce_materials', value: 1 }), { gameState: gs });
-    applyEffect(magie({ type: 'remove_requirements' }), { gameState: gs });
-    expect(gs.player_hand_modifiers).toEqual([
-      { type: 'reduce_materials', value: 1, attribute: null },
-      { type: 'remove_requirements', value: 1, attribute: null },
-    ]);
   });
 
   it('defuse_fusion, destroy_unit, drain_life et hand_to_graveyard sont des no-ops dans applyEffect (gérés par GameSession)', () => {
@@ -228,27 +221,25 @@ describe('MagieEffect — effets globaux (gameState)', () => {
     expect(gs.player_hp).toBe(hpBefore);
   });
 
-  it('remove_requirements : empile un modifier de main avec son compte', () => {
+  // ⚠️ Les deux remises d'invocation sont des magies de MAIN depuis qu'elles
+  // sont immédiates et ciblées : elles ne passent plus par `applyEffect`, qui
+  // n'a aucune carte à retoucher — c'est `GameSession.applyMagieOnHandCard` qui
+  // fait le geste, sur la carte que le joueur désigne. Le comportement complet
+  // vit dans `shopping.test.ts`.
+  // Mutation : les retirer de `needsHandTarget` → ROUGE.
+  it('les deux remises sont des magies de MAIN, et des no-ops dans applyEffect', () => {
+    for (const t of ['reduce_materials', 'remove_requirements']) {
+      expect(needsHandTarget(magie({ type: t })), t).toBe(true);
+      expect(needsUnitTarget(magie({ type: t })), t).toBe(false);
+      expect(needsGraveyardTarget(magie({ type: t })), t).toBe(false);
+    }
+    // Et elles ne touchent RIEN quand on les passe à `applyEffect` : aucun
+    // état global ne leur appartient plus.
     const gs = new (GameState as any)();
-    applyEffect(magie({ type: 'remove_requirements' }), { gameState: gs });
-    applyEffect(magie({ type: 'remove_requirements', value: 2 }), { gameState: gs });
-    expect(gs.player_hand_modifiers).toEqual([
-      { type: 'remove_requirements', value: 1, attribute: null },
-      { type: 'remove_requirements', value: 2, attribute: null },
-    ]);
-  });
-
-  // ⚠️ L'attribut VOYAGE jusqu'au modificateur : la magie est jouée un tour
-  // avant que la main retouchée n'existe, elle ne peut donc pas choisir la
-  // carte elle-même. S'il n'était pas transporté, la magie visée retomberait
-  // sur n'importe quelle carte — en silence.
-  // Mutation : ne pas recopier `attribute` dans le push → ROUGE.
-  it('la remise VISÉE transporte son attribut jusqu\'au tour suivant', () => {
-    const gs = new (GameState as any)();
+    const avant = JSON.stringify(gs);
     applyEffect(magie({ type: 'reduce_materials', value: 2, attribute: 'ARCH_086' }), { gameState: gs });
-    expect(gs.player_hand_modifiers).toEqual([
-      { type: 'reduce_materials', value: 2, attribute: 'ARCH_086' },
-    ]);
+    applyEffect(magie({ type: 'remove_requirements' }), { gameState: gs });
+    expect(JSON.stringify(gs)).toBe(avant);
   });
 });
 

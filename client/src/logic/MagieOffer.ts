@@ -94,16 +94,16 @@ export interface MagieOfferContext {
   // Ils étaient QUATRE, un par voie d'invocation remisable ; il n'y a plus que
   // deux gestes possibles sur une condition, donc deux questions à poser.
   /** Une carte du deck a-t-elle une condition qui coûte des matériels ? */
-  deckHasMaterialCost: boolean;
+  handHasMaterialCost: boolean;
   /** Une carte du deck a-t-elle une condition qui NOMME un matériel ? */
-  deckHasNamedRequirement: boolean;
+  handHasNamedRequirement: boolean;
   /**
    * Les attributs portés par ces cartes-là — ce qu'il faut pour juger une
    * remise VISÉE (`effect.attribute`). ⚠️ Une liste vide ne veut pas dire
    * « aucune carte retouchable » : une carte sans attribut n'y figure pas.
    */
-  deckMaterialCostAttributes: string[];
-  deckNamedRequirementAttributes: string[];
+  handMaterialCostAttributes: string[];
+  handNamedRequirementAttributes: string[];
   /** Le cap partagé +1 slot de board est-il encore libre ? */
   boardSlotBonusAvailable: boolean;
   /** `player_hp` est-il sous son plafond (`PLAYER_HP_CAP`) ? */
@@ -211,16 +211,21 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
 
     // ⚠️ Une remise VISÉE (`attribute`) doit trouver une carte qui porte
     // l'attribut ET que le geste peut retoucher : les deux séparément se
-    // contentent d'un deck où les deux cartes sont différentes, et la magie
+    // contentent d'une main où les deux cartes sont différentes, et la magie
     // serait alors offerte pour ne rien faire.
+    //
+    // ⚠️ Sur la MAIN, depuis que les deux remises sont immédiates et ciblées.
+    // Différées, elles se jugeaient sur le DECK — la main d'alors n'existait
+    // pas encore — et pouvaient promettre une remise que la pioche ne servait
+    // jamais.
     case 'reduce_materials':
       return effect.attribute
-        ? ctx.deckMaterialCostAttributes.includes(effect.attribute)
-        : ctx.deckHasMaterialCost;
+        ? ctx.handMaterialCostAttributes.includes(effect.attribute)
+        : ctx.handHasMaterialCost;
     case 'remove_requirements':
       return effect.attribute
-        ? ctx.deckNamedRequirementAttributes.includes(effect.attribute)
-        : ctx.deckHasNamedRequirement;
+        ? ctx.handNamedRequirementAttributes.includes(effect.attribute)
+        : ctx.handHasNamedRequirement;
 
     // Le seul effet qui ne dépend de rien : la pioche du tour suivant a
     // toujours lieu.
