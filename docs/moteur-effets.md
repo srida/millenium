@@ -636,8 +636,55 @@ L'oracle observe les deux rythmes **en compteur et en période** (`*_rate` et
 `*_period`) : un compteur qui monterait sans que la période bouge serait la
 panne d'origine déplacée d'un cran.
 
-**Restent les magies et les attributs.** Le terrain était le prototype ; la
-forme se transpose telle quelle.
+**✅ MAGIES FAIT** — `magie-characterization.test.ts` : l'oracle des 51 magies
+livrées (ce que chacune change, famille de ciblage et cible comprises) plus six
+invariants de catalogue.
+
+⚠️ L'oracle passe par une **vraie `GameSession`**, pas par `applyEffect` seul :
+**11 des 23 types vivent dans la session** et non dans `MagieEffect` (les deux
+duplications, les deux remplacements par tier, la main, le cimetière, les deux
+remises de coût). Les figer depuis `applyEffect` aurait montré une moitié de
+porteur — précisément la moitié que l'étape 1 devra absorber.
+
+Un invariant y est neuf, et il ne vient pas du terrain : **un `grant_power`
+chiffre sa DURÉE ou sa VALEUR selon le pouvoir donné, jamais l'autre.**
+`card-contract.js` ne garde que les cartes ; côté magie, rien ne le vérifiait.
+Un `grant_power POWER_PARALYSIS` écrit avec une `value` verrait sa durée
+ignorée — l'unité retomberait sur le repli du moteur, et la magie promettrait
+une paralysie qu'elle ne pose pas.
+
+**✅ ATTRIBUTS FAIT** — `attribute-characterization.test.ts` : l'oracle
+**palier par palier** des 57 attributs à seuils, plus sept invariants.
+
+⚠️ C'est le porteur le plus riche des trois, et la seule raison en est le
+`timing` : les mêmes huit types passent par **trois passes**, chacune n'en
+exécutant qu'une poignée. L'oracle exerce donc chaque palier dans la passe que
+son `timing` désigne — `applyStartOfCombat` d'abord pour les `during_combat`
+(c'est lui qui **verrouille** les seuils), les deux déclencheurs dans un ordre
+fixe, un mort de chaque côté pour la fin de combat.
+
+Deux pièges de harnais y sont documentés parce qu'ils font figer un silence :
+- **l'égalité de référence** de `_triggerStatModifiers`
+  (`affectedUnits === this.playerUnits`) — un tableau neuf portant les mêmes
+  unités lit le cache du camp adverse et ne déclenche rien ;
+- **`value_per` ne nomme pas l'attribut porteur** mais un autre (`ARCH_016`
+  multiplie par les ennemis portant `ARCH_003`) : un casting qui ne peuple le
+  camp adverse que de porteurs de l'attribut testé rend un multiplicateur nul,
+  et `applyStartOfCombat` sort sur `if (bonus === 0) break`.
+
+⚠️ **Un piège de DONNÉE trouvé au passage, et il est à un clic** : le `<select>`
+de l'admin propose `active_unit` (« unités alliées vivantes ») comme `value_per`
+sur n'importe quel type d'effet. Or **seul `stat_bonus` lit `value_per`**, et il
+y attend un **id d'attribut** : `active_unit` ne désignant aucun attribut, le
+multiplicateur vaudrait 0 et le bonus serait **nul, en silence**. Les trois
+paliers d'`ARCH_023` (Elfe) le portent déjà — mais sur un `shield`, qui ignore
+`value_per` de bout en bout et multiplie toujours par le nombre d'alliés
+vivants. Le champ y est décoratif et le résultat se trouve être celui qu'il
+annonce ; c'est pour ça que rien ne se voit. Un invariant ferme la porte côté
+`stat_bonus`.
+
+**L'étape 0 est terminée pour les trois porteurs du POC.** Les pouvoirs restent
+hors périmètre (décision 2 du §7).
 
 Ordre choisi à dessein : le terrain a **1 lecteur et 3 types**, c'est le
 prototype le moins risqué ; les pouvoirs viennent en dernier parce qu'ils sont
