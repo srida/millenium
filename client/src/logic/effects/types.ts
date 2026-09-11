@@ -160,6 +160,20 @@ export const CHAMPS_JOUEUR = Object.freeze({
 } as const);
 export type ChampJoueur = keyof typeof CHAMPS_JOUEUR;
 
+/**
+ * Les champs modifiables d'une CARTE (en main).
+ *
+ * ⚠️ Une carte n'est pas une unité : elle n'a ni PV courants ni position, elle a
+ * un COÛT. Les deux remises d'invocation sont les seules à les toucher, et elles
+ * sont ORTHOGONALES — `cout_materiels` baisse le prix, `exigences` lève une
+ * contrainte sans rien rendre moins cher.
+ */
+export const CHAMPS_CARTE = Object.freeze({
+  cout_materiels: 'materials',
+  exigences: 'requires',
+} as const);
+export type ChampCarte = keyof typeof CHAMPS_CARTE;
+
 /** Les statuts qu'une tâche peut poser sur une unité. */
 export const STATUTS = ['immunite', 'poison', 'brulure', 'paralysie', 'confusion', 'provocation', 'blocage_pouvoir'] as const;
 export type Statut = typeof STATUTS[number];
@@ -172,7 +186,7 @@ export type Statut = typeof STATUTS[number];
 export interface TacheModifier {
   action: 'modifier';
   cible: Selecteur;
-  champ: ChampUnite | ChampJoueur;
+  champ: ChampUnite | ChampJoueur | ChampCarte;
   operateur: Operateur;
   valeur: number;
   duree: Duree;
@@ -202,6 +216,16 @@ export interface TacheModifier {
   /** Ce que le registre de provenance inscrit comme origine. */
   provenance?: 'attribut' | 'terrain' | 'magie';
   /**
+   * La valeur se LIT SUR LA CIBLE au lieu d'être écrite dans la tâche.
+   *
+   * ⚠️ C'est ce que font `drain_life` (les PV COURANTS de l'unité, pas son
+   * maximum) et `sacrifice_card_hp` (les PV de la CARTE — rien n'est encore
+   * posé, il n'y a pas de PV courants à lire). Sans ce champ il faudrait une
+   * action par source, alors que le geste est le même : verser au joueur ce que
+   * la cible valait. `valeur` sert alors de POURCENTAGE.
+   */
+  valeurDepuis?: 'pv_courant_cible' | 'pv_carte_cible';
+  /**
    * Le pouvoir POSÉ par la tâche (`champ: 'pouvoir'`), avec ses trois chiffres.
    *
    * ⚠️ Ils voyagent ENSEMBLE parce qu'un pouvoir donné n'hérite rien de
@@ -218,6 +242,51 @@ export interface TacheDeplacer {
   destination: Conteneur;
   /** Les PV rendus, en pourcentage du max. Défaut 50, comme `revive`. */
   pourcentagePv?: number;
+}
+
+/**
+ * `ajouter` — fait entrer une entité dans un conteneur.
+ *
+ * ⚠️ Ce qu'on ajoute est une CARTE de catalogue, jamais l'entité visée : c'est
+ * la règle des trois duplications (ce qu'on lit sur une unité ne voyage pas —
+ * ni bonus de Shopping, ni vétérance, ni PV courants, ni pouvoir posé). Sans
+ * cette étanchéité, la magie rendrait deux fois un investissement.
+ */
+export interface TacheAjouter {
+  action: 'ajouter';
+  /** Ce qu'on désigne pour SAVOIR QUOI ajouter (l'unité qu'on duplique). */
+  cible: Selecteur;
+  /** Où ça va. */
+  destination: Conteneur;
+  /** Combien d'exemplaires. */
+  quantite: number;
+}
+
+/**
+ * `remplacer` — une entité en cède la place à une autre, tirée d'un POOL.
+ *
+ * ⚠️ Le pool est une **dépendance injectée** (`Monde.pool`), jamais le deck
+ * lui-même : `GameSession` ne le laisse pas sortir, et c'est une règle du projet.
+ * Le moteur demande « des candidats pour tel usage », il ne sait pas d'où ils
+ * viennent — le patron exact de `deps.rand`.
+ *
+ * ⚠️ Et il CONSOMME du hasard, le seul de tout le moteur : exactement **un
+ * appel par tirage, aucun sur un pool vide** (la règle de `BoardPicker`). Les
+ * golden tests de `sim/` et le filet PvP à 300 graines en dépendent.
+ */
+export interface TacheRemplacer {
+  action: 'remplacer';
+  cible: Selecteur;
+  /** Ce que le pool doit fournir. */
+  source: 'tier_voisin' | 'materiau';
+  /** Le décalage de tier, pour `tier_voisin`. */
+  decalage?: number;
+}
+
+/** `retirer` — sort une entité d'un conteneur, sans destination. */
+export interface TacheRetirer {
+  action: 'retirer';
+  cible: Selecteur;
 }
 
 /** `poser_statut` — pose un statut sur une entité. */
@@ -244,7 +313,7 @@ export interface TachePosition {
   duree: Duree;
 }
 
-export type Tache = TacheModifier | TachePosition | TacheDeplacer | TachePoserStatut;
+export type Tache = TacheModifier | TachePosition | TacheDeplacer | TachePoserStatut | TacheAjouter | TacheRetirer | TacheRemplacer;
 
 // ───────────────────────────────────────────────────────────────────────────
 // L'effet

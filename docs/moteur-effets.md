@@ -777,16 +777,49 @@ plafond du compilateur — **aucun cas ne tombait**. D'où un second bloc
 d'attributs synthétiques. **C'est désormais un réflexe à avoir pour chaque
 porteur : mesurer ce que le catalogue exerce AVANT de croire le mode ombre.**
 
-**⚠️ MAGIES — PARTIEL, et c'est le résultat le plus utile de l'étape.**
-`effects-shadow-magies.test.ts` : **36 des 51 magies** entrent dans le
-vocabulaire du moteur et produisent le même état qu'une vraie `GameSession`.
-Les 15 autres sont **refusées nommément**, et la frontière est figée par un test :
+**✅ MAGIES FAIT — 50 des 51.** `effects-shadow-magies.test.ts` : chacune
+produit le même état qu'une vraie `GameSession`. La 51ᵉ est **refusée
+nommément**, et la frontière est figée par un test.
 
-| Ce qui manque | Types | Magies |
-|---|---|---|
-| actions de **conteneur** (main, cimetière, board) | `duplicate_unit` · `duplicate_graveyard_unit` · `duplicate_card` · `drain_life` · `hand_to_graveyard` · `sacrifice_card_hp` · `defuse_fusion` | 7 |
-| **pool de deck** — donc `rand`, et le deck ne sort pas de la session | `shift_tier_unit` · `draw_material` | 3 |
-| **`poser_effet`** — un effet qui pose un effet, consommé au tour suivant | `reduce_materials` · `remove_requirements` | 5 |
+Les trois mécanismes que le §6.4 chiffrait ont été écrits, chacun pour une
+raison différente :
+
+| Mécanisme | Pourquoi il a été jugé rentable |
+|---|---|
+| actions de **conteneur** (`ajouter`, `retirer`, `deplacer` généralisé) | le geste « une entité change de conteneur » se répète dans 7 magies **et** reviendra à chaque famille suivante — c'est du vocabulaire, pas un cas |
+| **pool injecté** (`TacheRemplacer` + `Monde.pool`) | le moteur **demande** des candidats pour un usage, il ne connaît ni deck ni catalogue — la dep suit `deps.rand` |
+| **champs de CARTE** (`cout_materiels`, `exigences`) | remplace l'effet différé (voir juste en dessous) |
+
+⚠️ **Le troisième n'a pas été écrit : la RÈGLE a changé.** Les deux remises
+d'invocation étaient différées d'un tour, appliquées à la première carte
+retouchable venue par `player_hand_modifiers`. Elles sont désormais
+**immédiates et ciblées** : le joueur désigne la carte, comme pour les cinq
+autres magies de main. Cela supprime la cinquième file d'effets en attente du
+§1.6, `GameState.player_hand_modifiers`, le bloc différé de `startPreparation()`
+et le type `HandModifier` — et, au passage, la pertinence se lit maintenant sur
+la **main** et non plus sur le deck, ce qui est la vraie question. **Un
+mécanisme retiré du moteur parce que la règle qu'il servait était mal posée vaut
+mieux qu'un mécanisme bien écrit.**
+
+Ce qui reste dehors est **`defuse_fusion`, et seulement lui** : il ne lit pas un
+champ, il lit une **règle d'invocation** (la lignée d'un composite, et le repli
+au cimetière quand il n'y a plus de case). Le traduire demanderait de donner
+`InvocationManager` au moteur, c'est-à-dire de recopier la règle du doublon.
+
+⚠️ **La comparaison d'état ne voit PAS le flux de hasard**, et c'est le seul
+endroit du moteur qui en consomme. Deux chemins qui tirent le même remplaçant
+s'accordent quel que soit le nombre d'appels dépensés pour y arriver — or c'est
+le nombre qui compte, le flux étant partagé avec la pioche, l'IA et le tirage du
+terrain. D'où deux cas qui **comptent les appels**, sur la règle de
+`BoardPicker` au mot près : *exactement un par tirage, AUCUN sur un pool vide*.
+Les deux tombent sur leur mutation.
+
+⚠️ **Une branche du moteur a été retirée plutôt que gardée** : `retirer` sur le
+board. Aucun compilateur n'en émet (une unité qui quitte le board part toujours
+quelque part, donc `deplacer` ou `remplacer`), donc rien ne la prouvait — la
+neutraliser ou non ne faisait tomber aucun cas. Elle est devenue un `ignore`
+nommé : le jour où un compilateur en émettrait une, l'exécution la dit au lieu
+de faire un geste que personne n'a éprouvé.
 
 Deux choses trouvées en chemin, qui manquaient au compilateur :
 
@@ -801,37 +834,56 @@ Deux choses trouvées en chemin, qui manquaient au compilateur :
   `stat_bonus hp` monte le socle *et* la jauge ; un `heal` ne touche que la
   jauge. Un seul nom rendrait l'un des deux gestes inexprimable.
 
-### 6.4 Le compilateur de magie : ce que la mesure dit
+### 6.4 Le compilateur de magie : ce que la mesure a servi à décider
 
-Le §1.1 l'annonçait, l'étape 1 le chiffre : **côté magies, un type d'effet ≈ une
-intention de design ≈ une carte.** 13 des 23 types ne portent qu'UNE magie. Les
-15 magies non traduites demandent **trois mécanismes neufs** — des actions de
-conteneur, un pool de deck injecté (avec son flux de hasard à garder stable), et
-des effets différés — pour un gain qui se compte en cartes, pas en familles.
+Le §1.1 l'annonçait, l'étape 1 l'a chiffré : **côté magies, un type d'effet ≈ une
+intention de design ≈ une carte.** 13 des 23 types ne portent qu'UNE magie. La
+mesure a été posée ainsi — 36 magies traduites d'emblée, 15 demandant trois
+mécanismes neufs — précisément pour que le choix se fasse sur des chiffres et
+non sur une intuition d'architecture.
 
-C'est une **décision à prendre avant d'aller plus loin**, et elle n'est pas
-technique :
+**Décision prise : aller au bout, mais pas comme prévu.** Deux des trois
+mécanismes ont été écrits parce que ce sont du **vocabulaire** (ils reviendront
+à chaque famille suivante), pas des cas particuliers. Le troisième — les effets
+différés — n'a pas été écrit : la règle qu'il servait a été **changée**, et les
+deux remises sont devenues immédiates et ciblées (§6.2).
 
-- **Option A — s'arrêter à deux porteurs.** Terrain et attribut basculent
-  (étape 2) ; les magies restent codées à la main. Le moteur sert là où il paie :
-  121 effets d'attribut et de terrain sur un vocabulaire de 8 types.
-- **Option B — aller au bout.** Trois mécanismes de plus, dont un qui touche au
-  déterminisme (`rand` dans le moteur), pour 15 magies.
+Le résultat se lit dans ce qui a **disparu** autant que dans ce qui est apparu :
 
-Rien dans ce document ne tranche : les deux sont défendables, et la mesure
-ci-dessus est là pour que le choix se fasse sur des chiffres.
+| Retiré | Où |
+|---|---|
+| `GameState.player_hand_modifiers` — la 5ᵉ file du §1.6 | `GameState.ts` |
+| le bloc différé de `startPreparation()` | `GameSession.ts` |
+| le type `HandModifier` | `logic/types.ts` |
+| les deux branches de `applyEffect` correspondantes | `MagieEffect.js` |
+| la pertinence lue sur le DECK au lieu de la MAIN | `MagieOffer.ts` |
+
+⚠️ **La leçon est de méthode, et elle vaut pour les étapes suivantes** : avant
+de se donner un mécanisme pour reproduire un comportement, vérifier que le
+comportement mérite d'être reproduit. Le différé n'avait aucune raison de
+design — il venait de ce que la remise ne savait pas désigner de cible.
 
 **Puis la bascule (étape 2).**
 
 ### 6.3 Ce que l'étape 1 a appris sur la façon de prouver
 
-Trois fois sur deux porteurs, un test qui semblait probant ne l'était pas :
+**Six fois sur trois porteurs**, un test qui semblait probant ne l'était pas :
 
 | Ce qui semblait couvert | Ce qui l'était vraiment | Comment on l'a su |
 |---|---|---|
 | les 4 types de terrain | 2 (`stat_bonus`, `shield`) | muter le multiplicateur ne faisait rougir personne |
 | les 10 types d'attribut | 8, et aucun plafond | retirer le plafond ne faisait rougir personne |
 | l'ordre de résolution | rien (le cas comparait un ensemble trié à lui-même) | retirer le tri ne faisait rougir personne |
+| le REGISTRE d'écriture d'une magie | rien (les deux rendent la même stat effective) | muter `partie` en `combat` ne faisait rougir personne → d'où l'observation **après `resetCombatStats()`** |
+| les 5 remises d'invocation | rien (aucune carte de la main ne portait l'attribut visé, les deux chemins s'accordaient sur un SILENCE) | leur donner une cible a fait rougir les 5 |
+| la discipline d'appel à `rand` | rien (l'état ne dépend pas du nombre d'appels) | d'où deux cas qui **comptent** les appels |
+
+⚠️ **Le piège qui revient le plus souvent n'est pas une branche non couverte,
+c'est un SILENCE partagé.** Quand le monde d'essai ne donne pas de cible à un
+effet, les deux chemins ne font rien — et ne rien faire à l'identique est un
+accord parfait. Cinq fois sur trois porteurs. Le réflexe : pour chaque famille,
+**vérifier que la trace du chemin compilé n'est pas vide** (le cas « le chemin
+compilé écrit vraiment quelque chose »), et non se fier à la couleur.
 
 **La mutation n'est pas une formalité de fin de course : c'est elle qui dit ce
 qu'un test couvre.** Un mode ombre vert sur un catalogue qui n'exerce que la

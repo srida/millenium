@@ -165,8 +165,8 @@ function cheminCompile(attr: any, seuil: any) {
   const adverse = () => cote(enemy, player, ressourcesEnnemies, neutraliseesEnnemies, true);
 
   const trace = executer(duPalier, 'debut_combat', joueur());
-  const ajoute = (t: { applique: string[]; ignore: string[] }) => {
-    trace.applique.push(...t.applique); trace.ignore.push(...t.ignore);
+  const ajoute = (t: { applique: string[]; neant: string[]; ignore: string[] }) => {
+    trace.applique.push(...t.applique); trace.neant.push(...t.neant); trace.ignore.push(...t.ignore);
   };
   ajoute(executer(duPalier, 'debut_combat', adverse()));
 

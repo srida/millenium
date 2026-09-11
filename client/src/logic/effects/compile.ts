@@ -430,19 +430,13 @@ export interface MagieEffectLike {
 
 /** Ce qui manque au moteur pour traduire un type, quand ça manque. */
 const MANQUE: Record<string, string> = {
-  destroy_unit: 'action de conteneur (board → cimetière)',
-  drain_life: 'action de conteneur (board → cimetière) + PV joueur',
-  hand_to_graveyard: 'action de conteneur (main → cimetière)',
-  duplicate_unit: 'action de conteneur (ajouter à la main)',
-  duplicate_graveyard_unit: 'action de conteneur (ajouter à la main)',
-  duplicate_card: 'action de conteneur (ajouter à la main)',
-  defuse_fusion: 'action de conteneur + lecture du catalogue',
-  sacrifice_card_hp: 'action de conteneur (retirer de la main)',
-  shift_tier_card: 'pool de deck (donc rand, et le deck ne sort pas de la session)',
-  shift_tier_unit: 'pool de deck (donc rand, et le deck ne sort pas de la session)',
-  draw_material: 'pool de deck (donc rand, et le deck ne sort pas de la session)',
-  reduce_materials: 'poser_effet (différé au tour suivant)',
-  remove_requirements: 'poser_effet (différé au tour suivant)',
+  // ⚠️ `defuse_fusion` reste dehors, et c'est le seul. Il ne DÉPLACE pas une
+  // entité : il en fait naître plusieurs à partir de la lignée de la carte, avec
+  // un repli sur le cimetière quand le board est plein. C'est une règle
+  // d'invocation déguisée en effet, et `InvocationManager` en est le
+  // propriétaire — le §4.3 dit explicitement que l'invocation n'entre pas dans
+  // le moteur.
+  defuse_fusion: 'lecture de la lignée + repli de placement (règle d\'invocation)',
 };
 
 /**
@@ -575,6 +569,113 @@ export function compileMagie(magie: MagieLike): CompilationResult {
 
     case 'damage_multiplier_bonus':
       pousse([{ action: 'modifier', cible: leJoueur(), champ: 'multiplicateur', operateur: '+', valeur: e.value as number, duree: 'partie' }]);
+      return { effets, refus };
+
+    // ── Les actions de CONTENEUR ──────────────────────────────────────────
+
+    case 'destroy_unit':
+      // ⚠️ `deplacer`, pas `retirer` : l'unité PART AU CIMETIÈRE, elle n'est pas
+      // effacée. Elle y libère un slot et redevient un matériau d'invocation —
+      // c'est tout le sens de la magie.
+      pousse([{ action: 'deplacer', cible: uneUnite(), destination: 'cimetiere' }]);
+      return { effets, refus };
+
+    case 'drain_life':
+      // Le même déplacement, plus le versement. ⚠️ Les PV COURANTS et non le
+      // maximum : c'est ce qui en fait un remplaçant honnête de `destroy_unit`.
+      // ⚠️ Le versement part AVANT le déplacement — une fois au cimetière,
+      // l'unité n'est plus une cible du sélecteur `board`.
+      pousse([
+        { action: 'modifier', cible: leJoueur(), champ: 'pv', operateur: '+', valeur: 100, duree: 'partie', valeurDepuis: 'pv_courant_cible' },
+        { action: 'deplacer', cible: uneUnite(), destination: 'cimetiere' },
+      ]);
+      return { effets, refus };
+
+    case 'hand_to_graveyard':
+      // ⚠️ Aucun corps n'est posé sur le terrain : la carte devient un matériau,
+      // et rien d'autre. Elle disparaît au lancement du combat si personne ne
+      // l'a consommée — la magie ne met pas une carte en réserve, elle la brûle
+      // pour un tour.
+      pousse([{ action: 'deplacer', cible: { conteneur: 'main', camp: 'allie', combien: 'un' }, destination: 'cimetiere' }]);
+      return { effets, refus };
+
+    case 'sacrifice_card_hp':
+      // ⚠️ `retirer` et non `deplacer` : la carte est BRÛLÉE, elle ne va pas au
+      // cimetière — sinon le choix avec `hand_to_graveyard` serait sans objet.
+      // Les PV lus sont ceux de la CARTE : rien n'est encore posé.
+      pousse([
+        { action: 'modifier', cible: leJoueur(), champ: 'pv', operateur: '+', valeur: (e.value as number) || 100, duree: 'partie', valeurDepuis: 'pv_carte_cible' },
+        { action: 'retirer', cible: { conteneur: 'main', camp: 'allie', combien: 'un' } },
+      ]);
+      return { effets, refus };
+
+    case 'duplicate_unit':
+    case 'duplicate_graveyard_unit':
+    case 'duplicate_card':
+      // ⚠️ **Trois sélecteurs, UNE action** — la démonstration du §4.2. Ce qui
+      // les distinguait n'était pas le geste mais l'endroit où l'on regarde :
+      // board, cimetière ou main. Et dans les trois cas c'est la CARTE de
+      // catalogue qui part en main, jamais l'entité.
+      pousse([{
+        action: 'ajouter',
+        cible: {
+          conteneur: e.type === 'duplicate_unit' ? 'board' : e.type === 'duplicate_graveyard_unit' ? 'cimetiere' : 'main',
+          camp: 'allie', combien: 'un',
+        },
+        destination: 'main',
+        quantite: (e.value as number) || 1,
+      }]);
+      return { effets, refus };
+
+    // ── Les deux remises d'invocation ─────────────────────────────────────
+    //
+    // ⚠️ Elles ne compilaient PAS tant qu'elles étaient différées : il aurait
+    // fallu un `poser_effet` consommé au tour suivant. Devenues immédiates et
+    // ciblées, elles sont une modification de CARTE comme une autre — et c'est
+    // le seul porteur de champs qui n'est ni une unité ni le joueur.
+    case 'reduce_materials':
+    case 'remove_requirements':
+      pousse([{
+        action: 'modifier',
+        cible: { conteneur: 'main', camp: 'allie', combien: 'un' },
+        champ: e.type === 'reduce_materials' ? 'cout_materiels' : 'exigences',
+        operateur: '-',
+        valeur: Math.max(1, (e.value as number) || 1),
+        duree: 'partie',
+      }]);
+      return { effets, refus };
+
+    // ── Le POOL de deck ───────────────────────────────────────────────────
+    //
+    // ⚠️ Les seules tâches du moteur qui consomment du HASARD. Le pool est
+    // INJECTÉ (`Monde.pool`) : `GameSession` ne laisse pas sortir le deck du
+    // joueur, le moteur demande des candidats pour un usage et ignore d'où ils
+    // viennent. Discipline d'appel : celle de `BoardPicker` — exactement un
+    // tirage, AUCUN sur un pool vide.
+
+    case 'shift_tier_unit':
+      // ⚠️ Une SUBSTITUTION : l'ancienne unité quitte la partie sans passer par
+      // le cimetière (l'y laisser ferait payer la magie deux fois), ne garde
+      // aucun acquis, et la CASE est conservée — `initial_position` comprise.
+      pousse([{ action: 'remplacer', cible: uneUnite(), source: 'tier_voisin', decalage: (e.value as number) || 1 }]);
+      return { effets, refus };
+
+    case 'shift_tier_card':
+      pousse([{
+        action: 'remplacer',
+        cible: { conteneur: 'main', camp: 'allie', combien: 'un' },
+        source: 'tier_voisin', decalage: (e.value as number) || 1,
+      }]);
+      return { effets, refus };
+
+    case 'draw_material':
+      // ⚠️ La carte source RESTE en place : la magie AJOUTE un matériel, elle ne
+      // remplace rien. C'est ce qui la distingue de `shift_tier_card`.
+      pousse([{
+        action: 'remplacer',
+        cible: { conteneur: 'main', camp: 'allie', combien: 'un' },
+        source: 'materiau',
+      }]);
       return { effets, refus };
 
     case 'guaranteed_draw':
