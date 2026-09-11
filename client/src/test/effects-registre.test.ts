@@ -41,7 +41,7 @@ function monde(extra: Partial<Monde> = {}): Monde {
 
 const bonusAtk: EffetPose = {
   id: 'POSE#0', porteur: 'SRC',
-  trigger: { quand: 'apres_pioche' },
+  trigger: { quand: 'debut_combat' },
   taches: [{
     action: 'modifier',
     cible: { conteneur: 'board', camp: 'allie', combien: 'tous' },
@@ -80,7 +80,7 @@ describe('poser_effet — un effet inscrit un effet', () => {
     expect(u._stat_bonuses.atk ?? 0).toBe(0);
 
     // Il part quand l'APPELANT rejoue le registre, sous son propre `quand`.
-    executer(registre.map(r => r.effet), 'apres_pioche', m);
+    executer(registre.map(r => r.effet), 'debut_combat', m);
     expect(u._stat_bonuses.atk).toBe(5);
   });
 

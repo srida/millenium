@@ -3302,6 +3302,12 @@ const EFFECT_NOTES = {
 function _effectFieldOptions(champ, valeur) {
   const opt = (v, l, sel) => `<option value="${v}" ${sel ? 'selected' : ''}>${l}</option>`;
   const vide = champ.facultatif ? opt('', '— indifférent —', !valeur) : '';
+  if (Array.isArray(champ.options)) {
+    // ⚠️ `choix_direct` : les options voyagent DANS le descripteur, parce
+    // qu'elles dépendent du type (les moments qu'il sait honorer) et non d'un
+    // catalogue. Les recopier ici en ferait une seconde liste à tenir d'accord.
+    return vide + champ.options.map(([v, l]) => opt(v, l, valeur === v)).join('');
+  }
   switch (champ.options) {
     case 'stats':
       return EFX.STATS.map(([v, l]) => opt(v, l, valeur === v)).join('');
@@ -3341,6 +3347,7 @@ function _effectFieldHtml(champ, effet, prefixe, ctx) {
 
   switch (champ.saisie) {
     case 'choix':
+    case 'choix_direct':
       return `<div class="field"><label>${champ.label}</label>
         <select id="${id}" ${champ.declenche && ctx.onRerender ? `onchange="${ctx.onRerender}"` : ''}
         >${_effectFieldOptions(champ, valeur)}</select>${aide}</div>`;
@@ -3404,8 +3411,11 @@ function effectEditorHtml(porteur, effet, prefixe, ctx = {}) {
     ? EFX.champsOfferts(porteur, type).filter(c => !_effectFieldMasque(c, effet))
     : [];
 
-  const moment = def && quand
-    ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ Part <b>${EFX.QUAND_LABELS[quand]}</b> — dérivé du type, pas réglable.</div>`
+  // ⚠️ Le moment ne s'AFFICHE en dur que si le type n'en connaît qu'un. Quand il
+  // en sait honorer plusieurs, l'auteur choisit — mais jamais hors de la liste
+  // de son type : c'est ce qui garde fermée la panne des onze effets morts.
+  const moment = def && quand && EFX.quandsDe(porteur, type).length <= 1
+    ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">⏱ Part <b>${EFX.QUAND_LABELS[quand] ?? 'selon le déclencheur'}</b> — dérivé du type, pas réglable.</div>`
     : '';
   // ⚠️ La frontière du moteur générique s'AFFICHE. Ces effets fonctionnent
   // normalement ; ils gardent seulement leur chemin écrit à la main. Laisser
@@ -3474,8 +3484,13 @@ function readEffectFromForm(porteur, prefixe, precedent) {
     }
     const brut = document.getElementById(id)?.value;
     if (brut === undefined) { if (precedent?.[champ.id] !== undefined) out[champ.id] = precedent[champ.id]; continue; }
-    if (champ.saisie === 'choix') {
+    if (champ.saisie === 'choix' || champ.saisie === 'choix_direct') {
       if (brut === '' && champ.facultatif) continue;
+      // ⚠️ Un champ `omettreSiDefaut` ne s'écrit que s'il DIT quelque chose :
+      // recopier le défaut à chaque enregistrement sèmerait une clé muette dans
+      // tout le catalogue. C'est la pollution qu'on a retirée à l'ancien
+      // éditeur, pas une à réintroduire.
+      if (champ.omettreSiDefaut && brut === champ.defaut) continue;
       out[champ.id] = champ.options === 'tiers' ? parseInt(brut, 10) : brut;
       continue;
     }

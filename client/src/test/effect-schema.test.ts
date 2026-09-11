@@ -73,12 +73,25 @@ const SANS_DUREE = pouvoirs
  */
 function valeurPour(champ: any, variante = 0): any {
   switch (champ.saisie) {
+    // ⚠️ `choix_direct` : les options voyagent DANS le descripteur, parce
+    // qu'elles dépendent du type (les moments qu'il sait honorer) et non d'un
+    // catalogue. Sans ce cas, la sonde retombait sur le défaut NUMÉRIQUE et
+    // écrivait `timing: 3` — un refus « moment inconnu » qui ressemblait à un
+    // désaccord entre la table et le compilateur, alors que c'était le harnais.
+    case 'choix_direct':
+      // ⚠️ Une liste VIDE veut dire « ce champ n'a aucune valeur légale ici »
+      // (le `timing` d'un `stat_modifier`, qui porte son moment dans son
+      // `trigger`). Il n'y a rien à écrire, et surtout rien à sonder.
+      if (!champ.options.length) return undefined;
+      return champ.options[variante % champ.options.length][0];
     case 'choix':
       if (champ.options === 'stats') return (STATS as any)[variante % STATS.length][0];
       if (champ.options === 'triggers') return (TRIGGERS as any)[variante % TRIGGERS.length][0];
       if (champ.options === 'attributs') return variante ? (attributs[1].id as string) : UN_ATTRIBUT;
       if (champ.options === 'pouvoirs') return SANS_DUREE[variante % SANS_DUREE.length];
       if (champ.options === 'tiers') return 1 + (variante % 5);
+      // ⚠️ `choix_direct` : les options voyagent dans le descripteur, parce
+      // qu'elles dépendent du type (les moments qu'il sait honorer).
       return 'x';
     case 'criteres':
       return variante ? [attributs[1].id] : [UN_ATTRIBUT];
@@ -101,7 +114,8 @@ function effetRempli(porteur: string, type: string, variante = 0): any {
     // POUVOIR qui tranche : sur un pouvoir sans durée, écrire les deux ferait
     // du bruit que le moteur ne lit pas.
     if (type === 'grant_power' && champ.id === 'duration') continue;
-    out[champ.id] = valeurPour(champ, variante);
+    const v = valeurPour(champ, variante);
+    if (v !== undefined) out[champ.id] = v;
   }
   return out;
 }
@@ -227,6 +241,12 @@ describe('effect-schema — la sonde : un champ déclaré est un champ lu', () =
       .filter((c: any) => c.lecteur === 'moteur')
       // `duration` est exclu par le pouvoir choisi ci-dessus, pas par le schéma.
       .filter((c: any) => !(t === 'grant_power' && c.id === 'duration'))
+      // ⚠️ Une sonde ne peut pas prouver qu'un champ est lu s'il n'a qu'UNE
+      // valeur légale : les deux variantes écriraient la même chose. C'est le
+      // cas de `timing` sur un type qui ne connaît qu'un moment — et ce qu'il
+      // fait alors (refuser tout autre moment) est éprouvé par
+      // `invocation-trigger.test.ts`, pas ici.
+      .filter((c: any) => !(Array.isArray(c.options) && c.options.length < 2))
       .map((c: any) => [p, t, c.id] as const));
 
   it.each(sondables)('%s / %s : changer `%s` change la compilation', (porteur, type, champ) => {
@@ -276,9 +296,10 @@ describe('effect-schema — la table elle-même', () => {
 
   it('chaque `quand` déclaré porte son libellé français', () => {
     for (const [porteur, type] of TOUS_LES_TYPES) {
-      const q = (TYPES as any)[type][porteur].quand;
-      if (q === 'selon_trigger') continue;
-      expect(QUAND_LABELS[q as keyof typeof QUAND_LABELS], `${porteur}/${type}`).toBeTruthy();
+      for (const q of (TYPES as any)[type][porteur].quands) {
+        if (q === 'selon_trigger') continue;
+        expect(QUAND_LABELS[q as keyof typeof QUAND_LABELS], `${porteur}/${type}`).toBeTruthy();
+      }
     }
   });
 

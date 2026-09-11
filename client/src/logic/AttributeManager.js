@@ -150,6 +150,18 @@ export class AttributeManager {
     return actifs;
   }
 
+  /**
+   * Joue les effets d'un MOMENT donné, au décompte des vivantes.
+   *
+   * ⚠️ La classe ne garde que les SEUILS (§6.5) : c'est elle qui dit quel palier
+   * est actif, le moteur qui applique. Un appelant qui voudrait déclencher un
+   * moment sans passer par ici devrait recompter les paliers — donc s'en donner
+   * une seconde version.
+   */
+  joueMoment(quand, monde) {
+    return executer(this._effetsDesPaliers(this._paliersVivants(monde.unitesAlliees)), quand, monde);
+  }
+
   /** Le monde d'un camp, tel que le moteur l'attend. */
   _monde(units, other, ressources, neutralisees, limite) {
     return {

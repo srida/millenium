@@ -15,8 +15,8 @@
 
 import type { BoardDef, BoardEffectDef } from '../types.js';
 import { boardEffects } from '../BoardEffect.js';
-import { CHAMPS_UNITE, CHAMPS_JOUEUR } from './types.js';
-import type { Effet, Tache, Selecteur, ChampUnite, Quand } from './types.js';
+import { CHAMPS_UNITE, CHAMPS_JOUEUR, PORTEES } from './types.js';
+import type { Effet, Tache, Selecteur, ChampUnite, Quand, Portee } from './types.js';
 
 /** La forme minimale d'un attribut que le compilateur lit — jamais `data/`. */
 export interface AttributeLike {
@@ -28,6 +28,23 @@ export interface AttributeLike {
 /** Les champs qu'un effet d'attribut peut porter — la donnée, telle qu'elle est. */
 export interface AttributeEffectLike {
   type: string;
+  /**
+   * Le moment que l'EFFET réclame, quand son type en sait honorer plusieurs.
+   *
+   * ⚠️ Absent, le type décide (son premier moment permis) : toute la donnée
+   * livrée est dans ce cas, donc rien ne bouge. C'est le découplage du §1.4 mené
+   * à son terme — le `timing` vivait sur l'ATTRIBUT et la forme sur l'effet,
+   * sans que rien ne les accorde.
+   */
+  timing?: string;
+  /**
+   * Combien de fois l'effet part (§3.5). Absente = `a_chaque_fois`.
+   *
+   * ⚠️ En français comme `categorie` sur l'attribut porteur : la donnée de ce
+   * projet mélange déjà les deux langues, et un `scope` anglais ici voudrait
+   * dire autre chose que le `objective.scope` des missions.
+   */
+  portee?: string;
   stat?: string;
   value?: number;
   value_per?: string;
@@ -197,18 +214,52 @@ export { CHAMPS_JOUEUR };
 // désaccord devient un refus nommé, là où c'était un silence.
 // ───────────────────────────────────────────────────────────────────────────
 
-/** Le moment où un type d'effet se déclenche RÉELLEMENT, quoi qu'en dise son porteur. */
-const QUAND_PAR_TYPE: Record<string, Quand> = {
-  stat_bonus: 'debut_combat',
-  shield: 'debut_combat',
-  effect_immunity: 'debut_combat',
-  revive: 'fin_combat',
-  draw_bonus: 'fin_combat',
-  guaranteed_draw: 'fin_combat',
-  board_slot_bonus: 'fin_combat',
-  damage_multiplier_bonus: 'fin_combat',
-  shopping_bonus: 'fin_combat',
+/**
+ * Les moments où un type d'effet PEUT se déclencher — le premier est le défaut.
+ *
+ * ⚠️ **C'était un moment par type, et c'est devenu une liste — sans rien lâcher
+ * de la règle qui a tué onze effets.** Le principe reste : un effet ne part
+ * jamais à un moment que son type ne sait pas honorer. Ce qui change, c'est que
+ * certains types en savent honorer PLUSIEURS, et qu'un auteur peut alors
+ * choisir (`effect.timing`). Un moment absent de la liste ne compile pas — donc
+ * la panne d'origine (un `revive` sous `start_of_combat`) reste impossible.
+ *
+ * ⚠️ `a_l_invocation` n'est ouvert qu'aux effets qui visent des UNITÉS. Les
+ * ressources de fin de combat (pioche, slot, multiplicateur, Shopping) n'ont
+ * rien à faire au moment où une unité se pose : elles se versent une fois le
+ * combat résolu, et les y autoriser rendrait exprimable un effet dont personne
+ * ne saurait dire ce qu'il fait.
+ */
+const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
+  stat_bonus: ['debut_combat', 'a_l_invocation'],
+  shield: ['debut_combat', 'a_l_invocation'],
+  effect_immunity: ['debut_combat', 'a_l_invocation'],
+  revive: ['fin_combat'],
+  draw_bonus: ['fin_combat'],
+  guaranteed_draw: ['fin_combat'],
+  board_slot_bonus: ['fin_combat'],
+  damage_multiplier_bonus: ['fin_combat'],
+  shopping_bonus: ['fin_combat'],
 };
+
+/**
+ * Les moments où un APPELANT tient la mémoire des portées.
+ *
+ * ⚠️ C'est une propriété des appelants, pas du vocabulaire : `GameSession`
+ * fournit `consommePortee` à l'invocation, personne ne le fait ailleurs. Un
+ * moment rejoint cette liste le jour où son point de branchement passe une
+ * mémoire, jamais avant — sinon on offre un réglage que rien ne tient.
+ *
+ * ⚠️ JUMEAU de `QUANDS_AVEC_MEMOIRE` (`effect-schema.mjs`), séparé par la
+ * frontière ESM-racine / TS-bundle. `effect-schema.test.ts` les fait répondre la
+ * même chose.
+ */
+export const QUANDS_AVEC_MEMOIRE: readonly Quand[] = ['a_l_invocation'];
+
+/** Les moments qu'un type sait honorer — exporté pour le test jumeau du schéma. */
+export function quandsPourType(type: string): readonly Quand[] {
+  return QUANDS_PAR_TYPE[type] ?? [];
+}
 
 /** Les deux déclencheurs d'un `stat_modifier`, qui portent leur `quand` eux-mêmes. */
 const QUAND_PAR_TRIGGER: Record<string, Quand> = {
@@ -216,10 +267,11 @@ const QUAND_PAR_TRIGGER: Record<string, Quand> = {
   on_enemy_neutralized: 'ennemi_detruit',
 };
 
-/** Le `timing` que la donnée déclare, traduit — pour le contrôle de cohérence. */
+/** Le `timing` que la donnée déclare, traduit — sur l'attribut comme sur l'effet. */
 const QUAND_PAR_TIMING: Record<string, Quand> = {
   start_of_combat: 'debut_combat',
   end_of_combat: 'fin_combat',
+  on_summon: 'a_l_invocation',
 };
 
 /**
@@ -243,26 +295,70 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
       // Le `quand` vient de l'EFFET. Pour un `stat_modifier`, c'est son propre
       // `trigger` qui le porte — et un trigger inconnu ne compile pas, là où il
       // ne déclenchait simplement jamais.
-      const quand = effect.type === 'stat_modifier'
+      const permis = quandsPourType(effect.type);
+      let quand = effect.type === 'stat_modifier'
         ? QUAND_PAR_TRIGGER[effect.trigger as string]
-        : QUAND_PAR_TYPE[effect.type];
+        : permis[0];
       if (!quand) {
         refuse(effect.type === 'stat_modifier' ? 'déclencheur inconnu' : 'type non traduit',
           effect.type === 'stat_modifier' ? `stat_modifier → trigger '${effect.trigger}'` : effect.type);
         return;
       }
 
+      // ⚠️ **L'EFFET peut nommer son moment, et c'est la seule nouveauté.** Le
+      // principe ne bouge pas : il ne part jamais à un moment que son type ne
+      // sait pas honorer, donc la panne d'origine (un `revive` sous
+      // `start_of_combat`) reste impossible. Ce qui change, c'est qu'un type qui
+      // en sait honorer plusieurs laisse l'auteur choisir, au lieu de rendre le
+      // second inexprimable.
+      const propre = effect.timing ? QUAND_PAR_TIMING[effect.timing as string] : null;
+      if (effect.timing && !propre) {
+        refuse('moment inconnu', `${effect.type} → timing '${effect.timing}'`);
+        return;
+      }
+      if (propre) {
+        if (!permis.includes(propre)) {
+          refuse('moment impossible', `${effect.type} ne se déclenche pas à '${effect.timing}'`);
+          return;
+        }
+        quand = propre;
+      }
+
       // ⚠️ Le contrôle qui n'existe nulle part aujourd'hui : la donnée annonce un
       // `timing`, l'effet en impose un autre. Aujourd'hui le désaccord est un
       // silence ; ici c'est un refus, nommé, avec les deux moments en clair.
+      //
+      // ⚠️ Il ne s'applique QUE si l'effet n'a pas nommé son propre moment : le
+      // plus spécifique gagne, sinon l'effet ne pourrait jamais s'écarter de son
+      // porteur — ce qui est précisément ce qu'on vient d'ouvrir.
       const annonce = QUAND_PAR_TIMING[attr.timing as string];
       const attendu = effect.type === 'stat_modifier' ? 'during_combat' : null;
-      if (attendu ? attr.timing !== attendu : (annonce && annonce !== quand)) {
+      if (!propre && (attendu ? attr.timing !== attendu : (annonce && annonce !== quand))) {
         refuse('timing incohérent', `${effect.type} sous '${attr.timing}' (se déclenche à '${quand}')`);
         return;
       }
 
-      const trigger = { quand, verrouille: effect.type === 'stat_modifier' };
+      // ⚠️ Une portée que le moteur ne connaît pas ne compile pas. Écrite dans le
+      // trigger, elle serait lue par `executer` comme « autre chose
+      // qu'`a_chaque_fois` » et refuserait l'effet faute de mémoire — un effet
+      // mort par faute de frappe, exactement ce qu'on ferme partout ailleurs.
+      if (effect.portee && !PORTEES.includes(effect.portee as never)) {
+        refuse('portée inconnue', `${effect.type} → portee '${effect.portee}'`);
+        return;
+      }
+      // ⚠️ Une portée ne veut dire quelque chose QUE là où un appelant tient la
+      // mémoire : le moteur ne compte rien lui-même (§3.5). Posée ailleurs, elle
+      // ferait refuser l'effet à l'exécution, faute de `consommePortee` — donc
+      // un effet mort, découvert en jeu. Ici c'est un refus à l'écriture.
+      if (effect.portee && effect.portee !== 'a_chaque_fois' && !QUANDS_AVEC_MEMOIRE.includes(quand)) {
+        refuse('portée sans mémoire', `${effect.type} à '${quand}' — personne n'y tient le compte`);
+        return;
+      }
+      const trigger = {
+        quand,
+        verrouille: effect.type === 'stat_modifier',
+        ...(effect.portee ? { portee: effect.portee as Portee } : {}),
+      };
       const condition = { attribut: porteur, minimum: seuil.count };
       const pousse = (taches: Tache[]) => effets.push({ id, porteur, condition, trigger, taches });
 

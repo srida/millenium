@@ -55,7 +55,9 @@ export const PORTEUR_LABELS = Object.freeze({
  * qu'il fasse.
  */
 export const QUAND_LABELS = Object.freeze({
+  a_l_invocation: 'quand une unité est invoquée',
   debut_combat: 'au début du combat',
+  pouvoir_utilise: 'quand un pouvoir part',
   fin_combat: 'à la fin du combat',
   allie_detruit: 'quand un allié est neutralisé',
   ennemi_detruit: 'quand un ennemi est neutralisé',
@@ -73,12 +75,61 @@ const QUAND_PAR_TRIGGER = Object.freeze({
   on_enemy_neutralized: 'ennemi_detruit',
 });
 
-/** Le moment d'un effet, son `trigger` compris quand il en porte un. */
+/**
+ * Ce que la DONNÉE écrit pour nommer un moment, et ce que le moteur en fait.
+ *
+ * ⚠️ Jumeau de `QUAND_PAR_TIMING` (`compile.ts`), séparé par la frontière
+ * ESM-racine / TS-bundle comme `tiers.js` l'est de `logic/Tiers.ts`.
+ * `effect-schema.test.ts` les fait répondre la même chose — c'est le seul filet
+ * contre leur dérive.
+ */
+export const TIMING_PAR_QUAND = Object.freeze({
+  debut_combat: 'start_of_combat',
+  fin_combat: 'end_of_combat',
+  a_l_invocation: 'on_summon',
+});
+
+/**
+ * Les moments où un APPELANT tient la mémoire des portées.
+ *
+ * ⚠️ Ce n'est pas « les moments qui se répètent » : c'est « ceux où quelqu'un
+ * compte ». Le moteur ne compte rien lui-même (§3.5), il demande. Aujourd'hui
+ * seule `GameSession.place()` fournit cette mémoire ; offrir une portée
+ * ailleurs ferait refuser l'effet à l'exécution — un effet mort découvert en
+ * jeu, quand le compilateur peut le refuser à l'écriture.
+ *
+ * ⚠️ JUMEAU de `QUANDS_AVEC_MEMOIRE` (`compile.ts`), et
+ * `effect-schema.test.ts` les fait répondre la même chose.
+ */
+export const QUANDS_AVEC_MEMOIRE = Object.freeze(['a_l_invocation']);
+
+export const PORTEE_LABELS = Object.freeze({
+  a_chaque_fois: 'à chaque fois',
+  une_fois_par_combat: 'une fois par combat',
+  une_fois_par_round: 'une fois par round',
+  une_fois_par_partie: 'une fois par partie',
+});
+
+/** Les moments qu'un type sait honorer sur ce porteur. */
+export function quandsDe(porteur, type) {
+  return TYPES[type]?.[porteur]?.quands ?? [];
+}
+
+/**
+ * Le moment d'un effet : celui qu'il NOMME s'il en nomme un, sinon le défaut de
+ * son type (le premier de la liste).
+ *
+ * ⚠️ Le principe qui a tué onze effets ne bouge pas — un effet ne part jamais à
+ * un moment que son type ne sait pas honorer. Ce qui change, c'est qu'un type
+ * qui en sait honorer plusieurs laisse l'auteur choisir, au lieu de rendre le
+ * second inexprimable.
+ */
 export function quandDe(porteur, type, effet) {
-  const def = TYPES[type]?.[porteur];
-  if (!def) return null;
-  if (def.quand !== 'selon_trigger') return def.quand;
-  return QUAND_PAR_TRIGGER[effet?.trigger] ?? null;
+  const quands = quandsDe(porteur, type);
+  if (!quands.length) return null;
+  if (quands[0] === 'selon_trigger') return QUAND_PAR_TRIGGER[effet?.trigger] ?? null;
+  const nomme = Object.entries(TIMING_PAR_QUAND).find(([, t]) => t === effet?.timing)?.[0];
+  return nomme && quands.includes(nomme) ? nomme : quands[0];
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -129,6 +180,10 @@ export const STATS = Object.freeze([
  * `declenche` dit qu'un autre champ dépend de celui-ci, donc que l'éditeur doit
  * se re-rendre quand il change.
  *
+ * `omettreSiDefaut` dit de ne PAS persister une valeur égale au défaut. Réservé
+ * aux champs qu'on vient d'ouvrir : les écrire partout sèmerait dans tout le
+ * catalogue une clé qui ne dit rien de plus que son absence.
+ *
  * `offert` dit si l'ÉDITEUR le propose. ⚠️ Les deux questions sont distinctes, et
  * la table doit répondre aux deux : un champ encore LU par le moteur mais qu'on
  * ne veut plus voir écrire est une forme HISTORIQUE — la déclarer `offert: false`
@@ -136,7 +191,7 @@ export const STATS = Object.freeze([
  * rendrait invisible du test, et on serait revenu à un champ lu que rien ne
  * documente : exactement la panne que ce fichier existe pour fermer.
  */
-const CHAMP_DEFAUT = { saisie: 'nombre', defaut: 0, facultatif: false, lecteur: 'moteur', offert: true, declenche: false };
+const CHAMP_DEFAUT = { saisie: 'nombre', defaut: 0, facultatif: false, lecteur: 'moteur', offert: true, declenche: false, omettreSiDefaut: false };
 
 export const CHAMPS = Object.freeze({
   stat: { label: 'Stat ciblée', saisie: 'choix', options: 'stats', defaut: 'atk' },
@@ -165,6 +220,25 @@ export const CHAMPS = Object.freeze({
     aide: 'Restreint les cartes de la main que la magie peut viser. Vide = toutes.',
   },
   target_attributes: { label: 'Archétypes ciblés', saisie: 'attributs_multi', facultatif: true, defaut: [] },
+  timing: {
+    label: 'Quand il part', saisie: 'choix_direct', defaut: '', declenche: true,
+    // ⚠️ Ne s'écrit QUE s'il s'écarte du défaut du type. Sans ça, ouvrir puis
+    // enregistrer une fiche sèmerait `"timing": "start_of_combat"` sur tous les
+    // paliers du catalogue — du bruit qui ressemble à un changement, et la
+    // pollution exacte qu'on a retirée à l'ancien éditeur (`value: 0` sur un
+    // `revive`).
+    omettreSiDefaut: true,
+    // ⚠️ Le seul champ dont les OPTIONS dépendent du type : ce sont les moments
+    // que ce type sait honorer, et rien d'autre. En proposer un de plus
+    // rouvrirait la panne des onze effets morts.
+    aide: 'Ce type sait partir à plusieurs moments. Un moment qu’il ne sait pas honorer est refusé à l’écriture.',
+  },
+  portee: {
+    label: 'Combien de fois', saisie: 'choix_direct', facultatif: true, defaut: '',
+    omettreSiDefaut: true,
+    options: Object.entries(PORTEE_LABELS),
+    aide: 'Vide = à chaque fois, le comportement par défaut.',
+  },
   power_id: {
     label: 'Pouvoir donné', saisie: 'choix', options: 'pouvoirs', defaut: '',
     // ⚠️ `declenche` dit qu'un AUTRE champ dépend de celui-ci : le changer doit
@@ -222,52 +296,52 @@ export const TYPES = Object.freeze({
   // ── Ce qui touche une unité ──────────────────────────────────────────────
   stat_bonus: {
     label: 'Bonus de stat',
-    terrain: { quand: 'debut_combat', champs: { stat: {}, value: {}, target_attributes: {} } },
-    attribut: { quand: 'debut_combat', champs: { stat: {}, value: {}, value_per: {} } },
-    magie: { quand: 'immediat', champs: { stat: {}, value: {} } },
+    terrain: { quands: ['debut_combat'], champs: { stat: {}, value: {}, target_attributes: {} } },
+    attribut: { quands: ['debut_combat', 'a_l_invocation'], champs: { stat: {}, value: {}, value_per: {} } },
+    magie: { quands: ['immediat'], champs: { stat: {}, value: {} } },
   },
   stat_modifier: {
     label: 'Modificateur de stat (multiplicateur)',
     court: 'Modificateur de stat',
-    terrain: { quand: 'debut_combat', champs: { stat: {}, value: { label: 'Facteur (1 = aucun effet)', defaut: 1 }, target_attributes: {} } },
+    terrain: { quands: ['debut_combat'], champs: { stat: {}, value: { label: 'Facteur (1 = aucun effet)', defaut: 1 }, target_attributes: {} } },
     // ⚠️ `trigger` avant `value` : l'ordre des champs est celui que
     // `readEffectFromForm` écrit, donc celui du JSON enregistré. Le faire
     // coller à la donnée livrée évite de réécrire 10 attributs à la première
     // ouverture de fiche — du bruit de diff qui ressemble à un changement.
-    attribut: { quand: 'selon_trigger', champs: { stat: {}, trigger: {}, value: {} } },
-    magie: { quand: 'immediat', champs: { stat: {}, value: { label: 'Facteur (1 = aucun effet)', defaut: 1 } } },
+    attribut: { quands: ['selon_trigger'], champs: { stat: {}, trigger: {}, value: {} } },
+    magie: { quands: ['immediat'], champs: { stat: {}, value: { label: 'Facteur (1 = aucun effet)', defaut: 1 } } },
   },
   team_stat_bonus: {
     label: 'Bonus de stat — TOUTES tes unités',
     court: 'Bonus de stat (équipe)',
-    magie: { quand: 'immediat', champs: { stat: {}, value: {} } },
+    magie: { quands: ['immediat'], champs: { stat: {}, value: {} } },
   },
   shield: {
     label: 'Bouclier',
-    terrain: { quand: 'debut_combat', champs: { value: {}, target_attributes: {} } },
+    terrain: { quands: ['debut_combat'], champs: { value: {}, target_attributes: {} } },
     // ⚠️ Pas de `value_per` ici, et c'est un RETRAIT volontaire : le bouclier
     // d'attribut est TOUJOURS × alliés vivants, le compilateur pose
     // `parAllieVivant: true` sans jamais lire `value_per`. Le champ était
     // décoratif, et c'est lui qui rendait `active_unit` proposable (§6.1).
-    attribut: { quand: 'debut_combat', champs: { value: {} } },
-    magie: { quand: 'immediat', champs: { value: {} } },
+    attribut: { quands: ['debut_combat', 'a_l_invocation'], champs: { value: {} } },
+    magie: { quands: ['immediat'], champs: { value: {} } },
   },
   heal: {
     label: 'Soin TOTAL (une unité)',
     court: 'Soin total',
     // ⚠️ Aucun champ : le soin suit le max COURANT, bonus et vétérance compris.
     // `value` n'est PAS lu — des entrées anciennes en portent un, il est ignoré.
-    magie: { quand: 'immediat', champs: {} },
+    magie: { quands: ['immediat'], champs: {} },
   },
   team_heal: {
     label: 'Soin de masse — TOUTES tes unités',
     court: 'Soin de masse',
-    magie: { quand: 'immediat', champs: { value: { label: 'PV rendus' } } },
+    magie: { quands: ['immediat'], champs: { value: { label: 'PV rendus' } } },
   },
   effect_immunity: {
     label: 'Immunité aux effets négatifs (poison, paralysie, push, burn…)',
     court: 'Immunité aux effets',
-    attribut: { quand: 'debut_combat', champs: {} },
+    attribut: { quands: ['debut_combat', 'a_l_invocation'], champs: {} },
   },
   revive: {
     label: 'Réanimation d’une unité du cimetière',
@@ -276,8 +350,8 @@ export const TYPES = Object.freeze({
     // et la donnée livrée le fait déjà : l'attribut écrit `hp_percent`, la magie
     // écrit `value`. Le schéma le DIT au lieu de laisser deux éditeurs le
     // deviner — c'est précisément le genre d'écart qui se lit comme un bug.
-    attribut: { quand: 'fin_combat', champs: { hp_percent: {} } },
-    magie: { quand: 'immediat', champs: { value: { label: '% des PV max', defaut: 50 } } },
+    attribut: { quands: ['fin_combat'], champs: { hp_percent: {} } },
+    magie: { quands: ['immediat'], champs: { value: { label: '% des PV max', defaut: 50 } } },
   },
   grant_power: {
     label: 'Donner / remplacer le pouvoir d’une unité',
@@ -288,7 +362,7 @@ export const TYPES = Object.freeze({
     // ici — l'éditeur n'en montre qu'un, et un `value` résiduel sur un pouvoir
     // de durée est refusé en 400 par le contrat de carte.
     magie: {
-      quand: 'immediat',
+      quands: ['immediat'],
       champs: {
         power_id: {}, power_rate: {},
         value: { label: 'Valeur du pouvoir', facultatif: true, masqueSi: 'pouvoir_de_duree' },
@@ -299,16 +373,16 @@ export const TYPES = Object.freeze({
   power_cooldown: {
     label: 'Accélérer le pouvoir d’une unité',
     court: 'Accélérer un pouvoir',
-    magie: { quand: 'immediat', champs: { value: { label: 'Facteur de division', defaut: 2 } } },
+    magie: { quands: ['immediat'], champs: { value: { label: 'Facteur de division', defaut: 2 } } },
   },
 
   // ── Ce qui touche le joueur ──────────────────────────────────────────────
   draw_bonus: {
     label: 'Pioche supplémentaire',
     court: 'Pioche',
-    terrain: { quand: 'debut_combat', champs: { value: { label: 'Cartes en plus', defaut: 1 } } },
-    attribut: { quand: 'fin_combat', champs: { value: { label: 'Cartes en plus', defaut: 1 }, max: {} } },
-    magie: { quand: 'immediat', champs: { value: { label: 'Cartes en plus', defaut: 1 } } },
+    terrain: { quands: ['debut_combat'], champs: { value: { label: 'Cartes en plus', defaut: 1 } } },
+    attribut: { quands: ['fin_combat'], champs: { value: { label: 'Cartes en plus', defaut: 1 }, max: {} } },
+    magie: { quands: ['immediat'], champs: { value: { label: 'Cartes en plus', defaut: 1 } } },
   },
   guaranteed_draw: {
     label: 'Pioche garantie (tier, attributs, cartes)',
@@ -321,88 +395,88 @@ export const TYPES = Object.freeze({
     // `attributes` par `Draw.guaranteedDrawCriteria`. Le compilateur la lit
     // encore — de la donnée livrée en porte — mais l'éditeur ne la propose plus :
     // deux champs pour la même question laisseraient écrire deux réponses.
-    attribut: { quand: 'fin_combat', champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
-    magie: { quand: 'immediat', champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
+    attribut: { quands: ['fin_combat'], champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
+    magie: { quands: ['immediat'], champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
   },
   board_slot_bonus: {
     label: 'Slot de board supplémentaire',
     court: 'Slot de board',
-    attribut: { quand: 'fin_combat', champs: { value: { defaut: 1 }, max: {} } },
-    magie: { quand: 'immediat', champs: { value: { defaut: 1 } } },
+    attribut: { quands: ['fin_combat'], champs: { value: { defaut: 1 }, max: {} } },
+    magie: { quands: ['immediat'], champs: { value: { defaut: 1 } } },
   },
   damage_multiplier_bonus: {
     label: 'Multiplicateur de dégâts supplémentaire',
     court: 'Multiplicateur de dégâts',
-    attribut: { quand: 'fin_combat', champs: { value: {}, max: {} } },
-    magie: { quand: 'immediat', champs: { value: {} } },
+    attribut: { quands: ['fin_combat'], champs: { value: {}, max: {} } },
+    magie: { quands: ['immediat'], champs: { value: {} } },
   },
   shopping_bonus: {
     label: 'Magie supplémentaire à la Phase Shopping',
     court: 'Magie de Shopping en plus',
-    attribut: { quand: 'fin_combat', champs: { value: { defaut: 1 }, max: {} } },
+    attribut: { quands: ['fin_combat'], champs: { value: { defaut: 1 }, max: {} } },
   },
   player_hp_bonus: {
     label: 'Bonus de PV du joueur',
     court: 'Bonus PV joueur',
-    magie: { quand: 'immediat', champs: { value: {} } },
+    magie: { quands: ['immediat'], champs: { value: {} } },
   },
 
   // ── Ce qui déplace des entités entre conteneurs ──────────────────────────
   destroy_unit: {
     label: 'Détruire une unité alliée (→ cimetière)',
     court: 'Détruire une unité',
-    magie: { quand: 'immediat', champs: {} },
+    magie: { quands: ['immediat'], champs: {} },
   },
   drain_life: {
     label: 'Absorber les PV d’une unité alliée',
     court: 'Absorber les PV d’une unité',
-    magie: { quand: 'immediat', champs: {} },
+    magie: { quands: ['immediat'], champs: {} },
   },
   hand_to_graveyard: {
     label: 'Envoyer une carte de la main au cimetière',
     court: 'Main → cimetière',
-    magie: { quand: 'immediat', champs: {} },
+    magie: { quands: ['immediat'], champs: {} },
   },
   sacrifice_card_hp: {
     label: 'Sacrifier une carte de la main → PV du joueur',
     court: 'Sacrifier une carte → PV joueur',
-    magie: { quand: 'immediat', champs: { value: { label: '% des PV de la carte', defaut: 100 } } },
+    magie: { quands: ['immediat'], champs: { value: { label: '% des PV de la carte', defaut: 100 } } },
   },
   duplicate_unit: {
     label: 'Dupliquer une unité du terrain → sa carte en main',
     court: 'Dupliquer une unité',
-    magie: { quand: 'immediat', champs: { value: { label: 'Nombre de copies', defaut: 1 } } },
+    magie: { quands: ['immediat'], champs: { value: { label: 'Nombre de copies', defaut: 1 } } },
   },
   duplicate_graveyard_unit: {
     label: 'Dupliquer une unité du cimetière → sa carte en main',
     court: 'Dupliquer une unité du cimetière',
-    magie: { quand: 'immediat', champs: { value: { label: 'Nombre de copies', defaut: 1 } } },
+    magie: { quands: ['immediat'], champs: { value: { label: 'Nombre de copies', defaut: 1 } } },
   },
   duplicate_card: {
     label: 'Dupliquer une carte de la main',
-    magie: { quand: 'immediat', champs: { value: { label: 'Nombre de copies', defaut: 1 } } },
+    magie: { quands: ['immediat'], champs: { value: { label: 'Nombre de copies', defaut: 1 } } },
   },
   shift_tier_card: {
     label: 'Remplacer une carte de la main par une carte du tier voisin',
     court: 'Remplacer une carte (tier voisin)',
-    magie: { quand: 'immediat', champs: { value: { label: 'Décalage de tier (signé)', defaut: 1 } } },
+    magie: { quands: ['immediat'], champs: { value: { label: 'Décalage de tier (signé)', defaut: 1 } } },
   },
   shift_tier_unit: {
     label: 'Remplacer une unité du terrain par une unité du tier voisin',
     court: 'Remplacer une unité (tier voisin)',
-    magie: { quand: 'immediat', champs: { value: { label: 'Décalage de tier (signé)', defaut: 1 } } },
+    magie: { quands: ['immediat'], champs: { value: { label: 'Décalage de tier (signé)', defaut: 1 } } },
   },
 
   // ── Ce qui retouche une CARTE ────────────────────────────────────────────
   reduce_materials: {
     label: 'Baisser le coût en matériels (main)',
     court: 'Baisser le coût en matériels',
-    magie: { quand: 'immediat', champs: { value: { label: 'Slots retirés', defaut: 1 }, attribute: {} } },
+    magie: { quands: ['immediat'], champs: { value: { label: 'Slots retirés', defaut: 1 }, attribute: {} } },
   },
   remove_requirements: {
     label: 'Lever des exigences nommées (main)',
     court: 'Lever des exigences nommées',
-    magie: { quand: 'immediat', champs: { value: { label: 'Exigences levées', defaut: 1 }, attribute: {} } },
+    magie: { quands: ['immediat'], champs: { value: { label: 'Exigences levées', defaut: 1 }, attribute: {} } },
   },
 
   // ── Les deux que le moteur ne traduit pas ────────────────────────────────
@@ -411,14 +485,14 @@ export const TYPES = Object.freeze({
     court: 'Séparer une fusion',
     moteur: false,
     raison: 'Lit la lignée de la carte et replie sur le cimetière si le board est plein — c’est une règle d’invocation, et l’invocation n’entre pas dans le moteur.',
-    magie: { quand: 'immediat', champs: {} },
+    magie: { quands: ['immediat'], champs: {} },
   },
   draw_material: {
     label: 'Piocher un matériel d’invocation d’une carte de la main',
     court: 'Piocher un matériel',
     moteur: false,
     raison: 'Consomme DEUX tirages (quel matériel, puis quelle carte le porte) là où le moteur n’en fait qu’un — les aplatir changerait la distribution et le flux semé.',
-    magie: { quand: 'immediat', champs: {} },
+    magie: { quands: ['immediat'], champs: {} },
   },
 });
 
@@ -433,17 +507,61 @@ export function typesPour(porteur) {
     .map(([id, def]) => ({
       id,
       label: def.label,
-      quand: def[porteur].quand,
+      quands: def[porteur].quands,
       moteur: def.moteur !== false,
       raison: def.raison ?? null,
     }));
 }
 
-/** Les champs d'un effet, descripteurs complets, dans l'ordre de la table. */
+/**
+ * Les champs d'un effet, descripteurs complets, dans l'ordre de la table.
+ *
+ * ⚠️ Deux champs sont UNIVERSELS et ne figurent dans aucune entrée : `timing` et
+ * `portee`. Les recopier sur les vingt-sept types serait vingt-sept endroits où
+ * les oublier ; les dériver de ce que le type sait faire les rend impossibles à
+ * désaccorder — un `timing` n'apparaît que si le type honore plus d'un moment,
+ * une `portee` que si ce moment se reproduit.
+ */
 export function champsDe(porteur, type) {
   const def = TYPES[type]?.[porteur];
   if (!def) return [];
-  return Object.entries(def.champs).map(([id, surcharge]) => descripteur(id, surcharge));
+  const champs = Object.entries(def.champs).map(([id, surcharge]) => descripteur(id, surcharge));
+
+  // ⚠️ Les deux sont TOUJOURS déclarés et pas toujours OFFERTS, et la nuance est
+  // celle de la forme historique `attribute` : le compilateur les lit quoi qu'il
+  // arrive — pour REFUSER un moment que le type ne sait pas honorer, ou une
+  // portée que personne ne compte. Les omettre de `champsDe` les rendrait
+  // invisibles de la sonde, donc non documentés ; les OFFRIR partout donnerait
+  // des `<select>` à une seule option, le contrôle décoratif qu'on vient de
+  // retirer ailleurs.
+  // ⚠️ Les deux n'existent que sur l'ATTRIBUT, et pour deux raisons distinctes.
+  // Un effet de TERRAIN part au lancement du combat, un point final ; une MAGIE
+  // part au tap du joueur, et « une fois par partie » y demanderait une mémoire
+  // que personne ne tient. Les offrir là serait promettre un réglage sans
+  // porteur.
+  //
+  // ⚠️ Et ils sont TOUJOURS déclarés, pas toujours OFFERTS — la nuance de la
+  // forme historique `attribute` : le compilateur les lit quoi qu'il arrive,
+  // pour REFUSER un moment que le type ne sait pas honorer ou une portée que
+  // personne ne compte. Les omettre de `champsDe` les rendrait invisibles de la
+  // sonde ; les offrir partout donnerait des `<select>` à une seule option, le
+  // contrôle décoratif qu'on vient de retirer ailleurs.
+  if (porteur !== 'attribut') return champs;
+  const quands = def.quands;
+  // ⚠️ `selon_trigger` porte son moment dans son `trigger`, pas dans un `timing` :
+  // il n'a donc AUCUN moment nommable, et le champ sort avec une liste vide. Il
+  // reste déclaré — sans quoi la sonde inverse exigerait qu'un `timing` écrit
+  // là-dessus ne change rien, alors qu'il est (justement) refusé.
+  const moments = quands[0] === 'selon_trigger' ? [] : quands;
+  champs.unshift(descripteur('timing', {
+    offert: moments.length > 1,
+    options: moments.map(q => [TIMING_PAR_QUAND[q], QUAND_LABELS[q]]),
+    defaut: TIMING_PAR_QUAND[moments[0]] ?? '',
+  }));
+  champs.push(descripteur('portee', {
+    offert: quands.some(q => QUANDS_AVEC_MEMOIRE.includes(q)),
+  }));
+  return champs;
 }
 
 /**

@@ -21,20 +21,26 @@ import type { Position, GuaranteedDraw } from '../types.js';
 /**
  * Les moments où un effet peut partir.
  *
- * ⚠️ Table FERMÉE, et volontairement limitée à ce que l'existant EXERCE : les
- * triggers qui n'ont aucun effet à porter aujourd'hui (`à_l_invocation`,
- * `pouvoir_utilisé`) attendent l'étape 4. Les ajouter maintenant mélangerait
- * « le comportement n'a pas changé » et « voici du contenu neuf », c'est-à-dire
- * perdrait l'oracle de la bascule.
+ * ⚠️ **Table FERMÉE, et la règle d'entrée est stricte : un `quand` n'y figure
+ * que si quelque chose sait l'ÉMETTRE et quelque chose sait le JOUER.** Trois
+ * entrées y ont vécu sans l'une ni l'autre (`avant_pioche`, `apres_pioche`,
+ * `debut_shop`) : elles décrivaient les points de branchement futurs du §3.6, où
+ * les cinq files écrites à la main iront un jour. Elles reviendront avec leur
+ * émetteur — un `poser_effet` compilé — et pas avant. Du vocabulaire qui promet
+ * est exactement ce que ce chantier existe pour supprimer.
+ *
+ * ⚠️ L'ORDRE de ce tableau est le rang de tri de `cleDeTri` (§5.1). Il est sans
+ * effet observable — `executer` filtre par `quand` AVANT de trier, donc le rang
+ * est constant à l'intérieur d'un lot — mais il se lit comme la chronologie
+ * d'un round, et c'est ce qu'il faut qu'il reste.
  */
 export const QUANDS = [
+  'a_l_invocation',
   'debut_combat',
-  'fin_combat',
+  'pouvoir_utilise',
   'allie_detruit',
   'ennemi_detruit',
-  'avant_pioche',
-  'apres_pioche',
-  'debut_shop',
+  'fin_combat',
   'immediat',
 ] as const;
 export type Quand = typeof QUANDS[number];

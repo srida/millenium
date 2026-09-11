@@ -162,6 +162,20 @@ interface PrepSnapshot {
   hand: Card[];
   graveyard: Unit[];
   units: { unit: Unit; position: Position; initial_position: Position | null }[];
+  /**
+   * Les bonus de combat, copiés — la SECONDE chose que la préparation écrase.
+   *
+   * ⚠️ Elle n'existait pas tant que rien ne mutait une unité en préparation ; le
+   * trigger `a_l_invocation` l'a introduite. Sans cette copie, annuler une
+   * invocation laisserait à l'écran les bonus qu'elle avait donnés aux AUTRES
+   * unités — un résidu invisible, que `canUndoPreparation` (structurel) ne
+   * saurait même pas nommer.
+   *
+   * ⚠️ Ce n'est pas un clone d'unité : on copie un registre que la préparation
+   * écrit, exactement comme les positions. `_base`, `_shopping_bonus`,
+   * `veterancy_points` et l'`uid` restent des RÉFÉRENCES intactes.
+   */
+  bonus: { unit: Unit; stats: Record<string, number> }[];
 }
 
 export interface StartCombatResult {
@@ -335,14 +349,16 @@ export class GameSession {
   // ── « Tout annuler » (bouton de la barre de préparation) ─────────────────
 
   private _capturePreparation(): PrepSnapshot {
+    const units = this.board.getUnitsOnSide('player');
     return {
       hand: [...this.hand],
       graveyard: [...this.graveyard],
-      units: this.board.getUnitsOnSide('player').map(unit => ({
+      units: units.map(unit => ({
         unit,
         position: { ...(unit.position as Position) },
         initial_position: unit.initial_position ? { ...unit.initial_position } : null,
       })),
+      bonus: units.map(unit => ({ unit, stats: { ...(unit as any)._stat_bonuses } })),
     };
   }
 
@@ -386,6 +402,12 @@ export class GameSession {
     for (const e of snap.units) {
       this.board.placeUnit(e.unit, e.position);
       e.unit.initial_position = e.initial_position ? { ...e.initial_position } : null;
+    }
+    // ⚠️ Et ce qu'une invocation a DONNÉ repart avec elle. Les unités
+    // remplacées, elles, n'ont rien à restaurer : elles quittent la partie.
+    for (const b of snap.bonus) {
+      (b.unit as any)._stat_bonuses = { ...b.stats };
+      (b.unit as any)._recomputeStats();
     }
     this.hand = [...snap.hand];
     this.graveyard = [...snap.graveyard];
@@ -498,8 +520,74 @@ export class GameSession {
       const gi = this.graveyard.indexOf(u);
       if (gi !== -1) this.graveyard.splice(gi, 1);
     }
+    if (unit) this._joueInvocation();
     return unit;
   }
+
+  /**
+   * `a_l_invocation` — le trigger qu'une invocation déclenche.
+   *
+   * ⚠️ **C'est le trigger n°1 d'un auto-battler** (§3.5) et son point de
+   * branchement existait déjà : `place()` ne servait qu'aux missions. Il ne
+   * manquait que le moyen de le dire en donnée.
+   *
+   * ⚠️ Il part APRÈS la pose, jamais avant : l'unité qu'on vient d'invoquer doit
+   * compter dans son propre palier. Une invocation qui complèterait un seuil
+   * sans en profiter serait le genre d'écart qu'on ne remarque qu'au dixième
+   * essai.
+   *
+   * ⚠️ Le bonus est écrit en `duree: 'combat'`, donc dans `_stat_bonuses` — qui
+   * n'est balayé qu'à `finishCombat`. Posé en préparation, il traverse donc le
+   * combat entier, ce qui est exactement ce qu'un joueur attend. `startCombat`
+   * ne remet à zéro que les HORLOGES (`resetCombatClocks`), pas les bonus.
+   */
+  private _joueInvocation(): void {
+    // ⚠️ **Sortie sèche quand le catalogue n'en porte aucun**, et c'est ce qui
+    // rend le branchement strictement gratuit tant que personne n'écrit de
+    // contenu : aucun attribut livré ne déclare `on_summon`, donc `place()` ne
+    // construit rien et ne compile rien. Le test se fait sur la DONNÉE BRUTE,
+    // pas sur une compilation — compiler 93 attributs à chaque invocation pour
+    // découvrir qu'il n'y a rien à faire serait le coût qu'on évite.
+    if (!this._porteInvocation()) return;
+    const unites = this.getPlayerUnits();
+    if (!unites.length) return;
+
+    const mgr = new AttributeManager(this.deps.attributeList, unites, this.getEnemyUnits());
+    const ressources = ressourcesVides();
+    mgr.joueMoment('a_l_invocation', {
+      unitesAlliees: unites, unitesEnnemies: this.getEnemyUnits(),
+      ressources, consommePortee: this._consommePortee,
+      pvJoueur: this.gameState.player_hp,
+    });
+    this._pourMagie(ressources);
+  }
+
+  /** Le catalogue déclare-t-il un seul effet à l'invocation ? Calculé une fois. */
+  private _aInvocation: boolean | null = null;
+  private _porteInvocation(): boolean {
+    if (this._aInvocation === null) {
+      this._aInvocation = (this.deps.attributeList as any[]).some(
+        a => (a?.thresholds ?? []).some((t: any) => (t?.effects ?? []).some((e: any) => e?.timing === 'on_summon')),
+      );
+    }
+    return this._aInvocation;
+  }
+
+  /**
+   * La mémoire des portées (§3.5), cloisonnée PAR PORTÉE.
+   *
+   * ⚠️ C'est la session qui oublie, et elle oublie par portée : la fin d'un
+   * combat ne doit pas rouvrir un effet qui promettait « une fois par partie ».
+   * Une clé unique ferait exactement ça.
+   */
+  private _porteesVues: Record<string, Set<string>> = {};
+
+  private _consommePortee = (portee: string, cle: string): boolean => {
+    const vues = (this._porteesVues[portee] ??= new Set());
+    if (vues.has(cle)) return false;
+    vues.add(cle);
+    return true;
+  };
 
   /** Échange/déplace une unité joueur pendant la préparation (drag & drop). */
   reposition(unit: Unit, toPos: Position): boolean {
@@ -667,6 +755,12 @@ export class GameSession {
     // supprime, il ne se transporte pas.
     for (const u of combatants) u.resetCombatStats();
     this._returnHome(this.board.getLivingUnitsOnSide('player'), 'player');
+
+    // ⚠️ Même règle que la ligne au-dessus, sur un autre registre : ce qui ne
+    // valait que pour un combat ne lui survit pas. La portée `une_fois_par_combat`
+    // se rouvre ici, et SEULEMENT elle — la fin d'un combat ne doit pas rendre
+    // un effet qui promettait « une fois par partie ».
+    this._porteesVues.une_fois_par_combat?.clear();
 
     return {
       winner,
