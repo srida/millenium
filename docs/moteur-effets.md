@@ -920,8 +920,60 @@ juste que le nombre d'appels. ⚠️ Le filtre `isAlive()` n'est PAS un changeme
 de comportement : le seul appelant de production lui passe déjà
 `getLivingUnitsOnSide`.
 
-**Reste à basculer** : attribut (88 effets, 3 timings), magie (51), puis les
-tâches de pouvoir.
+**✅ ATTRIBUT BASCULÉ.** `AttributeManager` ne garde plus que les **seuils** —
+quel palier est actif, sur quel camp — et les trois passes appellent le moteur.
+C'est le partage visé : le compilateur émet tous les paliers, cette classe
+choisit, le moteur applique.
+
+Le moteur a gagné **un champ pour cette bascule, et un seul** : `Trace.ecritures`,
+le journal des écritures de stat. Deux besoins l'exigeaient, tous deux venus
+d'`AttributeManager` : **`reapplyBonuses`** (`POWER_DEBUFF` appelle
+`resetCombatStats()` en plein combat, il faut savoir quoi remettre) et les
+**événements `stat_change`** que `CombatManager` relaie à l'animateur. Les
+dériver après coup demanderait de comparer deux états, donc de réinventer ce que
+le moteur vient de faire — seul celui qui a écrit sait ce qu'il a écrit.
+
+⚠️ **Deux écarts observables, tranchés par l'auteur du jeu, pas par le
+refactor.** Contrairement au terrain, la bascule des attributs n'est PAS un
+no-op : ligne de base **12,78 % → 12,85 %**, |Δwinrate| médian **0,39 pt** sur
+les cartes significatives (max 1,44 pt), 74 → 72 significatives (8 000 parties,
+même graine, `data/`).
+
+1. **Un bonus `during_combat` sur ATQ ou PV ne s'efface plus en plein combat.**
+   `Unit.applyStatModifier` écrivait `this.atk = atk + v` **directement sur la
+   stat effective**, hors registre — or `atk` est recalculé depuis
+   `_base` + `_stat_bonuses` à chaque `_recomputeStats()`, donc le bonus
+   disparaissait au premier bonus suivant sur la même unité. C'est la panne déjà
+   corrigée pour les rythmes (`ARCH_045` Volant, cf. `Unit.ts`), restée sur ATQ
+   et PV. Le moteur écrit tout `duree: 'combat'` dans `_stat_bonuses`, donc le
+   bonus tient. ⚠️ **La remise à zéro de fin de combat, elle, ne change pas** :
+   `finishCombat` appelle `resetCombatStats()` sur tous les participants, avant
+   comme après. Cinq attributs : `ARCH_018`, `ARCH_033`, `ARCH_043`, `ARCH_046`,
+   `ARCH_061`.
+2. **L'ordre des effets de fin de combat devient ABSOLU.** Il suivait l'ordre
+   d'apparition des attributs sur les unités du camp — donc la disposition du
+   plateau ; il suit maintenant `cleDeTri` (§5.1). Les mêmes effets ont lieu,
+   dans un autre ordre, et chaque pioche garantie consomme un tirage : c'est
+   **cela seul** qui décale le flux semé et fait bouger le détecteur. Aucun des
+   deux ordres n'est « juste », mais le nouveau ferme une divergence PvP
+   latente : deux `revive` à `hp_percent` différents rendaient des PV
+   différents selon l'ordre, et l'ordre d'avant dépendait côté adversaire du
+   plateau **reconstruit**, qui n'a aucune raison d'être celui du propriétaire.
+
+⚠️ **Un resserrement de contrat, mesuré et assumé** : un `value_per` qui ne nomme
+aucun attribut **connu** ne compile plus (c'est la garde contre `active_unit`).
+En jeu, `attributeList` est toujours le catalogue entier, donc le cas ne se
+présente pas ; il n'a mordu que sur une fixture de test synthétique et partielle.
+
+⚠️ **Deux gardes qui se couvrent, donc aucune prouvable seule.** La règle « le
+camp adverse ne reçoit que la pioche » est tenue **deux fois** : par
+`Monde.ressourcesLimitees` (le moteur n'accumule pas) et par le versement
+(l'appelant ne lit pas ces champs sur l'accumulateur adverse). Retirer l'une des
+deux ne fait tomber aucun test ; les retirer **ensemble** fait rouge. Ce n'est
+pas un défaut — c'est la propriété d'une double garde, et elle mérite d'être
+écrite, parce qu'une mutation isolée y donne un faux négatif.
+
+**Reste à basculer** : magie (51), puis les tâches de pouvoir.
 
 ### 6.3 Ce que l'étape 1 a appris sur la façon de prouver
 

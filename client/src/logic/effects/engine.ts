@@ -148,6 +148,34 @@ export interface Trace {
   neant: string[];
   /** Une ligne par tâche qu'aucun registre n'a su écrire. **Jamais silencieux.** */
   ignore: string[];
+  /**
+   * Le JOURNAL des écritures de stat — qui, quel champ, combien.
+   *
+   * ⚠️ Il ne double PAS `applique`, qui est du texte pour le diagnostic : c'est
+   * une donnée que l'appelant REJOUE. Deux besoins l'exigent, et ils viennent
+   * tous deux du même endroit, `AttributeManager` :
+   *   • **`reapplyBonuses`** — `POWER_DEBUFF` appelle `resetCombatStats()` en
+   *     plein combat et efface les bonus de début de combat ; il faut savoir
+   *     quoi remettre, et seul celui qui a écrit le sait ;
+   *   • **les événements `stat_change`** que `CombatManager` relaie à
+   *     l'animateur : un bonus déclenché par une mort doit se VOIR.
+   * Les dériver après coup demanderait de comparer deux états, donc de
+   * réinventer ce que le moteur vient de faire.
+   *
+   * ⚠️ N'y entrent que les écritures de STAT réellement posées — ni les
+   * boucliers (que `resetCombatStats` efface et que rien ne restaure), ni les
+   * soins, ni les no-ops.
+   */
+  ecritures: EcritureStat[];
+}
+
+/** Une écriture de stat, telle que l'appelant peut la rejouer. */
+export interface EcritureStat {
+  unite: Unit;
+  /** Le nom dans `Unit`, pas celui du schéma : c'est ce que `applyStatBonus` attend. */
+  stat: string;
+  valeur: number;
+  duree: 'combat' | 'partie' | 'round';
 }
 
 /** Les unités qu'un sélecteur désigne, dans l'ordre du monde. */
@@ -282,6 +310,7 @@ function appliqueSurUnite(t: TacheModifier, u: Unit, mult: number, trace: Trace)
     u.applyStatBonus(nom, d);
   }
   trace.applique.push(`${u.card_id}·${champ}${d >= 0 ? '+' : ''}${d}`);
+  trace.ecritures.push({ unite: u, stat: nom, valeur: d, duree: t.duree });
 }
 
 /** La valeur qu'une tâche lit sur sa cible, en pourcentage de `valeur`. */
@@ -588,7 +617,7 @@ function appliqueTache(t: Tache, monde: Monde, trace: Trace): void {
  * tableau ne le garantit pas, une clé dérivée du porteur si.
  */
 export function executer(effets: readonly Effet[], quand: string, monde: Monde): Trace {
-  const trace: Trace = { applique: [], neant: [], ignore: [] };
+  const trace: Trace = { applique: [], neant: [], ignore: [], ecritures: [] };
   const aJouer = effets
     .filter(e => e.trigger.quand === quand)
     .slice()

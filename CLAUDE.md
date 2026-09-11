@@ -924,6 +924,10 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 
 `timing: 'none'` = archétype purement descriptif.
 
+⚠️ **`AttributeManager` ne porte plus que les SEUILS** (quel palier est actif, sur quel camp) : les effets sont traduits par `compileAttributes` et appliqués par `executer` (`logic/effects/`). Le compilateur émet **tous** les paliers, chacun avec sa condition ; cette classe choisit lequel s'applique. ⚠️ Le `quand` d'un effet est dérivé de son **TYPE**, jamais du `timing` de son porteur — un désaccord est un refus nommé (`compilationRefusee`) au lieu d'un effet mort.
+⚠️ **Un bonus `during_combat` sur ATQ / PV passe par `_stat_bonuses`** comme les rythmes : il tient tout le combat et n'est effacé que par `resetCombatStats()` en fin de combat. Il s'écrivait avant directement sur la stat effective (`applyStatModifier`), donc il disparaissait au premier `_recomputeStats()` venu.
+⚠️ **L'ordre des effets de fin de combat est ABSOLU** (`cleDeTri`), plus celui du plateau : chaque pioche garantie consomme un tirage, et l'ordre d'avant dépendait côté adversaire du plateau reconstruit.
+
 Le manager est **reconstruit à chaque combat** (`new AttributeManager(attributeList, playerUnits, enemyUnits)` dans `startCombat`) :
 
 ```js
@@ -938,6 +942,7 @@ getActiveSynergies(units)                  // → [{ attr, count, activeThreshol
 - ⚠️ Les seuils `during_combat` sont **verrouillés au début du combat** : les morts en cours de combat ne désactivent pas les effets déjà actifs.
 - Tous les bonus d'attribut sont réinitialisés en fin de combat. ⚠️ `finishCombat` balaie **tous les participants** (`combatants`, capturé avant les filtres), neutralisés compris — sinon une unité morte garde ses bonus, `max_hp` gonflé compris, et le round suivant les recumule.
 - ⚠️ `applyEndOfCombat` traite les **deux camps** (`_applyEndForSide`) : `revive` remet une unité sur le plateau et vaut donc des deux côtés ; les effets de **ressource** (pioches, slot, multiplicateur, shopping) restent au joueur, seul destinataire possible.
+- ⚠️ **La pioche fait exception : elle a un destinataire des deux côtés** (`EnemyAI.drawHand` pioche aussi) → `enemy_draw_bonus` / `enemy_guaranteed_draws`. Les trois autres ressources sont tenues par **deux gardes qui se couvrent** — `Monde.ressourcesLimitees` (le moteur n'accumule pas) et le versement (l'appelant ne lit pas ces champs côté adverse). Retirer l'une seule ne fait rouge aucun test : les muter **ensemble**.
 - ⚠️ **Un effet d'attribut n'existe pour de bon qu'aux TROIS endroits à la fois** : le moteur, le `<select>` de l'onglet Attributs (avec son champ `max` si le type en accepte un), et le libellé français (`BoardInfo.boardEffectLabel`). Deux sur trois donnent une fonctionnalité que personne ne peut ni écrire ni lire — c'est arrivé à `shopping_bonus`.
 
 **L'icône d'un attribut est une image ; l'emoji n'est que le repli.** Art dans `ILLUS_DIR` sous l'`id` de l'attribut, importé depuis l'onglet Attributs. Le champ `icon` du JSON reste l'emoji de repli.

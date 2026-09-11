@@ -36,10 +36,15 @@ describe('AttributeManager — comptage des seuils', () => {
   });
 
   it('value_per : bonus multiplié par les unités ENNEMIES portant l\'attribut', () => {
+    // ⚠️ `ARCH_PREY` DOIT figurer dans la liste, même sans palier : depuis la
+    // bascule, un `value_per` qui ne nomme aucun attribut CONNU ne compile pas
+    // (c'est la garde contre `active_unit`, que le `<select>` de l'admin propose
+    // et que le moteur ne sait pas lire — cf. §6.1). En jeu, `attributeList` est
+    // toujours le catalogue entier ; ici la liste était synthétique et partielle.
     const attrs = [{
       id: 'ARCH_HUNTER', name: 'Chasseur', timing: 'start_of_combat',
       thresholds: [{ count: 1, effects: [{ type: 'stat_bonus', stat: 'atk', value: 3, value_per: 'ARCH_PREY' }] }],
-    }];
+    }, { id: 'ARCH_PREY', name: 'Proie', timing: 'none', thresholds: [] }];
     const board = makeBoard();
     const hunter = spawn(board, makeCard({ id: 'HUNTER', attributes: ['ARCH_HUNTER'] }), 'player', { col: 0, row: 0 });
     const prey1 = spawn(board, makeCard({ id: 'PREY_1', attributes: ['ARCH_PREY'] }), 'enemy', { col: 0, row: 7 });
@@ -269,5 +274,69 @@ describe('AttributeManager — getActiveSynergies', () => {
     expect(syn[0].count).toBe(2);
     expect(syn[0].activeThreshold.count).toBe(1);
     expect(syn[0].nextThreshold.count).toBe(3);
+  });
+});
+
+describe('AttributeManager — le partage joueur / adverse des ressources', () => {
+  // ⚠️ **CE cas ferme un trou de couverture réel.** Deux attributs du catalogue
+  // seulement portent une ressource joueur-seul (`ARCH_017`, `ARCH_027`), et
+  // aucun scénario livré ne les fait tomber du côté ADVERSE — si bien que
+  // supprimer l'asymétrie entière (`ressourcesLimitees`) ne faisait rougir
+  // AUCUN test. Deux chemins qui ne donnent rien à personne sont d'accord, et
+  // cet accord ne prouve rien : c'est le même piège que les pools de tirage des
+  // magies et que les remises sans carte porteuse.
+  //
+  // La règle : la PIOCHE a un destinataire des deux côtés (l'IA pioche aussi) ;
+  // l'emplacement, le multiplicateur et le Shopping n'en ont qu'un.
+  // Mutation : `ressourcesLimitees: false` côté adverse → ROUGE.
+  const ATTRS = [{
+    id: 'ARCH_RES', name: 'Ressources', timing: 'end_of_combat',
+    thresholds: [{
+      count: 1,
+      effects: [
+        { type: 'draw_bonus', value: 2 },
+        { type: 'board_slot_bonus', value: 1 },
+        { type: 'damage_multiplier_bonus', value: 3 },
+        { type: 'shopping_bonus', value: 2 },
+        { type: 'guaranteed_draw', tier: 3 },
+      ],
+    }],
+  }];
+
+  function joue(side: 'player' | 'enemy') {
+    const board = makeBoard();
+    const list = units(board, [{ id: 'PORTEUR', attrs: ['ARCH_RES'], col: 0, row: side === 'player' ? 0 : 7, side }]);
+    const am = new (AttributeManager as any)(
+      ATTRS, side === 'player' ? list : [], side === 'enemy' ? list : [],
+    );
+    am.applyStartOfCombat();
+    return am.applyEndOfCombat([], []);
+  }
+
+  it('le camp du JOUEUR reçoit les quatre ressources et la pioche garantie', () => {
+    const r = joue('player');
+    expect(r.draw_bonus).toBe(2);
+    expect(r.board_slot_bonus).toBe(1);
+    expect(r.damage_multiplier_bonus).toBe(3);
+    expect(r.shopping_bonus).toBe(2);
+    expect(r.guaranteed_draws).toHaveLength(1);
+    // La provenance voyage AVEC le crédit — l'invariant de `draw-summary`.
+    expect(r.draw_sources.filter((s: any) => !s.guaranteed)
+      .reduce((n: number, s: any) => n + s.value, 0)).toBe(r.draw_bonus);
+  });
+
+  it('le camp ADVERSE ne reçoit QUE la pioche', () => {
+    const r = joue('enemy');
+    // La pioche, oui : `EnemyAI.drawHand` la consomme.
+    expect(r.enemy_draw_bonus).toBe(2);
+    expect(r.enemy_guaranteed_draws).toHaveLength(1);
+    // Les trois autres n'ont aucun destinataire de ce côté.
+    expect(r.board_slot_bonus).toBe(0);
+    expect(r.damage_multiplier_bonus).toBe(0);
+    expect(r.shopping_bonus).toBe(0);
+    // ⚠️ Et rien ne fuit vers le joueur : ni sa pioche, ni sa provenance.
+    expect(r.draw_bonus).toBe(0);
+    expect(r.guaranteed_draws).toEqual([]);
+    expect(r.draw_sources).toEqual([]);
   });
 });
