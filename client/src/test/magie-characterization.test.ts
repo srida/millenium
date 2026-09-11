@@ -364,3 +364,59 @@ describe('Magies livrées — l\'oracle de l\'étape 0', () => {
     expect(muettes).toEqual([]);
   });
 });
+
+describe('Magies livrées — un contrecoup ne se prélève jamais à vide', () => {
+  // ⚠️ **`MAGIE_052` est le seul croisement du catalogue, et il est piégeux** :
+  // `draw_material` peut ne RIEN trouver (un matériel désigné par attribut n'est
+  // pas une carte, un id peut avoir quitté le catalogue), et elle coûte 50 PV.
+  // La session résout donc AVANT de payer.
+  //
+  // ⚠️ Ce cas est écrit pour la BASCULE à venir, pas pour le code d'aujourd'hui :
+  // le compilateur émet le contrecoup en PREMIÈRE tâche — il le faut, sinon
+  // `drain_life` financerait le sien — donc un moteur branché sans garde
+  // prélèverait les 50 PV puis ne trouverait rien. Le mode ombre ne peut pas le
+  // voir : son harnais donne toujours un matériel résolvable, et deux chemins
+  // qui réussissent tous les deux sont d'accord.
+  //
+  // Mutation : payer avant de résoudre dans `applyMagieOnHandCard` → ROUGE.
+  const CROISEMENTS = magies.filter(m => (m.cost_hp ?? 0) > 0
+    && ['draw_material', 'shift_tier_card', 'shift_tier_unit',
+      'duplicate_unit', 'duplicate_graveyard_unit',
+      'reduce_materials', 'remove_requirements'].includes(m.effect?.type as string));
+
+  it('le catalogue porte bien un tel croisement', () => {
+    // Sans ce garde-fou, le cas suivant passerait sur une liste vide le jour où
+    // un `cost_hp` est retiré en admin — et personne ne saurait qu'il ne teste
+    // plus rien.
+    expect(CROISEMENTS.map(m => `${m.id} ${m.effect?.type} −${m.cost_hp}`))
+      .toEqual(['MAGIE_052 draw_material −50']);
+  });
+
+  it.each(CROISEMENTS.map(m => [`${m.id} ${m.name}`, m.id] as const))(
+    '%s — rien à trouver, donc rien de prélevé',
+    (_nom, id) => {
+      const m = magies.find(x => x.id === id)!;
+      const s = makeSession();
+      // Une carte SANS matériel résolvable : aucune condition, donc aucun
+      // matériel à nommer. C'est précisément ce que `magieHandTargets` écarte —
+      // on force ici le chemin que l'écran ne propose pas.
+      const nue = makeCard({
+        id: 'SANS_MATERIEL', name: 'Nue', tier: 1,
+        stats: { atk: 5, hp: 50, movement_rate: 50, attack_rate: 50, range: 1 } as any,
+        summon_conditions: [],
+      });
+      s.hand = [nue] as any[];
+      const avantPv = s.gameState.player_hp;
+      const avantMain = s.hand.length;
+
+      // La carte n'est PAS une cible recevable — c'est la première moitié de la règle.
+      expect(s.magieHandTargets(m)).toEqual([]);
+
+      // Et même forcée, elle ne prélève rien : c'est la seconde moitié, celle
+      // qui ne dépend pas du rendu.
+      s.applyMagieOnHandCard(m, 0);
+      expect(s.gameState.player_hp, 'les PV ne bougent pas').toBe(avantPv);
+      expect(s.hand.length, 'la main ne bouge pas').toBe(avantMain);
+    },
+  );
+});
