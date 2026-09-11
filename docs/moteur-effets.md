@@ -686,6 +686,60 @@ annonce ; c'est pour ça que rien ne se voit. Un invariant ferme la porte côté
 **L'étape 0 est terminée pour les trois porteurs du POC.** Les pouvoirs restent
 hors périmètre (décision 2 du §7).
 
+### 6.2 État de l'étape 1 — le moteur à côté
+
+**✅ TERRAIN FAIT.** Trois modules dans `logic/effects/`, plus le mode ombre :
+
+| Module | Rôle | Ce qu'il ne fait PAS |
+|---|---|---|
+| `types.ts` | le schéma et ses **tables fermées** (8 `quand`, 7 actions, 3 durées, les champs typés d'unité et de joueur) | aucune logique, aucun état |
+| `compile.ts` | `terrain → Effet[]`, **pur** | n'applique rien |
+| `engine.ts` | exécute des `Effet[]` | ne connaît **aucun porteur** |
+
+Trois propriétés portent tout le reste :
+
+1. **Le moteur ignore les porteurs.** Il reçoit des effets compilés. Un porteur
+   de plus est un compilateur de plus, jamais une branche de plus dans le
+   moteur — c'est précisément ce que les quatre moteurs actuels ne savent pas
+   faire.
+2. **Le compilateur REFUSE, il ne se tait pas.** Un effet qu'il ne sait pas
+   traduire sort dans `CompilationResult.refus`, nommé. C'est la différence de
+   fond avec les `switch` d'aujourd'hui, dont chaque `default` est muet — la
+   mécanique exacte des vingt-et-un effets morts.
+3. **La durée choisit le registre.** `combat` → `_stat_bonuses`, `partie` →
+   `_base` (§5.3). Les trois gestes écrits à la main sur chaque site d'appel
+   deviennent une **donnée** ; il n'y a plus de site d'appel où se tromper.
+
+**Les quatre types de terrain se réduisent à UNE action, `modifier`** — ce qui
+les distinguait n'était pas le geste mais le champ visé et l'opérateur. La
+démonstration en petit de ce que vaut le §4.2.
+
+**Le mode ombre** (`effects-shadow.test.ts`) exécute les deux chemins sur le
+même monde et compare **l'état**, jamais la forme des tâches : deux chemins qui
+écrivent le même état par des routes différentes sont d'accord. Critère
+d'acceptation tenu — **zéro refus et zéro écart sur les 25 terrains livrés**.
+
+⚠️ **Les 25 terrains ne suffisaient pas, et c'est le vrai enseignement de
+l'étape.** Le catalogue ne porte que `stat_bonus` (31×) et `shield` (2×) :
+`stat_modifier` et `draw_bonus` sont **codés des deux côtés et exercés par
+aucun**. Le mode ombre joué sur le seul catalogue ne prouvait donc que la
+moitié du compilateur — vérifié en mutant `stat_modifier` en additif, qui ne
+faisait tomber **aucun** test. D'où un second bloc de terrains **synthétiques**,
+qui ferme les quatre branches, dont le cumul de deux multiplicateurs (×3 et non
+×4) et l'inscription au registre de provenance des pioches.
+
+⚠️ **Un cas de test a dû être réécrit pour la même raison** : celui de l'ordre
+de résolution comparait deux ensembles triés — donc à lui-même — et ne tombait
+sur aucune mutation. Il compare maintenant la **séquence de la trace**, pas
+l'état : sur le terrain tout est additif, donc l'état ne dépend pas de l'ordre
+et ne peut rien prouver. Le jour où une tâche non commutative arrivera (`=`,
+`remplacer`, une position), l'état en dépendra — et il serait trop tard pour
+s'en apercevoir alors.
+
+**Restent les magies et les attributs**, puis la bascule (étape 2). L'ordre du
+§6 tient : le terrain était le porteur le moins risqué, et il a déjà appris
+deux choses sur la façon de prouver la suite.
+
 Ordre choisi à dessein : le terrain a **1 lecteur et 3 types**, c'est le
 prototype le moins risqué ; les pouvoirs viennent en dernier parce qu'ils sont
 dans la boucle de combat, là où une divergence coûte un duel aux deux joueurs.
