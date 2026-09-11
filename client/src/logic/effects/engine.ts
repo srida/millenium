@@ -5,23 +5,65 @@
 // cette ignorance qui fait tout l'intérêt — un porteur de plus n'est qu'un
 // compilateur de plus, jamais une branche de plus ici.
 //
-// ⚠️ Il n'écrit PAS l'état lui-même : il délègue aux primitives d'`Unit` et de
-// `GameState` (`applyStatBonus`, `applyShield`, les champs de ressource). Le
-// moteur décide QUEL REGISTRE selon la `durée` ; il ne réimplémente pas ce que
-// le registre fait. Sans ça on se donnerait une seconde version de
-// `_recomputeStats`, et le jour où elles divergeraient, personne ne le verrait.
+// ⚠️ Il n'écrit PAS l'état lui-même : il délègue aux primitives d'`Unit`
+// (`applyStatBonus`, `applyShield`) et ACCUMULE les ressources du joueur dans un
+// objet à part. Le moteur décide QUEL REGISTRE selon la `durée` ; il ne
+// réimplémente pas ce que le registre fait. Sans ça on se donnerait une seconde
+// version de `_recomputeStats`, et le jour où elles divergeraient, personne ne
+// le verrait.
+//
+// ⚠️ **Le moteur n'importe PAS `GameState`, et c'est une contrainte de fond,
+// pas un goût.** Le `damage_multiplier_bonus` d'un attribut n'a aucun champ où
+// se poser : il est consommé EN VOL par le calcul de dégâts d'`applyEndOfCombat`
+// et n'est jamais stocké. Un moteur qui écrirait directement dans `GameState`
+// ne saurait donc pas l'exprimer — il le confondrait avec le champ permanent du
+// même nom, qui appartient aux magies. Le moteur accumule ; c'est l'appelant qui
+// verse, et qui seul sait où.
 //
 // Cf. `docs/moteur-effets.md` §4 et §5.
 
 import type { Unit } from '../Unit.js';
-import type { GameState } from '../GameState.js';
-import { CHAMPS_UNITE, CHAMPS_JOUEUR, cleDeTri } from './types.js';
-import type { Effet, Tache, TacheModifier, Selecteur, ChampUnite, ChampJoueur } from './types.js';
+import type { GuaranteedDraw, DrawSourceEntry } from '../types.js';
+import { CHAMPS_UNITE, cleDeTri } from './types.js';
+import type { Effet, Tache, TacheModifier, TacheDeplacer, TachePoserStatut, Selecteur, ChampUnite } from './types.js';
+
+/**
+ * Ce qu'un lot d'effets a produit pour le JOUEUR — le pendant exact de
+ * `EndOfCombatAttributeResult`, mais sans porteur ni phase.
+ *
+ * ⚠️ C'est un ACCUMULATEUR, pas un état : il ne connaît ni plafond partagé
+ * (`grantLimitedBoardSlotBonus`) ni règle de round. L'appelant le verse où il
+ * faut, et c'est là que les règles du jeu s'appliquent.
+ */
+export interface Ressources {
+  pioches: number;
+  pioches_garanties: GuaranteedDraw[];
+  slots_board: number;
+  multiplicateur: number;
+  magies_shop: number;
+  pv: number;
+  /** Provenance, versée EN MÊME TEMPS que le crédit (cf. `draw-summary.test.ts`). */
+  sources: DrawSourceEntry[];
+  reanimees: Unit[];
+}
+
+export function ressourcesVides(): Ressources {
+  return {
+    pioches: 0, pioches_garanties: [], slots_board: 0, multiplicateur: 0,
+    magies_shop: 0, pv: 0, sources: [], reanimees: [],
+  };
+}
 
 export interface Monde {
   unitesAlliees: readonly Unit[];
   unitesEnnemies: readonly Unit[];
-  gameState: GameState | null;
+  /** Les ressources du camp allié. Créé par l'appelant, muté par le moteur. */
+  ressources: Ressources;
+  /** Les ressources du camp ennemi — la pioche a un destinataire des deux côtés. */
+  ressourcesEnnemies?: Ressources;
+  /** Corps neutralisés disponibles pour une réanimation. **Muté** (splice). */
+  neutralisees?: Unit[];
+  neutraliseesEnnemies?: Unit[];
   /**
    * ⚠️ INVARIANT §5.2 : le hasard est une dépendance INJECTÉE, jamais
    * `Math.random`. Aucune tâche compilée aujourd'hui n'en consomme — le champ
@@ -30,13 +72,23 @@ export interface Monde {
    * comptable depuis un seul endroit.
    */
   rand?: () => number;
-  /** Nom du porteur, pour les registres de provenance (`player_draw_sources`). */
+  /**
+   * Le camp courant ne reçoit que les ressources de PIOCHE.
+   *
+   * ⚠️ C'est le `resources: false` d'`_applyEndForSide`, et c'est une
+   * asymétrie assumée du jeu d'aujourd'hui : la pioche a un destinataire des
+   * deux côtés (`EnemyAI` pioche aussi), le slot, le multiplicateur et le
+   * Shopping n'en ont qu'un. La reproduire est obligatoire tant que le critère
+   * est « zéro changement observable » — c'est la décision 3 du §7 qui la
+   * lèvera, à l'étape 4, et elle deviendra alors un `camp` comme un autre.
+   */
+  ressourcesLimitees?: boolean;
+  /** Nom du porteur, posé par `executer` pour les registres de provenance. */
   source?: string;
 }
 
 /** Ce qu'une exécution a réellement fait — le matériau du mode ombre. */
 export interface Trace {
-  /** Une ligne par tâche appliquée, dans l'ordre de résolution. */
   applique: string[];
   /** Une ligne par tâche qu'aucun registre n'a su écrire. **Jamais silencieux.** */
   ignore: string[];
@@ -44,38 +96,50 @@ export interface Trace {
 
 /** Les unités qu'un sélecteur désigne, dans l'ordre du monde. */
 function resoudre(sel: Selecteur, monde: Monde): Unit[] {
-  if (sel.conteneur !== 'board') return [];
-  const pool = sel.camp === 'allie' ? [...monde.unitesAlliees]
-    : sel.camp === 'ennemi' ? [...monde.unitesEnnemies]
-      : [...monde.unitesAlliees, ...monde.unitesEnnemies];
+  const pool = sel.conteneur === 'cimetiere'
+    ? (sel.camp === 'ennemi' ? monde.neutraliseesEnnemies ?? [] : monde.neutralisees ?? [])
+    : sel.camp === 'allie' ? [...monde.unitesAlliees]
+      : sel.camp === 'ennemi' ? [...monde.unitesEnnemies]
+        : [...monde.unitesAlliees, ...monde.unitesEnnemies];
+
+  const vivantes = sel.conteneur === 'cimetiere' ? [...pool] : pool.filter(u => u.isAlive());
   const f = sel.filtre;
-  if (!f) return pool;
-  return pool.filter(u => {
+  const filtrees = !f ? vivantes : vivantes.filter(u => {
     if (f.attributs?.length && !u.attributes.some(a => f.attributs!.includes(a))) return false;
     if (f.cartes?.length && !f.cartes.includes(u.card_id)) return false;
     if (f.tiers?.length && !f.tiers.includes(u.tier)) return false;
     return true;
   });
+  return sel.combien === 'un' ? filtrees.slice(0, 1) : filtrees;
 }
 
 /** Le multiplicateur d'un `parAttributAdverse` — 1 quand il n'y en a pas. */
 function multiplicateur(t: TacheModifier, sel: Selecteur, monde: Monde): number {
-  if (!t.parAttributAdverse) return 1;
-  // ⚠️ « Adverse » se lit depuis le camp VISÉ, pas depuis le porteur : c'est ce
-  // que fait `applyStartOfCombat` (`units === this.playerUnits ? enemy : player`).
-  const autre = sel.camp === 'ennemi' ? monde.unitesAlliees : monde.unitesEnnemies;
-  return autre.filter(u => u.isAlive() && u.attributes.includes(t.parAttributAdverse!)).length;
+  if (t.parAttributAdverse) {
+    // ⚠️ « Adverse » se lit depuis le camp VISÉ, pas depuis le porteur : c'est
+    // ce que fait `applyStartOfCombat` (`units === playerUnits ? enemy : player`).
+    const autre = sel.camp === 'ennemi' ? monde.unitesAlliees : monde.unitesEnnemies;
+    return autre.filter(u => u.isAlive() && u.attributes.includes(t.parAttributAdverse!)).length;
+  }
+  if (t.parAllieVivant) {
+    // Le geste du `shield` d'attribut : × le nombre d'alliés vivants DU CAMP
+    // VISÉ. Il ne lit aucun attribut — c'est ce qui le distingue du précédent,
+    // et pourquoi `value_per` y est décoratif (cf. §6.1).
+    const camp = sel.camp === 'ennemi' ? monde.unitesEnnemies : monde.unitesAlliees;
+    return camp.filter(u => u.isAlive()).length;
+  }
+  return 1;
 }
 
 /**
- * Le delta additif qu'une tâche représente sur une unité donnée.
+ * Le delta additif qu'une tâche représente.
  *
  * ⚠️ **La conversion du multiplicateur en additif vit ICI et nulle part
  * ailleurs.** Le schéma garde l'intention (`*`), parce que c'est ce que l'auteur
  * écrit ; le moteur la convertit, parce que lui seul sait que le registre de
  * combat est additif et que `resetCombatStats()` doit savoir le nettoyer. C'est
- * exactement le geste de `BoardEffect.applyEffect` d'aujourd'hui — reproduit,
- * pas réinventé : deux `×2 PV` donnent `×3`, jamais `×4`.
+ * exactement le geste de `BoardEffect.applyEffect` — reproduit, pas réinventé :
+ * deux `×2 PV` donnent `×3`, jamais `×4`.
  */
 function delta(t: TacheModifier, base: number): number {
   const v = t.valeur;
@@ -121,33 +185,108 @@ function appliqueSurUnite(t: TacheModifier, u: Unit, mult: number, trace: Trace)
   trace.applique.push(`${u.card_id}·${champ}${d >= 0 ? '+' : ''}${d}`);
 }
 
+/** Les champs de ressource, et comment chacun s'accumule. */
 function appliqueSurJoueur(t: TacheModifier, monde: Monde, trace: Trace): void {
-  const g = monde.gameState;
-  if (!g) { trace.ignore.push(`joueur·${t.champ} (pas de gameState)`); return; }
-  const nom = CHAMPS_JOUEUR[t.champ as ChampJoueur];
-  if (!nom) { trace.ignore.push(`joueur·${t.champ} (champ inconnu)`); return; }
+  const cible = t.cible.camp === 'ennemi' ? monde.ressourcesEnnemies : monde.ressources;
+  if (!cible) { trace.ignore.push(`joueur·${t.champ} (pas de registre pour ce camp)`); return; }
 
-  // ⚠️ L'indexation passe par un `Record<string, number>` et non par un `any` :
-  // `CHAMPS_JOUEUR` est une table FERMÉE dont les valeurs sont toutes des
-  // champs numériques de `GameState`. Un `any` ici rendrait muet le jour où
-  // l'un d'eux cesserait d'être un nombre — exactement le genre de silence que
-  // ce moteur existe pour supprimer.
-  const ressources = g as unknown as Record<string, number>;
-  const avant = ressources[nom];
-  const d = delta(t, avant);
-  ressources[nom] = avant + d;
-
-  // ⚠️ Le registre de PROVENANCE part avec le crédit, jamais après : l'invariant
-  // `sum(sources.value) === extraDraws` est vérifié par `draw-summary.test.ts`,
-  // et un quatrième émetteur qui l'oublierait ferait annoncer au joueur un
-  // « +2 » venu de nulle part.
-  if (t.champ === 'pioches' && d !== 0) {
-    g.player_draw_sources.push({ kind: 'terrain', ref: monde.source ?? '', value: d });
+  const d = t.valeur;
+  // ⚠️ Skip DÉLIBÉRÉ, et tracé : le camp adverse ne reçoit que la pioche.
+  if (monde.ressourcesLimitees && t.champ !== 'pioches' && t.champ !== 'pioches_garanties') {
+    trace.applique.push(`(${t.champ} réservé au joueur)`);
+    return;
   }
-  trace.applique.push(`joueur·${t.champ}${d >= 0 ? '+' : ''}${d}`);
+  switch (t.champ) {
+    case 'pioches': {
+      // ⚠️ Le plafond porte sur le TOTAL accumulé, pas sur la tâche : c'est le
+      // geste de `_applyEndForSide` (`Math.min(before + value, max)`). Et le
+      // crédit RÉEL est mesuré de part et d'autre — un attribut qui demande +3
+      // n'en donne parfois qu'un, et c'est ce qui doit être annoncé.
+      const avant = cible.pioches;
+      cible.pioches = Math.min(avant + d, t.plafond ?? Infinity);
+      const reel = cible.pioches - avant;
+      // ⚠️ La provenance suit le crédit RÉEL, jamais la demande, et un crédit
+      // entièrement rogné n'inscrit RIEN : l'invariant
+      // `sum(sources.value) === extraDraws` en dépend.
+      if (reel > 0 && !monde.ressourcesLimitees) {
+        cible.sources.push({ kind: t.provenance ?? 'attribut', ref: monde.source ?? '', value: reel });
+      }
+      trace.applique.push(`joueur·pioches+${reel}`);
+      return;
+    }
+    case 'slots_board':
+      cible.slots_board = Math.min(cible.slots_board + d, t.plafond ?? Infinity);
+      trace.applique.push(`joueur·slots+${d}`);
+      return;
+    case 'magies_shop':
+      cible.magies_shop = Math.min(cible.magies_shop + d, t.plafond ?? Infinity);
+      trace.applique.push(`joueur·shop+${d}`);
+      return;
+    case 'multiplicateur':
+      cible.multiplicateur += d;
+      trace.applique.push(`joueur·multiplicateur+${d}`);
+      return;
+    case 'pv':
+      cible.pv += d;
+      trace.applique.push(`joueur·pv+${d}`);
+      return;
+    case 'pioches_garanties':
+      if (t.criteres) {
+        cible.pioches_garanties.push(t.criteres);
+        if (!monde.ressourcesLimitees) {
+          cible.sources.push({ kind: t.provenance ?? 'attribut', ref: monde.source ?? '', value: 0, guaranteed: true });
+        }
+      }
+      trace.applique.push('joueur·pioche_garantie');
+      return;
+    default:
+      trace.ignore.push(`joueur·${t.champ} (champ inconnu)`);
+  }
+}
+
+/**
+ * `deplacer` — la seule action qui change de conteneur.
+ *
+ * ⚠️ Le `revive` d'aujourd'hui fait trois choses d'un coup : il sort du
+ * cimetière, il repose des PV, et il purge les statuts. Le schéma les sépare
+ * (§4.2) mais le moteur doit les faire ENSEMBLE pour rester d'accord avec
+ * l'existant : c'est la même unité, et un corps à moitié réanimé n'a aucun sens.
+ */
+function appliqueDeplacer(t: TacheDeplacer, monde: Monde, trace: Trace): void {
+  const source = t.cible.camp === 'ennemi' ? monde.neutraliseesEnnemies : monde.neutralisees;
+  const cible = t.cible.camp === 'ennemi' ? monde.ressourcesEnnemies : monde.ressources;
+  if (!source?.length || !cible) { trace.applique.push('(aucun corps à déplacer)'); return; }
+
+  const n = t.cible.combien === 'un' ? 1 : source.length;
+  for (let i = 0; i < n && source.length; i++) {
+    const u = source[0];
+    u.current_hp = Math.floor(u.max_hp * (t.pourcentagePv ?? 50) / 100);
+    u.is_neutralized = false;
+    u._deathEmitted = false;
+    u.dot_effects = [];
+    u.paralysis_remaining = 0;
+    u.attack_period_modifier = 0;
+    source.splice(0, 1);
+    cible.reanimees.push(u);
+    trace.applique.push(`${u.card_id}·réanimée·${t.pourcentagePv ?? 50}%`);
+  }
+}
+
+function appliquePoserStatut(t: TachePoserStatut, monde: Monde, trace: Trace): void {
+  for (const u of resoudre(t.cible, monde)) {
+    if (t.statut === 'immunite') {
+      u.is_effect_immune = true;
+      trace.applique.push(`${u.card_id}·immunisée`);
+    } else {
+      trace.ignore.push(`${u.card_id}·statut ${t.statut} (non câblé)`);
+    }
+  }
 }
 
 function appliqueTache(t: Tache, monde: Monde, trace: Trace): void {
+  if (t.action === 'deplacer') { appliqueDeplacer(t, monde, trace); return; }
+  if (t.action === 'poser_statut') { appliquePoserStatut(t, monde, trace); return; }
+
   if (t.champ === 'position') { trace.ignore.push('position (aucun porteur livré n\'en pose)'); return; }
   const tache = t as TacheModifier;
 
@@ -158,7 +297,7 @@ function appliqueTache(t: Tache, monde: Monde, trace: Trace): void {
   // ⚠️ Un multiplicateur NUL ne touche personne, et c'est le comportement
   // d'aujourd'hui (`if (bonus === 0) break`). Le reproduire est le point : le
   // mode ombre compare des états, pas des intentions.
-  if (mult === 0) { trace.applique.push(`(multiplicateur nul)`); return; }
+  if (mult === 0) { trace.applique.push('(multiplicateur nul)'); return; }
   for (const u of cibles) appliqueSurUnite(tache, u, mult, trace);
 }
 

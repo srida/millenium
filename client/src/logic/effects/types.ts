@@ -12,7 +12,7 @@
 // ne les accorde, ce qui a tué onze effets sur treize porteurs (§1.4). Ici, un
 // effet qui ne peut pas se déclencher est un effet qui ne compile pas.
 
-import type { Position } from '../types.js';
+import type { Position, GuaranteedDraw } from '../types.js';
 
 // ───────────────────────────────────────────────────────────────────────────
 // Quand
@@ -131,15 +131,29 @@ export const CHAMPS_UNITE = Object.freeze({
 } as const);
 export type ChampUnite = keyof typeof CHAMPS_UNITE;
 
-/** Les champs modifiables du JOUEUR. */
+/**
+ * Les champs modifiables du JOUEUR.
+ *
+ * ⚠️ Ce sont des noms de RESSOURCE, pas des champs de `GameState`, et la nuance
+ * est structurante : `multiplicateur` n'a aucun champ où se poser côté attribut
+ * (il est consommé en vol par le calcul de dégâts et jamais stocké), tandis que
+ * le champ `player_damage_multiplier_bonus` appartient aux magies et vaut pour
+ * toute la partie. Les confondre reviendrait à rendre permanent un bonus de
+ * round. Le moteur accumule ces noms ; l'appelant seul sait où les verser.
+ */
 export const CHAMPS_JOUEUR = Object.freeze({
-  pv: 'player_hp',
-  pioches: 'player_extra_draws',
-  slots_board: 'player_board_slots',
-  multiplicateur: 'player_damage_multiplier_bonus',
-  magies_shop: 'player_extra_shopping_magies',
+  pv: 'pv',
+  pioches: 'pioches',
+  pioches_garanties: 'pioches_garanties',
+  slots_board: 'slots_board',
+  multiplicateur: 'multiplicateur',
+  magies_shop: 'magies_shop',
 } as const);
 export type ChampJoueur = keyof typeof CHAMPS_JOUEUR;
+
+/** Les statuts qu'une tâche peut poser sur une unité. */
+export const STATUTS = ['immunite', 'poison', 'brulure', 'paralysie', 'confusion', 'provocation', 'blocage_pouvoir'] as const;
+export type Statut = typeof STATUTS[number];
 
 // ───────────────────────────────────────────────────────────────────────────
 // La tâche
@@ -162,6 +176,39 @@ export interface TacheModifier {
    * comme un id, le mot-clé ne compile pas.
    */
   parAttributAdverse?: string;
+  /**
+   * Multiplie `valeur` par le nombre d'alliés VIVANTS du camp visé.
+   *
+   * ⚠️ Distinct de `parAttributAdverse` : celui-ci ne lit aucun attribut. C'est
+   * le geste du `shield` d'attribut (`value × alliés vivants`), et c'est
+   * pourquoi le `value_per` que la donnée y pose est **décoratif** — le moteur
+   * actuel ne le lit pas (cf. §6.1). Le nommer ici est ce qui empêche de croire
+   * qu'il s'agit du même multiplicateur.
+   */
+  parAllieVivant?: boolean;
+  /** Plafond sur le TOTAL accumulé — le `max` d'aujourd'hui, pas une borne par tâche. */
+  plafond?: number;
+  /** Les critères d'une pioche garantie (`champ: 'pioches_garanties'`). */
+  criteres?: GuaranteedDraw;
+  /** Ce que le registre de provenance inscrit comme origine. */
+  provenance?: 'attribut' | 'terrain' | 'magie';
+}
+
+/** `deplacer` — change une entité de conteneur (la réanimation, aujourd'hui). */
+export interface TacheDeplacer {
+  action: 'deplacer';
+  cible: Selecteur;
+  destination: Conteneur;
+  /** Les PV rendus, en pourcentage du max. Défaut 50, comme `revive`. */
+  pourcentagePv?: number;
+}
+
+/** `poser_statut` — pose un statut sur une entité. */
+export interface TachePoserStatut {
+  action: 'poser_statut';
+  cible: Selecteur;
+  statut: Statut;
+  duree: Duree;
 }
 
 /**
@@ -180,7 +227,7 @@ export interface TachePosition {
   duree: Duree;
 }
 
-export type Tache = TacheModifier | TachePosition;
+export type Tache = TacheModifier | TachePosition | TacheDeplacer | TachePoserStatut;
 
 // ───────────────────────────────────────────────────────────────────────────
 // L'effet
@@ -197,9 +244,26 @@ export interface Trigger {
   verrouille?: boolean;
 }
 
+/**
+ * La condition d'un effet — §3.4.
+ *
+ * ⚠️ Forme minimale, parce que c'est tout ce que l'existant EXERCE : un palier
+ * d'attribut, c'est-à-dire « au moins N unités DISTINCTES par `card_id` portant
+ * cet attribut ». Le compilateur émet TOUS les paliers d'un attribut ; c'est la
+ * condition qui dit lequel s'applique. Sans elle, un effet compilé ne saurait
+ * pas dire à quel palier il appartient — et il faudrait le redemander à la
+ * donnée, donc se donner deux sources pour une même question.
+ */
+export interface Condition {
+  attribut: string;
+  minimum: number;
+}
+
 export interface Effet {
   /** Identité stable, dérivée du porteur — jamais un compteur. Cf. §5.1. */
   id: string;
+  /** Absente = l'effet s'applique toujours (le cas du terrain). */
+  condition?: Condition;
   /** Qui l'apporte : id de terrain, de magie, d'attribut, de carte. */
   porteur: string;
   trigger: Trigger;

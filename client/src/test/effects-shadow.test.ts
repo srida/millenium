@@ -22,7 +22,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { applyBoardEffects, boardEffects } from '../logic/BoardEffect.js';
 import { compileBoard, compileBoards } from '../logic/effects/compile.js';
-import { executer } from '../logic/effects/engine.js';
+import { executer, ressourcesVides } from '../logic/effects/engine.js';
+import type { Ressources } from '../logic/effects/engine.js';
 import { cleDeTri, QUANDS, ACTIONS, DUREES } from '../logic/effects/types.js';
 import { GameState } from '../logic/GameState.js';
 import { Unit } from '../logic/Unit.js';
@@ -82,15 +83,36 @@ function cheminActuel(b: BoardDef) {
   return etat(player, enemy, g);
 }
 
+/**
+ * Verse un accumulateur de ressources dans un `GameState`.
+ *
+ * ⚠️ Le moteur n'écrit PAS dans `GameState` (cf. l'en-tête d'`engine.ts`) : il
+ * accumule, et l'appelant verse. C'est ce qui lui permet d'exprimer le
+ * `damage_multiplier_bonus` d'un attribut, qui n'a aucun champ où se poser.
+ * Cette fonction est donc le pendant, côté terrain, de ce que
+ * `GameState.applyEndOfCombat` fait côté attribut — et elle en est le modèle
+ * pour l'étape 2.
+ */
+function verser(r: Ressources, g: GameState): void {
+  g.player_extra_draws += r.pioches;
+  g.player_draw_sources.push(...r.sources);
+  g.player_guaranteed_draws.push(...r.pioches_garanties);
+  if (r.slots_board) g.grantLimitedBoardSlotBonus(r.slots_board);
+  g.player_extra_shopping_magies += r.magies_shop;
+  g.player_hp += r.pv;
+}
+
 /** Joue le même terrain par le chemin COMPILÉ et rend l'état. */
 function cheminCompile(b: BoardDef) {
   const player = cast('player');
   const enemy = cast('enemy');
   const g = new GameState();
+  const ressources = ressourcesVides();
   const { effets } = compileBoard(b);
   const trace = executer(effets, 'debut_combat', {
-    unitesAlliees: player, unitesEnnemies: enemy, gameState: g,
+    unitesAlliees: player, unitesEnnemies: enemy, ressources,
   });
+  verser(ressources, g);
   return { etat: etat(player, enemy, g), trace };
 }
 
@@ -218,8 +240,10 @@ describe('Mode ombre — les branches que le catalogue n\'exerce pas', () => {
     for (const b of SYNTHETIQUES) {
       const player = cast('player');
       const g = new GameState();
+      const ressources = ressourcesVides();
       const { effets } = compileBoard(b);
-      executer(effets, 'debut_combat', { unitesAlliees: player, unitesEnnemies: [], gameState: g });
+      executer(effets, 'debut_combat', { unitesAlliees: player, unitesEnnemies: [], ressources });
+      verser(ressources, g);
       const somme = g.player_draw_sources.reduce((n: number, s: any) => n + s.value, 0);
       expect(somme, b.id).toBe(g.player_extra_draws);
       // Et la source nomme bien le terrain, jamais une chaîne vide.
@@ -253,7 +277,7 @@ describe('Mode ombre — les invariants du schéma', () => {
   // Mutation : `executer` sans son `.sort()` → ROUGE.
   it('la séquence de résolution ne dépend pas de l\'ordre d\'arrivée', () => {
     const monde = () => ({
-      unitesAlliees: cast('player'), unitesEnnemies: cast('enemy'), gameState: new GameState(),
+      unitesAlliees: cast('player'), unitesEnnemies: cast('enemy'), ressources: ressourcesVides(),
     });
     const tous = compileBoards([...boards, ...SYNTHETIQUES]).effets;
     const endroit = executer(tous, 'debut_combat', monde()).applique;

@@ -736,9 +736,63 @@ et ne peut rien prouver. Le jour où une tâche non commutative arrivera (`=`,
 `remplacer`, une position), l'état en dépendra — et il serait trop tard pour
 s'en apercevoir alors.
 
-**Restent les magies et les attributs**, puis la bascule (étape 2). L'ordre du
-§6 tient : le terrain était le porteur le moins risqué, et il a déjà appris
-deux choses sur la façon de prouver la suite.
+**✅ ATTRIBUTS FAIT** — `effects-shadow-attributes.test.ts`, un cas par
+**palier** (106 cas). C'est le porteur qui a produit onze des vingt-et-un effets
+morts, et le schéma les supprime **par construction** :
+
+⚠️ **Le `quand` est dérivé du TYPE de l'effet, jamais du `timing` de son
+porteur.** Un `revive` est de fin de combat où que son attribut prétende vivre.
+Le `timing` déclaré ne sert plus qu'à **vérifier** — et le désaccord, qui était
+un silence, est devenu un refus nommé (`timing incohérent`, avec les deux
+moments en clair). Éprouvé : remettre `ARCH_020` sous `start_of_combat` fait
+rougir trois cas au lieu de ne rien faire.
+
+Trois choses que le mode ombre a forcé à écrire noir sur blanc, parce que les
+deux chemins divergeaient tant qu'elles restaient implicites :
+
+1. **Le moteur tourne une fois PAR CAMP.** Un attribut profite à qui le
+   **porte**, des deux côtés — ce n'est pas un effet « allié », c'est un effet de
+   porteur. Un sélecteur `les_deux` ne suffit pas : `parAttributAdverse` lit « le
+   camp d'en face », qui n'a pas le même sens selon le côté d'où l'on part.
+2. **Une mort déclenche les DEUX triggers, un par camp** : le camp du mort reçoit
+   `allie_detruit`, celui d'en face `ennemi_detruit`. N'en jouer qu'un laisse la
+   moitié des porteurs muets — et c'est invisible, puisque l'autre moitié réagit
+   normalement.
+3. **Le camp adverse ne reçoit que la PIOCHE** (`Monde.ressourcesLimitees`,
+   le `resources: false` d'aujourd'hui). Asymétrie assumée, reproduite parce que
+   le critère est « zéro changement observable » ; c'est la décision 3 du §7 qui
+   la lèvera à l'étape 4, et elle deviendra alors un `camp` comme un autre.
+
+⚠️ **Le schéma a gagné un champ en route : `condition`.** Le compilateur émet
+**tous** les paliers d'un attribut ; c'est la condition qui dit lequel
+s'applique. Sans elle, un effet compilé ne saurait pas dire à quel palier il
+appartient et il faudrait le redemander à la donnée — donc se donner deux
+sources pour une même question. La règle « un seul palier actif, le plus élevé
+atteint » reste celle d'`AttributeManager` et vit dans `attributes.test.ts`.
+
+⚠️ **Et la même leçon que le terrain, une seconde fois** : le catalogue
+n'exerce que 8 des 10 types codés (`board_slot_bonus` et `shopping_bonus` sont
+orphelins), et son unique plafond `max` ne mord jamais. Vérifié en retirant le
+plafond du compilateur — **aucun cas ne tombait**. D'où un second bloc
+d'attributs synthétiques. **C'est désormais un réflexe à avoir pour chaque
+porteur : mesurer ce que le catalogue exerce AVANT de croire le mode ombre.**
+
+**Reste le compilateur de magie**, puis la bascule (étape 2).
+
+### 6.3 Ce que l'étape 1 a appris sur la façon de prouver
+
+Trois fois sur deux porteurs, un test qui semblait probant ne l'était pas :
+
+| Ce qui semblait couvert | Ce qui l'était vraiment | Comment on l'a su |
+|---|---|---|
+| les 4 types de terrain | 2 (`stat_bonus`, `shield`) | muter le multiplicateur ne faisait rougir personne |
+| les 10 types d'attribut | 8, et aucun plafond | retirer le plafond ne faisait rougir personne |
+| l'ordre de résolution | rien (le cas comparait un ensemble trié à lui-même) | retirer le tri ne faisait rougir personne |
+
+**La mutation n'est pas une formalité de fin de course : c'est elle qui dit ce
+qu'un test couvre.** Un mode ombre vert sur un catalogue qui n'exerce que la
+moitié des branches est un mode ombre qui ne prouve que la moitié — et rien dans
+sa couleur ne le dit.
 
 Ordre choisi à dessein : le terrain a **1 lecteur et 3 types**, c'est le
 prototype le moins risqué ; les pouvoirs viennent en dernier parce qu'ils sont
