@@ -107,6 +107,23 @@ export const DUREES = ['combat', 'round', 'partie'] as const;
 export type Duree = typeof DUREES[number];
 
 /**
+ * Combien de fois un effet part sous son trigger — §3.5.
+ *
+ * ⚠️ Sans elle, « quand un allié est détruit » est AMBIGU : une fois, ou à
+ * chaque mort ? Aujourd'hui la réponse est « à chaque fois » et elle est écrite
+ * en dur dans `AttributeManager` ; ici c'est une donnée, donc quelque chose
+ * qu'un auteur peut choisir et qu'un lecteur peut voir.
+ *
+ * ⚠️ **Le moteur ne TIENT pas le compte, il le demande** (`Monde.consommePortee`).
+ * C'est l'appelant qui sait quand un combat finit, quand un round tourne, et
+ * quand la partie s'arrête — lui donner cette mémoire reviendrait à lui donner
+ * un cycle de vie, qu'il n'a pas. Même partage que les ressources : le moteur
+ * accumule, l'appelant verse.
+ */
+export const PORTEES = ['a_chaque_fois', 'une_fois_par_combat', 'une_fois_par_round', 'une_fois_par_partie'] as const;
+export type Portee = typeof PORTEES[number];
+
+/**
  * Les champs modifiables d'une UNITÉ, et leur nom de code côté `Unit`.
  *
  * ⚠️ **C'est le vocabulaire partagé dont l'absence a produit la première
@@ -321,7 +338,38 @@ export interface TachePosition {
   duree: Duree;
 }
 
-export type Tache = TacheModifier | TachePosition | TacheDeplacer | TachePoserStatut | TacheAjouter | TacheRetirer | TacheRemplacer;
+/**
+ * Toutes les tâches SAUF `poser_effet`.
+ *
+ * ⚠️ C'est ce type — et lui seul — qui porte la **profondeur 1** du §3.6 : un
+ * effet peut poser un effet, l'effet posé ne peut pas en poser un autre. Écrite
+ * ici, la borne est tenue par le compilateur TypeScript et non par une garde
+ * qu'on pourrait oublier. Sans elle, l'ordre de résolution devient impossible à
+ * prouver identique sur deux clients PvP.
+ */
+export type TacheSimple = TacheModifier | TachePosition | TacheDeplacer | TachePoserStatut | TacheAjouter | TacheRetirer | TacheRemplacer;
+
+/**
+ * `poser_effet` — une tâche inscrit un effet dans le registre — §3.6.
+ *
+ * ⚠️ **C'est le mécanisme qui remplace les CINQ files écrites à la main** du
+ * §1.6 (pioches garanties, remises de coût, poison, brûlure, multiplicateur
+ * permanent). Chacune était un champ d'état, un point de dépôt et un point de
+ * consommation, tenus d'accord de tête.
+ *
+ * ⚠️ Le registre appartient à l'APPELANT (`Monde.registre`), comme les
+ * ressources : lui seul sait quand un round tourne, donc quand purger. Le
+ * moteur inscrit et ne relit jamais ce qu'il a inscrit — sans quoi un effet
+ * posé pourrait partir dans le lot qui vient de le poser.
+ */
+export interface TachePoserEffet {
+  action: 'poser_effet';
+  effet: EffetPose;
+  /** Combien de temps l'effet posé reste dans le registre. */
+  duree: Duree;
+}
+
+export type Tache = TacheSimple | TachePoserEffet;
 
 // ───────────────────────────────────────────────────────────────────────────
 // L'effet
@@ -336,6 +384,16 @@ export interface Trigger {
    * donnée — donc quelque chose qu'on peut lire sur l'effet.
    */
   verrouille?: boolean;
+  /**
+   * Combien de fois l'effet part. Absente = `a_chaque_fois`, le comportement
+   * d'aujourd'hui.
+   *
+   * ⚠️ Une portée que l'appelant ne sait pas tenir (pas de `consommePortee`)
+   * fait **refuser l'effet nommément**, jamais partir quand même : un effet qui
+   * promet « une fois par combat » et part à chaque mort ne se voit pas, il se
+   * subit.
+   */
+  portee?: Portee;
 }
 
 /**
@@ -370,6 +428,17 @@ export interface Effet {
   porteur: string;
   trigger: Trigger;
   taches: readonly Tache[];
+}
+
+/** Un effet POSÉ — même forme, sans le droit d'en poser un autre (§3.6). */
+export interface EffetPose extends Omit<Effet, 'taches'> {
+  taches: readonly TacheSimple[];
+}
+
+/** Une entrée du registre : l'effet posé, et combien de temps il y reste. */
+export interface EntreeRegistre {
+  effet: EffetPose;
+  duree: Duree;
 }
 
 /**

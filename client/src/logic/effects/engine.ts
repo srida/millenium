@@ -26,7 +26,7 @@ import { Unit } from '../Unit.js';
 import type { Card, GuaranteedDraw, DrawSourceEntry } from '../types.js';
 import { CHAMPS_UNITE, cleDeTri } from './types.js';
 import { clampRate, rateForTicks } from '../../../../speed-scale.mjs';
-import type { Effet, Tache, TacheModifier, TacheDeplacer, TachePoserStatut, TacheAjouter, TacheRetirer, TacheRemplacer, Selecteur, ChampUnite } from './types.js';
+import type { Effet, Tache, TacheModifier, TacheDeplacer, TachePoserStatut, TacheAjouter, TacheRetirer, TacheRemplacer, TachePoserEffet, EntreeRegistre, Portee, Selecteur, ChampUnite } from './types.js';
 
 /**
  * Ce qu'un lot d'effets a produit pour le JOUEUR — le pendant exact de
@@ -130,6 +130,30 @@ export interface Monde {
   pvJoueur?: number;
   /** Nom du porteur, posé par `executer` pour les registres de provenance. */
   source?: string;
+  /**
+   * Où atterrit un `poser_effet` — §3.6.
+   *
+   * ⚠️ Il appartient à l'APPELANT, comme les ressources : lui seul sait quand un
+   * round tourne, donc quand purger une entrée `duree: 'round'`. Et le moteur ne
+   * relit JAMAIS ce qu'il vient d'y inscrire — sans quoi un effet posé pourrait
+   * partir dans le lot qui le pose, et l'ordre de résolution cesserait d'être
+   * prouvable (§5.1).
+   *
+   * Absent = aucune tâche `poser_effet` ne peut aboutir, et elle est **refusée
+   * nommément** plutôt qu'appliquée dans le vide.
+   */
+  registre?: EntreeRegistre[];
+  /**
+   * « Cet effet a-t-il encore le droit de partir sous cette portée ? »
+   *
+   * Rend `false` s'il a déjà été joué, et **marque au passage**. C'est une
+   * dépendance injectée comme `rand` ou `catalogue`, et pour la même raison : le
+   * moteur n'a pas de cycle de vie. Lui donner la mémoire d'un combat ou d'une
+   * partie reviendrait à lui en donner un.
+   *
+   * Absent = une portée autre qu'`a_chaque_fois` est **refusée nommément**.
+   */
+  consommePortee?: (portee: Portee, cle: string) => boolean;
 }
 
 /**
@@ -599,12 +623,29 @@ function appliqueRemplacer(t: TacheRemplacer, monde: Monde, trace: Trace): void 
   trace.applique.push(`${u.card_id}→${choisi.id}`);
 }
 
+/**
+ * `poser_effet` — inscrit un effet dans le registre de l'appelant.
+ *
+ * ⚠️ **Le porteur de l'effet posé est celui qui le pose**, jamais un id neuf :
+ * la clé de tri (§5.1) en dépend, et deux clients PvP doivent en tirer le même
+ * ordre. Un compteur donnerait deux clés différentes pour le même effet.
+ */
+function appliquePoserEffet(t: TachePoserEffet, monde: Monde, trace: Trace): void {
+  if (!monde.registre) { trace.ignore.push(`poser_effet ${t.effet.id} (aucun registre)`); return; }
+  monde.registre.push({
+    effet: { ...t.effet, porteur: t.effet.porteur || monde.source || '' },
+    duree: t.duree,
+  });
+  trace.applique.push(`pose ${t.effet.id} (${t.duree})`);
+}
+
 function appliqueTache(t: Tache, monde: Monde, trace: Trace): void {
   if (t.action === 'remplacer') { appliqueRemplacer(t, monde, trace); return; }
   if (t.action === 'deplacer') { appliqueDeplacer(t, monde, trace); return; }
   if (t.action === 'poser_statut') { appliquePoserStatut(t, monde, trace); return; }
   if (t.action === 'ajouter') { appliqueAjouter(t, monde, trace); return; }
   if (t.action === 'retirer') { appliqueRetirer(t, monde, trace); return; }
+  if (t.action === 'poser_effet') { appliquePoserEffet(t, monde, trace); return; }
 
   if (t.champ === 'position') { trace.ignore.push('position (aucun porteur livré n\'en pose)'); return; }
   const tache = t as TacheModifier;
@@ -643,6 +684,15 @@ export function executer(effets: readonly Effet[], quand: string, monde: Monde):
     if (seuil != null && (monde.pvJoueur ?? 0) <= seuil) {
       trace.neant.push(`${e.porteur}·(inabordable)`);
       continue;
+    }
+    // ⚠️ Une portée que l'appelant ne sait pas tenir REFUSE l'effet au lieu de
+    // le laisser partir : un effet qui promet « une fois par combat » et part à
+    // chaque mort ne se voit pas, il se subit. C'est la règle du projet — un
+    // effet doit pouvoir dire qu'il ne fait rien.
+    const portee = e.trigger.portee;
+    if (portee && portee !== 'a_chaque_fois') {
+      if (!monde.consommePortee) { trace.ignore.push(`${e.id}·${portee} (aucune mémoire)`); continue; }
+      if (!monde.consommePortee(portee, e.id)) { trace.neant.push(`${e.id}·(portée épuisée)`); continue; }
     }
     for (const t of e.taches) appliqueTache(t, { ...monde, source: e.porteur }, trace);
   }
