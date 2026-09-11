@@ -1051,6 +1051,84 @@ dans la couleur d'un test ne le dit.
 (décision 2 du §7) : elles vivent dans la boucle de combat, là où une divergence
 coûte un duel aux deux joueurs, et le §4.3 les avait déjà écartées.
 
+### 6.6 État de l'étape 3 — l'admin
+
+Le problème que l'étape résout tient en une phrase déjà écrite dans
+`CLAUDE.md` : *« un effet d'attribut n'existe pour de bon qu'aux TROIS endroits
+à la fois — le moteur, le `<select>` de l'onglet Attributs, et le libellé
+français. Deux sur trois donnent une fonctionnalité que personne ne peut ni
+écrire ni lire — c'est arrivé à `shopping_bonus`. »*
+
+**`effect-schema.mjs`** (racine, pur, sans import — comme `card-query.mjs` et
+`speed-scale.mjs`, et pour la même raison : `admin.html` ne peut rien importer
+du bundle) déclare quel effet existe, sur quel porteur, avec quels champs, à
+quel moment il part. Servi par `GET /admin/effect-schema.js`. Les trois onglets
+rendent leurs effets avec **trois fonctions** — `effectEditorHtml`,
+`readEffectFromForm`, `_effetTypeChange` — à la place de trois listes de types,
+trois tables de visibilité, deux listes `noValue` et un dictionnaire de
+libellés.
+
+**La table ne décide de rien**, et c'est ce qui la rend sûre : le juge reste le
+compilateur. `client/src/test/effect-schema.test.ts` les fait répondre la même
+chose, par **quatre preuves** qui ferment les quatre façons de n'avoir que deux
+endroits :
+
+| # | La panne | La preuve |
+|---|---|---|
+| 1 | un type OFFERT que le moteur ne traduit pas | chaque type déclaré compile, et part au moment annoncé |
+| 2 | un type TRADUIT qu'aucun éditeur n'offre | deux témoins (voir ci-dessous) |
+| 3 | un champ OFFERT que personne ne lit | **sonde** : on change le champ, la compilation doit bouger |
+| 4 | un champ LU que l'éditeur ne propose pas | **sonde inverse** |
+
+⚠️ **La preuve 2 a demandé DEUX témoins, et la mesure l'a imposé.** Le premier
+— le catalogue livré — est muet sur un type que personne n'a encore écrit, et
+`shopping_bonus` est précisément dans ce cas : **0 attribut livré le porte**.
+Retirer le type de la table laissait donc le test vert. C'est exactement la
+leçon de `shift_tier_card` à la bascule des magies (§6.5), rencontrée une
+seconde fois sur un autre axe. Le second témoin est la liste des `case` du
+compilateur, **lue dans sa source** — pas recopiée dans le test, ce qui en
+ferait un quatrième endroit à tenir d'accord, la panne même qu'on ferme.
+
+⚠️ **Les sondes ont trouvé du décoratif, et c'est la moitié utile du travail.**
+Un `<select>` qui ne pilote rien est pire qu'absent : il annonce un réglage.
+- `value_per` sur un **bouclier** d'attribut — le compilateur pose toujours
+  `parAllieVivant`, la valeur du champ n'est jamais lue. Et c'est lui qui rendait
+  `active_unit` proposable, le piège « à un clic » du §6.1 : sur un `stat_bonus`
+  le même choix rend un multiplicateur NUL, en silence. Retiré.
+- `target` sur un `revive` d'attribut — un `<select>` à une seule option
+  (`neutralized_ally`) que rien ne lit. Retiré.
+- `attribute` (singulier) sur une pioche garantie — **lu** par le compilateur et
+  offert nulle part. D'où `offert: false` : la forme historique reste dans le
+  vocabulaire (et sous la sonde) sans revenir au formulaire.
+- les stats visables vivaient en **trois listes divergentes** sans qu'aucune
+  règle ne le justifie (l'onglet Attributs offrait `power_charge`, les deux
+  autres non). Une liste, chaque entrée éprouvée contre le compilateur.
+
+**La vérification de `admin.html` : l'aller-retour, et sa LIGNE DE BASE.** Le
+fichier n'a aucun test automatisé ; la preuve est au navigateur. On ouvre chaque
+fiche du catalogue (51 magies, 93 attributs, 25 terrains), on relit le
+formulaire **sans enregistrer**, et on diffe contre la donnée. ⚠️ Ce chiffre seul
+ne dit rien : c'est la **même mesure rejouée sur la version d'avant** qui trie
+les écarts, exactement comme le détecteur trie ceux d'une bascule. Verdict :
+
+| Écart | Avant | Après | Lecture |
+|---|---|---|---|
+| `attribute` → `attributes` (pioche garantie, 5 magies) | oui | oui | repli voulu, pas une perte |
+| `target` et `value` d'un `revive` (7 attributs) | non | **oui** | champs que le moteur ne lit pas |
+| `value_per` d'un bouclier (ARCH_023) | non | **oui** | idem |
+| **`value: 0` ÉCRIT sur un `revive` qui n'en portait pas** (ARCH_029, ARCH_030) | **oui** | non | l'ancien éditeur polluait la donnée à chaque ouverture de fiche |
+| terrains | — | — | zéro écart |
+
+**Ce que l'étape 3 ne fait PAS, et il faut le dire.** Le critère annoncé au §6
+était « un effet neuf s'écrit sans toucher au code ». Il n'est **pas atteint**,
+et il ne pouvait pas l'être à ce stade : un type neuf demande encore un `case`
+dans `compile.ts` **et** une entrée dans la table. Ce qui est acquis est plus
+modeste et plus solide — les deux ne peuvent plus diverger, et une divergence
+est rouge le jour même au lieu d'être une fonctionnalité fantôme. Le critère
+d'origine suppose que la donnée porte la forme **générique** (une tâche, un
+champ, un opérateur) plutôt qu'un type historique traduit 1:1 ; c'est un
+changement de donnée, donc de l'étape 4.
+
 ### 6.3 Ce que l'étape 1 a appris sur la façon de prouver
 
 **Six fois sur trois porteurs**, un test qui semblait probant ne l'était pas :

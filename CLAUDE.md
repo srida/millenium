@@ -125,6 +125,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `GET /admin` | Site admin | Card Manager (`admin.html`) |
 | `GET /admin/card-query.js` | Site admin | Le langage de requête (`card-query.mjs`), partagé avec le client |
 | `GET /admin/speed-scale.js` | Site admin | L'échelle de vitesse (`speed-scale.mjs`), partagée avec le client |
+| `GET /admin/effect-schema.js` | Site admin | Le vocabulaire d'effets (`effect-schema.mjs`), partagé avec le client |
 | `GET /api/version` | Public | Version du build |
 | `GET /api/{cards,attributes,powers,boards,magies,missions,decks,sets,variants,gifts,card-backs}` | Public | Les catalogues, avec leurs drapeaux calculés |
 | `POST/PUT/DELETE /api/<entité>[/:id]` | Site admin | CRUD (`routes/crud-json.js` : ne valide que l'unicité de l'id) |
@@ -188,6 +189,7 @@ Toutes les mutations renvoient **l'instantané complet + la progression à jour*
 | `tiers.js` | Résolution « attributs de catégorie `Tiers` → numéros » (jumeau de `logic/Tiers.ts`) |
 | `card-contract.js` | Les catégories d'attributs qu'une carte doit porter (pur, partagé avec l'audit) |
 | `card-query.mjs` | Le langage de requête des barres de recherche (pur, partagé `admin.html` ↔ client) |
+| `effect-schema.mjs` | Le vocabulaire d'effets : quel type, sur quel porteur, quels champs, quel moment (pur, partagé `admin.html` ↔ client) |
 
 **Règle anti-cycle** — elle n'est écrite nulle part ailleurs que ici :
 - **Feuilles** (ne requièrent que `db` / `json-cache`, personne ne les requiert en retour) : `sets.js`, `variants.js`, `decks.js`, `pvplog.js`, `ailog.js`, `asset-dirs.js`, `tiers.js`, `card-contract.js`.
@@ -943,7 +945,7 @@ getActiveSynergies(units)                  // → [{ attr, count, activeThreshol
 - Tous les bonus d'attribut sont réinitialisés en fin de combat. ⚠️ `finishCombat` balaie **tous les participants** (`combatants`, capturé avant les filtres), neutralisés compris — sinon une unité morte garde ses bonus, `max_hp` gonflé compris, et le round suivant les recumule.
 - ⚠️ `applyEndOfCombat` traite les **deux camps** (`_applyEndForSide`) : `revive` remet une unité sur le plateau et vaut donc des deux côtés ; les effets de **ressource** (pioches, slot, multiplicateur, shopping) restent au joueur, seul destinataire possible.
 - ⚠️ **La pioche fait exception : elle a un destinataire des deux côtés** (`EnemyAI.drawHand` pioche aussi) → `enemy_draw_bonus` / `enemy_guaranteed_draws`. Les trois autres ressources sont tenues par **deux gardes qui se couvrent** — `Monde.ressourcesLimitees` (le moteur n'accumule pas) et le versement (l'appelant ne lit pas ces champs côté adverse). Retirer l'une seule ne fait rouge aucun test : les muter **ensemble**.
-- ⚠️ **Un effet d'attribut n'existe pour de bon qu'aux TROIS endroits à la fois** : le moteur, le `<select>` de l'onglet Attributs (avec son champ `max` si le type en accepte un), et le libellé français (`BoardInfo.boardEffectLabel`). Deux sur trois donnent une fonctionnalité que personne ne peut ni écrire ni lire — c'est arrivé à `shopping_bonus`.
+- ⚠️ **Un effet n'a plus qu'UN endroit où se déclarer : `effect-schema.mjs`** (racine). Il en avait trois — le moteur, le `<select>` de l'onglet, le libellé français — et deux sur trois donnaient une fonctionnalité que personne ne pouvait ni écrire ni lire (c'est arrivé à `shopping_bonus`). La table déclare, `compile.ts` traduit, et `effect-schema.test.ts` les fait répondre la même chose : un type déclaré doit COMPILER, un type que le compilateur traduit doit être OFFERT, un champ offert doit être LU (sonde), un champ non offert ne doit PAS l'être (sonde inverse).
 
 **L'icône d'un attribut est une image ; l'emoji n'est que le repli.** Art dans `ILLUS_DIR` sous l'`id` de l'attribut, importé depuis l'onglet Attributs. Le champ `icon` du JSON reste l'emoji de repli.
 - **`components/ui/AttrIcon.tsx` est le seul composant qui décide du repli** (image si `_has_illustration`, emoji sinon, rien si ni l'un ni l'autre). Quatre sites : puce du `SynergyPanel` (`h-4`), titre du tooltip d'attribut (`h-7`), chips `Keywords` (`h-3.5`), codex (`h-5`).
@@ -1633,18 +1635,17 @@ Reprendre une PWA depuis les tâches de fond **n'est pas une navigation** : le n
 
 Page autonome, **16 onglets**, aucun build. ⚠️ **Aucun test automatisé ne la couvre** (`npm test` est purement client) : la vérification se fait **au navigateur** (Chromium et Playwright préinstallés, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` — ne **pas** lancer `playwright install`). ⚠️ Un `npm i playwright` récent réclame un build que le volume n'a pas : passer `executablePath: '/opt/pw-browsers/chromium-<build>/chrome-linux/chrome'` plutôt que de télécharger.
 
-**Ce qu'il faut mesurer plutôt que regarder** : `document.documentElement.scrollWidth <= clientWidth` (`body { overflow-x: hidden }` **masque** le symptôme), un seul `.main:not(.hidden)` et un seul `#main-tabs .tab.active` par onglet, les chips d'attributs toujours visibles et actifs après un `switchTab()`, et l'échelle réelle des SVG du rapport (`svg.getScreenCTM().a` — un `getComputedStyle` rendrait `11px` même à l'échelle 0,4).
+**Ce qu'il faut mesurer plutôt que regarder** : `document.documentElement.scrollWidth <= clientWidth` (`body { overflow-x: hidden }` **masque** le symptôme), un seul `.main:not(.hidden)` et un `#main-tabs` (un `<select>`) dont la `value` désigne ce panneau, les chips d'attributs toujours visibles et actifs après un `switchTab()`, et l'échelle réelle des SVG du rapport (`svg.getScreenCTM().a` — un `getComputedStyle` rendrait `11px` même à l'échelle 0,4).
 
-⚠️ **`.tabs` et `.tab` sont RÉUTILISÉS hors de la topbar — c'est le piège du fichier.** Les flèches du pager SQL et les chips de catégorie du sélecteur d'attributs les portent : un `querySelectorAll('.tab')` global les dépouille de leur `.active`, masquer `.tabs` en mobile ferait **disparaître les chips**, et une délégation de clic sur `.tabs` capterait le pager. D'où **`id="main-tabs"` sur la seule barre du haut**, et la règle : **tout sélecteur de navigation — CSS comme JS — passe par cet id.** Le pager a sa propre classe (`.db-pager-btn`).
+⚠️ **La barre du haut est un `<select id="main-tabs">`**, pas une bande de chips : `#main-tabs .tab.active` n'existe pas, on lit sa `value`. La classe `.tab` survit **ailleurs** (pager SQL, chips de catégorie du sélecteur d'attributs) — c'est le piège historique du fichier, et il tient toujours pour qui écrit un `querySelectorAll('.tab')` global. La règle ne change pas : **tout sélecteur de navigation — CSS comme JS — passe par `#main-tabs`.** Le pager a sa propre classe (`.db-pager-btn`).
 
 ⚠️ **Le bloc `@media (max-width: 768px)` doit rester le DERNIER de la feuille.** À spécificité égale la dernière règle gagne : posé au milieu du fichier, une douzaine de surcharges mobiles étaient **mortes en silence**. Toute règle desktop se pose **au-dessus** de ce bloc.
 
 - `switchTab` apparie par **`data-tab`**, plus par sous-chaîne de libellé — un libellé se renomme donc librement.
-- ⚠️ La bande d'onglets porte `flex-wrap: wrap` : sans lui elle **débordait aussi sur desktop**, et `overflow-x: hidden` **coupait** le dépassement sans laisser de barre (mesuré : à 1280 px, ⚖️ Équilibrage était inatteignable).
-- Sur mobile, la bande est remplacée par une **feuille plein écran** (`#tab-sheet`, ☰) dont les entrées sont **clonées depuis `#main-tabs` à chaque ouverture** — une seule liste d'onglets dans le fichier.
+- Sur mobile, le `<select>` cède la place à une **feuille plein écran** (`#tab-sheet`, ☰) dont les entrées sont **clonées depuis les `<option>` de `#main-tabs` à chaque ouverture** — une seule liste d'onglets dans le fichier.
 - ⚠️ **`viewport-fit=cover` est la condition d'existence de `env(safe-area-inset-*)`** : sans lui les retraits valent `0px` et tout le travail de zone sûre est un no-op silencieux.
 - ⚠️ Un `showModal` qui pose une largeur **en ligne** bat la requête média → `min(580px, 96vw)`.
-- **Éditeurs répétables** (lots de cadeau, effets de terrain) : ils tiennent un état local (le DOM ne peut pas servir de source de vérité pour une liste dont on retire des éléments au milieu) et un `_sync…Draft()` recopie la saisie **avant** chaque re-render — sans quoi ajouter une ligne effacerait ce qu'on venait de taper.
+- **Éditeurs répétables** (lots de cadeau, effets de terrain, paliers d'attribut) : ils tiennent un état local (le DOM ne peut pas servir de source de vérité pour une liste dont on retire des éléments au milieu) et un `_sync…Draft()` recopie la saisie **avant** chaque re-render — sans quoi ajouter une ligne effacerait ce qu'on venait de taper.
 - ⚠️ **Un `_collect…Fields` qui reconstruit l'objet de zéro détruit tout champ qu'il ne connaît pas.** C'est arrivé à `description` (magies) et à `difficulty` (decks publics). Repartir de `...selectedX`, en s'arrêtant au **premier niveau**.
 - Les onglets sans barre latérale (`#tab-db`, Logs PvP, Logs IA) sont chargés **paresseusement** au premier clic et ajoutés à `NO_FAB_TABS`.
 - ⚠️ **Il n'y a plus d'onglet Invocation** (ni `summon_types.json`, ni `SummonTypeDatabase`, ni `/api/summon-types`) : les cinq voies sont des attributs de carte, éditables dans l'onglet Attributs comme n'importe quel archétype. L'onglet Cartes porte à leur place un **éditeur de recettes répétable** (`summon_conditions`) et le champ **`material_value`**.
@@ -1661,6 +1662,41 @@ Page autonome, **16 onglets**, aucun build. ⚠️ **Aucun test automatisé ne l
 - Le préfixe par défaut : le dernier utilisé (localStorage) s'il existe encore, sinon **le plus représenté** — pas le premier alphabétique, qui servait `MAGIC` alors que la série vivante est `MAGIE`.
 - ⚠️ **Les POUVOIRS sont l'exception, et elle est de fond** : un id de pouvoir est *sémantique* (`POWER_FREEZE`), lu en dur par `logic/CombatManager`. Un `POWER_015` tiré d'un compteur serait un pouvoir que rien n'exécute. L'onglet garde un id libre et le dit à l'écran.
 - Variantes et dos de cartes ont un ID **en lecture seule** hors création : l'illustration est nommée par lui, le renommer la détacherait en silence (même piège que les attributs).
+
+### L'éditeur d'effet
+
+Un seul, partagé par les onglets **Terrains, Attributs et Magies** :
+`effectEditorHtml` rend, `readEffectFromForm` relit, `_effetTypeChange` bascule.
+Tout est piloté par `effect-schema.mjs` (chargé comme `card-query.mjs`).
+
+- ⚠️ **Le changement de type RE-REND, il ne masque plus des champs.** C'est ce
+  qui supprime les règles écrites deux fois : « Valeur et Durée s'excluent »
+  vivait dans le gabarit **et** dans la fonction de mise à jour, qui n'était pas
+  rejouée après un rendu de détail — écrite une fois sur deux, elle ouvrait la
+  fiche avec un champ que le moteur ne lit jamais. Elle est maintenant
+  **déclarée** (`masqueSi`) et résolue à un seul endroit.
+- ⚠️ **Le `quand` s'AFFICHE, il ne se demande pas** : il se dérive du TYPE. Un
+  `revive` posé sous un `start_of_combat` ne partait jamais, et rien à l'écran
+  ne le disait — onze effets sont morts de ça.
+- ⚠️ **Un effet relu ne porte QUE les champs que son type lit.** Remplace les
+  deux listes `noValue` de l'onglet Magies. L'ancien éditeur, lui, *écrivait*
+  `value: 0` sur un `revive` à chaque ouverture de fiche.
+- `champsDe` rend le vocabulaire entier, **`champsOfferts` ce que le formulaire
+  propose** : un champ encore lu par le moteur mais qu'on ne veut plus voir
+  écrire est `offert: false` (la forme historique `attribute` d'une pioche
+  garantie). L'omettre le rendrait invisible de la sonde.
+- Les listes (critères de pioche garantie, archétypes ciblés) viennent du
+  **modèle** ou des chips, jamais d'un `<input>` : le DOM ne peut pas servir de
+  source de vérité pour une liste dont on retire un élément au milieu.
+- La prose (`EFFECT_NOTES`) reste dans `admin.html` : `effect-schema.mjs` est
+  importé par le bundle du jeu, il n'a pas à transporter du HTML. Un type sans
+  note n'affiche rien — rien n'en dépend.
+
+⚠️ **La vérification d'un éditeur, c'est l'ALLER-RETOUR, et il a besoin d'une
+ligne de base.** Ouvrir chaque fiche du catalogue, relire le formulaire **sans
+enregistrer**, differ contre la donnée — puis rejouer la **même** mesure sur la
+version d'avant. Le diff seul ne dit rien ; c'est la comparaison des deux qui
+sépare « champ décoratif enfin retiré » de « champ détruit en silence ».
 
 ### Le curseur de compteur
 
