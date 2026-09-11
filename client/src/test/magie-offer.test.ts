@@ -340,13 +340,29 @@ describe('Catalogue livré — initial-data/magies.json', () => {
   const catalogue: Magie[] = require(path.join(root, 'initial-data', 'magies.json'));
 
   it('chaque magie livrée est offrable dans un état riche', () => {
-    // ⚠️ Le deck « riche » porte les cartes que le catalogue NOMME : une pioche
-    // garantie qui désigne des cartes n'est pertinente que si le deck en tient
-    // une, et un `deckCardIds` vide la rendrait orpheline ici sans qu'elle ait
-    // le moindre défaut.
+    // ⚠️ Le deck « riche » porte les cartes ET les attributs que le catalogue
+    // NOMME : une pioche garantie qui désigne des cartes n'est pertinente que
+    // si le deck en tient une, et une qui désigne des attributs que si le deck
+    // en porte — un `deckCardIds` ou un `deckAttributes` en retard rendrait la
+    // magie orpheline ici sans qu'elle ait le moindre défaut.
+    //
+    // ⚠️ Les deux listes se DÉRIVENT du catalogue au lieu d'être énumérées à
+    // la main, et c'est ce qui fait la différence entre un filet et un piège :
+    // `LUSH` ne nommait que les cinq attributs d'invocation, si bien que les
+    // cinq magies livrées depuis qui visent un attribut de TIER (`ARCH_091`…
+    // `ARCH_095`, « une carte de Tier N ») sortaient orphelines. Elles n'ont
+    // rien d'anormal — un deck réel porte toujours les tiers de ses cartes,
+    // `BoardPicker.deckAttributes` ne les écarte pas —, c'était la doublure qui
+    // avait vieilli. Une doublure recopiée à la main vieillit ; une doublure
+    // dérivée suit la donnée.
     const lush: MagieOfferContext = {
       ...LUSH,
       deckCardIds: [...new Set(catalogue.flatMap(m => (m.effect as any)?.card_ids ?? []))],
+      deckAttributes: [...new Set([
+        ...LUSH.deckAttributes,
+        ...catalogue.flatMap(m => (m.effect as any)?.attributes ?? []),
+        ...catalogue.flatMap(m => ((m.effect as any)?.attribute ? [(m.effect as any).attribute] : [])),
+      ])],
     };
     const orphans = catalogue.filter(m => !isMagieRelevant(m, lush)).map(m => `${m.id} (${m.effect?.type})`);
     expect(orphans).toEqual([]);
