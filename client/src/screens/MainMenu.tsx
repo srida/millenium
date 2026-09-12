@@ -55,7 +55,7 @@ export default function MainMenu() {
   const openDevMenu = () => { if (user?.is_admin) setDevOpen(true); };
 
   return (
-    <main className="relative z-10 flex h-dvh flex-col gap-2 overflow-hidden px-5 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] text-white sm:px-2">
+    <main className="relative z-10 flex h-dvh flex-col gap-2 overflow-hidden px-10 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] text-white sm:px-2">
       {/* En portrait téléphone, la place manque pour le loger dans l'en-tête
           (déjà plein : profil, niveau, or, gemmes) — il flotte alors sous
           l'en-tête. À partir de `sm:` (paysage, tablette), il rejoint l'en-tête. */}
@@ -65,7 +65,7 @@ export default function MainMenu() {
         // Téléphone paysage : logo + version en rail gauche (plus de place en
         // haut pour l'en-tête et la ligne d'actions), dock en rail droit.
         <div className="flex min-h-0 flex-1 gap-3">
-          <LogoRail onVersionLongPress={openDevMenu} />
+          <LogoRail isAdmin={!!user?.is_admin} onVersionLongPress={openDevMenu} />
           <div className="flex min-w-0 flex-1 flex-col gap-2">
             <MenuHeader className="w-full" />
             <div className="flex min-h-0 flex-1 items-stretch gap-3">
@@ -91,8 +91,8 @@ export default function MainMenu() {
         <div className="flex min-h-0 flex-1 gap-3">
           <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
             <MenuHeader className="w-full" />
-            <LogoBlock grow={false} onVersionLongPress={openDevMenu} />
-            <div className="flex min-h-0 flex-1 items-stretch gap-3 sm:max-w-[820px] sm:max-h-[220px]">
+            <LogoBlock grow={false} isAdmin={!!user?.is_admin} onVersionLongPress={openDevMenu} />
+            <div className="flex min-h-0 flex-1 items-stretch gap-3 sm:max-w-[820px] sm:max-h-[190px]">
               <PlayCard className="min-w-0 flex-[1.15]" />
               <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
                 <TutorialButton className="h-full w-full" />
@@ -112,7 +112,7 @@ export default function MainMenu() {
       ) : (
         <>
           <MenuHeader />
-          <LogoBlock grow onVersionLongPress={openDevMenu} />
+          <LogoBlock grow isAdmin={!!user?.is_admin} onVersionLongPress={openDevMenu} />
           <div className="flex flex-col gap-2.5 sm:mx-auto sm:w-full sm:max-w-[470px] sm:flex-1 sm:justify-center">
             <PlayCard />
             <TutorialButton />
@@ -162,7 +162,10 @@ function MenuHeader({ className = '' }: { className?: string }) {
   const user = useAuthStore(s => s.user);
 
   return (
-    <div className={`flex min-h-tap shrink-0 items-center gap-2 ${className}`}>
+    // `text-xs` : les marges élargies du portrait téléphone (cf. `<main>`)
+    // laissent peu de place pour profil + niveau + or + gemmes sur une seule
+    // ligne — la police redescend d'un cran, `sm:` la rend à sa taille.
+    <div className={`flex min-h-tap shrink-0 items-center gap-2 text-xs sm:text-sm ${className}`}>
       {user ? (
         <>
           <ProfilePill user={user} compact onPointerDown={() => navigate('profile')} />
@@ -194,23 +197,28 @@ function MenuHeader({ className = '' }: { className?: string }) {
  * `grow` : en portrait téléphone, ce bloc est la zone `flex-1` qui absorbe la
  * hauteur disponible (le logo grandit). Sur tablette portrait (`sm:`), c'est
  * la pile d'actions qui devient `flex-1` à la place — le logo, lui, revient à
- * sa taille naturelle et rétrécit un cran (`sm:w-[min(9rem,20dvh)]`), sinon il
- * écrase les boutons (cf. discussion design). En paysage tablette, `grow` est
+ * sa taille naturelle et rétrécit ( `sm:w-[min(7rem,16dvh)]`), sinon il écrase
+ * les boutons (cf. discussion design). En paysage tablette, `grow` est
  * toujours faux et le même rétrécissement s'applique : c'est la ligne [carte
  * Jouer | grille] qui absorbe l'espace. Le téléphone paysage n'utilise pas ce
  * bloc (cf. `LogoRail`).
+ *
+ * `isAdmin` : pose un point doré à côté de la version — le seul indice que
+ * l'appui long y ouvre les outils dev. Sans lui, rien ne distingue la version
+ * d'un texte inerte, admin ou pas.
  */
-function LogoBlock({ grow, onVersionLongPress }: { grow: boolean; onVersionLongPress: () => void }) {
+function LogoBlock({ grow, isAdmin, onVersionLongPress }: { grow: boolean; isAdmin: boolean; onVersionLongPress: () => void }) {
   const longPress = useLongPress(onVersionLongPress);
   return (
     <div className={`flex flex-col items-center justify-center gap-0.5 ${grow ? 'flex-1 sm:flex-none' : 'flex-none'}`}>
       {/* Largeur bornée par la hauteur disponible (`26dvh`) autant que par une
           taille maximale (`11rem`) : c'est elle qui fait tenir le logo sans
           scroll quand l'écran est court. Sur tablette (`sm:`), les deux bornes
-          descendent d'un cran : la pile d'actions a besoin de la place. */}
-      <AnimatedLogo className="w-[min(11rem,26dvh)] sm:w-[min(9rem,20dvh)]" />
-      <div {...longPress} className="-mt-2 select-none">
+          descendent : la pile d'actions a besoin de la place. */}
+      <AnimatedLogo className="w-[min(11rem,26dvh)] sm:w-[min(7rem,16dvh)]" />
+      <div {...longPress} className="-mt-2 flex select-none items-center gap-1">
         <AppVersion />
+        {isAdmin && <NewDot label="Outils dev (appui long)" />}
       </div>
     </div>
   );
@@ -218,15 +226,16 @@ function LogoBlock({ grow, onVersionLongPress }: { grow: boolean; onVersionLongP
 
 // Rail gauche du téléphone paysage : logo + version posés à côté de l'en-tête
 // et de la ligne d'actions plutôt qu'au-dessus — l'écran est trop court pour
-// leur laisser une ligne à eux. Taille propre (104 px), reprise du repère
-// d'origine de la maquette pour ce cadrage.
-function LogoRail({ onVersionLongPress }: { onVersionLongPress: () => void }) {
+// leur laisser une ligne à eux. ~1/4 de la largeur de l'écran (`25vw`) : assez
+// présent pour rester le repère visuel du menu même relégué sur le côté.
+function LogoRail({ isAdmin, onVersionLongPress }: { isAdmin: boolean; onVersionLongPress: () => void }) {
   const longPress = useLongPress(onVersionLongPress);
   return (
-    <div className="flex w-24 shrink-0 flex-col items-center justify-center gap-0.5">
-      <AnimatedLogo className="w-[min(6.5rem,22dvh)]" />
-      <div {...longPress} className="-mt-2 select-none">
+    <div className="flex shrink-0 flex-col items-center justify-center gap-0.5">
+      <AnimatedLogo className="w-[25vw]" />
+      <div {...longPress} className="-mt-2 flex select-none items-center gap-1">
         <AppVersion />
+        {isAdmin && <NewDot label="Outils dev (appui long)" />}
       </div>
     </div>
   );

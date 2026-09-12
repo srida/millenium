@@ -49,7 +49,7 @@ export function ProgressionPills({ user, className = '', onOpen }: { user: AuthU
   const level = (
     <>
       <span className="font-semibold tabular-nums text-gold">Nv. {fmt.format(user.level ?? 1)}</span>
-      <Gauge value={xpOf(user) / XP_PER_LEVEL} className="h-1.5 w-14" fillClassName="bg-player" />
+      <Gauge value={xpOf(user) / XP_PER_LEVEL} className="h-1.5 w-9 sm:w-14" fillClassName="bg-player" />
       {/* Décompte exact / palier en attente : caché sous `sm` (menu principal,
           portrait téléphone) — la jauge seule tient déjà la réponse à « où
           j'en suis », et l'en-tête y est déjà plein (profil, or, gemmes). */}
@@ -64,10 +64,10 @@ export function ProgressionPills({ user, className = '', onOpen }: { user: AuthU
       </span>
     </>
   );
-  const levelClass = 'flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-2.5 py-1';
+  const levelClass = 'flex items-center gap-1.5 sm:gap-2 rounded-full border border-gold/50 bg-gold/10 px-2 py-0.5 sm:px-2.5 sm:py-1';
 
   return (
-    <div className={`flex flex-wrap items-center justify-center gap-1.5 ${className}`} aria-label="Progression">
+    <div className={`flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 ${className}`} aria-label="Progression">
       {/* Niveau + jauge du palier : la barre tient dans la pastille pour ne pas
           ajouter une ligne au menu. */}
       {onOpen ? (
@@ -86,7 +86,7 @@ export function ProgressionPills({ user, className = '', onOpen }: { user: AuthU
         <span
           key={c.key}
           title={c.label}
-          className="flex items-center gap-1 rounded-full border border-line bg-surface-raised/70 px-2.5 py-1"
+          className="flex items-center gap-1 rounded-full border border-line bg-surface-raised/70 px-2 py-0.5 sm:px-2.5 sm:py-1"
         >
           <span aria-hidden="true">{c.icon}</span>
           <span className={`font-semibold tabular-nums ${c.cls}`}>{fmt.format(user[c.key] ?? 0)}</span>
