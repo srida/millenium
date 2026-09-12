@@ -190,7 +190,12 @@ export default function CardTile({
           T{tiers.join('·')}
         </span>
       )}
-      {hint && <span className="absolute right-0.5 top-0.5 rounded bg-black/70 px-1 text-[9px]">{hint}</span>}
+      {/* ⚠️ `text-white` explicite, comme le badge de tier juste au-dessus :
+          sans lui la pastille hérite du noir par défaut et devient invisible
+          sur son propre fond `bg-black/70` dès qu'aucun ancêtre ne pose
+          `text-white` — c'est le cas de `Modal` (révélation de booster,
+          confirmation d'achat), qui ne le fait pas. */}
+      {hint && <span className="absolute right-0.5 top-0.5 rounded bg-black/70 px-1 text-[9px] text-white">{hint}</span>}
       {badge != null && badge > 0 && (
         <span className="absolute bottom-0.5 right-0.5 rounded bg-gold px-1 text-[9px] font-bold text-black">×{badge}</span>
       )}

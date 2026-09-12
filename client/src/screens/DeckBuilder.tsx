@@ -544,17 +544,19 @@ function LibraryPanel({
         {/* Les seuls chips qui restent : le tier, filtre le plus fréquent, et
             l'accès à ce qu'on ne possède pas. Les quatre seaux de COÛT sont
             partis — la barre les dit mieux (`cout:0`, `cout>=3`, mais aussi
-            `cout:1,2`) et l'autocomplétion les propose au fil de la frappe. */}
-        <div className="flex flex-wrap gap-1.5">
+            `cout:1,2`) et l'autocomplétion les propose au fil de la frappe.
+            Le tri partage la même ligne (`ml-auto` le pousse à droite quand la
+            largeur le permet) ; il wrap sous les chips sinon, sans jamais
+            s'étirer plein cadre — `sm:max-w-xs` borne un `<select>` qui, seul,
+            pèserait plus lourd que la barre de recherche. */}
+        <div className="flex flex-wrap items-center gap-1.5">
           {[1, 2, 3, 4, 5].map(t => (
             <Chip key={t} active={on('tier', t)} onTap={() => toggle('tier', t)}>
               <span className={TIER_TEXT[t]}>T{t}</span>
             </Chip>
           ))}
+          <SortControl schema={schema} value={sort} onChange={setSort} className="ml-auto sm:max-w-xs" />
         </div>
-        {/* Plein cadre au doigt, borné au-delà : un `<select>` de 1200 px pour
-            « Ordre du catalogue » pèse plus lourd que la barre de recherche. */}
-        <SortControl schema={schema} value={sort} onChange={setSort} className="sm:max-w-xs" />
         <div className="text-[11px] text-white/40">
           {ownedCount}/{total} cartes débloquées · {cards.length} affichée{cards.length > 1 ? 's' : ''} · 1 exemplaire par deck
         </div>
