@@ -133,22 +133,29 @@ export class GameState {
     playerSurvivorsAtk: number,
     enemySurvivorsAtk: number,
     attributeResult: EndOfCombatAttributeResult = {},
-  ): void {
+  ): { playerMultiplier: number; enemyMultiplier: number; playerDamageDealt: number; enemyDamageDealt: number } {
     this.phase = Phase.END_ROUND;
 
+    let playerMultiplier = 0;
+    let enemyMultiplier = 0;
+    let playerDamageDealt = 0;
+    let enemyDamageDealt = 0;
+
     if (winner === 'player' || winner === 'timeout' || winner === 'draw') {
-      const mult = this.player_multiplier
+      playerMultiplier = this.player_multiplier
         + (attributeResult.damage_multiplier_bonus || 0)
         + this.player_damage_multiplier_bonus;
-      this.enemy_hp -= Math.round(playerSurvivorsAtk * mult);
+      playerDamageDealt = Math.round(playerSurvivorsAtk * playerMultiplier);
+      this.enemy_hp -= playerDamageDealt;
     }
     if (winner === 'enemy' || winner === 'timeout' || winner === 'draw') {
       // ⚠️ Le pendant EXACT de la ligne au-dessus, et c'est la décision 3 du §7 :
       // l'IA porte ses effets comme un vrai joueur. Le bonus d'attribut ne vaut
       // que pour CE round, comme celui du joueur ; elle n'a pas d'équivalent de
       // `player_damage_multiplier_bonus`, qui est permanent et vient des magies.
-      const multAdverse = this.enemy_multiplier + (attributeResult.enemy_damage_multiplier_bonus || 0);
-      this.player_hp -= Math.round(enemySurvivorsAtk * multAdverse);
+      enemyMultiplier = this.enemy_multiplier + (attributeResult.enemy_damage_multiplier_bonus || 0);
+      enemyDamageDealt = Math.round(enemySurvivorsAtk * enemyMultiplier);
+      this.player_hp -= enemyDamageDealt;
     }
 
     // Clamp HP
@@ -183,6 +190,8 @@ export class GameState {
     if (attributeResult.enemy_board_slot_bonus) {
       this.grantEnemyBoardSlotBonus(attributeResult.enemy_board_slot_bonus);
     }
+
+    return { playerMultiplier, enemyMultiplier, playerDamageDealt, enemyDamageDealt };
   }
 
   /**

@@ -197,13 +197,52 @@ export function EndRoundOverlay() {
 
 function DamageBreakdown({ result }: { result: EndRoundResult }) {
   const survivors = result.winner === 'enemy' ? result.enemySurvivors : result.playerSurvivors;
-  if (!survivors.length) return null;
   return (
-    <div className="w-full rounded-lg border border-white/10 bg-white/5 p-2 text-[11px]">
-      <div className="mb-1 tracking-widest text-white/40">SURVIVANTS</div>
-      {survivors.map((u, i) => (
-        <div key={i} className="flex justify-between"><span className="truncate text-white/70">{u.name}</span><span className="tabular-nums text-white/50">{u.atk}</span></div>
-      ))}
+    <div className="flex w-full flex-col gap-1.5">
+      <DamageLine
+        label="Tes dégâts"
+        atk={result.playerSurvivorsAtk}
+        multiplier={result.playerMultiplier}
+        damage={result.playerDamageDealt}
+        tone="text-player"
+      />
+      <DamageLine
+        label="Dégâts adverses"
+        atk={result.enemySurvivorsAtk}
+        multiplier={result.enemyMultiplier}
+        damage={result.enemyDamageDealt}
+        tone="text-enemy"
+      />
+      {survivors.length > 0 && (
+        <div className="w-full rounded-lg border border-white/10 bg-white/5 p-2 text-[11px]">
+          <div className="mb-1 tracking-widest text-white/40">SURVIVANTS</div>
+          {survivors.map((u, i) => (
+            <div key={i} className="flex justify-between"><span className="truncate text-white/70">{u.name}</span><span className="tabular-nums text-white/50">{u.atk}</span></div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Une ligne de dégâts par camp : ATK cumulée des survivants × multiplicateur
+ * (nombre d'unités + tour, cf. « Multiplicateur de dégâts ») = dégâts infligés.
+ *
+ * ⚠️ `multiplier === 0` veut dire « ce camp n'encaisse pas ce round » (le
+ * gagnant net d'une victoire sans `draw`/`timeout`) : la ligne se tait plutôt
+ * que d'afficher un multiplicateur ou un montant inventés.
+ */
+function DamageLine({ label, atk, multiplier, damage, tone }: {
+  label: string; atk: number; multiplier: number; damage: number; tone: string;
+}) {
+  if (multiplier <= 0) return null;
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[11px]">
+      <span className={`font-semibold ${tone}`}>{label}</span>
+      <span className="tabular-nums text-white/60">
+        {atk} × {multiplier.toFixed(1)} = <span className={`font-bold ${tone}`}>{damage}</span>
+      </span>
     </div>
   );
 }

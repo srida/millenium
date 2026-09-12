@@ -139,6 +139,12 @@ export interface EndRoundResult {
   playerSurvivors: { name: string; atk: number }[];
   enemySurvivors: { name: string; atk: number }[];
   damageMultiplierBonus: number;
+  /** Multiplicateur EFFECTIVEMENT appliqué au camp (0 si ce camp n'encaisse pas ce round). */
+  playerMultiplier: number;
+  enemyMultiplier: number;
+  /** Dégâts réellement infligés à l'ADVERSAIRE de ce camp (0 si ce camp n'encaisse pas ce round). */
+  playerDamageDealt: number;
+  enemyDamageDealt: number;
   isGameOver: boolean;
 }
 
@@ -696,7 +702,7 @@ export class GameSession {
     for (const u of [...playerSurvivors, ...enemySurvivors]) u.veterancy_points++;
     const playerSurvivorsAtk = playerSurvivors.reduce((s, u) => s + u.atk, 0);
     const enemySurvivorsAtk = enemySurvivors.reduce((s, u) => s + u.atk, 0);
-    this.gameState.applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, attributeResult);
+    const combatOutcome = this.gameState.applyEndOfCombat(winner, playerSurvivorsAtk, enemySurvivorsAtk, attributeResult);
 
     // Ré-place les ennemis réanimés (revive d'attribut, côté adverse) — le
     // pendant exact de la boucle joueur plus bas. `CombatManager._checkDeaths`
@@ -769,6 +775,10 @@ export class GameSession {
       playerSurvivors: playerSurvivors.map(u => ({ name: u.name, atk: u.atk })),
       enemySurvivors: enemySurvivors.map(u => ({ name: u.name, atk: u.atk })),
       damageMultiplierBonus: attributeResult.damage_multiplier_bonus ?? 0,
+      playerMultiplier: combatOutcome.playerMultiplier,
+      enemyMultiplier: combatOutcome.enemyMultiplier,
+      playerDamageDealt: combatOutcome.playerDamageDealt,
+      enemyDamageDealt: combatOutcome.enemyDamageDealt,
       isGameOver: this.gameState.isGameOver(),
     };
   }

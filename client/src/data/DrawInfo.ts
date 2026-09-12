@@ -38,6 +38,13 @@ export interface DrawBonusRow {
  * donnent une ligne `+2`) : deux lignes identiques se liraient comme un doublon
  * d'affichage. Une pioche garantie ne fond jamais avec un bonus de carte — ce
  * ne sont pas les mêmes choses (l'une ajoute une carte, l'autre en oriente une).
+ *
+ * ⚠️ Une entrée garantie porte `amount: 0` (elle oriente une carte du tirage
+ * normal plutôt que d'en ajouter une) : c'est une donnée fidèle, pas un bonus à
+ * afficher — `summary.guaranteed` porte déjà sa propre ligne (« 🎯 Pioche
+ * garantie »). Filtrer le zéro est la responsabilité de l'AFFICHAGE, pas de ce
+ * registre : un futur lecteur qui compterait les sources ne doit pas hériter
+ * d'un trou.
  */
 export function drawBonusRows(summary: DrawSummary | null | undefined): DrawBonusRow[] {
   const rows = new Map<string, DrawBonusRow>();

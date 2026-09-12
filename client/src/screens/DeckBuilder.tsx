@@ -551,14 +551,6 @@ function LibraryPanel({
               <span className={TIER_TEXT[t]}>T{t}</span>
             </Chip>
           ))}
-          {ownedCount < total && (
-            // Le chip « verrouillées » n'est plus un mode d'affichage à part :
-            // c'est un terme de la requête comme les autres, et il se lit dans
-            // la barre. `debloquee:non` montre EXACTEMENT ce qui reste à obtenir
-            // — ce que l'ancien bouton ne savait pas faire, lui qui ajoutait le
-            // verrouillé au possédé sans pouvoir l'isoler.
-            <Chip active={on('debloquee', 'non')} onTap={() => toggle('debloquee', 'non')}>🔒 À débloquer</Chip>
-          )}
         </div>
         {/* Plein cadre au doigt, borné au-delà : un `<select>` de 1200 px pour
             « Ordre du catalogue » pèse plus lourd que la barre de recherche. */}
