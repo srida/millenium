@@ -53,7 +53,7 @@ function deckOf(id: string, difficulty: number, size = 24) {
  * AUCUN en 3 (pour éprouver le repli) et un deck trop court (jamais adversaire).
  */
 function writeDecks(decks: any[]) {
-  fs.writeFileSync(path.join(TMP, 'public_decks.json'), JSON.stringify(decks));
+  fs.writeFileSync(path.join(TMP, 'decks.json'), JSON.stringify(decks));
 }
 
 const FULL_CATALOG = [
@@ -180,6 +180,21 @@ describe('tirage des adversaires', () => {
       arcade.start(user(), 'Mon deck');
       const ids = arcade.getSnapshot(user()).run.duels.map((d: any) => d.deck_id);
       expect(ids).not.toContain('SHORT');
+    } finally {
+      writeDecks(FULL_CATALOG);
+    }
+  });
+
+  it('un deck de bot (`bot: true`) n\'est jamais proposé comme adversaire', () => {
+    // decks.json est partagé avec bots.js depuis leur fusion : un deck marqué
+    // `bot: true` n'existe que pour le repli du matchmaking du Duel en ligne,
+    // jamais pour l'Arcade — même exclusion que pour un deck trop court.
+    writeDecks([...FULL_CATALOG, { ...deckOf('BOT_ONLY', 1), bot: true }]);
+    try {
+      const user = newUser();
+      arcade.start(user(), 'Mon deck');
+      const ids = arcade.getSnapshot(user()).run.duels.map((d: any) => d.deck_id);
+      expect(ids).not.toContain('BOT_ONLY');
     } finally {
       writeDecks(FULL_CATALOG);
     }

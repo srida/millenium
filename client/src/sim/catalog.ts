@@ -19,10 +19,6 @@ export const DATA_DIR = fs.existsSync(path.join(PROJECT, 'data', 'cards.json'))
   ? path.join(PROJECT, 'data')
   : path.join(PROJECT, 'initial-data');
 
-/** `initial-data/` toujours : les decks de bots sont du CODE, pas de la donnée
- *  (cf. CLAUDE.md — ils ne sont ni copiés sur le volume ni éditables en admin). */
-export const CODE_DIR = path.join(PROJECT, 'initial-data');
-
 function load<T>(dir: string, file: string): T[] {
   const raw = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
   return (Array.isArray(raw) ? raw : Object.values(raw)) as T[];
@@ -58,7 +54,10 @@ export function loadCatalog(): Catalog {
   const index = tierIndex(attributes);
   const cards = load<Card>(DATA_DIR, 'cards.json').map(c => ({ ...c, _tiers: resolveTiers(c, index) }));
   const boards = load<BoardDef>(DATA_DIR, 'boards.json');
-  const botDecks = load<{ id: string; name: string; deck: Record<string, string[]> }>(CODE_DIR, 'bot_decks.json');
+  // `decks.json` porte AUSSI les decks publics — seuls les `bot: true`
+  // nous intéressent ici (cf. CLAUDE.md, decks fusionnés).
+  const botDecks = load<{ id: string; name: string; deck: Record<string, string[]>; bot?: boolean }>(DATA_DIR, 'decks.json')
+    .filter(d => d.bot === true);
 
   const byId = new Map(cards.map(c => [c.id, c]));
   return {

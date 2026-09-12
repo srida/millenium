@@ -1054,6 +1054,10 @@ function buildQuerySchemas() {
       // Un deck public de moins de 20 cartes n'est jamais proposé — ni au
       // DeckSelector, ni à l'Arcade. C'était invisible depuis l'admin.
       bool('jouable', 'Au moins 20 cartes', d => _deckCardIds(d).length >= 20),
+      // ⚠️ Un deck `bot:true` n'est JAMAIS proposé comme adversaire choisissable
+      // (DeckSelector, 🎲 Aléatoire, Arcade) — seul `bots.js` le tire, pour le
+      // Duel en ligne quand la file ne trouve personne.
+      bool('bot', 'Deck de bot (Duel en ligne)', d => !!d.bot),
     ],
   };
 
@@ -5807,7 +5811,7 @@ function renderPublicDeckList(list = publicDecks) {
     <div class="list-item ${selectedPublicDeck && selectedPublicDeck.id === d.id ? 'selected' : ''}" onclick="selectPublicDeck('${d.id}')">
       <img class="list-thumb" src="/avatars/${d.id}?t=${avatarBust}" alt="" loading="lazy" style="width:40px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0">
       <div style="min-width:0">
-        <div class="item-name">${esc(d.name)}</div>
+        <div class="item-name">${d.bot ? '🤖 ' : ''}${esc(d.name)}</div>
         <div class="item-id">${d.id} · ${deckTotalCards(d.deck)} cartes · ${esc(deckDifficultyLabel(d))}</div>
       </div>
     </div>
@@ -5859,12 +5863,13 @@ function renderPublicDeckDetail() {
         </div>
       </div>
       <div class="detail-info">
-        <div class="detail-title">🃏 ${esc(d.name)}</div>
+        <div class="detail-title">${d.bot ? '🤖' : '🃏'} ${esc(d.name)}</div>
         <div class="detail-meta">
           <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(d.id)}</span>
           <span class="badge">${deckTotalCards(deck)} cartes</span>
           ${Number(d.difficulty) ? `<span class="badge">${esc(deckDifficultyLabel(d))}</span>` : `<span class="badge badge-no-illus">Difficulté à définir</span>`}
           ${hasAvatar ? `<span class="badge badge-illus">Avatar ✓</span>` : `<span class="badge badge-no-illus">Avatar par défaut</span>`}
+          ${d.bot ? `<span class="badge" style="background:var(--surface2);color:#f0a040">🤖 Deck de bot</span>` : ''}
         </div>
       </div>
     </div>
@@ -5880,7 +5885,11 @@ function renderPublicDeckDetail() {
             <option value="${x.value}" ${Number(d.difficulty || 1) === x.value ? 'selected' : ''}>${x.value} — ${x.label}</option>
           `).join('')}
         </select>
-        <div style="font-size:11px;color:var(--muted)">Le duel N du mode Arcade tire au hasard parmi les decks de difficulté N.</div>
+        <div style="font-size:11px;color:var(--muted)">Le duel N du mode Arcade tire au hasard parmi les decks de difficulté N${d.bot ? ' — ignorée pour un deck de bot' : ''}.</div>
+      </div>
+      <div class="field">
+        <label class="field-check"><input type="checkbox" id="df-bot" ${d.bot ? 'checked' : ''}> <span>🤖 Deck de bot (Duel en ligne)</span></label>
+        <div style="font-size:11px;color:var(--muted)">Réservé au repli du matchmaking (bots.js) quand la file ne trouve personne. Jamais proposé comme adversaire solo, Arcade ou Tournoi.</div>
       </div>
     </div>
 
@@ -5916,13 +5925,19 @@ function _collectPublicDeckFields() {
     const raw = document.getElementById(`df-tier-${t}`)?.value || '';
     deck[String(t)] = raw.split(',').map(s => s.trim()).filter(Boolean);
   }
+  // ⚠️ Repart de `...selectedPublicDeck` (comme `_collectMagieFields`) : un
+  // deck de bot porte `pseudo`/`archetype`/`profile`, que ce formulaire
+  // n'édite pas. `PUT /api/decks/:id` FUSIONNE côté serveur (le disque garde
+  // ces champs), mais `savePublicDeck()` remplace ensuite `publicDecks[idx]`
+  // EN LOCAL par ce que ce collecteur rend, sans repasser par le serveur —
+  // sans le spread, ces champs disparaîtraient de la liste admin jusqu'au
+  // prochain rechargement, alors qu'ils survivent bien sur le disque.
   return {
+    ...selectedPublicDeck,
     id: document.getElementById('df-id')?.value.trim() || '',
     name: document.getElementById('df-name')?.value.trim() || '',
-    // ⚠️ Ce collecteur RECONSTRUIT l'objet de zéro et `PUT /api/decks/:id` fait
-    // un remplacement complet : un champ absent d'ici est effacé du disque à
-    // chaque enregistrement. Toute nouvelle donnée de deck doit être relue ici.
     difficulty: Number(document.getElementById('df-difficulty')?.value) || 1,
+    bot: !!document.getElementById('df-bot')?.checked,
     deck,
   };
 }
