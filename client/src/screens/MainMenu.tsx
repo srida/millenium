@@ -97,7 +97,7 @@ export default function MainMenu() {
             <MenuHeader className="w-full" />
             <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
               <LogoBlock grow={false} isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
-              <div className="flex w-full items-stretch gap-3 sm:max-w-[820px] sm:max-h-[220px]">
+              <div className="flex w-full items-stretch gap-3 sm:max-h-[330px]">
                 <PlayCard className="min-w-0 flex-[1.15]" />
                 <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
                   <TutorialButton className="h-full w-full" />
@@ -202,8 +202,8 @@ function MenuHeader({ className = '' }: { className?: string }) {
  * `grow` : en portrait téléphone, ce bloc est la zone `flex-1` qui absorbe la
  * hauteur disponible (le logo grandit). Sur tablette portrait (`sm:`), c'est
  * la pile d'actions qui devient `flex-1` à la place — le logo, lui, revient à
- * sa taille naturelle (`sm:w-[min(9rem,20dvh)]`) et descend un peu
- * (`sm:mt-10`), pour ne pas coller à l'en-tête. En paysage tablette, `grow`
+ * sa taille naturelle (`sm:w-[min(13.5rem,30dvh)]`) et descend
+ * (`sm:mt-16`), pour ne pas coller à l'en-tête. En paysage tablette, `grow`
  * est toujours faux : c'est le groupe [logo, ligne d'actions] tout entier qui
  * se centre verticalement (cf. l'appelant), la marge du haut serait donc de
  * trop. Le téléphone paysage n'utilise pas ce bloc (cf. `LogoRail`).
@@ -214,12 +214,12 @@ function MenuHeader({ className = '' }: { className?: string }) {
  */
 function LogoBlock({ grow, isAdmin, onDevTap }: { grow: boolean; isAdmin: boolean; onDevTap: () => void }) {
   return (
-    <div className={`flex flex-col items-center justify-center gap-0.5 ${grow ? 'flex-1 sm:flex-none sm:mt-10' : 'flex-none'}`}>
+    <div className={`flex flex-col items-center justify-center gap-0.5 ${grow ? 'flex-1 sm:flex-none sm:mt-16' : 'flex-none'}`}>
       {/* Largeur bornée par la hauteur disponible (`26dvh`) autant que par une
           taille maximale (`11rem`) : c'est elle qui fait tenir le logo sans
           scroll quand l'écran est court. Sur tablette (`sm:`), les deux bornes
-          descendent : la pile d'actions a besoin de la place. */}
-      <AnimatedLogo className="w-[min(11rem,26dvh)] sm:w-[min(9rem,20dvh)]" />
+          grandissent : plus de place là qu'en portrait téléphone. */}
+      <AnimatedLogo className="w-[min(11rem,26dvh)] sm:w-[min(13.5rem,30dvh)]" />
       <div className="-mt-2 flex items-center gap-1.5">
         <AppVersion />
         {isAdmin && <DevBadge onTap={onDevTap} />}
@@ -235,10 +235,12 @@ function LogoBlock({ grow, isAdmin, onDevTap }: { grow: boolean; isAdmin: boolea
 //
 // ⚠️ `pl-[env(safe-area-inset-left)]` : en paysage, l'encoche d'un téléphone
 // tourné se retrouve sur un CÔTÉ (pas en haut) — sans cette marge le logo,
-// premier élément à gauche, se ferait manger par elle.
+// premier élément à gauche, se ferait manger par elle. Le `+1rem` ensuite
+// aligne visuellement le logo (dont les lueurs débordent jusqu'au bord de son
+// cadre) sur le retrait qu'a déjà l'avatar de l'en-tête dans sa pastille.
 function LogoRail({ isAdmin, onDevTap }: { isAdmin: boolean; onDevTap: () => void }) {
   return (
-    <div className="flex shrink-0 flex-col items-center justify-center gap-0.5 pl-[env(safe-area-inset-left)]">
+    <div className="flex shrink-0 flex-col items-center justify-center gap-0.5 pl-[calc(env(safe-area-inset-left)+1rem)]">
       <AnimatedLogo className="w-[25vw]" />
       <div className="-mt-2 flex items-center gap-1.5">
         <AppVersion />
