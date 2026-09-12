@@ -51,9 +51,21 @@ export function ScreenHeader({
             jamais. Sans ces bornes, la pastille de profil débordait l'écran
             par la droite — l'en-tête étant épinglé, ce débordement resterait
             désormais visible en permanence. */}
-        <div className="flex items-center gap-3">
+        <div className="relative flex items-center gap-3">
           <Button className="shrink-0 px-3" onPointerDown={onBack}>◂</Button>
           <h1 className="truncate text-lg font-bold tracking-wide">{title}</h1>
+          {/* Raccourci vers l'accueil, centré dans la barre — le logo SANS le
+              mot-marque (même art que le favicon) le rend reconnaissable en
+              44 × 44 sans se lire comme un second titre. */}
+          <button
+            type="button"
+            onPointerDown={() => navigate('main_menu')}
+            aria-label="Retour à l'accueil"
+            title="Accueil"
+            className="absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface-raised active:opacity-80"
+          >
+            <img src="/favicon.png" alt="" className="h-6 w-6 rounded-full object-contain" />
+          </button>
           <div className="ml-auto flex min-w-0 shrink-[4] items-center gap-3">
             {right}
             {user && (

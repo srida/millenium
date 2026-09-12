@@ -55,7 +55,11 @@ export default function MainMenu() {
   const openDevMenu = () => { if (user?.is_admin) setDevOpen(true); };
 
   return (
-    <main className="relative z-10 flex h-dvh flex-col gap-2 overflow-hidden px-10 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] text-white sm:px-2">
+    // ⚠️ `pl-`/`pr-` en `max(…, env(safe-area-inset-*))` et non un simple
+    // `px-` : en paysage (PWA installée surtout, cf. `viewport-fit=cover`),
+    // l'encoche d'un téléphone tourné se retrouve sur un CÔTÉ — un `px-`
+    // ignore l'inset et laisse l'en-tête empiéter dessous.
+    <main className="relative z-10 flex h-dvh flex-col gap-2 overflow-hidden py-3 pl-[max(2.5rem,env(safe-area-inset-left))] pr-[max(2.5rem,env(safe-area-inset-right))] pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] text-white sm:pl-[max(0.25rem,env(safe-area-inset-left))] sm:pr-[max(0.25rem,env(safe-area-inset-right))]">
       {/* En portrait téléphone, la place manque pour le loger dans l'en-tête
           (déjà plein : profil, niveau, or, gemmes) — il flotte alors sous
           l'en-tête. À partir de `sm:` (paysage, tablette), il rejoint l'en-tête. */}
@@ -92,12 +96,12 @@ export default function MainMenu() {
         // (`justify-center` sur leur conteneur commun, sous l'en-tête pinné) :
         // sans lui, la ligne s'arrête à la hauteur voulue mais reste collée
         // en haut, sous le logo, au lieu d'occuper le milieu de l'écran.
-        <div className="flex min-h-0 flex-1 gap-3">
+        <div className="flex min-h-0 flex-1 gap-3 sm:gap-2">
           <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
             <MenuHeader className="w-full" />
             <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
               <LogoBlock grow={false} isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
-              <div className="flex w-full items-stretch gap-3 sm:max-h-[330px]">
+              <div className="flex w-full items-stretch gap-3 sm:gap-2 sm:max-h-[330px]">
                 <PlayCard className="min-w-0 flex-[1.15]" />
                 <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
                   <TutorialButton className="h-full w-full" />
@@ -233,14 +237,14 @@ function LogoBlock({ grow, isAdmin, onDevTap }: { grow: boolean; isAdmin: boolea
 // une ligne à eux. ~1/4 de la largeur de l'écran (`25vw`) : assez présent
 // pour rester le repère visuel du menu même relégué sur le côté.
 //
-// ⚠️ `pl-[env(safe-area-inset-left)]` : en paysage, l'encoche d'un téléphone
-// tourné se retrouve sur un CÔTÉ (pas en haut) — sans cette marge le logo,
-// premier élément à gauche, se ferait manger par elle. Le `+1rem` ensuite
-// aligne visuellement le logo (dont les lueurs débordent jusqu'au bord de son
-// cadre) sur le retrait qu'a déjà l'avatar de l'en-tête dans sa pastille.
+// ⚠️ La safe-area gauche est déjà portée par `<main>` (elle vaut pour tout
+// l'en-tête aussi) — ce `pl-4` n'est qu'un ajustement VISUEL : les lueurs du
+// logo débordent jusqu'au bord de son cadre là où l'avatar de l'en-tête a
+// déjà un retrait (padding de sa pastille) ; sans lui, les deux semblaient
+// désalignés malgré des conteneurs alignés au pixel près.
 function LogoRail({ isAdmin, onDevTap }: { isAdmin: boolean; onDevTap: () => void }) {
   return (
-    <div className="flex shrink-0 flex-col items-center justify-center gap-0.5 pl-[calc(env(safe-area-inset-left)+1rem)]">
+    <div className="flex shrink-0 flex-col items-center justify-center gap-0.5 pl-4">
       <AnimatedLogo className="w-[25vw]" />
       <div className="-mt-2 flex items-center gap-1.5">
         <AppVersion />
@@ -356,14 +360,22 @@ function TutorialButton({ className = '' }: { className?: string }) {
 
 function TournamentButton({ className = '' }: { className?: string }) {
   const navigate = useUiStore(s => s.navigate);
-  return <Button className={`${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('tournament')}>🏆 Tournoi</Button>;
+  return (
+    <Button className={`${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('tournament')}>
+      <span className="whitespace-nowrap">🏆 Tournoi</span>
+    </Button>
+  );
 }
 
 // Entraînement = la partie solo contre l'IA. Seul mode qui ouvre encore le
 // sélecteur, et uniquement pour choisir le deck adverse.
 function TrainingButton({ className = '' }: { className?: string }) {
   const navigate = useUiStore(s => s.navigate);
-  return <Button className={`${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('deck_selector', { mode: 'play' })}>🤖 Entraînement</Button>;
+  return (
+    <Button className={`${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('deck_selector', { mode: 'play' })}>
+      <span className="whitespace-nowrap">🤖 Entraînement</span>
+    </Button>
+  );
 }
 
 // Invitation du tout premier lancement — une seule fois, jamais reproposée.
@@ -458,7 +470,7 @@ function Dock({ web, children }: { web: boolean; children: ReactNode }) {
     <div
       className={
         web
-          ? 'flex w-[76px] shrink-0 flex-col justify-center gap-1 rounded-2xl border border-line bg-surface-raised/80 py-2 backdrop-blur sm:w-[88px] sm:gap-2'
+          ? 'flex w-[76px] shrink-0 flex-col justify-center gap-1 rounded-2xl border border-line bg-surface-raised/80 py-2 backdrop-blur sm:w-20 sm:gap-2'
           : 'grid shrink-0 grid-cols-4 rounded-2xl border border-line bg-surface-raised/80 backdrop-blur'
       }
     >
