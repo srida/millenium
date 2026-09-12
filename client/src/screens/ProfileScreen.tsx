@@ -7,7 +7,7 @@ import { illustrationUrl } from '../data/CardArt.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { useUiStore } from '../stores/uiStore.js';
-import { Button } from '../components/ui/primitives.js';
+import { Button, Modal } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import { LevelRewardsPanel, ProgressionPanel } from '../components/ui/ProgressionStats.js';
 import type { LevelRewardsView } from '../components/ui/ProgressionStats.js';
@@ -64,6 +64,7 @@ export default function ProfileScreen() {
 
   const [username, setUsername] = useState(user?.username ?? '');
   const [avatar, setAvatar] = useState<string>((user as any)?.avatar ?? '');
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -165,11 +166,16 @@ export default function ProfileScreen() {
       />
 
       <div className="flex flex-1 flex-col items-center gap-5 p-6">
-        <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-gold/40 bg-surface-raised text-3xl">
+        <button
+          type="button"
+          onPointerDown={() => setAvatarPickerOpen(true)}
+          aria-label="Changer d'avatar"
+          className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-gold/40 bg-surface-raised text-3xl active:opacity-80"
+        >
           {avatarPreview
             ? (isImg ? <img src={avatarPreview} alt="" className="h-full w-full object-cover" /> : <span>{avatarPreview.slice(0, 2)}</span>)
             : <span>{user.username.slice(0, 1).toUpperCase()}</span>}
-        </div>
+        </button>
 
         {/* Progression : lecture seule, au-dessus des champs éditables. Le
             détail des paliers suit la jauge — « où j'en suis », puis « ce que
@@ -183,32 +189,6 @@ export default function ProfileScreen() {
             value={username} maxLength={20} onChange={(e) => { setUsername(e.target.value); setSaved(false); }}
             className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-white"
           />
-          <div className="flex items-baseline justify-between">
-            <label className="text-[10px] tracking-widest text-white/40">AVATAR</label>
-            <button
-              onPointerDown={() => navigate('shop')}
-              className="text-[10px] text-white/40 underline"
-            >
-              En débloquer d'autres →
-            </button>
-          </div>
-          <div className="grid grid-cols-4 gap-2">
-            {avatarIds.map((id) => {
-              const url = illustrationUrl(id);
-              const selected = avatar === url;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onPointerDown={() => { setAvatar(url); setSaved(false); }}
-                  aria-label={`Avatar ${id}`}
-                  className={`aspect-square overflow-hidden rounded-lg border ${selected ? 'border-gold' : 'border-line'} bg-surface-raised active:opacity-80`}
-                >
-                  <img src={url} alt="" className="h-full w-full object-cover" />
-                </button>
-              );
-            })}
-          </div>
           {error && <p className="text-xs text-danger">{error}</p>}
           {saved && <p className="text-xs text-success">✓ Profil enregistré</p>}
           <Button variant="primary" disabled={busy || !username.trim()} className="w-full" onPointerDown={save}>
@@ -281,6 +261,39 @@ export default function ProfileScreen() {
           </button>
         </div>
       </div>
+
+      {avatarPickerOpen && (
+        <Modal onClose={() => setAvatarPickerOpen(false)}>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-sm font-bold">Avatar</h2>
+              <button
+                onPointerDown={() => navigate('shop')}
+                className="text-[10px] text-white/40 underline"
+              >
+                En débloquer d'autres →
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {avatarIds.map((id) => {
+                const url = illustrationUrl(id);
+                const selected = avatar === url;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onPointerDown={() => { setAvatar(url); setSaved(false); setAvatarPickerOpen(false); }}
+                    aria-label={`Avatar ${id}`}
+                    className={`aspect-square overflow-hidden rounded-lg border ${selected ? 'border-gold' : 'border-line'} bg-surface-raised active:opacity-80`}
+                  >
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </Modal>
+      )}
     </main>
   );
 }
