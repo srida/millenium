@@ -400,6 +400,20 @@ app.get('/admin/speed-scale.js', requireSiteAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'speed-scale.mjs'));
 });
 
+// LE VOCABULAIRE D'EFFETS — quel effet existe, sur quel porteur, avec quels
+// champs, à quel moment il part. Même montage et même piège de MIME que les
+// deux au-dessus.
+//
+// ⚠️ C'est ce qui fait qu'un effet n'a plus qu'UN endroit où exister. Il en
+// avait trois — le moteur, le `<select>` de l'onglet, le libellé français — et
+// deux sur trois donnent une fonctionnalité que personne ne peut ni écrire ni
+// lire : c'est arrivé à `shopping_bonus`. `effect-schema.test.ts` fait répondre
+// la table et le compilateur la même chose, type par type et champ par champ.
+app.get('/admin/effect-schema.js', requireSiteAdmin, (req, res) => {
+  res.type('text/javascript');
+  res.sendFile(path.join(__dirname, 'effect-schema.mjs'));
+});
+
 // Rapport de la simulation d'équilibrage — page autonome, servie comme
 // admin.html : elle va chercher ses données sur /api/admin/sim, qui porte le
 // même garde. Enregistrée AVANT le fallback SPA (fin de fichier), qui n'exclut

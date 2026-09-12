@@ -1,6 +1,12 @@
 import type { BoardDef, BoardEffectDef } from './types.js';
 import type { Unit } from './Unit.js';
 import type { GameState } from './GameState.js';
+import { compileBoard } from './effects/compile.js';
+import { executer, ressourcesVides } from './effects/engine.js';
+import type { CompilationResult } from './effects/compile.js';
+
+/** Un effet que le compilateur n'a pas su traduire, et pourquoi. */
+export type Refus = CompilationResult['refus'][number];
 
 interface BoardEffectContext {
   playerUnits?: Unit[];
@@ -60,30 +66,22 @@ export function effectTargets(effect: BoardEffectDef | null | undefined, units: 
   return units.filter(u => u.attributes.some(a => attrs.includes(a)));
 }
 
-export function applyEffect(effect: BoardEffectDef | null | undefined, { playerUnits = [], enemyUnits = [], gameState = null, sourceId = null }: BoardEffectContext = {}): void {
-  if (!effect) return;
-  const targets = effectTargets(effect, [...playerUnits, ...enemyUnits]);
-  switch (effect.type) {
-    case 'stat_bonus':
-      for (const u of targets) u.applyStatBonus(effect.stat as string, effect.value as number);
-      break;
-    case 'stat_modifier':
-      // Convert multiplicative to additive equivalent so resetCombatStats() cleans it up
-      for (const u of targets) u.applyStatBonus(effect.stat as string, Math.round(u._base[effect.stat as string] * ((effect.value as number) - 1)));
-      break;
-    case 'shield':
-      for (const u of targets) u.applyShield(effect.value as number);
-      break;
-    case 'draw_bonus':
-      if (gameState) {
-        gameState.player_extra_draws = (gameState.player_extra_draws || 0) + (effect.value as number);
-        // Provenance, pour la popup de pioche du tour suivant : un terrain
-        // crédite au lancement du combat, la main s'en aperçoit un round plus
-        // tard — sans le nom, le bonus paraîtrait sortir de nulle part.
-        gameState.player_draw_sources.push({ kind: 'terrain', ref: sourceId ?? '', value: effect.value as number });
-      }
-      break;
-  }
+/**
+ * Un effet de terrain, appliqué — **par le moteur générique**.
+ *
+ * ⚠️ Le `switch` qui vivait ici a disparu : `compileBoard` traduit l'effet en
+ * tâches, `executer` les applique. Ce fichier garde la LECTURE de la donnée
+ * (`boardEffects`, `effectTargets`, que l'UI et `BoardPicker` partagent) et perd
+ * l'exécution. Cf. `docs/moteur-effets.md` §6.5.
+ *
+ * ⚠️ **La conversion du multiplicateur n'est plus ici.** Le compilateur garde
+ * l'INTENTION (`operateur: '*'`), et c'est le moteur — seul à connaître les
+ * registres — qui la traduit en additif pour que `resetCombatStats()` sache la
+ * nettoyer. Un opérateur de plus ne se réécrit donc plus à chaque porteur.
+ */
+export function applyEffect(effect: BoardEffectDef | null | undefined, ctx: BoardEffectContext = {}): Refus[] {
+  if (!effect) return [];
+  return applyBoardEffects({ id: ctx.sourceId ?? '', effects: [effect] } as BoardDef, ctx);
 }
 
 /**
@@ -96,9 +94,17 @@ export function applyEffect(effect: BoardEffectDef | null | undefined, { playerU
  * empilement de multiplicateurs se composerait, et ferait dépendre le résultat
  * de l'ordre d'écriture en admin.
  */
-export function applyBoardEffects(board: BoardDef | null | undefined, ctx: BoardEffectContext = {}): void {
-  // Le terrain se nomme ici et nulle part ailleurs : `applyEffect` ne reçoit
-  // qu'un effet, qui ne sait pas d'où il vient.
-  const scoped = { ...ctx, sourceId: board?.id ?? null };
-  for (const effect of boardEffects(board)) applyEffect(effect, scoped);
+export function applyBoardEffects(board: BoardDef | null | undefined, { playerUnits = [], enemyUnits = [], gameState = null }: BoardEffectContext = {}): Refus[] {
+  const { effets, refus } = compileBoard(board);
+  const ressources = ressourcesVides();
+  executer(effets, 'debut_combat', { unitesAlliees: playerUnits, unitesEnnemies: enemyUnits, ressources });
+
+  // ⚠️ **Le moteur accumule, l'appelant VERSE.** Les deux seuls champs qu'un
+  // terrain crédite sont la pioche et sa provenance, et ils vont ENSEMBLE —
+  // `draw-summary.test.ts` tient l'invariant `sum(sources.value) === extraDraws`.
+  if (gameState) {
+    gameState.player_extra_draws = (gameState.player_extra_draws || 0) + ressources.pioches;
+    gameState.player_draw_sources.push(...ressources.sources);
+  }
+  return refus;
 }

@@ -1,13 +1,27 @@
 /**
- * AttributeManager
+ * AttributeManager — **les SEUILS**, et rien d'autre depuis la bascule.
  *
- * Handles all attribute effects across three timings:
- *   start_of_combat  — stat_bonus, shield
- *   during_combat    — stat_modifier (on_enemy_neutralized, on_ally_neutralized)
- *   end_of_combat    — revive, draw_bonus, guaranteed_draw, board_slot_bonus
+ * ⚠️ Ce fichier n'exécute plus aucun effet : `compileAttributes` les traduit,
+ * `executer` les applique (cf. `docs/moteur-effets.md` §6.5). Ce qui reste ici
+ * est ce que le moteur ignore et doit ignorer — **quel palier est actif, sur
+ * quel camp** :
  *
- * Designed to be stateless between rounds: reconstruct each combat.
+ *   • un seul palier actif à la fois, le plus élevé atteint ;
+ *   • le décompte porte sur les `card_id` DISTINCTS ;
+ *   • en fin de combat il inclut les neutralisées, aux autres passes non ;
+ *   • les paliers `during_combat` sont VERROUILLÉS au début du combat.
+ *
+ * Le compilateur émet TOUS les paliers ; c'est cette classe qui choisit. La
+ * règle vivait déjà ici, elle n'a pas bougé — seule l'exécution est partie.
+ *
+ * Trois passes, et le moteur tourne **une fois par camp** à chacune : un
+ * attribut profite à qui le PORTE, des deux côtés. Ce n'est pas un effet
+ * « allié », c'est un effet de porteur.
+ *
+ * Reconstruit à chaque combat, comme avant.
  */
+import { compileAttributes } from './effects/compile.js';
+import { executer, ressourcesVides } from './effects/engine.js';
 
 // Veterancy: a unit that survives a combat without being neutralized gains 1 point
 // (GameScreen3D._finishCombat). From 2 cumulated points onward it gets a permanent
@@ -26,6 +40,20 @@ export class AttributeManager {
     this._attributeMap = Object.fromEntries(attributeList.map(a => [a.id, a]));
     this.playerUnits = playerUnits;
     this.enemyUnits = enemyUnits;
+
+    // ⚠️ La compilation a lieu UNE FOIS, à la construction — donc une fois par
+    // combat, comme le manager lui-même. Elle est pure : mêmes attributs, mêmes
+    // effets, aucun état.
+    //
+    // ⚠️ Les REFUS sont gardés et non jetés. Ce qu'ils nomment était déjà mort
+    // avant la bascule — un `revive` sous `start_of_combat` n'était jamais
+    // atteint, un `value_per` qui ne nomme aucun attribut rendait un
+    // multiplicateur nul, une stat que `_recomputeStats` ne relit pas
+    // s'écrivait dans le vide. Le comportement est donc inchangé ; ce qui
+    // change, c'est qu'il a maintenant un nom (`compilationRefusee`).
+    const { effets, refus } = compileAttributes(attributeList, new Set(attributeList.map(a => a.id)));
+    this._effets = effets;
+    this.compilationRefusee = refus;
 
     // Bonuses applied to each unit at start of combat (for POWER_DEBUFF reapplication)
     this._appliedBonuses = new Map(); // uid → [{ stat, value }]
@@ -83,13 +111,25 @@ export class AttributeManager {
     }
   }
 
-  // Snapshot which during_combat attributes are active on each side at combat start.
-  // Once locked, mid-combat unit deaths cannot drop a threshold below its unlock level.
+  /**
+   * Les paliers actifs de chaque camp, figés AU DÉBUT DU COMBAT. Une fois
+   * verrouillés, les morts en cours de combat ne peuvent plus faire retomber un
+   * palier sous son niveau de déblocage.
+   *
+   * ⚠️ **Le filtre `timing === 'during_combat'` a sauté**, et c'est le même
+   * couplage que tout ce chantier retire : il triait sur le `timing` du
+   * PORTEUR, or un effet nomme désormais son propre moment. Un `stat_bonus`
+   * posé à `on_power_fired` sous un attribut `start_of_combat` ne trouvait donc
+   * aucun palier verrouillé, et ne partait jamais — un effet mort, de la famille
+   * exacte qu'on ferme depuis le début.
+   *
+   * ⚠️ Élargir ne change RIEN au comportement d'aujourd'hui : les entrées de
+   * plus ne sont lues que par les triggers de combat, et seul `stat_modifier`
+   * en déclenchait — lui exige toujours `during_combat`.
+   */
   _lockDuringCombatThresholds() {
     this._duringCombatThresholds = new Map();
     for (const attrId of Object.keys(this._attributeMap)) {
-      const attr = this._attributeMap[attrId];
-      if (attr.timing !== 'during_combat') continue;
       this._duringCombatThresholds.set(attrId, {
         player: this._activeThreshold(attrId, this.playerUnits),
         enemy:  this._activeThreshold(attrId, this.enemyUnits),
@@ -97,47 +137,74 @@ export class AttributeManager {
     }
   }
 
-  _applyStartForSide(units) {
-    const attrIds = new Set(units.flatMap(u => u.attributes));
-    for (const attrId of attrIds) {
-      const result = this._activeThreshold(attrId, units);
-      if (!result) continue;
-      const { attr, threshold } = result;
-      if (attr.timing !== 'start_of_combat') continue;
+  /**
+   * Les effets compilés que ces paliers actifs désignent.
+   *
+   * ⚠️ **C'est ici que « un seul palier actif » s'applique**, et nulle part
+   * ailleurs : le compilateur émet tous les paliers d'un attribut, chacun avec
+   * sa condition `{ attribut, minimum }`. On ne garde que ceux dont le
+   * `minimum` est EXACTEMENT le palier actif de ce camp — pas « au plus », ce
+   * qui cumulerait les paliers.
+   *
+   * @param {Map<string, number>} actifs  attrId → `count` du palier actif
+   */
+  _effetsDesPaliers(actifs) {
+    return this._effets.filter(e => actifs.get(e.condition?.attribut) === e.condition?.minimum);
+  }
 
-      for (const effect of threshold.effects) {
-        switch (effect.type) {
-          case 'stat_bonus': {
-            // value_per: scale bonus by the count of enemy units carrying that attribute
-            const otherUnits = units === this.playerUnits ? this.enemyUnits : this.playerUnits;
-            const multiplier = effect.value_per
-              ? otherUnits.filter(u => u.isAlive() && u.attributes.includes(effect.value_per)).length
-              : 1;
-            const bonus = effect.value * multiplier;
-            if (bonus === 0) break;
-            for (const u of units.filter(u => u.isAlive() && u.attributes.includes(attrId))) {
-              u.applyStatBonus(effect.stat, bonus);
-              this._recordBonus(u, effect.stat, bonus);
-            }
-            break;
-          }
-
-          case 'shield':
-            // shield value = effect.value * number of active ally units on this side
-            for (const u of units.filter(u => u.isAlive() && u.attributes.includes(attrId))) {
-              const shieldAmount = effect.value * units.filter(x => x.isAlive()).length;
-              u.applyShield(shieldAmount);
-            }
-            break;
-
-          case 'effect_immunity':
-            for (const u of units.filter(u => u.isAlive() && u.attributes.includes(attrId))) {
-              u.is_effect_immune = true;
-            }
-            break;
-        }
-      }
+  /** Les paliers actifs d'un camp, au décompte des VIVANTES (deux premières passes). */
+  _paliersVivants(units) {
+    const actifs = new Map();
+    for (const attrId of new Set(units.flatMap(u => u.attributes))) {
+      const r = this._activeThreshold(attrId, units);
+      if (r) actifs.set(attrId, r.threshold.count);
     }
+    return actifs;
+  }
+
+  /**
+   * Joue les effets d'un MOMENT donné, au décompte des vivantes.
+   *
+   * ⚠️ La classe ne garde que les SEUILS (§6.5) : c'est elle qui dit quel palier
+   * est actif, le moteur qui applique. Un appelant qui voudrait déclencher un
+   * moment sans passer par ici devrait recompter les paliers — donc s'en donner
+   * une seconde version.
+   */
+  joueMoment(quand, monde) {
+    return executer(this._effetsDesPaliers(this._paliersVivants(monde.unitesAlliees)), quand, monde);
+  }
+
+  /**
+   * Le monde d'un camp, tel que le moteur l'attend.
+   *
+   * ⚠️ **Il n'y a plus de drapeau d'asymétrie**, et c'est la décision 3 du §7
+   * menée à son terme : l'IA porte ses effets comme un vrai joueur, donc le
+   * moteur accumule pour les deux camps et c'est le VERSEMENT qui dit ce qui a
+   * un destinataire. `ressourcesLimitees` avait d'abord été réduit à
+   * `sansProvenance` (ne pas inscrire la provenance d'une pioche adverse) —
+   * mais rien ne lit `adverse.sources`, donc ce drapeau ne protégeait rien et
+   * aucune mutation ne le faisait rougir. Un garde qu'on ne peut pas éprouver
+   * est un garde qu'on retire.
+   */
+  _monde(units, other, ressources, neutralisees) {
+    return { unitesAlliees: units, unitesEnnemies: other, ressources, neutralisees };
+  }
+
+  _applyStartForSide(units) {
+    const other = units === this.playerUnits ? this.enemyUnits : this.playerUnits;
+    const trace = executer(
+      this._effetsDesPaliers(this._paliersVivants(units)),
+      'debut_combat',
+      this._monde(units, other, ressourcesVides(), []),
+    );
+    // ⚠️ **Le journal du moteur REMPLACE `_recordBonus`.** Il n'y a plus qu'un
+    // endroit qui sache ce qui a été écrit : celui qui l'a écrit. Restaurer
+    // après un `POWER_DEBUFF` demandait auparavant de recopier chaque geste à
+    // côté de lui-même — et le bouclier, lui, n'y était PAS recopié : il n'est
+    // donc jamais restauré, ni avant ni maintenant (`resetCombatStats` l'efface
+    // et rien ne le remet). Le journal ne porte que les stats, exactement comme
+    // `_recordBonus`.
+    for (const { unite, stat, valeur } of trace.ecritures) this._recordBonus(unite, stat, valeur);
   }
 
   // ── During combat — triggered on death ──
@@ -146,6 +213,25 @@ export class AttributeManager {
    * Called by CombatManager when a unit is neutralized.
    * Returns extra events (stat changes) for the animator.
    */
+  /**
+   * `pouvoir_utilise` — le second trigger de combat, et le pendant exact de
+   * `onUnitNeutralized`.
+   *
+   * ⚠️ Les paliers sont ceux **VERROUILLÉS au début du combat**, comme pour un
+   * `stat_modifier` : un pouvoir qui part au tick 200 ne doit pas voir un palier
+   * que les morts ont entre-temps défait. Recompter ici donnerait deux règles de
+   * seuil pour deux triggers qui vivent au même endroit.
+   *
+   * ⚠️ Le camp est celui du LANCEUR. Un pouvoir adverse ne déclenche pas les
+   * attributs du joueur — et c'est le sélecteur qui le dit, pas une branche.
+   */
+  onPowerFired(caster, playerUnits, enemyUnits) {
+    const events = [];
+    const side = caster.side === 'player' ? playerUnits : enemyUnits;
+    this._triggerAuMoment('pouvoir_utilise', side, events);
+    return events;
+  }
+
   onUnitNeutralized(deadUnit, playerUnits, enemyUnits) {
     const events = [];
     const allySide = deadUnit.side === 'player' ? playerUnits : enemyUnits;
@@ -159,23 +245,50 @@ export class AttributeManager {
     return events;
   }
 
+  /**
+   * ⚠️ **`affectedUnits` est comparé par RÉFÉRENCE à `this.playerUnits`** —
+   * c'est le piège de harnais le mieux documenté du lot (§6.1) : un tableau
+   * neuf portant les mêmes unités lit le cache du camp d'en face et ne
+   * déclenche rien. Inchangé par la bascule, et volontairement : c'est ce que
+   * `CombatManager` passe.
+   */
   _triggerStatModifiers(trigger, affectedUnits, referenceUnits, events) {
-    const attrIds = new Set(affectedUnits.flatMap(u => u.attributes));
+    this._triggerAuMoment(trigger === 'on_ally_neutralized' ? 'allie_detruit' : 'ennemi_detruit', affectedUnits, events);
+  }
+
+  /**
+   * Le geste commun aux triggers de COMBAT : paliers verrouillés, un camp, et
+   * les écritures relayées en `stat_change`.
+   *
+   * ⚠️ **`affectedUnits` est comparé par RÉFÉRENCE à `this.playerUnits`** —
+   * c'est le piège de harnais le mieux documenté du lot (§6.1) : un tableau
+   * neuf portant les mêmes unités lit le cache du camp d'en face et ne
+   * déclenche rien. Inchangé, et volontairement : c'est ce que `CombatManager`
+   * passe.
+   */
+  _triggerAuMoment(quand, affectedUnits, events) {
     const isPlayerSide = affectedUnits === this.playerUnits;
-
-    for (const attrId of attrIds) {
+    // ⚠️ Les paliers sont ceux VERROUILLÉS au début du combat, jamais recomptés :
+    // les morts en cours de combat ne désactivent pas un effet déjà débloqué.
+    const actifs = new Map();
+    for (const attrId of new Set(affectedUnits.flatMap(u => u.attributes))) {
       const cached = this._duringCombatThresholds?.get(attrId);
-      const result = cached ? (isPlayerSide ? cached.player : cached.enemy) : null;
-      if (!result) continue;
-      const { attr, threshold } = result;
+      const r = cached ? (isPlayerSide ? cached.player : cached.enemy) : null;
+      if (r) actifs.set(attrId, r.threshold.count);
+    }
 
-      for (const effect of threshold.effects) {
-        if (effect.type !== 'stat_modifier' || effect.trigger !== trigger) continue;
-        for (const u of affectedUnits.filter(u => u.isAlive() && u.attributes.includes(attrId))) {
-          u.applyStatModifier(effect.stat, effect.value);
-          events.push({ type: 'stat_change', unit: u, stat: effect.stat, value: effect.value });
-        }
-      }
+    const other = isPlayerSide ? this.enemyUnits : this.playerUnits;
+    const trace = executer(
+      this._effetsDesPaliers(actifs), quand,
+      this._monde(affectedUnits, other, ressourcesVides(), []),
+    );
+    // ⚠️ **Les événements `stat_change` sortent du JOURNAL**, pas d'une seconde
+    // lecture de la donnée. L'animateur doit MONTRER ce qui a été écrit ; le
+    // dériver de l'effet plutôt que de l'écriture, c'est s'autoriser à annoncer
+    // un bonus que personne n'a reçu — la même faute que l'annonce de terrain
+    // recomptant ses cibles à côté d'`effectTargets`.
+    for (const { unite, stat, valeur } of trace.ecritures) {
+      events.push({ type: 'stat_change', unit: unite, stat, value: valeur });
     }
   }
 
@@ -188,22 +301,6 @@ export class AttributeManager {
    * @returns {{ revived: Unit[], draw_bonus: number, guaranteed_draws: Object[], board_slot_bonus: number, draw_sources: Object[] }}
    */
   applyEndOfCombat(playerNeutralized, enemyNeutralized) {
-    const result = {
-      revived: [],
-      enemyRevived: [],
-      draw_bonus: 0,
-      guaranteed_draws: [], // { tier?, attribute? } — cf. types.GuaranteedDraw
-      board_slot_bonus: 0,
-      damage_multiplier_bonus: 0,
-      shopping_bonus: 0,
-      // Quel ATTRIBUT a crédité quelle pioche (cf. types.DrawSourceEntry). Pure
-      // description : la popup de pioche le lit, aucun calcul ne s'en sert.
-      draw_sources: [],
-      // Pendant de draw_bonus / guaranteed_draws pour l'IA — cf. `_applyEndForSide`.
-      enemy_draw_bonus: 0,
-      enemy_guaranteed_draws: [],
-    };
-
     // ⚠️ La RÉANIMATION vaut pour les DEUX camps ; la PIOCHE aussi (l'IA pioche
     // comme le joueur — cf. `EnemyAI.drawHand`). Les effets de ressource
     // restants (emplacement, multiplicateur, Shopping) n'ont de destinataire
@@ -220,36 +317,57 @@ export class AttributeManager {
     //
     // ⚠️ Et c'est invisible dans le log de combat : la réanimation a lieu APRÈS
     // le dernier tick, dans `finishCombat`. Cf. l'épilogue de `CombatRecorder`.
-    this._applyEndForSide(this.playerUnits, playerNeutralized, result, {
-      resources: true,
-      draws: { bonusKey: 'draw_bonus', guaranteedKey: 'guaranteed_draws', sourcesKey: 'draw_sources' },
-    });
-    this._applyEndForSide(this.enemyUnits, enemyNeutralized, result, {
-      resources: false,
-      draws: { bonusKey: 'enemy_draw_bonus', guaranteedKey: 'enemy_guaranteed_draws', sourcesKey: null },
-    });
+    const joueur = this._applyEndForSide(this.playerUnits, playerNeutralized, this.enemyUnits);
+    const adverse = this._applyEndForSide(this.enemyUnits, enemyNeutralized, this.playerUnits);
 
-    return result;
+    // ⚠️ **Le moteur ACCUMULE, c'est ici qu'on VERSE.** Les deux accumulateurs
+    // portent les mêmes champs ; ce sont leurs DESTINATAIRES qui diffèrent, et
+    // c'est la seule chose que cette traduction dit. Un accumulateur qui
+    // connaîtrait les noms de `EndOfCombatAttributeResult` saurait à qui il
+    // parle — et le moteur n'a pas à le savoir.
+    return {
+      revived: joueur.reanimees,
+      enemyRevived: adverse.reanimees,
+      draw_bonus: joueur.pioches,
+      guaranteed_draws: joueur.pioches_garanties, // cf. types.GuaranteedDraw
+      board_slot_bonus: joueur.slots_board,
+      damage_multiplier_bonus: joueur.multiplicateur,
+      shopping_bonus: joueur.magies_shop,
+      // Quel ATTRIBUT a crédité quelle pioche (cf. types.DrawSourceEntry). Pure
+      // description : la popup de pioche le lit, aucun calcul ne s'en sert.
+      draw_sources: joueur.sources,
+      // Pendant de draw_bonus / guaranteed_draws pour l'IA. ⚠️ Pas de
+      // `sources` : rien n'affiche la provenance de la pioche adverse, et le
+      // moteur ne les inscrit donc pas (`ressourcesLimitees`).
+      enemy_draw_bonus: adverse.pioches,
+      enemy_guaranteed_draws: adverse.pioches_garanties,
+      // ⚠️ **L'IA porte ses effets comme un vrai joueur** (décision 3 du §7).
+      // Deux ressources seulement y ont un destinataire : le slot de plateau
+      // (`enemy_board_slots`, que `placeFromHand` lit déjà) et le multiplicateur
+      // de dégâts. Le Shopping n'existe structurellement pas pour elle — ce
+      // n'est pas une limite du moteur, c'est un fait du jeu.
+      enemy_board_slot_bonus: adverse.slots_board,
+      enemy_damage_multiplier_bonus: adverse.multiplicateur,
+    };
   }
 
   /**
-   * @param {Object} opts
-   * @param {boolean} opts.resources  Collecter aussi les effets de ressource
-   *   exclusivement JOUEUR (emplacement, multiplicateur, Shopping). Faux pour
-   *   le camp d'en face, où ils n'ont aucun destinataire.
-   * @param {Object} opts.draws  Où écrire draw_bonus / guaranteed_draw pour CE
-   *   camp — la pioche, contrairement aux trois ressources ci-dessus, a un
-   *   destinataire des deux côtés.
+   * Une passe de fin de combat, pour UN camp.
+   *
+   * ⚠️ Le décompte de palier y inclut les NEUTRALISÉES, contrairement aux deux
+   * autres passes : le palier tient même si ses porteurs sont morts au combat.
+   * C'est la seule règle de seuil qui diffère, et c'est pour ça qu'elle est
+   * écrite ici plutôt que dans `_paliersVivants`.
+   *
+   * ⚠️ **Aucun paramètre d'asymétrie** : les deux camps passent par le même
+   * chemin et accumulent la même chose. C'est le VERSEMENT (`applyEndOfCombat`)
+   * qui dit ce qui a un destinataire de chaque côté — décision 3 du §7.
    */
-  _applyEndForSide(units, neutralized, result, { resources, draws }) {
-    const attrIds = new Set(units.flatMap(u => u.attributes));
-
-    for (const attrId of attrIds) {
+  _applyEndForSide(units, neutralized, other) {
+    const actifs = new Map();
+    for (const attrId of new Set(units.flatMap(u => u.attributes))) {
       const attr = this._attributeMap[attrId];
-      if (!attr || attr.timing !== 'end_of_combat') continue;
-
-      // For end_of_combat, count ALL distinct units that participated (alive + neutralized)
-      // so the threshold is met even if some attribute units died during combat
+      if (!attr) continue;
       const count = new Set(
         units.filter(u => u.attributes.includes(attrId)).map(u => u.card_id)
       ).size;
@@ -257,73 +375,17 @@ export class AttributeManager {
       for (const t of attr.thresholds) {
         if (count >= t.count) best = t;
       }
-      if (!best) continue;
-      const threshold = best;
-
-      for (const effect of threshold.effects) {
-        if (effect.type === 'revive') {
-          const candidate = neutralized[0];
-          if (candidate) {
-            const hpPct = (effect.hp_percent ?? 50) / 100;
-            candidate.current_hp = Math.floor(candidate.max_hp * hpPct);
-            candidate.is_neutralized = false;
-            candidate._deathEmitted = false;
-            candidate.dot_effects = [];
-            candidate.paralysis_remaining = 0;
-            candidate.attack_period_modifier = 0;
-            neutralized.splice(0, 1);
-            (resources ? result.revived : result.enemyRevived).push(candidate);
-          }
-          continue;
-        }
-
-        if (effect.type === 'draw_bonus') {
-          // ⚠️ La ligne du registre porte le crédit RÉEL, mesuré de part et
-          // d'autre du plafond : sous `max`, un attribut qui demande +3 n'en
-          // donne parfois qu'un, et la popup doit annoncer ce qui est arrivé
-          // en main, pas ce qui était demandé. Un attribut entièrement rogné
-          // n'inscrit donc rien. Pas de `sourcesKey` côté ennemi : rien
-          // n'affiche la provenance de sa pioche.
-          const before = result[draws.bonusKey];
-          result[draws.bonusKey] = Math.min(before + effect.value, effect.max ?? Infinity);
-          const granted = result[draws.bonusKey] - before;
-          if (granted > 0 && draws.sourcesKey) {
-            result[draws.sourcesKey].push({ kind: 'attribut', ref: attrId, value: granted });
-          }
-          continue;
-        }
-        if (effect.type === 'guaranteed_draw') {
-          // ⚠️ Les critères voyagent EN BLOC (cf. `types.GuaranteedDraw`) : un
-          // effet d'attribut peut nommer plusieurs attributs ou des cartes
-          // exactement comme une magie, et recopier le seul `attribute`
-          // perdait le reste en silence.
-          result[draws.guaranteedKey].push({
-            tier: effect.tier,
-            attribute: effect.attribute ?? null,
-            attributes: effect.attributes,
-            card_ids: effect.card_ids,
-          });
-          if (draws.sourcesKey) {
-            result[draws.sourcesKey].push({ kind: 'attribut', ref: attrId, value: 0, guaranteed: true });
-          }
-          continue;
-        }
-
-        if (!resources) continue;
-
-        switch (effect.type) {
-          case 'board_slot_bonus':
-            result.board_slot_bonus = Math.min(result.board_slot_bonus + effect.value, effect.max ?? Infinity);
-            break;
-          case 'damage_multiplier_bonus':
-            result.damage_multiplier_bonus += effect.value;
-            break;
-          case 'shopping_bonus':
-            result.shopping_bonus = Math.min(result.shopping_bonus + (effect.value ?? 1), effect.max ?? Infinity);
-            break;
-        }
-      }
+      if (best) actifs.set(attrId, best.count);
     }
+
+    const ressources = ressourcesVides();
+    // ⚠️ `neutralized` est MUTÉ par le moteur (`splice`) — c'est déjà ce que
+    // faisait `revive`, et `finishCombat` compte dessus.
+    executer(
+      this._effetsDesPaliers(actifs), 'fin_combat',
+      this._monde(units, other, ressources, neutralized),
+    );
+    return ressources;
   }
 
   // ── POWER_DEBUFF support ──

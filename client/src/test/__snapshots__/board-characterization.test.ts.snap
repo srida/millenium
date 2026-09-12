@@ -1,0 +1,498 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Terrains livrés — l'oracle de l'étape 0 > ce que chacun des 25 terrains fait, figé 1`] = `
+[
+  {
+    "cases_bloquees": 4,
+    "effets": [
+      "stat_bonus · atk · 10 · ARCH_021|ARCH_033",
+    ],
+    "ennemi": {
+      "ARCH_021": "atk 20→30",
+      "ARCH_033": "atk 20→30",
+    },
+    "id": "BOARD_002",
+    "joueur": {
+      "ARCH_021": "atk 20→30",
+      "ARCH_033": "atk 20→30",
+    },
+    "nom": "Forêt",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 5,
+    "effets": [
+      "stat_bonus · atk · 10 · ARCH_003|ARCH_045",
+    ],
+    "ennemi": {
+      "ARCH_003": "atk 20→30",
+      "ARCH_045": "atk 20→30",
+    },
+    "id": "BOARD_003",
+    "joueur": {
+      "ARCH_003": "atk 20→30",
+      "ARCH_045": "atk 20→30",
+    },
+    "nom": "Montagne",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 4,
+    "effets": [
+      "stat_bonus · atk · 10 · ARCH_001",
+    ],
+    "ennemi": {
+      "ARCH_001": "atk 20→30",
+    },
+    "id": "BOARD_004",
+    "joueur": {
+      "ARCH_001": "atk 20→30",
+    },
+    "nom": "Prairie",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 4,
+    "effets": [
+      "stat_bonus · atk · 10 · ARCH_035",
+    ],
+    "ennemi": {
+      "ARCH_035": "atk 20→30",
+    },
+    "id": "BOARD_005",
+    "joueur": {
+      "ARCH_035": "atk 20→30",
+    },
+    "nom": "Ocean",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 3,
+    "effets": [
+      "stat_bonus · atk · 10 · ARCH_006",
+    ],
+    "ennemi": {
+      "ARCH_006": "atk 20→30",
+    },
+    "id": "BOARD_006",
+    "joueur": {
+      "ARCH_006": "atk 20→30",
+    },
+    "nom": "Gratte-ciel",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 3,
+    "effets": [
+      "stat_bonus · atk · 10 · ARCH_002",
+    ],
+    "ennemi": {
+      "ARCH_002": "atk 20→30",
+    },
+    "id": "BOARD_007",
+    "joueur": {
+      "ARCH_002": "atk 20→30",
+    },
+    "nom": "École de sorcier",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 4,
+    "effets": [
+      "stat_bonus · hp · 30 · ARCH_019",
+    ],
+    "ennemi": {
+      "ARCH_019": "max_hp 100→130, current_hp 100→130",
+    },
+    "id": "BOARD_001",
+    "joueur": {
+      "ARCH_019": "max_hp 100→130, current_hp 100→130",
+    },
+    "nom": "Enfer",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 4,
+    "effets": [
+      "stat_bonus · movement_rate · 7 · ARCH_029",
+    ],
+    "ennemi": {
+      "ARCH_029": "movement_rate 50→57, movement_period 40→35",
+    },
+    "id": "BOARD_008",
+    "joueur": {
+      "ARCH_029": "movement_rate 50→57, movement_period 40→35",
+    },
+    "nom": "Cimetière",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 3,
+    "effets": [
+      "stat_bonus · movement_rate · 7 · ARCH_030",
+    ],
+    "ennemi": {
+      "ARCH_030": "movement_rate 50→57, movement_period 40→35",
+    },
+    "id": "BOARD_009",
+    "joueur": {
+      "ARCH_030": "movement_rate 50→57, movement_period 40→35",
+    },
+    "nom": "Vallée des rois",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 7,
+    "effets": [
+      "stat_bonus · movement_rate · 7 · ARCH_041",
+    ],
+    "ennemi": {
+      "ARCH_041": "movement_rate 50→57, movement_period 40→35",
+    },
+    "id": "BOARD_010",
+    "joueur": {
+      "ARCH_041": "movement_rate 50→57, movement_period 40→35",
+    },
+    "nom": "Mur du Labyrinthe",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 6,
+    "effets": [
+      "stat_bonus · atk · 10 · ARCH_034",
+    ],
+    "ennemi": {
+      "ARCH_034": "atk 20→30",
+    },
+    "id": "BOARD_011",
+    "joueur": {
+      "ARCH_034": "atk 20→30",
+    },
+    "nom": "Monde Jurassique",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 4,
+    "effets": [
+      "stat_bonus · attack_rate · 7 · ARCH_025",
+    ],
+    "ennemi": {
+      "ARCH_025": "attack_rate 50→57, attack_period 40→35",
+    },
+    "id": "BOARD_013",
+    "joueur": {
+      "ARCH_025": "attack_rate 50→57, attack_period 40→35",
+    },
+    "nom": "Nuit des machines",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 2,
+    "effets": [
+      "stat_bonus · hp · 50 · ARCH_028",
+    ],
+    "ennemi": {
+      "ARCH_028": "max_hp 100→150, current_hp 100→150",
+    },
+    "id": "BOARD_014",
+    "joueur": {
+      "ARCH_028": "max_hp 100→150, current_hp 100→150",
+    },
+    "nom": "Desert",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 2,
+    "effets": [
+      "stat_bonus · range · 1 · ARCH_023",
+    ],
+    "ennemi": {
+      "ARCH_023": "range 3→4",
+    },
+    "id": "BOARD_015",
+    "joueur": {
+      "ARCH_023": "range 3→4",
+    },
+    "nom": "Village secret",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 2,
+    "effets": [
+      "stat_bonus · atk · 10 · ARCH_089",
+    ],
+    "ennemi": {
+      "ARCH_089": "atk 20→30",
+    },
+    "id": "BOARD_016",
+    "joueur": {
+      "ARCH_089": "atk 20→30",
+    },
+    "nom": "Mausolée de l’empereur",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 2,
+    "effets": [
+      "stat_bonus · movement_rate · 5 · ARCH_086",
+    ],
+    "ennemi": {
+      "ARCH_086": "movement_rate 50→55, movement_period 40→36",
+    },
+    "id": "BOARD_017",
+    "joueur": {
+      "ARCH_086": "movement_rate 50→55, movement_period 40→36",
+    },
+    "nom": "Porte fusion",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 1,
+    "effets": [
+      "stat_bonus · atk · 20 · ARCH_087",
+    ],
+    "ennemi": {
+      "ARCH_087": "atk 20→40",
+    },
+    "id": "BOARD_018",
+    "joueur": {
+      "ARCH_087": "atk 20→40",
+    },
+    "nom": "Fin du monde",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 3,
+    "effets": [
+      "shield ·  · 50 · ARCH_088",
+    ],
+    "ennemi": {
+      "ARCH_088": "shield 0→50",
+    },
+    "id": "BOARD_019",
+    "joueur": {
+      "ARCH_088": "shield 0→50",
+    },
+    "nom": "Pseudo espace",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 2,
+    "effets": [
+      "stat_bonus · hp · 30 · ARCH_050",
+      "stat_bonus · atk · -5 · ARCH_049",
+    ],
+    "ennemi": {
+      "ARCH_049": "atk 20→15",
+      "ARCH_050": "max_hp 100→130, current_hp 100→130",
+    },
+    "id": "BOARD_020",
+    "joueur": {
+      "ARCH_049": "atk 20→15",
+      "ARCH_050": "max_hp 100→130, current_hp 100→130",
+    },
+    "nom": "Canyon",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 0,
+    "effets": [
+      "stat_bonus · attack_rate · 5 · ARCH_090",
+    ],
+    "ennemi": {
+      "ARCH_090": "attack_rate 50→55, attack_period 40→36",
+    },
+    "id": "BOARD_021",
+    "joueur": {
+      "ARCH_090": "attack_rate 50→55, attack_period 40→36",
+    },
+    "nom": "Terre dévastée",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 6,
+    "effets": [
+      "stat_bonus · atk · 10 · tous",
+    ],
+    "ennemi": {
+      "ARCH_001": "atk 20→30",
+      "ARCH_002": "atk 20→30",
+      "ARCH_003": "atk 20→30",
+      "ARCH_006": "atk 20→30",
+      "ARCH_019": "atk 20→30",
+      "ARCH_021": "atk 20→30",
+      "ARCH_023": "atk 20→30",
+      "ARCH_025": "atk 20→30",
+      "ARCH_028": "atk 20→30",
+      "ARCH_029": "atk 20→30",
+      "ARCH_030": "atk 20→30",
+      "ARCH_033": "atk 20→30",
+      "ARCH_034": "atk 20→30",
+      "ARCH_035": "atk 20→30",
+      "ARCH_041": "atk 20→30",
+      "ARCH_045": "atk 20→30",
+      "ARCH_048": "atk 20→30",
+      "ARCH_049": "atk 20→30",
+      "ARCH_050": "atk 20→30",
+      "ARCH_051": "atk 20→30",
+      "ARCH_052": "atk 20→30",
+      "ARCH_053": "atk 20→30",
+      "ARCH_054": "atk 20→30",
+      "ARCH_058": "atk 20→30",
+      "ARCH_061": "atk 20→30",
+      "ARCH_086": "atk 20→30",
+      "ARCH_087": "atk 20→30",
+      "ARCH_088": "atk 20→30",
+      "ARCH_089": "atk 20→30",
+      "ARCH_090": "atk 20→30",
+      "aucun": "atk 20→30",
+    },
+    "id": "BOARD_022",
+    "joueur": {
+      "ARCH_001": "atk 20→30",
+      "ARCH_002": "atk 20→30",
+      "ARCH_003": "atk 20→30",
+      "ARCH_006": "atk 20→30",
+      "ARCH_019": "atk 20→30",
+      "ARCH_021": "atk 20→30",
+      "ARCH_023": "atk 20→30",
+      "ARCH_025": "atk 20→30",
+      "ARCH_028": "atk 20→30",
+      "ARCH_029": "atk 20→30",
+      "ARCH_030": "atk 20→30",
+      "ARCH_033": "atk 20→30",
+      "ARCH_034": "atk 20→30",
+      "ARCH_035": "atk 20→30",
+      "ARCH_041": "atk 20→30",
+      "ARCH_045": "atk 20→30",
+      "ARCH_048": "atk 20→30",
+      "ARCH_049": "atk 20→30",
+      "ARCH_050": "atk 20→30",
+      "ARCH_051": "atk 20→30",
+      "ARCH_052": "atk 20→30",
+      "ARCH_053": "atk 20→30",
+      "ARCH_054": "atk 20→30",
+      "ARCH_058": "atk 20→30",
+      "ARCH_061": "atk 20→30",
+      "ARCH_086": "atk 20→30",
+      "ARCH_087": "atk 20→30",
+      "ARCH_088": "atk 20→30",
+      "ARCH_089": "atk 20→30",
+      "ARCH_090": "atk 20→30",
+      "aucun": "atk 20→30",
+    },
+    "nom": "Colisée",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 5,
+    "effets": [
+      "stat_bonus · atk · 10 · ARCH_048",
+      "stat_bonus · atk · -10 · ARCH_053",
+    ],
+    "ennemi": {
+      "ARCH_048": "atk 20→30",
+      "ARCH_053": "atk 20→10",
+    },
+    "id": "BOARD_023",
+    "joueur": {
+      "ARCH_048": "atk 20→30",
+      "ARCH_053": "atk 20→10",
+    },
+    "nom": "Volcan",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 2,
+    "effets": [
+      "stat_bonus · atk · 10 · ARCH_058",
+      "stat_bonus · atk · -10 · ARCH_001|ARCH_002|ARCH_023",
+    ],
+    "ennemi": {
+      "ARCH_001": "atk 20→10",
+      "ARCH_002": "atk 20→10",
+      "ARCH_023": "atk 20→10",
+      "ARCH_058": "atk 20→30",
+    },
+    "id": "BOARD_024",
+    "joueur": {
+      "ARCH_001": "atk 20→10",
+      "ARCH_002": "atk 20→10",
+      "ARCH_023": "atk 20→10",
+      "ARCH_058": "atk 20→30",
+    },
+    "nom": "Marais",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 1,
+    "effets": [
+      "stat_bonus · atk · 10 · ARCH_048",
+      "stat_bonus · hp · 50 · ARCH_049",
+      "stat_bonus · movement_rate · 5 · ARCH_051",
+      "shield ·  · 100 · ARCH_050",
+      "stat_bonus · attack_rate · 5 · ARCH_052",
+      "stat_bonus · range · 1 · ARCH_054",
+    ],
+    "ennemi": {
+      "ARCH_048": "atk 20→30",
+      "ARCH_049": "max_hp 100→150, current_hp 100→150",
+      "ARCH_050": "shield 0→100",
+      "ARCH_051": "movement_rate 50→55, movement_period 40→36",
+      "ARCH_052": "attack_rate 50→55, attack_period 40→36",
+      "ARCH_054": "range 3→4",
+    },
+    "id": "BOARD_025",
+    "joueur": {
+      "ARCH_048": "atk 20→30",
+      "ARCH_049": "max_hp 100→150, current_hp 100→150",
+      "ARCH_050": "shield 0→100",
+      "ARCH_051": "movement_rate 50→55, movement_period 40→36",
+      "ARCH_052": "attack_rate 50→55, attack_period 40→36",
+      "ARCH_054": "range 3→4",
+    },
+    "nom": "Monde transparent",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+  {
+    "cases_bloquees": 3,
+    "effets": [
+      "stat_bonus · hp · 50 · ARCH_061",
+    ],
+    "ennemi": {
+      "ARCH_061": "max_hp 100→150, current_hp 100→150",
+    },
+    "id": "BOARD_026",
+    "joueur": {
+      "ARCH_061": "max_hp 100→150, current_hp 100→150",
+    },
+    "nom": "Royaume vampire",
+    "pioches": 0,
+    "sources_pioche": [],
+  },
+]
+`;

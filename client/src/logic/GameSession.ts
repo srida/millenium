@@ -14,15 +14,17 @@ import { EnemyAI } from './EnemyAI.js';
 import { AttributeManager } from './AttributeManager.js';
 import { CombatManager } from './CombatManager.js';
 import { applyBoardEffects } from './BoardEffect.js';
+import { compileMagie } from './effects/compile.js';
+import { executer, ressourcesVides } from './effects/engine.js';
+import type { Monde, Ressources } from './effects/engine.js';
 import { mirrorCells } from './BoardMirror.js';
 import { pickBoard, deckAttributes, dominantAttributes } from './BoardPicker.js';
 import type { BoardPickContext, AttributeCounts } from './BoardPicker.js';
 // Modules JS encore non convertis : leurs annotations JSDoc (Card[][], null par
 // défaut…) sont trop étroites pour l'interop TS. Casts localisés en attendant
 // la conversion TS de ces modules (au fil des phases).
-import { applyEffect as _applyMagieEffect, needsUnitTarget, needsGraveyardTarget, needsHandTarget, magieCostHp, canAffordMagie, duplicateCopies, tierShift, sacrificeHpPercent } from './MagieEffect.js';
+import { needsUnitTarget, needsGraveyardTarget, needsHandTarget, magieCostHp, canAffordMagie, tierShift } from './MagieEffect.js';
 import * as _InvocationManager from './InvocationManager.js';
-const applyMagieEffect = _applyMagieEffect as (magie: any, ctx: { gameState?: any; targetUnit?: any; targetUnits?: any[] }) => void;
 const InvocationManager = _InvocationManager as any;
 import * as _InvocationRules from './InvocationRules.js';
 const {
@@ -33,7 +35,6 @@ const {
 import {
   summonConditions, conditionMaterials, conditionRequires,
 } from './InvocationManager.js';
-import type { SummonCondition } from './types.js';
 import { tiersForRound, drawHand, resolveGuaranteedDraws } from './Draw.js';
 import { tiersOf } from './Tiers.js';
 import { pickMagies } from './MagieOffer.js';
@@ -55,22 +56,6 @@ function _tiers(cards: readonly (Card | null | undefined)[]): number[] {
 }
 
 /**
- * Applique une remise de magie à TOUTES les conditions d'une carte en main.
- *
- * Les deux gestes sont ORTHOGONAUX, et c'est délibéré : `reduce_materials`
- * baisse le prix, `remove_requirements` lève une contrainte sans rendre la
- * carte moins chère. L'ancienne « retire un matériel de Fusion » faisait les
- * deux à la fois, mais seulement parce que le coût d'une fusion ÉTAIT la
- * longueur de sa liste — un couplage qui n'existe plus dans les données.
- *
- * ⚠️ Rend une carte NEUVE, jamais une mutation : `canUndoPreparation` compare
- * la main par référence, et la carte vient du deck.
- *
- * ⚠️ L'invariant `requires.length <= materials` est rétabli après coup — une
- * condition qui garderait plus d'exigences que de slots serait insatisfiable,
- * donc une remise qui rend la carte injouable.
- */
-/**
  * Une carte que ce geste peut retoucher. ⚠️ C'est LE prédicat que
  * `startPreparation` appliquera un tour plus tard — l'offre et l'application
  * posent la même question, sinon la magie est offerte pour ne rien faire.
@@ -84,27 +69,6 @@ function _retouchable(type: 'reduce_materials' | 'remove_requirements') {
 
 const _attributesOf = (cards: Card[]) => [...new Set(cards.flatMap(c => c.attributes ?? []))];
 
-function _discountCard(card: Card, type: 'reduce_materials' | 'remove_requirements', amount: number): Card {
-  const before = summonConditions(card);
-  const after: SummonCondition[] = before.map(cd => {
-    const materials = conditionMaterials(cd);
-    const requires = conditionRequires(cd);
-    if (type === 'reduce_materials') {
-      if (materials === 0) return cd;
-      const left = Math.max(0, materials - amount);
-      return { materials: left, requires: requires.slice(0, left) };
-    }
-    if (requires.length === 0) return cd;
-    return { materials, requires: requires.slice(0, Math.max(0, requires.length - amount)) };
-  });
-  return {
-    ...card,
-    // Mémorise l'état d'AVANT la première remise seulement : deux magies
-    // enchaînées se lisent contre la carte d'origine, pas l'une contre l'autre.
-    _discounted_from: card._discounted_from ?? before,
-    summon_conditions: after,
-  };
-}
 
 export interface CardDbLike {
   getCard(id: string): Card | null;
@@ -198,6 +162,20 @@ interface PrepSnapshot {
   hand: Card[];
   graveyard: Unit[];
   units: { unit: Unit; position: Position; initial_position: Position | null }[];
+  /**
+   * Les bonus de combat, copiés — la SECONDE chose que la préparation écrase.
+   *
+   * ⚠️ Elle n'existait pas tant que rien ne mutait une unité en préparation ; le
+   * trigger `a_l_invocation` l'a introduite. Sans cette copie, annuler une
+   * invocation laisserait à l'écran les bonus qu'elle avait donnés aux AUTRES
+   * unités — un résidu invisible, que `canUndoPreparation` (structurel) ne
+   * saurait même pas nommer.
+   *
+   * ⚠️ Ce n'est pas un clone d'unité : on copie un registre que la préparation
+   * écrit, exactement comme les positions. `_base`, `_shopping_bonus`,
+   * `veterancy_points` et l'`uid` restent des RÉFÉRENCES intactes.
+   */
+  bonus: { unit: Unit; stats: Record<string, number> }[];
 }
 
 export interface StartCombatResult {
@@ -340,30 +318,6 @@ export class GameSession {
     const fullPool = this._deckCards();
     this.hand.push(...resolveGuaranteedDraws(fullPool as any, guaranteedDraws, this._rand));
 
-    // Modifiers de main différés (magies choisies au tour précédent)
-    if (this.gameState.player_hand_modifiers.length) {
-      const modifiers = this.gameState.player_hand_modifiers.splice(0);
-      // Les quatre remises d'invocation se réduisent à DEUX gestes sur une
-      // condition : baisser son nombre de matériels, ou lui retirer des
-      // exigences nommées. L'ancienne « transformation offerte » n'était que
-      // les deux appliqués assez large pour vider la condition — elle s'écrit
-      // maintenant en données, plus en code.
-      for (const mod of modifiers) {
-        const amount = Math.max(1, mod.value || 1);
-        // ⚠️ L'attribut est un filtre FACULTATIF, et il vaut pour les deux
-        // gestes : c'est lui qui rend « -1 matériel de Fusion » exprimable
-        // maintenant qu'il n'y a plus de voie à nommer. Absent, la remise tombe
-        // sur la première carte retouchable, comme avant.
-        const idx = this.hand.findIndex(c =>
-          (!mod.attribute || (c.attributes ?? []).includes(mod.attribute))
-          && summonConditions(c).some(
-            cd => mod.type === 'reduce_materials'
-              ? conditionMaterials(cd) > 0
-              : conditionRequires(cd).length > 0));
-        if (idx === -1) continue;
-        this.hand[idx] = _discountCard(this.hand[idx], mod.type, amount);
-      }
-    }
 
     // L'adversaire ne joue PAS ici : en solo l'IA place ses unités au
     // lancement du combat (startCombat), une fois le joueur prêt ; en PvP
@@ -395,14 +349,16 @@ export class GameSession {
   // ── « Tout annuler » (bouton de la barre de préparation) ─────────────────
 
   private _capturePreparation(): PrepSnapshot {
+    const units = this.board.getUnitsOnSide('player');
     return {
       hand: [...this.hand],
       graveyard: [...this.graveyard],
-      units: this.board.getUnitsOnSide('player').map(unit => ({
+      units: units.map(unit => ({
         unit,
         position: { ...(unit.position as Position) },
         initial_position: unit.initial_position ? { ...unit.initial_position } : null,
       })),
+      bonus: units.map(unit => ({ unit, stats: { ...(unit as any)._stat_bonuses } })),
     };
   }
 
@@ -446,6 +402,12 @@ export class GameSession {
     for (const e of snap.units) {
       this.board.placeUnit(e.unit, e.position);
       e.unit.initial_position = e.initial_position ? { ...e.initial_position } : null;
+    }
+    // ⚠️ Et ce qu'une invocation a DONNÉ repart avec elle. Les unités
+    // remplacées, elles, n'ont rien à restaurer : elles quittent la partie.
+    for (const b of snap.bonus) {
+      (b.unit as any)._stat_bonuses = { ...b.stats };
+      (b.unit as any)._recomputeStats();
     }
     this.hand = [...snap.hand];
     this.graveyard = [...snap.graveyard];
@@ -558,8 +520,74 @@ export class GameSession {
       const gi = this.graveyard.indexOf(u);
       if (gi !== -1) this.graveyard.splice(gi, 1);
     }
+    if (unit) this._joueInvocation();
     return unit;
   }
+
+  /**
+   * `a_l_invocation` — le trigger qu'une invocation déclenche.
+   *
+   * ⚠️ **C'est le trigger n°1 d'un auto-battler** (§3.5) et son point de
+   * branchement existait déjà : `place()` ne servait qu'aux missions. Il ne
+   * manquait que le moyen de le dire en donnée.
+   *
+   * ⚠️ Il part APRÈS la pose, jamais avant : l'unité qu'on vient d'invoquer doit
+   * compter dans son propre palier. Une invocation qui complèterait un seuil
+   * sans en profiter serait le genre d'écart qu'on ne remarque qu'au dixième
+   * essai.
+   *
+   * ⚠️ Le bonus est écrit en `duree: 'combat'`, donc dans `_stat_bonuses` — qui
+   * n'est balayé qu'à `finishCombat`. Posé en préparation, il traverse donc le
+   * combat entier, ce qui est exactement ce qu'un joueur attend. `startCombat`
+   * ne remet à zéro que les HORLOGES (`resetCombatClocks`), pas les bonus.
+   */
+  private _joueInvocation(): void {
+    // ⚠️ **Sortie sèche quand le catalogue n'en porte aucun**, et c'est ce qui
+    // rend le branchement strictement gratuit tant que personne n'écrit de
+    // contenu : aucun attribut livré ne déclare `on_summon`, donc `place()` ne
+    // construit rien et ne compile rien. Le test se fait sur la DONNÉE BRUTE,
+    // pas sur une compilation — compiler 93 attributs à chaque invocation pour
+    // découvrir qu'il n'y a rien à faire serait le coût qu'on évite.
+    if (!this._porteInvocation()) return;
+    const unites = this.getPlayerUnits();
+    if (!unites.length) return;
+
+    const mgr = new AttributeManager(this.deps.attributeList, unites, this.getEnemyUnits());
+    const ressources = ressourcesVides();
+    mgr.joueMoment('a_l_invocation', {
+      unitesAlliees: unites, unitesEnnemies: this.getEnemyUnits(),
+      ressources, consommePortee: this._consommePortee,
+      pvJoueur: this.gameState.player_hp,
+    });
+    this._pourMagie(ressources);
+  }
+
+  /** Le catalogue déclare-t-il un seul effet à l'invocation ? Calculé une fois. */
+  private _aInvocation: boolean | null = null;
+  private _porteInvocation(): boolean {
+    if (this._aInvocation === null) {
+      this._aInvocation = (this.deps.attributeList as any[]).some(
+        a => (a?.thresholds ?? []).some((t: any) => (t?.effects ?? []).some((e: any) => e?.timing === 'on_summon')),
+      );
+    }
+    return this._aInvocation;
+  }
+
+  /**
+   * La mémoire des portées (§3.5), cloisonnée PAR PORTÉE.
+   *
+   * ⚠️ C'est la session qui oublie, et elle oublie par portée : la fin d'un
+   * combat ne doit pas rouvrir un effet qui promettait « une fois par partie ».
+   * Une clé unique ferait exactement ça.
+   */
+  private _porteesVues: Record<string, Set<string>> = {};
+
+  private _consommePortee = (portee: string, cle: string): boolean => {
+    const vues = (this._porteesVues[portee] ??= new Set());
+    if (vues.has(cle)) return false;
+    vues.add(cle);
+    return true;
+  };
 
   /** Échange/déplace une unité joueur pendant la préparation (drag & drop). */
   reposition(unit: Unit, toPos: Position): boolean {
@@ -728,6 +756,12 @@ export class GameSession {
     for (const u of combatants) u.resetCombatStats();
     this._returnHome(this.board.getLivingUnitsOnSide('player'), 'player');
 
+    // ⚠️ Même règle que la ligne au-dessus, sur un autre registre : ce qui ne
+    // valait que pour un combat ne lui survit pas. La portée `une_fois_par_combat`
+    // se rouvre ici, et SEULEMENT elle — la fin d'un combat ne doit pas rendre
+    // un effet qui promettait « une fois par partie ».
+    this._porteesVues.une_fois_par_combat?.clear();
+
     return {
       winner,
       playerSurvivorsAtk,
@@ -814,10 +848,14 @@ export class GameSession {
       // ⚠️ Le booléen et la liste ne disent PAS la même chose, et la liste ne
       // peut pas remplacer le booléen : une carte retouchable qui ne porte
       // aucun attribut rend le premier vrai et n'ajoute rien à la seconde.
-      deckHasMaterialCost:     deck.some(_retouchable('reduce_materials')),
-      deckHasNamedRequirement: deck.some(_retouchable('remove_requirements')),
-      deckMaterialCostAttributes:     _attributesOf(deck.filter(_retouchable('reduce_materials'))),
-      deckNamedRequirementAttributes: _attributesOf(deck.filter(_retouchable('remove_requirements'))),
+      // ⚠️ Sur la MAIN, plus sur le deck : les deux remises sont immédiates
+      // depuis qu'elles ciblent. Une main vide ne les offre donc plus — et
+      // c'est juste : différées, elles promettaient une remise sur des cartes
+      // qui n'existaient pas encore.
+      handHasMaterialCost:     this.hand.some(_retouchable('reduce_materials')),
+      handHasNamedRequirement: this.hand.some(_retouchable('remove_requirements')),
+      handMaterialCostAttributes:     _attributesOf(this.hand.filter(_retouchable('reduce_materials'))),
+      handNamedRequirementAttributes: _attributesOf(this.hand.filter(_retouchable('remove_requirements'))),
       boardSlotBonusAvailable: this.gameState.hasLimitedBoardSlotBonusLeft(),
       playerHpBelowCap:        this.gameState.player_hp < PLAYER_HP_CAP,
     };
@@ -850,14 +888,83 @@ export class GameSession {
   }
 
   /**
-   * Prélève le contrecoup. Appelé par les QUATRE chemins d'application, et
-   * toujours AVANT l'effet : sans quoi `drain_life` financerait son propre
-   * coût avec les PV qu'il rapporte. Le plancher à 0 est défensif — la garde
-   * d'accessibilité rend le cas impossible.
+   * Prélève le contrecoup. Appelé par les chemins d'application que le moteur
+   * ne sert pas (`defuse_fusion`), et toujours AVANT l'effet : sans quoi
+   * `drain_life` financerait son propre coût avec les PV qu'il rapporte. Le
+   * plancher à 0 est défensif — la garde d'accessibilité rend le cas impossible.
+   *
+   * ⚠️ Sur le chemin du MOTEUR, le contrecoup est une TÂCHE, émise en tête par
+   * le compilateur : ne pas l'appeler en plus, ou le joueur paierait deux fois.
    */
   private _payMagieCost(magie: Magie): void {
     const cost = this.magieCostHp(magie);
     if (cost > 0) this.gameState.player_hp = Math.max(0, this.gameState.player_hp - cost);
+  }
+
+  /**
+   * **Le pont vers le moteur d'effets générique**, et le seul de ce fichier.
+   *
+   * Les quatre chemins d'application y passent : ils préparent le MONDE (qui est
+   * la cible, quels conteneurs le moteur a le droit de toucher) et versent ce
+   * que le moteur a accumulé. Le moteur, lui, ne connaît ni `GameSession` ni
+   * `GameState` — cf. `docs/moteur-effets.md` §6.5.
+   *
+   * ⚠️ **Ce qui reste chez l'appelant n'est pas un reliquat, c'est une frontière
+   * de responsabilité** :
+   *
+   * - **l'ÉLIGIBILITÉ d'une cible** (`magieUnitTargets`, `magieHandTargets`) —
+   *   le sélecteur dit « une unité alliée », pas « une unité qui a un pouvoir » ;
+   * - **la RÉSOLVABILITÉ** — une magie qui peut ne rien trouver résout avant
+   *   d'appeler, sinon le contrecoup partirait à vide (le compilateur l'émet en
+   *   PREMIÈRE tâche, il le faut pour que `drain_life` ne se finance pas
+   *   lui-même) ;
+   * - **la POSE sur le plateau** — `Board.placeUnit` jette sur une case occupée,
+   *   et l'ordre retrait/pose est une règle de plateau, pas d'effet.
+   */
+  private _runMagie(magie: Magie, monde: Partial<Monde>): Ressources {
+    const ressources = ressourcesVides();
+    const avantCimetiere = this.graveyard.length;
+    const { effets } = compileMagie(magie as any);
+    executer(effets, 'immediat', {
+      unitesAlliees: [], unitesEnnemies: [], ressources,
+      // ⚠️ Le cimetière est UN SEUL tableau pour les deux rôles : c'est la
+      // réserve de corps réanimables ET le conteneur d'atterrissage. Deux
+      // tableaux portant les mêmes unités feraient qu'une réanimation viderait
+      // l'un sans vider l'autre.
+      neutralisees: this.graveyard, cimetiere: this.graveyard,
+      main: this.hand as Card[],
+      catalogue: (id: string) => (this.deps.cardDb.getCard(id) as Card) ?? null,
+      // ⚠️ Les PV d'AVANT : la garde d'accessibilité se juge sur eux, jamais sur
+      // ceux d'après — sinon `drain_life` financerait son propre contrecoup.
+      pvJoueur: this.gameState.player_hp,
+      ...monde,
+    });
+    this._pourMagie(ressources);
+
+    // ⚠️ **Le moteur envoie au cimetière, il ne RETIRE pas du plateau** : la
+    // grille est une règle de plateau, comme la pose. Toute unité qu'il vient
+    // d'y déposer et qui occupe encore une case en sort ici — c'est le pendant
+    // exact de `_placeRevived`. `removeUnit` est sans effet sur une unité qui
+    // n'y était pas (`hand_to_graveyard` en crée une de toutes pièces).
+    for (const u of this.graveyard.slice(avantCimetiere)) this.board.removeUnit(u);
+    return ressources;
+  }
+
+  /**
+   * Verse ce qu'une magie a accumulé. ⚠️ **Les plafonds vivent ICI**, jamais
+   * dans le moteur : `PLAYER_HP_CAP` et le cap partagé +1 slot sont des règles
+   * de `GameState`, que le moteur n'importe pas. L'accumulateur ne connaît que
+   * des montants.
+   */
+  private _pourMagie(r: Ressources): void {
+    const g = this.gameState;
+    if (r.pv) g.player_hp = Math.min(Math.max(0, g.player_hp + r.pv), PLAYER_HP_CAP);
+    if (r.pioches) g.player_extra_draws += r.pioches;
+    if (r.sources.length) g.player_draw_sources.push(...r.sources);
+    if (r.pioches_garanties.length) g.player_guaranteed_draws.push(...r.pioches_garanties);
+    if (r.slots_board) g.grantLimitedBoardSlotBonus(r.slots_board);
+    if (r.magies_shop) g.player_extra_shopping_magies += r.magies_shop;
+    if (r.multiplicateur) g.player_damage_multiplier_bonus += r.multiplicateur;
   }
 
   /** Cibles valides d'une magie sur le board joueur (defuse : fusions seulement). */
@@ -1035,11 +1142,20 @@ export class GameSession {
    */
   magieHandTargets(magie: Magie): number[] {
     const type = magie.effect?.type;
+    const attribut = (magie.effect as { attribute?: string } | undefined)?.attribute;
     const ok = type === 'shift_tier_card'
       ? (card: Card) => this._tierShiftPool(card, tierShift(magie as any)).length > 0
       : type === 'draw_material'
         ? (card: Card) => this._drawableMaterialIds(card).length > 0
-        : () => true;
+        // ⚠️ Les deux remises n'acceptent que ce qu'elles peuvent RETOUCHER, et
+        // le filtre d'attribut fait partie de la question : une carte qui ne
+        // porte pas l'attribut visé n'est pas une cible, même si elle a un coût.
+        // Les tester séparément offrirait la magie sur une main où ce sont deux
+        // cartes différentes.
+        : (type === 'reduce_materials' || type === 'remove_requirements')
+          ? (card: Card) => (!attribut || (card.attributes ?? []).includes(attribut))
+            && _retouchable(type)(card)
+          : () => true;
     const targets: number[] = [];
     this.hand.forEach((card, i) => { if (ok(card)) targets.push(i); });
     return targets;
@@ -1057,66 +1173,37 @@ export class GameSession {
 
   applyMagieOnUnit(magie: Magie, unit: Unit): void {
     if (!this.canAffordMagie(magie)) return;
-    // ⚠️ La duplication passe AVANT le paiement : elle résout sa carte
-    // elle-même et n'encaisse le contrecoup que si la copie part vraiment
-    // (cf. `_duplicateFromUnit`).
-    if (magie.effect?.type === 'duplicate_unit') { this._duplicateFromUnit(magie, unit); return; }
-    // ⚠️ Le remplacement par tier passe lui aussi AVANT le paiement, et pour la
-    // même raison : il peut ne rien trouver à poser.
-    if (magie.effect?.type === 'shift_tier_unit') { this._shiftTierUnit(magie, unit); return; }
-    this._payMagieCost(magie);
-    if (magie.effect?.type === 'defuse_fusion') { this._defuseFusion(unit); return; }
-    if (magie.effect?.type === 'destroy_unit') { this._destroyUnit(unit); return; }
-    if (magie.effect?.type === 'drain_life') { this._drainLife(unit); return; }
-    applyMagieEffect(magie as any, { gameState: this.gameState, targetUnit: unit });
-  }
+    const type = magie.effect?.type;
 
-  /**
-   * Duplication d'unité — **le même geste depuis le board et depuis le
-   * cimetière**, d'où une seule méthode : c'est la CARTE qui revient en main,
-   * jamais l'unité, et l'endroit où elle se trouvait n'y change rien.
-   *
-   * Rien de ce que l'unité a acquis ne voyage — bonus de Shopping
-   * (`_shopping_bonus`), vétérance, PV courants, bouclier, pouvoir posé par
-   * `grant_power` : la copie est l'entrée du catalogue, telle qu'une pioche la
-   * rendrait. C'est ce qui distingue une duplication d'un clonage, et ce qui
-   * empêche la magie de blanchir un investissement en le rendant deux fois.
-   *
-   * ⚠️ Conséquence assumée de la RÈGLE DU DOUBLON, et **seulement depuis le
-   * board** : tant que l'original vit, la copie n'est invocable qu'en désignant
-   * ce doublon comme matériau (sacrifice, fusion, héritage, transformation) —
-   * une invocation normale la refuse, et la main l'affiche grisée. Une unité du
-   * CIMETIÈRE n'est pas vivante : sa copie est jouable tout de suite, ce qui
-   * fait des deux provenances deux magies au tempo opposé — un remplaçant mis
-   * de côté d'un côté, une seconde chance immédiate de l'autre.
-   *
-   * ⚠️ La carte est résolue AVANT le paiement : un contrecoup prélevé pour une
-   * copie qui n'arrive jamais serait pire qu'un refus. Le filtre d'offre rend
-   * le cas inatteignable, cette garde est ce qui l'en empêche pour de bon.
-   */
-  private _duplicateFromUnit(magie: Magie, unit: Unit): void {
-    const card = this.deps.cardDb.getCard(unit.card_id);
-    if (!card) return;
-    this._payMagieCost(magie);
-    this._pushHandCopies(card as Card, duplicateCopies(magie as any));
-  }
+    // ⚠️ `defuse_fusion` est le SEUL type que le moteur ne sait pas traduire, et
+    // pour une raison de fond : il ne déplace pas une entité, il en fait naître
+    // plusieurs depuis la lignée de la carte, avec un repli sur le cimetière
+    // quand le board est plein. C'est une règle d'INVOCATION, et
+    // `InvocationManager` en est le propriétaire (§4.3).
+    if (type === 'defuse_fusion') { this._payMagieCost(magie); this._defuseFusion(unit); return; }
 
-  /**
-   * ⚠️ Chaque copie est un OBJET NEUF, jamais la référence source partagée.
-   * Deux cases de la main pointant sur le même objet seraient correctes
-   * aujourd'hui — `startPreparation` REMPLACE une carte retouchée par une magie
-   * de main (`this.hand[idx] = { ...this.hand[idx], … }`) au lieu de la muter,
-   * et `canUndoPreparation` compare la main par RÉFÉRENCE — mais la copie ne
-   * coûte rien et referme le cas par construction.
-   *
-   * La source est prise TELLE QU'ELLE EST, remises comprises
-   * (`_original_sacrifice`, `_removed_materials`, `_free_transformation`) : le
-   * joueur duplique la carte qu'il a sous les yeux, avec le coût que son
-   * tooltip annonce. La copie rejoint donc le même groupe que l'originale dans
-   * la main (badge ×N) — `GameController._groupHand` clé sur l'id ET le coût.
-   */
-  private _pushHandCopies(card: Card, copies: number): void {
-    for (let i = 0; i < copies; i++) this.hand.push({ ...card });
+    // ⚠️ Le remplacement par tier RÉSOUT avant d'appeler le moteur : il peut ne
+    // rien trouver, et le contrecoup est la première tâche compilée. Cf. le
+    // filet de `magie-characterization.test.ts`.
+    if (type === 'shift_tier_unit') {
+      const remplacant = this._pickFrom(this._boardTierShiftPool(
+        this.deps.cardDb.getCard(unit.card_id) as Card | null, tierShift(magie as any)));
+      if (!remplacant) return;
+      this._runMagie(magie, { unitesAlliees: [unit] });
+      this._substituteUnit(unit, remplacant);
+      return;
+    }
+
+    // ⚠️ `unitesAlliees` ne porte QUE la cible désignée : le sélecteur d'une
+    // magie à cible unique dit `combien: 'un'`, et le moteur prend la première
+    // du monde. Les magies d'ÉQUIPE, elles, ne passent pas par ici (elles sont
+    // globales et n'ont aucune cible à désigner).
+    const r = this._runMagie(magie, { unitesAlliees: [unit] });
+
+    // ⚠️ La réanimation d'un `revive` — aucune magie à cible UNITÉ n'en émet,
+    // mais le versement est le même partout : le moteur dit qui revient, le
+    // plateau reste à l'appelant.
+    this._placeRevived(r);
   }
 
   /**
@@ -1139,14 +1226,65 @@ export class GameSession {
    * et spawn la nouvelle sans une ligne de plus, `GameController` l'appelant
    * déjà après tout ciblage de magie.
    */
-  private _shiftTierUnit(magie: Magie, unit: Unit): void {
-    const card = this.deps.cardDb.getCard(unit.card_id);
-    const replacement = this._pickFrom(this._boardTierShiftPool(card, tierShift(magie as any)));
-    if (!replacement) return;
-    this._payMagieCost(magie);
+  /**
+   * Repose sur le plateau les unités que le moteur a sorties du cimetière.
+   *
+   * ⚠️ Le moteur ne POSE rien : `Board.placeUnit` jette sur une case occupée, et
+   * choisir où retomber (sa case d'origine si elle est libre, sinon la première
+   * libre, sinon nulle part) est une règle de PLATEAU, pas d'effet. Un board
+   * plein laisse l'unité vivante hors grille — c'était déjà le cas.
+   */
+  private _placeRevived(r: Ressources): void {
+    for (const u of r.reanimees) {
+      const cible = u.initial_position && !this.board.isOccupied(u.initial_position)
+        ? u.initial_position : this.board.firstEmptyPlayerCell();
+      if (cible) { try { this.board.placeUnit(u, cible); } catch { /* pas de slot */ } }
+    }
+  }
+
+  applyGlobalMagie(magie: Magie): void {
+    if (!this.canAffordMagie(magie)) return;
+    // ⚠️ TOUTES les unités du joueur : c'est ce que portent les magies d'ÉQUIPE
+    // (`team_stat_bonus`, `team_heal`), dont le sélecteur dit `combien: 'tous'`.
+    // Les magies purement globales (pioche, slot, multiplicateur) ne lisent
+    // aucune unité — leur donner la liste ne change rien.
+    this._runMagie(magie, { unitesAlliees: this.getPlayerUnits() });
+  }
+
+  /**
+   * ⚠️ **Le seul effet de magie que le moteur ne traduit pas sur une unité**, et
+   * pour une raison de fond : il ne DÉPLACE pas une entité, il en fait naître
+   * plusieurs depuis la lignée de la carte, avec un repli sur le cimetière quand
+   * le board est plein. C'est une règle d'INVOCATION déguisée en effet, et
+   * `InvocationManager` en est le propriétaire (§4.3 du doc).
+   */
+  private _defuseFusion(fusionUnit: Unit): void {
+    const fusionCard = this.deps.cardDb.getCard(fusionUnit.card_id);
+    // Les matériels NOMMÉS, toutes conditions confondues : ce sont les seuls
+    // qu'on sache rendre. Un coût purement chiffré ne désigne aucune carte —
+    // `_defusableFusions` écarte déjà ces unités du ciblage.
+    const materials = [...new Set(summonConditions(fusionCard!).flatMap(cd => conditionRequires(cd)))];
+    this.board.removeUnit(fusionUnit);
+    for (const matId of materials) {
+      const matCard = this.deps.cardDb.getCard(matId);
+      if (!matCard) continue;
+      const matUnit = new Unit(matCard, 'player');
+      const cell = this.board.getLivingUnitsOnSide('player').length < this.gameState.player_board_slots
+        ? this.board.firstEmptyPlayerCell() : null;
+      if (cell) {
+        matUnit.initial_position = { ...cell };
+        this.board.placeUnit(matUnit, cell);
+      } else {
+        matUnit.is_neutralized = true;
+        this.graveyard.push(matUnit);
+      }
+    }
+  }
+
+  private _substituteUnit(unit: Unit, remplacant: Card): void {
     const pos = { ...(unit.position as Position) };
     this.board.removeUnit(unit);
-    const fresh = new Unit(replacement, 'player');
+    const fresh = new Unit(remplacant, 'player');
     fresh.initial_position = { ...pos };
     this.board.placeUnit(fresh, pos);
   }
@@ -1183,15 +1321,11 @@ export class GameSession {
     if (!this.canAffordMagie(magie)) return null;
     const type = magie.effect?.type;
 
-    if (type === 'shift_tier_card') {
-      const replacement = this._pickFrom(this._tierShiftPool(card, tierShift(magie as any)));
-      if (!replacement) return null;
-      this._payMagieCost(magie);
-      // La case est écrasée, jamais mutée : `canUndoPreparation` compare la main
-      // par RÉFÉRENCE, et `_capturePreparation` en garde une copie plate.
-      this.hand[handIdx] = replacement;
-      return null;
-    }
+    // ⚠️ `draw_material` est le SECOND type que le moteur ne traduit pas, et sa
+    // raison n'est pas celle de `defuse_fusion` : il consomme DEUX tirages (quel
+    // matériel manque, puis quelle carte le porte) là où `remplacer` n'en fait
+    // qu'un. Aplatir les deux changerait la distribution ET le flux semé.
+    // Cf. `MANQUE` dans `compile.ts`.
     if (type === 'draw_material') {
       const material = this._drawMaterial(card);
       if (!material) return null;
@@ -1200,27 +1334,29 @@ export class GameSession {
       return null;
     }
 
-    this._payMagieCost(magie);
-    if (type === 'duplicate_card') {
-      this._pushHandCopies(card, duplicateCopies(magie as any));
-      return null;
-    }
-    if (type === 'sacrifice_card_hp') {
-      this.hand.splice(handIdx, 1);
-      // Les PV de la CARTE (`stats.hp`), pas ceux d'une unité : rien n'a encore
-      // été posé, il n'y a pas de PV courants à lire. Plafonné comme
-      // `player_hp_bonus` et `drain_life`, dont c'est le troisième jumeau — la
-      // seule source de PV joueur qui se paie en cartes plutôt qu'en unités.
-      const gained = Math.max(0, Math.round((card.stats?.hp ?? 0) * sacrificeHpPercent(magie as any) / 100));
-      this.gameState.player_hp = Math.min(this.gameState.player_hp + gained, PLAYER_HP_CAP);
-      return null;
-    }
+    // ⚠️ Les deux effets qui peuvent ne RIEN trouver posent leur question AVANT
+    // d'appeler le moteur, et cette question ne consomme AUCUN hasard : c'est le
+    // moteur qui tire, une seule fois. Sans elle, le contrecoup — première tâche
+    // compilée — partirait à vide (cf. le filet de `magie-characterization`).
+    if (type === 'shift_tier_card'
+      && !this._tierShiftPool(card, tierShift(magie as any)).length) return null;
+    if ((type === 'reduce_materials' || type === 'remove_requirements')
+      && !_retouchable(type)(card)) return null;
 
-    this.hand.splice(handIdx, 1);
-    const unit = new Unit(card, 'player');
-    unit.is_neutralized = true;
-    this.graveyard.push(unit);
-    return unit;
+    // ⚠️ `cibleMain` porte l'index DÉSIGNÉ par le joueur : le sélecteur dit
+    // « une carte de la main », pas laquelle. L'éligibilité vit dans
+    // `magieHandTargets`, et la recopier dans le sélecteur serait s'en donner
+    // deux versions.
+    const avant = this.graveyard.length;
+    this._runMagie(magie, {
+      cibleMain: handIdx,
+      pool: (_s, ctx) => this._tierShiftPool(ctx.carte, ctx.decalage ?? 1),
+    });
+
+    // ⚠️ `hand_to_graveyard` est la seule magie de main qui CRÉE une unité, et
+    // l'appelant la rend à `GameController` (qui la montre au cimetière). Le
+    // moteur l'a poussée au bout du cimetière : c'est elle, et rien d'autre.
+    return this.graveyard.length > avant ? this.graveyard[this.graveyard.length - 1] : null;
   }
 
   /**
@@ -1233,65 +1369,20 @@ export class GameSession {
    */
   applyMagieOnGraveyardUnit(magie: Magie, unit: Unit): void {
     if (!this.canAffordMagie(magie)) return;
-    if (magie.effect?.type === 'duplicate_graveyard_unit') { this._duplicateFromUnit(magie, unit); return; }
-    this._payMagieCost(magie);
-    applyMagieEffect(magie as any, { gameState: this.gameState, targetUnit: unit });
-    const target = unit.initial_position && !this.board.isOccupied(unit.initial_position)
-      ? unit.initial_position : this.board.firstEmptyPlayerCell();
-    if (target) { try { this.board.placeUnit(unit, target); } catch { /* pas de slot */ } }
-    this.graveyard = this.graveyard.filter(u => u.uid !== unit.uid);
+    // ⚠️ La duplication RÉSOUT sa carte avant d'appeler : un contrecoup prélevé
+    // pour une copie qui n'arrive jamais serait pire qu'un refus.
+    if (magie.effect?.type === 'duplicate_graveyard_unit'
+      && !this.deps.cardDb.getCard(unit.card_id)) return;
+
+    // ⚠️ Le cimetière est un tableau que le moteur MUTE : `revive` en sort le
+    // corps. On met la cible désignée EN TÊTE, le sélecteur disant `un`.
+    const reste = this.graveyard.filter(u => u.uid !== unit.uid);
+    this.graveyard.length = 0;
+    this.graveyard.push(unit, ...reste);
+    const r = this._runMagie(magie, {});
+    this._placeRevived(r);
   }
 
-  applyGlobalMagie(magie: Magie): void {
-    if (!this.canAffordMagie(magie)) return;
-    this._payMagieCost(magie);
-    // `targetUnits` porte les magies d'équipe (team_stat_bonus) : elles n'ont
-    // pas de cible à désigner, mais frappent tout le board joueur.
-    applyMagieEffect(magie as any, { gameState: this.gameState, targetUnits: this.getPlayerUnits() });
-  }
-
-  private _defuseFusion(fusionUnit: Unit): void {
-    const fusionCard = this.deps.cardDb.getCard(fusionUnit.card_id);
-    // Les matériels NOMMÉS, toutes conditions confondues : ce sont les seuls
-    // qu'on sache rendre. Un coût purement chiffré ne désigne aucune carte —
-    // `_defusableFusions` écarte déjà ces unités du ciblage.
-    const materials = [...new Set(summonConditions(fusionCard!).flatMap(cd => conditionRequires(cd)))];
-    this.board.removeUnit(fusionUnit);
-    for (const matId of materials) {
-      const matCard = this.deps.cardDb.getCard(matId);
-      if (!matCard) continue;
-      const matUnit = new Unit(matCard, 'player');
-      const cell = this.board.getLivingUnitsOnSide('player').length < this.gameState.player_board_slots
-        ? this.board.firstEmptyPlayerCell() : null;
-      if (cell) {
-        matUnit.initial_position = { ...cell };
-        this.board.placeUnit(matUnit, cell);
-      } else {
-        matUnit.is_neutralized = true;
-        this.graveyard.push(matUnit);
-      }
-    }
-  }
-
-  private _destroyUnit(unit: Unit): void {
-    this.board.removeUnit(unit);
-    unit.is_neutralized = true;
-    this.graveyard.push(unit);
-  }
-
-  /**
-   * Absorption : l'unité est détruite comme par `destroy_unit` (elle part au
-   * cimetière et libère son emplacement) et ses PV COURANTS — pas son
-   * `max_hp` — sont versés à la jauge du joueur, plafonnés à PLAYER_HP_CAP comme
-   * `player_hp_bonus`. Ce sont bien les PV courants : absorber une unité
-   * qu'on vient de voir encaisser tout un combat ne doit pas rapporter autant
-   * qu'absorber une unité intacte.
-   */
-  private _drainLife(unit: Unit): void {
-    const drained = Math.max(0, Math.round(unit.current_hp));
-    this._destroyUnit(unit);
-    this.gameState.player_hp = Math.min(this.gameState.player_hp + drained, PLAYER_HP_CAP);
-  }
 
   // ── Fin de partie / tour suivant ────────────────────────────────────────
 

@@ -1,0 +1,2146 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Attributs livrés — l'oracle de l'étape 0 > ce que chaque palier de chaque attribut fait, figé 1`] = `
+[
+  {
+    "categorie": "Type",
+    "id": "ARCH_001",
+    "nom": "Guerrier",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · hp · 10",
+        ],
+        "ennemi": {
+          "E0_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 210/210 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 210/210 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 210/210 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 210/210 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · hp · 20",
+        ],
+        "ennemi": {
+          "E0_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 220/220 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 220/220 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 220/220 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 220/220 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 220/220 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 220/220 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · hp · 50",
+        ],
+        "ennemi": {
+          "E0_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E3_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P3_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 4,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · hp · 100",
+        ],
+        "ennemi": {
+          "E0_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E3_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E4_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P3_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P4_ARCH_001": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 5,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_002",
+    "nom": "Magicien",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · attack_rate · 1",
+        ],
+        "ennemi": {
+          "E0_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 51 · por 3 · bcl 0",
+          "E1_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 51 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 51 · por 3 · bcl 0",
+          "P1_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 51 · por 3 · bcl 0",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · attack_rate · 3",
+        ],
+        "ennemi": {
+          "E0_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 53 · por 3 · bcl 0",
+          "E1_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 53 · por 3 · bcl 0",
+          "E2_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 53 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 53 · por 3 · bcl 0",
+          "P1_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 53 · por 3 · bcl 0",
+          "P2_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 53 · por 3 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · attack_rate · 4",
+        ],
+        "ennemi": {
+          "E0_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+          "E1_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+          "E2_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+          "E3_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+          "P1_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+          "P2_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+          "P3_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+        },
+        "palier": 4,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · attack_rate · 7",
+        ],
+        "ennemi": {
+          "E0_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 57 · por 3 · bcl 0",
+          "E1_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 57 · por 3 · bcl 0",
+          "E2_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 57 · por 3 · bcl 0",
+          "E3_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 57 · por 3 · bcl 0",
+          "E4_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 57 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 57 · por 3 · bcl 0",
+          "P1_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 57 · por 3 · bcl 0",
+          "P2_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 57 · por 3 · bcl 0",
+          "P3_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 57 · por 3 · bcl 0",
+          "P4_ARCH_002": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 57 · por 3 · bcl 0",
+        },
+        "palier": 5,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_003",
+    "nom": "Dragon",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · atk · 1",
+        ],
+        "ennemi": {
+          "E0_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 21 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 21 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 21 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 21 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · atk · 2",
+        ],
+        "ennemi": {
+          "E0_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · atk · 5",
+        ],
+        "ennemi": {
+          "E0_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E3_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P3_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 4,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · atk · 10",
+        ],
+        "ennemi": {
+          "E0_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E3_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E4_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P3_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P4_ARCH_003": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 5,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_004",
+    "nom": "Âme des cartes",
+    "paliers": [
+      {
+        "effets": [
+          "draw_bonus · 1 · max:1",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_004": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [],
+          "multiplicateur": 0,
+          "pioches": 1,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_005",
+    "nom": "Yeux Bleus",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_005": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:—:CORE_002",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+      {
+        "effets": [
+          "guaranteed_draw",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_005": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [
+            "—:—:CORE_103",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_006",
+    "nom": "Héros",
+    "paliers": [
+      {
+        "effets": [
+          "revive · 0 · pv%:50",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_006": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 100/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [
+            "P2_ARCH_006",
+          ],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_007",
+    "nom": "Magie Noire",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_087|ARCH_007",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_007": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_087|ARCH_007:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_008",
+    "nom": "Yeux Rouges",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_008",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_008": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_008:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_009",
+    "nom": "Gaïa",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_086|ARCH_009",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_009": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_086|ARCH_009:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_010",
+    "nom": "Noble",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · hp · 50",
+        ],
+        "ennemi": {
+          "E0_ARCH_010": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_010": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_010": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_010": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_010": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_010": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_011",
+    "nom": "Gadget",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_090|ARCH_011",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_011": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_090|ARCH_011:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_086|ARCH_011",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_011": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_086|ARCH_011:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_012",
+    "nom": "Magnétique",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_090|ARCH_012",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_012": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_090|ARCH_012:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_086|ARCH_012",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_012": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_086|ARCH_012:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_013",
+    "nom": "Union",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_086|ARCH_013",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_013": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_086|ARCH_013:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_014",
+    "nom": "Silencieux",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_088|ARCH_014",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P0_ARCH_014": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 1,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_088|ARCH_014:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_015",
+    "nom": "Figure",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_090|ARCH_015",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_015": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_090|ARCH_015:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_086|ARCH_015",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_015": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_086|ARCH_015:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_016",
+    "nom": "Épée Destructrice",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · atk · 5 · par:ARCH_003",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P0_ARCH_016": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 1,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_017",
+    "nom": "Rage de Vaincre",
+    "paliers": [
+      {
+        "effets": [
+          "damage_multiplier_bonus · 1.5",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_017": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [],
+          "multiplicateur": 1.5,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_018",
+    "nom": "Courageux",
+    "paliers": [
+      {
+        "effets": [
+          "stat_modifier · atk · 5 · on_ally_neutralized",
+        ],
+        "ennemi": {
+          "E0_ARCH_018": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_018": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_018": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "joueur": {
+          "P0_ARCH_018": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_018": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 25 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_018": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+    ],
+    "timing": "during_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_019",
+    "nom": "Démon",
+    "paliers": [
+      {
+        "effets": [
+          "shield · 10",
+        ],
+        "ennemi": {
+          "E0_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 20",
+          "E1_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 20",
+        },
+        "joueur": {
+          "P0_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 20",
+          "P1_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 20",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "shield · 30",
+        ],
+        "ennemi": {
+          "E0_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 90",
+          "E1_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 90",
+          "E2_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 90",
+        },
+        "joueur": {
+          "P0_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 90",
+          "P1_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 90",
+          "P2_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 90",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "shield · 50",
+        ],
+        "ennemi": {
+          "E0_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 200",
+          "E1_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 200",
+          "E2_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 200",
+          "E3_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 200",
+        },
+        "joueur": {
+          "P0_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 200",
+          "P1_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 200",
+          "P2_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 200",
+          "P3_ARCH_019": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 200",
+        },
+        "palier": 4,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_020",
+    "nom": "Archdémon",
+    "paliers": [
+      {
+        "effets": [
+          "revive · 1 · pv%:10",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_020": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 20/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [
+            "P2_ARCH_020",
+          ],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_021",
+    "nom": "Bête",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · movement_rate · 1",
+        ],
+        "ennemi": {
+          "E0_ARCH_021": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 51 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_021": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 51 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_021": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 51 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_021": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 51 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · movement_rate · 4",
+        ],
+        "ennemi": {
+          "E0_ARCH_021": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 54 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_021": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 54 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_021": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 54 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_021": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 54 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_021": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 54 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_021": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 54 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_022",
+    "nom": "Bête Fantôme",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_086|ARCH_022",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_022": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_086|ARCH_022:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_023",
+    "nom": "Elfe",
+    "paliers": [
+      {
+        "effets": [
+          "shield · 1 · par:active_unit",
+        ],
+        "ennemi": {
+          "E0_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 2",
+          "E1_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 2",
+        },
+        "joueur": {
+          "P0_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 2",
+          "P1_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 2",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "shield · 3 · par:active_unit",
+        ],
+        "ennemi": {
+          "E0_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 9",
+          "E1_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 9",
+          "E2_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 9",
+        },
+        "joueur": {
+          "P0_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 9",
+          "P1_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 9",
+          "P2_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 9",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "shield · 5 · par:active_unit",
+        ],
+        "ennemi": {
+          "E0_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 20",
+          "E1_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 20",
+          "E2_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 20",
+          "E3_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 20",
+        },
+        "joueur": {
+          "P0_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 20",
+          "P1_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 20",
+          "P2_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 20",
+          "P3_ARCH_023": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 20",
+        },
+        "palier": 4,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_024",
+    "nom": "Elementaire",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_090|ARCH_024",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_024": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_090|ARCH_024:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_025",
+    "nom": "Machine",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · range · 1",
+        ],
+        "ennemi": {
+          "E0_ARCH_025": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 4 · bcl 0",
+          "E1_ARCH_025": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 4 · bcl 0",
+          "E2_ARCH_025": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 4 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_025": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 4 · bcl 0",
+          "P1_ARCH_025": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 4 · bcl 0",
+          "P2_ARCH_025": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 4 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_026",
+    "nom": "Chaos",
+    "paliers": [
+      {
+        "effets": [
+          "revive · 1 · pv%:30",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_026": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 60/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [
+            "P1_ARCH_026",
+          ],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_027",
+    "nom": "Salamandra",
+    "paliers": [
+      {
+        "effets": [
+          "damage_multiplier_bonus · 1.5",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_027": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [],
+          "multiplicateur": 1.5,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_028",
+    "nom": "Rocher",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · hp · 30",
+        ],
+        "ennemi": {
+          "E0_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · hp · 100",
+        ],
+        "ennemi": {
+          "E0_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E3_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P3_ARCH_028": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 4,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_029",
+    "nom": "Zombie",
+    "paliers": [
+      {
+        "effets": [
+          "revive · pv%:75",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_029": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 150/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [
+            "P1_ARCH_029",
+          ],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_030",
+    "nom": "Tombeau",
+    "paliers": [
+      {
+        "effets": [
+          "revive · pv%:30",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_030": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 60/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [
+            "P2_ARCH_030",
+          ],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_031",
+    "nom": "Dieu Égyptien",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · atk · 15",
+        ],
+        "ennemi": {
+          "E0_ARCH_031": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 35 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_031": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 35 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_031": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 35 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_031": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 35 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_033",
+    "nom": "Insecte",
+    "paliers": [
+      {
+        "effets": [
+          "stat_modifier · hp · 10 · on_enemy_neutralized",
+        ],
+        "ennemi": {
+          "E0_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 210/210 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 210/210 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "joueur": {
+          "P0_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 210/210 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_modifier · hp · 15 · on_enemy_neutralized",
+        ],
+        "ennemi": {
+          "E0_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 215/215 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 215/215 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 215/215 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "joueur": {
+          "P0_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 215/215 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 215/215 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_modifier · hp · 30 · on_enemy_neutralized",
+        ],
+        "ennemi": {
+          "E0_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E3_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "joueur": {
+          "P0_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 230/230 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P3_ARCH_033": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 4,
+        "ressources": null,
+      },
+    ],
+    "timing": "during_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_034",
+    "nom": "Dinosaure",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · atk · 2",
+        ],
+        "ennemi": {
+          "E0_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · atk · 4",
+        ],
+        "ennemi": {
+          "E0_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 24 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 24 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 24 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 24 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 24 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 24 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · atk · 7",
+        ],
+        "ennemi": {
+          "E0_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 27 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 27 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 27 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E3_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 27 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 27 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 27 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 27 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P3_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 27 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 4,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · atk · 10",
+        ],
+        "ennemi": {
+          "E0_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E3_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E4_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P3_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P4_ARCH_034": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 5,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_035",
+    "nom": "Aquatique",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · movement_rate · 1",
+        ],
+        "ennemi": {
+          "E0_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 51 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 51 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 51 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 51 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · movement_rate · 4",
+        ],
+        "ennemi": {
+          "E0_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 54 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 54 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 54 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 54 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 54 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 54 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · movement_rate · 7",
+        ],
+        "ennemi": {
+          "E0_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 57 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 57 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 57 · vit 50 · por 3 · bcl 0",
+          "E3_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 57 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 57 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 57 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 57 · vit 50 · por 3 · bcl 0",
+          "P3_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 57 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 4,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · movement_rate · 13",
+        ],
+        "ennemi": {
+          "E0_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 63 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 63 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 63 · vit 50 · por 3 · bcl 0",
+          "E3_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 63 · vit 50 · por 3 · bcl 0",
+          "E4_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 63 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 63 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 63 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 63 · vit 50 · por 3 · bcl 0",
+          "P3_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 63 · vit 50 · por 3 · bcl 0",
+          "P4_ARCH_035": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 63 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 5,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_036",
+    "nom": "Harpie",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_086|ARCH_036",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_036": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_086|ARCH_036:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_038",
+    "nom": "Toon",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_090|ARCH_038",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P0_ARCH_038": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 1,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_090|ARCH_038:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_039",
+    "nom": "Illusion",
+    "paliers": [
+      {
+        "effets": [
+          "draw_bonus · 1",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_039": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [],
+          "multiplicateur": 0,
+          "pioches": 1,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+      {
+        "effets": [
+          "draw_bonus · 2",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_039": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [],
+          "multiplicateur": 0,
+          "pioches": 2,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_040",
+    "nom": "Citrouille",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · hp · 50",
+        ],
+        "ennemi": {
+          "E0_ARCH_040": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_040": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 1,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_bonus · hp · 100",
+        ],
+        "ennemi": {
+          "E0_ARCH_040": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_040": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_040": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_040": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 300/300 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_041",
+    "nom": "Labyrinthe",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · power_charge · 1",
+        ],
+        "ennemi": {
+          "E0_ARCH_041": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · charge +1",
+          "E1_ARCH_041": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · charge +1",
+          "E2_ARCH_041": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · charge +1",
+        },
+        "joueur": {
+          "P0_ARCH_041": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · charge +1",
+          "P1_ARCH_041": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · charge +1",
+          "P2_ARCH_041": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · charge +1",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_042",
+    "nom": "Gardiens",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_089|ARCH_042",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P0_ARCH_042": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 1,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_089|ARCH_042:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_086|ARCH_042",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_042": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_086|ARCH_042:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_043",
+    "nom": "Spectre",
+    "paliers": [
+      {
+        "effets": [
+          "stat_modifier · atk · 2 · on_enemy_neutralized",
+        ],
+        "ennemi": {
+          "E0_ARCH_043": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_043": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_043": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "joueur": {
+          "P0_ARCH_043": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_043": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 22 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_043": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+    ],
+    "timing": "during_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_044",
+    "nom": "Casino",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · power_charge · 1",
+        ],
+        "ennemi": {
+          "E0_ARCH_044": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · charge +1",
+          "E1_ARCH_044": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · charge +1",
+          "E2_ARCH_044": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · charge +1",
+        },
+        "joueur": {
+          "P0_ARCH_044": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · charge +1",
+          "P1_ARCH_044": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · charge +1",
+          "P2_ARCH_044": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · charge +1",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Type",
+    "id": "ARCH_045",
+    "nom": "Volant",
+    "paliers": [
+      {
+        "effets": [
+          "stat_modifier · attack_rate · 1 · on_ally_neutralized",
+        ],
+        "ennemi": {
+          "E0_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 51 · por 3 · bcl 0",
+          "E1_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "joueur": {
+          "P0_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 51 · por 3 · bcl 0",
+          "P1_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_modifier · attack_rate · 3 · on_ally_neutralized",
+        ],
+        "ennemi": {
+          "E0_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 53 · por 3 · bcl 0",
+          "E1_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 53 · por 3 · bcl 0",
+          "E2_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "joueur": {
+          "P0_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 53 · por 3 · bcl 0",
+          "P1_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 53 · por 3 · bcl 0",
+          "P2_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+      {
+        "effets": [
+          "stat_modifier · attack_rate · 4 · on_ally_neutralized",
+        ],
+        "ennemi": {
+          "E0_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+          "E1_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+          "E2_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+          "E3_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "joueur": {
+          "P0_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+          "P1_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+          "P2_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 54 · por 3 · bcl 0",
+          "P3_ARCH_045": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 4,
+        "ressources": null,
+      },
+    ],
+    "timing": "during_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_046",
+    "nom": "Slime",
+    "paliers": [
+      {
+        "effets": [
+          "stat_modifier · hp · 50 · on_ally_neutralized",
+        ],
+        "ennemi": {
+          "E0_ARCH_046": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_046": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "joueur": {
+          "P0_ARCH_046": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_046": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+    ],
+    "timing": "during_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_047",
+    "nom": "Atlantide",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · atk · 10",
+        ],
+        "ennemi": {
+          "E0_ARCH_047": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_047": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E2_ARCH_047": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_047": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_047": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P2_ARCH_047": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 3,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_059",
+    "nom": "Rouages ancients",
+    "paliers": [
+      {
+        "effets": [
+          "effect_immunity",
+        ],
+        "ennemi": {
+          "E0_ARCH_059": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · immunisé",
+        },
+        "joueur": {
+          "P0_ARCH_059": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · immunisé",
+        },
+        "palier": 1,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_061",
+    "nom": "Vampire",
+    "paliers": [
+      {
+        "effets": [
+          "stat_modifier · hp · 50 · on_enemy_neutralized",
+        ],
+        "ennemi": {
+          "E0_ARCH_061": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 250/250 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "joueur": {
+          "P0_ARCH_061": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 1,
+        "ressources": null,
+      },
+    ],
+    "timing": "during_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_064",
+    "nom": "Jarre",
+    "paliers": [
+      {
+        "effets": [
+          "draw_bonus · 1",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P0_ARCH_064": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 1,
+        "ressources": {
+          "garanties": [],
+          "multiplicateur": 0,
+          "pioches": 1,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_066",
+    "nom": "Metalmorphe",
+    "paliers": [
+      {
+        "effets": [
+          "shield · 50",
+        ],
+        "ennemi": {
+          "E0_ARCH_066": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 50",
+        },
+        "joueur": {
+          "P0_ARCH_066": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 50",
+        },
+        "palier": 1,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_068",
+    "nom": "Dragon légendaires",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_089|ARCH_068",
+          "guaranteed_draw · ARCH_086|ARCH_068",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_068": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_089|ARCH_068:—",
+            "—:ARCH_086|ARCH_068:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_070",
+    "nom": "Garde",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_089|ARCH_070",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P0_ARCH_070": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 1,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_089|ARCH_070:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_071",
+    "nom": "Tenyi",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · atk · 10",
+        ],
+        "ennemi": {
+          "E0_ARCH_071": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "E1_ARCH_071": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_071": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+          "P1_ARCH_071": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 30 · dep 50 · vit 50 · por 3 · bcl 0",
+        },
+        "palier": 2,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_072",
+    "nom": "Blindage",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_088|ARCH_072",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P0_ARCH_072": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 1,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_088|ARCH_072:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_073",
+    "nom": "Cybernetique",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_090|ARCH_073",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P0_ARCH_073": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 1,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_090|ARCH_073:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_087|ARCH_073",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_073": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_087|ARCH_073:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_074",
+    "nom": "Kayser",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_074|ARCH_090",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_074": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_074|ARCH_090:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_074|ARCH_086",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_074": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_074|ARCH_086:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_076",
+    "nom": "Ojama",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_090|ARCH_076",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P0_ARCH_076": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 1,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_090|ARCH_076:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_086|ARCH_076",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P2_ARCH_076": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 3,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_086|ARCH_076:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+  {
+    "categorie": "Archetype",
+    "id": "ARCH_077",
+    "nom": "Chimie",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_090|ARCH_077|ARCH_091",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P0_ARCH_077": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 1,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_090|ARCH_077|ARCH_091:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+      {
+        "effets": [
+          "guaranteed_draw · ARCH_087|ARCH_077|ARCH_093",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P1_ARCH_077": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 2,
+        "ressources": {
+          "garanties": [
+            "—:ARCH_087|ARCH_077|ARCH_093:—",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
+]
+`;

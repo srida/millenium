@@ -190,24 +190,30 @@ describe('Shopping — pertinence de l\'offre', () => {
     expect(offeredIds(session)).toEqual(['ROUGE']);
   });
 
-  it('modificateurs de main : lus sur le DECK, jamais sur la main', () => {
-    // Ils sont DIFFÉRÉS au startPreparation suivant, donc appliqués après une
-    // pioche neuve : la main du moment ne dit rien de leur cible. Les deux
-    // assertions ci-dessous ne peuvent passer ensemble que si on a lu le deck.
+  // ⚠️ Les deux remises se jugent sur la MAIN, plus sur le deck — c'est la
+  // conséquence directe de leur passage en immédiat. Différées, elles
+  // s'appliquaient à une main qui n'existait pas encore, donc seul le deck
+  // pouvait dire si elles serviraient ; ciblées, elles n'ont de sens que si une
+  // carte de la main COURANTE est retouchable. Une main vide ne les offre plus.
+  // Mutation : `_offerContext` relisant le deck → ROUGE.
+  it('les deux remises : lues sur la MAIN, jamais sur le deck', () => {
     const sac = makeCard({ id: 'SAC', summon_conditions: [{ materials: 3 }] });
     const pool = [magie({ type: 'reduce_materials', value: 1 }, { id: 'RISTOURNE' })];
 
-    const withInDeck = makeSession({ cards: [sac], magies: pool }).session;
-    expect(withInDeck.hand).toHaveLength(0);
-    expect(offeredIds(withInDeck)).toEqual(['RISTOURNE']);
+    // La carte est au DECK mais la main est vide : plus rien à remiser.
+    const mainVide = makeSession({ cards: [sac], magies: pool }).session;
+    expect(mainVide.hand).toHaveLength(0);
+    expect(mainVide.getShoppingMagies()).toEqual([]);
 
-    const notInDeck = makeSession({ cards: [makeCard({ id: 'PLAIN' })], magies: pool }).session;
-    notInDeck.hand = [sac as any, sac as any];
-    expect(notInDeck.getShoppingMagies()).toEqual([]);
+    // La carte est en MAIN : la magie est offerte, même si le deck ne la porte
+    // pas (une carte peut arriver en main par une duplication).
+    const enMain = makeSession({ cards: [makeCard({ id: 'PLAIN' })], magies: pool }).session;
+    enMain.hand = [sac as any];
+    expect(offeredIds(enMain)).toEqual(['RISTOURNE']);
   });
 
   it('les deux remises lisent le COÛT, pas la seule présence d\'une condition', () => {
-    // Le prédicat doit être celui que startPreparation appliquera : une
+    // Le prédicat doit être celui qu'`applyMagieOnHandCard` appliquera : une
     // condition à coût nul n'est jamais retouchée, et une condition qui ne
     // NOMME rien n'a aucune exigence à lever.
     const pool = [
@@ -216,24 +222,23 @@ describe('Shopping — pertinence de l\'offre', () => {
     ];
 
     // Que des conditions à coût nul : ni l'une ni l'autre n'a prise.
-    const inert = makeSession({ magies: pool, cards: [
-      makeCard({ id: 'S0', summon_conditions: [{ materials: 0 }] }),
-      makeCard({ id: 'H0', summon_conditions: [] })
-    ] }).session;
+    const inert = makeSession({ magies: pool }).session;
+    inert.hand = [
+      makeCard({ id: 'S0', summon_conditions: [{ materials: 0 }] }) as any,
+      makeCard({ id: 'H0', summon_conditions: [] }) as any,
+    ];
     expect(inert.getShoppingMagies()).toEqual([]);
 
     // Un coût chiffré mais AUCUN matériel nommé : seule la remise de coût passe.
     // C'est la preuve que les deux drapeaux sont bien distincts.
-    const priceOnly = makeSession({ magies: pool, cards: [
-      makeCard({ id: 'S1', summon_conditions: [{ materials: 2 }] })
-    ] }).session;
+    const priceOnly = makeSession({ magies: pool }).session;
+    priceOnly.hand = [makeCard({ id: 'S1', summon_conditions: [{ materials: 2 }] }) as any];
     priceOnly.gameState.player_extra_shopping_magies = 1;
     expect(offeredIds(priceOnly)).toEqual(['MOINS']);
 
     // Un matériel nommé : les deux passent.
-    const live = makeSession({ magies: pool, cards: [
-      makeCard({ id: 'H1', summon_conditions: [{ materials: 2, requires: ['X'] }] })
-    ] }).session;
+    const live = makeSession({ magies: pool }).session;
+    live.hand = [makeCard({ id: 'H1', summon_conditions: [{ materials: 2, requires: ['X'] }] }) as any];
     live.gameState.player_extra_shopping_magies = 1;
     expect(offeredIds(live).sort()).toEqual(['LIBRE', 'MOINS']);
   });
@@ -365,14 +370,39 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
   // ORTHOGONALES : `reduce_materials` baisse le prix, `remove_requirements`
   // lève une contrainte sans rien rendre moins cher.
 
-  it('reduce_materials : baisse le coût en matériels d\'une carte en main', () => {
+  // ⚠️ Elles sont IMMÉDIATES et CIBLÉES : le joueur désigne la carte de sa main
+  // qu'il remise, et le geste a lieu au tap. Elles étaient différées au tour
+  // suivant — un état de round entier (`player_hand_modifiers`) pour un effet
+  // que personne ne choisissait, puisque la remise tombait sur la première
+  // carte retouchable de la main fraîchement piochée. Le joueur choisit
+  // désormais, et l'état différé n'existe plus.
+
+  /** Pose une main et applique la magie sur la carte d'index `idx`. */
+  const remise = (session: any, effect: any, cartes: any[], idx = 0) => {
+    session.hand = cartes;
+    session.applyMagieOnHandCard(magie(effect) as any, idx);
+    return session.hand;
+  };
+
+  it('reduce_materials : baisse le coût de la carte DÉSIGNÉE', () => {
     const { session } = makeSession();
-    session.applyGlobalMagie(magie({ type: 'reduce_materials', value: 1 }) as any);
-    session.hand = [makeCard({ id: 'SAC', summon_conditions: [{ materials: 3 }] }) as any];
-    session.startPreparation();
-    const sac = session.hand.find(c => c.id === 'SAC')!;
-    expect(sac.summon_conditions).toEqual([{ materials: 2, requires: [] }]);
-    expect(session.gameState.player_hand_modifiers).toHaveLength(0);
+    const main = remise(session, { type: 'reduce_materials', value: 1 },
+      [makeCard({ id: 'SAC', summon_conditions: [{ materials: 3 }] }) as any]);
+    expect(main[0].summon_conditions).toEqual([{ materials: 2, requires: [] }]);
+  });
+
+  // ⚠️ Le joueur CHOISIT, et c'est tout l'intérêt du changement : deux cartes
+  // retouchables en main, c'est la désignée qui est remisée — jamais la
+  // première venue.
+  // Mutation : `applyMagieOnHandCard` remisant `hand[0]` → ROUGE.
+  it('reduce_materials : remise la carte choisie, pas la première retouchable', () => {
+    const { session } = makeSession();
+    const main = remise(session, { type: 'reduce_materials', value: 1 }, [
+      makeCard({ id: 'PREMIERE', summon_conditions: [{ materials: 3 }] }) as any,
+      makeCard({ id: 'CHOISIE', summon_conditions: [{ materials: 3 }] }) as any,
+    ], 1);
+    expect(main.find((c: any) => c.id === 'PREMIERE')!.summon_conditions).toEqual([{ materials: 3 }]);
+    expect(main.find((c: any) => c.id === 'CHOISIE')!.summon_conditions).toEqual([{ materials: 2, requires: [] }]);
   });
 
   // ⚠️ L'invariant `requires.length <= materials` : une condition qui garderait
@@ -380,81 +410,77 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
   // carte INJOUABLE. Mutation : ne pas retailler `requires` → ROUGE.
   it('reduce_materials : les exigences suivent la baisse, jamais plus que les slots', () => {
     const { session } = makeSession();
-    session.applyGlobalMagie(magie({ type: 'reduce_materials', value: 2 }) as any);
-    session.hand = [makeCard({ id: 'FUS', summon_conditions: [{ materials: 3, requires: ['A', 'B', 'C'] }] }) as any];
-    session.startPreparation();
-    expect(session.hand.find(c => c.id === 'FUS')!.summon_conditions)
-      .toEqual([{ materials: 1, requires: ['A'] }]);
+    const main = remise(session, { type: 'reduce_materials', value: 2 },
+      [makeCard({ id: 'FUS', summon_conditions: [{ materials: 3, requires: ['A', 'B', 'C'] }] }) as any]);
+    expect(main[0].summon_conditions).toEqual([{ materials: 1, requires: ['A'] }]);
   });
 
-  // ⚠️ L'attribut est ce qui rend « -1 matériel de Fusion » exprimable
-  // maintenant qu'il n'y a plus de voie à nommer : la remise doit tomber sur la
-  // carte VISÉE, pas sur la première retouchable venue.
-  // Mutation : ignorer `mod.attribute` dans le prédicat → ROUGE.
-  it('reduce_materials VISÉE : ne retouche que la carte qui porte l\'attribut', () => {
+  // ⚠️ L'attribut reste un filtre : il dit quelles cartes sont des CIBLES
+  // recevables, et `magieHandTargets` est ce qui l'annonce à l'écran.
+  // Mutation : ignorer `attribute` dans `magieHandTargets` → ROUGE.
+  it('reduce_materials VISÉE : seules les cartes qui portent l\'attribut sont des cibles', () => {
     const { session } = makeSession();
-    session.applyGlobalMagie(magie({ type: 'reduce_materials', value: 1, attribute: 'ARCH_086' }) as any);
     session.hand = [
       makeCard({ id: 'AUTRE', summon_conditions: [{ materials: 3 }], attributes: ['ARCH_089'] }) as any,
       makeCard({ id: 'VISEE', summon_conditions: [{ materials: 3 }], attributes: ['ARCH_086'] }) as any,
     ];
-    session.startPreparation();
+    const visee = magie({ type: 'reduce_materials', value: 1, attribute: 'ARCH_086' }) as any;
+    expect(session.magieHandTargets(visee)).toEqual([1]);
 
-    expect(session.hand.find(c => c.id === 'AUTRE')!.summon_conditions).toEqual([{ materials: 3 }]);
-    expect(session.hand.find(c => c.id === 'VISEE')!.summon_conditions).toEqual([{ materials: 2, requires: [] }]);
+    session.applyMagieOnHandCard(visee, 1);
+    expect(session.hand.find((c: any) => c.id === 'AUTRE')!.summon_conditions).toEqual([{ materials: 3 }]);
+    expect(session.hand.find((c: any) => c.id === 'VISEE')!.summon_conditions).toEqual([{ materials: 2, requires: [] }]);
   });
 
-  // Le pendant : aucune carte visée en main, et la remise est perdue plutôt que
-  // reportée sur une autre. Elle a été consommée par le tour, pas par la carte.
-  it('reduce_materials VISÉE : ne se rabat sur personne', () => {
+  // Le pendant : aucune carte visée en main, donc aucune cible — et l'offre ne
+  // proposera même pas la magie (`_offerContext` lit la main, cf. `MagieOffer`).
+  it('reduce_materials VISÉE : aucune cible quand personne ne porte l\'attribut', () => {
     const { session } = makeSession();
-    session.applyGlobalMagie(magie({ type: 'reduce_materials', value: 1, attribute: 'ARCH_086' }) as any);
     session.hand = [makeCard({ id: 'AUTRE', summon_conditions: [{ materials: 3 }], attributes: ['ARCH_089'] }) as any];
-    session.startPreparation();
+    expect(session.magieHandTargets(magie({ type: 'reduce_materials', value: 1, attribute: 'ARCH_086' }) as any)).toEqual([]);
+  });
 
-    expect(session.hand.find(c => c.id === 'AUTRE')!.summon_conditions).toEqual([{ materials: 3 }]);
+  // ⚠️ Une carte sans coût n'est pas une cible : la remise ne ferait rien, et
+  // l'offrir reviendrait à offrir un blanc.
+  it('une carte sans coût n\'est pas une cible recevable', () => {
+    const { session } = makeSession();
+    session.hand = [
+      makeCard({ id: 'GRATUITE', summon_conditions: [] }) as any,
+      makeCard({ id: 'PAYANTE', summon_conditions: [{ materials: 2 }] }) as any,
+    ];
+    expect(session.magieHandTargets(magie({ type: 'reduce_materials', value: 1 }) as any)).toEqual([1]);
   });
 
   it('reduce_materials : ne descend jamais sous zéro', () => {
     const { session } = makeSession();
-    session.applyGlobalMagie(magie({ type: 'reduce_materials', value: 5 }) as any);
-    session.hand = [makeCard({ id: 'SAC', summon_conditions: [{ materials: 2 }] }) as any];
-    session.startPreparation();
-    expect(session.hand.find(c => c.id === 'SAC')!.summon_conditions)
-      .toEqual([{ materials: 0, requires: [] }]);
+    const main = remise(session, { type: 'reduce_materials', value: 5 },
+      [makeCard({ id: 'SAC', summon_conditions: [{ materials: 2 }] }) as any]);
+    expect(main[0].summon_conditions).toEqual([{ materials: 0, requires: [] }]);
   });
 
   it('remove_requirements : retire un matériel NOMMÉ sans baisser le coût', () => {
     const { session } = makeSession();
-    session.applyGlobalMagie(magie({ type: 'remove_requirements', value: 1 }) as any);
-    session.hand = [makeCard({ id: 'HER', summon_conditions: [{ materials: 3, requires: ['A', 'B'] }] }) as any];
-    session.startPreparation();
+    const main = remise(session, { type: 'remove_requirements', value: 1 },
+      [makeCard({ id: 'HER', summon_conditions: [{ materials: 3, requires: ['A', 'B'] }] }) as any]);
     // Trois slots à payer, mais un seul encore contraint : c'est bien deux
     // gestes différents, et non deux façons de dire « moins cher ».
-    expect(session.hand.find(c => c.id === 'HER')!.summon_conditions)
-      .toEqual([{ materials: 3, requires: ['A'] }]);
-    expect(session.gameState.player_hand_modifiers).toHaveLength(0);
+    expect(main[0].summon_conditions).toEqual([{ materials: 3, requires: ['A'] }]);
   });
 
-  it('remove_requirements : ignore une condition qui ne nomme rien', () => {
+  it('remove_requirements : une carte qui ne nomme rien n\'est pas une cible', () => {
     const { session } = makeSession();
-    session.applyGlobalMagie(magie({ type: 'remove_requirements', value: 1 }) as any);
     session.hand = [
       makeCard({ id: 'PLAIN', summon_conditions: [{ materials: 2 }] }) as any,
-      makeCard({ id: 'NAMED', summon_conditions: [{ materials: 2, requires: ['A'] }] }) as any
+      makeCard({ id: 'NAMED', summon_conditions: [{ materials: 2, requires: ['A'] }] }) as any,
     ];
-    session.startPreparation();
-    expect(session.hand.find(c => c.id === 'PLAIN')!.summon_conditions).toEqual([{ materials: 2 }]);
-    expect(session.hand.find(c => c.id === 'NAMED')!.summon_conditions)
-      .toEqual([{ materials: 2, requires: [] }]);
+    expect(session.magieHandTargets(magie({ type: 'remove_requirements', value: 1 }) as any)).toEqual([1]);
   });
 
   it('la remise garde la trace de la condition d\'ORIGINE, pour le tooltip', () => {
     const { session } = makeSession();
-    session.applyGlobalMagie(magie({ type: 'reduce_materials', value: 1 }) as any);
-    session.hand = [makeCard({ id: 'SAC', summon_conditions: [{ materials: 3 }] }) as any];
-    session.startPreparation();
-    expect(session.hand.find(c => c.id === 'SAC')!._discounted_from).toEqual([{ materials: 3 }]);
+    const main = remise(session, { type: 'reduce_materials', value: 1 },
+      [makeCard({ id: 'SAC', summon_conditions: [{ materials: 3 }] }) as any]);
+    expect(main[0]._discounted_from).toEqual([{ materials: 3 }]);
   });
 
   it('une carte dépouillée de tout coût s\'invoque directement', () => {
@@ -462,12 +488,9 @@ describe('Shopping — carry-over des effets globaux (consommés au tour suivant
     // sur la RÈGLE, pas sur la seule forme de la condition.
     const fus = makeCard({ id: 'FUS', summon_conditions: [{ materials: 1, requires: ['A'] }] }) as any;
     const { session } = makeSession({ cards: [makeCard({ id: 'PLAIN' }), fus] });
-    session.applyGlobalMagie(magie({ type: 'reduce_materials', value: 1 }) as any);
-    session.hand = [fus];
-    session.startPreparation();
-    const stripped = session.hand.find(c => c.id === 'FUS')!;
-    expect(session.needsMaterials(stripped as any)).toBe(false);
-    expect(session.isPlayable(stripped as any)).toBe(true);
+    const main = remise(session, { type: 'reduce_materials', value: 1 }, [fus]);
+    expect(session.needsMaterials(main[0] as any)).toBe(false);
+    expect(session.isPlayable(main[0] as any)).toBe(true);
   });
 
   it('player_hp_bonus : appliqué immédiatement, cappé à 1000', () => {

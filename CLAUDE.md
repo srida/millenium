@@ -125,6 +125,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `GET /admin` | Site admin | Card Manager (`admin.html`) |
 | `GET /admin/card-query.js` | Site admin | Le langage de requête (`card-query.mjs`), partagé avec le client |
 | `GET /admin/speed-scale.js` | Site admin | L'échelle de vitesse (`speed-scale.mjs`), partagée avec le client |
+| `GET /admin/effect-schema.js` | Site admin | Le vocabulaire d'effets (`effect-schema.mjs`), partagé avec le client |
 | `GET /api/version` | Public | Version du build |
 | `GET /api/{cards,attributes,powers,boards,magies,missions,decks,sets,variants,gifts,card-backs}` | Public | Les catalogues, avec leurs drapeaux calculés |
 | `POST/PUT/DELETE /api/<entité>[/:id]` | Site admin | CRUD (`routes/crud-json.js` : ne valide que l'unicité de l'id) |
@@ -188,6 +189,7 @@ Toutes les mutations renvoient **l'instantané complet + la progression à jour*
 | `tiers.js` | Résolution « attributs de catégorie `Tiers` → numéros » (jumeau de `logic/Tiers.ts`) |
 | `card-contract.js` | Les catégories d'attributs qu'une carte doit porter (pur, partagé avec l'audit) |
 | `card-query.mjs` | Le langage de requête des barres de recherche (pur, partagé `admin.html` ↔ client) |
+| `effect-schema.mjs` | Le vocabulaire d'effets : quel type, sur quel porteur, quels champs, quel moment (pur, partagé `admin.html` ↔ client) |
 
 **Règle anti-cycle** — elle n'est écrite nulle part ailleurs que ici :
 - **Feuilles** (ne requièrent que `db` / `json-cache`, personne ne les requiert en retour) : `sets.js`, `variants.js`, `decks.js`, `pvplog.js`, `ailog.js`, `asset-dirs.js`, `tiers.js`, `card-contract.js`.
@@ -572,7 +574,7 @@ Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()`
 
 - **Le point de capture est la dernière instruction de `startPreparation()`**, pas le début du round : la Phase Shopping a lieu **avant**, donc une magie choisie au shopping n'est **jamais** annulable.
 - Seules deux choses mutent l'état joueur en préparation : l'invocation (`place` → `InvocationManager.summon`) et le déplacement (`reposition` / `board.moveUnit`).
-- ⚠️ **Rien n'est cloné**, et c'est ce qui rend la restauration exacte : `summon()` ne mute jamais les unités qu'elle consomme, donc garder les **références** rend `_base`, `_shopping_bonus`, `veterancy_points`, `current_hp`, `shield` et l'`uid` intacts. Un clone ferait payer au joueur ce qu'il avait acquis. Seules les **positions** sont copiées.
+- ⚠️ **Rien n'est cloné**, et c'est ce qui rend la restauration exacte : `summon()` ne mute jamais les unités qu'elle consomme, donc garder les **références** rend `_base`, `_shopping_bonus`, `veterancy_points`, `current_hp`, `shield` et l'`uid` intacts. Un clone ferait payer au joueur ce qu'il avait acquis. Positions et **`_stat_bonuses`** sont les deux seules choses copiées — la seconde depuis le trigger `a_l_invocation`, sans quoi annuler laissait aux SURVIVANTES le cadeau d'une invocation annulée.
 - Garder l'`uid` rend le rendu gratuit : `Scene3D.refresh()` est un diff indexé par uid.
 - ⚠️ **On vide TOUTES les cases joueur avant d'en reposer une seule** : `placeUnit` jette sur case occupée.
 - **La disponibilité se calcule structurellement** (`canUndoPreparation`, comparaison à l'état capturé), jamais par un drapeau posé par les mutateurs — le déplacement tap-tap passe par `board.moveUnit` sans traverser `GameSession`. Le bouton est **masqué** tant que c'est faux.
@@ -687,6 +689,7 @@ Actif **pendant le combat uniquement** (en préparation le terrain n'est pas enc
 - ⚠️ **Il n'y a plus qu'UN ciblage, `target_attributes`** : les cinq voies d'invocation sont devenues des attributs de carte (`ARCH_086`…`ARCH_090`), donc `BoardEffect.effectTargets` est le seul filtre, et une carte à plusieurs conditions les porte **toutes**.
 - Les trois premiers types **visent des unités** (`BoardInfo.boardTargetsUnits`) et lisent le ciblage ; `draw_bonus` n'en lit aucun — ni l'admin, ni l'annonce, ni l'infobulle ne lui en proposent.
 - Effets appliqués via `applyStatBonus()` / `applyShield()`, donc nettoyés par `resetCombatStats()`.
+- ⚠️ **`applyBoardEffects` EST le moteur d'effets générique** (`logic/effects/` : `compileBoard` puis `executer`) — il n'y a plus de `switch` par type dans `BoardEffect.ts`, qui ne garde que la **lecture** de la donnée. Le compilateur porte l'intention (`operateur: '*'` pour `stat_modifier`), le moteur choisit le registre selon la `durée`. Un effet qui nomme une stat que `_recomputeStats` ne relit pas est **refusé nommément** (`applyBoardEffects` rend la liste) au lieu d'être appliqué sans effet.
 - Éditeur d'effets **répétable** en admin. ⚠️ `_syncBoardDraft()` recopie la saisie avant chaque re-render, **cases bloquées comprises** (`renderBoardDetail` reconstruit `_boardBlockedSet` depuis `selectedBoard.blocked_cells`, donc ajouter un effet effacerait les cases qu'on vient de poser).
 
 ### Le tirage du terrain (`logic/BoardPicker.pickBoard`)
@@ -768,6 +771,8 @@ materialValueOf(card) / isAttributeMaterial(matId)
 `data/SummonInfo` (pur) met tout ça **en mots** pour le tooltip : `summonRecipes` (une par condition), `summonCostOf`, `recipeCostText`, `materialsLabel`, `recipeIsFree`. ⚠️ **« Matériels » vs « dont » se dérive du coût seul** : autant d'exigences nommées que de slots → elles sont toutes listées ; moins → les autres slots restent libres et les nommées sont prises *dedans*. C'était la distinction Fusion / Héritage, écrite en dur dans deux tables par voie.
 
 `InvocationRules` (pur, sans mutation) alimente l'UI : `isPlayable`, `needsMaterials`, `materialsComplete`, `validCells`, `materialCandidateCells`, `materialCandidateGraveyard`, `summonConditionsStatus`, `getUncoveredRequirements`, `hasEmptyPlayerCell`. `GameSession` les ré-expose en injectant board/main/cimetière/slots.
+
+⚠️ **`GameSession.place()` déclenche `a_l_invocation`**, APRÈS la pose — l'unité doit compter dans son propre palier. Le branchement sort sèchement quand aucun attribut du catalogue ne déclare `on_summon` (test de la donnée brute, mémoïsé) : il ne compile rien tant que personne n'écrit ce contenu.
 
 ⚠️ **RIEN n'est pré-sélectionné** : l'UI ne désigne jamais un matériau à la place du joueur. Le liseré **blanc** dit « matériau retenu » (`board3d.css`), l'**orange** « candidat » — poser du blanc avant tout geste annonce une dépense non consentie, et le premier tap sur la cible la **désélectionnait** (`onUnitTap` bascule). Le geste en UN TAP est porté par `onUnitTap`, qui pose directement dès que le tap **complète** la sélection.
 
@@ -910,9 +915,9 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 
 | Effet | Timing | Détail |
 |---|---|---|
-| `stat_bonus` | `start_of_combat` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step). ⚠️ Sur `attack_rate` / `movement_rate`, le bonus est **positif pour accélérer** et s'écrête à 100 |
-| `shield` | `start_of_combat` | `value` × nombre d'**alliés vivants** |
-| `effect_immunity` | `start_of_combat` | Pose `is_effect_immune` — annule les pouvoirs de debuff |
+| `stat_bonus` | `start_of_combat` · `on_summon` · `on_power_fired` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step). ⚠️ Sur `attack_rate` / `movement_rate`, le bonus est **positif pour accélérer** et s'écrête à 100 |
+| `shield` | `start_of_combat` · `on_summon` · `on_power_fired` | `value` × nombre d'**alliés vivants** |
+| `effect_immunity` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_effect_immune` — annule les pouvoirs de debuff |
 | `stat_modifier` | `during_combat` | Déclenché par `trigger` : `on_ally_neutralized` / `on_enemy_neutralized` |
 | `revive` | `end_of_combat` | Réanime une unité neutralisée à `hp_percent` % (déf. 50) |
 | `draw_bonus` | `end_of_combat` | Pioches supplémentaires (plafonné par `max`) |
@@ -922,6 +927,12 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 | `shopping_bonus` | `end_of_combat` | Magies supplémentaires au Shopping suivant (plafonné par `max`) |
 
 `timing: 'none'` = archétype purement descriptif.
+
+⚠️ **`AttributeManager` ne porte plus que les SEUILS** (quel palier est actif, sur quel camp) : les effets sont traduits par `compileAttributes` et appliqués par `executer` (`logic/effects/`). Le compilateur émet **tous** les paliers, chacun avec sa condition ; cette classe choisit lequel s'applique.
+⚠️ **Le `quand` d'un effet vient de son TYPE, jamais du `timing` de son porteur.** Un type peut en honorer PLUSIEURS (colonne Timing ci-dessus) ; l'EFFET choisit alors par son propre champ `timing`, et le plus spécifique l'emporte sur celui du porteur. Un moment hors de la liste de son type est un **refus nommé** (`moment impossible`), jamais un effet mort — c'est cette règle qui a tué onze effets quand elle n'existait pas.
+⚠️ **`portee`** (`a_chaque_fois` · `une_fois_par_combat` · `une_fois_par_round` · `une_fois_par_partie`) n'est acceptée **que là où un appelant tient le compte** — aujourd'hui `on_summon` seul (`QUANDS_AVEC_MEMOIRE`, jumeau entre `compile.ts` et `effect-schema.mjs`). Ailleurs c'est un refus à l'écriture, pas un effet qui se tait en jeu.
+⚠️ **Un bonus `during_combat` sur ATQ / PV passe par `_stat_bonuses`** comme les rythmes : il tient tout le combat et n'est effacé que par `resetCombatStats()` en fin de combat. Il s'écrivait avant directement sur la stat effective (`applyStatModifier`), donc il disparaissait au premier `_recomputeStats()` venu.
+⚠️ **L'ordre des effets de fin de combat est ABSOLU** (`cleDeTri`), plus celui du plateau : chaque pioche garantie consomme un tirage, et l'ordre d'avant dépendait côté adversaire du plateau reconstruit.
 
 Le manager est **reconstruit à chaque combat** (`new AttributeManager(attributeList, playerUnits, enemyUnits)` dans `startCombat`) :
 
@@ -937,7 +948,8 @@ getActiveSynergies(units)                  // → [{ attr, count, activeThreshol
 - ⚠️ Les seuils `during_combat` sont **verrouillés au début du combat** : les morts en cours de combat ne désactivent pas les effets déjà actifs.
 - Tous les bonus d'attribut sont réinitialisés en fin de combat. ⚠️ `finishCombat` balaie **tous les participants** (`combatants`, capturé avant les filtres), neutralisés compris — sinon une unité morte garde ses bonus, `max_hp` gonflé compris, et le round suivant les recumule.
 - ⚠️ `applyEndOfCombat` traite les **deux camps** (`_applyEndForSide`) : `revive` remet une unité sur le plateau et vaut donc des deux côtés ; les effets de **ressource** (pioches, slot, multiplicateur, shopping) restent au joueur, seul destinataire possible.
-- ⚠️ **Un effet d'attribut n'existe pour de bon qu'aux TROIS endroits à la fois** : le moteur, le `<select>` de l'onglet Attributs (avec son champ `max` si le type en accepte un), et le libellé français (`BoardInfo.boardEffectLabel`). Deux sur trois donnent une fonctionnalité que personne ne peut ni écrire ni lire — c'est arrivé à `shopping_bonus`.
+- ⚠️ **L'IA porte ses effets comme un vrai joueur** : le moteur accumule pour les deux camps, sans drapeau d'asymétrie, et c'est le **versement** qui dit ce qui a un destinataire. Trois ressources en ont un côté IA — la pioche (`EnemyAI.drawHand`), l'emplacement de plateau (`enemy_board_slots`) et le multiplicateur de dégâts ; le Shopping n'en a pas, et c'est un fait du jeu, pas une limite du moteur. ⚠️ Le cap d'emplacement a **un compteur par camp** : « +1 par camp sur toute la partie », pas « +1 en tout ».
+- ⚠️ **Un effet n'a plus qu'UN endroit où se déclarer : `effect-schema.mjs`** (racine). Il en avait trois — le moteur, le `<select>` de l'onglet, le libellé français — et deux sur trois donnaient une fonctionnalité que personne ne pouvait ni écrire ni lire (c'est arrivé à `shopping_bonus`). La table déclare, `compile.ts` traduit, et `effect-schema.test.ts` les fait répondre la même chose : un type déclaré doit COMPILER, un type que le compilateur traduit doit être OFFERT, un champ offert doit être LU (sonde), un champ non offert ne doit PAS l'être (sonde inverse).
 
 **L'icône d'un attribut est une image ; l'emoji n'est que le repli.** Art dans `ILLUS_DIR` sous l'`id` de l'attribut, importé depuis l'onglet Attributs. Le champ `icon` du JSON reste l'emoji de repli.
 - **`components/ui/AttrIcon.tsx` est le seul composant qui décide du repli** (image si `_has_illustration`, emoji sinon, rien si ni l'un ni l'autre). Quatre sites : puce du `SynergyPanel` (`h-4`), titre du tooltip d'attribut (`h-7`), chips `Keywords` (`h-3.5`), codex (`h-5`).
@@ -1050,13 +1062,15 @@ Une **grammaire** par pouvoir — direction, silhouette, locus —, car c'est el
 { type: 'attack',      attacker, target, damage }
 { type: 'power',       unit, targets, power_id, extra: {...} }
 { type: 'dot',         unit, damage }               // poison OU brûlure
-{ type: 'stat_change', unit, stat, value }          // effet attribut during_combat
+{ type: 'stat_change', unit, stat, value }          // effet attribut de combat
 { type: 'freeze',      cell, expiresAtStep }
 { type: 'death',       unit }
 { type: 'combat_end',  winner }                     // 'player' | 'enemy' | 'draw' | 'timeout'
 ```
 
 `POWER_TELEPORT` émet `power` + `move`, `POWER_FREEZE` émet `power` + `freeze` : le `power` sert au toast/flash, le second porte la donnée de l'animateur.
+
+⚠️ **Un pouvoir qui part déclenche `pouvoir_utilise`** (`AttributeManager.onPowerFired`), sous la même condition que la remise à zéro de la jauge — le camp est celui du LANCEUR, et les paliers sont ceux **verrouillés au début du combat**, comme pour un `stat_modifier`. La boucle NOMME un moment, elle ne connaît aucun effet.
 
 **Cinq phases par step**, sur les unités vivantes triées par l'ordre d'action :
 1. Ticks passifs (jauge, décomptes paralysie/block/confusion/taunt, pulses de DOT)
@@ -1148,8 +1162,8 @@ Détection **automatique** dérivée de `effect.type` — **aucun champ admin à
 | le deck porte **le** tier demandé | `guaranteed_draw` |
 | le cap partagé +1 slot est encore libre | `board_slot_bonus` |
 | `player_hp < PLAYER_HP_CAP` | `player_hp_bonus` |
-| le deck porte une carte à coût en matériels — **portant l'`attribute`** s'il y en a un | `reduce_materials` |
-| le deck porte une carte à exigence **nommée** — même règle | `remove_requirements` |
+| une carte **en main** à coût en matériels — **portant l'`attribute`** s'il y en a un | `reduce_materials` |
+| une carte **en main** à exigence **nommée** — même règle | `remove_requirements` |
 | une carte en main **et** le deck porte son tier voisin | `shift_tier_card` |
 | une unité au board **et** le deck porte son tier voisin | `shift_tier_unit` |
 | une carte en main dont un **matériel** est résolvable | `draw_material` |
@@ -1157,7 +1171,7 @@ Détection **automatique** dérivée de `effect.type` — **aucun champ admin à
 | toujours | `draw_bonus` |
 
 - ⚠️ **La table est FERMÉE (`default: false`)** : un `effect` nul ou d'un type inconnu traverse `applyEffect` sans rien faire. **Corollaire : un type ajouté à `applyEffect` mais oublié dans `isMagieRelevant` disparaît silencieusement du jeu.** `magie-offer.test.ts` relit `initial-data/magies.json` et exige que chaque magie livrée soit offrable sous un contexte permissif.
-- ⚠️ **Les deux modificateurs de main se testent sur le DECK, jamais sur la main** : ils sont **différés** au `startPreparation()` suivant, donc appliqués après une pioche de cinq cartes neuves. `_retouchable(type)` est le **prédicat exact** que `startPreparation` appliquera, et l'offre comme l'application l'appellent — une carte sans coût, ou sans exigence nommée, n'est jamais retouchée.
+- ⚠️ **Les deux remises se testent sur la MAIN** — elles sont immédiates et ciblées. `_retouchable(type)` est le **prédicat exact** qu'`applyMagieOnHandCard` appliquera, et l'offre, le ciblage et l'application l'appellent tous les trois : une carte sans coût, ou sans exigence nommée, n'est jamais une cible. ⚠️ Corollaire : **une main vide ne les offre plus**. Différées, elles se jugeaient sur le deck et pouvaient promettre une remise que la pioche ne servait jamais.
 - ⚠️ **Le booléen et la liste d'attributs ne disent pas la même chose, et la liste ne remplace pas le booléen** : une carte retouchable qui ne porte **aucun** attribut rend `deckHasMaterialCost` vrai sans rien ajouter à `deckMaterialCostAttributes`. Une remise visée lit la liste, une remise nue lit le booléen. Tester « attribut présent » et « carte retouchable » **séparément** offrirait la magie sur un deck où ce sont deux cartes différentes.
 - ⚠️ **`guaranteed_draw` hors deck n'est pas un no-op** : `startPreparation` a un **double repli** et pioche quand même, parfois au-dessus de ce que le round autorise. Le filtre supprime là un effet accidentellement bon, délibérément — la magie **promet un tier qu'elle ne rend pas**.
 - ⚠️ **`board_slot_bonus` est la seule magie qui peut s'appliquer sans erreur et ne rien donner** (`grantLimitedBoardSlotBonus` rend 0 en silence une fois le cap consommé) → `GameState.hasLimitedBoardSlotBonusLeft()`.
@@ -1179,6 +1193,9 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 - **Serveur : rien à faire** — `rarity` et `cost_hp` traversent GET/POST/PUT/import tel quel.
 
 ### Types d'effets (`logic/MagieEffect.js`)
+
+⚠️ **Les quatre chemins d'application de `GameSession` passent par le MOTEUR** (`logic/effects/` : `compileMagie` puis `executer`, via l'unique `_runMagie`). Ce qui reste dans la session est une **frontière de responsabilité**, pas un reliquat : l'éligibilité d'une cible (`magieUnitTargets` / `magieHandTargets`), la résolvabilité (une magie qui peut ne rien trouver pose sa question AVANT — le contrecoup est la première tâche compilée) et la **pose sur le plateau** (`_placeRevived`, `_substituteUnit` — `Board.placeUnit` jette sur une case occupée).
+⚠️ **Deux types restent hors du moteur, et pour deux raisons différentes** : `defuse_fusion` lit une **règle d'invocation** (lignée + repli au cimetière), et `draw_material` consomme **deux tirages** (quel matériel, puis quelle carte le porte) là où `remplacer` n'en fait qu'un — les aplatir changerait la distribution et le flux semé.
 
 `effectLabel(magie)` génère la description ; `applyEffect(magie, { gameState, targetUnit, targetUnits })` applique. ⚠️ `targetUnits` n'est **pas** une variante de `targetUnit` : il porte les magies d'**équipe**, qui n'ont aucune cible à désigner — seul `applyGlobalMagie` le remplit.
 
@@ -1209,20 +1226,20 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 | `shift_tier_unit` | `value` | **Remplace** une unité du board par une unité du **deck** au tier voisin, **sur sa case** |
 | `draw_material` | — | Cible une carte de la main, ajoute l'un de ses **matériels**. La source reste en place |
 | `sacrifice_card_hp` | `value` (% des PV, déf. **100**) | **Brûle** une carte de la main et verse ses PV au joueur |
-| `reduce_materials` | `value` (déf. 1), `attribute` | `player_hand_modifiers` — baisse le coût de N slots ; les `requires` sont rognées pour tenir dans le nouveau compte |
-| `remove_requirements` | `value` (déf. 1), `attribute` | `player_hand_modifiers` — retire N exigences **nommées**, le compte de slots inchangé |
+| `reduce_materials` | `value` (déf. 1), `attribute` | Cible une carte de la **main** : baisse son coût de N slots ; les `requires` sont rognées pour tenir dans le nouveau compte |
+| `remove_requirements` | `value` (déf. 1), `attribute` | Cible une carte de la **main** : retire N exigences **nommées**, le compte de slots inchangé |
 
-Les `player_hand_modifiers` sont consommés **au tour suivant**, dans `startPreparation()`.
+⚠️ **Les deux remises sont IMMÉDIATES et CIBLÉES** : le joueur désigne la carte de sa main, `applyMagieOnHandCard` fait le geste au tap. Elles étaient différées au `startPreparation()` suivant — un état de round entier (`player_hand_modifiers`, supprimé) pour un effet que personne ne choisissait, puisque la remise tombait sur la première carte retouchable de la main fraîchement piochée.
 
 ⚠️ **Les deux gestes sont ORTHOGONAUX** : `reduce_materials` baisse le prix, `remove_requirements` lève une contrainte. L'ancienne « retire un matériel de Fusion » faisait les deux à la fois — mais seulement parce que le coût d'une fusion **était** la longueur de sa liste de matériaux. Ce couplage n'existe plus, il faut donc choisir lequel des deux une magie porte.
 
-⚠️ **`attribute` est un filtre FACULTATIF, et il vaut pour les deux** : c'est lui qui rend « −1 matériel de Fusion » exprimable maintenant qu'il n'y a plus de voie à nommer. Absent, la remise tombe sur la première carte retouchable. Il **voyage** dans le `player_hand_modifiers` : la magie est jouée un tour avant que la main retouchée n'existe, elle ne peut donc pas désigner la carte elle-même. Une remise visée qui ne trouve personne est **perdue**, jamais reportée.
+⚠️ **`attribute` est un filtre FACULTATIF, et il vaut pour les deux** : c'est lui qui rend « −1 matériel de Fusion » exprimable maintenant qu'il n'y a plus de voie à nommer. Il fait partie de la question que pose **`magieHandTargets`** — une carte qui ne le porte pas n'est pas une cible, même si elle a un coût. Absent, toute carte retouchable de la main est une cible.
 
 **Trois familles de cibles, et elles s'excluent** — `GameController.chooseMagie` les teste dans l'ordre unité → cimetière → main ; un type reconnu par deux d'entre elles n'atteindrait jamais la troisième branche.
 
 - `needsUnitTarget` → `stat_bonus`, `stat_modifier`, `shield`, `heal`, `defuse_fusion`, `destroy_unit`, `drain_life`, `grant_power`, `power_cooldown`, `duplicate_unit`, `shift_tier_unit`. ⚠️ `magieUnitTargets` passe par `getPlayerUnits()` — **vivantes seulement**, aucun soin ne tombe sur un neutralisé encore posé.
 - `needsGraveyardTarget` → `revive` et `duplicate_graveyard_unit`. ⚠️ Ils n'en font **pas** le même usage : `revive` l'**en sort**, `duplicate_graveyard_unit` la **laisse**.
-- `needsHandTarget` → `hand_to_graveyard`, `duplicate_card`, `shift_tier_card`, `draw_material`, `sacrifice_card_hp`. ⚠️ Aucune n'y fait le même geste — seule la façon de **désigner** est commune. Et elles n'acceptent pas les mêmes cartes : **`magieHandTargets(magie)`** rend les index recevables (`shift_tier_card` écarte un tier voisin absent du deck, `draw_material` une carte sans matériel résolvable ; les trois autres acceptent tout, **carte injouable comprise** — c'est souvent celle qu'on veut brûler). Il voyage par `shopping.handTargets` (`null` = aucune restriction) et `resolveMagieHandTarget` le **revérifie** : le HUD montre la règle, il ne la tient pas.
+- `needsHandTarget` → `hand_to_graveyard`, `duplicate_card`, `shift_tier_card`, `draw_material`, `sacrifice_card_hp`, **`reduce_materials`**, **`remove_requirements`**. ⚠️ Aucune n'y fait le même geste — seule la façon de **désigner** est commune. Et elles n'acceptent pas les mêmes cartes : **`magieHandTargets(magie)`** rend les index recevables (`shift_tier_card` écarte un tier voisin absent du deck, `draw_material` une carte sans matériel résolvable, les deux remises une carte sans coût / sans exigence nommée ou ne portant pas l'`attribute` visé ; les trois autres acceptent tout, **carte injouable comprise** — c'est souvent celle qu'on veut brûler). Il voyage par `shopping.handTargets` (`null` = aucune restriction) et `resolveMagieHandTarget` le **revérifie** : le HUD montre la règle, il ne la tient pas.
 - ⚠️ `magieHandTargets` ne consomme **aucun** hasard (vérifié par golden test) : il est interrogé à chaque rendu de la main, un `rand()` dépensé par une question d'affichage décalerait toute la pioche.
 - Tous les autres types sont **globaux**, les magies d'équipe comprises.
 
@@ -1624,18 +1641,17 @@ Reprendre une PWA depuis les tâches de fond **n'est pas une navigation** : le n
 
 Page autonome, **16 onglets**, aucun build. ⚠️ **Aucun test automatisé ne la couvre** (`npm test` est purement client) : la vérification se fait **au navigateur** (Chromium et Playwright préinstallés, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers` — ne **pas** lancer `playwright install`). ⚠️ Un `npm i playwright` récent réclame un build que le volume n'a pas : passer `executablePath: '/opt/pw-browsers/chromium-<build>/chrome-linux/chrome'` plutôt que de télécharger.
 
-**Ce qu'il faut mesurer plutôt que regarder** : `document.documentElement.scrollWidth <= clientWidth` (`body { overflow-x: hidden }` **masque** le symptôme), un seul `.main:not(.hidden)` et un seul `#main-tabs .tab.active` par onglet, les chips d'attributs toujours visibles et actifs après un `switchTab()`, et l'échelle réelle des SVG du rapport (`svg.getScreenCTM().a` — un `getComputedStyle` rendrait `11px` même à l'échelle 0,4).
+**Ce qu'il faut mesurer plutôt que regarder** : `document.documentElement.scrollWidth <= clientWidth` (`body { overflow-x: hidden }` **masque** le symptôme), un seul `.main:not(.hidden)` et un `#main-tabs` (un `<select>`) dont la `value` désigne ce panneau, les chips d'attributs toujours visibles et actifs après un `switchTab()`, et l'échelle réelle des SVG du rapport (`svg.getScreenCTM().a` — un `getComputedStyle` rendrait `11px` même à l'échelle 0,4).
 
-⚠️ **`.tabs` et `.tab` sont RÉUTILISÉS hors de la topbar — c'est le piège du fichier.** Les flèches du pager SQL et les chips de catégorie du sélecteur d'attributs les portent : un `querySelectorAll('.tab')` global les dépouille de leur `.active`, masquer `.tabs` en mobile ferait **disparaître les chips**, et une délégation de clic sur `.tabs` capterait le pager. D'où **`id="main-tabs"` sur la seule barre du haut**, et la règle : **tout sélecteur de navigation — CSS comme JS — passe par cet id.** Le pager a sa propre classe (`.db-pager-btn`).
+⚠️ **La barre du haut est un `<select id="main-tabs">`**, pas une bande de chips : `#main-tabs .tab.active` n'existe pas, on lit sa `value`. La classe `.tab` survit **ailleurs** (pager SQL, chips de catégorie du sélecteur d'attributs) — c'est le piège historique du fichier, et il tient toujours pour qui écrit un `querySelectorAll('.tab')` global. La règle ne change pas : **tout sélecteur de navigation — CSS comme JS — passe par `#main-tabs`.** Le pager a sa propre classe (`.db-pager-btn`).
 
 ⚠️ **Le bloc `@media (max-width: 768px)` doit rester le DERNIER de la feuille.** À spécificité égale la dernière règle gagne : posé au milieu du fichier, une douzaine de surcharges mobiles étaient **mortes en silence**. Toute règle desktop se pose **au-dessus** de ce bloc.
 
 - `switchTab` apparie par **`data-tab`**, plus par sous-chaîne de libellé — un libellé se renomme donc librement.
-- ⚠️ La bande d'onglets porte `flex-wrap: wrap` : sans lui elle **débordait aussi sur desktop**, et `overflow-x: hidden` **coupait** le dépassement sans laisser de barre (mesuré : à 1280 px, ⚖️ Équilibrage était inatteignable).
-- Sur mobile, la bande est remplacée par une **feuille plein écran** (`#tab-sheet`, ☰) dont les entrées sont **clonées depuis `#main-tabs` à chaque ouverture** — une seule liste d'onglets dans le fichier.
+- Sur mobile, le `<select>` cède la place à une **feuille plein écran** (`#tab-sheet`, ☰) dont les entrées sont **clonées depuis les `<option>` de `#main-tabs` à chaque ouverture** — une seule liste d'onglets dans le fichier.
 - ⚠️ **`viewport-fit=cover` est la condition d'existence de `env(safe-area-inset-*)`** : sans lui les retraits valent `0px` et tout le travail de zone sûre est un no-op silencieux.
 - ⚠️ Un `showModal` qui pose une largeur **en ligne** bat la requête média → `min(580px, 96vw)`.
-- **Éditeurs répétables** (lots de cadeau, effets de terrain) : ils tiennent un état local (le DOM ne peut pas servir de source de vérité pour une liste dont on retire des éléments au milieu) et un `_sync…Draft()` recopie la saisie **avant** chaque re-render — sans quoi ajouter une ligne effacerait ce qu'on venait de taper.
+- **Éditeurs répétables** (lots de cadeau, effets de terrain, paliers d'attribut) : ils tiennent un état local (le DOM ne peut pas servir de source de vérité pour une liste dont on retire des éléments au milieu) et un `_sync…Draft()` recopie la saisie **avant** chaque re-render — sans quoi ajouter une ligne effacerait ce qu'on venait de taper.
 - ⚠️ **Un `_collect…Fields` qui reconstruit l'objet de zéro détruit tout champ qu'il ne connaît pas.** C'est arrivé à `description` (magies) et à `difficulty` (decks publics). Repartir de `...selectedX`, en s'arrêtant au **premier niveau**.
 - Les onglets sans barre latérale (`#tab-db`, Logs PvP, Logs IA) sont chargés **paresseusement** au premier clic et ajoutés à `NO_FAB_TABS`.
 - ⚠️ **Il n'y a plus d'onglet Invocation** (ni `summon_types.json`, ni `SummonTypeDatabase`, ni `/api/summon-types`) : les cinq voies sont des attributs de carte, éditables dans l'onglet Attributs comme n'importe quel archétype. L'onglet Cartes porte à leur place un **éditeur de recettes répétable** (`summon_conditions`) et le champ **`material_value`**.
@@ -1652,6 +1668,41 @@ Page autonome, **16 onglets**, aucun build. ⚠️ **Aucun test automatisé ne l
 - Le préfixe par défaut : le dernier utilisé (localStorage) s'il existe encore, sinon **le plus représenté** — pas le premier alphabétique, qui servait `MAGIC` alors que la série vivante est `MAGIE`.
 - ⚠️ **Les POUVOIRS sont l'exception, et elle est de fond** : un id de pouvoir est *sémantique* (`POWER_FREEZE`), lu en dur par `logic/CombatManager`. Un `POWER_015` tiré d'un compteur serait un pouvoir que rien n'exécute. L'onglet garde un id libre et le dit à l'écran.
 - Variantes et dos de cartes ont un ID **en lecture seule** hors création : l'illustration est nommée par lui, le renommer la détacherait en silence (même piège que les attributs).
+
+### L'éditeur d'effet
+
+Un seul, partagé par les onglets **Terrains, Attributs et Magies** :
+`effectEditorHtml` rend, `readEffectFromForm` relit, `_effetTypeChange` bascule.
+Tout est piloté par `effect-schema.mjs` (chargé comme `card-query.mjs`).
+
+- ⚠️ **Le changement de type RE-REND, il ne masque plus des champs.** C'est ce
+  qui supprime les règles écrites deux fois : « Valeur et Durée s'excluent »
+  vivait dans le gabarit **et** dans la fonction de mise à jour, qui n'était pas
+  rejouée après un rendu de détail — écrite une fois sur deux, elle ouvrait la
+  fiche avec un champ que le moteur ne lit jamais. Elle est maintenant
+  **déclarée** (`masqueSi`) et résolue à un seul endroit.
+- ⚠️ **Le `quand` s'AFFICHE, il ne se demande pas** : il se dérive du TYPE. Un
+  `revive` posé sous un `start_of_combat` ne partait jamais, et rien à l'écran
+  ne le disait — onze effets sont morts de ça.
+- ⚠️ **Un effet relu ne porte QUE les champs que son type lit.** Remplace les
+  deux listes `noValue` de l'onglet Magies. L'ancien éditeur, lui, *écrivait*
+  `value: 0` sur un `revive` à chaque ouverture de fiche.
+- `champsDe` rend le vocabulaire entier, **`champsOfferts` ce que le formulaire
+  propose** : un champ encore lu par le moteur mais qu'on ne veut plus voir
+  écrire est `offert: false` (la forme historique `attribute` d'une pioche
+  garantie). L'omettre le rendrait invisible de la sonde.
+- Les listes (critères de pioche garantie, archétypes ciblés) viennent du
+  **modèle** ou des chips, jamais d'un `<input>` : le DOM ne peut pas servir de
+  source de vérité pour une liste dont on retire un élément au milieu.
+- La prose (`EFFECT_NOTES`) reste dans `admin.html` : `effect-schema.mjs` est
+  importé par le bundle du jeu, il n'a pas à transporter du HTML. Un type sans
+  note n'affiche rien — rien n'en dépend.
+
+⚠️ **La vérification d'un éditeur, c'est l'ALLER-RETOUR, et il a besoin d'une
+ligne de base.** Ouvrir chaque fiche du catalogue, relire le formulaire **sans
+enregistrer**, differ contre la donnée — puis rejouer la **même** mesure sur la
+version d'avant. Le diff seul ne dit rien ; c'est la comparaison des deux qui
+sépare « champ décoratif enfin retiré » de « champ détruit en silence ».
 
 ### Le curseur de compteur
 

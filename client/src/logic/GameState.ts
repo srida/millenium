@@ -1,4 +1,4 @@
-import type { DrawSourceEntry, EndOfCombatAttributeResult, GuaranteedDraw, HandModifier, RoundWinner } from './types.js';
+import type { DrawSourceEntry, EndOfCombatAttributeResult, GuaranteedDraw, RoundWinner } from './types.js';
 
 export const Phase = Object.freeze({
   PREPARATION: 'preparation',
@@ -42,6 +42,7 @@ export class GameState {
   enemy_board_slots: number;
   // Yeux bleus / Réaction en chaîne / Fission share a single +1 slot cap (non cumulable)
   _limitedBoardSlotBonusUsed: number;
+  _enemyBoardSlotBonusUsed: number;
 
   // Carry-over from previous rounds
   player_extra_draws: number;              // accumulated draw_bonus
@@ -57,7 +58,6 @@ export class GameState {
    * inscription ferait mentir la popup, ce que `draw-summary.test.ts` refuse.
    */
   player_draw_sources: DrawSourceEntry[];
-  player_hand_modifiers: HandModifier[];   // applied to drawn cards
   /**
    * Pendant enemy des deux champs ci-dessus : contrairement au slot, au
    * multiplicateur et au Shopping (ressources exclusivement joueur), la
@@ -92,13 +92,13 @@ export class GameState {
     this.player_board_slots = DEFAULT_BOARD_SLOTS;
     this.enemy_board_slots  = DEFAULT_BOARD_SLOTS;
     this._limitedBoardSlotBonusUsed = 0;
+    this._enemyBoardSlotBonusUsed = 0;
 
     this.player_extra_draws = 0;
     this.player_guaranteed_draws = [];
     this.player_draw_sources = [];
     this.enemy_extra_draws = 0;
     this.enemy_guaranteed_draws = [];
-    this.player_hand_modifiers = [];
     this.player_extra_shopping_magies = 0;
     this.player_damage_multiplier_bonus = 0;
   }
@@ -143,7 +143,12 @@ export class GameState {
       this.enemy_hp -= Math.round(playerSurvivorsAtk * mult);
     }
     if (winner === 'enemy' || winner === 'timeout' || winner === 'draw') {
-      this.player_hp -= Math.round(enemySurvivorsAtk * this.enemy_multiplier);
+      // ⚠️ Le pendant EXACT de la ligne au-dessus, et c'est la décision 3 du §7 :
+      // l'IA porte ses effets comme un vrai joueur. Le bonus d'attribut ne vaut
+      // que pour CE round, comme celui du joueur ; elle n'a pas d'équivalent de
+      // `player_damage_multiplier_bonus`, qui est permanent et vient des magies.
+      const multAdverse = this.enemy_multiplier + (attributeResult.enemy_damage_multiplier_bonus || 0);
+      this.player_hp -= Math.round(enemySurvivorsAtk * multAdverse);
     }
 
     // Clamp HP
@@ -175,6 +180,9 @@ export class GameState {
     if (attributeResult.enemy_guaranteed_draws?.length) {
       this.enemy_guaranteed_draws.push(...attributeResult.enemy_guaranteed_draws);
     }
+    if (attributeResult.enemy_board_slot_bonus) {
+      this.grantEnemyBoardSlotBonus(attributeResult.enemy_board_slot_bonus);
+    }
   }
 
   /**
@@ -186,6 +194,23 @@ export class GameState {
     const grant = Math.max(0, Math.min(value, cap - this._limitedBoardSlotBonusUsed));
     this.player_board_slots += grant;
     this._limitedBoardSlotBonusUsed += grant;
+    return grant;
+  }
+
+  /**
+   * Le pendant adverse, avec son PROPRE compteur de cap.
+   *
+   * ⚠️ Deux compteurs et non un : le cap est « +1 par camp sur toute la partie »,
+   * pas « +1 en tout ». Un compteur partagé ferait qu'un attribut du joueur
+   * fermerait la porte à l'IA, ce qu'aucune règle ne dit.
+   *
+   * ⚠️ Il n'y a PAS d'équivalent de `hasLimitedBoardSlotBonusLeft` : celui-là
+   * sert la pertinence d'une magie, et l'IA n'a pas de Phase Shopping.
+   */
+  grantEnemyBoardSlotBonus(value: number, cap = LIMITED_BOARD_SLOT_CAP): number {
+    const grant = Math.max(0, Math.min(value, cap - this._enemyBoardSlotBonusUsed));
+    this.enemy_board_slots += grant;
+    this._enemyBoardSlotBonusUsed += grant;
     return grant;
   }
 

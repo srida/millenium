@@ -199,7 +199,13 @@ export function needsGraveyardTarget(magie) {
 // se laisseraient jouer sur une carte qu'elles ne peuvent pas servir.
 export function needsHandTarget(magie) {
   return ['hand_to_graveyard', 'duplicate_card', 'shift_tier_card', 'draw_material',
-    'sacrifice_card_hp'].includes(magie?.effect?.type);
+    'sacrifice_card_hp',
+    // ⚠️ Les deux remises d'invocation sont IMMÉDIATES et CIBLÉES : le joueur
+    // désigne la carte de sa main qu'il remise. Elles étaient différées au tour
+    // suivant, ce qui coûtait un état de round entier pour un effet que
+    // personne ne choisissait — la remise tombait sur la première carte
+    // retouchable venue.
+    'reduce_materials', 'remove_requirements'].includes(magie?.effect?.type);
 }
 
 /**
@@ -398,15 +404,9 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
     case 'damage_multiplier_bonus':
       if (gameState) gameState.player_damage_multiplier_bonus += (e.value || 0);
       break;
-    // ⚠️ `attribute` voyage jusqu'au modificateur : c'est `startPreparation`,
-    // un tour plus tard, qui choisira la carte — la magie ne peut pas la
-    // désigner elle-même, la main d'alors n'existe pas encore.
-    case 'reduce_materials':
-    case 'remove_requirements':
-      if (gameState) gameState.player_hand_modifiers.push({
-        type: e.type, value: e.value ?? 1, attribute: e.attribute ?? null,
-      });
-      break;
+    // ⚠️ Les deux remises d'invocation ne passent PAS par ici : ce sont des
+    // magies de MAIN, appliquées par `GameSession.applyMagieOnHandCard` sur la
+    // carte que le joueur désigne — comme `shift_tier_card` ou `draw_material`.
     case 'defuse_fusion':
       // Handled by GameScreen._defuseFusion() — applyEffect is a no-op here
       break;

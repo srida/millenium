@@ -113,10 +113,16 @@ describe('Tout annuler — invocation normale', () => {
     const sac = makeCard({ id: 'SAC', summon_conditions: [{ materials: 2 }] });
     const session = makeSession([sac]);
     session.hand = [{ ...sac } as any];
-    session.gameState.player_hand_modifiers.push({ type: 'reduce_materials', value: 2 } as any);
+
+    // ⚠️ La remise a lieu à la Phase Shopping, donc AVANT `startPreparation()`
+    // — qui est le point de capture de « Tout annuler ». Une magie n'est jamais
+    // annulable ; ce qu'on éprouve ici est que son effet SURVIT à l'annulation
+    // de l'invocation qui a suivi.
+    session.applyMagieOnHandCard(
+      { id: 'M', name: 'Ristourne', effect: { type: 'reduce_materials', value: 2 } } as any, 0);
     session.startPreparation();
 
-    const remised = session.hand[0];
+    const remised = session.hand.find(c => c.id === 'SAC')!;
     expect((remised as any).summon_conditions).toEqual([{ materials: 0, requires: [] }]);
     expect((remised as any)._discounted_from).toEqual([{ materials: 2 }]);
 
@@ -125,8 +131,8 @@ describe('Tout annuler — invocation normale', () => {
     expect(session.undoPreparation()).toBe(true);
     // ⚠️ La MÊME référence revient en main : `undoPreparation` ne clone rien,
     // c'est ce qui rend la remise intacte plutôt que recalculée.
-    expect(session.hand[0]).toBe(remised);
-    expect((session.hand[0] as any).summon_conditions).toEqual([{ materials: 0, requires: [] }]);
+    expect(session.hand.find(c => c.id === 'SAC')).toBe(remised);
+    expect((remised as any).summon_conditions).toEqual([{ materials: 0, requires: [] }]);
   });
 });
 
