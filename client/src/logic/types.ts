@@ -304,6 +304,15 @@ export interface EndOfCombatAttributeResult {
    */
   enemy_draw_bonus?: number;
   enemy_guaranteed_draws?: GuaranteedDraw[];
+  /**
+   * Les deux ressources que l'IA sait recevoir — décision 3 du §7.
+   *
+   * ⚠️ Il n'y en a que deux, et ce n'est pas une limite du moteur : le Shopping
+   * n'existe structurellement pas pour elle. Le moteur accumule tout ce que ses
+   * attributs donnent ; c'est le VERSEMENT qui n'a que deux destinations.
+   */
+  enemy_board_slot_bonus?: number;
+  enemy_damage_multiplier_bonus?: number;
 }
 
 /**

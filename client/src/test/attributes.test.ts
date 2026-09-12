@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { AttributeManager } from '../logic/AttributeManager.js';
 import { guaranteedDrawCriteria } from '../logic/Draw.js';
+import { GameState } from '../logic/GameState.js';
 import { makeBoard, makeCard, spawn } from './helpers.js';
 
 function units(board: any, defs: { id: string; attrs?: string[]; col: number; row: number; side?: 'player' | 'enemy' }[]) {
@@ -325,18 +326,79 @@ describe('AttributeManager — le partage joueur / adverse des ressources', () =
       .reduce((n: number, s: any) => n + s.value, 0)).toBe(r.draw_bonus);
   });
 
-  it('le camp ADVERSE ne reçoit QUE la pioche', () => {
+  // ⚠️ **Décision 3 du §7, branchée à l'étape 4 : l'IA porte ses effets comme un
+  // vrai joueur.** Ce cas disait auparavant « le camp adverse ne reçoit QUE la
+  // pioche » ; il dit maintenant ce qui a un DESTINATAIRE de ce côté. Deux
+  // ressources en ont un — l'emplacement de plateau (`placeFromHand` le lit) et
+  // le multiplicateur de dégâts ; le Shopping n'en a pas, et ce n'est pas une
+  // limite du moteur mais un fait du jeu.
+  it('le camp ADVERSE reçoit tout ce qui a un destinataire chez lui', () => {
     const r = joue('enemy');
-    // La pioche, oui : `EnemyAI.drawHand` la consomme.
     expect(r.enemy_draw_bonus).toBe(2);
     expect(r.enemy_guaranteed_draws).toHaveLength(1);
-    // Les trois autres n'ont aucun destinataire de ce côté.
+    expect(r.enemy_board_slot_bonus).toBe(1);
+    expect(r.enemy_damage_multiplier_bonus).toBe(3);
+    // ⚠️ Et rien ne fuit vers le joueur : ni sa pioche, ni son emplacement, ni
+    // son multiplicateur, ni sa provenance. C'est le sélecteur `camp` qui le
+    // tient, plus une exception écrite dans le moteur.
+    expect(r.draw_bonus).toBe(0);
     expect(r.board_slot_bonus).toBe(0);
     expect(r.damage_multiplier_bonus).toBe(0);
-    expect(r.shopping_bonus).toBe(0);
-    // ⚠️ Et rien ne fuit vers le joueur : ni sa pioche, ni sa provenance.
-    expect(r.draw_bonus).toBe(0);
     expect(r.guaranteed_draws).toEqual([]);
     expect(r.draw_sources).toEqual([]);
+  });
+
+  // ⚠️ La provenance de pioche reste un champ du JOUEUR — mais parce que le
+  // versement ne la publie que de ce côté, plus parce que le moteur refuse de
+  // l'inscrire. Le drapeau qui le faisait (`sansProvenance`, reste de
+  // `ressourcesLimitees`) a été RETIRÉ : rien ne lit `adverse.sources`, donc
+  // aucune mutation ne le faisait rougir. Un garde qu'on ne peut pas éprouver
+  // est un garde qu'on retire.
+  it('la provenance de pioche n’est publiée QUE pour le joueur', () => {
+    expect(joue('enemy').draw_sources).toEqual([]);
+    expect(joue('player').draw_sources.length).toBeGreaterThan(0);
+  });
+});
+
+describe('GameState — le versement des ressources adverses', () => {
+  const resultat = (extra: Record<string, unknown>) => ({
+    revived: [], enemyRevived: [], guaranteed_draws: [], draw_sources: [], ...extra,
+  });
+
+  it('le multiplicateur adverse s’ajoute aux dégâts du round, comme celui du joueur', () => {
+    const gs = new (GameState as any)();
+    gs.startCombat(5, 5);
+    const avant = gs.player_hp;
+    gs.applyEndOfCombat('enemy', 0, 10, resultat({}));
+    const sansBonus = avant - gs.player_hp;
+
+    const gs2 = new (GameState as any)();
+    gs2.startCombat(5, 5);
+    gs2.applyEndOfCombat('enemy', 0, 10, resultat({ enemy_damage_multiplier_bonus: 2 }));
+    expect(avant - gs2.player_hp).toBe(sansBonus + 20);
+  });
+
+  // ⚠️ Le versement traverse bien `applyEndOfCombat` — appeler le `grant…`
+  // directement prouverait le cap et PAS le branchement. La première version de
+  // ce cas ne faisait que ça, et retirer l'appel de `GameState` la laissait
+  // verte.
+  it('l’emplacement adverse arrive jusqu’à `enemy_board_slots`', () => {
+    const gs = new (GameState as any)();
+    const avant = gs.enemy_board_slots;
+    gs.applyEndOfCombat('player', 0, 0, resultat({ enemy_board_slot_bonus: 1 }));
+    expect(gs.enemy_board_slots).toBe(avant + 1);
+  });
+
+  // ⚠️ DEUX compteurs de cap, un par camp : « +1 par camp sur toute la partie »,
+  // pas « +1 en tout ». Un compteur partagé ferait qu'un attribut du joueur
+  // fermerait la porte à l'IA, ce qu'aucune règle ne dit.
+  it('le cap d’emplacement est PAR CAMP, pas partagé', () => {
+    const gs = new (GameState as any)();
+    expect(gs.grantLimitedBoardSlotBonus(1)).toBe(1);
+    expect(gs.grantEnemyBoardSlotBonus(1)).toBe(1);
+    // Chacun a consommé le sien, et seulement le sien.
+    expect(gs.grantLimitedBoardSlotBonus(1)).toBe(0);
+    expect(gs.grantEnemyBoardSlotBonus(1)).toBe(0);
+    expect(gs.enemy_board_slots).toBe(gs.player_board_slots);
   });
 });

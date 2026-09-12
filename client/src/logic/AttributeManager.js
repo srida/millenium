@@ -174,12 +174,20 @@ export class AttributeManager {
     return executer(this._effetsDesPaliers(this._paliersVivants(monde.unitesAlliees)), quand, monde);
   }
 
-  /** Le monde d'un camp, tel que le moteur l'attend. */
-  _monde(units, other, ressources, neutralisees, limite) {
-    return {
-      unitesAlliees: units, unitesEnnemies: other,
-      ressources, neutralisees, ressourcesLimitees: limite,
-    };
+  /**
+   * Le monde d'un camp, tel que le moteur l'attend.
+   *
+   * ⚠️ **Il n'y a plus de drapeau d'asymétrie**, et c'est la décision 3 du §7
+   * menée à son terme : l'IA porte ses effets comme un vrai joueur, donc le
+   * moteur accumule pour les deux camps et c'est le VERSEMENT qui dit ce qui a
+   * un destinataire. `ressourcesLimitees` avait d'abord été réduit à
+   * `sansProvenance` (ne pas inscrire la provenance d'une pioche adverse) —
+   * mais rien ne lit `adverse.sources`, donc ce drapeau ne protégeait rien et
+   * aucune mutation ne le faisait rougir. Un garde qu'on ne peut pas éprouver
+   * est un garde qu'on retire.
+   */
+  _monde(units, other, ressources, neutralisees) {
+    return { unitesAlliees: units, unitesEnnemies: other, ressources, neutralisees };
   }
 
   _applyStartForSide(units) {
@@ -187,7 +195,7 @@ export class AttributeManager {
     const trace = executer(
       this._effetsDesPaliers(this._paliersVivants(units)),
       'debut_combat',
-      this._monde(units, other, ressourcesVides(), [], units !== this.playerUnits),
+      this._monde(units, other, ressourcesVides(), []),
     );
     // ⚠️ **Le journal du moteur REMPLACE `_recordBonus`.** Il n'y a plus qu'un
     // endroit qui sache ce qui a été écrit : celui qui l'a écrit. Restaurer
@@ -272,7 +280,7 @@ export class AttributeManager {
     const other = isPlayerSide ? this.enemyUnits : this.playerUnits;
     const trace = executer(
       this._effetsDesPaliers(actifs), quand,
-      this._monde(affectedUnits, other, ressourcesVides(), [], !isPlayerSide),
+      this._monde(affectedUnits, other, ressourcesVides(), []),
     );
     // ⚠️ **Les événements `stat_change` sortent du JOURNAL**, pas d'une seconde
     // lecture de la donnée. L'animateur doit MONTRER ce qui a été écrit ; le
@@ -309,8 +317,8 @@ export class AttributeManager {
     //
     // ⚠️ Et c'est invisible dans le log de combat : la réanimation a lieu APRÈS
     // le dernier tick, dans `finishCombat`. Cf. l'épilogue de `CombatRecorder`.
-    const joueur = this._applyEndForSide(this.playerUnits, playerNeutralized, this.enemyUnits, false);
-    const adverse = this._applyEndForSide(this.enemyUnits, enemyNeutralized, this.playerUnits, true);
+    const joueur = this._applyEndForSide(this.playerUnits, playerNeutralized, this.enemyUnits);
+    const adverse = this._applyEndForSide(this.enemyUnits, enemyNeutralized, this.playerUnits);
 
     // ⚠️ **Le moteur ACCUMULE, c'est ici qu'on VERSE.** Les deux accumulateurs
     // portent les mêmes champs ; ce sont leurs DESTINATAIRES qui diffèrent, et
@@ -333,6 +341,13 @@ export class AttributeManager {
       // moteur ne les inscrit donc pas (`ressourcesLimitees`).
       enemy_draw_bonus: adverse.pioches,
       enemy_guaranteed_draws: adverse.pioches_garanties,
+      // ⚠️ **L'IA porte ses effets comme un vrai joueur** (décision 3 du §7).
+      // Deux ressources seulement y ont un destinataire : le slot de plateau
+      // (`enemy_board_slots`, que `placeFromHand` lit déjà) et le multiplicateur
+      // de dégâts. Le Shopping n'existe structurellement pas pour elle — ce
+      // n'est pas une limite du moteur, c'est un fait du jeu.
+      enemy_board_slot_bonus: adverse.slots_board,
+      enemy_damage_multiplier_bonus: adverse.multiplicateur,
     };
   }
 
@@ -344,10 +359,11 @@ export class AttributeManager {
    * C'est la seule règle de seuil qui diffère, et c'est pour ça qu'elle est
    * écrite ici plutôt que dans `_paliersVivants`.
    *
-   * @param {boolean} limite  Le camp ne reçoit que la PIOCHE. Vrai pour le camp
-   *   d'en face : slot, multiplicateur et Shopping n'y ont aucun destinataire.
+   * ⚠️ **Aucun paramètre d'asymétrie** : les deux camps passent par le même
+   * chemin et accumulent la même chose. C'est le VERSEMENT (`applyEndOfCombat`)
+   * qui dit ce qui a un destinataire de chaque côté — décision 3 du §7.
    */
-  _applyEndForSide(units, neutralized, other, limite) {
+  _applyEndForSide(units, neutralized, other) {
     const actifs = new Map();
     for (const attrId of new Set(units.flatMap(u => u.attributes))) {
       const attr = this._attributeMap[attrId];
@@ -367,7 +383,7 @@ export class AttributeManager {
     // faisait `revive`, et `finishCombat` compte dessus.
     executer(
       this._effetsDesPaliers(actifs), 'fin_combat',
-      this._monde(units, other, ressources, neutralized, limite),
+      this._monde(units, other, ressources, neutralized),
     );
     return ressources;
   }

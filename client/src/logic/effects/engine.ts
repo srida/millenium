@@ -115,17 +115,6 @@ export interface Monde {
    * comptable depuis un seul endroit.
    */
   rand?: () => number;
-  /**
-   * Le camp courant ne reçoit que les ressources de PIOCHE.
-   *
-   * ⚠️ C'est le `resources: false` d'`_applyEndForSide`, et c'est une
-   * asymétrie assumée du jeu d'aujourd'hui : la pioche a un destinataire des
-   * deux côtés (`EnemyAI` pioche aussi), le slot, le multiplicateur et le
-   * Shopping n'en ont qu'un. La reproduire est obligatoire tant que le critère
-   * est « zéro changement observable » — c'est la décision 3 du §7 qui la
-   * lèvera, à l'étape 4, et elle deviendra alors un `camp` comme un autre.
-   */
-  ressourcesLimitees?: boolean;
   /** Les PV du joueur AVANT le lot — lus par les conditions, jamais écrits. */
   pvJoueur?: number;
   /** Nom du porteur, posé par `executer` pour les registres de provenance. */
@@ -362,11 +351,6 @@ function appliqueSurJoueur(t: TacheModifier, monde: Monde, trace: Trace): void {
   // PV de la CARTE : rien n'est encore posé, il n'y a pas de PV courants à lire).
   // `valeur` sert alors de pourcentage.
   const d = t.valeurDepuis ? valeurLueSurCible(t, monde) : delta(t, 0);
-  // ⚠️ Skip DÉLIBÉRÉ, et tracé : le camp adverse ne reçoit que la pioche.
-  if (monde.ressourcesLimitees && t.champ !== 'pioches' && t.champ !== 'pioches_garanties') {
-    trace.neant.push(`(${t.champ} réservé au joueur)`);
-    return;
-  }
   switch (t.champ) {
     case 'pioches': {
       // ⚠️ Le plafond porte sur le TOTAL accumulé, pas sur la tâche : c'est le
@@ -379,7 +363,7 @@ function appliqueSurJoueur(t: TacheModifier, monde: Monde, trace: Trace): void {
       // ⚠️ La provenance suit le crédit RÉEL, jamais la demande, et un crédit
       // entièrement rogné n'inscrit RIEN : l'invariant
       // `sum(sources.value) === extraDraws` en dépend.
-      if (reel > 0 && !monde.ressourcesLimitees) {
+      if (reel > 0) {
         cible.sources.push({ kind: t.provenance ?? 'attribut', ref: monde.source ?? '', value: reel });
       }
       trace.applique.push(`joueur·pioches+${reel}`);
@@ -404,7 +388,7 @@ function appliqueSurJoueur(t: TacheModifier, monde: Monde, trace: Trace): void {
     case 'pioches_garanties':
       if (t.criteres) {
         cible.pioches_garanties.push(t.criteres);
-        if (!monde.ressourcesLimitees) {
+        {
           cible.sources.push({ kind: t.provenance ?? 'attribut', ref: monde.source ?? '', value: 0, guaranteed: true });
         }
       }
