@@ -940,7 +940,7 @@ describe('Décor spatial — l\'invariant de peinture des écrans', () => {
   );
 
   it('le registre et les imports se résolvent — sinon le test passerait à vide', () => {
-    expect(screenToComponent.size).toBeGreaterThanOrEqual(19);
+    expect(screenToComponent.size).toBeGreaterThanOrEqual(18);
     expect(immersive.size).toBeGreaterThanOrEqual(4);
     for (const [screen, component] of screenToComponent) {
       expect(componentToFile.get(component), `fichier introuvable pour l'écran « ${screen} »`)

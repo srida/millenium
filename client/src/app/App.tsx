@@ -9,7 +9,6 @@ import MainMenu from '../screens/MainMenu.js';
 import AuthScreen from '../screens/AuthScreen.js';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen.js';
 import ProfileScreen from '../screens/ProfileScreen.js';
-import FriendsScreen from '../screens/FriendsScreen.js';
 import DeckSelector from '../screens/DeckSelector.js';
 import DeckBuilder from '../screens/DeckBuilder.js';
 import TournamentScreen from '../screens/TournamentScreen.js';
@@ -63,7 +62,6 @@ const SCREENS: Record<ScreenName, ComponentType> = {
   auth: AuthScreen,
   reset_password: ResetPasswordScreen,
   profile: ProfileScreen,
-  friends: FriendsScreen,
   deck_selector: DeckSelector,
   deck_builder: DeckBuilder,
   online_lobby: OnlineLobby,

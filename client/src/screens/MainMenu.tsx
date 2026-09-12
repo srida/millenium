@@ -81,7 +81,6 @@ export default function MainMenu() {
           {user ? (
             <>
               <ProfilePill user={user} onPointerDown={() => navigate('profile')} />
-              <button onPointerDown={() => navigate('friends')} className="text-white/70 underline">Amis</button>
               {user.is_admin && <a href="/admin" className="text-white/70 underline">Admin</a>}
             </>
           ) : (
