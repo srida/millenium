@@ -65,7 +65,9 @@ const ENTITIES = [
   { type: 'powers',     file: 'powers.json',     importPath: '/api/powers/import',     deletePath: id => `/api/powers/${id}` },
   { type: 'boards',     file: 'boards.json',     importPath: '/api/boards/import',     deletePath: id => `/api/boards/${id}` },
   { type: 'magies',     file: 'magies.json',     importPath: '/api/magies/import',     deletePath: id => `/api/magies/${id}` },
-  { type: 'publicDecks', file: 'public_decks.json', importPath: '/api/decks/import',   deletePath: id => `/api/decks/${id}` },
+  // Porte AUSSI les decks de bots (`bot: true`) : ils partagent le même
+  // fichier et la même route depuis leur fusion avec les decks publics.
+  { type: 'publicDecks', file: 'decks.json',        importPath: '/api/decks/import',   deletePath: id => `/api/decks/${id}` },
   { type: 'sets',       file: 'sets.json',       importPath: '/api/sets/import',       deletePath: id => `/api/sets/${id}` },
   // Les variantes n'ont pas d'entrée dans ASSETS : leur art vit dans le dossier
   // des illustrations, sous l'id de la variante.

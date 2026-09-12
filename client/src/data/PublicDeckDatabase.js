@@ -6,8 +6,13 @@ export async function init() {
   if (!Array.isArray(_decks)) _decks = [];
 }
 
+// ⚠️ `/api/decks` porte AUSSI les decks de bots (`bot: true`, cf. `bots.js`
+// côté serveur) : `getAllDecks()` est le SEUL funnel par lequel un joueur peut
+// choisir un adversaire (DeckSelector 'play', 🎲 Aléatoire, Tournoi, Arcade
+// via son propre appel serveur), donc le seul endroit où les exclure suffit —
+// aucun autre site du client ne relit `_decks` directement.
 export function getAllDecks() {
-  return _decks || [];
+  return (_decks || []).filter(d => d && d.bot !== true);
 }
 
 export function getDeck(id) {

@@ -139,7 +139,8 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `/api/admin/pvp-logs/*` | Site admin | Logs de combat PvP (**outil temporaire**) |
 | `/api/admin/ai-logs/*` | Site admin | Runs du Labo IA |
 
-⚠️ `PUT /api/decks/:id` **fusionne** au lieu de remplacer : le formulaire admin poste le deck complet, le DeckBuilder en iframe ne poste que `{ id, name, deck }`. Un remplacement franc effaçait `difficulty`. Corollaire : `_collectPublicDeckFields` reconstruit l'objet de zéro, toute nouvelle donnée de deck doit y être relue.
+⚠️ `PUT /api/decks/:id` **fusionne** au lieu de remplacer : le formulaire admin poste le deck complet, le DeckBuilder en iframe ne poste que `{ id, name, deck }`. Un remplacement franc effaçait `difficulty`. `_collectPublicDeckFields` repart lui aussi de `...selectedPublicDeck` (même geste que `_collectMagieFields`) plutôt que de reconstruire l'objet de zéro : un deck de bot porte `pseudo`/`archetype`/`profile`, que le formulaire n'édite pas — sans ce départ, `savePublicDeck()` les effaçait de la liste admin en LOCAL (le disque restait correct grâce à la fusion serveur).
+⚠️ **`data/decks.json` porte les decks publics ET les decks de bots**, distingués par `bot: true` (même geste que `starter: true` sur un pack) : `GET /api/decks` rend les deux, non filtré — comme `sets.json` rend les packs de départ. L'exclusion vit à chaque site qui ne doit jamais proposer un bot comme adversaire (`PublicDeckDatabase.getAllDecks()` côté client, `arcade.publicDecks` côté serveur) ; `bots.catalog()` fait l'inverse et ne garde que `bot: true`.
 ⚠️ `POST /api/sets` et `PUT/DELETE /api/sets/:id` **réalignent le miroir `card.set`**.
 
 ### API en ligne (`routes/online.js`, montée sur `/api` **avant** le write-guard)
@@ -495,13 +496,15 @@ Gain de fin de parcours : **200 golds + 50 XP**, une seule fois au 4ᵉ duel gag
 
 ## Adversaires artificiels (`bots.js`, `ws/BotMatch.js`)
 
-Ce que le lobby sert quand la file ne trouve personne. Catalogue `initial-data/bot_decks.json`.
+Ce que le lobby sert quand la file ne trouve personne. Catalogue : les decks marqués `bot: true` dans `data/decks.json` — le **même fichier** que les decks publics (cf. « Pack de départ » et Routes), `bots.catalog()` filtrant lui-même les siens (`bots.js` ne requiert que `db`/`json-cache`-like, feuille du graphe).
+
+⚠️ **Un deck de bot est éditable en admin comme n'importe quel deck** (onglet Decks, case « 🤖 Deck de bot ») : il n'est plus, comme avant leur fusion, du code généré hors de portée du CRUD. `scripts/build-bot-decks.js --write` reste le générateur initial et le seul moyen de repeupler le catalogue en masse ; le relancer écrase alors les corrections faites en admin sur les decks de bots — même arbitrage que `build-sets.js --write` sur un pack.
 
 | Règle | Valeur |
 |---|---|
 | Délai avant repli | **tiré entre 10 s et 20 s** (`BOT_DELAY_MIN_MS`/`MAX_MS`) — une échéance fixe serait un tell |
 | Priorité | un **vrai joueur arrivé avant l'échéance l'emporte toujours** |
-| Deck | l'un des 10 de `bot_decks.json`, tiré au hasard |
+| Deck | l'un des decks `bot: true`, tiré au hasard |
 | Gain | **`pvp_win` (70 XP)**, décerné par le serveur |
 
 ⚠️ **Le joueur n'apprend jamais que son adversaire en est un.** Rien dans `GameScreenPvp` ni dans la présentation du lobby ne doit prendre de branche visible sur `bot` : même écran, même HUD, même chrono, même écran de résultat — il n'y a qu'un **contrôleur** de différence.
@@ -534,7 +537,7 @@ Ce que le lobby sert quand la file ne trouve personne. Catalogue `initial-data/b
 node scripts/build-bot-decks.js [--write|--check]
 ```
 
-- ⚠️ **Le catalogue est du CODE, pas de la donnée** : lu depuis `initial-data/`, sans copie sur le volume ni CRUD d'admin. On le **regénère**.
+- ⚠️ **`--write` ne touche QUE les entrées `bot: true`** de `initial-data/decks.json` : il les remplace intégralement par ce qu'il génère et laisse les decks publics intacts. `--check` filtre de même avant de valider.
 - **La contrainte qui commande le générateur** : au-delà du tier 2, le catalogue n'a presque aucune invocation *normale*. Les hauts tiers ne sont retenus que si le deck **couvre déjà** leurs matériaux (ids *et* attributs), la couverture s'accumulant tier par tier. Même règle que `game/tutorialDeck.ts` et `sim/decks.ts`.
 - Plancher de puissance par haut tier (p25) ; Dieux Égyptiens (`ARCH_031`) exclus ; hors-thème en dernier recours ; les decks se construisent à la suite et s'évitent.
 - ⚠️ **Le pseudo est découplé du deck** et tiré à chaque match (les apparier serait le tell le plus facile). L'**avatar** vient des cartes du deck, et n'est retenu que si son PNG existe.
@@ -1888,7 +1891,7 @@ Il existe parce que `EnemyAI` **n'émettait rien**, et surtout parce que son `_t
 | `test/http-harness.ts` | Démarre `app.js` sur un port éphémère (pas un `*.test.ts`, donc jamais collecté seul) |
 | harnais serveur de `shop.test.ts` | `createRequire`, `DATA_DIR` temporaire, env posées **avant** le premier `require` |
 
-- **Aucun catalogue n'est recopié à la main** : `bootstrap()` peuple un `DATA_DIR` vide depuis `initial-data/`, par le code de production lui-même. Les tests qui portent **sur** un catalogue écrivent le leur (`arcade.test.ts` son `public_decks.json`, `gifts.test.ts` ses `gifts.json`/`sets.json`, `packs.test.ts` réécrit `sets.json`).
+- **Aucun catalogue n'est recopié à la main** : `bootstrap()` peuple un `DATA_DIR` vide depuis `initial-data/`, par le code de production lui-même. Les tests qui portent **sur** un catalogue écrivent le leur (`arcade.test.ts` son `decks.json`, `gifts.test.ts` ses `gifts.json`/`sets.json`, `packs.test.ts` réécrit `sets.json`).
 - ⚠️ **`ILLUS_DIR` doit être un ENFANT d'une racine à nous** : `asset-dirs.js` déduit les trois autres familles de `path.dirname(ILLUS_DIR)` — le poser dans `os.tmpdir()` ferait pondre `$TMPDIR/enemy_avatars`, partagé entre fichiers de tests et avec la machine du développeur. C'est aussi ce qui donne un « au-dessus d'`ILLUS_DIR` » propre pour le test de traversée.
 - Les tests de boutique/cosmétiques/paliers déposent de **vrais PNG** dans un `ILLUS_DIR` temporaire : sans art, les pools sont vides et les fichiers ne prouveraient rien. `levels.test.ts` laisse une carte volontairement **sans art** — elle ne doit jamais tomber.
 - ⚠️ **`http-boot.test.ts` est un fichier SÉPARÉ, et pas par goût** : les modules racine sont chargés par `createRequire`, donc mis en cache par Node, et `vi.resetModules()` ne vide pas ce cache. Un second `require('app.js')` dans le même fork rendrait l'export mémorisé sans rejouer la garde. Vitest donne un processus par fichier (`pool: 'forks'`) — c'est la seule isolation qui marche.

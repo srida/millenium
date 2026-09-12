@@ -8,8 +8,15 @@
 // RÈGLE, et `--check` rejoue la validation.
 //
 //   node scripts/build-bot-decks.js            # affiche le rapport
-//   node scripts/build-bot-decks.js --write     # écrit initial-data/bot_decks.json
-//   node scripts/build-bot-decks.js --check     # valide le fichier existant (exit 1 si KO)
+//   node scripts/build-bot-decks.js --write     # réécrit les decks `bot:true` de initial-data/decks.json
+//   node scripts/build-bot-decks.js --check     # valide les decks `bot:true` existants (exit 1 si KO)
+//
+// ⚠️ Les decks de bots partagent `decks.json` avec les decks publics (drapeau
+// `bot: true`, éditables en admin). `--write` ne touche donc QUE les entrées
+// `bot: true` — il les remplace intégralement par ce qu'il génère et laisse
+// les decks publics intacts — mais il écrase par construction toute correction
+// faite en admin sur un deck de bot. Même arbitrage que `build-sets.js
+// --write` sur un pack : un geste délibéré, jamais automatique.
 //
 // La contrainte qui commande tout : le catalogue n'a presque aucune carte
 // d'invocation NORMALE au-delà du tier 2. Les hauts tiers se construisent donc
@@ -26,7 +33,7 @@ const PROJECT = path.join(__dirname, '..');
 const DATA = fs.existsSync(path.join(PROJECT, 'data', 'cards.json'))
   ? path.join(PROJECT, 'data')
   : path.join(PROJECT, 'initial-data');
-const OUT = path.join(PROJECT, 'initial-data', 'bot_decks.json');
+const OUT = path.join(PROJECT, 'initial-data', 'decks.json');
 
 const load = f => JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8'));
 const asArray = x => (Array.isArray(x) ? x : Object.values(x));
@@ -265,7 +272,8 @@ function report(entries) {
 const args = process.argv.slice(2);
 if (args.includes('--check')) {
   if (!fs.existsSync(OUT)) { console.error(`${OUT} absent — lancer --write d'abord.`); process.exit(1); }
-  const failed = report(JSON.parse(fs.readFileSync(OUT, 'utf8')));
+  const botDecks = JSON.parse(fs.readFileSync(OUT, 'utf8')).filter(d => d && d.bot === true);
+  const failed = report(botDecks);
   process.exit(failed ? 1 : 0);
 }
 
@@ -276,13 +284,18 @@ const entries = THEMES.map(t => ({
   archetype: [...t.core, ...(t.support || [])].map(a => attrName[a]).filter(Boolean).join(' · '),
   profile: t.profile,
   difficulty: t.difficulty,
+  bot: true,
   deck: Object.fromEntries(Object.entries(buildDeck(t)).map(([k, v]) => [k, v.map(c => c.id)])),
 }));
 
 const failed = report(entries);
 if (args.includes('--write')) {
   if (failed) { console.error('\nRien écrit : au moins un deck ne valide pas.'); process.exit(1); }
-  fs.writeFileSync(OUT, `${JSON.stringify(entries, null, 2)}\n`);
-  console.log(`\n→ ${path.relative(PROJECT, OUT)} (${entries.length} decks)`);
+  // Remplace UNIQUEMENT les decks `bot: true` existants — les decks publics
+  // (et toute correction d'admin sur un deck de bot) ne sont pas ce script.
+  const existing = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : [];
+  const merged = [...existing.filter(d => d && d.bot !== true), ...entries];
+  fs.writeFileSync(OUT, `${JSON.stringify(merged, null, '\t')}\n`);
+  console.log(`\n→ ${path.relative(PROJECT, OUT)} (${entries.length} decks de bots sur ${merged.length} au total)`);
 }
 process.exit(failed ? 1 : 0);

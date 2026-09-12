@@ -144,7 +144,15 @@ const ATTRIBUTES_FILE = path.join(DATA_DIR, 'attributes.json');
 const POWERS_FILE    = path.join(DATA_DIR, 'powers.json');
 const BOARDS_FILE    = path.join(DATA_DIR, 'boards.json');
 const MAGIES_FILE    = path.join(DATA_DIR, 'magies.json');
-const PUBLIC_DECKS_FILE = path.join(DATA_DIR, 'public_decks.json');
+// Decks publics ET decks de bots dans le MÊME fichier, distingués par le
+// drapeau `bot: true` — même geste que `starter: true` sur un pack. Un deck de
+// bot était auparavant du CODE généré (`bot_decks.json`, `initial-data/`
+// uniquement, aucun CRUD) ; il est désormais une donnée comme les autres,
+// éditable en admin et synchronisée par `sync-data.js` au même titre que le
+// reste. `scripts/build-bot-decks.js --write` reste le générateur initial,
+// mais écrase alors les corrections faites en admin sur les decks de bots —
+// même piège documenté pour `build-sets.js --write`.
+const DECKS_FILE = path.join(DATA_DIR, 'decks.json');
 const SETS_FILE      = path.join(DATA_DIR, 'sets.json');
 const MISSIONS_FILE  = path.join(DATA_DIR, 'missions.json');
 const GIFTS_FILE     = path.join(DATA_DIR, 'gifts.json');
@@ -162,7 +170,7 @@ function bootstrap() {
   fs.mkdirSync(AVATARS_DIR, { recursive: true });
   fs.mkdirSync(POSTERS_DIR, { recursive: true });
   fs.mkdirSync(BOARD_BG_DIR, { recursive: true });
-  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'public_decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'card_backs.json']) {
+  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'card_backs.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -1240,24 +1248,31 @@ app.delete('/api/gifts/:id', requireSiteAdmin, (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// --- Decks publics API ---
+// --- Decks (publics ET bots) API ---
 // `_has_avatar` est calculé (comme `_has_illustration` ailleurs) : il dit si le
 // deck a SON portrait, là où /avatars/:id sert toujours quelque chose.
+//
+// ⚠️ Cette liste porte AUSSI les decks de bots (`bot: true`), non filtrés ici —
+// même choix que `sets.json`, qui rend les packs de départ sans les écarter :
+// l'exclusion vit à chaque site qui ne doit jamais proposer un bot comme
+// adversaire choisissable (`PublicDeckDatabase.getAllDecks()` côté client,
+// `arcade.publicDecks` côté serveur), jamais ici. `bots.catalog()` fait
+// l'inverse et ne garde que les decks `bot: true`.
 app.get('/api/decks', (req, res) => {
   try {
-    res.json(readJson(PUBLIC_DECKS_FILE).map(d => ({ ...d, _has_avatar: avatarExists(d.id) })));
+    res.json(readJson(DECKS_FILE).map(d => ({ ...d, _has_avatar: avatarExists(d.id) })));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/decks', requireSiteAdmin, (req, res) => {
   try {
-    const decks = readJson(PUBLIC_DECKS_FILE);
+    const decks = readJson(DECKS_FILE);
     const deck = req.body;
     if (!deck.id) return res.status(400).json({ error: 'id required' });
     if (decks.find(d => d.id === deck.id)) return res.status(400).json({ error: `ID ${deck.id} already exists` });
     delete deck._has_avatar;
     decks.push(deck);
-    writeJson(PUBLIC_DECKS_FILE, decks);
+    writeJson(DECKS_FILE, decks);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1266,7 +1281,7 @@ app.post('/api/decks/import', requireSiteAdmin, (req, res) => {
   try {
     const { items, mode = 'skip' } = req.body;
     if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
-    const decks = readJson(PUBLIC_DECKS_FILE);
+    const decks = readJson(DECKS_FILE);
     let added = 0, replaced = 0, skipped = 0;
     const errors = [];
     for (const item of items) {
@@ -1281,14 +1296,14 @@ app.post('/api/decks/import', requireSiteAdmin, (req, res) => {
         added++;
       }
     }
-    writeJson(PUBLIC_DECKS_FILE, decks);
+    writeJson(DECKS_FILE, decks);
     res.json({ ok: true, added, replaced, skipped, errors });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.put('/api/decks/:id', requireSiteAdmin, (req, res) => {
   try {
-    const decks = readJson(PUBLIC_DECKS_FILE);
+    const decks = readJson(DECKS_FILE);
     const idx = decks.findIndex(d => d.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
     const updated = req.body;
@@ -1298,18 +1313,18 @@ app.put('/api/decks/:id', requireSiteAdmin, (req, res) => {
     // DeckBuilder (iframe, ?publicDeckId=) ne poste que `{ id, name, deck }` —
     // un remplacement franc effacerait `difficulty` à chaque composition.
     decks[idx] = { ...decks[idx], ...updated };
-    writeJson(PUBLIC_DECKS_FILE, decks);
+    writeJson(DECKS_FILE, decks);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.delete('/api/decks/:id', requireSiteAdmin, (req, res) => {
   try {
-    let decks = readJson(PUBLIC_DECKS_FILE);
+    let decks = readJson(DECKS_FILE);
     const idx = decks.findIndex(d => d.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
     decks.splice(idx, 1);
-    writeJson(PUBLIC_DECKS_FILE, decks);
+    writeJson(DECKS_FILE, decks);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1521,7 +1536,7 @@ app.get('/api/export', (req, res) => {
     const powers     = readJson(POWERS_FILE);
     const boards     = readJson(BOARDS_FILE);
     const magies     = readJson(MAGIES_FILE);
-    const publicDecks = readJson(PUBLIC_DECKS_FILE);
+    const publicDecks = readJson(DECKS_FILE);
     const sets       = readJson(SETS_FILE);
     const variantList = readJson(VARIANTS_FILE);
     // L'art des dos de cartes est déjà dans ILLUS_DIR : il voyage avec les

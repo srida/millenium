@@ -57,7 +57,7 @@ const ENTITIES = [
   { route: 'magies', file: 'magies.json', extra: { name: 'Empreinte', effect: null } },
   { route: 'variants', file: 'variants.json', extra: { card_id: 'CORE_001' } },
   { route: 'missions', file: 'missions.json', extra: { name: 'Empreinte' } },
-  { route: 'decks', file: 'public_decks.json', extra: { name: 'Empreinte', deck: {} } },
+  { route: 'decks', file: 'decks.json', extra: { name: 'Empreinte', deck: {} } },
   { route: 'sets', file: 'sets.json', extra: { name: 'Empreinte', cards: [] } },
 ];
 

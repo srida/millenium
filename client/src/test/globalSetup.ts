@@ -13,8 +13,8 @@
 // tests doivent confronter (cf. l'en-tête de bots.test.ts).
 //
 // ⚠️ La liste est celle de `bootstrap()`, recopiée à dessein plutôt que dérivée
-// du contenu d'`initial-data/` : `bot_decks.json` y vit aussi, et lui ne doit
-// JAMAIS atterrir sur le volume — c'est du code, lu à son emplacement réel.
+// du contenu d'`initial-data/` : un fichier qui y apparaîtrait sans faire
+// partie du bootstrap réel donnerait aux tests un volume plus riche que la prod.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,7 +28,7 @@ export default function setup() {
   fs.mkdirSync(DATA, { recursive: true });
   const FILES = [
     'cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json',
-    'public_decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json',
+    'decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json',
   ];
   for (const f of FILES) {
     const src = path.join(INITIAL, f);

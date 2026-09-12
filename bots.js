@@ -12,17 +12,24 @@
 // C'est le CLIENT qui joue le bot, avec l'`EnemyAI` du mode solo — ce module ne
 // fournit que la carte d'identité et le deck (cf. client/src/game/BotController).
 //
-// ⚠️ Le catalogue est du CODE, pas de la donnée : il est généré par
-// `scripts/build-bot-decks.js` et lu depuis `initial-data/`, sans copie sur le
-// volume ni CRUD d'admin. Un deck de bot n'est pas un contenu qu'on retouche,
-// c'est une dérivation du catalogue de cartes — on le regénère.
+// ⚠️ Un deck de bot vit dans le MÊME fichier que les decks publics
+// (`data/decks.json`), distingué par `bot: true` — même geste que
+// `starter: true` sur un pack. Il est donc éditable en admin comme n'importe
+// quel deck (onglet Decks), là où il n'avait avant aucun CRUD, aucune copie sur
+// le volume, et n'existait qu'en tant que dérivation générée du catalogue de
+// cartes (`scripts/build-bot-decks.js`). Ce script reste le générateur initial
+// et le seul moyen de repeupler le catalogue en masse après un remaniement des
+// cartes ; le relancer en `--write` écrase alors les corrections faites en
+// admin sur les decks de bots, exactement comme `build-sets.js --write` sur un
+// pack — un geste délibéré, jamais automatique.
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
 const variants = require('./variants');
+const { DATA_DIR } = require('./asset-dirs');
 
-const DECKS_FILE = path.join(__dirname, 'initial-data', 'bot_decks.json');
+const DECKS_FILE = path.join(DATA_DIR, 'decks.json');
 
 // Pseudos DÉCOUPLÉS des decks, et tirés à chaque match. Les apparier
 // une fois pour toutes serait le tell le plus facile du système : « Drakenor
@@ -47,7 +54,10 @@ const PSEUDOS = Object.freeze([
 // le JOURNALISE. Un catalogue de bots vide sert simplement moins de bots (le
 // joueur reste en file, cf. `serveBot`), là où un catalogue périmé ferait
 // affronter des decks qui ne correspondent plus au vrai `cards.json` — ce que
-// bots.test.ts vérifie précisément.
+// bots.test.ts vérifie précisément. Ce fichier étant partagé avec les decks
+// publics, `arcade.js` lit le SIEN via `json-cache.js` (dernière valeur
+// connue) : les deux caches peuvent légitimement répondre chacun sur sa propre
+// politique en cas d'illisibilité du même fichier.
 
 let cache = null;
 let cacheMtime = 0;
@@ -58,7 +68,7 @@ function catalog() {
   if (cache && mtime === cacheMtime) return cache;
   try {
     const raw = JSON.parse(fs.readFileSync(DECKS_FILE, 'utf8'));
-    cache = Array.isArray(raw) ? raw.filter(isUsable) : [];
+    cache = Array.isArray(raw) ? raw.filter(d => d && d.bot === true && isUsable(d)) : [];
     cacheMtime = mtime;
   } catch (err) {
     console.warn(`[bots] ${DECKS_FILE} illisible : ${err.message}`);

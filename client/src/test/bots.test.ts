@@ -1,17 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="node" />
 // Golden tests des ADVERSAIRES ARTIFICIELS du Duel en ligne : le catalogue
-// (`bots.js` + `initial-data/bot_decks.json`), la caisse (`ws/BotMatch.js`) et
-// le repli de la file d'attente (`ws/MatchmakingQueue.js`).
+// (`bots.js`, decks `bot: true` de `initial-data/decks.json`), la caisse
+// (`ws/BotMatch.js`) et le repli de la file d'attente (`ws/MatchmakingQueue.js`).
 //
 // Même harnais serveur que shop.test.ts / gifts.test.ts : DATA_DIR et ILLUS_DIR
 // temporaires, base SQLite à part, `data/` jamais touché.
 //
-// ⚠️ Le catalogue de decks, lui, est lu à son emplacement RÉEL (`initial-data/`,
-// chemin en dur dans bots.js) et confronté au VRAI `data/cards.json` : c'est
-// exactement ce qu'on veut vérifier. Un deck de bot est une dérivation du
-// catalogue de cartes, et une carte supprimée en admin doit casser ici — pas en
-// laissant un bot poser une main injouable devant un joueur.
+// ⚠️ Le catalogue de decks, lui, est copié depuis son contenu RÉEL
+// (`initial-data/decks.json`, décks de bots compris) et confronté au VRAI
+// `data/cards.json` : c'est exactement ce qu'on veut vérifier. Un deck de bot
+// est une dérivation du catalogue de cartes, et une carte supprimée en admin
+// doit casser ici — pas en laissant un bot poser une main injouable devant un
+// joueur. Depuis la fusion avec les decks publics, `bots.js` lit ce fichier
+// sur le VOLUME (`DATA_DIR/decks.json`) comme tout le reste — d'où la copie
+// dans `TMP`, au lieu du chemin en dur d'avant.
 //
 // Ce qui est verrouillé :
 //   - chaque deck de bot est jouable : ≥ 20 cartes, ≤ 8 par tier, aucun
@@ -90,6 +93,11 @@ beforeAll(() => {
   }
   fs.writeFileSync(path.join(TMP, 'variants.json'), '[]');
   fs.writeFileSync(path.join(TMP, 'sets.json'), '[]');
+  // `decks.json` vit dans `initial-data/` (versionné, toujours présent), pas
+  // dans `data/` (gitignoré, n'existe qu'après un démarrage du serveur) —
+  // même précédent que `tutorial.test.ts`. Il porte les decks publics ET les
+  // decks de bots (`bot: true`) ; `bots.catalog()` filtre lui-même les siens.
+  fs.copyFileSync(path.join(ROOT, 'initial-data', 'decks.json'), path.join(TMP, 'decks.json'));
   process.env.DATA_DIR = TMP;
   process.env.ILLUS_DIR = ILLUS;
 
@@ -118,6 +126,15 @@ describe('catalogue de decks', () => {
       expect(typeof def.id).toBe('string');
       expect(typeof def.name).toBe('string');
       expect([1, 2, 3, 4]).toContain(def.difficulty);
+    }
+  });
+
+  it('ne rend QUE des decks marqués `bot: true` — jamais un deck public', () => {
+    // decks.json est partagé avec les decks publics depuis leur fusion : sans
+    // ce filtre, un deck public traîné dans le pool serait servi comme
+    // adversaire du Duel en ligne, avec une identité de bot qu'il n'a pas.
+    for (const def of bots.catalog()) {
+      expect(def.bot, def.id).toBe(true);
     }
   });
 

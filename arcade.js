@@ -34,7 +34,7 @@ const progression = require('./progression');
 const { dayKey, nextRotationAt, seededRandom } = require('./shop');
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
-const PUBLIC_DECKS_FILE = path.join(DATA_DIR, 'public_decks.json');
+const DECKS_FILE = path.join(DATA_DIR, 'decks.json');
 
 // --- Barème ---
 
@@ -68,8 +68,11 @@ const RESULTS = Object.freeze(['win', 'loss']);
 // Lecture directe du fichier, cache invalidé au mtime — même patron que
 // sets.js / variants.js / cosmetics.js : un deck retouché depuis l'admin change
 // de difficulté sans redémarrage.
-
-const publicDecks = jsonCache(PUBLIC_DECKS_FILE, list => list);
+//
+// ⚠️ `decks.json` porte AUSSI les decks de bots (`bot: true`, cf. `bots.js`) :
+// l'Arcade ne doit jamais en tirer un comme adversaire solo, d'où le filtre ici
+// — même geste que les trois exclusions du pack de départ (`sets.isStarter`).
+const publicDecks = jsonCache(DECKS_FILE, list => list.filter(d => d && d.bot !== true));
 
 /** Nombre de cartes d'un deck public, tous tiers confondus. */
 function deckSize(deck) {
