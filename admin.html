@@ -2073,7 +2073,7 @@ function renderCardDetail() {
         <label>Valeur en matériel <span class="slider-val" id="f-matval-val">${cardMaterialValue(c)}</span></label>
         <input type="range" id="f-matval" min="1" max="5" step="1" value="${cardMaterialValue(c)}" oninput="document.getElementById('f-matval-val').textContent=this.value">
         <div class="slider-marks"><span>1</span><span>3</span><span>5</span></div>
-        <span style="font-size:11px;color:var(--muted);margin-top:4px">Slots que l'unité représente quand elle est CONSOMMÉE comme matériel. C'est une donnée, jamais dérivée : les deux camps la lisent.</span>
+        <span style="font-size:11px;color:var(--muted);margin-top:4px">Slots que l'unité représente quand elle est CONSOMMÉE sur un slot <strong style="color:var(--text)">libre</strong>. ⚠️ Une recette qui la <strong style="color:var(--text)">nomme</strong> ne lui paie qu'un slot, quelle que soit cette valeur. C'est une donnée, jamais dérivée : les deux camps la lisent.</span>
       </div>
     </div>
 
@@ -2105,7 +2105,8 @@ function renderCardDetail() {
 
     <div class="section-title">Recettes d'invocation</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
-      La carte est jouable dès qu'<strong style="color:var(--text)">une seule</strong> recette est satisfaite. Une recette réclame un nombre de <strong style="color:var(--text)">matériels</strong> — des unités du terrain ou du cimetière, comptées en « valeur en matériel » — dont une partie peut être <strong style="color:var(--text)">nommée</strong>. Aucune recette : la carte se pose directement.
+      La carte est jouable dès qu'<strong style="color:var(--text)">une seule</strong> recette est satisfaite. Une recette réclame un nombre de <strong style="color:var(--text)">matériels</strong> — des unités du terrain ou du cimetière — dont une partie peut être <strong style="color:var(--text)">nommée</strong>. Aucune recette : la carte se pose directement.
+      ⚠️ Un slot <strong style="color:var(--text)">libre</strong> se paie en « valeur en matériel » (un composite en couvre plusieurs) ; un matériel <strong style="color:var(--text)">nommé ne paie qu'UN slot</strong>, quelle que soit sa valeur. « 3 matériels dont Dragon blanc » se lit donc littéralement : le dragon nommé (même s'il vaut 2), plus deux autres unités.
     </div>
     <div id="conditions-list">
       ${cardConditions(c).map((cd, idx) => conditionRowHtml(cd, idx)).join('')
@@ -2267,11 +2268,22 @@ function cardMaterialValue(c) {
  * carte serait injouable sans que rien ne le dise. L'éditeur l'annonce — il
  * n'interdit pas la saisie (même discipline que le sélecteur de packs : un
  * tableau de bord, pas un validateur), mais il ne laisse pas passer en silence.
+ *
+ * ⚠️ Il annonce aussi le prix RÉEL : un matériel nommé ne paie qu'un slot, si
+ * gros soit-il. Nommer un composite ne fait donc PAS baisser le coût — c'est le
+ * contresens que le compte de matériels invite à faire, et le seul endroit où
+ * on peut le dire avant que la carte ne parte en jeu.
  */
 function conditionRowHtml(cd, idx) {
   const materials = conditionMaterials(cd);
   const requires = conditionRequires(cd);
   const over = requires.length > materials;
+  // Les matériels nommés qui vaudraient PLUS d'un slot ailleurs : ici ils n'en
+  // paient qu'un. Un matériel d'attribut ne nomme aucune carte, donc aucune
+  // valeur — il n'a rien à dire.
+  const shrunk = requires
+    .map(mid => cards.find(x => x.id === mid))
+    .filter(c => c && (c.material_value ?? 1) > 1);
   // Le mot qui introduit la liste se dérive du COÛT seul, exactement comme
   // `data/SummonInfo.materialsLabel` — l'admin doit lire ce que le joueur lira.
   const label = requires.length < materials
@@ -2296,6 +2308,11 @@ function conditionRowHtml(cd, idx) {
       </div>` : ''}
       ${materials === 1 ? `<div style="margin-top:8px;font-size:11px;color:var(--muted)">
         📍 Un seul matériel : l'unité invoquée prendra <strong style="color:var(--text)">la case</strong> de celui qu'elle consomme.
+      </div>` : ''}
+      ${shrunk.length ? `<div style="margin-top:8px;font-size:11px;color:var(--muted)">
+        ◈ ${shrunk.map(c => `<strong style="color:var(--text)">${esc(c.name)}</strong> (vaut ${c.material_value})`).join(', ')} —
+        nommé${shrunk.length > 1 ? 's' : ''}, donc compté${shrunk.length > 1 ? 's chacun' : ''} pour <strong style="color:var(--text)">1 slot</strong>.
+        Il reste ${Math.max(0, materials - requires.length)} slot${materials - requires.length > 1 ? 's' : ''} libre${materials - requires.length > 1 ? 's' : ''}, payable${materials - requires.length > 1 ? 's' : ''} à la valeur.
       </div>` : ''}
       <div style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">${label}</div>
       <div class="materials-list" id="cond-requires-${idx}">

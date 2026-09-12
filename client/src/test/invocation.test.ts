@@ -5,9 +5,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   canSummon, summon, matchesMaterial, materialLineageLegit,
-  materialLineageMatches, sumMaterialValue, exceedsBoardSlots,
+  materialLineageMatches, materialSlotsPaid, exceedsBoardSlots,
 } from '../logic/InvocationManager.js';
-import { materialCandidateCells, materialsComplete, getUncoveredRequirements } from '../logic/InvocationRules.js';
+import {
+  materialCandidateCells, materialsComplete, getUncoveredRequirements, isPlayable, validCells,
+} from '../logic/InvocationRules.js';
 import { makeBoard, makeCard, spawn } from './helpers.js';
 
 // canSummon retourne { ok, reason } ou { options } (cartes à summon_options) ;
@@ -100,12 +102,89 @@ describe('material_value', () => {
     expect(p.material_value).toBe(1);
   });
 
-  it('sumMaterialValue additionne les slots représentés', () => {
+  it('materialSlotsPaid additionne les slots représentés sur un coût NU', () => {
     const board = makeBoard();
     const a = spawn(board, AVIAN, 'player', { col: 0, row: 0 });
     const fw = spawn(board, FIREWING, 'player', { col: 1, row: 0 });
     fw.material_value = 2;
-    expect(sumMaterialValue([a, fw])).toBe(3);
+    expect(materialSlotsPaid([a, fw])).toBe(3);
+  });
+});
+
+// ── Un matériel NOMMÉ ne paie qu'UN slot ────────────────────────────────────
+//
+// Cas de référence : « Ultime dragon blanc aux yeux bleus » exige 3 matériels
+// DONT « Dragon blanc aux yeux bleus », qui vaut 2. La recette se lit
+// littéralement : le dragon nommé, plus deux autres unités. Avant la règle, le
+// dragon payait ses 2 slots et la recette ne coûtait que deux unités — nommer
+// un gros matériel BAISSAIT le prix, et le chiffre de la vignette mentait.
+describe('un matériel nommé ne paie qu’un slot', () => {
+  const BIG = makeCard({ id: 'BIG', material_value: 2 });
+  const FODDER = (n: number) => makeCard({ id: `FODDER_${n}` });
+  const ULTIME = makeCard({ id: 'ULTIME', summon_conditions: [{ materials: 3, requires: ['BIG'] }] });
+
+  const cells = (card: unknown, board: unknown, selectedMaterials: unknown[]) =>
+    validCells(card as any, {
+      board, graveyard: [], selectedMaterials, playerBoardSlots: 5, conditionIndex: null,
+    } as any);
+
+  const setup = () => {
+    const board = makeBoard();
+    const big = spawn(board, BIG, 'player', { col: 0, row: 0 });
+    const f1 = spawn(board, FODDER(1), 'player', { col: 1, row: 0 });
+    const f2 = spawn(board, FODDER(2), 'player', { col: 2, row: 0 });
+    return { board, big, f1, f2 };
+  };
+
+  // ⚠️ C'est `materialsComplete` (donc `validCells`) qui juge la SÉLECTION —
+  // `canSummon`, lui, ne juge que ce qui est disponible.
+  // Mutation : compter le matériel nommé à sa `material_value` → ROUGE.
+  it('le matériel nommé + UN remplissage ne suffisent pas', () => {
+    const { board, big, f1 } = setup();
+    expect(materialSlotsPaid([big, f1], ['BIG'])).toBe(2);
+    expect(materialsComplete(ULTIME as any, [big, f1], null, board)).toBe(false);
+    expect(cells(ULTIME, board, [big, f1])).toEqual([]);
+  });
+
+  it('le matériel nommé + DEUX remplissages paient les trois slots', () => {
+    const { board, big, f1, f2 } = setup();
+    expect(materialSlotsPaid([big, f1, f2], ['BIG'])).toBe(3);
+    expect(materialsComplete(ULTIME as any, [big, f1, f2], null, board)).toBe(true);
+    expect(cells(ULTIME, board, [big, f1, f2]).length).toBeGreaterThan(0);
+  });
+
+  // Le pendant : hors exigence nommée, la même unité vaut toujours ses 2 slots.
+  it('la même unité vaut ses 2 slots dans un coût nu', () => {
+    const board = makeBoard();
+    const big = spawn(board, BIG, 'player', { col: 0, row: 0 });
+    const nu = makeCard({ id: 'NU', summon_conditions: [{ materials: 2 }] });
+    expect(materialsComplete(nu as any, [big], null, board)).toBe(true);
+  });
+
+  // ⚠️ Et le corollaire qui NE change pas : une unité qui tient PLUSIEURS
+  // exigences les paie toutes. Chimère vaut 2, représente ses deux matériaux,
+  // comble et paie les deux slots. Mutation : compter 1 par unité citée (et non
+  // 1 par exigence tenue) → ROUGE.
+  it('un composite qui tient DEUX exigences paie les deux slots', () => {
+    const board = makeBoard();
+    const avian = spawn(board, AVIAN, 'player', { col: 0, row: 0 });
+    const fw = spawn(board, FIREWING, 'player', { col: 1, row: 0 });
+    void avian;
+    expect(materialSlotsPaid([fw], ['AVIAN', 'BURSTINATRIX'])).toBe(2);
+    expect(materialsComplete(FIREWING as any, [fw], null, board)).toBe(true);
+  });
+
+  // La carte s'annonce injouable tant que le compte n'y est pas : la garde de
+  // quantité de `canSummon` compte elle aussi avec les exigences nommées.
+  // Mutation : garde de quantité en somme de `material_value` → ROUGE (la carte
+  // se dirait jouable et aucune sélection ne la paierait).
+  it('deux unités en tout, dont le matériel nommé : la carte est refusée', () => {
+    const board = makeBoard();
+    const big = spawn(board, BIG, 'player', { col: 0, row: 0 });
+    spawn(board, FODDER(1), 'player', { col: 1, row: 0 });
+    void big;
+    expect(can(ULTIME as any, { col: 4, row: 0 }, board, [], [], []).ok).toBe(false);
+    expect(isPlayable(ULTIME as any, board, [], 5)).toBe(false);
   });
 });
 

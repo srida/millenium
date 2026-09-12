@@ -167,10 +167,15 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
             trancher qu'en tentant l'invocation. ⚠️ Sur une UNITÉ elle se dit
             toujours (c'est ici qu'on vient chercher la réponse) ; sur une carte
             en main, seulement au-dessus de 1 — le défaut n'apprend rien à qui
-            n'a encore rien posé. La pastille du plateau suit la même règle. */}
+            n'a encore rien posé. La pastille du plateau suit la même règle.
+            ⚠️ La valeur ne se touche que sur un slot LIBRE : consommée au titre
+            d'un matériel que la recette NOMME, l'unité ne paie qu'un slot
+            (`materialSlotsPaid`). Un « vaut 2 » sec s'y lirait comme une
+            promesse que l'invocation ne tient pas. */}
         {(isUnit || (data.material_value ?? 1) > 1) && (
           <div className="mt-1 text-[11px] text-tier-2">
-            ◈ Vaut {materialValueOf(data as Card)} matériel{materialValueOf(data as Card) > 1 ? 's' : ''} une fois consommée
+            ◈ Vaut {materialValueOf(data as Card)} matériel{materialValueOf(data as Card) > 1 ? 's' : ''} sur un slot libre
+            {materialValueOf(data as Card) > 1 ? ' — 1 seul si la recette la nomme' : ''}
           </div>
         )}
         {lineage.length > 0 && (

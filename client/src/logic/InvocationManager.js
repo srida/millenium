@@ -182,8 +182,12 @@ function _canSummonWith(card, condition, pos, board, graveyard, selectedMaterial
 
   // 3. Quantité — disponible partout (terrain + cimetière) ; c'est la
   //    sélection, pas cette garde, qui décide d'où viennent les matériaux.
+  // ⚠️ La garde compte AVEC les exigences nommées (un matériel nommé ne vaut
+  // qu'un slot) : sans elles, tout ce que le joueur possède serait compté à sa
+  // pleine valeur, la carte s'annoncerait jouable et aucune sélection n'aurait
+  // jamais pu la payer.
   const available = [...board.getUnitsOnSide('player').filter(u => u.isAlive()), ...graveyard];
-  if (sumMaterialValue(available) < needed)
+  if (materialSlotsPaid(available, required) < needed)
     return fail(`Requiert ${needed} matériel(s) sur le terrain ou au cimetière`);
 
   // 4. Exigences nommées — chacune tenue par une doublure légitime (lignée),
@@ -274,7 +278,7 @@ function _autoSelectMaterials(card, condition, board, graveyard) {
   }
 
   for (const u of pool) {
-    if (sumMaterialValue(chosen) >= needed) break;
+    if (materialSlotsPaid(chosen, required) >= needed) break;
     chosen.push(u);
   }
   return chosen;
@@ -351,10 +355,9 @@ export function materialLineageLegit(unit, requiredMaterials) {
 }
 
 /**
- * Le sous-ensemble de `required` que `units` ne couvre pas — la SEULE écriture
- * de l'appariement exigences ↔ matériaux. `canSummon` (règle 4), la complétude
- * de la sélection et le filtrage des candidats y passent tous ; recopiée, la
- * règle finissait par refuser à un endroit ce qu'elle acceptait à l'autre.
+ * L'appariement exigences ↔ matériaux — la SEULE écriture de la règle. Rend,
+ * pour chaque exigence, l'unité qui la tient (`holder`, `-1` si personne) et,
+ * pour chaque unité, le nombre d'exigences qu'elle porte (`load`).
  *
  * ⚠️ Une unité couvre AUTANT d'exigences qu'elle paie de slots
  * (`material_value`), pas une seule. « Chimère le roi des bêtes fantôme » vaut
@@ -366,17 +369,25 @@ export function materialLineageLegit(unit, requiredMaterials) {
  * ⚠️ C'est un vrai COUPLAGE (chemins augmentants), pas un premier venu : avec
  * deux exigences A et B et deux unités dont l'une ne sait faire que A, prendre
  * la polyvalente pour A laisserait B introuvable alors qu'un échange le
- * couvrait. L'ordre de parcours est fixe, donc le verdict est déterministe.
+ * couvrait.
+ *
+ * ⚠️ Les unités sont essayées de la MOINS chère à la plus chère, et ce n'est
+ * plus cosmétique depuis qu'un slot NOMMÉ ne paie qu'un seul matériel
+ * (`materialSlotsPaid`) : y asseoir un composite gaspille tout ce qu'il vaut
+ * au-delà des exigences qu'il tient. L'ordre ne change pas le verdict de
+ * couverture — le couplage reste maximum — seulement QUI tient quoi, et il
+ * reste entièrement déterministe (départage par l'index de la sélection).
  */
-export function getUncoveredRequirements(required, units) {
+function matchRequirements(required, units) {
   const capacity = units.map(u => Math.max(1, u.material_value ?? 1));
   const load = units.map(() => 0);
   const holder = required.map(() => -1);   // exigence → index d'unité, ou -1
+  const order = units.map((_, i) => i).sort((a, b) => capacity[a] - capacity[b] || a - b);
 
   // Kuhn : on tente d'installer l'exigence `ri`, quitte à déloger une exigence
   // déjà portée par une unité saturée vers une autre unité qui la couvre.
   const seat = (ri, seen) => {
-    for (let ui = 0; ui < units.length; ui++) {
+    for (const ui of order) {
       if (seen[ui] || !materialLineageMatches(units[ui], required[ri], required)) continue;
       seen[ui] = true;
       if (load[ui] < capacity[ui]) { holder[ri] = ui; load[ui]++; return true; }
@@ -390,7 +401,19 @@ export function getUncoveredRequirements(required, units) {
     return false;
   };
 
-  return required.filter((matId, ri) => !seat(ri, units.map(() => false)));
+  for (let ri = 0; ri < required.length; ri++) seat(ri, units.map(() => false));
+  return { holder, load };
+}
+
+/**
+ * Le sous-ensemble de `required` que `units` ne couvre pas. `canSummon`
+ * (règle 4), la complétude de la sélection et le filtrage des candidats y
+ * passent tous ; recopiée, la règle finissait par refuser à un endroit ce
+ * qu'elle acceptait à l'autre.
+ */
+export function getUncoveredRequirements(required, units) {
+  const { holder } = matchRequirements(required, units);
+  return required.filter((matId, ri) => holder[ri] === -1);
 }
 
 // matchesMaterial + materialLineageLegit — le test à utiliser pour un candidat.
@@ -400,7 +423,24 @@ export function materialLineageMatches(unit, matId, requiredMaterials) {
   return materialLineageLegit(unit, requiredMaterials);
 }
 
-// Total des slots représentés par une liste d'unités.
-export function sumMaterialValue(units) {
-  return units.reduce((sum, u) => sum + (u.material_value ?? 1), 0);
+/**
+ * Combien de slots cette sélection paie, face aux exigences NOMMÉES de la
+ * condition — la seule réponse à « le coût est-il couvert ? ».
+ *
+ * ⚠️ **Un matériel NOMMÉ ne compte que pour 1, quelle que soit sa valeur.** Une
+ * unité paie sa `material_value` quand elle bouche un slot libre, mais une
+ * exigence nommée est un slot et un seul : « 3 matériels dont CORE_002 » se lit
+ * donc littéralement — CORE_002, qui vaut pourtant 2, plus deux autres unités.
+ * Sans cette règle, nommer un gros matériel BAISSAIT le prix de la recette, et
+ * le chiffre affiché sur la carte ne disait plus ce qu'il en coûte.
+ *
+ * ⚠️ Corollaire qui NE change pas : une unité qui tient PLUSIEURS exigences les
+ * paie toutes (une par slot). Chimère, qui vaut 2 et représente ses deux
+ * matériaux, comble et paie toujours les deux slots qu'elle nomme.
+ *
+ * `required` vide (un coût nu) rend la simple somme des `material_value`.
+ */
+export function materialSlotsPaid(units, required = []) {
+  const { load } = required.length ? matchRequirements(required, units) : { load: [] };
+  return units.reduce((sum, u, i) => sum + (load[i] > 0 ? load[i] : (u.material_value ?? 1)), 0);
 }

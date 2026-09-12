@@ -1,5 +1,5 @@
 import {
-  materialLineageMatches, sumMaterialValue, getUncoveredRequirements,
+  materialLineageMatches, materialSlotsPaid, getUncoveredRequirements,
   canSummon, exceedsBoardSlots, summonConditions, conditionAt, conditionMaterials,
   conditionRequires, conditionIsFree,
 } from './InvocationManager.js';
@@ -44,7 +44,10 @@ export function materialsComplete(card, mats, conditionIndex = null, board = nul
   // insacrifiable la moindre unité composite (une fusion hérite d'une lignée
   // qu'un coût nu ne nomme jamais).
   if (getUncoveredRequirements(required, mats).length > 0) return false;
-  if (sumMaterialValue(mats) < conditionMaterials(condition)) return false;
+  // ⚠️ Un matériel NOMMÉ ne paie qu'un slot, si gros soit-il : c'est
+  // `materialSlotsPaid` qui porte la règle, et l'écrire ici en somme de
+  // `material_value` ferait passer une sélection que `canSummon` refuse.
+  if (materialSlotsPaid(mats, required) < conditionMaterials(condition)) return false;
 
   // Un doublon vivant du résultat doit figurer dans la sélection, sans quoi
   // `canSummon` refusera au moment de poser.
@@ -106,10 +109,10 @@ function _candidates(card, condition, alreadySelected, available, board) {
     return list;
   };
 
-  if (sumMaterialValue(alreadySelected) >= needed) return withDuplicate([]);
+  if (materialSlotsPaid(alreadySelected, required) >= needed) return withDuplicate([]);
 
   const uncovered = getUncoveredRequirements(required, alreadySelected);
-  const remainingSlots = needed - sumMaterialValue(alreadySelected);
+  const remainingSlots = needed - materialSlotsPaid(alreadySelected, required);
 
   if (uncovered.length > 0 && uncovered.length >= remainingSlots) {
     // Plus de mou : seules les unités qui couvrent une exigence restante — et
@@ -166,7 +169,7 @@ function _playableWith(card, condition, board, graveyard, maxSlots) {
 
   const required = conditionRequires(condition);
   const available = [...living, ...graveyard];
-  if (sumMaterialValue(available) < conditionMaterials(condition))
+  if (materialSlotsPaid(available, required) < conditionMaterials(condition))
     return no(`Requiert ${conditionMaterials(condition)} matériel(s) sur le terrain ou au cimetière`);
   const uncovered = getUncoveredRequirements(required, available);
   // ⚠️ Le motif ne NOMME pas ce qui manque : `logic/` ne sait pas traduire un id
