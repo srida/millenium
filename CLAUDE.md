@@ -574,7 +574,7 @@ Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()`
 
 - **Le point de capture est la dernière instruction de `startPreparation()`**, pas le début du round : la Phase Shopping a lieu **avant**, donc une magie choisie au shopping n'est **jamais** annulable.
 - Seules deux choses mutent l'état joueur en préparation : l'invocation (`place` → `InvocationManager.summon`) et le déplacement (`reposition` / `board.moveUnit`).
-- ⚠️ **Rien n'est cloné**, et c'est ce qui rend la restauration exacte : `summon()` ne mute jamais les unités qu'elle consomme, donc garder les **références** rend `_base`, `_shopping_bonus`, `veterancy_points`, `current_hp`, `shield` et l'`uid` intacts. Un clone ferait payer au joueur ce qu'il avait acquis. Seules les **positions** sont copiées.
+- ⚠️ **Rien n'est cloné**, et c'est ce qui rend la restauration exacte : `summon()` ne mute jamais les unités qu'elle consomme, donc garder les **références** rend `_base`, `_shopping_bonus`, `veterancy_points`, `current_hp`, `shield` et l'`uid` intacts. Un clone ferait payer au joueur ce qu'il avait acquis. Positions et **`_stat_bonuses`** sont les deux seules choses copiées — la seconde depuis le trigger `a_l_invocation`, sans quoi annuler laissait aux SURVIVANTES le cadeau d'une invocation annulée.
 - Garder l'`uid` rend le rendu gratuit : `Scene3D.refresh()` est un diff indexé par uid.
 - ⚠️ **On vide TOUTES les cases joueur avant d'en reposer une seule** : `placeUnit` jette sur case occupée.
 - **La disponibilité se calcule structurellement** (`canUndoPreparation`, comparaison à l'état capturé), jamais par un drapeau posé par les mutateurs — le déplacement tap-tap passe par `board.moveUnit` sans traverser `GameSession`. Le bouton est **masqué** tant que c'est faux.
@@ -772,6 +772,8 @@ materialValueOf(card) / isAttributeMaterial(matId)
 
 `InvocationRules` (pur, sans mutation) alimente l'UI : `isPlayable`, `needsMaterials`, `materialsComplete`, `validCells`, `materialCandidateCells`, `materialCandidateGraveyard`, `summonConditionsStatus`, `getUncoveredRequirements`, `hasEmptyPlayerCell`. `GameSession` les ré-expose en injectant board/main/cimetière/slots.
 
+⚠️ **`GameSession.place()` déclenche `a_l_invocation`**, APRÈS la pose — l'unité doit compter dans son propre palier. Le branchement sort sèchement quand aucun attribut du catalogue ne déclare `on_summon` (test de la donnée brute, mémoïsé) : il ne compile rien tant que personne n'écrit ce contenu.
+
 ⚠️ **RIEN n'est pré-sélectionné** : l'UI ne désigne jamais un matériau à la place du joueur. Le liseré **blanc** dit « matériau retenu » (`board3d.css`), l'**orange** « candidat » — poser du blanc avant tout geste annonce une dépense non consentie, et le premier tap sur la cible la **désélectionnait** (`onUnitTap` bascule). Le geste en UN TAP est porté par `onUnitTap`, qui pose directement dès que le tap **complète** la sélection.
 
 **Conditions multiples** — tous les points d'entrée acceptent un `conditionIndex` ; `null` = la première (`summon`) ou l'évaluation de **toutes** (`canSummon`). `isPlayable` est vrai dès qu'**une** condition l'est. L'IA les essaie de la **moins chère à la plus chère** — c'était « la transformation d'abord », qui disait la même chose.
@@ -913,9 +915,9 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 
 | Effet | Timing | Détail |
 |---|---|---|
-| `stat_bonus` | `start_of_combat` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step). ⚠️ Sur `attack_rate` / `movement_rate`, le bonus est **positif pour accélérer** et s'écrête à 100 |
-| `shield` | `start_of_combat` | `value` × nombre d'**alliés vivants** |
-| `effect_immunity` | `start_of_combat` | Pose `is_effect_immune` — annule les pouvoirs de debuff |
+| `stat_bonus` | `start_of_combat` · `on_summon` · `on_power_fired` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step). ⚠️ Sur `attack_rate` / `movement_rate`, le bonus est **positif pour accélérer** et s'écrête à 100 |
+| `shield` | `start_of_combat` · `on_summon` · `on_power_fired` | `value` × nombre d'**alliés vivants** |
+| `effect_immunity` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_effect_immune` — annule les pouvoirs de debuff |
 | `stat_modifier` | `during_combat` | Déclenché par `trigger` : `on_ally_neutralized` / `on_enemy_neutralized` |
 | `revive` | `end_of_combat` | Réanime une unité neutralisée à `hp_percent` % (déf. 50) |
 | `draw_bonus` | `end_of_combat` | Pioches supplémentaires (plafonné par `max`) |
@@ -926,7 +928,9 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 
 `timing: 'none'` = archétype purement descriptif.
 
-⚠️ **`AttributeManager` ne porte plus que les SEUILS** (quel palier est actif, sur quel camp) : les effets sont traduits par `compileAttributes` et appliqués par `executer` (`logic/effects/`). Le compilateur émet **tous** les paliers, chacun avec sa condition ; cette classe choisit lequel s'applique. ⚠️ Le `quand` d'un effet est dérivé de son **TYPE**, jamais du `timing` de son porteur — un désaccord est un refus nommé (`compilationRefusee`) au lieu d'un effet mort.
+⚠️ **`AttributeManager` ne porte plus que les SEUILS** (quel palier est actif, sur quel camp) : les effets sont traduits par `compileAttributes` et appliqués par `executer` (`logic/effects/`). Le compilateur émet **tous** les paliers, chacun avec sa condition ; cette classe choisit lequel s'applique.
+⚠️ **Le `quand` d'un effet vient de son TYPE, jamais du `timing` de son porteur.** Un type peut en honorer PLUSIEURS (colonne Timing ci-dessus) ; l'EFFET choisit alors par son propre champ `timing`, et le plus spécifique l'emporte sur celui du porteur. Un moment hors de la liste de son type est un **refus nommé** (`moment impossible`), jamais un effet mort — c'est cette règle qui a tué onze effets quand elle n'existait pas.
+⚠️ **`portee`** (`a_chaque_fois` · `une_fois_par_combat` · `une_fois_par_round` · `une_fois_par_partie`) n'est acceptée **que là où un appelant tient le compte** — aujourd'hui `on_summon` seul (`QUANDS_AVEC_MEMOIRE`, jumeau entre `compile.ts` et `effect-schema.mjs`). Ailleurs c'est un refus à l'écriture, pas un effet qui se tait en jeu.
 ⚠️ **Un bonus `during_combat` sur ATQ / PV passe par `_stat_bonuses`** comme les rythmes : il tient tout le combat et n'est effacé que par `resetCombatStats()` en fin de combat. Il s'écrivait avant directement sur la stat effective (`applyStatModifier`), donc il disparaissait au premier `_recomputeStats()` venu.
 ⚠️ **L'ordre des effets de fin de combat est ABSOLU** (`cleDeTri`), plus celui du plateau : chaque pioche garantie consomme un tirage, et l'ordre d'avant dépendait côté adversaire du plateau reconstruit.
 
@@ -944,7 +948,7 @@ getActiveSynergies(units)                  // → [{ attr, count, activeThreshol
 - ⚠️ Les seuils `during_combat` sont **verrouillés au début du combat** : les morts en cours de combat ne désactivent pas les effets déjà actifs.
 - Tous les bonus d'attribut sont réinitialisés en fin de combat. ⚠️ `finishCombat` balaie **tous les participants** (`combatants`, capturé avant les filtres), neutralisés compris — sinon une unité morte garde ses bonus, `max_hp` gonflé compris, et le round suivant les recumule.
 - ⚠️ `applyEndOfCombat` traite les **deux camps** (`_applyEndForSide`) : `revive` remet une unité sur le plateau et vaut donc des deux côtés ; les effets de **ressource** (pioches, slot, multiplicateur, shopping) restent au joueur, seul destinataire possible.
-- ⚠️ **La pioche fait exception : elle a un destinataire des deux côtés** (`EnemyAI.drawHand` pioche aussi) → `enemy_draw_bonus` / `enemy_guaranteed_draws`. Les trois autres ressources sont tenues par **deux gardes qui se couvrent** — `Monde.ressourcesLimitees` (le moteur n'accumule pas) et le versement (l'appelant ne lit pas ces champs côté adverse). Retirer l'une seule ne fait rouge aucun test : les muter **ensemble**.
+- ⚠️ **L'IA porte ses effets comme un vrai joueur** : le moteur accumule pour les deux camps, sans drapeau d'asymétrie, et c'est le **versement** qui dit ce qui a un destinataire. Trois ressources en ont un côté IA — la pioche (`EnemyAI.drawHand`), l'emplacement de plateau (`enemy_board_slots`) et le multiplicateur de dégâts ; le Shopping n'en a pas, et c'est un fait du jeu, pas une limite du moteur. ⚠️ Le cap d'emplacement a **un compteur par camp** : « +1 par camp sur toute la partie », pas « +1 en tout ».
 - ⚠️ **Un effet n'a plus qu'UN endroit où se déclarer : `effect-schema.mjs`** (racine). Il en avait trois — le moteur, le `<select>` de l'onglet, le libellé français — et deux sur trois donnaient une fonctionnalité que personne ne pouvait ni écrire ni lire (c'est arrivé à `shopping_bonus`). La table déclare, `compile.ts` traduit, et `effect-schema.test.ts` les fait répondre la même chose : un type déclaré doit COMPILER, un type que le compilateur traduit doit être OFFERT, un champ offert doit être LU (sonde), un champ non offert ne doit PAS l'être (sonde inverse).
 
 **L'icône d'un attribut est une image ; l'emoji n'est que le repli.** Art dans `ILLUS_DIR` sous l'`id` de l'attribut, importé depuis l'onglet Attributs. Le champ `icon` du JSON reste l'emoji de repli.
@@ -1058,13 +1062,15 @@ Une **grammaire** par pouvoir — direction, silhouette, locus —, car c'est el
 { type: 'attack',      attacker, target, damage }
 { type: 'power',       unit, targets, power_id, extra: {...} }
 { type: 'dot',         unit, damage }               // poison OU brûlure
-{ type: 'stat_change', unit, stat, value }          // effet attribut during_combat
+{ type: 'stat_change', unit, stat, value }          // effet attribut de combat
 { type: 'freeze',      cell, expiresAtStep }
 { type: 'death',       unit }
 { type: 'combat_end',  winner }                     // 'player' | 'enemy' | 'draw' | 'timeout'
 ```
 
 `POWER_TELEPORT` émet `power` + `move`, `POWER_FREEZE` émet `power` + `freeze` : le `power` sert au toast/flash, le second porte la donnée de l'animateur.
+
+⚠️ **Un pouvoir qui part déclenche `pouvoir_utilise`** (`AttributeManager.onPowerFired`), sous la même condition que la remise à zéro de la jauge — le camp est celui du LANCEUR, et les paliers sont ceux **verrouillés au début du combat**, comme pour un `stat_modifier`. La boucle NOMME un moment, elle ne connaît aucun effet.
 
 **Cinq phases par step**, sur les unités vivantes triées par l'ordre d'action :
 1. Ticks passifs (jauge, décomptes paralysie/block/confusion/taunt, pulses de DOT)

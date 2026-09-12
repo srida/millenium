@@ -1129,6 +1129,106 @@ d'origine suppose que la donnée porte la forme **générique** (une tâche, un
 champ, un opérateur) plutôt qu'un type historique traduit 1:1 ; c'est un
 changement de donnée, donc de l'étape 4.
 
+### 6.7 État de l'étape 4 — le contenu
+
+**Deux triggers neufs, et ils étaient déjà branchés.** Le §3.5 disait des deux
+que leur point d'accroche existait ; il ne manquait que le moyen de les DIRE en
+donnée.
+
+| Trigger | Point d'accroche | Ce qu'il a fallu |
+|---|---|---|
+| `a_l_invocation` | `GameSession.place()` (ne servait qu'aux missions) | un `timing` sur l'EFFET |
+| `pouvoir_utilise` | `CombatManager`, qui vide la jauge juste après | le geste d'`onUnitNeutralized`, extrait et partagé |
+
+⚠️ **Ce qui a dû bouger dans le principe — et ce qui n'a pas bougé.** La règle
+qui a tué onze effets était *« le `quand` vient du TYPE, jamais du porteur »*.
+Elle tient : un `revive` ne partira jamais à l'invocation, c'est un refus nommé
+(`moment impossible`). Ce qui change, c'est qu'un type peut en honorer
+PLUSIEURS, et que l'effet choisit alors (`effect.timing`). Le contrôle de
+cohérence porteur/effet ne s'applique plus que si l'effet n'a pas nommé son
+moment — le plus spécifique gagne, sinon il refuserait exactement ce qu'on vient
+d'ouvrir.
+
+**Le vocabulaire qui était déclaré sans être exécutable, soldé :**
+
+- **`poser_effet`** (1 action sur 7) n'était émis par aucun compilateur et
+  n'était pas dispatché : elle TRAVERSAIT jusqu'à la branche `modifier` et se
+  faisait traiter comme une modification sans champ. Pas un refus nommé — une
+  mauvaise exécution, que rien n'aurait signalée le jour où un compilateur se
+  serait mis à l'émettre. Elle est implémentée, et la **profondeur 1** du §3.6
+  est portée par le TYPE (`TacheSimple` exclut `poser_effet`), donc tenue par le
+  compilateur et non par une garde qu'on pourrait oublier.
+- **`portee`** (§3.5) n'existait pas, alors que `verrouille` — son jumeau sur le
+  même objet — avait été implémenté.
+- **Trois `quand` sur huit** (`avant_pioche`, `apres_pioche`, `debut_shop`) que
+  rien n'émettait ni ne jouait ont été RETIRÉS. Ils décrivaient les points de
+  branchement futurs du §3.6 ; ils reviendront avec leur émetteur. La règle
+  d'entrée est désormais écrite dans `QUANDS` : *un `quand` n'y figure que si
+  quelque chose sait l'ÉMETTRE et quelque chose sait le JOUER.*
+  ⚠️ Ils avaient d'abord été branchés dans `GameSession` — trois appels
+  qu'aucune donnée ne pouvait atteindre. Reverti : c'était le même défaut d'un
+  cran plus haut.
+
+⚠️ **Le partage qui commande le registre et la portée : le moteur inscrit et
+demande, il ne se souvient de rien.** `Monde.registre` et `Monde.consommePortee`
+appartiennent à l'appelant, seul à savoir quand un combat finit et quand un
+round tourne. Lui donner cette mémoire, c'est lui donner un cycle de vie — ce
+que `logic/` ne lui accorde nulle part ailleurs. Même partage que `Ressources`.
+
+⚠️ **Une portée n'est acceptée QUE là où un appelant tient le compte**
+(`QUANDS_AVEC_MEMOIRE`, jumeau entre le compilateur et le schéma) — aujourd'hui
+l'invocation seule. `pouvoir_utilise` n'y est pas : `AttributeManager` est
+reconstruit à chaque combat, il saurait tenir un `une_fois_par_combat` mais
+jamais un `une_fois_par_partie`, et offrir la moitié d'une table serait pire que
+rien.
+
+**La conséquence la moins évidente : « Tout annuler » a dû apprendre.** Rien ne
+mutait une unité en préparation avant `a_l_invocation` ; c'est pourquoi le point
+de retour ne copiait que les positions. Il copie désormais `_stat_bonuses`, sans
+quoi annuler laissait aux SURVIVANTES le cadeau d'une invocation annulée.
+⚠️ Ce cas a demandé DEUX rounds pour s'exhiber : le témoin ne peut pas être
+l'unité qu'on vient de poser, puisque l'annulation la retire du plateau.
+
+**Un effet mort structurel, trouvé en branchant `pouvoir_utilise`.** Le verrou
+de paliers filtrait sur `attr.timing !== 'during_combat'` — le couplage même que
+tout ce chantier retire. Un effet posé à `on_power_fired` sous un attribut
+`start_of_combat` ne trouvait aucun palier verrouillé et ne partait jamais.
+
+**L'IA porte ses effets comme un vrai joueur** (décision 3 du §7). Deux
+ressources ont un destinataire de ce côté — l'emplacement de plateau (avec son
+PROPRE compteur de cap : « +1 par camp », pas « +1 en tout ») et le
+multiplicateur de dégâts ; le Shopping n'en a pas, et c'est un fait du jeu.
+⚠️ **Effet PvP, et il CORRIGE une asymétrie documentée** : l'attribut ARCH_043
+(Spectre) ne faisait rien en duel, l'adversaire gonflant un `enemy_hp` aussitôt
+écrasé par le `player_hp` autoritaire d'en face. Les deux clients tombent
+maintenant d'accord.
+
+| Lot | Détecteur |
+|---|---|
+| registre + portée | rapport **identique** (rien ne les émet) |
+| `a_l_invocation` | rapport **identique** — aucun attribut livré ne déclare `on_summon`, et `place()` sort sur un test de la donnée brute, mémoïsé |
+| `pouvoir_utilise` | rapport **identique** |
+| l'IA porte ses effets | ligne de base **12,9 % → 12,9 %**, \|Δ\| médian **0,00 pt** (max 0,70), 83 → 85 significatives |
+
+Le dernier est petit parce que le catalogue livré ne porte AUCUN
+`board_slot_bonus` d'attribut et seulement deux `damage_multiplier_bonus` :
+l'ouverture compte surtout pour ce qui s'écrira ensuite.
+
+⚠️ **Un garde retiré parce qu'improuvable.** `ressourcesLimitees` avait d'abord
+été réduit à `sansProvenance` (ne pas inscrire la provenance d'une pioche
+adverse) — mais rien ne lit `adverse.sources`, donc aucune mutation ne le faisait
+rougir. Il est parti. La provenance reste un champ du joueur parce que le
+versement ne la publie que de ce côté : une raison qu'on peut éprouver.
+
+**Ce qui reste après l'étape 4** — et c'est peu :
+- les **pouvoirs** comme porteurs (leurs 14 tâches vivent dans `_firePower`) et
+  les deux magies `defuse_fusion` / `draw_material`, tous hors périmètre par
+  décision, pas par manque ;
+- les triggers `unite_blessee` / `avant_attaque` / `apres_attaque` (décision 6
+  du §7, jamais tranchée) ;
+- la migration des cinq files du §1.6 vers `poser_effet`, qui ramènera
+  `avant_pioche`, `apres_pioche` et `debut_shop` avec leur émetteur.
+
 ### 6.3 Ce que l'étape 1 a appris sur la façon de prouver
 
 **Six fois sur trois porteurs**, un test qui semblait probant ne l'était pas :
