@@ -16,7 +16,7 @@
 // bouton dédié en plus ferait doublon. Le deck actif sert dans tous les modes :
 // « Jouer » (le duel en ligne) et le Tournoi entrent donc directement, et seul
 // « Entraînement » ouvre le sélecteur, pour le seul deck de l'IA.
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
@@ -50,7 +50,7 @@ export default function MainMenu() {
   const isTabletDevice = useMediaQuery('(min-width: 700px) and (min-height: 700px)');
   const user = useAuthStore(s => s.user);
   const [devOpen, setDevOpen] = useState(false);
-  // Boutons dev derrière l'appui long sur la version — ils ne comptent plus
+  // Boutons dev derrière le badge « DEV » de la version — ils ne comptent pas
   // dans la hauteur du menu, qui doit tenir sans scroll.
   const openDevMenu = () => { if (user?.is_admin) setDevOpen(true); };
 
@@ -62,12 +62,12 @@ export default function MainMenu() {
       <FullscreenButton className="absolute right-3 top-[calc(env(safe-area-inset-top)+3.25rem)] sm:hidden" />
 
       {web && !isTabletDevice ? (
-        // Téléphone paysage : logo + version en rail gauche (plus de place en
-        // haut pour l'en-tête et la ligne d'actions), dock en rail droit.
-        <div className="flex min-h-0 flex-1 gap-3">
-          <LogoRail isAdmin={!!user?.is_admin} onVersionLongPress={openDevMenu} />
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <MenuHeader className="w-full" />
+        // Téléphone paysage : en-tête pleine largeur en haut, puis une ligne
+        // [rail logo | carte Jouer + grille | dock] en dessous.
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <MenuHeader />
+          <div className="flex min-h-0 flex-1 gap-3">
+            <LogoRail isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
             <div className="flex min-h-0 flex-1 items-stretch gap-3">
               <PlayCard className="min-w-0 flex-[1.15]" />
               <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
@@ -77,28 +77,34 @@ export default function MainMenu() {
                 <ArcadeButton className="h-full w-full" />
               </div>
             </div>
+            <Dock web>
+              <MissionsTile />
+              <ShopTile />
+              <GiftsTile />
+              <CatalogTile />
+            </Dock>
           </div>
-          <Dock web>
-            <MissionsTile />
-            <ShopTile />
-            <GiftsTile />
-            <CatalogTile />
-          </Dock>
         </div>
       ) : web ? (
         // Tablette paysage : logo au-dessus de la ligne d'actions, comme en
         // portrait, mais celle-ci se scinde [carte Jouer | grille 2×2].
+        // ⚠️ Le groupe [logo, ligne] se centre verticalement EN BLOC
+        // (`justify-center` sur leur conteneur commun, sous l'en-tête pinné) :
+        // sans lui, la ligne s'arrête à la hauteur voulue mais reste collée
+        // en haut, sous le logo, au lieu d'occuper le milieu de l'écran.
         <div className="flex min-h-0 flex-1 gap-3">
           <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
             <MenuHeader className="w-full" />
-            <LogoBlock grow={false} isAdmin={!!user?.is_admin} onVersionLongPress={openDevMenu} />
-            <div className="flex min-h-0 flex-1 items-stretch gap-3 sm:max-w-[820px] sm:max-h-[190px]">
-              <PlayCard className="min-w-0 flex-[1.15]" />
-              <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
-                <TutorialButton className="h-full w-full" />
-                <TournamentButton className="h-full w-full" />
-                <TrainingButton className="h-full w-full" />
-                <ArcadeButton className="h-full w-full" />
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
+              <LogoBlock grow={false} isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
+              <div className="flex w-full items-stretch gap-3 sm:max-w-[820px] sm:max-h-[220px]">
+                <PlayCard className="min-w-0 flex-[1.15]" />
+                <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
+                  <TutorialButton className="h-full w-full" />
+                  <TournamentButton className="h-full w-full" />
+                  <TrainingButton className="h-full w-full" />
+                  <ArcadeButton className="h-full w-full" />
+                </div>
               </div>
             </div>
           </div>
@@ -112,7 +118,7 @@ export default function MainMenu() {
       ) : (
         <>
           <MenuHeader />
-          <LogoBlock grow isAdmin={!!user?.is_admin} onVersionLongPress={openDevMenu} />
+          <LogoBlock grow isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
           <div className="flex flex-col gap-2.5 sm:mx-auto sm:w-full sm:max-w-[470px] sm:flex-1 sm:justify-center">
             <PlayCard />
             <TutorialButton />
@@ -191,69 +197,70 @@ function MenuHeader({ className = '' }: { className?: string }) {
 
 /**
  * Logo + version, seuls occupants du bloc. La version REMPLACE l'ancien
- * sous-titre (« Auto-battler tactique ») et sert aussi de zone d'appui long
- * pour les outils dev — elle est donc le seul footer du menu.
+ * sous-titre (« Auto-battler tactique »).
  *
  * `grow` : en portrait téléphone, ce bloc est la zone `flex-1` qui absorbe la
  * hauteur disponible (le logo grandit). Sur tablette portrait (`sm:`), c'est
  * la pile d'actions qui devient `flex-1` à la place — le logo, lui, revient à
- * sa taille naturelle et rétrécit ( `sm:w-[min(7rem,16dvh)]`), sinon il écrase
- * les boutons (cf. discussion design). En paysage tablette, `grow` est
- * toujours faux et le même rétrécissement s'applique : c'est la ligne [carte
- * Jouer | grille] qui absorbe l'espace. Le téléphone paysage n'utilise pas ce
- * bloc (cf. `LogoRail`).
+ * sa taille naturelle (`sm:w-[min(9rem,20dvh)]`) et descend un peu
+ * (`sm:mt-10`), pour ne pas coller à l'en-tête. En paysage tablette, `grow`
+ * est toujours faux : c'est le groupe [logo, ligne d'actions] tout entier qui
+ * se centre verticalement (cf. l'appelant), la marge du haut serait donc de
+ * trop. Le téléphone paysage n'utilise pas ce bloc (cf. `LogoRail`).
  *
- * `isAdmin` : pose un point doré à côté de la version — le seul indice que
- * l'appui long y ouvre les outils dev. Sans lui, rien ne distingue la version
- * d'un texte inerte, admin ou pas.
+ * `isAdmin` : pose un badge « DEV » à côté de la version, un simple tap
+ * dessus ouvre les outils. Sans lui, rien ne distingue la version d'un texte
+ * inerte, admin ou pas.
  */
-function LogoBlock({ grow, isAdmin, onVersionLongPress }: { grow: boolean; isAdmin: boolean; onVersionLongPress: () => void }) {
-  const longPress = useLongPress(onVersionLongPress);
+function LogoBlock({ grow, isAdmin, onDevTap }: { grow: boolean; isAdmin: boolean; onDevTap: () => void }) {
   return (
-    <div className={`flex flex-col items-center justify-center gap-0.5 ${grow ? 'flex-1 sm:flex-none' : 'flex-none'}`}>
+    <div className={`flex flex-col items-center justify-center gap-0.5 ${grow ? 'flex-1 sm:flex-none sm:mt-10' : 'flex-none'}`}>
       {/* Largeur bornée par la hauteur disponible (`26dvh`) autant que par une
           taille maximale (`11rem`) : c'est elle qui fait tenir le logo sans
           scroll quand l'écran est court. Sur tablette (`sm:`), les deux bornes
           descendent : la pile d'actions a besoin de la place. */}
-      <AnimatedLogo className="w-[min(11rem,26dvh)] sm:w-[min(7rem,16dvh)]" />
-      <div {...longPress} className="-mt-2 flex select-none items-center gap-1">
+      <AnimatedLogo className="w-[min(11rem,26dvh)] sm:w-[min(9rem,20dvh)]" />
+      <div className="-mt-2 flex items-center gap-1.5">
         <AppVersion />
-        {isAdmin && <NewDot label="Outils dev (appui long)" />}
+        {isAdmin && <DevBadge onTap={onDevTap} />}
       </div>
     </div>
   );
 }
 
-// Rail gauche du téléphone paysage : logo + version posés à côté de l'en-tête
-// et de la ligne d'actions plutôt qu'au-dessus — l'écran est trop court pour
-// leur laisser une ligne à eux. ~1/4 de la largeur de l'écran (`25vw`) : assez
-// présent pour rester le repère visuel du menu même relégué sur le côté.
-function LogoRail({ isAdmin, onVersionLongPress }: { isAdmin: boolean; onVersionLongPress: () => void }) {
-  const longPress = useLongPress(onVersionLongPress);
+// Rail gauche du téléphone paysage : logo + version posés à côté de la ligne
+// d'actions plutôt qu'au-dessus — l'écran est trop court pour leur laisser
+// une ligne à eux. ~1/4 de la largeur de l'écran (`25vw`) : assez présent
+// pour rester le repère visuel du menu même relégué sur le côté.
+//
+// ⚠️ `pl-[env(safe-area-inset-left)]` : en paysage, l'encoche d'un téléphone
+// tourné se retrouve sur un CÔTÉ (pas en haut) — sans cette marge le logo,
+// premier élément à gauche, se ferait manger par elle.
+function LogoRail({ isAdmin, onDevTap }: { isAdmin: boolean; onDevTap: () => void }) {
   return (
-    <div className="flex shrink-0 flex-col items-center justify-center gap-0.5">
+    <div className="flex shrink-0 flex-col items-center justify-center gap-0.5 pl-[env(safe-area-inset-left)]">
       <AnimatedLogo className="w-[25vw]" />
-      <div {...longPress} className="-mt-2 flex select-none items-center gap-1">
+      <div className="-mt-2 flex items-center gap-1.5">
         <AppVersion />
-        {isAdmin && <NewDot label="Outils dev (appui long)" />}
+        {isAdmin && <DevBadge onTap={onDevTap} />}
       </div>
     </div>
   );
 }
 
-// Appui long générique (bouton dev caché derrière la version). Même
-// convention que `usePressSquash` : un `clearTimer` redéclaré à chaque rendu,
-// nettoyé au démontage — il ne dépend que de la `ref`, jamais périmé.
-function useLongPress(onLongPress: () => void, ms = 550) {
-  const timer = useRef<number | null>(null);
-  const clearTimer = () => { if (timer.current !== null) { window.clearTimeout(timer.current); timer.current = null; } };
-  useEffect(() => clearTimer, []);
-  return {
-    onPointerDown: () => { clearTimer(); timer.current = window.setTimeout(onLongPress, ms); },
-    onPointerUp: clearTimer,
-    onPointerLeave: clearTimer,
-    onPointerCancel: clearTimer,
-  };
+// Badge « DEV », seul indice qu'un compte admin peut ouvrir TestBench,
+// CombatLab et le Labo IA d'ici — un tap suffit, pas d'appui long à deviner.
+function DevBadge({ onTap }: { onTap: () => void }) {
+  return (
+    <button
+      type="button"
+      onPointerDown={onTap}
+      aria-label="Outils dev"
+      className="rounded border border-gold/50 bg-gold/15 px-1 py-0.5 text-[9px] font-bold leading-none tracking-wide text-gold active:opacity-70"
+    >
+      DEV
+    </button>
+  );
 }
 
 // Les trois écrans de dev, révélés par l'appui long sur la version plutôt que
