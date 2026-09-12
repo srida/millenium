@@ -32,8 +32,22 @@ import { FullscreenButton } from '../components/system/DeviceGuards.js';
 import { AppVersion } from '../components/system/AppVersion.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 
+// Taille des boutons de mode (Tutoriel, Tournoi, Entraînement, Arcade) :
+// rehaussée en portrait téléphone (44px de base se lisait comme un menu
+// secondaire), puis un cran de plus sur tablette (`sm:`).
+const MENU_BUTTON_SIZE = 'min-h-12 text-base sm:min-h-[58px]';
+
 export default function MainMenu() {
   const web = useWebLayout();
+  // Distingue téléphone paysage de tablette paysage : au même seuil `web`, le
+  // premier loge le logo dans un rail à gauche (écran court, la place manque
+  // en haut), le second garde le logo au-dessus de la pile d'actions.
+  //
+  // ⚠️ La LARGEUR seule ne tranche pas : un iPhone en paysage (852) est plus
+  // large qu'un iPad en PORTRAIT (820). C'est la HAUTEUR qui distingue les
+  // deux — courte sur téléphone quelle que soit l'orientation, jamais sous
+  // ~700px sur tablette — d'où les deux bornes conjointes.
+  const isTabletDevice = useMediaQuery('(min-width: 700px) and (min-height: 700px)');
   const user = useAuthStore(s => s.user);
   const [devOpen, setDevOpen] = useState(false);
   // Boutons dev derrière l'appui long sur la version — ils ne comptent plus
@@ -41,18 +55,44 @@ export default function MainMenu() {
   const openDevMenu = () => { if (user?.is_admin) setDevOpen(true); };
 
   return (
-    <main className="relative z-10 flex h-dvh flex-col gap-2 overflow-hidden p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] text-white">
+    <main className="relative z-10 flex h-dvh flex-col gap-2 overflow-hidden px-5 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] text-white sm:px-2">
       {/* En portrait téléphone, la place manque pour le loger dans l'en-tête
           (déjà plein : profil, niveau, or, gemmes) — il flotte alors sous
           l'en-tête. À partir de `sm:` (paysage, tablette), il rejoint l'en-tête. */}
       <FullscreenButton className="absolute right-3 top-[calc(env(safe-area-inset-top)+3.25rem)] sm:hidden" />
 
-      {web ? (
+      {web && !isTabletDevice ? (
+        // Téléphone paysage : logo + version en rail gauche (plus de place en
+        // haut pour l'en-tête et la ligne d'actions), dock en rail droit.
+        <div className="flex min-h-0 flex-1 gap-3">
+          <LogoRail onVersionLongPress={openDevMenu} />
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <MenuHeader className="w-full" />
+            <div className="flex min-h-0 flex-1 items-stretch gap-3">
+              <PlayCard className="min-w-0 flex-[1.15]" />
+              <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
+                <TutorialButton className="h-full w-full" />
+                <TournamentButton className="h-full w-full" />
+                <TrainingButton className="h-full w-full" />
+                <ArcadeButton className="h-full w-full" />
+              </div>
+            </div>
+          </div>
+          <Dock web>
+            <MissionsTile />
+            <ShopTile />
+            <GiftsTile />
+            <CatalogTile />
+          </Dock>
+        </div>
+      ) : web ? (
+        // Tablette paysage : logo au-dessus de la ligne d'actions, comme en
+        // portrait, mais celle-ci se scinde [carte Jouer | grille 2×2].
         <div className="flex min-h-0 flex-1 gap-3">
           <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
             <MenuHeader className="w-full" />
             <LogoBlock grow={false} onVersionLongPress={openDevMenu} />
-            <div className="flex min-h-0 flex-1 items-stretch gap-3 sm:max-w-[760px] sm:max-h-[260px]">
+            <div className="flex min-h-0 flex-1 items-stretch gap-3 sm:max-w-[820px] sm:max-h-[220px]">
               <PlayCard className="min-w-0 flex-[1.15]" />
               <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
                 <TutorialButton className="h-full w-full" />
@@ -73,7 +113,7 @@ export default function MainMenu() {
         <>
           <MenuHeader />
           <LogoBlock grow onVersionLongPress={openDevMenu} />
-          <div className="flex flex-col gap-2.5 sm:mx-auto sm:w-full sm:max-w-[420px] sm:flex-1 sm:justify-center">
+          <div className="flex flex-col gap-2.5 sm:mx-auto sm:w-full sm:max-w-[470px] sm:flex-1 sm:justify-center">
             <PlayCard />
             <TutorialButton />
             <div className="flex gap-2">
@@ -95,6 +135,21 @@ export default function MainMenu() {
       <TutorialInvite />
     </main>
   );
+}
+
+// Même patron que `useWebLayout`, sur une requête média arbitraire — pour
+// distinguer téléphone et tablette à l'intérieur d'un même mode (paysage,
+// ici), ce que l'aspect ratio seul ne peut pas trancher.
+function useMediaQuery(query: string) {
+  const [match, setMatch] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const update = () => setMatch(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, [query]);
+  return match;
 }
 
 // En-tête : identité à gauche (profil ou invite à se connecter), progression
@@ -139,9 +194,11 @@ function MenuHeader({ className = '' }: { className?: string }) {
  * `grow` : en portrait téléphone, ce bloc est la zone `flex-1` qui absorbe la
  * hauteur disponible (le logo grandit). Sur tablette portrait (`sm:`), c'est
  * la pile d'actions qui devient `flex-1` à la place — le logo, lui, revient à
- * sa taille naturelle, sinon il écrase les boutons (cf. discussion design).
- * En paysage, `grow` est toujours faux : c'est la ligne [carte Jouer | grille]
- * qui absorbe l'espace, dans les deux tailles d'écran.
+ * sa taille naturelle et rétrécit un cran (`sm:w-[min(9rem,20dvh)]`), sinon il
+ * écrase les boutons (cf. discussion design). En paysage tablette, `grow` est
+ * toujours faux et le même rétrécissement s'applique : c'est la ligne [carte
+ * Jouer | grille] qui absorbe l'espace. Le téléphone paysage n'utilise pas ce
+ * bloc (cf. `LogoRail`).
  */
 function LogoBlock({ grow, onVersionLongPress }: { grow: boolean; onVersionLongPress: () => void }) {
   const longPress = useLongPress(onVersionLongPress);
@@ -149,8 +206,25 @@ function LogoBlock({ grow, onVersionLongPress }: { grow: boolean; onVersionLongP
     <div className={`flex flex-col items-center justify-center gap-0.5 ${grow ? 'flex-1 sm:flex-none' : 'flex-none'}`}>
       {/* Largeur bornée par la hauteur disponible (`26dvh`) autant que par une
           taille maximale (`11rem`) : c'est elle qui fait tenir le logo sans
-          scroll quand l'écran est court (paysage téléphone). */}
-      <AnimatedLogo className="w-[min(11rem,26dvh)]" />
+          scroll quand l'écran est court. Sur tablette (`sm:`), les deux bornes
+          descendent d'un cran : la pile d'actions a besoin de la place. */}
+      <AnimatedLogo className="w-[min(11rem,26dvh)] sm:w-[min(9rem,20dvh)]" />
+      <div {...longPress} className="-mt-2 select-none">
+        <AppVersion />
+      </div>
+    </div>
+  );
+}
+
+// Rail gauche du téléphone paysage : logo + version posés à côté de l'en-tête
+// et de la ligne d'actions plutôt qu'au-dessus — l'écran est trop court pour
+// leur laisser une ligne à eux. Taille propre (104 px), reprise du repère
+// d'origine de la maquette pour ce cadrage.
+function LogoRail({ onVersionLongPress }: { onVersionLongPress: () => void }) {
+  const longPress = useLongPress(onVersionLongPress);
+  return (
+    <div className="flex w-24 shrink-0 flex-col items-center justify-center gap-0.5">
+      <AnimatedLogo className="w-[min(6.5rem,22dvh)]" />
       <div {...longPress} className="-mt-2 select-none">
         <AppVersion />
       </div>
@@ -233,7 +307,7 @@ function PlayCard({ className = '' }: { className?: string }) {
           amont — d'où l'entrée directe (ou l'inscription en invité). */}
       <Button
         variant="primary"
-        className="min-h-14 flex-1 justify-center rounded-none border-0 border-t border-t-gold/30 text-lg"
+        className="min-h-14 flex-1 justify-center rounded-none border-0 border-t border-t-gold/30 text-lg sm:min-h-[70px]"
         onPointerDown={() => navigate(user ? 'online_lobby' : 'auth')}
       >
         Jouer
@@ -255,7 +329,7 @@ function TutorialButton({ className = '' }: { className?: string }) {
   useEffect(() => { setRead(getProgress().chapters.length); }, []);
 
   return (
-    <Button className={`w-full ${className}`} onPointerDown={() => navigate('tutorial')}>
+    <Button className={`w-full ${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('tutorial')}>
       <span className="whitespace-nowrap">🎓 Tutoriel</span>
       {read === 0 && <NewDot label="Jamais ouvert" />}
     </Button>
@@ -264,14 +338,14 @@ function TutorialButton({ className = '' }: { className?: string }) {
 
 function TournamentButton({ className = '' }: { className?: string }) {
   const navigate = useUiStore(s => s.navigate);
-  return <Button className={className} onPointerDown={() => navigate('tournament')}>🏆 Tournoi</Button>;
+  return <Button className={`${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('tournament')}>🏆 Tournoi</Button>;
 }
 
 // Entraînement = la partie solo contre l'IA. Seul mode qui ouvre encore le
 // sélecteur, et uniquement pour choisir le deck adverse.
 function TrainingButton({ className = '' }: { className?: string }) {
   const navigate = useUiStore(s => s.navigate);
-  return <Button className={className} onPointerDown={() => navigate('deck_selector', { mode: 'play' })}>🤖 Entraînement</Button>;
+  return <Button className={`${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('deck_selector', { mode: 'play' })}>🤖 Entraînement</Button>;
 }
 
 // Invitation du tout premier lancement — une seule fois, jamais reproposée.
@@ -335,7 +409,7 @@ function ArcadeButton({ className = '' }: { className?: string }) {
 
   if (!user) {
     return (
-      <Button className={`w-full ${className}`} onPointerDown={() => navigate('auth')}>
+      <Button className={`w-full ${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('auth')}>
         <span className="whitespace-nowrap">🕹 Arcade</span>
       </Button>
     );
@@ -346,7 +420,7 @@ function ArcadeButton({ className = '' }: { className?: string }) {
   const available = !!snapshot && !run;
 
   return (
-    <Button className={`w-full ${className}`} onPointerDown={() => navigate('arcade')}>
+    <Button className={`w-full ${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('arcade')}>
       <span className="whitespace-nowrap">🕹 Arcade</span>
       {running ? (
         <CountBadge label={`Run en cours — duel ${run.current + 1} sur ${snapshot!.duel_count}`} className="px-1.5">
@@ -388,11 +462,11 @@ function DockTile({ icon, label, onPointerDown, badge, className = '' }: {
   return (
     <button
       type="button"
-      className={`relative flex min-h-[60px] min-w-tap flex-col items-center justify-center gap-1 transition-transform duration-100 ease-out sm:min-h-[66px] ${squashed ? 'scale-95' : ''} ${className}`}
+      className={`relative flex min-h-[60px] min-w-tap flex-col items-center justify-center gap-1 transition-transform duration-100 ease-out sm:min-h-[70px] ${squashed ? 'scale-95' : ''} ${className}`}
       {...handlers}
     >
       <span className="text-xl" aria-hidden="true">{icon}</span>
-      <span className="text-[10px] text-white/70">{label}</span>
+      <span className="text-[10px] text-white/70 sm:text-[11px]">{label}</span>
       {badge && <span className="absolute right-1.5 top-1">{badge}</span>}
     </button>
   );
