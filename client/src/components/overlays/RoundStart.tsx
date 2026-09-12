@@ -216,6 +216,11 @@ const TIER_CHIP: Record<number, string> = {
 };
 
 function BonusRow({ row }: { row: DrawBonusRow }) {
+  // ⚠️ Une entrée garantie à `amount: 0` (elle oriente une carte du tirage
+  // normal, elle n'en ajoute aucune) a déjà sa propre ligne (« 🎯 Pioche
+  // garantie », plus bas) : l'afficher ici donnerait un « +0 » qui n'annonce
+  // rien.
+  if (row.amount === 0) return null;
   return (
     <div className="flex items-center justify-between text-[11px]">
       <span className="truncate text-white/70">{row.icon} {sourceName(row)}</span>

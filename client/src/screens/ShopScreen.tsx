@@ -484,8 +484,11 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
   // La carte est montrée plus GRANDE qu'en vitrine (h-40 contre h-28) : c'est
   // le dernier moment pour reconnaître ce qu'on achète.
   const confirmSlot = (currency: Currency): PendingBuy => ({
+    // ⚠️ `hint: null` — la pastille de coût d'invocation n'a rien à faire ici :
+    // on ACHÈTE la carte, on ne la pose pas. La laisser afficherait un chiffre
+    // sans rapport avec la décision d'achat.
     visual: card
-      ? <CardTile {...cardTileProps(card)} size="h-40" tapOn="up" />
+      ? <CardTile {...cardTileProps(card)} hint={null} size="h-40" tapOn="up" />
       : <div className="h-40 w-28 rounded-lg border border-line" />,
     title: card?.name ?? slot.card_id,
     detail: `Tier ${slot.tier} · emplacement du jour`,
@@ -535,7 +538,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
 
       <div className="flex justify-center">
         {card
-          ? <CardTile {...cardTileProps(card)} size="h-28" tapOn="up" dim={slot.purchased ? 'soft' : 'none'} />
+          ? <CardTile {...cardTileProps(card)} hint={null} size="h-28" tapOn="up" dim={slot.purchased ? 'soft' : 'none'} />
           : <div className="h-28 w-20 rounded-lg border border-line" />}
       </div>
 
@@ -695,7 +698,7 @@ function BoosterReveal({ onClose }: { onClose: () => void }) {
         {booster.cards.map(({ card_id }) => {
           const card = cardOf(card_id);
           return card
-            ? <CardTile key={card_id} {...cardTileProps(card)} size="h-32" tapOn="up" />
+            ? <CardTile key={card_id} {...cardTileProps(card)} hint={null} size="h-32" tapOn="up" />
             : <span key={card_id} className="text-xs text-white/40">{card_id}</span>;
         })}
       </div>

@@ -246,6 +246,10 @@ export default function PackContents({ set, onClose }: { set: ShopSet; onClose: 
                   <CardTile
                     key={c.id}
                     {...cardTileProps(c)}
+                    // ⚠️ `hint: null` — la pastille de coût d'invocation n'a
+                    // rien à faire dans un catalogue de pack : on consulte ce
+                    // qui reste à collecter, on ne pose rien.
+                    hint={null}
                     size="h-auto w-full"
                     tapOn="up"
                     locked={locked}
