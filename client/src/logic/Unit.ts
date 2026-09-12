@@ -52,10 +52,12 @@ export class Unit {
   // Card IDs this unit "counts as" when it stands in for a summon requirement.
   // Pre-determined on the card definition (admin panel) rather than computed at summon time.
   represented_ids: string[];
-  // How many material "slots" this unit counts as when consumed. Read straight
-  // off the card, like represented_ids — never derived from the condition that
-  // produced it, which is what used to give the AI and the player two different
-  // values for the same card.
+  // How many material "slots" this unit counts as when consumed ON A FREE SLOT.
+  // Read straight off the card, like represented_ids — never derived from the
+  // condition that produced it, which is what used to give the AI and the
+  // player two different values for the same card.
+  // ⚠️ A NAMED requirement is paid one slot at a time whatever this says:
+  // `InvocationManager.materialSlotsPaid` is the only place that counts.
   material_value: number;
   power_id: string | null;
   /**

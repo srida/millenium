@@ -34,9 +34,16 @@ export interface SummonMaterial {
 export interface SummonRecipe {
   /** Index dans `summon_conditions`, ou `null` quand la carte n'en a aucune. */
   index: number | null;
-  /** Slots de matériau exigés, comptés en `material_value`. Zéro = pose directe. */
+  /**
+   * Slots de matériau exigés. Zéro = pose directe.
+   *
+   * ⚠️ Un slot LIBRE se paie en `material_value` (un composite en couvre
+   * plusieurs) ; un slot NOMMÉ ne se paie qu'une fois, si gros que soit le
+   * matériel qui le tient. C'est ce qui rend le « dont » ci-dessous littéral —
+   * cf. `InvocationManager.materialSlotsPaid`.
+   */
   materials: number;
-  /** Les exigences NOMMÉES — un sous-ensemble des slots ci-dessus. */
+  /** Les exigences NOMMÉES — un sous-ensemble des slots ci-dessus, un slot chacune. */
   requires: SummonMaterial[];
   /** Le coût d'AVANT la remise quand une magie est passée par là, sinon `null`. */
   discountedFrom: { materials: number; requires: number } | null;
@@ -114,6 +121,10 @@ export function recipeCostText(r: SummonRecipe): string | null {
  * restent libres et les exigences sont prises **dedans** (« dont »).
  *
  * C'était la distinction Fusion / Héritage, écrite en dur ; elle tombe du coût.
+ *
+ * ⚠️ Le « dont » se compte à l'unité : chaque exigence nommée occupe un slot et
+ * un seul. « 3 matériels dont X » veut dire X plus deux autres unités, même
+ * quand X en vaut deux ailleurs.
  */
 export function materialsLabel(r: SummonRecipe): string {
   if (r.requires.length < r.materials) return 'dont';

@@ -740,7 +740,7 @@ Deux règles, de poids inégal :
 
 ## Invocation (`InvocationManager`)
 
-Une carte porte **zéro, une ou plusieurs CONDITIONS** (`summon_conditions`) ; elle est jouable dès qu'**une** est satisfaite. Une condition réclame un nombre de slots de matériau (`materials`, compté en `material_value`) dont une partie peut être **nommée** (`requires` : ids de carte ou d'attribut, `requires.length <= materials`). Aucune condition = placement direct. Une invocation peut être immédiatement suivie d'une autre (**chaînage**).
+Une carte porte **zéro, une ou plusieurs CONDITIONS** (`summon_conditions`) ; elle est jouable dès qu'**une** est satisfaite. Une condition réclame un nombre de slots de matériau (`materials` — un slot **libre** se paie en `material_value`, un slot **nommé** une unité et une seule) dont une partie peut être **nommée** (`requires` : ids de carte ou d'attribut, `requires.length <= materials`). Aucune condition = placement direct. Une invocation peut être immédiatement suivie d'une autre (**chaînage**).
 
 ⚠️ **Il n'y a plus de « voie » d'invocation.** Les cinq notions historiques (normale, sacrifice, fusion, héritage, transformation) sont devenues des **attributs de carte** (`ARCH_086`…`ARCH_090`), purement descriptifs ; le moteur ne connaît qu'un coût. Chacune des cinq branches de l'ancien `switch` était un cas particulier de l'une des règles ci-dessous.
 
@@ -751,17 +751,21 @@ summon(card, pos, board, hand, materials, handIdx, conditionIndex) → Unit
 summonConditions / conditionAt / conditionMaterials / conditionRequires / conditionIsFree
 summonCost(card) / hasMultipleConditions(card) / autoSelectMaterials(card, condition, board, graveyard)
 forcedCell(condition, materials, board) / exceedsBoardSlots(...)
-matchesMaterial / materialLineageLegit / materialLineageMatches / sumMaterialValue
-materialValueOf(card) / isAttributeMaterial(matId)
+matchesMaterial / materialLineageLegit / materialLineageMatches
+materialSlotsPaid(units, required) / materialValueOf(card) / isAttributeMaterial(matId)
 ```
 
 **Les cinq règles de `_canSummonWith`**, et rien d'autre :
 
 1. **Où l'unité se pose.** Une condition à **UN matériel** impose la case de ce matériel ; sinon la case doit être libre, ou occupée par un matériau consommé (il part avant la pose).
 2. **Le doublon** — cf. la règle du doublon, plus haut.
-3. **Quantité** — `sum(material_value)` des unités disponibles (terrain **et** cimetière) ≥ `materials`.
+3. **Quantité** — `materialSlotsPaid` des unités disponibles (terrain **et** cimetière) ≥ `materials`.
 4. **Exigences nommées** — couvertes par `getUncoveredRequirements`, chacune par une doublure légitime (lignée).
 5. **Slots** — `vivants − matériaux_du_board + 1 ≤ plafond`.
+
+⚠️ **Un matériel NOMMÉ ne paie qu'UN slot, quelle que soit sa valeur ; seul un slot LIBRE se paie en `material_value`.** `materialSlotsPaid(units, required)` est le SEUL endroit qui compte ce qu'une sélection paie — la garde de quantité, `materialsComplete`, le filtrage des candidats, le remplissage automatique et l'IA y passent tous. « 3 matériels dont CORE_002 » se lit donc littéralement : CORE_002, **qui vaut pourtant 2**, plus deux autres unités. Sans la règle, nommer un gros matériel *baissait* le prix de la recette et le chiffre affiché sur la vignette ne disait plus ce qu'il en coûte.
+- ⚠️ **Corollaire qui NE change pas** : une unité qui tient **plusieurs** exigences les paie toutes, une par slot. CORE_016 vaut 2, représente ses deux matériaux, comble et paie ses deux slots.
+- ⚠️ **L'appariement dépense les matériaux du MOINS cher au plus cher** (`matchRequirements`, l'unique écriture de `getUncoveredRequirements` et de `materialSlotsPaid`) : asseoir un composite sur un slot nommé gaspille tout ce qu'il vaut au-delà des exigences qu'il tient. L'ordre ne change pas le verdict de couverture — le couplage reste maximum — seulement **qui** tient quoi, et il reste déterministe (départage par l'index de la sélection).
 
 - ⚠️ **`summonCost(card)` est le SEUL endroit qui répond à « quel genre d'invocation est-ce »** (le minimum de `materials` sur ses conditions). Il y en avait trois : la table de priorité de l'IA, celle de l'auto-joueur, et l'agrégat par voie du rapport d'équilibrage.
 - ⚠️ **`forcedCell` est le SEUL endroit qui répond à « où l'unité se pose »**, et ses trois appelants — la validation, la pose, l'IA — ne peuvent donc pas se contredire. C'est l'ancienne Transformation, énoncée sur le **coût** : à un matériel, le résultat prend la place de sa cible, d'où qu'elle vienne. La case retenue est celle que le matériel **occupe encore** (`board.getUnit(pos) === u`) : une unité retirée du board garde une `position` périmée, que quelqu'un d'autre occupe peut-être.
@@ -782,8 +786,8 @@ materialValueOf(card) / isAttributeMaterial(matId)
 - **`represented_ids`** — les ids que l'unité « représente », **pré-déterminés sur la carte** (section « Lignée » de l'admin), jamais calculés à l'invocation. ⚠️ `Unit` y ajoute toujours son propre `card.id` : la donnée ne porte que la lignée **héritée**. Affiché au tooltip (🧬).
   - **Légitimité** (`materialLineageLegit`) : toute la lignée héritée d'un matériel doit être **elle-même exigée** par la condition en cours. « Aile de feu » (Avian + Burstinatrix) ne remplace pas Avian seul, mais comble à elle seule les deux exigences d'une condition qui demande les deux.
   - ⚠️ **Elle ne pèse QUE sur les exigences nommées**, et `getUncoveredRequirements` est le seul endroit qui la porte. Un slot **libre** (la condition nomme moins d'exigences qu'elle n'a de slots) se paie avec n'importe quelle unité — c'est ce qui rend une fusion sacrifiable. Exigée de toute la sélection, elle rendait insacrifiable toute unité composite.
-  - ⚠️ **`InvocationManager.getUncoveredRequirements` est la SEULE écriture de l'appariement exigences ↔ matériaux** (`canSummon` règle 4, `materialsComplete`, `_candidates` y passent ; `InvocationRules` le ré-exporte). Une unité couvre **autant d'exigences qu'elle paie de slots** (`material_value`) : CORE_016 vaut 2 et représente ses deux matériaux, elle les comble tous les deux. Et c'est un vrai **couplage** (chemins augmentants), pas un premier venu — le glouton laissait une exigence introuvable alors qu'un échange la couvrait.
-- **`material_value`** — le nombre de slots que l'unité représente si elle est consommée. ⚠️ C'est une **donnée de carte**, saisie en admin, lue par le constructeur d'`Unit` pour les **deux camps** : elle était dérivée en quatre exemplaires dans le `switch`, si bien que l'IA et le joueur n'avaient pas la même règle. **Affichée** : pastille `◈N` au bas-gauche de la carte 3D (`unit-mat-badge`) **au-dessus de 1 seulement** — 1 est le défaut, une pastille partout ne distinguerait rien ; le tooltip d'une **unité** la dit toujours, c'est là qu'on vient chercher la réponse.
+  - ⚠️ **`matchRequirements` (privée, `InvocationManager`) est la SEULE écriture de l'appariement exigences ↔ matériaux** — `getUncoveredRequirements` (`canSummon` règle 4, `materialsComplete`, `_candidates`) et `materialSlotsPaid` en sont les deux lectures, donc « cette exigence est-elle tenue ? » et « combien ça coûte ? » ne peuvent pas se contredire. Une unité couvre **autant d'exigences qu'elle paie de slots** (`material_value`) : CORE_016 vaut 2 et représente ses deux matériaux, elle les comble tous les deux. Et c'est un vrai **couplage** (chemins augmentants), pas un premier venu — le glouton laissait une exigence introuvable alors qu'un échange la couvrait.
+- **`material_value`** — le nombre de slots que l'unité représente si elle est consommée **sur un slot libre** (nommée, elle n'en paie qu'un — cf. `materialSlotsPaid`). ⚠️ C'est une **donnée de carte**, saisie en admin, lue par le constructeur d'`Unit` pour les **deux camps** : elle était dérivée en quatre exemplaires dans le `switch`, si bien que l'IA et le joueur n'avaient pas la même règle. **Affichée** : pastille `◈N` au bas-gauche de la carte 3D (`unit-mat-badge`) **au-dessus de 1 seulement** — 1 est le défaut, une pastille partout ne distinguerait rien ; le tooltip d'une **unité** la dit toujours, c'est là qu'on vient chercher la réponse, et il précise « sur un slot libre » plutôt que de promettre une valeur qu'une recette qui la nomme ne rendra pas.
 
 Un matériel `ARCH_*` désigne **n'importe quelle** unité portant l'attribut, pas une carte (`isAttributeMaterial`).
 
@@ -822,7 +826,8 @@ rateDeltaForTickDelta(d) / RATE_STATS / DURATION_POWERS
 
 ```js
 uid                    // identifiant d'instance, unique par partie
-material_value         // slots représentés si l'unité est consommée — DONNÉE de carte, jamais dérivée
+material_value         // slots représentés sur un slot LIBRE — DONNÉE de carte, jamais dérivée
+                       // ⚠️ un matériel NOMMÉ ne paie qu'un slot (materialSlotsPaid)
 
 _base                  // stats de base gelées — SEUL endroit modifié en PERMANENT (magies, handicap IA)
 _stat_bonuses          // bonus plats du combat en cours (attributs, terrain, vétérance)
@@ -1316,7 +1321,9 @@ L'IA prenait le **premier candidat venu** et ne savait pas ce qu'une unité vaut
 | À matériau éligible égal, on prend le **moins cher** | préférence |
 | Le **cimetière** passe avant le terrain sur un **sacrifice** | préférence |
 | `material_value` est **dérivée** (`materialValueOf`), comme chez le joueur | correction d'une divergence |
+| Le compte du remplissage passe par **`materialSlotsPaid`**, la fonction du joueur | correction d'une divergence |
 
+- ⚠️ **Le remplissage se recompte à chaque ajout**, il ne soustrait pas des `material_value` : un matériel **nommé** ne paie qu'un slot, et une soustraction recopiée aurait donné à l'IA une recette moins chère que celle que `canSummon` impose au joueur.
 - ⚠️ **La garde de tier est `>` et non `>=`** : consommer un **pair** reste légitime (deux Tier 2 pour un Tier 3 via un intermédiaire de même rang). Passée en `>=`, elle fait tomber 11 tests d'`ai-lab.test.ts` — c'est la mesure de ce qu'elle refermerait.
 - **Le coût d'une unité est `atk × 20 + current_hp`** (la métrique de `sim/autoPlayer.materialCost` : ce sont les survivants et leur ATK qui infligent les dégâts de fin de combat). Départage par `uid` à coût égal, sinon le choix ne serait pas déterministe.
 - ⚠️ **Le cimetière d'abord sur un sacrifice, le terrain d'abord sur une fusion** — ce n'est pas une incohérence : une unité du cimetière est déjà perdue, mais une unité du **terrain** libère une **case**, et c'est ce qui permet à une fusion de passer sur un plateau plein.

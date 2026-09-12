@@ -3,7 +3,7 @@ import { tiersForRound, resolveGuaranteedDraws, deckPoolByTier, poolForRound } f
 import { primaryTier } from './Tiers.js';
 import {
   materialLineageMatches, summonConditions, conditionMaterials, conditionRequires,
-  conditionIsFree, summonCost, forcedCell,
+  conditionIsFree, summonCost, forcedCell, materialSlotsPaid,
 } from './InvocationManager.js';
 
 const HAND_SIZE = 5;
@@ -385,15 +385,19 @@ function _attemptWith(card, condition, board, maxUnits, graveyard, side) {
 
   // 2. Le remplissage — cimetière d'abord, puis le terrain du moins cher au
   //    plus cher. Compté en VALEUR : un composite couvre plusieurs slots.
-  let stillNeeded = needed
-    - [...toConsumeBoard, ...toConsumeGrave].reduce((s, u) => s + _materialValue(u), 0);
+  // ⚠️ Le compte passe par `materialSlotsPaid`, la fonction du JOUEUR, et non
+  // par une somme de `material_value` : un matériel NOMMÉ ne paie qu'un slot,
+  // si gros soit-il. Recopiée en soustraction, la règle aurait donné à l'IA une
+  // recette moins chère que celle que `canSummon` impose au joueur.
+  const paid = () => materialSlotsPaid([...toConsumeBoard, ...toConsumeGrave], required);
+  let stillNeeded = needed - paid();
   for (const u of _cheapestFirst(gravePool.filter(g => !_outranks(g, card)))) {
     if (stillNeeded <= 0) break;
-    toConsumeGrave.push(u); stillNeeded -= _materialValue(u);
+    toConsumeGrave.push(u); stillNeeded = needed - paid();
   }
   for (const u of _cheapestFirst(boardPool.filter(b => !_outranks(b, card)))) {
     if (stillNeeded <= 0) break;
-    toConsumeBoard.push(u); stillNeeded -= _materialValue(u);
+    toConsumeBoard.push(u); stillNeeded = needed - paid();
   }
   if (stillNeeded > 0) {
     const blocked = [...boardPool, ...gravePool].some(u => _outranks(u, card));
@@ -495,11 +499,6 @@ function _outranks(unit, card) {
  */
 function _materialCost(unit) {
   return unit.atk * 20 + unit.current_hp;
-}
-
-/** Combien de slots de sacrifice une unité couvre (règle du joueur). */
-function _materialValue(unit) {
-  return unit.material_value ?? 1;
 }
 
 /**
