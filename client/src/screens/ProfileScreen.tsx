@@ -7,7 +7,7 @@ import { illustrationUrl } from '../data/CardArt.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { useUiStore } from '../stores/uiStore.js';
-import { Button, Modal } from '../components/ui/primitives.js';
+import { Button, Modal, usePressSquash } from '../components/ui/primitives.js';
 import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import { LevelRewardsPanel, ProgressionPanel } from '../components/ui/ProgressionStats.js';
 import type { LevelRewardsView } from '../components/ui/ProgressionStats.js';
@@ -44,6 +44,24 @@ function FriendSection({ title, children }: { title: string; children: ReactNode
       <h2 className="mb-1.5 text-[10px] tracking-widest text-white/40">{title.toUpperCase()}</h2>
       <div className="space-y-1.5">{children}</div>
     </section>
+  );
+}
+
+// Vignette d'avatar de la popup — passe par `usePressSquash` comme `Button` et
+// `Chip` : un défilement débuté sur la grille bouge le pointeur de plus de
+// `TAP_MOVE_TOLERANCE_PX` et annule le tap, au lieu de sélectionner l'avatar
+// sous le doigt au relâchement.
+function AvatarChoice({ id, url, selected, onTap }: { id: string; url: string; selected: boolean; onTap: () => void }) {
+  const { handlers } = usePressSquash<HTMLButtonElement>(onTap, false);
+  return (
+    <button
+      type="button"
+      {...handlers}
+      aria-label={`Avatar ${id}`}
+      className={`aspect-square overflow-hidden rounded-lg border ${selected ? 'border-gold' : 'border-line'} bg-surface-raised active:opacity-80`}
+    >
+      <img src={url} alt="" className="h-full w-full object-cover" />
+    </button>
   );
 }
 
@@ -277,17 +295,14 @@ export default function ProfileScreen() {
             <div className="grid grid-cols-4 gap-2">
               {avatarIds.map((id) => {
                 const url = illustrationUrl(id);
-                const selected = avatar === url;
                 return (
-                  <button
+                  <AvatarChoice
                     key={id}
-                    type="button"
-                    onPointerDown={() => { setAvatar(url); setSaved(false); setAvatarPickerOpen(false); }}
-                    aria-label={`Avatar ${id}`}
-                    className={`aspect-square overflow-hidden rounded-lg border ${selected ? 'border-gold' : 'border-line'} bg-surface-raised active:opacity-80`}
-                  >
-                    <img src={url} alt="" className="h-full w-full object-cover" />
-                  </button>
+                    id={id}
+                    url={url}
+                    selected={avatar === url}
+                    onTap={() => { setAvatar(url); setSaved(false); setAvatarPickerOpen(false); }}
+                  />
                 );
               })}
             </div>

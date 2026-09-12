@@ -89,20 +89,7 @@ function TableOfContents({
         </h2>
         <div className="grid gap-2 sm:grid-cols-2">
           {CHAPTERS.map((c, idx) => (
-            <button
-              key={c.id}
-              onPointerDown={() => onOpen(idx)}
-              className="flex min-h-tap items-start gap-3 rounded-xl border border-line bg-surface-raised p-3 text-left active:opacity-80"
-            >
-              <span className="text-xl leading-none" aria-hidden>{c.icon}</span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold text-white">{c.title}</span>
-                  {read.has(c.id) && <span className="text-xs text-success" aria-label="Lu">✓</span>}
-                </span>
-                <span className="mt-0.5 block text-[11px] leading-snug text-white/50">{c.blurb}</span>
-              </span>
-            </button>
+            <ChapterCard key={c.id} chapter={c} read={read.has(c.id)} onTap={() => onOpen(idx)} />
           ))}
         </div>
       </div>
@@ -125,6 +112,28 @@ function TableOfContents({
         </div>
       </div>
     </div>
+  );
+}
+
+// Comme `PracticeButton` : passe par `usePressSquash` pour qu'un défilement
+// débuté sur une tuile du sommaire (grille dense, beaucoup de chapitres) ne
+// s'y lise pas comme un tap au relâchement.
+function ChapterCard({ chapter: c, read, onTap }: { chapter: Chapter; read: boolean; onTap: () => void }) {
+  const { handlers } = usePressSquash<HTMLButtonElement>(onTap, false);
+  return (
+    <button
+      {...handlers}
+      className="flex min-h-tap items-start gap-3 rounded-xl border border-line bg-surface-raised p-3 text-left active:opacity-80"
+    >
+      <span className="text-xl leading-none" aria-hidden>{c.icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5">
+          <span className="text-sm font-semibold text-white">{c.title}</span>
+          {read && <span className="text-xs text-success" aria-label="Lu">✓</span>}
+        </span>
+        <span className="mt-0.5 block text-[11px] leading-snug text-white/50">{c.blurb}</span>
+      </span>
+    </button>
   );
 }
 
