@@ -50,13 +50,18 @@ export function ProgressionPills({ user, className = '', onOpen }: { user: AuthU
     <>
       <span className="font-semibold tabular-nums text-gold">Nv. {fmt.format(user.level ?? 1)}</span>
       <Gauge value={xpOf(user) / XP_PER_LEVEL} className="h-1.5 w-14" fillClassName="bg-player" />
-      {pending > 0 ? (
-        <CountBadge label={`${pending} palier${pending > 1 ? 's' : ''} à récupérer`} className="h-4 min-w-4 text-[10px]">
-          {fmt.format(pending)}
-        </CountBadge>
-      ) : (
-        <span className="text-[10px] tabular-nums text-white/40">{fmt.format(xpOf(user))}/{XP_PER_LEVEL}</span>
-      )}
+      {/* Décompte exact / palier en attente : caché sous `sm` (menu principal,
+          portrait téléphone) — la jauge seule tient déjà la réponse à « où
+          j'en suis », et l'en-tête y est déjà plein (profil, or, gemmes). */}
+      <span className="hidden items-center sm:flex">
+        {pending > 0 ? (
+          <CountBadge label={`${pending} palier${pending > 1 ? 's' : ''} à récupérer`} className="h-4 min-w-4 text-[10px]">
+            {fmt.format(pending)}
+          </CountBadge>
+        ) : (
+          <span className="text-[10px] tabular-nums text-white/40">{fmt.format(xpOf(user))}/{XP_PER_LEVEL}</span>
+        )}
+      </span>
     </>
   );
   const levelClass = 'flex items-center gap-2 rounded-full border border-gold/50 bg-gold/10 px-2.5 py-1';
