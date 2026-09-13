@@ -136,6 +136,28 @@ function HandCard3D({ entry, targeting, targetable, transform, width, rail }: {
           case 'none':         break;
         }
       }}
+      // ⚠️ Le glisser n'écrit AUCUNE règle : il appelle `selectCard` en partant
+      // et `onCellTap` en arrivant — les deux points d'entrée du tap. Donc les
+      // mêmes surlignages de cases valides, le même « Sélectionne les matériaux
+      // d'abord », le même menu de conditions multiples, la même case imposée
+      // par une recette à un matériel. Rien à tenir d'accord.
+      //
+      // Absent en CIBLAGE de magie : la carte y est une cible à désigner, pas
+      // une unité à poser — le geste redevient alors un tap annulé.
+      onDragBegin={targeting ? undefined : () => {
+        // Ne pas re-sélectionner une carte déjà retenue : `selectCard` vide les
+        // matériaux, et le joueur qui reprend sa carte perdrait ses choix.
+        if (!entry.selected) controller.selectCard(entry.card, entry.idx);
+        // Une carte à plusieurs conditions ouvre un menu : le glisser n'a plus
+        // d'objet, c'est la modale qui prend la main.
+        return !useGameStore.getState().summonOptions;
+      }}
+      onDrop={targeting ? undefined : (x, y) => {
+        const cell = controller.cellAtScreen(x, y);
+        // Lâchée hors du plateau : la carte revient, et la SÉLECTION reste —
+        // le joueur peut enchaîner par un tap de case.
+        if (cell) controller.onCellTap(cell);
+      }}
       highlight={visual.highlight}
       // La carte retenue sort de sa bande : vers le haut en portrait, vers le
       // board (droite) quand la main est un rail vertical.

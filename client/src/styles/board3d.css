@@ -52,6 +52,12 @@
 }
 .unit-art {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; z-index: 0;
+  /* ⚠️ Le filet du glisser natif, côté feuille : l'attribut `draggable={false}`
+     couvre la carte de main, cette règle couvre TOUTE illustration de carte —
+     y compris celles du plateau, rendues hors React par `three/UnitCardEl`. Un
+     glisser d'image démarré par le navigateur émet un `pointercancel` qui tue
+     le geste du jeu sans un mot. */
+  -webkit-user-drag: none;
 }
 /* Voile astral : poussière d'étoiles */
 .unit-foil-stars {

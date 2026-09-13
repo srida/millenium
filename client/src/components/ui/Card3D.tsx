@@ -15,6 +15,7 @@
 // ⚠️ L'ordre du `transform` n'est pas interchangeable : on centre la boîte, on
 // la déplace, on la lève, PUIS on tourne et on met à l'échelle. Tourner avant de
 // déplacer ferait décrire un arc au déplacement lui-même.
+import { useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { type TooltipContent } from '../../stores/uiStore.js';
 import { tierFrameVars } from '../../three/cardPalette.js';
@@ -56,6 +57,13 @@ export interface Card3DProps {
   /** Dans un rail vertical : le survol sort la carte vers le board, pas vers le
    *  haut — et le rail de droite la sort vers la gauche. */
   rail?: 'left' | 'right' | null;
+  /**
+   * Le glisser-déposer. `onDragBegin` peut REFUSER en rendant `false` — le
+   * geste redevient alors un tap annulé. `onDrop` reçoit le point de l'écran où
+   * le doigt a lâché ; c'est à l'appelant d'en faire une case.
+   */
+  onDragBegin?: () => boolean | void;
+  onDrop?: (clientX: number, clientY: number) => void;
 }
 
 export default function Card3D({
@@ -63,9 +71,49 @@ export default function Card3D({
   stacked = false, showName = true,
   highlight = 'none', dim = 'none', lift = 'none',
   locked = false, disabled = false, tapOn = 'down', tooltip = null, onTap,
-  transform, width, raised = false, rail = null,
+  transform, width, raised = false, rail = null, onDragBegin, onDrop,
 }: Card3DProps) {
-  const press = useCardPress({ tapOn, tooltip, disabled, onTap });
+  // ⚠️ `dragging` est un ÉTAT React, pas une classe posée à la main : la prise
+  // en main appelle `selectCard`, qui republie l'instantané, donc re-rend la
+  // carte — React réécrirait alors `className` et effacerait une classe posée
+  // impérativement. Deux rendus par glisser (départ, arrivée), pas un par
+  // frame : le SUIVI du doigt, lui, mute deux variables CSS par référence.
+  const [dragging, setDragging] = useState(false);
+  // Le centre de la carte au moment de la prise : le suivi n'est qu'un delta.
+  const origin = useRef<{ x: number; y: number } | null>(null);
+
+  const follow = (el: HTMLElement, clientX: number, clientY: number) => {
+    if (!origin.current) return;
+    el.style.setProperty('--card-drag-x', `${clientX - origin.current.x}px`);
+    el.style.setProperty('--card-drag-y', `${clientY - origin.current.y}px`);
+  };
+  const release = (el: HTMLElement) => {
+    origin.current = null;
+    el.style.removeProperty('--card-drag-x');
+    el.style.removeProperty('--card-drag-y');
+    setDragging(false);
+  };
+
+  const press = useCardPress({
+    tapOn, tooltip, disabled, onTap,
+    drag: onDrop && !disabled ? {
+      start: (e) => {
+        if (onDragBegin?.() === false) return false;
+        const el = e.currentTarget as HTMLElement;
+        const r = el.getBoundingClientRect();
+        origin.current = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        setDragging(true);
+        return true;
+      },
+      move: (e) => follow(e.currentTarget as HTMLElement, e.clientX, e.clientY),
+      end: (e) => {
+        const el = e.currentTarget as HTMLElement;
+        const had = origin.current !== null;
+        release(el);
+        if (had) onDrop(e.clientX, e.clientY);
+      },
+    } : undefined,
+  });
   const tier = tiers?.length ? tiers[tiers.length - 1] : null;
 
   return (
@@ -73,10 +121,11 @@ export default function Card3D({
       type="button"
       {...press}
       title={name}
+      data-draggable={onDrop && !disabled ? 'true' : undefined}
       className={[
         'card3d', HIGHLIGHT[highlight], DIM[dim], LIFT[lift],
         stacked ? 'is-stacked' : '', raised ? 'is-raised' : '',
-        rail ? `in-rail in-rail-${rail}` : '',
+        rail ? `in-rail in-rail-${rail}` : '', dragging ? 'is-dragging' : '',
       ].filter(Boolean).join(' ')}
       // ⚠️ La place voyage en VARIABLES, jamais en `transform` composé ici :
       // une déclaration en ligne bat toute règle de feuille, donc un
@@ -95,7 +144,11 @@ export default function Card3D({
       } as CSSProperties}
     >
       <span className="unit-face">
-        <img className="unit-art" src={illustrationUrl(illustrationId)} alt="" />
+        {/* ⚠️ `draggable={false}` : sans lui, le premier pixel d'un glisser démarre
+            le GLISSER NATIF D'IMAGE du navigateur, qui émet aussitôt un
+            `pointercancel` — le geste du jeu meurt avant d'exister, et rien
+            dans le code ne le dit. */}
+        <img className="unit-art" src={illustrationUrl(illustrationId)} alt="" draggable={false} />
         <span className="unit-foil-stars" />
         <span className="unit-foil-nebula" />
         <span className="unit-top-edge" />

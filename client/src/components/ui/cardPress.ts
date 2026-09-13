@@ -20,13 +20,25 @@ export interface CardPressOptions {
   tooltip?: TooltipContent | null;
   disabled?: boolean;
   onTap?: () => void;
-  /** Appelé quand le doigt s'éloigne assez pour que ce ne soit plus un tap.
-   *  C'est le crochet du glisser-déposer ; sans lui, le geste est annulé net. */
-  onDragStart?: (e: ReactPointerEvent<HTMLElement>) => void;
+  /**
+   * Le glisser-déposer. `start` est appelé quand le doigt s'éloigne assez pour
+   * que ce ne soit plus un tap ; il peut REFUSER en rendant `false` (une carte
+   * qui ouvre un menu de conditions, une carte qu'une magie cible…), auquel cas
+   * le geste redevient un simple tap annulé.
+   *
+   * ⚠️ Le hook pose la CAPTURE DU POINTEUR sur l'élément de départ : une souris
+   * n'a pas la capture implicite du tactile, donc sans elle le glisser s'arrête
+   * dès que le curseur quitte la carte — c'est-à-dire immédiatement.
+   */
+  drag?: {
+    start: (e: ReactPointerEvent<HTMLElement>) => boolean | void;
+    move: (e: ReactPointerEvent<HTMLElement>) => void;
+    end: (e: ReactPointerEvent<HTMLElement>) => void;
+  };
 }
 
 export function useCardPress({
-  tapOn = 'down', tooltip = null, disabled = false, onTap, onDragStart,
+  tapOn = 'down', tooltip = null, disabled = false, onTap, drag,
 }: CardPressOptions) {
   const showTooltip = useUiStore(s => s.showTooltip);
   const longPress = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,24 +76,43 @@ export function useCardPress({
     // chaque défilement commencé sur une carte s'y lisait comme un tap au
     // relâchement.
     onPointerMove: (e: ReactPointerEvent<HTMLElement>) => {
-      if (!start.current || dragged.current) return;
+      if (dragged.current) { drag!.move(e); return; }
+      if (!start.current) return;
       const dx = e.clientX - start.current.x;
       const dy = e.clientY - start.current.y;
       if (dx * dx + dy * dy <= TAP_MOVE_TOLERANCE_PX * TAP_MOVE_TOLERANCE_PX) return;
       cancelTap();
-      if (onDragStart && !disabled) { dragged.current = true; onDragStart(e); }
+      if (!drag || disabled) return;
+      if (drag.start(e) === false) return;
+      dragged.current = true;
+      // ⚠️ Sans capture, une SOURIS cesse de nous envoyer ses déplacements dès
+      // qu'elle quitte la carte — donc dès le premier pixel du glisser.
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      drag.move(e);
     },
 
-    onPointerUp: () => {
+    onPointerUp: (e: ReactPointerEvent<HTMLElement>) => {
       clearLong();
-      if (tapOn === 'up' && armed.current && !suppressTap.current) fire();
+      if (dragged.current) {
+        dragged.current = false;
+        (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+        drag!.end(e);
+      } else if (tapOn === 'up' && armed.current && !suppressTap.current) {
+        fire();
+      }
       armed.current = false;
       suppressTap.current = false;
       start.current = null;
     },
 
     // Sortir de la vignette avant de relâcher annule le tap (le doigt a glissé).
-    onPointerLeave: cancelTap,
-    onPointerCancel: cancelTap,
+    // ⚠️ PAS pendant un glisser : la capture du pointeur garde l'élément comme
+    // cible, mais un `pointerleave` reste émis au franchissement de sa boîte —
+    // l'écouter annulerait le geste au premier pixel.
+    onPointerLeave: () => { if (!dragged.current) cancelTap(); },
+    onPointerCancel: (e: ReactPointerEvent<HTMLElement>) => {
+      if (dragged.current) { dragged.current = false; drag!.end(e); }
+      cancelTap();
+    },
   };
 }

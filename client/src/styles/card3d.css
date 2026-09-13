@@ -64,8 +64,7 @@
   padding: 0;
   border: 0;
   color: inherit;
-  /* Le tap ne doit pas attendre le double-tap, et le glissé ne doit pas
-     déclencher le défilement natif sous les doigts. */
+  /* Le tap ne doit pas attendre le double-tap. */
   touch-action: manipulation;
 }
 
@@ -208,6 +207,44 @@
 .card3d:hover .card3d-name {
   white-space: normal;
   line-height: 1.15;
+}
+
+/* ⚠️ `touch-action: none` sur les seules cartes GLISSABLES. `manipulation`
+   laisse au navigateur le droit de réquisitionner le geste pour un défilement —
+   il émet alors un `pointercancel` et le glisser meurt en cours de route, de
+   façon intermittente selon ce qui défile sous la carte. Et c'est bien
+   `[data-draggable]` et non `.card3d` : la même carte servira un jour une
+   grille qui DÉFILE (DeckBuilder, boutique), où confisquer le geste au
+   navigateur empêcherait de faire défiler la liste en partant d'une carte. */
+.card3d[data-draggable="true"] { touch-action: none; }
+
+/* ── Le glisser ──
+   La carte suit le doigt par deux variables mutées par référence
+   (`--card-drag-*`), sans un re-render par frame.
+
+   ⚠️ `transition: none` n'est pas un détail : avec la transition du repos, la
+   carte RATTRAPERAIT le doigt avec 140 ms de retard — on glisserait une carte
+   en la regardant traîner derrière. Un geste direct ne s'interpole pas.
+
+   ⚠️ Elle se redresse et s'aplatit : la couche porte une `perspective`, et une
+   carte inclinée emmenée loin de son origine se déforme d'autant. */
+.card3d.is-dragging {
+  z-index: 70;
+  transition: none;
+  cursor: grabbing;
+  --card-lift-x: var(--card-drag-x, 0px);
+  --card-lift-y: var(--card-drag-y, 0px);
+  --card-straighten: 0;
+  --card-tilt: 0deg;
+  --card-glow-near: 8px;
+  --card-glow-far: 26px;
+  --card-extra-shadow: 0 18px 26px -10px rgba(0, 0, 0, .85);
+}
+.card3d.is-dragging .unit-foil-nebula { opacity: 1; }
+/* Le survol ne doit pas se superposer au glisser : la carte est déjà au doigt. */
+@media (hover: hover) and (pointer: fine) {
+  .card3d.is-dragging:hover { --card-lift-x: var(--card-drag-x, 0px); --card-lift-y: var(--card-drag-y, 0px); }
+  .card3d[data-draggable="true"]:hover { cursor: grab; }
 }
 
 /* Le tassement au tap, comme les boutons du jeu. Après le survol : sur un
