@@ -5,10 +5,16 @@
 // pouvait la lire, et les glyphes 💰/💎 étaient réécrits à la main dans une
 // vingtaine d'endroits, ShopScreen entretenant même sa propre table parallèle.
 //
-// ⚠️ Ce que ça coûtait : GiftsScreen peignait les gemmes en `text-tier-5`, or
-// `--color-tier-5` et `--color-gold` valent la MÊME valeur (#d4af61). Sur le
-// seul écran qui montre les deux montants côte à côte, ils sortaient donc dans
-// la même couleur. Partout ailleurs les gemmes sont violettes (`text-tier-4`).
+// ⚠️ Ce que ça coûtait : GiftsScreen peignait les gemmes avec une couleur de
+// TIER, qui valait alors exactement `--color-gold` (#d4af61). Sur le seul écran
+// qui montre les deux montants côte à côte, ils sortaient donc dans la même
+// couleur.
+//
+// ⚠️ Les gemmes ont depuis leur PROPRE teinte (`text-violet`), et c'est la vraie
+// leçon : une monnaie qui emprunte la couleur d'autre chose se fait repeindre le
+// jour où cette autre chose change d'avis. C'est arrivé — les tiers ont repris
+// la palette des cartes (`three/cardPalette`), et `--color-tier-4` est passé du
+// violet à l'or. Sans ce jeton propre, les gemmes seraient redevenues dorées.
 //
 // Le module vit dans `components/ui/` et non dans `data/` : `cls` est une classe
 // Tailwind, c'est de la présentation, pas de la donnée de jeu.
@@ -49,7 +55,7 @@ export const CURRENCY: Record<CurrencyKey, CurrencyDef> = {
   },
   gems: {
     key: 'gems', label: 'Gemmes', short: 'Gemmes', unit: 'gemmes',
-    icon: '💎', cls: 'text-tier-4', balance: u => u?.gems ?? 0,
+    icon: '💎', cls: 'text-violet', balance: u => u?.gems ?? 0,
   },
 };
 

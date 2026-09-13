@@ -24,7 +24,7 @@ import { GuestGate } from '../components/ui/GuestGate.js';
 const SLOTS: Record<number, { label: string; cls: string }> = {
   1: { label: 'Facile',  cls: 'border-success/50 text-success' },
   2: { label: 'Moyen',   cls: 'border-gold/50 text-gold' },
-  3: { label: 'Engagé',  cls: 'border-tier-5/60 text-tier-5' },
+  3: { label: 'Engagé',  cls: 'border-gold/60 text-gold' },
 };
 
 const FAMILY_ICONS: Record<string, string> = {

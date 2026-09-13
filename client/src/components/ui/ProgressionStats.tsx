@@ -325,7 +325,7 @@ export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
       <dl className="mt-2 grid grid-cols-2 gap-2 text-center">
         <div className="rounded-lg border border-line bg-surface/60 px-1 py-2">
           <dt className="text-[10px] tracking-widest text-white/40">{CURRENCY.gems.icon} PROCHAINES</dt>
-          <dd className="mt-1 text-sm font-bold tabular-nums text-tier-4">Nv. {fmt.format(levels.next_gems_level)}</dd>
+          <dd className="mt-1 text-sm font-bold tabular-nums text-violet">Nv. {fmt.format(levels.next_gems_level)}</dd>
         </div>
         <div className="rounded-lg border border-line bg-surface/60 px-1 py-2">
           <dt className="text-[10px] tracking-widest text-white/40">🎁 PROCHAIN OBJET</dt>

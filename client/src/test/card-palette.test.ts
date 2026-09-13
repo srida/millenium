@@ -71,6 +71,45 @@ describe('frameForTier — le repli, et lui seul', () => {
   });
 });
 
+describe('le miroir avec styles/index.css — une seule palette de tier', () => {
+  // ⚠️ `--color-tier-N` et `TIER_FRAMES` sont des JUMEAUX, séparés par la
+  // frontière CSS / TypeScript : Tailwind génère `text-tier-3` depuis la
+  // variable, la carte 3D lit la table. Aucun module ne peut les réunir, ce
+  // test est donc le SEUL filet contre leur dérive — et cette dérive a déjà eu
+  // lieu : les deux palettes étaient décalées d'un rang, un tier 3 sortait
+  // violet sur le plateau et bleu en main.
+  const sheet = fs.readFileSync(path.join(SRC, 'styles', 'index.css'), 'utf8');
+  const declared = new Map<number, string>();
+  for (const [, tier, hex] of sheet.matchAll(/--color-tier-(\d+):\s*([^;]+);/g)) {
+    declared.set(Number(tier), hex.trim());
+  }
+
+  it('la feuille déclare bien des tiers (le test ne sonde pas dans le vide)', () => {
+    expect(declared.size).toBeGreaterThan(0);
+  });
+
+  it('chaque tier de la table a sa variable, et de la même couleur', () => {
+    for (const [tier, frame] of Object.entries(TIER_FRAMES)) {
+      expect(declared.get(Number(tier)), `--color-tier-${tier}`).toBe(frame.edge);
+    }
+  });
+
+  it('la feuille ne déclare aucun tier que la table ignore', () => {
+    // Un `--color-tier-6` sans cadre serait une couleur que la carte 3D ne sait
+    // pas rendre : le badge et le liseré se contrediraient.
+    expect([...declared.keys()].sort()).toEqual(Object.keys(TIER_FRAMES).map(Number).sort());
+  });
+
+  it("le tier 5 ne partage plus la couleur de l'or", () => {
+    // ⚠️ Ils valaient la MÊME valeur (#d4af61), et c'est ce qui faisait sortir
+    // gold et gemmes dans la même couleur sur l'écran des cadeaux. Les monnaies
+    // ont depuis leur propre teinte, mais la collision ne doit pas revenir.
+    const gold = sheet.match(/--color-gold:\s*([^;]+);/)?.[1].trim();
+    expect(gold).toBeTruthy();
+    expect(TIER_FRAMES[5].edge).not.toBe(gold);
+  });
+});
+
 describe('tierFrameVars — le contrat avec styles/board3d.css', () => {
   const sheet = fs.readFileSync(path.join(SRC, 'styles', 'board3d.css'), 'utf8');
   const readBySheet = new Set(sheet.match(/--uc-[a-z-]+/g) ?? []);

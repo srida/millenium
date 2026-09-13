@@ -82,7 +82,7 @@ export default function QueryBar({ value, onChange, schema, error, placeholder, 
         >?</button>
       </div>
 
-      {error && <p className="mt-1 text-[11px] leading-snug text-tier-4">{error}</p>}
+      {error && <p className="mt-1 text-[11px] leading-snug text-violet">{error}</p>}
 
       {items.length > 0 && (
         <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-60 overflow-y-auto rounded-lg border border-line bg-surface shadow-2xl">

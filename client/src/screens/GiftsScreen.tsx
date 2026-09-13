@@ -223,11 +223,12 @@ function GiftReveal({ onClose }: { onClose: () => void }) {
 
         {(!!reveal.gold || !!reveal.gems) && (
           <div className="flex justify-center gap-4 text-sm font-semibold">
-            {/* ⚠️ Les gemmes étaient ici en `text-tier-5` — la MÊME valeur que
-                `--color-gold` (#d4af61) : sur le seul écran qui montre les deux
-                montants côte à côte, ils sortaient dans la même couleur.
-                `Amount` va chercher la teinte dans `currency.ts`, l'écart ne
-                peut plus se reproduire. */}
+            {/* ⚠️ Les gemmes étaient ici peintes avec une couleur de TIER, qui
+                valait alors exactement `--color-gold` : sur le seul écran qui
+                montre les deux montants côte à côte, ils sortaient dans la même
+                couleur. `Amount` va chercher la teinte dans `currency.ts`,
+                l'écart ne peut plus se reproduire — et c'est ce qui a encaissé
+                sans bruit le jour où les tiers ont changé de palette. */}
             {!!reveal.gold && <Amount currency="gold" value={reveal.gold} sign />}
             {!!reveal.gems && <Amount currency="gems" value={reveal.gems} sign />}
           </div>
