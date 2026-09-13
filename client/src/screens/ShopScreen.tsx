@@ -66,10 +66,9 @@ export default function ShopScreen() {
       <div className="border-b border-line">
         <div className="flex items-center gap-3 px-4 py-3">
           <h1 className="text-lg font-bold tracking-wide">Boutique</h1>
-          <div className="ml-auto flex items-center gap-2">
-            <Balance />
-            {snapshot && <Countdown at={snapshot.next_rotation_at} title="Nouvelle sélection" />}
-          </div>
+          {/* Le solde n'est plus répété ici : `AppHeader` l'affiche déjà en
+              permanence (ProgressionPills), sur toutes les pages. */}
+          {snapshot && <Countdown at={snapshot.next_rotation_at} title="Nouvelle sélection" className="ml-auto" />}
         </div>
         {/* Les onglets font partie du bloc épinglé : changer de rayon doit
             rester possible sans remonter toute la vitrine. */}
@@ -436,21 +435,6 @@ function ConfirmBuy({ pending, onClose }: { pending: PendingBuy; onClose: () => 
         </Button>
       </div>
     </Modal>
-  );
-}
-
-/** Soldes, à la même enseigne qu'ailleurs (mêmes icônes que ProgressionStats). */
-function Balance() {
-  const user = useAuthStore(s => s.user);
-  if (!user) return null;
-  return (
-    // Masqué en web : le header y affiche déjà le solde (ProgressionPills), le
-    // répéter serait redondant. En mobile, le header n'affiche que le profil,
-    // donc le solde reste ici — fonctionnel pendant les achats.
-    <span className="flex items-center gap-2 text-xs tabular-nums sm:hidden">
-      <Amount currency="gold" value={user.gold ?? 0} />
-      <Amount currency="gems" value={user.gems ?? 0} />
-    </span>
   );
 }
 
