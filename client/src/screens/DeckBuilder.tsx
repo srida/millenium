@@ -18,7 +18,7 @@ import { useDeckStore } from '../stores/deckStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
 import { useCosmeticStore } from '../stores/cosmeticStore.js';
-import { Button, usePressSquash } from '../components/ui/primitives.js';
+import { Button, Modal, usePressSquash } from '../components/ui/primitives.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import QueryBar from '../components/ui/QueryBar.js';
 import SortControl, { type SortState } from '../components/ui/SortControl.js';
@@ -303,6 +303,25 @@ export default function DeckBuilder() {
   }
 
   const [saving, setSaving] = useState(false);
+  // Pourquoi le deck n'est pas enregistrable : porté par une popup au tap sur
+  // « Enregistrer » plutôt qu'une phrase permanente sous le bouton — celle-ci
+  // occupait de la place pour dire, la plupart du temps, que tout va bien.
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  function attemptSave() {
+    if (!valid) {
+      const missing = MIN_DECK - total;
+      setSaveError(
+        name.trim().length === 0
+          ? 'Nomme ton deck avant de l\'enregistrer.'
+          : missing > 0
+            ? `Il manque ${missing} carte${missing > 1 ? 's' : ''} (minimum ${MIN_DECK}).`
+            : 'Un tier dépasse son maximum autorisé — retire des cartes en trop.',
+      );
+      return;
+    }
+    void save();
+  }
 
   async function save() {
     if (!valid) return;
@@ -353,13 +372,13 @@ export default function DeckBuilder() {
     back();
   }
 
-  const need = Math.max(0, MIN_DECK - total);
-
   return (
     <main className="flex min-h-full flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
       <div className="border-b border-line">
+        {/* Plus de bouton retour ici : « Annuler » vit désormais à côté
+            d'« Enregistrer », en pied de page — les deux issues de l'écran
+            au même endroit, plutôt qu'aux deux extrémités. */}
         <div className="flex items-center gap-3 px-4 py-3">
-          <button type="button" onPointerDown={back} className="shrink-0 text-sm text-white/60 underline">‹ Annuler</button>
           <h1 className="truncate text-lg font-bold tracking-wide">{isAdminEdit ? `Deck-building — ${publicDeckId}` : 'Deck-building'}</h1>
           <span className={`ml-auto shrink-0 text-sm font-bold tabular-nums ${valid ? 'text-success' : 'text-gold'}`}>{total}/{MIN_DECK}</span>
         </div>
@@ -425,21 +444,27 @@ export default function DeckBuilder() {
         />
       )}
 
-      {/* Pied de page COLLANT : « Enregistrer » est l'issue de l'écran, il ne
-          doit jamais demander de scroller — pas plus que le retour. Opaque
-          (`bg-surface`) parce que la grille de cartes passe dessous. */}
-      <div className="sticky bottom-0 z-20 shrink-0 border-t border-line bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="mb-2 text-center text-xs">
-          {valid
-            ? <span className="text-success">✓ Deck valide · prêt à enregistrer</span>
-            : need > 0
-              ? <span className="text-gold">Encore {need} carte{need > 1 ? 's' : ''} (min. {MIN_DECK})</span>
-              : <span className="text-gold">Nomme ton deck pour enregistrer</span>}
-        </div>
-        <Button variant="primary" disabled={!valid || saving} className="w-full py-3" onPointerDown={() => void save()}>
+      {/* Pied de page COLLANT : « Enregistrer » et « Annuler » sont les deux
+          issues de l'écran, elles ne doivent jamais demander de scroller.
+          Opaque (`bg-surface`) parce que la grille de cartes passe dessous.
+          Pourquoi le deck n'est pas prêt se dit dans une popup au tap (cf.
+          `attemptSave`), pas dans une phrase permanente ici. */}
+      <div className="sticky bottom-0 z-20 flex shrink-0 gap-2 border-t border-line bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <Button className="px-4" onPointerDown={back}>Annuler</Button>
+        <Button variant="primary" disabled={saving} className="flex-1 py-3" onPointerDown={attemptSave}>
           {saving ? '…' : '▸ Enregistrer le deck'}
         </Button>
       </div>
+
+      {saveError && (
+        <Modal onClose={() => setSaveError(null)}>
+          <div className="text-center">
+            <div className="mb-2 text-3xl" aria-hidden>⚠️</div>
+            <p className="text-sm text-white">{saveError}</p>
+            <Button variant="primary" className="mt-4 w-full" onPointerDown={() => setSaveError(null)}>Compris</Button>
+          </div>
+        </Modal>
+      )}
 
       {skinning && (
         <IllustrationPicker
@@ -544,17 +569,16 @@ function LibraryPanel({
             l'accès à ce qu'on ne possède pas. Les quatre seaux de COÛT sont
             partis — la barre les dit mieux (`cout:0`, `cout>=3`, mais aussi
             `cout:1,2`) et l'autocomplétion les propose au fil de la frappe.
-            Le tri partage la même ligne (`ml-auto` le pousse à droite quand la
-            largeur le permet) ; il wrap sous les chips sinon, sans jamais
-            s'étirer plein cadre — `sm:max-w-xs` borne un `<select>` qui, seul,
-            pèserait plus lourd que la barre de recherche. */}
+            Le tri partage la même ligne (`ml-auto` le pousse à droite) : un
+            simple bouton compact ouvrant une popup, pas un `<select>` large
+            qui pèserait plus lourd que la barre de recherche elle-même. */}
         <div className="flex flex-wrap items-center gap-1.5">
           {[1, 2, 3, 4, 5].map(t => (
             <Chip key={t} active={on('tier', t)} onTap={() => toggle('tier', t)}>
               <span className={TIER_TEXT[t]}>T{t}</span>
             </Chip>
           ))}
-          <SortControl schema={schema} value={sort} onChange={setSort} className="ml-auto sm:max-w-xs" />
+          <SortControl schema={schema} value={sort} onChange={setSort} className="ml-auto" />
         </div>
         <div className="text-[11px] text-white/40">
           {ownedCount}/{total} cartes débloquées · {cards.length} affichée{cards.length > 1 ? 's' : ''} · 1 exemplaire par deck
