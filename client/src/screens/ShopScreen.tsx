@@ -26,7 +26,6 @@ import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant, type Cosme
 import { useCollectionStore } from '../stores/collectionStore.js';
 import { Amount, Button, Countdown, Gauge, IconButton, Illustration, LoadState, Modal, Panel, usePressSquash } from '../components/ui/primitives.js';
 import { CURRENCY, CURRENCY_BY_WIRE, fmt, type WireCurrency } from '../components/ui/currency.js';
-import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import PackContents, { PackPoster } from '../components/shop/PackContents.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
@@ -34,7 +33,6 @@ import { GuestGate } from '../components/ui/GuestGate.js';
 const cardOf = (id: string | null): Card | null => (id ? (CardDatabase as any).getCard(id) ?? null : null);
 
 export default function ShopScreen() {
-  const navigate = useUiStore(s => s.navigate);
   // Tap ailleurs → fermeture du tooltip, comme sur tous les écrans qui rendent
   // des CardTile (DeckBuilder, DeckSelector, GameScreen). Sans ce handler, un
   // appui long sur une carte de la boutique ouvrait un tooltip que plus rien
@@ -64,32 +62,29 @@ export default function ShopScreen() {
   const complete = snapshot && snapshot.collection.owned >= snapshot.collection.total;
 
   return (
-    <main className="flex min-h-dvh flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
-      <ScreenHeader
-        title="Boutique"
-        onBack={() => navigate('main_menu')}
-        right={(
-          <>
+    <main className="flex min-h-full flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
+      <div className="border-b border-line">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <h1 className="text-lg font-bold tracking-wide">Boutique</h1>
+          <div className="ml-auto flex items-center gap-2">
             <Balance />
             {snapshot && <Countdown at={snapshot.next_rotation_at} title="Nouvelle sélection" />}
-          </>
-        )}
-        // Les onglets font partie du bloc épinglé : changer de rayon doit
-        // rester possible sans remonter toute la vitrine.
-        below={(
-          <div className="flex">
-            {([['cards', '🃏 Cartes'], ['cosmetics', '🎨 Cosmétiques']] as const).map(([key, label]) => (
-              <button
-                key={key}
-                onPointerDown={() => setTab(key)}
-                className={`min-h-tap flex-1 text-sm font-semibold ${tab === key ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
-              >
-                {label}
-              </button>
-            ))}
           </div>
-        )}
-      />
+        </div>
+        {/* Les onglets font partie du bloc épinglé : changer de rayon doit
+            rester possible sans remonter toute la vitrine. */}
+        <div className="flex">
+          {([['cards', '🃏 Cartes'], ['cosmetics', '🎨 Cosmétiques']] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onPointerDown={() => setTab(key)}
+              className={`min-h-tap flex-1 text-sm font-semibold ${tab === key ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {tab === 'cosmetics' ? <CosmeticsTab /> : (
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4">

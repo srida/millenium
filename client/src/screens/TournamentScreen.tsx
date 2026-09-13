@@ -20,7 +20,6 @@ import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useTournamentStore } from '../stores/tournamentStore.js';
 import { Button } from '../components/ui/primitives.js';
-import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 
 const ROUND_LABELS = ['Quarts de finale', 'Demi-finales', 'Finale'];
@@ -41,10 +40,9 @@ export default function TournamentScreen() {
   const deckName = ((DeckRepository as any).getActiveDeck?.() as string | null) ?? null;
 
   // ⚠️ Le `.catch` n'est pas décoratif : sans lui, un catalogue injoignable
-  // (hors ligne, 500) laissait `ready` à false pour toujours — et comme l'écran
-  // retournait AVANT son ScreenHeader, le joueur restait sur « Chargement… »
-  // sans titre ni bouton retour, avec une promesse rejetée non gérée en prime.
-  // Même geste qu'`App.tsx`, seul site du projet qui le faisait déjà.
+  // (hors ligne, 500) laissait `ready` à false pour toujours, avec une
+  // promesse rejetée non gérée en prime. Même geste qu'`App.tsx`, seul site
+  // du projet qui le faisait déjà.
   useEffect(() => {
     (PublicDeckDatabase as any).init()
       .then(() => setReady(true))
@@ -83,14 +81,15 @@ export default function TournamentScreen() {
   const eliminated = tournament && isPlayerEliminated(tournament);
   const playerMatch = tournament && !complete ? findPlayerMatch(tournament) : null;
 
-  // ⚠️ L'en-tête est rendu AVANT tout état, jamais après : c'est lui qui porte
-  // le bouton retour. Un écran qui le saute pour afficher « Chargement… » ou
-  // une erreur enferme le joueur dedans.
-  const header = <ScreenHeader title="Tournoi" onBack={() => navigate('main_menu')} />;
+  const header = (
+    <div className="border-b border-line px-4 py-3">
+      <h1 className="text-lg font-bold tracking-wide">Tournoi</h1>
+    </div>
+  );
 
   if (error || !ready) {
     return (
-      <main className="flex min-h-dvh flex-col relative z-10 text-white">
+      <main className="flex min-h-full flex-col relative z-10 text-white">
         {header}
         <Center>
           {error
@@ -105,7 +104,7 @@ export default function TournamentScreen() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col relative z-10 text-white">
+    <main className="flex min-h-full flex-col relative z-10 text-white">
       {header}
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4">

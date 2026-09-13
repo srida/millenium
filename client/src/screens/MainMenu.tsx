@@ -1,14 +1,15 @@
 // MainMenu — hub : jouer, tournoi, entraînement, gérer ses decks, se connecter /
 // déconnecter (auth optionnelle, D2). Lien dev vers le CombatLab.
 //
-// Sans scroll dans les deux orientations (téléphone ET tablette) : la racine
-// est `h-dvh` + `overflow-hidden`, trois zones fixes (en-tête, bloc logo,
-// pile d'actions) puis le dock des raccourcis. `useWebLayout` (même seuil que
-// `Scene3D._cameraFraming`) fait basculer le dock d'une barre basse (portrait)
-// à un rail droit (paysage — desktop, tablette, téléphone tourné), et la pile
-// d'actions d'une colonne à une ligne [carte Jouer | grille 2×2 des modes].
-// Sur tablette (`sm:`), le logo cesse de grandir et cède la place à la pile
-// d'actions, bornée et centrée — sinon le portail écrase les boutons.
+// Le header (profil, progression) et le footer (Accueil, Missions, Boutique,
+// Cadeaux, Catalogue) ne sont plus posés par cet écran : `App.tsx` rend
+// `AppHeader`/`AppFooter` une seule fois, partagés par toutes les pages. Cette
+// racine n'occupe donc que l'espace restant, sans scroll dans les deux
+// orientations (téléphone ET tablette) — `useWebLayout` (même seuil que
+// `Scene3D._cameraFraming`) fait basculer la pile d'actions d'une colonne à
+// une ligne [carte Jouer | grille 2×2 des modes]. Sur tablette (`sm:`), le
+// logo cesse de grandir et cède la place à la pile d'actions, bornée et
+// centrée — sinon le portail écrase les boutons.
 //
 // C'est ICI que se choisit le deck du joueur : la pastille du deck actif, en
 // coiffe du bouton « Jouer » (`PlayCard`), est le seul accès à « Mes decks »
@@ -16,18 +17,14 @@
 // bouton dédié en plus ferait doublon. Le deck actif sert dans tous les modes :
 // « Jouer » (le duel en ligne) et le Tournoi entrent donc directement, et seul
 // « Entraînement » ouvre le sélecteur, pour le seul deck de l'IA.
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
-import { useMissionStore, hasUnseenMissions, claimableCount } from '../stores/missionStore.js';
-import { useShopStore, hasUnseenShop } from '../stores/shopStore.js';
-import { useGiftStore, claimableCount as claimableGifts } from '../stores/giftStore.js';
 import { useArcadeStore } from '../stores/arcadeStore.js';
 import { getProgress, shouldInvite, updateProgress } from '../data/tutorialProgress.js';
-import { Button, CountBadge, Modal, NewDot, usePressSquash } from '../components/ui/primitives.js';
+import { Button, CountBadge, Modal, NewDot } from '../components/ui/primitives.js';
 import { AnimatedLogo } from '../components/ui/AnimatedLogo.js';
-import { ProgressionPills, ProfilePill } from '../components/ui/ProgressionStats.js';
 import { FullscreenButton } from '../components/system/DeviceGuards.js';
 import { AppVersion } from '../components/system/AppVersion.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
@@ -58,70 +55,49 @@ export default function MainMenu() {
     // ⚠️ `pl-`/`pr-` en `max(…, env(safe-area-inset-*))` et non un simple
     // `px-` : en paysage (PWA installée surtout, cf. `viewport-fit=cover`),
     // l'encoche d'un téléphone tourné se retrouve sur un CÔTÉ — un `px-`
-    // ignore l'inset et laisse l'en-tête empiéter dessous.
-    <main className="relative z-10 flex h-dvh flex-col gap-2 overflow-hidden py-3 pl-[max(2.5rem,env(safe-area-inset-left))] pr-[max(2.5rem,env(safe-area-inset-right))] pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] text-white sm:pl-[max(0.25rem,env(safe-area-inset-left))] sm:pr-[max(0.25rem,env(safe-area-inset-right))]">
-      {/* En portrait téléphone, la place manque pour le loger dans l'en-tête
-          (déjà plein : profil, niveau, or, gemmes) — il flotte alors sous
-          l'en-tête. À partir de `sm:` (paysage, tablette), il rejoint l'en-tête. */}
-      <FullscreenButton className="absolute right-3 top-[calc(env(safe-area-inset-top)+3.25rem)] sm:hidden" />
+    // ignore l'inset et laisse le contenu empiéter dessous.
+    //
+    // Le header (profil, progression) et le footer (Accueil, Missions,
+    // Boutique, Cadeaux, Catalogue) ne sont plus posés ici : `App.tsx` les
+    // rend une seule fois, `AppHeader`/`AppFooter`, partagés par tous les
+    // écrans — cette racine n'occupe donc plus que l'espace restant.
+    <main className="relative z-10 flex h-full flex-col gap-2 overflow-hidden py-3 pl-[max(2.5rem,env(safe-area-inset-left))] pr-[max(2.5rem,env(safe-area-inset-right))] text-white sm:pl-[max(0.25rem,env(safe-area-inset-left))] sm:pr-[max(0.25rem,env(safe-area-inset-right))]">
+      <FullscreenButton className="absolute right-3 top-2 sm:hidden" />
 
       {web && !isTabletDevice ? (
-        // Téléphone paysage : en-tête pleine largeur en haut, puis une ligne
-        // [rail logo | carte Jouer + grille | dock] en dessous.
-        <div className="flex min-h-0 flex-1 flex-col gap-2">
-          <MenuHeader />
-          <div className="flex min-h-0 flex-1 gap-3">
-            <LogoRail isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
-            <div className="flex min-h-0 flex-1 items-stretch gap-3">
-              <PlayCard className="min-w-0 flex-[1.15]" />
-              <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
-                <TutorialButton className="h-full w-full" />
-                <TournamentButton className="h-full w-full" />
-                <TrainingButton className="h-full w-full" />
-                <ArcadeButton className="h-full w-full" />
-              </div>
+        // Téléphone paysage : une ligne [rail logo | carte Jouer + grille].
+        <div className="flex min-h-0 flex-1 gap-3">
+          <LogoRail isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
+          <div className="flex min-h-0 flex-1 items-stretch gap-3">
+            <PlayCard className="min-w-0 flex-[1.15]" />
+            <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
+              <TutorialButton className="h-full w-full" />
+              <TournamentButton className="h-full w-full" />
+              <TrainingButton className="h-full w-full" />
+              <ArcadeButton className="h-full w-full" />
             </div>
-            <Dock web>
-              <MissionsTile />
-              <ShopTile />
-              <GiftsTile />
-              <CatalogTile />
-            </Dock>
           </div>
         </div>
       ) : web ? (
         // Tablette paysage : logo au-dessus de la ligne d'actions, comme en
         // portrait, mais celle-ci se scinde [carte Jouer | grille 2×2].
-        // ⚠️ Le groupe [logo, ligne] se centre verticalement EN BLOC
-        // (`justify-center` sur leur conteneur commun, sous l'en-tête pinné) :
-        // sans lui, la ligne s'arrête à la hauteur voulue mais reste collée
-        // en haut, sous le logo, au lieu d'occuper le milieu de l'écran.
-        <div className="flex min-h-0 flex-1 gap-3 sm:gap-2">
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-2">
-            <MenuHeader className="w-full" />
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2">
-              <LogoBlock grow={false} isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
-              <div className="flex w-full items-stretch gap-3 sm:gap-2 sm:max-h-[330px]">
-                <PlayCard className="min-w-0 flex-[1.15]" />
-                <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
-                  <TutorialButton className="h-full w-full" />
-                  <TournamentButton className="h-full w-full" />
-                  <TrainingButton className="h-full w-full" />
-                  <ArcadeButton className="h-full w-full" />
-                </div>
-              </div>
+        // Le tout se centre verticalement EN BLOC (`justify-center`) : sans
+        // lui, la ligne s'arrête à la hauteur voulue mais reste collée en
+        // haut, sous le logo, au lieu d'occuper le milieu de l'écran.
+        <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col items-center justify-center gap-2">
+          <LogoBlock grow={false} isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
+          <div className="flex w-full items-stretch gap-3 sm:gap-2 sm:max-h-[330px]">
+            <PlayCard className="min-w-0 flex-[1.15]" />
+            <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
+              <TutorialButton className="h-full w-full" />
+              <TournamentButton className="h-full w-full" />
+              <TrainingButton className="h-full w-full" />
+              <ArcadeButton className="h-full w-full" />
             </div>
           </div>
-          <Dock web>
-            <MissionsTile />
-            <ShopTile />
-            <GiftsTile />
-            <CatalogTile />
-          </Dock>
         </div>
       ) : (
         <>
-          <MenuHeader />
           <LogoBlock grow isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
           <div className="flex flex-col gap-2.5 sm:mx-auto sm:w-full sm:max-w-[470px] sm:flex-1 sm:justify-center">
             <PlayCard />
@@ -132,12 +108,6 @@ export default function MainMenu() {
             </div>
             <ArcadeButton />
           </div>
-          <Dock web={false}>
-            <MissionsTile />
-            <ShopTile />
-            <GiftsTile />
-            <CatalogTile />
-          </Dock>
         </>
       )}
 
@@ -160,43 +130,6 @@ function useMediaQuery(query: string) {
     return () => mq.removeEventListener('change', update);
   }, [query]);
   return match;
-}
-
-// En-tête : identité à gauche (profil ou invite à se connecter), progression
-// à droite. Même pastilles qu'`ScreenHeader` (niveau + or + gemmes), mais
-// TOUJOURS visibles ici — contrairement aux écrans secondaires, l'accueil n'a
-// ni bouton retour ni titre à défendre, la place ne manque qu'aux détails fins
-// (cf. le repli `sm:` dans `ProgressionPills`).
-function MenuHeader({ className = '' }: { className?: string }) {
-  const navigate = useUiStore(s => s.navigate);
-  const user = useAuthStore(s => s.user);
-
-  return (
-    // `text-xs` : les marges élargies du portrait téléphone (cf. `<main>`)
-    // laissent peu de place pour profil + niveau + or + gemmes sur une seule
-    // ligne — la police redescend d'un cran, `sm:` la rend à sa taille.
-    <div className={`flex min-h-tap shrink-0 items-center gap-2 text-xs sm:text-sm ${className}`}>
-      {user ? (
-        <>
-          <ProfilePill user={user} compact onPointerDown={() => navigate('profile')} />
-          {user.is_admin && (
-            <a href="/admin" className="hidden text-xs text-white/70 underline sm:inline">Admin</a>
-          )}
-        </>
-      ) : (
-        <button
-          type="button"
-          onPointerDown={() => navigate('auth')}
-          className="flex min-h-tap items-center rounded-full border border-dashed border-gold/60 px-3 text-xs font-semibold text-gold active:opacity-80"
-        >
-          Connexion
-        </button>
-      )}
-      <div className="flex-1" />
-      {user && <ProgressionPills user={user} onOpen={() => navigate('profile')} />}
-      <FullscreenButton className="hidden sm:flex" />
-    </div>
-  );
 }
 
 /**
@@ -463,131 +396,5 @@ function ArcadeButton({ className = '' }: { className?: string }) {
   );
 }
 
-// Dock des raccourcis (Missions, Boutique, Cadeaux, Catalogue) : barre du bas
-// en portrait, rail à droite en paysage — même seuil que le reste du menu.
-function Dock({ web, children }: { web: boolean; children: ReactNode }) {
-  return (
-    <div
-      className={
-        web
-          ? 'flex w-[76px] shrink-0 flex-col justify-center gap-1 rounded-2xl border border-line bg-surface-raised/80 py-2 backdrop-blur sm:w-20 sm:gap-2'
-          : 'grid shrink-0 grid-cols-4 rounded-2xl border border-line bg-surface-raised/80 backdrop-blur'
-      }
-    >
-      {children}
-    </div>
-  );
-}
-
-// Tuile du dock : icône au-dessus du libellé, pastille en surimpression au
-// coin — le dock est trop étroit en rail pour une notification en ligne.
-function DockTile({ icon, label, onPointerDown, badge, className = '' }: {
-  icon: ReactNode;
-  label: string;
-  onPointerDown?: () => void;
-  badge?: ReactNode;
-  className?: string;
-}) {
-  const { squashed, handlers } = usePressSquash(onPointerDown, false);
-  return (
-    <button
-      type="button"
-      className={`relative flex min-h-[60px] min-w-tap flex-col items-center justify-center gap-1 transition-transform duration-100 ease-out sm:min-h-[70px] ${squashed ? 'scale-95' : ''} ${className}`}
-      {...handlers}
-    >
-      <span className="text-xl" aria-hidden="true">{icon}</span>
-      <span className="text-[10px] text-white/70 sm:text-[11px]">{label}</span>
-      {badge && <span className="absolute right-1.5 top-1">{badge}</span>}
-    </button>
-  );
-}
-
-// Accès aux missions du jour. LES DEUX notifications du jeu (`CountBadge` et
-// `NewDot`, définies dans les primitives, cf. leur commentaire) : la verte
-// chiffrée pour les gains à récupérer, le point doré pour le cycle pas encore
-// visité. La verte prime.
-//
-// Rien n'est rendu en invité — un compte est nécessaire pour porter le cycle.
-function MissionsTile() {
-  const navigate = useUiStore(s => s.navigate);
-  const user = useAuthStore(s => s.user);
-  const userId = user?.id ?? null;
-  const snapshot = useMissionStore(s => s.snapshot);
-  const load = useMissionStore(s => s.load);
-
-  useEffect(() => { if (userId) void load(true); }, [userId, load]);
-
-  if (!user) return null;
-
-  const pending = claimableCount(snapshot);
-  const unseen = !!snapshot && hasUnseenMissions(user.id, snapshot.cycle.next_reset_at);
-
-  return (
-    <DockTile
-      icon="🎯"
-      label="Missions"
-      onPointerDown={() => navigate('missions')}
-      badge={pending > 0 ? (
-        <CountBadge label={`${pending} gain${pending > 1 ? 's' : ''} à récupérer`} className="h-4 min-w-4 text-[10px]">
-          {pending}
-        </CountBadge>
-      ) : unseen ? <NewDot /> : null}
-    />
-  );
-}
-
-// Boutique de cartes. Un simple point signale une offre du jour pas encore
-// visitée — pas un compteur, qui répéterait une valeur déjà portée par le
-// badge de chaque emplacement à l'intérieur. Rien en invité — l'offre est
-// liée au compte.
-function ShopTile() {
-  const navigate = useUiStore(s => s.navigate);
-  const user = useAuthStore(s => s.user);
-  const userId = user?.id ?? null;
-  const snapshot = useShopStore(s => s.snapshot);
-  const load = useShopStore(s => s.load);
-
-  useEffect(() => { if (userId) void load(true); }, [userId, load]);
-
-  if (!user) return null;
-
-  const unseen = !!snapshot && hasUnseenShop(user.id, snapshot.day);
-
-  return <DockTile icon="🛒" label="Boutique" onPointerDown={() => navigate('shop')} badge={unseen ? <NewDot /> : null} />;
-}
-
-// Cadeaux. UNE seule pastille, la verte chiffrée — un cadeau est toujours
-// actionnable ou absent, il n'y a pas de nouveauté à signaler à part. Rien en
-// invité : un cadeau se garde sur un compte.
-function GiftsTile() {
-  const navigate = useUiStore(s => s.navigate);
-  const user = useAuthStore(s => s.user);
-  const userId = user?.id ?? null;
-  const snapshot = useGiftStore(s => s.snapshot);
-  const load = useGiftStore(s => s.load);
-
-  useEffect(() => { if (userId) void load(true); }, [userId, load]);
-
-  if (!user) return null;
-
-  const pending = claimableGifts(snapshot);
-
-  return (
-    <DockTile
-      icon="🎁"
-      label="Cadeaux"
-      onPointerDown={() => navigate('gifts')}
-      badge={pending > 0 ? (
-        <CountBadge label={`${pending} cadeau${pending > 1 ? 'x' : ''} à récupérer`} className="h-4 min-w-4 text-[10px]">
-          {pending}
-        </CountBadge>
-      ) : null}
-    />
-  );
-}
-
-// Catalogue des cartes — écran pas encore construit : le bouton existe déjà
-// dans le dock (regroupement retenu), il ne mène nulle part pour l'instant.
-function CatalogTile() {
-  return <DockTile icon="📖" label="Catalogue" />;
-}
+// Le dock des raccourcis (Missions, Boutique, Cadeaux, Catalogue) et
+// l'Accueil vivent désormais dans `AppFooter`, partagé par tous les écrans.

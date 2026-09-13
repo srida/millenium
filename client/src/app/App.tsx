@@ -21,6 +21,8 @@ import TutorialScreen from '../screens/TutorialScreen.js';
 import TooltipHost from '../components/tooltip/TooltipHost.js';
 import RewardToasts from '../components/ui/RewardToasts.js';
 import { SpaceBackground } from '../components/ui/SpaceBackground.js';
+import { AppHeader } from '../components/nav/AppHeader.js';
+import { AppFooter } from '../components/nav/AppFooter.js';
 
 /**
  * Écrans chargés à la demande. Ce ne sont pas les plus gros en lignes, ce sont
@@ -101,6 +103,11 @@ const SCREENS: Record<ScreenName, ComponentType> = {
  * hauteurs de boîtes et `scrollWidth <= clientWidth` passent tous au vert).
  * `ailab` a été livré en violation de cet invariant et l'écran était vide.
  * Verrouillé par `client/src/test/ai-lab.test.ts`.
+ *
+ * Depuis `AppHeader`/`AppFooter`, tout écran NON immersif est de toute façon
+ * enveloppé dans un conteneur qui porte `relative z-10` (ci-dessous) : la
+ * racine `z-10` que chaque écran pose encore reste donc redondante mais
+ * inoffensive, jamais la seule chose qui le protège du décor.
  */
 const IMMERSIVE_SCREENS = new Set<ScreenName>(['game', 'game_pvp', 'testbench', 'combatlab', 'ailab']);
 
@@ -136,16 +143,33 @@ export default function App() {
     );
   }
 
+  const immersive = IMMERSIVE_SCREENS.has(screen);
+
   return (
     <>
-      {!IMMERSIVE_SCREENS.has(screen) && <SpaceBackground />}
+      {!immersive && <SpaceBackground />}
       {/* Un seul `Suspense` pour tout le routage : les écrans chargés en
           statique ne suspendent jamais, seuls les `lazy()` ci-dessus
           l'utilisent. Une frontière par écran différé ferait quatre copies du
-          même repli, et il faudrait penser à en ajouter une au prochain. */}
-      <Suspense fallback={lazyFallback}>
-        <Screen />
-      </Suspense>
+          même repli, et il faudrait penser à en ajouter une au prochain.
+          `AppHeader` / `AppFooter` sont communs à toutes les pages
+          non-immersives (partie en cours, bancs de dev) : un seul endroit
+          les rend, plutôt que chaque écran secondaire. */}
+      {immersive ? (
+        <Suspense fallback={lazyFallback}>
+          <Screen />
+        </Suspense>
+      ) : (
+        <div className="relative z-10 flex h-dvh flex-col text-white">
+          <AppHeader />
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <Suspense fallback={lazyFallback}>
+              <Screen />
+            </Suspense>
+          </div>
+          <AppFooter />
+        </div>
+      )}
       <TooltipHost />
       {/* Au-dessus des écrans : missions terminées, paliers hebdomadaires et
           niveaux gagnés s'y annoncent ensemble — la réponse arrive souvent une

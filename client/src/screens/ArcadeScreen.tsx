@@ -18,7 +18,6 @@ import { useDeckStore } from '../stores/deckStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useArcadeStore, currentDuel, wonCount, type ArcadeDuel, type ArcadeBonus } from '../stores/arcadeStore.js';
 import { Amount, Button, Countdown } from '../components/ui/primitives.js';
-import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 
@@ -57,23 +56,18 @@ export default function ArcadeScreen() {
   const activeDeck = deckName ? decks.find(d => d.name === deckName) ?? null : null;
   const deckReady = !!activeDeck && activeDeck.count >= MIN_DECK;
 
-  // ⚠️ L'en-tête est rendu AVANT tout état, jamais après : c'est lui qui porte
-  // le bouton retour. La branche invité s'en passait et n'offrait que « Se
-  // connecter » — un cul-de-sac, là où la branche `!snapshot` juste en dessous
-  // ajoutait bien un retour. Le compte à rebours, lui, a besoin de l'instantané.
   const header = (
-    <ScreenHeader
-      title="Arcade"
-      onBack={() => navigate('main_menu')}
-      right={snapshot ? <Countdown at={snapshot.next_rotation_at} title="Prochaine run" /> : undefined}
-    />
+    <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+      <h1 className="text-lg font-bold tracking-wide">Arcade</h1>
+      {snapshot && <Countdown at={snapshot.next_rotation_at} title="Prochaine run" className="ml-auto" />}
+    </div>
   );
 
   if (!user) return <GuestGate reason="L'Arcade a besoin d'un compte : la run du jour est gardée côté serveur." />;
 
   if (!snapshot) {
     return (
-      <main className="flex min-h-dvh flex-col relative z-10 text-white">
+      <main className="flex min-h-full flex-col relative z-10 text-white">
         {header}
         <Center>
           <span className={error ? 'text-danger' : 'text-gold'}>{error ?? (loading ? 'Chargement…' : 'Arcade indisponible.')}</span>
@@ -87,7 +81,7 @@ export default function ArcadeScreen() {
   const finished = !!run && run.status !== 'in_progress';
 
   return (
-    <main className="flex min-h-dvh flex-col relative z-10 text-white">
+    <main className="flex min-h-full flex-col relative z-10 text-white">
       {header}
 
       <div className="flex-1 space-y-4 overflow-y-auto p-4">

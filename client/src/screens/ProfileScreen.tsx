@@ -8,7 +8,6 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button, Modal, usePressSquash } from '../components/ui/primitives.js';
-import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import { LevelRewardsPanel, ProgressionPanel } from '../components/ui/ProgressionStats.js';
 import type { LevelRewardsView } from '../components/ui/ProgressionStats.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
@@ -176,12 +175,11 @@ export default function ProfileScreen() {
   const isImg = /^(https?:|data:|\/)/i.test(avatarPreview);
 
   return (
-    <main className="flex min-h-dvh flex-col relative z-10 text-white">
-      <ScreenHeader
-        title="Profil"
-        onBack={() => navigate('main_menu')}
-        right={<span className="text-xs text-white/40">#{(user as any).tag ?? '—'}</span>}
-      />
+    <main className="flex min-h-full flex-col relative z-10 text-white">
+      <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+        <h1 className="text-lg font-bold tracking-wide">Profil</h1>
+        <span className="ml-auto text-xs text-white/40">#{(user as any).tag ?? '—'}</span>
+      </div>
 
       <div className="flex flex-1 flex-col items-center gap-5 p-6">
         <button
