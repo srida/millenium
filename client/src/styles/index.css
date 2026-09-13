@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./board3d.css";
+@import "./card3d.css";
 @import "./space.css";
 
 /* Le fond du DOCUMENT — pas celui d'un écran. C'est lui qu'on voit partout où

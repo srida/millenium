@@ -14,13 +14,14 @@
 // l'action. C'est ce qui ajoutait une carte au deck en arrivant dans le
 // DeckBuilder — le bouton « Créer un deck » navigue au pointerdown, et le
 // pointerup retombait sur la grille qui venait de se monter dessous.
-import { useRef, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import type { Card } from '../../logic/types.js';
 import { tiersOf } from '../../logic/Tiers.js';
 import { artFor } from '../../data/CardArt.js';
 import { summonCostOf } from '../../data/SummonInfo.js';
-import { useUiStore, type TooltipContent } from '../../stores/uiStore.js';
-import { Illustration, TAP_MOVE_TOLERANCE_PX } from './primitives.js';
+import { type TooltipContent } from '../../stores/uiStore.js';
+import { Illustration } from './primitives.js';
+import { useCardPress } from './cardPress.js';
 
 // Cadre : or = sélection / candidat, blanc = matériau retenu — même code couleur
 // que les unités du board (three/UnitCardEl.ts + styles/board3d.css).
@@ -117,53 +118,11 @@ export default function CardTile({
   highlight = 'none', dim = 'none', lift = 'none',
   locked = false, disabled = false, tapOn = 'down', tooltip = null, onTap,
 }: CardTileProps) {
-  const showTooltip = useUiStore(s => s.showTooltip);
-  const longPress = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const suppressTap = useRef(false); // un appui long a ouvert le tooltip → annule le tap
-  const armed = useRef(false);       // un pointerdown a bien eu lieu ICI (cf. en-tête)
-  const start = useRef<{ x: number; y: number } | null>(null);
-  const clearLong = () => { if (longPress.current) { clearTimeout(longPress.current); longPress.current = null; } };
-  const cancelTap = () => { clearLong(); armed.current = false; start.current = null; };
-
-  const fire = () => { if (!disabled) onTap?.(); };
+  const press = useCardPress({ tapOn, tooltip, disabled, onTap });
 
   return (
     <button
-      onPointerDown={(e) => {
-        e.stopPropagation();
-        suppressTap.current = false;
-        armed.current = true;
-        start.current = { x: e.clientX, y: e.clientY };
-        if (tapOn === 'down') fire();
-        if (!tooltip) return;
-        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        longPress.current = setTimeout(() => {
-          longPress.current = null;
-          suppressTap.current = true;
-          showTooltip(tooltip, { left: r.left, top: r.top, bottom: r.bottom, width: r.width, height: r.height });
-        }, 500);
-      }}
-      // ⚠️ Un pointeur TACTILE garde une capture implicite sur sa cible de
-      // départ pendant tout le glissé : il ne change pas de cible et ne
-      // déclenche donc PAS `pointerleave` en scrollant. Sans ce contrôle sur
-      // le déplacement, chaque défilement commencé sur une carte s'y lisait
-      // comme un tap au relâchement.
-      onPointerMove={(e) => {
-        if (!start.current) return;
-        const dx = e.clientX - start.current.x;
-        const dy = e.clientY - start.current.y;
-        if (dx * dx + dy * dy > TAP_MOVE_TOLERANCE_PX * TAP_MOVE_TOLERANCE_PX) cancelTap();
-      }}
-      onPointerUp={() => {
-        clearLong();
-        if (tapOn === 'up' && armed.current && !suppressTap.current) fire();
-        armed.current = false;
-        suppressTap.current = false;
-        start.current = null;
-      }}
-      // Sortir de la vignette avant de relâcher annule le tap (le doigt a glissé).
-      onPointerLeave={cancelTap}
-      onPointerCancel={cancelTap}
+      {...press}
       title={name}
       className={[
         'relative aspect-[5/7] flex-shrink-0 overflow-hidden rounded-lg border-2 ring-1 ring-inset transition-[transform,box-shadow] duration-100 ease-out',

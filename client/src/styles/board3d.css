@@ -20,16 +20,30 @@
   50%       { opacity: .7;  transform: translateY(-1%) scale(1.04); }
 }
 
-.unit-card {
-  width: 100%; height: 100%; position: relative; cursor: pointer;
+/* ⚠️ La recette du cadre est PARTAGÉE avec la carte de main (`.card3d`,
+   `styles/card3d.css`) : c'est le même objet, le même tier, la même palette
+   (`three/cardPalette`). Le sélecteur s'élargit, aucune valeur ne change — la
+   carte du plateau est strictement inchangée.
+   `--card-extra-shadow` est le seul point d'extension : la carte de main y pose
+   son ombre « posée sur la table », que la carte du plateau n'a pas (rien n'est
+   posé sur rien, là-haut). Une seconde règle `box-shadow` l'écraserait au lieu
+   de s'y ajouter. */
+.unit-card, .card3d {
+  position: relative; cursor: pointer;
   overflow: visible; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   border-radius: 13px;
   /* Cadre gravé : le dégradé IS la bordure (métal clair → ton principal → fond profond) */
   background: linear-gradient(155deg, var(--uc-ink, #a9d6f2) 0%, var(--uc-edge, #6fb2dc) 44%, var(--uc-deep, #0d2333) 100%);
-  box-shadow: 0 0 10px 1px var(--uc-glow, rgba(111,178,220,.5)),
-              0 0 28px -2px var(--uc-glow, rgba(111,178,220,.5));
+  /* ⚠️ Les deux rayons sont des VARIABLES : au plateau, une carte par case, la
+     lueur respire ; en main, les cartes se recouvrent et les halos s'ADDITIONNENT
+     — cinq cartes donnaient un nuage coloré autour de l'éventail. La carte de
+     main les resserre, elle ne redéclare pas la règle. */
+  box-shadow: 0 0 var(--card-glow-near, 10px) 1px var(--uc-glow, rgba(111,178,220,.5)),
+              0 0 var(--card-glow-far, 28px) -2px var(--uc-glow, rgba(111,178,220,.5)),
+              var(--card-extra-shadow, 0 0 rgba(0,0,0,0));
   font-family: var(--font-display);
 }
+.unit-card { width: 100%; height: 100%; }
 /* Face intérieure — le "verre" du jeton, inséré de 2px pour laisser le cadre visible */
 .unit-face {
   position: absolute; inset: 2px; border-radius: 11px; overflow: hidden;
