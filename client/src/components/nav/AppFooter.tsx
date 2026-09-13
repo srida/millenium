@@ -1,10 +1,10 @@
 // AppFooter — barre de navigation commune à TOUTES les pages non-immersives :
-// Accueil, Missions, Boutique, Cadeaux, Catalogue. Rendu une seule fois par
+// Missions, Boutique, Accueil, Cadeaux, Catalogue. Rendu une seule fois par
 // `App.tsx`, comme `AppHeader`.
 //
 // Accueil est le raccourci qui remplaçait auparavant le bouton centré dans
-// `ScreenHeader` — il vit désormais ici, à côté des autres raccourcis du jeu,
-// plutôt que dans le header.
+// `ScreenHeader` — il vit désormais ici, au milieu de la barre (la position la
+// plus accessible au pouce), plutôt que dans le header.
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
 import { useUiStore } from '../../stores/uiStore.js';
@@ -17,9 +17,9 @@ import { CountBadge, NewDot, usePressSquash } from '../ui/primitives.js';
 export function AppFooter() {
   return (
     <div className="sticky bottom-0 z-20 grid shrink-0 grid-cols-5 border-t border-line bg-surface-raised/90 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-      <HomeTile />
       <MissionsTile />
       <ShopTile />
+      <HomeTile />
       <GiftsTile />
       <CatalogTile />
     </div>
