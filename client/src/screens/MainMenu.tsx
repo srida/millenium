@@ -204,9 +204,11 @@ function DevBadge({ onTap }: { onTap: () => void }) {
 
 // Les trois écrans de dev, révélés par l'appui long sur la version plutôt que
 // posés en permanence : ils ne comptent plus dans la hauteur du menu. Admin
-// (le Card Manager, `admin.html`) les rejoint ici — un vrai lien plutôt qu'un
-// `navigate()` : c'est une page serveur distincte, hors du routage React. Il
-// vivait avant dans `AppHeader`, où il traînait sur toutes les pages.
+// (le Card Manager, `admin.html`) les rejoint ici — le même `Button` que les
+// trois autres, pour le même relief et le même délai anti-scroll ; la
+// navigation reste un vrai changement de page (`window.location`), pas un
+// `navigate()` React : c'est une page serveur distincte, hors du routage
+// React. Il vivait avant dans `AppHeader`, où il traînait sur toutes les pages.
 function DevMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useUiStore(s => s.navigate);
   if (!open) return null;
@@ -218,9 +220,7 @@ function DevMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
         <Button className="w-full text-xs opacity-70" onPointerDown={() => go('testbench')}>TestBench</Button>
         <Button className="w-full text-xs opacity-70" onPointerDown={() => go('combatlab')}>CombatLab</Button>
         <Button className="w-full text-xs opacity-70" onPointerDown={() => go('ailab')}>Labo IA</Button>
-        <a href="/admin" className="flex min-h-tap w-full items-center justify-center rounded-lg border border-line text-xs text-white/70 underline active:opacity-80">
-          Admin
-        </a>
+        <Button className="w-full text-xs opacity-70" onPointerDown={() => { window.location.href = '/admin'; }}>Admin</Button>
       </div>
     </Modal>
   );

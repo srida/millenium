@@ -8,7 +8,7 @@
 // un second inventaire aurait dérivé du premier au premier champ ajouté.
 import { useState } from 'react';
 import * as Query from '../../../../card-query.mjs';
-import { Modal } from './primitives.js';
+import { Modal, usePressSquash } from './primitives.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -34,13 +34,15 @@ export default function SortControl({ schema, value, onChange, className = '' }:
     setOpen(false);
   }
 
+  const trigger = usePressSquash<HTMLButtonElement>(() => setOpen(true), false);
+
   return (
     <>
       <button
         type="button"
-        onPointerDown={() => setOpen(true)}
         aria-label="Trier"
         className={`flex min-h-tap shrink-0 items-center gap-1 rounded-lg border border-line bg-surface-raised px-2.5 text-xs text-white/80 ${className}`}
+        {...trigger.handlers}
       >
         <span aria-hidden="true">⇅</span>
         <span className="max-w-[8rem] truncate">{current ? current.label : 'Ordre du catalogue'}</span>
@@ -70,12 +72,18 @@ export default function SortControl({ schema, value, onChange, className = '' }:
   );
 }
 
+// Même mécanisme que les boutons du jeu (`usePressSquash`, cf. primitives.tsx) :
+// un délai avant que le tap ne compte, annulé si le doigt s'éloigne — sans lui,
+// un `onPointerDown` nu déclenchait au premier contact, y compris celui d'un
+// geste de défilement commencé sur une ligne (la popup en tient plus que
+// l'écran, elle défile).
 function SortRow({ active, label, arrow, onTap }: { active: boolean; label: string; arrow?: string; onTap: () => void }) {
+  const { handlers } = usePressSquash<HTMLButtonElement>(onTap, false);
   return (
     <button
       type="button"
-      onPointerDown={onTap}
       className={`flex min-h-tap items-center justify-between rounded-lg px-3 text-sm ${active ? 'bg-gold/15 text-gold' : 'text-white/80 active:bg-white/5'}`}
+      {...handlers}
     >
       <span>{label}</span>
       {arrow && <span aria-hidden="true">{arrow}</span>}
