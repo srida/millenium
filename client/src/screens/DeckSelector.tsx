@@ -222,11 +222,13 @@ export default function DeckSelector() {
         </div>
       </div>
 
-      {/* Fil normal, pas `fixed` : un bandeau fixé au viewport se retrouvait
-          sous `AppFooter` (barre de navigation commune, cf. App.tsx) — la
-          fenêtre visible s'arrête désormais avant le vrai bas d'écran. En
-          flux, la liste (`flex-1` juste au-dessus) cède la place qu'il faut. */}
-      <div className="shrink-0 space-y-2 border-t border-line bg-surface/95 p-4">
+      {/* `sticky`, pas `fixed` : un bandeau fixé au VIEWPORT se retrouvait sous
+          `AppFooter` (barre de navigation commune, cf. App.tsx) — la fenêtre
+          visible s'arrête désormais avant le vrai bas d'écran. `sticky` le pose
+          plutôt sur le bas de la zone de défilement qui le porte (le
+          conteneur `overflow-y-auto` d'App.tsx), donc toujours visible sans
+          avoir à finir de défiler la liste. */}
+      <div className="sticky bottom-0 z-10 space-y-2 border-t border-line bg-surface/95 p-4">
         {manage ? (
           <Button variant="primary" className="w-full py-3 text-base" onPointerDown={() => openBuilder()}>
             ＋ Créer un nouveau deck
