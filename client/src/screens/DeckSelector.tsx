@@ -162,7 +162,7 @@ export default function DeckSelector() {
         <p className="mt-1.5 text-xs text-white/50">{MODES[mode].blurb}</p>
       </div>
 
-      <div className={`flex-1 space-y-3 overflow-y-auto p-4 ${manage ? 'pb-28' : 'pb-36'}`}>
+      <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {manage && decks.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
             <div className="text-4xl">🃏</div>
@@ -222,7 +222,11 @@ export default function DeckSelector() {
         </div>
       </div>
 
-      <div className="pointer-events-auto fixed inset-x-0 bottom-0 space-y-2 border-t border-line bg-surface/95 p-4">
+      {/* Fil normal, pas `fixed` : un bandeau fixé au viewport se retrouvait
+          sous `AppFooter` (barre de navigation commune, cf. App.tsx) — la
+          fenêtre visible s'arrête désormais avant le vrai bas d'écran. En
+          flux, la liste (`flex-1` juste au-dessus) cède la place qu'il faut. */}
+      <div className="shrink-0 space-y-2 border-t border-line bg-surface/95 p-4">
         {manage ? (
           <Button variant="primary" className="w-full py-3 text-base" onPointerDown={() => openBuilder()}>
             ＋ Créer un nouveau deck
