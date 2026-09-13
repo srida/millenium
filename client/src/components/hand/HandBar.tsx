@@ -144,6 +144,7 @@ function HandCard3D({ entry, targeting, targetable, transform, width, rail }: {
       badge={visual.badge}
       stacked={visual.stacked}
       raised={visual.lift !== 'none'}
+      rail={rail ? 'left' : null}
     />
   );
 }

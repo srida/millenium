@@ -21,12 +21,36 @@
   perspective-origin: 50% 120%;
 }
 
+/* ⚠️ **La PLACE est une donnée, le GESTE est une règle.**
+   `cardFan` pose sa géométrie en variables (`--card-x`, `--card-rot`…), et
+   c'est CETTE feuille qui compose le `transform`. Un `transform` écrit en ligne
+   par React aurait fermé la porte au survol : une déclaration en ligne bat
+   toute règle de feuille, donc `:hover` n'aurait rien pu y ajouter — il aurait
+   fallu un état React, donc un re-render de tout l'éventail à chaque carte
+   survolée. Ici le survol ne coûte pas une ligne de JavaScript.
+
+   ⚠️ L'ordre des facteurs n'est pas interchangeable : on centre la boîte, on la
+   déplace, on la lève, PUIS on tourne et on met à l'échelle. Tourner avant de
+   déplacer ferait décrire un arc au déplacement lui-même.
+
+   Les variables du GESTE (`--card-lift-*`, `--card-pop`, `--card-straighten`)
+   ne sont jamais posées en ligne : c'est ce qui permet aux règles d'état de les
+   écrire sans `!important`. */
 .card3d {
   position: absolute;
   left: 50%;
   top: 50%;
   aspect-ratio: 5 / 7;
   transform-origin: 50% 50%;
+  z-index: var(--card-z, 0);
+  transform:
+    translate(-50%, -50%)
+    translate(var(--card-x, 0px), var(--card-y, 0px))
+    translate(var(--card-lift-x, 0px), var(--card-lift-y, 0px))
+    rotate(calc(var(--card-rot, 0deg) * var(--card-straighten, 1)))
+    rotateY(calc(var(--card-roty, 0deg) * var(--card-straighten, 1)))
+    rotateX(var(--card-tilt, 8deg))
+    scale(calc(var(--card-scale, 1) * var(--card-pop, 1)));
   /* ⚠️ L'ombre « posée sur la table » passe par la variable d'extension du
      cadre partagé : deux `box-shadow` sur le même élément ne s'additionnent
      pas, le second écrase le premier. */
@@ -93,6 +117,12 @@
   background: var(--color-gold, #d4af61); color: #000;
 }
 
+/* ── La levée de la carte RETENUE ──
+   Une direction, pas une valeur recopiée : vers le haut en bande, vers le board
+   (donc à droite) quand la main est un rail vertical. */
+.card3d.lift-up    { --card-lift-y: -12px; }
+.card3d.lift-right { --card-lift-x: 12px; }
+
 /* ── États ── */
 .card3d.is-selected  { outline: 2px solid var(--color-gold, #d4af61); outline-offset: -2px; }
 .card3d.is-candidate { outline: 2px solid var(--color-gold, #d4af61); outline-offset: -2px; }
@@ -120,13 +150,77 @@
    La carte se tasse au tap, comme les boutons du jeu. `will-change` n'est posé
    QUE sur la carte levée ou pressée : sur les 28 cartes d'une main, il forcerait
    autant de couches de composition. */
-.card3d.is-raised, .card3d:active { will-change: transform; }
+/* ── Le geste ──
+   ⚠️ **Pas de `will-change: transform` ici, et ce n'est pas un oubli.** Il
+   promet au navigateur des changements FRÉQUENTS : il met alors la carte en
+   cache comme une texture et l'ÉTIRE au lieu de la redessiner. Sur une carte
+   agrandie au survol, le nom sortait visiblement flou — et le défaut est
+   permanent, la texture n'étant jamais re-rasterisée. Un état qui change une
+   fois n'en a pas besoin ; sur les 28 cartes d'une main, il coûterait en plus
+   autant de couches de composition.
+*/
+
+/* La carte RETENUE sort du rang : elle passe devant, reprend la lueur pleine et
+   son voile animé — elle est seule, donc il est gratuit. */
 .card3d.is-raised {
   z-index: 60;
   --card-glow-near: 8px;
   --card-glow-far: 22px;
 }
 .card3d.is-raised .unit-foil-nebula { opacity: 1; }
+
+/* ⚠️ Le SURVOL n'existe que sur un vrai pointeur. Un téléphone qui hérite d'un
+   `:hover` le garde COLLÉ après le tap — la carte resterait levée jusqu'au
+   prochain geste ailleurs. `pointer: fine` écarte en plus les télécommandes et
+   les stylets grossiers, qui rapportent un survol sans précision.
+   Cette règle vient APRÈS `.lift-*` et `.is-raised` : à spécificité égale,
+   c'est l'ordre de la feuille qui tranche, et le survol doit gagner. */
+@media (hover: hover) and (pointer: fine) {
+  .card3d:hover {
+    z-index: 60;
+    --card-lift-y: -28px;
+    --card-lift-x: 0px;
+    /* ⚠️ **Aucun agrandissement au survol**, et c'est contre-intuitif. Le
+       `rotateX` fait composer la carte en COUCHE : elle est rasterisée une fois
+       puis transformée, donc un `scale` en ÉTIRE la texture — le nom sortait
+       visiblement flou, celui-là même qu'on lève la carte pour lire. La mise en
+       avant se fait donc par la levée, le passage au premier plan et le
+       redressement, qui ne déforment rien. */
+    /* La carte se REDRESSE : on la sort de l'éventail pour la lire, et une
+       carte lue de travers se lit moins bien. Le `tilt` s'aplatit avec. */
+    --card-straighten: 0;
+    --card-tilt: 0deg;
+    --card-glow-near: 8px;
+    --card-glow-far: 24px;
+    --card-extra-shadow: 0 14px 22px -8px rgba(0, 0, 0, .8);
+  }
+  .card3d:hover .unit-foil-nebula { opacity: 1; animation: sf-unit-veil 6.5s ease-in-out infinite; }
+  /* Une carte survolée dans un rail sort VERS LE BOARD, pas vers le haut. */
+  .card3d.lift-right:hover, .card3d.in-rail:hover { --card-lift-x: 14px; --card-lift-y: 0px; }
+  .card3d.in-rail-right:hover { --card-lift-x: -14px; }
+}
+
+/* ⚠️ Le nom cède au recouvrement au repos — c'est le prix de l'éventail —, mais
+   la carte mise en avant le donne EN ENTIER, sur deux lignes s'il le faut.
+   C'est ce qui rend la troncature acceptable : l'information n'est pas perdue,
+   elle est à un geste. */
+.card3d.is-raised .card3d-name,
+.card3d:hover .card3d-name {
+  white-space: normal;
+  line-height: 1.15;
+}
+
+/* Le tassement au tap, comme les boutons du jeu. Après le survol : sur un
+   ordinateur, presser une carte survolée doit l'enfoncer, pas la garder gonflée. */
+.card3d:active { --card-pop: .96; }
+
+/* ⚠️ `prefers-reduced-motion` : on retire le MOUVEMENT, jamais l'information.
+   La carte se lève toujours, se redresse toujours, montre toujours son nom —
+   elle y arrive d'un coup au lieu d'y glisser. */
+@media (prefers-reduced-motion: reduce) {
+  .card3d { transition: none; }
+  .card3d:hover .unit-foil-nebula { animation: none; }
+}
 
 /* Plusieurs exemplaires : la carte porte visiblement une épaisseur de pile.
    ⚠️ Redéclare la variable ENTIÈRE — elle est la valeur d'un `box-shadow`, pas

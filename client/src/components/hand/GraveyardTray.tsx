@@ -53,6 +53,7 @@ export default function GraveyardTray() {
       targeting={targetingGraveyard}
       transform={layout.cards[i]}
       width={cardWidth}
+      rail={web}
     />
   ));
 
@@ -84,8 +85,8 @@ export default function GraveyardTray() {
   );
 }
 
-function GraveCard3D({ entry, targeting, transform, width }: {
-  entry: GraveyardEntry; targeting: boolean; transform: CardTransform; width: number;
+function GraveCard3D({ entry, targeting, transform, width, rail }: {
+  entry: GraveyardEntry; targeting: boolean; transform: CardTransform; width: number; rail: boolean;
 }) {
   const controller = useGameStore(s => s.controller)!;
   const visual = graveyardCardVisual(entry, { targeting });
@@ -103,6 +104,7 @@ function GraveCard3D({ entry, targeting, transform, width }: {
       tiers={entry.unit.tier != null ? [entry.unit.tier] : null}
       transform={transform}
       width={width}
+      rail={rail ? 'right' : null}
       // tap → sélection matériau / cible revive ; maintien → tooltip
       onTap={() => {
         if (intent.kind === 'magie_target') controller.resolveMagieGraveyardTarget(entry.unit);

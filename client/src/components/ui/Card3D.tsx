@@ -15,17 +15,14 @@
 // ⚠️ L'ordre du `transform` n'est pas interchangeable : on centre la boîte, on
 // la déplace, on la lève, PUIS on tourne et on met à l'échelle. Tourner avant de
 // déplacer ferait décrire un arc au déplacement lui-même.
-import { type ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { type TooltipContent } from '../../stores/uiStore.js';
 import { tierFrameVars } from '../../three/cardPalette.js';
 import { illustrationUrl } from '../../data/CardArt.js';
 import { useCardPress } from './cardPress.js';
 import type { CardTransform } from '../hand/cardFan.js';
 
-/** Levée de la carte retenue, en px — vers le haut en bande, vers le board en rail. */
-const LIFT_PX = 12;
-/** Inclinaison autour de l'axe horizontal : le haut de la carte s'éloigne. */
-const TILT_DEG = 8;
+const LIFT = { none: '', up: 'lift-up', right: 'lift-right' } as const;
 
 const HIGHLIGHT = {
   none: '', selected: 'is-selected', candidate: 'is-candidate', material: 'is-material',
@@ -54,8 +51,11 @@ export interface Card3DProps {
   transform: CardTransform;
   /** Largeur nominale en px — l'échelle vit dans le `transform`. */
   width: number;
-  /** Survolée ou pressée : elle sort du rang et reprend son voile animé. */
+  /** Retenue : elle sort du rang, passe devant et reprend son voile animé. */
   raised?: boolean;
+  /** Dans un rail vertical : le survol sort la carte vers le board, pas vers le
+   *  haut — et le rail de droite la sort vers la gauche. */
+  rail?: 'left' | 'right' | null;
 }
 
 export default function Card3D({
@@ -63,13 +63,10 @@ export default function Card3D({
   stacked = false, showName = true,
   highlight = 'none', dim = 'none', lift = 'none',
   locked = false, disabled = false, tapOn = 'down', tooltip = null, onTap,
-  transform, width, raised = false,
+  transform, width, raised = false, rail = null,
 }: Card3DProps) {
   const press = useCardPress({ tapOn, tooltip, disabled, onTap });
   const tier = tiers?.length ? tiers[tiers.length - 1] : null;
-
-  const liftTx = lift === 'up' ? `translateY(${-LIFT_PX}px)`
-    : lift === 'right' ? `translateX(${LIFT_PX}px)` : '';
 
   return (
     <button
@@ -77,23 +74,25 @@ export default function Card3D({
       {...press}
       title={name}
       className={[
-        'card3d', HIGHLIGHT[highlight], DIM[dim],
+        'card3d', HIGHLIGHT[highlight], DIM[dim], LIFT[lift],
         stacked ? 'is-stacked' : '', raised ? 'is-raised' : '',
+        rail ? `in-rail in-rail-${rail}` : '',
       ].filter(Boolean).join(' ')}
+      // ⚠️ La place voyage en VARIABLES, jamais en `transform` composé ici :
+      // une déclaration en ligne bat toute règle de feuille, donc un
+      // `transform` écrit ici aurait interdit au survol d'y ajouter quoi que ce
+      // soit sans un état React — c'est-à-dire un re-render de tout l'éventail
+      // à chaque carte survolée. La composition vit dans `styles/card3d.css`.
       style={{
         ...tierFrameVars(tier),
         width,
-        zIndex: transform.zIndex,
-        transform: [
-          'translate(-50%, -50%)',
-          `translate(${transform.x}px, ${transform.y}px)`,
-          liftTx,
-          `rotate(${transform.rotZ}deg)`,
-          transform.rotY ? `rotateY(${transform.rotY}deg)` : '',
-          `rotateX(${TILT_DEG}deg)`,
-          `scale(${transform.scale})`,
-        ].filter(Boolean).join(' '),
-      }}
+        '--card-x': `${transform.x}px`,
+        '--card-y': `${transform.y}px`,
+        '--card-rot': `${transform.rotZ}deg`,
+        '--card-roty': `${transform.rotY}deg`,
+        '--card-scale': transform.scale,
+        '--card-z': transform.zIndex,
+      } as CSSProperties}
     >
       <span className="unit-face">
         <img className="unit-art" src={illustrationUrl(illustrationId)} alt="" />
