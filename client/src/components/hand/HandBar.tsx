@@ -9,9 +9,15 @@
 // récupère toute la hauteur de l'écran. La bande occupée est celle du cimetière,
 // au pixel près — cf. WEB_RAIL_BAND (`./rail.ts`), qui porte aussi la largeur
 // réservée par le cadrage caméra via WEB_RAIL_PX.
+//
+// ⚠️ Ce fichier ne décide RIEN : visibilité, état visuel et intention de tap
+// viennent de `./handVisual` (pur, testé par `test/hand-visual.test.ts`), qu'il
+// partage avec le cimetière. Il ne fait que monter le rendu et appeler le
+// contrôleur.
 import { useGameStore, type HandEntry } from '../../stores/gameStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import { WEB_RAIL_BAND } from './rail.js';
+import { handVisible, handTargetable, handCardVisual, handTapIntent } from './handVisual.js';
 import CardTile, { cardTileProps } from '../ui/CardTile.js';
 
 export default function HandBar() {
@@ -21,10 +27,6 @@ export default function HandBar() {
   const controller = useGameStore(s => s.controller);
   // Ouverture de tour : la popup de pioche RÉVÈLE la main, elle ne la pioche
   // pas — `session.hand` porte déjà les cartes du tour dès `startPreparation()`.
-  // Sans cette garde, la bande affichait les noms/illustrations en dessous de
-  // la popup avant même le tap : exactement le spoil qu'elle existe pour
-  // éviter. La main réapparaît au même instant que le tap ferme la popup
-  // (`dismissDrawPopup`), après le vol des dos.
   const roundIntro = useGameStore(s => s.roundIntro);
   const drawPopup = useGameStore(s => s.drawPopup);
   const web = useWebLayout();
@@ -39,11 +41,22 @@ export default function HandBar() {
   // La liste est calculée par la session, jamais ici : le HUD montre la règle,
   // il ne la tient pas (`GameController.resolveMagieHandTarget` la revérifie).
   const handTargets = shopping?.handTargets ?? null;
-  const isTarget = (idx: number) => !handTargets || handTargets.includes(idx);
-  if ((combatActive && !targetingHand) || !controller) return null;
-  if (roundIntro || drawPopup) return null;
+
+  if (!handVisible({
+    hasController: !!controller, combatActive, targetingHand,
+    roundIntro: !!roundIntro, drawPopup: !!drawPopup,
+  })) return null;
 
   const empty = hand.length === 0 && <span className="col-span-2 px-2 py-6 text-xs text-white/40">Main vide</span>;
+  const cards = hand.map(entry => (
+    <HandCard
+      key={entry.key}
+      entry={entry}
+      targeting={targetingHand}
+      targetable={handTargetable(handTargets, entry.idx)}
+      rail={web}
+    />
+  ));
 
   if (web) {
     return (
@@ -52,9 +65,7 @@ export default function HandBar() {
           <div className="mb-1 shrink-0 text-[9px] tracking-widest text-white/40">MAIN</div>
           <div className="grid grid-cols-2 content-start justify-items-center gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {empty}
-            {hand.map(entry => (
-              <HandCard key={entry.key} entry={entry} targeting={targetingHand} targetable={isTarget(entry.idx)} rail />
-            ))}
+            {cards}
           </div>
         </div>
       </div>
@@ -66,9 +77,7 @@ export default function HandBar() {
       <div className="mx-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-1.5">
         <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {empty}
-          {hand.map(entry => (
-            <HandCard key={entry.key} entry={entry} targeting={targetingHand} targetable={isTarget(entry.idx)} />
-          ))}
+          {cards}
         </div>
       </div>
     </div>
@@ -78,9 +87,9 @@ export default function HandBar() {
 function HandCard({ entry, targeting = false, targetable = true, rail = false }:
   { entry: HandEntry; targeting?: boolean; targetable?: boolean; rail?: boolean }) {
   const controller = useGameStore(s => s.controller)!;
-  // En ciblage, « candidate » veut dire tapable : une carte que la magie ne
-  // peut pas servir s'éteint au lieu de se laisser choisir pour rien.
-  const candidate = targeting && targetable;
+  const ctx = { targeting, targetable, rail };
+  const visual = handCardVisual(entry, ctx);
+  const intent = handTapIntent(entry, ctx);
 
   return (
     <CardTile
@@ -89,16 +98,20 @@ function HandCard({ entry, targeting = false, targetable = true, rail = false }:
       // cible (une carte injouable l'est tout autant : c'est même souvent
       // celle qu'on veut envoyer au cimetière ou brûler).
       onTap={() => {
-        if (targeting) { if (candidate) controller.resolveMagieHandTarget(entry.idx); return; }
-        controller.selectCard(entry.selected ? null : entry.card, entry.selected ? null : entry.idx);
+        switch (intent.kind) {
+          case 'magie_target': controller.resolveMagieHandTarget(entry.idx); break;
+          case 'select':       controller.selectCard(entry.card, entry.idx); break;
+          case 'deselect':     controller.selectCard(null, null); break;
+          case 'none':         break;
+        }
       }}
-      highlight={candidate ? 'candidate' : entry.selected && !targeting ? 'selected' : 'none'}
+      highlight={visual.highlight}
       // La carte sélectionnée sort de la bande : vers le haut en bas d'écran,
       // vers le board (droite) quand la main est un rail vertical.
-      lift={entry.selected && !targeting ? (rail ? 'right' : 'up') : 'none'}
-      dim={targeting ? (candidate ? 'none' : 'strong') : (entry.playable ? 'none' : 'strong')}
-      badge={entry.count > 1 ? entry.count : null}
-      stacked={entry.count > 1}
+      lift={visual.lift}
+      dim={visual.dim}
+      badge={visual.badge}
+      stacked={visual.stacked}
     />
   );
 }
