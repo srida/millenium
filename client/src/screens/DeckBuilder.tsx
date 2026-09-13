@@ -19,7 +19,6 @@ import { useCollectionStore } from '../stores/collectionStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
 import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { Button, usePressSquash } from '../components/ui/primitives.js';
-import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import QueryBar from '../components/ui/QueryBar.js';
 import SortControl, { type SortState } from '../components/ui/SortControl.js';
@@ -357,25 +356,25 @@ export default function DeckBuilder() {
   const need = Math.max(0, MIN_DECK - total);
 
   return (
-    <main className="flex min-h-dvh flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
-      <ScreenHeader
-        title={isAdminEdit ? `Deck-building — ${publicDeckId}` : 'Deck-building'}
-        onBack={back}
-        right={<span className={`text-sm font-bold tabular-nums ${valid ? 'text-success' : 'text-gold'}`}>{total}/{MIN_DECK}</span>}
-        below={(
-          <div className="flex">
-            {(['lib', 'deck'] as const).map(t => (
-              <button
-                key={t}
-                onPointerDown={() => setTab(t)}
-                className={`min-h-tap flex-1 text-sm font-semibold ${tab === t ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
-              >
-                {t === 'lib' ? 'Bibliothèque' : `Deck · ${total}`}
-              </button>
-            ))}
-          </div>
-        )}
-      />
+    <main className="flex min-h-full flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
+      <div className="border-b border-line">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <button type="button" onPointerDown={back} className="shrink-0 text-sm text-white/60 underline">‹ Annuler</button>
+          <h1 className="truncate text-lg font-bold tracking-wide">{isAdminEdit ? `Deck-building — ${publicDeckId}` : 'Deck-building'}</h1>
+          <span className={`ml-auto shrink-0 text-sm font-bold tabular-nums ${valid ? 'text-success' : 'text-gold'}`}>{total}/{MIN_DECK}</span>
+        </div>
+        <div className="flex">
+          {(['lib', 'deck'] as const).map(t => (
+            <button
+              key={t}
+              onPointerDown={() => setTab(t)}
+              className={`min-h-tap flex-1 text-sm font-semibold ${tab === t ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
+            >
+              {t === 'lib' ? 'Bibliothèque' : `Deck · ${total}`}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {dropped > 0 && (
         <p className="border-b border-line bg-gold/10 px-4 py-2 text-xs text-gold">

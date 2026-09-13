@@ -12,11 +12,9 @@
 // Toutes les valeurs viennent du serveur (gifts.js) : barème du quotidien,
 // contenu des lots, libellés. Le client n'en calcule aucune.
 import { useEffect, useState } from 'react';
-import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useGiftStore, type Gift, type GiftLot } from '../stores/giftStore.js';
 import { Amount, Button, Countdown, Illustration, LoadState, Modal, Panel } from '../components/ui/primitives.js';
-import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import * as CardDatabase from '../data/CardDatabase.js';
 import { CURRENCY, fmt } from '../components/ui/currency.js';
@@ -48,7 +46,6 @@ function lotLabel(lot: GiftLot): string {
 }
 
 export default function GiftsScreen() {
-  const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
   const { snapshot, loading, error, reveal, load, closeReveal } = useGiftStore();
 
@@ -60,12 +57,11 @@ export default function GiftsScreen() {
   const claimed = snapshot?.gifts.filter(g => g.claimed) ?? [];
 
   return (
-    <main className="flex min-h-dvh flex-col relative z-10 text-white">
-      <ScreenHeader
-        title="Cadeaux"
-        onBack={() => navigate('main_menu')}
-        right={snapshot && <Countdown at={snapshot.next_rotation_at} title="Prochain cadeau quotidien" />}
-      />
+    <main className="flex min-h-full flex-col relative z-10 text-white">
+      <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+        <h1 className="text-lg font-bold tracking-wide">Cadeaux</h1>
+        {snapshot && <Countdown at={snapshot.next_rotation_at} title="Prochain cadeau quotidien" className="ml-auto" />}
+      </div>
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-5 p-4">
         <LoadState error={error} loading={loading} hasContent={!!snapshot} />

@@ -12,7 +12,6 @@ import * as DeckRepository from '../data/DeckRepository.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Avatar, Button } from '../components/ui/primitives.js';
-import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 
@@ -103,12 +102,15 @@ export default function OnlineLobby() {
 
   if (!user) return <GuestGate reason="Connecte-toi pour jouer en ligne." />;
 
-  // Même en-tête que l'écran Tournoi : retour, titre — « Jouer », le libellé
-  // du menu, ce mode étant devenu la voie principale. Le ◂ passe par `cancel()`
-  // pour ne pas laisser le joueur dans la file en quittant.
+  // Le libellé du menu, ce mode étant devenu la voie principale. Aucun bouton
+  // retour ici : quitter en pleine recherche passe déjà par le bouton
+  // « Annuler » plus bas (lui seul appelle `cancel()`, pour ne pas laisser le
+  // joueur dans la file) ; sans recherche en cours, le footer Accueil suffit.
   return (
-    <main className="flex min-h-dvh flex-col relative z-10 text-white">
-      <ScreenHeader title="Jouer" onBack={cancel} />
+    <main className="flex min-h-full flex-col relative z-10 text-white">
+      <div className="border-b border-line px-4 py-3">
+        <h1 className="text-lg font-bold tracking-wide">Jouer</h1>
+      </div>
 
       <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto p-4 py-6 text-center">
         <div className="text-4xl">⚔️</div>

@@ -26,7 +26,6 @@ import type { Card } from '../logic/types.js';
 import { useDeckStore, type DeckSummary } from '../stores/deckStore.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { Button, IconButton, Modal, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_DANGER, SURFACE_GOLD, SURFACE_NEUTRAL, usePressSquash } from '../components/ui/primitives.js';
-import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 
 const TIER_BG: Record<number, string> = {
@@ -154,13 +153,14 @@ export default function DeckSelector() {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
-      <ScreenHeader
-        title={MODES[mode].title}
-        onBack={() => navigate('main_menu')}
-        right={<span className="text-xs text-white/40">{list.length} deck{list.length !== 1 ? 's' : ''}</span>}
-        subtitle={<p className="mt-1.5 text-xs text-white/50">{MODES[mode].blurb}</p>}
-      />
+    <main className="flex min-h-full flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
+      <div className="border-b border-line px-4 py-3">
+        <div className="flex items-center gap-3">
+          <h1 className="truncate text-lg font-bold tracking-wide">{MODES[mode].title}</h1>
+          <span className="ml-auto shrink-0 text-xs text-white/40">{list.length} deck{list.length !== 1 ? 's' : ''}</span>
+        </div>
+        <p className="mt-1.5 text-xs text-white/50">{MODES[mode].blurb}</p>
+      </div>
 
       <div className={`flex-1 space-y-3 overflow-y-auto p-4 ${manage ? 'pb-28' : 'pb-36'}`}>
         {manage && decks.length === 0 && (

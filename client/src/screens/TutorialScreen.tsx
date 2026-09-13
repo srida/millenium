@@ -13,7 +13,6 @@ import { useUiStore } from '../stores/uiStore.js';
 import { CHAPTERS, type Chapter } from '../data/tutorialContent.js';
 import { getProgress, markChapterRead, updateProgress, type TutorialProgress } from '../data/tutorialProgress.js';
 import { Button, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_GOLD, usePressSquash } from '../components/ui/primitives.js';
-import { ScreenHeader } from '../components/ui/ScreenHeader.js';
 import ChapterBlockView from '../components/tutorial/ChapterBlocks.js';
 
 export default function TutorialScreen() {
@@ -36,12 +35,16 @@ export default function TutorialScreen() {
   const chapter = openIdx != null ? CHAPTERS[openIdx] : null;
 
   return (
-    <main className="flex min-h-dvh flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
-      <ScreenHeader
-        title={chapter ? chapter.title : 'Tutoriel'}
-        onBack={() => (chapter ? setOpenIdx(null) : navigate('main_menu'))}
-        right={chapter ? <span className="text-xs tabular-nums text-white/40">{openIdx! + 1}/{CHAPTERS.length}</span> : undefined}
-      />
+    <main className="flex min-h-full flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
+      <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+        {chapter ? (
+          <button type="button" onPointerDown={() => setOpenIdx(null)} className="shrink-0 text-sm text-white/60 underline">
+            ‹ Sommaire
+          </button>
+        ) : null}
+        <h1 className="truncate text-lg font-bold tracking-wide">{chapter ? chapter.title : 'Tutoriel'}</h1>
+        {chapter && <span className="ml-auto shrink-0 text-xs tabular-nums text-white/40">{openIdx! + 1}/{CHAPTERS.length}</span>}
+      </div>
 
       {chapter
         ? (
