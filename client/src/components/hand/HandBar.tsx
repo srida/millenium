@@ -1,34 +1,36 @@
-// Main du joueur.
+// Main du joueur, en cartes 3D (`components/ui/Card3D`) dans les deux
+// dispositions. Les emplacements ne changent pas :
 //
-// **Portrait** : un ÉVENTAIL de cartes en relief (`components/ui/Card3D`), posé
-// à la place exacte de l'ancienne bande (`bottom-14`). La géométrie vient de
-// `./cardFan` — pas resserré puis taille réduite, jamais de défilement : toute
-// la main se voit d'un coup (28 cartes tiennent sur un téléphone de 390 px).
+// **Portrait** : un ÉVENTAIL, à la place de l'ancienne bande (`bottom-14`).
+// **Web** (écran plus large que haut) : une PILE à deux colonnes dans le rail
+// de gauche, à la place de l'ancienne grille. La bande occupée est celle du
+// cimetière au pixel près (WEB_RAIL_BAND, `./rail.ts`), qui porte aussi la
+// largeur réservée par le cadrage caméra via WEB_RAIL_PX.
 //
-// ⚠️ Il n'y a plus de cadre autour de l'éventail en portrait. Un rectangle
-// bordé serré autour de cartes inclinées et qui se recouvrent rognait l'arc à
-// l'œil, et c'était le seul élément d'interface qui disait « bande » là où le
-// geste dit « main tenue ». Le cadre reste en mode web, où les cartes sont
-// rangées en grille.
+// Jamais de défilement, dans aucune des deux : `./cardFan` resserre le pas puis
+// réduit la taille — 28 cartes tiennent sur un téléphone de 390 px, 42 dans un
+// rail. Toute la main se voit d'un coup.
 //
-// **Mode web** (écran plus large que haut) : inchangé pour l'instant — panneau
-// encadré à deux colonnes collé à gauche, vignettes 2D. La bande occupée est
-// celle du cimetière au pixel près (WEB_RAIL_BAND, `./rail.ts`), qui porte aussi
-// la largeur réservée par le cadrage caméra via WEB_RAIL_PX.
+// ⚠️ Il n'y a plus de cadre autour de l'éventail en portrait : un rectangle
+// bordé serré autour de cartes inclinées qui se recouvrent rognait l'arc à
+// l'œil. Le rail web garde le sien, qui NOMME la bande (« MAIN ») et la
+// distingue de son symétrique de droite.
 //
 // ⚠️ Ce fichier ne décide RIEN : visibilité, état visuel et intention de tap
 // viennent de `./handVisual` (pur, testé), la place de `./cardFan` (pur, testé).
 import { useGameStore, type HandEntry } from '../../stores/gameStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
-import { useElementWidth } from '../system/useElementWidth.js';
+import { useElementSize } from '../system/useElementSize.js';
 import { WEB_RAIL_BAND } from './rail.js';
 import { handVisible, handTargetable, handCardVisual, handTapIntent } from './handVisual.js';
-import { fanLayout, type CardTransform } from './cardFan.js';
-import CardTile, { cardTileProps } from '../ui/CardTile.js';
+import { fanLayout, railLayout, type CardTransform, type LayoutResult } from './cardFan.js';
+import { cardTileProps } from '../ui/CardTile.js';
 import Card3D from '../ui/Card3D.js';
+import { RAIL_COLUMNS, RAIL_GAP_X, railCardWidth } from './railGeometry.js';
 
-/** Largeur nominale d'une carte de main, en px — la hauteur s'en déduit par le
- *  `aspect-ratio: 5/7`, et l'éventail réduit l'échelle quand la main s'allonge. */
+/** Largeur nominale d'une carte de main en portrait, en px — la hauteur s'en
+ *  déduit par le `aspect-ratio: 5/7`, et l'éventail réduit l'échelle quand la
+ *  main s'allonge. */
 const HAND_CARD_WIDTH = 84;
 
 export default function HandBar() {
@@ -41,7 +43,7 @@ export default function HandBar() {
   const roundIntro = useGameStore(s => s.roundIntro);
   const drawPopup = useGameStore(s => s.drawPopup);
   const web = useWebLayout();
-  const [bandRef, bandWidth] = useElementWidth<HTMLDivElement>();
+  const [bandRef, band] = useElementSize<HTMLDivElement>();
   // Visible pendant la préparation OU pendant un ciblage de MAIN
   // (`hand_to_graveyard`, `duplicate_card`…) — même règle que le cimetière, qui
   // reste montré pour le ciblage revive.
@@ -58,27 +60,34 @@ export default function HandBar() {
     roundIntro: !!roundIntro, drawPopup: !!drawPopup,
   });
 
-  const layout = fanLayout({ count: hand.length, width: bandWidth, cardWidth: HAND_CARD_WIDTH });
-  const empty = <span className="px-2 py-6 text-xs text-white/40">Main vide</span>;
+  const cardWidth = web ? railCardWidth(band.width) : HAND_CARD_WIDTH;
+  const layout: LayoutResult = web
+    ? railLayout({ count: hand.length, width: band.width, height: band.height, cardWidth, columns: RAIL_COLUMNS, gapX: RAIL_GAP_X })
+    : fanLayout({ count: hand.length, width: band.width, cardWidth });
 
-  if (!visible) {
-    // ⚠️ La bande reste MONTÉE pour garder sa mesure : la démonter remettrait la
-    // largeur à zéro, et l'éventail rejaillirait d'une main vide à chaque
-    // ouverture de tour. Elle est seulement vidée et rendue intraversable.
-    return <div ref={bandRef} className="pointer-events-none absolute inset-x-0 bottom-14 z-20 mx-2 h-0" />;
-  }
+  const cards = hand.map((entry, i) => layout.cards[i] && (
+    <HandCard3D
+      key={entry.key}
+      entry={entry}
+      targeting={targetingHand}
+      targetable={handTargetable(handTargets, entry.idx)}
+      transform={layout.cards[i]}
+      width={cardWidth}
+      rail={web}
+    />
+  ));
 
   if (web) {
     return (
-      <div className={`${WEB_RAIL_BAND} left-0`}>
-        <div className="mx-2 flex max-h-full flex-col rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-1.5">
+      <div className={`${WEB_RAIL_BAND} left-0 ${visible ? '' : 'pointer-events-none opacity-0'}`}>
+        <div className="mx-2 flex h-full flex-col rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-1.5">
           <div className="mb-1 shrink-0 text-[9px] tracking-widest text-white/40">MAIN</div>
-          <div className="grid grid-cols-2 content-start justify-items-center gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {hand.length === 0 && <span className="col-span-2 px-2 py-6 text-xs text-white/40">Main vide</span>}
-            {hand.map(entry => (
-              <HandTile key={entry.key} entry={entry} targeting={targetingHand}
-                targetable={handTargetable(handTargets, entry.idx)} />
-            ))}
+          {/* ⚠️ `min-h-0` : sans lui, un enfant de colonne flex refuse de
+              descendre sous sa hauteur de contenu, et la mesure rendrait la
+              hauteur VOULUE au lieu de la hauteur DISPONIBLE. */}
+          <div ref={bandRef} className="card3d-layer min-h-0 flex-1">
+            {visible && hand.length === 0 && <span className="block px-2 py-6 text-center text-xs text-white/40">Main vide</span>}
+            {visible && cards}
           </div>
         </div>
       </div>
@@ -86,69 +95,55 @@ export default function HandBar() {
   }
 
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-14 z-20">
+    // ⚠️ La bande reste MONTÉE quand la main est masquée, et n'est que vidée :
+    // la démonter remettrait sa mesure à zéro, et l'éventail rejaillirait d'une
+    // main vide à chaque ouverture de tour.
+    <div className={`absolute inset-x-0 bottom-14 z-20 ${visible ? 'pointer-events-auto' : 'pointer-events-none'}`}>
       <div
         ref={bandRef}
         className="card3d-layer mx-2 flex items-center justify-center"
-        style={{ height: hand.length ? layout.boundsHeight : undefined }}
+        style={{ height: visible && hand.length ? layout.boundsHeight : undefined }}
       >
-        {hand.length === 0 && empty}
-        {hand.map((entry, i) => layout.cards[i] && (
-          <HandCard3D key={entry.key} entry={entry} targeting={targetingHand}
-            targetable={handTargetable(handTargets, entry.idx)}
-            transform={layout.cards[i]} />
-        ))}
+        {visible && hand.length === 0 && <span className="px-2 py-6 text-xs text-white/40">Main vide</span>}
+        {visible && cards}
       </div>
     </div>
   );
 }
 
-/** Le tap d'une carte de main, quel que soit son rendu. */
-function tapHandCard(entry: HandEntry, targeting: boolean, targetable: boolean): () => void {
-  const controller = useGameStore.getState().controller!;
-  const intent = handTapIntent(entry, { targeting, targetable, rail: false });
-  return () => {
-    switch (intent.kind) {
-      case 'magie_target': controller.resolveMagieHandTarget(entry.idx); break;
-      case 'select':       controller.selectCard(entry.card, entry.idx); break;
-      case 'deselect':     controller.selectCard(null, null); break;
-      case 'none':         break;
-    }
-  };
-}
+function HandCard3D({ entry, targeting, targetable, transform, width, rail }: {
+  entry: HandEntry; targeting: boolean; targetable: boolean;
+  transform: CardTransform; width: number; rail: boolean;
+}) {
+  const controller = useGameStore(s => s.controller)!;
+  const ctx = { targeting, targetable, rail };
+  const visual = handCardVisual(entry, ctx);
+  const intent = handTapIntent(entry, ctx);
 
-function HandCard3D({ entry, targeting, targetable, transform }:
-  { entry: HandEntry; targeting: boolean; targetable: boolean; transform: CardTransform }) {
-  const visual = handCardVisual(entry, { targeting, targetable, rail: false });
   return (
     <Card3D
       {...cardTileProps(entry.card)}
       transform={transform}
-      width={HAND_CARD_WIDTH}
-      onTap={tapHandCard(entry, targeting, targetable)}
+      width={width}
+      // tap → sélection d'invocation ; en ciblage de magie, la carte est la
+      // cible (une carte injouable l'est tout autant : c'est même souvent
+      // celle qu'on veut envoyer au cimetière ou brûler).
+      onTap={() => {
+        switch (intent.kind) {
+          case 'magie_target': controller.resolveMagieHandTarget(entry.idx); break;
+          case 'select':       controller.selectCard(entry.card, entry.idx); break;
+          case 'deselect':     controller.selectCard(null, null); break;
+          case 'none':         break;
+        }
+      }}
       highlight={visual.highlight}
+      // La carte retenue sort de sa bande : vers le haut en portrait, vers le
+      // board (droite) quand la main est un rail vertical.
       lift={visual.lift}
       dim={visual.dim}
       badge={visual.badge}
       stacked={visual.stacked}
       raised={visual.lift !== 'none'}
-    />
-  );
-}
-
-/** Vignette 2D — le rail du mode web, jusqu'à sa reprise. */
-function HandTile({ entry, targeting, targetable }:
-  { entry: HandEntry; targeting: boolean; targetable: boolean }) {
-  const visual = handCardVisual(entry, { targeting, targetable, rail: true });
-  return (
-    <CardTile
-      {...cardTileProps(entry.card)}
-      onTap={tapHandCard(entry, targeting, targetable)}
-      highlight={visual.highlight}
-      lift={visual.lift}
-      dim={visual.dim}
-      badge={visual.badge}
-      stacked={visual.stacked}
     />
   );
 }

@@ -96,6 +96,71 @@ describe('fanLayout — l’arc', () => {
   });
 });
 
+describe('fanLayout — l’ouverture, et ce qu’elle ne touche PAS', () => {
+  it('arc: 0 rend une rangée PLATE — le geste du cimetière', () => {
+    // Une main s'ouvre parce qu'on la TIENT ; un cimetière est une rangée de
+    // corps posés. Même module, même pas, pas le même geste.
+    for (const c of fanLayout({ count: 7, width: PHONE_WIDTH, cardWidth: 52, arc: 0 }).cards) {
+      expect(c.rotZ).toBeCloseTo(0, 10);
+      expect(c.y).toBeCloseTo(0, 10);
+    }
+  });
+
+  it('un arc réduit ouvre moins, proportionnellement', () => {
+    const amp = (arc: number) => {
+      const { cards } = fanLayout({ count: 9, width: PHONE_WIDTH, cardWidth: CARD_W, arc });
+      return cards[cards.length - 1].rotZ - cards[0].rotZ;
+    };
+    expect(amp(0.5)).toBeCloseTo(amp(1) / 2, 6);
+    expect(amp(0)).toBe(0);
+  });
+
+  it('une rangée plate a plus de place, jamais moins', () => {
+    // ⚠️ Ce test a d'abord affirmé que l'ouverture ne touchait PAS au pas — et
+    // il avait tort. Une carte inclinée occupe plus de largeur que sa boîte
+    // droite, donc l'aplatir REND de la place : le pas s'élargit, la capacité
+    // monte. C'est la même règle qu'en haut (mesurer sur la boîte tournée), vue
+    // de l'autre côté.
+    for (const n of [4, 9, 20, 28]) {
+      const plein = fan(n);
+      const plat = fanLayout({ count: n, width: PHONE_WIDTH, cardWidth: CARD_W, arc: 0 });
+      expect(plat.pitch, `${n} cartes`).toBeGreaterThanOrEqual(plein.pitch - 1e-9);
+      expect(plat.scale, `${n} cartes`).toBeGreaterThanOrEqual(plein.scale - 1e-9);
+    }
+  });
+
+  it('une rangée plate reste centrée et symétrique', () => {
+    const { cards } = fanLayout({ count: 8, width: PHONE_WIDTH, cardWidth: CARD_W, arc: 0 });
+    expect(cards.reduce((a, c) => a + c.x, 0)).toBeCloseTo(0, 6);
+    for (let i = 0; i < cards.length; i++) {
+      expect(cards[i].x).toBeCloseTo(-cards[cards.length - 1 - i].x, 6);
+    }
+  });
+
+  it('une rangée plate avale AU MOINS autant de cartes', () => {
+    const cap = (arc: number) => {
+      let n = 0;
+      while (n < 500 && !fanLayout({ count: n + 1, width: PHONE_WIDTH, cardWidth: CARD_W, arc }).overflow) n++;
+      return n;
+    };
+    expect(cap(0)).toBeGreaterThanOrEqual(cap(1));
+  });
+
+  it('une ouverture négative est lue comme plate, jamais inversée', () => {
+    const { cards } = fanLayout({ count: 5, width: PHONE_WIDTH, cardWidth: CARD_W, arc: -2 });
+    for (const c of cards) { expect(c.rotZ).toBeCloseTo(0, 10); expect(c.y).toBeCloseTo(0, 10); }
+  });
+
+  it('une rangée plate tient AUSSI dans la bande', () => {
+    // Sans rotation, l'encombrement d'une carte est sa largeur nue : la mesure
+    // doit suivre, sinon la rangée plate se croirait à l'étroit.
+    for (let n = 1; n <= 40; n++) {
+      const r = fanLayout({ count: n, width: PHONE_WIDTH, cardWidth: 52, arc: 0 });
+      if (!r.overflow) expect(r.boundsWidth, `${n} cartes`).toBeLessThanOrEqual(PHONE_WIDTH + 0.5);
+    }
+  });
+});
+
 describe('fanLayout — les concessions, dans l’ordre', () => {
   it('main courte sur écran large : pas nominal, échelle pleine', () => {
     const { scale, pitch } = fan(4, 1200);
@@ -287,10 +352,27 @@ describe('railLayout — la place doit être exploitée aussi', () => {
     }
   });
 
-  it('un rail web avale au moins 40 cartes', () => {
+  const railCapacity = (height: number) => {
     let n = 0;
-    while (n < 500 && !rail(n + 1).overflow) n++;
-    expect(n).toBeGreaterThanOrEqual(40);
+    while (n < 500 && !railLayout({ count: n + 1, width: RAIL_W, height, cardWidth: 84 }).overflow) n++;
+    return n;
+  };
+
+  it('un rail de bureau avale au moins 40 cartes', () => {
+    expect(railCapacity(RAIL_H)).toBeGreaterThanOrEqual(40);
+  });
+
+  it('⚠️ le rail COURT d’un téléphone en paysage en avale au moins 20', () => {
+    // C'est LA contrainte du mode web, et elle ne se devine pas : en paysage il
+    // ne reste que ~220 px entre la barre de PV et la barre de phase, là où la
+    // bande du portrait dispose de toute la largeur. Sans un plancher d'échelle
+    // propre aux piles (`RAIL_SCALE_MIN`), deux colonnes n'y tenaient que DOUZE
+    // cartes — bien en dessous d'une main de milieu de partie.
+    expect(railCapacity(195)).toBeGreaterThanOrEqual(20);
+  });
+
+  it('un rail plus haut en avale strictement plus', () => {
+    expect(railCapacity(RAIL_H)).toBeGreaterThan(railCapacity(195));
   });
 });
 

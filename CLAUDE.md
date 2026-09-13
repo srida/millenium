@@ -1574,10 +1574,34 @@ Un seul pont React ↔ Three : `components/board/Board3DCanvas.tsx` monte un `<c
 
 | | Portrait | Web (desktop, tablette, **téléphone en paysage**) |
 |---|---|---|
-| Main | bande horizontale en bas | rail vertical à gauche |
-| Neutralisées | bandeau au-dessus de la main | rail vertical à droite |
+| Main | **éventail** horizontal en bas | **pile à deux colonnes**, rail de gauche |
+| Neutralisées | **rangée plate** au-dessus de la main | pile à deux colonnes, rail de droite |
 | Bloc joueur | remonté à `PREP_FOCUS_Y` (40 %) | centré verticalement |
 | Cadrage | les 5 colonnes tiennent en largeur | idem, **moins les deux rails** (`WEB_RAIL_PX` = 208, à garder synchronisé avec le `w-52` des rails) |
+
+## Cartes 3D de la main et du cimetière
+
+`components/ui/Card3D.tsx` + `styles/card3d.css`. **Le même objet que la carte du plateau** : même balisage de face (`unit-face`, `unit-art`, les deux voiles, le liseré haut, le scrim), même recette de cadre — le sélecteur de `board3d.css` s'élargit à `.card3d`, il n'est pas recopié — et même palette (`three/cardPalette.tierFrameVars`). `CardTile` (2D) reste le template du DeckBuilder, de la boutique, des cadeaux, du codex et des bancs de dev.
+
+Trois modules purs, testés, et **aucune décision dans les composants** :
+
+| Module | Répond à |
+|---|---|
+| `components/hand/handVisual.ts` | visibilité de la bande, état visuel d'une carte (liseré, extinction, levée, badge ×N), intention de tap |
+| `components/hand/cardFan.ts` | OÙ va chaque carte — `fanLayout` (éventail) et `railLayout` (pile à deux colonnes) |
+| `components/ui/cardPress.ts` | le GESTE : tap, appui long 500 ms, annulation au défilement, armement |
+
+- **Jamais de défilement** : le pas se resserre jusqu'à `PITCH_MIN`, puis l'échelle cède jusqu'à `SCALE_MIN`, et au-delà `overflow` le dit. ⚠️ Rien ne déborde en silence, **et la place doit être EXPLOITÉE** : une bande qui renonce à 20 cartes là où 28 tiennent est aussi fautive qu'une bande qui déborde. Capacités : **28** cartes en bande portrait (390 px), **68** en rail de bureau, **22** en rail de téléphone en paysage.
+- ⚠️ **Le rail court du paysage est LA contrainte du mode web** (~220 px entre la barre de PV et la barre de phase) : les piles ont leur propre plancher d'échelle (`RAIL_SCALE_MIN`), plus bas que celui de l'éventail. Sans lui, deux colonnes n'y tenaient que douze cartes.
+- ⚠️ **La place se mesure sur la boîte TOURNÉE**, jamais sur la boîte droite : une carte inclinée de 7° déborde d'une dizaine de pixels, soit un tiers de pas. Corollaire : aplatir l'arc (`arc: 0`) REND de la place.
+- ⚠️ **`arc: 0` pour le cimetière** : une main s'ouvre parce qu'on la TIENT, un cimetière est une rangée de corps posés. Même module, même pas, pas le même geste.
+- ⚠️ **Les lueurs de cadre S'ADDITIONNENT** quand les cartes se recouvrent : `--card-glow-near` / `--card-glow-far` sont resserrés en main, pleins sur la carte levée. La nébuleuse est figée et atténuée pour la même raison.
+- ⚠️ **On éteint par la LUMINOSITÉ, jamais par l'opacité** : une carte translucide dans un éventail laisse VOIR les noms des cartes du dessous.
+- ⚠️ **Aucune boucle rAF** : transitions CSS, `will-change` sur la seule carte levée. Même doctrine que le rendu à la demande de `Scene3D._animate`.
+- ⚠️ **Jamais d'`overflow: hidden` ni de `filter` sur le conteneur** (`.card3d-layer`) : le premier rognerait la carte levée et l'arc, le second créerait un bloc conteneur qui piégerait les `fixed` de ses descendants.
+- La bande reste **montée** quand la main est masquée (ouverture de tour) et n'est que vidée : la démonter remettrait sa mesure à zéro et l'éventail rejaillirait d'une main vide à chaque tour.
+- `components/system/useElementSize.ts` mesure la bande : la largeur dicte le pas de l'éventail, la **hauteur disponible** celui d'un rail. ⚠️ Un enfant de colonne flex a besoin de `min-h-0`, sans quoi la mesure rend la hauteur VOULUE et non la DISPONIBLE.
+- `components/hand/railGeometry.ts` porte ce que les **deux** rails partagent (colonnes, gouttière, largeur de carte dérivée) : c'est leur désaccord qui se verrait.
 
 ## UI et mobile
 

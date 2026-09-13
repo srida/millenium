@@ -45,6 +45,15 @@ export const ARC_DROP = 0.09;
 /** Pile verticale des rails : mêmes concessions, dans l'autre sens. */
 export const RAIL_PITCH_IDEAL = 1.06;   // > 1 = un interstice, pas un recouvrement
 export const RAIL_PITCH_MIN = 0.34;
+/**
+ * ⚠️ Les rails descendent PLUS BAS que l'éventail, et c'est la géométrie qui
+ * l'impose : un téléphone en paysage ne laisse que ~220 px de haut entre la
+ * barre de PV et la barre de phase, là où la bande du portrait dispose de toute
+ * la largeur. À `SCALE_MIN`, deux colonnes n'y tiendraient que douze cartes —
+ * bien en dessous d'une main de milieu de partie. Le plancher de l'éventail
+ * reste le sien : il n'a jamais eu besoin de descendre si bas.
+ */
+export const RAIL_SCALE_MIN = 0.34;
 /** Micro-rotation d'une carte de pile, en degrés — « posée à la main » plutôt
  *  qu'alignée à la règle. Semée par l'index : deux rendus du même état donnent
  *  la même pile. */
@@ -85,6 +94,20 @@ export interface FanOptions {
   width: number;
   /** Largeur nominale d'une carte, en px (la hauteur s'en déduit). */
   cardWidth: number;
+  /**
+   * Multiplicateur d'ouverture de l'éventail — amplitude ET creux. 1 par
+   * défaut.
+   *
+   * ⚠️ **0 rend une rangée PLATE**, et c'est ce que le cimetière demande : une
+   * main s'ouvre en éventail parce qu'on la TIENT, un cimetière est une rangée
+   * de corps posés. Leur donner le même geste ferait lire le second comme une
+   * seconde main — alors que ces cartes ne se jouent pas, elles se dépensent.
+   *
+   * C'est un multiplicateur et non une seconde table : il ne touche NI au pas,
+   * NI à l'échelle, NI à la capacité, donc tout ce que le filet vérifie sur
+   * l'éventail vaut encore.
+   */
+  arc?: number;
 }
 
 const EMPTY: LayoutResult = {
@@ -130,8 +153,9 @@ function scaleToFit(count: number, room: number, slot: number, pitchMin: number)
  * la main de la hauteur. Un éventail qui creuse de plus en plus mangerait la
  * bande de phase en dessous.
  */
-export function fanLayout({ count, width, cardWidth }: FanOptions): LayoutResult {
+export function fanLayout({ count, width, cardWidth, arc = 1 }: FanOptions): LayoutResult {
   if (count <= 0 || width <= 0 || cardWidth <= 0) return EMPTY;
+  const opening = Math.max(0, arc);
 
   const cardHeight = cardWidth / CARD_ASPECT;
 
@@ -146,7 +170,7 @@ export function fanLayout({ count, width, cardWidth }: FanOptions): LayoutResult
 
   // ① L'arc d'abord : son amplitude ne dépend que du compte, et c'est elle qui
   //    dit ce qu'une carte occupe RÉELLEMENT en largeur.
-  const spread = Math.min(ARC_MAX_DEG, ARC_PER_CARD_DEG * (count - 1));
+  const spread = Math.min(ARC_MAX_DEG, ARC_PER_CARD_DEG * (count - 1)) * opening;
   const half = spread / 2;
 
   // ⚠️ L'encombrement d'une carte des extrémités, ROTATION COMPRISE. Mesurer la
@@ -171,7 +195,7 @@ export function fanLayout({ count, width, cardWidth }: FanOptions): LayoutResult
 
   const w = cardWidth * scale;
   const h = cardHeight * scale;
-  const drop = h * ARC_DROP;
+  const drop = h * ARC_DROP * opening;
 
   const cards: CardTransform[] = [];
   let maxBoundW = 0;
@@ -261,7 +285,7 @@ export function railLayout({
   let pitch = Math.min(pitchIdeal, pitchAvailable);
 
   if (rows > 1 && pitch < pitchFloor) {
-    scale = clamp(scaleToFit(rows, height, slotHeight, cardHeight * RAIL_PITCH_MIN), SCALE_MIN, 1);
+    scale = clamp(scaleToFit(rows, height, slotHeight, cardHeight * RAIL_PITCH_MIN), RAIL_SCALE_MIN, 1);
     pitch = cardHeight * scale * RAIL_PITCH_MIN;
   }
 
