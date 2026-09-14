@@ -11,6 +11,9 @@
 // de corps posés. Leur donner le même geste ferait lire le second comme une
 // seconde main — alors que ces cartes ne se jouent pas, elles se dépensent.
 //
+// ⚠️ Les deux rails du mode web sont TRANSPARENTS — leur titre les nomme, et
+// c'est tout ce qui les habille (`./rail.ts` dit pourquoi).
+//
 // ⚠️ Comme la main, il ne décide rien : `./handVisual` porte la visibilité,
 // l'état visuel et l'intention de tap ; `./cardFan` la place.
 import { useGameStore, type GraveyardEntry } from '../../stores/gameStore.js';
@@ -60,8 +63,8 @@ export default function GraveyardTray() {
   if (web) {
     return (
       <div className={`${WEB_RAIL_BAND} right-0 ${visible ? '' : 'pointer-events-none opacity-0'}`}>
-        <div className="mx-2 flex h-full flex-col rounded-lg border border-red-500/30 bg-red-500/10 p-1.5">
-          <div className="mb-1 shrink-0 text-[9px] tracking-widest text-white/40">NEUTRALISÉES</div>
+        <div className="mx-2 flex h-full flex-col p-1.5">
+          <div className="mb-1 shrink-0 text-[9px] tracking-widest text-white/45">NEUTRALISÉES</div>
           {/* `min-h-0` : cf. `HandBar` — sans lui la mesure rend la hauteur
               VOULUE et non la hauteur DISPONIBLE. */}
           <div ref={bandRef} className="card3d-layer min-h-0 flex-1">{visible && cards}</div>

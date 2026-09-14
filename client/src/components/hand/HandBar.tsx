@@ -13,8 +13,10 @@
 //
 // ⚠️ Il n'y a plus de cadre autour de l'éventail en portrait : un rectangle
 // bordé serré autour de cartes inclinées qui se recouvrent rognait l'arc à
-// l'œil. Le rail web garde le sien, qui NOMME la bande (« MAIN ») et la
-// distingue de son symétrique de droite.
+// l'œil.
+//
+// ⚠️ Les deux rails du mode web sont TRANSPARENTS — leur titre les nomme, et
+// c'est tout ce qui les habille (`./rail.ts` dit pourquoi).
 //
 // ⚠️ Ce fichier ne décide RIEN : visibilité, état visuel et intention de tap
 // viennent de `./handVisual` (pur, testé), la place de `./cardFan` (pur, testé).
@@ -80,8 +82,8 @@ export default function HandBar() {
   if (web) {
     return (
       <div className={`${WEB_RAIL_BAND} left-0 ${visible ? '' : 'pointer-events-none opacity-0'}`}>
-        <div className="mx-2 flex h-full flex-col rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-1.5">
-          <div className="mb-1 shrink-0 text-[9px] tracking-widest text-white/40">MAIN</div>
+        <div className="mx-2 flex h-full flex-col p-1.5">
+          <div className="mb-1 shrink-0 text-[9px] tracking-widest text-white/45">MAIN</div>
           {/* ⚠️ `min-h-0` : sans lui, un enfant de colonne flex refuse de
               descendre sous sa hauteur de contenu, et la mesure rendrait la
               hauteur VOULUE au lieu de la hauteur DISPONIBLE. */}
@@ -138,9 +140,12 @@ function HandCard3D({ entry, targeting, targetable, transform, width, rail }: {
       }}
       // ⚠️ Le glisser n'écrit AUCUNE règle : il appelle `selectCard` en partant
       // et `onCellTap` en arrivant — les deux points d'entrée du tap. Donc les
-      // mêmes surlignages de cases valides, le même « Sélectionne les matériaux
-      // d'abord », le même menu de conditions multiples, la même case imposée
-      // par une recette à un matériel. Rien à tenir d'accord.
+      // mêmes surlignages de cases valides, le même menu de conditions
+      // multiples, la même case imposée par une recette à un matériel.
+      //
+      // ⚠️ Et une carte à MATÉRIAUX se glisse comme les autres : la case lâchée
+      // est RETENUE (`GameController._reserveCell`), le joueur désigne ensuite
+      // ses matériaux et l'unité se pose là. Rien de tout ça n'est écrit ici.
       //
       // Absent en CIBLAGE de magie : la carte y est une cible à désigner, pas
       // une unité à poser — le geste redevient alors un tap annulé.

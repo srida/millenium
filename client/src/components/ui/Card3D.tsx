@@ -4,9 +4,10 @@
 // (`unit-face`, `unit-art`, les deux voiles, le liseré haut, le scrim), même
 // recette de cadre (`board3d.css`), même palette de tier
 // (`three/cardPalette.tierFrameVars`). Ce qu'elle ajoute est ce qu'une carte en
-// MAIN a de plus : le nom, le badge de tier, la pastille de coût, le compte
-// d'exemplaires, le cadenas — c'est-à-dire exactement ce que portait la vignette
-// 2D (`CardTile`), qui reste en place partout ailleurs.
+// MAIN a de plus : le nom, la pastille de coût, le compte d'exemplaires, le
+// cadenas. Elle ne porte PAS de badge de tier, contrairement à la vignette 2D
+// (`CardTile`, qui reste en place partout ailleurs) : ici le tier EST la couleur
+// du cadre.
 //
 // ⚠️ Elle ne décide NI où elle se pose (c'est `components/hand/cardFan`), NI de
 // quoi elle a l'air selon l'état du jeu (c'est `components/hand/handVisual`).
@@ -34,7 +35,8 @@ export interface Card3DProps {
   illustrationId: string;
   name: string;
   /** Les tiers de la carte. Le CADRE prend le plus haut — une couleur ne se
-   *  partage pas —, le badge les dit tous (`T2·4`). */
+   *  partage pas. ⚠️ Ils ne s'écrivent NULLE PART sur la carte : c'est le cadre
+   *  qui les dit, et le tooltip qui les détaille. */
   tiers?: readonly number[] | null;
   hint?: ReactNode;
   badge?: number | null;
@@ -125,6 +127,7 @@ export default function Card3D({
       className={[
         'card3d', HIGHLIGHT[highlight], DIM[dim], LIFT[lift],
         stacked ? 'is-stacked' : '', raised ? 'is-raised' : '',
+        badge != null && badge > 0 ? 'has-count' : '',
         rail ? `in-rail in-rail-${rail}` : '', dragging ? 'is-dragging' : '',
       ].filter(Boolean).join(' ')}
       // ⚠️ La place voyage en VARIABLES, jamais en `transform` composé ici :
@@ -155,7 +158,9 @@ export default function Card3D({
         <span className="unit-bottom-scrim" />
         {showName && <span className="card3d-name">{name}</span>}
       </span>
-      {tier != null && <span className="card3d-badge card3d-tier">T{tiers!.join('·')}</span>}
+      {/* Le COÛT en haut à gauche, le compte d'exemplaires en bas à gauche : les
+          deux coins d'une même lisière, la seule qu'un éventail laisse voir
+          d'une carte recouverte. Le tier ne s'écrit pas — il est le cadre. */}
       {hint && <span className="card3d-badge card3d-cost">{hint}</span>}
       {badge != null && badge > 0 && <span className="card3d-badge card3d-count">×{badge}</span>}
       {locked && <span className="card3d-lock" aria-label="Carte verrouillée">🔒</span>}

@@ -88,7 +88,12 @@
 .card3d-name {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 4;
   padding: 12px 4px 2px;
-  font: 700 9px/1.1 var(--font-display);
+  /* ⚠️ La police de l'INTERFACE, pas celle du cadre. `.card3d` hérite du serif
+     d'affichage de `.unit-card` (`board3d.css`) — c'est juste sur le plateau,
+     où la carte est un objet du jeu regardé de loin ; en main elle se LIT, et
+     la vignette 2D qu'elle remplace posait le nom dans la police de l'interface.
+     Deux polices pour le même nom d'une bande à l'autre se remarquaient. */
+  font: 600 9px/1.1 var(--font-sans);
   color: #fff;
   text-align: left;
   text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
@@ -96,7 +101,7 @@
   pointer-events: none;
 }
 
-/* ── Badges. Mêmes places que la vignette 2D : le joueur les cherche là. ── */
+/* ── Badges ── */
 .card3d-badge {
   position: absolute; z-index: 5;
   border-radius: 4px;
@@ -106,15 +111,27 @@
      devient invisible sur son propre fond dès qu'aucun ancêtre ne pose du
      blanc — c'est le cas d'une `Modal`. */
   color: #fff;
-  font: 700 9px/1.6 var(--font-display);
+  font: 700 9px/1.6 var(--font-sans);
   pointer-events: none;
 }
-.card3d-tier  { left: 2px; top: 2px; }
-.card3d-cost  { right: 2px; top: 2px; font-weight: 400; }
+/* ⚠️ **Les deux badges sont à GAUCHE, et il n'y a plus de badge de tier.**
+   La carte 3D porte le tier dans la COULEUR DE SON CADRE (`three/cardPalette`),
+   ce que la vignette 2D ne savait pas faire — un « T3 » par-dessus un cadre
+   violet dit deux fois la même chose et mange le coin d'une carte qui, en
+   éventail, n'en montre qu'un. Le coin haut-gauche libéré prend le COÛT, la
+   seule chose qu'on lise sur une carte recouverte ; le compte d'exemplaires
+   descend en bas-gauche, du même côté, sur la seule lisière qu'un éventail
+   laisse voir — à droite il disparaissait sous la carte suivante. */
+.card3d-cost  { left: 2px; top: 2px; font-weight: 400; }
 .card3d-count {
-  right: 2px; bottom: 2px;
+  left: 2px; bottom: 2px;
   background: var(--color-gold, #d4af61); color: #000;
 }
+/* Le compte est POSÉ SUR le scrim du nom, qui occupe toute la largeur du bas :
+   le nom lui cède la place plutôt que de passer dessous. Porté par une classe
+   et non par un sélecteur de voisinage — le badge est un frère de `.unit-face`,
+   pas du nom, qui vit DANS la face. */
+.card3d.has-count .card3d-name { padding-left: 22px; }
 
 /* ── La levée de la carte RETENUE ──
    Une direction, pas une valeur recopiée : vers le haut en bande, vers le board

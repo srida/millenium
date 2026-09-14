@@ -49,6 +49,20 @@ export class GameController {
   private selectedConditionIndex: number | null = null;
   private selectedHandIdx: number | null = null;   // index dans session.hand
   private selectedMaterials: Unit[] = [];
+  /**
+   * La case RETENUE pour l'invocation en cours, `null` tant que le joueur n'en
+   * a désigné aucune.
+   *
+   * ⚠️ Elle existe parce que « où » et « avec quoi » ne se demandent pas dans
+   * le même ordre selon le geste : au tap on désigne les matériaux puis la
+   * case, au glisser-déposer on lâche la carte sur la case AVANT d'avoir un
+   * seul matériau. Tant que les matériaux manquent, `validCells` rend `[]` (la
+   * règle, pas une omission) — il n'y a donc rien à valider à ce moment-là, et
+   * la case n'est qu'une INTENTION. C'est `canSummon`, au moment de la pose,
+   * qui tranche, et `forcedCell` qui l'emporte quand la recette impose la
+   * sienne : aucune règle n'est réécrite ici.
+   */
+  private selectedCell: Position | null = null;
   private selectedBoardPos: Position | null = null;
   private summonOptions: SummonConditionMenu | null = null;
 
@@ -165,6 +179,7 @@ export class GameController {
   selectCard(card: Card | null, handIdx: number | null): void {
     this._closeSummonMenu();
     this.selectedMaterials = [];
+    this.selectedCell = null;
     this.selectedBoardPos = null;
     this.scene?.setSelectedPos(null);
 
@@ -227,13 +242,26 @@ export class GameController {
 
   // ── Interactions board (callbacks Scene3D) ──────────────────────────────
 
+  /**
+   * ⚠️ **Une case désignée avant les matériaux n'est plus un REFUS, c'est une
+   * RÉSERVATION.** Le geste répondait « Sélectionne les matériaux d'abord » et
+   * ne retenait rien : au glisser-déposer, c'était un mur — on lâche la carte
+   * sur le plateau, et le lâcher ne valait rien. Désormais la case est retenue,
+   * le joueur désigne ses matériaux, et l'unité se pose là où il l'a lâchée.
+   *
+   * ⚠️ C'est bien ICI, dans le point d'entrée du tap, et pas dans le glisser :
+   * le glisser-déposer appelle `onCellTap` en arrivant et n'écrit aucune règle
+   * (cf. `cellAtScreen`). Loger la réservation dans le geste aurait donné deux
+   * façons de désigner une case, dont une seule sait attendre — et le tap, sur
+   * un téléphone, est le geste principal.
+   */
   onCellTap = (pos: Position): void => {
     if (this.summonOptions) return;
     useUiStore.getState().hideTooltip();
     if (this.selectedCard) {
       if (this.session.needsMaterials(this.selectedCard, this.selectedConditionIndex)
           && !this.session.materialsComplete(this.selectedCard, this.selectedMaterials, this.selectedConditionIndex)) {
-        this._flashError("Sélectionne les matériaux d'abord");
+        this._reserveCell(pos);
         return;
       }
       this._tryPlace(this.selectedCard, pos);
@@ -241,6 +269,31 @@ export class GameController {
       this._tryMove(pos);
     }
   };
+
+  /**
+   * Retient la case, ou la libère si c'est celle qui l'était déjà (même
+   * bascule que le tap sur un matériau — le joueur revient sur son geste au
+   * même endroit qu'il l'a fait).
+   *
+   * ⚠️ Rien n'est validé ici, et il n'y a rien à valider : sans matériaux,
+   * `canSummon` refuserait une case parfaitement légitime une fois la sélection
+   * faite (une case occupée par le matériau qu'on s'apprête à consommer, par
+   * exemple). Une seule chose est vraie dès maintenant et se dit tout de suite :
+   * l'invocation se pose dans la zone du joueur.
+   */
+  private _reserveCell(pos: Position): void {
+    if (!this.session.board.isPlayerCell(pos)) {
+      // ⚠️ Le MOT est celui du moteur (`InvocationManager._canSummonWith`), au
+      // caractère près : c'est la même règle refusée au même joueur, et deux
+      // formulations pour un seul refus se lisent comme deux règles.
+      this._flashError('Placement uniquement sur le côté joueur (rangées 0–3)');
+      return;
+    }
+    const held = this.selectedCell;
+    this.selectedCell = (held && held.col === pos.col && held.row === pos.row) ? null : { ...pos };
+    this._applyHighlights();
+    this.sync();
+  }
 
   onUnitTap = (unit: Unit, pos: Position, rect: TooltipAnchor): void => {
     if (this.summonOptions) return;
@@ -272,11 +325,25 @@ export class GameController {
           // geste écrit en dur pour la Transformation ; il vaut maintenant pour
           // toute condition qui se solde d'une seule unité.
           const mats = [...this.selectedMaterials, unit];
-          if (this.session.materialsComplete(card, mats, condIdx)
-              && this.session.canSummon(card, pos, mats, condIdx).ok) {
-            this.selectedMaterials = mats;
-            this._tryPlace(card, pos);
-            return;
+          // ⚠️ Trois réponses possibles à « où », et leur ORDRE est la règle :
+          // la recette d'abord (`forcedCell` — une condition à un matériel
+          // impose la case de ce matériel, et rien ne passe devant), la case
+          // RETENUE ensuite (le joueur l'a désignée, au doigt ou au glisser),
+          // la case du matériel en dernier — le geste en un tap, inchangé.
+          if (this.session.materialsComplete(card, mats, condIdx)) {
+            const target = this.session.forcedCell(card, mats, condIdx) ?? this.selectedCell ?? pos;
+            const verdict = this.session.canSummon(card, target, mats, condIdx) as any;
+            if (verdict.ok) {
+              this.selectedMaterials = mats;
+              this._tryPlace(card, target);
+              return;
+            }
+            // ⚠️ La case retenue ne convient pas à la sélection achevée : on la
+            // LIBÈRE, en disant pourquoi. La garder laisserait le joueur devant
+            // un plateau allumé de cases valides qu'un repère violet contredit.
+            // Sans case retenue, rien à dire : le geste en un tap n'a pas abouti,
+            // le matériau est simplement retenu et le plateau s'allume.
+            if (this.selectedCell) { this.selectedCell = null; this._flashError(verdict.reason); }
           }
           this.selectedMaterials.push(unit);
         }
@@ -314,8 +381,9 @@ export class GameController {
    * ⚠️ C'est TOUT ce que le glisser-déposer d'une carte de main ajoute au
    * contrôleur. Le geste appelle `selectCard` en partant et `onCellTap` en
    * arrivant : les deux points d'entrée du tap, donc les mêmes refus, les mêmes
-   * surlignages, le même « Sélectionne les matériaux d'abord », le même menu de
-   * conditions multiples. Aucune règle de jeu n'est écrite deux fois.
+   * surlignages, la même RÉSERVATION de case quand les matériaux manquent
+   * encore, le même menu de conditions multiples. Aucune règle de jeu n'est
+   * écrite deux fois.
    */
   cellAtScreen(clientX: number, clientY: number): Position | null {
     return this.scene?.cellAtScreen(clientX, clientY) ?? null;
@@ -341,10 +409,23 @@ export class GameController {
   tapGraveyardUnit(unit: Unit): void {
     useUiStore.getState().hideTooltip();
     if (this.session.phase === Phase.PREPARATION && this.selectedCard && this.session.needsMaterials(this.selectedCard, this.selectedConditionIndex)) {
-      const candidates = this.session.materialCandidateGraveyard(this.selectedCard, this.selectedMaterials, this.selectedConditionIndex);
+      const card = this.selectedCard;
+      const condIdx = this.selectedConditionIndex;
+      const candidates = this.session.materialCandidateGraveyard(card, this.selectedMaterials, condIdx);
       const idx = this.selectedMaterials.indexOf(unit);
       if (idx !== -1) this.selectedMaterials.splice(idx, 1);
       else if (candidates.includes(unit)) this.selectedMaterials.push(unit);
+      // ⚠️ Un matériau de CIMETIÈRE n'a pas de case à offrir au résultat — c'est
+      // pourquoi ce geste n'a jamais posé d'unité de lui-même. Il en pose une
+      // dès que le joueur, lui, a désigné la case : une invocation payée au seul
+      // cimetière est justement celle où il n'y a rien d'autre à taper ensuite.
+      if (this.selectedCell && this.session.materialsComplete(card, this.selectedMaterials, condIdx)) {
+        const target = this.session.forcedCell(card, this.selectedMaterials, condIdx) ?? this.selectedCell;
+        if ((this.session.canSummon(card, target, this.selectedMaterials, condIdx) as any).ok) {
+          this._tryPlace(card, target);
+          return;
+        }
+      }
       this._applyHighlights();
       this.sync();
     }
@@ -792,12 +873,19 @@ export class GameController {
       this.selectedMaterials.filter(u => !this.session.graveyard.includes(u)).map(u => ({ ...(u.position as Position) })),
       complete,
     );
+    // La case retenue reprend le repère du repositionnement (`setSelectedPos`) :
+    // les deux disent « c'est ICI que ça va se passer », et les deux états
+    // s'excluent (une carte en main OU une unité à déplacer, jamais les deux).
+    // ⚠️ Après `setHighlight`, jamais avant : `clearHighlight` remet
+    // `_selectedPos` à zéro.
+    scene.setSelectedPos(this.selectedCell);
   }
 
   protected _clearSelection(): void {
     this.selectedCard = null;
     this.selectedHandIdx = null;
     this.selectedMaterials = [];
+    this.selectedCell = null;
     this.selectedBoardPos = null;
     this._closeSummonMenu();
     this.scene?.clearHighlight();
@@ -876,7 +964,9 @@ export class GameController {
     let invocationBanner: string | null = null;
     if (this.selectedCard && this.session.needsMaterials(this.selectedCard, this.selectedConditionIndex)
         && !this.session.materialsComplete(this.selectedCard, this.selectedMaterials, this.selectedConditionIndex)) {
-      invocationBanner = 'Sélectionne les matériaux d\'invocation';
+      invocationBanner = this.selectedCell
+        ? 'Case retenue — sélectionne les matériaux d\'invocation'
+        : 'Sélectionne les matériaux d\'invocation';
     }
 
     const snapshot: Partial<GameSnapshot> = {
