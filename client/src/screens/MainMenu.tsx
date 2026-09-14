@@ -61,7 +61,7 @@ export default function MainMenu() {
     // Boutique, Cadeaux, Catalogue) ne sont plus posés ici : `App.tsx` les
     // rend une seule fois, `AppHeader`/`AppFooter`, partagés par tous les
     // écrans — cette racine n'occupe donc plus que l'espace restant.
-    <main className="relative z-10 flex h-full flex-col gap-2 overflow-hidden py-3 pl-[max(2.5rem,env(safe-area-inset-left))] pr-[max(2.5rem,env(safe-area-inset-right))] text-white sm:pl-[max(0.25rem,env(safe-area-inset-left))] sm:pr-[max(0.25rem,env(safe-area-inset-right))]">
+    <main className="menu-body relative z-10 flex h-full flex-col gap-2 overflow-hidden py-3 pl-[max(2.5rem,env(safe-area-inset-left))] pr-[max(2.5rem,env(safe-area-inset-right))] text-white sm:pl-[max(0.25rem,env(safe-area-inset-left))] sm:pr-[max(0.25rem,env(safe-area-inset-right))]">
       <FullscreenButton className="absolute right-3 top-2 sm:hidden" />
 
       {web && !isTabletDevice ? (
@@ -84,9 +84,9 @@ export default function MainMenu() {
         // Le tout se centre verticalement EN BLOC (`justify-center`) : sans
         // lui, la ligne s'arrête à la hauteur voulue mais reste collée en
         // haut, sous le logo, au lieu d'occuper le milieu de l'écran.
-        <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col items-center justify-center gap-2">
+        <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-col flex-1 items-center justify-center gap-2">
           <LogoBlock grow={false} isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
-          <div className="flex w-full items-stretch gap-3 sm:gap-2 sm:max-h-[330px]">
+          <div className="flex w-full items-stretch gap-3 flex-1 sm:gap-2 sm:max-h-[330px]">
             <PlayCard className="min-w-0 flex-[1.15]" />
             <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
               <TutorialButton className="h-full w-full" />
@@ -99,7 +99,7 @@ export default function MainMenu() {
       ) : (
         <>
           <LogoBlock grow isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
-          <div className="flex flex-col gap-2.5 sm:mx-auto sm:w-full sm:max-w-[470px] sm:flex-1 sm:justify-center">
+          <div className="flex flex-2 flex-col gap-2.5 sm:mx-auto sm:w-full sm:max-w-[470px] sm:flex-1 sm:justify-center">
             <PlayCard />
             <TutorialButton />
             <div className="flex gap-2">
@@ -151,7 +151,7 @@ function useMediaQuery(query: string) {
  */
 function LogoBlock({ grow, isAdmin, onDevTap }: { grow: boolean; isAdmin: boolean; onDevTap: () => void }) {
   return (
-    <div className={`flex flex-col items-center justify-center gap-0.5 ${grow ? 'flex-1 sm:flex-none sm:mt-16' : 'flex-none'}`}>
+    <div className={`flex flex-col items-center justify-center gap-0.5 ${grow ? 'flex-2 sm:flex-none sm:mt-16' : 'flex-none'}`}>
       {/* Largeur bornée par la hauteur disponible (`26dvh`) autant que par une
           taille maximale (`11rem`) : c'est elle qui fait tenir le logo sans
           scroll quand l'écran est court. Sur tablette (`sm:`), les deux bornes

@@ -12,14 +12,19 @@ import { useAuthStore } from '../../stores/authStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { FullscreenButton } from '../system/DeviceGuards.js';
 import { ProgressionPills, ProfilePill } from '../ui/ProgressionStats.js';
+import { useWebLayout } from '../system/useWebLayout.js';
 
 export function AppHeader() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
+  const web = useWebLayout();
+  var classname = "flex min-h-tap items-center gap-2 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-xs sm:text-sm";
+  web ? classname+=" px-20" : classname+=" px-4";
 
   return (
     <header className="sticky top-0 z-20 shrink-0 border-b border-line bg-surface">
-      <div className="flex min-h-tap items-center gap-2 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-xs sm:text-sm">
+        <div className={classname}>
+      
         {user ? (
           // ⚠️ `min-w-0` : c'est le PSEUDO qui cède quand la ligne déborde, pas
           // les soldes. Un nom tronqué se lit encore ; un « 1 24… » de gold
