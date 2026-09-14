@@ -336,6 +336,9 @@ export class AttributeManager {
       // Quel ATTRIBUT a crédité quelle pioche (cf. types.DrawSourceEntry). Pure
       // description : la popup de pioche le lit, aucun calcul ne s'en sert.
       draw_sources: joueur.sources,
+      // Quel ATTRIBUT a crédité quelle part du multiplicateur — même geste, même
+      // usage (le récapitulatif de round nomme la source de son bonus).
+      damage_multiplier_sources: joueur.sources_multiplicateur,
       // Pendant de draw_bonus / guaranteed_draws pour l'IA. ⚠️ Pas de
       // `sources` : rien n'affiche la provenance de la pioche adverse, et le
       // moteur ne les inscrit donc pas (`ressourcesLimitees`).
@@ -348,6 +351,7 @@ export class AttributeManager {
       // n'est pas une limite du moteur, c'est un fait du jeu.
       enemy_board_slot_bonus: adverse.slots_board,
       enemy_damage_multiplier_bonus: adverse.multiplicateur,
+      enemy_damage_multiplier_sources: adverse.sources_multiplicateur,
     };
   }
 

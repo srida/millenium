@@ -314,6 +314,33 @@ describe('railLayout — deux colonnes, ordre de lecture', () => {
     const z = rail(6).cards.map(c => c.zIndex);
     expect(z).toEqual([0, 0, 1, 1, 2, 2]);
   });
+
+  // ⚠️ Le rail est une colonne SOUS SON TITRE, pas un bloc centré : une main
+  // courte doit commencer en haut de la bande. Mutation : revenir au centrage
+  // (`y: (row - (rows-1)/2) * pitch`) → ROUGE, les deux cartes retombent au
+  // milieu des 520 px.
+  // ⚠️ Le haut d'une carte se mesure sur sa hauteur À L'ÉCHELLE RETENUE : au-delà
+  // d'une centaine de cartes la pile rapetissit, et la hauteur nominale
+  // désignerait un bord qui n'existe pas.
+  const hautDeLaPile = (r: ReturnType<typeof rail>) =>
+    r.cards[0].y - (84 / CARD_ASPECT) * r.scale / 2;
+
+  it('la pile commence EN HAUT de la bande, quelle que soit sa longueur', () => {
+    for (const n of [1, 2, 5, 12, 200]) {
+      const r = rail(n);
+      // Le premier rang touche le bord haut de la bande (à la rotation près).
+      expect(hautDeLaPile(r), `${n} cartes`).toBeGreaterThan(-RAIL_H / 2 - 2);
+      expect(hautDeLaPile(r), `${n} cartes`).toBeLessThan(-RAIL_H / 2 + 4);
+    }
+  });
+
+  // Corollaire : ce qui déborde déborde par le BAS — jamais sous le titre.
+  it('un débordement ne remonte PAS au-dessus de la bande', () => {
+    const r = rail(200);
+    expect(r.overflow).toBe(true);
+    expect(hautDeLaPile(r)).toBeGreaterThan(-RAIL_H / 2 - 2);
+    expect(r.cards[r.cards.length - 1].y).toBeGreaterThan(RAIL_H / 2);
+  });
 });
 
 describe('railLayout — la place', () => {

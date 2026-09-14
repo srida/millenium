@@ -273,11 +273,16 @@ export interface GuaranteedDraw {
  * ⚠️ On stocke des IDS, jamais des libellés : `logic/` n'importe pas `data/`.
  * C'est la couche React qui résout `ARCH_012` → « Magiciens Sombres ».
  */
-export interface DrawSourceEntry {
+export interface BonusSourceEntry {
   kind: 'magie' | 'attribut' | 'terrain';
-  /** Id de la magie, de l'attribut ou du terrain qui a crédité la pioche. */
+  /** Id de la magie, de l'attribut ou du terrain qui a crédité le bonus. */
   ref: string;
-  /** Cartes créditées. 0 pour une pioche garantie, qui prend un slot existant. */
+  /** Montant RÉELLEMENT crédité par cette source (plafond déjà appliqué). */
+  value: number;
+}
+
+export interface DrawSourceEntry extends BonusSourceEntry {
+  /** Cartes créditées : 0 pour une pioche GARANTIE, qui prend un slot existant. */
   value: number;
   /** Pioche GARANTIE (un slot de la main normale, pas une carte de plus). */
   guaranteed?: boolean;
@@ -296,6 +301,13 @@ export interface EndOfCombatAttributeResult {
    *  réellement crédité, pas ce que l'effet demandait. */
   draw_sources?: DrawSourceEntry[];
   /**
+   * Provenance du `damage_multiplier_bonus`, attribut par attribut — le pendant
+   * exact de `draw_sources`, et pour la même raison : le récapitulatif de round
+   * annonce un bonus, il doit pouvoir DIRE d'où il sort. Rien n'en calcule quoi
+   * que ce soit.
+   */
+  damage_multiplier_sources?: BonusSourceEntry[];
+  /**
    * Pendant de `draw_bonus` / `guaranteed_draws`, côté ENNEMI : contrairement
    * aux autres ressources de fin de combat (slot, multiplicateur, Shopping),
    * la pioche a un destinataire des deux côtés — `EnemyAI` pioche aussi. Pas
@@ -313,6 +325,9 @@ export interface EndOfCombatAttributeResult {
    */
   enemy_board_slot_bonus?: number;
   enemy_damage_multiplier_bonus?: number;
+  /** Pendant de `damage_multiplier_sources` côté IA — la ligne « Dégâts
+   *  adverses » du récapitulatif pose la même question que celle du joueur. */
+  enemy_damage_multiplier_sources?: BonusSourceEntry[];
 }
 
 /**

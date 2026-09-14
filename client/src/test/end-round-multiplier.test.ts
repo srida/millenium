@@ -17,6 +17,7 @@ import { GameSession } from '../logic/GameSession.js';
 import { makeCard } from './helpers.js';
 
 const RAGE = 'ARCH_RAGE';
+const MAGIE = 'MAGIE_RITUEL';
 
 /** Le geste exact d'ARCH_017 : +1,5 au multiplicateur, en fin de combat. */
 const rageDeVaincre = {
@@ -49,9 +50,16 @@ function session(playerAttrs: string[][]): GameSession {
  *  main pleine sur un plateau vide n'en a aucun. */
 function round(attrs: string[][], magieBonus = 0) {
   const s = session(attrs);
-  // Le pendant PERMANENT du bonus d'attribut : ce qu'une magie
-  // `damage_multiplier_bonus` a laissé sur la partie.
-  (s.gameState as any).player_damage_multiplier_bonus = magieBonus;
+  // Le pendant PERMANENT du bonus d'attribut : une vraie magie
+  // `damage_multiplier_bonus`, appliquée par le chemin réel (la Phase Shopping a
+  // lieu AVANT la préparation). ⚠️ Poser `player_damage_multiplier_bonus` à la
+  // main sauterait l'inscription au registre — c'est-à-dire exactement ce que ce
+  // filet vérifie.
+  if (magieBonus) {
+    s.applyGlobalMagie({
+      id: MAGIE, name: 'Rituel', effect: { type: 'damage_multiplier_bonus', value: magieBonus },
+    } as any);
+  }
   s.startPreparation();
   for (let i = 0; i < attrs.length; i++) {
     const idx = s.hand.findIndex((c: any) => c.id === `P${i}`);
@@ -62,10 +70,12 @@ function round(attrs: string[][], magieBonus = 0) {
 }
 
 describe('Récapitulatif de round — le bonus de multiplicateur', () => {
-  it('vaut 0 quand rien ne l\'augmente', () => {
+  it('vaut 0 quand rien ne l\'augmente, et n\'annonce aucune source', () => {
     const r = round([[], []]);
     expect(r.playerMultiplierBonus).toBe(0);
     expect(r.enemyMultiplierBonus).toBe(0);
+    expect(r.playerMultiplierSources).toEqual([]);
+    expect(r.enemyMultiplierSources).toEqual([]);
   });
 
   // ⚠️ Le filet des deux sens : sans le bonus, le camp ennemi reste à 0 — c'est
@@ -90,5 +100,31 @@ describe('Récapitulatif de round — le bonus de multiplicateur', () => {
     expect(base).toBeGreaterThan(0);
     expect(base + r.playerMultiplierBonus).toBeCloseTo(r.playerMultiplier, 6);
     expect(r.playerDamageDealt).toBe(Math.round(r.playerSurvivorsAtk * r.playerMultiplier));
+  });
+
+  // ⚠️ L'invariant du REGISTRE, jumeau de celui de la pioche
+  // (`sum(sources.value) === extraDraws`, cf. `draw-summary.test.ts`) : le
+  // récapitulatif nomme les sources SOUS le chiffre, donc leur somme doit faire
+  // ce chiffre. Mutation : un émetteur qui crédite sans s'inscrire → ROUGE.
+  it('les sources NOMMENT le bonus, et leur somme le fait exactement', () => {
+    const r = round([[RAGE], [RAGE]], 0.5);
+    const total = r.playerMultiplierSources.reduce((n, s) => n + s.value, 0);
+    expect(total).toBeCloseTo(r.playerMultiplierBonus, 6);
+
+    // Chaque source se nomme par son ID et sa FAMILLE — c'est la couche React
+    // qui traduit (`logic/` n'importe pas `data/`). ⚠️ La famille compte autant
+    // que l'id : une magie inscrite comme « attribut » ferait chercher au joueur
+    // un palier qu'il n'a pas.
+    expect(r.playerMultiplierSources.find(s => s.kind === 'attribut'))
+      .toMatchObject({ ref: RAGE, value: 1.5 });
+    expect(r.playerMultiplierSources.find(s => s.kind === 'magie'))
+      .toMatchObject({ ref: MAGIE, value: 0.5 });
+  });
+
+  // Le camp qui ne porte rien ne se voit rien attribuer : le registre suit le
+  // CAMP, pas le round.
+  it('le registre adverse reste vide quand l\'IA ne porte pas l\'attribut', () => {
+    const r = round([[RAGE], [RAGE]]);
+    expect(r.enemyMultiplierSources).toEqual([]);
   });
 });

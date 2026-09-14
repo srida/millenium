@@ -305,6 +305,16 @@ export function railLayout({
   let maxBoundW = 0;
   let maxBoundH = 0;
 
+  // ⚠️ **La pile est alignée EN HAUT, pas centrée.** Un rail est une colonne
+  // sous un titre : deux cartes centrées dans 225 px flottaient à cinquante
+  // pixels de leur intitulé, et le rail se lisait comme posé trop bas — alors
+  // qu'une main pleine, elle, remplit la bande et ne laissait rien voir du
+  // défaut. L'origine restant le CENTRE de la bande (cf. l'en-tête), le premier
+  // rang se pose à `-hauteur/2 + demi-carte`.
+  // Corollaire : un débordement ne déborde plus que par le BAS, donc jamais
+  // sous le titre.
+  const topY = -height / 2 + rotatedBounds(w, h, RAIL_JITTER_DEG).h / 2;
+
   for (let i = 0; i < count; i++) {
     const col = i % columns;
     const row = Math.floor(i / columns);
@@ -314,7 +324,7 @@ export function railLayout({
     maxBoundH = Math.max(maxBoundH, b.h);
     cards.push({
       x: (col - (columns - 1) / 2) * (w + gapX),
-      y: (row - (rows - 1) / 2) * pitch,
+      y: topY + row * pitch,
       rotZ,
       // Le relief du rail : les cartes se tournent légèrement vers le board.
       rotY: 0,

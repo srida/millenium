@@ -39,7 +39,7 @@ import { tiersForRound, drawHand, resolveGuaranteedDraws } from './Draw.js';
 import { tiersOf } from './Tiers.js';
 import { pickMagies } from './MagieOffer.js';
 import type { MagieOfferContext } from './MagieOffer.js';
-import type { Card, Position, BoardDef, AttributeDef, DrawSummary, Magie, RoundWinner } from './types.js';
+import type { BonusSourceEntry, Card, Position, BoardDef, AttributeDef, DrawSummary, Magie, RoundWinner } from './types.js';
 
 const HAND_SIZE = 5;
 
@@ -152,6 +152,16 @@ export interface EndRoundResult {
    */
   playerMultiplierBonus: number;
   enemyMultiplierBonus: number;
+  /**
+   * D'OÙ vient ce bonus, source par source — le pendant exact du registre de la
+   * popup de pioche (`DrawSummary.sources`), et pour la même raison : un chiffre
+   * qui apparaît sans cause ne s'explique pas tout seul.
+   *
+   * ⚠️ Ne porte que des IDS (`logic/` n'importe pas `data/`) : c'est la couche
+   * React qui résout `ARCH_017` → « Rage de Vaincre ».
+   */
+  playerMultiplierSources: BonusSourceEntry[];
+  enemyMultiplierSources: BonusSourceEntry[];
   /** Dégâts réellement infligés à l'ADVERSAIRE de ce camp (0 si ce camp n'encaisse pas ce round). */
   playerDamageDealt: number;
   enemyDamageDealt: number;
@@ -810,6 +820,8 @@ export class GameSession {
         ? combatOutcome.playerMultiplier - this.gameState.player_multiplier : 0,
       enemyMultiplierBonus: combatOutcome.enemyMultiplier > 0
         ? combatOutcome.enemyMultiplier - this.gameState.enemy_multiplier : 0,
+      playerMultiplierSources: combatOutcome.playerMultiplierSources,
+      enemyMultiplierSources: combatOutcome.enemyMultiplierSources,
       playerDamageDealt: combatOutcome.playerDamageDealt,
       enemyDamageDealt: combatOutcome.enemyDamageDealt,
       isGameOver: this.gameState.isGameOver(),
@@ -1007,7 +1019,13 @@ export class GameSession {
     if (r.pioches_garanties.length) g.player_guaranteed_draws.push(...r.pioches_garanties);
     if (r.slots_board) g.grantLimitedBoardSlotBonus(r.slots_board);
     if (r.magies_shop) g.player_extra_shopping_magies += r.magies_shop;
-    if (r.multiplicateur) g.player_damage_multiplier_bonus += r.multiplicateur;
+    // ⚠️ Le montant et sa provenance partent ENSEMBLE, comme la pioche juste
+    // au-dessus : c'est ce qui tient `sum(sources.value) === le bonus`, et donc
+    // ce que le récapitulatif de round a le droit d'affirmer.
+    if (r.multiplicateur) {
+      g.player_damage_multiplier_bonus += r.multiplicateur;
+      g.player_multiplier_sources.push(...r.sources_multiplicateur);
+    }
   }
 
   /** Cibles valides d'une magie sur le board joueur (defuse : fusions seulement). */

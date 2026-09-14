@@ -10,8 +10,11 @@ import TerrainEffects from '../ui/TerrainEffects.js';
 import RecipeRow from '../ui/SummonRecipe.js';
 import { summonRecipes } from '../../data/SummonInfo.js';
 import { AnimatedLevelGauge } from '../ui/ProgressionStats.js';
+import { BONUS_SOURCE_ICON } from '../../data/DrawInfo.js';
+import { bonusSourceName } from '../../data/gameNames.js';
 import { END_ROUND_DURATION_S, TERRAIN_ALERT_MS } from '../../game/timings.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
+import type { BonusSourceEntry } from '../../logic/types.js';
 
 /**
  * L'annonce du terrain, à l'entrée en phase de combat.
@@ -204,6 +207,7 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
         atk={result.playerSurvivorsAtk}
         multiplier={result.playerMultiplier}
         bonus={result.playerMultiplierBonus}
+        sources={result.playerMultiplierSources}
         damage={result.playerDamageDealt}
         tone="text-player"
       />
@@ -212,6 +216,7 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
         atk={result.enemySurvivorsAtk}
         multiplier={result.enemyMultiplier}
         bonus={result.enemyMultiplierBonus}
+        sources={result.enemyMultiplierSources}
         damage={result.enemyDamageDealt}
         tone="text-enemy"
       />
@@ -241,9 +246,15 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
  * qu'il n'avait aucun moyen de rattacher à sa cause. La parenthèse est donc la
  * DÉCOMPOSITION du multiplicateur affiché, pas une valeur de plus à côté de lui
  * — `base + bonus` doit toujours se relire comme le facteur appliqué.
+ *
+ * ⚠️ **Et le bonus se NOMME**, exactement comme la popup de pioche nomme les
+ * siens : un « +1,5 » en or ne dit toujours pas d'où il sort. Le registre
+ * (`BonusSourceEntry`) voyage depuis `logic/` avec des IDS ; c'est ici qu'ils
+ * deviennent « Rage de Vaincre ».
  */
-function DamageLine({ label, atk, multiplier, bonus, damage, tone }: {
-  label: string; atk: number; multiplier: number; bonus: number; damage: number; tone: string;
+function DamageLine({ label, atk, multiplier, bonus, sources, damage, tone }: {
+  label: string; atk: number; multiplier: number; bonus: number;
+  sources: readonly BonusSourceEntry[]; damage: number; tone: string;
 }) {
   if (multiplier <= 0) return null;
   // Un bonus négatif n'existe pas aujourd'hui ; le tester coûte moins cher que
@@ -251,14 +262,54 @@ function DamageLine({ label, atk, multiplier, bonus, damage, tone }: {
   const hasBonus = bonus > 0;
   const base = multiplier - bonus;
   return (
-    <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[11px]">
-      <span className={`font-semibold ${tone}`}>{label}</span>
-      <span className="tabular-nums text-white/60">
-        {atk} × {hasBonus
-          ? <>({base.toFixed(1)} <span className="font-semibold text-gold" title="Bonus de multiplicateur (attributs, magies)">+{bonus.toFixed(1)}</span>)</>
-          : multiplier.toFixed(1)
-        } = <span className={`font-bold ${tone}`}>{damage}</span>
-      </span>
+    <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[11px]">
+      <div className="flex items-center justify-between gap-2">
+        <span className={`font-semibold ${tone}`}>{label}</span>
+        <span className="tabular-nums text-white/60">
+          {atk} × {hasBonus
+            ? <>({base.toFixed(1)} <span className="font-semibold text-gold">+{bonus.toFixed(1)}</span>)</>
+            : multiplier.toFixed(1)
+          } = <span className={`font-bold ${tone}`}>{damage}</span>
+        </span>
+      </div>
+      {hasBonus && <MultiplierSources sources={sources} />}
+    </div>
+  );
+}
+
+/**
+ * D'où vient le bonus, ligne par ligne — le pendant du bloc « BONUS DE PIOCHE »
+ * de la popup de pioche, jusqu'aux glyphes (`BONUS_SOURCE_ICON`, la MÊME table).
+ *
+ * ⚠️ Les entrées de même source sont FONDUES : deux paliers d'un même attribut
+ * donnent une ligne, pas deux lignes identiques. Même règle que `drawBonusRows`.
+ *
+ * ⚠️ **Un registre vide se TAIT plutôt que d'inventer une source.** Le cas
+ * existe : une partie d'avant ce registre, ou une source qu'on aurait oublié
+ * d'inscrire. La parenthèse en or reste alors seule — moins parlante, jamais
+ * fausse.
+ */
+function MultiplierSources({ sources }: { sources: readonly BonusSourceEntry[] }) {
+  const rows = new Map<string, { kind: BonusSourceEntry['kind']; ref: string; value: number }>();
+  for (const s of sources) {
+    if (!s.value) continue;
+    const key = `${s.kind}|${s.ref}`;
+    const found = rows.get(key);
+    if (found) found.value += s.value;
+    else rows.set(key, { kind: s.kind, ref: s.ref, value: s.value });
+  }
+  if (!rows.size) return null;
+
+  return (
+    <div className="mt-1 space-y-0.5 border-t border-white/10 pt-1">
+      {[...rows.entries()].map(([key, row]) => (
+        <div key={key} className="flex items-center justify-between gap-2 text-[10px]">
+          <span className="truncate text-white/50">
+            {BONUS_SOURCE_ICON[row.kind] ?? '•'} {bonusSourceName(row.kind, row.ref)}
+          </span>
+          <span className="flex-shrink-0 font-semibold tabular-nums text-gold">+{row.value.toFixed(1)}</span>
+        </div>
+      ))}
     </div>
   );
 }

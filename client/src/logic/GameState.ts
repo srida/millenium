@@ -1,4 +1,4 @@
-import type { DrawSourceEntry, EndOfCombatAttributeResult, GuaranteedDraw, RoundWinner } from './types.js';
+import type { BonusSourceEntry, DrawSourceEntry, EndOfCombatAttributeResult, GuaranteedDraw, RoundWinner } from './types.js';
 
 export const Phase = Object.freeze({
   PREPARATION: 'preparation',
@@ -76,6 +76,15 @@ export class GameState {
    *  du même nom, qui ne vaut que pour le round où il se déclenche et arrive
    *  par `attributeResult`. */
   player_damage_multiplier_bonus: number;
+  /**
+   * Provenance du champ ci-dessus (cf. `BonusSourceEntry`) — quelle MAGIE a
+   * crédité quelle part. ⚠️ Il est PERMANENT comme lui, et ne se vide donc pas
+   * au round : les deux s'écrivent au même instant (`GameSession._pourMagie`) et
+   * `sum(value) === player_damage_multiplier_bonus` à tout moment. La part
+   * d'ATTRIBUT n'entre pas ici — elle ne vaut que pour son round et arrive par
+   * `attributeResult.damage_multiplier_sources`.
+   */
+  player_multiplier_sources: BonusSourceEntry[];
 
   constructor() {
     this.round = 1;
@@ -101,6 +110,7 @@ export class GameState {
     this.enemy_guaranteed_draws = [];
     this.player_extra_shopping_magies = 0;
     this.player_damage_multiplier_bonus = 0;
+    this.player_multiplier_sources = [];
   }
 
   // ── Phase transitions ──
@@ -133,18 +143,32 @@ export class GameState {
     playerSurvivorsAtk: number,
     enemySurvivorsAtk: number,
     attributeResult: EndOfCombatAttributeResult = {},
-  ): { playerMultiplier: number; enemyMultiplier: number; playerDamageDealt: number; enemyDamageDealt: number } {
+  ): {
+    playerMultiplier: number; enemyMultiplier: number;
+    playerDamageDealt: number; enemyDamageDealt: number;
+    playerMultiplierSources: BonusSourceEntry[]; enemyMultiplierSources: BonusSourceEntry[];
+  } {
     this.phase = Phase.END_ROUND;
 
     let playerMultiplier = 0;
     let enemyMultiplier = 0;
     let playerDamageDealt = 0;
     let enemyDamageDealt = 0;
+    // ⚠️ Les deux registres se concatènent DANS L'ORDRE des deux termes ajoutés
+    // juste en dessous : la liste est la lecture de la somme, pas un inventaire
+    // à côté d'elle. Vides quand le camp n'encaisse pas — il n'y a alors aucun
+    // multiplicateur à expliquer.
+    let playerMultiplierSources: BonusSourceEntry[] = [];
+    let enemyMultiplierSources: BonusSourceEntry[] = [];
 
     if (winner === 'player' || winner === 'timeout' || winner === 'draw') {
       playerMultiplier = this.player_multiplier
         + (attributeResult.damage_multiplier_bonus || 0)
         + this.player_damage_multiplier_bonus;
+      playerMultiplierSources = [
+        ...(attributeResult.damage_multiplier_sources ?? []),
+        ...this.player_multiplier_sources,
+      ];
       playerDamageDealt = Math.round(playerSurvivorsAtk * playerMultiplier);
       this.enemy_hp -= playerDamageDealt;
     }
@@ -154,6 +178,7 @@ export class GameState {
       // que pour CE round, comme celui du joueur ; elle n'a pas d'équivalent de
       // `player_damage_multiplier_bonus`, qui est permanent et vient des magies.
       enemyMultiplier = this.enemy_multiplier + (attributeResult.enemy_damage_multiplier_bonus || 0);
+      enemyMultiplierSources = [...(attributeResult.enemy_damage_multiplier_sources ?? [])];
       enemyDamageDealt = Math.round(enemySurvivorsAtk * enemyMultiplier);
       this.player_hp -= enemyDamageDealt;
     }
@@ -191,7 +216,10 @@ export class GameState {
       this.grantEnemyBoardSlotBonus(attributeResult.enemy_board_slot_bonus);
     }
 
-    return { playerMultiplier, enemyMultiplier, playerDamageDealt, enemyDamageDealt };
+    return {
+      playerMultiplier, enemyMultiplier, playerDamageDealt, enemyDamageDealt,
+      playerMultiplierSources, enemyMultiplierSources,
+    };
   }
 
   /**

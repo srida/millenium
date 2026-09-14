@@ -10,6 +10,23 @@
    s'anime en continu annulerait cette économie pour tout le combat. Tout passe
    donc par des transitions, déclenchées par un changement d'état. */
 
+/* ⚠️ **La PRISE EN MAIN est une seule variable, et elle est ANIMABLE.**
+   `--card-raise` va de 0 (posée) à 1 (tenue) ; tout ce que la prise change en
+   dérive — la montée, l'éloignement sur l'axe de la caméra, le redressement.
+   Un seul `@property` suffit parce qu'un seul geste est décrit : sans lui, la
+   carte passait de 0 à 1 d'un coup et le glisser commençait par un à-coup.
+
+   ⚠️ **`@property` est la CONDITION de l'animation** : une variable non
+   enregistrée n'a pas de type, donc rien à interpoler — elle saute. Un
+   navigateur qui ne connaît pas la règle retombe donc exactement sur le
+   comportement d'avant (saut), jamais sur une carte cassée : `calc()` lit la
+   même valeur, seule la transition manque. */
+@property --card-raise {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
 /* La couche qui porte la perspective. Les cartes sont positionnées en absolu et
    placées par `cardFan` ; la hauteur est celle que la géométrie réclame.
    ⚠️ JAMAIS d'`overflow: hidden` ici : il rognerait la carte levée, l'arc et
@@ -47,6 +64,13 @@
     translate(-50%, -50%)
     translate(var(--card-x, 0px), var(--card-y, 0px))
     translate(var(--card-lift-x, 0px), var(--card-lift-y, 0px))
+    /* ⚠️ **L'axe de la CAMÉRA**, pas une échelle : la couche porte une
+       `perspective`, donc un `translateZ` rapproche réellement la carte de
+       l'œil — elle grandit ET se détache du plan des autres, ce qu'un `scale`
+       ne sait pas faire. Il vient APRÈS les déplacements et AVANT les
+       rotations : dans le repère de la couche, donc perpendiculaire à l'écran
+       quoi qu'il arrive à l'inclinaison de la carte. */
+    translateZ(calc(var(--card-raise, 0) * 54px))
     rotate(calc(var(--card-rot, 0deg) * var(--card-straighten, 1)))
     rotateY(calc(var(--card-roty, 0deg) * var(--card-straighten, 1)))
     rotateX(var(--card-tilt, 8deg))
@@ -60,7 +84,8 @@
      La carte levée reprend la lueur pleine — elle, elle est seule. */
   --card-glow-near: 3px;
   --card-glow-far: 9px;
-  transition: transform 140ms ease-out, box-shadow 140ms ease-out, filter 140ms ease-out;
+  transition: transform 140ms ease-out, box-shadow 140ms ease-out, filter 140ms ease-out,
+              --card-raise 150ms ease-out;
   padding: 0;
   border: 0;
   color: inherit;
@@ -239,29 +264,39 @@
    La carte suit le doigt par deux variables mutées par référence
    (`--card-drag-*`), sans un re-render par frame.
 
-   ⚠️ `transition: none` n'est pas un détail : avec la transition du repos, la
-   carte RATTRAPERAIT le doigt avec 140 ms de retard — on glisserait une carte
-   en la regardant traîner derrière. Un geste direct ne s'interpole pas.
+   ⚠️ **Le SUIVI est instantané, la PRISE EN MAIN ne l'est pas**, et c'est toute
+   la subtilité de cette règle : `transition` ne liste QUE `--card-raise`. Le
+   `transform` n'y est pas, donc les deux variables du doigt (`--card-drag-*`)
+   arrivent sans retard — avec la transition du repos, la carte rattraperait le
+   doigt avec 140 ms de retard et on la regarderait traîner derrière. Mais la
+   prise, elle, était un SAUT : la carte montait, se redressait et s'aplatissait
+   en une frame. Elle se lève maintenant en 170 ms, comme on soulève un objet.
 
-   ⚠️ Elle se redresse et s'aplatit : la couche porte une `perspective`, et une
-   carte inclinée emmenée loin de son origine se déforme d'autant. */
-/* ⚠️ **La carte glissée monte AU-DESSUS du doigt** (`- 80%` de sa propre
-   hauteur : le pourcentage d'un `translate` se résout sur la boîte non
-   transformée, donc l'écart ne dépend ni de l'échelle de l'éventail ni de la
-   disposition). Sans ça, elle recouvre exactement la case qu'elle vise — une
-   carte fait 84 px de large pour une case d'environ 72 — et le surlignage de
-   survol qu'elle vient chercher est dessiné SOUS elle, donc invisible. C'est
-   aussi ce qui rend le doigt moins gênant au tactile.
+   ⚠️ **Tout dérive de `--card-raise`** (0 → 1) : la montée, l'éloignement sur
+   l'axe de la caméra, le redressement et l'aplatissement. C'est ce qui garantit
+   que les quatre partent et arrivent ENSEMBLE ; quatre transitions parallèles
+   finiraient par se désaccorder au premier réglage de durée.
+
+   ⚠️ **La carte monte AU-DESSUS du doigt** (`- 80%` de sa propre hauteur : le
+   pourcentage d'un `translate` se résout sur la boîte non transformée, donc
+   l'écart ne dépend ni de l'échelle de l'éventail ni de la disposition). Sans
+   ça, elle recouvre exactement la case qu'elle vise — une carte fait 84 px de
+   large pour une case d'environ 72 — et le surlignage de survol qu'elle vient
+   chercher est dessiné SOUS elle, donc invisible. C'est aussi ce qui rend le
+   doigt moins gênant au tactile.
    ⚠️ Rien ne change côté logique : le dépôt lit le POINT DU POINTEUR
    (`Card3D.onDrop` → `cellAtScreen`), jamais la boîte de la carte. */
 .card3d.is-dragging {
   z-index: 70;
-  transition: none;
+  transition: --card-raise 170ms cubic-bezier(.2, .75, .3, 1);
   cursor: grabbing;
+  --card-raise: 1;
   --card-lift-x: var(--card-drag-x, 0px);
-  --card-lift-y: calc(var(--card-drag-y, 0px) - 80%);
-  --card-straighten: 0;
-  --card-tilt: 0deg;
+  --card-lift-y: calc(var(--card-drag-y, 0px) - 80% * var(--card-raise));
+  /* Le redressement suit la levée au lieu de la précéder : une carte encore
+     posée est inclinée, une carte tenue est de face. */
+  --card-straighten: calc(1 - var(--card-raise));
+  --card-tilt: calc((1 - var(--card-raise)) * 8deg);
   --card-glow-near: 8px;
   --card-glow-far: 26px;
   --card-extra-shadow: 0 18px 26px -10px rgba(0, 0, 0, .85);
@@ -269,19 +304,32 @@
 .card3d.is-dragging .unit-foil-nebula { opacity: 1; }
 /* Le survol ne doit pas se superposer au glisser : la carte est déjà au doigt. */
 @media (hover: hover) and (pointer: fine) {
-  .card3d.is-dragging:hover { --card-lift-x: var(--card-drag-x, 0px); --card-lift-y: calc(var(--card-drag-y, 0px) - 80%); }
+  .card3d.is-dragging:hover { --card-lift-x: var(--card-drag-x, 0px); --card-lift-y: calc(var(--card-drag-y, 0px) - 80% * var(--card-raise)); }
   .card3d[data-draggable="true"]:hover { cursor: grab; }
 }
 
 /* Le tassement au tap, comme les boutons du jeu. Après le survol : sur un
-   ordinateur, presser une carte survolée doit l'enfoncer, pas la garder gonflée. */
-.card3d:active { --card-pop: .96; }
+   ordinateur, presser une carte survolée doit l'enfoncer, pas la garder gonflée.
+
+   ⚠️ **Jamais pendant un glisser**, et `:not()` est la seule façon de le dire :
+   `.card3d:active` et `.card3d.is-dragging` ont la MÊME spécificité (0,2,0 — une
+   pseudo-classe compte comme une classe), donc la dernière règle du fichier
+   gagne, et c'est celle-ci. Or le pointeur reste enfoncé pendant tout le geste :
+   mesuré, le tassement mangeait les deux tiers de l'agrandissement que
+   `translateZ` venait de gagner (84 px rendus 85,8 au lieu de 89,4) — la carte
+   se levait sans avoir l'air de se rapprocher. Presser et TENIR ne sont pas le
+   même geste. */
+.card3d:not(.is-dragging):active { --card-pop: .96; }
 
 /* ⚠️ `prefers-reduced-motion` : on retire le MOUVEMENT, jamais l'information.
    La carte se lève toujours, se redresse toujours, montre toujours son nom —
    elle y arrive d'un coup au lieu d'y glisser. */
 @media (prefers-reduced-motion: reduce) {
   .card3d { transition: none; }
+  /* ⚠️ La carte est toujours PRISE EN MAIN (montée, éloignée, redressée) : elle
+     y arrive d'un coup. Sans cette ligne, la règle du glisser ci-dessus
+     rétablirait la seule transition qu'on vient de retirer. */
+  .card3d.is-dragging { transition: none; }
   .card3d:hover .unit-foil-nebula { animation: none; }
 }
 

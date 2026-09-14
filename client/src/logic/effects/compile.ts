@@ -680,7 +680,10 @@ export function compileMagie(magie: MagieLike): CompilationResult {
       return { effets, refus };
 
     case 'damage_multiplier_bonus':
-      pousse([{ action: 'modifier', cible: leJoueur(), champ: 'multiplicateur', operateur: '+', valeur: e.value as number, duree: 'partie' }]);
+      // `provenance: 'magie'` comme `draw_bonus` juste au-dessus : sans elle le
+      // registre inscrirait ce bonus permanent comme venant d'un attribut, et le
+      // récapitulatif de round nommerait la mauvaise source.
+      pousse([{ action: 'modifier', cible: leJoueur(), champ: 'multiplicateur', operateur: '+', valeur: e.value as number, duree: 'partie', provenance: 'magie' }]);
       return { effets, refus };
 
     // ── Les actions de CONTENEUR ──────────────────────────────────────────

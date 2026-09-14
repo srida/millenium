@@ -23,13 +23,16 @@
 // cartes. Un fond teinté derrière elles leur disputait la seule chose qu'elles
 // aient à dire.
 
-// ⚠️ `top-20` et non `top-28` : en paysage sur téléphone, la bande utile ne fait
-// que ~220 px, et la pile étant CENTRÉE verticalement dans ce qui reste sous le
-// titre, les deux rails se lisaient posés trop bas — décalés vers le bord
-// inférieur de l'écran plutôt qu'en regard du plateau. Les 32 px repris sur le
-// haut dégagent toujours la barre de PV (~56 px) et profitent aussi à la
-// capacité des piles.
-export const WEB_RAIL_BAND = 'pointer-events-auto absolute bottom-14 top-20 z-20 w-52';
+// ⚠️ `top-16` et non `top-28` : en paysage sur téléphone, la bande utile ne fait
+// que ~220 px, et les deux rails se lisaient posés trop bas — décalés vers le
+// bord inférieur de l'écran plutôt qu'en regard du plateau. **64 px est le
+// plancher, et il est MESURÉ** : la barre de PV descend exactement à 56 px
+// (`Hud`, safe-area comprise), il reste donc 8 px de gouttière. Les 48 px repris
+// sur le haut profitent aussi à la capacité des piles.
+// ⚠️ Ça ne suffisait pas à soi seul : c'est l'alignement EN HAUT de la pile
+// (`cardFan.railLayout`) qui règle le cas d'une main courte, qui flottait au
+// milieu de la bande quelle que soit la position de celle-ci.
+export const WEB_RAIL_BAND = 'pointer-events-auto absolute bottom-14 top-16 z-20 w-52';
 
 /**
  * Le TITRE d'une zone — celui des rails du mode web ET celui des bandes du

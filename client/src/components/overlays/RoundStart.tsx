@@ -17,10 +17,8 @@ import { Illustration, Modal } from '../ui/primitives.js';
 import { attributeName } from '../ui/AttrIcon.js';
 import * as CardBackDatabase from '../../data/CardBackDatabase.js';
 import * as DeckRepository from '../../data/DeckRepository.js';
-import * as MagieDatabase from '../../data/MagieDatabase.js';
-import * as BoardDatabase from '../../data/BoardDatabase.js';
 import { drawBonusRows, drawnLabel, guaranteedDrawLabel } from '../../data/DrawInfo.js';
-import { cardName } from '../../data/gameNames.js';
+import { bonusSourceName, cardName } from '../../data/gameNames.js';
 import { ROUND_INTRO_MS } from '../../game/timings.js';
 import type { DrawBonusRow } from '../../data/DrawInfo.js';
 
@@ -233,27 +231,9 @@ function BonusRow({ row }: { row: DrawBonusRow }) {
   if (row.amount === 0) return null;
   return (
     <div className="flex items-center justify-between text-[11px]">
-      <span className="truncate text-white/70">{row.icon} {sourceName(row)}</span>
+      <span className="truncate text-white/70">{row.icon} {bonusSourceName(row.kind, row.ref)}</span>
       <span className="font-semibold text-success">+{row.amount}</span>
     </div>
   );
 }
 
-/**
- * Le nom derrière l'id du registre.
- *
- * ⚠️ La résolution vit ICI et non dans `logic/`, qui n'importe pas `data/` : le
- * registre ne transporte que des ids (cf. `DrawSourceEntry`). Chaque lecture est
- * gardée — les databases JETTENT tant qu'elles ne sont pas initialisées, et un
- * id disparu du catalogue s'affiche par son id plutôt que de vider la ligne.
- */
-function sourceName(row: DrawBonusRow): string {
-  try {
-    if (row.kind === 'attribut') return attributeName(row.ref);
-    if (row.kind === 'terrain') return (BoardDatabase as { getBoard: (id: string) => { name?: string } | null }).getBoard(row.ref)?.name ?? row.ref;
-    const magies = (MagieDatabase as { getAllMagies: () => { id: string; name?: string }[] }).getAllMagies();
-    return magies.find(m => m.id === row.ref)?.name ?? row.ref;
-  } catch {
-    return row.ref;
-  }
-}

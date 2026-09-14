@@ -6,12 +6,18 @@
 // la suite vitest tourne en node SANS DOM, aucun test de composant n'est
 // possible dans ce projet. La décision vit donc ici, `DrawPopup` ne fait que la
 // rendre.
-import type { DrawSourceEntry, DrawSummary, GuaranteedDraw } from '../logic/types.js';
+import type { BonusSourceEntry, DrawSourceEntry, DrawSummary, GuaranteedDraw } from '../logic/types.js';
 import { guaranteedDrawCriteria } from '../logic/Draw.js';
 
-/** Le glyphe d'une source de pioche. Les trois sont déjà lus ailleurs dans le
- *  jeu : ✨ le Shopping, 🧬 la lignée d'une unité, 🗺️ le terrain. */
-export const DRAW_SOURCE_ICON: Record<DrawSourceEntry['kind'], string> = {
+/** Le glyphe d'une source de BONUS, quel que soit le registre — la pioche
+ *  (`DrawSourceEntry`) comme le multiplicateur (`BonusSourceEntry`). Les trois
+ *  sont déjà lus ailleurs dans le jeu : ✨ le Shopping, 🧬 la lignée d'une
+ *  unité, 🗺️ le terrain.
+ *  ⚠️ Il vit dans ce module PUR et non à côté de `bonusSourceName`
+ *  (`data/gameNames`), qui importe les databases : la table n'a aucune
+ *  dépendance, le résolveur en a trois, et c'est ce qui garde `DrawInfo`
+ *  testable sans DOM. */
+export const BONUS_SOURCE_ICON: Record<BonusSourceEntry['kind'], string> = {
   magie: '✨',
   attribut: '🧬',
   terrain: '🗺️',
@@ -56,7 +62,7 @@ export function drawBonusRows(summary: DrawSummary | null | undefined): DrawBonu
     rows.set(key, {
       key,
       kind: src.kind,
-      icon: DRAW_SOURCE_ICON[src.kind] ?? '•',
+      icon: BONUS_SOURCE_ICON[src.kind] ?? '•',
       ref: src.ref,
       amount: src.value,
       guaranteed,

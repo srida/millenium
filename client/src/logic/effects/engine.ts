@@ -23,7 +23,7 @@
 // Cf. `docs/moteur-effets.md` §4 et §5.
 
 import { Unit } from '../Unit.js';
-import type { Card, GuaranteedDraw, DrawSourceEntry } from '../types.js';
+import type { Card, GuaranteedDraw, DrawSourceEntry, BonusSourceEntry } from '../types.js';
 import { CHAMPS_UNITE, cleDeTri } from './types.js';
 import { clampRate, rateForTicks } from '../../../../speed-scale.mjs';
 import type { Effet, Tache, TacheModifier, TacheDeplacer, TachePoserStatut, TacheAjouter, TacheRetirer, TacheRemplacer, TachePoserEffet, EntreeRegistre, Portee, Selecteur, ChampUnite } from './types.js';
@@ -43,15 +43,18 @@ export interface Ressources {
   multiplicateur: number;
   magies_shop: number;
   pv: number;
-  /** Provenance, versée EN MÊME TEMPS que le crédit (cf. `draw-summary.test.ts`). */
+  /** Provenance de `pioches`, versée EN MÊME TEMPS que le crédit (cf. `draw-summary.test.ts`). */
   sources: DrawSourceEntry[];
+  /** Provenance de `multiplicateur` — même discipline, même invariant :
+   *  `sum(value) === multiplicateur`. */
+  sources_multiplicateur: BonusSourceEntry[];
   reanimees: Unit[];
 }
 
 export function ressourcesVides(): Ressources {
   return {
     pioches: 0, pioches_garanties: [], slots_board: 0, multiplicateur: 0,
-    magies_shop: 0, pv: 0, sources: [], reanimees: [],
+    magies_shop: 0, pv: 0, sources: [], sources_multiplicateur: [], reanimees: [],
   };
 }
 
@@ -379,6 +382,13 @@ function appliqueSurJoueur(t: TacheModifier, monde: Monde, trace: Trace): void {
       return;
     case 'multiplicateur':
       cible.multiplicateur += d;
+      // ⚠️ Même discipline que `pioches` : la provenance est versée AVEC le
+      // crédit, jamais reconstruite ailleurs — c'est ce qui tient l'invariant
+      // `sum(sources.value) === multiplicateur` que le récapitulatif de round
+      // fait lire à l'écran (« ×2,0 +1,5 » sous lequel la source est nommée).
+      if (d !== 0) {
+        cible.sources_multiplicateur.push({ kind: t.provenance ?? 'attribut', ref: monde.source ?? '', value: d });
+      }
       trace.applique.push(`joueur·multiplicateur+${d}`);
       return;
     case 'pv':
