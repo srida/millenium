@@ -14,4 +14,13 @@
 // intercepterait les taps malgré son fond transparent), et `w-52` doit rester
 // synchronisé avec WEB_RAIL_PX (`three/constants.ts`), la largeur que le
 // cadrage caméra réserve de chaque côté du board.
+//
+// ⚠️ **Les deux rails du mode web sont TRANSPARENTS, et ce qui les nomme est
+// leur seul TITRE.** Ils portaient chacun un cadre teinté (jaune pour la main,
+// rouge pour les neutralisées) : sur un téléphone en paysage, ces deux pavés de
+// couleur encadraient le plateau en permanence, alors que ce qu'il faut lire
+// dans un rail — le tier — est justement une COULEUR, celle du cadre des
+// cartes. Un fond teinté derrière elles leur disputait la seule chose qu'elles
+// aient à dire.
+
 export const WEB_RAIL_BAND = 'pointer-events-auto absolute bottom-14 top-28 z-20 w-52';

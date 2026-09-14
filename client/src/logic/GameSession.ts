@@ -510,6 +510,23 @@ export class GameSession {
     return materialCandidateGraveyard(card as any, selectedMaterials, this.graveyard, this.board, conditionIndex);
   }
 
+  /**
+   * La case que la RECETTE impose, `null` si elle n'en impose aucune — le
+   * simple ré-export de `InvocationManager.forcedCell`, seul endroit du projet
+   * qui réponde à « où l'unité se pose ».
+   *
+   * ⚠️ Il est exposé parce que la couche app en a besoin AVANT d'appeler
+   * `canSummon` : le joueur peut avoir désigné une case (glisser-déposer, ou
+   * tap de case avant les matériaux), et une condition à un matériel impose la
+   * sienne par-dessus. Sans cette lecture, le contrôleur aurait dû REFAIRE le
+   * test — une seconde écriture de la règle, qui finirait par ne plus dire la
+   * même chose que celle qui est jouée.
+   */
+  forcedCell(card: Card, selectedMaterials: Unit[], conditionIndex: number | null = null): Position | null {
+    const condition = InvocationManager.conditionAt(card as any, conditionIndex);
+    return condition ? InvocationManager.forcedCell(condition, selectedMaterials, this.board) : null;
+  }
+
   canSummon(card: Card, pos: Position, selectedMaterials: Unit[], conditionIndex: number | null = null) {
     return InvocationManager.canSummon(card as any, pos, this.board, this.hand, this.graveyard, selectedMaterials, conditionIndex);
   }
