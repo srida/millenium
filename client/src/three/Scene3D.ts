@@ -185,6 +185,8 @@ export class Scene3D {
   // que déclarer la liste des cases.
   _blockedProps = new Map<string, () => void>();
   _selectedPos: Position | null = null;
+  // Case SURVOLÉE pendant un glisser de carte — cf. `setHoverCell`.
+  _hoverCell: string | null = null;
   _combatMode = false;
 
   anims: { update: (dt: number) => boolean }[] = [];
@@ -643,6 +645,28 @@ export class Scene3D {
 
   setSelectedPos(pos: Position | null): void {
     this._selectedPos = pos ? { ...pos } : null;
+    this._refreshTileColors();
+  }
+
+  /**
+   * La case sous le doigt pendant un GLISSER de carte. `null` la retire.
+   *
+   * ⚠️ **Elle sort tôt quand rien ne change**, et ce n'est pas une micro-
+   * optimisation : l'appelant est un `pointermove`, donc jusqu'à une fois par
+   * frame, et `_refreshTileColors` repeint les 55 tuiles puis invalide le rendu
+   * — c'est-à-dire qu'il annulerait à lui seul le rendu à la demande de
+   * `_animate` pour toute la durée du geste.
+   *
+   * ⚠️ Elle ne teste RIEN : une case invalide se voit déjà (elle n'est pas
+   * allumée par `setHighlight`), et la validité d'une case ne se juge qu'à la
+   * pose — `canSummon` refuserait par exemple une case parfaitement légitime
+   * tant que les matériaux ne sont pas désignés (cf. « Invocation »). Le survol
+   * dit « c'est cette case-là », pas « ça marchera ».
+   */
+  setHoverCell(pos: Position | null): void {
+    const k = pos ? key(pos) : null;
+    if (k === this._hoverCell) return;
+    this._hoverCell = k;
     this._refreshTileColors();
   }
 
@@ -1834,6 +1858,15 @@ export class Scene3D {
     if (this._selectedPos && this._selectedPos.col === col && this._selectedPos.row === row) {
       color = 0x1a2a54; emissive = 0xbd9df0; intensity = 0.65;
       if (veiled) opacity = 0.48;
+    }
+    // Le survol d'un glisser passe APRÈS les quatre états ci-dessus — c'est le
+    // plus vif, parce que c'est le seul qui suive le doigt : il doit se voir sur
+    // une case déjà allumée comme sur une case éteinte. Et AVANT les deux cas
+    // suivants, qui sont des faits de terrain : une case bloquée ne doit pas
+    // s'allumer sous le doigt, elle n'acceptera rien.
+    if (this._hoverCell === k) {
+      color = 0x243a70; emissive = 0xffd98a; intensity = 0.85;
+      if (veiled) opacity = 0.6;
     }
     if (this._blockedCells.has(k)) {
       // Pierre sombre et AUCUNE emissive : les cinq états au-dessus sont des

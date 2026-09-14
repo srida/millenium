@@ -138,10 +138,20 @@ export interface EndRoundResult {
   enemySurvivorsAtk: number;
   playerSurvivors: { name: string; atk: number }[];
   enemySurvivors: { name: string; atk: number }[];
-  damageMultiplierBonus: number;
   /** Multiplicateur EFFECTIVEMENT appliqué au camp (0 si ce camp n'encaisse pas ce round). */
   playerMultiplier: number;
   enemyMultiplier: number;
+  /**
+   * La part BONUS de ce multiplicateur — ce que les attributs (`Rage de
+   * Vaincre`) et, côté joueur, les magies permanentes y ont ajouté.
+   *
+   * ⚠️ C'est une SOUSTRACTION contre le multiplicateur de base, jamais la somme
+   * des sources : le récapitulatif afficherait sinon un bonus qui ne se retrouve
+   * pas dans le total le jour où une quatrième source s'y ajoute sans passer
+   * par ici. 0 quand le camp n'encaisse pas ce round (multiplicateur nul).
+   */
+  playerMultiplierBonus: number;
+  enemyMultiplierBonus: number;
   /** Dégâts réellement infligés à l'ADVERSAIRE de ce camp (0 si ce camp n'encaisse pas ce round). */
   playerDamageDealt: number;
   enemyDamageDealt: number;
@@ -791,9 +801,15 @@ export class GameSession {
       enemySurvivorsAtk,
       playerSurvivors: playerSurvivors.map(u => ({ name: u.name, atk: u.atk })),
       enemySurvivors: enemySurvivors.map(u => ({ name: u.name, atk: u.atk })),
-      damageMultiplierBonus: attributeResult.damage_multiplier_bonus ?? 0,
       playerMultiplier: combatOutcome.playerMultiplier,
       enemyMultiplier: combatOutcome.enemyMultiplier,
+      // Le multiplicateur de base (`gameState.player_multiplier`, unités × tour)
+      // n'est pas touché par `applyEndOfCombat` : l'écart est donc exactement ce
+      // que les bonus ont ajouté.
+      playerMultiplierBonus: combatOutcome.playerMultiplier > 0
+        ? combatOutcome.playerMultiplier - this.gameState.player_multiplier : 0,
+      enemyMultiplierBonus: combatOutcome.enemyMultiplier > 0
+        ? combatOutcome.enemyMultiplier - this.gameState.enemy_multiplier : 0,
       playerDamageDealt: combatOutcome.playerDamageDealt,
       enemyDamageDealt: combatOutcome.enemyDamageDealt,
       isGameOver: this.gameState.isGameOver(),

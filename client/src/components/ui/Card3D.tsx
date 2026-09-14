@@ -63,8 +63,14 @@ export interface Card3DProps {
    * Le glisser-déposer. `onDragBegin` peut REFUSER en rendant `false` — le
    * geste redevient alors un tap annulé. `onDrop` reçoit le point de l'écran où
    * le doigt a lâché ; c'est à l'appelant d'en faire une case.
+   *
+   * `onDragMove` reçoit le point survolé pendant le geste. ⚠️ Il est appelé à
+   * chaque `pointermove` : l'appelant ne doit RIEN y faire qui re-rende — c'est
+   * d'ailleurs la raison pour laquelle le suivi de la carte elle-même mute deux
+   * variables CSS au lieu de passer par un état React.
    */
   onDragBegin?: () => boolean | void;
+  onDragMove?: (clientX: number, clientY: number) => void;
   onDrop?: (clientX: number, clientY: number) => void;
 }
 
@@ -73,7 +79,7 @@ export default function Card3D({
   stacked = false, showName = true,
   highlight = 'none', dim = 'none', lift = 'none',
   locked = false, disabled = false, tapOn = 'down', tooltip = null, onTap,
-  transform, width, raised = false, rail = null, onDragBegin, onDrop,
+  transform, width, raised = false, rail = null, onDragBegin, onDragMove, onDrop,
 }: Card3DProps) {
   // ⚠️ `dragging` est un ÉTAT React, pas une classe posée à la main : la prise
   // en main appelle `selectCard`, qui republie l'instantané, donc re-rend la
@@ -107,7 +113,10 @@ export default function Card3D({
         setDragging(true);
         return true;
       },
-      move: (e) => follow(e.currentTarget as HTMLElement, e.clientX, e.clientY),
+      move: (e) => {
+        follow(e.currentTarget as HTMLElement, e.clientX, e.clientY);
+        onDragMove?.(e.clientX, e.clientY);
+      },
       end: (e) => {
         const el = e.currentTarget as HTMLElement;
         const had = origin.current !== null;

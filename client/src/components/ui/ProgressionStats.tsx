@@ -50,21 +50,34 @@ export function ProgressionPills({ user, className = '', onOpen }: { user: AuthU
     <>
       <span className="font-semibold tabular-nums text-gold">Nv. {fmt.format(user.level ?? 1)}</span>
       <Gauge value={xpOf(user) / XP_PER_LEVEL} className="h-1.5 w-9 sm:w-14" fillClassName="bg-player" />
-      {/* Décompte exact / palier en attente : caché sous `sm` (menu principal,
-          portrait téléphone) — la jauge seule tient déjà la réponse à « où
-          j'en suis », et l'en-tête y est déjà plein (profil, or, gemmes). */}
-      <span className="hidden items-center sm:flex">
-        {pending > 0 ? (
-          <CountBadge label={`${pending} palier${pending > 1 ? 's' : ''} à récupérer`} className="h-4 min-w-4 text-[10px]">
-            {fmt.format(pending)}
-          </CountBadge>
-        ) : (
-          <span className="text-[10px] tabular-nums text-white/40">{fmt.format(xpOf(user))}/{XP_PER_LEVEL}</span>
-        )}
+      {/* Le décompte exact reste caché sous `sm` : la jauge tient déjà la
+          réponse à « où j'en suis », et l'en-tête y est plein (profil, or,
+          gemmes). Le `title` le dit à qui le cherche. */}
+      <span className="hidden text-[10px] tabular-nums text-white/40 sm:inline">
+        {fmt.format(xpOf(user))}/{XP_PER_LEVEL}
       </span>
+      {/* ⚠️ **Le palier gagné se signale à TOUTES les tailles, et EN SURIMPRESSION**
+          — c'est le geste des tuiles du footer (`AppFooter.DockTile`), et pour la
+          raison qui le leur a imposé : une pastille posée DANS le flux coûte sa
+          largeur, or l'en-tête en portrait n'en a plus une seule (mesuré : 390 px
+          d'écran pour 355 de contenu), si bien qu'elle faisait passer les soldes
+          à la ligne. En surimpression elle ne coûte rien, et elle dit exactement
+          ce qu'elle a à dire : il y a quelque chose à récupérer ICI.
+          Elle prenait la place du décompte d'XP, et n'était donc rendue qu'à
+          partir de `sm` — c'est-à-dire jamais sur le téléphone où le jeu se
+          joue. */}
+      {pending > 0 && (
+        <CountBadge
+          label={`${pending} palier${pending > 1 ? 's' : ''} à récupérer`}
+          className="absolute -right-1 -top-1 h-4 min-w-4 text-[10px]"
+        >
+          {fmt.format(pending)}
+        </CountBadge>
+      )}
     </>
   );
-  const levelClass = 'flex items-center gap-1.5 sm:gap-2 rounded-full border border-gold/50 bg-gold/10 px-2 py-0.5 sm:px-2.5 sm:py-1';
+  // `relative` : l'ancre de la pastille de palier ci-dessus.
+  const levelClass = 'relative flex items-center gap-1.5 sm:gap-2 rounded-full border border-gold/50 bg-gold/10 px-2 py-0.5 sm:px-2.5 sm:py-1';
 
   return (
     <div className={`flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 ${className}`} aria-label="Progression">
@@ -100,10 +113,15 @@ export function ProgressionPills({ user, className = '', onOpen }: { user: AuthU
 /** Pastille de profil (avatar + pseudo). Tap → écran Profil. Elle dit déjà qui
  * est connecté : pas de ligne « Connecté : … » en plus. L'avatar suit la même
  * règle qu'ailleurs (URL/data → image, sinon emoji, sinon initiale du pseudo). */
-/** `compact` : le pseudo tombe sous `sm` et il ne reste que l'avatar. Réservé
- *  aux en-têtes d'écran, où la place manque en portrait — et où le pseudo est
- *  la seule information que le joueur connaît déjà par cœur, là où le titre de
- *  l'écran, lui, doit rester lisible en entier. */
+/**
+ * `compact` : le pseudo se RESSERRE sous `sm` (il ne tombe plus).
+ *
+ * ⚠️ Il tombait entièrement, et il ne restait que l'avatar — or un avatar est
+ * une image que le joueur a choisie, pas un nom : sur un portrait de téléphone,
+ * l'en-tête ne disait donc plus sous quel compte on jouait, et c'est la première
+ * chose qu'on vient y chercher quand on en a plusieurs. La place se prend sur la
+ * LARGEUR MAXIMALE du pseudo (tronqué), pas sur sa présence.
+ */
 export function ProfilePill({ user, onPointerDown, compact = false, className = '' }: { user: AuthUser; onPointerDown?: () => void; compact?: boolean; className?: string }) {
   const avatar = (user.avatar ?? '').trim();
   const isImg = /^(https?:|data:|\/)/i.test(avatar);
@@ -121,7 +139,7 @@ export function ProfilePill({ user, onPointerDown, compact = false, className = 
           ? (isImg ? <img src={avatar} alt="" className="h-full w-full object-cover" /> : <span>{avatar.slice(0, 2)}</span>)
           : <span>{user.username.slice(0, 1).toUpperCase()}</span>}
       </span>
-      <span className={`max-w-[9rem] truncate font-semibold text-white ${compact ? 'hidden sm:inline' : ''}`}>{user.username}</span>
+      <span className={`truncate font-semibold text-white ${compact ? 'max-w-[4rem] sm:max-w-[9rem]' : 'max-w-[9rem]'}`}>{user.username}</span>
     </button>
   );
 }
@@ -336,8 +354,18 @@ export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
   );
 }
 
-// Icône par famille d'objet tiré. Le libellé, lui, vient du serveur.
-const ITEM_ICONS: Record<string, string> = { card: '🃏', avatar: '🎭', variant: '🎨' };
+/**
+ * La FAMILLE d'un objet tiré, écrite en toutes lettres.
+ *
+ * ⚠️ Elle s'écrivait en emoji (🃏 / 🎭 / 🎨), et les trois ne se distinguaient
+ * pas : rien ne dit qu'un masque est un avatar plutôt qu'une carte, et c'est
+ * pourtant la famille qui décide où l'objet se retrouve (Profil pour un avatar,
+ * DeckBuilder pour une variante) — la phrase sous la grille le dit déjà, mais
+ * elle ne servait à rien tant qu'on ne savait pas lequel des trois on venait
+ * d'obtenir. `KIND_LABELS` porte déjà ces mots pour le barème : c'est la même
+ * question, donc la même table.
+ */
+const itemKindLabel = (type: string) => KIND_LABELS[type] ?? 'objet';
 
 /** Révélation de ce qui vient d'être récupéré, palier par palier. */
 function LevelReveal({ lines, onClose }: { lines: LevelReward[]; onClose: () => void }) {
@@ -373,8 +401,9 @@ function LevelReveal({ lines, onClose }: { lines: LevelReward[]; onClose: () => 
                 {/* Cartes, avatars et variantes partagent le dossier
                     d'illustrations : une seule URL les rend tous les trois. */}
                 <Illustration id={item.id} framed className="h-24 w-24 border-gold/40" />
+                <span className="text-[9px] uppercase tracking-widest text-gold/80">{itemKindLabel(item.type)}</span>
                 <span className="w-full truncate text-center text-[10px] text-white/70" title={item.label}>
-                  <span aria-hidden="true">{ITEM_ICONS[item.type] ?? '🎁'}</span> {item.label}
+                  {item.label}
                 </span>
               </div>
             ))}

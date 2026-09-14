@@ -203,6 +203,7 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
         label="Tes dégâts"
         atk={result.playerSurvivorsAtk}
         multiplier={result.playerMultiplier}
+        bonus={result.playerMultiplierBonus}
         damage={result.playerDamageDealt}
         tone="text-player"
       />
@@ -210,6 +211,7 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
         label="Dégâts adverses"
         atk={result.enemySurvivorsAtk}
         multiplier={result.enemyMultiplier}
+        bonus={result.enemyMultiplierBonus}
         damage={result.enemyDamageDealt}
         tone="text-enemy"
       />
@@ -232,16 +234,30 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
  * ⚠️ `multiplier === 0` veut dire « ce camp n'encaisse pas ce round » (le
  * gagnant net d'une victoire sans `draw`/`timeout`) : la ligne se tait plutôt
  * que d'afficher un multiplicateur ou un montant inventés.
+ *
+ * ⚠️ **Le BONUS se détaille au lieu d'être fondu dans le total.** Un multiplicateur
+ * qui passe de ×2,0 à ×3,5 parce qu'un palier de `Rage de Vaincre` s'est ouvert
+ * était un chiffre sans explication : le joueur voyait le résultat d'un effet
+ * qu'il n'avait aucun moyen de rattacher à sa cause. La parenthèse est donc la
+ * DÉCOMPOSITION du multiplicateur affiché, pas une valeur de plus à côté de lui
+ * — `base + bonus` doit toujours se relire comme le facteur appliqué.
  */
-function DamageLine({ label, atk, multiplier, damage, tone }: {
-  label: string; atk: number; multiplier: number; damage: number; tone: string;
+function DamageLine({ label, atk, multiplier, bonus, damage, tone }: {
+  label: string; atk: number; multiplier: number; bonus: number; damage: number; tone: string;
 }) {
   if (multiplier <= 0) return null;
+  // Un bonus négatif n'existe pas aujourd'hui ; le tester coûte moins cher que
+  // d'afficher un « +-0,5 » le jour où un malus apparaîtrait.
+  const hasBonus = bonus > 0;
+  const base = multiplier - bonus;
   return (
-    <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[11px]">
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[11px]">
       <span className={`font-semibold ${tone}`}>{label}</span>
       <span className="tabular-nums text-white/60">
-        {atk} × {multiplier.toFixed(1)} = <span className={`font-bold ${tone}`}>{damage}</span>
+        {atk} × {hasBonus
+          ? <>({base.toFixed(1)} <span className="font-semibold text-gold" title="Bonus de multiplicateur (attributs, magies)">+{bonus.toFixed(1)}</span>)</>
+          : multiplier.toFixed(1)
+        } = <span className={`font-bold ${tone}`}>{damage}</span>
       </span>
     </div>
   );

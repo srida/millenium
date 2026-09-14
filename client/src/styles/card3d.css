@@ -245,12 +245,21 @@
 
    ⚠️ Elle se redresse et s'aplatit : la couche porte une `perspective`, et une
    carte inclinée emmenée loin de son origine se déforme d'autant. */
+/* ⚠️ **La carte glissée monte AU-DESSUS du doigt** (`- 80%` de sa propre
+   hauteur : le pourcentage d'un `translate` se résout sur la boîte non
+   transformée, donc l'écart ne dépend ni de l'échelle de l'éventail ni de la
+   disposition). Sans ça, elle recouvre exactement la case qu'elle vise — une
+   carte fait 84 px de large pour une case d'environ 72 — et le surlignage de
+   survol qu'elle vient chercher est dessiné SOUS elle, donc invisible. C'est
+   aussi ce qui rend le doigt moins gênant au tactile.
+   ⚠️ Rien ne change côté logique : le dépôt lit le POINT DU POINTEUR
+   (`Card3D.onDrop` → `cellAtScreen`), jamais la boîte de la carte. */
 .card3d.is-dragging {
   z-index: 70;
   transition: none;
   cursor: grabbing;
   --card-lift-x: var(--card-drag-x, 0px);
-  --card-lift-y: var(--card-drag-y, 0px);
+  --card-lift-y: calc(var(--card-drag-y, 0px) - 80%);
   --card-straighten: 0;
   --card-tilt: 0deg;
   --card-glow-near: 8px;
@@ -260,7 +269,7 @@
 .card3d.is-dragging .unit-foil-nebula { opacity: 1; }
 /* Le survol ne doit pas se superposer au glisser : la carte est déjà au doigt. */
 @media (hover: hover) and (pointer: fine) {
-  .card3d.is-dragging:hover { --card-lift-x: var(--card-drag-x, 0px); --card-lift-y: var(--card-drag-y, 0px); }
+  .card3d.is-dragging:hover { --card-lift-x: var(--card-drag-x, 0px); --card-lift-y: calc(var(--card-drag-y, 0px) - 80%); }
   .card3d[data-draggable="true"]:hover { cursor: grab; }
 }
 

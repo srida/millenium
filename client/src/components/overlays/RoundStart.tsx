@@ -35,6 +35,12 @@ const MAX_FLYING = 8;
  * « TOUR 3 / 5 ». Couche TRANSPARENTE (pas de `Modal`) : il n'y a rien à
  * masquer, et le voile noir ferait clignoter le board entre deux tours.
  *
+ * ⚠️ Elle porte tout de même un FOND — un halo dégradé qui s'éteint sur les
+ * bords (`.round-intro-veil`), et c'est autre chose qu'un voile de modale : le
+ * plateau reste visible partout, seul le centre s'assombrit pour que le chiffre
+ * s'y détache. Sans lui, « TOUR 3 » tombait parfois sur une illustration de
+ * terrain claire et se lisait à peine.
+ *
  * ⚠️ `z-40`, pas plus : `TutorialCoach` est en `z-50` avec sa bulle tapable.
  */
 export function RoundIntro() {
@@ -45,12 +51,16 @@ export function RoundIntro() {
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center"
+      style={{ ['--round-intro-dur' as string]: `${ROUND_INTRO_MS}ms` }}
       onPointerDown={(e) => { e.stopPropagation(); controller.dismissRoundIntro(); }}
     >
-      <div
-        className="round-intro flex flex-col items-center gap-1"
-        style={{ ['--round-intro-dur' as string]: `${ROUND_INTRO_MS}ms` }}
-      >
+      {/* Le fond de l'annonce — un halo, pas un voile : il éteint le plateau
+          sous le chiffre sans le masquer (cf. `styles/index.css`). Il est
+          DERRIÈRE le bloc de texte dans le DOM et non son parent : les deux
+          n'ont ni la même courbe ni la même durée utile, et un fond qui
+          hériterait de l'échelle du chiffre respirerait avec lui. */}
+      <div className="round-intro-veil pointer-events-none absolute inset-0" aria-hidden="true" />
+      <div className="round-intro relative flex flex-col items-center gap-1">
         <div className="text-[10px] uppercase tracking-[0.4em] text-white/40">Nouveau tour</div>
         <div className="text-6xl font-black tabular-nums text-gold drop-shadow-[0_0_18px_rgba(212,175,97,0.45)]">
           {intro.round}

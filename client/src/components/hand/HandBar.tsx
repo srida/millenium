@@ -23,7 +23,7 @@
 import { useGameStore, type HandEntry } from '../../stores/gameStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import { useElementSize } from '../system/useElementSize.js';
-import { WEB_RAIL_BAND } from './rail.js';
+import { WEB_RAIL_BAND, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
 import { handVisible, handTargetable, handCardVisual, handTapIntent } from './handVisual.js';
 import { fanLayout, railLayout, type CardTransform, type LayoutResult } from './cardFan.js';
 import { cardTileProps } from '../ui/CardTile.js';
@@ -83,7 +83,7 @@ export default function HandBar() {
     return (
       <div className={`${WEB_RAIL_BAND} left-0 ${visible ? '' : 'pointer-events-none opacity-0'}`}>
         <div className="mx-2 flex h-full flex-col p-1.5">
-          <div className="mb-1 shrink-0 text-[9px] tracking-widest text-white/45">MAIN</div>
+          <div className={`mb-1 shrink-0 ${ZONE_LABEL}`}>MAIN</div>
           {/* ⚠️ `min-h-0` : sans lui, un enfant de colonne flex refuse de
               descendre sous sa hauteur de contenu, et la mesure rendrait la
               hauteur VOULUE au lieu de la hauteur DISPONIBLE. */}
@@ -106,6 +106,9 @@ export default function HandBar() {
         className="card3d-layer mx-2 flex items-center justify-center"
         style={{ height: visible && hand.length ? layout.boundsHeight : undefined }}
       >
+        {/* La zone se NOMME en portrait comme elle se nomme en rail : c'était la
+            seule des deux dispositions où rien ne disait ce qu'on regardait. */}
+        {visible && <span className={ZONE_LABEL_PORTRAIT}>MAIN</span>}
         {visible && hand.length === 0 && <span className="px-2 py-6 text-xs text-white/40">Main vide</span>}
         {visible && cards}
       </div>
@@ -157,7 +160,12 @@ function HandCard3D({ entry, targeting, targetable, transform, width, rail }: {
         // d'objet, c'est la modale qui prend la main.
         return !useGameStore.getState().summonOptions;
       }}
+      // Le repère de la case survolée — le seul retour que le glisser ait sur le
+      // plateau. Il ne passe par aucun état React : `hoverCellAt` écrit dans la
+      // scène, qui n'en repeint ses tuiles que lorsque la case CHANGE.
+      onDragMove={targeting ? undefined : (x, y) => controller.hoverCellAt(x, y)}
       onDrop={targeting ? undefined : (x, y) => {
+        controller.clearHoverCell();
         const cell = controller.cellAtScreen(x, y);
         // Lâchée hors du plateau : la carte revient, et la SÉLECTION reste —
         // le joueur peut enchaîner par un tap de case.

@@ -21,7 +21,10 @@ export function AppHeader() {
     <header className="sticky top-0 z-20 shrink-0 border-b border-line bg-surface">
       <div className="flex min-h-tap items-center gap-2 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-xs sm:text-sm">
         {user ? (
-          <ProfilePill user={user} compact onPointerDown={() => navigate('profile')} />
+          // ⚠️ `min-w-0` : c'est le PSEUDO qui cède quand la ligne déborde, pas
+          // les soldes. Un nom tronqué se lit encore ; un « 1 24… » de gold
+          // serait un chiffre faux.
+          <ProfilePill user={user} compact className="min-w-0" onPointerDown={() => navigate('profile')} />
         ) : (
           <button
             type="button"
@@ -32,7 +35,9 @@ export function AppHeader() {
           </button>
         )}
         <div className="flex-1" />
-        {user && <ProgressionPills user={user} onOpen={() => navigate('profile')} />}
+        {/* `shrink-0` : le pendant du `min-w-0` ci-dessus — les pastilles de
+            progression gardent leur largeur, la ligne se reprend sur le pseudo. */}
+        {user && <ProgressionPills user={user} className="shrink-0" onOpen={() => navigate('profile')} />}
         <FullscreenButton className="hidden sm:flex" />
       </div>
     </header>

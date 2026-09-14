@@ -389,6 +389,23 @@ export class GameController {
     return this.scene?.cellAtScreen(clientX, clientY) ?? null;
   }
 
+  /**
+   * Allume la case survolée pendant un glisser de carte.
+   *
+   * ⚠️ Le glisser n'écrivait AUCUN retour sur le plateau : la carte suivait le
+   * doigt, et rien ne disait où elle allait tomber — sur une grille de 5 × 4
+   * dont les cases font une carte de large, c'est un pari. Le repère ne juge
+   * rien pour autant (cf. `Scene3D.setHoverCell`) : il dit « ici », pas « ça
+   * passe » — c'est `canSummon`, à la pose, qui tranche.
+   */
+  hoverCellAt(clientX: number, clientY: number): void {
+    this.scene?.setHoverCell(this.cellAtScreen(clientX, clientY));
+  }
+
+  clearHoverCell(): void {
+    this.scene?.setHoverCell(null);
+  }
+
   onUnitDrag = (unit: Unit, from: Position, to: Position): void => {
     if (this.session.phase !== Phase.PREPARATION) return;
     if (to.col === from.col && to.row === from.row) return;

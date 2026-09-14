@@ -23,4 +23,32 @@
 // cartes. Un fond teinté derrière elles leur disputait la seule chose qu'elles
 // aient à dire.
 
-export const WEB_RAIL_BAND = 'pointer-events-auto absolute bottom-14 top-28 z-20 w-52';
+// ⚠️ `top-20` et non `top-28` : en paysage sur téléphone, la bande utile ne fait
+// que ~220 px, et la pile étant CENTRÉE verticalement dans ce qui reste sous le
+// titre, les deux rails se lisaient posés trop bas — décalés vers le bord
+// inférieur de l'écran plutôt qu'en regard du plateau. Les 32 px repris sur le
+// haut dégagent toujours la barre de PV (~56 px) et profitent aussi à la
+// capacité des piles.
+export const WEB_RAIL_BAND = 'pointer-events-auto absolute bottom-14 top-20 z-20 w-52';
+
+/**
+ * Le TITRE d'une zone — celui des rails du mode web ET celui des bandes du
+ * portrait, écrit une seule fois.
+ *
+ * ⚠️ **Un titre, et rien d'autre** : pas de cadre, pas de fond teinté. C'est la
+ * règle des rails (plus haut) et elle vaut à l'identique en portrait — ce qu'il
+ * faut lire dans une carte est une COULEUR (celle de son cadre, donc son tier),
+ * et un fond derrière elle la lui dispute.
+ */
+export const ZONE_LABEL = 'text-[9px] tracking-widest text-white/45';
+
+/**
+ * En portrait, le titre n'a pas de ligne à lui : la bande de la main et la
+ * rangée du cimetière se touchent presque (3 px d'écart), donc rien ne peut se
+ * poser AU-DESSUS d'elles. Il se pose DANS la bande, au coin haut-gauche, et il
+ * est déclaré AVANT les cartes : celles-ci portent `z-index: var(--card-z)` à
+ * partir de 0, donc à z égal c'est l'ordre du DOM qui tranche et une main qui
+ * s'allonge recouvre son propre titre — ce qui est le bon arbitrage, les cartes
+ * disent alors d'elles-mêmes de quelle zone il s'agit.
+ */
+export const ZONE_LABEL_PORTRAIT = `pointer-events-none absolute left-1 top-0 z-0 ${ZONE_LABEL}`;

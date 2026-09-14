@@ -19,7 +19,7 @@
 import { useGameStore, type GraveyardEntry } from '../../stores/gameStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import { useElementSize } from '../system/useElementSize.js';
-import { WEB_RAIL_BAND } from './rail.js';
+import { WEB_RAIL_BAND, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
 import { graveyardVisible, graveyardCardVisual, graveyardTapIntent } from './handVisual.js';
 import { fanLayout, railLayout, type CardTransform, type LayoutResult } from './cardFan.js';
 import Card3D from '../ui/Card3D.js';
@@ -64,7 +64,7 @@ export default function GraveyardTray() {
     return (
       <div className={`${WEB_RAIL_BAND} right-0 ${visible ? '' : 'pointer-events-none opacity-0'}`}>
         <div className="mx-2 flex h-full flex-col p-1.5">
-          <div className="mb-1 shrink-0 text-[9px] tracking-widest text-white/45">NEUTRALISÉES</div>
+          <div className={`mb-1 shrink-0 ${ZONE_LABEL}`}>NEUTRALISÉES</div>
           {/* `min-h-0` : cf. `HandBar` — sans lui la mesure rend la hauteur
               VOULUE et non la hauteur DISPONIBLE. */}
           <div ref={bandRef} className="card3d-layer min-h-0 flex-1">{visible && cards}</div>
@@ -82,6 +82,8 @@ export default function GraveyardTray() {
         className="card3d-layer mx-2 flex items-center justify-center"
         style={{ height: visible && graveyard.length ? layout.boundsHeight : undefined }}
       >
+        {/* Cf. `HandBar` : la zone se nomme dans les deux dispositions. */}
+        {visible && <span className={ZONE_LABEL_PORTRAIT}>NEUTRALISÉES</span>}
         {visible && cards}
       </div>
     </div>

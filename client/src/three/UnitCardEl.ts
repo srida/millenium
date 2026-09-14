@@ -177,6 +177,10 @@ function _updateMedallion(el: HTMLElement, unit: Unit): void {
  *
  * ⚠️ Le glyphe est celui du COÛT en main (`CardTile`) : c'est la même monnaie —
  * là un prix, ici une valeur. Le tooltip lève l'ambiguïté en toutes lettres.
+ *
+ * ⚠️ Et depuis `board3d.css`, c'est aussi la même PASTILLE, au même coin
+ * (haut-gauche, dans la carte) que `.card3d-cost` : le chiffre se cherche au
+ * même endroit qu'on regarde la main ou le plateau.
  */
 function _updateMaterialValue(el: HTMLElement, unit: Unit): void {
   const badge = el.querySelector<HTMLElement>('.unit-mat-badge');
