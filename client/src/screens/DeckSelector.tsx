@@ -391,7 +391,7 @@ function DeckCard({
 // Palette du badge de difficulté (en-tête de la carte, à la place du nombre
 // de cartes pour un deck public) — texte seul, pas de place pour un chip bordé.
 const DIFFICULTY_TEXT_TONE: Record<number, string> = {
-  1: 'text-success', 2: 'text-gold', 3: 'text-tier-4', 4: 'text-enemy',
+  1: 'text-success', 2: 'text-gold', 3: 'text-violet', 4: 'text-enemy',
 };
 
 function RenameModal({ name, onClose, onConfirm }: { name: string; onClose: () => void; onConfirm: (n: string) => string | null }) {

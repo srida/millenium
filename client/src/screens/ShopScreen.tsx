@@ -479,7 +479,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
   return (
     // `min-w-0` : item de grille, cf. l'explication sur BoosterCard plus bas.
     <Panel className={`flex min-w-0 flex-col gap-1.5 p-2 ${
-      slot.purchased ? 'border-success/40 bg-success/5' : slot.pinned ? 'border-tier-5/60 bg-tier-5/5' : ''
+      slot.purchased ? 'border-success/40 bg-success/5' : slot.pinned ? 'border-gold/60 bg-gold/5' : ''
     }`}>
       <div className="flex items-center gap-1">
         <span className="flex-1 text-[10px] text-white/40">Tier {slot.tier}</span>
@@ -506,7 +506,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
                   ? 'Conserver celui-ci demain (déplace l\'épingle posée sur un autre emplacement)'
                   : 'Conserver cette carte à la prochaine rotation'}
               pressed={slot.pinned}
-              chipClassName={slot.pinned ? 'border-tier-5 bg-tier-5 text-black' : 'border-line bg-surface-raised text-white/50'}
+              chipClassName={slot.pinned ? 'border-gold bg-gold text-black' : 'border-line bg-surface-raised text-white/50'}
             />
           </>
         )}
@@ -523,7 +523,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
       {/* L'épingle ne se lit pas dans l'état du bouton : on dit ce qu'elle
           PROMET (« encore là demain »), pas qu'elle est active. */}
       {slot.pinned && !slot.purchased && (
-        <p className="text-center text-[10px] leading-tight text-tier-5">📌 Conservée demain</p>
+        <p className="text-center text-[10px] leading-tight text-gold">📌 Conservée demain</p>
       )}
 
       {slot.purchased ? (
@@ -679,7 +679,7 @@ function BoosterReveal({ onClose }: { onClose: () => void }) {
         })}
       </div>
       {booster.pin_cleared && (
-        <p className="mt-3 text-center text-[11px] text-tier-5">📌 Ta carte épinglée est tombée — l'épingle est libérée.</p>
+        <p className="mt-3 text-center text-[11px] text-gold">📌 Ta carte épinglée est tombée — l'épingle est libérée.</p>
       )}
       {booster.sets_completed.map(s => (
         <p key={s.set_id} className="mt-2 text-center text-[11px] text-success">

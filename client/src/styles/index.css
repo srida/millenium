@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./board3d.css";
+@import "./card3d.css";
 @import "./space.css";
 
 /* Le fond du DOCUMENT — pas celui d'un écran. C'est lui qu'on voit partout où
@@ -94,11 +95,27 @@ input, textarea, select { font-size: 1rem !important; }
   --color-enemy: #e0564f;
   --color-danger: #e0564f;
   --color-success: #59c98d;
-  --color-tier-1: #9aa3b2;
-  --color-tier-2: #59c98d;
-  --color-tier-3: #4f8ef7;
-  --color-tier-4: #a86ee7;
-  --color-tier-5: #d4af61;
+  /* ⚠️ Les cinq tiers sont le MIROIR de `three/cardPalette.ts` (`TIER_FRAMES[n].edge`),
+     et c'est `test/card-palette.test.ts` qui interdit leur dérive. Le design system ne
+     DÉCIDE plus la couleur d'un tier : il la reprend de la carte, pour qu'un tier 3 soit
+     le même violet en main, sur le plateau, à la boutique et au DeckBuilder. Ces deux
+     palettes étaient décalées d'un rang — une carte changeait de couleur en passant de
+     la main au plateau, et ça ne ressemblait pas à une panne. */
+  --color-tier-1: #5ad0a0;
+  --color-tier-2: #6fb2dc;
+  --color-tier-3: #9d74dc;
+  --color-tier-4: #cba85a;
+  --color-tier-5: #d86a7e;
+  /* Trois teintes que le reste de l'interface n'avait que par EMPRUNT aux tiers :
+     `text-tier-4` servait de violet générique sur sept écrans, `text-tier-5` d'or sur
+     deux. Nommées par leur teinte et non par un usage, justement parce qu'elles n'en ont
+     pas un seul — les gemmes, la magie Légendaire et la difficulté Vétéran partagent ce
+     violet sans avoir la moindre raison de changer ensemble.
+     ⚠️ `--color-azure` vaut la même chose que `--color-player` : deux décisions
+     indépendantes qui coïncident, pas une duplication à replier. */
+  --color-steel: #9aa3b2;
+  --color-azure: #4f8ef7;
+  --color-violet: #a86ee7;
   /* Taille minimale des cibles tactiles (mobile-first) */
   --spacing-tap: 44px;
 }

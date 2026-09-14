@@ -2161,11 +2161,20 @@ export class Scene3D {
 
   // ── Interaction (raycasting) ─────────────────────────────────────────────
 
-  _cellFromEvent(e: PointerEvent): Position | null {
+  /**
+   * La case sous un point de l'ÉCRAN, ou `null` hors du plateau.
+   *
+   * Publique parce que le glisser-déposer d'une carte de main en a besoin : le
+   * geste part d'un élément React, pas du canvas, donc il ne peut pas passer
+   * par les écouteurs de la scène. C'est la SEULE chose que ce lot ajoute côté
+   * `three/` — le reste du glisser se solde par `onCellTap`, exactement comme
+   * un tap sur le plateau.
+   */
+  cellAtScreen(clientX: number, clientY: number): Position | null {
     const rect = this.renderer.domElement.getBoundingClientRect();
     const ndc = new THREE.Vector2(
-      ((e.clientX - rect.left) / rect.width) * 2 - 1,
-      -((e.clientY - rect.top) / rect.height) * 2 + 1,
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
     );
     if (!this._raycaster) this._raycaster = new THREE.Raycaster();
     this._raycaster.setFromCamera(ndc, this.camera);
@@ -2173,6 +2182,10 @@ export class Scene3D {
     if (!hits.length) return null;
     const { col, row } = hits[0].object.userData as any;
     return { col, row };
+  }
+
+  _cellFromEvent(e: PointerEvent): Position | null {
+    return this.cellAtScreen(e.clientX, e.clientY);
   }
 
   _entryAt(pos: Position | null): UnitEntry | null {

@@ -308,6 +308,19 @@ export class GameController {
     this.scene?.setHighlight(empty);
   };
 
+  /**
+   * La case sous un point de l'écran — `null` hors du plateau, ou sans scène.
+   *
+   * ⚠️ C'est TOUT ce que le glisser-déposer d'une carte de main ajoute au
+   * contrôleur. Le geste appelle `selectCard` en partant et `onCellTap` en
+   * arrivant : les deux points d'entrée du tap, donc les mêmes refus, les mêmes
+   * surlignages, le même « Sélectionne les matériaux d'abord », le même menu de
+   * conditions multiples. Aucune règle de jeu n'est écrite deux fois.
+   */
+  cellAtScreen(clientX: number, clientY: number): Position | null {
+    return this.scene?.cellAtScreen(clientX, clientY) ?? null;
+  }
+
   onUnitDrag = (unit: Unit, from: Position, to: Position): void => {
     if (this.session.phase !== Phase.PREPARATION) return;
     if (to.col === from.col && to.row === from.row) return;

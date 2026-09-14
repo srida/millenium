@@ -21,9 +21,9 @@ import { Illustration } from '../ui/primitives.js';
 // l'accent, pas le prolonger. Vert et rouge sont écartés pour la raison
 // symétrique : ils portent déjà « validé » et « danger » ailleurs dans le jeu.
 const RARITY_STYLE: Record<MagieRarity, { edge: string; chip: string }> = {
-  1: { edge: 'border-l-tier-1', chip: 'border-tier-1/50 text-tier-1' },
-  2: { edge: 'border-l-tier-3', chip: 'border-tier-3/50 text-tier-3' },
-  3: { edge: 'border-l-tier-4', chip: 'border-tier-4/60 bg-tier-4/10 text-tier-4' },
+  1: { edge: 'border-l-steel', chip: 'border-steel/50 text-steel' },
+  2: { edge: 'border-l-azure', chip: 'border-azure/50 text-azure' },
+  3: { edge: 'border-l-violet', chip: 'border-violet/60 bg-violet/10 text-violet' },
 };
 
 export default function MagieCard(

@@ -28,7 +28,7 @@ export function RecipeMaterials({ recipe }: { recipe: SummonRecipe }) {
             // « tout porteur de X » plutôt que « tout X » : le nom d'un
             // attribut n'a ni genre ni nombre fixes (Yeux Bleus, Dragon…),
             // la tournure impersonnelle s'accorde donc toujours.
-            ? <span className="text-tier-4">tout porteur de {attributeName(m.id)}</span>
+            ? <span className="text-violet">tout porteur de {attributeName(m.id)}</span>
             : <span className="text-player">{cardName(m.id)}</span>}
         </span>
       ))}

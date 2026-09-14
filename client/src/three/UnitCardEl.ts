@@ -6,14 +6,7 @@ import type { Unit } from '../logic/Unit.js';
 // variantes sans traîner de dépendance (les garde-fous ESLint n'interdisent à
 // three/ que React et Zustand).
 import { artFor, illustrationUrl } from '../data/CardArt.js';
-
-const TIER_CFG: Record<number, { edge: string; deep: string; ink: string; glow: string; art: string }> = {
-  1: { edge: '#5ad0a0', deep: '#0e2b20', ink: '#93ecc6', glow: 'rgba(90,208,160,.5)',   art: 'linear-gradient(155deg,#123528,#06110d)' },
-  2: { edge: '#6fb2dc', deep: '#0d2333', ink: '#a9d6f2', glow: 'rgba(111,178,220,.5)',  art: 'linear-gradient(155deg,#122a3f,#060f18)' },
-  3: { edge: '#9d74dc', deep: '#1c1038', ink: '#d6bdf6', glow: 'rgba(157,116,220,.55)', art: 'linear-gradient(155deg,#241442,#0c0820)' },
-  4: { edge: '#cba85a', deep: '#2c2109', ink: '#ecd7a2', glow: 'rgba(203,168,90,.55)',  art: 'linear-gradient(155deg,#3a2c12,#140f06)' },
-  5: { edge: '#d86a7e', deep: '#2f1119', ink: '#f5b3bf', glow: 'rgba(216,106,126,.52)', art: 'linear-gradient(155deg,#3a1420,#140609)' },
-};
+import { tierFrameVars } from './cardPalette.js';
 
 const EFFECT_CFG: Record<string, { bg: string; edge: string; glow: string; ink: string }> = {
   shield:      { bg: 'rgba(40,30,8,.72)',  edge: 'rgba(240,196,90,.85)',  glow: 'rgba(232,168,80,.65)',  ink: '#f6da82' },
@@ -26,9 +19,6 @@ const EFFECT_CFG: Record<string, { bg: string; edge: string; glow: string; ink: 
 };
 
 export function createUnitEl(unit: Unit, { selected = false, materialSelected = false } = {}): HTMLDivElement {
-  const tier = unit.tier ?? 2;
-  const t = TIER_CFG[tier] ?? TIER_CFG[2];
-
   const el = document.createElement('div');
   el.className = 'unit-card'
     + ` unit-${unit.side}`
@@ -37,11 +27,11 @@ export function createUnitEl(unit: Unit, { selected = false, materialSelected = 
     + (unit.is_neutralized ? ' neutralized' : '');
   el.dataset.uid = String(unit.uid);
 
-  el.style.setProperty('--uc-edge', t.edge);
-  el.style.setProperty('--uc-deep', t.deep);
-  el.style.setProperty('--uc-ink',  t.ink);
-  el.style.setProperty('--uc-glow', t.glow);
-  el.style.setProperty('--uc-art',  t.art);
+  // Le cadre et ses cinq variables viennent de `cardPalette` — la carte de main
+  // écrit exactement les mêmes, c'est ce qui en fait le même objet.
+  for (const [name, value] of Object.entries(tierFrameVars(unit.tier))) {
+    el.style.setProperty(name, value);
+  }
 
   el.innerHTML = _inner(unit);
   _updateMedallion(el, unit);

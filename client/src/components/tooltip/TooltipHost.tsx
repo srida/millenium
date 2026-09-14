@@ -83,7 +83,7 @@ function Keywords({ ids }: { ids: string[] }) {
       {shown.map(id => {
         const attr = (getAttribute as any)(id);
         return (
-          <span key={id} className="inline-flex items-center gap-1 rounded border border-tier-4/40 bg-tier-4/10 px-2 py-0.5 text-[10px] text-tier-4">
+          <span key={id} className="inline-flex items-center gap-1 rounded border border-violet/40 bg-violet/10 px-2 py-0.5 text-[10px] text-violet">
             <AttrIcon id={id} className="h-3.5 w-3.5 text-[11px]" />
             {attr?.name ?? id}
           </span>
@@ -173,7 +173,7 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
             (`materialSlotsPaid`). Un « vaut 2 » sec s'y lirait comme une
             promesse que l'invocation ne tient pas. */}
         {(isUnit || (data.material_value ?? 1) > 1) && (
-          <div className="mt-1 text-[11px] text-tier-2">
+          <div className="mt-1 text-[11px] text-success">
             ◈ Vaut {materialValueOf(data as Card)} matériel{materialValueOf(data as Card) > 1 ? 's' : ''} sur un slot libre
             {materialValueOf(data as Card) > 1 ? ' — 1 seul si la recette la nomme' : ''}
           </div>

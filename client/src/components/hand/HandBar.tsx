@@ -1,18 +1,37 @@
-// Main du joueur : bande horizontale scrollable, triée par tier et regroupée
-// par carte (les exemplaires identiques s'empilent, badge ×N). Carte grisée si
-// injouable (doublon normal, matériaux manquants…). Tap → sélection ;
-// long-press → tooltip. La vignette elle-même est le template partagé
-// components/ui/CardTile.
+// Main du joueur, en cartes 3D (`components/ui/Card3D`) dans les deux
+// dispositions. Les emplacements ne changent pas :
 //
-// En mode web (écran plus large que haut), la bande devient un panneau encadré à
-// deux colonnes collé à gauche (même habillage que le cimetière) : le board
-// récupère toute la hauteur de l'écran. La bande occupée est celle du cimetière,
-// au pixel près — cf. WEB_RAIL_BAND (`./rail.ts`), qui porte aussi la largeur
-// réservée par le cadrage caméra via WEB_RAIL_PX.
+// **Portrait** : un ÉVENTAIL, à la place de l'ancienne bande (`bottom-14`).
+// **Web** (écran plus large que haut) : une PILE à deux colonnes dans le rail
+// de gauche, à la place de l'ancienne grille. La bande occupée est celle du
+// cimetière au pixel près (WEB_RAIL_BAND, `./rail.ts`), qui porte aussi la
+// largeur réservée par le cadrage caméra via WEB_RAIL_PX.
+//
+// Jamais de défilement, dans aucune des deux : `./cardFan` resserre le pas puis
+// réduit la taille — 28 cartes tiennent sur un téléphone de 390 px, 42 dans un
+// rail. Toute la main se voit d'un coup.
+//
+// ⚠️ Il n'y a plus de cadre autour de l'éventail en portrait : un rectangle
+// bordé serré autour de cartes inclinées qui se recouvrent rognait l'arc à
+// l'œil. Le rail web garde le sien, qui NOMME la bande (« MAIN ») et la
+// distingue de son symétrique de droite.
+//
+// ⚠️ Ce fichier ne décide RIEN : visibilité, état visuel et intention de tap
+// viennent de `./handVisual` (pur, testé), la place de `./cardFan` (pur, testé).
 import { useGameStore, type HandEntry } from '../../stores/gameStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
+import { useElementSize } from '../system/useElementSize.js';
 import { WEB_RAIL_BAND } from './rail.js';
-import CardTile, { cardTileProps } from '../ui/CardTile.js';
+import { handVisible, handTargetable, handCardVisual, handTapIntent } from './handVisual.js';
+import { fanLayout, railLayout, type CardTransform, type LayoutResult } from './cardFan.js';
+import { cardTileProps } from '../ui/CardTile.js';
+import Card3D from '../ui/Card3D.js';
+import { RAIL_COLUMNS, RAIL_GAP_X, railCardWidth } from './railGeometry.js';
+
+/** Largeur nominale d'une carte de main en portrait, en px — la hauteur s'en
+ *  déduit par le `aspect-ratio: 5/7`, et l'éventail réduit l'échelle quand la
+ *  main s'allonge. */
+const HAND_CARD_WIDTH = 84;
 
 export default function HandBar() {
   const hand = useGameStore(s => s.hand);
@@ -21,17 +40,13 @@ export default function HandBar() {
   const controller = useGameStore(s => s.controller);
   // Ouverture de tour : la popup de pioche RÉVÈLE la main, elle ne la pioche
   // pas — `session.hand` porte déjà les cartes du tour dès `startPreparation()`.
-  // Sans cette garde, la bande affichait les noms/illustrations en dessous de
-  // la popup avant même le tap : exactement le spoil qu'elle existe pour
-  // éviter. La main réapparaît au même instant que le tap ferme la popup
-  // (`dismissDrawPopup`), après le vol des dos.
   const roundIntro = useGameStore(s => s.roundIntro);
   const drawPopup = useGameStore(s => s.drawPopup);
   const web = useWebLayout();
+  const [bandRef, band] = useElementSize<HTMLDivElement>();
   // Visible pendant la préparation OU pendant un ciblage de MAIN
   // (`hand_to_graveyard`, `duplicate_card`…) — même règle que le cimetière, qui
-  // reste montré pour le ciblage revive. On ne lit que `awaitingTarget` : une
-  // magie de main de plus n'a rien à rebrancher ici.
+  // reste montré pour le ciblage revive.
   const targetingHand = shopping?.awaitingTarget === 'hand';
   // ⚠️ Toutes les magies de main n'acceptent pas toutes les cartes :
   // `shift_tier_card` veut un tier voisin dans le deck, `draw_material` une
@@ -39,22 +54,40 @@ export default function HandBar() {
   // La liste est calculée par la session, jamais ici : le HUD montre la règle,
   // il ne la tient pas (`GameController.resolveMagieHandTarget` la revérifie).
   const handTargets = shopping?.handTargets ?? null;
-  const isTarget = (idx: number) => !handTargets || handTargets.includes(idx);
-  if ((combatActive && !targetingHand) || !controller) return null;
-  if (roundIntro || drawPopup) return null;
 
-  const empty = hand.length === 0 && <span className="col-span-2 px-2 py-6 text-xs text-white/40">Main vide</span>;
+  const visible = handVisible({
+    hasController: !!controller, combatActive, targetingHand,
+    roundIntro: !!roundIntro, drawPopup: !!drawPopup,
+  });
+
+  const cardWidth = web ? railCardWidth(band.width) : HAND_CARD_WIDTH;
+  const layout: LayoutResult = web
+    ? railLayout({ count: hand.length, width: band.width, height: band.height, cardWidth, columns: RAIL_COLUMNS, gapX: RAIL_GAP_X })
+    : fanLayout({ count: hand.length, width: band.width, cardWidth });
+
+  const cards = hand.map((entry, i) => layout.cards[i] && (
+    <HandCard3D
+      key={entry.key}
+      entry={entry}
+      targeting={targetingHand}
+      targetable={handTargetable(handTargets, entry.idx)}
+      transform={layout.cards[i]}
+      width={cardWidth}
+      rail={web}
+    />
+  ));
 
   if (web) {
     return (
-      <div className={`${WEB_RAIL_BAND} left-0`}>
-        <div className="mx-2 flex max-h-full flex-col rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-1.5">
+      <div className={`${WEB_RAIL_BAND} left-0 ${visible ? '' : 'pointer-events-none opacity-0'}`}>
+        <div className="mx-2 flex h-full flex-col rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-1.5">
           <div className="mb-1 shrink-0 text-[9px] tracking-widest text-white/40">MAIN</div>
-          <div className="grid grid-cols-2 content-start justify-items-center gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {empty}
-            {hand.map(entry => (
-              <HandCard key={entry.key} entry={entry} targeting={targetingHand} targetable={isTarget(entry.idx)} rail />
-            ))}
+          {/* ⚠️ `min-h-0` : sans lui, un enfant de colonne flex refuse de
+              descendre sous sa hauteur de contenu, et la mesure rendrait la
+              hauteur VOULUE au lieu de la hauteur DISPONIBLE. */}
+          <div ref={bandRef} className="card3d-layer min-h-0 flex-1">
+            {visible && hand.length === 0 && <span className="block px-2 py-6 text-center text-xs text-white/40">Main vide</span>}
+            {visible && cards}
           </div>
         </div>
       </div>
@@ -62,43 +95,78 @@ export default function HandBar() {
   }
 
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-14 z-20">
-      <div className="mx-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-1.5">
-        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {empty}
-          {hand.map(entry => (
-            <HandCard key={entry.key} entry={entry} targeting={targetingHand} targetable={isTarget(entry.idx)} />
-          ))}
-        </div>
+    // ⚠️ La bande reste MONTÉE quand la main est masquée, et n'est que vidée :
+    // la démonter remettrait sa mesure à zéro, et l'éventail rejaillirait d'une
+    // main vide à chaque ouverture de tour.
+    <div className={`absolute inset-x-0 bottom-14 z-20 ${visible ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+      <div
+        ref={bandRef}
+        className="card3d-layer mx-2 flex items-center justify-center"
+        style={{ height: visible && hand.length ? layout.boundsHeight : undefined }}
+      >
+        {visible && hand.length === 0 && <span className="px-2 py-6 text-xs text-white/40">Main vide</span>}
+        {visible && cards}
       </div>
     </div>
   );
 }
 
-function HandCard({ entry, targeting = false, targetable = true, rail = false }:
-  { entry: HandEntry; targeting?: boolean; targetable?: boolean; rail?: boolean }) {
+function HandCard3D({ entry, targeting, targetable, transform, width, rail }: {
+  entry: HandEntry; targeting: boolean; targetable: boolean;
+  transform: CardTransform; width: number; rail: boolean;
+}) {
   const controller = useGameStore(s => s.controller)!;
-  // En ciblage, « candidate » veut dire tapable : une carte que la magie ne
-  // peut pas servir s'éteint au lieu de se laisser choisir pour rien.
-  const candidate = targeting && targetable;
+  const ctx = { targeting, targetable, rail };
+  const visual = handCardVisual(entry, ctx);
+  const intent = handTapIntent(entry, ctx);
 
   return (
-    <CardTile
+    <Card3D
       {...cardTileProps(entry.card)}
+      transform={transform}
+      width={width}
       // tap → sélection d'invocation ; en ciblage de magie, la carte est la
       // cible (une carte injouable l'est tout autant : c'est même souvent
       // celle qu'on veut envoyer au cimetière ou brûler).
       onTap={() => {
-        if (targeting) { if (candidate) controller.resolveMagieHandTarget(entry.idx); return; }
-        controller.selectCard(entry.selected ? null : entry.card, entry.selected ? null : entry.idx);
+        switch (intent.kind) {
+          case 'magie_target': controller.resolveMagieHandTarget(entry.idx); break;
+          case 'select':       controller.selectCard(entry.card, entry.idx); break;
+          case 'deselect':     controller.selectCard(null, null); break;
+          case 'none':         break;
+        }
       }}
-      highlight={candidate ? 'candidate' : entry.selected && !targeting ? 'selected' : 'none'}
-      // La carte sélectionnée sort de la bande : vers le haut en bas d'écran,
-      // vers le board (droite) quand la main est un rail vertical.
-      lift={entry.selected && !targeting ? (rail ? 'right' : 'up') : 'none'}
-      dim={targeting ? (candidate ? 'none' : 'strong') : (entry.playable ? 'none' : 'strong')}
-      badge={entry.count > 1 ? entry.count : null}
-      stacked={entry.count > 1}
+      // ⚠️ Le glisser n'écrit AUCUNE règle : il appelle `selectCard` en partant
+      // et `onCellTap` en arrivant — les deux points d'entrée du tap. Donc les
+      // mêmes surlignages de cases valides, le même « Sélectionne les matériaux
+      // d'abord », le même menu de conditions multiples, la même case imposée
+      // par une recette à un matériel. Rien à tenir d'accord.
+      //
+      // Absent en CIBLAGE de magie : la carte y est une cible à désigner, pas
+      // une unité à poser — le geste redevient alors un tap annulé.
+      onDragBegin={targeting ? undefined : () => {
+        // Ne pas re-sélectionner une carte déjà retenue : `selectCard` vide les
+        // matériaux, et le joueur qui reprend sa carte perdrait ses choix.
+        if (!entry.selected) controller.selectCard(entry.card, entry.idx);
+        // Une carte à plusieurs conditions ouvre un menu : le glisser n'a plus
+        // d'objet, c'est la modale qui prend la main.
+        return !useGameStore.getState().summonOptions;
+      }}
+      onDrop={targeting ? undefined : (x, y) => {
+        const cell = controller.cellAtScreen(x, y);
+        // Lâchée hors du plateau : la carte revient, et la SÉLECTION reste —
+        // le joueur peut enchaîner par un tap de case.
+        if (cell) controller.onCellTap(cell);
+      }}
+      highlight={visual.highlight}
+      // La carte retenue sort de sa bande : vers le haut en portrait, vers le
+      // board (droite) quand la main est un rail vertical.
+      lift={visual.lift}
+      dim={visual.dim}
+      badge={visual.badge}
+      stacked={visual.stacked}
+      raised={visual.lift !== 'none'}
+      rail={rail ? 'left' : null}
     />
   );
 }
