@@ -21,6 +21,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useTournamentStore } from '../stores/tournamentStore.js';
 import { Button } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
+import { useWebLayout } from '../components/system/useWebLayout.js';
 
 const ROUND_LABELS = ['Quarts de finale', 'Demi-finales', 'Finale'];
 
@@ -38,6 +39,12 @@ export default function TournamentScreen() {
   // Deck engagé dans le tournoi = deck actif (choisi au menu). Le bracket est
   // bâti dessus au lancement : changer de deck actif ensuite ne le modifie plus.
   const deckName = ((DeckRepository as any).getActiveDeck?.() as string | null) ?? null;
+
+  const web = useWebLayout();
+  var classname_title="border-b border-line py-3"
+  web ? classname_title+=" px-22" : classname_title+=" px-6"
+  var classname_body="flex-1 space-y-4 overflow-y-auto p-4"
+  web ? classname_body+=" px-22" : classname_body+=" px-6"
 
   // ⚠️ Le `.catch` n'est pas décoratif : sans lui, un catalogue injoignable
   // (hors ligne, 500) laissait `ready` à false pour toujours, avec une
@@ -82,7 +89,7 @@ export default function TournamentScreen() {
   const playerMatch = tournament && !complete ? findPlayerMatch(tournament) : null;
 
   const header = (
-    <div className="border-b border-line px-4 py-3">
+    <div className={classname_title}>
       <h1 className="text-lg font-bold tracking-wide">Tournoi</h1>
     </div>
   );
@@ -107,7 +114,7 @@ export default function TournamentScreen() {
     <main className="flex min-h-full flex-col relative z-10 text-white">
       {header}
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+      <div className={classname_body}>
         {!tournament ? (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <div className="text-4xl">🏆</div>

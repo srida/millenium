@@ -20,6 +20,7 @@ import { useArcadeStore, currentDuel, wonCount, type ArcadeDuel, type ArcadeBonu
 import { Amount, Button, Countdown } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
+import { useWebLayout } from '../components/system/useWebLayout.js';
 
 const MIN_DECK = 20;
 
@@ -53,11 +54,15 @@ export default function ArcadeScreen() {
 
   useEffect(() => { refreshDecks(); void load(true); }, [load, refreshDecks]);
 
+  const web = useWebLayout();
+  var classname_title="flex items-center gap-3 border-b border-line py-3"
+  web ? classname_title+=" px-22" : classname_title+=" px-6"
+
   const activeDeck = deckName ? decks.find(d => d.name === deckName) ?? null : null;
   const deckReady = !!activeDeck && activeDeck.count >= MIN_DECK;
 
   const header = (
-    <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+    <div className={classname_title}>
       <h1 className="text-lg font-bold tracking-wide">Arcade</h1>
       {snapshot && <Countdown at={snapshot.next_rotation_at} title="Prochaine run" className="ml-auto" />}
     </div>

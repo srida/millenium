@@ -14,12 +14,17 @@ import { CHAPTERS, type Chapter } from '../data/tutorialContent.js';
 import { getProgress, markChapterRead, updateProgress, type TutorialProgress } from '../data/tutorialProgress.js';
 import { Button, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_GOLD, usePressSquash } from '../components/ui/primitives.js';
 import ChapterBlockView from '../components/tutorial/ChapterBlocks.js';
+import { useWebLayout } from '../components/system/useWebLayout.js';
 
 export default function TutorialScreen() {
   const navigate = useUiStore(s => s.navigate);
   const hideTooltip = useUiStore(s => s.hideTooltip);
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const [progress, setProgress] = useState<TutorialProgress>(() => getProgress());
+
+  const web = useWebLayout();
+  var classname_title="flex items-center gap-3 border-b border-line py-3"
+  web ? classname_title+=" px-22" : classname_title+=" px-6"
 
   // Arriver ici vaut avoir rencontré le tutoriel : l'invitation du premier
   // lancement ne doit plus se déclencher derrière.
@@ -36,7 +41,7 @@ export default function TutorialScreen() {
 
   return (
     <main className="flex min-h-full flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
-      <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+      <div className={classname_title}>
         {chapter ? (
           <button type="button" onPointerDown={() => setOpenIdx(null)} className="shrink-0 text-sm text-white/60 underline">
             ‹ Sommaire

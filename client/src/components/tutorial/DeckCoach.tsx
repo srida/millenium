@@ -11,13 +11,17 @@
 // forcément quelque chose.
 import { deckCoachStep, type DeckCoachState } from '../../data/tutorialScript.js';
 import CoachBubble from './CoachBubble.js';
+import { useWebLayout } from '../system/useWebLayout.js';
 
 export default function DeckCoach(props: DeckCoachState) {
   const step = deckCoachStep(props);
   if (!step) return null;
+  const web = useWebLayout();
+  var classname_body="border-t border-line bg-surface/95 pt-3"
+  web ? classname_body+=" px-22" : classname_body+=" px-4"
 
   return (
-    <div className="border-t border-line bg-surface/95 px-3 pt-3">
+    <div className={classname_body}>
       <CoachBubble title={step.title} text={step.text} />
     </div>
   );

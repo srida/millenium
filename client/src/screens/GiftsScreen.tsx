@@ -19,6 +19,7 @@ import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import * as CardDatabase from '../data/CardDatabase.js';
 import { CURRENCY, fmt } from '../components/ui/currency.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
+import { useWebLayout } from '../components/system/useWebLayout.js';
 
 const LOT_ICONS: Record<GiftLot['type'], string> = {
   gold: CURRENCY.gold.icon, gems: CURRENCY.gems.icon,
@@ -56,9 +57,13 @@ export default function GiftsScreen() {
   const pending = snapshot?.gifts.filter(g => !g.claimed) ?? [];
   const claimed = snapshot?.gifts.filter(g => g.claimed) ?? [];
 
+  const web = useWebLayout();
+  var classname_title="flex items-center gap-3 border-b border-line py-3"
+  web ? classname_title+=" px-22" : classname_title+=" px-6"
+
   return (
     <main className="flex min-h-full flex-col relative z-10 text-white">
-      <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+      <div className={classname_title}>
         <h1 className="text-lg font-bold tracking-wide">Cadeaux</h1>
         {snapshot && <Countdown at={snapshot.next_rotation_at} title="Prochain cadeau quotidien" className="ml-auto" />}
       </div>

@@ -11,6 +11,7 @@ import { Button, Modal, usePressSquash } from '../components/ui/primitives.js';
 import { LevelRewardsPanel, ProgressionPanel } from '../components/ui/ProgressionStats.js';
 import type { LevelRewardsView } from '../components/ui/ProgressionStats.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
+import { useWebLayout } from '../components/system/useWebLayout.js';
 
 interface UserRow { id: string; username: string; tag?: number; avatar?: string | null; relation?: string; friendship_id?: string }
 
@@ -91,6 +92,10 @@ export default function ProfileScreen() {
   const cosmeticSnapshot = useCosmeticStore(s => s.snapshot);
   useEffect(() => { void loadCosmetics(); }, [loadCosmetics]);
   const avatarIds = cosmeticSnapshot ? selectableAvatars() : FALLBACK_AVATARS;
+
+  const web = useWebLayout();
+  var classname_title="flex items-center gap-3 border-b border-line py-3"
+  web ? classname_title+=" px-22" : classname_title+=" px-6"
 
   // Paliers de niveau : le BARÈME vient du serveur (levels.js) plutôt que
   // d'être recopié ici — les deux ne peuvent donc pas diverger. Pas de store
@@ -176,7 +181,7 @@ export default function ProfileScreen() {
 
   return (
     <main className="flex min-h-full flex-col relative z-10 text-white">
-      <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+      <div className={classname_title}>
         <h1 className="text-lg font-bold tracking-wide">Profil</h1>
         <span className="ml-auto text-xs text-white/40">#{(user as any).tag ?? '—'}</span>
       </div>

@@ -19,6 +19,7 @@ import { useMissionStore, markMissionsSeen, claimableMissions, type Mission, typ
 import { Button, Countdown, Gauge, LoadState, Panel } from '../components/ui/primitives.js';
 import { CURRENCY, fmt, XP_ICON } from '../components/ui/currency.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
+import { useWebLayout } from '../components/system/useWebLayout.js';
 
 // Difficulté du slot (brief §3.1) : facile = 1 partie, moyen = 2, engagé = 3-4.
 const SLOTS: Record<number, { label: string; cls: string }> = {
@@ -34,6 +35,9 @@ const FAMILY_ICONS: Record<string, string> = {
 export default function MissionsScreen() {
   const user = useAuthStore(s => s.user);
   const { snapshot, loading, error, load } = useMissionStore();
+  const web = useWebLayout();
+  var classname_title="flex items-center gap-3 border-b border-line py-3"
+  web ? classname_title+=" px-22" : classname_title+=" px-6"
 
   useEffect(() => { void load(true); }, [load]);
   // La dépendance est le CHAMP, pas l'instantané : ce dernier change d'identité
@@ -48,7 +52,7 @@ export default function MissionsScreen() {
 
   return (
     <main className="flex min-h-full flex-col relative z-10 text-white">
-      <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+      <div className={classname_title}>
         <h1 className="text-lg font-bold tracking-wide">Missions</h1>
         {snapshot && <Countdown at={snapshot.cycle.next_reset_at} title="Prochaines missions" className="ml-auto" />}
       </div>

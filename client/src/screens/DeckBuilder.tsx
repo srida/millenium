@@ -26,6 +26,7 @@ import * as Query from '../../../card-query.mjs';
 import IllustrationPicker from '../components/deck/IllustrationPicker.js';
 import DeckCoach from '../components/tutorial/DeckCoach.js';
 import { updateProgress } from '../data/tutorialProgress.js';
+import { useWebLayout } from '../components/system/useWebLayout.js';
 
 const MIN_DECK = 20;
 /** Édition admin d'un deck public : aucun joueur, donc aucune variante. */
@@ -66,6 +67,12 @@ export default function DeckBuilder() {
   const navigate = useUiStore(s => s.navigate);
   const hideTooltip = useUiStore(s => s.hideTooltip);
   const refreshDecks = useDeckStore(s => s.refresh);
+
+  const web = useWebLayout();
+  var classname_title="flex items-center gap-3 px-4 py-3"
+  web ? classname_title+=" px-22" : classname_title+=" px-6"
+  var classname_button="sticky bottom-0 z-20 flex shrink-0 gap-2 border-t border-line bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+  web ? classname_button+=" px-22" : classname_title+=""
 
   // Nom du deck à éditer, figé au montage. Il vient du param de navigation, et
   // de nulle part ailleurs : le détour par `sessionStorage` (setPendingEdit /
@@ -378,7 +385,7 @@ export default function DeckBuilder() {
         {/* Plus de bouton retour ici : « Annuler » vit désormais à côté
             d'« Enregistrer », en pied de page — les deux issues de l'écran
             au même endroit, plutôt qu'aux deux extrémités. */}
-        <div className="flex items-center gap-3 px-4 py-3">
+        <div className={classname_title}>
           <h1 className="truncate text-lg font-bold tracking-wide">{isAdminEdit ? `Deck-building — ${publicDeckId}` : 'Deck-building'}</h1>
           <span className={`ml-auto shrink-0 text-sm font-bold tabular-nums ${valid ? 'text-success' : 'text-gold'}`}>{total}/{MIN_DECK}</span>
         </div>
@@ -449,7 +456,7 @@ export default function DeckBuilder() {
           Opaque (`bg-surface`) parce que la grille de cartes passe dessous.
           Pourquoi le deck n'est pas prêt se dit dans une popup au tap (cf.
           `attemptSave`), pas dans une phrase permanente ici. */}
-      <div className="sticky bottom-0 z-20 flex shrink-0 gap-2 border-t border-line bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className={classname_button}>
         <Button className="px-4" onPointerDown={back}>Annuler</Button>
         <Button variant="primary" disabled={saving} className="flex-1 py-3" onPointerDown={attemptSave}>
           {saving ? '…' : '▸ Enregistrer le deck'}
@@ -557,9 +564,15 @@ function LibraryPanel({
   const toggle = (field: string, value: string | number, op = ':') =>
     setQuery(Query.toggleFacet(query, schema, field, value, { op }));
 
+  const web = useWebLayout();
+  var classname_filter="space-y-2 border-b border-line p-3"
+  web ? classname_filter+=" px-22" : classname_filter+=""
+  var classname_cards="min-h-0 flex-1 overflow-y-auto p-3"
+  web ? classname_cards+=" px-22" : classname_cards+=""
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="space-y-2 border-b border-line p-3">
+      <div className={classname_filter}>
         <QueryBar
           value={query} onChange={setQuery} schema={schema} error={queryError}
           placeholder="Rechercher… ex. tier:4 atk>=30"
@@ -585,7 +598,7 @@ function LibraryPanel({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+      <div className={classname_cards}>
         {cards.length === 0
           ? <p className="py-10 text-center text-sm text-white/40">Aucune carte trouvée.</p>
           : (
@@ -630,8 +643,11 @@ function DeckPanel({
   variants = {}, onSkin, ownedVariantsFor, cardBack = null, setCardBack, ownedCardBacks = [],
 }: any) {
   const clearHandlers = usePressSquash<HTMLButtonElement>(onClear, false).handlers;
+  const web = useWebLayout();
+  var classname_body="min-h-0 flex-1 overflow-y-auto p-3"
+  web ? classname_body+=" px-22" : classname_body+=""
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto p-3">
+    <div className={classname_body}>
       <input
         type="text" placeholder="Nom du deck" value={name} maxLength={32}
         onChange={(e) => setName(e.target.value)}

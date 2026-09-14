@@ -29,6 +29,7 @@ import { CURRENCY, CURRENCY_BY_WIRE, fmt, type WireCurrency } from '../component
 import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
 import PackContents, { PackPoster } from '../components/shop/PackContents.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
+import { useWebLayout } from '../components/system/useWebLayout.js';
 
 const cardOf = (id: string | null): Card | null => (id ? (CardDatabase as any).getCard(id) ?? null : null);
 
@@ -48,6 +49,10 @@ export default function ShopScreen() {
   const loadCollection = useCollectionStore(s => s.load);
   const [tab, setTab] = useState<'cards' | 'cosmetics'>('cards');
 
+  const web = useWebLayout();
+  var classname_title="flex items-center gap-3 py-3"
+  web ? classname_title+=" px-22" : classname_title+=" px-6"
+
   useEffect(() => { void load(true); }, [load]);
   useEffect(() => { void loadCosmetics(true); }, [loadCosmetics]);
   useEffect(() => { void loadCollection(); }, [loadCollection]);
@@ -64,7 +69,7 @@ export default function ShopScreen() {
   return (
     <main className="flex min-h-full flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
       <div className="border-b border-line">
-        <div className="flex items-center gap-3 px-4 py-3">
+        <div className={classname_title}>
           <h1 className="text-lg font-bold tracking-wide">Boutique</h1>
           {/* Le solde n'est plus répété ici : `AppHeader` l'affiche déjà en
               permanence (ProgressionPills), sur toutes les pages. */}

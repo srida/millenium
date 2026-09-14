@@ -27,6 +27,7 @@ import { useDeckStore, type DeckSummary } from '../stores/deckStore.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { Button, IconButton, Modal, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_DANGER, SURFACE_GOLD, SURFACE_NEUTRAL, usePressSquash } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
+import { useWebLayout } from '../components/system/useWebLayout.js';
 
 const TIER_BG: Record<number, string> = {
   1: 'bg-tier-1', 2: 'bg-tier-2', 3: 'bg-tier-3', 4: 'bg-tier-4', 5: 'bg-tier-5',
@@ -80,6 +81,14 @@ export default function DeckSelector() {
   const [enemyId, setEnemyId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  const web = useWebLayout();
+  var classname_title="border-b border-line py-3"
+  web ? classname_title+=" px-22" : classname_title+=" px-6"
+  var classname_body="flex-1 space-y-3 overflow-y-auto p-4"
+  web ? classname_body+=" px-22" : classname_title+=""
+  var classname_button="sticky bottom-0 z-10 space-y-2 border-t border-line bg-surface/95 p-4"
+  web ? classname_button+=" px-22" : classname_title+=""
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -154,7 +163,7 @@ export default function DeckSelector() {
 
   return (
     <main className="flex min-h-full flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
-      <div className="border-b border-line px-4 py-3">
+      <div className={classname_title}>
         <div className="flex items-center gap-3">
           <h1 className="truncate text-lg font-bold tracking-wide">{MODES[mode].title}</h1>
           <span className="ml-auto shrink-0 text-xs text-white/40">{list.length} deck{list.length !== 1 ? 's' : ''}</span>
@@ -162,7 +171,7 @@ export default function DeckSelector() {
         <p className="mt-1.5 text-xs text-white/50">{MODES[mode].blurb}</p>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+      <div className={classname_body}>
         {manage && decks.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
             <div className="text-4xl">🃏</div>
@@ -228,7 +237,7 @@ export default function DeckSelector() {
           plutôt sur le bas de la zone de défilement qui le porte (le
           conteneur `overflow-y-auto` d'App.tsx), donc toujours visible sans
           avoir à finir de défiler la liste. */}
-      <div className="sticky bottom-0 z-10 space-y-2 border-t border-line bg-surface/95 p-4">
+      <div className={classname_button}>
         {manage ? (
           <Button variant="primary" className="w-full py-3 text-base" onPointerDown={() => openBuilder()}>
             ＋ Créer un nouveau deck

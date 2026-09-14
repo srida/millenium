@@ -14,6 +14,7 @@ import { useUiStore } from '../stores/uiStore.js';
 import { Avatar, Button } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
+import { useWebLayout } from '../components/system/useWebLayout.js';
 
 type Status = 'idle' | 'connecting' | 'searching' | 'found' | 'error';
 
@@ -46,6 +47,10 @@ export default function OnlineLobby() {
   // utilise toujours la valeur à jour sans re-déclencher l'effet.
   const deckRef = useRef(deckName);
   deckRef.current = deckName;
+
+  const web = useWebLayout();
+  var classname_title="border-b border-line py-3"
+  web ? classname_title+=" px-22" : classname_title+=" px-6"
 
   // Abonnement au match + sortie de file : MONTAGE/DÉMONTAGE uniquement.
   // Ne jamais dépendre de `status` ici : un re-run de l'effet enverrait
@@ -108,7 +113,7 @@ export default function OnlineLobby() {
   // joueur dans la file) ; sans recherche en cours, le footer Accueil suffit.
   return (
     <main className="flex min-h-full flex-col relative z-10 text-white">
-      <div className="border-b border-line px-4 py-3">
+      <div className={classname_title}>
         <h1 className="text-lg font-bold tracking-wide">Jouer</h1>
       </div>
 
