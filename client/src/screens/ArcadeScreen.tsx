@@ -57,6 +57,8 @@ export default function ArcadeScreen() {
   const web = useWebLayout();
   var classname_title="flex items-center gap-3 border-b border-line py-3"
   web ? classname_title+=" px-22" : classname_title+=" px-6"
+  var classname_body="flex-1 space-y-4 overflow-y-auto p-4"
+  web ? classname_body+=" px-22" : classname_body+=""
 
   const activeDeck = deckName ? decks.find(d => d.name === deckName) ?? null : null;
   const deckReady = !!activeDeck && activeDeck.count >= MIN_DECK;
@@ -89,7 +91,7 @@ export default function ArcadeScreen() {
     <main className="flex min-h-full flex-col relative z-10 text-white">
       {header}
 
-      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+      <div className={classname_body}>
         {!run ? (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
             <div className="text-4xl">🕹</div>

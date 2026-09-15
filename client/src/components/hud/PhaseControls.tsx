@@ -5,6 +5,7 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import type { BoardDef } from '../../logic/types.js';
 import { Button, Illustration } from '../ui/primitives.js';
+import { useWebLayout } from '../system/useWebLayout.js';
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);
@@ -78,6 +79,13 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   const { controller, combatActive, placedCount, boardSlots, prepRemaining, combatRemaining, speed, paused, boardTerrain, canUndo } = useGameStore();
   if (!controller) return null;
 
+  const web = useWebLayout();
+  var classname_footer="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1.5 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+  web ? classname_footer+=" px-22" : classname_footer+=""
+
+  var classname_footer2="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 p-2"
+  web ? classname_footer2+=" px-22" : classname_footer2+=""
+
   // Barre de combat : dense sur un écran de 375 px (timer, terrain, vitesses,
   // options, pause) — d'où les paddings serrés et les `shrink-0`, sans quoi le
   // chip terrain est écrasé et le label Pause passe à la ligne. En PvP, vitesse
@@ -86,7 +94,7 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   // sont retirés plutôt que de laisser un contrôle trompeur.
   if (combatActive) {
     return (
-      <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1.5 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className={classname_footer}>
         <span className="shrink-0 rounded-md border border-line bg-surface/80 px-2 py-1 text-xs font-bold tabular-nums text-white/80">
           {combatRemaining}s
         </span>
@@ -118,7 +126,7 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   }
 
   return (
-    <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 p-2">
+    <div className={classname_footer2}>
       <span className="rounded-md border border-line bg-surface/80 px-2 py-1 text-sm font-semibold tabular-nums">
         {placedCount}/{boardSlots}
       </span>

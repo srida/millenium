@@ -25,7 +25,7 @@ export default function SynergyPanel() {
   // (cf. GameScreen). Pleine largeur (inset-x-0) plutôt que centré à 92 % :
   // plus de puces tiennent sur une ligne.
   const positionClass = web
-    ? 'bottom-14 left-1/2 -translate-x-1/2 max-w-[60%] justify-center'
+    ? 'bottom-14 left-1/2 -translate-x-1/2 max-w-[60%] justify-center px-22'
     : 'top-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))] inset-x-0 justify-center px-3';
 
   return (

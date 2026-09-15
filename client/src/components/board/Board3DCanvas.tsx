@@ -16,6 +16,7 @@ import { Scene3D } from '../../three/Scene3D.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { Button } from '../ui/primitives.js';
 import type { GameController } from '../../game/GameController.js';
+import { useWebLayout } from '../system/useWebLayout.js';
 
 export default function Board3DCanvas({ controller }: { controller: GameController }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -57,6 +58,10 @@ export default function Board3DCanvas({ controller }: { controller: GameControll
     };
   }, [controller]);
 
+  const web = useWebLayout();
+  var classname_body="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-surface/95"
+  web ? classname_body+=" px-22" : classname_body+=" px-6"
+
   // z-0 : le canvas WebGL reçoit les pointer events (raycasting). Le conteneur
   // CSS3D (pointer-events:none) et le HUD React (z supérieur) se superposent.
   return (
@@ -65,7 +70,7 @@ export default function Board3DCanvas({ controller }: { controller: GameControll
       {failed && (
         // z-40 : au-dessus du HUD, sous le TutorialCoach (z-50) — même rang
         // qu'une Modal, ce qu'il est en pratique.
-        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-surface/95 px-6 text-center">
+        <div className={classname_body}>
           <p className="text-lg font-semibold text-white">Le rendu 3D s&apos;est arrêté</p>
           <p className="max-w-md text-sm text-white/70">
             {failed === 'init'

@@ -4,6 +4,7 @@
 import { useGameStore } from '../../stores/gameStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { Avatar, Gauge } from '../ui/primitives.js';
+import { useWebLayout } from '../system/useWebLayout.js';
 
 export interface HudProps {
   // Portrait adverse : avatar de profil (PvP) ou avatar du deck public
@@ -20,8 +21,12 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
   const playerAvatar = (user as { avatar?: string | null } | null)?.avatar ?? '';
   const playerName = user?.username ?? 'Toi';
 
+  const web = useWebLayout();
+  var classname_header="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-2 pt-[max(0.5rem,env(safe-area-inset-top))]"
+  web ? classname_header+=" px-22" : classname_header+=""
+
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
+    <div className={classname_header}>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2 text-xs">
           <span className="flex min-w-0 items-center gap-1.5">
