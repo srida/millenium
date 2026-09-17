@@ -185,6 +185,24 @@ describe('Cumul des effets d\'un terrain', () => {
     expect(u.atk).toBe(5);
   });
 
+  // ⚠️ Régression : `heal` n'existait que côté magie. Un terrain doit soigner
+  // TOTALEMENT ses cibles (au max courant), respecter son ciblage comme les
+  // autres types, et ne toucher personne d'autre.
+  // Mutation : retirer le `case 'heal'` de `compileBoard` → ROUGE (le type ne
+  // compile plus, la case ne soigne rien).
+  it('heal : soigne au maximum courant, et respecte le ciblage du terrain', () => {
+    const wounded = unit({ id: 'W', attributes: ['ARCH_003'], hp: 40 });
+    const untouched = unit({ id: 'U', attributes: [], hp: 40 });
+    wounded.current_hp = 1;
+    untouched.current_hp = 1;
+    applyBoardEffects(
+      { id: 'B', name: 'B', effects: [{ type: 'heal', target_attributes: ['ARCH_003'] }] } as any,
+      { playerUnits: [wounded, untouched] } as any
+    );
+    expect(wounded.current_hp).toBe(wounded.max_hp);
+    expect(untouched.current_hp).toBe(1);
+  });
+
   // ⚠️ Un VRAI `GameState`, pas un objet littéral : celui-ci portait le seul
   // champ que l'assertion regardait, si bien qu'il ne pouvait pas constater
   // l'invariant du registre de provenance — écrit dans le même geste que le
@@ -196,6 +214,59 @@ describe('Cumul des effets d\'un terrain', () => {
       { gameState } as any
     );
     expect(gameState.player_extra_draws).toBe(3);
+  });
+
+  // ⚠️ Régression : `player_hp_bonus` de terrain n'existait pas.
+  // Mutation : retirer le bloc `ressources.pv` d'`applyBoardEffects` → ROUGE
+  // (player_hp ne bouge plus, et sa provenance disparaît).
+  it('player_hp_bonus (allie) crédite player_hp et sa provenance', () => {
+    const gameState = new GameState();
+    applyBoardEffects(
+      { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: 40 }] } as any,
+      { gameState } as any
+    );
+    expect(gameState.player_hp).toBe(1000); // déjà au plafond
+    expect(gameState.player_hp_sources).toEqual([{ kind: 'terrain', ref: 'BOARD_HP', value: 40 }]);
+  });
+
+  // Mutation : le clamp bas retiré (`Math.max(0, …)`) → ROUGE (player_hp négatif).
+  it('player_hp_bonus (allie) négatif inflige au joueur, clampé à 0', () => {
+    const gameState = new GameState();
+    gameState.player_hp = 10;
+    applyBoardEffects(
+      { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: -50 }] } as any,
+      { gameState } as any
+    );
+    expect(gameState.player_hp).toBe(0);
+  });
+
+  // ⚠️ Régression : « infliger à l'adversaire » (`target: 'ennemi'`).
+  // Mutation : `ressourcesEnnemies` non passée à `executer` → ROUGE (enemy_hp
+  // ne bouge plus).
+  it('player_hp_bonus (ennemi) inflige à enemy_hp hors PvP', () => {
+    const gameState = new GameState();
+    applyBoardEffects(
+      { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: -60, target: 'ennemi' }] } as any,
+      { gameState } as any
+    );
+    expect(gameState.enemy_hp).toBe(1000 - 60);
+    // Le sélecteur `ennemi` ne touche jamais au registre du joueur.
+    expect(gameState.player_hp).toBe(1000);
+    expect(gameState.player_hp_sources).toEqual([]);
+  });
+
+  // ⚠️ Régression : exclusion PvP — décision explicite du ticket. `enemy_hp`
+  // n'est pas autoritaire côté client en PvP (réécrit depuis le rapport de
+  // l'adversaire), donc y infliger un effet calculé localement risquerait un
+  // désaccord de fin de partie (`result_mismatch`), comme `damage_multiplier_bonus`.
+  // Mutation : le garde-fou `!pvp` retiré → ROUGE (enemy_hp bouge quand même en PvP).
+  it('player_hp_bonus (ennemi) ne touche PAS enemy_hp en PvP', () => {
+    const gameState = new GameState();
+    applyBoardEffects(
+      { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: -60, target: 'ennemi' }] } as any,
+      { gameState, pvp: true } as any
+    );
+    expect(gameState.enemy_hp).toBe(1000);
   });
 
   // Rouge si `applyBoardEffects` cesse de nommer le terrain (`sourceId`), ou si

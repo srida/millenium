@@ -267,6 +267,21 @@ export const CHAMPS = Object.freeze({
     label: 'Durée du pouvoir', saisie: 'compteur_duree', defaut: 50,
     aide: 'Compteur 0–100. Les quatre pouvoirs de durée lisent ceci, jamais « Valeur ».',
   },
+  target: {
+    label: 'Qui encaisse', saisie: 'choix_direct', defaut: 'allie',
+    options: [['allie', 'Le joueur (soi)'], ['ennemi', 'L’adversaire']],
+    omettreSiDefaut: true,
+    aide: 'Le joueur (gain si Valeur > 0, perte si Valeur < 0) ou l’adversaire.',
+  },
+  rarity: {
+    label: 'Rareté garantie (optionnel)', saisie: 'choix_direct', facultatif: true, defaut: '',
+    options: [[1, 'Commune'], [2, 'Rare'], [3, 'Légendaire']],
+    aide: 'Vide = n’importe quelle rareté. Se cumule avec la magie cible si les deux sont précisées.',
+  },
+  magie_id: {
+    label: 'Magie cible (optionnel)', saisie: 'choix', options: 'magies', facultatif: true, defaut: '',
+    aide: 'Vide = n’importe quelle magie de la rareté demandée (ou de tout le catalogue).',
+  },
 });
 
 /**
@@ -343,6 +358,8 @@ export const TYPES = Object.freeze({
     court: 'Soin total',
     // ⚠️ Aucun champ : le soin suit le max COURANT, bonus et vétérance compris.
     // `value` n'est PAS lu — des entrées anciennes en portent un, il est ignoré.
+    terrain: { quands: ['debut_combat'], champs: { target_attributes: {} } },
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
     magie: { quands: ['immediat'], champs: {} },
   },
   team_heal: {
@@ -410,6 +427,16 @@ export const TYPES = Object.freeze({
     attribut: { quands: ['fin_combat'], champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
     magie: { quands: ['immediat'], champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
   },
+  guaranteed_magie: {
+    label: 'Magie garantie à la Phase Shopping (rareté et/ou magie précise)',
+    court: 'Magie garantie',
+    // ⚠️ MÊMES champs sur les trois porteurs, comme `guaranteed_draw` : les
+    // trois alimentent la même file (`player_guaranteed_magies`) et passent
+    // par le même `MagieOffer.resolveGuaranteedMagies`.
+    terrain: { quands: ['debut_combat'], champs: { rarity: {}, magie_id: {} } },
+    attribut: { quands: ['fin_combat'], champs: { rarity: {}, magie_id: {} } },
+    magie: { quands: ['immediat'], champs: { rarity: {}, magie_id: {} } },
+  },
   board_slot_bonus: {
     label: 'Slot de board supplémentaire',
     court: 'Slot de board',
@@ -428,8 +455,23 @@ export const TYPES = Object.freeze({
     attribut: { quands: ['fin_combat'], champs: { value: { defaut: 1 }, max: {} } },
   },
   player_hp_bonus: {
-    label: 'Bonus de PV du joueur',
+    label: 'Gagner / perdre des PV',
     court: 'Bonus PV joueur',
+    // ⚠️ `target` n'est offert qu'au TERRAIN : c'est le seul porteur où
+    // « l'adversaire » a un registre où encaisser, câblé en un point unique
+    // (`BoardEffect.applyBoardEffects`). L'attribut et la magie restent
+    // self-cible pour l'instant — les ouvrir sèmerait un champ que le moteur
+    // ignore en silence (`AttributeManager`/`GameSession._runMagie` ne
+    // fournissent pas de registre adverse), exactement l'« effet mort » que ce
+    // fichier existe pour empêcher.
+    terrain: { quands: ['debut_combat'], champs: { value: {}, target: {} } },
+    // ⚠️ `fin_combat` SEUL, comme `draw_bonus`/`board_slot_bonus`/
+    // `damage_multiplier_bonus`/`shopping_bonus` : ce sont les ressources
+    // JOUEUR, et seul `_applyEndForSide` (fin de combat) verse ce que le
+    // moteur accumule — un déclencheur `debut_combat`/`a_l_invocation`/
+    // `pouvoir_utilise` passe par `_monde(..., ressourcesVides(), [])`, un
+    // accumulateur jeté après coup.
+    attribut: { quands: ['fin_combat'], champs: { value: {} } },
     magie: { quands: ['immediat'], champs: { value: {} } },
   },
 

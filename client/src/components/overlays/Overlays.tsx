@@ -220,6 +220,7 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
         damage={result.enemyDamageDealt}
         tone="text-enemy"
       />
+      <PlayerHpBonusLine bonus={result.playerHpBonus} sources={result.playerHpSources} />
       {survivors.length > 0 && (
         <div className="w-full rounded-lg border border-white/10 bg-white/5 p-2 text-[11px]">
           <div className="mb-1 tracking-widest text-white/40">SURVIVANTS</div>
@@ -281,6 +282,55 @@ function DamageLine({ label, atk, multiplier, bonus, sources, damage, tone }: {
         </span>
       </div>
       {hasBonus && <MultiplierSources sources={sources} />}
+    </div>
+  );
+}
+
+/**
+ * Le gain/perte de PV du round, s'il en existe un — `player_hp_bonus` de
+ * terrain (au lancement du combat) et d'attribut (`fin_combat`), fondus par
+ * `GameState.applyEndOfCombat`.
+ *
+ * ⚠️ **Se tait si le registre est vide.** Un round sans aucun `player_hp_bonus`
+ * ne doit rien afficher — c'est le cas de l'immense majorité des combats, et
+ * une ligne à 0 PV se lirait comme une perte (même règle que les paliers de
+ * niveau, cf. CLAUDE.md « Un montant nul ne s'affiche pas »).
+ *
+ * ⚠️ Contrairement à `MultiplierSources`, le bonus peut être NÉGATIF (un
+ * `player_hp_bonus` infligé) : le signe et la teinte suivent le total, jamais
+ * un `+` supposé.
+ */
+function PlayerHpBonusLine({ bonus, sources }: { bonus: number; sources: readonly BonusSourceEntry[] }) {
+  if (!bonus) return null;
+  const rows = new Map<string, { kind: BonusSourceEntry['kind']; ref: string; value: number }>();
+  for (const s of sources) {
+    if (!s.value) continue;
+    const key = `${s.kind}|${s.ref}`;
+    const found = rows.get(key);
+    if (found) found.value += s.value;
+    else rows.set(key, { kind: s.kind, ref: s.ref, value: s.value });
+  }
+  const tone = bonus > 0 ? 'text-success' : 'text-danger';
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-[11px]">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-semibold text-white/70">PV</span>
+        <span className={`tabular-nums font-bold ${tone}`}>{bonus > 0 ? '+' : ''}{bonus} PV</span>
+      </div>
+      {rows.size > 0 && (
+        <div className="mt-1 space-y-0.5 border-t border-white/10 pt-1">
+          {[...rows.entries()].map(([key, row]) => (
+            <div key={key} className="flex items-center justify-between gap-2 text-[10px]">
+              <span className="truncate text-white/50">
+                {BONUS_SOURCE_ICON[row.kind] ?? '•'} {bonusSourceName(row.kind, row.ref)}
+              </span>
+              <span className={`flex-shrink-0 font-semibold tabular-nums ${row.value > 0 ? 'text-success' : 'text-danger'}`}>
+                {row.value > 0 ? '+' : ''}{row.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -13,7 +13,7 @@
 //
 // Cf. `docs/moteur-effets.md` §4 et §6.
 
-import type { BoardDef, BoardEffectDef } from '../types.js';
+import type { BoardDef, BoardEffectDef, MagieRarity } from '../types.js';
 import { boardEffects } from '../BoardEffect.js';
 import { CHAMPS_UNITE, CHAMPS_JOUEUR, PORTEES } from './types.js';
 import type { Effet, Tache, Selecteur, ChampUnite, Quand, Portee } from './types.js';
@@ -63,6 +63,9 @@ export interface AttributeEffectLike {
   attribute?: string;
   attributes?: string[];
   card_ids?: string[];
+  /** `guaranteed_magie` — cf. `types.GuaranteedMagie`. */
+  rarity?: number;
+  magie_id?: string;
 }
 
 /** Ce qu'une compilation rend : ce qui a été traduit, et ce qui ne l'a pas été. */
@@ -164,6 +167,40 @@ export function compileBoard(board: BoardDef | null | undefined): CompilationRes
         return;
       }
 
+      case 'heal': {
+        effets.push({
+          id, porteur, trigger,
+          taches: [{
+            action: 'modifier',
+            cible: cibleUnites(effect),
+            champ: 'pv_courant',
+            operateur: '=',
+            valeur: 0,
+            duree: 'combat',
+          }],
+        });
+        return;
+      }
+
+      case 'player_hp_bonus': {
+        effets.push({
+          id, porteur, trigger,
+          taches: [{
+            action: 'modifier',
+            // ⚠️ `target` dit QUI encaisse — `allie` (le joueur, gain ou coût
+            // signé par `value`) ou `ennemi` (l'adversaire). Absent = `allie`,
+            // le geste historique d'un `player_hp_bonus` de magie.
+            cible: { conteneur: 'joueur', camp: effect.target === 'ennemi' ? 'ennemi' : 'allie', combien: 'un' },
+            champ: 'pv',
+            operateur: '+',
+            valeur: effect.value as number,
+            duree: 'round',
+            provenance: 'terrain',
+          }],
+        });
+        return;
+      }
+
       case 'draw_bonus': {
         effets.push({
           id, porteur, trigger,
@@ -178,6 +215,24 @@ export function compileBoard(board: BoardDef | null | undefined): CompilationRes
             operateur: '+',
             valeur: effect.value as number,
             duree: 'round',
+            provenance: 'terrain',
+          }],
+        });
+        return;
+      }
+
+      case 'guaranteed_magie': {
+        effets.push({
+          id, porteur, trigger,
+          taches: [{
+            action: 'modifier',
+            cible: { conteneur: 'joueur', camp: 'allie', combien: 'un' },
+            champ: 'magies_garanties',
+            operateur: '+', valeur: 0, duree: 'round',
+            criteres: {
+              rarity: effect.rarity as MagieRarity | undefined,
+              magie_id: effect.magie_id as string | undefined,
+            },
             provenance: 'terrain',
           }],
         });
@@ -242,12 +297,15 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   stat_bonus: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   shield: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   effect_immunity: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  heal: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   revive: ['fin_combat'],
   draw_bonus: ['fin_combat'],
   guaranteed_draw: ['fin_combat'],
   board_slot_bonus: ['fin_combat'],
   damage_multiplier_bonus: ['fin_combat'],
   shopping_bonus: ['fin_combat'],
+  player_hp_bonus: ['fin_combat'],
+  guaranteed_magie: ['fin_combat'],
 };
 
 /**
@@ -424,6 +482,12 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
           pousse([{ action: 'poser_statut', cible: cibleUnite(), statut: 'immunite', duree: 'combat' }]);
           return;
 
+        case 'heal':
+          // ⚠️ Soin TOTAL, comme la magie : `=` veut dire « au maximum courant »,
+          // jamais un chiffre figé. Aucune `value` n'est lue.
+          pousse([{ action: 'modifier', cible: cibleUnite(), champ: 'pv_courant', operateur: '=', valeur: 0, duree: 'combat' }]);
+          return;
+
         case 'revive':
           pousse([{
             action: 'deplacer',
@@ -457,6 +521,21 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
           return;
         }
 
+        case 'player_hp_bonus':
+          // ⚠️ Toujours `allie` : `target` n'est PAS offert à l'attribut (cf.
+          // effect-schema.mjs) — le lire ici lirait un champ que l'éditeur ne
+          // propose pas, exactement ce que la sonde inverse interdit.
+          pousse([{
+            action: 'modifier',
+            cible: { conteneur: 'joueur', camp: 'allie', combien: 'un' },
+            champ: 'pv',
+            operateur: '+',
+            valeur: effect.value as number,
+            duree: 'round',
+            provenance: 'attribut',
+          }]);
+          return;
+
         case 'guaranteed_draw':
           pousse([{
             action: 'modifier',
@@ -471,6 +550,20 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
               attribute: (effect.attribute as string) ?? null,
               attributes: effect.attributes as string[] | undefined,
               card_ids: effect.card_ids as string[] | undefined,
+            },
+            provenance: 'attribut',
+          }]);
+          return;
+
+        case 'guaranteed_magie':
+          pousse([{
+            action: 'modifier',
+            cible: { conteneur: 'joueur', camp: 'allie', combien: 'un' },
+            champ: 'magies_garanties',
+            operateur: '+', valeur: 0, duree: 'round',
+            criteres: {
+              rarity: effect.rarity as MagieRarity | undefined,
+              magie_id: effect.magie_id as string | undefined,
             },
             provenance: 'attribut',
           }]);
@@ -538,6 +631,9 @@ export interface MagieEffectLike {
   attribute?: string;
   attributes?: string[];
   card_ids?: string[];
+  /** `guaranteed_magie` — cf. `types.GuaranteedMagie`. */
+  rarity?: number;
+  magie_id?: string;
 }
 
 /** Ce qui manque au moteur pour traduire un type, quand ça manque. */
@@ -679,7 +775,13 @@ export function compileMagie(magie: MagieLike): CompilationResult {
       return { effets, refus };
 
     case 'player_hp_bonus':
-      pousse([{ action: 'modifier', cible: leJoueur(), champ: 'pv', operateur: '+', valeur: e.value as number, duree: 'partie' }]);
+      // ⚠️ Toujours `allie` : `target` n'est PAS offert à la magie (cf.
+      // effect-schema.mjs) — le geste historique, self-cible.
+      pousse([{
+        action: 'modifier',
+        cible: leJoueur(),
+        champ: 'pv', operateur: '+', valeur: e.value as number, duree: 'partie', provenance: 'magie',
+      }]);
       return { effets, refus };
 
     case 'board_slot_bonus':
@@ -803,6 +905,17 @@ export function compileMagie(magie: MagieLike): CompilationResult {
           attribute: (e.attribute as string) ?? null,
           attributes: e.attributes as string[] | undefined,
           card_ids: e.card_ids as string[] | undefined,
+        },
+      }]);
+      return { effets, refus };
+
+    case 'guaranteed_magie':
+      pousse([{
+        action: 'modifier', cible: leJoueur(), champ: 'magies_garanties',
+        operateur: '+', valeur: 0, duree: 'round', provenance: 'magie',
+        criteres: {
+          rarity: e.rarity as MagieRarity | undefined,
+          magie_id: e.magie_id as string | undefined,
         },
       }]);
       return { effets, refus };

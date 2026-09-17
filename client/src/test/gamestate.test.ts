@@ -67,6 +67,54 @@ describe('GameState — fin de combat', () => {
     expect(gs.player_extra_shopping_magies).toBe(1);
   });
 
+  // ⚠️ Régression : `player_hp_bonus` d'attribut n'était versé nulle part.
+  // Mutation : retirer le bloc `playerHpBonus` d'`applyEndOfCombat` → ROUGE
+  // (le PV ne bouge plus, et l'invariant sum(sources)===bonus n'a plus rien à
+  // vérifier).
+  it('player_hp_bonus (attribut) crédite player_hp et le rend avec sa provenance', () => {
+    const gs = new (GameState as any)();
+    gs.startCombat(5, 5);
+    const out = gs.applyEndOfCombat('draw', 0, 0, {
+      player_hp_bonus: 30,
+      player_hp_sources: [{ kind: 'attribut', ref: 'ARCH_X', value: 30 }],
+    });
+    expect(gs.player_hp).toBe(1000); // déjà au plafond, le gain est écrêté
+    expect(out.playerHpBonus).toBe(30);
+    expect(out.playerHpSources).toEqual([{ kind: 'attribut', ref: 'ARCH_X', value: 30 }]);
+  });
+
+  it('player_hp_bonus négatif (attribut) inflige et se clampe à 0', () => {
+    const gs = new (GameState as any)();
+    gs.player_hp = 20;
+    gs.startCombat(5, 5);
+    gs.applyEndOfCombat('draw', 0, 0, {
+      player_hp_bonus: -50,
+      player_hp_sources: [{ kind: 'attribut', ref: 'ARCH_X', value: -50 }],
+    });
+    expect(gs.player_hp).toBe(0);
+  });
+
+  // Le terrain crédite AVANT ce combat (`player_hp_sources` déjà posé) ; le
+  // registre doit se cumuler avec la part attribut, puis se vider.
+  it('cumule le PV posé par un terrain (avant) avec celui d\'un attribut (fin_combat)', () => {
+    const gs = new (GameState as any)();
+    gs.startCombat(5, 5);
+    gs.player_hp = 900;
+    gs.player_hp_sources.push({ kind: 'terrain', ref: 'BOARD_X', value: 10 });
+    const out = gs.applyEndOfCombat('draw', 0, 0, {
+      player_hp_bonus: 5,
+      player_hp_sources: [{ kind: 'attribut', ref: 'ARCH_X', value: 5 }],
+    });
+    expect(gs.player_hp).toBe(915);
+    expect(out.playerHpBonus).toBe(15);
+    expect(out.playerHpSources).toEqual([
+      { kind: 'terrain', ref: 'BOARD_X', value: 10 },
+      { kind: 'attribut', ref: 'ARCH_X', value: 5 },
+    ]);
+    // Transitoire : vidé pour le combat suivant.
+    expect(gs.player_hp_sources).toEqual([]);
+  });
+
   // Pendant ENNEMI des mêmes deux champs — la pioche a un destinataire des
   // deux côtés, contrairement au Shopping (exclusivement joueur).
   it('accumule enemy_extra_draws et enemy_guaranteed_draws', () => {

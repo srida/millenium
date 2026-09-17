@@ -17,7 +17,7 @@ import { tierShift } from './MagieEffect.js';
 // pioche garantie doivent se lire pareil à l'offre, à la pioche et à l'annonce.
 // `Draw` est lui aussi plat (il n'importe que des types).
 import { guaranteedDrawCriteria, hasGuaranteedDrawCriteria } from './Draw.js';
-import type { Magie, MagieRarity } from './types.js';
+import type { GuaranteedMagie, Magie, MagieRarity } from './types.js';
 
 /**
  * Poids relatifs du tirage. Mesuré sur le catalogue livré (10 Communes,
@@ -208,6 +208,11 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
 
     case 'board_slot_bonus':         return ctx.boardSlotBonusAvailable;
     case 'player_hp_bonus':          return ctx.playerHpBelowCap;
+    // ⚠️ Même garde que `guaranteed_draw` : une magie garantie SANS AUCUN
+    // critère ne promet rien de nommable (elle déplace un emplacement
+    // d'offre aléatoire vers… une offre aléatoire), le cas « blanc » que ce
+    // filtre existe pour supprimer.
+    case 'guaranteed_magie':         return hasGuaranteedMagieCriteria(effect);
 
     // ⚠️ Une remise VISÉE (`attribute`) doit trouver une carte qui porte
     // l'attribut ET que le geste peut retoucher : les deux séparément se
@@ -233,6 +238,64 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
 
     default:                         return false;
   }
+}
+
+/** Y a-t-il quelque chose à promettre ? Une magie garantie sans aucun critère
+ *  déplace un slot d'offre aléatoire vers… une offre aléatoire, exactement
+ *  le cas « blanc » que `hasGuaranteedDrawCriteria` écarte côté pioche. */
+export function hasGuaranteedMagieCriteria(g: GuaranteedMagie | null | undefined): boolean {
+  return !!g?.rarity || !!g?.magie_id;
+}
+
+/**
+ * Une magie satisfait-elle une promesse ? `ignoreRarity` sert le repli, sur
+ * le modèle exact de `matchesGuaranteedDraw({ ignoreTier })`.
+ */
+function _matchesGuaranteedMagie(m: Magie, g: GuaranteedMagie, { ignoreRarity = false } = {}): boolean {
+  if (!ignoreRarity && g.rarity && rarityOf(m) !== g.rarity) return false;
+  if (g.magie_id && m.id !== g.magie_id) return false;
+  return true;
+}
+
+/**
+ * Résout des magies GARANTIES à la Phase Shopping — le jumeau de
+ * `Draw.resolveGuaranteedDraws`, sur le pool de magies plutôt que de cartes.
+ *
+ * ⚠️ **Le candidat doit être PERTINENT** (`isMagieRelevant`), à la différence
+ * d'une pioche garantie (une carte n'a pas de notion de pertinence) : offrir
+ * une magie qui ne ferait rien serait exactement le « blanc » que toute
+ * l'offre existe pour supprimer. Repli identique à celui de la pioche : la
+ * RARETÉ saute en premier (le critère le moins visible), puis n'importe
+ * quelle magie pertinente. Aucun repli au-delà — une offre plus courte que
+ * prévu est déjà le comportement connu de `pickMagies`.
+ *
+ * ⚠️ **Exactement UN appel à `rand` par entrée résolue, aucun sur un pool
+ * vide** — la même discipline que `resolveGuaranteedDraws` et `BoardPicker`.
+ *
+ * Rend les magies résolues ET le pool restant (déjà amputé des résolues, pour
+ * qu'une magie garantie n'occupe jamais deux fois un emplacement de l'offre).
+ */
+export function resolveGuaranteedMagies(
+  pool: readonly Magie[],
+  ctx: MagieOfferContext,
+  guaranteed: readonly GuaranteedMagie[],
+  rand: () => number = Math.random,
+): { resolved: Magie[]; remaining: Magie[] } {
+  let remaining = [...pool];
+  const resolved: Magie[] = [];
+  for (const g of guaranteed) {
+    if (!hasGuaranteedMagieCriteria(g)) continue;
+    const relevant = remaining.filter(m => isMagieRelevant(m, ctx));
+    const matches = relevant.filter(m => _matchesGuaranteedMagie(m, g));
+    const candidates = matches.length > 0 ? matches
+      // Repli : la rareté saute, la magie précise (si nommée) reste exigée.
+      : relevant.filter(m => _matchesGuaranteedMagie(m, g, { ignoreRarity: true }));
+    if (!candidates.length) continue;
+    const picked = candidates[Math.floor(rand() * candidates.length)];
+    resolved.push(picked);
+    remaining = remaining.filter(m => m.id !== picked.id);
+  }
+  return { resolved, remaining };
 }
 
 /**

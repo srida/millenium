@@ -23,7 +23,7 @@
 // Cf. `docs/moteur-effets.md` §4 et §5.
 
 import { Unit } from '../Unit.js';
-import type { Card, GuaranteedDraw, DrawSourceEntry, BonusSourceEntry } from '../types.js';
+import type { Card, GuaranteedDraw, GuaranteedMagie, DrawSourceEntry, BonusSourceEntry } from '../types.js';
 import { CHAMPS_UNITE, cleDeTri } from './types.js';
 import { clampRate, rateForTicks } from '../../../../speed-scale.mjs';
 import type { Effet, Tache, TacheModifier, TacheDeplacer, TachePoserStatut, TacheAjouter, TacheRetirer, TacheRemplacer, TachePoserEffet, EntreeRegistre, Portee, Selecteur, ChampUnite } from './types.js';
@@ -39,6 +39,9 @@ import type { Effet, Tache, TacheModifier, TacheDeplacer, TachePoserStatut, Tach
 export interface Ressources {
   pioches: number;
   pioches_garanties: GuaranteedDraw[];
+  /** Magies garanties à la prochaine Phase Shopping — le pendant de
+   *  `pioches_garanties`, sur le vocabulaire de la magie. */
+  magies_garanties: GuaranteedMagie[];
   slots_board: number;
   multiplicateur: number;
   magies_shop: number;
@@ -48,13 +51,17 @@ export interface Ressources {
   /** Provenance de `multiplicateur` — même discipline, même invariant :
    *  `sum(value) === multiplicateur`. */
   sources_multiplicateur: BonusSourceEntry[];
+  /** Provenance de `pv` — même discipline, même invariant : `sum(value) === pv`.
+   *  ⚠️ Peut être NÉGATIVE (un `pv` infligé), contrairement aux deux registres
+   *  ci-dessus qui ne créditent jamais qu'à la hausse. */
+  sources_pv: BonusSourceEntry[];
   reanimees: Unit[];
 }
 
 export function ressourcesVides(): Ressources {
   return {
-    pioches: 0, pioches_garanties: [], slots_board: 0, multiplicateur: 0,
-    magies_shop: 0, pv: 0, sources: [], sources_multiplicateur: [], reanimees: [],
+    pioches: 0, pioches_garanties: [], magies_garanties: [], slots_board: 0, multiplicateur: 0,
+    magies_shop: 0, pv: 0, sources: [], sources_multiplicateur: [], sources_pv: [], reanimees: [],
   };
 }
 
@@ -393,16 +400,29 @@ function appliqueSurJoueur(t: TacheModifier, monde: Monde, trace: Trace): void {
       return;
     case 'pv':
       cible.pv += d;
+      // ⚠️ `t.provenance` n'est posé QUE par le nouveau `player_hp_bonus`
+      // d'attribut/terrain (compile.ts) — jamais par le contrecoup d'une magie
+      // (`cost_hp`), `drain_life` ou `sacrifice_card_hp`, qui touchent aussi
+      // `pv` mais n'ont rien à annoncer au récapitulatif de round. Sans cette
+      // garde, chaque contrecoup peuplerait le registre et la popup de
+      // résultat se remplirait de lignes qui ne sont pas des bonus d'archétype.
+      if (d !== 0 && t.provenance) {
+        cible.sources_pv.push({ kind: t.provenance, ref: monde.source ?? '', value: d });
+      }
       trace.applique.push(`joueur·pv+${d}`);
       return;
     case 'pioches_garanties':
       if (t.criteres) {
-        cible.pioches_garanties.push(t.criteres);
+        cible.pioches_garanties.push(t.criteres as GuaranteedDraw);
         {
           cible.sources.push({ kind: t.provenance ?? 'attribut', ref: monde.source ?? '', value: 0, guaranteed: true });
         }
       }
       trace.applique.push('joueur·pioche_garantie');
+      return;
+    case 'magies_garanties':
+      if (t.criteres) cible.magies_garanties.push(t.criteres as GuaranteedMagie);
+      trace.applique.push('joueur·magie_garantie');
       return;
     default:
       trace.ignore.push(`joueur·${t.champ} (champ inconnu)`);

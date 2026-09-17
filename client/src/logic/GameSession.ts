@@ -37,7 +37,7 @@ import {
 } from './InvocationManager.js';
 import { tiersForRound, drawHand, resolveGuaranteedDraws } from './Draw.js';
 import { tiersOf } from './Tiers.js';
-import { pickMagies } from './MagieOffer.js';
+import { pickMagies, resolveGuaranteedMagies } from './MagieOffer.js';
 import type { MagieOfferContext } from './MagieOffer.js';
 import type { BonusSourceEntry, Card, Position, BoardDef, AttributeDef, DrawSummary, Magie, RoundWinner } from './types.js';
 
@@ -162,6 +162,14 @@ export interface EndRoundResult {
    */
   playerMultiplierSources: BonusSourceEntry[];
   enemyMultiplierSources: BonusSourceEntry[];
+  /**
+   * Gain/perte de PV du joueur pour CE round — terrain (au lancement du
+   * combat) et attribut (`fin_combat`) cumulés. Même discipline que le
+   * multiplicateur : `sum(playerHpSources.value) === playerHpBonus`. Vide en
+   * l'absence de tout `player_hp_bonus` d'attribut ou de terrain ce round.
+   */
+  playerHpBonus: number;
+  playerHpSources: BonusSourceEntry[];
   /** Dégâts réellement infligés à l'ADVERSAIRE de ce camp (0 si ce camp n'encaisse pas ce round). */
   playerDamageDealt: number;
   enemyDamageDealt: number;
@@ -714,7 +722,10 @@ export class GameSession {
     // ⚠️ TOUS les effets du terrain, pas seulement le premier : `effects` est
     // une liste cumulée (cf. `BoardEffect.boardEffects`, seul lecteur des deux
     // formes de la donnée).
-    applyBoardEffects(boardData, { playerUnits, enemyUnits: this.enemyUnits, gameState: this.gameState });
+    applyBoardEffects(boardData, {
+      playerUnits, enemyUnits: this.enemyUnits, gameState: this.gameState,
+      pvp: this.deps.mode === 'pvp',
+    });
 
     const combat = new CombatManager(this.board, playerUnits, this.enemyUnits, attributeManager);
     this._combat = combat;
@@ -834,6 +845,8 @@ export class GameSession {
         ? combatOutcome.enemyMultiplier - this.gameState.enemy_multiplier : 0,
       playerMultiplierSources: combatOutcome.playerMultiplierSources,
       enemyMultiplierSources: combatOutcome.enemyMultiplierSources,
+      playerHpBonus: combatOutcome.playerHpBonus,
+      playerHpSources: combatOutcome.playerHpSources,
       playerDamageDealt: combatOutcome.playerDamageDealt,
       enemyDamageDealt: combatOutcome.enemyDamageDealt,
       isGameOver: this.gameState.isGameOver(),
@@ -915,12 +928,40 @@ export class GameSession {
    * re-créditer transformerait un compteur d'octroi en dette — et le tour où il
    * ne reste rien à offrir est précisément celui où une magie de plus n'existe
    * pas.
+   *
+   * ⚠️ **Les magies GARANTIES sont résolues AVANT le tirage pondéré**, et
+   * réduisent `count` d'autant — même geste que la pioche garantie face à
+   * `HAND_SIZE`. `player_guaranteed_magies` est vidé ici, qu'une entrée ait
+   * trouvé son candidat ou non (même discipline que `player_extra_shopping_magies` :
+   * une promesse qui ne trouve rien est perdue, pas reportée).
+   *
+   * ⚠️ `_lastShoppingBonusInfo` est un repli d'AFFICHAGE, jamais relu par la
+   * logique : `GameController` s'en sert juste après cet appel pour annoncer
+   * ce que l'offre vient de contenir (bonus, garantie), sur le modèle exact
+   * de `DrawSummary` — sans grossir le type de retour de cette méthode, dont
+   * une trentaine de tests attendent `Magie[]`.
    */
   getShoppingMagies(): Magie[] {
-    const count = 3 + (this.gameState.player_extra_shopping_magies || 0);
+    const ctx = this._offerContext();
+    const extra = this.gameState.player_extra_shopping_magies || 0;
     this.gameState.player_extra_shopping_magies = 0;
-    return pickMagies(this.deps.getAllMagies(), this._offerContext(), count, this._rand);
+    const count = 3 + extra;
+
+    const guaranteed = this.gameState.player_guaranteed_magies;
+    this.gameState.player_guaranteed_magies = [];
+    const { resolved, remaining } = resolveGuaranteedMagies(this.deps.getAllMagies(), ctx, guaranteed, this._rand);
+
+    const rest = pickMagies(remaining, ctx, Math.max(0, count - resolved.length), this._rand);
+    this._lastShoppingBonusInfo = { extra, guaranteedCount: resolved.length };
+    return [...resolved, ...rest];
   }
+
+  /** Repli d'affichage du dernier `getShoppingMagies()` — cf. sa note. */
+  getLastShoppingBonusInfo(): { extra: number; guaranteedCount: number } {
+    return this._lastShoppingBonusInfo;
+  }
+
+  private _lastShoppingBonusInfo: { extra: number; guaranteedCount: number } = { extra: 0, guaranteedCount: 0 };
 
   /**
    * L'état courant réduit aux faits dont dépend la pertinence d'une magie.

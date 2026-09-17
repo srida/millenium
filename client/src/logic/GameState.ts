@@ -1,4 +1,4 @@
-import type { BonusSourceEntry, DrawSourceEntry, EndOfCombatAttributeResult, GuaranteedDraw, RoundWinner } from './types.js';
+import type { BonusSourceEntry, DrawSourceEntry, EndOfCombatAttributeResult, GuaranteedDraw, GuaranteedMagie, RoundWinner } from './types.js';
 
 export const Phase = Object.freeze({
   PREPARATION: 'preparation',
@@ -58,6 +58,10 @@ export class GameState {
    * inscription ferait mentir la popup, ce que `draw-summary.test.ts` refuse.
    */
   player_draw_sources: DrawSourceEntry[];
+  /** Magies garanties à la prochaine Phase Shopping — accumulées par le
+   *  terrain (au lancement du combat) et l'attribut (`fin_combat`), consommées
+   *  d'un coup par `GameSession.getShoppingMagies()`. */
+  player_guaranteed_magies: GuaranteedMagie[];
   /**
    * Pendant enemy des deux champs ci-dessus : contrairement au slot, au
    * multiplicateur et au Shopping (ressources exclusivement joueur), la
@@ -85,6 +89,14 @@ export class GameState {
    * `attributeResult.damage_multiplier_sources`.
    */
   player_multiplier_sources: BonusSourceEntry[];
+  /**
+   * Provenance d'un `player_hp_bonus` de TERRAIN — le seul porteur qui
+   * s'applique AU LANCEMENT du combat (`BoardEffect.applyBoardEffects`), donc
+   * avant que `applyEndOfCombat` (qui verse la part ATTRIBUT, à `fin_combat`)
+   * n'ait quoi que ce soit à raconter. Transitoire : accumulé au lancement du
+   * combat, lu et vidé par `applyEndOfCombat` du MÊME combat.
+   */
+  player_hp_sources: BonusSourceEntry[];
 
   constructor() {
     this.round = 1;
@@ -106,11 +118,13 @@ export class GameState {
     this.player_extra_draws = 0;
     this.player_guaranteed_draws = [];
     this.player_draw_sources = [];
+    this.player_guaranteed_magies = [];
     this.enemy_extra_draws = 0;
     this.enemy_guaranteed_draws = [];
     this.player_extra_shopping_magies = 0;
     this.player_damage_multiplier_bonus = 0;
     this.player_multiplier_sources = [];
+    this.player_hp_sources = [];
   }
 
   // ── Phase transitions ──
@@ -147,6 +161,7 @@ export class GameState {
     playerMultiplier: number; enemyMultiplier: number;
     playerDamageDealt: number; enemyDamageDealt: number;
     playerMultiplierSources: BonusSourceEntry[]; enemyMultiplierSources: BonusSourceEntry[];
+    playerHpBonus: number; playerHpSources: BonusSourceEntry[];
   } {
     this.phase = Phase.END_ROUND;
 
@@ -203,6 +218,9 @@ export class GameState {
     if (attributeResult.draw_sources?.length) {
       this.player_draw_sources.push(...attributeResult.draw_sources);
     }
+    if (attributeResult.guaranteed_magies?.length) {
+      this.player_guaranteed_magies.push(...attributeResult.guaranteed_magies);
+    }
     if (attributeResult.shopping_bonus) {
       this.player_extra_shopping_magies += attributeResult.shopping_bonus;
     }
@@ -216,9 +234,23 @@ export class GameState {
       this.grantEnemyBoardSlotBonus(attributeResult.enemy_board_slot_bonus);
     }
 
+    // ⚠️ Deux sources pour le MÊME champ : le terrain (posé au lancement du
+    // combat, dans `this.player_hp_sources`) et l'attribut (`fin_combat`,
+    // dans `attributeResult`). Elles se CUMULENT, comme les deux sources du
+    // multiplicateur juste au-dessus — même geste, même invariant
+    // `sum(value) === le bonus`. Le registre du terrain est transitoire : il
+    // ne survit pas à ce combat, il est vidé ici qu'il ait servi ou non.
+    const playerHpSources = [...this.player_hp_sources, ...(attributeResult.player_hp_sources ?? [])];
+    this.player_hp_sources = [];
+    const playerHpBonus = playerHpSources.reduce((n, s) => n + s.value, 0);
+    if (playerHpBonus) {
+      this.player_hp = Math.min(Math.max(0, this.player_hp + playerHpBonus), PLAYER_HP_CAP);
+    }
+
     return {
       playerMultiplier, enemyMultiplier, playerDamageDealt, enemyDamageDealt,
       playerMultiplierSources, enemyMultiplierSources,
+      playerHpBonus, playerHpSources,
     };
   }
 

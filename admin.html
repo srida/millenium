@@ -3338,6 +3338,8 @@ function _effectFieldOptions(champ, valeur) {
       return vide + attributes.map(a => opt(a.id, `${esc((a.icon || '') + ' ' + a.name)} — ${a.id}`, valeur === a.id)).join('');
     case 'pouvoirs':
       return vide + powers.map(p => opt(p.id, esc(p.name), valeur === p.id)).join('');
+    case 'magies':
+      return vide + magies.map(m => opt(m.id, esc(m.name), valeur === m.id)).join('');
     case 'tiers':
       return vide + tierAttrDefs().map(a => opt(a.tier, `Tier ${a.tier}`, Number(valeur) === Number(a.tier))).join('');
     default:

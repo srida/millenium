@@ -55,6 +55,23 @@ describe('AttributeManager — comptage des seuils', () => {
     expect(hunter.atk).toBe(5 + 3 * 2);
   });
 
+  // ⚠️ Régression : `heal` n'était offert qu'aux magies ; il doit désormais
+  // soigner TOTALEMENT (au max courant, bonus compris), pas d'un montant fixe.
+  // Mutation : retirer le `case 'heal'` de `compileAttribute` → ROUGE
+  // (le type ne compile plus, `applyStartOfCombat` ne soigne rien).
+  it('heal : soigne les porteurs au maximum courant, pas un montant fixe', () => {
+    const attrs = [{
+      id: 'ARCH_MEDIC', name: 'Médecin', timing: 'start_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'heal' }] }],
+    }];
+    const board = makeBoard();
+    const healer = spawn(board, makeCard({ id: 'H', attributes: ['ARCH_MEDIC'], stats: { hp: 50 } as any }), 'player', { col: 0, row: 0 });
+    healer.current_hp = 1;
+    const am = new (AttributeManager as any)(attrs, [healer], []);
+    am.applyStartOfCombat();
+    expect(healer.current_hp).toBe(healer.max_hp);
+  });
+
   it('shield : valeur × alliés vivants', () => {
     const attrs = [{
       id: 'ARCH_GUARD', name: 'Garde', timing: 'start_of_combat',
@@ -134,7 +151,22 @@ describe('AttributeManager — end_of_combat', () => {
     expect(n2.is_neutralized).toBe(false);
     expect(n2.current_hp).toBe(Math.floor(n2.max_hp * 0.3));
     expect(neutralized).toHaveLength(0); // retirée de la liste des morts
-    expect(result.draw_bonus).toBe(1);
+  });
+
+  // ⚠️ Régression : `player_hp_bonus` n'existait que côté magie.
+  // Mutation : retirer `player_hp_bonus`/`player_hp_sources` du retour
+  // d'`applyEndOfCombat` (AttributeManager.js) → ROUGE.
+  it('player_hp_bonus : verse le PV accumulé, avec sa provenance', () => {
+    const attrs = [{
+      id: 'ARCH_VAMP', name: 'Vampire', timing: 'end_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'player_hp_bonus', value: 25 }] }],
+    }];
+    const board = makeBoard();
+    const [v] = units(board, [{ id: 'V', attrs: ['ARCH_VAMP'], col: 0, row: 0 }]);
+    const am = new (AttributeManager as any)(attrs, [v], []);
+    const result = am.applyEndOfCombat([], []);
+    expect(result.player_hp_bonus).toBe(25);
+    expect(result.player_hp_sources).toEqual([{ kind: 'attribut', ref: 'ARCH_VAMP', value: 25 }]);
   });
 
   // La pioche a un destinataire des DEUX côtés (`EnemyAI` pioche aussi),

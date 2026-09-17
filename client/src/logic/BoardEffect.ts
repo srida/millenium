@@ -1,6 +1,6 @@
 import type { BoardDef, BoardEffectDef } from './types.js';
 import type { Unit } from './Unit.js';
-import type { GameState } from './GameState.js';
+import { GameState, PLAYER_HP_CAP } from './GameState.js';
 import { compileBoard } from './effects/compile.js';
 import { executer, ressourcesVides } from './effects/engine.js';
 import type { CompilationResult } from './effects/compile.js';
@@ -13,9 +13,18 @@ interface BoardEffectContext {
   enemyUnits?: Unit[];
   gameState?: GameState | null;
   /** Id du terrain d'où vient l'effet, posé par `applyBoardEffects`. Ne sert
-   *  qu'au registre de provenance des pioches (`draw_bonus`) : un effet
-   *  appliqué seul, hors de son terrain, n'a rien à nommer. */
+   *  qu'au registre de provenance des pioches (`draw_bonus`) et de PV
+   *  (`player_hp_bonus`) : un effet appliqué seul, hors de son terrain, n'a
+   *  rien à nommer. */
   sourceId?: string | null;
+  /**
+   * ⚠️ Un `player_hp_bonus` visant l'adversaire (`target: 'ennemi'`) n'est
+   * JAMAIS versé en PvP : `enemy_hp` n'y est pas autoritaire (réécrit chaque
+   * round depuis le `player_hp` de l'adversaire) — même exclusion que
+   * `damage_multiplier_bonus`. Le gain/perte pour SOI (`allie`, le défaut)
+   * n'est lui jamais concerné : il ne touche que `player_hp`.
+   */
+  pvp?: boolean;
 }
 
 /**
@@ -94,17 +103,30 @@ export function applyEffect(effect: BoardEffectDef | null | undefined, ctx: Boar
  * empilement de multiplicateurs se composerait, et ferait dépendre le résultat
  * de l'ordre d'écriture en admin.
  */
-export function applyBoardEffects(board: BoardDef | null | undefined, { playerUnits = [], enemyUnits = [], gameState = null }: BoardEffectContext = {}): Refus[] {
+export function applyBoardEffects(board: BoardDef | null | undefined, { playerUnits = [], enemyUnits = [], gameState = null, pvp = false }: BoardEffectContext = {}): Refus[] {
   const { effets, refus } = compileBoard(board);
   const ressources = ressourcesVides();
-  executer(effets, 'debut_combat', { unitesAlliees: playerUnits, unitesEnnemies: enemyUnits, ressources });
+  const ressourcesEnnemies = ressourcesVides();
+  executer(effets, 'debut_combat', { unitesAlliees: playerUnits, unitesEnnemies: enemyUnits, ressources, ressourcesEnnemies });
 
-  // ⚠️ **Le moteur accumule, l'appelant VERSE.** Les deux seuls champs qu'un
-  // terrain crédite sont la pioche et sa provenance, et ils vont ENSEMBLE —
-  // `draw-summary.test.ts` tient l'invariant `sum(sources.value) === extraDraws`.
+  // ⚠️ **Le moteur accumule, l'appelant VERSE.** La pioche et sa provenance
+  // vont ENSEMBLE — `draw-summary.test.ts` tient l'invariant
+  // `sum(sources.value) === extraDraws`. Le PV du joueur suit la même
+  // discipline, plafonné à `PLAYER_HP_CAP` comme partout ailleurs.
   if (gameState) {
     gameState.player_extra_draws = (gameState.player_extra_draws || 0) + ressources.pioches;
     gameState.player_draw_sources.push(...ressources.sources);
+    if (ressources.pv) {
+      gameState.player_hp = Math.min(Math.max(0, gameState.player_hp + ressources.pv), PLAYER_HP_CAP);
+      gameState.player_hp_sources.push(...ressources.sources_pv);
+    }
+    if (ressources.magies_garanties.length) {
+      gameState.player_guaranteed_magies.push(...ressources.magies_garanties);
+    }
+    // ⚠️ Exclu en PvP : cf. la note de `BoardEffectContext.pvp`.
+    if (!pvp && ressourcesEnnemies.pv) {
+      gameState.enemy_hp = Math.min(Math.max(0, gameState.enemy_hp + ressourcesEnnemies.pv), PLAYER_HP_CAP);
+    }
   }
   return refus;
 }

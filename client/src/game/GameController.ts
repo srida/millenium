@@ -734,7 +734,28 @@ export class GameController {
     const magies = this.session.getShoppingMagies();
     if (!magies.length) { this._proceedNextRound(); return; }
     this._shoppingMagies = magies;
-    this.sync({ endRound: null, shopping: { magies, awaitingTarget: null, handTargets: null, banner: null } });
+    this._shoppingInfo = this._describeShoppingBonus();
+    this.sync({ endRound: null, shopping: { magies, awaitingTarget: null, handTargets: null, banner: null, info: this._shoppingInfo } });
+  }
+
+  /**
+   * Ce que l'offre qui vient de se tirer CONTIENT — `shopping_bonus` (magies
+   * en plus) et/ou une magie garantie, sur le modèle du récapitulatif de
+   * round pour le PV et le multiplicateur : annoncer le phénomène, pas
+   * l'inventer. `null` quand ni l'un ni l'autre ne s'est produit ce tour.
+   *
+   * ⚠️ Ne nomme pas la PROVENANCE (quel attribut/terrain) : contrairement au
+   * récapitulatif de round, l'offre n'a pas de registre de sources pour ces
+   * deux champs — l'ajouter grossirait `getShoppingMagies()` pour un gain
+   * d'affichage seul. Un phénomène annoncé sans sa cause reste plus
+   * informatif qu'un phénomène tu.
+   */
+  private _describeShoppingBonus(): string | null {
+    const { extra, guaranteedCount } = this.session.getLastShoppingBonusInfo();
+    const parts: string[] = [];
+    if (extra > 0) parts.push(`✨ +${extra} magie${extra > 1 ? 's' : ''} supplémentaire${extra > 1 ? 's' : ''}`);
+    if (guaranteedCount > 0) parts.push(`🎁 ${guaranteedCount > 1 ? `${guaranteedCount} magies garanties` : 'Magie garantie'}`);
+    return parts.length ? parts.join(' · ') : null;
   }
 
   // ⚠️ Les trois gardes « aucune cible valide » ci-dessous sont devenues
@@ -755,11 +776,11 @@ export class GameController {
       if (!targets.length) { this._flashError('Aucune cible valide pour cette magie'); return; }
       this.scene?.setHighlight(targets.map(u => u.position!).filter(Boolean));
       this._pendingMagie = magie;
-      this.sync({ shopping: { magies: [], awaitingTarget: 'unit', handTargets: null, banner: `${magie.name} — touche une unité de ton terrain` } });
+      this.sync({ shopping: { magies: [], awaitingTarget: 'unit', handTargets: null, banner: `${magie.name} — touche une unité de ton terrain`, info: null } });
     } else if (this.session.magieNeedsGraveyardTarget(magie)) {
       if (!this.session.graveyard.length) { this._flashError('Aucune unité au cimetière'); return; }
       this._pendingMagie = magie;
-      this.sync({ shopping: { magies: [], awaitingTarget: 'graveyard', handTargets: null, banner: `${magie.name} — touche une unité du cimetière` } });
+      this.sync({ shopping: { magies: [], awaitingTarget: 'graveyard', handTargets: null, banner: `${magie.name} — touche une unité du cimetière`, info: null } });
     } else if (this.session.magieNeedsHandTarget(magie)) {
       // ⚠️ Toutes les magies de main n'acceptent pas toutes les cartes :
       // `shift_tier_card` et `draw_material` en écartent (cf.
@@ -770,7 +791,7 @@ export class GameController {
       const handTargets = this.session.magieHandTargets(magie);
       if (!handTargets.length) { this._flashError('Aucune carte valide en main'); return; }
       this._pendingMagie = magie;
-      this.sync({ shopping: { magies: [], awaitingTarget: 'hand', handTargets, banner: `${magie.name} — touche une carte de ta main` } });
+      this.sync({ shopping: { magies: [], awaitingTarget: 'hand', handTargets, banner: `${magie.name} — touche une carte de ta main`, info: null } });
     } else {
       this.session.applyGlobalMagie(magie);
       this._noteMagie(magie);
@@ -788,11 +809,12 @@ export class GameController {
     if (!this._pendingMagie) return;
     this._pendingMagie = null;
     this.scene?.clearHighlight();
-    this.sync({ shopping: { magies: this._shoppingMagies, awaitingTarget: null, handTargets: null, banner: null } });
+    this.sync({ shopping: { magies: this._shoppingMagies, awaitingTarget: null, handTargets: null, banner: null, info: this._shoppingInfo } });
   }
 
   private _pendingMagie: Magie | null = null;
   private _shoppingMagies: Magie[] = [];
+  private _shoppingInfo: string | null = null;
 
   // Ciblage magie sur unité board — réutilise onUnitTap via un mode dédié.
   resolveMagieUnitTarget(unit: Unit): void {
@@ -852,6 +874,7 @@ export class GameController {
 
   protected _proceedNextRound(): void {
     this._shoppingMagies = [];
+    this._shoppingInfo = null;
     this._pendingMagie = null;
     const draw = this.session.startNextRound();
     this._clearSelection();

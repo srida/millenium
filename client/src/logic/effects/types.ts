@@ -12,7 +12,7 @@
 // ne les accorde, ce qui a tué onze effets sur treize porteurs (§1.4). Ici, un
 // effet qui ne peut pas se déclencher est un effet qui ne compile pas.
 
-import type { Position, GuaranteedDraw } from '../types.js';
+import type { Position, GuaranteedDraw, GuaranteedMagie } from '../types.js';
 
 // ───────────────────────────────────────────────────────────────────────────
 // Quand
@@ -180,6 +180,7 @@ export const CHAMPS_JOUEUR = Object.freeze({
   slots_board: 'slots_board',
   multiplicateur: 'multiplicateur',
   magies_shop: 'magies_shop',
+  magies_garanties: 'magies_garanties',
 } as const);
 export type ChampJoueur = keyof typeof CHAMPS_JOUEUR;
 
@@ -234,8 +235,10 @@ export interface TacheModifier {
   parAllieVivant?: boolean;
   /** Plafond sur le TOTAL accumulé — le `max` d'aujourd'hui, pas une borne par tâche. */
   plafond?: number;
-  /** Les critères d'une pioche garantie (`champ: 'pioches_garanties'`). */
-  criteres?: GuaranteedDraw;
+  /** Les critères d'une pioche garantie (`champ: 'pioches_garanties'`) ou
+   *  d'une magie garantie (`champ: 'magies_garanties'`) — un seul champ pour
+   *  les deux, comme leurs deux registres partagent la même forme. */
+  criteres?: GuaranteedDraw | GuaranteedMagie;
   /** Ce que le registre de provenance inscrit comme origine. */
   provenance?: 'attribut' | 'terrain' | 'magie';
   /**
