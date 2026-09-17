@@ -27,7 +27,7 @@ import { Button, CountBadge, Modal, NewDot } from '../components/ui/primitives.j
 import { AnimatedLogo } from '../components/ui/AnimatedLogo.js';
 import { FullscreenButton } from '../components/system/DeviceGuards.js';
 import { AppVersion } from '../components/system/AppVersion.js';
-import { useWebLayout } from '../components/system/useWebLayout.js';
+import { useWebLayout, useTabletLayout } from '../components/system/useWebLayout.js';
 
 // Taille des boutons de mode (Tutoriel, Tournoi, Entraînement, Arcade) :
 // rehaussée en portrait téléphone (44px de base se lisait comme un menu
@@ -44,7 +44,7 @@ export default function MainMenu() {
   // large qu'un iPad en PORTRAIT (820). C'est la HAUTEUR qui distingue les
   // deux — courte sur téléphone quelle que soit l'orientation, jamais sous
   // ~700px sur tablette — d'où les deux bornes conjointes.
-  const isTabletDevice = useMediaQuery('(min-width: 700px) and (min-height: 700px)');
+  const isTabletDevice = useTabletLayout();
   const user = useAuthStore(s => s.user);
   const [devOpen, setDevOpen] = useState(false);
   // Boutons dev derrière le badge « DEV » de la version — ils ne comptent pas
@@ -115,21 +115,6 @@ export default function MainMenu() {
       <TutorialInvite />
     </main>
   );
-}
-
-// Même patron que `useWebLayout`, sur une requête média arbitraire — pour
-// distinguer téléphone et tablette à l'intérieur d'un même mode (paysage,
-// ici), ce que l'aspect ratio seul ne peut pas trancher.
-function useMediaQuery(query: string) {
-  const [match, setMatch] = useState(() => window.matchMedia(query).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const update = () => setMatch(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, [query]);
-  return match;
 }
 
 /**

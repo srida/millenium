@@ -17,7 +17,7 @@ import { createUnitEl, updateUnitEl } from './UnitCardEl.js';
 import {
   ELEMENT_STYLES, elementsForUnit,
   COLS, TOTAL_ROWS, PLAYER_ROWS, CELL, CARD_PX, CSS_SCALE, FOV, HIGHLIGHT_RING_PX,
-  PREP_COL_MARGIN, PREP_FOCUS_Y, PREP_ROW_MARGIN, PREP_ROW_MARGIN_WEB, WEB_RAIL_PX,
+  PREP_COL_MARGIN, PREP_FOCUS_Y, PREP_ROW_MARGIN, PREP_ROW_MARGIN_WEB, webRailPxFor,
   zForRow, xForCol, cellKey as key, baseColorFor, emissiveFor,
   LOW_END_DEVICE,
 } from './constants.js';
@@ -407,7 +407,8 @@ export class Scene3D {
       // latéraux : le board dispose de toute la hauteur mais pas de toute la
       // largeur. En portrait c'est l'inverse — la main mange le bas de l'écran.
       const web = aspect > 1;
-      const usableWidth = web ? Math.max(0.35, (this.container.clientWidth - 2 * WEB_RAIL_PX) / (this.container.clientWidth || 1)) : 1;
+      const railPx = web ? webRailPxFor(this.container.clientWidth, this.container.clientHeight) : 0;
+      const usableWidth = web ? Math.max(0.35, (this.container.clientWidth - 2 * railPx) / (this.container.clientWidth || 1)) : 1;
       // Les 5 colonnes du joueur doivent tenir dans la largeur utile — sur un
       // écran étroit (mobile portrait) c'est cette contrainte qui commande le
       // zoom, sinon la moitié des cases sort de l'écran.

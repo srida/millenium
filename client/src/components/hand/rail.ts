@@ -31,25 +31,36 @@
 // (`cardFan.railLayout`) qui règle le cas d'une main courte, qui flottait au
 // milieu de la bande quelle que soit la position de celle-ci.
 //
-// ⚠️ **`w-[214px]`, et c'est la MARGE de bord qui explique l'écart avec
-// `WEB_RAIL_PX`.** `WEB_RAIL_PX` (`three/constants.ts`, 302 px) reste la
-// largeur que le cadrage caméra réserve de CHAQUE côté du board — on n'y
-// touche pas ici seul, sinon le rail dépasserait le board sans que la caméra
-// ne lui laisse la place (les deux ont été agrandis ENSEMBLE, cf.
-// `three/constants.ts`, pour donner plus de lisibilité aux cartes de
-// main/cimetière en tablette paysage, quitte à réduire un peu le board). Mais
-// le rail lui-même ne colle pas au bord VRAI de l'écran (`left-0`/`right-0`) :
-// `Hud` et `PhaseControls` dégagent tous deux ce bord d'un `px-22` (5.5rem/88
-// px) fixe — la même marge que toutes les pages en mode web — et un rail
-// flush contre l'écran ne s'accordait plus avec eux, en paysage téléphone où
-// cette marge tombe sur l'encoche/le coin arrondi de l'appareil. Le rail se
-// décale donc du MÊME `px-22` (`WEB_RAIL_OFFSET_LEFT`/`RIGHT`, ci-dessous) et
-// RÉTRÉCIT d'autant (302 px − 88 px = 214 px) pour que son bord côté board
-// reste exactement à 302 px du bord vrai — la valeur que `WEB_RAIL_PX`
-// réserve, inchangée. `railCardWidth` dérive déjà la taille des cartes de la
-// largeur MESURÉE du rail, donc rien à recalculer ailleurs pour ce changement
-// de largeur.
-export const WEB_RAIL_BAND = 'pointer-events-auto absolute bottom-14 top-16 z-20 w-[214px]';
+// ⚠️ **Deux largeurs, pas une** : `w-[214px]` sur tablette, `w-[174px]` sur
+// téléphone en paysage — c'est la MARGE de bord qui explique l'écart avec
+// `WEB_RAIL_TABLET_PX`/`WEB_RAIL_PHONE_PX`. Ces deux constantes
+// (`three/constants.ts`, 302/262 px) restent la largeur que le cadrage
+// caméra réserve de CHAQUE côté du board — on n'y touche pas ici seul, sinon
+// le rail dépasserait le board sans que la caméra ne lui laisse la place
+// (les deux bougent ENSEMBLE, cf. `three/constants.ts` : plus de lisibilité
+// pour les cartes de main/cimetière, quitte à réduire un peu le board — et
+// sur téléphone en paysage, où le conteneur est bien plus étroit, la
+// tablette écraserait le board contre le plancher de zoom). Mais le rail
+// lui-même ne colle pas au bord VRAI de l'écran (`left-0`/`right-0`) : `Hud`
+// et `PhaseControls` dégagent tous deux ce bord d'un `px-22` (5.5rem/88 px)
+// fixe — la même marge que toutes les pages en mode web — et un rail flush
+// contre l'écran ne s'accordait plus avec eux, en paysage téléphone où cette
+// marge tombe sur l'encoche/le coin arrondi de l'appareil. Le rail se décale
+// donc du MÊME `px-22` (`WEB_RAIL_OFFSET_LEFT`/`RIGHT`, ci-dessous) et
+// RÉTRÉCIT d'autant (302/262 px − 88 px = 214/174 px) pour que son bord côté
+// board reste exactement à 302/262 px du bord vrai — les valeurs que
+// `webRailPxFor` réserve, inchangées. Le choix entre les deux suit
+// `useTabletLayout` (`components/system/useWebLayout.ts`), même seuil que
+// `TABLET_BREAKPOINT_PX` côté caméra. `railCardWidth` dérive déjà la taille
+// des cartes de la largeur MESURÉE du rail, donc rien à recalculer ailleurs
+// pour ce changement de largeur.
+export const WEB_RAIL_BAND_TABLET = 'pointer-events-auto absolute bottom-14 top-16 z-20 w-[214px]';
+export const WEB_RAIL_BAND_PHONE = 'pointer-events-auto absolute bottom-14 top-16 z-20 w-[174px]';
+
+export function webRailBand(isTablet: boolean): string {
+  return isTablet ? WEB_RAIL_BAND_TABLET : WEB_RAIL_BAND_PHONE;
+}
+
 export const WEB_RAIL_OFFSET_LEFT = 'left-22';
 export const WEB_RAIL_OFFSET_RIGHT = 'right-22';
 
