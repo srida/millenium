@@ -296,8 +296,19 @@ export class CombatAnimator3D {
     }
 
     for (const t of targets) {
+      // POWER_SUMMON_TOKEN : la cible est une unité toute neuve, sans carte
+      // visuelle — `refresh()` ne la verra jamais (il ne repasse plus en mode
+      // combat). Sans ce spawn, le token existe dans la simulation (il
+      // combat, encaisse, peut mourir) mais reste invisible à l'écran.
+      const isNewToken = power_id === 'POWER_SUMMON_TOKEN' && !this._board.getUnitEntry(t.uid);
+      if (isNewToken) this._board.spawnUnit(t);
+
       const entry = this._board.getUnitEntry(t.uid);
-      if (entry) {
+      // Le token qui vient d'apparaître ne reçoit pas le flash de cible : la
+      // carte que _spawnUnitObj construit est déjà à jour, et un flash
+      // « anim-hit » sur une unité qui vient de naître se lirait comme un coup
+      // reçu plutôt que comme une invocation (déjà portée par PowerVfx).
+      if (entry && !isNewToken) {
         this._flashClass(entry.el, immune ? 'anim-immune' : _powerTargetClass(power_id));
         updateUnitEl(entry.el, t);
       }

@@ -1946,6 +1946,22 @@ export class Scene3D {
     return entry;
   }
 
+  /**
+   * Ajoute la carte visuelle d'UNE unité apparue en PLEIN COMBAT —
+   * POWER_SUMMON_TOKEN, seul cas où `board.grid` grossit après le début du
+   * combat. `refresh()` ne peut pas la voir : il ne repasse plus une fois en
+   * mode combat (cf. son en-tête). `revealEnemyUnits` ne convient pas non
+   * plus : c'est un balayage de tout un camp au lancement du combat, avec
+   * purge des unités disparues — un ajout ponctuel n'a besoin ni de l'un ni
+   * de l'autre. Sans cette carte, le token existe bien dans la simulation
+   * (il combat, encaisse, peut mourir) mais reste invisible à l'écran.
+   */
+  spawnUnit(unit: Unit): void {
+    if (this.unitObjs.has(unit.uid)) return;
+    this.unitObjs.set(unit.uid, this._spawnUnitObj(unit));
+    this._invalidate();
+  }
+
   // Synchronise le côté ennemi hors du cycle refresh() (qui ne passe plus en
   // mode combat) : en solo l'IA place ses unités APRÈS le PRÊT du joueur, donc
   // une fois la caméra déjà en combat. Les unités nouvellement invoquées
