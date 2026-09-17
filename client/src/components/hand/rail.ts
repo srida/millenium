@@ -11,9 +11,7 @@
 //
 // `top-28` dégage la barre de PV du HUD (`top-0`, ~56 px) sans venir la lécher,
 // `bottom-14` la barre de phase (`bottom-0`, pleine largeur — elle
-// intercepterait les taps malgré son fond transparent), et `w-52` doit rester
-// synchronisé avec WEB_RAIL_PX (`three/constants.ts`), la largeur que le
-// cadrage caméra réserve de chaque côté du board.
+// intercepterait les taps malgré son fond transparent).
 //
 // ⚠️ **Les deux rails du mode web sont TRANSPARENTS, et ce qui les nomme est
 // leur seul TITRE.** Ils portaient chacun un cadre teinté (jaune pour la main,
@@ -32,7 +30,24 @@
 // ⚠️ Ça ne suffisait pas à soi seul : c'est l'alignement EN HAUT de la pile
 // (`cardFan.railLayout`) qui règle le cas d'une main courte, qui flottait au
 // milieu de la bande quelle que soit la position de celle-ci.
-export const WEB_RAIL_BAND = 'pointer-events-auto absolute bottom-14 top-16 z-20 w-52';
+//
+// ⚠️ **`w-30`, pas `w-52`, et c'est la MARGE de bord qui explique l'écart.**
+// `WEB_RAIL_PX` (`three/constants.ts`, 13rem/208 px) reste la largeur que le
+// cadrage caméra réserve de CHAQUE côté du board — on n'y touche pas, sinon
+// c'est le board qui bouge sous le rail. Mais le rail lui-même ne colle plus
+// au bord VRAI de l'écran (`left-0`/`right-0`) : `Hud` et `PhaseControls`
+// dégagent tous deux ce bord d'un `px-22` (5.5rem/88 px) fixe — la même marge
+// que toutes les pages en mode web — et un rail flush contre l'écran ne
+// s'accordait plus avec eux, en paysage téléphone où cette marge tombe sur
+// l'encoche/le coin arrondi de l'appareil. Le rail se décale donc du MÊME
+// `px-22` (`WEB_RAIL_OFFSET_LEFT`/`RIGHT`, ci-dessous) et RÉTRÉCIT d'autant
+// (13rem − 5.5rem = 7.5rem = `w-30`) pour que son bord côté board reste
+// exactement à 208 px du bord vrai — la valeur que `WEB_RAIL_PX` réserve,
+// inchangée. `railCardWidth` dérive déjà la taille des cartes de la largeur
+// MESURÉE du rail, donc rien à recalculer ailleurs pour ce rétrécissement.
+export const WEB_RAIL_BAND = 'pointer-events-auto absolute bottom-14 top-16 z-20 w-30';
+export const WEB_RAIL_OFFSET_LEFT = 'left-22';
+export const WEB_RAIL_OFFSET_RIGHT = 'right-22';
 
 /**
  * Le TITRE d'une zone — celui des rails du mode web ET celui des bandes du

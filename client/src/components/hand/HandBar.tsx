@@ -4,8 +4,9 @@
 // **Portrait** : un ÉVENTAIL, à la place de l'ancienne bande (`bottom-14`).
 // **Web** (écran plus large que haut) : une PILE à deux colonnes dans le rail
 // de gauche, à la place de l'ancienne grille. La bande occupée est celle du
-// cimetière au pixel près (WEB_RAIL_BAND, `./rail.ts`), qui porte aussi la
-// largeur réservée par le cadrage caméra via WEB_RAIL_PX.
+// cimetière au pixel près (WEB_RAIL_BAND + WEB_RAIL_OFFSET_LEFT, `./rail.ts`)
+// — l'offset dégage le bord vrai de l'écran comme `Hud`/`PhaseControls`
+// (`px-22`), et la largeur restante reste synchronisée avec WEB_RAIL_PX.
 //
 // Jamais de défilement, dans aucune des deux : `./cardFan` resserre le pas puis
 // réduit la taille — 28 cartes tiennent sur un téléphone de 390 px, 42 dans un
@@ -23,7 +24,7 @@
 import { useGameStore, type HandEntry } from '../../stores/gameStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import { useElementSize } from '../system/useElementSize.js';
-import { WEB_RAIL_BAND, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
+import { WEB_RAIL_BAND, WEB_RAIL_OFFSET_LEFT, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
 import { handVisible, handTargetable, handCardVisual, handTapIntent } from './handVisual.js';
 import { fanLayout, railLayout, type CardTransform, type LayoutResult } from './cardFan.js';
 import Card3D, { cardVisualProps } from '../ui/Card3D.js';
@@ -80,7 +81,7 @@ export default function HandBar() {
 
   if (web) {
     return (
-      <div className={`${WEB_RAIL_BAND} left-0 ${visible ? '' : 'pointer-events-none opacity-0'}`}>
+      <div className={`${WEB_RAIL_BAND} ${WEB_RAIL_OFFSET_LEFT} ${visible ? '' : 'pointer-events-none opacity-0'}`}>
         <div className="mx-2 flex h-full flex-col p-1.5">
           <div className={`mb-1 shrink-0 ${ZONE_LABEL}`}>MAIN</div>
           {/* ⚠️ `min-h-0` : sans lui, un enfant de colonne flex refuse de
