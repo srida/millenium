@@ -2147,6 +2147,10 @@ function renderCardDetail() {
       <div class="field" id="f-power-speed-wrap">${counterSliderHtml('f-power-speed', 'Vitesse pouvoir', hasPower ? c.power.power_rate : null, { allowEmpty: true, emptyLabel: 'Aucune vitesse — le pouvoir ne part jamais' })}</div>
       <div class="field" id="f-power-val-wrap"><label>Valeur</label><input type="number" id="f-power-val" value="${hasPower && c.power.value != null ? c.power.value : ''}" step="0.5" placeholder="optionnel"></div>
       <div class="field" id="f-power-dur-wrap">${counterSliderHtml('f-power-dur', 'Durée de l\'effet', hasPower ? c.power.duration : null, { allowEmpty: true, kind: 'Duration', emptyLabel: 'Aucune durée — le repli du pouvoir s\'applique' })}</div>
+      <div class="field" id="f-power-token-wrap"><label>Token invoqué</label>
+        ${tokenPickHtml('f-power-token', hasPower ? c.power.token_id : null)}
+        <span style="font-size:11px;color:var(--muted);margin-top:4px">La récursion (un token qui en invoque un autre) est autorisée, bornée par les cases libres du plateau.</span>
+      </div>
     </div>
 
     <div class="section-title">Recettes d'invocation</div>
@@ -2226,6 +2230,10 @@ function togglePowerFields() {
   show('f-power-speed-wrap', !!powId);
   show('f-power-val-wrap', !!powId && (!isPureDuration || isDualPower));
   show('f-power-dur-wrap', isPureDuration || isDualPower);
+  // ⚠️ Le SEUL champ propre à POWER_SUMMON_TOKEN : quel token il invoque.
+  // Rien à voir avec Valeur/Durée — même geste que sur la fiche Token
+  // elle-même (cf. `tokenPickHtml`, partagé par les deux formulaires).
+  show('f-power-token-wrap', powId === 'POWER_SUMMON_TOKEN');
 }
 
 /**
@@ -2538,11 +2546,13 @@ function cardPowerFromForm() {
   const isDualPower = SPEED.DURATION_AND_VALUE_POWERS.includes(powId);
   const powVal = document.getElementById('f-power-val')?.value;
   const withValue = (powVal !== '' && powVal != null) ? { value: parseFloat(powVal) } : {};
+  const tokenId = document.getElementById('f-power-token-value')?.value;
+  const withTokenId = (powId === 'POWER_SUMMON_TOKEN' && tokenId) ? { token_id: tokenId } : {};
   if (SPEED.DURATION_POWERS.includes(powId) || isDualPower) {
     const dur = counterFromSlider('f-power-dur');
-    return { ...base, ...(isDualPower ? withValue : {}), ...(dur != null ? { duration: dur } : {}) };
+    return { ...base, ...(isDualPower ? withValue : {}), ...(dur != null ? { duration: dur } : {}), ...withTokenId };
   }
-  return { ...base, ...withValue };
+  return { ...base, ...withValue, ...withTokenId };
 }
 
 function syncCardFromForm() {
@@ -5379,12 +5389,30 @@ function tokenPowerFromForm() {
 /**
  * Le champ « Token invoqué » : MÊME motif que le choix des matériels d'une
  * recette d'invocation (`conditionRowHtml` / `filterConditionSearch`) —
- * puce(s) + barre de recherche avec liste déroulante — mais réduit à UNE
- * seule sélection (un token n'en invoque qu'un), donc pas de modèle à
- * resynchroniser : la valeur vit dans un champ caché, lu par
- * `tokenPowerFromForm()` au moment d'enregistrer, comme Valeur/Durée.
+ * puce + barre de recherche avec liste déroulante — mais réduit à UNE seule
+ * sélection (un pouvoir n'invoque qu'un token), donc pas de modèle à
+ * resynchroniser : la valeur vit dans un champ caché, lue par
+ * `cardPowerFromForm()` / `tokenPowerFromForm()` au moment d'enregistrer,
+ * comme Valeur/Durée.
+ *
+ * ⚠️ PARTAGÉ par la fiche Carte (`f-power-token`) et la fiche Token elle-même
+ * (`tk-power-token`, POWER_SUMMON_TOKEN peut s'assigner aux deux) : `prefix`
+ * distingue les deux jeux d'ids, sans quoi ils se recouvriraient dans le DOM
+ * quand les deux formulaires existent en même temps (l'un masqué).
  */
-function tokenPowerChipHtml(id) {
+function tokenPickHtml(prefix, currentId) {
+  return `
+    <input type="hidden" id="${prefix}-value" value="${currentId || ''}">
+    <div class="materials-list" id="${prefix}-chip">${tokenPickChipHtml(prefix, currentId)}</div>
+    <div style="position:relative;margin-top:8px">
+      <input type="text" id="${prefix}-search" placeholder="Rechercher un token..." autocomplete="off"
+        oninput="filterTokenPick('${prefix}')" onfocus="filterTokenPick('${prefix}')" onblur="hideTokenPickDropdown('${prefix}')"
+        style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
+      <div id="${prefix}-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
+    </div>`;
+}
+
+function tokenPickChipHtml(prefix, id) {
   if (!id) return `<div style="font-size:11px;color:var(--muted);padding:2px 0">Aucun token choisi</div>`;
   const tok = tokens.find(x => x.id === id);
   return `
@@ -5393,41 +5421,37 @@ function tokenPowerChipHtml(id) {
         <span>${esc(tok ? (tok.name || tok.id) : id)}</span>
         <span style="font-size:10px;color:var(--muted);font-family:monospace">${id}</span>
       </span>
-      <button onclick="clearTokenPowerToken()">×</button>
+      <button onclick="selectTokenPick('${prefix}', '')">×</button>
     </div>`;
 }
 
-function selectTokenPowerToken(id) {
-  const input = document.getElementById('tk-power-token-value');
+function selectTokenPick(prefix, id) {
+  const input = document.getElementById(`${prefix}-value`);
   if (input) input.value = id;
-  const chip = document.getElementById('tk-power-token-chip');
-  if (chip) chip.innerHTML = tokenPowerChipHtml(id);
-  const search = document.getElementById('tk-power-token-search');
+  const chip = document.getElementById(`${prefix}-chip`);
+  if (chip) chip.innerHTML = tokenPickChipHtml(prefix, id);
+  const search = document.getElementById(`${prefix}-search`);
   if (search) search.value = '';
-  const dd = document.getElementById('tk-power-token-dropdown');
+  const dd = document.getElementById(`${prefix}-dropdown`);
   if (dd) dd.style.display = 'none';
 }
 
-function clearTokenPowerToken() {
-  selectTokenPowerToken('');
-}
-
-function filterTokenPowerSearch() {
-  const q = document.getElementById('tk-power-token-search')?.value.toLowerCase() || '';
+function filterTokenPick(prefix) {
+  const q = document.getElementById(`${prefix}-search`)?.value.toLowerCase() || '';
   const results = tokens
     .filter(o => !q || (o.name || '').toLowerCase().includes(q) || o.id.toLowerCase().includes(q))
     .slice(0, 20);
-  renderTokenPowerDropdown(results);
+  renderTokenPickDropdown(prefix, results);
 }
 
-function renderTokenPowerDropdown(results) {
-  const dd = document.getElementById('tk-power-token-dropdown');
+function renderTokenPickDropdown(prefix, results) {
+  const dd = document.getElementById(`${prefix}-dropdown`);
   if (!dd) return;
   if (!results.length) {
     dd.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
   } else {
     dd.innerHTML = results.map(o => `
-      <div onmousedown="selectTokenPowerToken('${o.id}')"
+      <div onmousedown="selectTokenPick('${prefix}', '${o.id}')"
         style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
         onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
         <div>
@@ -5439,10 +5463,10 @@ function renderTokenPowerDropdown(results) {
   dd.style.display = 'block';
 }
 
-function hideTokenPowerDropdown() {
+function hideTokenPickDropdown(prefix) {
   // Retardé pour que l'onmousedown d'une entrée parte d'abord.
   setTimeout(() => {
-    const dd = document.getElementById('tk-power-token-dropdown');
+    const dd = document.getElementById(`${prefix}-dropdown`);
     if (dd) dd.style.display = 'none';
   }, 150);
 }
@@ -5515,16 +5539,7 @@ function renderTokenDetail() {
       <div class="field" id="tk-power-val-wrap"><label>Valeur</label><input type="number" id="tk-power-val" value="${hasPower && t.power.value != null ? t.power.value : ''}" step="0.5" placeholder="optionnel"></div>
       <div class="field" id="tk-power-dur-wrap">${counterSliderHtml('tk-power-dur', 'Durée de l\'effet', hasPower ? t.power.duration : null, { allowEmpty: true, kind: 'Duration', emptyLabel: 'Aucune durée — le repli du pouvoir s\'applique' })}</div>
       <div class="field" id="tk-power-token-wrap"><label>Token invoqué</label>
-        <input type="hidden" id="tk-power-token-value" value="${hasPower && t.power.token_id ? t.power.token_id : ''}">
-        <div class="materials-list" id="tk-power-token-chip">
-          ${tokenPowerChipHtml(hasPower ? t.power.token_id : null)}
-        </div>
-        <div style="position:relative;margin-top:8px">
-          <input type="text" id="tk-power-token-search" placeholder="Rechercher un token..." autocomplete="off"
-            oninput="filterTokenPowerSearch()" onfocus="filterTokenPowerSearch()" onblur="hideTokenPowerDropdown()"
-            style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
-          <div id="tk-power-token-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
-        </div>
+        ${tokenPickHtml('tk-power-token', hasPower ? t.power.token_id : null)}
         <span style="font-size:11px;color:var(--muted);margin-top:4px">La récursion (un token qui en invoque un autre) est autorisée, bornée par les cases libres du plateau.</span>
       </div>
     </div>
@@ -7915,10 +7930,11 @@ async function applyMassEdit() {
     const base = { id: powId, power_rate: prev?.power_rate ?? 50 };
     const isDualPower = SPEED.DURATION_AND_VALUE_POWERS.includes(powId);
     const withValue = prev?.value != null ? { value: prev.value } : {};
+    const withTokenId = (powId === 'POWER_SUMMON_TOKEN' && prev?.token_id) ? { token_id: prev.token_id } : {};
     if (SPEED.DURATION_POWERS.includes(powId) || isDualPower) {
-      return { ...base, ...(isDualPower ? withValue : {}), ...(prev?.duration != null ? { duration: prev.duration } : {}) };
+      return { ...base, ...(isDualPower ? withValue : {}), ...(prev?.duration != null ? { duration: prev.duration } : {}), ...withTokenId };
     }
-    return { ...base, ...withValue };
+    return { ...base, ...withValue, ...withTokenId };
   };
   for (const id of ids) {
     const card = cards.find(c => c.id === id);
