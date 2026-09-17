@@ -48,6 +48,14 @@ export interface AttributeEffectLike {
   stat?: string;
   value?: number;
   value_per?: string;
+  /**
+   * Multiplie un `shield` d'attribut par les alliés vivants du camp visé.
+   *
+   * ⚠️ Absent ou `true` = multiplie (le geste historique, avant que le champ
+   * existe) ; seul `false` explicite désactive. C'est ce qui garde le
+   * catalogue livré inchangé sans qu'un seul attribut ait besoin d'être repris.
+   */
+  per_ally?: boolean;
   trigger?: string;
   max?: number;
   hp_percent?: number;
@@ -403,9 +411,12 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
           pousse([{
             action: 'modifier', cible: cibleUnite(), champ: 'bouclier',
             operateur: '+', valeur: effect.value as number, duree: 'combat',
-            // Le bouclier d'attribut est TOUJOURS × alliés vivants — c'est le
-            // geste, pas une option. `value_per` y est décoratif (§6.1).
-            parAllieVivant: true,
+            // ⚠️ `per_ally` est une OPTION de la fiche, comme `value_per` pour
+            // `stat_bonus` — mais son défaut est inversé : absent (donnée
+            // livrée d'avant le champ) ou `true` multiplie encore, seul `false`
+            // explicite désactive. C'est ce qui rend le champ ajoutable sans
+            // reprise de catalogue.
+            ...(effect.per_ally !== false ? { parAllieVivant: true } : {}),
           }]);
           return;
 

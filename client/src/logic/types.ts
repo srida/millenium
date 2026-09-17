@@ -104,6 +104,8 @@ export interface AttributeEffect {
   value?: number;
   /** stat_bonus : multiplie value par le nombre d'ennemis portant cet attribut. */
   value_per?: string;
+  /** shield : multiplie value par les alliés vivants du camp visé. Défaut true (absent = multiplie). */
+  per_ally?: boolean;
   /** stat_modifier : on_ally_neutralized | on_enemy_neutralized */
   trigger?: string;
   hp_percent?: number;

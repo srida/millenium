@@ -206,6 +206,16 @@ export const CHAMPS = Object.freeze({
     // compilateur le refuse désormais ; la liste ne le propose plus.
     aide: 'Un attribut du catalogue. Vide = pas de multiplication.',
   },
+  per_ally: {
+    label: 'Multiplié par le nombre d’alliés vivants',
+    saisie: 'case', facultatif: true, defaut: true, omettreSiDefaut: true,
+    // ⚠️ Défaut COCHÉ, à l'envers de `value_per` : c'est le geste historique du
+    // bouclier d'attribut (§6.1, avant que le champ existe), et le décocher est
+    // l'opt-out. `omettreSiDefaut` fait qu'une fiche jamais rouverte reste
+    // silencieuse — aucune donnée livrée n'a ce champ, et l'absence continue de
+    // valoir « coché ».
+    aide: 'Coché (par défaut) : la valeur est multipliée par le nombre d’unités alliées vivantes du camp visé. Décoché : la valeur s’applique telle quelle, sans multiplication.',
+  },
   max: { label: 'Maximum (optionnel)', saisie: 'nombre', facultatif: true, defaut: '' },
   trigger: { label: 'Déclencheur', saisie: 'choix', options: 'triggers', defaut: 'on_enemy_neutralized' },
   hp_percent: { label: '% des PV max', saisie: 'nombre', defaut: 50 },
@@ -320,11 +330,12 @@ export const TYPES = Object.freeze({
   shield: {
     label: 'Bouclier',
     terrain: { quands: ['debut_combat'], champs: { value: {}, target_attributes: {} } },
-    // ⚠️ Pas de `value_per` ici, et c'est un RETRAIT volontaire : le bouclier
-    // d'attribut est TOUJOURS × alliés vivants, le compilateur pose
-    // `parAllieVivant: true` sans jamais lire `value_per`. Le champ était
-    // décoratif, et c'est lui qui rendait `active_unit` proposable (§6.1).
-    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: { value: {} } },
+    // ⚠️ Toujours PAS de `value_per` ici : ce multiplicateur-là désigne un
+    // ATTRIBUT adverse, une question que le bouclier ne pose pas. `per_ally`
+    // est un multiplicateur DIFFÉRENT (§6.1) — × les alliés vivants du camp
+    // visé, sans lire aucun attribut — devenu une case à cocher plutôt qu'un
+    // geste imposé par le compilateur.
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: { value: {}, per_ally: {} } },
     magie: { quands: ['immediat'], champs: { value: {} } },
   },
   heal: {

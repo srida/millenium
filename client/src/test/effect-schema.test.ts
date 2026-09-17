@@ -97,6 +97,11 @@ function valeurPour(champ: any, variante = 0): any {
       return variante ? [attributs[1].id] : [UN_ATTRIBUT];
     case 'attributs_multi':
       return variante ? [attributs[1].id] : [UN_ATTRIBUT];
+    // ⚠️ `false` puis `true`, jamais l'inverse : `per_ally` lit `!== false`
+    // (§6.1), donc `true` et l'absence compilent PAREIL — seule la variante 0
+    // (`false`) doit produire une compilation différente de la 1.
+    case 'case':
+      return Boolean(variante);
     default:
       // ⚠️ Jamais 0 ni 1 : `value` est lue en `||` par une poignée de types, où
       // un 0 vaut le DÉFAUT du champ. Une sonde à 0 rendrait donc la même
