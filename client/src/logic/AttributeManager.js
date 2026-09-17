@@ -333,6 +333,10 @@ export class AttributeManager {
       board_slot_bonus: joueur.slots_board,
       damage_multiplier_bonus: joueur.multiplicateur,
       shopping_bonus: joueur.magies_shop,
+      // Gain/perte de PV du joueur — pendant de `damage_multiplier_bonus`,
+      // même geste : le récapitulatif de round doit pouvoir dire d'où il sort.
+      player_hp_bonus: joueur.pv,
+      player_hp_sources: joueur.sources_pv,
       // Quel ATTRIBUT a crédité quelle pioche (cf. types.DrawSourceEntry). Pure
       // description : la popup de pioche le lit, aucun calcul ne s'en sert.
       draw_sources: joueur.sources,

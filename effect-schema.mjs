@@ -267,6 +267,12 @@ export const CHAMPS = Object.freeze({
     label: 'Durée du pouvoir', saisie: 'compteur_duree', defaut: 50,
     aide: 'Compteur 0–100. Les quatre pouvoirs de durée lisent ceci, jamais « Valeur ».',
   },
+  target: {
+    label: 'Qui encaisse', saisie: 'choix_direct', defaut: 'allie',
+    options: [['allie', 'Le joueur (soi)'], ['ennemi', 'L’adversaire']],
+    omettreSiDefaut: true,
+    aide: 'Le joueur (gain si Valeur > 0, perte si Valeur < 0) ou l’adversaire.',
+  },
 });
 
 /**
@@ -430,8 +436,23 @@ export const TYPES = Object.freeze({
     attribut: { quands: ['fin_combat'], champs: { value: { defaut: 1 }, max: {} } },
   },
   player_hp_bonus: {
-    label: 'Bonus de PV du joueur',
+    label: 'Gagner / perdre des PV',
     court: 'Bonus PV joueur',
+    // ⚠️ `target` n'est offert qu'au TERRAIN : c'est le seul porteur où
+    // « l'adversaire » a un registre où encaisser, câblé en un point unique
+    // (`BoardEffect.applyBoardEffects`). L'attribut et la magie restent
+    // self-cible pour l'instant — les ouvrir sèmerait un champ que le moteur
+    // ignore en silence (`AttributeManager`/`GameSession._runMagie` ne
+    // fournissent pas de registre adverse), exactement l'« effet mort » que ce
+    // fichier existe pour empêcher.
+    terrain: { quands: ['debut_combat'], champs: { value: {}, target: {} } },
+    // ⚠️ `fin_combat` SEUL, comme `draw_bonus`/`board_slot_bonus`/
+    // `damage_multiplier_bonus`/`shopping_bonus` : ce sont les ressources
+    // JOUEUR, et seul `_applyEndForSide` (fin de combat) verse ce que le
+    // moteur accumule — un déclencheur `debut_combat`/`a_l_invocation`/
+    // `pouvoir_utilise` passe par `_monde(..., ressourcesVides(), [])`, un
+    // accumulateur jeté après coup.
+    attribut: { quands: ['fin_combat'], champs: { value: {} } },
     magie: { quands: ['immediat'], champs: { value: {} } },
   },
 

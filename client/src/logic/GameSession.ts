@@ -162,6 +162,14 @@ export interface EndRoundResult {
    */
   playerMultiplierSources: BonusSourceEntry[];
   enemyMultiplierSources: BonusSourceEntry[];
+  /**
+   * Gain/perte de PV du joueur pour CE round — terrain (au lancement du
+   * combat) et attribut (`fin_combat`) cumulés. Même discipline que le
+   * multiplicateur : `sum(playerHpSources.value) === playerHpBonus`. Vide en
+   * l'absence de tout `player_hp_bonus` d'attribut ou de terrain ce round.
+   */
+  playerHpBonus: number;
+  playerHpSources: BonusSourceEntry[];
   /** Dégâts réellement infligés à l'ADVERSAIRE de ce camp (0 si ce camp n'encaisse pas ce round). */
   playerDamageDealt: number;
   enemyDamageDealt: number;
@@ -714,7 +722,10 @@ export class GameSession {
     // ⚠️ TOUS les effets du terrain, pas seulement le premier : `effects` est
     // une liste cumulée (cf. `BoardEffect.boardEffects`, seul lecteur des deux
     // formes de la donnée).
-    applyBoardEffects(boardData, { playerUnits, enemyUnits: this.enemyUnits, gameState: this.gameState });
+    applyBoardEffects(boardData, {
+      playerUnits, enemyUnits: this.enemyUnits, gameState: this.gameState,
+      pvp: this.deps.mode === 'pvp',
+    });
 
     const combat = new CombatManager(this.board, playerUnits, this.enemyUnits, attributeManager);
     this._combat = combat;
@@ -834,6 +845,8 @@ export class GameSession {
         ? combatOutcome.enemyMultiplier - this.gameState.enemy_multiplier : 0,
       playerMultiplierSources: combatOutcome.playerMultiplierSources,
       enemyMultiplierSources: combatOutcome.enemyMultiplierSources,
+      playerHpBonus: combatOutcome.playerHpBonus,
+      playerHpSources: combatOutcome.playerHpSources,
       playerDamageDealt: combatOutcome.playerDamageDealt,
       enemyDamageDealt: combatOutcome.enemyDamageDealt,
       isGameOver: this.gameState.isGameOver(),

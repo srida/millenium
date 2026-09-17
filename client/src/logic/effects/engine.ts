@@ -48,13 +48,17 @@ export interface Ressources {
   /** Provenance de `multiplicateur` — même discipline, même invariant :
    *  `sum(value) === multiplicateur`. */
   sources_multiplicateur: BonusSourceEntry[];
+  /** Provenance de `pv` — même discipline, même invariant : `sum(value) === pv`.
+   *  ⚠️ Peut être NÉGATIVE (un `pv` infligé), contrairement aux deux registres
+   *  ci-dessus qui ne créditent jamais qu'à la hausse. */
+  sources_pv: BonusSourceEntry[];
   reanimees: Unit[];
 }
 
 export function ressourcesVides(): Ressources {
   return {
     pioches: 0, pioches_garanties: [], slots_board: 0, multiplicateur: 0,
-    magies_shop: 0, pv: 0, sources: [], sources_multiplicateur: [], reanimees: [],
+    magies_shop: 0, pv: 0, sources: [], sources_multiplicateur: [], sources_pv: [], reanimees: [],
   };
 }
 
@@ -393,6 +397,15 @@ function appliqueSurJoueur(t: TacheModifier, monde: Monde, trace: Trace): void {
       return;
     case 'pv':
       cible.pv += d;
+      // ⚠️ `t.provenance` n'est posé QUE par le nouveau `player_hp_bonus`
+      // d'attribut/terrain (compile.ts) — jamais par le contrecoup d'une magie
+      // (`cost_hp`), `drain_life` ou `sacrifice_card_hp`, qui touchent aussi
+      // `pv` mais n'ont rien à annoncer au récapitulatif de round. Sans cette
+      // garde, chaque contrecoup peuplerait le registre et la popup de
+      // résultat se remplirait de lignes qui ne sont pas des bonus d'archétype.
+      if (d !== 0 && t.provenance) {
+        cible.sources_pv.push({ kind: t.provenance, ref: monde.source ?? '', value: d });
+      }
       trace.applique.push(`joueur·pv+${d}`);
       return;
     case 'pioches_garanties':

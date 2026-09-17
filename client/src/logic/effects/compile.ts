@@ -179,6 +179,25 @@ export function compileBoard(board: BoardDef | null | undefined): CompilationRes
         return;
       }
 
+      case 'player_hp_bonus': {
+        effets.push({
+          id, porteur, trigger,
+          taches: [{
+            action: 'modifier',
+            // ⚠️ `target` dit QUI encaisse — `allie` (le joueur, gain ou coût
+            // signé par `value`) ou `ennemi` (l'adversaire). Absent = `allie`,
+            // le geste historique d'un `player_hp_bonus` de magie.
+            cible: { conteneur: 'joueur', camp: effect.target === 'ennemi' ? 'ennemi' : 'allie', combien: 'un' },
+            champ: 'pv',
+            operateur: '+',
+            valeur: effect.value as number,
+            duree: 'round',
+            provenance: 'terrain',
+          }],
+        });
+        return;
+      }
+
       case 'draw_bonus': {
         effets.push({
           id, porteur, trigger,
@@ -264,6 +283,7 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   board_slot_bonus: ['fin_combat'],
   damage_multiplier_bonus: ['fin_combat'],
   shopping_bonus: ['fin_combat'],
+  player_hp_bonus: ['fin_combat'],
 };
 
 /**
@@ -478,6 +498,21 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
           }]);
           return;
         }
+
+        case 'player_hp_bonus':
+          // ⚠️ Toujours `allie` : `target` n'est PAS offert à l'attribut (cf.
+          // effect-schema.mjs) — le lire ici lirait un champ que l'éditeur ne
+          // propose pas, exactement ce que la sonde inverse interdit.
+          pousse([{
+            action: 'modifier',
+            cible: { conteneur: 'joueur', camp: 'allie', combien: 'un' },
+            champ: 'pv',
+            operateur: '+',
+            valeur: effect.value as number,
+            duree: 'round',
+            provenance: 'attribut',
+          }]);
+          return;
 
         case 'guaranteed_draw':
           pousse([{
@@ -701,7 +736,13 @@ export function compileMagie(magie: MagieLike): CompilationResult {
       return { effets, refus };
 
     case 'player_hp_bonus':
-      pousse([{ action: 'modifier', cible: leJoueur(), champ: 'pv', operateur: '+', valeur: e.value as number, duree: 'partie' }]);
+      // ⚠️ Toujours `allie` : `target` n'est PAS offert à la magie (cf.
+      // effect-schema.mjs) — le geste historique, self-cible.
+      pousse([{
+        action: 'modifier',
+        cible: leJoueur(),
+        champ: 'pv', operateur: '+', valeur: e.value as number, duree: 'partie', provenance: 'magie',
+      }]);
       return { effets, refus };
 
     case 'board_slot_bonus':

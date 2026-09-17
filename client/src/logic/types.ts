@@ -174,6 +174,9 @@ export interface BoardEffectDef {
    * ciblage, donc plus de cumul en ET à tenir.
    */
   target_attributes?: string[];
+  /** Qui encaisse un `player_hp_bonus` — `allie` (le joueur) ou `ennemi`
+   *  (l'adversaire). Absent = `allie`. */
+  target?: 'allie' | 'ennemi';
 }
 
 export interface BoardDef {
@@ -309,6 +312,14 @@ export interface EndOfCombatAttributeResult {
    * que ce soit.
    */
   damage_multiplier_sources?: BonusSourceEntry[];
+  /**
+   * Gain/perte de PV du joueur, versé par un attribut à `fin_combat`
+   * (`player_hp_bonus`, self-cible). Pendant de `damage_multiplier_bonus`,
+   * même geste, même usage.
+   */
+  player_hp_bonus?: number;
+  /** Provenance du champ ci-dessus — même discipline que `draw_sources`. */
+  player_hp_sources?: BonusSourceEntry[];
   /**
    * Pendant de `draw_bonus` / `guaranteed_draws`, côté ENNEMI : contrairement
    * aux autres ressources de fin de combat (slot, multiplicateur, Shopping),

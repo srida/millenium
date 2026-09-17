@@ -216,6 +216,59 @@ describe('Cumul des effets d\'un terrain', () => {
     expect(gameState.player_extra_draws).toBe(3);
   });
 
+  // ⚠️ Régression : `player_hp_bonus` de terrain n'existait pas.
+  // Mutation : retirer le bloc `ressources.pv` d'`applyBoardEffects` → ROUGE
+  // (player_hp ne bouge plus, et sa provenance disparaît).
+  it('player_hp_bonus (allie) crédite player_hp et sa provenance', () => {
+    const gameState = new GameState();
+    applyBoardEffects(
+      { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: 40 }] } as any,
+      { gameState } as any
+    );
+    expect(gameState.player_hp).toBe(1000); // déjà au plafond
+    expect(gameState.player_hp_sources).toEqual([{ kind: 'terrain', ref: 'BOARD_HP', value: 40 }]);
+  });
+
+  // Mutation : le clamp bas retiré (`Math.max(0, …)`) → ROUGE (player_hp négatif).
+  it('player_hp_bonus (allie) négatif inflige au joueur, clampé à 0', () => {
+    const gameState = new GameState();
+    gameState.player_hp = 10;
+    applyBoardEffects(
+      { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: -50 }] } as any,
+      { gameState } as any
+    );
+    expect(gameState.player_hp).toBe(0);
+  });
+
+  // ⚠️ Régression : « infliger à l'adversaire » (`target: 'ennemi'`).
+  // Mutation : `ressourcesEnnemies` non passée à `executer` → ROUGE (enemy_hp
+  // ne bouge plus).
+  it('player_hp_bonus (ennemi) inflige à enemy_hp hors PvP', () => {
+    const gameState = new GameState();
+    applyBoardEffects(
+      { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: -60, target: 'ennemi' }] } as any,
+      { gameState } as any
+    );
+    expect(gameState.enemy_hp).toBe(1000 - 60);
+    // Le sélecteur `ennemi` ne touche jamais au registre du joueur.
+    expect(gameState.player_hp).toBe(1000);
+    expect(gameState.player_hp_sources).toEqual([]);
+  });
+
+  // ⚠️ Régression : exclusion PvP — décision explicite du ticket. `enemy_hp`
+  // n'est pas autoritaire côté client en PvP (réécrit depuis le rapport de
+  // l'adversaire), donc y infliger un effet calculé localement risquerait un
+  // désaccord de fin de partie (`result_mismatch`), comme `damage_multiplier_bonus`.
+  // Mutation : le garde-fou `!pvp` retiré → ROUGE (enemy_hp bouge quand même en PvP).
+  it('player_hp_bonus (ennemi) ne touche PAS enemy_hp en PvP', () => {
+    const gameState = new GameState();
+    applyBoardEffects(
+      { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: -60, target: 'ennemi' }] } as any,
+      { gameState, pvp: true } as any
+    );
+    expect(gameState.enemy_hp).toBe(1000);
+  });
+
   // Rouge si `applyBoardEffects` cesse de nommer le terrain (`sourceId`), ou si
   // le crédit et son inscription se désolidarisent : la popup de pioche
   // annoncerait alors un « +3 » venu de nulle part.

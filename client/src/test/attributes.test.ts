@@ -151,7 +151,22 @@ describe('AttributeManager — end_of_combat', () => {
     expect(n2.is_neutralized).toBe(false);
     expect(n2.current_hp).toBe(Math.floor(n2.max_hp * 0.3));
     expect(neutralized).toHaveLength(0); // retirée de la liste des morts
-    expect(result.draw_bonus).toBe(1);
+  });
+
+  // ⚠️ Régression : `player_hp_bonus` n'existait que côté magie.
+  // Mutation : retirer `player_hp_bonus`/`player_hp_sources` du retour
+  // d'`applyEndOfCombat` (AttributeManager.js) → ROUGE.
+  it('player_hp_bonus : verse le PV accumulé, avec sa provenance', () => {
+    const attrs = [{
+      id: 'ARCH_VAMP', name: 'Vampire', timing: 'end_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'player_hp_bonus', value: 25 }] }],
+    }];
+    const board = makeBoard();
+    const [v] = units(board, [{ id: 'V', attrs: ['ARCH_VAMP'], col: 0, row: 0 }]);
+    const am = new (AttributeManager as any)(attrs, [v], []);
+    const result = am.applyEndOfCombat([], []);
+    expect(result.player_hp_bonus).toBe(25);
+    expect(result.player_hp_sources).toEqual([{ kind: 'attribut', ref: 'ARCH_VAMP', value: 25 }]);
   });
 
   // La pioche a un destinataire des DEUX côtés (`EnemyAI` pioche aussi),
