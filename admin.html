@@ -5442,7 +5442,7 @@ function renderTokenDetail() {
       </div>
       <div class="field" id="tk-power-speed-wrap">${counterSliderHtml('tk-power-speed', 'Vitesse pouvoir', hasPower ? t.power.power_rate : null, { allowEmpty: true, emptyLabel: 'Aucune vitesse — le pouvoir ne part jamais' })}</div>
       <div class="field" id="tk-power-val-wrap"><label>Valeur</label><input type="number" id="tk-power-val" value="${hasPower && t.power.value != null ? t.power.value : ''}" step="0.5" placeholder="optionnel"></div>
-      <div class="field" id="tk-power-dur-wrap">${counterSliderHtml('tk-power-dur', 'Durée de l\\'effet', hasPower ? t.power.duration : null, { allowEmpty: true, kind: 'Duration', emptyLabel: 'Aucune durée — le repli du pouvoir s\\'applique' })}</div>
+      <div class="field" id="tk-power-dur-wrap">${counterSliderHtml('tk-power-dur', 'Durée de l\'effet', hasPower ? t.power.duration : null, { allowEmpty: true, kind: 'Duration', emptyLabel: 'Aucune durée — le repli du pouvoir s\'applique' })}</div>
       <div class="field" id="tk-power-token-wrap"><label>Token invoqué</label>
         <select id="tk-power-token">
           <option value="">— choisir —</option>
