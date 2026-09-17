@@ -22,8 +22,7 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
   const playerName = user?.username ?? 'Toi';
 
   const web = useWebLayout();
-  var classname_header="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-2 pt-[max(0.5rem,env(safe-area-inset-top))]"
-  web ? classname_header+=" px-22" : classname_header+=""
+  const classname_header = `pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-2 pt-[max(0.5rem,env(safe-area-inset-top))]${web ? ' px-22' : ''}`;
 
   return (
     <div className={classname_header}>

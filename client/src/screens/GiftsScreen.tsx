@@ -49,6 +49,7 @@ function lotLabel(lot: GiftLot): string {
 export default function GiftsScreen() {
   const user = useAuthStore(s => s.user);
   const { snapshot, loading, error, reveal, load, closeReveal } = useGiftStore();
+  const web = useWebLayout();
 
   useEffect(() => { void load(true); }, [load]);
 
@@ -57,9 +58,7 @@ export default function GiftsScreen() {
   const pending = snapshot?.gifts.filter(g => !g.claimed) ?? [];
   const claimed = snapshot?.gifts.filter(g => g.claimed) ?? [];
 
-  const web = useWebLayout();
-  var classname_title="flex items-center gap-3 border-b border-line py-3"
-  web ? classname_title+=" px-22" : classname_title+=" px-6"
+  const classname_title = `flex items-center gap-3 border-b border-line py-3${web ? ' px-22' : ' px-6'}`;
 
   return (
     <main className="flex min-h-full flex-col relative z-10 text-white">

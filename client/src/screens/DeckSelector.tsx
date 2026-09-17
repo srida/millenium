@@ -83,12 +83,9 @@ export default function DeckSelector() {
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const web = useWebLayout();
-  var classname_title="border-b border-line py-3"
-  web ? classname_title+=" px-22" : classname_title+=" px-6"
-  var classname_body="flex-1 space-y-3 overflow-y-auto p-4"
-  web ? classname_body+=" px-22" : classname_title+=""
-  var classname_button="sticky bottom-0 z-10 space-y-2 border-t border-line bg-surface/95 p-4"
-  web ? classname_button+=" px-22" : classname_title+=""
+  const classname_title = `border-b border-line py-3${web ? ' px-22' : ' px-6'}`;
+  const classname_body = `flex-1 space-y-3 overflow-y-auto p-4${web ? ' px-22' : ''}`;
+  const classname_button = `sticky bottom-0 z-10 space-y-2 border-t border-line bg-surface/95 p-4${web ? ' px-22' : ''}`;
 
   useEffect(() => { refresh(); }, [refresh]);
 

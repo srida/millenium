@@ -94,8 +94,7 @@ export default function ProfileScreen() {
   const avatarIds = cosmeticSnapshot ? selectableAvatars() : FALLBACK_AVATARS;
 
   const web = useWebLayout();
-  var classname_title="flex items-center gap-3 border-b border-line py-3"
-  web ? classname_title+=" px-22" : classname_title+=" px-6"
+  const classname_title = `flex items-center gap-3 border-b border-line py-3${web ? ' px-22' : ' px-6'}`;
 
   // Paliers de niveau : le BARÈME vient du serveur (levels.js) plutôt que
   // d'être recopié ici — les deux ne peuvent donc pas diverger. Pas de store

@@ -15,10 +15,9 @@ import { useWebLayout } from '../system/useWebLayout.js';
 
 export default function DeckCoach(props: DeckCoachState) {
   const step = deckCoachStep(props);
-  if (!step) return null;
   const web = useWebLayout();
-  var classname_body="border-t border-line bg-surface/95 pt-3"
-  web ? classname_body+=" px-22" : classname_body+=" px-4"
+  if (!step) return null;
+  const classname_body = `border-t border-line bg-surface/95 pt-3${web ? ' px-22' : ' px-4'}`;
 
   return (
     <div className={classname_body}>

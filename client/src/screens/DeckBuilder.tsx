@@ -69,10 +69,8 @@ export default function DeckBuilder() {
   const refreshDecks = useDeckStore(s => s.refresh);
 
   const web = useWebLayout();
-  var classname_title="flex items-center gap-3 px-4 py-3"
-  web ? classname_title+=" px-22" : classname_title+=" px-6"
-  var classname_button="sticky bottom-0 z-20 flex shrink-0 gap-2 border-t border-line bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-  web ? classname_button+=" px-22" : classname_title+=""
+  const classname_title = `flex items-center gap-3 px-4 py-3${web ? ' px-22' : ' px-6'}`;
+  const classname_button = `sticky bottom-0 z-20 flex shrink-0 gap-2 border-t border-line bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]${web ? ' px-22' : ''}`;
 
   // Nom du deck à éditer, figé au montage. Il vient du param de navigation, et
   // de nulle part ailleurs : le détour par `sessionStorage` (setPendingEdit /
@@ -565,10 +563,8 @@ function LibraryPanel({
     setQuery(Query.toggleFacet(query, schema, field, value, { op }));
 
   const web = useWebLayout();
-  var classname_filter="space-y-2 border-b border-line p-3"
-  web ? classname_filter+=" px-22" : classname_filter+=""
-  var classname_cards="min-h-0 flex-1 overflow-y-auto p-3"
-  web ? classname_cards+=" px-22" : classname_cards+=""
+  const classname_filter = `space-y-2 border-b border-line p-3${web ? ' px-22' : ''}`;
+  const classname_cards = `min-h-0 flex-1 overflow-y-auto p-3${web ? ' px-22' : ''}`;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -644,8 +640,7 @@ function DeckPanel({
 }: any) {
   const clearHandlers = usePressSquash<HTMLButtonElement>(onClear, false).handlers;
   const web = useWebLayout();
-  var classname_body="min-h-0 flex-1 overflow-y-auto p-3"
-  web ? classname_body+=" px-22" : classname_body+=""
+  const classname_body = `min-h-0 flex-1 overflow-y-auto p-3${web ? ' px-22' : ''}`;
   return (
     <div className={classname_body}>
       <input
