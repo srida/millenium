@@ -12,6 +12,7 @@
 // qui lirait `board.effect` afficherait « Aucun effet » sur les terrains neufs.
 import { boardEffects } from '../../logic/BoardEffect.js';
 import { boardEffectLabel, boardTargetsUnits, boardTargetAttributes } from '../../data/BoardInfo.js';
+import { magieName } from '../../data/gameNames.js';
 import AttrIcon, { attributeName } from './AttrIcon.js';
 import type { BoardDef, BoardEffectDef } from '../../logic/types.js';
 
@@ -62,7 +63,7 @@ export default function TerrainEffects({ board, center = false, className = '' }
     <div className={`space-y-1.5 ${className}`}>
       {effects.map((effect, i) => (
         <div key={i}>
-          <div className="text-xs text-white/70">{boardEffectLabel(effect)}</div>
+          <div className="text-xs text-white/70">{boardEffectLabel(effect, undefined, undefined, magieName)}</div>
           <TargetChips effect={effect} center={center} />
         </div>
       ))}

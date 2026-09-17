@@ -143,7 +143,12 @@ const POWER_LABELS = {
  * proposait des magies libellées « Pioche garantie ARCH_047 ce tour ». Le défaut
  * ne ment pas (l'id est la vérité), mais aucun écran ne doit s'en contenter.
  */
-const RAW_NAMES = { attribute: (id) => id, card: (id) => id };
+const RAW_NAMES = { attribute: (id) => id, card: (id) => id, magie: (id) => id };
+
+/** Les trois libellés de rareté — le jumeau local de `MagieOffer.RARITY_LABELS`.
+ *  ⚠️ Pas un import : `MagieOffer.ts` importe déjà `tierShift` d'ici, et
+ *  l'inverse fermerait un cycle. */
+const RARITY_NAMES = { 1: 'Commune', 2: 'Rare', 3: 'Légendaire' };
 
 /**
  * `guaranteed_draw` porte des critères FACULTATIFS qui se cumulent : le tier,
@@ -162,6 +167,17 @@ function guaranteedDrawLabel(e, names) {
   parts.push(...attributes.map(names.attribute));
   if (cardIds.length) parts.push(cardIds.map(names.card).join(' ou '));
   return parts.length ? `Pioche garantie ${parts.join(' · ')} ce tour` : 'Pioche garantie ce tour';
+}
+
+/**
+ * `guaranteed_magie` porte deux critères FACULTATIFS qui se cumulent : une
+ * rareté et/ou une magie précise (jamais une liste — cf. `GuaranteedMagie`).
+ */
+function guaranteedMagieLabel(e, names) {
+  const parts = [];
+  if (e.rarity) parts.push(RARITY_NAMES[e.rarity] ?? `rareté ${e.rarity}`);
+  if (e.magie_id) parts.push(names.magie(e.magie_id));
+  return parts.length ? `Magie garantie (${parts.join(', ')}) à la prochaine Phase Shopping` : 'Magie garantie à la prochaine Phase Shopping';
 }
 
 /**
@@ -211,9 +227,13 @@ export function needsHandTarget(magie) {
 /**
  * La description d'une magie, en français.
  *
- * @param names — de quoi nommer un attribut (`names.attribute`) et une carte
- *   (`names.card`). ⚠️ À FOURNIR par tout écran de jeu : le défaut rend les ids
- *   bruts, ce qui affichait « ARCH_047 » là où le joueur attend « Dragon ».
+ * @param {any} magie
+ * @param {{ attribute?: (id: string) => string, card?: (id: string) => string, magie?: (id: string) => string }} [names]
+ *   — de quoi nommer un attribut (`names.attribute`), une carte (`names.card`)
+ *   et une magie (`names.magie`, pour `guaranteed_magie`). Chacun est
+ *   FACULTATIF — `effectLabel` complète avec `RAW_NAMES` — mais à FOURNIR par
+ *   tout écran de jeu : le défaut rend les ids bruts, ce qui affichait
+ *   « ARCH_047 » là où le joueur attend « Dragon ».
  */
 export function effectLabel(magie, names = RAW_NAMES) {
   const e = magie?.effect;
@@ -225,6 +245,7 @@ export function effectLabel(magie, names = RAW_NAMES) {
     case 'stat_modifier':    return `×${e.value} ${STAT_NAMES[e.stat] || e.stat} sur une unité (permanent)`;
     case 'draw_bonus':       return `+${e.value} carte${e.value > 1 ? 's' : ''} supplémentaire${e.value > 1 ? 's' : ''} ce tour`;
     case 'guaranteed_draw':  return guaranteedDrawLabel(e, names);
+    case 'guaranteed_magie': return guaranteedMagieLabel(e, names);
     case 'heal':             return 'Soigne ENTIÈREMENT une unité (PV au maximum)';
     case 'team_heal':        return `Soigne toutes tes unités de ${e.value} PV`;
     case 'revive':           return `Réanime une unité du cimetière à ${e.value}% de ses PV`;
@@ -232,7 +253,10 @@ export function effectLabel(magie, names = RAW_NAMES) {
     case 'grant_power':      return `Donne le pouvoir ${POWER_LABELS[e.power_id] || e.power_id || '?'} à une unité (remplace le sien)`;
     case 'power_cooldown':   return `Charge le pouvoir d'une unité ${e.value} fois plus vite`;
     case 'damage_multiplier_bonus': return `+${e.value} au multiplicateur de dégâts, jusqu'à la fin de la partie`;
-    case 'player_hp_bonus':  return `+${e.value} PV joueur`;
+    // ⚠️ Le signe se DÉRIVE de `e.value`, jamais écrit en dur : la magie reste
+    // self-cible, mais rien n'empêche une `Valeur` négative (une magie qui
+    // inflige des PV au joueur qui la lance, comme contrecoup narratif).
+    case 'player_hp_bonus':  return `${e.value > 0 ? '+' : ''}${e.value} PV joueur`;
     case 'board_slot_bonus':         return `+${e.value} slot${e.value > 1 ? 's' : ''} de board permanent${e.value > 1 ? 's' : ''}`;
     case 'defuse_fusion':            return 'Sépare un monstre Fusion en ses matériaux';
     case 'destroy_unit':             return 'Détruit une unité alliée (libère son emplacement, devient un matériau disponible au cimetière)';

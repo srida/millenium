@@ -13,6 +13,7 @@
 import { statLabel } from './StatLabels.js';
 import { guaranteedDrawLabel } from './DrawInfo.js';
 import { hasGuaranteedDrawCriteria } from '../logic/Draw.js';
+import { RARITY_LABELS } from '../logic/MagieOffer.js';
 import type { AttributeEffect, BoardEffectDef } from '../logic/types.js';
 
 /**
@@ -62,6 +63,9 @@ export function boardEffectLabel(
   /** ⚠️ Une pioche garantie peut NOMMER des cartes : sans résolveur, leur id
    *  brut sort à l'écran. Même règle que `MagieEffect.effectLabel`. */
   cardName: (id: string) => string = (id) => id,
+  /** ⚠️ `guaranteed_magie` peut NOMMER une magie : sans résolveur, son id brut
+   *  sort à l'écran. Même règle que `cardName` pour `guaranteed_draw`. */
+  magieName: (id: string) => string = (id) => id,
 ): string {
   if (!effect?.type) return 'Aucun effet';
   const targetAttrs = (effect as BoardEffectDef).target_attributes;
@@ -71,6 +75,29 @@ export function boardEffectLabel(
     case 'stat_modifier':     return `×${effect.value} ${statLabel(effect.stat as string)}${targets}`;
     case 'shield':            return `Bouclier +${effect.value}${targets}`;
     case 'draw_bonus':        return `+${effect.value} pioche`;
+    // ⚠️ `value` n'est PAS lu — le soin suit le max courant, jamais un chiffre
+    // figé (cf. `compile.ts`). Le dire en toutes lettres évite qu'un joueur
+    // cherche un montant qui n'existe pas.
+    case 'heal':               return `Soin total${targets}`;
+    // ⚠️ Le signe se DÉRIVE de `value`, jamais écrit en dur : un `player_hp_bonus`
+    // peut infliger (`value` négatif) autant que soigner. `target` ne vaut que
+    // côté terrain (seul porteur qui sache viser l'adversaire) — absent, c'est
+    // toujours le joueur.
+    case 'player_hp_bonus': {
+      const v = (effect.value as number) ?? 0;
+      const qui = (effect as BoardEffectDef).target === 'ennemi' ? 'adversaire' : 'joueur';
+      return `${v > 0 ? '+' : ''}${v} PV (${qui})`;
+    }
+    // ⚠️ Même geste que `guaranteed_draw` juste en dessous : la rareté ET la
+    // magie nommée sont FACULTATIVES et se cumulent, donc l'absence des deux
+    // annonce juste la promesse nue.
+    case 'guaranteed_magie': {
+      const g = effect as AttributeEffect;
+      const bits: string[] = [];
+      if (g.rarity) bits.push(RARITY_LABELS[g.rarity as 1 | 2 | 3] ?? `rareté ${g.rarity}`);
+      if (g.magie_id) bits.push(magieName(g.magie_id));
+      return bits.length ? `Magie garantie (${bits.join(', ')})` : 'Magie garantie';
+    }
     // ⚠️ Les critères se disent avec la MÊME fonction que la magie et que la
     // popup de pioche (`DrawInfo.guaranteedDrawLabel`) : trois libellés de la
     // même promesse finiraient par ne pas annoncer ce qui est réellement pioché.

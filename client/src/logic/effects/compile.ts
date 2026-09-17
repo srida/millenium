@@ -297,7 +297,11 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   stat_bonus: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   shield: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   effect_immunity: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
-  heal: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  // ⚠️ `fin_combat` en PREMIER (donc par défaut) : un soin d'attribut se lit
+  // comme une récupération post-combat, pas comme un buff de pré-combat — les
+  // trois autres moments restent choisissables (`timing`) pour qui veut
+  // vraiment soigner avant le coup.
+  heal: ['fin_combat', 'debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   revive: ['fin_combat'],
   draw_bonus: ['fin_combat'],
   guaranteed_draw: ['fin_combat'],

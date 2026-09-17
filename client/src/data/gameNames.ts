@@ -26,6 +26,16 @@ export function cardName(id: string): string {
 
 export { attributeName };
 
+/** Le nom d'une magie derrière son id — `guaranteed_magie` la nomme. */
+export function magieName(id: string): string {
+  try {
+    const magies = (MagieDatabase as { getAllMagies: () => { id: string; name?: string }[] }).getAllMagies();
+    return magies.find(m => m.id === id)?.name ?? id;
+  } catch {
+    return id;
+  }
+}
+
 /**
  * Le nom derrière l'id d'un REGISTRE DE PROVENANCE — celui de la pioche
  * (`DrawSourceEntry`) comme celui du multiplicateur (`BonusSourceEntry`).
@@ -47,5 +57,5 @@ export function bonusSourceName(kind: BonusSourceEntry['kind'], ref: string): st
   }
 }
 
-/** Le couple à passer à `effectLabel` — un seul objet, un seul point de vérité. */
-export const GAME_NAMES = { attribute: attributeName, card: cardName };
+/** Le trio à passer à `effectLabel` — un seul objet, un seul point de vérité. */
+export const GAME_NAMES = { attribute: attributeName, card: cardName, magie: magieName };

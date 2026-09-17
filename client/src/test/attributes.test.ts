@@ -55,23 +55,6 @@ describe('AttributeManager — comptage des seuils', () => {
     expect(hunter.atk).toBe(5 + 3 * 2);
   });
 
-  // ⚠️ Régression : `heal` n'était offert qu'aux magies ; il doit désormais
-  // soigner TOTALEMENT (au max courant, bonus compris), pas d'un montant fixe.
-  // Mutation : retirer le `case 'heal'` de `compileAttribute` → ROUGE
-  // (le type ne compile plus, `applyStartOfCombat` ne soigne rien).
-  it('heal : soigne les porteurs au maximum courant, pas un montant fixe', () => {
-    const attrs = [{
-      id: 'ARCH_MEDIC', name: 'Médecin', timing: 'start_of_combat',
-      thresholds: [{ count: 1, effects: [{ type: 'heal' }] }],
-    }];
-    const board = makeBoard();
-    const healer = spawn(board, makeCard({ id: 'H', attributes: ['ARCH_MEDIC'], stats: { hp: 50 } as any }), 'player', { col: 0, row: 0 });
-    healer.current_hp = 1;
-    const am = new (AttributeManager as any)(attrs, [healer], []);
-    am.applyStartOfCombat();
-    expect(healer.current_hp).toBe(healer.max_hp);
-  });
-
   it('shield : valeur × alliés vivants', () => {
     const attrs = [{
       id: 'ARCH_GUARD', name: 'Garde', timing: 'start_of_combat',
@@ -167,6 +150,39 @@ describe('AttributeManager — end_of_combat', () => {
     const result = am.applyEndOfCombat([], []);
     expect(result.player_hp_bonus).toBe(25);
     expect(result.player_hp_sources).toEqual([{ kind: 'attribut', ref: 'ARCH_VAMP', value: 25 }]);
+  });
+
+  // ⚠️ Régression : `heal` d'attribut se lit comme une récupération
+  // POST-combat, pas un buff de pré-combat — `fin_combat` en est le moment
+  // PAR DÉFAUT (le premier de `QUANDS_PAR_TYPE.heal`).
+  // Mutation : retirer `fin_combat` en tête de la liste → ROUGE (l'effet ne
+  // compile plus sous ce `timing`, `applyEndOfCombat` ne soigne rien).
+  it('heal : soigne au maximum courant à FIN DE COMBAT, par défaut', () => {
+    const attrs = [{
+      id: 'ARCH_MEDIC', name: 'Médecin', timing: 'end_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'heal' }] }],
+    }];
+    const board = makeBoard();
+    const healer = spawn(board, makeCard({ id: 'H', attributes: ['ARCH_MEDIC'], stats: { hp: 50 } as any }), 'player', { col: 0, row: 0 });
+    healer.current_hp = 1;
+    const am = new (AttributeManager as any)(attrs, [healer], []);
+    am.applyEndOfCombat([], []);
+    expect(healer.current_hp).toBe(healer.max_hp);
+  });
+
+  // Le moment reste choisissable : un `timing` explicite sur l'EFFET fait
+  // toujours autorité, `heal` n'est pas devenu fin_combat SEUL.
+  it('heal : reste soignable au DÉBUT du combat via un timing explicite', () => {
+    const attrs = [{
+      id: 'ARCH_MEDIC', name: 'Médecin', timing: 'start_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'heal', timing: 'start_of_combat' }] }],
+    }];
+    const board = makeBoard();
+    const healer = spawn(board, makeCard({ id: 'H', attributes: ['ARCH_MEDIC'], stats: { hp: 50 } as any }), 'player', { col: 0, row: 0 });
+    healer.current_hp = 1;
+    const am = new (AttributeManager as any)(attrs, [healer], []);
+    am.applyStartOfCombat();
+    expect(healer.current_hp).toBe(healer.max_hp);
   });
 
   // La pioche a un destinataire des DEUX côtés (`EnemyAI` pioche aussi),

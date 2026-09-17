@@ -99,7 +99,7 @@ export interface Card {
 export type AttributeTiming = 'start_of_combat' | 'during_combat' | 'end_of_combat';
 
 export interface AttributeEffect {
-  type: string; // stat_bonus | stat_modifier | shield | effect_immunity | revive | draw_bonus | guaranteed_draw | board_slot_bonus | damage_multiplier_bonus | shopping_bonus
+  type: string; // stat_bonus | stat_modifier | shield | effect_immunity | revive | draw_bonus | guaranteed_draw | board_slot_bonus | damage_multiplier_bonus | shopping_bonus | heal | player_hp_bonus | guaranteed_magie
   stat?: string;
   value?: number;
   /** stat_bonus : multiplie value par le nombre d'ennemis portant cet attribut. */
@@ -121,6 +121,9 @@ export interface AttributeEffect {
   attribute?: string | null;
   attributes?: string[];
   card_ids?: string[];
+  /** `guaranteed_magie` : cf. `GuaranteedMagie`. */
+  rarity?: MagieRarity;
+  magie_id?: string;
 }
 
 export interface AttributeThreshold {

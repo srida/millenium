@@ -359,7 +359,10 @@ export const TYPES = Object.freeze({
     // ⚠️ Aucun champ : le soin suit le max COURANT, bonus et vétérance compris.
     // `value` n'est PAS lu — des entrées anciennes en portent un, il est ignoré.
     terrain: { quands: ['debut_combat'], champs: { target_attributes: {} } },
-    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
+    // ⚠️ `fin_combat` en PREMIER (donc par défaut, cf. `compile.ts`) : un soin
+    // d'attribut se lit comme une récupération post-combat. Les trois autres
+    // moments restent offerts via `timing`.
+    attribut: { quands: ['fin_combat', 'debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
     magie: { quands: ['immediat'], champs: {} },
   },
   team_heal: {
