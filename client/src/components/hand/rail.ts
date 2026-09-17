@@ -31,8 +31,8 @@
 // (`cardFan.railLayout`) qui règle le cas d'une main courte, qui flottait au
 // milieu de la bande quelle que soit la position de celle-ci.
 //
-// ⚠️ **`w-[194px]`, et c'est la MARGE de bord qui explique l'écart avec
-// `WEB_RAIL_PX`.** `WEB_RAIL_PX` (`three/constants.ts`, 282 px) reste la
+// ⚠️ **`w-[214px]`, et c'est la MARGE de bord qui explique l'écart avec
+// `WEB_RAIL_PX`.** `WEB_RAIL_PX` (`three/constants.ts`, 302 px) reste la
 // largeur que le cadrage caméra réserve de CHAQUE côté du board — on n'y
 // touche pas ici seul, sinon le rail dépasserait le board sans que la caméra
 // ne lui laisse la place (les deux ont été agrandis ENSEMBLE, cf.
@@ -44,12 +44,12 @@
 // flush contre l'écran ne s'accordait plus avec eux, en paysage téléphone où
 // cette marge tombe sur l'encoche/le coin arrondi de l'appareil. Le rail se
 // décale donc du MÊME `px-22` (`WEB_RAIL_OFFSET_LEFT`/`RIGHT`, ci-dessous) et
-// RÉTRÉCIT d'autant (282 px − 88 px = 194 px) pour que son bord côté board
-// reste exactement à 282 px du bord vrai — la valeur que `WEB_RAIL_PX`
+// RÉTRÉCIT d'autant (302 px − 88 px = 214 px) pour que son bord côté board
+// reste exactement à 302 px du bord vrai — la valeur que `WEB_RAIL_PX`
 // réserve, inchangée. `railCardWidth` dérive déjà la taille des cartes de la
 // largeur MESURÉE du rail, donc rien à recalculer ailleurs pour ce changement
 // de largeur.
-export const WEB_RAIL_BAND = 'pointer-events-auto absolute bottom-14 top-16 z-20 w-[194px]';
+export const WEB_RAIL_BAND = 'pointer-events-auto absolute bottom-14 top-16 z-20 w-[214px]';
 export const WEB_RAIL_OFFSET_LEFT = 'left-22';
 export const WEB_RAIL_OFFSET_RIGHT = 'right-22';
 
