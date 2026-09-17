@@ -72,7 +72,7 @@ export default function QueryBar({ value, onChange, schema, error, placeholder, 
           // liste ne se ferme — un `blur` sec la ferait disparaître sous le doigt.
           onBlur={() => setTimeout(() => setCaret(null), 150)}
           onKeyDown={(e) => { if (e.key === 'Escape') setCaret(null); }}
-          className="min-h-tap w-full flex-1 rounded-lg border border-line bg-surface-raised px-3 font-mono text-sm text-white placeholder:font-sans placeholder:text-white/30"
+          className="min-h-tap w-full min-w-0 flex-1 rounded-lg border border-line bg-surface-raised px-3 font-mono text-sm text-white placeholder:font-sans placeholder:text-white/30"
         />
         <button
           type="button"

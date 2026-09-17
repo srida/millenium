@@ -18,7 +18,7 @@ import type { Unit } from '../logic/Unit.js';
 export const SCREEN_NAMES = [
   'main_menu', 'auth', 'reset_password', 'profile',
   'deck_selector', 'deck_builder', 'online_lobby', 'tournament', 'arcade', 'missions', 'shop', 'gifts',
-  'tutorial', 'game', 'game_pvp', 'combatlab', 'testbench', 'ailab',
+  'catalog', 'tutorial', 'game', 'game_pvp', 'combatlab', 'testbench', 'ailab',
 ] as const;
 
 export type ScreenName = typeof SCREEN_NAMES[number];
