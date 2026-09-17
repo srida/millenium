@@ -71,6 +71,13 @@ export class Board {
   }
 
   moveUnit(unit: Unit, to: Position): void {
+    // ⚠️ Le même garde que `placeUnit` : sans lui, une destination hors
+    // limites (un `initial_position` corrompu, par exemple) s'écrirait quand
+    // même dans `grid` — silencieusement, puisque `getUnit`/`isOccupied`
+    // traitent une position hors limites comme « libre » — et l'unité
+    // deviendrait invisible : `getAllUnits`/`rowScan` n'énumèrent que
+    // `[0, rows)`. Un échec bruyant ici vaut mieux qu'une disparition muette.
+    if (!this.isInBounds(to)) throw new Error(`Out of bounds: ${JSON.stringify(to)}`);
     const from = unit.position;
     if (from) this.grid[from.col][from.row] = null;
     this.grid[to.col][to.row] = unit;
@@ -210,16 +217,6 @@ export class Board {
       { col: pos.col, row: pos.row + before },
       { col: pos.col, row: pos.row + after },
     ].filter(p => this.isInBounds(p) && !this.isBlocked(p));
-  }
-
-  // Rebuild grid from a unit list (after combat cleanup)
-  rebuild(units: Unit[]): void {
-    this.grid = this._emptyGrid();
-    for (const u of units) {
-      if (u.position && this.isInBounds(u.position)) {
-        this.grid[u.position.col][u.position.row] = u;
-      }
-    }
   }
 
   // Returns first empty cell on player side (row 0–3), column-by-column

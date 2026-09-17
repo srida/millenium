@@ -166,6 +166,13 @@ export interface EndRoundResult {
   playerDamageDealt: number;
   enemyDamageDealt: number;
   isGameOver: boolean;
+  /**
+   * Unités SURVIVANTES qu'aucune case n'a pu accueillir au retour à
+   * `initial_position` (zone pleine, `initial_position` et repli tous deux
+   * occupés) — filet de `_returnHome`. Neutralisées d'office plutôt que
+   * silencieusement perdues du plateau. Vide dans l'immense majorité des parties.
+   */
+  overflowUnits: { name: string; side: 'player' | 'enemy' }[];
 }
 
 /**
@@ -758,7 +765,11 @@ export class GameSession {
     for (const u of this.enemyUnits) if (u.is_neutralized) this.board.removeUnit(u);
     this.enemyGraveyard = this.enemyUnits.filter(u => u.is_neutralized);
     this.enemyUnits = this.enemyUnits.filter(u => !u.is_neutralized);
-    this._returnHome(this.enemyUnits, 'enemy');
+    const enemyOverflow = this._returnHome(this.enemyUnits, 'enemy');
+    if (enemyOverflow.length) {
+      this.enemyGraveyard.push(...enemyOverflow);
+      this.enemyUnits = this.enemyUnits.filter(u => !enemyOverflow.includes(u));
+    }
 
     // Retire les unités joueur neutralisées
     for (const u of playerUnits) if (u.is_neutralized) this.board.removeUnit(u);
@@ -797,7 +808,8 @@ export class GameSession {
     // la même raison : un état qui n'a pas de raison de survivre au combat se
     // supprime, il ne se transporte pas.
     for (const u of combatants) u.resetCombatStats();
-    this._returnHome(this.board.getLivingUnitsOnSide('player'), 'player');
+    const playerOverflow = this._returnHome(this.board.getLivingUnitsOnSide('player'), 'player');
+    if (playerOverflow.length) this.graveyard.push(...playerOverflow);
 
     // ⚠️ Même règle que la ligne au-dessus, sur un autre registre : ce qui ne
     // valait que pour un combat ne lui survit pas. La portée `une_fois_par_combat`
@@ -825,21 +837,66 @@ export class GameSession {
       playerDamageDealt: combatOutcome.playerDamageDealt,
       enemyDamageDealt: combatOutcome.enemyDamageDealt,
       isGameOver: this.gameState.isGameOver(),
+      overflowUnits: [
+        ...playerOverflow.map(u => ({ name: u.name, side: 'player' as const })),
+        ...enemyOverflow.map(u => ({ name: u.name, side: 'enemy' as const })),
+      ],
     };
   }
 
-  // Renvoie les survivants à leur initial_position (avec repli si occupée).
-  private _returnHome(units: Unit[], side: 'player' | 'enemy'): void {
+  /**
+   * Renvoie les survivants à leur `initial_position` (avec repli si occupée).
+   * Rend les unités qu'AUCUNE case n'a pu accueillir (zone pleine) — à
+   * l'appelant de les neutraliser et de les verser au cimetière.
+   *
+   * ⚠️ `initial_position` n'est PAS garanti unique entre deux unités VIVANTES :
+   * une unité repliée un tour passé (case d'origine perdue) peut cohabiter avec
+   * une carte invoquée depuis sur cette même case d'origine, qui en hérite
+   * comme la sienne. Deux prétendantes à une case ne sont donc pas un cas
+   * théorique.
+   *
+   * ⚠️ **Deux passes, jamais une seule** : la première fait reprendre sa PROPRE
+   * case à chaque unité, en revérifiant l'occupation À CHAQUE ITÉRATION (pas
+   * une seule fois avant de tout déplacer) — sinon deux unités de même
+   * `initial_position` se voient toutes les deux « case libre » sur l'état
+   * d'avant tout mouvement, et la seconde à être bougée écrase silencieusement
+   * la première dans `board.grid` (`moveUnit`, contrairement à `placeUnit`, ne
+   * vérifie jamais l'occupation de la destination). La seconde passe ne traite
+   * que ce qui reste sans case après la première, par repli.
+   */
+  private _returnHome(units: Unit[], side: 'player' | 'enemy'): Unit[] {
     const toReposition = units.filter(u =>
       u.initial_position &&
       (u.position!.col !== u.initial_position.col || u.position!.row !== u.initial_position.row));
     for (const u of toReposition) this.board.removeUnit(u);
+
+    const stillHomeless: Unit[] = [];
     for (const u of toReposition) {
-      const dest = u.initial_position && !this.board.isOccupied(u.initial_position)
-        ? u.initial_position
-        : (side === 'player' ? this.board.firstEmptyPlayerCell() : this.board.firstEmptyEnemyCell());
-      if (dest) this.board.moveUnit(u, dest);
+      if (u.initial_position && !this.board.isOccupied(u.initial_position)) {
+        // `moveUnit` jette sur une destination hors limites (garde ajoutée
+        // pour la même raison que ce commentaire de classe) : un
+        // `initial_position` corrompu ne doit jamais faire échouer toute la
+        // transition de fin de combat, elle retente sa chance en repli.
+        try { this.board.moveUnit(u, u.initial_position); } catch { stillHomeless.push(u); }
+      } else {
+        stillHomeless.push(u);
+      }
     }
+
+    const overflow: Unit[] = [];
+    for (const u of stillHomeless) {
+      const dest = side === 'player' ? this.board.firstEmptyPlayerCell() : this.board.firstEmptyEnemyCell();
+      if (dest) {
+        try { this.board.moveUnit(u, dest); } catch { u.is_neutralized = true; overflow.push(u); }
+      } else {
+        // Filet : une unité vivante sans case d'accueil ne doit jamais
+        // disparaître en silence (cf. `board.grid` / `unit.position` / rendu
+        // Scene3D qui n'énumère que `board.grid`) — elle rejoint le cimetière.
+        u.is_neutralized = true;
+        overflow.push(u);
+      }
+    }
+    return overflow;
   }
 
   // ── Phase Shopping (Phase 4 branchera l'UI ; ici : tirage + application) ──
