@@ -9,7 +9,7 @@ import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
 import PowerIcon from '../ui/PowerIcon.js';
 import { Illustration } from '../ui/primitives.js';
 import RecipeRow from '../ui/SummonRecipe.js';
-import { cardName } from '../../data/gameNames.js';
+import { cardName, magieName } from '../../data/gameNames.js';
 import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
 import { primaryTier, tiersOf } from '../../logic/Tiers.js';
 import { materialValueOf } from '../../logic/Unit.js';
@@ -254,6 +254,6 @@ function describeEffects(effects: any[], withTargets = true): string {
   return (effects ?? []).map((e: any) =>
     // ⚠️ `cardName` est passé même sans cibles : une pioche garantie peut NOMMER
     // des cartes, et sans résolveur c'est un id brut qui sort à l'écran.
-    boardEffectLabel(e, withTargets ? (ids) => ids.map(attributeName).join(', ') : undefined, cardName),
+    boardEffectLabel(e, withTargets ? (ids) => ids.map(attributeName).join(', ') : undefined, cardName, magieName),
   ).join(', ');
 }
