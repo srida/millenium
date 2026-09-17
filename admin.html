@@ -3401,6 +3401,15 @@ function _effectFieldHtml(champ, effet, prefixe, ctx) {
           <button class="attr-add" onclick="openEffectAttrPickModal('${id}')">+ Ajouter</button>
         </div></div>`;
 
+    // ⚠️ Une case à cocher DANS `.field` hérite de deux règles qui ne la visent
+    // pas (`width: 100%`, capitales) — `.field-check` les neutralise (cf. le
+    // curseur de compteur, même geste).
+    case 'case':
+      return `<div class="field"><label class="field-check">
+        <input type="checkbox" id="${id}" ${(valeur ?? champ.defaut) ? 'checked' : ''}>
+        <span>${champ.label}</span>
+      </label>${aide}</div>`;
+
     default:
       return `<div class="field"><label>${champ.label}</label>
         <input id="${id}" type="number" step="any" value="${valeur ?? (champ.facultatif ? '' : champ.defaut)}">${aide}</div>`;
@@ -3501,6 +3510,15 @@ function readEffectFromForm(porteur, prefixe, precedent) {
     }
     if (champ.saisie === 'compteur' || champ.saisie === 'compteur_duree') {
       out[champ.id] = counterFromSlider(id) ?? champ.defaut;
+      continue;
+    }
+    if (champ.saisie === 'case') {
+      const el = document.getElementById(id);
+      const coche = el ? el.checked : (precedent?.[champ.id] ?? champ.defaut);
+      // ⚠️ Même discipline que `choix`/`choix_direct` : un `omettreSiDefaut` ne
+      // s'écrit que s'il DIT quelque chose — ici, que la case a été DÉCOCHÉE.
+      if (champ.omettreSiDefaut && coche === champ.defaut) continue;
+      out[champ.id] = coche;
       continue;
     }
     const brut = document.getElementById(id)?.value;
