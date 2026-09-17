@@ -29,7 +29,13 @@ export default function SynergyPanel() {
     : 'top-[max(3.75rem,calc(env(safe-area-inset-top)+3.25rem))] inset-x-0 justify-center px-3';
 
   return (
-    <div className={`pointer-events-auto absolute z-20 flex flex-wrap gap-1 ${positionClass}`}>
+    // ⚠️ `pointer-events-none` sur le conteneur, `pointer-events-auto` sur
+    // CHAQUE puce : en mode web le bandeau est posé par-dessus la dernière
+    // rangée du board (bottom-14, sous les rails), et une boîte englobante
+    // cliquable aurait intercepté le tap et le glisser-déposer d'invocation
+    // jusque dans les interstices entre puces — la rangée devenait injouable
+    // dès qu'une synergie était active. Même geste que `ZONE_LABEL_PORTRAIT`.
+    <div className={`pointer-events-none absolute z-20 flex flex-wrap gap-1 ${positionClass}`}>
       {synergies.map(s => {
         const active = !!s.activeThreshold;
         const label = s.nextThreshold ? `${s.count}/${s.nextThreshold.count}` : `${s.count}`;
@@ -44,7 +50,7 @@ export default function SynergyPanel() {
                 anchorFromEvent(e),
               );
             }}
-            className={`flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] ${active ? 'border-gold bg-gold/15 text-gold' : 'border-line bg-surface/70 text-white/60'}`}
+            className={`pointer-events-auto flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] ${active ? 'border-gold bg-gold/15 text-gold' : 'border-line bg-surface/70 text-white/60'}`}
           >
             {/* L'icône est posée sur TOUTES les puces, actives comme
                 incomplètes : c'est avant d'avoir le palier que le joueur décide

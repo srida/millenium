@@ -23,7 +23,7 @@
 import { useGameStore, type HandEntry } from '../../stores/gameStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import { useElementSize } from '../system/useElementSize.js';
-import { WEB_RAIL_BAND, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
+import { WEB_RAIL_BAND, WEB_RAIL_PAD_LEFT, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
 import { handVisible, handTargetable, handCardVisual, handTapIntent } from './handVisual.js';
 import { fanLayout, railLayout, type CardTransform, type LayoutResult } from './cardFan.js';
 import Card3D, { cardVisualProps } from '../ui/Card3D.js';
@@ -81,7 +81,7 @@ export default function HandBar() {
   if (web) {
     return (
       <div className={`${WEB_RAIL_BAND} left-0 ${visible ? '' : 'pointer-events-none opacity-0'}`}>
-        <div className="mx-2 flex h-full flex-col p-1.5">
+        <div className={`flex h-full flex-col ${WEB_RAIL_PAD_LEFT}`}>
           <div className={`mb-1 shrink-0 ${ZONE_LABEL}`}>MAIN</div>
           {/* ⚠️ `min-h-0` : sans lui, un enfant de colonne flex refuse de
               descendre sous sa hauteur de contenu, et la mesure rendrait la

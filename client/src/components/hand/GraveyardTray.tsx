@@ -19,7 +19,7 @@
 import { useGameStore, type GraveyardEntry } from '../../stores/gameStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import { useElementSize } from '../system/useElementSize.js';
-import { WEB_RAIL_BAND, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
+import { WEB_RAIL_BAND, WEB_RAIL_PAD_RIGHT, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
 import { graveyardVisible, graveyardCardVisual, graveyardTapIntent } from './handVisual.js';
 import { fanLayout, railLayout, type CardTransform, type LayoutResult } from './cardFan.js';
 import Card3D from '../ui/Card3D.js';
@@ -63,7 +63,7 @@ export default function GraveyardTray() {
   if (web) {
     return (
       <div className={`${WEB_RAIL_BAND} right-0 ${visible ? '' : 'pointer-events-none opacity-0'}`}>
-        <div className="mx-2 flex h-full flex-col p-1.5">
+        <div className={`flex h-full flex-col ${WEB_RAIL_PAD_RIGHT}`}>
           <div className={`mb-1 shrink-0 ${ZONE_LABEL}`}>NEUTRALISÉES</div>
           {/* `min-h-0` : cf. `HandBar` — sans lui la mesure rend la hauteur
               VOULUE et non la hauteur DISPONIBLE. */}

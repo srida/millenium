@@ -35,6 +35,21 @@
 export const WEB_RAIL_BAND = 'pointer-events-auto absolute bottom-14 top-16 z-20 w-52';
 
 /**
+ * Le padding intérieur d'un rail, côté ÉCRAN VRAI (là où un téléphone en
+ * paysage pose son encoche/son coin arrondi) vs côté BOARD.
+ *
+ * ⚠️ On ne touche PAS à `w-52` / `left-0` / `right-0` : c'est cette largeur
+ * fixe que `WEB_RAIL_PX` (`three/constants.ts`) réserve dans le cadrage
+ * caméra, et les deux doivent rester synchronisés au pixel. La zone sûre se
+ * gagne donc en MANGEANT sur le contenu du rail (le padding), pas en
+ * déplaçant son bord : `railCardWidth` dérive déjà la taille des cartes de la
+ * largeur MESURÉE du bandeau intérieur, donc un padding plus large réduit
+ * simplement les cartes au lieu de les faire déborder sous l'encoche.
+ */
+export const WEB_RAIL_PAD_LEFT = 'py-1.5 pl-[max(0.5rem,env(safe-area-inset-left))] pr-2';
+export const WEB_RAIL_PAD_RIGHT = 'py-1.5 pr-[max(0.5rem,env(safe-area-inset-right))] pl-2';
+
+/**
  * Le TITRE d'une zone — celui des rails du mode web ET celui des bandes du
  * portrait, écrit une seule fois.
  *
