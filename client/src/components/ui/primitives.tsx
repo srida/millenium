@@ -31,7 +31,7 @@ const VARIANTS: Record<Variant, string> = {
 const SQUASH_DELAY_MS = 45;
 
 // Distance (px CSS) au-delà de laquelle un pointeur qui bouge n'est plus un
-// tap mais un défilement — même tolérance que `CardTile`. ⚠️ Ne PAS compter
+// tap mais un défilement — même tolérance que `Card3D`. ⚠️ Ne PAS compter
 // sur `onPointerLeave` seul pour l'attraper : un pointeur TACTILE garde une
 // capture implicite sur sa cible de départ pendant tout le glissé, il ne
 // change pas de cible et ne déclenche donc PAS `pointerleave` en scrollant —
@@ -172,7 +172,8 @@ export function IconButton({
   /** Habillage du chip en mode `compact` (bordure/fond/teinte selon l'état).
    *  ⚠️ Doit fournir un FOND OPAQUE (`bg-surface-raised`, `SURFACE_GOLD`…) —
    *  le chip n'en pose aucun par défaut, pour ne jamais faire cohabiter deux
-   *  classes `bg-*` concurrentes sur le même élément (cf. `CardTile`). */
+   *  classes `bg-*` concurrentes sur le même élément — deux déclarations
+   *  Tailwind du même préfixe ne s'additionnent pas, l'une écrase l'autre. */
   chipClassName?: string;
   className?: string;
   onTap: () => void;

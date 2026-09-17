@@ -342,3 +342,34 @@
     3px 3px 0 0 var(--color-surface-raised, #1a1d27),
     4px 4px 0 0 var(--color-line, #2a2e3d);
 }
+
+/* ── Mode FLOW — toute grille/`flex-wrap` de carte (ex-`CardTile`) ──
+   La carte n'est plus positionnée par `cardFan` : elle reste dans le flux
+   normal du document, dimensionnée par la classe Tailwind passée en `size`
+   (`h-28`, `h-auto w-full`…) au lieu d'un `width` en px + `transform` calculé.
+
+   ⚠️ On ne peut pas se contenter de changer `position` : la règle `.card3d` de
+   base centre la boîte sur son ancre (`left/top: 50%` puis
+   `translate(-50%, -50%)`), ce qui n'a de sens que posé en ABSOLU au milieu
+   d'un `.card3d-layer`. En flux, ce `-50%` déplacerait la carte d'une demi-case
+   vers le haut-gauche — donc le `transform` est intégralement réécrit ici,
+   sans le centrage ni la géométrie de `cardFan` (`--card-x/y/rot/roty/scale`
+   n'existent pas hors fan/rail, et leurs valeurs par défaut — 0px, 0deg, 1 —
+   sont justement celles d'une carte posée à plat).
+
+   Le geste (levée au survol, tassement au tap, cadenas…) reste identique aux
+   deux modes : ces variables (`--card-lift-*`, `--card-raise`, `--card-pop`,
+   `--card-tilt`) sont posées par les MÊMES règles d'état, plus haut dans ce
+   fichier. ⚠️ `rotateX`/`translateZ` sans `perspective` d'ancêtre ne produisent
+   aucune distorsion visible (projection orthographique) : pas besoin d'un
+   `.card3d-layer` en mode flow, la carte reste plate au repos. */
+.card3d.is-flow {
+  position: relative;
+  left: auto;
+  top: auto;
+  transform:
+    translate(var(--card-lift-x, 0px), var(--card-lift-y, 0px))
+    translateZ(calc(var(--card-raise, 0) * 54px))
+    rotateX(var(--card-tilt, 8deg))
+    scale(var(--card-pop, 1));
+}

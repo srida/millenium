@@ -26,8 +26,7 @@ import { useElementSize } from '../system/useElementSize.js';
 import { WEB_RAIL_BAND, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
 import { handVisible, handTargetable, handCardVisual, handTapIntent } from './handVisual.js';
 import { fanLayout, railLayout, type CardTransform, type LayoutResult } from './cardFan.js';
-import { cardTileProps } from '../ui/CardTile.js';
-import Card3D from '../ui/Card3D.js';
+import Card3D, { cardVisualProps } from '../ui/Card3D.js';
 import { RAIL_COLUMNS, RAIL_GAP_X, railCardWidth } from './railGeometry.js';
 
 /** Largeur nominale d'une carte de main en portrait, en px — la hauteur s'en
@@ -127,7 +126,7 @@ function HandCard3D({ entry, targeting, targetable, transform, width, rail }: {
 
   return (
     <Card3D
-      {...cardTileProps(entry.card)}
+      {...cardVisualProps(entry.card)}
       transform={transform}
       width={width}
       // tap → sélection d'invocation ; en ciblage de magie, la carte est la

@@ -175,7 +175,7 @@ function _updateMedallion(el: HTMLElement, unit: Unit): void {
  * pas savoir ce qu'une unité valait avant de TENTER l'invocation — c'est
  * précisément ce que ce chiffre répond.
  *
- * ⚠️ Le glyphe est celui du COÛT en main (`CardTile`) : c'est la même monnaie —
+ * ⚠️ Le glyphe est celui du COÛT en main (`Card3D`) : c'est la même monnaie —
  * là un prix, ici une valeur. Le tooltip lève l'ambiguïté en toutes lettres.
  *
  * ⚠️ Et depuis `board3d.css`, c'est aussi la même PASTILLE, au même coin

@@ -19,7 +19,7 @@ import { useCollectionStore } from '../stores/collectionStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
 import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { Button, Modal, usePressSquash } from '../components/ui/primitives.js';
-import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
+import Card3D, { cardVisualProps } from '../components/ui/Card3D.js';
 import QueryBar from '../components/ui/QueryBar.js';
 import SortControl, { type SortState } from '../components/ui/SortControl.js';
 import * as Query from '../../../card-query.mjs';
@@ -619,8 +619,8 @@ function LibraryPanel({
                 // « Plein » veut dire : plus une seule de ses lanes n'a de place.
                 const full = laneFor(c, deckData, tierMax) === null;
                 return (
-                  <CardTile
-                    key={c.id} {...cardTileProps(c)} size="h-auto w-full"
+                  <Card3D
+                    key={c.id} {...cardVisualProps(c)} size="h-auto w-full"
                     // Ajout/retrait au relâchement : un appui long ouvre le
                     // tooltip sans toucher au deck au passage.
                     tapOn="up" onTap={() => (inDeck ? onRemove(c) : onAdd(c))}
@@ -721,8 +721,8 @@ function DeckPanel({
                         // Une carte du deck non débloquée reste RETIRABLE : c'est
                         // la seule action qui la fait sortir du deck.
                         <div key={`${c.id}-${idx}`} className="relative">
-                          <CardTile
-                            {...cardTileProps(c)} size="h-auto w-full"
+                          <Card3D
+                            {...cardVisualProps(c)} size="h-auto w-full"
                             // Aperçu immédiat du choix en cours d'édition, sans
                             // toucher à l'état global de CardArt (non enregistré).
                             illustrationId={variants[c.id] ?? c.id}

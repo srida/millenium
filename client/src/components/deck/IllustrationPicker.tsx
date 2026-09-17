@@ -9,7 +9,7 @@
 import type { Card } from '../../logic/types.js';
 import type { OwnedVariant } from '../../stores/cosmeticStore.js';
 import { Modal } from '../ui/primitives.js';
-import CardTile from '../ui/CardTile.js';
+import Card3D from '../ui/Card3D.js';
 
 export default function IllustrationPicker({
   card, current, options, onPick, onClose,
@@ -64,7 +64,7 @@ function Choice({
 }: { illustrationId: string; label: string; selected: boolean; onTap: () => void }) {
   return (
     <div className="flex flex-col gap-1">
-      <CardTile
+      <Card3D
         illustrationId={illustrationId}
         name={label}
         tiers={null}
