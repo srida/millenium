@@ -55,6 +55,23 @@ describe('AttributeManager — comptage des seuils', () => {
     expect(hunter.atk).toBe(5 + 3 * 2);
   });
 
+  // ⚠️ Régression : `heal` n'était offert qu'aux magies ; il doit désormais
+  // soigner TOTALEMENT (au max courant, bonus compris), pas d'un montant fixe.
+  // Mutation : retirer le `case 'heal'` de `compileAttribute` → ROUGE
+  // (le type ne compile plus, `applyStartOfCombat` ne soigne rien).
+  it('heal : soigne les porteurs au maximum courant, pas un montant fixe', () => {
+    const attrs = [{
+      id: 'ARCH_MEDIC', name: 'Médecin', timing: 'start_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'heal' }] }],
+    }];
+    const board = makeBoard();
+    const healer = spawn(board, makeCard({ id: 'H', attributes: ['ARCH_MEDIC'], stats: { hp: 50 } as any }), 'player', { col: 0, row: 0 });
+    healer.current_hp = 1;
+    const am = new (AttributeManager as any)(attrs, [healer], []);
+    am.applyStartOfCombat();
+    expect(healer.current_hp).toBe(healer.max_hp);
+  });
+
   it('shield : valeur × alliés vivants', () => {
     const attrs = [{
       id: 'ARCH_GUARD', name: 'Garde', timing: 'start_of_combat',

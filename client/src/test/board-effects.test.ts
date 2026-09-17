@@ -185,6 +185,24 @@ describe('Cumul des effets d\'un terrain', () => {
     expect(u.atk).toBe(5);
   });
 
+  // ⚠️ Régression : `heal` n'existait que côté magie. Un terrain doit soigner
+  // TOTALEMENT ses cibles (au max courant), respecter son ciblage comme les
+  // autres types, et ne toucher personne d'autre.
+  // Mutation : retirer le `case 'heal'` de `compileBoard` → ROUGE (le type ne
+  // compile plus, la case ne soigne rien).
+  it('heal : soigne au maximum courant, et respecte le ciblage du terrain', () => {
+    const wounded = unit({ id: 'W', attributes: ['ARCH_003'], hp: 40 });
+    const untouched = unit({ id: 'U', attributes: [], hp: 40 });
+    wounded.current_hp = 1;
+    untouched.current_hp = 1;
+    applyBoardEffects(
+      { id: 'B', name: 'B', effects: [{ type: 'heal', target_attributes: ['ARCH_003'] }] } as any,
+      { playerUnits: [wounded, untouched] } as any
+    );
+    expect(wounded.current_hp).toBe(wounded.max_hp);
+    expect(untouched.current_hp).toBe(1);
+  });
+
   // ⚠️ Un VRAI `GameState`, pas un objet littéral : celui-ci portait le seul
   // champ que l'assertion regardait, si bien qu'il ne pouvait pas constater
   // l'invariant du registre de provenance — écrit dans le même geste que le

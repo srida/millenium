@@ -343,6 +343,8 @@ export const TYPES = Object.freeze({
     court: 'Soin total',
     // ⚠️ Aucun champ : le soin suit le max COURANT, bonus et vétérance compris.
     // `value` n'est PAS lu — des entrées anciennes en portent un, il est ignoré.
+    terrain: { quands: ['debut_combat'], champs: { target_attributes: {} } },
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
     magie: { quands: ['immediat'], champs: {} },
   },
   team_heal: {

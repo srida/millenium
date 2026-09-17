@@ -164,6 +164,21 @@ export function compileBoard(board: BoardDef | null | undefined): CompilationRes
         return;
       }
 
+      case 'heal': {
+        effets.push({
+          id, porteur, trigger,
+          taches: [{
+            action: 'modifier',
+            cible: cibleUnites(effect),
+            champ: 'pv_courant',
+            operateur: '=',
+            valeur: 0,
+            duree: 'combat',
+          }],
+        });
+        return;
+      }
+
       case 'draw_bonus': {
         effets.push({
           id, porteur, trigger,
@@ -242,6 +257,7 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   stat_bonus: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   shield: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   effect_immunity: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  heal: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   revive: ['fin_combat'],
   draw_bonus: ['fin_combat'],
   guaranteed_draw: ['fin_combat'],
@@ -422,6 +438,12 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
 
         case 'effect_immunity':
           pousse([{ action: 'poser_statut', cible: cibleUnite(), statut: 'immunite', duree: 'combat' }]);
+          return;
+
+        case 'heal':
+          // ⚠️ Soin TOTAL, comme la magie : `=` veut dire « au maximum courant »,
+          // jamais un chiffre figé. Aucune `value` n'est lue.
+          pousse([{ action: 'modifier', cible: cibleUnite(), champ: 'pv_courant', operateur: '=', valeur: 0, duree: 'combat' }]);
           return;
 
         case 'revive':
