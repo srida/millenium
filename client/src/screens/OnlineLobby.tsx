@@ -49,8 +49,7 @@ export default function OnlineLobby() {
   deckRef.current = deckName;
 
   const web = useWebLayout();
-  var classname_title="border-b border-line py-3"
-  web ? classname_title+=" px-22" : classname_title+=" px-6"
+  const classname_title = `border-b border-line py-3${web ? ' px-22' : ' px-6'}`;
 
   // Abonnement au match + sortie de file : MONTAGE/DÉMONTAGE uniquement.
   // Ne jamais dépendre de `status` ici : un re-run de l'effet enverrait

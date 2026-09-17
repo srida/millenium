@@ -41,10 +41,8 @@ export default function TournamentScreen() {
   const deckName = ((DeckRepository as any).getActiveDeck?.() as string | null) ?? null;
 
   const web = useWebLayout();
-  var classname_title="border-b border-line py-3"
-  web ? classname_title+=" px-22" : classname_title+=" px-6"
-  var classname_body="flex-1 space-y-4 overflow-y-auto p-4"
-  web ? classname_body+=" px-22" : classname_body+=" px-6"
+  const classname_title = `border-b border-line py-3${web ? ' px-22' : ' px-6'}`;
+  const classname_body = `flex-1 space-y-4 overflow-y-auto p-4${web ? ' px-22' : ' px-6'}`;
 
   // ⚠️ Le `.catch` n'est pas décoratif : sans lui, un catalogue injoignable
   // (hors ligne, 500) laissait `ready` à false pour toujours, avec une

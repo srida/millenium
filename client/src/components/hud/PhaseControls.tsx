@@ -77,14 +77,11 @@ function MenuButton() {
 
 export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   const { controller, combatActive, placedCount, boardSlots, prepRemaining, combatRemaining, speed, paused, boardTerrain, canUndo } = useGameStore();
+  const web = useWebLayout();
   if (!controller) return null;
 
-  const web = useWebLayout();
-  var classname_footer="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1.5 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-  web ? classname_footer+=" px-22" : classname_footer+=""
-
-  var classname_footer2="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 p-2"
-  web ? classname_footer2+=" px-22" : classname_footer2+=""
+  const classname_footer = `pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1.5 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]${web ? ' px-22' : ''}`;
+  const classname_footer2 = `pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 p-2${web ? ' px-22' : ''}`;
 
   // Barre de combat : dense sur un écran de 375 px (timer, terrain, vitesses,
   // options, pause) — d'où les paddings serrés et les `shrink-0`, sans quoi le

@@ -50,8 +50,7 @@ export default function ShopScreen() {
   const [tab, setTab] = useState<'cards' | 'cosmetics'>('cards');
 
   const web = useWebLayout();
-  var classname_title="flex items-center gap-3 py-3"
-  web ? classname_title+=" px-22" : classname_title+=" px-6"
+  const classname_title = `flex items-center gap-3 py-3${web ? ' px-22' : ' px-6'}`;
 
   useEffect(() => { void load(true); }, [load]);
   useEffect(() => { void loadCosmetics(true); }, [loadCosmetics]);

@@ -59,8 +59,7 @@ export default function Board3DCanvas({ controller }: { controller: GameControll
   }, [controller]);
 
   const web = useWebLayout();
-  var classname_body="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-surface/95"
-  web ? classname_body+=" px-22" : classname_body+=" px-6"
+  const classname_body = `absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-surface/95${web ? ' px-22' : ' px-6'}`;
 
   // z-0 : le canvas WebGL reçoit les pointer events (raycasting). Le conteneur
   // CSS3D (pointer-events:none) et le HUD React (z supérieur) se superposent.

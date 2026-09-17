@@ -55,10 +55,8 @@ export default function ArcadeScreen() {
   useEffect(() => { refreshDecks(); void load(true); }, [load, refreshDecks]);
 
   const web = useWebLayout();
-  var classname_title="flex items-center gap-3 border-b border-line py-3"
-  web ? classname_title+=" px-22" : classname_title+=" px-6"
-  var classname_body="flex-1 space-y-4 overflow-y-auto p-4"
-  web ? classname_body+=" px-22" : classname_body+=""
+  const classname_title = `flex items-center gap-3 border-b border-line py-3${web ? ' px-22' : ' px-6'}`;
+  const classname_body = `flex-1 space-y-4 overflow-y-auto p-4${web ? ' px-22' : ''}`;
 
   const activeDeck = deckName ? decks.find(d => d.name === deckName) ?? null : null;
   const deckReady = !!activeDeck && activeDeck.count >= MIN_DECK;
