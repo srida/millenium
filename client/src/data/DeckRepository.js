@@ -206,13 +206,21 @@ export function deckExists(name) {
   return name in load();
 }
 
+// Cœur PUR de `findFreeName` (aucun accès au localStorage) : partant de
+// `baseName`, ajoute " (2)", " (3)", ... jusqu'à ne plus figurer dans
+// `existingNames`. Extrait pour être testable sans DOM ni stockage, et
+// partagé par `findFreeName` (deck du joueur) et `adoptGuestDeck` (copie
+// d'un deck invité) — une seule règle de nommage.
+export function freeNameAmong(baseName, existingNames) {
+  if (!existingNames.includes(baseName)) return baseName;
+  let i = 2;
+  while (existingNames.includes(`${baseName} (${i})`)) i++;
+  return `${baseName} (${i})`;
+}
+
 // Trouve un nom de deck libre en partant de `baseName` (ajoute " (2)", " (3)", ... si besoin)
 export function findFreeName(baseName) {
-  const decks = load();
-  if (!(baseName in decks)) return baseName;
-  let i = 2;
-  while (`${baseName} (${i})` in decks) i++;
-  return `${baseName} (${i})`;
+  return freeNameAmong(baseName, Object.keys(load()));
 }
 
 export function setActiveDeck(name) {
@@ -227,5 +235,17 @@ export function getActiveDeck() {
 export function hasActiveDeck() {
   const name = getActiveDeck();
   return name !== null && deckExists(name);
+}
+
+// Adopte un deck invité (`guest: true`, cf. PublicDeckDatabase.getGuestDecks)
+// comme deck LOCAL du joueur : au-delà de cet appel, c'est un deck ordinaire,
+// éditable et renommable comme n'importe quel autre — rien ne le distingue
+// plus de son origine. ⚠️ Ne définit le deck actif que si aucun n'existait
+// déjà : adopter un deck d'essai ne doit jamais écraser le choix du joueur.
+export function adoptGuestDeck(guestDeck) {
+  const name = findFreeName(guestDeck.name);
+  saveDeck(name, guestDeck.deck);
+  if (!hasActiveDeck()) setActiveDeck(name);
+  return name;
 }
 

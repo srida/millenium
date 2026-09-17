@@ -25,6 +25,7 @@ import { computeDeckTags } from '../data/DeckTags.js';
 import type { Card } from '../logic/types.js';
 import { useDeckStore, type DeckSummary } from '../stores/deckStore.js';
 import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
+import { useAuthStore } from '../stores/authStore.js';
 import { Button, IconButton, Modal, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_DANGER, SURFACE_GOLD, SURFACE_NEUTRAL, usePressSquash } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
@@ -71,12 +72,17 @@ export default function DeckSelector() {
   const hideTooltip = useUiStore(s => s.hideTooltip);
   const mode = useUiStore(s => (s.params.mode as DeckSelectorMode | undefined) ?? 'manage');
   const manage = mode === 'manage';
+  const user = useAuthStore(s => s.user);
   const decks = useDeckStore(s => s.decks);
   const activeDeck = useDeckStore(s => s.activeDeck);
   const refresh = useDeckStore(s => s.refresh);
   // Decks publics — pool d'adversaires du mode 'play'. Chargés ici seulement :
   // la gestion de decks n'en a pas besoin.
   const [publicDecks, setPublicDecks] = useState<PublicDeckSummary[] | null>(null);
+  // Decks invité — proposés à l'ADOPTION en gestion, seulement sans compte
+  // (`guest: true`, cf. PublicDeckDatabase). Jamais chargés pour un joueur
+  // connecté : la section n'a rien à montrer, autant ne pas faire l'appel.
+  const [guestDecks, setGuestDecks] = useState<PublicDeckSummary[]>([]);
   // Deck confié à l'EnemyAI (mode 'play'), par id de deck public. null = miroir.
   const [enemyId, setEnemyId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -103,6 +109,27 @@ export default function DeckSelector() {
       .catch(() => { if (alive) setPublicDecks([]); });
     return () => { alive = false; };
   }, [manage]);
+
+  useEffect(() => {
+    if (!manage || user) { setGuestDecks([]); return; }
+    let alive = true;
+    (PublicDeckDatabase as any).init()
+      .then(() => {
+        if (alive) setGuestDecks(((PublicDeckDatabase as any).getGuestDecks() as any[]).map(summarizePublic));
+      })
+      .catch(() => { if (alive) setGuestDecks([]); });
+    return () => { alive = false; };
+  }, [manage, user]);
+
+  // Copie un deck invité en LOCAL (DeckRepository) et le rend actif s'il n'y
+  // en avait pas déjà un — un invité qui a déjà commencé à construire son
+  // deck ne se le fait jamais remplacer sous lui.
+  function adopt(id: string) {
+    const raw = guestDecks.find(d => d.id === id);
+    if (!raw) return;
+    (DeckRepository as any).adoptGuestDeck({ name: raw.name, deck: raw.deck });
+    refresh();
+  }
 
   const active = decks.find(d => d.name === activeDeck) ?? null;
   const canPlay = !!active && active.count >= MIN_DECK;
@@ -169,6 +196,23 @@ export default function DeckSelector() {
       </div>
 
       <div className={classname_body}>
+        {/* Invité seulement : des decks prêts à jouer, copiés en local d'un
+            tap — pas besoin de passer par le DeckBuilder pour essayer le jeu. */}
+        {manage && guestDecks.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 pt-1">
+              <span className="text-[10px] tracking-widest text-white/40">🎮 DECKS D'ESSAI</span>
+              <div className="h-px flex-1 bg-line" />
+            </div>
+            <p className="text-xs text-white/50">Copie un deck prêt à jouer pour essayer le jeu sans le construire toi-même.</p>
+            <div className="space-y-2">
+              {guestDecks.map(d => (
+                <GuestDeckRow key={d.id} deck={d} onAdopt={() => adopt(d.id)} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {manage && decks.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
             <div className="text-4xl">🃏</div>
@@ -304,6 +348,24 @@ function SelectionButton({ tone, onPointerDown, children }: { tone: 'gold' | 'da
     >
       {children}
     </button>
+  );
+}
+
+// Ligne d'un deck invité (section « Decks d'essai », mode 'manage' sans compte
+// seulement) : pas de gestion (📋🏷️🗑️), juste un nom, sa difficulté et
+// « Essayer » — l'adoption copie le deck en local (cf. `DeckRepository.adoptGuestDeck`).
+function GuestDeckRow({ deck, onAdopt }: { deck: PublicDeckSummary; onAdopt: () => void }) {
+  return (
+    <div className={`flex items-center gap-3 rounded-xl border p-3 ${SURFACE_NEUTRAL}`}>
+      <span className="h-3 w-3 flex-shrink-0 rounded-full" style={{ background: '#a86ee7' }} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-bold">{deck.name}</div>
+        <div className={`text-xs font-semibold ${DIFFICULTY_TEXT_TONE[deck.difficulty] ?? 'text-white/60'}`}>
+          {(PublicDeckDatabase as any).difficultyLabel(deck.difficulty)}
+        </div>
+      </div>
+      <Button variant="primary" className="shrink-0 px-3 py-1.5 text-xs" onPointerDown={onAdopt}>Essayer</Button>
+    </div>
   );
 }
 
