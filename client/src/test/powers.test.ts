@@ -371,3 +371,80 @@ describe('power.duration — les quatre pouvoirs de durée', () => {
     expect(a.target.effectiveAttackPeriod()).toBe(18); // la sévérité, en ticks
   });
 });
+
+// ---------------------------------------------------------------------------
+// POWER_WEAKEN — le seul pouvoir de durée qui lit AUSSI `power.value` : la
+// sévérité (l'ATQ retirée) est une donnée de carte, contrairement aux quatre
+// autres dont la sévérité est une constante du moteur.
+// ---------------------------------------------------------------------------
+describe('POWER_WEAKEN — ampleur ET durée, les deux à la fois', () => {
+  it('`value` = ATQ retirée', () => {
+    const a = arena({ id: 'POWER_WEAKEN', power_rate: 100, value: 4 });  // target atk = 5
+    a.fire();
+    expect(a.target.atk).toBe(1);
+    expect(a.target.weaken_atk_delta).toBe(4);
+  });
+
+  it('sans `value` : repli du moteur (10, écrêté au plancher de 1)', () => {
+    const a = arena({ id: 'POWER_WEAKEN', power_rate: 100 });   // target atk = 5
+    a.fire();
+    expect(a.target.atk).toBe(1);   // Math.max(1, 5 - 10)
+  });
+
+  it('`value: 0` est lu comme absent, comme partout ailleurs', () => {
+    const a = arena({ id: 'POWER_WEAKEN', power_rate: 100, value: 0 });
+    a.fire();
+    expect(a.target.weaken_atk_delta).toBe(10);   // le repli, pas 0
+  });
+
+  it('`duration` = COMPTEUR de durée, comme les quatre autres pouvoirs de durée', () => {
+    // Compteur 50 → 40 ticks (2 + 0,75 × 50 = 39,5, arrondi au supérieur).
+    const a = arena({ id: 'POWER_WEAKEN', power_rate: 100, duration: 50, value: 3 });
+    a.fire();
+    expect(a.target.weaken_remaining).toBe(40);
+  });
+
+  it('sans `duration` : 20 steps', () => {
+    const a = arena({ id: 'POWER_WEAKEN', power_rate: 100, value: 3 });
+    a.fire();
+    expect(a.target.weaken_remaining).toBe(20);
+  });
+
+  // ⚠️ Mutation : ne pas annuler exactement `weaken_atk_delta` à l'expiration
+  // (par ex. relire `power_value`, qui peut avoir changé) → ROUGE.
+  it('restaure EXACTEMENT le delta appliqué, au tick d\'expiration', () => {
+    const a = arena({ id: 'POWER_WEAKEN', power_rate: 100, duration: 2, value: 4 });   // target atk = 5
+    a.fire();
+    expect(a.target.atk).toBe(1);
+    // ⚠️ Le lanceur ne doit pas RECASTER une fois le statut expiré (ce qui
+    // serait un comportement parfaitement correct en vraie partie, mais
+    // brouillerait cette mesure de l'expiration elle-même) : `_firePower`
+    // a été appelé directement, sans consommer la jauge — désarmer le
+    // pouvoir isole le tick passif qu'on veut observer.
+    a.caster.power_id = null;
+    const ticks = a.target.weaken_remaining;
+    for (let i = 0; i < ticks && !a.combat.isOver; i++) a.combat.step();
+    expect(a.target.weaken_remaining).toBe(0);
+    expect(a.target.weaken_atk_delta).toBe(0);
+    expect(a.target.atk).toBe(5);
+  });
+
+  it('immunité : dévié, aucun effet', () => {
+    const a = arena({ id: 'POWER_WEAKEN', power_rate: 100, value: 4 });
+    a.target.is_effect_immune = true;
+    const events = a.fire();
+    expect(a.target.atk).toBe(5);
+    expect(a.target.weaken_remaining).toBe(0);
+    expect(events[0].extra.immune).toBe(true);
+  });
+
+  it('POWER_DEBUFF strippe un affaiblissement en cours', () => {
+    const a = arena({ id: 'POWER_WEAKEN', power_rate: 100, value: 4 });
+    a.fire();
+    expect(a.target.atk).toBe(1);
+    const cleanser = arena({ id: 'POWER_DEBUFF', power_rate: 100 });
+    cleanser.combat._firePower(cleanser.caster, a.target, []);
+    expect(a.target.weaken_remaining).toBe(0);
+    expect(a.target.weaken_atk_delta).toBe(0);
+  });
+});

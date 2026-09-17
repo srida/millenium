@@ -8,6 +8,7 @@ import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as BoardDatabase from '../data/BoardDatabase.js';
 import * as MagieDatabase from '../data/MagieDatabase.js';
 import * as CardBackDatabase from '../data/CardBackDatabase.js';
+import * as TokenDatabase from '../data/TokenDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import * as CardArt from '../data/CardArt.js';
 import { GameSession } from '../logic/GameSession.js';
@@ -29,6 +30,7 @@ export async function initGameData(): Promise<void> {
     // donnée de jeu, et un serveur qui ne connaîtrait pas encore la route ne
     // doit pas empêcher de jouer.
     (CardBackDatabase as any).init(),
+    (TokenDatabase as any).init(),
   ]);
   _dataReady = true;
 }
@@ -121,6 +123,7 @@ export function buildSession(
     cardDb: CardDatabase as any,
     getAllBoards: () => (BoardDatabase as any).getAllBoards(),
     getAllMagies: () => (MagieDatabase as any).getAllMagies(),
+    tokenDb: TokenDatabase as any,
     mode,
     enemyBonus: enemyBonus ?? null,
     mirroredRole: mode === 'pvp' && pvpRole === 'B',

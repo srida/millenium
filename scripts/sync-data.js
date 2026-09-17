@@ -80,6 +80,9 @@ const ENTITIES = [
   // Les dos de cartes non plus n'ont pas d'entrée ASSETS : leur art vit dans le
   // dossier des illustrations, sous l'id du dos.
   { type: 'cardBacks',  file: 'card_backs.json', importPath: '/api/card-backs/import', deletePath: id => `/api/card-backs/${id}` },
+  // Les tokens n'ont pas d'entrée ASSETS non plus : leur art vit dans le
+  // dossier des illustrations, sous l'id du token.
+  { type: 'tokens',     file: 'tokens.json',     importPath: '/api/tokens/import',     deletePath: id => `/api/tokens/${id}` },
 ];
 
 function authHeader() {

@@ -99,16 +99,28 @@ const DURATION_POWERS = Object.freeze([
 ]);
 
 /**
+ * Jumeau de `DURATION_AND_VALUE_POWERS` (`speed-scale.mjs`) : les pouvoirs qui
+ * lisent `power.duration` EN PLUS de `power.value`, pas à sa place —
+ * Affaiblissement chiffre une ampleur (l'ATQ retirée) qui varie d'une carte à
+ * l'autre, là où la sévérité des quatre `DURATION_POWERS` est une constante
+ * fixe du moteur. Une liste séparée les tient hors de la règle « value et
+ * duration s'excluent », qui ne vaut que pour ces quatre-là.
+ */
+const DURATION_AND_VALUE_POWERS = Object.freeze(['POWER_WEAKEN']);
+
+/**
  * Ce qui cloche dans la durée du pouvoir d'une carte. `[]` = conforme.
  *
  * Trois fautes, et une seule absence tolérée :
  *
- *  1. `value` sur un pouvoir de durée — le champ EN TICKS d'avant la bascule.
- *     Le laisser passer, c'est faire vivre deux formats dont un seul est lu, et
- *     la panne serait muette : le moteur retomberait sur son repli, donc une
- *     paralysie annoncée 60 durerait 20 ticks sans qu'on le voie nulle part.
- *  2. `duration` sur un pouvoir qui n'en lit pas — un champ sans lecteur, signe
- *     d'un `power.id` changé sans nettoyage.
+ *  1. `value` sur un pouvoir de durée PURE — le champ EN TICKS d'avant la
+ *     bascule. Le laisser passer, c'est faire vivre deux formats dont un seul
+ *     est lu, et la panne serait muette : le moteur retomberait sur son repli,
+ *     donc une paralysie annoncée 60 durerait 20 ticks sans qu'on le voie nulle
+ *     part. ⚠️ Ne vise PAS `DURATION_AND_VALUE_POWERS` : ceux-là lisent `value`
+ *     légitimement (une ampleur, pas des ticks).
+ *  2. `duration` sur un pouvoir qui n'en lit aucune — un champ sans lecteur,
+ *     signe d'un `power.id` changé sans nettoyage.
  *  3. `duration` illisible ou hors de [0, 100] — le compteur est borné, c'est
  *     tout son propos.
  *
@@ -121,15 +133,16 @@ function missingDurations(card) {
   const problems = [];
   const power = card?.power;
   if (!power || !power.id) return problems;
-  const isDuration = DURATION_POWERS.includes(power.id);
+  const isPureDuration = DURATION_POWERS.includes(power.id);
+  const readsDuration = isPureDuration || DURATION_AND_VALUE_POWERS.includes(power.id);
 
-  if (isDuration && 'value' in power) {
+  if (isPureDuration && 'value' in power) {
     problems.push(`power.value sur ${power.id} (champ en ticks résiduel — voir scripts/migrate-speeds.js)`);
   }
-  if (!isDuration && 'duration' in power) {
+  if (!readsDuration && 'duration' in power) {
     problems.push(`power.duration sur ${power.id} (ce pouvoir ne lit aucune durée)`);
   }
-  if (isDuration && power.duration != null && power.duration !== '') {
+  if (readsDuration && power.duration != null && power.duration !== '') {
     const n = Number(power.duration);
     if (!Number.isFinite(n) || n < 0 || n > 100) {
       problems.push(`power.duration (compteur hors de 0–100 : ${power.duration})`);
@@ -141,5 +154,5 @@ function missingDurations(card) {
 module.exports = {
   REQUIRED_CATEGORIES, missingCategories,
   RATE_FIELDS, missingRates,
-  DURATION_POWERS, missingDurations,
+  DURATION_POWERS, DURATION_AND_VALUE_POWERS, missingDurations,
 };

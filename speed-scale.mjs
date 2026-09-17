@@ -200,3 +200,13 @@ export const DURATION_POWERS = Object.freeze([
   'POWER_CONFUSION',
   'POWER_TAUNT',
 ]);
+
+/**
+ * Les pouvoirs qui lisent `power.duration` **en plus** de `power.value`, plutôt
+ * qu'à sa place — Affaiblissement chiffre une AMPLEUR (l'ATQ retirée) qui varie
+ * d'une carte à l'autre, contrairement aux quatre `DURATION_POWERS` dont la
+ * sévérité est une constante fixe du moteur. Liste distincte pour ne pas
+ * entraîner ce cas dans la règle « `value` et `duration` s'excluent », qui ne
+ * tient que pour ces quatre-là.
+ */
+export const DURATION_AND_VALUE_POWERS = Object.freeze(['POWER_WEAKEN']);

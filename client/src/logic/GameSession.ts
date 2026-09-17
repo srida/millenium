@@ -74,6 +74,11 @@ export interface CardDbLike {
   getCard(id: string): Card | null;
 }
 
+/** Résolution d'un token par id (POWER_SUMMON_TOKEN) — TokenDatabase.getToken. */
+export interface TokenDbLike {
+  getToken(id: string): Card | null;
+}
+
 export interface GameSessionDeps {
   /** Cartes du deck joueur, groupées par tier : { 1: Card[], … }. */
   cardsByTier: Record<number, Card[]>;
@@ -83,6 +88,10 @@ export interface GameSessionDeps {
   attributeList: AttributeDef[];
   /** Résolution de carte par id (pour l'IA ennemie). */
   cardDb: CardDbLike;
+  /** Résolution d'un token par id (POWER_SUMMON_TOKEN, `CombatManager`).
+   *  Absent : le pouvoir ne trouve jamais son token et ne se déclenche donc
+   *  jamais (même traitement qu'une case adjacente indisponible). */
+  tokenDb?: TokenDbLike;
   /** Catalogue COMPLET des terrains (BoardDatabase.getAllBoards).
    *  ⚠️ Le TIRAGE n'est PLUS délégué à la couche data : il vit dans
    *  `logic/BoardPicker.pickBoard`, qui le filtre par pertinence vis-à-vis des
@@ -727,7 +736,7 @@ export class GameSession {
       pvp: this.deps.mode === 'pvp',
     });
 
-    const combat = new CombatManager(this.board, playerUnits, this.enemyUnits, attributeManager);
+    const combat = new CombatManager(this.board, playerUnits, this.enemyUnits, attributeManager, this.deps.tokenDb ?? null);
     this._combat = combat;
     this._attributeManager = attributeManager;
     this._combatPlayerUnits = playerUnits;
@@ -739,7 +748,18 @@ export class GameSession {
   finishCombat(): EndRoundResult {
     const combat = this._combat!;
     const attributeManager = this._attributeManager!;
-    const playerUnits = this._combatPlayerUnits;
+
+    // ⚠️ Les tokens (POWER_SUMMON_TOKEN) disparaissent ICI, avant tout le
+    // reste de la clôture : pas de cimetière, pas de vétérance, pas de
+    // réanimation — une unité éphémère n'a rien à transporter au round
+    // suivant, puisqu'il n'y en aura pas pour elle. Retirés du plateau qu'ils
+    // soient morts ou vivants, et retirés des DEUX listes qui alimentent tout
+    // ce qui suit : c'est ce qui les exclut structurellement du reste de la
+    // fonction sans dupliquer le filtre à chaque étape.
+    for (const u of this._combatPlayerUnits) if (u.is_token) this.board.removeUnit(u);
+    for (const u of this.enemyUnits) if (u.is_token) this.board.removeUnit(u);
+    const playerUnits = this._combatPlayerUnits.filter(u => !u.is_token);
+    this.enemyUnits = this.enemyUnits.filter(u => !u.is_token);
 
     const playerNeutralized = playerUnits.filter(u => u.is_neutralized);
     const enemyNeutralized = this.enemyUnits.filter(u => u.is_neutralized);

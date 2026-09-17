@@ -548,6 +548,9 @@ select.filter:focus { border-color: var(--accent); }
            Leur art vit dans le dossier des ILLUSTRATIONS, sous l'id du dos —
            comme les variantes : aucune famille d'assets à créer. -->
       <option value="cardbacks">🂠 Dos de cartes</option>
+      <!-- Tokens : les unités éphémères de POWER_SUMMON_TOKEN. Même art dans
+           ILLUS_DIR sous l'id du token, aucune famille d'assets à créer. -->
+      <option value="tokens">🪙 Tokens</option>
       <option value="stats">📊 Stats</option>
       <option value="db">🗄️ Base SQL</option>
       <!-- Le rapport d'équilibrage est un onglet ordinaire : son panneau porte une
@@ -734,6 +737,27 @@ select.filter:focus { border-color: var(--accent); }
     </div>
   </div>
 
+  <!-- TOKENS TAB -->
+  <div id="tab-tokens" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="token-search" class="qbar" data-query="token" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('token')" onkeydown="onQueryKey(event, 'token')">
+          <span id="token-count" class="count">0</span>
+        </div>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-token"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewToken()" title="Nouveau token">+</button>
+          <button class="btn-icon" onclick="openImportModal('tokens')" title="Importer JSON">⬆</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="token-list"></div>
+    </div>
+    <div class="content" id="token-detail">
+      <div class="empty"><span>Sélectionne un token</span></div>
+    </div>
+  </div>
+
   <!-- MISSIONS TAB -->
   <div id="tab-missions" class="main hidden">
     <div class="sidebar">
@@ -883,10 +907,10 @@ select.filter:focus { border-color: var(--accent); }
 // ================== STATE ==================
 // `packs` = les packs de boutique (data/sets.json, API /api/sets). Le code et la
 // donnée disent « set », l'interface dit « pack » : ici on est dans l'interface.
-let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [], cardBacks = [];
-let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null, selectedCardBack = null;
+let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [], cardBacks = [], tokens = [];
+let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null, selectedCardBack = null, selectedToken = null;
 let currentTab = 'cards';
-let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false, isNewGift = false, isNewCardBack = false;
+let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false, isNewGift = false, isNewCardBack = false, isNewToken = false;
 let selectionMode = false;
 const bulkSelected = new Set();
 
@@ -1012,6 +1036,18 @@ function buildQuerySchemas() {
       num('prix', 'Prix en gemmes', b => Number(b.price_gems) || 0, ['price_gems', 'gemmes']),
       bool('defaut', 'Dos offert', b => !!b.default, ['default', 'offert']),
       bool('illustration', 'A une illustration', b => !!b._has_illustration, ['illus']),
+    ],
+  };
+
+  QUERY_SCHEMAS.token = {
+    text: ['nom', 'id'],
+    fields: [
+      txt('id', 'Identifiant', t => t.id),
+      txt('nom', 'Nom', t => t.name, ['name']),
+      num('atk', 'ATK', t => Number(t.stats?.atk) || 0),
+      num('hp', 'PV', t => Number(t.stats?.hp) || 0),
+      txt('pouvoir', 'Pouvoir', t => t.power?.id || '', ['power']),
+      bool('illustration', 'A une illustration', t => !!t._has_illustration, ['illus']),
     ],
   };
 
@@ -1328,7 +1364,7 @@ async function init() {
   SPEED = modules[1];
   EFX = modules[2];
 
-  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, cardBacks] = await Promise.all([
+  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, cardBacks, tokens] = await Promise.all([
     apiFetch('/api/cards'),
     apiFetch('/api/attributes'),
     apiFetch('/api/powers'),
@@ -1340,12 +1376,13 @@ async function init() {
     apiFetch('/api/variants'),
     apiFetch('/api/gifts'),
     apiFetch('/api/card-backs'),
+    apiFetch('/api/tokens'),
   ]);
   buildQuerySchemas();
   attachQueryBars();
   Object.assign(QUERY_REFRESH, {
     card: filterCards, attr: filterAttributes, power: filterPowers, board: filterBoards,
-    magie: filterMagies, variant: filterVariants, cardback: filterCardBacks,
+    magie: filterMagies, variant: filterVariants, cardback: filterCardBacks, token: filterTokens,
     mission: filterMissions, gift: filterGifts, deck: filterPublicDecks, pack: filterPacks,
   });
   populateTierFilter();
@@ -1360,6 +1397,7 @@ async function init() {
   renderVariantList();
   renderGiftList();
   renderCardBackList();
+  renderTokenList();
 }
 
 /** Les chips de tier se DÉRIVENT du catalogue d'attributs : un tier ajouté dans
@@ -2167,22 +2205,27 @@ function renderCardDetail() {
 }
 
 /**
- * ⚠️ « Valeur » et « Durée » s'EXCLUENT, et c'est la seule chose à retenir de
- * ce formulaire : les quatre pouvoirs de durée lisent `power.duration` et
- * n'ont plus de `value`, les dix autres l'inverse. Montrer les deux laisserait
- * saisir un champ que le moteur ne lira jamais — et c'est précisément ce qu'un
- * `power.value` en ticks était devenu.
+ * ⚠️ « Valeur » et « Durée » s'EXCLUENT pour les quatre pouvoirs de PURE
+ * durée (`SPEED.DURATION_POWERS`) : ils lisent `power.duration` et n'ont plus
+ * de `value`, les dix autres pouvoirs l'inverse. Montrer les deux leur
+ * laisserait saisir un champ que le moteur ne lira jamais — précisément ce
+ * qu'un `power.value` en ticks était devenu.
+ *
+ * ⚠️ `SPEED.DURATION_AND_VALUE_POWERS` (Affaiblissement) est l'EXCEPTION : son
+ * ampleur (l'ATQ retirée) est une donnée de carte comme un dégât plat, à côté
+ * d'une durée comme les quatre autres — les deux champs y sont donc affichés.
  */
 function togglePowerFields() {
   const powId = document.getElementById('f-power-id')?.value;
-  const isDuration = !!powId && SPEED.DURATION_POWERS.includes(powId);
+  const isPureDuration = !!powId && SPEED.DURATION_POWERS.includes(powId);
+  const isDualPower = !!powId && SPEED.DURATION_AND_VALUE_POWERS.includes(powId);
   const show = (id, on) => {
     const el = document.getElementById(id);
     if (el) el.style.display = on ? '' : 'none';
   };
   show('f-power-speed-wrap', !!powId);
-  show('f-power-val-wrap', !!powId && !isDuration);
-  show('f-power-dur-wrap', isDuration);
+  show('f-power-val-wrap', !!powId && (!isPureDuration || isDualPower));
+  show('f-power-dur-wrap', isPureDuration || isDualPower);
 }
 
 /**
@@ -2478,22 +2521,28 @@ function cardRatesFromForm() {
 /**
  * Le bloc `power` d'une carte, lu du formulaire.
  *
- * ⚠️ Un pouvoir de DURÉE n'émet jamais de `value`, et les autres jamais de
- * `duration` : ce sont deux champs qui s'excluent, pas deux façons d'écrire le
- * même. Le contrat de carte refuse en 400 celui qui n'a pas de lecteur —
+ * ⚠️ Un pouvoir de DURÉE PURE n'émet jamais de `value`, et les autres jamais
+ * de `duration` : ce sont deux champs qui s'excluent, pas deux façons d'écrire
+ * le même. Le contrat de carte refuse en 400 celui qui n'a pas de lecteur —
  * émettre les deux ferait échouer chaque enregistrement.
+ *
+ * ⚠️ `SPEED.DURATION_AND_VALUE_POWERS` (Affaiblissement) émet les DEUX : son
+ * ampleur (`value`) est une donnée de carte à part entière, pas un résidu en
+ * ticks — le contrat les autorise explicitement ensemble pour cette liste.
  */
 function cardPowerFromForm() {
   const powId = document.getElementById('f-power-id')?.value;
   if (!powId) return {};
   const rate = counterFromSlider('f-power-speed');
   const base = { id: powId, ...(rate != null ? { power_rate: rate } : {}) };
-  if (SPEED.DURATION_POWERS.includes(powId)) {
-    const dur = counterFromSlider('f-power-dur');
-    return { ...base, ...(dur != null ? { duration: dur } : {}) };
-  }
+  const isDualPower = SPEED.DURATION_AND_VALUE_POWERS.includes(powId);
   const powVal = document.getElementById('f-power-val')?.value;
-  return { ...base, ...(powVal !== '' && powVal != null ? { value: parseFloat(powVal) } : {}) };
+  const withValue = (powVal !== '' && powVal != null) ? { value: parseFloat(powVal) } : {};
+  if (SPEED.DURATION_POWERS.includes(powId) || isDualPower) {
+    const dur = counterFromSlider('f-power-dur');
+    return { ...base, ...(isDualPower ? withValue : {}), ...(dur != null ? { duration: dur } : {}) };
+  }
+  return { ...base, ...withValue };
 }
 
 function syncCardFromForm() {
@@ -2635,6 +2684,7 @@ const ID_PICKERS = {
   gift:     { field: 'gf-id',  fallback: 'GIFT',        items: () => gifts,       sel: () => selectedGift },
   variant:  { field: 'vf-id',  fallback: 'VAR',         items: () => variants,    sel: () => selectedVariant },
   cardback: { field: 'cbf-id', fallback: 'CARDBACK',    items: () => cardBacks,   sel: () => selectedCardBack },
+  token:    { field: 'tkf-id', fallback: 'TOKEN',       items: () => tokens,      sel: () => selectedToken },
 };
 
 /** `CORE_001` → `['CORE', '001']`. Le seul découpage d'un id du projet. */
@@ -3356,12 +3406,14 @@ function _effectFieldOptions(champ, valeur) {
  *
  * ⚠️ La seule qui existe est l'exclusion « Valeur / Durée » d'un `grant_power`,
  * et c'est le POUVOIR DONNÉ qui tranche, pas le type d'effet : `grant_power` en
- * donne quatorze, dont quatre seulement lisent une durée. La règle était écrite
- * DEUX fois — dans le gabarit et dans la fonction de mise à jour — et l'une des
- * deux avait fini par l'oublier.
+ * donne quinze, dont quatre lisent une durée pure et un (Affaiblissement) les
+ * deux à la fois. La règle était écrite DEUX fois — dans le gabarit et dans la
+ * fonction de mise à jour — et l'une des deux avait fini par l'oublier.
  */
 function _effectFieldMasque(champ, effet) {
   if (!champ.masqueSi) return false;
+  // Affaiblissement lit les deux champs : aucun des deux n'est masqué.
+  if (SPEED.DURATION_AND_VALUE_POWERS.includes(effet?.power_id)) return false;
   const duree = SPEED.DURATION_POWERS.includes(effet?.power_id);
   return champ.masqueSi === 'pouvoir_de_duree' ? duree : !duree;
 }
@@ -5240,6 +5292,337 @@ async function deleteCardBackIllustration() {
   toast('Illustration supprimée');
 }
 
+// ================== TOKENS ==================
+// Les unités ÉPHÉMÈRES de POWER_SUMMON_TOKEN (logic/CombatManager.js) : jamais
+// posées par l'invocation normale, jamais dans un deck, jamais au cimetière —
+// disparues à la fin du combat qui les a vues naître. Leur art vit dans le
+// dossier des ILLUSTRATIONS, sous l'id du token, comme les dos de cartes.
+let tokenBust = Date.now();
+
+function filterTokens() { renderTokenList(runQuery('token', tokens)); }
+
+function renderTokenList(list = tokens) {
+  document.getElementById('token-count').textContent = list.length;
+  const el = document.getElementById('token-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty" style="padding:24px"><span>Aucun token</span></div>';
+    return;
+  }
+  el.innerHTML = list.map(t => {
+    const isActive = selectedToken?.id === t.id;
+    const thumb = t._has_illustration
+      ? `<img class="list-thumb" src="/illustrations/${esc(t.id)}?t=${tokenBust}" alt="" loading="lazy">`
+      : `<div class="list-thumb-placeholder"><span style="font-size:14px;opacity:.4">🪙</span></div>`;
+    return `
+      <div class="list-item ${isActive ? 'selected' : ''}" onclick="selectToken('${t.id}')">
+        ${thumb}
+        <div style="flex:1;min-width:0">
+          <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t._has_illustration ? '' : '⚠️ '}${esc(t.name || t.id)}</span>
+          <div style="display:flex;gap:4px;margin-top:3px;align-items:center">
+            <span class="item-id">${esc(t.id)}</span>
+            <span class="item-id">⚔ ${Number(t.stats?.atk) || 0} · ❤ ${Number(t.stats?.hp) || 0}</span>
+            ${t.power?.id ? `<span class="item-id">${esc(t.power.id)}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectToken(id) {
+  selectedToken = tokens.find(t => t.id === id) ?? null;
+  isNewToken = false;
+  renderTokenList();
+  renderTokenDetail();
+  showDetail();
+}
+
+/**
+ * ⚠️ « Valeur » et « Durée » du pouvoir du token suivent la MÊME règle que
+ * celle de la fiche carte (cf. `togglePowerFields`) — id de champ à part parce
+ * que les deux fiches peuvent coexister dans le DOM (l'une masquée), jamais la
+ * règle elle-même : deux copies finiraient par ne plus s'accorder.
+ */
+function toggleTokenPowerFields() {
+  const powId = document.getElementById('tk-power-id')?.value;
+  const isPureDuration = !!powId && SPEED.DURATION_POWERS.includes(powId);
+  const isDualPower = !!powId && SPEED.DURATION_AND_VALUE_POWERS.includes(powId);
+  const show = (id, on) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = on ? '' : 'none';
+  };
+  show('tk-power-speed-wrap', !!powId);
+  show('tk-power-val-wrap', !!powId && (!isPureDuration || isDualPower));
+  show('tk-power-dur-wrap', isPureDuration || isDualPower);
+  // ⚠️ Le SEUL champ propre à un token : quel autre token POWER_SUMMON_TOKEN
+  // invoque. Rien à voir avec Valeur/Durée — un token peut porter ce pouvoir
+  // comme n'importe quelle carte (récursion assumée, cf. CombatManager).
+  show('tk-power-token-wrap', powId === 'POWER_SUMMON_TOKEN');
+}
+
+function tokenPowerFromForm() {
+  const powId = document.getElementById('tk-power-id')?.value;
+  if (!powId) return {};
+  const rate = counterFromSlider('tk-power-speed');
+  const base = { id: powId, ...(rate != null ? { power_rate: rate } : {}) };
+  const isDualPower = SPEED.DURATION_AND_VALUE_POWERS.includes(powId);
+  const powVal = document.getElementById('tk-power-val')?.value;
+  const withValue = (powVal !== '' && powVal != null) ? { value: parseFloat(powVal) } : {};
+  const tokenId = document.getElementById('tk-power-token')?.value;
+  const withTokenId = (powId === 'POWER_SUMMON_TOKEN' && tokenId) ? { token_id: tokenId } : {};
+  if (SPEED.DURATION_POWERS.includes(powId) || isDualPower) {
+    const dur = counterFromSlider('tk-power-dur');
+    return { ...base, ...(isDualPower ? withValue : {}), ...(dur != null ? { duration: dur } : {}), ...withTokenId };
+  }
+  return { ...base, ...withValue, ...withTokenId };
+}
+
+function renderTokenDetail() {
+  const t = selectedToken;
+  const el = document.getElementById('token-detail');
+  if (!t) {
+    el.innerHTML = '<div class="empty"><span>Sélectionne un token</span></div>';
+    return;
+  }
+  const hasIllus = t._has_illustration;
+  const hasPower = !!t.power?.id;
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header">
+      <div class="illustration-box" onclick="${isNewToken ? '' : 'openTokenIllusModal()'}">
+        ${hasIllus
+          ? `<img src="/illustrations/${t.id}?t=${tokenBust}" alt="">`
+          : `<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" opacity=".3"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`}
+        <div class="illus-overlay">
+          ${hasIllus
+            ? `<span style="font-size:12px;color:white">Changer</span>
+               ${downloadAssetBtn('illustrations', t.id)}
+               <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteTokenIllustration()">Supprimer</button>`
+            : `<span style="font-size:12px;color:white">Ajouter une illustration</span>`}
+        </div>
+      </div>
+      <div class="detail-info">
+        <div class="detail-title">🪙 ${esc(t.name || t.id)}</div>
+        <div class="detail-meta"><span style="font-family:monospace">${esc(t.id)}</span></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>ID</label>
+      ${isNewToken ? idPickerHtml('token', t.id) : idFieldHtmlFor('token', t.id, { readonly: true })}
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">
+        L'illustration est nommée par cet id — il ne se renomme donc pas après coup.
+      </span>
+    </div>
+
+    <div class="field">
+      <label>Nom</label>
+      <input id="tk-name" value="${esc(t.name || '')}" placeholder="Esprit invoqué">
+    </div>
+
+    <div class="section-title">Stats</div>
+    <div class="stats-grid">
+      <div class="field"><label>ATK</label><input type="number" id="tk-atk" value="${Number(t.stats?.atk) || 0}" step="0.5"></div>
+      <div class="field"><label>HP</label><input type="number" id="tk-hp" value="${Number(t.stats?.hp) || 0}" step="0.5"></div>
+      <div class="field">
+        <label>Portée <span class="slider-val" id="tk-range-val">${Math.min(4,Math.max(1,Math.round(t.stats?.range || 1)))}</span></label>
+        <input type="range" id="tk-range" min="1" max="4" step="1" value="${Math.min(4,Math.max(1,Math.round(t.stats?.range || 1)))}" oninput="document.getElementById('tk-range-val').textContent=this.value">
+        <div class="slider-marks"><span>1</span><span>2</span><span>3</span><span>4</span></div>
+      </div>
+      ${counterSliderHtml('tk-move', 'Vit. déplacement', t.stats?.movement_rate)}
+      ${counterSliderHtml('tk-aspeed', 'Vit. attaque', t.stats?.attack_rate)}
+    </div>
+
+    <div class="section-title">Pouvoir (optionnel)</div>
+    <div class="form-grid">
+      <div class="field"><label>Pouvoir</label>
+        <select id="tk-power-id" onchange="toggleTokenPowerFields()">
+          <option value="">Aucun</option>
+          ${powers.map(p => `<option value="${p.id}" ${hasPower && t.power.id===p.id?'selected':''}>${p.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field" id="tk-power-speed-wrap">${counterSliderHtml('tk-power-speed', 'Vitesse pouvoir', hasPower ? t.power.power_rate : null, { allowEmpty: true, emptyLabel: 'Aucune vitesse — le pouvoir ne part jamais' })}</div>
+      <div class="field" id="tk-power-val-wrap"><label>Valeur</label><input type="number" id="tk-power-val" value="${hasPower && t.power.value != null ? t.power.value : ''}" step="0.5" placeholder="optionnel"></div>
+      <div class="field" id="tk-power-dur-wrap">${counterSliderHtml('tk-power-dur', 'Durée de l\\'effet', hasPower ? t.power.duration : null, { allowEmpty: true, kind: 'Duration', emptyLabel: 'Aucune durée — le repli du pouvoir s\\'applique' })}</div>
+      <div class="field" id="tk-power-token-wrap"><label>Token invoqué</label>
+        <select id="tk-power-token">
+          <option value="">— choisir —</option>
+          ${tokens.map(o => `<option value="${o.id}" ${hasPower && t.power.token_id===o.id?'selected':''}>${esc(o.name || o.id)}</option>`).join('')}
+        </select>
+        <span style="font-size:11px;color:var(--muted);margin-top:4px">La récursion (un token qui en invoque un autre) est autorisée, bornée par les cases libres du plateau.</span>
+      </div>
+    </div>
+
+    <div class="detail-actions">
+      ${isNewToken
+        ? `<button class="btn btn-primary" onclick="createToken()">Créer</button>
+           <button class="btn btn-secondary" onclick="cancelNewToken()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveToken()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deleteToken()">Supprimer</button>`}
+    </div>
+  `;
+  toggleTokenPowerFields();
+}
+
+// ⚠️ Repart de `...selectedToken` comme `_collectCardBackFields` : un
+// `_collect…` qui reconstruit de zéro détruit tout champ qu'il ne connaît pas.
+function _collectTokenFields() {
+  const out = {
+    ...selectedToken,
+    id: selectedToken.id,
+    name: document.getElementById('tk-name')?.value.trim() || selectedToken.id,
+    stats: {
+      atk: parseFloat(document.getElementById('tk-atk').value) || 0,
+      hp: parseFloat(document.getElementById('tk-hp').value) || 0,
+      range: parseFloat(document.getElementById('tk-range').value) || 0,
+      movement_rate: counterFromSlider('tk-move') ?? 0,
+      attack_rate: counterFromSlider('tk-aspeed') ?? 0,
+    },
+    power: tokenPowerFromForm(),
+  };
+  delete out._has_illustration;
+  return out;
+}
+
+async function saveToken() {
+  const tok = _collectTokenFields();
+  const res = await apiFetch(`/api/tokens/${selectedToken.id}`, { method: 'PUT', body: tok });
+  if (res.error) return toast(res.error, 'err');
+  const idx = tokens.findIndex(t => t.id === selectedToken.id);
+  if (idx !== -1) {
+    tokens[idx] = { ...tok, _has_illustration: selectedToken._has_illustration };
+    selectedToken = tokens[idx];
+  }
+  filterTokens();
+  renderTokenDetail();
+  toast('Token enregistré');
+}
+
+async function deleteToken() {
+  if (!confirm(`Supprimer le token ${selectedToken.id} ?`)) return;
+  const res = await apiFetch(`/api/tokens/${selectedToken.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  tokens = tokens.filter(t => t.id !== selectedToken.id);
+  selectedToken = null;
+  filterTokens();
+  document.getElementById('token-detail').innerHTML = '<div class="empty"><span>Sélectionne un token</span></div>';
+  showList();
+  toast('Token supprimé');
+}
+
+function openNewToken() {
+  selectedToken = { id: nextIdFor('token'), name: '', stats: { atk: 5, hp: 20, range: 1, movement_rate: 80, attack_rate: 80 }, power: null, _has_illustration: false };
+  isNewToken = true;
+  renderTokenList();
+  renderTokenDetail();
+  showDetail();
+}
+
+async function createToken() {
+  const tok = _collectTokenFields();
+  const res = await apiFetch('/api/tokens', { method: 'POST', body: tok });
+  if (res.error) return toast(res.error, 'err');
+  tokens.push({ ...tok, _has_illustration: false });
+  selectedToken = tokens[tokens.length - 1];
+  isNewToken = false;
+  filterTokens();
+  renderTokenDetail();
+  toast('Token créé');
+}
+
+function cancelNewToken() {
+  selectedToken = null;
+  isNewToken = false;
+  filterTokens();
+  document.getElementById('token-detail').innerHTML = '<div class="empty"><span>Sélectionne un token</span></div>';
+  showList();
+}
+
+function openTokenIllusModal() {
+  if (!selectedToken) return;
+  const defaultQuery = `fantasy summoned creature token ${selectedToken.name || ''}`.trim();
+  showModal(`
+    <h2 style="margin-bottom:16px">Illustration — ${esc(selectedToken.name || selectedToken.id)}</h2>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:600;letter-spacing:.5px;margin-bottom:10px">Recherche Google Images</div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Mots-clés</label>
+        <input id="token-illus-q" value="${esc(defaultQuery)}" style="font-family:monospace;font-size:12px">
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="openTokenImageSearch()">Ouvrir Google Images</button>
+    </div>
+    <div class="field">
+      <label>Depuis une URL</label>
+      <div style="display:flex;gap:6px">
+        <input id="token-illus-url" type="text" placeholder="https://..." style="flex:1">
+        <button class="btn btn-secondary btn-sm" onclick="pasteTokenIllusUrl()" title="Coller depuis le presse-papier" style="flex-shrink:0;font-size:16px;padding:0 10px">📋</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Depuis l'appareil</label>
+      <input type="file" accept="image/*" onchange="importTokenIllustrationFromFile()" id="token-illus-file">
+    </div>
+    <span style="font-size:11px;color:var(--muted)">Sauvegardée sous <code>${selectedToken.id}.png</code>.</span>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="importTokenIllustration()">Importer l'URL</button>
+    </div>
+  `, 'wide');
+}
+
+function openTokenImageSearch() {
+  const q = document.getElementById('token-illus-q')?.value || '';
+  window.open(`https://www.google.com/search?q=${encodeURIComponent(q)}&tbm=isch`, '_blank');
+}
+
+async function pasteTokenIllusUrl() {
+  try {
+    const el = document.getElementById('token-illus-url');
+    if (el) el.value = await navigator.clipboard.readText();
+  } catch {
+    toast('Accès presse-papier refusé — collez manuellement (Ctrl+V)', 'err');
+  }
+}
+
+function _setTokenIllusFlag(has) {
+  selectedToken._has_illustration = has;
+  const idx = tokens.findIndex(t => t.id === selectedToken.id);
+  if (idx !== -1) tokens[idx]._has_illustration = has;
+  tokenBust = Date.now();
+  filterTokens();
+  renderTokenDetail();
+}
+
+async function importTokenIllustration() {
+  const url = document.getElementById('token-illus-url').value.trim();
+  if (!url) return toast('URL requise', 'err');
+  closeModal();
+  toast('Téléchargement en cours...', 'ok');
+  const res = await apiFetch(`/api/tokens/${selectedToken.id}/illustration`, { method: 'POST', body: { url } });
+  if (res.error) return toast(res.error, 'err');
+  _setTokenIllusFlag(true);
+  toast('Illustration importée');
+}
+
+async function importTokenIllustrationFromFile() {
+  const file = document.getElementById('token-illus-file')?.files?.[0];
+  if (!file) return;
+  closeModal();
+  toast('Envoi en cours...', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/tokens/${selectedToken.id}/illustration`, { method: 'PUT', body: { data } });
+  if (res.error) return toast(res.error, 'err');
+  _setTokenIllusFlag(true);
+  toast('Illustration importée');
+}
+
+async function deleteTokenIllustration() {
+  if (!confirm('Supprimer l\'illustration ?')) return;
+  const res = await apiFetch(`/api/tokens/${selectedToken.id}/illustration`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  _setTokenIllusFlag(false);
+  toast('Illustration supprimée');
+}
+
 // ================== MISSIONS ==================
 const EVENT_LABELS = {
   match_completed: 'Partie terminée',
@@ -6777,6 +7160,7 @@ function fabAction() {
   else if (currentTab === 'variants')   openNewVariant();
   else if (currentTab === 'gifts')      openNewGift();
   else if (currentTab === 'cardbacks')  openNewCardBack();
+  else if (currentTab === 'tokens')     openNewToken();
 }
 
 // ================== UTILS ==================
@@ -7447,14 +7831,17 @@ async function applyMassEdit() {
   const value = document.getElementById('mass-value')?.value;
   closeModal();
   const ids = [...bulkSelected];
-  // Le bloc `power` que l'édition en masse doit écrire : le chiffre conservé
-  // est celui que le nouveau pouvoir lit, jamais les deux, jamais l'autre.
+  // Le bloc `power` que l'édition en masse doit écrire : les chiffres
+  // conservés sont ceux que le nouveau pouvoir lit — les deux pour
+  // Affaiblissement (`DURATION_AND_VALUE_POWERS`), un seul pour les autres.
   const massEditedPower = (powId, prev) => {
     const base = { id: powId, power_rate: prev?.power_rate ?? 50 };
-    if (SPEED.DURATION_POWERS.includes(powId)) {
-      return prev?.duration != null ? { ...base, duration: prev.duration } : base;
+    const isDualPower = SPEED.DURATION_AND_VALUE_POWERS.includes(powId);
+    const withValue = prev?.value != null ? { value: prev.value } : {};
+    if (SPEED.DURATION_POWERS.includes(powId) || isDualPower) {
+      return { ...base, ...(isDualPower ? withValue : {}), ...(prev?.duration != null ? { duration: prev.duration } : {}) };
     }
-    return prev?.value != null ? { ...base, value: prev.value } : base;
+    return { ...base, ...withValue };
   };
   for (const id of ids) {
     const card = cards.find(c => c.id === id);
@@ -7534,7 +7921,7 @@ async function confirmMassDelete() {
 let importType = null;
 let importItems = null;
 
-const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions', variants: 'variantes', gifts: 'cadeaux', 'card-backs': 'dos de cartes' };
+const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions', variants: 'variantes', gifts: 'cadeaux', 'card-backs': 'dos de cartes', tokens: 'tokens' };
 
 function openImportModal(type) {
   importType = type;
@@ -7638,6 +8025,10 @@ async function confirmImport() {
     cardBacks = await apiFetch('/api/card-backs');
     selectedCardBack = null;
     filterCardBacks();
+  } else if (importType === 'tokens') {
+    tokens = await apiFetch('/api/tokens');
+    selectedToken = null;
+    filterTokens();
   }
 
   const parts = [];

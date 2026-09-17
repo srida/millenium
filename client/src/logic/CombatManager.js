@@ -1,4 +1,5 @@
 import { chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, hasLineOfSight, stepToward, stepTowardOrNearest } from './PathFinder.js';
+import { Unit } from './Unit.js';
 // L'échelle vit à la racine (cf. l'en-tête de `speed-scale.mjs`) : une seule
 // fenêtre de ticks pour les rythmes ET les durées.
 import { ticksForDuration } from '../../../speed-scale.mjs';
@@ -16,6 +17,12 @@ const POWER_PARALYSIS_DURATION = 24; // 20 ticks
 const POWER_BLOCK_DURATION = 30;     // 25 ticks
 const POWER_CONFUSION_DURATION = 24; // 20 ticks
 const POWER_TAUNT_DURATION = 24;     // 20 ticks
+// ⚠️ Affaiblissement est le seul pouvoir de durée dont la SÉVÉRITÉ n'est pas
+// une constante du moteur : contrairement à la paralysie (toujours un
+// doublement), le montant d'ATQ retiré varie d'une carte à l'autre — d'où
+// deux replis, un par champ, au lieu d'un seul.
+const POWER_WEAKEN_DURATION = 24;        // 20 ticks
+const POWER_WEAKEN_ATK_REDUCTION = 10;
 const DOT_DAMAGE_DIVISOR = 2;
 const DOT_INTERVAL = 3;              // global steps between DOT pulses
 const BURN_DAMAGE_DIVISOR = 2;
@@ -27,7 +34,10 @@ const BURN_DAMAGE_DIVISOR = 2;
 // contact, and — worst of all — a teleporter unable to use the very power whose
 // job is to CLOSE the gap: it had to already be in range to jump into range.
 // ⚠️ A power added here must not read `primaryTarget`, which is then null.
-const RANGELESS_POWERS = new Set(['POWER_HEAL', 'POWER_TAUNT', 'POWER_TELEPORT']);
+// POWER_SUMMON_TOKEN rejoint ce groupe pour la même raison que Téléportation :
+// il ne vise pas un ennemi, il regarde sa propre case pour y trouver un
+// voisin libre. ⚠️ La branche de `_firePower` ne lit donc jamais `primaryTarget`.
+const RANGELESS_POWERS = new Set(['POWER_HEAL', 'POWER_TAUNT', 'POWER_TELEPORT', 'POWER_SUMMON_TOKEN']);
 
 // A card's `power.value` overrides the constant it maps to; absent, it falls
 // back to the formula below. `||` and not `??` on purpose: a Valeur left at 0
@@ -64,12 +74,17 @@ export class CombatManager {
    * @param {Unit[]} playerUnits
    * @param {Unit[]} enemyUnits
    * @param {AttributeManager} attributeManager
+   * @param {{ getToken(id: string): object | null } | null} [tokenDb] Résout
+   *   l'id de token porté par `power_token_id` en définition constructible
+   *   (`new Unit`). Injecté — `logic/` n'importe pas `data/` — et absent
+   *   partout où POWER_SUMMON_TOKEN n'est pas joué (le seul cas où on le lit).
    */
-  constructor(board, playerUnits, enemyUnits, attributeManager) {
+  constructor(board, playerUnits, enemyUnits, attributeManager, tokenDb = null) {
     this.board = board;
     this.playerUnits = playerUnits;
     this.enemyUnits = enemyUnits;
     this.attributeManager = attributeManager;
+    this.tokenDb = tokenDb;
     this.isOver = false;
     this.winner = null; // 'player' | 'enemy' | 'draw' | 'timeout'
     this._stepCount = 0;
@@ -173,6 +188,17 @@ export class CombatManager {
       // Confusion / taunt countdown
       if (u.confusion_remaining > 0) u.confusion_remaining--;
       if (u.taunt_remaining > 0) u.taunt_remaining--;
+
+      // Weaken countdown — undo exactly the delta that was applied (stored on
+      // the unit rather than re-read from the card, which could have changed
+      // stat_bonus in the meantime via other effects).
+      if (u.weaken_remaining > 0) {
+        u.weaken_remaining--;
+        if (u.weaken_remaining === 0) {
+          u.applyStatBonus('atk', u.weaken_atk_delta);
+          u.weaken_atk_delta = 0;
+        }
+      }
 
       // DOT pulses — no expiry, they last the whole round (see POWER_POISON).
       for (const dot of u.dot_effects) {
@@ -401,6 +427,12 @@ export class CombatManager {
       case 'POWER_TAUNT':
         return unit.taunt_remaining === 0;
 
+      // weaken_remaining is ASSIGNED like the four above: held until it lapses,
+      // then re-applied — re-casting on an already-weakened target would just
+      // shorten it.
+      case 'POWER_WEAKEN':
+        return target.weaken_remaining === 0;
+
       // Both retreat the target by at least one cell. A target with a wall, an
       // ally or the board edge right behind it does not move — and the freeze
       // would then block the cell the target is still standing on.
@@ -421,6 +453,13 @@ export class CombatManager {
              < manhattanDistance(unit.position, plan.target.position);
       }
 
+      // Ne se déclenche que si les DEUX conditions tiennent : un token à poser
+      // (`power_token_id` résolu dans le catalogue) ET une case adjacente
+      // libre pour l'y poser. L'une ou l'autre manquante, l'unité attaque
+      // normalement et garde sa jauge — comme Gel/Téléportation sans cible.
+      case 'POWER_SUMMON_TOKEN':
+        return !!this._resolveTokenDef(unit) && this._summonPlan(unit) !== null;
+
       default:
         return true;
     }
@@ -436,6 +475,7 @@ export class CombatManager {
       || u.is_power_blocked
       || u.confusion_remaining > 0
       || u.taunt_remaining > 0
+      || u.weaken_remaining > 0
       || u.is_effect_immune;
   }
 
@@ -564,6 +604,10 @@ export class CombatManager {
         return this._teleportToWeakestEnemy(unit, enemies, events);
       }
 
+      case 'POWER_SUMMON_TOKEN': {
+        return this._summonToken(unit, events);
+      }
+
       case 'POWER_BURN': {
         if (primaryTarget.is_effect_immune) {
           events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
@@ -632,6 +676,25 @@ export class CombatManager {
         const taunt_ticks = powerDurationTicks(unit, POWER_TAUNT_DURATION);
         unit.taunt_remaining = taunt_ticks;
         events.push({ type: 'power', unit, targets: [unit], power_id: pid, extra: { ticks: taunt_ticks } });
+        break;
+      }
+
+      case 'POWER_WEAKEN': {
+        if (primaryTarget.is_effect_immune) {
+          events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { immune: true } });
+          break;
+        }
+        // ⚠️ Seul pouvoir de durée qui lit AUSSI `power.value` : l'ampleur (ATQ
+        // retirée) est une donnée de carte comme pour un dégât plat, la durée un
+        // compteur comme les trois autres statuts assignés. Le delta réellement
+        // appliqué est mémorisé sur la cible pour être annulé exactement au tick
+        // d'expiration (cf. le tick passif plus haut).
+        const weakenTicks = powerDurationTicks(unit, POWER_WEAKEN_DURATION);
+        const amount = powerValue(unit, POWER_WEAKEN_ATK_REDUCTION);
+        primaryTarget.applyStatBonus('atk', -amount);
+        primaryTarget.weaken_atk_delta = amount;
+        primaryTarget.weaken_remaining = weakenTicks;
+        events.push({ type: 'power', unit, targets: [primaryTarget], power_id: pid, extra: { amount, ticks: weakenTicks } });
         break;
       }
 
@@ -705,6 +768,54 @@ export class CombatManager {
     // 'move' is consumed separately by the animator to play the relocation.
     events.push({ type: 'power', unit, targets: [target], power_id: 'POWER_TELEPORT', extra: { from, to: { ...unit.position } } });
     events.push({ type: 'move', unit, from, to: { ...unit.position } });
+    return true;
+  }
+
+  // The token catalog entry `unit.power_token_id` names, or null when the
+  // card carries no id, the id is unknown, or no token catalog was injected
+  // (every mode but the one that actually plays POWER_SUMMON_TOKEN).
+  _resolveTokenDef(unit) {
+    if (!unit.power_token_id || !this.tokenDb) return null;
+    return this.tokenDb.getToken(unit.power_token_id) ?? null;
+  }
+
+  // A free cell adjacent to `unit`'s OWN position — never the full-board
+  // fallback POWER_TELEPORT falls back to: an ephemeral unit summoned three
+  // rows away from its caster would not read as "next to it" any more, and
+  // the spec is explicit that the power simply fails to trigger without one.
+  //
+  // ⚠️ Second, independent enumerator of neighbours from `Board.getNeighbors`
+  // and `_teleportPlan`, same reason and same warning as the latter's own
+  // comment: the two ROW offsets are read in the reference frame
+  // (`rowNeighbourOffsets`), and it is the FIRST free cell that is retained.
+  _summonPlan(unit) {
+    const isFree = p => this.board.isInBounds(p) && !this.board.isOccupied(p) && !this.board.isBlocked(p);
+    const [before, after] = this.board.rowNeighbourOffsets();
+    const adjacent = [
+      { col: unit.position.col, row: unit.position.row + before },
+      { col: unit.position.col, row: unit.position.row + after },
+      { col: unit.position.col - 1, row: unit.position.row },
+      { col: unit.position.col + 1, row: unit.position.row },
+    ].filter(isFree);
+    return adjacent[0] ?? null;
+  }
+
+  // Builds the ephemeral Unit and places it — never consumed as a summon
+  // material, never sent to the graveyard (GameSession.finishCombat excludes
+  // every `is_token` unit from both). Returns false (power not consumed) when
+  // there is no token to summon or no cell to summon it on, exactly like
+  // POWER_TELEPORT with no free cell.
+  _summonToken(unit, events) {
+    const tokenDef = this._resolveTokenDef(unit);
+    const destination = tokenDef ? this._summonPlan(unit) : null;
+    if (!tokenDef || !destination) return false;
+
+    const token = new Unit(tokenDef, unit.side);
+    token.is_token = true;
+    this.board.placeUnit(token, destination);
+    this._allies(unit).push(token);
+
+    events.push({ type: 'power', unit, targets: [token], power_id: 'POWER_SUMMON_TOKEN', extra: { to: { ...destination } } });
     return true;
   }
 
