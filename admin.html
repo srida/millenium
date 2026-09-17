@@ -5363,13 +5363,84 @@ function tokenPowerFromForm() {
   const isDualPower = SPEED.DURATION_AND_VALUE_POWERS.includes(powId);
   const powVal = document.getElementById('tk-power-val')?.value;
   const withValue = (powVal !== '' && powVal != null) ? { value: parseFloat(powVal) } : {};
-  const tokenId = document.getElementById('tk-power-token')?.value;
+  const tokenId = document.getElementById('tk-power-token-value')?.value;
   const withTokenId = (powId === 'POWER_SUMMON_TOKEN' && tokenId) ? { token_id: tokenId } : {};
   if (SPEED.DURATION_POWERS.includes(powId) || isDualPower) {
     const dur = counterFromSlider('tk-power-dur');
     return { ...base, ...(isDualPower ? withValue : {}), ...(dur != null ? { duration: dur } : {}), ...withTokenId };
   }
   return { ...base, ...withValue, ...withTokenId };
+}
+
+/**
+ * Le champ « Token invoqué » : MÊME motif que le choix des matériels d'une
+ * recette d'invocation (`conditionRowHtml` / `filterConditionSearch`) —
+ * puce(s) + barre de recherche avec liste déroulante — mais réduit à UNE
+ * seule sélection (un token n'en invoque qu'un), donc pas de modèle à
+ * resynchroniser : la valeur vit dans un champ caché, lu par
+ * `tokenPowerFromForm()` au moment d'enregistrer, comme Valeur/Durée.
+ */
+function tokenPowerChipHtml(id) {
+  if (!id) return `<div style="font-size:11px;color:var(--muted);padding:2px 0">Aucun token choisi</div>`;
+  const tok = tokens.find(x => x.id === id);
+  return `
+    <div class="material-item" data-mid="${id}">
+      <span style="display:flex;align-items:center;gap:6px">
+        <span>${esc(tok ? (tok.name || tok.id) : id)}</span>
+        <span style="font-size:10px;color:var(--muted);font-family:monospace">${id}</span>
+      </span>
+      <button onclick="clearTokenPowerToken()">×</button>
+    </div>`;
+}
+
+function selectTokenPowerToken(id) {
+  const input = document.getElementById('tk-power-token-value');
+  if (input) input.value = id;
+  const chip = document.getElementById('tk-power-token-chip');
+  if (chip) chip.innerHTML = tokenPowerChipHtml(id);
+  const search = document.getElementById('tk-power-token-search');
+  if (search) search.value = '';
+  const dd = document.getElementById('tk-power-token-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+function clearTokenPowerToken() {
+  selectTokenPowerToken('');
+}
+
+function filterTokenPowerSearch() {
+  const q = document.getElementById('tk-power-token-search')?.value.toLowerCase() || '';
+  const results = tokens
+    .filter(o => !q || (o.name || '').toLowerCase().includes(q) || o.id.toLowerCase().includes(q))
+    .slice(0, 20);
+  renderTokenPowerDropdown(results);
+}
+
+function renderTokenPowerDropdown(results) {
+  const dd = document.getElementById('tk-power-token-dropdown');
+  if (!dd) return;
+  if (!results.length) {
+    dd.innerHTML = '<div style="padding:10px 14px;color:var(--muted);font-size:12px">Aucun résultat</div>';
+  } else {
+    dd.innerHTML = results.map(o => `
+      <div onmousedown="selectTokenPowerToken('${o.id}')"
+        style="padding:8px 14px;cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"
+        onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+        <div>
+          <div style="font-size:13px">${esc(o.name || o.id)}</div>
+          <div style="margin-top:2px;font-size:11px;color:var(--muted);font-family:monospace">${o.id}</div>
+        </div>
+      </div>`).join('');
+  }
+  dd.style.display = 'block';
+}
+
+function hideTokenPowerDropdown() {
+  // Retardé pour que l'onmousedown d'une entrée parte d'abord.
+  setTimeout(() => {
+    const dd = document.getElementById('tk-power-token-dropdown');
+    if (dd) dd.style.display = 'none';
+  }, 150);
 }
 
 function renderTokenDetail() {
@@ -5438,12 +5509,18 @@ function renderTokenDetail() {
       </div>
       <div class="field" id="tk-power-speed-wrap">${counterSliderHtml('tk-power-speed', 'Vitesse pouvoir', hasPower ? t.power.power_rate : null, { allowEmpty: true, emptyLabel: 'Aucune vitesse — le pouvoir ne part jamais' })}</div>
       <div class="field" id="tk-power-val-wrap"><label>Valeur</label><input type="number" id="tk-power-val" value="${hasPower && t.power.value != null ? t.power.value : ''}" step="0.5" placeholder="optionnel"></div>
-      <div class="field" id="tk-power-dur-wrap">${counterSliderHtml('tk-power-dur', 'Durée de l\\'effet', hasPower ? t.power.duration : null, { allowEmpty: true, kind: 'Duration', emptyLabel: 'Aucune durée — le repli du pouvoir s\\'applique' })}</div>
+      <div class="field" id="tk-power-dur-wrap">${counterSliderHtml('tk-power-dur', 'Durée de l\'effet', hasPower ? t.power.duration : null, { allowEmpty: true, kind: 'Duration', emptyLabel: 'Aucune durée — le repli du pouvoir s\'applique' })}</div>
       <div class="field" id="tk-power-token-wrap"><label>Token invoqué</label>
-        <select id="tk-power-token">
-          <option value="">— choisir —</option>
-          ${tokens.map(o => `<option value="${o.id}" ${hasPower && t.power.token_id===o.id?'selected':''}>${esc(o.name || o.id)}</option>`).join('')}
-        </select>
+        <input type="hidden" id="tk-power-token-value" value="${hasPower && t.power.token_id ? t.power.token_id : ''}">
+        <div class="materials-list" id="tk-power-token-chip">
+          ${tokenPowerChipHtml(hasPower ? t.power.token_id : null)}
+        </div>
+        <div style="position:relative;margin-top:8px">
+          <input type="text" id="tk-power-token-search" placeholder="Rechercher un token..." autocomplete="off"
+            oninput="filterTokenPowerSearch()" onfocus="filterTokenPowerSearch()" onblur="hideTokenPowerDropdown()"
+            style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;outline:none;font-size:13px">
+          <div id="tk-power-token-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
+        </div>
         <span style="font-size:11px;color:var(--muted);margin-top:4px">La récursion (un token qui en invoque un autre) est autorisée, bornée par les cases libres du plateau.</span>
       </div>
     </div>
