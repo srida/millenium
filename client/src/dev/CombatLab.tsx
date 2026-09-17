@@ -31,12 +31,14 @@ const POWERS: { id: string; label: string }[] = [
   { id: 'POWER_TAUNT',        label: 'Provocation' },
   { id: 'POWER_TELEPORT',     label: 'Téléport.' },
   { id: 'POWER_FREEZE',       label: 'Gel' },
+  { id: 'POWER_WEAKEN',       label: 'Affaiblissement' },
+  { id: 'POWER_SUMMON_TOKEN', label: 'Invocation token' },
 ];
 
-// Les sept pouvoirs que `effect_immunity` peut dévier (cf. CombatManager).
+// Les huit pouvoirs que `effect_immunity` peut dévier (cf. CombatManager).
 const IMMUNE_CAPABLE = new Set([
   'POWER_POISON', 'POWER_PARALYSIS', 'POWER_PUSH', 'POWER_BURN',
-  'POWER_FREEZE', 'POWER_BLOCK', 'POWER_CONFUSION',
+  'POWER_FREEZE', 'POWER_BLOCK', 'POWER_CONFUSION', 'POWER_WEAKEN',
 ]);
 
 function extraFor(powerId: string, caster: any, target: any, blocked: boolean): any {
@@ -52,6 +54,8 @@ function extraFor(powerId: string, caster: any, target: any, blocked: boolean): 
     case 'POWER_BLOCK':
     case 'POWER_CONFUSION':
     case 'POWER_TAUNT':        return { ticks: 20 };
+    // Seul pouvoir de durée qui lit aussi une ampleur (cf. CombatManager).
+    case 'POWER_WEAKEN':       return { amount: 10, ticks: 20 };
     default:                   return {};
   }
 }
@@ -223,6 +227,17 @@ export default function CombatLab() {
       const to = { ...caster.position };
       events.push({ type: 'power', unit: caster, targets: [target], power_id: powerId, extra: { from, to } });
       events.push({ type: 'move', unit: caster, from, to });
+    } else if (powerId === 'POWER_SUMMON_TOKEN') {
+      // Comme Gel/Téléportation : rien ne se passe sans case adjacente libre —
+      // le banc reste silencieux plutôt que de forcer un cas que le moteur
+      // refuserait aussi.
+      const dest = freeCellNear(setup.board, caster.position);
+      if (dest) {
+        const tokenUnit = new (Unit as any)(card('CORE_020', { tier: 1, stats: { atk: 4, hp: 15 } }), caster.side);
+        tokenUnit.is_token = true;
+        setup.board.placeUnit(tokenUnit, dest);
+        events.push({ type: 'power', unit: caster, targets: [tokenUnit], power_id: powerId, extra: { to: dest } });
+      }
     } else if (powerId === 'POWER_FREEZE' && !isImmune) {
       const cell = { ...target.position };
       const back = { col: cell.col, row: cell.row + 1 };

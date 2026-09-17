@@ -74,6 +74,15 @@ export class Unit {
   power_rate: number | null;
   power_value: number | null;
   /**
+   * L'id du TOKEN que POWER_SUMMON_TOKEN invoque — donnée de carte, jamais
+   * réécrite à l'exécution (contrairement à `power_id`/`power_rate` que
+   * `grant_power` peut remplacer). ⚠️ Ne voyage donc PAS dans le payload PvP
+   * `round:board_ready` : la carte est commune aux deux clients, et c'est elle
+   * qui le porte — exactement le raisonnement qui dispense déjà `card_id` d'y
+   * être un champ à part.
+   */
+  power_token_id: string | null;
+  /**
    * Le compteur de DURÉE du pouvoir, 0–100 (`speed-scale.mjs`), pour les seuls
    * pouvoirs de `DURATION_POWERS` (paralysie, blocage, confusion, provocation).
    *
@@ -140,6 +149,18 @@ export class Unit {
   confusion_remaining: number; // steps left of confusion (targets own allies)
   taunt_remaining: number; // steps left this unit forces enemies to target it
   is_effect_immune: boolean; // granted by effect_immunity attribute — blocks debuff powers
+  /**
+   * Le compte à rebours d'Affaiblissement (POWER_WEAKEN), en ticks.
+   *
+   * ⚠️ Contrairement à Paralysie/Blocage/Confusion/Provocation, ce pouvoir lit
+   * `power.value` ET `power.duration` en même temps : la sévérité (le montant
+   * d'ATQ retiré) n'est pas une constante du moteur, elle varie d'une carte à
+   * l'autre. `weaken_atk_delta` mémorise le montant RÉELLEMENT appliqué (via
+   * `applyStatBonus`) pour pouvoir l'annuler exactement à l'expiration, plutôt
+   * que de relire `power_value` qui pourrait avoir changé entre-temps.
+   */
+  weaken_remaining: number;
+  weaken_atk_delta: number;
 
   position: Position | null;
   initial_position: Position | null;
@@ -155,6 +176,16 @@ export class Unit {
   attack_timer: number;
   move_timer: number;
 
+  /**
+   * Posé par `CombatManager._firePower` (POWER_SUMMON_TOKEN) sur les unités
+   * éphémères invoquées en plein combat. ⚠️ Une unité `is_token` ne rejoint
+   * JAMAIS le cimetière ni le round suivant — `GameSession.finishCombat()` les
+   * retire des deux camps avant l'assemblage du cimetière, et elles ne comptent
+   * pas dans le crédit de vétérance des survivants. Défaut `false` pour toute
+   * unité construite depuis une carte du catalogue de cartes.
+   */
+  is_token: boolean;
+
   constructor(card: Card, side: Side) {
     this.uid = _nextUid++;
     this.card_id = card.id;
@@ -169,6 +200,7 @@ export class Unit {
     this.power_rate = card.power?.power_rate ?? null;
     this.power_value = card.power?.value ?? null;
     this.power_duration = card.power?.duration ?? null;
+    this.power_token_id = card.power?.token_id ?? null;
 
     this._base = {
       atk: card.stats.atk,
@@ -200,6 +232,9 @@ export class Unit {
     this.confusion_remaining = 0;
     this.taunt_remaining = 0;
     this.is_effect_immune = false;
+    this.weaken_remaining = 0;
+    this.weaken_atk_delta = 0;
+    this.is_token = false;
 
     this.position = null;
     this.initial_position = null;
@@ -315,6 +350,8 @@ export class Unit {
     this.confusion_remaining = 0;
     this.taunt_remaining = 0;
     this.is_effect_immune = false;
+    this.weaken_remaining = 0;
+    this.weaken_atk_delta = 0;
     this.dot_effects = [];
     this.burn_stacks = [];
     this._recomputeStats();

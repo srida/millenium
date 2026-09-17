@@ -144,6 +144,13 @@ describe('pertinence d\'un pouvoir vis-à-vis de sa cible', () => {
     expect(a.relevant()).toBe(false);
   });
 
+  it('POWER_WEAKEN ne se rejoue pas sur une cible déjà affaiblie — comme la paralysie, assigné donc raccourcirait', () => {
+    const a = arena({ id: 'POWER_WEAKEN', power_rate: 100 });
+    expect(a.relevant()).toBe(true);
+    a.target.weaken_remaining = 20;
+    expect(a.relevant()).toBe(false);
+  });
+
   // ── POWER_PUSH / POWER_FREEZE : la retraite doit être possible ──
   it('POWER_PUSH se tait quand la cible est adossée au bord du board', () => {
     const a = arena({ id: 'POWER_PUSH', power_rate: 100 });

@@ -30,6 +30,8 @@ const POWER_NAMES: Record<string, string> = {
   POWER_FREEZE:       'Gel',
   POWER_CONFUSION:    'Confusion',
   POWER_TAUNT:        'Provocation',
+  POWER_WEAKEN:       'Affaiblissement',
+  POWER_SUMMON_TOKEN: 'Invocation',
 };
 
 function _cellKey(pos: Position): string { return `${pos.col},${pos.row}`; }

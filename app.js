@@ -162,6 +162,11 @@ const VARIANTS_FILE  = variants.VARIANTS_FILE;
 // d'attributs —, donc AUCUNE famille d'assets à créer : rien au proxy Vite, rien
 // à la liste d'exclusion du fallback SPA, rien à ASSETS de sync-data.js.
 const CARD_BACKS_FILE = path.join(DATA_DIR, 'card_backs.json');
+// Tokens : unités éphémères invoquées en combat par POWER_SUMMON_TOKEN
+// (logic/CombatManager.js), jamais posées via l'invocation normale. Leur art
+// vit lui aussi dans ILLUS_DIR sous l'id du token — même geste que les dos de
+// cartes, aucune famille d'assets à créer.
+const TOKENS_FILE = path.join(DATA_DIR, 'tokens.json');
 
 // --- Bootstrap: copy initial data to volume on first run ---
 function bootstrap() {
@@ -170,7 +175,7 @@ function bootstrap() {
   fs.mkdirSync(AVATARS_DIR, { recursive: true });
   fs.mkdirSync(POSTERS_DIR, { recursive: true });
   fs.mkdirSync(BOARD_BG_DIR, { recursive: true });
-  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'card_backs.json']) {
+  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'card_backs.json', 'tokens.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -759,6 +764,16 @@ app.use('/api/card-backs', crud({
   strip: (b) => { delete b._has_illustration; },
 }));
 
+// Tokens — catalogue des unités éphémères de POWER_SUMMON_TOKEN. Même geste
+// que les dos de cartes : GET public (le client en a besoin pour construire
+// l'`Unit` invoquée en combat), écriture site-admin, art dans ILLUS_DIR.
+app.use('/api/tokens', crud({
+  file: TOKENS_FILE,
+  guard: requireSiteAdmin,
+  render: (list) => list.map(t => ({ ...t, _has_illustration: illustrationExists(t.id) })),
+  strip: (t) => { delete t._has_illustration; },
+}));
+
 
 
 
@@ -906,6 +921,41 @@ app.put('/api/card-backs/:id/illustration', async (req, res) => {
 });
 
 app.delete('/api/card-backs/:id/illustration', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = assetPath(ILLUS_DIR, id);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- Tokens API ---
+// Même triptyque : l'art d'un token vit dans ILLUS_DIR sous son id, comme
+// celui des dos de cartes, des variantes et des icônes d'attributs.
+app.post('/api/tokens/:id/illustration', async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { url } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    await savePng(ILLUS_DIR, id, await downloadUrl(url));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/tokens/:id/illustration', async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    await savePng(ILLUS_DIR, id, Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/tokens/:id/illustration', (req, res) => {
   const id = safeAssetId(req.params.id);
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
@@ -1542,6 +1592,9 @@ app.get('/api/export', (req, res) => {
     // L'art des dos de cartes est déjà dans ILLUS_DIR : il voyage avec les
     // illustrations, sans famille d'assets supplémentaire (cf. variantes).
     const cardBacks = readJson(CARD_BACKS_FILE);
+    // L'art d'un token est lui aussi déjà dans ILLUS_DIR : même geste que les
+    // dos de cartes, aucune famille d'assets supplémentaire.
+    const tokens = readJson(TOKENS_FILE);
     // Un cadeau n'a pas d'image propre : il emprunte celles de ses lots
     // (cartes, affiches de packs), déjà servies. Pas de famille d'assets.
     const giftList = readJson(GIFTS_FILE);
@@ -1551,7 +1604,7 @@ app.get('/api/export', (req, res) => {
     const avatars = listPngChecksums(AVATARS_DIR);
     const boardBackgrounds = listPngChecksums(BOARD_BG_DIR);
     const packPosters = listPngChecksums(POSTERS_DIR);
-    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, cardBacks, illustrations, avatars, packPosters, boardBackgrounds });
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, cardBacks, tokens, illustrations, avatars, packPosters, boardBackgrounds });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

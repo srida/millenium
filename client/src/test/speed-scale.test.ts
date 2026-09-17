@@ -19,7 +19,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ticksForRate, rateForTicks, clampRate, rateDeltaForTickDelta,
-  ticksForDuration, durationForTicks, DURATION_POWERS,
+  ticksForDuration, durationForTicks, DURATION_POWERS, DURATION_AND_VALUE_POWERS,
   TICKS_AT_MIN, TICKS_AT_MAX, TICKS_PER_POINT, RATE_STATS, LEGACY_TICK_FIELD,
 } from '../../../speed-scale.mjs';
 // ⚠️ Le contrat est en CJS (requis par `app.js` et l'audit) : `createRequire`
@@ -31,7 +31,10 @@ import { makeCard } from './helpers.js';
 const ROOT = join(__dirname, '../../..');
 const readCatalog = (f: string) => JSON.parse(readFileSync(join(ROOT, 'initial-data', f), 'utf8'));
 const {
-  RATE_FIELDS, missingRates, DURATION_POWERS: CONTRACT_DURATION_POWERS, missingDurations,
+  RATE_FIELDS, missingRates,
+  DURATION_POWERS: CONTRACT_DURATION_POWERS,
+  DURATION_AND_VALUE_POWERS: CONTRACT_DURATION_AND_VALUE_POWERS,
+  missingDurations,
 } = createRequire(import.meta.url)(join(ROOT, 'card-contract.js'));
 
 describe('speed-scale — l\'échelle', () => {
@@ -438,11 +441,31 @@ describe('speed-scale — le contrat de durée', () => {
     expect(fautives.map((c: any) => c.id)).toEqual([]);
   });
 
+  // ⚠️ POWER_WEAKEN est la seule EXCEPTION à « value et duration s'excluent » :
+  // son ampleur (l'ATQ retirée) est une donnée de carte comme un dégât plat,
+  // à côté d'une durée comme les quatre pouvoirs de `DURATION_POWERS`. Mutation :
+  // ne pas distinguer `DURATION_AND_VALUE_POWERS` de `DURATION_POWERS` dans
+  // `missingDurations` → ce bloc devient ROUGE (le premier cas refuserait `value`).
+  it('DURATION_AND_VALUE_POWERS (Affaiblissement) accepte les DEUX champs à la fois', () => {
+    expect(missingDurations(power({ id: 'POWER_WEAKEN', value: 10, duration: 40 }))).toEqual([]);
+    // Chacun seul reste conforme : les deux sont facultatifs, comme pour les
+    // dix pouvoirs ordinaires et les quatre de durée pure.
+    expect(missingDurations(power({ id: 'POWER_WEAKEN', value: 10 }))).toEqual([]);
+    expect(missingDurations(power({ id: 'POWER_WEAKEN', duration: 40 }))).toEqual([]);
+    expect(missingDurations(power({ id: 'POWER_WEAKEN' }))).toEqual([]);
+    // Bornage de la durée : même règle que les quatre autres.
+    expect(missingDurations(power({ id: 'POWER_WEAKEN', duration: 140 }))).toHaveLength(1);
+  });
+
   // ⚠️ Jumelles séparées par la frontière CJS / ESM, comme `RATE_FIELDS` et
   // `RATE_STATS`. Seul filet contre leur dérive : une liste qui gagnerait un
   // pouvoir d'un seul côté laisserait passer à l'écriture ce que le combat lit
   // — ou refuserait ce qu'il ne lit pas.
   it('le contrat et l\'échelle nomment les mêmes pouvoirs de durée', () => {
     expect([...CONTRACT_DURATION_POWERS].sort()).toEqual([...DURATION_POWERS].sort());
+  });
+
+  it('le contrat et l\'échelle nomment les mêmes pouvoirs à durée ET valeur', () => {
+    expect([...CONTRACT_DURATION_AND_VALUE_POWERS].sort()).toEqual([...DURATION_AND_VALUE_POWERS].sort());
   });
 });

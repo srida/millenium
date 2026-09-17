@@ -50,6 +50,8 @@ export const POWER_COLORS: Record<string, number> = {
   POWER_AOE_ATTACK:   0xff8a3c,
   POWER_DEBUFF:       0x7a7f98,
   POWER_BLOCK:        0x6e7ac8,
+  POWER_WEAKEN:       0x8a5a3c,
+  POWER_SUMMON_TOKEN: 0x40e8c0,
 };
 
 const IMMUNE_COLOR = 0xffe9a8;
@@ -459,6 +461,20 @@ const RECIPES: Record<string, Recipe> = {
     scene.spawnRing(to, color, life(ctx, 0.5), -5, 6);
   },
 
+  // Affaiblissement — implosion, comme le Débuff, mais plus courte et plus
+  // légère : le Débuff efface TOUT, l'Affaiblissement ne retire qu'une part
+  // d'ATQ. Un anneau ternit accompagne l'implosion — c'est la lueur qu'un
+  // débuff n'a pas le droit de porter, ici justifiée par le montant retiré.
+  POWER_WEAKEN(scene, _caster, targets, _extra, ctx) {
+    const color = POWER_COLORS.POWER_WEAKEN;
+    const to = targets[0]?.position;
+    if (!to) return;
+    scene.spawnConvergence(to, color, budget(ctx, 34), {
+      radius: 1.2, maxLife: life(ctx, 0.4), height: 0.5, sink: true, size: 0.14,
+    });
+    scene.spawnRing(to, brighten(color, 0.15), life(ctx, 0.4), -4, 4.5);
+  },
+
   // Blocage — sceau. Le cercle runique se pose AU-DESSUS de la carte, là où vit
   // la jauge de pouvoir : c'est elle qu'on scelle.
   POWER_BLOCK(scene, caster, targets, _extra, ctx) {
@@ -534,6 +550,20 @@ const RECIPES: Record<string, Recipe> = {
       scene.spawnRing(to, color, life(ctx, 0.4), 6);
       scene.spawnFlash(scene.tilePosition(to), color, 4, 4, life(ctx, 0.3));
     });
+  },
+
+  // Invocation de token — jaillissement pur, sans départ (contrairement à
+  // Téléportation) : rien ne quitte la case du lanceur, quelque chose apparaît
+  // sur la case adjacente. `targets[0]` EST le token qui vient d'être posé.
+  POWER_SUMMON_TOKEN(scene, _caster, targets, _extra, ctx) {
+    const color = POWER_COLORS.POWER_SUMMON_TOKEN;
+    const to = targets[0]?.position;
+    if (!to) return;
+    scene.spawnBurst(to, color, budget(ctx, 28), {
+      size: 0.13, speed: [1.2, 2.6], lift: [0.8, 1.8], gravity: 5, maxLife: life(ctx, 0.4),
+    });
+    scene.spawnRing(to, color, life(ctx, 0.4), 5.5);
+    scene.spawnFlash(scene.tilePosition(to), color, 3.5, 3.5, life(ctx, 0.3));
   },
 
   // Gel — éclat sur la cible ; les cristaux de la case sont posés par
