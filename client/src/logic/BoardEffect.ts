@@ -4,6 +4,7 @@ import { GameState, PLAYER_HP_CAP } from './GameState.js';
 import { compileBoard } from './effects/compile.js';
 import { executer, ressourcesVides } from './effects/engine.js';
 import type { CompilationResult } from './effects/compile.js';
+import type { Monde } from './effects/engine.js';
 
 /** Un effet que le compilateur n'a pas su traduire, et pourquoi. */
 export type Refus = CompilationResult['refus'][number];
@@ -25,6 +26,17 @@ interface BoardEffectContext {
    * n'est lui jamais concerné : il ne touche que `player_hp`.
    */
   pvp?: boolean;
+  /**
+   * `summon_token` — cf. `Monde.invoquerToken`.
+   *
+   * ⚠️ Absent en PvP réel (`GameSession.startCombat` ne le passe pas quand
+   * `pvp` est vrai), et c'est délibéré : la case tirée au hasard n'a aucun
+   * moyen de voyager jusqu'à l'autre client (`round:board_ready` ne prévoit
+   * rien pour un ajout d'unité entre deux rounds), donc les deux
+   * simulations divergeraient. Même famille d'exclusion que
+   * `damage_multiplier_bonus` côté magie.
+   */
+  invoquerToken?: Monde['invoquerToken'];
 }
 
 /**
@@ -103,11 +115,16 @@ export function applyEffect(effect: BoardEffectDef | null | undefined, ctx: Boar
  * empilement de multiplicateurs se composerait, et ferait dépendre le résultat
  * de l'ordre d'écriture en admin.
  */
-export function applyBoardEffects(board: BoardDef | null | undefined, { playerUnits = [], enemyUnits = [], gameState = null, pvp = false }: BoardEffectContext = {}): Refus[] {
+export function applyBoardEffects(board: BoardDef | null | undefined, { playerUnits = [], enemyUnits = [], gameState = null, pvp = false, invoquerToken }: BoardEffectContext = {}): Refus[] {
   const { effets, refus } = compileBoard(board);
   const ressources = ressourcesVides();
   const ressourcesEnnemies = ressourcesVides();
-  executer(effets, 'debut_combat', { unitesAlliees: playerUnits, unitesEnnemies: enemyUnits, ressources, ressourcesEnnemies });
+  executer(effets, 'debut_combat', {
+    unitesAlliees: playerUnits, unitesEnnemies: enemyUnits, ressources, ressourcesEnnemies,
+    // ⚠️ Pour un terrain, `allie` vaut toujours le JOUEUR : un terrain n'a pas
+    // de camp propre, contrairement à un attribut qui vaut pour qui le porte.
+    ...(invoquerToken ? { invoquerToken, cotesReels: { allie: 'player' as const, ennemi: 'enemy' as const } } : {}),
+  });
 
   // ⚠️ **Le moteur accumule, l'appelant VERSE.** La pioche et sa provenance
   // vont ENSEMBLE — `draw-summary.test.ts` tient l'invariant

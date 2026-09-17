@@ -282,6 +282,16 @@ export const CHAMPS = Object.freeze({
     label: 'Magie cible (optionnel)', saisie: 'choix', options: 'magies', facultatif: true, defaut: '',
     aide: 'Vide = n’importe quelle magie de la rareté demandée (ou de tout le catalogue).',
   },
+  token_id: {
+    label: 'Token à invoquer', saisie: 'choix', options: 'tokens', defaut: '',
+    aide: 'Le catalogue des tokens (onglet 🪙). L’unité est éphémère — elle disparaît à la fin du combat qui l’a vue naître, comme POWER_SUMMON_TOKEN.',
+  },
+  camp: {
+    label: 'Camp qui reçoit le token', saisie: 'choix_direct', defaut: 'allie',
+    options: [['allie', 'Le mien (ou le porteur, pour un attribut)'], ['ennemi', 'L’adversaire']],
+    omettreSiDefaut: true,
+    aide: 'Sur une magie, seul « le mien » est permis — un token adverse posé par une magie n’a nulle part où voyager en PvP.',
+  },
 });
 
 /**
@@ -534,6 +544,19 @@ export const TYPES = Object.freeze({
     label: 'Lever des exigences nommées (main)',
     court: 'Lever des exigences nommées',
     magie: { quands: ['immediat'], champs: { value: { label: 'Exigences levées', defaut: 1 }, attribute: {} } },
+  },
+
+  summon_token: {
+    label: 'Invoquer un token sur une case libre AU HASARD',
+    court: 'Invoquer un token',
+    // ⚠️ Pas de `fin_combat` : un token invoqué après le dernier tick n'a plus
+    // aucun combat où se battre — il mourrait avant d'avoir existé (cf.
+    // `GameSession.finishCombat`, qui retire tout `is_token` en clôture).
+    terrain: { quands: ['debut_combat'], champs: { token_id: {}, camp: {} } },
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: { token_id: {}, camp: {} } },
+    // ⚠️ `camp` reste déclaré côté magie (la sonde inverse l'exige) mais seul
+    // `allie` compile — cf. `compileMagie`.
+    magie: { quands: ['immediat'], champs: { token_id: {}, camp: {} } },
   },
 
   // ── Les deux que le moteur ne traduit pas ────────────────────────────────

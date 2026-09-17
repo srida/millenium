@@ -3381,6 +3381,12 @@ const EFFECT_NOTES = {
     bonus de Shopping et vétérance compris. Un chiffre figé y serait vite faux.`,
   team_heal: `Chiffré, là où le soin d'une seule unité est total : un soin de masse complet n'aurait
     aucun contrepoids.`,
+  summon_token: `L'unité est ÉPHÉMÈRE : elle disparaît à la fin du combat qui l'a vue naître, comme
+    POWER_SUMMON_TOKEN — jamais au cimetière, jamais de vétérance.<br>
+    Case tirée au hasard parmi les libres du camp visé (ni occupée, ni bloquée). Sans case libre
+    ou avec un id de token inconnu, l'effet ne fait simplement rien.<br>
+    ⚠️ <b>Désactivé en PvP réel</b> : la case tirée n'a aucun moyen de voyager jusqu'à l'autre
+    client, les deux simulations divergeraient. Un duel contre un bot n'est pas concerné.`,
 };
 
 /** Le libellé d'une option d'un `<select>` de champ, selon la source déclarée. */
@@ -3404,6 +3410,8 @@ function _effectFieldOptions(champ, valeur) {
       return vide + powers.map(p => opt(p.id, esc(p.name), valeur === p.id)).join('');
     case 'magies':
       return vide + magies.map(m => opt(m.id, esc(m.name), valeur === m.id)).join('');
+    case 'tokens':
+      return vide + tokens.map(t => opt(t.id, esc(t.name || t.id), valeur === t.id)).join('');
     case 'tiers':
       return vide + tierAttrDefs().map(a => opt(a.tier, `Tier ${a.tier}`, Number(valeur) === Number(a.tier))).join('');
     default:

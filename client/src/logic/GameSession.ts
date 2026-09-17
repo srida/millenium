@@ -334,6 +334,42 @@ export class GameSession {
   /** Le hasard de la partie, en un seul point de lecture. */
   private get _rand(): () => number { return this.deps.rand ?? Math.random; }
 
+  /**
+   * `summon_token` (`logic/effects/engine.ts`, `Monde.invoquerToken`) —
+   * construit le token, tire une case libre du côté demandé et la POSE tout
+   * de suite (`Board.placeUnit`). C'est ce geste qui rend l'unité visible et
+   * combattante, que l'effet vienne d'un terrain/attribut (juste avant le
+   * combat) ou d'une magie (en Phase Shopping, où le token doit rester sur
+   * le board jusqu'au round suivant).
+   *
+   * ⚠️ **Fonction, jamais méthode** : c'est ce que `Monde.invoquerToken`
+   * attend, et une flèche capture `this` sans qu'un appelant ait à `.bind()`.
+   */
+  private _invoquerToken = (sideReel: 'player' | 'enemy', tokenId: string): Unit | null => {
+    const def = this.deps.tokenDb?.getToken(tokenId);
+    if (!def) return null;
+    const cells = this.board.freeCellsOnSide(sideReel);
+    if (!cells.length) return null;
+    const pos = cells[Math.floor(this._rand() * cells.length)];
+    const token = new Unit(def as Card, sideReel);
+    token.is_token = true;
+    this.board.placeUnit(token, pos);
+    return token;
+  };
+
+  /**
+   * ⚠️ **Désactivé en PvP réel.** La case tirée au hasard n'a aucun moyen de
+   * voyager jusqu'à l'autre client — `round:board_ready` ne prévoit rien pour
+   * un ajout d'unité entre deux rounds — donc les deux simulations
+   * divergeraient (`result_mismatch`, gain perdu pour les deux joueurs). Même
+   * famille d'exclusion que `damage_multiplier_bonus`. Un duel contre un BOT
+   * n'est pas concerné : c'est un solo (`mode: 'ai'`) du point de vue de
+   * `GameSession`.
+   */
+  private get _tokenSpawner(): typeof this._invoquerToken | undefined {
+    return this.deps.mode === 'pvp' ? undefined : this._invoquerToken;
+  }
+
   // ── Accesseurs ─────────────────────────────────────────────────────────
 
   get phase() { return this.gameState.phase; }
@@ -725,7 +761,7 @@ export class GameSession {
 
     this.gameState.startCombat(playerUnits.length, this.enemyUnits.length);
 
-    const attributeManager = new AttributeManager(this.deps.attributeList, playerUnits, this.enemyUnits);
+    const attributeManager = new AttributeManager(this.deps.attributeList, playerUnits, this.enemyUnits, this._tokenSpawner);
     attributeManager.applyStartOfCombat();
 
     // ⚠️ TOUS les effets du terrain, pas seulement le premier : `effects` est
@@ -734,6 +770,7 @@ export class GameSession {
     applyBoardEffects(boardData, {
       playerUnits, enemyUnits: this.enemyUnits, gameState: this.gameState,
       pvp: this.deps.mode === 'pvp',
+      invoquerToken: this._tokenSpawner,
     });
 
     const combat = new CombatManager(this.board, playerUnits, this.enemyUnits, attributeManager, this.deps.tokenDb ?? null);
@@ -1110,6 +1147,10 @@ export class GameSession {
       // ⚠️ Les PV d'AVANT : la garde d'accessibilité se juge sur eux, jamais sur
       // ceux d'après — sinon `drain_life` financerait son propre contrecoup.
       pvJoueur: this.gameState.player_hp,
+      // `summon_token` — une magie ne cible jamais que son propre camp
+      // (`compileMagie` refuse `camp: 'ennemi'`), donc `allie` vaut toujours
+      // le joueur ici, sans ambiguïté à traduire comme pour un attribut.
+      ...(this._tokenSpawner ? { invoquerToken: this._tokenSpawner, cotesReels: { allie: 'player' as const, ennemi: 'enemy' as const } } : {}),
       ...monde,
     });
     this._pourMagie(ressources);

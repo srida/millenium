@@ -328,8 +328,10 @@ describe('Mode ombre — les invariants du schéma', () => {
       expect(table.length).toBeGreaterThan(0);
       expect(new Set(table).size).toBe(table.length);
     }
-    // Les sept actions du §4.1, ni plus ni moins.
-    expect(ACTIONS).toHaveLength(7);
+    // Les huit actions du §4.1 (`invoquer` — `summon_token` — s'y est ajoutée
+    // pour faire naître une entité neuve, là où les sept premières n'agissent
+    // que sur des entités déjà présentes), ni plus ni moins.
+    expect(ACTIONS).toHaveLength(8);
   });
 
   // ⚠️ Le compilateur REFUSE ce qu'il ne sait pas traduire, et c'est ce refus

@@ -16,7 +16,13 @@
 import type { BoardDef, BoardEffectDef, MagieRarity } from '../types.js';
 import { boardEffects } from '../BoardEffect.js';
 import { CHAMPS_UNITE, CHAMPS_JOUEUR, PORTEES } from './types.js';
-import type { Effet, Tache, Selecteur, ChampUnite, Quand, Portee } from './types.js';
+import type { Effet, Tache, Selecteur, ChampUnite, Quand, Portee, Camp } from './types.js';
+
+/** `camp` d'un `summon_token` : `'ennemi'` explicite, `'allie'` par défaut —
+ *  jamais `'les_deux'`, qui n'a aucun sens pour une case UNIQUE. */
+function campDuToken(camp: unknown): Camp {
+  return camp === 'ennemi' ? 'ennemi' : 'allie';
+}
 
 /** La forme minimale d'un attribut que le compilateur lit — jamais `data/`. */
 export interface AttributeLike {
@@ -66,6 +72,9 @@ export interface AttributeEffectLike {
   /** `guaranteed_magie` — cf. `types.GuaranteedMagie`. */
   rarity?: number;
   magie_id?: string;
+  /** `summon_token`. */
+  token_id?: string;
+  camp?: string;
 }
 
 /** Ce qu'une compilation rend : ce qui a été traduit, et ce qui ne l'a pas été. */
@@ -239,6 +248,15 @@ export function compileBoard(board: BoardDef | null | undefined): CompilationRes
         return;
       }
 
+      case 'summon_token': {
+        if (!effect.token_id) { refuse('token sans id', 'summon_token'); return; }
+        effets.push({
+          id, porteur, trigger,
+          taches: [{ action: 'invoquer', camp: campDuToken(effect.camp), tokenId: effect.token_id as string }],
+        });
+        return;
+      }
+
       default:
         refuse('type non traduit', `${effect.type}`);
     }
@@ -310,6 +328,10 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   shopping_bonus: ['fin_combat'],
   player_hp_bonus: ['fin_combat'],
   guaranteed_magie: ['fin_combat'],
+  // ⚠️ Pas de `fin_combat` : un token invoqué après le dernier tick n'a plus
+  // aucun combat où se battre. `a_l_invocation`/`pouvoir_utilise` sont ouverts
+  // parce que `summon_token` cible une UNITÉ (le camp), comme `stat_bonus`.
+  summon_token: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
 };
 
 /**
@@ -573,6 +595,14 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
           }]);
           return;
 
+        case 'summon_token':
+          // ⚠️ `camp` ici ne vise PAS un ciblage de sélecteur : `allie` veut
+          // dire « le côté qui PORTE cet attribut » (le camp courant de cette
+          // passe), `ennemi` l'autre — la même lecture que `parAttributAdverse`.
+          if (!effect.token_id) { refuse('token sans id', 'summon_token'); return; }
+          pousse([{ action: 'invoquer', camp: campDuToken(effect.camp), tokenId: effect.token_id as string }]);
+          return;
+
         default:
           refuse('type non traduit', effect.type);
       }
@@ -638,6 +668,9 @@ export interface MagieEffectLike {
   /** `guaranteed_magie` — cf. `types.GuaranteedMagie`. */
   rarity?: number;
   magie_id?: string;
+  /** `summon_token`. */
+  token_id?: string;
+  camp?: string;
 }
 
 /** Ce qui manque au moteur pour traduire un type, quand ça manque. */
@@ -922,6 +955,16 @@ export function compileMagie(magie: MagieLike): CompilationResult {
           magie_id: e.magie_id as string | undefined,
         },
       }]);
+      return { effets, refus };
+
+    case 'summon_token':
+      if (!e.token_id) { refuse('token sans id', 'summon_token'); return { effets, refus }; }
+      // ⚠️ Un token ADVERSE posé par une magie n'a nulle part où voyager en
+      // PvP (le Shopping ne synchronise que le résultat SUR SON PROPRE camp,
+      // cf. `round:board_ready`) — refusé à la compilation, jamais au silence
+      // d'un `camp` ignoré.
+      if (e.camp === 'ennemi') { refuse('camp interdit', 'summon_token → camp \'ennemi\' (une magie ne cible que son propre camp)'); return { effets, refus }; }
+      pousse([{ action: 'invoquer', camp: 'allie', tokenId: e.token_id as string }]);
       return { effets, refus };
 
     default:

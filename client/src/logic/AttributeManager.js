@@ -35,11 +35,17 @@ export class AttributeManager {
    * @param {Object[]} attributeList   - raw data from AttributeDatabase
    * @param {Unit[]}   playerUnits
    * @param {Unit[]}   enemyUnits
+   * @param {(sideReel: 'player'|'enemy', tokenId: string) => import('./Unit.js').Unit | null} [invoquerToken]
+   *   `summon_token` (`logic/effects/engine.ts`, `Monde.invoquerToken`) — absent
+   *   partout où l'appelant ne câble pas encore cette dépendance (aucun
+   *   effet `summon_token` ne peut alors partir, refusé nommément par le
+   *   moteur plutôt que de planter).
    */
-  constructor(attributeList, playerUnits, enemyUnits) {
+  constructor(attributeList, playerUnits, enemyUnits, invoquerToken = null) {
     this._attributeMap = Object.fromEntries(attributeList.map(a => [a.id, a]));
     this.playerUnits = playerUnits;
     this.enemyUnits = enemyUnits;
+    this._invoquerToken = invoquerToken;
 
     // ⚠️ La compilation a lieu UNE FOIS, à la construction — donc une fois par
     // combat, comme le manager lui-même. Elle est pure : mêmes attributs, mêmes
@@ -187,7 +193,18 @@ export class AttributeManager {
    * est un garde qu'on retire.
    */
   _monde(units, other, ressources, neutralisees) {
-    return { unitesAlliees: units, unitesEnnemies: other, ressources, neutralisees };
+    // ⚠️ `allie` désigne le camp qui PORTE l'attribut de cette passe — pas
+    // « le joueur » : `_applyStartForSide`/`_applyEndForSide` rejouent le même
+    // calcul pour les deux camps, donc `units` vaut tantôt `playerUnits`,
+    // tantôt `enemyUnits`. `summon_token` doit poser son token sur le côté
+    // RÉEL du plateau, d'où cette traduction — jamais fixe comme pour un
+    // terrain ou une magie (cf. `Monde.cotesReels`).
+    const sideReel = units === this.playerUnits ? 'player' : 'enemy';
+    const cotesReels = { allie: sideReel, ennemi: sideReel === 'player' ? 'enemy' : 'player' };
+    return {
+      unitesAlliees: units, unitesEnnemies: other, ressources, neutralisees,
+      ...(this._invoquerToken ? { invoquerToken: this._invoquerToken, cotesReels } : {}),
+    };
   }
 
   _applyStartForSide(units) {

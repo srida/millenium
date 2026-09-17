@@ -190,6 +190,10 @@ export interface BoardEffectDef {
   /** `guaranteed_magie` — cf. `GuaranteedMagie`. */
   rarity?: MagieRarity;
   magie_id?: string;
+  /** `summon_token` — cf. `data/tokens.json`, `TokenDbLike`. */
+  token_id?: string;
+  /** `summon_token` — quel côté du plateau reçoit le token. Absent = `allie`. */
+  camp?: 'allie' | 'ennemi';
 }
 
 export interface BoardDef {

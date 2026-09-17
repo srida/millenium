@@ -91,6 +91,11 @@ function valeurPour(champ: any, variante = 0): any {
       if (champ.options === 'pouvoirs') return SANS_DUREE[variante % SANS_DUREE.length];
       if (champ.options === 'magies') return variante ? (magies[1].id as string) : (magies[0].id as string);
       if (champ.options === 'tiers') return 1 + (variante % 5);
+      // ⚠️ Le compilateur ne valide l'id d'un token contre AUCUN catalogue (il
+      // voyage tel quel dans la tâche `invoquer`, comme `card_ids`) : deux
+      // chaînes synthétiques suffisent à faire bouger l'empreinte, sans
+      // dépendre d'un `initial-data/tokens.json` qui peut être vide.
+      if (champ.options === 'tokens') return variante ? 'TOK_B' : 'TOK_A';
       // ⚠️ `choix_direct` : les options voyagent dans le descripteur, parce
       // qu'elles dépendent du type (les moments qu'il sait honorer).
       return 'x';
