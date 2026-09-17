@@ -89,7 +89,7 @@ export interface Selecteur {
  * d'aujourd'hui s'y réduisent, et le jour où une action manque, ça se voit à la
  * compilation au lieu de se voir en jeu (ou de ne pas se voir du tout).
  */
-export const ACTIONS = ['ajouter', 'retirer', 'deplacer', 'remplacer', 'modifier', 'poser_statut', 'poser_effet'] as const;
+export const ACTIONS = ['ajouter', 'retirer', 'deplacer', 'remplacer', 'modifier', 'poser_statut', 'poser_effet', 'invoquer'] as const;
 export type Action = typeof ACTIONS[number];
 
 export const OPERATEURS = ['+', '-', '*', '/', '='] as const;
@@ -323,6 +323,25 @@ export interface TacheRetirer {
   cible: Selecteur;
 }
 
+/**
+ * `invoquer` — fait naître un TOKEN sur une case libre, tirée au hasard, du
+ * camp visé (`summon_token`).
+ *
+ * ⚠️ Ce n'est ni `ajouter` (qui rend une CARTE en main, jamais une unité posée)
+ * ni `remplacer` (qui substitue une unité EXISTANTE sur SA case) : ici il n'y a
+ * ni carte cible ni case connue d'avance — l'appelant seul sait où sont les
+ * cases libres de `Board`, donc c'est lui qui les fournit (`Monde.invoquerToken`),
+ * exactement comme `pool` pour `remplacer`. Le moteur ne touche jamais `Board`.
+ *
+ * ⚠️ `camp` n'est PAS un `Selecteur` : il n'y a rien à sélectionner (aucune
+ * entité existante), seulement CHEZ QUI la nouvelle unité doit apparaître.
+ */
+export interface TacheInvoquer {
+  action: 'invoquer';
+  camp: Camp;
+  tokenId: string;
+}
+
 /** `poser_statut` — pose un statut sur une entité. */
 export interface TachePoserStatut {
   action: 'poser_statut';
@@ -356,7 +375,7 @@ export interface TachePosition {
  * qu'on pourrait oublier. Sans elle, l'ordre de résolution devient impossible à
  * prouver identique sur deux clients PvP.
  */
-export type TacheSimple = TacheModifier | TachePosition | TacheDeplacer | TachePoserStatut | TacheAjouter | TacheRetirer | TacheRemplacer;
+export type TacheSimple = TacheModifier | TachePosition | TacheDeplacer | TachePoserStatut | TacheAjouter | TacheRetirer | TacheRemplacer | TacheInvoquer;
 
 /**
  * `poser_effet` — une tâche inscrit un effet dans le registre — §3.6.

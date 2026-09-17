@@ -233,4 +233,26 @@ export class Board {
         if (!this.grid[c][r]) return { col: c, row: r };
     return null;
   }
+
+  /**
+   * Toutes les cases libres d'un côté — ni occupées, ni bloquées.
+   *
+   * ⚠️ Pour `summon_token` (`logic/effects/engine.ts`) : contrairement à
+   * `EnemyAI._freeCells` (qui ne teste que l'occupation, hérité d'avant que le
+   * placement de l'IA ait à composer avec des cases bloquées), un token invoqué
+   * AU HASARD doit exclure les cases bloquées — sinon il naîtrait dans le décor.
+   * Volontairement séparée de `EnemyAI._freeCells` plutôt que de la lui faire
+   * absorber : reprendre le comportement de l'IA changerait ses placements sur
+   * tout terrain à cases bloquées, hors du périmètre de cette fonctionnalité.
+   */
+  freeCellsOnSide(side: Side): Position[] {
+    const cells: Position[] = [];
+    for (let c = 0; c < this.cols; c++)
+      for (const r of this.rowScan()) {
+        const pos = { col: c, row: r };
+        const dansLeCamp = side === 'player' ? this.isPlayerCell(pos) : this.isEnemyCell(pos);
+        if (dansLeCamp && !this.isOccupied(pos) && !this.isBlocked(pos)) cells.push(pos);
+      }
+    return cells;
+  }
 }

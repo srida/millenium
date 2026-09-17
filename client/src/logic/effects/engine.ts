@@ -26,7 +26,7 @@ import { Unit } from '../Unit.js';
 import type { Card, GuaranteedDraw, GuaranteedMagie, DrawSourceEntry, BonusSourceEntry } from '../types.js';
 import { CHAMPS_UNITE, cleDeTri } from './types.js';
 import { clampRate, rateForTicks } from '../../../../speed-scale.mjs';
-import type { Effet, Tache, TacheModifier, TacheDeplacer, TachePoserStatut, TacheAjouter, TacheRetirer, TacheRemplacer, TachePoserEffet, EntreeRegistre, Portee, Selecteur, ChampUnite } from './types.js';
+import type { Effet, Tache, TacheModifier, TacheDeplacer, TachePoserStatut, TacheAjouter, TacheRetirer, TacheRemplacer, TachePoserEffet, TacheInvoquer, EntreeRegistre, Portee, Selecteur, ChampUnite, Camp } from './types.js';
 
 /**
  * Ce qu'un lot d'effets a produit pour le JOUEUR — le pendant exact de
@@ -66,8 +66,16 @@ export function ressourcesVides(): Ressources {
 }
 
 export interface Monde {
-  unitesAlliees: readonly Unit[];
-  unitesEnnemies: readonly Unit[];
+  /**
+   * ⚠️ **Mutables, et c'est nouveau.** `resoudre` n'en a jamais eu besoin —
+   * lecture seule — mais `invoquer` (`summon_token`) doit pouvoir y POUSSER la
+   * unité qu'il vient de faire naître : ce sont les mêmes tableaux que
+   * `playerUnits`/`enemyUnits` passés ensuite à `CombatManager`, donc y
+   * pousser est ce qui fait entrer le token dans le combat qui s'apprête à
+   * démarrer. Aucun autre code n'écrit ici — seul `appliqueInvoquer` le fait.
+   */
+  unitesAlliees: Unit[];
+  unitesEnnemies: Unit[];
   /** Les ressources du camp allié. Créé par l'appelant, muté par le moteur. */
   ressources: Ressources;
   /** Les ressources du camp ennemi — la pioche a un destinataire des deux côtés. */
@@ -117,6 +125,29 @@ export interface Monde {
    * partage que pour les ressources.
    */
   remplacements?: { ancienne: Unit; nouvelle: Unit }[];
+  /**
+   * `summon_token` — fait naître un token du catalogue sur une case libre du
+   * côté RÉEL demandé, et le POSE (`Board.placeUnit`) : c'est l'appelant qui
+   * possède `Board` et le catalogue de tokens, le moteur ne connaît ni l'un ni
+   * l'autre (même patron que `pool`/`catalogue`). Rend `null` si le token est
+   * inconnu ou si le côté visé n'a plus une seule case libre — jamais d'erreur.
+   *
+   * ⚠️ Une seule fonction, pas `tokenCatalogue` + `caseLibre` séparés : la
+   * pose doit être ATOMIQUE avec le tirage de la case, sinon deux `invoquer`
+   * du même lot pourraient se voir proposer la MÊME case libre (le premier
+   * placé n'aurait pas encore été retiré des cases disponibles du second).
+   */
+  invoquerToken?: (sideReel: 'player' | 'enemy', tokenId: string) => Unit | null;
+  /**
+   * Ce que `allie`/`ennemi` veulent dire EN VRAI pour ce monde — traduction
+   * camp abstrait → côté réel du plateau (`Board`).
+   *
+   * ⚠️ Ce n'est pas fixe : pour un ATTRIBUT, `allie` désigne le camp qui PORTE
+   * l'attribut (`AttributeManager` rejoue la même passe pour les deux côtés),
+   * alors que pour un TERRAIN ou une MAGIE `allie` vaut toujours `'player'`.
+   * L'appelant seul le sait ; le moteur ne fait que le relire.
+   */
+  cotesReels?: { allie: 'player' | 'enemy'; ennemi: 'player' | 'enemy' };
   /**
    * ⚠️ INVARIANT §5.2 : le hasard est une dépendance INJECTÉE, jamais
    * `Math.random`. Aucune tâche compilée aujourd'hui n'en consomme — le champ
@@ -543,6 +574,36 @@ function appliqueRetirer(t: TacheRetirer, monde: Monde, trace: Trace): void {
 }
 
 /**
+ * `invoquer` — fait naître un token et le pousse dans le camp visé.
+ *
+ * ⚠️ **Le moteur ne choisit ni la case ni la pose** : `monde.invoquerToken`
+ * fait les deux d'un coup (cf. sa doc dans `Monde`), le moteur se contente
+ * d'inscrire l'unité RENDUE dans le bon tableau — celui que `resoudre` lira
+ * ensuite pour toute autre tâche du même lot, et que `CombatManager` reçoit
+ * tel quel si c'est le même tableau que `playerUnits`/`enemyUnits`.
+ *
+ * ⚠️ **Refus nommé, jamais silencieux**, si l'appelant n'a rien injecté : un
+ * `summon_token` posé sur un terrain/attribut/magie qui ne câble pas
+ * `invoquerToken`/`cotesReels` (tournoi, tutoriel, tout appelant qui n'a pas
+ * encore cette dépendance) ne doit pas planter — mais ne doit pas non plus se
+ * taire sans laisser de trace, exactement la discipline de `poser_effet` sans
+ * registre.
+ */
+function appliqueInvoquer(t: TacheInvoquer, monde: Monde, trace: Trace): void {
+  if (!monde.invoquerToken || !monde.cotesReels) {
+    trace.ignore.push(`invoquer ${t.tokenId} (aucun invocateur de tokens câblé)`);
+    return;
+  }
+  const camp: Camp = t.camp === 'ennemi' ? 'ennemi' : 'allie';
+  const sideReel = camp === 'ennemi' ? monde.cotesReels.ennemi : monde.cotesReels.allie;
+  const token = monde.invoquerToken(sideReel, t.tokenId);
+  if (!token) { trace.neant.push(`invoquer ${t.tokenId} (token inconnu ou aucune case libre)`); return; }
+  const arr = camp === 'ennemi' ? monde.unitesEnnemies : monde.unitesAlliees;
+  arr.push(token);
+  trace.applique.push(`invoque ${t.tokenId}→${sideReel}`);
+}
+
+/**
  * Les deux remises d'invocation — le seul geste qui touche une CARTE.
  *
  * ⚠️ La case est ÉCRASÉE, jamais mutée : `canUndoPreparation` compare la main
@@ -660,6 +721,7 @@ function appliqueTache(t: Tache, monde: Monde, trace: Trace): void {
   if (t.action === 'ajouter') { appliqueAjouter(t, monde, trace); return; }
   if (t.action === 'retirer') { appliqueRetirer(t, monde, trace); return; }
   if (t.action === 'poser_effet') { appliquePoserEffet(t, monde, trace); return; }
+  if (t.action === 'invoquer') { appliqueInvoquer(t, monde, trace); return; }
 
   if (t.champ === 'position') { trace.ignore.push('position (aucun porteur livré n\'en pose)'); return; }
   const tache = t as TacheModifier;

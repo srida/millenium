@@ -691,8 +691,11 @@ Actif **pendant le combat uniquement** (en préparation le terrain n'est pas enc
 | `stat_modifier` | Multiplicateur — converti en additif via `_base[stat] × (value − 1)` |
 | `shield` | Bouclier initial |
 | `draw_bonus` | Pioche supplémentaire — **joueur uniquement, sans ciblage** |
+| `summon_token` | Invoque un **token** (`token_id`, catalogue `data/tokens.json`) sur une case **libre tirée au hasard** du camp visé (`camp` : `allie` = le joueur, `ennemi` = l'adversaire) |
 
 ⚠️ Un `stat_bonus` sur `attack_rate` / `movement_rate` s'écrit **en positif pour accélérer** depuis l'échelle de vitesse. Les sept terrains livrés qui les visaient portaient tous du négatif ; ils ont été retournés par `migrate-speeds.js`.
+
+⚠️ **`summon_token` (`terrain`/`attribut`/`magie`) est DÉSACTIVÉ EN PVP RÉEL.** La case tirée au hasard n'a aucun moyen de voyager jusqu'à l'autre client (`round:board_ready` ne prévoit rien pour un ajout d'unité entre deux rounds) : les deux simulations divergeraient. `GameSession._tokenSpawner` rend `undefined` dès que `mode === 'pvp'`, et l'effet est alors simplement `neant`/`ignore`, jamais une exception. Même famille d'exclusion que `damage_multiplier_bonus`. Un duel contre un **bot** n'est pas concerné (c'est un solo du point de vue de `GameSession`). Le token invoqué est **éphémère** exactement comme celui de `POWER_SUMMON_TOKEN` : `is_token = true`, jamais consommable, jamais au cimetière, retiré à `GameSession.finishCombat()`.
 
 - ⚠️ **`BoardEffect.boardEffects(board)` est le SEUL lecteur de la donnée**, et il lit **deux formes** : `effects` (la liste) l'emporte dès qu'elle porte quelque chose, `effect` (l'effet unique historique) sert de repli. Les 14 terrains livrés sont encore en `effect` — le repli est ce qui dispense de migration. L'admin écrit `effects`. Tout écran qui lirait `board.effect` afficherait « Aucun effet » sur un terrain migré.
 - ⚠️ **Le cumul est ADDITIF et l'ordre de la liste n'y change rien** : tous les effets écrivent dans `_stat_bonuses` (ou le bouclier), jamais dans `_base` que `stat_modifier` relit. Deux « ×2 PV » donnent **×3**, pas ×4.
@@ -941,6 +944,7 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 | `stat_bonus` | `start_of_combat` · `on_summon` · `on_power_fired` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step). ⚠️ Sur `attack_rate` / `movement_rate`, le bonus est **positif pour accélérer** et s'écrête à 100 |
 | `shield` | `start_of_combat` · `on_summon` · `on_power_fired` | `value` × nombre d'**alliés vivants** |
 | `effect_immunity` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_effect_immune` — annule les pouvoirs de debuff |
+| `summon_token` | `start_of_combat` · `on_summon` · `on_power_fired` | Invoque un token (`token_id`) sur une case libre au hasard ; `camp` = `allie` (le camp qui PORTE l'attribut) ou `ennemi`. ⚠️ Pas de `end_of_combat` : rien à combattre après le dernier tick. Désactivé en PvP réel |
 | `stat_modifier` | `during_combat` | Déclenché par `trigger` : `on_ally_neutralized` / `on_enemy_neutralized` |
 | `revive` | `end_of_combat` | Réanime une unité neutralisée à `hp_percent` % (déf. 50) |
 | `draw_bonus` | `end_of_combat` | Pioches supplémentaires (plafonné par `max`) |
@@ -1251,6 +1255,7 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 | `sacrifice_card_hp` | `value` (% des PV, déf. **100**) | **Brûle** une carte de la main et verse ses PV au joueur |
 | `reduce_materials` | `value` (déf. 1), `attribute` | Cible une carte de la **main** : baisse son coût de N slots ; les `requires` sont rognées pour tenir dans le nouveau compte |
 | `remove_requirements` | `value` (déf. 1), `attribute` | Cible une carte de la **main** : retire N exigences **nommées**, le compte de slots inchangé |
+| `summon_token` | `token_id` | Invoque un token sur une case libre au hasard, **son propre camp uniquement** (`camp: 'ennemi'` refusé à la compilation — un token adverse n'a nulle part où voyager en PvP). Posé tout de suite sur le board, comme une pose de Phase Shopping. Désactivé en PvP réel |
 
 ⚠️ **Les deux remises sont IMMÉDIATES et CIBLÉES** : le joueur désigne la carte de sa main, `applyMagieOnHandCard` fait le geste au tap. Elles étaient différées au `startPreparation()` suivant — un état de round entier (`player_hand_modifiers`, supprimé) pour un effet que personne ne choisissait, puisque la remise tombait sur la première carte retouchable de la main fraîchement piochée.
 
