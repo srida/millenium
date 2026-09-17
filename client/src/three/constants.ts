@@ -83,9 +83,10 @@ export const PREP_FOCUS_Y = 0.4;
 // Mode web : la main et les neutralisées passent en rails verticaux à deux
 // colonnes sur les côtés (bas d'écran libéré) — le bloc joueur se recentre et
 // gagne en hauteur, mais le cadrage doit réserver la largeur des rails. Doit
-// rester synchronisé avec la largeur `w-52` de WEB_RAIL_BAND
-// (`components/hand/rail.ts`), commune aux deux rails.
-export const WEB_RAIL_PX = 208;
+// rester synchronisé avec `WEB_RAIL_BAND` + `WEB_RAIL_OFFSET_LEFT/RIGHT`
+// (`components/hand/rail.ts`, `w-44` + `px-22` = 264 px), commune aux deux
+// rails.
+export const WEB_RAIL_PX = 264;
 export const PREP_ROW_MARGIN_WEB = 0.8;
 export const PREP_ROW_MARGIN = 1.5;
 // CSS3DObject scales the unit-card DOM by CSS_SCALE, so a screen-visible Npx ring
