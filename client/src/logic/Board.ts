@@ -212,16 +212,6 @@ export class Board {
     ].filter(p => this.isInBounds(p) && !this.isBlocked(p));
   }
 
-  // Rebuild grid from a unit list (after combat cleanup)
-  rebuild(units: Unit[]): void {
-    this.grid = this._emptyGrid();
-    for (const u of units) {
-      if (u.position && this.isInBounds(u.position)) {
-        this.grid[u.position.col][u.position.row] = u;
-      }
-    }
-  }
-
   // Returns first empty cell on player side (row 0–3), column-by-column
   firstEmptyPlayerCell(): Position | null {
     for (let r = 0; r <= 3; r++)

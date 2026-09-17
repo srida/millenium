@@ -228,6 +228,14 @@ function DamageBreakdown({ result }: { result: EndRoundResult }) {
           ))}
         </div>
       )}
+      {result.overflowUnits.length > 0 && (
+        <div className="w-full rounded-lg border border-danger/40 bg-danger/10 p-2 text-[11px] text-danger">
+          <div className="mb-1 tracking-widest">TERRAIN SATURÉ</div>
+          {result.overflowUnits.map((u, i) => (
+            <div key={i}>{u.name} n'a trouvé aucune case et rejoint le cimetière.</div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
