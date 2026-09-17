@@ -44,6 +44,16 @@ export interface ShoppingState {
    */
   handTargets: number[] | null;
   banner: string | null;
+  /**
+   * Ce que l'offre CONTIENT, à annoncer une fois — `shopping_bonus` (magies
+   * supplémentaires) et/ou `guaranteed_magie` (magie garantie), posé par
+   * `GameController._startShopping` depuis `GameSession.getLastShoppingBonusInfo()`.
+   * Distinct de `banner` : celui-ci nomme une INSTRUCTION de ciblage, celui-là
+   * une INFORMATION sur l'offre elle-même — les deux ne s'affichent jamais en
+   * même temps (`info` seulement à l'écran de choix, `banner` seulement en
+   * ciblage). `null` quand rien de tout ça ne s'est produit ce tour.
+   */
+  info: string | null;
 }
 
 /**

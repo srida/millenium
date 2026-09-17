@@ -177,6 +177,9 @@ export interface BoardEffectDef {
   /** Qui encaisse un `player_hp_bonus` — `allie` (le joueur) ou `ennemi`
    *  (l'adversaire). Absent = `allie`. */
   target?: 'allie' | 'ennemi';
+  /** `guaranteed_magie` — cf. `GuaranteedMagie`. */
+  rarity?: MagieRarity;
+  magie_id?: string;
 }
 
 export interface BoardDef {
@@ -224,6 +227,9 @@ export interface MagieEffectDef {
   power_rate?: number;
   /** `grant_power` d'un pouvoir de durée : le compteur 0–100 qu'il pose. */
   duration?: number | null;
+  /** `guaranteed_magie` : cf. `GuaranteedMagie`. */
+  rarity?: MagieRarity;
+  magie_id?: string;
 }
 
 /** Palier de rareté d'une magie : 1 Commune · 2 Rare · 3 Légendaire. */
@@ -265,6 +271,18 @@ export interface GuaranteedDraw {
   attribute?: string | null;
   attributes?: string[];
   card_ids?: string[];
+}
+
+/**
+ * Ce qu'une magie garantie à la Phase Shopping PROMET — le jumeau de
+ * `GuaranteedDraw`, en plus simple : une rareté et/ou UNE magie précise, pas
+ * une liste (« la rareté OU le nom de la magie cible »). Les deux sont
+ * facultatifs et se CUMULENT (ET) quand les deux sont écrits.
+ * Cf. `MagieOffer.resolveGuaranteedMagies`, seul lecteur de cette forme.
+ */
+export interface GuaranteedMagie {
+  rarity?: MagieRarity;
+  magie_id?: string;
 }
 
 /**
@@ -320,6 +338,9 @@ export interface EndOfCombatAttributeResult {
   player_hp_bonus?: number;
   /** Provenance du champ ci-dessus — même discipline que `draw_sources`. */
   player_hp_sources?: BonusSourceEntry[];
+  /** Magies garanties à la prochaine Phase Shopping — le pendant de
+   *  `guaranteed_draws`, sur le vocabulaire de la magie. */
+  guaranteed_magies?: GuaranteedMagie[];
   /**
    * Pendant de `draw_bonus` / `guaranteed_draws`, côté ENNEMI : contrairement
    * aux autres ressources de fin de combat (slot, multiplicateur, Shopping),

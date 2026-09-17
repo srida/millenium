@@ -120,6 +120,9 @@ export function applyBoardEffects(board: BoardDef | null | undefined, { playerUn
       gameState.player_hp = Math.min(Math.max(0, gameState.player_hp + ressources.pv), PLAYER_HP_CAP);
       gameState.player_hp_sources.push(...ressources.sources_pv);
     }
+    if (ressources.magies_garanties.length) {
+      gameState.player_guaranteed_magies.push(...ressources.magies_garanties);
+    }
     // ⚠️ Exclu en PvP : cf. la note de `BoardEffectContext.pvp`.
     if (!pvp && ressourcesEnnemies.pv) {
       gameState.enemy_hp = Math.min(Math.max(0, gameState.enemy_hp + ressourcesEnnemies.pv), PLAYER_HP_CAP);

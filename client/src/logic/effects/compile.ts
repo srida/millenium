@@ -13,7 +13,7 @@
 //
 // Cf. `docs/moteur-effets.md` §4 et §6.
 
-import type { BoardDef, BoardEffectDef } from '../types.js';
+import type { BoardDef, BoardEffectDef, MagieRarity } from '../types.js';
 import { boardEffects } from '../BoardEffect.js';
 import { CHAMPS_UNITE, CHAMPS_JOUEUR, PORTEES } from './types.js';
 import type { Effet, Tache, Selecteur, ChampUnite, Quand, Portee } from './types.js';
@@ -63,6 +63,9 @@ export interface AttributeEffectLike {
   attribute?: string;
   attributes?: string[];
   card_ids?: string[];
+  /** `guaranteed_magie` — cf. `types.GuaranteedMagie`. */
+  rarity?: number;
+  magie_id?: string;
 }
 
 /** Ce qu'une compilation rend : ce qui a été traduit, et ce qui ne l'a pas été. */
@@ -218,6 +221,24 @@ export function compileBoard(board: BoardDef | null | undefined): CompilationRes
         return;
       }
 
+      case 'guaranteed_magie': {
+        effets.push({
+          id, porteur, trigger,
+          taches: [{
+            action: 'modifier',
+            cible: { conteneur: 'joueur', camp: 'allie', combien: 'un' },
+            champ: 'magies_garanties',
+            operateur: '+', valeur: 0, duree: 'round',
+            criteres: {
+              rarity: effect.rarity as MagieRarity | undefined,
+              magie_id: effect.magie_id as string | undefined,
+            },
+            provenance: 'terrain',
+          }],
+        });
+        return;
+      }
+
       default:
         refuse('type non traduit', `${effect.type}`);
     }
@@ -284,6 +305,7 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   damage_multiplier_bonus: ['fin_combat'],
   shopping_bonus: ['fin_combat'],
   player_hp_bonus: ['fin_combat'],
+  guaranteed_magie: ['fin_combat'],
 };
 
 /**
@@ -533,6 +555,20 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
           }]);
           return;
 
+        case 'guaranteed_magie':
+          pousse([{
+            action: 'modifier',
+            cible: { conteneur: 'joueur', camp: 'allie', combien: 'un' },
+            champ: 'magies_garanties',
+            operateur: '+', valeur: 0, duree: 'round',
+            criteres: {
+              rarity: effect.rarity as MagieRarity | undefined,
+              magie_id: effect.magie_id as string | undefined,
+            },
+            provenance: 'attribut',
+          }]);
+          return;
+
         default:
           refuse('type non traduit', effect.type);
       }
@@ -595,6 +631,9 @@ export interface MagieEffectLike {
   attribute?: string;
   attributes?: string[];
   card_ids?: string[];
+  /** `guaranteed_magie` — cf. `types.GuaranteedMagie`. */
+  rarity?: number;
+  magie_id?: string;
 }
 
 /** Ce qui manque au moteur pour traduire un type, quand ça manque. */
@@ -866,6 +905,17 @@ export function compileMagie(magie: MagieLike): CompilationResult {
           attribute: (e.attribute as string) ?? null,
           attributes: e.attributes as string[] | undefined,
           card_ids: e.card_ids as string[] | undefined,
+        },
+      }]);
+      return { effets, refus };
+
+    case 'guaranteed_magie':
+      pousse([{
+        action: 'modifier', cible: leJoueur(), champ: 'magies_garanties',
+        operateur: '+', valeur: 0, duree: 'round', provenance: 'magie',
+        criteres: {
+          rarity: e.rarity as MagieRarity | undefined,
+          magie_id: e.magie_id as string | undefined,
         },
       }]);
       return { effets, refus };

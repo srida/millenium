@@ -273,6 +273,15 @@ export const CHAMPS = Object.freeze({
     omettreSiDefaut: true,
     aide: 'Le joueur (gain si Valeur > 0, perte si Valeur < 0) ou l’adversaire.',
   },
+  rarity: {
+    label: 'Rareté garantie (optionnel)', saisie: 'choix_direct', facultatif: true, defaut: '',
+    options: [[1, 'Commune'], [2, 'Rare'], [3, 'Légendaire']],
+    aide: 'Vide = n’importe quelle rareté. Se cumule avec la magie cible si les deux sont précisées.',
+  },
+  magie_id: {
+    label: 'Magie cible (optionnel)', saisie: 'choix', options: 'magies', facultatif: true, defaut: '',
+    aide: 'Vide = n’importe quelle magie de la rareté demandée (ou de tout le catalogue).',
+  },
 });
 
 /**
@@ -417,6 +426,16 @@ export const TYPES = Object.freeze({
     // deux champs pour la même question laisseraient écrire deux réponses.
     attribut: { quands: ['fin_combat'], champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
     magie: { quands: ['immediat'], champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
+  },
+  guaranteed_magie: {
+    label: 'Magie garantie à la Phase Shopping (rareté et/ou magie précise)',
+    court: 'Magie garantie',
+    // ⚠️ MÊMES champs sur les trois porteurs, comme `guaranteed_draw` : les
+    // trois alimentent la même file (`player_guaranteed_magies`) et passent
+    // par le même `MagieOffer.resolveGuaranteedMagies`.
+    terrain: { quands: ['debut_combat'], champs: { rarity: {}, magie_id: {} } },
+    attribut: { quands: ['fin_combat'], champs: { rarity: {}, magie_id: {} } },
+    magie: { quands: ['immediat'], champs: { rarity: {}, magie_id: {} } },
   },
   board_slot_bonus: {
     label: 'Slot de board supplémentaire',

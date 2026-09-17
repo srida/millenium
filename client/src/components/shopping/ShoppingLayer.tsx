@@ -77,6 +77,9 @@ export default function ShoppingLayer() {
         <div className="text-xs tracking-widest text-gold">✦ PHASE SHOPPING ✦</div>
         <div className="text-sm text-white/60">Choisis une magie</div>
         <div className="mt-1 text-xs font-semibold tabular-nums text-gold/80">{remaining}s</div>
+        {shopping.info && (
+          <div className="mt-1.5 text-[11px] font-semibold text-gold">{shopping.info}</div>
+        )}
       </div>
       <div className="space-y-2">
         {shopping.magies.map(m => (

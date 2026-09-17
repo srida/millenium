@@ -89,6 +89,7 @@ function valeurPour(champ: any, variante = 0): any {
       if (champ.options === 'triggers') return (TRIGGERS as any)[variante % TRIGGERS.length][0];
       if (champ.options === 'attributs') return variante ? (attributs[1].id as string) : UN_ATTRIBUT;
       if (champ.options === 'pouvoirs') return SANS_DUREE[variante % SANS_DUREE.length];
+      if (champ.options === 'magies') return variante ? (magies[1].id as string) : (magies[0].id as string);
       if (champ.options === 'tiers') return 1 + (variante % 5);
       // ⚠️ `choix_direct` : les options voyagent dans le descripteur, parce
       // qu'elles dépendent du type (les moments qu'il sait honorer).

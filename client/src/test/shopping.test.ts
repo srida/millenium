@@ -91,6 +91,53 @@ describe('Shopping — tirage & extraShoppingMagies', () => {
     expect(session.getShoppingMagies()).toEqual([]);
   });
 
+  // ⚠️ Régression : une magie GARANTIE (ticket « carte du shop garantie »).
+  // Mutation : retirer `resolveGuaranteedMagies` de `getShoppingMagies` → ROUGE
+  // (la magie nommée n'est plus systématiquement dans l'offre).
+  it('une magie garantie par ID est TOUJOURS dans l\'offre', () => {
+    const { session } = makeSession({ magies: [...manyAlways(5), magie(ALWAYS, { id: 'TARGET', rarity: 1 })] });
+    for (let i = 0; i < 20; i++) {
+      session.gameState.player_guaranteed_magies = [{ magie_id: 'TARGET' }];
+      expect(offeredIds(session).includes('TARGET')).toBe(true);
+    }
+  });
+
+  it('garantie par rareté : l\'offre contient toujours une magie de cette rareté', () => {
+    const pool = [
+      ...manyAlways(5).map(m => ({ ...m, rarity: 1 })),
+      magie(ALWAYS, { id: 'LEGENDARY', rarity: 3 }),
+    ];
+    const { session } = makeSession({ magies: pool });
+    session.gameState.player_guaranteed_magies = [{ rarity: 3 }];
+    expect(offeredIds(session)).toContain('LEGENDARY');
+  });
+
+  it('la garantie se vide après consommation, même quand rien ne correspond', () => {
+    const { session } = makeSession({ magies: manyAlways(5) });
+    session.gameState.player_guaranteed_magies = [{ magie_id: 'INTROUVABLE' }];
+    session.getShoppingMagies();
+    expect(session.gameState.player_guaranteed_magies).toEqual([]);
+  });
+
+  it('une magie garantie occupe un slot de l\'offre, elle ne s\'y ajoute pas', () => {
+    const { session } = makeSession({ magies: [...manyAlways(5), magie(ALWAYS, { id: 'TARGET' })] });
+    session.gameState.player_guaranteed_magies = [{ magie_id: 'TARGET' }];
+    expect(session.getShoppingMagies()).toHaveLength(3);
+  });
+
+  // ⚠️ Une magie garantie non pertinente (heal sans unité) ne remplace pas
+  // le slot par n'importe quoi : la promesse est perdue, comme un extra qui
+  // ne trouve pas de pool.
+  it('une magie garantie non pertinente ne force pas une magie sans effet', () => {
+    const { session } = makeSession({
+      magies: [...manyAlways(3), magie({ type: 'heal' }, { id: 'HEAL_TARGET' })],
+    });
+    session.gameState.player_guaranteed_magies = [{ magie_id: 'HEAL_TARGET' }];
+    const ids = offeredIds(session);
+    expect(ids).not.toContain('HEAL_TARGET');
+    expect(ids).toHaveLength(3); // la promesse est perdue, pas remplacée
+  });
+
   it('le tirage passe par deps.rand : deux sessions semées à l\'identique offrent la même chose', () => {
     const pool = manyAlways(10);
     const a = makeSession({ magies: pool, rand: makeRandom(7) }).session;

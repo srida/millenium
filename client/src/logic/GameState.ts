@@ -1,4 +1,4 @@
-import type { BonusSourceEntry, DrawSourceEntry, EndOfCombatAttributeResult, GuaranteedDraw, RoundWinner } from './types.js';
+import type { BonusSourceEntry, DrawSourceEntry, EndOfCombatAttributeResult, GuaranteedDraw, GuaranteedMagie, RoundWinner } from './types.js';
 
 export const Phase = Object.freeze({
   PREPARATION: 'preparation',
@@ -58,6 +58,10 @@ export class GameState {
    * inscription ferait mentir la popup, ce que `draw-summary.test.ts` refuse.
    */
   player_draw_sources: DrawSourceEntry[];
+  /** Magies garanties à la prochaine Phase Shopping — accumulées par le
+   *  terrain (au lancement du combat) et l'attribut (`fin_combat`), consommées
+   *  d'un coup par `GameSession.getShoppingMagies()`. */
+  player_guaranteed_magies: GuaranteedMagie[];
   /**
    * Pendant enemy des deux champs ci-dessus : contrairement au slot, au
    * multiplicateur et au Shopping (ressources exclusivement joueur), la
@@ -114,6 +118,7 @@ export class GameState {
     this.player_extra_draws = 0;
     this.player_guaranteed_draws = [];
     this.player_draw_sources = [];
+    this.player_guaranteed_magies = [];
     this.enemy_extra_draws = 0;
     this.enemy_guaranteed_draws = [];
     this.player_extra_shopping_magies = 0;
@@ -212,6 +217,9 @@ export class GameState {
     // ci-dessus (plafond `max` déjà appliqué).
     if (attributeResult.draw_sources?.length) {
       this.player_draw_sources.push(...attributeResult.draw_sources);
+    }
+    if (attributeResult.guaranteed_magies?.length) {
+      this.player_guaranteed_magies.push(...attributeResult.guaranteed_magies);
     }
     if (attributeResult.shopping_bonus) {
       this.player_extra_shopping_magies += attributeResult.shopping_bonus;
