@@ -28,13 +28,15 @@ const TIER_TEXT: Record<number, string> = {
   1: 'text-tier-1', 2: 'text-tier-2', 3: 'text-tier-3', 4: 'text-tier-4', 5: 'text-tier-5',
 };
 
-// Même chip que le DeckBuilder et `PackContents` (bordure/fond or si actif).
+// Même chip que le DeckBuilder et `PackContents` (bordure/fond or si actif),
+// mais plus ÉTROIT (chiffre seul, padding resserré) : la 2ᵉ ligne doit tenir
+// cinq chips + le tri + le bouton de possession sans passer sur une 3ᵉ ligne.
 function Chip({ active, onTap, children }: { active: boolean; onTap: () => void; children: ReactNode }) {
   const { handlers } = usePressSquash<HTMLButtonElement>(onTap, false);
   return (
     <button
       type="button"
-      className={`min-h-tap rounded-full border px-3 text-xs font-semibold ${active ? 'border-gold bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'border-line bg-surface-raised text-white/60'}`}
+      className={`flex min-h-tap w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${active ? 'border-gold bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'border-line bg-surface-raised text-white/60'}`}
       {...handlers}
     >{children}</button>
   );
@@ -124,10 +126,13 @@ export default function CardCatalogGrid({
         <div className="flex flex-wrap items-center gap-1.5">
           {[1, 2, 3, 4, 5].map(t => (
             <Chip key={t} active={onTier(t)} onTap={() => toggleTier(t)}>
-              <span className={TIER_TEXT[t]}>T{t}</span>
+              <span className={TIER_TEXT[t]}>{t}</span>
             </Chip>
           ))}
-          <SortControl schema={schema} value={sort} onChange={setSort} className="ml-auto" />
+          <SortControl
+            schema={schema} value={sort} onChange={setSort}
+            className="ml-auto" labelClassName="max-w-[4.5rem] truncate"
+          />
           <OwnershipToggle value={ownership} onChange={setOwnership} />
         </div>
       </div>

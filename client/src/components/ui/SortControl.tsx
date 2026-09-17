@@ -14,11 +14,14 @@ import { Modal, usePressSquash } from './primitives.js';
 
 export type SortState = { key: string; dir: 'asc' | 'desc' };
 
-export default function SortControl({ schema, value, onChange, className = '' }: {
+export default function SortControl({ schema, value, onChange, className = '', labelClassName = 'max-w-[8rem] truncate' }: {
   schema: any;
   value: SortState;
   onChange: (next: SortState) => void;
   className?: string;
+  /** Largeur du libellé tronqué — un appelant à l'étroit (ligne de filtres
+   *  dense) peut la resserrer sans toucher au reste du bouton. */
+  labelClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const fields: any[] = Query.sortableFields(schema);
@@ -45,7 +48,7 @@ export default function SortControl({ schema, value, onChange, className = '' }:
         {...trigger.handlers}
       >
         <span aria-hidden="true">⇅</span>
-        <span className="max-w-[8rem] truncate">{current ? current.label : 'Ordre du catalogue'}</span>
+        <span className={labelClassName}>{current ? current.label : 'Ordre du catalogue'}</span>
         {current && <span aria-hidden="true">{arrow}</span>}
       </button>
 
