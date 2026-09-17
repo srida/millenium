@@ -17,6 +17,7 @@ import OnlineLobby from '../screens/OnlineLobby.js';
 import MissionsScreen from '../screens/MissionsScreen.js';
 import ShopScreen from '../screens/ShopScreen.js';
 import GiftsScreen from '../screens/GiftsScreen.js';
+import CatalogScreen from '../screens/CatalogScreen.js';
 import TutorialScreen from '../screens/TutorialScreen.js';
 import TooltipHost from '../components/tooltip/TooltipHost.js';
 import RewardToasts from '../components/ui/RewardToasts.js';
@@ -72,6 +73,7 @@ const SCREENS: Record<ScreenName, ComponentType> = {
   missions: MissionsScreen,
   shop: ShopScreen,
   gifts: GiftsScreen,
+  catalog: CatalogScreen,
   tutorial: TutorialScreen,
   game: GameScreen,
   game_pvp: GameScreenPvp,

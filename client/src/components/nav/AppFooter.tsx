@@ -136,8 +136,11 @@ function GiftsTile() {
   );
 }
 
-// Catalogue des cartes — écran pas encore construit : le bouton existe déjà
-// dans le footer (regroupement retenu), il ne mène nulle part pour l'instant.
+// Catalogue des cartes — toutes les cartes du jeu, obtenues ou non. Accessible
+// sans compte (repli invité de `collectionStore`), donc rendu même déconnecté
+// — contrairement à Missions/Boutique/Cadeaux, qui n'ont de sens que pour un
+// compte.
 function CatalogTile() {
-  return <DockTile icon="📖" label="Catalogue" />;
+  const navigate = useUiStore(s => s.navigate);
+  return <DockTile icon="📖" label="Catalogue" onPointerDown={() => navigate('catalog')} />;
 }
