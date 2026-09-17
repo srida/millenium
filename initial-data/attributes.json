@@ -540,7 +540,8 @@
 				"effects": [
 					{
 						"type": "shield",
-						"value": 10
+						"value": 10,
+						"per_ally": false
 					}
 				]
 			},
@@ -550,7 +551,8 @@
 				"effects": [
 					{
 						"type": "shield",
-						"value": 30
+						"value": 30,
+						"per_ally": false
 					}
 				]
 			},
@@ -560,7 +562,8 @@
 				"effects": [
 					{
 						"type": "shield",
-						"value": 50
+						"value": 50,
+						"per_ally": false
 					}
 				]
 			}
@@ -644,7 +647,7 @@
 		"id": "ARCH_023",
 		"name": "Elfe",
 		"icon": "🧝‍♂️",
-		"timing": "start_of_combat",
+		"timing": "end_of_combat",
 		"categorie": "Type",
 		"thresholds": [
 			{
@@ -652,9 +655,8 @@
 				"medal": "silver",
 				"effects": [
 					{
-						"type": "shield",
-						"value_per": "active_unit",
-						"value": 1
+						"type": "player_hp_bonus",
+						"value": 30
 					}
 				]
 			},
@@ -663,9 +665,8 @@
 				"medal": "gold",
 				"effects": [
 					{
-						"type": "shield",
-						"value_per": "active_unit",
-						"value": 3
+						"type": "player_hp_bonus",
+						"value": 50
 					}
 				]
 			},
@@ -674,9 +675,8 @@
 				"medal": "platinum",
 				"effects": [
 					{
-						"type": "shield",
-						"value_per": "active_unit",
-						"value": 5
+						"type": "player_hp_bonus",
+						"value": 100
 					}
 				]
 			}
@@ -1215,25 +1215,13 @@
 		"thresholds": [
 			{
 				"count": 2,
-				"medal": "silver",
-				"effects": [
-					{
-						"type": "stat_modifier",
-						"stat": "attack_rate",
-						"trigger": "on_ally_neutralized",
-						"value": 1
-					}
-				]
-			},
-			{
-				"count": 3,
 				"medal": "gold",
 				"effects": [
 					{
 						"type": "stat_modifier",
 						"stat": "attack_rate",
 						"trigger": "on_ally_neutralized",
-						"value": 3
+						"value": 1
 					}
 				]
 			},
@@ -1245,7 +1233,7 @@
 						"type": "stat_modifier",
 						"stat": "attack_rate",
 						"trigger": "on_ally_neutralized",
-						"value": 4
+						"value": 2
 					}
 				]
 			}
@@ -1439,9 +1427,19 @@
 		"id": "ARCH_063",
 		"name": "Esprit",
 		"icon": "🌀",
-		"timing": "start_of_combat",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "heal"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_064",
@@ -1808,9 +1806,22 @@
 		"id": "ARCH_085",
 		"name": "Neo Space",
 		"icon": "👽",
-		"timing": "start_of_combat",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "guaranteed_draw",
+						"card_ids": [
+							"JADEN_001"
+						]
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_086",

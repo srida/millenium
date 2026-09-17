@@ -1,1 +1,26 @@
-[]
+[
+	{
+		"id": "GIFT_001",
+		"name": "Test gift",
+		"description": "Pour tester la boutique",
+		"contents": [
+			{
+				"type": "gold",
+				"amount": 1000
+			}
+		],
+		"created_at": 1789218349098
+	},
+	{
+		"id": "GIFT_002",
+		"name": "Test gift 2",
+		"description": "Nouveau test boutique",
+		"contents": [
+			{
+				"type": "gold",
+				"amount": 1000
+			}
+		],
+		"created_at": 1789220993882
+	}
+]

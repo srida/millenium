@@ -82,5 +82,17 @@
 		"name": "Provocation",
 		"description": "Force toutes les unités ennemies à portée de vue à attaquer le lanceur pendant un court laps de temps.",
 		"icon": "🤬"
+	},
+	{
+		"id": "POWER_WEAKEN",
+		"name": "Affaiblissement",
+		"description": "Baisse l'attaque de la cible pendant un court laps de temps.",
+		"icon": "📉"
+	},
+	{
+		"id": "POWER_SUMMON_TOKEN",
+		"name": "Invocation",
+		"description": "Invoque un token sur le terrain, qui disparaît à la fin du combat.",
+		"icon": "🐱"
 	}
 ]

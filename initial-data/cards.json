@@ -1673,18 +1673,18 @@
 		"stats": {
 			"atk": 38,
 			"hp": 250,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 91,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
-			"value": 40,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 40
 		},
 		"summon_conditions": [
 			{
-				"materials": 3,
+				"materials": 2,
 				"requires": [
 					"STAPLE_207"
 				]
@@ -2971,18 +2971,18 @@
 		"stats": {
 			"atk": 45,
 			"hp": 400,
-			"range": 4,
+			"movement_rate": 90,
 			"attack_rate": 92,
-			"movement_rate": 90
+			"range": 4
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
-			"value": 60,
-			"power_rate": 63
+			"power_rate": 63,
+			"value": 60
 		},
 		"summon_conditions": [
 			{
-				"materials": 4,
+				"materials": 3,
 				"requires": [
 					"CORE_002"
 				]
@@ -3587,9 +3587,9 @@
 		"stats": {
 			"atk": 25,
 			"hp": 210,
-			"range": 3,
+			"movement_rate": 96,
 			"attack_rate": 91,
-			"movement_rate": 96
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -3605,7 +3605,7 @@
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 3,
 		"represented_ids": [
 			"CORE_101",
 			"CORE_095"
@@ -6748,14 +6748,15 @@
 		"stats": {
 			"atk": 6,
 			"hp": 150,
-			"range": 1,
-			"attack_rate": 99,
-			"movement_rate": 96
+			"movement_rate": 96,
+			"attack_rate": 92,
+			"range": 1
 		},
 		"power": {},
 		"summon_conditions": [],
 		"material_value": 1,
-		"set": "SET_014"
+		"set": "SET_014",
+		"represented_ids": []
 	},
 	{
 		"id": "BONZ_001",
@@ -7513,9 +7514,9 @@
 		"stats": {
 			"atk": 40,
 			"hp": 500,
-			"range": 2,
+			"movement_rate": 96,
 			"attack_rate": 90,
-			"movement_rate": 96
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -7531,7 +7532,7 @@
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 4,
 		"represented_ids": [],
 		"set": "SET_015"
 	},
@@ -8418,7 +8419,7 @@
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 3,
 		"represented_ids": [
 			"KEITH_012"
 		],
@@ -9782,9 +9783,9 @@
 		"stats": {
 			"atk": 36,
 			"hp": 340,
-			"range": 1,
+			"movement_rate": 90,
 			"attack_rate": 92,
-			"movement_rate": 90
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -9800,7 +9801,7 @@
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 3,
 		"represented_ids": [],
 		"set": "SET_014"
 	},
@@ -9960,25 +9961,25 @@
 		"stats": {
 			"atk": 50,
 			"hp": 500,
-			"range": 2,
+			"movement_rate": 90,
 			"attack_rate": 86,
-			"movement_rate": 90
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
-			"value": 100,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 100
 		},
 		"summon_conditions": [
 			{
-				"materials": 5,
+				"materials": 2,
 				"requires": [
 					"CORE_103",
 					"CORE_011"
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 5,
 		"represented_ids": [
 			"CORE_103",
 			"CORE_011"
@@ -10037,9 +10038,9 @@
 		"stats": {
 			"atk": 50,
 			"hp": 500,
-			"range": 3,
+			"movement_rate": 90,
 			"attack_rate": 84,
-			"movement_rate": 90
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -10048,14 +10049,14 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 5,
+				"materials": 2,
 				"requires": [
 					"CORE_103",
 					"CORE_077"
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 5,
 		"represented_ids": [
 			"CORE_103",
 			"CORE_077"
@@ -11805,9 +11806,9 @@
 		"stats": {
 			"atk": 45,
 			"hp": 450,
-			"range": 1,
+			"movement_rate": 90,
 			"attack_rate": 90,
-			"movement_rate": 90
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -11816,7 +11817,7 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 4,
+				"materials": 3,
 				"requires": [
 					"YGX_001"
 				]
@@ -17915,14 +17916,14 @@
 		"stats": {
 			"atk": 28,
 			"hp": 240,
-			"range": 1,
+			"movement_rate": 90,
 			"attack_rate": 87,
-			"movement_rate": 90
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_BURN",
-			"value": 5,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 5
 		},
 		"summon_conditions": [
 			{
@@ -17932,7 +17933,7 @@
 				]
 			},
 			{
-				"materials": 2,
+				"materials": 1,
 				"requires": [
 					"CORE_039"
 				]
@@ -18313,9 +18314,9 @@
 		"stats": {
 			"atk": 36,
 			"hp": 350,
-			"range": 1,
+			"movement_rate": 83,
 			"attack_rate": 87,
-			"movement_rate": 83
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_PARALYSIS",
@@ -18330,7 +18331,7 @@
 				]
 			},
 			{
-				"materials": 3,
+				"materials": 2,
 				"requires": [
 					"STAPLE_207"
 				]
@@ -18710,14 +18711,14 @@
 		"stats": {
 			"atk": 29,
 			"hp": 240,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 92,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
-			"value": 30,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 30
 		},
 		"summon_conditions": [
 			{
@@ -18728,7 +18729,7 @@
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 3,
 		"represented_ids": [
 			"CORE_033"
 		],
@@ -19469,14 +19470,14 @@
 		"stats": {
 			"atk": 40,
 			"hp": 350,
-			"range": 4,
+			"movement_rate": 76,
 			"attack_rate": 80,
-			"movement_rate": 76
+			"range": 4
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
-			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"value": 50
 		},
 		"summon_conditions": [
 			{
@@ -19490,7 +19491,7 @@
 				]
 			}
 		],
-		"material_value": 5,
+		"material_value": 3,
 		"represented_ids": [
 			"CORE_047",
 			"CORE_048",
@@ -20397,9 +20398,9 @@
 		"stats": {
 			"atk": 45,
 			"hp": 450,
-			"range": 1,
+			"movement_rate": 90,
 			"attack_rate": 90,
-			"movement_rate": 90
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -20415,7 +20416,7 @@
 				]
 			}
 		],
-		"material_value": 3,
+		"material_value": 5,
 		"represented_ids": [],
 		"set": "SET_015"
 	},
@@ -20602,18 +20603,18 @@
 		"stats": {
 			"atk": 35,
 			"hp": 350,
-			"range": 2,
+			"movement_rate": 83,
 			"attack_rate": 87,
-			"movement_rate": 83
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_SHIELD",
-			"value": 50,
-			"power_rate": 50
+			"power_rate": 50,
+			"value": 50
 		},
 		"summon_conditions": [
 			{
-				"materials": 3,
+				"materials": 2,
 				"requires": [
 					"CORE_001",
 					"CORE_011"
@@ -20902,14 +20903,14 @@
 		"stats": {
 			"atk": 25,
 			"hp": 350,
-			"range": 4,
+			"movement_rate": 83,
 			"attack_rate": 91,
-			"movement_rate": 83
+			"range": 4
 		},
 		"power": {
 			"id": "POWER_PUSH",
-			"value": 3,
-			"power_rate": 50
+			"power_rate": 50,
+			"value": 3
 		},
 		"summon_conditions": [
 			{
@@ -20920,7 +20921,7 @@
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 3,
 		"represented_ids": [
 			"STAPLE_259"
 		],
@@ -20944,9 +20945,9 @@
 		"stats": {
 			"atk": 25,
 			"hp": 350,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 94,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -20962,7 +20963,7 @@
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 3,
 		"represented_ids": [
 			"STAPLE_259"
 		],
@@ -21425,14 +21426,14 @@
 		"stats": {
 			"atk": 40,
 			"hp": 300,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 88,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_SHIELD",
-			"value": 50,
-			"power_rate": 50
+			"power_rate": 50,
+			"value": 50
 		},
 		"summon_conditions": [
 			{
@@ -21443,7 +21444,7 @@
 				]
 			}
 		],
-		"material_value": 2,
+		"material_value": 3,
 		"represented_ids": [
 			"STAPLE_467"
 		],
@@ -26057,20 +26058,20 @@
 			"ARCH_021",
 			"ARCH_023",
 			"ARCH_034",
-			"ARCH_090",
-			"ARCH_095"
+			"ARCH_095",
+			"ARCH_088"
 		],
 		"stats": {
 			"atk": 45,
 			"hp": 450,
-			"range": 1,
+			"movement_rate": 90,
 			"attack_rate": 92,
-			"movement_rate": 90
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_SUPER_ATTACK",
-			"value": 70,
-			"power_rate": 36
+			"power_rate": 36,
+			"value": 70
 		},
 		"summon_conditions": [
 			{
@@ -26426,14 +26427,14 @@
 		"stats": {
 			"atk": 45,
 			"hp": 450,
-			"range": 3,
+			"movement_rate": 83,
 			"attack_rate": 84,
-			"movement_rate": 83
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
-			"value": 50,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 50
 		},
 		"summon_conditions": [
 			{
@@ -26445,7 +26446,7 @@
 				]
 			}
 		],
-		"material_value": 3,
+		"material_value": 5,
 		"represented_ids": [],
 		"set": "SET_016"
 	},
@@ -27310,9 +27311,9 @@
 		"stats": {
 			"atk": 50,
 			"hp": 500,
-			"range": 4,
+			"movement_rate": 76,
 			"attack_rate": 83,
-			"movement_rate": 76
+			"range": 4
 		},
 		"power": {
 			"id": "POWER_BLOCK",
@@ -27321,7 +27322,7 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 6,
+				"materials": 2,
 				"requires": [
 					"ZANE_006",
 					"ZANE_011"
@@ -28529,18 +28530,18 @@
 		"stats": {
 			"atk": 15,
 			"hp": 300,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 96,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_SHIELD",
-			"value": 100,
-			"power_rate": 63
+			"power_rate": 63,
+			"value": 100
 		},
 		"summon_conditions": [
 			{
-				"materials": 3,
+				"materials": 2,
 				"requires": [
 					"ARCH_076",
 					"CHAZZ_004"
@@ -28654,16 +28655,16 @@
 			"ARCH_087",
 			"ARCH_050",
 			"ARCH_023",
-			"ARCH_086",
 			"ARCH_094",
-			"ARCH_076"
+			"ARCH_076",
+			"ARCH_088"
 		],
 		"stats": {
 			"atk": 30,
 			"hp": 300,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 96,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_CONFUSION",
@@ -28916,7 +28917,7 @@
 		"id": "BASTIEN_008",
 		"name": "Dragon de l’eau et du feu",
 		"type": "monster",
-		"material_value": 2,
+		"material_value": 4,
 		"attributes": [
 			"ARCH_095",
 			"ARCH_077",
@@ -28928,18 +28929,18 @@
 		"stats": {
 			"atk": 45,
 			"hp": 390,
-			"range": 4,
+			"movement_rate": 90,
 			"attack_rate": 92,
-			"movement_rate": 90
+			"range": 4
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
-			"value": 50,
-			"power_rate": 50
+			"power_rate": 50,
+			"value": 50
 		},
 		"summon_conditions": [
 			{
-				"materials": 6,
+				"materials": 2,
 				"requires": [
 					"BASTIEN_003",
 					"BASTIEN_006"
@@ -29219,9 +29220,9 @@
 		"stats": {
 			"atk": 27,
 			"hp": 380,
-			"range": 4,
+			"movement_rate": 83,
 			"attack_rate": 86,
-			"movement_rate": 83
+			"range": 4
 		},
 		"power": {
 			"id": "POWER_TELEPORT",
@@ -29229,7 +29230,7 @@
 		},
 		"summon_conditions": [
 			{
-				"materials": 2,
+				"materials": 1,
 				"requires": [
 					"BASTIEN_016"
 				]
@@ -29797,6 +29798,853 @@
 		],
 		"represented_ids": [
 			"CAMULA_014"
+		]
+	},
+	{
+		"id": "JADEN_001",
+		"name": "Néos",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_092",
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_055",
+			"ARCH_089",
+			"ARCH_001"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 210,
+			"movement_rate": 90,
+			"attack_rate": 82,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": []
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "JADEN_002",
+		"name": "Aqua dauphin",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_006",
+			"ARCH_085",
+			"ARCH_049",
+			"ARCH_090",
+			"ARCH_035",
+			"ARCH_001"
+		],
+		"stats": {
+			"atk": 6,
+			"hp": 80,
+			"movement_rate": 90,
+			"attack_rate": 91,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "JADEN_003",
+		"name": "Scarabée flamboyant",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_006",
+			"ARCH_085",
+			"ARCH_048",
+			"ARCH_090",
+			"ARCH_001",
+			"ARCH_033"
+		],
+		"stats": {
+			"atk": 4,
+			"hp": 70,
+			"movement_rate": 90,
+			"attack_rate": 92,
+			"range": 2
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "JADEN_004",
+		"name": "Panthère des ténèbres",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_006",
+			"ARCH_085",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_021"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 80,
+			"movement_rate": 90,
+			"attack_rate": 90,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "JADEN_005",
+		"name": "Colibri aérien",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_006",
+			"ARCH_085",
+			"ARCH_090",
+			"ARCH_001",
+			"ARCH_021",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 60,
+			"movement_rate": 90,
+			"attack_rate": 94,
+			"range": 2
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "JADEN_006",
+		"name": "Taupe géante",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_006",
+			"ARCH_085",
+			"ARCH_090",
+			"ARCH_021",
+			"ARCH_028",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 60,
+			"movement_rate": 83,
+			"attack_rate": 90,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "JADEN_007",
+		"name": "Limon luminescent",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_006",
+			"ARCH_085",
+			"ARCH_090",
+			"ARCH_055",
+			"ARCH_058",
+			"ARCH_001",
+			"ARCH_023"
+		],
+		"stats": {
+			"atk": 3,
+			"hp": 100,
+			"movement_rate": 90,
+			"attack_rate": 94,
+			"range": 2
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "JADEN_008",
+		"name": "Aqua Néos",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_093",
+			"ARCH_086",
+			"ARCH_035",
+			"ARCH_049"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 210,
+			"movement_rate": 90,
+			"attack_rate": 90,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_FREEZE",
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"JADEN_001",
+					"JADEN_002"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001",
+			"JADEN_002"
+		]
+	},
+	{
+		"id": "JADEN_009",
+		"name": "Néos flamboyant",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_093",
+			"ARCH_086",
+			"ARCH_033",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 210,
+			"movement_rate": 90,
+			"attack_rate": 91,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"power_rate": 36,
+			"value": 5
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"JADEN_001",
+					"JADEN_003"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001",
+			"JADEN_003"
+		]
+	},
+	{
+		"id": "JADEN_010",
+		"name": "Néos des ténèbres",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_093",
+			"ARCH_086",
+			"ARCH_054",
+			"ARCH_021"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 210,
+			"movement_rate": 90,
+			"attack_rate": 90,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_DEBUFF",
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"JADEN_001",
+					"JADEN_004"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001",
+			"JADEN_004"
+		]
+	},
+	{
+		"id": "JADEN_011",
+		"name": "Néos géant",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_093",
+			"ARCH_086",
+			"ARCH_021",
+			"ARCH_050"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 210,
+			"movement_rate": 90,
+			"attack_rate": 87,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_TAUNT",
+			"power_rate": 36,
+			"duration": 63
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"JADEN_001",
+					"JADEN_006"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001",
+			"JADEN_006"
+		]
+	},
+	{
+		"id": "JADEN_012",
+		"name": "Néos aérien",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_093",
+			"ARCH_086",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 210,
+			"movement_rate": 90,
+			"attack_rate": 91,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_rate": 36,
+			"value": 3
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"JADEN_001",
+					"JADEN_005"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001",
+			"JADEN_005"
+		]
+	},
+	{
+		"id": "JADEN_013",
+		"name": "Néos luminescent",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_093",
+			"ARCH_086",
+			"ARCH_055",
+			"ARCH_023"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 210,
+			"movement_rate": 90,
+			"attack_rate": 93,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"JADEN_001",
+					"JADEN_007"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001",
+			"JADEN_007"
+		]
+	},
+	{
+		"id": "JADEN_014",
+		"name": "Néos des tempêtes",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_086",
+			"ARCH_035",
+			"ARCH_049",
+			"ARCH_094",
+			"ARCH_045",
+			"ARCH_051"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 250,
+			"movement_rate": 90,
+			"attack_rate": 90,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_AOE_ATTACK",
+			"power_rate": 50,
+			"value": 40
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"JADEN_001",
+					"JADEN_002",
+					"JADEN_005"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001",
+			"JADEN_002",
+			"JADEN_005"
+		]
+	},
+	{
+		"id": "JADEN_015",
+		"name": "Néos magma",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_086",
+			"ARCH_035",
+			"ARCH_094",
+			"ARCH_048",
+			"ARCH_050",
+			"ARCH_028",
+			"ARCH_033"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 250,
+			"movement_rate": 83,
+			"attack_rate": 90,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_rate": 50,
+			"value": 60
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"JADEN_001",
+					"JADEN_003",
+					"JADEN_006"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001",
+			"JADEN_006",
+			"JADEN_003"
+		]
+	},
+	{
+		"id": "JADEN_016",
+		"name": "Néos chaos",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_086",
+			"ARCH_094",
+			"ARCH_054",
+			"ARCH_055",
+			"ARCH_021",
+			"ARCH_023"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 250,
+			"movement_rate": 97,
+			"attack_rate": 94,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_BLOCK",
+			"power_rate": 50,
+			"duration": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"JADEN_001",
+					"JADEN_004",
+					"JADEN_007"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001",
+			"JADEN_004",
+			"JADEN_007"
+		]
+	},
+	{
+		"id": "JADEN_017",
+		"name": "Néos de la nébuleuse",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_086",
+			"ARCH_094",
+			"ARCH_054",
+			"ARCH_021",
+			"ARCH_050",
+			"ARCH_028"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 250,
+			"movement_rate": 90,
+			"attack_rate": 90,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_rate": 50,
+			"value": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"JADEN_001",
+					"JADEN_004",
+					"JADEN_006"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001",
+			"JADEN_004",
+			"JADEN_006"
+		]
+	},
+	{
+		"id": "JADEN_018",
+		"name": "Néos du vortex",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_086",
+			"ARCH_094",
+			"ARCH_035",
+			"ARCH_023",
+			"ARCH_049",
+			"ARCH_052",
+			"ARCH_055"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 250,
+			"movement_rate": 97,
+			"attack_rate": 94,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_rate": 50,
+			"duration": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"JADEN_001",
+					"JADEN_002",
+					"JADEN_007"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001",
+			"JADEN_002",
+			"JADEN_007"
+		]
+	},
+	{
+		"id": "JADEN_019",
+		"name": "Néos du ciel",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_086",
+			"ARCH_094",
+			"ARCH_048",
+			"ARCH_051",
+			"ARCH_033",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 250,
+			"movement_rate": 88,
+			"attack_rate": 93,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_rate": 50,
+			"value": 5
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"JADEN_001",
+					"JADEN_003",
+					"JADEN_005"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001",
+			"JADEN_003",
+			"JADEN_005"
+		]
+	},
+	{
+		"id": "JADEN_020",
+		"name": "Néos cosmo",
+		"type": "monster",
+		"material_value": 4,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_086",
+			"ARCH_048",
+			"ARCH_051",
+			"ARCH_095",
+			"ARCH_049",
+			"ARCH_050",
+			"ARCH_052",
+			"ARCH_054",
+			"ARCH_055",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 300,
+			"movement_rate": 96,
+			"attack_rate": 96,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_rate": 63,
+			"value": 60
+		},
+		"summon_conditions": [
+			{
+				"materials": 4,
+				"requires": [
+					"JADEN_001",
+					"ARCH_085"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001"
+		]
+	},
+	{
+		"id": "JADEN_021",
+		"name": "Néos le brave",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_055",
+			"ARCH_001",
+			"ARCH_093",
+			"ARCH_088"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 250,
+			"movement_rate": 90,
+			"attack_rate": 82,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_rate": 23,
+			"value": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"JADEN_001"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001"
+		]
+	},
+	{
+		"id": "JADEN_022",
+		"name": "Néos divin",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_001",
+			"ARCH_095",
+			"ARCH_055",
+			"ARCH_045",
+			"ARCH_023",
+			"ARCH_088"
+		],
+		"stats": {
+			"atk": 35,
+			"hp": 300,
+			"movement_rate": 96,
+			"attack_rate": 93,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_HEAL",
+			"power_rate": 63,
+			"value": 60
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"JADEN_021"
+				]
+			}
+		],
+		"represented_ids": [
+			"JADEN_001"
+		]
+	},
+	{
+		"id": "JADEN_023",
+		"name": "Esprit de Néos",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_024",
+			"ARCH_085",
+			"ARCH_055",
+			"ARCH_001",
+			"ARCH_094",
+			"ARCH_090"
+		],
+		"stats": {
+			"atk": 12,
+			"hp": 100,
+			"movement_rate": 90,
+			"attack_rate": 82,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": [
+			"JADEN_001"
 		]
 	}
 ]

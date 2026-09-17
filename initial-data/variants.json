@@ -1093,5 +1093,33 @@
 	{
 		"id": "VAR_273",
 		"card_id": "BASTIEN_010"
+	},
+	{
+		"id": "VAR_274",
+		"card_id": "JADEN_001"
+	},
+	{
+		"id": "VAR_275",
+		"card_id": "JADEN_001"
+	},
+	{
+		"id": "VAR_276",
+		"card_id": "JADEN_001"
+	},
+	{
+		"id": "VAR_277",
+		"card_id": "JADEN_008"
+	},
+	{
+		"id": "VAR_278",
+		"card_id": "JADEN_009"
+	},
+	{
+		"id": "VAR_279",
+		"card_id": "JADEN_011"
+	},
+	{
+		"id": "VAR_280",
+		"card_id": "JADEN_012"
 	}
 ]
