@@ -28,16 +28,13 @@ const TIER_TEXT: Record<number, string> = {
   1: 'text-tier-1', 2: 'text-tier-2', 3: 'text-tier-3', 4: 'text-tier-4', 5: 'text-tier-5',
 };
 
-// Chip de tier compact : même vocabulaire visuel que `Chip` (DeckBuilder,
-// PackContents — hauteur `min-h-tap`, bordure/fond or si actif), mais étroit
-// (chiffre seul, pas de « T ») pour tenir à cinq sur la même ligne que la
-// recherche, le tri et le bouton de possession.
-function TierChip({ active, onTap, children }: { active: boolean; onTap: () => void; children: ReactNode }) {
+// Même chip que le DeckBuilder et `PackContents` (bordure/fond or si actif).
+function Chip({ active, onTap, children }: { active: boolean; onTap: () => void; children: ReactNode }) {
   const { handlers } = usePressSquash<HTMLButtonElement>(onTap, false);
   return (
     <button
       type="button"
-      className={`flex min-h-tap w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${active ? 'border-gold bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'border-line bg-surface-raised text-white/60'}`}
+      className={`min-h-tap rounded-full border px-3 text-xs font-semibold ${active ? 'border-gold bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'border-line bg-surface-raised text-white/60'}`}
       {...handlers}
     >{children}</button>
   );
@@ -117,23 +114,20 @@ export default function CardCatalogGrid({
   return (
     <div className={`flex min-h-0 flex-1 flex-col ${className}`}>
       <div className={classnameFilter}>
-        {/* Tout sur une ligne, idéalement : recherche (elle cède la place en
-            premier, `min-w-0`), tiers, tri, possession. */}
-        <div className="flex items-center gap-1.5">
-          <div className="min-w-0 flex-1">
-            <QueryBar
-              value={query} onChange={setQuery} schema={schema} error={queryError}
-              placeholder="Rechercher…" examples={Query.CARD_QUERY_EXAMPLES}
-            />
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            {[1, 2, 3, 4, 5].map(t => (
-              <TierChip key={t} active={onTier(t)} onTap={() => toggleTier(t)}>
-                <span className={TIER_TEXT[t]}>{t}</span>
-              </TierChip>
-            ))}
-          </div>
-          <SortControl schema={schema} value={sort} onChange={setSort} className="shrink-0" />
+        {/* Même agencement que la bibliothèque du DeckBuilder : la recherche
+            sur sa propre ligne, le reste des filtres (tiers, tri, possession)
+            sur la ligne suivante. */}
+        <QueryBar
+          value={query} onChange={setQuery} schema={schema} error={queryError}
+          placeholder="Rechercher…" examples={Query.CARD_QUERY_EXAMPLES}
+        />
+        <div className="flex flex-wrap items-center gap-1.5">
+          {[1, 2, 3, 4, 5].map(t => (
+            <Chip key={t} active={onTier(t)} onTap={() => toggleTier(t)}>
+              <span className={TIER_TEXT[t]}>T{t}</span>
+            </Chip>
+          ))}
+          <SortControl schema={schema} value={sort} onChange={setSort} className="ml-auto" />
           <OwnershipToggle value={ownership} onChange={setOwnership} />
         </div>
       </div>
