@@ -873,7 +873,11 @@ export class GameSession {
     const stillHomeless: Unit[] = [];
     for (const u of toReposition) {
       if (u.initial_position && !this.board.isOccupied(u.initial_position)) {
-        this.board.moveUnit(u, u.initial_position);
+        // `moveUnit` jette sur une destination hors limites (garde ajoutée
+        // pour la même raison que ce commentaire de classe) : un
+        // `initial_position` corrompu ne doit jamais faire échouer toute la
+        // transition de fin de combat, elle retente sa chance en repli.
+        try { this.board.moveUnit(u, u.initial_position); } catch { stillHomeless.push(u); }
       } else {
         stillHomeless.push(u);
       }
@@ -883,7 +887,7 @@ export class GameSession {
     for (const u of stillHomeless) {
       const dest = side === 'player' ? this.board.firstEmptyPlayerCell() : this.board.firstEmptyEnemyCell();
       if (dest) {
-        this.board.moveUnit(u, dest);
+        try { this.board.moveUnit(u, dest); } catch { u.is_neutralized = true; overflow.push(u); }
       } else {
         // Filet : une unité vivante sans case d'accueil ne doit jamais
         // disparaître en silence (cf. `board.grid` / `unit.position` / rendu

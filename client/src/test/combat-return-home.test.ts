@@ -105,4 +105,25 @@ describe('GameSession._returnHome — filet de repositionnement', () => {
     expect(unitA.position).not.toEqual({ col: 1, row: 0 });
     expect(board.getUnit(unitA.position!)).toBe(unitA);
   });
+
+  // `Board.moveUnit` refuse désormais une destination hors limites (comme
+  // `placeUnit`), au lieu de l'écrire silencieusement dans une case que
+  // `getAllUnits`/`rowScan` n'énumèrent jamais. `_returnHome` doit absorber ce
+  // refus plutôt que de laisser toute la fin de combat planter dessus.
+  it('un initial_position corrompu (hors limites) ne fait pas planter la fin de combat', () => {
+    const session = makeSession();
+    const board = session.board;
+    const card = makeCard({ id: 'FIX', summon_conditions: [] });
+
+    const unit = spawn(board, card, 'player', { col: 0, row: 4 });
+    unit.initial_position = { col: 0, row: -1 }; // corrompu, hors board
+
+    const overflow = (session as any)._returnHome([unit], 'player');
+
+    expect(overflow).toHaveLength(0);
+    expect(unit.is_neutralized).toBe(false);
+    // Repli sur une case valide malgré la case d'origine invalide.
+    expect(board.isInBounds(unit.position!)).toBe(true);
+    expect(board.getUnit(unit.position!)).toBe(unit);
+  });
 });

@@ -71,6 +71,13 @@ export class Board {
   }
 
   moveUnit(unit: Unit, to: Position): void {
+    // ⚠️ Le même garde que `placeUnit` : sans lui, une destination hors
+    // limites (un `initial_position` corrompu, par exemple) s'écrirait quand
+    // même dans `grid` — silencieusement, puisque `getUnit`/`isOccupied`
+    // traitent une position hors limites comme « libre » — et l'unité
+    // deviendrait invisible : `getAllUnits`/`rowScan` n'énumèrent que
+    // `[0, rows)`. Un échec bruyant ici vaut mieux qu'une disparition muette.
+    if (!this.isInBounds(to)) throw new Error(`Out of bounds: ${JSON.stringify(to)}`);
     const from = unit.position;
     if (from) this.grid[from.col][from.row] = null;
     this.grid[to.col][to.row] = unit;
