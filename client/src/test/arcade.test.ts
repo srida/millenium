@@ -200,6 +200,20 @@ describe('tirage des adversaires', () => {
     }
   });
 
+  it('un deck invité (`guest: true`) n\'est jamais proposé comme adversaire', () => {
+    // Même exclusion que les decks de bots : un deck invité n'existe que
+    // pour l'adoption par un joueur sans compte, jamais comme adversaire.
+    writeDecks([...FULL_CATALOG, { ...deckOf('GUEST_ONLY', 1), guest: true }]);
+    try {
+      const user = newUser();
+      arcade.start(user(), 'Mon deck');
+      const ids = arcade.getSnapshot(user()).run.duels.map((d: any) => d.deck_id);
+      expect(ids).not.toContain('GUEST_ONLY');
+    } finally {
+      writeDecks(FULL_CATALOG);
+    }
+  });
+
   it('le tirage est déterministe à (joueur, jour)', () => {
     // Un tirage douteux se rejoue au lieu de se raconter.
     const user = newUser();

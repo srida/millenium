@@ -69,10 +69,12 @@ const RESULTS = Object.freeze(['win', 'loss']);
 // sets.js / variants.js / cosmetics.js : un deck retouché depuis l'admin change
 // de difficulté sans redémarrage.
 //
-// ⚠️ `decks.json` porte AUSSI les decks de bots (`bot: true`, cf. `bots.js`) :
-// l'Arcade ne doit jamais en tirer un comme adversaire solo, d'où le filtre ici
-// — même geste que les trois exclusions du pack de départ (`sets.isStarter`).
-const publicDecks = jsonCache(DECKS_FILE, list => list.filter(d => d && d.bot !== true));
+// ⚠️ `decks.json` porte AUSSI les decks de bots (`bot: true`, cf. `bots.js`) et
+// les decks invité (`guest: true`, réservés aux joueurs sans compte pour
+// essayer le jeu) : l'Arcade ne doit jamais en tirer un comme adversaire
+// solo, d'où le filtre ici — même geste que les trois exclusions du pack de
+// départ (`sets.isStarter`).
+const publicDecks = jsonCache(DECKS_FILE, list => list.filter(d => d && d.bot !== true && d.guest !== true));
 
 /** Nombre de cartes d'un deck public, tous tiers confondus. */
 function deckSize(deck) {

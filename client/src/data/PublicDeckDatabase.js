@@ -7,12 +7,20 @@ export async function init() {
 }
 
 // ⚠️ `/api/decks` porte AUSSI les decks de bots (`bot: true`, cf. `bots.js`
-// côté serveur) : `getAllDecks()` est le SEUL funnel par lequel un joueur peut
-// choisir un adversaire (DeckSelector 'play', 🎲 Aléatoire, Tournoi, Arcade
-// via son propre appel serveur), donc le seul endroit où les exclure suffit —
-// aucun autre site du client ne relit `_decks` directement.
+// côté serveur) et les decks invité (`guest: true`, réservés aux joueurs sans
+// compte pour essayer le jeu, cf. DeckSelector) : `getAllDecks()` est le SEUL
+// funnel par lequel un joueur peut choisir un adversaire (DeckSelector 'play',
+// 🎲 Aléatoire, Tournoi, Arcade via son propre appel serveur), donc le seul
+// endroit où les exclure suffit — aucun autre site du client ne relit
+// `_decks` directement.
 export function getAllDecks() {
-  return (_decks || []).filter(d => d && d.bot !== true);
+  return (_decks || []).filter(d => d && d.bot !== true && d.guest !== true);
+}
+
+// Decks invité — proposés à l'adoption (copie locale) pour un joueur sans
+// compte, jamais comme adversaire. Cf. `getAllDecks()`.
+export function getGuestDecks() {
+  return (_decks || []).filter(d => d && d.guest === true);
 }
 
 export function getDeck(id) {

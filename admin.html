@@ -1058,6 +1058,10 @@ function buildQuerySchemas() {
       // (DeckSelector, 🎲 Aléatoire, Arcade) — seul `bots.js` le tire, pour le
       // Duel en ligne quand la file ne trouve personne.
       bool('bot', 'Deck de bot (Duel en ligne)', d => !!d.bot),
+      // ⚠️ Même exclusion qu'un deck de bot : un deck `guest:true` n'est jamais
+      // proposé comme adversaire, seulement à l'adoption par un joueur sans
+      // compte (DeckSelector, section « Decks d'essai »).
+      bool('guest', 'Deck invité (essai sans compte)', d => !!d.guest),
     ],
   };
 
@@ -5831,7 +5835,7 @@ function renderPublicDeckList(list = publicDecks) {
     <div class="list-item ${selectedPublicDeck && selectedPublicDeck.id === d.id ? 'selected' : ''}" onclick="selectPublicDeck('${d.id}')">
       <img class="list-thumb" src="/avatars/${d.id}?t=${avatarBust}" alt="" loading="lazy" style="width:40px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0">
       <div style="min-width:0">
-        <div class="item-name">${d.bot ? '🤖 ' : ''}${esc(d.name)}</div>
+        <div class="item-name">${d.bot ? '🤖 ' : ''}${d.guest ? '🎮 ' : ''}${esc(d.name)}</div>
         <div class="item-id">${d.id} · ${deckTotalCards(d.deck)} cartes · ${esc(deckDifficultyLabel(d))}</div>
       </div>
     </div>
@@ -5883,13 +5887,14 @@ function renderPublicDeckDetail() {
         </div>
       </div>
       <div class="detail-info">
-        <div class="detail-title">${d.bot ? '🤖' : '🃏'} ${esc(d.name)}</div>
+        <div class="detail-title">${d.bot ? '🤖' : d.guest ? '🎮' : '🃏'} ${esc(d.name)}</div>
         <div class="detail-meta">
           <span class="badge" style="background:var(--surface2);color:#88ccff">${esc(d.id)}</span>
           <span class="badge">${deckTotalCards(deck)} cartes</span>
           ${Number(d.difficulty) ? `<span class="badge">${esc(deckDifficultyLabel(d))}</span>` : `<span class="badge badge-no-illus">Difficulté à définir</span>`}
           ${hasAvatar ? `<span class="badge badge-illus">Avatar ✓</span>` : `<span class="badge badge-no-illus">Avatar par défaut</span>`}
           ${d.bot ? `<span class="badge" style="background:var(--surface2);color:#f0a040">🤖 Deck de bot</span>` : ''}
+          ${d.guest ? `<span class="badge" style="background:var(--surface2);color:#66d9a8">🎮 Deck invité</span>` : ''}
         </div>
       </div>
     </div>
@@ -5905,11 +5910,15 @@ function renderPublicDeckDetail() {
             <option value="${x.value}" ${Number(d.difficulty || 1) === x.value ? 'selected' : ''}>${x.value} — ${x.label}</option>
           `).join('')}
         </select>
-        <div style="font-size:11px;color:var(--muted)">Le duel N du mode Arcade tire au hasard parmi les decks de difficulté N${d.bot ? ' — ignorée pour un deck de bot' : ''}.</div>
+        <div style="font-size:11px;color:var(--muted)">Le duel N du mode Arcade tire au hasard parmi les decks de difficulté N${d.bot ? ' — ignorée pour un deck de bot' : d.guest ? ' — ignorée pour un deck invité' : ''}.</div>
       </div>
       <div class="field">
         <label class="field-check"><input type="checkbox" id="df-bot" ${d.bot ? 'checked' : ''}> <span>🤖 Deck de bot (Duel en ligne)</span></label>
         <div style="font-size:11px;color:var(--muted)">Réservé au repli du matchmaking (bots.js) quand la file ne trouve personne. Jamais proposé comme adversaire solo, Arcade ou Tournoi.</div>
+      </div>
+      <div class="field">
+        <label class="field-check"><input type="checkbox" id="df-guest" ${d.guest ? 'checked' : ''}> <span>🎮 Deck invité (essai sans compte)</span></label>
+        <div style="font-size:11px;color:var(--muted)">Proposé à l'adoption (copie locale) aux joueurs sans compte, dans DeckSelector. Jamais proposé comme adversaire solo, Arcade ou Tournoi.</div>
       </div>
     </div>
 
@@ -5958,6 +5967,7 @@ function _collectPublicDeckFields() {
     name: document.getElementById('df-name')?.value.trim() || '',
     difficulty: Number(document.getElementById('df-difficulty')?.value) || 1,
     bot: !!document.getElementById('df-bot')?.checked,
+    guest: !!document.getElementById('df-guest')?.checked,
     deck,
   };
 }
