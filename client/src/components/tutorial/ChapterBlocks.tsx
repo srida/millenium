@@ -4,7 +4,7 @@
 // montre les cartes, pouvoirs, attributs, magies et terrains réellement servis
 // par l'API — jamais une copie qui pourrait diverger.
 //
-// Les vignettes passent par CardTile, comme partout ailleurs : mêmes
+// Les vignettes passent par Card3D, comme partout ailleurs : mêmes
 // illustrations, même appui long → tooltip. Un joueur qui apprend ici retrouve
 // exactement les mêmes gestes en partie.
 import type { ReactNode } from 'react';
@@ -20,7 +20,7 @@ import { boardEffects } from '../../logic/BoardEffect.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
 import type { Card, AttributeDef, BoardDef, Magie, PowerDef } from '../../logic/types.js';
 import type { ChapterBlock } from '../../data/tutorialContent.js';
-import CardTile, { cardTileProps } from '../ui/CardTile.js';
+import Card3D, { cardVisualProps } from '../ui/Card3D.js';
 import { Illustration } from '../ui/primitives.js';
 
 // Les textes du codex portent quelques **passages en gras** — juste assez de
@@ -146,7 +146,7 @@ function CardExamples({ pick, caption }: { pick: (cards: Card[]) => Card[]; capt
       <div className="flex flex-wrap gap-2">
         {cards.map(c => (
           <div key={c.id} className="w-20">
-            <CardTile {...cardTileProps(c)} size="h-auto w-full" />
+            <Card3D {...cardVisualProps(c)} size="h-auto w-full" />
           </div>
         ))}
       </div>

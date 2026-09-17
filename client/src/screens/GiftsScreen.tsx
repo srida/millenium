@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '../stores/authStore.js';
 import { useGiftStore, type Gift, type GiftLot } from '../stores/giftStore.js';
 import { Amount, Button, Countdown, Illustration, LoadState, Modal, Panel } from '../components/ui/primitives.js';
-import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
+import Card3D, { cardVisualProps } from '../components/ui/Card3D.js';
 import * as CardDatabase from '../data/CardDatabase.js';
 import { CURRENCY, fmt } from '../components/ui/currency.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
@@ -244,7 +244,7 @@ function GiftReveal({ onClose }: { onClose: () => void }) {
             {cards.map((id, i) => {
               const card = cardOf(id);
               return card
-                ? <CardTile key={`${id}-${i}`} {...cardTileProps(card as never)} size="h-32" tapOn="up" />
+                ? <Card3D key={`${id}-${i}`} {...cardVisualProps(card as never)} size="h-32" tapOn="up" />
                 : <span key={`${id}-${i}`} className="text-xs text-white/40">{id}</span>;
             })}
           </div>

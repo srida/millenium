@@ -27,7 +27,7 @@ import * as AuthClient from '../data/AuthClient.js';
 import { initGameData } from '../game/bootstrap.js';
 import { hasTier } from '../logic/Tiers.js';
 import { useUiStore } from '../stores/uiStore.js';
-import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
+import Card3D, { cardVisualProps } from '../components/ui/Card3D.js';
 import { runAiPlacement, handAfterEdit, reasonLabel, refusalCounts, AI_ROW_MIN, AI_ROW_MAX, AI_COLS } from './aiLabRun.js';
 import type { AiLabRound, AiTraceEvent, LabUnitInput } from './aiLabRun.js';
 
@@ -427,8 +427,8 @@ export default function AiLab() {
                 );
                 return (
                   <div key={`${id}-${i}`} className="w-20">
-                    <CardTile
-                      {...cardTileProps(card as Card)}
+                    <Card3D
+                      {...cardVisualProps(card as Card)}
                       size="h-24 w-full"
                       tapOn="up"
                       onTap={() => editHand(h => h.filter((_, j) => j !== i))}
@@ -474,8 +474,8 @@ export default function AiLab() {
                       const card = cardDb.getCard(u.card_id);
                       return (
                         <div key={col} className="relative">
-                          <CardTile
-                            {...(card ? cardTileProps(card as Card) : { illustrationId: u.card_id, name: u.card_id })}
+                          <Card3D
+                            {...(card ? cardVisualProps(card as Card) : { illustrationId: u.card_id, name: u.card_id })}
                             size="h-16 w-full"
                             showName={false}
                             tapOn="up"
@@ -724,9 +724,9 @@ function CardPicker({ cards, deckIds, title, onPick, onClose }: {
       </div>
       <div className="mt-2 grid min-h-0 flex-1 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-6 lg:grid-cols-10">
         {list.map(c => (
-          <CardTile
+          <Card3D
             key={c.id}
-            {...cardTileProps(c)}
+            {...cardVisualProps(c)}
             size="h-24 w-full"
             tapOn="up"
             onTap={() => onPick(c.id)}

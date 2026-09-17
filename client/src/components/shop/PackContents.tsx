@@ -26,7 +26,7 @@ import { useUiStore } from '../../stores/uiStore.js';
 import { useCollectionStore } from '../../stores/collectionStore.js';
 import type { ShopSet } from '../../stores/shopStore.js';
 import { Button, Gauge, usePressSquash } from '../ui/primitives.js';
-import CardTile, { cardTileProps } from '../ui/CardTile.js';
+import Card3D, { cardVisualProps } from '../ui/Card3D.js';
 
 const TIER_TEXT: Record<number, string> = {
   1: 'text-tier-1', 2: 'text-tier-2', 3: 'text-tier-3', 4: 'text-tier-4', 5: 'text-tier-5',
@@ -243,9 +243,9 @@ export default function PackContents({ set, onClose }: { set: ShopSet; onClose: 
                 // ouvre le tooltip, comme partout ailleurs.
                 const locked = !owns(c.id);
                 return (
-                  <CardTile
+                  <Card3D
                     key={c.id}
-                    {...cardTileProps(c)}
+                    {...cardVisualProps(c)}
                     size="h-auto w-full"
                     tapOn="up"
                     locked={locked}

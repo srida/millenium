@@ -16,7 +16,7 @@ import * as CardDatabase from '../data/CardDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as BoardDatabase from '../data/BoardDatabase.js';
 import type { Card, Position, BoardDef } from '../logic/types.js';
-import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
+import Card3D, { cardVisualProps } from '../components/ui/Card3D.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Illustration } from '../components/ui/primitives.js';
 import TerrainEffects from '../components/ui/TerrainEffects.js';
@@ -293,8 +293,8 @@ export default function TestBench() {
           </div>
           <div className="grid min-h-0 flex-1 grid-cols-3 gap-1 overflow-y-auto p-2">
             {cards.map(c => (
-              <CardTile
-                key={c.id} {...cardTileProps(c)} size="h-auto w-full"
+              <Card3D
+                key={c.id} {...cardVisualProps(c)} size="h-auto w-full"
                 onTap={() => setSelectedCardId(c.id === selectedCardId ? null : c.id)}
                 highlight={c.id === selectedCardId ? 'selected' : 'none'}
               />

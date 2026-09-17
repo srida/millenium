@@ -26,7 +26,7 @@ import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant, type Cosme
 import { useCollectionStore } from '../stores/collectionStore.js';
 import { Amount, Button, Countdown, Gauge, IconButton, Illustration, LoadState, Modal, Panel, usePressSquash } from '../components/ui/primitives.js';
 import { CURRENCY, CURRENCY_BY_WIRE, fmt, type WireCurrency } from '../components/ui/currency.js';
-import CardTile, { cardTileProps } from '../components/ui/CardTile.js';
+import Card3D, { cardVisualProps } from '../components/ui/Card3D.js';
 import PackContents, { PackPoster } from '../components/shop/PackContents.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
@@ -35,9 +35,9 @@ const cardOf = (id: string | null): Card | null => (id ? (CardDatabase as any).g
 
 export default function ShopScreen() {
   // Tap ailleurs → fermeture du tooltip, comme sur tous les écrans qui rendent
-  // des CardTile (DeckBuilder, DeckSelector, GameScreen). Sans ce handler, un
+  // des Card3D (DeckBuilder, DeckSelector, GameScreen). Sans ce handler, un
   // appui long sur une carte de la boutique ouvrait un tooltip que plus rien
-  // ne refermait — `CardTile` arrête la propagation, la vignette elle-même ne
+  // ne refermait — `Card3D` arrête la propagation, la vignette elle-même ne
   // peut donc pas servir de zone de fermeture.
   const hideTooltip = useUiStore(s => s.hideTooltip);
   const user = useAuthStore(s => s.user);
@@ -469,7 +469,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
   // le dernier moment pour reconnaître ce qu'on achète.
   const confirmSlot = (currency: Currency): PendingBuy => ({
     visual: card
-      ? <CardTile {...cardTileProps(card)} size="h-40" tapOn="up" />
+      ? <Card3D {...cardVisualProps(card)} size="h-40" tapOn="up" />
       : <div className="h-40 w-28 rounded-lg border border-line" />,
     title: card?.name ?? slot.card_id,
     detail: `Tier ${slot.tier} · emplacement du jour`,
@@ -519,7 +519,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
 
       <div className="flex justify-center">
         {card
-          ? <CardTile {...cardTileProps(card)} size="h-28" tapOn="up" dim={slot.purchased ? 'soft' : 'none'} />
+          ? <Card3D {...cardVisualProps(card)} size="h-28" tapOn="up" dim={slot.purchased ? 'soft' : 'none'} />
           : <div className="h-28 w-20 rounded-lg border border-line" />}
       </div>
 
@@ -679,7 +679,7 @@ function BoosterReveal({ onClose }: { onClose: () => void }) {
         {booster.cards.map(({ card_id }) => {
           const card = cardOf(card_id);
           return card
-            ? <CardTile key={card_id} {...cardTileProps(card)} size="h-32" tapOn="up" />
+            ? <Card3D key={card_id} {...cardVisualProps(card)} size="h-32" tapOn="up" />
             : <span key={card_id} className="text-xs text-white/40">{card_id}</span>;
         })}
       </div>

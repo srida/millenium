@@ -19,7 +19,7 @@
 // c'est ce qui rend la symétrie vérifiable (`x[i] === -x[n-1-i]`) au lieu d'être
 // constatée à l'œil, et ce qui dispense le conteneur de connaître sa largeur.
 
-/** Largeur / hauteur d'une carte — le `aspect-[5/7]` de `CardTile`. */
+/** Largeur / hauteur d'une carte — l'`aspect-ratio: 5/7` de `Card3D`. */
 export const CARD_ASPECT = 5 / 7;
 
 /** Pas au repos, en fraction de la largeur d'une carte : 22 % de recouvrement.
