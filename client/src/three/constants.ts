@@ -82,10 +82,28 @@ export const PREP_COL_MARGIN = 0.5;
 export const PREP_FOCUS_Y = 0.4;
 // Mode web : la main et les neutralisées passent en rails verticaux à deux
 // colonnes sur les côtés (bas d'écran libéré) — le bloc joueur se recentre et
-// gagne en hauteur, mais le cadrage doit réserver la largeur des rails. Doit
-// rester synchronisé avec la largeur `w-52` de WEB_RAIL_BAND
-// (`components/hand/rail.ts`), commune aux deux rails.
-export const WEB_RAIL_PX = 208;
+// gagne en hauteur, mais le cadrage doit réserver la largeur des rails.
+//
+// ⚠️ **Deux largeurs, pas une** : sur téléphone en paysage, le conteneur est
+// bien plus étroit qu'une tablette (`~700-900 px` contre `~1100 px`+), et
+// réserver la largeur « tablette » des deux côtés y écrase le board contre le
+// plancher de zoom (`usableWidth` clampé à 0.35 dans `_cameraFraming`). Le
+// seuil (`TABLET_BREAKPOINT_PX`, largeur ET hauteur ≥ 700) est le MÊME que
+// celui de `MainMenu.useMediaQuery('(min-width: 700px) and (min-height:
+// 700px)')` — la même question (tablette ou téléphone, à l'intérieur du même
+// mode paysage) posée à deux endroits qui ne s'importent pas l'un l'autre
+// (React ↔ `three/`), donc gardée comme un seul NOMBRE à synchroniser plutôt
+// que comme un import. `webRailPxFor` doit rester synchronisé avec
+// `WEB_RAIL_BAND_TABLET` / `WEB_RAIL_BAND_PHONE` + `WEB_RAIL_OFFSET_LEFT/RIGHT`
+// (`components/hand/rail.ts` : `w-[214px]`/`w-[174px]` + `px-22` = 302/262 px).
+export const TABLET_BREAKPOINT_PX = 700;
+export const WEB_RAIL_TABLET_PX = 302;
+export const WEB_RAIL_PHONE_PX = 262;
+
+export function webRailPxFor(containerWidth: number, containerHeight: number): number {
+  const isTablet = containerWidth >= TABLET_BREAKPOINT_PX && containerHeight >= TABLET_BREAKPOINT_PX;
+  return isTablet ? WEB_RAIL_TABLET_PX : WEB_RAIL_PHONE_PX;
+}
 export const PREP_ROW_MARGIN_WEB = 0.8;
 export const PREP_ROW_MARGIN = 1.5;
 // CSS3DObject scales the unit-card DOM by CSS_SCALE, so a screen-visible Npx ring

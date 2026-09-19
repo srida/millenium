@@ -7,14 +7,37 @@ import { useEffect, useState } from 'react';
 
 const WEB_QUERY = '(min-aspect-ratio: 1/1)';
 
-export function useWebLayout(): boolean {
-  const [web, setWeb] = useState(() => window.matchMedia(WEB_QUERY).matches);
+/**
+ * Requête média générique — même patron que `useWebLayout`, pour une requête
+ * arbitraire. Sert à distinguer téléphone et tablette À L'INTÉRIEUR d'un même
+ * mode (paysage), ce que l'aspect ratio seul ne peut pas trancher (un
+ * téléphone en paysage est aussi large que haut qu'une tablette).
+ */
+export function useMediaQuery(query: string): boolean {
+  const [match, setMatch] = useState(() => window.matchMedia(query).matches);
   useEffect(() => {
-    const mq = window.matchMedia(WEB_QUERY);
-    const update = () => setWeb(mq.matches);
+    const mq = window.matchMedia(query);
+    const update = () => setMatch(mq.matches);
     update();
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
-  }, []);
-  return web;
+  }, [query]);
+  return match;
+}
+
+export function useWebLayout(): boolean {
+  return useMediaQuery(WEB_QUERY);
+}
+
+/**
+ * Tablette (desktop compris) vs téléphone en paysage — même seuil que
+ * `TABLET_BREAKPOINT_PX` (`three/constants.ts`), qui pose la même question
+ * côté caméra 3D. Les deux gardent leur propre nombre plutôt qu'un import
+ * commun (React ↔ `three/` ne se traversent pas), donc à resynchroniser à la
+ * main si l'un change.
+ */
+const TABLET_QUERY = '(min-width: 700px) and (min-height: 700px)';
+
+export function useTabletLayout(): boolean {
+  return useMediaQuery(TABLET_QUERY);
 }

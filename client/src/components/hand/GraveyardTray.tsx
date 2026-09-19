@@ -4,7 +4,7 @@
 //
 // **Portrait** : une RANGÉE PLATE au-dessus de la main (`bottom-44`).
 // **Web** : une PILE à deux colonnes dans le rail de droite, strictement
-// symétrique de celui de la main (WEB_RAIL_BAND, `./rail.ts`).
+// symétrique de celui de la main (webRailBand(), `./rail.ts`).
 //
 // ⚠️ La rangée du portrait est PLATE (`arc: 0`), là où la main s'ouvre en
 // éventail. Une main s'ouvre parce qu'on la TIENT ; un cimetière est une rangée
@@ -17,9 +17,9 @@
 // ⚠️ Comme la main, il ne décide rien : `./handVisual` porte la visibilité,
 // l'état visuel et l'intention de tap ; `./cardFan` la place.
 import { useGameStore, type GraveyardEntry } from '../../stores/gameStore.js';
-import { useWebLayout } from '../system/useWebLayout.js';
+import { useWebLayout, useTabletLayout } from '../system/useWebLayout.js';
 import { useElementSize } from '../system/useElementSize.js';
-import { WEB_RAIL_BAND, WEB_RAIL_OFFSET_RIGHT, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
+import { webRailBand, WEB_RAIL_OFFSET_RIGHT, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
 import { graveyardVisible, graveyardCardVisual, graveyardTapIntent } from './handVisual.js';
 import { fanLayout, railLayout, type CardTransform, type LayoutResult } from './cardFan.js';
 import Card3D from '../ui/Card3D.js';
@@ -36,6 +36,7 @@ export default function GraveyardTray() {
   const shopping = useGameStore(s => s.shopping);
   const controller = useGameStore(s => s.controller);
   const web = useWebLayout();
+  const isTablet = useTabletLayout();
   const [bandRef, band] = useElementSize<HTMLDivElement>();
   // Visible pendant la préparation (matériaux) OU pendant un ciblage revive.
   const targetingGraveyard = shopping?.awaitingTarget === 'graveyard';
@@ -62,7 +63,7 @@ export default function GraveyardTray() {
 
   if (web) {
     return (
-      <div className={`${WEB_RAIL_BAND} ${WEB_RAIL_OFFSET_RIGHT} ${visible ? '' : 'pointer-events-none opacity-0'}`}>
+      <div className={`${webRailBand(isTablet)} ${WEB_RAIL_OFFSET_RIGHT} ${visible ? '' : 'pointer-events-none opacity-0'}`}>
         <div className="mx-2 flex h-full flex-col p-1.5">
           <div className={`mb-1 shrink-0 ${ZONE_LABEL}`}>NEUTRALISÉES</div>
           {/* `min-h-0` : cf. `HandBar` — sans lui la mesure rend la hauteur

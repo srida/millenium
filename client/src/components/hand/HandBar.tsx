@@ -4,9 +4,10 @@
 // **Portrait** : un ÉVENTAIL, à la place de l'ancienne bande (`bottom-14`).
 // **Web** (écran plus large que haut) : une PILE à deux colonnes dans le rail
 // de gauche, à la place de l'ancienne grille. La bande occupée est celle du
-// cimetière au pixel près (WEB_RAIL_BAND + WEB_RAIL_OFFSET_LEFT, `./rail.ts`)
+// cimetière au pixel près (webRailBand() + WEB_RAIL_OFFSET_LEFT, `./rail.ts`)
 // — l'offset dégage le bord vrai de l'écran comme `Hud`/`PhaseControls`
-// (`px-22`), et la largeur restante reste synchronisée avec WEB_RAIL_PX.
+// (`px-22`), et la largeur restante reste synchronisée avec
+// WEB_RAIL_TABLET_PX/WEB_RAIL_PHONE_PX.
 //
 // Jamais de défilement, dans aucune des deux : `./cardFan` resserre le pas puis
 // réduit la taille — 28 cartes tiennent sur un téléphone de 390 px, 42 dans un
@@ -22,9 +23,9 @@
 // ⚠️ Ce fichier ne décide RIEN : visibilité, état visuel et intention de tap
 // viennent de `./handVisual` (pur, testé), la place de `./cardFan` (pur, testé).
 import { useGameStore, type HandEntry } from '../../stores/gameStore.js';
-import { useWebLayout } from '../system/useWebLayout.js';
+import { useWebLayout, useTabletLayout } from '../system/useWebLayout.js';
 import { useElementSize } from '../system/useElementSize.js';
-import { WEB_RAIL_BAND, WEB_RAIL_OFFSET_LEFT, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
+import { webRailBand, WEB_RAIL_OFFSET_LEFT, ZONE_LABEL, ZONE_LABEL_PORTRAIT } from './rail.js';
 import { handVisible, handTargetable, handCardVisual, handTapIntent } from './handVisual.js';
 import { fanLayout, railLayout, type CardTransform, type LayoutResult } from './cardFan.js';
 import Card3D, { cardVisualProps } from '../ui/Card3D.js';
@@ -45,6 +46,7 @@ export default function HandBar() {
   const roundIntro = useGameStore(s => s.roundIntro);
   const drawPopup = useGameStore(s => s.drawPopup);
   const web = useWebLayout();
+  const isTablet = useTabletLayout();
   const [bandRef, band] = useElementSize<HTMLDivElement>();
   // Visible pendant la préparation OU pendant un ciblage de MAIN
   // (`hand_to_graveyard`, `duplicate_card`…) — même règle que le cimetière, qui
@@ -81,7 +83,7 @@ export default function HandBar() {
 
   if (web) {
     return (
-      <div className={`${WEB_RAIL_BAND} ${WEB_RAIL_OFFSET_LEFT} ${visible ? '' : 'pointer-events-none opacity-0'}`}>
+      <div className={`${webRailBand(isTablet)} ${WEB_RAIL_OFFSET_LEFT} ${visible ? '' : 'pointer-events-none opacity-0'}`}>
         <div className="mx-2 flex h-full flex-col p-1.5">
           <div className={`mb-1 shrink-0 ${ZONE_LABEL}`}>MAIN</div>
           {/* ⚠️ `min-h-0` : sans lui, un enfant de colonne flex refuse de
