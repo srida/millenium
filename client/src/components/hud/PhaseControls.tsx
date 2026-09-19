@@ -81,7 +81,10 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   if (!controller) return null;
 
   const classname_footer = `pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-1.5 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]${web ? ' px-22' : ''}`;
-  const classname_footer2 = `pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 p-2${web ? ' px-22' : ''}`;
+  // ⚠️ Même padding que `classname_footer` (combat) : la barre de préparation
+  // (PRÊT, ↺, ☰) n'avait pas cette marge et se posait DANS la safe area en PWA
+  // installée — home indicator iOS, barre de navigation gestuelle Android.
+  const classname_footer2 = `pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]${web ? ' px-22' : ''}`;
 
   // Barre de combat : dense sur un écran de 375 px (timer, terrain, vitesses,
   // options, pause) — d'où les paddings serrés et les `shrink-0`, sans quoi le

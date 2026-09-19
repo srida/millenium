@@ -54,8 +54,13 @@
 // `TABLET_BREAKPOINT_PX` côté caméra. `railCardWidth` dérive déjà la taille
 // des cartes de la largeur MESURÉE du rail, donc rien à recalculer ailleurs
 // pour ce changement de largeur.
-export const WEB_RAIL_BAND_TABLET = 'pointer-events-auto absolute bottom-14 top-16 z-20 w-[214px]';
-export const WEB_RAIL_BAND_PHONE = 'pointer-events-auto absolute bottom-14 top-16 z-20 w-[174px]';
+// ⚠️ `3.5rem` + la safe area, pas `bottom-14` nu : `PhaseControls` (bottom-0)
+// grandit de `env(safe-area-inset-bottom)` en PWA installée (home indicator,
+// barre de navigation gestuelle) — sans le report, les rails se posent sous
+// la barre de phase agrandie.
+const WEB_RAIL_BOTTOM = 'bottom-[calc(3.5rem+env(safe-area-inset-bottom))]';
+export const WEB_RAIL_BAND_TABLET = `pointer-events-auto absolute ${WEB_RAIL_BOTTOM} top-16 z-20 w-[214px]`;
+export const WEB_RAIL_BAND_PHONE = `pointer-events-auto absolute ${WEB_RAIL_BOTTOM} top-16 z-20 w-[174px]`;
 
 export function webRailBand(isTablet: boolean): string {
   return isTablet ? WEB_RAIL_BAND_TABLET : WEB_RAIL_BAND_PHONE;

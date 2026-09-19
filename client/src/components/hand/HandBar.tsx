@@ -102,7 +102,10 @@ export default function HandBar() {
     // ⚠️ La bande reste MONTÉE quand la main est masquée, et n'est que vidée :
     // la démonter remettrait sa mesure à zéro, et l'éventail rejaillirait d'une
     // main vide à chaque ouverture de tour.
-    <div className={`absolute inset-x-0 bottom-14 z-20 ${visible ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+    // ⚠️ `3.5rem` + la safe area : PhaseControls (bottom-0) grandit de
+    // `env(safe-area-inset-bottom)` en PWA installée, la bande doit garder la
+    // même marge au-dessus de lui, sans quoi elle se retrouve recouverte.
+    <div className={`absolute inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 ${visible ? 'pointer-events-auto' : 'pointer-events-none'}`}>
       <div
         ref={bandRef}
         className="card3d-layer mx-2 flex items-center justify-center"
