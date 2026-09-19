@@ -22,7 +22,12 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
   const playerName = user?.username ?? 'Toi';
 
   const web = useWebLayout();
-  const classname_header = `pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-2 pt-[max(0.5rem,env(safe-area-inset-top))]${web ? ' px-22' : ''}`;
+  // ⚠️ Concaténation par `+`, pas un template literal avec `${}` : la classe
+  // `pt-[max(0.5rem,...)]` contient une VIRGULE, et Tailwind ne l'extrait
+  // plus dès qu'un `${}` apparaît ailleurs dans le même gabarit — c'est ce qui
+  // faisait passer les barres de vie SOUS la Dynamic Island en PWA installée,
+  // sans qu'aucune classe ne soit visiblement « fausse » dans le code.
+  const classname_header = 'pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 p-2 pt-[max(0.5rem,env(safe-area-inset-top))]' + (web ? ' px-22' : '');
 
   return (
     <div className={classname_header}>

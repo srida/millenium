@@ -70,7 +70,12 @@ export default function DeckBuilder() {
 
   const web = useWebLayout();
   const classname_title = `flex items-center gap-3 px-4 py-3${web ? ' px-22' : ' px-6'}`;
-  const classname_button = `sticky bottom-0 z-20 flex shrink-0 gap-2 border-t border-line bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]${web ? ' px-22' : ''}`;
+  // ⚠️ Concaténation par `+`, pas un template literal avec `${}` : la classe
+  // `pb-[max(0.75rem,...)]` contient une VIRGULE, et Tailwind ne l'extrait
+  // plus dès qu'un `${}` apparaît ailleurs dans le même gabarit — masqué ici
+  // par un `pb-[max(0.75rem,...)]` STATIQUE identique ailleurs (TutorialScreen)
+  // qui produisait la même règle CSS pour une tout autre raison.
+  const classname_button = 'sticky bottom-0 z-20 flex shrink-0 gap-2 border-t border-line bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]' + (web ? ' px-22' : '');
 
   // Nom du deck à éditer, figé au montage. Il vient du param de navigation, et
   // de nulle part ailleurs : le détour par `sessionStorage` (setPendingEdit /
