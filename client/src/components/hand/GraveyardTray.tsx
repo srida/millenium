@@ -77,7 +77,9 @@ export default function GraveyardTray() {
   return (
     // Montée en permanence pour garder sa mesure, vidée quand il n'y a rien —
     // même geste que la main.
-    <div className={`absolute inset-x-0 bottom-44 z-20 ${visible ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+    // ⚠️ Même correctif que `HandBar` : `11rem` + la safe area, pour ne pas
+    // glisser sous une barre de phase grandie par `env(safe-area-inset-bottom)`.
+    <div className={`absolute inset-x-0 bottom-[calc(11rem+env(safe-area-inset-bottom))] z-20 ${visible ? 'pointer-events-auto' : 'pointer-events-none'}`}>
       <div
         ref={bandRef}
         className="card3d-layer mx-2 flex items-center justify-center"
