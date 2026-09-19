@@ -41,6 +41,11 @@ export interface GameCoachState {
   gameOver: boolean;
   /** L'ouverture de tour est à l'écran (annonce du tour ou popup de pioche). */
   roundOpening: boolean;
+  /** Le bouton 🔄 est à l'écran — il n'y est qu'au tour 1, tant que rien n'a
+   *  été posé, et disparaît une fois le mulligan joué. */
+  canMulligan: boolean;
+  /** Le bouton 🎲 est dans la modale de Shopping. */
+  canRerollShopping: boolean;
 }
 
 interface GameStepDef extends CoachStep {
@@ -57,6 +62,18 @@ export const GAME_STEPS: GameStepDef[] = [
     text: "Voici les 5 cartes que tu viens de piocher. Tape l'une d'elles pour la choisir.",
     blocking: false,
     done: (s) => s.handSelected || s.placedCount >= 1,
+  },
+  {
+    id: 'mulligan',
+    title: 'Ta main ne te plaît pas ?',
+    text: "Au premier tour seulement, le bouton 🔄 remet ta main dans le deck et t'en repioche autant — pour 50 PV, une seule fois par partie. À saisir avant de poser quoi que ce soit : après, il disparaît.",
+    blocking: true,
+    // ⚠️ `!s.canMulligan` fait partie du `done`, pas seulement du `visible` :
+    // le bouton s'efface dès que le joueur mulligane ou pose une unité, et une
+    // étape rendue invisible sans être franchie bloquerait le script derrière
+    // elle (`advanceGameSteps` s'arrête à la première non franchie).
+    done: (s, seen) => seen.has('mulligan') || !s.canMulligan || s.placedCount >= 1,
+    visible: (s) => s.canMulligan,
   },
   {
     id: 'place',
@@ -107,11 +124,26 @@ export const GAME_STEPS: GameStepDef[] = [
     id: 'shopping',
     title: 'Choisis une magie',
     text: 'Après chaque combat, une magie parmi trois. Les bonus de statistiques sont permanents.',
-    blocking: false,
-    // Résolue dès que le tour suivant commence — que la magie ait été prise,
-    // passée, ou qu'il n'y ait pas eu de Phase Shopping du tout.
-    done: (s) => s.round > 1,
+    // ⚠️ À TAP depuis que la phase porte deux gestes à expliquer : sans lui,
+    // l'étape suivante (le reroll) ne serait jamais atteinte pendant la seule
+    // Phase Shopping que le script traverse — elle se franchit au tour 2, quand
+    // la modale n'est plus à l'écran.
+    blocking: true,
+    // Résolue au tap, ou dès que le tour suivant commence — que la magie ait
+    // été prise, passée, ou qu'il n'y ait pas eu de Phase Shopping du tout.
+    done: (s, seen) => seen.has('shopping') || s.round > 1,
     visible: (s) => s.shopping,
+  },
+  {
+    id: 'shopping_reroll',
+    title: 'Ou paie pour voir autre chose',
+    text: "Aucune des trois ne t'arrange ? 🎲 en tire trois autres pour 50 PV — jamais les mêmes, et les écartées ne reviendront pas. Autant de fois que tes PV le supportent.",
+    blocking: true,
+    // Même filet que l'étape du mulligan : le bouton peut ne pas être là (PV
+    // trop bas, catalogue épuisé), et une étape invisible qu'on ne franchit pas
+    // bloquerait tout le script derrière elle.
+    done: (s, seen) => seen.has('shopping_reroll') || !s.shopping || !s.canRerollShopping || s.round > 1,
+    visible: (s) => s.shopping && s.canRerollShopping,
   },
   {
     id: 'next_round',

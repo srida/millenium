@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { canAffordMagie } from '../../logic/MagieEffect.js';
 import { Button, Modal } from '../ui/primitives.js';
+import ConfirmHpCost from '../ui/ConfirmHpCost.js';
 import MagieCard from './MagieCard.js';
 
 export default function ShoppingLayer() {
@@ -26,7 +27,12 @@ export default function ShoppingLayer() {
   // Ne pas confondre avec `awaitingTarget`, qui gère le ciblage d'une magie
   // déjà choisie.
   const [hidden, setHidden] = useState(false);
-  useEffect(() => { setHidden(false); }, [round]);
+  // Le reroll est payé en PV : il passe par la même confirmation que le
+  // mulligan. ⚠️ L'état se remet à zéro au ROUND comme `hidden` — une modale de
+  // confirmation laissée armée par un chrono qui tombe se rouvrirait sur l'offre
+  // du tour suivant.
+  const [askingReroll, setAskingReroll] = useState(false);
+  useEffect(() => { setHidden(false); setAskingReroll(false); }, [round]);
   if (!shopping || !controller) return null;
 
   if (shopping.awaitingTarget) {
@@ -91,12 +97,37 @@ export default function ShoppingLayer() {
           />
         ))}
       </div>
+      {/* Le reroll : trois magies qu'on n'a PAS encore vues ce tour, contre des
+          PV. Il se pose sous l'offre et au-dessus de « Passer » — c'est l'ordre
+          dans lequel on y pense (choisir, puis chercher mieux, puis renoncer).
+          Absent quand le joueur ne peut pas payer ou qu'il ne reste plus rien de
+          pertinent à montrer : un bouton grisé n'apprendrait rien de plus qu'un
+          bouton absent, et la barre du bas de cette modale est déjà chargée. */}
+      {shopping.canReroll && (
+        <Button
+          className="mt-3 w-full"
+          onPointerDown={(e) => { e.stopPropagation(); setAskingReroll(true); }}
+        >
+          🎲 Nouvelle offre · −{shopping.rerollCost} PV
+        </Button>
+      )}
       <button
         onPointerDown={(e) => { e.stopPropagation(); controller.skipShopping(); }}
         className="mt-3 w-full text-center text-xs text-white/50 underline"
       >
         Passer cette phase →
       </button>
+      {askingReroll && (
+        <ConfirmHpCost
+          title="Tirer une nouvelle offre ?"
+          detail="Les magies affichées sont écartées et remplacées par d'autres, jamais déjà vues ce tour. Elles ne reviendront pas."
+          cost={shopping.rerollCost}
+          playerHp={playerHp}
+          confirmLabel="Rerouler"
+          onConfirm={() => { setAskingReroll(false); controller.rerollShopping(); }}
+          onCancel={() => setAskingReroll(false)}
+        />
+      )}
     </Modal>
   );
 }

@@ -505,6 +505,33 @@ export class GameController {
     this.sync();
   }
 
+  /**
+   * Mulligan — remet la main dans le deck et en repioche autant, contre des PV.
+   * La règle entière vit dans `GameSession.mulligan()` ; ici on ne fait que
+   * défaire ce qui n'est pas de son ressort : la sélection en cours, qui pointe
+   * une carte de la main d'AVANT.
+   *
+   * ⚠️ Rien à défaire côté missions, contrairement à `undoPreparation` : le
+   * mulligan exige un tour intact, donc aucun `summon_performed` n'a pu être
+   * mis en file — et `prepId` ne bouge pas, donc la marque reste valide.
+   */
+  mulligan(): void {
+    if (!this.canMulligan()) return;
+    if (!this.session.mulligan()) return;
+    this._clearSelection();
+    this.sync();
+  }
+
+  /**
+   * ⚠️ Le verrou d'engagement s'ajoute à la règle de la session, exactement
+   * comme pour « Tout annuler » : en PvP la phase reste `PREPARATION` pendant la
+   * poignée de main, la barre est encore à l'écran sous l'overlay d'attente, et
+   * un mulligan y repiocherait une main sur un tour déjà annoncé.
+   */
+  canMulligan(): boolean {
+    return this._committedPrepId !== this.session.prepId && this.session.canMulligan();
+  }
+
   // ── Combat ───────────────────────────────────────────────────────────────
 
   startCombat(): void {
@@ -735,7 +762,64 @@ export class GameController {
     if (!magies.length) { this._proceedNextRound(); return; }
     this._shoppingMagies = magies;
     this._shoppingInfo = this._describeShoppingBonus();
-    this.sync({ endRound: null, shopping: { magies, awaitingTarget: null, handTargets: null, banner: null, info: this._shoppingInfo } });
+    this.sync({ endRound: null, shopping: this._shoppingChoice() });
+  }
+
+  /**
+   * L'état « écran de choix » de la Phase Shopping — celui que trois chemins
+   * publient (ouverture, reroll, annulation d'un ciblage). Une seule fabrique,
+   * pour la même raison que partout ailleurs : trois littéraux finiraient par ne
+   * plus porter les mêmes champs, et c'est le plus récent (`canReroll`) qui en
+   * manquerait.
+   *
+   * ⚠️ `canReroll` est figé à la publication et non relu à chaque `sync` : rien
+   * ne peut le faire changer pendant qu'une offre est à l'écran (seul le reroll
+   * débite des PV, et il republie), et `GameSession.canRerollShopping` balaie le
+   * catalogue de magies — le rejouer à chaque instantané le ferait tourner à
+   * chaque tap du joueur.
+   */
+  private _shoppingChoice(): import('../stores/gameStore.js').ShoppingState {
+    return {
+      magies: this._shoppingMagies,
+      awaitingTarget: null,
+      handTargets: null,
+      banner: null,
+      info: this._shoppingInfo,
+      canReroll: this.session.canRerollShopping(),
+      rerollCost: this.session.shoppingRerollCostHp(),
+    };
+  }
+
+  /**
+   * L'état « ciblage » de la Phase Shopping — le jumeau de `_shoppingChoice`.
+   * ⚠️ `canReroll: false` : une magie est déjà choisie, il n'y a plus d'offre à
+   * rejeter. C'est une SECONDE garde, `ShoppingLayer` sortant de toute façon par
+   * la branche `awaitingTarget` avant d'arriver au bouton.
+   */
+  private _shoppingTargeting(
+    awaitingTarget: 'unit' | 'graveyard' | 'hand',
+    banner: string,
+    handTargets: number[] | null = null,
+  ): import('../stores/gameStore.js').ShoppingState {
+    return {
+      magies: [], awaitingTarget, handTargets, banner, info: null,
+      canReroll: false, rerollCost: this.session.shoppingRerollCostHp(),
+    };
+  }
+
+  /**
+   * Reroll — jette l'offre en cours et en tire une neuve contre des PV. La
+   * règle vit dans `GameSession.rerollShoppingMagies()` ; le `null` qu'elle rend
+   * est un refus, pas une erreur d'appel (le bouton n'est même pas affiché),
+   * d'où l'absence de message : il n'y a rien à expliquer à un geste qui n'a pas
+   * pu partir.
+   */
+  rerollShopping(): void {
+    const magies = this.session.rerollShoppingMagies();
+    if (!magies?.length) return;
+    this._shoppingMagies = magies;
+    this._shoppingInfo = this._describeShoppingBonus();
+    this.sync({ shopping: this._shoppingChoice() });
   }
 
   /**
@@ -776,11 +860,11 @@ export class GameController {
       if (!targets.length) { this._flashError('Aucune cible valide pour cette magie'); return; }
       this.scene?.setHighlight(targets.map(u => u.position!).filter(Boolean));
       this._pendingMagie = magie;
-      this.sync({ shopping: { magies: [], awaitingTarget: 'unit', handTargets: null, banner: `${magie.name} — touche une unité de ton terrain`, info: null } });
+      this.sync({ shopping: this._shoppingTargeting('unit', `${magie.name} — touche une unité de ton terrain`) });
     } else if (this.session.magieNeedsGraveyardTarget(magie)) {
       if (!this.session.graveyard.length) { this._flashError('Aucune unité au cimetière'); return; }
       this._pendingMagie = magie;
-      this.sync({ shopping: { magies: [], awaitingTarget: 'graveyard', handTargets: null, banner: `${magie.name} — touche une unité du cimetière`, info: null } });
+      this.sync({ shopping: this._shoppingTargeting('graveyard', `${magie.name} — touche une unité du cimetière`) });
     } else if (this.session.magieNeedsHandTarget(magie)) {
       // ⚠️ Toutes les magies de main n'acceptent pas toutes les cartes :
       // `shift_tier_card` et `draw_material` en écartent (cf.
@@ -791,7 +875,7 @@ export class GameController {
       const handTargets = this.session.magieHandTargets(magie);
       if (!handTargets.length) { this._flashError('Aucune carte valide en main'); return; }
       this._pendingMagie = magie;
-      this.sync({ shopping: { magies: [], awaitingTarget: 'hand', handTargets, banner: `${magie.name} — touche une carte de ta main`, info: null } });
+      this.sync({ shopping: this._shoppingTargeting('hand', `${magie.name} — touche une carte de ta main`, handTargets) });
     } else {
       this.session.applyGlobalMagie(magie);
       this._noteMagie(magie);
@@ -809,7 +893,7 @@ export class GameController {
     if (!this._pendingMagie) return;
     this._pendingMagie = null;
     this.scene?.clearHighlight();
-    this.sync({ shopping: { magies: this._shoppingMagies, awaitingTarget: null, handTargets: null, banner: null, info: this._shoppingInfo } });
+    this.sync({ shopping: this._shoppingChoice() });
   }
 
   private _pendingMagie: Magie | null = null;
@@ -1021,6 +1105,8 @@ export class GameController {
       canUndo: gs.phase === Phase.PREPARATION
         && this._committedPrepId !== this.session.prepId
         && this.session.canUndoPreparation(),
+      canMulligan: this.canMulligan(),
+      mulliganCost: this.session.mulliganCostHp(),
       hand,
       graveyard,
       synergies,

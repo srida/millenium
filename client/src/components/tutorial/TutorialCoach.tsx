@@ -32,6 +32,11 @@ export default function TutorialCoach() {
   const combatActive = useGameStore(s => s.combatActive);
   const hasEndRound = useGameStore(s => s.endRound !== null);
   const shopping = useGameStore(s => s.shopping !== null);
+  // Les deux gestes payés en PV. On lit la DISPONIBILITÉ du bouton, pas la
+  // règle : le script explique ce qui est à l'écran, il ne re-décide pas de ce
+  // qui s'y trouve (cf. `GameSession.canMulligan` / `canRerollShopping`).
+  const canMulligan = useGameStore(s => s.canMulligan);
+  const canRerollShopping = useGameStore(s => s.shopping?.canReroll ?? false);
   const gameOver = useGameStore(s => s.gameOver);
   const menuOpen = useGameStore(s => s.menuOpen);
   // L'ouverture de tour (annonce + popup de pioche) : le script s'efface
@@ -42,8 +47,8 @@ export default function TutorialCoach() {
   const [seen, setSeen] = useState<ReadonlySet<string>>(() => new Set<string>());
 
   const state = useMemo(
-    () => ({ round, placedCount, handSelected, synergyCount, combatActive, hasEndRound, shopping, gameOver, roundOpening }),
-    [round, placedCount, handSelected, synergyCount, combatActive, hasEndRound, shopping, gameOver, roundOpening],
+    () => ({ round, placedCount, handSelected, synergyCount, combatActive, hasEndRound, shopping, gameOver, roundOpening, canMulligan, canRerollShopping }),
+    [round, placedCount, handSelected, synergyCount, combatActive, hasEndRound, shopping, gameOver, roundOpening, canMulligan, canRerollShopping],
   );
 
   // Un combat ×2 défile trop vite pour qu'on y comprenne quoi que ce soit.
