@@ -18,7 +18,13 @@ export function AppHeader() {
   const navigate = useUiStore(s => s.navigate);
   const user = useAuthStore(s => s.user);
   const web = useWebLayout();
-  const classname = `flex min-h-tap items-center gap-2 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-xs sm:text-sm${web ? ' px-20' : ' px-4'}`;
+  // ⚠️ Concaténation par `+`, pas un template literal avec `${}` DANS la même
+  // chaîne que la classe `pt-[max(...,...)]` : Tailwind (l'extracteur de
+  // `@tailwindcss/vite`) ne détecte pas une classe à valeur arbitraire qui
+  // contient une VIRGULE quand un `${}` apparaît ailleurs dans le même
+  // gabarit — la classe est silencieusement absente du CSS compilé, aucune
+  // erreur nulle part. Vérifié à la compilation (`grep` sur le CSS généré).
+  const classname = 'flex min-h-tap items-center gap-2 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-xs sm:text-sm' + (web ? ' px-20' : ' px-4');
 
   return (
     <header className="sticky top-0 z-20 shrink-0 border-b border-line bg-surface">
