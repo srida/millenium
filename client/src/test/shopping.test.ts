@@ -379,6 +379,33 @@ describe('Shopping — effets à cible', () => {
     expect(u.current_hp).toBe(Math.round(u.max_hp * 0.5));
     expect(session.board.getUnit({ col: 1, row: 1 })).toBe(u);
   });
+
+  // ⚠️ RÉGRESSION : le moteur d'effets (`logic/effects/engine.ts`) a un temps
+  // écrit `_base` sans tracer `_shopping_bonus`, rendant le bonus invisible au
+  // tooltip (🛒) ET intransférable à une invocation composite — exactement le
+  // rôle que joue `veterancy_points` pour la vétérance. Rouge sans le tracé
+  // dans `appliqueSurUnite` (`duree === 'partie'`), vert avec.
+  it('stat_bonus (permanent) trace le delta dans _shopping_bonus, comme la vétérance trace veterancy_points', () => {
+    const plain = makeCard({ id: 'PLAIN', stats: { atk: 5 } as any });
+    const { session } = makeSession({ cards: [plain] });
+    const unit = place(session, plain, { col: 0, row: 0 });
+
+    session.applyMagieOnUnit(magie({ type: 'stat_bonus', stat: 'atk', value: 20 }) as any, unit);
+
+    expect(unit.atk).toBe(25);
+    expect((unit as any)._shopping_bonus).toEqual({ atk: 20 });
+  });
+
+  it('team_stat_bonus (permanent) trace aussi le delta sur chaque unité touchée', () => {
+    const plain = makeCard({ id: 'PLAIN', stats: { atk: 5 } as any });
+    const { session } = makeSession({ cards: [plain] });
+    const unit = place(session, plain, { col: 0, row: 0 });
+
+    session.applyGlobalMagie(magie({ type: 'team_stat_bonus', stat: 'atk', value: 7 }) as any);
+
+    expect(unit.atk).toBe(12);
+    expect((unit as any)._shopping_bonus).toEqual({ atk: 7 });
+  });
 });
 
 describe('Shopping — carry-over des effets globaux (consommés au tour suivant)', () => {
