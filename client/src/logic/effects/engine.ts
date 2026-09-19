@@ -360,6 +360,17 @@ function appliqueSurUnite(t: TacheModifier, u: Unit, mult: number, trace: Trace)
     // fait pour le registre de combat ; le registre permanent doit le faire
     // aussi, et c'est le seul endroit où les deux diffèrent.
     if (champ === 'pv') u.current_hp = Math.min(u.max_hp, u.current_hp + d);
+    // ⚠️ TRACÉ dans `_shopping_bonus` — le geste exact de l'ancien
+    // `MagieEffect._trackShoppingBonus` : c'est ce registre que le tooltip lit
+    // (🛒) et qu'`InvocationManager._transferShoppingBonuses` reporte sur un
+    // composite quand l'unité est consommée comme matériau. Un delta réel non
+    // nul écrit dans `_base` sans écrire ici redevient invisible et
+    // intransférable — exactement la régression que ce commentaire corrige.
+    const delta_reel = u._base[nom] - socle;
+    if (delta_reel !== 0) {
+      u._shopping_bonus = u._shopping_bonus || {};
+      u._shopping_bonus[nom] = (u._shopping_bonus[nom] || 0) + delta_reel;
+    }
   } else {
     u.applyStatBonus(nom, d);
   }
