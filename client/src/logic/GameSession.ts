@@ -9,7 +9,10 @@
 // GameSession n'expose que des transitions synchrones et des accesseurs.
 import { Board } from './Board.js';
 import { Unit } from './Unit.js';
-import { GameState, Phase, PLAYER_HP_CAP } from './GameState.js';
+import {
+  GameState, Phase, PLAYER_HP_CAP,
+  MULLIGAN_COST_HP, MULLIGAN_ROUND, SHOPPING_REROLL_COST_HP,
+} from './GameState.js';
 import { EnemyAI } from './EnemyAI.js';
 import { AttributeManager } from './AttributeManager.js';
 import { CombatManager } from './CombatManager.js';
@@ -37,7 +40,7 @@ import {
 } from './InvocationManager.js';
 import { tiersForRound, drawHand, resolveGuaranteedDraws } from './Draw.js';
 import { tiersOf } from './Tiers.js';
-import { pickMagies, resolveGuaranteedMagies } from './MagieOffer.js';
+import { pickMagies, resolveGuaranteedMagies, isMagieRelevant } from './MagieOffer.js';
 import type { MagieOfferContext } from './MagieOffer.js';
 import type { BonusSourceEntry, Card, Position, BoardDef, AttributeDef, DrawSummary, Magie, RoundWinner } from './types.js';
 
@@ -430,6 +433,76 @@ export class GameSession {
       handSizeAfter: this.hand.length,
       sources: drawSources,
     };
+  }
+
+  // ── Mulligan (bouton 🔄 de la barre de préparation) ──────────────────────
+
+  /**
+   * Le mulligan a-t-il déjà été joué ? **Une fois par PARTIE**, et non une fois
+   * par tour : sans ce verrou, le tour 1 devient une pompe qui échange des PV
+   * contre des pioches jusqu'à trouver la main voulue.
+   */
+  private _mulliganUsed = false;
+
+  /**
+   * Le joueur peut-il remettre sa main et repiocher ?
+   *
+   * ⚠️ **Le tour doit être INTACT** (`!canUndoPreparation()`), et ce n'est pas
+   * une restriction de confort : le mulligan n'est pas annulable (il débite des
+   * PV, que `undoPreparation` ne rend pas), donc il DÉPLACE le point de retour.
+   * Le déplacer sur un tour où le joueur a déjà posé lui confisquerait
+   * l'annulation de ses invocations ; ne pas le déplacer lui rendrait, d'un ↺,
+   * la main d'avant sans lui rendre ses 50 PV. Exiger un tour intact est la
+   * seule lecture où les deux règles restent vraies — et c'est aussi le geste
+   * ordinaire d'un mulligan : on le joue avant d'agir.
+   *
+   * ⚠️ L'ordre des tests est délibéré : les trois premiers sont des scalaires,
+   * `canUndoPreparation()` (qui balaie main, cimetière et plateau) ne tourne
+   * donc qu'au tour 1, une fois le mulligan encore disponible.
+   */
+  canMulligan(): boolean {
+    return this.gameState.phase === Phase.PREPARATION
+      && this.gameState.round === MULLIGAN_ROUND
+      && !this._mulliganUsed
+      && this.hand.length > 0
+      && this.gameState.player_hp > MULLIGAN_COST_HP
+      && !this.canUndoPreparation();
+  }
+
+  /** Le prix du mulligan, pour que l'écran l'annonce sans le recopier. */
+  mulliganCostHp(): number { return MULLIGAN_COST_HP; }
+
+  /**
+   * Remet la main dans le deck et en repioche autant. Rend `false` — sans rien
+   * débiter — quand le geste n'est pas disponible.
+   *
+   * ⚠️ On repioche **autant de cartes qu'on en rend**, jamais `HAND_SIZE` en
+   * dur : au tour 1 la main vaut exactement 5 (les bonus de pioche et les
+   * garanties sont des effets de FIN de combat, il n'y en a pas encore), donc
+   * les deux lectures coïncident — mais celle-ci reste vraie le jour où l'une
+   * d'elles arriverait plus tôt, là où un 5 en dur donnerait ou volerait
+   * silencieusement une carte.
+   *
+   * ⚠️ Le deck n'est pas une pile qu'on épuise (`drawHand` tire avec remise dans
+   * le pool du tour) : « remettre sa main dans son deck » n'a donc rien à
+   * défaire, et la nouvelle main peut parfaitement recroiser une carte rendue.
+   *
+   * ⚠️ `prepId` n'est PAS incrémenté : c'est le même tour de préparation. Il
+   * sert de repère d'identité à la couche app (marque d'événements de missions,
+   * verrou d'engagement PvP) — le bouger ici rendrait périmées deux marques
+   * parfaitement valides.
+   */
+  mulligan(): boolean {
+    if (!this.canMulligan()) return false;
+    this._mulliganUsed = true;
+    this.gameState.player_hp -= MULLIGAN_COST_HP;
+    const count = this.hand.length;
+    this.hand = drawHand(this.deps.cardsByTier, this.gameState.round, count, this._rand);
+    // Le point de retour AVANCE : la main d'avant n'existe plus, et les PV
+    // dépensés ne se rendent pas. Même doctrine que la Phase Shopping, qui a
+    // lieu avant la capture — ce qui est payé n'est jamais annulable.
+    this._prepSnapshot = this._capturePreparation();
+    return true;
   }
 
   // ── « Tout annuler » (bouton de la barre de préparation) ─────────────────
@@ -1010,7 +1083,12 @@ export class GameSession {
 
     const rest = pickMagies(remaining, ctx, Math.max(0, count - resolved.length), this._rand);
     this._lastShoppingBonusInfo = { extra, guaranteedCount: resolved.length };
-    return [...resolved, ...rest];
+    const offer = [...resolved, ...rest];
+    // La phase s'ouvre : c'est ICI que le registre du reroll repart de zéro —
+    // une affectation, jamais un ajout, donc rien à purger entre deux phases.
+    this._shoppingCount = count;
+    this._shownMagieIds = new Set(offer.map(m => m.id));
+    return offer;
   }
 
   /** Repli d'affichage du dernier `getShoppingMagies()` — cf. sa note. */
@@ -1019,6 +1097,83 @@ export class GameSession {
   }
 
   private _lastShoppingBonusInfo: { extra: number; guaranteedCount: number } = { extra: 0, guaranteedCount: 0 };
+
+  // ── Reroll de la Phase Shopping (bouton 🎲) ──────────────────────────────
+
+  /**
+   * Les magies déjà MONTRÉES pendant cette phase — l'offre d'ouverture et
+   * celles de chaque reroll. C'est ce registre qui rend le mot « nouvelles »
+   * vrai : un reroll ne peut pas reproposer ce que le joueur vient d'écarter.
+   */
+  private _shownMagieIds = new Set<string>();
+
+  /**
+   * La taille VOULUE de l'offre de cette phase (`3 + extra`), et non celle
+   * obtenue : un pool pertinent trop court a pu la raccourcir d'un tour, ce
+   * n'est pas une raison pour que le reroll hérite de ce rabot.
+   *
+   * ⚠️ **Zéro tant qu'aucune offre n'a été tirée**, et c'est ce qui fait de lui
+   * la garde « y a-t-il seulement une phase en cours ? » : sans elle, un reroll
+   * appelé hors Phase Shopping débiterait les PV pour une offre de zéro carte.
+   */
+  private _shoppingCount = 0;
+
+  /** Le prix du reroll, pour que l'écran l'annonce sans le recopier. */
+  shoppingRerollCostHp(): number { return SHOPPING_REROLL_COST_HP; }
+
+  /**
+   * Ce qu'un reroll pourrait encore montrer : pertinent dans l'état courant, et
+   * pas déjà vu cette phase.
+   *
+   * ⚠️ La pertinence est testée ICI et pas seulement à l'intérieur de
+   * `pickMagies` : sans elle, `canRerollShopping` promettrait un reroll que le
+   * tirage rendrait vide — le joueur paierait 50 PV pour une offre à zéro carte.
+   */
+  private _rerollCandidates(ctx: MagieOfferContext): Magie[] {
+    return this.deps.getAllMagies()
+      .filter(m => !this._shownMagieIds.has(m.id) && isMagieRelevant(m as any, ctx));
+  }
+
+  /** Le joueur peut-il payer un reroll, et reste-t-il quelque chose à montrer ? */
+  canRerollShopping(): boolean {
+    return this._shoppingCount > 0
+      && this.gameState.player_hp > SHOPPING_REROLL_COST_HP
+      && this._rerollCandidates(this._offerContext()).length > 0;
+  }
+
+  /**
+   * Rejette l'offre en cours et en tire une neuve. Rend `null` — sans rien
+   * débiter — quand le geste n'est pas disponible.
+   *
+   * ⚠️ **Rien de ce qui a été consommé à l'ouverture n'est rejoué** :
+   * `player_extra_shopping_magies` et `player_guaranteed_magies` ont été vidés
+   * par `getShoppingMagies` et ne se re-tirent pas. Le reroll n'est donc qu'un
+   * `pickMagies` — la magie GARANTIE que le joueur écarte est bel et bien
+   * perdue, et c'est pour ça que l'info de l'offre cesse de l'annoncer.
+   *
+   * ⚠️ La taille visée est celle de la phase (`_shoppingCount`), pas 3 en dur :
+   * un `shopping_bonus` payé ce tour-là ne doit pas s'évaporer au premier
+   * reroll. Le pool restant peut en revanche rendre l'offre plus courte — même
+   * règle que l'offre d'ouverture, qui n'a jamais eu de repli non plus.
+   *
+   * ⚠️ Répétable tant que les PV et le pool suivent : chaque reroll rétrécit le
+   * pool et la barre de vie, le geste se borne donc tout seul — il n'y a aucun
+   * compteur à tenir.
+   */
+  rerollShoppingMagies(): Magie[] | null {
+    if (this._shoppingCount <= 0) return null;
+    if (this.gameState.player_hp <= SHOPPING_REROLL_COST_HP) return null;
+    const ctx = this._offerContext();
+    const candidates = this._rerollCandidates(ctx);
+    if (!candidates.length) return null;
+    this.gameState.player_hp -= SHOPPING_REROLL_COST_HP;
+    const offer = pickMagies(candidates, ctx, this._shoppingCount, this._rand);
+    for (const m of offer) this._shownMagieIds.add(m.id);
+    // L'extra reste vrai (l'offre garde sa taille), la garantie ne l'est plus :
+    // la magie qu'elle avait placée vient d'être jetée.
+    this._lastShoppingBonusInfo = { extra: this._lastShoppingBonusInfo.extra, guaranteedCount: 0 };
+    return offer;
+  }
 
   /**
    * L'état courant réduit aux faits dont dépend la pertinence d'une magie.

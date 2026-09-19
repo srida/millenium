@@ -24,6 +24,20 @@ export const PLAYER_HP_CAP = STARTING_HP;
  *  `board_slot_bonus`, +1 pour toute la partie. */
 export const LIMITED_BOARD_SLOT_CAP = 1;
 
+/**
+ * Les deux gestes que le joueur PAIE EN PV, et le seul endroit qui les chiffre
+ * (`GameSession` les prélève, l'écran les annonce).
+ *
+ * ⚠️ Ils se paient comme un `cost_hp` de magie, à la règle près qui compte : la
+ * comparaison est STRICTE (`player_hp > cost`), donc payer laisse toujours au
+ * moins 1 PV. Un geste de confort ne fait jamais perdre la partie.
+ */
+export const MULLIGAN_COST_HP = 50;
+export const SHOPPING_REROLL_COST_HP = 50;
+
+/** Le seul tour où le mulligan est proposé — cf. `GameSession.canMulligan`. */
+export const MULLIGAN_ROUND = 1;
+
 export class GameState {
   round: number;
   phase: PhaseValue;

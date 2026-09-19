@@ -218,7 +218,7 @@ describe('deck de la partie d\'entraînement', () => {
 const FRESH: GameCoachState = {
   round: 1, placedCount: 0, handSelected: false, synergyCount: 0,
   combatActive: false, hasEndRound: false, shopping: false, gameOver: false,
-  roundOpening: false,
+  roundOpening: false, canMulligan: false, canRerollShopping: false,
 };
 
 /** Rejoue une transition d'état comme le fait le coach : avancer, puis lire. */
@@ -292,7 +292,7 @@ describe('script de la partie guidée', () => {
 
   it('résout l\'étape magie même sans Phase Shopping', () => {
     // Pas de magie tirée : on passe directement au tour 2.
-    let seen: ReadonlySet<string> = new Set(['hand', 'place', 'place_second', 'synergies', 'ready', 'combat']);
+    let seen: ReadonlySet<string> = new Set(['hand', 'mulligan', 'place', 'place_second', 'synergies', 'ready', 'combat']);
     seen = advanceGameSteps({ ...FRESH, round: 2 }, seen);
     expect(seen.has('damage')).toBe(true);
     expect(seen.has('shopping')).toBe(true);
@@ -300,10 +300,46 @@ describe('script de la partie guidée', () => {
   });
 
   it('ne montre les étapes conditionnelles qu\'au bon moment', () => {
-    const seen = new Set(['hand', 'place', 'place_second', 'synergies', 'ready', 'combat', 'damage']);
+    const seen = new Set(['hand', 'mulligan', 'place', 'place_second', 'synergies', 'ready', 'combat', 'damage']);
     // L'étape magie est courante, mais il n'y a pas de Phase Shopping à l'écran.
     expect(gameCoachStep(FRESH, seen)).toBeNull();
     expect(gameCoachStep({ ...FRESH, shopping: true }, seen)?.id).toBe('shopping');
+  });
+
+  // Les deux gestes payés en PV. Leurs étapes ne s'affichent que si le bouton
+  // correspondant est à l'écran — et, surtout, elles ne doivent pas RETENIR le
+  // script quand il n'y est pas : `advanceGameSteps` s'arrête à la première
+  // étape non franchie, une étape invisible bloquerait donc tout ce qui suit.
+  it('montre l\'étape du mulligan quand le bouton 🔄 est là', () => {
+    const seen = advanceGameSteps({ ...FRESH, canMulligan: true, handSelected: true }, new Set());
+    expect(gameCoachStep({ ...FRESH, canMulligan: true }, seen)?.id).toBe('mulligan');
+  });
+
+  it('ne bloque pas le script quand le mulligan n\'est pas disponible', () => {
+    // Le bouton n'est pas là (déjà joué, ou une unité est posée) : l'étape est
+    // franchie d'office et le joueur reçoit la consigne de placement.
+    const seen = advanceGameSteps({ ...FRESH, handSelected: true, canMulligan: false }, new Set());
+    expect(seen.has('mulligan')).toBe(true);
+    expect(gameCoachStep({ ...FRESH, handSelected: true }, seen)?.id).toBe('place');
+  });
+
+  it('enchaîne magie puis reroll dans la MÊME Phase Shopping', () => {
+    let seen: ReadonlySet<string> = new Set(['hand', 'mulligan', 'place', 'place_second', 'synergies', 'ready', 'combat', 'damage']);
+    const shopping = { ...FRESH, shopping: true, canRerollShopping: true };
+    expect(gameCoachStep(shopping, seen)?.id).toBe('shopping');
+
+    // Les deux étapes sont à TAP : sans ça, le reroll ne se dirait qu'au tour
+    // suivant, quand la modale n'est plus à l'écran.
+    seen = new Set(seen).add('shopping');
+    expect(gameCoachStep(shopping, seen)?.id).toBe('shopping_reroll');
+  });
+
+  it('saute l\'étape du reroll quand le bouton 🎲 n\'est pas proposé', () => {
+    const seen = advanceGameSteps(
+      { ...FRESH, shopping: true, canRerollShopping: false },
+      new Set(['hand', 'mulligan', 'place', 'place_second', 'synergies', 'ready', 'combat', 'damage', 'shopping']),
+    );
+    expect(seen.has('shopping_reroll')).toBe(true);
   });
 
   it('garde la bulle finale pour la fin de partie', () => {
@@ -316,7 +352,7 @@ describe('script de la partie guidée', () => {
   // récapitulatif de round : il ne doit être vrai que sur les étapes à tap.
   it('ne bloque les chronos que sur les étapes qui attendent un tap', () => {
     const blocking = GAME_STEPS.filter(s => s.blocking).map(s => s.id);
-    expect(blocking).toEqual(['synergies', 'next_round', 'done']);
+    expect(blocking).toEqual(['mulligan', 'synergies', 'shopping', 'shopping_reroll', 'next_round', 'done']);
   });
 });
 

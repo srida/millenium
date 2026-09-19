@@ -105,7 +105,7 @@ export const CHAPTERS: Chapter[] = [
     id: 'hand',
     icon: '✋',
     title: 'La main',
-    blurb: '5 cartes par tour, conservées, tirées dans ton deck.',
+    blurb: '5 cartes par tour, conservées — et un mulligan au tour 1.',
     blocks: [
       { kind: 'text', text: "Au début de chaque tour, tu **pioches 5 cartes** dans ton deck. Les cartes que tu ne joues pas **restent en main** : elles s'ajoutent à la pioche du tour suivant. La main n'a pas de taille limite." },
       { kind: 'text', text: "Le tier des cartes piochées dépend du tour. Les grosses cartes n'arrivent pas tout de suite — c'est ce qui donne sa courbe à la partie." },
@@ -118,6 +118,13 @@ export const CHAPTERS: Chapter[] = [
       ] },
       { kind: 'cards', caption: 'Trois cartes d\'une même main', pick: (cards) => [1, 2, 3].flatMap(t => firstWhere(cards, c => hasTier(c, t))) },
       { kind: 'note', text: "Les exemplaires identiques sont **empilés** sous une seule vignette, avec un badge ×N. Une carte grisée est injouable pour l'instant : matériaux manquants, terrain plein, ou doublon déjà en jeu." },
+      { kind: 'text', text: "🔄 **Le mulligan.** Une main de départ ratée n'est plus une partie perdue d'avance : au **tour 1**, le bouton 🔄 de la barre du bas remet ta main dans le deck et t'en repioche autant, contre **50 PV**." },
+      { kind: 'bullets', items: [
+        "**Une seule fois par partie**, et **au premier tour seulement** — le bouton n'existe nulle part ailleurs.",
+        "**Avant de poser quoi que ce soit** : dès ta première invocation, il cède sa place au ↺ « Tout annuler ».",
+        "Le deck n'est pas une pile qu'on épuise : une carte rendue peut parfaitement **revenir** dans la nouvelle main.",
+      ] },
+      { kind: 'note', text: "⚠️ Le mulligan **n'est pas annulable** : ↺ ramène le tour à l'état d'**après** la repioche, jamais à la main d'avant. 50 PV sur 1000, c'est le prix d'un tour 1 jouable — pas une décision anodine au tour où l'on part à égalité." },
     ],
   },
   {
@@ -270,7 +277,7 @@ export const CHAPTERS: Chapter[] = [
     id: 'magies',
     icon: '✨',
     title: 'Les magies',
-    blurb: 'Un choix entre trois, après chaque combat.',
+    blurb: 'Un choix entre trois après chaque combat — ou un reroll.',
     blocks: [
       { kind: 'text', text: "Après chaque combat — sauf le dernier tour — tu choisis **une magie parmi trois**. C'est le seul endroit du jeu où tu améliores durablement ce que tu as déjà." },
       { kind: 'magies', caption: 'Quelques magies', limit: 4 },
@@ -281,6 +288,14 @@ export const CHAPTERS: Chapter[] = [
         ['Globale', 'Pioche supplémentaire, PV joueur, emplacement de terrain.'],
       ] },
       { kind: 'note', text: "Les bonus de statistiques donnés par une magie sont **permanents** — et ils **suivent l'unité** si tu la consommes plus tard comme matériau. Investir sur une unité n'est jamais perdu." },
+      { kind: 'text', text: "🎲 **Le reroll.** Si aucune des trois ne sert ton board, le bouton 🎲 en tire **trois autres** pour **50 PV**. Les magies écartées ne reviennent pas de la phase : ce que le reroll propose, tu ne l'as jamais vu ce tour-ci." },
+      { kind: 'bullets', items: [
+        "**Autant de fois que tu veux**, tant que tes PV suivent — chaque reroll rétrécit à la fois ta barre de vie et ce qu'il reste à montrer.",
+        "L'offre garde sa **taille** : si un attribut t'avait donné une magie de plus ce tour-là, tu en revois autant.",
+        "Une **magie garantie** que tu rejettes est perdue — le reroll ne la replace pas.",
+        "Une magie peut avoir son **propre** contrecoup en PV, à payer en plus du reroll : les deux se cumulent.",
+      ] },
+      { kind: 'note', text: "Comme la boutique ne propose que ce qui a un **effet réel** sur ton état, un reroll peut rendre une offre plus courte quand le catalogue pertinent s'épuise. Le bouton disparaît quand il n'a plus rien à montrer." },
     ],
   },
   {

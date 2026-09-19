@@ -4,6 +4,7 @@ import type { Unit } from '../logic/Unit.js';
 import type { PhaseValue } from '../logic/GameState.js';
 import type { GameController } from '../game/GameController.js';
 import type { EndRoundResult } from '../logic/GameSession.js';
+import { MULLIGAN_COST_HP } from '../logic/GameState.js';
 import { SHOPPING_DURATION_S } from '../game/timings.js';
 
 export interface HandEntry {
@@ -44,6 +45,18 @@ export interface ShoppingState {
    */
   handTargets: number[] | null;
   banner: string | null;
+  /**
+   * Le reroll de l'offre est-il proposé ? Faux quand le joueur n'a pas les PV,
+   * quand le catalogue n'a plus rien de pertinent à montrer qu'il n'ait déjà vu
+   * cette phase, et pendant un ciblage.
+   *
+   * ⚠️ FIGÉ à la publication de l'offre, pas relu à chaque rendu : la règle vit
+   * dans `GameSession.canRerollShopping()` et balaie le catalogue de magies —
+   * cf. `GameController._shoppingChoice`.
+   */
+  canReroll: boolean;
+  /** Le prix du reroll en PV, pour que le bouton l'annonce sans le recopier. */
+  rerollCost: number;
   /**
    * Ce que l'offre CONTIENT, à annoncer une fois — `shopping_bonus` (magies
    * supplémentaires) et/ou `guaranteed_magie` (magie garantie), posé par
@@ -112,6 +125,15 @@ export interface GameSnapshot {
   /** Quelque chose a été posé/déplacé depuis l'ouverture du tour → le bouton
    *  « Tout annuler » de la barre de préparation s'affiche. */
   canUndo: boolean;
+  /** Le mulligan est proposé → le bouton 🔄 de la barre de préparation
+   *  s'affiche. Vrai au tour 1 seulement, tant que rien n'a été posé ni déplacé
+   *  et que le mulligan n'a pas déjà été joué (cf. `GameSession.canMulligan`).
+   *  ⚠️ Il s'exclut donc de `canUndo` : les deux ne sont jamais vrais ensemble,
+   *  et le 🔄 cède sa place au ↺ dès la première invocation. */
+  canMulligan: boolean;
+  /** Le prix du mulligan en PV, pour que la confirmation l'annonce sans le
+   *  recopier. */
+  mulliganCost: number;
   hand: HandEntry[];
   graveyard: GraveyardEntry[];
   synergies: SynergyEntry[];
@@ -148,6 +170,7 @@ export interface GameSnapshot {
 export const EMPTY_SNAPSHOT: GameSnapshot = {
   round: 1, phase: 'preparation', playerHp: 1000, enemyHp: 1000,
   playerMultiplier: 1, enemyMultiplier: 1, boardSlots: 5, placedCount: 0, canUndo: false,
+  canMulligan: false, mulliganCost: MULLIGAN_COST_HP,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
   boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,
   combatActive: false, combatRemaining: 60, speed: 2, paused: false,
