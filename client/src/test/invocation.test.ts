@@ -526,3 +526,51 @@ describe('couverture des exigences nommées', () => {
     void B;
   });
 });
+
+// ⚠️ Le même matériel peut être nommé PLUSIEURS FOIS dans une recette
+// (`requires: ['A', 'A']`) : l'admin le permet (aucune garde d'unicité sur
+// `requires`), le moteur doit donc l'accepter — deux occurrences du même id
+// sont deux EXIGENCES DISTINCTES, chacune tenue par une unité différente (ou
+// par un composite dont `material_value` couvre plusieurs slots).
+describe('un matériel nommé plusieurs fois — deux exemplaires distincts', () => {
+  const A = makeCard({ id: 'A' });
+  const TWICE = makeCard({
+    id: 'TWICE', tier: 3,
+    summon_conditions: [{ materials: 2, requires: ['A', 'A'] }],
+  });
+
+  // Mutation : `chosen.some(u => materialLineageMatches(...))` au lieu de
+  // recompter via `getUncoveredRequirements` → ROUGE (une seule A suffirait).
+  it('une seule unité A ne couvre qu’UNE des deux occurrences', () => {
+    const board = makeBoard();
+    const a = spawn(board, A, 'player', { col: 0, row: 0 });
+    expect(getUncoveredRequirements(['A', 'A'], [a])).toEqual(['A']);
+    expect(materialsComplete(TWICE as any, [a], null, board)).toBe(false);
+    expect(can(TWICE as any, { col: 2, row: 0 }, board, [], [], [a]).ok).toBe(false);
+  });
+
+  it('deux unités A distinctes couvrent les deux occurrences', () => {
+    const board = makeBoard();
+    const a1 = spawn(board, A, 'player', { col: 0, row: 0 });
+    const a2 = spawn(board, makeCard({ id: 'A2', represented_ids: ['A'] }), 'player', { col: 1, row: 0 });
+    expect(getUncoveredRequirements(['A', 'A'], [a1, a2])).toEqual([]);
+    expect(materialsComplete(TWICE as any, [a1, a2], null, board)).toBe(true);
+    expect(can(TWICE as any, { col: 2, row: 0 }, board, [], [], [a1, a2]).ok).toBe(true);
+  });
+
+  // L'unité déjà retenue pour la première occurrence ne doit plus être
+  // proposée pour la seconde — sauf un composite avec du mou (non couvert
+  // ici, `A2` vaut 1).
+  it('un candidat déjà sélectionné n’est plus offert pour la seconde occurrence', () => {
+    const board = makeBoard();
+    const a1 = spawn(board, A, 'player', { col: 0, row: 0 });
+    const a2 = spawn(board, makeCard({ id: 'A2', represented_ids: ['A'] }), 'player', { col: 1, row: 0 });
+    const cellsBoth = materialCandidateCells(TWICE as any, [], board);
+    expect(cellsBoth).toContainEqual(a1.position);
+    expect(cellsBoth).toContainEqual(a2.position);
+
+    const cellsAfterFirst = materialCandidateCells(TWICE as any, [a1], board);
+    expect(cellsAfterFirst).toContainEqual(a2.position);
+    expect(cellsAfterFirst).not.toContainEqual(a1.position);
+  });
+});

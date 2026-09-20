@@ -269,12 +269,18 @@ function _autoSelectMaterials(card, condition, board, graveyard) {
     pool.splice(pool.indexOf(duplicate), 1);
   }
 
-  for (const matId of required) {
-    if (chosen.some(u => materialLineageMatches(u, matId, required))) continue;
-    const idx = pool.findIndex(u => materialLineageMatches(u, matId, required));
-    if (idx === -1) continue;
+  // ⚠️ Recalculé à CHAQUE prise (`getUncoveredRequirements`, l'unique lecture
+  // de l'appariement) : deux exigences NOMMANT LE MÊME id ne sont pas
+  // satisfaites par une seule unité qui « matche » les deux — regarder si
+  // `chosen` contient DÉJÀ un matériel qui matche `matId` traiterait à tort la
+  // seconde occurrence comme acquise dès la première.
+  let uncovered = getUncoveredRequirements(required, chosen);
+  while (uncovered.length > 0) {
+    const idx = pool.findIndex(u => materialLineageMatches(u, uncovered[0], required));
+    if (idx === -1) break;
     chosen.push(pool[idx]);
     pool.splice(idx, 1);
+    uncovered = getUncoveredRequirements(required, chosen);
   }
 
   for (const u of pool) {

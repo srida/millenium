@@ -174,6 +174,40 @@ describe('Motifs de refus — un par cas', () => {
     expect(attempts(r)[0].detail).toMatchObject({ material: 'BASE' });
   });
 
+  // ⚠️ Le même matériel peut être nommé PLUSIEURS FOIS dans une recette
+  // (`requires: ['BASE', 'BASE']`, deux exemplaires exigés) : l'admin le
+  // permet, l'IA doit donc consommer deux unités DISTINCTES, comme le joueur.
+  // Mutation : `toConsumeBoard.some(matches) || toConsumeGrave.some(matches))
+  // continue` (sauter la seconde occurrence dès qu'une unité matche la
+  // première) → ROUGE, une seule BASE serait consommée.
+  it('deux exigences nommant le MÊME matériel consomment deux exemplaires distincts', () => {
+    const base = makeCard({ id: 'BASE', summon_conditions: [] });
+    const twice = makeCard({ id: 'TWICE', summon_conditions: [{ materials: 2, requires: ['BASE', 'BASE'] }] });
+    const r = run({
+      cardDb: db([base, twice]),
+      survivors: [{ card_id: 'BASE', col: 0, row: 7 }, { card_id: 'BASE', col: 1, row: 7 }],
+      hand: ['TWICE'] });
+    const a = attempts(r).find(x => x.card_id === 'TWICE')!;
+    expect(a.outcome).toBe('placed');
+    expect(a.consumed.board.map(u => u.card_id).sort()).toEqual(['BASE', 'BASE']);
+  });
+
+  // Le pendant : une seule BASE disponible ne doit ni se faire consommer deux
+  // fois, ni laisser le remplissage générique la combler avec n'importe quel
+  // autre matériau — la seconde occurrence NOMME BASE, elle reste manquante.
+  it('une seule occurrence disponible : le motif nomme toujours BASE, rien n’est consommé', () => {
+    const base = makeCard({ id: 'BASE', summon_conditions: [] });
+    const filler = makeCard({ id: 'X', summon_conditions: [] });
+    const twice = makeCard({ id: 'TWICE', summon_conditions: [{ materials: 2, requires: ['BASE', 'BASE'] }] });
+    const r = run({
+      cardDb: db([base, filler, twice]),
+      survivors: [{ card_id: 'BASE', col: 0, row: 7 }, { card_id: 'X', col: 1, row: 7 }],
+      hand: ['TWICE'] });
+    expect(refusalOf(r, 'TWICE')).toBe('missing_material');
+    expect(attempts(r).find(x => x.card_id === 'TWICE')!.detail).toMatchObject({ material: 'BASE' });
+    expect(r.board_after.map(u => u.card_id).sort()).toEqual(['BASE', 'X']);
+  });
+
   it('not_enough_material : le pool ne couvre pas le coût', () => {
     const s = makeCard({ id: 'S', summon_conditions: [{ materials: 3 }] });
     const filler = makeCard({ id: 'X', summon_conditions: [] });
