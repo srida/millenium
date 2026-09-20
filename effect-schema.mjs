@@ -86,6 +86,21 @@ export const MOTS_CLES = Object.freeze({
     // camps » est une note d'implémentation, pas une règle qu'il lit.
     aide: 'Le corps reste au cimetière indéfiniment au lieu de disparaître au combat suivant. Il n\'en sort que consommé comme matériau.',
   },
+  multiple: {
+    label: 'Multiple — se pose même si un exemplaire vit déjà sur le terrain',
+    court: 'Multiple',
+    // ⚠️ La règle est une EXCEPTION D'INVOCATION, pas une tâche : elle lève la
+    // règle du doublon (`InvocationManager._canSummonWith`, règle 2) pour cette
+    // seule carte, plutôt que d'ajouter un effet que le moteur n'a aucune tâche
+    // pour exprimer — « ignorer une garde » n'est pas un effet, c'est une
+    // condition d'admissibilité, exactement le statut de `cimetiere_permanent`
+    // vis-à-vis de la purge.
+    // ⚠️ Le doublon existant n'est ni consommé ni affecté : il reste vivant sur
+    // le terrain, exactement comme un exemplaire distinct. Le résultat porte le
+    // même `card_id` que lui, donc plus de `(camp, card_id)` unique pour cette
+    // carte — c'est délibéré, et c'est le prix de la mécanique.
+    aide: 'Peut être invoquée même si un exemplaire de cette carte est déjà vivant sur le terrain. L\'exemplaire existant n\'est ni consommé ni affecté.',
+  },
 });
 
 /** Les clés de `MOTS_CLES`, dans l'ordre de déclaration. */

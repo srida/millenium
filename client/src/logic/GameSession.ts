@@ -587,7 +587,7 @@ export class GameSession {
     this.gameState.enemy_extra_draws = 0;
     const guaranteedDraws = this.gameState.enemy_guaranteed_draws.splice(0);
     this.enemyAI.drawHand(this.gameState.round, null, extraDraws, guaranteedDraws);
-    this.enemyAI.placeFromHand(this.board, this.gameState.enemy_board_slots, this.enemyGraveyard);
+    this.enemyAI.placeFromHand(this.board, this.gameState.enemy_board_slots, this.enemyGraveyard, null, this._hasMultiple);
     this.enemyAI.rearrangeUnits(this.board, this.gameState.enemy_board_slots);
     this.enemyUnits = this.board.getLivingUnitsOnSide('enemy');
     this._applyEnemyBonus();
@@ -628,8 +628,17 @@ export class GameSession {
 
   // ── Flux d'invocation (délégué à InvocationRules/Manager) ───────────────
 
+  /**
+   * Le mot-clé **Multiple** (`effect-schema.mjs`) : cette carte peut se poser
+   * même si un exemplaire vit déjà sur le terrain — la règle du doublon
+   * (`InvocationManager._canSummonWith`, règle 2) ne s'applique alors pas.
+   * Calculée sur l'index mémoïsé, comme `_rescapesDuCimetiere`.
+   */
+  private _hasMultiple = (card: Card): boolean =>
+    porteMotCle((card as any)?.attributes, 'multiple', this._motsCles());
+
   isPlayable(card: Card): boolean {
-    return isPlayable(card as any, this.board, this.graveyard, this.gameState.player_board_slots);
+    return isPlayable(card as any, this.board, this.graveyard, this.gameState.player_board_slots, this._hasMultiple(card));
   }
 
   needsMaterials(card: Card, conditionIndex: number | null = null): boolean {
@@ -637,11 +646,11 @@ export class GameSession {
   }
 
   materialsComplete(card: Card, mats: Unit[], conditionIndex: number | null = null): boolean {
-    return materialsComplete(card as any, mats, conditionIndex, this.board);
+    return materialsComplete(card as any, mats, conditionIndex, this.board, this._hasMultiple(card));
   }
 
   summonConditionsStatus(card: Card) {
-    return summonConditionsStatus(card as any, this.board, this.graveyard, this.gameState.player_board_slots);
+    return summonConditionsStatus(card as any, this.board, this.graveyard, this.gameState.player_board_slots, this._hasMultiple(card));
   }
 
   /**
@@ -653,16 +662,16 @@ export class GameSession {
     return validCells(card as any, {
       board: this.board, graveyard: this.graveyard,
       selectedMaterials, playerBoardSlots: this.gameState.player_board_slots,
-      conditionIndex,
+      conditionIndex, hasMultiple: this._hasMultiple(card),
     });
   }
 
   materialCandidateCells(card: Card, selectedMaterials: Unit[], conditionIndex: number | null = null): Position[] {
-    return materialCandidateCells(card as any, selectedMaterials, this.board, conditionIndex);
+    return materialCandidateCells(card as any, selectedMaterials, this.board, conditionIndex, this._hasMultiple(card));
   }
 
   materialCandidateGraveyard(card: Card, selectedMaterials: Unit[], conditionIndex: number | null = null): Unit[] {
-    return materialCandidateGraveyard(card as any, selectedMaterials, this.graveyard, this.board, conditionIndex);
+    return materialCandidateGraveyard(card as any, selectedMaterials, this.graveyard, this.board, conditionIndex, this._hasMultiple(card));
   }
 
   /**
@@ -683,7 +692,7 @@ export class GameSession {
   }
 
   canSummon(card: Card, pos: Position, selectedMaterials: Unit[], conditionIndex: number | null = null) {
-    return InvocationManager.canSummon(card as any, pos, this.board, this.hand, this.graveyard, selectedMaterials, conditionIndex);
+    return InvocationManager.canSummon(card as any, pos, this.board, this.hand, this.graveyard, selectedMaterials, conditionIndex, this._hasMultiple(card));
   }
 
   exceedsBoardSlots(card: Card, selectedMaterials: Unit[]): boolean {
@@ -692,7 +701,7 @@ export class GameSession {
 
   /** Exécute l'invocation (validée en amont). Retourne l'unité placée ou null. */
   place(card: Card, pos: Position, selectedMaterials: Unit[], handIdx: number | null, conditionIndex: number | null = null): Unit | null {
-    const unit = InvocationManager.summon(card as any, pos, this.board, this.hand, selectedMaterials.length > 0 ? selectedMaterials : null, handIdx, conditionIndex);
+    const unit = InvocationManager.summon(card as any, pos, this.board, this.hand, selectedMaterials.length > 0 ? selectedMaterials : null, handIdx, conditionIndex, this._hasMultiple(card));
     // Retire les unités de cimetière consommées
     for (const u of selectedMaterials) {
       const gi = this.graveyard.indexOf(u);

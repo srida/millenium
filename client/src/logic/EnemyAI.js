@@ -145,9 +145,14 @@ export class EnemyAI {
    * @param {number} maxUnits
    * @param {Unit[]} graveyard - mutated: consumed units are spliced out
    * @param {?function(*): void} trace
+   * @param {?function(*): boolean} hasMultiple  Le mot-clé **Multiple**
+   *   (`effect-schema.mjs`) : lève la règle du doublon pour la carte qu'il
+   *   nomme, symétrique du pendant joueur (`GameSession._hasMultiple`).
+   *   `null` (défaut) revient à « aucune carte n'a Multiple », le comportement
+   *   d'avant.
    * @returns {Unit[]} placed units
    */
-  placeFromHand(board, maxUnits = 5, graveyard = [], trace = null) {
+  placeFromHand(board, maxUnits = 5, graveyard = [], trace = null, hasMultiple = null) {
     let unplaced = [...this._hand];
     const placed = [];
     let pass = 0;
@@ -165,7 +170,7 @@ export class EnemyAI {
       trace?.({ kind: 'pass_start', pass, order: sorted.map(c => c.id) });
 
       for (const card of sorted) {
-        const res = _attempt(card, board, maxUnits, graveyard, this._side);
+        const res = _attempt(card, board, maxUnits, graveyard, this._side, hasMultiple?.(card) ?? false);
         trace?.(_attemptEvent(pass, card, res));
         if (res.unit) placed.push(res.unit);
         else remaining.push(card);
@@ -294,11 +299,11 @@ export class EnemyAI {
  * non-régression est que la suite entière passe sans une seule mise à jour de
  * snapshot (goldens de `sim.test.ts`, `bots.test.ts`, `tutorial.test.ts`).
  */
-function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
+function _attempt(card, board, maxUnits, graveyard, side = 'enemy', hasMultiple = false) {
   const conditions = summonConditions(card);
 
   if (conditions.length <= 1) {
-    const res = _attemptWith(card, conditions[0] ?? null, board, maxUnits, graveyard, side);
+    const res = _attemptWith(card, conditions[0] ?? null, board, maxUnits, graveyard, side, hasMultiple);
     return conditions.length === 1 && res.unit ? { ...res, condition_index: 0 } : res;
   }
 
@@ -312,7 +317,7 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
 
   const tried = [];
   for (const { condition, index } of sorted) {
-    const result = _attemptWith(card, condition, board, maxUnits, graveyard, side);
+    const result = _attemptWith(card, condition, board, maxUnits, graveyard, side, hasMultiple);
     if (result.unit) return { ...result, condition_index: index };
     tried.push({ index, condition, reason: result.reason, detail: result.detail });
   }
@@ -328,12 +333,16 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy') {
  * plateau plein), le REMPLISSAGE au cimetière d'abord (ces unités sont déjà
  * perdues). L'ancien Sacrifice n'était que le cas sans matériel nommé, l'ancien
  * Fusion le cas où tous les slots le sont.
+ *
+ * ⚠️ `hasMultiple` lève la règle du doublon pour cette carte (mot-clé
+ * **Multiple**), symétrique de `InvocationManager._canSummonWith` côté joueur :
+ * l'exemplaire déjà vivant n'est ni exigé ni consommé, il reste sur le terrain.
  */
-function _attemptWith(card, condition, board, maxUnits, graveyard, side) {
+function _attemptWith(card, condition, board, maxUnits, graveyard, side, hasMultiple = false) {
   const onBoard = board.getLivingUnitsOnSide(side).length;
 
   if (!condition || conditionIsFree(condition)) {
-    if (board.getLivingUnitsOnSide(side).some(u => u.card_id === card.id))
+    if (!hasMultiple && board.getLivingUnitsOnSide(side).some(u => u.card_id === card.id))
       return _refused('duplicate_on_board');
     if (onBoard >= maxUnits) return _refused('board_full', { on_board: onBoard, max_units: maxUnits });
     const cells = _freeCells(board, side);
@@ -352,7 +361,9 @@ function _attemptWith(card, condition, board, maxUnits, graveyard, side) {
 
   // Le doublon du résultat DOIT partir (règle du joueur), et il porte le même
   // `card_id`, donc le même tier : la garde de tier ne peut pas l'écarter.
-  const duplicate = boardPool.find(u => u.card_id === card.id);
+  // ⚠️ Sauf **Multiple** : le doublon reste un candidat ordinaire de `boardPool`,
+  // jamais forcé.
+  const duplicate = !hasMultiple && boardPool.find(u => u.card_id === card.id);
   if (duplicate) {
     toConsumeBoard.push(duplicate);
     boardPool.splice(boardPool.indexOf(duplicate), 1);

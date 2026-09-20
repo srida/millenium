@@ -4951,7 +4951,8 @@
 			"ARCH_033",
 			"ARCH_050",
 			"ARCH_090",
-			"ARCH_091"
+			"ARCH_091",
+			"ARCH_100"
 		],
 		"stats": {
 			"atk": 12,

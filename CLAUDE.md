@@ -962,7 +962,7 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 
 Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-clé est un attribut qui décrit ce que la carte FAIT, pas ce qu'elle est.
 
-**Les quatre livrés**, et ce que chacun a coûté au moteur :
+**Les cinq livrés**, et ce que chacun a coûté au moteur :
 
 | Mot-clé | La règle | Ce qu'il a fallu ajouter |
 |---|---|---|
@@ -970,10 +970,11 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 | ♻️ **Second souffle** | le corps reste au cimetière **à vie** | `MOTS_CLES` — le seul qui ne soit pas une tâche |
 | 💥 **Explosif** | en mourant, détruit l'unité adverse **la plus proche** | un `quand` (`porteur_detruit`), un `tri`, un `vfx`, un balayage des morts qui reboucle |
 | 📣 **Appelant** | **pioche garantie** de ce que SA carte nomme | un paramètre d'effet qui vit sur la CARTE (`card.appel`) |
+| 👯 **Multiple** | se pose même si un exemplaire vit déjà sur le terrain | `MOTS_CLES` — une exception d'invocation, pas une tâche |
 
 ⚠️ **Un mot-clé est un EFFET par défaut.** Il s'écrit dans les seuils de l'attribut (`thresholds: [{ count: 1, effects: [...] }]`), avec son `quand` et ses tâches, comme n'importe quel palier d'archétype : le compilateur émet `cible = { camp: 'allie', filtre: { attributs: [porteur] } }`, donc un palier à **1** s'applique à chaque porteur et à lui seul. Il n'y a rien à ajouter pour ce cas.
 
-⚠️ **`MOTS_CLES` (`effect-schema.mjs`) est la porte de sortie, et elle est étroite** : n'y entre que ce qui n'est PAS une tâche. Le moteur écrit des tâches, il n'a aucune notion de *veto sur une purge* — lui en donner une lui donnerait un cycle de vie qu'il n'a pas (même raison que la mémoire des portées, qui vit chez l'appelant). Aujourd'hui un seul : `cimetiere_permanent`.
+⚠️ **`MOTS_CLES` (`effect-schema.mjs`) est la porte de sortie, et elle est étroite** : n'y entre que ce qui n'est PAS une tâche. Le moteur écrit des tâches, il n'a aucune notion de *veto sur une purge* — lui en donner une lui donnerait un cycle de vie qu'il n'a pas (même raison que la mémoire des portées, qui vit chez l'appelant). Deux aujourd'hui : `cimetiere_permanent` et `multiple`.
 
 | | |
 |---|---|
@@ -1009,6 +1010,13 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 - ⚠️ **Les deux camps**, sans drapeau d'asymétrie — l'IA hérite donc d'une réserve de matériaux permanente, et c'est voulu. `_placeEnemyUnits()` passant AVANT la purge, elle la voit dès le round suivant.
 - Sortie sèche quand le catalogue ne déclare pas le mot-clé (patron de `_porteInvocation`). Rien côté PvP : le cimetière ne voyage pas et ne participe à aucun tick.
 - Un corps épargné n'est **pas** candidat à `revive`, qui ne lit que les morts DE CE combat.
+
+**`multiple` (Multiple)** — lève la règle du doublon (`InvocationManager._canSummonWith`, règle 2) pour la seule carte qui la porte : elle se pose même si un exemplaire d'elle vit déjà sur le terrain. L'exemplaire existant n'est ni exigé comme matériau ni autrement affecté.
+- Recopiée à quatre endroits, comme la règle du doublon elle-même (une par lecteur : `InvocationManager` valide et pose, `InvocationRules` sert la main et les cases à l'UI, `EnemyAI` a sa propre garde côté adversaire). `GameSession._hasMultiple(card)` calcule le verdict une fois par carte et le passe en dernier paramètre partout.
+- ⚠️ **Les deux camps**, sans drapeau d'asymétrie, comme `cimetiere_permanent` : `_placeEnemyUnits()` passe `_hasMultiple` à `EnemyAI.placeFromHand`.
+- ⚠️ Corollaire assumé : plus de `(camp, card_id)` unique pour cette carte — le log PvP et `refUnit` en dépendent pour toute autre carte, jamais pour celle-ci.
+- Sortie sèche quand le catalogue ne déclare pas le mot-clé (`porteMotCle` rend `false` faute d'index) : la carte se comporte comme n'importe quelle autre.
+- Témoin livré : HAGA_001 « Insecte de Base » porte ARCH_100.
 
 **Explosif** — un `destroy_enemy` seul sur un palier à 1, au moment `porteur_detruit`. Le porteur emporte l'unité adverse la **plus proche** en tombant. Quatre choses n'existaient pas avant lui :
 

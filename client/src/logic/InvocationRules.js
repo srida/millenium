@@ -33,7 +33,7 @@ export function needsMaterials(card, conditionIndex = null) {
 }
 
 /** La sélection en cours satisfait-elle la condition ? */
-export function materialsComplete(card, mats, conditionIndex = null, board = null) {
+export function materialsComplete(card, mats, conditionIndex = null, board = null, hasMultiple = false) {
   const condition = _condition(card, conditionIndex);
   if (!condition || conditionIsFree(condition)) return true;
 
@@ -50,8 +50,9 @@ export function materialsComplete(card, mats, conditionIndex = null, board = nul
   if (materialSlotsPaid(mats, required) < conditionMaterials(condition)) return false;
 
   // Un doublon vivant du résultat doit figurer dans la sélection, sans quoi
-  // `canSummon` refusera au moment de poser.
-  if (board) {
+  // `canSummon` refusera au moment de poser. ⚠️ Sauf **Multiple**, qui lève
+  // l'obligation : le doublon reste vivant, hors sélection.
+  if (board && !hasMultiple) {
     const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id);
     if (duplicate && !mats.includes(duplicate)) return false;
   }
@@ -68,23 +69,23 @@ export function materialsComplete(card, mats, conditionIndex = null, board = nul
  */
 
 /** Positions des unités du board encore sélectionnables comme matériau. */
-export function materialCandidateCells(card, alreadySelected, board, conditionIndex = null) {
+export function materialCandidateCells(card, alreadySelected, board, conditionIndex = null, hasMultiple = false) {
   const condition = _condition(card, conditionIndex);
   if (!condition || conditionIsFree(condition)) return [];
 
   const units = board.getLivingUnitsOnSide('player');
   const selected = new Set(alreadySelected);
-  return _candidates(card, condition, alreadySelected, units.filter(u => !selected.has(u)), board)
+  return _candidates(card, condition, alreadySelected, units.filter(u => !selected.has(u)), board, hasMultiple)
     .map(u => ({ ...u.position }));
 }
 
 /** Unités du cimetière encore sélectionnables comme matériau. */
-export function materialCandidateGraveyard(card, alreadySelected, graveyard, board, conditionIndex = null) {
+export function materialCandidateGraveyard(card, alreadySelected, graveyard, board, conditionIndex = null, hasMultiple = false) {
   const condition = _condition(card, conditionIndex);
   if (!condition || conditionIsFree(condition) || !graveyard.length) return [];
 
   const selected = new Set(alreadySelected);
-  return _candidates(card, condition, alreadySelected, graveyard.filter(u => !selected.has(u)), board);
+  return _candidates(card, condition, alreadySelected, graveyard.filter(u => !selected.has(u)), board, hasMultiple);
 }
 
 /**
@@ -96,14 +97,16 @@ export function materialCandidateGraveyard(card, alreadySelected, graveyard, boa
  * exigences non couvertes (seules elles sont proposées) ; ou il reste du mou
  * (n'importe quelle unité légitime fait l'affaire).
  */
-function _candidates(card, condition, alreadySelected, available, board) {
+function _candidates(card, condition, alreadySelected, available, board, hasMultiple = false) {
   const required = conditionRequires(condition);
   const needed = conditionMaterials(condition);
   const selected = new Set(alreadySelected);
 
   // Un doublon vivant du résultat reste toujours proposé tant qu'il n'est pas
-  // pris : sans lui la sélection ne sera jamais posable.
-  const duplicate = board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id && !selected.has(u));
+  // pris : sans lui la sélection ne sera jamais posable. ⚠️ Sauf **Multiple** :
+  // le doublon n'a plus rien d'obligatoire, il redevient un candidat ordinaire
+  // (proposé seulement s'il qualifierait de toute façon).
+  const duplicate = !hasMultiple && board.getLivingUnitsOnSide('player').find(u => u.card_id === card.id && !selected.has(u));
   const withDuplicate = (list) => {
     if (duplicate && available.includes(duplicate) && !list.includes(duplicate)) return [...list, duplicate];
     return list;
@@ -128,11 +131,11 @@ function _candidates(card, condition, alreadySelected, available, board) {
  * affiché en main, avant toute case ou matériau. `null` quand il n'y a rien à
  * choisir.
  */
-export function summonConditionsStatus(card, board, graveyard = [], maxSlots = Infinity) {
+export function summonConditionsStatus(card, board, graveyard = [], maxSlots = Infinity, hasMultiple = false) {
   const conditions = summonConditions(card);
   if (conditions.length <= 1) return null;
   return conditions.map((condition, index) => {
-    const verdict = _playableWith(card, condition, board, graveyard, maxSlots);
+    const verdict = _playableWith(card, condition, board, graveyard, maxSlots, hasMultiple);
     return { index, condition, ok: verdict.ok, reason: verdict.reason };
   });
 }
@@ -142,10 +145,10 @@ export function summonConditionsStatus(card, board, graveyard = [], maxSlots = I
  * Volontairement indulgent : ne réclame pas de case libre quand l'invocation en
  * libère elle-même.
  */
-export function isPlayable(card, board, graveyard = [], maxSlots = Infinity) {
+export function isPlayable(card, board, graveyard = [], maxSlots = Infinity, hasMultiple = false) {
   const conditions = summonConditions(card);
-  if (conditions.length === 0) return _playableWith(card, null, board, graveyard, maxSlots).ok;
-  return conditions.some(condition => _playableWith(card, condition, board, graveyard, maxSlots).ok);
+  if (conditions.length === 0) return _playableWith(card, null, board, graveyard, maxSlots, hasMultiple).ok;
+  return conditions.some(condition => _playableWith(card, condition, board, graveyard, maxSlots, hasMultiple).ok);
 }
 
 /**
@@ -154,14 +157,15 @@ export function isPlayable(card, board, graveyard = [], maxSlots = Infinity) {
  * motif est celui de la première règle qui refuse — même discipline que
  * `canSummon`, dont c'est le pendant « sans case ».
  */
-function _playableWith(card, condition, board, graveyard, maxSlots) {
+function _playableWith(card, condition, board, graveyard, maxSlots, hasMultiple = false) {
   const no = (reason) => ({ ok: false, reason });
   const living = board.getLivingUnitsOnSide('player');
-  const duplicate = living.find(u => u.card_id === card.id);
+  const duplicate = !hasMultiple && living.find(u => u.card_id === card.id);
 
   if (!condition || conditionIsFree(condition)) {
     // Sans matériau à consommer, un doublon vivant interdit la pose et il n'y a
-    // pas de case à libérer : il faut donc une case déjà vide.
+    // pas de case à libérer : il faut donc une case déjà vide. ⚠️ Sauf
+    // **Multiple**, qui lève cette interdiction (`duplicate` vaut alors `false`).
     if (duplicate) return no('Un exemplaire vit déjà sur le terrain');
     if (living.length >= maxSlots) return no('Plus de slot libre');
     return hasEmptyPlayerCell(board) ? { ok: true, reason: '' } : no('Aucune case libre');
@@ -218,9 +222,9 @@ export function hasEmptyPlayerCell(board) {
  * Sur une condition à un matériel, `canSummon` n'en laissera passer qu'une : la
  * case de ce matériel.
  */
-export function validCells(card, { board, graveyard, selectedMaterials, playerBoardSlots, conditionIndex = null }) {
+export function validCells(card, { board, graveyard, selectedMaterials, playerBoardSlots, conditionIndex = null, hasMultiple = false }) {
   if (needsMaterials(card, conditionIndex)
-      && !materialsComplete(card, selectedMaterials, conditionIndex, board)) return [];
+      && !materialsComplete(card, selectedMaterials, conditionIndex, board, hasMultiple)) return [];
 
   if (exceedsBoardSlots(card, selectedMaterials, board, graveyard, playerBoardSlots)) return [];
 
@@ -237,7 +241,7 @@ export function validCells(card, { board, graveyard, selectedMaterials, playerBo
       // Une case libérée par un matériau vaut une case vide : `canSummon` le
       // dit déjà (règle 1), on lui laisse le dernier mot dans les deux cas.
       if ((freed.has(`${c},${r}`) || !board.isOccupied(pos))
-          && canSummon(card, pos, board, null, graveyard, selectedMaterials, conditionIndex).ok) {
+          && canSummon(card, pos, board, null, graveyard, selectedMaterials, conditionIndex, hasMultiple).ok) {
         cells.push(pos);
       }
     }

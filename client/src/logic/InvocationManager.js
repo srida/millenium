@@ -123,7 +123,7 @@ export function exceedsBoardSlots(card, selectedMaterials, board, graveyard, pla
  * (`{ options: [...] }`) au lieu d'un verdict — c'est ce que l'UI affiche dans
  * son menu de choix. Avec un index, le verdict porte sur cette seule condition.
  */
-export function canSummon(card, pos, board, hand, graveyard = [], selectedMaterials = [], conditionIndex = null) {
+export function canSummon(card, pos, board, hand, graveyard = [], selectedMaterials = [], conditionIndex = null, hasMultiple = false) {
   if (!board.isInBounds(pos)) return fail('Position hors limites');
   if (!board.isPlayerCell(pos)) return fail('Placement uniquement sur le côté joueur (rangées 0–3)');
 
@@ -131,7 +131,7 @@ export function canSummon(card, pos, board, hand, graveyard = [], selectedMateri
   if (conditions.length > 1 && (conditionIndex === null || conditionIndex === undefined)) {
     return {
       options: conditions.map((condition, index) => {
-        const res = _canSummonWith(card, condition, pos, board, graveyard, selectedMaterials);
+        const res = _canSummonWith(card, condition, pos, board, graveyard, selectedMaterials, hasMultiple);
         return { index, condition, ok: res.ok, reason: res.reason };
       }),
     };
@@ -140,17 +140,22 @@ export function canSummon(card, pos, board, hand, graveyard = [], selectedMateri
   if (conditionIndex !== null && conditionIndex !== undefined && conditions.length > 0) {
     const condition = conditions[conditionIndex];
     if (!condition) return fail("Condition d'invocation invalide");
-    return _canSummonWith(card, condition, pos, board, graveyard, selectedMaterials);
+    return _canSummonWith(card, condition, pos, board, graveyard, selectedMaterials, hasMultiple);
   }
 
-  return _canSummonWith(card, conditions[0] ?? null, pos, board, graveyard, selectedMaterials);
+  return _canSummonWith(card, conditions[0] ?? null, pos, board, graveyard, selectedMaterials, hasMultiple);
 }
 
 /**
  * Les cinq règles, et rien d'autre. Elles remplacent les cinq branches par voie
  * d'invocation : chacune était un cas particulier de l'une d'elles.
+ *
+ * ⚠️ `hasMultiple` lève la règle 2 (mot-clé **Multiple**, `effect-schema.mjs`) :
+ * l'exemplaire déjà vivant n'est ni exigé comme matériau ni autrement affecté,
+ * il reste sur le terrain tel quel. Les quatre autres règles ne changent pas —
+ * Multiple n'accorde ni case ni slot supplémentaire.
  */
-function _canSummonWith(card, condition, pos, board, graveyard, selectedMaterials) {
+function _canSummonWith(card, condition, pos, board, graveyard, selectedMaterials, hasMultiple = false) {
   const living = board.getLivingUnitsOnSide('player');
 
   // 1. Où l'unité se pose. Une condition à UN matériel impose la case de ce
@@ -170,9 +175,12 @@ function _canSummonWith(card, condition, pos, board, graveyard, selectedMaterial
   //    doit être consommé. Sans condition il n'y a aucun matériau à
   //    sélectionner, donc la carte est refusée — l'ancienne règle du placement
   //    normal tombe d'elle-même, il n'y a rien à écrire pour elle.
-  const duplicate = living.find(u => u.card_id === card.id);
-  if (duplicate && !selectedMaterials.includes(duplicate)) {
-    return fail('Le doublon présent sur le terrain doit être sélectionné comme matériau');
+  //    ⚠️ Sauf pour une carte **Multiple** : la garde ne s'applique pas du tout.
+  if (!hasMultiple) {
+    const duplicate = living.find(u => u.card_id === card.id);
+    if (duplicate && !selectedMaterials.includes(duplicate)) {
+      return fail('Le doublon présent sur le terrain doit être sélectionné comme matériau');
+    }
   }
 
   if (!condition || conditionIsFree(condition)) return ok();
@@ -214,14 +222,14 @@ function _canSummonWith(card, condition, pos, board, graveyard, selectedMaterial
  * @param {number} conditionIndex - la condition retenue quand la carte en a plusieurs
  * @returns {Unit}
  */
-export function summon(card, pos, board, hand, materials = null, handIdx = null, conditionIndex = null) {
+export function summon(card, pos, board, hand, materials = null, handIdx = null, conditionIndex = null, hasMultiple = false) {
   const condition = conditionAt(card, conditionIndex);
   const unit = new Unit(card, 'player');
 
   _removeFromHand(hand, card.id, handIdx);
 
   const consumed = (condition && !conditionIsFree(condition))
-    ? (materials?.length ? [...materials] : _autoSelectMaterials(card, condition, board, []))
+    ? (materials?.length ? [...materials] : _autoSelectMaterials(card, condition, board, [], hasMultiple))
     : [];
 
   // ⚠️ Les matériaux partent AVANT la pose — ceux du cimetière compris, leur
@@ -248,11 +256,11 @@ export function summon(card, pos, board, hand, materials = null, handIdx = null,
  * annonce une unité déjà retenue). Les exigences nommées d'abord (elles
  * contraignent), le remplissage ensuite.
  */
-export function autoSelectMaterials(card, condition, board, graveyard = []) {
-  return _autoSelectMaterials(card, condition, board, graveyard);
+export function autoSelectMaterials(card, condition, board, graveyard = [], hasMultiple = false) {
+  return _autoSelectMaterials(card, condition, board, graveyard, hasMultiple);
 }
 
-function _autoSelectMaterials(card, condition, board, graveyard) {
+function _autoSelectMaterials(card, condition, board, graveyard, hasMultiple = false) {
   if (!condition || conditionIsFree(condition)) return [];
   const required = conditionRequires(condition);
   const needed = conditionMaterials(condition);
@@ -262,8 +270,10 @@ function _autoSelectMaterials(card, condition, board, graveyard) {
 
   // Un doublon vivant du résultat DOIT être consommé (règle 2) : il passe donc
   // en tête, avant même les exigences nommées, sinon la sélection automatique
-  // produirait un jeu que `canSummon` refuse.
-  const duplicate = onBoard.find(u => u.card_id === card.id);
+  // produirait un jeu que `canSummon` refuse. ⚠️ Sauf **Multiple**, qui lève
+  // cette obligation : le doublon reste un candidat ordinaire du pool, jamais
+  // forcé.
+  const duplicate = !hasMultiple && onBoard.find(u => u.card_id === card.id);
   if (duplicate) {
     chosen.push(duplicate);
     pool.splice(pool.indexOf(duplicate), 1);
