@@ -156,6 +156,18 @@ function cheminCompile(attr: any, seuil: any) {
     };
     mortDuCote(player[player.length - 1], joueur, adverse);
     mortDuCote(enemy[enemy.length - 1], adverse, joueur);
+  } else if (attr.timing === 'on_self_neutralized') {
+    // ⚠️ La passe du mot-clé **Explosif**, et elle a deux exigences propres : le
+    // porteur mort voyage comme DÉCLENCHEUR (c'est lui que le tri mesure), et le
+    // corps de sa victime part au cimetière de SON camp — donc le tableau change
+    // de rôle d'un côté à l'autre, d'où le paramètre plutôt qu'une constante.
+    const explose = (mort: Unit, camp: () => any, cimetiereDeLaVictime: Unit[]) => {
+      mort.is_neutralized = true;
+      ajoute(executer(duPalier, 'porteur_detruit',
+        { ...camp(), declencheur: mort, neutraliseesEnnemies: cimetiereDeLaVictime }));
+    };
+    explose(player[player.length - 1], joueur, neutraliseesEnnemies);
+    explose(enemy[enemy.length - 1], adverse, neutralisees);
   } else if (attr.timing === 'end_of_combat') {
     const mort = player[player.length - 1];
     mort.is_neutralized = true;

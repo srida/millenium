@@ -363,7 +363,7 @@ interface Placed { card: any; col: number; row: number }
  * Les positions sont données dans le repère CANONIQUE ; chaque rôle les
  * traduit dans le sien, exactement comme le fait `reconstructOpponentUnits`.
  */
-function playAs(role: 'A' | 'B', a: Placed[], b: Placed[], board: BoardDef): any {
+function playAs(role: 'A' | 'B', a: Placed[], b: Placed[], board: BoardDef, attributeList: any[] = []): any {
   const mirrored = role === 'B';
   const localRow = (row: number) => (mirrored ? MIRROR_AXIS - row : row);
   const mine = mirrored ? b : a;
@@ -373,7 +373,7 @@ function playAs(role: 'A' | 'B', a: Placed[], b: Placed[], board: BoardDef): any
   const s = new GameSession({
     cardsByTier: { 1: [] },
     enemyDeck: { 1: [] },
-    attributeList: [],
+    attributeList,
     cardDb: { getCard: (id: string) => (byId.get(id) as any) ?? null },
     getAllBoards: () => [],
     getAllMagies: () => [],
@@ -506,6 +506,55 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
     // centrale, sans quoi le cas ne prouverait rien.
     const rows = vueA.ticks.flatMap((t: any) => t.units.map((u: any[]) => u[2]));
     expect(rows).toContain(5);
+    expect(pvplog.diff(vueA, vueB)).toBeNull();
+  });
+
+  /**
+   * **EXPLOSIF** — le premier effet qui CHOISIT une unité adverse, et le premier
+   * qui tue en dehors de la phase d'attaque.
+   *
+   * ⚠️ **C'est une CARACTÉRISATION, pas un test de régression, et il faut le
+   * dire** : ni le tri retiré du sélecteur, ni le retour à une passe unique de
+   * `_checkDeaths` ne le font rougir (vérifié). Les deux clients lisent ici des
+   * tableaux d'unités dans le même ordre, et le report d'une mort à un tick est
+   * symétrique — c'est même la raison pour laquelle la boucle de `_checkDeaths`
+   * est une correction de JUSTESSE et non de déterminisme. Ce que ces deux
+   * gardes valent se prouve dans `keyword-explosif.test.ts`, où il se prouve.
+   *
+   * Ce que ce cas défend, c'est l'invariant lui-même : le premier effet qui
+   * CHOISIT une unité adverse et le premier qui tue hors de la phase d'attaque
+   * traversent le VRAI enregistreur sans diverger. C'est le filet du jour où
+   * quelqu'un fera choisir cette victime autrement — par un `rand`, par l'ordre
+   * d'un tableau, par les PV — dans un moteur que les 300 graines n'atteignent
+   * pas (elles jouent un catalogue d'attributs VIDE).
+   *
+   * Le casting : deux Explosifs face à face, chacun avec un voisin plus proche
+   * que l'autre camp, pour que « le plus proche » ait quelque chose à trancher.
+   */
+  it('un duel d\'Explosifs rend le même log dans les deux repères', () => {
+    const explosif = { id: 'ARCH_EXPLO', name: 'Explosif', categorie: 'MotCle', timing: 'on_self_neutralized',
+      thresholds: [{ count: 1, effects: [{ type: 'destroy_enemy' }] }] };
+    const carte = (id: string, attrs: string[], stats: any) =>
+      makeCard({ id, attributes: attrs, summon_conditions: [], stats: { range: 1, ...stats } });
+
+    const a: Placed[] = [
+      { card: carte('A_EXPLO', [explosif.id], { atk: 30, hp: 30, movement_rate: 100, attack_rate: 99 }), col: 2, row: 3 },
+      { card: carte('A_VOISIN', [], { atk: 8, hp: 200, movement_rate: 98, attack_rate: 96 }), col: 1, row: 3 },
+      { card: carte('A_LOIN', [], { atk: 8, hp: 200, movement_rate: 0, attack_rate: 96 }), col: 4, row: 0 },
+    ];
+    const b: Placed[] = [
+      { card: carte('B_EXPLO', [explosif.id], { atk: 30, hp: 30, movement_rate: 100, attack_rate: 99 }), col: 2, row: 7 },
+      { card: carte('B_VOISIN', [], { atk: 8, hp: 200, movement_rate: 98, attack_rate: 96 }), col: 1, row: 7 },
+      { card: carte('B_LOIN', [], { atk: 8, hp: 200, movement_rate: 0, attack_rate: 10 }), col: 4, row: 10 },
+    ];
+    const plateau: BoardDef = { id: 'BOARD_PLAT', name: 'Plat', effect: null, blocked_cells: [] } as any;
+
+    const vueA = playAs('A', a, b, plateau, [explosif]);
+    const vueB = playAs('B', a, b, plateau, [explosif]);
+
+    // Témoin : les explosions ont bien eu lieu, sinon le cas ne prouve rien.
+    const explosions = vueA.ticks.flatMap((t: any) => (t.events ?? []).filter((e: any) => e.type === 'keyword'));
+    expect(explosions.length).toBeGreaterThan(0);
     expect(pvplog.diff(vueA, vueB)).toBeNull();
   });
 

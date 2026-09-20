@@ -38,6 +38,19 @@ export const QUANDS = [
   'a_l_invocation',
   'debut_combat',
   'pouvoir_utilise',
+  /**
+   * **Le porteur LUI-MÊME vient d'être neutralisé** — le mot-clé Explosif.
+   *
+   * ⚠️ Il ne double pas `allie_detruit`, il répond à une autre question.
+   * `allie_detruit` dit « quelqu'un de mon camp est tombé » et s'adresse aux
+   * SURVIVANTS ; celui-ci dit « c'est MOI qui suis tombé » et s'adresse au
+   * mort. Sans lui, un Explosif partirait sur chaque mort alliée, y compris
+   * celles des autres — et autant de fois qu'il y a d'Explosifs vivants.
+   *
+   * ⚠️ C'est le seul `quand` dont l'effet a besoin de savoir QUI l'a déclenché :
+   * le porteur voyage dans `Monde.porteur`, et c'est lui que `tri` mesure.
+   */
+  'porteur_detruit',
   'allie_detruit',
   'ennemi_detruit',
   'fin_combat',
@@ -76,6 +89,23 @@ export interface Selecteur {
   };
   /** `tous` est le seul cas que l'existant exerce ; `un` attend un choix. */
   combien: 'tous' | 'un';
+  /**
+   * Dans quel ORDRE les candidats sont classés avant que `combien: 'un'` ne
+   * retienne le premier.
+   *
+   * ⚠️ **Absent, c'est l'ordre du tableau — et cet ordre N'EST PAS COMMUN AUX
+   * DEUX CLIENTS d'un duel.** Tant que `un` ne servait qu'à des magies (le
+   * joueur désigne) et à `revive` (le premier corps du cimetière, propre à
+   * chaque camp), personne ne s'en apercevait. Un effet qui CHOISIT une cible
+   * adverse, lui, doit la choisir pareil des deux côtés : c'est le précédent du
+   * départage par `card_id` de l'ordre d'action, une valeur absolue plutôt
+   * qu'une position dans un tableau.
+   *
+   * `proche_du_declencheur` : distance de Manhattan depuis `Monde.declencheur`,
+   * **départagée par `card_id`** — les positions, elles, sont identiques sur
+   * les deux clients à ce tick, c'est tout le contrat de déterminisme.
+   */
+  tri?: 'proche_du_declencheur';
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -447,9 +477,33 @@ export interface Condition {
   pvJoueurSuperieurA?: number;
 }
 
+/**
+ * Les clés de recette visuelle : `compileAttribute` les **estampille**,
+ * `three/PowerVfx` les **indexe**.
+ *
+ * ⚠️ **Une seule écriture de la clé, ici.** Le précédent de `power_id` (une clé
+ * de `powers.json` d'un côté, `RECIPES` de l'autre) accepte la dérive parce que
+ * l'une des deux moitiés est de la DONNÉE. Ici les deux sont du code : les
+ * laisser se recopier serait un effet muet dont rien ne dirait la cause.
+ */
+export const VFX_EXPLOSIF = 'EXPLOSIF';
+
 export interface Effet {
   /** Identité stable, dérivée du porteur — jamais un compteur. Cf. §5.1. */
   id: string;
+  /**
+   * La clé de la RECETTE VISUELLE, quand l'effet en mérite une.
+   *
+   * ⚠️ **Une clé SÉMANTIQUE dérivée du TYPE, jamais l'id du porteur** : un id
+   * d'attribut est de la donnée, renommable en admin, et `three/` n'a aucun
+   * moyen de le résoudre (il n'importe pas `data/`). C'est exactement le statut
+   * de `power_id`, que `logic/` porte et que `PowerVfx` indexe.
+   *
+   * ⚠️ Ce n'est PAS du rendu dans `logic/` : le moteur ne dessine rien et ne
+   * lit jamais ce champ. Il le transporte, comme le contrat d'événements
+   * transporte déjà `power_id`.
+   */
+  vfx?: string;
   /** Absente = l'effet s'applique toujours (le cas du terrain). */
   condition?: Condition;
   /** Qui l'apporte : id de terrain, de magie, d'attribut, de carte. */

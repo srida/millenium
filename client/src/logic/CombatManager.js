@@ -105,7 +105,14 @@ export class CombatManager {
    *   { type: 'dot',     unit, damage }
    *   { type: 'freeze',  cell, expiresAtStep }
    *   { type: 'death',   unit }
+   *   { type: 'keyword', unit, vfx, targets }   // un mot-clé qui se voit
    *   { type: 'combat_end', winner }
+   *
+   * ⚠️ `keyword` porte une clé de RECETTE VISUELLE (`vfx`), jamais l'id de
+   * l'attribut : `three/` n'importe pas `data/` et ne saurait pas le résoudre.
+   * Même statut que `power_id`. Il est distinct de `power` à dessein — les
+   * missions comptent un `power_triggered` sur chaque `power`, et un mot-clé
+   * n'est pas un pouvoir.
    */
   step() {
     if (this.isOver) return [{ type: 'combat_end', winner: this.winner }];
@@ -863,19 +870,54 @@ export class CombatManager {
     return pushed;
   }
 
+  /**
+   * ⚠️ **Une passe ne suffit plus**, depuis qu'un effet `porteur_detruit` (le
+   * mot-clé Explosif) peut neutraliser une unité PENDANT ce balayage.
+   *
+   * Une victime située plus loin dans `units` est vue par la boucle en cours ;
+   * une victime déjà DÉPASSÉE ne l'était qu'au tick suivant, et le report n'est
+   * pas anodin : elle reste un tick entier sur le plateau, neutralisée mais
+   * occupant sa case (donc bloquant le BFS et le ciblage) — et si l'explosion
+   * FINIT le combat, `_checkEnd` clôt aussitôt : son `death` ne part jamais et
+   * sa carte reste affichée tout le round. On reboucle donc jusqu'à stabilité.
+   *
+   * ⚠️ Ce n'est PAS une correction de déterminisme : `units` vient de
+   * `_frameOrderedUnits`, donc l'ordre du balayage est déjà le même des deux
+   * côtés d'un duel, report compris. C'est une correction de justesse — et le
+   * report se voyait à l'écran, pas dans un diff de log.
+   *
+   * ⚠️ La boucle ne peut pas s'emballer, et ce n'est pas `MAX_PASSES` qui le
+   * garantit : c'est `_deathEmitted`, qui rend chaque unité inéligible une fois
+   * traitée — il y a donc au plus une explosion par unité, et un nombre fini
+   * d'unités. `MAX_PASSES` est une borne de sûreté sur une chaîne qu'on ne veut
+   * pas voir grandir en silence, pas le garde-fou.
+   */
   _checkDeaths(units, events) {
-    for (const u of units) {
-      if (u.is_neutralized && !u._deathEmitted) {
+    const MAX_PASSES = units.length + 1;
+    for (let passe = 0; passe < MAX_PASSES; passe++) {
+      let nouvelle = false;
+      for (const u of units) {
+        if (!u.is_neutralized || u._deathEmitted) continue;
+        nouvelle = true;
         u._deathEmitted = true;
         this.board.removeUnit(u);
         events.push({ type: 'death', unit: u });
 
+        // ⚠️ `porteur_detruit` AVANT `onUnitNeutralized` : « j'explose » précède
+        // « mes alliés réagissent à ma mort ». L'inverse ferait compter aux
+        // survivants un ennemi que l'explosion vient d'emporter — et les
+        // `stat_modifier` de mort lisent les vivants.
+        if (this.attributeManager?.onBearerNeutralized) {
+          const explosion = this.attributeManager.onBearerNeutralized(u, this.playerUnits, this.enemyUnits);
+          events.push(...explosion);
+        }
         // Trigger during-combat attribute stat_modifiers
         if (this.attributeManager) {
           const evts = this.attributeManager.onUnitNeutralized(u, this.playerUnits, this.enemyUnits);
           events.push(...evts);
         }
       }
+      if (!nouvelle) return;
     }
   }
 

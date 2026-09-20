@@ -6,7 +6,7 @@ import { updateUnitEl } from './UnitCardEl.js';
 import { ELEMENT_STYLES, elementsForUnit, LOW_END_DEVICE } from './constants.js';
 import { getPower } from '../data/PowerDatabase.js';
 import {
-  playPowerVfx, playImmuneVfx, playPoisonPulse, playBurnPulse,
+  playPowerVfx, playKeywordVfx, playImmuneVfx, playPoisonPulse, playBurnPulse,
   type PowerVfxContext,
 } from './PowerVfx.js';
 import type { Scene3D } from './Scene3D.js';
@@ -141,6 +141,7 @@ export class CombatAnimator3D {
       case 'power':  this._applyPower(evt, interval, dyingUids); break;
       case 'death':  this._applyDeath(evt);                    break;
       case 'freeze': this._applyFreeze(evt);                   break;
+      case 'keyword': this._applyKeyword(evt, interval);       break;
     }
   }
 
@@ -330,6 +331,24 @@ export class CombatAnimator3D {
 
   _applyDeath({ unit }: any): void {
     this._board.killUnitObj(unit.uid);
+  }
+
+  /**
+   * Un mot-clé qui se VOIT (aujourd'hui Explosif, seul).
+   *
+   * ⚠️ **L'événement `death` du porteur est déjà passé** (`_checkDeaths` émet la
+   * mort avant de déclencher `porteur_detruit`), donc sa carte est déjà en train
+   * de s'éteindre : la recette part de sa CASE, jamais de son élément DOM — et
+   * `playKeywordVfx` ne porte volontairement aucun repli, un mot-clé sans
+   * recette ne dessine rien.
+   *
+   * ⚠️ Les victimes, elles, n'ont pas encore leur `death` : il tombe à la passe
+   * suivante de la cascade, donc APRÈS l'explosion. C'est l'ordre qu'on veut —
+   * on voit ce qui les tue.
+   */
+  _applyKeyword({ unit, vfx, targets }: any, interval: number): void {
+    if (!vfx) return;
+    playKeywordVfx(this._board, unit, targets ?? [], vfx, this._vfxContext(interval, new Set(), unit));
   }
 
   _showPowerToast(pos: Position, power_id: string, interval: number = BASE_TICK_MS): void {

@@ -15,7 +15,7 @@
 
 import type { BoardDef, BoardEffectDef, MagieRarity } from '../types.js';
 import { boardEffects } from '../BoardEffect.js';
-import { CHAMPS_UNITE, CHAMPS_JOUEUR, PORTEES } from './types.js';
+import { CHAMPS_UNITE, CHAMPS_JOUEUR, PORTEES, VFX_EXPLOSIF } from './types.js';
 import type { Effet, Tache, Selecteur, ChampUnite, Quand, Portee, Camp } from './types.js';
 
 /** `camp` d'un `summon_token` : `'ennemi'` explicite, `'allie'` par défaut —
@@ -318,6 +318,17 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   // Mêmes moments que l'immunité : les deux posent un statut sur le porteur, et
   // les trois moments sont exactement ceux où un porteur est là pour le recevoir.
   immobile: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  // ⚠️ **Un type à part de `destroy_unit`, et non un champ `camp`** : la magie
+  // détruit une unité ALLIÉE (un coût que le joueur consent, il la désigne), le
+  // mot-clé une unité ADVERSE (une récompense). Le geste du moteur est le même
+  // — `deplacer board→cimetière` — mais le sens est opposé, et le schéma ne
+  // porte qu'un libellé par type : les fondre donnerait une phrase fausse pour
+  // l'un des deux.
+  //
+  // ⚠️ **Un seul moment**, `porteur_detruit`. Ailleurs, ce serait une magie
+  // déguisée en palier : une unité adverse détruite sans que personne l'ait
+  // choisi ni payé.
+  destroy_enemy: ['porteur_detruit'],
   // ⚠️ `fin_combat` en PREMIER (donc par défaut) : un soin d'attribut se lit
   // comme une récupération post-combat, pas comme un buff de pré-combat — les
   // trois autres moments restent choisissables (`timing`) pour qui veut
@@ -372,6 +383,9 @@ const QUAND_PAR_TIMING: Record<string, Quand> = {
   end_of_combat: 'fin_combat',
   on_summon: 'a_l_invocation',
   on_power_fired: 'pouvoir_utilise',
+  // ⚠️ « MOI je tombe », et non « quelqu'un de mon camp tombe » (`during_combat`
+  // + `on_ally_neutralized`, qui s'adresse aux survivants). Cf. `QUANDS`.
+  on_self_neutralized: 'porteur_detruit',
 };
 
 /**
@@ -460,7 +474,10 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
         ...(effect.portee ? { portee: effect.portee as Portee } : {}),
       };
       const condition = { attribut: porteur, minimum: seuil.count };
-      const pousse = (taches: Tache[]) => effets.push({ id, porteur, condition, trigger, taches });
+      // ⚠️ `vfx` est OPTIONNEL et le reste : un palier d'archétype n'a aucune
+      // recette visuelle à lui, et un défaut en donnerait une à tous.
+      const pousse = (taches: Tache[], vfx?: string) =>
+        effets.push({ id, porteur, condition, trigger, taches, ...(vfx ? { vfx } : {}) });
 
       // Le camp : un attribut vaut pour le camp qui le PORTE. `_applyEndForSide`
       // le rejoue deux fois, une par camp ; ici c'est un sélecteur.
@@ -517,6 +534,23 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
         // et c'est une affaire d'appelant, pas de compilation.
         case 'immobile':
           pousse([{ action: 'poser_statut', cible: cibleUnite(), statut: 'immobile', duree: 'combat' }]);
+          return;
+
+        // **Explosif** — le porteur emporte une unité adverse en tombant.
+        //
+        // ⚠️ `tri: 'proche_du_declencheur'` n'est pas un choix de design, c'est le
+        // DÉTERMINISME : `combien: 'un'` sans tri prend le premier du tableau,
+        // et cet ordre diffère d'un client à l'autre. Cf. `Selecteur.tri`.
+        //
+        // ⚠️ `camp: 'ennemi'` se lit depuis le PORTEUR (comme `summon_token`) :
+        // l'attribut vaut pour les deux camps, donc « ennemi » désigne l'autre
+        // côté de celui qui explose, quel qu'il soit.
+        case 'destroy_enemy':
+          pousse([{
+            action: 'deplacer',
+            cible: { conteneur: 'board', camp: 'ennemi', combien: 'un', tri: 'proche_du_declencheur' },
+            destination: 'cimetiere',
+          }], VFX_EXPLOSIF);
           return;
 
         case 'heal':

@@ -110,6 +110,7 @@ export const QUAND_LABELS = Object.freeze({
   debut_combat: 'au début du combat',
   pouvoir_utilise: 'quand un pouvoir part',
   fin_combat: 'à la fin du combat',
+  porteur_detruit: 'quand CETTE unité est neutralisée',
   allie_detruit: 'quand un allié est neutralisé',
   ennemi_detruit: 'quand un ennemi est neutralisé',
   immediat: 'au tap du joueur',
@@ -139,6 +140,7 @@ export const TIMING_PAR_QUAND = Object.freeze({
   fin_combat: 'end_of_combat',
   a_l_invocation: 'on_summon',
   pouvoir_utilise: 'on_power_fired',
+  porteur_detruit: 'on_self_neutralized',
 });
 
 /**
@@ -435,6 +437,20 @@ export const TYPES = Object.freeze({
     label: 'Immunité aux effets négatifs (poison, paralysie, push, burn…)',
     court: 'Immunité aux effets',
     attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
+  },
+  destroy_enemy: {
+    label: 'En mourant, détruire l’unité adverse la plus proche (Explosif)',
+    court: 'Explosif',
+    // ⚠️ **Distinct de `destroy_unit`, et ce n'est pas un doublon** : celui-là
+    // détruit une unité ALLIÉE que le joueur désigne (un coût), celui-ci une
+    // unité ADVERSE que personne ne choisit (une récompense). Un seul type
+    // porterait un libellé faux pour l'un des deux.
+    //
+    // ⚠️ **Un seul moment, et il n'existe que pour lui** : `porteur_detruit`.
+    // Offert ailleurs, ce serait une destruction gratuite à chaque début de
+    // combat. Ni terrain ni magie : un terrain frapperait les deux camps sans
+    // rien pour l'annoncer, une magie a déjà `destroy_unit`.
+    attribut: { quands: ['porteur_detruit'], champs: {} },
   },
   immobile: {
     label: 'Ne se déplace plus, et rien ne la déplace (Tour)',

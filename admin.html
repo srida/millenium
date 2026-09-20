@@ -3296,7 +3296,14 @@ function renderAttrDetail() {
       <div class="field"><label>Emoji — repli sans image</label><input id="af-icon" value="${a.icon || ''}"></div>
       <div class="field"><label>Timing</label>
         <select id="af-timing">
-          ${['start_of_combat','during_combat','end_of_combat','none'].map(t =>
+          <!-- ⚠️ on_self_neutralized est le moment du mot-clé Explosif — le seul
+               que l'attribut porte sans qu'aucun effet ne puisse le choisir
+               lui-même (destroy_enemy n'en a qu'un). Absent d'ici, la fiche
+               ouvrait sur un timing vide et l'enregistrement l'effaçait.
+               ⚠️ PAS d'accent grave dans ce commentaire : il vit DANS un
+               template literal, une backtick y ferme la chaîne et tout le
+               script de la page cesse de se parser. -->
+          ${['start_of_combat','during_combat','end_of_combat','on_self_neutralized','none'].map(t =>
             `<option value="${t}" ${a.timing===t?'selected':''}>${t}</option>`
           ).join('')}
         </select>
@@ -3420,6 +3427,16 @@ const EFFECT_NOTES = {
     ou avec un id de token inconnu, l'effet ne fait simplement rien.<br>
     ⚠️ <b>Désactivé en PvP réel</b> : la case tirée n'a aucun moyen de voyager jusqu'à l'autre
     client, les deux simulations divergeraient. Un duel contre un bot n'est pas concerné.`,
+  destroy_enemy: `Le mot-clé <b>Explosif</b>. Rien à saisir : la victime est l'unité adverse la
+    <b>plus proche</b> du porteur (distance de Manhattan, départage par id de carte pour que les
+    deux clients d'un duel désignent la même).<br>
+    ⚠️ <b>L'immunité aux effets ne protège pas</b> : ce n'est pas un pouvoir de debuff, c'est une
+    destruction franche. Le corps part au cimetière de <b>son</b> camp, donc il y reste
+    consommable comme matériau par son propriétaire.<br>
+    ⚠️ Une explosion peut en déclencher une autre <b>dans le même tick</b>, mais chaque unité
+    n'explose qu'une fois.<br>
+    ⚠️ Le seul moment possible est <b>la mort du porteur</b> : l'attribut doit donc porter le
+    timing <code>on_self_neutralized</code>, sinon l'effet est refusé et ne part jamais.`,
 };
 
 /** Le libellé d'une option d'un `<select>` de champ, selon la source déclarée. */

@@ -174,6 +174,16 @@ function exerce(attr: any, threshold: any) {
     const adverse = enemy[enemy.length - 1];
     adverse.is_neutralized = true;
     mgr.onUnitNeutralized(adverse, player, enemy);
+  } else if (attr.timing === 'on_self_neutralized') {
+    // ⚠️ La passe du mot-clé **Explosif**, et elle a deux exigences que les
+    // autres n'ont pas : `applyStartOfCombat` d'abord (c'est lui qui VERROUILLE
+    // les seuils, et le porteur mort ne compterait plus dans le sien), et un
+    // camp adverse qui ait bien quelqu'un à emporter — le casting en fournit
+    // autant de chaque côté, donc il y en a un.
+    mgr.applyStartOfCombat();
+    const explose = player[player.length - 1];
+    explose.is_neutralized = true;
+    mgr.onBearerNeutralized(explose, player, enemy);
   } else if (attr.timing === 'end_of_combat') {
     // Un mort de chaque côté : `revive` n'a rien à réanimer sans lui, et le
     // décompte de fin de combat inclut les neutralisés à dessein (le palier

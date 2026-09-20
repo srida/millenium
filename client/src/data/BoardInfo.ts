@@ -114,6 +114,10 @@ export function boardEffectLabel(
     // la repousser — or c'est justement ce qu'il interdit. Un mot-clé qui
     // n'annonce que la moitié de sa règle est pire qu'un mot-clé muet.
     case 'immobile':          return 'Ne se déplace pas et ne peut pas être poussée';
+    // ⚠️ Le mot-clé **Explosif**, et il nomme les DEUX choses que le joueur ne
+    // peut pas deviner : *quand* (en mourant) et *laquelle* (la plus proche).
+    // Le repli sur le type brut sortait « destroy_enemy » à l'écran.
+    case 'destroy_enemy':     return 'En mourant, détruit l\'unité adverse la plus proche';
     case 'board_slot_bonus':  return `+${effect.value} slot`;
     // ⚠️ Effet d'ATTRIBUT, pas de terrain — cette fonction sert les deux (cf.
     // `TooltipHost.describeEffects`). Sans son entrée ici, le palier de synergie

@@ -970,7 +970,7 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 |---|---|
 | Déclaration | `MOTS_CLES` / `MOT_CLE_CATEGORY` (`effect-schema.mjs`, racine, partagé avec `admin.html`) |
 | Lecture moteur | `logic/Keywords.ts` — pur, **importe** la racine, la liste d'attributs est passée en argument |
-| Lecture écran | `AttributeDatabase.isKeywordAttribute`, `TooltipHost.motCleDefini` |
+| Lecture écran | `AttributeDatabase.isKeywordAttribute`, `TooltipHost.motCleTexte` |
 | Donnée | champ `mot_cle` sur l'attribut, `<select>` fermé dans l'onglet Attributs |
 
 - ⚠️ **C'est le champ `mot_cle` qui porte la mécanique, jamais la catégorie** : `indexeMotsCles` ne lit pas `categorie`. Les lier rendrait un mot-clé muet sur un attribut bien renseigné mais mal classé. La catégorie ne sert qu'à RANGER (et un test exige qu'elles s'accordent).
@@ -997,6 +997,25 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 - Sortie sèche quand le catalogue ne déclare pas le mot-clé (patron de `_porteInvocation`). Rien côté PvP : le cimetière ne voyage pas et ne participe à aucun tick.
 - Un corps épargné n'est **pas** candidat à `revive`, qui ne lit que les morts DE CE combat.
 
+**Explosif** — un `destroy_enemy` seul sur un palier à 1, au moment `porteur_detruit`. Le porteur emporte l'unité adverse la **plus proche** en tombant. Quatre choses n'existaient pas avant lui :
+
+| Ce qu'il a fallu ajouter | Où |
+|---|---|
+| Le moment `porteur_detruit` (timing `on_self_neutralized`) | `QUANDS` (`effects/types.ts`), `TIMING_PAR_QUAND` (`effect-schema.mjs`), `<select id="af-timing">` |
+| `Selecteur.tri` — le classement des candidats avant qu'un `combien: 'un'` ne tranche | `effects/engine.trier`, depuis `Monde.declencheur` |
+| `Effet.vfx` — la clé de recette visuelle que l'événement `keyword` transporte | estampillée par `compileAttribute`, indexée par `three/PowerVfx.RECIPES_MOT_CLE` |
+| Le balayage des morts qui REBOUCLE | `CombatManager._checkDeaths` |
+
+- ⚠️ **`porteur_detruit` ne double pas `allie_detruit`** : celui-là dit « quelqu'un de mon camp est tombé » et s'adresse aux SURVIVANTS, celui-ci dit « c'est MOI » et s'adresse au mort. Sans lui, un Explosif partirait sur chaque mort alliée, autant de fois qu'il reste d'Explosifs vivants. C'est aussi le seul `quand` dont l'effet ait besoin de savoir QUI l'a déclenché — d'où `Monde.declencheur` (nommé ainsi, et pas `porteur`, parce que `source` porte déjà l'id du porteur).
+- ⚠️ **`destroy_enemy` est un type À PART de `destroy_unit`** : le geste du moteur est le même (`deplacer` board→cimetière), le sens est opposé — la magie détruit une unité ALLIÉE que le joueur désigne (un coût), le mot-clé une unité ADVERSE que personne ne choisit (une récompense). Le schéma ne porte qu'un libellé par type ; les fondre donnerait une phrase fausse pour l'un des deux. Et `porteur_detruit` est son **seul** moment : ailleurs ce serait une destruction gratuite au début de chaque combat.
+- ⚠️ **`tri: 'proche_du_declencheur'` n'est pas du design, c'est du déterminisme** : sans tri, `combien: 'un'` prend le premier élément du tableau, et l'ordre d'un tableau d'unités n'est pas commun aux deux clients (le propriétaire garde ses objets, l'adversaire les reconstruit). Manhattan depuis le déclencheur, **départagé par `card_id`** — deux valeurs que le contrat de déterminisme rend déjà identiques, précédent du 4ᵉ critère de l'ordre d'action.
+- ⚠️ **Le corps part au cimetière de SON camp** (`appliqueDeplacer` route sur `cible.camp`). La nuance n'existait pas tant que seules les magies déplaçaient une unité — elles ne visent que le joueur. En combat les deux tableaux sont jetables (`finishCombat` reconstruit les cimetières depuis `is_neutralized`), donc **ça ne s'observe que sur le moteur**, et c'est bien là que le test vit.
+- ⚠️ **L'immunité aux effets ne protège PAS** : `effect_immunity` annule les pouvoirs de debuff, là où l'explosion est une destruction franche. Le moteur ne consulte `is_effect_immune` nulle part dans `deplacer` — et c'est un test qui interdit de l'y remettre par réflexe.
+- ⚠️ **`_checkDeaths` REBOUCLE jusqu'à stabilité**, parce qu'une explosion tue pendant le balayage. Une victime déjà dépassée n'était vue qu'au tick suivant : un tick entier neutralisée mais occupant sa case — et si l'explosion FINIT le combat, `_checkEnd` clôt aussitôt, son `death` ne part jamais et sa carte reste affichée tout le round. ⚠️ **Ce n'est PAS une correction de déterminisme** : `units` vient de `_frameOrderedUnits`, donc le report était symétrique sur les deux clients. Le garde-fou de la boucle est `_deathEmitted` (une explosion par unité), pas `MAX_PASSES`.
+- ⚠️ `porteur_detruit` se déclenche **AVANT** `onUnitNeutralized` : « j'explose » précède « mes alliés réagissent à ma mort », sinon les `stat_modifier` de mort compteraient un ennemi que l'explosion vient d'emporter.
+- **L'événement `keyword`** (`{ unit, vfx, targets }`) est distinct de `power` à dessein : `GameController` compte un `power_triggered` de mission sur chaque `power`, et un mot-clé n'en est pas un. Il est émis **même sans victime** — c'est le porteur qui explose. ⚠️ Il porte la clé VISUELLE, jamais l'id de l'attribut : `three/` n'importe pas `data/` et ne saurait pas le résoudre (statut exact de `power_id`). La clé est écrite **une seule fois**, dans `VFX_EXPLOSIF` (`effects/types.ts`), et importée des deux côtés.
+- **VFX** : `RECIPES_MOT_CLE`, une table à part de `RECIPES` — celle-ci est indexée par `power_id` et son repli générique confondrait en silence un mot-clé avec un pouvoir. `playKeywordVfx` n'a donc **aucun repli** : un mot-clé sans recette ne dessine rien (Tour et Second souffle sont purement passifs). Grammaire : flash + anneau + éclats orange sur la case du PORTEUR (c'est lui qui explose), écho plus petit sur la victime. ⚠️ Pas de garde `ctx.dying` sur la victime, contrairement au repli de `playPowerVfx` : elle est justement en train de mourir, et c'est l'explosion qui la tue.
+
 | Effet | Timing | Détail |
 |---|---|---|
 | `stat_bonus` | `start_of_combat` · `on_summon` · `on_power_fired` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step). ⚠️ Sur `attack_rate` / `movement_rate`, le bonus est **positif pour accélérer** et s'écrête à 100 |
@@ -1004,6 +1023,7 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 | `effect_immunity` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_effect_immune` — annule les pouvoirs de debuff |
 | `immobile` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_immobile` — ne marche pas, ne se pousse pas, ne se téléporte pas. **Attribut seulement** (cf. « Les mots-clés ») |
 | `summon_token` | `start_of_combat` · `on_summon` · `on_power_fired` | Invoque un token (`token_id`) sur une case libre au hasard ; `camp` = `allie` (le camp qui PORTE l'attribut) ou `ennemi`. ⚠️ Pas de `end_of_combat` : rien à combattre après le dernier tick. Désactivé en PvP réel |
+| `destroy_enemy` | `on_self_neutralized` | Détruit l'unité adverse la **plus proche** du porteur. Rien à saisir. ⚠️ Son SEUL moment, et il n'existe que pour lui (cf. « Les mots-clés ») |
 | `stat_modifier` | `during_combat` | Déclenché par `trigger` : `on_ally_neutralized` / `on_enemy_neutralized` |
 | `revive` | `end_of_combat` | Réanime une unité neutralisée à `hp_percent` % (déf. 50) |
 | `draw_bonus` | `end_of_combat` | Pioches supplémentaires (plafonné par `max`) |
@@ -1151,10 +1171,13 @@ Une **grammaire** par pouvoir — direction, silhouette, locus —, car c'est el
 { type: 'stat_change', unit, stat, value }          // effet attribut de combat
 { type: 'freeze',      cell, expiresAtStep }
 { type: 'death',       unit }
+{ type: 'keyword',     unit, vfx, targets }         // un mot-clé qui se voit (Explosif)
 { type: 'combat_end',  winner }                     // 'player' | 'enemy' | 'draw' | 'timeout'
 ```
 
 `POWER_TELEPORT` émet `power` + `move`, `POWER_FREEZE` émet `power` + `freeze` : le `power` sert au toast/flash, le second porte la donnée de l'animateur.
+
+⚠️ `keyword` est distinct de `power` **à dessein** : les missions comptent un `power_triggered` sur chaque `power`, et un mot-clé n'est pas un pouvoir. Il porte une clé de RECETTE VISUELLE (`vfx`), jamais l'id de l'attribut — cf. « Les mots-clés ».
 
 ⚠️ **Un pouvoir qui part déclenche `pouvoir_utilise`** (`AttributeManager.onPowerFired`), sous la même condition que la remise à zéro de la jauge — le camp est celui du LANCEUR, et les paliers sont ceux **verrouillés au début du combat**, comme pour un `stat_modifier`. La boucle NOMME un moment, elle ne connaît aucun effet.
 

@@ -62,6 +62,12 @@ export class AttributeManager {
     this._effets = effets;
     this.compilationRefusee = refus;
 
+    // ⚠️ Le moment `porteur_detruit` est le seul que `CombatManager` interroge à
+    // CHAQUE mort : on répond par un booléen plutôt que par un filtre. Même
+    // geste que `GameSession._porteInvocation` — tant que personne n'écrit ce
+    // contenu, la branche sort sèchement.
+    this._porteExplosion = effets.some(e => e.trigger?.quand === 'porteur_detruit');
+
     // Bonuses applied to each unit at start of combat (for POWER_DEBUFF reapplication)
     this._appliedBonuses = new Map(); // uid → [{ stat, value }]
 
@@ -247,6 +253,75 @@ export class AttributeManager {
     const events = [];
     const side = caster.side === 'player' ? playerUnits : enemyUnits;
     this._triggerAuMoment('pouvoir_utilise', side, events);
+    return events;
+  }
+
+  /**
+   * `porteur_detruit` — **l'unité qui vient de tomber**, pas son camp.
+   *
+   * ⚠️ **Le filtre sur le MORT est toute la fonction.** `_effetsDesPaliers` rend
+   * les effets des paliers actifs du camp ; sans le second filtre, un Explosif
+   * partirait sur CHAQUE mort allié — y compris celles des autres, et autant de
+   * fois qu'il reste d'Explosifs vivants. Ici on ne garde que les effets dont
+   * l'attribut est porté par le mort lui-même.
+   *
+   * ⚠️ Les paliers sont ceux **VERROUILLÉS au début du combat**, comme pour
+   * `pouvoir_utilise` et `stat_modifier` : le porteur vient de mourir, donc un
+   * décompte des vivants le laisserait déjà dehors et son propre palier à 1 ne
+   * serait plus atteint. C'est la seule passe où ça se voit.
+   *
+   * @returns {Object[]} les événements à relayer à l'animateur
+   */
+  onBearerNeutralized(deadUnit, playerUnits, enemyUnits) {
+    if (!this._porteExplosion) return [];
+    const isPlayerSide = deadUnit.side === 'player';
+    const side = isPlayerSide ? playerUnits : enemyUnits;
+    const other = isPlayerSide ? enemyUnits : playerUnits;
+
+    const actifs = new Map();
+    for (const attrId of deadUnit.attributes) {
+      const cached = this._duringCombatThresholds?.get(attrId);
+      const r = cached ? (isPlayerSide ? cached.player : cached.enemy) : null;
+      if (r) actifs.set(attrId, r.threshold.count);
+    }
+    const effets = this._effetsDesPaliers(actifs)
+      .filter(e => deadUnit.attributes.includes(e.condition?.attribut));
+    if (!effets.length) return [];
+
+    // ⚠️ Le cimetière adverse est un tableau JETABLE : pendant un combat, c'est
+    // `GameSession.finishCombat` qui reconstruit les deux cimetières depuis
+    // `is_neutralized`. Il est passé parce que `deplacer` refuse sans
+    // destination — pas parce que quelqu'un le relit.
+    const monde = {
+      ...this._monde(side, other, ressourcesVides(), []),
+      neutraliseesEnnemies: [],
+      declencheur: deadUnit,
+    };
+    // ⚠️ **Les victimes se DÉDUISENT de l'état**, elles ne sortent pas du
+    // moteur : `Trace.ecritures` ne porte que des écritures de STAT, et
+    // élargir le contrat du moteur pour un effet visuel serait le payer
+    // partout. C'est la discipline de l'événement `dot`, qui ne dit pas non
+    // plus d'où vient son pulse — on regarde l'unité.
+    const vivantesAvant = other.filter(u => u.isAlive());
+    const trace = executer(effets, 'porteur_detruit', monde);
+    const victimes = vivantesAvant.filter(u => !u.isAlive());
+
+    const events = [];
+    // ⚠️ Un type d'événement À PART, jamais `power` : les missions comptent un
+    // `power_triggered` sur chaque événement `power` (`GameController`), et une
+    // explosion n'est pas un pouvoir. Émis même sans victime — le porteur
+    // explose, c'est ce que le joueur doit voir.
+    //
+    // ⚠️ **Il porte la clé VISUELLE de l'effet, jamais l'id de l'attribut** :
+    // `three/` n'importe pas `data/`, il n'a donc aucun moyen de résoudre un id
+    // de catalogue — renommable en admin par-dessus le marché. C'est le statut
+    // exact de `power_id`. Un seul événement quoi qu'il arrive : le porteur
+    // explose UNE fois, et toutes les victimes du lot lui appartiennent.
+    const vfx = effets.find(e => e.vfx)?.vfx;
+    if (vfx) events.push({ type: 'keyword', unit: deadUnit, vfx, targets: victimes });
+    for (const { unite, stat, valeur } of trace.ecritures) {
+      events.push({ type: 'stat_change', unit: unite, stat, value: valeur });
+    }
     return events;
   }
 
