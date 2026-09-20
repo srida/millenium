@@ -1907,5 +1907,14 @@
 		"categorie": "Tiers",
 		"thresholds": [],
 		"tier": 5
+	},
+	{
+		"id": "ARCH_096",
+		"name": "Second souffle",
+		"icon": "♻️",
+		"timing": "none",
+		"categorie": "MotCle",
+		"thresholds": [],
+		"mot_cle": "cimetiere_permanent"
 	}
 ]

@@ -13,6 +13,8 @@ import { cardName, magieName } from '../../data/gameNames.js';
 import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
 import { primaryTier, tiersOf } from '../../logic/Tiers.js';
 import { materialValueOf } from '../../logic/Unit.js';
+// ⚠️ La SEULE déclaration des mots-clés (racine, partagée avec `admin.html`).
+import { MOTS_CLES } from '../../../../effect-schema.mjs';
 import type { Card } from '../../logic/types.js';
 import { STAT_LABELS } from '../../data/StatLabels.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
@@ -72,11 +74,29 @@ function StatsRow({ stats }: { stats: Record<string, number> }) {
   );
 }
 
+/**
+ * La définition du mot-clé que cet attribut apporte, s'il en apporte une.
+ *
+ * ⚠️ **Le seul lecteur de `attribut.mot_cle` côté écran**, et il sert les DEUX
+ * rendus : la chip qui s'efface et le bloc qui explique. Poser la question à
+ * deux endroits, c'est s'autoriser à répondre deux fois la même chose — ce que
+ * le tooltip a effectivement fait le temps d'un rendu.
+ */
+function motCleDefini(id: string): any {
+  return (MOTS_CLES as any)[(getAttribute as any)(id)?.mot_cle];
+}
+
 function Keywords({ ids }: { ids: string[] }) {
   // ⚠️ Les attributs de TIER sont écartés : le badge de l'en-tête vient de les
   // dire, deux lignes plus haut. Les voies d'invocation, elles, RESTENT — c'est
   // ici qu'on lit « c'est une Fusion », et rien d'autre ne le dit.
-  const shown = ids.filter(id => !isTierAttribute(id));
+  //
+  // ⚠️ Même règle pour un MOT-CLÉ que le bloc du dessous EXPLIQUE : il y porte
+  // déjà son icône et son nom, en tête de sa propre explication. La condition
+  // est bien « ce bloc le dit », jamais « c'est un mot-clé » — un mot-clé dont
+  // la mécanique est un EFFET n'a pas d'entrée dans `MOTS_CLES`, donc rien ne
+  // le dirait ailleurs, donc il garde sa chip.
+  const shown = ids.filter(id => !isTierAttribute(id) && !motCleDefini(id));
   if (!shown.length) return null;
   return (
     <div className="mt-2 flex flex-wrap gap-1">
@@ -89,6 +109,40 @@ function Keywords({ ids }: { ids: string[] }) {
           </span>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Ce qu'un MOT-CLÉ fait — la chip seule ne le dit pas.
+ *
+ * ⚠️ **Un mot-clé n'est pas un thème, et c'est toute la raison de ce bloc.**
+ * « Zombie » ou « Sable » n'ont rien à expliquer : ils rangent la carte. « Second
+ * souffle » nomme une MÉCANIQUE, et la chip qui le porte est muette — elle n'est
+ * pas tapable, rien derrière elle ne s'ouvre. Un joueur lisait donc un mot sans
+ * moyen d'apprendre ce qu'il veut dire. Le geste est celui du bloc de pouvoir,
+ * juste en dessous : on nomme, puis on explique.
+ *
+ * ⚠️ Le texte vient de `MOTS_CLES` (`effect-schema.mjs`), **la seule
+ * déclaration** — la même que lit le `<select>` de l'admin. Le recopier ici
+ * donnerait deux libellés pour une règle, dont un seul serait corrigé.
+ */
+function MotsCles({ ids }: { ids: string[] }) {
+  const portes = ids
+    .map(id => ({ id, attr: (getAttribute as any)(id), def: motCleDefini(id) }))
+    .filter(x => x.def);
+  if (!portes.length) return null;
+  return (
+    <div className="mt-2 space-y-1">
+      {portes.map(({ id, attr, def }) => (
+        <div key={id} className="rounded-lg border border-violet/25 bg-violet/5 p-2">
+          <div className="flex items-center gap-1 text-[11px] font-bold text-violet">
+            <AttrIcon id={id} fallback={attr?.icon} className="h-3.5 w-3.5 text-[11px]" />
+            {attr?.name ?? def.court}
+          </div>
+          <div className="text-[10px] text-white/60">{def.aide}</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -141,6 +195,7 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
         </div>
         <StatsRow stats={stats} />
         <Keywords ids={data.attributes ?? []} />
+        <MotsCles ids={data.attributes ?? []} />
         {power && (
           <div className="mt-2 rounded-lg border border-orange-400/25 bg-orange-500/5 p-2">
             <div className="flex items-center gap-1 text-[11px] font-bold text-orange-300">

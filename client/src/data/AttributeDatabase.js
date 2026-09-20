@@ -42,6 +42,34 @@ export const INVOCATION_CATEGORY = 'Invocation';
  */
 export const TIER_CATEGORY = 'Tiers';
 
+/**
+ * La catégorie qui porte les MOTS-CLÉS (Tour, Explosif, Appelant, Second
+ * souffle). Troisième catégorie « mécanique » après `Tiers` et `Invocation`, et
+ * elle se lit à l'inverse des deux autres pour l'affichage :
+ *
+ *   • un tier est déjà dit par la couleur du cadre, une voie d'invocation par le
+ *     chiffre du coût → ils sortent des chips ;
+ *   • un mot-clé n'est dit par RIEN d'autre → c'est la chip qui le porte, et
+ *     c'est tout l'intérêt.
+ *
+ * ⚠️ Le nom de la catégorie vit dans `effect-schema.mjs` (racine, partagé avec
+ * `admin.html`) et n'est que RÉ-EXPORTÉ ici — contrairement à `TIER_CATEGORY`,
+ * recopié depuis `logic/Tiers.ts`. Un nom de catégorie écrit deux fois est un
+ * nom qu'on renomme à un seul endroit.
+ */
+export { MOT_CLE_CATEGORY } from '../../../effect-schema.mjs';
+import { MOT_CLE_CATEGORY as KEYWORD_CATEGORY } from '../../../effect-schema.mjs';
+
+/** Cet attribut décrit-il un MOT-CLÉ (une mécanique) plutôt qu'un thème ? */
+export function isKeywordAttribute(id) {
+  try {
+    return getAttribute(id)?.categorie === KEYWORD_CATEGORY;
+  } catch {
+    // Database non initialisée (bancs de dev) — même filet qu'`AttrIcon`.
+    return false;
+  }
+}
+
 /** Cet attribut désigne-t-il un tier ? */
 export function isTierAttribute(id) {
   try {

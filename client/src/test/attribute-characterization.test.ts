@@ -57,7 +57,9 @@ const PAR_TIMING: Record<string, Set<string>> = (() => {
   table.during_combat = new Set();
   for (const [type, def] of Object.entries(TYPES as Record<string, any>)) {
     for (const quand of def.attribut?.quands ?? []) {
-      const timing = quand === 'selon_trigger' ? 'during_combat' : TIMING_PAR_QUAND[quand];
+      const timing = quand === 'selon_trigger'
+        ? 'during_combat'
+        : (TIMING_PAR_QUAND as Record<string, string>)[quand as string];
       if (timing) table[timing].add(type);
     }
   }

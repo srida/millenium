@@ -2927,6 +2927,21 @@ function onAttrCategoryChange() {
   if (sel.value === '__new__') document.getElementById('af-cat-new')?.focus();
   const tierField = document.getElementById('af-tier-field');
   if (tierField) tierField.style.display = getAttrCategoryValue() === TIER_CATEGORY ? '' : 'none';
+  const motCleField = document.getElementById('af-motcle-field');
+  // ⚠️ Le champ reste visible dès qu'une valeur y est POSÉE, même si la
+  // catégorie ne s'y prête plus : `collectAttrFromForm` relit ce `<select>`, donc
+  // un champ masqué serait un champ silencieusement effacé au prochain
+  // enregistrement — le piège de `description` sur les magies, exactement.
+  if (motCleField) {
+    motCleField.style.display = (getAttrCategoryValue() === (EFX?.MOT_CLE_CATEGORY || 'MotCle')
+      || document.getElementById('af-motcle')?.value) ? '' : 'none';
+  }
+}
+
+/** La fiche montre-t-elle le champ « Mot-clé » ? Catégorie qui s'y prête, ou
+ *  valeur déjà posée — sans quoi l'enregistrement la détruirait sans le dire. */
+function _showMotCleField(a) {
+  return a.categorie === (EFX?.MOT_CLE_CATEGORY || 'MotCle') || !!a.mot_cle;
 }
 
 function getAttrCategoryValue() {
@@ -3297,6 +3312,24 @@ function renderAttrDetail() {
             <input id="af-cat-new" placeholder="Nom de la catégorie" style="width:100%">
           </div>
         </div>
+      </div>
+      <div class="field" id="af-motcle-field" style="${_showMotCleField(a) ? '' : 'display:none'}">
+        <label>Mot-clé — une mécanique que le moteur d'effets ne sait pas écrire</label>
+        <select id="af-motcle">
+          <option value="" ${!a.mot_cle ? 'selected' : ''}>— Aucun —</option>
+          ${Object.entries(EFX?.MOTS_CLES || {}).map(([cle, def]) =>
+            `<option value="${esc(cle)}" ${a.mot_cle === cle ? 'selected' : ''}>${esc(def.label)}</option>`
+          ).join('')}
+        </select>
+        <span style="font-size:11px;color:var(--muted);margin-top:4px">
+          ⚠️ <b>La plupart des mots-clés n'ont rien à faire ici</b> : Tour, Explosif et Appelant
+          sont des <b>effets</b>, ils s'écrivent dans les Seuils ci-dessous avec leur moment et leurs
+          champs, comme n'importe quel palier. Cette liste ne porte que ce qui n'est PAS un effet —
+          aujourd'hui une durée de vie de conteneur.
+          ${a.mot_cle && EFX?.MOTS_CLES?.[a.mot_cle]
+            ? `<br><br><b>${esc(EFX.MOTS_CLES[a.mot_cle].court)}</b> — ${esc(EFX.MOTS_CLES[a.mot_cle].aide)}`
+            : ''}
+        </span>
       </div>
       <div class="field" id="af-tier-field" style="${a.categorie === TIER_CATEGORY ? '' : 'display:none'}">
         <label>Numéro de tier</label>
@@ -3766,6 +3799,14 @@ function collectAttrFromForm() {
     ...(cat ? { categorie: cat } : {}),
     ...(cat === TIER_CATEGORY && Number(document.getElementById('af-tier')?.value) > 0
       ? { tier: parseInt(document.getElementById('af-tier').value, 10) }
+      : {}),
+    // ⚠️ **Obligatoire, pas décoratif** : cette fonction reconstruit l'objet de
+    // zéro, donc tout champ qu'elle ne nomme pas est DÉTRUIT à l'enregistrement
+    // (c'est arrivé à `description` sur les magies et à `difficulty` sur les
+    // decks publics). Le champ n'est écrit que s'il vaut quelque chose — un
+    // `mot_cle: ''` serait une valeur que `indexeMotsCles` refuserait par nom.
+    ...(document.getElementById('af-motcle')?.value
+      ? { mot_cle: document.getElementById('af-motcle').value }
       : {}),
     thresholds,
   };

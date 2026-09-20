@@ -957,6 +957,32 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 - **Affichage** : `CardTile` prend une **liste** (`tiers`) et rend `T2·4` ; le liseré, lui, prend le plus haut (une couleur ne se partage pas). Le tooltip dit tous les tiers d'une **carte**, un seul pour une **unité**. ⚠️ Les attributs de tier sont **écartés des chips** `Keywords` (le badge vient de le dire) et de `DeckTags` (toute carte en porte un : ils seraient dominants dans chaque deck). Ils restent dans le tirage du terrain — un terrain a le droit de viser les Tier 5.
 - ⚠️ **Le champ `tier` n'existe plus, et `tiersOf` n'a AUCUN repli** : une carte sans attribut de tier rend `[]` et n'entre dans aucun pool. C'est le contrat d'écriture (400) et l'audit qui garantissent qu'elle n'existe pas, jamais une clause de lecture — un repli ferait taire exactement ce que le contrat existe pour signaler. `scripts/migrate-tiers.js --write` pose l'attribut **puis retire le champ** (jamais sur une orpheline : le champ y est la dernière information) ; `audit:cards` compte un champ résiduel comme une **faute**. Les fixtures de test écrivent `_tiers` — `makeCard({ tier: N })` n'est qu'un raccourci qui le traduit.
 
+### Les mots-clés (`categorie: 'MotCle'`)
+
+Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-clé est un attribut qui décrit ce que la carte FAIT, pas ce qu'elle est.
+
+⚠️ **Un mot-clé est un EFFET par défaut.** Il s'écrit dans les seuils de l'attribut (`thresholds: [{ count: 1, effects: [...] }]`), avec son `quand` et ses tâches, comme n'importe quel palier d'archétype : le compilateur émet `cible = { camp: 'allie', filtre: { attributs: [porteur] } }`, donc un palier à **1** s'applique à chaque porteur et à lui seul. Il n'y a rien à ajouter pour ce cas.
+
+⚠️ **`MOTS_CLES` (`effect-schema.mjs`) est la porte de sortie, et elle est étroite** : n'y entre que ce qui n'est PAS une tâche. Le moteur écrit des tâches, il n'a aucune notion de *veto sur une purge* — lui en donner une lui donnerait un cycle de vie qu'il n'a pas (même raison que la mémoire des portées, qui vit chez l'appelant). Aujourd'hui un seul : `cimetiere_permanent`.
+
+| | |
+|---|---|
+| Déclaration | `MOTS_CLES` / `MOT_CLE_CATEGORY` (`effect-schema.mjs`, racine, partagé avec `admin.html`) |
+| Lecture moteur | `logic/Keywords.ts` — pur, **importe** la racine, la liste d'attributs est passée en argument |
+| Lecture écran | `AttributeDatabase.isKeywordAttribute`, `TooltipHost.motCleDefini` |
+| Donnée | champ `mot_cle` sur l'attribut, `<select>` fermé dans l'onglet Attributs |
+
+- ⚠️ **C'est le champ `mot_cle` qui porte la mécanique, jamais la catégorie** : `indexeMotsCles` ne lit pas `categorie`. Les lier rendrait un mot-clé muet sur un attribut bien renseigné mais mal classé. La catégorie ne sert qu'à RANGER (et un test exige qu'elles s'accordent).
+- ⚠️ Un `mot_cle` inconnu est **refusé nommément** (`IndexMotsCles.refus`), jamais rangé en silence — discipline de `CompilationResult.refus`.
+- ⚠️ `collectAttrFromForm` reconstruit l'objet de zéro : **`mot_cle` y est obligatoire**, et le champ reste visible dès qu'une valeur y est posée. Sans ça, enregistrer une fiche l'effacerait (le piège de `description` sur les magies).
+- **Affichage** : un mot-clé est **écarté du `SynergyPanel`** (il se déclenche à un exemplaire, il n'attend rien — une puce éternellement verte au milieu de celles qui disent quelque chose) et, quand `MOTS_CLES` l'explique, **de la chip `Keywords`** : le bloc violet du tooltip porte déjà son icône et son nom, au-dessus de son explication. La condition est « ce bloc le dit », jamais « c'est un mot-clé ».
+
+**`cimetiere_permanent` (Second souffle)** — `GameSession.startCombat` épargne les porteurs à la purge des cimetières, `finishCombat` les **reprend en tête** au lieu d'affecter le tableau.
+- ⚠️ Les deux lignes vont ensemble : sans la reprise, le mot-clé marche pendant exactement une préparation.
+- ⚠️ **Les deux camps**, sans drapeau d'asymétrie — l'IA hérite donc d'une réserve de matériaux permanente, et c'est voulu. `_placeEnemyUnits()` passant AVANT la purge, elle la voit dès le round suivant.
+- Sortie sèche quand le catalogue ne déclare pas le mot-clé (patron de `_porteInvocation`). Rien côté PvP : le cimetière ne voyage pas et ne participe à aucun tick.
+- Un corps épargné n'est **pas** candidat à `revive`, qui ne lit que les morts DE CE combat.
+
 | Effet | Timing | Détail |
 |---|---|---|
 | `stat_bonus` | `start_of_combat` · `on_summon` · `on_power_fired` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step). ⚠️ Sur `attack_rate` / `movement_rate`, le bonus est **positif pour accélérer** et s'écrête à 100 |

@@ -22,6 +22,7 @@
  */
 import { compileAttributes } from './effects/compile.js';
 import { executer, ressourcesVides } from './effects/engine.js';
+import { MOT_CLE_CATEGORY } from './Keywords.js';
 
 // Veterancy: a unit that survives a combat without being neutralized gains 1 point
 // (GameScreen3D._finishCombat). From 2 cumulated points onward it gets a permanent
@@ -437,6 +438,15 @@ export class AttributeManager {
       const attr = this._attributeMap[attrId];
       if (!attr) continue;
       if (!attr.thresholds || attr.thresholds.length === 0) continue; // archétype sans effet : pas affiché
+      // ⚠️ **Un MOT-CLÉ n'est pas une synergie**, même s'il porte un palier. Le
+      // panneau répond à « combien de cartes me manque-t-il ? » ; un mot-clé est
+      // une mécanique INTRINSÈQUE à son porteur, qui se déclenche à un
+      // exemplaire et n'attend donc rien. L'afficher mettrait sur chaque unité
+      // une puce éternellement verte, au milieu de celles qui, elles, disent
+      // quelque chose. C'est la chip `Keywords` du tooltip qui le porte — même
+      // partage que les tiers, qui sortent des chips parce que la couleur du
+      // cadre les dit déjà.
+      if (attr.categorie === MOT_CLE_CATEGORY) continue;
       const count = this._countAttribute(attrId, units);
       const result = this._activeThreshold(attrId, units);
       const activeThreshold = result?.threshold ?? null;
