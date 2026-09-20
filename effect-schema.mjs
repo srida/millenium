@@ -58,7 +58,7 @@ export const MOT_CLE_CATEGORY = 'MotCle';
  *
  * ⚠️ **Un mot-clé n'a sa place ici que si le moteur ne peut pas l'exprimer.**
  * Tour (portée + immobilité), Explosif (détruire en mourant) et Appelant
- * (invoquer au tour prochain) sont des EFFETS : ils vivent dans `TYPES`, avec un
+ * (une pioche garantie, paramétrée par carte) sont des EFFETS : ils vivent dans `TYPES`, avec un
  * `quand` et des tâches, comme n'importe quel palier d'archétype. Les mettre ici
  * reviendrait à se donner un second moteur d'effets, écrit à la main, sur des
  * porteurs que personne ne compile — exactement la mécanique des vingt-et-un

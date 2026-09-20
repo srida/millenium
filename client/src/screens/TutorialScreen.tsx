@@ -85,9 +85,15 @@ function TableOfContents({
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4">
+      {/* ⚠️ Le nombre de fiches est DÉRIVÉ, jamais écrit : il valait « onze » et
+          la douzième (les mots-clés) l'a rendu faux sans qu'une seule ligne de
+          code ne s'en aperçoive. C'est la panne du labo IA — une phrase juste
+          qui cesse de l'être, que ni un test, ni un `innerText`, ni une mesure
+          ne peut attraper. Le décompte « 0/12 lues » juste en dessous, lui,
+          était déjà dérivé. */}
       <p className="text-sm leading-relaxed text-white/60">
         Millenium est un auto-battler : tu prépares un board, puis le combat se résout tout seul.
-        Ces onze fiches expliquent tout ce qu'il faut savoir. Tu peux aussi passer directement à la pratique.
+        Ces {CHAPTERS.length} fiches expliquent tout ce qu'il faut savoir. Tu peux aussi passer directement à la pratique.
       </p>
 
       <div>

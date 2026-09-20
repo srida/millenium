@@ -66,6 +66,16 @@ export type ChapterBlock =
   | { kind: 'table'; head: [string, string]; rows: [string, string][] }
   | { kind: 'note'; text: string }
   | { kind: 'cards'; caption?: string; pick: CardPick }
+  /**
+   * Les MOTS-CLÉS du catalogue, chacun avec son explication.
+   *
+   * ⚠️ **Aucune règle n'est recopiée ici** : le composant lit les attributs de
+   * catégorie `MotCle` et leur demande leur phrase à `data/KeywordInfo`, la même
+   * que celle du tooltip en jeu. Un mot-clé ajouté, renommé ou reréglé en admin
+   * change donc le chapitre sans une ligne — et un joueur ne peut pas lire dans
+   * le codex autre chose que ce que la carte lui dira.
+   */
+  | { kind: 'keywords'; caption?: string }
   /** Exemples tirés des autres catalogues, résolus par le composant. */
   | { kind: 'powers'; caption?: string; limit: number }
   | { kind: 'attributes'; caption?: string; limit: number }
@@ -255,6 +265,22 @@ export const CHAPTERS: Chapter[] = [
         ['Fin de combat', 'Pioches garanties, réanimations, emplacement en plus, dégâts majorés, magie supplémentaire.'],
       ] },
       { kind: 'note', text: "Le panneau des synergies, en jeu, te montre en direct où tu en es de chaque palier. C'est lui qu'il faut regarder avant de taper PRÊT." },
+    ],
+  },
+  {
+    id: 'keywords',
+    icon: '\u{1F4CC}',
+    title: 'Les mots-clés',
+    blurb: "Des attributs qui ne rangent pas la carte : ils lui donnent une règle.",
+    blocks: [
+      { kind: 'text', text: "La plupart des attributs **rangent** une carte — un type, un archétype, un élément — et n'agissent qu'en **synergie**, quand assez de cartes les partagent. Un **mot-clé**, lui, dit ce que la carte FAIT, et il agit **à un seul exemplaire** : il n'attend personne." },
+      { kind: 'keywords', caption: 'Les mots-clés du jeu, et ce qu\'ils font' },
+      { kind: 'bullets', items: [
+        "Un mot-clé n'a **pas de palier à atteindre** : il vaut dès que la carte est sur le terrain. Tu ne le verras donc jamais dans le panneau des synergies.",
+        "Il est **intrinsèque à sa carte** : rien ne le donne, rien ne le retire, et il vaut **pour les deux camps** — l'adversaire en profite exactement comme toi.",
+        "Pour savoir ce qu'un mot-clé fait, **appuie longuement sur la carte** : son infobulle le nomme et l'explique, en bas.",
+      ] },
+      { kind: 'note', text: "Un même mot-clé ne promet pas forcément la même chose d'une carte à l'autre : certains se **règlent par carte**. C'est l'infobulle de LA carte qui fait foi, jamais le nom du mot-clé seul." },
     ],
   },
   {

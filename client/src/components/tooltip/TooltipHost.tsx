@@ -13,8 +13,10 @@ import { cardName, magieName } from '../../data/gameNames.js';
 import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
 import { primaryTier, tiersOf } from '../../logic/Tiers.js';
 import { materialValueOf } from '../../logic/Unit.js';
-// ⚠️ La SEULE déclaration des mots-clés (racine, partagée avec `admin.html`).
-import { MOTS_CLES, MOT_CLE_CATEGORY } from '../../../../effect-schema.mjs';
+// ⚠️ **La SEULE mise en mots d'un mot-clé** — partagée avec le codex du
+// tutoriel. Deux explications du même mot-clé finiraient par ne plus dire la
+// même chose, et c'est le codex qu'un joueur lit pour apprendre la règle.
+import { keywordText } from '../../data/KeywordInfo.js';
 import type { Card, GuaranteedDraw } from '../../logic/types.js';
 import { STAT_LABELS } from '../../data/StatLabels.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
@@ -82,31 +84,22 @@ function StatsRow({ stats }: { stats: Record<string, number> }) {
  * question à deux endroits, c'est s'autoriser à répondre deux fois la même
  * chose — ce que le tooltip a effectivement fait le temps d'un rendu.
  *
- * ⚠️ **Deux sources, dans cet ordre, et c'est le partage des mots-clés** :
- *   • `MOTS_CLES` pour ceux dont la règle n'est PAS un effet (Second souffle) —
- *     une phrase écrite à la main, la seule qu'il y ait ;
- *   • sinon les EFFETS de son palier, mis en mots par `describeEffects` — la
- *     même fonction que le tooltip d'attribut, donc le même vocabulaire que
- *     partout ailleurs. Un mot-clé qui est un effet se décrit donc tout seul :
- *     changer sa portée en admin change ce que le joueur lit, sans une ligne.
+ * ⚠️ **La phrase, elle, vient de `data/KeywordInfo`** et de nulle part ailleurs
+ * — le codex du tutoriel la lit au même endroit. Ce qui reste ici est la seule
+ * chose que ce module sache faire en plus : RÉSOUDRE l'id.
  *
- * ⚠️ Sans cette seconde source, Tour sortait en chip MUETTE : rien ne dit ce
+ * ⚠️ Sans cette explication, Tour sortait en chip MUETTE : rien ne dit ce
  * qu'un mot-clé veut dire, et une chip d'attribut n'est pas tapable.
  */
 function motCleTexte(id: string, appel?: GuaranteedDraw | null): string | null {
-  const attr = (getAttribute as any)(id);
-  if (!attr) return null;
-  const def = (MOTS_CLES as any)[attr.mot_cle];
-  if (def) return def.aide;
-  if (attr.categorie !== MOT_CLE_CATEGORY) return null;
-  // ⚠️ `withTargets: false` : la cible d'un mot-clé est TOUJOURS son porteur.
-  // Annoncer « (Tour) » derrière chaque effet répéterait le titre juste au-dessus.
-  //
+  // ⚠️ `getAttribute` **jette** tant que la database n'est pas initialisée
+  // (TestBench, CombatLab) : la garde est ici, comme celle d'`AttrIcon`.
+  let attr: any = null;
+  try { attr = (getAttribute as any)(id); } catch { return null; }
   // ⚠️ `appel` traverse jusqu'ici parce qu'un mot-clé peut être PARAMÉTRÉ PAR
   // CARTE (Appelant) : sans lui le bloc annoncerait la mécanique sans dire ce
   // que CETTE carte appelle, c'est-à-dire la seule chose qu'on vient y chercher.
-  const texte = describeEffects((attr.thresholds ?? []).flatMap((t: any) => t.effects ?? []), false, appel);
-  return texte || null;
+  return keywordText(attr, appel, attributeName, cardName);
 }
 
 function Keywords({ ids, appel }: { ids: string[]; appel?: GuaranteedDraw | null }) {
@@ -332,10 +325,10 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
 // terrains, qu'ils partagent désormais via `data/BoardInfo`. Ici les cibles SONT
 // annoncées entre parenthèses : contrairement au terrain, rien ne les répète en
 // dessous avec leur icône.
-function describeEffects(effects: any[], withTargets = true, appel?: GuaranteedDraw | null): string {
+function describeEffects(effects: any[], withTargets = true): string {
   return (effects ?? []).map((e: any) =>
     // ⚠️ `cardName` est passé même sans cibles : une pioche garantie peut NOMMER
     // des cartes, et sans résolveur c'est un id brut qui sort à l'écran.
-    boardEffectLabel(e, withTargets ? (ids) => ids.map(attributeName).join(', ') : undefined, cardName, magieName, appel),
+    boardEffectLabel(e, withTargets ? (ids) => ids.map(attributeName).join(', ') : undefined, cardName, magieName),
   ).join(', ');
 }

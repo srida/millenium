@@ -962,6 +962,15 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 
 Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-clé est un attribut qui décrit ce que la carte FAIT, pas ce qu'elle est.
 
+**Les quatre livrés**, et ce que chacun a coûté au moteur :
+
+| Mot-clé | La règle | Ce qu'il a fallu ajouter |
+|---|---|---|
+| 🗼 **Tour** | portée maximale, et **rien ne la déplace** | `Unit.is_immobile` + trois refus (marche, poussée, téléportation) |
+| ♻️ **Second souffle** | le corps reste au cimetière **à vie** | `MOTS_CLES` — le seul qui ne soit pas une tâche |
+| 💥 **Explosif** | en mourant, détruit l'unité adverse **la plus proche** | un `quand` (`porteur_detruit`), un `tri`, un `vfx`, un balayage des morts qui reboucle |
+| 📣 **Appelant** | **pioche garantie** de ce que SA carte nomme | un paramètre d'effet qui vit sur la CARTE (`card.appel`) |
+
 ⚠️ **Un mot-clé est un EFFET par défaut.** Il s'écrit dans les seuils de l'attribut (`thresholds: [{ count: 1, effects: [...] }]`), avec son `quand` et ses tâches, comme n'importe quel palier d'archétype : le compilateur émet `cible = { camp: 'allie', filtre: { attributs: [porteur] } }`, donc un palier à **1** s'applique à chaque porteur et à lui seul. Il n'y a rien à ajouter pour ce cas.
 
 ⚠️ **`MOTS_CLES` (`effect-schema.mjs`) est la porte de sortie, et elle est étroite** : n'y entre que ce qui n'est PAS une tâche. Le moteur écrit des tâches, il n'a aucune notion de *veto sur une purge* — lui en donner une lui donnerait un cycle de vie qu'il n'a pas (même raison que la mémoire des portées, qui vit chez l'appelant). Aujourd'hui un seul : `cimetiere_permanent`.
@@ -970,12 +979,16 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 |---|---|
 | Déclaration | `MOTS_CLES` / `MOT_CLE_CATEGORY` (`effect-schema.mjs`, racine, partagé avec `admin.html`) |
 | Lecture moteur | `logic/Keywords.ts` — pur, **importe** la racine, la liste d'attributs est passée en argument |
-| Lecture écran | `AttributeDatabase.isKeywordAttribute`, `TooltipHost.motCleTexte` |
+| Mise en mots | **`data/KeywordInfo.keywordText`** — pur, LE seul endroit qui dise ce qu'un mot-clé fait |
+| Lecture écran | `AttributeDatabase.isKeywordAttribute`, `TooltipHost.motCleTexte` (qui ne fait que résoudre l'id) |
 | Donnée | champ `mot_cle` sur l'attribut, `<select>` fermé dans l'onglet Attributs |
 
 - ⚠️ **C'est le champ `mot_cle` qui porte la mécanique, jamais la catégorie** : `indexeMotsCles` ne lit pas `categorie`. Les lier rendrait un mot-clé muet sur un attribut bien renseigné mais mal classé. La catégorie ne sert qu'à RANGER (et un test exige qu'elles s'accordent).
 - ⚠️ Un `mot_cle` inconnu est **refusé nommément** (`IndexMotsCles.refus`), jamais rangé en silence — discipline de `CompilationResult.refus`.
 - ⚠️ `collectAttrFromForm` reconstruit l'objet de zéro : **`mot_cle` y est obligatoire**, et le champ reste visible dès qu'une valeur y est posée. Sans ça, enregistrer une fiche l'effacerait (le piège de `description` sur les magies).
+- ⚠️ **`data/KeywordInfo.keywordText` est la SEULE mise en mots d'un mot-clé**, et il a DEUX lecteurs : l'infobulle de carte et le **codex du tutoriel**. Deux explications du même mot-clé finiraient par ne plus dire la même chose — et c'est le codex qu'un joueur lit pour apprendre la règle. Il prend l'attribut **déjà résolu** et non son id (`getAttribute` jette tant que la database n'est pas initialisée), ce qui le rend **testable en node** : `motCleTexte` ne l'était pas, vivant dans un composant.
+- ⚠️ **Deux sources pour cette phrase, dans cet ordre** : l'`aide` de `MOTS_CLES` quand la règle n'est pas une tâche, sinon les EFFETS des paliers mis en mots par `boardEffectLabel` — la même fonction que le tooltip d'attribut et que l'annonce de terrain. Un mot-clé qui est un effet **se décrit donc tout seul** : changer sa portée en admin change ce que le joueur lit, sans une ligne de code.
+- ⚠️ `keywordText` passe le résolveur d'attributs **même si aucun mot-clé n'annonce de cibles** : `boardEffectLabel` s'en sert aussi pour NOMMER les attributs qu'une pioche garantie exige. Sans lui, un Appelant qui appelle « un Dragon » annoncerait `ARCH_047`.
 - **Affichage** : un mot-clé est **écarté du `SynergyPanel`** (il se déclenche à un exemplaire, il n'attend rien — une puce éternellement verte au milieu de celles qui disent quelque chose) et, quand `MOTS_CLES` l'explique, **de la chip `Keywords`** : le bloc violet du tooltip porte déjà son icône et son nom, au-dessus de son explication. La condition est « ce bloc le dit », jamais « c'est un mot-clé ».
 
 **Tour** — un `stat_bonus range` **et** un `immobile` sur le même palier à 1 : **rien qu'une donnée**, la portée se règle en admin sans toucher au moteur. L'immobilité vaut pour tout changement de case, subi compris.
@@ -1666,7 +1679,7 @@ Bracket local à 8, **entièrement client** (`logic/Tournament.js`), éliminatio
 
 ## Mode tutoriel
 
-Codex de 11 chapitres + partie guidée + création accompagnée du premier deck. Écran `tutorial`.
+Codex de 12 chapitres + partie guidée + création accompagnée du premier deck. Écran `tutorial`.
 
 **Entièrement client, zéro ligne serveur** : pas de route, pas de table, aucune récompense — donc aucune surface de triche. La progression tient dans **une seule clé localStorage**, `millenium_tutorial_v1`.
 
@@ -1676,7 +1689,7 @@ Codex de 11 chapitres + partie guidée + création accompagnée du premier deck.
 
 | Fichier | Rôle |
 |---|---|
-| `data/tutorialContent.ts` | Les 11 chapitres : copie + **sélecteurs** d'exemples, purs |
+| `data/tutorialContent.ts` | Les 12 chapitres : copie + **sélecteurs** d'exemples, purs |
 | `data/tutorialScript.ts` | `advanceGameSteps` / `gameCoachStep` / `deckCoachStep` |
 | `data/tutorialProgress.ts` | localStorage (`shouldInvite`) |
 | `game/tutorialDeck.ts` | `buildTutorialDecks(cards)` — dérivés du catalogue |
@@ -1684,6 +1697,9 @@ Codex de 11 chapitres + partie guidée + création accompagnée du premier deck.
 | `components/tutorial/` | `ChapterBlocks`, `CoachBubble`, `TutorialCoach`, `DeckCoach` |
 
 - Un chapitre ne contient **jamais d'`id` de carte en dur** : ses exemples sont des sélecteurs `(cards) => Card[]` évalués sur le catalogue réel. Le codex suit donc les données.
+- ⚠️ **Ni de RÈGLE recopiée** : le chapitre des mots-clés rend un bloc `keywords` que `ChapterBlocks` résout contre le catalogue, en demandant à `data/KeywordInfo.keywordText` **la même phrase qu'en jeu**. Un mot-clé ajouté, renommé ou reréglé en admin change donc le chapitre sans une ligne — et un joueur ne peut pas lire dans le codex autre chose que ce que sa carte lui dira. ⚠️ Le bloc ne filtre **pas** sur les paliers, contrairement aux attributs de synergie : **Second souffle n'en a aucun**, et l'écarter cacherait le seul mot-clé que le moteur d'effets ne sait pas écrire.
+- ⚠️ **Un mot-clé est écarté des exemples de SYNERGIE** (`AttributeExamples`), même quand il porte un palier : il se déclenche à un exemplaire, donc il n'attend rien. Même raison que son exclusion du `SynergyPanel` — un exemple de synergie qui n'en est pas enseignerait le contraire de son propre chapitre.
+- ⚠️ **Le nombre de fiches de l'accroche est DÉRIVÉ** (`CHAPTERS.length`) : il disait « onze » et la douzième l'a rendu faux sans qu'une ligne de code ne s'en aperçoive. C'est la panne du labo IA — une phrase juste qui cesse de l'être, que ni un test, ni un `innerText`, ni une mesure n'attrape.
 - **Les decks** ne vivent pas dans `DeckRepository` → 5ᵉ paramètre **optionnel** `playerDeck` de `buildSession`, symétrique d'`enemyDeck`. Construction en deux temps imposée par les données (le catalogue n'a presque aucune invocation **normale** au-delà du tier 2) : tiers 1–2 en normales, tiers 3–5 **uniquement des cartes dont les matériaux sont déjà dans le deck**. L'**ATK pèse 20× les PV** dans le classement (ce sont les survivants et leur ATK qui infligent les dégâts ; un mur à 1 ATK partirait au **timeout**, qui blesse les *deux* joueurs).
 - ⚠️ **Le gel des chronos est le seul vrai piège du mode** : sans lui `PrepTimer` lance le combat au bout de 60 s en pleine explication. D'où **`coachBlocking`** dans `GameSnapshot`, sur le modèle exact de `menuOpen` — lu par `prepActive`, `ShoppingTimer` et le décompte d'`EndRoundOverlay`. **Toujours faux hors tutoriel.**
 - **`ai_win` n'est pas crédité** ; les **missions**, en revanche, ne sont *pas* neutralisées (une partie d'entraînement est une partie solo au regard des garde-fous serveur, et la contourner demanderait de toucher `GameController`).
