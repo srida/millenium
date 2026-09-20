@@ -15,7 +15,7 @@ import { primaryTier, tiersOf } from '../../logic/Tiers.js';
 import { materialValueOf } from '../../logic/Unit.js';
 // ⚠️ La SEULE déclaration des mots-clés (racine, partagée avec `admin.html`).
 import { MOTS_CLES, MOT_CLE_CATEGORY } from '../../../../effect-schema.mjs';
-import type { Card } from '../../logic/types.js';
+import type { Card, GuaranteedDraw } from '../../logic/types.js';
 import { STAT_LABELS } from '../../data/StatLabels.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
 import TerrainEffects from '../ui/TerrainEffects.js';
@@ -93,7 +93,7 @@ function StatsRow({ stats }: { stats: Record<string, number> }) {
  * ⚠️ Sans cette seconde source, Tour sortait en chip MUETTE : rien ne dit ce
  * qu'un mot-clé veut dire, et une chip d'attribut n'est pas tapable.
  */
-function motCleTexte(id: string): string | null {
+function motCleTexte(id: string, appel?: GuaranteedDraw | null): string | null {
   const attr = (getAttribute as any)(id);
   if (!attr) return null;
   const def = (MOTS_CLES as any)[attr.mot_cle];
@@ -101,11 +101,15 @@ function motCleTexte(id: string): string | null {
   if (attr.categorie !== MOT_CLE_CATEGORY) return null;
   // ⚠️ `withTargets: false` : la cible d'un mot-clé est TOUJOURS son porteur.
   // Annoncer « (Tour) » derrière chaque effet répéterait le titre juste au-dessus.
-  const texte = describeEffects((attr.thresholds ?? []).flatMap((t: any) => t.effects ?? []), false);
+  //
+  // ⚠️ `appel` traverse jusqu'ici parce qu'un mot-clé peut être PARAMÉTRÉ PAR
+  // CARTE (Appelant) : sans lui le bloc annoncerait la mécanique sans dire ce
+  // que CETTE carte appelle, c'est-à-dire la seule chose qu'on vient y chercher.
+  const texte = describeEffects((attr.thresholds ?? []).flatMap((t: any) => t.effects ?? []), false, appel);
   return texte || null;
 }
 
-function Keywords({ ids }: { ids: string[] }) {
+function Keywords({ ids, appel }: { ids: string[]; appel?: GuaranteedDraw | null }) {
   // ⚠️ Les attributs de TIER sont écartés : le badge de l'en-tête vient de les
   // dire, deux lignes plus haut. Les voies d'invocation, elles, RESTENT — c'est
   // ici qu'on lit « c'est une Fusion », et rien d'autre ne le dit.
@@ -115,7 +119,7 @@ function Keywords({ ids }: { ids: string[] }) {
   // est bien « ce bloc le dit », jamais « c'est un mot-clé » — un mot-clé dont
   // la mécanique est un EFFET n'a pas d'entrée dans `MOTS_CLES`, donc rien ne
   // le dirait ailleurs, donc il garde sa chip.
-  const shown = ids.filter(id => !isTierAttribute(id) && !motCleTexte(id));
+  const shown = ids.filter(id => !isTierAttribute(id) && !motCleTexte(id, appel));
   if (!shown.length) return null;
   return (
     <div className="mt-2 flex flex-wrap gap-1">
@@ -146,9 +150,9 @@ function Keywords({ ids }: { ids: string[] }) {
  * qui garantit qu'un mot-clé expliqué ici est exactement celui que la chip
  * au-dessus a cédé.
  */
-function MotsCles({ ids }: { ids: string[] }) {
+function MotsCles({ ids, appel }: { ids: string[]; appel?: GuaranteedDraw | null }) {
   const portes = ids
-    .map(id => ({ id, attr: (getAttribute as any)(id), texte: motCleTexte(id) }))
+    .map(id => ({ id, attr: (getAttribute as any)(id), texte: motCleTexte(id, appel) }))
     .filter(x => x.texte);
   if (!portes.length) return null;
   return (
@@ -213,8 +217,12 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
           </span>
         </div>
         <StatsRow stats={stats} />
-        <Keywords ids={data.attributes ?? []} />
-        <MotsCles ids={data.attributes ?? []} />
+        {/* ⚠️ `appel` se lit de la même façon sur une CARTE et sur une UNITÉ :
+            `Unit` le recopie de sa carte au constructeur, comme
+            `represented_ids`. Une branche `isUnit` de plus dirait deux fois la
+            même chose. */}
+        <Keywords ids={data.attributes ?? []} appel={data.appel} />
+        <MotsCles ids={data.attributes ?? []} appel={data.appel} />
         {power && (
           <div className="mt-2 rounded-lg border border-orange-400/25 bg-orange-500/5 p-2">
             <div className="flex items-center gap-1 text-[11px] font-bold text-orange-300">
@@ -324,10 +332,10 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
 // terrains, qu'ils partagent désormais via `data/BoardInfo`. Ici les cibles SONT
 // annoncées entre parenthèses : contrairement au terrain, rien ne les répète en
 // dessous avec leur icône.
-function describeEffects(effects: any[], withTargets = true): string {
+function describeEffects(effects: any[], withTargets = true, appel?: GuaranteedDraw | null): string {
   return (effects ?? []).map((e: any) =>
     // ⚠️ `cardName` est passé même sans cibles : une pioche garantie peut NOMMER
     // des cartes, et sans résolveur c'est un id brut qui sort à l'écran.
-    boardEffectLabel(e, withTargets ? (ids) => ids.map(attributeName).join(', ') : undefined, cardName, magieName),
+    boardEffectLabel(e, withTargets ? (ids) => ids.map(attributeName).join(', ') : undefined, cardName, magieName, appel),
   ).join(', ');
 }

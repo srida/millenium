@@ -74,11 +74,26 @@ const BASE = { atk: 20, hp: 200, movement_rate: 50, attack_rate: 50, range: 3 };
 /** Les attributs qui portent au moins un palier — les seuls qui font quelque chose. */
 const AVEC_PALIERS = attributes.filter(a => (a.thresholds ?? []).length > 0);
 
-function unit(cardId: string, attrs: string[], side: 'player' | 'enemy'): Unit {
+function unit(cardId: string, attrs: string[], side: 'player' | 'enemy', appel?: any): Unit {
   return new (Unit as any)(
-    makeCard({ id: cardId, name: cardId, attributes: attrs, stats: { ...BASE } as any }),
+    makeCard({ id: cardId, name: cardId, attributes: attrs, appel, stats: { ...BASE } as any } as any),
     side,
   ) as Unit;
+}
+
+/**
+ * L'`appel` que le casting doit porter — la donnée du mot-clé **Appelant**.
+ *
+ * ⚠️ C'est le premier paramètre d'effet qui vit sur la CARTE et non sur
+ * l'effet : sans lui le palier est muet par construction, le porteur n'ayant
+ * rien à appeler, et l'oracle figerait un silence sur un effet parfaitement
+ * vivant. Même nature que `valuePerAttributes` — une connaissance de CASTING,
+ * jamais une règle réimplémentée.
+ */
+const APPEL_TEMOIN = { card_ids: ['APPELEE'] };
+function appelRequis(threshold: any): any {
+  return (threshold.effects ?? []).some((e: any) => e.type === 'guaranteed_draw_bearer')
+    ? APPEL_TEMOIN : undefined;
 }
 
 /**
@@ -110,13 +125,13 @@ function valuePerAttributes(threshold: any, connus: Set<string>): string[] {
  * multiplie (« × le nombre d'unités adverses portant l'attribut »). Sans lui,
  * tout `stat_bonus` à `value_per` figerait un zéro.
  */
-function casting(attrId: string, count: number, comptesAdverses: string[] = []) {
+function casting(attrId: string, count: number, comptesAdverses: string[] = [], appel?: any) {
   const player: Unit[] = [];
   const enemy: Unit[] = [];
   for (let i = 0; i < count; i++) {
-    player.push(unit(`P${i}_${attrId}`, [attrId], 'player'));
+    player.push(unit(`P${i}_${attrId}`, [attrId], 'player', appel));
     // Le camp adverse porte l'attribut testé ET ceux que `value_per` compte.
-    enemy.push(unit(`E${i}_${attrId}`, [attrId, ...comptesAdverses], 'enemy'));
+    enemy.push(unit(`E${i}_${attrId}`, [attrId, ...comptesAdverses], 'enemy', appel));
   }
   return { player, enemy };
 }
@@ -145,7 +160,7 @@ function deltas(units: Unit[], avant: string[]): Record<string, string> {
  * changé.
  */
 function exerce(attr: any, threshold: any) {
-  const { player, enemy } = casting(attr.id, threshold.count, valuePerAttributes(threshold, ATTR_IDS));
+  const { player, enemy } = casting(attr.id, threshold.count, valuePerAttributes(threshold, ATTR_IDS), appelRequis(threshold));
   // ⚠️ Les deux tableaux sont liés à des VARIABLES et passés tels quels :
   // `_triggerStatModifiers` reconnaît le camp par ÉGALITÉ DE RÉFÉRENCE
   // (`affectedUnits === this.playerUnits`). Un tableau neuf portant les mêmes

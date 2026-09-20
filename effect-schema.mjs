@@ -522,6 +522,23 @@ export const TYPES = Object.freeze({
     attribut: { quands: ['fin_combat'], champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
     magie: { quands: ['immediat'], champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
   },
+  guaranteed_draw_bearer: {
+    label: 'Pioche garantie — ce que la CARTE appelle (Appelant)',
+    court: 'Appelant',
+    // ⚠️ **Un type à part de `guaranteed_draw`, et la raison est dans `champs`**
+    // : il n'en a AUCUN. Les critères ne vivent pas sur l'effet mais sur le
+    // champ `appel` de chaque CARTE porteuse — c'est le premier effet du projet
+    // dont la charge utile est paramétrée par carte.
+    //
+    // ⚠️ Les fondre en un seul type avec un drapeau donnerait un formulaire où
+    // l'on peut écrire les deux, donc DEUX sources pour une même promesse : un
+    // effet qui nomme un tier et des cartes porteuses qui en nomment d'autres.
+    // Un type sans champ ne peut pas se contredire.
+    //
+    // ⚠️ Un seul moment, celui de `guaranteed_draw` : la file
+    // (`player_guaranteed_draws`) est consommée à la pioche du round suivant.
+    attribut: { quands: ['fin_combat'], champs: {} },
+  },
   guaranteed_magie: {
     label: 'Magie garantie à la Phase Shopping (rareté et/ou magie précise)',
     court: 'Magie garantie',

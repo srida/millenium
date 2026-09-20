@@ -44,10 +44,21 @@ const AVEC_PALIERS = attributes.filter(a => (a.thresholds ?? []).length > 0);
 
 const BASE = { atk: 20, hp: 200, movement_rate: 50, attack_rate: 50, range: 3 };
 
-function unit(cardId: string, attrs: string[], side: 'player' | 'enemy'): Unit {
+function unit(cardId: string, attrs: string[], side: 'player' | 'enemy', appel?: any): Unit {
   return new (Unit as any)(
-    makeCard({ id: cardId, name: cardId, attributes: attrs, stats: { ...BASE } as any }), side,
+    makeCard({ id: cardId, name: cardId, attributes: attrs, appel, stats: { ...BASE } as any } as any), side,
   ) as Unit;
+}
+
+/**
+ * L'`appel` que le casting doit porter — la donnée du mot-clé **Appelant**, le
+ * premier paramètre d'effet qui vit sur la CARTE et non sur l'effet. Sans lui,
+ * le porteur n'a rien à appeler et le palier est muet par construction.
+ */
+const APPEL_TEMOIN = { card_ids: ['APPELEE'] };
+function appelRequis(seuil: any): any {
+  return (seuil.effects ?? []).some((e: any) => e.type === 'guaranteed_draw_bearer')
+    ? APPEL_TEMOIN : undefined;
 }
 
 /** Les attributs qu'un palier compte sur le camp adverse (`value_per`). */
@@ -55,12 +66,12 @@ function valuePer(seuil: any): string[] {
   return (seuil.effects ?? []).map((e: any) => e.value_per).filter((v: any) => typeof v === 'string' && ATTR_IDS.has(v));
 }
 
-function casting(attrId: string, count: number, adverses: string[]) {
+function casting(attrId: string, count: number, adverses: string[], appel?: any) {
   const player: Unit[] = [];
   const enemy: Unit[] = [];
   for (let i = 0; i < count; i++) {
-    player.push(unit(`P${i}_${attrId}`, [attrId], 'player'));
-    enemy.push(unit(`E${i}_${attrId}`, [attrId, ...adverses], 'enemy'));
+    player.push(unit(`P${i}_${attrId}`, [attrId], 'player', appel));
+    enemy.push(unit(`E${i}_${attrId}`, [attrId, ...adverses], 'enemy', appel));
   }
   return { player, enemy };
 }
@@ -110,7 +121,7 @@ function etatRessources(r: {
  * doit tenir la liste entière pour retrouver `_attributeMap[attrId]`.
  */
 function cheminCompile(attr: any, seuil: any) {
-  const { player, enemy } = casting(attr.id, seuil.count, valuePer(seuil));
+  const { player, enemy } = casting(attr.id, seuil.count, valuePer(seuil), appelRequis(seuil));
   const ressources: Ressources = ressourcesVides();
   const neutralisees: Unit[] = [];
 

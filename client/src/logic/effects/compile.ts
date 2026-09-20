@@ -337,6 +337,9 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   revive: ['fin_combat'],
   draw_bonus: ['fin_combat'],
   guaranteed_draw: ['fin_combat'],
+  // Le mot-clé **Appelant** — même moment et même file que `guaranteed_draw`,
+  // dont il ne diffère que par l'endroit où se lisent les critères.
+  guaranteed_draw_bearer: ['fin_combat'],
   board_slot_bonus: ['fin_combat'],
   damage_multiplier_bonus: ['fin_combat'],
   shopping_bonus: ['fin_combat'],
@@ -621,6 +624,34 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
               attribute: (effect.attribute as string) ?? null,
               attributes: effect.attributes as string[] | undefined,
               card_ids: effect.card_ids as string[] | undefined,
+            },
+            provenance: 'attribut',
+          }]);
+          return;
+
+        // **Appelant** — chaque porteur appelle ce que SA carte nomme.
+        //
+        // ⚠️ La tâche vise toujours le conteneur `joueur` : c'est bien sa file
+        // de pioches qu'on remplit. Ce qui change, c'est d'où viennent les
+        // critères — `criteresDesPorteurs` dit OÙ LIRE, `cible` dit QUI REÇOIT,
+        // et c'est la première fois que les deux réponses diffèrent.
+        //
+        // ⚠️ `inclureNeutralisees` est la RÈGLE du mot-clé, pas une tolérance :
+        // appelle quiconque a PARTICIPÉ au combat, mort compris. À `fin_combat`
+        // `unitesAlliees` porte exactement ce monde-là. Sans ce drapeau, un
+        // appelant tombé au dernier tick n'appellerait pas — et « il a démarré
+        // la phase de combat » deviendrait « il y a survécu », ce qui n'est pas
+        // la même promesse.
+        case 'guaranteed_draw_bearer':
+          pousse([{
+            action: 'modifier',
+            cible: { conteneur: 'joueur', camp: 'allie', combien: 'un' },
+            champ: 'pioches_garanties',
+            operateur: '+', valeur: 0, duree: 'round',
+            criteresDesPorteurs: {
+              conteneur: 'board', camp: 'allie',
+              filtre: { attributs: [porteur], inclureNeutralisees: true },
+              combien: 'tous',
             },
             provenance: 'attribut',
           }]);

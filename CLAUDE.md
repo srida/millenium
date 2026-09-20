@@ -1016,6 +1016,26 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 - **L'événement `keyword`** (`{ unit, vfx, targets }`) est distinct de `power` à dessein : `GameController` compte un `power_triggered` de mission sur chaque `power`, et un mot-clé n'en est pas un. Il est émis **même sans victime** — c'est le porteur qui explose. ⚠️ Il porte la clé VISUELLE, jamais l'id de l'attribut : `three/` n'importe pas `data/` et ne saurait pas le résoudre (statut exact de `power_id`). La clé est écrite **une seule fois**, dans `VFX_EXPLOSIF` (`effects/types.ts`), et importée des deux côtés.
 - **VFX** : `RECIPES_MOT_CLE`, une table à part de `RECIPES` — celle-ci est indexée par `power_id` et son repli générique confondrait en silence un mot-clé avec un pouvoir. `playKeywordVfx` n'a donc **aucun repli** : un mot-clé sans recette ne dessine rien (Tour et Second souffle sont purement passifs). Grammaire : flash + anneau + éclats orange sur la case du PORTEUR (c'est lui qui explose), écho plus petit sur la victime. ⚠️ Pas de garde `ctx.dying` sur la victime, contrairement au repli de `playPowerVfx` : elle est justement en train de mourir, et c'est l'explosion qui la tue.
 
+**Appelant** — un `guaranteed_draw_bearer` seul sur un palier à 1, à `fin_combat`. Chaque porteur **promet la carte que SA carte nomme**, au tour suivant.
+
+⚠️ **Ce n'est pas une invocation, c'est une pioche garantie** : même file (`player_guaranteed_draws`), même `Draw.resolveGuaranteedDraws`, mêmes critères (`GuaranteedDraw`). Ce qui n'existait pas avant lui, c'est que **la charge utile de l'effet vit sur la CARTE** — un attribut ordinaire promet la même chose à tous ses porteurs.
+
+| La moitié qui manquait | Où |
+|---|---|
+| Le champ de carte `appel` (`GuaranteedDraw`) | `Card.appel`, recopié par `Unit` comme `represented_ids` |
+| Un type d'effet SANS aucun champ | `guaranteed_draw_bearer` (`effect-schema.mjs`) |
+| `TacheModifier.criteresDesPorteurs` — OÙ LIRE, à côté de `cible` qui dit QUI REÇOIT | `effects/types.ts`, résolu par `appliqueModifierJoueur` |
+| `Selecteur.filtre.inclureNeutralisees` | `effects/engine.resoudre` |
+
+- ⚠️ **Un type à part de `guaranteed_draw`, et la raison est dans `champs` : il n'en a AUCUN.** Les fondre sous un drapeau donnerait un formulaire où l'on peut écrire les deux, donc DEUX sources pour une même promesse — un effet qui nomme un tier et des cartes porteuses qui en nomment d'autres. Un type sans champ ne peut pas se contredire. Même arbitrage que `destroy_enemy` vs `destroy_unit`.
+- ⚠️ **`cible` et `criteresDesPorteurs` ne répondent pas à la même question**, et c'est la première fois du projet que les deux réponses diffèrent : la tâche vise le conteneur `joueur` (c'est bien sa file de pioches qu'on remplit) et lit les critères sur les PORTEURS. Le sélecteur est porté par le **compilateur**, jamais fabriqué par le moteur — « les porteurs de cet attribut » est une intention, et l'intention appartient à la traduction.
+- ⚠️ **`inclureNeutralisees` est la RÈGLE, pas une tolérance** : « chaque round où l'unité appelante démarre la phase de combat ». À `fin_combat`, `unitesAlliees` porte exactement ceux qui l'ont commencé (`AttributeManager` garde ses tableaux, `finishCombat` fait le ménage après). Sans le drapeau, « il a démarré le combat » deviendrait « il y a survécu », ce qui n'est pas la même promesse.
+- ⚠️ **Un porteur sans `appel` ne promet RIEN**, et le moteur le dit (`neant`) — jamais une pioche « au choix », qui serait une promesse inventée à sa place. Les deux moitiés vont par **paire** : `npm run audit:cards` sort en 1 dans les **deux** sens (l'attribut sans l'appel, l'appel sans l'attribut). C'est l'audit et non `card-contract.js` parce qu'il est le seul à voir les deux catalogues — le contrat d'écriture ne reçoit que la carte.
+- ⚠️ **Rien à ajouter au contrat PvP** : `appel` se dérive du `card_id`, que le payload porte déjà, et `reconstructOpponentUnits` reconstruit l'unité depuis la carte du catalogue commun. Statut exact de `tier` et de `represented_ids`.
+- **L'IA le porte comme un vrai joueur** : la pioche a bien un destinataire des deux côtés (`enemy_guaranteed_draws` → `EnemyAI.drawHand`).
+- **Admin** : le champ `appel` d'une carte est édité par **le même widget** que les critères d'une pioche garantie (`renderGuaranteedDrawCriteria`, scope `'carte'` dans `_gdScope`) — c'est la même promesse, un second éditeur finirait par proposer autre chose. ⚠️ Un appel vide n'est **jamais persisté** (`appelFromForm` rend `undefined`) : `{}` se lirait comme « au choix ». L'écran signale le dépareillage dans les deux sens, comme l'audit.
+- ⚠️ `attrEstAppelant` (`admin.html`) et `estAppelant` (`scripts/audit-cards.js`) sont **jumeaux** : la question se pose sur le TYPE D'EFFET, jamais sur l'id ni sur le nom de l'attribut — « Appelant » se renomme, `ARCH_099` n'est qu'un numéro.
+
 | Effet | Timing | Détail |
 |---|---|---|
 | `stat_bonus` | `start_of_combat` · `on_summon` · `on_power_fired` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step). ⚠️ Sur `attack_rate` / `movement_rate`, le bonus est **positif pour accélérer** et s'écrête à 100 |
@@ -1028,6 +1048,7 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 | `revive` | `end_of_combat` | Réanime une unité neutralisée à `hp_percent` % (déf. 50) |
 | `draw_bonus` | `end_of_combat` | Pioches supplémentaires (plafonné par `max`) |
 | `guaranteed_draw` | `end_of_combat` | Pousse les critères dans `player_guaranteed_draws` — ⚠️ **les mêmes qu'une magie** (`tier`, `attributes`, `card_ids`) : même file, même `Draw.resolveGuaranteedDraws`, donc même éditeur d'admin |
+| `guaranteed_draw_bearer` | `end_of_combat` | Même file, **critères lus sur la CARTE** (`card.appel`) : une promesse par porteur. Aucun champ sur l'effet (cf. « Les mots-clés ») |
 | `board_slot_bonus` | `end_of_combat` | Via `grantLimitedBoardSlotBonus` — **cap +1 partagé avec les magies de slot** |
 | `damage_multiplier_bonus` | `end_of_combat` | S'ajoute au `player_multiplier` **de ce round** |
 | `shopping_bonus` | `end_of_combat` | Magies supplémentaires au Shopping suivant (plafonné par `max`) |

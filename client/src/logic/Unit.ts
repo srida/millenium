@@ -1,4 +1,4 @@
-import type { Card, DotEffect, BurnStack, Position, Side } from './types.js';
+import type { Card, DotEffect, BurnStack, GuaranteedDraw, Position, Side } from './types.js';
 import { primaryTier } from './Tiers.js';
 // L'échelle de vitesse vit À LA RACINE et nulle part ailleurs (cf. l'en-tête de
 // `speed-scale.mjs`) : le bundle client, `admin.html` et les scripts Node y
@@ -59,6 +59,17 @@ export class Unit {
   // ⚠️ A NAMED requirement is paid one slot at a time whatever this says:
   // `InvocationManager.materialSlotsPaid` is the only place that counts.
   material_value: number;
+  /**
+   * Ce que la carte APPELLE — le paramètre du mot-clé Appelant, recopié de la
+   * carte comme `represented_ids` et `material_value`.
+   *
+   * ⚠️ **Rien à ajouter au contrat PvP** : il se DÉRIVE du `card_id`, que le
+   * payload porte déjà, et le catalogue est commun aux deux clients —
+   * `reconstructOpponentUnits` reconstruit l'unité depuis la carte, donc le
+   * champ arrive tout seul. C'est le statut de `tier` et de `represented_ids`,
+   * et la raison pour laquelle le contrat de déterminisme n'a pas grossi.
+   */
+  appel: GuaranteedDraw | null;
   power_id: string | null;
   /**
    * Le compteur de chargement du pouvoir, 0–100 (`speed-scale.mjs`).
@@ -213,6 +224,7 @@ export class Unit {
 
     this.represented_ids = [...new Set([card.id, ...(card.represented_ids || [])])];
     this.material_value = materialValueOf(card);
+    this.appel = card.appel ?? null;
     this.power_id = card.power?.id ?? null;
     this.power_rate = card.power?.power_rate ?? null;
     this.power_value = card.power?.value ?? null;

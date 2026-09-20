@@ -66,6 +66,15 @@ export function boardEffectLabel(
   /** ⚠️ `guaranteed_magie` peut NOMMER une magie : sans résolveur, son id brut
    *  sort à l'écran. Même règle que `cardName` pour `guaranteed_draw`. */
   magieName: (id: string) => string = (id) => id,
+  /**
+   * Ce que la CARTE porteuse appelle — le seul paramètre d'effet du projet qui
+   * ne vit pas sur l'effet (mot-clé **Appelant**, `guaranteed_draw_bearer`).
+   *
+   * ⚠️ Un argument et non une lecture : cette fonction est PURE et ne connaît
+   * aucune carte. C'est exactement le statut de `cardName` et de `magieName` —
+   * l'appelant sait de quelle carte il parle, pas elle.
+   */
+  appel?: import('../logic/types.js').GuaranteedDraw | null,
 ): string {
   if (!effect?.type) return 'Aucun effet';
   const targetAttrs = (effect as BoardEffectDef).target_attributes;
@@ -108,6 +117,15 @@ export function boardEffectLabel(
         ? `Pioche garantie ${guaranteedDrawLabel(draw, id => attributeNames?.([id]) ?? id, cardName)}`
         : 'Pioche garantie';
     }
+    // ⚠️ Le mot-clé **Appelant**. Le seul libellé du fichier qui dépende d'une
+    // donnée EXTÉRIEURE à l'effet : ses critères vivent sur la carte porteuse.
+    // Sans `appel`, on annonce la mécanique sans la promesse — jamais « Au
+    // choix », qui serait une promesse que le moteur ne tiendra pas (un porteur
+    // sans appel ne pousse rien).
+    case 'guaranteed_draw_bearer':
+      return appel && hasGuaranteedDrawCriteria(appel)
+        ? `Appelle ${guaranteedDrawLabel(appel, id => attributeNames?.([id]) ?? id, cardName)} au tour suivant`
+        : 'Appelle ce que sa carte nomme, au tour suivant';
     case 'revive':            return 'Réanimation';
     // ⚠️ Le mot-clé **Tour**, et il DIT SES DEUX MOITIÉS : « immobile » seul
     // (le repli sur le type brut, qui sortait avant) laisse croire qu'on peut

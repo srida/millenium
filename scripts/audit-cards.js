@@ -43,6 +43,18 @@ const byId = Object.fromEntries(ATTRS.map(a => [a.id, a]));
 const INDEX = tierIndex(ATTRS);
 const tiersOf = card => resolveTiers(card, INDEX);
 
+/**
+ * Cet attribut lit-il le champ `appel` de ses porteurs ?
+ *
+ * ⚠️ La question se pose sur le TYPE D'EFFET, jamais sur l'id ni sur le nom de
+ * l'attribut : « Appelant » se renomme en admin, et `ARCH_099` n'est qu'un
+ * numéro. C'est la même discipline que « la catégorie dit qu'un attribut est un
+ * tier, son champ `tier` dit lequel ».
+ */
+const EFFET_APPELANT = 'guaranteed_draw_bearer';
+const estAppelant = attr =>
+  !!attr && (attr.thresholds ?? []).some(t => (t.effects ?? []).some(e => e.type === EFFET_APPELANT));
+
 function audit() {
   const missing = Object.fromEntries(REQUIRED_CATEGORIES.map(c => [c, []]));
   const unknownAttr = [];
@@ -51,6 +63,7 @@ function audit() {
   const badRates = [];
   const badDurations = [];
   const multiTier = [];
+  const appelsOrphelins = [];
 
   for (const c of CARDS) {
     const attrs = c.attributes ?? [];
@@ -87,6 +100,20 @@ function audit() {
     if (c.stats && c.stats.initiative !== undefined) {
       legacyInitiative.push(`${c.id} → stats.initiative ${c.stats.initiative}`);
     }
+
+    // ⚠️ **Le mot-clé Appelant et son paramètre `appel` vont par PAIRE**, et
+    // c'est l'audit qui le dit parce qu'il est le seul à voir les DEUX
+    // catalogues : le contrat d'écriture (`card-contract.js`) ne reçoit que la
+    // carte, il ne peut pas savoir qu'un de ses attributs réclame un paramètre.
+    //
+    // Les deux moitiés sont muettes en jeu, et c'est bien le problème :
+    //   • l'attribut sans l'appel → le porteur n'appelle rien, le moteur trace
+    //     un `neant` que personne ne lit ;
+    //   • l'appel sans l'attribut → de la donnée que rien ne déclenche.
+    const porteAppelant = attrs.some(id => estAppelant(byId[id]));
+    const aUnAppel = c.appel && Object.values(c.appel).some(v => v != null && (!Array.isArray(v) || v.length));
+    if (porteAppelant && !aUnAppel) appelsOrphelins.push(`${c.id} → porte Appelant, sans champ appel`);
+    if (!porteAppelant && aUnAppel) appelsOrphelins.push(`${c.id} → champ appel, sans attribut Appelant`);
   }
 
   const attrsWithoutTier = ATTRS
@@ -95,14 +122,15 @@ function audit() {
 
   return {
     missing, unknownAttr, legacyField, legacyInitiative,
-    badRates, badDurations, multiTier, attrsWithoutTier,
+    badRates, badDurations, multiTier, attrsWithoutTier, appelsOrphelins,
   };
 }
 
 const r = audit();
 const errors = REQUIRED_CATEGORIES.reduce((n, c) => n + r.missing[c].length, 0)
   + r.unknownAttr.length + r.legacyField.length + r.legacyInitiative.length
-  + r.badRates.length + r.badDurations.length + r.attrsWithoutTier.length;
+  + r.badRates.length + r.badDurations.length + r.attrsWithoutTier.length
+  + r.appelsOrphelins.length;
 
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify({ source: DATA, cards: CARDS.length, errors, ...r }, null, 2));
@@ -124,6 +152,7 @@ show('✗ Champ `stats.initiative` résiduel (le retirer : scripts/migrate-initi
 show('✗ Vitesse manquante ou en ticks (reprise : scripts/migrate-speeds.js --write)', r.badRates);
 show('✗ Durée de pouvoir invalide ou en ticks (reprise : scripts/migrate-speeds.js --write)', r.badDurations);
 show('✗ Attribut de tier sans champ `tier`', r.attrsWithoutTier);
+show('✗ Mot-clé Appelant et champ `appel` dépareillés', r.appelsOrphelins);
 show('· Cartes multi-tiers', r.multiTier);
 console.log(errors ? `\n${errors} carte(s) hors contrat.` : '\n✓ Contrat respecté.');
 

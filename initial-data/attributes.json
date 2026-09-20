@@ -1957,5 +1957,23 @@
 				]
 			}
 		]
+	},
+	{
+		"id": "ARCH_099",
+		"name": "Appelant",
+		"icon": "📣",
+		"timing": "end_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "bronze",
+				"effects": [
+					{
+						"type": "guaranteed_draw_bearer"
+					}
+				]
+			}
+		]
 	}
 ]

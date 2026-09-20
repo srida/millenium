@@ -2225,5 +2225,33 @@ exports[`Attributs livrés — l'oracle de l'étape 0 > ce que chaque palier de 
     ],
     "timing": "on_self_neutralized",
   },
+  {
+    "categorie": "MotCle",
+    "id": "ARCH_099",
+    "nom": "Appelant",
+    "paliers": [
+      {
+        "effets": [
+          "guaranteed_draw_bearer",
+        ],
+        "ennemi": {},
+        "joueur": {
+          "P0_ARCH_099": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 0/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · neutralisé",
+        },
+        "palier": 1,
+        "ressources": {
+          "garanties": [
+            "—:—:APPELEE",
+          ],
+          "multiplicateur": 0,
+          "pioches": 0,
+          "reanimes": [],
+          "shopping": 0,
+          "slots": 0,
+        },
+      },
+    ],
+    "timing": "end_of_combat",
+  },
 ]
 `;

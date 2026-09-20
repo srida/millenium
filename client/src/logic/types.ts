@@ -81,6 +81,21 @@ export interface Card {
   /** Lignée : IDs que l'unité résultante « représente » pour le matching de matériaux. */
   represented_ids?: string[];
   /**
+   * Ce que cette carte APPELLE — le paramètre du mot-clé Appelant.
+   *
+   * ⚠️ **Le premier paramètre d'effet qui vit sur la CARTE et non sur l'effet.**
+   * Un attribut ordinaire porte sa charge utile dans son palier, la même pour
+   * tous ses porteurs ; Appelant est un effet dont chaque porteur nomme sa
+   * propre promesse. La forme est celle des critères d'une pioche garantie —
+   * littéralement `GuaranteedDraw`, pas un jumeau : c'est la même file
+   * (`player_guaranteed_draws`) et le même `Draw.resolveGuaranteedDraws`.
+   *
+   * ⚠️ Il ne DÉCLENCHE rien tout seul. Une carte peut le porter sans porter
+   * l'attribut : c'est alors une donnée morte, que `npm run audit:cards`
+   * signale, et l'inverse (l'attribut sans l'appel) aussi.
+   */
+  appel?: GuaranteedDraw | null;
+  /**
    * Les voies d'invocation de la carte : la carte est jouable dès qu'**une**
    * condition est satisfaite. Absent ou vide = aucune condition.
    */

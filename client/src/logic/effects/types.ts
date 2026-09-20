@@ -86,6 +86,21 @@ export interface Selecteur {
     /** OU entre les entrées, sur l'id de carte. */
     cartes?: readonly string[];
     tiers?: readonly number[];
+    /**
+     * Garder aussi les unités NEUTRALISÉES du conteneur `board`.
+     *
+     * ⚠️ Absent (le cas de tous les autres sélecteurs), seules les vivantes
+     * sortent — c'est ce que « les unités du plateau » veut dire pour un bonus
+     * ou un statut. Mais à `fin_combat`, `unitesAlliees` porte **tout le monde
+     * qui a commencé le combat**, morts compris (`AttributeManager` garde ses
+     * tableaux, `finishCombat` fait le ménage après) : c'est la seule façon
+     * d'exprimer « chaque porteur qui a PARTICIPÉ au combat », qui est la règle
+     * du mot-clé Appelant.
+     *
+     * ⚠️ Même esprit que le décompte de fin de combat, qui inclut déjà les
+     * neutralisés (« le palier tient même si les porteurs sont morts »).
+     */
+    inclureNeutralisees?: boolean;
   };
   /** `tous` est le seul cas que l'existant exerce ; `un` attend un choix. */
   combien: 'tous' | 'un';
@@ -269,6 +284,21 @@ export interface TacheModifier {
    *  d'une magie garantie (`champ: 'magies_garanties'`) — un seul champ pour
    *  les deux, comme leurs deux registres partagent la même forme. */
   criteres?: GuaranteedDraw | GuaranteedMagie;
+  /**
+   * Les critères viennent des PORTEURS, pas de la tâche — une entrée par
+   * porteur, lue dans son champ `appel` (le mot-clé Appelant).
+   *
+   * ⚠️ **Le destinataire reste le JOUEUR** : `cible` désigne toujours le
+   * conteneur `joueur`, parce que c'est bien sa file de pioches qu'on remplit.
+   * Ce sélecteur-ci ne dit pas QUI reçoit, il dit OÙ LIRE — et les deux
+   * questions n'ont pas la même réponse pour la première fois ici.
+   *
+   * ⚠️ C'est le compilateur qui porte le sélecteur, jamais le moteur qui le
+   * fabrique : « les porteurs de cet attribut » est une INTENTION, et l'intention
+   * appartient à la traduction (§4). Un moteur qui synthétiserait un sélecteur
+   * s'en donnerait une seconde version.
+   */
+  criteresDesPorteurs?: Selecteur;
   /** Ce que le registre de provenance inscrit comme origine. */
   provenance?: 'attribut' | 'terrain' | 'magie';
   /**

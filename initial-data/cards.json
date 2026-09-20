@@ -377,8 +377,14 @@
 			"ARCH_022",
 			"ARCH_050",
 			"ARCH_090",
-			"ARCH_091"
+			"ARCH_091",
+			"ARCH_099"
 		],
+		"appel": {
+			"card_ids": [
+				"CORE_015"
+			]
+		},
 		"stats": {
 			"atk": 15,
 			"hp": 120,

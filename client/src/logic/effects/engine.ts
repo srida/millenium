@@ -254,8 +254,12 @@ function resoudre(sel: Selecteur, monde: Monde): Unit[] {
       : sel.camp === 'ennemi' ? [...monde.unitesEnnemies]
         : [...monde.unitesAlliees, ...monde.unitesEnnemies];
 
-  const vivantes = sel.conteneur === 'cimetiere' ? [...pool] : pool.filter(u => u.isAlive());
   const f = sel.filtre;
+  // ⚠️ Un cimetière ne contient QUE des neutralisées : le filtre de vie n'y a
+  // jamais eu de sens, et `inclureNeutralisees` n'y change donc rien.
+  const vivantes = sel.conteneur === 'cimetiere' || f?.inclureNeutralisees
+    ? [...pool]
+    : pool.filter(u => u.isAlive());
   const filtrees = !f ? vivantes : vivantes.filter(u => {
     if (f.attributs?.length && !u.attributes.some(a => f.attributs!.includes(a))) return false;
     if (f.cartes?.length && !f.cartes.includes(u.card_id)) return false;
@@ -491,15 +495,28 @@ function appliqueSurJoueur(t: TacheModifier, monde: Monde, trace: Trace): void {
       }
       trace.applique.push(`joueur·pv+${d}`);
       return;
-    case 'pioches_garanties':
-      if (t.criteres) {
-        cible.pioches_garanties.push(t.criteres as GuaranteedDraw);
-        {
-          cible.sources.push({ kind: t.provenance ?? 'attribut', ref: monde.source ?? '', value: 0, guaranteed: true });
-        }
+    case 'pioches_garanties': {
+      // ⚠️ **Deux sources, jamais les deux à la fois** : les critères sont
+      // écrits DANS la tâche (`guaranteed_draw`, une promesse pour tout le
+      // palier) ou lus SUR CHAQUE PORTEUR (`guaranteed_draw_bearer`, le mot-clé
+      // Appelant — une promesse par carte). Ce sont deux TYPES d'effet
+      // distincts, donc le schéma ne laisse pas écrire les deux.
+      //
+      // ⚠️ Un porteur sans `appel` ne promet RIEN, et le dit (`neant`) : c'est
+      // une carte à qui l'on a donné le mot-clé sans lui donner sa cible, et
+      // inventer une pioche « au choix » à sa place serait pire que le silence.
+      // `audit:cards` la nomme.
+      const criteres = t.criteresDesPorteurs
+        ? resoudre(t.criteresDesPorteurs, monde).map(u => u.appel).filter((c): c is GuaranteedDraw => !!c)
+        : (t.criteres ? [t.criteres as GuaranteedDraw] : []);
+      for (const c of criteres) {
+        cible.pioches_garanties.push(c);
+        cible.sources.push({ kind: t.provenance ?? 'attribut', ref: monde.source ?? '', value: 0, guaranteed: true });
+        trace.applique.push('joueur·pioche_garantie');
       }
-      trace.applique.push('joueur·pioche_garantie');
+      if (!criteres.length) trace.neant.push('joueur·(aucun appel)');
       return;
+    }
     case 'magies_garanties':
       if (t.criteres) cible.magies_garanties.push(t.criteres as GuaranteedMagie);
       trace.applique.push('joueur·magie_garantie');
