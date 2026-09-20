@@ -26,18 +26,45 @@ import { fileURLToPath } from 'node:url';
 import { AttributeManager } from '../logic/AttributeManager.js';
 import { Unit } from '../logic/Unit.js';
 import { makeCard } from './helpers.js';
+// ⚠️ Le SCHÉMA fait foi sur « quel type part à quel moment » (`effect-schema.mjs`,
+// racine, pur) : c'est lui que `compile.ts` traduit, donc lui que cet oracle doit
+// interroger plutôt que de s'en tenir une copie.
+import { TYPES, TIMING_PAR_QUAND } from '../../../effect-schema.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const attributes: any[] = JSON.parse(readFileSync(path.join(ROOT, 'initial-data/attributes.json'), 'utf8'));
 const ATTR_IDS = new Set<string>(attributes.map(a => a.id));
 
-/** Ce que chaque passe d'`AttributeManager` sait exécuter — ses `case`, en dur. */
-const PAR_TIMING: Record<string, Set<string>> = {
-  start_of_combat: new Set(['stat_bonus', 'shield', 'effect_immunity']),
-  during_combat: new Set(['stat_modifier']),
-  end_of_combat: new Set(['revive', 'draw_bonus', 'guaranteed_draw', 'board_slot_bonus', 'damage_multiplier_bonus', 'shopping_bonus']),
-  none: new Set(),
-};
+/**
+ * Ce que chaque passe sait exécuter — **dérivé du SCHÉMA, jamais recopié**.
+ *
+ * ⚠️ La table était écrite en dur ici, et c'était le jumeau de trop : elle
+ * décrivait les `case` d'`AttributeManager`, qui n'en a plus un seul depuis que
+ * `compile.ts` traduit et `engine.ts` applique. Deux types offerts à
+ * `fin_combat` par le schéma (`heal`, `player_hp_bonus`) sont donc arrivés dans
+ * le catalogue sans que la table le sache, et ce test déclarait morts quatre
+ * paliers parfaitement vivants — l'exact contraire de ce qu'il existe pour dire
+ * (« un outil qui crie au loup sur les cas sains est pire qu'un outil absent »).
+ *
+ * Dérivée, elle ne peut plus dériver : un type offert à un moment y entre tout
+ * seul, et un moment qu'aucun type n'honore reste vide.
+ */
+const PAR_TIMING: Record<string, Set<string>> = (() => {
+  const table: Record<string, Set<string>> = { none: new Set() };
+  for (const timing of Object.values(TIMING_PAR_QUAND)) table[timing as string] = new Set();
+  // `during_combat` n'est le jumeau d'aucun `quand` : un `stat_modifier` porte
+  // son moment dans son propre `trigger` (`selon_trigger`), d'où le cas à part.
+  table.during_combat = new Set();
+  for (const [type, def] of Object.entries(TYPES as Record<string, any>)) {
+    for (const quand of def.attribut?.quands ?? []) {
+      const timing = quand === 'selon_trigger'
+        ? 'during_combat'
+        : (TIMING_PAR_QUAND as Record<string, string>)[quand as string];
+      if (timing) table[timing].add(type);
+    }
+  }
+  return table;
+})();
 
 /** Les deux déclencheurs que `_triggerStatModifiers` connaît. */
 const TRIGGERS = ['on_ally_neutralized', 'on_enemy_neutralized'];
@@ -47,11 +74,26 @@ const BASE = { atk: 20, hp: 200, movement_rate: 50, attack_rate: 50, range: 3 };
 /** Les attributs qui portent au moins un palier — les seuls qui font quelque chose. */
 const AVEC_PALIERS = attributes.filter(a => (a.thresholds ?? []).length > 0);
 
-function unit(cardId: string, attrs: string[], side: 'player' | 'enemy'): Unit {
+function unit(cardId: string, attrs: string[], side: 'player' | 'enemy', appel?: any): Unit {
   return new (Unit as any)(
-    makeCard({ id: cardId, name: cardId, attributes: attrs, stats: { ...BASE } as any }),
+    makeCard({ id: cardId, name: cardId, attributes: attrs, appel, stats: { ...BASE } as any } as any),
     side,
   ) as Unit;
+}
+
+/**
+ * L'`appel` que le casting doit porter — la donnée du mot-clé **Appelant**.
+ *
+ * ⚠️ C'est le premier paramètre d'effet qui vit sur la CARTE et non sur
+ * l'effet : sans lui le palier est muet par construction, le porteur n'ayant
+ * rien à appeler, et l'oracle figerait un silence sur un effet parfaitement
+ * vivant. Même nature que `valuePerAttributes` — une connaissance de CASTING,
+ * jamais une règle réimplémentée.
+ */
+const APPEL_TEMOIN = { card_ids: ['APPELEE'] };
+function appelRequis(threshold: any): any {
+  return (threshold.effects ?? []).some((e: any) => e.type === 'guaranteed_draw_bearer')
+    ? APPEL_TEMOIN : undefined;
 }
 
 /**
@@ -83,13 +125,13 @@ function valuePerAttributes(threshold: any, connus: Set<string>): string[] {
  * multiplie (« × le nombre d'unités adverses portant l'attribut »). Sans lui,
  * tout `stat_bonus` à `value_per` figerait un zéro.
  */
-function casting(attrId: string, count: number, comptesAdverses: string[] = []) {
+function casting(attrId: string, count: number, comptesAdverses: string[] = [], appel?: any) {
   const player: Unit[] = [];
   const enemy: Unit[] = [];
   for (let i = 0; i < count; i++) {
-    player.push(unit(`P${i}_${attrId}`, [attrId], 'player'));
+    player.push(unit(`P${i}_${attrId}`, [attrId], 'player', appel));
     // Le camp adverse porte l'attribut testé ET ceux que `value_per` compte.
-    enemy.push(unit(`E${i}_${attrId}`, [attrId, ...comptesAdverses], 'enemy'));
+    enemy.push(unit(`E${i}_${attrId}`, [attrId, ...comptesAdverses], 'enemy', appel));
   }
   return { player, enemy };
 }
@@ -118,7 +160,7 @@ function deltas(units: Unit[], avant: string[]): Record<string, string> {
  * changé.
  */
 function exerce(attr: any, threshold: any) {
-  const { player, enemy } = casting(attr.id, threshold.count, valuePerAttributes(threshold, ATTR_IDS));
+  const { player, enemy } = casting(attr.id, threshold.count, valuePerAttributes(threshold, ATTR_IDS), appelRequis(threshold));
   // ⚠️ Les deux tableaux sont liés à des VARIABLES et passés tels quels :
   // `_triggerStatModifiers` reconnaît le camp par ÉGALITÉ DE RÉFÉRENCE
   // (`affectedUnits === this.playerUnits`). Un tableau neuf portant les mêmes
@@ -147,6 +189,16 @@ function exerce(attr: any, threshold: any) {
     const adverse = enemy[enemy.length - 1];
     adverse.is_neutralized = true;
     mgr.onUnitNeutralized(adverse, player, enemy);
+  } else if (attr.timing === 'on_self_neutralized') {
+    // ⚠️ La passe du mot-clé **Explosif**, et elle a deux exigences que les
+    // autres n'ont pas : `applyStartOfCombat` d'abord (c'est lui qui VERROUILLE
+    // les seuils, et le porteur mort ne compterait plus dans le sien), et un
+    // camp adverse qui ait bien quelqu'un à emporter — le casting en fournit
+    // autant de chaque côté, donc il y en a un.
+    mgr.applyStartOfCombat();
+    const explose = player[player.length - 1];
+    explose.is_neutralized = true;
+    mgr.onBearerNeutralized(explose, player, enemy);
   } else if (attr.timing === 'end_of_combat') {
     // Un mort de chaque côté : `revive` n'a rien à réanimer sans lui, et le
     // décompte de fin de combat inclut les neutralisés à dessein (le palier

@@ -38,6 +38,19 @@ export const QUANDS = [
   'a_l_invocation',
   'debut_combat',
   'pouvoir_utilise',
+  /**
+   * **Le porteur LUI-MÊME vient d'être neutralisé** — le mot-clé Explosif.
+   *
+   * ⚠️ Il ne double pas `allie_detruit`, il répond à une autre question.
+   * `allie_detruit` dit « quelqu'un de mon camp est tombé » et s'adresse aux
+   * SURVIVANTS ; celui-ci dit « c'est MOI qui suis tombé » et s'adresse au
+   * mort. Sans lui, un Explosif partirait sur chaque mort alliée, y compris
+   * celles des autres — et autant de fois qu'il y a d'Explosifs vivants.
+   *
+   * ⚠️ C'est le seul `quand` dont l'effet a besoin de savoir QUI l'a déclenché :
+   * le porteur voyage dans `Monde.porteur`, et c'est lui que `tri` mesure.
+   */
+  'porteur_detruit',
   'allie_detruit',
   'ennemi_detruit',
   'fin_combat',
@@ -73,9 +86,41 @@ export interface Selecteur {
     /** OU entre les entrées, sur l'id de carte. */
     cartes?: readonly string[];
     tiers?: readonly number[];
+    /**
+     * Garder aussi les unités NEUTRALISÉES du conteneur `board`.
+     *
+     * ⚠️ Absent (le cas de tous les autres sélecteurs), seules les vivantes
+     * sortent — c'est ce que « les unités du plateau » veut dire pour un bonus
+     * ou un statut. Mais à `fin_combat`, `unitesAlliees` porte **tout le monde
+     * qui a commencé le combat**, morts compris (`AttributeManager` garde ses
+     * tableaux, `finishCombat` fait le ménage après) : c'est la seule façon
+     * d'exprimer « chaque porteur qui a PARTICIPÉ au combat », qui est la règle
+     * du mot-clé Appelant.
+     *
+     * ⚠️ Même esprit que le décompte de fin de combat, qui inclut déjà les
+     * neutralisés (« le palier tient même si les porteurs sont morts »).
+     */
+    inclureNeutralisees?: boolean;
   };
   /** `tous` est le seul cas que l'existant exerce ; `un` attend un choix. */
   combien: 'tous' | 'un';
+  /**
+   * Dans quel ORDRE les candidats sont classés avant que `combien: 'un'` ne
+   * retienne le premier.
+   *
+   * ⚠️ **Absent, c'est l'ordre du tableau — et cet ordre N'EST PAS COMMUN AUX
+   * DEUX CLIENTS d'un duel.** Tant que `un` ne servait qu'à des magies (le
+   * joueur désigne) et à `revive` (le premier corps du cimetière, propre à
+   * chaque camp), personne ne s'en apercevait. Un effet qui CHOISIT une cible
+   * adverse, lui, doit la choisir pareil des deux côtés : c'est le précédent du
+   * départage par `card_id` de l'ordre d'action, une valeur absolue plutôt
+   * qu'une position dans un tableau.
+   *
+   * `proche_du_declencheur` : distance de Manhattan depuis `Monde.declencheur`,
+   * **départagée par `card_id`** — les positions, elles, sont identiques sur
+   * les deux clients à ce tick, c'est tout le contrat de déterminisme.
+   */
+  tri?: 'proche_du_declencheur';
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -199,7 +244,7 @@ export const CHAMPS_CARTE = Object.freeze({
 export type ChampCarte = keyof typeof CHAMPS_CARTE;
 
 /** Les statuts qu'une tâche peut poser sur une unité. */
-export const STATUTS = ['immunite', 'poison', 'brulure', 'paralysie', 'confusion', 'provocation', 'blocage_pouvoir'] as const;
+export const STATUTS = ['immunite', 'immobile', 'poison', 'brulure', 'paralysie', 'confusion', 'provocation', 'blocage_pouvoir'] as const;
 export type Statut = typeof STATUTS[number];
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -239,6 +284,21 @@ export interface TacheModifier {
    *  d'une magie garantie (`champ: 'magies_garanties'`) — un seul champ pour
    *  les deux, comme leurs deux registres partagent la même forme. */
   criteres?: GuaranteedDraw | GuaranteedMagie;
+  /**
+   * Les critères viennent des PORTEURS, pas de la tâche — une entrée par
+   * porteur, lue dans son champ `appel` (le mot-clé Appelant).
+   *
+   * ⚠️ **Le destinataire reste le JOUEUR** : `cible` désigne toujours le
+   * conteneur `joueur`, parce que c'est bien sa file de pioches qu'on remplit.
+   * Ce sélecteur-ci ne dit pas QUI reçoit, il dit OÙ LIRE — et les deux
+   * questions n'ont pas la même réponse pour la première fois ici.
+   *
+   * ⚠️ C'est le compilateur qui porte le sélecteur, jamais le moteur qui le
+   * fabrique : « les porteurs de cet attribut » est une INTENTION, et l'intention
+   * appartient à la traduction (§4). Un moteur qui synthétiserait un sélecteur
+   * s'en donnerait une seconde version.
+   */
+  criteresDesPorteurs?: Selecteur;
   /** Ce que le registre de provenance inscrit comme origine. */
   provenance?: 'attribut' | 'terrain' | 'magie';
   /**
@@ -447,9 +507,33 @@ export interface Condition {
   pvJoueurSuperieurA?: number;
 }
 
+/**
+ * Les clés de recette visuelle : `compileAttribute` les **estampille**,
+ * `three/PowerVfx` les **indexe**.
+ *
+ * ⚠️ **Une seule écriture de la clé, ici.** Le précédent de `power_id` (une clé
+ * de `powers.json` d'un côté, `RECIPES` de l'autre) accepte la dérive parce que
+ * l'une des deux moitiés est de la DONNÉE. Ici les deux sont du code : les
+ * laisser se recopier serait un effet muet dont rien ne dirait la cause.
+ */
+export const VFX_EXPLOSIF = 'EXPLOSIF';
+
 export interface Effet {
   /** Identité stable, dérivée du porteur — jamais un compteur. Cf. §5.1. */
   id: string;
+  /**
+   * La clé de la RECETTE VISUELLE, quand l'effet en mérite une.
+   *
+   * ⚠️ **Une clé SÉMANTIQUE dérivée du TYPE, jamais l'id du porteur** : un id
+   * d'attribut est de la donnée, renommable en admin, et `three/` n'a aucun
+   * moyen de le résoudre (il n'importe pas `data/`). C'est exactement le statut
+   * de `power_id`, que `logic/` porte et que `PowerVfx` indexe.
+   *
+   * ⚠️ Ce n'est PAS du rendu dans `logic/` : le moteur ne dessine rien et ne
+   * lit jamais ce champ. Il le transporte, comme le contrat d'événements
+   * transporte déjà `power_id`.
+   */
+  vfx?: string;
   /** Absente = l'effet s'applique toujours (le cas du terrain). */
   condition?: Condition;
   /** Qui l'apporte : id de terrain, de magie, d'attribut, de carte. */

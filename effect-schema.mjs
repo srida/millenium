@@ -41,6 +41,57 @@ export const PORTEUR_LABELS = Object.freeze({
 });
 
 // ───────────────────────────────────────────────────────────────────────────
+// Les mots-clés
+// ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * La catégorie d'attribut qui porte les MOTS-CLÉS — le statut exact de `Tiers`
+ * et d'`Invocation` : des attributs comme les autres pour le moteur (un terrain
+ * a le droit de viser les Explosifs), mais qui décrivent une **mécanique** et
+ * non un thème.
+ */
+export const MOT_CLE_CATEGORY = 'MotCle';
+
+/**
+ * Les mots-clés dont la règle **n'est pas un effet** — la porte de sortie, et
+ * elle est étroite à dessein.
+ *
+ * ⚠️ **Un mot-clé n'a sa place ici que si le moteur ne peut pas l'exprimer.**
+ * Tour (portée + immobilité), Explosif (détruire en mourant) et Appelant
+ * (une pioche garantie, paramétrée par carte) sont des EFFETS : ils vivent dans `TYPES`, avec un
+ * `quand` et des tâches, comme n'importe quel palier d'archétype. Les mettre ici
+ * reviendrait à se donner un second moteur d'effets, écrit à la main, sur des
+ * porteurs que personne ne compile — exactement la mécanique des vingt-et-un
+ * effets morts.
+ *
+ * Ce qui reste n'est donc pas un effet, mais une **durée de vie de conteneur** :
+ * le moteur écrit des tâches, il n'a aucune notion de *veto sur une purge*, et
+ * lui en donner une lui donnerait un cycle de vie qu'il n'a pas (§3.5, la même
+ * raison qui garde la mémoire des portées chez l'appelant).
+ *
+ * ⚠️ C'est l'APPELANT qui lit ces mots-clés (`logic/Keywords.ts`, puis
+ * `GameSession`), jamais `engine.ts`. Même frontière que `lecteur: 'session'`.
+ */
+export const MOTS_CLES = Object.freeze({
+  cimetiere_permanent: {
+    label: 'Second souffle — reste au cimetière à vie',
+    court: 'Second souffle',
+    // ⚠️ La règle est une durée de vie, pas une tâche : `GameSession.startCombat`
+    // purge le cimetière et cette purge l'épargne. Le corps reste donc
+    // disponible comme matériau indéfiniment — et disparaît s'il est consommé,
+    // ce dont il n'y a rien à écrire (la consommation le retire déjà).
+    // ⚠️ L'aide est écrite POUR LE JOUEUR, pas pour l'auteur de la fiche : elle
+    // s'affiche telle quelle dans le tooltip de carte. Tout ce qui ne décrit pas
+    // ce qu'il va voir en jouant n'y a pas sa place — « vaut pour les deux
+    // camps » est une note d'implémentation, pas une règle qu'il lit.
+    aide: 'Le corps reste au cimetière indéfiniment au lieu de disparaître au combat suivant. Il n\'en sort que consommé comme matériau.',
+  },
+});
+
+/** Les clés de `MOTS_CLES`, dans l'ordre de déclaration. */
+export const MOT_CLE_IDS = Object.freeze(Object.keys(MOTS_CLES));
+
+// ───────────────────────────────────────────────────────────────────────────
 // Quand
 // ───────────────────────────────────────────────────────────────────────────
 
@@ -59,6 +110,7 @@ export const QUAND_LABELS = Object.freeze({
   debut_combat: 'au début du combat',
   pouvoir_utilise: 'quand un pouvoir part',
   fin_combat: 'à la fin du combat',
+  porteur_detruit: 'quand CETTE unité est neutralisée',
   allie_detruit: 'quand un allié est neutralisé',
   ennemi_detruit: 'quand un ennemi est neutralisé',
   immediat: 'au tap du joueur',
@@ -88,6 +140,7 @@ export const TIMING_PAR_QUAND = Object.freeze({
   fin_combat: 'end_of_combat',
   a_l_invocation: 'on_summon',
   pouvoir_utilise: 'on_power_fired',
+  porteur_detruit: 'on_self_neutralized',
 });
 
 /**
@@ -385,6 +438,35 @@ export const TYPES = Object.freeze({
     court: 'Immunité aux effets',
     attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
   },
+  destroy_enemy: {
+    label: 'En mourant, détruire l’unité adverse la plus proche (Explosif)',
+    court: 'Explosif',
+    // ⚠️ **Distinct de `destroy_unit`, et ce n'est pas un doublon** : celui-là
+    // détruit une unité ALLIÉE que le joueur désigne (un coût), celui-ci une
+    // unité ADVERSE que personne ne choisit (une récompense). Un seul type
+    // porterait un libellé faux pour l'un des deux.
+    //
+    // ⚠️ **Un seul moment, et il n'existe que pour lui** : `porteur_detruit`.
+    // Offert ailleurs, ce serait une destruction gratuite à chaque début de
+    // combat. Ni terrain ni magie : un terrain frapperait les deux camps sans
+    // rien pour l'annoncer, une magie a déjà `destroy_unit`.
+    attribut: { quands: ['porteur_detruit'], champs: {} },
+  },
+  immobile: {
+    label: 'Ne se déplace plus, et rien ne la déplace (Tour)',
+    court: 'Immobile',
+    // ⚠️ **Aucun champ**, et surtout pas une portée : l'immobilité n'est pas
+    // chiffrée. Le « ne bouge plus » d'une Tour se paie par sa PORTÉE, écrite à
+    // côté comme un `stat_bonus` ordinaire — deux effets sur le même palier, pas
+    // un type qui en ferait deux. C'est ce qui laisse régler la portée d'une
+    // Tour sans toucher au moteur.
+    //
+    // ⚠️ Offert au seul ATTRIBUT : un terrain qui immobilise viserait les deux
+    // camps sans rien pour l'annoncer, et une magie poserait un état que
+    // `startCombat` effacerait avant le combat suivant — deux effets morts, de
+    // la famille exacte que ce fichier existe pour fermer.
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
+  },
   revive: {
     label: 'Réanimation d’une unité du cimetière',
     court: 'Réanimation',
@@ -439,6 +521,23 @@ export const TYPES = Object.freeze({
     // deux champs pour la même question laisseraient écrire deux réponses.
     attribut: { quands: ['fin_combat'], champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
     magie: { quands: ['immediat'], champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
+  },
+  guaranteed_draw_bearer: {
+    label: 'Pioche garantie — ce que la CARTE appelle (Appelant)',
+    court: 'Appelant',
+    // ⚠️ **Un type à part de `guaranteed_draw`, et la raison est dans `champs`**
+    // : il n'en a AUCUN. Les critères ne vivent pas sur l'effet mais sur le
+    // champ `appel` de chaque CARTE porteuse — c'est le premier effet du projet
+    // dont la charge utile est paramétrée par carte.
+    //
+    // ⚠️ Les fondre en un seul type avec un drapeau donnerait un formulaire où
+    // l'on peut écrire les deux, donc DEUX sources pour une même promesse : un
+    // effet qui nomme un tier et des cartes porteuses qui en nomment d'autres.
+    // Un type sans champ ne peut pas se contredire.
+    //
+    // ⚠️ Un seul moment, celui de `guaranteed_draw` : la file
+    // (`player_guaranteed_draws`) est consommée à la pioche du round suivant.
+    attribut: { quands: ['fin_combat'], champs: {} },
   },
   guaranteed_magie: {
     label: 'Magie garantie à la Phase Shopping (rareté et/ou magie précise)',

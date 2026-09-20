@@ -2186,6 +2186,9 @@ function renderCardDetail() {
       <div id="represented-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
     </div>
 
+    <div class="section-title">Appel (mot-clé Appelant)</div>
+    ${cardAppelHtml(c)}
+
     <div class="section-title">Attributs</div>
     <div class="attr-chips" id="attr-chips">
       ${(c.attributes || []).map(aid => `
@@ -2253,6 +2256,61 @@ function removeCardAttribute(aid) {
   syncCardFromForm();
   selectedCard.attributes = (selectedCard.attributes || []).filter(a => a !== aid);
   renderCardDetail();
+}
+
+/**
+ * Cet attribut lit-il le champ `appel` de ses porteurs ?
+ *
+ * ⚠️ La question se pose sur le TYPE D'EFFET, jamais sur l'id ni sur le nom :
+ * « Appelant » se renomme en admin et `ARCH_099` n'est qu'un numéro. Même
+ * discipline que « la catégorie dit qu'un attribut est un tier, son champ
+ * `tier` dit lequel ». ⚠️ JUMEAU de `estAppelant` (`scripts/audit-cards.js`),
+ * séparé par la frontière page autonome / script Node.
+ */
+const EFFET_APPELANT = 'guaranteed_draw_bearer';
+function attrEstAppelant(attr) {
+  return !!attr && (attr.thresholds || []).some(t => (t.effects || []).some(e => e.type === EFFET_APPELANT));
+}
+function carteEstAppelante(card) {
+  const byId = Object.fromEntries(attributes.map(a => [a.id, a]));
+  return (card.attributes || []).some(id => attrEstAppelant(byId[id]));
+}
+/** → true si l'appel de cette carte promet quelque chose. */
+function appelNonVide(appel) {
+  return !!appel && Object.values(appel).some(v => v != null && (!Array.isArray(v) || v.length));
+}
+
+/**
+ * Le champ `appel` d'une carte — le paramètre du mot-clé **Appelant**, et le
+ * premier paramètre d'effet du projet qui vit sur la CARTE.
+ *
+ * ⚠️ Les deux moitiés vont par PAIRE, et l'écran le dit dans les deux sens :
+ * l'attribut sans l'appel ne promet rien en jeu, l'appel sans l'attribut est de
+ * la donnée que rien ne déclenche. `npm run audit:cards` sort en 1 sur les deux.
+ */
+function cardAppelHtml(c) {
+  const porte = carteEstAppelante(c);
+  const rempli = appelNonVide(c.appel);
+  const alerte = porte && !rempli
+    ? '<div style="font-size:11px;color:#e0b050;margin-bottom:8px">⚠️ Cette carte porte le mot-clé <b>Appelant</b> mais n\'appelle rien : en jeu, elle ne promettra aucune carte.</div>'
+    : (!porte && rempli
+      ? '<div style="font-size:11px;color:#e0b050;margin-bottom:8px">⚠️ Cet appel n\'est déclenché par rien : la carte ne porte aucun attribut qui le lise. Ajoute-lui le mot-clé <b>Appelant</b>.</div>'
+      : '');
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+      Ce que cette carte <b style="color:var(--text)">appelle</b> : une <b style="color:var(--text)">pioche garantie</b> au tour suivant, promise à chaque round où elle a démarré le combat — même si elle y est tombée.
+      Les critères sont ceux d'une pioche garantie ordinaire, et s'écrivent avec le même éditeur.
+    </div>
+    ${alerte}
+    <div class="form-grid">
+      <div class="field"><label>Tier exigé (vide = aucun)</label>
+        <input id="f-appel-tier" type="number" min="1" max="5" step="1" value="${c.appel && c.appel.tier != null ? c.appel.tier : ''}"></div>
+      <div class="field" style="grid-column:1/-1">
+        <label>Attributs et/ou cartes nommées</label>
+        ${renderGuaranteedDrawCriteria(c.appel, 'carte')}
+      </div>
+    </div>
+    <div style="height:10px"></div>`;
 }
 
 function removeRepresented(rid) {
@@ -2555,12 +2613,36 @@ function cardPowerFromForm() {
   return { ...base, ...withValue, ...withTokenId };
 }
 
+/**
+ * L'`appel` relu du formulaire — les listes viennent du MODÈLE, le tier du champ.
+ *
+ * ⚠️ **Un appel vide n'est pas persisté** (`undefined`) : `{}` serait de la
+ * donnée qui promet « au choix », ce que le moteur ne tient pas — un porteur
+ * sans appel ne pousse rien. Et le collecteur de carte, qui repart de
+ * `...selectedCard`, garderait la coquille à vie.
+ */
+function appelFromForm() {
+  const courant = selectedCard.appel || {};
+  const brut = document.getElementById('f-appel-tier')?.value;
+  const tier = brut === '' || brut == null ? null : parseInt(brut, 10);
+  const out = {};
+  if (Number.isInteger(tier) && tier > 0) out.tier = tier;
+  if ((courant.attributes || []).length) out.attributes = [...courant.attributes];
+  if ((courant.card_ids || []).length) out.card_ids = [...courant.card_ids];
+  // La forme HISTORIQUE au singulier ne s'écrit jamais ici (cf. `champsOfferts`).
+  return Object.keys(out).length ? out : undefined;
+}
+
 function syncCardFromForm() {
   if (!selectedCard || !document.getElementById('f-id')) return;
   selectedCard.id = document.getElementById('f-id').value.trim();
   selectedCard.name = document.getElementById('f-name').value.trim();
   selectedCard.type = 'monster';
   selectedCard.material_value = parseInt(document.getElementById('f-matval').value, 10) || 1;
+  // ⚠️ Le TIER de l'appel est le seul champ de `appel` qui soit un `<input>` :
+  // les listes (attributs, cartes) s'éditent par re-render, le DOM ne pouvant pas
+  // servir de source de vérité pour une liste dont on retire un élément au milieu.
+  selectedCard.appel = appelFromForm();
   selectedCard.stats = {
     atk: parseFloat(document.getElementById('f-atk').value) || 0,
     hp: parseFloat(document.getElementById('f-hp').value) || 0,
@@ -2607,6 +2689,9 @@ function collectCardFromForm() {
     power,
     summon_conditions: collectConditionsFromForm(),
     represented_ids: [...(selectedCard.represented_ids || [])],
+    // ⚠️ `undefined` EFFACE le champ côté serveur au lieu d'y laisser un `{}` :
+    // un appel vide se lirait comme une promesse « au choix » que rien ne tient.
+    appel: appelFromForm(),
   };
 }
 
@@ -2927,6 +3012,21 @@ function onAttrCategoryChange() {
   if (sel.value === '__new__') document.getElementById('af-cat-new')?.focus();
   const tierField = document.getElementById('af-tier-field');
   if (tierField) tierField.style.display = getAttrCategoryValue() === TIER_CATEGORY ? '' : 'none';
+  const motCleField = document.getElementById('af-motcle-field');
+  // ⚠️ Le champ reste visible dès qu'une valeur y est POSÉE, même si la
+  // catégorie ne s'y prête plus : `collectAttrFromForm` relit ce `<select>`, donc
+  // un champ masqué serait un champ silencieusement effacé au prochain
+  // enregistrement — le piège de `description` sur les magies, exactement.
+  if (motCleField) {
+    motCleField.style.display = (getAttrCategoryValue() === (EFX?.MOT_CLE_CATEGORY || 'MotCle')
+      || document.getElementById('af-motcle')?.value) ? '' : 'none';
+  }
+}
+
+/** La fiche montre-t-elle le champ « Mot-clé » ? Catégorie qui s'y prête, ou
+ *  valeur déjà posée — sans quoi l'enregistrement la détruirait sans le dire. */
+function _showMotCleField(a) {
+  return a.categorie === (EFX?.MOT_CLE_CATEGORY || 'MotCle') || !!a.mot_cle;
 }
 
 function getAttrCategoryValue() {
@@ -3281,7 +3381,14 @@ function renderAttrDetail() {
       <div class="field"><label>Emoji — repli sans image</label><input id="af-icon" value="${a.icon || ''}"></div>
       <div class="field"><label>Timing</label>
         <select id="af-timing">
-          ${['start_of_combat','during_combat','end_of_combat','none'].map(t =>
+          <!-- ⚠️ on_self_neutralized est le moment du mot-clé Explosif — le seul
+               que l'attribut porte sans qu'aucun effet ne puisse le choisir
+               lui-même (destroy_enemy n'en a qu'un). Absent d'ici, la fiche
+               ouvrait sur un timing vide et l'enregistrement l'effaçait.
+               ⚠️ PAS d'accent grave dans ce commentaire : il vit DANS un
+               template literal, une backtick y ferme la chaîne et tout le
+               script de la page cesse de se parser. -->
+          ${['start_of_combat','during_combat','end_of_combat','on_self_neutralized','none'].map(t =>
             `<option value="${t}" ${a.timing===t?'selected':''}>${t}</option>`
           ).join('')}
         </select>
@@ -3297,6 +3404,24 @@ function renderAttrDetail() {
             <input id="af-cat-new" placeholder="Nom de la catégorie" style="width:100%">
           </div>
         </div>
+      </div>
+      <div class="field" id="af-motcle-field" style="${_showMotCleField(a) ? '' : 'display:none'}">
+        <label>Mot-clé — une mécanique que le moteur d'effets ne sait pas écrire</label>
+        <select id="af-motcle">
+          <option value="" ${!a.mot_cle ? 'selected' : ''}>— Aucun —</option>
+          ${Object.entries(EFX?.MOTS_CLES || {}).map(([cle, def]) =>
+            `<option value="${esc(cle)}" ${a.mot_cle === cle ? 'selected' : ''}>${esc(def.label)}</option>`
+          ).join('')}
+        </select>
+        <span style="font-size:11px;color:var(--muted);margin-top:4px">
+          ⚠️ <b>La plupart des mots-clés n'ont rien à faire ici</b> : Tour, Explosif et Appelant
+          sont des <b>effets</b>, ils s'écrivent dans les Seuils ci-dessous avec leur moment et leurs
+          champs, comme n'importe quel palier. Cette liste ne porte que ce qui n'est PAS un effet —
+          aujourd'hui une durée de vie de conteneur.
+          ${a.mot_cle && EFX?.MOTS_CLES?.[a.mot_cle]
+            ? `<br><br><b>${esc(EFX.MOTS_CLES[a.mot_cle].court)}</b> — ${esc(EFX.MOTS_CLES[a.mot_cle].aide)}`
+            : ''}
+        </span>
       </div>
       <div class="field" id="af-tier-field" style="${a.categorie === TIER_CATEGORY ? '' : 'display:none'}">
         <label>Numéro de tier</label>
@@ -3387,6 +3512,25 @@ const EFFECT_NOTES = {
     ou avec un id de token inconnu, l'effet ne fait simplement rien.<br>
     ⚠️ <b>Désactivé en PvP réel</b> : la case tirée n'a aucun moyen de voyager jusqu'à l'autre
     client, les deux simulations divergeraient. Un duel contre un bot n'est pas concerné.`,
+  guaranteed_draw_bearer: `Le mot-clé <b>Appelant</b>. Rien à saisir ICI : les critères vivent sur
+    chaque <b>carte</b> porteuse, dans sa section « Appel » — c'est le seul effet du projet dont la
+    charge utile est paramétrée par carte.<br>
+    Chaque porteur promet DONC ce que sa propre carte nomme : deux Appelants côte à côte appellent
+    deux choses différentes.<br>
+    ⚠️ Un porteur <b>neutralisé pendant le combat appelle quand même</b> — la promesse vaut pour
+    chaque round où il a démarré la phase de combat.<br>
+    ⚠️ Une carte qui porte le mot-clé <b>sans</b> remplir son appel ne promet rien, et
+    <code>npm run audit:cards</code> sort en 1 (dans les deux sens).`,
+  destroy_enemy: `Le mot-clé <b>Explosif</b>. Rien à saisir : la victime est l'unité adverse la
+    <b>plus proche</b> du porteur (distance de Manhattan, départage par id de carte pour que les
+    deux clients d'un duel désignent la même).<br>
+    ⚠️ <b>L'immunité aux effets ne protège pas</b> : ce n'est pas un pouvoir de debuff, c'est une
+    destruction franche. Le corps part au cimetière de <b>son</b> camp, donc il y reste
+    consommable comme matériau par son propriétaire.<br>
+    ⚠️ Une explosion peut en déclencher une autre <b>dans le même tick</b>, mais chaque unité
+    n'explose qu'une fois.<br>
+    ⚠️ Le seul moment possible est <b>la mort du porteur</b> : l'attribut doit donc porter le
+    timing <code>on_self_neutralized</code>, sinon l'effet est refusé et ne part jamais.`,
 };
 
 /** Le libellé d'une option d'un `<select>` de champ, selon la source déclarée. */
@@ -3766,6 +3910,14 @@ function collectAttrFromForm() {
     ...(cat ? { categorie: cat } : {}),
     ...(cat === TIER_CATEGORY && Number(document.getElementById('af-tier')?.value) > 0
       ? { tier: parseInt(document.getElementById('af-tier').value, 10) }
+      : {}),
+    // ⚠️ **Obligatoire, pas décoratif** : cette fonction reconstruit l'objet de
+    // zéro, donc tout champ qu'elle ne nomme pas est DÉTRUIT à l'enregistrement
+    // (c'est arrivé à `description` sur les magies et à `difficulty` sur les
+    // decks publics). Le champ n'est écrit que s'il vaut quelque chose — un
+    // `mot_cle: ''` serait une valeur que `indexeMotsCles` refuserait par nom.
+    ...(document.getElementById('af-motcle')?.value
+      ? { mot_cle: document.getElementById('af-motcle').value }
       : {}),
     thresholds,
   };
@@ -4351,6 +4503,17 @@ function guaranteedDrawCriteriaOf(effect) {
  * seule mécanique — un attribut ne savait nommer qu'un attribut.
  */
 function _gdScope(scope) {
+  // ⚠️ **Le champ `appel` d'une CARTE est édité par le MÊME widget que les
+  // critères d'une pioche garantie**, et c'est tout l'intérêt : c'est la même
+  // promesse (`GuaranteedDraw`), lue par le même `Draw.resolveGuaranteedDraws`.
+  // Un second éditeur finirait par proposer autre chose.
+  if (scope === 'carte') {
+    return {
+      effect: () => (selectedCard.appel || (selectedCard.appel = {})),
+      sync: syncCardFromForm,
+      render: renderCardDetail,
+    };
+  }
   if (scope === 'magie') {
     return {
       effect: () => (selectedMagie.effect || (selectedMagie.effect = { type: 'guaranteed_draw' })),

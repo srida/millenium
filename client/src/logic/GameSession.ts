@@ -40,6 +40,8 @@ import {
 } from './InvocationManager.js';
 import { tiersForRound, drawHand, resolveGuaranteedDraws } from './Draw.js';
 import { tiersOf } from './Tiers.js';
+import { indexeMotsCles, porteMotCle, catalogueDeclare } from './Keywords.js';
+import type { IndexMotsCles, AttributMotCle } from './Keywords.js';
 import { pickMagies, resolveGuaranteedMagies, isMagieRelevant } from './MagieOffer.js';
 import type { MagieOfferContext } from './MagieOffer.js';
 import type { BonusSourceEntry, Card, Position, BoardDef, AttributeDef, DrawSummary, Magie, RoundWinner } from './types.js';
@@ -738,6 +740,26 @@ export class GameSession {
     this._pourMagie(ressources);
   }
 
+  /**
+   * Les corps qu'une purge de cimetière épargne — **Second souffle**.
+   *
+   * ⚠️ **Sortie sèche quand le catalogue ne déclare pas le mot-clé**, exactement
+   * comme `_porteInvocation` : tant que personne n'écrit ce contenu, la purge
+   * reste la ligne d'avant, sans un filtre à payer à chaque combat.
+   */
+  private _rescapesDuCimetiere(cimetiere: Unit[]): Unit[] {
+    const index = this._motsCles();
+    if (!catalogueDeclare('cimetiere_permanent', index)) return [];
+    return cimetiere.filter(u => porteMotCle(u.attributes, 'cimetiere_permanent', index));
+  }
+
+  /** L'index des mots-clés du catalogue. Calculé une fois. */
+  private _indexMotsCles: IndexMotsCles | null = null;
+  private _motsCles(): IndexMotsCles {
+    this._indexMotsCles ??= indexeMotsCles(this.deps.attributeList as AttributMotCle[]);
+    return this._indexMotsCles;
+  }
+
   /** Le catalogue déclare-t-il un seul effet à l'invocation ? Calculé une fois. */
   private _aInvocation: boolean | null = null;
   private _porteInvocation(): boolean {
@@ -796,8 +818,18 @@ export class GameSession {
     // du round précédent, il doit donc précéder la purge des cimetières.
     this._placeEnemyUnits();
 
-    this.graveyard = [];
-    this.enemyGraveyard = [];
+    // ⚠️ **Second souffle** : la purge épargne les corps qui portent le mot-clé,
+    // et c'est LA seule chose qui distingue ce mot-clé d'un effet. Le moteur
+    // écrit des tâches ; il n'a aucune notion de *veto sur une purge* (cf.
+    // `MOTS_CLES`, `effect-schema.mjs`). La règle vit donc au point de purge, à
+    // côté de la ligne qu'elle nuance — comme `is_token` vit au point de
+    // clôture, et pour la même raison.
+    //
+    // ⚠️ **Les deux camps**, sans drapeau d'asymétrie : un mot-clé profite à qui
+    // le PORTE (même doctrine que les attributs, décision 3 du §7). L'IA hérite
+    // donc d'une réserve de matériaux permanente, et c'est voulu.
+    this.graveyard = this._rescapesDuCimetiere(this.graveyard);
+    this.enemyGraveyard = this._rescapesDuCimetiere(this.enemyGraveyard);
 
     const boardData = agreedBoard !== undefined ? agreedBoard : this.pickCombatBoard();
     // ⚠️ On marque le terrain qui est JOUÉ, jamais celui qui a été tiré. En PvP,
@@ -829,8 +861,15 @@ export class GameSession {
     // Le geste est ici et non dans `resetCombatStats`, que `POWER_DEBUFF`
     // appelle EN PLEIN COMBAT : y toucher rendrait la dissipation capable de
     // décaler le prochain coup de sa cible.
-    for (const u of playerUnits) u.resetCombatClocks();
-    for (const u of this.enemyUnits) u.resetCombatClocks();
+    // ⚠️ `is_immobile` (le mot-clé Tour) repart ICI et non dans
+    // `resetCombatStats()`, qui est le balayage de `POWER_DEBUFF` : une Tour
+    // dissipée en plein combat retrouverait sa portée (une stat, que
+    // `reapplyBonuses` rejoue) sans son immobilité — un tireur longue portée
+    // devenu mobile, l'exact contraire de ce que la dissipation fait. Même
+    // horloge que les deux timers ci-dessus, et la même raison : ce qui ne doit
+    // repartir qu'au combat se remet à zéro au combat.
+    for (const u of playerUnits) { u.resetCombatClocks(); u.is_immobile = false; }
+    for (const u of this.enemyUnits) { u.resetCombatClocks(); u.is_immobile = false; }
 
     this.gameState.startCombat(playerUnits.length, this.enemyUnits.length);
 
@@ -904,7 +943,12 @@ export class GameSession {
 
     // Retire les ennemis morts ; les survivants restent
     for (const u of this.enemyUnits) if (u.is_neutralized) this.board.removeUnit(u);
-    this.enemyGraveyard = this.enemyUnits.filter(u => u.is_neutralized);
+    // ⚠️ Les rescapés de **Second souffle** sont REPRIS en tête, jamais écrasés :
+    // ces deux lignes AFFECTENT le cimetière au lieu d'y pousser, et `startCombat`
+    // ne le vide plus. Sans cette reprise, un corps épargné par la purge
+    // disparaîtrait à la clôture du combat suivant — le mot-clé aurait l'air de
+    // marcher pendant exactement une préparation.
+    this.enemyGraveyard = [...this.enemyGraveyard, ...this.enemyUnits.filter(u => u.is_neutralized)];
     this.enemyUnits = this.enemyUnits.filter(u => !u.is_neutralized);
     const enemyOverflow = this._returnHome(this.enemyUnits, 'enemy');
     if (enemyOverflow.length) {
@@ -927,8 +971,9 @@ export class GameSession {
       }
     }
 
-    // Unités encore neutralisées → cimetière pour la préparation suivante
-    this.graveyard = playerUnits.filter(u => u.is_neutralized);
+    // Unités encore neutralisées → cimetière pour la préparation suivante,
+    // derrière les rescapés de Second souffle (cf. le camp adverse plus haut).
+    this.graveyard = [...this.graveyard, ...playerUnits.filter(u => u.is_neutralized)];
 
     // Reset des bonus de combat : pas d'empilement d'un tour sur l'autre.
     //

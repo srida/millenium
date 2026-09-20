@@ -377,8 +377,14 @@
 			"ARCH_022",
 			"ARCH_050",
 			"ARCH_090",
-			"ARCH_091"
+			"ARCH_091",
+			"ARCH_099"
 		],
+		"appel": {
+			"card_ids": [
+				"CORE_015"
+			]
+		},
 		"stats": {
 			"atk": 15,
 			"hp": 120,
@@ -3514,7 +3520,8 @@
 			"ARCH_049",
 			"ARCH_056",
 			"ARCH_090",
-			"ARCH_092"
+			"ARCH_092",
+			"ARCH_097"
 		],
 		"stats": {
 			"atk": 10,
@@ -4646,7 +4653,8 @@
 			"ARCH_048",
 			"ARCH_056",
 			"ARCH_090",
-			"ARCH_091"
+			"ARCH_091",
+			"ARCH_098"
 		],
 		"stats": {
 			"atk": 14,
@@ -14404,7 +14412,8 @@
 			"ARCH_057",
 			"ARCH_029",
 			"ARCH_090",
-			"ARCH_092"
+			"ARCH_092",
+			"ARCH_096"
 		],
 		"stats": {
 			"atk": 18,

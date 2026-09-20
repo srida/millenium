@@ -886,6 +886,7 @@ is_power_blocked / power_block_remaining
 confusion_remaining    // > 0 → cible ses propres alliés
 taunt_remaining        // > 0 → force les ennemis à la cibler
 is_effect_immune       // attribut effect_immunity
+is_immobile            // mot-clé Tour — ⚠️ remis à zéro par startCombat, PAS par resetCombatStats
 
 position / initial_position / is_neutralized / veterancy_points
 attack_timer / move_timer                        // ⚠️ remis à zéro à chaque startCombat
@@ -957,16 +958,110 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 - **Affichage** : `CardTile` prend une **liste** (`tiers`) et rend `T2·4` ; le liseré, lui, prend le plus haut (une couleur ne se partage pas). Le tooltip dit tous les tiers d'une **carte**, un seul pour une **unité**. ⚠️ Les attributs de tier sont **écartés des chips** `Keywords` (le badge vient de le dire) et de `DeckTags` (toute carte en porte un : ils seraient dominants dans chaque deck). Ils restent dans le tirage du terrain — un terrain a le droit de viser les Tier 5.
 - ⚠️ **Le champ `tier` n'existe plus, et `tiersOf` n'a AUCUN repli** : une carte sans attribut de tier rend `[]` et n'entre dans aucun pool. C'est le contrat d'écriture (400) et l'audit qui garantissent qu'elle n'existe pas, jamais une clause de lecture — un repli ferait taire exactement ce que le contrat existe pour signaler. `scripts/migrate-tiers.js --write` pose l'attribut **puis retire le champ** (jamais sur une orpheline : le champ y est la dernière information) ; `audit:cards` compte un champ résiduel comme une **faute**. Les fixtures de test écrivent `_tiers` — `makeCard({ tier: N })` n'est qu'un raccourci qui le traduit.
 
+### Les mots-clés (`categorie: 'MotCle'`)
+
+Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-clé est un attribut qui décrit ce que la carte FAIT, pas ce qu'elle est.
+
+**Les quatre livrés**, et ce que chacun a coûté au moteur :
+
+| Mot-clé | La règle | Ce qu'il a fallu ajouter |
+|---|---|---|
+| 🗼 **Tour** | portée maximale, et **rien ne la déplace** | `Unit.is_immobile` + trois refus (marche, poussée, téléportation) |
+| ♻️ **Second souffle** | le corps reste au cimetière **à vie** | `MOTS_CLES` — le seul qui ne soit pas une tâche |
+| 💥 **Explosif** | en mourant, détruit l'unité adverse **la plus proche** | un `quand` (`porteur_detruit`), un `tri`, un `vfx`, un balayage des morts qui reboucle |
+| 📣 **Appelant** | **pioche garantie** de ce que SA carte nomme | un paramètre d'effet qui vit sur la CARTE (`card.appel`) |
+
+⚠️ **Un mot-clé est un EFFET par défaut.** Il s'écrit dans les seuils de l'attribut (`thresholds: [{ count: 1, effects: [...] }]`), avec son `quand` et ses tâches, comme n'importe quel palier d'archétype : le compilateur émet `cible = { camp: 'allie', filtre: { attributs: [porteur] } }`, donc un palier à **1** s'applique à chaque porteur et à lui seul. Il n'y a rien à ajouter pour ce cas.
+
+⚠️ **`MOTS_CLES` (`effect-schema.mjs`) est la porte de sortie, et elle est étroite** : n'y entre que ce qui n'est PAS une tâche. Le moteur écrit des tâches, il n'a aucune notion de *veto sur une purge* — lui en donner une lui donnerait un cycle de vie qu'il n'a pas (même raison que la mémoire des portées, qui vit chez l'appelant). Aujourd'hui un seul : `cimetiere_permanent`.
+
+| | |
+|---|---|
+| Déclaration | `MOTS_CLES` / `MOT_CLE_CATEGORY` (`effect-schema.mjs`, racine, partagé avec `admin.html`) |
+| Lecture moteur | `logic/Keywords.ts` — pur, **importe** la racine, la liste d'attributs est passée en argument |
+| Mise en mots | **`data/KeywordInfo.keywordText`** — pur, LE seul endroit qui dise ce qu'un mot-clé fait |
+| Lecture écran | `AttributeDatabase.isKeywordAttribute`, `TooltipHost.motCleTexte` (qui ne fait que résoudre l'id) |
+| Donnée | champ `mot_cle` sur l'attribut, `<select>` fermé dans l'onglet Attributs |
+
+- ⚠️ **C'est le champ `mot_cle` qui porte la mécanique, jamais la catégorie** : `indexeMotsCles` ne lit pas `categorie`. Les lier rendrait un mot-clé muet sur un attribut bien renseigné mais mal classé. La catégorie ne sert qu'à RANGER (et un test exige qu'elles s'accordent).
+- ⚠️ Un `mot_cle` inconnu est **refusé nommément** (`IndexMotsCles.refus`), jamais rangé en silence — discipline de `CompilationResult.refus`.
+- ⚠️ `collectAttrFromForm` reconstruit l'objet de zéro : **`mot_cle` y est obligatoire**, et le champ reste visible dès qu'une valeur y est posée. Sans ça, enregistrer une fiche l'effacerait (le piège de `description` sur les magies).
+- ⚠️ **`data/KeywordInfo.keywordText` est la SEULE mise en mots d'un mot-clé**, et il a DEUX lecteurs : l'infobulle de carte et le **codex du tutoriel**. Deux explications du même mot-clé finiraient par ne plus dire la même chose — et c'est le codex qu'un joueur lit pour apprendre la règle. Il prend l'attribut **déjà résolu** et non son id (`getAttribute` jette tant que la database n'est pas initialisée), ce qui le rend **testable en node** : `motCleTexte` ne l'était pas, vivant dans un composant.
+- ⚠️ **Deux sources pour cette phrase, dans cet ordre** : l'`aide` de `MOTS_CLES` quand la règle n'est pas une tâche, sinon les EFFETS des paliers mis en mots par `boardEffectLabel` — la même fonction que le tooltip d'attribut et que l'annonce de terrain. Un mot-clé qui est un effet **se décrit donc tout seul** : changer sa portée en admin change ce que le joueur lit, sans une ligne de code.
+- ⚠️ `keywordText` passe le résolveur d'attributs **même si aucun mot-clé n'annonce de cibles** : `boardEffectLabel` s'en sert aussi pour NOMMER les attributs qu'une pioche garantie exige. Sans lui, un Appelant qui appelle « un Dragon » annoncerait `ARCH_047`.
+- **Affichage** : un mot-clé est **écarté du `SynergyPanel`** (il se déclenche à un exemplaire, il n'attend rien — une puce éternellement verte au milieu de celles qui disent quelque chose) et, quand `MOTS_CLES` l'explique, **de la chip `Keywords`** : le bloc violet du tooltip porte déjà son icône et son nom, au-dessus de son explication. La condition est « ce bloc le dit », jamais « c'est un mot-clé ».
+
+**Tour** — un `stat_bonus range` **et** un `immobile` sur le même palier à 1 : **rien qu'une donnée**, la portée se règle en admin sans toucher au moteur. L'immobilité vaut pour tout changement de case, subi compris.
+
+| Ce qui la bloque | Où |
+|---|---|
+| Marche (et son horloge, qui n'avance même pas) | phase 3 de `CombatManager.step` |
+| Poussée et Gel | `_canPush` — donc `_isPowerRelevant` répond non et le lanceur **garde sa jauge** |
+| Téléportation | `_teleportPlan`, le calcul partagé entre la question et le pouvoir |
+
+- ⚠️ **`is_immobile` est remis à zéro par `startCombat`, JAMAIS par `resetCombatStats()`** — seul statut dans ce cas. `POWER_DEBUFF` appelle `resetCombatStats` en plein combat et `reapplyBonuses` ne rejoue que les STATS : une Tour dissipée retrouverait sa portée sans son immobilité, c'est-à-dire un tireur longue portée mobile. Même horloge que `resetCombatClocks`, même raison.
+- ⚠️ La portée doit couvrir le plateau (Manhattan max d'un 5×11 = **14**), sinon « portée maximale » est un chiffre qui ment.
+- ⚠️ **Un test monté sans mur reste VERT avec le garde de déplacement retiré** : à portée de tout, une Tour n'a jamais besoin de bouger, donc `canAttack` sort de la boucle avant le moindre pas. C'est la **ligne de vue** (un mur) qui la fait vouloir marcher — le seul scénario qui éprouve la règle, et le vrai cas de jeu.
+- `EnemyAI.rearrangeUnits` trie sur `range <= 1` **avant** `applyStartOfCombat` : elle range donc une Tour selon la portée de sa CARTE. Se règle dans la donnée, pas dans l'IA.
+
+**`cimetiere_permanent` (Second souffle)** — `GameSession.startCombat` épargne les porteurs à la purge des cimetières, `finishCombat` les **reprend en tête** au lieu d'affecter le tableau.
+- ⚠️ Les deux lignes vont ensemble : sans la reprise, le mot-clé marche pendant exactement une préparation.
+- ⚠️ **Les deux camps**, sans drapeau d'asymétrie — l'IA hérite donc d'une réserve de matériaux permanente, et c'est voulu. `_placeEnemyUnits()` passant AVANT la purge, elle la voit dès le round suivant.
+- Sortie sèche quand le catalogue ne déclare pas le mot-clé (patron de `_porteInvocation`). Rien côté PvP : le cimetière ne voyage pas et ne participe à aucun tick.
+- Un corps épargné n'est **pas** candidat à `revive`, qui ne lit que les morts DE CE combat.
+
+**Explosif** — un `destroy_enemy` seul sur un palier à 1, au moment `porteur_detruit`. Le porteur emporte l'unité adverse la **plus proche** en tombant. Quatre choses n'existaient pas avant lui :
+
+| Ce qu'il a fallu ajouter | Où |
+|---|---|
+| Le moment `porteur_detruit` (timing `on_self_neutralized`) | `QUANDS` (`effects/types.ts`), `TIMING_PAR_QUAND` (`effect-schema.mjs`), `<select id="af-timing">` |
+| `Selecteur.tri` — le classement des candidats avant qu'un `combien: 'un'` ne tranche | `effects/engine.trier`, depuis `Monde.declencheur` |
+| `Effet.vfx` — la clé de recette visuelle que l'événement `keyword` transporte | estampillée par `compileAttribute`, indexée par `three/PowerVfx.RECIPES_MOT_CLE` |
+| Le balayage des morts qui REBOUCLE | `CombatManager._checkDeaths` |
+
+- ⚠️ **`porteur_detruit` ne double pas `allie_detruit`** : celui-là dit « quelqu'un de mon camp est tombé » et s'adresse aux SURVIVANTS, celui-ci dit « c'est MOI » et s'adresse au mort. Sans lui, un Explosif partirait sur chaque mort alliée, autant de fois qu'il reste d'Explosifs vivants. C'est aussi le seul `quand` dont l'effet ait besoin de savoir QUI l'a déclenché — d'où `Monde.declencheur` (nommé ainsi, et pas `porteur`, parce que `source` porte déjà l'id du porteur).
+- ⚠️ **`destroy_enemy` est un type À PART de `destroy_unit`** : le geste du moteur est le même (`deplacer` board→cimetière), le sens est opposé — la magie détruit une unité ALLIÉE que le joueur désigne (un coût), le mot-clé une unité ADVERSE que personne ne choisit (une récompense). Le schéma ne porte qu'un libellé par type ; les fondre donnerait une phrase fausse pour l'un des deux. Et `porteur_detruit` est son **seul** moment : ailleurs ce serait une destruction gratuite au début de chaque combat.
+- ⚠️ **`tri: 'proche_du_declencheur'` n'est pas du design, c'est du déterminisme** : sans tri, `combien: 'un'` prend le premier élément du tableau, et l'ordre d'un tableau d'unités n'est pas commun aux deux clients (le propriétaire garde ses objets, l'adversaire les reconstruit). Manhattan depuis le déclencheur, **départagé par `card_id`** — deux valeurs que le contrat de déterminisme rend déjà identiques, précédent du 4ᵉ critère de l'ordre d'action.
+- ⚠️ **Le corps part au cimetière de SON camp** (`appliqueDeplacer` route sur `cible.camp`). La nuance n'existait pas tant que seules les magies déplaçaient une unité — elles ne visent que le joueur. En combat les deux tableaux sont jetables (`finishCombat` reconstruit les cimetières depuis `is_neutralized`), donc **ça ne s'observe que sur le moteur**, et c'est bien là que le test vit.
+- ⚠️ **L'immunité aux effets ne protège PAS** : `effect_immunity` annule les pouvoirs de debuff, là où l'explosion est une destruction franche. Le moteur ne consulte `is_effect_immune` nulle part dans `deplacer` — et c'est un test qui interdit de l'y remettre par réflexe.
+- ⚠️ **`_checkDeaths` REBOUCLE jusqu'à stabilité**, parce qu'une explosion tue pendant le balayage. Une victime déjà dépassée n'était vue qu'au tick suivant : un tick entier neutralisée mais occupant sa case — et si l'explosion FINIT le combat, `_checkEnd` clôt aussitôt, son `death` ne part jamais et sa carte reste affichée tout le round. ⚠️ **Ce n'est PAS une correction de déterminisme** : `units` vient de `_frameOrderedUnits`, donc le report était symétrique sur les deux clients. Le garde-fou de la boucle est `_deathEmitted` (une explosion par unité), pas `MAX_PASSES`.
+- ⚠️ `porteur_detruit` se déclenche **AVANT** `onUnitNeutralized` : « j'explose » précède « mes alliés réagissent à ma mort », sinon les `stat_modifier` de mort compteraient un ennemi que l'explosion vient d'emporter.
+- **L'événement `keyword`** (`{ unit, vfx, targets }`) est distinct de `power` à dessein : `GameController` compte un `power_triggered` de mission sur chaque `power`, et un mot-clé n'en est pas un. Il est émis **même sans victime** — c'est le porteur qui explose. ⚠️ Il porte la clé VISUELLE, jamais l'id de l'attribut : `three/` n'importe pas `data/` et ne saurait pas le résoudre (statut exact de `power_id`). La clé est écrite **une seule fois**, dans `VFX_EXPLOSIF` (`effects/types.ts`), et importée des deux côtés.
+- **VFX** : `RECIPES_MOT_CLE`, une table à part de `RECIPES` — celle-ci est indexée par `power_id` et son repli générique confondrait en silence un mot-clé avec un pouvoir. `playKeywordVfx` n'a donc **aucun repli** : un mot-clé sans recette ne dessine rien (Tour et Second souffle sont purement passifs). Grammaire : flash + anneau + éclats orange sur la case du PORTEUR (c'est lui qui explose), écho plus petit sur la victime. ⚠️ Pas de garde `ctx.dying` sur la victime, contrairement au repli de `playPowerVfx` : elle est justement en train de mourir, et c'est l'explosion qui la tue.
+
+**Appelant** — un `guaranteed_draw_bearer` seul sur un palier à 1, à `fin_combat`. Chaque porteur **promet la carte que SA carte nomme**, au tour suivant.
+
+⚠️ **Ce n'est pas une invocation, c'est une pioche garantie** : même file (`player_guaranteed_draws`), même `Draw.resolveGuaranteedDraws`, mêmes critères (`GuaranteedDraw`). Ce qui n'existait pas avant lui, c'est que **la charge utile de l'effet vit sur la CARTE** — un attribut ordinaire promet la même chose à tous ses porteurs.
+
+| La moitié qui manquait | Où |
+|---|---|
+| Le champ de carte `appel` (`GuaranteedDraw`) | `Card.appel`, recopié par `Unit` comme `represented_ids` |
+| Un type d'effet SANS aucun champ | `guaranteed_draw_bearer` (`effect-schema.mjs`) |
+| `TacheModifier.criteresDesPorteurs` — OÙ LIRE, à côté de `cible` qui dit QUI REÇOIT | `effects/types.ts`, résolu par `appliqueModifierJoueur` |
+| `Selecteur.filtre.inclureNeutralisees` | `effects/engine.resoudre` |
+
+- ⚠️ **Un type à part de `guaranteed_draw`, et la raison est dans `champs` : il n'en a AUCUN.** Les fondre sous un drapeau donnerait un formulaire où l'on peut écrire les deux, donc DEUX sources pour une même promesse — un effet qui nomme un tier et des cartes porteuses qui en nomment d'autres. Un type sans champ ne peut pas se contredire. Même arbitrage que `destroy_enemy` vs `destroy_unit`.
+- ⚠️ **`cible` et `criteresDesPorteurs` ne répondent pas à la même question**, et c'est la première fois du projet que les deux réponses diffèrent : la tâche vise le conteneur `joueur` (c'est bien sa file de pioches qu'on remplit) et lit les critères sur les PORTEURS. Le sélecteur est porté par le **compilateur**, jamais fabriqué par le moteur — « les porteurs de cet attribut » est une intention, et l'intention appartient à la traduction.
+- ⚠️ **`inclureNeutralisees` est la RÈGLE, pas une tolérance** : « chaque round où l'unité appelante démarre la phase de combat ». À `fin_combat`, `unitesAlliees` porte exactement ceux qui l'ont commencé (`AttributeManager` garde ses tableaux, `finishCombat` fait le ménage après). Sans le drapeau, « il a démarré le combat » deviendrait « il y a survécu », ce qui n'est pas la même promesse.
+- ⚠️ **Un porteur sans `appel` ne promet RIEN**, et le moteur le dit (`neant`) — jamais une pioche « au choix », qui serait une promesse inventée à sa place. Les deux moitiés vont par **paire** : `npm run audit:cards` sort en 1 dans les **deux** sens (l'attribut sans l'appel, l'appel sans l'attribut). C'est l'audit et non `card-contract.js` parce qu'il est le seul à voir les deux catalogues — le contrat d'écriture ne reçoit que la carte.
+- ⚠️ **Rien à ajouter au contrat PvP** : `appel` se dérive du `card_id`, que le payload porte déjà, et `reconstructOpponentUnits` reconstruit l'unité depuis la carte du catalogue commun. Statut exact de `tier` et de `represented_ids`.
+- **L'IA le porte comme un vrai joueur** : la pioche a bien un destinataire des deux côtés (`enemy_guaranteed_draws` → `EnemyAI.drawHand`).
+- **Admin** : le champ `appel` d'une carte est édité par **le même widget** que les critères d'une pioche garantie (`renderGuaranteedDrawCriteria`, scope `'carte'` dans `_gdScope`) — c'est la même promesse, un second éditeur finirait par proposer autre chose. ⚠️ Un appel vide n'est **jamais persisté** (`appelFromForm` rend `undefined`) : `{}` se lirait comme « au choix ». L'écran signale le dépareillage dans les deux sens, comme l'audit.
+- ⚠️ `attrEstAppelant` (`admin.html`) et `estAppelant` (`scripts/audit-cards.js`) sont **jumeaux** : la question se pose sur le TYPE D'EFFET, jamais sur l'id ni sur le nom de l'attribut — « Appelant » se renomme, `ARCH_099` n'est qu'un numéro.
+
 | Effet | Timing | Détail |
 |---|---|---|
 | `stat_bonus` | `start_of_combat` · `on_summon` · `on_power_fired` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step). ⚠️ Sur `attack_rate` / `movement_rate`, le bonus est **positif pour accélérer** et s'écrête à 100 |
 | `shield` | `start_of_combat` · `on_summon` · `on_power_fired` | `value` × nombre d'**alliés vivants** |
 | `effect_immunity` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_effect_immune` — annule les pouvoirs de debuff |
+| `immobile` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_immobile` — ne marche pas, ne se pousse pas, ne se téléporte pas. **Attribut seulement** (cf. « Les mots-clés ») |
 | `summon_token` | `start_of_combat` · `on_summon` · `on_power_fired` | Invoque un token (`token_id`) sur une case libre au hasard ; `camp` = `allie` (le camp qui PORTE l'attribut) ou `ennemi`. ⚠️ Pas de `end_of_combat` : rien à combattre après le dernier tick. Désactivé en PvP réel |
+| `destroy_enemy` | `on_self_neutralized` | Détruit l'unité adverse la **plus proche** du porteur. Rien à saisir. ⚠️ Son SEUL moment, et il n'existe que pour lui (cf. « Les mots-clés ») |
 | `stat_modifier` | `during_combat` | Déclenché par `trigger` : `on_ally_neutralized` / `on_enemy_neutralized` |
 | `revive` | `end_of_combat` | Réanime une unité neutralisée à `hp_percent` % (déf. 50) |
 | `draw_bonus` | `end_of_combat` | Pioches supplémentaires (plafonné par `max`) |
 | `guaranteed_draw` | `end_of_combat` | Pousse les critères dans `player_guaranteed_draws` — ⚠️ **les mêmes qu'une magie** (`tier`, `attributes`, `card_ids`) : même file, même `Draw.resolveGuaranteedDraws`, donc même éditeur d'admin |
+| `guaranteed_draw_bearer` | `end_of_combat` | Même file, **critères lus sur la CARTE** (`card.appel`) : une promesse par porteur. Aucun champ sur l'effet (cf. « Les mots-clés ») |
 | `board_slot_bonus` | `end_of_combat` | Via `grantLimitedBoardSlotBonus` — **cap +1 partagé avec les magies de slot** |
 | `damage_multiplier_bonus` | `end_of_combat` | S'ajoute au `player_multiplier` **de ce round** |
 | `shopping_bonus` | `end_of_combat` | Magies supplémentaires au Shopping suivant (plafonné par `max`) |
@@ -1110,10 +1205,13 @@ Une **grammaire** par pouvoir — direction, silhouette, locus —, car c'est el
 { type: 'stat_change', unit, stat, value }          // effet attribut de combat
 { type: 'freeze',      cell, expiresAtStep }
 { type: 'death',       unit }
+{ type: 'keyword',     unit, vfx, targets }         // un mot-clé qui se voit (Explosif)
 { type: 'combat_end',  winner }                     // 'player' | 'enemy' | 'draw' | 'timeout'
 ```
 
 `POWER_TELEPORT` émet `power` + `move`, `POWER_FREEZE` émet `power` + `freeze` : le `power` sert au toast/flash, le second porte la donnée de l'animateur.
+
+⚠️ `keyword` est distinct de `power` **à dessein** : les missions comptent un `power_triggered` sur chaque `power`, et un mot-clé n'est pas un pouvoir. Il porte une clé de RECETTE VISUELLE (`vfx`), jamais l'id de l'attribut — cf. « Les mots-clés ».
 
 ⚠️ **Un pouvoir qui part déclenche `pouvoir_utilise`** (`AttributeManager.onPowerFired`), sous la même condition que la remise à zéro de la jauge — le camp est celui du LANCEUR, et les paliers sont ceux **verrouillés au début du combat**, comme pour un `stat_modifier`. La boucle NOMME un moment, elle ne connaît aucun effet.
 
@@ -1581,7 +1679,7 @@ Bracket local à 8, **entièrement client** (`logic/Tournament.js`), éliminatio
 
 ## Mode tutoriel
 
-Codex de 11 chapitres + partie guidée + création accompagnée du premier deck. Écran `tutorial`.
+Codex de 12 chapitres + partie guidée + création accompagnée du premier deck. Écran `tutorial`.
 
 **Entièrement client, zéro ligne serveur** : pas de route, pas de table, aucune récompense — donc aucune surface de triche. La progression tient dans **une seule clé localStorage**, `millenium_tutorial_v1`.
 
@@ -1591,7 +1689,7 @@ Codex de 11 chapitres + partie guidée + création accompagnée du premier deck.
 
 | Fichier | Rôle |
 |---|---|
-| `data/tutorialContent.ts` | Les 11 chapitres : copie + **sélecteurs** d'exemples, purs |
+| `data/tutorialContent.ts` | Les 12 chapitres : copie + **sélecteurs** d'exemples, purs |
 | `data/tutorialScript.ts` | `advanceGameSteps` / `gameCoachStep` / `deckCoachStep` |
 | `data/tutorialProgress.ts` | localStorage (`shouldInvite`) |
 | `game/tutorialDeck.ts` | `buildTutorialDecks(cards)` — dérivés du catalogue |
@@ -1599,6 +1697,9 @@ Codex de 11 chapitres + partie guidée + création accompagnée du premier deck.
 | `components/tutorial/` | `ChapterBlocks`, `CoachBubble`, `TutorialCoach`, `DeckCoach` |
 
 - Un chapitre ne contient **jamais d'`id` de carte en dur** : ses exemples sont des sélecteurs `(cards) => Card[]` évalués sur le catalogue réel. Le codex suit donc les données.
+- ⚠️ **Ni de RÈGLE recopiée** : le chapitre des mots-clés rend un bloc `keywords` que `ChapterBlocks` résout contre le catalogue, en demandant à `data/KeywordInfo.keywordText` **la même phrase qu'en jeu**. Un mot-clé ajouté, renommé ou reréglé en admin change donc le chapitre sans une ligne — et un joueur ne peut pas lire dans le codex autre chose que ce que sa carte lui dira. ⚠️ Le bloc ne filtre **pas** sur les paliers, contrairement aux attributs de synergie : **Second souffle n'en a aucun**, et l'écarter cacherait le seul mot-clé que le moteur d'effets ne sait pas écrire.
+- ⚠️ **Un mot-clé est écarté des exemples de SYNERGIE** (`AttributeExamples`), même quand il porte un palier : il se déclenche à un exemplaire, donc il n'attend rien. Même raison que son exclusion du `SynergyPanel` — un exemple de synergie qui n'en est pas enseignerait le contraire de son propre chapitre.
+- ⚠️ **Le nombre de fiches de l'accroche est DÉRIVÉ** (`CHAPTERS.length`) : il disait « onze » et la douzième l'a rendu faux sans qu'une ligne de code ne s'en aperçoive. C'est la panne du labo IA — une phrase juste qui cesse de l'être, que ni un test, ni un `innerText`, ni une mesure n'attrape.
 - **Les decks** ne vivent pas dans `DeckRepository` → 5ᵉ paramètre **optionnel** `playerDeck` de `buildSession`, symétrique d'`enemyDeck`. Construction en deux temps imposée par les données (le catalogue n'a presque aucune invocation **normale** au-delà du tier 2) : tiers 1–2 en normales, tiers 3–5 **uniquement des cartes dont les matériaux sont déjà dans le deck**. L'**ATK pèse 20× les PV** dans le classement (ce sont les survivants et leur ATK qui infligent les dégâts ; un mur à 1 ATK partirait au **timeout**, qui blesse les *deux* joueurs).
 - ⚠️ **Le gel des chronos est le seul vrai piège du mode** : sans lui `PrepTimer` lance le combat au bout de 60 s en pleine explication. D'où **`coachBlocking`** dans `GameSnapshot`, sur le modèle exact de `menuOpen` — lu par `prepActive`, `ShoppingTimer` et le décompte d'`EndRoundOverlay`. **Toujours faux hors tutoriel.**
 - **`ai_win` n'est pas crédité** ; les **missions**, en revanche, ne sont *pas* neutralisées (une partie d'entraînement est une partie solo au regard des garde-fous serveur, et la contourner demanderait de toucher `GameController`).

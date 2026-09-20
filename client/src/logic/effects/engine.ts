@@ -156,6 +156,20 @@ export interface Monde {
    * comptable depuis un seul endroit.
    */
   rand?: () => number;
+  /**
+   * **L'unité qui a déclenché ce lot**, quand le trigger en désigne une —
+   * aujourd'hui `porteur_detruit` seul.
+   *
+   * ⚠️ `declencheur` et non `porteur` : `source` porte déjà l'ID du porteur de
+   * l'effet, et deux champs au même nom pour un id et pour une unité seraient
+   * confondus à la première lecture.
+   *
+   * ⚠️ C'est la seule chose que le moteur sache d'un déclencheur, et il ne s'en
+   * sert que pour ORDONNER (`Selecteur.tri`) : il ne la cible pas, ne la lit
+   * pas, ne la modifie pas. Un effet qui voudrait viser son propre porteur
+   * passe par le filtre d'attribut comme n'importe quel palier.
+   */
+  declencheur?: Unit;
   /** Les PV du joueur AVANT le lot — lus par les conditions, jamais écrits. */
   pvJoueur?: number;
   /** Nom du porteur, posé par `executer` pour les registres de provenance. */
@@ -240,15 +254,43 @@ function resoudre(sel: Selecteur, monde: Monde): Unit[] {
       : sel.camp === 'ennemi' ? [...monde.unitesEnnemies]
         : [...monde.unitesAlliees, ...monde.unitesEnnemies];
 
-  const vivantes = sel.conteneur === 'cimetiere' ? [...pool] : pool.filter(u => u.isAlive());
   const f = sel.filtre;
+  // ⚠️ Un cimetière ne contient QUE des neutralisées : le filtre de vie n'y a
+  // jamais eu de sens, et `inclureNeutralisees` n'y change donc rien.
+  const vivantes = sel.conteneur === 'cimetiere' || f?.inclureNeutralisees
+    ? [...pool]
+    : pool.filter(u => u.isAlive());
   const filtrees = !f ? vivantes : vivantes.filter(u => {
     if (f.attributs?.length && !u.attributes.some(a => f.attributs!.includes(a))) return false;
     if (f.cartes?.length && !f.cartes.includes(u.card_id)) return false;
     if (f.tiers?.length && !f.tiers.includes(u.tier)) return false;
     return true;
   });
-  return sel.combien === 'un' ? filtrees.slice(0, 1) : filtrees;
+  const classees = sel.tri ? trier(filtrees, sel, monde) : filtrees;
+  return sel.combien === 'un' ? classees.slice(0, 1) : classees;
+}
+
+/**
+ * Classe les candidats quand le sélecteur le demande — la seule façon qu'un
+ * `combien: 'un'` a de désigner la MÊME unité sur les deux clients d'un duel.
+ *
+ * ⚠️ **Le départage par `card_id` n'est pas cosmétique** : à distance égale,
+ * l'ordre du tableau déciderait, et il diffère d'un client à l'autre (le
+ * propriétaire garde ses objets, l'adversaire les reconstruit). C'est le même
+ * raisonnement que le 4ᵉ critère de l'ordre d'action, et la règle du doublon
+ * garantit qu'un `card_id` est unique par camp — donc que le départage tranche
+ * toujours.
+ */
+function trier(unites: Unit[], sel: Selecteur, monde: Monde): Unit[] {
+  void sel; // un seul tri aujourd'hui — le paramètre tient la place du second
+  const depuis = monde.declencheur?.position;
+  // Sans déclencheur ni position, il n'y a RIEN à mesurer : on rend l'ordre reçu
+  // plutôt qu'un classement inventé (le refus, lui, est nommé par l'appelant).
+  if (!depuis) return unites;
+  const d = (u: Unit) => (u.position
+    ? Math.abs(u.position.col - depuis.col) + Math.abs(u.position.row - depuis.row)
+    : Infinity);
+  return [...unites].sort((a, b) => d(a) - d(b) || a.card_id.localeCompare(b.card_id));
 }
 
 /** Le multiplicateur d'un `parAttributAdverse` — 1 quand il n'y en a pas. */
@@ -453,15 +495,28 @@ function appliqueSurJoueur(t: TacheModifier, monde: Monde, trace: Trace): void {
       }
       trace.applique.push(`joueur·pv+${d}`);
       return;
-    case 'pioches_garanties':
-      if (t.criteres) {
-        cible.pioches_garanties.push(t.criteres as GuaranteedDraw);
-        {
-          cible.sources.push({ kind: t.provenance ?? 'attribut', ref: monde.source ?? '', value: 0, guaranteed: true });
-        }
+    case 'pioches_garanties': {
+      // ⚠️ **Deux sources, jamais les deux à la fois** : les critères sont
+      // écrits DANS la tâche (`guaranteed_draw`, une promesse pour tout le
+      // palier) ou lus SUR CHAQUE PORTEUR (`guaranteed_draw_bearer`, le mot-clé
+      // Appelant — une promesse par carte). Ce sont deux TYPES d'effet
+      // distincts, donc le schéma ne laisse pas écrire les deux.
+      //
+      // ⚠️ Un porteur sans `appel` ne promet RIEN, et le dit (`neant`) : c'est
+      // une carte à qui l'on a donné le mot-clé sans lui donner sa cible, et
+      // inventer une pioche « au choix » à sa place serait pire que le silence.
+      // `audit:cards` la nomme.
+      const criteres = t.criteresDesPorteurs
+        ? resoudre(t.criteresDesPorteurs, monde).map(u => u.appel).filter((c): c is GuaranteedDraw => !!c)
+        : (t.criteres ? [t.criteres as GuaranteedDraw] : []);
+      for (const c of criteres) {
+        cible.pioches_garanties.push(c);
+        cible.sources.push({ kind: t.provenance ?? 'attribut', ref: monde.source ?? '', value: 0, guaranteed: true });
+        trace.applique.push('joueur·pioche_garantie');
       }
-      trace.applique.push('joueur·pioche_garantie');
+      if (!criteres.length) trace.neant.push('joueur·(aucun appel)');
       return;
+    }
     case 'magies_garanties':
       if (t.criteres) cible.magies_garanties.push(t.criteres as GuaranteedMagie);
       trace.applique.push('joueur·magie_garantie');
@@ -504,10 +559,17 @@ function appliqueDeplacer(t: TacheDeplacer, monde: Monde, trace: Trace): void {
   // board → cimetière
   if (t.cible.conteneur === 'board' && t.destination === 'cimetiere') {
     const cibles = resoudre(t.cible, monde);
-    if (!cibles.length || !cimetiere) { trace.neant.push('(aucune unité à déplacer)'); return; }
+    // ⚠️ **Le corps va au cimetière de SON camp**, et la nuance n'existait pas
+    // tant que seules les magies déplaçaient une unité (elles ne visent que le
+    // joueur). Un Explosif détruit une unité ADVERSE : l'envoyer dans le
+    // cimetière du joueur l'y rendrait consommable comme matériau.
+    const destination = t.cible.camp === 'ennemi'
+      ? (monde.neutraliseesEnnemies ?? null)
+      : cimetiere;
+    if (!cibles.length || !destination) { trace.neant.push('(aucune unité à déplacer)'); return; }
     for (const u of cibles) {
       u.is_neutralized = true;
-      cimetiere.push(u);
+      destination.push(u);
       trace.applique.push(`board→cimetière ${u.card_id}`);
     }
     return;
@@ -538,6 +600,14 @@ function appliquePoserStatut(t: TachePoserStatut, monde: Monde, trace: Trace): v
     if (t.statut === 'immunite') {
       u.is_effect_immune = true;
       trace.applique.push(`${u.card_id}·immunisée`);
+    } else if (t.statut === 'immobile') {
+      // ⚠️ Le moteur POSE, il ne nettoie pas : `is_immobile` est remis à zéro
+      // par `GameSession.startCombat` et **pas** par `resetCombatStats()` (cf.
+      // sa doc dans `Unit`). C'est le seul statut dans ce cas, et le moteur n'a
+      // pas à le savoir — il écrit, l'appelant tient le cycle de vie, comme
+      // pour les ressources et le registre des portées.
+      u.is_immobile = true;
+      trace.applique.push(`${u.card_id}·immobile`);
     } else {
       trace.ignore.push(`${u.card_id}·statut ${t.statut} (non câblé)`);
     }

@@ -13,7 +13,11 @@ import { cardName, magieName } from '../../data/gameNames.js';
 import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
 import { primaryTier, tiersOf } from '../../logic/Tiers.js';
 import { materialValueOf } from '../../logic/Unit.js';
-import type { Card } from '../../logic/types.js';
+// ⚠️ **La SEULE mise en mots d'un mot-clé** — partagée avec le codex du
+// tutoriel. Deux explications du même mot-clé finiraient par ne plus dire la
+// même chose, et c'est le codex qu'un joueur lit pour apprendre la règle.
+import { keywordText } from '../../data/KeywordInfo.js';
+import type { Card, GuaranteedDraw } from '../../logic/types.js';
 import { STAT_LABELS } from '../../data/StatLabels.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
 import TerrainEffects from '../ui/TerrainEffects.js';
@@ -72,11 +76,43 @@ function StatsRow({ stats }: { stats: Record<string, number> }) {
   );
 }
 
-function Keywords({ ids }: { ids: string[] }) {
+/**
+ * Ce que ce mot-clé fait, en une phrase — ou `null` si ce n'en est pas un.
+ *
+ * ⚠️ **Le seul endroit qui répond à « cet attribut s'explique-t-il ? »**, et il
+ * sert les DEUX rendus : la chip qui s'efface et le bloc qui explique. Poser la
+ * question à deux endroits, c'est s'autoriser à répondre deux fois la même
+ * chose — ce que le tooltip a effectivement fait le temps d'un rendu.
+ *
+ * ⚠️ **La phrase, elle, vient de `data/KeywordInfo`** et de nulle part ailleurs
+ * — le codex du tutoriel la lit au même endroit. Ce qui reste ici est la seule
+ * chose que ce module sache faire en plus : RÉSOUDRE l'id.
+ *
+ * ⚠️ Sans cette explication, Tour sortait en chip MUETTE : rien ne dit ce
+ * qu'un mot-clé veut dire, et une chip d'attribut n'est pas tapable.
+ */
+function motCleTexte(id: string, appel?: GuaranteedDraw | null): string | null {
+  // ⚠️ `getAttribute` **jette** tant que la database n'est pas initialisée
+  // (TestBench, CombatLab) : la garde est ici, comme celle d'`AttrIcon`.
+  let attr: any = null;
+  try { attr = (getAttribute as any)(id); } catch { return null; }
+  // ⚠️ `appel` traverse jusqu'ici parce qu'un mot-clé peut être PARAMÉTRÉ PAR
+  // CARTE (Appelant) : sans lui le bloc annoncerait la mécanique sans dire ce
+  // que CETTE carte appelle, c'est-à-dire la seule chose qu'on vient y chercher.
+  return keywordText(attr, appel, attributeName, cardName);
+}
+
+function Keywords({ ids, appel }: { ids: string[]; appel?: GuaranteedDraw | null }) {
   // ⚠️ Les attributs de TIER sont écartés : le badge de l'en-tête vient de les
   // dire, deux lignes plus haut. Les voies d'invocation, elles, RESTENT — c'est
   // ici qu'on lit « c'est une Fusion », et rien d'autre ne le dit.
-  const shown = ids.filter(id => !isTierAttribute(id));
+  //
+  // ⚠️ Même règle pour un MOT-CLÉ que le bloc du dessous EXPLIQUE : il y porte
+  // déjà son icône et son nom, en tête de sa propre explication. La condition
+  // est bien « ce bloc le dit », jamais « c'est un mot-clé » — un mot-clé dont
+  // la mécanique est un EFFET n'a pas d'entrée dans `MOTS_CLES`, donc rien ne
+  // le dirait ailleurs, donc il garde sa chip.
+  const shown = ids.filter(id => !isTierAttribute(id) && !motCleTexte(id, appel));
   if (!shown.length) return null;
   return (
     <div className="mt-2 flex flex-wrap gap-1">
@@ -89,6 +125,40 @@ function Keywords({ ids }: { ids: string[] }) {
           </span>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Ce qu'un MOT-CLÉ fait — la chip seule ne le dit pas.
+ *
+ * ⚠️ **Un mot-clé n'est pas un thème, et c'est toute la raison de ce bloc.**
+ * « Zombie » ou « Sable » n'ont rien à expliquer : ils rangent la carte. « Second
+ * souffle » nomme une MÉCANIQUE, et la chip qui le porte est muette — elle n'est
+ * pas tapable, rien derrière elle ne s'ouvre. Un joueur lisait donc un mot sans
+ * moyen d'apprendre ce qu'il veut dire. Le geste est celui du bloc de pouvoir,
+ * juste en dessous : on nomme, puis on explique.
+ *
+ * ⚠️ Le texte est celui de `motCleTexte`, et de nulle part ailleurs — c'est ce
+ * qui garantit qu'un mot-clé expliqué ici est exactement celui que la chip
+ * au-dessus a cédé.
+ */
+function MotsCles({ ids, appel }: { ids: string[]; appel?: GuaranteedDraw | null }) {
+  const portes = ids
+    .map(id => ({ id, attr: (getAttribute as any)(id), texte: motCleTexte(id, appel) }))
+    .filter(x => x.texte);
+  if (!portes.length) return null;
+  return (
+    <div className="mt-2 space-y-1">
+      {portes.map(({ id, attr, texte }) => (
+        <div key={id} className="rounded-lg border border-violet/25 bg-violet/5 p-2">
+          <div className="flex items-center gap-1 text-[11px] font-bold text-violet">
+            <AttrIcon id={id} fallback={attr?.icon} className="h-3.5 w-3.5 text-[11px]" />
+            {attr?.name ?? id}
+          </div>
+          <div className="text-[10px] text-white/60">{texte}</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -140,7 +210,12 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
           </span>
         </div>
         <StatsRow stats={stats} />
-        <Keywords ids={data.attributes ?? []} />
+        {/* ⚠️ `appel` se lit de la même façon sur une CARTE et sur une UNITÉ :
+            `Unit` le recopie de sa carte au constructeur, comme
+            `represented_ids`. Une branche `isUnit` de plus dirait deux fois la
+            même chose. */}
+        <Keywords ids={data.attributes ?? []} appel={data.appel} />
+        <MotsCles ids={data.attributes ?? []} appel={data.appel} />
         {power && (
           <div className="mt-2 rounded-lg border border-orange-400/25 bg-orange-500/5 p-2">
             <div className="flex items-center gap-1 text-[11px] font-bold text-orange-300">

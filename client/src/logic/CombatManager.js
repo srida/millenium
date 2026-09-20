@@ -105,7 +105,14 @@ export class CombatManager {
    *   { type: 'dot',     unit, damage }
    *   { type: 'freeze',  cell, expiresAtStep }
    *   { type: 'death',   unit }
+   *   { type: 'keyword', unit, vfx, targets }   // un mot-clé qui se voit
    *   { type: 'combat_end', winner }
+   *
+   * ⚠️ `keyword` porte une clé de RECETTE VISUELLE (`vfx`), jamais l'id de
+   * l'attribut : `three/` n'importe pas `data/` et ne saurait pas le résoudre.
+   * Même statut que `power_id`. Il est distinct de `power` à dessein — les
+   * missions comptent un `power_triggered` sur chaque `power`, et un mot-clé
+   * n'est pas un pouvoir.
    */
   step() {
     if (this.isOver) return [{ type: 'combat_end', winner: this.winner }];
@@ -218,6 +225,13 @@ export class CombatManager {
     // ── 3. Movement (independent timer) ──
     for (const u of livingUnits) {
       if (!u.isAlive()) continue;
+      // ⚠️ **Tour** : l'unité ne se déplace pas, et son horloge n'avance même
+      // pas — un compteur qui tourne dans le vide finirait par déclencher le
+      // pas suivant l'instant où l'immobilité tomberait. Les déplacements SUBIS
+      // (poussée, gel, téléportation) sont refusés ailleurs, dans les deux
+      // seuls endroits qui répondent « cette unité peut-elle changer de
+      // case ? » : `_canPush` et `_teleportPlan`.
+      if (u.is_immobile) continue;
       u.move_timer++;
       if (u.move_timer < u.movement_period) continue;
       u.move_timer = 0;
@@ -482,6 +496,12 @@ export class CombatManager {
   // First step of the retreat _pushUnit would walk — the whole push is a no-op
   // when it is unavailable, both cells sharing the same direction vector.
   _canPush(target, attackerPos) {
+    // ⚠️ **Tour ne se pousse pas** — ni par Poussée, ni par Gel. Le refus vit
+    // ICI et non dans `_pushUnit` : `_canPush` est le prédicat que
+    // `_isPowerRelevant` interroge, donc le lanceur GARDE sa jauge au lieu de
+    // la dépenser pour rien. Posé dans le mouvement, le pouvoir serait parti,
+    // la jauge vidée, et rien ne se serait passé.
+    if (target.is_immobile) return false;
     const dirCol = Math.sign(target.position.col - attackerPos.col);
     const dirRow = Math.sign(target.position.row - attackerPos.row);
     if (dirCol === 0 && dirRow === 0) return false;
@@ -710,6 +730,11 @@ export class CombatManager {
   // so _isPowerRelevant can ask the same question the power itself will ask.
   // Returns null when there is no enemy or no cell to land on.
   _teleportPlan(unit, enemies) {
+    // ⚠️ **Une Tour ne se téléporte pas non plus.** « Immobile » vaut pour tout
+    // changement de case, pas seulement pour la marche — et ce plan est le
+    // calcul PARTAGÉ entre la question (`_isPowerRelevant`) et le pouvoir, donc
+    // un seul refus suffit à fermer les deux.
+    if (unit.is_immobile) return null;
     if (enemies.length === 0) return null;
     const target = enemies.reduce((a, b) => a.current_hp < b.current_hp ? a : b, enemies[0]);
 
@@ -845,19 +870,54 @@ export class CombatManager {
     return pushed;
   }
 
+  /**
+   * ⚠️ **Une passe ne suffit plus**, depuis qu'un effet `porteur_detruit` (le
+   * mot-clé Explosif) peut neutraliser une unité PENDANT ce balayage.
+   *
+   * Une victime située plus loin dans `units` est vue par la boucle en cours ;
+   * une victime déjà DÉPASSÉE ne l'était qu'au tick suivant, et le report n'est
+   * pas anodin : elle reste un tick entier sur le plateau, neutralisée mais
+   * occupant sa case (donc bloquant le BFS et le ciblage) — et si l'explosion
+   * FINIT le combat, `_checkEnd` clôt aussitôt : son `death` ne part jamais et
+   * sa carte reste affichée tout le round. On reboucle donc jusqu'à stabilité.
+   *
+   * ⚠️ Ce n'est PAS une correction de déterminisme : `units` vient de
+   * `_frameOrderedUnits`, donc l'ordre du balayage est déjà le même des deux
+   * côtés d'un duel, report compris. C'est une correction de justesse — et le
+   * report se voyait à l'écran, pas dans un diff de log.
+   *
+   * ⚠️ La boucle ne peut pas s'emballer, et ce n'est pas `MAX_PASSES` qui le
+   * garantit : c'est `_deathEmitted`, qui rend chaque unité inéligible une fois
+   * traitée — il y a donc au plus une explosion par unité, et un nombre fini
+   * d'unités. `MAX_PASSES` est une borne de sûreté sur une chaîne qu'on ne veut
+   * pas voir grandir en silence, pas le garde-fou.
+   */
   _checkDeaths(units, events) {
-    for (const u of units) {
-      if (u.is_neutralized && !u._deathEmitted) {
+    const MAX_PASSES = units.length + 1;
+    for (let passe = 0; passe < MAX_PASSES; passe++) {
+      let nouvelle = false;
+      for (const u of units) {
+        if (!u.is_neutralized || u._deathEmitted) continue;
+        nouvelle = true;
         u._deathEmitted = true;
         this.board.removeUnit(u);
         events.push({ type: 'death', unit: u });
 
+        // ⚠️ `porteur_detruit` AVANT `onUnitNeutralized` : « j'explose » précède
+        // « mes alliés réagissent à ma mort ». L'inverse ferait compter aux
+        // survivants un ennemi que l'explosion vient d'emporter — et les
+        // `stat_modifier` de mort lisent les vivants.
+        if (this.attributeManager?.onBearerNeutralized) {
+          const explosion = this.attributeManager.onBearerNeutralized(u, this.playerUnits, this.enemyUnits);
+          events.push(...explosion);
+        }
         // Trigger during-combat attribute stat_modifiers
         if (this.attributeManager) {
           const evts = this.attributeManager.onUnitNeutralized(u, this.playerUnits, this.enemyUnits);
           events.push(...evts);
         }
       }
+      if (!nouvelle) return;
     }
   }
 

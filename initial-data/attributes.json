@@ -1907,5 +1907,73 @@
 		"categorie": "Tiers",
 		"thresholds": [],
 		"tier": 5
+	},
+	{
+		"id": "ARCH_096",
+		"name": "Second souffle",
+		"icon": "♻️",
+		"timing": "none",
+		"categorie": "MotCle",
+		"thresholds": [],
+		"mot_cle": "cimetiere_permanent"
+	},
+	{
+		"id": "ARCH_097",
+		"name": "Tour",
+		"icon": "🗼",
+		"timing": "start_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "bronze",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "range",
+						"value": 20
+					},
+					{
+						"type": "immobile"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_098",
+		"name": "Explosif",
+		"icon": "💥",
+		"timing": "on_self_neutralized",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "bronze",
+				"effects": [
+					{
+						"type": "destroy_enemy"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_099",
+		"name": "Appelant",
+		"icon": "📣",
+		"timing": "end_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "bronze",
+				"effects": [
+					{
+						"type": "guaranteed_draw_bearer"
+					}
+				]
+			}
+		]
 	}
 ]

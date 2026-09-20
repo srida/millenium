@@ -13,9 +13,12 @@ import * as PowerDatabase from '../../data/PowerDatabase.js';
 import * as AttributeDatabase from '../../data/AttributeDatabase.js';
 import * as MagieDatabase from '../../data/MagieDatabase.js';
 import * as BoardDatabase from '../../data/BoardDatabase.js';
-import AttrIcon from '../ui/AttrIcon.js';
+import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
+// ⚠️ La MÊME mise en mots qu'en jeu (`TooltipHost`) : un joueur ne doit pas
+// pouvoir lire dans le codex autre chose que ce que la carte lui dira.
+import { keywordText, keywordAttributes, MOT_CLE_CATEGORY } from '../../data/KeywordInfo.js';
 import { effectLabel } from '../../logic/MagieEffect.js';
-import { GAME_NAMES } from '../../data/gameNames.js';
+import { GAME_NAMES, cardName } from '../../data/gameNames.js';
 import { boardEffects } from '../../logic/BoardEffect.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
 import type { Card, AttributeDef, BoardDef, Magie, PowerDef } from '../../logic/types.js';
@@ -65,8 +68,15 @@ function PowerExamples({ limit }: { limit: number }) {
 function AttributeExamples({ limit }: { limit: number }) {
   // Un attribut sans palier n'illustre rien : on ne montre que ceux qui portent
   // vraiment une synergie.
+  //
+  // ⚠️ Et un MOT-CLÉ n'en est pas une, même quand il porte un palier : il se
+  // déclenche à un exemplaire, donc il n'attend rien. Il a son propre chapitre,
+  // et le panneau des synergies l'écarte déjà pour la même raison
+  // (`AttributeManager.getActiveSynergies`) — un exemple de synergie qui n'en
+  // est pas enseignerait le contraire de ce chapitre.
   const all = ((AttributeDatabase as any).getAllAttributes() as AttributeDef[])
-    .filter(a => (a.thresholds?.length ?? 0) > 0);
+    .filter(a => (a.thresholds?.length ?? 0) > 0)
+    .filter(a => (a as any).categorie !== MOT_CLE_CATEGORY);
   return (
     <div className="grid gap-1.5">
       {firstById(all, limit).map(a => (
@@ -82,6 +92,44 @@ function AttributeExamples({ limit }: { limit: number }) {
               </span>
             ))}
           </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Les MOTS-CLÉS du catalogue, chacun avec sa phrase.
+ *
+ * ⚠️ **Aucune règle n'est écrite ici**, pas même la liste des mots-clés : on lit
+ * les attributs de catégorie `MotCle` et on leur demande leur explication à
+ * `data/KeywordInfo`, exactement comme l'infobulle en jeu. Un mot-clé ajouté ou
+ * reréglé en admin change donc ce chapitre tout seul.
+ *
+ * ⚠️ Pas de filtre sur les paliers, contrairement aux attributs de synergie :
+ * **Second souffle n'en a aucun** — sa mécanique vit dans le champ `mot_cle`,
+ * pas dans un effet. L'écarter reviendrait à cacher au joueur le seul mot-clé
+ * que le moteur d'effets ne sait pas écrire.
+ *
+ * ⚠️ `appel` n'est pas passé : ici on enseigne la MÉCANIQUE, pas la promesse
+ * d'une carte en particulier. `keywordText` annonce alors « ce que sa carte
+ * nomme », ce qui est précisément la leçon.
+ */
+function KeywordExamples() {
+  const all = keywordAttributes((AttributeDatabase as any).getAllAttributes() as any[]);
+  const portes = all
+    .map(a => ({ a, texte: keywordText(a, null, attributeName, cardName) }))
+    .filter(x => x.texte);
+  if (!portes.length) return null;
+  return (
+    <div className="grid gap-1.5">
+      {portes.map(({ a, texte }) => (
+        <div key={a.id} className="rounded-lg border border-violet/25 bg-violet/5 px-3 py-2">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-violet">
+            <AttrIcon id={a.id} fallback={a.icon} className="h-5 w-5 text-base" />
+            {a.name ?? a.id}
+          </div>
+          <div className="mt-0.5 text-[11px] leading-snug text-white/60">{texte}</div>
         </div>
       ))}
     </div>
@@ -210,6 +258,9 @@ export function ChapterBlockView({ block }: { block: ChapterBlock }) {
 
     case 'attributes':
       return <div>{block.caption && <Caption>{block.caption}</Caption>}<AttributeExamples limit={block.limit} /></div>;
+
+    case 'keywords':
+      return <div>{block.caption && <Caption>{block.caption}</Caption>}<KeywordExamples /></div>;
 
     case 'magies':
       return <div>{block.caption && <Caption>{block.caption}</Caption>}<MagieExamples limit={block.limit} /></div>;

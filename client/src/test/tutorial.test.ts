@@ -23,6 +23,7 @@ import type { Card } from '../logic/types.js';
 import { summonCost } from '../logic/InvocationManager.js';
 import { summonRecipes } from '../data/SummonInfo.js';
 import { tierIndex, resolveTiers } from '../logic/Tiers.js';
+import { keywordAttributes, keywordText } from '../data/KeywordInfo.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const read = (f: string) => JSON.parse(fs.readFileSync(path.join(ROOT, 'initial-data', f), 'utf8'));
@@ -38,9 +39,9 @@ const CARDS = (read('cards.json') as Card[]).map(c => ({ ...c, _tiers: resolveTi
 // ── Le codex ────────────────────────────────────────────────────────────────
 
 describe('codex du tutoriel', () => {
-  it('couvre les onze notions annoncées, sans doublon d\'identifiant', () => {
-    expect(CHAPTERS).toHaveLength(11);
-    expect(new Set(CHAPTERS.map(c => c.id)).size).toBe(11);
+  it('couvre les douze notions annoncées, sans doublon d\'identifiant', () => {
+    expect(CHAPTERS).toHaveLength(12);
+    expect(new Set(CHAPTERS.map(c => c.id)).size).toBe(12);
   });
 
   it('donne à chaque chapitre un titre, une accroche et du contenu', () => {
@@ -67,6 +68,28 @@ describe('codex du tutoriel', () => {
       }
     }
     expect(checked).toBeGreaterThan(0);
+  });
+
+  /**
+   * Le chapitre des MOTS-CLÉS ne recopie aucune règle : il rend un bloc
+   * `keywords` que le composant résout contre le catalogue réel.
+   *
+   * ⚠️ Un mot-clé MUET est la panne que ce cas ferme, et elle est silencieuse à
+   * l'écran : le chapitre s'afficherait, avec une ligne de moins que de
+   * mots-clés, et rien ne dirait lequel manque. C'est arrivé au tooltip (Tour
+   * sortait en chip sans explication) avant que `keywordText` existe.
+   * Mutation : retirer l'`aide` d'un `MOTS_CLES`, ou vider les paliers d'un
+   * mot-clé à effets → ROUGE, nommément.
+   */
+  it('explique CHAQUE mot-clé du catalogue, sans en recopier la règle', () => {
+    const chapitre = CHAPTERS.find(c => c.id === 'keywords');
+    expect(chapitre, 'aucun chapitre « mots-clés »').toBeTruthy();
+    expect(chapitre!.blocks.some(b => b.kind === 'keywords')).toBe(true);
+
+    const motsCles = keywordAttributes(read('attributes.json'));
+    expect(motsCles.length, 'aucun mot-clé au catalogue — le chapitre serait vide').toBeGreaterThan(0);
+    const muets = motsCles.filter(a => !keywordText(a)).map(a => `${a.id} ${a.name ?? ''}`);
+    expect(muets).toEqual([]);
   });
 
   it('rend des exemples stables d\'un appel à l\'autre', () => {

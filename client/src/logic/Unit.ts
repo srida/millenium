@@ -1,4 +1,4 @@
-import type { Card, DotEffect, BurnStack, Position, Side } from './types.js';
+import type { Card, DotEffect, BurnStack, GuaranteedDraw, Position, Side } from './types.js';
 import { primaryTier } from './Tiers.js';
 // L'échelle de vitesse vit À LA RACINE et nulle part ailleurs (cf. l'en-tête de
 // `speed-scale.mjs`) : le bundle client, `admin.html` et les scripts Node y
@@ -59,6 +59,17 @@ export class Unit {
   // ⚠️ A NAMED requirement is paid one slot at a time whatever this says:
   // `InvocationManager.materialSlotsPaid` is the only place that counts.
   material_value: number;
+  /**
+   * Ce que la carte APPELLE — le paramètre du mot-clé Appelant, recopié de la
+   * carte comme `represented_ids` et `material_value`.
+   *
+   * ⚠️ **Rien à ajouter au contrat PvP** : il se DÉRIVE du `card_id`, que le
+   * payload porte déjà, et le catalogue est commun aux deux clients —
+   * `reconstructOpponentUnits` reconstruit l'unité depuis la carte, donc le
+   * champ arrive tout seul. C'est le statut de `tier` et de `represented_ids`,
+   * et la raison pour laquelle le contrat de déterminisme n'a pas grossi.
+   */
+  appel: GuaranteedDraw | null;
   power_id: string | null;
   /**
    * Le compteur de chargement du pouvoir, 0–100 (`speed-scale.mjs`).
@@ -150,6 +161,23 @@ export class Unit {
   taunt_remaining: number; // steps left this unit forces enemies to target it
   is_effect_immune: boolean; // granted by effect_immunity attribute — blocks debuff powers
   /**
+   * L'unité ne se déplace pas, et **rien ne la déplace** — le mot-clé Tour.
+   *
+   * ⚠️ **Posé par un statut mais remis à zéro par `startCombat`, PAS par
+   * `resetCombatStats()`**, et c'est le seul de la liste dans ce cas. La raison
+   * est celle des horloges de combat : `POWER_DEBUFF` appelle `resetCombatStats`
+   * EN PLEIN COMBAT, et `AttributeManager.reapplyBonuses` ne rejoue que le
+   * journal des STATS — jamais les statuts. Une Tour dissipée retrouverait donc
+   * sa portée (une stat, rejouée) sans son immobilité, c'est-à-dire un tireur
+   * longue portée MOBILE : l'exact contraire de ce que la dissipation est censée
+   * faire. `startCombat` la repose une fois par combat, pour les deux camps.
+   *
+   * ⚠️ Elle bloque AUSSI les déplacements SUBIS (poussée, gel, téléportation),
+   * via `_canPush` et `_teleportPlan` — les deux seuls endroits qui répondent
+   * « cette unité peut-elle changer de case ? ».
+   */
+  is_immobile: boolean;
+  /**
    * Le compte à rebours d'Affaiblissement (POWER_WEAKEN), en ticks.
    *
    * ⚠️ Contrairement à Paralysie/Blocage/Confusion/Provocation, ce pouvoir lit
@@ -196,6 +224,7 @@ export class Unit {
 
     this.represented_ids = [...new Set([card.id, ...(card.represented_ids || [])])];
     this.material_value = materialValueOf(card);
+    this.appel = card.appel ?? null;
     this.power_id = card.power?.id ?? null;
     this.power_rate = card.power?.power_rate ?? null;
     this.power_value = card.power?.value ?? null;
@@ -232,6 +261,7 @@ export class Unit {
     this.confusion_remaining = 0;
     this.taunt_remaining = 0;
     this.is_effect_immune = false;
+    this.is_immobile = false;
     this.weaken_remaining = 0;
     this.weaken_atk_delta = 0;
     this.is_token = false;

@@ -27,6 +27,10 @@
 import { ELEMENT_STYLES, elementsForUnit } from './constants.js';
 import type { Scene3D } from './Scene3D.js';
 import type { Unit } from '../logic/Unit.js';
+// ⚠️ La clé de recette d'un mot-clé est ÉCRITE dans `logic/effects/types.ts`, et
+// importée ici : c'est ce qui interdit structurellement la dérive entre ce que
+// le compilateur estampille et ce que cette table indexe (cf. `VFX_EXPLOSIF`).
+import { VFX_EXPLOSIF } from '../logic/effects/types.js';
 import type { Position } from '../logic/types.js';
 
 // Doit rester synchronisé avec CombatAnimator3D / CombatManager (logic/
@@ -594,6 +598,62 @@ const RECIPES: Record<string, Recipe> = {
  * amont par l'appelant : une cible immunisée ne reçoit QUE la déflexion.
  * Un power_id inconnu retombe sur un impact générique plutôt que sur rien.
  */
+/**
+ * Les MOTS-CLÉS — une table à part, et pas par scrupule de rangement.
+ *
+ * ⚠️ `RECIPES` est indexée par `power_id`, et `playPowerVfx` retombe sur une
+ * explosion générique pour tout id inconnu. Y glisser un mot-clé rendrait
+ * indiscernable, à la lecture, ce qui est un pouvoir de carte et ce qui est une
+ * mécanique d'attribut — et le repli les confondrait en silence.
+ */
+const RECIPES_MOT_CLE: Record<string, Recipe> = {
+  /**
+   * **Explosif** — une déflagration orange qui part de la case du porteur, pas
+   * de celle de sa victime : c'est LUI qui explose, elle ne fait qu'encaisser.
+   *
+   * ⚠️ Tout se lit à PLAT (la caméra regarde droit vers le bas) : l'anneau
+   * rasant porte la portée, les motes s'écartent au lieu de monter, et le flash
+   * marque le foyer. Une colonne verticale se projetterait sur un point.
+   */
+  [VFX_EXPLOSIF](scene, caster, targets, _extra, ctx) {
+    const from = caster.position;
+    if (!from) return;
+    const color = 0xff7a2a;
+
+    scene.spawnFlash(scene.tilePosition(from), color, 3.2, 3.4, life(ctx, 0.35));
+    scene.spawnRing(from, color, life(ctx, 0.45), 6);
+    scene.spawnBurst(from, color, budget(ctx, 42), {
+      size: 0.15, speed: [1.6, 3.2], lift: [0.2, 0.7], maxLife: life(ctx, 0.5),
+    });
+
+    for (const t of targets) {
+      if (!t.position) continue;
+      // ⚠️ Pas de garde `ctx.dying` ici, contrairement au repli de
+      // `playPowerVfx` : la victime est JUSTEMENT en train de mourir, et c'est
+      // l'explosion qui la tue. La sauter reviendrait à ne rien montrer.
+      scene.spawnBurst(t.position, brighten(color, 0.3), budget(ctx, 26), {
+        size: 0.13, speed: [0.9, 1.9], maxLife: life(ctx, 0.4),
+      });
+      scene.spawnRing(t.position, color, life(ctx, 0.35), 4);
+    }
+  },
+};
+
+/** Le pendant de `playPowerVfx` pour un événement `keyword`. */
+export function playKeywordVfx(
+  scene: Scene3D,
+  bearer: Unit,
+  targets: Unit[],
+  keywordVfx: string,
+  ctx: PowerVfxContext,
+): void {
+  // ⚠️ **Aucun repli générique** : un mot-clé sans recette ne doit RIEN
+  // dessiner. `playPowerVfx` en a un parce qu'un pouvoir sans recette reste un
+  // coup porté ; un mot-clé, lui, est souvent purement passif (Tour, Second
+  // souffle) — une explosion par défaut en inventerait un à chacun.
+  RECIPES_MOT_CLE[keywordVfx]?.(scene, bearer, targets, {}, ctx);
+}
+
 export function playPowerVfx(
   scene: Scene3D,
   caster: Unit,
