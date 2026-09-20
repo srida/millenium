@@ -315,6 +315,9 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   stat_bonus: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   shield: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   effect_immunity: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  // Mêmes moments que l'immunité : les deux posent un statut sur le porteur, et
+  // les trois moments sont exactement ceux où un porteur est là pour le recevoir.
+  immobile: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   // ⚠️ `fin_combat` en PREMIER (donc par défaut) : un soin d'attribut se lit
   // comme une récupération post-combat, pas comme un buff de pré-combat — les
   // trois autres moments restent choisissables (`timing`) pour qui veut
@@ -506,6 +509,14 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
 
         case 'effect_immunity':
           pousse([{ action: 'poser_statut', cible: cibleUnite(), statut: 'immunite', duree: 'combat' }]);
+          return;
+
+        // ⚠️ `duree: 'combat'` comme l'immunité, et la donnée dit vrai : le
+        // statut ne vaut que pour ce combat. Ce qui diffère est QUI le nettoie —
+        // `GameSession.startCombat` et non `resetCombatStats()` (cf. `Unit`) —,
+        // et c'est une affaire d'appelant, pas de compilation.
+        case 'immobile':
+          pousse([{ action: 'poser_statut', cible: cibleUnite(), statut: 'immobile', duree: 'combat' }]);
           return;
 
         case 'heal':

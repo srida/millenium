@@ -2182,5 +2182,27 @@ exports[`Attributs livrés — l'oracle de l'étape 0 > ce que chaque palier de 
     ],
     "timing": "end_of_combat",
   },
+  {
+    "categorie": "MotCle",
+    "id": "ARCH_097",
+    "nom": "Tour",
+    "paliers": [
+      {
+        "effets": [
+          "stat_bonus · range · 20",
+          "immobile",
+        ],
+        "ennemi": {
+          "E0_ARCH_097": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 23 · bcl 0",
+        },
+        "joueur": {
+          "P0_ARCH_097": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 23 · bcl 0",
+        },
+        "palier": 1,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
 ]
 `;

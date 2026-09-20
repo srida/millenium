@@ -886,6 +886,7 @@ is_power_blocked / power_block_remaining
 confusion_remaining    // > 0 → cible ses propres alliés
 taunt_remaining        // > 0 → force les ennemis à la cibler
 is_effect_immune       // attribut effect_immunity
+is_immobile            // mot-clé Tour — ⚠️ remis à zéro par startCombat, PAS par resetCombatStats
 
 position / initial_position / is_neutralized / veterancy_points
 attack_timer / move_timer                        // ⚠️ remis à zéro à chaque startCombat
@@ -977,6 +978,19 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 - ⚠️ `collectAttrFromForm` reconstruit l'objet de zéro : **`mot_cle` y est obligatoire**, et le champ reste visible dès qu'une valeur y est posée. Sans ça, enregistrer une fiche l'effacerait (le piège de `description` sur les magies).
 - **Affichage** : un mot-clé est **écarté du `SynergyPanel`** (il se déclenche à un exemplaire, il n'attend rien — une puce éternellement verte au milieu de celles qui disent quelque chose) et, quand `MOTS_CLES` l'explique, **de la chip `Keywords`** : le bloc violet du tooltip porte déjà son icône et son nom, au-dessus de son explication. La condition est « ce bloc le dit », jamais « c'est un mot-clé ».
 
+**Tour** — un `stat_bonus range` **et** un `immobile` sur le même palier à 1 : **rien qu'une donnée**, la portée se règle en admin sans toucher au moteur. L'immobilité vaut pour tout changement de case, subi compris.
+
+| Ce qui la bloque | Où |
+|---|---|
+| Marche (et son horloge, qui n'avance même pas) | phase 3 de `CombatManager.step` |
+| Poussée et Gel | `_canPush` — donc `_isPowerRelevant` répond non et le lanceur **garde sa jauge** |
+| Téléportation | `_teleportPlan`, le calcul partagé entre la question et le pouvoir |
+
+- ⚠️ **`is_immobile` est remis à zéro par `startCombat`, JAMAIS par `resetCombatStats()`** — seul statut dans ce cas. `POWER_DEBUFF` appelle `resetCombatStats` en plein combat et `reapplyBonuses` ne rejoue que les STATS : une Tour dissipée retrouverait sa portée sans son immobilité, c'est-à-dire un tireur longue portée mobile. Même horloge que `resetCombatClocks`, même raison.
+- ⚠️ La portée doit couvrir le plateau (Manhattan max d'un 5×11 = **14**), sinon « portée maximale » est un chiffre qui ment.
+- ⚠️ **Un test monté sans mur reste VERT avec le garde de déplacement retiré** : à portée de tout, une Tour n'a jamais besoin de bouger, donc `canAttack` sort de la boucle avant le moindre pas. C'est la **ligne de vue** (un mur) qui la fait vouloir marcher — le seul scénario qui éprouve la règle, et le vrai cas de jeu.
+- `EnemyAI.rearrangeUnits` trie sur `range <= 1` **avant** `applyStartOfCombat` : elle range donc une Tour selon la portée de sa CARTE. Se règle dans la donnée, pas dans l'IA.
+
 **`cimetiere_permanent` (Second souffle)** — `GameSession.startCombat` épargne les porteurs à la purge des cimetières, `finishCombat` les **reprend en tête** au lieu d'affecter le tableau.
 - ⚠️ Les deux lignes vont ensemble : sans la reprise, le mot-clé marche pendant exactement une préparation.
 - ⚠️ **Les deux camps**, sans drapeau d'asymétrie — l'IA hérite donc d'une réserve de matériaux permanente, et c'est voulu. `_placeEnemyUnits()` passant AVANT la purge, elle la voit dès le round suivant.
@@ -988,6 +1002,7 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 | `stat_bonus` | `start_of_combat` · `on_summon` · `on_power_fired` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step). ⚠️ Sur `attack_rate` / `movement_rate`, le bonus est **positif pour accélérer** et s'écrête à 100 |
 | `shield` | `start_of_combat` · `on_summon` · `on_power_fired` | `value` × nombre d'**alliés vivants** |
 | `effect_immunity` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_effect_immune` — annule les pouvoirs de debuff |
+| `immobile` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_immobile` — ne marche pas, ne se pousse pas, ne se téléporte pas. **Attribut seulement** (cf. « Les mots-clés ») |
 | `summon_token` | `start_of_combat` · `on_summon` · `on_power_fired` | Invoque un token (`token_id`) sur une case libre au hasard ; `camp` = `allie` (le camp qui PORTE l'attribut) ou `ennemi`. ⚠️ Pas de `end_of_combat` : rien à combattre après le dernier tick. Désactivé en PvP réel |
 | `stat_modifier` | `during_combat` | Déclenché par `trigger` : `on_ally_neutralized` / `on_enemy_neutralized` |
 | `revive` | `end_of_combat` | Réanime une unité neutralisée à `hp_percent` % (déf. 50) |

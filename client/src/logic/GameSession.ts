@@ -861,8 +861,15 @@ export class GameSession {
     // Le geste est ici et non dans `resetCombatStats`, que `POWER_DEBUFF`
     // appelle EN PLEIN COMBAT : y toucher rendrait la dissipation capable de
     // décaler le prochain coup de sa cible.
-    for (const u of playerUnits) u.resetCombatClocks();
-    for (const u of this.enemyUnits) u.resetCombatClocks();
+    // ⚠️ `is_immobile` (le mot-clé Tour) repart ICI et non dans
+    // `resetCombatStats()`, qui est le balayage de `POWER_DEBUFF` : une Tour
+    // dissipée en plein combat retrouverait sa portée (une stat, que
+    // `reapplyBonuses` rejoue) sans son immobilité — un tireur longue portée
+    // devenu mobile, l'exact contraire de ce que la dissipation fait. Même
+    // horloge que les deux timers ci-dessus, et la même raison : ce qui ne doit
+    // repartir qu'au combat se remet à zéro au combat.
+    for (const u of playerUnits) { u.resetCombatClocks(); u.is_immobile = false; }
+    for (const u of this.enemyUnits) { u.resetCombatClocks(); u.is_immobile = false; }
 
     this.gameState.startCombat(playerUnits.length, this.enemyUnits.length);
 

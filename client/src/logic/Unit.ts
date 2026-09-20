@@ -150,6 +150,23 @@ export class Unit {
   taunt_remaining: number; // steps left this unit forces enemies to target it
   is_effect_immune: boolean; // granted by effect_immunity attribute — blocks debuff powers
   /**
+   * L'unité ne se déplace pas, et **rien ne la déplace** — le mot-clé Tour.
+   *
+   * ⚠️ **Posé par un statut mais remis à zéro par `startCombat`, PAS par
+   * `resetCombatStats()`**, et c'est le seul de la liste dans ce cas. La raison
+   * est celle des horloges de combat : `POWER_DEBUFF` appelle `resetCombatStats`
+   * EN PLEIN COMBAT, et `AttributeManager.reapplyBonuses` ne rejoue que le
+   * journal des STATS — jamais les statuts. Une Tour dissipée retrouverait donc
+   * sa portée (une stat, rejouée) sans son immobilité, c'est-à-dire un tireur
+   * longue portée MOBILE : l'exact contraire de ce que la dissipation est censée
+   * faire. `startCombat` la repose une fois par combat, pour les deux camps.
+   *
+   * ⚠️ Elle bloque AUSSI les déplacements SUBIS (poussée, gel, téléportation),
+   * via `_canPush` et `_teleportPlan` — les deux seuls endroits qui répondent
+   * « cette unité peut-elle changer de case ? ».
+   */
+  is_immobile: boolean;
+  /**
    * Le compte à rebours d'Affaiblissement (POWER_WEAKEN), en ticks.
    *
    * ⚠️ Contrairement à Paralysie/Blocage/Confusion/Provocation, ce pouvoir lit
@@ -232,6 +249,7 @@ export class Unit {
     this.confusion_remaining = 0;
     this.taunt_remaining = 0;
     this.is_effect_immune = false;
+    this.is_immobile = false;
     this.weaken_remaining = 0;
     this.weaken_atk_delta = 0;
     this.is_token = false;

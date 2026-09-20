@@ -80,7 +80,11 @@ export const MOTS_CLES = Object.freeze({
     // purge le cimetière et cette purge l'épargne. Le corps reste donc
     // disponible comme matériau indéfiniment — et disparaît s'il est consommé,
     // ce dont il n'y a rien à écrire (la consommation le retire déjà).
-    aide: 'Le corps survit à la purge des cimetières au lancement de chaque combat. Il ne disparaît que consommé comme matériau. Vaut pour les deux camps.',
+    // ⚠️ L'aide est écrite POUR LE JOUEUR, pas pour l'auteur de la fiche : elle
+    // s'affiche telle quelle dans le tooltip de carte. Tout ce qui ne décrit pas
+    // ce qu'il va voir en jouant n'y a pas sa place — « vaut pour les deux
+    // camps » est une note d'implémentation, pas une règle qu'il lit.
+    aide: 'Le corps reste au cimetière indéfiniment au lieu de disparaître au combat suivant. Il n\'en sort que consommé comme matériau.',
   },
 });
 
@@ -430,6 +434,21 @@ export const TYPES = Object.freeze({
   effect_immunity: {
     label: 'Immunité aux effets négatifs (poison, paralysie, push, burn…)',
     court: 'Immunité aux effets',
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
+  },
+  immobile: {
+    label: 'Ne se déplace plus, et rien ne la déplace (Tour)',
+    court: 'Immobile',
+    // ⚠️ **Aucun champ**, et surtout pas une portée : l'immobilité n'est pas
+    // chiffrée. Le « ne bouge plus » d'une Tour se paie par sa PORTÉE, écrite à
+    // côté comme un `stat_bonus` ordinaire — deux effets sur le même palier, pas
+    // un type qui en ferait deux. C'est ce qui laisse régler la portée d'une
+    // Tour sans toucher au moteur.
+    //
+    // ⚠️ Offert au seul ATTRIBUT : un terrain qui immobilise viserait les deux
+    // camps sans rien pour l'annoncer, et une magie poserait un état que
+    // `startCombat` effacerait avant le combat suivant — deux effets morts, de
+    // la famille exacte que ce fichier existe pour fermer.
     attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
   },
   revive: {

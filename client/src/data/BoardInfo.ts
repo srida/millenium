@@ -109,6 +109,11 @@ export function boardEffectLabel(
         : 'Pioche garantie';
     }
     case 'revive':            return 'Réanimation';
+    // ⚠️ Le mot-clé **Tour**, et il DIT SES DEUX MOITIÉS : « immobile » seul
+    // (le repli sur le type brut, qui sortait avant) laisse croire qu'on peut
+    // la repousser — or c'est justement ce qu'il interdit. Un mot-clé qui
+    // n'annonce que la moitié de sa règle est pire qu'un mot-clé muet.
+    case 'immobile':          return 'Ne se déplace pas et ne peut pas être poussée';
     case 'board_slot_bonus':  return `+${effect.value} slot`;
     // ⚠️ Effet d'ATTRIBUT, pas de terrain — cette fonction sert les deux (cf.
     // `TooltipHost.describeEffects`). Sans son entrée ici, le palier de synergie

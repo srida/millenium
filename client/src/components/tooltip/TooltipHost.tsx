@@ -14,7 +14,7 @@ import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
 import { primaryTier, tiersOf } from '../../logic/Tiers.js';
 import { materialValueOf } from '../../logic/Unit.js';
 // ⚠️ La SEULE déclaration des mots-clés (racine, partagée avec `admin.html`).
-import { MOTS_CLES } from '../../../../effect-schema.mjs';
+import { MOTS_CLES, MOT_CLE_CATEGORY } from '../../../../effect-schema.mjs';
 import type { Card } from '../../logic/types.js';
 import { STAT_LABELS } from '../../data/StatLabels.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
@@ -75,15 +75,34 @@ function StatsRow({ stats }: { stats: Record<string, number> }) {
 }
 
 /**
- * La définition du mot-clé que cet attribut apporte, s'il en apporte une.
+ * Ce que ce mot-clé fait, en une phrase — ou `null` si ce n'en est pas un.
  *
- * ⚠️ **Le seul lecteur de `attribut.mot_cle` côté écran**, et il sert les DEUX
- * rendus : la chip qui s'efface et le bloc qui explique. Poser la question à
- * deux endroits, c'est s'autoriser à répondre deux fois la même chose — ce que
- * le tooltip a effectivement fait le temps d'un rendu.
+ * ⚠️ **Le seul endroit qui répond à « cet attribut s'explique-t-il ? »**, et il
+ * sert les DEUX rendus : la chip qui s'efface et le bloc qui explique. Poser la
+ * question à deux endroits, c'est s'autoriser à répondre deux fois la même
+ * chose — ce que le tooltip a effectivement fait le temps d'un rendu.
+ *
+ * ⚠️ **Deux sources, dans cet ordre, et c'est le partage des mots-clés** :
+ *   • `MOTS_CLES` pour ceux dont la règle n'est PAS un effet (Second souffle) —
+ *     une phrase écrite à la main, la seule qu'il y ait ;
+ *   • sinon les EFFETS de son palier, mis en mots par `describeEffects` — la
+ *     même fonction que le tooltip d'attribut, donc le même vocabulaire que
+ *     partout ailleurs. Un mot-clé qui est un effet se décrit donc tout seul :
+ *     changer sa portée en admin change ce que le joueur lit, sans une ligne.
+ *
+ * ⚠️ Sans cette seconde source, Tour sortait en chip MUETTE : rien ne dit ce
+ * qu'un mot-clé veut dire, et une chip d'attribut n'est pas tapable.
  */
-function motCleDefini(id: string): any {
-  return (MOTS_CLES as any)[(getAttribute as any)(id)?.mot_cle];
+function motCleTexte(id: string): string | null {
+  const attr = (getAttribute as any)(id);
+  if (!attr) return null;
+  const def = (MOTS_CLES as any)[attr.mot_cle];
+  if (def) return def.aide;
+  if (attr.categorie !== MOT_CLE_CATEGORY) return null;
+  // ⚠️ `withTargets: false` : la cible d'un mot-clé est TOUJOURS son porteur.
+  // Annoncer « (Tour) » derrière chaque effet répéterait le titre juste au-dessus.
+  const texte = describeEffects((attr.thresholds ?? []).flatMap((t: any) => t.effects ?? []), false);
+  return texte || null;
 }
 
 function Keywords({ ids }: { ids: string[] }) {
@@ -96,7 +115,7 @@ function Keywords({ ids }: { ids: string[] }) {
   // est bien « ce bloc le dit », jamais « c'est un mot-clé » — un mot-clé dont
   // la mécanique est un EFFET n'a pas d'entrée dans `MOTS_CLES`, donc rien ne
   // le dirait ailleurs, donc il garde sa chip.
-  const shown = ids.filter(id => !isTierAttribute(id) && !motCleDefini(id));
+  const shown = ids.filter(id => !isTierAttribute(id) && !motCleTexte(id));
   if (!shown.length) return null;
   return (
     <div className="mt-2 flex flex-wrap gap-1">
@@ -123,24 +142,24 @@ function Keywords({ ids }: { ids: string[] }) {
  * moyen d'apprendre ce qu'il veut dire. Le geste est celui du bloc de pouvoir,
  * juste en dessous : on nomme, puis on explique.
  *
- * ⚠️ Le texte vient de `MOTS_CLES` (`effect-schema.mjs`), **la seule
- * déclaration** — la même que lit le `<select>` de l'admin. Le recopier ici
- * donnerait deux libellés pour une règle, dont un seul serait corrigé.
+ * ⚠️ Le texte est celui de `motCleTexte`, et de nulle part ailleurs — c'est ce
+ * qui garantit qu'un mot-clé expliqué ici est exactement celui que la chip
+ * au-dessus a cédé.
  */
 function MotsCles({ ids }: { ids: string[] }) {
   const portes = ids
-    .map(id => ({ id, attr: (getAttribute as any)(id), def: motCleDefini(id) }))
-    .filter(x => x.def);
+    .map(id => ({ id, attr: (getAttribute as any)(id), texte: motCleTexte(id) }))
+    .filter(x => x.texte);
   if (!portes.length) return null;
   return (
     <div className="mt-2 space-y-1">
-      {portes.map(({ id, attr, def }) => (
+      {portes.map(({ id, attr, texte }) => (
         <div key={id} className="rounded-lg border border-violet/25 bg-violet/5 p-2">
           <div className="flex items-center gap-1 text-[11px] font-bold text-violet">
             <AttrIcon id={id} fallback={attr?.icon} className="h-3.5 w-3.5 text-[11px]" />
-            {attr?.name ?? def.court}
+            {attr?.name ?? id}
           </div>
-          <div className="text-[10px] text-white/60">{def.aide}</div>
+          <div className="text-[10px] text-white/60">{texte}</div>
         </div>
       ))}
     </div>

@@ -1916,5 +1916,28 @@
 		"categorie": "MotCle",
 		"thresholds": [],
 		"mot_cle": "cimetiere_permanent"
+	},
+	{
+		"id": "ARCH_097",
+		"name": "Tour",
+		"icon": "🗼",
+		"timing": "start_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "bronze",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "range",
+						"value": 20
+					},
+					{
+						"type": "immobile"
+					}
+				]
+			}
+		]
 	}
 ]

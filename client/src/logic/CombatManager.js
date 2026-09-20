@@ -218,6 +218,13 @@ export class CombatManager {
     // ── 3. Movement (independent timer) ──
     for (const u of livingUnits) {
       if (!u.isAlive()) continue;
+      // ⚠️ **Tour** : l'unité ne se déplace pas, et son horloge n'avance même
+      // pas — un compteur qui tourne dans le vide finirait par déclencher le
+      // pas suivant l'instant où l'immobilité tomberait. Les déplacements SUBIS
+      // (poussée, gel, téléportation) sont refusés ailleurs, dans les deux
+      // seuls endroits qui répondent « cette unité peut-elle changer de
+      // case ? » : `_canPush` et `_teleportPlan`.
+      if (u.is_immobile) continue;
       u.move_timer++;
       if (u.move_timer < u.movement_period) continue;
       u.move_timer = 0;
@@ -482,6 +489,12 @@ export class CombatManager {
   // First step of the retreat _pushUnit would walk — the whole push is a no-op
   // when it is unavailable, both cells sharing the same direction vector.
   _canPush(target, attackerPos) {
+    // ⚠️ **Tour ne se pousse pas** — ni par Poussée, ni par Gel. Le refus vit
+    // ICI et non dans `_pushUnit` : `_canPush` est le prédicat que
+    // `_isPowerRelevant` interroge, donc le lanceur GARDE sa jauge au lieu de
+    // la dépenser pour rien. Posé dans le mouvement, le pouvoir serait parti,
+    // la jauge vidée, et rien ne se serait passé.
+    if (target.is_immobile) return false;
     const dirCol = Math.sign(target.position.col - attackerPos.col);
     const dirRow = Math.sign(target.position.row - attackerPos.row);
     if (dirCol === 0 && dirRow === 0) return false;
@@ -710,6 +723,11 @@ export class CombatManager {
   // so _isPowerRelevant can ask the same question the power itself will ask.
   // Returns null when there is no enemy or no cell to land on.
   _teleportPlan(unit, enemies) {
+    // ⚠️ **Une Tour ne se téléporte pas non plus.** « Immobile » vaut pour tout
+    // changement de case, pas seulement pour la marche — et ce plan est le
+    // calcul PARTAGÉ entre la question (`_isPowerRelevant`) et le pouvoir, donc
+    // un seul refus suffit à fermer les deux.
+    if (unit.is_immobile) return null;
     if (enemies.length === 0) return null;
     const target = enemies.reduce((a, b) => a.current_hp < b.current_hp ? a : b, enemies[0]);
 

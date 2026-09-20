@@ -538,6 +538,14 @@ function appliquePoserStatut(t: TachePoserStatut, monde: Monde, trace: Trace): v
     if (t.statut === 'immunite') {
       u.is_effect_immune = true;
       trace.applique.push(`${u.card_id}·immunisée`);
+    } else if (t.statut === 'immobile') {
+      // ⚠️ Le moteur POSE, il ne nettoie pas : `is_immobile` est remis à zéro
+      // par `GameSession.startCombat` et **pas** par `resetCombatStats()` (cf.
+      // sa doc dans `Unit`). C'est le seul statut dans ce cas, et le moteur n'a
+      // pas à le savoir — il écrit, l'appelant tient le cycle de vie, comme
+      // pour les ressources et le registre des portées.
+      u.is_immobile = true;
+      trace.applique.push(`${u.card_id}·immobile`);
     } else {
       trace.ignore.push(`${u.card_id}·statut ${t.statut} (non câblé)`);
     }
