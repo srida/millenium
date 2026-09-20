@@ -26,18 +26,43 @@ import { fileURLToPath } from 'node:url';
 import { AttributeManager } from '../logic/AttributeManager.js';
 import { Unit } from '../logic/Unit.js';
 import { makeCard } from './helpers.js';
+// ⚠️ Le SCHÉMA fait foi sur « quel type part à quel moment » (`effect-schema.mjs`,
+// racine, pur) : c'est lui que `compile.ts` traduit, donc lui que cet oracle doit
+// interroger plutôt que de s'en tenir une copie.
+import { TYPES, TIMING_PAR_QUAND } from '../../../effect-schema.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const attributes: any[] = JSON.parse(readFileSync(path.join(ROOT, 'initial-data/attributes.json'), 'utf8'));
 const ATTR_IDS = new Set<string>(attributes.map(a => a.id));
 
-/** Ce que chaque passe d'`AttributeManager` sait exécuter — ses `case`, en dur. */
-const PAR_TIMING: Record<string, Set<string>> = {
-  start_of_combat: new Set(['stat_bonus', 'shield', 'effect_immunity']),
-  during_combat: new Set(['stat_modifier']),
-  end_of_combat: new Set(['revive', 'draw_bonus', 'guaranteed_draw', 'board_slot_bonus', 'damage_multiplier_bonus', 'shopping_bonus']),
-  none: new Set(),
-};
+/**
+ * Ce que chaque passe sait exécuter — **dérivé du SCHÉMA, jamais recopié**.
+ *
+ * ⚠️ La table était écrite en dur ici, et c'était le jumeau de trop : elle
+ * décrivait les `case` d'`AttributeManager`, qui n'en a plus un seul depuis que
+ * `compile.ts` traduit et `engine.ts` applique. Deux types offerts à
+ * `fin_combat` par le schéma (`heal`, `player_hp_bonus`) sont donc arrivés dans
+ * le catalogue sans que la table le sache, et ce test déclarait morts quatre
+ * paliers parfaitement vivants — l'exact contraire de ce qu'il existe pour dire
+ * (« un outil qui crie au loup sur les cas sains est pire qu'un outil absent »).
+ *
+ * Dérivée, elle ne peut plus dériver : un type offert à un moment y entre tout
+ * seul, et un moment qu'aucun type n'honore reste vide.
+ */
+const PAR_TIMING: Record<string, Set<string>> = (() => {
+  const table: Record<string, Set<string>> = { none: new Set() };
+  for (const timing of Object.values(TIMING_PAR_QUAND)) table[timing as string] = new Set();
+  // `during_combat` n'est le jumeau d'aucun `quand` : un `stat_modifier` porte
+  // son moment dans son propre `trigger` (`selon_trigger`), d'où le cas à part.
+  table.during_combat = new Set();
+  for (const [type, def] of Object.entries(TYPES as Record<string, any>)) {
+    for (const quand of def.attribut?.quands ?? []) {
+      const timing = quand === 'selon_trigger' ? 'during_combat' : TIMING_PAR_QUAND[quand];
+      if (timing) table[timing].add(type);
+    }
+  }
+  return table;
+})();
 
 /** Les deux déclencheurs que `_triggerStatModifiers` connaît. */
 const TRIGGERS = ['on_ally_neutralized', 'on_enemy_neutralized'];
