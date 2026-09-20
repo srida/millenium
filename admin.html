@@ -3434,7 +3434,8 @@ function renderAttrDetail() {
           ⚠️ <b>La plupart des mots-clés n'ont rien à faire ici</b> : Tour, Explosif et Appelant
           sont des <b>effets</b>, ils s'écrivent dans les Seuils ci-dessous avec leur moment et leurs
           champs, comme n'importe quel palier. Cette liste ne porte que ce qui n'est PAS un effet —
-          aujourd'hui une durée de vie de conteneur.
+          aujourd'hui une durée de vie de conteneur (Second souffle) ou une exception d'invocation
+          (Multiple).
           ${a.mot_cle && EFX?.MOTS_CLES?.[a.mot_cle]
             ? `<br><br><b>${esc(EFX.MOTS_CLES[a.mot_cle].court)}</b> — ${esc(EFX.MOTS_CLES[a.mot_cle].aide)}`
             : ''}

@@ -20,7 +20,7 @@ import { MOTS_CLES, MOT_CLE_CATEGORY } from '../../../effect-schema.mjs';
 
 export { MOT_CLE_CATEGORY };
 
-export type MotCle = 'cimetiere_permanent';
+export type MotCle = 'cimetiere_permanent' | 'multiple';
 
 /** La forme minimale d'un attribut que ce module lit — jamais `data/`. */
 export interface AttributMotCle {

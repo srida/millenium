@@ -1975,5 +1975,14 @@
 				]
 			}
 		]
+	},
+	{
+		"id": "ARCH_100",
+		"name": "Multiple",
+		"icon": "👯",
+		"timing": "none",
+		"categorie": "MotCle",
+		"thresholds": [],
+		"mot_cle": "multiple"
 	}
 ]
