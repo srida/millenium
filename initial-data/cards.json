@@ -16512,7 +16512,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"power_rate": 36
+			"power_rate": 36,
+			"duration": 30
 		},
 		"summon_conditions": [
 			{
@@ -19572,7 +19573,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"power_rate": 23
+			"power_rate": 23,
+			"duration": 30
 		},
 		"summon_conditions": [
 			{
@@ -26382,7 +26384,8 @@
 		},
 		"power": {
 			"id": "POWER_BLOCK",
-			"power_rate": 50
+			"power_rate": 50,
+			"duration": 30
 		},
 		"summon_conditions": [
 			{

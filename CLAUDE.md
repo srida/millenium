@@ -1930,10 +1930,10 @@ sépare « champ décoratif enfin retiré » de « champ détruit en silence ».
 
 ### Le curseur de compteur
 
-`counterSliderHtml(id, label, value, { allowEmpty, kind, emptyLabel })` est le **seul** curseur de compteur du fichier ; `counterFromSlider(id)` sa seule lecture. 0 à 100, avec l'équivalent en ticks affiché sous le curseur — un **indice** recalculé en direct par `SPEED.ticksFor<kind>`, jamais par une formule recopiée.
+`counterSliderHtml(id, label, value, { kind })` est le **seul** curseur de compteur du fichier ; `counterFromSlider(id)` sa seule lecture. 0 à 100, avec l'équivalent en ticks affiché sous le curseur — un **indice** recalculé en direct par `SPEED.ticksFor<kind>`, jamais par une formule recopiée.
 
 - `kind: 'Rate'` (défaut) sert les trois vitesses, `kind: 'Duration'` la durée des quatre pouvoirs qui en lisent une. ⚠️ Le `kind` nomme la moitié de `SPEED` à appeler **au rendu ET dans le `oninput`** : les laisser se séparer donnerait un curseur qui s'annonce autrement qu'il ne joue.
-- ⚠️ `allowEmpty` sert les deux champs où le vide EST une valeur, et il ne veut pas dire la même chose : sur une vitesse de pouvoir, « ne part jamais » (à distinguer du compteur 0, le plus lent) ; sur une durée, « le repli du pouvoir s'applique ». `counterFromSlider` rend `null`, jamais `0`.
+- **Pas de case « vide »** : une carte à pouvoir doit toujours pouvoir le déclencher (vitesse toujours saisie), et sa durée d'effet est toujours explicite (plus de repli implicite par pouvoir depuis l'admin). Les trois cartes livrées qui s'appuyaient sur le repli de `POWER_BLOCK` (`STAPLE_158`/`242`/`466`) ont été migrées vers `duration: 30`, la valeur que ce repli leur donnait déjà.
 - ⚠️ **« Valeur » et « Durée » s'EXCLUENT** — fiche carte, édition en masse, onglet Stats et formulaire de magie. Montrer les deux laisse saisir un champ que le moteur ne lira jamais, et le contrat le refuse en **400**. Sur une magie, la bascule suit le **pouvoir donné**, pas le type d'effet : la règle est donc écrite dans le gabarit *et* dans `updateMagieEffectFields()` — le second n'est pas rejoué après un rendu de détail.
 - ⚠️ Une case à cocher posée dans un `.field` hérite de deux règles qui ne la visaient pas : `.field input` lui impose `width: 100%` (elle sortait en barre pleine largeur) et `.field label` la met en capitales. La classe `.field-check` neutralise les deux — **au-dessus** du bloc `@media (max-width: 768px)`, comme toute règle desktop.
 

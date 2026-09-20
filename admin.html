@@ -2144,9 +2144,9 @@ function renderCardDetail() {
           ${powers.map(p => `<option value="${p.id}" ${hasPower && c.power.id===p.id?'selected':''}>${p.name}</option>`).join('')}
         </select>
       </div>
-      <div class="field" id="f-power-speed-wrap">${counterSliderHtml('f-power-speed', 'Vitesse pouvoir', hasPower ? c.power.power_rate : null, { allowEmpty: true, emptyLabel: 'Aucune vitesse — le pouvoir ne part jamais' })}</div>
+      <div class="field" id="f-power-speed-wrap">${counterSliderHtml('f-power-speed', 'Vitesse pouvoir', hasPower ? c.power.power_rate : null)}</div>
       <div class="field" id="f-power-val-wrap"><label>Valeur</label><input type="number" id="f-power-val" value="${hasPower && c.power.value != null ? c.power.value : ''}" step="0.5" placeholder="optionnel"></div>
-      <div class="field" id="f-power-dur-wrap">${counterSliderHtml('f-power-dur', 'Durée de l\'effet', hasPower ? c.power.duration : null, { allowEmpty: true, kind: 'Duration', emptyLabel: 'Aucune durée — le repli du pouvoir s\'applique' })}</div>
+      <div class="field" id="f-power-dur-wrap">${counterSliderHtml('f-power-dur', 'Durée de l\'effet', hasPower ? c.power.duration : null, { kind: 'Duration' })}</div>
       <div class="field" id="f-power-token-wrap"><label>Token invoqué</label>
         ${tokenPickHtml('f-power-token', hasPower ? c.power.token_id : null)}
         <span style="font-size:11px;color:var(--muted);margin-top:4px">La récursion (un token qui en invoque un autre) est autorisée, bornée par les cases libres du plateau.</span>
@@ -2577,19 +2577,10 @@ function collectConditionsFromForm() {
   });
 }
 
-/**
- * Le compteur saisi par un curseur `counterSliderHtml`, ou `null` quand sa case
- * « aucune… » est cochée.
- *
- * ⚠️ `null` et `0` sont DEUX choses, dans les deux lectures : sur une vitesse,
- * `null` dit « ce pouvoir ne part jamais » et `0` « le plus lent » (77 ticks) ;
- * sur une durée, `null` dit « le repli du moteur » et `0` « deux ticks ». Les
- * confondre — ce que ferait un `|| 0` — invente une valeur des deux côtés.
- */
+/** Le compteur saisi par un curseur `counterSliderHtml`. */
 function counterFromSlider(id) {
   const el = document.getElementById(id);
   if (!el) return null;
-  if (document.getElementById(id + '-none')?.checked) return null;
   return SPEED.clampRate(el.value);
 }
 
@@ -2616,8 +2607,7 @@ function cardRatesFromForm() {
 function cardPowerFromForm() {
   const powId = document.getElementById('f-power-id')?.value;
   if (!powId) return {};
-  const rate = counterFromSlider('f-power-speed');
-  const base = { id: powId, ...(rate != null ? { power_rate: rate } : {}) };
+  const base = { id: powId, power_rate: counterFromSlider('f-power-speed') };
   const isDualPower = SPEED.DURATION_AND_VALUE_POWERS.includes(powId);
   const powVal = document.getElementById('f-power-val')?.value;
   const withValue = (powVal !== '' && powVal != null) ? { value: parseFloat(powVal) } : {};
@@ -2625,7 +2615,7 @@ function cardPowerFromForm() {
   const withTokenId = (powId === 'POWER_SUMMON_TOKEN' && tokenId) ? { token_id: tokenId } : {};
   if (SPEED.DURATION_POWERS.includes(powId) || isDualPower) {
     const dur = counterFromSlider('f-power-dur');
-    return { ...base, ...(isDualPower ? withValue : {}), ...(dur != null ? { duration: dur } : {}), ...withTokenId };
+    return { ...base, ...(isDualPower ? withValue : {}), duration: dur, ...withTokenId };
   }
   return { ...base, ...withValue, ...withTokenId };
 }
@@ -2883,16 +2873,13 @@ function composeId(kind, prefix, num) {
  * ET dans le `oninput`. Les laisser se séparer donnerait un curseur qui
  * s'annonce autrement qu'il ne joue — et l'écart ne se verrait qu'en combat.
  *
- * ⚠️ `allowEmpty` sert aux deux champs où le vide EST une valeur, et ce n'est
- * pas la même des deux côtés : sur une vitesse de pouvoir il veut dire « ne
- * part jamais » (et non le compteur 0, qui est le plus lent) ; sur une durée il
- * veut dire « le repli du pouvoir s'applique » (trois cartes livrées s'en
- * servent). Un curseur seul ne saurait dire ni l'un ni l'autre, d'où la case.
+ * Toujours une valeur explicite : une carte à pouvoir doit toujours pouvoir
+ * le déclencher (vitesse), et sa durée d'effet est toujours saisie (plus de
+ * repli implicite par pouvoir).
  */
-function counterSliderHtml(id, label, value, { allowEmpty = false, kind = 'Rate', emptyLabel = '' } = {}) {
+function counterSliderHtml(id, label, value, { kind = 'Rate' } = {}) {
   const conv = `ticksFor${kind}`;
-  const has = value != null && value !== '';
-  const v = has ? SPEED.clampRate(value) : 50;
+  const v = value != null && value !== '' ? SPEED.clampRate(value) : 50;
   const ticks = t => `${SPEED[conv](t)} ticks`;
   const marks = kind === 'Duration'
     ? '<span>0 — bref</span><span>100 — long</span>'
@@ -2901,22 +2888,15 @@ function counterSliderHtml(id, label, value, { allowEmpty = false, kind = 'Rate'
   // champ de saisie, le reconstruire sous le doigt casserait le glissement.
   const oninput = `document.getElementById('${id}-val').textContent=this.value;`
     + `document.getElementById('${id}-ticks').textContent=SPEED.${conv}(this.value)+' ticks'`;
-  const toggle = allowEmpty ? `
-      <label class="field-check">
-        <input type="checkbox" id="${id}-none" ${has ? '' : 'checked'}
-               onchange="document.getElementById('${id}').disabled=this.checked">
-        <span>${emptyLabel}</span>
-      </label>` : '';
   return `
       <div class="field">
         <label>${label} <span class="slider-val" id="${id}-val">${v}</span></label>
-        <input type="range" id="${id}" min="0" max="100" step="1" value="${v}"
-               ${allowEmpty && !has ? 'disabled' : ''} oninput="${oninput}">
+        <input type="range" id="${id}" min="0" max="100" step="1" value="${v}" oninput="${oninput}">
         <div class="slider-marks">${marks}</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px">
           = <span id="${id}-ticks">${ticks(v)}</span>
           <span style="opacity:.6">(de ${SPEED[conv](0)} à ${SPEED[conv](100)} ticks)</span>
-        </div>${toggle}
+        </div>
       </div>`;
 }
 
@@ -5561,8 +5541,7 @@ function toggleTokenPowerFields() {
 function tokenPowerFromForm() {
   const powId = document.getElementById('tk-power-id')?.value;
   if (!powId) return {};
-  const rate = counterFromSlider('tk-power-speed');
-  const base = { id: powId, ...(rate != null ? { power_rate: rate } : {}) };
+  const base = { id: powId, power_rate: counterFromSlider('tk-power-speed') };
   const isDualPower = SPEED.DURATION_AND_VALUE_POWERS.includes(powId);
   const powVal = document.getElementById('tk-power-val')?.value;
   const withValue = (powVal !== '' && powVal != null) ? { value: parseFloat(powVal) } : {};
@@ -5570,7 +5549,7 @@ function tokenPowerFromForm() {
   const withTokenId = (powId === 'POWER_SUMMON_TOKEN' && tokenId) ? { token_id: tokenId } : {};
   if (SPEED.DURATION_POWERS.includes(powId) || isDualPower) {
     const dur = counterFromSlider('tk-power-dur');
-    return { ...base, ...(isDualPower ? withValue : {}), ...(dur != null ? { duration: dur } : {}), ...withTokenId };
+    return { ...base, ...(isDualPower ? withValue : {}), duration: dur, ...withTokenId };
   }
   return { ...base, ...withValue, ...withTokenId };
 }
@@ -5724,9 +5703,9 @@ function renderTokenDetail() {
           ${powers.map(p => `<option value="${p.id}" ${hasPower && t.power.id===p.id?'selected':''}>${p.name}</option>`).join('')}
         </select>
       </div>
-      <div class="field" id="tk-power-speed-wrap">${counterSliderHtml('tk-power-speed', 'Vitesse pouvoir', hasPower ? t.power.power_rate : null, { allowEmpty: true, emptyLabel: 'Aucune vitesse — le pouvoir ne part jamais' })}</div>
+      <div class="field" id="tk-power-speed-wrap">${counterSliderHtml('tk-power-speed', 'Vitesse pouvoir', hasPower ? t.power.power_rate : null)}</div>
       <div class="field" id="tk-power-val-wrap"><label>Valeur</label><input type="number" id="tk-power-val" value="${hasPower && t.power.value != null ? t.power.value : ''}" step="0.5" placeholder="optionnel"></div>
-      <div class="field" id="tk-power-dur-wrap">${counterSliderHtml('tk-power-dur', 'Durée de l\'effet', hasPower ? t.power.duration : null, { allowEmpty: true, kind: 'Duration', emptyLabel: 'Aucune durée — le repli du pouvoir s\'applique' })}</div>
+      <div class="field" id="tk-power-dur-wrap">${counterSliderHtml('tk-power-dur', 'Durée de l\'effet', hasPower ? t.power.duration : null, { kind: 'Duration' })}</div>
       <div class="field" id="tk-power-token-wrap"><label>Token invoqué</label>
         ${tokenPickHtml('tk-power-token', hasPower ? t.power.token_id : null)}
         <span style="font-size:11px;color:var(--muted);margin-top:4px">La récursion (un token qui en invoque un autre) est autorisée, bornée par les cases libres du plateau.</span>
