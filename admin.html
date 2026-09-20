@@ -2433,8 +2433,12 @@ function conditionRowHtml(cd, idx) {
       </div>` : ''}
       <div style="font-size:11px;color:var(--muted);margin-top:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">${label}</div>
       <div class="materials-list" id="cond-requires-${idx}">
-        ${requires.map(mid => {
+        ${requires.map((mid, ridx) => {
           const isAttr = isMaterialAttribute(mid);
+          // ⚠️ Le même matériel peut apparaître plusieurs fois (deux exemplaires
+          // exigés d'une même carte, ou d'un même attribut) : le retrait cible
+          // donc CETTE ligne par son INDEX, jamais l'id — un retrait par id
+          // effacerait toutes les occurrences d'un coup.
           return `
           <div class="material-item" data-mid="${mid}">
             <span style="display:flex;align-items:center;gap:6px">
@@ -2442,7 +2446,7 @@ function conditionRowHtml(cd, idx) {
               <span>${esc(getMaterialName(mid))}</span>
               <span style="font-size:10px;color:var(--muted);font-family:monospace">${mid}</span>
             </span>
-            <button onclick="removeConditionRequire(${idx}, '${mid}')">×</button>
+            <button onclick="removeConditionRequire(${idx}, ${ridx})">×</button>
           </div>`;
         }).join('')}
       </div>
@@ -2468,21 +2472,32 @@ function removeCondition(idx) {
   renderCardDetail();
 }
 
-function removeConditionRequire(idx, mid) {
+/**
+ * Retire l'exigence à l'INDEX `ridx` dans `requires`, pas l'id : le moteur
+ * accepte le même matériel plusieurs fois dans une recette (deux exemplaires
+ * exigés d'une même carte ou d'un même attribut, cf. `InvocationManager.
+ * matchRequirements`), donc un retrait par id effacerait toutes les
+ * occurrences d'un coup au lieu d'une seule.
+ */
+function removeConditionRequire(idx, ridx) {
   syncCardFromForm();
   const cd = selectedCard.summon_conditions[idx];
-  cd.requires = conditionRequires(cd).filter(m => m !== mid);
+  cd.requires = conditionRequires(cd).filter((_, i) => i !== ridx);
   renderCardDetail();
 }
 
+/**
+ * ⚠️ Aucune garde d'unicité : le même id peut être ajouté plusieurs fois. Le
+ * moteur satisfait chaque occurrence par une unité DISTINCTE (ou par un
+ * composite dont `material_value` couvre plusieurs slots) — c'est ce qui rend
+ * exprimable une recette « 2× la même carte » ou « 2× le même attribut ».
+ */
 function addConditionRequire(idx, id) {
   syncCardFromForm();
   const cd = selectedCard.summon_conditions[idx];
   if (!Array.isArray(cd.requires)) cd.requires = [];
-  if (!cd.requires.includes(id)) {
-    cd.requires.push(id);
-    renderCardDetail();
-  }
+  cd.requires.push(id);
+  renderCardDetail();
 }
 
 /**
@@ -2490,17 +2505,19 @@ function addConditionRequire(idx, id) {
  * les deux partout depuis qu'il n'y a plus de voie. Le vieil éditeur ne
  * proposait les attributs que sur un « heritage » — une règle qui n'existe plus
  * et qui, gardée, aurait rendu la moitié du catalogue inexprimable.
+ *
+ * ⚠️ Rien n'est exclu parce qu'il est DÉJÀ dans `requires` : la recherche doit
+ * pouvoir proposer une seconde fois le même matériel, sinon l'éditeur ne sait
+ * plus dire « 2× la même carte » alors que le moteur le sait.
  */
 function filterConditionSearch(idx) {
   const q = document.getElementById(`cond-search-${idx}`)?.value.toLowerCase() || '';
-  const current = conditionRequires(selectedCard.summon_conditions?.[idx]);
   const matchedAttrs = attributes
-    .filter(a => !current.includes(a.id))
     .filter(a => !q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
     .slice(0, 10)
     .map(a => ({ ...a, _matType: 'attribute' }));
   const matchedCards = cards
-    .filter(x => x.id !== selectedCard.id && !current.includes(x.id))
+    .filter(x => x.id !== selectedCard.id)
     .filter(x => !q || x.name.toLowerCase().includes(q) || x.id.toLowerCase().includes(q))
     .slice(0, 20)
     .map(x => ({ ...x, _matType: 'card' }));

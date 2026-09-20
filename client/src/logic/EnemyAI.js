@@ -3,7 +3,7 @@ import { tiersForRound, resolveGuaranteedDraws, deckPoolByTier, poolForRound } f
 import { primaryTier } from './Tiers.js';
 import {
   materialLineageMatches, summonConditions, conditionMaterials, conditionRequires,
-  conditionIsFree, summonCost, forcedCell, materialSlotsPaid,
+  conditionIsFree, summonCost, forcedCell, materialSlotsPaid, getUncoveredRequirements,
 } from './InvocationManager.js';
 
 const HAND_SIZE = 5;
@@ -359,28 +359,45 @@ function _attemptWith(card, condition, board, maxUnits, graveyard, side) {
   }
 
   // 1. Les matériels nommés — terrain d'abord, puis cimetière.
-  for (const matId of required) {
+  // ⚠️ Recalculé à CHAQUE matériau posé (`getUncoveredRequirements`, l'unique
+  // lecture de l'appariement — cf. `InvocationManager.matchRequirements`) :
+  // deux exigences NOMMANT LE MÊME id (`requires: ['N1', 'N1']`) ne sont PAS
+  // satisfaites par une seule unité qui « matche » les deux, exactement comme
+  // pour le joueur. Boucler sur `required` en sautant un id déjà présent dans
+  // `toConsumeBoard`/`toConsumeGrave` traitait la seconde occurrence comme
+  // déjà acquise dès la première — l'IA sous-payait la recette d'une unité, ou
+  // rabattait le slot manquant sur n'importe quel matériau du remplissage
+  // générique au lieu du matériel exigé.
+  let uncovered = getUncoveredRequirements(required, [...toConsumeBoard, ...toConsumeGrave]);
+  while (uncovered.length > 0) {
+    const matId = uncovered[0];
     const matches = u => materialLineageMatches(u, matId, required);
-    if (toConsumeBoard.some(matches) || toConsumeGrave.some(matches)) continue;
     const fromBoard = _takeCheapest(boardPool, card, matches);
-    if (fromBoard) { toConsumeBoard.push(fromBoard); continue; }
-    const fromGrave = _takeCheapest(gravePool, card, matches);
-    if (fromGrave) { toConsumeGrave.push(fromGrave); continue; }
-    // Rien d'éligible : est-ce qu'il MANQUAIT, ou est-ce que la garde de tier
-    // vient d'écarter le seul candidat ? Les deux se corrigent différemment —
-    // l'un demande d'aller chercher la carte, l'autre dit que l'échange n'en
-    // valait pas la peine.
-    const outranked = _blockedByTier(boardPool, card, matches)
-      ?? _blockedByTier(gravePool, card, matches);
-    if (outranked) {
-      return _refused('material_outranks_result', {
-        material: matId,
-        candidate: outranked.card_id,
-        candidate_tier: outranked.tier ?? null,
-        result_tier: primaryTier(card),
-      });
+    if (fromBoard) {
+      toConsumeBoard.push(fromBoard);
+    } else {
+      const fromGrave = _takeCheapest(gravePool, card, matches);
+      if (fromGrave) {
+        toConsumeGrave.push(fromGrave);
+      } else {
+        // Rien d'éligible : est-ce qu'il MANQUAIT, ou est-ce que la garde de
+        // tier vient d'écarter le seul candidat ? Les deux se corrigent
+        // différemment — l'un demande d'aller chercher la carte, l'autre dit
+        // que l'échange n'en valait pas la peine.
+        const outranked = _blockedByTier(boardPool, card, matches)
+          ?? _blockedByTier(gravePool, card, matches);
+        if (outranked) {
+          return _refused('material_outranks_result', {
+            material: matId,
+            candidate: outranked.card_id,
+            candidate_tier: outranked.tier ?? null,
+            result_tier: primaryTier(card),
+          });
+        }
+        return _refused('missing_material', { material: matId, materials: required });
+      }
     }
-    return _refused('missing_material', { material: matId, materials: required });
+    uncovered = getUncoveredRequirements(required, [...toConsumeBoard, ...toConsumeGrave]);
   }
 
   // 2. Le remplissage — cimetière d'abord, puis le terrain du moins cher au
