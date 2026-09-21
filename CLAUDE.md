@@ -573,6 +573,39 @@ Deux beats avant que le joueur ne reprenne la main : l'annonce du changement de 
 - ⚠️ `prefers-reduced-motion` : la popup reste et **le tap reste requis** — c'est le vol des dos qu'on retire, pas l'information. Le fond de l'annonce reste posé (`opacity: 1`), il ne fait que ne plus fondre.
 - ⚠️ **`HandBar` se masque tant que `roundIntro`/`drawPopup` sont posés** : `session.hand` porte déjà les cartes du tour dès `startPreparation()`, et la bande les affichait en clair sous la popup avant le tap — le spoil que la popup existe pour éviter. Elle réapparaît au même instant que le tap ferme la popup.
 
+### Les trois passages de phase
+
+Trois transitions, une seule doctrine : **le contrôleur possède l'horloge, React n'a que des états à rendre** (la règle de `TERRAIN_ALERT_MS`). Deux d'entre elles ne retiennent rien, la troisième retient le récapitulatif.
+
+| Passage | État | Durée | Retient-il quelque chose ? |
+|---|---|---|---|
+| Préparation → combat | `phaseWipe: { kind: 'combat' }` | `COMBAT_INTRO_MS` 900 ms | **le premier coup** (rejoint le `holdMs` existant) |
+| Dernier tick → récapitulatif | `combatOutro` | `COMBAT_OUTRO_MS` 1,5 s | **la popup de résultat** |
+| Récapitulatif → Shopping | `phaseWipe: { kind: 'shopping' }` | `SHOPPING_INTRO_MS` 800 ms | rien |
+
+**Le volet (`PhaseWipe`)** — deux bandes qui se croisent, et **aucun mot**.
+- ⚠️ Il portait « COMBAT » / « MAGIES » : mesuré à l'écran, le premier tombait **en plein milieu de l'annonce de terrain**, qu'il recouvrait de son propre nom. Les deux phases s'annoncent déjà elles-mêmes (annonce de terrain, titre de la modale de Shopping) — la teinte suffit à dire laquelle.
+- ⚠️ **`pointer-events-none` sur toute la couche** : il passe par-dessus l'annonce de terrain, qui reste tapable pendant ce temps-là.
+- ⚠️ Il rejoint le **`holdMs` existant** (`Math.max(revealMs, TERRAIN_ALERT_MS, COMBAT_INTRO_MS)`) au lieu de s'ajouter en amont — un volet qui recouvre le plateau pendant que les premiers coups partent les escamote. Mais **pas** `_combatStartAt` : ce plancher-là dit « l'adversaire n'est pas encore posé », et le tap qui congédie l'annonce doit continuer de lancer le combat tout de suite.
+- ⚠️ **L'état de jeu est publié EN MÊME TEMPS que lui**, jamais à son échéance : le volet ne fait que le découvrir. Le retarder mettrait une horloge entre le tap du joueur et l'écran qu'il demande.
+- Une Phase Shopping **sautée** (offre vide) n'annonce rien : le volet est posé **après** la garde.
+- `prefers-reduced-motion` : il disparaît **entièrement** — seul des trois à le faire, et c'est cohérent, il ne porte aucune information.
+
+**La frappe finale (`combatOutro`)** — les survivants s'élancent, les barres se vident, **puis** le récapitulatif.
+- Les dégâts sont **déjà calculés et déjà appliqués** (`finishCombat` précède la publication) : l'outro donne à voir ce qui fait descendre les barres, il ne l'invente pas.
+- ⚠️ **`combatActive` reste VRAI** : l'outro est la queue du combat, pas une phase de plus. Main, cimetière et `SynergyPanel` se masquent dessus — les faire revenir 1,5 s avant la popup, sur un plateau où les unités frappent encore, serait un clignotement pour rien.
+- ⚠️ **Le plateau n'est rangé qu'à la SORTIE** : `exitCombatMode` ramène la caméra au cadrage de préparation *et* rappelle `refresh()`, qui repose les survivants sur leur `initial_position`. Le faire plus tôt ferait reculer les unités pendant qu'elles s'élancent.
+- ⚠️ **Une partie soldée pendant l'outro n'ouvre AUCUN récapitulatif** (le menu ☰ reste atteignable sous la barre de combat, et en duel c'est le serveur qui tranche) : garde sur `gameOver` dans `_endCombatOutro`.
+- Le tap le passe (`skipCombatOutro`), une seule fois — même patron de champ que `_pendingCombatStart`.
+- ⚠️ **`Scene3D.playFinalStrike` lit la position de l'OBJET, jamais celle de l'unité** : `finishCombat` vient de ramener les survivants chez eux alors que leurs cartes sont encore là où le combat les a laissées.
+- ⚠️ **La portée de la charge est une DISTANCE FIXE**, jamais une fraction du chemin restant : les survivants d'un round gagné ont le plus souvent déjà traversé le plateau, donc la charge ne se voyait pas — précisément chez le camp qui vient de frapper (constaté à l'écran).
+
+**Les barres de vie (`components/hud/HpBar`, décision pure dans `hpBar.ts`)** — elles remplacent le `Gauge` générique du HUD : des PV n'ont pas qu'une valeur, ils **encaissent**.
+- Trois lectures superposées : le **remplissage** (220 ms), la **traîne** qui reste sur la valeur d'avant puis rattrape (`HP_LAG_HOLD_MS`), et le **montant** encaissé écrit à côté (`HP_DELTA_MS`).
+- ⚠️ **La traîne n'est jamais remise sur la valeur d'avant** : sur deux coups rapprochés elle est encore à l'origine et continue de descendre — la replacer ferait remonter la barre entre deux dégâts.
+- ⚠️ Le chiffre et la jauge comptent sur **la même horloge** (`useHpTransition`, appelé par le HUD) : deux décomptes indépendants finiraient par ne plus annoncer le même total. Et `hpTweenValue` **arrive exactement sur la cible** — c'est le total que le joueur relit au récapitulatif.
+- ⚠️ **Un montant nul ne s'affiche pas**, et le **signe est toujours écrit** (`hpDeltaLabel`) : « 40 » nu, sur une barre de vie, ne dit pas dans quel sens elle va.
+
 ### « Tout annuler » — le point de retour d'un tour
 
 Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()` ; le contrôleur ne fait qu'appeler.

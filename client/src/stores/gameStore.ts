@@ -100,6 +100,42 @@ export interface RoundIntroSnapshot {
 }
 
 /**
+ * Le volet de passage d'une phase à l'autre — préparation → combat, puis
+ * récapitulatif → Phase Shopping.
+ *
+ * ⚠️ Il ne RETIENT rien, jamais : l'état de jeu est publié en même temps que
+ * lui et le volet ne fait que le découvrir. C'est ce qui le distingue de
+ * `terrainAlert` et de `combatOutro`, qui tiennent l'un le premier coup et
+ * l'autre le récapitulatif. Le minuteur qui le retire vit quand même dans
+ * `GameController` — comme toutes les horloges de la partie.
+ *
+ * ⚠️ `pointer-events-none` côté rendu : le volet recouvre l'annonce de terrain,
+ * qui est justement tapable pendant qu'il passe.
+ */
+export interface PhaseWipeSnapshot {
+  kind: 'combat' | 'shopping';
+}
+
+/**
+ * La frappe finale, entre le dernier tick du combat et le récapitulatif.
+ *
+ * ⚠️ Les montants sont ceux qui ont DÉJÀ été appliqués (`finishCombat` précède
+ * la publication) : l'outro donne à voir ce que les barres de vie sont en train
+ * d'encaisser, il ne l'invente pas. Un camp qui n'encaisse pas ce round porte 0
+ * — c'est la règle de `EndRoundResult.playerDamageDealt`, pas une absence.
+ *
+ * ⚠️ `combatActive` RESTE vrai tant qu'il dure : l'outro est la queue du
+ * combat, pas une phase de plus. Sans ça la main, le cimetière et le panneau de
+ * synergies réapparaîtraient une seconde et demie avant la popup.
+ */
+export interface CombatOutroSnapshot {
+  winner: import('../logic/types.js').RoundWinner;
+  /** Dégâts que les survivants du JOUEUR viennent d'infliger (0 si aucun). */
+  playerDamage: number;
+  enemyDamage: number;
+}
+
+/**
  * Le menu de choix d'une carte à plusieurs conditions.
  *
  * ⚠️ Une option ne porte PLUS de libellé : il n'y a plus de voie d'invocation à
@@ -147,6 +183,10 @@ export interface GameSnapshot {
    *  préparation en solo ; en PvP il continue (cf. `DRAW_POPUP_AUTO_MS`). */
   drawPopup: import('../logic/types.js').DrawSummary | null;
   combatActive: boolean;
+  /** La frappe finale, tant qu'elle dure — puis `endRound` prend le relais. */
+  combatOutro: CombatOutroSnapshot | null;
+  /** Le volet de passage entre deux phases. Purement décoratif. */
+  phaseWipe: PhaseWipeSnapshot | null;
   combatRemaining: number;   // secondes restantes de combat
   speed: number;
   paused: boolean;
@@ -173,7 +213,7 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   canMulligan: false, mulliganCost: MULLIGAN_COST_HP,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
   boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,
-  combatActive: false, combatRemaining: 60, speed: 2, paused: false,
+  combatActive: false, combatOutro: null, phaseWipe: null, combatRemaining: 60, speed: 2, paused: false,
   prepRemaining: 60, endRound: null, shopping: null, shoppingRemaining: SHOPPING_DURATION_S, summonOptions: null,
   menuOpen: false, coachBlocking: false, gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
 };

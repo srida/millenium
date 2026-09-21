@@ -17,7 +17,8 @@ import PhaseControls from '../components/hud/PhaseControls.js';
 import GameMenu from '../components/hud/GameMenu.js';
 import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
-import { TerrainAlert, SummonOptionMenu, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
+import { TerrainAlert, SummonOptionMenu, CombatOutro, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
+import PhaseWipe from '../components/overlays/PhaseWipe.js';
 import { RoundIntro, DrawPopup } from '../components/overlays/RoundStart.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import TutorialCoach from '../components/tutorial/TutorialCoach.js';
@@ -161,6 +162,11 @@ export default function GameScreen() {
       <RoundIntro />
       <DrawPopup />
       <TerrainAlert />
+      {/* La frappe finale, puis le récapitulatif qu'elle retient. Le volet de
+          phase passe PAR-DESSUS l'annonce de terrain (il est déclaré après) et
+          ne capte aucun tap : celle-ci reste congédiable pendant qu'il balaie. */}
+      <CombatOutro />
+      <PhaseWipe />
       <EndRoundOverlay />
       <ShoppingLayer />
       {inTournament

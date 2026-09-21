@@ -179,6 +179,80 @@ input, textarea, select { font-size: 1rem !important; }
   animation: round-intro-veil-anim var(--round-intro-dur, 1.4s) ease forwards;
 }
 
+/* ── Volet de passage d'une phase à l'autre (cf. `components/overlays/PhaseWipe`) ──
+   Deux bandes qui balaient l'écran en sens inverse, et le mot de la phase où
+   l'on entre. Même grammaire que les deux annonces au-dessus : la durée vient
+   du composant, qui la tient du contrôleur — l'animation ne peut donc pas durer
+   plus longtemps que l'état qu'elle habille.
+   ⚠️ Des BANDES et non un aplat : un voile plein masquerait le plateau cinq
+   fois par partie, or c'est lui qu'on vient découvrir. Le dégradé s'éteint sur
+   le bord de fuite, donc le balayage laisse toujours voir quelque chose. */
+@keyframes phase-wipe-top {
+  0%   { transform: translateX(-100%); }
+  55%  { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+@keyframes phase-wipe-bottom {
+  0%   { transform: translateX(100%); }
+  55%  { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+.phase-wipe-band {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  /* La teinte est la SEULE chose qui distingue les deux passages : le volet ne
+     porte aucun mot (cf. `PhaseWipe`). Elle vient de la couleur de bord du
+     décor spatial, pour que le balayage se lise comme un pan du jeu qui passe
+     devant et non comme un rectangle noir. */
+  background: linear-gradient(90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-space-edge) 92%, var(--phase-wipe-tint, transparent)) 18%,
+    color-mix(in srgb, var(--color-space-edge) 92%, var(--phase-wipe-tint, transparent)) 82%,
+    transparent 100%);
+}
+.phase-wipe-combat   { --phase-wipe-tint: var(--color-danger); }
+.phase-wipe-shopping { --phase-wipe-tint: var(--color-gold); }
+.phase-wipe-band-top {
+  top: 0;
+  animation: phase-wipe-top var(--phase-wipe-dur, 900ms) cubic-bezier(.65, 0, .35, 1) forwards;
+}
+.phase-wipe-band-bottom {
+  bottom: 0;
+  animation: phase-wipe-bottom var(--phase-wipe-dur, 900ms) cubic-bezier(.65, 0, .35, 1) forwards;
+}
+/* ── Barre de vie : la traîne et le montant encaissé (cf. `components/hud/HpBar`) ──
+   La traîne est DERRIÈRE le remplissage : elle ne se voit que quand elle le
+   dépasse, c'est-à-dire exactement quand des PV viennent de partir. Son retard
+   est ce qui rend le coup lisible — un remplissage seul ne montre que le
+   résultat. Sa durée est le miroir de `HP_TWEEN_MS` / `HP_LAG_HOLD_MS`
+   (`hpBar.ts`), qui pilotent le chiffre : les deux doivent rester d'accord. */
+.hp-lag {
+  background: color-mix(in srgb, var(--color-danger) 65%, white);
+  transition: width 700ms cubic-bezier(.2, .8, .3, 1);
+}
+.hp-fill { transition: width 220ms ease-out; }
+@keyframes hp-delta-anim {
+  0%   { opacity: 0; transform: translateY(6px); }
+  18%  { opacity: 1; transform: translateY(0); }
+  70%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+.hp-delta { animation: hp-delta-anim 1500ms ease forwards; }
+
+/* ⚠️ Le volet est le SEUL des trois passages à disparaître entièrement en
+   mouvement réduit, et c'est cohérent : il ne porte aucune information (les
+   deux phases s'annoncent elles-mêmes — annonce de terrain, titre de la
+   modale), il n'y a donc rien à garder une fois le balayage retiré. Les barres,
+   elles, annoncent TOUJOURS ce qu'elles encaissent : c'est le mouvement qu'on
+   retire, pas le montant. */
+@media (prefers-reduced-motion: reduce) {
+  .phase-wipe-band { display: none; }
+  .hp-lag, .hp-fill { transition: none; }
+  .hp-delta { animation: none; }
+}
+
 /* Le dos de carte respire tant qu'on ne l'a pas touché — c'est ce qui dit qu'il
    est tapable, sans y écrire « tapez ici ». */
 @keyframes draw-back-idle {

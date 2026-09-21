@@ -44,6 +44,21 @@ const SPAWN_DROP_S = 0.22;
 const SPAWN_LEAD_S = 0.25;
 const SPAWN_STAGGER_S = 0.16;
 
+// ── Frappe finale (fin de combat, cf. `playFinalStrike`) ──
+// Une charge plus longue et plus ample que le coup d'un tick : c'est le dernier
+// geste du round, et il doit tenir sous le regard le temps que les barres de vie
+// se vident.
+//
+// ⚠️ La portée est une DISTANCE FIXE (en cases) vers le camp d'en face, jamais
+// une fraction du chemin qu'il reste à parcourir : les survivants d'un round
+// gagné ont le plus souvent déjà traversé le plateau, leur « chemin restant »
+// est donc nul et la charge ne se voyait pas — précisément chez le camp qui
+// vient de frapper. Mesuré à l'écran : quatre survivants posés dans la zone
+// adverse ne bougeaient pas d'un pixel.
+const FINAL_STRIKE_S = 0.6;
+const FINAL_STRIKE_STAGGER_S = 0.07;
+const FINAL_STRIKE_REACH_CELLS = 0.85;
+
 // ── Fond de grille d'un terrain (combat) ──
 // Plan texturé de 5 × 11 posé SOUS les tuiles. Assez bas pour ne pas z-fighter
 // avec le voile joueur (y = -0.04) ni avec les tuiles (y = 0 / 0.01).
@@ -2139,6 +2154,73 @@ export class Scene3D {
         return true;
       },
     });
+  }
+
+  /**
+   * La frappe finale : les survivants d'un camp s'élancent ENSEMBLE vers le
+   * camp d'en face, en éventail, et leur charge se solde d'un éclat sur la
+   * ligne adverse. C'est le geste qui porte les dégâts de fin de combat, ceux
+   * que le récapitulatif chiffre ensuite.
+   *
+   * ⚠️ L'origine est la position de l'OBJET, jamais celle de l'unité :
+   * `finishCombat` vient de ramener les survivants à leur `initial_position`
+   * alors que leurs cartes sont encore là où le combat les a laissées (le
+   * `refresh()` qui les range n'a lieu qu'à `exitCombatMode`). Lire
+   * `unit.position` ferait donc sauter chaque carte à son point de départ avant
+   * de s'élancer — c'est exactement la faute que `playLunge` ne peut pas
+   * commettre, lui qui joue au milieu du combat.
+   *
+   * ⚠️ Un `uid` sans carte à l'écran est ignoré en silence : c'est le cas normal
+   * d'une unité réanimée par un attribut, dont `killUnitObj` a déjà emporté la
+   * carte à sa mort.
+   */
+  playFinalStrike(uids: number[], toward: 'player' | 'enemy'): void {
+    // Le SENS de la charge : vers le fond du camp d'en face. Il se dérive de
+    // `zForRow` plutôt que d'être écrit en dur — celui-ci range les rangées à
+    // l'envers de leur numéro, et une constante recopiée ici ferait charger les
+    // deux camps à reculons le jour où il changerait d'avis. Le plateau est
+    // toujours dans le même sens à l'écran (joueur en 0–3, adversaire en 7–10),
+    // miroir du rôle B compris : celui-ci ne change que le repère de la
+    // SIMULATION.
+    const rowDir = Math.sign(zForRow(TOTAL_ROWS - 1) - zForRow(0)) * (toward === 'enemy' ? 1 : -1);
+    let struck = 0;
+    for (const uid of uids) {
+      const entry = this.unitObjs.get(uid);
+      if (!entry) continue;
+      const homeX = entry.obj.position.x;
+      const homeZ = entry.obj.position.z;
+      const reachZ = homeZ + rowDir * FINAL_STRIKE_REACH_CELLS * CELL;
+      const delay = struck * FINAL_STRIKE_STAGGER_S;
+      const color = (ELEMENT_STYLES[elementsForUnit(entry.unit)[0]] || ELEMENT_STYLES.neutral).color;
+      struck++;
+      let t = -delay;
+      let flashed = false;
+      this.anims.push({
+        update: (dt: number) => {
+          t += dt;
+          if (t < 0) return true;
+          const p = Math.min(t / FINAL_STRIKE_S, 1);
+          // Élan bref puis retour : même courbe que `playLunge`, en plus ample.
+          const f = p < 0.35 ? p / 0.35 : (1 - p) / 0.65;
+          entry.obj.position.z = THREE.MathUtils.lerp(homeZ, reachZ, f);
+          if (!flashed && p >= 0.35) {
+            flashed = true;
+            const impact = new THREE.Vector3(homeX, 0.06, reachZ);
+            this.spawnRing(impact, color, 0.34, 4);
+            this.spawnBurst(impact, color, LOW_END_DEVICE ? 10 : 24, {
+              size: 0.05, speed: [0.5, 1.1], lift: [0.4, 0.9], gravity: 7, maxLife: 0.3,
+            });
+          }
+          if (p >= 1) { entry.obj.position.z = homeZ; return false; }
+          return true;
+        },
+      });
+    }
+    if (struck === 0) return;
+    // Une secousse, et une seule pour toute la charge : le camp d'en face vient
+    // d'encaisser d'un bloc, pas une fois par survivant.
+    this.shakeCamera(this._camH * 0.03, 0.34);
+    this._invalidate();
   }
 
   playLunge(uid: number, towardPos: Position): void {
