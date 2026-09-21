@@ -3,7 +3,8 @@
 // camps (avatar + pseudo/nom de deck, résolus par l'écran appelant).
 import { useGameStore } from '../../stores/gameStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
-import { Avatar, Gauge } from '../ui/primitives.js';
+import { Avatar } from '../ui/primitives.js';
+import HpBar, { useHpTransition } from './HpBar.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 
 export interface HudProps {
@@ -17,6 +18,11 @@ export interface HudProps {
 
 export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', enemyName = null }: HudProps) {
   const { playerHp, enemyHp, round, playerMultiplier, enemyMultiplier, combatActive } = useGameStore();
+  // ⚠️ Le chiffre et la jauge comptent sur la MÊME horloge : la transition est
+  // tenue ici, une fois par camp, et descend dans les deux (cf. `HpBar`). Deux
+  // décomptes indépendants finiraient par ne plus annoncer le même total.
+  const player = useHpTransition(playerHp);
+  const enemy = useHpTransition(enemyHp);
   const user = useAuthStore(s => s.user);
   const playerAvatar = (user as { avatar?: string | null } | null)?.avatar ?? '';
   const playerName = user?.username ?? 'Toi';
@@ -39,10 +45,10 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
           </span>
           <span className="flex flex-shrink-0 items-center gap-1.5">
             {combatActive && <span className="text-[10px] font-bold text-player/80 tabular-nums">×{playerMultiplier.toFixed(1)}</span>}
-            <span className="font-bold text-player tabular-nums">{playerHp}</span>
+            <span className="font-bold text-player tabular-nums">{player.shown}</span>
           </span>
         </div>
-        <Gauge value={playerHp / 1000} fillClassName="bg-player" className="mt-1" />
+        <HpBar side="player" value={playerHp} lag={player.lag} delta={player.delta} className="mt-1" />
       </div>
 
       <div className="flex flex-col items-center px-1">
@@ -55,7 +61,7 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2 text-xs">
           <span className="flex flex-shrink-0 items-center gap-1.5">
-            <span className="font-bold text-enemy tabular-nums">{enemyHp}</span>
+            <span className="font-bold text-enemy tabular-nums">{enemy.shown}</span>
             {combatActive && <span className="text-[10px] font-bold text-enemy/80 tabular-nums">×{enemyMultiplier.toFixed(1)}</span>}
           </span>
           <span className="flex min-w-0 items-center gap-1.5">
@@ -63,7 +69,7 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
             <Avatar src={enemyAvatarSrc} fallback={enemyAvatarFallback} className="h-5 w-5" />
           </span>
         </div>
-        <Gauge value={enemyHp / 1000} fillClassName="bg-enemy" className="mt-1" />
+        <HpBar side="enemy" value={enemyHp} lag={enemy.lag} delta={enemy.delta} className="mt-1" />
       </div>
     </div>
   );

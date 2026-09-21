@@ -140,6 +140,39 @@ export function SummonOptionMenu() {
   );
 }
 
+/**
+ * La frappe finale : le dernier geste du round, entre le dernier tick et le
+ * récapitulatif.
+ *
+ * ⚠️ Cette couche ne DESSINE presque rien, et c'est voulu : ce qu'il y a à voir
+ * est ailleurs — les survivants qui s'élancent (`Scene3D.playFinalStrike`) et
+ * les barres de vie qui se vident (`components/hud/HpBar`). Elle n'est là que
+ * pour porter le tap qui passe la séquence, et le dire.
+ *
+ * ⚠️ Elle ne PILOTE rien : le minuteur qui livre le récapitulatif vit dans
+ * `GameController`, exactement comme celui de l'annonce de terrain. Elle
+ * disparaît quand `combatOutro` repasse à `null`.
+ *
+ * ⚠️ Pas de `Modal` : un voile noir masquerait précisément le plateau où la
+ * frappe a lieu. `z-40`, comme les autres couches de partie.
+ */
+export function CombatOutro() {
+  const outro = useGameStore(s => s.combatOutro);
+  const controller = useGameStore(s => s.controller);
+  if (!outro || !controller) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-end justify-center pb-20"
+      onPointerDown={(e) => { e.stopPropagation(); controller.skipCombatOutro(); }}
+    >
+      <span className="rounded-full bg-surface/70 px-3 py-1 text-[11px] text-white/50 backdrop-blur">
+        Toucher pour passer
+      </span>
+    </div>
+  );
+}
+
 export function EndRoundOverlay() {
   const endRound = useGameStore(s => s.endRound);
   const controller = useGameStore(s => s.controller);

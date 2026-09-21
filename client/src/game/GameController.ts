@@ -16,7 +16,10 @@ import { useGameStore, type GameSnapshot, type HandEntry } from '../stores/gameS
 import { useUiStore, type TooltipAnchor } from '../stores/uiStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
 import * as CardArt from '../data/CardArt.js';
-import { PREP_DURATION_S, COMBAT_DURATION_S, combatSecondsLeft, TERRAIN_ALERT_MS, ROUND_INTRO_MS } from './timings.js';
+import {
+  PREP_DURATION_S, COMBAT_DURATION_S, combatSecondsLeft, TERRAIN_ALERT_MS, ROUND_INTRO_MS,
+  COMBAT_INTRO_MS, COMBAT_OUTRO_MS, SHOPPING_INTRO_MS,
+} from './timings.js';
 import { CombatRecorder } from './CombatRecorder.js';
 
 /**
@@ -96,6 +99,14 @@ export class GameController {
    *  l'IA doit être terminée, même si le joueur passe l'annonce d'un tap. */
   private _combatStartAt = 0;
   protected _combatRemaining = COMBAT_DURATION_S;
+  /** Le volet de passage d'une phase à l'autre. Il ne retient rien — c'est le
+   *  seul minuteur du contrôleur dont personne n'attend l'échéance. */
+  private _wipeTimer: ReturnType<typeof setTimeout> | null = null;
+  /** La frappe finale, et le récapitulatif qu'elle retient. Même patron que
+   *  `_pendingCombatStart` : un CHAMP, pour que le tap et le minuteur livrent
+   *  la MÊME popup, une seule fois (il se vide en partant). */
+  private _outroTimer: ReturnType<typeof setTimeout> | null = null;
+  private _pendingEndRound: import('../logic/GameSession.js').EndRoundResult | null = null;
 
   constructor(session: GameSession) {
     this.session = session;
@@ -157,6 +168,29 @@ export class GameController {
     if (!draw) return;
     this._pendingDraw = null;
     this.sync({ roundIntro: null, drawPopup: draw });
+  }
+
+  /**
+   * Le volet de passage d'une phase à l'autre — un balayage plein cadre, posé
+   * à l'instant où l'écran change de registre.
+   *
+   * ⚠️ Il ne RETIENT rien : l'état de jeu est publié par l'appelant dans le même
+   * `sync`, et le volet ne fait que le découvrir en sortant. C'est ce qui le
+   * distingue de l'annonce de terrain et de la frappe finale — mettre une
+   * horloge entre le tap du joueur et l'écran qu'il vient de demander se paie à
+   * chaque tour, cinq fois par partie.
+   *
+   * ⚠️ Le minuteur vit ici quand même, comme les trois autres : un composant qui
+   * se retirerait lui-même serait une seconde horloge, et `dispose()` n'aurait
+   * rien à annuler sur une partie quittée en route.
+   */
+  protected _playPhaseWipe(kind: 'combat' | 'shopping', durationMs: number): void {
+    if (this._wipeTimer) { clearTimeout(this._wipeTimer); this._wipeTimer = null; }
+    this.sync({ phaseWipe: { kind } });
+    this._wipeTimer = setTimeout(() => {
+      this._wipeTimer = null;
+      this.sync({ phaseWipe: null });
+    }, durationMs);
   }
 
   /** Le tap sur le dos de carte : la main est déjà là, on lève le voile. */
@@ -602,7 +636,16 @@ export class GameController {
     // par ne plus s'accorder. Les listes passées sont celles sur lesquelles
     // `startCombat` vient d'appliquer l'effet : unités vivantes, IA déjà placée.
     const terrainAlert = terrainAlertFor(boardData, this.session.getPlayerUnits(), this.session.enemyUnits);
-    const holdMs = Math.max(revealMs, terrainAlert ? TERRAIN_ALERT_MS : 0);
+    // Le volet de passage en combat : il couvre exactement le travelling de
+    // caméra que `enterCombatMode` vient de lancer (0,5 s), c'est-à-dire le seul
+    // moment où le cadrage saute sous les yeux du joueur.
+    //
+    // ⚠️ Il rejoint le `holdMs` EXISTANT au lieu de s'ajouter en amont : un
+    // volet qui recouvre le plateau pendant que les premiers coups partent les
+    // escamote, et deux attentes pour un même départ finiraient par ne plus
+    // s'accorder (la règle de l'annonce de terrain, à la lettre).
+    this._playPhaseWipe('combat', COMBAT_INTRO_MS);
+    const holdMs = Math.max(revealMs, terrainAlert ? TERRAIN_ALERT_MS : 0, COMBAT_INTRO_MS);
     // combatRemaining doit repartir de 60 dès l'entrée en combat : sans ça le
     // HUD affiche la valeur finale du combat précédent jusqu'au premier tick.
     this.sync({ combatActive: true, combatRemaining: this._combatRemaining, boardTerrain: boardData, terrainAlert });
@@ -738,12 +781,82 @@ export class GameController {
       units_lost: Math.max(0, this._combatUnitCount - result.playerSurvivors.length),
     });
     this.animator = null;
+    this._beginCombatOutro(result);
+  }
+
+  /**
+   * La frappe finale — ce qui sépare désormais le dernier tick du récapitulatif.
+   *
+   * Les dégâts de fin de combat sont déjà calculés et déjà appliqués
+   * (`finishCombat` vient de passer) : les barres de vie portent leur valeur
+   * finale dès cet instant. Ce qu'on donne à voir ici, c'est CE QUI LES A FAITES
+   * DESCENDRE — les survivants s'élancent vers le camp d'en face, et la barre
+   * adverse se vide sous le coup. L'ordre inverse (popup d'abord, barres
+   * ensuite) montrait le total avant la cause.
+   *
+   * ⚠️ `combatActive` reste VRAI : l'outro est la queue du combat, pas une phase
+   * de plus. Main, cimetière et panneau de synergies se masquent dessus — les
+   * faire revenir une seconde et demie avant la popup, sur un plateau où les
+   * unités frappent encore, serait un clignotement pour rien.
+   *
+   * ⚠️ Le plateau n'est RANGÉ qu'à la sortie (`_endCombatOutro`) : `exitCombatMode`
+   * ramène la caméra au cadrage de préparation et rappelle `refresh()`, qui
+   * repose les survivants sur leur `initial_position`. Le faire maintenant
+   * ferait reculer les unités pendant qu'elles s'élancent.
+   */
+  private _beginCombatOutro(result: import('../logic/GameSession.js').EndRoundResult): void {
+    this._pendingEndRound = result;
+    // Les survivants qui infligent quelque chose ce round, et eux seuls : un
+    // camp qui n'encaisse pas (`playerDamageDealt === 0`) n'a porté aucun coup.
+    // Les réanimés d'attribut n'ont plus de carte à l'écran (`killUnitObj` est
+    // passé à leur mort) — la scène les ignore d'elle-même, il n'y a pas de
+    // filtre à écrire pour eux.
+    if (result.playerDamageDealt > 0) {
+      this.scene?.playFinalStrike(this.session.getPlayerUnits().map(u => u.uid), 'enemy');
+    }
+    if (result.enemyDamageDealt > 0) {
+      this.scene?.playFinalStrike(this.session.enemyUnits.map(u => u.uid), 'player');
+    }
+    this.sync({
+      combatActive: true,
+      combatOutro: {
+        winner: result.winner,
+        playerDamage: result.playerDamageDealt,
+        enemyDamage: result.enemyDamageDealt,
+      },
+    });
+    this._outroTimer = setTimeout(() => this._endCombatOutro(), COMBAT_OUTRO_MS);
+  }
+
+  /**
+   * Passe la frappe finale d'un tap — même geste que `dismissTerrainAlert`, et
+   * même garde : le champ se vide en partant, donc trois taps ne publient
+   * qu'un récapitulatif.
+   */
+  skipCombatOutro(): void {
+    if (!this._pendingEndRound) return;
+    this._endCombatOutro();
+  }
+
+  private _endCombatOutro(): void {
+    if (this._outroTimer) { clearTimeout(this._outroTimer); this._outroTimer = null; }
+    const result = this._pendingEndRound;
+    if (!result) return;
+    this._pendingEndRound = null;
     // Le terrain ne vaut que pour le combat écoulé (session.startPreparation
     // appelle board.clearBlockedCells de son côté).
     this.scene?.setBlockedCells([]);
     this.scene?.setTerrainBackground(null);
     this.scene?.exitCombatMode();
-    this.sync({ combatActive: false, boardTerrain: null, endRound: result });
+    // ⚠️ La partie a pu se solder PENDANT l'outro : le menu ☰ reste atteignable
+    // sous la barre de combat, et en duel c'est le serveur qui tranche. Le
+    // récapitulatif d'un round n'a alors plus rien à dire — il se poserait
+    // par-dessus l'écran de fin de partie.
+    if (useGameStore.getState().gameOver) {
+      this.sync({ combatActive: false, combatOutro: null, boardTerrain: null });
+      return;
+    }
+    this.sync({ combatActive: false, combatOutro: null, boardTerrain: null, endRound: result });
   }
 
   // ── Fin de round → Shopping (Phase 4) ou tour suivant ────────────────────
@@ -762,6 +875,11 @@ export class GameController {
     if (!magies.length) { this._proceedNextRound(); return; }
     this._shoppingMagies = magies;
     this._shoppingInfo = this._describeShoppingBonus();
+    // ⚠️ L'offre est publiée MAINTENANT, pas à la fin du volet : celui-ci ne
+    // fait que la découvrir en sortant. Le retarder mettrait une horloge entre
+    // le tap qui ferme le récapitulatif et l'écran qu'il demande — cinq fois par
+    // partie.
+    this._playPhaseWipe('shopping', SHOPPING_INTRO_MS);
     this.sync({ endRound: null, shopping: this._shoppingChoice() });
   }
 
@@ -1123,6 +1241,14 @@ export class GameController {
   dispose(): void {
     if (this._errorTimer) clearTimeout(this._errorTimer);
     if (this._revealTimer) clearTimeout(this._revealTimer);
+    // Sans quoi une frappe finale encore en vol publierait le récapitulatif d'un
+    // round sur une partie démontée — et le volet de phase, un état qu'aucun
+    // écran n'attend plus.
+    if (this._outroTimer) clearTimeout(this._outroTimer);
+    this._outroTimer = null;
+    this._pendingEndRound = null;
+    if (this._wipeTimer) clearTimeout(this._wipeTimer);
+    this._wipeTimer = null;
     // Sans quoi une annonce de tour encore en vol republierait sur une partie
     // démontée — et rouvrirait une popup de pioche sur l'écran suivant.
     if (this._introTimer) clearTimeout(this._introTimer);

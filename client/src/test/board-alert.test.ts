@@ -34,7 +34,7 @@ vi.mock('../data/AuthClient.js', () => ({
 
 const { GameController, terrainAlertFor } = await import('../game/GameController.js');
 const { useGameStore } = await import('../stores/gameStore.js');
-const { TERRAIN_ALERT_MS } = await import('../game/timings.js');
+const { TERRAIN_ALERT_MS, COMBAT_INTRO_MS } = await import('../game/timings.js');
 const { applyEffect } = await import('../logic/BoardEffect.js');
 
 function terrain(id: string, effect: any): BoardDef {
@@ -217,12 +217,18 @@ describe('Annonce de terrain — quand le combat part', () => {
     controller.dispose();
   });
 
-  it('sans terrain, le combat part sans attendre', () => {
+  // ⚠️ Sans terrain il n'y a RIEN À ANNONCER — mais le volet de passage en
+  // combat, lui, est posé à tous les coups (`COMBAT_INTRO_MS`) et retient le
+  // premier coup comme l'annonce le ferait : un volet qui recouvre le plateau
+  // pendant que les premières frappes partent les escamote. C'est le même
+  // `holdMs`, pas une seconde attente (cf. `combat-outro.test.ts`).
+  it('sans terrain, rien n\'est annoncé — seul le volet de passage retient le combat', () => {
     vi.useFakeTimers();
     const { session, controller } = makeController({ board: null });
     playTo(controller, session);
 
     expect(useGameStore.getState().terrainAlert).toBeNull();
+    vi.advanceTimersByTime(COMBAT_INTRO_MS);
     expect((controller as any).animator._running).toBe(true);
     controller.dispose();
   });

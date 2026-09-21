@@ -25,6 +25,32 @@ export const TERRAIN_ALERT_MS = 2500;
  *  qu'un miroir. Un tap la saute et ouvre la popup tout de suite. */
 export const ROUND_INTRO_MS = 1400;
 
+/** Le volet de passage en combat, à l'instant où la caméra quitte le cadrage de
+ *  préparation (`Scene3D.enterCombatMode`, 0,5 s de travelling).
+ *
+ *  ⚠️ Il entre dans le `holdMs` qui retient le premier coup — un volet qui
+ *  recouvre le plateau pendant que les premières frappes partent les escamote.
+ *  Mais il n'entre PAS dans `_combatStartAt` : ce plancher-là dit « l'adversaire
+ *  n'est pas encore posé », et le tap qui congédie l'annonce de terrain doit
+ *  continuer de lancer le combat tout de suite (cf. `board-alert.test.ts`). */
+export const COMBAT_INTRO_MS = 900;
+
+/** La frappe finale : les survivants s'élancent une dernière fois et les barres
+ *  de vie encaissent, AVANT que le récapitulatif ne s'affiche.
+ *
+ *  ⚠️ C'est le seul des trois passages qui RETIENNE quelque chose (la popup de
+ *  résultat) : les dégâts sont déjà calculés et les barres déjà à leur valeur
+ *  finale quand il commence — ce qu'on donne à voir, c'est ce qui vient de les
+ *  faire descendre. Le tap le saute (`GameController.skipCombatOutro`). */
+export const COMBAT_OUTRO_MS = 1500;
+
+/** Le volet de passage en Phase Shopping, à la fermeture du récapitulatif.
+ *
+ *  ⚠️ Décoratif : l'offre est publiée EN MÊME TEMPS et le volet la découvre en
+ *  sortant. Le retarder d'un minuteur de plus mettrait une horloge entre le tap
+ *  du joueur et l'écran qu'il vient de demander. */
+export const SHOPPING_INTRO_MS = 800;
+
 /** Popup de pioche laissée sans réponse : au bout de ce délai elle se congédie
  *  seule.
  *
