@@ -2187,8 +2187,9 @@ function renderCardDetail() {
       <div id="represented-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.4);margin-top:3px"></div>
     </div>
 
+    ${carteEstAppelante(c) ? `
     <div class="section-title">Appel (mot-clé Appelant)</div>
-    ${cardAppelHtml(c)}
+    ${cardAppelHtml(c)}` : ''}
 
     <div class="section-title">Attributs</div>
     <div class="attr-chips" id="attr-chips">
