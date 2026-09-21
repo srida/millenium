@@ -174,16 +174,25 @@ describe('Annonce de terrain — ce qui est dit', () => {
 describe('Annonce de terrain — quand le combat part', () => {
   const BOARD = terrain('B_DRAGON', { type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: ['ARCH_003'] });
 
-  // Mutation : départ immédiat rétabli (`animator.start()` hors du timer) → ROUGE.
+  // ⚠️ L'annonce n'apparaît qu'à la fin du volet de passage en combat, pas en
+  // même temps que lui (cf. `PhaseWipe.tsx`) : le mot COMBAT la recouvrirait
+  // sinon pendant toute sa durée.
+  // Mutation : départ immédiat rétabli (`animator.start()` hors du timer), ou
+  // annonce publiée en même temps que le volet → ROUGE.
   it('le combat ne démarre PAS tant que l\'annonce est à l\'écran', () => {
     vi.useFakeTimers();
     const { session, controller } = makeController({ board: BOARD, playerAttrs: [['ARCH_003']] });
     playTo(controller, session);
 
-    const snap = useGameStore.getState();
-    expect(snap.terrainAlert?.board.id).toBe('B_DRAGON');
+    let snap = useGameStore.getState();
+    expect(snap.terrainAlert).toBeNull();          // le volet joue encore, l'annonce attend
     expect(snap.combatActive).toBe(true);          // le HUD est déjà en combat…
     expect((controller as any).animator._running).toBeFalsy();   // …mais rien ne joue
+
+    vi.advanceTimersByTime(COMBAT_INTRO_MS);
+    snap = useGameStore.getState();
+    expect(snap.terrainAlert?.board.id).toBe('B_DRAGON');   // le volet est fini, l'annonce paraît
+    expect((controller as any).animator._running).toBeFalsy();
 
     vi.advanceTimersByTime(TERRAIN_ALERT_MS);
     expect(useGameStore.getState().terrainAlert).toBeNull();

@@ -1,14 +1,18 @@
 // Le volet de passage d'une phase à l'autre : préparation → combat, puis
-// récapitulatif → Phase Shopping. Deux bandes qui balaient l'écran, et rien
-// d'autre.
+// récapitulatif → Phase Shopping.
 //
-// ⚠️ **Aucun MOT.** Le volet portait « COMBAT » et « MAGIES » ; mesuré à
-// l'écran, le premier tombait en plein milieu de l'annonce de terrain, qu'il
-// recouvrait de son propre nom. Les deux phases s'annoncent déjà elles-mêmes —
-// l'annonce de terrain pour le combat, le titre de la modale pour le Shopping —
-// et une seconde façon de le dire ne pouvait que les contredire ou les cacher.
-// Le volet ne dit donc rien : il montre qu'on change de registre, la teinte
-// suffit à dire lequel.
+// ⚠️ Le Shopping reste MUET : deux bandes qui balaient l'écran, rien d'autre.
+// Son titre de modale s'annonce déjà lui-même, et rien n'est superposé dessus
+// au même instant — une seconde façon de le dire ne pourrait que le répéter.
+//
+// ⚠️ Combat, lui, PORTE le mot « COMBAT » (motif « Faille runique » : deux
+// sceaux aux couleurs des joueurs qui se rejoignent au centre, la faille qui
+// s'ouvre, le mot qui claque). Une version antérieure de ce volet l'avait
+// justement retiré parce qu'il recouvrait `TerrainAlert`, affichée en même
+// temps — c'est pour ça que `GameController._beginCombatAnimation` RETARDE
+// désormais l'annonce de terrain jusqu'à la fin du volet (`COMBAT_INTRO_MS`)
+// au lieu de la publier en même temps : les deux ne se recouvrent plus, le mot
+// garde sa place.
 //
 // ⚠️ Il ne PILOTE rien et ne RETIENT rien — ni son minuteur (il vit dans
 // `GameController`, comme ceux de l'annonce de terrain et de l'ouverture de
@@ -16,10 +20,9 @@
 // apparaît. C'est la différence de fond avec `TerrainAlert`, qui tient le
 // premier coup, et avec la frappe finale, qui tient le récapitulatif.
 //
-// ⚠️ `pointer-events-none` sur TOUTE la couche : le volet de combat passe
-// par-dessus l'annonce de terrain, qui est justement tapable pendant ce
-// temps-là. Un volet qui capte les taps rendrait la règle « le tap passe
-// l'annonce » fausse pendant presque une seconde.
+// ⚠️ `pointer-events-none` sur TOUTE la couche : même retardée, l'annonce de
+// terrain reste tapable pendant qu'elle est affichée. Un volet qui capte les
+// taps rendrait la règle « le tap passe l'annonce » fausse.
 //
 // ⚠️ `z-40` comme les autres couches de partie, pas plus : `TutorialCoach` est
 // en `z-50` avec sa bulle tapable.
@@ -30,6 +33,18 @@ const WIPE: Record<'combat' | 'shopping', { durationMs: number; className: strin
   combat:   { durationMs: COMBAT_INTRO_MS,   className: 'phase-wipe-combat' },
   shopping: { durationMs: SHOPPING_INTRO_MS, className: 'phase-wipe-shopping' },
 };
+
+// Les arcs qui giclent du point de jonction des deux sceaux — angles et
+// rayons répartis à la main plutôt qu'au hasard, pour que le motif soit
+// identique à chaque combat au lieu de gigoter d'une manche à l'autre.
+// Miroir de `ring(12, 22, 44, 3)` du prototype `millenium-phase-transition.js`
+// (bundle Claude Design « Faille runique »).
+const RIFT_ARC_COUNT = 12;
+const RIFT_ARCS = Array.from({ length: RIFT_ARC_COUNT }, (_, i) => {
+  const jitter = (((i * 37) % 11) - 5) * (3 / 5);
+  const radiusPct = 22 + (((i * 7) % RIFT_ARC_COUNT) / RIFT_ARC_COUNT) * (44 - 22);
+  return { angleDeg: i * (360 / RIFT_ARC_COUNT) + jitter, radiusFrac: radiusPct / 100 };
+});
 
 export default function PhaseWipe() {
   const wipe = useGameStore(s => s.phaseWipe);
@@ -42,14 +57,59 @@ export default function PhaseWipe() {
       style={{ ['--phase-wipe-dur' as string]: `${durationMs}ms` }}
       aria-hidden="true"
     >
-      {/* Deux bandes qui se croisent en sens inverse. L'écran n'est couvert
-          qu'à l'instant où elles se rejoignent, et c'est tout l'intérêt : le
-          cadrage saute là-dessous (`Scene3D.enterCombatMode` déplace la caméra
-          en 0,5 s), et ce qui vient ensuite est DÉCOUVERT au lieu d'apparaître
-          d'un coup. Un voile qui s'allume et s'éteint sur place donnerait un
-          clignotement, cinq fois par partie. */}
+      {wipe.kind === 'combat' ? <CombatRift /> : <ShoppingBands />}
+    </div>
+  );
+}
+
+/* Deux bandes qui se croisent en sens inverse. L'écran n'est couvert qu'à
+   l'instant où elles se rejoignent, et c'est tout l'intérêt : ce qui vient
+   ensuite est DÉCOUVERT au lieu d'apparaître d'un coup. Un voile qui s'allume
+   et s'éteint sur place donnerait un clignotement, cinq fois par partie. */
+function ShoppingBands() {
+  return (
+    <>
       <div className="phase-wipe-band phase-wipe-band-top" />
       <div className="phase-wipe-band phase-wipe-band-bottom" />
+    </>
+  );
+}
+
+/* Le motif « Faille runique » : un sceau par joueur, aux couleurs déjà lues
+   partout ailleurs (`--color-player` / `--color-enemy`), qui glissent l'un
+   vers l'autre et se superposent au centre ; la faille s'ouvre à la verticale
+   et balaie l'écran ; le mot claque au moment où elle est à son plus large. */
+function CombatRift() {
+  return (
+    <div className="phase-wipe-rift">
+      <div className="phase-wipe-rift-veil" />
+      <RiftSeal cssVar="--color-player" />
+      <div className="phase-wipe-rift-mirror">
+        <RiftSeal cssVar="--color-enemy" />
+      </div>
+      <div className="phase-wipe-rift-crack" />
+      {RIFT_ARCS.map((arc, i) => (
+        <div
+          key={i}
+          className="phase-wipe-rift-arc"
+          style={{
+            ['--phase-wipe-rift-ang' as string]: `${arc.angleDeg.toFixed(1)}deg`,
+            ['--phase-wipe-rift-rad' as string]: `calc(var(--phase-wipe-rift-u) * ${arc.radiusFrac.toFixed(4)})`,
+          }}
+        />
+      ))}
+      <div className="phase-wipe-rift-flash" />
+      <div className="phase-wipe-rift-word">COMBAT</div>
+    </div>
+  );
+}
+
+function RiftSeal({ cssVar }: { cssVar: string }) {
+  return (
+    <div className="phase-wipe-rift-seal" style={{ ['--phase-wipe-rift-c' as string]: `var(${cssVar})` }}>
+      <span className="phase-wipe-rift-seal-ring-a" />
+      <span className="phase-wipe-rift-seal-ring-b" />
+      <span className="phase-wipe-rift-seal-core" />
     </div>
   );
 }

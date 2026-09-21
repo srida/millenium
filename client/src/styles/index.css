@@ -180,9 +180,9 @@ input, textarea, select { font-size: 1rem !important; }
 }
 
 /* ── Volet de passage d'une phase à l'autre (cf. `components/overlays/PhaseWipe`) ──
-   Deux bandes qui balaient l'écran en sens inverse, et le mot de la phase où
-   l'on entre. Même grammaire que les deux annonces au-dessus : la durée vient
-   du composant, qui la tient du contrôleur — l'animation ne peut donc pas durer
+   Le Shopping : deux bandes qui balaient l'écran en sens inverse, muettes.
+   Même grammaire que les deux annonces au-dessus : la durée vient du
+   composant, qui la tient du contrôleur — l'animation ne peut donc pas durer
    plus longtemps que l'état qu'elle habille.
    ⚠️ Des BANDES et non un aplat : un voile plein masquerait le plateau cinq
    fois par partie, or c'est lui qu'on vient découvrir. Le dégradé s'éteint sur
@@ -202,17 +202,15 @@ input, textarea, select { font-size: 1rem !important; }
   left: 0;
   width: 100%;
   height: 50%;
-  /* La teinte est la SEULE chose qui distingue les deux passages : le volet ne
-     porte aucun mot (cf. `PhaseWipe`). Elle vient de la couleur de bord du
-     décor spatial, pour que le balayage se lise comme un pan du jeu qui passe
-     devant et non comme un rectangle noir. */
+  /* La teinte est la SEULE chose qui distingue la bande du Shopping d'un
+     rectangle noir. Elle vient de la couleur de bord du décor spatial, pour
+     que le balayage se lise comme un pan du jeu qui passe devant. */
   background: linear-gradient(90deg,
     transparent 0%,
     color-mix(in srgb, var(--color-space-edge) 92%, var(--phase-wipe-tint, transparent)) 18%,
     color-mix(in srgb, var(--color-space-edge) 92%, var(--phase-wipe-tint, transparent)) 82%,
     transparent 100%);
 }
-.phase-wipe-combat   { --phase-wipe-tint: var(--color-danger); }
 .phase-wipe-shopping { --phase-wipe-tint: var(--color-gold); }
 .phase-wipe-band-top {
   top: 0;
@@ -221,6 +219,144 @@ input, textarea, select { font-size: 1rem !important; }
 .phase-wipe-band-bottom {
   bottom: 0;
   animation: phase-wipe-bottom var(--phase-wipe-dur, 900ms) cubic-bezier(.65, 0, .35, 1) forwards;
+}
+
+/* ── Combat : motif « Faille runique » (bundle Claude Design, cf. chats/) ──
+   Deux sceaux aux couleurs des joueurs glissent l'un vers l'autre, se
+   superposent au centre ; la faille s'ouvre à la verticale et balaie l'écran ;
+   des arcs giclent du point de jonction ; le mot claque au plus large de la
+   faille. Tout est calé sur `--phase-wipe-rift-u` (plus petite dimension de
+   l'écran), comme le prototype d'origine — identique en portrait et paysage,
+   du mobile au desktop.
+   ⚠️ `TerrainAlert` n'apparaît qu'à la fin de ce volet, pas en même temps (cf.
+   `GameController._beginCombatAnimation` et le commentaire en tête de
+   `PhaseWipe.tsx`) : les deux se recouvraient sinon pendant toute sa durée. */
+.phase-wipe-rift {
+  position: absolute;
+  inset: 0;
+  --phase-wipe-rift-u: min(100vw, 100vh);
+}
+@keyframes phase-wipe-rift-veil {
+  0%   { opacity: 0; }
+  14%  { opacity: 1; }
+  86%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.phase-wipe-rift-veil {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(90% 120% at 50% 50%, rgba(10, 14, 34, .55) 0%, #03050d 78%);
+  animation: phase-wipe-rift-veil var(--phase-wipe-dur, 1500ms) linear both;
+}
+@keyframes phase-wipe-rift-seal {
+  0%   { transform: translateX(-160%) scale(.7); opacity: 0; }
+  12%  { opacity: 1; }
+  30%  { transform: translateX(-52%) scale(1); }
+  36%  { transform: translateX(-46%) scale(1.04); }
+  58%  { transform: translateX(-64%) scale(1); }
+  88%  { transform: translateX(-96%) scale(.9); opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes phase-wipe-rift-spin     { to { transform: rotate(340deg); } }
+@keyframes phase-wipe-rift-spin-rev { to { transform: rotate(-260deg); } }
+.phase-wipe-rift-seal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--phase-wipe-rift-u) * .34);
+  height: calc(var(--phase-wipe-rift-u) * .34);
+  margin: calc(var(--phase-wipe-rift-u) * -.17) 0 0 calc(var(--phase-wipe-rift-u) * -.17);
+  animation: phase-wipe-rift-seal var(--phase-wipe-dur, 1500ms) linear both;
+}
+.phase-wipe-rift-mirror { position: absolute; inset: 0; transform: scaleX(-1); }
+.phase-wipe-rift-seal-ring-a,
+.phase-wipe-rift-seal-ring-b {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: calc(var(--phase-wipe-rift-u) * .004) dashed var(--phase-wipe-rift-c);
+  animation: phase-wipe-rift-spin var(--phase-wipe-dur, 1500ms) linear both;
+}
+.phase-wipe-rift-seal-ring-b {
+  inset: 16%;
+  border-style: solid;
+  border-width: calc(var(--phase-wipe-rift-u) * .002);
+  opacity: .55;
+  animation-name: phase-wipe-rift-spin-rev;
+}
+.phase-wipe-rift-seal-core {
+  position: absolute;
+  inset: 34%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--phase-wipe-rift-c) 55%, transparent), transparent 70%);
+}
+@keyframes phase-wipe-rift-crack {
+  0%   { transform: scaleY(0); opacity: 0; }
+  18%  { opacity: .7; }
+  34%  { transform: scaleY(1); opacity: 1; }
+  48%  { transform: scaleY(1) scaleX(9); opacity: 0; }
+  100% { opacity: 0; }
+}
+.phase-wipe-rift-crack {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  width: calc(var(--phase-wipe-rift-u) * .009);
+  margin-left: calc(var(--phase-wipe-rift-u) * -.0045);
+  transform-origin: 50% 0;
+  background: linear-gradient(180deg, transparent, #fff 20%, #cfe4ff 50%, #fff 80%, transparent);
+  box-shadow: 0 0 calc(var(--phase-wipe-rift-u) * .04) rgba(190, 220, 255, .9);
+  animation: phase-wipe-rift-crack var(--phase-wipe-dur, 1500ms) cubic-bezier(.2, .8, .2, 1) both;
+}
+@keyframes phase-wipe-rift-arc {
+  0%, 33% { transform: rotate(var(--phase-wipe-rift-ang)) translateX(calc(var(--phase-wipe-rift-u) * .012)) scaleY(1); opacity: 0; }
+  38%     { opacity: 1; }
+  100%    { transform: rotate(var(--phase-wipe-rift-ang)) translateX(var(--phase-wipe-rift-rad)) scaleY(.2); opacity: 0; }
+}
+.phase-wipe-rift-arc {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--phase-wipe-rift-u) * .11);
+  height: calc(var(--phase-wipe-rift-u) * .011);
+  transform-origin: 0 50%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(220, 235, 255, .92), rgba(120, 170, 255, 0));
+  animation: phase-wipe-rift-arc var(--phase-wipe-dur, 1500ms) cubic-bezier(.1, .85, .25, 1) both;
+}
+@keyframes phase-wipe-rift-flash { 0%, 32% { opacity: 0; } 35% { opacity: 1; } 52%, 100% { opacity: 0; } }
+.phase-wipe-rift-flash {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--phase-wipe-rift-u) * .36);
+  height: calc(var(--phase-wipe-rift-u) * .36);
+  margin: calc(var(--phase-wipe-rift-u) * -.18) 0 0 calc(var(--phase-wipe-rift-u) * -.18);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, rgba(205, 228, 255, .85) 22%, transparent 62%);
+  animation: phase-wipe-rift-flash var(--phase-wipe-dur, 1500ms) linear both;
+}
+@keyframes phase-wipe-rift-word {
+  0%, 34% { opacity: 0; letter-spacing: .5em; transform: scale(1.5); }
+  42%     { opacity: 1; letter-spacing: .06em; transform: scale(1); }
+  46%     { transform: scale(1.02) translateX(.4%); }
+  50%     { transform: scale(1) translateX(-.3%); }
+  84%     { opacity: 1; }
+  100%    { opacity: 0; transform: scale(1.04); }
+}
+.phase-wipe-rift-word {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: clamp(32px, calc(var(--phase-wipe-rift-u) * .16), 200px);
+  letter-spacing: .06em;
+  color: #f6faff;
+  text-shadow: 0 0 calc(var(--phase-wipe-rift-u) * .04) rgba(150, 195, 255, .8);
+  animation: phase-wipe-rift-word var(--phase-wipe-dur, 1500ms) linear both;
 }
 /* ── Barre de vie : la traîne et le montant encaissé (cf. `components/hud/HpBar`) ──
    La traîne est DERRIÈRE le remplissage : elle ne se voit que quand elle le
@@ -241,14 +377,21 @@ input, textarea, select { font-size: 1rem !important; }
 }
 .hp-delta { animation: hp-delta-anim 1500ms ease forwards; }
 
-/* ⚠️ Le volet est le SEUL des trois passages à disparaître entièrement en
-   mouvement réduit, et c'est cohérent : il ne porte aucune information (les
-   deux phases s'annoncent elles-mêmes — annonce de terrain, titre de la
-   modale), il n'y a donc rien à garder une fois le balayage retiré. Les barres,
-   elles, annoncent TOUJOURS ce qu'elles encaissent : c'est le mouvement qu'on
-   retire, pas le montant. */
+/* ⚠️ Le Shopping disparaît ENTIÈREMENT en mouvement réduit : il ne porte
+   aucune information (le titre de la modale s'annonce déjà lui-même), il n'y
+   a donc rien à garder une fois le balayage retiré.
+   Combat, lui, porte le mot : on retire le mouvement (sceaux, faille, arcs),
+   pas le mot — même règle que `round-intro-veil` juste au-dessus. Les barres
+   de vie annoncent elles aussi TOUJOURS ce qu'elles encaissent : c'est le
+   mouvement qu'on retire, pas le montant. */
 @media (prefers-reduced-motion: reduce) {
   .phase-wipe-band { display: none; }
+  .phase-wipe-rift-seal,
+  .phase-wipe-rift-crack,
+  .phase-wipe-rift-arc { display: none; }
+  .phase-wipe-rift-veil,
+  .phase-wipe-rift-flash { animation: none; opacity: .9; }
+  .phase-wipe-rift-word { animation: none; opacity: 1; letter-spacing: .06em; transform: none; }
   .hp-lag, .hp-fill { transition: none; }
   .hp-delta { animation: none; }
 }
