@@ -7,12 +7,12 @@
 //
 // ⚠️ Combat, lui, PORTE le mot « COMBAT » (motif « Faille runique » : deux
 // sceaux aux couleurs des joueurs qui se rejoignent au centre, la faille qui
-// s'ouvre, le mot qui claque). Il se pose EN MÊME TEMPS que `TerrainAlert`
-// (`GameController._beginCombatAnimation`) et passe par-dessus elle pendant
-// toute sa durée : le mot recouvre alors la carte de terrain. C'est un choix
-// assumé — le motif choisi en dc.html demandait le mot — pas un oubli du fait
-// qu'une version antérieure de ce volet l'avait justement retiré pour cette
-// raison.
+// s'ouvre, le mot qui claque). Une version antérieure de ce volet l'avait
+// justement retiré parce qu'il recouvrait `TerrainAlert`, affichée en même
+// temps — c'est pour ça que `GameController._beginCombatAnimation` RETARDE
+// désormais l'annonce de terrain jusqu'à la fin du volet (`COMBAT_INTRO_MS`)
+// au lieu de la publier en même temps : les deux ne se recouvrent plus, le mot
+// garde sa place.
 //
 // ⚠️ Il ne PILOTE rien et ne RETIENT rien — ni son minuteur (il vit dans
 // `GameController`, comme ceux de l'annonce de terrain et de l'ouverture de
@@ -20,10 +20,9 @@
 // apparaît. C'est la différence de fond avec `TerrainAlert`, qui tient le
 // premier coup, et avec la frappe finale, qui tient le récapitulatif.
 //
-// ⚠️ `pointer-events-none` sur TOUTE la couche : le volet de combat passe
-// par-dessus l'annonce de terrain, qui est justement tapable pendant ce
-// temps-là. Un volet qui capte les taps rendrait la règle « le tap passe
-// l'annonce » fausse pendant toute sa durée.
+// ⚠️ `pointer-events-none` sur TOUTE la couche : même retardée, l'annonce de
+// terrain reste tapable pendant qu'elle est affichée. Un volet qui capte les
+// taps rendrait la règle « le tap passe l'annonce » fausse.
 //
 // ⚠️ `z-40` comme les autres couches de partie, pas plus : `TutorialCoach` est
 // en `z-50` avec sa bulle tapable.

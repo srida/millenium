@@ -98,6 +98,11 @@ export class GameController {
   /** Instant au plus tôt où le combat peut partir : la cascade d'arrivée de
    *  l'IA doit être terminée, même si le joueur passe l'annonce d'un tap. */
   private _combatStartAt = 0;
+  /** Retient l'affichage de l'annonce de terrain jusqu'à la fin du volet de
+   *  passage en combat — les deux se recouvraient sinon (cf. `PhaseWipe.tsx`).
+   *  Distinct de `_revealTimer` : celui-ci ne fait qu'AFFICHER l'annonce, il ne
+   *  retient pas le départ du combat (`holdMs` s'en charge déjà). */
+  private _alertTimer: ReturnType<typeof setTimeout> | null = null;
   protected _combatRemaining = COMBAT_DURATION_S;
   /** Le volet de passage d'une phase à l'autre. Il ne retient rien — c'est le
    *  seul minuteur du contrôleur dont personne n'attend l'échéance. */
@@ -639,16 +644,27 @@ export class GameController {
     // Le volet de passage en combat : il couvre exactement le travelling de
     // caméra que `enterCombatMode` vient de lancer (0,5 s), c'est-à-dire le seul
     // moment où le cadrage saute sous les yeux du joueur.
-    //
-    // ⚠️ Il rejoint le `holdMs` EXISTANT au lieu de s'ajouter en amont : un
-    // volet qui recouvre le plateau pendant que les premiers coups partent les
-    // escamote, et deux attentes pour un même départ finiraient par ne plus
-    // s'accorder (la règle de l'annonce de terrain, à la lettre).
     this._playPhaseWipe('combat', COMBAT_INTRO_MS);
-    const holdMs = Math.max(revealMs, terrainAlert ? TERRAIN_ALERT_MS : 0, COMBAT_INTRO_MS);
+    // ⚠️ L'annonce n'apparaît qu'à la FIN du volet, pas en même temps : le motif
+    // « Faille runique » (mot COMBAT compris, cf. `PhaseWipe.tsx`) la
+    // recouvrirait sinon pendant toute sa durée. Elle rejoint quand même le
+    // `holdMs` EXISTANT au lieu de s'ajouter en amont du sien : un volet qui
+    // recouvre le plateau pendant que les premiers coups partent les escamote,
+    // et deux attentes pour un même départ finiraient par ne plus s'accorder.
+    const alertMs = terrainAlert ? TERRAIN_ALERT_MS : 0;
+    const holdMs = Math.max(revealMs, COMBAT_INTRO_MS + alertMs);
     // combatRemaining doit repartir de 60 dès l'entrée en combat : sans ça le
     // HUD affiche la valeur finale du combat précédent jusqu'au premier tick.
-    this.sync({ combatActive: true, combatRemaining: this._combatRemaining, boardTerrain: boardData, terrainAlert });
+    // `terrainAlert` reste `null` ici — c'est le minuteur juste en dessous qui
+    // la publie, une fois le volet retiré.
+    this.sync({ combatActive: true, combatRemaining: this._combatRemaining, boardTerrain: boardData, terrainAlert: null });
+    if (terrainAlert) {
+      this._alertTimer = setTimeout(() => {
+        this._alertTimer = null;
+        if (this.animator !== animator) return;   // combat quitté entre-temps
+        this.sync({ terrainAlert });
+      }, COMBAT_INTRO_MS);
+    }
     // ⚠️ Le plancher est la CASCADE, pas l'annonce : un tap qui passe l'annonce
     // ne doit pas lancer le premier coup pendant que l'adversaire est encore en
     // l'air (`dismissTerrainAlert` réarme pour le reliquat).
@@ -1241,6 +1257,8 @@ export class GameController {
   dispose(): void {
     if (this._errorTimer) clearTimeout(this._errorTimer);
     if (this._revealTimer) clearTimeout(this._revealTimer);
+    if (this._alertTimer) clearTimeout(this._alertTimer);
+    this._alertTimer = null;
     // Sans quoi une frappe finale encore en vol publierait le récapitulatif d'un
     // round sur une partie démontée — et le volet de phase, un état qu'aucun
     // écran n'attend plus.

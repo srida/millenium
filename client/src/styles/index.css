@@ -228,8 +228,9 @@ input, textarea, select { font-size: 1rem !important; }
    faille. Tout est calé sur `--phase-wipe-rift-u` (plus petite dimension de
    l'écran), comme le prototype d'origine — identique en portrait et paysage,
    du mobile au desktop.
-   ⚠️ Ce motif recouvre `TerrainAlert`, affichée EN MÊME TEMPS (cf. le
-   commentaire en tête de `PhaseWipe.tsx`) : décision assumée, pas un oubli. */
+   ⚠️ `TerrainAlert` n'apparaît qu'à la fin de ce volet, pas en même temps (cf.
+   `GameController._beginCombatAnimation` et le commentaire en tête de
+   `PhaseWipe.tsx`) : les deux se recouvraient sinon pendant toute sa durée. */
 .phase-wipe-rift {
   position: absolute;
   inset: 0;
