@@ -423,8 +423,8 @@
 		"effects": [
 			{
 				"type": "stat_bonus",
-				"value": 10,
 				"stat": "atk",
+				"value": 10,
 				"target_attributes": [
 					"ARCH_089"
 				]

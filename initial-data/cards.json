@@ -377,14 +377,8 @@
 			"ARCH_022",
 			"ARCH_050",
 			"ARCH_090",
-			"ARCH_091",
-			"ARCH_099"
+			"ARCH_091"
 		],
-		"appel": {
-			"card_ids": [
-				"CORE_015"
-			]
-		},
 		"stats": {
 			"atk": 15,
 			"hp": 120,
@@ -3520,8 +3514,7 @@
 			"ARCH_049",
 			"ARCH_056",
 			"ARCH_090",
-			"ARCH_092",
-			"ARCH_097"
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 10,
@@ -4187,7 +4180,7 @@
 	},
 	{
 		"id": "MARIK_007",
-		"name": "Jam Revigorant",
+		"name": "Revival Slime",
 		"type": "monster",
 		"attributes": [
 			"ARCH_030",
@@ -4201,39 +4194,14 @@
 		"stats": {
 			"atk": 15,
 			"hp": 200,
-			"range": 1,
+			"movement_rate": 83,
 			"attack_rate": 92,
-			"movement_rate": 83
+			"range": 1
 		},
 		"power": {},
 		"summon_conditions": [],
 		"material_value": 1,
 		"represented_ids": [],
-		"set": "SET_009"
-	},
-	{
-		"id": "MARIK_008",
-		"name": "Défenseur du Jam",
-		"type": "monster",
-		"attributes": [
-			"ARCH_030",
-			"ARCH_035",
-			"ARCH_046",
-			"ARCH_049",
-			"ARCH_054",
-			"ARCH_090",
-			"ARCH_091"
-		],
-		"stats": {
-			"atk": 6,
-			"hp": 250,
-			"range": 1,
-			"attack_rate": 94,
-			"movement_rate": 83
-		},
-		"power": {},
-		"summon_conditions": [],
-		"material_value": 1,
 		"set": "SET_009"
 	},
 	{
@@ -4653,8 +4621,7 @@
 			"ARCH_048",
 			"ARCH_056",
 			"ARCH_090",
-			"ARCH_091",
-			"ARCH_098"
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -5236,22 +5203,24 @@
 		"stats": {
 			"atk": 28,
 			"hp": 250,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 90,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {
-			"id": "POWER_SUPER_ATTACK",
-			"value": 80,
-			"power_rate": 43
+			"id": "POWER_SUMMON_TOKEN",
+			"power_rate": 43,
+			"token_id": "TOKEN_002"
 		},
 		"summon_conditions": [
 			{
-				"materials": 2
+				"materials": 2,
+				"requires": []
 			}
 		],
 		"material_value": 2,
-		"set": "SET_013"
+		"set": "SET_013",
+		"represented_ids": []
 	},
 	{
 		"id": "HAGA_014",
@@ -8974,14 +8943,14 @@
 		"stats": {
 			"atk": 5,
 			"hp": 250,
-			"range": 1,
+			"movement_rate": 0,
 			"attack_rate": 96,
-			"movement_rate": 83
+			"range": 1
 		},
 		"power": {
-			"id": "POWER_SHIELD",
-			"value": 50,
-			"power_rate": 23
+			"id": "POWER_SUMMON_TOKEN",
+			"power_rate": 50,
+			"token_id": "TOKEN_001"
 		},
 		"summon_conditions": [
 			{
@@ -8992,7 +8961,8 @@
 			}
 		],
 		"material_value": 1,
-		"set": "SET_013"
+		"set": "SET_013",
+		"represented_ids": []
 	},
 	{
 		"id": "EXTRA_056",
@@ -9884,7 +9854,7 @@
 	},
 	{
 		"id": "EXTRA_083",
-		"name": "Sliffer le dragon du ciel",
+		"name": "Slifer le dragon du ciel",
 		"type": "monster",
 		"attributes": [
 			"ARCH_004",
@@ -9898,18 +9868,20 @@
 		"stats": {
 			"atk": 40,
 			"hp": 400,
-			"range": 2,
+			"movement_rate": 90,
 			"attack_rate": 86,
-			"movement_rate": 90
+			"range": 2
 		},
 		"power": {
-			"id": "POWER_PARALYSIS",
+			"id": "POWER_WEAKEN",
 			"power_rate": 23,
+			"value": 20,
 			"duration": 77
 		},
 		"summon_conditions": [
 			{
-				"materials": 3
+				"materials": 3,
+				"requires": []
 			}
 		],
 		"material_value": 3,
@@ -14413,8 +14385,7 @@
 			"ARCH_057",
 			"ARCH_029",
 			"ARCH_090",
-			"ARCH_092",
-			"ARCH_096"
+			"ARCH_092"
 		],
 		"stats": {
 			"atk": 18,
@@ -30659,5 +30630,394 @@
 		"represented_ids": [
 			"JADEN_001"
 		]
+	},
+	{
+		"id": "ASTER_001",
+		"name": "Plasma",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_094",
+			"ARCH_083",
+			"ARCH_006",
+			"ARCH_054",
+			"ARCH_001",
+			"ARCH_019",
+			"ARCH_087"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 400,
+			"movement_rate": 90,
+			"attack_rate": 90,
+			"range": 4
+		},
+		"power": {
+			"id": "POWER_CONFUSION",
+			"power_rate": 70,
+			"duration": 64
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"ARCH_083"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ASTER_002",
+		"name": "Dogma",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_094",
+			"ARCH_054",
+			"ARCH_056",
+			"ARCH_006",
+			"ARCH_083",
+			"ARCH_001",
+			"ARCH_045",
+			"ARCH_087"
+		],
+		"stats": {
+			"atk": 34,
+			"hp": 280,
+			"movement_rate": 90,
+			"attack_rate": 90,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_TELEPORT",
+			"power_rate": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"ARCH_083"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ASTER_003",
+		"name": "Capitaine Tenace",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_083",
+			"ARCH_006",
+			"ARCH_050",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_001"
+		],
+		"stats": {
+			"atk": 8,
+			"hp": 80,
+			"movement_rate": 83,
+			"attack_rate": 91,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SHIELD",
+			"power_rate": 63,
+			"value": 20
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ASTER_004",
+		"name": "Dandy aux diamants",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_083",
+			"ARCH_006",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_001",
+			"ARCH_053"
+		],
+		"stats": {
+			"atk": 14,
+			"hp": 160,
+			"movement_rate": 90,
+			"attack_rate": 87,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_FREEZE",
+			"power_rate": 23
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ASTER_005",
+		"name": "Seigneur de la damnation",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_083",
+			"ARCH_006",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_001",
+			"ARCH_002"
+		],
+		"stats": {
+			"atk": 6,
+			"hp": 80,
+			"movement_rate": 90,
+			"attack_rate": 91,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_WEAKEN",
+			"power_rate": 23,
+			"value": 30,
+			"duration": 77
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ASTER_006",
+		"name": "Maitre de l’effroi",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_083",
+			"ARCH_006",
+			"ARCH_054",
+			"ARCH_001",
+			"ARCH_002",
+			"ARCH_093",
+			"ARCH_087"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 300,
+			"movement_rate": 77,
+			"attack_rate": 83,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SUPER_ATTACK",
+			"power_rate": 50,
+			"value": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_083",
+					"ASTER_007"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ASTER_007",
+		"name": "Servant de l’effroi",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_083",
+			"ARCH_006",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_001",
+			"ARCH_056"
+		],
+		"stats": {
+			"atk": 4,
+			"hp": 70,
+			"movement_rate": 90,
+			"attack_rate": 90,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ASTER_008",
+		"name": "Docteur Jekyll",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_083",
+			"ARCH_006",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_001",
+			"ARCH_092"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_rate": 90,
+			"attack_rate": 90,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_SUMMON_TOKEN",
+			"power_rate": 63,
+			"token_id": "TOKEN_003"
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ASTER_009",
+		"name": "Dasher",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_083",
+			"ARCH_006",
+			"ARCH_054",
+			"ARCH_001",
+			"ARCH_092",
+			"ARCH_056",
+			"ARCH_089",
+			"ARCH_025"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 100,
+			"movement_rate": 97,
+			"attack_rate": 97,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": []
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ASTER_010",
+		"name": "Defender",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_083",
+			"ARCH_006",
+			"ARCH_054",
+			"ARCH_001",
+			"ARCH_092",
+			"ARCH_056",
+			"ARCH_025",
+			"ARCH_090"
+		],
+		"stats": {
+			"atk": 3,
+			"hp": 270,
+			"movement_rate": 50,
+			"attack_rate": 77,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_TAUNT",
+			"power_rate": 23,
+			"duration": 77
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "ASTER_011",
+		"name": "Malveillant",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_083",
+			"ARCH_006",
+			"ARCH_054",
+			"ARCH_001",
+			"ARCH_092",
+			"ARCH_089",
+			"ARCH_019",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 160,
+			"movement_rate": 90,
+			"attack_rate": 87,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": []
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "ASTER_012",
+		"name": "Exécuteur Phoenix",
+		"type": "monster",
+		"material_value": 3,
+		"attributes": [
+			"ARCH_083",
+			"ARCH_006",
+			"ARCH_054",
+			"ARCH_001",
+			"ARCH_019",
+			"ARCH_045",
+			"ARCH_093",
+			"ARCH_094",
+			"ARCH_087",
+			"ARCH_048"
+		],
+		"stats": {
+			"atk": 25,
+			"hp": 210,
+			"movement_rate": 90,
+			"attack_rate": 94,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_WEAKEN",
+			"power_rate": 63,
+			"value": 15,
+			"duration": 77
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_083",
+					"ARCH_089"
+				]
+			},
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_083",
+					"ARCH_092"
+				]
+			}
+		],
+		"represented_ids": []
 	}
 ]
