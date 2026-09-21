@@ -51,6 +51,12 @@ export class Unit {
 
   // Card IDs this unit "counts as" when it stands in for a summon requirement.
   // Pre-determined on the card definition (admin panel) rather than computed at summon time.
+  //
+  // ⚠️ MULTISET, pas un ensemble : le même id peut apparaître plusieurs fois
+  // (une composite issue de DEUX exemplaires de la même carte) et chaque
+  // occurrence compte — `materialLineageLegit` compare des MULTIPLICITÉS, pas
+  // une simple appartenance. Dédoublonner ici effacerait la différence entre
+  // « représente un Avian » et « représente deux Avians ».
   represented_ids: string[];
   // How many material "slots" this unit counts as when consumed ON A FREE SLOT.
   // Read straight off the card, like represented_ids — never derived from the
@@ -222,7 +228,12 @@ export class Unit {
     this.tier = primaryTier(card);
     this.attributes = card.attributes || [];
 
-    this.represented_ids = [...new Set([card.id, ...(card.represented_ids || [])])];
+    // ⚠️ `card.id` est ajouté UNE fois, en tête, et filtré des entrées
+    // déclarées pour ne pas se doubler si la donnée le répète par erreur —
+    // mais le reste n'est PLUS passé par un `Set` : deux occurrences du même
+    // id ailleurs dans `represented_ids` sont deux exemplaires distincts de la
+    // lignée, et `materialLineageLegit` en a besoin pour les compter.
+    this.represented_ids = [card.id, ...(card.represented_ids || []).filter(id => id !== card.id)];
     this.material_value = materialValueOf(card);
     this.appel = card.appel ?? null;
     this.power_id = card.power?.id ?? null;

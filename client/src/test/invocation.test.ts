@@ -574,3 +574,54 @@ describe('un matériel nommé plusieurs fois — deux exemplaires distincts', ()
     expect(cellsAfterFirst).not.toContainEqual(a1.position);
   });
 });
+
+// ⚠️ `represented_ids` (la « lignée ») est un MULTISET : le même id peut y
+// figurer plusieurs fois (une composite issue de DEUX exemplaires de la même
+// carte), et `Unit` ne le dédoublonne plus. `materialLineageLegit` doit donc
+// comparer des MULTIPLICITÉS — une composite « Avian, Avian » ne doit pas
+// pouvoir se faire passer pour un Avian seul, exactement comme « Aile de
+// feu » (Avian + Burstinatrix) ne remplace pas Avian seul.
+describe('lignée avec doublon — deux exemplaires du même id', () => {
+  const TWIN_AVIAN = makeCard({
+    id: 'TWIN_AVIAN', represented_ids: ['AVIAN', 'AVIAN'], material_value: 2,
+  });
+
+  // Mutation : `inherited.every(id => requiredMaterials.includes(id))` (test
+  // d'appartenance, sans compter) → ROUGE, la composite serait légitime pour
+  // Avian seul.
+  it('Unit NE dédoublonne PAS la lignée déclarée', () => {
+    const board = makeBoard();
+    const twin = spawn(board, TWIN_AVIAN, 'player', { col: 0, row: 0 });
+    expect(twin.represented_ids).toEqual(['TWIN_AVIAN', 'AVIAN', 'AVIAN']);
+  });
+
+  it('« Avian, Avian » ne remplace PAS Avian seul', () => {
+    const board = makeBoard();
+    const twin = spawn(board, TWIN_AVIAN, 'player', { col: 0, row: 0 });
+    expect(materialLineageMatches(twin, 'AVIAN', ['AVIAN'])).toBe(false);
+    expect(getUncoveredRequirements(['AVIAN'], [twin])).toEqual(['AVIAN']);
+
+    const solo = makeCard({ id: 'NEO', summon_conditions: [{ materials: 1, requires: ['AVIAN'] }] });
+    expect(can(solo as any, { col: 2, row: 0 }, board, [], [], [twin]).ok).toBe(false);
+  });
+
+  it('« Avian, Avian » comble à elle seule une condition qui nomme Avian DEUX fois', () => {
+    const board = makeBoard();
+    const twin = spawn(board, TWIN_AVIAN, 'player', { col: 0, row: 0 });
+    expect(materialLineageMatches(twin, 'AVIAN', ['AVIAN', 'AVIAN'])).toBe(true);
+    expect(getUncoveredRequirements(['AVIAN', 'AVIAN'], [twin])).toEqual([]);
+
+    const double = makeCard({
+      id: 'DOUBLE_ELECTRUM', summon_conditions: [{ materials: 2, requires: ['AVIAN', 'AVIAN'] }],
+    });
+    expect(can(double as any, { col: 2, row: 0 }, board, [], [], [twin]).ok).toBe(true);
+  });
+
+  // Un seul Avian réel dans la lignée reste, lui, un remplaçant légitime — le
+  // doublon ne dégrade pas le cas simple.
+  it('un seul Avian dans la lignée reste légitime pour Avian seul', () => {
+    const board = makeBoard();
+    const single = spawn(board, makeCard({ id: 'ONE_AVIAN', represented_ids: ['AVIAN'] }), 'player', { col: 0, row: 0 });
+    expect(materialLineageMatches(single, 'AVIAN', ['AVIAN'])).toBe(true);
+  });
+});

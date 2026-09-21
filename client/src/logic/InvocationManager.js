@@ -353,11 +353,26 @@ export function matchesMaterial(unit, matId) {
  * Ex. « Aile de feu » (Avian + Burstinatrix) ne remplace pas Avian seul, mais
  * comble à elle seule les deux exigences d'une condition qui demande les deux.
  * Exception : si la carte est nommée pour elle-même, sa lignée n'importe pas.
+ *
+ * ⚠️ **Comparaison de MULTIPLICITÉS, pas d'appartenance** : `represented_ids`
+ * est un multiset (le même id peut y figurer deux fois — une composite issue
+ * de DEUX exemplaires de la même carte), donc « Avian, Avian » n'est légitime
+ * QUE si `requiredMaterials` nomme Avian au moins deux fois lui aussi. Un
+ * `.every(id => requiredMaterials.includes(id))` ne verrait qu'une présence et
+ * laisserait cette composite se faire passer pour un Avian SEUL — exactement
+ * le contresens que la règle existe pour interdire côté ids distincts.
  */
 export function materialLineageLegit(unit, requiredMaterials) {
   if (requiredMaterials.includes(unit.card_id)) return true;
   const inherited = (unit.represented_ids ?? [unit.card_id]).filter(id => id !== unit.card_id);
-  return inherited.every(id => requiredMaterials.includes(id));
+  const requiredCounts = new Map();
+  for (const id of requiredMaterials) requiredCounts.set(id, (requiredCounts.get(id) ?? 0) + 1);
+  const inheritedCounts = new Map();
+  for (const id of inherited) inheritedCounts.set(id, (inheritedCounts.get(id) ?? 0) + 1);
+  for (const [id, count] of inheritedCounts) {
+    if ((requiredCounts.get(id) ?? 0) < count) return false;
+  }
+  return true;
 }
 
 /**

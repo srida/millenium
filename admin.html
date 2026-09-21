@@ -2168,15 +2168,16 @@ function renderCardDetail() {
     <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
       IDs de cartes que cette carte « représente » en plus d'elle-même quand elle sert de <strong style="color:var(--text)">matériel</strong> (ex : une composite Avian+Burstinatrix doit lister Avian et Burstinatrix ici pour combler leurs slots dans une recette ultérieure qui les nomme).
       ⚠️ La lignée doit être <strong style="color:var(--text)">entièrement exigée</strong> par la recette qui la consomme : cette carte ne remplace pas Avian seul, mais comble à elle seule les deux exigences d'une recette qui demande les deux.
+      ⚠️ La même carte peut être listée <strong style="color:var(--text)">plusieurs fois</strong> — une composite issue de deux exemplaires d'Avian doit le lister deux fois, et ne pourra alors combler QUE des recettes qui nomment Avian au moins deux fois (jamais Avian seul).
     </div>
     <div class="materials-list" id="represented-list">
-      ${(c.represented_ids || []).map(rid => `
+      ${(c.represented_ids || []).map((rid, ridx) => `
         <div class="material-item" data-mid="${rid}">
           <span style="display:flex;align-items:center;gap:6px">
             <span>${esc(getMaterialName(rid))}</span>
             <span style="font-size:10px;color:var(--muted);font-family:monospace">${rid}</span>
           </span>
-          <button onclick="removeRepresented('${rid}')">×</button>
+          <button onclick="removeRepresented(${ridx})">×</button>
         </div>`).join('')}
     </div>
     <div style="position:relative;margin-top:8px;margin-bottom:20px" id="represented-search-wrap">
@@ -2313,27 +2314,38 @@ function cardAppelHtml(c) {
     <div style="height:10px"></div>`;
 }
 
-function removeRepresented(rid) {
+/**
+ * Retire l'entrée à l'INDEX `ridx`, pas l'id : `represented_ids` est un
+ * MULTISET (`Unit.represented_ids`, `materialLineageLegit`) — un retrait par
+ * id effacerait toutes les occurrences d'un coup au lieu d'une seule.
+ */
+function removeRepresented(ridx) {
   syncCardFromForm();
-  selectedCard.represented_ids = (selectedCard.represented_ids || []).filter(r => r !== rid);
+  selectedCard.represented_ids = (selectedCard.represented_ids || []).filter((_, i) => i !== ridx);
   renderCardDetail();
 }
 
+/**
+ * ⚠️ Aucune garde d'unicité sur l'id (seule l'auto-référence reste interdite) :
+ * la même carte peut être listée plusieurs fois pour dire « deux exemplaires
+ * dans la lignée » — `materialLineageLegit` compte les occurrences.
+ */
 function addRepresented(id) {
   syncCardFromForm();
   if (!selectedCard.represented_ids) selectedCard.represented_ids = [];
-  if (!selectedCard.represented_ids.includes(id) && id !== selectedCard.id) {
+  if (id !== selectedCard.id) {
     selectedCard.represented_ids.push(id);
     renderCardDetail();
   }
 }
 
+/** ⚠️ Rien n'est exclu parce que déjà présent dans la lignée : la recherche
+ *  doit pouvoir proposer une seconde fois la même carte. */
 function filterRepresentedSearch() {
   const q = document.getElementById('represented-search')?.value.toLowerCase() || '';
-  const current = selectedCard.represented_ids || [];
 
   const results = cards
-    .filter(x => x.id !== selectedCard.id && !current.includes(x.id))
+    .filter(x => x.id !== selectedCard.id)
     .filter(x => !q || x.name.toLowerCase().includes(q) || x.id.toLowerCase().includes(q))
     .slice(0, 20);
 
