@@ -1711,7 +1711,7 @@ buildSession(deckName, mode, enemyDeckName, enemyDeck, playerDeck, enemyBonus)
 
 ## Tournoi
 
-Bracket local à 8, **entièrement client** (`logic/Tournament.js`), élimination directe, chaque match en Bo5.
+Bracket local à 16, **entièrement client** (`logic/Tournament.js`), élimination directe, chaque match en Bo3 (2 manches gagnantes).
 - Les matchs **entre IA** sont simulés (`MatchSimulator`, headless déterministe), résolus dès l'ouverture d'un round.
 - Les matchs **du joueur** se **jouent** : chaque manche lance une vraie partie solo (`GameScreen` avec `params.tournament`) contre le deck public adverse injecté via `buildSession`. Victoire/défaite créditée, **égalité non comptée** (manche rejouée), abandon = manche concédée.
 - Le bracket vit dans `stores/tournamentStore.ts` et non dans l'état du composant (l'écran est démonté pendant qu'on joue) ; `pendingGame` est le contrat entre les deux écrans. ⚠️ Il vit en **mémoire** et se perd au F5 — c'est la différence de fond avec l'Arcade.

@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// TournamentScreen — tournoi local à 8 (le joueur + 7 IA sur decks publics).
+// TournamentScreen — tournoi local à 16 (le joueur + 15 IA sur decks publics).
 // Bracket entièrement côté client via logic/Tournament.js.
 //
 // Les matchs entre IA sont résolus par simulation déterministe (MatchSimulator,
 // headless) dès qu'un round est ouvert ; le match du joueur, lui, se JOUE :
-// chaque manche du Bo5 lance une vraie partie (GameScreen, mode tournoi) et le
-// résultat est reporté dans le bracket au retour. Le bracket vit dans
+// chaque manche du Bo3 (2 victoires) lance une vraie partie (GameScreen, mode
+// tournoi) et le résultat est reporté dans le bracket au retour. Le bracket vit dans
 // `tournamentStore` — cet écran est démonté pendant qu'on joue.
 import { useEffect, useState, type ReactNode } from 'react';
 import * as CardDatabase from '../data/CardDatabase.js';
@@ -23,7 +23,7 @@ import { Button } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 
-const ROUND_LABELS = ['Quarts de finale', 'Demi-finales', 'Finale'];
+const ROUND_LABELS = ['Huitièmes de finale', 'Quarts de finale', 'Demi-finales', 'Finale'];
 
 export default function TournamentScreen() {
   const navigate = useUiStore(s => s.navigate);
@@ -117,8 +117,8 @@ export default function TournamentScreen() {
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <div className="text-4xl">🏆</div>
             <p className="max-w-xs text-sm text-white/60">
-              8 joueurs (toi + 7 IA sur decks publics), élimination directe, chaque match en Bo5.
-              Tes matchs se jouent manche par manche ; ceux des IA sont simulés.
+              16 joueurs (toi + 15 IA sur decks publics), élimination directe, chaque match en Bo3
+              (2 manches gagnantes). Tes matchs se jouent manche par manche ; ceux des IA sont simulés.
             </p>
             <div className="w-full max-w-sm text-left">
               <SelectedDeck deckName={deckName} emptyHint="Choisis un deck pour entrer en tournoi." />

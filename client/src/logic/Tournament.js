@@ -16,7 +16,7 @@ export function createMatch(pA, pB) {
 }
 
 /**
- * Build a fresh 8-player tournament: the human player + 7 AI, each AI assigned
+ * Build a fresh 16-player tournament: the human player + 15 AI, each AI assigned
  * a distinct random public deck. Bracket seeding is random.
  *
  * Les decks sont injectés par l'appelant (écran Tournoi) au lieu d'être lus
@@ -28,7 +28,7 @@ export function createMatch(pA, pB) {
  * @param {{ playerDeck: Object, publicDecks: {id?: string, name: string, deck: Object}[] }} deps
  */
 export function createTournament(playerDeckName, { playerDeck, publicDecks }) {
-  const picked = shuffle(publicDecks).slice(0, 7);
+  const picked = shuffle(publicDecks).slice(0, 15);
 
   const participants = [
     { id: 0, name: 'Vous', isPlayer: true, deckName: playerDeckName, deck: playerDeck, avatarId: null },
@@ -52,7 +52,7 @@ export function createTournament(playerDeckName, { playerDeck, publicDecks }) {
 export function recordGameResult(match, winnerSlot) {
   match.wins[winnerSlot]++;
   match.games.push(winnerSlot);
-  if (match.wins[winnerSlot] >= 3) match.winner = match.players[winnerSlot];
+  if (match.wins[winnerSlot] >= 2) match.winner = match.players[winnerSlot];
 }
 
 /** Resolves every match in `round` that does not involve the human player. */

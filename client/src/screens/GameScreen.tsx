@@ -113,7 +113,7 @@ export default function GameScreen() {
       <PhaseControls />
       {inTournament ? (
         // Abandonner une manche de tournoi la concède : le bracket ne peut pas
-        // rester en suspens, et rejouer à volonté viderait le Bo5 de son sens.
+        // rester en suspens, et rejouer à volonté viderait le Bo3 de son sens.
         <GameMenu quitLabel="Abandonner la manche" onQuit={() => exitTournamentGame('enemy')} />
       ) : inArcade ? (
         // Même règle en Arcade : quitter un duel le concède, donc clôt la run.
@@ -152,7 +152,7 @@ export default function GameScreen() {
       {/* Pas de bandeau de contexte Tournoi/Arcade : posé sous la barre de PV,
           il recouvrait les synergies d'attributs — la seule information de cette
           zone qui se lit EN JOUANT. L'adversaire est déjà nommé dans le HUD
-          (`enemyName`), et l'échelon comme le score du Bo5 se relisent sur
+          (`enemyName`), et l'échelon comme le score du Bo3 se relisent sur
           l'écran Arcade / Tournoi, où ils sont actionnables. */}
       <Banners />
       <SummonOptionMenu />

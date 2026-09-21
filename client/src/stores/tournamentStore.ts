@@ -21,7 +21,7 @@ export interface PendingGame {
   /** Id du deck public adverse — pour retrouver son avatar (`PublicDeckDatabase.avatarUrl`). */
   opponentAvatarId: string | null;
   playerDeckName: string;
-  /** Numéro de la manche dans le Bo5 (1-indexé). */
+  /** Numéro de la manche dans le Bo3 (1-indexé). */
   gameNumber: number;
   /** Score du match au lancement de la manche, [joueur, adversaire]. */
   score: [number, number];

@@ -102,13 +102,13 @@ function _breakTie(gameState) {
 }
 
 /**
- * Simulate a best-of-5 match between two AI decks.
+ * Simulate a best-of-3 match between two AI decks (first to 2 wins).
  * @returns {{ wins: [number, number], winnerSlot: 0|1 }}
  */
 export function simulateMatch(deckA, deckB, deps) {
   const wins = [0, 0];
   let attempts = 0;
-  while (wins[0] < 3 && wins[1] < 3) {
+  while (wins[0] < 2 && wins[1] < 2) {
     attempts++;
     const winner = simulateGame(deckA, deckB, deps);
     if (winner === 'player') wins[0]++;

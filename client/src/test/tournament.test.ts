@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Tournoi — le bracket local à 8. Verrouille le contrat introduit avec les
+// Tournoi — le bracket local à 16. Verrouille le contrat introduit avec les
 // matchs joués : les matchs IA sont simulés, celui du joueur ne l'est JAMAIS
 // (il se joue manche par manche via GameScreen), et le report du résultat
 // dans le bracket passe par tournamentStore.finishGame().
@@ -13,22 +13,22 @@ import { useTournamentStore } from '../stores/tournamentStore.js';
 const DECK = { '1': ['A'], '2': [], '3': [], '4': [], '5': [] };
 
 function makeTournament() {
-  const publicDecks = Array.from({ length: 7 }, (_, i) => ({ name: `IA ${i + 1}`, deck: { ...DECK } }));
+  const publicDecks = Array.from({ length: 15 }, (_, i) => ({ name: `IA ${i + 1}`, deck: { ...DECK } }));
   return createTournament('Mon deck', { playerDeck: { ...DECK }, publicDecks });
 }
 
-// Résolution IA factice : le slot 0 gagne toujours 3-0. Évite de faire tourner
+// Résolution IA factice : le slot 0 gagne toujours 2-0. Évite de faire tourner
 // MatchSimulator (lent, et hors sujet ici).
 const FAKE_DEPS = { attributeList: [], cardDb: { getCard: () => null } };
 
 describe('Tournament — bracket', () => {
   beforeEach(() => { useTournamentStore.getState().clear(); });
 
-  it('monte un bracket de 8 avec le joueur dedans', () => {
+  it('monte un bracket de 16 avec le joueur dedans', () => {
     const t = makeTournament();
-    expect(t.participants).toHaveLength(8);
+    expect(t.participants).toHaveLength(16);
     expect(t.participants.filter((p: any) => p.isPlayer)).toHaveLength(1);
-    expect(t.rounds[0]).toHaveLength(4);
+    expect(t.rounds[0]).toHaveLength(8);
   });
 
   it('resolveAiMatches laisse le match du joueur intact', () => {
@@ -37,8 +37,8 @@ describe('Tournament — bracket', () => {
     const playerMatch = t.rounds[0].find((m: any) => m.players.some((p: any) => p.isPlayer)) as any;
     expect(playerMatch.winner).toBeNull();
     expect(playerMatch.wins).toEqual([0, 0]);
-    // Les trois autres sont tranchés → le round attend le seul match du joueur.
-    expect(t.rounds[0].filter((m: any) => m.winner)).toHaveLength(3);
+    // Les sept autres sont tranchés → le round attend le seul match du joueur.
+    expect(t.rounds[0].filter((m: any) => m.winner)).toHaveLength(7);
     expect(isRoundComplete(t.rounds[0])).toBe(false);
     expect(findPlayerMatch(t)).toBe(playerMatch);
   });
@@ -76,13 +76,13 @@ describe('tournamentStore — report des manches jouées', () => {
     expect(useTournamentStore.getState().pendingGame).toBeNull();
   });
 
-  it('une défaite (ou un abandon) crédite l’adversaire, et 3 manches closent le match', () => {
+  it('une défaite (ou un abandon) crédite l’adversaire, et 2 manches closent le match', () => {
     const { match, pending } = armPlayerMatch();
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       useTournamentStore.getState().startGame(match);
       useTournamentStore.getState().finishGame('enemy');
     }
-    expect(match.wins[1 - pending.playerSlot]).toBe(3);
+    expect(match.wins[1 - pending.playerSlot]).toBe(2);
     expect(match.winner).toBe(match.players[1 - pending.playerSlot]);
     expect(match.winner.isPlayer).toBe(false);
   });
@@ -96,32 +96,32 @@ describe('tournamentStore — report des manches jouées', () => {
 
   it('gagner son match débloque le round et qualifie le joueur au suivant', () => {
     const { t, match } = armPlayerMatch();
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       useTournamentStore.getState().startGame(match);
       useTournamentStore.getState().finishGame('player');
     }
     expect(isRoundComplete(t.rounds[0])).toBe(true);
     expect(isPlayerEliminated(t)).toBe(false);
 
-    // Demi-finale : le joueur a de nouveau un match à jouer, pas à simuler.
+    // Huitième suivant : le joueur a de nouveau un match à jouer, pas à simuler.
     buildNextRound(t);
     resolveAiMatches(t.rounds[1], FAKE_DEPS as any);
-    const semi = findPlayerMatch(t);
-    expect(semi).toBeTruthy();
-    expect(semi.wins).toEqual([0, 0]);
+    const next = findPlayerMatch(t);
+    expect(next).toBeTruthy();
+    expect(next.wins).toEqual([0, 0]);
     expect(isRoundComplete(t.rounds[1])).toBe(false);
   });
 
   it('une fois éliminé, les rounds restants se déroulent entièrement en IA', () => {
     const { t, match } = armPlayerMatch();
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       useTournamentStore.getState().startGame(match);
       useTournamentStore.getState().finishGame('enemy');
     }
     expect(isPlayerEliminated(t)).toBe(true);
     expect(findPlayerMatch(t)).toBeNull();
 
-    for (const ri of [1, 2]) {
+    for (const ri of [1, 2, 3]) {
       buildNextRound(t);
       resolveAiMatches(t.rounds[ri], FAKE_DEPS as any);
       expect(isRoundComplete(t.rounds[ri])).toBe(true);
