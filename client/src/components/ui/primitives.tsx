@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEve
 import { createPortal } from 'react-dom';
 import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
 import { illustrationUrl } from '../../data/CardArt.js';
+import { playButtonFeedback } from './feedback.js';
 
 type Variant = 'primary' | 'ghost' | 'danger';
 
@@ -51,6 +52,13 @@ export const TAP_MOVE_TOLERANCE_PX = 10;
  * carte de deck du `DeckSelector`) : exportée pour que tout ce qui se
  * comporte comme un bouton du jeu — sans être un `<button>` — porte le même
  * relief et le même délai, au lieu d'un second mécanisme réinventé à côté.
+ *
+ * ⚠️ **C'est aussi l'unique point d'émission du retour haptique + sonore**
+ * (`playButtonFeedback`) : posé au `pointerdown`, en même temps que le
+ * relief visuel démarre — pas à l'échéance du délai de course, qui ne
+ * retarde que l'ACTION. Un tap annulé (glissade, défilement) aura donc
+ * quand même vibré/cliqué une fois ; c'est le prix d'un retour immédiat,
+ * et c'est celui d'un vrai bouton.
  */
 export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
   onPointerDown: PointerEventHandler<T> | undefined, disabled: boolean | undefined,
@@ -68,6 +76,7 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
     if (disabled) return;
     start.current = { x: e.clientX, y: e.clientY };
     setSquashed(true);
+    playButtonFeedback();
     if (onPointerDown) {
       clearTimer();
       timer.current = window.setTimeout(() => onPointerDown(e), SQUASH_DELAY_MS);
@@ -94,9 +103,56 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
   };
 }
 
-const BUTTON_BASE = 'inline-flex min-h-tap items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold tracking-wide transition-[transform,box-shadow,filter] duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 disabled:scale-100';
+/**
+ * Compte les relâchements d'un état `squashed` pour rejouer une animation CSS
+ * one-shot (via `key`), sans dupliquer la logique de tap déjà tenue par
+ * `usePressSquash`. **Seul usage : le halo de rebond de `Button`/`IconButton`**
+ * — une cible de tap arbitraire (carte du `DeckSelector`, tuile du catalogue…)
+ * n'a pas la forme rectangulaire qu'un halo suppose et n'en porte donc pas.
+ */
+function useReleaseBounce(squashed: boolean) {
+  const [bounce, setBounce] = useState(0);
+  const wasSquashed = useRef(squashed);
+  useEffect(() => {
+    if (wasSquashed.current && !squashed) setBounce((n) => n + 1);
+    wasSquashed.current = squashed;
+  }, [squashed]);
+  return bounce;
+}
+
+const BUTTON_BASE = 'relative overflow-hidden inline-flex min-h-tap items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold tracking-wide transition-[transform,box-shadow,filter] duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 disabled:scale-100';
 export const SHADOW_IDLE = 'shadow-[0_2px_0_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.12)]';
 export const SHADOW_SQUASHED = 'translate-y-[2px] scale-[0.98] shadow-[inset_0_1px_3px_0_rgba(0,0,0,0.45)]';
+
+// Teinte du halo de rebond (`btn-bounce`, `styles/index.css`) — une par
+// variante, pour que le halo reste de la même famille de couleur que la
+// surface qu'il traverse (or/neutre/danger).
+const RIPPLE_TINT: Record<Variant, string> = {
+  primary: 'bg-gold',
+  ghost: 'bg-white',
+  danger: 'bg-danger',
+};
+
+/**
+ * Le halo lui-même, teinté par variante : COMPRIMÉ tant que le bouton est
+ * enfoncé (classe posée en JSX, en phase avec `SHADOW_SQUASHED`), puis rejoué
+ * en rebond (`.btn-bounce`) à chaque relâchement via un remount `key`.
+ * `z-0`/`z-10` plutôt que l'ordre du DOM : un enfant `absolute` (positionné)
+ * peint APRÈS les enfants statiques quel que soit l'ordre d'écriture — sans
+ * pile explicite, le halo aurait recouvert le texte du bouton.
+ */
+function PressRipple({ variant, squashed, disabled }: { variant: Variant; squashed: boolean; disabled?: boolean }) {
+  const bounce = useReleaseBounce(squashed);
+  return (
+    <span
+      key={bounce}
+      aria-hidden="true"
+      className={`pointer-events-none absolute inset-0 z-0 rounded-[inherit] ${RIPPLE_TINT[variant]} ${
+        squashed && !disabled ? 'scale-75 opacity-40 transition-transform duration-100 ease-out' : 'btn-bounce'
+      }`}
+    />
+  );
+}
 
 export function Button({
   variant = 'ghost', className = '', children, onPointerDown, disabled, ...rest
@@ -109,7 +165,8 @@ export function Button({
       {...handlers}
       {...rest}
     >
-      {children}
+      <PressRipple variant={variant} squashed={squashed} disabled={disabled} />
+      <span className="relative z-10 inline-flex items-center gap-2">{children}</span>
     </button>
   );
 }
@@ -199,8 +256,9 @@ export function IconButton({
       className={`group -my-2 flex min-h-tap min-w-tap items-center justify-center disabled:cursor-not-allowed disabled:opacity-30 ${className}`}
       {...handlers}
     >
-      <span className={`flex h-7 w-7 items-center justify-center rounded-md border text-[11px] transition-[transform,box-shadow] duration-100 ease-out ${squashed && !disabled ? 'scale-90 shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.5)]' : 'shadow-[0_1px_0_0_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.15)]'} ${chipClassName}`}>
-        {icon}
+      <span className={`relative overflow-hidden flex h-7 w-7 items-center justify-center rounded-md border text-[11px] transition-[transform,box-shadow] duration-100 ease-out ${squashed && !disabled ? 'scale-90 shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.5)]' : 'shadow-[0_1px_0_0_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.15)]'} ${chipClassName}`}>
+        <PressRipple variant={tone} squashed={squashed} disabled={disabled} />
+        <span className="relative z-10 flex items-center justify-center">{icon}</span>
       </span>
     </button>
   );
