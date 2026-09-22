@@ -19,6 +19,7 @@ import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { TerrainAlert, SummonOptionMenu, CombatOutro, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import PhaseWipe from '../components/overlays/PhaseWipe.js';
+import DuelIntro from '../components/overlays/DuelIntro.js';
 import { RoundIntro, DrawPopup } from '../components/overlays/RoundStart.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import TutorialCoach from '../components/tutorial/TutorialCoach.js';
@@ -107,6 +108,7 @@ export default function GameScreen() {
     <div className="relative h-dvh overflow-hidden bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
       <Board3DCanvas controller={controller} />
       <Hud enemyAvatarSrc={enemyAvatarSrc} enemyName={enemyName} />
+      <DuelIntro enemyAvatarSrc={enemyAvatarSrc} enemyName={enemyName} />
       <SynergyPanel />
       <GraveyardTray />
       <HandBar />

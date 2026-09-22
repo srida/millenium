@@ -29,6 +29,7 @@ import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { TerrainAlert, SummonOptionMenu, CombatOutro, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import PhaseWipe from '../components/overlays/PhaseWipe.js';
+import DuelIntro from '../components/overlays/DuelIntro.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import { PhaseTimer, Banners } from '../components/hud/PhaseTimer.js';
 import { RoundIntro, DrawPopup } from '../components/overlays/RoundStart.js';
@@ -93,6 +94,7 @@ export default function GameScreenPvp() {
     <div className="relative h-dvh overflow-hidden bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
       <Board3DCanvas controller={controller} />
       <HudWithOpponent opponentAvatar={opponentAvatar} />
+      <DuelIntroWithOpponent opponentAvatar={opponentAvatar} />
       <SynergyPanel />
       <GraveyardTray />
       <HandBar />
@@ -171,6 +173,20 @@ function HudWithOpponent({ opponentAvatar }: { opponentAvatar: string | null }) 
   const opponentName = useGameStore(s => s.pvpOpponent);
   return (
     <Hud
+      enemyAvatarSrc={opponentAvatar}
+      enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
+      enemyName={opponentName}
+    />
+  );
+}
+
+// Même portrait adverse pour l'annonce de lancement — même repli d'initiales
+// que le HUD, sur le même pseudo (rempli à la poignée de main, cf. `begin()`
+// de `PvpController`/`BotController`).
+function DuelIntroWithOpponent({ opponentAvatar }: { opponentAvatar: string | null }) {
+  const opponentName = useGameStore(s => s.pvpOpponent);
+  return (
+    <DuelIntro
       enemyAvatarSrc={opponentAvatar}
       enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
       enemyName={opponentName}
