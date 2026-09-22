@@ -103,30 +103,12 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
   };
 }
 
-/**
- * Compte les relâchements d'un état `squashed` pour rejouer une animation CSS
- * one-shot (via `key`), sans dupliquer la logique de tap déjà tenue par
- * `usePressSquash`. **Seul usage : le halo de rebond de `Button`/`IconButton`**
- * — une cible de tap arbitraire (carte du `DeckSelector`, tuile du catalogue…)
- * n'a pas la forme rectangulaire qu'un halo suppose et n'en porte donc pas.
- */
-function useReleaseBounce(squashed: boolean) {
-  const [bounce, setBounce] = useState(0);
-  const wasSquashed = useRef(squashed);
-  useEffect(() => {
-    if (wasSquashed.current && !squashed) setBounce((n) => n + 1);
-    wasSquashed.current = squashed;
-  }, [squashed]);
-  return bounce;
-}
-
 const BUTTON_BASE = 'relative overflow-hidden inline-flex min-h-tap items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold tracking-wide transition-[transform,box-shadow,filter] duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 disabled:scale-100';
 export const SHADOW_IDLE = 'shadow-[0_2px_0_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.12)]';
 export const SHADOW_SQUASHED = 'translate-y-[2px] scale-[0.98] shadow-[inset_0_1px_3px_0_rgba(0,0,0,0.45)]';
 
-// Teinte du halo de rebond (`btn-bounce`, `styles/index.css`) — une par
-// variante, pour que le halo reste de la même famille de couleur que la
-// surface qu'il traverse (or/neutre/danger).
+// Teinte du flash de press — une par variante, pour qu'il reste de la même
+// famille de couleur que la surface qu'il traverse (or/neutre/danger).
 const RIPPLE_TINT: Record<Variant, string> = {
   primary: 'bg-gold',
   ghost: 'bg-white',
@@ -134,21 +116,25 @@ const RIPPLE_TINT: Record<Variant, string> = {
 };
 
 /**
- * Le halo lui-même, teinté par variante : COMPRIMÉ tant que le bouton est
- * enfoncé (classe posée en JSX, en phase avec `SHADOW_SQUASHED`), puis rejoué
- * en rebond (`.btn-bounce`) à chaque relâchement via un remount `key`.
+ * Le flash de press, teinté par variante : une simple opacité, JAMAIS un
+ * `scale`. ⚠️ Un `scale` appliqué à un calque `inset-0` — donc déjà à la
+ * taille exacte du bouton — ne PEUT PAS se voir grandir (`overflow-hidden`
+ * le clippe à cette taille) : seule sa phase de RETRAIT reste visible, en
+ * pixels, et ces pixels ne sont pas les mêmes sur une puce de 28 px et un
+ * bouton pleine largeur — d'où le halo qui paraissait tantôt un cadre net,
+ * tantôt un point perdu au milieu. Une opacité pure ne dépend d'aucune
+ * dimension : elle a la même intensité perçue partout.
+ *
  * `z-0`/`z-10` plutôt que l'ordre du DOM : un enfant `absolute` (positionné)
  * peint APRÈS les enfants statiques quel que soit l'ordre d'écriture — sans
- * pile explicite, le halo aurait recouvert le texte du bouton.
+ * pile explicite, le flash aurait recouvert le texte du bouton.
  */
 function PressRipple({ variant, squashed, disabled }: { variant: Variant; squashed: boolean; disabled?: boolean }) {
-  const bounce = useReleaseBounce(squashed);
   return (
     <span
-      key={bounce}
       aria-hidden="true"
-      className={`pointer-events-none absolute inset-0 z-0 rounded-[inherit] ${RIPPLE_TINT[variant]} ${
-        squashed && !disabled ? 'scale-75 opacity-40 transition-transform duration-100 ease-out' : 'btn-bounce'
+      className={`pointer-events-none absolute inset-0 z-0 rounded-[inherit] transition-opacity ease-out ${RIPPLE_TINT[variant]} ${
+        squashed && !disabled ? 'duration-75 opacity-35' : 'duration-300 opacity-0'
       }`}
     />
   );
