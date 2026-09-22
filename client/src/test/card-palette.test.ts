@@ -11,7 +11,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  TIER_FRAMES, FALLBACK_TIER, frameForTier, tierFrameVars, type TierFrame,
+  TIER_FRAMES, FALLBACK_TIER, frameForTier, tierFrameVars,
+  splitFrameVars, isSplitTier, type TierFrame,
 } from '../three/cardPalette.js';
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -112,8 +113,12 @@ describe('le miroir avec styles/index.css — une seule palette de tier', () => 
 
 describe('tierFrameVars — le contrat avec styles/board3d.css', () => {
   const sheet = fs.readFileSync(path.join(SRC, 'styles', 'board3d.css'), 'utf8');
-  const readBySheet = new Set(sheet.match(/--uc-[a-z-]+/g) ?? []);
-  const produced = new Set(Object.keys(tierFrameVars(3)));
+  const readBySheet = new Set(sheet.match(/--uc-[a-z0-9-]+/g) ?? []);
+  // `splitFrameVars` sur deux tiers distincts produit les cinq variables de
+  // `tierFrameVars` PLUS les cinq de la moitié basse (`-2`) : c'est l'union des
+  // deux que la feuille doit accorder, la carte à un seul tier ne posant que
+  // la première moitié.
+  const produced = new Set(Object.keys(splitFrameVars([3, 4])));
 
   it('la feuille lit bien des variables de cadre (le test ne sonde pas dans le vide)', () => {
     expect(readBySheet.size).toBeGreaterThan(0);
@@ -142,5 +147,54 @@ describe('tierFrameVars — le contrat avec styles/board3d.css', () => {
 
   it('un tier inconnu produit quand même les cinq variables', () => {
     expect(Object.keys(tierFrameVars(undefined))).toHaveLength(FIELDS.length);
+  });
+});
+
+describe('isSplitTier — quand une carte partage sa bordure', () => {
+  it('faux sans tier, avec un seul, ou si les deux extrêmes coïncident', () => {
+    expect(isSplitTier(null)).toBe(false);
+    expect(isSplitTier(undefined)).toBe(false);
+    expect(isSplitTier([])).toBe(false);
+    expect(isSplitTier([3])).toBe(false);
+    expect(isSplitTier([3, 3])).toBe(false);
+  });
+
+  it('vrai dès que le plus bas et le plus haut diffèrent', () => {
+    expect(isSplitTier([3, 4])).toBe(true);
+    // Trois tiers : seuls les deux extrêmes comptent, le milieu n'a pas de
+    // moitié à lui — même règle que `splitFrameVars`.
+    expect(isSplitTier([2, 3, 4])).toBe(true);
+  });
+});
+
+describe('splitFrameVars — la moitié basse en plus', () => {
+  it('un seul tier : les cinq variables `-2` valent celles du tier seul, comme `tierFrameVars`', () => {
+    const single = tierFrameVars(3);
+    const split = splitFrameVars([3]);
+    expect(split['--uc-edge']).toBe(single['--uc-edge']);
+    expect(split['--uc-edge-2']).toBe(single['--uc-edge']);
+    expect(split['--uc-deep-2']).toBe(single['--uc-deep']);
+    expect(split['--uc-ink-2']).toBe(single['--uc-ink']);
+    expect(split['--uc-glow-2']).toBe(single['--uc-glow']);
+    expect(split['--uc-art-2']).toBe(single['--uc-art']);
+  });
+
+  it('deux tiers : le HAUT est le plus BAS de la liste, le BAS le plus HAUT', () => {
+    // `tiersOf` rend les tiers triés croissants — le plus bas d'abord.
+    const split = splitFrameVars([3, 4]);
+    expect(split['--uc-edge']).toBe(TIER_FRAMES[3].edge);   // moitié haute : T3
+    expect(split['--uc-edge-2']).toBe(TIER_FRAMES[4].edge); // moitié basse : T4
+  });
+
+  it('trois tiers ou plus : seuls les deux extrêmes se voient, le milieu est ignoré', () => {
+    const split = splitFrameVars([2, 3, 4]);
+    expect(split['--uc-edge']).toBe(TIER_FRAMES[2].edge);
+    expect(split['--uc-edge-2']).toBe(TIER_FRAMES[4].edge);
+  });
+
+  it('aucun tier : repli sur le tier de secours pour les deux moitiés', () => {
+    const split = splitFrameVars([]);
+    expect(split['--uc-edge']).toBe(TIER_FRAMES[FALLBACK_TIER].edge);
+    expect(split['--uc-edge-2']).toBe(TIER_FRAMES[FALLBACK_TIER].edge);
   });
 });

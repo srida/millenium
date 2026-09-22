@@ -81,3 +81,35 @@ export function tierFrameVars(tier: number | null | undefined): Record<string, s
     '--uc-art':  f.art,
   };
 }
+
+/**
+ * Une carte multi-tiers n'a plus une seule couleur de bordure : la moitié
+ * HAUTE prend le cadre du tier le plus BAS de la liste, la moitié BASSE celui
+ * du plus HAUT — `tiersOf` rend déjà les tiers triés, donc `tiers[0]` et
+ * `tiers[tiers.length - 1]` suffisent, sans re-trier.
+ *
+ * ⚠️ Elle ÉCRIT AUSSI les cinq variables de `tierFrameVars` (celles du tier du
+ * HAUT) : c'est ce qui laisse tout le reste du cadre — lueur, liseré, fond
+ * d'art — inchangé pour une carte à un seul tier, `styles/board3d.css` ne
+ * surchargeant le dégradé qu'à la faveur d'`isSplitTier`.
+ */
+export function splitFrameVars(tiers: readonly number[] | null | undefined): Record<string, string> {
+  const top = tiers?.length ? tiers[0] : null;
+  const bottom = tiers?.length ? tiers[tiers.length - 1] : top;
+  const b = frameForTier(bottom);
+  return {
+    ...tierFrameVars(top),
+    '--uc-edge-2': b.edge,
+    '--uc-deep-2': b.deep,
+    '--uc-ink-2':  b.ink,
+    '--uc-glow-2': b.glow,
+    '--uc-art-2':  b.art,
+  };
+}
+
+/** La carte a-t-elle deux couleurs de bordure à afficher ? Faux dès qu'il n'y
+ *  a rien à partager (0 ou 1 tier) ou que les deux extrêmes coïncident. */
+export function isSplitTier(tiers: readonly number[] | null | undefined): boolean {
+  if (!tiers || tiers.length < 2) return false;
+  return tiers[0] !== tiers[tiers.length - 1];
+}

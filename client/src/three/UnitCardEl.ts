@@ -6,7 +6,9 @@ import type { Unit } from '../logic/Unit.js';
 // variantes sans traîner de dépendance (les garde-fous ESLint n'interdisent à
 // three/ que React et Zustand).
 import { artFor, illustrationUrl } from '../data/CardArt.js';
-import { tierFrameVars } from './cardPalette.js';
+import { getCard } from '../data/CardDatabase.js';
+import { tiersOf } from '../logic/Tiers.js';
+import { splitFrameVars, isSplitTier } from './cardPalette.js';
 
 const EFFECT_CFG: Record<string, { bg: string; edge: string; glow: string; ink: string }> = {
   shield:      { bg: 'rgba(40,30,8,.72)',  edge: 'rgba(240,196,90,.85)',  glow: 'rgba(232,168,80,.65)',  ink: '#f6da82' },
@@ -20,16 +22,19 @@ const EFFECT_CFG: Record<string, { bg: string; edge: string; glow: string; ink: 
 
 export function createUnitEl(unit: Unit, { selected = false, materialSelected = false } = {}): HTMLDivElement {
   const el = document.createElement('div');
+  const tiers = _cardTiers(unit);
   el.className = 'unit-card'
     + ` unit-${unit.side}`
     + (selected ? ' selected' : '')
     + (materialSelected ? ' material-selected' : '')
-    + (unit.is_neutralized ? ' neutralized' : '');
+    + (unit.is_neutralized ? ' neutralized' : '')
+    + (isSplitTier(tiers) ? ' is-split-tier' : '');
   el.dataset.uid = String(unit.uid);
 
-  // Le cadre et ses cinq variables viennent de `cardPalette` — la carte de main
-  // écrit exactement les mêmes, c'est ce qui en fait le même objet.
-  for (const [name, value] of Object.entries(tierFrameVars(unit.tier))) {
+  // Le cadre vient de `cardPalette` — la carte de main écrit exactement les
+  // mêmes variables, c'est ce qui en fait le même objet. Une unité dont la
+  // carte porte plusieurs tiers partage sa bordure en deux moitiés.
+  for (const [name, value] of Object.entries(splitFrameVars(tiers))) {
     el.style.setProperty(name, value);
   }
 
@@ -200,6 +205,22 @@ function _updateVet(el: HTMLElement, unit: Unit): void {
     vet.innerHTML = `<svg width="52%" height="52%" viewBox="0 0 24 24" fill="none" stroke="#ddc178" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.6 6.1.5-4.6 4 1.4 6-5.3-3.3-5.3 3.3 1.4-6-4.6-4 6.1-.5L12 3z"/></svg><span class="unit-vet-count">${Math.round(pts)}</span>`;
   } else {
     vet.style.display = 'none';
+  }
+}
+
+/**
+ * Les tiers de la CARTE de l'unité — `Unit.tier` n'en garde que le plus haut
+ * (l'échelle des VFX n'en demande qu'un). ⚠️ Repli sur ce seul chiffre si le
+ * catalogue n'est pas prêt (`getCard` jette) : les bancs de dev (TestBench,
+ * CombatLab) fabriquent parfois des unités hors de `initGameData`, même
+ * garde que `AttrIcon`.
+ */
+function _cardTiers(unit: Unit): number[] {
+  try {
+    const t = tiersOf(getCard(unit.card_id));
+    return t.length ? t : [unit.tier];
+  } catch {
+    return [unit.tier];
   }
 }
 
