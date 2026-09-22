@@ -20,7 +20,7 @@
 // ⚠️ `pointer-events-none` sur toute la couche, comme les autres transitions
 // de phase : rien ne doit pouvoir bloquer un geste en dessous, même si dans
 // les faits le joueur n'a rien à taper avant la fin de l'annonce.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { Avatar } from '../ui/primitives.js';
@@ -52,6 +52,13 @@ export interface DuelIntroProps {
   enemyName?: string | null;
   /** Durée totale de l'annonce, en ms (le tourbillon, lui, garde son propre rythme fixe). */
   duration?: number;
+  /**
+   * Appelé UNE fois, à l'échéance de l'annonce (ou à son annulation
+   * prématurée) — c'est ce qui permet à l'écran appelant de retarder
+   * `GameController.begin()` jusque-là : la partie (préparation, main,
+   * annonce de tour) ne doit pas démarrer SOUS l'annonce, mais APRÈS elle.
+   */
+  onDone?: () => void;
 }
 
 /**
@@ -64,6 +71,7 @@ export default function DuelIntro({
   enemyAvatarFallback = '?',
   enemyName = null,
   duration = DEFAULT_DURATION_MS,
+  onDone,
 }: DuelIntroProps) {
   const user = useAuthStore(s => s.user);
   const playerAvatar = (user as { avatar?: string | null } | null)?.avatar ?? null;
@@ -71,6 +79,19 @@ export default function DuelIntro({
 
   const [playing, setPlaying] = useState(false);
   const [done, setDone] = useState(false);
+
+  // `onDone` change d'identité à chaque rendu du parent (closure sur
+  // `controller`) ; le garder dans une ref évite de le figer dans l'effet de
+  // montage — même patron que `PhaseTimer.activeRef`/`timeoutRef`.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+  // Un seul appel, jamais deux (échéance normale PUIS nettoyage d'unmount).
+  const firedRef = useRef(false);
+  const fireDone = () => {
+    if (firedRef.current) return;
+    firedRef.current = true;
+    onDoneRef.current?.();
+  };
 
   useEffect(() => {
     // ⚠️ Posé au montage ET levé explicitement à l'échéance — pas seulement
@@ -85,6 +106,7 @@ export default function DuelIntro({
     const t = setTimeout(() => {
       setDone(true);
       useGameStore.getState().applySnapshot({ duelIntro: false });
+      fireDone();
     }, total + 60);
     return () => {
       cancelAnimationFrame(raf);
@@ -92,8 +114,10 @@ export default function DuelIntro({
       // Filet pour une sortie prématurée (abandon via le menu pendant
       // l'annonce, qui reste tapable — elle n'a que `pointer-events-none`
       // sur SA propre couche) : la partie se termine, le drapeau ne doit pas
-      // survivre au démontage réel de l'écran.
+      // survivre au démontage réel de l'écran, et l'appelant qui attendait
+      // `onDone` pour démarrer la partie ne doit pas rester bloqué.
       useGameStore.getState().applySnapshot({ duelIntro: false });
+      fireDone();
     };
     // Joué une seule fois, à l'entrée sur l'écran — `duration` ne change
     // jamais en cours de partie.

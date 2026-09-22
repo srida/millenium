@@ -38,6 +38,12 @@ import { PREP_DURATION_S, SHOPPING_DURATION_S, DRAW_POPUP_AUTO_MS } from '../gam
 export default function GameScreenPvp() {
   const [controller, setControllerLocal] = useState<PvpController | BotController | null>(null);
   const [opponentAvatar, setOpponentAvatar] = useState<string | null>(null);
+  // ⚠️ Redondant avec `gameStore.pvpOpponent`, et c'est voulu : celui-là n'est
+  // posé que dans `begin()` (poignée de main), désormais RETARDÉ jusqu'à la
+  // fin de l'annonce de lancement (cf. plus bas) — l'identité de l'adversaire,
+  // elle, est connue dès le montage (`PvpConnection.getOpponent()`) et
+  // l'annonce a justement besoin de la montrer PENDANT ce délai.
+  const [opponentName, setOpponentName] = useState<string | null>(null);
   const setController = useGameStore(s => s.setController);
   const reset = useGameStore(s => s.reset);
   // Pilotage des deux chronos partagés (cf. components/hud/PhaseTimer).
@@ -52,6 +58,7 @@ export default function GameScreenPvp() {
     const opponentUser = (PvpConnection as any).getOpponent();
     const opponent = opponentUser?.username ?? 'Adversaire';
     setOpponentAvatar(opponentUser?.avatar ?? null);
+    setOpponentName(opponent);
     // Duel contre bot : la session est un solo (mode 'ai' + deck du bot), pas
     // une session PvP — il n'y a pas de second client à synchroniser, et
     // l'EnemyAI a besoin d'un deck adverse pour jouer.
@@ -68,7 +75,16 @@ export default function GameScreenPvp() {
       : new PvpController(session, pvpDeps(), role, opponent);
     setControllerLocal(ctrl);
     setController(ctrl);
-    ctrl.begin();
+    // ⚠️ `ctrl.begin()` PAS ici : c'est l'`onDone` de `DuelIntro` qui le
+    // déclenche (cf. plus bas dans le rendu) — même règle que le solo
+    // (`GameScreen`), la partie démarre À LA FIN de l'annonce, pas dessous.
+    // Sans risque réseau : `begin()` enregistre ses écouteurs ET envoie
+    // `match:ready` dans le même appel, donc rien ne peut arriver côté
+    // adversaire sans qu'on soit déjà à l'écoute ; le serveur attend de toute
+    // façon les DEUX joueurs à la barrière avant `round:go`, un envoi
+    // retardé de quelques secondes des deux côtés (chaque client joue sa
+    // propre annonce) ne fait que reculer d'autant la fermeture de cette
+    // barrière.
     return () => {
       ctrl.dispose();
       setController(null);
@@ -94,7 +110,12 @@ export default function GameScreenPvp() {
     <div className="relative h-dvh overflow-hidden bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
       <Board3DCanvas controller={controller} />
       <HudWithOpponent opponentAvatar={opponentAvatar} />
-      <DuelIntroWithOpponent opponentAvatar={opponentAvatar} />
+      <DuelIntro
+        enemyAvatarSrc={opponentAvatar}
+        enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
+        enemyName={opponentName}
+        onDone={() => controller.begin()}
+      />
       <SynergyPanel />
       <GraveyardTray />
       <HandBar />
@@ -176,20 +197,6 @@ function HudWithOpponent({ opponentAvatar }: { opponentAvatar: string | null }) 
   const opponentName = useGameStore(s => s.pvpOpponent);
   return (
     <Hud
-      enemyAvatarSrc={opponentAvatar}
-      enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
-      enemyName={opponentName}
-    />
-  );
-}
-
-// Même portrait adverse pour l'annonce de lancement — même repli d'initiales
-// que le HUD, sur le même pseudo (rempli à la poignée de main, cf. `begin()`
-// de `PvpController`/`BotController`).
-function DuelIntroWithOpponent({ opponentAvatar }: { opponentAvatar: string | null }) {
-  const opponentName = useGameStore(s => s.pvpOpponent);
-  return (
-    <DuelIntro
       enemyAvatarSrc={opponentAvatar}
       enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
       enemyName={opponentName}
