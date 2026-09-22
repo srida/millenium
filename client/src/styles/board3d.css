@@ -32,22 +32,30 @@
   position: relative; cursor: pointer;
   overflow: visible; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   border-radius: 13px;
-  /* Cadre gravé : le dégradé IS la bordure (métal clair → ton principal → fond profond) */
-  background: linear-gradient(155deg, var(--uc-ink, #a9d6f2) 0%, var(--uc-edge, #6fb2dc) 44%, var(--uc-deep, #0d2333) 100%);
+  /* Cadre gravé : le dégradé IS la bordure (métal clair → ton principal → fond
+     profond). `--uc-frame-bg` est déjà un EMPILEMENT de calques — une bande
+     par tier de la carte (`three/cardPalette.frameVars`) — donc cette règle
+     n'a plus à savoir si la carte porte un tier ou cinq : à un seul tier, la
+     bande couvre toute la carte, pixel pour pixel comme avant cette table. */
+  background: var(--uc-frame-bg, linear-gradient(155deg,#a9d6f2 0%,#6fb2dc 44%,#0d2333 100%));
   /* ⚠️ Les deux rayons sont des VARIABLES : au plateau, une carte par case, la
      lueur respire ; en main, les cartes se recouvrent et les halos s'ADDITIONNENT
      — cinq cartes donnaient un nuage coloré autour de l'éventail. La carte de
-     main les resserre, elle ne redéclare pas la règle. */
-  box-shadow: 0 0 var(--card-glow-near, 10px) 1px var(--uc-glow, rgba(111,178,220,.5)),
-              0 0 var(--card-glow-far, 28px) -2px var(--uc-glow, rgba(111,178,220,.5)),
+     main les resserre, elle ne redéclare pas la règle. `--uc-frame-shadow` porte
+     déjà les DEUX rayons par bande (imbriqués, non résolus par `cardPalette`) ;
+     `--card-extra-shadow` reste le seul point d'extension, ajouté ici et non
+     dans la variable produite. */
+  box-shadow: var(--uc-frame-shadow, 0 0 var(--card-glow-near, 10px) 1px rgba(111,178,220,.5), 0 0 var(--card-glow-far, 28px) -2px rgba(111,178,220,.5)),
               var(--card-extra-shadow, 0 0 rgba(0,0,0,0));
   font-family: var(--font-display);
 }
 .unit-card { width: 100%; height: 100%; }
-/* Face intérieure — le "verre" du jeton, inséré de 2px pour laisser le cadre visible */
+/* Face intérieure — le "verre" du jeton, inséré de 2px pour laisser le cadre
+   visible. Même empilement par bande que la bordure (`--uc-frame-art`) : elle
+   n'est de toute façon visible qu'un instant, avant que l'illustration charge. */
 .unit-face {
   position: absolute; inset: 2px; border-radius: 11px; overflow: hidden;
-  background: var(--uc-art, linear-gradient(155deg,#122a3f,#060f18));
+  background: var(--uc-frame-art, linear-gradient(155deg,#122a3f,#060f18));
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
 }
 .unit-art {

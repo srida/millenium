@@ -62,22 +62,72 @@ export function frameForTier(tier: number | null | undefined): TierFrame {
 }
 
 /**
+ * Les tiers DISTINCTS d'une carte, triés du plus bas au plus haut, avec repli.
+ * `tiersOf` peut rendre `[]` (aucun attribut de tier) ou des doublons ne se
+ * produisent jamais côté catalogue — mais un appelant de test ou un tableau
+ * construit à la main pourrait en porter ; on ne fait pas confiance à l'ordre
+ * ni à l'unicité en entrée, `frameBands` en dépend.
+ */
+function distinctTiers(tiers: number | readonly number[] | null | undefined): number[] {
+  const list = Array.isArray(tiers) ? tiers : tiers != null ? [tiers] : [];
+  const set = new Set(list.filter((t): t is number => t != null));
+  return [...set].sort((a, b) => a - b);
+}
+
+/**
+ * Le cadre en BANDES — une par tier distinct, la plus basse en haut, la plus
+ * haute en bas. Une carte à un seul tier (ou sans tier, via le repli) rend une
+ * seule bande : c'est ce qui fait de cette fonction le SEUL chemin, que la
+ * carte porte un tier ou cinq — `tierFrameVars`/`splitFrameVars` en étaient
+ * deux, un pour chaque cas, une règle recopiée deux fois.
+ */
+function frameBands(tiers: number | readonly number[] | null | undefined): TierFrame[] {
+  const list = distinctTiers(tiers);
+  return (list.length ? list : [null]).map(frameForTier);
+}
+
+/**
  * Le cadre, écrit dans les variables CSS que `styles/board3d.css` lit.
  *
- * ⚠️ C'EST ICI que vit le contrat entre la palette et la feuille : les cinq noms
- * `--uc-*`. Les recopier côté React aurait donné une seconde liste à tenir
- * d'accord, dont l'écart se serait vu comme un cadre sans couleur — c'est-à-dire
- * comme un défaut de chargement, pas comme un bug. `test/card-palette.test.ts`
- * sonde la feuille et exige que les deux ensembles coïncident, dans les deux
- * sens.
+ * ⚠️ C'EST ICI que vit le contrat entre la palette et la feuille. Le dégradé,
+ * le fond d'art et la lueur voyagent en TROIS variables déjà composées
+ * (`--uc-frame-bg`, `--uc-frame-art`, `--uc-frame-shadow`) — un empilement de
+ * calques CSS, une bande par tier, à la hauteur `100 / N`% et à la position
+ * `i / (N-1) * 100`% : pour N = 1 cette formule dégénère en une seule bande
+ * pleine hauteur, PIXEL POUR PIXEL le rendu d'avant (une carte à un seul tier
+ * ne change donc pas). `--uc-edge`/`--uc-glow` restent scalaires : le liseré
+ * du haut et la nébuleuse ne lisent QUE le tier de la bande du HAUT, la plus
+ * basse de la carte — deux flourishes ponctuels, pas la bordure elle-même.
+ *
+ * ⚠️ Les rayons de lueur (`--card-glow-near`/`-far`) et l'ombre supplémentaire
+ * de la carte de main (`--card-extra-shadow`) restent des `var()` NON résolus
+ * dans la chaîne produite ici : c'est `styles/board3d.css` qui les pose selon
+ * le contexte (plateau vs main), et les imbriquer ainsi les laisse intacts.
+ *
+ * `test/card-palette.test.ts` sonde la feuille et exige que les deux
+ * ensembles de noms coïncident, dans les deux sens.
  */
-export function tierFrameVars(tier: number | null | undefined): Record<string, string> {
-  const f = frameForTier(tier);
+export function frameVars(tiers: number | readonly number[] | null | undefined): Record<string, string> {
+  const bands = frameBands(tiers);
+  const n = bands.length;
+  const pos = (i: number) => (n > 1 ? `${(i / (n - 1)) * 100}%` : '50%');
+  const size = `100% ${100 / n}%`;
+
+  const bg = bands
+    .map((f, i) => `linear-gradient(155deg, ${f.ink} 0%, ${f.edge} 44%, ${f.deep} 100%) 0% ${pos(i)} / ${size} no-repeat`)
+    .join(', ');
+  const art = bands
+    .map((f, i) => `${f.art} 0% ${pos(i)} / ${size} no-repeat`)
+    .join(', ');
+  const shadow = bands
+    .map(f => `0 0 var(--card-glow-near, 10px) 1px ${f.glow}, 0 0 var(--card-glow-far, 28px) -2px ${f.glow}`)
+    .join(', ');
+
   return {
-    '--uc-edge': f.edge,
-    '--uc-deep': f.deep,
-    '--uc-ink':  f.ink,
-    '--uc-glow': f.glow,
-    '--uc-art':  f.art,
+    '--uc-edge': bands[0].edge,
+    '--uc-glow': bands[0].glow,
+    '--uc-frame-bg':     bg,
+    '--uc-frame-art':    art,
+    '--uc-frame-shadow': shadow,
   };
 }
