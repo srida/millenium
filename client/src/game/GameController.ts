@@ -179,22 +179,31 @@ export class GameController {
    * Le volet de passage d'une phase à l'autre — un balayage plein cadre, posé
    * à l'instant où l'écran change de registre.
    *
-   * ⚠️ Il ne RETIENT rien : l'état de jeu est publié par l'appelant dans le même
-   * `sync`, et le volet ne fait que le découvrir en sortant. C'est ce qui le
-   * distingue de l'annonce de terrain et de la frappe finale — mettre une
-   * horloge entre le tap du joueur et l'écran qu'il vient de demander se paie à
-   * chaque tour, cinq fois par partie.
+   * ⚠️ Par défaut il ne RETIENT rien : l'état de jeu est publié par l'appelant
+   * dans le même `sync`, et le volet ne fait que le découvrir en sortant.
+   * C'est le cas de Combat — mettre une horloge entre le tap du joueur et
+   * l'écran qu'il vient de demander se paie à chaque tour, cinq fois par
+   * partie. (L'annonce de terrain, elle, a sa PROPRE horloge côté appelant,
+   * calée sur `holdMs` et non sur `durationMs` — les deux peuvent diverger.)
+   *
+   * ⚠️ `onDone`, lui, RETIENT : son résultat n'est publié qu'à l'échéance
+   * exacte du volet, dans le MÊME `sync` que `phaseWipe: null` — c'est le cas
+   * de Shopping, dont la popup ne doit apparaître qu'une fois les dés posés,
+   * jamais dessous pendant qu'ils roulent.
    *
    * ⚠️ Le minuteur vit ici quand même, comme les trois autres : un composant qui
    * se retirerait lui-même serait une seconde horloge, et `dispose()` n'aurait
    * rien à annuler sur une partie quittée en route.
    */
-  protected _playPhaseWipe(kind: 'combat' | 'shopping', durationMs: number): void {
+  protected _playPhaseWipe(
+    kind: 'combat' | 'shopping', durationMs: number,
+    onDone?: () => Partial<GameSnapshot>,
+  ): void {
     if (this._wipeTimer) { clearTimeout(this._wipeTimer); this._wipeTimer = null; }
     this.sync({ phaseWipe: { kind } });
     this._wipeTimer = setTimeout(() => {
       this._wipeTimer = null;
-      this.sync({ phaseWipe: null });
+      this.sync({ phaseWipe: null, ...(onDone ? onDone() : null) });
     }, durationMs);
   }
 
@@ -891,12 +900,13 @@ export class GameController {
     if (!magies.length) { this._proceedNextRound(); return; }
     this._shoppingMagies = magies;
     this._shoppingInfo = this._describeShoppingBonus();
-    // ⚠️ L'offre est publiée MAINTENANT, pas à la fin du volet : celui-ci ne
-    // fait que la découvrir en sortant. Le retarder mettrait une horloge entre
-    // le tap qui ferme le récapitulatif et l'écran qu'il demande — cinq fois par
-    // partie.
-    this._playPhaseWipe('shopping', SHOPPING_INTRO_MS);
-    this.sync({ endRound: null, shopping: this._shoppingChoice() });
+    // ⚠️ L'offre n'est publiée qu'à l'ÉCHÉANCE du volet (`onDone`), pas en même
+    // temps que lui : le motif « Lancer de dés » couvre tout l'écran pendant sa
+    // durée, la popup n'a donc rien à révéler avant que les dés ne se soient
+    // posés. Elle est déjà CALCULÉE maintenant (le tirage ne doit pas dépendre
+    // de la durée du volet), seule sa PUBLICATION attend.
+    this.sync({ endRound: null });
+    this._playPhaseWipe('shopping', SHOPPING_INTRO_MS, () => ({ shopping: this._shoppingChoice() }));
   }
 
   /**

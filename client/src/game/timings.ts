@@ -53,9 +53,12 @@ export const COMBAT_OUTRO_MS = 1500;
  *  Design » demande pour se lire, au même chiffre que `COMBAT_INTRO_MS` par
  *  symétrie des deux volets.
  *
- *  ⚠️ Décoratif : l'offre est publiée EN MÊME TEMPS et le volet la découvre en
- *  sortant. Le retarder d'un minuteur de plus mettrait une horloge entre le tap
- *  du joueur et l'écran qu'il vient de demander. */
+ *  ⚠️ L'offre n'est PUBLIÉE qu'à l'échéance du volet (`onDone` de
+ *  `GameController._playPhaseWipe`), pas en même temps que lui : la popup ne
+ *  doit apparaître qu'une fois les dés posés, jamais dessous pendant qu'ils
+ *  roulent. Elle est déjà CALCULÉE avant (le tirage ne dépend pas de cette
+ *  durée) — seule sa publication attend le même minuteur que le volet, il n'y
+ *  en a pas un second à tenir d'accord avec lui. */
 export const SHOPPING_INTRO_MS = 1500;
 
 /** Popup de pioche laissée sans réponse : au bout de ce délai elle se congédie
