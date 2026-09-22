@@ -11,8 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  TIER_FRAMES, FALLBACK_TIER, frameForTier, tierFrameVars,
-  splitFrameVars, isSplitTier, type TierFrame,
+  TIER_FRAMES, FALLBACK_TIER, frameForTier, frameVars, type TierFrame,
 } from '../three/cardPalette.js';
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -111,14 +110,10 @@ describe('le miroir avec styles/index.css — une seule palette de tier', () => 
   });
 });
 
-describe('tierFrameVars — le contrat avec styles/board3d.css', () => {
+describe('frameVars — le contrat avec styles/board3d.css', () => {
   const sheet = fs.readFileSync(path.join(SRC, 'styles', 'board3d.css'), 'utf8');
-  const readBySheet = new Set(sheet.match(/--uc-[a-z0-9-]+/g) ?? []);
-  // `splitFrameVars` sur deux tiers distincts produit les cinq variables de
-  // `tierFrameVars` PLUS les cinq de la moitié basse (`-2`) : c'est l'union des
-  // deux que la feuille doit accorder, la carte à un seul tier ne posant que
-  // la première moitié.
-  const produced = new Set(Object.keys(splitFrameVars([3, 4])));
+  const readBySheet = new Set(sheet.match(/--uc-[a-z-]+/g) ?? []);
+  const produced = new Set(Object.keys(frameVars([3, 4])));
 
   it('la feuille lit bien des variables de cadre (le test ne sonde pas dans le vide)', () => {
     expect(readBySheet.size).toBeGreaterThan(0);
@@ -137,64 +132,71 @@ describe('tierFrameVars — le contrat avec styles/board3d.css', () => {
     expect(inutiles).toEqual([]);
   });
 
-  it('les valeurs sont celles du cadre demandé', () => {
-    const f = TIER_FRAMES[4];
-    expect(tierFrameVars(4)).toEqual({
-      '--uc-edge': f.edge, '--uc-deep': f.deep, '--uc-ink': f.ink,
-      '--uc-glow': f.glow, '--uc-art': f.art,
-    });
-  });
-
   it('un tier inconnu produit quand même les cinq variables', () => {
-    expect(Object.keys(tierFrameVars(undefined))).toHaveLength(FIELDS.length);
+    expect(Object.keys(frameVars(undefined))).toHaveLength(5);
   });
 });
 
-describe('isSplitTier — quand une carte partage sa bordure', () => {
-  it('faux sans tier, avec un seul, ou si les deux extrêmes coïncident', () => {
-    expect(isSplitTier(null)).toBe(false);
-    expect(isSplitTier(undefined)).toBe(false);
-    expect(isSplitTier([])).toBe(false);
-    expect(isSplitTier([3])).toBe(false);
-    expect(isSplitTier([3, 3])).toBe(false);
+describe('frameVars — un seul tier : identique au rendu d’avant cette table', () => {
+  it('une seule bande, à la couleur du tier, aucun `%` autre que 50/100', () => {
+    const f = TIER_FRAMES[3];
+    const v = frameVars(3);
+    expect(v['--uc-edge']).toBe(f.edge);
+    expect(v['--uc-glow']).toBe(f.glow);
+    // Une seule bande : `size` = 100% de hauteur, `position` = 50% (sans
+    // effet, l'image occupe déjà toute la zone) — PIXEL POUR PIXEL le dégradé
+    // plein d'avant cette table, jamais un empilement à moitié vide.
+    expect(v['--uc-frame-bg']).toBe(
+      `linear-gradient(155deg, ${f.ink} 0%, ${f.edge} 44%, ${f.deep} 100%) 0% 50% / 100% 100% no-repeat`,
+    );
+    expect(v['--uc-frame-art']).toBe(`${f.art} 0% 50% / 100% 100% no-repeat`);
   });
 
-  it('vrai dès que le plus bas et le plus haut diffèrent', () => {
-    expect(isSplitTier([3, 4])).toBe(true);
-    // Trois tiers : seuls les deux extrêmes comptent, le milieu n'a pas de
-    // moitié à lui — même règle que `splitFrameVars`.
-    expect(isSplitTier([2, 3, 4])).toBe(true);
+  it('un tier scalaire se comporte comme un tableau à un élément', () => {
+    expect(frameVars(3)).toEqual(frameVars([3]));
+  });
+
+  it('aucun tier : repli sur le tier de secours', () => {
+    expect(frameVars([])).toEqual(frameVars(FALLBACK_TIER));
   });
 });
 
-describe('splitFrameVars — la moitié basse en plus', () => {
-  it('un seul tier : les cinq variables `-2` valent celles du tier seul, comme `tierFrameVars`', () => {
-    const single = tierFrameVars(3);
-    const split = splitFrameVars([3]);
-    expect(split['--uc-edge']).toBe(single['--uc-edge']);
-    expect(split['--uc-edge-2']).toBe(single['--uc-edge']);
-    expect(split['--uc-deep-2']).toBe(single['--uc-deep']);
-    expect(split['--uc-ink-2']).toBe(single['--uc-ink']);
-    expect(split['--uc-glow-2']).toBe(single['--uc-glow']);
-    expect(split['--uc-art-2']).toBe(single['--uc-art']);
+describe('frameVars — plusieurs tiers : une bande par tier DISTINCT', () => {
+  it('deux tiers : le plus BAS en haut (0%), le plus HAUT en bas (100%), moitié chacun', () => {
+    const [t3, t4] = [TIER_FRAMES[3], TIER_FRAMES[4]];
+    const v = frameVars([3, 4]);
+    expect(v['--uc-edge']).toBe(t3.edge); // le liseré du haut : le plus bas des deux
+    expect(v['--uc-frame-bg']).toBe([
+      `linear-gradient(155deg, ${t3.ink} 0%, ${t3.edge} 44%, ${t3.deep} 100%) 0% 0% / 100% 50% no-repeat`,
+      `linear-gradient(155deg, ${t4.ink} 0%, ${t4.edge} 44%, ${t4.deep} 100%) 0% 100% / 100% 50% no-repeat`,
+    ].join(', '));
   });
 
-  it('deux tiers : le HAUT est le plus BAS de la liste, le BAS le plus HAUT', () => {
-    // `tiersOf` rend les tiers triés croissants — le plus bas d'abord.
-    const split = splitFrameVars([3, 4]);
-    expect(split['--uc-edge']).toBe(TIER_FRAMES[3].edge);   // moitié haute : T3
-    expect(split['--uc-edge-2']).toBe(TIER_FRAMES[4].edge); // moitié basse : T4
+  it('trois, quatre, cinq tiers distincts : autant de bandes, réparties à intervalle égal', () => {
+    for (const tiers of [[1, 3, 5], [1, 2, 3, 4], [1, 2, 3, 4, 5]] as const) {
+      const v = frameVars(tiers);
+      const n = tiers.length;
+      const layers = v['--uc-frame-bg'].split(/(?<=no-repeat),\s*/);
+      expect(layers).toHaveLength(n);
+      tiers.forEach((tier, i) => {
+        const f = TIER_FRAMES[tier];
+        const pos = (i / (n - 1)) * 100;
+        expect(layers[i]).toBe(
+          `linear-gradient(155deg, ${f.ink} 0%, ${f.edge} 44%, ${f.deep} 100%) 0% ${pos}% / 100% ${100 / n}% no-repeat`,
+        );
+      });
+    }
   });
 
-  it('trois tiers ou plus : seuls les deux extrêmes se voient, le milieu est ignoré', () => {
-    const split = splitFrameVars([2, 3, 4]);
-    expect(split['--uc-edge']).toBe(TIER_FRAMES[2].edge);
-    expect(split['--uc-edge-2']).toBe(TIER_FRAMES[4].edge);
+  it('les doublons ne comptent qu’une fois, et l’ordre d’entrée n’importe pas', () => {
+    expect(frameVars([4, 3, 4])).toEqual(frameVars([3, 4]));
   });
 
-  it('aucun tier : repli sur le tier de secours pour les deux moitiés', () => {
-    const split = splitFrameVars([]);
-    expect(split['--uc-edge']).toBe(TIER_FRAMES[FALLBACK_TIER].edge);
-    expect(split['--uc-edge-2']).toBe(TIER_FRAMES[FALLBACK_TIER].edge);
+  it('la lueur (`--uc-frame-shadow`) porte une paire de rayons par bande', () => {
+    const v = frameVars([1, 2, 3]);
+    // Un split naïf sur `, ` casserait le `var(--card-glow-near, 10px)`
+    // imbriqué — on ne sépare qu'aux virgules HORS parenthèses.
+    const layers = v['--uc-frame-shadow'].split(/,(?![^(]*\))/).map(s => s.trim());
+    expect(layers).toHaveLength(6); // 2 rayons (near/far) × 3 bandes
   });
 });

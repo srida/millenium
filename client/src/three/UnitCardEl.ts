@@ -8,7 +8,7 @@ import type { Unit } from '../logic/Unit.js';
 import { artFor, illustrationUrl } from '../data/CardArt.js';
 import { getCard } from '../data/CardDatabase.js';
 import { tiersOf } from '../logic/Tiers.js';
-import { splitFrameVars, isSplitTier } from './cardPalette.js';
+import { frameVars } from './cardPalette.js';
 
 const EFFECT_CFG: Record<string, { bg: string; edge: string; glow: string; ink: string }> = {
   shield:      { bg: 'rgba(40,30,8,.72)',  edge: 'rgba(240,196,90,.85)',  glow: 'rgba(232,168,80,.65)',  ink: '#f6da82' },
@@ -22,19 +22,17 @@ const EFFECT_CFG: Record<string, { bg: string; edge: string; glow: string; ink: 
 
 export function createUnitEl(unit: Unit, { selected = false, materialSelected = false } = {}): HTMLDivElement {
   const el = document.createElement('div');
-  const tiers = _cardTiers(unit);
   el.className = 'unit-card'
     + ` unit-${unit.side}`
     + (selected ? ' selected' : '')
     + (materialSelected ? ' material-selected' : '')
-    + (unit.is_neutralized ? ' neutralized' : '')
-    + (isSplitTier(tiers) ? ' is-split-tier' : '');
+    + (unit.is_neutralized ? ' neutralized' : '');
   el.dataset.uid = String(unit.uid);
 
   // Le cadre vient de `cardPalette` — la carte de main écrit exactement les
   // mêmes variables, c'est ce qui en fait le même objet. Une unité dont la
-  // carte porte plusieurs tiers partage sa bordure en deux moitiés.
-  for (const [name, value] of Object.entries(splitFrameVars(tiers))) {
+  // carte porte plusieurs tiers partage sa bordure en autant de bandes.
+  for (const [name, value] of Object.entries(frameVars(_cardTiers(unit)))) {
     el.style.setProperty(name, value);
   }
 

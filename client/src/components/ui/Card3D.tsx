@@ -8,8 +8,8 @@
 // (`three/cardPalette.tierFrameVars`). Ce qu'elle ajoute est ce qu'une carte en
 // MAIN a de plus : le nom, la pastille de coût, le compte d'exemplaires, le
 // cadenas. Elle ne porte PAS de badge de tier : ici le tier EST la couleur du
-// cadre — une carte multi-tiers partage sa bordure en deux moitiés, une par
-// tier extrême (`three/cardPalette.splitFrameVars`/`isSplitTier`).
+// cadre — une carte multi-tiers partage sa bordure en autant de bandes que de
+// tiers distincts (`three/cardPalette.frameVars`).
 //
 // ⚠️ Elle ne décide NI où elle se pose (c'est `components/hand/cardFan`), NI de
 // quoi elle a l'air selon l'état du jeu (c'est `components/hand/handVisual`).
@@ -31,7 +31,7 @@
 import { useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { type TooltipContent } from '../../stores/uiStore.js';
-import { splitFrameVars, isSplitTier } from '../../three/cardPalette.js';
+import { frameVars } from '../../three/cardPalette.js';
 import { artFor, illustrationUrl } from '../../data/CardArt.js';
 import { summonCostOf } from '../../data/SummonInfo.js';
 import { tiersOf } from '../../logic/Tiers.js';
@@ -49,8 +49,9 @@ const DIM = { none: '', soft: 'dim-soft', strong: 'dim-strong' } as const;
 export interface Card3DProps {
   illustrationId: string;
   name: string;
-  /** Les tiers de la carte. Le CADRE prend le plus bas en haut et le plus haut
-   *  en bas — une carte à un seul tier n'affiche qu'une couleur, comme avant.
+  /** Les tiers de la carte. Le CADRE se partage en autant de bandes que de
+   *  tiers distincts (1 à 5), la plus basse en haut et la plus haute en bas —
+   *  une carte à un seul tier n'affiche qu'une couleur, comme avant.
    *  ⚠️ Ils ne s'écrivent NULLE PART sur la carte : c'est le cadre qui les dit,
    *  et le tooltip qui les détaille. */
   tiers?: readonly number[] | null;
@@ -151,8 +152,6 @@ export default function Card3D({
       },
     } : undefined,
   });
-  const split = isSplitTier(tiers);
-
   return (
     <button
       type="button"
@@ -162,7 +161,7 @@ export default function Card3D({
       className={[
         'card3d', HIGHLIGHT[highlight], DIM[dim], LIFT[lift],
         stacked ? 'is-stacked' : '', raised ? 'is-raised' : '',
-        badge != null && badge > 0 ? 'has-count' : '', split ? 'is-split-tier' : '',
+        badge != null && badge > 0 ? 'has-count' : '',
         rail ? `in-rail in-rail-${rail}` : '', dragging ? 'is-dragging' : '',
         // Mode flow : pas de géométrie absolue, la carte reste dans le flux —
         // `is-flow` réécrit `position`/`transform` en conséquence
@@ -178,7 +177,7 @@ export default function Card3D({
       // variables n'existent pas sans `transform`, et leurs défauts CSS (0px,
       // 0deg, 1, 0) sont justement ceux d'une carte posée à plat dans sa case.
       style={{
-        ...splitFrameVars(tiers),
+        ...frameVars(tiers),
         ...(flow ? {} : {
           width,
           '--card-x': `${transform!.x}px`,
