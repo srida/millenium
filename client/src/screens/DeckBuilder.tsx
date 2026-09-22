@@ -28,6 +28,7 @@ import IllustrationPicker from '../components/deck/IllustrationPicker.js';
 import DeckCoach from '../components/tutorial/DeckCoach.js';
 import { updateProgress } from '../data/tutorialProgress.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
+import { ScreenTransition } from '../components/nav/ScreenTransition.js';
 
 const MIN_DECK = 20;
 /** Édition admin d'un deck public : aucun joueur, donc aucune variante. */
@@ -396,28 +397,36 @@ export default function DeckBuilder() {
         </p>
       )}
 
-      {tab === 'lib' ? (
-        <LibraryPanel
-          cards={filtered} total={allCards.length} ownedCount={ownedCount}
-          deckData={deckData} tierMax={tierMax} owns={owns}
-          query={query} setQuery={setQuery} queryError={queryError} schema={schema}
-          sort={sort} setSort={setSort}
-          onAdd={addCard} onRemove={removeCardById}
-        />
-      ) : (
-        <DeckPanel
-          deckData={deckData} tierMax={tierMax} name={name} setName={setName}
-          color={color} setColor={setColor} showColor={!isAdminEdit} onRemove={removeCard} owns={owns}
-          onClear={() => setDeckData(EMPTY)}
-          variants={variants} onSkin={setSkinning}
-          // Pas de cosmétique en édition de deck public : il n'y a pas de
-          // « joueur » propriétaire, donc personne dont ce soient les variantes
-          // ni les dos de carte débloqués.
-          ownedVariantsFor={isAdminEdit ? noVariants : ownedVariantsFor}
-          cardBack={cardBack} setCardBack={setCardBack}
-          ownedCardBacks={isAdminEdit ? [] : ownedCardBacks}
-        />
-      )}
+      {/* Même entrée que la navigation entre écrans (`ScreenTransition`), rejouée
+          ici sur le changement d'ONGLET plutôt que d'écran — c'est le même geste
+          de navigation pour le joueur. `className` repasse les classes flex que
+          le wrapper par défaut n'a pas : `LibraryPanel`/`DeckPanel` sont chacun
+          `flex-1 min-h-0 overflow-y-auto` et comptent sur un PARENT flex pour
+          occuper l'espace restant et défiler — un wrapper non-flex les casserait. */}
+      <ScreenTransition screenKey={tab} className="flex min-h-0 flex-1 flex-col">
+        {tab === 'lib' ? (
+          <LibraryPanel
+            cards={filtered} total={allCards.length} ownedCount={ownedCount}
+            deckData={deckData} tierMax={tierMax} owns={owns}
+            query={query} setQuery={setQuery} queryError={queryError} schema={schema}
+            sort={sort} setSort={setSort}
+            onAdd={addCard} onRemove={removeCardById}
+          />
+        ) : (
+          <DeckPanel
+            deckData={deckData} tierMax={tierMax} name={name} setName={setName}
+            color={color} setColor={setColor} showColor={!isAdminEdit} onRemove={removeCard} owns={owns}
+            onClear={() => setDeckData(EMPTY)}
+            variants={variants} onSkin={setSkinning}
+            // Pas de cosmétique en édition de deck public : il n'y a pas de
+            // « joueur » propriétaire, donc personne dont ce soient les variantes
+            // ni les dos de carte débloqués.
+            ownedVariantsFor={isAdminEdit ? noVariants : ownedVariantsFor}
+            cardBack={cardBack} setCardBack={setCardBack}
+            ownedCardBacks={isAdminEdit ? [] : ownedCardBacks}
+          />
+        )}
+      </ScreenTransition>
 
       {/* Guide du tutoriel : au-dessus du pied de page, EN FLUX — une bulle
           flottante masquerait forcément une partie de la grille de cartes. */}

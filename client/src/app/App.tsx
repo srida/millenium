@@ -24,6 +24,7 @@ import RewardToasts from '../components/ui/RewardToasts.js';
 import { SpaceBackground } from '../components/ui/SpaceBackground.js';
 import { AppHeader } from '../components/nav/AppHeader.js';
 import { AppFooter } from '../components/nav/AppFooter.js';
+import { ScreenTransition } from '../components/nav/ScreenTransition.js';
 
 /**
  * Écrans chargés à la demande. Ce ne sont pas les plus gros en lignes, ce sont
@@ -166,7 +167,9 @@ export default function App() {
           <AppHeader />
           <div className="min-h-0 flex-1 overflow-y-auto">
             <Suspense fallback={lazyFallback}>
-              <Screen />
+              <ScreenTransition screenKey={screen}>
+                <Screen />
+              </ScreenTransition>
             </Suspense>
           </div>
           <AppFooter />
