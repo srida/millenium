@@ -31,8 +31,16 @@
   z-index: 40;
   display: block;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 200ms linear;
+  /* ⚠️ OPAQUE DÈS LA PREMIÈRE PEINTURE, sans fondu ni délai — un `opacity:0`
+     initial levé plus tard par une classe React (un ou deux `rAF`, puis une
+     transition CSS) laisse passer une à deux frames de board/HUD déjà rendus
+     PENDANT que la couche est encore transparente : c'est exactement ce
+     qu'on voyait, une fraction de seconde. Le noir doit être là AVANT que
+     quoi que ce soit d'autre n'ait la moindre chance de peindre. `background`
+     ici, en plus de celui d'`.duel-intro-veil` (positionnée en `inset:0`
+     juste en dessous) : deux couches solides et non une, mais un filet à
+     coût nul contre tout écart d'un pixel entre les deux boîtes. */
+  background: #040100;
   --u: min(100vw, 100vh);
   --big: max(100vw, 100vh);
   --dur-vortex: 1500ms;
@@ -40,7 +48,6 @@
   --gold: var(--color-gold);
   --fire: #ff6a12;
 }
-.duel-intro.is-playing { opacity: 1; }
 
 .duel-intro-stage { position: absolute; inset: 0; overflow: hidden; background: transparent; }
 .duel-intro-layer { position: absolute; animation-fill-mode: both; }
@@ -236,7 +243,11 @@
   text-shadow: 0 0 calc(var(--u) * .02) rgba(255, 180, 60, .7);
 }
 
-@keyframes duel-intro-veil { 0% { opacity: 0 } 12% { opacity: 1 } 88% { opacity: 1 } 100% { opacity: 0 } }
+/* ⚠️ Opaque DÈS 0% — pas de montée depuis 0 comme le reste des couches : le
+   voile est le fond noir lui-même (cf. `.duel-intro`/`.duel-intro-veil`), il
+   n'a rien à faire apparaître progressivement, seulement à s'effacer à la
+   toute fin pour découvrir la partie. */
+@keyframes duel-intro-veil { 0%, 88% { opacity: 1 } 100% { opacity: 0 } }
 @keyframes duel-intro-swirl {
   0%   { transform: rotate(0deg) scale(1.5); opacity: 0 }
   14%  { opacity: .95 }
@@ -325,7 +336,7 @@
   .duel-intro-card,
   .duel-intro-core,
   .duel-intro-ember { display: none; }
-  .duel-intro-veil,
+  .duel-intro-veil { animation: none; opacity: 1; }
   .duel-intro-flash { animation: none; opacity: .92; }
   .duel-intro-word { animation: none; opacity: 1; letter-spacing: .02em; transform: none; }
   .duel-intro-rule,

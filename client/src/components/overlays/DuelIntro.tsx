@@ -17,6 +17,15 @@
 // `coachBlocking` : sans lui, le chrono de préparation grignotait ses
 // premières secondes sous l'annonce.
 //
+// ⚠️ OPAQUE dès la première peinture, sans fondu ni classe `is-playing`
+// posée après coup (`styles/duelIntro.css`) : un fondu d'entrée piloté par
+// React (`rAF` puis transition CSS) laisse passer une à deux frames où le
+// board/HUD est déjà rendu dessous pendant que la couche est encore
+// transparente — c'est exactement le board qu'on voyait une fraction de
+// seconde avant l'annonce. Le noir doit être là AVANT que quoi que ce soit
+// d'autre n'ait la moindre chance de peindre, donc c'est un simple attribut
+// CSS statique de la classe, jamais un état posé après le montage.
+//
 // ⚠️ `pointer-events-none` sur toute la couche, comme les autres transitions
 // de phase : rien ne doit pouvoir bloquer un geste en dessous, même si dans
 // les faits le joueur n'a rien à taper avant la fin de l'annonce.
@@ -77,7 +86,6 @@ export default function DuelIntro({
   const playerAvatar = (user as { avatar?: string | null } | null)?.avatar ?? null;
   const playerName = user?.username ?? 'Toi';
 
-  const [playing, setPlaying] = useState(false);
   const [done, setDone] = useState(false);
 
   // `onDone` change d'identité à chaque rendu du parent (closure sur
@@ -102,14 +110,12 @@ export default function DuelIntro({
     useGameStore.getState().applySnapshot({ duelIntro: true });
     const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const total = reduced ? Math.min(duration, 1600) : duration;
-    const raf = requestAnimationFrame(() => setPlaying(true));
     const t = setTimeout(() => {
       setDone(true);
       useGameStore.getState().applySnapshot({ duelIntro: false });
       fireDone();
     }, total + 60);
     return () => {
-      cancelAnimationFrame(raf);
       clearTimeout(t);
       // Filet pour une sortie prématurée (abandon via le menu pendant
       // l'annonce, qui reste tapable — elle n'a que `pointer-events-none`
@@ -128,7 +134,7 @@ export default function DuelIntro({
 
   return (
     <div
-      className={`duel-intro${playing ? ' is-playing' : ''}`}
+      className="duel-intro"
       style={{
         ['--dur' as string]: `${duration}ms`,
         ['--dur-vortex' as string]: `${VORTEX_DURATION_MS}ms`,
