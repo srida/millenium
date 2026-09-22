@@ -41,12 +41,13 @@ const SQUASH_DELAY_MS = 45;
 export const TAP_MOVE_TOLERANCE_PX = 10;
 
 /**
- * Anime l'enfoncement d'un bouton et RETARDE l'action de `SQUASH_DELAY_MS` :
- * le temps de course se voit avant que le geste ne compte. Si le doigt QUITTE
- * le bouton avant l'échéance (glissade, début de défilement) OU s'en éloigne
- * de plus de `TAP_MOVE_TOLERANCE_PX` sans le quitter (scroll tactile, cf.
- * ci-dessus), l'action est annulée — c'est ce qui absorbe le geste de
- * défilement commencé sur un bouton, plutôt que de le lire comme un tap.
+ * Anime l'enfoncement d'un bouton et RETARDE l'action d'au moins
+ * `SQUASH_DELAY_MS` : le temps de course se voit avant que le geste ne
+ * compte. Si le doigt QUITTE le bouton avant l'échéance (glissade, début de
+ * défilement) OU s'en éloigne de plus de `TAP_MOVE_TOLERANCE_PX` sans le
+ * quitter (scroll tactile, cf. ci-dessus), l'action est annulée — c'est ce
+ * qui absorbe le geste de défilement commencé sur un bouton, plutôt que de
+ * le lire comme un tap.
  *
  * Générique sur l'élément (`<button>` comme un `<div>` tap-cible, ex. la
  * carte de deck du `DeckSelector`) : exportée pour que tout ce qui se
@@ -59,6 +60,19 @@ export const TAP_MOVE_TOLERANCE_PX = 10;
  * retarde que l'ACTION. Un tap annulé (glissade, défilement) aura donc
  * quand même vibré/cliqué une fois ; c'est le prix d'un retour immédiat,
  * et c'est celui d'un vrai bouton.
+ *
+ * ⚠️ **L'action ne part JAMAIS avant le relâchement** — `max(pointerup,
+ * pointerdown + SQUASH_DELAY_MS)`, jamais `pointerdown + SQUASH_DELAY_MS`
+ * tout court. Elle partait avant, sur un simple timer lancé au
+ * `pointerdown` : un tap normal dure plus longtemps que les 45 ms du
+ * délai, donc l'action (souvent une navigation) partait pendant que le
+ * doigt était ENCORE posé. Sur un bouton qui change d'écran, ça démonte le
+ * bouton — et le switch haptique invisible qui vit dedans
+ * (`attachIosHapticSwitch`) — avant que le `pointerup` natif n'ait eu le
+ * temps d'atteindre Safari : sans élément pour le recevoir, le Taptic ne
+ * part jamais. Un doigt tactile capture sa cible au premier contact (même
+ * remarque que `TAP_MOVE_TOLERANCE_PX`), donc la seule façon de garantir
+ * que le `pointerup` arrive est de ne rien démonter avant qu'il soit là.
  */
 export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
   onPointerDown: PointerEventHandler<T> | undefined, disabled: boolean | undefined,
@@ -66,21 +80,34 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
   const [squashed, setSquashed] = useState(false);
   const timer = useRef<number | null>(null);
   const start = useRef<{ x: number; y: number } | null>(null);
+  // L'action en attente : posée au pointerdown, tirée au premier des deux
+  // événements qui arrive en dernier (fin du délai de course, relâchement).
+  const pending = useRef<(() => void) | null>(null);
+  const released = useRef(true);
 
   const clearTimer = () => {
     if (timer.current !== null) { window.clearTimeout(timer.current); timer.current = null; }
   };
   useEffect(() => clearTimer, []);
 
+  const runPending = () => {
+    const fn = pending.current;
+    pending.current = null;
+    fn?.();
+  };
+
   const handleDown: PointerEventHandler<T> = (e) => {
     if (disabled) return;
     start.current = { x: e.clientX, y: e.clientY };
     setSquashed(true);
     playButtonFeedback();
-    if (onPointerDown) {
-      clearTimer();
-      timer.current = window.setTimeout(() => onPointerDown(e), SQUASH_DELAY_MS);
-    }
+    released.current = false;
+    pending.current = onPointerDown ? () => onPointerDown(e) : null;
+    clearTimer();
+    timer.current = window.setTimeout(() => {
+      timer.current = null;
+      if (released.current) runPending();
+    }, SQUASH_DELAY_MS);
   };
   const handleMove: PointerEventHandler<T> = (e) => {
     if (!start.current) return;
@@ -88,8 +115,32 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
     const dy = e.clientY - start.current.y;
     if (dx * dx + dy * dy > TAP_MOVE_TOLERANCE_PX * TAP_MOVE_TOLERANCE_PX) cancelPending();
   };
-  const release = () => { setSquashed(false); start.current = null; };
-  const cancelPending = () => { clearTimer(); setSquashed(false); start.current = null; };
+  const release = () => {
+    setSquashed(false);
+    start.current = null;
+    released.current = true;
+    // Le délai est déjà écoulé (tap plus long que `SQUASH_DELAY_MS`, le cas
+    // normal) : l'action part au relâchement réel. Sinon (tap très bref), le
+    // timer encore en cours la tirera lui-même dès qu'il s'écoule,
+    // `released.current` étant déjà vrai.
+    //
+    // ⚠️ JAMAIS `runPending()` en direct ici : le navigateur envoie encore
+    // `click` juste APRÈS `pointerup`, dans la MÊME tâche JS (c'est ce `click`
+    // qui bascule le switch haptique iOS d'`attachIosHapticSwitch`, cf.
+    // `feedback.ts`). Une action qui démonte le bouton de façon SYNCHRONE
+    // dans le gestionnaire de `pointerup` retire le switch avant que ce
+    // `click` n'ait eu lieu — il n'a alors plus de cible et Safari ne
+    // déclenche rien. `setTimeout(…, 0)` repousse d'une tâche, après que le
+    // navigateur a fini sa propre séquence pointerup → click pour ce geste.
+    if (timer.current === null) window.setTimeout(runPending, 0);
+  };
+  const cancelPending = () => {
+    clearTimer();
+    pending.current = null;
+    setSquashed(false);
+    start.current = null;
+    released.current = true;
+  };
 
   return {
     squashed,
