@@ -1,9 +1,11 @@
 // Le volet de passage d'une phase à l'autre : préparation → combat, puis
 // récapitulatif → Phase Shopping.
 //
-// ⚠️ Le Shopping reste MUET : deux bandes qui balaient l'écran, rien d'autre.
-// Son titre de modale s'annonce déjà lui-même, et rien n'est superposé dessus
-// au même instant — une seconde façon de le dire ne pourrait que le répéter.
+// ⚠️ Shopping PORTE le mot « SHOPPING » (motif « Lancer de dés » : les deux
+// mascottes qui arrivent en cadre, le flash, les deux dés qui roulent et
+// s'arrêtent, le mot qui claque). Il recouvre l'écran pendant tout le volet et
+// s'efface en sortant sur la modale déjà publiée dessous — comme pour Combat,
+// rien ne PILOTE l'ouverture, le volet ne fait que la découvrir.
 //
 // ⚠️ Combat, lui, PORTE le mot « COMBAT » (motif « Faille runique » : deux
 // sceaux aux couleurs des joueurs qui se rejoignent au centre, la faille qui
@@ -31,20 +33,34 @@ import { COMBAT_INTRO_MS, SHOPPING_INTRO_MS } from '../../game/timings.js';
 
 const WIPE: Record<'combat' | 'shopping', { durationMs: number; className: string }> = {
   combat:   { durationMs: COMBAT_INTRO_MS,   className: 'phase-wipe-combat' },
-  shopping: { durationMs: SHOPPING_INTRO_MS, className: 'phase-wipe-shopping' },
+  shopping: { durationMs: SHOPPING_INTRO_MS, className: 'phase-wipe-shopping-wrap' },
 };
 
-// Les arcs qui giclent du point de jonction des deux sceaux — angles et
-// rayons répartis à la main plutôt qu'au hasard, pour que le motif soit
-// identique à chaque combat au lieu de gigoter d'une manche à l'autre.
-// Miroir de `ring(12, 22, 44, 3)` du prototype `millenium-phase-transition.js`
-// (bundle Claude Design « Faille runique »).
-const RIFT_ARC_COUNT = 12;
-const RIFT_ARCS = Array.from({ length: RIFT_ARC_COUNT }, (_, i) => {
-  const jitter = (((i * 37) % 11) - 5) * (3 / 5);
-  const radiusPct = 22 + (((i * 7) % RIFT_ARC_COUNT) / RIFT_ARC_COUNT) * (44 - 22);
-  return { angleDeg: i * (360 / RIFT_ARC_COUNT) + jitter, radiusFrac: radiusPct / 100 };
-});
+// Répartition déterministe d'un anneau de particules — angles et rayons
+// répartis à la main plutôt qu'au hasard, pour que le motif soit identique à
+// chaque partie au lieu de gigoter d'une manche à l'autre. Miroir exact de la
+// fonction `ring(n, rMin, rMax, spread)` des deux prototypes Claude Design
+// (`millenium-phase-transition.js` pour la faille, `millenium-shop-transition.js`
+// pour les dés) — un seul calcul, deux motifs qui l'appellent.
+function ring(n: number, rMin: number, rMax: number, spread: number) {
+  return Array.from({ length: n }, (_, i) => {
+    const jitter = (((i * 37) % 11) - 5) * (spread / 5);
+    const radiusPct = rMin + (((i * 7) % n) / n) * (rMax - rMin);
+    return { angleDeg: i * (360 / n) + jitter, radiusFrac: radiusPct / 100 };
+  });
+}
+
+// Les arcs qui giclent du point de jonction des deux sceaux.
+const RIFT_ARCS = ring(12, 22, 44, 3);
+
+// Les pièces et les traits de lumière qui giclent à l'impact des dés.
+const DICE_COINS = ring(14, 18, 42, 4);
+const DICE_SPARKS = ring(16, 22, 46, 3);
+
+// Les points des deux dés — position dans la grille 3×3, mêmes faces que le
+// prototype (dé gauche : 5, dé droit : 6).
+const DICE_PIPS_L = ['1/1', '1/3', '2/2', '3/1', '3/3'];
+const DICE_PIPS_R = ['1/1', '1/3', '2/1', '2/3', '3/1', '3/3'];
 
 export default function PhaseWipe() {
   const wipe = useGameStore(s => s.phaseWipe);
@@ -57,21 +73,64 @@ export default function PhaseWipe() {
       style={{ ['--phase-wipe-dur' as string]: `${durationMs}ms` }}
       aria-hidden="true"
     >
-      {wipe.kind === 'combat' ? <CombatRift /> : <ShoppingBands />}
+      {wipe.kind === 'combat' ? <CombatRift /> : <ShoppingDice />}
     </div>
   );
 }
 
-/* Deux bandes qui se croisent en sens inverse. L'écran n'est couvert qu'à
-   l'instant où elles se rejoignent, et c'est tout l'intérêt : ce qui vient
-   ensuite est DÉCOUVERT au lieu d'apparaître d'un coup. Un voile qui s'allume
-   et s'éteint sur place donnerait un clignotement, cinq fois par partie. */
-function ShoppingBands() {
+/* Le motif « Lancer de dés » (bundle Claude Design `millenium-shop-transition.js`) :
+   les deux mascottes arrivent en cadre, un flash claque au centre, pièces et
+   traits de lumière giclent, les deux dés tombent et roulent jusqu'à l'arrêt,
+   le mot « SHOPPING » claque à leur creux — puis tout s'efface et découvre la
+   modale déjà publiée dessous, exactement comme `CombatRift` découvre le
+   plateau. */
+function ShoppingDice() {
   return (
-    <>
-      <div className="phase-wipe-band phase-wipe-band-top" />
-      <div className="phase-wipe-band phase-wipe-band-bottom" />
-    </>
+    <div className="phase-wipe-dice">
+      <div className="phase-wipe-dice-veil" />
+      <div className="phase-wipe-dice-char phase-wipe-dice-char-l" />
+      <div className="phase-wipe-dice-char phase-wipe-dice-char-r" />
+      <div className="phase-wipe-dice-flash" />
+      <div className="phase-wipe-dice-ring" />
+      {DICE_COINS.map((p, i) => (
+        <div
+          key={i}
+          className="phase-wipe-dice-coin"
+          style={{
+            ['--phase-wipe-dice-ang' as string]: `${p.angleDeg.toFixed(1)}deg`,
+            ['--phase-wipe-dice-rad' as string]: `calc(var(--phase-wipe-dice-u) * ${p.radiusFrac.toFixed(4)})`,
+          }}
+        />
+      ))}
+      {DICE_SPARKS.map((p, i) => (
+        <div
+          key={i}
+          className="phase-wipe-dice-spark"
+          style={{
+            ['--phase-wipe-dice-ang' as string]: `${p.angleDeg.toFixed(1)}deg`,
+            ['--phase-wipe-dice-rad' as string]: `calc(var(--phase-wipe-dice-u) * ${p.radiusFrac.toFixed(4)})`,
+          }}
+        />
+      ))}
+      <div className="phase-wipe-dice-shadow phase-wipe-dice-shadow-l" />
+      <div className="phase-wipe-dice-shadow phase-wipe-dice-shadow-r" />
+      <DiceFace side="l" pips={DICE_PIPS_L} />
+      <DiceFace side="r" pips={DICE_PIPS_R} />
+      <div className="phase-wipe-dice-copy">
+        <p className="phase-wipe-dice-word">SHOPPING</p>
+        <div className="phase-wipe-dice-rule" />
+      </div>
+    </div>
+  );
+}
+
+function DiceFace({ side, pips }: { side: 'l' | 'r'; pips: string[] }) {
+  return (
+    <div className={`phase-wipe-dice-die phase-wipe-dice-die-${side}`}>
+      {pips.map((area, i) => (
+        <span key={i} className="phase-wipe-dice-pip" style={{ gridArea: area }} />
+      ))}
+    </div>
   );
 }
 

@@ -179,46 +179,262 @@ input, textarea, select { font-size: 1rem !important; }
   animation: round-intro-veil-anim var(--round-intro-dur, 1.4s) ease forwards;
 }
 
-/* ── Volet de passage d'une phase à l'autre (cf. `components/overlays/PhaseWipe`) ──
-   Le Shopping : deux bandes qui balaient l'écran en sens inverse, muettes.
-   Même grammaire que les deux annonces au-dessus : la durée vient du
-   composant, qui la tient du contrôleur — l'animation ne peut donc pas durer
-   plus longtemps que l'état qu'elle habille.
-   ⚠️ Des BANDES et non un aplat : un voile plein masquerait le plateau cinq
-   fois par partie, or c'est lui qu'on vient découvrir. Le dégradé s'éteint sur
-   le bord de fuite, donc le balayage laisse toujours voir quelque chose. */
-@keyframes phase-wipe-top {
-  0%   { transform: translateX(-100%); }
-  55%  { transform: translateX(0); }
-  100% { transform: translateX(100%); }
-}
-@keyframes phase-wipe-bottom {
-  0%   { transform: translateX(100%); }
-  55%  { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
-}
-.phase-wipe-band {
+/* ── Shopping : motif « Lancer de dés » (bundle Claude Design,
+   `millenium-shop-transition.js` / `shop-demo.html`) ──
+   Les deux mascottes arrivent en cadre, un flash claque au centre, pièces et
+   traits de lumière giclent en anneau, les deux dés tombent et roulent
+   jusqu'à l'arrêt, le mot « SHOPPING » claque à leur creux — puis tout
+   s'efface et découvre la modale de Shopping déjà publiée dessous.
+   Tout est calé sur `--phase-wipe-dice-u` (plus petite dimension de l'écran),
+   même convention que `--phase-wipe-rift-u` juste en dessous : identique en
+   portrait et paysage, du mobile au desktop. */
+.phase-wipe-dice {
   position: absolute;
-  left: 0;
-  width: 100%;
-  height: 50%;
-  /* La teinte est la SEULE chose qui distingue la bande du Shopping d'un
-     rectangle noir. Elle vient de la couleur de bord du décor spatial, pour
-     que le balayage se lise comme un pan du jeu qui passe devant. */
-  background: linear-gradient(90deg,
-    transparent 0%,
-    color-mix(in srgb, var(--color-space-edge) 92%, var(--phase-wipe-tint, transparent)) 18%,
-    color-mix(in srgb, var(--color-space-edge) 92%, var(--phase-wipe-tint, transparent)) 82%,
-    transparent 100%);
+  inset: 0;
+  --phase-wipe-dice-u: min(100vw, 100vh);
+  --phase-wipe-dice-a: #3b7dff;
+  --phase-wipe-dice-b: #f2453c;
+  --phase-wipe-dice-pip: #07070c;
 }
-.phase-wipe-shopping { --phase-wipe-tint: var(--color-gold); }
-.phase-wipe-band-top {
-  top: 0;
-  animation: phase-wipe-top var(--phase-wipe-dur, 900ms) cubic-bezier(.65, 0, .35, 1) forwards;
+@keyframes phase-wipe-dice-veil {
+  0%   { opacity: 0; }
+  14%  { opacity: 1; }
+  86%  { opacity: 1; }
+  100% { opacity: 0; }
 }
-.phase-wipe-band-bottom {
-  bottom: 0;
-  animation: phase-wipe-bottom var(--phase-wipe-dur, 900ms) cubic-bezier(.65, 0, .35, 1) forwards;
+.phase-wipe-dice-veil {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 120% at 50% 55%, rgba(28, 16, 52, .72) 0%, #06040e 78%);
+  animation: phase-wipe-dice-veil var(--phase-wipe-dur, 1500ms) linear both;
+}
+/* Les deux mascottes — même image, deux fenêtres différentes (recadrage par
+   `background-position`/`background-size`, révélées par un masque radial). */
+.phase-wipe-dice-char {
+  position: absolute;
+  top: 47%;
+  left: 50%;
+  background-image: url('/phase-wipe/shopping-dice.png');
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 calc(2 * var(--phase-wipe-dice-u) * .01) rgba(255, 214, 120, .55));
+  animation-duration: var(--phase-wipe-dur, 1500ms);
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(.2, .8, .28, 1);
+}
+.phase-wipe-dice-char-l {
+  width: calc(var(--phase-wipe-dice-u) * .24);
+  height: calc(var(--phase-wipe-dice-u) * .24);
+  margin: calc(var(--phase-wipe-dice-u) * -.15) 0 0 calc(var(--phase-wipe-dice-u) * -.28);
+  background-size: 227% 227%;
+  background-position: 4% 7%;
+  -webkit-mask-image: radial-gradient(circle at 50% 46%, #000 36%, transparent 60%);
+  mask-image: radial-gradient(circle at 50% 46%, #000 36%, transparent 60%);
+  transform-origin: 50% 60%;
+  animation-name: phase-wipe-dice-char-l;
+}
+.phase-wipe-dice-char-r {
+  width: calc(var(--phase-wipe-dice-u) * .22);
+  height: calc(var(--phase-wipe-dice-u) * .29);
+  margin: calc(var(--phase-wipe-dice-u) * -.17) 0 0 calc(var(--phase-wipe-dice-u) * .05);
+  background-size: 208% 156%;
+  background-position: 100% 22%;
+  -webkit-mask-image: radial-gradient(ellipse at 44% 42%, #000 34%, transparent 60%);
+  mask-image: radial-gradient(ellipse at 44% 42%, #000 34%, transparent 60%);
+  transform-origin: 50% 55%;
+  animation-name: phase-wipe-dice-char-r;
+}
+@keyframes phase-wipe-dice-char-l {
+  0%   { transform: translate(calc(var(--phase-wipe-dice-u) * -.14), calc(var(--phase-wipe-dice-u) * .04)) scale(.7) rotate(-10deg); opacity: 0; }
+  18%  { opacity: 0; }
+  38%  { transform: translate(0, 0) scale(1.04) rotate(-2deg); opacity: 1; }
+  48%  { transform: translate(0, calc(var(--phase-wipe-dice-u) * -.008)) scale(1) rotate(0deg); }
+  86%  { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(calc(var(--phase-wipe-dice-u) * -.03), calc(var(--phase-wipe-dice-u) * .006)) scale(.98); opacity: 0; }
+}
+@keyframes phase-wipe-dice-char-r {
+  0%   { transform: translate(calc(var(--phase-wipe-dice-u) * .14), calc(var(--phase-wipe-dice-u) * .04)) scale(.7) rotate(10deg); opacity: 0; }
+  18%  { opacity: 0; }
+  38%  { transform: translate(0, 0) scale(1.04) rotate(2deg); opacity: 1; }
+  48%  { transform: translate(0, calc(var(--phase-wipe-dice-u) * -.008)) scale(1) rotate(0deg); }
+  86%  { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(calc(var(--phase-wipe-dice-u) * .03), calc(var(--phase-wipe-dice-u) * .006)) scale(.98); opacity: 0; }
+}
+@keyframes phase-wipe-dice-flash { 0%, 30% { opacity: 0; } 34% { opacity: 1; } 54%, 100% { opacity: 0; } }
+.phase-wipe-dice-flash {
+  position: absolute;
+  top: 47%;
+  left: 50%;
+  width: calc(var(--phase-wipe-dice-u) * .44);
+  height: calc(var(--phase-wipe-dice-u) * .44);
+  margin: calc(var(--phase-wipe-dice-u) * -.22) 0 0 calc(var(--phase-wipe-dice-u) * -.22);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6da 0%, rgba(212, 168, 67, .6) 24%, transparent 64%);
+  animation: phase-wipe-dice-flash var(--phase-wipe-dur, 1500ms) linear both;
+}
+@keyframes phase-wipe-dice-ring {
+  0%, 31% { transform: scale(.06); opacity: 0; }
+  35%     { opacity: 1; }
+  100%    { transform: scale(3.2); opacity: 0; }
+}
+.phase-wipe-dice-ring {
+  position: absolute;
+  top: 47%;
+  left: 50%;
+  width: calc(var(--phase-wipe-dice-u) * .24);
+  height: calc(var(--phase-wipe-dice-u) * .24);
+  margin: calc(var(--phase-wipe-dice-u) * -.12) 0 0 calc(var(--phase-wipe-dice-u) * -.12);
+  border-radius: 50%;
+  border: calc(var(--phase-wipe-dice-u) * .005) solid rgba(255, 240, 205, .8);
+  animation: phase-wipe-dice-ring var(--phase-wipe-dur, 1500ms) cubic-bezier(.16, .84, .3, 1) both;
+}
+@keyframes phase-wipe-dice-coin {
+  0%, 30% { transform: rotate(var(--phase-wipe-dice-ang)) translateX(calc(var(--phase-wipe-dice-u) * .02)) rotate(calc(-1 * var(--phase-wipe-dice-ang))) scale(.4); opacity: 0; }
+  34%     { opacity: 1; }
+  100%    { transform: rotate(var(--phase-wipe-dice-ang)) translateX(var(--phase-wipe-dice-rad)) rotate(calc(-1 * var(--phase-wipe-dice-ang))) scale(.9); opacity: 0; }
+}
+.phase-wipe-dice-coin {
+  position: absolute;
+  top: 47%;
+  left: 50%;
+  width: calc(var(--phase-wipe-dice-u) * .022);
+  height: calc(var(--phase-wipe-dice-u) * .022);
+  margin: calc(var(--phase-wipe-dice-u) * -.011) 0 0 calc(var(--phase-wipe-dice-u) * -.011);
+  border-radius: 50%;
+  background: linear-gradient(140deg, #ffe9ad, #d4a843 55%, #8a6512);
+  box-shadow: 0 0 calc(var(--phase-wipe-dice-u) * .006) rgba(212, 168, 67, .7);
+  animation: phase-wipe-dice-coin var(--phase-wipe-dur, 1500ms) cubic-bezier(.14, .82, .26, 1) both;
+}
+@keyframes phase-wipe-dice-spark {
+  0%, 30% { transform: rotate(var(--phase-wipe-dice-ang)) translateX(calc(var(--phase-wipe-dice-u) * .02)) scaleX(.4); opacity: 0; }
+  34%     { opacity: 1; }
+  100%    { transform: rotate(var(--phase-wipe-dice-ang)) translateX(var(--phase-wipe-dice-rad)) scaleX(1.5); opacity: 0; }
+}
+.phase-wipe-dice-spark {
+  position: absolute;
+  top: 47%;
+  left: 50%;
+  width: calc(var(--phase-wipe-dice-u) * .06);
+  height: calc(var(--phase-wipe-dice-u) * .003);
+  border-radius: 99px;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, rgba(255, 250, 235, .95), rgba(212, 168, 67, 0));
+  animation: phase-wipe-dice-spark var(--phase-wipe-dur, 1500ms) cubic-bezier(.12, .8, .26, 1) both;
+}
+@keyframes phase-wipe-dice-shadow {
+  0%, 30% { transform: scaleX(.2); opacity: 0; }
+  34%     { transform: scaleX(1); opacity: .55; }
+  86%     { opacity: .55; }
+  100%    { opacity: 0; }
+}
+.phase-wipe-dice-shadow {
+  position: absolute;
+  top: 60.5%;
+  left: 50%;
+  width: calc(var(--phase-wipe-dice-u) * .16);
+  height: calc(var(--phase-wipe-dice-u) * .024);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(0, 0, 0, .75), transparent 70%);
+  animation: phase-wipe-dice-shadow var(--phase-wipe-dur, 1500ms) linear both;
+}
+.phase-wipe-dice-shadow-l { margin-left: calc(var(--phase-wipe-dice-u) * -.21); }
+.phase-wipe-dice-shadow-r { margin-left: calc(var(--phase-wipe-dice-u) * .05); }
+
+.phase-wipe-dice-die {
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  width: calc(var(--phase-wipe-dice-u) * .13);
+  height: calc(var(--phase-wipe-dice-u) * .13);
+  border-radius: calc(var(--phase-wipe-dice-u) * .022);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: calc(var(--phase-wipe-dice-u) * .017);
+  gap: calc(var(--phase-wipe-dice-u) * .007);
+  box-sizing: border-box;
+  animation-duration: var(--phase-wipe-dur, 1500ms);
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(.2, .78, .3, 1);
+  animation-name: phase-wipe-dice-die;
+}
+.phase-wipe-dice-pip { border-radius: 50%; background: var(--phase-wipe-dice-pip); }
+.phase-wipe-dice-die-l {
+  margin-left: calc(var(--phase-wipe-dice-u) * -.195);
+  background: linear-gradient(150deg, color-mix(in srgb, var(--phase-wipe-dice-a) 92%, #fff) 0%, var(--phase-wipe-dice-a) 45%, color-mix(in srgb, var(--phase-wipe-dice-a) 55%, #000) 100%);
+  border: calc(var(--phase-wipe-dice-u) * .0025) solid rgba(180, 210, 255, .75);
+  box-shadow: 0 calc(var(--phase-wipe-dice-u) * .01) calc(var(--phase-wipe-dice-u) * .024) rgba(0, 0, 0, .55),
+              inset 0 calc(var(--phase-wipe-dice-u) * -.008) calc(var(--phase-wipe-dice-u) * .016) rgba(8, 20, 70, .55),
+              inset 0 calc(var(--phase-wipe-dice-u) * .006) calc(var(--phase-wipe-dice-u) * .012) rgba(255, 255, 255, .3);
+  --phase-wipe-dice-x0: calc(var(--phase-wipe-dice-u) * -.34);
+  --phase-wipe-dice-r0: -880deg;
+  --phase-wipe-dice-r1: -64deg;
+  --phase-wipe-dice-r2: -8deg;
+}
+.phase-wipe-dice-die-r {
+  margin-left: calc(var(--phase-wipe-dice-u) * .065);
+  background: linear-gradient(150deg, color-mix(in srgb, var(--phase-wipe-dice-b) 92%, #fff) 0%, var(--phase-wipe-dice-b) 45%, color-mix(in srgb, var(--phase-wipe-dice-b) 50%, #000) 100%);
+  border: calc(var(--phase-wipe-dice-u) * .0025) solid rgba(255, 190, 185, .7);
+  box-shadow: 0 calc(var(--phase-wipe-dice-u) * .01) calc(var(--phase-wipe-dice-u) * .024) rgba(0, 0, 0, .6),
+              inset 0 calc(var(--phase-wipe-dice-u) * -.008) calc(var(--phase-wipe-dice-u) * .016) rgba(70, 6, 8, .55),
+              inset 0 calc(var(--phase-wipe-dice-u) * .006) calc(var(--phase-wipe-dice-u) * .012) rgba(255, 255, 255, .28);
+  --phase-wipe-dice-x0: calc(var(--phase-wipe-dice-u) * .34);
+  --phase-wipe-dice-r0: 940deg;
+  --phase-wipe-dice-r1: 58deg;
+  --phase-wipe-dice-r2: 11deg;
+}
+@keyframes phase-wipe-dice-die {
+  0%   { transform: translate(var(--phase-wipe-dice-x0), calc(var(--phase-wipe-dice-u) * .22)) rotate(var(--phase-wipe-dice-r0)) scale(.5); opacity: 0; }
+  8%   { opacity: 1; }
+  26%  { transform: translate(0, calc(var(--phase-wipe-dice-u) * -.03)) rotate(var(--phase-wipe-dice-r1)) scale(1.14); }
+  34%  { transform: translate(0, calc(var(--phase-wipe-dice-u) * .032)) rotate(var(--phase-wipe-dice-r2)) scale(1); }
+  41%  { transform: translate(0, calc(var(--phase-wipe-dice-u) * -.014)) rotate(var(--phase-wipe-dice-r2)) scale(1.02); }
+  48%  { transform: translate(0, calc(var(--phase-wipe-dice-u) * .032)) rotate(var(--phase-wipe-dice-r2)); }
+  53%  { transform: translate(0, calc(var(--phase-wipe-dice-u) * .022)) rotate(var(--phase-wipe-dice-r2)); }
+  58%, 86% { transform: translate(0, calc(var(--phase-wipe-dice-u) * .032)) rotate(var(--phase-wipe-dice-r2)); opacity: 1; }
+  100% { transform: translate(0, calc(var(--phase-wipe-dice-u) * .032)) rotate(var(--phase-wipe-dice-r2)) scale(.96); opacity: 0; }
+}
+
+.phase-wipe-dice-copy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: calc(var(--phase-wipe-dice-u) * .07) 4vw 0;
+  gap: calc(var(--phase-wipe-dice-u) * .016);
+  text-align: center;
+}
+.phase-wipe-dice-word {
+  margin: 0;
+  font-weight: 900;
+  font-size: clamp(28px, calc(var(--phase-wipe-dice-u) * .115), 220px);
+  line-height: .86;
+  color: #fff;
+  text-shadow: 0 0 calc(var(--phase-wipe-dice-u) * .03) rgba(212, 168, 67, .75),
+               0 calc(var(--phase-wipe-dice-u) * .005) 0 rgba(0, 0, 0, .45);
+  animation: phase-wipe-dice-word var(--phase-wipe-dur, 1500ms) linear both;
+}
+.phase-wipe-dice-rule {
+  width: calc(var(--phase-wipe-dice-u) * .3);
+  max-width: 60vw;
+  height: max(1px, calc(var(--phase-wipe-dice-u) * .0018));
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+  animation: phase-wipe-dice-rule var(--phase-wipe-dur, 1500ms) linear both;
+}
+@keyframes phase-wipe-dice-word {
+  0%, 40% { opacity: 0; letter-spacing: .5em; transform: scale(1.45); }
+  48%     { opacity: 1; letter-spacing: .06em; transform: scale(1); }
+  52%     { transform: scale(1.02); }
+  56%     { transform: scale(1); }
+  86%     { opacity: 1; }
+  100%    { opacity: 0; transform: scale(1.04); }
+}
+@keyframes phase-wipe-dice-rule {
+  0%, 46% { transform: scaleX(0); opacity: 0; }
+  60%     { transform: scaleX(1); opacity: 1; }
+  86%     { opacity: 1; }
+  100%    { opacity: 0; }
 }
 
 /* ── Combat : motif « Faille runique » (bundle Claude Design, cf. chats/) ──
@@ -377,21 +593,28 @@ input, textarea, select { font-size: 1rem !important; }
 }
 .hp-delta { animation: hp-delta-anim 1500ms ease forwards; }
 
-/* ⚠️ Le Shopping disparaît ENTIÈREMENT en mouvement réduit : il ne porte
-   aucune information (le titre de la modale s'annonce déjà lui-même), il n'y
-   a donc rien à garder une fois le balayage retiré.
-   Combat, lui, porte le mot : on retire le mouvement (sceaux, faille, arcs),
-   pas le mot — même règle que `round-intro-veil` juste au-dessus. Les barres
-   de vie annoncent elles aussi TOUJOURS ce qu'elles encaissent : c'est le
-   mouvement qu'on retire, pas le montant. */
+/* ⚠️ Les deux volets portent un mot : on retire le MOUVEMENT (sceaux, faille,
+   arcs côté Combat ; mascottes, dés, pièces, traits de lumière côté Shopping),
+   jamais le mot — même règle que `round-intro-veil` juste au-dessus. Les
+   barres de vie annoncent elles aussi TOUJOURS ce qu'elles encaissent : c'est
+   le mouvement qu'on retire, pas le montant. */
 @media (prefers-reduced-motion: reduce) {
-  .phase-wipe-band { display: none; }
   .phase-wipe-rift-seal,
   .phase-wipe-rift-crack,
   .phase-wipe-rift-arc { display: none; }
   .phase-wipe-rift-veil,
   .phase-wipe-rift-flash { animation: none; opacity: .9; }
   .phase-wipe-rift-word { animation: none; opacity: 1; letter-spacing: .06em; transform: none; }
+  .phase-wipe-dice-char,
+  .phase-wipe-dice-die,
+  .phase-wipe-dice-ring,
+  .phase-wipe-dice-coin,
+  .phase-wipe-dice-spark,
+  .phase-wipe-dice-shadow { display: none; }
+  .phase-wipe-dice-veil,
+  .phase-wipe-dice-flash { animation: none; opacity: .9; }
+  .phase-wipe-dice-word { animation: none; opacity: 1; letter-spacing: .06em; transform: none; }
+  .phase-wipe-dice-rule { animation: none; opacity: 1; transform: none; }
   .hp-lag, .hp-fill { transition: none; }
   .hp-delta { animation: none; }
 }
