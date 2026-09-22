@@ -89,7 +89,12 @@ export default function GameScreen() {
     const ctrl = new GameController(session);
     setControllerLocal(ctrl);
     setController(ctrl);
-    ctrl.begin();
+    // ⚠️ `ctrl.begin()` PAS ici : c'est `DuelIntro.onDone` qui le déclenche
+    // (cf. plus bas dans le rendu) — la partie (préparation, main, annonce de
+    // tour) doit démarrer À LA FIN de l'annonce de lancement, pas dessous.
+    // `attachScene` (Board3DCanvas) reste indépendant et se noue tout de
+    // suite : le board vide n'a rien à cacher tant que `begin()` n'a pas
+    // couru.
     return () => {
       ctrl.dispose();
       setController(null);
@@ -108,7 +113,7 @@ export default function GameScreen() {
     <div className="relative h-dvh overflow-hidden bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
       <Board3DCanvas controller={controller} />
       <Hud enemyAvatarSrc={enemyAvatarSrc} enemyName={enemyName} />
-      <DuelIntro enemyAvatarSrc={enemyAvatarSrc} enemyName={enemyName} />
+      <DuelIntro enemyAvatarSrc={enemyAvatarSrc} enemyName={enemyName} onDone={() => controller.begin()} />
       <SynergyPanel />
       <GraveyardTray />
       <HandBar />
