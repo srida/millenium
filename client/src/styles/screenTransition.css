@@ -1,0 +1,23 @@
+/* Transition entre écrans de menu (accueil, boutique, profil, catalogue,
+   missions, cadeaux, sélecteur de deck, tournoi, arcade, tutoriel, lobby en
+   ligne) — cf. `components/nav/ScreenTransition.tsx`.
+
+   ⚠️ Ne concerne QUE les écrans non immersifs (`App.tsx`, hors
+   `IMMERSIVE_SCREENS`) : `game` / `game_pvp` en sont exclus par construction,
+   ils gardent leurs propres transitions (`duelIntro.css` au lancement,
+   `outcomeTransition.css` à la fin) sans qu'aucune des deux ne se recouvre —
+   le passage menu → partie et partie → menu change de branche de rendu tout
+   entière (header/footer compris), il n'entre jamais dans ce fichier. */
+@keyframes screen-transition-enter {
+  0%   { opacity: 0; transform: translateY(10px) scale(.985); }
+  100% { opacity: 1; transform: none; }
+}
+.screen-transition {
+  animation: screen-transition-enter 220ms cubic-bezier(.2, .8, .3, 1) both;
+}
+
+/* Le mouvement s'efface, l'écran arrive tel quel — même règle que partout
+   ailleurs dans le projet (terrain, ouverture de tour, volets de phase). */
+@media (prefers-reduced-motion: reduce) {
+  .screen-transition { animation: none; }
+}
