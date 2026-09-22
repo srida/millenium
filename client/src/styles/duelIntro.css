@@ -51,8 +51,16 @@
 
 .duel-intro-veil {
   inset: 0;
+  /* ⚠️ Le FOND est un noir SOLIDE (`#040100`, opaque partout), pas la seule
+     couleur de bord du dégradé d'origine : celui-ci ne montait à l'opacité 1
+     qu'à ses BORDS (`rgba(...,.92)` puis `.86` au centre), ce qui suffisait à
+     peine à couvrir le décor de démonstration mais laissait le vrai board 3D
+     (units, terrain, illustrations, bien plus lumineux) transparaître au
+     centre de l'écran — justement là où le regard se pose. Le dégradé chaud
+     reste, posé PAR-DESSUS ce fond opaque comme un simple accent de teinte. */
   background:
-    radial-gradient(60% 60% at 50% 50%, rgba(0, 0, 0, .92) 0%, rgba(8, 3, 0, .86) 45%, #060200 100%);
+    radial-gradient(60% 60% at 50% 50%, rgba(40, 14, 0, .55) 0%, rgba(10, 4, 0, .35) 45%, transparent 100%),
+    #040100;
   animation: duel-intro-veil var(--dur) linear both;
 }
 
