@@ -19,6 +19,7 @@ import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { TerrainAlert, SummonOptionMenu, CombatOutro, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import PhaseWipe from '../components/overlays/PhaseWipe.js';
+import DuelIntro from '../components/overlays/DuelIntro.js';
 import { RoundIntro, DrawPopup } from '../components/overlays/RoundStart.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import TutorialCoach from '../components/tutorial/TutorialCoach.js';
@@ -107,6 +108,7 @@ export default function GameScreen() {
     <div className="relative h-dvh overflow-hidden bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
       <Board3DCanvas controller={controller} />
       <Hud enemyAvatarSrc={enemyAvatarSrc} enemyName={enemyName} />
+      <DuelIntro enemyAvatarSrc={enemyAvatarSrc} enemyName={enemyName} />
       <SynergyPanel />
       <GraveyardTray />
       <HandBar />
@@ -130,12 +132,14 @@ export default function GameScreen() {
           voir le combat partir sous elle, ni la magie se choisir à sa place.
           Il gèle aussi sur l'ouverture de tour (`roundIntro`/`drawPopup`) : la
           popup de pioche attend un geste, et hors réseau rien n'oblige à le
-          compter dans les 60 s de préparation. Même modèle que `menuOpen`. */}
+          compter dans les 60 s de préparation. Même modèle que `menuOpen`.
+          `duelIntro` gèle les toutes premières secondes, le temps de
+          l'annonce de lancement (cf. `DuelIntro`). */}
       <PhaseTimer
         durationS={PREP_DURATION_S}
         field="prepRemaining"
         restartKey={round}
-        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.coachBlocking && !s.roundIntro && !s.drawPopup && !s.gameOver}
+        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.coachBlocking && !s.roundIntro && !s.drawPopup && !s.gameOver && !s.duelIntro}
         onTimeout={() => controller.onPrepTimeout()}
       />
       {shoppingOpen && (

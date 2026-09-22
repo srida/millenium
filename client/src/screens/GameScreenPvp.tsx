@@ -29,6 +29,7 @@ import HandBar from '../components/hand/HandBar.js';
 import GraveyardTray from '../components/hand/GraveyardTray.js';
 import { TerrainAlert, SummonOptionMenu, CombatOutro, EndRoundOverlay, GameOverScreen } from '../components/overlays/Overlays.js';
 import PhaseWipe from '../components/overlays/PhaseWipe.js';
+import DuelIntro from '../components/overlays/DuelIntro.js';
 import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import { PhaseTimer, Banners } from '../components/hud/PhaseTimer.js';
 import { RoundIntro, DrawPopup } from '../components/overlays/RoundStart.js';
@@ -93,6 +94,7 @@ export default function GameScreenPvp() {
     <div className="relative h-dvh overflow-hidden bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
       <Board3DCanvas controller={controller} />
       <HudWithOpponent opponentAvatar={opponentAvatar} />
+      <DuelIntroWithOpponent opponentAvatar={opponentAvatar} />
       <SynergyPanel />
       <GraveyardTray />
       <HandBar />
@@ -104,12 +106,15 @@ export default function GameScreenPvp() {
           elles tiennent au réseau : `pvpWaiting` gèle la préparation (on attend
           l'adversaire à la barrière), et rien ne gèle le shopping — l'adversaire
           attend derrière, le choix doit être borné. Pas de `coachBlocking` non
-          plus : il n'y a pas de tutoriel en duel. */}
+          plus : il n'y a pas de tutoriel en duel. `duelIntro`, lui, ne pose
+          aucun problème réseau (rien n'attend derrière une animation purement
+          locale et jouée du même geste des deux côtés) : il gèle juste les
+          toutes premières secondes, le temps de l'annonce de lancement. */}
       <PhaseTimer
         durationS={PREP_DURATION_S}
         field="prepRemaining"
         restartKey={round}
-        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.pvpWaiting && !s.gameOver}
+        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.pvpWaiting && !s.gameOver && !s.duelIntro}
         onTimeout={() => controller.startCombat()}
       />
       {shoppingOpen && (
@@ -171,6 +176,20 @@ function HudWithOpponent({ opponentAvatar }: { opponentAvatar: string | null }) 
   const opponentName = useGameStore(s => s.pvpOpponent);
   return (
     <Hud
+      enemyAvatarSrc={opponentAvatar}
+      enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
+      enemyName={opponentName}
+    />
+  );
+}
+
+// Même portrait adverse pour l'annonce de lancement — même repli d'initiales
+// que le HUD, sur le même pseudo (rempli à la poignée de main, cf. `begin()`
+// de `PvpController`/`BotController`).
+function DuelIntroWithOpponent({ opponentAvatar }: { opponentAvatar: string | null }) {
+  const opponentName = useGameStore(s => s.pvpOpponent);
+  return (
+    <DuelIntro
       enemyAvatarSrc={opponentAvatar}
       enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
       enemyName={opponentName}
