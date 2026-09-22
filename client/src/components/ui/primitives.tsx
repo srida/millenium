@@ -365,6 +365,12 @@ export function Banner({ text, tone = 'info' }: { text: string; tone?: 'info' | 
  * tient à son parent DOM par rien. Et les événements synthétiques React
  * traversent un portal via l'arbre REACT — les `onPointerDown` des ancêtres
  * (fermeture de tooltip, etc.) continuent donc de recevoir les taps.
+ *
+ * ⚠️ **Le contenu porte son propre `text-white`, pour la même raison que le
+ * `filter` ci-dessus : le portal sort de la `<div className="… text-white">`
+ * qui enrobe toute l'app dans `App.tsx`.** Un texte sans couleur explicite
+ * hérite alors du noir par défaut du navigateur, illisible sur `bg-surface` —
+ * la panne du menu en jeu et de la confirmation de suppression de deck.
  */
 export function Modal({ children, onClose }: { children: ReactNode; onClose?: () => void }) {
   return createPortal(
@@ -372,7 +378,7 @@ export function Modal({ children, onClose }: { children: ReactNode; onClose?: ()
       className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
       onPointerDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
     >
-      <div className="max-h-[88dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gold/40 bg-surface/97 p-4 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="max-h-[88dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gold/40 bg-surface/97 p-4 text-white shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {children}
       </div>
     </div>,
