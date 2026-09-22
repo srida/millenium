@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEve
 import { createPortal } from 'react-dom';
 import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
 import { illustrationUrl } from '../../data/CardArt.js';
-import { playButtonFeedback } from './feedback.js';
+import { playButtonFeedback, attachIosHapticSwitch } from './feedback.js';
 
 type Variant = 'primary' | 'ghost' | 'danger';
 
@@ -103,6 +103,25 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
   };
 }
 
+/**
+ * Pose le switch invisible d'`attachIosHapticSwitch` sur l'élément réel du
+ * bouton, une fois monté — hors iOS, `attachIosHapticSwitch` sort tôt et
+ * cette ref ne coûte qu'un `useRef` inutilisé. Un `useRef(false)` local
+ * plutôt qu'une requête DOM à chaque montage : React StrictMode rejoue
+ * l'effet de montage en dev (monte → nettoie → remonte), le garde-fou évite
+ * de poser deux switches sur le second passage.
+ */
+function useIosHapticRef<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const attached = useRef(false);
+  useEffect(() => {
+    if (attached.current) return;
+    attached.current = true;
+    attachIosHapticSwitch(ref.current);
+  }, []);
+  return ref;
+}
+
 const BUTTON_BASE = 'relative overflow-hidden inline-flex min-h-tap items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold tracking-wide transition-[transform,box-shadow,filter] duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 disabled:scale-100';
 export const SHADOW_IDLE = 'shadow-[0_2px_0_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.12)]';
 export const SHADOW_SQUASHED = 'translate-y-[2px] scale-[0.98] shadow-[inset_0_1px_3px_0_rgba(0,0,0,0.45)]';
@@ -144,8 +163,10 @@ export function Button({
   variant = 'ghost', className = '', children, onPointerDown, disabled, ...rest
 }: { variant?: Variant } & ButtonHTMLAttributes<HTMLButtonElement>) {
   const { squashed, handlers } = usePressSquash<HTMLButtonElement>(onPointerDown, disabled);
+  const hapticRef = useIosHapticRef<HTMLButtonElement>();
   return (
     <button
+      ref={hapticRef}
       disabled={disabled}
       className={`${BUTTON_BASE} ${VARIANTS[variant]} ${squashed && !disabled ? SHADOW_SQUASHED : SHADOW_IDLE} ${className}`}
       {...handlers}
@@ -221,7 +242,8 @@ export function IconButton({
   className?: string;
   onTap: () => void;
 }) {
-  const { squashed, handlers } = usePressSquash(compact ? onTap : undefined, disabled);
+  const { squashed, handlers } = usePressSquash<HTMLButtonElement>(compact ? onTap : undefined, disabled);
+  const hapticRef = useIosHapticRef<HTMLButtonElement>();
 
   if (!compact) {
     return (
@@ -234,12 +256,13 @@ export function IconButton({
   }
   return (
     <button
+      ref={hapticRef}
       type="button"
       disabled={disabled}
       title={label}
       aria-label={label}
       aria-pressed={pressed}
-      className={`group -my-2 flex min-h-tap min-w-tap items-center justify-center disabled:cursor-not-allowed disabled:opacity-30 ${className}`}
+      className={`group relative -my-2 flex min-h-tap min-w-tap items-center justify-center disabled:cursor-not-allowed disabled:opacity-30 ${className}`}
       {...handlers}
     >
       <span className={`relative overflow-hidden flex h-7 w-7 items-center justify-center rounded-md border text-[11px] transition-[transform,box-shadow] duration-100 ease-out ${squashed && !disabled ? 'scale-90 shadow-[inset_0_1px_2px_0_rgba(0,0,0,0.5)]' : 'shadow-[0_1px_0_0_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.15)]'} ${chipClassName}`}>
