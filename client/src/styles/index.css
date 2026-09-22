@@ -191,10 +191,33 @@ input, textarea, select { font-size: 1rem !important; }
 .phase-wipe-dice {
   position: absolute;
   inset: 0;
-  --phase-wipe-dice-u: min(100vw, 100vh);
+  /* ⚠️ PAS `min(100vw, 100vh)` : la scène (`.phase-wipe-dice-scene`, un carré
+     de côté `u`) est relevée de `.15 u` au-dessus du centre (cf. plus bas) —
+     son bord haut peut donc monter jusqu'à `.5u + .15u = .65u` au-dessus du
+     centre. Sur un téléphone en PAYSAGE (hauteur courte), `u` lié à la seule
+     hauteur laisserait ce bord sortir du cadre par le haut. Diviser la borne
+     de hauteur par 1,3 (= 1 + 2×.15) garde ce bord dans l'écran par
+     construction ; la borne de largeur, elle, n'a pas besoin de cette marge
+     (rien ne déborde horizontalement). */
+  --phase-wipe-dice-u: min(100vw, calc(100vh / 1.3));
   --phase-wipe-dice-a: #3b7dff;
   --phase-wipe-dice-b: #f2453c;
   --phase-wipe-dice-pip: #07070c;
+}
+/* ⚠️ Le mot et la scène des dés partagent le MÊME ancrage — le centre du
+   viewport, comme `RiftSeal` et `.phase-wipe-rift-word` chez Combat — jamais
+   chacun sur sa propre percentage indépendante, qui dérive dès que l'écran
+   n'est plus carré (cf. `--phase-wipe-dice-u` ci-dessus). `.phase-wipe-dice-scene`
+   est un carré de côté `u` (la référence carrée sur laquelle les `top`/`left`
+   de ses enfants ont été réglés), simplement RELEVÉ d'un cran au-dessus de ce
+   centre commun : les dés sont l'action, ils prennent le dessus. */
+.phase-wipe-dice-scene {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--phase-wipe-dice-u) * 1);
+  height: calc(var(--phase-wipe-dice-u) * 1);
+  transform: translate(-50%, calc(-50% - var(--phase-wipe-dice-u) * .15));
 }
 @keyframes phase-wipe-dice-veil {
   0%   { opacity: 0; }
@@ -400,13 +423,20 @@ input, textarea, select { font-size: 1rem !important; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: calc(var(--phase-wipe-dice-u) * .07) 4vw 0;
+  justify-content: center;
+  padding: 0 4vw;
   gap: calc(var(--phase-wipe-dice-u) * .016);
   text-align: center;
 }
 .phase-wipe-dice-word {
   margin: 0;
+  /* ⚠️ Filet de sécurité, jamais censé se déclencher : `u ≤ vw` (c'est la plus
+     PETITE dimension) borne déjà `font-size` à ≤ 11,5 % de la largeur, sous ce
+     que 8 majuscules grasses tiennent en une ligne. `max-width` + `anywhere`
+     ne couvrent qu'un empâtement de police inhabituel — ils cassent la ligne
+     plutôt que de laisser le mot déborder de l'écran. */
+  max-width: 92vw;
+  overflow-wrap: anywhere;
   font-weight: 900;
   font-size: clamp(28px, calc(var(--phase-wipe-dice-u) * .115), 220px);
   line-height: .86;
