@@ -191,10 +191,42 @@ input, textarea, select { font-size: 1rem !important; }
 .phase-wipe-dice {
   position: absolute;
   inset: 0;
-  --phase-wipe-dice-u: min(100vw, 100vh);
+  /* ⚠️ PAS `min(100vw, 100vh)` : la scène (`.phase-wipe-dice-scene`, un carré
+     de côté `u`) et le mot empilé AU-DESSUS d'elle mesurent ensemble environ
+     `1.2 u` de haut. Sur un téléphone en PAYSAGE (hauteur < largeur), `u` lié à
+     la seule hauteur aurait donné à la scène, à elle seule, exactement la
+     hauteur de l'écran — le mot n'avait plus nulle part où s'afficher et
+     sortait du cadre par le haut. Diviser la borne de hauteur par 1,2 réserve
+     par construction la place du mot ; la borne de largeur, elle, n'a pas
+     besoin de cette marge (rien ne s'empile horizontalement). */
+  --phase-wipe-dice-u: min(100vw, calc(100vh / 1.2));
   --phase-wipe-dice-a: #3b7dff;
   --phase-wipe-dice-b: #f2453c;
   --phase-wipe-dice-pip: #07070c;
+}
+/* ⚠️ Le mot et la scène des dés se centrent EN BLOC, jamais chacun sur son
+   propre `top`/`left` de viewport : en portrait téléphone, `--phase-wipe-dice-u`
+   (la plus petite dimension) vaut la LARGEUR, bien plus courte que la hauteur —
+   un ancrage en pourcentage de viewport plaçait alors la scène bien au-dessus
+   du milieu réel de l'écran, laissant tout le bas vide et le mot collé en haut.
+   `.phase-wipe-dice-scene` est un carré de côté `u` (la référence carrée sur
+   laquelle les `top`/`left` de ses enfants ont été réglés) ; le centrer, LUI,
+   au lieu du viewport entier, restitue la même composition quel que soit
+   l'écran — portrait comme paysage, téléphone comme bureau. */
+.phase-wipe-dice-group {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--phase-wipe-dice-u) * .04);
+}
+.phase-wipe-dice-scene {
+  position: relative;
+  flex: none;
+  width: calc(var(--phase-wipe-dice-u) * 1);
+  height: calc(var(--phase-wipe-dice-u) * 1);
 }
 @keyframes phase-wipe-dice-veil {
   0%   { opacity: 0; }
@@ -395,18 +427,23 @@ input, textarea, select { font-size: 1rem !important; }
 }
 
 .phase-wipe-dice-copy {
-  position: absolute;
-  inset: 0;
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: calc(var(--phase-wipe-dice-u) * .07) 4vw 0;
+  padding: 0 4vw;
   gap: calc(var(--phase-wipe-dice-u) * .016);
   text-align: center;
 }
 .phase-wipe-dice-word {
   margin: 0;
+  /* ⚠️ Filet de sécurité, jamais censé se déclencher : `u ≤ vw` (c'est la plus
+     PETITE dimension) borne déjà `font-size` à ≤ 11,5 % de la largeur, sous ce
+     que 8 majuscules grasses tiennent en une ligne. `max-width` + `anywhere`
+     ne couvrent qu'un empâtement de police inhabituel — ils cassent la ligne
+     plutôt que de laisser le mot déborder de l'écran. */
+  max-width: 92vw;
+  overflow-wrap: anywhere;
   font-weight: 900;
   font-size: clamp(28px, calc(var(--phase-wipe-dice-u) * .115), 220px);
   line-height: .86;

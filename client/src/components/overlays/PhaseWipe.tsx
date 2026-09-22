@@ -88,42 +88,55 @@ export default function PhaseWipe() {
    traits de lumière giclent, les deux dés tombent et roulent jusqu'à l'arrêt,
    le mot « SHOPPING » claque à leur creux — puis tout s'efface et découvre la
    modale déjà publiée dessous, exactement comme `CombatRift` découvre le
-   plateau. */
+   plateau.
+   ⚠️ `.phase-wipe-dice-group` centre le mot ET la scène des dés EN BLOC, comme
+   un seul objet — jamais chacun sur sa propre percentage de viewport. Sur un
+   téléphone en portrait, `--phase-wipe-dice-u` (la plus petite dimension) vaut
+   la LARGEUR, très inférieure à la hauteur : un `top:47%` posé sur la scène
+   pointait alors vers un point bien au-DESSUS du milieu réel de l'écran,
+   laissant tout le bas vide et le mot collé en haut — visible aux captures,
+   invisible à la lecture du CSS. La scène (`.phase-wipe-dice-scene`) est un
+   bloc de taille FIXE en `u` : les `top`/`left` en pourcentage de ses enfants
+   (chars, dés, particules) restent inchangés, seule leur référence change. */
 function ShoppingDice() {
   return (
     <div className="phase-wipe-dice">
       <div className="phase-wipe-dice-veil" />
-      <div className="phase-wipe-dice-char phase-wipe-dice-char-l" />
-      <div className="phase-wipe-dice-char phase-wipe-dice-char-r" />
-      <div className="phase-wipe-dice-flash" />
-      <div className="phase-wipe-dice-ring" />
-      {DICE_COINS.map((p, i) => (
-        <div
-          key={i}
-          className="phase-wipe-dice-coin"
-          style={{
-            ['--phase-wipe-dice-ang' as string]: `${p.angleDeg.toFixed(1)}deg`,
-            ['--phase-wipe-dice-rad' as string]: `calc(var(--phase-wipe-dice-u) * ${p.radiusFrac.toFixed(4)})`,
-          }}
-        />
-      ))}
-      {DICE_SPARKS.map((p, i) => (
-        <div
-          key={i}
-          className="phase-wipe-dice-spark"
-          style={{
-            ['--phase-wipe-dice-ang' as string]: `${p.angleDeg.toFixed(1)}deg`,
-            ['--phase-wipe-dice-rad' as string]: `calc(var(--phase-wipe-dice-u) * ${p.radiusFrac.toFixed(4)})`,
-          }}
-        />
-      ))}
-      <div className="phase-wipe-dice-shadow phase-wipe-dice-shadow-l" />
-      <div className="phase-wipe-dice-shadow phase-wipe-dice-shadow-r" />
-      <DiceFace side="l" pips={DICE_PIPS_L} />
-      <DiceFace side="r" pips={DICE_PIPS_R} />
-      <div className="phase-wipe-dice-copy">
-        <p className="phase-wipe-dice-word">SHOPPING</p>
-        <div className="phase-wipe-dice-rule" />
+      <div className="phase-wipe-dice-group">
+        <div className="phase-wipe-dice-copy">
+          <p className="phase-wipe-dice-word">SHOPPING</p>
+          <div className="phase-wipe-dice-rule" />
+        </div>
+        <div className="phase-wipe-dice-scene">
+          <div className="phase-wipe-dice-char phase-wipe-dice-char-l" />
+          <div className="phase-wipe-dice-char phase-wipe-dice-char-r" />
+          <div className="phase-wipe-dice-flash" />
+          <div className="phase-wipe-dice-ring" />
+          {DICE_COINS.map((p, i) => (
+            <div
+              key={i}
+              className="phase-wipe-dice-coin"
+              style={{
+                ['--phase-wipe-dice-ang' as string]: `${p.angleDeg.toFixed(1)}deg`,
+                ['--phase-wipe-dice-rad' as string]: `calc(var(--phase-wipe-dice-u) * ${p.radiusFrac.toFixed(4)})`,
+              }}
+            />
+          ))}
+          {DICE_SPARKS.map((p, i) => (
+            <div
+              key={i}
+              className="phase-wipe-dice-spark"
+              style={{
+                ['--phase-wipe-dice-ang' as string]: `${p.angleDeg.toFixed(1)}deg`,
+                ['--phase-wipe-dice-rad' as string]: `calc(var(--phase-wipe-dice-u) * ${p.radiusFrac.toFixed(4)})`,
+              }}
+            />
+          ))}
+          <div className="phase-wipe-dice-shadow phase-wipe-dice-shadow-l" />
+          <div className="phase-wipe-dice-shadow phase-wipe-dice-shadow-r" />
+          <DiceFace side="l" pips={DICE_PIPS_L} />
+          <DiceFace side="r" pips={DICE_PIPS_R} />
+        </div>
       </div>
     </div>
   );
