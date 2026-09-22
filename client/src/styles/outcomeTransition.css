@@ -1,0 +1,277 @@
+/* Écran de fin de partie (victoire / défaite / égalité) — voile, rayons de
+   lumière, anneau de choc et pièces d'or pour la victoire ; fissures, poussière
+   et cendres qui tombent pour la défaite et l'égalité. Composant sans DOM
+   dynamique : les particules sont des `<div>` fixes positionnées par angle
+   (`--ang`) et rayon (`--rad`), le reste est purement `@keyframes`.
+
+   Traduit du prototype `millenium-outcome-transition.js` (custom element,
+   shadow DOM) en classes CSS ordinaires — ce projet n'utilise pas de shadow
+   DOM, donc tout est préfixé `outcome-fx-` pour ne rien risquer.
+
+   ⚠️ `--u` suit la LARGEUR mais est plafonnée par la HAUTEUR (`min(max(1.6vw,
+   .8vh), 2.6vh)`) : sans ce plafond, un téléphone en paysage (large et bas)
+   ferait déborder les rayons et l'anneau de choc hors de l'écran. Toute la
+   mise en page (une seule colonne centrée) suit cette unité, donc aucune
+   media query de layout n'est nécessaire — web, tablette, mobile, portrait et
+   paysage se règlent d'eux-mêmes. */
+
+.outcome-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: block;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 260ms linear;
+  --u: min(max(1.6vw, .8vh), 2.6vh);
+  --dur: 1500ms;
+  --ink: #ffffff;
+  --accent: var(--color-gold);
+  --glow: rgba(212, 175, 97, .75);
+}
+.outcome-fx.is-playing { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .outcome-fx.is-playing .outcome-fx-layer,
+  .outcome-fx.is-playing .outcome-fx-word,
+  .outcome-fx.is-playing .outcome-fx-rule,
+  .outcome-fx.is-playing .outcome-fx-menu { animation-duration: 1ms !important; }
+}
+
+.outcome-fx[data-result="lose"] { --accent: var(--color-violet); --glow: rgba(168, 110, 231, .6); --ink: #eae6f4; }
+.outcome-fx[data-result="draw"] { --accent: var(--color-steel); --glow: rgba(154, 163, 178, .45); --ink: #eceef2; }
+
+.outcome-fx-stage { position: absolute; inset: 0; overflow: hidden; }
+.outcome-fx-layer { position: absolute; animation-duration: var(--dur); animation-fill-mode: both; }
+
+.outcome-fx-veil {
+  inset: 0; animation-name: outcome-fx-veil; animation-timing-function: linear;
+  background: radial-gradient(110% 120% at 50% 42%, rgba(46, 32, 10, .78) 0%, #06050c 76%);
+}
+.outcome-fx[data-result="lose"] .outcome-fx-veil { background: linear-gradient(180deg, #0a0812 0%, #160f2a 60%, #0a0812 100%); }
+.outcome-fx[data-result="draw"] .outcome-fx-veil { background: linear-gradient(180deg, #0c0e14 0%, #1a1d24 60%, #0c0e14 100%); }
+
+.outcome-fx-vignette {
+  inset: 0; animation-name: outcome-fx-vignette; animation-timing-function: linear;
+  box-shadow: inset 0 0 calc(22 * var(--u)) calc(6 * var(--u)) rgba(0, 0, 0, .82),
+              inset 0 0 calc(9 * var(--u)) var(--glow);
+}
+.outcome-fx[data-result="win"] .outcome-fx-vignette { display: none; }
+
+.outcome-fx-rays {
+  top: 42%; left: 50%;
+  width: calc(120 * var(--u)); height: calc(120 * var(--u));
+  margin: calc(-60 * var(--u)) 0 0 calc(-60 * var(--u));
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 220, 140, .16) 0deg 5deg, transparent 5deg 16deg);
+  -webkit-mask-image: radial-gradient(circle, #000 8%, rgba(0, 0, 0, .5) 34%, transparent 62%);
+  mask-image: radial-gradient(circle, #000 8%, rgba(0, 0, 0, .5) 34%, transparent 62%);
+  animation-name: outcome-fx-rays; animation-timing-function: cubic-bezier(.33, 0, .2, 1);
+}
+.outcome-fx-flash {
+  top: 42%; left: 50%;
+  width: calc(46 * var(--u)); height: calc(46 * var(--u));
+  margin: calc(-23 * var(--u)) 0 0 calc(-23 * var(--u));
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff8e2 0%, rgba(212, 175, 97, .6) 22%, transparent 62%);
+  animation-name: outcome-fx-flash; animation-timing-function: linear;
+}
+.outcome-fx-ring {
+  top: 42%; left: 50%;
+  width: calc(24 * var(--u)); height: calc(24 * var(--u));
+  margin: calc(-12 * var(--u)) 0 0 calc(-12 * var(--u));
+  border-radius: 50%;
+  border: calc(.5 * var(--u)) solid rgba(255, 240, 205, .8);
+  animation-name: outcome-fx-ring; animation-timing-function: cubic-bezier(.33, 0, .2, 1);
+}
+.outcome-fx-coin {
+  top: 42%; left: 50%;
+  width: calc(2.2 * var(--u)); height: calc(2.2 * var(--u));
+  margin: calc(-1.1 * var(--u)) 0 0 calc(-1.1 * var(--u));
+  border-radius: 50%;
+  background: linear-gradient(140deg, #ffe9ad, #d4af61 55%, #8a6512);
+  box-shadow: 0 0 calc(.6 * var(--u)) rgba(212, 175, 97, .7);
+  animation-name: outcome-fx-coin; animation-timing-function: cubic-bezier(.33, 0, .2, 1);
+}
+.outcome-fx-spark {
+  top: 42%; left: 50%;
+  width: calc(6 * var(--u)); height: calc(.3 * var(--u));
+  border-radius: 99px; transform-origin: 0 50%;
+  background: linear-gradient(90deg, rgba(255, 250, 235, .95), rgba(212, 175, 97, 0));
+  animation-name: outcome-fx-spark; animation-timing-function: cubic-bezier(.33, 0, .2, 1);
+}
+
+.outcome-fx-shard {
+  top: 44%; left: 50%;
+  width: calc(70 * var(--u)); height: calc(.45 * var(--u));
+  margin-left: calc(-35 * var(--u));
+  transform-origin: 50% 50%;
+  background: linear-gradient(90deg, transparent, var(--shard, rgba(150, 96, 230, .85)), transparent);
+  animation-name: outcome-fx-shard; animation-timing-function: cubic-bezier(.33, 0, .2, 1);
+}
+.outcome-fx-shard-b {
+  top: 47%;
+  width: calc(52 * var(--u)); height: calc(.28 * var(--u));
+  margin-left: calc(-26 * var(--u));
+  --shard: rgba(176, 166, 206, .5);
+}
+.outcome-fx[data-result="draw"] .outcome-fx-shard { --shard: rgba(186, 192, 204, .7); }
+.outcome-fx[data-result="draw"] .outcome-fx-shard-b { --shard: rgba(140, 146, 158, .45); }
+
+.outcome-fx-dust {
+  top: 44%; left: 50%;
+  width: calc(1.6 * var(--u)); height: calc(1.6 * var(--u));
+  margin: calc(-.8 * var(--u)) 0 0 calc(-.8 * var(--u));
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(150, 140, 180, .6), transparent 70%);
+  animation-name: outcome-fx-dust; animation-timing-function: cubic-bezier(.33, 0, .2, 1);
+}
+.outcome-fx[data-result="draw"] .outcome-fx-dust { background: radial-gradient(circle, rgba(160, 166, 178, .55), transparent 70%); }
+
+.outcome-fx-ash {
+  top: -2%;
+  width: calc(.5 * var(--u)); height: calc(.9 * var(--u));
+  border-radius: 99px;
+  background: rgba(188, 178, 214, .7);
+  animation-name: outcome-fx-ash; animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+/* Chaque issue n'affiche que sa propre grammaire visuelle : coins/rayons pour
+   la victoire, fissures/poussière pour la défaite et l'égalité, cendres pour
+   la défaite et l'égalité seulement. */
+.outcome-fx[data-result="win"] .outcome-fx-shard,
+.outcome-fx[data-result="win"] .outcome-fx-dust,
+.outcome-fx[data-result="win"] .outcome-fx-ash,
+.outcome-fx[data-result="draw"] .outcome-fx-ash,
+.outcome-fx[data-result="lose"] .outcome-fx-rays,
+.outcome-fx[data-result="lose"] .outcome-fx-flash,
+.outcome-fx[data-result="lose"] .outcome-fx-ring,
+.outcome-fx[data-result="lose"] .outcome-fx-coin,
+.outcome-fx[data-result="lose"] .outcome-fx-spark,
+.outcome-fx[data-result="draw"] .outcome-fx-rays,
+.outcome-fx[data-result="draw"] .outcome-fx-flash,
+.outcome-fx[data-result="draw"] .outcome-fx-ring,
+.outcome-fx[data-result="draw"] .outcome-fx-coin,
+.outcome-fx[data-result="draw"] .outcome-fx-spark { display: none; }
+
+/* Mise en page : une seule colonne centrée — s'adapte à toutes les tailles et
+   aux deux orientations sans media query.
+
+   ⚠️ `overflow-y: auto` ICI, et nulle part ailleurs dans la colonne : sur un
+   téléphone en paysage (~390px de haut), le mot géant + le menu du joueur
+   (avatar, PV, jauge, bouton) peuvent ensemble dépasser la hauteur
+   disponible. Centrer un contenu qui déborde avec `justify-content: center`
+   sans point de défilement rendrait le haut (ou le bas, selon le sens du
+   débordement) définitivement inatteignable — le mot ou le bouton resteraient
+   posés hors champ. Un SEUL propriétaire du défilement, comme `Modal`
+   (`max-h-[88dvh] overflow-y-auto`) : lui en ajouter un second imbriqué dans
+   `.outcome-fx-menu` ne ferait que déplacer le rognage plus bas. */
+.outcome-fx-copy {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: calc(1.6 * var(--u));
+  padding: calc(1.8 * var(--u)) max(16px, 4vw);
+  box-sizing: border-box;
+  text-align: center;
+  overflow-y: auto;
+}
+.outcome-fx-word {
+  margin: 0;
+  max-width: 92vw;
+  overflow-wrap: anywhere;
+  font-weight: 900;
+  font-size: clamp(28px, calc(6.4 * var(--u)), 140px);
+  line-height: .9;
+  letter-spacing: .06em;
+  color: var(--ink);
+  text-shadow: 0 0 calc(3 * var(--u)) var(--glow), 0 calc(.5 * var(--u)) 0 rgba(0, 0, 0, .5);
+  animation: outcome-fx-title var(--dur) cubic-bezier(.33, 0, .2, 1) both;
+  flex: none;
+}
+.outcome-fx-rule {
+  width: calc(30 * var(--u));
+  max-width: 60vw;
+  height: max(1px, calc(.18 * var(--u)));
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: outcome-fx-rule var(--dur) linear both;
+  flex: none;
+}
+/* ⚠️ Pas de `max-height`/`overflow-y` ICI : un second conteneur défilant
+   imbriqué dans `.outcome-fx-copy` ne ferait que déplacer le rognage (le
+   menu se limiterait tout seul avant que le débordement n'atteigne le
+   conteneur du dessus, qui ne saurait alors plus qu'il doit défiler). Un
+   seul propriétaire du défilement — `.outcome-fx-copy` — garde le bouton
+   toujours atteignable. */
+.outcome-fx-menu {
+  width: 100%;
+  max-width: min(92%, calc(58 * var(--u)));
+  flex: none;
+  animation: outcome-fx-menu var(--dur) cubic-bezier(.33, 0, .2, 1) both;
+}
+
+/* ⚠️ Web et tablette EN PAYSAGE seulement : `--u` suit la largeur, donc un
+   écran large fait grimper `58 * var(--u)` jusqu'à couvrir la quasi-totalité
+   de la largeur (mesuré : ~92 % à 1440px) — bien plus qu'il n'en faut pour
+   trois lignes de texte et un bouton. `min-height: 700px` est ce qui exclut
+   un téléphone en paysage (large mais bas, ~390px de haut) de ce plafond :
+   là, chaque pixel de large gagné sur la popup compte pour garder le mot
+   animé lisible sans défiler. Une tablette PORTRAIT (810px de large) reste
+   sous le seuil de largeur et n'est pas concernée non plus. */
+@media (min-width: 900px) and (min-height: 700px) {
+  .outcome-fx-menu { max-width: min(92%, calc(58 * var(--u)), 460px); }
+}
+
+@keyframes outcome-fx-veil { 0% { opacity: 0 } 22% { opacity: 1 } 100% { opacity: 1 } }
+@keyframes outcome-fx-vignette { 0% { opacity: 0 } 26% { opacity: .35 } 100% { opacity: 1 } }
+@keyframes outcome-fx-flash { 0%, 22% { opacity: 0 } 36% { opacity: .7 } 70%, 100% { opacity: 0 } }
+@keyframes outcome-fx-rays {
+  0%, 20% { opacity: 0; transform: rotate(-14deg) scale(.55) }
+  34%     { opacity: .9 }
+  100%    { opacity: .3; transform: rotate(16deg) scale(1) }
+}
+@keyframes outcome-fx-ring {
+  0%, 24%   { transform: scale(.4); opacity: 0 }
+  40%       { opacity: .55 }
+  80%, 100% { transform: scale(2.4); opacity: 0 }
+}
+@keyframes outcome-fx-coin {
+  0%, 24%   { transform: rotate(var(--ang)) translateX(calc(4 * var(--u))) rotate(calc(-1 * var(--ang))) scale(.5); opacity: 0 }
+  40%       { opacity: .85 }
+  80%, 100% { transform: rotate(var(--ang)) translateX(var(--rad)) rotate(calc(-1 * var(--ang))) scale(.85); opacity: 0 }
+}
+@keyframes outcome-fx-spark {
+  0%, 24%   { transform: rotate(var(--ang)) translateX(calc(4 * var(--u))) scaleX(.6); opacity: 0 }
+  40%       { opacity: .6 }
+  78%, 100% { transform: rotate(var(--ang)) translateX(var(--rad)) scaleX(1.6); opacity: 0 }
+}
+@keyframes outcome-fx-shard {
+  0%, 22%   { transform: scaleX(.3); opacity: 0 }
+  42%       { transform: scaleX(1); opacity: .45 }
+  78%, 100% { transform: scaleX(1.1); opacity: 0 }
+}
+@keyframes outcome-fx-dust {
+  0%, 24%   { transform: rotate(var(--ang)) translateX(calc(3 * var(--u))) scale(.6); opacity: 0 }
+  42%       { opacity: .5 }
+  80%, 100% { transform: rotate(var(--ang)) translateX(var(--rad)) scale(1.5); opacity: 0 }
+}
+@keyframes outcome-fx-ash {
+  0%   { transform: translateY(calc(-4 * var(--u))); opacity: 0 }
+  12%  { opacity: .55 }
+  88%  { opacity: .35 }
+  100% { transform: translateY(102vh); opacity: 0 }
+}
+@keyframes outcome-fx-title {
+  0%, 18%  { opacity: 0; letter-spacing: .2em }
+  44%, 100% { opacity: 1; letter-spacing: .06em }
+}
+@keyframes outcome-fx-rule {
+  0%, 34%   { transform: scaleX(.4); opacity: 0 }
+  54%, 66%  { transform: scaleX(1); opacity: .9 }
+  80%, 100% { opacity: .9; transform: scaleX(1) }
+}
+@keyframes outcome-fx-menu {
+  0%, 66%   { opacity: 0; transform: translateY(calc(1.6 * var(--u))) scale(.97) }
+  92%, 100% { opacity: 1; transform: translateY(0) scale(1) }
+}
