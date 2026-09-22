@@ -123,30 +123,6 @@ input, textarea, select { font-size: 1rem !important; }
   --spacing-tap: 44px;
 }
 
-/* ── Rebond des boutons — retour VISUEL d'un tap (cf. `Button`/`IconButton`,
-   `usePressSquash` dans `components/ui/primitives.tsx`) ──
-   Référence : https://github.com/lochie/web-haptics — un halo teinté sous le
-   contenu se comprime au press (classe utilitaire posée pendant `squashed`,
-   directement en JSX) puis, au relâchement, REBONDIT au-delà de sa taille de
-   repos avant de s'y stabiliser en s'effaçant : la sensation « ressort » d'une
-   vraie détente haptique, rendue en CSS pur. ⚠️ Pas de courbe `linear()` à
-   points multiples comme la référence : le DÉPASSEMENT est porté par les
-   étapes elles-mêmes (55 % au-dessus de 1, 78 % en dessous), chaque étape
-   restant en `ease` — plus simple à lire et à ajuster, pour le même effet.
-   Rejoué à chaque tap par un remount React (`key={bounce}`), jamais par une
-   classe retirée puis reposée à la main (`element.offsetWidth` forcé) : React
-   fait déjà ce travail par construction. */
-@keyframes btn-bounce {
-  0%   { transform: scale(.7); opacity: .5; }
-  55%  { transform: scale(1.16); opacity: .22; }
-  78%  { transform: scale(.95); opacity: .1; }
-  100% { transform: scale(1); opacity: 0; }
-}
-.btn-bounce { animation: btn-bounce 480ms ease-out both; }
-@media (prefers-reduced-motion: reduce) {
-  .btn-bounce { animation: none; opacity: 0; }
-}
-
 /* ── Annonce du terrain à l'entrée en combat (cf. `TerrainAlert`) ──
    Apparaît / tient / s'efface, en un seul jeu d'images-clés — la grammaire du
    toast de pouvoir (`power-toast-anim`, styles/board3d.css), et pour la même
