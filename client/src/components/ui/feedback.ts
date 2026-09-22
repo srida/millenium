@@ -71,77 +71,16 @@ export function playButtonFeedback() {
   playClick();
 }
 
-function isIos(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  if (/iPad|iPhone|iPod/.test(navigator.userAgent)) return true;
-  // iPadOS se présente en Mac de bureau depuis iPadOS 13 : le tactile multipoint
-  // est ce qui le distingue d'un vrai Mac (`ios-haptics`, tijnjh/ios-haptics).
-  return navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-}
-
-/**
- * Le VRAI déclic du Taptic Engine — `navigator.vibrate` n'existe sur AUCUNE
- * version de Safari iOS, c'est la seule brèche connue pour en obtenir un
- * depuis le web (technique de https://github.com/tijnjh/ios-haptics) :
- * Safari 17.4+ donne un déclic Taptic natif à un `<input type="checkbox"
- * switch>` quand un geste utilisateur RÉEL le bascule (`.click()` en JS ne
- * déclenche rien — il faut le vrai tap). On pose donc un switch INVISIBLE,
- * en calque `absolute inset-0` par-dessus l'élément, pour que le tap du
- * joueur l'actionne EN MÊME TEMPS que le bouton lui-même.
- *
- * ⚠️ **Le switch doit exister AVANT le tap, jamais être posé ou déplacé
- * pendant** : un doigt tactile capture IMPLICITEMENT sa cible au premier
- * contact (cf. `TAP_MOVE_TOLERANCE_PX` plus haut) — Safari route le
- * `pointerup` vers l'élément touché au `pointerdown`, jamais vers ce qui se
- * trouve ensuite à ces coordonnées. Un switch créé ou déplacé APRÈS coup
- * (première approche essayée ici, sur `document.body`) ne reçoit donc
- * jamais rien : il n'était pas là quand le doigt s'est posé. La seule
- * fenêtre qui compte est celle qui précède le contact, ce qui déplace tout
- * le problème du COMMENT poser le switch au QUAND démonter le bouton — cf.
- * `usePressSquash`, qui ne déclenche plus l'action avant le relâchement.
- *
- * ⚠️ Un `<input>` (contenu interactif) dans un `<button>` est un nesting que
- * le modèle de contenu HTML interdit — tous les moteurs le rendent quand
- * même (pas de reparenting comme sur une `<table>`), et `aria-hidden` +
- * `tabIndex=-1` le retirent de l'arbre d'accessibilité. C'est un HACK
- * assumé, documenté comme tel : aucune API standard n'offre de vrai retour
- * haptique au web sur iOS.
- *
- * ⚠️ Idempotent (`data-ios-haptic-switch`) : à rappeler sans risque à chaque
- * montage (React StrictMode double l'effet de montage en dev).
- *
- * ⚠️ Une seule intensité, non paramétrable — Safari ne donne qu'un déclic de
- * bascule, pas un choix léger/moyen/fort comme l'API Taptic native iOS.
- */
-export function attachIosHapticSwitch(el: HTMLElement | null) {
-  if (!el || typeof document === 'undefined' || !isIos()) return;
-  if (el.querySelector('[data-ios-haptic-switch]')) return;
-  if (typeof window !== 'undefined' && window.getComputedStyle(el).position === 'static') {
-    el.style.position = 'relative';
-  }
-  const sw = document.createElement('input');
-  sw.type = 'checkbox';
-  sw.setAttribute('switch', '');
-  sw.setAttribute('data-ios-haptic-switch', '');
-  sw.setAttribute('aria-hidden', 'true');
-  sw.tabIndex = -1;
-  Object.assign(sw.style, {
-    position: 'absolute',
-    inset: '0',
-    width: '100%',
-    height: '100%',
-    margin: '0',
-    opacity: '0',
-    // ⚠️ Sans ce z-index, un tap en PLEIN CENTRE du bouton — donc sur son
-    // propre contenu (`z-10` de `Button`/`PressRipple`, posé pour que le
-    // flash de couleur ne recouvre pas le texte) — touche ce contenu et
-    // jamais le switch en dessous : `elementFromPoint` au centre d'un bouton
-    // rend le `<span z-10>` du libellé, pas lui. Une valeur qui domine
-    // n'importe quel contenu de bouton (`z-10` au plus) suffit.
-    zIndex: '50',
-    clipPath: 'inset(0 round 999px)',
-    touchAction: 'manipulation',
-  });
-  sw.style.setProperty('-webkit-tap-highlight-color', 'transparent');
-  el.appendChild(sw);
-}
+// ⚠️ RETIRÉ : la technique du switch invisible (`<input type="checkbox"
+// switch>`, https://github.com/tijnjh/ios-haptics) pour un vrai déclic
+// Taptic sur iOS. Trois tentatives de correction (position dans le DOM,
+// z-index, timing de l'action) n'ont réglé qu'une partie des symptômes —
+// la dernière en date a fini par rendre TOUS les boutons inertes sur iOS
+// (le tap déclenchait le switch mais plus l'action du bouton). `switch` est
+// un contrôle natif tout neuf (Safari 17.4, 2024) qui imite un interrupteur
+// physique, glissement compris : sa gestion tactile interne entre très
+// probablement en conflit avec `usePressSquash`, d'une façon impossible à
+// diagnostiquer sans Safari/iPhone réel — Chromium ne simule pas ce
+// contrôle, ce qui a laissé passer la régression en test piloté. Retour
+// visuel (relief + flash de couleur) et sonore (Web Audio) restent : ce
+// sont eux qui doivent porter le retour sur iOS.
