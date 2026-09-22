@@ -13,15 +13,31 @@
 // `OutcomeTransition` à la fin), et le passage menu ↔ partie change de
 // branche de rendu entière — ce composant ne les voit jamais.
 //
-// `className` par défaut suppose un parent NON flex (App.tsx : une simple
-// zone de défilement) ; un appelant qui insère ce wrapper DANS une colonne
-// flex (ex. l'onglet Bibliothèque/Deck du DeckBuilder, dont le panneau actif
-// est lui-même `flex-1 min-h-0 overflow-y-auto`) doit repasser les classes
-// flex nécessaires, sinon le panneau perd sa hauteur et son défilement.
+// ⚠️ `h-full` (hauteur EXPLICITE), et non `min-h-full` : chaque écran non
+// immersif s'attend à recevoir une hauteur DÉFINIE de son parent direct — la
+// plupart posent eux-mêmes `min-h-full` sur leur racine (`<main>`) pour au
+// moins remplir l'écran, et un écran comme le Catalogue va plus loin, avec un
+// bloc interne `flex-1 min-h-0 overflow-y-auto` qui compte sur cette hauteur
+// bornée pour devenir une zone de défilement INTERNE plutôt que de laisser
+// tout son contenu (868 cartes) s'étaler en pleine hauteur naturelle. Un
+// pourcentage (`height` ou `min-height`) ne se résout que si le PARENT porte
+// une hauteur EXPLICITE (spec CSS : `min-height` seul ne compte pas, même si
+// la boîte s'affiche visuellement à 100 %) — poser `min-h-full` ici cassait
+// donc toute la chaîne : `MainMenu` (dont la racine est `h-full`, seul écran à
+// exiger l'exactitude pour son `justify-center`) perdait sa hauteur et ses
+// blocs se recentraient différemment, ET le Catalogue perdait le bornage de
+// sa grille — plus de défilement interne, la page entière grandissait à la
+// taille de son contenu, d'où la lenteur perçue (mise en page/peinture de
+// tout le catalogue au lieu d'une fenêtre de ~600 px).
+//
+// Un appelant qui insère ce wrapper DANS une colonne flex existante (ex.
+// l'onglet Bibliothèque/Deck du DeckBuilder, dont le panneau actif est
+// lui-même `flex-1 min-h-0 overflow-y-auto`) doit repasser les classes flex
+// nécessaires (`flex min-h-0 flex-1 flex-col`), pas une hauteur en `%`.
 import type { ReactNode } from 'react';
 
 export function ScreenTransition(
-  { screenKey, children, className = 'min-h-full' }: { screenKey: string; children: ReactNode; className?: string },
+  { screenKey, children, className = 'h-full' }: { screenKey: string; children: ReactNode; className?: string },
 ) {
   return (
     <div key={screenKey} className={`screen-transition ${className}`}>
