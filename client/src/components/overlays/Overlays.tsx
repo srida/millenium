@@ -163,13 +163,9 @@ export function CombatOutro() {
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-end justify-center pb-20"
+      className="fixed inset-0 z-40"
       onPointerDown={(e) => { e.stopPropagation(); controller.skipCombatOutro(); }}
-    >
-      <span className="rounded-full bg-surface/70 px-3 py-1 text-[11px] text-white/50 backdrop-blur">
-        Toucher pour passer
-      </span>
-    </div>
+    />
   );
 }
 
