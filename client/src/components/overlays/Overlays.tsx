@@ -6,6 +6,7 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { Avatar, Button, Illustration, Modal } from '../ui/primitives.js';
+import OutcomeTransition, { type Outcome } from './OutcomeTransition.js';
 import TerrainEffects from '../ui/TerrainEffects.js';
 import RecipeRow from '../ui/SummonRecipe.js';
 import { summonRecipes } from '../../data/SummonInfo.js';
@@ -444,9 +445,8 @@ export function GameOverScreen({
   const startProgression = useRef({ level: user?.level ?? 1, xp: user?.xp ?? 0 });
   if (!gameOver) return null;
 
-  const title = winner === 'player' ? 'VICTOIRE' : winner === 'enemy' ? 'DÉFAITE' : 'ÉGALITÉ';
+  const outcome: Outcome = winner === 'player' ? 'win' : winner === 'enemy' ? 'lose' : 'draw';
   const icon = winner === 'player' ? '🏆' : winner === 'enemy' ? '💀' : '⚖️';
-  const tone = winner === 'player' ? 'text-success' : winner === 'enemy' ? 'text-danger' : 'text-gold';
   const winnerAvatar = winner === 'player'
     ? { src: playerAvatarSrc, fallback: playerAvatarFallback }
     : winner === 'enemy'
@@ -455,15 +455,13 @@ export function GameOverScreen({
   const showWinnerAvatar = winnerAvatar && (playerAvatarSrc !== undefined || enemyAvatarSrc !== undefined);
 
   return (
-    <Modal>
-      <div className="flex flex-col items-center gap-2">
+    <OutcomeTransition result={outcome}>
+      <div className="flex flex-col items-center gap-2 rounded-2xl border border-gold/40 bg-surface/92 p-4 text-center shadow-2xl backdrop-blur">
         {showWinnerAvatar && (
           <Avatar src={winnerAvatar.src} fallback={winnerAvatar.fallback} className="h-16 w-16 border-gold/60" />
         )}
-        <div className="text-5xl">{icon}</div>
-        <div className={`text-2xl font-bold ${tone}`}>{title}</div>
-        <div className="text-xs tracking-widest text-white/40">FIN DE PARTIE</div>
-        <div className="my-2 flex items-center gap-4 text-sm">
+        <div className="text-4xl">{icon}</div>
+        <div className="flex items-center gap-4 text-sm">
           <span className="font-bold text-player tabular-nums">{playerHp} PV</span>
           <span className="text-white/40">VS</span>
           <span className="font-bold text-enemy tabular-nums">{enemyHp} PV</span>
@@ -486,6 +484,6 @@ export function GameOverScreen({
           {exitLabel}
         </Button>
       </div>
-    </Modal>
+    </OutcomeTransition>
   );
 }

@@ -2,6 +2,7 @@
 @import "./board3d.css";
 @import "./card3d.css";
 @import "./space.css";
+@import "./outcomeTransition.css";
 
 /* Le fond du DOCUMENT — pas celui d'un écran. C'est lui qu'on voit partout où
    la couche de décor (`SpaceBackground`, en `position: fixed`) ne peint pas :
