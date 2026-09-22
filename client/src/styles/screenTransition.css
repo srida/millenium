@@ -9,11 +9,11 @@
    le passage menu → partie et partie → menu change de branche de rendu tout
    entière (header/footer compris), il n'entre jamais dans ce fichier. */
 @keyframes screen-transition-enter {
-  0%   { opacity: 0; transform: translateY(10px) scale(.985); }
+  0%   { opacity: 0; transform: translateY(14px) scale(.98); }
   100% { opacity: 1; transform: none; }
 }
 .screen-transition {
-  animation: screen-transition-enter 220ms cubic-bezier(.2, .8, .3, 1) both;
+  animation: screen-transition-enter 420ms cubic-bezier(.2, .8, .3, 1) both;
 }
 
 /* Le mouvement s'efface, l'écran arrive tel quel — même règle que partout
