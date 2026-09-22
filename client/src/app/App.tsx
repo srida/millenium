@@ -114,6 +114,17 @@ const SCREENS: Record<ScreenName, ComponentType> = {
  */
 const IMMERSIVE_SCREENS = new Set<ScreenName>(['game', 'game_pvp', 'testbench', 'combatlab', 'ailab']);
 
+/**
+ * Écrans dont l'entrée (`ScreenTransition`) reste SANS animation : ils
+ * montent ~868 `Card3D` non virtualisés (tout le catalogue), et la mise en
+ * calque de ce bloc avant de jouer le fondu ajoute un coût perceptible par
+ *-dessus un rendu déjà lourd. `deck_builder` ouvre toujours sur son onglet
+ * Bibliothèque (le même contenu) — cf. `DeckBuilder.tsx`, qui coupe de même
+ * l'entrée de son onglet interne. Ce n'est qu'un pansement : la lenteur de
+ * fond (rendu non virtualisé) reste entière, seule la transition est retirée.
+ */
+const NO_ENTRY_ANIM_SCREENS = new Set<ScreenName>(['catalog', 'deck_builder']);
+
 export default function App() {
   const screen = useUiStore(s => s.screen);
   const Screen = SCREENS[screen];
@@ -167,7 +178,7 @@ export default function App() {
           <AppHeader />
           <div className="min-h-0 flex-1 overflow-y-auto">
             <Suspense fallback={lazyFallback}>
-              <ScreenTransition screenKey={screen}>
+              <ScreenTransition screenKey={screen} animate={!NO_ENTRY_ANIM_SCREENS.has(screen)}>
                 <Screen />
               </ScreenTransition>
             </Suspense>

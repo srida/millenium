@@ -397,13 +397,17 @@ export default function DeckBuilder() {
         </p>
       )}
 
-      {/* Même entrée que la navigation entre écrans (`ScreenTransition`), rejouée
-          ici sur le changement d'ONGLET plutôt que d'écran — c'est le même geste
-          de navigation pour le joueur. `className` repasse les classes flex que
-          le wrapper par défaut n'a pas : `LibraryPanel`/`DeckPanel` sont chacun
-          `flex-1 min-h-0 overflow-y-auto` et comptent sur un PARENT flex pour
-          occuper l'espace restant et défiler — un wrapper non-flex les casserait. */}
-      <ScreenTransition screenKey={tab} className="flex min-h-0 flex-1 flex-col">
+      {/* Même wrapper que la navigation entre écrans (`ScreenTransition`), mais
+          SANS l'animation (`animate={false}`) : l'onglet Bibliothèque monte le
+          catalogue entier (~868 `Card3D` non virtualisés), et la mise en calque
+          de ce bloc avant de jouer le fondu ajoutait un coût perceptible par-
+          dessus un rendu déjà lourd — cf. `NO_ENTRY_ANIM_SCREENS` (App.tsx),
+          qui coupe de même l'entrée du Catalogue pour la même raison. `className`
+          repasse les classes flex que le wrapper par défaut n'a pas :
+          `LibraryPanel`/`DeckPanel` sont chacun `flex-1 min-h-0 overflow-y-auto`
+          et comptent sur un PARENT flex pour occuper l'espace restant et
+          défiler — un wrapper non-flex les casserait. */}
+      <ScreenTransition screenKey={tab} className="flex min-h-0 flex-1 flex-col" animate={false}>
         {tab === 'lib' ? (
           <LibraryPanel
             cards={filtered} total={allCards.length} ownedCount={ownedCount}

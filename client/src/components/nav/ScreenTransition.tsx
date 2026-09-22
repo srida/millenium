@@ -34,13 +34,23 @@
 // l'onglet Bibliothèque/Deck du DeckBuilder, dont le panneau actif est
 // lui-même `flex-1 min-h-0 overflow-y-auto`) doit repasser les classes flex
 // nécessaires (`flex min-h-0 flex-1 flex-col`), pas une hauteur en `%`.
+//
+// ⚠️ `animate={false}` sur le Catalogue et l'onglet Bibliothèque du
+// DeckBuilder : les deux montent ~868 `Card3D` NON virtualisés (aucune
+// fenêtre, aucun `memo`) — jouer l'entrée y ajoute la mise en calque
+// (compositing) de tout ce bloc avant de pouvoir peindre le fondu, un coût
+// ponctuel réel sur un aussi gros sous-arbre. Ce n'est PAS ce qui rend ces
+// écrans lents au fond (le rendu de 868 cartes l'est déjà sans animation), et
+// la correction de fond — virtualiser la grille — reste à faire ; ce
+// drapeau n'évite qu'un surcoût que l'animation ajoutait par-dessus.
 import type { ReactNode } from 'react';
 
 export function ScreenTransition(
-  { screenKey, children, className = 'h-full' }: { screenKey: string; children: ReactNode; className?: string },
+  { screenKey, children, className = 'h-full', animate = true }:
+  { screenKey: string; children: ReactNode; className?: string; animate?: boolean },
 ) {
   return (
-    <div key={screenKey} className={`screen-transition ${className}`}>
+    <div key={screenKey} className={animate ? `screen-transition ${className}` : className}>
       {children}
     </div>
   );
