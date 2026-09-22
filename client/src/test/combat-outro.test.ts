@@ -190,21 +190,25 @@ describe('Frappe finale — ce qu\'elle retient', () => {
 });
 
 describe('Volets de phase — ce qu\'ils ne retiennent pas', () => {
-  // ⚠️ Le volet est DÉCORATIF : l'état de jeu est publié en même temps que lui.
-  // Mutation : offre publiée à la fin du volet → ROUGE.
-  it('le passage en Shopping publie l\'offre TOUT DE SUITE', () => {
+  // ⚠️ L'offre n'a rien à révéler avant l'échéance du volet : la popup de
+  // Shopping ne doit apparaître qu'une fois les dés posés, jamais dessous
+  // pendant qu'ils roulent.
+  // Mutation : offre publiée en même temps que le volet → ROUGE (elle
+  // apparaîtrait sous les dés dès l'ouverture).
+  it('le passage en Shopping ne publie l\'offre qu\'à l\'ÉCHÉANCE du volet', () => {
     vi.useFakeTimers();
     const { session, controller } = makeController({ magies: [MAGIE] });
     session.startPreparation();
     controller._startShopping();
 
-    // Les deux au MÊME instantané : le volet ne fait que découvrir une offre
-    // déjà là.
+    // Le volet est posé tout de suite, mais l'offre reste tue — rien à
+    // découvrir avant la fin.
     const snap = useGameStore.getState();
     expect(snap.phaseWipe).toEqual({ kind: 'shopping' });
-    expect(snap.shopping?.magies.length).toBeGreaterThan(0);
+    expect(snap.shopping).toBeNull();
 
     vi.advanceTimersByTime(SHOPPING_INTRO_MS);
+    // Le volet se retire et l'offre apparaît dans le MÊME instantané.
     const after = useGameStore.getState();
     expect(after.phaseWipe).toBeNull();
     expect(after.shopping?.magies.length).toBeGreaterThan(0);

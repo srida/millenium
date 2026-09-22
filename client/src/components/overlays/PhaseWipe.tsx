@@ -4,8 +4,9 @@
 // ⚠️ Shopping PORTE le mot « SHOPPING » (motif « Lancer de dés » : les deux
 // mascottes qui arrivent en cadre, le flash, les deux dés qui roulent et
 // s'arrêtent, le mot qui claque). Il recouvre l'écran pendant tout le volet et
-// s'efface en sortant sur la modale déjà publiée dessous — comme pour Combat,
-// rien ne PILOTE l'ouverture, le volet ne fait que la découvrir.
+// s'efface en révélant la popup de Shopping — publiée seulement à cet
+// instant (`GameController._startShopping`, via `onDone`), pas dessous depuis
+// le début : les dés ont quelque chose à cacher.
 //
 // ⚠️ Combat, lui, PORTE le mot « COMBAT » (motif « Faille runique » : deux
 // sceaux aux couleurs des joueurs qui se rejoignent au centre, la faille qui
@@ -14,13 +15,17 @@
 // temps — c'est pour ça que `GameController._beginCombatAnimation` RETARDE
 // désormais l'annonce de terrain jusqu'à la fin du volet (`COMBAT_INTRO_MS`)
 // au lieu de la publier en même temps : les deux ne se recouvrent plus, le mot
-// garde sa place.
+// garde sa place. Le plateau, lui, EST déjà publié quand le volet apparaît —
+// rien à y découvrir de neuf, contrairement à Shopping.
 //
-// ⚠️ Il ne PILOTE rien et ne RETIENT rien — ni son minuteur (il vit dans
-// `GameController`, comme ceux de l'annonce de terrain et de l'ouverture de
-// tour), ni l'état qu'il découvre : celui-ci est déjà publié quand le volet
-// apparaît. C'est la différence de fond avec `TerrainAlert`, qui tient le
-// premier coup, et avec la frappe finale, qui tient le récapitulatif.
+// ⚠️ Il ne PILOTE rien lui-même et ne RETIENT rien EN PERMANENCE — ni son
+// minuteur (il vit dans `GameController`, comme ceux de l'annonce de terrain
+// et de l'ouverture de tour), ni l'état qu'il finit par découvrir : Combat le
+// publie tout de suite (rien à cacher), Shopping ne le publie qu'à l'échéance
+// du volet (`onDone` de `_playPhaseWipe`) — c'est la différence de fond avec
+// `TerrainAlert`, qui tient le premier coup, et avec la frappe finale, qui
+// tient le récapitulatif : ici c'est le volet LUI-MÊME qui tient la
+// révélation, pas un état séparé.
 //
 // ⚠️ `pointer-events-none` sur TOUTE la couche : même retardée, l'annonce de
 // terrain reste tapable pendant qu'elle est affichée. Un volet qui capte les
