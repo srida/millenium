@@ -47,12 +47,16 @@ export const COMBAT_INTRO_MS = 1500;
  *  faire descendre. Le tap le saute (`GameController.skipCombatOutro`). */
 export const COMBAT_OUTRO_MS = 1500;
 
-/** Le volet de passage en Phase Shopping, à la fermeture du récapitulatif.
+/** Le volet de passage en Phase Shopping, à la fermeture du récapitulatif
+ *  (motif « Lancer de dés » : les deux mascottes, le flash, les dés qui
+ *  roulent, le mot qui claque). 1,5 s — la durée que le prototype « Claude
+ *  Design » demande pour se lire, au même chiffre que `COMBAT_INTRO_MS` par
+ *  symétrie des deux volets.
  *
  *  ⚠️ Décoratif : l'offre est publiée EN MÊME TEMPS et le volet la découvre en
  *  sortant. Le retarder d'un minuteur de plus mettrait une horloge entre le tap
  *  du joueur et l'écran qu'il vient de demander. */
-export const SHOPPING_INTRO_MS = 800;
+export const SHOPPING_INTRO_MS = 1500;
 
 /** Popup de pioche laissée sans réponse : au bout de ce délai elle se congédie
  *  seule.
