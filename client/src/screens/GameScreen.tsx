@@ -169,12 +169,15 @@ export default function GameScreen() {
       <PhaseWipe />
       <EndRoundOverlay />
       <ShoppingLayer />
+      {/* Le bouton de sortie porte toujours le même texte (« ◂ MENU
+          PRINCIPAL », défaut de `GameOverScreen`) : c'est la destination
+          réelle (`onExit`) qui varie selon le contexte, pas son libellé. */}
       {inTournament
-        ? <GameOverScreen exitLabel="◂ RETOUR AU TOURNOI" onExit={exitTournamentGame} />
+        ? <GameOverScreen onExit={exitTournamentGame} />
         : inArcade
-          ? <GameOverScreen exitLabel="◂ RETOUR À L'ARCADE" onExit={(w) => { void exitArcadeGame(w); }} />
+          ? <GameOverScreen onExit={(w) => { void exitArcadeGame(w); }} />
           : inTutorial
-            ? <GameOverScreen exitLabel="◂ RETOUR AU TUTORIEL" onExit={() => useUiStore.getState().navigate('tutorial')} />
+            ? <GameOverScreen onExit={() => useUiStore.getState().navigate('tutorial')} />
             : <GameOverScreen />}
     </div>
   );

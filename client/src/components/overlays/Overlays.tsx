@@ -414,7 +414,7 @@ function MultiplierSources({ sources }: { sources: readonly BonusSourceEntry[] }
  * garde l'écran inchangé.
  */
 export function GameOverScreen({
-  onExit, exitLabel = '◂ MENU PRINCIPAL',
+  onExit, exitLabel = 'MENU PRINCIPAL',
   playerAvatarSrc, playerAvatarFallback = '★',
   enemyAvatarSrc, enemyAvatarFallback = '?',
   note = null,
@@ -446,7 +446,6 @@ export function GameOverScreen({
   if (!gameOver) return null;
 
   const outcome: Outcome = winner === 'player' ? 'win' : winner === 'enemy' ? 'lose' : 'draw';
-  const icon = winner === 'player' ? '🏆' : winner === 'enemy' ? '💀' : '⚖️';
   const winnerAvatar = winner === 'player'
     ? { src: playerAvatarSrc, fallback: playerAvatarFallback }
     : winner === 'enemy'
@@ -460,7 +459,6 @@ export function GameOverScreen({
         {showWinnerAvatar && (
           <Avatar src={winnerAvatar.src} fallback={winnerAvatar.fallback} className="h-16 w-16 border-gold/60" />
         )}
-        <div className="text-4xl">{icon}</div>
         <div className="flex items-center gap-4 text-sm">
           <span className="font-bold text-player tabular-nums">{playerHp} PV</span>
           <span className="text-white/40">VS</span>

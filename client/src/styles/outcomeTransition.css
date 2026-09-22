@@ -211,6 +211,18 @@
   animation: outcome-fx-menu var(--dur) cubic-bezier(.33, 0, .2, 1) both;
 }
 
+/* ⚠️ Web et tablette EN PAYSAGE seulement : `--u` suit la largeur, donc un
+   écran large fait grimper `58 * var(--u)` jusqu'à couvrir la quasi-totalité
+   de la largeur (mesuré : ~92 % à 1440px) — bien plus qu'il n'en faut pour
+   trois lignes de texte et un bouton. `min-height: 700px` est ce qui exclut
+   un téléphone en paysage (large mais bas, ~390px de haut) de ce plafond :
+   là, chaque pixel de large gagné sur la popup compte pour garder le mot
+   animé lisible sans défiler. Une tablette PORTRAIT (810px de large) reste
+   sous le seuil de largeur et n'est pas concernée non plus. */
+@media (min-width: 900px) and (min-height: 700px) {
+  .outcome-fx-menu { max-width: min(92%, calc(58 * var(--u)), 460px); }
+}
+
 @keyframes outcome-fx-veil { 0% { opacity: 0 } 22% { opacity: 1 } 100% { opacity: 1 } }
 @keyframes outcome-fx-vignette { 0% { opacity: 0 } 26% { opacity: .35 } 100% { opacity: 1 } }
 @keyframes outcome-fx-flash { 0%, 22% { opacity: 0 } 36% { opacity: .7 } 70%, 100% { opacity: 0 } }
