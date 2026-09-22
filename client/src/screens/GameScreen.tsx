@@ -132,12 +132,14 @@ export default function GameScreen() {
           voir le combat partir sous elle, ni la magie se choisir à sa place.
           Il gèle aussi sur l'ouverture de tour (`roundIntro`/`drawPopup`) : la
           popup de pioche attend un geste, et hors réseau rien n'oblige à le
-          compter dans les 60 s de préparation. Même modèle que `menuOpen`. */}
+          compter dans les 60 s de préparation. Même modèle que `menuOpen`.
+          `duelIntro` gèle les toutes premières secondes, le temps de
+          l'annonce de lancement (cf. `DuelIntro`). */}
       <PhaseTimer
         durationS={PREP_DURATION_S}
         field="prepRemaining"
         restartKey={round}
-        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.coachBlocking && !s.roundIntro && !s.drawPopup && !s.gameOver}
+        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.coachBlocking && !s.roundIntro && !s.drawPopup && !s.gameOver && !s.duelIntro}
         onTimeout={() => controller.onPrepTimeout()}
       />
       {shoppingOpen && (

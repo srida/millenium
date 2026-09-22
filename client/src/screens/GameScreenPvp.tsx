@@ -106,12 +106,15 @@ export default function GameScreenPvp() {
           elles tiennent au réseau : `pvpWaiting` gèle la préparation (on attend
           l'adversaire à la barrière), et rien ne gèle le shopping — l'adversaire
           attend derrière, le choix doit être borné. Pas de `coachBlocking` non
-          plus : il n'y a pas de tutoriel en duel. */}
+          plus : il n'y a pas de tutoriel en duel. `duelIntro`, lui, ne pose
+          aucun problème réseau (rien n'attend derrière une animation purement
+          locale et jouée du même geste des deux côtés) : il gèle juste les
+          toutes premières secondes, le temps de l'annonce de lancement. */}
       <PhaseTimer
         durationS={PREP_DURATION_S}
         field="prepRemaining"
         restartKey={round}
-        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.pvpWaiting && !s.gameOver}
+        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.pvpWaiting && !s.gameOver && !s.duelIntro}
         onTimeout={() => controller.startCombat()}
       />
       {shoppingOpen && (

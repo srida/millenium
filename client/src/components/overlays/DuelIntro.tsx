@@ -10,17 +10,19 @@
 // fond (avatar + pseudo de chaque camp) vient combler ce que le prototype
 // laissait à un sous-titre optionnel.
 //
-// ⚠️ Autonome et local à l'écran qui le monte : pas de store, pas de
-// minuteur possédé par `GameController`. Contrairement à `RoundIntro` /
-// `TerrainAlert` (qui gèlent le chrono de préparation le temps de l'annonce),
-// cette annonce ne gèle rien — elle joue une seule fois, avant même que la
-// préparation ne débute vraiment à l'écran, et se retire d'elle-même.
+// ⚠️ Local à l'écran qui le monte, pas de minuteur possédé par
+// `GameController` — elle joue une seule fois, avant même que la préparation
+// ne débute vraiment à l'écran, et se retire d'elle-même. Elle pose et lève
+// tout de même `gameStore.duelIntro`, sur le modèle de `menuOpen` /
+// `coachBlocking` : sans lui, le chrono de préparation grignotait ses
+// premières secondes sous l'annonce.
 //
 // ⚠️ `pointer-events-none` sur toute la couche, comme les autres transitions
 // de phase : rien ne doit pouvoir bloquer un geste en dessous, même si dans
 // les faits le joueur n'a rien à taper avant la fin de l'annonce.
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../stores/authStore.js';
+import { useGameStore } from '../../stores/gameStore.js';
 import { Avatar } from '../ui/primitives.js';
 
 const DEFAULT_DURATION_MS = 3000;
@@ -71,11 +73,28 @@ export default function DuelIntro({
   const [done, setDone] = useState(false);
 
   useEffect(() => {
+    // ⚠️ Posé au montage ET levé explicitement à l'échéance — pas seulement
+    // au nettoyage de l'effet : `done` ne démonte pas le composant (il rend
+    // `null` par lui-même, cf. plus bas), donc le nettoyage d'unmount ne
+    // tournerait qu'à la sortie de l'écran de jeu. Sans ce lever explicite, le
+    // chrono de préparation resterait gelé pour le reste de la partie.
+    useGameStore.getState().applySnapshot({ duelIntro: true });
     const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const total = reduced ? Math.min(duration, 1600) : duration;
     const raf = requestAnimationFrame(() => setPlaying(true));
-    const t = setTimeout(() => setDone(true), total + 60);
-    return () => { cancelAnimationFrame(raf); clearTimeout(t); };
+    const t = setTimeout(() => {
+      setDone(true);
+      useGameStore.getState().applySnapshot({ duelIntro: false });
+    }, total + 60);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(t);
+      // Filet pour une sortie prématurée (abandon via le menu pendant
+      // l'annonce, qui reste tapable — elle n'a que `pointer-events-none`
+      // sur SA propre couche) : la partie se termine, le drapeau ne doit pas
+      // survivre au démontage réel de l'écran.
+      useGameStore.getState().applySnapshot({ duelIntro: false });
+    };
     // Joué une seule fois, à l'entrée sur l'écran — `duration` ne change
     // jamais en cours de partie.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus

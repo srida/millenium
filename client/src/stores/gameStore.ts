@@ -200,6 +200,12 @@ export interface GameSnapshot {
   // shopping, récapitulatif de round), sur le modèle de `menuOpen`. Toujours
   // faux hors tutoriel : les autres modes sont strictement inchangés.
   coachBlocking: boolean;
+  // L'annonce de lancement de partie (`DuelIntro`) est à l'écran → gèle la
+  // préparation, sur le même modèle que `menuOpen`/`coachBlocking`. Posé et
+  // levé par `DuelIntro` lui-même (pas de minuteur côté `GameController` :
+  // l'annonce joue avant même que la première préparation ne débute
+  // réellement à l'écran).
+  duelIntro: boolean;
   gameOver: boolean;
   winner: 'player' | 'enemy' | 'draw' | null;
   // PvP uniquement
@@ -215,7 +221,7 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,
   combatActive: false, combatOutro: null, phaseWipe: null, combatRemaining: 60, speed: 2, paused: false,
   prepRemaining: 60, endRound: null, shopping: null, shoppingRemaining: SHOPPING_DURATION_S, summonOptions: null,
-  menuOpen: false, coachBlocking: false, gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
+  menuOpen: false, coachBlocking: false, duelIntro: false, gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
 };
 
 interface GameStoreState extends GameSnapshot {
