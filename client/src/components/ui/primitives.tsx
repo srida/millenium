@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEve
 import { createPortal } from 'react-dom';
 import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
 import { illustrationUrl } from '../../data/CardArt.js';
+import { playButtonFeedback } from './feedback.js';
 
 type Variant = 'primary' | 'ghost' | 'danger';
 
@@ -51,6 +52,13 @@ export const TAP_MOVE_TOLERANCE_PX = 10;
  * carte de deck du `DeckSelector`) : exportée pour que tout ce qui se
  * comporte comme un bouton du jeu — sans être un `<button>` — porte le même
  * relief et le même délai, au lieu d'un second mécanisme réinventé à côté.
+ *
+ * ⚠️ **C'est aussi l'unique point d'émission du retour haptique + sonore**
+ * (`playButtonFeedback`) : posé au `pointerdown`, en même temps que le
+ * relief visuel démarre — pas à l'échéance du délai de course, qui ne
+ * retarde que l'ACTION. Un tap annulé (glissade, défilement) aura donc
+ * quand même vibré/cliqué une fois ; c'est le prix d'un retour immédiat,
+ * et c'est celui d'un vrai bouton.
  */
 export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
   onPointerDown: PointerEventHandler<T> | undefined, disabled: boolean | undefined,
@@ -68,6 +76,7 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
     if (disabled) return;
     start.current = { x: e.clientX, y: e.clientY };
     setSquashed(true);
+    playButtonFeedback();
     if (onPointerDown) {
       clearTimer();
       timer.current = window.setTimeout(() => onPointerDown(e), SQUASH_DELAY_MS);
