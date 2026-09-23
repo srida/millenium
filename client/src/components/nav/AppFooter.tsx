@@ -16,7 +16,7 @@ import { CountBadge, NewDot, usePressSquash } from '../ui/primitives.js';
 
 export function AppFooter() {
   return (
-    <div className="sticky bottom-0 z-20 grid shrink-0 grid-cols-5 border-t border-line bg-surface-raised/90 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+    <div className="sticky bottom-0 z-20 grid shrink-0 grid-cols-5 border-t border-line bg-surface-raised/90 backdrop-blur">
       <MissionsTile />
       <ShopTile />
       <HomeTile />
@@ -29,6 +29,10 @@ export function AppFooter() {
 // Tuile du footer : icône au-dessus du libellé, pastille en surimpression au
 // coin. La tuile de la page courante (`screen`) est mise en avant à la manière
 // du dock de Marvel Snap — tout le visuel vit dans `styles/footer.css`.
+//
+// ⚠️ La marge de zone sûre (`safe-area-inset-bottom`) est portée par la TUILE,
+// pas par la barre : posée sur la barre, elle laissait sous le halo de l'onglet
+// actif une bande non surlignée (la barre d'accueil de l'iPhone).
 function DockTile({ icon, label, screen, onPointerDown, badge, logo = false, className = '' }: {
   icon: ReactNode;
   label: string;
@@ -45,7 +49,7 @@ function DockTile({ icon, label, screen, onPointerDown, badge, logo = false, cla
     <button
       type="button"
       aria-current={active ? 'page' : undefined}
-      className={`dock-tile relative flex min-h-[60px] min-w-tap flex-col items-center justify-center gap-1 transition-transform duration-100 ease-out ${active ? 'is-active' : ''} ${squashed ? 'scale-95' : ''} ${className}`}
+      className={`dock-tile relative flex min-h-[calc(60px+env(safe-area-inset-bottom))] min-w-tap pb-[env(safe-area-inset-bottom)] flex-col items-center justify-center gap-1 transition-transform duration-100 ease-out ${active ? 'is-active' : ''} ${squashed ? 'scale-95' : ''} ${className}`}
       {...handlers}
     >
       <span className={`dock-icon flex h-8 items-center justify-center text-xl ${logo ? 'is-logo' : ''}`} aria-hidden="true">{icon}</span>
