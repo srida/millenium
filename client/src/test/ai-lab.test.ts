@@ -1006,8 +1006,11 @@ describe('Décor spatial — l\'invariant de peinture des écrans', () => {
       const src = fs.readFileSync(
         path.join(SRC, `${componentToFile.get(screenToComponent.get(screen)!)}.tsx`), 'utf8');
       // Ils posent tous leur propre fond plein cadre — c'est le critère du set.
+      // Plein cadre = `h-dvh`, ou la hauteur corrigée de l'appli installée
+      // (`h-[var(--app-h,100dvh)]`, cf. app/viewportHeight.ts).
+      const FULL_H = String.raw`(?:h-dvh|h-\[var\(--app-h,100dvh\)\])`;
       expect(src, `« ${screen} » est immersif mais ne peint aucun fond plein cadre`)
-        .toMatch(/h-dvh[^"'`]*bg-|bg-[^"'`]*h-dvh/);
+        .toMatch(new RegExp(`${FULL_H}[^"'\`]*bg-|bg-[^"'\`]*${FULL_H}`));
     }
   });
 });
