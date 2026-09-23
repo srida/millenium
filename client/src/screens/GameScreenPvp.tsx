@@ -104,10 +104,10 @@ export default function GameScreenPvp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
   }, []);
 
-  if (!controller) return <div className="flex min-h-dvh items-center justify-center bg-surface text-white">Connexion au duel…</div>;
+  if (!controller) return <div className="flex min-h-[var(--app-h,100dvh)] items-center justify-center bg-surface text-white">Connexion au duel…</div>;
 
   return (
-    <div className="relative h-dvh overflow-hidden bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
+    <div className="relative h-[var(--app-h,100dvh)] overflow-hidden bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
       <Board3DCanvas controller={controller} />
       <HudWithOpponent opponentAvatar={opponentAvatar} />
       <DuelIntro

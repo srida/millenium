@@ -174,7 +174,7 @@ export default function App() {
           <Screen />
         </Suspense>
       ) : (
-        <div className="relative z-10 flex h-dvh flex-col text-white">
+        <div className="relative z-10 flex h-[var(--app-h,100dvh)] flex-col text-white">
           <AppHeader />
           <div className="min-h-0 flex-1 overflow-y-auto">
             <Suspense fallback={lazyFallback}>
