@@ -7,7 +7,7 @@
 // plus accessible au pouce), plutôt que dans le header.
 import type { ReactNode } from 'react';
 import { useEffect } from 'react';
-import { useUiStore } from '../../stores/uiStore.js';
+import { useUiStore, type ScreenName } from '../../stores/uiStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useMissionStore, hasUnseenMissions, claimableCount } from '../../stores/missionStore.js';
 import { useShopStore, hasUnseenShop } from '../../stores/shopStore.js';
@@ -27,23 +27,29 @@ export function AppFooter() {
 }
 
 // Tuile du footer : icône au-dessus du libellé, pastille en surimpression au
-// coin.
-function DockTile({ icon, label, onPointerDown, badge, className = '' }: {
+// coin. La tuile de la page courante (`screen`) est mise en avant à la manière
+// du dock de Marvel Snap — tout le visuel vit dans `styles/footer.css`.
+function DockTile({ icon, label, screen, onPointerDown, badge, logo = false, className = '' }: {
   icon: ReactNode;
   label: string;
+  /** L'écran que la tuile désigne : elle est ACTIVE quand c'est l'écran courant. */
+  screen: ScreenName;
   onPointerDown?: () => void;
   badge?: ReactNode;
+  logo?: boolean;
   className?: string;
 }) {
+  const active = useUiStore(s => s.screen) === screen;
   const { squashed, handlers } = usePressSquash(onPointerDown, false);
   return (
     <button
       type="button"
-      className={`relative flex min-h-[60px] min-w-tap flex-col items-center justify-center gap-1 transition-transform duration-100 ease-out ${squashed ? 'scale-95' : ''} ${className}`}
+      aria-current={active ? 'page' : undefined}
+      className={`dock-tile relative flex min-h-[60px] min-w-tap flex-col items-center justify-center gap-1 transition-transform duration-100 ease-out ${active ? 'is-active' : ''} ${squashed ? 'scale-95' : ''} ${className}`}
       {...handlers}
     >
-      <span className="text-xl" aria-hidden="true">{icon}</span>
-      <span className="text-[10px] text-white/70">{label}</span>
+      <span className={`dock-icon flex h-8 items-center justify-center text-xl ${logo ? 'is-logo' : ''}`} aria-hidden="true">{icon}</span>
+      <span className="dock-label text-[10px] text-white/70">{label}</span>
       {badge && <span className="absolute right-1.5 top-1">{badge}</span>}
     </button>
   );
@@ -53,7 +59,20 @@ function DockTile({ icon, label, onPointerDown, badge, className = '' }: {
 // en invité : c'est le seul retour disponible depuis un écran secondaire.
 function HomeTile() {
   const navigate = useUiStore(s => s.navigate);
-  return <DockTile icon="🏠" label="Accueil" onPointerDown={() => navigate('main_menu')} />;
+  return <DockTile icon={<LogoMark />} logo label="Accueil" screen="main_menu" onPointerDown={() => navigate('main_menu')} />;
+}
+
+// Le portail du logo en miniature (pierre + anneau, sans le mot) : les mêmes
+// PNG que `AnimatedLogo`, animés en CSS seul — pas de boucle rAF pour une
+// icône de 40 px présente sur toutes les pages.
+function LogoMark() {
+  return (
+    <span className="dock-logo block">
+      <img src="/logo/core.png" alt="" draggable={false} />
+      <span className="dock-logo-glow" />
+      <img className="dock-logo-ring" src="/logo/ring.png" alt="" draggable={false} />
+    </span>
+  );
 }
 
 // Accès aux missions du jour. LES DEUX notifications du jeu (`CountBadge` et
@@ -70,7 +89,7 @@ function MissionsTile() {
 
   useEffect(() => { if (userId) void load(true); }, [userId, load]);
 
-  if (!user) return <DockTile icon="🎯" label="Missions" />;
+  if (!user) return <DockTile icon="🎯" label="Missions" screen="missions" />;
 
   const pending = claimableCount(snapshot);
   const unseen = !!snapshot && hasUnseenMissions(user.id, snapshot.cycle.next_reset_at);
@@ -79,6 +98,7 @@ function MissionsTile() {
     <DockTile
       icon="🎯"
       label="Missions"
+      screen="missions"
       onPointerDown={() => navigate('missions')}
       badge={pending > 0 ? (
         <CountBadge label={`${pending} gain${pending > 1 ? 's' : ''} à récupérer`} className="h-4 min-w-4 text-[10px]">
@@ -100,11 +120,11 @@ function ShopTile() {
 
   useEffect(() => { if (userId) void load(true); }, [userId, load]);
 
-  if (!user) return <DockTile icon="🛒" label="Boutique" />;
+  if (!user) return <DockTile icon="🛒" label="Boutique" screen="shop" />;
 
   const unseen = !!snapshot && hasUnseenShop(user.id, snapshot.day);
 
-  return <DockTile icon="🛒" label="Boutique" onPointerDown={() => navigate('shop')} badge={unseen ? <NewDot /> : null} />;
+  return <DockTile icon="🛒" label="Boutique" screen="shop" onPointerDown={() => navigate('shop')} badge={unseen ? <NewDot /> : null} />;
 }
 
 // Cadeaux. UNE seule pastille, la verte chiffrée. Rien en invité : un cadeau
@@ -118,7 +138,7 @@ function GiftsTile() {
 
   useEffect(() => { if (userId) void load(true); }, [userId, load]);
 
-  if (!user) return <DockTile icon="🎁" label="Cadeaux" />;
+  if (!user) return <DockTile icon="🎁" label="Cadeaux" screen="gifts" />;
 
   const pending = claimableGifts(snapshot);
 
@@ -126,6 +146,7 @@ function GiftsTile() {
     <DockTile
       icon="🎁"
       label="Cadeaux"
+      screen="gifts"
       onPointerDown={() => navigate('gifts')}
       badge={pending > 0 ? (
         <CountBadge label={`${pending} cadeau${pending > 1 ? 'x' : ''} à récupérer`} className="h-4 min-w-4 text-[10px]">
@@ -142,5 +163,5 @@ function GiftsTile() {
 // compte.
 function CatalogTile() {
   const navigate = useUiStore(s => s.navigate);
-  return <DockTile icon="📖" label="Catalogue" onPointerDown={() => navigate('catalog')} />;
+  return <DockTile icon="📖" label="Catalogue" screen="catalog" onPointerDown={() => navigate('catalog')} />;
 }

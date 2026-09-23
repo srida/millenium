@@ -1,0 +1,126 @@
+/* AppFooter — la barre de navigation, à la manière du dock de Marvel Snap :
+   l'onglet de la page courante se SOULÈVE (icône agrandie et remontée, halo
+   montant du bas, filet doré en tête), les autres s'éteignent.
+
+   ⚠️ On éteint par la LUMINOSITÉ et la saturation, pas par l'opacité seule :
+   un emoji translucide sur un fond flouté se lit comme un bouton désactivé,
+   là où il n'est qu'« ailleurs ». */
+
+.dock-tile {
+  isolation: isolate;
+}
+
+.dock-tile .dock-icon {
+  transition: transform 220ms cubic-bezier(.34, 1.56, .64, 1), filter 180ms ease-out;
+  filter: saturate(.55) brightness(.72);
+}
+.dock-tile .dock-label {
+  transition: color 180ms ease-out;
+}
+
+/* Le halo et le filet sont deux pseudo-éléments : toujours dans le balisage,
+   révélés par l'opacité — rien ne se monte ni ne se démonte au changement de
+   page, donc rien ne saute. */
+.dock-tile::before,
+.dock-tile::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+  z-index: -1;
+}
+.dock-tile::before {
+  inset: 0;
+  background:
+    radial-gradient(90% 85% at 50% 100%, rgb(212 175 97 / .32), rgb(168 110 231 / .14) 55%, transparent 80%),
+    linear-gradient(to top, rgb(255 255 255 / .06), transparent 70%);
+}
+.dock-tile::after {
+  left: 18%;
+  right: 18%;
+  top: -1px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+  box-shadow: 0 0 10px 1px rgb(212 175 97 / .7);
+}
+
+.dock-tile.is-active::before,
+.dock-tile.is-active::after {
+  opacity: 1;
+}
+.dock-tile.is-active .dock-icon {
+  transform: translateY(-3px) scale(1.25);
+  filter: drop-shadow(0 0 6px rgb(212 175 97 / .55));
+}
+.dock-tile.is-active .dock-label {
+  color: var(--color-gold);
+  font-weight: 600;
+}
+
+/* Survol (souris seulement — un téléphone garderait le `:hover` collé). */
+@media (hover: hover) and (pointer: fine) {
+  .dock-tile:not(.is-active):hover .dock-icon {
+    filter: saturate(.85) brightness(.95);
+    transform: translateY(-1px);
+  }
+}
+
+/* ── Accueil : le portail du logo, en miniature ───────────────────────────
+   Pierre + anneau, sans le mot. Deux animations CSS seulement (aucune boucle
+   rAF) : l'anneau oscille, la lueur du cœur respire. */
+.dock-logo {
+  position: relative;
+  width: 2.25rem;
+  height: 2.25rem;
+}
+.dock-logo img,
+.dock-logo .dock-logo-glow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.dock-logo .dock-logo-glow {
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / .85) 0%, rgb(214 170 255 / .45) 22%, rgb(150 80 240 / 0) 48%);
+  mix-blend-mode: screen;
+  animation: dock-logo-breathe 4s ease-in-out infinite;
+}
+.dock-logo .dock-logo-ring {
+  animation: dock-logo-sway 10s ease-in-out infinite;
+}
+@keyframes dock-logo-breathe {
+  0%, 100% { opacity: .35; transform: scale(.9); }
+  50%      { opacity: .8;  transform: scale(1.05); }
+}
+@keyframes dock-logo-sway {
+  0%, 100% { transform: rotate(-6deg); }
+  50%      { transform: rotate(6deg); }
+}
+
+/* Le logo reste plus lumineux que les emojis même au repos : c'est le repère
+   du dock, il ne doit jamais sembler éteint. */
+.dock-tile .dock-icon.is-logo {
+  filter: saturate(.85) brightness(.9);
+}
+
+/* L'Accueil actif se soulève plus haut que les autres : c'est le centre du
+   dock, comme dans Snap. */
+.dock-tile.is-active .dock-icon.is-logo {
+  transform: translateY(-5px) scale(1.3);
+  filter: drop-shadow(0 0 8px rgb(178 110 255 / .75));
+}
+
+/* ⚠️ Mouvement réduit : on retire le MOUVEMENT, pas l'information — l'onglet
+   actif garde son halo, son filet et son icône agrandie, il y arrive d'un coup. */
+@media (prefers-reduced-motion: reduce) {
+  .dock-tile .dock-icon,
+  .dock-tile .dock-label,
+  .dock-tile::before,
+  .dock-tile::after { transition: none; }
+  .dock-logo .dock-logo-glow,
+  .dock-logo .dock-logo-ring { animation: none; }
+  .dock-logo .dock-logo-glow { opacity: .6; }
+}
