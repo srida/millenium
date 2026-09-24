@@ -2305,8 +2305,6 @@ function cardAppelHtml(c) {
     </div>
     ${alerte}
     <div class="form-grid">
-      <div class="field"><label>Tier exigé (vide = aucun)</label>
-        <input id="f-appel-tier" type="number" min="1" max="5" step="1" value="${c.appel && c.appel.tier != null ? c.appel.tier : ''}"></div>
       <div class="field" style="grid-column:1/-1">
         <label>Attributs et/ou cartes nommées</label>
         ${renderGuaranteedDrawCriteria(c.appel, 'carte')}
@@ -2634,7 +2632,13 @@ function cardPowerFromForm() {
 }
 
 /**
- * L'`appel` relu du formulaire — les listes viennent du MODÈLE, le tier du champ.
+ * L'`appel` relu du formulaire — tout vient du MODÈLE, il n'y a plus de champ à lire.
+ *
+ * ⚠️ **`tier` n'est plus ÉDITABLE, et n'est donc plus lu que du modèle** : les
+ * cinq tiers sont des attributs, un tier se nomme déjà dans `attributes` — même
+ * geste que la forme historique `attribute`, sauf que `tier` reste un champ à
+ * PART ENTIÈRE (lu par le moteur), juste sans widget dédié. Une carte livrée
+ * avec un tier garde le sien ; rien n'en écrit plus de nouveau.
  *
  * ⚠️ **Un appel vide n'est pas persisté** (`undefined`) : `{}` serait de la
  * donnée qui promet « au choix », ce que le moteur ne tient pas — un porteur
@@ -2643,10 +2647,8 @@ function cardPowerFromForm() {
  */
 function appelFromForm() {
   const courant = selectedCard.appel || {};
-  const brut = document.getElementById('f-appel-tier')?.value;
-  const tier = brut === '' || brut == null ? null : parseInt(brut, 10);
   const out = {};
-  if (Number.isInteger(tier) && tier > 0) out.tier = tier;
+  if (Number.isInteger(courant.tier) && courant.tier > 0) out.tier = courant.tier;
   if ((courant.attributes || []).length) out.attributes = [...courant.attributes];
   if ((courant.card_ids || []).length) out.card_ids = [...courant.card_ids];
   // La forme HISTORIQUE au singulier ne s'écrit jamais ici (cf. `champsOfferts`).

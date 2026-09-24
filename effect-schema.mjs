@@ -534,8 +534,13 @@ export const TYPES = Object.freeze({
     // `attributes` par `Draw.guaranteedDrawCriteria`. Le compilateur la lit
     // encore — de la donnée livrée en porte — mais l'éditeur ne la propose plus :
     // deux champs pour la même question laisseraient écrire deux réponses.
-    attribut: { quands: ['fin_combat'], champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
-    magie: { quands: ['immediat'], champs: { tier: {}, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
+    // ⚠️ `tier` n'est plus OFFERT non plus, et pour la même raison qu'`attribute` :
+    // les cinq tiers sont désormais des attributs (ARCH_091…095), donc un tier
+    // se nomme déjà dans `attributes` — le `<select>` dédié posait la même
+    // question deux fois. Le compilateur continue de le lire (une donnée livrée
+    // en porte), il n'y a juste plus rien pour l'écrire.
+    attribut: { quands: ['fin_combat'], champs: { tier: { offert: false }, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
+    magie: { quands: ['immediat'], champs: { tier: { offert: false }, attributes: {}, card_ids: {}, attribute: { offert: false, ...CRITERE_HISTORIQUE } } },
   },
   guaranteed_draw_bearer: {
     label: 'Pioche garantie — ce que la CARTE appelle (Appelant)',
