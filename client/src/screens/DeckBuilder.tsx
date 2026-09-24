@@ -292,6 +292,26 @@ export default function DeckBuilder() {
     });
   }
 
+  // Prête au panneau « Cartes liées » (🧬 du tooltip, monté globalement dans
+  // App.tsx) de quoi ajouter/retirer une carte liée du deck en cours
+  // d'édition — le même geste qu'un tap dans la bibliothèque, ci-dessus,
+  // JAMAIS une seconde règle : les quatre champs délèguent à `owns`,
+  // `laneOf`/`canPlace` (déjà importés) et `addCard`/`removeCardById`
+  // eux-mêmes. Reposé à chaque changement de deck pour que le panneau lise
+  // toujours l'état courant, et retiré au démontage — l'écran de jeu ou le
+  // Catalogue n'ont rien à ajouter à un deck qui n'est plus édité.
+  const setDeckPickContext = useUiStore(s => s.setDeckPickContext);
+  useEffect(() => {
+    setDeckPickContext({
+      owns,
+      inDeck: (id: string) => laneOf(deckData, id) !== null,
+      canAdd: (c: Card) => canPlace(c, deckData, tierMax),
+      onTap: (c: Card) => (laneOf(deckData, c.id) !== null ? removeCardById(c) : addCard(c)),
+    });
+    return () => setDeckPickContext(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `addCard`/`removeCardById` ferment sur `setDeckData` (forme fonctionnelle) : les lister recréerait l'effet sans rien changer à ce qu'il lit.
+  }, [deckData, owns, tierMax, setDeckPickContext]);
+
   const [saving, setSaving] = useState(false);
   // Pourquoi le deck n'est pas enregistrable : porté par une popup au tap sur
   // « Enregistrer » plutôt qu'une phrase permanente sous le bouton — celle-ci
