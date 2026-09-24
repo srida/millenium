@@ -438,6 +438,16 @@ export class GameController {
   }
 
   /**
+   * L'inverse — le point de l'écran sous une case, `null` sans scène. Sert au
+   * badge de compteur d'unités posé au coin de la grille (`UnitCounterBadge`) :
+   * une position dérivée de la vraie projection caméra, jamais d'un calcul CSS
+   * recopié à côté (`_cameraFraming` change avec le mode portrait/web).
+   */
+  screenPosForCell(pos: Position): { x: number; y: number } | null {
+    return this.scene ? this.scene.worldToScreen(this.scene.tilePosition(pos)) : null;
+  }
+
+  /**
    * Allume la case survolée pendant un glisser de carte.
    *
    * ⚠️ Le glisser n'écrivait AUCUN retour sur le plateau : la carte suivait le

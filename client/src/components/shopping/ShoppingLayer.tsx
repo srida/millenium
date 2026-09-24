@@ -11,8 +11,8 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { canAffordMagie } from '../../logic/MagieEffect.js';
 import { Button, IconButton, Modal } from '../ui/primitives.js';
 import { useWebLayout } from '../system/useWebLayout.js';
+import HoldConfirmButton from '../ui/HoldConfirmButton.js';
 import MagieCard from './MagieCard.js';
-import RerollButton from './RerollButton.js';
 
 export default function ShoppingLayer() {
   const shopping = useGameStore(s => s.shopping);
@@ -102,19 +102,22 @@ export default function ShoppingLayer() {
       </div>
       {/* Reroll et Passer côte à côte : c'est le même geste de fin de modale,
           qu'on choisisse de rerouler ou de renoncer. Le reroll n'a plus de
-          confirmation modale (contrairement au mulligan) : le bouton se
-          maintient (`RerollButton`), la charge qui le remplit EST la
+          confirmation modale (contrairement à l'ancien mulligan) : le bouton
+          se maintient (`HoldConfirmButton`), la charge qui le remplit EST la
           confirmation, et le prix ne s'affiche qu'au moment où il est
-          débité. Absent quand le joueur ne peut pas payer ou qu'il ne reste
-          plus rien de pertinent à montrer : « Passer » prend alors toute la
-          largeur. */}
+          débité. `visible`, pas un montage conditionnel : un pool épuisé par
+          CE reroll ferait retomber `canReroll` dans le même tick que le
+          toast s'arme (cf. le composant). Sans rien à montrer, « Passer »
+          prend toute la largeur. */}
       <div className="mt-3 flex gap-2">
-        {shopping.canReroll && (
-          <RerollButton
-            cost={shopping.rerollCost}
-            onConfirm={() => controller.rerollShopping()}
-          />
-        )}
+        <HoldConfirmButton
+          icon="🎲"
+          label="Re-roll"
+          cost={shopping.rerollCost}
+          onConfirm={() => controller.rerollShopping()}
+          fullWidth
+          visible={shopping.canReroll}
+        />
         <Button
           variant="ghost"
           className="min-w-0 flex-1 px-2 text-xs"

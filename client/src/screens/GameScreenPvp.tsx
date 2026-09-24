@@ -21,6 +21,7 @@ import { useGameStore } from '../stores/gameStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import Board3DCanvas from '../components/board/Board3DCanvas.js';
+import UnitCounterBadge from '../components/board/UnitCounterBadge.js';
 import Hud from '../components/hud/Hud.js';
 import SynergyPanel from '../components/hud/SynergyPanel.js';
 import PhaseControls from '../components/hud/PhaseControls.js';
@@ -109,6 +110,7 @@ export default function GameScreenPvp() {
   return (
     <div className="relative h-[var(--app-h,100dvh)] overflow-hidden bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
       <Board3DCanvas controller={controller} />
+      <UnitCounterBadge />
       <HudWithOpponent opponentAvatar={opponentAvatar} />
       <DuelIntro
         enemyAvatarSrc={opponentAvatar}
