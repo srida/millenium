@@ -77,14 +77,25 @@ interface TooltipState {
   anchor: TooltipAnchor;
 }
 
+// Le panneau « Cartes liées » (🧬) ouvert depuis le tooltip d'une carte — ses
+// matériels, sa lignée, et les cartes qui la consomment comme matériel. Un
+// état à part du tooltip : c'est une CONSULTATION (modale, tapable), pas une
+// infobulle qui s'efface au prochain tap ailleurs.
+interface LinkedCardsState {
+  card: Card;
+}
+
 interface UiState {
   screen: ScreenName;
   params: ScreenParams;
   tooltip: TooltipState | null;
+  linkedCards: LinkedCardsState | null;
 
   navigate: (screen: ScreenName, params?: ScreenParams) => void;
   showTooltip: (content: TooltipContent, anchor: TooltipAnchor) => void;
   hideTooltip: () => void;
+  showLinkedCards: (card: Card) => void;
+  hideLinkedCards: () => void;
 }
 
 // Deep-link ?screen= (parité avec l'ancien routeur maison).
@@ -107,8 +118,13 @@ export const useUiStore = create<UiState>((set) => ({
   screen: initialScreen(),
   params: initialParams(),
   tooltip: null,
+  linkedCards: null,
 
-  navigate: (screen, params = {}) => set({ screen, params, tooltip: null }),
+  navigate: (screen, params = {}) => set({ screen, params, tooltip: null, linkedCards: null }),
   showTooltip: (content, anchor) => set({ tooltip: { content, anchor } }),
   hideTooltip: () => set((s) => (s.tooltip ? { tooltip: null } : s)),
+  // Ouvrir le panneau ferme le tooltip qui l'a ouvert — les deux ne se
+  // superposent jamais.
+  showLinkedCards: (card) => set({ linkedCards: { card }, tooltip: null }),
+  hideLinkedCards: () => set((s) => (s.linkedCards ? { linkedCards: null } : s)),
 }));
