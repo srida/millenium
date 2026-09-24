@@ -241,7 +241,7 @@
   flex-shrink: 0;
   font-family: var(--font-display);
   font-weight: 900;
-  font-size: clamp(12px, calc(var(--u) * .03), 24px);
+  font-size: clamp(15px, calc(var(--u) * .042), 32px);
   color: #fff;
   text-transform: uppercase;
   letter-spacing: .06em;
