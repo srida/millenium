@@ -97,6 +97,20 @@ export function summonCostOf(card: Card): number {
 }
 
 /**
+ * Les coûts de la carte, un par recette DISTINCTE en prix, du moins cher au
+ * plus cher — ce que la vignette affiche quand ses recettes ne coûtent pas la
+ * même chose. Deux recettes au même prix ne font qu'un chiffre : la pastille
+ * dit un coût, pas un nombre de recettes.
+ *
+ * Rend `[]` quand la seule réponse est zéro (pose directe) : une vignette nue
+ * DIT qu'elle se pose. Le premier élément est toujours `summonCostOf`.
+ */
+export function summonCostsOf(card: Card): number[] {
+  const costs = [...new Set(summonRecipes(card).map(r => r.materials))].sort((a, b) => a - b);
+  return costs.length === 1 && costs[0] <= 0 ? [] : costs;
+}
+
+/**
  * Ce que coûte la recette, en toutes lettres et sans les matériels nommés
  * (l'appelant les rend à part, il est seul à savoir les nommer).
  * `null` quand il n'y a rien à exiger — invocation directe.
