@@ -354,6 +354,15 @@ export const CHAMPS = Object.freeze({
     label: 'Token à invoquer', saisie: 'choix', options: 'tokens', defaut: '',
     aide: 'Le catalogue des tokens (onglet 🪙). L’unité est éphémère — elle disparaît à la fin du combat qui l’a vue naître, comme POWER_SUMMON_TOKEN.',
   },
+  // ⚠️ Un token PAR ENTRÉE, pas un `token_id` + un nombre : le nombre de
+  // tokens invoqués EST le nombre d'entrées, et chaque entrée choisit le
+  // sien — deux Esprits et un Gardien s'écrivent en trois entrées, dont deux
+  // valent le même id. Une case « Nombre » séparée pourrait contredire la
+  // liste ; il n'y a donc rien d'autre à chiffrer.
+  token_ids: {
+    label: 'Tokens à invoquer (un par entrée)', saisie: 'tokens_multi', facultatif: true, defaut: [],
+    aide: 'Le catalogue des tokens (onglet 🪙). Chaque entrée invoque UNE unité éphémère — elle disparaît à la fin du combat qui l’a vue naître, comme POWER_SUMMON_TOKEN. Ajouter deux fois le même token en invoque deux.',
+  },
   camp: {
     label: 'Camp qui reçoit le token', saisie: 'choix_direct', defaut: 'allie',
     options: [['allie', 'Le mien (ou le porteur, pour un attribut)'], ['ennemi', 'L’adversaire']],
@@ -673,9 +682,13 @@ export const TYPES = Object.freeze({
     // `GameSession.finishCombat`, qui retire tout `is_token` en clôture).
     terrain: { quands: ['debut_combat'], champs: { token_id: {}, camp: {} } },
     attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: { token_id: {}, camp: {} } },
-    // ⚠️ `camp` reste déclaré côté magie (la sonde inverse l'exige) mais seul
-    // `allie` compile — cf. `compileMagie`.
-    magie: { quands: ['immediat'], champs: { token_id: {}, camp: {} } },
+    // ⚠️ La magie seule porte `token_ids` (une LISTE), pas `token_id` : c'est
+    // elle que l'auteur remplit à la main, une entrée par unité invoquée — le
+    // terrain et l'attribut, eux, n'invoquent qu'UN token par déclenchement
+    // (répétable par nature : un attribut se redéclenche par porteur, un
+    // terrain une fois par combat). `camp` reste déclaré côté magie (la sonde
+    // inverse l'exige) mais seul `allie` compile — cf. `compileMagie`.
+    magie: { quands: ['immediat'], champs: { token_ids: {}, camp: {} } },
   },
 
   // ── Les deux que le moteur ne traduit pas ────────────────────────────────

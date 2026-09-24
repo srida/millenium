@@ -180,6 +180,16 @@ describe('isMagieRelevant — les deux branches de chaque famille', () => {
     expect(isMagieRelevant(magie({ type: 'draw_bonus', value: 1 }), BARREN)).toBe(true);
   });
 
+  // ⚠️ `summon_token` ne lit AUCUN champ du contexte (comme `guaranteed_magie`) :
+  // sa garde porte sur SA PROPRE donnée, `token_ids`, jamais sur l'état de
+  // partie. Une liste vide ne promet rien de nommable — même « blanc » qu'une
+  // pioche ou une magie garanties sans critère.
+  it('summon_token est pertinent dès que `token_ids` porte au moins une entrée', () => {
+    expect(isMagieRelevant(magie({ type: 'summon_token', token_ids: [] }), BARREN)).toBe(false);
+    expect(isMagieRelevant(magie({ type: 'summon_token' }), BARREN)).toBe(false);
+    expect(isMagieRelevant(magie({ type: 'summon_token', token_ids: ['TOK_ESPRIT'] }), BARREN)).toBe(true);
+  });
+
   it('duplicate_unit ne se contente PAS de boardUnitCount', () => {
     // ⚠️ Le piège : une unité sur le board dont la carte a quitté le catalogue
     // n'est pas copiable. L'offrir ferait encaisser le contrecoup pour rien —

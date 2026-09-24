@@ -259,6 +259,15 @@ export interface MagieEffectDef {
   /** `guaranteed_magie` : cf. `GuaranteedMagie`. */
   rarity?: MagieRarity;
   magie_id?: string;
+  /**
+   * `summon_token` — un token PAR ENTRÉE, choisie une par une : le nombre
+   * invoqué est `token_ids.length`, jamais un `value` séparé qui pourrait la
+   * contredire. Cf. `effect-schema.mjs` (le champ n'existe que côté magie ;
+   * terrain et attribut gardent `token_id`, cf. `BoardEffectDef`).
+   */
+  token_ids?: string[];
+  /** `summon_token` — seul `allie` compile pour une magie (`compileMagie`). */
+  camp?: 'allie' | 'ennemi';
 }
 
 /** Palier de rareté d'une magie : 1 Commune · 2 Rare · 3 Légendaire. */

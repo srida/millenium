@@ -103,6 +103,11 @@ function valeurPour(champ: any, variante = 0): any {
       return variante ? [attributs[1].id] : [UN_ATTRIBUT];
     case 'attributs_multi':
       return variante ? [attributs[1].id] : [UN_ATTRIBUT];
+    // ⚠️ Les deux variantes diffèrent par la LONGUEUR (1 puis 2 entrées), pas
+    // seulement par le contenu : c'est le NOMBRE de tâches `invoquer` compilées
+    // que la sonde doit voir bouger (cf. `token_ids` dans `effect-schema.mjs`).
+    case 'tokens_multi':
+      return variante ? ['TOK_A', 'TOK_B'] : ['TOK_A'];
     // ⚠️ `false` puis `true`, jamais l'inverse : `per_ally` lit `!== false`
     // (§6.1), donc `true` et l'absence compilent PAREIL — seule la variante 0
     // (`false`) doit produire une compilation différente de la 1.

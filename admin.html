@@ -2049,6 +2049,10 @@ function getPowerName(id) {
   const p = powers.find(x => x.id === id);
   return p ? `${p.icon || '⚡'} ${p.name}` : id;
 }
+function getTokenName(id) {
+  const t = tokens.find(x => x.id === id);
+  return t ? (t.name || id) : id;
+}
 function getCardName(id) {
   const c = cards.find(x => x.id === id);
   return c ? c.name : id;
@@ -3347,6 +3351,40 @@ function openAttrPickModal() {
   });
 }
 
+// Token picker modal — dédié à `token_ids` (`summon_token` de magie) : pas
+// d'exclusion (une multiset accepte un doublon) et le modal reste OUVERT après
+// un clic, pour ajouter plusieurs fois le même token sans le rouvrir.
+let tokenPickChipsId = null;
+
+function openEffectTokenPickModal(chipsId) {
+  tokenPickChipsId = chipsId;
+  showModal(`
+    <h2>Ajouter un token</h2>
+    <div id="tp-list" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto"></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="closeModal()">Fermer</button>
+    </div>
+  `);
+  document.getElementById('tp-list').innerHTML = tokens.length
+    ? tokens.map(t => `
+      <div class="list-item" style="border-radius:6px" onclick="addEffectToken('${t.id}')">
+        <div><div>${esc(t.name || t.id)}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${t.id}</div></div>
+      </div>
+    `).join('')
+    : '<div class="empty"><span>Aucun token — catalogue vide (onglet 🪙)</span></div>';
+}
+
+function addEffectToken(tid) {
+  const box = document.getElementById(tokenPickChipsId);
+  if (!box) return;
+  const chip = document.createElement('span');
+  chip.className = 'attr-chip';
+  chip.dataset.tid = tid;
+  chip.innerHTML = `${esc(getTokenName(tid))} <span class="remove">×</span>`;
+  chip.onclick = () => chip.remove();
+  box.insertBefore(chip, box.querySelector('.attr-add'));
+}
+
 // ================== ATTRIBUTES ==================
 function filterAttributes() { renderAttrList(runQuery('attr', attributes)); }
 
@@ -3538,6 +3576,8 @@ const EFFECT_NOTES = {
     POWER_SUMMON_TOKEN — jamais au cimetière, jamais de vétérance.<br>
     Case tirée au hasard parmi les libres du camp visé (ni occupée, ni bloquée). Sans case libre
     ou avec un id de token inconnu, l'effet ne fait simplement rien.<br>
+    Sur une magie : <b>une entrée = un token</b>, chacune choisie une par une — le nombre invoqué
+    est le nombre d'entrées, ajouter deux fois le même token en invoque deux.<br>
     ⚠️ <b>Désactivé en PvP réel</b> : la case tirée n'a aucun moyen de voyager jusqu'à l'autre
     client, les deux simulations divergeraient. Un duel contre un bot n'est pas concerné.`,
   guaranteed_draw_bearer: `Le mot-clé <b>Appelant</b>. Rien à saisir ICI : les critères vivent sur
@@ -3649,6 +3689,20 @@ function _effectFieldHtml(champ, effet, prefixe, ctx) {
           <button class="attr-add" onclick="openEffectAttrPickModal('${id}')">+ Ajouter</button>
         </div></div>`;
 
+    // ⚠️ Une LISTE, pas un ensemble : le même token peut y figurer plusieurs
+    // fois (deux Esprits, un Gardien), là où `attributs_multi` dédoublonne.
+    // Chaque puce retire donc ELLE-MÊME (closure sur l'élément), jamais par id.
+    case 'tokens_multi':
+      return `<div class="field" style="grid-column:1/-1">
+        <label>${champ.label} <span style="font-weight:400;color:var(--muted)">(une entrée = un token invoqué)</span></label>
+        <div class="attr-chips" id="${id}">
+          ${(Array.isArray(valeur) ? valeur : []).map(tid => `
+            <span class="attr-chip" data-tid="${tid}" onclick="this.remove()">
+              ${esc(getTokenName(tid))} <span class="remove">×</span>
+            </span>`).join('')}
+          <button class="attr-add" onclick="openEffectTokenPickModal('${id}')">+ Ajouter</button>
+        </div>${aide}</div>`;
+
     // ⚠️ Une case à cocher DANS `.field` hérite de deux règles qui ne la visent
     // pas (`width: 100%`, capitales) — `.field-check` les neutralise (cf. le
     // curseur de compteur, même geste).
@@ -3753,6 +3807,15 @@ function readEffectFromForm(porteur, prefixe, precedent) {
       const el = document.getElementById(id);
       out[champ.id] = el
         ? [...el.querySelectorAll('.attr-chip')].map(c => c.dataset.aid)
+        : (precedent?.[champ.id] || []);
+      continue;
+    }
+    if (champ.saisie === 'tokens_multi') {
+      // ⚠️ L'ORDRE du DOM fait foi, doublons compris — c'est une LISTE, pas un
+      // ensemble (cf. son rendu).
+      const el = document.getElementById(id);
+      out[champ.id] = el
+        ? [...el.querySelectorAll('.attr-chip')].map(c => c.dataset.tid)
         : (precedent?.[champ.id] || []);
       continue;
     }

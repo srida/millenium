@@ -173,15 +173,36 @@ describe('compileAttribute — summon_token', () => {
 });
 
 describe('compileMagie — summon_token', () => {
-  it('compile pour son propre camp (immédiat)', () => {
-    const { effets, refus } = compileMagie({ id: 'M', effect: { type: 'summon_token', token_id: TOKEN_DEF.id } as any } as any);
+  it('compile pour son propre camp (immédiat), une tâche par entrée de `token_ids`', () => {
+    const { effets, refus } = compileMagie({ id: 'M', effect: { type: 'summon_token', token_ids: [TOKEN_DEF.id] } as any } as any);
     expect(refus).toEqual([]);
     expect(effets[0].trigger.quand).toBe('immediat');
     expect(effets[0].taches).toEqual([{ action: 'invoquer', camp: 'allie', tokenId: TOKEN_DEF.id }]);
   });
 
+  // ⚠️ Le NOMBRE de tokens EST le nombre d'entrées, et chaque entrée choisit
+  // le SIEN — pas un `value` séparé qui pourrait contredire la liste.
+  it('précise chaque token un par un : autant de tâches `invoquer` que d’entrées, doublons compris', () => {
+    const { effets, refus } = compileMagie({
+      id: 'M', effect: { type: 'summon_token', token_ids: ['TOK_ESPRIT', 'TOK_ESPRIT', 'TOK_GARDIEN'] } as any,
+    } as any);
+    expect(refus).toEqual([]);
+    expect(effets[0].taches).toEqual([
+      { action: 'invoquer', camp: 'allie', tokenId: 'TOK_ESPRIT' },
+      { action: 'invoquer', camp: 'allie', tokenId: 'TOK_ESPRIT' },
+      { action: 'invoquer', camp: 'allie', tokenId: 'TOK_GARDIEN' },
+    ]);
+  });
+
+  it('refuse une liste vide, nommément', () => {
+    const { effets, refus } = compileMagie({ id: 'M', effect: { type: 'summon_token', token_ids: [] } as any } as any);
+    expect(effets).toEqual([]);
+    expect(refus).toHaveLength(1);
+    expect(refus[0].raison).toBe('token sans id');
+  });
+
   it('refuse camp=ennemi — une magie ne peut pas poser un token chez l’adversaire (PvP)', () => {
-    const { effets, refus } = compileMagie({ id: 'M', effect: { type: 'summon_token', token_id: TOKEN_DEF.id, camp: 'ennemi' } as any } as any);
+    const { effets, refus } = compileMagie({ id: 'M', effect: { type: 'summon_token', token_ids: [TOKEN_DEF.id], camp: 'ennemi' } as any } as any);
     expect(effets).toEqual([]);
     expect(refus).toHaveLength(1);
     expect(refus[0].raison).toBe('camp interdit');
@@ -283,7 +304,7 @@ describe('GameSession — summon_token d’ATTRIBUT, la traduction allié/ennemi
 });
 
 describe('GameSession — summon_token de MAGIE (Phase Shopping)', () => {
-  const magieToken = { id: 'MAGIE_TOKEN', name: 'Invocation', effect: { type: 'summon_token', token_id: TOKEN_DEF.id } };
+  const magieToken = { id: 'MAGIE_TOKEN', name: 'Invocation', effect: { type: 'summon_token', token_ids: [TOKEN_DEF.id] } };
 
   it('pose le token directement sur le board, hors combat', () => {
     const session = makeSummonSession({ getAllBoards: () => [] });
@@ -292,6 +313,22 @@ describe('GameSession — summon_token de MAGIE (Phase Shopping)', () => {
     const apres = session.board.getLivingUnitsOnSide('player');
     expect(apres).toHaveLength(avant + 1);
     expect(apres.some(u => u.card_id === TOKEN_DEF.id && u.is_token)).toBe(true);
+  });
+
+  // ⚠️ RÉGRESSION — le nombre de tokens posés doit suivre le nombre d'entrées
+  // de `token_ids`, chacune posée sur SA PROPRE case libre : rouge si le
+  // compilateur retombait sur une seule tâche `invoquer` par magie.
+  it('pose autant de tokens que d’entrées dans `token_ids`, chacun sur sa propre case', () => {
+    const session = makeSummonSession({ getAllBoards: () => [] });
+    const avant = session.board.getLivingUnitsOnSide('player').length;
+    session.applyGlobalMagie({
+      id: 'MAGIE_TOKEN_MULTI', name: 'Invocations', effect: { type: 'summon_token', token_ids: [TOKEN_DEF.id, TOKEN_DEF.id] },
+    } as any);
+    const apres = session.board.getLivingUnitsOnSide('player');
+    expect(apres).toHaveLength(avant + 2);
+    const tokens = apres.filter(u => u.card_id === TOKEN_DEF.id && u.is_token);
+    expect(tokens).toHaveLength(2);
+    expect(tokens[0].position).not.toEqual(tokens[1].position);
   });
 
   it('DÉSACTIVÉ EN PVP — la magie ne pose rien', () => {

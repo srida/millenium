@@ -285,6 +285,12 @@ export function effectLabel(magie, names = RAW_NAMES) {
     // baisse le prix, l'autre lève une contrainte sans rien rendre moins cher.
     case 'reduce_materials':         return `-${e.value ?? 1} matériel(s) requis sur une carte ${handModifierScope(e, names)}`;
     case 'remove_requirements':      return `Retire ${e.value ?? 1} matériel(s) NOMMÉ(s) d'une carte ${handModifierScope(e, names)}`;
+    // ⚠️ Le NOMBRE est la longueur de `token_ids` — il n'y a pas de `value` à
+    // côté qui pourrait la contredire (cf. `effect-schema.mjs`).
+    case 'summon_token': {
+      const n = e.token_ids?.length || 0;
+      return n > 1 ? `Invoque ${n} tokens sur ton terrain` : 'Invoque un token sur ton terrain';
+    }
     default: return e.type;
   }
 }

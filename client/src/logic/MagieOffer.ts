@@ -236,6 +236,12 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     // toujours lieu.
     case 'draw_bonus':               return true;
 
+    // ⚠️ Une liste VIDE ne promet rien de nommable — même garde « blanche »
+    // qu'une pioche ou une magie garanties sans critère. Le plateau plein est
+    // un bord marginal non testé ici (comme `heal` à PV pleins) : l'effet
+    // rendrait alors « neant » en silence plutôt que de refuser l'offre.
+    case 'summon_token':             return (effect.token_ids?.length ?? 0) > 0;
+
     default:                         return false;
   }
 }

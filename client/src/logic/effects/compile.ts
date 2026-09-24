@@ -744,8 +744,13 @@ export interface MagieEffectLike {
   /** `guaranteed_magie` — cf. `types.GuaranteedMagie`. */
   rarity?: number;
   magie_id?: string;
-  /** `summon_token`. */
-  token_id?: string;
+  /**
+   * `summon_token` — un token par entrée, PRÉCIS (pas un `token_id` + un
+   * compte) : chaque entrée est un id du catalogue choisi un par un, la
+   * même carte pouvant y figurer plusieurs fois. Le NOMBRE de tokens invoqués
+   * est la longueur de la liste — il n'y a rien d'autre à chiffrer.
+   */
+  token_ids?: string[];
   camp?: string;
 }
 
@@ -1033,15 +1038,21 @@ export function compileMagie(magie: MagieLike): CompilationResult {
       }]);
       return { effets, refus };
 
-    case 'summon_token':
-      if (!e.token_id) { refuse('token sans id', 'summon_token'); return { effets, refus }; }
+    case 'summon_token': {
+      const ids = (e.token_ids as string[] | undefined)?.filter(Boolean) ?? [];
+      if (!ids.length) { refuse('token sans id', 'summon_token'); return { effets, refus }; }
       // ⚠️ Un token ADVERSE posé par une magie n'a nulle part où voyager en
       // PvP (le Shopping ne synchronise que le résultat SUR SON PROPRE camp,
       // cf. `round:board_ready`) — refusé à la compilation, jamais au silence
       // d'un `camp` ignoré.
       if (e.camp === 'ennemi') { refuse('camp interdit', 'summon_token → camp \'ennemi\' (une magie ne cible que son propre camp)'); return { effets, refus }; }
-      pousse([{ action: 'invoquer', camp: 'allie', tokenId: e.token_id as string }]);
+      // ⚠️ UNE tâche `invoquer` PAR ENTRÉE : le nombre de tokens invoqués est
+      // le nombre de tâches poussées, jamais un `value` séparé qui pourrait
+      // contredire la liste. Chaque entrée est indépendante — `invoquerToken`
+      // retire sa propre case libre à chaque appel (cf. `GameSession._invoquerToken`).
+      pousse(ids.map(tokenId => ({ action: 'invoquer' as const, camp: 'allie' as const, tokenId })));
       return { effets, refus };
+    }
 
     default:
       refuse('type non traduit', e.type as string);

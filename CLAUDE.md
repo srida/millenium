@@ -1367,6 +1367,7 @@ Détection **automatique** dérivée de `effect.type` — **aucun champ admin à
 | une unité au board **et** le deck porte son tier voisin | `shift_tier_unit` |
 | une carte en main dont un **matériel** est résolvable | `draw_material` |
 | une carte en main **et** `player_hp < PLAYER_HP_CAP` | `sacrifice_card_hp` |
+| `token_ids` porte au moins une entrée | `summon_token` |
 | toujours | `draw_bonus` |
 
 - ⚠️ **La table est FERMÉE (`default: false`)** : un `effect` nul ou d'un type inconnu traverse `applyEffect` sans rien faire. **Corollaire : un type ajouté à `applyEffect` mais oublié dans `isMagieRelevant` disparaît silencieusement du jeu.** `magie-offer.test.ts` relit `initial-data/magies.json` et exige que chaque magie livrée soit offrable sous un contexte permissif.
@@ -1427,7 +1428,7 @@ Champ **racine** `rarity: 1 | 2 | 3` (Commune / Rare / Légendaire). ⚠️ **Pa
 | `sacrifice_card_hp` | `value` (% des PV, déf. **100**) | **Brûle** une carte de la main et verse ses PV au joueur |
 | `reduce_materials` | `value` (déf. 1), `attribute` | Cible une carte de la **main** : baisse son coût de N slots ; les `requires` sont rognées pour tenir dans le nouveau compte |
 | `remove_requirements` | `value` (déf. 1), `attribute` | Cible une carte de la **main** : retire N exigences **nommées**, le compte de slots inchangé |
-| `summon_token` | `token_id` | Invoque un token sur une case libre au hasard, **son propre camp uniquement** (`camp: 'ennemi'` refusé à la compilation — un token adverse n'a nulle part où voyager en PvP). Posé tout de suite sur le board, comme une pose de Phase Shopping. Désactivé en PvP réel |
+| `summon_token` | `token_ids` (liste) | Invoque **un token par entrée** de `token_ids` — pas de `value` séparé, le nombre invoqué est la longueur de la liste, et la même carte peut y figurer plusieurs fois. Chacun sur une case libre au hasard, **son propre camp uniquement** (`camp: 'ennemi'` refusé à la compilation — un token adverse n'a nulle part où voyager en PvP). Posés tout de suite sur le board, comme une pose de Phase Shopping. Désactivé en PvP réel |
 
 ⚠️ **Les deux remises sont IMMÉDIATES et CIBLÉES** : le joueur désigne la carte de sa main, `applyMagieOnHandCard` fait le geste au tap. Elles étaient différées au `startPreparation()` suivant — un état de round entier (`player_hand_modifiers`, supprimé) pour un effet que personne ne choisissait, puisque la remise tombait sur la première carte retouchable de la main fraîchement piochée.
 
