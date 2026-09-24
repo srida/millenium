@@ -10,7 +10,6 @@
 // visibles au même endroit partout, sans que chaque écran ait à le reposer.
 import { useAuthStore } from '../../stores/authStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
-import { FullscreenButton } from '../system/DeviceGuards.js';
 import { ProgressionPills, ProfilePill } from '../ui/ProgressionStats.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 
@@ -48,7 +47,6 @@ export function AppHeader() {
         {/* `shrink-0` : le pendant du `min-w-0` ci-dessus — les pastilles de
             progression gardent leur largeur, la ligne se reprend sur le pseudo. */}
         {user && <ProgressionPills user={user} className="shrink-0" onOpen={() => navigate('profile')} />}
-        <FullscreenButton className="hidden sm:flex" />
       </div>
     </header>
   );

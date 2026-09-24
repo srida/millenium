@@ -25,7 +25,6 @@ import { useArcadeStore } from '../stores/arcadeStore.js';
 import { getProgress, shouldInvite, updateProgress } from '../data/tutorialProgress.js';
 import { Button, CountBadge, Modal, NewDot } from '../components/ui/primitives.js';
 import { AnimatedLogo } from '../components/ui/AnimatedLogo.js';
-import { FullscreenButton } from '../components/system/DeviceGuards.js';
 import { AppVersion } from '../components/system/AppVersion.js';
 import { useWebLayout, useTabletLayout } from '../components/system/useWebLayout.js';
 
@@ -62,8 +61,6 @@ export default function MainMenu() {
     // rend une seule fois, `AppHeader`/`AppFooter`, partagés par tous les
     // écrans — cette racine n'occupe donc plus que l'espace restant.
     <main className="menu-body relative z-10 flex h-full flex-col gap-2 overflow-hidden py-3 pl-[max(2.5rem,env(safe-area-inset-left))] pr-[max(2.5rem,env(safe-area-inset-right))] text-white sm:pl-[max(0.25rem,env(safe-area-inset-left))] sm:pr-[max(0.25rem,env(safe-area-inset-right))]">
-      <FullscreenButton className="absolute right-3 top-2 sm:hidden" />
-
       {web && !isTabletDevice ? (
         // Téléphone paysage : une ligne [rail logo | carte Jouer + grille].
         <div className="flex min-h-0 flex-1 gap-3">
