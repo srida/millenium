@@ -1,12 +1,11 @@
 // Contrôles de phase : en préparation (compteur d'unités, timer 60s, options,
 // bouton PRÊT) ; en combat (terrain, timer restant, vitesse ×1/×2/×4, options,
 // pause). Le menu d'options lui-même est rendu par GameMenu, qui lit `menuOpen`.
-import { useState } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import type { BoardDef } from '../../logic/types.js';
 import { Button, Illustration } from '../ui/primitives.js';
-import ConfirmHpCost from '../ui/ConfirmHpCost.js';
+import HoldConfirmButton from '../ui/HoldConfirmButton.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 
 function fmt(s: number): string {
@@ -67,36 +66,9 @@ function UndoButton({ onUndo }: { onUndo: () => void }) {
 // exactement la place que `UndoButton` prendra dès la première invocation, et
 // les deux ne sont jamais à l'écran ensemble (cf. `GameSnapshot.canMulligan`).
 //
-// ⚠️ Le prix est ÉCRIT sur le bouton, contrairement au ↺ qui se contente de son
-// icône : un geste gratuit et annulable peut se découvrir en le tapant, un geste
-// payant et définitif non. La confirmation dit le reste.
-function MulliganButton({ cost, playerHp, onConfirm }: { cost: number; playerHp: number; onConfirm: () => void }) {
-  const [asking, setAsking] = useState(false);
-  return (
-    <>
-      <Button
-        aria-label={`Mulligan — remettre ta main et repiocher (${cost} PV)`}
-        title={`Mulligan — remettre ta main et repiocher (${cost} PV)`}
-        className="shrink-0 gap-1 px-2 text-xs"
-        onPointerDown={(e) => { e.stopPropagation(); setAsking(true); }}
-      >
-        <span className="text-base leading-none">🔄</span>
-        <span className="tabular-nums">−{cost}</span>
-      </Button>
-      {asking && (
-        <ConfirmHpCost
-          title="Remettre ta main et repiocher ?"
-          detail="Tes cartes retournent dans le deck et tu en repioches autant. Une seule fois par partie, au premier tour."
-          cost={cost}
-          playerHp={playerHp}
-          confirmLabel="Repiocher"
-          onConfirm={() => { setAsking(false); onConfirm(); }}
-          onCancel={() => setAsking(false)}
-        />
-      )}
-    </>
-  );
-}
+// ⚠️ Même bouton à MAINTENIR que le reroll de la Phase Shopping
+// (`HoldConfirmButton`) — même doctrine : la charge est la confirmation, plus
+// de modale à traverser dans une barre déjà dense.
 
 // Ouvre le menu d'options (rendu par GameMenu) — posé dans la barre du bas,
 // à portée de pouce, juste avant PRÊT / Pause.
@@ -116,7 +88,7 @@ function MenuButton() {
 export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   const {
     controller, combatActive, placedCount, boardSlots, prepRemaining, combatRemaining,
-    speed, paused, boardTerrain, canUndo, canMulligan, mulliganCost, playerHp,
+    speed, paused, boardTerrain, canUndo, canMulligan, mulliganCost,
   } = useGameStore();
   const web = useWebLayout();
   if (!controller) return null;
@@ -177,12 +149,20 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
         {placedCount}/{boardSlots}
       </span>
       <span className="rounded-md border border-line bg-surface/80 px-2 py-1 text-xs tabular-nums text-white/70">
-        Fin prépa {fmt(prepRemaining)}
+        {fmt(prepRemaining)}
       </span>
       <div className="flex-1" />
-      {canMulligan && (
-        <MulliganButton cost={mulliganCost} playerHp={playerHp} onConfirm={() => controller.mulligan()} />
-      )}
+      {/* `visible`, pas un montage conditionnel : `canMulligan` retombe à
+          `false` dans le MÊME tick que `onConfirm` (une seule fois par
+          partie) — démonter le composant ici tuerait son toast avant qu'il
+          ne s'affiche (cf. `HoldConfirmButton`). */}
+      <HoldConfirmButton
+        icon="🔄"
+        label="Mulligan"
+        cost={mulliganCost}
+        onConfirm={() => controller.mulligan()}
+        visible={canMulligan}
+      />
       {canUndo && <UndoButton onUndo={() => controller.undoPreparation()} />}
       <MenuButton />
       <Button variant="primary" onPointerDown={(e) => { e.stopPropagation(); controller.startCombat(); }}>
