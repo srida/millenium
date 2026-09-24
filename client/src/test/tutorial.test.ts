@@ -172,13 +172,15 @@ describe('codex du tutoriel', () => {
    * seul hasard de l'ordre alphabétique.
    *
    * ⚠️ Le catalogue livré NE garantit PAS que chaque exemple ait une
-   * correspondance dans le pack de départ (les tiers 3-4 de « Un exemple par
-   * tier » n'en ont aucune) — la liste ci-dessous ne porte donc que les
-   * chapitres où c'est le cas aujourd'hui, constaté sur le catalogue réel.
+   * correspondance dans le pack de départ — la liste ci-dessous ne porte
+   * donc que les chapitres où c'est le cas aujourd'hui, constaté sur le
+   * catalogue réel (« Un exemple par tier » y compris : le pack de départ
+   * couvre les cinq tiers, à défaut de carte SANS recette à tous).
    *
    * Mutation : retirer la préférence `_starter` de `firstWhere` /
-   * `oneRecipeLike` → ROUGE (vérifié : ces chapitres retombent alors sur des
-   * cartes ALEXIS, CAMULA ou BONZ, hors du pack de départ SET_008).
+   * `oneRecipeLike` / `oneCardPerTier` → ROUGE (vérifié : ces chapitres
+   * retombent alors sur des cartes ALEXIS, CAMULA ou BASTIEN, hors du pack
+   * de départ SET_008).
    */
   it('préfère une carte du pack de départ quand l\'exemple en trouve une', () => {
     const sets = read('sets.json') as { starter?: boolean; cards: string[] }[];
@@ -187,7 +189,7 @@ describe('codex du tutoriel', () => {
     const starterIds = new Set(starterSet!.cards);
     const CARDS_STARTER = CARDS.map(c => ({ ...c, _starter: starterIds.has(c.id) }));
 
-    const CHAPTERS_WITH_STARTER_MATCH = ['cards_units', 'hand', 'stats', 'summoning'];
+    const CHAPTERS_WITH_STARTER_MATCH = ['cards_units', 'hand', 'stats', 'tiers', 'summoning'];
     for (const chapter of CHAPTERS) {
       if (!CHAPTERS_WITH_STARTER_MATCH.includes(chapter.id)) continue;
       for (const block of chapter.blocks) {
@@ -196,6 +198,26 @@ describe('codex du tutoriel', () => {
           expect(starterIds.has(card.id), `${chapter.id} · ${block.caption} → ${card.id}`).toBe(true);
         }
       }
+    }
+  });
+
+  /**
+   * Repli indépendant du pack de départ : si un compte NEUF (ou un futur
+   * pack de départ plus étroit) ne couvre pas un tier, le codex retombe sur
+   * le préfixe historique `CORE_` plutôt que sur le premier id venu — même
+   * repli que `game/tutorialDeck.starterPool`.
+   *
+   * Mutation : retirer la strate `CORE` de `byPreference` → ROUGE (vérifié :
+   * les tiers 3 et 4 retombent sur CAMULA_009 / BASTIEN_020).
+   */
+  it('replie sur le préfixe CORE quand aucune carte du pack de départ ne couvre le tier', () => {
+    const CARDS_NO_STARTER = CARDS.map(c => ({ ...c, _starter: false }));
+    const chapter = CHAPTERS.find(c => c.id === 'tiers')!;
+    const block = chapter.blocks.find(b => b.kind === 'cards') as { pick: (c: Card[]) => Card[] };
+    const picked = block.pick(CARDS_NO_STARTER);
+    expect(picked.length).toBeGreaterThan(0);
+    for (const card of picked) {
+      expect(card.id.toUpperCase().startsWith('CORE'), card.id).toBe(true);
     }
   });
 });
