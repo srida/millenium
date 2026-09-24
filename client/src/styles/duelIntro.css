@@ -239,11 +239,12 @@
 .duel-intro-side-enemy .duel-intro-name { color: color-mix(in srgb, var(--color-enemy) 82%, white 18%); }
 .duel-intro-vs {
   flex-shrink: 0;
+  font-family: var(--font-display);
   font-weight: 900;
   font-size: clamp(12px, calc(var(--u) * .03), 24px);
-  color: var(--gold);
+  color: #fff;
+  text-transform: uppercase;
   letter-spacing: .06em;
-  text-shadow: 0 0 calc(var(--u) * .02) rgba(255, 180, 60, .7);
 }
 
 /* ⚠️ Opaque DÈS 0% — pas de montée depuis 0 comme le reste des couches : le
