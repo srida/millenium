@@ -169,6 +169,12 @@
   margin: 0;
   max-width: min(94vw, calc(var(--u) * 1.4));
   overflow-wrap: break-word;
+  /* Le serif d'affichage des cartes (`--font-display`, `board3d.css`), déjà
+     lu au combat (nom d'unité, toast de pouvoir) comme à la Phase Shopping
+     (cartes de main) — pour que la seule annonce sans carte à l'écran ne
+     tranche pas avec la police que le joueur voit partout ailleurs pendant
+     la partie. */
+  font-family: var(--font-display);
   font-weight: 900;
   font-size: clamp(22px, calc(var(--u) * .066), 92px);
   line-height: 1.06;
