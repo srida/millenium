@@ -20,6 +20,7 @@ import GiftsScreen from '../screens/GiftsScreen.js';
 import CatalogScreen from '../screens/CatalogScreen.js';
 import TutorialScreen from '../screens/TutorialScreen.js';
 import TooltipHost from '../components/tooltip/TooltipHost.js';
+import LinkedCardsModal from '../components/tooltip/LinkedCardsModal.js';
 import RewardToasts from '../components/ui/RewardToasts.js';
 import { SpaceBackground } from '../components/ui/SpaceBackground.js';
 import { AppHeader } from '../components/nav/AppHeader.js';
@@ -187,6 +188,10 @@ export default function App() {
         </div>
       )}
       <TooltipHost />
+      {/* Le panneau « Cartes liées » (🧬), ouvert depuis le tooltip d'une
+          carte : même patron que TooltipHost, une instance globale pilotée
+          par uiStore plutôt qu'un état par écran. */}
+      <LinkedCardsModal />
       {/* Au-dessus des écrans : missions terminées, paliers hebdomadaires et
           niveaux gagnés s'y annoncent ensemble — la réponse arrive souvent une
           fois revenu au menu. */}

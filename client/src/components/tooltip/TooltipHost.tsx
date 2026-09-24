@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // TooltipHost — instance globale unique pilotée par uiStore (remplace l'ancien
 // singleton DOM Tooltip.js). Tap ailleurs → fermeture (géré au niveau App).
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useUiStore, type TooltipAnchor, type TooltipContent } from '../../stores/uiStore.js';
 import { getPower } from '../../data/PowerDatabase.js';
 import { getAttribute, isTierAttribute } from '../../data/AttributeDatabase.js';
+import * as CardDatabase from '../../data/CardDatabase.js';
+import { linkedCardGroups, hasLinkedCards } from '../../data/CardLinks.js';
 import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
 import PowerIcon from '../ui/PowerIcon.js';
 import { Illustration } from '../ui/primitives.js';
@@ -187,6 +189,32 @@ function SummonBlock({ card }: { card: any }) {
   );
 }
 
+/**
+ * Le bouton 🧬 « Cartes liées » — matériels, lignée, cartes qui la consomment.
+ * Absent quand les trois groupes sont vides : un bouton qui ouvre un panneau
+ * vide n'apprend rien.
+ *
+ * ⚠️ **`pointer-events-auto` est nécessaire** : le conteneur du tooltip est
+ * `pointer-events-none` (il ne doit pas intercepter les taps du plateau
+ * derrière lui), donc un enfant interactif doit reposer la règle lui-même —
+ * jusqu'ici le tooltip n'en avait aucun.
+ */
+function LinkedCardsButton({ card }: { card: Card }) {
+  const showLinkedCards = useUiStore(s => s.showLinkedCards);
+  const allCards = useMemo(() => (CardDatabase.getAllCards() as unknown as Card[]), []);
+  const groups = useMemo(() => linkedCardGroups(card, allCards), [card, allCards]);
+  if (!hasLinkedCards(groups)) return null;
+  return (
+    <button
+      type="button"
+      onPointerDown={(e) => { e.stopPropagation(); showLinkedCards(card); }}
+      className="pointer-events-auto mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-player/40 bg-player/10 py-1.5 text-[11px] font-bold text-player active:scale-[0.98]"
+    >
+      🧬 Cartes liées
+    </button>
+  );
+}
+
 function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: TooltipAnchor }) {
   void anchor;
   if (content.kind === 'card' || content.kind === 'unit') {
@@ -237,6 +265,7 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
           </div>
         )}
         {!isUnit && <SummonBlock card={data} />}
+        {!isUnit && <LinkedCardsButton card={data as Card} />}
         {isUnit && data.shield > 0 && <div className="mt-1 text-[11px] text-gold">🛡 Bouclier : {data.shield}</div>}
         {/* Ce que l'unité VAUT comme matériau — la question qu'on ne pouvait
             trancher qu'en tentant l'invocation. ⚠️ Sur une UNITÉ elle se dit
