@@ -103,7 +103,10 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
   };
 }
 
-const BUTTON_BASE = 'relative overflow-hidden inline-flex min-h-tap items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold tracking-wide transition-[transform,box-shadow,filter] duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 disabled:scale-100';
+// Exportée : `RerollButton` (Phase Shopping) écrit son propre `<button>` — un
+// geste de MAINTIEN, pas le tap différé de `usePressSquash` — mais porte le
+// même chrome que tout bouton du jeu plutôt que d'en recopier les classes.
+export const BUTTON_BASE = 'relative overflow-hidden inline-flex min-h-tap items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold tracking-wide transition-[transform,box-shadow,filter] duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 disabled:scale-100';
 export const SHADOW_IDLE = 'shadow-[0_2px_0_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.12)]';
 export const SHADOW_SQUASHED = 'translate-y-[2px] scale-[0.98] shadow-[inset_0_1px_3px_0_rgba(0,0,0,0.45)]';
 
