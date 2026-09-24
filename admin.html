@@ -2428,9 +2428,9 @@ function conditionRowHtml(cd, idx) {
       <div class="form-grid">
         <div class="field">
           <label>Matériels à réunir <span class="slider-val" id="cond-mat-val-${idx}">${materials}</span></label>
-          <input type="range" id="cond-mat-${idx}" min="0" max="6" step="1" value="${materials}"
+          <input type="range" id="cond-mat-${idx}" min="0" max="7" step="1" value="${materials}"
                  oninput="document.getElementById('cond-mat-val-${idx}').textContent=this.value">
-          <div class="slider-marks"><span>0</span><span>3</span><span>6</span></div>
+          <div class="slider-marks"><span>0</span><span>3</span><span>7</span></div>
         </div>
       </div>
       ${over ? `<div style="margin-top:8px;font-size:11px;color:#f0a040;background:#f0a04018;border:1px solid #f0a04044;border-radius:6px;padding:8px 10px">
