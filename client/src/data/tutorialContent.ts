@@ -22,6 +22,10 @@ import { primaryTier, hasTier } from '../logic/Tiers.js';
  */
 type CatalogCard = Card & { _starter?: boolean };
 
+/** Repli historique quand le pack de départ ne couvre pas l'exemple — même
+ *  préfixe et même rôle que `game/tutorialDeck.STARTER_PREFIX`. */
+const STARTER_PREFIX = 'CORE';
+
 // ── Sélecteurs ──────────────────────────────────────────────────────────────
 
 /** Toujours trier avant de couper : un exemple ne doit pas changer d'un rendu à l'autre. */
@@ -30,19 +34,30 @@ function byId(cards: Card[]): Card[] {
 }
 
 /**
- * Un joueur doit reconnaître dans le codex les cartes qu'il possède déjà :
- * parmi les correspondances, on préfère celles du pack de départ (`_starter`),
- * et on ne pioche dans le reste du catalogue QUE si le pack de départ n'en a
- * pas assez — même repli que `game/tutorialDeck.starterPool`, appliqué ici
- * exemple par exemple plutôt que deck entier.
+ * Un joueur doit reconnaître dans le codex les cartes qu'il possède déjà.
+ * Trois strates de préférence, dans cet ordre — même repli que
+ * `game/tutorialDeck.starterPool`, appliqué ici exemple par exemple plutôt
+ * que deck entier : le pack de départ (`_starter`), puis le préfixe
+ * historique `CORE` (le pack de départ ne couvre pas tous les tiers), puis
+ * le reste du catalogue.
  */
+function byPreference(cards: CatalogCard[]): CatalogCard[][] {
+  const starter = cards.filter(c => c._starter);
+  const starterIds = new Set(starter.map(c => c.id));
+  const core = cards.filter(c => !starterIds.has(c.id) && c.id.toUpperCase().startsWith(STARTER_PREFIX));
+  const coreIds = new Set(core.map(c => c.id));
+  const rest = cards.filter(c => !starterIds.has(c.id) && !coreIds.has(c.id));
+  return [starter, core, rest];
+}
+
 function firstWhere(cards: CatalogCard[], pred: (c: Card) => boolean, limit = 1): Card[] {
   const matching = cards.filter(pred);
-  const starter = byId(matching.filter(c => c._starter));
-  if (starter.length >= limit) return starter.slice(0, limit);
-  const already = new Set(starter.map(c => c.id));
-  const rest = byId(matching.filter(c => !already.has(c.id)));
-  return [...starter, ...rest].slice(0, limit);
+  const picked: Card[] = [];
+  for (const layer of byPreference(matching)) {
+    if (picked.length >= limit) break;
+    picked.push(...byId(layer).slice(0, limit - picked.length));
+  }
+  return picked;
 }
 
 /**
@@ -58,22 +73,36 @@ function oneRecipeLike(pred: (r: SummonRecipe) => boolean): CardPick {
   return (cards: CatalogCard[]) => {
     const matching = cards.filter(c => summonRecipes(c).some(pred));
     const rank = (a: Card, b: Card) => (primaryTier(a) - primaryTier(b)) || a.id.localeCompare(b.id);
-    const starter = [...matching.filter(c => c._starter)].sort(rank);
-    const pool = starter.length ? starter : [...matching].sort(rank);
-    return pool.slice(0, 1);
+    for (const layer of byPreference(matching)) {
+      if (layer.length) return [...layer].sort(rank).slice(0, 1);
+    }
+    return [];
   };
 }
 
 /** Ce qui se pose sans rien consommer — le socle de n'importe quel deck. */
 const isFree = (c: Card) => summonCostOf(c) === 0;
 
-/** Une carte par tier existant, de 1 à 5. */
-const oneCardPerTier: CardPick = (cards) => {
+/**
+ * Une carte par tier existant, de 1 à 5 : dans la strate de provenance
+ * retenue (pack de départ, puis `CORE`, puis le reste — cf. `byPreference`),
+ * on préfère une carte sans recette (plus lisible à ce stade du codex).
+ *
+ * ⚠️ La provenance passe AVANT le « sans recette » : les tiers 3 et 4 n'ont
+ * aucune carte `CORE` sans recette (les hauts tiers coûtent des matériaux,
+ * même dans le pack de départ), et un joueur qui ne connaît le catalogue que
+ * par sa collection de départ doit quand même reconnaître la carte montrée —
+ * une carte `CORE` à recette vaut donc mieux ici qu'une carte gratuite prise
+ * ailleurs dans le catalogue.
+ */
+const oneCardPerTier: CardPick = (cards: CatalogCard[]) => {
   const out: Card[] = [];
   for (let t = 1; t <= 5; t++) {
-    const pick = firstWhere(cards, c => hasTier(c, t) && isFree(c))[0]
-      ?? firstWhere(cards, c => hasTier(c, t))[0];
-    if (pick) out.push(pick);
+    for (const layer of byPreference(cards.filter(c => hasTier(c, t)))) {
+      if (!layer.length) continue;
+      out.push(byId(layer.filter(isFree))[0] ?? byId(layer)[0]);
+      break;
+    }
   }
   return out;
 };
