@@ -45,6 +45,11 @@ export default function MainMenu() {
   // ~700px sur tablette — d'où les deux bornes conjointes.
   const isTabletDevice = useTabletLayout();
   const user = useAuthStore(s => s.user);
+  // En invité, pas de compte pour porter un match en ligne, un bracket ou une
+  // run serveur : Arcade et Tournoi disparaissent, « Jouer » se substitue à
+  // l'Entraînement (seul mode qui reste), et le bouton Entraînement lui-même
+  // est retiré — les deux boutons feraient doublon.
+  const isGuest = !user;
   const [devOpen, setDevOpen] = useState(false);
   // Boutons dev derrière le badge « DEV » de la version — ils ne comptent pas
   // dans la hauteur du menu, qui doit tenir sans scroll.
@@ -67,12 +72,16 @@ export default function MainMenu() {
           <LogoRail isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
           <div className="flex min-h-0 flex-1 items-stretch gap-3">
             <PlayCard className="min-w-0 flex-[1.15]" />
-            <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
-              <TutorialButton className="h-full w-full" />
-              <TournamentButton className="h-full w-full" />
-              <TrainingButton className="h-full w-full" />
-              <ArcadeButton className="h-full w-full" />
-            </div>
+            {isGuest ? (
+              <TutorialButton className="h-full flex-1" />
+            ) : (
+              <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
+                <TutorialButton className="h-full w-full" />
+                <TournamentButton className="h-full w-full" />
+                <TrainingButton className="h-full w-full" />
+                <ArcadeButton className="h-full w-full" />
+              </div>
+            )}
           </div>
         </div>
       ) : web ? (
@@ -85,12 +94,16 @@ export default function MainMenu() {
           <LogoBlock grow={false} isAdmin={!!user?.is_admin} onDevTap={openDevMenu} />
           <div className="flex w-full items-stretch gap-3 flex-1 sm:gap-2 sm:max-h-[330px]">
             <PlayCard className="min-w-0 flex-[1.15]" />
-            <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
-              <TutorialButton className="h-full w-full" />
-              <TournamentButton className="h-full w-full" />
-              <TrainingButton className="h-full w-full" />
-              <ArcadeButton className="h-full w-full" />
-            </div>
+            {isGuest ? (
+              <TutorialButton className="h-full flex-1" />
+            ) : (
+              <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
+                <TutorialButton className="h-full w-full" />
+                <TournamentButton className="h-full w-full" />
+                <TrainingButton className="h-full w-full" />
+                <ArcadeButton className="h-full w-full" />
+              </div>
+            )}
           </div>
         </div>
       ) : (
@@ -99,11 +112,13 @@ export default function MainMenu() {
           <div className="flex flex-2 flex-col gap-2.5 sm:mx-auto sm:w-full sm:max-w-[470px] sm:flex-1 sm:justify-center">
             <PlayCard />
             <TutorialButton />
-            <div className="flex gap-2">
-              <TournamentButton className="flex-1" />
-              <TrainingButton className="flex-1" />
-            </div>
-            <ArcadeButton />
+            {!isGuest && (
+              <div className="flex gap-2">
+                <TournamentButton className="flex-1" />
+                <TrainingButton className="flex-1" />
+              </div>
+            )}
+            {!isGuest && <ArcadeButton />}
           </div>
         </>
       )}
@@ -247,11 +262,14 @@ function PlayCard({ className = '' }: { className?: string }) {
       </button>
       {/* « Jouer » est le duel en ligne : c'est le mode principal, il prend
           donc le bouton primaire. Il joue le deck actif, sans sélection en
-          amont — d'où l'entrée directe (ou l'inscription en invité). */}
+          amont — d'où l'entrée directe. En invité, il n'y a ni compte pour
+          un match en ligne ni bouton Entraînement dédié : « Jouer » ouvre
+          alors directement le sélecteur de deck adverse (mode 'play'),
+          exactement ce que faisait l'Entraînement. */}
       <Button
         variant="primary"
         className="min-h-14 flex-1 justify-center rounded-none border-0 border-t border-t-gold/30 text-lg sm:min-h-[70px]"
-        onPointerDown={() => navigate(user ? 'online_lobby' : 'auth')}
+        onPointerDown={() => (user ? navigate('online_lobby') : navigate('deck_selector', { mode: 'play' }))}
       >
         Jouer
       </Button>
