@@ -47,6 +47,9 @@ function _distinct(cards: Card[]): Card[] {
   return cards.filter(c => !seen.has(c.id) && seen.add(c.id));
 }
 
+/** Aucune exclusion — la valeur par défaut de `excluded` partout ci-dessous. */
+const NO_EXCLUSIONS: ReadonlySet<string> = new Set();
+
 /**
  * Le sac d'un round : les cartes des tiers éligibles, **dédoublonnées**.
  *
@@ -57,21 +60,33 @@ function _distinct(cards: Card[]): Card[] {
  *
  * ⚠️ Les deux camps piochent par ici (`drawHand` et `EnemyAI.drawHand`) : deux
  * façons de composer le sac finiraient par ne plus donner le même jeu.
+ *
+ * @param excluded ids à retirer du sac — le mot-clé **Unique** (`effect-schema.mjs`)
+ *   s'en sert pour qu'une carte déjà tirée cette partie ne ressorte plus. Ce
+ *   module ne sait pas ce qu'« Unique » veut dire : l'appelant (`GameSession`,
+ *   `EnemyAI`) lui donne juste les ids à exclure.
  */
-export function poolForRound(cardsByTier: Record<number, Card[]>, round: number): Card[] {
-  return _distinct(tiersForRound(round).flatMap(t => cardsByTier[t] ?? []));
+export function poolForRound(
+  cardsByTier: Record<number, Card[]>,
+  round: number,
+  excluded: ReadonlySet<string> = NO_EXCLUSIONS,
+): Card[] {
+  const pool = _distinct(tiersForRound(round).flatMap(t => cardsByTier[t] ?? []));
+  return excluded.size === 0 ? pool : pool.filter(c => !excluded.has(c.id));
 }
 
 // Draw `count` cards randomly from the eligible tiers (duplicates allowed).
 // `rand` est injecté pour que la simulation d'équilibrage puisse SEMER la
 // pioche (cf. logic/Random.ts) ; le défaut laisse le jeu inchangé.
+// `excluded` : cf. `poolForRound`.
 export function drawHand(
   cardsByTier: Record<number, Card[]>,
   round: number,
   count: number,
   rand: () => number = Math.random,
+  excluded: ReadonlySet<string> = NO_EXCLUSIONS,
 ): Card[] {
-  const pool = poolForRound(cardsByTier, round);
+  const pool = poolForRound(cardsByTier, round, excluded);
   if (pool.length === 0) return [];
   const hand: Card[] = [];
   for (let i = 0; i < count; i++) {
@@ -141,27 +156,33 @@ export function hasGuaranteedDrawCriteria(draw: GuaranteedDraw | null | undefine
  * qu'on corrige à un seul. Comportement du joueur inchangé au bit près
  * (mêmes filtres, même ordre de repli, même nombre d'appels à `rand` par
  * entrée) — c'est un refactor, pas une nouvelle règle.
+ *
+ * @param excluded ids à retirer du pool avant tout filtre — cf. `poolForRound`.
+ *   Une pioche garantie ne doit pas ramener une Unique déjà tirée : elle lit
+ *   le MÊME pool que la pioche aléatoire, moins la restriction de tier.
  */
 export function resolveGuaranteedDraws(
   fullPool: Card[],
   guaranteedDraws: GuaranteedDraw[],
   rand: () => number = Math.random,
+  excluded: ReadonlySet<string> = NO_EXCLUSIONS,
 ): Card[] {
+  const pool = excluded.size === 0 ? fullPool : fullPool.filter(c => !excluded.has(c.id));
   const drawn: Card[] = [];
   for (const draw of guaranteedDraws) {
     const criteria = guaranteedDrawCriteria(draw);
-    const matches = fullPool.filter(c => matchesGuaranteedDraw(c, criteria));
+    const matches = pool.filter(c => matchesGuaranteedDraw(c, criteria));
     if (matches.length > 0) {
       drawn.push({ ...matches[Math.floor(rand() * matches.length)] });
       continue;
     }
     // Premier repli : le TIER saute en premier — c'est le critère que le pool
     // du tour contraint déjà, et le seul dont l'absence ne trahit pas l'intention.
-    const fallback = fullPool.filter(c => matchesGuaranteedDraw(c, criteria, { ignoreTier: true }));
+    const fallback = pool.filter(c => matchesGuaranteedDraw(c, criteria, { ignoreTier: true }));
     if (fallback.length > 0) {
       drawn.push({ ...fallback[Math.floor(rand() * fallback.length)] });
-    } else if (fullPool.length > 0) {
-      drawn.push({ ...fullPool[Math.floor(rand() * fullPool.length)] });
+    } else if (pool.length > 0) {
+      drawn.push({ ...pool[Math.floor(rand() * pool.length)] });
     }
   }
   return drawn;

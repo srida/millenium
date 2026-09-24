@@ -101,6 +101,23 @@ export const MOTS_CLES = Object.freeze({
     // carte — c'est délibéré, et c'est le prix de la mécanique.
     aide: 'Peut être invoquée même si un exemplaire de cette carte est déjà vivant sur le terrain. L\'exemplaire existant n\'est ni consommé ni affecté.',
   },
+  unique: {
+    label: 'Unique — ne se pioche qu\'une fois par partie',
+    court: 'Unique',
+    // ⚠️ La règle est une EXCLUSION DE POOL, pas une tâche : dès qu'un
+    // exemplaire entre dans la main (pioche normale OU garantie), son id sort
+    // du pool de pioche pour le reste de la partie — jouée ou pas. Ni le
+    // moteur d'effets ni `AttributeManager` n'y participent : c'est une durée
+    // de vie côté PIOCHE, le pendant de `cimetiere_permanent` côté cimetière.
+    // ⚠️ Vaut pour les deux camps, sans drapeau d'asymétrie (l'IA porte la
+    // règle comme un vrai joueur) : `logic/Draw.ts` reste pur (il ne sait pas
+    // ce qu'« Unique » veut dire, l'appelant lui donne juste les ids à
+    // exclure), `GameSession`/`EnemyAI` tiennent chacun leur propre registre.
+    // ⚠️ Le mulligan REND la main au deck : une Unique qu'on tenait encore y
+    // redevient piochable, sinon le geste la brûlerait sans jamais l'avoir
+    // jouée.
+    aide: 'Ne peut être piochée qu\'une seule fois par partie (main normale ou pioche garantie). Une fois piochée, elle disparaît du pool de pioche jusqu\'à la fin de la partie.',
+  },
 });
 
 /** Les clés de `MOTS_CLES`, dans l'ordre de déclaration. */
