@@ -1,18 +1,14 @@
-// Confirmation d'un geste payé en PV — le mulligan (barre de préparation) et le
-// reroll de la Phase Shopping.
+// Confirmation d'un geste payé en PV — le mulligan (barre de préparation).
 //
-// Les deux sont les SEULS gestes de confort du jeu qui débitent une ressource,
-// et cette ressource est celle qui décide de la partie. D'où une modale unique
-// plutôt qu'un `confirm()` par bouton : les deux disent la même chose (ce qu'on
-// achète, ce qu'il en coûte, ce qu'il restera après), et c'est la dernière ligne
-// qui a de la valeur — le prix, lui, est déjà sur le bouton.
-//
-// ⚠️ Ce n'est PAS la doctrine de la modale de magies, qui n'a volontairement
-// aucune confirmation : là-bas le contrecoup est lisible sur la carte qu'on
-// choisit, et une magie impayable est verrouillée. Ici le bouton du mulligan
-// voisine PRÊT ▸ dans une barre dense de 375 px, et celui du reroll voisine les
-// magies elles-mêmes : dans les deux cas le tap malheureux est à un pouce du
+// Une modale plutôt qu'un `confirm()` du bouton : ce qu'on achète, ce qu'il en
+// coûte, ce qu'il restera après — et c'est la dernière ligne qui a de la
+// valeur, le prix étant déjà sur le bouton. Le bouton du mulligan voisine
+// PRÊT ▸ dans une barre dense de 375 px : le tap malheureux est à un pouce du
 // geste voulu, et il ne se reprend pas.
+//
+// ⚠️ Le reroll de la Phase Shopping n'en a PAS (ni la modale de magies elle-
+// même) : son contrecoup est déjà lisible sur son propre libellé et le geste
+// est déjà à l'intérieur d'une modale de choix, pas voisin d'un bouton PRÊT.
 import { Button, Modal } from './primitives.js';
 
 export default function ConfirmHpCost({

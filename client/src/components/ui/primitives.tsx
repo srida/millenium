@@ -103,7 +103,10 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
   };
 }
 
-const BUTTON_BASE = 'relative overflow-hidden inline-flex min-h-tap items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold tracking-wide transition-[transform,box-shadow,filter] duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 disabled:scale-100';
+// Exportée : `RerollButton` (Phase Shopping) écrit son propre `<button>` — un
+// geste de MAINTIEN, pas le tap différé de `usePressSquash` — mais porte le
+// même chrome que tout bouton du jeu plutôt que d'en recopier les classes.
+export const BUTTON_BASE = 'relative overflow-hidden inline-flex min-h-tap items-center justify-center gap-2 rounded-lg border px-4 text-sm font-semibold tracking-wide transition-[transform,box-shadow,filter] duration-100 ease-out disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:translate-y-0 disabled:scale-100';
 export const SHADOW_IDLE = 'shadow-[0_2px_0_0_rgba(0,0,0,0.4),inset_0_1px_0_0_rgba(255,255,255,0.12)]';
 export const SHADOW_SQUASHED = 'translate-y-[2px] scale-[0.98] shadow-[inset_0_1px_3px_0_rgba(0,0,0,0.45)]';
 
@@ -416,13 +419,15 @@ export function Banner({ text, tone = 'info' }: { text: string; tone?: 'info' | 
  * hérite alors du noir par défaut du navigateur, illisible sur `bg-surface` —
  * la panne du menu en jeu et de la confirmation de suppression de deck.
  */
-export function Modal({ children, onClose }: { children: ReactNode; onClose?: () => void }) {
+export function Modal({
+  children, onClose, maxWidth = 'max-w-sm',
+}: { children: ReactNode; onClose?: () => void; /** Largeur Tailwind du panneau — `ShoppingLayer` l'élargit en mode web pour poser ses magies en grille. */ maxWidth?: string }) {
   return createPortal(
     <div
       className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
       onPointerDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
     >
-      <div className="max-h-[88dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gold/40 bg-surface/97 p-4 text-white shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className={`max-h-[88dvh] w-full ${maxWidth} overflow-y-auto rounded-2xl border border-gold/40 bg-surface/97 p-4 text-white shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
         {children}
       </div>
     </div>,

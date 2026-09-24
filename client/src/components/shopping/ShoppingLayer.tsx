@@ -9,9 +9,10 @@
 import { useEffect, useState } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { canAffordMagie } from '../../logic/MagieEffect.js';
-import { Button, Modal } from '../ui/primitives.js';
-import ConfirmHpCost from '../ui/ConfirmHpCost.js';
+import { Button, IconButton, Modal } from '../ui/primitives.js';
+import { useWebLayout } from '../system/useWebLayout.js';
 import MagieCard from './MagieCard.js';
+import RerollButton from './RerollButton.js';
 
 export default function ShoppingLayer() {
   const shopping = useGameStore(s => s.shopping);
@@ -27,12 +28,11 @@ export default function ShoppingLayer() {
   // Ne pas confondre avec `awaitingTarget`, qui gère le ciblage d'une magie
   // déjà choisie.
   const [hidden, setHidden] = useState(false);
-  // Le reroll est payé en PV : il passe par la même confirmation que le
-  // mulligan. ⚠️ L'état se remet à zéro au ROUND comme `hidden` — une modale de
-  // confirmation laissée armée par un chrono qui tombe se rouvrirait sur l'offre
-  // du tour suivant.
-  const [askingReroll, setAskingReroll] = useState(false);
-  useEffect(() => { setHidden(false); setAskingReroll(false); }, [round]);
+  useEffect(() => { setHidden(false); }, [round]);
+  // Paysage téléphone / tablette / desktop (même seuil que le reste du HUD) :
+  // les magies passent en grille plutôt qu'en liste, pour tenir dans une
+  // hauteur disponible courte sans que « Passer » ne sorte de l'écran.
+  const isWeb = useWebLayout();
   if (!shopping || !controller) return null;
 
   if (shopping.awaitingTarget) {
@@ -72,14 +72,16 @@ export default function ShoppingLayer() {
   }
 
   return (
-    <Modal>
+    <Modal maxWidth={isWeb ? 'max-w-xl' : 'max-w-sm'}>
       <div className="relative mb-2 text-center">
-        <button
-          onPointerDown={(e) => { e.stopPropagation(); setHidden(true); }}
-          className="absolute right-0 top-0 text-xs text-white/50 underline"
-        >
-          🙈 Cacher
-        </button>
+        <IconButton
+          label="Cacher"
+          icon={<span aria-hidden="true" className="block h-px w-3 rounded-full bg-current" />}
+          compact
+          chipClassName="border-line bg-surface-raised text-white/70"
+          className="absolute right-0 top-0"
+          onTap={() => setHidden(true)}
+        />
         <div className="text-xs tracking-widest text-gold">✦ PHASE SHOPPING ✦</div>
         <div className="text-sm text-white/60">Choisis une magie</div>
         <div className="mt-1 text-xs font-semibold tabular-nums text-gold/80">{remaining}s</div>
@@ -87,47 +89,40 @@ export default function ShoppingLayer() {
           <div className="mt-1.5 text-[11px] font-semibold text-gold">{shopping.info}</div>
         )}
       </div>
-      <div className="space-y-2">
+      <div className={isWeb ? 'grid grid-cols-3 gap-2' : 'space-y-2'}>
         {shopping.magies.map(m => (
           <MagieCard
             key={m.id}
             magie={m}
             affordable={canAffordMagie(m, playerHp)}
             onChoose={mm => controller.chooseMagie(mm)}
+            compact={isWeb}
           />
         ))}
       </div>
-      {/* Le reroll : trois magies qu'on n'a PAS encore vues ce tour, contre des
-          PV. Il se pose sous l'offre et au-dessus de « Passer » — c'est l'ordre
-          dans lequel on y pense (choisir, puis chercher mieux, puis renoncer).
-          Absent quand le joueur ne peut pas payer ou qu'il ne reste plus rien de
-          pertinent à montrer : un bouton grisé n'apprendrait rien de plus qu'un
-          bouton absent, et la barre du bas de cette modale est déjà chargée. */}
-      {shopping.canReroll && (
+      {/* Reroll et Passer côte à côte : c'est le même geste de fin de modale,
+          qu'on choisisse de rerouler ou de renoncer. Le reroll n'a plus de
+          confirmation modale (contrairement au mulligan) : le bouton se
+          maintient (`RerollButton`), la charge qui le remplit EST la
+          confirmation, et le prix ne s'affiche qu'au moment où il est
+          débité. Absent quand le joueur ne peut pas payer ou qu'il ne reste
+          plus rien de pertinent à montrer : « Passer » prend alors toute la
+          largeur. */}
+      <div className="mt-3 flex gap-2">
+        {shopping.canReroll && (
+          <RerollButton
+            cost={shopping.rerollCost}
+            onConfirm={() => controller.rerollShopping()}
+          />
+        )}
         <Button
-          className="mt-3 w-full"
-          onPointerDown={(e) => { e.stopPropagation(); setAskingReroll(true); }}
+          variant="ghost"
+          className="min-w-0 flex-1 px-2 text-xs"
+          onPointerDown={(e) => { e.stopPropagation(); controller.skipShopping(); }}
         >
-          🎲 Nouvelle offre · −{shopping.rerollCost} PV
+          Passer →
         </Button>
-      )}
-      <button
-        onPointerDown={(e) => { e.stopPropagation(); controller.skipShopping(); }}
-        className="mt-3 w-full text-center text-xs text-white/50 underline"
-      >
-        Passer cette phase →
-      </button>
-      {askingReroll && (
-        <ConfirmHpCost
-          title="Tirer une nouvelle offre ?"
-          detail="Les magies affichées sont écartées et remplacées par d'autres, jamais déjà vues ce tour. Elles ne reviendront pas."
-          cost={shopping.rerollCost}
-          playerHp={playerHp}
-          confirmLabel="Rerouler"
-          onConfirm={() => { setAskingReroll(false); controller.rerollShopping(); }}
-          onCancel={() => setAskingReroll(false)}
-        />
-      )}
+      </div>
     </Modal>
   );
 }
