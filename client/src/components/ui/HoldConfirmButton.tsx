@@ -33,7 +33,7 @@ const TOAST_FADE_MS = 300;
 export default function HoldConfirmButton({
   icon, label, cost, onConfirm, fullWidth = false, visible = true,
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   label: string;
   cost: number;
   onConfirm: () => void;
@@ -111,7 +111,7 @@ export default function HoldConfirmButton({
             style={{ width: `${progress * 100}%` }}
           />
           <span className="relative z-10 inline-flex items-center gap-1">
-            <span className="text-base leading-none">{icon}</span>
+            {icon && <span className="text-base leading-none">{icon}</span>}
             <span>{label}</span>
           </span>
         </button>

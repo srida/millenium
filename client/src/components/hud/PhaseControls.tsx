@@ -87,7 +87,7 @@ function MenuButton() {
 
 export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   const {
-    controller, combatActive, placedCount, boardSlots, prepRemaining, combatRemaining,
+    controller, combatActive, prepRemaining, combatRemaining,
     speed, paused, boardTerrain, canUndo, canMulligan, mulliganCost,
   } = useGameStore();
   const web = useWebLayout();
@@ -145,9 +145,8 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
 
   return (
     <div className={classname_footer2}>
-      <span className="rounded-md border border-line bg-surface/80 px-2 py-1 text-sm font-semibold tabular-nums">
-        {placedCount}/{boardSlots}
-      </span>
+      {/* Le compteur d'unités vit désormais au coin du plateau
+          (`UnitCounterBadge`) : le montrer ICI aussi le dirait deux fois. */}
       <span className="rounded-md border border-line bg-surface/80 px-2 py-1 text-xs tabular-nums text-white/70">
         {fmt(prepRemaining)}
       </span>
@@ -157,7 +156,6 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
           partie) — démonter le composant ici tuerait son toast avant qu'il
           ne s'affiche (cf. `HoldConfirmButton`). */}
       <HoldConfirmButton
-        icon="🔄"
         label="Mulligan"
         cost={mulliganCost}
         onConfirm={() => controller.mulligan()}
