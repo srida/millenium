@@ -3223,7 +3223,28 @@ async function downloadAsset(url, filename) {
   try {
     const res = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
     if (!res.ok) return toast(`Image introuvable (${res.status})`, 'err');
-    const href = URL.createObjectURL(await res.blob());
+    const blob = await res.blob();
+
+    // Safari iOS n'a pas d'écriture directe dans Photos : un `<a download>`
+    // passe toujours par Fichiers. La feuille de partage native (Web Share
+    // API avec fichiers) propose « Enregistrer l'image », qui range dans
+    // Photos — c'est la seule porte. `canShare({ files })` est le test qui
+    // existe pour ça (support des fichiers, pas seulement de `share()`).
+    // Repli sur le téléchargement classique partout ailleurs (desktop,
+    // Android, Safari trop ancien) : l'appel doit rester dans le geste de
+    // clic, sans `await` avant lui, sous peine de perdre l'autorisation.
+    const file = new File([blob], filename, { type: blob.type || 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        return;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return; // annulé par l'utilisateur
+        // Sinon on retombe sur le téléchargement classique ci-dessous.
+      }
+    }
+
+    const href = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = href;
     a.download = filename;
