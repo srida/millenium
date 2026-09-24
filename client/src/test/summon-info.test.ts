@@ -19,7 +19,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  summonRecipes, summonCostOf, recipeCostText, materialsLabel, recipeIsFree,
+  summonRecipes, summonCostOf, summonCostsOf, recipeCostText, materialsLabel, recipeIsFree,
 } from '../data/SummonInfo.js';
 import type { Card } from '../logic/types.js';
 
@@ -100,6 +100,23 @@ describe('summonCostOf — la voie la moins chère', () => {
     expect(summonCostOf(card({
       summon_conditions: [{ materials: 3, requires: ['A'] }, { materials: 1, requires: ['B'] }],
     }))).toBe(1);
+  });
+});
+
+describe('summonCostsOf — un chiffre par prix de recette', () => {
+  it('rien sans condition, un seul chiffre pour un seul prix', () => {
+    expect(summonCostsOf(card({ summon_conditions: [] }))).toEqual([]);
+    expect(summonCostsOf(card({ summon_conditions: [{ materials: 3 }] }))).toEqual([3]);
+    expect(summonCostsOf(card({
+      summon_conditions: [{ materials: 2 }, { materials: 2, requires: ['A'] }],
+    }))).toEqual([2]);
+  });
+  it('les prix distincts, du moins cher au plus cher — le premier est summonCostOf', () => {
+    const c = card({
+      summon_conditions: [{ materials: 3, requires: ['A'] }, { materials: 1, requires: ['B'] }, { materials: 3 }],
+    });
+    expect(summonCostsOf(c)).toEqual([1, 3]);
+    expect(summonCostsOf(c)[0]).toBe(summonCostOf(c));
   });
 });
 

@@ -147,7 +147,14 @@
    seule chose qu'on lise sur une carte recouverte ; le compte d'exemplaires
    descend en bas-gauche, du même côté, sur la seule lisière qu'un éventail
    laisse voir — à droite il disparaissait sous la carte suivante. */
-.card3d-cost  { left: 2px; top: 2px; font-weight: 400; }
+/* Une pastille par recette de prix distinct, côte à côte sur UNE ligne : le
+   conteneur porte la place, chaque pastille sa boîte. */
+.card3d-cost {
+  position: absolute; z-index: 5; left: 2px; top: 2px;
+  display: flex; gap: 2px;
+  pointer-events: none;
+}
+.card3d-cost-pill { position: static; font-weight: 400; font-variant-numeric: tabular-nums; }
 .card3d-count {
   left: 2px; bottom: 2px;
   background: var(--color-gold, #d4af61); color: #000;

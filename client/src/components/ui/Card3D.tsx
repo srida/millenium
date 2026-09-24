@@ -33,7 +33,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { type TooltipContent } from '../../stores/uiStore.js';
 import { frameVars } from '../../three/cardPalette.js';
 import { artFor, illustrationUrl } from '../../data/CardArt.js';
-import { summonCostOf } from '../../data/SummonInfo.js';
+import { summonCostsOf } from '../../data/SummonInfo.js';
 import { tiersOf } from '../../logic/Tiers.js';
 import { useCardPress } from './cardPress.js';
 import type { Card } from '../../logic/types.js';
@@ -205,23 +205,26 @@ export default function Card3D({
       {/* Le COÛT en haut à gauche, le compte d'exemplaires en bas à gauche : les
           deux coins d'une même lisière, la seule qu'un éventail laisse voir
           d'une carte recouverte. Le tier ne s'écrit pas — il est le cadre. */}
-      {hint && <span className="card3d-badge card3d-cost">{hint}</span>}
+      {hint && <span className="card3d-cost">{hint}</span>}
       {badge != null && badge > 0 && <span className="card3d-badge card3d-count">×{badge}</span>}
       {locked && <span className="card3d-lock" aria-label="Carte verrouillée">🔒</span>}
     </button>
   );
 }
 
-// La pastille dit le COÛT, et rien d'autre : un chiffre, le nombre de
-// matériels de la voie la moins chère.
+// La pastille dit le COÛT, et rien d'autre : un chiffre par recette de prix
+// distinct, sur une même ligne, du moins cher au plus cher. Une carte à une
+// seule recette (ou à plusieurs recettes au même prix) n'en montre qu'une.
 //
 // Rien pour une carte sans condition : une vignette nue DIT qu'elle se pose.
 // Reprise de l'ex-`CardTile.tsx` — cf. son historique pour le pourquoi de
 // l'absence d'icône de voie d'invocation.
 function renderHint(card: Card): ReactNode {
-  const cost = summonCostOf(card);
-  if (cost <= 0) return null;
-  return <span className="inline-flex items-center gap-0.5 tabular-nums">◈{cost}</span>;
+  const costs = summonCostsOf(card);
+  if (costs.length === 0) return null;
+  return costs.map(cost => (
+    <span key={cost} className="card3d-badge card3d-cost-pill">◈{cost}</span>
+  ));
 }
 
 // Props dérivées d'une carte du catalogue — évite de répéter costHint et le
