@@ -403,11 +403,14 @@ export class GameSession {
     const drawSources = this.gameState.player_draw_sources.splice(0);
     const handSizeBefore = this.hand.length;
     const randomCount = Math.max(0, HAND_SIZE + extraDraws - guaranteedDraws.length);
-    this.hand = [...this.hand, ...drawHand(this.deps.cardsByTier, this.gameState.round, randomCount, this._rand)];
+    const drawnRandom = drawHand(this.deps.cardsByTier, this.gameState.round, randomCount, this._rand, this._uniqueDrawn);
+    this.hand = [...this.hand, ...drawnRandom];
 
     // Pioches garanties : ignorent la restriction de tier du tour — cherche dans tout le deck
     const fullPool = this._deckCards();
-    this.hand.push(...resolveGuaranteedDraws(fullPool as any, guaranteedDraws, this._rand));
+    const drawnGuaranteed = resolveGuaranteedDraws(fullPool as any, guaranteedDraws, this._rand, this._uniqueDrawn);
+    this.hand.push(...drawnGuaranteed);
+    this._recordUniqueDraws([...drawnRandom, ...drawnGuaranteed]);
 
 
     // L'adversaire ne joue PAS ici : en solo l'IA place ses unités au
@@ -499,7 +502,13 @@ export class GameSession {
     this._mulliganUsed = true;
     this.gameState.player_hp -= MULLIGAN_COST_HP;
     const count = this.hand.length;
-    this.hand = drawHand(this.deps.cardsByTier, this.gameState.round, count, this._rand);
+    // ⚠️ Le mulligan REND la main au deck : une Unique qu'on tenait encore
+    // redevient donc piochable — sinon le geste la brûlerait sans jamais
+    // l'avoir jouée. `_forgetUniqueDraws` avant le tirage, jamais après.
+    this._forgetUniqueDraws(this.hand);
+    const drawn = drawHand(this.deps.cardsByTier, this.gameState.round, count, this._rand, this._uniqueDrawn);
+    this.hand = drawn;
+    this._recordUniqueDraws(drawn);
     // Le point de retour AVANCE : la main d'avant n'existe plus, et les PV
     // dépensés ne se rendent pas. Même doctrine que la Phase Shopping, qui a
     // lieu avant la capture — ce qui est payé n'est jamais annulable.
@@ -586,7 +595,9 @@ export class GameSession {
     const extraDraws = this.gameState.enemy_extra_draws;
     this.gameState.enemy_extra_draws = 0;
     const guaranteedDraws = this.gameState.enemy_guaranteed_draws.splice(0);
-    this.enemyAI.drawHand(this.gameState.round, null, extraDraws, guaranteedDraws);
+    // Le mot-clé Unique vaut pour l'IA comme pour le joueur, sans drapeau
+    // d'asymétrie : `EnemyAI` tient son propre registre (`_uniqueDrawn`).
+    this.enemyAI.drawHand(this.gameState.round, null, extraDraws, guaranteedDraws, this._isUnique);
     this.enemyAI.placeFromHand(this.board, this.gameState.enemy_board_slots, this.enemyGraveyard, null, this._hasMultiple);
     this.enemyAI.rearrangeUnits(this.board, this.gameState.enemy_board_slots);
     this.enemyUnits = this.board.getLivingUnitsOnSide('enemy');
@@ -636,6 +647,35 @@ export class GameSession {
    */
   private _hasMultiple = (card: Card): boolean =>
     porteMotCle((card as any)?.attributes, 'multiple', this._motsCles());
+
+  /**
+   * Le mot-clé **Unique** (`effect-schema.mjs`) : cette carte ne se pioche
+   * qu'une fois par partie. `startPreparation`/`mulligan` s'en servent pour
+   * décider si un id qui vient d'entrer en main mérite d'être RETENU dans
+   * `_uniqueDrawn` — la carte muette (répond toujours faux) tant que le
+   * catalogue ne déclare pas le mot-clé, exactement comme `_hasMultiple`.
+   */
+  private _isUnique = (card: Card): boolean =>
+    porteMotCle((card as any)?.attributes, 'unique', this._motsCles());
+
+  /**
+   * Les ids Unique déjà tirés cette partie — le registre que `Draw.ts` (pur,
+   * il ne sait pas ce qu'« Unique » veut dire) reçoit en `excluded`.
+   */
+  private _uniqueDrawn: Set<string> = new Set();
+
+  /** Marque comme tirées les Unique parmi les cartes qui viennent d'entrer en main. */
+  private _recordUniqueDraws(cards: Card[]): void {
+    for (const c of cards) if (this._isUnique(c)) this._uniqueDrawn.add(c.id);
+  }
+
+  /**
+   * L'inverse — utilisé par le seul geste qui REND des cartes au deck (le
+   * mulligan) : une Unique qu'on s'apprête à rendre doit redevenir piochable.
+   */
+  private _forgetUniqueDraws(cards: Card[]): void {
+    for (const c of cards) if (this._isUnique(c)) this._uniqueDrawn.delete(c.id);
+  }
 
   isPlayable(card: Card): boolean {
     return isPlayable(card as any, this.board, this.graveyard, this.gameState.player_board_slots, this._hasMultiple(card));

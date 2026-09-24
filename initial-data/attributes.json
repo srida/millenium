@@ -1984,5 +1984,14 @@
 		"categorie": "MotCle",
 		"thresholds": [],
 		"mot_cle": "multiple"
+	},
+	{
+		"id": "ARCH_101",
+		"name": "Unique",
+		"icon": "🔱",
+		"timing": "none",
+		"categorie": "MotCle",
+		"thresholds": [],
+		"mot_cle": "unique"
 	}
 ]

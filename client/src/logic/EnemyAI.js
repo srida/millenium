@@ -43,6 +43,12 @@ export class EnemyAI {
     this._side = side;
     this._rand = rand;
     this._hand = [];
+    // Le mot-clé Unique (`effect-schema.mjs`) : les ids déjà tirés cette
+    // partie, symétrique de `GameSession._uniqueDrawn`. Une instance
+    // d'`EnemyAI` vit exactement une partie (`GameSession`/`MatchSimulator`
+    // en créent une par match), donc ce registre a la bonne portée sans rien
+    // de plus à réinitialiser.
+    this._uniqueDrawn = new Set();
   }
 
   /**
@@ -74,16 +80,21 @@ export class EnemyAI {
    * @param {Object[]} guaranteed  `enemy_guaranteed_draws` à honorer ce
    *   round — pendant de `player_guaranteed_draws`. Occupe des slots de la
    *   main normale, exactement comme côté joueur (défaut : `[]`).
+   * @param {?function(*): boolean} isUnique  Le mot-clé **Unique**
+   *   (`effect-schema.mjs`) : une fois tirée, la carte qu'il nomme sort du
+   *   pool pour le reste de la partie. Symétrique du pendant joueur
+   *   (`GameSession._isUnique`). `null` (défaut) revient à « aucune carte
+   *   n'est Unique », le comportement d'avant.
    * @returns {Object[]} les cartes PIOCHÉES (pas la main entière)
    */
-  drawHand(round, trace = null, extra = 0, guaranteed = []) {
+  drawHand(round, trace = null, extra = 0, guaranteed = [], isUnique = null) {
     const tiers = tiersForRound(round);
     const kept = [...this._hand];
     // ⚠️ MÊME sac que le joueur, par les mêmes fonctions : le pool se dérive
     // des TIERS DE LA CARTE (une carte multi-tiers se pioche à chacun des
     // siens) et se dédoublonne par round. Le composer à la main ici, c'était
     // se donner deux pioches qui finiraient par diverger.
-    const pool = poolForRound(deckPoolByTier(this._deck, this._cardDb), round);
+    const pool = poolForRound(deckPoolByTier(this._deck, this._cardDb), round, this._uniqueDrawn);
     // ⚠️ Tirage AVEC REMISE. Sans bonus (le cas de TOUS les appelants avant
     // l'attribut `draw_bonus`), exactement HAND_SIZE appels à `rand` dès que
     // le pool n'est pas vide — inchangé au bit près. Le flux semé de la
@@ -111,7 +122,10 @@ export class EnemyAI {
           if (card) fullPool.push(card);
         }
       }
-      guaranteedDrawn = resolveGuaranteedDraws(fullPool, guaranteed, this._rand);
+      guaranteedDrawn = resolveGuaranteedDraws(fullPool, guaranteed, this._rand, this._uniqueDrawn);
+    }
+    if (isUnique) {
+      for (const c of [...drawn, ...guaranteedDrawn]) if (isUnique(c)) this._uniqueDrawn.add(c.id);
     }
     this._hand = [...kept, ...drawn, ...guaranteedDrawn];
     trace?.({

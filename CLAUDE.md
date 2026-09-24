@@ -995,7 +995,7 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 
 Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-clé est un attribut qui décrit ce que la carte FAIT, pas ce qu'elle est.
 
-**Les cinq livrés**, et ce que chacun a coûté au moteur :
+**Les six livrés**, et ce que chacun a coûté au moteur :
 
 | Mot-clé | La règle | Ce qu'il a fallu ajouter |
 |---|---|---|
@@ -1004,10 +1004,11 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 | 💥 **Explosif** | en mourant, détruit l'unité adverse **la plus proche** | un `quand` (`porteur_detruit`), un `tri`, un `vfx`, un balayage des morts qui reboucle |
 | 📣 **Appelant** | **pioche garantie** de ce que SA carte nomme | un paramètre d'effet qui vit sur la CARTE (`card.appel`) |
 | 👯 **Multiple** | se pose même si un exemplaire vit déjà sur le terrain | `MOTS_CLES` — une exception d'invocation, pas une tâche |
+| 🔱 **Unique** | ne se pioche qu'**une fois par partie** | `MOTS_CLES` — une exclusion de pool de pioche, pas une tâche |
 
 ⚠️ **Un mot-clé est un EFFET par défaut.** Il s'écrit dans les seuils de l'attribut (`thresholds: [{ count: 1, effects: [...] }]`), avec son `quand` et ses tâches, comme n'importe quel palier d'archétype : le compilateur émet `cible = { camp: 'allie', filtre: { attributs: [porteur] } }`, donc un palier à **1** s'applique à chaque porteur et à lui seul. Il n'y a rien à ajouter pour ce cas.
 
-⚠️ **`MOTS_CLES` (`effect-schema.mjs`) est la porte de sortie, et elle est étroite** : n'y entre que ce qui n'est PAS une tâche. Le moteur écrit des tâches, il n'a aucune notion de *veto sur une purge* — lui en donner une lui donnerait un cycle de vie qu'il n'a pas (même raison que la mémoire des portées, qui vit chez l'appelant). Deux aujourd'hui : `cimetiere_permanent` et `multiple`.
+⚠️ **`MOTS_CLES` (`effect-schema.mjs`) est la porte de sortie, et elle est étroite** : n'y entre que ce qui n'est PAS une tâche. Le moteur écrit des tâches, il n'a aucune notion de *veto sur une purge* ni d'*exclusion de pool* — leur en donner une leur donnerait un cycle de vie qu'ils n'ont pas (même raison que la mémoire des portées, qui vit chez l'appelant). Trois aujourd'hui : `cimetiere_permanent`, `multiple` et `unique`.
 
 | | |
 |---|---|
@@ -1050,6 +1051,15 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 - ⚠️ Corollaire assumé : plus de `(camp, card_id)` unique pour cette carte — le log PvP et `refUnit` en dépendent pour toute autre carte, jamais pour celle-ci.
 - Sortie sèche quand le catalogue ne déclare pas le mot-clé (`porteMotCle` rend `false` faute d'index) : la carte se comporte comme n'importe quelle autre.
 - Témoin livré : HAGA_001 « Insecte de Base » porte ARCH_100.
+
+**`unique` (Unique)** — dès qu'un exemplaire entre en main (pioche normale OU garantie), son id sort du **pool de pioche** (`logic/Draw.ts`) pour le reste de la partie, jouée ou pas.
+- ⚠️ **La règle vit dans `Draw.ts`, pur et générique** : `poolForRound`/`drawHand`/`resolveGuaranteedDraws` prennent un `excluded: ReadonlySet<string>` en dernier paramètre (défaut vide, comportement inchangé) — ce module ne sait pas ce qu'« Unique » veut dire, il retire juste les ids qu'on lui donne. C'est `GameSession`/`EnemyAI` qui savent lire le mot-clé (`_isUnique`) et qui tiennent chacun leur registre (`_uniqueDrawn`).
+- ⚠️ **Les deux camps**, sans drapeau d'asymétrie, comme `cimetiere_permanent` et `multiple` : `EnemyAI.drawHand` prend le même prédicat `isUnique` en dernier paramètre, `_placeEnemyUnits()` le lui passe.
+- ⚠️ **Le mulligan REND la main au deck** : `GameSession.mulligan()` retire d'abord de `_uniqueDrawn` les ids Unique que la main tenait encore (`_forgetUniqueDraws`), *avant* de repiocher — sinon le geste brûlerait une Unique jamais jouée.
+- ⚠️ **Portée assumée : l'exclusion ne joue qu'ENTRE deux tirages**, jamais à l'intérieur d'un même lot de 5 cartes « avec remise » — un pool réduit à elle seule peut donc encore la donner plusieurs fois dans la MÊME main. Durcir ça demanderait à `Draw.ts` de savoir ce qu'un mot-clé veut dire, ce que le partage avec `EnemyAI` lui interdit précisément.
+- ⚠️ **Ne couvre que le pool de pioche** (`Draw.ts`), pas les magies qui piochent ailleurs dans le deck (`shift_tier_card`, `draw_material`) : elles restent hors du périmètre de cette version.
+- Sortie sèche quand le catalogue ne déclare pas le mot-clé (`_isUnique` rend `false` faute d'index, `_uniqueDrawn` reste vide) : la carte se pioche comme n'importe quelle autre.
+- Témoin livré : HAGA_003 « Soldat Insecte du Ciel » porte ARCH_101.
 
 **Explosif** — un `destroy_enemy` seul sur un palier à 1, au moment `porteur_detruit`. Le porteur emporte l'unité adverse la **plus proche** en tombant. Quatre choses n'existaient pas avant lui :
 
