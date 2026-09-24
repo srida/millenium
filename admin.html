@@ -2305,8 +2305,6 @@ function cardAppelHtml(c) {
     </div>
     ${alerte}
     <div class="form-grid">
-      <div class="field"><label>Tier exigé (vide = aucun)</label>
-        <input id="f-appel-tier" type="number" min="1" max="5" step="1" value="${c.appel && c.appel.tier != null ? c.appel.tier : ''}"></div>
       <div class="field" style="grid-column:1/-1">
         <label>Attributs et/ou cartes nommées</label>
         ${renderGuaranteedDrawCriteria(c.appel, 'carte')}
@@ -2428,9 +2426,9 @@ function conditionRowHtml(cd, idx) {
       <div class="form-grid">
         <div class="field">
           <label>Matériels à réunir <span class="slider-val" id="cond-mat-val-${idx}">${materials}</span></label>
-          <input type="range" id="cond-mat-${idx}" min="0" max="6" step="1" value="${materials}"
+          <input type="range" id="cond-mat-${idx}" min="0" max="7" step="1" value="${materials}"
                  oninput="document.getElementById('cond-mat-val-${idx}').textContent=this.value">
-          <div class="slider-marks"><span>0</span><span>3</span><span>6</span></div>
+          <div class="slider-marks"><span>0</span><span>3</span><span>7</span></div>
         </div>
       </div>
       ${over ? `<div style="margin-top:8px;font-size:11px;color:#f0a040;background:#f0a04018;border:1px solid #f0a04044;border-radius:6px;padding:8px 10px">
@@ -2634,7 +2632,13 @@ function cardPowerFromForm() {
 }
 
 /**
- * L'`appel` relu du formulaire — les listes viennent du MODÈLE, le tier du champ.
+ * L'`appel` relu du formulaire — tout vient du MODÈLE, il n'y a plus de champ à lire.
+ *
+ * ⚠️ **`tier` n'est plus ÉDITABLE, et n'est donc plus lu que du modèle** : les
+ * cinq tiers sont des attributs, un tier se nomme déjà dans `attributes` — même
+ * geste que la forme historique `attribute`, sauf que `tier` reste un champ à
+ * PART ENTIÈRE (lu par le moteur), juste sans widget dédié. Une carte livrée
+ * avec un tier garde le sien ; rien n'en écrit plus de nouveau.
  *
  * ⚠️ **Un appel vide n'est pas persisté** (`undefined`) : `{}` serait de la
  * donnée qui promet « au choix », ce que le moteur ne tient pas — un porteur
@@ -2643,10 +2647,8 @@ function cardPowerFromForm() {
  */
 function appelFromForm() {
   const courant = selectedCard.appel || {};
-  const brut = document.getElementById('f-appel-tier')?.value;
-  const tier = brut === '' || brut == null ? null : parseInt(brut, 10);
   const out = {};
-  if (Number.isInteger(tier) && tier > 0) out.tier = tier;
+  if (Number.isInteger(courant.tier) && courant.tier > 0) out.tier = courant.tier;
   if ((courant.attributes || []).length) out.attributes = [...courant.attributes];
   if ((courant.card_ids || []).length) out.card_ids = [...courant.card_ids];
   // La forme HISTORIQUE au singulier ne s'écrit jamais ici (cf. `champsOfferts`).
@@ -3261,13 +3263,22 @@ async function deleteIllustration() {
   toast('Illustration supprimée');
 }
 
-// Attribute picker modal
+// Attribute picker modal — PARTAGÉ par les attributs de carte et les cibles
+// d'effet (`attributs_multi`, onglets Terrains/Attributs/Magies) : une seule
+// UX de sélection (recherche + catégories + multi-sélection groupée), un seul
+// endroit à corriger. `openAttrPickerModal(excludeIds, onConfirm)` porte la
+// mécanique ; chaque appelant ne fait que dire ce qui est déjà pris et ce
+// qu'il fait de la sélection.
 let attrPickCat = '';
 let attrPickSelected = new Set();
+let attrPickExclude = [];
+let attrPickConfirm = null;
 
-function openAttrPickModal() {
+function openAttrPickerModal(excludeIds, onConfirm) {
   attrPickCat = '';
   attrPickSelected = new Set();
+  attrPickExclude = excludeIds || [];
+  attrPickConfirm = onConfirm;
   const cats = getAttrCategories();
   showModal(`
     <h2>Ajouter des attributs</h2>
@@ -3292,10 +3303,9 @@ function setAttrPickCat(cat) {
 }
 
 function renderAttrPickList() {
-  const current = selectedCard.attributes || [];
   const q = (document.getElementById('ap-search')?.value || '').toLowerCase();
   const list = attributes.filter(a =>
-    !current.includes(a.id) &&
+    !attrPickExclude.includes(a.id) &&
     (!attrPickCat || a.categorie === attrPickCat) &&
     (!q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q))
   );
@@ -3320,14 +3330,21 @@ function updateAttrPickCount() {
 }
 
 function confirmAttrPick() {
-  if (!attrPickSelected.size) { closeModal(); return; }
-  if (!selectedCard.attributes) selectedCard.attributes = [];
-  syncCardFromForm();
-  for (const aid of attrPickSelected) {
-    if (!selectedCard.attributes.includes(aid)) selectedCard.attributes.push(aid);
-  }
+  const ids = [...attrPickSelected];
+  const onConfirm = attrPickConfirm;
   closeModal();
-  renderCardDetail();
+  if (ids.length && onConfirm) onConfirm(ids);
+}
+
+function openAttrPickModal() {
+  openAttrPickerModal(selectedCard.attributes || [], ids => {
+    if (!selectedCard.attributes) selectedCard.attributes = [];
+    syncCardFromForm();
+    for (const aid of ids) {
+      if (!selectedCard.attributes.includes(aid)) selectedCard.attributes.push(aid);
+    }
+    renderCardDetail();
+  });
 }
 
 // ================== ATTRIBUTES ==================
@@ -3798,21 +3815,12 @@ function removeEffectTargetAttr(chipsId, aid) {
 
 function openEffectAttrPickModal(chipsId) {
   const current = [...document.querySelectorAll(`#${chipsId} .attr-chip`)].map(el => el.dataset.aid);
-  showModal(`
-    <h2>Ajouter un attribut cible</h2>
-    <div style="display:flex;flex-direction:column;gap:6px;max-height:360px;overflow-y:auto">
-      ${attributes.filter(a => !current.includes(a.id)).map(a => `
-        <div class="list-item" style="border-radius:6px" onclick="addEffectTargetAttr('${chipsId}', '${a.id}')">
-          <span style="font-size:16px">${a.icon || ''}</span>
-          <div><div>${esc(a.name)}</div><div style="font-size:11px;color:var(--muted);font-family:monospace">${a.id}</div></div>
-        </div>`).join('')}
-    </div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal()">Fermer</button></div>
-  `);
+  openAttrPickerModal(current, ids => {
+    for (const aid of ids) addEffectTargetAttr(chipsId, aid);
+  });
 }
 
 function addEffectTargetAttr(chipsId, aid) {
-  closeModal();
   const box = document.getElementById(chipsId);
   if (!box || box.querySelector(`.attr-chip[data-aid="${aid}"]`)) return;
   const chip = document.createElement('span');
