@@ -416,13 +416,15 @@ export function Banner({ text, tone = 'info' }: { text: string; tone?: 'info' | 
  * hérite alors du noir par défaut du navigateur, illisible sur `bg-surface` —
  * la panne du menu en jeu et de la confirmation de suppression de deck.
  */
-export function Modal({ children, onClose }: { children: ReactNode; onClose?: () => void }) {
+export function Modal({
+  children, onClose, maxWidth = 'max-w-sm',
+}: { children: ReactNode; onClose?: () => void; /** Largeur Tailwind du panneau — `ShoppingLayer` l'élargit en mode web pour poser ses magies en grille. */ maxWidth?: string }) {
   return createPortal(
     <div
       className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-black/70 p-4"
       onPointerDown={(e) => { if (e.target === e.currentTarget) onClose?.(); }}
     >
-      <div className="max-h-[88dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-gold/40 bg-surface/97 p-4 text-white shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className={`max-h-[88dvh] w-full ${maxWidth} overflow-y-auto rounded-2xl border border-gold/40 bg-surface/97 p-4 text-white shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}>
         {children}
       </div>
     </div>,

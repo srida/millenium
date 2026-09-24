@@ -20,19 +20,57 @@ import { Illustration } from '../ui/primitives.js';
 // panneau accentué en or ne distinguerait rien — il faut CONTRASTER avec
 // l'accent, pas le prolonger. Vert et rouge sont écartés pour la raison
 // symétrique : ils portent déjà « validé » et « danger » ailleurs dans le jeu.
-const RARITY_STYLE: Record<MagieRarity, { edge: string; chip: string }> = {
-  1: { edge: 'border-l-steel', chip: 'border-steel/50 text-steel' },
-  2: { edge: 'border-l-azure', chip: 'border-azure/50 text-azure' },
-  3: { edge: 'border-l-violet', chip: 'border-violet/60 bg-violet/10 text-violet' },
+const RARITY_STYLE: Record<MagieRarity, { edge: string; edgeTop: string; chip: string }> = {
+  1: { edge: 'border-l-steel', edgeTop: 'border-t-steel', chip: 'border-steel/50 text-steel' },
+  2: { edge: 'border-l-azure', edgeTop: 'border-t-azure', chip: 'border-azure/50 text-azure' },
+  3: { edge: 'border-l-violet', edgeTop: 'border-t-violet', chip: 'border-violet/60 bg-violet/10 text-violet' },
 };
 
 export default function MagieCard(
-  { magie, affordable = true, onChoose }:
-  { magie: Magie; affordable?: boolean; onChoose: (m: Magie) => void },
+  { magie, affordable = true, onChoose, compact = false }:
+  { magie: Magie; affordable?: boolean; onChoose: (m: Magie) => void; /** Grille en mode web (paysage) : vignette au-dessus, plus dense. Même règle de rareté/coût que la carte en ligne. */ compact?: boolean },
 ) {
   const rarity = rarityOf(magie);
   const style = RARITY_STYLE[rarity];
   const cost = magieCostHp(magie);
+
+  if (compact) {
+    return (
+      <button
+        disabled={!affordable}
+        onPointerDown={(e) => { e.stopPropagation(); if (affordable) onChoose(magie); }}
+        className={`flex w-full flex-col gap-1.5 overflow-hidden rounded-lg border border-t-4 border-line ${style.edgeTop} bg-surface-raised p-2 text-left transition-opacity ${
+          affordable ? 'hover:opacity-90 active:opacity-80' : 'cursor-not-allowed opacity-40'
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-md bg-black/40">
+            {(magie as any)._has_illustration && (
+              <Illustration id={magie.id} className="h-full w-full" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="min-w-0 truncate text-xs font-bold text-gold">{magie.name}</div>
+            <div className="flex flex-wrap items-center gap-1">
+              <span className={`rounded-full border px-1.5 py-px text-[8px] font-semibold uppercase tracking-wide ${style.chip}`}>
+                {RARITY_LABELS[rarity]}
+              </span>
+              {cost > 0 && (
+                <span className="flex-shrink-0 rounded bg-red-500/20 px-1.5 py-px text-[8px] font-bold text-red-300">
+                  −{cost} PV
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="text-[10px] leading-tight text-white/60">{(effectLabel as any)(magie, GAME_NAMES)}</div>
+        {!affordable && (
+          <div className="text-[9px] font-semibold leading-tight text-red-400">PV insuffisants</div>
+        )}
+      </button>
+    );
+  }
+
   return (
     <button
       disabled={!affordable}
