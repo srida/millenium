@@ -85,17 +85,37 @@ interface LinkedCardsState {
   card: Card;
 }
 
+/**
+ * Ce que le DeckBuilder expose au panneau « Cartes liées » pour qu'un tap y
+ * ajoute/retire la carte du deck en cours d'édition — le panneau est monté
+ * globalement (`App.tsx`) et n'a donc AUCUN accès à l'état local de l'écran ;
+ * c'est l'écran qui le lui prête, le temps qu'il reste monté.
+ *
+ * ⚠️ Ce n'est PAS une copie de la règle d'ajout : les quatre champs délèguent
+ * tous à des fonctions déjà écrites dans `DeckBuilder` (`owns`, `laneOf`,
+ * `canPlace`, `addCard`/`removeCardById`) — le panneau ne fait que les
+ * appeler, exactement comme le fait la bibliothèque du DeckBuilder lui-même.
+ */
+export interface DeckPickContext {
+  owns: (id: string) => boolean;
+  inDeck: (id: string) => boolean;
+  canAdd: (card: Card) => boolean;
+  onTap: (card: Card) => void;
+}
+
 interface UiState {
   screen: ScreenName;
   params: ScreenParams;
   tooltip: TooltipState | null;
   linkedCards: LinkedCardsState | null;
+  deckPickContext: DeckPickContext | null;
 
   navigate: (screen: ScreenName, params?: ScreenParams) => void;
   showTooltip: (content: TooltipContent, anchor: TooltipAnchor) => void;
   hideTooltip: () => void;
   showLinkedCards: (card: Card) => void;
   hideLinkedCards: () => void;
+  setDeckPickContext: (ctx: DeckPickContext | null) => void;
 }
 
 // Deep-link ?screen= (parité avec l'ancien routeur maison).
@@ -119,12 +139,18 @@ export const useUiStore = create<UiState>((set) => ({
   params: initialParams(),
   tooltip: null,
   linkedCards: null,
+  deckPickContext: null,
 
-  navigate: (screen, params = {}) => set({ screen, params, tooltip: null, linkedCards: null }),
+  // ⚠️ `deckPickContext` est remis à `null` ici aussi, en plus du nettoyage que
+  // fait `DeckBuilder` à son démontage : une navigation qui sortirait de
+  // l'écran par un autre chemin que celui prévu ne doit jamais laisser un
+  // panneau ouvert ailleurs capable d'écrire dans un deck qui n'est plus édité.
+  navigate: (screen, params = {}) => set({ screen, params, tooltip: null, linkedCards: null, deckPickContext: null }),
   showTooltip: (content, anchor) => set({ tooltip: { content, anchor } }),
   hideTooltip: () => set((s) => (s.tooltip ? { tooltip: null } : s)),
   // Ouvrir le panneau ferme le tooltip qui l'a ouvert — les deux ne se
   // superposent jamais.
   showLinkedCards: (card) => set({ linkedCards: { card }, tooltip: null }),
   hideLinkedCards: () => set((s) => (s.linkedCards ? { linkedCards: null } : s)),
+  setDeckPickContext: (ctx) => set({ deckPickContext: ctx }),
 }));
