@@ -239,7 +239,7 @@ input, textarea, select { font-size: 1rem !important; }
    `background-position`/`background-size`, révélées par un masque radial). */
 .phase-wipe-dice-char {
   position: absolute;
-  top: 47%;
+  top: 39%;
   left: 50%;
   background-image: url('/phase-wipe/shopping-dice.png');
   background-repeat: no-repeat;

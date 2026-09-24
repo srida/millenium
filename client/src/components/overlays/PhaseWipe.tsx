@@ -33,6 +33,7 @@
 //
 // ⚠️ `z-40` comme les autres couches de partie, pas plus : `TutorialCoach` est
 // en `z-50` avec sa bulle tapable.
+import { useMemo } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { COMBAT_INTRO_MS, SHOPPING_INTRO_MS } from '../../game/timings.js';
 
@@ -62,10 +63,23 @@ const RIFT_ARCS = ring(12, 22, 44, 3);
 const DICE_COINS = ring(14, 18, 42, 4);
 const DICE_SPARKS = ring(16, 22, 46, 3);
 
-// Les points des deux dés — position dans la grille 3×3, mêmes faces que le
-// prototype (dé gauche : 5, dé droit : 6).
-const DICE_PIPS_L = ['1/1', '1/3', '2/2', '3/1', '3/3'];
-const DICE_PIPS_R = ['1/1', '1/3', '2/1', '2/3', '3/1', '3/3'];
+// Les points d'une face de dé, position dans la grille 3×3 — une entrée par
+// valeur (1 à 6), reprise du prototype pour les faces 5 et 6.
+const PIP_LAYOUTS: Record<number, string[]> = {
+  1: ['2/2'],
+  2: ['1/1', '3/3'],
+  3: ['1/1', '2/2', '3/3'],
+  4: ['1/1', '1/3', '3/1', '3/3'],
+  5: ['1/1', '1/3', '2/2', '3/1', '3/3'],
+  6: ['1/1', '1/3', '2/1', '2/3', '3/1', '3/3'],
+};
+
+// Purement cosmétique (aucun état de jeu, aucun flux `rand` semé à préserver) :
+// une face 1-6 tirée à chaque montage du volet, pour que le lancer affiche un
+// résultat différent à chaque Phase Shopping plutôt que toujours 5 et 6.
+function randomPipFace(): string[] {
+  return PIP_LAYOUTS[1 + Math.floor(Math.random() * 6)];
+}
 
 export default function PhaseWipe() {
   const wipe = useGameStore(s => s.phaseWipe);
@@ -101,6 +115,10 @@ export default function PhaseWipe() {
    change. Le mot est peint EN DERNIER (après la scène dans le DOM) pour
    rester lisible si les deux empiètent l'un sur l'autre. */
 function ShoppingDice() {
+  // Une face par dé, tirée une seule fois pour tout l'affichage du volet — pas
+  // à chaque re-render, sinon les points changeraient sous l'animation de chute.
+  const pipsL = useMemo(randomPipFace, []);
+  const pipsR = useMemo(randomPipFace, []);
   return (
     <div className="phase-wipe-dice">
       <div className="phase-wipe-dice-veil" />
@@ -131,8 +149,8 @@ function ShoppingDice() {
         ))}
         <div className="phase-wipe-dice-shadow phase-wipe-dice-shadow-l" />
         <div className="phase-wipe-dice-shadow phase-wipe-dice-shadow-r" />
-        <DiceFace side="l" pips={DICE_PIPS_L} />
-        <DiceFace side="r" pips={DICE_PIPS_R} />
+        <DiceFace side="l" pips={pipsL} />
+        <DiceFace side="r" pips={pipsR} />
       </div>
       <div className="phase-wipe-dice-copy">
         <p className="phase-wipe-dice-word">SHOPPING</p>
