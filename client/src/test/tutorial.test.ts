@@ -164,6 +164,40 @@ describe('codex du tutoriel', () => {
       }
     }
   });
+
+  /**
+   * Un joueur doit reconnaître dans le codex les cartes qu'il possède déjà :
+   * dès qu'un exemple a une correspondance dans le pack de départ, c'est
+   * elle qui doit être montrée — jamais une carte hors pack choisie par le
+   * seul hasard de l'ordre alphabétique.
+   *
+   * ⚠️ Le catalogue livré NE garantit PAS que chaque exemple ait une
+   * correspondance dans le pack de départ (les tiers 3-4 de « Un exemple par
+   * tier » n'en ont aucune) — la liste ci-dessous ne porte donc que les
+   * chapitres où c'est le cas aujourd'hui, constaté sur le catalogue réel.
+   *
+   * Mutation : retirer la préférence `_starter` de `firstWhere` /
+   * `oneRecipeLike` → ROUGE (vérifié : ces chapitres retombent alors sur des
+   * cartes ALEXIS, CAMULA ou BONZ, hors du pack de départ SET_008).
+   */
+  it('préfère une carte du pack de départ quand l\'exemple en trouve une', () => {
+    const sets = read('sets.json') as { starter?: boolean; cards: string[] }[];
+    const starterSet = sets.find(s => s.starter);
+    expect(starterSet, 'aucun pack marqué comme pack de départ').toBeTruthy();
+    const starterIds = new Set(starterSet!.cards);
+    const CARDS_STARTER = CARDS.map(c => ({ ...c, _starter: starterIds.has(c.id) }));
+
+    const CHAPTERS_WITH_STARTER_MATCH = ['cards_units', 'hand', 'stats', 'summoning'];
+    for (const chapter of CHAPTERS) {
+      if (!CHAPTERS_WITH_STARTER_MATCH.includes(chapter.id)) continue;
+      for (const block of chapter.blocks) {
+        if (block.kind !== 'cards') continue;
+        for (const card of block.pick(CARDS_STARTER)) {
+          expect(starterIds.has(card.id), `${chapter.id} · ${block.caption} → ${card.id}`).toBe(true);
+        }
+      }
+    }
+  });
 });
 
 // ── Le deck d'entraînement ──────────────────────────────────────────────────

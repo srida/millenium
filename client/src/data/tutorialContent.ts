@@ -14,6 +14,14 @@ import type { Card } from '../logic/types.js';
 import { summonRecipes, summonCostOf, type SummonRecipe } from './SummonInfo.js';
 import { primaryTier, hasTier } from '../logic/Tiers.js';
 
+/**
+ * `_starter` est calculé par le serveur sur `/api/cards` (jamais persisté) —
+ * même statut que `_has_illustration`. Même type d'appoint que
+ * `game/tutorialDeck.CatalogCard` : le module reste pur, il ne fait
+ * qu'annoter ce que le catalogue lui donne déjà.
+ */
+type CatalogCard = Card & { _starter?: boolean };
+
 // ── Sélecteurs ──────────────────────────────────────────────────────────────
 
 /** Toujours trier avant de couper : un exemple ne doit pas changer d'un rendu à l'autre. */
@@ -21,8 +29,20 @@ function byId(cards: Card[]): Card[] {
   return [...cards].sort((a, b) => a.id.localeCompare(b.id));
 }
 
-function firstWhere(cards: Card[], pred: (c: Card) => boolean, limit = 1): Card[] {
-  return byId(cards.filter(pred)).slice(0, limit);
+/**
+ * Un joueur doit reconnaître dans le codex les cartes qu'il possède déjà :
+ * parmi les correspondances, on préfère celles du pack de départ (`_starter`),
+ * et on ne pioche dans le reste du catalogue QUE si le pack de départ n'en a
+ * pas assez — même repli que `game/tutorialDeck.starterPool`, appliqué ici
+ * exemple par exemple plutôt que deck entier.
+ */
+function firstWhere(cards: CatalogCard[], pred: (c: Card) => boolean, limit = 1): Card[] {
+  const matching = cards.filter(pred);
+  const starter = byId(matching.filter(c => c._starter));
+  if (starter.length >= limit) return starter.slice(0, limit);
+  const already = new Set(starter.map(c => c.id));
+  const rest = byId(matching.filter(c => !already.has(c.id)));
+  return [...starter, ...rest].slice(0, limit);
 }
 
 /**
@@ -35,10 +55,12 @@ function firstWhere(cards: Card[], pred: (c: Card) => boolean, limit = 1): Card[
  * n'étaient chacune qu'un cas particulier.
  */
 function oneRecipeLike(pred: (r: SummonRecipe) => boolean): CardPick {
-  return (cards) => {
+  return (cards: CatalogCard[]) => {
     const matching = cards.filter(c => summonRecipes(c).some(pred));
-    const sorted = [...matching].sort((a, b) => (primaryTier(a) - primaryTier(b)) || a.id.localeCompare(b.id));
-    return sorted.slice(0, 1);
+    const rank = (a: Card, b: Card) => (primaryTier(a) - primaryTier(b)) || a.id.localeCompare(b.id);
+    const starter = [...matching.filter(c => c._starter)].sort(rank);
+    const pool = starter.length ? starter : [...matching].sort(rank);
+    return pool.slice(0, 1);
   };
 }
 
