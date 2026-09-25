@@ -6489,13 +6489,15 @@ function renderMusicDetail() {
       </span>
     </div>
 
-    ${m.theme === 'game' ? `
+    ${(SOUND?.GAME_MUSIC_SLOTS || []).includes(m.theme) ? `
     <div class="field">
       <label>Thème de partie</label>
       <select id="music-game-theme">${gameThemeOpts}</select>
       <span style="font-size:11px;color:var(--muted);margin-top:4px">
-        Un match tire un thème au hasard (onglet 🎨 Thèmes de partie) et n'en joue que les pistes.
-        Sans thème, la piste rejoint le repli commun — jouée quel que soit le thème tiré.
+        Un match tire un thème au hasard (onglet 🎨 Thèmes de partie) et le garde du premier au
+        dernier tour ; cette piste ne sort que pour ce moment précis de la partie (l'emplacement
+        ci-dessus) ET ce thème. Sans thème, la piste rejoint le repli commun de son emplacement —
+        jouée quel que soit le thème tiré.
       </span>
     </div>` : ''}
 
@@ -6528,7 +6530,7 @@ function _collectMusicFields() {
     theme,
   };
   delete out.game_theme;
-  if (theme === 'game') {
+  if ((SOUND?.GAME_MUSIC_SLOTS || []).includes(theme)) {
     const v = document.getElementById('music-game-theme')?.value;
     if (v) out.game_theme = v;
   }
@@ -6621,10 +6623,16 @@ async function deleteMusicAudio() {
 
 // ---- Thèmes de partie ----
 // Catalogue léger — id + nom, aucun asset propre — qui range les musiques
-// de l'emplacement `game` (champ `music.game_theme`). Même rôle que les
-// Packs pour les cartes (`card.set`), en plus simple : un thème ne POSSÈDE
-// pas ses pistes, c'est la fiche Musique qui choisit son thème (cf. le champ
+// des TROIS emplacements `game_early` / `game_mid` / `game_late` (champ
+// `music.game_theme`, partagé par les trois). Même rôle que les Packs pour
+// les cartes (`card.set`), en plus simple : un thème ne POSSÈDE pas ses
+// pistes, c'est la fiche Musique qui choisit son thème (cf. le champ
 // « Thème de partie » de `renderMusicDetail`), donc rien à réaligner ici.
+//
+// ⚠️ Un thème n'a pas besoin de couvrir les trois moments : une piste
+// manquante pour l'un d'eux retombe sur le repli commun de CET emplacement
+// (`MusicDatabase.tracksForGameTheme`) — le détail liste donc les pistes par
+// emplacement pour que l'admin voie d'un coup d'œil ce qui manque.
 
 function filterMusicThemes() { renderMusicThemeList(runQuery('musictheme', musicThemes)); }
 
@@ -6690,8 +6698,17 @@ function renderMusicThemeDetail() {
     <div class="field">
       <label>Pistes de ce thème</label>
       ${tracks.length
-        ? `<div style="display:flex;flex-direction:column;gap:4px">${tracks.map(m => `
-             <span class="item-id">${esc(m.name || m.id)} ${m._has_audio ? '' : '⚠️ sans fichier'}</span>`).join('')}</div>`
+        ? `<div style="display:flex;flex-direction:column;gap:10px">${(SOUND?.GAME_MUSIC_SLOTS || []).map(slot => {
+             const slotLabel = (SOUND?.MUSIC_THEMES || []).find(x => x.id === slot)?.label || slot;
+             const slotTracks = tracks.filter(m => m.theme === slot);
+             return `
+               <div>
+                 <div style="font-size:11px;color:var(--muted);margin-bottom:2px">${esc(slotLabel)}</div>
+                 ${slotTracks.length
+                   ? slotTracks.map(m => `<span class="item-id" style="display:block">${esc(m.name || m.id)} ${m._has_audio ? '' : '⚠️ sans fichier'}</span>`).join('')
+                   : `<span class="item-id" style="opacity:.6">Aucune — repli commun</span>`}
+               </div>`;
+           }).join('')}</div>`
         : `<span style="font-size:11px;color:var(--muted)">Aucune — assigne ce thème depuis l'onglet 🎵 Musiques (champ « Thème de partie »).</span>`}
     </div>
 

@@ -17,7 +17,8 @@ vi.mock('../data/AuthClient.js', () => ({
 }));
 
 const playSfx = vi.fn();
-vi.mock('../audio/AudioManager.js', () => ({ playSfx, setMusicTheme: vi.fn(), rollGameTheme: vi.fn() }));
+const setMusicTheme = vi.fn();
+vi.mock('../audio/AudioManager.js', () => ({ playSfx, setMusicTheme, rollGameTheme: vi.fn() }));
 
 const { GameSession } = await import('../logic/GameSession.js');
 const { GameController } = await import('../game/GameController.js');
@@ -38,7 +39,7 @@ function makeController(cards: any[]) {
 
 const rect = { left: 0, top: 0, bottom: 0, width: 0, height: 0 };
 
-beforeEach(() => { playSfx.mockClear(); });
+beforeEach(() => { playSfx.mockClear(); setMusicTheme.mockClear(); });
 
 describe('GameController — effets sonores', () => {
   it('invocation réussie joue "summon" avec le tier de la carte', () => {
@@ -107,5 +108,27 @@ describe('GameController — effets sonores', () => {
 
     expect(unit.position).toEqual({ col: 0, row: 0 });
     expect(playSfx).not.toHaveBeenCalledWith('move_unit');
+  });
+});
+
+describe('GameController — emplacement musical par tour', () => {
+  it("suit la progression tours 1-2 / 3-4 / 5, un thème DE PARTIE choisit la palette, pas le moment", () => {
+    const a = makeCard({ id: 'GE' });
+    const { controller } = makeController([a]);
+
+    (controller as any)._openRound({ round: 1 });
+    expect(setMusicTheme).toHaveBeenLastCalledWith('game_early');
+
+    (controller as any)._openRound({ round: 2 });
+    expect(setMusicTheme).toHaveBeenLastCalledWith('game_early');
+
+    (controller as any)._openRound({ round: 3 });
+    expect(setMusicTheme).toHaveBeenLastCalledWith('game_mid');
+
+    (controller as any)._openRound({ round: 4 });
+    expect(setMusicTheme).toHaveBeenLastCalledWith('game_mid');
+
+    (controller as any)._openRound({ round: 5 });
+    expect(setMusicTheme).toHaveBeenLastCalledWith('game_late');
   });
 });

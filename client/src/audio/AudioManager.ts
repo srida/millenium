@@ -22,6 +22,7 @@
 // façon.
 import { resolveSfx, sfxUrl, type SfxVariant } from '../data/SfxDatabase.js';
 import { tracksForTheme, tracksForGameTheme, playableGameThemeIds, musicUrl } from '../data/MusicDatabase.js';
+import { GAME_MUSIC_SLOTS } from '../../../sound-schema.mjs';
 
 const SETTINGS_KEY = 'millenium_audio_settings_v1';
 // Durée de CHAQUE demi-fondu (descente puis montée) d'une transition
@@ -216,13 +217,17 @@ export function rollGameTheme(): void {
 }
 
 /**
- * Bascule l'EMPLACEMENT musical courant (`menu` / `game`). NO-OP si c'est
- * déjà l'emplacement en cours (sinon chaque round rejouerait la piste
- * depuis zéro) ; `force: true` pour retirer une nouvelle piste du même
- * emplacement (playlist).
+ * Bascule l'EMPLACEMENT musical courant (`menu` / `game_early` / `game_mid` /
+ * `game_late`). NO-OP si c'est déjà l'emplacement en cours (sinon chaque
+ * round rejouerait la piste depuis zéro) ; `force: true` pour retirer une
+ * nouvelle piste du même emplacement (playlist).
  *
- * `theme: 'game'` joue les pistes du thème de partie VERROUILLÉ par
- * `rollGameTheme()` — c'est lui, pas cette fonction, qui choisit LEQUEL.
+ * Un emplacement `game_*` joue les pistes du thème de partie VERROUILLÉ par
+ * `rollGameTheme()` pour CE moment — c'est lui, pas cette fonction, qui
+ * choisit LEQUEL. Le thème ne change jamais en cours de match : seul
+ * l'emplacement avance (tours 1-2 → 3-4 → 5), et `tracksForGameTheme`
+ * retombe sur le pool commun de l'emplacement si le thème verrouillé n'a
+ * rien pour ce moment précis.
  *
  * `theme: null` coupe la musique (fondu vers le silence).
  */
@@ -230,7 +235,7 @@ export function setMusicTheme(theme: string | null, opts: { force?: boolean } = 
   if (typeof Audio === 'undefined') return;
   if (!opts.force && theme === currentTheme) return;
   currentTheme = theme;
-  const tracks = theme === 'game' ? tracksForGameTheme(lockedGameTheme)
+  const tracks = theme && GAME_MUSIC_SLOTS.includes(theme) ? tracksForGameTheme(theme, lockedGameTheme)
     : theme ? tracksForTheme(theme) : [];
   if (!tracks.length) { fadeOutCurrent(); return; }
   const pick = tracks[Math.floor(Math.random() * tracks.length)];
