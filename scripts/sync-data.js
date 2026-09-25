@@ -96,6 +96,7 @@ const ENTITIES = [
   // (entrée `audio` d'ASSETS ci-dessus).
   { type: 'sfx',        file: 'sfx.json',        importPath: '/api/sfx/import',        deletePath: id => `/api/sfx/${id}` },
   { type: 'music',      file: 'music.json',      importPath: '/api/music/import',      deletePath: id => `/api/music/${id}` },
+  { type: 'musicThemes', file: 'music_themes.json', importPath: '/api/music-themes/import', deletePath: id => `/api/music-themes/${id}` },
 ];
 
 function authHeader() {

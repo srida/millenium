@@ -46,14 +46,28 @@ export const SFX_TRIGGERS = [
   { id: 'match_win',            label: 'Écran de victoire',                    variant: null },
   { id: 'match_lose',           label: 'Écran de défaite',                     variant: null },
   { id: 'match_draw',           label: 'Écran d\'égalité',                     variant: null },
+  { id: 'summon_menu_open',    label: 'Popup d\'invocation à choix multiple', variant: null },
+  { id: 'duel_start',           label: 'Animation de lancement du duel',       variant: null },
 ];
 
+/**
+ * Les deux EMPLACEMENTS fixes de la musique — pas les pistes elles-mêmes.
+ * ⚠️ « Menu » couvre le menu principal, la connexion ET tous les autres
+ * menus : ils partagent désormais UN seul emplacement (ce sont des pistes
+ * différentes du catalogue `music.json` qui font la variété, pas des
+ * emplacements séparés).
+ *
+ * ⚠️ « Partie » ne se décline plus par round (tours 1-2/3-4/5) : c'est
+ * désormais un THÈME DE PARTIE — tiré au hasard une fois par match parmi le
+ * catalogue `data/music_themes.json` (comme un pack pour les cartes) — qui
+ * choisit la palette de pistes jouées du premier au dernier tour. Le champ
+ * `game_theme` d'une entrée `music.json` la range dans ce catalogue ; une
+ * entrée `partie` sans thème sert de repli commun tant qu'aucun thème n'est
+ * configuré.
+ */
 export const MUSIC_THEMES = [
-  { id: 'menu_main',  label: 'Menu principal / connexion' },
-  { id: 'menu_other', label: 'Autres menus' },
-  { id: 'game_early', label: 'Partie — tours 1-2' },
-  { id: 'game_mid',   label: 'Partie — tours 3-4' },
-  { id: 'game_late',  label: 'Partie — tour 5' },
+  { id: 'menu', label: 'Menu (principal, connexion, autres menus)' },
+  { id: 'game', label: 'Partie (thème tiré au hasard par match)' },
 ];
 
 export const SFX_TRIGGER_IDS = SFX_TRIGGERS.map(t => t.id);

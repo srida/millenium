@@ -192,6 +192,11 @@ const TOKENS_FILE = path.join(DATA_DIR, 'tokens.json');
 // EUX (AUDIO_DIR), l'extension du fichier variant selon le format importé.
 const SFX_FILE = path.join(DATA_DIR, 'sfx.json');
 const MUSIC_FILE = path.join(DATA_DIR, 'music.json');
+// Thèmes de musique de PARTIE — catalogue léger (id + nom, aucun asset propre)
+// qui range les pistes `music.json` de l'emplacement `game`, comme un pack
+// range des cartes (`card.set`). Un match en tire un au hasard et n'en joue
+// que les pistes pour toute sa durée.
+const MUSIC_THEMES_FILE = path.join(DATA_DIR, 'music_themes.json');
 
 // --- Bootstrap: copy initial data to volume on first run ---
 function bootstrap() {
@@ -201,7 +206,7 @@ function bootstrap() {
   fs.mkdirSync(POSTERS_DIR, { recursive: true });
   fs.mkdirSync(BOARD_BG_DIR, { recursive: true });
   fs.mkdirSync(AUDIO_DIR, { recursive: true });
-  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'card_backs.json', 'tokens.json', 'sfx.json', 'music.json']) {
+  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'card_backs.json', 'tokens.json', 'sfx.json', 'music.json', 'music_themes.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -895,6 +900,13 @@ app.use('/api/music', crud({
   guard: requireSiteAdmin,
   render: (list) => list.map(m => ({ ...m, _has_audio: audioExists(m.id), _audio_ext: audioExt(m.id) })),
   strip: (m) => { delete m._has_audio; delete m._audio_ext; },
+}));
+
+// Thèmes de musique de partie — catalogue plat, aucun asset : GET public (le
+// client en tire un au hasard par match), écriture site-admin.
+app.use('/api/music-themes', crud({
+  file: MUSIC_THEMES_FILE,
+  guard: requireSiteAdmin,
 }));
 
 // --- Audio (upload / suppression) : même triptyque que les illustrations,
@@ -1763,8 +1775,9 @@ app.get('/api/export', (req, res) => {
     // checksums que les images, l'extension en plus (elle varie par fichier).
     const sfxList = readJson(SFX_FILE);
     const musicList = readJson(MUSIC_FILE);
+    const musicThemeList = readJson(MUSIC_THEMES_FILE);
     const audio = listAudioChecksums(AUDIO_DIR);
-    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, cardBacks, tokens, sfx: sfxList, music: musicList, illustrations, avatars, packPosters, boardBackgrounds, audio });
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, cardBacks, tokens, sfx: sfxList, music: musicList, musicThemes: musicThemeList, illustrations, avatars, packPosters, boardBackgrounds, audio });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

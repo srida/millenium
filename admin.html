@@ -557,6 +557,11 @@ select.filter:focus { border-color: var(--accent); }
            de la navigation. -->
       <option value="sfx">🔊 Sons</option>
       <option value="music">🎵 Musiques</option>
+      <!-- Thèmes de partie : catalogue léger qui range les musiques de
+           l'emplacement « Partie » — un match en tire un au hasard et n'en
+           joue que les pistes pour toute sa durée. Même rôle que les Packs
+           pour les cartes (card.set), en plus simple (aucun asset propre). -->
+      <option value="musicthemes">🎨 Thèmes de partie</option>
       <option value="stats">📊 Stats</option>
       <option value="db">🗄️ Base SQL</option>
       <!-- Le rapport d'équilibrage est un onglet ordinaire : son panneau porte une
@@ -806,6 +811,27 @@ select.filter:focus { border-color: var(--accent); }
     </div>
   </div>
 
+  <!-- MUSIC THEMES TAB -->
+  <div id="tab-musicthemes" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="musictheme-search" class="qbar" data-query="musictheme" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('musictheme')" onkeydown="onQueryKey(event, 'musictheme')">
+          <span id="musictheme-count" class="count">0</span>
+        </div>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-musictheme"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewMusicTheme()" title="Nouveau thème">+</button>
+          <button class="btn-icon" onclick="openImportModal('music-themes')" title="Importer JSON">⬆</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="musictheme-list"></div>
+    </div>
+    <div class="content" id="musictheme-detail">
+      <div class="empty"><span>Sélectionne un thème de partie</span></div>
+    </div>
+  </div>
+
   <!-- MISSIONS TAB -->
   <div id="tab-missions" class="main hidden">
     <div class="sidebar">
@@ -955,10 +981,10 @@ select.filter:focus { border-color: var(--accent); }
 // ================== STATE ==================
 // `packs` = les packs de boutique (data/sets.json, API /api/sets). Le code et la
 // donnée disent « set », l'interface dit « pack » : ici on est dans l'interface.
-let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [], cardBacks = [], tokens = [], sfx = [], music = [];
-let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null, selectedCardBack = null, selectedToken = null, selectedSfx = null, selectedMusic = null;
+let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [], cardBacks = [], tokens = [], sfx = [], music = [], musicThemes = [];
+let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null, selectedCardBack = null, selectedToken = null, selectedSfx = null, selectedMusic = null, selectedMusicTheme = null;
 let currentTab = 'cards';
-let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false, isNewGift = false, isNewCardBack = false, isNewToken = false, isNewSfx = false, isNewMusic = false;
+let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false, isNewGift = false, isNewCardBack = false, isNewToken = false, isNewSfx = false, isNewMusic = false, isNewMusicTheme = false;
 let selectionMode = false;
 const bulkSelected = new Set();
 
@@ -1123,8 +1149,17 @@ function buildQuerySchemas() {
     fields: [
       txt('id', 'Identifiant', m => m.id),
       txt('nom', 'Nom', m => m.name, ['name']),
-      txt('theme', 'Thème', m => m.theme, []),
+      txt('emplacement', 'Emplacement', m => m.theme, ['theme']),
+      txt('theme_partie', 'Thème de partie', m => m.game_theme, ['game_theme']),
       bool('audio', 'A un fichier', m => !!m._has_audio, ['son']),
+    ],
+  };
+
+  QUERY_SCHEMAS.musictheme = {
+    text: ['nom', 'id'],
+    fields: [
+      txt('id', 'Identifiant', t => t.id),
+      txt('nom', 'Nom', t => t.name, ['name']),
     ],
   };
 
@@ -1443,7 +1478,7 @@ async function init() {
   EFX = modules[2];
   SOUND = modules[3];
 
-  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, cardBacks, tokens, sfx, music] = await Promise.all([
+  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, cardBacks, tokens, sfx, music, musicThemes] = await Promise.all([
     apiFetch('/api/cards'),
     apiFetch('/api/attributes'),
     apiFetch('/api/powers'),
@@ -1458,6 +1493,7 @@ async function init() {
     apiFetch('/api/tokens'),
     apiFetch('/api/sfx'),
     apiFetch('/api/music'),
+    apiFetch('/api/music-themes'),
   ]);
   buildQuerySchemas();
   attachQueryBars();
@@ -1465,7 +1501,7 @@ async function init() {
     card: filterCards, attr: filterAttributes, power: filterPowers, board: filterBoards,
     magie: filterMagies, variant: filterVariants, cardback: filterCardBacks, token: filterTokens,
     mission: filterMissions, gift: filterGifts, deck: filterPublicDecks, pack: filterPacks,
-    sfx: filterSfx, music: filterMusic,
+    sfx: filterSfx, music: filterMusic, musictheme: filterMusicThemes,
   });
   populateTierFilter();
   renderCardList();
@@ -1482,6 +1518,7 @@ async function init() {
   renderTokenList();
   renderSfxList();
   renderMusicList();
+  renderMusicThemeList();
 }
 
 /** Les chips de tier se DÉRIVENT du catalogue d'attributs : un tier ajouté dans
@@ -2892,6 +2929,7 @@ const ID_PICKERS = {
   token:    { field: 'tkf-id', fallback: 'TOKEN',       items: () => tokens,      sel: () => selectedToken },
   sfx:      { field: 'sfx-id', fallback: 'SFX',         items: () => sfx,         sel: () => selectedSfx },
   music:    { field: 'music-id', fallback: 'MUSIC',     items: () => music,       sel: () => selectedMusic },
+  musictheme: { field: 'musictheme-id', fallback: 'THEME', items: () => musicThemes, sel: () => selectedMusicTheme },
 };
 
 /** `CORE_001` → `['CORE', '001']`. Le seul découpage d'un id du projet. */
@@ -6369,6 +6407,7 @@ function renderMusicList(list = music) {
   el.innerHTML = list.map(m => {
     const isActive = selectedMusic?.id === m.id;
     const theme = SOUND?.musicTheme(m.theme);
+    const gameThemeName = m.game_theme ? (musicThemes.find(t => t.id === m.game_theme)?.name || m.game_theme) : '';
     return `
       <div class="list-item ${isActive ? 'selected' : ''}" onclick="selectMusic('${m.id}')">
         <div class="list-thumb-placeholder"><span style="font-size:14px;opacity:.4">${m._has_audio ? '🎵' : '🎶'}</span></div>
@@ -6377,6 +6416,7 @@ function renderMusicList(list = music) {
           <div style="display:flex;gap:4px;margin-top:3px;align-items:center">
             <span class="item-id">${esc(m.id)}</span>
             <span class="item-id">${esc(theme?.label || m.theme || '—')}</span>
+            ${gameThemeName ? `<span class="item-id">${esc(gameThemeName)}</span>` : ''}
           </div>
         </div>
       </div>`;
@@ -6401,6 +6441,8 @@ function renderMusicDetail() {
   const hasAudio = m._has_audio;
   const themeOpts = (SOUND?.MUSIC_THEMES || [])
     .map(t => `<option value="${esc(t.id)}" ${m.theme === t.id ? 'selected' : ''}>${esc(t.label)}</option>`).join('');
+  const gameThemeOpts = ['<option value="">Repli commun (sans thème de partie)</option>']
+    .concat(musicThemes.map(t => `<option value="${esc(t.id)}" ${m.game_theme === t.id ? 'selected' : ''}>${esc(t.name || t.id)}</option>`)).join('');
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
     <div class="detail-header">
@@ -6440,12 +6482,22 @@ function renderMusicDetail() {
     </div>
 
     <div class="field">
-      <label>Thème</label>
-      <select id="music-theme">${themeOpts}</select>
+      <label>Emplacement</label>
+      <select id="music-theme" onchange="_syncMusicThemeField()">${themeOpts}</select>
       <span style="font-size:11px;color:var(--muted);margin-top:4px">
-        Plusieurs pistes peuvent partager un thème : le client en tire une au hasard, comme une playlist.
+        Plusieurs pistes peuvent partager un emplacement : le client en tire une au hasard, comme une playlist.
       </span>
     </div>
+
+    ${m.theme === 'game' ? `
+    <div class="field">
+      <label>Thème de partie</label>
+      <select id="music-game-theme">${gameThemeOpts}</select>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">
+        Un match tire un thème au hasard (onglet 🎨 Thèmes de partie) et n'en joue que les pistes.
+        Sans thème, la piste rejoint le repli commun — jouée quel que soit le thème tiré.
+      </span>
+    </div>` : ''}
 
     <div class="detail-actions">
       ${isNewMusic
@@ -6457,13 +6509,29 @@ function renderMusicDetail() {
   `;
 }
 
+// L'emplacement change de FORME (le champ « Thème de partie » n'existe que
+// pour `game`) : même geste que `_syncSfxVariantField`, on recopie d'abord
+// le nom saisi avant de re-rendre.
+function _syncMusicThemeField() {
+  const name = document.getElementById('music-name')?.value;
+  const theme = document.getElementById('music-theme')?.value;
+  selectedMusic = { ...selectedMusic, name, theme, game_theme: undefined };
+  renderMusicDetail();
+}
+
 function _collectMusicFields() {
+  const theme = document.getElementById('music-theme')?.value || (SOUND?.MUSIC_THEMES || [])[0]?.id;
   const out = {
     ...selectedMusic,
     id: selectedMusic.id,
     name: document.getElementById('music-name')?.value.trim() || selectedMusic.id,
-    theme: document.getElementById('music-theme')?.value || (SOUND?.MUSIC_THEMES || [])[0]?.id,
+    theme,
   };
+  delete out.game_theme;
+  if (theme === 'game') {
+    const v = document.getElementById('music-game-theme')?.value;
+    if (v) out.game_theme = v;
+  }
   delete out._has_audio;
   delete out._audio_ext;
   return out;
@@ -6549,6 +6617,156 @@ async function deleteMusicAudio() {
   if (res.error) return toast(res.error, 'err');
   _setMusicAudioFlag(false, null);
   toast('Fichier supprimé');
+}
+
+// ---- Thèmes de partie ----
+// Catalogue léger — id + nom, aucun asset propre — qui range les musiques
+// de l'emplacement `game` (champ `music.game_theme`). Même rôle que les
+// Packs pour les cartes (`card.set`), en plus simple : un thème ne POSSÈDE
+// pas ses pistes, c'est la fiche Musique qui choisit son thème (cf. le champ
+// « Thème de partie » de `renderMusicDetail`), donc rien à réaligner ici.
+
+function filterMusicThemes() { renderMusicThemeList(runQuery('musictheme', musicThemes)); }
+
+function renderMusicThemeList(list = musicThemes) {
+  document.getElementById('musictheme-count').textContent = list.length;
+  const el = document.getElementById('musictheme-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty" style="padding:24px"><span>Aucun thème de partie</span></div>';
+    return;
+  }
+  el.innerHTML = list.map(t => {
+    const isActive = selectedMusicTheme?.id === t.id;
+    const trackCount = music.filter(m => m.game_theme === t.id).length;
+    return `
+      <div class="list-item ${isActive ? 'selected' : ''}" onclick="selectMusicTheme('${t.id}')">
+        <div class="list-thumb-placeholder"><span style="font-size:14px;opacity:.4">🎨</span></div>
+        <div style="flex:1;min-width:0">
+          <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name || t.id)}</span>
+          <div style="display:flex;gap:4px;margin-top:3px;align-items:center">
+            <span class="item-id">${esc(t.id)}</span>
+            <span class="item-id">${trackCount} piste${trackCount !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectMusicTheme(id) {
+  selectedMusicTheme = musicThemes.find(t => t.id === id) ?? null;
+  isNewMusicTheme = false;
+  renderMusicThemeList();
+  renderMusicThemeDetail();
+  showDetail();
+}
+
+function renderMusicThemeDetail() {
+  const t = selectedMusicTheme;
+  const el = document.getElementById('musictheme-detail');
+  if (!t) {
+    el.innerHTML = '<div class="empty"><span>Sélectionne un thème de partie</span></div>';
+    return;
+  }
+  const tracks = music.filter(m => m.game_theme === t.id);
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header">
+      <div class="detail-info">
+        <div class="detail-title">🎨 ${esc(t.name || t.id)}</div>
+        <div class="detail-meta"><span style="font-family:monospace">${esc(t.id)}</span></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>ID</label>
+      ${isNewMusicTheme ? idPickerHtml('musictheme', t.id) : idFieldHtmlFor('musictheme', t.id, { readonly: true })}
+    </div>
+
+    <div class="field">
+      <label>Nom</label>
+      <input id="musictheme-name" value="${esc(t.name || '')}" placeholder="Désert, Volcan, Sombre…">
+    </div>
+
+    <div class="field">
+      <label>Pistes de ce thème</label>
+      ${tracks.length
+        ? `<div style="display:flex;flex-direction:column;gap:4px">${tracks.map(m => `
+             <span class="item-id">${esc(m.name || m.id)} ${m._has_audio ? '' : '⚠️ sans fichier'}</span>`).join('')}</div>`
+        : `<span style="font-size:11px;color:var(--muted)">Aucune — assigne ce thème depuis l'onglet 🎵 Musiques (champ « Thème de partie »).</span>`}
+    </div>
+
+    ${!tracks.length && !isNewMusicTheme ? `
+      <div style="background:rgba(240,180,60,.1);border:1px solid rgba(240,180,60,.35);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0b43c">
+        ⚠️ Sans piste, ce thème n'est jamais tiré au sort — une partie qui y tomberait retomberait sur le repli commun.
+      </div>` : ''}
+
+    <div class="detail-actions">
+      ${isNewMusicTheme
+        ? `<button class="btn btn-primary" onclick="createMusicTheme()">Créer</button>
+           <button class="btn btn-secondary" onclick="cancelNewMusicTheme()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveMusicTheme()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deleteMusicTheme()">Supprimer</button>`}
+    </div>
+  `;
+}
+
+function _collectMusicThemeFields() {
+  return {
+    ...selectedMusicTheme,
+    id: selectedMusicTheme.id,
+    name: document.getElementById('musictheme-name')?.value.trim() || selectedMusicTheme.id,
+  };
+}
+
+async function saveMusicTheme() {
+  const item = _collectMusicThemeFields();
+  const res = await apiFetch(`/api/music-themes/${selectedMusicTheme.id}`, { method: 'PUT', body: item });
+  if (res.error) return toast(res.error, 'err');
+  const idx = musicThemes.findIndex(t => t.id === selectedMusicTheme.id);
+  if (idx !== -1) { musicThemes[idx] = item; selectedMusicTheme = musicThemes[idx]; }
+  filterMusicThemes();
+  renderMusicThemeDetail();
+  toast('Thème enregistré');
+}
+
+async function deleteMusicTheme() {
+  if (!confirm(`Supprimer le thème ${selectedMusicTheme.id} ?`)) return;
+  const res = await apiFetch(`/api/music-themes/${selectedMusicTheme.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  musicThemes = musicThemes.filter(t => t.id !== selectedMusicTheme.id);
+  selectedMusicTheme = null;
+  filterMusicThemes();
+  document.getElementById('musictheme-detail').innerHTML = '<div class="empty"><span>Sélectionne un thème de partie</span></div>';
+  showList();
+  toast('Thème supprimé');
+}
+
+function openNewMusicTheme() {
+  selectedMusicTheme = { id: nextIdFor('musictheme'), name: '' };
+  isNewMusicTheme = true;
+  renderMusicThemeList();
+  renderMusicThemeDetail();
+  showDetail();
+}
+
+async function createMusicTheme() {
+  const item = _collectMusicThemeFields();
+  const res = await apiFetch('/api/music-themes', { method: 'POST', body: item });
+  if (res.error) return toast(res.error, 'err');
+  musicThemes.push(item);
+  selectedMusicTheme = musicThemes[musicThemes.length - 1];
+  isNewMusicTheme = false;
+  filterMusicThemes();
+  renderMusicThemeDetail();
+  toast('Thème créé — assigne-lui des pistes depuis l\'onglet 🎵 Musiques');
+}
+
+function cancelNewMusicTheme() {
+  selectedMusicTheme = null;
+  isNewMusicTheme = false;
+  filterMusicThemes();
+  document.getElementById('musictheme-detail').innerHTML = '<div class="empty"><span>Sélectionne un thème de partie</span></div>';
+  showList();
 }
 
 // ================== MISSIONS ==================
@@ -8091,6 +8309,7 @@ function fabAction() {
   else if (currentTab === 'tokens')     openNewToken();
   else if (currentTab === 'sfx')        openNewSfx();
   else if (currentTab === 'music')      openNewMusic();
+  else if (currentTab === 'musicthemes') openNewMusicTheme();
 }
 
 // ================== UTILS ==================
@@ -8852,7 +9071,7 @@ async function confirmMassDelete() {
 let importType = null;
 let importItems = null;
 
-const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions', variants: 'variantes', gifts: 'cadeaux', 'card-backs': 'dos de cartes', tokens: 'tokens', sfx: 'effets sonores', music: 'musiques' };
+const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions', variants: 'variantes', gifts: 'cadeaux', 'card-backs': 'dos de cartes', tokens: 'tokens', sfx: 'effets sonores', music: 'musiques', 'music-themes': 'thèmes de partie' };
 
 function openImportModal(type) {
   importType = type;
@@ -8968,6 +9187,10 @@ async function confirmImport() {
     music = await apiFetch('/api/music');
     selectedMusic = null;
     filterMusic();
+  } else if (importType === 'music-themes') {
+    musicThemes = await apiFetch('/api/music-themes');
+    selectedMusicTheme = null;
+    filterMusicThemes();
   }
 
   const parts = [];
