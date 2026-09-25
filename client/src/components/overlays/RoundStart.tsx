@@ -21,6 +21,7 @@ import { drawBonusRows, drawnLabel, guaranteedDrawLabel } from '../../data/DrawI
 import { bonusSourceName, cardName } from '../../data/gameNames.js';
 import { ROUND_INTRO_MS } from '../../game/timings.js';
 import type { DrawBonusRow } from '../../data/DrawInfo.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 const MAX_ROUNDS = 5;
 /** Durée du vol des dos vers la main, miroir de `--draw-deal-dur` (index.css). */
@@ -118,6 +119,11 @@ export function DrawPopup({ autoDismissMs = 0 }: { autoDismissMs?: number } = {}
   const deal = () => {
     if (dealt.current) return;
     dealt.current = true;
+    // ⚠️ Le son part ICI, au CLIC — pas à `dismissDrawPopup()`, appelé plus bas
+    // après `DEAL_MS` (la volée des dos vers la main) : le joueur doit
+    // l'entendre au tap, ni avant (l'ouverture de la popup), ni après (la fin
+    // de l'animation).
+    Audio.playSfx('draw');
     // `prefers-reduced-motion` : on retire le mouvement, pas le geste — la main
     // arrive tout de suite, sans volée.
     const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;

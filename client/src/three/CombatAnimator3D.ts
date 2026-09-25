@@ -337,6 +337,7 @@ export class CombatAnimator3D {
   }
 
   _applyDeath({ unit }: any): void {
+    Audio.playSfx('unit_destroyed');
     this._board.killUnitObj(unit.uid);
   }
 
