@@ -15,11 +15,11 @@ import { resolveSfx, sfxUrl, type SfxVariant } from '../data/SfxDatabase.js';
 import { tracksForTheme, musicUrl } from '../data/MusicDatabase.js';
 
 const SETTINGS_KEY = 'millenium_audio_settings_v1';
-// Durée du fondu enchaîné entre deux musiques — assez long pour qu'un
-// changement de thème de partie (tours 1-2 → 3-4 → 5) se fasse sentir comme
-// une transition et non une coupure, assez court pour ne pas laisser deux
-// thèmes se superposer sur un enchaînement rapide de rounds.
-const CROSSFADE_MS = 2000;
+// Durée de CHAQUE demi-fondu (descente puis montée) d'une transition
+// musicale — assez long pour qu'un changement de thème de partie (tours 1-2
+// → 3-4 → 5) se fasse sentir comme une transition et non une coupure, assez
+// court pour ne pas laisser le silence entre les deux s'étirer.
+const FADE_PHASE_MS = 900;
 const FADE_STEP_MS = 50;
 
 interface AudioSettings {
@@ -151,25 +151,29 @@ function fadeOutCurrent(): void {
   currentEl = null;
   if (!outgoing) return;
   const startVolume = outgoing.volume;
-  runFade((t) => { outgoing.volume = clamp01(startVolume * Math.cos(t * (Math.PI / 2))); }, () => outgoing.pause());
+  runFade((t) => { outgoing.volume = clamp01(startVolume * (1 - t)); }, () => outgoing.pause());
 }
 
 /**
- * ⚠️ Fondu À PUISSANCE ÉGALE (`sin`/`cos`, pas un simple linéaire) : deux
- * volumes qui rampent chacun de leur côté en ligne droite se croisent en
- * creusant un trou audible au milieu du fondu — l'oreille perçoit la SOMME
- * des deux pistes, qui vaut alors `sin²+cos² = 1` à puissance égale, contre
- * `t + (1-t) = 1`... en amplitude, pas en énergie perçue. C'est ce trou que
- * la demande d'une transition « douce » entre les musiques de partie
- * signalait.
- *
- * Un seul minuteur pilote l'ENTRANTE et la SORTANTE ensemble : deux fondus
- * indépendants (l'un sur `from→to`, l'autre sur `to→from`) ne garantissent
- * pas la même progression `t` au même tick.
+ * ⚠️ SÉQUENTIEL, PAS DE CHEVAUCHEMENT : la sortante descend jusqu'au silence
+ * et se COUPE, PUIS l'entrante démarre à 0 et remonte — les deux ne jouent
+ * JAMAIS en même temps. Un vrai fondu ENCHAÎNÉ (les deux pistes superposées,
+ * l'une montant pendant que l'autre descend) a été essayé et écarté : deux
+ * musiques de partie qui se recouvrent, même une fraction de seconde,
+ * s'entendent comme un accroc plutôt que comme une transition.
  */
 function crossfadeTo(id: string): void {
   const outgoing = currentEl;
-  const outgoingStart = outgoing?.volume ?? 0;
+  currentEl = null;
+  if (!outgoing) { startIncoming(id); return; }
+  const startVolume = outgoing.volume;
+  runFade((t) => { outgoing.volume = clamp01(startVolume * (1 - t)); }, () => {
+    outgoing.pause();
+    startIncoming(id);
+  });
+}
+
+function startIncoming(id: string): void {
   const incoming = new Audio(musicUrl(id));
   incoming.loop = true;
   incoming.volume = 0;
@@ -178,21 +182,18 @@ function crossfadeTo(id: string): void {
   // alors l'élément resté en pause, sans qu'on ait à s'en soucier ici.
   incoming.play().catch(() => { /* silencieux, cf. unlock() */ });
   const target = effectiveMusicVolume();
-  runFade((t) => {
-    const angle = t * (Math.PI / 2);
-    incoming.volume = clamp01(Math.sin(angle) * target);
-    if (outgoing) outgoing.volume = clamp01(Math.cos(angle) * outgoingStart);
-  }, () => outgoing?.pause());
+  runFade((t) => { incoming.volume = clamp01(target * t); });
 }
 
 /**
  * La primitive de fondu commune : appelle `step(t)` avec une progression `t`
- * de 0 à 1 à pas fixe. Un `setInterval` suffit pour une oreille — pas de
- * `requestAnimationFrame`, réservé au rendu (cf. `logic/` et
- * `three/Scene3D._animate`) : ce module n'anime rien à l'écran.
+ * de 0 à 1 à pas fixe, sur UNE SEULE phase (`FADE_PHASE_MS`). Un
+ * `setInterval` suffit pour une oreille — pas de `requestAnimationFrame`,
+ * réservé au rendu (cf. `logic/` et `three/Scene3D._animate`) : ce module
+ * n'anime rien à l'écran.
  */
 function runFade(step: (t: number) => void, onDone?: () => void): void {
-  const steps = Math.max(1, Math.round(CROSSFADE_MS / FADE_STEP_MS));
+  const steps = Math.max(1, Math.round(FADE_PHASE_MS / FADE_STEP_MS));
   let i = 0;
   step(0);
   const timer = setInterval(() => {

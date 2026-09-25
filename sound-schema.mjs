@@ -35,6 +35,8 @@ export const SFX_TRIGGERS = [
   { id: 'use_material',        label: 'Utiliser un matériel',                 variant: null },
   { id: 'attack',                label: 'Attaque',                              variant: 'element' },
   { id: 'power',                 label: 'Pouvoir déclenché',                    variant: 'power' },
+  { id: 'hp_loss',              label: 'Perte de vie (joueur)',                variant: null },
+  { id: 'unit_destroyed',      label: 'Unité détruite',                       variant: null },
   { id: 'round_change',        label: 'Changement de tour',                   variant: null },
   { id: 'phase_combat',        label: 'Passage en phase Combat',              variant: null },
   { id: 'phase_shopping',      label: 'Passage en phase Shopping',            variant: null },

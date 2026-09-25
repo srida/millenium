@@ -24,6 +24,7 @@ import {
 import type { Unit } from '../logic/Unit.js';
 import type { BoardDef, Position } from '../logic/types.js';
 import * as Audio from '../audio/AudioManager.js';
+import { primaryElementOf } from '../data/AttributeDatabase.js';
 
 // Axe vertical du monde, réutilisé par spawnBeam (rotateOnWorldAxis).
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
@@ -2215,6 +2216,11 @@ export class Scene3D {
             this.spawnBurst(impact, color, LOW_END_DEVICE ? 10 : 24, {
               size: 0.05, speed: [0.5, 1.1], lift: [0.4, 0.9], gravity: 7, maxLife: 0.3,
             });
+            // La frappe finale n'est PAS un événement `attack` de CombatManager
+            // (c'est un flourish cosmétique, hors simulation) : le son ne partait
+            // donc jamais ici. Il suit le même timing que l'impact visuel —
+            // l'échelonnement (`FINAL_STRIKE_STAGGER_S`) inclus, un par survivant.
+            Audio.playSfx('attack', { element: primaryElementOf(entry.unit.attributes) ?? undefined });
           }
           if (p >= 1) { entry.obj.position.z = homeZ; return false; }
           return true;

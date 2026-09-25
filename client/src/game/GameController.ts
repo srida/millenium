@@ -216,11 +216,12 @@ export class GameController {
   }
 
   /** Le tap sur le dos de carte : la main est déjà là, on lève le voile.
-   *  ⚠️ Le son de pioche part ICI, pas à l'ouverture de la popup : c'est le
-   *  clic sur la pioche qui doit être entendu, pas son apparition. */
+   *  ⚠️ Le son de pioche ne part PAS ici : `DrawPopup.deal()` retarde cet appel
+   *  de `DEAL_MS` (la volée des dos vers la main), et le son doit suivre le
+   *  CLIC, pas l'animation qui le suit — il part donc dans le composant, au
+   *  moment exact du tap. */
   dismissDrawPopup(): void {
     if (!useGameStore.getState().drawPopup) return;
-    Audio.playSfx('draw');
     this.sync({ drawPopup: null });
   }
 
@@ -870,6 +871,9 @@ export class GameController {
     }
     if (result.enemyDamageDealt > 0) {
       this.scene?.playFinalStrike(this.session.enemyUnits.map(u => u.uid), 'player');
+      // ⚠️ Le JOUEUR encaisse : `enemyDamageDealt` est ce que le camp ADVERSE a
+      // infligé, donc ce que LUI perd — cf. le commentaire d'`EndRoundResult`.
+      Audio.playSfx('hp_loss');
     }
     this.sync({
       combatActive: true,
