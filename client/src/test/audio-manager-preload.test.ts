@@ -22,7 +22,10 @@ vi.mock('../data/SfxDatabase.js', () => ({
   ],
 }));
 vi.mock('../data/MusicDatabase.js', () => ({
-  tracksForTheme: () => [],
+  // Une seule piste jouable, sur l'emplacement `menu` — de quoi éprouver
+  // suspend/resume sans reproduire toute la logique de sélection déjà
+  // couverte par `music-database.test.ts`.
+  tracksForTheme: (theme: string) => (theme === 'menu' ? [{ id: 'MUSIC_MENU', theme: 'menu', _has_audio: true }] : []),
   tracksForGameTheme: () => [],
   playableGameThemeIds: () => [],
   musicUrl: (id: string) => `/audio/${id}`,
@@ -47,21 +50,34 @@ class FakeAudioContext {
   resume() { return Promise.resolve(); }
 }
 
+// Un faux `<audio>` qui suit son état de lecture — c'est CE qu'on vérifie
+// pour suspend/resume, pas un espion sur `Audio` lui-même (plusieurs
+// instances coexistent, une par piste/son). Chaque instance créée est
+// gardée dans `createdAudioEls`, pour retrouver « la piste musicale en
+// cours » sans avoir à instrumenter `AudioManager`.
+let createdAudioEls: FakeAudioEl[] = [];
+class FakeAudioEl {
+  src?: string;
+  paused = true;
+  loop = false;
+  volume = 1;
+  constructor(src?: string) { this.src = src; createdAudioEls.push(this); }
+  play() { this.paused = false; return Promise.resolve(); }
+  pause() { this.paused = true; }
+}
+
 let fetchCalls: string[] = [];
 const flush = () => new Promise(r => setTimeout(r, 0));
 
 beforeEach(() => {
   vi.resetModules();
   fetchCalls = [];
+  createdAudioEls = [];
   (globalThis as any).window = {
     AudioContext: FakeAudioContext,
     addEventListener() {}, removeEventListener() {},
   };
-  (globalThis as any).Audio = class {
-    src?: string;
-    constructor(src?: string) { this.src = src; }
-    play() { return Promise.resolve(); }
-  };
+  (globalThis as any).Audio = FakeAudioEl;
   (globalThis as any).fetch = vi.fn((url: string) => {
     fetchCalls.push(url);
     return Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)) });
@@ -103,5 +119,58 @@ describe('AudioManager — préchargement des effets sonores', () => {
     // vérifie donc l'absence de crash et l'absence de fetch direct du
     // module, pas une requête réseau qu'on ne contrôle pas ici.
     expect(fetchCalls).toEqual([]);
+  });
+
+  it('preloadSfxAsync() rapporte sa progression jusqu\'à `total`/`total`, ATTEND la fin', async () => {
+    const Audio = await import('../audio/AudioManager.js');
+    const ticks: Array<[number, number]> = [];
+    await Audio.preloadSfxAsync((done, total) => ticks.push([done, total]));
+    // Un seul son JOUABLE dans ce catalogue (`SFX_NOFILE` est exclu) : un
+    // appel à 0/1, un à 1/1 — jamais un total qui change en cours de route.
+    expect(ticks[0]).toEqual([0, 1]);
+    expect(ticks[ticks.length - 1]).toEqual([1, 1]);
+    expect(ticks.every(([, total]) => total === 1)).toBe(true);
+  });
+});
+
+describe('AudioManager — pause en arrière-plan', () => {
+  it('suspendForBackground met la piste en PAUSE sans toucher au thème verrouillé', async () => {
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.setMusicTheme('menu');
+    await flush();
+    const track = createdAudioEls[createdAudioEls.length - 1];
+    expect(track.paused).toBe(false);
+
+    Audio.suspendForBackground();
+    expect(track.paused).toBe(true);
+    // `setMusicTheme('menu')` de nouveau ne doit RIEN relancer : c'est
+    // toujours le même thème en cours, la coupure n'y a pas touché.
+    Audio.setMusicTheme('menu');
+    expect(Audio.currentMusicTheme()).toBe('menu');
+  });
+
+  it('resumeFromBackground relance la MÊME piste après un suspendForBackground', async () => {
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.setMusicTheme('menu');
+    await flush();
+    const track = createdAudioEls[createdAudioEls.length - 1];
+
+    Audio.suspendForBackground();
+    expect(track.paused).toBe(true);
+    Audio.resumeFromBackground();
+    expect(track.paused).toBe(false);
+  });
+
+  it('resumeFromBackground est un NO-OP si rien n\'a été suspendu par lui', async () => {
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.setMusicTheme('menu');
+    await flush();
+    const track = createdAudioEls[createdAudioEls.length - 1];
+    track.pause(); // coupure MANUELLE (le joueur a coupé le son), pas via suspendForBackground
+
+    Audio.resumeFromBackground();
+    // Ne doit PAS relancer une piste que le joueur a coupée lui-même — seul
+    // un `suspendForBackground()` préalable autorise la reprise.
+    expect(track.paused).toBe(true);
   });
 });

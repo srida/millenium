@@ -26,6 +26,7 @@ import { SpaceBackground } from '../components/ui/SpaceBackground.js';
 import { AppHeader } from '../components/nav/AppHeader.js';
 import { AppFooter } from '../components/nav/AppFooter.js';
 import { ScreenTransition } from '../components/nav/ScreenTransition.js';
+import { Button, Gauge } from '../components/ui/primitives.js';
 import * as Audio from '../audio/AudioManager.js';
 
 /**
@@ -131,23 +132,36 @@ export default function App() {
   const screen = useUiStore(s => s.screen);
   const Screen = SCREENS[screen];
   const restore = useAuthStore(s => s.restore);
-  const [ready, setReady] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [dataReady, setDataReady] = useState(false);
+  // Franchi par un TAP explicite une fois les données (catalogues + sons)
+  // chargées — cf. l'écran de chargement plus bas. C'est ce tap, et lui
+  // seul, qui déclenche la toute première lecture audio : synchrone dans un
+  // geste utilisateur, il satisfait même les navigateurs les plus stricts
+  // (Safari) là où un `play()` lancé après coup, une fois les données prêtes
+  // mais sans geste EN COURS, pouvait rester bloqué sans un mot — la musique
+  // de menu qui « ne se lance pas toujours ».
+  const [entered, setEntered] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Données de jeu = bloquant ; restauration de session = best-effort en parallèle.
     restore();
-    initGameData().then(() => setReady(true)).catch(e => setError(String(e)));
+    initGameData(setProgress).then(() => setDataReady(true)).catch(e => setError(String(e)));
   }, [restore]);
 
-  // La lecture audio est bloquée par les navigateurs tant qu'aucun geste
-  // utilisateur n'a eu lieu (iOS Safari en particulier) : un seul écouteur
-  // global, posé une fois, qui débloque `AudioManager` au premier tap — pas
-  // besoin d'un geste PAR bouton.
+  // Coupe la musique quand l'onglet/l'appli passe en arrière-plan (change
+  // d'onglet, mise en veille, PWA envoyée en fond) — sans ça une PWA
+  // installée peut continuer à jouer du son hors champ (constaté sur
+  // Android, qui autorise la lecture en fond une fois qu'une page en a
+  // joué). Reprend automatiquement au retour, exactement où c'était.
   useEffect(() => {
-    const onFirstPointer = () => Audio.unlock();
-    window.addEventListener('pointerdown', onFirstPointer, { once: true });
-    return () => window.removeEventListener('pointerdown', onFirstPointer);
+    const onVisibility = () => {
+      if (document.hidden) Audio.suspendForBackground();
+      else Audio.resumeFromBackground();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
 
   // Musique des MENUS — un seul emplacement (`menu`, cf. `sound-schema.mjs`) :
@@ -157,18 +171,16 @@ export default function App() {
   // depuis `GameController` (thème de partie verrouillé par match) : cet
   // effet n'y touche pas.
   //
-  // ⚠️ Dépend aussi de `ready` : sur le premier rendu (`screen` vaut déjà
-  // 'main_menu' mais `MusicDatabase.init()` n'a pas fini), l'effet tournait
-  // une fois sur un catalogue VIDE, posait `currentTheme = 'menu'` sans
-  // aucune piste trouvée, puis ne se redéclenchait jamais — `screen` ne
-  // changeant pas tant qu'on reste au menu, la musique restait silencieuse
-  // pour de bon. Sans ce second déclenchement, le catalogue une fois chargé
-  // n'était jamais relu.
+  // ⚠️ Dépend d'`entered`, pas de `dataReady` : le premier `setMusicTheme`
+  // part déjà dans le `onPointerDown` du bouton d'entrée (synchrone, dans le
+  // geste), donc CET effet-ci n'a plus qu'à suivre les changements d'écran
+  // une fois entré — il ne fait que confirmer un thème déjà en cours (NO-OP)
+  // sauf navigation réelle entre deux emplacements.
   useEffect(() => {
-    if (!ready) return;
+    if (!entered) return;
     if (screen === 'game' || screen === 'game_pvp') return;
     Audio.setMusicTheme('menu');
-  }, [screen, ready]);
+  }, [screen, entered]);
 
   if (error) {
     return (
@@ -180,11 +192,27 @@ export default function App() {
     );
   }
 
-  if (!ready) {
+  if (!dataReady || !entered) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-surface text-gold">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-surface px-6 text-gold">
         <img src="/logo.png" alt="Millenium" className="h-24 w-24 object-contain" />
-        <p>Chargement…</p>
+        {dataReady ? (
+          // Le TAP est ce qui unlock l'audio pour de bon (cf. `entered`
+          // ci-dessus) : `onPointerDown`, pas `onClick`, pour rester au plus
+          // près du geste brut, comme partout ailleurs sur les boutons du jeu.
+          <Button
+            variant="primary"
+            className="min-w-40 justify-center text-base"
+            onPointerDown={() => { Audio.unlock(); Audio.setMusicTheme('menu'); setEntered(true); }}
+          >
+            Appuyer pour commencer
+          </Button>
+        ) : (
+          <>
+            <p>Chargement…</p>
+            <Gauge value={progress} className="h-2 w-56" fillClassName="bg-gold" />
+          </>
+        )}
       </div>
     );
   }

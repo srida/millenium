@@ -35,6 +35,18 @@
 // plusieurs minutes coûteraient bien plus cher décodées entières en mémoire
 // qu'en flux, et un changement d'emplacement est rare (par round, pas par
 // attaque) — le coût d'un `fetch` n'y est structurellement pas sensible.
+//
+// ⚠️ `preloadSfxAsync` (avec sa progression) est ATTENDU par l'écran de
+// chargement (`App.tsx`) AVANT que le menu ne s'affiche — c'est aussi ce qui
+// rend la musique de menu fiable : sur Safari, un `play()` déclenché en
+// dehors du geste utilisateur qui l'accompagne peut rester bloqué même après
+// un premier clic ailleurs sur la page. En gardant l'écran de chargement
+// jusqu'à la fin du préchargement, PUIS en exigeant un tap explicite pour
+// entrer, le tout premier `setMusicTheme('menu')` part synchrone DANS ce tap.
+//
+// ⚠️ `suspendForBackground` / `resumeFromBackground` coupent la musique
+// quand l'onglet passe en arrière-plan (`visibilitychange`) : sans ça, une
+// PWA installée peut continuer à jouer du son hors champ.
 import { resolveSfx, sfxUrl, getAllSfx, type SfxVariant } from '../data/SfxDatabase.js';
 import { tracksForTheme, tracksForGameTheme, playableGameThemeIds, musicUrl } from '../data/MusicDatabase.js';
 import { GAME_MUSIC_SLOTS } from '../../../sound-schema.mjs';
@@ -210,19 +222,32 @@ function loadSfxBuffer(id: string): Promise<void> {
 }
 
 /**
- * Précharge et décode TOUT le catalogue de sons jouables — à appeler une
- * fois au chargement des données de jeu, et de nouveau (sans effet si déjà
- * en cache) à l'ouverture d'un match, pour couvrir un son ajouté en admin
- * entre les deux. Fire-and-forget : ne bloque jamais l'appelant, un son non
- * encore décodé retombe simplement sur le chemin `<audio>` d'origine le
- * temps que son fetch aboutisse.
+ * Précharge et décode TOUT le catalogue de sons jouables, en rapportant sa
+ * progression — c'est la version que l'écran de chargement ATTEND
+ * (`bootstrap.initGameData`), pour que la barre reflète le vrai travail
+ * restant plutôt qu'un minuteur inventé. Ne jette jamais : un son qui échoue
+ * (fichier absent, réseau) compte quand même comme « traité », son
+ * déclencheur retombera simplement sur le chemin `<audio>` d'origine.
+ */
+export async function preloadSfxAsync(onProgress?: (done: number, total: number) => void): Promise<void> {
+  const entries = getAllSfx().filter(s => s._has_audio);
+  let done = 0;
+  onProgress?.(0, entries.length);
+  await Promise.all(entries.map(async (entry) => {
+    await loadSfxBuffer(entry.id).catch(() => {});
+    done++;
+    onProgress?.(done, entries.length);
+  }));
+}
+
+/**
+ * Même précharge, en FIRE-AND-FORGET — pour un appel qui ne doit jamais
+ * bloquer (`GameController.begin()`, par sécurité si un son a été ajouté en
+ * admin depuis le chargement). Idempotent avec `preloadSfxAsync` : les deux
+ * partagent le même cache et la même déduplication par id (`sfxLoading`).
  */
 export function preloadSfx(): void {
-  // `loadSfxBuffer` retombe sur `getAudioCtx()`, qui rend `null` sans DOM
-  // (suite de test, `environment: 'node'`) — rien à garder ici en plus.
-  for (const entry of getAllSfx()) {
-    if (entry._has_audio) loadSfxBuffer(entry.id).catch(() => {});
-  }
+  preloadSfxAsync().catch(() => {});
 }
 
 /**
@@ -298,6 +323,38 @@ export function unlock(): void {
   if (unlocked || typeof Audio === 'undefined') return;
   unlocked = true;
   if (current?.el.paused) current.el.play().catch(() => { /* toujours refusé : tant pis, silencieux */ });
+}
+
+/** Vrai entre un `suspendForBackground()` et son `resumeFromBackground()` —
+ *  distingue « en pause parce que l'onglet est en arrière-plan » d'« en
+ *  pause parce que le joueur a coupé le son » : seul le premier cas se
+ *  relance tout seul au retour. */
+let backgroundPaused = false;
+
+/**
+ * Coupe la musique en cours quand l'onglet/l'appli passe en arrière-plan —
+ * à appeler depuis `App.tsx` sur `visibilitychange` (`document.hidden`).
+ * Sans ça la piste continue de jouer hors champ (constaté sur PWA installée,
+ * en particulier Android, qui autorise la lecture audio en fond une fois
+ * qu'une page a joué du son). Ne touche ni `currentTheme` ni la piste
+ * choisie : `resumeFromBackground()` reprend exactement là où c'était.
+ */
+export function suspendForBackground(): void {
+  if (!current || current.el.paused) return;
+  backgroundPaused = true;
+  current.el.pause();
+}
+
+/** Symétrique de `suspendForBackground()` — NO-OP si la coupure ne venait
+ *  pas de là (le joueur a coupé le son lui-même, ou rien ne jouait). */
+export function resumeFromBackground(): void {
+  if (!backgroundPaused) return;
+  backgroundPaused = false;
+  // L'OS suspend souvent le contexte lui-même en fond, pas seulement
+  // l'élément — sans le reprendre, la piste resterait MUETTE bien qu'en
+  // lecture.
+  if (audioCtx?.state === 'suspended') audioCtx.resume().catch(() => {});
+  if (current) current.el.play().catch(() => { /* toujours refusé : tant pis, silencieux */ });
 }
 
 /**
