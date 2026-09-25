@@ -5,6 +5,8 @@
 import { updateUnitEl } from './UnitCardEl.js';
 import { ELEMENT_STYLES, elementsForUnit, LOW_END_DEVICE } from './constants.js';
 import { getPower } from '../data/PowerDatabase.js';
+import { primaryElementOf } from '../data/AttributeDatabase.js';
+import * as Audio from '../audio/AudioManager.js';
 import {
   playPowerVfx, playKeywordVfx, playImmuneVfx, playPoisonPulse, playBurnPulse,
   type PowerVfxContext,
@@ -193,6 +195,7 @@ export class CombatAnimator3D {
 
   _applyAttack({ attacker, target }: any, dyingUids: Set<number>): void {
     const isFatal = dyingUids.has(target.uid);
+    Audio.playSfx('attack', { element: primaryElementOf(attacker.attributes) ?? undefined });
     const atkEntry = this._board.getUnitEntry(attacker.uid);
     if (atkEntry) this._flashClass(atkEntry.el, 'anim-shake');
     const projColor = (ELEMENT_STYLES[elementsForUnit(attacker)[0]] || ELEMENT_STYLES.neutral).color;

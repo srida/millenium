@@ -551,6 +551,12 @@ select.filter:focus { border-color: var(--accent); }
       <!-- Tokens : les unités éphémères de POWER_SUMMON_TOKEN. Même art dans
            ILLUS_DIR sous l'id du token, aucune famille d'assets à créer. -->
       <option value="tokens">🪙 Tokens</option>
+      <!-- Son : deux catalogues distincts (déclencheurs d'effets sonores,
+           pistes musicales par thème), un seul onglet — même dossier d'assets
+           (AUDIO_DIR), même sous-onglet-like que Packs/Cadeaux au même endroit
+           de la navigation. -->
+      <option value="sfx">🔊 Sons</option>
+      <option value="music">🎵 Musiques</option>
       <option value="stats">📊 Stats</option>
       <option value="db">🗄️ Base SQL</option>
       <!-- Le rapport d'équilibrage est un onglet ordinaire : son panneau porte une
@@ -758,6 +764,48 @@ select.filter:focus { border-color: var(--accent); }
     </div>
   </div>
 
+  <!-- SFX TAB -->
+  <div id="tab-sfx" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="sfx-search" class="qbar" data-query="sfx" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('sfx')" onkeydown="onQueryKey(event, 'sfx')">
+          <span id="sfx-count" class="count">0</span>
+        </div>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-sfx"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewSfx()" title="Nouvel effet sonore">+</button>
+          <button class="btn-icon" onclick="openImportModal('sfx')" title="Importer JSON">⬆</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="sfx-list"></div>
+    </div>
+    <div class="content" id="sfx-detail">
+      <div class="empty"><span>Sélectionne un effet sonore</span></div>
+    </div>
+  </div>
+
+  <!-- MUSIC TAB -->
+  <div id="tab-music" class="main hidden">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="search" id="music-search" class="qbar" data-query="music" autocomplete="off" spellcheck="false" placeholder="Rechercher…" oninput="onQueryInput('music')" onkeydown="onQueryKey(event, 'music')">
+          <span id="music-count" class="count">0</span>
+        </div>
+        <div class="list-actions">
+          <div class="qsort-row" id="qsort-music"></div>
+          <button class="btn-icon btn-icon-primary" onclick="openNewMusic()" title="Nouvelle musique">+</button>
+          <button class="btn-icon" onclick="openImportModal('music')" title="Importer JSON">⬆</button>
+        </div>
+      </div>
+      <div class="sidebar-list" id="music-list"></div>
+    </div>
+    <div class="content" id="music-detail">
+      <div class="empty"><span>Sélectionne une musique</span></div>
+    </div>
+  </div>
+
   <!-- MISSIONS TAB -->
   <div id="tab-missions" class="main hidden">
     <div class="sidebar">
@@ -907,10 +955,10 @@ select.filter:focus { border-color: var(--accent); }
 // ================== STATE ==================
 // `packs` = les packs de boutique (data/sets.json, API /api/sets). Le code et la
 // donnée disent « set », l'interface dit « pack » : ici on est dans l'interface.
-let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [], cardBacks = [], tokens = [];
-let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null, selectedCardBack = null, selectedToken = null;
+let cards = [], attributes = [], powers = [], boards = [], magies = [], publicDecks = [], packs = [], missions = [], variants = [], gifts = [], cardBacks = [], tokens = [], sfx = [], music = [];
+let selectedCard = null, selectedAttr = null, selectedPower = null, selectedBoard = null, selectedMagie = null, selectedPublicDeck = null, selectedPack = null, selectedMission = null, selectedVariant = null, selectedGift = null, selectedCardBack = null, selectedToken = null, selectedSfx = null, selectedMusic = null;
 let currentTab = 'cards';
-let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false, isNewGift = false, isNewCardBack = false, isNewToken = false;
+let isNewCard = false, isNewAttr = false, isNewPower = false, isNewBoard = false, isNewMagie = false, isNewPublicDeck = false, isNewPack = false, isNewMission = false, isNewVariant = false, isNewGift = false, isNewCardBack = false, isNewToken = false, isNewSfx = false, isNewMusic = false;
 let selectionMode = false;
 const bulkSelected = new Set();
 
@@ -939,6 +987,12 @@ let SPEED = null;
 // moteur, le `<select>` de son onglet, le libellé français — et deux sur trois
 // donnent une fonctionnalité que personne ne peut ni écrire ni lire.
 let EFX = null;
+
+// LE VOCABULAIRE DU SON (`sound-schema.mjs`, racine), même route et même
+// raison : un déclencheur d'effet sonore ou un thème de musique n'existe pour
+// de bon qu'aux DEUX endroits à la fois — ce formulaire et le moteur audio
+// client — et un ajouté d'un seul côté resterait invisible ou injouable.
+let SOUND = null;
 
 /** Le schéma de l'onglet courant, ou celui qu'on nomme. */
 const QUERY_SCHEMAS = {};
@@ -1048,6 +1102,28 @@ function buildQuerySchemas() {
       num('hp', 'PV', t => Number(t.stats?.hp) || 0),
       txt('pouvoir', 'Pouvoir', t => t.power?.id || '', ['power']),
       bool('illustration', 'A une illustration', t => !!t._has_illustration, ['illus']),
+    ],
+  };
+
+  QUERY_SCHEMAS.sfx = {
+    text: ['nom', 'id'],
+    fields: [
+      txt('id', 'Identifiant', s => s.id),
+      txt('nom', 'Nom', s => s.name, ['name']),
+      txt('declencheur', 'Déclencheur', s => s.trigger, ['trigger']),
+      num('tier', 'Tier', s => Number(s.tier) || 0),
+      txt('element', 'Élément', s => s.element, []),
+      bool('audio', 'A un fichier', s => !!s._has_audio, ['son']),
+    ],
+  };
+
+  QUERY_SCHEMAS.music = {
+    text: ['nom', 'id'],
+    fields: [
+      txt('id', 'Identifiant', m => m.id),
+      txt('nom', 'Nom', m => m.name, ['name']),
+      txt('theme', 'Thème', m => m.theme, []),
+      bool('audio', 'A un fichier', m => !!m._has_audio, ['son']),
     ],
   };
 
@@ -1359,12 +1435,14 @@ async function init() {
     import('/admin/card-query.js'),
     import('/admin/speed-scale.js'),
     import('/admin/effect-schema.js'),
+    import('/admin/sound-schema.js'),
   ]);
   CQ = modules[0];
   SPEED = modules[1];
   EFX = modules[2];
+  SOUND = modules[3];
 
-  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, cardBacks, tokens] = await Promise.all([
+  [cards, attributes, powers, boards, magies, publicDecks, packs, missions, variants, gifts, cardBacks, tokens, sfx, music] = await Promise.all([
     apiFetch('/api/cards'),
     apiFetch('/api/attributes'),
     apiFetch('/api/powers'),
@@ -1377,6 +1455,8 @@ async function init() {
     apiFetch('/api/gifts'),
     apiFetch('/api/card-backs'),
     apiFetch('/api/tokens'),
+    apiFetch('/api/sfx'),
+    apiFetch('/api/music'),
   ]);
   buildQuerySchemas();
   attachQueryBars();
@@ -1384,6 +1464,7 @@ async function init() {
     card: filterCards, attr: filterAttributes, power: filterPowers, board: filterBoards,
     magie: filterMagies, variant: filterVariants, cardback: filterCardBacks, token: filterTokens,
     mission: filterMissions, gift: filterGifts, deck: filterPublicDecks, pack: filterPacks,
+    sfx: filterSfx, music: filterMusic,
   });
   populateTierFilter();
   renderCardList();
@@ -1398,6 +1479,8 @@ async function init() {
   renderGiftList();
   renderCardBackList();
   renderTokenList();
+  renderSfxList();
+  renderMusicList();
 }
 
 /** Les chips de tier se DÉRIVENT du catalogue d'attributs : un tier ajouté dans
@@ -2806,6 +2889,8 @@ const ID_PICKERS = {
   variant:  { field: 'vf-id',  fallback: 'VAR',         items: () => variants,    sel: () => selectedVariant },
   cardback: { field: 'cbf-id', fallback: 'CARDBACK',    items: () => cardBacks,   sel: () => selectedCardBack },
   token:    { field: 'tkf-id', fallback: 'TOKEN',       items: () => tokens,      sel: () => selectedToken },
+  sfx:      { field: 'sfx-id', fallback: 'SFX',         items: () => sfx,         sel: () => selectedSfx },
+  music:    { field: 'music-id', fallback: 'MUSIC',     items: () => music,       sel: () => selectedMusic },
 };
 
 /** `CORE_001` → `['CORE', '001']`. Le seul découpage d'un id du projet. */
@@ -5988,6 +6073,468 @@ async function deleteTokenIllustration() {
   toast('Illustration supprimée');
 }
 
+// ================== SON (effets sonores + musiques) ==================
+// Deux catalogues, un seul PATRON d'upload (`mountSoundUpload`, jumeau
+// client du triptyque serveur `mountAudioUpload`) : l'audio n'a pas
+// d'import par URL (pas de « banque » équivalente à Google Images), juste
+// un fichier depuis l'appareil, prévisualisé par un `<audio controls>`.
+//
+// ⚠️ Le vocabulaire (déclencheurs SFX, thèmes de musique) vient de
+// `sound-schema.mjs`, chargé comme `effect-schema.mjs` : un déclencheur qui
+// n'existerait que dans ce formulaire serait injouable, et un déclencheur
+// ajouté côté moteur sans passer par ici resterait invisible à l'admin.
+let soundBust = Date.now();
+
+function soundAudioUrl(id) { return `/audio/${encodeURIComponent(id)}?t=${soundBust}`; }
+
+function downloadAudioBtn(id, ext, label = '⬇ Télécharger') {
+  const safe = esc(String(id));
+  const filename = `${safe}.${esc(ext || 'mp3')}`;
+  return `<button class="btn btn-secondary btn-sm" title="Enregistrer ${filename} sur l'appareil"
+    onclick="event.stopPropagation();downloadAsset('/audio/${encodeURIComponent(id)}','${filename}')">${label}</button>`;
+}
+
+/** L'extension du fichier choisi, ou `null` si elle n'est pas dans la liste
+ *  fermée du serveur — jamais recopiée telle quelle dans un nom de fichier. */
+function audioFileExt(file) {
+  const m = /\.([a-z0-9]+)$/i.exec(file?.name || '');
+  const ext = m ? m[1].toLowerCase() : '';
+  return (SOUND?.AUDIO_EXTENSIONS || []).includes(ext) ? ext : null;
+}
+
+// ---- Effets sonores ----
+
+function filterSfx() { renderSfxList(runQuery('sfx', sfx)); }
+
+function renderSfxList(list = sfx) {
+  document.getElementById('sfx-count').textContent = list.length;
+  const el = document.getElementById('sfx-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty" style="padding:24px"><span>Aucun effet sonore</span></div>';
+    return;
+  }
+  el.innerHTML = list.map(s => {
+    const isActive = selectedSfx?.id === s.id;
+    const trigger = SOUND?.sfxTrigger(s.trigger);
+    const variant = s.tier ? `T${s.tier}` : s.element ? esc(getAttrName(s.element)) : '';
+    return `
+      <div class="list-item ${isActive ? 'selected' : ''}" onclick="selectSfx('${s.id}')">
+        <div class="list-thumb-placeholder"><span style="font-size:14px;opacity:.4">${s._has_audio ? '🔊' : '🔈'}</span></div>
+        <div style="flex:1;min-width:0">
+          <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s._has_audio ? '' : '⚠️ '}${esc(s.name || s.id)}</span>
+          <div style="display:flex;gap:4px;margin-top:3px;align-items:center">
+            <span class="item-id">${esc(s.id)}</span>
+            <span class="item-id">${esc(trigger?.label || s.trigger || '—')}</span>
+            ${variant ? `<span class="item-id">${variant}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectSfx(id) {
+  selectedSfx = sfx.find(s => s.id === id) ?? null;
+  isNewSfx = false;
+  renderSfxList();
+  renderSfxDetail();
+  showDetail();
+}
+
+function elementAttrOptions() {
+  return attributes.filter(a => a.categorie === 'Element');
+}
+
+function renderSfxDetail() {
+  const s = selectedSfx;
+  const el = document.getElementById('sfx-detail');
+  if (!s) {
+    el.innerHTML = '<div class="empty"><span>Sélectionne un effet sonore</span></div>';
+    return;
+  }
+  const hasAudio = s._has_audio;
+  const trigger = SOUND?.sfxTrigger(s.trigger);
+  const triggerOpts = (SOUND?.SFX_TRIGGERS || [])
+    .map(t => `<option value="${esc(t.id)}" ${s.trigger === t.id ? 'selected' : ''}>${esc(t.label)}</option>`).join('');
+  const tierOpts = [''].concat(SOUND?.VARIANT_TIERS || [1, 2, 3, 4, 5])
+    .map(t => `<option value="${t}" ${String(s.tier || '') === String(t) ? 'selected' : ''}>${t ? `Tier ${t}` : 'Repli (tous tiers non couverts)'}</option>`).join('');
+  const elementOpts = ['<option value="">Repli (tous éléments non couverts)</option>']
+    .concat(elementAttrOptions().map(a => `<option value="${esc(a.id)}" ${s.element === a.id ? 'selected' : ''}>${esc(a.name)}</option>`)).join('');
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header">
+      <div class="detail-info">
+        <div class="detail-title">${hasAudio ? '🔊' : '🔈'} ${esc(s.name || s.id)}</div>
+        <div class="detail-meta"><span style="font-family:monospace">${esc(s.id)}</span></div>
+      </div>
+    </div>
+
+    ${hasAudio ? `
+      <div class="field">
+        <label>Aperçu</label>
+        <audio controls preload="none" src="${soundAudioUrl(s.id)}" style="width:100%"></audio>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          ${downloadAudioBtn(s.id, s._audio_ext)}
+          <button class="btn btn-danger btn-sm" onclick="deleteSfxAudio()">Supprimer le fichier</button>
+        </div>
+      </div>` : `
+      <div style="background:rgba(240,180,60,.1);border:1px solid rgba(240,180,60,.35);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0b43c">
+        ⚠️ Sans fichier, ce déclencheur reste silencieux en jeu — le client n'y échoue pas, il ne joue rien.
+      </div>`}
+
+    <div class="field">
+      <label>Fichier audio (mp3 / ogg / wav / m4a)</label>
+      <input type="file" accept="audio/*" id="sfx-audio-file" onchange="importSfxAudioFromFile()">
+    </div>
+
+    <div class="field">
+      <label>ID</label>
+      ${isNewSfx ? idPickerHtml('sfx', s.id) : idFieldHtmlFor('sfx', s.id, { readonly: true })}
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Le fichier est nommé par cet id — il ne se renomme donc pas après coup.</span>
+    </div>
+
+    <div class="field">
+      <label>Nom</label>
+      <input id="sfx-name" value="${esc(s.name || '')}" placeholder="Pioche — dos de carte">
+    </div>
+
+    <div class="field">
+      <label>Déclencheur</label>
+      <select id="sfx-trigger" onchange="_syncSfxVariantField()">${triggerOpts}</select>
+    </div>
+
+    <div class="field" id="sfx-variant-field" ${trigger?.variant ? '' : 'style="display:none"'}>
+      ${trigger?.variant === 'tier'
+        ? `<label>Tier (facultatif — sinon ce son sert de repli pour les tiers non couverts)</label>
+           <select id="sfx-tier">${tierOpts}</select>`
+        : `<label>Élément (facultatif — sinon ce son sert de repli pour les éléments non couverts)</label>
+           <select id="sfx-element">${elementOpts}</select>`}
+    </div>
+
+    <div class="detail-actions">
+      ${isNewSfx
+        ? `<button class="btn btn-primary" onclick="createSfx()">Créer</button>
+           <button class="btn btn-secondary" onclick="cancelNewSfx()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveSfx()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deleteSfx()">Supprimer</button>`}
+    </div>
+  `;
+}
+
+// Le champ de variante change de FORME (tier ↔ élément ↔ rien) selon le
+// déclencheur choisi, ce qui oblige à RE-RENDRE tout le panneau (comme
+// `_effetTypeChange`) — donc à d'abord recopier la saisie en cours dans
+// `selectedSfx`, sans quoi le nom déjà tapé serait perdu au changement de
+// déclencheur.
+function _syncSfxVariantField() {
+  const name = document.getElementById('sfx-name')?.value;
+  const triggerId = document.getElementById('sfx-trigger')?.value;
+  selectedSfx = { ...selectedSfx, name, trigger: triggerId, tier: undefined, element: undefined };
+  renderSfxDetail();
+}
+
+// ⚠️ Repart de `...selectedSfx` (premier niveau) comme `_collectCardBackFields` :
+// reconstruire de zéro effacerait un champ que ce formulaire ne connaît pas.
+function _collectSfxFields() {
+  const trigger = document.getElementById('sfx-trigger')?.value || '';
+  const meta = SOUND?.sfxTrigger(trigger);
+  const out = {
+    ...selectedSfx,
+    id: selectedSfx.id,
+    name: document.getElementById('sfx-name')?.value.trim() || selectedSfx.id,
+    trigger,
+  };
+  delete out.tier;
+  delete out.element;
+  if (meta?.variant === 'tier') {
+    const v = document.getElementById('sfx-tier')?.value;
+    if (v) out.tier = parseInt(v, 10);
+  } else if (meta?.variant === 'element') {
+    const v = document.getElementById('sfx-element')?.value;
+    if (v) out.element = v;
+  }
+  delete out._has_audio;
+  delete out._audio_ext;
+  return out;
+}
+
+async function saveSfx() {
+  const item = _collectSfxFields();
+  const res = await apiFetch(`/api/sfx/${selectedSfx.id}`, { method: 'PUT', body: item });
+  if (res.error) return toast(res.error, 'err');
+  const idx = sfx.findIndex(s => s.id === selectedSfx.id);
+  if (idx !== -1) { sfx[idx] = { ...item, _has_audio: selectedSfx._has_audio }; selectedSfx = sfx[idx]; }
+  filterSfx();
+  renderSfxDetail();
+  toast('Effet sonore enregistré');
+}
+
+async function deleteSfx() {
+  if (!confirm(`Supprimer l'effet sonore ${selectedSfx.id} ?`)) return;
+  const res = await apiFetch(`/api/sfx/${selectedSfx.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  sfx = sfx.filter(s => s.id !== selectedSfx.id);
+  selectedSfx = null;
+  filterSfx();
+  document.getElementById('sfx-detail').innerHTML = '<div class="empty"><span>Sélectionne un effet sonore</span></div>';
+  showList();
+  toast('Effet sonore supprimé');
+}
+
+function openNewSfx() {
+  selectedSfx = { id: nextIdFor('sfx'), name: '', trigger: (SOUND?.SFX_TRIGGERS || [])[0]?.id || '', _has_audio: false };
+  isNewSfx = true;
+  renderSfxList();
+  renderSfxDetail();
+  showDetail();
+}
+
+async function createSfx() {
+  const item = _collectSfxFields();
+  const res = await apiFetch('/api/sfx', { method: 'POST', body: item });
+  if (res.error) return toast(res.error, 'err');
+  sfx.push({ ...item, _has_audio: false });
+  selectedSfx = sfx[sfx.length - 1];
+  isNewSfx = false;
+  filterSfx();
+  renderSfxDetail();
+  toast('Effet sonore créé — ajoute son fichier pour qu\'il joue');
+}
+
+function cancelNewSfx() {
+  selectedSfx = null;
+  isNewSfx = false;
+  filterSfx();
+  document.getElementById('sfx-detail').innerHTML = '<div class="empty"><span>Sélectionne un effet sonore</span></div>';
+  showList();
+}
+
+function _setSfxAudioFlag(has, ext) {
+  selectedSfx._has_audio = has;
+  selectedSfx._audio_ext = ext;
+  const idx = sfx.findIndex(s => s.id === selectedSfx.id);
+  if (idx !== -1) { sfx[idx]._has_audio = has; sfx[idx]._audio_ext = ext; }
+  soundBust = Date.now();
+  filterSfx();
+  renderSfxDetail();
+}
+
+async function importSfxAudioFromFile() {
+  const file = document.getElementById('sfx-audio-file')?.files?.[0];
+  if (!file) return;
+  const ext = audioFileExt(file);
+  if (!ext) return toast(`Format non pris en charge (attendu : ${(SOUND?.AUDIO_EXTENSIONS || []).join(', ')})`, 'err');
+  toast('Envoi en cours...', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/sfx/${selectedSfx.id}/audio`, { method: 'PUT', body: { data, ext } });
+  if (res.error) return toast(res.error, 'err');
+  _setSfxAudioFlag(true, ext);
+  toast('Effet sonore importé');
+}
+
+async function deleteSfxAudio() {
+  if (!confirm('Supprimer le fichier audio ?')) return;
+  const res = await apiFetch(`/api/sfx/${selectedSfx.id}/audio`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  _setSfxAudioFlag(false, null);
+  toast('Fichier supprimé');
+}
+
+// ---- Musiques ----
+
+function filterMusic() { renderMusicList(runQuery('music', music)); }
+
+function renderMusicList(list = music) {
+  document.getElementById('music-count').textContent = list.length;
+  const el = document.getElementById('music-list');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty" style="padding:24px"><span>Aucune musique</span></div>';
+    return;
+  }
+  el.innerHTML = list.map(m => {
+    const isActive = selectedMusic?.id === m.id;
+    const theme = SOUND?.musicTheme(m.theme);
+    return `
+      <div class="list-item ${isActive ? 'selected' : ''}" onclick="selectMusic('${m.id}')">
+        <div class="list-thumb-placeholder"><span style="font-size:14px;opacity:.4">${m._has_audio ? '🎵' : '🎶'}</span></div>
+        <div style="flex:1;min-width:0">
+          <span class="item-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m._has_audio ? '' : '⚠️ '}${esc(m.name || m.id)}</span>
+          <div style="display:flex;gap:4px;margin-top:3px;align-items:center">
+            <span class="item-id">${esc(m.id)}</span>
+            <span class="item-id">${esc(theme?.label || m.theme || '—')}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function selectMusic(id) {
+  selectedMusic = music.find(m => m.id === id) ?? null;
+  isNewMusic = false;
+  renderMusicList();
+  renderMusicDetail();
+  showDetail();
+}
+
+function renderMusicDetail() {
+  const m = selectedMusic;
+  const el = document.getElementById('music-detail');
+  if (!m) {
+    el.innerHTML = '<div class="empty"><span>Sélectionne une musique</span></div>';
+    return;
+  }
+  const hasAudio = m._has_audio;
+  const themeOpts = (SOUND?.MUSIC_THEMES || [])
+    .map(t => `<option value="${esc(t.id)}" ${m.theme === t.id ? 'selected' : ''}>${esc(t.label)}</option>`).join('');
+  el.innerHTML = `
+    <button class="back-btn" onclick="showList()">Retour à la liste</button>
+    <div class="detail-header">
+      <div class="detail-info">
+        <div class="detail-title">${hasAudio ? '🎵' : '🎶'} ${esc(m.name || m.id)}</div>
+        <div class="detail-meta"><span style="font-family:monospace">${esc(m.id)}</span></div>
+      </div>
+    </div>
+
+    ${hasAudio ? `
+      <div class="field">
+        <label>Aperçu</label>
+        <audio controls preload="none" src="${soundAudioUrl(m.id)}" style="width:100%"></audio>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          ${downloadAudioBtn(m.id, m._audio_ext)}
+          <button class="btn btn-danger btn-sm" onclick="deleteMusicAudio()">Supprimer le fichier</button>
+        </div>
+      </div>` : `
+      <div style="background:rgba(240,180,60,.1);border:1px solid rgba(240,180,60,.35);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#f0b43c">
+        ⚠️ Sans fichier, cette piste n'est jamais choisie — un thème sans aucune piste jouable reste silencieux.
+      </div>`}
+
+    <div class="field">
+      <label>Fichier audio (mp3 / ogg / wav / m4a)</label>
+      <input type="file" accept="audio/*" id="music-audio-file" onchange="importMusicAudioFromFile()">
+    </div>
+
+    <div class="field">
+      <label>ID</label>
+      ${isNewMusic ? idPickerHtml('music', m.id) : idFieldHtmlFor('music', m.id, { readonly: true })}
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Le fichier est nommé par cet id — il ne se renomme donc pas après coup.</span>
+    </div>
+
+    <div class="field">
+      <label>Nom</label>
+      <input id="music-name" value="${esc(m.name || '')}" placeholder="Menu principal — thème A">
+    </div>
+
+    <div class="field">
+      <label>Thème</label>
+      <select id="music-theme">${themeOpts}</select>
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">
+        Plusieurs pistes peuvent partager un thème : le client en tire une au hasard, comme une playlist.
+      </span>
+    </div>
+
+    <div class="detail-actions">
+      ${isNewMusic
+        ? `<button class="btn btn-primary" onclick="createMusic()">Créer</button>
+           <button class="btn btn-secondary" onclick="cancelNewMusic()">Annuler</button>`
+        : `<button class="btn btn-primary" onclick="saveMusic()">Enregistrer</button>
+           <button class="btn btn-danger" onclick="deleteMusic()">Supprimer</button>`}
+    </div>
+  `;
+}
+
+function _collectMusicFields() {
+  const out = {
+    ...selectedMusic,
+    id: selectedMusic.id,
+    name: document.getElementById('music-name')?.value.trim() || selectedMusic.id,
+    theme: document.getElementById('music-theme')?.value || (SOUND?.MUSIC_THEMES || [])[0]?.id,
+  };
+  delete out._has_audio;
+  delete out._audio_ext;
+  return out;
+}
+
+async function saveMusic() {
+  const item = _collectMusicFields();
+  const res = await apiFetch(`/api/music/${selectedMusic.id}`, { method: 'PUT', body: item });
+  if (res.error) return toast(res.error, 'err');
+  const idx = music.findIndex(m => m.id === selectedMusic.id);
+  if (idx !== -1) { music[idx] = { ...item, _has_audio: selectedMusic._has_audio }; selectedMusic = music[idx]; }
+  filterMusic();
+  renderMusicDetail();
+  toast('Musique enregistrée');
+}
+
+async function deleteMusic() {
+  if (!confirm(`Supprimer la musique ${selectedMusic.id} ?`)) return;
+  const res = await apiFetch(`/api/music/${selectedMusic.id}`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  music = music.filter(m => m.id !== selectedMusic.id);
+  selectedMusic = null;
+  filterMusic();
+  document.getElementById('music-detail').innerHTML = '<div class="empty"><span>Sélectionne une musique</span></div>';
+  showList();
+  toast('Musique supprimée');
+}
+
+function openNewMusic() {
+  selectedMusic = { id: nextIdFor('music'), name: '', theme: (SOUND?.MUSIC_THEMES || [])[0]?.id || '', _has_audio: false };
+  isNewMusic = true;
+  renderMusicList();
+  renderMusicDetail();
+  showDetail();
+}
+
+async function createMusic() {
+  const item = _collectMusicFields();
+  const res = await apiFetch('/api/music', { method: 'POST', body: item });
+  if (res.error) return toast(res.error, 'err');
+  music.push({ ...item, _has_audio: false });
+  selectedMusic = music[music.length - 1];
+  isNewMusic = false;
+  filterMusic();
+  renderMusicDetail();
+  toast('Musique créée — ajoute son fichier pour qu\'elle joue');
+}
+
+function cancelNewMusic() {
+  selectedMusic = null;
+  isNewMusic = false;
+  filterMusic();
+  document.getElementById('music-detail').innerHTML = '<div class="empty"><span>Sélectionne une musique</span></div>';
+  showList();
+}
+
+function _setMusicAudioFlag(has, ext) {
+  selectedMusic._has_audio = has;
+  selectedMusic._audio_ext = ext;
+  const idx = music.findIndex(m => m.id === selectedMusic.id);
+  if (idx !== -1) { music[idx]._has_audio = has; music[idx]._audio_ext = ext; }
+  soundBust = Date.now();
+  filterMusic();
+  renderMusicDetail();
+}
+
+async function importMusicAudioFromFile() {
+  const file = document.getElementById('music-audio-file')?.files?.[0];
+  if (!file) return;
+  const ext = audioFileExt(file);
+  if (!ext) return toast(`Format non pris en charge (attendu : ${(SOUND?.AUDIO_EXTENSIONS || []).join(', ')})`, 'err');
+  toast('Envoi en cours...', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/music/${selectedMusic.id}/audio`, { method: 'PUT', body: { data, ext } });
+  if (res.error) return toast(res.error, 'err');
+  _setMusicAudioFlag(true, ext);
+  toast('Musique importée');
+}
+
+async function deleteMusicAudio() {
+  if (!confirm('Supprimer le fichier audio ?')) return;
+  const res = await apiFetch(`/api/music/${selectedMusic.id}/audio`, { method: 'DELETE' });
+  if (res.error) return toast(res.error, 'err');
+  _setMusicAudioFlag(false, null);
+  toast('Fichier supprimé');
+}
+
 // ================== MISSIONS ==================
 const EVENT_LABELS = {
   match_completed: 'Partie terminée',
@@ -7526,6 +8073,8 @@ function fabAction() {
   else if (currentTab === 'gifts')      openNewGift();
   else if (currentTab === 'cardbacks')  openNewCardBack();
   else if (currentTab === 'tokens')     openNewToken();
+  else if (currentTab === 'sfx')        openNewSfx();
+  else if (currentTab === 'music')      openNewMusic();
 }
 
 // ================== UTILS ==================
@@ -8287,7 +8836,7 @@ async function confirmMassDelete() {
 let importType = null;
 let importItems = null;
 
-const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions', variants: 'variantes', gifts: 'cadeaux', 'card-backs': 'dos de cartes', tokens: 'tokens' };
+const IMPORT_LABELS = { cards: 'cartes', attributes: 'attributs', powers: 'pouvoirs', boards: 'terrains', magies: 'magies', sets: 'packs', missions: 'missions', variants: 'variantes', gifts: 'cadeaux', 'card-backs': 'dos de cartes', tokens: 'tokens', sfx: 'effets sonores', music: 'musiques' };
 
 function openImportModal(type) {
   importType = type;
@@ -8395,6 +8944,14 @@ async function confirmImport() {
     tokens = await apiFetch('/api/tokens');
     selectedToken = null;
     filterTokens();
+  } else if (importType === 'sfx') {
+    sfx = await apiFetch('/api/sfx');
+    selectedSfx = null;
+    filterSfx();
+  } else if (importType === 'music') {
+    music = await apiFetch('/api/music');
+    selectedMusic = null;
+    filterMusic();
   }
 
   const parts = [];

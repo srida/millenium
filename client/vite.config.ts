@@ -59,7 +59,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,woff2}'],
         navigateFallback: '/index.html',
         // /api et /ws ne doivent pas être interceptés par la navigation SPA.
-        navigateFallbackDenylist: [/^\/api/, /^\/admin/, /^\/illustrations/, /^\/avatars/, /^\/pack-posters/, /^\/board-backgrounds/, /^\/ws/],
+        navigateFallbackDenylist: [/^\/api/, /^\/admin/, /^\/illustrations/, /^\/avatars/, /^\/pack-posters/, /^\/board-backgrounds/, /^\/audio/, /^\/ws/],
         runtimeCaching: [
           {
             // Art des cartes : stale-while-revalidate (affichage instantané, MAJ en fond).
@@ -119,6 +119,7 @@ export default defineConfig({
       '/avatars': 'http://localhost:3742',
       '/pack-posters': 'http://localhost:3742',
       '/board-backgrounds': 'http://localhost:3742',
+      '/audio': 'http://localhost:3742',
       '/admin': 'http://localhost:3742',
       '/ws': { target: 'ws://localhost:3742', ws: true },
     },

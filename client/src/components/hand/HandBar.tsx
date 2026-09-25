@@ -30,6 +30,7 @@ import { handVisible, handTargetable, handCardVisual, handTapIntent } from './ha
 import { fanLayout, railLayout, type CardTransform, type LayoutResult } from './cardFan.js';
 import Card3D, { cardVisualProps } from '../ui/Card3D.js';
 import { RAIL_COLUMNS, RAIL_GAP_X, railCardWidth } from './railGeometry.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 /** Largeur nominale d'une carte de main en portrait, en px — la hauteur s'en
  *  déduit par le `aspect-ratio: 5/7`, et l'éventail réduit l'échelle quand la
@@ -141,7 +142,7 @@ function HandCard3D({ entry, targeting, targetable, transform, width, rail }: {
       onTap={() => {
         switch (intent.kind) {
           case 'magie_target': controller.resolveMagieHandTarget(entry.idx); break;
-          case 'select':       controller.selectCard(entry.card, entry.idx); break;
+          case 'select':       Audio.playSfx('card_tap'); controller.selectCard(entry.card, entry.idx); break;
           case 'deselect':     controller.selectCard(null, null); break;
           case 'none':         break;
         }
@@ -158,6 +159,7 @@ function HandCard3D({ entry, targeting, targetable, transform, width, rail }: {
       // Absent en CIBLAGE de magie : la carte y est une cible à désigner, pas
       // une unité à poser — le geste redevient alors un tap annulé.
       onDragBegin={targeting ? undefined : () => {
+        Audio.playSfx('drag');
         // Ne pas re-sélectionner une carte déjà retenue : `selectCard` vide les
         // matériaux, et le joueur qui reprend sa carte perdrait ses choix.
         if (!entry.selected) controller.selectCard(entry.card, entry.idx);

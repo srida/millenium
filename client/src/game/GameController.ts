@@ -16,6 +16,7 @@ import { useGameStore, type GameSnapshot, type HandEntry } from '../stores/gameS
 import { useUiStore, type TooltipAnchor } from '../stores/uiStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
 import * as CardArt from '../data/CardArt.js';
+import * as Audio from '../audio/AudioManager.js';
 import {
   PREP_DURATION_S, COMBAT_DURATION_S, combatSecondsLeft, TERRAIN_ALERT_MS, ROUND_INTRO_MS,
   COMBAT_INTRO_MS, COMBAT_OUTRO_MS, SHOPPING_INTRO_MS,
@@ -156,6 +157,10 @@ export class GameController {
     if (this._introTimer) { clearTimeout(this._introTimer); this._introTimer = null; }
     if (!draw) return;                       // partie finie : rien à ouvrir
     this._pendingDraw = draw;
+    // Thème musical du round : tours 1-2 / 3-4 / 5, cf. `sound-schema.mjs`.
+    // NO-OP si c'est déjà le thème en cours (`AudioManager.setMusicTheme`),
+    // donc appelable à chaque tour sans relancer la piste entre 1 et 2.
+    Audio.setMusicTheme(draw.round >= 5 ? 'game_late' : draw.round >= 3 ? 'game_mid' : 'game_early');
     this.sync({ roundIntro: { round: draw.round }, drawPopup: null });
     this._introTimer = setTimeout(() => this._openDrawPopup(), ROUND_INTRO_MS);
   }
@@ -172,6 +177,7 @@ export class GameController {
     const draw = this._pendingDraw;
     if (!draw) return;
     this._pendingDraw = null;
+    Audio.playSfx('draw');
     this.sync({ roundIntro: null, drawPopup: draw });
   }
 
@@ -200,6 +206,7 @@ export class GameController {
     onDone?: () => Partial<GameSnapshot>,
   ): void {
     if (this._wipeTimer) { clearTimeout(this._wipeTimer); this._wipeTimer = null; }
+    Audio.playSfx(kind === 'combat' ? 'phase_combat' : 'phase_shopping');
     this.sync({ phaseWipe: { kind } });
     this._wipeTimer = setTimeout(() => {
       this._wipeTimer = null;
@@ -372,6 +379,7 @@ export class GameController {
           // celle du résultat, il n'y a donc rien à désigner ensuite. C'était le
           // geste écrit en dur pour la Transformation ; il vaut maintenant pour
           // toute condition qui se solde d'une seule unité.
+          Audio.playSfx('use_material');
           const mats = [...this.selectedMaterials, unit];
           // ⚠️ Trois réponses possibles à « où », et leur ORDRE est la règle :
           // la recette d'abord (`forcedCell` — une condition à un matériel
@@ -471,6 +479,7 @@ export class GameController {
       this.scene?.animateUnitMove(unit.uid, from, 0.15);
       return;
     }
+    Audio.playSfx('move_unit');
     this._clearSelection();
     this.scene?.refresh();
     this.sync();
@@ -489,7 +498,7 @@ export class GameController {
       const candidates = this.session.materialCandidateGraveyard(card, this.selectedMaterials, condIdx);
       const idx = this.selectedMaterials.indexOf(unit);
       if (idx !== -1) this.selectedMaterials.splice(idx, 1);
-      else if (candidates.includes(unit)) this.selectedMaterials.push(unit);
+      else if (candidates.includes(unit)) { this.selectedMaterials.push(unit); Audio.playSfx('use_material'); }
       // ⚠️ Un matériau de CIMETIÈRE n'a pas de case à offrir au résultat — c'est
       // pourquoi ce geste n'a jamais posé d'unité de lui-même. Il en pose une
       // dès que le joueur, lui, a désigné la case : une invocation payée au seul
@@ -518,11 +527,13 @@ export class GameController {
       this._eventMark = useMissionStore.getState().eventMark();
     }
     this.session.place(card, pos, this.selectedMaterials, this.selectedHandIdx, this.selectedConditionIndex);
+    const tier = primaryTier(card);
+    Audio.playSfx('summon', { tier });
     // ⚠️ L'événement porte les ATTRIBUTS de la carte, plus une voie
     // d'invocation : les cinq voies sont devenues des attributs, et c'est sur
     // eux que les missions filtrent désormais.
     useMissionStore.getState().emit('summon_performed', {
-      card_id: card.id, tier: primaryTier(card), attributes: card.attributes ?? [],
+      card_id: card.id, tier, attributes: card.attributes ?? [],
     });
     this._clearSelection();
     this.scene?.refresh();
@@ -537,6 +548,7 @@ export class GameController {
     if (!unit) { this.selectedBoardPos = null; this.scene?.clearHighlight(); return; }
     this.session.board.moveUnit(unit, to);
     unit.initial_position = { ...to };
+    Audio.playSfx('move_unit');
     this.selectedBoardPos = null;
     this.scene?.setSelectedPos(null);
     this.scene?.clearHighlight();
@@ -554,6 +566,7 @@ export class GameController {
     if (this.session.phase !== Phase.PREPARATION) return;
     if (this._committedPrepId === this.session.prepId) return;   // board déjà annoncé (PvP)
     if (!this.session.undoPreparation()) return;
+    Audio.playSfx('undo');
     if (this._markPrepId === this.session.prepId) {
       useMissionStore.getState().rollbackEvents(this._eventMark);
       this._markPrepId = null;
@@ -576,6 +589,7 @@ export class GameController {
   mulligan(): void {
     if (!this.canMulligan()) return;
     if (!this.session.mulligan()) return;
+    Audio.playSfx('mulligan_reroll');
     this._clearSelection();
     this.sync();
   }
@@ -594,6 +608,7 @@ export class GameController {
 
   startCombat(): void {
     if (this.session.phase !== Phase.PREPARATION) return;
+    Audio.playSfx('ready');
     this._closeRoundOpening();
     this._committedPrepId = this.session.prepId;
     this._clearSelection();
@@ -971,6 +986,7 @@ export class GameController {
   rerollShopping(): void {
     const magies = this.session.rerollShoppingMagies();
     if (!magies?.length) return;
+    Audio.playSfx('mulligan_reroll');
     this._shoppingMagies = magies;
     this._shoppingInfo = this._describeShoppingBonus();
     this.sync({ shopping: this._shoppingChoice() });
@@ -1219,6 +1235,17 @@ export class GameController {
 
   // Recalcule l'instantané React depuis session + état de sélection.
   sync(extra: Partial<GameSnapshot> = {}): void {
+    // Écran de fin — un seul point de publication pour les trois modes (solo,
+    // PvP réel, duel bot) : chacun sync `gameOver: true` avec son `winner`
+    // propre (local en solo, arbitré par le serveur en PvP/bot), donc c'est
+    // ICI, à la TRANSITION, qu'il faut jouer le son plutôt que dans chacun
+    // des trois `dismissEndRound()` qui la produisent.
+    if (extra.gameOver && !useGameStore.getState().gameOver) {
+      const winner = (extra as Partial<GameSnapshot> & { winner?: string }).winner;
+      if (winner === 'player') Audio.playSfx('match_win');
+      else if (winner === 'enemy') Audio.playSfx('match_lose');
+      else if (winner === 'draw') Audio.playSfx('match_draw');
+    }
     const gs = this.session.gameState;
     const hand = this._groupHand();
 

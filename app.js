@@ -101,6 +101,10 @@ app.set('trust proxy', 1);
 // place de grandir sans casser l'onglet Cartes.
 const jsonSmall = express.json({ limit: '1mb' });
 const jsonUpload = express.json({ limit: '20mb' });
+// Un fichier audio (musique surtout) pèse plus lourd qu'une illustration une
+// fois encodé en base64 (+33 %) : plafond dédié, plus haut que celui des
+// images.
+const jsonAudioUpload = express.json({ limit: '30mb' });
 
 // Les routes d'upload d'image, sous leurs deux formes : les familles
 // génériques utilisées par sync-data.js (`/api/illustrations/:id`…) et le
@@ -108,12 +112,20 @@ const jsonUpload = express.json({ limit: '20mb' });
 // (`/api/cards/:id/illustration`, `/api/sets/:id/poster`…).
 const UPLOAD_ROUTE_RE =
   /^\/api\/(illustrations|avatars|pack-posters|board-backgrounds)\/|\/(illustration|background|poster|avatar)$/;
+// Même patron pour l'audio, plafond à part : `/api/audio/:id` (générique,
+// sync-data.js) et `/api/sfx/:id/audio` / `/api/music/:id/audio` (triptyque).
+const AUDIO_UPLOAD_ROUTE_RE = /^\/api\/audio\/|\/audio$/;
 
 // ⚠️ Le choix se fait AVANT le parsing, pas après : `express.json` ignore une
 // requête dont le corps est déjà lu (`req._body`). Monter la limite haute en
 // aval de la limite basse serait donc un no-op — la petite aurait déjà répondu
 // 413. C'est un seul middleware qui aiguille, pas deux montés l'un après l'autre.
-app.use((req, res, next) => (UPLOAD_ROUTE_RE.test(req.path) ? jsonUpload : jsonSmall)(req, res, next));
+app.use((req, res, next) => {
+  const parser = AUDIO_UPLOAD_ROUTE_RE.test(req.path) ? jsonAudioUpload
+    : UPLOAD_ROUTE_RE.test(req.path) ? jsonUpload
+    : jsonSmall;
+  return parser(req, res, next);
+});
 
 // --- Config (env vars for production, local defaults for dev) ---
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -129,10 +141,18 @@ const PROJECT_ROOT = __dirname;
 //  - BOARD_BG_DIR  : fonds de grille des terrains, vue de dessus posée sous les
 //                    5 × 11 cases en combat — distinct de l'illustration du
 //                    terrain (vignette carrée du tooltip) : deux cadrages.
+//  - AUDIO_DIR     : effets sonores et musiques, espace de noms plat comme
+//                    ILLUS_DIR — sfx.json et music.json y pointent par id,
+//                    l'EXTENSION étant la seule chose qui varie (mp3/ogg/wav/
+//                    m4a), contrairement aux images qui sont toujours du PNG.
 const {
-  DATA_DIR, ILLUS_DIR, AVATARS_DIR, POSTERS_DIR, BOARD_BG_DIR,
+  DATA_DIR, ILLUS_DIR, AVATARS_DIR, POSTERS_DIR, BOARD_BG_DIR, AUDIO_DIR,
   FAMILIES: ASSET_FAMILIES, isEphemeral,
 } = require('./asset-dirs');
+// JUMEAU CJS de `AUDIO_EXTENSIONS` (`sound-schema.mjs`, ESM) — même frontière
+// que `card-contract.js` / `speed-scale.mjs` : app.js est CommonJS, il ne peut
+// pas `require()` un module ESM synchrone.
+const AUDIO_EXTENSIONS = ['mp3', 'ogg', 'wav', 'm4a'];
 const INITIAL_DIR    = path.join(__dirname, 'initial-data');
 
 // Avatar servi quand un deck n'a pas le sien : aucun écran ne doit afficher de
@@ -167,6 +187,11 @@ const CARD_BACKS_FILE = path.join(DATA_DIR, 'card_backs.json');
 // vit lui aussi dans ILLUS_DIR sous l'id du token — même geste que les dos de
 // cartes, aucune famille d'assets à créer.
 const TOKENS_FILE = path.join(DATA_DIR, 'tokens.json');
+// Effets sonores et musiques : catalogues au même patron que les tokens/dos de
+// cartes (GET public, écriture site-admin), mais un espace de noms d'assets à
+// EUX (AUDIO_DIR), l'extension du fichier variant selon le format importé.
+const SFX_FILE = path.join(DATA_DIR, 'sfx.json');
+const MUSIC_FILE = path.join(DATA_DIR, 'music.json');
 
 // --- Bootstrap: copy initial data to volume on first run ---
 function bootstrap() {
@@ -175,7 +200,8 @@ function bootstrap() {
   fs.mkdirSync(AVATARS_DIR, { recursive: true });
   fs.mkdirSync(POSTERS_DIR, { recursive: true });
   fs.mkdirSync(BOARD_BG_DIR, { recursive: true });
-  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'card_backs.json', 'tokens.json']) {
+  fs.mkdirSync(AUDIO_DIR, { recursive: true });
+  for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'card_backs.json', 'tokens.json', 'sfx.json', 'music.json']) {
     const dest = path.join(DATA_DIR, f);
     const src  = path.join(INITIAL_DIR, f);
     if (!fs.existsSync(dest) && fs.existsSync(src)) {
@@ -255,7 +281,12 @@ function logCatalogueFormat() {
 function logAssetDirs() {
   for (const { label, dir, env } of ASSET_FAMILIES) {
     let count = 0;
-    try { count = fs.readdirSync(dir).filter(f => f.endsWith('.png')).length; } catch { /* dossier illisible */ }
+    // Toutes les familles d'images sont en PNG ; l'audio ne l'est pas — son
+    // extension varie (mp3/ogg/wav/m4a), donc on compte tout fichier du dossier.
+    const matches = label === 'audio'
+      ? (f) => AUDIO_EXTENSIONS.some(ext => f.endsWith(`.${ext}`))
+      : (f) => f.endsWith('.png');
+    try { count = fs.readdirSync(dir).filter(matches).length; } catch { /* dossier illisible */ }
     console.log(`[assets] ${label.padEnd(17)} ${dir} (${count} image${count > 1 ? 's' : ''})`);
     if (IS_PROD && isEphemeral(dir)) {
       // Régler ILLUS_DIR suffit pour toutes les familles sauf elle-même : les
@@ -427,6 +458,15 @@ app.get('/admin/effect-schema.js', requireSiteAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'effect-schema.mjs'));
 });
 
+// LE VOCABULAIRE DU SON — quels déclencheurs d'effets sonores et quels thèmes
+// de musique existent. Même montage, même piège de MIME que les trois
+// au-dessus : `admin.html` le charge par `import()`, le client l'a dans son
+// bundle, un déclencheur n'existe donc qu'à un seul endroit.
+app.get('/admin/sound-schema.js', requireSiteAdmin, (req, res) => {
+  res.type('text/javascript');
+  res.sendFile(path.join(__dirname, 'sound-schema.mjs'));
+});
+
 // Rapport de la simulation d'équilibrage — page autonome, servie comme
 // admin.html : elle va chercher ses données sur /api/admin/sim, qui porte le
 // même garde. Enregistrée AVANT le fallback SPA (fin de fichier), qui n'exclut
@@ -465,6 +505,33 @@ function assetPath(dir, rawId) {
 /** Réponse commune aux routes d'asset dont l'id est refusé. */
 function badAssetId(res) {
   return res.status(400).json({ error: 'id invalide' });
+}
+
+/**
+ * Chemin d'un fichier audio, ou `null` — jumeau d'`assetPath`, mais
+ * l'EXTENSION n'est pas fixe (mp3/ogg/wav/m4a, contrairement au PNG des
+ * images) : on cherche celle qui existe. `id` doit déjà avoir passé
+ * `safeAssetId` — même discipline qu'`assetPath`, un seul endroit compose le
+ * chemin.
+ */
+function audioFilePath(dir, id) {
+  for (const ext of AUDIO_EXTENSIONS) {
+    const p = path.join(dir, `${id}.${ext}`);
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+function audioExists(id) {
+  return !!audioFilePath(AUDIO_DIR, id);
+}
+
+/** L'extension du fichier trouvé, ou `null` — jumeau d'`audioExists`, pour
+ * l'admin (bouton de téléchargement, nom de fichier) qui a besoin de la
+ * connaître puisqu'elle n'est pas fixe. */
+function audioExt(id) {
+  const p = audioFilePath(AUDIO_DIR, id);
+  return p ? path.extname(p).slice(1) : null;
 }
 
 // Illustrations public (game needs card art) — adds .png extension automatically.
@@ -512,6 +579,16 @@ app.get('/board-backgrounds/:id', (req, res) => {
   if (!id) return res.status(400).end();
   const filePath = assetPath(BOARD_BG_DIR, id);
   if (fs.existsSync(filePath)) return res.sendFile(filePath);
+  res.status(404).end();
+});
+
+// Effet sonore ou musique. Pas de repli, comme les affiches et les fonds de
+// terrain : un déclencheur sans son est un cas normal, silencieux côté client.
+app.get('/audio/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).end();
+  const filePath = audioFilePath(AUDIO_DIR, id);
+  if (filePath) return res.sendFile(filePath);
   res.status(404).end();
 });
 
@@ -596,6 +673,29 @@ async function savePng(dir, id, imageBuffer) {
   try { sharp = require('sharp'); } catch (_) { /* optionnel */ }
   if (sharp) await sharp(imageBuffer).png().toFile(destPath);
   else fs.writeFileSync(destPath, imageBuffer);
+}
+
+/**
+ * Écrit un buffer audio SOUS SON EXTENSION D'ORIGINE (mp3/ogg/wav/m4a) : à la
+ * différence des images, jamais recodées — recoder de l'audio demanderait un
+ * décodeur par format, et le format d'origine est un choix éditorial (bitrate,
+ * boucle) qu'on n'a pas à écraser. Retire d'abord tout fichier existant sous
+ * une AUTRE extension pour cet id : sans ça, remplacer un `.mp3` par un `.ogg`
+ * laisserait les deux, et `audioFilePath` (qui cherche dans l'ordre de
+ * `AUDIO_EXTENSIONS`) continuerait de servir l'ancien.
+ */
+function saveAudio(dir, id, ext, audioBuffer) {
+  for (const other of AUDIO_EXTENSIONS) {
+    if (other === ext) continue;
+    const stale = path.join(dir, `${id}.${other}`);
+    if (fs.existsSync(stale)) fs.unlinkSync(stale);
+  }
+  fs.writeFileSync(path.join(dir, `${id}.${ext}`), audioBuffer);
+}
+
+/** L'extension doit venir du catalogue fermé, jamais d'un nom de fichier client. */
+function safeAudioExt(ext) {
+  return AUDIO_EXTENSIONS.includes(ext) ? ext : null;
 }
 
 // Online API (accounts, sessions, friends) — auth par session cookie, pas la
@@ -773,6 +873,56 @@ app.use('/api/tokens', crud({
   render: (list) => list.map(t => ({ ...t, _has_illustration: illustrationExists(t.id) })),
   strip: (t) => { delete t._has_illustration; },
 }));
+
+// Effets sonores et musiques — même geste que dos de cartes et tokens : GET
+// public (le client en a besoin pour jouer un son sans compte), écriture
+// site-admin, drapeau calculé jamais persisté (`_has_audio`, jumeau
+// d'`_has_illustration`).
+app.use('/api/sfx', crud({
+  file: SFX_FILE,
+  guard: requireSiteAdmin,
+  render: (list) => list.map(s => ({ ...s, _has_audio: audioExists(s.id), _audio_ext: audioExt(s.id) })),
+  strip: (s) => { delete s._has_audio; delete s._audio_ext; },
+}));
+
+app.use('/api/music', crud({
+  file: MUSIC_FILE,
+  guard: requireSiteAdmin,
+  render: (list) => list.map(m => ({ ...m, _has_audio: audioExists(m.id), _audio_ext: audioExt(m.id) })),
+  strip: (m) => { delete m._has_audio; delete m._audio_ext; },
+}));
+
+// --- Audio (upload / suppression) : même triptyque que les illustrations,
+// sans l'import par URL (un effet sonore ou une piste musicale s'uploade
+// depuis l'appareil, il n'y a pas de "banque d'images" équivalente à côté).
+// `ext` vient du fichier choisi côté admin et doit appartenir à la liste
+// fermée `AUDIO_EXTENSIONS` — jamais recopié tel quel dans un nom de fichier.
+function mountAudioUpload(entity) {
+  app.put(`/api/${entity}/:id/audio`, (req, res) => {
+    const id = safeAssetId(req.params.id);
+    const { data, ext } = req.body;
+    if (!id) return badAssetId(res);
+    if (!data) return res.status(400).json({ error: 'data (base64) required' });
+    const safeExt = safeAudioExt(ext);
+    if (!safeExt) return res.status(400).json({ error: `ext doit être l'un de : ${AUDIO_EXTENSIONS.join(', ')}` });
+    try {
+      saveAudio(AUDIO_DIR, id, safeExt, Buffer.from(data, 'base64'));
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.delete(`/api/${entity}/:id/audio`, (req, res) => {
+    const id = safeAssetId(req.params.id);
+    if (!id) return badAssetId(res);
+    try {
+      const filePath = audioFilePath(AUDIO_DIR, id);
+      if (filePath) fs.unlinkSync(filePath);
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+}
+mountAudioUpload('sfx');
+mountAudioUpload('music');
 
 
 
@@ -1604,7 +1754,12 @@ app.get('/api/export', (req, res) => {
     const avatars = listPngChecksums(AVATARS_DIR);
     const boardBackgrounds = listPngChecksums(BOARD_BG_DIR);
     const packPosters = listPngChecksums(POSTERS_DIR);
-    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, cardBacks, tokens, illustrations, avatars, packPosters, boardBackgrounds });
+    // Catalogues + art des effets sonores et musiques — même famille de
+    // checksums que les images, l'extension en plus (elle varie par fichier).
+    const sfxList = readJson(SFX_FILE);
+    const musicList = readJson(MUSIC_FILE);
+    const audio = listAudioChecksums(AUDIO_DIR);
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, cardBacks, tokens, sfx: sfxList, music: musicList, illustrations, avatars, packPosters, boardBackgrounds, audio });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1616,6 +1771,24 @@ function listPngChecksums(dir) {
       id: f.replace(/\.png$/, ''),
       checksum: crypto.createHash('md5').update(fs.readFileSync(path.join(dir, f))).digest('hex'),
     }));
+}
+
+// Jumeau de `listPngChecksums`, mais l'EXTENSION voyage dans l'entrée : elle
+// n'est pas fixe côté audio, et `sync-data.js` en a besoin pour reposer le
+// fichier sous le bon nom de l'autre côté.
+function listAudioChecksums(dir) {
+  if (!fs.existsSync(dir)) return [];
+  const ext = new RegExp(`\\.(${AUDIO_EXTENSIONS.join('|')})$`, 'i');
+  return fs.readdirSync(dir)
+    .filter(f => ext.test(f))
+    .map(f => {
+      const m = f.match(ext);
+      return {
+        id: f.slice(0, -m[0].length),
+        ext: m[1].toLowerCase(),
+        checksum: crypto.createHash('md5').update(fs.readFileSync(path.join(dir, f))).digest('hex'),
+      };
+    });
 }
 
 // ⚠️ La route la plus exposée des huit qui manquaient de garde-fou, et de loin :
@@ -1645,6 +1818,14 @@ app.get('/api/export/pack-poster/:id', (req, res) => {
   const filePath = assetPath(POSTERS_DIR, id);
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
   res.json({ id, data: fs.readFileSync(filePath).toString('base64') });
+});
+
+app.get('/api/export/audio/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  const filePath = audioFilePath(AUDIO_DIR, id);
+  if (!filePath) return res.status(404).json({ error: 'Not found' });
+  res.json({ id, ext: path.extname(filePath).slice(1), data: fs.readFileSync(filePath).toString('base64') });
 });
 
 app.get('/api/export/board-background/:id', (req, res) => {
@@ -1742,6 +1923,33 @@ app.delete('/api/illustrations/:id', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// --- Generic audio upload/delete (utilisé par scripts/sync-data.js) ---
+// Jumeau des quatre au-dessus, avec l'extension en plus dans le corps :
+// c'est elle qui décide du nom de fichier, `sync-data.js` la connaît puisque
+// `listAudioChecksums` la lui a donnée au pull.
+app.put('/api/audio/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data, ext } = req.body;
+  if (!id) return badAssetId(res);
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  const safeExt = safeAudioExt(ext);
+  if (!safeExt) return res.status(400).json({ error: `ext doit être l'un de : ${AUDIO_EXTENSIONS.join(', ')}` });
+  try {
+    saveAudio(AUDIO_DIR, id, safeExt, Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/audio/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return badAssetId(res);
+  try {
+    const filePath = audioFilePath(AUDIO_DIR, id);
+    if (filePath) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // --- Download helper ---
 //
 // Récupère une image depuis une URL fournie en admin (import d'illustration).
@@ -1825,6 +2033,7 @@ function downloadUrl(rawUrl, redirectsLeft = DOWNLOAD_MAX_REDIRECTS) {
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/illustrations') || req.path.startsWith('/avatars')
       || req.path.startsWith('/pack-posters') || req.path.startsWith('/board-backgrounds')
+      || req.path.startsWith('/audio')
       || req.path.startsWith('/ws')) return next();
   res.sendFile(path.join(CLIENT_DIST, 'index.html'));
 });
