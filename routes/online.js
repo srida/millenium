@@ -11,6 +11,7 @@ const cosmetics = require('../cosmetics');
 const arcade = require('../arcade');
 const gifts = require('../gifts');
 const pvplog = require('../pvplog');
+const challenges = require('../challenges');
 
 const router = express.Router();
 
@@ -338,6 +339,63 @@ router.delete('/friends/:id', auth.requireUser, (req, res) => {
     return res.status(404).json({ error: 'Relation introuvable.' });
   }
   stmt.deleteFriendship.run(f.id);
+  res.json({ ok: true });
+});
+
+// =====================================================================
+//  DÉFIS ENTRE AMIS (lancer un duel en ligne contre un ami précis)
+// =====================================================================
+// Les RÈGLES (amitié requise, un seul défi actif à la fois, occupation,
+// expiration) vivent dans challenges.js — ici, seulement des routes fines.
+//
+// ⚠️ Accepter un défi ne crée PAS le match : ça bascule seulement son statut à
+// `accepted`. Les deux clients doivent ensuite ouvrir leur WebSocket PvP et
+// envoyer `challenge:join` (cf. ws/ChallengeQueue.js) — le défieur en réponse
+// au basculement qu'il observe dans son propre poll (`GET /me/challenges`),
+// l'accepteur tout de suite après son propre appel `accept`.
+const CHALLENGE_REASONS = {
+  self: 'Tu ne peux pas te défier toi-même.',
+  not_found: 'Introuvable.',
+  not_friends: 'Vous devez être amis pour vous défier.',
+  busy: 'Un des deux joueurs est déjà en duel.',
+  already_pending: 'Un défi est déjà en cours avec cet ami.',
+  expired: 'Ce défi a expiré.',
+  already_handled: 'Ce défi a déjà été traité.',
+};
+
+function challengeError(res, reason) {
+  const status = reason === 'not_found' ? 404
+    : reason === 'busy' || reason === 'already_pending' || reason === 'already_handled' ? 409
+    : 400;
+  return res.status(status).json({ error: CHALLENGE_REASONS[reason] || 'Requête invalide.', reason });
+}
+
+router.get('/me/challenges', auth.requireUser, (req, res) => {
+  res.json(challenges.refresh(req.user));
+});
+
+router.post('/challenges', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
+  const result = challenges.create(req.user, String(req.body?.friendId || ''));
+  if (!result.ok) return challengeError(res, result.reason);
+  res.json({ ok: true, challenge: result.challenge });
+});
+
+router.post('/challenges/:id/accept', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  const result = challenges.accept(req.user, req.params.id);
+  if (!result.ok) return challengeError(res, result.reason);
+  res.json({ ok: true, challenge_id: result.challenge_id });
+});
+
+router.post('/challenges/:id/decline', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  const result = challenges.decline(req.user, req.params.id);
+  if (!result.ok) return challengeError(res, result.reason);
+  res.json({ ok: true });
+});
+
+// Retrait par l'émetteur — avant ou après acceptation.
+router.delete('/challenges/:id', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  const result = challenges.cancel(req.user, req.params.id);
+  if (!result.ok) return challengeError(res, result.reason);
   res.json({ ok: true });
 });
 
