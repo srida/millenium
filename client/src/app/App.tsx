@@ -22,6 +22,7 @@ import TutorialScreen from '../screens/TutorialScreen.js';
 import TooltipHost from '../components/tooltip/TooltipHost.js';
 import LinkedCardsModal from '../components/tooltip/LinkedCardsModal.js';
 import RewardToasts from '../components/ui/RewardToasts.js';
+import ChallengeBanner from '../components/ui/ChallengeBanner.js';
 import { SpaceBackground } from '../components/ui/SpaceBackground.js';
 import { AppHeader } from '../components/nav/AppHeader.js';
 import { AppFooter } from '../components/nav/AppFooter.js';
@@ -217,6 +218,9 @@ export default function App() {
           niveaux gagnés s'y annoncent ensemble — la réponse arrive souvent une
           fois revenu au menu. */}
       <RewardToasts />
+      {/* Défis entre amis : notification globale, comme RewardToasts — un ami
+          peut défier depuis n'importe quel écran (cf. ChallengeBanner). */}
+      <ChallengeBanner />
     </>
   );
 }

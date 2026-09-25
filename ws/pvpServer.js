@@ -8,6 +8,7 @@
 const { WebSocketServer } = require('ws');
 const auth = require('../auth');
 const queue = require('./MatchmakingQueue');
+const challengeQueue = require('./ChallengeQueue');
 const relay = require('./MatchRelay');
 const botMatch = require('./BotMatch');
 
@@ -93,6 +94,7 @@ function attachPvpWebSocketServer(httpServer) {
 
     ws.on('close', () => {
       queue.handleDisconnectWhileWaiting(ws.userId);
+      challengeQueue.handleDisconnectWhileWaiting(ws.userId);
       relay.handleDisconnect(ws.userId);
       botMatch.handleDisconnect(ws.userId);
     });
@@ -143,6 +145,12 @@ function handleMessage(ws, msg) {
       break;
     case 'queue:leave':
       queue.leaveQueue(ws.userId);
+      break;
+    // Rendez-vous d'un défi entre amis déjà ACCEPTÉ côté REST (cf.
+    // ws/ChallengeQueue.js) — un chemin distinct de `queue:join` : les deux
+    // joueurs sont déjà désignés l'un à l'autre, il n'y a personne à apparier.
+    case 'challenge:join':
+      challengeQueue.handleJoin(ws, ws.userId, msg.challengeId, msg.deckName);
       break;
     case 'match:ready':
       relay.handleReady(msg.matchId, ws.userId);

@@ -353,6 +353,7 @@ const MAINTENANCE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const { db, stmt: dbStmt } = require('./db');
 const pvplog = require('./pvplog');
 const ailog = require('./ailog');
+const challenges = require('./challenges');
 
 function runMaintenance({ closeStaleMatches = false } = {}) {
   const sessions = dbStmt.deleteExpiredSessions.run(Date.now()).changes;
@@ -364,17 +365,21 @@ function runMaintenance({ closeStaleMatches = false } = {}) {
   const pvpLogs = pvplog.purge();
   // Runs du Labo IA : même rendez-vous, même raison — pas de minuteur à eux.
   const aiRuns = ailog.purge();
+  // Défis entre amis : filet de fond, le mécanisme normal (expiration
+  // paresseuse, lecture-qui-efface) vit dans challenges.js.
+  const staleChallenges = challenges.purge();
   let matches = 0;
   if (closeStaleMatches) {
     matches = db.prepare(
       "UPDATE matches SET status = 'ended', ended_reason = 'server_restart', ended_at = ? WHERE status = 'active'",
     ).run(Date.now()).changes;
   }
-  if (sessions || resets || buckets || matches || pvpLogs || aiRuns) {
+  if (sessions || resets || buckets || matches || pvpLogs || aiRuns || staleChallenges) {
     console.log(
       `[entretien] ${sessions} session(s) expirée(s), ${resets} jeton(s) de reset, ` +
       `${buckets} seau(x) de quota, ${matches} match(s) rouvert(s) refermé(s), ` +
-      `${pvpLogs} log(s) de combat PvP purgé(s), ${aiRuns} run(s) de Labo IA purgé(s)`,
+      `${pvpLogs} log(s) de combat PvP purgé(s), ${aiRuns} run(s) de Labo IA purgé(s), ` +
+      `${staleChallenges} défi(s) périmé(s) purgé(s)`,
     );
   }
 }

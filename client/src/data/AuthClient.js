@@ -246,6 +246,26 @@ export async function removeFriend(friendshipId) {
   return api(`/friends/${friendshipId}`, { method: 'DELETE' });
 }
 
+// --- Défis entre amis (lancer un duel en ligne contre un ami précis) ---
+// Le serveur ne CRÉE pas le match ici : il ne fait qu'accorder les deux
+// joueurs (cf. challenges.js). Le rendez-vous WS (`challenge:join`) est le
+// dernier pas, porté par `stores/challengeStore.ts`.
+export async function getChallenges() {
+  return api('/me/challenges'); // { incoming, outgoing }
+}
+export async function challengeFriend(friendId) {
+  return api('/challenges', { method: 'POST', body: { friendId } }); // { ok, challenge }
+}
+export async function acceptChallenge(id) {
+  return api(`/challenges/${id}/accept`, { method: 'POST' });
+}
+export async function declineChallenge(id) {
+  return api(`/challenges/${id}/decline`, { method: 'POST' });
+}
+export async function cancelChallenge(id) {
+  return api(`/challenges/${id}`, { method: 'DELETE' });
+}
+
 // --- Log de combat PvP (diagnostic temporaire — cf. game/CombatRecorder.ts) ---
 //
 // ⚠️ « Pose et oublie » : l'appelant ne l'attend jamais et n'en montre jamais

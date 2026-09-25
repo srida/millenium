@@ -423,6 +423,30 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_pvp_logs_created ON pvp_combat_logs(created_at);
 `);
 
+// Défis entre amis (challenges.js). Une ligne éphémère par défi : elle vit le
+// temps d'une acceptation (dizaines de secondes), jamais une histoire à
+// conserver — contrairement à `matches`, qui garde le résultat des duels.
+//
+// ⚠️ Même contrainte d'ordre que `user_cards` : créée APRÈS la migration
+// `tag`, sinon sa FK pointerait sur `users_v1` (supprimée juste après).
+//
+// Les RÈGLES (amitié requise, un seul défi actif à la fois, guet-apens
+// d'acceptation, expiration) vivent dans challenges.js — ici, seulement
+// l'accès SQL.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS challenges (
+    id           TEXT PRIMARY KEY,
+    from_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    to_user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status       TEXT NOT NULL DEFAULT 'pending',
+    created_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL,
+    expires_at   INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_challenges_from ON challenges(from_user_id);
+  CREATE INDEX IF NOT EXISTS idx_challenges_to ON challenges(to_user_id);
+`);
+
 // Runs du Labo IA — OUTIL DE DIAGNOSTIC, retirable d'un bloc (cf. ailog.js).
 //
 // Pas de FK, pas de `user_id` : un run n'appartient à personne, c'est une
@@ -725,6 +749,78 @@ const stmt = {
   aiRunCount: db.prepare('SELECT COUNT(*) AS n FROM ai_lab_runs'),
   deleteAiRun: db.prepare('DELETE FROM ai_lab_runs WHERE id = ?'),
   deleteOldAiRuns: db.prepare('DELETE FROM ai_lab_runs WHERE created_at < ?'),
+
+  // Défis entre amis (cf. challenges.js). Les RÈGLES vivent là-bas — ici,
+  // seulement l'accès SQL.
+  insertChallenge: db.prepare(`
+    INSERT INTO challenges (id, from_user_id, to_user_id, status, created_at, updated_at, expires_at)
+    VALUES (@id, @from_user_id, @to_user_id, 'pending', @created_at, @created_at, @expires_at)
+  `),
+  challengeById: db.prepare('SELECT * FROM challenges WHERE id = ?'),
+  // Un défi ACTIF (encore en jeu) existe déjà entre ces deux comptes, dans un
+  // sens ou l'autre — le symétrique de `friendshipBetween`.
+  activeChallengeBetween: db.prepare(`
+    SELECT * FROM challenges
+    WHERE status IN ('pending', 'accepted')
+      AND ((from_user_id = @a AND to_user_id = @b) OR (from_user_id = @b AND to_user_id = @a))
+  `),
+  incomingChallenges: db.prepare(`
+    SELECT c.id, c.created_at, c.expires_at, u.id AS from_id, u.username, u.tag, u.avatar
+    FROM challenges c
+    JOIN users u ON u.id = c.from_user_id
+    WHERE c.to_user_id = ? AND c.status = 'pending' AND c.expires_at > ?
+    ORDER BY c.created_at DESC
+  `),
+  // ⚠️ Pas de filtre de statut : c'est cette liste qui porte le basculement
+  // pending → accepted que le défieur doit observer pour déclencher son
+  // `challenge:join`, et les statuts terminaux (déclinés/expirés/annulés) que
+  // `challenges.listOutgoing` lit puis efface (cf. son commentaire).
+  outgoingChallenges: db.prepare(`
+    SELECT c.id, c.status, c.created_at, c.expires_at, u.id AS to_id, u.username, u.tag, u.avatar
+    FROM challenges c
+    JOIN users u ON u.id = c.to_user_id
+    WHERE c.from_user_id = ?
+    ORDER BY c.created_at DESC
+  `),
+  // Compare-and-swap : seul un défi encore `pending` et non expiré bascule.
+  // `changes === 0` = quelqu'un est passé avant (double tap, expiration entre
+  // la lecture et l'écriture, ou défi déjà réglé).
+  acceptChallenge: db.prepare(`
+    UPDATE challenges SET status = 'accepted', updated_at = @now, expires_at = @join_expires
+    WHERE id = @id AND to_user_id = @uid AND status = 'pending' AND expires_at > @now
+  `),
+  declineChallenge: db.prepare(`
+    UPDATE challenges SET status = 'declined', updated_at = @now
+    WHERE id = @id AND to_user_id = @uid AND status = 'pending'
+  `),
+  // Le défieur peut retirer sa main aussi bien avant qu'après l'acceptation
+  // (tant que le rendez-vous WS n'a pas eu lieu) — au-delà, la ligne a déjà
+  // été supprimée par `ChallengeQueue` (match trouvé ou jointure expirée).
+  cancelChallenge: db.prepare(`
+    UPDATE challenges SET status = 'cancelled', updated_at = @now
+    WHERE id = @id AND from_user_id = @uid AND status IN ('pending', 'accepted')
+  `),
+  // Un défi `accepted` valide encore pour le rendez-vous WS (`ws/ChallengeQueue.js`).
+  acceptedChallengeById: db.prepare("SELECT * FROM challenges WHERE id = ? AND status = 'accepted'"),
+  deleteChallenge: db.prepare('DELETE FROM challenges WHERE id = ?'),
+  // Bascule paresseuse : un `pending` dont l'échéance est dépassée devient
+  // `expired` (pour que le défieur le voie une fois via `listOutgoing`) ; un
+  // `accepted` dont la fenêtre de jointure est dépassée est supprimé
+  // directement — filet de sécurité si `ChallengeQueue` n'a jamais pu armer
+  // son minuteur (redémarrage serveur entre l'acceptation et la jointure).
+  expireStaleChallenges: db.prepare(`
+    UPDATE challenges SET status = 'expired', updated_at = @now
+    WHERE status = 'pending' AND expires_at <= @now
+  `),
+  deleteStaleAcceptedChallenges: db.prepare(`
+    DELETE FROM challenges WHERE status = 'accepted' AND expires_at <= ?
+  `),
+  // Filet de fond pour `runMaintenance` : des lignes terminales jamais
+  // relues (l'onglet du défieur a été fermé) — rétention généreuse, la table
+  // ne pèse rien.
+  deleteOldChallenges: db.prepare(`
+    DELETE FROM challenges WHERE status IN ('declined', 'cancelled', 'expired') AND updated_at < ?
+  `),
 };
 
 module.exports = { db, stmt, DB_FILE };

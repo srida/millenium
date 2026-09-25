@@ -7,6 +7,7 @@ import { illustrationUrl } from '../data/CardArt.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { useUiStore } from '../stores/uiStore.js';
+import { useChallengeStore } from '../stores/challengeStore.js';
 import { Button, Modal, usePressSquash } from '../components/ui/primitives.js';
 import { LevelRewardsPanel, ProgressionPanel } from '../components/ui/ProgressionStats.js';
 import type { LevelRewardsView } from '../components/ui/ProgressionStats.js';
@@ -136,6 +137,27 @@ export default function ProfileScreen() {
       setFriends(f); setIncoming(r.incoming); setOutgoing(r.outgoing);
     } catch (e: any) { handleFriendsError(e); }
   }, [handleFriendsError]);
+
+  // Défier un ami — même poll que `ChallengeBanner` (challengeStore), pour ne
+  // pas ouvrir un second intervalle. `outgoingChallenges` sert à savoir, PAR
+  // AMI, s'il y a déjà un défi en cours (désactive le bouton, change son
+  // libellé) — un second tap enverrait sinon un `already_pending` inutile.
+  const outgoingChallenges = useChallengeStore(s => s.outgoing);
+  const sendChallenge = useChallengeStore(s => s.send);
+  const [challengingId, setChallengingId] = useState<string | null>(null);
+  const challengeTo = useCallback(
+    (friendId: string) => outgoingChallenges.find(c => c.to.id === friendId) ?? null,
+    [outgoingChallenges],
+  );
+  const handleChallenge = useCallback(async (friendId: string) => {
+    setChallengingId(friendId);
+    try {
+      const res = await sendChallenge(friendId);
+      if (!res.ok) setFriendsError(res.reason === 'already_pending' ? 'Un défi est déjà en cours avec cet ami.' : 'Impossible d\'envoyer le défi.');
+    } finally {
+      setChallengingId(null);
+    }
+  }, [sendChallenge]);
 
   useEffect(() => { if (user) refreshFriends(); }, [user, refreshFriends]);
 
@@ -267,11 +289,21 @@ export default function ProfileScreen() {
           <FriendSection title={`Mes amis · ${friends.length}`}>
             {friends.length === 0
               ? <p className="text-xs text-white/40">Aucun ami pour l'instant.</p>
-              : friends.map(u => (
-                <FriendRow key={u.friendship_id} u={u}>
-                  <Button variant="danger" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).removeFriend(u.friendship_id))}>Retirer</Button>
-                </FriendRow>
-              ))}
+              : friends.map(u => {
+                const pending = challengeTo(u.id);
+                const sending = challengingId === u.id;
+                return (
+                  <FriendRow key={u.friendship_id} u={u}>
+                    <Button
+                      variant="primary" className="px-2 text-xs" disabled={!!pending || sending}
+                      onPointerDown={() => { void handleChallenge(u.id); }}
+                    >
+                      {pending ? 'En attente…' : sending ? '…' : '⚔ Défier'}
+                    </Button>
+                    <Button variant="danger" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).removeFriend(u.friendship_id))}>Retirer</Button>
+                  </FriendRow>
+                );
+              })}
           </FriendSection>
         </div>
 
