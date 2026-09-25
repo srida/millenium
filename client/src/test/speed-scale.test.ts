@@ -378,8 +378,14 @@ describe('speed-scale — le catalogue livré, côté durées', () => {
   });
 
   it('aucun pouvoir SANS durée ne porte de `power.duration`', () => {
+    // ⚠️ `DURATION_AND_VALUE_POWERS` (Affaiblissement) lit `duration` EN PLUS de
+    // `value` — les exclure ici les ferait passer pour des pouvoirs sans durée,
+    // ce qu'ils ne sont pas.
     const fautives = cards.filter((c: any) =>
-      c.power?.id && !DURATION_POWERS.includes(c.power.id) && 'duration' in c.power);
+      c.power?.id
+      && !DURATION_POWERS.includes(c.power.id)
+      && !DURATION_AND_VALUE_POWERS.includes(c.power.id)
+      && 'duration' in c.power);
     expect(fautives.map((c: any) => c.id)).toEqual([]);
   });
 

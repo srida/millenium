@@ -1,7 +1,7 @@
 import {
   materialLineageMatches, materialSlotsPaid, getUncoveredRequirements,
-  canSummon, exceedsBoardSlots, summonConditions, conditionAt, conditionMaterials,
-  conditionRequires, conditionIsFree,
+  canSummon, exceedsBoardSlots, livingSlotUnits, summonConditions, conditionAt,
+  conditionMaterials, conditionRequires, conditionIsFree,
 } from './InvocationManager.js';
 
 /**
@@ -161,13 +161,17 @@ function _playableWith(card, condition, board, graveyard, maxSlots, hasMultiple 
   const no = (reason) => ({ ok: false, reason });
   const living = board.getLivingUnitsOnSide('player');
   const duplicate = !hasMultiple && living.find(u => u.card_id === card.id);
+  // ⚠️ Un token ne pèse pas sur le plafond (`InvocationManager.livingSlotUnits`) :
+  // il n'a coûté aucun slot à naître, lui en compter un grisait une carte que
+  // rien n'empêche vraiment de poser.
+  const slotUnits = livingSlotUnits(board, 'player');
 
   if (!condition || conditionIsFree(condition)) {
     // Sans matériau à consommer, un doublon vivant interdit la pose et il n'y a
     // pas de case à libérer : il faut donc une case déjà vide. ⚠️ Sauf
     // **Multiple**, qui lève cette interdiction (`duplicate` vaut alors `false`).
     if (duplicate) return no('Un exemplaire vit déjà sur le terrain');
-    if (living.length >= maxSlots) return no('Plus de slot libre');
+    if (slotUnits.length >= maxSlots) return no('Plus de slot libre');
     return hasEmptyPlayerCell(board) ? { ok: true, reason: '' } : no('Aucune case libre');
   }
 
@@ -185,7 +189,7 @@ function _playableWith(card, condition, board, graveyard, maxSlots, hasMultiple 
   // Le doublon, s'il existe, est consommable : il compte parmi les matériaux.
   // ⚠️ Un coût satisfait uniquement au cimetière ne libère aucun SLOT (le
   // cimetière n'en occupe pas), il faut donc que le plafond soit encore ouvert.
-  if (living.length >= maxSlots && !available.some(u => living.includes(u))) return no('Plus de slot libre');
+  if (slotUnits.length >= maxSlots && !available.some(u => living.includes(u))) return no('Plus de slot libre');
   // Une CASE, en revanche, il y en a toujours une : `summon` retire du board
   // tous les matériaux consommés, cimetière compris.
   return { ok: true, reason: '' };

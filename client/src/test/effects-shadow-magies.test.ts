@@ -43,6 +43,11 @@ import type { Magie } from '../logic/types.js';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const read = (f: string) => JSON.parse(readFileSync(path.join(ROOT, 'initial-data', f), 'utf8'));
 const magies: Magie[] = read('magies.json');
+// `summon_token` — le catalogue livré, comme `GameSession` le lirait via
+// `deps.tokenDb`. Sans lui, `appliqueInvoquer` ignore la tâche (nommément) et
+// les magies MAGIE_054–056 sembleraient ne rien faire.
+const TOKENS: any[] = read('tokens.json');
+const TOKEN_BY_ID = new Map(TOKENS.map(t => [t.id, t]));
 
 // Le même plateau d'essai que l'oracle de l'étape 0 — chaque pièce répond d'une
 // famille de magies.
@@ -177,8 +182,30 @@ function cheminCompile(m: Magie) {
     : type === 'shift_tier_unit'
       ? alliees.filter(u => poolTier(BY_ID.get(u.card_id), decalage).length > 0)
       : alliees;
+  // `summon_token` — même geste que `GameSession._invoquerToken`, réduit à ce
+  // que ce monde synthétique porte : pas de vrai `Board`, juste une case libre
+  // parmi une petite grille, tirée dans l'ordre (aucun `rand` à partager ici,
+  // cf. la discipline d'appel plus bas).
+  const occupees = new Set(alliees.filter(u => u.position).map(u => `${u.position!.col},${u.position!.row}`));
+  const invoquerToken = (sideReel: 'player' | 'enemy', tokenId: string): Unit | null => {
+    const def = TOKEN_BY_ID.get(tokenId);
+    if (!def) return null;
+    for (let row = 0; row <= 3; row++) {
+      for (let col = 0; col < 5; col++) {
+        const key = `${col},${row}`;
+        if (occupees.has(key)) continue;
+        occupees.add(key);
+        const token = new (Unit as any)(def, sideReel) as Unit;
+        token.is_token = true;
+        token.position = { col, row };
+        return token;
+      }
+    }
+    return null;
+  };
   const trace = executer(effets, 'immediat', {
     unitesAlliees: cibles, unitesEnnemies: [], ressources, neutralisees, cimetiere, main,
+    invoquerToken, cotesReels: { allie: 'player', ennemi: 'enemy' },
     // ⚠️ Le catalogue est INJECTÉ, jamais importé : `logic/` n'importe pas
     // `data/`, et c'est ce qui permet aux duplications de rendre la carte.
     catalogue: (id: string) => (BY_ID.get(id) as any) ?? null,
@@ -369,8 +396,9 @@ describe('Mode ombre — ce que le vocabulaire ne couvre PAS encore', () => {
 
   it('la part traduite est mesurée, pas estimée', () => {
     expect(TRADUITES.length + REFUSEES.size).toBe(new Set(magies.map(m => m.id)).size);
-    // 49 des 51 magies livrées entrent dans le vocabulaire du moteur, et les
-    // deux refus n'ont PAS la même nature :
+    // 52 des 54 magies livrées entrent dans le vocabulaire du moteur (49 + les
+    // trois `summon_token` MAGIE_054–056, ajoutées depuis), et les deux refus
+    // n'ont PAS la même nature :
     //
     //   • `defuse_fusion` ne lit pas un CHAMP mais une RÈGLE d'invocation (la
     //     lignée d'un composite, et le repli au cimetière quand il n'y a plus de
@@ -383,7 +411,7 @@ describe('Mode ombre — ce que le vocabulaire ne couvre PAS encore', () => {
     //
     // ⚠️ Le second n'a été vu qu'à la BASCULE : ce fichier le comptait traduit,
     // parce qu'une comparaison d'état ne voit pas le flux de hasard.
-    expect(TRADUITES).toHaveLength(49);
+    expect(TRADUITES).toHaveLength(52);
     expect(REFUSEES.size).toBe(2);
   });
 });

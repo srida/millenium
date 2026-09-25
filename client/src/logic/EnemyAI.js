@@ -4,6 +4,7 @@ import { primaryTier } from './Tiers.js';
 import {
   materialLineageMatches, summonConditions, conditionMaterials, conditionRequires,
   conditionIsFree, summonCost, forcedCell, materialSlotsPaid, getUncoveredRequirements,
+  livingSlotUnits,
 } from './InvocationManager.js';
 
 const HAND_SIZE = 5;
@@ -353,7 +354,9 @@ function _attempt(card, board, maxUnits, graveyard, side = 'enemy', hasMultiple 
  * l'exemplaire déjà vivant n'est ni exigé ni consommé, il reste sur le terrain.
  */
 function _attemptWith(card, condition, board, maxUnits, graveyard, side, hasMultiple = false) {
-  const onBoard = board.getLivingUnitsOnSide(side).length;
+  // ⚠️ Un token ne pèse pas sur le plafond — exactement la règle du joueur
+  // (`InvocationManager.livingSlotUnits`).
+  const onBoard = livingSlotUnits(board, side).length;
 
   if (!condition || conditionIsFree(condition)) {
     if (!hasMultiple && board.getLivingUnitsOnSide(side).some(u => u.card_id === card.id))

@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 51 magies fait, figé 1`] = `
+exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 54 magies fait, figé 1`] = `
 [
   {
     "change": {
@@ -572,6 +572,39 @@ exports[`Magies livrées — l'oracle de l'étape 0 > ce que chacune des 51 magi
     "famille": "unité",
     "id": "MAGIE_053",
     "nom": "Level down",
+  },
+  {
+    "change": {
+      "board": "["DECK_T1 · 0,0 · pv 50/100 · atq 10 · dep 50 · vit 50 · por 2 · bcl 0 · pouvoir —:—:—:—","DECK_POUVOIR · 1,0 · pv 100/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · pouvoir POWER_HEAL:40:—:—","DECK_FUSION · 2,0 · pv 150/300 · atq 40 · dep 50 · vit 50 · por 1 · bcl 0 · pouvoir —:—:—:—"] → ["DECK_T1 · 0,0 · pv 50/100 · atq 10 · dep 50 · vit 50 · por 2 · bcl 0 · pouvoir —:—:—:—","TOKEN_006 · 0,1 · pv 10/10 · atq 5 · dep 96 · vit 90 · por 1 · bcl 0 · pouvoir —:—:—:—","DECK_POUVOIR · 1,0 · pv 100/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · pouvoir POWER_HEAL:40:—:—","DECK_FUSION · 2,0 · pv 150/300 · atq 40 · dep 50 · vit 50 · por 1 · bcl 0 · pouvoir —:—:—:—","TOKEN_007 · 2,1 · pv 10/10 · atq 5 · dep 97 · vit 90 · por 1 · bcl 0 · pouvoir —:—:—:—","TOKEN_005 · 2,3 · pv 10/10 · atq 5 · dep 96 · vit 90 · por 1 · bcl 0 · pouvoir —:—:—:—","TOKEN_004 · 4,3 · pv 10/10 · atq 5 · dep 96 · vit 90 · por 1 · bcl 0 · pouvoir —:—:—:—"]",
+    },
+    "cible": "—",
+    "contrecoup": 0,
+    "effet": "summon_token",
+    "famille": "globale",
+    "id": "MAGIE_054",
+    "nom": "Bouc émissaire",
+  },
+  {
+    "change": {
+      "board": "["DECK_T1 · 0,0 · pv 50/100 · atq 10 · dep 50 · vit 50 · por 2 · bcl 0 · pouvoir —:—:—:—","DECK_POUVOIR · 1,0 · pv 100/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · pouvoir POWER_HEAL:40:—:—","DECK_FUSION · 2,0 · pv 150/300 · atq 40 · dep 50 · vit 50 · por 1 · bcl 0 · pouvoir —:—:—:—"] → ["DECK_T1 · 0,0 · pv 50/100 · atq 10 · dep 50 · vit 50 · por 2 · bcl 0 · pouvoir —:—:—:—","DECK_POUVOIR · 1,0 · pv 100/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · pouvoir POWER_HEAL:40:—:—","DECK_FUSION · 2,0 · pv 150/300 · atq 40 · dep 50 · vit 50 · por 1 · bcl 0 · pouvoir —:—:—:—","TOKEN_009 · 4,3 · pv 1000/1000 · atq 0 · dep 0 · vit 0 · por 1 · bcl 0 · pouvoir POWER_WEAKEN:50:50:50"]",
+    },
+    "cible": "—",
+    "contrecoup": 0,
+    "effet": "summon_token",
+    "famille": "globale",
+    "id": "MAGIE_055",
+    "nom": "Sanctuaire du démon",
+  },
+  {
+    "change": {
+      "board": "["DECK_T1 · 0,0 · pv 50/100 · atq 10 · dep 50 · vit 50 · por 2 · bcl 0 · pouvoir —:—:—:—","DECK_POUVOIR · 1,0 · pv 100/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · pouvoir POWER_HEAL:40:—:—","DECK_FUSION · 2,0 · pv 150/300 · atq 40 · dep 50 · vit 50 · por 1 · bcl 0 · pouvoir —:—:—:—"] → ["DECK_T1 · 0,0 · pv 50/100 · atq 10 · dep 50 · vit 50 · por 2 · bcl 0 · pouvoir —:—:—:—","DECK_POUVOIR · 1,0 · pv 100/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · pouvoir POWER_HEAL:40:—:—","DECK_FUSION · 2,0 · pv 150/300 · atq 40 · dep 50 · vit 50 · por 1 · bcl 0 · pouvoir —:—:—:—","TOKEN_011 · 2,3 · pv 10/10 · atq 5 · dep 96 · vit 90 · por 1 · bcl 0 · pouvoir —:—:—:—","TOKEN_010 · 4,3 · pv 10/10 · atq 5 · dep 97 · vit 90 · por 1 · bcl 0 · pouvoir —:—:—:—"]",
+    },
+    "cible": "—",
+    "contrecoup": 0,
+    "effet": "summon_token",
+    "famille": "globale",
+    "id": "MAGIE_056",
+    "nom": "Agneaux égarés",
   },
 ]
 `;

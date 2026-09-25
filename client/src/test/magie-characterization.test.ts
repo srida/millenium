@@ -39,6 +39,11 @@ const attributes: any[] = read('attributes.json');
 const powers: any[] = read('powers.json');
 const ATTR_IDS = new Set(attributes.map(a => a.id));
 const POWER_IDS = new Set(powers.map(p => p.id));
+// `summon_token` (MAGIE_054–056) — le catalogue livré, comme `bootstrap()`
+// le donne à `GameSession` via `deps.tokenDb`. Sans lui, l'oracle figerait un
+// « rien » qui ferait croire ces trois magies mortes.
+const tokens: any[] = read('tokens.json');
+const TOKEN_BY_ID = new Map(tokens.map(t => [t.id, t]));
 
 /** Les cinq attributs d'invocation et les cinq de tier, que les magies visent. */
 const INVOC = ['ARCH_086', 'ARCH_087', 'ARCH_088', 'ARCH_089', 'ARCH_090'];
@@ -99,6 +104,7 @@ function makeSession(): GameSession {
     enemyDeck: {},
     attributeList: attributes,
     cardDb: { getCard: (id: string) => (BY_ID.get(id) as any) ?? null } as any,
+    tokenDb: { getToken: (id: string) => (TOKEN_BY_ID.get(id) as any) ?? null },
     getAllBoards: () => [],
     getAllMagies: () => [],
     rand: makeRandom(hashSeed('oracle-magies')),
@@ -234,8 +240,8 @@ function applique(m: Magie) {
 // ───────────────────────────────────────────────────────────────────────────
 
 describe('Magies livrées — invariants du catalogue', () => {
-  it('les 51 magies sont là, et chacune porte un effet typé', () => {
-    expect(magies).toHaveLength(51);
+  it('les 54 magies sont là, et chacune porte un effet typé', () => {
+    expect(magies).toHaveLength(54);
     for (const m of magies) {
       expect(m.effect, m.id).toBeTruthy();
       expect(typeof m.effect!.type, m.id).toBe('string');
@@ -328,7 +334,7 @@ describe('Magies livrées — l\'oracle de l\'étape 0', () => {
   // ne se met PAS à jour à la légère : une ligne qui bouge veut dire que la
   // magie ne fait plus la même chose, ce qui est soit la donnée qui a changé,
   // soit une régression.
-  it('ce que chacune des 51 magies fait, figé', () => {
+  it('ce que chacune des 54 magies fait, figé', () => {
     const oracle = magies.map(m => {
       const { cible, delta } = applique(m);
       return {

@@ -100,6 +100,19 @@ export function forcedCell(condition, materials, board) {
 }
 
 /**
+ * Les vivantes qui comptent pour le PLAFOND de board — un token en est exclu :
+ * il n'a coûté aucun slot à naître (`summon_token` ne passe pas par
+ * l'invocation), lui en compter un gênerait l'invocation suivante sans
+ * qu'aucune carte n'y soit pour rien. ⚠️ SEUL endroit qui répond à « combien
+ * d'unités pèsent sur le plafond » — `exceedsBoardSlots` et l'IA
+ * (`EnemyAI._attemptWith`) le lisent tous les deux ici, pour ne pas se
+ * contredire sur ce qu'un token vaut.
+ */
+export function livingSlotUnits(board, side) {
+  return board.getLivingUnitsOnSide(side).filter(u => !u.is_token);
+}
+
+/**
  * Une invocation ne coûte un slot de board que pour ce qu'elle n'a pas libéré
  * elle-même : les matériaux pris SUR LE BOARD rendent leur case, ceux pris au
  * CIMETIÈRE n'en rendent aucune.
@@ -112,7 +125,7 @@ export function forcedCell(condition, materials, board) {
  */
 export function exceedsBoardSlots(card, selectedMaterials, board, graveyard, playerBoardSlots) {
   const materialsOnBoard = selectedMaterials.filter(u => !graveyard.includes(u)).length;
-  const afterPlace = board.getLivingUnitsOnSide('player').length - materialsOnBoard + 1;
+  const afterPlace = livingSlotUnits(board, 'player').length - materialsOnBoard + 1;
   return afterPlace > playerBoardSlots;
 }
 
