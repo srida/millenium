@@ -415,21 +415,7 @@
 		"icon": "🙊",
 		"timing": "end_of_combat",
 		"categorie": "Archetype",
-		"thresholds": [
-			{
-				"count": 1,
-				"medal": "platinum",
-				"effects": [
-					{
-						"type": "guaranteed_draw",
-						"attributes": [
-							"ARCH_088",
-							"ARCH_014"
-						]
-					}
-				]
-			}
-		]
+		"thresholds": []
 	},
 	{
 		"id": "ARCH_015",
@@ -1447,18 +1433,7 @@
 		"icon": "🏺",
 		"timing": "end_of_combat",
 		"categorie": "Archetype",
-		"thresholds": [
-			{
-				"count": 1,
-				"medal": "platinum",
-				"effects": [
-					{
-						"type": "draw_bonus",
-						"value": 1
-					}
-				]
-			}
-		]
+		"thresholds": []
 	},
 	{
 		"id": "ARCH_065",
@@ -1926,7 +1901,7 @@
 		"thresholds": [
 			{
 				"count": 1,
-				"medal": "bronze",
+				"medal": "platinum",
 				"effects": [
 					{
 						"type": "stat_bonus",
@@ -1949,7 +1924,7 @@
 		"thresholds": [
 			{
 				"count": 1,
-				"medal": "bronze",
+				"medal": "platinum",
 				"effects": [
 					{
 						"type": "destroy_enemy"
@@ -1967,7 +1942,7 @@
 		"thresholds": [
 			{
 				"count": 1,
-				"medal": "bronze",
+				"medal": "platinum",
 				"effects": [
 					{
 						"type": "guaranteed_draw_bearer"
@@ -1987,6 +1962,63 @@
 	},
 	{
 		"id": "ARCH_101",
+		"name": "Piocheur-1",
+		"icon": "x1",
+		"timing": "end_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "draw_bonus",
+						"value": 1
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_102",
+		"name": "Piocheur-2",
+		"icon": "x2",
+		"timing": "end_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "draw_bonus",
+						"value": 2
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_103",
+		"name": "Piocheur-3",
+		"icon": "x3",
+		"timing": "end_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "draw_bonus",
+						"value": 3
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_104",
 		"name": "Unique",
 		"icon": "🔱",
 		"timing": "none",
