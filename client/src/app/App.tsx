@@ -26,6 +26,7 @@ import { SpaceBackground } from '../components/ui/SpaceBackground.js';
 import { AppHeader } from '../components/nav/AppHeader.js';
 import { AppFooter } from '../components/nav/AppFooter.js';
 import { ScreenTransition } from '../components/nav/ScreenTransition.js';
+import * as Audio from '../audio/AudioManager.js';
 
 /**
  * Écrans chargés à la demande. Ce ne sont pas les plus gros en lignes, ce sont
@@ -138,6 +139,26 @@ export default function App() {
     restore();
     initGameData().then(() => setReady(true)).catch(e => setError(String(e)));
   }, [restore]);
+
+  // La lecture audio est bloquée par les navigateurs tant qu'aucun geste
+  // utilisateur n'a eu lieu (iOS Safari en particulier) : un seul écouteur
+  // global, posé une fois, qui débloque `AudioManager` au premier tap — pas
+  // besoin d'un geste PAR bouton.
+  useEffect(() => {
+    const onFirstPointer = () => Audio.unlock();
+    window.addEventListener('pointerdown', onFirstPointer, { once: true });
+    return () => window.removeEventListener('pointerdown', onFirstPointer);
+  }, []);
+
+  // Musique des MENUS — la partie en cours (`game`/`game_pvp`) règle la
+  // sienne elle-même, par round, depuis `GameController` (thèmes
+  // `game_early`/`game_mid`/`game_late`) : cet effet n'y touche pas.
+  useEffect(() => {
+    if (screen === 'game' || screen === 'game_pvp') return;
+    const theme = screen === 'main_menu' || screen === 'auth' || screen === 'reset_password'
+      ? 'menu_main' : 'menu_other';
+    Audio.setMusicTheme(theme);
+  }, [screen]);
 
   if (error) {
     return (

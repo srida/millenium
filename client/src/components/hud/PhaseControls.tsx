@@ -7,6 +7,7 @@ import type { BoardDef } from '../../logic/types.js';
 import { Button, Illustration } from '../ui/primitives.js';
 import HoldConfirmButton from '../ui/HoldConfirmButton.js';
 import { useWebLayout } from '../system/useWebLayout.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);
@@ -78,7 +79,7 @@ function MenuButton() {
     <Button
       aria-label="Options"
       className="shrink-0 px-3 text-base"
-      onPointerDown={(e) => { e.stopPropagation(); applySnapshot({ menuOpen: true }); }}
+      onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_ingame'); applySnapshot({ menuOpen: true }); }}
     >
       ☰
     </Button>

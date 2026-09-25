@@ -89,3 +89,32 @@ export function isInvocationAttribute(id) {
   }
 }
 
+/**
+ * La catégorie qui porte les ÉLÉMENTS (Feu, Eau, Terre…). Même statut que les
+ * trois au-dessus : un attribut comme un autre pour le moteur, qui décide ici
+ * seulement de la question « cet attribut décrit-il un élément ? » — posée
+ * pour choisir un effet sonore d'attaque (`AudioManager`), sur le même
+ * catalogue que `three/constants.ELEMENT_STYLES` mais sans en dépendre.
+ */
+export const ELEMENT_CATEGORY = 'Element';
+
+/** Cet attribut décrit-il un élément ? */
+export function isElementAttribute(id) {
+  try {
+    return getAttribute(id)?.categorie === ELEMENT_CATEGORY;
+  } catch {
+    return false;
+  }
+}
+
+/** Le premier attribut Élément porté par une unité, ou `null` — le choix
+ *  entre plusieurs n'a pas à être déterministe ici, c'est un habillage
+ *  sonore, pas une règle de jeu. */
+export function primaryElementOf(attrIds) {
+  try {
+    return (attrIds || []).find(id => isElementAttribute(id)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
