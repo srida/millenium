@@ -291,6 +291,10 @@ export class CombatAnimator3D {
     // `effect_immunity`. Jouer l'effet complet dessus — l'état d'avant — le
     // rendait indiscernable d'un effet qui a pris.
     const immune = extra.immune === true;
+    // ⚠️ Joué que le pouvoir prenne ou soit dévié : c'est le déclenchement
+    // qu'on annonce, pas son résultat — même doctrine que `power_triggered`
+    // côté missions (« la boucle NOMME un moment, elle ne connaît aucun effet »).
+    Audio.playSfx('power', { power: power_id });
 
     const casterEntry = this._board.getUnitEntry(unit.uid);
     if (casterEntry) {

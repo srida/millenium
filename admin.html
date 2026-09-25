@@ -1113,6 +1113,7 @@ function buildQuerySchemas() {
       txt('declencheur', 'Déclencheur', s => s.trigger, ['trigger']),
       num('tier', 'Tier', s => Number(s.tier) || 0),
       txt('element', 'Élément', s => s.element, []),
+      txt('pouvoir', 'Pouvoir', s => s.power, ['power']),
       bool('audio', 'A un fichier', s => !!s._has_audio, ['son']),
     ],
   };
@@ -6116,7 +6117,7 @@ function renderSfxList(list = sfx) {
   el.innerHTML = list.map(s => {
     const isActive = selectedSfx?.id === s.id;
     const trigger = SOUND?.sfxTrigger(s.trigger);
-    const variant = s.tier ? `T${s.tier}` : s.element ? esc(getAttrName(s.element)) : '';
+    const variant = s.tier ? `T${s.tier}` : s.element ? esc(getAttrName(s.element)) : s.power ? esc(getPowerName(s.power)) : '';
     return `
       <div class="list-item ${isActive ? 'selected' : ''}" onclick="selectSfx('${s.id}')">
         <div class="list-thumb-placeholder"><span style="font-size:14px;opacity:.4">${s._has_audio ? '🔊' : '🔈'}</span></div>
@@ -6144,6 +6145,10 @@ function elementAttrOptions() {
   return attributes.filter(a => a.categorie === 'Element');
 }
 
+function powerIdOptions() {
+  return powers;
+}
+
 function renderSfxDetail() {
   const s = selectedSfx;
   const el = document.getElementById('sfx-detail');
@@ -6159,6 +6164,8 @@ function renderSfxDetail() {
     .map(t => `<option value="${t}" ${String(s.tier || '') === String(t) ? 'selected' : ''}>${t ? `Tier ${t}` : 'Repli (tous tiers non couverts)'}</option>`).join('');
   const elementOpts = ['<option value="">Repli (tous éléments non couverts)</option>']
     .concat(elementAttrOptions().map(a => `<option value="${esc(a.id)}" ${s.element === a.id ? 'selected' : ''}>${esc(a.name)}</option>`)).join('');
+  const powerOpts = ['<option value="">Repli (tous pouvoirs non couverts)</option>']
+    .concat(powerIdOptions().map(p => `<option value="${esc(p.id)}" ${s.power === p.id ? 'selected' : ''}>${esc(p.name || p.id)}</option>`)).join('');
   el.innerHTML = `
     <button class="back-btn" onclick="showList()">Retour à la liste</button>
     <div class="detail-header">
@@ -6206,8 +6213,13 @@ function renderSfxDetail() {
       ${trigger?.variant === 'tier'
         ? `<label>Tier (facultatif — sinon ce son sert de repli pour les tiers non couverts)</label>
            <select id="sfx-tier">${tierOpts}</select>`
-        : `<label>Élément (facultatif — sinon ce son sert de repli pour les éléments non couverts)</label>
-           <select id="sfx-element">${elementOpts}</select>`}
+        : trigger?.variant === 'element'
+        ? `<label>Élément (facultatif — sinon ce son sert de repli pour les éléments non couverts)</label>
+           <select id="sfx-element">${elementOpts}</select>`
+        : trigger?.variant === 'power'
+        ? `<label>Pouvoir (facultatif — sinon ce son sert de repli pour les pouvoirs non couverts)</label>
+           <select id="sfx-power">${powerOpts}</select>`
+        : ''}
     </div>
 
     <div class="detail-actions">
@@ -6228,7 +6240,7 @@ function renderSfxDetail() {
 function _syncSfxVariantField() {
   const name = document.getElementById('sfx-name')?.value;
   const triggerId = document.getElementById('sfx-trigger')?.value;
-  selectedSfx = { ...selectedSfx, name, trigger: triggerId, tier: undefined, element: undefined };
+  selectedSfx = { ...selectedSfx, name, trigger: triggerId, tier: undefined, element: undefined, power: undefined };
   renderSfxDetail();
 }
 
@@ -6245,12 +6257,16 @@ function _collectSfxFields() {
   };
   delete out.tier;
   delete out.element;
+  delete out.power;
   if (meta?.variant === 'tier') {
     const v = document.getElementById('sfx-tier')?.value;
     if (v) out.tier = parseInt(v, 10);
   } else if (meta?.variant === 'element') {
     const v = document.getElementById('sfx-element')?.value;
     if (v) out.element = v;
+  } else if (meta?.variant === 'power') {
+    const v = document.getElementById('sfx-power')?.value;
+    if (v) out.power = v;
   }
   delete out._has_audio;
   delete out._audio_ext;

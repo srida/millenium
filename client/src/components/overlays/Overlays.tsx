@@ -16,6 +16,7 @@ import { bonusSourceName } from '../../data/gameNames.js';
 import { END_ROUND_DURATION_S, TERRAIN_ALERT_MS } from '../../game/timings.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
 import type { BonusSourceEntry } from '../../logic/types.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 /**
  * L'annonce du terrain, à l'entrée en phase de combat.
@@ -220,7 +221,7 @@ export function EndRoundOverlay() {
         </div>
         <DamageBreakdown result={endRound} />
         <div className="mt-1 text-xs text-white/40">{countdown}s</div>
-        <Button variant="primary" className="mt-1 w-full" onPointerDown={(e) => { e.stopPropagation(); controller.dismissEndRound(); }}>
+        <Button variant="primary" className="mt-1 w-full" onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('round_recap_dismiss'); controller.dismissEndRound(); }}>
           {isGameOver ? 'RÉSULTAT FINAL' : `TOUR ${round + 1} ▸`}
         </Button>
       </div>

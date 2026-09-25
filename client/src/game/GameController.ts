@@ -161,6 +161,8 @@ export class GameController {
     // NO-OP si c'est déjà le thème en cours (`AudioManager.setMusicTheme`),
     // donc appelable à chaque tour sans relancer la piste entre 1 et 2.
     Audio.setMusicTheme(draw.round >= 5 ? 'game_late' : draw.round >= 3 ? 'game_mid' : 'game_early');
+    // ⚠️ Le round 1 est le DÉBUT de la partie, pas un « changement » de tour.
+    if (draw.round > 1) Audio.playSfx('round_change');
     this.sync({ roundIntro: { round: draw.round }, drawPopup: null });
     this._introTimer = setTimeout(() => this._openDrawPopup(), ROUND_INTRO_MS);
   }
@@ -177,7 +179,6 @@ export class GameController {
     const draw = this._pendingDraw;
     if (!draw) return;
     this._pendingDraw = null;
-    Audio.playSfx('draw');
     this.sync({ roundIntro: null, drawPopup: draw });
   }
 
@@ -214,9 +215,12 @@ export class GameController {
     }, durationMs);
   }
 
-  /** Le tap sur le dos de carte : la main est déjà là, on lève le voile. */
+  /** Le tap sur le dos de carte : la main est déjà là, on lève le voile.
+   *  ⚠️ Le son de pioche part ICI, pas à l'ouverture de la popup : c'est le
+   *  clic sur la pioche qui doit être entendu, pas son apparition. */
   dismissDrawPopup(): void {
     if (!useGameStore.getState().drawPopup) return;
+    Audio.playSfx('draw');
     this.sync({ drawPopup: null });
   }
 
@@ -1025,6 +1029,7 @@ export class GameController {
       this._flashError('Pas assez de PV pour en payer le contrecoup');
       return;
     }
+    Audio.playSfx('shopping_choose');
     if (this.session.magieNeedsUnitTarget(magie)) {
       const targets = this.session.magieUnitTargets(magie);
       if (!targets.length) { this._flashError('Aucune cible valide pour cette magie'); return; }
@@ -1054,6 +1059,7 @@ export class GameController {
   }
 
   skipShopping(): void {
+    Audio.playSfx('shopping_skip');
     this._proceedNextRound();
   }
 
@@ -1245,6 +1251,9 @@ export class GameController {
       if (winner === 'player') Audio.playSfx('match_win');
       else if (winner === 'enemy') Audio.playSfx('match_lose');
       else if (winner === 'draw') Audio.playSfx('match_draw');
+      // La musique de partie s'arrête sur l'écran de fin — elle n'a plus de
+      // round à accompagner, et le prochain écran (menu) posera la sienne.
+      Audio.setMusicTheme(null);
     }
     const gs = this.session.gameState;
     const hand = this._groupHand();
