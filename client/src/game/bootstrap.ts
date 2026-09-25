@@ -22,9 +22,20 @@ import { summonCost } from '../logic/InvocationManager.js';
 
 let _dataReady = false;
 
-export async function initGameData(): Promise<void> {
-  if (_dataReady) return;
-  await Promise.all([
+/** Poids de la phase « catalogues » dans la barre de progression de
+ *  `App.tsx` — le reste va au décodage des sons, la partie qui peut
+ *  réellement prendre un instant perceptible. Purement indicatif : les deux
+ *  phases sont réelles, seule leur pondération à l'écran est arbitraire. */
+const DATA_PROGRESS_SHARE = 0.5;
+
+/**
+ * @param onProgress Fraction 0→1 de l'ensemble « catalogues + sons » —
+ *   consommée par l'écran de chargement (`App.tsx`) pour sa barre. Optionnel :
+ *   `AiLab` et les autres appelants s'en passent.
+ */
+export async function initGameData(onProgress?: (fraction: number) => void): Promise<void> {
+  if (_dataReady) { onProgress?.(1); return; }
+  const inits = [
     (CardDatabase as any).init(),
     (PowerDatabase as any).init(),
     (AttributeDatabase as any).init(),
@@ -40,14 +51,23 @@ export async function initGameData(): Promise<void> {
     (SfxDatabase as any).init(),
     (MusicDatabase as any).init(),
     (MusicThemeDatabase as any).init(),
-  ]);
+  ];
+  let doneInits = 0;
+  onProgress?.(0);
+  await Promise.all(inits.map((p) => p.then(() => {
+    doneInits++;
+    onProgress?.((doneInits / inits.length) * DATA_PROGRESS_SHARE);
+  })));
   _dataReady = true;
-  // Précharge et décode tout le catalogue de sons dès que la liste est
-  // connue — bien avant le premier combat, pendant l'écran de chargement.
-  // Fire-and-forget : sans lui, chaque effet sonore refaisait un fetch +
-  // décodage complet à CHAQUE déclenchement (une attaque, un pouvoir — des
-  // dizaines par combat), la latence réseau s'empilant sur la boucle de jeu.
-  Audio.preloadSfx();
+  // Précharge et DÉCODE tout le catalogue de sons — ATTENDU ici, pas en
+  // fire-and-forget : c'est ce qui garantit que la musique de menu est prête
+  // à jouer dès que l'écran de chargement cède la place (cf. l'en-tête
+  // d'`AudioManager`). Sans son propre catalogue chargé (`SfxDatabase.init()`
+  // juste au-dessus), il n'y aurait de toute façon rien à précharger.
+  await Audio.preloadSfxAsync((done, total) => {
+    onProgress?.(DATA_PROGRESS_SHARE + (total ? done / total : 1) * (1 - DATA_PROGRESS_SHARE));
+  });
+  onProgress?.(1);
 }
 
 // Charge un deck nommé, ou null s'il est absent, illisible ou vide.
