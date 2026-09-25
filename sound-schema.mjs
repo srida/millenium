@@ -16,24 +16,34 @@
  *                        couverts.
  * `variant: 'element'` — un son PEUT être décliné par attribut de catégorie
  *                        `Element` ; une entrée sans élément sert de repli.
+ * `variant: 'power'`   — un son PEUT être décliné par POUVOIR (`POWER_HEAL`,
+ *                        `POWER_PARALYSIS`…) ; une entrée sans pouvoir sert
+ *                        de repli.
  */
 export const SFX_TRIGGERS = [
-  { id: 'draw',            label: 'Piocher',                          variant: null },
-  { id: 'card_tap',        label: 'Cliquer sur une carte',            variant: null },
-  { id: 'drag',            label: 'Glisser une carte',                variant: null },
-  { id: 'summon',          label: 'Invocation',                       variant: 'tier' },
-  { id: 'move_unit',       label: 'Bouger une unité',                 variant: null },
-  { id: 'mulligan_reroll', label: 'Mulligan / Reroll (coût en PV)',   variant: null },
-  { id: 'ready',           label: 'Bouton Prêt',                      variant: null },
-  { id: 'undo',            label: "Bouton Annuler les actions",       variant: null },
-  { id: 'menu_ingame',     label: 'Ouverture du menu en partie',      variant: null },
-  { id: 'use_material',    label: 'Utiliser un matériel',             variant: null },
-  { id: 'attack',          label: 'Attaque',                          variant: 'element' },
-  { id: 'phase_combat',    label: 'Passage en phase Combat',          variant: null },
-  { id: 'phase_shopping',  label: 'Passage en phase Shopping',        variant: null },
-  { id: 'match_win',       label: 'Écran de victoire',                variant: null },
-  { id: 'match_lose',      label: 'Écran de défaite',                 variant: null },
-  { id: 'match_draw',      label: 'Écran d\'égalité',                 variant: null },
+  { id: 'draw',                label: 'Piocher',                              variant: null },
+  { id: 'card_tap',            label: 'Cliquer sur une carte',                variant: null },
+  { id: 'drag',                label: 'Glisser une carte',                    variant: null },
+  { id: 'summon',               label: 'Invocation',                           variant: 'tier' },
+  { id: 'move_unit',           label: 'Bouger une unité',                     variant: null },
+  { id: 'mulligan_reroll',     label: 'Mulligan / Reroll (coût en PV)',       variant: null },
+  { id: 'ready',                label: 'Bouton Prêt',                          variant: null },
+  { id: 'undo',                 label: "Bouton Annuler les actions",           variant: null },
+  { id: 'menu_ingame',          label: 'Ouverture du menu en partie',          variant: null },
+  { id: 'menu_resume',          label: 'Bouton Reprendre la partie',           variant: null },
+  { id: 'menu_quit',            label: 'Bouton Quitter la partie',             variant: null },
+  { id: 'use_material',        label: 'Utiliser un matériel',                 variant: null },
+  { id: 'attack',                label: 'Attaque',                              variant: 'element' },
+  { id: 'power',                 label: 'Pouvoir déclenché',                    variant: 'power' },
+  { id: 'round_change',        label: 'Changement de tour',                   variant: null },
+  { id: 'phase_combat',        label: 'Passage en phase Combat',              variant: null },
+  { id: 'phase_shopping',      label: 'Passage en phase Shopping',            variant: null },
+  { id: 'round_recap_dismiss', label: 'Bouton de la popup de résultat',       variant: null },
+  { id: 'shopping_choose',     label: 'Choix d\'un objet en Phase Shopping',  variant: null },
+  { id: 'shopping_skip',       label: 'Passer la Phase Shopping',             variant: null },
+  { id: 'match_win',            label: 'Écran de victoire',                    variant: null },
+  { id: 'match_lose',           label: 'Écran de défaite',                     variant: null },
+  { id: 'match_draw',           label: 'Écran d\'égalité',                     variant: null },
 ];
 
 export const MUSIC_THEMES = [

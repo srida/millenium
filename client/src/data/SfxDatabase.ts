@@ -15,6 +15,8 @@ export interface SfxEntry {
   tier?: number;
   /** Variante par élément (déclencheur `attack`), id d'attribut, facultative. */
   element?: string;
+  /** Variante par pouvoir (déclencheur `power`), id de pouvoir, facultative. */
+  power?: string;
   _has_audio?: boolean;
 }
 
@@ -42,13 +44,15 @@ export function sfxUrl(id: string): string {
 export interface SfxVariant {
   tier?: number;
   element?: string;
+  power?: string;
 }
 
 /**
  * Le meilleur candidat pour ce déclencheur : la variante EXACTE d'abord (le
- * tier ou l'élément demandé), le REPLI générique du déclencheur ensuite (une
- * entrée sans variante posée) — jamais un candidat d'une autre variante, qui
- * annoncerait le mauvais tier ou le mauvais élément.
+ * tier, l'élément ou le pouvoir demandé), le REPLI générique du déclencheur
+ * ensuite (une entrée sans variante posée) — jamais un candidat d'une autre
+ * variante, qui annoncerait le mauvais tier, le mauvais élément ou le
+ * mauvais pouvoir.
  *
  * ⚠️ Sans fichier audio (`_has_audio` faux), l'entrée n'est pas un candidat :
  * un déclencheur catalogué mais sans son reste silencieux, pas cassé.
@@ -64,5 +68,9 @@ export function resolveSfx(trigger: string, variant?: SfxVariant): SfxEntry | nu
     const exact = candidates.find(s => s.element === variant.element);
     if (exact) return exact;
   }
-  return candidates.find(s => s.tier == null && s.element == null) ?? candidates[0];
+  if (variant?.power) {
+    const exact = candidates.find(s => s.power === variant.power);
+    if (exact) return exact;
+  }
+  return candidates.find(s => s.tier == null && s.element == null && s.power == null) ?? candidates[0];
 }

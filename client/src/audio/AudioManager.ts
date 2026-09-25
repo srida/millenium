@@ -15,10 +15,11 @@ import { resolveSfx, sfxUrl, type SfxVariant } from '../data/SfxDatabase.js';
 import { tracksForTheme, musicUrl } from '../data/MusicDatabase.js';
 
 const SETTINGS_KEY = 'millenium_audio_settings_v1';
-// Durée du fondu enchaîné entre deux musiques — assez long pour ne jamais se
-// remarquer comme une coupure, assez court pour ne pas laisser deux thèmes se
-// superposer sur un changement de round rapide.
-const CROSSFADE_MS = 1200;
+// Durée du fondu enchaîné entre deux musiques — assez long pour qu'un
+// changement de thème de partie (tours 1-2 → 3-4 → 5) se fasse sentir comme
+// une transition et non une coupure, assez court pour ne pas laisser deux
+// thèmes se superposer sur un enchaînement rapide de rounds.
+const CROSSFADE_MS = 2000;
 const FADE_STEP_MS = 50;
 
 interface AudioSettings {
@@ -149,11 +150,26 @@ function fadeOutCurrent(): void {
   const outgoing = currentEl;
   currentEl = null;
   if (!outgoing) return;
-  fadeVolume(outgoing, outgoing.volume, 0, () => outgoing.pause());
+  const startVolume = outgoing.volume;
+  runFade((t) => { outgoing.volume = clamp01(startVolume * Math.cos(t * (Math.PI / 2))); }, () => outgoing.pause());
 }
 
+/**
+ * ⚠️ Fondu À PUISSANCE ÉGALE (`sin`/`cos`, pas un simple linéaire) : deux
+ * volumes qui rampent chacun de leur côté en ligne droite se croisent en
+ * creusant un trou audible au milieu du fondu — l'oreille perçoit la SOMME
+ * des deux pistes, qui vaut alors `sin²+cos² = 1` à puissance égale, contre
+ * `t + (1-t) = 1`... en amplitude, pas en énergie perçue. C'est ce trou que
+ * la demande d'une transition « douce » entre les musiques de partie
+ * signalait.
+ *
+ * Un seul minuteur pilote l'ENTRANTE et la SORTANTE ensemble : deux fondus
+ * indépendants (l'un sur `from→to`, l'autre sur `to→from`) ne garantissent
+ * pas la même progression `t` au même tick.
+ */
 function crossfadeTo(id: string): void {
   const outgoing = currentEl;
+  const outgoingStart = outgoing?.volume ?? 0;
   const incoming = new Audio(musicUrl(id));
   incoming.loop = true;
   incoming.volume = 0;
@@ -161,26 +177,30 @@ function crossfadeTo(id: string): void {
   // Refusé tant qu'aucun geste utilisateur n'a eu lieu — `unlock()` relance
   // alors l'élément resté en pause, sans qu'on ait à s'en soucier ici.
   incoming.play().catch(() => { /* silencieux, cf. unlock() */ });
-  fadeVolume(incoming, 0, effectiveMusicVolume());
-  if (outgoing) fadeVolume(outgoing, outgoing.volume, 0, () => outgoing.pause());
+  const target = effectiveMusicVolume();
+  runFade((t) => {
+    const angle = t * (Math.PI / 2);
+    incoming.volume = clamp01(Math.sin(angle) * target);
+    if (outgoing) outgoing.volume = clamp01(Math.cos(angle) * outgoingStart);
+  }, () => outgoing?.pause());
 }
 
 /**
- * L'unique primitive de fondu, entrante comme sortante. Un `setInterval` à
- * pas fixe suffit pour une oreille — pas de `requestAnimationFrame`, réservé
- * au rendu (cf. `logic/` et `three/Scene3D._animate`) : ce module n'anime
- * rien à l'écran.
+ * La primitive de fondu commune : appelle `step(t)` avec une progression `t`
+ * de 0 à 1 à pas fixe. Un `setInterval` suffit pour une oreille — pas de
+ * `requestAnimationFrame`, réservé au rendu (cf. `logic/` et
+ * `three/Scene3D._animate`) : ce module n'anime rien à l'écran.
  */
-function fadeVolume(el: HTMLAudioElement, from: number, to: number, onDone?: () => void): void {
+function runFade(step: (t: number) => void, onDone?: () => void): void {
   const steps = Math.max(1, Math.round(CROSSFADE_MS / FADE_STEP_MS));
   let i = 0;
-  el.volume = from;
+  step(0);
   const timer = setInterval(() => {
     i++;
-    el.volume = clamp01(from + (to - from) * (i / steps));
-    if (i >= steps) {
+    const t = Math.min(1, i / steps);
+    step(t);
+    if (t >= 1) {
       clearInterval(timer);
-      el.volume = to;
       onDone?.();
     }
   }, FADE_STEP_MS);

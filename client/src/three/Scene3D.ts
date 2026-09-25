@@ -23,6 +23,7 @@ import {
 } from './constants.js';
 import type { Unit } from '../logic/Unit.js';
 import type { BoardDef, Position } from '../logic/types.js';
+import * as Audio from '../audio/AudioManager.js';
 
 // Axe vertical du monde, réutilisé par spawnBeam (rotateOnWorldAxis).
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
@@ -2008,7 +2009,11 @@ export class Scene3D {
         }
         continue;
       }
-      this.unitObjs.set(unit.uid, this._spawnUnitObj(unit, SPAWN_LEAD_S + spawned * SPAWN_STAGGER_S));
+      const delaySec = SPAWN_LEAD_S + spawned * SPAWN_STAGGER_S;
+      this.unitObjs.set(unit.uid, this._spawnUnitObj(unit, delaySec));
+      // Le son suit la CASCADE, pas le tir groupé : chaque unité ennemie sonne
+      // à l'instant précis où elle apparaît, comme sa propre chute.
+      setTimeout(() => Audio.playSfx('summon', { tier: unit.tier ?? undefined }), delaySec * 1000);
       spawned++;
     }
     // Purge des unités ennemies qui ont quitté le board. Retrait franc
