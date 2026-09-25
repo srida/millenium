@@ -20,7 +20,22 @@
 // `.volume` reste le repli quand la connexion Web Audio échoue (contexte
 // indisponible, CORS) — mieux que rien ailleurs, sans effet sur iOS de toute
 // façon.
-import { resolveSfx, sfxUrl, type SfxVariant } from '../data/SfxDatabase.js';
+//
+// ⚠️ Les EFFETS SONORES sont PRÉCHARGÉS et DÉCODÉS une fois pour toutes
+// (`preloadSfx`), jamais rejoués à la volée : un `attack` ou un `power` part
+// des dizaines de fois par combat, et refaire un `fetch` + un décodage MP3
+// complet À CHAQUE déclenchement empilait une vraie latence réseau sur la
+// boucle de combat — la lenteur perçue en jeu. Une fois le catalogue en
+// cache (`AudioBuffer`), jouer un son ne fait plus que planifier un
+// `AudioBufferSourceNode` déjà décodé : aucun réseau, aucun décodage, juste
+// une lecture quasi instantanée. `createRoutedAudio` (l'ancien chemin, un
+// `<audio>` par lecture) reste le REPLI pour un son pas encore préchargé —
+// jamais silencieux, seulement plus lent le temps que le cache se remplisse.
+// La MUSIQUE, elle, reste sur ce chemin élément : des pistes qui bouclent
+// plusieurs minutes coûteraient bien plus cher décodées entières en mémoire
+// qu'en flux, et un changement d'emplacement est rare (par round, pas par
+// attaque) — le coût d'un `fetch` n'y est structurellement pas sensible.
+import { resolveSfx, sfxUrl, getAllSfx, type SfxVariant } from '../data/SfxDatabase.js';
 import { tracksForTheme, tracksForGameTheme, playableGameThemeIds, musicUrl } from '../data/MusicDatabase.js';
 import { GAME_MUSIC_SLOTS } from '../../../sound-schema.mjs';
 
@@ -73,6 +88,7 @@ export function getSettings(): AudioSettings {
 export function setSfxVolume(v: number): void {
   loadSettings().sfxVolume = clamp01(v);
   saveSettings();
+  applySfxGain();
 }
 
 export function setMusicVolume(v: number): void {
@@ -85,6 +101,7 @@ export function setMuted(muted: boolean): void {
   loadSettings().muted = muted;
   saveSettings();
   applyMusicVolume();
+  applySfxGain();
 }
 
 // ================== Contexte Web Audio (volume réel, y compris iOS) ==================
@@ -143,11 +160,80 @@ function setRoutedVolume(a: RoutedAudio, v: number): void {
 
 // ================== Effets sonores ==================
 
+/** Les buffers déjà DÉCODÉS, par id de `SfxEntry` — c'est le cache que
+ *  `preloadSfx()` remplit et que `playSfx` consulte en premier. */
+const sfxBufferCache = new Map<string, AudioBuffer>();
+/** Une seule promesse par id en vol, pour qu'un `preloadSfx()` rejoué (au
+ *  début d'un match, par sécurité) ne relance pas un fetch déjà en cours. */
+const sfxLoading = new Map<string, Promise<void>>();
+
+/** Le nœud de gain PARTAGÉ de tous les effets sonores joués depuis le cache
+ *  — une seule création, jamais un par lecture (contrairement à la musique,
+ *  qui n'a qu'UNE piste à la fois). Les `AudioBufferSourceNode` s'y
+ *  connectent et se somment naturellement, comme plusieurs sons superposés
+ *  le feraient dans la réalité. */
+let sfxGain: GainNode | null = null;
+
+function ensureSfxGain(ctx: AudioContext): GainNode {
+  if (!sfxGain) {
+    sfxGain = ctx.createGain();
+    const s = loadSettings();
+    sfxGain.gain.value = s.muted ? 0 : s.sfxVolume;
+    sfxGain.connect(ctx.destination);
+  }
+  return sfxGain;
+}
+
+function applySfxGain(): void {
+  if (!sfxGain) return;
+  const s = loadSettings();
+  sfxGain.gain.value = s.muted ? 0 : s.sfxVolume;
+}
+
+function loadSfxBuffer(id: string): Promise<void> {
+  const cached = sfxLoading.get(id);
+  if (cached) return cached;
+  const p = (async () => {
+    if (sfxBufferCache.has(id)) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    try {
+      const res = await fetch(sfxUrl(id));
+      if (!res.ok) return;
+      const bytes = await res.arrayBuffer();
+      const buffer = await ctx.decodeAudioData(bytes);
+      sfxBufferCache.set(id, buffer);
+    } catch { /* le repli `createRoutedAudio` de `playSfx` prend le relais */ }
+  })();
+  sfxLoading.set(id, p);
+  return p;
+}
+
+/**
+ * Précharge et décode TOUT le catalogue de sons jouables — à appeler une
+ * fois au chargement des données de jeu, et de nouveau (sans effet si déjà
+ * en cache) à l'ouverture d'un match, pour couvrir un son ajouté en admin
+ * entre les deux. Fire-and-forget : ne bloque jamais l'appelant, un son non
+ * encore décodé retombe simplement sur le chemin `<audio>` d'origine le
+ * temps que son fetch aboutisse.
+ */
+export function preloadSfx(): void {
+  // `loadSfxBuffer` retombe sur `getAudioCtx()`, qui rend `null` sans DOM
+  // (suite de test, `environment: 'node'`) — rien à garder ici en plus.
+  for (const entry of getAllSfx()) {
+    if (entry._has_audio) loadSfxBuffer(entry.id).catch(() => {});
+  }
+}
+
 /**
  * Joue le son du déclencheur donné, avec sa variante (tier, élément ou
  * pouvoir) si le catalogue en porte une. Un déclencheur sans catalogue, sans
  * fichier, ou une lecture refusée (autoplay) ne produit RIEN — jamais une
  * exception.
+ *
+ * ⚠️ Chemin RAPIDE d'abord (buffer déjà décodé par `preloadSfx` → nœud de
+ * gain partagé, aucun réseau) ; repli sur l'ancien chemin élément par
+ * élément UNIQUEMENT si le buffer n'est pas encore en cache.
  */
 export function playSfx(trigger: string, variant?: SfxVariant): void {
   if (typeof Audio === 'undefined') return;
@@ -155,6 +241,20 @@ export function playSfx(trigger: string, variant?: SfxVariant): void {
   if (s.muted || s.sfxVolume <= 0) return;
   const entry = resolveSfx(trigger, variant);
   if (!entry) return;
+
+  const buffer = sfxBufferCache.get(entry.id);
+  const ctx = getAudioCtx();
+  if (buffer && ctx) {
+    try {
+      const gain = ensureSfxGain(ctx);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(gain);
+      source.start(0);
+      return;
+    } catch { /* repli ci-dessous */ }
+  }
+
   try {
     const routed = createRoutedAudio(sfxUrl(entry.id));
     setRoutedVolume(routed, s.sfxVolume);

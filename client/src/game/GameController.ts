@@ -131,6 +131,11 @@ export class GameController {
     // Un thème de partie par MATCH, tiré une seule fois ici — jamais à
     // chaque round (cf. `Audio.rollGameTheme`).
     Audio.rollGameTheme();
+    // Filet de sécurité : `bootstrap.initGameData()` précharge déjà tout le
+    // catalogue de sons au chargement, mais un son idempotent-skip ici
+    // couvre un ajout en admin depuis (rien à refaire pour ceux déjà en
+    // cache).
+    Audio.preloadSfx();
     const draw = this.session.startPreparation();
     this._clearSelection();
     // Ouvre la file d'événements de missions : elle est vidée en fin de partie

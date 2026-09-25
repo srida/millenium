@@ -14,6 +14,7 @@ import * as MusicDatabase from '../data/MusicDatabase.js';
 import * as MusicThemeDatabase from '../data/MusicThemeDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import * as CardArt from '../data/CardArt.js';
+import * as Audio from '../audio/AudioManager.js';
 import { GameSession } from '../logic/GameSession.js';
 import { deckPoolByTier } from '../logic/Draw.js';
 import type { Card } from '../logic/types.js';
@@ -41,6 +42,12 @@ export async function initGameData(): Promise<void> {
     (MusicThemeDatabase as any).init(),
   ]);
   _dataReady = true;
+  // Précharge et décode tout le catalogue de sons dès que la liste est
+  // connue — bien avant le premier combat, pendant l'écran de chargement.
+  // Fire-and-forget : sans lui, chaque effet sonore refaisait un fetch +
+  // décodage complet à CHAQUE déclenchement (une attaque, un pouvoir — des
+  // dizaines par combat), la latence réseau s'empilant sur la boucle de jeu.
+  Audio.preloadSfx();
 }
 
 // Charge un deck nommé, ou null s'il est absent, illisible ou vide.
