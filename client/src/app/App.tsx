@@ -26,7 +26,7 @@ import { SpaceBackground } from '../components/ui/SpaceBackground.js';
 import { AppHeader } from '../components/nav/AppHeader.js';
 import { AppFooter } from '../components/nav/AppFooter.js';
 import { ScreenTransition } from '../components/nav/ScreenTransition.js';
-import { Button, Gauge } from '../components/ui/primitives.js';
+import { BUTTON_BASE, Gauge, SHADOW_IDLE, SURFACE_GOLD } from '../components/ui/primitives.js';
 import * as Audio from '../audio/AudioManager.js';
 
 /**
@@ -197,16 +197,21 @@ export default function App() {
       <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-surface px-6 text-gold">
         <img src="/logo.png" alt="Millenium" className="h-24 w-24 object-contain" />
         {dataReady ? (
-          // Le TAP est ce qui unlock l'audio pour de bon (cf. `entered`
-          // ci-dessus) : `onPointerDown`, pas `onClick`, pour rester au plus
-          // près du geste brut, comme partout ailleurs sur les boutons du jeu.
-          <Button
-            variant="primary"
-            className="min-w-40 justify-center text-base"
+          // ⚠️ Un `<button>` NU, PAS le `Button` du jeu : celui-ci retarde son
+          // `onPointerDown` de `SQUASH_DELAY_MS` (`usePressSquash`, le temps de
+          // course de l'enfoncement) — un `setTimeout`, même de 45 ms, sort le
+          // `play()` du tour d'exécution SYNCHRONE du geste natif, et les
+          // navigateurs stricts (Safari) refusent alors la lecture SANS un mot.
+          // C'est très exactement pourquoi la musique ne démarrait toujours
+          // pas malgré le tap. Ici l'unlock doit partir DANS le geste, donc
+          // rien entre le `pointerdown` natif et l'appel à `Audio`.
+          <button
+            type="button"
+            className={`${BUTTON_BASE} ${SURFACE_GOLD} ${SHADOW_IDLE} min-w-40 justify-center text-base text-gold hover:brightness-110`}
             onPointerDown={() => { Audio.unlock(); Audio.setMusicTheme('menu'); setEntered(true); }}
           >
             Appuyer pour commencer
-          </Button>
+          </button>
         ) : (
           <>
             <p>Chargement…</p>
