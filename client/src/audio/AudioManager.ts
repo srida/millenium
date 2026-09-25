@@ -3,14 +3,23 @@
 // ni Zustand, piloté par des appels explicites (`GameController`, `App.tsx`,
 // les composants HUD) plutôt qu'abonné à un store.
 //
-// ⚠️ RIEN n'est lu au niveau module (`Audio`, `localStorage`) : la suite de
-// test tourne en `environment: 'node'`, sans DOM — même discipline que
-// `three/constants.ts` et `components/ui/feedback.ts`.
+// ⚠️ RIEN n'est lu au niveau module (`Audio`, `localStorage`, `AudioContext`) :
+// la suite de test tourne en `environment: 'node'`, sans DOM — même
+// discipline que `three/constants.ts` et `components/ui/feedback.ts`.
 //
 // ⚠️ Un son manqué n'est JAMAIS une erreur qui remonte : catalogue vide,
 // fichier absent, autoplay bloqué avant le premier geste utilisateur — dans
 // les trois cas, le jeu continue silencieusement. L'audio est un habillage,
 // pas une donnée de jeu (même doctrine que `CardBackDatabase`).
+//
+// ⚠️ Le VOLUME passe par un `GainNode` (Web Audio), jamais par
+// `HTMLMediaElement.volume` seul : Safari iOS IGNORE silencieusement cette
+// propriété — un slider qui bouge sans le moindre effet sur le son, sur cette
+// seule plateforme, est la signature exacte de ce piège documenté. Un
+// `GainNode` fonctionne partout, y compris là où `.volume` ne fait rien.
+// `.volume` reste le repli quand la connexion Web Audio échoue (contexte
+// indisponible, CORS) — mieux que rien ailleurs, sans effet sur iOS de toute
+// façon.
 import { resolveSfx, sfxUrl, type SfxVariant } from '../data/SfxDatabase.js';
 import { tracksForTheme, tracksForGameTheme, playableGameThemeIds, musicUrl } from '../data/MusicDatabase.js';
 
@@ -77,12 +86,67 @@ export function setMuted(muted: boolean): void {
   applyMusicVolume();
 }
 
+// ================== Contexte Web Audio (volume réel, y compris iOS) ==================
+
+let audioCtx: AudioContext | null = null;
+
+/** Même garde que `components/ui/feedback.ts` : jamais lu au niveau module. */
+function getAudioCtx(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctor) return null;
+  if (!audioCtx) {
+    try { audioCtx = new Ctor(); } catch { return null; }
+  }
+  return audioCtx;
+}
+
+/** Un son en cours : l'élément qui décode le fichier, le nœud de gain qui en
+ *  pilote le volume — `null` quand la connexion Web Audio a échoué, auquel
+ *  cas `.volume` sert de repli (dégradé, silencieux sur iOS, mais jamais
+ *  d'erreur). */
+interface RoutedAudio {
+  el: HTMLAudioElement;
+  gain: GainNode | null;
+}
+
+/**
+ * Crée un `<audio>` et le route à travers un `GainNode` fraîchement créé —
+ * c'est la primitive commune aux effets sonores (un élément par lecture) et
+ * à la musique (un élément par piste). `el.volume` est laissé à 1 dès que le
+ * `GainNode` a pris la main : c'est LUI qui porte le volume, un `.volume`
+ * résiduel ne ferait qu'atténuer deux fois sur les plateformes où il compte.
+ */
+function createRoutedAudio(url: string): RoutedAudio {
+  const el = new Audio(url);
+  const ctx = getAudioCtx();
+  if (!ctx) return { el, gain: null };
+  try {
+    const source = ctx.createMediaElementSource(el);
+    const gain = ctx.createGain();
+    source.connect(gain).connect(ctx.destination);
+    el.volume = 1;
+    return { el, gain };
+  } catch {
+    // Contexte fermé, CORS sur l'origine du fichier… : `.volume` reste un
+    // repli valide partout SAUF iOS, qui n'aurait de toute façon pas laissé
+    // la connexion échouer pour cette raison.
+    return { el, gain: null };
+  }
+}
+
+function setRoutedVolume(a: RoutedAudio, v: number): void {
+  if (a.gain) a.gain.gain.value = clamp01(v);
+  else a.el.volume = clamp01(v);
+}
+
 // ================== Effets sonores ==================
 
 /**
- * Joue le son du déclencheur donné, avec sa variante (tier ou élément) si le
- * catalogue en porte une. Un déclencheur sans catalogue, sans fichier, ou une
- * lecture refusée (autoplay) ne produit RIEN — jamais une exception.
+ * Joue le son du déclencheur donné, avec sa variante (tier, élément ou
+ * pouvoir) si le catalogue en porte une. Un déclencheur sans catalogue, sans
+ * fichier, ou une lecture refusée (autoplay) ne produit RIEN — jamais une
+ * exception.
  */
 export function playSfx(trigger: string, variant?: SfxVariant): void {
   if (typeof Audio === 'undefined') return;
@@ -91,16 +155,16 @@ export function playSfx(trigger: string, variant?: SfxVariant): void {
   const entry = resolveSfx(trigger, variant);
   if (!entry) return;
   try {
-    const el = new Audio(sfxUrl(entry.id));
-    el.volume = s.sfxVolume;
-    el.play().catch(() => { /* autoplay bloqué avant le premier geste : silencieux */ });
+    const routed = createRoutedAudio(sfxUrl(entry.id));
+    setRoutedVolume(routed, s.sfxVolume);
+    routed.el.play().catch(() => { /* autoplay bloqué avant le premier geste : silencieux */ });
   } catch { /* jamais remonté */ }
 }
 
 // ================== Musique ==================
 
 let currentTheme: string | null = null;
-let currentEl: HTMLAudioElement | null = null;
+let current: RoutedAudio | null = null;
 let unlocked = false;
 /** Le thème de PARTIE verrouillé pour le match en cours — tiré une fois par
  *  `rollGameTheme()`, jamais rejoué à chaque round. */
@@ -112,7 +176,7 @@ function effectiveMusicVolume(): number {
 }
 
 function applyMusicVolume(): void {
-  if (currentEl) currentEl.volume = effectiveMusicVolume();
+  if (current) setRoutedVolume(current, effectiveMusicVolume());
 }
 
 /**
@@ -120,11 +184,19 @@ function applyMusicVolume(): void {
  * `App.tsx`) : la lecture audio est bloquée jusque-là par les navigateurs
  * (iOS Safari en particulier), et `setMusicTheme` peut avoir été appelé
  * avant ce geste (musique du menu au chargement). Idempotent.
+ *
+ * ⚠️ Résume aussi l'`AudioContext` : il naît `suspended` tant qu'aucun geste
+ * ne l'a débloqué (même contrainte que la lecture elle-même), et un élément
+ * routé à travers lui reste MUET tant qu'il n'a pas repris — `resume()` est
+ * retenté à chaque appel, jamais une seule fois, sur le modèle de
+ * `playClick()`.
  */
 export function unlock(): void {
+  const ctx = getAudioCtx();
+  if (ctx?.state === 'suspended') ctx.resume().catch(() => {});
   if (unlocked || typeof Audio === 'undefined') return;
   unlocked = true;
-  if (currentEl?.paused) currentEl.play().catch(() => { /* toujours refusé : tant pis, silencieux */ });
+  if (current?.el.paused) current.el.play().catch(() => { /* toujours refusé : tant pis, silencieux */ });
 }
 
 /**
@@ -170,11 +242,11 @@ export function currentMusicTheme(): string | null {
 }
 
 function fadeOutCurrent(): void {
-  const outgoing = currentEl;
-  currentEl = null;
+  const outgoing = current;
+  current = null;
   if (!outgoing) return;
-  const startVolume = outgoing.volume;
-  runFade((t) => { outgoing.volume = clamp01(startVolume * (1 - t)); }, () => outgoing.pause());
+  const startVolume = effectiveMusicVolume();
+  runFade((t) => setRoutedVolume(outgoing, startVolume * (1 - t)), () => outgoing.el.pause());
 }
 
 /**
@@ -186,26 +258,26 @@ function fadeOutCurrent(): void {
  * s'entendent comme un accroc plutôt que comme une transition.
  */
 function crossfadeTo(id: string): void {
-  const outgoing = currentEl;
-  currentEl = null;
+  const outgoing = current;
+  current = null;
   if (!outgoing) { startIncoming(id); return; }
-  const startVolume = outgoing.volume;
-  runFade((t) => { outgoing.volume = clamp01(startVolume * (1 - t)); }, () => {
-    outgoing.pause();
+  const startVolume = effectiveMusicVolume();
+  runFade((t) => setRoutedVolume(outgoing, startVolume * (1 - t)), () => {
+    outgoing.el.pause();
     startIncoming(id);
   });
 }
 
 function startIncoming(id: string): void {
-  const incoming = new Audio(musicUrl(id));
-  incoming.loop = true;
-  incoming.volume = 0;
-  currentEl = incoming;
+  const incoming = createRoutedAudio(musicUrl(id));
+  incoming.el.loop = true;
+  setRoutedVolume(incoming, 0);
+  current = incoming;
   // Refusé tant qu'aucun geste utilisateur n'a eu lieu — `unlock()` relance
   // alors l'élément resté en pause, sans qu'on ait à s'en soucier ici.
-  incoming.play().catch(() => { /* silencieux, cf. unlock() */ });
+  incoming.el.play().catch(() => { /* silencieux, cf. unlock() */ });
   const target = effectiveMusicVolume();
-  runFade((t) => { incoming.volume = clamp01(target * t); });
+  runFade((t) => setRoutedVolume(incoming, target * t));
 }
 
 /**

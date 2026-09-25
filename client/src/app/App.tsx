@@ -156,10 +156,19 @@ export default function App() {
   // séparés. La partie en cours (`game`/`game_pvp`) règle la sienne elle-même
   // depuis `GameController` (thème de partie verrouillé par match) : cet
   // effet n'y touche pas.
+  //
+  // ⚠️ Dépend aussi de `ready` : sur le premier rendu (`screen` vaut déjà
+  // 'main_menu' mais `MusicDatabase.init()` n'a pas fini), l'effet tournait
+  // une fois sur un catalogue VIDE, posait `currentTheme = 'menu'` sans
+  // aucune piste trouvée, puis ne se redéclenchait jamais — `screen` ne
+  // changeant pas tant qu'on reste au menu, la musique restait silencieuse
+  // pour de bon. Sans ce second déclenchement, le catalogue une fois chargé
+  // n'était jamais relu.
   useEffect(() => {
+    if (!ready) return;
     if (screen === 'game' || screen === 'game_pvp') return;
     Audio.setMusicTheme('menu');
-  }, [screen]);
+  }, [screen, ready]);
 
   if (error) {
     return (
