@@ -439,8 +439,7 @@
 			"1": [
 				"PEGASUS_005",
 				"PEGASUS_025",
-				"PEGASUS_014",
-				"PEGASUS_036"
+				"PEGASUS_014"
 			],
 			"2": [
 				"PEGASUS_011",
@@ -466,13 +465,11 @@
 				"PEGASUS_032",
 				"PEGASUS_027",
 				"PEGASUS_009",
-				"PEGASUS_030",
 				"PEGASUS_034",
 				"PEGASUS_031",
 				"PEGASUS_020"
 			],
 			"5": [
-				"PEGASUS_033",
 				"PEGASUS_029"
 			]
 		},
@@ -1376,5 +1373,84 @@
 		},
 		"bot": false,
 		"guest": true
+	},
+	{
+		"id": "PUBLIC_DECK_024",
+		"name": "Aster",
+		"difficulty": 3,
+		"deck": {
+			"1": [
+				"ASTER_016",
+				"ASTER_003",
+				"ASTER_015",
+				"ASTER_004",
+				"ASTER_017",
+				"ASTER_005",
+				"ASTER_007"
+			],
+			"2": [
+				"ASTER_018",
+				"ASTER_009",
+				"ASTER_010",
+				"ASTER_008",
+				"ASTER_011"
+			],
+			"3": [
+				"ASTER_006",
+				"ASTER_012"
+			],
+			"4": [
+				"ASTER_019",
+				"ASTER_002",
+				"ASTER_013",
+				"ASTER_001"
+			],
+			"5": [
+				"ASTER_021",
+				"ASTER_014",
+				"ASTER_020"
+			]
+		},
+		"bot": false,
+		"guest": false
+	},
+	{
+		"id": "PUBLIC_DECK_025",
+		"name": "Jesse",
+		"difficulty": 3,
+		"deck": {
+			"1": [
+				"JESSE_004",
+				"JESSE_003",
+				"JESSE_001",
+				"JESSE_002",
+				"JESSE_007",
+				"JESSE_006",
+				"JESSE_005"
+			],
+			"2": [
+				"JESSE_011",
+				"JESSE_010",
+				"JESSE_008",
+				"JESSE_009",
+				"JESSE_014",
+				"JESSE_013",
+				"JESSE_012"
+			],
+			"3": [
+				"JESSE_015",
+				"JESSE_019",
+				"JESSE_020"
+			],
+			"4": [
+				"JESSE_016",
+				"JESSE_017"
+			],
+			"5": [
+				"JESSE_018"
+			]
+		},
+		"bot": false,
+		"guest": false
 	}
 ]

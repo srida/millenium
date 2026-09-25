@@ -681,50 +681,17 @@
 		"effects": [
 			{
 				"type": "stat_bonus",
-				"value": 10,
 				"stat": "atk",
+				"value": 20,
 				"target_attributes": [
-					"ARCH_048"
+					"ARCH_055"
 				]
 			},
 			{
 				"type": "stat_bonus",
-				"value": 50,
-				"stat": "hp",
-				"target_attributes": [
-					"ARCH_049"
-				]
-			},
-			{
-				"type": "stat_bonus",
-				"value": 5,
-				"stat": "movement_rate",
-				"target_attributes": [
-					"ARCH_051"
-				]
-			},
-			{
-				"type": "shield",
-				"value": 100,
-				"target_attributes": [
-					"ARCH_050"
-				]
-			},
-			{
-				"type": "stat_bonus",
-				"value": 5,
-				"stat": "attack_rate",
-				"target_attributes": [
-					"ARCH_052"
-				]
-			},
-			{
-				"type": "stat_bonus",
-				"value": 1,
-				"stat": "range",
-				"target_attributes": [
-					"ARCH_054"
-				]
+				"stat": "atk",
+				"value": -10,
+				"target_attributes": []
 			}
 		],
 		"blocked_cells": [

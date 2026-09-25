@@ -1456,7 +1456,8 @@
 				"effects": [
 					{
 						"type": "shield",
-						"value": 50
+						"value": 50,
+						"per_ally": false
 					}
 				]
 			}
@@ -1763,7 +1764,7 @@
 	},
 	{
 		"id": "ARCH_083",
-		"name": "Destiné",
+		"name": "Destinée",
 		"icon": "🌑",
 		"timing": "start_of_combat",
 		"categorie": "Archetype",
@@ -2019,6 +2020,48 @@
 	},
 	{
 		"id": "ARCH_104",
+		"name": "Crystalline",
+		"icon": "💎",
+		"timing": "start_of_combat",
+		"categorie": "Archetype",
+		"thresholds": [
+			{
+				"count": 2,
+				"medal": "silver",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 2
+					}
+				]
+			},
+			{
+				"count": 3,
+				"medal": "gold",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 3
+					}
+				]
+			},
+			{
+				"count": 4,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "stat_bonus",
+						"stat": "atk",
+						"value": 5
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_105",
 		"name": "Unique",
 		"icon": "🔱",
 		"timing": "none",

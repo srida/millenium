@@ -491,5 +491,42 @@
 			"type": "shift_tier_unit",
 			"value": -1
 		}
+	},
+	{
+		"id": "MAGIE_054",
+		"name": "Bouc émissaire",
+		"rarity": 3,
+		"effect": {
+			"type": "summon_token",
+			"token_ids": [
+				"TOKEN_004",
+				"TOKEN_005",
+				"TOKEN_006",
+				"TOKEN_007"
+			]
+		}
+	},
+	{
+		"id": "MAGIE_055",
+		"name": "Sanctuaire du démon",
+		"rarity": 3,
+		"effect": {
+			"type": "summon_token",
+			"token_ids": [
+				"TOKEN_009"
+			]
+		}
+	},
+	{
+		"id": "MAGIE_056",
+		"name": "Agneaux égarés",
+		"rarity": 2,
+		"effect": {
+			"type": "summon_token",
+			"token_ids": [
+				"TOKEN_010",
+				"TOKEN_011"
+			]
+		}
 	}
 ]

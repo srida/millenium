@@ -552,7 +552,7 @@
 	},
 	{
 		"id": "VAR_138",
-		"card_id": "STAPLE_152"
+		"card_id": "STAPLE_215"
 	},
 	{
 		"id": "VAR_139",
@@ -1125,5 +1125,81 @@
 	{
 		"id": "VAR_281",
 		"card_id": "MARIK_007"
+	},
+	{
+		"id": "VAR_282",
+		"card_id": "ASTER_001"
+	},
+	{
+		"id": "VAR_283",
+		"card_id": "ASTER_002"
+	},
+	{
+		"id": "VAR_284",
+		"card_id": "ASTER_005"
+	},
+	{
+		"id": "VAR_285",
+		"card_id": "ASTER_005"
+	},
+	{
+		"id": "VAR_286",
+		"card_id": "ASTER_005"
+	},
+	{
+		"id": "VAR_287",
+		"card_id": "ASTER_005"
+	},
+	{
+		"id": "VAR_288",
+		"card_id": "ASTER_006"
+	},
+	{
+		"id": "VAR_289",
+		"card_id": "ASTER_007"
+	},
+	{
+		"id": "VAR_290",
+		"card_id": "PEGASUS_014"
+	},
+	{
+		"id": "VAR_291",
+		"card_id": "PEGASUS_014"
+	},
+	{
+		"id": "VAR_292",
+		"card_id": "PEGASUS_034"
+	},
+	{
+		"id": "VAR_293",
+		"card_id": "PEGASUS_016"
+	},
+	{
+		"id": "VAR_294",
+		"card_id": "PEGASUS_031"
+	},
+	{
+		"id": "VAR_295",
+		"card_id": "ASTER_019"
+	},
+	{
+		"id": "VAR_296",
+		"card_id": "ASTER_001"
+	},
+	{
+		"id": "VAR_297",
+		"card_id": "JESSE_016"
+	},
+	{
+		"id": "VAR_298",
+		"card_id": "JESSE_016"
+	},
+	{
+		"id": "VAR_299",
+		"card_id": "JESSE_017"
+	},
+	{
+		"id": "VAR_300",
+		"card_id": "STAPLE_031"
 	}
 ]
