@@ -128,6 +128,9 @@ export class GameController {
   // ── Cycle de partie ──────────────────────────────────────────────────────
 
   begin(): void {
+    // Un thème de partie par MATCH, tiré une seule fois ici — jamais à
+    // chaque round (cf. `Audio.rollGameTheme`).
+    Audio.rollGameTheme();
     const draw = this.session.startPreparation();
     this._clearSelection();
     // Ouvre la file d'événements de missions : elle est vidée en fin de partie
@@ -157,10 +160,10 @@ export class GameController {
     if (this._introTimer) { clearTimeout(this._introTimer); this._introTimer = null; }
     if (!draw) return;                       // partie finie : rien à ouvrir
     this._pendingDraw = draw;
-    // Thème musical du round : tours 1-2 / 3-4 / 5, cf. `sound-schema.mjs`.
-    // NO-OP si c'est déjà le thème en cours (`AudioManager.setMusicTheme`),
-    // donc appelable à chaque tour sans relancer la piste entre 1 et 2.
-    Audio.setMusicTheme(draw.round >= 5 ? 'game_late' : draw.round >= 3 ? 'game_mid' : 'game_early');
+    // Thème musical de PARTIE (verrouillé par `Audio.rollGameTheme()` dans
+    // `begin()`) : NO-OP si c'est déjà l'emplacement `game` en cours, donc
+    // appelable à chaque tour sans jamais relancer la piste.
+    Audio.setMusicTheme('game');
     // ⚠️ Le round 1 est le DÉBUT de la partie, pas un « changement » de tour.
     if (draw.round > 1) Audio.playSfx('round_change');
     this.sync({ roundIntro: { round: draw.round }, drawPopup: null });
@@ -259,6 +262,7 @@ export class GameController {
             index: s.index, condition: s.condition, ok: s.ok, reason: s.reason,
           })),
         };
+        Audio.playSfx('summon_menu_open');
         this.sync();
         return;
       }

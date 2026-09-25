@@ -33,6 +33,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { Avatar } from '../ui/primitives.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 const DEFAULT_DURATION_MS = 3000;
 // Fixe : la vitesse du tourbillon ne doit pas dépendre de la durée totale
@@ -108,6 +109,11 @@ export default function DuelIntro({
     // tournerait qu'à la sortie de l'écran de jeu. Sans ce lever explicite, le
     // chrono de préparation resterait gelé pour le reste de la partie.
     useGameStore.getState().applySnapshot({ duelIntro: true });
+    Audio.playSfx('duel_start');
+    // Coupe toute musique de MENU restée en fond (l'écran de jeu ne règle pas
+    // son propre thème avant `begin()`, appelé par `onDone` ci-dessous) — le
+    // thème de PARTIE la remplacera de lui-même au premier `_openRound`.
+    Audio.setMusicTheme(null);
     const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const total = reduced ? Math.min(duration, 1600) : duration;
     const t = setTimeout(() => {

@@ -12,7 +12,7 @@
 // les trois cas, le jeu continue silencieusement. L'audio est un habillage,
 // pas une donnée de jeu (même doctrine que `CardBackDatabase`).
 import { resolveSfx, sfxUrl, type SfxVariant } from '../data/SfxDatabase.js';
-import { tracksForTheme, musicUrl } from '../data/MusicDatabase.js';
+import { tracksForTheme, tracksForGameTheme, playableGameThemeIds, musicUrl } from '../data/MusicDatabase.js';
 
 const SETTINGS_KEY = 'millenium_audio_settings_v1';
 // Durée de CHAQUE demi-fondu (descente puis montée) d'une transition
@@ -102,6 +102,9 @@ export function playSfx(trigger: string, variant?: SfxVariant): void {
 let currentTheme: string | null = null;
 let currentEl: HTMLAudioElement | null = null;
 let unlocked = false;
+/** Le thème de PARTIE verrouillé pour le match en cours — tiré une fois par
+ *  `rollGameTheme()`, jamais rejoué à chaque round. */
+let lockedGameTheme: string | null = null;
 
 function effectiveMusicVolume(): number {
   const s = loadSettings();
@@ -125,10 +128,29 @@ export function unlock(): void {
 }
 
 /**
- * Bascule le thème musical courant. NO-OP si c'est déjà le thème en cours
- * (sinon chaque round d'un même palier — tours 1 et 2 partagent `game_early`
- * — relancerait la piste depuis zéro) ; `force: true` pour retirer une
- * nouvelle piste du même thème (playlist).
+ * Tire et VERROUILLE le thème de partie pour le match qui commence — à
+ * appeler UNE fois, à `GameController.begin()`, jamais à chaque round
+ * (sinon la palette changerait de tour en tour, ce que la demande d'un
+ * thème « par partie » exclut). Ne tire que parmi les thèmes qui ont au
+ * moins une piste jouable — un thème créé en admin mais encore sans fichier
+ * ne doit jamais réduire une partie au silence.
+ *
+ * `null` quand aucun thème n'a de piste : `setMusicTheme('game')` retombe
+ * alors sur le pool commun (`MusicDatabase.tracksForGameTheme`).
+ */
+export function rollGameTheme(): void {
+  const ids = playableGameThemeIds();
+  lockedGameTheme = ids.length ? ids[Math.floor(Math.random() * ids.length)] : null;
+}
+
+/**
+ * Bascule l'EMPLACEMENT musical courant (`menu` / `game`). NO-OP si c'est
+ * déjà l'emplacement en cours (sinon chaque round rejouerait la piste
+ * depuis zéro) ; `force: true` pour retirer une nouvelle piste du même
+ * emplacement (playlist).
+ *
+ * `theme: 'game'` joue les pistes du thème de partie VERROUILLÉ par
+ * `rollGameTheme()` — c'est lui, pas cette fonction, qui choisit LEQUEL.
  *
  * `theme: null` coupe la musique (fondu vers le silence).
  */
@@ -136,7 +158,8 @@ export function setMusicTheme(theme: string | null, opts: { force?: boolean } = 
   if (typeof Audio === 'undefined') return;
   if (!opts.force && theme === currentTheme) return;
   currentTheme = theme;
-  const tracks = theme ? tracksForTheme(theme) : [];
+  const tracks = theme === 'game' ? tracksForGameTheme(lockedGameTheme)
+    : theme ? tracksForTheme(theme) : [];
   if (!tracks.length) { fadeOutCurrent(); return; }
   const pick = tracks[Math.floor(Math.random() * tracks.length)];
   crossfadeTo(pick.id);

@@ -11,6 +11,7 @@ import * as CardBackDatabase from '../data/CardBackDatabase.js';
 import * as TokenDatabase from '../data/TokenDatabase.js';
 import * as SfxDatabase from '../data/SfxDatabase.js';
 import * as MusicDatabase from '../data/MusicDatabase.js';
+import * as MusicThemeDatabase from '../data/MusicThemeDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 import * as CardArt from '../data/CardArt.js';
 import { GameSession } from '../logic/GameSession.js';
@@ -37,6 +38,7 @@ export async function initGameData(): Promise<void> {
     // son ou une musique absents ne doivent pas empêcher de jouer.
     (SfxDatabase as any).init(),
     (MusicDatabase as any).init(),
+    (MusicThemeDatabase as any).init(),
   ]);
   _dataReady = true;
 }

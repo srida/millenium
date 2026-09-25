@@ -17,7 +17,7 @@ vi.mock('../data/AuthClient.js', () => ({
 }));
 
 const playSfx = vi.fn();
-vi.mock('../audio/AudioManager.js', () => ({ playSfx, setMusicTheme: vi.fn() }));
+vi.mock('../audio/AudioManager.js', () => ({ playSfx, setMusicTheme: vi.fn(), rollGameTheme: vi.fn() }));
 
 const { GameSession } = await import('../logic/GameSession.js');
 const { GameController } = await import('../game/GameController.js');
