@@ -12,7 +12,8 @@
  *   ADMIN_PASS  — mot de passe admin
  *
  * "pull"  : copie les données de Railway vers le dossier local data/ + resources/card_illustrations/
- *           + resources/enemy_avatars/ + resources/pack_posters/ (--no-illustrations coupe les trois)
+ *           + resources/enemy_avatars/ + resources/pack_posters/ + resources/board_backgrounds/
+ *           + resources/audio/ (--no-illustrations coupe les cinq, malgré son nom historique)
  * "push"  : envoie les données locales vers Railway (écrase les données distantes)
  */
 
@@ -48,15 +49,23 @@ const ADMIN_PASS = process.env.ADMIN_PASS || '';
 
 // Mêmes dossiers que le serveur, décidés au même endroit — les recalculer ici
 // laisserait les deux côtés diverger au prochain ajout de famille.
-const { DATA_DIR, ILLUS_DIR, AVATARS_DIR, POSTERS_DIR, BOARD_BG_DIR } = require(path.join(ROOT, 'asset-dirs'));
+const { DATA_DIR, ILLUS_DIR, AVATARS_DIR, POSTERS_DIR, BOARD_BG_DIR, AUDIO_DIR } = require(path.join(ROOT, 'asset-dirs'));
+// Jumeau CJS de `AUDIO_EXTENSIONS` (`sound-schema.mjs`) — même frontière que
+// dans app.js : ce script est CommonJS, il ne peut pas `require()` un ESM.
+const AUDIO_EXTENSIONS = ['mp3', 'ogg', 'wav', 'm4a'];
 
 // Les familles d'images se synchronisent à l'identique, sur un dossier et un jeu
 // de routes chacune. `key` est la clé du manifeste de /api/export.
+// ⚠️ `extensions` : toujours `['png']` pour une image ; l'audio en a
+// PLUSIEURS possibles (le fichier réel décide), d'où `variableExt` qui fait
+// voyager l'extension dans le corps des requêtes push (le PUT en a besoin
+// pour choisir le nom de fichier côté serveur).
 const ASSETS = [
-  { key: 'illustrations', label: 'Illustrations', dir: ILLUS_DIR, exportPath: id => `/api/export/illustration/${id}`, pushPath: id => `/api/illustrations/${id}` },
-  { key: 'avatars',       label: 'Avatars',       dir: AVATARS_DIR, exportPath: id => `/api/export/avatar/${id}`,      pushPath: id => `/api/avatars/${id}` },
-  { key: 'packPosters',   label: 'Affiches de packs', dir: POSTERS_DIR, exportPath: id => `/api/export/pack-poster/${id}`, pushPath: id => `/api/pack-posters/${id}` },
-  { key: 'boardBackgrounds', label: 'Fonds de terrain', dir: BOARD_BG_DIR, exportPath: id => `/api/export/board-background/${id}`, pushPath: id => `/api/board-backgrounds/${id}` },
+  { key: 'illustrations', label: 'Illustrations', dir: ILLUS_DIR, extensions: ['png'], exportPath: id => `/api/export/illustration/${id}`, pushPath: id => `/api/illustrations/${id}` },
+  { key: 'avatars',       label: 'Avatars',       dir: AVATARS_DIR, extensions: ['png'], exportPath: id => `/api/export/avatar/${id}`,      pushPath: id => `/api/avatars/${id}` },
+  { key: 'packPosters',   label: 'Affiches de packs', dir: POSTERS_DIR, extensions: ['png'], exportPath: id => `/api/export/pack-poster/${id}`, pushPath: id => `/api/pack-posters/${id}` },
+  { key: 'boardBackgrounds', label: 'Fonds de terrain', dir: BOARD_BG_DIR, extensions: ['png'], exportPath: id => `/api/export/board-background/${id}`, pushPath: id => `/api/board-backgrounds/${id}` },
+  { key: 'audio',          label: 'Audio (sfx + musiques)', dir: AUDIO_DIR, extensions: AUDIO_EXTENSIONS, variableExt: true, exportPath: id => `/api/export/audio/${id}`, pushPath: id => `/api/audio/${id}` },
 ];
 
 const ENTITIES = [
@@ -83,6 +92,10 @@ const ENTITIES = [
   // Les tokens n'ont pas d'entrée ASSETS non plus : leur art vit dans le
   // dossier des illustrations, sous l'id du token.
   { type: 'tokens',     file: 'tokens.json',     importPath: '/api/tokens/import',     deletePath: id => `/api/tokens/${id}` },
+  // Effets sonores et musiques : catalogues au même patron, art dans AUDIO_DIR
+  // (entrée `audio` d'ASSETS ci-dessus).
+  { type: 'sfx',        file: 'sfx.json',        importPath: '/api/sfx/import',        deletePath: id => `/api/sfx/${id}` },
+  { type: 'music',      file: 'music.json',      importPath: '/api/music/import',      deletePath: id => `/api/music/${id}` },
 ];
 
 function authHeader() {
@@ -117,14 +130,19 @@ function writeLocalJson(file, data) {
   fs.writeFileSync(path.join(DATA_DIR, file), JSON.stringify(data, null, '\t'), 'utf-8');
 }
 
-function localAssets(dir) {
+// `extensions` : les extensions acceptées pour cette famille (`['png']` pour
+// une image, la liste audio pour les sons). La valeur porte l'extension
+// TROUVÉE, pas une extension fixe — c'est ce qui permet à l'audio de varier
+// par fichier sans que ce module le sache autrement.
+function localAssets(dir, extensions) {
   fs.mkdirSync(dir, { recursive: true });
   const map = new Map();
   for (const f of fs.readdirSync(dir)) {
-    if (!f.endsWith('.png')) continue;
-    const id = f.replace(/\.png$/, '');
+    const ext = extensions.find(e => f.endsWith(`.${e}`));
+    if (!ext) continue;
+    const id = f.slice(0, -(ext.length + 1));
     const checksum = crypto.createHash('md5').update(fs.readFileSync(path.join(dir, f))).digest('hex');
-    map.set(id, checksum);
+    map.set(id, { checksum, ext });
   }
   return map;
 }
@@ -153,23 +171,31 @@ async function pull(opts) {
   if (opts.illustrations) {
     for (const asset of ASSETS) {
       const remoteAssets = remote[asset.key] || [];
-      const local = localAssets(asset.dir);
+      const local = localAssets(asset.dir, asset.extensions);
       const remoteIds = new Set(remoteAssets.map(i => i.id));
 
       let downloaded = 0, skipped = 0, deleted = 0;
-      for (const { id, checksum } of remoteAssets) {
-        if (local.get(id) === checksum) { skipped++; continue; }
-        if (opts.dryRun) { console.log(`[dry-run] télécharger ${id}.png`); downloaded++; continue; }
+      for (const { id, checksum, ext: remoteExt } of remoteAssets) {
+        // Une image n'a pas de champ `ext` dans le manifeste (toujours PNG) ;
+        // l'audio l'a, puisque c'est la seule chose qui varie par fichier.
+        const ext = asset.variableExt ? remoteExt : asset.extensions[0];
+        const existing = local.get(id);
+        if (existing && existing.checksum === checksum && existing.ext === ext) { skipped++; continue; }
+        if (opts.dryRun) { console.log(`[dry-run] télécharger ${id}.${ext}`); downloaded++; continue; }
+        // Un fichier local sous une AUTRE extension (musique reconvertie) ne
+        // doit pas rester à côté du nouveau : `audioFilePath` côté serveur
+        // sert la première extension trouvée dans l'ordre du catalogue.
+        if (existing && existing.ext !== ext) fs.unlinkSync(path.join(asset.dir, `${id}.${existing.ext}`));
         const { data } = await apiGet(asset.exportPath(id));
-        fs.writeFileSync(path.join(asset.dir, `${id}.png`), Buffer.from(data, 'base64'));
+        fs.writeFileSync(path.join(asset.dir, `${id}.${ext}`), Buffer.from(data, 'base64'));
         downloaded++;
       }
 
-      // Supprime localement les images qui n'existent plus côté distant
-      for (const id of local.keys()) {
+      // Supprime localement les fichiers qui n'existent plus côté distant
+      for (const [id, { ext }] of local) {
         if (!remoteIds.has(id)) {
-          if (opts.dryRun) { console.log(`[dry-run] supprimer localement ${id}.png`); deleted++; continue; }
-          fs.unlinkSync(path.join(asset.dir, `${id}.png`));
+          if (opts.dryRun) { console.log(`[dry-run] supprimer localement ${id}.${ext}`); deleted++; continue; }
+          fs.unlinkSync(path.join(asset.dir, `${id}.${ext}`));
           deleted++;
         }
       }
@@ -212,21 +238,24 @@ async function push(opts) {
 
   if (opts.illustrations) {
     for (const asset of ASSETS) {
-      const local = localAssets(asset.dir);
-      const remoteMap = new Map((remote[asset.key] || []).map(i => [i.id, i.checksum]));
+      const local = localAssets(asset.dir, asset.extensions);
+      const remoteMap = new Map((remote[asset.key] || []).map(i => [i.id, { checksum: i.checksum, ext: i.ext }]));
 
       let uploaded = 0, skipped = 0, deleted = 0;
-      for (const [id, checksum] of local) {
-        if (remoteMap.get(id) === checksum) { skipped++; continue; }
-        if (opts.dryRun) { console.log(`[dry-run] envoyer ${id}.png`); uploaded++; continue; }
-        const data = fs.readFileSync(path.join(asset.dir, `${id}.png`)).toString('base64');
-        await apiSend('PUT', asset.pushPath(id), { data });
+      for (const [id, { checksum, ext }] of local) {
+        const existing = remoteMap.get(id);
+        if (existing && existing.checksum === checksum) { skipped++; continue; }
+        if (opts.dryRun) { console.log(`[dry-run] envoyer ${id}.${ext}`); uploaded++; continue; }
+        const data = fs.readFileSync(path.join(asset.dir, `${id}.${ext}`)).toString('base64');
+        // `ext` ne voyage que pour l'audio : les routes d'images l'ignorent
+        // (toujours PNG côté serveur).
+        await apiSend('PUT', asset.pushPath(id), asset.variableExt ? { data, ext } : { data });
         uploaded++;
       }
 
       for (const id of remoteMap.keys()) {
         if (!local.has(id)) {
-          if (opts.dryRun) { console.log(`[dry-run] supprimer côté distant ${id}.png`); deleted++; continue; }
+          if (opts.dryRun) { console.log(`[dry-run] supprimer côté distant ${id}`); deleted++; continue; }
           await apiSend('DELETE', asset.pushPath(id));
           deleted++;
         }
