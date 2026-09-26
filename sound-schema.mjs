@@ -48,6 +48,13 @@ export const SFX_TRIGGERS = [
   { id: 'match_draw',           label: 'Écran d\'égalité',                     variant: null },
   { id: 'summon_menu_open',    label: 'Popup d\'invocation à choix multiple', variant: null },
   { id: 'duel_start',           label: 'Animation de lancement du duel',       variant: null },
+  // ⚠️ Déclencheur GÉNÉRIQUE, câblé une seule fois dans `usePressSquash`
+  // (`components/ui/primitives.tsx`) — pas un site par bouton. Couvre tout
+  // `Button`/`IconButton` hors partie (menu principal, boutique, decks,
+  // missions…) ; les boutons EN PARTIE qui jouent déjà leur propre son
+  // dédié (`ready`, `undo`, `menu_ingame`…) le désactivent explicitement
+  // (`sfx={false}`) pour ne pas sonner deux fois.
+  { id: 'menu_button',          label: 'Bouton de menu (générique, hors partie)', variant: null },
 ];
 
 /**

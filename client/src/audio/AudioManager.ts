@@ -120,7 +120,23 @@ export function setMuted(muted: boolean): void {
 
 let audioCtx: AudioContext | null = null;
 
-/** Même garde que `components/ui/feedback.ts` : jamais lu au niveau module. */
+/**
+ * Même garde que `components/ui/feedback.ts` : jamais lu au niveau module.
+ *
+ * ⚠️ **NE JAMAIS appeler ceci en dehors d'un geste utilisateur (`unlock`,
+ * `playSfx`, `setMusicTheme`…).** Ce contexte est celui qui joue RÉELLEMENT
+ * le son ; le créer plus tôt (ex. pendant le préchargement, sur l'écran de
+ * chargement) le fait naître `suspended` AVANT tout geste — et sur certains
+ * moteurs (constaté : premier lancement d'une page neuve), `resume()` sur un
+ * contexte né hors geste ne débloque pas la lecture aussi fiablement qu'un
+ * contexte créé PENDANT le geste, même si le contexte rapporte `'running'`.
+ * C'était la cause exacte de « la musique ne démarre pas au premier
+ * lancement » : `loadSfxBuffer` (préchargement, avant tout tap) appelait
+ * CE getter pour décoder — il utilise désormais `getDecodeCtx()` à la
+ * place, qui ne joue jamais rien et n'est donc soumis à AUCUNE politique
+ * d'autoplay. Cette fonction-ci ne doit être atteinte, pour la première
+ * fois, que depuis `unlock()`.
+ */
 function getAudioCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -129,6 +145,30 @@ function getAudioCtx(): AudioContext | null {
     try { audioCtx = new Ctor(); } catch { return null; }
   }
   return audioCtx;
+}
+
+let decodeCtx: OfflineAudioContext | null = null;
+
+/**
+ * Contexte de DÉCODAGE seul, jamais connecté à la sortie audio réelle —
+ * `OfflineAudioContext` n'est soumis à AUCUNE politique d'autoplay dans
+ * aucun moteur (il ne produit jamais de son audible), ce qui en fait le
+ * seul endroit sûr où décoder AVANT le premier geste utilisateur. Un
+ * `AudioBuffer` qu'il produit reste parfaitement lisible sur le "vrai"
+ * contexte de lecture créé plus tard par `getAudioCtx()` — ce sont des
+ * données PCM neutres, pas liées au contexte qui les a décodées.
+ */
+function getDecodeCtx(): OfflineAudioContext | null {
+  if (typeof window === 'undefined') return null;
+  const Ctor = (window as unknown as { OfflineAudioContext?: typeof OfflineAudioContext }).OfflineAudioContext
+    ?? (window as unknown as { webkitOfflineAudioContext?: typeof OfflineAudioContext }).webkitOfflineAudioContext;
+  if (!Ctor) return null;
+  if (!decodeCtx) {
+    // Dimensions arbitraires : on n'appelle jamais `startRendering()`, seul
+    // `decodeAudioData` nous intéresse ici.
+    try { decodeCtx = new Ctor(1, 1, 44100); } catch { return null; }
+  }
+  return decodeCtx;
 }
 
 /** Un son en cours : l'élément qui décode le fichier, le nœud de gain qui en
@@ -207,7 +247,11 @@ function loadSfxBuffer(id: string): Promise<void> {
   if (cached) return cached;
   const p = (async () => {
     if (sfxBufferCache.has(id)) return;
-    const ctx = getAudioCtx();
+    // ⚠️ `getDecodeCtx()`, PAS `getAudioCtx()` : ceci tourne pendant le
+    // préchargement, avant tout geste utilisateur (cf. l'avertissement sur
+    // `getAudioCtx`) — décoder ne doit jamais faire naître le contexte de
+    // lecture réel trop tôt.
+    const ctx = getDecodeCtx();
     if (!ctx) return;
     try {
       const res = await fetch(sfxUrl(id));
