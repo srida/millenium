@@ -2396,6 +2396,7 @@ export class Scene3D {
       if (!state.dragging && state.entry && Math.hypot(dx, dy) > 10) {
         if (this._combatMode) return;
         state.dragging = true;
+        state.entry.el.classList.add('dragging');
         if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
       }
       if (state.dragging) {
@@ -2415,6 +2416,7 @@ export class Scene3D {
       if (!state) return;
       this._pointerState = null;
       if (state.longPressTimer) clearTimeout(state.longPressTimer);
+      if (state.dragging && state.entry) state.entry.el.classList.remove('dragging');
 
       if (state.dragging && state.entry) {
         const dropCell = state.hoverCell || state.cell;

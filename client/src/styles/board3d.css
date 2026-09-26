@@ -84,6 +84,26 @@
   animation: sf-unit-veil 6.5s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) { .unit-foil-nebula { animation: none; } }
+/* Idle : léger va-et-vient vertical pour dire que l'unité est vivante, hors
+   combat comme pendant. Sur `.unit-card`, jamais sur `wrap` (CSS3DObject) —
+   son `transform` est réécrit par le CSS3DRenderer à chaque frame de rendu ;
+   une animation CSS dessus serait remplacée sans un mot. Le décalage de phase
+   par unité (`animation-delay` posé dans UnitCardEl.createUnitEl) évite que
+   tout le plateau respire à l'unisson. */
+@keyframes unit-idle-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(3px); }
+}
+.unit-card { animation: unit-idle-bob 2.6s ease-in-out infinite; }
+.unit-card.neutralized { animation: none; }
+/* Sélectionnée (repositionnement) ou en cours de glisser : figée en l'état,
+   `animation-play-state` et non `animation: none` — elle reprend exactement
+   où elle s'était arrêtée au lieu de sauter à 0% au relâchement. `.dragging`
+   est posé/retiré par Scene3D._bindPointerEvents, sur le modèle de `.selected`
+   (déjà toggled par _applyUnitHighlightClasses). */
+.unit-card.selected,
+.unit-card.dragging { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .unit-card { animation: none; } }
 .unit-top-edge {
   position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 3; pointer-events: none;
   background: linear-gradient(90deg, transparent, var(--uc-edge, #6fb2dc), transparent);

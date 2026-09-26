@@ -28,6 +28,11 @@ export function createUnitEl(unit: Unit, { selected = false, materialSelected = 
     + (materialSelected ? ' material-selected' : '')
     + (unit.is_neutralized ? ' neutralized' : '');
   el.dataset.uid = String(unit.uid);
+  // Décalage de phase de l'idle bob (`unit-idle-bob`, board3d.css) : purement
+  // cosmétique, donc un `Math.random()` ici n'a rien à voir avec le flux semé
+  // du combat (`logic/` seul en dépend). Un délai NÉGATIF démarre l'unité en
+  // cours de cycle au lieu de toutes repartir de 0 au spawn.
+  el.style.animationDelay = `-${(Math.random() * 2.6).toFixed(2)}s`;
 
   // Le cadre vient de `cardPalette` — la carte de main écrit exactement les
   // mêmes variables, c'est ce qui en fait le même objet. Une unité dont la
