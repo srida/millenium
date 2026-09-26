@@ -96,6 +96,13 @@
 }
 .unit-card { animation: unit-idle-bob 2.6s ease-in-out infinite; }
 .unit-card.neutralized { animation: none; }
+/* Sélectionnée (repositionnement) ou en cours de glisser : figée en l'état,
+   `animation-play-state` et non `animation: none` — elle reprend exactement
+   où elle s'était arrêtée au lieu de sauter à 0% au relâchement. `.dragging`
+   est posé/retiré par Scene3D._bindPointerEvents, sur le modèle de `.selected`
+   (déjà toggled par _applyUnitHighlightClasses). */
+.unit-card.selected,
+.unit-card.dragging { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .unit-card { animation: none; } }
 .unit-top-edge {
   position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 3; pointer-events: none;
