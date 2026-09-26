@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
 import { illustrationUrl } from '../../data/CardArt.js';
 import { playButtonFeedback } from './feedback.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 type Variant = 'primary' | 'ghost' | 'danger';
 
@@ -54,14 +55,26 @@ export const TAP_MOVE_TOLERANCE_PX = 10;
  * relief et le même délai, au lieu d'un second mécanisme réinventé à côté.
  *
  * ⚠️ **C'est aussi l'unique point d'émission du retour haptique + sonore**
- * (`playButtonFeedback`) : posé au `pointerdown`, en même temps que le
- * relief visuel démarre — pas à l'échéance du délai de course, qui ne
- * retarde que l'ACTION. Un tap annulé (glissade, défilement) aura donc
- * quand même vibré/cliqué une fois ; c'est le prix d'un retour immédiat,
- * et c'est celui d'un vrai bouton.
+ * (`playButtonFeedback`, PUIS le déclencheur `sfx` du catalogue) : posé au
+ * `pointerdown`, en même temps que le relief visuel démarre — pas à
+ * l'échéance du délai de course, qui ne retarde que l'ACTION. Un tap annulé
+ * (glissade, défilement) aura donc quand même vibré/cliqué une fois ; c'est
+ * le prix d'un retour immédiat, et c'est celui d'un vrai bouton.
+ *
+ * ⚠️ **`sfx` part ICI, JAMAIS dans le `setTimeout` de l'action** : un appel
+ * audio différé de ne serait-ce que `SQUASH_DELAY_MS` sort du tour
+ * d'exécution SYNCHRONE du geste natif, et les navigateurs stricts (Safari)
+ * refusent alors la lecture sans un mot — la même panne, au même endroit,
+ * que celle qui rendait la musique de menu silencieuse malgré un vrai tap.
+ *
+ * `sfx` par défaut vaut `'menu_button'` (un bouton de MENU générique,
+ * cf. `sound-schema.mjs`) — `false` le désactive pour les boutons EN PARTIE
+ * qui jouent déjà leur propre son dédié (`PhaseControls`, `GameMenu`,
+ * `ShoppingLayer`…) : sans quoi ils sonneraient deux fois.
  */
 export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
   onPointerDown: PointerEventHandler<T> | undefined, disabled: boolean | undefined,
+  sfx: string | false = 'menu_button',
 ) {
   const [squashed, setSquashed] = useState(false);
   const timer = useRef<number | null>(null);
@@ -77,6 +90,7 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
     start.current = { x: e.clientX, y: e.clientY };
     setSquashed(true);
     playButtonFeedback();
+    if (sfx) Audio.playSfx(sfx);
     if (onPointerDown) {
       clearTimer();
       timer.current = window.setTimeout(() => onPointerDown(e), SQUASH_DELAY_MS);
@@ -144,9 +158,9 @@ function PressRipple({ variant, squashed, disabled }: { variant: Variant; squash
 }
 
 export function Button({
-  variant = 'ghost', className = '', children, onPointerDown, disabled, ...rest
-}: { variant?: Variant } & ButtonHTMLAttributes<HTMLButtonElement>) {
-  const { squashed, handlers } = usePressSquash<HTMLButtonElement>(onPointerDown, disabled);
+  variant = 'ghost', className = '', children, onPointerDown, disabled, sfx, ...rest
+}: { variant?: Variant; sfx?: string | false } & ButtonHTMLAttributes<HTMLButtonElement>) {
+  const { squashed, handlers } = usePressSquash<HTMLButtonElement>(onPointerDown, disabled, sfx);
   return (
     <button
       disabled={disabled}
@@ -207,7 +221,7 @@ export function NewDot({ label = 'Nouveautés' }: { label?: string }) {
  * l'accueille. Le doigt vise large, la tuile reste dense.
  */
 export function IconButton({
-  label, icon, tone = 'ghost', compact = false, pressed, disabled, chipClassName = '', className = '', onTap,
+  label, icon, tone = 'ghost', compact = false, pressed, disabled, chipClassName = '', className = '', onTap, sfx,
 }: {
   label: string;
   icon: ReactNode;
@@ -223,8 +237,11 @@ export function IconButton({
   chipClassName?: string;
   className?: string;
   onTap: () => void;
+  /** Cf. `usePressSquash` — `false` pour un icône EN PARTIE qui joue déjà
+   *  son propre son. */
+  sfx?: string | false;
 }) {
-  const { squashed, handlers } = usePressSquash<HTMLButtonElement>(compact ? onTap : undefined, disabled);
+  const { squashed, handlers } = usePressSquash<HTMLButtonElement>(compact ? onTap : undefined, disabled, sfx);
 
   if (!compact) {
     return (
@@ -232,6 +249,7 @@ export function IconButton({
         variant={tone} className={`px-2 text-base leading-none ${className}`}
         title={label} aria-label={label} aria-pressed={pressed} disabled={disabled}
         onPointerDown={onTap}
+        sfx={sfx}
       >{icon}</Button>
     );
   }

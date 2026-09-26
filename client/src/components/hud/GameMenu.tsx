@@ -81,21 +81,21 @@ export default function GameMenu({ onQuit, quitLabel = 'Quitter la partie' }: {
           <div className="mb-3 text-base font-bold">Partie en cours</div>
           <div className="space-y-2">
             <VolumeSliders />
-            <Button variant="primary" className="w-full" onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_resume'); close(); }}>
+            <Button variant="primary" className="w-full" onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_resume'); close(); }} sfx={false}>
               ▸ Reprendre
             </Button>
             {confirm ? (
               <div className="space-y-2 rounded-lg border border-danger/40 bg-danger/10 p-2">
                 <p className="text-xs text-white/70">La partie en cours sera perdue.</p>
                 <div className="flex gap-2">
-                  <Button className="flex-1" onPointerDown={(e) => { e.stopPropagation(); setConfirm(false); }}>Annuler</Button>
-                  <Button variant="danger" className="flex-1" onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_quit'); close(); onQuit(); }}>
+                  <Button className="flex-1" onPointerDown={(e) => { e.stopPropagation(); setConfirm(false); }} sfx={false}>Annuler</Button>
+                  <Button variant="danger" className="flex-1" onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_quit'); close(); onQuit(); }} sfx={false}>
                     Confirmer
                   </Button>
                 </div>
               </div>
             ) : (
-              <Button variant="danger" className="w-full" onPointerDown={(e) => { e.stopPropagation(); setConfirm(true); }}>
+              <Button variant="danger" className="w-full" onPointerDown={(e) => { e.stopPropagation(); setConfirm(true); }} sfx={false}>
                 ✕ {quitLabel}
               </Button>
             )}

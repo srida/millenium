@@ -137,7 +137,7 @@ export function SummonOptionMenu() {
           </button>
         ))}
       </div>
-      <Button className="mt-3 w-full" onPointerDown={(e) => { e.stopPropagation(); controller.cancelSelection(); }}>Annuler</Button>
+      <Button className="mt-3 w-full" onPointerDown={(e) => { e.stopPropagation(); controller.cancelSelection(); }} sfx={false}>Annuler</Button>
     </Modal>
   );
 }
@@ -221,7 +221,7 @@ export function EndRoundOverlay() {
         </div>
         <DamageBreakdown result={endRound} />
         <div className="mt-1 text-xs text-white/40">{countdown}s</div>
-        <Button variant="primary" className="mt-1 w-full" onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('round_recap_dismiss'); controller.dismissEndRound(); }}>
+        <Button variant="primary" className="mt-1 w-full" onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('round_recap_dismiss'); controller.dismissEndRound(); }} sfx={false}>
           {isGameOver ? 'RÉSULTAT FINAL' : `TOUR ${round + 1} ▸`}
         </Button>
       </div>

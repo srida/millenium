@@ -40,14 +40,26 @@ class FakeBufferSourceNode {
   connect() { /* rien à vérifier ici */ }
   start() { /* lecture immédiate, rien à simuler */ }
 }
+// Le contexte de LECTURE réel — ne doit être instancié qu'APRÈS un geste
+// (`unlock`, ou la première lecture qu'il débloque). `audioCtxInstances` en
+// compte les créations : le préchargement ne doit JAMAIS en créer un.
+let audioCtxInstances = 0;
 class FakeAudioContext {
   state = 'running';
   destination = {};
+  constructor() { audioCtxInstances++; }
   createGain() { return new FakeGainNode(); }
   createBufferSource() { return new FakeBufferSourceNode(); }
   createMediaElementSource() { return { connect() { return this; } }; }
   decodeAudioData() { return Promise.resolve({ duration: 1 }); }
   resume() { return Promise.resolve(); }
+}
+// Le contexte de DÉCODAGE, utilisé par le préchargement — jamais connecté à
+// une sortie audible, jamais gagné par la politique d'autoplay.
+let decodeCtxInstances = 0;
+class FakeOfflineAudioContext {
+  constructor() { decodeCtxInstances++; }
+  decodeAudioData() { return Promise.resolve({ duration: 1 }); }
 }
 
 // Un faux `<audio>` qui suit son état de lecture — c'est CE qu'on vérifie
@@ -73,8 +85,11 @@ beforeEach(() => {
   vi.resetModules();
   fetchCalls = [];
   createdAudioEls = [];
+  audioCtxInstances = 0;
+  decodeCtxInstances = 0;
   (globalThis as any).window = {
     AudioContext: FakeAudioContext,
+    OfflineAudioContext: FakeOfflineAudioContext,
     addEventListener() {}, removeEventListener() {},
   };
   (globalThis as any).Audio = FakeAudioEl;
@@ -91,6 +106,18 @@ describe('AudioManager — préchargement des effets sonores', () => {
     Audio.preloadSfx();
     await flush();
     expect(fetchCalls).toEqual(['/audio/SFX_READY']);
+  });
+
+  it('preloadSfx() décode via OfflineAudioContext, et NE CRÉE JAMAIS le contexte de lecture réel', async () => {
+    // Le bug exact de « la musique ne démarre pas au premier lancement » :
+    // le préchargement (avant tout geste) faisait naître le contexte RÉEL
+    // trop tôt. Le premier `new AudioContext()` ne doit arriver qu'à un
+    // geste (`unlock`), jamais pendant `preloadSfx`.
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.preloadSfx();
+    await flush();
+    expect(decodeCtxInstances).toBeGreaterThan(0);
+    expect(audioCtxInstances).toBe(0);
   });
 
   it('un second preloadSfx() ne refait AUCUN fetch — déjà en cache', async () => {

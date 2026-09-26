@@ -56,6 +56,7 @@ function UndoButton({ onUndo }: { onUndo: () => void }) {
       title="Tout annuler"
       className="shrink-0 px-3 text-base"
       onPointerDown={(e) => { e.stopPropagation(); onUndo(); }}
+      sfx={false}
     >
       ↺
     </Button>
@@ -80,6 +81,7 @@ function MenuButton() {
       aria-label="Options"
       className="shrink-0 px-3 text-base"
       onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_ingame'); applySnapshot({ menuOpen: true }); }}
+      sfx={false}
     >
       ☰
     </Button>
@@ -136,6 +138,7 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
             aria-label={paused ? 'Reprendre le combat' : 'Mettre en pause'}
             className="shrink-0 px-3 text-base"
             onPointerDown={(e) => { e.stopPropagation(); controller.togglePause(); }}
+            sfx={false}
           >
             {paused ? '▶' : '⏸'}
           </Button>
@@ -164,7 +167,7 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
       />
       {canUndo && <UndoButton onUndo={() => controller.undoPreparation()} />}
       <MenuButton />
-      <Button variant="primary" onPointerDown={(e) => { e.stopPropagation(); controller.startCombat(); }}>
+      <Button variant="primary" onPointerDown={(e) => { e.stopPropagation(); controller.startCombat(); }} sfx={false}>
         PRÊT ▸
       </Button>
     </div>
