@@ -335,7 +335,6 @@ export function playSfx(trigger: string, variant?: SfxVariant): void {
 
 let currentTheme: string | null = null;
 let current: RoutedAudio | null = null;
-let unlocked = false;
 /** Le thème de PARTIE verrouillé pour le match en cours — tiré une fois par
  *  `rollGameTheme()`, jamais rejoué à chaque round. */
 let lockedGameTheme: string | null = null;
@@ -350,22 +349,29 @@ function applyMusicVolume(): void {
 }
 
 /**
- * À appeler sur le premier geste utilisateur (`pointerdown` global — cf.
- * `App.tsx`) : la lecture audio est bloquée jusque-là par les navigateurs
- * (iOS Safari en particulier), et `setMusicTheme` peut avoir été appelé
- * avant ce geste (musique du menu au chargement). Idempotent.
+ * À appeler sur un geste utilisateur (le tap d'entrée dans `App.tsx`, ET un
+ * écouteur `click` global permanent — cf. plus bas) : la lecture audio est
+ * bloquée jusque-là par les navigateurs.
  *
  * ⚠️ Résume aussi l'`AudioContext` : il naît `suspended` tant qu'aucun geste
  * ne l'a débloqué (même contrainte que la lecture elle-même), et un élément
  * routé à travers lui reste MUET tant qu'il n'a pas repris — `resume()` est
- * retenté à chaque appel, jamais une seule fois, sur le modèle de
+ * retenté à CHAQUE appel, jamais une seule fois, sur le modèle de
  * `playClick()`.
+ *
+ * ⚠️ Le rattrapage d'une piste restée en pause (`current.el.paused`) tourne
+ * lui aussi À CHAQUE appel, PAS seulement au premier — `unlocked` ne garde
+ * que la mémoire du fait qu'un geste a déjà eu lieu, il ne doit RIEN empêcher
+ * de rejouer. C'est ce filet qui rattrape un premier `play()` resté muet sur
+ * Safari mobile : le tap d'entrée utilise `onClick` (le seul geste que
+ * `<audio>.play()` y reconnaît de façon fiable), mais si jamais CE play()
+ * précis échouait quand même, le tout PROCHAIN clic ailleurs dans l'appli
+ * (n'importe quel bouton de menu) le retente ici.
  */
 export function unlock(): void {
   const ctx = getAudioCtx();
   if (ctx?.state === 'suspended') ctx.resume().catch(() => {});
-  if (unlocked || typeof Audio === 'undefined') return;
-  unlocked = true;
+  if (typeof Audio === 'undefined') return;
   if (current?.el.paused) current.el.play().catch(() => { /* toujours refusé : tant pis, silencieux */ });
 }
 

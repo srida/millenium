@@ -151,6 +151,20 @@ export default function App() {
     initGameData(setProgress).then(() => setDataReady(true)).catch(e => setError(String(e)));
   }, [restore]);
 
+  // Filet de rattrapage, permanent (PAS `{ once: true }`) : le tap d'entrée
+  // (`onClick`, ci-dessous) est le geste normal qui débloque l'audio, mais si
+  // ce tout premier `play()` restait quand même muet sur un appareil qu'on
+  // n'a pas pu tester, `Audio.unlock()` retente la piste en pause à CHAQUE
+  // clic qui suit, n'importe où dans l'appli — c'est ce qui explique
+  // pourquoi la musique « redevient audible » dès qu'un bouton quelconque est
+  // cliqué en cours de partie. Idempotent et bon marché : sans rien à
+  // rattraper, il ne fait rien.
+  useEffect(() => {
+    const onClick = () => Audio.unlock();
+    window.addEventListener('click', onClick);
+    return () => window.removeEventListener('click', onClick);
+  }, []);
+
   // Coupe la musique quand l'onglet/l'appli passe en arrière-plan (change
   // d'onglet, mise en veille, PWA envoyée en fond) — sans ça une PWA
   // installée peut continuer à jouer du son hors champ (constaté sur
@@ -202,14 +216,25 @@ export default function App() {
           // `onPointerDown` de `SQUASH_DELAY_MS` (`usePressSquash`, le temps de
           // course de l'enfoncement) — un `setTimeout`, même de 45 ms, sort le
           // `play()` du tour d'exécution SYNCHRONE du geste natif, et les
-          // navigateurs stricts (Safari) refusent alors la lecture SANS un mot.
-          // C'est très exactement pourquoi la musique ne démarrait toujours
-          // pas malgré le tap. Ici l'unlock doit partir DANS le geste, donc
-          // rien entre le `pointerdown` natif et l'appel à `Audio`.
+          // navigateurs stricts refusent alors la lecture SANS un mot.
+          //
+          // ⚠️ `onClick`, PAS `onPointerDown` : Safari mobile applique à
+          // `<audio>.play()` (mais pas à un `AudioContext` déjà démarré, d'où
+          // les sons du jeu qui, eux, fonctionnaient déjà) une politique plus
+          // stricte que Chrome desktop, qui ne reconnaît pas forcément
+          // `pointerdown`/`touchstart` (déclenché AVANT que le doigt ne quitte
+          // l'écran) comme un « vrai » geste d'activation — seul `click`
+          // (synthétisé APRÈS le relâchement, sur mobile comme au clic souris)
+          // est reconnu de façon fiable sur toutes les plateformes. C'est très
+          // exactement pourquoi la musique restait muette au premier lancement
+          // SUR MOBILE SEULEMENT, et redevenait audible dès qu'un vrai clic
+          // avait eu lieu ailleurs (n'importe quel bouton en cours de partie).
+          // `click` reste SYNCHRONE (pas de `setTimeout` sur ce chemin), donc
+          // la leçon ci-dessus tient toujours.
           <button
             type="button"
             className={`${BUTTON_BASE} ${SURFACE_GOLD} ${SHADOW_IDLE} min-w-40 justify-center text-base text-gold hover:brightness-110`}
-            onPointerDown={() => { Audio.unlock(); Audio.setMusicTheme('menu'); setEntered(true); }}
+            onClick={() => { Audio.unlock(); Audio.setMusicTheme('menu'); setEntered(true); }}
           >
             Appuyer pour commencer
           </button>
