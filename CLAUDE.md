@@ -1770,6 +1770,11 @@ Un seul pont React ↔ Three : `components/board/Board3DCanvas.tsx` monte un `<c
 1. **La caméra regarde DROIT vers le bas** (`camera.position.set(0, _camH, _camCenterZ)` puis `lookAt(0, 0, _camCenterZ)`, aucune inclinaison). Conséquence : **tout ce qui doit se lire est planaire**. Une barre verticale, une colonne montante, une cage se projettent sur un point. Les particules qui montent doivent aussi **s'écarter** ; les arcs se referment **sur le plan du sol**.
 2. **Une carte CSS3D occupe une case ENTIÈRE et masque tout ce qu'il y a dessous** (`CARD_PX × CSS_SCALE` = 1 unité = 1 case, et le `CSS3DRenderer` rend dans un élément DOM **empilé au-dessus** du canvas WebGL — aucun tampon de profondeur partagé). **Rien de ce qui est dessiné à moins de ~0,5 unité du centre d'une unité n'est visible, quelle que soit sa hauteur `y`** → dômes (rayon 0,9), orbites (0,76), convergences (1,5), sceau de Blocage à `scale: 1.7`.
 
+**Dérive de l'illustration** (`unit-art-drift`, `board3d.css`) : zoom 1,06 → 1,20 et glissement de l'image dans son cadre, 14,7 s en aller-retour, générique pour toute illustration. Ancrage, direction et phase tirés par unité dans `UnitCardEl.createUnitEl` (variables `--drift-*`).
+- ⚠️ Sélecteur `.unit-card .unit-art`, jamais `.unit-art` seul : la carte de main partage la classe et ne dérive pas.
+- ⚠️ Le `translate` suit le `scale` dans le `transform`, donc il est multiplié par lui : la translation max (±8 %) × 1,20 doit rester sous la marge de zoom (10 %), sinon le bord de l'image se découvre.
+- Figée sur une unité neutralisée, en pause sur `.selected` / `.dragging`, retirée sous `prefers-reduced-motion`. La carte du plateau n'a plus de nébuleuse.
+
 ⚠️ **Corollaire de blending** : `AdditiveBlending` d'une couleur **sombre** n'enregistre presque rien sur un plateau sombre (les rayons de Provocation en `0xc83020` étaient invisibles). Les traits fins passent par `brighten()` de `PowerVfx.ts`.
 
 ⚠️ **Le contexte WebGL se REND à la main** : `renderer.dispose()` libère les ressources GPU mais **pas** le contexte, que three ne lâche qu'à la collecte du canvas. `Scene3D.destroy()` appelle donc `forceContextLoss()` — sans lui, chaque partie jouée en laissait un vivant et, le plafond de l'onglet atteint (16 chez Chrome), la création du suivant échouait : écran de jeu figé, l'erreur seulement en console.
@@ -1789,7 +1794,7 @@ Un seul pont React ↔ Three : `components/board/Board3DCanvas.tsx` monte un `<c
 
 ## Cartes 3D de la main et du cimetière
 
-`components/ui/Card3D.tsx` + `styles/card3d.css`. **Le même objet que la carte du plateau** : même balisage de face (`unit-face`, `unit-art`, les deux voiles, le liseré haut, le scrim), même recette de cadre — le sélecteur de `board3d.css` s'élargit à `.card3d`, il n'est pas recopié — et même palette (`three/cardPalette.tierFrameVars`). `CardTile` (2D) reste le template du DeckBuilder, de la boutique, des cadeaux, du codex et des bancs de dev.
+`components/ui/Card3D.tsx` + `styles/card3d.css`. **Le même objet que la carte du plateau** : même balisage de face (`unit-face`, `unit-art`, les voiles, le liseré haut, le scrim — la nébuleuse n'existe plus qu'en main), même recette de cadre — le sélecteur de `board3d.css` s'élargit à `.card3d`, il n'est pas recopié — et même palette (`three/cardPalette.tierFrameVars`). `CardTile` (2D) reste le template du DeckBuilder, de la boutique, des cadeaux, du codex et des bancs de dev.
 
 Trois modules purs, testés, et **aucune décision dans les composants** :
 

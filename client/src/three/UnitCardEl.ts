@@ -33,6 +33,14 @@ export function createUnitEl(unit: Unit, { selected = false, materialSelected = 
   // du combat (`logic/` seul en dépend). Un délai NÉGATIF démarre l'unité en
   // cours de cycle au lieu de toutes repartir de 0 au spawn.
   el.style.animationDelay = `-${(Math.random() * 2.6).toFixed(2)}s`;
+  // Dérive de l'illustration (`unit-art-drift`, board3d.css) : phase, point
+  // d'ancrage et direction tirés par unité, pour que deux cartes voisines ne
+  // glissent jamais ensemble. Même statut cosmétique que le délai ci-dessus.
+  el.style.setProperty('--drift-delay', `-${(Math.random() * 15).toFixed(2)}s`);
+  el.style.setProperty('--drift-ox', `${Math.round(25 + Math.random() * 50)}%`);
+  el.style.setProperty('--drift-oy', `${Math.round(20 + Math.random() * 40)}%`);
+  el.style.setProperty('--drift-kx', `${((Math.random() - 0.5) * 16).toFixed(1)}%`);
+  el.style.setProperty('--drift-ky', `${((Math.random() - 0.5) * 12).toFixed(1)}%`);
 
   // Le cadre vient de `cardPalette` — la carte de main écrit exactement les
   // mêmes variables, c'est ce qui en fait le même objet. Une unité dont la
@@ -102,7 +110,6 @@ function _inner(unit: Unit): string {
     <div class="unit-face">
       <img class="unit-art" src="${illustrationUrl(artFor(unit.card_id, unit.side))}" alt="${esc(unit.name)}">
       <div class="unit-foil-stars"></div>
-      <div class="unit-foil-nebula"></div>
       <div class="unit-top-edge"></div>
       <div class="unit-bottom-scrim"></div>
 

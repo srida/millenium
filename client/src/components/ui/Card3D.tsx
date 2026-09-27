@@ -3,7 +3,7 @@
 // tutoriel, bancs de dev) — ce qu'était `CardTile` (2D, supprimé).
 //
 // Elle rend **le même objet que la carte du plateau** : même balisage de face
-// (`unit-face`, `unit-art`, les deux voiles, le liseré haut, le scrim), même
+// (`unit-face`, `unit-art`, les voiles, le liseré haut, le scrim), même
 // recette de cadre (`board3d.css`), même palette de tier
 // (`three/cardPalette.tierFrameVars`). Ce qu'elle ajoute est ce qu'une carte en
 // MAIN a de plus : le nom, la pastille de coût, le compte d'exemplaires, le
