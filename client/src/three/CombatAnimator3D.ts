@@ -61,7 +61,16 @@ export class CombatAnimator3D {
     this._onStep = onStep;
   }
 
-  setSpeed(s: number): void { this._speed = s; }
+  setSpeed(s: number): void {
+    this._speed = s;
+    // La frappe au corps à corps (et l'apparition) divisent leurs propres
+    // durées par ce même multiplicateur — sans ce relais, ×2/×4 accélérait les
+    // ticks de jeu sans accélérer d'autant les animations, qui finissaient par
+    // déborder de la phase de combat.
+    // ⚠️ `?.` : les tests de `game/` construisent un contrôleur SANS scène
+    // (`_board` vaut alors `null`) pour éprouver le seul minutage des ticks.
+    this._board?.setAnimSpeed(s);
+  }
 
   pause(): void {
     this._paused = true;
@@ -120,6 +129,10 @@ export class CombatAnimator3D {
       this._refreshPowerGauges();
       if (this._cm.isOver) {
         this._running = false;
+        // Le combat s'arrête ici, net — une frappe encore en vol ou en file
+        // (cf. `MeleeStrikes.finishAll`) ne doit pas continuer à animer sous
+        // le récapitulatif qui s'apprête à s'ouvrir. `?.` : cf. `setSpeed`.
+        this._board?.finishMeleeStrikes();
         setTimeout(() => this._onFinished?.(), 500);
         return;
       }

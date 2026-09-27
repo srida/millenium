@@ -19,7 +19,12 @@ export const MELEE_STYLES = {
   glace: { move: 'glide', slash: 'stab', windup: 0.12, travel: 0.32, lean: 0.15, aura: 50 },
   foudre: { move: 'blink', slash: 'stab', windup: 0.1, travel: 0.16, lean: 0.2, aura: 0 },
   energie: { move: 'dash', slash: 'stab', windup: 0.14, travel: 0.18, lean: 0.3, aura: 60 },
-  sorcellerie: { move: 'shadow', slash: 'spiral', windup: 0.18, travel: 0.3, lean: 0.1, aura: 0 },
+  // slash 'stab' et non 'spiral' : la sorcellerie apparaît et disparaît déjà
+  // (move: 'shadow') — un tranchant qui tourne sur près d'un tour complet
+  // PAR-DESSUS ce va-et-vient rendait le geste illisible (« part dans tous les
+  // sens »). Un coup d'estoc net, dans l'axe, garde le thème (poignard surgi
+  // de l'ombre) sans la confusion.
+  sorcellerie: { move: 'shadow', slash: 'stab', windup: 0.18, travel: 0.3, lean: 0.1, aura: 0 },
   air: { move: 'spin', slash: 'spiral', windup: 0.08, travel: 0.3, lean: 0.1, spin: 2, aura: 70 },
   terre: { move: 'leap', slash: 'slam', windup: 0.24, travel: 0.42, lean: 0.25, aura: 30 },
   eau: { move: 'weave', slash: 'wave', windup: 0.12, travel: 0.34, lean: 0.2, aura: 60 },
@@ -108,7 +113,13 @@ export class MeleeStrikes {
     S.action = {
       job, list, st, pw, sp, H, A, T, W, d0: d0c, d, t: 0, phase: 'windup',
       hits: TIER_HITS[job.tier] ?? 1, fired: -1, side: Math.random() < 0.5 ? 1 : -1,
-      tw: (st.windup * (0.75 + 0.3 * pw)) / sp, tt: st.travel / sp, th: 0.24 / sp, tr: 0.36 / sp,
+      // ⚠️ `sp` (vitesse de combat, cf. `setGlobals`) doit suivre le multiplicateur
+      // ×1/×2/×4 de `CombatAnimator3D` (voir `Scene3D.setAnimSpeed`) : sinon une
+      // frappe garde sa durée « temps réel » pendant qu'à ×4 les ticks de jeu en
+      // enchaînent quatre fois plus — la file par attaquant (`S.queue`) grossit
+      // sans jamais se résorber, et les frappes finissent par déborder de la
+      // phase de combat.
+      tw: (st.windup * (0.75 + 0.3 * pw)) / sp, tt: st.travel / sp, th: 0.16 / sp, tr: 0.22 / sp,
       yaw0: yawBetween(S.actor.forward, d0c), yaw1: yawBetween(S.actor.forward, d),
       P: this.fx.resolveParams(list[0], { tier: job.tier }), auraAcc: 0, mark: {},
     };
@@ -181,14 +192,20 @@ export class MeleeStrikes {
       return false;
     }
     // return
+    // ⚠️ Cible LIVE (`S.actor.home`, pas le `a.H` figé au lancement) : le retour
+    // peut chevaucher un tick où l'unité a effectivement changé de case (une
+    // frappe mise en FILE reprend parfois bien après son émission — cf. la
+    // note sur `sp` ci-dessus). Revenir vers la position d'AVANT la posait sur
+    // la mauvaise case une fois l'animation terminée.
+    const home = S.actor.home;
     const u = clamp01(a.t / a.tr), e = E.io(u);
     const blinky = st.move === 'blink' || st.move === 'shadow';
     if (blinky) {
-      if (!a.mark.back) { a.mark.back = 1; this._vanish(a, a.A, a.H); }
-      p.pos.copy(u < 0.5 ? a.A : a.H);
+      if (!a.mark.back) { a.mark.back = 1; this._vanish(a, a.A, home); }
+      p.pos.copy(u < 0.5 ? a.A : home);
       p.op = u < 0.5 ? 1 - u * 2 : (u - 0.5) * 2;
     } else {
-      p.pos.lerpVectors(a.A, a.H, e);
+      p.pos.lerpVectors(a.A, home, e);
       p.lift = 0.06 + 0.1 * Math.sin(u * Math.PI);
     }
     p.yaw = a.yaw1 * (1 - e); p.lean = st.lean * 0.6 * (1 - u); p.leanDir.copy(d);
@@ -313,6 +330,24 @@ export class MeleeStrikes {
       this.onShake?.(0.025 * amt * g.shake);
       this.onHit?.(target, P, { hit: i, last, power: pw });
     });
+  }
+
+  /**
+   * Résout et pose immédiatement TOUTES les frappes en cours ou en file —
+   * appelé quand le combat se termine (`CombatManager.isOver`) : les ticks de
+   * jeu s'arrêtent net, mais une frappe encore en vol (ou sa file) continuerait
+   * sinon d'animer sous le récapitulatif. Contrairement à `dispose()`, qui ne
+   * fait que vider l'état, celle-ci REPOSE chaque acteur — sans quoi la
+   * dernière frame rendue le laisserait figé en plein élan.
+   */
+  finishAll() {
+    for (const S of this.states.values()) {
+      S.action?.job.resolve();
+      for (const job of S.queue) job.resolve();
+      S.action = null; S.queue = []; S.kicks = [];
+      this._apply(S, { pos: S.actor.home, yaw: 0, lean: 0, lift: 0, scale: 1, op: 1, leanDir: S.actor.forward });
+    }
+    this.states.clear();
   }
 
   dispose() { this.states.clear(); }
