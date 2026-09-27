@@ -13,6 +13,7 @@
 // port ligne à ligne — comportement visuel identique à l'ancienne app.
 import * as THREE from 'three';
 import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+import { EnergyArrows } from './EnergyArrows.js';
 import { createUnitEl, updateUnitEl } from './UnitCardEl.js';
 import {
   ELEMENT_STYLES, elementsForUnit,
@@ -213,9 +214,16 @@ export class Scene3D {
 
   scene!: THREE.Scene;
   cssScene!: THREE.Scene;
+  fxScene!: THREE.Scene;
   camera!: THREE.PerspectiveCamera;
   renderer!: THREE.WebGLRenderer;
   cssRenderer!: CSS3DRenderer;
+  fxRenderer!: THREE.WebGLRenderer;
+  // Projectiles « flèche d'énergie » (EnergyArrows) : calque WebGL transparent
+  // séparé, posé AU-DESSUS des cartes CSS3D (cf. `_buildScene`) — un projectile
+  // rendu dans `scene` passerait sous les cartes, qui vivent dans un calque DOM
+  // empilé par-dessus le canvas WebGL principal.
+  fx: any;
 
   tileGeometry!: THREE.ShapeGeometry;
   tileMeshes: THREE.Mesh[] = [];
@@ -252,7 +260,6 @@ export class Scene3D {
   _flameTex?: THREE.CanvasTexture;
   _dropletTex?: THREE.CanvasTexture;
   _windTex?: THREE.CanvasTexture;
-  _arrowTex?: THREE.CanvasTexture;
 
   constructor(container: HTMLElement, opts: Scene3DOptions = {}) {
     this.container = container;
@@ -312,6 +319,22 @@ export class Scene3D {
     this.cssRenderer.domElement.style.userSelect = 'none';
     (this.cssRenderer.domElement.style as any).webkitUserSelect = 'none';
     this.container.appendChild(this.cssRenderer.domElement);
+
+    // Calque FX (EnergyArrows) : un troisième renderer, transparent, posé
+    // AU-DESSUS des cartes CSS3D. Sans lui les projectiles — rendus dans une
+    // scène WebGL classique — passeraient SOUS les cartes, qui vivent dans un
+    // calque DOM empilé par-dessus le canvas WebGL principal.
+    this.fxScene = new THREE.Scene();
+    this.fxRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, premultipliedAlpha: true });
+    this.fxRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.fxRenderer.setClearColor(0x000000, 0);
+    this.fxRenderer.domElement.style.position = 'absolute';
+    this.fxRenderer.domElement.style.inset = '0';
+    this.fxRenderer.domElement.style.pointerEvents = 'none';
+    this.container.appendChild(this.fxRenderer.domElement);
+    this.fx = new EnergyArrows(this.fxScene, this.camera, { lowEnd: LOW_END_DEVICE });
+    // Reprend le réglage d'arc du prototype (tailles par tier déjà par défaut).
+    this.fx.setGlobals({ arc: 2 });
 
     // Ambiance astrale : lumière froide violet-bleu + clé dorée rasante
     this.scene.add(new THREE.AmbientLight(0x1e2860, 1.4));
@@ -1377,88 +1400,30 @@ export class Scene3D {
     if (t === 5) this.spawnHalo(position, (ELEMENT_STYLES[list[0]] || ELEMENT_STYLES.neutral).color);
   }
 
-  // Pointe pleine à droite (u proche de 1) + traînée en dégradé d'alpha vers
-  // la gauche (u proche de 0) : une seule texture blanche, teintée par la
-  // couleur du matériau, réutilisée pour toutes les flèches. Mise en cache
-  // comme les autres textures générées (`_getFlameTexture`, `_getWindTexture`).
-  _getArrowTexture(): THREE.CanvasTexture {
-    if (this._arrowTex) return this._arrowTex;
-    const w = 128;
-    const h = 32;
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d')!;
-    const trailGrad = ctx.createLinearGradient(0, 0, w, 0);
-    trailGrad.addColorStop(0,    'rgba(255,255,255,0)');
-    trailGrad.addColorStop(0.5,  'rgba(255,255,255,0.12)');
-    trailGrad.addColorStop(0.82, 'rgba(255,255,255,0.55)');
-    trailGrad.addColorStop(1,    'rgba(255,255,255,0.9)');
-    ctx.fillStyle = trailGrad;
-    ctx.fillRect(0, h * 0.36, w * 0.82, h * 0.28);
-    ctx.fillStyle = 'rgba(255,255,255,1)';
-    ctx.beginPath();
-    ctx.moveTo(w * 0.66, h * 0.06);
-    ctx.lineTo(w, h * 0.5);
-    ctx.lineTo(w * 0.66, h * 0.94);
-    ctx.closePath();
-    ctx.fill();
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.needsUpdate = true;
-    this._arrowTex = tex;
-    return tex;
-  }
-
-  // Flèche plate orientée vers la cible, avec sa traînée lumineuse (cf.
-  // `_getArrowTexture`) — remplace l'ancien projectile sphérique, illisible
-  // comme direction depuis la caméra vue du dessus. Même arc vertical (le
-  // « saut ») et même durée que l'ancienne version.
-  playProjectile(fromPos: Position, toPos: Position, color = 0xffffff): Promise<void> {
-    return new Promise((resolve) => {
-      const from = this.tilePosition(fromPos);
-      const to = this.tilePosition(toPos);
-      const dx = to.x - from.x;
-      const dz = to.z - from.z;
-      const angle = Math.atan2(dz, dx);
-      const geo = new THREE.PlaneGeometry(0.62, 0.22);
-      const mat = new THREE.MeshBasicMaterial({
-        map: this._getArrowTexture(),
-        color,
-        transparent: true,
-        opacity: 1,
-        side: THREE.DoubleSide,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      });
-      const mesh = new THREE.Mesh(geo, mat);
-      // Même recette d'orientation que `spawnBeam` : coucher le plan (son X
-      // local reste le X monde), puis une rotation MONDE autour de Y le pointe
-      // dans la direction de vol — l'arc vertical du bond n'y change rien,
-      // la caméra ne lisant que le plan horizontal.
-      mesh.rotation.x = -Math.PI / 2;
-      mesh.rotateOnWorldAxis(WORLD_UP, -angle);
-      mesh.position.copy(from);
-      this.scene.add(mesh);
-      let t = 0;
-      const duration = 0.25;
-      this.anims.push({
-        update: (dt: number) => {
-          t += dt;
-          const p = Math.min(t / duration, 1);
-          mesh.position.x = THREE.MathUtils.lerp(from.x, to.x, p);
-          mesh.position.z = THREE.MathUtils.lerp(from.z, to.z, p);
-          mesh.position.y = THREE.MathUtils.lerp(from.y, to.y, p) + Math.sin(p * Math.PI) * 0.6;
-          if (p >= 1) {
-            this.scene.remove(mesh);
-            geo.dispose();
-            mat.dispose();
-            resolve();
-            return false;
-          }
-          return true;
-        },
-      });
-    });
+  // Projectile « flèche d'énergie » (EnergyArrows, calque FX transparent posé
+  // au-dessus des cartes CSS3D — cf. `_buildScene`). `element` est une clé
+  // (ou un tableau de clés pour un projectile mixte) de `ELEMENT_STYLES` /
+  // `EnergyArrows.ELEMENT_PRESETS`, qui partagent exactement le même
+  // vocabulaire (feu, eau, terre, air, foudre, glace, sorcellerie, énergie,
+  // métal, sable, plante, neutre) : aucune traduction n'est nécessaire.
+  //
+  // ⚠️ Compatibilité : `PowerVfx.ts` appelle encore ce point d'entrée avec une
+  // couleur hexadécimale de pouvoir (pas une identité élémentaire) — un
+  // nombre bascule sur l'élément neutre, teinté par cette couleur via les
+  // surcharges `core`/`halo` d'EnergyArrows, plutôt que d'inventer un élément
+  // thématique que personne n'a demandé.
+  playProjectile(
+    fromPos: Position,
+    toPos: Position,
+    element: string | string[] | number = 'neutral',
+    opts: { tier?: number } = {},
+  ): Promise<void> {
+    const from = this.tilePosition(fromPos);
+    const to = this.tilePosition(toPos);
+    if (typeof element === 'number') {
+      return this.fx.fire(from, to, 'neutral', { ...opts, core: element, halo: element }).then(() => {});
+    }
+    return this.fx.fire(from, to, element, opts).then(() => {});
   }
 
   // ── Effets de pouvoir (cf. three/PowerVfx.ts) ───────────────────────────
@@ -2508,6 +2473,8 @@ export class Scene3D {
     const h = this.container.clientHeight || 1;
     this.renderer.setSize(w, h);
     this.cssRenderer.setSize(w, h);
+    this.fxRenderer.setSize(w, h);
+    this.fx.setViewport(h * this.fxRenderer.getPixelRatio());
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this._setCameraImmediate(this._combatMode);
@@ -2530,10 +2497,19 @@ export class Scene3D {
     const dt = Math.min((now - this._lastTime) / 1000, 0.05);
     this._lastTime = now;
 
+    // Un projectile EnergyArrows en vol, ou ses particules/anneaux d'impact
+    // encore visibles après que son propre `activeCount` soit retombé à 0
+    // (rings/timers d'impact continuent après la fin du vol) : tant que l'un
+    // des trois compte, il faut mettre à jour ET rendre le calque FX.
+    const fxActive = this.fx.activeCount > 0 || this.fx.pAdd.n > 0 || this.fx.pNorm.n > 0
+      || this.fx.rings.length > 0 || this.fx.timers.length > 0;
+
     // Rendu à la demande : rien d'actif et rien d'invalidé → on saute la frame.
-    const active = this.anims.length > 0 || this.bursts.length > 0 || this._shake !== null || this._needsRender;
+    const active = this.anims.length > 0 || this.bursts.length > 0 || this._shake !== null || this._needsRender || fxActive;
     if (!active) return;
     this._needsRender = false;
+
+    if (fxActive) this.fx.update(dt);
 
     this.anims = this.anims.filter((a) => a.update(dt));
 
@@ -2686,6 +2662,10 @@ export class Scene3D {
 
     this.renderer.render(this.scene, this.camera);
     this.cssRenderer.render(this.cssScene, this.camera);
+    // Rendue seulement quand active : sur une frame qui ne l'était pas déjà à
+    // la frame précédente, le canvas transparent reste tel qu'on l'a laissé
+    // (vide) plutôt que de coûter un rendu pour rien.
+    if (fxActive) this.fxRenderer.render(this.fxScene, this.camera);
   }
 
   dispose(): void {
@@ -2736,18 +2716,23 @@ export class Scene3D {
     for (const dispose of [...this._persistent]) dispose();
     this._persistent.clear();
 
-    // Textures canvas mises en cache + DOM des deux renderers
+    // Textures canvas mises en cache + DOM des trois renderers
     this._flameTex?.dispose();
     this._dropletTex?.dispose();
     this._windTex?.dispose();
+    this.fx.dispose();
     this.renderer.dispose();
+    this.fxRenderer.dispose();
     // ⚠️ `dispose()` libère les ressources GPU mais PAS le contexte WebGL :
     // three ne le rend qu'à la collecte du canvas. Un navigateur en plafonne le
     // nombre par page (16 chez Chrome) — sans cette ligne, chaque partie jouée
-    // en laissait un vivant, et au bout de quelques lancements la création du
-    // suivant échouait (« Error creating WebGL context »), écran de jeu figé.
+    // en laissait deux contextes vivants (le canvas principal ET le calque FX),
+    // et au bout de quelques lancements la création du suivant échouait
+    // (« Error creating WebGL context »), écran de jeu figé.
     this.renderer.forceContextLoss();
+    this.fxRenderer.forceContextLoss();
     this.renderer.domElement.remove();
     this.cssRenderer.domElement.remove();
+    this.fxRenderer.domElement.remove();
   }
 }
