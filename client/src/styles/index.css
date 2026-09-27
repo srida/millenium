@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./board3d.css";
 @import "./card3d.css";
+@import "./foil.css";
 @import "./space.css";
 @import "./outcomeTransition.css";
 @import "./duelIntro.css";

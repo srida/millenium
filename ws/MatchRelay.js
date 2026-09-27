@@ -54,6 +54,8 @@ function playerInfo(userId, ws) {
 function deckDerived(userId, deckName) {
   return {
     variants: cosmetics.deckVariantMap(userId, deckName),
+    // Cosmétique lui aussi : les cartes à reflet, filtrées par possession.
+    foils: cosmetics.deckFoilList(userId, deckName),
     deck_attribute_counts: decks.deckAttributeCounts(userId, deckName),
   };
 }

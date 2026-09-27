@@ -51,6 +51,19 @@ export interface CosmeticCardBack {
   purchased: boolean;
 }
 
+/**
+ * Un reflet — une lame de lumière sur l'illustration d'UNE carte. Son id EST le
+ * `card_id` : un seul reflet par carte, pas de catalogue.
+ */
+export interface CosmeticFoil {
+  id: string;
+  card_id: string;
+  card_name: string;
+  tier: number | null;
+  price_gems: number;
+  purchased: boolean;
+}
+
 /** Dos possédé ou offert — le Profil dresse sa grille avec ça, sans relire le catalogue. */
 export interface OwnedCardBack {
   id: string;
@@ -60,16 +73,18 @@ export interface OwnedCardBack {
 export interface CosmeticSnapshot {
   day: string;
   next_rotation_at: number;
-  prices: { avatar: { gems: number }; variant: { gems: number }; card_back?: { gems: number } };
+  prices: { avatar: { gems: number }; variant: { gems: number }; card_back?: { gems: number }; foil?: { gems: number } };
   avatars: CosmeticAvatar[];
   variants: CosmeticVariant[];
   card_backs: CosmeticCardBack[];
-  owned: { avatars: string[]; variants: OwnedVariant[]; card_backs: OwnedCardBack[] };
+  foils: CosmeticFoil[];
+  /** `owned.foils` : les card_id dont le joueur possède le reflet. */
+  owned: { avatars: string[]; variants: OwnedVariant[]; card_backs: OwnedCardBack[]; foils: string[] };
   default_avatars: string[];
   default_card_backs: string[];
 }
 
-export type CosmeticKind = 'avatar' | 'variant' | 'card_back';
+export type CosmeticKind = 'avatar' | 'variant' | 'card_back' | 'foil';
 
 interface CosmeticStoreState {
   snapshot: CosmeticSnapshot | null;
@@ -81,6 +96,8 @@ interface CosmeticStoreState {
   buy: (kind: CosmeticKind, id: string, label: string) => Promise<string | null>;
   /** Variantes possédées pour une carte — alimente le sélecteur du DeckBuilder. */
   ownedVariantsFor: (cardId: string) => OwnedVariant[];
+  /** Le joueur possède-t-il le reflet de cette carte ? — DeckBuilder. */
+  ownsFoil: (cardId: string) => boolean;
   /** Avatars sélectionnables au Profil : les offerts, puis les achetés. */
   selectableAvatars: () => string[];
   /** Dos de cartes portables au Profil — offerts et achetés confondus. */
@@ -99,10 +116,12 @@ function pickSnapshot(data: any): CosmeticSnapshot {
     avatars: data.avatars ?? [],
     variants: data.variants ?? [],
     card_backs: data.card_backs ?? [],
+    foils: data.foils ?? [],
     owned: {
       avatars: data.owned?.avatars ?? [],
       variants: data.owned?.variants ?? [],
       card_backs: data.owned?.card_backs ?? [],
+      foils: data.owned?.foils ?? [],
     },
     default_avatars: data.default_avatars ?? [],
     default_card_backs: data.default_card_backs ?? [],
@@ -116,6 +135,7 @@ const BUY_NOTICE: Record<CosmeticKind, (label: string) => string> = {
   avatar: (l) => `Avatar débloqué : ${l} — choisis-le dans ton profil.`,
   variant: (l) => `Illustration débloquée : ${l} — choisis-la dans le DeckBuilder.`,
   card_back: (l) => `Dos de carte débloqué : ${l} — choisis-le dans ton profil.`,
+  foil: (l) => `Reflet débloqué : ${l} — active-le dans le DeckBuilder.`,
 };
 
 const channel = createSnapshotChannel<CosmeticSnapshot>({
@@ -153,6 +173,8 @@ export const useCosmeticStore = create<CosmeticStoreState>((set, get) => ({
 
   ownedVariantsFor: (cardId) =>
     (get().snapshot?.owned.variants ?? []).filter(v => v.card_id === cardId),
+
+  ownsFoil: (cardId) => (get().snapshot?.owned.foils ?? []).includes(cardId),
 
   selectableAvatars: () => {
     const snap = get().snapshot;

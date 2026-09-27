@@ -394,8 +394,9 @@ Second **onglet** de `ShopScreen`. Tables `user_cosmetics`, `user_cosmetic_state
 | **Avatar** | toute illustration existante (carte, terrain, magie) | **5 💎** | — |
 | **Variante** | illustration alternative d'une carte | **50 💎** | posséder la **carte** |
 | **Dos de carte** | `data/card_backs.json`, hors dos offerts, art existant | **`price_gems` du catalogue** | — |
+| **Reflet** | cartes **possédées** dont l'art existe | **20 💎** | posséder la **carte** |
 
-3 avatars + 3 variantes + 2 dos par jour, même rotation de 5 h. Les deux invariants de la boutique de cartes s'appliquent tels quels (zéro doublon, offre serveur ; l'achat porte `kind` **et** `id` → 409).
+3 avatars + 3 variantes + 2 dos + 3 reflets par jour, même rotation de 5 h. Les deux invariants de la boutique de cartes s'appliquent tels quels (zéro doublon, offre serveur ; l'achat porte `kind` **et** `id` → 409).
 
 - **Ni reroll ni épingle** : les prix sont bas et un cosmétique manqué **revient** (il ne quitte pas le pool à l'achat).
 - **Pool d'avatars automatique**, sans curation ; les 7 avatars offerts (`DEFAULT_AVATARS`) en sont exclus. ⚠️ `avatarPool` itère `SOURCES` (`cards.json`/`boards.json`/`magies.json`) — il ne scanne pas le dossier, donc une icône d'attribut ne devient jamais un visage achetable.
@@ -415,6 +416,16 @@ Catalogue `data/card_backs.json` (`{ id, name, default?, price_gems }`), onglet 
 - `data/CardBackDatabase.js` **ne jette pas** sur une réponse en erreur, contrairement aux autres databases : un dos n'est pas une donnée de jeu, un serveur en retard de déploiement ne doit pas empêcher de jouer.
 
 **Choix PAR DECK** — onglet Deck du DeckBuilder, section « Dos de carte » (n'existe que si le joueur a au moins un dos débloqué). Comme les variantes, jamais comme l'avatar : `DeckRepository.getDeckCardBack`/`setDeckCardBack`, même patron localStorage + sync que `getDeckColor`/`getDeckVariants`. `RoundStart.DrawPopup` résout trois rangs, du plus spécifique au plus général : le dos du **deck actif** (`DeckRepository.getActiveDeck()`, lu en direct comme partout ailleurs) → celui du **profil** (`ProfileScreen`) → le défaut du catalogue. `null` à un rang retombe sur le suivant.
+
+### Reflets (`kind: 'foil'`)
+
+Lame de lumière qui balaie l'illustration d'une carte **sur le plateau** (`styles/foil.css`, `.foil-sheen`). **Pas de catalogue** : l'id d'un reflet EST le `card_id`.
+
+- **Choix PAR DECK**, dans le sélecteur 🎨 du DeckBuilder (`IllustrationPicker`, interrupteur sous les illustrations) : `meta[nom].foils = [card_id…]`, `DeckRepository.getDeckFoils`/`setDeckFoils`. Le bouton 🎨 apparaît dès que la carte a une variante **ou** un reflet possédés.
+- Trajet de jeu = celui des variantes : `CardArt.setPlayerFoils`/`setEnemyFoils`/`hasFoil` (deux ensembles étanches), remplis aux quatre mêmes endroits ; `UnitCardEl` pose la couche au spawn. Absent de `logic/` et du payload de déterminisme.
+- PvP : `cosmetics.deckFoilList` (deck book **serveur**, filtré par possession et présence au deck) voyage dans `deckDerived` à côté de `variants`. Un bot annonce `foils: []`.
+- ⚠️ Une offre du jour tirée **sans** `foils` est **complétée** par `sync`, jamais re-tirée.
+- ⚠️ La lame reprend `--drift-delay` comme phase : deux reflets voisins ne passent pas ensemble. Le parent doit rogner (`overflow: hidden`). `prefers-reduced-motion` la pose au milieu, immobile.
 
 ### Variantes (`variants.js`)
 

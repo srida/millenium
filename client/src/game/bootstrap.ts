@@ -146,6 +146,9 @@ export function buildSession(
   // PvpController qui pose celles de l'adversaire une fois le match trouvé.
   CardArt.setPlayerVariants(resolvedName ? (DeckRepository as any).getDeckVariants?.(resolvedName) : null);
   CardArt.setEnemyVariants(null);
+  // Reflets : même trajet, même étanchéité entre les camps.
+  CardArt.setPlayerFoils(resolvedName ? (DeckRepository as any).getDeckFoils?.(resolvedName) : null);
+  CardArt.setEnemyFoils(null);
 
   return new GameSession({
     // ⚠️ Le pool se dérive des TIERS DE LA CARTE, pas de la lane où le

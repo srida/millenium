@@ -5,7 +5,7 @@ import type { Unit } from '../logic/Unit.js';
 // `data/CardArt` n'importe rien : la couche de rendu y gagne la résolution des
 // variantes sans traîner de dépendance (les garde-fous ESLint n'interdisent à
 // three/ que React et Zustand).
-import { artFor, illustrationUrl } from '../data/CardArt.js';
+import { artFor, hasFoil, illustrationUrl } from '../data/CardArt.js';
 import { getCard } from '../data/CardDatabase.js';
 import { tiersOf } from '../logic/Tiers.js';
 import { frameVars } from './cardPalette.js';
@@ -110,6 +110,7 @@ function _inner(unit: Unit): string {
     <div class="unit-face">
       <img class="unit-art" src="${illustrationUrl(artFor(unit.card_id, unit.side))}" alt="${esc(unit.name)}">
       <div class="unit-foil-stars"></div>
+      ${hasFoil(unit.card_id, unit.side) ? '<div class="foil-sheen"></div>' : ''}
       <div class="unit-top-edge"></div>
       <div class="unit-bottom-scrim"></div>
 

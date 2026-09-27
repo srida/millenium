@@ -12,6 +12,10 @@
 //   - VARIANTE (50 gemmes) — illustration alternative d'une carte, écrite en
 //     admin. Le joueur ne peut acheter que les variantes des cartes QU'IL
 //     POSSÈDE : une variante d'une carte qu'on n'a pas ne s'affiche nulle part.
+//   - REFLET (20 gemmes) — une lame de lumière qui traverse l'illustration
+//     d'UNE carte sur le plateau. Pas de catalogue : son id EST le `card_id`,
+//     et le pool est la collection du joueur (cartes possédées dont l'art
+//     existe). Choisi deck par deck, comme une variante.
 //
 // Les invariants sont ceux de la boutique de cartes, pour les mêmes raisons :
 //   1. ZÉRO DOUBLON — un cosmétique possédé ne ressort jamais du tirage.
@@ -36,7 +40,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 
 // --- Barème ---
 
-const DAILY = Object.freeze({ avatars: 3, variants: 3, card_backs: 2 });
+const DAILY = Object.freeze({ avatars: 3, variants: 3, card_backs: 2, foils: 3 });
 
 // Prix fixes, en gemmes uniquement. Un avatar coûte le dixième d'une variante :
 // l'un se change comme on change d'humeur, l'autre est un investissement sur
@@ -44,6 +48,7 @@ const DAILY = Object.freeze({ avatars: 3, variants: 3, card_backs: 2 });
 const PRICE = Object.freeze({
   avatar: Object.freeze({ gems: 5 }),
   variant: Object.freeze({ gems: 50 }),
+  foil: Object.freeze({ gems: 20 }),
   // ⚠️ REPLI seulement : un dos porte son propre `price_gems`, saisi en admin
   // (c'est le seul cosmétique dont le prix est éditorial — il n'y en a qu'une
   // poignée, et ils ne se valent pas). Ce chiffre ne sert qu'à une entrée de
@@ -51,7 +56,7 @@ const PRICE = Object.freeze({
   card_back: Object.freeze({ gems: 100 }),
 });
 
-const KINDS = Object.freeze(['avatar', 'variant', 'card_back']);
+const KINDS = Object.freeze(['avatar', 'variant', 'card_back', 'foil']);
 
 /**
  * La clé de chaque famille dans l'offre persistée. ⚠️ Une TABLE et non un
@@ -59,7 +64,7 @@ const KINDS = Object.freeze(['avatar', 'variant', 'card_back']);
  * qui n'était pas un avatar comme une variante — un `kind` inconnu serait allé
  * chercher dans le mauvais pool. Ici il ne trouve rien, donc il est refusé.
  */
-const OFFER_KEY = Object.freeze({ avatar: 'avatars', variant: 'variants', card_back: 'card_backs' });
+const OFFER_KEY = Object.freeze({ avatar: 'avatars', variant: 'variants', card_back: 'card_backs', foil: 'foils' });
 
 // Avatars offerts à tout le monde, jamais vendus et jamais tirés. C'est la
 // liste que ProfileScreen codait en dur avant l'existence de cette boutique :
@@ -171,6 +176,33 @@ function variantPool(user) {
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
+/**
+ * Pool de reflets : les cartes POSSÉDÉES dont l'art existe — un reflet balaie
+ * une illustration, il n'a rien à balayer sans elle. L'id d'un reflet est le
+ * `card_id` lui-même : il n'y a qu'un reflet par carte, et aucun catalogue à
+ * écrire en admin.
+ */
+function foilPool(user) {
+  const catalog = cards();
+  return progression.unlockedCardIds(user)
+    .filter(id => catalog.has(id) && variants.illustrationExists(id))
+    .map(id => {
+      const card = catalog.get(id);
+      return { id, card_id: id, card_name: card?.name ?? id, tier: tiers.displayTier(card) };
+    })
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+
+function drawFoils(user, day, ownedFoils) {
+  // Sa propre graine, comme chaque famille : l'offre d'une famille ne doit pas
+  // bouger quand le pool d'une autre change.
+  return pick(
+    foilPool(user).filter(f => !ownedFoils.has(f.id)),
+    DAILY.foils,
+    seededRandom(user.id, day, 'foil'),
+  ).map(f => ({ ...f, price_gems: PRICE.foil.gems }));
+}
+
 // --- Possession ---
 
 function ownedOf(userId) {
@@ -179,6 +211,7 @@ function ownedOf(userId) {
     avatars: rows.filter(r => r.kind === 'avatar').map(r => r.cosmetic_id),
     variants: rows.filter(r => r.kind === 'variant').map(r => r.cosmetic_id),
     card_backs: rows.filter(r => r.kind === 'card_back').map(r => r.cosmetic_id),
+    foils: rows.filter(r => r.kind === 'foil').map(r => r.cosmetic_id),
   };
 }
 
@@ -265,6 +298,7 @@ function buildOffer(user, { day }) {
     // Le prix d'un dos vient du CATALOGUE, pas du barème : `cardBackPool` l'a
     // déjà posé, avec son repli.
     card_backs: backList,
+    foils: drawFoils(user, day, new Set(ownedIds.foils)),
   };
 }
 
@@ -293,7 +327,17 @@ function writeState(state) {
 const sync = db.transaction((user) => {
   const state = readState(user.id);
   const day = dayKey();
-  if (state.offer_day === day && state.offer) return state;
+  if (state.offer_day === day && state.offer) {
+    // Une offre du jour tirée AVANT l'existence des reflets n'en porte pas :
+    // on la COMPLÈTE, sans rien re-tirer de ce qu'elle contient déjà (même
+    // geste que `shop.fillSlots`). Le tirage est semé sur (joueur, jour), donc
+    // c'est exactement l'offre que le joueur aurait eue au matin.
+    if (!Array.isArray(state.offer.foils)) {
+      state.offer.foils = drawFoils(user, day, new Set(ownedOf(user.id).foils));
+      writeState(state);
+    }
+    return state;
+  }
 
   state.offer = buildOffer(user, { day });
   state.offer_day = day;
@@ -322,6 +366,7 @@ function unlock(userId, kind, id) {
   if (!KINDS.includes(kind)) return { ok: false, reason: 'Type de cosmétique inconnu.' };
   if (kind === 'variant' && !variants.byId(id)) return { ok: false, reason: 'Variante introuvable.' };
   if (kind === 'avatar' && !variants.illustrationExists(id)) return { ok: false, reason: 'Avatar introuvable.' };
+  if (kind === 'foil' && !cards().has(id)) return { ok: false, reason: 'Carte introuvable.' };
   // Un dos exige les DEUX : une entrée au catalogue (c'est elle qui le nomme et
   // le tarife) et son art (sans PNG il serait portable et vide).
   if (kind === 'card_back' && (!cardBackExists(id) || !variants.illustrationExists(id))) {
@@ -371,6 +416,10 @@ const buy = db.transaction((user, kind, id) => {
   if (kind === 'variant' && !variants.byId(id)) {
     return { ok: false, reason: 'Variante introuvable.', stale: true };
   }
+  // Même raison pour la carte d'un reflet.
+  if (kind === 'foil' && !cards().has(id)) {
+    return { ok: false, reason: 'Carte introuvable.', stale: true };
+  }
   // Même raison pour un dos retiré du catalogue depuis le tirage.
   if (kind === 'card_back' && !cardBackExists(id)) {
     return { ok: false, reason: 'Dos de carte introuvable.', stale: true };
@@ -414,6 +463,22 @@ function deckVariantMap(userId, deckName) {
   return out;
 }
 
+/**
+ * Cartes à reflet du deck d'un joueur, dérivées du deck book SERVEUR et
+ * filtrées par possession — exactement le trajet de `deckVariantMap`, et pour
+ * la même raison : le client ne transmet jamais cette liste à son adversaire.
+ */
+function deckFoilList(userId, deckName) {
+  const resolved = decks.resolveDeck(userId, deckName);
+  if (!resolved) return [];
+  const { name, book } = resolved;
+  const inDeck = decks.deckCardIds(userId, deckName);
+  const owned = new Set(ownedOf(userId).foils);
+  const raw = book?.meta?.[name]?.foils;
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw)].filter(id => typeof id === 'string' && inDeck.has(id) && owned.has(id)).sort();
+}
+
 // --- Lecture ---
 
 /**
@@ -429,6 +494,7 @@ function getSnapshot(user) {
   const ownedAvatars = new Set(ownedIds.avatars);
   const ownedVariants = new Set(ownedIds.variants);
   const ownedBacks = new Set(ownedIds.card_backs);
+  const ownedFoils = new Set(ownedIds.foils);
 
   // Les variantes possédées voyagent en OBJETS, pas en ids : le DeckBuilder a
   // besoin du card_id et du nom pour bâtir son sélecteur, et cette forme lui
@@ -449,6 +515,7 @@ function getSnapshot(user) {
     avatars: (offer?.avatars ?? []).map(a => ({ ...a, purchased: ownedAvatars.has(a.id) })),
     variants: (offer?.variants ?? []).map(v => ({ ...v, purchased: ownedVariants.has(v.id) })),
     card_backs: (offer?.card_backs ?? []).map(b => ({ ...b, purchased: ownedBacks.has(b.id) })),
+    foils: (offer?.foils ?? []).map(f => ({ ...f, purchased: ownedFoils.has(f.id) })),
     // Les dos POSSÉDÉS voyagent en objets (id + nom) pour que le Profil dresse
     // sa grille sans relire le catalogue ; les OFFERTS sont joints à la liste,
     // le joueur ne fait pas la différence entre « donné » et « acheté » quand
@@ -459,6 +526,8 @@ function getSnapshot(user) {
       card_backs: [...defaultCardBackIds(), ...ownedIds.card_backs]
         .filter((id, i, all) => all.indexOf(id) === i && cardBackExists(id))
         .map(id => ({ id, name: cardBacksCatalog().find(b => b.id === id)?.name ?? id })),
+      // Un reflet n'a que son card_id : le DeckBuilder n'a besoin de rien d'autre.
+      foils: ownedIds.foils,
     },
     default_avatars: [...DEFAULT_AVATARS],
     default_card_backs: defaultCardBackIds(),
@@ -473,8 +542,8 @@ function refresh(user) {
 
 module.exports = {
   DAILY, PRICE, KINDS, DEFAULT_AVATARS,
-  avatarPool, variantPool, cardBackPool, defaultCardBackIds, cardBackExists,
+  avatarPool, variantPool, cardBackPool, foilPool, defaultCardBackIds, cardBackExists,
   ownedOf, owns, canUseAvatar, canUseCardBack,
-  buildOffer, sync, unlock, buy, deckVariantMap,
+  buildOffer, sync, unlock, buy, deckVariantMap, deckFoilList,
   getSnapshot, refresh,
 };
