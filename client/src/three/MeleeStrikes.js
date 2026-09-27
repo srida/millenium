@@ -19,12 +19,16 @@ export const MELEE_STYLES = {
   glace: { move: 'glide', slash: 'stab', windup: 0.12, travel: 0.32, lean: 0.15, aura: 50 },
   foudre: { move: 'blink', slash: 'stab', windup: 0.1, travel: 0.16, lean: 0.2, aura: 0 },
   energie: { move: 'dash', slash: 'stab', windup: 0.14, travel: 0.18, lean: 0.3, aura: 60 },
-  // slash 'stab' et non 'spiral' : la sorcellerie apparaît et disparaît déjà
-  // (move: 'shadow') — un tranchant qui tourne sur près d'un tour complet
-  // PAR-DESSUS ce va-et-vient rendait le geste illisible (« part dans tous les
-  // sens »). Un coup d'estoc net, dans l'axe, garde le thème (poignard surgi
-  // de l'ombre) sans la confusion.
-  sorcellerie: { move: 'shadow', slash: 'stab', windup: 0.18, travel: 0.3, lean: 0.1, aura: 0 },
+  // Ni 'spiral' (tourne sur près d'un tour complet) ni 'shadow' (l'unité
+  // disparaît pendant tout le déplacement) : les deux, séparément déjà,
+  // laissaient la carte hors de vue ou sa trajectoire illisible. 'glide' la
+  // garde visible de bout en bout ; c'est la traînée qui porte le thème
+  // spectral, pas une disparition. `auraSparks` : `tp.colors` est la teinte
+  // de FUMÉE du burst d'impact (sombre, pensée pour un aplat ponctuel) —
+  // une traînée fine dans cette teinte se verrait à peine sur un plateau déjà
+  // sombre. La traînée route donc sur les étincelles de l'élément (`sparks`,
+  // déjà additives partout ailleurs), la seule couleur claire qu'il porte.
+  sorcellerie: { move: 'glide', slash: 'stab', windup: 0.18, travel: 0.3, lean: 0.16, aura: 70, auraSparks: true },
   air: { move: 'spin', slash: 'spiral', windup: 0.08, travel: 0.3, lean: 0.1, spin: 2, aura: 70 },
   terre: { move: 'leap', slash: 'slam', windup: 0.24, travel: 0.42, lean: 0.25, aura: 30 },
   eau: { move: 'weave', slash: 'wave', windup: 0.12, travel: 0.34, lean: 0.2, aura: 60 },
@@ -199,7 +203,7 @@ export class MeleeStrikes {
     // la mauvaise case une fois l'animation terminée.
     const home = S.actor.home;
     const u = clamp01(a.t / a.tr), e = E.io(u);
-    const blinky = st.move === 'blink' || st.move === 'shadow';
+    const blinky = st.move === 'blink';
     if (blinky) {
       if (!a.mark.back) { a.mark.back = 1; this._vanish(a, a.A, home); }
       p.pos.copy(u < 0.5 ? a.A : home);
@@ -252,7 +256,6 @@ export class MeleeStrikes {
         break;
       }
       case 'blink':
-      case 'shadow':
         if (!a.mark.go) { a.mark.go = 1; this._vanish(a, a.W, a.A); }
         p.pos.copy(u < 0.5 ? a.W : a.A);
         p.op = u < 0.5 ? 1 - u * 2 : (u - 0.5) * 2;
@@ -264,33 +267,30 @@ export class MeleeStrikes {
 
   // traînée d'énergie qui suit l'unité pendant son déplacement
   _aura(a, p, dt) {
-    const tp = a.P.tp, pool = tp.blend === 'normal' ? this.fx.pNorm : this.fx.pAdd;
+    const tp = a.P.tp;
+    // `auraSparks` (cf. sorcellerie) : les étincelles de l'élément plutôt que
+    // sa teinte de fumée — toujours additives, comme partout où `sparks` sert
+    // déjà (`EnergyArrows._emitTrail`).
+    const sparks = a.st.auraSparks && a.P.sparks;
+    const colors = sparks ? a.P.sparks.colors : tp.colors;
+    const pool = sparks || tp.blend !== 'normal' ? this.fx.pAdd : this.fx.pNorm;
     const k = Math.sqrt(a.pw);
     a.auraAcc += a.st.aura * dt * k;
     while (a.auraAcc >= 1) {
       a.auraAcc -= 1;
       const x = p.pos.x + rand(-0.3, 0.3), z = p.pos.z + rand(-0.3, 0.3), y = p.pos.y + p.lift * 0.5 + 0.05;
       pool.spawn(x, y, z, -a.d.x * 0.6 + rand(-0.3, 0.3), rand(0, 0.3), -a.d.z * 0.6 + rand(-0.3, 0.3),
-        rand(tp.life[0], tp.life[1]), rand(tp.size[0], tp.size[1]) * k, tp.sizeEnd * k, pick(tp.colors), tp.alpha ?? 1, tp.drag, 0, !!tp.twinkle);
+        rand(tp.life[0], tp.life[1]), rand(tp.size[0], tp.size[1]) * k, tp.sizeEnd * k, pick(colors), sparks ? 1 : (tp.alpha ?? 1), tp.drag, 0, !!tp.twinkle);
     }
   }
 
-  // téléportation (foudre) ou passage par l'ombre (sorcellerie)
+  // téléportation (foudre) — seul move restant à disparaître entre deux points.
   _vanish(a, from, to) {
     const P = a.P, halo = P.haloColor.getStyle(), fx = this.fx;
     const f = from.clone(), t = to.clone(); f.y = t.y = 0.12;
-    if (a.st.move === 'blink') {
-      fx._bolt(f, t, 9, 0.07, ['#ffffff', halo], 0.04 * Math.sqrt(a.pw), 0.16);
-      fx._flash(f, halo, 0.6 * a.pw, 0.16);
-      fx.timers.push({ t: a.tt * 0.5, fn: () => fx._flash(t, '#ffffff', 0.5 * a.pw, 0.14) });
-    } else {
-      const smoke = (pos) => {
-        fx._burst(pos, 18, { colors: P.tp.colors, speed: [0.3, 0.9], life: [0.4, 0.7], size: [0.15, 0.25], sizeEnd: 0.4, drag: 2, blend: 'normal', alpha: 0.6, s: a.pw });
-        fx._burst(pos, 8, { colors: P.sparks?.colors || [halo], speed: [0.8, 1.6], life: [0.2, 0.4], size: [0.03, 0.05], drag: 3, s: a.pw });
-      };
-      smoke(f);
-      fx.timers.push({ t: a.tt * 0.5, fn: () => smoke(t) });
-    }
+    fx._bolt(f, t, 9, 0.07, ['#ffffff', halo], 0.04 * Math.sqrt(a.pw), 0.16);
+    fx._flash(f, halo, 0.6 * a.pw, 0.16);
+    fx.timers.push({ t: a.tt * 0.5, fn: () => fx._flash(t, '#ffffff', 0.5 * a.pw, 0.14) });
   }
 
   _slash(a, i) {
