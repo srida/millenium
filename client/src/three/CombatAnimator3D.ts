@@ -230,8 +230,10 @@ export class CombatAnimator3D {
       updateUnitEl(entry.el, target);
     }
     if (target.position) {
-      // Tiers 1-3 partagent le même niveau de particules (cf. demande de mise à niveau).
-      const atier = Math.max(3, Math.min(5, attacker?.tier ?? 1));
+      // Étalé sur les 5 tiers (celui le plus haut de l'attaquant, `Unit.tier`
+      // est déjà `primaryTier`) : plus haut veut dire plus d'impact, à l'estoc
+      // comme à distance — les deux chemins d'attaque partagent ce point.
+      const atier = Math.max(1, Math.min(5, attacker?.tier ?? 1));
       const ATK_CFG = [
         { pc:  8, rS: 2 },
         { pc: 20, rS: 3 },

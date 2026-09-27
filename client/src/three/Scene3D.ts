@@ -252,6 +252,7 @@ export class Scene3D {
   _flameTex?: THREE.CanvasTexture;
   _dropletTex?: THREE.CanvasTexture;
   _windTex?: THREE.CanvasTexture;
+  _arrowTex?: THREE.CanvasTexture;
 
   constructor(container: HTMLElement, opts: Scene3DOptions = {}) {
     this.container = container;
@@ -1376,13 +1377,66 @@ export class Scene3D {
     if (t === 5) this.spawnHalo(position, (ELEMENT_STYLES[list[0]] || ELEMENT_STYLES.neutral).color);
   }
 
+  // Pointe pleine à droite (u proche de 1) + traînée en dégradé d'alpha vers
+  // la gauche (u proche de 0) : une seule texture blanche, teintée par la
+  // couleur du matériau, réutilisée pour toutes les flèches. Mise en cache
+  // comme les autres textures générées (`_getFlameTexture`, `_getWindTexture`).
+  _getArrowTexture(): THREE.CanvasTexture {
+    if (this._arrowTex) return this._arrowTex;
+    const w = 128;
+    const h = 32;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d')!;
+    const trailGrad = ctx.createLinearGradient(0, 0, w, 0);
+    trailGrad.addColorStop(0,    'rgba(255,255,255,0)');
+    trailGrad.addColorStop(0.5,  'rgba(255,255,255,0.12)');
+    trailGrad.addColorStop(0.82, 'rgba(255,255,255,0.55)');
+    trailGrad.addColorStop(1,    'rgba(255,255,255,0.9)');
+    ctx.fillStyle = trailGrad;
+    ctx.fillRect(0, h * 0.36, w * 0.82, h * 0.28);
+    ctx.fillStyle = 'rgba(255,255,255,1)';
+    ctx.beginPath();
+    ctx.moveTo(w * 0.66, h * 0.06);
+    ctx.lineTo(w, h * 0.5);
+    ctx.lineTo(w * 0.66, h * 0.94);
+    ctx.closePath();
+    ctx.fill();
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    this._arrowTex = tex;
+    return tex;
+  }
+
+  // Flèche plate orientée vers la cible, avec sa traînée lumineuse (cf.
+  // `_getArrowTexture`) — remplace l'ancien projectile sphérique, illisible
+  // comme direction depuis la caméra vue du dessus. Même arc vertical (le
+  // « saut ») et même durée que l'ancienne version.
   playProjectile(fromPos: Position, toPos: Position, color = 0xffffff): Promise<void> {
     return new Promise((resolve) => {
       const from = this.tilePosition(fromPos);
       const to = this.tilePosition(toPos);
-      const geo = new THREE.SphereGeometry(0.08, 12, 12);
-      const mat = new THREE.MeshBasicMaterial({ color });
+      const dx = to.x - from.x;
+      const dz = to.z - from.z;
+      const angle = Math.atan2(dz, dx);
+      const geo = new THREE.PlaneGeometry(0.62, 0.22);
+      const mat = new THREE.MeshBasicMaterial({
+        map: this._getArrowTexture(),
+        color,
+        transparent: true,
+        opacity: 1,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
       const mesh = new THREE.Mesh(geo, mat);
+      // Même recette d'orientation que `spawnBeam` : coucher le plan (son X
+      // local reste le X monde), puis une rotation MONDE autour de Y le pointe
+      // dans la direction de vol — l'arc vertical du bond n'y change rien,
+      // la caméra ne lisant que le plan horizontal.
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.rotateOnWorldAxis(WORLD_UP, -angle);
       mesh.position.copy(from);
       this.scene.add(mesh);
       let t = 0;
