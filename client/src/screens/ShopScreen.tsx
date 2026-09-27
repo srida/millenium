@@ -24,8 +24,9 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
 import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant, type CosmeticCardBack, type CosmeticFoil } from '../stores/cosmeticStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
-import { Amount, Button, Countdown, Gauge, IconButton, Illustration, LoadState, Modal, Panel, usePressSquash } from '../components/ui/primitives.js';
-import { CURRENCY, CURRENCY_BY_WIRE, fmt, type WireCurrency } from '../components/ui/currency.js';
+import { Button, Countdown, Gauge, IconButton, Illustration, LoadState, Modal, Panel, usePressSquash } from '../components/ui/primitives.js';
+import HoldConfirmButton from '../components/ui/HoldConfirmButton.js';
+import { CURRENCY, fmt } from '../components/ui/currency.js';
 import Card3D, { cardVisualProps } from '../components/ui/Card3D.js';
 import PackContents, { PackPoster } from '../components/shop/PackContents.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
@@ -284,7 +285,6 @@ function CosmeticOffer({
   const busy = useCosmeticStore(s => s.busy);
   const gems = useAuthStore(s => s.user?.gems ?? 0);
   const affordable = gems >= price;
-  const { ask, dialog } = useBuyConfirm();
 
   return (
     <Panel className="flex flex-col gap-1.5 p-2">
@@ -298,28 +298,19 @@ function CosmeticOffer({
       {purchased ? (
         <div className="py-1 text-center text-[11px] font-semibold text-success">✓ Débloqué</div>
       ) : (
-        <Button
-          variant={affordable ? 'primary' : undefined}
-          className="w-full px-1 text-[11px]"
+        <HoldConfirmButton
+          icon={CURRENCY.gems.icon}
+          label={fmt.format(price)}
+          actionLabel={`acheter ${title}`}
+          cost={price}
+          currency="gems"
+          fullWidth
           disabled={busy || !affordable}
-          onPointerDown={() => ask({
-            visual: (
-              <FoilFrame foil={foil} className="h-28 w-28">
-                <Illustration id={illustrationId} framed lazy={false} className="h-full w-full" />
-              </FoilFrame>
-            ),
-            title,
-            detail: subtitle,
-            price,
-            currency: 'gems',
-            onConfirm: onBuy,
-          })}
           title={affordable ? undefined : 'Pas assez de gemmes'}
-        >
-          {price} {CURRENCY.gems.icon}
-        </Button>
+          onConfirm={onBuy}
+          className="px-1 text-[11px]"
+        />
       )}
-      {dialog}
     </Panel>
   );
 }
@@ -402,97 +393,15 @@ function FoilOffer({ foil }: { foil: CosmeticFoil }) {
 }
 
 // ---------------------------------------------------------------------------
-//  Confirmation d'achat
+//  Achat
 // ---------------------------------------------------------------------------
 //
-// TOUT achat de la boutique passe par ici — emplacement, booster, cosmétique.
-// Un tap de la boutique est le seul geste du jeu qui débite un solde, et il est
-// définitif : il n'y a ni annulation, ni revente, ni conversion de doublon. Les
-// deux boutons de prix étant côte à côte, la monnaie se choisit d'un tap et la
-// mauvaise se choisit tout aussi vite.
-//
-// La modale n'est pas qu'un garde-fou, elle DIT ce que le tap ne disait pas :
-// ce qu'on achète en grand, et le solde qu'il restera après. C'est cette
-// dernière ligne qui a de la valeur — le prix, lui, était déjà sur le bouton.
-
-// La monnaie telle qu'elle voyage vers le serveur (`golds` au pluriel, là où le
-// champ du joueur est `gold`). La table qui vivait ici doublait `currency.ts` ;
-// `CURRENCY_BY_WIRE` fait le pont, et il n'y a plus qu'un jeu d'icônes.
-type Currency = WireCurrency;
-
-type PendingBuy = {
-  /** Ce qu'on achète, montré tel qu'il apparaît dans la vitrine. */
-  visual: ReactNode;
-  title: string;
-  detail: string;
-  price: number;
-  currency: Currency;
-  /** L'achat lui-même. Chaque appelant garde SA gestion d'erreur : la modale
-   *  ne fait que retarder le geste, elle ne s'interpose pas dans le résultat. */
-  onConfirm: () => void | Promise<unknown>;
-};
-
-/**
- * `ask(...)` arme la confirmation, `dialog` se rend à côté de la tuile. Un hook
- * plutôt qu'un état remonté à l'écran : chaque tuile reste autonome, et deux
- * confirmations ne peuvent pas se marcher dessus.
- */
-function useBuyConfirm() {
-  const [pending, setPending] = useState<PendingBuy | null>(null);
-  return {
-    ask: (p: PendingBuy) => setPending(p),
-    dialog: pending ? <ConfirmBuy pending={pending} onClose={() => setPending(null)} /> : null,
-  };
-}
-
-function ConfirmBuy({ pending, onClose }: { pending: PendingBuy; onClose: () => void }) {
-  const user = useAuthStore(s => s.user);
-  const [working, setWorking] = useState(false);
-  const { icon, unit, balance, key } = CURRENCY_BY_WIRE[pending.currency];
-  const after = balance(user) - pending.price;
-
-  // Pendant l'appel, ni fermeture au fond ni second tap : l'achat n'est pas
-  // idempotent côté serveur, deux envois débiteraient deux fois. (Le portal qui
-  // sortait cette modale de son `Panel` vit désormais dans `Modal` elle-même.)
-  return (
-    <Modal onClose={working ? undefined : onClose}>
-      <div className="text-center text-[10px] tracking-widest text-white/40">CONFIRMER L'ACHAT</div>
-
-      <div className="my-3 flex justify-center">{pending.visual}</div>
-
-      <p className="text-center text-sm font-semibold leading-tight">{pending.title}</p>
-      <p className="text-center text-[11px] text-white/40">{pending.detail}</p>
-
-      <div className="mt-3 space-y-1 rounded-lg border border-line bg-white/5 p-2 text-xs">
-        <div className="flex justify-between">
-          <span className="text-white/50">Prix</span>
-          <Amount currency={key} value={pending.price} className="font-semibold" />
-        </div>
-        <div className="flex justify-between">
-          <span className="text-white/50">Il te restera</span>
-          <span className={`tabular-nums ${after < 0 ? 'text-danger' : 'text-white/70'}`}>
-            {icon} {fmt.format(Math.max(0, after))} {unit}
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-4 flex gap-2">
-        <Button className="flex-1" disabled={working} onPointerDown={onClose}>Annuler</Button>
-        <Button
-          variant="primary"
-          className="flex-1"
-          disabled={working || after < 0}
-          onPointerDown={async () => {
-            setWorking(true);
-            try { await pending.onConfirm(); } finally { onClose(); }
-          }}
-        >
-          {working ? '…' : 'Acheter'}
-        </Button>
-      </div>
-    </Modal>
-  );
-}
+// TOUT achat de la boutique passe par un `HoldConfirmButton` — emplacement,
+// booster, cosmétique. Un tap de la boutique est le seul geste du jeu qui
+// débite un solde, et il est définitif : il n'y a ni annulation, ni revente,
+// ni conversion de doublon. Plus de popup à traverser : la charge qui remplit
+// le bouton (même geste que le mulligan et le reroll de Phase Shopping) EST
+// la confirmation, et le prix débité s'affiche en toast au moment où il part.
 
 // --- Emplacements quotidiens ---
 
@@ -510,24 +419,11 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
   const pinnedElsewhere = useShopStore(s => !!s.snapshot?.pinned && !slot.pinned);
   const { buy, reroll, pin } = useShopStore();
   const [err, setErr] = useState<string | null>(null);
-  const { ask, dialog } = useBuyConfirm();
 
   const card = cardOf(slot.card_id);
   const affordableGolds = (user?.gold ?? 0) >= slot.price_golds;
   const affordableGems = (user?.gems ?? 0) >= slot.price_gems;
 
-  // La carte est montrée plus GRANDE qu'en vitrine (h-40 contre h-28) : c'est
-  // le dernier moment pour reconnaître ce qu'on achète.
-  const confirmSlot = (currency: Currency): PendingBuy => ({
-    visual: card
-      ? <Card3D {...cardVisualProps(card)} size="h-40" tapOn="up" />
-      : <div className="h-40 w-28 rounded-lg border border-line" />,
-    title: card?.name ?? slot.card_id,
-    detail: `Tier ${slot.tier} · emplacement du jour`,
-    price: currency === 'gems' ? slot.price_gems : slot.price_golds,
-    currency,
-    onConfirm: async () => setErr(await buy(slot, currency)),
-  });
   // Épingler puis rerouler se contredit : le dé disparaît sur l'emplacement
   // épinglé plutôt que d'échouer au tap.
   const rerollable = !slot.purchased && !slot.pinned && freeReroll;
@@ -586,27 +482,33 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
         <span className="py-1 text-center text-xs font-semibold text-success">✓ Acheté</span>
       ) : (
         <div className="flex flex-col gap-1">
-          <Button
-            variant="primary"
-            className="w-full px-1 text-[11px]"
+          <HoldConfirmButton
+            icon={CURRENCY.gold.icon}
+            label={fmt.format(slot.price_golds)}
+            actionLabel={`acheter ${card?.name ?? slot.card_id}`}
+            cost={slot.price_golds}
+            currency="gold"
+            fullWidth
             disabled={busy || !affordableGolds}
             title={affordableGolds ? undefined : 'Pas assez de golds'}
-            onPointerDown={() => ask(confirmSlot('golds'))}
-          >
-            {CURRENCY.gold.icon} {fmt.format(slot.price_golds)}
-          </Button>
-          <Button
-            className="w-full px-1 text-[11px]"
+            onConfirm={async () => setErr(await buy(slot, 'golds'))}
+            className="px-1 text-[11px]"
+          />
+          <HoldConfirmButton
+            icon={CURRENCY.gems.icon}
+            label={fmt.format(slot.price_gems)}
+            actionLabel={`acheter ${card?.name ?? slot.card_id}`}
+            cost={slot.price_gems}
+            currency="gems"
+            fullWidth
             disabled={busy || !affordableGems}
             title={affordableGems ? undefined : 'Pas assez de gemmes'}
-            onPointerDown={() => ask(confirmSlot('gems'))}
-          >
-            {CURRENCY.gems.icon} {fmt.format(slot.price_gems)}
-          </Button>
+            onConfirm={async () => setErr(await buy(slot, 'gems'))}
+            className="px-1 text-[11px]"
+          />
         </div>
       )}
       {err && <p className="text-[10px] text-danger">{err}</p>}
-      {dialog}
     </Panel>
   );
 }
@@ -622,27 +524,15 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
   // Consulter n'est pas acheter : la vue du contenu s'ouvre même sur un pack
   // complet ou dont le booster est éteint.
   const [contents, setContents] = useState(false);
-  const { ask, dialog } = useBuyConfirm();
 
   const missing = set.card_count - set.owned_count;
   const disabled = busy || set.complete || !set.booster_enabled;
   const openContents = usePressSquash<HTMLButtonElement>(() => setContents(true), false);
 
   // `card_count` est un plafond : quand il reste moins de cartes que ça dans le
-  // pack, le booster rend ce qu'il reste, au plein tarif. La confirmation est
-  // le seul endroit où on peut le dire AVANT le débit — l'écran de révélation,
-  // lui, arrive trop tard.
+  // pack, le booster rend ce qu'il reste, au plein tarif — à dire AVANT le
+  // débit, l'écran de révélation arrivant trop tard.
   const short = missing < cardCount;
-  const confirmBooster = (currency: Currency): PendingBuy => ({
-    visual: <PackPoster set={set} className="h-28 w-28" />,
-    title: set.name,
-    detail: short
-      ? `${missing} carte${missing > 1 ? 's' : ''} restante${missing > 1 ? 's' : ''} — le booster n'en rendra pas ${cardCount}`
-      : `${cardCount} cartes · ${missing} restantes dans le pack`,
-    price: currency === 'gems' ? priceGems : priceGolds,
-    currency,
-    onConfirm: async () => setErr(await open(set.id, currency)),
-  });
 
   return (
     // ⚠️ `min-w-0` : la tuile est un ITEM DE GRILLE, dont le `min-width` vaut
@@ -679,31 +569,42 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
       ) : (
         <>
           <div className="flex gap-2">
-            <Button
-              variant="primary" className="flex-1 px-2 text-xs"
+            <HoldConfirmButton
+              icon={CURRENCY.gold.icon}
+              label={fmt.format(priceGolds)}
+              actionLabel={`acheter le pack ${set.name}`}
+              cost={priceGolds}
+              currency="gold"
+              fullWidth
               disabled={disabled || (user?.gold ?? 0) < priceGolds}
-              onPointerDown={() => ask(confirmBooster('golds'))}
-            >
-              {CURRENCY.gold.icon} {fmt.format(priceGolds)}
-            </Button>
-            <Button
-              className="flex-1 px-2 text-xs"
+              onConfirm={async () => setErr(await open(set.id, 'golds'))}
+              className="px-2 text-xs"
+            />
+            <HoldConfirmButton
+              icon={CURRENCY.gems.icon}
+              label={fmt.format(priceGems)}
+              actionLabel={`acheter le pack ${set.name}`}
+              cost={priceGems}
+              currency="gems"
+              fullWidth
               disabled={disabled || (user?.gems ?? 0) < priceGems}
-              onPointerDown={() => ask(confirmBooster('gems'))}
-            >
-              {CURRENCY.gems.icon} {fmt.format(priceGems)}
-            </Button>
+              onConfirm={async () => setErr(await open(set.id, 'gems'))}
+              className="px-2 text-xs"
+            />
           </div>
           {/* La valeur d'un booster CROÎT à mesure que le set se vide : c'est la
-              propriété la plus vertueuse du système, elle doit se voir. */}
+              propriété la plus vertueuse du système, elle doit se voir — et
+              `short` le dit explicitement, maintenant que la confirmation
+              d'achat qui le disait AVANT le débit n'existe plus. */}
           <p className="text-[10px] text-white/30">
-            {missing} carte{missing > 1 ? 's' : ''} restante{missing > 1 ? 's' : ''}
+            {short
+              ? `${missing} carte${missing > 1 ? 's' : ''} restante${missing > 1 ? 's' : ''} — le booster n'en rendra pas ${cardCount}`
+              : `${missing} carte${missing > 1 ? 's' : ''} restante${missing > 1 ? 's' : ''}`}
             {set.completion_reward?.gems ? ` · set complet : +${set.completion_reward.gems} ${CURRENCY.gems.icon}` : ''}
           </p>
         </>
       )}
       {err && <p className="text-[10px] text-danger">{err}</p>}
-      {dialog}
       {contents && <PackContents set={set} onClose={() => setContents(false)} />}
     </Panel>
   );

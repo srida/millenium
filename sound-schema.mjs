@@ -48,6 +48,10 @@ export const SFX_TRIGGERS = [
   { id: 'match_draw',           label: 'Écran d\'égalité',                     variant: null },
   { id: 'summon_menu_open',    label: 'Popup d\'invocation à choix multiple', variant: null },
   { id: 'duel_start',           label: 'Animation de lancement du duel',       variant: null },
+  // Bouton d'achat de la boutique (emplacement, booster, cosmétique) — geste
+  // à MAINTENIR (`HoldConfirmButton`, `currency` posé), distinct de
+  // `menu_button` : c'est un débit, pas une simple navigation de menu.
+  { id: 'shop_buy',             label: 'Achat validé (boutique)',              variant: null },
   // ⚠️ Déclencheur GÉNÉRIQUE, câblé une seule fois dans `usePressSquash`
   // (`components/ui/primitives.tsx`) — pas un site par bouton. Couvre tout
   // `Button`/`IconButton` hors partie (menu principal, boutique, decks,
