@@ -198,7 +198,6 @@ export class CombatAnimator3D {
     Audio.playSfx('attack', { element: primaryElementOf(attacker.attributes) ?? undefined });
     const atkEntry = this._board.getUnitEntry(attacker.uid);
     if (atkEntry) this._flashClass(atkEntry.el, 'anim-shake');
-    const projColor = (ELEMENT_STYLES[elementsForUnit(attacker)[0]] || ELEMENT_STYLES.neutral).color;
 
     if (elementsForUnit(attacker).includes('feu') && attacker.position) {
       const atier = Math.max(1, Math.min(5, attacker.tier ?? 1));
@@ -211,7 +210,7 @@ export class CombatAnimator3D {
 
     if (attacker.range > 1) {
       if (atkEntry && target.position) {
-        this._board.playProjectile(attacker.position, target.position, projColor).then(() => {
+        this._board.playProjectile(attacker.position, target.position, elementsForUnit(attacker), { tier: attacker.tier }).then(() => {
           if (!isFatal) this._hitTarget(target, attacker);
         });
       } else if (!isFatal) {
