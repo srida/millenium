@@ -5,6 +5,7 @@
 // Elle ne prend jamais le pointeur au-delà d'elle-même : en jeu, le canvas 3D
 // est en dessous et doit continuer à recevoir les taps pour son raycast.
 import type { ReactNode } from 'react';
+import * as Audio from '../../audio/AudioManager.js';
 
 export function CoachBubble({
   title, text, action, onAction, footer, className = '',
@@ -30,7 +31,7 @@ export function CoachBubble({
       {action && (
         <button
           type="button"
-          onPointerDown={(e) => { e.stopPropagation(); onAction?.(); }}
+          onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_button'); onAction?.(); }}
           className="mt-2 min-h-tap w-full rounded-lg border border-gold bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-sm font-semibold text-gold active:opacity-80"
         >
           {action}

@@ -49,7 +49,7 @@ export function TerrainAlert() {
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center p-4"
-      onPointerDown={(e) => { e.stopPropagation(); controller.dismissTerrainAlert(); }}
+      onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_button'); controller.dismissTerrainAlert(); }}
     >
       <div
         className="terrain-alert flex w-full max-w-xs flex-col items-center gap-2 rounded-2xl border border-gold/40 bg-surface/95 p-4 text-center shadow-2xl backdrop-blur"
@@ -122,7 +122,7 @@ export function SummonOptionMenu() {
           <button
             key={o.index}
             disabled={!o.ok}
-            onPointerDown={(e) => { e.stopPropagation(); controller.chooseSummonOption(o.index); }}
+            onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_button'); controller.chooseSummonOption(o.index); }}
             className="flex w-full min-h-tap items-center justify-between gap-2 rounded-lg border border-line bg-surface-raised px-3 py-2 text-left text-sm disabled:opacity-40"
           >
             <span className="min-w-0">
@@ -137,7 +137,7 @@ export function SummonOptionMenu() {
           </button>
         ))}
       </div>
-      <Button className="mt-3 w-full" onPointerDown={(e) => { e.stopPropagation(); controller.cancelSelection(); }} sfx={false}>Annuler</Button>
+      <Button className="mt-3 w-full" onPointerDown={(e) => { e.stopPropagation(); controller.cancelSelection(); }}>Annuler</Button>
     </Modal>
   );
 }
@@ -166,7 +166,7 @@ export function CombatOutro() {
   return (
     <div
       className="fixed inset-0 z-40"
-      onPointerDown={(e) => { e.stopPropagation(); controller.skipCombatOutro(); }}
+      onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_button'); controller.skipCombatOutro(); }}
     />
   );
 }

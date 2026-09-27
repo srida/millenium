@@ -27,6 +27,7 @@ import { Button, CountBadge, Modal, NewDot } from '../components/ui/primitives.j
 import { AnimatedLogo } from '../components/ui/AnimatedLogo.js';
 import { AppVersion } from '../components/system/AppVersion.js';
 import { useWebLayout, useTabletLayout } from '../components/system/useWebLayout.js';
+import * as Audio from '../audio/AudioManager.js';
 
 // Taille des boutons de mode (Tutoriel, Tournoi, Entraînement, Arcade) :
 // rehaussée en portrait téléphone (44px de base se lisait comme un menu
@@ -190,7 +191,7 @@ function DevBadge({ onTap }: { onTap: () => void }) {
   return (
     <button
       type="button"
-      onPointerDown={onTap}
+      onPointerDown={() => { Audio.playSfx('menu_button'); onTap(); }}
       aria-label="Outils dev"
       className="rounded border border-gold/50 bg-gold/15 px-1 py-0.5 text-[9px] font-bold leading-none tracking-wide text-gold active:opacity-70"
     >
@@ -243,7 +244,7 @@ function PlayCard({ className = '' }: { className?: string }) {
     <div className={`flex flex-col overflow-hidden rounded-xl border ${deck ? 'border-gold/40' : 'border-dashed border-gold/60'} ${className}`}>
       <button
         type="button"
-        onPointerDown={() => navigate('deck_selector', { mode: 'manage' })}
+        onPointerDown={() => { Audio.playSfx('menu_button'); navigate('deck_selector', { mode: 'manage' }); }}
         className="flex min-h-tap items-center gap-2 border-b border-line bg-surface-raised/80 px-3 py-2 backdrop-blur active:opacity-80"
       >
         <span
@@ -346,7 +347,7 @@ function TutorialInvite() {
         >
           ▸ Commencer le tutoriel
         </Button>
-        <button onPointerDown={close} className="text-xs text-white/50 underline">Plus tard</button>
+        <button onPointerDown={() => { Audio.playSfx('menu_button'); close(); }} className="text-xs text-white/50 underline">Plus tard</button>
       </div>
     </Modal>
   );

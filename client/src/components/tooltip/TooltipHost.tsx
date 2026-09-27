@@ -23,6 +23,7 @@ import type { Card, GuaranteedDraw } from '../../logic/types.js';
 import { STAT_LABELS } from '../../data/StatLabels.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
 import TerrainEffects from '../ui/TerrainEffects.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 export default function TooltipHost() {
   const tooltip = useUiStore(s => s.tooltip);
@@ -207,7 +208,7 @@ function LinkedCardsButton({ card }: { card: Card }) {
   return (
     <button
       type="button"
-      onPointerDown={(e) => { e.stopPropagation(); showLinkedCards(card); }}
+      onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_button'); showLinkedCards(card); }}
       className="pointer-events-auto mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-player/40 bg-player/10 py-1.5 text-[11px] font-bold text-player active:scale-[0.98]"
     >
       🧬 Cartes liées

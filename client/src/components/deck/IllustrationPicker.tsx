@@ -14,6 +14,7 @@ import type { Card } from '../../logic/types.js';
 import type { OwnedVariant } from '../../stores/cosmeticStore.js';
 import { Modal } from '../ui/primitives.js';
 import Card3D from '../ui/Card3D.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 export default function IllustrationPicker({
   card, current, options, onPick, onClose,
@@ -82,7 +83,7 @@ export default function IllustrationPicker({
             type="button"
             role="switch"
             aria-checked={foil}
-            onPointerDown={onToggleFoil}
+            onPointerDown={() => { Audio.playSfx('menu_button'); onToggleFoil?.(); }}
             className={`min-h-tap flex items-center justify-between rounded-lg border px-3 text-sm font-semibold ${foil ? 'border-gold text-gold' : 'border-line text-white/60'}`}
           >
             <span>✨ Reflet</span>

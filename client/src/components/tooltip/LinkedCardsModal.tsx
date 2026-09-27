@@ -20,6 +20,7 @@ import { useUiStore, type DeckPickContext } from '../../stores/uiStore.js';
 import { Modal } from '../ui/primitives.js';
 import Card3D, { cardVisualProps } from '../ui/Card3D.js';
 import type { Card } from '../../logic/types.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 function CardGroup({ title, cards, pick }: { title: string; cards: Card[]; pick: DeckPickContext | null }) {
   if (!cards.length) return null;
@@ -72,7 +73,7 @@ export default function LinkedCardsModal() {
         <span className="truncate text-sm font-bold">🧬 {linked.card.name}</span>
         <button
           type="button"
-          onPointerDown={(e) => { e.stopPropagation(); hideLinkedCards(); }}
+          onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_button'); hideLinkedCards(); }}
           className="shrink-0 text-lg leading-none text-white/50"
           aria-label="Fermer"
         >

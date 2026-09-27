@@ -46,7 +46,6 @@ export default function ShoppingLayer() {
           variant="ghost"
           className="pointer-events-auto"
           onPointerDown={(e) => { e.stopPropagation(); controller.cancelMagieTargeting(); }}
-          sfx={false}
         >
           Annuler — choisir une autre magie
         </Button>
@@ -65,7 +64,6 @@ export default function ShoppingLayer() {
           variant="primary"
           className="pointer-events-auto shadow-lg"
           onPointerDown={(e) => { e.stopPropagation(); setHidden(false); }}
-          sfx={false}
         >
           👁️ Revoir les magies · {remaining}s
         </Button>
@@ -83,7 +81,6 @@ export default function ShoppingLayer() {
           chipClassName="border-line bg-surface-raised text-white/70"
           className="absolute right-0 top-0"
           onTap={() => setHidden(true)}
-          sfx={false}
         />
         <div className="text-xs tracking-widest text-gold">✦ PHASE SHOPPING ✦</div>
         <div className="text-sm text-white/60">Choisis une magie</div>
