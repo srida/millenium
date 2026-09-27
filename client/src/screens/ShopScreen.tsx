@@ -31,6 +31,7 @@ import Card3D, { cardVisualProps } from '../components/ui/Card3D.js';
 import PackContents, { PackPoster } from '../components/shop/PackContents.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
+import * as Audio from '../audio/AudioManager.js';
 
 const cardOf = (id: string | null): Card | null => (id ? (CardDatabase as any).getCard(id) ?? null : null);
 
@@ -81,7 +82,7 @@ export default function ShopScreen() {
           {([['cards', '🃏 Cartes'], ['cosmetics', '🎨 Cosmétiques']] as const).map(([key, label]) => (
             <button
               key={key}
-              onPointerDown={() => setTab(key)}
+              onPointerDown={() => { Audio.playSfx('menu_button'); setTab(key); }}
               className={`min-h-tap flex-1 text-sm font-semibold ${tab === key ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
             >
               {label}

@@ -21,6 +21,7 @@ import { Amount, Button, Countdown } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
+import * as Audio from '../audio/AudioManager.js';
 
 const MIN_DECK = 20;
 
@@ -206,7 +207,7 @@ export default function ArcadeScreen() {
             <button
               type="button"
               className="mt-2 text-[11px] text-white/40 underline"
-              onPointerDown={dismissReportError}
+              onPointerDown={() => { Audio.playSfx('menu_button'); dismissReportError(); }}
             >
               Compris
             </button>

@@ -28,6 +28,7 @@ import IllustrationPicker from '../components/deck/IllustrationPicker.js';
 import DeckCoach from '../components/tutorial/DeckCoach.js';
 import { updateProgress } from '../data/tutorialProgress.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
+import * as Audio from '../audio/AudioManager.js';
 import { ScreenTransition } from '../components/nav/ScreenTransition.js';
 
 const MIN_DECK = 20;
@@ -408,7 +409,7 @@ export default function DeckBuilder() {
           {(['lib', 'deck'] as const).map(t => (
             <button
               key={t}
-              onPointerDown={() => setTab(t)}
+              onPointerDown={() => { Audio.playSfx('menu_button'); setTab(t); }}
               className={`min-h-tap flex-1 text-sm font-semibold ${tab === t ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
             >
               {t === 'lib' ? 'Bibliothèque' : `Deck · ${total}`}

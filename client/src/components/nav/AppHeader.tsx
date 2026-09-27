@@ -12,6 +12,7 @@ import { useAuthStore } from '../../stores/authStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { ProgressionPills, ProfilePill } from '../ui/ProgressionStats.js';
 import { useWebLayout } from '../system/useWebLayout.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 export function AppHeader() {
   const navigate = useUiStore(s => s.navigate);
@@ -37,7 +38,7 @@ export function AppHeader() {
         ) : (
           <button
             type="button"
-            onPointerDown={() => navigate('auth')}
+            onPointerDown={() => { Audio.playSfx('menu_button'); navigate('auth'); }}
             className="flex min-h-tap items-center rounded-full border border-dashed border-gold/60 px-3 text-xs font-semibold text-gold active:opacity-80"
           >
             Connexion

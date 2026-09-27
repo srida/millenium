@@ -1,10 +1,11 @@
 // Contrôles de phase : en préparation (compteur d'unités, timer 60s, options,
 // bouton PRÊT) ; en combat (terrain, timer restant, vitesse ×1/×2/×4, options,
 // pause). Le menu d'options lui-même est rendu par GameMenu, qui lit `menuOpen`.
+import { useRef } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import type { BoardDef } from '../../logic/types.js';
-import { Button, Illustration } from '../ui/primitives.js';
+import { Button, Illustration, usePressSquash } from '../ui/primitives.js';
 import HoldConfirmButton from '../ui/HoldConfirmButton.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import * as Audio from '../../audio/AudioManager.js';
@@ -23,20 +24,40 @@ function fmt(s: number): string {
 // pictogramme générique ne distingue pas deux terrains, une image si.
 function TerrainChip({ board }: { board: BoardDef }) {
   const showTooltip = useUiStore(s => s.showTooltip);
+  const ref = useRef<HTMLButtonElement>(null);
+  // ⚠️ La case est lue sur un `ref`, pas sur `e.currentTarget` : `usePressSquash`
+  // différe l'appel de `SQUASH_DELAY_MS`, et un événement synthétique React ne
+  // garantit pas de rester valide passé le tour d'exécution de son dispatch.
+  const { handlers } = usePressSquash<HTMLButtonElement>((e) => {
+    e.stopPropagation();
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    showTooltip({ kind: 'terrain', board }, { left: r.left, top: r.top, bottom: r.bottom, width: r.width, height: r.height });
+  }, false);
   return (
     <button
-      onPointerDown={(e) => {
-        e.stopPropagation();
-        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        showTooltip({ kind: 'terrain', board }, { left: r.left, top: r.top, bottom: r.bottom, width: r.width, height: r.height });
-      }}
+      ref={ref}
       className="flex min-h-tap min-w-[4.5rem] max-w-[8rem] items-center gap-1.5 rounded-md border border-line bg-surface/80 px-2 text-xs text-white/80 active:opacity-80"
+      {...handlers}
     >
       {board._has_illustration
         ? <Illustration id={board.id} className="h-5 w-5 rounded" />
         : <span className="flex-shrink-0 leading-none">🗺️</span>}
       <span className="truncate">{board.name}</span>
     </button>
+  );
+}
+
+// Une vitesse ×1/×2/×4 — en sous-composant, pas inline dans le `.map` du
+// dessus : `usePressSquash` est un hook, et un hook ne s'appelle pas dans une
+// boucle.
+function SpeedButton({ s, active, onTap }: { s: number; active: boolean; onTap: () => void }) {
+  const { handlers } = usePressSquash<HTMLButtonElement>((e) => { e.stopPropagation(); onTap(); }, false);
+  return (
+    <button
+      className={`min-h-tap px-2 text-sm font-semibold ${active ? 'bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'bg-surface-raised text-white/70'}`}
+      {...handlers}
+    >×{s}</button>
   );
 }
 
@@ -123,11 +144,7 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
         {!pvp && (
           <div className="flex shrink-0 overflow-hidden rounded-lg border border-line">
             {[1, 2, 4].map(s => (
-              <button
-                key={s}
-                onPointerDown={(e) => { e.stopPropagation(); controller.setSpeed(s); }}
-                className={`min-h-tap px-2 text-sm font-semibold ${s === speed ? 'bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'bg-surface-raised text-white/70'}`}
-              >×{s}</button>
+              <SpeedButton key={s} s={s} active={s === speed} onTap={() => controller.setSpeed(s)} />
             ))}
           </div>
         )}
@@ -138,7 +155,6 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
             aria-label={paused ? 'Reprendre le combat' : 'Mettre en pause'}
             className="shrink-0 px-3 text-base"
             onPointerDown={(e) => { e.stopPropagation(); controller.togglePause(); }}
-            sfx={false}
           >
             {paused ? '▶' : '⏸'}
           </Button>

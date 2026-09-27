@@ -13,6 +13,7 @@ import { LevelRewardsPanel, ProgressionPanel } from '../components/ui/Progressio
 import type { LevelRewardsView } from '../components/ui/ProgressionStats.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
+import * as Audio from '../audio/AudioManager.js';
 
 interface UserRow { id: string; username: string; tag?: number; avatar?: string | null; relation?: string; friendship_id?: string }
 
@@ -210,7 +211,7 @@ export default function ProfileScreen() {
       <div className="flex flex-1 flex-col items-center gap-5 p-6">
         <button
           type="button"
-          onPointerDown={() => setAvatarPickerOpen(true)}
+          onPointerDown={() => { Audio.playSfx('menu_button'); setAvatarPickerOpen(true); }}
           aria-label="Changer d'avatar"
           className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-gold/40 bg-surface-raised text-3xl active:opacity-80"
         >
@@ -308,7 +309,7 @@ export default function ProfileScreen() {
         </div>
 
         <div className="w-full max-w-xs">
-          <button onPointerDown={() => { logout(); navigate('main_menu'); }} className="w-full text-center text-xs text-white/50 underline">
+          <button onPointerDown={() => { Audio.playSfx('menu_button'); logout(); navigate('main_menu'); }} className="w-full text-center text-xs text-white/50 underline">
             Se déconnecter
           </button>
         </div>
@@ -320,7 +321,7 @@ export default function ProfileScreen() {
             <div className="flex items-baseline justify-between">
               <h2 className="text-sm font-bold">Avatar</h2>
               <button
-                onPointerDown={() => navigate('shop')}
+                onPointerDown={() => { Audio.playSfx('menu_button'); navigate('shop'); }}
                 className="text-[10px] text-white/40 underline"
               >
                 En débloquer d'autres →

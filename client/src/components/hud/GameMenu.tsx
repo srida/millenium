@@ -88,14 +88,14 @@ export default function GameMenu({ onQuit, quitLabel = 'Quitter la partie' }: {
               <div className="space-y-2 rounded-lg border border-danger/40 bg-danger/10 p-2">
                 <p className="text-xs text-white/70">La partie en cours sera perdue.</p>
                 <div className="flex gap-2">
-                  <Button className="flex-1" onPointerDown={(e) => { e.stopPropagation(); setConfirm(false); }} sfx={false}>Annuler</Button>
+                  <Button className="flex-1" onPointerDown={(e) => { e.stopPropagation(); setConfirm(false); }}>Annuler</Button>
                   <Button variant="danger" className="flex-1" onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_quit'); close(); onQuit(); }} sfx={false}>
                     Confirmer
                   </Button>
                 </div>
               </div>
             ) : (
-              <Button variant="danger" className="w-full" onPointerDown={(e) => { e.stopPropagation(); setConfirm(true); }} sfx={false}>
+              <Button variant="danger" className="w-full" onPointerDown={(e) => { e.stopPropagation(); setConfirm(true); }}>
                 ✕ {quitLabel}
               </Button>
             )}

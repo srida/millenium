@@ -15,6 +15,7 @@ import { getProgress, markChapterRead, updateProgress, type TutorialProgress } f
 import { Button, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_GOLD, usePressSquash } from '../components/ui/primitives.js';
 import ChapterBlockView from '../components/tutorial/ChapterBlocks.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
+import * as Audio from '../audio/AudioManager.js';
 
 export default function TutorialScreen() {
   const navigate = useUiStore(s => s.navigate);
@@ -42,7 +43,7 @@ export default function TutorialScreen() {
     <main className="flex min-h-full flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
       <div className={classname_title}>
         {chapter ? (
-          <button type="button" onPointerDown={() => setOpenIdx(null)} className="shrink-0 text-sm text-white/60 underline">
+          <button type="button" onPointerDown={() => { Audio.playSfx('menu_button'); setOpenIdx(null); }} className="shrink-0 text-sm text-white/60 underline">
             ‹ Sommaire
           </button>
         ) : null}

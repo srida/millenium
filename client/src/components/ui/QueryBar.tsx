@@ -11,6 +11,7 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import * as Query from '../../../../card-query.mjs';
 import { Modal, Button } from './primitives.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Schema = any;
@@ -76,7 +77,7 @@ export default function QueryBar({ value, onChange, schema, error, placeholder, 
         />
         <button
           type="button"
-          onPointerDown={() => setHelp(true)}
+          onPointerDown={() => { Audio.playSfx('menu_button'); setHelp(true); }}
           aria-label="Aide de la recherche"
           className="min-h-tap min-w-tap shrink-0 rounded-lg border border-line bg-surface-raised text-sm font-bold text-white/50"
         >?</button>
@@ -92,7 +93,7 @@ export default function QueryBar({ value, onChange, schema, error, placeholder, 
               type="button"
               // `onPointerDown` et non `onClick` : le `blur` du champ part avant
               // le clic, et la liste serait démontée avant de le recevoir.
-              onPointerDown={(e) => { e.preventDefault(); apply(it); }}
+              onPointerDown={(e) => { e.preventDefault(); Audio.playSfx('menu_button'); apply(it); }}
               className="flex w-full min-h-tap items-baseline gap-2 px-3 text-left text-xs hover:bg-surface-raised"
             >
               <code className="font-mono text-gold">{it.label ?? it.value}</code>
@@ -142,7 +143,7 @@ function QueryHelp({ schema, examples, onPick, onClose }: {
           <div className="mb-4 flex flex-wrap gap-1.5">
             {examples.map(e => (
               <button
-                key={e.q} type="button" onPointerDown={() => onPick(e.q)} title={e.why}
+                key={e.q} type="button" onPointerDown={() => { Audio.playSfx('menu_button'); onPick(e.q); }} title={e.why}
                 className="min-h-tap rounded-full border border-line bg-surface-raised px-3 font-mono text-[11px] text-white/70"
               >{e.q}</button>
             ))}

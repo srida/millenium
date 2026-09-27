@@ -5,6 +5,7 @@ import { useUiStore } from '../../stores/uiStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import { getAttribute } from '../../data/AttributeDatabase.js';
 import AttrIcon from '../ui/AttrIcon.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 export default function SynergyPanel() {
   const synergies = useGameStore(s => s.synergies);
@@ -44,6 +45,7 @@ export default function SynergyPanel() {
             key={s.attr.id}
             onPointerDown={(e) => {
               e.stopPropagation();
+              Audio.playSfx('menu_button');
               const full = (getAttribute as (id: string) => unknown)(s.attr.id);
               if (full) showTooltip(
                 { kind: 'attribute', attr: full as never, count: s.count, activeThreshold: s.activeThreshold },

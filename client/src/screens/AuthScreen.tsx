@@ -9,6 +9,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from '../components/ui/primitives.js';
 import { AppVersion } from '../components/system/AppVersion.js';
+import * as Audio from '../audio/AudioManager.js';
 
 type Mode = 'login' | 'register' | 'forgot';
 
@@ -65,7 +66,7 @@ export default function AuthScreen() {
           {(['login', 'register'] as Mode[]).map(m => (
             <button
               key={m}
-              onPointerDown={() => { setMode(m); setError(null); setNotice(null); }}
+              onPointerDown={() => { Audio.playSfx('menu_button'); setMode(m); setError(null); setNotice(null); }}
               className={`min-h-tap flex-1 text-sm font-semibold ${mode === m ? 'bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'bg-surface-raised text-white/60'}`}
             >
               {m === 'login' ? 'Se connecter' : "S'inscrire"}
@@ -103,7 +104,7 @@ export default function AuthScreen() {
               <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
               Rester connecté
             </label>
-            <button type="button" onPointerDown={() => { setMode('forgot'); setError(null); setNotice(null); }} className="underline">
+            <button type="button" onPointerDown={() => { Audio.playSfx('menu_button'); setMode('forgot'); setError(null); setNotice(null); }} className="underline">
               Mot de passe oublié ?
             </button>
           </div>
@@ -114,13 +115,13 @@ export default function AuthScreen() {
           {busy ? '…' : mode === 'login' ? 'Se connecter' : mode === 'register' ? 'Créer le compte' : 'Envoyer le lien'}
         </Button>
         {mode === 'forgot' && (
-          <button type="button" onPointerDown={() => { setMode('login'); setError(null); setNotice(null); }} className="text-xs text-white/50 underline">
+          <button type="button" onPointerDown={() => { Audio.playSfx('menu_button'); setMode('login'); setError(null); setNotice(null); }} className="text-xs text-white/50 underline">
             ← Retour à la connexion
           </button>
         )}
       </form>
 
-      <button onPointerDown={() => navigate('main_menu')} className="text-xs text-white/50 underline">
+      <button onPointerDown={() => { Audio.playSfx('menu_button'); navigate('main_menu'); }} className="text-xs text-white/50 underline">
         Continuer en invité →
       </button>
       <AppVersion className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))]" />

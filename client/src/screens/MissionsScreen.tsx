@@ -20,6 +20,7 @@ import { Button, Countdown, Gauge, LoadState, Panel } from '../components/ui/pri
 import { CURRENCY, fmt, XP_ICON } from '../components/ui/currency.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
+import * as Audio from '../audio/AudioManager.js';
 
 // Difficulté du slot (brief §3.1) : facile = 1 partie, moyen = 2, engagé = 3-4.
 const SLOTS: Record<number, { label: string; cls: string }> = {
@@ -147,7 +148,7 @@ function WeeklyGauge({ points, max, milestones }: { points: number; max: number;
               <li key={ms.points}>
                 <button
                   disabled={busy === ms.points}
-                  onPointerDown={() => void claim(ms.points)}
+                  onPointerDown={() => { Audio.playSfx('menu_button'); void claim(ms.points); }}
                   aria-label={`Récupérer le palier ${ms.points}`}
                   className={`${chip} border-success bg-[color-mix(in_srgb,var(--color-success)_25%,var(--color-surface-raised))] font-semibold text-success active:opacity-70 disabled:opacity-40`}
                 >
@@ -245,7 +246,7 @@ function MissionCard({ mission, rerollCost }: { mission: Mission; rerollCost: nu
           {!done && (
             <button
               disabled={busy}
-              onPointerDown={() => void run(reroll)}
+              onPointerDown={() => { Audio.playSfx('menu_button'); void run(reroll); }}
               title={rerollCost ? `Changer de mission — ${fmt.format(rerollCost)} golds` : 'Changer de mission (gratuit)'}
               aria-label="Changer de mission"
               className="ml-auto flex min-h-tap min-w-tap items-center justify-center rounded-lg border border-line px-2 text-xs text-white/50 active:opacity-70 disabled:opacity-30"
