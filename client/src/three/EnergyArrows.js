@@ -11,7 +11,13 @@
 // Shaders en alpha prémultiplié : fonctionne sur canvas opaque ou calque FX transparent.
 import * as THREE from 'three';
 
-export const TIER_SIZE = { 1: 0.3, 2: 0.5, 3: 1, 4: 1.5, 5: 2 };
+// ⚠️ Sert à la fois la TAILLE du projectile et le RAYON de son impact
+// (`_impact` : `s = P.size / 0.13`), pour les attaques à distance ET pour
+// chaque tranchant de mêlée (`MeleeStrikes._slash` passe le même `tier`).
+// Resserré au tier 3+ : la progression brute (×2 entre 2 et 3, ×2 entre 3 et
+// 5) rendait les zones d'impact des hauts tiers disproportionnées, sur les
+// deux formes d'attaque à la fois.
+export const TIER_SIZE = { 1: 0.3, 2: 0.5, 3: 0.72, 4: 0.92, 5: 1.1 };
 export const ELEMENT_ALIASES = { ombre: 'sorcellerie', lumiere: 'energie', vent: 'air', metal: 'metal', 'métal': 'metal' };
 
 export const ELEMENT_PRESETS = {

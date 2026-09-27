@@ -2230,6 +2230,28 @@ export class Scene3D {
     return this.melee.strike(this._actorFor(atkEntry), this._actorFor(tgtEntry), elements, { tier });
   }
 
+  /**
+   * Répercute le multiplicateur ×1/×2/×4 de `CombatAnimator3D.setSpeed` sur la
+   * frappe au corps à corps (et l'apparition, par cohérence) : leurs durées se
+   * divisent déjà par `globals.speed` en interne, mais rien ne le réglait —
+   * une frappe gardait donc sa durée « temps réel » pendant qu'à vitesse ×4
+   * les ticks de jeu, eux, s'enchaînaient quatre fois plus vite, ce qui
+   * creusait un retard croissant entre le combat et ce qu'on en voit.
+   */
+  setAnimSpeed(speed: number): void {
+    this.melee.setGlobals({ speed });
+    this.spawns.setGlobals({ speed });
+  }
+
+  /**
+   * Coupe court à toute frappe au corps à corps encore en vol ou en file —
+   * appelé quand le combat se termine : les ticks de jeu s'arrêtent net, et
+   * une frappe en retard continuerait sinon d'animer sous le récapitulatif.
+   */
+  finishMeleeStrikes(): void {
+    this.melee.finishAll();
+  }
+
   _animateMove(entry: UnitEntry, toPos: Position, duration = 0.28): void {
     const from = entry.obj.position.clone();
     const to = this.tilePosition(toPos);

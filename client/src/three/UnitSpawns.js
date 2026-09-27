@@ -288,7 +288,13 @@ export class UnitSpawns {
     if (tierPower) Object.assign(this.globals.tierPower, tierPower);
   }
 
-  get activeCount() { return this.actions.size; }
+  // ⚠️ `this.rocks`, pas seulement `this.actions` : les éclats de pierre/métal
+  // (Terre, Métal) sortent de `_land()`, une fois l'action d'apparition déjà
+  // en train de se clore — ils survivent quelques centaines de ms de plus
+  // qu'elle. Scene3D se sert de ce compte pour décider s'il doit encore
+  // appeler `update()` ; l'omettre laissait les éclats gelés en l'air dès que
+  // la dernière apparition en cours se terminait avant eux.
+  get activeCount() { return this.actions.size + this.rocks.length; }
 
   /**
    * Durée totale (s, `delay` exclu) d'une apparition — charge + formation +
