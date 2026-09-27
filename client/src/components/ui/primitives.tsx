@@ -18,6 +18,9 @@ type Variant = 'primary' | 'ghost' | 'danger';
 export const SURFACE_GOLD = 'bg-gradient-to-b from-[color-mix(in_srgb,var(--color-gold)_32%,var(--color-surface-raised))] to-[color-mix(in_srgb,var(--color-gold)_14%,var(--color-surface))] border-gold';
 export const SURFACE_NEUTRAL = 'bg-gradient-to-b from-[color-mix(in_srgb,white_10%,var(--color-surface-raised))] to-surface border-line';
 export const SURFACE_DANGER = 'bg-gradient-to-b from-[color-mix(in_srgb,var(--color-danger)_32%,var(--color-surface-raised))] to-[color-mix(in_srgb,var(--color-danger)_14%,var(--color-surface))] border-danger';
+// Exportée : `HoldConfirmButton` en tonalité `gems` (achats de boutique payés
+// en gemmes) — même geste que les trois autres, une couleur de plus.
+export const SURFACE_VIOLET = 'bg-gradient-to-b from-[color-mix(in_srgb,var(--color-violet)_32%,var(--color-surface-raised))] to-[color-mix(in_srgb,var(--color-violet)_14%,var(--color-surface))] border-violet';
 
 const VARIANTS: Record<Variant, string> = {
   primary: `${SURFACE_GOLD} text-gold hover:brightness-110`,
