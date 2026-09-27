@@ -217,8 +217,16 @@ export class CombatAnimator3D {
         this._hitTarget(target, attacker);
       }
     } else {
-      if (atkEntry && target.position) this._board.playLunge(attacker.uid, target.position);
-      if (!isFatal) this._hitTarget(target, attacker);
+      // `MeleeStrikes` fait déjà le geste complet (approche par l'élément,
+      // N coups selon le tier, chacun son propre impact via `fx.fire`) et
+      // décore chaque coup au vol (`melee.onHit`, posé une fois à la
+      // construction de la scène) : `_hitTarget` ne sert donc plus qu'au
+      // repli sans carte visible, comme pour l'attaque à distance ci-dessus.
+      if (atkEntry && target.position) {
+        this._board.playMeleeStrike(attacker.uid, target.uid, elementsForUnit(attacker), attacker.tier ?? 1);
+      } else if (!isFatal) {
+        this._hitTarget(target, attacker);
+      }
     }
   }
 

@@ -14,6 +14,9 @@
 import * as THREE from 'three';
 import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 import { EnergyArrows } from './EnergyArrows.js';
+import { MeleeStrikes } from './MeleeStrikes.js';
+import { UnitSpawns } from './UnitSpawns.js';
+import { UnitShatter } from './UnitShatter.js';
 import { createUnitEl, updateUnitEl } from './UnitCardEl.js';
 import {
   ELEMENT_STYLES, elementsForUnit,
@@ -40,10 +43,9 @@ function easeOutBack(x: number): number {
   return 1 + (c + 1) * k * k * k + c * k * k;
 }
 
-// Apparition d'une unité : chute depuis y=3, puis impact élémentaire.
+// Apparition d'une unité : entrée + impact élémentaires, cf. `UnitSpawns`.
 // LEAD/STAGGER ne servent qu'à la cascade d'apparition de l'IA (revealEnemyUnits) :
 // le lead laisse la caméra amorcer son travelling de combat avant la 1re carte.
-const SPAWN_DROP_S = 0.22;
 const SPAWN_LEAD_S = 0.25;
 const SPAWN_STAGGER_S = 0.16;
 
@@ -150,6 +152,30 @@ interface UnitEntry {
   el: HTMLDivElement;
   pos: Position;
   elements: string[];
+  // Vers l'adversaire — constant pour la durée de vie de la carte (les deux
+  // camps ne changent jamais de côté). Sert d'orientation neutre à `MeleeStrikes`
+  // pour calculer le lacet vers une cible.
+  forward: THREE.Vector3;
+  // Adaptateur « acteur » (`{ obj, home, baseQuat, baseScale, forward, dom,
+  // setOpacity, entry }`) partagé par `spawns`/`melee`/`shatter`, qui s'en
+  // servent comme clé de Map — mis en cache ici pour qu'un même acteur soit
+  // rendu à chaque appel plutôt qu'un objet neuf que ces modules ne
+  // reconnaîtraient jamais d'un appel à l'autre. `home`/`baseQuat` y sont des
+  // ACCESSEURS (lus depuis `entry.pos`/`this._camAngle`) : une position ou un
+  // angle de caméra mis en cache deviendrait faux dès la première case franchie.
+  _actor?: SceneActor;
+}
+
+interface SceneActor {
+  obj: CSS3DObject;
+  readonly home: THREE.Vector3;
+  readonly baseQuat: THREE.Quaternion;
+  baseScale: number;
+  forward: THREE.Vector3;
+  dom: { wrap: HTMLDivElement; card: HTMLDivElement };
+  entry: UnitEntry;
+  setOpacity: (a: number) => void;
+  spawning?: boolean;
 }
 
 // Tuile arrondie plate (vue du dessus) — ShapeGeometry avec coins arrondis
@@ -224,6 +250,15 @@ export class Scene3D {
   // rendu dans `scene` passerait sous les cartes, qui vivent dans un calque DOM
   // empilé par-dessus le canvas WebGL principal.
   fx: any;
+  // Apparition, frappe au corps à corps et destruction des unités — les trois
+  // pilotent directement `entry.obj` (CSS3DObject, donc `cssScene`) et pour la
+  // frappe/l'apparition partagent `fx` pour leurs propres impacts élémentaires
+  // (tranchant de mêlée, atterrissage). `killUnitObj` en est le seul point de
+  // convergence : une unité qui meurt doit pouvoir couper net une apparition ou
+  // une frappe encore en vol sur elle.
+  spawns: any;
+  melee: any;
+  shatter: any;
 
   tileGeometry!: THREE.ShapeGeometry;
   tileMeshes: THREE.Mesh[] = [];
@@ -335,6 +370,32 @@ export class Scene3D {
     this.fx = new EnergyArrows(this.fxScene, this.camera, { lowEnd: LOW_END_DEVICE });
     // Reprend le réglage d'arc du prototype (tailles par tier déjà par défaut).
     this.fx.setGlobals({ arc: 2 });
+
+    // Apparition : chaque unité posée sur le board tombe/jaillit selon son
+    // élément (`_spawnUnitObj`) puis reçoit son impact de tier.
+    this.spawns = new UnitSpawns(this.fx, {
+      onShake: (a: number) => this.shakeCamera(this._camH * a, 0.3),
+    } as any);
+    // Frappe au corps à corps : `onHit` ne fait qu'un flash léger + resynchro
+    // de la carte cible — le tranchant a DÉJÀ posé son impact élémentaire
+    // complet via `fx.fire()` (même `_impact` que les projectiles à distance),
+    // le doubler ici referait deux fois le même geste.
+    this.melee = new MeleeStrikes(this.fx, {
+      onHit: (target: any) => {
+        const entry: UnitEntry = target.entry;
+        if (!this.unitObjs.has(entry.unit.uid)) return; // déjà mort entre le coup et son tranchant
+        this._flashClass(entry.el, 'anim-hit');
+        updateUnitEl(entry.el, entry.unit);
+      },
+      onShake: (a: number) => this.shakeCamera(this._camH * a, 0.3),
+    } as any);
+    // Destruction : fissure puis explosion en éclats de verre, dans l'élément
+    // et le tier de l'unité — `onDone` est le seul endroit qui retire l'objet
+    // de la scène, une fois le dernier éclat disparu.
+    this.shatter = new UnitShatter(this.fx, {
+      onShake: (a: number) => this.shakeCamera(this._camH * a, 0.3),
+      onDone: (actor: any) => { this.cssScene.remove(actor.obj); },
+    } as any);
 
     // Ambiance astrale : lumière froide violet-bleu + clé dorée rasante
     this.scene.add(new THREE.AmbientLight(0x1e2860, 1.4));
@@ -1348,58 +1409,6 @@ export class Scene3D {
     this._shake = { time: 0, duration, magnitude };
   }
 
-  spawnElementImpact(position: THREE.Vector3, elements: string[], tier = 1): void {
-    const list = elements && elements.length ? elements : ['neutral'];
-    const t = Math.max(1, Math.min(5, tier));
-    const CFG = [
-      { count: 18, sM: 0.36, szM: 0.42, lM: 0.30, rS: 3.5, rL: 0.28, fi: 1.5, fR: 2, fL: 0.12 },
-      { count: 18, sM: 0.36, szM: 0.42, lM: 0.30, rS: 3.5, rL: 0.28, fi: 1.5, fR: 2, fL: 0.12 },
-      { count: 18, sM: 0.36, szM: 0.42, lM: 0.30, rS: 3.5, rL: 0.28, fi: 1.5, fR: 2, fL: 0.12 },
-      { count: 32, sM: 0.52, szM: 0.58, lM: 0.42, rS: 5.0, rL: 0.36, fi: 3.0, fR: 3, fL: 0.16 },
-      { count: 50, sM: 0.68, szM: 0.72, lM: 0.55, rS: 7.0, rL: 0.45, fi: 5.0, fR: 4, fL: 0.20 },
-    ][t - 1];
-    // Plusieurs éléments -> un burst par élément, budget de particules réparti entre eux.
-    const perCount = Math.max(1, Math.round(CFG.count / list.length));
-    for (const element of list) {
-      const style = ELEMENT_STYLES[element] || ELEMENT_STYLES.neutral;
-      if (CFG.count > 0) {
-        this.spawnBurst(position, style.color, perCount, {
-          ...style,
-          size:    style.size * CFG.szM,
-          speed:   style.speed.map(v => v * CFG.sM),
-          lift:    style.lift.map(v => v * CFG.sM),
-          maxLife: CFG.lM,
-        });
-      }
-      this.spawnRing(new THREE.Vector3(position.x, 0, position.z), style.ringColor, CFG.rL, CFG.rS);
-      if (CFG.fi > 0) this.spawnFlash(position, style.color, CFG.fi / list.length, CFG.fR, CFG.fL);
-      if (element === 'foudre') {
-        const arcCount = 5 + t * 2;
-        for (let i = 0; i < arcCount; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const dist = 0.5 + Math.random() * 0.5 * CFG.sM * 2;
-          const end = new THREE.Vector3(position.x + Math.cos(angle) * dist, position.y, position.z + Math.sin(angle) * dist);
-          this.spawnLightningArc(position, end, style.color, { maxLife: 0.14 + t * 0.015, branches: t >= 3 ? 2 : 1 });
-        }
-      }
-      if (element === 'feu') this.spawnFlames(position, t);
-      if (element === 'eau') this.spawnSplash(position, t);
-      if (element === 'air') this.spawnTornado(position, t);
-      if (element === 'sorcellerie') this.spawnMagicCircle(position, t);
-      if (element === 'terre') {
-        this.spawnCrater(position, t);
-        // Magnitude relative à la hauteur de caméra pour rester perceptible à tout zoom.
-        const camH = this._camH || 6;
-        this.shakeCamera(camH * (0.035 + t * 0.012), 0.3 + t * 0.06);
-      }
-      if (element === 'metal') {
-        this.spawnMetalShards(position, t);
-        this.spawnSwordSlash(position, t);
-      }
-    }
-    if (t === 5) this.spawnHalo(position, (ELEMENT_STYLES[list[0]] || ELEMENT_STYLES.neutral).color);
-  }
-
   // Projectile « flèche d'énergie » (EnergyArrows, calque FX transparent posé
   // au-dessus des cartes CSS3D — cf. `_buildScene`). `element` est une clé
   // (ou un tableau de clés pour un projectile mixte) de `ELEMENT_STYLES` /
@@ -1932,8 +1941,45 @@ export class Scene3D {
     return (this._combatMode || this.showEnemySide || unit.side === 'player') ? 1 : 0;
   }
 
-  // delay : retarde la chute (l'unité reste invisible en attendant) — utilisé
-  // pour échelonner l'apparition des unités de l'IA au lancement du combat.
+  // Rejoue une classe d'animation CSS depuis le début (retire puis pose,
+  // séparés par un reflow forcé) — même geste que `CombatAnimator3D._flashClass`,
+  // ici pour le flash de coup que `melee.onHit` déclenche directement sur la
+  // carte cible, sans détour par l'animateur.
+  _flashClass(el: HTMLElement, cls: string): void {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+  }
+
+  // L'acteur que `spawns`/`melee`/`shatter` manipulent, mis en cache sur
+  // l'entrée elle-même — cf. le commentaire de `SceneActor`.
+  _actorFor(entry: UnitEntry): SceneActor {
+    if (entry._actor) return entry._actor;
+    // `home`/`baseQuat` en accesseurs plutôt qu'en champs : des flèches, pour
+    // fermer sur le `this` de CETTE méthode (Scene3D) sans l'aliaser — un
+    // accesseur d'objet littéral (`get home() {}`) lierait `this` à l'acteur
+    // lui-même, pas à la scène.
+    const actor = {
+      obj: entry.obj,
+      baseScale: CSS_SCALE,
+      forward: entry.forward,
+      dom: { wrap: entry.wrap, card: entry.el },
+      entry,
+      setOpacity: (a: number) => { entry.wrap.style.opacity = String(a); },
+    } as SceneActor;
+    Object.defineProperties(actor, {
+      home: { get: () => this.tilePosition(entry.pos) },
+      baseQuat: { get: () => new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, this._camAngle)) },
+    });
+    entry._actor = actor;
+    return entry._actor;
+  }
+
+  // delay : retarde l'apparition (l'unité reste invisible en attendant) —
+  // utilisé pour échelonner l'apparition des unités de l'IA au lancement du
+  // combat. L'entrée du décor (chute, éruption, éclair…) et l'impact de tier
+  // sont ceux de `UnitSpawns`, choisis par l'élément de la carte.
   _spawnUnitObj(unit: Unit, delay = 0): UnitEntry {
     const pos = unit.position as Position;
     const wrap = document.createElement('div');
@@ -1952,33 +1998,19 @@ export class Scene3D {
     // que tous les pointer events passent par le canvas WebGL (raycasting).
     wrap.style.pointerEvents = 'none';
     obj.rotation.set(-Math.PI / 2, 0, this._camAngle);
-    const x = xForCol(pos.col);
-    const z = zForRow(pos.row);
-    obj.position.set(x, 3, z);
+    obj.position.set(xForCol(pos.col), 0.06, zForRow(pos.row));
     obj.scale.setScalar(CSS_SCALE);
     this.cssScene.add(obj);
 
     const elements = elementsForUnit(unit);
-    const entry: UnitEntry = { unit, obj, wrap, el, pos: { ...pos }, elements };
+    // Vers le camp d'en face — cf. `UnitEntry.forward` : ne dépend que du côté,
+    // jamais de la case (le repère est toujours celui du joueur en bas, quel
+    // que soit le rôle réseau — cf. « L'asymétrie… » dans CLAUDE.md).
+    const forward = new THREE.Vector3(0, 0, unit.side === 'player' ? -1 : 1);
+    const entry: UnitEntry = { unit, obj, wrap, el, pos: { ...pos }, elements, forward };
     this._applyUnitHighlightClasses(entry);
 
-    let t = -delay;
-    if (delay > 0) obj.visible = false;
-    this.anims.push({
-      update: (dt: number) => {
-        t += dt;
-        if (t < 0) return true;
-        obj.visible = true;
-        const p = Math.min(t / SPAWN_DROP_S, 1);
-        const eased = 1 - Math.pow(1 - p, 3);
-        obj.position.y = THREE.MathUtils.lerp(3, 0.06, eased);
-        if (p >= 1) {
-          this.spawnElementImpact(new THREE.Vector3(x, 0.1, z), elements, unit.tier ?? 1);
-          return false;
-        }
-        return true;
-      },
-    });
+    this.spawns.spawn(this._actorFor(entry), elements, { tier: unit.tier ?? 1, delay });
 
     return entry;
   }
@@ -2017,6 +2049,12 @@ export class Scene3D {
   revealEnemyUnits(units: Unit[]): number {
     const seen = new Set<number>();
     let spawned = 0;
+    // Le pire achèvement de la cascade, pas juste celui du dernier arrivé :
+    // depuis que la durée d'apparition dépend de l'élément (`UnitSpawns`), une
+    // Sorcellerie arrivée plus tôt peut finir de se poser après un Feu arrivé
+    // après elle. `estimateDuration` répond à la même question que `spawn()`,
+    // sans lancer l'action.
+    let finishS = 0;
     for (const unit of units) {
       const pos = unit.position;
       if (!pos) continue;
@@ -2031,6 +2069,8 @@ export class Scene3D {
       }
       const delaySec = SPAWN_LEAD_S + spawned * SPAWN_STAGGER_S;
       this.unitObjs.set(unit.uid, this._spawnUnitObj(unit, delaySec));
+      const settleS = this.spawns.estimateDuration(elementsForUnit(unit), unit.tier ?? 1);
+      finishS = Math.max(finishS, delaySec + settleS);
       // Le son suit la CASCADE, pas le tir groupé : chaque unité ennemie sonne
       // à l'instant précis où elle apparaît, comme sa propre chute.
       setTimeout(() => Audio.playSfx('summon', { tier: unit.tier ?? undefined }), delaySec * 1000);
@@ -2046,8 +2086,7 @@ export class Scene3D {
       this.unitObjs.delete(uid);
     }
     this._invalidate();
-    if (spawned === 0) return 0;
-    return (SPAWN_LEAD_S + (spawned - 1) * SPAWN_STAGGER_S + SPAWN_DROP_S) * 1000;
+    return spawned === 0 ? 0 : finishS * 1000;
   }
 
   animateUnitMove(uid: number, toPos: Position, duration = 0.28): void {
@@ -2068,117 +2107,19 @@ export class Scene3D {
     const entry = this.unitObjs.get(uid);
     if (!entry) return;
     this.unitObjs.delete(uid);
+    if (entry.obj.position.x === undefined) { this.cssScene.remove(entry.obj); return; }
 
-    const x = entry.obj.position.x;
-    const z = entry.obj.position.z;
-    if (x === undefined) { this.cssScene.remove(entry.obj); return; }
+    const actor = this._actorFor(entry);
+    // Une unité peut mourir en pleine apparition (invocation et mort dans le
+    // même tick) ou en plein élan de corps-à-corps (attaque partie plus tôt,
+    // retour pas terminé) : sans l'annulation, la carte continuerait de
+    // charger/frapper/revenir sur un objet 3D que la fissure remplace déjà.
+    this.spawns.cancel(actor);
+    this.melee.cancel(actor);
+
     const elements = entry.elements && entry.elements.length ? entry.elements : ['neutral'];
     const tier = Math.max(1, Math.min(5, entry.unit.tier ?? 1));
-
-    const KILL_CFG = {
-      ...[
-        { fc: 4, fr: 4, speed: 3.00, vy: 1.50, rot: 17, fi:  8.0, fR: 5.0, fL: 0.26, pc:  95, fS: 0.96, halo: false, spMax: 2.5, ltMax: 1.8, mLife: 0.50, grav: 6.0 },
-        { fc: 4, fr: 4, speed: 3.00, vy: 1.50, rot: 17, fi:  8.0, fR: 5.0, fL: 0.26, pc:  95, fS: 0.96, halo: false, spMax: 2.5, ltMax: 1.8, mLife: 0.50, grav: 6.0 },
-        { fc: 4, fr: 4, speed: 3.00, vy: 1.50, rot: 17, fi:  8.0, fR: 5.0, fL: 0.26, pc:  95, fS: 0.96, halo: false, spMax: 2.5, ltMax: 1.8, mLife: 0.50, grav: 6.0 },
-        { fc: 4, fr: 4, speed: 3.80, vy: 2.00, rot: 22, fi: 12.0, fR: 7.0, fL: 0.30, pc: 140, fS: 1.00, halo: false, spMax: 3.2, ltMax: 2.2, mLife: 0.56, grav: 5.5 },
-        { fc: 6, fr: 5, speed: 6.00, vy: 3.00, rot: 30, fi: 28.0, fR:14.0, fL: 0.45, pc: 220, fS: 1.00, halo: true,  spMax: 2.5, ltMax: 2.0, mLife: 0.65, grav: 5.0 },
-      ][tier - 1],
-    };
-    if (LOW_END_DEVICE) {
-      KILL_CFG.fc = Math.max(2, Math.ceil(KILL_CFG.fc / 2));
-      KILL_CFG.fr = Math.max(2, Math.ceil(KILL_CFG.fr / 2));
-    }
-
-    // Gèle toutes les animations CSS de la carte avant de la masquer
-    entry.obj.visible = false;
-    entry.wrap.querySelectorAll<HTMLElement>('*').forEach(el => {
-      el.style.animation = 'none';
-      el.style.transition = 'none';
-    });
-    entry.wrap.style.animation = 'none';
-    entry.wrap.style.transition = 'none';
-
-    const FCOLS = KILL_CFG.fc;
-    const FROWS = KILL_CFG.fr;
-    const fragW = CARD_PX / FCOLS;
-    const fragH = CARD_PX / FROWS;
-    const frags: any[] = [];
-
-    for (let fc = 0; fc < FCOLS; fc++) {
-      for (let fr = 0; fr < FROWS; fr++) {
-        const clip = document.createElement('div');
-        clip.style.width = fragW + 'px';
-        clip.style.height = fragH + 'px';
-        clip.style.overflow = 'hidden';
-        clip.style.position = 'relative';
-        clip.style.borderRadius = '2px';
-
-        const inner = entry.wrap.cloneNode(true) as HTMLElement;
-        inner.style.position = 'absolute';
-        inner.style.left = (-fc * fragW) + 'px';
-        inner.style.top  = (-fr * fragH) + 'px';
-        inner.style.margin = '0';
-        inner.style.pointerEvents = 'none';
-        clip.appendChild(inner);
-
-        const fobj = new CSS3DObject(clip);
-        fobj.rotation.set(-Math.PI / 2, 0, this._camAngle);
-        fobj.position.set(x, 0.06, z);
-        fobj.scale.setScalar(CSS_SCALE * KILL_CFG.fS);
-        this.cssScene.add(fobj);
-
-        const dx = FCOLS > 1 ? fc / (FCOLS - 1) - 0.5 : 0;
-        const dz = FROWS > 1 ? fr / (FROWS - 1) - 0.5 : 0;
-        const angle = Math.atan2(dz, dx) + (Math.random() - 0.5) * 1.4;
-        const speed = KILL_CFG.speed + Math.random() * KILL_CFG.speed;
-
-        frags.push({
-          obj: fobj,
-          vx: Math.cos(angle) * speed,
-          vy: 0.15 + Math.random() * KILL_CFG.vy,
-          vz: Math.sin(angle) * speed,
-          ry: (Math.random() - 0.5) * KILL_CFG.rot,
-          rz: (Math.random() - 0.5) * KILL_CFG.rot * 0.7,
-        });
-      }
-    }
-
-    this.spawnFlash(new THREE.Vector3(x, 0.5, z), 0xffffff, KILL_CFG.fi, KILL_CFG.fR, KILL_CFG.fL);
-    const perPc = Math.max(1, Math.round(KILL_CFG.pc / elements.length));
-    for (const element of elements) {
-      const style = ELEMENT_STYLES[element] || ELEMENT_STYLES.neutral;
-      this.spawnBurst(new THREE.Vector3(x, 0.3, z), style.color, perPc, {
-        size:    style.size * KILL_CFG.fS * 1.1,
-        speed:   [0.1, KILL_CFG.spMax],
-        lift:    [0.1, KILL_CFG.ltMax],
-        gravity: KILL_CFG.grav,
-        maxLife: KILL_CFG.mLife,
-      });
-    }
-    if (KILL_CFG.halo) this.spawnHalo(new THREE.Vector3(x, 0, z), (ELEMENT_STYLES[elements[0]] || ELEMENT_STYLES.neutral).color);
-
-    const MAX_T = 1.2;
-    let t = 0;
-    this.anims.push({
-      update: (dt: number) => {
-        t += dt;
-        const p = Math.min(t / MAX_T, 1);
-        for (const f of frags) {
-          f.obj.position.x += f.vx * dt;
-          f.obj.position.y += (f.vy - 7 * t) * dt;
-          f.obj.position.z += f.vz * dt;
-          f.obj.rotation.y += f.ry * dt;
-          f.obj.rotation.z += f.rz * dt;
-          f.obj.element.style.opacity = String(Math.max(0, 1 - p * 1.3));
-        }
-        if (p >= 1) {
-          this.cssScene.remove(entry.obj);
-          for (const f of frags) this.cssScene.remove(f.obj);
-          return false;
-        }
-        return true;
-      },
-    });
+    this.shatter.shatter(actor, elements, { tier });
   }
 
   /**
@@ -2272,6 +2213,21 @@ export class Scene3D {
         return p < 1;
       },
     });
+  }
+
+  /**
+   * Attaque au corps à corps (`MeleeStrikes`) : approche selon l'élément de
+   * l'attaquant, N coups selon son tier (chacun un tranchant `EnergyArrows` qui
+   * pose son propre impact), retour. Résout quand l'unité est revenue à sa
+   * place — `CombatAnimator3D` ne s'en sert pas pour enchaîner (fire-and-forget,
+   * comme `playProjectile`), la décoration du coup se fait au vol via
+   * `melee.onHit` (posé à la construction).
+   */
+  playMeleeStrike(attackerUid: number, targetUid: number, elements: string[], tier: number): Promise<void> {
+    const atkEntry = this.unitObjs.get(attackerUid);
+    const tgtEntry = this.unitObjs.get(targetUid);
+    if (!atkEntry || !tgtEntry) return Promise.resolve();
+    return this.melee.strike(this._actorFor(atkEntry), this._actorFor(tgtEntry), elements, { tier });
   }
 
   _animateMove(entry: UnitEntry, toPos: Position, duration = 0.28): void {
@@ -2503,13 +2459,21 @@ export class Scene3D {
     // des trois compte, il faut mettre à jour ET rendre le calque FX.
     const fxActive = this.fx.activeCount > 0 || this.fx.pAdd.n > 0 || this.fx.pNorm.n > 0
       || this.fx.rings.length > 0 || this.fx.timers.length > 0;
+    // Apparition, frappe au corps à corps, destruction — pilotent `cssScene`
+    // directement (déjà rendue à chaque frame active), mais doivent forcer
+    // cette activité et être avancées comme `anims`/`bursts`.
+    // ⚠️ `melee.states.size`, pas `melee.activeCount` : ce dernier ne compte
+    // que les coups en cours, pas le recul (`kicks`) d'une cible qui vient
+    // d'en encaisser un — un recul qu'on cesse d'avancer se figerait à mi-course.
+    const unitFxActive = this.spawns.activeCount > 0 || this.melee.states.size > 0 || this.shatter.activeCount > 0;
 
     // Rendu à la demande : rien d'actif et rien d'invalidé → on saute la frame.
-    const active = this.anims.length > 0 || this.bursts.length > 0 || this._shake !== null || this._needsRender || fxActive;
+    const active = this.anims.length > 0 || this.bursts.length > 0 || this._shake !== null || this._needsRender || fxActive || unitFxActive;
     if (!active) return;
     this._needsRender = false;
 
     if (fxActive) this.fx.update(dt);
+    if (unitFxActive) { this.spawns.update(dt); this.melee.update(dt); this.shatter.update(dt); }
 
     this.anims = this.anims.filter((a) => a.update(dt));
 
@@ -2720,6 +2684,9 @@ export class Scene3D {
     this._flameTex?.dispose();
     this._dropletTex?.dispose();
     this._windTex?.dispose();
+    this.spawns.dispose();
+    this.melee.dispose();
+    this.shatter.dispose();
     this.fx.dispose();
     this.renderer.dispose();
     this.fxRenderer.dispose();
