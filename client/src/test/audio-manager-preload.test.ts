@@ -52,7 +52,8 @@ class FakeAudioContext {
   createBufferSource() { return new FakeBufferSourceNode(); }
   createMediaElementSource() { return { connect() { return this; } }; }
   decodeAudioData() { return Promise.resolve({ duration: 1 }); }
-  resume() { return Promise.resolve(); }
+  resume() { this.state = 'running'; return Promise.resolve(); }
+  suspend() { this.state = 'suspended'; return Promise.resolve(); }
 }
 // Le contexte de DÉCODAGE, utilisé par le préchargement — jamais connecté à
 // une sortie audible, jamais gagné par la politique d'autoplay.
@@ -199,5 +200,32 @@ describe('AudioManager — pause en arrière-plan', () => {
     // Ne doit PAS relancer une piste que le joueur a coupée lui-même — seul
     // un `suspendForBackground()` préalable autorise la reprise.
     expect(track.paused).toBe(true);
+  });
+
+  it('un aller-retour en arrière-plan SANS musique en cours suspend et reprend quand même le contexte, pour les bruitages', async () => {
+    // Le cas de partie : entre deux rounds (ou après `setMusicTheme(null)`
+    // en fin de match), aucune piste ne joue. Un `suspendForBackground()`
+    // survenant à ce moment-là doit quand même suspendre/reprendre le
+    // contexte Web Audio — sinon `playSfx` reste silencieux (le contexte
+    // resterait `suspended`) jusqu'à ce qu'un vrai `click` (jamais produit
+    // par les gestes `pointerdown` du board) vienne le débloquer par accident.
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.preloadSfx();
+    await flush();
+    // Force la création du contexte de lecture réel, comme le ferait le
+    // premier son joué en partie.
+    Audio.playSfx('ready');
+
+    Audio.suspendForBackground();
+    // Rien à mettre en pause (aucune musique), mais le contexte lui doit
+    // avoir basculé `suspended`.
+    Audio.resumeFromBackground();
+
+    // Aucune exception, et surtout aucun repli sur le chemin élément (donc
+    // aucun fetch) : le son rejoué passe bien par le buffer déjà décodé,
+    // preuve que le contexte est redevenu utilisable après le cycle.
+    fetchCalls = [];
+    expect(() => Audio.playSfx('ready')).not.toThrow();
+    expect(fetchCalls).toEqual([]);
   });
 });

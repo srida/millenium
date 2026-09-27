@@ -388,11 +388,24 @@ let backgroundPaused = false;
  * en particulier Android, qui autorise la lecture audio en fond une fois
  * qu'une page a joué du son). Ne touche ni `currentTheme` ni la piste
  * choisie : `resumeFromBackground()` reprend exactement là où c'était.
+ *
+ * ⚠️ **`backgroundPaused` s'arme MÊME si aucune musique ne jouait à cet
+ * instant** (thème coupé — `setMusicTheme(null)` en fin de partie — ou
+ * `current` déjà en pause pour une autre raison) : c'est le SEUL signal qui
+ * autorise `resumeFromBackground()` à reprendre le contexte Web Audio, et
+ * les BRUITAGES en dépendent tout autant que la musique — `playSfx` ne joue
+ * rien tant qu'`audioCtx` est suspendu, musique en cours ou pas. Armer le
+ * drapeau seulement quand une piste jouait laissait les bruitages de partie
+ * muets après un aller-retour en arrière-plan survenu pendant un silence
+ * (fin de combat, écran de résultat) — exactement le cas où l'IHM de jeu,
+ * faite de gestes `pointerdown` sur le board plutôt que de vrais boutons
+ * `click`, n'a ensuite aucune occasion de rattraper le contexte via
+ * `unlock()`.
  */
 export function suspendForBackground(): void {
-  if (!current || current.el.paused) return;
   backgroundPaused = true;
-  current.el.pause();
+  if (audioCtx?.state === 'running') audioCtx.suspend().catch(() => {});
+  if (current && !current.el.paused) current.el.pause();
 }
 
 /** Symétrique de `suspendForBackground()` — NO-OP si la coupure ne venait
@@ -401,8 +414,8 @@ export function resumeFromBackground(): void {
   if (!backgroundPaused) return;
   backgroundPaused = false;
   // L'OS suspend souvent le contexte lui-même en fond, pas seulement
-  // l'élément — sans le reprendre, la piste resterait MUETTE bien qu'en
-  // lecture.
+  // l'élément — sans le reprendre, ni la piste ni un `playSfx` à venir ne
+  // produiraient le moindre son, bien qu'en lecture apparente.
   if (audioCtx?.state === 'suspended') audioCtx.resume().catch(() => {});
   if (current) current.el.play().catch(() => { /* toujours refusé : tant pis, silencieux */ });
 }
