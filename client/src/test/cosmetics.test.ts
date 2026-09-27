@@ -120,8 +120,12 @@ describe('barème', () => {
     expect(cosmetics.PRICE.variant).toEqual({ gems: 50 });
   });
 
-  it('3 avatars, 3 variantes et 2 dos de cartes par jour', () => {
-    expect(cosmetics.DAILY).toEqual({ avatars: 3, variants: 3, card_backs: 2 });
+  it('3 avatars, 3 variantes, 2 dos de cartes et 3 reflets par jour', () => {
+    expect(cosmetics.DAILY).toEqual({ avatars: 3, variants: 3, card_backs: 2, foils: 3 });
+  });
+
+  it('un reflet coûte 20 gemmes', () => {
+    expect(cosmetics.PRICE.foil).toEqual({ gems: 20 });
   });
 
   // ⚠️ Le prix d'un dos est ÉDITORIAL : `PRICE.card_back` n'est qu'un repli pour
@@ -603,6 +607,107 @@ describe('dos de cartes', () => {
   it('un kind inconnu est refusé, jamais servi par un autre pool', () => {
     const user = newUser();
     expect(cosmetics.buy(user(), 'chapeau', 'X').ok).toBe(false);
-    expect(cosmetics.KINDS).toEqual(['avatar', 'variant', 'card_back']);
+    expect(cosmetics.KINDS).toEqual(['avatar', 'variant', 'card_back', 'foil']);
+  });
+});
+
+// ── Reflets ─────────────────────────────────────────────────────────────────
+// Quatrième famille, sans catalogue : l'id d'un reflet EST le card_id. Le pool
+// est la collection du joueur, filtrée par l'art — comme une variante, un
+// reflet n'existe que pour une carte possédée.
+describe('reflets', () => {
+  /** Compte neuf dont TOUTES les cartes possédées ont leur art. */
+  function foilUser(gems = 10_000) {
+    const user = newUser(gems);
+    for (const id of progression.unlockedCardIds(user())) putArt(id);
+    return user;
+  }
+
+  it('le pool ne propose que des cartes POSSÉDÉES, et seulement avec art', () => {
+    const user = newUser();
+    const owned: string[] = progression.unlockedCardIds(user());
+    const [withArt, withoutArt] = owned.filter(id => !fs.existsSync(path.join(ILLUS, `${id}.png`))).slice(0, 2);
+    putArt(withArt);
+    const pool = cosmetics.foilPool(user()).map((f: any) => f.id);
+    expect(pool).toContain(withArt);
+    if (withoutArt) expect(pool).not.toContain(withoutArt);
+    const ownedSet = new Set(owned);
+    expect(pool.every((id: string) => ownedSet.has(id))).toBe(true);
+  });
+
+  it('l\'offre du jour porte 3 reflets, au prix du barème, nommés par leur carte', () => {
+    const user = foilUser();
+    const snap = cosmetics.refresh(user());
+    expect(snap.foils).toHaveLength(3);
+    for (const f of snap.foils) {
+      expect(f.id).toBe(f.card_id);
+      expect(f.price_gems).toBe(20);
+      expect(f.card_name).toBe(CARDS.find(c => c.id === f.card_id).name);
+    }
+  });
+
+  it('l\'achat débite 20 gemmes et rend le reflet possédé', () => {
+    const user = foilUser(1_000);
+    const snap = cosmetics.refresh(user());
+    const id = snap.foils[0].id;
+    const res = cosmetics.buy(user(), 'foil', id);
+    expect(res.ok).toBe(true);
+    expect(res.price).toBe(20);
+    expect(user().gems).toBe(980);
+    expect(cosmetics.getSnapshot(user()).owned.foils).toContain(id);
+    expect(cosmetics.buy(user(), 'foil', id).ok).toBe(false);
+  });
+
+  it('un reflet possédé ne ressort jamais de l\'offre', () => {
+    const user = foilUser();
+    const id = cosmetics.refresh(user()).foils[0].id;
+    cosmetics.buy(user(), 'foil', id);
+    for (let i = 0; i < 5; i++) {
+      rotate(user().id);
+      expect(cosmetics.refresh(user()).foils.map((f: any) => f.id)).not.toContain(id);
+    }
+  });
+
+  // Une offre tirée avant l'arrivée des reflets n'en porte pas : elle est
+  // COMPLÉTÉE, jamais re-tirée — les avatars du matin restent ceux du matin.
+  it('complète une offre du jour tirée sans reflets, sans toucher au reste', () => {
+    const user = foilUser();
+    const before = cosmetics.refresh(user());
+    const row = stmt.cosmeticStateByUser.get(user().id);
+    const offer = JSON.parse(row.offer);
+    delete offer.foils;
+    stmt.upsertCosmeticState.run({ ...row, offer: JSON.stringify(offer) });
+
+    const after = cosmetics.refresh(user());
+    expect(after.avatars.map((a: any) => a.id)).toEqual(before.avatars.map((a: any) => a.id));
+    expect(after.foils.map((f: any) => f.id)).toEqual(before.foils.map((f: any) => f.id));
+  });
+
+  it('la liste d\'un deck (PvP) est filtrée par possession ET par présence au deck', () => {
+    const user = foilUser();
+    const bought = cosmetics.refresh(user()).foils[0].id;
+    cosmetics.buy(user(), 'foil', bought);
+    const [other] = progression.unlockedCardIds(user()).filter((id: string) => id !== bought);
+    const absent = CARDS.find(c => c.id !== bought && c.id !== other).id;
+
+    setDeckBook(user().id, {
+      decks: { Duel: { 1: [bought, other] } },
+      // `other` n'est pas acheté, `absent` n'est pas dans le deck : le méta
+      // vient du client, le serveur ne croit que ce qu'il peut vérifier.
+      meta: { Duel: { foils: [bought, other, absent, bought] } },
+      active: 'Duel',
+    });
+    expect(cosmetics.deckFoilList(user().id, 'Duel')).toEqual([bought]);
+  });
+
+  it('un méta de deck mal formé ne rend rien', () => {
+    const user = foilUser();
+    setDeckBook(user().id, { decks: { Duel: { 1: [] } }, meta: { Duel: { foils: 'X' } }, active: 'Duel' });
+    expect(cosmetics.deckFoilList(user().id, 'Duel')).toEqual([]);
+    expect(cosmetics.deckFoilList(newUser()().id, 'Duel')).toEqual([]);
+  });
+
+  it('unlock refuse une carte inconnue', () => {
+    expect(cosmetics.unlock(newUser()().id, 'foil', 'PAS_UNE_CARTE').ok).toBe(false);
   });
 });

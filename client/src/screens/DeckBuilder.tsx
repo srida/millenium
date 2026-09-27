@@ -33,6 +33,7 @@ import { ScreenTransition } from '../components/nav/ScreenTransition.js';
 const MIN_DECK = 20;
 /** Édition admin d'un deck public : aucun joueur, donc aucune variante. */
 const noVariants = () => [];
+const noFoil = () => false;
 const DECK_COLORS = [
   '#d8564e', '#e4c65a', '#7cd88a', '#2f7d4f', '#6fc0e6', '#2f5bd8', '#e08a3a', '#a86ee7', '#e58ab8',
   '#f5f0e6', '#d9c7a3', '#9a9a9a', '#8b5a2b',
@@ -119,6 +120,12 @@ export default function DeckBuilder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ci-dessus
     [cosmeticSnapshot],
   );
+  // Reflets possédés — même garde que `ownedVariantsFor`.
+  const ownsFoil = useMemo(
+    () => (cardId: string) => useCosmeticStore.getState().ownsFoil(cardId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ownedVariantsFor : cosmeticSnapshot force la re-dérivation après un achat
+    [cosmeticSnapshot],
+  );
   // Dos de cartes débloqués (offerts + achetés) — même instantané que les
   // variantes, `loadCosmetics` ci-dessus le couvre déjà.
   // ⚠️ Passe par `useMemo`, jamais par un sélecteur Zustand inline : `?? []`
@@ -142,6 +149,9 @@ export default function DeckBuilder() {
   // « défaut » est une ABSENCE d'entrée, jamais une entrée qui pointe sur la
   // carte elle-même — le méta reste petit et le filtre serveur trivial.
   const [variants, setVariants] = useState<Record<string, string>>({});
+  // Cartes dont le REFLET est allumé dans ce deck. Même règle que les
+  // variantes : une absence vaut « éteint », et le méta ne porte que les oui.
+  const [foils, setFoils] = useState<string[]>([]);
   // Dos de carte choisi pour CE deck — `null` = pas de choix, la popup de
   // pioche retombe sur celui du profil (cf. RoundStart.tsx).
   const [cardBack, setCardBack] = useState<string | null>(null);
@@ -189,6 +199,7 @@ export default function DeckBuilder() {
     }
     setColor((DeckRepository as any).getDeckColor?.(editName) ?? null);
     setVariants((DeckRepository as any).getDeckVariants?.(editName) ?? {});
+    setFoils((DeckRepository as any).getDeckFoils?.(editName) ?? []);
     setCardBack((DeckRepository as any).getDeckCardBack?.(editName) ?? null);
   }, [editName]);
 
@@ -370,6 +381,7 @@ export default function DeckBuilder() {
       finalName,
       Object.fromEntries(Object.entries(variants).filter(([cardId]) => inDeck.has(cardId))),
     );
+    (DeckRepository as any).setDeckFoils?.(finalName, foils.filter(id => inDeck.has(id)));
     (DeckRepository as any).setDeckCardBack?.(finalName, cardBack);
     // Tous les modes de jeu partent du deck actif : sans deck actif valide (1er
     // deck créé, deck actif supprimé), on adopte celui qu'on vient d'enregistrer.
@@ -442,6 +454,7 @@ export default function DeckBuilder() {
             color={color} setColor={setColor} showColor={!isAdminEdit} onRemove={removeCard} owns={owns}
             onClear={() => setDeckData(EMPTY)}
             variants={variants} onSkin={setSkinning}
+            foils={foils} ownsFoil={isAdminEdit ? noFoil : ownsFoil}
             // Pas de cosmétique en édition de deck public : il n'y a pas de
             // « joueur » propriétaire, donc personne dont ce soient les variantes
             // ni les dos de carte débloqués.
@@ -493,6 +506,11 @@ export default function DeckBuilder() {
           card={skinning}
           current={variants[skinning.id] ?? skinning.id}
           options={ownedVariantsFor(skinning.id)}
+          foilOwned={ownsFoil(skinning.id)}
+          foil={foils.includes(skinning.id)}
+          onToggleFoil={() => setFoils(prev => prev.includes(skinning.id)
+            ? prev.filter(id => id !== skinning.id)
+            : [...prev, skinning.id])}
           onPick={(illustrationId) => setVariants(prev => {
             const next = { ...prev };
             // Revenir à l'origine RETIRE l'entrée : le défaut est une absence.
@@ -556,7 +574,7 @@ function SkinButton({ card, skinned, onTap }: { card: Card; skinned: boolean; on
   return (
     <button
       type="button"
-      title="Choisir l'illustration"
+      title="Illustration et reflet"
       aria-label={`Illustration de ${card.name}`}
       className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border bg-surface/90 text-[11px] ${skinned ? 'border-gold' : 'border-line'}`}
       {...handlers}
@@ -654,7 +672,7 @@ function LibraryPanel({
 
 function DeckPanel({
   deckData, tierMax, name, setName, color, setColor, showColor = true, onRemove, owns, onClear,
-  variants = {}, onSkin, ownedVariantsFor, cardBack = null, setCardBack, ownedCardBacks = [],
+  variants = {}, onSkin, ownedVariantsFor, foils = [], ownsFoil, cardBack = null, setCardBack, ownedCardBacks = [],
 }: any) {
   const clearHandlers = usePressSquash<HTMLButtonElement>(onClear, false).handlers;
   const web = useWebLayout();
@@ -729,7 +747,11 @@ function DeckPanel({
                   <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-8">
                     {cards.map((c, idx) => {
                       const skins = ownedVariantsFor?.(c.id) ?? [];
-                      const skinned = !!variants[c.id];
+                      const foiled = foils.includes(c.id) && !!ownsFoil?.(c.id);
+                      const skinned = !!variants[c.id] || foiled;
+                      // Le bouton ouvre le même sélecteur pour les deux
+                      // cosmétiques de la carte : illustration et reflet.
+                      const customizable = skins.length > 0 || !!ownsFoil?.(c.id);
                       return (
                         // Une carte du deck non débloquée reste RETIRABLE : c'est
                         // la seule action qui la fait sortir du deck.
@@ -739,6 +761,7 @@ function DeckPanel({
                             // Aperçu immédiat du choix en cours d'édition, sans
                             // toucher à l'état global de CardArt (non enregistré).
                             illustrationId={variants[c.id] ?? c.id}
+                            foil={foiled}
                             tapOn="up" onTap={() => onRemove(t, idx)}
                             locked={!owns(c.id)} dim={owns(c.id) ? 'none' : 'strong'}
                           />
@@ -747,7 +770,7 @@ function DeckPanel({
                               de la vignette — un pointerdown qui l'atteint n'arme
                               jamais le retrait (et un <button> imbriqué serait du
                               HTML invalide). */}
-                          {skins.length > 0 && <SkinButton card={c} skinned={skinned} onTap={() => onSkin?.(c)} />}
+                          {customizable && <SkinButton card={c} skinned={skinned} onTap={() => onSkin?.(c)} />}
                         </div>
                       );
                     })}

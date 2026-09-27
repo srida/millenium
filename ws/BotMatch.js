@@ -72,7 +72,7 @@ function createMatch(ws, userId) {
   send(ws, 'match:found', {
     matchId,
     youAre: PLAYER_ROLE,
-    opponent: { id: null, username: bot.username, tag: bot.tag, avatar: bot.avatar, variants: {} },
+    opponent: { id: null, username: bot.username, tag: bot.tag, avatar: bot.avatar, variants: {}, foils: [] },
     // La seule chose qui distingue ce message d'un vrai match. Le client s'en
     // sert pour monter un BotController au lieu d'un PvpController ; rien n'en
     // ressort à l'écran (cf. GameScreenPvp — même HUD, mêmes overlays).

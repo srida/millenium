@@ -17,7 +17,7 @@
 //   3. `setEnemyVariants(null)` PURGE. `GameController.dispose()` s'en sert pour
 //      que l'art adverse ne fuite pas dans la partie suivante.
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setPlayerVariants, setEnemyVariants, artFor } from '../data/CardArt.js';
+import { setPlayerVariants, setEnemyVariants, artFor, setPlayerFoils, setEnemyFoils, hasFoil } from '../data/CardArt.js';
 
 // Le module porte un état de module : chaque test repart d'une table vide.
 beforeEach(() => {
@@ -118,5 +118,36 @@ describe('pureté', () => {
   it('rend le même art à chaque appel', () => {
     setPlayerVariants({ CORE_001: 'VAR_001' });
     expect(artFor('CORE_001')).toBe(artFor('CORE_001'));
+  });
+});
+
+// ── Reflets ─────────────────────────────────────────────────────────────────
+// Mêmes invariants que les variantes : deux ensembles étanches, et `null` purge.
+describe('reflets', () => {
+  beforeEach(() => {
+    setPlayerFoils(null);
+    setEnemyFoils(null);
+  });
+
+  it('aucun reflet tant que rien n\'est posé', () => {
+    expect(hasFoil('CORE_001')).toBe(false);
+    expect(hasFoil('CORE_001', 'enemy')).toBe(false);
+  });
+
+  it('les reflets d\'un camp n\'allument jamais les cartes de l\'autre', () => {
+    setPlayerFoils(['CORE_001']);
+    setEnemyFoils(['CORE_002']);
+    expect(hasFoil('CORE_001')).toBe(true);
+    expect(hasFoil('CORE_001', 'enemy')).toBe(false);
+    expect(hasFoil('CORE_002', 'enemy')).toBe(true);
+    expect(hasFoil('CORE_002')).toBe(false);
+  });
+
+  it('`setEnemyFoils(null)` purge le seul camp adverse', () => {
+    setPlayerFoils(['CORE_001']);
+    setEnemyFoils(['CORE_001']);
+    setEnemyFoils(null);
+    expect(hasFoil('CORE_001', 'enemy')).toBe(false);
+    expect(hasFoil('CORE_001')).toBe(true);
   });
 });

@@ -10,7 +10,7 @@
 //   2. les BOOSTERS — du volume sur un set choisi, sans plafond.
 //
 // 🎨 COSMÉTIQUES — ce qui ne change rien au jeu, en gemmes uniquement, à prix
-// fixe. 3 avatars + 3 variantes d'illustration par jour. Ni reroll ni épingle :
+// fixe. 3 avatars + 3 variantes d'illustration + 2 dos + 3 reflets par jour. Ni reroll ni épingle :
 // les prix sont bas et un cosmétique manqué revient (il ne quitte pas le pool
 // à l'achat, contrairement à une carte).
 //
@@ -22,7 +22,7 @@ import type { Card } from '../logic/types.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
-import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant, type CosmeticCardBack } from '../stores/cosmeticStore.js';
+import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant, type CosmeticCardBack, type CosmeticFoil } from '../stores/cosmeticStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
 import { Amount, Button, Countdown, Gauge, IconButton, Illustration, LoadState, Modal, Panel, usePressSquash } from '../components/ui/primitives.js';
 import { CURRENCY, CURRENCY_BY_WIRE, fmt, type WireCurrency } from '../components/ui/currency.js';
@@ -241,12 +241,30 @@ function CosmeticsTab() {
             )}
           </section>
 
+          <section className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between px-1">
+              <h2 className="text-[10px] tracking-widest text-white/40">REFLETS DU JOUR</h2>
+              <span className="text-[10px] text-white/30">{snapshot.prices.foil?.gems ?? 20} {CURRENCY.gems.icon} pièce</span>
+            </div>
+            {snapshot.foils.length ? (
+              <div className="grid grid-cols-3 gap-2">
+                {snapshot.foils.map(f => <FoilOffer key={f.id} foil={f} />)}
+              </div>
+            ) : (
+              <Panel className="p-4 text-center text-xs text-white/40">
+                Tu as déjà le reflet de toutes tes cartes.
+              </Panel>
+            )}
+          </section>
+
           <p className="px-1 text-[10px] leading-relaxed text-white/30">
             Nouvelle sélection chaque jour à 5 h, en même temps que les cartes. Les cosmétiques ne
             {' '}changent rien au jeu : un avatar se porte depuis ton profil, une illustration se
             {' '}choisit carte par carte dans le DeckBuilder — et l'adversaire la voit aussi. Tu ne
             {' '}peux acheter que les illustrations des cartes que tu possèdes. Un dos de carte se
-            {' '}porte lui aussi depuis ton profil : c'est lui qu'on retourne au début de chaque tour.
+            {' '}porte lui aussi depuis ton profil : c'est lui qu'on retourne au début de chaque tour. Un
+            {' '}reflet fait passer une lame de lumière sur l'illustration d'une de tes cartes, sur le
+            {' '}plateau : il s'active carte par carte dans le DeckBuilder, comme une illustration.
           </p>
         </>
       )}
@@ -256,10 +274,12 @@ function CosmeticsTab() {
 
 /** Tuile d'offre — l'image, le nom, le prix, un bouton. Rien de plus. */
 function CosmeticOffer({
-  illustrationId, title, subtitle, price, purchased, onBuy,
+  illustrationId, title, subtitle, price, purchased, onBuy, foil = false,
 }: {
   illustrationId: string; title: string; subtitle: string;
   price: number; purchased: boolean; onBuy: () => void;
+  /** Montre le reflet EN MARCHE sur la vignette : c'est lui qu'on achète. */
+  foil?: boolean;
 }) {
   const busy = useCosmeticStore(s => s.busy);
   const gems = useAuthStore(s => s.user?.gems ?? 0);
@@ -268,7 +288,9 @@ function CosmeticOffer({
 
   return (
     <Panel className="flex flex-col gap-1.5 p-2">
-      <Illustration id={illustrationId} framed className="aspect-square w-full" />
+      <FoilFrame foil={foil} className="aspect-square w-full">
+        <Illustration id={illustrationId} framed className="h-full w-full" />
+      </FoilFrame>
       <div className="min-h-8">
         <div className="truncate text-[11px] font-semibold leading-tight">{title}</div>
         <div className="truncate text-[10px] text-white/40">{subtitle}</div>
@@ -282,7 +304,9 @@ function CosmeticOffer({
           disabled={busy || !affordable}
           onPointerDown={() => ask({
             visual: (
-              <Illustration id={illustrationId} framed lazy={false} className="h-28 w-28" />
+              <FoilFrame foil={foil} className="h-28 w-28">
+                <Illustration id={illustrationId} framed lazy={false} className="h-full w-full" />
+              </FoilFrame>
             ),
             title,
             detail: subtitle,
@@ -297,6 +321,17 @@ function CosmeticOffer({
       )}
       {dialog}
     </Panel>
+  );
+}
+
+/** Cadre qui rogne la lame du reflet (`styles/foil.css`) — neutre sans reflet. */
+function FoilFrame({ foil, className, children }: { foil: boolean; className: string; children: ReactNode }) {
+  if (!foil) return <div className={className}>{children}</div>;
+  return (
+    <div className={`relative overflow-hidden rounded-lg ${className}`}>
+      {children}
+      <div className="foil-sheen" aria-hidden />
+    </div>
   );
 }
 
@@ -345,6 +380,23 @@ function CardBackOffer({ back }: { back: CosmeticCardBack }) {
       price={back.price_gems}
       purchased={back.purchased}
       onBuy={() => { void buy('card_back', back.id, back.name); }}
+    />
+  );
+}
+
+function FoilOffer({ foil }: { foil: CosmeticFoil }) {
+  const buy = useCosmeticStore(s => s.buy);
+  return (
+    <CosmeticOffer
+      // L'illustration d'ORIGINE de la carte, reflet en marche : un reflet vaut
+      // pour la carte, quelle que soit l'illustration choisie dans le deck.
+      illustrationId={foil.card_id}
+      title={foil.card_name}
+      subtitle="Reflet"
+      price={foil.price_gems}
+      purchased={foil.purchased}
+      foil
+      onBuy={() => { void buy('foil', foil.id, foil.card_name); }}
     />
   );
 }

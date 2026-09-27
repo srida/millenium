@@ -3,7 +3,7 @@
 // tutoriel, bancs de dev) — ce qu'était `CardTile` (2D, supprimé).
 //
 // Elle rend **le même objet que la carte du plateau** : même balisage de face
-// (`unit-face`, `unit-art`, les deux voiles, le liseré haut, le scrim), même
+// (`unit-face`, `unit-art`, les voiles, le liseré haut, le scrim), même
 // recette de cadre (`board3d.css`), même palette de tier
 // (`three/cardPalette.tierFrameVars`). Ce qu'elle ajoute est ce qu'une carte en
 // MAIN a de plus : le nom, la pastille de coût, le compte d'exemplaires, le
@@ -95,6 +95,8 @@ export interface Card3DProps {
   onDragBegin?: () => boolean | void;
   onDragMove?: (clientX: number, clientY: number) => void;
   onDrop?: (clientX: number, clientY: number) => void;
+  /** Aperçu du REFLET acheté (`styles/foil.css`) — DeckBuilder seulement. */
+  foil?: boolean;
 }
 
 export default function Card3D({
@@ -103,7 +105,7 @@ export default function Card3D({
   highlight = 'none', dim = 'none', lift = 'none',
   locked = false, disabled = false, tapOn = 'down', tooltip = null, onTap,
   transform, width, size = 'h-auto w-full', raised = false, rail = null,
-  onDragBegin, onDragMove, onDrop,
+  onDragBegin, onDragMove, onDrop, foil = false,
 }: Card3DProps) {
   // Mode flow : pas de géométrie calculée par `cardFan`, la carte reste dans
   // le flux normal — même convention que l'ancien `CardTile`.
@@ -198,6 +200,7 @@ export default function Card3D({
         <img className="unit-art" src={illustrationUrl(illustrationId)} alt="" draggable={false} loading="lazy" />
         <span className="unit-foil-stars" />
         <span className="unit-foil-nebula" />
+        {foil && <span className="foil-sheen" />}
         <span className="unit-top-edge" />
         <span className="unit-bottom-scrim" />
         {showName && <span className="card3d-name">{name}</span>}

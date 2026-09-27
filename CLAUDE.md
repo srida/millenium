@@ -394,8 +394,9 @@ Second **onglet** de `ShopScreen`. Tables `user_cosmetics`, `user_cosmetic_state
 | **Avatar** | toute illustration existante (carte, terrain, magie) | **5 💎** | — |
 | **Variante** | illustration alternative d'une carte | **50 💎** | posséder la **carte** |
 | **Dos de carte** | `data/card_backs.json`, hors dos offerts, art existant | **`price_gems` du catalogue** | — |
+| **Reflet** | cartes **possédées** dont l'art existe | **20 💎** | posséder la **carte** |
 
-3 avatars + 3 variantes + 2 dos par jour, même rotation de 5 h. Les deux invariants de la boutique de cartes s'appliquent tels quels (zéro doublon, offre serveur ; l'achat porte `kind` **et** `id` → 409).
+3 avatars + 3 variantes + 2 dos + 3 reflets par jour, même rotation de 5 h. Les deux invariants de la boutique de cartes s'appliquent tels quels (zéro doublon, offre serveur ; l'achat porte `kind` **et** `id` → 409).
 
 - **Ni reroll ni épingle** : les prix sont bas et un cosmétique manqué **revient** (il ne quitte pas le pool à l'achat).
 - **Pool d'avatars automatique**, sans curation ; les 7 avatars offerts (`DEFAULT_AVATARS`) en sont exclus. ⚠️ `avatarPool` itère `SOURCES` (`cards.json`/`boards.json`/`magies.json`) — il ne scanne pas le dossier, donc une icône d'attribut ne devient jamais un visage achetable.
@@ -415,6 +416,16 @@ Catalogue `data/card_backs.json` (`{ id, name, default?, price_gems }`), onglet 
 - `data/CardBackDatabase.js` **ne jette pas** sur une réponse en erreur, contrairement aux autres databases : un dos n'est pas une donnée de jeu, un serveur en retard de déploiement ne doit pas empêcher de jouer.
 
 **Choix PAR DECK** — onglet Deck du DeckBuilder, section « Dos de carte » (n'existe que si le joueur a au moins un dos débloqué). Comme les variantes, jamais comme l'avatar : `DeckRepository.getDeckCardBack`/`setDeckCardBack`, même patron localStorage + sync que `getDeckColor`/`getDeckVariants`. `RoundStart.DrawPopup` résout trois rangs, du plus spécifique au plus général : le dos du **deck actif** (`DeckRepository.getActiveDeck()`, lu en direct comme partout ailleurs) → celui du **profil** (`ProfileScreen`) → le défaut du catalogue. `null` à un rang retombe sur le suivant.
+
+### Reflets (`kind: 'foil'`)
+
+Lame de lumière qui balaie l'illustration d'une carte **sur le plateau** (`styles/foil.css`, `.foil-sheen`). **Pas de catalogue** : l'id d'un reflet EST le `card_id`.
+
+- **Choix PAR DECK**, dans le sélecteur 🎨 du DeckBuilder (`IllustrationPicker`, interrupteur sous les illustrations) : `meta[nom].foils = [card_id…]`, `DeckRepository.getDeckFoils`/`setDeckFoils`. Le bouton 🎨 apparaît dès que la carte a une variante **ou** un reflet possédés.
+- Trajet de jeu = celui des variantes : `CardArt.setPlayerFoils`/`setEnemyFoils`/`hasFoil` (deux ensembles étanches), remplis aux quatre mêmes endroits ; `UnitCardEl` pose la couche au spawn. Absent de `logic/` et du payload de déterminisme.
+- PvP : `cosmetics.deckFoilList` (deck book **serveur**, filtré par possession et présence au deck) voyage dans `deckDerived` à côté de `variants`. Un bot annonce `foils: []`.
+- ⚠️ Une offre du jour tirée **sans** `foils` est **complétée** par `sync`, jamais re-tirée.
+- ⚠️ La lame reprend `--drift-delay` comme phase : deux reflets voisins ne passent pas ensemble. Le parent doit rogner (`overflow: hidden`). `prefers-reduced-motion` la pose au milieu, immobile.
 
 ### Variantes (`variants.js`)
 
@@ -1770,6 +1781,11 @@ Un seul pont React ↔ Three : `components/board/Board3DCanvas.tsx` monte un `<c
 1. **La caméra regarde DROIT vers le bas** (`camera.position.set(0, _camH, _camCenterZ)` puis `lookAt(0, 0, _camCenterZ)`, aucune inclinaison). Conséquence : **tout ce qui doit se lire est planaire**. Une barre verticale, une colonne montante, une cage se projettent sur un point. Les particules qui montent doivent aussi **s'écarter** ; les arcs se referment **sur le plan du sol**.
 2. **Une carte CSS3D occupe une case ENTIÈRE et masque tout ce qu'il y a dessous** (`CARD_PX × CSS_SCALE` = 1 unité = 1 case, et le `CSS3DRenderer` rend dans un élément DOM **empilé au-dessus** du canvas WebGL — aucun tampon de profondeur partagé). **Rien de ce qui est dessiné à moins de ~0,5 unité du centre d'une unité n'est visible, quelle que soit sa hauteur `y`** → dômes (rayon 0,9), orbites (0,76), convergences (1,5), sceau de Blocage à `scale: 1.7`.
 
+**Dérive de l'illustration** (`unit-art-drift`, `board3d.css`) : zoom 1,06 → 1,20 et glissement de l'image dans son cadre, 14,7 s en aller-retour, générique pour toute illustration. Ancrage, direction et phase tirés par unité dans `UnitCardEl.createUnitEl` (variables `--drift-*`).
+- ⚠️ Sélecteur `.unit-card .unit-art`, jamais `.unit-art` seul : la carte de main partage la classe et ne dérive pas.
+- ⚠️ Le `translate` suit le `scale` dans le `transform`, donc il est multiplié par lui : la translation max (±8 %) × 1,20 doit rester sous la marge de zoom (10 %), sinon le bord de l'image se découvre.
+- Figée sur une unité neutralisée, en pause sur `.selected` / `.dragging`, retirée sous `prefers-reduced-motion`. La carte du plateau n'a plus de nébuleuse.
+
 ⚠️ **Corollaire de blending** : `AdditiveBlending` d'une couleur **sombre** n'enregistre presque rien sur un plateau sombre (les rayons de Provocation en `0xc83020` étaient invisibles). Les traits fins passent par `brighten()` de `PowerVfx.ts`.
 
 ⚠️ **Le contexte WebGL se REND à la main** : `renderer.dispose()` libère les ressources GPU mais **pas** le contexte, que three ne lâche qu'à la collecte du canvas. `Scene3D.destroy()` appelle donc `forceContextLoss()` — sans lui, chaque partie jouée en laissait un vivant et, le plafond de l'onglet atteint (16 chez Chrome), la création du suivant échouait : écran de jeu figé, l'erreur seulement en console.
@@ -1789,7 +1805,7 @@ Un seul pont React ↔ Three : `components/board/Board3DCanvas.tsx` monte un `<c
 
 ## Cartes 3D de la main et du cimetière
 
-`components/ui/Card3D.tsx` + `styles/card3d.css`. **Le même objet que la carte du plateau** : même balisage de face (`unit-face`, `unit-art`, les deux voiles, le liseré haut, le scrim), même recette de cadre — le sélecteur de `board3d.css` s'élargit à `.card3d`, il n'est pas recopié — et même palette (`three/cardPalette.tierFrameVars`). `CardTile` (2D) reste le template du DeckBuilder, de la boutique, des cadeaux, du codex et des bancs de dev.
+`components/ui/Card3D.tsx` + `styles/card3d.css`. **Le même objet que la carte du plateau** : même balisage de face (`unit-face`, `unit-art`, les voiles, le liseré haut, le scrim — la nébuleuse n'existe plus qu'en main), même recette de cadre — le sélecteur de `board3d.css` s'élargit à `.card3d`, il n'est pas recopié — et même palette (`three/cardPalette.tierFrameVars`). `CardTile` (2D) reste le template du DeckBuilder, de la boutique, des cadeaux, du codex et des bancs de dev.
 
 Trois modules purs, testés, et **aucune décision dans les composants** :
 

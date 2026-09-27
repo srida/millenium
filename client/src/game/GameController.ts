@@ -1352,6 +1352,7 @@ export class GameController {
     // elles fuiteraient dans la partie suivante. Celles du joueur restent en
     // place : les écrans de menu s'en servent.
     CardArt.setEnemyVariants(null);
+    CardArt.setEnemyFoils(null);
     // Partie quittée en cours de route : ce qui a été joué reste acquis (le
     // serveur écarte de lui-même les lots trop courts — anti-concede). No-op si
     // la fin de partie a déjà vidé la file.

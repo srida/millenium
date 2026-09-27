@@ -104,6 +104,27 @@
 .unit-card.selected,
 .unit-card.dragging { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .unit-card { animation: none; } }
+/* Dérive de l'illustration : zoom et glissement lents de l'image dans son
+   cadre, générique pour toute illustration. Sur `.unit-card .unit-art` et
+   jamais sur `.unit-art` seul — la carte de main (`.card3d`) partage la classe
+   et ne bouge pas. Uniquement du `transform` : composé par le GPU, aucune
+   boucle rAF. ⚠️ La marge de zoom couvre la translation (le `translate` vient
+   APRÈS le `scale`, donc il est multiplié par lui) : ±8 % × 1,20 < 10 %, le
+   bord de l'image ne se découvre jamais. Ancrage, direction et phase sont
+   posés par unité dans `UnitCardEl.createUnitEl`. */
+@keyframes unit-art-drift {
+  from { transform: scale(1.06) translate(0, 0); }
+  to   { transform: scale(1.2) translate(var(--drift-kx, 0), var(--drift-ky, 0)); }
+}
+.unit-card .unit-art {
+  transform-origin: var(--drift-ox, 50%) var(--drift-oy, 50%);
+  animation: unit-art-drift 14.7s ease-in-out infinite alternate;
+  animation-delay: var(--drift-delay, 0s);
+}
+.unit-card.neutralized .unit-art { animation: none; }
+.unit-card.selected .unit-art,
+.unit-card.dragging .unit-art { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .unit-card .unit-art { animation: none; } }
 .unit-top-edge {
   position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 3; pointer-events: none;
   background: linear-gradient(90deg, transparent, var(--uc-edge, #6fb2dc), transparent);

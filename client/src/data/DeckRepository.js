@@ -164,6 +164,21 @@ export function setDeckVariants(name, variants) {
   _afterMutation();
 }
 
+// Cartes à reflet de ce deck : [card_id, …]. Un reflet s'achète par carte en
+// boutique (cosmetics.js) et s'allume deck par deck, comme une variante. Le
+// serveur refiltre par possession avant de l'annoncer à un adversaire.
+export function getDeckFoils(name) {
+  const foils = loadMeta()[name]?.foils;
+  return Array.isArray(foils) ? foils : [];
+}
+
+export function setDeckFoils(name, foils) {
+  const meta = loadMeta();
+  meta[name] = { ...(meta[name] || {}), foils };
+  saveMeta(meta);
+  _afterMutation();
+}
+
 // Sauvegarde un deck. Structure : { "1": ["ID", ...], "2": [...], ... }
 export function saveDeck(name, deckData) {
   const decks = load();

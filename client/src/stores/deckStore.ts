@@ -44,6 +44,7 @@ export const useDeckStore = create<DeckStoreState>((set) => ({
     // celles du deck réellement engagé — qui peut différer si le joueur a
     // changé de deck actif entre-temps.
     CardArt.setPlayerVariants(activeDeck ? (DeckRepository as any).getDeckVariants?.(activeDeck) : null);
+    CardArt.setPlayerFoils(activeDeck ? (DeckRepository as any).getDeckFoils?.(activeDeck) : null);
     set({
       decks: ((DeckRepository as any).listDecks() as string[]).map(summarize),
       activeDeck,

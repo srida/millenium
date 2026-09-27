@@ -55,3 +55,26 @@ export function setEnemyVariants(map: VariantMap | null | undefined): void {
 export function artFor(cardId: string, side: Side = 'player'): string {
   return (side === 'enemy' ? _enemy : _player)[cardId] ?? cardId;
 }
+
+// --- Reflets ---
+// Même statut qu'une variante (cosmétique, choisi par deck, absent de la
+// simulation et du payload de déterminisme), même étanchéité entre les camps.
+// Un reflet n'a pas d'autre donnée que sa carte : un ensemble de `card_id`.
+
+let _playerFoils: ReadonlySet<string> = new Set();
+let _enemyFoils: ReadonlySet<string> = new Set();
+
+/** Cartes à reflet du deck joué par le joueur local. */
+export function setPlayerFoils(ids: readonly string[] | null | undefined): void {
+  _playerFoils = new Set(ids ?? []);
+}
+
+/** Cartes à reflet du deck adverse — alimenté par le PvP uniquement. */
+export function setEnemyFoils(ids: readonly string[] | null | undefined): void {
+  _enemyFoils = new Set(ids ?? []);
+}
+
+/** Cette carte porte-t-elle un reflet dans ce camp ? */
+export function hasFoil(cardId: string, side: Side = 'player'): boolean {
+  return (side === 'enemy' ? _enemyFoils : _playerFoils).has(cardId);
+}
