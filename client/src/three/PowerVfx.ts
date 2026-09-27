@@ -5,7 +5,7 @@
 // Il est SÉPARÉ de Scene3D pour la même raison que Scene3D est séparé de
 // CombatAnimator3D : Scene3D est une bibliothèque de primitives (elle ne parle
 // que de géométrie et d'éléments), là où une recette de pouvoir parle d'un
-// CombatEvent. Le précédent de composition est `Scene3D.spawnElementImpact`.
+// CombatEvent. Le précédent de composition est `UnitSpawns`/`UnitShatter`.
 //
 // Trois règles de design portent les 14 recettes :
 //   1. ce qui distingue un pouvoir d'un autre est sa GRAMMAIRE (direction,
