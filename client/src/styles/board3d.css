@@ -118,7 +118,7 @@
 }
 .unit-card .unit-art {
   transform-origin: var(--drift-ox, 50%) var(--drift-oy, 50%);
-  animation: unit-art-drift 14.7s ease-in-out infinite alternate;
+  animation: unit-art-drift 6s ease-in-out infinite alternate;
   animation-delay: var(--drift-delay, 0s);
 }
 .unit-card.neutralized .unit-art { animation: none; }
