@@ -161,7 +161,7 @@ export class UnitShatter {
     const fx = this.fx, pos = this._pos(j);
     if (t >= 2) fx._ring(pos, T, 0.75 + 0.12 * t, crack, { reverse: 1, width: 0.03, alpha: 0.7 });
     if (t >= 3) {
-      const n = this._N(2 * t, 1);
+      const n = this._N(t + 1, 1);
       for (let i = 0; i < n; i++) {
         const a = Math.random() * TAU, R = (0.8 + 0.12 * t) * rand(0.8, 1.1), L = crack * rand(0.6, 1), v = R / L;
         fx.pAdd.spawn(pos.x + Math.cos(a) * R, pos.y + 0.05, pos.z + Math.sin(a) * R, -Math.cos(a) * v, 0, -Math.sin(a) * v, L, rand(0.02, 0.045), 0, pick([T, '#ffffff']), 1, 0, 0, true);
@@ -217,11 +217,14 @@ export class UnitShatter {
       fx.timers.push({ t: 0.2, fn: () => fx._flash(pos, T, 1.6 * s, 0.4, 0.35) });
     }
     // paillettes de verre
-    fx._burst(pos, this._N(12, Math.min(s, 1.2)), { colors: ['#ffffff', T, T, core], speed: [0.6, 2.6], life: [0.45, 1], size: [0.02, 0.05], drag: 2.4, twinkle: true, y: 0.9 });
-    fx._shards(pos, 3 + t, 0.22 * s, 2.8 * k, ['#ffffff', T], 0.03 * k, 0.3);
+    fx._burst(pos, this._N(8, Math.min(s, 1.2)), { colors: ['#ffffff', T, T, core], speed: [0.6, 2.6], life: [0.45, 1], size: [0.02, 0.05], drag: 2.4, twinkle: true, y: 0.9 });
+    // ⚠️ `_shards` lance 7 particules PAR trait (`EnergyArrows._shards`) : son
+    // compte doit donc rester le plus petit de la recette, sans quoi il domine
+    // le budget de la destruction à lui seul.
+    fx._shards(pos, this._N(2 + Math.ceil(t / 2), Math.min(s, 1.2)), 0.22 * s, 2.8 * k, ['#ffffff', T], 0.03 * k, 0.3);
     // halo de l'élément de l'unité
     for (const Q of [P, P2].filter(Boolean)) {
-      fx._burst(pos, this._N(Q === P ? 8 : 5, Math.min(s, 1.2)), { colors: Q.tp.colors, speed: [0.4, 1.6], life: [0.35, 0.7], size: [0.05, 0.1], sizeEnd: 0.01, drag: 2.8 });
+      fx._burst(pos, this._N(Q === P ? 6 : 4, Math.min(s, 1.2)), { colors: Q.tp.colors, speed: [0.4, 1.6], life: [0.35, 0.7], size: [0.05, 0.1], sizeEnd: 0.01, drag: 2.8 });
     }
     this.onShake?.((0.012 + 0.01 * t) * pw * this.globals.shake);
   }
