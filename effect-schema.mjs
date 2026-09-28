@@ -706,6 +706,36 @@ export const TYPES = Object.freeze({
     magie: { quands: ['immediat'], champs: { value: { label: 'Exigences levées', defaut: 1 }, attribute: {} } },
   },
 
+  grant_keyword: {
+    label: 'Donner un mot-clé à une unité',
+    court: 'Donner un mot-clé',
+    // ⚠️ Réutilise le champ `attribute`, mais pour une autre question que sur
+    // `reduce_materials`/`remove_requirements` : là il FILTRE la cible, ici il
+    // DIT ce qu'on donne — d'où la surcharge de `lecteur` (`moteur`, pas
+    // `session`) et de `facultatif` (obligatoire : un mot-clé sans id ne
+    // donnerait rien). Deux questions, un champ, comme `value` change de sens
+    // d'un type à l'autre.
+    //
+    // ⚠️ L'id ajouté est posé TEL QUEL sur `unit.attributes`, comme s'il avait
+    // toujours figuré sur la carte : `AttributeManager` le relit au combat
+    // suivant sans rien savoir de son origine — c'est ce qui fait marcher
+    // Tour, Explosif, Second souffle, Appelant… sans une ligne de plus. Sur
+    // Multiple et Unique, en revanche, le don est un NO-OP : ces deux
+    // mots-clés sont lus sur la CARTE en main au moment de l'invocation
+    // (`GameSession._hasMultiple`/`_isUnique`), jamais sur l'unité posée — un
+    // don après coup ne change donc rien à une règle déjà tranchée.
+    magie: {
+      quands: ['immediat'],
+      champs: {
+        attribute: {
+          label: 'Mot-clé donné', saisie: 'choix', options: 'mots_cles',
+          facultatif: false, defaut: '', lecteur: 'moteur',
+          aide: 'Un attribut de catégorie Mot-clé. L’unité le porte pour le reste de la partie, comme si sa carte l’avait toujours eu. Sans effet sur Multiple/Unique, lus sur la carte en main à l’invocation, jamais sur une unité déjà posée.',
+        },
+      },
+    },
+  },
+
   summon_token: {
     label: 'Invoquer un token sur une case libre AU HASARD',
     court: 'Invoquer un token',

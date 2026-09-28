@@ -191,7 +191,7 @@ function handModifierScope(e, names) {
 
 export function needsUnitTarget(magie) {
   return ['stat_bonus', 'stat_modifier', 'shield', 'heal', 'defuse_fusion', 'destroy_unit', 'drain_life',
-    'grant_power', 'power_cooldown', 'duplicate_unit', 'shift_tier_unit'].includes(magie?.effect?.type);
+    'grant_power', 'power_cooldown', 'duplicate_unit', 'shift_tier_unit', 'grant_keyword'].includes(magie?.effect?.type);
 }
 
 // Cible une unité du CIMETIÈRE. ⚠️ Les deux membres n'en font pas le même
@@ -252,6 +252,7 @@ export function effectLabel(magie, names = RAW_NAMES) {
     case 'shield':           return `+${e.value} bouclier sur une unité`;
     case 'grant_power':      return `Donne le pouvoir ${POWER_LABELS[e.power_id] || e.power_id || '?'} à une unité (remplace le sien)`;
     case 'power_cooldown':   return `Charge le pouvoir d'une unité ${e.value} fois plus vite`;
+    case 'grant_keyword':    return `Donne le mot-clé ${names.attribute(e.attribute)} à une unité (permanent)`;
     case 'damage_multiplier_bonus': return `+${e.value} au multiplicateur de dégâts, jusqu'à la fin de la partie`;
     // ⚠️ Le signe se DÉRIVE de `e.value`, jamais écrit en dur : la magie reste
     // self-cible, mais rien n'empêche une `Valeur` négative (une magie qui

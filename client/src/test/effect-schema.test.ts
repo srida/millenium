@@ -96,6 +96,10 @@ function valeurPour(champ: any, variante = 0): any {
       // chaînes synthétiques suffisent à faire bouger l'empreinte, sans
       // dépendre d'un `initial-data/tokens.json` qui peut être vide.
       if (champ.options === 'tokens') return variante ? 'TOK_B' : 'TOK_A';
+      // ⚠️ Même raisonnement que `tokens` : le compilateur ne valide l'id d'un
+      // mot-clé contre AUCUN catalogue (il voyage tel quel dans `motCle`,
+      // comme `token_id`) — deux chaînes synthétiques suffisent.
+      if (champ.options === 'mots_cles') return variante ? 'ARCH_MOT_B' : 'ARCH_MOT_A';
       // ⚠️ `choix_direct` : les options voyagent dans le descripteur, parce
       // qu'elles dépendent du type (les moments qu'il sait honorer).
       return 'x';

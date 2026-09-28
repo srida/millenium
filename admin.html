@@ -3423,19 +3423,24 @@ let attrPickSelected = new Set();
 let attrPickExclude = [];
 let attrPickConfirm = null;
 
-function openAttrPickerModal(excludeIds, onConfirm) {
-  attrPickCat = '';
+/**
+ * `opts.onlyCategory` verrouille le picker sur UNE catégorie (les mots-clés
+ * d'un token) : pas d'onglets à afficher, `attrPickCat` part déjà dessus et
+ * `setAttrPickCat` n'est jamais appelée pour en sortir.
+ */
+function openAttrPickerModal(excludeIds, onConfirm, opts = {}) {
+  attrPickCat = opts.onlyCategory || '';
   attrPickSelected = new Set();
   attrPickExclude = excludeIds || [];
   attrPickConfirm = onConfirm;
   const cats = getAttrCategories();
   showModal(`
-    <h2>Ajouter des attributs</h2>
+    <h2>${esc(opts.title || 'Ajouter des attributs')}</h2>
     <input type="search" id="ap-search" placeholder="Rechercher..." autocomplete="off" oninput="renderAttrPickList()" style="width:100%;margin-bottom:8px">
-    <div class="tabs" style="margin-bottom:8px;flex-wrap:wrap">
+    ${opts.onlyCategory ? '' : `<div class="tabs" style="margin-bottom:8px;flex-wrap:wrap">
       <button class="tab ap-tab active" data-cat="" onclick="setAttrPickCat('')">Tous</button>
       ${cats.map(cat => `<button class="tab ap-tab" data-cat="${esc(cat)}" onclick="setAttrPickCat('${esc(cat)}')">${esc(cat)}</button>`).join('')}
-    </div>
+    </div>`}
     <div id="ap-list" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto"></div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal()">Annuler</button>
@@ -3494,6 +3499,28 @@ function openAttrPickModal() {
     }
     renderCardDetail();
   });
+}
+
+/**
+ * Les MOTS-CLÉS d'un token — même geste que les attributs d'une carte
+ * (`selectedToken.attributes`, lu tel quel par `new Unit(tokenDef, side)`),
+ * mais verrouillé sur la catégorie `MotCle` : un token éphémère n'a pas de
+ * pool de pioche, de tirage du terrain ni de collection à alimenter — les
+ * archétypes, éléments, tiers et voies d'invocation ne lui disent rien.
+ */
+function openTokenKeywordPickModal() {
+  openAttrPickerModal(selectedToken.attributes || [], ids => {
+    if (!selectedToken.attributes) selectedToken.attributes = [];
+    for (const aid of ids) {
+      if (!selectedToken.attributes.includes(aid)) selectedToken.attributes.push(aid);
+    }
+    renderTokenDetail();
+  }, { onlyCategory: EFX.MOT_CLE_CATEGORY, title: 'Ajouter un mot-clé' });
+}
+
+function removeTokenKeyword(aid) {
+  selectedToken.attributes = (selectedToken.attributes || []).filter(a => a !== aid);
+  renderTokenDetail();
 }
 
 // Token picker modal — dédié à `token_ids` (`summon_token` de magie) : pas
@@ -3713,6 +3740,14 @@ const EFFECT_NOTES = {
     Une valeur absente, nulle ou négative vaut un doublement.`,
   grant_power: `⚠️ La jauge est remise à ZÉRO et un blocage en cours est levé — un pouvoir hérité
     plein partirait au premier step.`,
+  grant_keyword: `L'id est posé TEL QUEL sur l'unité, comme si sa carte l'avait toujours porté : au
+    combat suivant, <code>AttributeManager</code> le relit sans rien savoir de son origine — c'est ce
+    qui fait marcher Tour, Explosif, Second souffle, Appelant… sans une ligne de plus.<br>
+    ⚠️ <b>Sans effet sur Multiple et Unique</b> : ces deux mots-clés sont lus sur la <b>carte en
+    main</b> au moment de l'invocation, jamais sur une unité déjà posée — le don arrive trop tard
+    pour changer une règle déjà tranchée.<br>
+    Permanent, comme un bonus de stat de magie : survit à <code>resetCombatStats()</code> et voyage
+    dans le contrat de déterminisme PvP.`,
   heal: `Soin <b>TOTAL</b>, et il n'y a rien à chiffrer : il suit le max <b>courant</b> de l'unité,
     bonus de Shopping et vétérance compris. Un chiffre figé y serait vite faux.`,
   team_heal: `Chiffré, là où le soin d'une seule unité est total : un soin de masse complet n'aurait
@@ -3763,6 +3798,9 @@ function _effectFieldOptions(champ, valeur) {
       return EFX.TRIGGERS.map(([v, l]) => opt(v, l, valeur === v)).join('');
     case 'attributs':
       return vide + attributes.map(a => opt(a.id, `${esc((a.icon || '') + ' ' + a.name)} — ${a.id}`, valeur === a.id)).join('');
+    case 'mots_cles':
+      return vide + attributes.filter(a => a.categorie === EFX.MOT_CLE_CATEGORY)
+        .map(a => opt(a.id, `${esc((a.icon || '') + ' ' + a.name)} — ${a.id}`, valeur === a.id)).join('');
     case 'pouvoirs':
       return vide + powers.map(p => opt(p.id, esc(p.name), valeur === p.id)).join('');
     case 'magies':
@@ -5924,6 +5962,19 @@ function renderTokenDetail() {
       ${counterSliderHtml('tk-aspeed', 'Vit. attaque', t.stats?.attack_rate)}
     </div>
 
+    <div class="section-title">Mots-clés</div>
+    <div class="attr-chips" id="tk-keyword-chips">
+      ${(t.attributes || []).map(aid => `
+        <span class="attr-chip" onclick="removeTokenKeyword('${aid}')">
+          ${getAttrName(aid)} <span class="remove">×</span>
+        </span>
+      `).join('')}
+      <button class="attr-add" onclick="openTokenKeywordPickModal()">+ Ajouter</button>
+    </div>
+    <span style="font-size:11px;color:var(--muted);margin-top:-14px;margin-bottom:20px;display:block">
+      Le token le porte comme s'il figurait sur sa carte (Tour, Explosif, Second souffle…).
+    </span>
+
     <div class="section-title">Pouvoir (optionnel)</div>
     <div class="form-grid">
       <div class="field"><label>Pouvoir</label>
@@ -5999,7 +6050,7 @@ async function deleteToken() {
 }
 
 function openNewToken() {
-  selectedToken = { id: nextIdFor('token'), name: '', stats: { atk: 5, hp: 20, range: 1, movement_rate: 80, attack_rate: 80 }, power: null, _has_illustration: false };
+  selectedToken = { id: nextIdFor('token'), name: '', stats: { atk: 5, hp: 20, range: 1, movement_rate: 80, attack_rate: 80 }, attributes: [], power: null, _has_illustration: false };
   isNewToken = true;
   renderTokenList();
   renderTokenDetail();

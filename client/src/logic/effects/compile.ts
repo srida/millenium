@@ -903,6 +903,15 @@ export function compileMagie(magie: MagieLike): CompilationResult {
       }]);
       return { effets, refus };
 
+    case 'grant_keyword':
+      if (!e.attribute) { refuse('mot-clé sans id', 'grant_keyword'); return { effets, refus }; }
+      pousse([{
+        action: 'modifier', cible: uneUnite(), champ: 'mot_cle',
+        operateur: '=', valeur: 0, duree: 'partie',
+        motCle: e.attribute as string,
+      }]);
+      return { effets, refus };
+
     case 'player_hp_bonus':
       // ⚠️ Toujours `allie` : `target` n'est PAS offert à la magie (cf.
       // effect-schema.mjs) — le geste historique, self-cible.
