@@ -79,6 +79,21 @@ export function isTierAttribute(id) {
   }
 }
 
+/**
+ * L'id de l'attribut qui PORTE le tier `n` — c'est lui que `AttrIcon` sait
+ * illustrer (le même mécanisme que n'importe quel attribut : une image posée
+ * en admin, l'emoji du catalogue en repli). Aucun id en dur, pour la même
+ * raison que `logic/Tiers.ts` n'en écrit aucun : le catalogue reste éditable.
+ * `null` faute de database ou de tier ainsi porté (repli sur le chiffre nu).
+ */
+export function tierAttributeId(n) {
+  try {
+    return getAllAttributes().find(a => a?.categorie === TIER_CATEGORY && Number(a.tier) === n)?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Cet attribut décrit-il une voie d'invocation plutôt qu'un archétype ? */
 export function isInvocationAttribute(id) {
   try {

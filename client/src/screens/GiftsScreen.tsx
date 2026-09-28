@@ -24,7 +24,8 @@ import UiIcon from '../components/ui/UiIcon.js';
 import type { ReactNode } from 'react';
 
 const LOT_ICONS: Record<GiftLot['type'], ReactNode> = {
-  gold: CURRENCY.gold.icon, gems: CURRENCY.gems.icon,
+  gold: <UiIcon id={CURRENCY.gold.icon} className="h-4 w-4" />,
+  gems: <UiIcon id={CURRENCY.gems.icon} className="h-4 w-4" />,
   card: <UiIcon id="UI_CARD" className="h-4 w-4" />,
   pack: <UiIcon id="UI_GIFTS" className="h-4 w-4" />,
   avatar: <UiIcon id="UI_AVATAR" className="h-4 w-4" />,

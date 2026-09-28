@@ -15,6 +15,7 @@ import { useAuthStore } from '../../stores/authStore.js';
 import type { AuthUser, LevelReward } from '../../stores/authStore.js';
 import { Amount, Button, CountBadge, Gauge, Illustration, Modal, Panel, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_NEUTRAL, usePressSquash } from './primitives.js';
 import { CURRENCIES, CURRENCY, fmt, XP_ICON } from './currency.js';
+import UiIcon from './UiIcon.js';
 
 // Palier de niveau — doit rester aligné sur `XP_PER_LEVEL` de progression.js
 // (serveur). `user.xp` est la progression DANS le niveau, jamais un cumul de
@@ -158,7 +159,7 @@ export function ProgressionPanel({ user, className = '' }: { user: AuthUser | nu
         {/* Jauge du palier : 0 → 100 XP, repart de 0 à chaque niveau gagné. */}
         <Gauge value={xpOf(user) / XP_PER_LEVEL} className="mt-1.5" fillClassName="bg-player" />
         <div className="mt-1 flex justify-between text-[10px] tabular-nums text-white/40">
-          <span>{XP_ICON} EXPÉRIENCE</span>
+          <span className="flex items-center gap-1"><UiIcon id={XP_ICON} className="h-3 w-3" /> EXPÉRIENCE</span>
           <span>{fmt.format(xpOf(user))} / {XP_PER_LEVEL}</span>
         </div>
       </div>
@@ -166,7 +167,7 @@ export function ProgressionPanel({ user, className = '' }: { user: AuthUser | nu
         {CURRENCIES.map(c => (
           <div key={c.key} title={c.label} className="rounded-lg border border-line bg-surface/60 px-1 py-2">
             <dt className="text-[10px] tracking-widest text-white/40">
-              <span aria-hidden="true">{c.icon}</span> {c.short.toUpperCase()}
+              <UiIcon id={c.icon} className="inline-block h-3 w-3 align-[-2px]" /> {c.short.toUpperCase()}
             </dt>
             <dd className={`mt-1 text-sm font-bold tabular-nums ${c.cls}`}>{fmt.format(user[c.key] ?? 0)}</dd>
           </div>
@@ -231,7 +232,7 @@ function UpcomingRow({ step }: { step: LevelStep }) {
       <span className="flex items-center gap-2 text-[11px] tabular-nums">
         {step.gold > 0 && <Amount currency="gold" value={step.gold} />}
         {step.gems > 0 && <Amount currency="gems" value={step.gems} />}
-        {step.draw && <span className="text-white/80">🎁 objet</span>}
+        {step.draw && <span className="flex items-center gap-1 text-white/80"><UiIcon id="UI_GIFTS" className="h-3 w-3" /> objet</span>}
       </span>
     </li>
   );
@@ -304,7 +305,7 @@ export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
             {totals.draws > 0 && (
               // L'objet n'est pas nommé : il n'est tiré qu'au tap (zéro
               // doublon). L'annoncer, ce serait le promettre avant de l'avoir.
-              <span className="text-white/80">🎁 ×{totals.draws}</span>
+              <span className="flex items-center gap-1 text-white/80"><UiIcon id="UI_GIFTS" className="h-3 w-3" /> ×{totals.draws}</span>
             )}
           </div>
           <Button variant="primary" className="mt-2 w-full justify-center" disabled={busy} onPointerDown={claim}>
@@ -342,11 +343,11 @@ export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
           assez loin pour les montrer (un objet peut être à 10 niveaux). */}
       <dl className="mt-2 grid grid-cols-2 gap-2 text-center">
         <div className="rounded-lg border border-line bg-surface/60 px-1 py-2">
-          <dt className="text-[10px] tracking-widest text-white/40">{CURRENCY.gems.icon} PROCHAINES</dt>
+          <dt className="flex items-center justify-center gap-1 text-[10px] tracking-widest text-white/40"><UiIcon id={CURRENCY.gems.icon} className="h-3 w-3" /> PROCHAINES</dt>
           <dd className="mt-1 text-sm font-bold tabular-nums text-violet">Nv. {fmt.format(levels.next_gems_level)}</dd>
         </div>
         <div className="rounded-lg border border-line bg-surface/60 px-1 py-2">
-          <dt className="text-[10px] tracking-widest text-white/40">🎁 PROCHAIN OBJET</dt>
+          <dt className="flex items-center justify-center gap-1 text-[10px] tracking-widest text-white/40"><UiIcon id="UI_GIFTS" className="h-3 w-3" /> PROCHAIN OBJET</dt>
           <dd className="mt-1 text-sm font-bold tabular-nums text-gold">Nv. {fmt.format(levels.next_draw_level)}</dd>
         </div>
       </dl>

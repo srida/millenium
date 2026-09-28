@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEve
 import { createPortal } from 'react-dom';
 import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
 import { illustrationUrl } from '../../data/CardArt.js';
+import UiIcon from './UiIcon.js';
 import { playButtonFeedback } from './feedback.js';
 import * as Audio from '../../audio/AudioManager.js';
 
@@ -288,7 +289,7 @@ export function Amount({
   const c = CURRENCY[currency];
   return (
     <span className={`tabular-nums ${c.cls} ${className}`} title={c.label}>
-      <span aria-hidden="true">{c.icon}</span> {sign && value >= 0 ? '+' : ''}{fmt.format(value)}
+      <UiIcon id={c.icon} className="inline-block h-3.5 w-3.5 align-[-3px]" /> {sign && value >= 0 ? '+' : ''}{fmt.format(value)}
       <span className="sr-only"> {c.unit}</span>
     </span>
   );

@@ -11,6 +11,7 @@ import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
 import PowerIcon from '../ui/PowerIcon.js';
 import { Illustration } from '../ui/primitives.js';
 import UiIcon from '../ui/UiIcon.js';
+import TierIcon from '../ui/TierIcon.js';
 import RecipeRow from '../ui/SummonRecipe.js';
 import { cardName, magieName } from '../../data/gameNames.js';
 import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
@@ -230,13 +231,15 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
     const shoppingBonus: Record<string, number> = isUnit ? (data._shopping_bonus ?? {}) : {};
     const shoppingEntries = Object.entries(shoppingBonus).filter(([, v]) => v);
 
+    // Une CARTE dit tous ses tiers ; une UNITÉ n'en porte qu'un (sa puissance).
+    const tierList: number[] = isUnit ? [data.tier] : (tiersOf(data).length ? tiersOf(data) : [primaryTier(data)]);
+
     return (
       <div>
         <div className="flex items-center justify-between">
           <span className="text-sm font-bold">{data.name}</span>
-          {/* Une CARTE dit tous ses tiers ; une UNITÉ n'en porte qu'un (sa puissance). */}
-          <span className="rounded border border-gold/40 px-1.5 text-[10px] font-bold text-gold">
-            T{isUnit ? data.tier : (tiersOf(data).join('·') || primaryTier(data))}
+          <span className="flex items-center gap-1 rounded border border-gold/40 px-1.5 py-0.5">
+            {tierList.map(t => <TierIcon key={t} tier={t} className="h-3 w-3" />)}
           </span>
         </div>
         <StatsRow stats={stats} />

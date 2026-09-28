@@ -31,6 +31,7 @@ import { updateProgress } from '../data/tutorialProgress.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
 import { ScreenTransition } from '../components/nav/ScreenTransition.js';
+import TierIcon from '../components/ui/TierIcon.js';
 
 const MIN_DECK = 20;
 /** Édition admin d'un deck public : aucun joueur, donc aucune variante. */
@@ -621,7 +622,7 @@ function LibraryPanel({
         <div className="flex flex-wrap items-center gap-1.5">
           {[1, 2, 3, 4, 5].map(t => (
             <Chip key={t} active={on('tier', t)} onTap={() => toggle('tier', t)}>
-              <span className={TIER_TEXT[t]}>T{t}</span>
+              <TierIcon tier={t} className={`h-4 w-4 ${TIER_TEXT[t]}`} />
             </Chip>
           ))}
           <SortControl schema={schema} value={sort} onChange={setSort} className="ml-auto" />
@@ -739,7 +740,7 @@ function DeckPanel({
           return (
             <div key={t} className="rounded-lg border border-line bg-surface-raised/50 p-2">
               <div className="mb-1.5 flex items-center gap-2">
-                <span className={`text-xs font-bold ${TIER_TEXT[t]}`}>Tier {t}</span>
+                <span className={`flex items-center gap-1.5 text-xs font-bold ${TIER_TEXT[t]}`}><TierIcon tier={t} className="h-4 w-4" /> Tier {t}</span>
                 <div className="h-px flex-1 bg-line" />
                 <span className={`text-xs font-bold tabular-nums ${full ? 'text-danger' : 'text-white/50'}`}>{cards.length}/{tierMax[t]}</span>
               </div>
