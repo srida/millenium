@@ -15,6 +15,7 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { Illustration, Modal } from '../ui/primitives.js';
 import { attributeName } from '../ui/AttrIcon.js';
+import UiIcon, { type UiIconId } from '../ui/UiIcon.js';
 import * as CardBackDatabase from '../../data/CardBackDatabase.js';
 import * as DeckRepository from '../../data/DeckRepository.js';
 import { drawBonusRows, drawnLabel, guaranteedDrawLabel } from '../../data/DrawInfo.js';
@@ -160,7 +161,7 @@ export function DrawPopup({ autoDismissMs = 0 }: { autoDismissMs?: number } = {}
             {rows.map(row => <BonusRow key={row.key} row={row} />)}
             {summary.guaranteed.map((g, i) => (
               <div key={`g${i}`} className="flex items-center justify-between text-[11px]">
-                <span className="truncate text-white/70">🎯 Pioche garantie</span>
+                <span className="flex items-center gap-1 truncate text-white/70"><UiIcon id="UI_MISSIONS" className="h-3 w-3" /> Pioche garantie</span>
                 <span className="text-gold">{guaranteedDrawLabel(g, attributeName, cardName)}</span>
               </div>
             ))}
@@ -237,7 +238,9 @@ function BonusRow({ row }: { row: DrawBonusRow }) {
   if (row.amount === 0) return null;
   return (
     <div className="flex items-center justify-between text-[11px]">
-      <span className="truncate text-white/70">{row.icon} {bonusSourceName(row.kind, row.ref)}</span>
+      <span className="flex items-center gap-1 truncate text-white/70">
+        <UiIcon id={row.icon as UiIconId} className="h-3 w-3" /> {bonusSourceName(row.kind, row.ref)}
+      </span>
       <span className="font-semibold text-success">+{row.amount}</span>
     </div>
   );

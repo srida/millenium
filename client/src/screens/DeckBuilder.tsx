@@ -711,7 +711,7 @@ function DeckPanel({
             <CardBackButton
               active={cardBack === null} onTap={() => setCardBack(null)}
               ariaLabel="Dos par défaut" title="Dos par défaut (celui de ton profil)"
-            >✦</CardBackButton>
+            ><UiIcon id="UI_SPARKLE" className="h-5 w-5" /></CardBackButton>
             {ownedCardBacks.map((b: { id: string; name: string }) => (
               <CardBackButton
                 key={b.id}

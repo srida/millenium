@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEve
 import { createPortal } from 'react-dom';
 import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
 import { illustrationUrl } from '../../data/CardArt.js';
-import UiIcon from './UiIcon.js';
+import UiIcon, { type UiIconId } from './UiIcon.js';
 import { playButtonFeedback } from './feedback.js';
 import * as Audio from '../../audio/AudioManager.js';
 
@@ -370,7 +370,9 @@ export function Avatar({ src, fallback = '★', className = 'h-8 w-8' }: { src?:
   const isImg = /^(https?:|data:|\/)/i.test(value);
   return (
     <div className={`flex flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-surface-raised text-xs font-semibold ${className}`}>
-      {value ? (isImg ? <img src={value} alt="" className="h-full w-full object-cover" /> : <span>{value.slice(0, 2)}</span>) : <span>{fallback}</span>}
+      {value
+        ? (isImg ? <img src={value} alt="" className="h-full w-full object-cover" /> : <span>{value.slice(0, 2)}</span>)
+        : (fallback === '★' ? <UiIcon id="UI_VETERAN" className="h-1/2 w-1/2 opacity-70" /> : <span>{fallback}</span>)}
     </div>
   );
 }
@@ -401,16 +403,17 @@ export function Countdown({ at, className = '', title }: { at: number; className
     // hauteur de l'en-tête de la Boutique — qui est désormais épinglé, donc
     // toujours à l'écran.
     <span className={`whitespace-nowrap text-xs tabular-nums text-white/40 ${className}`} title={title}>
-      ⏳ {h > 0 ? `${h} h ${String(min).padStart(2, '0')}` : `${min} min`}
+      <UiIcon id="UI_HOURGLASS" className="mb-0.5 h-3 w-3" /> {h > 0 ? `${h} h ${String(min).padStart(2, '0')}` : `${min} min`}
     </span>
   );
 }
 
 // Bannière flottante (annonces phase / erreurs / ciblage magie).
-export function Banner({ text, tone = 'info' }: { text: string; tone?: 'info' | 'error' }) {
+export function Banner({ text, tone = 'info', icon }: { text: string; tone?: 'info' | 'error'; icon?: UiIconId }) {
   const toneCls = tone === 'error' ? 'border-danger text-danger' : 'border-gold text-gold';
   return (
-    <div className={`pointer-events-none fixed left-1/2 top-16 z-40 -translate-x-1/2 rounded-lg border bg-surface/95 px-4 py-2 text-sm font-semibold shadow-lg ${toneCls}`}>
+    <div className={`pointer-events-none fixed left-1/2 top-16 z-40 flex -translate-x-1/2 items-center gap-1.5 rounded-lg border bg-surface/95 px-4 py-2 text-sm font-semibold shadow-lg ${toneCls}`}>
+      {icon && <UiIcon id={icon} className="h-4 w-4" />}
       {text}
     </div>
   );

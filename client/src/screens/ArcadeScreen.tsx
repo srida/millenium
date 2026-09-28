@@ -242,7 +242,9 @@ function DuelRow({ duel, live }: { duel: ArcadeDuel; live: boolean }) {
           {difficultyLabel(duel.difficulty)} · {bonusLabel(duel.bonus)}
         </div>
       </div>
-      <span className={`text-sm ${tone}`}>{won ? '✓' : duel.result === 'loss' ? '✗' : live ? '▸' : '·'}</span>
+      <span className={`text-sm ${tone}`}>
+        {won ? <UiIcon id="UI_CHECK" className="inline-block h-3.5 w-3.5" /> : duel.result === 'loss' ? <UiIcon id="UI_CROSS" className="inline-block h-3.5 w-3.5" /> : live ? '▸' : '·'}
+      </span>
     </div>
   );
 }

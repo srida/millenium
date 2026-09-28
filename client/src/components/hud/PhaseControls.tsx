@@ -157,7 +157,7 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
             className="shrink-0 px-3 text-base"
             onPointerDown={(e) => { e.stopPropagation(); controller.togglePause(); }}
           >
-            {paused ? '▶' : '⏸'}
+            <UiIcon id={paused ? 'UI_PLAY' : 'UI_PAUSE'} className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>

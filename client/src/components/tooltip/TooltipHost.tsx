@@ -278,7 +278,11 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
         )}
         {!isUnit && <SummonBlock card={data} />}
         {!isUnit && <LinkedCardsButton card={data as Card} />}
-        {isUnit && data.shield > 0 && <div className="mt-1 text-[11px] text-gold">🛡 Bouclier : {data.shield}</div>}
+        {isUnit && data.shield > 0 && (
+          <div className="mt-1 flex items-center gap-1 text-[11px] text-gold">
+            <UiIcon id="UI_SHIELD" className="h-3 w-3" /> Bouclier : {data.shield}
+          </div>
+        )}
         {/* Ce que l'unité VAUT comme matériau — la question qu'on ne pouvait
             trancher qu'en tentant l'invocation. ⚠️ Sur une UNITÉ elle se dit
             toujours (c'est ici qu'on vient chercher la réponse) ; sur une carte

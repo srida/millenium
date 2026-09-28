@@ -179,13 +179,13 @@ export const CHAPTERS: Chapter[] = [
       ] },
       { kind: 'cards', caption: 'Trois cartes d\'une même main', pick: (cards) => [1, 2, 3].flatMap(t => firstWhere(cards, c => hasTier(c, t))) },
       { kind: 'note', text: "Les exemplaires identiques sont **empilés** sous une seule vignette, avec un badge ×N. Une carte grisée est injouable pour l'instant : matériaux manquants, terrain plein, ou doublon déjà en jeu." },
-      { kind: 'text', text: "🔄 **Le mulligan.** Une main de départ ratée n'est plus une partie perdue d'avance : au **tour 1**, le bouton 🔄 de la barre du bas remet ta main dans le deck et t'en repioche autant, contre **50 PV**." },
+      { kind: 'text', text: ":UI_MULLIGAN: **Le mulligan.** Une main de départ ratée n'est plus une partie perdue d'avance : au **tour 1**, le bouton :UI_MULLIGAN: de la barre du bas remet ta main dans le deck et t'en repioche autant, contre **50 PV**." },
       { kind: 'bullets', items: [
         "**Une seule fois par partie**, et **au premier tour seulement** — le bouton n'existe nulle part ailleurs.",
-        "**Avant de poser quoi que ce soit** : dès ta première invocation, il cède sa place au ↺ « Tout annuler ».",
+        "**Avant de poser quoi que ce soit** : dès ta première invocation, il cède sa place au :UI_UNDO: « Tout annuler ».",
         "Le deck n'est pas une pile qu'on épuise : une carte rendue peut parfaitement **revenir** dans la nouvelle main.",
       ] },
-      { kind: 'note', text: "⚠️ Le mulligan **n'est pas annulable** : ↺ ramène le tour à l'état d'**après** la repioche, jamais à la main d'avant. 50 PV sur 1000, c'est le prix d'un tour 1 jouable — pas une décision anodine au tour où l'on part à égalité." },
+      { kind: 'note', text: ":UI_WARNING: Le mulligan **n'est pas annulable** : :UI_UNDO: ramène le tour à l'état d'**après** la repioche, jamais à la main d'avant. 50 PV sur 1000, c'est le prix d'un tour 1 jouable — pas une décision anodine au tour où l'on part à égalité." },
     ],
   },
   {
@@ -233,7 +233,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'phases',
-    icon: '⏱️',
+    icon: 'UI_TIMER',
     title: 'Les phases de jeu',
     blurb: 'Cinq tours, et la même boucle à chaque fois.',
     blocks: [
@@ -260,7 +260,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'tiers',
-    icon: '⭐',
+    icon: 'UI_STAR',
     title: 'Les tiers',
     blurb: 'De 1 à 5 : la puissance, et les tours où elle arrive.',
     blocks: [
@@ -277,7 +277,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'summoning',
-    icon: '🔮',
+    icon: 'UI_SUMMONING',
     title: "L'invocation",
     blurb: 'Ce qu\'une carte coûte, et ce qu\'elle consomme pour se payer.',
     blocks: [
@@ -287,13 +287,13 @@ export const CHAPTERS: Chapter[] = [
       { kind: 'text', text: "Une recette peut aussi **nommer** ce qu'elle veut : une carte précise, ou n'importe quelle unité portant un **attribut** donné. Et selon qu'elle nomme tous ses matériels ou seulement une partie, elle ne se lit pas pareil." },
       { kind: 'cards', caption: 'Matériels — la recette nomme tout ce qu\'elle consomme', pick: oneRecipeLike(r => r.materials > 1 && r.requires.length === r.materials) },
       { kind: 'cards', caption: '« dont » — elle en nomme une partie, le reste est libre', pick: oneRecipeLike(r => r.requires.length > 0 && r.requires.length < r.materials) },
-      { kind: 'note', text: "📍 **Une recette à un seul matériel remplace sa cible** : la nouvelle unité prend **la case** de celle qu'elle consomme. C'est la seule fois où tu ne choisis pas où poser." },
+      { kind: 'note', text: ":UI_LOCATION: **Une recette à un seul matériel remplace sa cible** : la nouvelle unité prend **la case** de celle qu'elle consomme. C'est la seule fois où tu ne choisis pas où poser." },
       { kind: 'cards', caption: 'Un seul matériel — l\'unité arrive à sa place', pick: oneRecipeLike(r => r.materials === 1) },
-      { kind: 'text', text: "Certaines cartes proposent **plusieurs recettes** (🔀) : tapes-en une et un menu te laisse choisir laquelle payer. Il suffit qu'**une seule** soit satisfaite." },
+      { kind: 'text', text: "Certaines cartes proposent **plusieurs recettes** (:UI_RECIPES:) : tapes-en une et un menu te laisse choisir laquelle payer. Il suffit qu'**une seule** soit satisfaite." },
       { kind: 'cards', caption: 'Plusieurs recettes pour la même carte', pick: (cards) => firstWhere(cards, c => summonRecipes(c).length > 1) },
       { kind: 'text', text: "Une invocation peut **en enchaîner une autre** dans la même préparation : la nouvelle unité devient aussitôt un matériel possible." },
-      { kind: 'note', text: "🧬 **La lignée.** Une unité composite « représente » les cartes qui l'ont produite. Elle peut donc servir de matériel à leur place plus tard — à condition que toute sa lignée soit réclamée par la nouvelle recette." },
-      { kind: 'note', text: "🚫 **La règle du doublon.** Jamais deux exemplaires vivants de la même carte sur ton terrain. Une recette peut passer par-dessus, à une condition : que le doublon soit lui-même **sélectionné comme matériel**." },
+      { kind: 'note', text: ":UI_LINKED: **La lignée.** Une unité composite « représente » les cartes qui l'ont produite. Elle peut donc servir de matériel à leur place plus tard — à condition que toute sa lignée soit réclamée par la nouvelle recette." },
+      { kind: 'note', text: ":UI_FORBIDDEN: **La règle du doublon.** Jamais deux exemplaires vivants de la même carte sur ton terrain. Une recette peut passer par-dessus, à une condition : que le doublon soit lui-même **sélectionné comme matériel**." },
     ],
   },
   {
@@ -336,7 +336,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'powers',
-    icon: '⚡',
+    icon: 'UI_POWERS',
     title: 'Les pouvoirs',
     blurb: 'Une capacité par unité, qui part toute seule au bon moment.',
     blocks: [
@@ -365,7 +365,7 @@ export const CHAPTERS: Chapter[] = [
         ['Globale', 'Pioche supplémentaire, PV joueur, emplacement de terrain.'],
       ] },
       { kind: 'note', text: "Les bonus de statistiques donnés par une magie sont **permanents** — et ils **suivent l'unité** si tu la consommes plus tard comme matériau. Investir sur une unité n'est jamais perdu." },
-      { kind: 'text', text: "🎲 **Le reroll.** Si aucune des trois ne sert ton board, le bouton 🎲 en tire **trois autres** pour **50 PV**. Les magies écartées ne reviennent pas de la phase : ce que le reroll propose, tu ne l'as jamais vu ce tour-ci." },
+      { kind: 'text', text: ":UI_REROLL: **Le reroll.** Si aucune des trois ne sert ton board, le bouton :UI_REROLL: en tire **trois autres** pour **50 PV**. Les magies écartées ne reviennent pas de la phase : ce que le reroll propose, tu ne l'as jamais vu ce tour-ci." },
       { kind: 'bullets', items: [
         "**Autant de fois que tu veux**, tant que tes PV suivent — chaque reroll rétrécit à la fois ta barre de vie et ce qu'il reste à montrer.",
         "L'offre garde sa **taille** : si un attribut t'avait donné une magie de plus ce tour-là, tu en revois autant.",

@@ -13,6 +13,7 @@ import type { Scene3D } from '../three/Scene3D.js';
 import type { Card, DrawSummary, Position, Magie, SummonCondition } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
 import { useGameStore, type GameSnapshot, type HandEntry } from '../stores/gameStore.js';
+import type { UiIconId } from '../components/ui/UiIcon.js';
 import { useUiStore, type TooltipAnchor } from '../stores/uiStore.js';
 import { useMissionStore } from '../stores/missionStore.js';
 import * as CardArt from '../data/CardArt.js';
@@ -1022,12 +1023,12 @@ export class GameController {
    * d'affichage seul. Un phénomène annoncé sans sa cause reste plus
    * informatif qu'un phénomène tu.
    */
-  private _describeShoppingBonus(): string | null {
+  private _describeShoppingBonus(): { icon: UiIconId; text: string }[] | null {
     const { extra, guaranteedCount } = this.session.getLastShoppingBonusInfo();
-    const parts: string[] = [];
-    if (extra > 0) parts.push(`✨ +${extra} magie${extra > 1 ? 's' : ''} supplémentaire${extra > 1 ? 's' : ''}`);
-    if (guaranteedCount > 0) parts.push(`🎁 ${guaranteedCount > 1 ? `${guaranteedCount} magies garanties` : 'Magie garantie'}`);
-    return parts.length ? parts.join(' · ') : null;
+    const parts: { icon: UiIconId; text: string }[] = [];
+    if (extra > 0) parts.push({ icon: 'UI_XP', text: `+${extra} magie${extra > 1 ? 's' : ''} supplémentaire${extra > 1 ? 's' : ''}` });
+    if (guaranteedCount > 0) parts.push({ icon: 'UI_GIFTS', text: guaranteedCount > 1 ? `${guaranteedCount} magies garanties` : 'Magie garantie' });
+    return parts.length ? parts : null;
   }
 
   // ⚠️ Les trois gardes « aucune cible valide » ci-dessous sont devenues
@@ -1088,7 +1089,7 @@ export class GameController {
 
   private _pendingMagie: Magie | null = null;
   private _shoppingMagies: Magie[] = [];
-  private _shoppingInfo: string | null = null;
+  private _shoppingInfo: { icon: UiIconId; text: string }[] | null = null;
 
   // Ciblage magie sur unité board — réutilise onUnitTap via un mode dédié.
   resolveMagieUnitTarget(unit: Unit): void {

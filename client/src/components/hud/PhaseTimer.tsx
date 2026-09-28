@@ -82,7 +82,7 @@ export function Banners() {
   const errorFlash = useGameStore(s => s.errorFlash);
   const invocationBanner = useGameStore(s => s.invocationBanner);
   const combatActive = useGameStore(s => s.combatActive);
-  if (errorFlash) return <Banner text={`⚠ ${errorFlash}`} tone="error" />;
+  if (errorFlash) return <Banner text={errorFlash} tone="error" icon="UI_WARNING" />;
   if (invocationBanner && !combatActive) return <Banner text={invocationBanner} />;
   return null;
 }

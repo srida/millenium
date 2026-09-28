@@ -5,6 +5,7 @@ import { useState } from 'react';
 import * as AuthClient from '../data/AuthClient.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Button } from '../components/ui/primitives.js';
+import UiIcon from '../components/ui/UiIcon.js';
 
 export default function ResetPasswordScreen() {
   const navigate = useUiStore(s => s.navigate);
@@ -40,7 +41,7 @@ export default function ResetPasswordScreen() {
         </>
       ) : done ? (
         <>
-          <div className="text-4xl">✓</div>
+          <UiIcon id="UI_CHECK" className="h-10 w-10" />
           <p className="text-sm text-success">Mot de passe réinitialisé.</p>
           <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
         </>
