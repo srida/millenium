@@ -213,7 +213,7 @@ export function EndRoundOverlay() {
     <Modal>
       <div className="flex flex-col items-center gap-1">
         <div className="flex h-10 items-center justify-center">
-          {winner === 'player' ? <span className="text-4xl">⚡</span>
+          {winner === 'player' ? <UiIcon id="UI_VICTORY" className="h-9 w-9" />
             : winner === 'enemy' ? <UiIcon id="UI_DEFEAT" className="h-9 w-9" />
               : <UiIcon id="UI_DRAW" className="h-9 w-9" />}
         </div>
@@ -478,7 +478,11 @@ export function GameOverScreen({
             toXp={user.xp ?? startProgression.current.xp}
           />
         )}
-        {note && <div className="mb-1 text-center text-xs text-danger">⚠ {note}</div>}
+        {note && (
+          <div className="mb-1 flex items-center justify-center gap-1 text-center text-xs text-danger">
+            <UiIcon id="UI_WARNING" className="h-3.5 w-3.5" /> {note}
+          </div>
+        )}
         <Button
           variant="primary"
           className="w-full"

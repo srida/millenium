@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ButtonHTMLAttributes, type PointerEve
 import { createPortal } from 'react-dom';
 import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
 import { illustrationUrl } from '../../data/CardArt.js';
-import UiIcon from './UiIcon.js';
+import UiIcon, { type UiIconId } from './UiIcon.js';
 import { playButtonFeedback } from './feedback.js';
 import * as Audio from '../../audio/AudioManager.js';
 
@@ -407,10 +407,11 @@ export function Countdown({ at, className = '', title }: { at: number; className
 }
 
 // Bannière flottante (annonces phase / erreurs / ciblage magie).
-export function Banner({ text, tone = 'info' }: { text: string; tone?: 'info' | 'error' }) {
+export function Banner({ text, tone = 'info', icon }: { text: string; tone?: 'info' | 'error'; icon?: UiIconId }) {
   const toneCls = tone === 'error' ? 'border-danger text-danger' : 'border-gold text-gold';
   return (
-    <div className={`pointer-events-none fixed left-1/2 top-16 z-40 -translate-x-1/2 rounded-lg border bg-surface/95 px-4 py-2 text-sm font-semibold shadow-lg ${toneCls}`}>
+    <div className={`pointer-events-none fixed left-1/2 top-16 z-40 flex -translate-x-1/2 items-center gap-1.5 rounded-lg border bg-surface/95 px-4 py-2 text-sm font-semibold shadow-lg ${toneCls}`}>
+      {icon && <UiIcon id={icon} className="h-4 w-4" />}
       {text}
     </div>
   );
