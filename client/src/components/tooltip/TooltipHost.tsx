@@ -223,7 +223,14 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
   if (content.kind === 'card' || content.kind === 'unit') {
     const isUnit = content.kind === 'unit';
     const data: any = isUnit ? content.unit : content.card;
-    const power = data.power_id ? (getPower as any)(data.power_id) : (data.power?.id ? (getPower as any)(data.power.id) : null);
+    // ⚠️ Une CARTE porte son pouvoir sous `power.id` (objet imbriqué), une
+    // UNITÉ sous `power_id` (aplati). `PowerIcon` a besoin du même id que la
+    // résolution du pouvoir lui-même — les deux doivent être en accord, sinon
+    // l'icône reste au repli (emoji) sur les cartes alors que la donnée est
+    // bien là (constaté : correct en tooltip d'unité, jamais en tooltip de
+    // carte, qui ne lisait que `data.power_id`, toujours `undefined` ici).
+    const powerId = data.power_id ?? data.power?.id ?? null;
+    const power = powerId ? (getPower as any)(powerId) : null;
     const stats = isUnit
       ? { atk: data.atk, hp: data.current_hp, attack_rate: data.attack_rate, range: data.range, movement_rate: data.movement_rate }
       : { atk: data.stats.atk, hp: data.stats.hp, attack_rate: data.stats.attack_rate, range: data.stats.range, movement_rate: data.stats.movement_rate };
@@ -252,8 +259,8 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
         {power && (
           <div className="mt-2 rounded-lg border border-orange-400/25 bg-orange-500/5 p-2">
             <div className="flex items-center gap-1 text-[11px] font-bold text-orange-300">
-              <PowerIcon id={data.power_id} fallback="⚡" className="h-3.5 w-3.5 text-[11px]" />
-              {power.name ?? data.power_id}
+              <PowerIcon id={powerId} fallback="⚡" className="h-3.5 w-3.5 text-[11px]" />
+              {power.name ?? powerId}
             </div>
             {/* ⚠️ La jauge se dit en TICKS, pas en compteur : c'est une
                 progression (« 12 sur 20 »), pas un réglage. Le compteur est ce

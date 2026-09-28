@@ -6,6 +6,7 @@ import { updateUnitEl } from './UnitCardEl.js';
 import { ELEMENT_STYLES, elementsForUnit, LOW_END_DEVICE } from './constants.js';
 import { getPower } from '../data/PowerDatabase.js';
 import { primaryElementOf } from '../data/AttributeDatabase.js';
+import { illustrationUrl } from '../data/CardArt.js';
 import * as Audio from '../audio/AudioManager.js';
 import {
   playPowerVfx, playKeywordVfx, playImmuneVfx, playPoisonPulse, playBurnPulse, syncPowerStatuses,
@@ -382,11 +383,16 @@ export class CombatAnimator3D {
   }
 
   _showPowerToast(pos: Position, power_id: string, interval: number = BASE_TICK_MS): void {
-    // Icône éditée en admin : préfixe uniquement, pas d'image dans un toast
-    // texte. `getPower` jette tant que PowerDatabase n'est pas initialisée.
+    // Même repli qu'`AttrIcon`/`PowerIcon` : l'image posée en admin d'abord,
+    // l'emoji du catalogue sinon. `getPower` jette tant que PowerDatabase
+    // n'est pas initialisée.
     let icon = '';
-    try { icon = (getPower as (id: string) => { icon?: string } | null)(power_id)?.icon ?? ''; }
-    catch { /* database non initialisée */ }
+    let hasIllustration = false;
+    try {
+      const power = (getPower as (id: string) => { icon?: string; _has_illustration?: boolean } | null)(power_id);
+      icon = power?.icon ?? '';
+      hasIllustration = !!power?._has_illustration;
+    } catch { /* database non initialisée */ }
     const label = POWER_NAMES[power_id] ?? power_id.replace('POWER_', '').replace(/_/g, ' ');
     const screen = this._board.worldToScreen(this._board.tilePosition(pos));
     const toast = document.createElement('div');
@@ -395,7 +401,15 @@ export class CombatAnimator3D {
     // les lancements s'empileraient à l'écran.
     const scale = Math.min(1, Math.max(0.35, interval / BASE_TICK_MS));
     toast.style.setProperty('--power-toast-dur', (1.8 * scale).toFixed(2) + 's');
-    toast.textContent = icon ? `${icon} ${label}` : label;
+    if (hasIllustration) {
+      const img = document.createElement('img');
+      img.src = illustrationUrl(power_id);
+      img.alt = '';
+      toast.appendChild(img);
+      toast.appendChild(document.createTextNode(label));
+    } else {
+      toast.textContent = icon ? `${icon} ${label}` : label;
+    }
     toast.style.left = screen.x + 'px';
     toast.style.top  = (screen.y - 50) + 'px';
     document.body.appendChild(toast);

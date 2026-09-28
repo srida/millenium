@@ -102,7 +102,7 @@ export function ProgressionPills({ user, className = '', onOpen }: { user: AuthU
           title={c.label}
           className="flex items-center gap-1 rounded-full border border-line bg-surface-raised/70 px-2 py-0.5 sm:px-2.5 sm:py-1"
         >
-          <span aria-hidden="true">{c.icon}</span>
+          <UiIcon id={c.icon} className="h-3.5 w-3.5" />
           <span className={`font-semibold tabular-nums ${c.cls}`}>{fmt.format(user[c.key] ?? 0)}</span>
           <span className="sr-only">{c.label}</span>
         </span>

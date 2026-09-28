@@ -356,6 +356,9 @@
   position: fixed;
   z-index: 70;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   background: var(--gold-600);
   color: var(--void-950);
   font-size: 11px;
@@ -368,6 +371,12 @@
      et un toast de 1,8 s survivrait à quarante lancements. */
   animation: power-toast-anim var(--power-toast-dur, 1.8s) ease forwards;
   font-family: var(--font-display);
+}
+.power-cast-label img {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 /* Barre de vie et hexagone d'équipe dans les limites du cadre CSS3D */
