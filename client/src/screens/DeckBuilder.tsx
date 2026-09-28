@@ -21,6 +21,7 @@ import { useMissionStore } from '../stores/missionStore.js';
 import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { Button, Modal, usePressSquash } from '../components/ui/primitives.js';
 import Card3D, { cardVisualProps } from '../components/ui/Card3D.js';
+import UiIcon from '../components/ui/UiIcon.js';
 import QueryBar from '../components/ui/QueryBar.js';
 import SortControl, { type SortState } from '../components/ui/SortControl.js';
 import * as Query from '../../../card-query.mjs';
@@ -419,14 +420,14 @@ export default function DeckBuilder() {
       </div>
 
       {dropped > 0 && (
-        <p className="border-b border-line bg-gold/10 px-4 py-2 text-xs text-gold">
-          ⚠ {dropped} doublon{dropped > 1 ? 's' : ''} retiré{dropped > 1 ? 's' : ''} : une carte ne peut figurer qu'une fois dans un deck.
+        <p className="flex items-start gap-1.5 border-b border-line bg-gold/10 px-4 py-2 text-xs text-gold">
+          <UiIcon id="UI_WARNING" className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" /> {dropped} doublon{dropped > 1 ? 's' : ''} retiré{dropped > 1 ? 's' : ''} : une carte ne peut figurer qu'une fois dans un deck.
         </p>
       )}
 
       {lockedInDeck > 0 && (
-        <p className="border-b border-line bg-danger/10 px-4 py-2 text-xs text-danger">
-          🔒 {lockedInDeck} carte{lockedInDeck > 1 ? 's' : ''} de ce deck n'{lockedInDeck > 1 ? 'ont' : 'a'} pas été débloquée{lockedInDeck > 1 ? 's' : ''} — retire-la{lockedInDeck > 1 ? 's' : ''} pour n'y garder que ta collection.
+        <p className="flex items-start gap-1.5 border-b border-line bg-danger/10 px-4 py-2 text-xs text-danger">
+          <UiIcon id="UI_LOCK" className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" /> {lockedInDeck} carte{lockedInDeck > 1 ? 's' : ''} de ce deck n'{lockedInDeck > 1 ? 'ont' : 'a'} pas été débloquée{lockedInDeck > 1 ? 's' : ''} — retire-la{lockedInDeck > 1 ? 's' : ''} pour n'y garder que ta collection.
         </p>
       )}
 
@@ -495,7 +496,7 @@ export default function DeckBuilder() {
       {saveError && (
         <Modal onClose={() => setSaveError(null)}>
           <div className="text-center">
-            <div className="mb-2 text-3xl" aria-hidden>⚠️</div>
+            <UiIcon id="UI_WARNING" className="mx-auto mb-2 h-7 w-7" />
             <p className="text-sm text-white">{saveError}</p>
             <Button variant="primary" className="mt-4 w-full" onPointerDown={() => setSaveError(null)}>Compris</Button>
           </div>
@@ -581,7 +582,7 @@ function SkinButton({ card, skinned, onTap }: { card: Card; skinned: boolean; on
       {...handlers}
       onPointerDown={(e) => { e.stopPropagation(); handlers.onPointerDown(e); }}
     >
-      🎨
+      <UiIcon id="UI_PAINT" className="h-3.5 w-3.5" />
     </button>
   );
 }

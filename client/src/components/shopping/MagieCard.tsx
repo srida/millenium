@@ -12,6 +12,7 @@
 import { effectLabel, magieCostHp } from '../../logic/MagieEffect.js';
 import { GAME_NAMES } from '../../data/gameNames.js';
 import { rarityOf, RARITY_LABELS } from '../../logic/MagieOffer.js';
+import UiIcon from '../ui/UiIcon.js';
 import type { Magie, MagieRarity } from '../../logic/types.js';
 import { Illustration } from '../ui/primitives.js';
 
@@ -116,7 +117,7 @@ export default function MagieCard(
           </div>
         )}
       </div>
-      <span className="flex-shrink-0 pr-1 text-white/30">{affordable ? '▸' : '✕'}</span>
+      <span className="flex-shrink-0 pr-1 text-white/30">{affordable ? '▸' : <UiIcon id="UI_CLOSE" className="h-3 w-3 inline-block" />}</span>
     </button>
   );
 }

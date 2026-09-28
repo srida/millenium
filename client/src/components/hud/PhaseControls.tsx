@@ -6,6 +6,7 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import type { BoardDef } from '../../logic/types.js';
 import { Button, Illustration, usePressSquash } from '../ui/primitives.js';
+import UiIcon from '../ui/UiIcon.js';
 import HoldConfirmButton from '../ui/HoldConfirmButton.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import * as Audio from '../../audio/AudioManager.js';
@@ -42,7 +43,7 @@ function TerrainChip({ board }: { board: BoardDef }) {
     >
       {board._has_illustration
         ? <Illustration id={board.id} className="h-5 w-5 rounded" />
-        : <span className="flex-shrink-0 leading-none">🗺️</span>}
+        : <UiIcon id="UI_TERRAIN" className="h-5 w-5" />}
       <span className="truncate">{board.name}</span>
     </button>
   );
@@ -79,7 +80,7 @@ function UndoButton({ onUndo }: { onUndo: () => void }) {
       onPointerDown={(e) => { e.stopPropagation(); onUndo(); }}
       sfx={false}
     >
-      ↺
+      <UiIcon id="UI_UNDO" className="h-5 w-5" />
     </Button>
   );
 }
@@ -104,7 +105,7 @@ function MenuButton() {
       onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_ingame'); applySnapshot({ menuOpen: true }); }}
       sfx={false}
     >
-      ☰
+      <UiIcon id="UI_MENU" className="h-5 w-5" />
     </Button>
   );
 }

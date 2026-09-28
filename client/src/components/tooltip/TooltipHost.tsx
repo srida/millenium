@@ -10,6 +10,7 @@ import { linkedCardGroups, hasLinkedCards } from '../../data/CardLinks.js';
 import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
 import PowerIcon from '../ui/PowerIcon.js';
 import { Illustration } from '../ui/primitives.js';
+import UiIcon from '../ui/UiIcon.js';
 import RecipeRow from '../ui/SummonRecipe.js';
 import { cardName, magieName } from '../../data/gameNames.js';
 import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
@@ -211,7 +212,7 @@ function LinkedCardsButton({ card }: { card: Card }) {
       onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_button'); showLinkedCards(card); }}
       className="pointer-events-auto mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-player/40 bg-player/10 py-1.5 text-[11px] font-bold text-player active:scale-[0.98]"
     >
-      🧬 Cartes liées
+      <UiIcon id="UI_LINKED" className="h-3.5 w-3.5" /> Cartes liées
     </button>
   );
 }
@@ -284,20 +285,20 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
           </div>
         )}
         {lineage.length > 0 && (
-          <div className="mt-1 text-[11px] text-player">🧬 {lineage.map(cardName).join(', ')}</div>
+          <div className="mt-1 flex items-start gap-1 text-[11px] text-player"><UiIcon id="UI_LINKED" className="mt-0.5 h-3 w-3 flex-shrink-0" /> {lineage.map(cardName).join(', ')}</div>
         )}
         {/* ⚠️ Le signe se DÉRIVE de la valeur : une magie de Shopping peut poser
             un malus permanent (MAGIC_012 : −5 vitesse d'attaque), et le « + »
             écrit en dur rendait « +-5 ». */}
         {shoppingEntries.length > 0 && (
-          <div className="mt-1 text-[11px] text-gold">
-            🛒 {shoppingEntries
+          <div className="mt-1 flex items-start gap-1 text-[11px] text-gold">
+            <UiIcon id="UI_SHOP" className="mt-0.5 h-3 w-3 flex-shrink-0" /> {shoppingEntries
               .map(([stat, value]) => `${(value as number) > 0 ? '+' : '−'}${Math.abs(value as number)} ${STAT_LABELS[stat] ?? stat}`)
               .join(', ')}
           </div>
         )}
         {isUnit && (data.veterancy_points ?? 0) >= 2 && (
-          <div className="mt-1 text-[11px] text-gold">★ Vétéran ({data.veterancy_points})</div>
+          <div className="mt-1 flex items-center gap-1 text-[11px] text-gold"><UiIcon id="UI_VETERAN" className="h-3 w-3" /> Vétéran ({data.veterancy_points})</div>
         )}
       </div>
     );

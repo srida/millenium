@@ -9,6 +9,7 @@ import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useChallengeStore } from '../stores/challengeStore.js';
 import { Button, Modal, usePressSquash } from '../components/ui/primitives.js';
+import UiIcon from '../components/ui/UiIcon.js';
 import { LevelRewardsPanel, ProgressionPanel } from '../components/ui/ProgressionStats.js';
 import type { LevelRewardsView } from '../components/ui/ProgressionStats.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
@@ -271,7 +272,7 @@ export default function ProfileScreen() {
               {incoming.map(u => (
                 <FriendRow key={u.friendship_id} u={u}>
                   <Button variant="primary" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).acceptRequest(u.friendship_id))}>✓</Button>
-                  <Button variant="danger" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).declineRequest(u.friendship_id))}>✕</Button>
+                  <Button variant="danger" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).declineRequest(u.friendship_id))}><UiIcon id="UI_CLOSE" className="h-3.5 w-3.5" /></Button>
                 </FriendRow>
               ))}
             </FriendSection>
@@ -299,7 +300,7 @@ export default function ProfileScreen() {
                       variant="primary" className="px-2 text-xs" disabled={!!pending || sending}
                       onPointerDown={() => { void handleChallenge(u.id); }}
                     >
-                      {pending ? 'En attente…' : sending ? '…' : '⚔ Défier'}
+                      {pending ? 'En attente…' : sending ? '…' : <><UiIcon id="UI_DUEL" className="inline-block h-3.5 w-3.5 align-[-3px]" /> Défier</>}
                     </Button>
                     <Button variant="danger" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).removeFriend(u.friendship_id))}>Retirer</Button>
                   </FriendRow>

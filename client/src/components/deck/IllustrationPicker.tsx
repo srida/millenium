@@ -14,6 +14,7 @@ import type { Card } from '../../logic/types.js';
 import type { OwnedVariant } from '../../stores/cosmeticStore.js';
 import { Modal } from '../ui/primitives.js';
 import Card3D from '../ui/Card3D.js';
+import UiIcon from '../ui/UiIcon.js';
 import * as Audio from '../../audio/AudioManager.js';
 
 export default function IllustrationPicker({
@@ -86,7 +87,7 @@ export default function IllustrationPicker({
             onPointerDown={() => { Audio.playSfx('menu_button'); onToggleFoil?.(); }}
             className={`min-h-tap flex items-center justify-between rounded-lg border px-3 text-sm font-semibold ${foil ? 'border-gold text-gold' : 'border-line text-white/60'}`}
           >
-            <span>✨ Reflet</span>
+            <span className="flex items-center gap-1.5"><UiIcon id="UI_XP" className="h-4 w-4" /> Reflet</span>
             <span className="text-xs">{foil ? 'Activé' : 'Désactivé'}</span>
           </button>
         )}

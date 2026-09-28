@@ -6,6 +6,7 @@
 // est en dessous et doit continuer à recevoir les taps pour son raycast.
 import type { ReactNode } from 'react';
 import * as Audio from '../../audio/AudioManager.js';
+import UiIcon from '../ui/UiIcon.js';
 
 export function CoachBubble({
   title, text, action, onAction, footer, className = '',
@@ -21,7 +22,7 @@ export function CoachBubble({
   return (
     <div className={`pointer-events-auto rounded-xl border border-gold/50 bg-surface/97 p-3 shadow-2xl backdrop-blur ${className}`}>
       <div className="flex items-start gap-2">
-        <span className="text-base leading-none" aria-hidden>🎓</span>
+        <UiIcon id="UI_TUTORIAL" className="h-5 w-5" />
         <div className="min-w-0 flex-1">
           <div className="text-sm font-bold text-gold">{title}</div>
           <p className="mt-0.5 text-xs leading-relaxed text-white/80">{text}</p>

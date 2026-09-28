@@ -20,6 +20,7 @@ import { useArcadeStore, currentDuel, wonCount, type ArcadeDuel, type ArcadeBonu
 import { Amount, Button, Countdown } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
+import UiIcon from '../components/ui/UiIcon.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
 
@@ -93,7 +94,7 @@ export default function ArcadeScreen() {
       <div className={classname_body}>
         {!run ? (
           <div className="flex flex-col items-center gap-3 py-4 text-center">
-            <div className="text-4xl">🕹</div>
+            <UiIcon id="UI_ARCADE" className="h-10 w-10" />
             <p className="max-w-xs text-sm text-white/60">
               {snapshot.duel_count} duels d'affilée contre des adversaires de plus en plus coriaces.
               Une seule run par jour, et une défaite y met fin.
@@ -164,7 +165,7 @@ export default function ArcadeScreen() {
                 </>
               ) : run.status === 'won' ? (
                 <div className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-center">
-                  <div className="text-3xl">👑</div>
+                  <UiIcon id="UI_VICTORY" className="mx-auto h-8 w-8" />
                   <div className="mt-1 text-sm font-bold text-gold">Parcours complet !</div>
                   <div className="mt-1 text-xs text-success">
                     <Amount currency="gold" value={snapshot.reward.gold} sign /> · +{snapshot.reward.xp} XP
@@ -175,7 +176,7 @@ export default function ArcadeScreen() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-line bg-surface-raised/60 p-4 text-center">
-                  <div className="text-3xl">💀</div>
+                  <UiIcon id="UI_DEFEAT" className="mx-auto h-8 w-8" />
                   <div className="mt-1 text-sm text-danger">
                     Run stoppée au duel {wonCount(run) + 1}.
                   </div>

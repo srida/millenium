@@ -12,14 +12,15 @@
 // montre toute la grille sans qu'aucune ligne de texte permanente ne le dise.
 import { useEffect, useRef, useState } from 'react';
 import { usePressSquash } from '../ui/primitives.js';
+import UiIcon, { type UiIconId } from '../ui/UiIcon.js';
 
 export type Ownership = 'all' | 'owned' | 'missing';
 
 const ORDER: Ownership[] = ['all', 'owned', 'missing'];
-const META: Record<Ownership, { icon: string; label: string }> = {
-  all: { icon: '🃏', label: 'Toutes les cartes' },
-  owned: { icon: '✅', label: 'Cartes obtenues' },
-  missing: { icon: '🎯', label: 'Cartes à obtenir' },
+const META: Record<Ownership, { icon: UiIconId; label: string }> = {
+  all: { icon: 'UI_CARD', label: 'Toutes les cartes' },
+  owned: { icon: 'UI_OWNED', label: 'Cartes obtenues' },
+  missing: { icon: 'UI_MISSIONS', label: 'Cartes à obtenir' },
 };
 const TOAST_MS = 1600;
 
@@ -52,7 +53,7 @@ export default function OwnershipToggle({ value, onChange }: {
         className={`flex min-h-tap min-w-tap items-center justify-center rounded-lg border border-line bg-surface-raised text-base transition-transform duration-100 ease-out ${squashed ? 'scale-95' : ''}`}
         {...handlers}
       >
-        <span aria-hidden="true">{meta.icon}</span>
+        <UiIcon id={meta.icon} className="h-5 w-5" />
       </button>
       {/* Toast local : ancré au bouton, pas de conflit avec le hub global
           (`RewardToasts`, réservé aux gains à récupérer). */}

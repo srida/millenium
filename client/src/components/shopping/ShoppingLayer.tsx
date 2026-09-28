@@ -13,6 +13,7 @@ import { Button, IconButton, Modal } from '../ui/primitives.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import HoldConfirmButton from '../ui/HoldConfirmButton.js';
 import MagieCard from './MagieCard.js';
+import UiIcon from '../ui/UiIcon.js';
 
 export default function ShoppingLayer() {
   const shopping = useGameStore(s => s.shopping);
@@ -39,7 +40,7 @@ export default function ShoppingLayer() {
     return (
       <div className="pointer-events-none fixed inset-x-0 top-14 z-40 flex flex-col items-center gap-2 px-4">
         <div className="rounded-lg border border-gold bg-surface/95 px-4 py-2 text-center text-sm font-semibold text-gold shadow-lg">
-          ✨ {shopping.banner}
+          <UiIcon id="UI_XP" className="inline-block h-3.5 w-3.5 align-[-2px]" /> {shopping.banner}
           <span className="ml-2 font-normal tabular-nums text-gold/70">· {remaining}s</span>
         </div>
         <Button
@@ -111,7 +112,7 @@ export default function ShoppingLayer() {
           prend toute la largeur. */}
       <div className="mt-3 flex gap-2">
         <HoldConfirmButton
-          icon="🎲"
+          icon={<UiIcon id="UI_REROLL" className="h-5 w-5" />}
           label="Re-roll"
           cost={shopping.rerollCost}
           onConfirm={() => controller.rerollShopping()}

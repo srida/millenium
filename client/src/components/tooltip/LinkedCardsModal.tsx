@@ -18,6 +18,7 @@ import * as CardDatabase from '../../data/CardDatabase.js';
 import { linkedCardGroups } from '../../data/CardLinks.js';
 import { useUiStore, type DeckPickContext } from '../../stores/uiStore.js';
 import { Modal } from '../ui/primitives.js';
+import UiIcon from '../ui/UiIcon.js';
 import Card3D, { cardVisualProps } from '../ui/Card3D.js';
 import type { Card } from '../../logic/types.js';
 import * as Audio from '../../audio/AudioManager.js';
@@ -70,14 +71,14 @@ export default function LinkedCardsModal() {
   return (
     <Modal onClose={hideLinkedCards} maxWidth="max-w-md">
       <div className="flex items-center justify-between gap-2 border-b border-line pb-2">
-        <span className="truncate text-sm font-bold">🧬 {linked.card.name}</span>
+        <span className="flex min-w-0 items-center gap-1.5 truncate text-sm font-bold"><UiIcon id="UI_LINKED" className="h-4 w-4 flex-shrink-0" /> {linked.card.name}</span>
         <button
           type="button"
           onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_button'); hideLinkedCards(); }}
-          className="shrink-0 text-lg leading-none text-white/50"
+          className="shrink-0 leading-none text-white/50"
           aria-label="Fermer"
         >
-          ✕
+          <UiIcon id="UI_CLOSE" className="h-4 w-4" />
         </button>
       </div>
       <CardGroup title="MATÉRIELS" cards={groups.materials} pick={deckPick} />

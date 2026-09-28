@@ -21,6 +21,7 @@ import { useEffect } from 'react';
 import { useMissionStore } from '../../stores/missionStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { RewardList } from '../../screens/MissionsScreen.js';
+import UiIcon, { type UiIconId } from './UiIcon.js';
 
 // Court et sur le côté : le toast est une NOTIFICATION, pas une récompense à
 // contempler — il n'y a rien à y faire. 3 s en vignette contre 6 s en bandeau
@@ -29,7 +30,7 @@ const TOAST_MS = 3000;
 
 type Kind = 'mission' | 'milestone' | 'level';
 
-const ICONS: Record<Kind, string> = { mission: '🎯', milestone: '🏅', level: '⬆' };
+const ICONS: Record<Kind, UiIconId> = { mission: 'UI_MISSIONS', milestone: 'UI_MEDAL', level: 'UI_LEVEL_UP' };
 const BORDERS: Record<Kind, string> = {
   mission: 'border-success/60',
   milestone: 'border-gold/60',
@@ -87,7 +88,7 @@ export default function RewardToasts() {
           key={t.id}
           className={`flex max-w-full items-center gap-1.5 rounded-lg border bg-surface/95 px-2 py-1 shadow-lg backdrop-blur ${BORDERS[t.kind]}`}
         >
-          <span className="text-[11px]" aria-hidden="true">{ICONS[t.kind]}</span>
+          <UiIcon id={ICONS[t.kind]} className="h-3.5 w-3.5" />
           <div className="min-w-0">
             {/* Le libellé tient sur une ligne, tronqué : c'est un rappel de ce
                 qui vient de tomber, il n'a pas à être lisible en entier —
