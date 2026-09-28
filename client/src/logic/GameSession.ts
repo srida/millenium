@@ -917,8 +917,11 @@ export class GameSession {
     // devenu mobile, l'exact contraire de ce que la dissipation fait. Même
     // horloge que les deux timers ci-dessus, et la même raison : ce qui ne doit
     // repartir qu'au combat se remet à zéro au combat.
-    for (const u of playerUnits) { u.resetCombatClocks(); u.is_immobile = false; }
-    for (const u of this.enemyUnits) { u.resetCombatClocks(); u.is_immobile = false; }
+    // ⚠️ `is_elusive` (Insaisissable) suit EXACTEMENT `is_immobile` : même
+    // statut posé par un effet, même remise à zéro ici et pas dans
+    // `resetCombatStats()`, pour la même raison — cf. sa doc dans `Unit`.
+    for (const u of playerUnits) { u.resetCombatClocks(); u.is_immobile = false; u.is_elusive = false; }
+    for (const u of this.enemyUnits) { u.resetCombatClocks(); u.is_immobile = false; u.is_elusive = false; }
 
     this.gameState.startCombat(playerUnits.length, this.enemyUnits.length);
 

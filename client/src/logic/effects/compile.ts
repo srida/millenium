@@ -318,6 +318,9 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   // Mêmes moments que l'immunité : les deux posent un statut sur le porteur, et
   // les trois moments sont exactement ceux où un porteur est là pour le recevoir.
   immobile: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  // Le mot-clé **Insaisissable** — même famille que Tour : un statut posé sur
+  // le porteur, aux mêmes trois moments.
+  insaisissable: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   // ⚠️ **Un type à part de `destroy_unit`, et non un champ `camp`** : la magie
   // détruit une unité ALLIÉE (un coût que le joueur consent, il la désigne), le
   // mot-clé une unité ADVERSE (une récompense). Le geste du moteur est le même
@@ -537,6 +540,14 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
         // et c'est une affaire d'appelant, pas de compilation.
         case 'immobile':
           pousse([{ action: 'poser_statut', cible: cibleUnite(), statut: 'immobile', duree: 'combat' }]);
+          return;
+
+        // Le mot-clé **Insaisissable** — même geste que Tour, nettoyé par
+        // `GameSession.startCombat` et non par `resetCombatStats()` : ce n'est
+        // pas un bonus, c'est un comportement, et la dissipation ne rejoue que
+        // le journal des stats.
+        case 'insaisissable':
+          pousse([{ action: 'poser_statut', cible: cibleUnite(), statut: 'insaisissable', duree: 'combat' }]);
           return;
 
         // **Explosif** — le porteur emporte une unité adverse en tombant.

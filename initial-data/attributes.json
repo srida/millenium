@@ -2068,5 +2068,23 @@
 		"categorie": "MotCle",
 		"thresholds": [],
 		"mot_cle": "unique"
+	},
+	{
+		"id": "ARCH_106",
+		"name": "Insaisissable",
+		"icon": "🐇",
+		"timing": "start_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "insaisissable"
+					}
+				]
+			}
+		]
 	}
 ]

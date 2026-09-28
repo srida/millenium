@@ -143,6 +143,11 @@ function etat(u: Unit): string {
     `dep ${u.movement_rate}`, `vit ${u.attack_rate}`, `por ${u.range}`,
     `bcl ${u.shield}`,
     u.is_effect_immune ? 'immunisé' : null,
+    // ⚠️ Insaisissable ne bouge ni stat ni ressource — sans cette ligne, son
+    // seul palier serait « muet » aux yeux de cette sonde (comme le serait
+    // celui de Tour, si `immobile` n'y était pas systématiquement épaulé d'un
+    // `stat_bonus range`).
+    u.is_elusive ? 'insaisissable' : null,
     u._stat_bonuses.power_charge ? `charge +${u._stat_bonuses.power_charge}` : null,
     u.is_neutralized ? 'neutralisé' : null,
   ].filter(Boolean).join(' · ');

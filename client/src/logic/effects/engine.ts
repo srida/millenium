@@ -608,6 +608,11 @@ function appliquePoserStatut(t: TachePoserStatut, monde: Monde, trace: Trace): v
       // pour les ressources et le registre des portées.
       u.is_immobile = true;
       trace.applique.push(`${u.card_id}·immobile`);
+    } else if (t.statut === 'insaisissable') {
+      // ⚠️ Même geste que `immobile` : le moteur POSE, il ne nettoie pas —
+      // `GameSession.startCombat` remet `is_elusive` à zéro (cf. `Unit`).
+      u.is_elusive = true;
+      trace.applique.push(`${u.card_id}·insaisissable`);
     } else {
       trace.ignore.push(`${u.card_id}·statut ${t.statut} (non câblé)`);
     }
