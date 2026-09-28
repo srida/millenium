@@ -15,7 +15,7 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { Illustration, Modal } from '../ui/primitives.js';
 import { attributeName } from '../ui/AttrIcon.js';
-import UiIcon from '../ui/UiIcon.js';
+import UiIcon, { type UiIconId } from '../ui/UiIcon.js';
 import * as CardBackDatabase from '../../data/CardBackDatabase.js';
 import * as DeckRepository from '../../data/DeckRepository.js';
 import { drawBonusRows, drawnLabel, guaranteedDrawLabel } from '../../data/DrawInfo.js';
@@ -238,7 +238,9 @@ function BonusRow({ row }: { row: DrawBonusRow }) {
   if (row.amount === 0) return null;
   return (
     <div className="flex items-center justify-between text-[11px]">
-      <span className="truncate text-white/70">{row.icon} {bonusSourceName(row.kind, row.ref)}</span>
+      <span className="flex items-center gap-1 truncate text-white/70">
+        <UiIcon id={row.icon as UiIconId} className="h-3 w-3" /> {bonusSourceName(row.kind, row.ref)}
+      </span>
       <span className="font-semibold text-success">+{row.amount}</span>
     </div>
   );

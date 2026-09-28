@@ -87,7 +87,13 @@ export default function ShoppingLayer() {
         <div className="text-sm text-white/60">Choisis une magie</div>
         <div className="mt-1 text-xs font-semibold tabular-nums text-gold/80">{remaining}s</div>
         {shopping.info && (
-          <div className="mt-1.5 text-[11px] font-semibold text-gold">{shopping.info}</div>
+          <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-[11px] font-semibold text-gold">
+            {shopping.info.map((part, i) => (
+              <span key={i} className="inline-flex items-center gap-1">
+                <UiIcon id={part.icon} className="h-3 w-3" /> {part.text}
+              </span>
+            ))}
+          </div>
         )}
       </div>
       <div className={isWeb ? 'grid grid-cols-3 gap-2' : 'space-y-2'}>

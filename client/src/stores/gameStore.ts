@@ -6,6 +6,7 @@ import type { GameController } from '../game/GameController.js';
 import type { EndRoundResult } from '../logic/GameSession.js';
 import { MULLIGAN_COST_HP } from '../logic/GameState.js';
 import { SHOPPING_DURATION_S } from '../game/timings.js';
+import type { UiIconId } from '../components/ui/UiIcon.js';
 
 export interface HandEntry {
   key: string;      // identité stable pour React (signature de la carte)
@@ -66,7 +67,7 @@ export interface ShoppingState {
    * même temps (`info` seulement à l'écran de choix, `banner` seulement en
    * ciblage). `null` quand rien de tout ça ne s'est produit ce tour.
    */
-  info: string | null;
+  info: { icon: UiIconId; text: string }[] | null;
 }
 
 /**

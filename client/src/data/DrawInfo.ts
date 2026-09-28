@@ -9,18 +9,16 @@
 import type { BonusSourceEntry, DrawSourceEntry, DrawSummary, GuaranteedDraw } from '../logic/types.js';
 import { guaranteedDrawCriteria } from '../logic/Draw.js';
 
-/** Le glyphe d'une source de BONUS, quel que soit le registre — la pioche
- *  (`DrawSourceEntry`) comme le multiplicateur (`BonusSourceEntry`). Les trois
- *  sont déjà lus ailleurs dans le jeu : ✨ le Shopping, 🧬 la lignée d'une
- *  unité, 🗺️ le terrain.
- *  ⚠️ Il vit dans ce module PUR et non à côté de `bonusSourceName`
- *  (`data/gameNames`), qui importe les databases : la table n'a aucune
- *  dépendance, le résolveur en a trois, et c'est ce qui garde `DrawInfo`
- *  testable sans DOM. */
+/** L'id d'icône UI d'une source de BONUS, quel que soit le registre — la
+ *  pioche (`DrawSourceEntry`) comme le multiplicateur (`BonusSourceEntry`).
+ *  ⚠️ Un `string`, pas un `UiIconId` : ce module PUR n'importe rien hors des
+ *  types de `logic/` (testable en node, sans DOM). C'est au composant qui
+ *  rend la ligne de connaître `UiIconId` et de faire le cast — la valeur
+ *  voyage ici comme un id opaque, au même titre que `ref`. */
 export const BONUS_SOURCE_ICON: Record<BonusSourceEntry['kind'], string> = {
-  magie: '✨',
-  attribut: '🧬',
-  terrain: '🗺️',
+  magie: 'UI_XP',
+  attribut: 'UI_LINKED',
+  terrain: 'UI_TERRAIN',
 };
 
 export interface DrawBonusRow {
@@ -62,7 +60,7 @@ export function drawBonusRows(summary: DrawSummary | null | undefined): DrawBonu
     rows.set(key, {
       key,
       kind: src.kind,
-      icon: BONUS_SOURCE_ICON[src.kind] ?? '•',
+      icon: BONUS_SOURCE_ICON[src.kind],
       ref: src.ref,
       amount: src.value,
       guaranteed,

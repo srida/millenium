@@ -12,7 +12,7 @@ import RecipeRow from '../ui/SummonRecipe.js';
 import { summonRecipes } from '../../data/SummonInfo.js';
 import { AnimatedLevelGauge } from '../ui/ProgressionStats.js';
 import { BONUS_SOURCE_ICON } from '../../data/DrawInfo.js';
-import UiIcon from '../ui/UiIcon.js';
+import UiIcon, { type UiIconId } from '../ui/UiIcon.js';
 import { bonusSourceName } from '../../data/gameNames.js';
 import { END_ROUND_DURATION_S, TERRAIN_ALERT_MS } from '../../game/timings.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
@@ -356,8 +356,8 @@ function PlayerHpBonusLine({ bonus, sources }: { bonus: number; sources: readonl
         <div className="mt-1 space-y-0.5 border-t border-white/10 pt-1">
           {[...rows.entries()].map(([key, row]) => (
             <div key={key} className="flex items-center justify-between gap-2 text-[10px]">
-              <span className="truncate text-white/50">
-                {BONUS_SOURCE_ICON[row.kind] ?? '•'} {bonusSourceName(row.kind, row.ref)}
+              <span className="flex items-center gap-1 truncate text-white/50">
+                <UiIcon id={BONUS_SOURCE_ICON[row.kind] as UiIconId} className="h-3 w-3" /> {bonusSourceName(row.kind, row.ref)}
               </span>
               <span className={`flex-shrink-0 font-semibold tabular-nums ${row.value > 0 ? 'text-success' : 'text-danger'}`}>
                 {row.value > 0 ? '+' : ''}{row.value}
@@ -372,7 +372,7 @@ function PlayerHpBonusLine({ bonus, sources }: { bonus: number; sources: readonl
 
 /**
  * D'où vient le bonus, ligne par ligne — le pendant du bloc « BONUS DE PIOCHE »
- * de la popup de pioche, jusqu'aux glyphes (`BONUS_SOURCE_ICON`, la MÊME table).
+ * de la popup de pioche, jusqu'aux icônes (`BONUS_SOURCE_ICON`, la MÊME table).
  *
  * ⚠️ Les entrées de même source sont FONDUES : deux paliers d'un même attribut
  * donnent une ligne, pas deux lignes identiques. Même règle que `drawBonusRows`.
@@ -397,8 +397,8 @@ function MultiplierSources({ sources }: { sources: readonly BonusSourceEntry[] }
     <div className="mt-1 space-y-0.5 border-t border-white/10 pt-1">
       {[...rows.entries()].map(([key, row]) => (
         <div key={key} className="flex items-center justify-between gap-2 text-[10px]">
-          <span className="truncate text-white/50">
-            {BONUS_SOURCE_ICON[row.kind] ?? '•'} {bonusSourceName(row.kind, row.ref)}
+          <span className="flex items-center gap-1 truncate text-white/50">
+            <UiIcon id={BONUS_SOURCE_ICON[row.kind] as UiIconId} className="h-3 w-3" /> {bonusSourceName(row.kind, row.ref)}
           </span>
           <span className="flex-shrink-0 font-semibold tabular-nums text-gold">+{row.value.toFixed(1)}</span>
         </div>

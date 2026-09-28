@@ -14,6 +14,7 @@ import * as AttributeDatabase from '../../data/AttributeDatabase.js';
 import * as MagieDatabase from '../../data/MagieDatabase.js';
 import * as BoardDatabase from '../../data/BoardDatabase.js';
 import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
+import UiIcon, { isUiIconId } from '../ui/UiIcon.js';
 // ⚠️ La MÊME mise en mots qu'en jeu (`TooltipHost`) : un joueur ne doit pas
 // pouvoir lire dans le codex autre chose que ce que la carte lui dira.
 import { keywordText, keywordAttributes, MOT_CLE_CATEGORY } from '../../data/KeywordInfo.js';
@@ -26,16 +27,29 @@ import type { ChapterBlock } from '../../data/tutorialContent.js';
 import Card3D, { cardVisualProps } from '../ui/Card3D.js';
 import { Illustration } from '../ui/primitives.js';
 
-// Les textes du codex portent quelques **passages en gras** — juste assez de
-// balisage pour souligner un terme, sans embarquer un moteur Markdown.
+// Les textes du codex portent quelques **passages en gras** et, depuis le set
+// d'icônes redessiné, des tokens `:UI_XXX:` — juste assez de balisage pour
+// souligner un terme ou poser une icône inline, sans embarquer un moteur
+// Markdown.
+//
+// ⚠️ `isUiIconId` (la MÊME garde que celle des icônes de chapitre,
+// `TutorialScreen.tsx`) tranche un token malformé : `:UI_INCONNU:` retombe en
+// texte plutôt que de crasher ou de disparaître en silence — un id qui se
+// renomme ou une faute de frappe dans le contenu se voit à l'écran.
 function RichText({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+  const parts = text.split(/(\*\*[^*]+\*\*|:UI_[A-Z_]+:)/g).filter(Boolean);
   return (
     <>
-      {parts.map((p, i) => (p.startsWith('**') && p.endsWith('**')
-        ? <strong key={i} className="font-semibold text-white">{p.slice(2, -2)}</strong>
-        : <span key={i}>{p}</span>
-      ))}
+      {parts.map((p, i) => {
+        if (p.startsWith('**') && p.endsWith('**')) {
+          return <strong key={i} className="font-semibold text-white">{p.slice(2, -2)}</strong>;
+        }
+        const token = p.startsWith(':') && p.endsWith(':') ? p.slice(1, -1) : null;
+        if (token && isUiIconId(token)) {
+          return <UiIcon key={i} id={token} className="inline-block h-3.5 w-3.5 align-[-0.15em]" />;
+        }
+        return <span key={i}>{p}</span>;
+      })}
     </>
   );
 }

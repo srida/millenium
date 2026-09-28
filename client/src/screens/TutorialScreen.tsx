@@ -16,13 +16,7 @@ import { Button, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_GOLD, usePressSquash } fr
 import ChapterBlockView from '../components/tutorial/ChapterBlocks.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
-import UiIcon, { type UiIconId } from '../components/ui/UiIcon.js';
-
-/** Un chapitre porte soit un id du set d'interface, soit un emoji brut (les
- *  quelques chapitres sans icône dédiée dans le set redessiné). */
-function isUiIconId(v: string): v is UiIconId {
-  return v.startsWith('UI_');
-}
+import UiIcon, { isUiIconId } from '../components/ui/UiIcon.js';
 
 export default function TutorialScreen() {
   const navigate = useUiStore(s => s.navigate);

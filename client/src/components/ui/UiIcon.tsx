@@ -19,6 +19,14 @@ export type UiIconId =
   | 'UI_STATS' | 'UI_LINK' | 'UI_LANDSCAPE' | 'UI_LOCATION' | 'UI_RECIPES' | 'UI_FORBIDDEN'
   | 'UI_SORT' | 'UI_CLOSE';
 
+/** Un id de la famille Interface commence toujours par `UI_` — ce qui permet
+ *  à un appelant qui reçoit un champ « soit un id, soit un emoji brut » (un
+ *  chapitre du codex, un token inline dans une prose) de trancher sans table
+ *  à tenir à jour. */
+export function isUiIconId(v: string): v is UiIconId {
+  return v.startsWith('UI_');
+}
+
 export default function UiIcon({ id, className = '', alt = '' }: {
   id: UiIconId;
   /** Porte la taille (largeur/hauteur) — même convention que AttrIcon/PowerIcon. */
