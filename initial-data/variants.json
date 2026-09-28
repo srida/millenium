@@ -1201,5 +1201,9 @@
 	{
 		"id": "VAR_300",
 		"card_id": "STAPLE_031"
+	},
+	{
+		"id": "VAR_301",
+		"card_id": "KING_001"
 	}
 ]

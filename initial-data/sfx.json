@@ -1,1 +1,203 @@
-[]
+[
+	{
+		"id": "SFX_001",
+		"name": "Draw_1",
+		"trigger": "draw"
+	},
+	{
+		"id": "SFX_002",
+		"name": "Click_1",
+		"trigger": "card_tap"
+	},
+	{
+		"id": "SFX_003",
+		"name": "Drag_1",
+		"trigger": "drag"
+	},
+	{
+		"id": "SFX_004",
+		"name": "Summon_T1",
+		"trigger": "summon",
+		"tier": 1
+	},
+	{
+		"id": "SFX_005",
+		"name": "Summon_T2",
+		"trigger": "summon",
+		"tier": 2
+	},
+	{
+		"id": "SFX_006",
+		"name": "Summon_T3",
+		"trigger": "summon",
+		"tier": 3
+	},
+	{
+		"id": "SFX_007",
+		"name": "Summon_T4",
+		"trigger": "summon",
+		"tier": 4
+	},
+	{
+		"id": "SFX_008",
+		"name": "Summon_T5",
+		"trigger": "summon",
+		"tier": 5
+	},
+	{
+		"id": "SFX_010",
+		"name": "Mulligan_1",
+		"trigger": "mulligan_reroll"
+	},
+	{
+		"id": "SFX_011",
+		"name": "Ready_1",
+		"trigger": "ready"
+	},
+	{
+		"id": "SFX_012",
+		"name": "Reset_1",
+		"trigger": "undo"
+	},
+	{
+		"id": "SFX_013",
+		"name": "Target_1",
+		"trigger": "use_material"
+	},
+	{
+		"id": "SFX_014",
+		"name": "Menu_1",
+		"trigger": "menu_ingame"
+	},
+	{
+		"id": "SFX_015",
+		"name": "Attack_Dark_1",
+		"trigger": "attack",
+		"element": "ARCH_054"
+	},
+	{
+		"id": "SFX_016",
+		"name": "Battle_phase_1",
+		"trigger": "phase_combat"
+	},
+	{
+		"id": "SFX_017",
+		"name": "Shopping_phase_1",
+		"trigger": "phase_shopping"
+	},
+	{
+		"id": "SFX_018",
+		"name": "Win_screen_1",
+		"trigger": "match_win"
+	},
+	{
+		"id": "SFX_019",
+		"name": "Lose_screen",
+		"trigger": "match_lose"
+	},
+	{
+		"id": "SFX_020",
+		"name": "Draw_screen_1",
+		"trigger": "match_draw"
+	},
+	{
+		"id": "SFX_021",
+		"name": "Move_1",
+		"trigger": "move_unit"
+	},
+	{
+		"id": "SFX_022",
+		"name": "Turn_1",
+		"trigger": "round_change"
+	},
+	{
+		"id": "SFX_023",
+		"name": "Button_1",
+		"trigger": "round_recap_dismiss"
+	},
+	{
+		"id": "SFX_024",
+		"name": "Item_Shopping_1",
+		"trigger": "shopping_choose"
+	},
+	{
+		"id": "SFX_025",
+		"name": "Skip_1",
+		"trigger": "shopping_skip"
+	},
+	{
+		"id": "SFX_026",
+		"name": "Continue_1",
+		"trigger": "menu_resume"
+	},
+	{
+		"id": "SFX_027",
+		"name": "Quit_1",
+		"trigger": "menu_quit"
+	},
+	{
+		"id": "SFX_028",
+		"name": "Attack_Light_1",
+		"trigger": "attack",
+		"element": "ARCH_055"
+	},
+	{
+		"id": "SFX_029",
+		"name": "Attack_Fire_1",
+		"trigger": "attack",
+		"element": "ARCH_048"
+	},
+	{
+		"id": "SFX_030",
+		"name": "Attack_Water_1",
+		"trigger": "attack",
+		"element": "ARCH_049"
+	},
+	{
+		"id": "SFX_031",
+		"name": "Attack_Earth_1",
+		"trigger": "attack",
+		"element": "ARCH_050"
+	},
+	{
+		"id": "SFX_032",
+		"name": "Attack_Air_1",
+		"trigger": "attack",
+		"element": "ARCH_051"
+	},
+	{
+		"id": "SFX_033",
+		"name": "Attack_Default_1",
+		"trigger": "attack"
+	},
+	{
+		"id": "SFX_034",
+		"name": "Power_Default_1",
+		"trigger": "power"
+	},
+	{
+		"id": "SFX_035",
+		"name": "Destroy_1",
+		"trigger": "unit_destroyed"
+	},
+	{
+		"id": "SFX_036",
+		"name": "Launch_1",
+		"trigger": "duel_start"
+	},
+	{
+		"id": "SFX_037",
+		"name": "Summon_choice_1",
+		"trigger": "summon_menu_open"
+	},
+	{
+		"id": "SFX_038",
+		"name": "Menu_base_1",
+		"trigger": "menu_button"
+	},
+	{
+		"id": "SFX_039",
+		"name": "Buy_1",
+		"trigger": "shop_buy"
+	}
+]

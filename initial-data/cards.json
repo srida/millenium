@@ -4970,8 +4970,7 @@
 			"ARCH_051",
 			"ARCH_045",
 			"ARCH_090",
-			"ARCH_091",
-			"ARCH_106"
+			"ARCH_091"
 		],
 		"stats": {
 			"atk": 14,
@@ -8972,10 +8971,10 @@
 			"ARCH_097"
 		],
 		"stats": {
-			"atk": 5,
+			"atk": 0,
 			"hp": 250,
 			"movement_rate": 0,
-			"attack_rate": 96,
+			"attack_rate": 0,
 			"range": 1
 		},
 		"power": {
@@ -28754,27 +28753,29 @@
 		"stats": {
 			"atk": 28,
 			"hp": 260,
-			"range": 4,
+			"movement_rate": 90,
 			"attack_rate": 94,
-			"movement_rate": 90
+			"range": 4
 		},
 		"power": {
 			"id": "POWER_AOE_ATTACK",
-			"value": 40,
-			"power_rate": 36
+			"power_rate": 36,
+			"value": 40
 		},
 		"summon_conditions": [
 			{
 				"materials": 3,
 				"requires": [
 					"BASTIEN_001",
-					"BASTIEN_002"
+					"BASTIEN_002",
+					"BASTIEN_001"
 				]
 			}
 		],
 		"represented_ids": [
 			"BASTIEN_001",
-			"BASTIEN_002"
+			"BASTIEN_002",
+			"BASTIEN_001"
 		]
 	},
 	{
@@ -28794,9 +28795,9 @@
 		"stats": {
 			"atk": 20,
 			"hp": 160,
-			"range": 1,
+			"movement_rate": 83,
 			"attack_rate": 86,
-			"movement_rate": 83
+			"range": 1
 		},
 		"power": {},
 		"summon_conditions": [
@@ -28806,6 +28807,7 @@
 			}
 		],
 		"represented_ids": [
+			"BASTIEN_001",
 			"BASTIEN_001"
 		]
 	},
@@ -28821,19 +28823,20 @@
 			"ARCH_090",
 			"ARCH_021",
 			"ARCH_034",
-			"ARCH_048"
+			"ARCH_048",
+			"ARCH_100"
 		],
 		"stats": {
 			"atk": 8,
 			"hp": 60,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 94,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_BURN",
-			"value": 5,
-			"power_rate": 63
+			"power_rate": 63,
+			"value": 5
 		},
 		"summon_conditions": [],
 		"represented_ids": []
@@ -28848,31 +28851,34 @@
 			"ARCH_077",
 			"ARCH_048",
 			"ARCH_086",
-			"ARCH_003"
+			"ARCH_003",
+			"ARCH_098"
 		],
 		"stats": {
 			"atk": 27,
 			"hp": 270,
-			"range": 3,
+			"movement_rate": 90,
 			"attack_rate": 91,
-			"movement_rate": 90
+			"range": 3
 		},
 		"power": {
 			"id": "POWER_BURN",
-			"value": 5,
-			"power_rate": 63
+			"power_rate": 63,
+			"value": 5
 		},
 		"summon_conditions": [
 			{
-				"materials": 2,
+				"materials": 3,
 				"requires": [
 					"BASTIEN_002",
+					"BASTIEN_005",
 					"BASTIEN_005"
 				]
 			}
 		],
 		"represented_ids": [
 			"BASTIEN_002",
+			"BASTIEN_005",
 			"BASTIEN_005"
 		]
 	},
@@ -30937,7 +30943,7 @@
 		},
 		"power": {
 			"id": "POWER_SUMMON_TOKEN",
-			"power_rate": 63,
+			"power_rate": 23,
 			"token_id": "TOKEN_003"
 		},
 		"summon_conditions": [],
@@ -32195,6 +32201,296 @@
 		"appel": {
 			"card_ids": [
 				"JESSE_017"
+			]
+		}
+	},
+	{
+		"id": "KING_001",
+		"name": "Aile infernale",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_092",
+			"ARCH_001",
+			"ARCH_006",
+			"ARCH_084",
+			"ARCH_054",
+			"ARCH_048",
+			"ARCH_051",
+			"ARCH_086",
+			"ARCH_087",
+			"ARCH_019",
+			"ARCH_045"
+		],
+		"stats": {
+			"atk": 21,
+			"hp": 120,
+			"movement_rate": 90,
+			"attack_rate": 91,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_BURN",
+			"power_rate": 37,
+			"value": 5
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"CORE_093",
+					"CORE_094"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ARCH_084"
+				]
+			}
+		],
+		"represented_ids": [
+			"CORE_093",
+			"CORE_094"
+		]
+	},
+	{
+		"id": "KING_002",
+		"name": "Golem Foudroyant",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_092",
+			"ARCH_006",
+			"ARCH_084",
+			"ARCH_052",
+			"ARCH_054",
+			"ARCH_086",
+			"ARCH_087",
+			"ARCH_001",
+			"ARCH_019"
+		],
+		"stats": {
+			"atk": 24,
+			"hp": 150,
+			"movement_rate": 83,
+			"attack_rate": 87,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_PARALYSIS",
+			"power_rate": 50,
+			"duration": 50
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"CORE_095",
+					"CORE_096"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ARCH_084"
+				]
+			}
+		],
+		"represented_ids": [
+			"CORE_095",
+			"CORE_096"
+		]
+	},
+	{
+		"id": "KING_003",
+		"name": "Sniper infernal",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_092",
+			"ARCH_048",
+			"ARCH_050",
+			"ARCH_054",
+			"ARCH_006",
+			"ARCH_084",
+			"ARCH_086",
+			"ARCH_087",
+			"ARCH_001",
+			"ARCH_019"
+		],
+		"stats": {
+			"atk": 20,
+			"hp": 250,
+			"movement_rate": 77,
+			"attack_rate": 83,
+			"range": 4
+		},
+		"power": {
+			"id": "POWER_PUSH",
+			"power_rate": 50,
+			"value": 3
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"CORE_094",
+					"CORE_096"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ARCH_084"
+				]
+			}
+		],
+		"represented_ids": [
+			"CORE_096",
+			"CORE_094"
+		]
+	},
+	{
+		"id": "KING_004",
+		"name": "Cyclone Sauvage",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_092",
+			"ARCH_006",
+			"ARCH_084",
+			"ARCH_054",
+			"ARCH_050",
+			"ARCH_051",
+			"ARCH_086",
+			"ARCH_087",
+			"ARCH_001",
+			"ARCH_019"
+		],
+		"stats": {
+			"atk": 19,
+			"hp": 210,
+			"movement_rate": 90,
+			"attack_rate": 88,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_DEBUFF",
+			"power_rate": 36
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"CORE_093",
+					"CORE_096"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ARCH_084"
+				]
+			}
+		],
+		"represented_ids": [
+			"CORE_093",
+			"CORE_096"
+		]
+	},
+	{
+		"id": "KING_005",
+		"name": "Champion de l’enfer",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_084",
+			"ARCH_054",
+			"ARCH_050",
+			"ARCH_001",
+			"ARCH_019",
+			"ARCH_091",
+			"ARCH_090"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 50,
+			"movement_rate": 90,
+			"attack_rate": 89,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "KING_006",
+		"name": "Lame Malveillante",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_084",
+			"ARCH_054",
+			"ARCH_050",
+			"ARCH_087",
+			"ARCH_001",
+			"ARCH_019",
+			"ARCH_089",
+			"ARCH_092"
+		],
+		"stats": {
+			"atk": 26,
+			"hp": 180,
+			"movement_rate": 90,
+			"attack_rate": 85,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": []
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"ARCH_084"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "KING_007",
+		"name": "Prodige infernal",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_006",
+			"ARCH_084",
+			"ARCH_054",
+			"ARCH_050",
+			"ARCH_019",
+			"ARCH_091",
+			"ARCH_090",
+			"ARCH_099"
+		],
+		"stats": {
+			"atk": 3,
+			"hp": 50,
+			"movement_rate": 90,
+			"attack_rate": 94,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": [],
+		"appel": {
+			"card_ids": [
+				"KING_006"
 			]
 		}
 	}
