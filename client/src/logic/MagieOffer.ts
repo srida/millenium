@@ -203,6 +203,12 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     case 'sacrifice_card_hp':        return ctx.handCount > 0 && ctx.playerHpBelowCap;
 
     case 'grant_power':              return ctx.boardUnitCount > 0;
+    // ⚠️ Même limite connue que `heal` à PV pleins : une unité qui porte déjà
+    // le mot-clé visé rendrait le don « neant » en silence, et ce cas précis
+    // n'est pas filtré ici — le contexte ne porte pas « qui a déjà quel
+    // attribut », et l'ajouter pour ce seul cas coûterait plus que ce qu'il
+    // rapporte (une magie offerte une fois de trop, jamais une magie qui ment).
+    case 'grant_keyword':            return ctx.boardUnitCount > 0;
     case 'power_cooldown':           return ctx.poweredUnitCount > 0;
     case 'damage_multiplier_bonus':  return ctx.damageMultiplierMatters;
 

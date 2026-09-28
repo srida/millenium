@@ -33,6 +33,11 @@ export function sendOwnBoard(round, units, playerHp) {
   //                   reconstruit l'unité avec le pouvoir de sa CARTE : un
   //                   pouvoir donné en Phase Shopping partait chez l'un et pas
   //                   chez l'autre, et les deux combats divergeaient.
+  //   • `attributes`— `grant_keyword` (Phase Shopping) ajoute DURABLEMENT un
+  //                   attribut à l'unité. `AttributeManager` étant reconstruit
+  //                   à chaque combat depuis `unit.attributes`, un mot-clé
+  //                   donné chez l'un et absent chez l'autre ferait déclencher
+  //                   un effet (Tour, Explosif…) d'un seul côté.
   //
   // ⚠️ Les horloges d'attaque et de déplacement, elles, ne voyagent PAS et n'ont
   // pas à voyager : `GameSession.startCombat` les remet à zéro des deux côtés.
@@ -57,6 +62,7 @@ export function sendOwnBoard(round, units, playerHp) {
       power_rate: u.power_rate ?? null,
       power_value: u.power_value ?? null,
       power_duration: u.power_duration ?? null,
+      attributes: [...u.attributes],
     })),
   };
   PvpConnection.send('round:board_ready', payload);
@@ -111,6 +117,10 @@ export function reconstructOpponentUnits(payload, board, cardDb) {
       // l'unité reconstruite un rythme que son propriétaire n'a pas.
       if ('power_rate' in entry) unit.power_rate = entry.power_rate ?? null;
     }
+    // ⚠️ `entry.attributes` et non un ajout au-dessus de ceux de la carte : un
+    // payload legacy (sans le champ) garde les attributs de la carte, comme
+    // `new Unit(card, ...)` les pose déjà — rien à faire dans ce cas.
+    if (entry.attributes) unit.attributes = [...entry.attributes];
     const pos = { col: entry.position.col, row: mirrorRow(entry.position.row) };
     board.placeUnit(unit, pos);
     unit.initial_position = { ...pos };

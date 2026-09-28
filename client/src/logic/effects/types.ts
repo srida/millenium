@@ -205,6 +205,14 @@ export const CHAMPS_UNITE = Object.freeze({
   vitesse_deplacement: 'movement_rate',
   portee: 'range',
   charge_pouvoir: 'power_charge',
+  /**
+   * ⚠️ Pas une stat : `mot_cle` ne passe jamais par le registre socle/delta du
+   * bas de `appliqueSurUnite` (`nom` n'y sert à rien pour ce champ, exactement
+   * comme `pouvoir` et `bouclier`) — il ajoute un id à `unit.attributes`. La
+   * cible du mapping (`attributes`) n'est donc qu'un repère de lecture, jamais
+   * une clé de `_base`.
+   */
+  mot_cle: 'attributes',
 } as const);
 export type ChampUnite = keyof typeof CHAMPS_UNITE;
 
@@ -319,6 +327,17 @@ export interface TacheModifier {
    * `DURATION_POWERS` lisent la première, les dix autres la seconde.
    */
   pouvoir?: { id: string; rate?: number | null; valeur?: number | null; duree?: number | null };
+  /**
+   * Le MOT-CLÉ posé par la tâche (`champ: 'mot_cle'`) — l'id d'un attribut de
+   * catégorie MotCle, ajouté à `unit.attributes` comme s'il avait toujours
+   * figuré sur la carte.
+   *
+   * ⚠️ Pas de retrait, pas de durée de vie propre : une fois posé, il reste
+   * jusqu'à la fin de la partie (comme un `stat_bonus` de magie), et
+   * `resetCombatStats()` ne le touche pas — ce n'est pas un bonus de combat,
+   * c'est une identité.
+   */
+  motCle?: string;
 }
 
 /** `deplacer` — change une entité de conteneur (la réanimation, aujourd'hui). */

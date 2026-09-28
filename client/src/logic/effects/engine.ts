@@ -364,6 +364,21 @@ function appliqueSurUnite(t: TacheModifier, u: Unit, mult: number, trace: Trace)
     return;
   }
 
+  // Le MOT-CLÉ donné par une magie (`grant_keyword`) : ajoute un attribut à
+  // l'unité, comme si sa carte l'avait toujours porté. ⚠️ Aucun registre de
+  // combat n'entre en jeu — `AttributeManager` est reconstruit à chaque
+  // combat et relit `unit.attributes` tel quel, donc l'ajout suffit à faire
+  // marcher n'importe quel mot-clé exprimé en EFFET (Tour, Explosif, Second
+  // souffle, Appelant…) au prochain combat. Idempotent : redonner un mot-clé
+  // déjà porté est un NO-OP nommé, pas un doublon dans la liste.
+  if (champ === 'mot_cle') {
+    if (!t.motCle) { trace.ignore.push(`${u.card_id}·mot_cle (aucun id)`); return; }
+    if (u.attributes.includes(t.motCle)) { trace.neant.push(`${u.card_id}·mot_cle (déjà porté)`); return; }
+    u.attributes = [...u.attributes, t.motCle];
+    trace.applique.push(`${u.card_id}·mot_cle→${t.motCle}`);
+    return;
+  }
+
   // ⚠️ La vitesse de pouvoir se DIVISE en TICKS puis se retraduit en compteur :
   // sur l'échelle linéaire, un delta de compteur constant ne diviserait pas la
   // période d'autant. On garde le geste, pas la forme (cf. `power_cooldown`).

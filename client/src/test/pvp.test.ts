@@ -136,6 +136,18 @@ describe('PvP — reconstruction du board adverse', () => {
     expect(rebuilt.power_id).toBeNull();
   });
 
+  // ⚠️ `grant_keyword` (Phase Shopping) ajoute DURABLEMENT un attribut à
+  // l'unité, et `AttributeManager` est reconstruit à chaque combat depuis
+  // `unit.attributes` : un mot-clé donné chez l'un et absent chez l'autre
+  // ferait déclencher un effet (Tour, Explosif…) d'un seul côté.
+  // Mutation : retirer `attributes` du payload → ROUGE.
+  it('rejoue un mot-clé donné par une magie', () => {
+    const source = veteranUnit(new Board());
+    source.attributes = [...source.attributes, 'ARCH_KEYWORD'];
+    const { rebuilt } = roundTrip(source);
+    expect(rebuilt.attributes).toContain('ARCH_KEYWORD');
+  });
+
   it('reste compatible avec un payload legacy (sans base/current_hp/shield)', () => {
     const legacy = { round: 2, units: [{ uid: 1, card_id: CARD.id, position: { col: 0, row: 0 }, veterancy_points: 0 }] };
     const rebuilt = reconstructOpponentUnits(legacy, new Board(), cardDb)[0];
