@@ -2287,15 +2287,23 @@ export class Scene3D {
 
   /**
    * Répercute le multiplicateur ×1/×2/×4 de `CombatAnimator3D.setSpeed` sur la
-   * frappe au corps à corps (et l'apparition, par cohérence) : leurs durées se
+   * frappe au corps à corps, l'apparition et la destruction : leurs durées se
    * divisent déjà par `globals.speed` en interne, mais rien ne le réglait —
    * une frappe gardait donc sa durée « temps réel » pendant qu'à vitesse ×4
    * les ticks de jeu, eux, s'enchaînaient quatre fois plus vite, ce qui
    * creusait un retard croissant entre le combat et ce qu'on en voit.
+   *
+   * La destruction reçoit en plus un budget `power` réduit à vitesse ×2/×4 et
+   * sur un appareil modeste — même geste que `PowerVfx.applyGlobals` sur
+   * `scene.powers` : plus d'unités meurent par seconde réelle à vitesse
+   * accélérée, donc chaque explosion (particules, distance de projection des
+   * éclats, secousse) doit peser moins pour que le total reste stable.
    */
   setAnimSpeed(speed: number): void {
     this.melee.setGlobals({ speed });
     this.spawns.setGlobals({ speed });
+    const power = (LOW_END_DEVICE ? 0.5 : 1) * Math.max(0.55, Math.min(1, 1 / Math.max(0.1, speed)));
+    this.shatter.setGlobals({ speed, power });
   }
 
   /**
