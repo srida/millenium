@@ -58,6 +58,11 @@
   background: var(--uc-frame-art, linear-gradient(155deg,#122a3f,#060f18));
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
 }
+/* Flash radial d'impact (`three/Powers.js`, `flashCard`) : posé au-dessus de
+   tout le reste de `.unit-face` (art, voiles, overlay de statut) — le fond est
+   posé au tir, jamais ici, `mix-blend-mode: screen` évite qu'il n'assombrisse
+   rien en dessous. */
+.unit-fx-flash { position: absolute; inset: 0; z-index: 6; opacity: 0; mix-blend-mode: screen; pointer-events: none; }
 .unit-art {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; z-index: 0;
   /* ⚠️ Le filet du glisser natif, côté feuille : l'attribut `draggable={false}`

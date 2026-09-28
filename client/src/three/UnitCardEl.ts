@@ -106,6 +106,11 @@ function _inner(unit: Unit): string {
   // l'agent utilisateur pour un élément de jeu ne vaut pas l'économie.
   const pwrBar = `<div class="unit-pwr-bar" style="display:${unit.power_id ? '' : 'none'}"><div class="unit-pwr-fill" style="width:${pwrPct}%"></div></div>`;
 
+  // `.unit-fx-flash` : calque que `three/Powers.js` (`flashCard`) allume au
+  // radial-gradient pour le flash d'impact d'un pouvoir — jamais posé ici,
+  // seulement stylé (`styles/board3d.css`). `Powers.setStatus` insère lui-même
+  // son propre overlay de statut persistant dans `.unit-face`, sans qu'il y
+  // ait rien à déclarer d'avance.
   return `
     <div class="unit-face">
       <img class="unit-art" src="${illustrationUrl(artFor(unit.card_id, unit.side))}" alt="${esc(unit.name)}">
@@ -123,6 +128,7 @@ function _inner(unit: Unit): string {
           <div class="unit-hp-bar"><div class="unit-hp-fill" style="width:${hpPct}%"></div></div>
         </div>
       </div>
+      <div class="unit-fx-flash"></div>
     </div>
     <div class="unit-vet-badge" style="display:none"></div>
     <div class="unit-medallion" style="display:none"></div>

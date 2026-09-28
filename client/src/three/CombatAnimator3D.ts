@@ -8,7 +8,7 @@ import { getPower } from '../data/PowerDatabase.js';
 import { primaryElementOf } from '../data/AttributeDatabase.js';
 import * as Audio from '../audio/AudioManager.js';
 import {
-  playPowerVfx, playKeywordVfx, playImmuneVfx, playPoisonPulse, playBurnPulse,
+  playPowerVfx, playKeywordVfx, playImmuneVfx, playPoisonPulse, playBurnPulse, syncPowerStatuses,
   type PowerVfxContext,
 } from './PowerVfx.js';
 import type { Scene3D } from './Scene3D.js';
@@ -141,11 +141,18 @@ export class CombatAnimator3D {
   }
 
   _refreshPowerGauges(): void {
+    const units: Unit[] = [];
     for (const unit of [...this._cm.playerUnits, ...this._cm.enemyUnits]) {
       if (!unit.isAlive()) continue;
+      units.push(unit);
       const entry = this._board.getUnitEntry(unit.uid);
       if (entry) updateUnitEl(entry.el, unit);
     }
+    // Overlay + boucle de particules des statuts persistants (Powers.js) :
+    // resynchronisés depuis les champs `Unit` à chaque tick, sur le modèle du
+    // badge de `UnitCardEl._updateMedallion` — jamais posés/retirés depuis un
+    // seul événement, qui manquerait toute fin de statut hors Débuff.
+    syncPowerStatuses(this._board, units);
   }
 
   _apply(evt: any, interval: number, dyingUids: Set<number> = new Set(), teleportUids: Set<number> = new Set()): void {
@@ -162,17 +169,10 @@ export class CombatAnimator3D {
 
   // Contexte partagé par toutes les recettes : le budget de particules et les
   // durées s'y règlent une fois pour toutes (appareil + vitesse de combat).
-  _vfxContext(interval: number, dying: Set<number> = new Set(), caster: Unit | null = null): PowerVfxContext {
-    return {
-      interval,
-      dying,
-      deviceScale: LOW_END_DEVICE ? 0.5 : 1,
-      opponents: () => {
-        if (!caster) return [];
-        const side = caster.side === 'player' ? this._cm.enemyUnits : this._cm.playerUnits;
-        return (side as Unit[]).filter((u) => u.isAlive());
-      },
-    };
+  // ⚠️ Ne porte plus `opponents` : la Provocation le lit désormais directement
+  // depuis `Scene3D.powers` (ses propres cartes à l'écran, cf. `Powers.js`).
+  _vfxContext(interval: number, dying: Set<number> = new Set()): PowerVfxContext {
+    return { interval, dying, deviceScale: LOW_END_DEVICE ? 0.5 : 1 };
   }
 
   _applyFreeze({ cell, expiresAtStep }: { cell: Position; expiresAtStep: number }): void {
@@ -350,7 +350,7 @@ export class CombatAnimator3D {
       }
     }
 
-    const ctx = this._vfxContext(interval, dyingUids, unit);
+    const ctx = this._vfxContext(interval, dyingUids);
     if (immune) {
       for (const t of targets) playImmuneVfx(this._board, t, ctx);
       return;
@@ -378,7 +378,7 @@ export class CombatAnimator3D {
    */
   _applyKeyword({ unit, vfx, targets }: any, interval: number): void {
     if (!vfx) return;
-    playKeywordVfx(this._board, unit, targets ?? [], vfx, this._vfxContext(interval, new Set(), unit));
+    playKeywordVfx(this._board, unit, targets ?? [], vfx, this._vfxContext(interval));
   }
 
   _showPowerToast(pos: Position, power_id: string, interval: number = BASE_TICK_MS): void {
