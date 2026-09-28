@@ -25,6 +25,7 @@ import { useUiStore } from '../../stores/uiStore.js';
 import { useCollectionStore } from '../../stores/collectionStore.js';
 import type { ShopSet } from '../../stores/shopStore.js';
 import { Button, Gauge } from '../ui/primitives.js';
+import UiIcon from '../ui/UiIcon.js';
 import CardCatalogGrid from '../catalog/CardCatalogGrid.js';
 
 /**
@@ -38,8 +39,8 @@ import CardCatalogGrid from '../catalog/CardCatalogGrid.js';
 export function PackPoster({ set, className }: { set: ShopSet; className: string }) {
   if (!set.has_poster) {
     return (
-      <div className={`${className} flex flex-shrink-0 items-center justify-center rounded-lg border border-line bg-white/5 text-white/25`}>
-        🎁
+      <div className={`${className} flex flex-shrink-0 items-center justify-center rounded-lg border border-line bg-white/5 opacity-40`}>
+        <UiIcon id="UI_GIFTS" className="h-8 w-8" />
       </div>
     );
   }
@@ -114,7 +115,7 @@ export default function PackContents({ set, onClose }: { set: ShopSet; onClose: 
                 </span>
               </div>
             </div>
-            <Button className="shrink-0 px-3" onPointerDown={onClose} aria-label="Fermer">✕</Button>
+            <Button className="shrink-0 px-3" onPointerDown={onClose} aria-label="Fermer"><UiIcon id="UI_CLOSE" className="h-4 w-4" /></Button>
           </div>
         </div>
       </header>

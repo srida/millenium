@@ -25,6 +25,7 @@ import { useArcadeStore } from '../stores/arcadeStore.js';
 import { getProgress, shouldInvite, updateProgress } from '../data/tutorialProgress.js';
 import { Button, CountBadge, Modal, NewDot } from '../components/ui/primitives.js';
 import { AnimatedLogo } from '../components/ui/AnimatedLogo.js';
+import UiIcon from '../components/ui/UiIcon.js';
 import { AppVersion } from '../components/system/AppVersion.js';
 import { useWebLayout, useTabletLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
@@ -292,7 +293,7 @@ function TutorialButton({ className = '' }: { className?: string }) {
 
   return (
     <Button className={`w-full ${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('tutorial')}>
-      <span className="whitespace-nowrap">🎓 Tutoriel</span>
+      <span className="flex items-center justify-center gap-1.5 whitespace-nowrap"><UiIcon id="UI_TUTORIAL" className="h-4 w-4" /> Tutoriel</span>
       {read === 0 && <NewDot label="Jamais ouvert" />}
     </Button>
   );
@@ -302,7 +303,7 @@ function TournamentButton({ className = '' }: { className?: string }) {
   const navigate = useUiStore(s => s.navigate);
   return (
     <Button className={`${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('tournament')}>
-      <span className="whitespace-nowrap">🏆 Tournoi</span>
+      <span className="flex items-center justify-center gap-1.5 whitespace-nowrap"><UiIcon id="UI_TOURNAMENT" className="h-4 w-4" /> Tournoi</span>
     </Button>
   );
 }
@@ -313,7 +314,7 @@ function TrainingButton({ className = '' }: { className?: string }) {
   const navigate = useUiStore(s => s.navigate);
   return (
     <Button className={`${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('deck_selector', { mode: 'play' })}>
-      <span className="whitespace-nowrap">🤖 Entraînement</span>
+      <span className="flex items-center justify-center gap-1.5 whitespace-nowrap"><UiIcon id="UI_TRAINING" className="h-4 w-4" /> Entraînement</span>
     </Button>
   );
 }
@@ -334,7 +335,7 @@ function TutorialInvite() {
   return (
     <Modal onClose={close}>
       <div className="flex flex-col items-center gap-3 text-center">
-        <div className="text-4xl" aria-hidden>🎓</div>
+        <UiIcon id="UI_TUTORIAL" className="h-10 w-10" />
         <div className="text-lg font-bold text-gold">Première partie ?</div>
         <p className="text-sm leading-relaxed text-white/70">
           Millenium est un auto-battler : tu prépares un board, puis le combat se résout tout seul.
@@ -380,7 +381,7 @@ function ArcadeButton({ className = '' }: { className?: string }) {
   if (!user) {
     return (
       <Button className={`w-full ${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('auth')}>
-        <span className="whitespace-nowrap">🕹 Arcade</span>
+        <span className="flex items-center justify-center gap-1.5 whitespace-nowrap"><UiIcon id="UI_ARCADE" className="h-4 w-4" /> Arcade</span>
       </Button>
     );
   }
@@ -391,7 +392,7 @@ function ArcadeButton({ className = '' }: { className?: string }) {
 
   return (
     <Button className={`w-full ${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('arcade')}>
-      <span className="whitespace-nowrap">🕹 Arcade</span>
+      <span className="flex items-center justify-center gap-1.5 whitespace-nowrap"><UiIcon id="UI_ARCADE" className="h-4 w-4" /> Arcade</span>
       {running ? (
         <CountBadge label={`Run en cours — duel ${run.current + 1} sur ${snapshot!.duel_count}`} className="px-1.5">
           {run.current + 1}/{snapshot!.duel_count}

@@ -22,6 +22,7 @@ import { useUiStore } from '../../stores/uiStore.js';
 import { useChallengeStore, type IncomingChallenge } from '../../stores/challengeStore.js';
 import * as PvpConnection from '../../net/PvpConnection.js';
 import { Avatar, Button } from './primitives.js';
+import UiIcon from './UiIcon.js';
 
 // Le toast d'issue (refusé/annulé/expiré) reste visible le temps de le lire,
 // comme les autres notifications transitoires du jeu (RewardToasts : 3 s).
@@ -126,7 +127,7 @@ export default function ChallengeBanner() {
             <Avatar src={c.from.avatar} fallback={name.slice(0, 2).toUpperCase()} className="h-10 w-10 border-gold/60" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-white">
-                {name}{c.from.tag != null && <span className="text-white/40"> #{c.from.tag}</span>} te défie ⚔️
+                {name}{c.from.tag != null && <span className="text-white/40"> #{c.from.tag}</span>} te défie <UiIcon id="UI_DUEL" className="inline-block h-3.5 w-3.5 align-[-3px]" />
               </p>
               <p className="text-[11px] text-white/50">Duel en ligne</p>
             </div>
@@ -141,7 +142,7 @@ export default function ChallengeBanner() {
                 variant="danger" className="px-3 py-1.5 text-xs" disabled={busy}
                 onPointerDown={() => { void decline(c.id); }}
               >
-                ✕
+                <UiIcon id="UI_CLOSE" className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>

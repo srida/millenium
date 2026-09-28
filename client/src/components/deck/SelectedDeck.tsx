@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { useDeckStore } from '../../stores/deckStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { Button } from '../ui/primitives.js';
+import UiIcon from '../ui/UiIcon.js';
 
 const MIN_DECK = 20;
 
@@ -30,7 +31,7 @@ export default function SelectedDeck({
   if (!deck) {
     return (
       <div className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-line p-4 text-center">
-        <div className="text-2xl">🃏</div>
+        <UiIcon id="UI_CARD" className="h-8 w-8" />
         <p className="text-xs text-white/50">{emptyHint}</p>
         <Button variant="primary" onPointerDown={() => navigate('deck_selector', { mode: 'manage' })}>
           Mes decks

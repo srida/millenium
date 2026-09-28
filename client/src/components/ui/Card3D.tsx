@@ -36,6 +36,7 @@ import { artFor, illustrationUrl } from '../../data/CardArt.js';
 import { summonCostsOf } from '../../data/SummonInfo.js';
 import { tiersOf } from '../../logic/Tiers.js';
 import { useCardPress } from './cardPress.js';
+import UiIcon from './UiIcon.js';
 import type { Card } from '../../logic/types.js';
 import type { CardTransform } from '../hand/cardFan.js';
 
@@ -210,7 +211,7 @@ export default function Card3D({
           d'une carte recouverte. Le tier ne s'écrit pas — il est le cadre. */}
       {hint && <span className="card3d-cost">{hint}</span>}
       {badge != null && badge > 0 && <span className="card3d-badge card3d-count">×{badge}</span>}
-      {locked && <span className="card3d-lock" aria-label="Carte verrouillée">🔒</span>}
+      {locked && <span className="card3d-lock" aria-label="Carte verrouillée"><UiIcon id="UI_LOCK" className="h-3.5 w-3.5" /></span>}
     </button>
   );
 }

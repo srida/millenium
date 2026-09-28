@@ -19,6 +19,7 @@ import { useMissionStore, markMissionsSeen, claimableMissions, type Mission, typ
 import { Button, Countdown, Gauge, LoadState, Panel } from '../components/ui/primitives.js';
 import { CURRENCY, fmt, XP_ICON } from '../components/ui/currency.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
+import UiIcon, { type UiIconId } from '../components/ui/UiIcon.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
 
@@ -29,8 +30,8 @@ const SLOTS: Record<number, { label: string; cls: string }> = {
   3: { label: 'Engagé',  cls: 'border-gold/60 text-gold' },
 };
 
-const FAMILY_ICONS: Record<string, string> = {
-  presence: '🎮', mechanical: '⚔️', synergy: '🧬', shopping: '✨', meta: '🗂️',
+const FAMILY_ICONS: Record<string, UiIconId> = {
+  presence: 'UI_GAMEPAD', mechanical: 'UI_DUEL', synergy: 'UI_LINKED', shopping: 'UI_XP', meta: 'UI_FOLDER',
 };
 
 export default function MissionsScreen() {
@@ -152,7 +153,7 @@ function WeeklyGauge({ points, max, milestones }: { points: number; max: number;
                   aria-label={`Récupérer le palier ${ms.points}`}
                   className={`${chip} border-success bg-[color-mix(in_srgb,var(--color-success)_25%,var(--color-surface-raised))] font-semibold text-success active:opacity-70 disabled:opacity-40`}
                 >
-                  {busy === ms.points ? '…' : <>🎁 <RewardList rewards={ms.rewards} className="text-success" /></>}
+                  {busy === ms.points ? '…' : <><UiIcon id="UI_GIFTS" className="h-3.5 w-3.5" /> <RewardList rewards={ms.rewards} className="text-success" /></>}
                 </button>
               </li>
             );
@@ -208,7 +209,7 @@ function MissionCard({ mission, rerollCost }: { mission: Mission; rerollCost: nu
       }`}
     >
       <div className="flex items-start gap-2">
-        <span aria-hidden="true" className="text-base leading-tight">{FAMILY_ICONS[mission.family] ?? '🎯'}</span>
+        <UiIcon id={FAMILY_ICONS[mission.family] ?? 'UI_MISSIONS'} className="h-4 w-4 flex-shrink-0" />
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-semibold leading-tight ${done ? 'text-success' : 'text-white'}`}>
             {done && '✓ '}{mission.label}
@@ -249,9 +250,9 @@ function MissionCard({ mission, rerollCost }: { mission: Mission; rerollCost: nu
               onPointerDown={() => { Audio.playSfx('menu_button'); void run(reroll); }}
               title={rerollCost ? `Changer de mission — ${fmt.format(rerollCost)} golds` : 'Changer de mission (gratuit)'}
               aria-label="Changer de mission"
-              className="ml-auto flex min-h-tap min-w-tap items-center justify-center rounded-lg border border-line px-2 text-xs text-white/50 active:opacity-70 disabled:opacity-30"
+              className="ml-auto flex min-h-tap min-w-tap items-center justify-center gap-1 rounded-lg border border-line px-2 text-xs text-white/50 active:opacity-70 disabled:opacity-30"
             >
-              {busy ? '…' : rerollCost ? `🎲 ${fmt.format(rerollCost)}` : '🎲'}
+              {busy ? '…' : <><UiIcon id="UI_REROLL" className="h-3.5 w-3.5" />{rerollCost ? ` ${fmt.format(rerollCost)}` : ''}</>}
             </button>
           )}
           {claimed && <span className="ml-auto text-[10px] text-success/60">récupéré</span>}

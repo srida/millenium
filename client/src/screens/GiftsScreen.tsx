@@ -20,10 +20,15 @@ import * as CardDatabase from '../data/CardDatabase.js';
 import { CURRENCY, fmt } from '../components/ui/currency.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
+import UiIcon from '../components/ui/UiIcon.js';
+import type { ReactNode } from 'react';
 
-const LOT_ICONS: Record<GiftLot['type'], string> = {
+const LOT_ICONS: Record<GiftLot['type'], ReactNode> = {
   gold: CURRENCY.gold.icon, gems: CURRENCY.gems.icon,
-  card: '🃏', pack: '🎁', avatar: '🖼️', variant: '🎨',
+  card: <UiIcon id="UI_CARD" className="h-4 w-4" />,
+  pack: <UiIcon id="UI_GIFTS" className="h-4 w-4" />,
+  avatar: <UiIcon id="UI_AVATAR" className="h-4 w-4" />,
+  variant: <UiIcon id="UI_PAINT" className="h-4 w-4" />,
 };
 
 // Pourquoi une ligne n'a rien donné. Un CODE côté serveur, une phrase ici :
@@ -123,7 +128,7 @@ function DailyCard() {
   return (
     <Panel className={`flex flex-col gap-3 p-3 ${claimed ? 'border-success/30 bg-success/5' : 'border-success bg-success/10'}`}>
       <div className="flex items-center gap-3">
-        <span className="text-3xl" aria-hidden>🎁</span>
+        <UiIcon id="UI_GIFTS" className="h-9 w-9" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">Cadeau quotidien</p>
           <p className="text-xs text-white/50">

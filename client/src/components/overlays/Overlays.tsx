@@ -12,6 +12,7 @@ import RecipeRow from '../ui/SummonRecipe.js';
 import { summonRecipes } from '../../data/SummonInfo.js';
 import { AnimatedLevelGauge } from '../ui/ProgressionStats.js';
 import { BONUS_SOURCE_ICON } from '../../data/DrawInfo.js';
+import UiIcon from '../ui/UiIcon.js';
 import { bonusSourceName } from '../../data/gameNames.js';
 import { END_ROUND_DURATION_S, TERRAIN_ALERT_MS } from '../../game/timings.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
@@ -60,7 +61,7 @@ export function TerrainAlert() {
             /board-backgrounds — qui serait déformé dans un cadre carré. */}
         {board._has_illustration
           ? <Illustration id={board.id} className="h-24 w-24" framed lazy={false} />
-          : <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-line text-4xl">🗺️</div>}
+          : <div className="flex h-24 w-24 items-center justify-center rounded-lg border border-line"><UiIcon id="UI_TERRAIN" className="h-12 w-12" /></div>}
         <div className="text-base font-bold text-gold">{board.name}</div>
         {/* Un terrain porte désormais PLUSIEURS effets : ils s'annoncent tous,
             chacun avec ce qu'il vise — c'est le composant partagé avec
@@ -206,13 +207,16 @@ export function EndRoundOverlay() {
   if (!endRound || !controller) return null;
   const { winner, isGameOver } = endRound;
   const title = winner === 'player' ? 'VICTOIRE DU ROUND' : winner === 'enemy' ? 'DÉFAITE DU ROUND' : 'ÉGALITÉ DU ROUND';
-  const icon = winner === 'player' ? '⚡' : winner === 'enemy' ? '💀' : '⚖️';
   const tone = winner === 'player' ? 'text-success' : winner === 'enemy' ? 'text-danger' : 'text-gold';
 
   return (
     <Modal>
       <div className="flex flex-col items-center gap-1">
-        <div className="text-4xl">{icon}</div>
+        <div className="flex h-10 items-center justify-center">
+          {winner === 'player' ? <span className="text-4xl">⚡</span>
+            : winner === 'enemy' ? <UiIcon id="UI_DEFEAT" className="h-9 w-9" />
+              : <UiIcon id="UI_DRAW" className="h-9 w-9" />}
+        </div>
         <div className={`text-lg font-bold ${tone}`}>{title}</div>
         <div className="my-2 flex items-center gap-4 text-sm">
           <span className="font-bold text-player tabular-nums">{playerHp} PV</span>

@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useGameStore } from '../../stores/gameStore.js';
 import { Button, Modal } from '../ui/primitives.js';
+import UiIcon from '../ui/UiIcon.js';
 import * as Audio from '../../audio/AudioManager.js';
 
 /**
@@ -34,7 +35,7 @@ function VolumeSliders() {
     <div className="space-y-3 rounded-lg border border-line bg-surface/60 p-3">
       <label className="block text-xs text-white/70">
         <span className="mb-1 flex items-center justify-between">
-          <span>🔊 Effets sonores</span>
+          <span className="flex items-center gap-1.5"><UiIcon id="UI_SOUND" className="h-4 w-4" /> Effets sonores</span>
           <span className="tabular-nums text-white/50">{pct(settings.sfxVolume)}</span>
         </span>
         <input
@@ -46,7 +47,7 @@ function VolumeSliders() {
       </label>
       <label className="block text-xs text-white/70">
         <span className="mb-1 flex items-center justify-between">
-          <span>🎵 Musique</span>
+          <span className="flex items-center gap-1.5"><UiIcon id="UI_MUSIC" className="h-4 w-4" /> Musique</span>
           <span className="tabular-nums text-white/50">{pct(settings.musicVolume)}</span>
         </span>
         <input
@@ -95,8 +96,8 @@ export default function GameMenu({ onQuit, quitLabel = 'Quitter la partie' }: {
                 </div>
               </div>
             ) : (
-              <Button variant="danger" className="w-full" onPointerDown={(e) => { e.stopPropagation(); setConfirm(true); }}>
-                ✕ {quitLabel}
+              <Button variant="danger" className="flex w-full items-center justify-center gap-1.5" onPointerDown={(e) => { e.stopPropagation(); setConfirm(true); }}>
+                <UiIcon id="UI_CLOSE" className="h-4 w-4" /> {quitLabel}
               </Button>
             )}
           </div>

@@ -20,6 +20,7 @@ import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useTournamentStore } from '../stores/tournamentStore.js';
 import { Button } from '../components/ui/primitives.js';
+import UiIcon from '../components/ui/UiIcon.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 
@@ -115,7 +116,7 @@ export default function TournamentScreen() {
       <div className={classname_body}>
         {!tournament ? (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
-            <div className="text-4xl">🏆</div>
+            <UiIcon id="UI_TOURNAMENT" className="h-10 w-10" />
             <p className="max-w-xs text-sm text-white/60">
               16 joueurs (toi + 15 IA sur decks publics), élimination directe, chaque match en Bo3
               (2 manches gagnantes). Tes matchs se jouent manche par manche ; ceux des IA sont simulés.
@@ -145,15 +146,15 @@ export default function TournamentScreen() {
             <div className="space-y-2 pt-2">
               {complete ? (
                 <div className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-center">
-                  <div className="text-3xl">👑</div>
+                  <UiIcon id="UI_VICTORY" className="mx-auto h-8 w-8" />
                   {champion && (
                     <div className="mt-1 flex justify-center">
                       <Portrait p={champion} won size="h-12 w-12" />
                     </div>
                   )}
                   <div className="mt-1 text-sm">Champion : <span className="font-bold text-gold">{champion?.isPlayer ? 'Vous' : champion?.name}</span></div>
-                  <div className={`mt-1 text-xs ${champion?.isPlayer ? 'text-success' : eliminated ? 'text-danger' : 'text-white/50'}`}>
-                    {champion?.isPlayer ? '🎉 Tu remportes le tournoi !' : eliminated ? 'Tu as été éliminé.' : 'Tournoi terminé.'}
+                  <div className={`mt-1 flex items-center justify-center gap-1 text-xs ${champion?.isPlayer ? 'text-success' : eliminated ? 'text-danger' : 'text-white/50'}`}>
+                    {champion?.isPlayer ? <><UiIcon id="UI_CELEBRATE" className="h-3.5 w-3.5" /> Tu remportes le tournoi !</> : eliminated ? 'Tu as été éliminé.' : 'Tournoi terminé.'}
                   </div>
                   <Button className="mt-3" onPointerDown={clearTournament}>Nouveau tournoi</Button>
                 </div>
@@ -172,7 +173,7 @@ export default function TournamentScreen() {
                   {eliminated && <p className="text-center text-xs text-white/40">Tu es éliminé — déroule le bracket pour voir le champion.</p>}
                 </>
               )}
-              {!complete && <Button className="w-full" onPointerDown={clearTournament}>✕ Abandonner le tournoi</Button>}
+              {!complete && <Button className="flex w-full items-center justify-center gap-1.5" onPointerDown={clearTournament}><UiIcon id="UI_CLOSE" className="h-4 w-4" /> Abandonner le tournoi</Button>}
             </div>
           </>
         )}

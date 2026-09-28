@@ -13,6 +13,7 @@ import { useMissionStore, hasUnseenMissions, claimableCount } from '../../stores
 import { useShopStore, hasUnseenShop } from '../../stores/shopStore.js';
 import { useGiftStore, claimableCount as claimableGifts } from '../../stores/giftStore.js';
 import { CountBadge, NewDot, usePressSquash } from '../ui/primitives.js';
+import UiIcon from '../ui/UiIcon.js';
 
 export function AppFooter() {
   return (
@@ -93,14 +94,14 @@ function MissionsTile() {
 
   useEffect(() => { if (userId) void load(true); }, [userId, load]);
 
-  if (!user) return <DockTile icon="🎯" label="Missions" screen="missions" />;
+  if (!user) return <DockTile icon={<UiIcon id="UI_MISSIONS" className="h-6 w-6" />} label="Missions" screen="missions" />;
 
   const pending = claimableCount(snapshot);
   const unseen = !!snapshot && hasUnseenMissions(user.id, snapshot.cycle.next_reset_at);
 
   return (
     <DockTile
-      icon="🎯"
+      icon={<UiIcon id="UI_MISSIONS" className="h-6 w-6" />}
       label="Missions"
       screen="missions"
       onPointerDown={() => navigate('missions')}
@@ -124,11 +125,11 @@ function ShopTile() {
 
   useEffect(() => { if (userId) void load(true); }, [userId, load]);
 
-  if (!user) return <DockTile icon="🛒" label="Boutique" screen="shop" />;
+  if (!user) return <DockTile icon={<UiIcon id="UI_SHOP" className="h-6 w-6" />} label="Boutique" screen="shop" />;
 
   const unseen = !!snapshot && hasUnseenShop(user.id, snapshot.day);
 
-  return <DockTile icon="🛒" label="Boutique" screen="shop" onPointerDown={() => navigate('shop')} badge={unseen ? <NewDot /> : null} />;
+  return <DockTile icon={<UiIcon id="UI_SHOP" className="h-6 w-6" />} label="Boutique" screen="shop" onPointerDown={() => navigate('shop')} badge={unseen ? <NewDot /> : null} />;
 }
 
 // Cadeaux. UNE seule pastille, la verte chiffrée. Rien en invité : un cadeau
@@ -142,13 +143,13 @@ function GiftsTile() {
 
   useEffect(() => { if (userId) void load(true); }, [userId, load]);
 
-  if (!user) return <DockTile icon="🎁" label="Cadeaux" screen="gifts" />;
+  if (!user) return <DockTile icon={<UiIcon id="UI_GIFTS" className="h-6 w-6" />} label="Cadeaux" screen="gifts" />;
 
   const pending = claimableGifts(snapshot);
 
   return (
     <DockTile
-      icon="🎁"
+      icon={<UiIcon id="UI_GIFTS" className="h-6 w-6" />}
       label="Cadeaux"
       screen="gifts"
       onPointerDown={() => navigate('gifts')}
@@ -167,5 +168,5 @@ function GiftsTile() {
 // compte.
 function CatalogTile() {
   const navigate = useUiStore(s => s.navigate);
-  return <DockTile icon="📖" label="Catalogue" screen="catalog" onPointerDown={() => navigate('catalog')} />;
+  return <DockTile icon={<UiIcon id="UI_CATALOG" className="h-6 w-6" />} label="Catalogue" screen="catalog" onPointerDown={() => navigate('catalog')} />;
 }

@@ -29,6 +29,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { Button, IconButton, Modal, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_DANGER, SURFACE_GOLD, SURFACE_NEUTRAL, usePressSquash } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
+import UiIcon from '../components/ui/UiIcon.js';
 
 const TIER_BG: Record<number, string> = {
   1: 'bg-tier-1', 2: 'bg-tier-2', 3: 'bg-tier-3', 4: 'bg-tier-4', 5: 'bg-tier-5',
@@ -201,7 +202,7 @@ export default function DeckSelector() {
         {manage && guestDecks.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2 pt-1">
-              <span className="text-[10px] tracking-widest text-white/40">🎮 DECKS D'ESSAI</span>
+              <span className="flex items-center gap-1 text-[10px] tracking-widest text-white/40"><UiIcon id="UI_GAMEPAD" className="h-3 w-3" /> DECKS D'ESSAI</span>
               <div className="h-px flex-1 bg-line" />
             </div>
             <p className="text-xs text-white/50">Copie un deck prêt à jouer pour essayer le jeu sans le construire toi-même.</p>
@@ -215,7 +216,7 @@ export default function DeckSelector() {
 
         {manage && decks.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <div className="text-4xl">🃏</div>
+            <UiIcon id="UI_CARD" className="h-10 w-10" />
             <div className="text-sm text-white/70">Aucun deck sauvegardé</div>
             <div className="text-xs text-white/40">Crée un deck pour commencer à jouer.</div>
           </div>
@@ -232,12 +233,12 @@ export default function DeckSelector() {
             </div>
             <div className="flex gap-2">
               <SelectionButton tone={enemyId === null ? 'danger' : 'neutral'} onPointerDown={() => setEnemyId(null)}>
-                <span className="block text-sm font-semibold">🪞 Miroir</span>
+                <span className="flex items-center justify-center gap-1.5 text-sm font-semibold"><UiIcon id="UI_MIRROR" className="h-4 w-4" /> Miroir</span>
                 <span className="block text-[10px] text-white/50">l'IA joue ton deck</span>
               </SelectionButton>
               {drawable.length > 0 && (
                 <SelectionButton tone="neutral" onPointerDown={randomEnemy}>
-                  <span className="block text-sm font-semibold">🎲 Aléatoire</span>
+                  <span className="flex items-center justify-center gap-1.5 text-sm font-semibold"><UiIcon id="UI_REROLL" className="h-4 w-4" /> Aléatoire</span>
                   <span className="block text-[10px] text-white/50">tire un deck au hasard</span>
                 </SelectionButton>
               )}
@@ -285,8 +286,8 @@ export default function DeckSelector() {
           </Button>
         ) : (
           <>
-            <Button variant="primary" disabled={!canPlay} className="w-full py-3 text-base" onPointerDown={play}>
-              ⚔ Jouer{enemy ? ` contre ${enemy.name}` : ''}
+            <Button variant="primary" disabled={!canPlay} className="flex w-full items-center justify-center gap-1.5 py-3 text-base" onPointerDown={play}>
+              <UiIcon id="UI_DUEL" className="h-4 w-4" /> Jouer{enemy ? ` contre ${enemy.name}` : ''}
             </Button>
             {!canPlay && (
               <p className="text-center text-xs text-gold">
@@ -315,7 +316,7 @@ export default function DeckSelector() {
       {deleting && (
         <Modal onClose={() => setDeleting(null)}>
           <div className="text-center">
-            <div className="mb-2 text-3xl">🗑️</div>
+            <UiIcon id="UI_DELETE" className="mx-auto mb-2 h-7 w-7" />
             <div className="text-sm">Supprimer le deck <span className="font-bold text-gold">{deleting}</span> ?</div>
             <div className="mt-4 flex gap-2">
               <Button className="flex-1" onPointerDown={() => setDeleting(null)}>Annuler</Button>
@@ -446,10 +447,10 @@ function DeckCard({
           dans l'UI ; `title`/`aria-label` portent le sens. */}
       {showActions && (
         <div className="mt-3 flex gap-2" onPointerDown={(e) => e.stopPropagation()}>
-          <IconButton label="Éditer le deck" icon="✏️" className="flex-1" onTap={onEdit} />
-          <IconButton label="Dupliquer" icon="📋" className="flex-1" onTap={onDuplicate} />
-          <IconButton label="Renommer" icon="🏷️" className="flex-1" onTap={onRename} />
-          <IconButton label="Supprimer" icon="🗑️" tone="danger" className="flex-1" onTap={onDelete} />
+          <IconButton label="Éditer le deck" icon={<UiIcon id="UI_EDIT" className="h-5 w-5" />} className="flex-1" onTap={onEdit} />
+          <IconButton label="Dupliquer" icon={<UiIcon id="UI_DUPLICATE" className="h-5 w-5" />} className="flex-1" onTap={onDuplicate} />
+          <IconButton label="Renommer" icon={<UiIcon id="UI_RENAME" className="h-5 w-5" />} className="flex-1" onTap={onRename} />
+          <IconButton label="Supprimer" icon={<UiIcon id="UI_DELETE" className="h-5 w-5" />} tone="danger" className="flex-1" onTap={onDelete} />
         </div>
       )}
     </div>

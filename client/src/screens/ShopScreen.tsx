@@ -32,6 +32,7 @@ import PackContents, { PackPoster } from '../components/shop/PackContents.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
+import UiIcon from '../components/ui/UiIcon.js';
 
 const cardOf = (id: string | null): Card | null => (id ? (CardDatabase as any).getCard(id) ?? null : null);
 
@@ -79,7 +80,10 @@ export default function ShopScreen() {
         {/* Les onglets font partie du bloc épinglé : changer de rayon doit
             rester possible sans remonter toute la vitrine. */}
         <div className="flex">
-          {([['cards', '🃏 Cartes'], ['cosmetics', '🎨 Cosmétiques']] as const).map(([key, label]) => (
+          {([
+            ['cards', <><UiIcon id="UI_CARD" className="inline-block h-3.5 w-3.5 align-[-2px]" /> Cartes</>],
+            ['cosmetics', <><UiIcon id="UI_PAINT" className="inline-block h-3.5 w-3.5 align-[-2px]" /> Cosmétiques</>],
+          ] as [typeof tab, ReactNode][]).map(([key, label]) => (
             <button
               key={key}
               onPointerDown={() => { Audio.playSfx('menu_button'); setTab(key); }}
@@ -100,7 +104,7 @@ export default function ShopScreen() {
             onPointerDown={dismissNotice}
             className="rounded-lg border border-gold bg-[color-mix(in_srgb,var(--color-gold)_16%,var(--color-surface-raised))] px-3 py-2 text-left text-xs text-gold"
           >
-            🏅 {notice}
+            <UiIcon id="UI_MEDAL" className="inline-block h-3.5 w-3.5 align-[-2px]" /> {notice}
           </button>
         )}
 
@@ -114,7 +118,7 @@ export default function ShopScreen() {
                 <span className="text-[10px] text-white/30">
                   {snapshot.reroll.free_available ? '1 reroll gratuit' : 'reroll utilisé'}
                   {' · '}
-                  {snapshot.pinned ? '📌 1 épingle posée' : `📌 ${snapshot.pin_rules.max} épingle`}
+                  <UiIcon id="UI_PIN" className="inline-block h-3 w-3 align-[-2px]" /> {snapshot.pinned ? '1 épingle posée' : `${snapshot.pin_rules.max} épingle`}
                 </span>
               </div>
 
@@ -183,7 +187,7 @@ function CosmeticsTab() {
           onPointerDown={dismissNotice}
           className="rounded-lg border border-gold bg-[color-mix(in_srgb,var(--color-gold)_16%,var(--color-surface-raised))] px-3 py-2 text-left text-xs text-gold"
         >
-          ✨ {notice}
+          <UiIcon id="UI_XP" className="inline-block h-3.5 w-3.5 align-[-2px]" /> {notice}
         </button>
       )}
 
@@ -441,7 +445,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
             {rerollable && (
               <IconButton
                 compact
-                icon="🎲"
+                icon={<UiIcon id="UI_REROLL" className="h-5 w-5" />}
                 disabled={busy}
                 onTap={async () => setErr(await reroll(slot.slot))}
                 label="Changer cette proposition (1 gratuit par jour)"
@@ -450,7 +454,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
             )}
             <IconButton
               compact
-              icon="📌"
+              icon={<UiIcon id="UI_PIN" className="h-5 w-5" />}
               disabled={busy}
               onTap={async () => setErr(await pin(slot.pinned ? null : slot.slot))}
               label={slot.pinned
@@ -637,11 +641,11 @@ function BoosterReveal({ onClose }: { onClose: () => void }) {
         })}
       </div>
       {booster.pin_cleared && (
-        <p className="mt-3 text-center text-[11px] text-gold">📌 Ta carte épinglée est tombée — l'épingle est libérée.</p>
+        <p className="mt-3 flex items-center justify-center gap-1 text-center text-[11px] text-gold"><UiIcon id="UI_PIN" className="h-3 w-3" /> Ta carte épinglée est tombée — l'épingle est libérée.</p>
       )}
       {booster.sets_completed.map(s => (
-        <p key={s.set_id} className="mt-2 text-center text-[11px] text-success">
-          🏅 Set complété : {s.name}{s.rewards.gems ? ` — +${s.rewards.gems} ${CURRENCY.gems.icon}` : ''}
+        <p key={s.set_id} className="mt-2 flex items-center justify-center gap-1 text-center text-[11px] text-success">
+          <UiIcon id="UI_MEDAL" className="h-3 w-3" /> Set complété : {s.name}{s.rewards.gems ? ` — +${s.rewards.gems} ${CURRENCY.gems.icon}` : ''}
         </p>
       ))}
       <Button variant="primary" className="mt-4 w-full" onPointerDown={onClose}>Continuer</Button>

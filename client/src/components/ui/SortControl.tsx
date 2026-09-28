@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import * as Query from '../../../../card-query.mjs';
 import { Modal, usePressSquash } from './primitives.js';
+import UiIcon from './UiIcon.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -47,7 +48,7 @@ export default function SortControl({ schema, value, onChange, className = '', l
         className={`flex min-h-tap shrink-0 items-center gap-1 rounded-lg border border-line bg-surface-raised px-2.5 text-xs text-white/80 ${className}`}
         {...trigger.handlers}
       >
-        <span aria-hidden="true">⇅</span>
+        <UiIcon id="UI_SORT" className="h-3.5 w-3.5" />
         <span className={labelClassName}>{current ? current.label : 'Ordre du catalogue'}</span>
         {current && <span aria-hidden="true">{arrow}</span>}
       </button>

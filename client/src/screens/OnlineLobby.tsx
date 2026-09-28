@@ -14,6 +14,7 @@ import { useUiStore } from '../stores/uiStore.js';
 import { Avatar, Button } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
+import UiIcon from '../components/ui/UiIcon.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 
 type Status = 'idle' | 'connecting' | 'searching' | 'found' | 'error';
@@ -117,7 +118,7 @@ export default function OnlineLobby() {
       </div>
 
       <div className="flex flex-1 flex-col items-center gap-3 overflow-y-auto p-4 py-6 text-center">
-        <div className="text-4xl">⚔️</div>
+        <UiIcon id="UI_DUEL" className="h-10 w-10" />
         <p className="max-w-xs text-sm text-white/60">
           Duel 1v1 contre un autre joueur, avec ton deck actif. Le combat est simulé
           des deux côtés — même déroulé, même vainqueur.
