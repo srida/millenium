@@ -142,7 +142,23 @@ function getAudioCtx(): AudioContext | null {
   const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Ctor) return null;
   if (!audioCtx) {
-    try { audioCtx = new Ctor(); } catch { return null; }
+    try {
+      audioCtx = new Ctor();
+      // ⚠️ iOS (Safari comme PWA installée) SUSPEND le contexte tout seul sur
+      // une interruption audio (bannière de notification, Centre de
+      // contrôle, coupe-son matériel, appel) SANS qu'aucun `visibilitychange`
+      // ne se déclenche — la page reste au premier plan, seule la session
+      // audio est coupée. `suspendForBackground`/`resumeFromBackground` ne
+      // voient donc rien passer, et le son en cours (le plus exposé : une
+      // fanfare de plusieurs secondes, pas un clic d'un dixième de seconde)
+      // s'arrête net sans jamais reprendre. On écoute le contexte lui-même
+      // et on le relance dès qu'il retombe `suspended` alors que rien
+      // n'explique la coupure côté app — seul filet pour cette classe
+      // d'interruption, propre au mobile et particulièrement au mode PWA.
+      audioCtx.addEventListener?.('statechange', () => {
+        if (audioCtx?.state === 'suspended' && !backgroundPaused) audioCtx.resume().catch(() => {});
+      });
+    } catch { return null; }
   }
   return audioCtx;
 }
