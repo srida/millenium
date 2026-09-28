@@ -141,7 +141,7 @@ export default function ShopScreen() {
               <div className="flex items-baseline justify-between px-1">
                 <h2 className="text-[10px] tracking-widest text-white/40">BOOSTERS</h2>
                 <span className="text-[10px] text-white/30">
-                  {snapshot.booster.card_count} cartes · {fmt.format(snapshot.booster.price_golds)} {CURRENCY.gold.icon} ou {fmt.format(snapshot.booster.price_gems)} {CURRENCY.gems.icon}
+                  {snapshot.booster.card_count} cartes · {fmt.format(snapshot.booster.price_golds)} <UiIcon id={CURRENCY.gold.icon} className="inline-block h-3 w-3 align-[-2px]" /> ou {fmt.format(snapshot.booster.price_gems)} <UiIcon id={CURRENCY.gems.icon} className="inline-block h-3 w-3 align-[-2px]" />
                 </span>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -196,7 +196,7 @@ function CosmeticsTab() {
           <section className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-[10px] tracking-widest text-white/40">AVATARS DU JOUR</h2>
-              <span className="text-[10px] text-white/30">{snapshot.prices.avatar.gems} {CURRENCY.gems.icon} pièce</span>
+              <span className="flex items-center gap-1 text-[10px] text-white/30">{snapshot.prices.avatar.gems} <UiIcon id={CURRENCY.gems.icon} className="h-3 w-3" /> pièce</span>
             </div>
             {snapshot.avatars.length ? (
               <div className="grid grid-cols-3 gap-2">
@@ -212,7 +212,7 @@ function CosmeticsTab() {
           <section className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-[10px] tracking-widest text-white/40">VARIANTES DU JOUR</h2>
-              <span className="text-[10px] text-white/30">{snapshot.prices.variant.gems} {CURRENCY.gems.icon} pièce</span>
+              <span className="flex items-center gap-1 text-[10px] text-white/30">{snapshot.prices.variant.gems} <UiIcon id={CURRENCY.gems.icon} className="h-3 w-3" /> pièce</span>
             </div>
             {snapshot.variants.length ? (
               <div className="grid grid-cols-3 gap-2">
@@ -250,7 +250,7 @@ function CosmeticsTab() {
           <section className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-[10px] tracking-widest text-white/40">REFLETS DU JOUR</h2>
-              <span className="text-[10px] text-white/30">{snapshot.prices.foil?.gems ?? 20} {CURRENCY.gems.icon} pièce</span>
+              <span className="flex items-center gap-1 text-[10px] text-white/30">{snapshot.prices.foil?.gems ?? 20} <UiIcon id={CURRENCY.gems.icon} className="h-3 w-3" /> pièce</span>
             </div>
             {snapshot.foils.length ? (
               <div className="grid grid-cols-3 gap-2">
@@ -304,7 +304,7 @@ function CosmeticOffer({
         <div className="py-1 text-center text-[11px] font-semibold text-success">✓ Débloqué</div>
       ) : (
         <HoldConfirmButton
-          icon={CURRENCY.gems.icon}
+          icon={<UiIcon id={CURRENCY.gems.icon} className="h-5 w-5" />}
           label={fmt.format(price)}
           actionLabel={`acheter ${title}`}
           cost={price}
@@ -488,7 +488,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
       ) : (
         <div className="flex flex-col gap-1">
           <HoldConfirmButton
-            icon={CURRENCY.gold.icon}
+            icon={<UiIcon id={CURRENCY.gold.icon} className="h-5 w-5" />}
             label={fmt.format(slot.price_golds)}
             actionLabel={`acheter ${card?.name ?? slot.card_id}`}
             cost={slot.price_golds}
@@ -500,7 +500,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
             className="px-1 text-[11px]"
           />
           <HoldConfirmButton
-            icon={CURRENCY.gems.icon}
+            icon={<UiIcon id={CURRENCY.gems.icon} className="h-5 w-5" />}
             label={fmt.format(slot.price_gems)}
             actionLabel={`acheter ${card?.name ?? slot.card_id}`}
             cost={slot.price_gems}
@@ -575,7 +575,7 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
         <>
           <div className="flex gap-2">
             <HoldConfirmButton
-              icon={CURRENCY.gold.icon}
+              icon={<UiIcon id={CURRENCY.gold.icon} className="h-5 w-5" />}
               label={fmt.format(priceGolds)}
               actionLabel={`acheter le pack ${set.name}`}
               cost={priceGolds}
@@ -586,7 +586,7 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
               className="px-2 text-xs"
             />
             <HoldConfirmButton
-              icon={CURRENCY.gems.icon}
+              icon={<UiIcon id={CURRENCY.gems.icon} className="h-5 w-5" />}
               label={fmt.format(priceGems)}
               actionLabel={`acheter le pack ${set.name}`}
               cost={priceGems}
@@ -605,7 +605,7 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
             {short
               ? `${missing} carte${missing > 1 ? 's' : ''} restante${missing > 1 ? 's' : ''} — le booster n'en rendra pas ${cardCount}`
               : `${missing} carte${missing > 1 ? 's' : ''} restante${missing > 1 ? 's' : ''}`}
-            {set.completion_reward?.gems ? ` · set complet : +${set.completion_reward.gems} ${CURRENCY.gems.icon}` : ''}
+            {set.completion_reward?.gems ? <> · set complet : +{set.completion_reward.gems} <UiIcon id={CURRENCY.gems.icon} className="inline-block h-3 w-3 align-[-2px]" /></> : ''}
           </p>
         </>
       )}
@@ -645,7 +645,7 @@ function BoosterReveal({ onClose }: { onClose: () => void }) {
       )}
       {booster.sets_completed.map(s => (
         <p key={s.set_id} className="mt-2 flex items-center justify-center gap-1 text-center text-[11px] text-success">
-          <UiIcon id="UI_MEDAL" className="h-3 w-3" /> Set complété : {s.name}{s.rewards.gems ? ` — +${s.rewards.gems} ${CURRENCY.gems.icon}` : ''}
+          <UiIcon id="UI_MEDAL" className="h-3 w-3" /> Set complété : {s.name}{s.rewards.gems ? <> — +{s.rewards.gems} <UiIcon id={CURRENCY.gems.icon} className="inline-block h-3 w-3 align-[-2px]" /></> : ''}
         </p>
       ))}
       <Button variant="primary" className="mt-4 w-full" onPointerDown={onClose}>Continuer</Button>

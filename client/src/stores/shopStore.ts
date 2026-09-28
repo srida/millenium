@@ -157,7 +157,7 @@ function absorb(set: (partial: any) => void, data: any, unlocked: string[] = [])
   const completed = data.sets_completed ?? [];
   if (completed.length) {
     const gems = completed.reduce((n: number, s: any) => n + (s.rewards?.gems ?? 0), 0);
-    set({ notice: `Set complété : ${completed.map((s: any) => s.name).join(', ')}${gems ? ` — +${gems} ${CURRENCY.gems.icon}` : ''}` });
+    set({ notice: `Set complété : ${completed.map((s: any) => s.name).join(', ')}${gems ? ` — +${gems} ${CURRENCY.gems.unit}` : ''}` });
   }
 }
 

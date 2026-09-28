@@ -13,7 +13,7 @@
 //
 // Toutes les valeurs viennent du serveur (missions.js) : barème, cible,
 // progression, paliers. Le client n'en calcule aucune.
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useAuthStore } from '../stores/authStore.js';
 import { useMissionStore, markMissionsSeen, claimableMissions, type Mission, type WeeklyMilestone } from '../stores/missionStore.js';
 import { Button, Countdown, Gauge, LoadState, Panel } from '../components/ui/primitives.js';
@@ -74,10 +74,10 @@ export default function MissionsScreen() {
                   </span>
                 )}
               </h2>
-              <span className="text-[10px] text-white/30">
+              <span className="flex items-center gap-1 text-[10px] text-white/30">
                 {snapshot.reroll.free_available
                   ? '1 reroll gratuit'
-                  : `reroll : ${fmt.format(snapshot.reroll.cost)} ${CURRENCY.gold.icon}`}
+                  : <>reroll : {fmt.format(snapshot.reroll.cost)} <UiIcon id={CURRENCY.gold.icon} className="h-3 w-3" /></>}
               </span>
             </div>
 
@@ -272,10 +272,10 @@ function MissionCard({ mission, rerollCost }: { mission: Mission; rerollCost: nu
 // Récompenses d'une mission ou d'un palier. Mêmes icônes et mêmes couleurs que
 // ProgressionStats : un gold doit se lire pareil partout.
 export function RewardList({ rewards, className = '' }: { rewards: { xp?: number; gold?: number; gems?: number }; className?: string }) {
-  const parts: string[] = [];
-  if (rewards.xp) parts.push(`${XP_ICON} ${fmt.format(rewards.xp)}`);
-  if (rewards.gold) parts.push(`${CURRENCY.gold.icon} ${fmt.format(rewards.gold)}`);
-  if (rewards.gems) parts.push(`${CURRENCY.gems.icon} ${fmt.format(rewards.gems)}`);
+  const parts: ReactNode[] = [];
+  if (rewards.xp) parts.push(<span key="xp" className="inline-flex items-center gap-0.5"><UiIcon id={XP_ICON} className="h-3 w-3" />{fmt.format(rewards.xp)}</span>);
+  if (rewards.gold) parts.push(<span key="gold" className="inline-flex items-center gap-0.5"><UiIcon id={CURRENCY.gold.icon} className="h-3 w-3" />{fmt.format(rewards.gold)}</span>);
+  if (rewards.gems) parts.push(<span key="gems" className="inline-flex items-center gap-0.5"><UiIcon id={CURRENCY.gems.icon} className="h-3 w-3" />{fmt.format(rewards.gems)}</span>);
   if (!parts.length) return null;
-  return <span className={`text-[11px] tabular-nums ${className}`}>{parts.join('  ')}</span>;
+  return <span className={`inline-flex items-center gap-2 text-[11px] tabular-nums ${className}`}>{parts}</span>;
 }

@@ -18,6 +18,11 @@
 //
 // Le module vit dans `components/ui/` et non dans `data/` : `cls` est une classe
 // Tailwind, c'est de la présentation, pas de la donnée de jeu.
+//
+// ⚠️ `icon` porte un ID du set d'INTERFACE (`UiIcon`), pas un emoji : ce sont
+// des glyphes de chrome, jamais des attributs de catalogue, donc pas de repli
+// emoji à prévoir (contrairement à `AttrIcon`/`PowerIcon`).
+import type { UiIconId } from './UiIcon.js';
 
 /** Séparateur de milliers français, partagé (il était redéclaré 4 fois). */
 export const fmt = new Intl.NumberFormat('fr-FR');
@@ -41,9 +46,7 @@ export interface CurrencyDef {
   short: string;
   /** Nom de l'unité au pluriel et en minuscules, pour une phrase suivie. */
   unit: string;
-  /** 💰 plutôt que 🪙 : la pièce n'a pas de glyphe couleur partout et retombe
-   *  en disque gris (constaté dans le rendu Chromium du preview). */
-  icon: string;
+  icon: UiIconId;
   cls: string;
   balance: (user: { gold?: number; gems?: number } | null | undefined) => number;
 }
@@ -51,11 +54,11 @@ export interface CurrencyDef {
 export const CURRENCY: Record<CurrencyKey, CurrencyDef> = {
   gold: {
     key: 'gold', label: 'Gold', short: 'Gold', unit: 'golds',
-    icon: '💰', cls: 'text-gold', balance: u => u?.gold ?? 0,
+    icon: 'UI_GOLD', cls: 'text-gold', balance: u => u?.gold ?? 0,
   },
   gems: {
     key: 'gems', label: 'Gemmes', short: 'Gemmes', unit: 'gemmes',
-    icon: '💎', cls: 'text-violet', balance: u => u?.gems ?? 0,
+    icon: 'UI_GEMS', cls: 'text-violet', balance: u => u?.gems ?? 0,
   },
 };
 
@@ -72,4 +75,4 @@ export const CURRENCY_BY_WIRE: Record<WireCurrency, CurrencyDef> = {
  * travers de la jauge de niveau. Elle est ici pour son seul glyphe, qui
  * apparaît à côté des deux autres dans les listes de gains.
  */
-export const XP_ICON = '✨';
+export const XP_ICON: UiIconId = 'UI_XP';

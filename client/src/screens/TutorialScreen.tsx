@@ -16,6 +16,13 @@ import { Button, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_GOLD, usePressSquash } fr
 import ChapterBlockView from '../components/tutorial/ChapterBlocks.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
+import UiIcon, { type UiIconId } from '../components/ui/UiIcon.js';
+
+/** Un chapitre porte soit un id du set d'interface, soit un emoji brut (les
+ *  quelques chapitres sans icône dédiée dans le set redessiné). */
+function isUiIconId(v: string): v is UiIconId {
+  return v.startsWith('UI_');
+}
 
 export default function TutorialScreen() {
   const navigate = useUiStore(s => s.navigate);
@@ -139,7 +146,9 @@ function ChapterCard({ chapter: c, read, onTap }: { chapter: Chapter; read: bool
       {...handlers}
       className="flex min-h-tap items-start gap-3 rounded-xl border border-line bg-surface-raised p-3 text-left active:opacity-80"
     >
-      <span className="text-xl leading-none" aria-hidden>{c.icon}</span>
+      {isUiIconId(c.icon)
+        ? <UiIcon id={c.icon} className="h-5 w-5 flex-shrink-0" />
+        : <span className="text-xl leading-none" aria-hidden>{c.icon}</span>}
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
           <span className="text-sm font-semibold text-white">{c.title}</span>

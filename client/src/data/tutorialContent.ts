@@ -147,7 +147,7 @@ export interface Chapter {
 export const CHAPTERS: Chapter[] = [
   {
     id: 'cards_units',
-    icon: '🃏',
+    icon: 'UI_CARD',
     title: 'Cartes et unités',
     blurb: 'Ce que tu tiens en main, et ce qui se bat sur le terrain.',
     blocks: [
@@ -164,7 +164,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'hand',
-    icon: '✋',
+    icon: 'UI_HAND',
     title: 'La main',
     blurb: '5 cartes par tour, conservées — et un mulligan au tour 1.',
     blocks: [
@@ -190,7 +190,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'board',
-    icon: '🗺️',
+    icon: 'UI_TERRAIN',
     title: 'Le terrain, la zone neutre et les neutralisées',
     blurb: '5 colonnes, 11 rangées, et un cimetière qui sert à quelque chose.',
     blocks: [
@@ -213,7 +213,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'stats',
-    icon: '📊',
+    icon: 'UI_STATS',
     title: 'Les statistiques',
     blurb: 'Cinq chiffres qui décident de tout, puisque le combat est automatique.',
     blocks: [
@@ -298,7 +298,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'attributes',
-    icon: '🔗',
+    icon: 'UI_LINK',
     title: 'Les synergies d\'attributs',
     blurb: 'Réunis les bonnes cartes, débloque des paliers.',
     blocks: [
@@ -320,7 +320,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'keywords',
-    icon: '\u{1F4CC}',
+    icon: 'UI_PIN',
     title: 'Les mots-clés',
     blurb: "Des attributs qui ne rangent pas la carte : ils lui donnent une règle.",
     blocks: [
@@ -352,7 +352,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'magies',
-    icon: '✨',
+    icon: 'UI_XP',
     title: 'Les magies',
     blurb: 'Un choix entre trois après chaque combat — ou un reroll.',
     blocks: [
@@ -377,7 +377,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'boards',
-    icon: '🏞️',
+    icon: 'UI_LANDSCAPE',
     title: 'Les terrains',
     blurb: 'Un décor tiré à chaque combat, avec ses obstacles et son effet.',
     blocks: [

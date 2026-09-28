@@ -31,6 +31,7 @@
 // vit, et ne rend le `<button>` que si `visible` ; sans toast en cours, il
 // rend `null` exactement comme l'ancien montage conditionnel.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import UiIcon, { type UiIconId } from './UiIcon.js';
 import { BUTTON_BASE, SHADOW_IDLE, SURFACE_DANGER, SURFACE_GOLD, SURFACE_VIOLET } from './primitives.js';
 import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
 import * as Audio from '../../audio/AudioManager.js';
@@ -46,12 +47,12 @@ interface ToneStyle {
   text: string;
   toast: string;
   unit: string;
-  /** Vide pour le coût en PV — `${cost} PV`, pas `${cost}  PV`. */
-  icon: string;
+  /** `null` pour le coût en PV — pas d'icône dédiée, l'unité suffit. */
+  icon: UiIconId | null;
 }
 
 const TONE_STYLE: Record<Tone, ToneStyle> = {
-  danger: { surface: SURFACE_DANGER, text: 'text-danger', toast: 'bg-danger text-white', unit: 'PV', icon: '' },
+  danger: { surface: SURFACE_DANGER, text: 'text-danger', toast: 'bg-danger text-white', unit: 'PV', icon: null },
   gold: { surface: SURFACE_GOLD, text: 'text-gold', toast: 'bg-gold text-black', unit: CURRENCY.gold.unit, icon: CURRENCY.gold.icon },
   gems: { surface: SURFACE_VIOLET, text: 'text-violet', toast: 'bg-violet text-white', unit: CURRENCY.gems.unit, icon: CURRENCY.gems.icon },
 };
@@ -97,7 +98,12 @@ export default function HoldConfirmButton({
   const toastTimers = useRef<number[]>([]);
 
   const tone = TONE_STYLE[currency === 'gold' ? 'gold' : currency === 'gems' ? 'gems' : 'danger'];
-  const toastAmount = tone.icon ? `−${fmt.format(cost)} ${tone.icon}` : `−${cost} ${tone.unit}`;
+  // Texte pur pour l'aria-label (un glyphe d'icône ne se prononce pas de façon
+  // fiable) ; nœud avec icône pour le toast visuel, lui `aria-hidden`.
+  const toastText = `−${fmt.format(cost)} ${tone.unit}`;
+  const toastNode: ReactNode = tone.icon
+    ? <>−{fmt.format(cost)} <UiIcon id={tone.icon} className="inline-block h-3 w-3 align-[-1px]" /></>
+    : toastText;
 
   const stopCharge = () => {
     if (raf.current !== null) { cancelAnimationFrame(raf.current); raf.current = null; }
@@ -146,7 +152,7 @@ export default function HoldConfirmButton({
             toastPhase === 'in' ? 'translate-y-0 opacity-100' : '-translate-y-2 opacity-0'
           }`}
         >
-          {toastAmount}
+          {toastNode}
         </div>
       )}
       {visible && (
@@ -154,7 +160,7 @@ export default function HoldConfirmButton({
           type="button"
           disabled={disabled}
           title={title}
-          aria-label={`Maintenir pour ${actionLabel ?? label.toLowerCase()}, moins ${toastAmount.replace('−', '')}`}
+          aria-label={`Maintenir pour ${actionLabel ?? label.toLowerCase()}, moins ${toastText.replace('−', '')}`}
           onPointerDown={(e) => { e.stopPropagation(); if (disabled) return; stopCharge(); raf.current = requestAnimationFrame(tick); }}
           onPointerUp={(e) => { e.stopPropagation(); cancelCharge(); }}
           onPointerLeave={(e) => { e.stopPropagation(); cancelCharge(); }}

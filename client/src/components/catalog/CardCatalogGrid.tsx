@@ -23,6 +23,7 @@ import SortControl, { type SortState } from '../ui/SortControl.js';
 import { usePressSquash } from '../ui/primitives.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import OwnershipToggle, { type Ownership } from './OwnershipToggle.js';
+import TierIcon from '../ui/TierIcon.js';
 
 const TIER_TEXT: Record<number, string> = {
   1: 'text-tier-1', 2: 'text-tier-2', 3: 'text-tier-3', 4: 'text-tier-4', 5: 'text-tier-5',
@@ -126,7 +127,7 @@ export default function CardCatalogGrid({
         <div className="flex flex-wrap items-center gap-1.5">
           {[1, 2, 3, 4, 5].map(t => (
             <Chip key={t} active={onTier(t)} onTap={() => toggleTier(t)}>
-              <span className={TIER_TEXT[t]}>{t}</span>
+              <TierIcon tier={t} className={`h-4 w-4 ${TIER_TEXT[t]}`} />
             </Chip>
           ))}
           <SortControl
