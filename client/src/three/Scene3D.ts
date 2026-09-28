@@ -17,6 +17,7 @@ import { EnergyArrows } from './EnergyArrows.js';
 import { MeleeStrikes } from './MeleeStrikes.js';
 import { UnitSpawns } from './UnitSpawns.js';
 import { UnitShatter } from './UnitShatter.js';
+import { Powers } from './Powers.js';
 import { createUnitEl, updateUnitEl } from './UnitCardEl.js';
 import {
   ELEMENT_STYLES, elementsForUnit,
@@ -172,10 +173,20 @@ interface SceneActor {
   readonly baseQuat: THREE.Quaternion;
   baseScale: number;
   forward: THREE.Vector3;
-  dom: { wrap: HTMLDivElement; card: HTMLDivElement };
+  dom: { wrap: HTMLDivElement; card: HTMLDivElement; flash: HTMLDivElement | null };
   entry: UnitEntry;
   setOpacity: (a: number) => void;
   spawning?: boolean;
+  // Lus par `three/Powers.js` (via `PowerVfx.ts`) — jamais par `spawns`/
+  // `melee`/`shatter`, qui n'ont besoin que des champs ci-dessus.
+  readonly col: number;
+  readonly row: number;
+  readonly tier: number;
+  readonly el: string[];
+  readonly side: string;
+  readonly range: number;
+  readonly uid: number;
+  readonly hp: number;
 }
 
 // Tuile arrondie plate (vue du dessus) — ShapeGeometry avec coins arrondis
@@ -259,6 +270,11 @@ export class Scene3D {
   spawns: any;
   melee: any;
   shatter: any;
+  // Animations des 16 pouvoirs + effets d'état persistants (three/Powers.js,
+  // composé par PowerVfx.ts) — même famille que `fx`/`spawns`/`melee`/
+  // `shatter` : un module qui ne connaît que des acteurs et des cellules,
+  // jamais un `Unit` ni un `CombatEvent`.
+  powers: any;
 
   tileGeometry!: THREE.ShapeGeometry;
   tileMeshes: THREE.Mesh[] = [];
@@ -395,6 +411,24 @@ export class Scene3D {
     this.shatter = new UnitShatter(this.fx, {
       onShake: (a: number) => this.shakeCamera(this._camH * a, 0.3),
       onDone: (actor: any) => { this.cssScene.remove(actor.obj); },
+    } as any);
+    // Pouvoirs : `posOf`/`cellPos` retombent sur `tilePosition`, `opponents`/
+    // `allies` filtrent `unitObjs` par côté — Scene3D n'a pas besoin de
+    // connaître `CombatManager` pour ça, ses propres cartes à l'écran
+    // suffisent. `isFree`/`relocate`/`summon` n'existent plus : ce que la
+    // simulation a déjà décidé (case libérée, destination) voyage dans
+    // `extra`, jamais recalculé ici (cf. l'en-tête de `Powers.js`).
+    this.powers = new Powers(this.fx, {
+      posOf: (u: any) => u.home,
+      cellPos: (c: number, r: number) => this.tilePosition({ col: c, row: r }),
+      alive: (u: any) => this.unitObjs.has(u.entry.unit.uid) && u.entry.unit.isAlive(),
+      opponents: (u: any) => [...this.unitObjs.values()]
+        .filter((e) => e.unit.side !== u.side && e.unit.isAlive())
+        .map((e) => this._actorFor(e)),
+      allies: (u: any) => [...this.unitObjs.values()]
+        .filter((e) => e.unit.side === u.side && e.unit.isAlive())
+        .map((e) => this._actorFor(e)),
+      shake: (a: number) => this.shakeCamera(this._camH * a, 0.3),
     } as any);
 
     // Ambiance astrale : lumière froide violet-bleu + clé dorée rasante
@@ -830,6 +864,15 @@ export class Scene3D {
     const entry = this.unitObjs.get(uid);
     if (!entry) return null;
     return { obj: entry.obj, el: entry.el, position: entry.unit.position };
+  }
+
+  /** L'acteur de `Powers.js` pour une unité encore à l'écran — `null` sinon
+   * (une carte déjà retirée, cf. `killUnitObj`). `SceneActor` n'est pas
+   * exporté (comme `fx`/`spawns`/`melee`/`shatter`, cf. leurs champs `any`) :
+   * `PowerVfx.ts` ne fait que le faire transiter vers `Powers.js`. */
+  actorForUid(uid: number): any {
+    const entry = this.unitObjs.get(uid);
+    return entry ? this._actorFor(entry) : null;
   }
 
   tilePosition(pos: Position): THREE.Vector3 {
@@ -1964,13 +2007,25 @@ export class Scene3D {
       obj: entry.obj,
       baseScale: CSS_SCALE,
       forward: entry.forward,
-      dom: { wrap: entry.wrap, card: entry.el },
+      dom: { wrap: entry.wrap, card: entry.el, flash: entry.el.querySelector<HTMLDivElement>('.unit-fx-flash') },
       entry,
       setOpacity: (a: number) => { entry.wrap.style.opacity = String(a); },
     } as SceneActor;
     Object.defineProperties(actor, {
       home: { get: () => this.tilePosition(entry.pos) },
       baseQuat: { get: () => new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, this._camAngle)) },
+      // Lus par `Powers.js` seul (cf. `SceneActor`) — en accesseurs pour les
+      // mêmes raisons que `home` : `col`/`row` et `tier` (vétérance à part,
+      // `Unit.tier` ne bouge pas) suivent l'entrée plutôt qu'une valeur figée
+      // au premier appel, qui deviendrait fausse au premier déplacement.
+      col: { get: () => entry.pos.col },
+      row: { get: () => entry.pos.row },
+      tier: { get: () => entry.unit.tier ?? 1 },
+      el: { get: () => entry.elements },
+      side: { get: () => entry.unit.side },
+      range: { get: () => entry.unit.range ?? 3 },
+      uid: { get: () => entry.unit.uid },
+      hp: { get: () => entry.unit.max_hp > 0 ? entry.unit.current_hp / entry.unit.max_hp : 0 },
     });
     entry._actor = actor;
     return entry._actor;
@@ -2488,12 +2543,22 @@ export class Scene3D {
     // que les coups en cours, pas le recul (`kicks`) d'une cible qui vient
     // d'en encaisser un — un recul qu'on cesse d'avancer se figerait à mi-course.
     const unitFxActive = this.spawns.activeCount > 0 || this.melee.states.size > 0 || this.shatter.activeCount > 0;
+    // Pouvoirs : un statut persistant (brûlé, empoisonné…) doit continuer à
+    // émettre des particules même sur une frame où le pool venait de retomber
+    // à 0 entre deux pulses — `fxActive` seul flancherait par intermittence.
+    // Un tween de recette en cours (`anims`, cf. `Powers.pose`/`nudge`) compte
+    // de la même façon : lui aussi doit continuer d'avancer sans particule
+    // visible à l'instant T.
+    const powersActive = this.powers.activeCount > 0 || this.powers.status.size > 0;
 
     // Rendu à la demande : rien d'actif et rien d'invalidé → on saute la frame.
-    const active = this.anims.length > 0 || this.bursts.length > 0 || this._shake !== null || this._needsRender || fxActive || unitFxActive;
+    const active = this.anims.length > 0 || this.bursts.length > 0 || this._shake !== null || this._needsRender || fxActive || unitFxActive || powersActive;
     if (!active) return;
     this._needsRender = false;
 
+    // Powers AVANT fx : les particules qu'un statut vient d'émettre cette
+    // frame profitent tout de suite de l'intégration de position de `fx.update`.
+    if (fxActive || powersActive) this.powers.update(dt);
     if (fxActive) this.fx.update(dt);
     if (unitFxActive) { this.spawns.update(dt); this.melee.update(dt); this.shatter.update(dt); }
 
@@ -2651,7 +2716,7 @@ export class Scene3D {
     // Rendue seulement quand active : sur une frame qui ne l'était pas déjà à
     // la frame précédente, le canvas transparent reste tel qu'on l'a laissé
     // (vide) plutôt que de coûter un rendu pour rien.
-    if (fxActive) this.fxRenderer.render(this.fxScene, this.camera);
+    if (fxActive || powersActive) this.fxRenderer.render(this.fxScene, this.camera);
   }
 
   dispose(): void {
@@ -2709,6 +2774,7 @@ export class Scene3D {
     this.spawns.dispose();
     this.melee.dispose();
     this.shatter.dispose();
+    this.powers.dispose();
     this.fx.dispose();
     this.renderer.dispose();
     this.fxRenderer.dispose();
