@@ -480,7 +480,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
       {/* L'épingle ne se lit pas dans l'état du bouton : on dit ce qu'elle
           PROMET (« encore là demain »), pas qu'elle est active. */}
       {slot.pinned && !slot.purchased && (
-        <p className="text-center text-[10px] leading-tight text-gold">📌 Conservée demain</p>
+        <p className="flex items-center justify-center gap-1 text-center text-[10px] leading-tight text-gold"><UiIcon id="UI_PIN" className="h-3 w-3" /> Conservée demain</p>
       )}
 
       {slot.purchased ? (

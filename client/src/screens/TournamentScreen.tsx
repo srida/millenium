@@ -219,7 +219,7 @@ function Portrait({ p, won, size = 'h-8 w-8' }: { p: any; won?: boolean; size?: 
   if (avatar && /^(https?:|data:|\/)/i.test(avatar)) return <img src={avatar} alt="" className={frame} />;
   return (
     <span className={`${frame} flex items-center justify-center bg-surface-raised text-sm`}>
-      {avatar ? avatar.slice(0, 2) : '★'}
+      {avatar ? avatar.slice(0, 2) : <UiIcon id="UI_VETERAN" className="h-1/2 w-1/2 opacity-70" />}
     </span>
   );
 }

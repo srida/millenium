@@ -370,7 +370,9 @@ export function Avatar({ src, fallback = '★', className = 'h-8 w-8' }: { src?:
   const isImg = /^(https?:|data:|\/)/i.test(value);
   return (
     <div className={`flex flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-surface-raised text-xs font-semibold ${className}`}>
-      {value ? (isImg ? <img src={value} alt="" className="h-full w-full object-cover" /> : <span>{value.slice(0, 2)}</span>) : <span>{fallback}</span>}
+      {value
+        ? (isImg ? <img src={value} alt="" className="h-full w-full object-cover" /> : <span>{value.slice(0, 2)}</span>)
+        : (fallback === '★' ? <UiIcon id="UI_VETERAN" className="h-1/2 w-1/2 opacity-70" /> : <span>{fallback}</span>)}
     </div>
   );
 }
