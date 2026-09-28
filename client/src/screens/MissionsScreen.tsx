@@ -167,7 +167,7 @@ function WeeklyGauge({ points, max, milestones }: { points: number; max: number;
                   : 'border-line bg-surface/60 text-white/60'
               }`}
             >
-              <span className="font-semibold">{ms.claimed ? '✓' : ms.points}</span>
+              <span className="font-semibold">{ms.claimed ? <UiIcon id="UI_CHECK" className="inline-block h-3 w-3" /> : ms.points}</span>
               <RewardList rewards={ms.rewards} />
             </li>
           );
@@ -211,8 +211,8 @@ function MissionCard({ mission, rerollCost }: { mission: Mission; rerollCost: nu
       <div className="flex items-start gap-2">
         <UiIcon id={FAMILY_ICONS[mission.family] ?? 'UI_MISSIONS'} className="h-4 w-4 flex-shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className={`text-sm font-semibold leading-tight ${done ? 'text-success' : 'text-white'}`}>
-            {done && '✓ '}{mission.label}
+          <p className={`flex items-center gap-1 text-sm font-semibold leading-tight ${done ? 'text-success' : 'text-white'}`}>
+            {done && <UiIcon id="UI_CHECK" className="h-3 w-3 flex-shrink-0" />}{mission.label}
           </p>
           {mission.scope_hint && (
             <span className="mt-0.5 inline-block text-[10px] italic text-white/40">{mission.scope_hint}</span>

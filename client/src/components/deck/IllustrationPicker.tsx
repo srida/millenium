@@ -112,8 +112,8 @@ function Choice({
         foil={foil && selected}
         onTap={onTap}
       />
-      <div className={`truncate text-center text-[10px] ${selected ? 'text-gold' : 'text-white/50'}`}>
-        {selected ? '✓ ' : ''}{label}
+      <div className={`flex items-center justify-center gap-0.5 truncate text-center text-[10px] ${selected ? 'text-gold' : 'text-white/50'}`}>
+        {selected && <UiIcon id="UI_CHECK" className="h-2.5 w-2.5 flex-shrink-0" />}{label}
       </div>
     </div>
   );

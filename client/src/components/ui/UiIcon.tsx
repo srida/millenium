@@ -3,7 +3,7 @@
 // des icônes d'attribut/pouvoir (celles-là passent par `AttrIcon`/`PowerIcon`
 // et l'upload admin, cf. CLAUDE.md « L'icône d'un attribut est une image »).
 //
-// Ces 50 glyphes ne sont pas data-driven : ils ne décorent aucune fiche du
+// Ces 62 glyphes ne sont pas data-driven : ils ne décorent aucune fiche du
 // catalogue, ils SONT le chrome de l'appli. D'où un asset statique du bundle
 // client (`public/icons/ui/`), sans détour par l'admin ni par le serveur.
 const BASE = '/icons/ui/';
@@ -17,7 +17,9 @@ export type UiIconId =
   | 'UI_RENAME' | 'UI_DELETE' | 'UI_MIRROR' | 'UI_DUEL' | 'UI_PAINT' | 'UI_AVATAR'
   | 'UI_CARD' | 'UI_GAMEPAD' | 'UI_FOLDER' | 'UI_WARNING' | 'UI_CELEBRATE' | 'UI_HAND'
   | 'UI_STATS' | 'UI_LINK' | 'UI_LANDSCAPE' | 'UI_LOCATION' | 'UI_RECIPES' | 'UI_FORBIDDEN'
-  | 'UI_SORT' | 'UI_CLOSE';
+  | 'UI_SORT' | 'UI_CLOSE'
+  | 'UI_CHECK' | 'UI_CROSS' | 'UI_TIMER' | 'UI_STAR' | 'UI_SUMMONING' | 'UI_POWERS'
+  | 'UI_EYE' | 'UI_SPARKLE' | 'UI_PLAY' | 'UI_PAUSE' | 'UI_HOURGLASS' | 'UI_SHIELD';
 
 /** Un id de la famille Interface commence toujours par `UI_` — ce qui permet
  *  à un appelant qui reçoit un champ « soit un id, soit un emoji brut » (un

@@ -146,7 +146,7 @@ function ChapterCard({ chapter: c, read, onTap }: { chapter: Chapter; read: bool
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
           <span className="text-sm font-semibold text-white">{c.title}</span>
-          {read && <span className="text-xs text-success" aria-label="Lu">✓</span>}
+          {read && <UiIcon id="UI_CHECK" alt="Lu" className="h-3 w-3" />}
         </span>
         <span className="mt-0.5 block text-[11px] leading-snug text-white/50">{c.blurb}</span>
       </span>
@@ -164,7 +164,7 @@ function PracticeButton({ label, hint, done, onTap }: { label: string; hint: str
     >
       <span className="flex w-full items-center gap-2">
         <span className="text-sm font-semibold text-gold">{label}</span>
-        {done && <span className="ml-auto text-xs text-success" aria-label="Fait">✓</span>}
+        {done && <UiIcon id="UI_CHECK" alt="Fait" className="ml-auto h-3 w-3" />}
       </span>
       <span className="text-[11px] text-white/50">{hint}</span>
     </button>

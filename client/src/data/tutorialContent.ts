@@ -233,7 +233,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'phases',
-    icon: '⏱️',
+    icon: 'UI_TIMER',
     title: 'Les phases de jeu',
     blurb: 'Cinq tours, et la même boucle à chaque fois.',
     blocks: [
@@ -260,7 +260,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'tiers',
-    icon: '⭐',
+    icon: 'UI_STAR',
     title: 'Les tiers',
     blurb: 'De 1 à 5 : la puissance, et les tours où elle arrive.',
     blocks: [
@@ -277,7 +277,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'summoning',
-    icon: '🔮',
+    icon: 'UI_SUMMONING',
     title: "L'invocation",
     blurb: 'Ce qu\'une carte coûte, et ce qu\'elle consomme pour se payer.',
     blocks: [
@@ -336,7 +336,7 @@ export const CHAPTERS: Chapter[] = [
   },
   {
     id: 'powers',
-    icon: '⚡',
+    icon: 'UI_POWERS',
     title: 'Les pouvoirs',
     blurb: 'Une capacité par unité, qui part toute seule au bon moment.',
     blocks: [

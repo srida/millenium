@@ -234,7 +234,7 @@ export default function ProfileScreen() {
             className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-white"
           />
           {error && <p className="text-xs text-danger">{error}</p>}
-          {saved && <p className="text-xs text-success">✓ Profil enregistré</p>}
+          {saved && <p className="flex items-center gap-1 text-xs text-success"><UiIcon id="UI_CHECK" className="h-3 w-3" /> Profil enregistré</p>}
           <Button variant="primary" disabled={busy || !username.trim()} className="w-full" onPointerDown={save}>
             {busy ? '…' : 'Enregistrer'}
           </Button>
@@ -271,7 +271,7 @@ export default function ProfileScreen() {
             <FriendSection title={`Demandes reçues · ${incoming.length}`}>
               {incoming.map(u => (
                 <FriendRow key={u.friendship_id} u={u}>
-                  <Button variant="primary" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).acceptRequest(u.friendship_id))}>✓</Button>
+                  <Button variant="primary" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).acceptRequest(u.friendship_id))}><UiIcon id="UI_CHECK" className="h-3.5 w-3.5" /></Button>
                   <Button variant="danger" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).declineRequest(u.friendship_id))}><UiIcon id="UI_CLOSE" className="h-3.5 w-3.5" /></Button>
                 </FriendRow>
               ))}

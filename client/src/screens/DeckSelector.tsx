@@ -436,7 +436,7 @@ function DeckCard({
       {deck.tags.length > 0 && (
         <div className="mt-2 flex flex-wrap items-center gap-1">
           {deck.tags.map(t => (
-            <span key={t} className="rounded border border-gold/30 bg-gold/10 px-1.5 py-0.5 text-[10px] text-gold">✦ {t}</span>
+            <span key={t} className="flex items-center gap-1 rounded border border-gold/30 bg-gold/10 px-1.5 py-0.5 text-[10px] text-gold"><UiIcon id="UI_SPARKLE" className="h-2.5 w-2.5" /> {t}</span>
           ))}
         </div>
       )}

@@ -125,8 +125,8 @@ export default function ShopScreen() {
               {/* Collection saturée : la boutique n'a plus rien à vendre — on le
                   dit, plutôt que d'afficher trois cases vides. */}
               {complete ? (
-                <Panel className="p-4 text-center text-sm text-success">
-                  ✓ Collection complète — {fmt.format(snapshot.collection.total)} cartes. Plus rien à acheter ici.
+                <Panel className="flex items-center justify-center gap-1 p-4 text-center text-sm text-success">
+                  <UiIcon id="UI_CHECK" className="h-3.5 w-3.5 flex-shrink-0" /> Collection complète — {fmt.format(snapshot.collection.total)} cartes. Plus rien à acheter ici.
                 </Panel>
               ) : (
                 // Six emplacements : deux colonnes dès le portrait (une seule
@@ -301,7 +301,7 @@ function CosmeticOffer({
         <div className="truncate text-[10px] text-white/40">{subtitle}</div>
       </div>
       {purchased ? (
-        <div className="py-1 text-center text-[11px] font-semibold text-success">✓ Débloqué</div>
+        <div className="flex items-center justify-center gap-1 py-1 text-center text-[11px] font-semibold text-success"><UiIcon id="UI_CHECK" className="h-3 w-3" /> Débloqué</div>
       ) : (
         <HoldConfirmButton
           icon={<UiIcon id={CURRENCY.gems.icon} className="h-5 w-5" />}
@@ -484,7 +484,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
       )}
 
       {slot.purchased ? (
-        <span className="py-1 text-center text-xs font-semibold text-success">✓ Acheté</span>
+        <span className="flex items-center justify-center gap-1 py-1 text-center text-xs font-semibold text-success"><UiIcon id="UI_CHECK" className="h-3 w-3" /> Acheté</span>
       ) : (
         <div className="flex flex-col gap-1">
           <HoldConfirmButton
@@ -570,7 +570,7 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
       <Gauge value={set.card_count ? set.owned_count / set.card_count : 0} className="h-1.5" fillClassName={set.complete ? 'bg-success' : 'bg-gold'} />
 
       {set.complete ? (
-        <p className="py-1 text-center text-xs font-semibold text-success">✓ Collection complète</p>
+        <p className="flex items-center justify-center gap-1 py-1 text-center text-xs font-semibold text-success"><UiIcon id="UI_CHECK" className="h-3 w-3" /> Collection complète</p>
       ) : (
         <>
           <div className="flex gap-2">

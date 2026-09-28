@@ -18,6 +18,7 @@ import { PvpController } from '../game/PvpController.js';
 import { BotController } from '../game/BotController.js';
 import * as PvpConnection from '../net/PvpConnection.js';
 import { useGameStore } from '../stores/gameStore.js';
+import UiIcon from '../components/ui/UiIcon.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import Board3DCanvas from '../components/board/Board3DCanvas.js';
@@ -213,7 +214,7 @@ function WaitingOverlay() {
   return (
     <div className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-black/60">
       <div className="flex flex-col items-center gap-2 rounded-2xl border border-gold/40 bg-surface/95 px-6 py-5">
-        <div className="text-2xl">⏳</div>
+        <UiIcon id="UI_HOURGLASS" className="h-7 w-7" />
         <div className="animate-pulse text-sm text-white/70">En attente de l'adversaire…</div>
       </div>
     </div>

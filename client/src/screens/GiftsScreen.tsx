@@ -140,7 +140,7 @@ function DailyCard() {
 
       {claimed ? (
         <p className="flex items-center justify-center gap-2 text-xs text-white/40">
-          ✓ Récupéré — revient dans <Countdown at={snapshot.next_rotation_at} className="text-white/40" />
+          <UiIcon id="UI_CHECK" className="h-3 w-3" /> Récupéré — revient dans <Countdown at={snapshot.next_rotation_at} className="text-white/40" />
         </p>
       ) : (
         <Button
@@ -185,7 +185,7 @@ function GiftCard({ gift }: { gift: Gift }) {
       </ul>
 
       {gift.claimed ? (
-        <p className="text-center text-xs text-white/40">✓ Récupéré</p>
+        <p className="flex items-center justify-center gap-1 text-center text-xs text-white/40"><UiIcon id="UI_CHECK" className="h-3 w-3" /> Récupéré</p>
       ) : (
         <Button
           variant="primary"

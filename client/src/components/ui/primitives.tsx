@@ -403,7 +403,7 @@ export function Countdown({ at, className = '', title }: { at: number; className
     // hauteur de l'en-tête de la Boutique — qui est désormais épinglé, donc
     // toujours à l'écran.
     <span className={`whitespace-nowrap text-xs tabular-nums text-white/40 ${className}`} title={title}>
-      ⏳ {h > 0 ? `${h} h ${String(min).padStart(2, '0')}` : `${min} min`}
+      <UiIcon id="UI_HOURGLASS" className="mb-0.5 h-3 w-3" /> {h > 0 ? `${h} h ${String(min).padStart(2, '0')}` : `${min} min`}
     </span>
   );
 }

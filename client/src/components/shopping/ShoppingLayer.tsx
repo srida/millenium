@@ -63,10 +63,10 @@ export default function ShoppingLayer() {
       <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center px-4">
         <Button
           variant="primary"
-          className="pointer-events-auto shadow-lg"
+          className="pointer-events-auto flex items-center gap-1.5 shadow-lg"
           onPointerDown={(e) => { e.stopPropagation(); setHidden(false); }}
         >
-          👁️ Revoir les magies · {remaining}s
+          <UiIcon id="UI_EYE" className="h-3.5 w-3.5" /> Revoir les magies · {remaining}s
         </Button>
       </div>
     );
@@ -83,7 +83,9 @@ export default function ShoppingLayer() {
           className="absolute right-0 top-0"
           onTap={() => setHidden(true)}
         />
-        <div className="text-xs tracking-widest text-gold">✦ PHASE SHOPPING ✦</div>
+        <div className="flex items-center justify-center gap-1.5 text-xs tracking-widest text-gold">
+          <UiIcon id="UI_SPARKLE" className="h-3 w-3" /> PHASE SHOPPING <UiIcon id="UI_SPARKLE" className="h-3 w-3" />
+        </div>
         <div className="text-sm text-white/60">Choisis une magie</div>
         <div className="mt-1 text-xs font-semibold tabular-nums text-gold/80">{remaining}s</div>
         {shopping.info && (
