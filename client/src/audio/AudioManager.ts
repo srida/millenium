@@ -327,8 +327,39 @@ export function playSfx(trigger: string, variant?: SfxVariant): void {
   try {
     const routed = createRoutedAudio(sfxUrl(entry.id));
     setRoutedVolume(routed, s.sfxVolume);
+    retainUntilDone(routed.el);
     routed.el.play().catch(() => { /* autoplay bloqué avant le premier geste : silencieux */ });
   } catch { /* jamais remonté */ }
+}
+
+/** Sons en cours sur le chemin de repli (`createRoutedAudio`), le temps de
+ *  leur lecture. ⚠️ **Indispensable, pas une prudence** : un `<audio>` créé
+ *  sans être posé dans le DOM et sans variable qui le retient au-delà de
+ *  l'appel à `playSfx` n'a plus AUCUNE référence vivante une fois la fonction
+ *  retournée — un passage du ramasse-miettes peut alors le couper en plein
+ *  vol. Un son bref (attaque, tap de menu) a fini de jouer bien avant qu'un
+ *  tel passage n'ait une chance de survenir ; une fanfare de plusieurs
+ *  secondes (victoire, défaite, lancement de partie) reste en vol assez
+ *  longtemps pour l'attraper — exactement les coupures rapportées, et
+ *  seulement sur ce chemin (le chemin rapide, lui, tient sa référence par le
+ *  `AudioBufferSourceNode` en cours d'exécution, dont le cycle de vie est
+ *  automatique tant qu'il joue). */
+const routedSfxKeepAlive = new Set<HTMLAudioElement>();
+
+function retainUntilDone(el: HTMLAudioElement): void {
+  routedSfxKeepAlive.add(el);
+  const release = () => {
+    routedSfxKeepAlive.delete(el);
+    el.removeEventListener?.('ended', release);
+    el.removeEventListener?.('error', release);
+  };
+  // ⚠️ `addEventListener` optionnel : un faux `<audio>` de test (ou un
+  // polyfill minimal) sans cette API ne doit pas faire jeter `playSfx` — la
+  // rétention devient alors permanente pour cet élément, sans conséquence
+  // hors test (le vrai `HTMLAudioElement` du navigateur la porte toujours).
+  if (!el.addEventListener) return;
+  el.addEventListener('ended', release);
+  el.addEventListener('error', release);
 }
 
 // ================== Musique ==================
