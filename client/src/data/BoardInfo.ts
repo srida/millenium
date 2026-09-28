@@ -132,6 +132,10 @@ export function boardEffectLabel(
     // la repousser — or c'est justement ce qu'il interdit. Un mot-clé qui
     // n'annonce que la moitié de sa règle est pire qu'un mot-clé muet.
     case 'immobile':          return 'Ne se déplace pas et ne peut pas être poussée';
+    // ⚠️ Le mot-clé **Insaisissable** : il dit les DEUX moitiés — ce qu'elle
+    // fait par défaut (fuir) et la seule fenêtre où elle frappe quand même
+    // (le pouvoir, lui, part normalement et n'a pas besoin d'être nommé ici).
+    case 'insaisissable':     return 'Fuit l\'adversaire ; n\'attaque que lorsque son point de mouvement se recharge';
     // ⚠️ Le mot-clé **Explosif**, et il nomme les DEUX choses que le joueur ne
     // peut pas deviner : *quand* (en mourant) et *laquelle* (la plus proche).
     // Le repli sur le type brut sortait « destroy_enemy » à l'écran.

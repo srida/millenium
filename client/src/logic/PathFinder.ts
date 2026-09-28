@@ -80,6 +80,32 @@ export function stepTowardOrNearest(board: Board, from: Position, to: Position):
 }
 
 /**
+ * Free neighbour of `from` that maximises the Manhattan distance to
+ * `awayFrom` — the flee step of the **Insaisissable** keyword.
+ *
+ * Returns null when no neighbour improves on the distance already held at
+ * `from` (cornered, or every free cell is a dead end): the unit stays put
+ * rather than closing the gap on its own.
+ *
+ * ⚠️ Ties keep `board.getNeighbors`' own order, the reference-frame
+ * enumerator every other cell-picker in this file relies on (`stepToward`,
+ * `stepTowardOrNearest`) — the same determinism guarantee, applied to moving
+ * away instead of toward. A body left on the board (`is_neutralized`) does not
+ * block the flee, exactly like it does not block the BFS above.
+ */
+export function stepAway(board: Board, from: Position, awayFrom: Position): Position | null {
+  const currentDist = manhattanDistance(from, awayFrom);
+  let best: Position | null = null, bestDist = currentDist;
+  for (const n of board.getNeighbors(from)) {
+    const occupant = board.getUnit(n);
+    if (occupant && !occupant.is_neutralized) continue;
+    const d = manhattanDistance(n, awayFrom);
+    if (d > bestDist) { bestDist = d; best = n; }
+  }
+  return best;
+}
+
+/**
  * Find the closest enemy to `unit` among `enemies`.
  * Returns { unit, distance } or null.
  */

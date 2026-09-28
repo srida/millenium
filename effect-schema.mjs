@@ -508,6 +508,21 @@ export const TYPES = Object.freeze({
     // la famille exacte que ce fichier existe pour fermer.
     attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
   },
+  insaisissable: {
+    label: 'Fuit l’adversaire ; n’attaque qu’au rechargement du point de mouvement (Insaisissable)',
+    court: 'Insaisissable',
+    // ⚠️ **Aucun champ**, comme Tour : la règle n'est pas chiffrée, elle
+    // remplace deux comportements entiers de la boucle de combat (le
+    // déplacement ET l'attaque simple) — cf. `CombatManager._actOnMoveRecharge`.
+    // Les pouvoirs, eux, restent inchangés : ils partent sur leur propre jauge,
+    // comme pour n'importe quelle unité (§ Pertinence des pouvoirs).
+    //
+    // ⚠️ Offert au seul ATTRIBUT, mêmes moments que Tour et pour la même
+    // raison : un terrain viserait les deux camps sans rien pour l'annoncer, et
+    // une magie poserait un état que `startCombat` effacerait avant le combat
+    // suivant.
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
+  },
   revive: {
     label: 'Réanimation d’une unité du cimetière',
     court: 'Réanimation',

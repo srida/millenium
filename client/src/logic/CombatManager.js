@@ -1,4 +1,4 @@
-import { chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, hasLineOfSight, stepToward, stepTowardOrNearest } from './PathFinder.js';
+import { chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, hasLineOfSight, stepToward, stepTowardOrNearest, stepAway } from './PathFinder.js';
 import { Unit } from './Unit.js';
 // L'échelle vit à la racine (cf. l'en-tête de `speed-scale.mjs`) : une seule
 // fenêtre de ticks pour les rythmes ET les durées.
@@ -236,6 +236,11 @@ export class CombatManager {
       if (u.move_timer < u.movement_period) continue;
       u.move_timer = 0;
 
+      // ⚠️ **Insaisissable** : le rechargement du point de mouvement EST sa
+      // seule fenêtre de combat (cf. `_actOnMoveRecharge`) — remplace tout le
+      // reste de la phase, qui ne le concerne plus.
+      if (u.is_elusive) { this._actOnMoveRecharge(u, events); continue; }
+
       const candidates = this._targetCandidates(u, { requireLOS: false });
       if (candidates.length === 0) continue;
 
@@ -302,7 +307,13 @@ export class CombatManager {
           // pouvoir que personne n'a vu.
           this._onPowerFired(u, events);
         }
-      } else if (reachable) {
+      } else if (reachable && !u.is_elusive) {
+        // ⚠️ **Insaisissable n'attaque jamais ICI** : son unique fenêtre de
+        // combat simple est le rechargement de son point de MOUVEMENT
+        // (`_actOnMoveRecharge`, phase 3), pas ce timer d'attaque — c'est tout
+        // le sens du mot-clé. Le pouvoir, lui, reste inchangé : il vient d'être
+        // évalué juste au-dessus, sur sa propre jauge, comme pour n'importe
+        // quelle unité.
         this._normalAttack(u, target, events);
       } else {
         continue; // nothing in reach, nothing to cast — the unit just closes in
@@ -383,6 +394,44 @@ export class CombatManager {
     const damage = attacker.atk;
     target.takeDamage(damage);
     events.push({ type: 'attack', attacker, target, damage });
+  }
+
+  /**
+   * Le mot-clé **Insaisissable** : appelé exactement au tick où le
+   * `move_timer` de `u` vient de recharger — la seule fenêtre où l'unité agit
+   * en dehors de son pouvoir (cf. phase 4, qui lui refuse désormais l'attaque
+   * simple).
+   *
+   * ⚠️ **L'attaque REMPLACE la fuite ce tick-là**, elle ne s'y ajoute pas :
+   * une cible à portée et en ligne de vue consomme le rechargement en un coup
+   * (même `_normalAttack`, même pulse de brûlure que n'importe quelle attaque
+   * — « une attaque comme une autre », juste plus rare) ; sinon l'unité s'écarte
+   * de l'ennemi le plus proche, ou reste immobile si aucune case voisine ne
+   * l'en éloigne davantage (bord de plateau, encerclée).
+   *
+   * ⚠️ **La cible se lit avec les mêmes règles que la phase d'attaque**
+   * (`_targetCandidates` en LOS — provocation et confusion s'y appliquent donc
+   * pareil), pour ne pas se donner une seconde politique de ciblage à tenir
+   * d'accord avec la première. La FUITE, elle, ignore provocation/confusion et
+   * regarde l'ennemi vivant le plus proche tout court : ce n'est plus une
+   * question de ciblage, c'est une direction.
+   */
+  _actOnMoveRecharge(u, events) {
+    const candidates = this._targetCandidates(u, { requireLOS: true });
+    const target = candidates.length > 0 ? findAttackTarget(u, candidates, this.board).unit : null;
+    if (target !== null && canAttack(u, target, this.board)) {
+      this._normalAttack(u, target, events);
+      this._applyBurnStacks(u, events);
+      return;
+    }
+
+    const nearest = findClosestEnemy(u, this._enemies(u));
+    if (!nearest) return;
+    const next = stepAway(this.board, u.position, nearest.unit.position);
+    if (!next) return; // cornered — stays put this tick
+    const from = { ...u.position };
+    this.board.moveUnit(u, next);
+    events.push({ type: 'move', unit: u, from, to: { ...u.position } });
   }
 
   // Would firing `unit`'s power at `target` right now change anything?

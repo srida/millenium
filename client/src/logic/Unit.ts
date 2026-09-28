@@ -184,6 +184,19 @@ export class Unit {
    */
   is_immobile: boolean;
   /**
+   * Le mot-clé **Insaisissable** : l'unité fuit l'adversaire au lieu de
+   * marcher vers lui, et sa seule fenêtre de combat est le rechargement de
+   * son propre point de mouvement — cf. `CombatManager._actOnMoveRecharge`.
+   *
+   * ⚠️ **Même statut que `is_immobile`** : posé par un statut d'effet, remis à
+   * zéro par `startCombat` et non par `resetCombatStats()`. Une dissipation en
+   * plein combat ne rejoue que le journal des STATS (`reapplyBonuses`) —
+   * jamais les statuts — donc une unité dissipée resterait fuyante sans que
+   * rien ne l'ait reposé, ce qui est correct : ce n'est justement pas ce que
+   * `resetCombatStats()` efface.
+   */
+  is_elusive: boolean;
+  /**
    * Le compte à rebours d'Affaiblissement (POWER_WEAKEN), en ticks.
    *
    * ⚠️ Contrairement à Paralysie/Blocage/Confusion/Provocation, ce pouvoir lit
@@ -273,6 +286,7 @@ export class Unit {
     this.taunt_remaining = 0;
     this.is_effect_immune = false;
     this.is_immobile = false;
+    this.is_elusive = false;
     this.weaken_remaining = 0;
     this.weaken_atk_delta = 0;
     this.is_token = false;
