@@ -17,6 +17,21 @@ import type { Unit } from '../logic/Unit.js';
 const HARDWARE_CONCURRENCY = typeof navigator === 'undefined' ? 0 : navigator.hardwareConcurrency;
 export const LOW_END_DEVICE = (HARDWARE_CONCURRENCY || 8) <= 4;
 
+// Modèle 3D de terrain (GLB) : un maillage STATIQUE de 8 à 14 k triangles, rendu
+// à la demande — bien moins lourd que les effets de combat que `LOW_END_DEVICE`
+// budgète. Il ne se coupe donc qu'aux appareils vraiment modestes (≤ 2 cœurs),
+// pas dès 4 cœurs : c'est le seuil de la plupart des téléphones et portables,
+// et le fond PNG y aurait remplacé le modèle sans que personne ne sache pourquoi.
+// `?terrain=3d` / `?terrain=2d` force le choix (diagnostic) ; même garde
+// `typeof` que ci-dessus, la suite tourne en node.
+function terrainModelsAllowed(): boolean {
+  const forced = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('terrain');
+  if (forced === '3d') return true;
+  if (forced === '2d') return false;
+  return (HARDWARE_CONCURRENCY || 8) > 2;
+}
+export const TERRAIN_MODELS_ENABLED = terrainModelsAllowed();
+
 export interface ElementStyle {
   color: number;
   ringColor: number;

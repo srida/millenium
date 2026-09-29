@@ -807,7 +807,7 @@ Deux règles, de poids inégal :
 
 `POST|PUT|DELETE /api/boards/:id/model` (`{ url }` ou `{ data }` base64), `GET /api/board-models/:id`. Validation unique (`saveBoardModel`) : 4 premiers octets `glTF`, **1,5 Mo** max (400 / 413). `assetPath(dir, id, ext)` prend l'extension (`glb`) ; `_has_model` calculé, jamais persisté. `/api/export` porte `boardModels`, `sync-data.js` la famille `boardModels`.
 
-- `Scene3D.setTerrainBackground` charge le GLB sauf `LOW_END_DEVICE` ; terrain sans modèle, 404 ou fichier illisible → **repli sur le fond PNG**. Le modèle est déjà dans le repère du jeu (seul décalage : `TERRAIN_MODEL_Y` = −0,03, anti z-fighting avec les tuiles).
+- `Scene3D.setTerrainBackground` charge le GLB sauf `TERRAIN_MODELS_ENABLED` (`three/constants.ts` : ≤ 2 cœurs coupent, **pas** `LOW_END_DEVICE` qui coupe dès 4 cœurs ; `?terrain=3d|2d` force) ; terrain sans modèle, 404 ou fichier illisible → **repli sur le fond PNG**. Le modèle est déjà dans le repère du jeu (seul décalage : `TERRAIN_MODEL_Y` = −0,03, anti z-fighting avec les tuiles).
 - ⚠️ Rôle B : le modèle est miroité (`holder.scale.z = -1` autour du centre), comme les cases bloquées. Réappliquer au chargement `depthWrite=false` / `renderOrder=1` sur `ground_details` (glTF ne les conserve pas).
 - Sous un modèle, le relief remplace `spawnBlockedDecor` et la dalle opaque des cases bloquées (les tuiles passent en voile `TERRAIN_MODEL_TILE_OPACITY`) ; le décor est rendu à la sortie.
 - Admin : fiche terrain → « Modèle 3D » (aperçu Three.js de dessus via unpkg, avertissement si `userData.blocked` ≠ `blocked_cells`). Changer les `blocked_cells` impose de régénérer le GLB.

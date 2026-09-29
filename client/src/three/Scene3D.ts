@@ -26,6 +26,7 @@ import {
   PREP_COL_MARGIN, PREP_FOCUS_Y, PREP_ROW_MARGIN, PREP_ROW_MARGIN_WEB, webRailPxFor,
   zForRow, xForCol, cellKey as key, baseColorFor, emissiveFor,
   LOW_END_DEVICE,
+  TERRAIN_MODELS_ENABLED,
 } from './constants.js';
 import type { Unit } from '../logic/Unit.js';
 import type { BoardDef, Position } from '../logic/types.js';
@@ -679,7 +680,7 @@ export class Scene3D {
     this._clearTerrainBackground();
     if (!board) return;
 
-    if (board._has_model && !LOW_END_DEVICE) {
+    if (board._has_model && TERRAIN_MODELS_ENABLED) {
       this._loadTerrainModel(board, token).catch(() => {
         // Le chargement a échoué : repli sur le PNG, sauf si un autre terrain a
         // été demandé entre-temps (le jeton a alors changé).
