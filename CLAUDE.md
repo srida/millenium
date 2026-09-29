@@ -80,7 +80,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 - La variable par famille (`AVATARS_DIR`, `POSTERS_DIR`, `BOARD_BG_DIR`) reste **prioritaire**.
 - `bootstrap()` trace le chemin réel de chaque famille (`[assets] …`) et avertit quand un dossier est sous la racine du projet alors que `NODE_ENV=production`.
 
-**Quatre familles d'images** :
+**Familles d'assets** :
 
 | Famille | Dossier | Route |
 |---|---|---|
@@ -88,6 +88,7 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | Avatars de decks publics | `enemy_avatars` | `GET /avatars/:id` (repli serveur `PUBLIC_DECK_000.png`) |
 | Affiches de packs | `pack_posters` | `GET /pack-posters/:id` (404 franc, repli client 🎁) |
 | Fonds de grille de terrain | `board_backgrounds` | `GET /board-backgrounds/:id` (404 franc, décor par défaut) |
+| Modèles 3D de terrain (`.glb`) | `board_models` (`BOARD_3D_DIR`) | `GET /api/board-models/:id` (`model/gltf-binary`, 404 franc, repli PNG) |
 
 ⚠️ **Tout nouveau préfixe d'asset** doit être ajouté au proxy Vite (`client/vite.config.ts`), à la liste d'exclusion du fallback SPA (`app.js`), à `ASSETS` de `scripts/sync-data.js` et à `/api/export`. Une famille qui vit dans `card_illustrations` (variantes, icônes d'attributs, dos de cartes) n'a **rien** de tout ça à faire.
 ⚠️ `npm run sync:push` **supprime les images distantes absentes en local** — faire un `sync:pull` d'abord, ou `--dry-run`.
@@ -801,6 +802,15 @@ Deux règles, de poids inégal :
 - Un terrain qui ne touche personne le **dit**. `draw_bonus` n'affiche aucun décompte (`boosted: null`).
 - Pas de `Modal` (elle poserait un voile sur ce qu'on annonce) : couche transparente **`z-40`** — pas plus, `TutorialCoach` est en `z-50`. Contrepartie : pendant 2,5 s la barre de combat n'est pas tapable.
 - ⚠️ En `prefers-reduced-motion: reduce` l'annonce **reste et le combat attend toujours** : c'est le mouvement qu'on retire, pas l'information.
+
+### Modèle 3D du terrain (`_has_model`)
+
+`POST|PUT|DELETE /api/boards/:id/model` (`{ url }` ou `{ data }` base64), `GET /api/board-models/:id`. Validation unique (`saveBoardModel`) : 4 premiers octets `glTF`, **1,5 Mo** max (400 / 413). `assetPath(dir, id, ext)` prend l'extension (`glb`) ; `_has_model` calculé, jamais persisté. `/api/export` porte `boardModels`, `sync-data.js` la famille `boardModels`.
+
+- `Scene3D.setTerrainBackground` charge le GLB sauf `LOW_END_DEVICE` ; terrain sans modèle, 404 ou fichier illisible → **repli sur le fond PNG**. Le modèle est déjà dans le repère du jeu (seul décalage : `TERRAIN_MODEL_Y` = −0,03, anti z-fighting avec les tuiles).
+- ⚠️ Rôle B : le modèle est miroité (`holder.scale.z = -1` autour du centre), comme les cases bloquées. Réappliquer au chargement `depthWrite=false` / `renderOrder=1` sur `ground_details` (glTF ne les conserve pas).
+- Sous un modèle, le relief remplace `spawnBlockedDecor` et la dalle opaque des cases bloquées (les tuiles passent en voile `TERRAIN_MODEL_TILE_OPACITY`) ; le décor est rendu à la sortie.
+- Admin : fiche terrain → « Modèle 3D » (aperçu Three.js de dessus via unpkg, avertissement si `userData.blocked` ≠ `blocked_cells`). Changer les `blocked_cells` impose de régénérer le GLB.
 
 ### Rendu du terrain
 

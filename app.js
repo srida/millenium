@@ -111,7 +111,7 @@ const jsonAudioUpload = express.json({ limit: '30mb' });
 // triptyque par entité, qui se termine toujours par le nom de la famille
 // (`/api/cards/:id/illustration`, `/api/sets/:id/poster`…).
 const UPLOAD_ROUTE_RE =
-  /^\/api\/(illustrations|avatars|pack-posters|board-backgrounds)\/|\/(illustration|background|poster|avatar)$/;
+  /^\/api\/(illustrations|avatars|pack-posters|board-backgrounds|board-models)\/|\/(illustration|background|model|poster|avatar)$/;
 // Même patron pour l'audio, plafond à part : `/api/audio/:id` (générique,
 // sync-data.js) et `/api/sfx/:id/audio` / `/api/music/:id/audio` (triptyque).
 const AUDIO_UPLOAD_ROUTE_RE = /^\/api\/audio\/|\/audio$/;
@@ -141,12 +141,15 @@ const PROJECT_ROOT = __dirname;
 //  - BOARD_BG_DIR  : fonds de grille des terrains, vue de dessus posée sous les
 //                    5 × 11 cases en combat — distinct de l'illustration du
 //                    terrain (vignette carrée du tooltip) : deux cadrages.
+//  - BOARD_3D_DIR  : modèles 3D (.glb) des terrains — la version relief du fond de
+//                    grille ; le PNG reste la solution de repli (appareil modeste,
+//                    WebGL sans GLTF, fichier illisible).
 //  - AUDIO_DIR     : effets sonores et musiques, espace de noms plat comme
 //                    ILLUS_DIR — sfx.json et music.json y pointent par id,
 //                    l'EXTENSION étant la seule chose qui varie (mp3/ogg/wav/
 //                    m4a), contrairement aux images qui sont toujours du PNG.
 const {
-  DATA_DIR, ILLUS_DIR, AVATARS_DIR, POSTERS_DIR, BOARD_BG_DIR, AUDIO_DIR,
+  DATA_DIR, ILLUS_DIR, AVATARS_DIR, POSTERS_DIR, BOARD_BG_DIR, BOARD_3D_DIR, AUDIO_DIR,
   FAMILIES: ASSET_FAMILIES, isEphemeral,
 } = require('./asset-dirs');
 // JUMEAU CJS de `AUDIO_EXTENSIONS` (`sound-schema.mjs`, ESM) — même frontière
@@ -205,6 +208,7 @@ function bootstrap() {
   fs.mkdirSync(AVATARS_DIR, { recursive: true });
   fs.mkdirSync(POSTERS_DIR, { recursive: true });
   fs.mkdirSync(BOARD_BG_DIR, { recursive: true });
+  fs.mkdirSync(BOARD_3D_DIR, { recursive: true });
   fs.mkdirSync(AUDIO_DIR, { recursive: true });
   for (const f of ['cards.json', 'attributes.json', 'powers.json', 'boards.json', 'magies.json', 'decks.json', 'missions.json', 'sets.json', 'variants.json', 'gifts.json', 'card_backs.json', 'tokens.json', 'sfx.json', 'music.json', 'music_themes.json']) {
     const dest = path.join(DATA_DIR, f);
@@ -507,9 +511,9 @@ function safeAssetId(id) {
  * — y compris celles qui étaient déjà correctes — ne laisse qu'une seule forme
  * dans le fichier, donc une seule à vérifier.
  */
-function assetPath(dir, rawId) {
+function assetPath(dir, rawId, ext = 'png') {
   const id = safeAssetId(rawId);
-  return id ? path.join(dir, `${id}.png`) : null;
+  return id ? path.join(dir, `${id}.${ext}`) : null;
 }
 
 /** Réponse commune aux routes d'asset dont l'id est refusé. */
@@ -590,6 +594,17 @@ app.get('/board-backgrounds/:id', (req, res) => {
   const filePath = assetPath(BOARD_BG_DIR, id);
   if (fs.existsSync(filePath)) return res.sendFile(filePath);
   res.status(404).end();
+});
+
+// Modèle 3D d'un terrain. Pas de repli : un terrain sans modèle est le cas
+// normal (la scène retombe sur le fond PNG), décidé sur `_has_model`. Le client
+// versionne l'URL (`?v=<checksum>`) pour le cache.
+app.get('/api/board-models/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).end();
+  const filePath = assetPath(BOARD_3D_DIR, id, 'glb');
+  if (!fs.existsSync(filePath)) return res.status(404).end();
+  res.type('model/gltf-binary').sendFile(filePath);
 });
 
 // Effet sonore ou musique. Pas de repli, comme les affiches et les fonds de
@@ -674,6 +689,33 @@ function avatarExists(id) {
 function boardBackgroundExists(id) {
   return fs.existsSync(assetPath(BOARD_BG_DIR, id));
 }
+
+function boardModelExists(id) {
+  return fs.existsSync(assetPath(BOARD_3D_DIR, id, 'glb'));
+}
+
+// Un modèle de terrain est un GLB (glTF binaire) : le magic `glTF` en tête, et
+// un plafond de taille — 8 à 14 k triangles sans texture tiennent largement
+// sous 1,5 Mo. Les trois entrées (URL, base64, sync-data) passent par la même
+// validation.
+const MAX_BOARD_MODEL_BYTES = 1.5 * 1024 * 1024;
+function saveBoardModel(id, buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 12 || buffer.readUInt32LE(0) !== 0x46546C67) {
+    const err = new Error('Fichier GLB invalide (en-tête glTF absent)');
+    err.status = 400;
+    throw err;
+  }
+  if (buffer.length > MAX_BOARD_MODEL_BYTES) {
+    const err = new Error('Modèle trop lourd (1,5 Mo maximum)');
+    err.status = 413;
+    throw err;
+  }
+  const dest = assetPath(BOARD_3D_DIR, id, 'glb');
+  const tmp = `${dest}.tmp`;
+  fs.writeFileSync(tmp, buffer);
+  fs.renameSync(tmp, dest);
+}
+const sendModelError = (res, e) => res.status(e.status || 500).json({ error: e.message });
 
 // Écrit un buffer image en PNG (conversion via sharp quand il est installé —
 // l'upload accepte alors JPEG/WebP —, sinon copie brute).
@@ -857,6 +899,7 @@ app.use('/api/boards', crud({
     ...b,
     _has_illustration: illustrationExists(b.id),
     _has_background: boardBackgroundExists(b.id),
+    _has_model: boardModelExists(b.id),
   })),
   strip: stripBoardComputed,
 }));
@@ -1134,12 +1177,13 @@ app.delete('/api/tokens/:id/illustration', (req, res) => {
 
 
 // --- Boards API ---
-// `_has_illustration` et `_has_background` sont calculés à la lecture depuis le
+// `_has_illustration`, `_has_background` et `_has_model` sont calculés à la lecture depuis le
 // disque : les réécrire dans boards.json ferait mentir la donnée dès qu'une
 // image est ajoutée ou retirée hors de cette requête.
 function stripBoardComputed(board) {
   delete board._has_illustration;
   delete board._has_background;
+  delete board._has_model;
 }
 
 
@@ -1219,6 +1263,39 @@ app.delete('/api/boards/:id/background', requireSiteAdmin, (req, res) => {
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
     const filePath = assetPath(BOARD_BG_DIR, id);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- Modèle 3D d'un terrain (.glb, repère du jeu) ---
+app.post('/api/boards/:id/model', requireSiteAdmin, async (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { url } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    saveBoardModel(id, await downloadUrl(url));
+    res.json({ ok: true });
+  } catch (e) { sendModelError(res, e); }
+});
+
+app.put('/api/boards/:id/model', requireSiteAdmin, (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    saveBoardModel(id, Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { sendModelError(res, e); }
+});
+
+app.delete('/api/boards/:id/model', requireSiteAdmin, (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = assetPath(BOARD_3D_DIR, id, 'glb');
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -1770,6 +1847,7 @@ app.get('/api/export', (req, res) => {
     const illustrations = listPngChecksums(ILLUS_DIR);
     const avatars = listPngChecksums(AVATARS_DIR);
     const boardBackgrounds = listPngChecksums(BOARD_BG_DIR);
+    const boardModels = listChecksums(BOARD_3D_DIR, '.glb');
     const packPosters = listPngChecksums(POSTERS_DIR);
     // Catalogues + art des effets sonores et musiques — même famille de
     // checksums que les images, l'extension en plus (elle varie par fichier).
@@ -1777,16 +1855,18 @@ app.get('/api/export', (req, res) => {
     const musicList = readJson(MUSIC_FILE);
     const musicThemeList = readJson(MUSIC_THEMES_FILE);
     const audio = listAudioChecksums(AUDIO_DIR);
-    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, cardBacks, tokens, sfx: sfxList, music: musicList, musicThemes: musicThemeList, illustrations, avatars, packPosters, boardBackgrounds, audio });
+    res.json({ cards, attributes, powers, boards, magies, publicDecks, sets, variants: variantList, gifts: giftList, cardBacks, tokens, sfx: sfxList, music: musicList, musicThemes: musicThemeList, illustrations, avatars, packPosters, boardBackgrounds, boardModels, audio });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-function listPngChecksums(dir) {
+function listPngChecksums(dir) { return listChecksums(dir, '.png'); }
+
+function listChecksums(dir, ext) {
   if (!fs.existsSync(dir)) return [];
   return fs.readdirSync(dir)
-    .filter(f => f.endsWith('.png'))
+    .filter(f => f.endsWith(ext))
     .map(f => ({
-      id: f.replace(/\.png$/, ''),
+      id: f.slice(0, -ext.length),
       checksum: crypto.createHash('md5').update(fs.readFileSync(path.join(dir, f))).digest('hex'),
     }));
 }
@@ -1893,6 +1973,36 @@ app.delete('/api/board-backgrounds/:id', (req, res) => {
   if (!id) return res.status(400).json({ error: 'id invalide' });
   try {
     const filePath = assetPath(BOARD_BG_DIR, id);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/export/board-model/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  const filePath = assetPath(BOARD_3D_DIR, id, 'glb');
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+  res.json({ id, data: fs.readFileSync(filePath).toString('base64') });
+});
+
+// --- Upload/delete générique de modèle de terrain (scripts/sync-data.js) ---
+app.put('/api/board-models/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  const { data } = req.body;
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  if (!data) return res.status(400).json({ error: 'data (base64) required' });
+  try {
+    saveBoardModel(id, Buffer.from(data, 'base64'));
+    res.json({ ok: true });
+  } catch (e) { sendModelError(res, e); }
+});
+
+app.delete('/api/board-models/:id', (req, res) => {
+  const id = safeAssetId(req.params.id);
+  if (!id) return res.status(400).json({ error: 'id invalide' });
+  try {
+    const filePath = assetPath(BOARD_3D_DIR, id, 'glb');
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }

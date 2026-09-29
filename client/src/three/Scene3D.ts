@@ -13,6 +13,7 @@
 // port ligne à ligne — comportement visuel identique à l'ancienne app.
 import * as THREE from 'three';
 import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { EnergyArrows } from './EnergyArrows.js';
 import { MeleeStrikes } from './MeleeStrikes.js';
 import { UnitSpawns } from './UnitSpawns.js';
@@ -72,6 +73,13 @@ const TERRAIN_BG_Y = -0.08;
 // L'illustration est rabattue pour que les cartes d'unités (CSS3D, claires)
 // restent lisibles par-dessus — teinte multiplicative sur le MeshBasicMaterial.
 const TERRAIN_BG_TINT = 0x8f96a6;
+// Modèle 3D d'un terrain : posé à peine sous le plan des tuiles (y = 0), sans
+// quoi les deux surfaces coplanaires se disputeraient la profondeur (z-fighting).
+// Les cartes CSS3D (y = 0,06) restent au-dessus.
+const TERRAIN_MODEL_Y = -0.03;
+// Voile des tuiles quand un modèle 3D est posé : plus léger que sur le fond PNG,
+// le relief et les matières du modèle portent la lecture.
+const TERRAIN_MODEL_TILE_OPACITY = 0.1;
 // Voile des tuiles quand un fond est actif. Les tuiles ne couvrent que 92 % de
 // leur case : c'est le contraste entre la tuile voilée et l'interstice resté
 // clair qui redessine la grille par-dessus l'illustration — trop bas, les cases
@@ -116,6 +124,18 @@ function cellRandom(col: number, row: number): () => number {
     s ^= s << 13; s ^= s >>> 17; s ^= s << 5;
     return (s >>> 0) / 4294967296;
   };
+}
+
+// Libère géométries et matériaux d'un modèle chargé (GLB) : three ne le fait pas
+// à la place de l'appelant quand l'objet quitte la scène.
+function disposeObject(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.geometry.dispose();
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const m of mats) m.dispose();
+  });
 }
 
 // Recadre une texture en « cover » : une illustration qui n'est pas exactement
@@ -289,6 +309,11 @@ export class Scene3D {
   _terrainTex: THREE.Texture | null = null;
   _terrainActive = false;
   _terrainToken = 0;
+  // Modèle 3D (GLB) du terrain, quand il remplace le fond PNG. `_terrainActive`
+  // reste vrai dans ce mode (tuiles voilées) ; ce drapeau-ci ne change que le
+  // voile et le décor des cases bloquées, que le relief du modèle remplace.
+  _terrainModel: THREE.Object3D | null = null;
+  _terrainModelActive = false;
   // Duel en ligne, rôle B : le fond de grille suit le miroir des rangées.
   _terrainMirrored = false;
 
@@ -618,6 +643,7 @@ export class Scene3D {
       // Un terrain peut lister deux fois la même case : le décor se pose une
       // seule fois, sinon les rochers se superposeraient à l'identique (semés
       // sur la case, ils sortiraient rigoureusement pareils).
+      if (this._terrainModelActive) continue; // le relief du modèle tient lieu de décor
       if (!this._blockedProps.has(k)) this._blockedProps.set(k, this.spawnBlockedDecor(cell));
     }
     this._refreshTileColors();
@@ -641,15 +667,74 @@ export class Scene3D {
     this._terrainMirrored = !!mirrored;
   }
 
-  // Pose (ou retire) l'illustration du terrain sous la grille. Appelée par
+  // Pose (ou retire) le décor du terrain sous la grille. Appelée par
   // GameController au lancement du combat, avec `null` à sa fin.
   //
-  // Sans fond pour ce terrain — ou en cas de 404 — on ne fait rien de plus que
-  // nettoyer : le décor par défaut de la scène est conservé tel quel.
+  // Deux décors coexistent : le modèle 3D (GLB, `_has_model`) et le fond PNG.
+  // Le PNG est la solution de repli — appareil modeste (`LOW_END_DEVICE`),
+  // terrain sans modèle, modèle illisible ou 404. Sans fond du tout, on ne fait
+  // rien de plus que nettoyer : le décor par défaut de la scène est conservé.
   setTerrainBackground(board: BoardDef | null | undefined): void {
     const token = ++this._terrainToken;
     this._clearTerrainBackground();
-    if (!board?._has_background) return;
+    if (!board) return;
+
+    if (board._has_model && !LOW_END_DEVICE) {
+      this._loadTerrainModel(board, token).catch(() => {
+        // Le chargement a échoué : repli sur le PNG, sauf si un autre terrain a
+        // été demandé entre-temps (le jeton a alors changé).
+        if (token === this._terrainToken && this._running) this._loadTerrainPng(board, token);
+      });
+      return;
+    }
+    this._loadTerrainPng(board, token);
+  }
+
+  // Le modèle est déjà dans le repère du jeu (`xForCol` / `zForRow`) : aucune
+  // translation à appliquer, hormis le décalage vertical anti z-fighting.
+  async _loadTerrainModel(board: BoardDef, token: number): Promise<void> {
+    const gltf = await new GLTFLoader().loadAsync(`/api/board-models/${board.id}`);
+    const model = gltf.scene;
+    if (token !== this._terrainToken || !this._running) { disposeObject(model); return; }
+
+    model.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      // Ces deux réglages ne survivent pas au format glTF : réappliqués ici.
+      if (mesh.name === 'ground_details') {
+        (mesh.material as THREE.Material).depthWrite = false;
+        mesh.renderOrder = 1;
+      }
+      mesh.receiveShadow = true;
+      mesh.castShadow = mesh.name !== 'ground' && mesh.name !== 'ground_details';
+    });
+
+    // Rôle B (duel en ligne) : le monde est le reflet de celui de A, les cases
+    // bloquées sont miroitées — le modèle l'est donc aussi, autour du centre du
+    // plateau (rangée ↔ 10 - rangée).
+    const holder = new THREE.Group();
+    const centerZ = (zForRow(0) + zForRow(TOTAL_ROWS - 1)) / 2;
+    holder.add(model);
+    if (this._terrainMirrored) {
+      holder.scale.z = -1;
+      holder.position.z = 2 * centerZ;
+    }
+    holder.position.y = TERRAIN_MODEL_Y;
+    this.scene.add(holder);
+
+    this._terrainModel = holder;
+    this._terrainModelActive = true;
+    this._terrainActive = true;
+    // Le relief du modèle remplace le décor de roches des cases bloquées.
+    this._clearBlockedProps();
+    this._playerBg.visible = false;
+    this._applyTerrainTileMode(true);
+    this._refreshTileColors();
+    this._invalidate();
+  }
+
+  _loadTerrainPng(board: BoardDef, token: number): void {
+    if (!board._has_background) return;
 
     // Construire l'URL ici plutôt que de la faire descendre depuis la couche
     // app est le précédent en place — cf. UnitCardEl, qui pointe directement
@@ -698,6 +783,13 @@ export class Scene3D {
   }
 
   _clearTerrainBackground(): void {
+    const hadModel = this._terrainModelActive;
+    if (this._terrainModel) {
+      this.scene.remove(this._terrainModel);
+      disposeObject(this._terrainModel);
+      this._terrainModel = null;
+    }
+    this._terrainModelActive = false;
     if (this._terrainBg) {
       this.scene.remove(this._terrainBg);
       this._terrainBg.geometry.dispose();
@@ -710,6 +802,13 @@ export class Scene3D {
     this._terrainActive = false;
     this._playerBg.visible = true;
     this._applyTerrainTileMode(false);
+    // Le décor de roches avait cédé la place au relief : on le rend.
+    if (hadModel) {
+      for (const k of this._blockedCells) {
+        const [col, row] = k.split(',').map(Number);
+        if (!this._blockedProps.has(k)) this._blockedProps.set(k, this.spawnBlockedDecor({ col, row }));
+      }
+    }
     this._refreshTileColors();
     this._invalidate();
   }
@@ -1930,7 +2029,8 @@ export class Scene3D {
     // l'opacité créerait une couture horizontale en travers de l'illustration.
     // C'est la couleur des tuiles (joueur/neutre sombres, ennemi rosé) qui porte
     // seule la lecture des zones.
-    let opacity = this._terrainActive ? TERRAIN_TILE_OPACITY : (isPlayer ? 0.04 : 1.0);
+    const veilOpacity = this._terrainModelActive ? TERRAIN_MODEL_TILE_OPACITY : TERRAIN_TILE_OPACITY;
+    let opacity = this._terrainActive ? veilOpacity : (isPlayer ? 0.04 : 1.0);
 
     if (this._highlighted.has(k)) {
       color = 0x1a2a54; emissive = 0x9d74dc; intensity = 0.4;
@@ -1962,7 +2062,8 @@ export class Scene3D {
       // retours d'UI (survol, matériau, sélection) et s'annoncent par une lueur.
       // Une case bloquée est un fait de terrain, pas un retour à un geste.
       color = BLOCKED_LEDGE_COLOR; emissive = 0x000000; intensity = 0;
-      if (veiled) opacity = BLOCKED_LEDGE_OPACITY;
+      // Sous un modèle 3D, le relief EST la case bloquée : pas de dalle opaque.
+      if (veiled) opacity = this._terrainModelActive ? veilOpacity : BLOCKED_LEDGE_OPACITY;
     }
     // Après le cas générique : une case gelée EST bloquée, mais le rouge des
     // cases bloquées d'un terrain mentirait sur ce qui vient de s'y passer.
@@ -2757,6 +2858,7 @@ export class Scene3D {
     }
     this._terrainTex?.dispose();
     this._terrainTex = null;
+    if (this._terrainModel) { disposeObject(this._terrainModel); this._terrainModel = null; }
     for (const b of this.bursts) {
       if (b.points) { b.points.geometry.dispose(); b.points.material.dispose(); }
       if (b.ring) { b.ring.geometry.dispose(); b.ring.material.dispose(); }

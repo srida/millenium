@@ -91,6 +91,16 @@ export default defineConfig({
             },
           },
           {
+            // Modèles 3D de terrain — même politique que les fonds PNG, et à
+            // déclarer AVANT la règle `/api/` (la première qui correspond gagne).
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/board-models/'),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'board-models',
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+          {
             // Données de jeu : toujours le réseau (jamais servir un cache périmé).
             urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
             handler: 'NetworkOnly',

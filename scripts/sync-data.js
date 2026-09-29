@@ -49,7 +49,7 @@ const ADMIN_PASS = process.env.ADMIN_PASS || '';
 
 // Mêmes dossiers que le serveur, décidés au même endroit — les recalculer ici
 // laisserait les deux côtés diverger au prochain ajout de famille.
-const { DATA_DIR, ILLUS_DIR, AVATARS_DIR, POSTERS_DIR, BOARD_BG_DIR, AUDIO_DIR } = require(path.join(ROOT, 'asset-dirs'));
+const { DATA_DIR, ILLUS_DIR, AVATARS_DIR, POSTERS_DIR, BOARD_BG_DIR, BOARD_3D_DIR, AUDIO_DIR } = require(path.join(ROOT, 'asset-dirs'));
 // Jumeau CJS de `AUDIO_EXTENSIONS` (`sound-schema.mjs`) — même frontière que
 // dans app.js : ce script est CommonJS, il ne peut pas `require()` un ESM.
 const AUDIO_EXTENSIONS = ['mp3', 'ogg', 'wav', 'm4a'];
@@ -65,6 +65,7 @@ const ASSETS = [
   { key: 'avatars',       label: 'Avatars',       dir: AVATARS_DIR, extensions: ['png'], exportPath: id => `/api/export/avatar/${id}`,      pushPath: id => `/api/avatars/${id}` },
   { key: 'packPosters',   label: 'Affiches de packs', dir: POSTERS_DIR, extensions: ['png'], exportPath: id => `/api/export/pack-poster/${id}`, pushPath: id => `/api/pack-posters/${id}` },
   { key: 'boardBackgrounds', label: 'Fonds de terrain', dir: BOARD_BG_DIR, extensions: ['png'], exportPath: id => `/api/export/board-background/${id}`, pushPath: id => `/api/board-backgrounds/${id}` },
+  { key: 'boardModels',  label: 'Modèles 3D de terrain', dir: BOARD_3D_DIR, extensions: ['glb'], exportPath: id => `/api/export/board-model/${id}`, pushPath: id => `/api/board-models/${id}` },
   { key: 'audio',          label: 'Audio (sfx + musiques)', dir: AUDIO_DIR, extensions: AUDIO_EXTENSIONS, variableExt: true, exportPath: id => `/api/export/audio/${id}`, pushPath: id => `/api/audio/${id}` },
 ];
 

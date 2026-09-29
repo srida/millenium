@@ -34,6 +34,7 @@ const DATA_DIR      = process.env.DATA_DIR || path.join(PROJECT_ROOT, 'data');
 const AVATARS_DIR   = family('AVATARS_DIR', 'enemy_avatars');
 const POSTERS_DIR   = family('POSTERS_DIR', 'pack_posters');
 const BOARD_BG_DIR  = family('BOARD_BG_DIR', 'board_backgrounds');
+const BOARD_3D_DIR  = family('BOARD_3D_DIR', 'board_models');
 const AUDIO_DIR      = family('AUDIO_DIR', 'audio');
 
 // Décrit les familles pour le récapitulatif de démarrage (server.js). L'ordre
@@ -43,6 +44,7 @@ const FAMILIES = [
   { label: 'avatars de decks',  dir: AVATARS_DIR,   env: 'AVATARS_DIR' },
   { label: 'affiches de packs', dir: POSTERS_DIR,   env: 'POSTERS_DIR' },
   { label: 'fonds de terrain',  dir: BOARD_BG_DIR,  env: 'BOARD_BG_DIR' },
+  { label: 'modèles de terrain', dir: BOARD_3D_DIR, env: 'BOARD_3D_DIR' },
   { label: 'audio',             dir: AUDIO_DIR,     env: 'AUDIO_DIR' },
 ];
 
@@ -56,6 +58,6 @@ function isEphemeral(dir) {
 
 module.exports = {
   PROJECT_ROOT, ASSETS_ROOT,
-  DATA_DIR, ILLUS_DIR, AVATARS_DIR, POSTERS_DIR, BOARD_BG_DIR, AUDIO_DIR,
+  DATA_DIR, ILLUS_DIR, AVATARS_DIR, POSTERS_DIR, BOARD_BG_DIR, BOARD_3D_DIR, AUDIO_DIR,
   FAMILIES, isEphemeral,
 };

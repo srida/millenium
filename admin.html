@@ -1081,6 +1081,7 @@ function buildQuerySchemas() {
       num('bloquees', 'Cases bloquées', b => (b.blocked_cells ?? []).length, ['blocked']),
       bool('illustration', 'A une illustration', b => !!b._has_illustration, ['illus']),
       bool('fond', 'A un fond de grille', b => !!b._has_background, ['background']),
+      bool('modele3d', 'A un modèle 3D', b => !!b._has_model, ['model', 'glb']),
     ],
   };
 
@@ -9275,6 +9276,7 @@ let _boardBlockedSet = new Set();
 // d'afficher l'ancienne image après un remplacement.
 let boardIllusBust = Date.now();
 let boardBgBust = Date.now();
+let boardModelBust = Date.now();
 
 // Effets du terrain en cours d'édition — un terrain en CUMULE plusieurs.
 //
@@ -9463,6 +9465,22 @@ function renderBoardDetail() {
       </div>
     </div>
 
+    <div class="section-title" style="margin-top:4px">Modèle 3D</div>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:8px">
+      Fichier <strong>.glb</strong> exporté depuis « Terrains 3D » (1,5&nbsp;Mo max), déjà dans le
+      repère du jeu. Il remplace le fond de grille pendant le combat ; le fond PNG reste le
+      repli (appareil modeste, modèle illisible).
+    </p>
+    <div class="detail-header" style="margin-bottom:8px;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:13px">${b._has_model ? '✅ Modèle 3D présent' : '— Aucun modèle 3D'}</span>
+      ${isNewBoard ? `<span style="font-size:12px;color:var(--muted)">Crée le terrain pour pouvoir lui ajouter un modèle.</span>` : `
+        ${b._has_model ? `<button class="btn btn-secondary btn-sm" onclick="previewStoredBoardModel()">Aperçu 3D</button>` : ''}
+        ${b._has_model ? `<button class="btn btn-secondary btn-sm" onclick="downloadAsset('/api/board-models/${encodeURIComponent(b.id)}','${esc(b.id)}.glb')">⬇ Télécharger</button>` : ''}
+        ${b._has_model ? `<button class="btn btn-danger btn-sm" onclick="deleteBoardModel()">Supprimer</button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="openBoardModelModal()">Importer</button>`}
+    </div>
+    <div id="board-model-preview-host" style="margin-bottom:16px"></div>
+
     <div class="actions">
       ${isNewBoard
         ? `<button class="btn btn-success" onclick="createBoard()">Créer le terrain</button>
@@ -9525,6 +9543,7 @@ async function saveBoard() {
     ...updated,
     _has_illustration: selectedBoard._has_illustration,
     _has_background: selectedBoard._has_background,
+    _has_model: selectedBoard._has_model,
   };
   selectedBoard = boards[idx];
   boardEffectsDraft = _boardEffectsFrom(selectedBoard);
@@ -9546,7 +9565,7 @@ async function deleteBoard() {
 }
 
 function openNewBoard() {
-  selectedBoard = { id: nextIdFor('board'), name: '', effects: [], blocked_cells: [], _has_illustration: false, _has_background: false };
+  selectedBoard = { id: nextIdFor('board'), name: '', effects: [], blocked_cells: [], _has_illustration: false, _has_background: false, _has_model: false };
   boardEffectsDraft = [];
   isNewBoard = true;
   renderBoardList();
@@ -9560,7 +9579,7 @@ async function createBoard() {
   if (!board.id || !board.name) return toast('ID et nom requis', 'err');
   const res = await apiFetch('/api/boards', { method: 'POST', body: board });
   if (res.error) return toast(res.error, 'err');
-  boards.push({ ...board, _has_illustration: false, _has_background: false });
+  boards.push({ ...board, _has_illustration: false, _has_background: false, _has_model: false });
   selectedBoard = boards[boards.length - 1];
   boardEffectsDraft = _boardEffectsFrom(selectedBoard);
   isNewBoard = false;
@@ -9597,10 +9616,17 @@ const BOARD_ASSETS = {
     query: name => `top down battle map ${name}`.trim(),
     hint: 'Vue de dessus au ratio 5:11 (ex. 860 × 1890) — posée sous les 5 × 11 cases pendant le combat.',
   },
+  model: {
+    title: 'Modèle 3D',
+    route: 'model',
+    flag: '_has_model',
+    hint: 'Fichier .glb exporté depuis « Terrains 3D », dans le repère du jeu (1,5 Mo max).',
+  },
 };
 
 function openBoardAssetModal(kind) {
   if (!selectedBoard) return;
+  if (kind === 'model') return openBoardModelModal();
   const asset = BOARD_ASSETS[kind];
   const boardName = selectedBoard.name || '';
   showModal(`
@@ -9674,6 +9700,7 @@ function _setBoardAssetFlag(kind, has) {
   const idx = boards.findIndex(b => b.id === selectedBoard.id);
   if (idx !== -1) boards[idx][asset.flag] = has;
   if (kind === 'background') boardBgBust = Date.now();
+  else if (kind === 'model') boardModelBust = Date.now();
   else boardIllusBust = Date.now();
   filterBoards();
   renderBoardDetail();
@@ -9713,6 +9740,189 @@ async function deleteBoardAsset(kind) {
 
 function deleteBoardIllustration() { return deleteBoardAsset('illustration'); }
 function deleteBoardBg()           { return deleteBoardAsset('background'); }
+function deleteBoardModel()        { return deleteBoardAsset('model'); }
+
+// ── Modèle 3D d'un terrain : import + aperçu Three.js ──
+// Le fichier est LU dans le navigateur avant d'être envoyé : l'aperçu (vue de
+// dessus, grille 5×11, cases bloquées en rouge) et l'avertissement de cases
+// bloquées désaccordées se décident sur le GLB, pas après coup.
+const THREE_VERSION = '0.160.1'; // aligné sur client/package.json
+let _threeModsPromise = null;
+function loadThreeMods() {
+  if (!_threeModsPromise) {
+    const base = `https://unpkg.com/three@${THREE_VERSION}`;
+    _threeModsPromise = Promise.all([
+      import(`${base}/build/three.module.js`),
+      import(`${base}/examples/jsm/loaders/GLTFLoader.js`),
+    ]).then(([THREE, { GLTFLoader }]) => ({ THREE, GLTFLoader }));
+    _threeModsPromise.catch(() => { _threeModsPromise = null; });
+  }
+  return _threeModsPromise;
+}
+
+let _boardModelPreview = null; // { dispose() } du rendu en cours
+let _pendingBoardModel = null; // { file, base64 } en attente de confirmation
+
+function disposeBoardModelPreview() {
+  if (_boardModelPreview) { _boardModelPreview.dispose(); _boardModelPreview = null; }
+}
+
+const sameCells = (a, b) => {
+  const k = c => `${c.col},${c.row}`;
+  const A = new Set((a || []).map(k)), B = new Set((b || []).map(k));
+  return A.size === B.size && [...A].every(x => B.has(x));
+};
+
+/** Rend le GLB (ArrayBuffer) en vue de dessus dans `host` ; rend `{ blocked }`
+ *  (les cases annoncées par le fichier, ou null si absentes). Repère du jeu :
+ *  x = col − 2, z = 10 − rangée (CELL = 1). */
+async function renderBoardModelPreview(host, arrayBuffer, blockedCells) {
+  disposeBoardModelPreview();
+  const { THREE, GLTFLoader } = await loadThreeMods();
+  const gltf = await new Promise((resolve, reject) =>
+    new GLTFLoader().parse(arrayBuffer, '', resolve, reject));
+
+  const W = Math.min(host.clientWidth || 300, 320), H = Math.round(W * 11 / 5);
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = `width:${W}px;height:${H}px;border-radius:8px;display:block;margin:0 auto;background:#0b0e1c`;
+  host.innerHTML = '';
+  host.appendChild(canvas);
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.setSize(W, H, false);
+
+  const scene = new THREE.Scene();
+  scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+  sun.position.set(-3, 8, 6);
+  scene.add(sun);
+  gltf.scene.traverse(o => {
+    if (o.isMesh && o.name === 'ground_details') { o.material.depthWrite = false; o.renderOrder = 1; }
+  });
+  scene.add(gltf.scene);
+
+  // Cases bloquées du TERRAIN (pas celles du fichier) : c'est ce que le jeu
+  // appliquera, l'écart avec le modèle est signalé à part.
+  const marks = new THREE.Group();
+  for (const c of blockedCells || []) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(0.94, 0.94),
+      new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: 0.4, depthTest: false }));
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(c.col - 2, 1.05, 10 - c.row);
+    m.renderOrder = 5;
+    marks.add(m);
+  }
+  scene.add(marks);
+  // Grille 5×11
+  const pts = [];
+  for (let i = 0; i <= 5; i++) pts.push(i - 2.5, 1.02, 0.5, i - 2.5, 1.02, 10.5);
+  for (let j = 0; j <= 11; j++) pts.push(-2.5, 1.02, j - 0.5, 2.5, 1.02, j - 0.5);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  scene.add(new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthTest: false })));
+
+  const cam = new THREE.OrthographicCamera(-2.6, 2.6, 5.6, -5.6, 0.1, 50);
+  cam.position.set(0, 20, 5);
+  cam.up.set(0, 0, -1);
+  cam.lookAt(0, 0, 5);
+  renderer.render(scene, cam);
+
+  _boardModelPreview = {
+    dispose() {
+      scene.traverse(o => {
+        if (!o.isMesh && !o.isLineSegments) return;
+        o.geometry?.dispose();
+        (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m?.dispose());
+      });
+      renderer.dispose();
+      renderer.forceContextLoss();
+    },
+  };
+  const blocked = gltf.scene.userData?.blocked ?? null;
+  return { blocked };
+}
+
+function boardModelBlockedWarning(blocked) {
+  if (!blocked || sameCells(blocked, selectedBoard?.blocked_cells)) return '';
+  return `<div style="margin-top:8px;padding:8px 10px;border-radius:6px;background:rgba(255,160,0,.12);border:1px solid rgba(255,160,0,.5);font-size:12px;color:var(--text)">
+    ⚠️ Le modèle a été généré avec d'autres cases bloquées. Régénère-le.</div>`;
+}
+
+async function previewStoredBoardModel() {
+  const host = document.getElementById('board-model-preview-host');
+  if (!host || !selectedBoard) return;
+  host.innerHTML = '<span style="font-size:12px;color:var(--muted)">Chargement de l\'aperçu…</span>';
+  try {
+    const buf = await (await fetch(`/api/board-models/${selectedBoard.id}?t=${boardModelBust}`, { cache: 'no-store' })).arrayBuffer();
+    const { blocked } = await renderBoardModelPreview(host, buf, selectedBoard.blocked_cells);
+    host.insertAdjacentHTML('beforeend', boardModelBlockedWarning(blocked));
+  } catch (e) {
+    host.innerHTML = `<span style="font-size:12px;color:var(--danger,#e55)">Aperçu impossible : ${esc(e.message || String(e))}</span>`;
+  }
+}
+
+function openBoardModelModal() {
+  if (!selectedBoard) return;
+  _pendingBoardModel = null;
+  disposeBoardModelPreview();
+  showModal(`
+    <h2 style="margin-bottom:6px">${BOARD_ASSETS.model.title} — ${esc(selectedBoard.name || '')}</h2>
+    <p style="color:var(--muted);font-size:12px;margin-bottom:16px">${BOARD_ASSETS.model.hint}</p>
+    <div class="field">
+      <label>Fichier .glb</label>
+      <input id="board-model-file" type="file" accept=".glb,model/gltf-binary" onchange="onBoardModelFile()"
+             style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;width:100%">
+      <span style="font-size:11px;color:var(--muted);margin-top:4px">Sauvegardé sous <code>${selectedBoard.id}.glb</code></span>
+    </div>
+    <div id="board-model-modal-preview" style="margin-top:12px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeBoardModelModal()">Annuler</button>
+      <button id="board-model-confirm" class="btn btn-primary" disabled onclick="confirmBoardModelImport()">Importer</button>
+    </div>
+  `, 'wide');
+}
+
+function closeBoardModelModal() {
+  _pendingBoardModel = null;
+  disposeBoardModelPreview();
+  closeModal();
+}
+
+async function onBoardModelFile() {
+  const file = document.getElementById('board-model-file')?.files[0];
+  const host = document.getElementById('board-model-modal-preview');
+  const confirmBtn = document.getElementById('board-model-confirm');
+  if (!file || !host) return;
+  _pendingBoardModel = null;
+  confirmBtn.disabled = true;
+  if (file.size > 1.5 * 1024 * 1024) {
+    host.innerHTML = '<div style="color:var(--danger,#e55);font-size:12px">Modèle trop lourd (1,5 Mo maximum).</div>';
+    return;
+  }
+  host.innerHTML = '<span style="font-size:12px;color:var(--muted)">Lecture du modèle…</span>';
+  try {
+    const buf = await file.arrayBuffer();
+    if (new DataView(buf).getUint32(0, true) !== 0x46546C67) throw new Error('ce fichier n\'est pas un GLB (en-tête glTF absent)');
+    const { blocked } = await renderBoardModelPreview(host, buf, selectedBoard.blocked_cells);
+    host.insertAdjacentHTML('beforeend', boardModelBlockedWarning(blocked));
+    _pendingBoardModel = { file };
+    confirmBtn.disabled = false;
+  } catch (e) {
+    host.innerHTML = `<div style="color:var(--danger,#e55);font-size:12px">Modèle illisible : ${esc(e.message || String(e))}</div>`;
+  }
+}
+
+async function confirmBoardModelImport() {
+  if (!_pendingBoardModel) return;
+  const { file } = _pendingBoardModel;
+  closeBoardModelModal();
+  toast('Import en cours…', 'ok');
+  const data = await fileToBase64(file);
+  const res = await apiFetch(`/api/boards/${selectedBoard.id}/model`, { method: 'PUT', body: { data } });
+  if (res.error) return toast(res.error, 'err');
+  _setBoardAssetFlag('model', true);
+  toast('Modèle 3D importé');
+}
 
 // ================== BOOT ==================
 init();

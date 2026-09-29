@@ -1025,6 +1025,7 @@ exports[`drapeaux calculés > présents à la lecture, absents du fichier 1`] = 
     [
       "_has_background",
       "_has_illustration",
+      "_has_model",
     ],
   ],
   [

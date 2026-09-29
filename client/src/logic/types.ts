@@ -229,6 +229,9 @@ export interface BoardDef {
   // Calculé par le serveur à la lecture, jamais persisté — même statut que
   // `_has_illustration`.
   _has_background?: boolean;
+  // Modèle 3D (GLB) servi sur /api/board-models/<id> ; le fond PNG reste le
+  // repli. Calculé par le serveur, jamais persisté.
+  _has_model?: boolean;
 }
 
 // ── Magies (Phase Shopping) ──
