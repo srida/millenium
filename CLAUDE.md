@@ -809,6 +809,7 @@ Deux règles, de poids inégal :
 
 - `Scene3D.setTerrainBackground` charge le GLB sauf `TERRAIN_MODELS_ENABLED` (`three/constants.ts` : ≤ 2 cœurs coupent, **pas** `LOW_END_DEVICE` qui coupe dès 4 cœurs ; `?terrain=3d|2d` force) ; terrain sans modèle, 404 ou fichier illisible → **repli sur le fond PNG**. Le modèle est déjà dans le repère du jeu (seul décalage : `TERRAIN_MODEL_Y` = −0,03, anti z-fighting avec les tuiles).
 - ⚠️ Rôle B : le modèle est miroité (`holder.scale.z = -1` autour du centre), comme les cases bloquées. Réappliquer au chargement `depthWrite=false` / `renderOrder=1` sur `ground_details` (glTF ne les conserve pas).
+- ⚠️ **Le modèle a son propre éclairage** (`_buildTerrainLights` : hémisphère blanc 1,0 + clé blanche 2,2 avec ombres + remplissage 0,5 — celui de la démo « Terrains 3D »), posé et retiré avec lui. La lumière de scène (ambiance astrale, 1,4 + 0,6 + 0,22) rend les terrains sombres presque noirs. `renderer.shadowMap` est activé une fois pour toutes ; il ne coûte que tant qu'une lumière projette.
 - Sous un modèle, le relief remplace `spawnBlockedDecor` et la dalle opaque des cases bloquées (les tuiles passent en voile `TERRAIN_MODEL_TILE_OPACITY`) ; le décor est rendu à la sortie.
 - Admin : fiche terrain → « Modèle 3D » (aperçu Three.js de dessus via unpkg, avertissement si `userData.blocked` ≠ `blocked_cells`). Changer les `blocked_cells` impose de régénérer le GLB.
 

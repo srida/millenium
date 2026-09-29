@@ -315,6 +315,9 @@ export class Scene3D {
   // voile et le décor des cases bloquées, que le relief du modèle remplace.
   _terrainModel: THREE.Object3D | null = null;
   _terrainModelActive = false;
+  // Éclairage propre au modèle (celui de la démo « Terrains 3D »), posé et retiré
+  // avec lui : la lumière de scène, sombre et bleutée, l'éteignait.
+  _terrainLights: THREE.Group | null = null;
   // Duel en ligne, rôle B : le fond de grille suit le miroir des rangées.
   _terrainMirrored = false;
 
@@ -376,6 +379,9 @@ export class Scene3D {
     this.camera.up.set(0, 0, -1);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Ombres : ne coûtent que tant qu'une lumière en projette (celle du modèle 3D d'un terrain).
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.domElement.style.position = 'absolute';
     this.renderer.domElement.style.inset = '0';
@@ -724,6 +730,8 @@ export class Scene3D {
     this.scene.add(holder);
 
     this._terrainModel = holder;
+    this._terrainLights = this._buildTerrainLights(centerZ);
+    this.scene.add(this._terrainLights);
     this._terrainModelActive = true;
     this._terrainActive = true;
     // Le relief du modèle remplace le décor de roches des cases bloquées.
@@ -732,6 +740,33 @@ export class Scene3D {
     this._applyTerrainTileMode(true);
     this._refreshTileColors();
     this._invalidate();
+  }
+
+  // Lumière de la démo « Terrains 3D » (three-d-stage) : un lavis hémisphérique
+  // blanc, une clé blanche qui porte les ombres, un remplissage chaud à contre-jour.
+  // Les terrains sombres (Enfer, Nuit des machines…) ont été réglés sous cet
+  // éclairage ; la scène du jeu (ambiance astrale, 1,4 + 0,6 + 0,22) les rend
+  // presque noirs. Les tuiles étant voilées à 10 %, elles n'en sont pas affectées.
+  _buildTerrainLights(centerZ: number): THREE.Group {
+    const group = new THREE.Group();
+    group.add(new THREE.HemisphereLight(0xffffff, 0xd8d2c4, 1.0));
+
+    const key = new THREE.DirectionalLight(0xffffff, 2.2);
+    key.position.set(4, 7, 5 + centerZ);
+    key.target.position.set(0, 0, centerZ);
+    key.castShadow = true;
+    // Le plateau entier (5 × 11) dans le frustum d'ombre, et rien de plus.
+    const cam = key.shadow.camera;
+    cam.left = -7; cam.right = 7; cam.top = 8; cam.bottom = -8;
+    cam.near = 0.5; cam.far = 25;
+    key.shadow.mapSize.set(LOW_END_DEVICE ? 1024 : 2048, LOW_END_DEVICE ? 1024 : 2048);
+    key.shadow.bias = -0.0002;
+    group.add(key, key.target);
+
+    const fill = new THREE.DirectionalLight(0xfff4e6, 0.5);
+    fill.position.set(-5, 3, -4 + centerZ);
+    group.add(fill);
+    return group;
   }
 
   _loadTerrainPng(board: BoardDef, token: number): void {
@@ -789,6 +824,11 @@ export class Scene3D {
       this.scene.remove(this._terrainModel);
       disposeObject(this._terrainModel);
       this._terrainModel = null;
+    }
+    if (this._terrainLights) {
+      this.scene.remove(this._terrainLights);
+      this._terrainLights.traverse((o) => (o as THREE.DirectionalLight).shadow?.map?.dispose());
+      this._terrainLights = null;
     }
     this._terrainModelActive = false;
     if (this._terrainBg) {
@@ -2860,6 +2900,8 @@ export class Scene3D {
     this._terrainTex?.dispose();
     this._terrainTex = null;
     if (this._terrainModel) { disposeObject(this._terrainModel); this._terrainModel = null; }
+    this._terrainLights?.traverse((o) => (o as THREE.DirectionalLight).shadow?.map?.dispose());
+    this._terrainLights = null;
     for (const b of this.bursts) {
       if (b.points) { b.points.geometry.dispose(); b.points.material.dispose(); }
       if (b.ring) { b.ring.geometry.dispose(); b.ring.material.dispose(); }
