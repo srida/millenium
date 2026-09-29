@@ -9750,10 +9750,15 @@ const THREE_VERSION = '0.160.1'; // aligné sur client/package.json
 let _threeModsPromise = null;
 function loadThreeMods() {
   if (!_threeModsPromise) {
-    const base = `https://unpkg.com/three@${THREE_VERSION}`;
+    // ⚠️ jsDelivr `+esm` et non unpkg : GLTFLoader importe `three` par un
+    // spécificateur NU, que le navigateur ne sait pas résoudre sans import map
+    // (admin.html n'en a pas, et un import dynamique ne peut pas en recevoir).
+    // `+esm` réécrit ces imports en URL absolues — et comme `three` est demandé
+    // à la même URL ici, le chargeur et la scène partagent UNE seule instance.
+    const base = `https://cdn.jsdelivr.net/npm/three@${THREE_VERSION}`;
     _threeModsPromise = Promise.all([
-      import(`${base}/build/three.module.js`),
-      import(`${base}/examples/jsm/loaders/GLTFLoader.js`),
+      import(`${base}/+esm`),
+      import(`${base}/examples/jsm/loaders/GLTFLoader.js/+esm`),
     ]).then(([THREE, { GLTFLoader }]) => ({ THREE, GLTFLoader }));
     _threeModsPromise.catch(() => { _threeModsPromise = null; });
   }
