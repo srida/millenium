@@ -34,6 +34,11 @@ interface SummonConditionMenu {
   options: { index: number; condition: SummonCondition; ok: boolean; reason?: string }[];
 }
 
+const GRID_PREF_KEY = 'millenium_show_grid';
+function readGridPreference(): boolean {
+  try { return localStorage.getItem(GRID_PREF_KEY) === '1'; } catch { return false; }
+}
+
 export class GameController {
   session: GameSession;
   scene: Scene3D | null = null;
@@ -83,6 +88,10 @@ export class GameController {
   private _eventMark = 0;
 
   combatSpeed = 2;
+  // Calque de repérage du plateau (grille, séparation des zones, cases bloquées
+  // cerclées de rouge). Éteint par défaut ; le choix se retient d'une partie à
+  // l'autre. Lu dans un try : le stockage peut être absent ou refusé.
+  showGrid = readGridPreference();
   protected paused = false;
   private _errorTimer: ReturnType<typeof setTimeout> | null = null;
   private _revealTimer: ReturnType<typeof setTimeout> | null = null;
@@ -659,6 +668,7 @@ export class GameController {
     // obstacles que le pathfinding contourne réellement.
     this.scene?.setBlockedCells(this.session.board.blockedCells());
     this.scene?.setTerrainBackground(boardData ?? null);
+    this.scene?.setGridVisible(this.showGrid);
     this.scene?.enterCombatMode();
     // L'IA place ses unités au moment du PRÊT : elles n'ont pas encore d'objet
     // de scène (refresh() ne passe plus en mode combat) — on les fait tomber en
@@ -755,6 +765,13 @@ export class GameController {
     }
     this._revealTimer = null;
     begin();
+  }
+
+  toggleGrid(): void {
+    this.showGrid = !this.showGrid;
+    try { localStorage.setItem(GRID_PREF_KEY, this.showGrid ? '1' : '0'); } catch { /* préférence non retenue */ }
+    this.scene?.setGridVisible(this.showGrid);
+    this.sync();
   }
 
   setSpeed(s: number): void {
@@ -1317,6 +1334,7 @@ export class GameController {
       synergies,
       invocationBanner,
       speed: this.combatSpeed,
+      showGrid: this.showGrid,
       paused: this.paused,
       summonOptions: this.summonOptions,
       ...extra,

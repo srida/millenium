@@ -190,6 +190,8 @@ export interface GameSnapshot {
   phaseWipe: PhaseWipeSnapshot | null;
   combatRemaining: number;   // secondes restantes de combat
   speed: number;
+  /** Calque de repérage du plateau (grille, zones, cases bloquées). */
+  showGrid: boolean;
   paused: boolean;
   prepRemaining: number;   // secondes restantes de préparation
   endRound: EndRoundResult | null;
@@ -220,7 +222,7 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   canMulligan: false, mulliganCost: MULLIGAN_COST_HP,
   hand: [], graveyard: [], synergies: [], invocationBanner: null, errorFlash: null,
   boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,
-  combatActive: false, combatOutro: null, phaseWipe: null, combatRemaining: 60, speed: 2, paused: false,
+  combatActive: false, combatOutro: null, phaseWipe: null, combatRemaining: 60, speed: 2, showGrid: false, paused: false,
   prepRemaining: 60, endRound: null, shopping: null, shoppingRemaining: SHOPPING_DURATION_S, summonOptions: null,
   menuOpen: false, coachBlocking: false, duelIntro: false, gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
 };

@@ -315,6 +315,12 @@ export class Scene3D {
   // voile et le décor des cases bloquées, que le relief du modèle remplace.
   _terrainModel: THREE.Object3D | null = null;
   _terrainModelActive = false;
+  // Calque de repérage (grille 5×11, séparation des zones, cases bloquées cerclées
+  // de rouge) — celui de la démo « Terrains 3D ». Éteint par défaut : sur un décor
+  // illustré, les séparateurs dorés et le quadrillage le salissent. C'est un choix
+  // du JOUEUR (`setGridVisible`), pas une donnée de terrain.
+  _gridVisible = false;
+  _gridGroup: THREE.Group | null = null;
   // Éclairage propre au modèle (celui de la démo « Terrains 3D »), posé et retiré
   // avec lui : la lumière de scène, sombre et bleutée, l'éteignait.
   _terrainLights: THREE.Group | null = null;
@@ -654,6 +660,7 @@ export class Scene3D {
       if (!this._blockedProps.has(k)) this._blockedProps.set(k, this.spawnBlockedDecor(cell));
     }
     this._refreshTileColors();
+    this._rebuildGrid();
   }
 
   _clearBlockedProps(): void {
@@ -734,6 +741,7 @@ export class Scene3D {
     this.scene.add(this._terrainLights);
     this._terrainModelActive = true;
     this._terrainActive = true;
+    this._syncSeparators();
     // Le relief du modèle remplace le décor de roches des cases bloquées.
     this._clearBlockedProps();
     this._playerBg.visible = false;
@@ -805,6 +813,7 @@ export class Scene3D {
         this._terrainBg = mesh;
         this._terrainTex = tex;
         this._terrainActive = true;
+        this._syncSeparators();
         // Le voile bleu du bloc joueur salirait l'illustration ; en combat, la
         // lecture des zones est portée par les séparateurs dorés et la teinte
         // rosée des rangées ennemies.
@@ -816,6 +825,65 @@ export class Scene3D {
       undefined,
       () => { /* 404 ou image illisible : on garde le fond actuel */ },
     );
+  }
+
+  setGridVisible(visible: boolean): void {
+    if (this._gridVisible === visible) return;
+    this._gridVisible = visible;
+    this._rebuildGrid();
+    this._syncSeparators();
+    this._invalidate();
+  }
+
+  // Les séparateurs dorés des zones n'accompagnent un décor illustré que sur
+  // demande ; sans décor (ou hors combat) ils gardent leur comportement d'avant.
+  _syncSeparators(): void {
+    const show = this._combatMode && (this._gridVisible || !this._terrainActive);
+    for (const sep of this._separators) sep.visible = show;
+    this._invalidate();
+  }
+
+  _rebuildGrid(): void {
+    if (this._gridGroup) {
+      this.scene.remove(this._gridGroup);
+      this._gridGroup.traverse((o) => {
+        const l = o as THREE.LineSegments;
+        if (l.isLineSegments) { l.geometry.dispose(); (l.material as THREE.Material).dispose(); }
+      });
+      this._gridGroup = null;
+    }
+    if (!this._gridVisible) return;
+
+    const y = 0.02;
+    const half = CELL / 2;
+    const x0 = xForCol(0) - half, x1 = xForCol(COLS - 1) + half;
+    const zNear = zForRow(TOTAL_ROWS - 1) - half;
+    const lines: number[] = [];
+    for (let c = 0; c <= COLS; c++) lines.push(x0 + c * CELL, y, zNear, x0 + c * CELL, y, zNear + TOTAL_ROWS * CELL);
+    for (let r = 0; r <= TOTAL_ROWS; r++) lines.push(x0, y, zNear + r * CELL, x1, y, zNear + r * CELL);
+
+    const blocked: number[] = [];
+    const inset = half - 0.03;
+    for (const k of this._blockedCells) {
+      const [col, row] = k.split(',').map(Number);
+      const ax = xForCol(col) - inset, bx = xForCol(col) + inset;
+      const az = zForRow(row) - inset, bz = zForRow(row) + inset;
+      blocked.push(ax, y, az, bx, y, az, bx, y, az, bx, y, bz, bx, y, bz, ax, y, bz, ax, y, bz, ax, y, az);
+    }
+
+    const make = (pts: number[], color: number, opacity: number) => {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+      const seg = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color, transparent: opacity < 1, opacity, depthTest: false }));
+      seg.renderOrder = 10;
+      return seg;
+    };
+    const group = new THREE.Group();
+    group.add(make(lines, 0xffffff, 0.28));
+    if (blocked.length) group.add(make(blocked, 0xff4d5e, 1));
+    group.visible = this._combatMode;
+    this.scene.add(group);
+    this._gridGroup = group;
   }
 
   _clearTerrainBackground(): void {
@@ -841,6 +909,7 @@ export class Scene3D {
     this._terrainTex = null;
     if (!this._terrainActive) return;
     this._terrainActive = false;
+    this._syncSeparators();
     this._playerBg.visible = true;
     this._applyTerrainTileMode(false);
     // Le décor de roches avait cédé la place au relief : on le rend.
@@ -951,7 +1020,8 @@ export class Scene3D {
     this._resize();
     this._combatMode = true;
     this._animateCameraTo(true);
-    for (const sep of this._separators) sep.visible = true;
+    this._syncSeparators();
+    if (this._gridGroup) this._gridGroup.visible = true;
     for (const entry of this.unitObjs.values()) {
       if (entry.unit.side === 'enemy') this._fadeEntry(entry, true);
     }
@@ -962,7 +1032,8 @@ export class Scene3D {
     this._resize();
     this._combatMode = false;
     this._animateCameraTo(false);
-    for (const sep of this._separators) sep.visible = false;
+    this._syncSeparators();
+    if (this._gridGroup) this._gridGroup.visible = false;
     for (const entry of this.unitObjs.values()) {
       if (entry.unit.side === 'enemy') this._fadeEntry(entry, false);
     }
@@ -2900,6 +2971,8 @@ export class Scene3D {
     this._terrainTex?.dispose();
     this._terrainTex = null;
     if (this._terrainModel) { disposeObject(this._terrainModel); this._terrainModel = null; }
+    this._gridVisible = false;
+    this._rebuildGrid();
     this._terrainLights?.traverse((o) => (o as THREE.DirectionalLight).shadow?.map?.dispose());
     this._terrainLights = null;
     for (const b of this.bursts) {

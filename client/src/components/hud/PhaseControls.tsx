@@ -113,7 +113,7 @@ function MenuButton() {
 export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   const {
     controller, combatActive, prepRemaining, combatRemaining,
-    speed, paused, boardTerrain, canUndo, canMulligan, mulliganCost,
+    speed, showGrid, paused, boardTerrain, canUndo, canMulligan, mulliganCost,
   } = useGameStore();
   const web = useWebLayout();
   if (!controller) return null;
@@ -150,6 +150,15 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
           </div>
         )}
         <div className="flex-1" />
+        <Button
+          aria-label={showGrid ? 'Masquer la grille' : 'Afficher la grille'}
+          aria-pressed={showGrid}
+          title={showGrid ? 'Masquer la grille' : 'Afficher la grille'}
+          className={'shrink-0 px-3 text-base' + (showGrid ? ' border-gold text-gold' : '')}
+          onPointerDown={(e) => { e.stopPropagation(); controller.toggleGrid(); }}
+        >
+          ▦
+        </Button>
         <MenuButton />
         {!pvp && (
           <Button
