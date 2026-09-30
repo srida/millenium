@@ -3806,6 +3806,8 @@ function _effectFieldOptions(champ, valeur) {
       return vide + powers.map(p => opt(p.id, esc(p.name), valeur === p.id)).join('');
     case 'magies':
       return vide + magies.map(m => opt(m.id, esc(m.name), valeur === m.id)).join('');
+    case 'terrains':
+      return vide + boards.map(b => opt(b.id, `${esc(b.name || b.id)} — ${b.id}`, valeur === b.id)).join('');
     case 'tokens':
       return vide + tokens.map(t => opt(t.id, esc(t.name || t.id), valeur === t.id)).join('');
     case 'tiers':

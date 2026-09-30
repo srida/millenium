@@ -52,6 +52,7 @@ export function keywordText(
   appel?: GuaranteedDraw | null,
   attributeName: (id: string) => string = (id) => id,
   cardName: (id: string) => string = (id) => id,
+  boardName: (id: string) => string = (id) => id,
 ): string | null {
   if (!attr) return null;
   const def = (MOTS_CLES as Record<string, { aide?: string }>)[attr.mot_cle as string];
@@ -66,7 +67,7 @@ export function keywordText(
   // `MagieEffect.effectLabel` : sans résolveur, un id brut sort à l'écran.
   const texte = (attr.thresholds ?? [])
     .flatMap(t => (t.effects ?? []) as Record<string, unknown>[])
-    .map(e => boardEffectLabel(e as never, ids => ids.map(attributeName).join(', '), cardName, undefined, appel))
+    .map(e => boardEffectLabel(e as never, ids => ids.map(attributeName).join(', '), cardName, undefined, appel, boardName))
     .join(', ');
   return texte || null;
 }

@@ -96,6 +96,9 @@ function valeurPour(champ: any, variante = 0): any {
       // chaînes synthétiques suffisent à faire bouger l'empreinte, sans
       // dépendre d'un `initial-data/tokens.json` qui peut être vide.
       if (champ.options === 'tokens') return variante ? 'TOK_B' : 'TOK_A';
+      // ⚠️ Même raisonnement : l'id d'un terrain voyage tel quel (`boardId`),
+      // c'est `pickBoard` qui le confronte au catalogue.
+      if (champ.options === 'terrains') return variante ? 'BOARD_B' : 'BOARD_A';
       // ⚠️ Même raisonnement que `tokens` : le compilateur ne valide l'id d'un
       // mot-clé contre AUCUN catalogue (il voyage tel quel dans `motCle`,
       // comme `token_id`) — deux chaînes synthétiques suffisent.

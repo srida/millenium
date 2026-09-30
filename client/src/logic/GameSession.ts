@@ -333,6 +333,10 @@ export class GameSession {
       playerAttributes: this._playerDeckAttributes,
       enemyAttributes: this._enemyDeckAttributes,
       usedBoardIds: this._usedBoardIds,
+      // ⚠️ Ignoré en PvP réel : seul le rôle A tire, et il ne connaît pas les
+      // promesses de l'autre — l'effet serait à sens unique. Même sort que
+      // `summon_token`.
+      guaranteedBoardIds: this.deps.mode === 'pvp' ? [] : this.gameState.player_guaranteed_boards,
     };
   }
 
@@ -888,6 +892,8 @@ export class GameSession {
     // compris ceux où le terrain arrive de l'extérieur (`agreedBoard`) — une
     // seule ligne tient l'historique du duel.
     if (boardData) this._usedBoardIds.add(boardData.id);
+    // Les promesses valent pour CE combat seulement, tirées ou non.
+    this.gameState.player_guaranteed_boards = [];
     // ⚠️ Le terrain est une donnée POSITIONNELLE, au même titre que la position
     // d'une unité : appliqué verbatim des deux côtés d'un duel, il décrit deux
     // plateaux différents (cf. `logic/BoardMirror`).

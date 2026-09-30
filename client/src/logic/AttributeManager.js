@@ -431,6 +431,9 @@ export class AttributeManager {
       player_hp_bonus: joueur.pv,
       player_hp_sources: joueur.sources_pv,
       guaranteed_magies: joueur.magies_garanties,
+      // ⚠️ Côté joueur SEULEMENT : l'IA n'a aucun destinataire pour un terrain
+      // promis — `adverse.terrains_garantis` est jeté (comme le Shopping).
+      guaranteed_boards: joueur.terrains_garantis,
       // Quel ATTRIBUT a crédité quelle pioche (cf. types.DrawSourceEntry). Pure
       // description : la popup de pioche le lit, aucun calcul ne s'en sert.
       draw_sources: joueur.sources,

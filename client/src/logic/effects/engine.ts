@@ -42,6 +42,8 @@ export interface Ressources {
   /** Magies garanties à la prochaine Phase Shopping — le pendant de
    *  `pioches_garanties`, sur le vocabulaire de la magie. */
   magies_garanties: GuaranteedMagie[];
+  /** Terrains promis au prochain combat — un id par effet, doublons compris. */
+  terrains_garantis: string[];
   slots_board: number;
   multiplicateur: number;
   magies_shop: number;
@@ -60,7 +62,7 @@ export interface Ressources {
 
 export function ressourcesVides(): Ressources {
   return {
-    pioches: 0, pioches_garanties: [], magies_garanties: [], slots_board: 0, multiplicateur: 0,
+    pioches: 0, pioches_garanties: [], magies_garanties: [], terrains_garantis: [], slots_board: 0, multiplicateur: 0,
     magies_shop: 0, pv: 0, sources: [], sources_multiplicateur: [], sources_pv: [], reanimees: [],
   };
 }
@@ -535,6 +537,10 @@ function appliqueSurJoueur(t: TacheModifier, monde: Monde, trace: Trace): void {
     case 'magies_garanties':
       if (t.criteres) cible.magies_garanties.push(t.criteres as GuaranteedMagie);
       trace.applique.push('joueur·magie_garantie');
+      return;
+    case 'terrains_garantis':
+      if (t.boardId) cible.terrains_garantis.push(t.boardId);
+      trace.applique.push('joueur·terrain_garanti');
       return;
     default:
       trace.ignore.push(`joueur·${t.champ} (champ inconnu)`);

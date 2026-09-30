@@ -146,6 +146,8 @@ export interface AttributeEffect {
   /** `guaranteed_magie` : cf. `GuaranteedMagie`. */
   rarity?: MagieRarity;
   magie_id?: string;
+  /** `guaranteed_board` : l'id du terrain promis au prochain combat. */
+  board_id?: string;
 }
 
 export interface AttributeThreshold {
@@ -382,6 +384,8 @@ export interface EndOfCombatAttributeResult {
   /** Magies garanties à la prochaine Phase Shopping — le pendant de
    *  `guaranteed_draws`, sur le vocabulaire de la magie. */
   guaranteed_magies?: GuaranteedMagie[];
+  /** Terrains promis au prochain combat (`guaranteed_board`), un par effet. */
+  guaranteed_boards?: string[];
   /**
    * Pendant de `draw_bonus` / `guaranteed_draws`, côté ENNEMI : contrairement
    * aux autres ressources de fin de combat (slot, multiplicateur, Shopping),

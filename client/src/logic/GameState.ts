@@ -76,6 +76,9 @@ export class GameState {
    *  terrain (au lancement du combat) et l'attribut (`fin_combat`), consommées
    *  d'un coup par `GameSession.getShoppingMagies()`. */
   player_guaranteed_magies: GuaranteedMagie[];
+  /** Terrains promis au prochain combat (`guaranteed_board`), un id par effet.
+   *  Vidés au lancement du combat par `GameSession.startCombat`. */
+  player_guaranteed_boards: string[];
   /**
    * Pendant enemy des deux champs ci-dessus : contrairement au slot, au
    * multiplicateur et au Shopping (ressources exclusivement joueur), la
@@ -142,6 +145,7 @@ export class GameState {
     this.player_guaranteed_draws = [];
     this.player_draw_sources = [];
     this.player_guaranteed_magies = [];
+    this.player_guaranteed_boards = [];
     this.enemy_extra_draws = 0;
     this.enemy_guaranteed_draws = [];
     this.player_extra_shopping_magies = 0;
@@ -253,6 +257,9 @@ export class GameState {
     }
     if (attributeResult.guaranteed_magies?.length) {
       this.player_guaranteed_magies.push(...attributeResult.guaranteed_magies);
+    }
+    if (attributeResult.guaranteed_boards?.length) {
+      this.player_guaranteed_boards.push(...attributeResult.guaranteed_boards);
     }
     if (attributeResult.shopping_bonus) {
       this.player_extra_shopping_magies += attributeResult.shopping_bonus;

@@ -75,6 +75,8 @@ export function boardEffectLabel(
    * l'appelant sait de quelle carte il parle, pas elle.
    */
   appel?: import('../logic/types.js').GuaranteedDraw | null,
+  /** ⚠️ `guaranteed_board` NOMME un terrain : sans résolveur, son id brut sort à l'écran. */
+  boardName: (id: string) => string = (id) => id,
 ): string {
   if (!effect?.type) return 'Aucun effet';
   const targetAttrs = (effect as BoardEffectDef).target_attributes;
@@ -106,6 +108,10 @@ export function boardEffectLabel(
       if (g.rarity) bits.push(RARITY_LABELS[g.rarity as 1 | 2 | 3] ?? `rareté ${g.rarity}`);
       if (g.magie_id) bits.push(magieName(g.magie_id));
       return bits.length ? `Magie garantie (${bits.join(', ')})` : 'Magie garantie';
+    }
+    case 'guaranteed_board': {
+      const id = (effect as AttributeEffect).board_id;
+      return id ? `Terrain garanti au prochain combat : ${boardName(id)}` : 'Terrain garanti au prochain combat';
     }
     // ⚠️ Les critères se disent avec la MÊME fonction que la magie et que la
     // popup de pioche (`DrawInfo.guaranteedDrawLabel`) : trois libellés de la
