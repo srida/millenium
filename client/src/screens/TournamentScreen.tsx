@@ -125,7 +125,6 @@ export default function TournamentScreen() {
             <div className="w-full max-w-sm text-left">
               <SelectedDeck deckName={deckName} emptyHint="Choisis un deck pour entrer en tournoi." />
             </div>
-            <MusicThemePicker />
             {playerDeck && (
               <Button variant="primary" className="px-6 py-3" onPointerDown={start}>
                 Lancer le tournoi
@@ -162,6 +161,7 @@ export default function TournamentScreen() {
                 </div>
               ) : playerMatch ? (
                 <>
+                  <div className="flex justify-center"><MusicThemePicker /></div>
                   <Button variant="primary" className="w-full py-3" onPointerDown={() => playMatch(playerMatch)}>
                     ▸ JOUER LA MANCHE {playerMatch.wins[0] + playerMatch.wins[1] + 1}
                   </Button>

@@ -103,7 +103,6 @@ export default function ArcadeScreen() {
             <div className="w-full max-w-sm text-left">
               <SelectedDeck deckName={deckName} emptyHint="Choisis un deck avant de lancer une run." />
             </div>
-            <MusicThemePicker />
 
             <section className="w-full max-w-sm space-y-1.5 text-left">
               <h2 className="text-[10px] tracking-widest text-white/40">LE PARCOURS</h2>
@@ -154,6 +153,7 @@ export default function ArcadeScreen() {
             <div className="space-y-2 pt-2">
               {duel ? (
                 <>
+                  <div className="flex justify-center"><MusicThemePicker /></div>
                   <Button
                     variant="primary"
                     className="w-full py-3"
