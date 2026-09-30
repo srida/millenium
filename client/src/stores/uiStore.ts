@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Card, AttributeDef, BoardDef } from '../logic/types.js';
+import type { Card, AttributeDef, BoardDef, Magie } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
 
 /**
@@ -70,7 +70,8 @@ export type TooltipContent =
   | { kind: 'card'; card: Card }
   | { kind: 'unit'; unit: Unit }
   | { kind: 'attribute'; attr: AttributeDef; count: number; activeThreshold: unknown }
-  | { kind: 'terrain'; board: BoardDef };
+  | { kind: 'terrain'; board: BoardDef }
+  | { kind: 'magie'; magie: Magie };
 
 interface TooltipState {
   content: TooltipContent;

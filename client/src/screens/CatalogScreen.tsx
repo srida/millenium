@@ -2,7 +2,11 @@
 // CatalogScreen — toutes les cartes du jeu, obtenues ou non. Consultation pure
 // (pas de deck en construction) : reprend l'UI de la bibliothèque du
 // DeckBuilder (`CardCatalogGrid`), sans les lanes ni l'ajout/retrait.
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import * as MagieDatabase from '../data/MagieDatabase.js';
+import * as BoardDatabase from '../data/BoardDatabase.js';
+import * as Audio from '../audio/AudioManager.js';
+import EffectCatalogGrid from '../components/catalog/EffectCatalogGrid.js';
 import * as CardDatabase from '../data/CardDatabase.js';
 import { primaryTier } from '../logic/Tiers.js';
 import { useUiStore } from '../stores/uiStore.js';
@@ -29,15 +33,44 @@ export default function CatalogScreen() {
   const owns = useMemo(() => (id: string) => ownedIds.has(id), [ownedIds]);
   const ownedCount = useMemo(() => allCards.filter((c: any) => owns(c.id)).length, [allCards, owns]);
 
+  const [tab, setTab] = useState<'cards' | 'magies' | 'boards'>('cards');
+  const magies = useMemo(() => (MagieDatabase as any).getAllMagies()
+    .slice().sort((a: any, b: any) => a.name.localeCompare(b.name, 'fr')), []);
+  const boards = useMemo(() => (BoardDatabase as any).getAllBoards()
+    .slice().sort((a: any, b: any) => a.name.localeCompare(b.name, 'fr')), []);
+  const TABS = [['cards', 'Cartes'], ['magies', 'Magies'], ['boards', 'Terrains']] as const;
+
   return (
     <main className="flex min-h-full flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
-      <div className={`flex items-center gap-3 px-4 py-3 ${web ? 'px-22' : ''}`}>
-        <h1 className="truncate text-lg font-bold tracking-wide">Catalogue</h1>
-        <span className="ml-auto shrink-0 text-xs tabular-nums text-white/40">
-          {ownedCount}/{allCards.length} débloquées
-        </span>
+      <div className="border-b border-line">
+        <div className={`flex items-center gap-3 px-4 py-3 ${web ? 'px-22' : ''}`}>
+          <h1 className="truncate text-lg font-bold tracking-wide">Catalogue</h1>
+          {tab === 'cards' && (
+            <span className="ml-auto shrink-0 text-xs tabular-nums text-white/40">
+              {ownedCount}/{allCards.length} débloquées
+            </span>
+          )}
+        </div>
+        {/* Même barre d'onglets que le DeckBuilder : texte seul, soulignement or. */}
+        <div className="flex">
+          {TABS.map(([key, label]) => (
+            <button
+              key={key}
+              onPointerDown={() => { Audio.playSfx('menu_button'); setTab(key); }}
+              className={`min-h-tap flex-1 text-sm font-semibold ${tab === key ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
+            >{label}</button>
+          ))}
+        </div>
       </div>
-      <CardCatalogGrid cards={allCards} owns={owns} rankOf={rankOf} />
+      {tab === 'cards' && <CardCatalogGrid cards={allCards} owns={owns} rankOf={rankOf} />}
+      {tab === 'magies' && (
+        <EffectCatalogGrid entries={magies} emptyMessage="Aucune magie."
+          toContent={(magie) => ({ kind: 'magie', magie })} />
+      )}
+      {tab === 'boards' && (
+        <EffectCatalogGrid entries={boards} emptyMessage="Aucun terrain."
+          toContent={(board) => ({ kind: 'terrain', board })} />
+      )}
     </main>
   );
 }
