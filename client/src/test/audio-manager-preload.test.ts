@@ -64,7 +64,11 @@ class FakeAudioContext {
   createBufferSource() { return new FakeBufferSourceNode(); }
   createMediaElementSource() { return { connect() { return this; } }; }
   decodeAudioData() { return Promise.resolve({ duration: 1 }); }
-  resume() { this.resumeCalls++; this.state = 'running'; return Promise.resolve(); }
+  // Asynchrone et suivi d'un `statechange`, comme le vrai `resume()`.
+  resume() {
+    this.resumeCalls++;
+    return Promise.resolve().then(() => this.setStateFromOs('running'));
+  }
   suspend() { this.state = 'suspended'; return Promise.resolve(); }
 }
 // Le contexte de DÉCODAGE, utilisé par le préchargement — jamais connecté à
@@ -305,5 +309,43 @@ describe('AudioManager — bruitage long pendant l\'arrêt de la musique (iOS)',
     const before = ctx.resumeCalls;
     Audio.unlock();
     expect(ctx.resumeCalls).toBe(before + 1);
+  });
+});
+
+describe('AudioManager — la musique suit l\'état du contexte (accélération iOS)', () => {
+  // Contexte interrompu par l'OS, élément qui continue d'avancer : le retard
+  // accumulé était rattrapé d'un coup à la reprise — la musique s'accélérait.
+  async function menuPlaying() {
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.unlock();
+    Audio.setMusicTheme('menu');
+    const track = createdAudioEls[createdAudioEls.length - 1];
+    expect(track.paused).toBe(false);
+    return { Audio, track, ctx: lastAudioCtx! };
+  }
+
+  it('la piste est mise en pause pendant l\'interruption, puis relancée à la reprise', async () => {
+    const { track, ctx } = await menuPlaying();
+    ctx.setStateFromOs('interrupted');
+    expect(track.paused).toBe(true);
+    await flush();
+    expect(ctx.state).toBe('running');
+    expect(track.paused).toBe(false);
+  });
+
+  it('une pause en arrière-plan n\'est PAS relancée par la reprise du contexte', async () => {
+    const { Audio, track, ctx } = await menuPlaying();
+    Audio.suspendForBackground();
+    ctx.setStateFromOs('running');
+    expect(track.paused).toBe(true);
+  });
+
+  it('une musique coupée pendant l\'interruption n\'est pas ressuscitée', async () => {
+    const { Audio, track, ctx } = await menuPlaying();
+    ctx.state = 'interrupted';
+    ctx.listeners.statechange?.forEach(fn => fn());
+    Audio.setMusicTheme(null);
+    await flush();
+    expect(track.paused).toBe(true);
   });
 });

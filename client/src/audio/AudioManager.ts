@@ -185,12 +185,46 @@ function getAudioCtx(): AudioContext | null {
       // et on le relance dès qu'il retombe `suspended` alors que rien
       // n'explique la coupure côté app — seul filet pour cette classe
       // d'interruption, propre au mobile et particulièrement au mode PWA.
-      audioCtx.addEventListener?.('statechange', () => {
-        if (needsResume(audioCtx) && !backgroundPaused) audioCtx.resume().catch(() => {});
-      });
+      audioCtx.addEventListener?.('statechange', onCtxStateChange);
     } catch { return null; }
   }
   return audioCtx;
+}
+
+/** Vrai quand la piste a été mise en pause PARCE QUE le contexte a cessé de
+ *  tourner — seul ce cas se relance tout seul au retour de `'running'`. */
+let musicHeldForCtx = false;
+
+/**
+ * ⚠️ **La musique suit l'état du contexte, et pas seulement pour la reprise.**
+ * La piste est un `<audio>` branché dans le contexte (`createMediaElementSource`).
+ * Quand l'OS interrompt le contexte (iOS : `'interrupted'`, sans aucun
+ * `visibilitychange`), l'ÉLÉMENT, lui, continue d'avancer : ce qu'il produit
+ * s'accumule dans le tampon du branchement, que personne ne lit. À la
+ * reprise, ce retard est rattrapé d'un coup — la musique s'ACCÉLÈRE quelques
+ * secondes puis retombe sur le bon tempo. On met donc la piste en pause dès
+ * que le contexte cesse de tourner, et on la relance quand il repart : rien
+ * ne s'accumule.
+ *
+ * Une piste non branchée (`gain: null`, repli `.volume`) ne passe pas par le
+ * contexte et n'est pas concernée. Une coupure due à `suspendForBackground`
+ * n'arme pas `musicHeldForCtx` : `resumeFromBackground` s'en charge.
+ */
+function onCtxStateChange(): void {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'running') {
+    if (musicHeldForCtx) {
+      musicHeldForCtx = false;
+      if (current && !backgroundPaused) current.el.play().catch(() => { /* unlock() retentera au prochain geste */ });
+    }
+    return;
+  }
+  if (backgroundPaused) return;
+  if (current?.gain && !current.el.paused) {
+    current.el.pause();
+    musicHeldForCtx = true;
+  }
+  if (needsResume(audioCtx)) audioCtx.resume().catch(() => {});
 }
 
 let decodeCtx: OfflineAudioContext | null = null;
@@ -501,6 +535,7 @@ let backgroundPaused = false;
  */
 export function suspendForBackground(): void {
   backgroundPaused = true;
+  musicHeldForCtx = false;
   if (audioCtx?.state === 'running') audioCtx.suspend().catch(() => {});
   if (current && !current.el.paused) current.el.pause();
   // Une piste muette en attente de pause n'a rien à faire en fond.
