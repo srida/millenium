@@ -22,6 +22,7 @@ import { useTournamentStore } from '../stores/tournamentStore.js';
 import { Button } from '../components/ui/primitives.js';
 import UiIcon from '../components/ui/UiIcon.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
+import MusicThemePicker from '../components/ui/MusicThemePicker.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 
 const ROUND_LABELS = ['Huitièmes de finale', 'Quarts de finale', 'Demi-finales', 'Finale'];
@@ -124,6 +125,7 @@ export default function TournamentScreen() {
             <div className="w-full max-w-sm text-left">
               <SelectedDeck deckName={deckName} emptyHint="Choisis un deck pour entrer en tournoi." />
             </div>
+            <MusicThemePicker />
             {playerDeck && (
               <Button variant="primary" className="px-6 py-3" onPointerDown={start}>
                 Lancer le tournoi

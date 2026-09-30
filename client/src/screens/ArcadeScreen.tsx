@@ -19,6 +19,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useArcadeStore, currentDuel, wonCount, type ArcadeDuel, type ArcadeBonus } from '../stores/arcadeStore.js';
 import { Amount, Button, Countdown } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
+import MusicThemePicker from '../components/ui/MusicThemePicker.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 import UiIcon from '../components/ui/UiIcon.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
@@ -102,6 +103,7 @@ export default function ArcadeScreen() {
             <div className="w-full max-w-sm text-left">
               <SelectedDeck deckName={deckName} emptyHint="Choisis un deck avant de lancer une run." />
             </div>
+            <MusicThemePicker />
 
             <section className="w-full max-w-sm space-y-1.5 text-left">
               <h2 className="text-[10px] tracking-widest text-white/40">LE PARCOURS</h2>

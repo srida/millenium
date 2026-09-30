@@ -28,6 +28,7 @@ import { useUiStore, type DeckSelectorMode } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { Button, IconButton, Modal, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_DANGER, SURFACE_GOLD, SURFACE_NEUTRAL, usePressSquash } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
+import MusicThemePicker from '../components/ui/MusicThemePicker.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 import UiIcon from '../components/ui/UiIcon.js';
 
@@ -227,6 +228,7 @@ export default function DeckSelector() {
         {!manage && (
           <>
             <SelectedDeck deckName={activeDeck} emptyHint="Choisis ton deck dans « Mes decks » pour jouer." />
+            <MusicThemePicker />
             <div className="flex items-center gap-2 pt-1">
               <span className="text-[10px] tracking-widest text-white/40">DECK DE L'IA</span>
               <div className="h-px flex-1 bg-line" />

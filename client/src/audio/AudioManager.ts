@@ -5,7 +5,7 @@
 //
 // ⚠️ RIEN n'est lu au niveau module (`Audio`, `localStorage`, `AudioContext`) :
 // la suite de test tourne en `environment: 'node'`, sans DOM — même
-// discipline que `three/constants.ts` et `components/ui/feedback.ts`.
+// discipline que `three/constants.ts`.
 //
 // ⚠️ Un son manqué n'est JAMAIS une erreur qui remonte : catalogue vide,
 // fichier absent, autoplay bloqué avant le premier geste utilisateur — dans
@@ -63,9 +63,11 @@ interface AudioSettings {
   sfxVolume: number;
   musicVolume: number;
   muted: boolean;
+  /** Thème de partie choisi par le joueur ; `null` = tirage au sort. */
+  gameTheme: string | null;
 }
 
-const DEFAULT_SETTINGS: AudioSettings = { sfxVolume: 0.7, musicVolume: 0.5, muted: false };
+const DEFAULT_SETTINGS: AudioSettings = { sfxVolume: 0.7, musicVolume: 0.5, muted: false, gameTheme: null };
 
 let settings: AudioSettings | null = null;
 
@@ -84,6 +86,7 @@ function loadSettings(): AudioSettings {
       if (typeof parsed.sfxVolume === 'number') settings.sfxVolume = clamp01(parsed.sfxVolume);
       if (typeof parsed.musicVolume === 'number') settings.musicVolume = clamp01(parsed.musicVolume);
       if (typeof parsed.muted === 'boolean') settings.muted = parsed.muted;
+      if (typeof parsed.gameTheme === 'string') settings.gameTheme = parsed.gameTheme;
     }
   } catch { /* stockage refusé ou absent : les défauts suffisent */ }
   return settings;
@@ -109,6 +112,17 @@ export function setMusicVolume(v: number): void {
   applyMusicVolume();
 }
 
+/** Le thème de partie choisi (`null` = aléatoire). Lu par `rollGameTheme()` au
+ *  début de chaque match ; un thème devenu injouable retombe sur le tirage. */
+export function setGameThemePreference(id: string | null): void {
+  loadSettings().gameTheme = id;
+  saveSettings();
+}
+
+export function getGameThemePreference(): string | null {
+  return loadSettings().gameTheme;
+}
+
 export function setMuted(muted: boolean): void {
   loadSettings().muted = muted;
   saveSettings();
@@ -121,7 +135,11 @@ export function setMuted(muted: boolean): void {
 let audioCtx: AudioContext | null = null;
 
 /**
- * Même garde que `components/ui/feedback.ts` : jamais lu au niveau module.
+ * ⚠️ **UN SEUL `AudioContext` dans toute l'appli.** Un second contexte (le
+ * clic synthétisé des boutons, retiré) fait changer la fréquence
+ * d'échantillonnage matérielle sur iOS : les pistes déjà en lecture
+ * s'accélèrent alors sans raison — la musique d'accueil qui s'emballait.
+ * Jamais lu au niveau module.
  *
  * ⚠️ **NE JAMAIS appeler ceci en dehors d'un geste utilisateur (`unlock`,
  * `playSfx`, `setMusicTheme`…).** Ce contexte est celui qui joue RÉELLEMENT
@@ -403,8 +421,7 @@ function applyMusicVolume(): void {
  * ⚠️ Résume aussi l'`AudioContext` : il naît `suspended` tant qu'aucun geste
  * ne l'a débloqué (même contrainte que la lecture elle-même), et un élément
  * routé à travers lui reste MUET tant qu'il n'a pas repris — `resume()` est
- * retenté à CHAQUE appel, jamais une seule fois, sur le modèle de
- * `playClick()`.
+ * retenté à CHAQUE appel, jamais une seule fois.
  *
  * ⚠️ Le rattrapage d'une piste restée en pause (`current.el.paused`) tourne
  * lui aussi À CHAQUE appel, PAS seulement au premier — `unlocked` ne garde
@@ -475,12 +492,17 @@ export function resumeFromBackground(): void {
  * moins une piste jouable — un thème créé en admin mais encore sans fichier
  * ne doit jamais réduire une partie au silence.
  *
+ * Le thème choisi par le joueur (`setGameThemePreference`) l'emporte s'il est
+ * jouable ; sinon tirage au sort.
+ *
  * `null` quand aucun thème n'a de piste : `setMusicTheme('game')` retombe
  * alors sur le pool commun (`MusicDatabase.tracksForGameTheme`).
  */
 export function rollGameTheme(): void {
   const ids = playableGameThemeIds();
-  lockedGameTheme = ids.length ? ids[Math.floor(Math.random() * ids.length)] : null;
+  const wanted = loadSettings().gameTheme;
+  lockedGameTheme = wanted && ids.includes(wanted) ? wanted
+    : ids.length ? ids[Math.floor(Math.random() * ids.length)] : null;
 }
 
 /**

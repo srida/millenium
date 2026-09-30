@@ -13,6 +13,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { Avatar, Button } from '../components/ui/primitives.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
+import MusicThemePicker from '../components/ui/MusicThemePicker.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 import UiIcon from '../components/ui/UiIcon.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
@@ -127,6 +128,7 @@ export default function OnlineLobby() {
         <div className="w-full max-w-sm text-left">
           <SelectedDeck deckName={deckName} emptyHint="Choisis un deck avant de chercher un duel." />
         </div>
+        <MusicThemePicker />
 
         {status === 'idle' && hasDeck && (
           <Button variant="primary" className="px-8 py-3" onPointerDown={search}>

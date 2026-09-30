@@ -160,9 +160,16 @@ export default function App() {
   // cliqué en cours de partie. Idempotent et bon marché : sans rien à
   // rattraper, il ne fait rien.
   useEffect(() => {
-    const onClick = () => Audio.unlock();
-    window.addEventListener('click', onClick);
-    return () => window.removeEventListener('click', onClick);
+    // `pointerdown` en plus de `click` : les écrans de jeu se pilotent au
+    // pointeur (board, cartes), sans `click` — sinon une musique restée en
+    // pause après un retour d'arrière-plan n'y était jamais relancée.
+    const onGesture = () => Audio.unlock();
+    window.addEventListener('click', onGesture);
+    window.addEventListener('pointerdown', onGesture);
+    return () => {
+      window.removeEventListener('click', onGesture);
+      window.removeEventListener('pointerdown', onGesture);
+    };
   }, []);
 
   // Coupe la musique quand l'onglet/l'appli passe en arrière-plan (change
@@ -175,8 +182,19 @@ export default function App() {
       if (document.hidden) Audio.suspendForBackground();
       else Audio.resumeFromBackground();
     };
+    // Valable pour TOUS les écrans (menus comme jeu) : `pageshow` rattrape un
+    // retour depuis le cache de navigation, `focus` une reprise sans
+    // `visibilitychange` (fenêtre, PWA). `resumeFromBackground` est un no-op
+    // tant que rien n'a été suspendu par `suspendForBackground`.
+    const onBack = () => { if (!document.hidden) Audio.resumeFromBackground(); };
     document.addEventListener('visibilitychange', onVisibility);
-    return () => document.removeEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pageshow', onBack);
+    window.addEventListener('focus', onBack);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pageshow', onBack);
+      window.removeEventListener('focus', onBack);
+    };
   }, []);
 
   // Musique des MENUS — un seul emplacement (`menu`, cf. `sound-schema.mjs`) :

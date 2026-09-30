@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom';
 import { CURRENCY, fmt, type CurrencyKey } from './currency.js';
 import { illustrationUrl } from '../../data/CardArt.js';
 import UiIcon, { type UiIconId } from './UiIcon.js';
-import { playButtonFeedback } from './feedback.js';
 import * as Audio from '../../audio/AudioManager.js';
 
 type Variant = 'primary' | 'ghost' | 'danger';
@@ -58,12 +57,11 @@ export const TAP_MOVE_TOLERANCE_PX = 10;
  * comporte comme un bouton du jeu — sans être un `<button>` — porte le même
  * relief et le même délai, au lieu d'un second mécanisme réinventé à côté.
  *
- * ⚠️ **C'est aussi l'unique point d'émission du retour haptique + sonore**
- * (`playButtonFeedback`, PUIS le déclencheur `sfx` du catalogue) : posé au
- * `pointerdown`, en même temps que le relief visuel démarre — pas à
- * l'échéance du délai de course, qui ne retarde que l'ACTION. Un tap annulé
- * (glissade, défilement) aura donc quand même vibré/cliqué une fois ; c'est
- * le prix d'un retour immédiat, et c'est celui d'un vrai bouton.
+ * ⚠️ **C'est aussi l'unique point d'émission du son de bouton** (le
+ * déclencheur `sfx` du catalogue) : posé au `pointerdown`, en même temps que
+ * le relief visuel démarre — pas à l'échéance du délai de course, qui ne
+ * retarde que l'ACTION. Un tap annulé (glissade, défilement) aura donc quand
+ * même sonné une fois.
  *
  * ⚠️ **`sfx` part ICI, JAMAIS dans le `setTimeout` de l'action** : un appel
  * audio différé de ne serait-ce que `SQUASH_DELAY_MS` sort du tour
@@ -93,7 +91,6 @@ export function usePressSquash<T extends HTMLElement = HTMLButtonElement>(
     if (disabled) return;
     start.current = { x: e.clientX, y: e.clientY };
     setSquashed(true);
-    playButtonFeedback();
     if (sfx) Audio.playSfx(sfx);
     if (onPointerDown) {
       clearTimer();
