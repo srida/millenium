@@ -13,11 +13,6 @@ import * as Audio from '../../audio/AudioManager.js';
 import PhaseClock from './PhaseClock.js';
 import { useTimerLowSound } from './useTimerLowSound.js';
 
-function fmt(s: number): string {
-  const m = Math.floor(s / 60);
-  return `${m}:${String(Math.max(0, s % 60)).padStart(2, '0')}`;
-}
-
 // Terrain du combat en cours : tap → tooltip (nom + effet). Les cases bloquées
 // qu'il impose sont rendues par Scene3D, ce chip dit d'où elles viennent.
 //
@@ -187,10 +182,10 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
           (`UnitCounterBadge`) : le montrer ICI aussi le dirait deux fois. */}
       <PhaseClock
         remaining={prepRemaining}
-        label={`Temps de préparation restant : ${fmt(prepRemaining)}`}
+        label={`Temps de préparation restant : ${prepRemaining} secondes`}
         className="min-h-tap px-3 text-base font-bold"
       >
-        {fmt(prepRemaining)}
+        {prepRemaining}s
       </PhaseClock>
       <div className="flex-1" />
       {/* `visible`, pas un montage conditionnel : `canMulligan` retombe à
