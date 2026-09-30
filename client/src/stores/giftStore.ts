@@ -8,6 +8,7 @@
 // cadeau, et le serveur chiffre.
 import { create } from 'zustand';
 import * as AuthClient from '../data/AuthClient.js';
+import * as Audio from '../audio/AudioManager.js';
 import { useAuthStore } from './authStore.js';
 import { useCollectionStore } from './collectionStore.js';
 import { createSnapshotChannel } from './snapshotLoader.js';
@@ -132,6 +133,7 @@ export const useGiftStore = create<GiftStoreState>((set, get) => ({
       const data = await (AuthClient as any).claimDailyGift();
       const { gold = 0, gems = 0 } = data.granted ?? {};
       absorb(set, data, { title: 'Cadeau quotidien', lines: [], gold, gems });
+      Audio.playSfx('reward_daily_gift');
       return null;
     } catch (e: any) {
       // L'instantané peut dater (autre onglet, rotation franchie) : on le

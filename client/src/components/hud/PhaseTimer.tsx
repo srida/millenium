@@ -14,6 +14,8 @@
 import { useEffect, useRef } from 'react';
 import { useGameStore, type GameSnapshot } from '../../stores/gameStore.js';
 import { Banner } from '../ui/primitives.js';
+import * as Audio from '../../audio/AudioManager.js';
+import { TIMER_LOW_S } from './timerLow.js';
 
 /**
  * Chrono d'une phase, décompté à la seconde et publié dans l'instantané.
@@ -56,6 +58,7 @@ export function PhaseTimer({
     const t = setInterval(() => {
       if (!activeRef.current(useGameStore.getState())) return;
       remaining.current -= 1;
+      if (field === 'prepRemaining' && remaining.current === TIMER_LOW_S) Audio.playSfx('timer_low');
       if (remaining.current <= 0) {
         clearInterval(t);
         applySnapshot({ [field]: 0 } as Partial<GameSnapshot>);

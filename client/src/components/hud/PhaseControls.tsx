@@ -10,6 +10,7 @@ import UiIcon from '../ui/UiIcon.js';
 import HoldConfirmButton from '../ui/HoldConfirmButton.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import * as Audio from '../../audio/AudioManager.js';
+import { isTimerLow } from './timerLow.js';
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);
@@ -177,7 +178,16 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
     <div className={classname_footer2}>
       {/* Le compteur d'unités vit désormais au coin du plateau
           (`UnitCounterBadge`) : le montrer ICI aussi le dirait deux fois. */}
-      <span className="rounded-md border border-line bg-surface/80 px-2 py-1 text-xs tabular-nums text-white/70">
+      {/* Même hauteur que les boutons (`min-h-tap`). Sous `TIMER_LOW_S` : rouge
+          et pulsation (retirée sous `prefers-reduced-motion`, la couleur reste). */}
+      <span
+        className={'inline-flex min-h-tap shrink-0 items-center rounded-lg border px-3 text-base font-bold tabular-nums '
+          + (isTimerLow(prepRemaining)
+            ? 'border-danger bg-danger/20 text-danger motion-safe:animate-pulse'
+            : 'border-line bg-surface/80 text-white/70')}
+        role="timer"
+        aria-label={`Temps de préparation restant : ${fmt(prepRemaining)}`}
+      >
         {fmt(prepRemaining)}
       </span>
       <div className="flex-1" />

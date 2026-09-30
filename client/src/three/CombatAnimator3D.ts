@@ -12,6 +12,7 @@ import {
   playPowerVfx, playKeywordVfx, playImmuneVfx, playPoisonPulse, playBurnPulse, syncPowerStatuses,
   type PowerVfxContext,
 } from './PowerVfx.js';
+import { VFX_EXPLOSIF } from '../logic/effects/types.js';
 import type { Scene3D } from './Scene3D.js';
 import type { Unit } from '../logic/Unit.js';
 import type { Position } from '../logic/types.js';
@@ -35,6 +36,15 @@ const POWER_NAMES: Record<string, string> = {
   POWER_TAUNT:        'Provocation',
   POWER_WEAKEN:       'Affaiblissement',
   POWER_SUMMON_TOKEN: 'Invocation',
+};
+
+interface CastToast { label: string; icon?: string; illustrationId?: string }
+
+// Libellé du toast d'un mot-clé, indexé par la clé de RECETTE VISUELLE que porte
+// l'événement `keyword` (jamais l'id d'attribut : `three/` n'importe pas de
+// catalogue). Un mot-clé purement passif n'émet aucun événement, donc n'a rien ici.
+const KEYWORD_TOASTS: Record<string, CastToast> = {
+  [VFX_EXPLOSIF]: { icon: '💥', label: 'Explosif' },
 };
 
 function _cellKey(pos: Position): string { return `${pos.col},${pos.row}`; }
@@ -379,6 +389,10 @@ export class CombatAnimator3D {
    */
   _applyKeyword({ unit, vfx, targets }: any, interval: number): void {
     if (!vfx) return;
+    // Le toast part de la CASE du porteur (son élément DOM s'éteint déjà),
+    // comme la recette visuelle. Un mot-clé sans libellé n'annonce rien.
+    const toast = KEYWORD_TOASTS[vfx];
+    if (toast && unit.position) this._showCastToast(unit.position, toast, interval);
     playKeywordVfx(this._board, unit, targets ?? [], vfx, this._vfxContext(interval));
   }
 
@@ -394,6 +408,11 @@ export class CombatAnimator3D {
       hasIllustration = !!power?._has_illustration;
     } catch { /* database non initialisée */ }
     const label = POWER_NAMES[power_id] ?? power_id.replace('POWER_', '').replace(/_/g, ' ');
+    this._showCastToast(pos, { label, icon, illustrationId: hasIllustration ? power_id : undefined }, interval);
+  }
+
+  /** Le toast de lancement, commun aux pouvoirs et aux mots-clés. */
+  _showCastToast(pos: Position, { label, icon, illustrationId }: CastToast, interval: number): void {
     const screen = this._board.worldToScreen(this._board.tilePosition(pos));
     const toast = document.createElement('div');
     toast.className = 'power-cast-label';
@@ -401,9 +420,9 @@ export class CombatAnimator3D {
     // les lancements s'empileraient à l'écran.
     const scale = Math.min(1, Math.max(0.35, interval / BASE_TICK_MS));
     toast.style.setProperty('--power-toast-dur', (1.8 * scale).toFixed(2) + 's');
-    if (hasIllustration) {
+    if (illustrationId) {
       const img = document.createElement('img');
-      img.src = illustrationUrl(power_id);
+      img.src = illustrationUrl(illustrationId);
       img.alt = '';
       toast.appendChild(img);
       toast.appendChild(document.createTextNode(label));

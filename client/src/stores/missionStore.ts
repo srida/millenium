@@ -14,6 +14,7 @@
 // qu'on joue — l'écran Missions n'est de toute façon pas visible en partie.
 import { create } from 'zustand';
 import * as AuthClient from '../data/AuthClient.js';
+import * as Audio from '../audio/AudioManager.js';
 import { useAuthStore } from './authStore.js';
 import { createSnapshotChannel, isGuest } from './snapshotLoader.js';
 
@@ -170,6 +171,7 @@ export const useMissionStore = create<MissionStoreState>((set, get) => ({
       // `absorb` fait tout : instantané (donc la jauge hebdo avance à l'écran),
       // solde, et toast des paliers ATTEINTS par ce tap (à récupérer à leur tour).
       absorb(set, await (AuthClient as any).claimMission(id));
+      Audio.playSfx('reward_mission');
       return null;
     } catch (e: any) {
       // L'instantané peut être en retard (mission déjà soldée dans un autre
@@ -183,6 +185,7 @@ export const useMissionStore = create<MissionStoreState>((set, get) => ({
   claimMilestone: async (points) => {
     try {
       absorb(set, await (AuthClient as any).claimMissionMilestone(points));
+      Audio.playSfx('reward_weekly');
       return null;
     } catch (e: any) {
       void get().load(true);

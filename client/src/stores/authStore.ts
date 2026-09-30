@@ -4,6 +4,7 @@
 // synchronisation serveur des decks (DeckRepository.pull/flushSync).
 import { create } from 'zustand';
 import * as AuthClient from '../data/AuthClient.js';
+import * as Audio from '../audio/AudioManager.js';
 import * as DeckRepository from '../data/DeckRepository.js';
 
 export interface AuthUser {
@@ -129,6 +130,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     if (!data) return null;
 
     get().applyProgression(data.progression);
+    Audio.playSfx('reward_level');
     // Les cartes livrées entrent dans la collection sans recharger les 398 ids
     // — même geste que shopStore/giftStore après un achat ou un cadeau.
     const cards = data.lines.map(l => l.item).filter(i => i && i.type === 'card').map(i => i!.id);

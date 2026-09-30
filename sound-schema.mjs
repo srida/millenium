@@ -58,6 +58,14 @@ export const SFX_TRIGGERS = [
   // missions…) ; les boutons EN PARTIE qui jouent déjà leur propre son
   // dédié (`ready`, `undo`, `menu_ingame`…) le désactivent explicitement
   // (`sfx={false}`) pour ne pas sonner deux fois.
+  // Récompenses récupérées d'un tap — joués À LA RÉPONSE du serveur (le gain
+  // est acquis), jamais au tap.
+  { id: 'reward_mission',      label: 'Récompense de mission récupérée',      variant: null },
+  { id: 'reward_weekly',       label: 'Palier hebdomadaire récupéré',         variant: null },
+  { id: 'reward_daily_gift',   label: 'Cadeau quotidien récupéré',            variant: null },
+  { id: 'reward_level',        label: 'Paliers de niveau récupérés',          variant: null },
+  // Chrono de préparation : joué UNE fois, au passage à `TIMER_LOW_S` (10 s).
+  { id: 'timer_low',           label: 'Chrono bas (10 dernières secondes)',   variant: null },
   { id: 'menu_button',          label: 'Bouton de menu (générique, hors partie)', variant: null },
 ];
 
