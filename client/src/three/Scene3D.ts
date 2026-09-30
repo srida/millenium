@@ -27,6 +27,7 @@ import {
   PREP_COL_MARGIN, PREP_FOCUS_Y, PREP_ROW_MARGIN, PREP_ROW_MARGIN_WEB, webRailPxFor,
   zForRow, xForCol, cellKey as key, baseColorFor, emissiveFor,
   LOW_END_DEVICE,
+  TERRAIN_ANIM_ENABLED,
   TERRAIN_MODELS_ENABLED,
 } from './constants.js';
 import type { Unit } from '../logic/Unit.js';
@@ -738,7 +739,7 @@ export class Scene3D {
     holder.position.y = TERRAIN_MODEL_Y;
     this.scene.add(holder);
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    if (!reduced && !LOW_END_DEVICE) {
+    if (!reduced && TERRAIN_ANIM_ENABLED) {
       // fxParent = holder : les particules héritent du miroir et de TERRAIN_MODEL_Y
       this._terrainAnim = animateTerrain(model, { fxParent: holder });
     }

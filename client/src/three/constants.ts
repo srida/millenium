@@ -32,6 +32,11 @@ function terrainModelsAllowed(): boolean {
 }
 export const TERRAIN_MODELS_ENABLED = terrainModelsAllowed();
 
+// Animations du terrain (shaders + quelques particules instanciées) : même seuil
+// que le modèle. Elles ne se coupaient pas sur `LOW_END_DEVICE` (≤ 4 cœurs), qui
+// couvre la plupart des téléphones — le terrain restait alors figé sans raison.
+export const TERRAIN_ANIM_ENABLED = TERRAIN_MODELS_ENABLED;
+
 export interface ElementStyle {
   color: number;
   ringColor: number;
