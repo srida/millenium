@@ -285,28 +285,14 @@ export class CombatManager {
       // rangeless powers never needed that target in the first place, so they
       // are offered a null one rather than being skipped with the attack.
       const reachable = target !== null && canAttack(u, target, this.board);
-      const powerTarget = reachable ? target : null;
-      const canFire = u.isPowerReady()
-        && (reachable || RANGELESS_POWERS.has(u.power_id))
-        && this._isPowerRelevant(u, powerTarget);
 
       // A full gauge is not enough: the power must have something to do to THIS
       // target (see _isPowerRelevant). When it hasn't, the unit attacks normally
       // and KEEPS its gauge full — same treatment as a power that fails to
-      // resolve below, and for the same reason: the charge is held, not burnt.
-      if (canFire) {
-        // _firePower returns false only for a power that failed to resolve this
-        // tick (e.g. POWER_TELEPORT with no free cell) — in that case the gauge
-        // stays full so the unit retries on a later tick instead of wasting it.
-        const fired = this._firePower(u, powerTarget, events);
-        if (fired !== false) {
-          u.power_gauge = 0;
-          // ⚠️ APRÈS la résolution, et seulement si le pouvoir est PARTI : un
-          // `_firePower` qui rend `false` a échoué (téléport sans case libre) et
-          // garde sa jauge. Déclencher là-dessus ferait payer un effet pour un
-          // pouvoir que personne n'a vu.
-          this._onPowerFired(u, events);
-        }
+      // resolve (see _tryFirePower), and for the same reason: the charge is
+      // held, not burnt.
+      if (this._tryFirePower(u, target, reachable, events) !== null) {
+        // tried: a failed cast still replaces the attack of the step
       } else if (reachable && !u.is_elusive) {
         // ⚠️ **Insaisissable n'attaque jamais ICI** : son unique fenêtre de
         // combat simple est le rechargement de son point de MOUVEMENT
@@ -390,6 +376,29 @@ export class CombatManager {
     return enemies;
   }
 
+  /**
+   * Lance le pouvoir de `u` s'il est prêt, à portée (ou sans portée) et
+   * pertinent. Rend `null` s'il n'a pas été tenté, sinon `true` (parti) ou
+   * `false` (échec de résolution : la jauge reste pleine).
+   */
+  _tryFirePower(u, target, reachable, events) {
+    const powerTarget = reachable ? target : null;
+    const canFire = u.isPowerReady()
+      && (reachable || RANGELESS_POWERS.has(u.power_id))
+      && this._isPowerRelevant(u, powerTarget);
+    if (!canFire) return null;
+    // _firePower returns false only for a power that failed to resolve this
+    // tick (e.g. POWER_TELEPORT with no free cell) — in that case the gauge
+    // stays full so the unit retries on a later tick instead of wasting it.
+    if (this._firePower(u, powerTarget, events) === false) return false;
+    u.power_gauge = 0;
+    // ⚠️ APRÈS la résolution, et seulement si le pouvoir est PARTI : un
+    // `_firePower` qui rend `false` a échoué et garde sa jauge. Déclencher là-dessus
+    // ferait payer un effet pour un pouvoir que personne n'a vu.
+    this._onPowerFired(u, events);
+    return true;
+  }
+
   _normalAttack(attacker, target, events) {
     const damage = attacker.atk;
     target.takeDamage(damage);
@@ -419,7 +428,13 @@ export class CombatManager {
   _actOnMoveRecharge(u, events) {
     const candidates = this._targetCandidates(u, { requireLOS: true });
     const target = candidates.length > 0 ? findAttackTarget(u, candidates, this.board).unit : null;
-    if (target !== null && canAttack(u, target, this.board)) {
+    const reachable = target !== null && canAttack(u, target, this.board);
+    // ⚠️ Le pouvoir prime sur l'attaque simple dans cette fenêtre aussi : sinon un
+    // Insaisissable, qui ne reste presque jamais à portée au tick d'attaque,
+    // gardait sa jauge pleine et ne lançait jamais son pouvoir.
+    const cast = this._tryFirePower(u, target, reachable, events);
+    if (cast !== null) { this._applyBurnStacks(u, events); return; }
+    if (reachable) {
       this._normalAttack(u, target, events);
       this._applyBurnStacks(u, events);
       return;
