@@ -19,6 +19,7 @@ import { MeleeStrikes } from './MeleeStrikes.js';
 import { UnitSpawns } from './UnitSpawns.js';
 import { UnitShatter } from './UnitShatter.js';
 import { Powers } from './Powers.js';
+import { animateTerrain } from './terrain-anim.js';
 import { createUnitEl, updateUnitEl } from './UnitCardEl.js';
 import {
   ELEMENT_STYLES, elementsForUnit,
@@ -315,6 +316,7 @@ export class Scene3D {
   // voile et le décor des cases bloquées, que le relief du modèle remplace.
   _terrainModel: THREE.Object3D | null = null;
   _terrainModelActive = false;
+  _terrainAnim: { update(t: number): void; dispose(): void } | null = null;
   // Calque de repérage (grille 5×11, séparation des zones, cases bloquées cerclées
   // de rouge) — celui de la démo « Terrains 3D ». Éteint par défaut : sur un décor
   // illustré, les séparateurs dorés et le quadrillage le salissent. C'est un choix
@@ -735,6 +737,11 @@ export class Scene3D {
     }
     holder.position.y = TERRAIN_MODEL_Y;
     this.scene.add(holder);
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    if (!reduced && !LOW_END_DEVICE) {
+      // fxParent = holder : les particules héritent du miroir et de TERRAIN_MODEL_Y
+      this._terrainAnim = animateTerrain(model, { fxParent: holder });
+    }
 
     this._terrainModel = holder;
     this._terrainLights = this._buildTerrainLights(centerZ);
@@ -888,6 +895,8 @@ export class Scene3D {
 
   _clearTerrainBackground(): void {
     const hadModel = this._terrainModelActive;
+    this._terrainAnim?.dispose();
+    this._terrainAnim = null;
     if (this._terrainModel) {
       this.scene.remove(this._terrainModel);
       disposeObject(this._terrainModel);
@@ -2773,9 +2782,10 @@ export class Scene3D {
     const powersActive = this.powers.activeCount > 0 || this.powers.status.size > 0;
 
     // Rendu à la demande : rien d'actif et rien d'invalidé → on saute la frame.
-    const active = this.anims.length > 0 || this.bursts.length > 0 || this._shake !== null || this._needsRender || fxActive || unitFxActive || powersActive;
+    const active = this.anims.length > 0 || this.bursts.length > 0 || this._shake !== null || this._needsRender || fxActive || unitFxActive || powersActive || this._terrainAnim !== null;
     if (!active) return;
     this._needsRender = false;
+    this._terrainAnim?.update(now / 1000);
 
     // Powers AVANT fx : les particules qu'un statut vient d'émettre cette
     // frame profitent tout de suite de l'intégration de position de `fx.update`.
@@ -2970,6 +2980,8 @@ export class Scene3D {
     }
     this._terrainTex?.dispose();
     this._terrainTex = null;
+    this._terrainAnim?.dispose();
+    this._terrainAnim = null;
     if (this._terrainModel) { disposeObject(this._terrainModel); this._terrainModel = null; }
     this._gridVisible = false;
     this._rebuildGrid();
