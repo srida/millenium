@@ -109,6 +109,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     const crossed = [];
     for (let level = from + 1; level <= to; level++) crossed.push({ key: ++levelToastKey, level });
 
+    if (crossed.length) Audio.playSfx('notify_level');
     set({
       user: {
         ...user,

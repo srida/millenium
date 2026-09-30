@@ -64,6 +64,11 @@ export const SFX_TRIGGERS = [
   { id: 'reward_weekly',       label: 'Palier hebdomadaire récupéré',         variant: null },
   { id: 'reward_daily_gift',   label: 'Cadeau quotidien récupéré',            variant: null },
   { id: 'reward_level',        label: 'Paliers de niveau récupérés',          variant: null },
+  // Notifications (toasts de `RewardToasts`) — jouées UNE fois par lot reçu,
+  // à la création du toast, pas à la récupération du gain.
+  { id: 'notify_mission',      label: 'Notification : mission accomplie',     variant: null },
+  { id: 'notify_weekly',       label: 'Notification : palier hebdo atteint',  variant: null },
+  { id: 'notify_level',        label: 'Notification : passage de niveau',     variant: null },
   // Chrono de préparation : joué UNE fois, au passage à `TIMER_LOW_S` (10 s).
   { id: 'timer_low',           label: 'Chrono bas (10 dernières secondes)',   variant: null },
   { id: 'menu_button',          label: 'Bouton de menu (générique, hors partie)', variant: null },

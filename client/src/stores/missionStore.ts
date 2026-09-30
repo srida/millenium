@@ -275,6 +275,10 @@ function pickSnapshot(data: any): MissionSnapshot {
 function absorb(set: (partial: any) => void, data: any): void {
   if (!data) return;
   channel.bump();
+  // Une fois par lot (jamais une fois par toast) : cinq missions terminées
+  // d'un coup ne font pas cinq sons superposés.
+  if (data.completed?.length) Audio.playSfx('notify_mission');
+  if (data.unlocked?.length) Audio.playSfx('notify_weekly');
   set((s: MissionStoreState) => ({
     snapshot: data.missions ? pickSnapshot(data) : s.snapshot,
     toasts: [
