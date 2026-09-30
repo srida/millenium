@@ -110,19 +110,58 @@ export class PvpController extends GameController {
       value: gs.player_damage_multiplier_bonus,
       sources: gs.player_multiplier_sources,
     });
-    // 2) Le rôle A choisit le terrain et le diffuse (déterminisme : un seul
-    //    tirage). Il le demande à SA session, seule à connaître les attributs
-    //    des deux decks et les terrains déjà joués — et elle ne consomme rien
-    //    ici : c'est l'id que le serveur renverra dans `round:go` qui sera
-    //    marqué comme joué, des deux côtés, par `startCombat`.
-    if (this.role === 'A') {
-      const board = this.session.pickCombatBoard();
-      PvpConnection.send('round:terrain_pick', { round, boardId: board?.id ?? null });
-    }
-    // 3) J'attends le board adverse en parallèle, puis j'acquitte la barrière.
+    // 2) J'attends le board adverse, puis j'acquitte la barrière.
     this._oppBoardPromise = waitForOpponentBoard(round);
-    PvpConnection.send('round:combat_start_ack', { round });
+    if (this.role === 'A') {
+      // Le rôle A choisit le terrain et le diffuse (déterminisme : un seul
+      // tirage). ⚠️ Il doit d'abord CONNAÎTRE le board adverse : un terrain
+      // promis (`guaranteed_board`) se lit sur les unités des deux camps. Son
+      // acquittement part donc APRÈS `round:terrain_pick` — la barrière du
+      // serveur ne s'ouvre qu'à deux acquittements, donc jamais sans le choix.
+      void this._pickTerrainThenAck(round);
+    } else {
+      PvpConnection.send('round:combat_start_ack', { round });
+    }
     this.sync({ combatActive: false, pvpWaiting: true });
+  }
+
+  /** Délai au-delà duquel A n'attend plus le board adverse : il acquitte sans
+   *  terrain et laisse la barrière du serveur trancher (client adverse mort).
+   *  Sous `BARRIER_TIMEOUT_MS` (180 s) côté serveur. */
+  private static readonly OPP_BOARD_WAIT_MS = 150_000;
+
+  private async _pickTerrainThenAck(round: number): Promise<void> {
+    const oppBoard = this._oppBoardPromise;
+    let boardId: string | null = null;
+    const payload = await Promise.race([
+      oppBoard,
+      new Promise<null>(resolve => setTimeout(() => resolve(null), PvpController.OPP_BOARD_WAIT_MS)),
+    ]);
+    if (this._handshaking && this._oppBoardPromise === oppBoard && payload) {
+      // Sa session est la seule à connaître les deux decks, les terrains déjà
+      // joués et les promesses ; elle ne consomme rien ici : c'est l'id que le
+      // serveur renverra dans `round:go` qui sera marqué joué des deux côtés.
+      this._installOpponent(payload);
+      boardId = this.session.pickCombatBoard()?.id ?? null;
+    }
+    PvpConnection.send('round:terrain_pick', { round, boardId });
+    PvpConnection.send('round:combat_start_ack', { round });
+  }
+
+  /**
+   * Remplace les unités adverses par celles du payload, en miroir (rows 7–10).
+   * Idempotent pour un payload donné : le rôle A l'appelle AVANT de tirer le
+   * terrain, `_onRoundGo` le rappelle pour les deux rôles.
+   */
+  private _installedPayload: any = null;
+  private _installOpponent(oppPayload: any): void {
+    if (this._installedPayload === oppPayload) return;
+    this._installedPayload = oppPayload;
+    // Nettoie le côté ennemi (rounds > 1 : on rebâtit depuis le board autoritaire
+    // de l'adversaire) puis reconstruit ses unités en miroir (rows 7–10).
+    for (const u of this.session.board.getLivingUnitsOnSide('enemy')) this.session.board.removeUnit(u);
+    reconstructOpponentUnits(oppPayload, this.session.board, this.pvp.cardDb);
+    this.session.enemyUnits = this.session.board.getLivingUnitsOnSide('enemy');
   }
 
   private async _onRoundGo(msg: { round: number; boardId: string | null }): Promise<void> {
@@ -139,11 +178,7 @@ export class PvpController extends GameController {
     // jamais cumulé : son propriétaire fait foi, comme pour ses PV.
     applyOpponentMultiplier(this.session.gameState, oppPayload);
 
-    // Nettoie le côté ennemi (rounds > 1 : on rebâtit depuis le board autoritaire
-    // de l'adversaire) puis reconstruit ses unités en miroir (rows 7–10).
-    for (const u of this.session.board.getLivingUnitsOnSide('enemy')) this.session.board.removeUnit(u);
-    reconstructOpponentUnits(oppPayload, this.session.board, this.pvp.cardDb);
-    this.session.enemyUnits = this.session.board.getLivingUnitsOnSide('enemy');
+    this._installOpponent(oppPayload);
 
     const board = msg.boardId ? this.pvp.getBoard(msg.boardId) : null;
     this.scene?.refresh();

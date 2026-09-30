@@ -3,9 +3,9 @@
 // PROCHAIN combat.
 //
 // Mutations qui doivent faire tomber ces tests :
-//   • retirer le bloc `promised` de `pickBoard`               → ROUGE (cas 1–4)
-//   • ne pas vider `player_guaranteed_boards` à `startCombat` → ROUGE (« ne vaut que pour un combat »)
-//   • retirer la garde `mode === 'pvp'` de `_boardPickContext` → ROUGE (cas PvP)
+//   • retirer le bloc `promised` de `pickBoard`                 → ROUGE (cas pickBoard + bout en bout)
+//   • `all.find` → `unused.find` dans `promised`                → ROUGE (« l'emporte sur la non-répétition »)
+//   • ne lire que `playerUnits` dans `guaranteedBoardIds`       → ROUGE (« l'IA promet aussi »)
 import { describe, it, expect } from 'vitest';
 import { pickBoard } from '../logic/BoardPicker.js';
 import { GameSession } from '../logic/GameSession.js';
@@ -38,10 +38,8 @@ describe('pickBoard — terrain garanti', () => {
     expect(pickBoard(POOL, ctx(['B2', 'B3']), () => 0.99)?.id).toBe('B3');
   });
 
-  it('un terrain déjà joué ne revient jamais, même promis', () => {
-    expect(pickBoard(POOL, ctx(['B1'], ['B1']), () => 0)?.id).not.toBe('B1');
-    // La promesse invalide est écartée, l'autre reste.
-    expect(pickBoard(POOL, ctx(['B1', 'B2'], ['B1']), () => 0)?.id).toBe('B2');
+  it('une promesse l\'emporte sur la règle « jamais deux fois dans un duel »', () => {
+    expect(pickBoard(POOL, ctx(['B1'], ['B1']), () => 0)?.id).toBe('B1');
   });
 
   it('une promesse sur un terrain inconnu se replie sur le tirage ordinaire', () => {
@@ -49,10 +47,10 @@ describe('pickBoard — terrain garanti', () => {
   });
 });
 
-// ── Bout en bout : attribut → file → prochain combat ───────────────────────
+// ── Bout en bout : attribut → terrain du combat qui commence ──────────────
 
 const attr = (id: string, boardId: string) => ({
-  id, name: id, categorie: 'Archetype', timing: 'end_of_combat',
+  id, name: id, categorie: 'Archetype', timing: 'start_of_combat',
   thresholds: [{ count: 1, effects: [{ type: 'guaranteed_board', board_id: boardId }] }],
 });
 const CATALOGUE = [attr('GB_2', 'B2'), attr('GB_3', 'B3')];
@@ -66,54 +64,62 @@ function session(mode: 'ai' | 'pvp', rand: () => number = () => 0) {
     cardDb: { getCard: (id: string) => (deck.find(c => c.id === id) as any) ?? null },
     getAllBoards: () => POOL, getAllMagies: () => [], rand, mode,
   } as any;
-  return new GameSession(deps);
+  const s = new GameSession(deps);
+  s.startPreparation();
+  return s;
 }
 
-function playOneCombat(s: GameSession, attrs: string[]) {
-  s.startPreparation();
-  const units = attrs.map((a, i) =>
-    spawn(s.board, makeCard({ id: `U${i}`, attributes: [a], stats: { atk: 1, hp: 500, range: 1, attack_rate: 0, movement_rate: 0 } } as any) as any, 'player', { col: i, row: 0 }));
-  (s as any)._combatPlayerUnits = units;
-  // `null` = terrain convenu « aucun » : ce premier combat ne consomme aucun terrain.
-  s.startCombat(null);
-  (s as any)._combat.isOver = true;
-  (s as any)._combat.winner = 'player';
-  s.finishCombat();
-}
+const carte = (id: string, attrs: string[]) =>
+  makeCard({ id, attributes: attrs, stats: { atk: 1, hp: 500, range: 1, attack_rate: 0, movement_rate: 0 } } as any) as any;
+
+const joueur = (s: GameSession, attrs: string[], i = 0) => spawn(s.board, carte(`P${i}`, attrs), 'player', { col: i, row: 0 });
+const adverse = (s: GameSession, attrs: string[], i = 0) => spawn(s.board, carte(`E${i}`, attrs), 'enemy', { col: i, row: 10 });
+const joues = (s: GameSession) => [...(s as any)._usedBoardIds];
 
 describe('terrain garanti — bout en bout', () => {
-  it('l\'attribut ne promet rien avant la fin du combat, puis le terrain promis est joué', () => {
+  it('le terrain promis est celui du combat qui commence', () => {
     const s = session('ai');
-    playOneCombat(s, ['GB_3']);
-    expect(s.gameState.player_guaranteed_boards).toEqual(['B3']);
-
-    s.startPreparation();
+    joueur(s, ['GB_3']);
     s.startCombat();
-    expect([...(s as any)._usedBoardIds]).toEqual(['B3']);
+    expect(joues(s)).toEqual(['B3']);
   });
 
-  it('la promesse ne vaut que pour UN combat', () => {
+  it('sans unité porteuse sur le plateau, rien n\'est promis', () => {
     const s = session('ai');
-    playOneCombat(s, ['GB_3']);
-    s.startPreparation();
-    s.startCombat();
-    expect(s.gameState.player_guaranteed_boards).toEqual([]);
+    joueur(s, []);
+    expect(s.pickCombatBoard()?.id).toBe('B1'); // rand() = 0 → premier du pool
   });
 
-  it('deux unités, deux terrains promis : les deux sont en file, un seul est joué', () => {
-    const s = session('ai', () => 0.99);
-    playOneCombat(s, ['GB_2', 'GB_3']);
-    expect(s.gameState.player_guaranteed_boards.slice().sort()).toEqual(['B2', 'B3']);
-    s.startPreparation();
+  it('l\'IA promet aussi : son unité porteuse impose son terrain', () => {
+    const s = session('ai');
+    adverse(s, ['GB_2']);
     s.startCombat();
-    expect((s as any)._usedBoardIds.has('B3')).toBe(true);
-    expect((s as any)._usedBoardIds.has('B2')).toBe(false);
+    expect(joues(s)).toEqual(['B2']);
   });
 
-  it('désactivé en PvP réel : la file est vidée sans peser sur le tirage', () => {
+  it('une promesse de chaque camp : l\'une est tirée au hasard (joueur d\'abord)', () => {
+    const a = session('ai', () => 0);
+    joueur(a, ['GB_3']); adverse(a, ['GB_2']);
+    a.startCombat();
+    expect(joues(a)).toEqual(['B3']);
+    const b = session('ai', () => 0.99);
+    joueur(b, ['GB_3']); adverse(b, ['GB_2']);
+    b.startCombat();
+    expect(joues(b)).toEqual(['B2']);
+  });
+
+  it('un terrain déjà joué revient quand il est promis', () => {
+    const s = session('ai');
+    joueur(s, ['GB_3']);
+    s.startCombat();
+    (s as any)._usedBoardIds.add('B3');
+    expect(s.pickCombatBoard()?.id).toBe('B3');
+  });
+
+  it('identique en PvP (le rôle A tire sur les deux boards)', () => {
     const s = session('pvp');
-    playOneCombat(s, ['GB_3']);
-    expect(s.pickCombatBoard()?.id).toBe('B1'); // rand() = 0 → premier du pool non joué
+    adverse(s, ['GB_2']);
+    expect(s.pickCombatBoard()?.id).toBe('B2');
   });
 });
 

@@ -369,7 +369,7 @@ export const CHAMPS = Object.freeze({
   },
   board_id: {
     label: 'Terrain garanti', saisie: 'choix', options: 'terrains', defaut: '',
-    aide: 'Le terrain du PROCHAIN combat. Si plusieurs effets promettent un terrain, l’un d’eux est tiré au hasard. Un terrain déjà joué dans ce duel ne revient jamais (la promesse est alors sans effet). Désactivé en PvP réel.',
+    aide: 'Le terrain du combat qui commence. Si plusieurs effets promettent un terrain (les deux camps comptent), l’un d’eux est tiré au hasard. Un terrain promis passe avant la règle « jamais deux fois dans un duel ».',
   },
   token_id: {
     label: 'Token à invoquer', saisie: 'choix', options: 'tokens', defaut: '',
@@ -615,13 +615,13 @@ export const TYPES = Object.freeze({
     magie: { quands: ['immediat'], champs: { rarity: {}, magie_id: {} } },
   },
   guaranteed_board: {
-    label: 'Terrain garanti au prochain combat',
+    label: 'Terrain garanti pour ce combat',
     court: 'Terrain garanti',
-    // ⚠️ `fin_combat` SEUL, comme `guaranteed_draw`/`guaranteed_magie` : la
-    // promesse alimente une file (`player_guaranteed_boards`) que le lancement
-    // du combat SUIVANT consomme. Attribut seulement — un terrain qui en
-    // promettrait un autre, ou une magie de Shopping, n'ont pas été demandés.
-    attribut: { quands: ['fin_combat'], champs: { board_id: {} } },
+    // ⚠️ `debut_combat` SEUL : la promesse vaut pour le combat qui COMMENCE.
+    // Le terrain est tiré AVANT le passage des effets de début de combat, donc
+    // c'est `pickCombatBoard` qui lit les paliers actifs des deux camps
+    // (`AttributeManager.guaranteedBoardIds`). Attribut seulement.
+    attribut: { quands: ['debut_combat'], champs: { board_id: {} } },
   },
   board_slot_bonus: {
     label: 'Slot de board supplémentaire',

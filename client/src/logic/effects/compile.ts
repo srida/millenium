@@ -350,7 +350,11 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   shopping_bonus: ['fin_combat'],
   player_hp_bonus: ['fin_combat'],
   guaranteed_magie: ['fin_combat'],
-  guaranteed_board: ['fin_combat'],
+  // ⚠️ `debut_combat` : la promesse vaut pour le combat qui COMMENCE. Le terrain
+  // étant tiré avant `applyStartOfCombat`, c'est `pickCombatBoard` qui la lit
+  // (`AttributeManager.guaranteedBoardIds`) ; le passage normal du moment ne
+  // verse dans aucun registre.
+  guaranteed_board: ['debut_combat'],
   // ⚠️ Pas de `fin_combat` : un token invoqué après le dernier tick n'a plus
   // aucun combat où se battre. `a_l_invocation`/`pouvoir_utilise` sont ouverts
   // parce que `summon_token` cible une UNITÉ (le camp), comme `stat_bonus`.

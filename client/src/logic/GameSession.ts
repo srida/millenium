@@ -325,6 +325,30 @@ export class GameSession {
     return pickBoard(this.deps.getAllBoards(), this._boardPickContext(), this._rand);
   }
 
+  /**
+   * Les terrains promis par les unités DES DEUX CAMPS actuellement posées.
+   *
+   * ⚠️ Lit le board, donc l'appelant doit l'avoir peuplé : en solo,
+   * `_placeEnemyUnits` précède le tirage ; en PvP, le rôle A installe le board
+   * adverse avant de tirer (`PvpController._installOpponent`).
+   * ⚠️ Sortie sèche quand le catalogue ne déclare pas l'effet (mémoïsé) : aucun
+   * `AttributeManager` construit, aucun appel à `rand` de plus.
+   */
+  private _promisedBoardIds(): string[] {
+    const list = this.deps.attributeList;
+    if (this._declaresBoardPromise?.list !== list) {
+      this._declaresBoardPromise = {
+        list,
+        value: list.some(a => a.thresholds?.some(t => t.effects?.some(e => e.type === 'guaranteed_board'))),
+      };
+    }
+    if (!this._declaresBoardPromise.value) return [];
+    return new AttributeManager(
+      list, this.board.getLivingUnitsOnSide('player'), this.board.getLivingUnitsOnSide('enemy'),
+    ).guaranteedBoardIds();
+  }
+  private _declaresBoardPromise?: { list: unknown; value: boolean };
+
   /** L'état du duel traduit pour `BoardPicker` — même geste que `_offerContext`
    *  pour les magies : le module de règles est pur, c'est la session qui lui
    *  raconte où on en est. */
@@ -333,10 +357,7 @@ export class GameSession {
       playerAttributes: this._playerDeckAttributes,
       enemyAttributes: this._enemyDeckAttributes,
       usedBoardIds: this._usedBoardIds,
-      // ⚠️ Ignoré en PvP réel : seul le rôle A tire, et il ne connaît pas les
-      // promesses de l'autre — l'effet serait à sens unique. Même sort que
-      // `summon_token`.
-      guaranteedBoardIds: this.deps.mode === 'pvp' ? [] : this.gameState.player_guaranteed_boards,
+      guaranteedBoardIds: this._promisedBoardIds(),
     };
   }
 
@@ -892,8 +913,6 @@ export class GameSession {
     // compris ceux où le terrain arrive de l'extérieur (`agreedBoard`) — une
     // seule ligne tient l'historique du duel.
     if (boardData) this._usedBoardIds.add(boardData.id);
-    // Les promesses valent pour CE combat seulement, tirées ou non.
-    this.gameState.player_guaranteed_boards = [];
     // ⚠️ Le terrain est une donnée POSITIONNELLE, au même titre que la position
     // d'une unité : appliqué verbatim des deux côtés d'un duel, il décrit deux
     // plateaux différents (cf. `logic/BoardMirror`).

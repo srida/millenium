@@ -111,7 +111,7 @@ export function boardEffectLabel(
     }
     case 'guaranteed_board': {
       const id = (effect as AttributeEffect).board_id;
-      return id ? `Terrain garanti au prochain combat : ${boardName(id)}` : 'Terrain garanti au prochain combat';
+      return id ? `Terrain garanti pour ce combat : ${boardName(id)}` : 'Terrain garanti pour ce combat';
     }
     // ⚠️ Les critères se disent avec la MÊME fonction que la magie et que la
     // popup de pioche (`DrawInfo.guaranteedDrawLabel`) : trois libellés de la

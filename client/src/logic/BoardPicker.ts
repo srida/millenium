@@ -35,8 +35,8 @@ export interface BoardPickContext {
   /** Terrains déjà JOUÉS dans ce duel. */
   usedBoardIds: ReadonlySet<string>;
   /**
-   * Terrains PROMIS par l'effet `guaranteed_board`, un id par effet (doublons
-   * compris). Absent = aucune promesse.
+   * Terrains PROMIS par l'effet `guaranteed_board` (les deux camps), un id par
+   * effet (doublons compris). Absent = aucune promesse.
    */
   guaranteedBoardIds?: readonly string[];
 }
@@ -144,10 +144,11 @@ export function isBoardRelevant(board: BoardDef, ctx: BoardPickContext): boolean
  *
  * ⚠️ **Terrain GARANTI** (`ctx.guaranteedBoardIds`) : il passe avant les trois
  * échelons, et sur le même unique appel à `rand`. Les promesses valides sont
- * celles dont le terrain existe et n'est pas déjà joué — ⚠️ la non-répétition
- * reste ABSOLUE, une promesse sur un terrain déjà tombé est sans effet. Deux
- * effets qui promettent le même terrain pèsent double (une entrée par effet) ;
- * aucune promesse valide → tirage ordinaire, inchangé.
+ * celles dont le terrain existe. ⚠️ **Une promesse l'emporte sur la
+ * non-répétition** : c'est la seule exception à « jamais deux fois dans un
+ * duel », et le terrain promis est marqué joué comme les autres. Deux effets qui
+ * promettent le même terrain pèsent double (une entrée par effet) ; aucune
+ * promesse valide → tirage ordinaire, inchangé.
  */
 export function pickBoard(
   pool: readonly (BoardDef | null | undefined)[],
@@ -157,7 +158,7 @@ export function pickBoard(
   const all = pool.filter((b): b is BoardDef => !!b?.id);
   const unused = all.filter(b => !ctx.usedBoardIds.has(b.id));
   const promised = (ctx.guaranteedBoardIds ?? [])
-    .map(id => unused.find(b => b.id === id))
+    .map(id => all.find(b => b.id === id))
     .filter((b): b is BoardDef => !!b);
   if (promised.length) return promised[Math.floor(rand() * promised.length)];
   const relevant = unused.filter(b => isBoardRelevant(b, ctx));
