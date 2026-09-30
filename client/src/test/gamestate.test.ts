@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { GameState, Phase } from '../logic/GameState.js';
 import { tiersForRound } from '../logic/Draw.js';
+import { applyBoardEffects } from '../logic/BoardEffect.js';
 
 describe('GameState — multiplicateurs', () => {
   it.each([
@@ -94,13 +95,20 @@ describe('GameState — fin de combat', () => {
     expect(gs.player_hp).toBe(0);
   });
 
-  // Le terrain crédite AVANT ce combat (`player_hp_sources` déjà posé) ; le
-  // registre doit se cumuler avec la part attribut, puis se vider.
-  it('cumule le PV posé par un terrain (avant) avec celui d\'un attribut (fin_combat)', () => {
+  // Le terrain crédite AVANT ce combat, par `applyBoardEffects` ; le registre
+  // doit se cumuler avec la part attribut dans le RÉCAPITULATIF, puis se vider.
+  // ⚠️ Régression : la part terrain était reversée ici une seconde fois.
+  // Mutation : verser `playerHpBonus` au lieu de la seule part attribut → ROUGE
+  // (910 + 10 + 5 = 925).
+  it('cumule le PV d\'un terrain (avant) et d\'un attribut (fin_combat) sans verser deux fois le terrain', () => {
     const gs = new (GameState as any)();
-    gs.startCombat(5, 5);
     gs.player_hp = 900;
-    gs.player_hp_sources.push({ kind: 'terrain', ref: 'BOARD_X', value: 10 });
+    applyBoardEffects(
+      { id: 'BOARD_X', name: 'B', effects: [{ type: 'player_hp_bonus', value: 10 }] } as any,
+      { gameState: gs } as any
+    );
+    expect(gs.player_hp).toBe(910);
+    gs.startCombat(5, 5);
     const out = gs.applyEndOfCombat('draw', 0, 0, {
       player_hp_bonus: 5,
       player_hp_sources: [{ kind: 'attribut', ref: 'ARCH_X', value: 5 }],
@@ -113,6 +121,42 @@ describe('GameState — fin de combat', () => {
     ]);
     // Transitoire : vidé pour le combat suivant.
     expect(gs.player_hp_sources).toEqual([]);
+  });
+
+  // ⚠️ Régression PvP : le gain/perte de PV d'attribut de l'adversaire n'était
+  // versé nulle part — il se le versait chez lui, pas chez nous.
+  // Mutation : retirer le bloc `enemyHpBonus` d'`applyEndOfCombat` → ROUGE.
+  it('verse enemy_hp_bonus (attribut adverse) dans enemy_hp, écrêté', () => {
+    const gs = new (GameState as any)();
+    gs.startCombat(5, 5);
+    gs.enemy_hp = 700;
+    gs.applyEndOfCombat('draw', 0, 0, { enemy_hp_bonus: -40 });
+    expect(gs.enemy_hp).toBe(660);
+    gs.startCombat(5, 5);
+    gs.applyEndOfCombat('draw', 0, 0, { enemy_hp_bonus: 500 });
+    expect(gs.enemy_hp).toBe(1000);
+    expect(gs.player_hp).toBe(1000);
+  });
+
+  // ⚠️ Régression PvP : le bonus PERMANENT de magie de l'adversaire (reçu du
+  // réseau) n'entrait pas dans ses dégâts infligés.
+  // Mutation : retirer `+ this.enemy_damage_multiplier_bonus` → ROUGE.
+  it('le bonus de magie adverse entre dans enemyMultiplier, avec sa provenance', () => {
+    const gs = new (GameState as any)();
+    gs.enemy_damage_multiplier_bonus = 1.5;
+    gs.enemy_multiplier_sources = [{ kind: 'magie', ref: 'MAGIC_X', value: 1.5 }];
+    gs.startCombat(5, 5);
+    const out = gs.applyEndOfCombat('enemy', 0, 100, {
+      enemy_damage_multiplier_bonus: 0.5,
+      enemy_damage_multiplier_sources: [{ kind: 'attribut', ref: 'ARCH_X', value: 0.5 }],
+    });
+    expect(out.enemyMultiplier).toBe(1 + 0.5 + 1.5);
+    expect(out.enemyDamageDealt).toBe(300);
+    expect(gs.player_hp).toBe(700);
+    expect(out.enemyMultiplierSources).toEqual([
+      { kind: 'attribut', ref: 'ARCH_X', value: 0.5 },
+      { kind: 'magie', ref: 'MAGIC_X', value: 1.5 },
+    ]);
   });
 
   // Pendant ENNEMI des mêmes deux champs — la pioche a un destinataire des

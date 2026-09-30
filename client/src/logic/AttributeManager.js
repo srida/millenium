@@ -448,6 +448,10 @@ export class AttributeManager {
       // de dégâts. Le Shopping n'existe structurellement pas pour elle — ce
       // n'est pas une limite du moteur, c'est un fait du jeu.
       enemy_board_slot_bonus: adverse.slots_board,
+      // Gain/perte de PV de l'adversaire — pendant de `player_hp_bonus`. En
+      // PvP, l'adversaire se le verse de son côté : ne pas le reporter ici
+      // laissait les deux clients en désaccord sur ses PV de fin de round.
+      enemy_hp_bonus: adverse.pv,
       enemy_damage_multiplier_bonus: adverse.multiplicateur,
       enemy_damage_multiplier_sources: adverse.sources_multiplicateur,
     };

@@ -255,18 +255,26 @@ describe('Cumul des effets d\'un terrain', () => {
     expect(gameState.player_hp_sources).toEqual([]);
   });
 
-  // ⚠️ Régression : exclusion PvP — décision explicite du ticket. `enemy_hp`
-  // n'est pas autoritaire côté client en PvP (réécrit depuis le rapport de
-  // l'adversaire), donc y infliger un effet calculé localement risquerait un
-  // désaccord de fin de partie (`result_mismatch`), comme `damage_multiplier_bonus`.
-  // Mutation : le garde-fou `!pvp` retiré → ROUGE (enemy_hp bouge quand même en PvP).
-  it('player_hp_bonus (ennemi) ne touche PAS enemy_hp en PvP', () => {
+  // ⚠️ En PvP un terrain n'appartient à personne : ses PV frappent LES DEUX
+  // joueurs, quelle que soit la cible. Chaque client doit donc le verser à
+  // `player_hp` ET à `enemy_hp` — l'adversaire, qui joue le même terrain, se
+  // le verse de son côté, et les deux clients restent d'accord.
+  // Mutation : revenir au partage solo (`allie` → joueur, `ennemi` → adverse)
+  // en PvP → ROUGE sur l'un des deux cas.
+  it.each([
+    ['allie', undefined],
+    ['ennemi', 'ennemi'],
+  ])('player_hp_bonus (%s) frappe les deux joueurs en PvP', (_label, target) => {
     const gameState = new GameState();
+    gameState.player_hp = 800;
+    gameState.enemy_hp = 700;
     applyBoardEffects(
-      { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: -60, target: 'ennemi' }] } as any,
+      { id: 'BOARD_HP', name: 'B', effects: [{ type: 'player_hp_bonus', value: -60, ...(target ? { target } : {}) }] } as any,
       { gameState, pvp: true } as any
     );
-    expect(gameState.enemy_hp).toBe(1000);
+    expect(gameState.player_hp).toBe(740);
+    expect(gameState.enemy_hp).toBe(640);
+    expect(gameState.player_hp_sources).toEqual([{ kind: 'terrain', ref: 'BOARD_HP', value: -60 }]);
   });
 
   // Rouge si `applyBoardEffects` cesse de nommer le terrain (`sourceId`), ou si

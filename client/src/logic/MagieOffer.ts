@@ -108,10 +108,6 @@ export interface MagieOfferContext {
   boardSlotBonusAvailable: boolean;
   /** `player_hp` est-il sous son plafond (`PLAYER_HP_CAP`) ? */
   playerHpBelowCap: boolean;
-  /** Un bonus de multiplicateur de dégâts change-t-il quelque chose ici ?
-   *  FAUX en PvP, où `enemy_hp` est réécrit chaque round depuis les PV
-   *  autoritaires de l'adversaire — cf. `GameSession._offerContext`. */
-  damageMultiplierMatters: boolean;
 }
 
 /** Une cible existe-t-elle dont le tier décalé de `shift` soit dans le deck ? */
@@ -210,7 +206,8 @@ export function isMagieRelevant(magie: Magie, ctx: MagieOfferContext): boolean {
     // rapporte (une magie offerte une fois de trop, jamais une magie qui ment).
     case 'grant_keyword':            return ctx.boardUnitCount > 0;
     case 'power_cooldown':           return ctx.poweredUnitCount > 0;
-    case 'damage_multiplier_bonus':  return ctx.damageMultiplierMatters;
+    // Offerte en PvP aussi : le bonus voyage dans `round:board_ready`.
+    case 'damage_multiplier_bonus':  return true;
 
     case 'board_slot_bonus':         return ctx.boardSlotBonusAvailable;
     case 'player_hp_bonus':          return ctx.playerHpBelowCap;

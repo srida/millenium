@@ -37,7 +37,7 @@ vi.mock('../net/PvpConnection.js', () => ({
   send: (type: string, payload: any) => { sent.push({ type, ...payload }); },
   on: () => {}, off: () => {}
 }));
-const { sendOwnBoard, reconstructOpponentUnits } = await import('../net/PvpOpponentProvider.js');
+const { sendOwnBoard, reconstructOpponentUnits, applyOpponentMultiplier } = await import('../net/PvpOpponentProvider.js');
 import { makeCard } from './helpers.js';
 import type { BoardDef } from '../logic/types.js';
 
@@ -723,6 +723,97 @@ describe('Fin de combat — rien ne survit au round qui ne le doit', () => {
       }
       if (round < 3) { sA.startNextRound(); sB.startNextRound(); }
     }
+  });
+});
+
+// ===========================================================================
+//  Les PV de fin de round — les deux clients doivent s'accorder
+// ===========================================================================
+// Chaque client calcule SES PV et ceux d'en face ; la resynchro par le payload
+// n'arrive qu'au combat SUIVANT. Tout effet de PV ou de multiplicateur connu
+// d'un seul côté fait donc diverger la fin de partie (`result_mismatch`, aucun
+// gain versé). Trois porteurs éprouvés ensemble : un attribut de PV sur chaque
+// camp, un terrain de PV (qui en duel frappe les deux joueurs), et une magie de
+// multiplicateur permanent jouée par un seul camp (B, celui qui gagne ses
+// rounds : c'est chez A qu'elle doit arriver par le réseau).
+describe('PV de fin de round — identiques des deux côtés', () => {
+  const ATTRS = [
+    { id: 'ARCH_GAIN', name: 'Gain', icon: '', timing: 'end_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'player_hp_bonus', value: 30 }] }] },
+    { id: 'ARCH_PERTE', name: 'Perte', icon: '', timing: 'end_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'player_hp_bonus', value: -25 }] }] },
+  ] as any;
+  const carte = (id: string, attr: string, atk: number, hp: number) => makeCard({
+    id, summon_conditions: [], attributes: [attr],
+    stats: { atk, hp, movement_rate: 91, attack_rate: 95, range: 2 }
+  });
+  const CARTES_A = [carte('GA_1', 'ARCH_GAIN', 30, 400), carte('GA_2', 'ARCH_GAIN', 25, 300)];
+  const CARTES_B = [carte('PB_1', 'ARCH_PERTE', 35, 350), carte('PB_2', 'ARCH_PERTE', 20, 420)];
+  const byId = new Map([...CARTES_A, ...CARTES_B].map(c => [c.id, c]));
+  const cardDb = { getCard: (id: string) => (byId.get(id) as any) ?? null };
+  const TERRAIN: BoardDef = {
+    id: 'BOARD_PV', name: 'Terrain de PV', blocked_cells: [],
+    effects: [{ type: 'player_hp_bonus', value: -40 }, { type: 'player_hp_bonus', value: -10, target: 'ennemi' }]
+  } as any;
+  const MULTI = { id: 'MAGIC_MULT', name: 'Rage', effect: { type: 'damage_multiplier_bonus', value: 1.5 } } as any;
+
+  // Mutations, chacune ROUGE : retirer `enemy_hp_bonus` (AttributeManager ou
+  // GameState) ; revenir au partage solo des PV de terrain en PvP ; ne plus
+  // transporter `damage_multiplier_bonus` dans le payload ; reverser la part
+  // terrain dans `GameState.applyEndOfCombat`.
+  it('trois rounds, attributs + terrain + magie de multiplicateur', () => {
+    const build = (mirrored: boolean, cartes: any[]) => {
+      const s: any = new GameSession({
+        cardsByTier: { 1: [] }, enemyDeck: { 1: [] }, attributeList: ATTRS,
+        cardDb, getAllBoards: () => [], getAllMagies: () => [],
+        mode: 'pvp', mirroredRole: mirrored
+      } as any);
+      s.startPreparation();
+      cartes.forEach((c, i) => s.board.placeUnit(new (Unit as any)(c, 'player'), { col: i + 1, row: 1 }));
+      return s;
+    };
+    const sA = build(false, CARTES_A), sB = build(true, CARTES_B);
+    let multiplicateurVu = false;
+
+    for (let round = 1; round <= 3; round++) {
+      sent.length = 0;
+      for (const s of [sA, sB]) {
+        sendOwnBoard(round, s.getPlayerUnits(), s.gameState.player_hp, {
+          value: s.gameState.player_damage_multiplier_bonus,
+          sources: s.gameState.player_multiplier_sources,
+        });
+      }
+      const [payloadA, payloadB] = sent;
+      // Le geste de `PvpController._onRoundGo`, à l'identique.
+      for (const [s, payload] of [[sA, payloadB], [sB, payloadA]] as [any, any][]) {
+        s.gameState.enemy_hp = payload.player_hp;
+        applyOpponentMultiplier(s.gameState, payload);
+        for (const u of s.board.getLivingUnitsOnSide('enemy')) s.board.removeUnit(u);
+        reconstructOpponentUnits(payload, s.board, cardDb);
+        s.enemyUnits = s.board.getLivingUnitsOnSide('enemy');
+      }
+
+      const results: any[] = [];
+      for (const s of [sA, sB]) {
+        const { combat } = s.startCombat(TERRAIN);
+        while (!combat.winner) combat.step();
+        results.push(s.finishCombat());
+      }
+      if (results[1].playerMultiplierBonus > 0 && results[1].playerDamageDealt > 0) multiplicateurVu = true;
+
+      expect(sA.gameState.player_hp, `round ${round} · PV de A`).toBe(sB.gameState.enemy_hp);
+      expect(sB.gameState.player_hp, `round ${round} · PV de B`).toBe(sA.gameState.enemy_hp);
+      expect(sA.gameState.getWinner()).toBe(({ player: 'enemy', enemy: 'player', draw: 'draw' } as const)[sB.gameState.getWinner() as 'player']);
+
+      if (sA.gameState.isGameOver()) break;
+      // Phase Shopping : seul B joue la magie de multiplicateur, au round 1 —
+      // A ne la connaît que par le payload.
+      if (round === 1) sB.applyGlobalMagie(MULTI);
+      sA.startNextRound(); sB.startNextRound();
+    }
+    // Témoin : le bonus de magie a bien servi, sans quoi le cas ne prouverait rien.
+    expect(multiplicateurVu).toBe(true);
+    expect(sA.gameState.enemy_damage_multiplier_bonus).toBe(1.5);
   });
 });
 

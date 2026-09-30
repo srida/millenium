@@ -104,6 +104,15 @@ export class GameState {
    */
   player_multiplier_sources: BonusSourceEntry[];
   /**
+   * Pendant ADVERSE des deux champs ci-dessus — PvP seulement : le bonus
+   * permanent de magie de l'adversaire, reçu avec son board
+   * (`round:board_ready`) et AFFECTÉ, jamais cumulé (son propriétaire fait foi).
+   * Sans lui, chaque client calculait les PV qu'il perd sans le multiplicateur
+   * de magie d'en face. Reste à 0 contre l'IA, qui n'a pas de Phase Shopping.
+   */
+  enemy_damage_multiplier_bonus: number;
+  enemy_multiplier_sources: BonusSourceEntry[];
+  /**
    * Provenance d'un `player_hp_bonus` de TERRAIN — le seul porteur qui
    * s'applique AU LANCEMENT du combat (`BoardEffect.applyBoardEffects`), donc
    * avant que `applyEndOfCombat` (qui verse la part ATTRIBUT, à `fin_combat`)
@@ -138,6 +147,8 @@ export class GameState {
     this.player_extra_shopping_magies = 0;
     this.player_damage_multiplier_bonus = 0;
     this.player_multiplier_sources = [];
+    this.enemy_damage_multiplier_bonus = 0;
+    this.enemy_multiplier_sources = [];
     this.player_hp_sources = [];
   }
 
@@ -204,10 +215,18 @@ export class GameState {
     if (winner === 'enemy' || winner === 'timeout' || winner === 'draw') {
       // ⚠️ Le pendant EXACT de la ligne au-dessus, et c'est la décision 3 du §7 :
       // l'IA porte ses effets comme un vrai joueur. Le bonus d'attribut ne vaut
-      // que pour CE round, comme celui du joueur ; elle n'a pas d'équivalent de
-      // `player_damage_multiplier_bonus`, qui est permanent et vient des magies.
-      enemyMultiplier = this.enemy_multiplier + (attributeResult.enemy_damage_multiplier_bonus || 0);
-      enemyMultiplierSources = [...(attributeResult.enemy_damage_multiplier_sources ?? [])];
+      // que pour CE round, comme celui du joueur ; le bonus de magie permanent
+      // n'existe qu'en PvP (reçu du réseau), l'IA n'ayant pas de Shopping.
+      // ⚠️ Les termes s'additionnent dans le MÊME ORDRE que ceux du joueur :
+      // l'adversaire calcule ses dégâts infligés par la ligne du dessus, et
+      // l'addition flottante n'est pas associative.
+      enemyMultiplier = this.enemy_multiplier
+        + (attributeResult.enemy_damage_multiplier_bonus || 0)
+        + this.enemy_damage_multiplier_bonus;
+      enemyMultiplierSources = [
+        ...(attributeResult.enemy_damage_multiplier_sources ?? []),
+        ...this.enemy_multiplier_sources,
+      ];
       enemyDamageDealt = Math.round(enemySurvivorsAtk * enemyMultiplier);
       this.player_hp -= enemyDamageDealt;
     }
@@ -250,15 +269,25 @@ export class GameState {
 
     // ⚠️ Deux sources pour le MÊME champ : le terrain (posé au lancement du
     // combat, dans `this.player_hp_sources`) et l'attribut (`fin_combat`,
-    // dans `attributeResult`). Elles se CUMULENT, comme les deux sources du
-    // multiplicateur juste au-dessus — même geste, même invariant
-    // `sum(value) === le bonus`. Le registre du terrain est transitoire : il
-    // ne survit pas à ce combat, il est vidé ici qu'il ait servi ou non.
+    // dans `attributeResult`). Le RÉCAPITULATIF les cumule (même invariant
+    // `sum(value) === le bonus` que le multiplicateur), mais seule la part
+    // ATTRIBUT se verse ici : celle du terrain l'a déjà été par
+    // `applyBoardEffects`, au lancement du combat — la reverser la comptait
+    // deux fois. Le registre du terrain est transitoire, vidé ici.
     const playerHpSources = [...this.player_hp_sources, ...(attributeResult.player_hp_sources ?? [])];
     this.player_hp_sources = [];
     const playerHpBonus = playerHpSources.reduce((n, s) => n + s.value, 0);
-    if (playerHpBonus) {
-      this.player_hp = Math.min(Math.max(0, this.player_hp + playerHpBonus), PLAYER_HP_CAP);
+    const attributeHpBonus = attributeResult.player_hp_bonus || 0;
+    if (attributeHpBonus) {
+      this.player_hp = Math.min(Math.max(0, this.player_hp + attributeHpBonus), PLAYER_HP_CAP);
+    }
+    // ⚠️ Pendant ADVERSE, au même instant et avec le même écrêtage : l'IA porte
+    // ses effets comme un vrai joueur, et en PvP c'est ce qui fait que les
+    // deux clients s'accordent sur les PV de fin de round (l'adversaire se
+    // verse ce gain par la ligne du dessus).
+    const enemyHpBonus = attributeResult.enemy_hp_bonus || 0;
+    if (enemyHpBonus) {
+      this.enemy_hp = Math.min(Math.max(0, this.enemy_hp + enemyHpBonus), PLAYER_HP_CAP);
     }
 
     return {

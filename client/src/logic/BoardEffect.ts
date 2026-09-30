@@ -19,11 +19,11 @@ interface BoardEffectContext {
    *  rien à nommer. */
   sourceId?: string | null;
   /**
-   * ⚠️ Un `player_hp_bonus` visant l'adversaire (`target: 'ennemi'`) n'est
-   * JAMAIS versé en PvP : `enemy_hp` n'y est pas autoritaire (réécrit chaque
-   * round depuis le `player_hp` de l'adversaire) — même exclusion que
-   * `damage_multiplier_bonus`. Le gain/perte pour SOI (`allie`, le défaut)
-   * n'est lui jamais concerné : il ne touche que `player_hp`.
+   * ⚠️ En PvP, un terrain n'appartient à personne : un `player_hp_bonus`
+   * frappe (ou soigne) LES DEUX joueurs, quelle que soit sa cible (`allie` ou
+   * `ennemi`). C'est aussi ce qui accorde les deux clients : chacun se verse
+   * l'effet à lui-même ET le reporte sur `enemy_hp`, puisque l'adversaire,
+   * qui joue le même terrain, se le verse de son côté.
    */
   pvp?: boolean;
   /**
@@ -133,16 +133,20 @@ export function applyBoardEffects(board: BoardDef | null | undefined, { playerUn
   if (gameState) {
     gameState.player_extra_draws = (gameState.player_extra_draws || 0) + ressources.pioches;
     gameState.player_draw_sources.push(...ressources.sources);
-    if (ressources.pv) {
-      gameState.player_hp = Math.min(Math.max(0, gameState.player_hp + ressources.pv), PLAYER_HP_CAP);
-      gameState.player_hp_sources.push(...ressources.sources_pv);
+    // ⚠️ En PvP les deux cibles fusionnent et valent pour les deux joueurs —
+    // cf. la note de `BoardEffectContext.pvp`. Hors PvP, `allie` = le joueur,
+    // `ennemi` = l'IA.
+    const pvJoueur = pvp ? ressources.pv + ressourcesEnnemies.pv : ressources.pv;
+    const pvAdverse = pvp ? pvJoueur : ressourcesEnnemies.pv;
+    if (pvJoueur) {
+      gameState.player_hp = Math.min(Math.max(0, gameState.player_hp + pvJoueur), PLAYER_HP_CAP);
+      gameState.player_hp_sources.push(...ressources.sources_pv, ...(pvp ? ressourcesEnnemies.sources_pv : []));
+    }
+    if (pvAdverse) {
+      gameState.enemy_hp = Math.min(Math.max(0, gameState.enemy_hp + pvAdverse), PLAYER_HP_CAP);
     }
     if (ressources.magies_garanties.length) {
       gameState.player_guaranteed_magies.push(...ressources.magies_garanties);
-    }
-    // ⚠️ Exclu en PvP : cf. la note de `BoardEffectContext.pvp`.
-    if (!pvp && ressourcesEnnemies.pv) {
-      gameState.enemy_hp = Math.min(Math.max(0, gameState.enemy_hp + ressourcesEnnemies.pv), PLAYER_HP_CAP);
     }
   }
   return refus;

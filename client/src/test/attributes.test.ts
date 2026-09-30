@@ -152,6 +152,21 @@ describe('AttributeManager — end_of_combat', () => {
     expect(result.player_hp_sources).toEqual([{ kind: 'attribut', ref: 'ARCH_VAMP', value: 25 }]);
   });
 
+  // ⚠️ Régression PvP : le même attribut porté par l'ADVERSAIRE n'était versé
+  // nulle part. Mutation : retirer `enemy_hp_bonus` du retour → ROUGE.
+  it('player_hp_bonus porté par l\'adversaire : versé dans enemy_hp_bonus', () => {
+    const attrs = [{
+      id: 'ARCH_VAMP', name: 'Vampire', timing: 'end_of_combat',
+      thresholds: [{ count: 1, effects: [{ type: 'player_hp_bonus', value: -15 }] }],
+    }];
+    const board = makeBoard();
+    const [v] = units(board, [{ id: 'V', attrs: ['ARCH_VAMP'], col: 0, row: 9, side: 'enemy' }]);
+    const am = new (AttributeManager as any)(attrs, [], [v]);
+    const result = am.applyEndOfCombat([], []);
+    expect(result.enemy_hp_bonus).toBe(-15);
+    expect(result.player_hp_bonus).toBe(0);
+  });
+
   // ⚠️ Régression : `heal` d'attribut se lit comme une récupération
   // POST-combat, pas un buff de pré-combat — `fin_combat` en est le moment
   // PAR DÉFAUT (le premier de `QUANDS_PAR_TYPE.heal`).

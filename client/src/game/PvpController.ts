@@ -14,7 +14,7 @@
 import { GameController } from './GameController.js';
 import { GameSession, Phase } from '../logic/GameSession.js';
 import * as PvpConnection from '../net/PvpConnection.js';
-import { sendOwnBoard, waitForOpponentBoard, reconstructOpponentUnits, reset as resetOpponent } from '../net/PvpOpponentProvider.js';
+import { sendOwnBoard, waitForOpponentBoard, reconstructOpponentUnits, applyOpponentMultiplier, reset as resetOpponent } from '../net/PvpOpponentProvider.js';
 import type { BoardDef } from '../logic/types.js';
 import type { Scene3D } from '../three/Scene3D.js';
 import { useGameStore } from '../stores/gameStore.js';
@@ -105,7 +105,11 @@ export class PvpController extends GameController {
     const round = this.session.gameState.round;
 
     // 1) J'annonce mon board (unités + état persistant + mes PV).
-    sendOwnBoard(round, this.session.getPlayerUnits(), this.session.gameState.player_hp);
+    const gs = this.session.gameState;
+    sendOwnBoard(round, this.session.getPlayerUnits(), gs.player_hp, {
+      value: gs.player_damage_multiplier_bonus,
+      sources: gs.player_multiplier_sources,
+    });
     // 2) Le rôle A choisit le terrain et le diffuse (déterminisme : un seul
     //    tirage). Il le demande à SA session, seule à connaître les attributs
     //    des deux decks et les terrains déjà joués — et elle ne consomme rien
@@ -131,6 +135,9 @@ export class PvpController extends GameController {
     // jouées — sans cette resynchro, les deux clients divergeraient sur les PV
     // et pourraient déclarer la fin de partie différemment.
     if (typeof oppPayload.player_hp === 'number') this.session.gameState.enemy_hp = oppPayload.player_hp;
+    // Bonus permanent de multiplicateur de l'adversaire (magies) — AFFECTÉ,
+    // jamais cumulé : son propriétaire fait foi, comme pour ses PV.
+    applyOpponentMultiplier(this.session.gameState, oppPayload);
 
     // Nettoie le côté ennemi (rounds > 1 : on rebâtit depuis le board autoritaire
     // de l'adversaire) puis reconstruit ses unités en miroir (rows 7–10).

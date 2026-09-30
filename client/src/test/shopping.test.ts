@@ -716,18 +716,16 @@ describe('Shopping — pouvoirs, multiplicateur, pioche par voie', () => {
     expect(gs.enemy_hp).toBe(600);
   });
 
-  it('⚠️ damage_multiplier_bonus n\'est PAS offert en PvP', () => {
-    // En PvP `enemy_hp` est réécrit chaque round depuis le `player_hp`
-    // autoritaire de l'adversaire, qui a calculé ses dégâts subis SANS ce
-    // bonus. Il n'y change donc rien — sauf à faire déclarer une fin de partie
-    // que l'adversaire ne voit pas, soit un result_mismatch qui prive les deux
-    // joueurs de leur gain. Une magie qui ne peut que nuire n'est pas offerte.
+  // Le bonus voyage désormais dans `round:board_ready` : l'adversaire le
+  // connaît, donc la magie a le même effet en duel qu'en solo (cf. le filet
+  // « PV de fin de round » de `pvp-determinism.test.ts`).
+  it('damage_multiplier_bonus est offert en solo ET en PvP', () => {
     const m = magie({ type: 'damage_multiplier_bonus', value: 1 }, { id: 'MULT' }) as any;
     const solo = makeSession({ magies: [m] });
     expect(offeredIds(solo.session)).toContain('MULT');
 
     const pvp = makeSession({ magies: [m], mode: 'pvp' });
-    expect(offeredIds(pvp.session)).not.toContain('MULT');
+    expect(offeredIds(pvp.session)).toContain('MULT');
   });
 
   it('pioche garantie par ATTRIBUT : la carte tirée le porte', () => {

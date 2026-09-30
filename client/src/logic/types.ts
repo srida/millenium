@@ -392,13 +392,17 @@ export interface EndOfCombatAttributeResult {
   enemy_draw_bonus?: number;
   enemy_guaranteed_draws?: GuaranteedDraw[];
   /**
-   * Les deux ressources que l'IA sait recevoir — décision 3 du §7.
+   * Les ressources que l'adversaire sait recevoir — décision 3 du §7.
    *
-   * ⚠️ Il n'y en a que deux, et ce n'est pas une limite du moteur : le Shopping
-   * n'existe structurellement pas pour elle. Le moteur accumule tout ce que ses
-   * attributs donnent ; c'est le VERSEMENT qui n'a que deux destinations.
+   * ⚠️ Le Shopping n'en fait pas partie, et ce n'est pas une limite du moteur :
+   * il n'existe structurellement pas pour l'IA. Le moteur accumule tout ce que
+   * ses attributs donnent ; c'est le VERSEMENT qui choisit les destinations.
    */
   enemy_board_slot_bonus?: number;
+  /** Pendant de `player_hp_bonus` — versé dans `enemy_hp`. En PvP, c'est ce qui
+   *  accorde les deux clients sur les PV de fin de round. Pas de provenance :
+   *  le récapitulatif n'annonce que le gain du joueur. */
+  enemy_hp_bonus?: number;
   enemy_damage_multiplier_bonus?: number;
   /** Pendant de `damage_multiplier_sources` côté IA — la ligne « Dégâts
    *  adverses » du récapitulatif pose la même question que celle du joueur. */

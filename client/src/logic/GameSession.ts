@@ -1295,14 +1295,6 @@ export class GameSession {
       deckTiers: _tiers(deck),
       deckAttributes: [...new Set(deck.flatMap(c => c.attributes ?? []))],
       deckCardIds: [...new Set(deck.map(c => c.id))],
-      // ⚠️ FAUX en PvP, et ce n'est pas une restriction arbitraire : `enemy_hp`
-      // y est RÉÉCRIT à chaque round depuis le `player_hp` autoritaire de
-      // l'adversaire (`PvpController._onRoundGo`), qui a calculé ses propres
-      // dégâts subis sans connaître ce bonus. Le bonus n'y change donc rien —
-      // sauf à faire déclarer une fin de partie que l'adversaire ne voit pas,
-      // c'est-à-dire un `result_mismatch` qui prive les DEUX joueurs de leur
-      // gain. Une magie qui ne peut que nuire n'est pas offerte.
-      damageMultiplierMatters: this.deps.mode !== 'pvp',
       // ⚠️ Le DECK et non la main : les modificateurs sont différés au
       // `startPreparation()` suivant, donc appliqués après une pioche neuve.
       // Chaque prédicat est LE MÊME que celui que `startPreparation` appliquera

@@ -18,7 +18,13 @@ function ensureListening() {
   PvpConnection.on('round:opponent_board', handler);
 }
 
-export function sendOwnBoard(round, units, playerHp) {
+/**
+ * @param {number} round
+ * @param {any[]} units
+ * @param {number} playerHp
+ * @param {{ value: number, sources: any[] } | null} [multiplierBonus]
+ */
+export function sendOwnBoard(round, units, playerHp, multiplierBonus = null) {
   // On transmet TOUT l'état persistant d'une unité entre deux rounds : sans lui,
   // la reconstruction repartirait de zéro et les deux clients simuleraient des
   // matchups différents aux rounds > 1 (chacun voyant son adversaire « frais »).
@@ -47,9 +53,14 @@ export function sendOwnBoard(round, units, playerHp) {
   // `player_hp` accompagne le board : les magies globales (player_hp_bonus) ne
   // sont connues que du client qui les a jouées, donc chaque joueur est la
   // source de vérité de ses propres PV.
+  // `damage_multiplier_bonus` (+ sa provenance) : le bonus PERMANENT des magies
+  // du même nom. Sans lui, l'adversaire calcule les PV qu'il perd sans ce
+  // bonus, et les deux clients divergent sur la fin de partie.
   const payload = {
     round,
     player_hp: playerHp,
+    damage_multiplier_bonus: multiplierBonus?.value ?? 0,
+    damage_multiplier_sources: multiplierBonus?.sources ?? [],
     units: units.map(u => ({
       uid: u.uid,
       card_id: u.card_id,
@@ -127,6 +138,17 @@ export function reconstructOpponentUnits(payload, board, cardDb) {
     units.push(unit);
   }
   return units;
+}
+
+// Pose sur `gameState` le bonus permanent de multiplicateur que l'adversaire a
+// annoncé avec son board. AFFECTÉ, jamais cumulé : son propriétaire fait foi.
+// Un payload antérieur au champ laisse le bonus tel quel.
+export function applyOpponentMultiplier(gameState, payload) {
+  if (typeof payload.damage_multiplier_bonus !== 'number') return;
+  gameState.enemy_damage_multiplier_bonus = payload.damage_multiplier_bonus;
+  gameState.enemy_multiplier_sources = Array.isArray(payload.damage_multiplier_sources)
+    ? payload.damage_multiplier_sources.map(s => ({ ...s }))
+    : [];
 }
 
 export function reset() {
