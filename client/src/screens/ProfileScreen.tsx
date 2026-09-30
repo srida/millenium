@@ -8,7 +8,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useChallengeStore } from '../stores/challengeStore.js';
-import { Button, Modal, usePressSquash } from '../components/ui/primitives.js';
+import { Button, IconButton, Modal, usePressSquash } from '../components/ui/primitives.js';
 import UiIcon from '../components/ui/UiIcon.js';
 import { LevelRewardsPanel, ProgressionPanel } from '../components/ui/ProgressionStats.js';
 import type { LevelRewardsView } from '../components/ui/ProgressionStats.js';
@@ -16,7 +16,7 @@ import { GuestGate } from '../components/ui/GuestGate.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
 
-interface UserRow { id: string; username: string; tag?: number; avatar?: string | null; relation?: string; friendship_id?: string }
+interface UserRow { id: string; username: string; tag?: number; avatar?: string | null; relation?: string; friendship_id?: string; level?: number }
 
 function FriendAvatar({ u }: { u: UserRow }) {
   const a = u.avatar ?? '';
@@ -34,7 +34,10 @@ function FriendRow({ u, children }: { u: UserRow; children?: ReactNode }) {
       <FriendAvatar u={u} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold">{u.username}</div>
-        {u.tag != null && <div className="text-[10px] text-white/40">#{u.tag}</div>}
+        <div className="text-[10px] text-white/40">
+          {u.tag != null && <>#{u.tag}</>}
+          {u.level != null && <>{u.tag != null && ' · '}Niv. {u.level}</>}
+        </div>
       </div>
       {children}
     </div>
@@ -296,13 +299,16 @@ export default function ProfileScreen() {
                 const sending = challengingId === u.id;
                 return (
                   <FriendRow key={u.friendship_id} u={u}>
-                    <Button
-                      variant="primary" className="px-2 text-xs" disabled={!!pending || sending}
-                      onPointerDown={() => { void handleChallenge(u.id); }}
-                    >
-                      {pending ? 'En attente…' : sending ? '…' : <><UiIcon id="UI_DUEL" className="inline-block h-3.5 w-3.5 align-[-3px]" /> Défier</>}
-                    </Button>
-                    <Button variant="danger" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).removeFriend(u.friendship_id))}>Retirer</Button>
+                    <IconButton
+                      tone="primary" label={pending ? 'Défi en attente' : 'Défier'} disabled={!!pending || sending}
+                      icon={<UiIcon id="UI_DUEL" className="h-3.5 w-3.5" />}
+                      onTap={() => { void handleChallenge(u.id); }}
+                    />
+                    <IconButton
+                      tone="danger" label="Retirer"
+                      icon={<UiIcon id="UI_DELETE" className="h-3.5 w-3.5" />}
+                      onTap={friendAct(() => (AuthClient as any).removeFriend(u.friendship_id))}
+                    />
                   </FriendRow>
                 );
               })}
