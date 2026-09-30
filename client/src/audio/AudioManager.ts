@@ -135,6 +135,18 @@ export function setMuted(muted: boolean): void {
 let audioCtx: AudioContext | null = null;
 
 /**
+ * ⚠️ **`'interrupted'` est un état À PART, propre à Safari/iOS** : c'est lui,
+ * et non `'suspended'`, que prend le contexte quand l'OS coupe la session
+ * audio (pause du dernier élément média, bannière, appel). Tester
+ * `=== 'suspended'` laissait ce cas sans relance : le bruitage en cours
+ * s'arrêtait net. On relance donc tout ce qui n'est ni en lecture ni fermé.
+ */
+function needsResume(ctx: AudioContext | null): ctx is AudioContext {
+  const state = ctx?.state as string | undefined;
+  return !!state && state !== 'running' && state !== 'closed';
+}
+
+/**
  * ⚠️ **UN SEUL `AudioContext` dans toute l'appli.** Un second contexte (le
  * clic synthétisé des boutons, retiré) fait changer la fréquence
  * d'échantillonnage matérielle sur iOS : les pistes déjà en lecture
@@ -174,7 +186,7 @@ function getAudioCtx(): AudioContext | null {
       // n'explique la coupure côté app — seul filet pour cette classe
       // d'interruption, propre au mobile et particulièrement au mode PWA.
       audioCtx.addEventListener?.('statechange', () => {
-        if (audioCtx?.state === 'suspended' && !backgroundPaused) audioCtx.resume().catch(() => {});
+        if (needsResume(audioCtx) && !backgroundPaused) audioCtx.resume().catch(() => {});
       });
     } catch { return null; }
   }
@@ -353,6 +365,7 @@ export function playSfx(trigger: string, variant?: SfxVariant): void {
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.connect(gain);
+      retainSourceUntilDone(source);
       source.start(0);
       return;
     } catch { /* repli ci-dessous */ }
@@ -380,10 +393,30 @@ export function playSfx(trigger: string, variant?: SfxVariant): void {
  *  automatique tant qu'il joue). */
 const routedSfxKeepAlive = new Set<HTMLAudioElement>();
 
+/** Les sons du chemin RAPIDE en cours. La spécification garantit qu'un
+ *  `AudioBufferSourceNode` qui joue n'est pas collecté, mais WebKit a déjà
+ *  failli sur ce point : on garde la référence jusqu'à `ended`, au même
+ *  titre que `routedSfxKeepAlive`. Sert aussi à savoir si un bruitage est
+ *  encore en vol (`sfxPlaying`). */
+const activeSfxSources = new Set<AudioBufferSourceNode>();
+
+function retainSourceUntilDone(source: AudioBufferSourceNode): void {
+  activeSfxSources.add(source);
+  source.onended = () => {
+    activeSfxSources.delete(source);
+    releaseDeferredPauses();
+  };
+}
+
+function sfxPlaying(): boolean {
+  return activeSfxSources.size > 0 || routedSfxKeepAlive.size > 0;
+}
+
 function retainUntilDone(el: HTMLAudioElement): void {
   routedSfxKeepAlive.add(el);
   const release = () => {
     routedSfxKeepAlive.delete(el);
+    releaseDeferredPauses();
     el.removeEventListener?.('ended', release);
     el.removeEventListener?.('error', release);
   };
@@ -434,7 +467,7 @@ function applyMusicVolume(): void {
  */
 export function unlock(): void {
   const ctx = getAudioCtx();
-  if (ctx?.state === 'suspended') ctx.resume().catch(() => {});
+  if (needsResume(ctx)) ctx.resume().catch(() => {});
   if (typeof Audio === 'undefined') return;
   if (current?.el.paused) current.el.play().catch(() => { /* toujours refusé : tant pis, silencieux */ });
 }
@@ -470,6 +503,9 @@ export function suspendForBackground(): void {
   backgroundPaused = true;
   if (audioCtx?.state === 'running') audioCtx.suspend().catch(() => {});
   if (current && !current.el.paused) current.el.pause();
+  // Une piste muette en attente de pause n'a rien à faire en fond.
+  for (const el of deferredPauses) el.pause();
+  deferredPauses.clear();
 }
 
 /** Symétrique de `suspendForBackground()` — NO-OP si la coupure ne venait
@@ -480,7 +516,7 @@ export function resumeFromBackground(): void {
   // L'OS suspend souvent le contexte lui-même en fond, pas seulement
   // l'élément — sans le reprendre, ni la piste ni un `playSfx` à venir ne
   // produiraient le moindre son, bien qu'en lecture apparente.
-  if (audioCtx?.state === 'suspended') audioCtx.resume().catch(() => {});
+  if (needsResume(audioCtx)) audioCtx.resume().catch(() => {});
   if (current) current.el.play().catch(() => { /* toujours refusé : tant pis, silencieux */ });
 }
 
@@ -535,12 +571,41 @@ export function currentMusicTheme(): string | null {
   return currentTheme;
 }
 
+/**
+ * Pistes descendues au silence dont la PAUSE attend la fin des bruitages.
+ *
+ * ⚠️ Sur iOS, mettre en pause le dernier élément média qui joue peut
+ * désactiver la session audio de la page, et avec elle le contexte Web Audio
+ * qui porte les bruitages : un son long en cours (`duel_start`, `match_win`,
+ * `match_lose` — tous joués juste avant un `setMusicTheme(null)`) était coupé
+ * net 900 ms plus tard, à la fin du fondu. La piste reste donc en lecture, à
+ * volume nul, tant qu'un bruitage est en vol.
+ */
+const deferredPauses = new Set<HTMLAudioElement>();
+/** Filet si un `ended` ne vient jamais (contexte resté suspendu) : une piste
+ *  muette ne doit pas tourner indéfiniment. */
+const DEFERRED_PAUSE_MAX_MS = 10_000;
+
+function pauseWhenSfxIdle(el: HTMLAudioElement): void {
+  if (!sfxPlaying()) { el.pause(); return; }
+  deferredPauses.add(el);
+  setTimeout(() => {
+    if (deferredPauses.delete(el)) el.pause();
+  }, DEFERRED_PAUSE_MAX_MS);
+}
+
+function releaseDeferredPauses(): void {
+  if (sfxPlaying() || !deferredPauses.size) return;
+  for (const el of deferredPauses) el.pause();
+  deferredPauses.clear();
+}
+
 function fadeOutCurrent(): void {
   const outgoing = current;
   current = null;
   if (!outgoing) return;
   const startVolume = effectiveMusicVolume();
-  runFade((t) => setRoutedVolume(outgoing, startVolume * (1 - t)), () => outgoing.el.pause());
+  runFade((t) => setRoutedVolume(outgoing, startVolume * (1 - t)), () => pauseWhenSfxIdle(outgoing.el));
 }
 
 /**
