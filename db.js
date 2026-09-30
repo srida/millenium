@@ -528,7 +528,7 @@ const stmt = {
   deleteFriendship: db.prepare('DELETE FROM friendships WHERE id = ?'),
   // Amitiés acceptées impliquant l'utilisateur, avec le profil de l'"autre".
   acceptedFriends: db.prepare(`
-    SELECT u.id, u.username, u.tag, u.avatar, f.id AS friendship_id
+    SELECT u.id, u.username, u.tag, u.avatar, u.level, f.id AS friendship_id
     FROM friendships f
     JOIN users u ON u.id = CASE WHEN f.requester_id = @uid THEN f.addressee_id ELSE f.requester_id END
     WHERE f.status = 'accepted' AND (f.requester_id = @uid OR f.addressee_id = @uid)

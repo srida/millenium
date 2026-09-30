@@ -19,7 +19,7 @@ import UiIcon, { isUiIconId } from '../ui/UiIcon.js';
 // pouvoir lire dans le codex autre chose que ce que la carte lui dira.
 import { keywordText, keywordAttributes, MOT_CLE_CATEGORY } from '../../data/KeywordInfo.js';
 import { effectLabel } from '../../logic/MagieEffect.js';
-import { GAME_NAMES, cardName } from '../../data/gameNames.js';
+import { GAME_NAMES, boardName, cardName } from '../../data/gameNames.js';
 import { boardEffects } from '../../logic/BoardEffect.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
 import type { Card, AttributeDef, BoardDef, Magie, PowerDef } from '../../logic/types.js';
@@ -132,7 +132,7 @@ function AttributeExamples({ limit }: { limit: number }) {
 function KeywordExamples() {
   const all = keywordAttributes((AttributeDatabase as any).getAllAttributes() as any[]);
   const portes = all
-    .map(a => ({ a, texte: keywordText(a, null, attributeName, cardName) }))
+    .map(a => ({ a, texte: keywordText(a, null, attributeName, cardName, boardName) }))
     .filter(x => x.texte);
   if (!portes.length) return null;
   return (

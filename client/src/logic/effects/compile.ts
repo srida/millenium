@@ -72,6 +72,8 @@ export interface AttributeEffectLike {
   /** `guaranteed_magie` — cf. `types.GuaranteedMagie`. */
   rarity?: number;
   magie_id?: string;
+  /** `guaranteed_board` — l'id du terrain promis. */
+  board_id?: string;
   /** `summon_token`. */
   token_id?: string;
   camp?: string;
@@ -348,6 +350,7 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   shopping_bonus: ['fin_combat'],
   player_hp_bonus: ['fin_combat'],
   guaranteed_magie: ['fin_combat'],
+  guaranteed_board: ['fin_combat'],
   // ⚠️ Pas de `fin_combat` : un token invoqué après le dernier tick n'a plus
   // aucun combat où se battre. `a_l_invocation`/`pouvoir_utilise` sont ouverts
   // parce que `summon_token` cible une UNITÉ (le camp), comme `stat_bonus`.
@@ -678,6 +681,21 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
               rarity: effect.rarity as MagieRarity | undefined,
               magie_id: effect.magie_id as string | undefined,
             },
+            provenance: 'attribut',
+          }]);
+          return;
+
+        // ⚠️ Un id ne se valide contre AUCUN catalogue ici (`logic/` n'importe
+        // pas `data/`) : c'est `pickBoard` qui ignore une promesse dont le
+        // terrain n'existe plus ou est déjà joué.
+        case 'guaranteed_board':
+          if (!effect.board_id) { refuse('terrain sans id', 'guaranteed_board'); return; }
+          pousse([{
+            action: 'modifier',
+            cible: { conteneur: 'joueur', camp: 'allie', combien: 'un' },
+            champ: 'terrains_garantis',
+            operateur: '+', valeur: 0, duree: 'round',
+            boardId: effect.board_id,
             provenance: 'attribut',
           }]);
           return;

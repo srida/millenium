@@ -367,6 +367,10 @@ export const CHAMPS = Object.freeze({
     label: 'Magie cible (optionnel)', saisie: 'choix', options: 'magies', facultatif: true, defaut: '',
     aide: 'Vide = n’importe quelle magie de la rareté demandée (ou de tout le catalogue).',
   },
+  board_id: {
+    label: 'Terrain garanti', saisie: 'choix', options: 'terrains', defaut: '',
+    aide: 'Le terrain du PROCHAIN combat. Si plusieurs effets promettent un terrain, l’un d’eux est tiré au hasard. Un terrain déjà joué dans ce duel ne revient jamais (la promesse est alors sans effet). Désactivé en PvP réel.',
+  },
   token_id: {
     label: 'Token à invoquer', saisie: 'choix', options: 'tokens', defaut: '',
     aide: 'Le catalogue des tokens (onglet 🪙). L’unité est éphémère — elle disparaît à la fin du combat qui l’a vue naître, comme POWER_SUMMON_TOKEN.',
@@ -609,6 +613,15 @@ export const TYPES = Object.freeze({
     terrain: { quands: ['debut_combat'], champs: { rarity: {}, magie_id: {} } },
     attribut: { quands: ['fin_combat'], champs: { rarity: {}, magie_id: {} } },
     magie: { quands: ['immediat'], champs: { rarity: {}, magie_id: {} } },
+  },
+  guaranteed_board: {
+    label: 'Terrain garanti au prochain combat',
+    court: 'Terrain garanti',
+    // ⚠️ `fin_combat` SEUL, comme `guaranteed_draw`/`guaranteed_magie` : la
+    // promesse alimente une file (`player_guaranteed_boards`) que le lancement
+    // du combat SUIVANT consomme. Attribut seulement — un terrain qui en
+    // promettrait un autre, ou une magie de Shopping, n'ont pas été demandés.
+    attribut: { quands: ['fin_combat'], champs: { board_id: {} } },
   },
   board_slot_bonus: {
     label: 'Slot de board supplémentaire',
