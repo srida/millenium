@@ -12,6 +12,7 @@ import { useAuthStore } from '../../stores/authStore.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { ProgressionPills, ProfilePill } from '../ui/ProgressionStats.js';
 import { useWebLayout } from '../system/useWebLayout.js';
+import SettingsMenu from './SettingsMenu.js';
 import * as Audio from '../../audio/AudioManager.js';
 
 export function AppHeader() {
@@ -48,6 +49,7 @@ export function AppHeader() {
         {/* `shrink-0` : le pendant du `min-w-0` ci-dessus — les pastilles de
             progression gardent leur largeur, la ligne se reprend sur le pseudo. */}
         {user && <ProgressionPills user={user} className="shrink-0" onOpen={() => navigate('profile')} />}
+        <SettingsMenu />
       </div>
     </header>
   );
