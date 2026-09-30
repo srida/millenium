@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as MagieDatabase from '../data/MagieDatabase.js';
 import * as BoardDatabase from '../data/BoardDatabase.js';
+import * as Audio from '../audio/AudioManager.js';
 import EffectCatalogGrid from '../components/catalog/EffectCatalogGrid.js';
 import * as CardDatabase from '../data/CardDatabase.js';
 import { primaryTier } from '../logic/Tiers.js';
@@ -41,21 +42,25 @@ export default function CatalogScreen() {
 
   return (
     <main className="flex min-h-full flex-col relative z-10 text-white" onPointerDown={hideTooltip}>
-      <div className={`flex items-center gap-3 px-4 py-3 ${web ? 'px-22' : ''}`}>
-        <h1 className="truncate text-lg font-bold tracking-wide">Catalogue</h1>
-        {tab === 'cards' && (
-          <span className="ml-auto shrink-0 text-xs tabular-nums text-white/40">
-            {ownedCount}/{allCards.length} débloquées
-          </span>
-        )}
-      </div>
-      <div className={`flex gap-1.5 px-4 pb-2 ${web ? 'px-22' : ''}`}>
-        {TABS.map(([key, label]) => (
-          <button
-            key={key} type="button" onClick={() => setTab(key)}
-            className={`min-h-tap rounded-full border px-4 text-xs font-bold ${tab === key ? 'border-gold bg-[color-mix(in_srgb,var(--color-gold)_20%,var(--color-surface-raised))] text-gold' : 'border-line bg-surface-raised text-white/60'}`}
-          >{label}</button>
-        ))}
+      <div className="border-b border-line">
+        <div className={`flex items-center gap-3 px-4 py-3 ${web ? 'px-22' : ''}`}>
+          <h1 className="truncate text-lg font-bold tracking-wide">Catalogue</h1>
+          {tab === 'cards' && (
+            <span className="ml-auto shrink-0 text-xs tabular-nums text-white/40">
+              {ownedCount}/{allCards.length} débloquées
+            </span>
+          )}
+        </div>
+        {/* Même barre d'onglets que le DeckBuilder : texte seul, soulignement or. */}
+        <div className="flex">
+          {TABS.map(([key, label]) => (
+            <button
+              key={key}
+              onPointerDown={() => { Audio.playSfx('menu_button'); setTab(key); }}
+              className={`min-h-tap flex-1 text-sm font-semibold ${tab === key ? 'border-b-2 border-gold text-gold' : 'text-white/50'}`}
+            >{label}</button>
+          ))}
+        </div>
       </div>
       {tab === 'cards' && <CardCatalogGrid cards={allCards} owns={owns} rankOf={rankOf} />}
       {tab === 'magies' && (
