@@ -14,6 +14,8 @@ import { useWebLayout } from '../system/useWebLayout.js';
 import HoldConfirmButton from '../ui/HoldConfirmButton.js';
 import MagieCard from './MagieCard.js';
 import UiIcon from '../ui/UiIcon.js';
+import PhaseClock from '../hud/PhaseClock.js';
+import { useTimerLowSound } from '../hud/useTimerLowSound.js';
 
 export default function ShoppingLayer() {
   const shopping = useGameStore(s => s.shopping);
@@ -34,6 +36,7 @@ export default function ShoppingLayer() {
   // les magies passent en grille plutôt qu'en liste, pour tenir dans une
   // hauteur disponible courte sans que « Passer » ne sorte de l'écran.
   const isWeb = useWebLayout();
+  useTimerLowSound(remaining, !!shopping);
   if (!shopping || !controller) return null;
 
   if (shopping.awaitingTarget) {
@@ -41,7 +44,7 @@ export default function ShoppingLayer() {
       <div className="pointer-events-none fixed inset-x-0 top-14 z-40 flex flex-col items-center gap-2 px-4">
         <div className="rounded-lg border border-gold bg-surface/95 px-4 py-2 text-center text-sm font-semibold text-gold shadow-lg">
           <UiIcon id="UI_XP" className="inline-block h-3.5 w-3.5 align-[-2px]" /> {shopping.banner}
-          <span className="ml-2 font-normal tabular-nums text-gold/70">· {remaining}s</span>
+          <PhaseClock remaining={remaining} label={`Temps restant : ${remaining} secondes`} className="ml-2 px-2 text-xs font-semibold">{remaining}s</PhaseClock>
         </div>
         <Button
           variant="ghost"
@@ -66,7 +69,7 @@ export default function ShoppingLayer() {
           className="pointer-events-auto flex items-center gap-1.5 shadow-lg"
           onPointerDown={(e) => { e.stopPropagation(); setHidden(false); }}
         >
-          <UiIcon id="UI_EYE" className="h-3.5 w-3.5" /> Revoir les magies · {remaining}s
+          <UiIcon id="UI_EYE" className="h-3.5 w-3.5" /> Revoir les magies · <PhaseClock remaining={remaining} label={`Temps restant : ${remaining} secondes`} className="px-1.5 text-xs font-bold">{remaining}s</PhaseClock>
         </Button>
       </div>
     );
@@ -87,7 +90,7 @@ export default function ShoppingLayer() {
           <UiIcon id="UI_SPARKLE" className="h-3 w-3" /> PHASE SHOPPING <UiIcon id="UI_SPARKLE" className="h-3 w-3" />
         </div>
         <div className="text-sm text-white/60">Choisis une magie</div>
-        <div className="mt-1 text-xs font-semibold tabular-nums text-gold/80">{remaining}s</div>
+        <PhaseClock remaining={remaining} label={`Temps restant : ${remaining} secondes`} className="mt-1 px-2.5 py-0.5 text-sm font-bold">{remaining}s</PhaseClock>
         {shopping.info && (
           <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-[11px] font-semibold text-gold">
             {shopping.info.map((part, i) => (

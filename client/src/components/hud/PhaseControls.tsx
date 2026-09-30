@@ -10,7 +10,8 @@ import UiIcon from '../ui/UiIcon.js';
 import HoldConfirmButton from '../ui/HoldConfirmButton.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 import * as Audio from '../../audio/AudioManager.js';
-import { isTimerLow } from './timerLow.js';
+import PhaseClock from './PhaseClock.js';
+import { useTimerLowSound } from './useTimerLowSound.js';
 
 function fmt(s: number): string {
   const m = Math.floor(s / 60);
@@ -117,6 +118,8 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
     speed, showGrid, paused, boardTerrain, canUndo, canMulligan, mulliganCost,
   } = useGameStore();
   const web = useWebLayout();
+  // Un seul chrono visible à la fois : celui de la phase en cours.
+  useTimerLowSound(combatActive ? combatRemaining : prepRemaining, !!controller);
   if (!controller) return null;
 
   // ⚠️ Concaténation par `+`, pas un template literal avec `${}` : la classe
@@ -139,9 +142,13 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   if (combatActive) {
     return (
       <div className={classname_footer}>
-        <span className="shrink-0 rounded-md border border-line bg-surface/80 px-2 py-1 text-xs font-bold tabular-nums text-white/80">
+        <PhaseClock
+          remaining={combatRemaining}
+          label={`Temps de combat restant : ${combatRemaining} secondes`}
+          className="min-h-tap px-3 text-base font-bold"
+        >
           {combatRemaining}s
-        </span>
+        </PhaseClock>
         {boardTerrain && <TerrainChip board={boardTerrain} />}
         {!pvp && (
           <div className="flex shrink-0 overflow-hidden rounded-lg border border-line">
@@ -178,18 +185,13 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
     <div className={classname_footer2}>
       {/* Le compteur d'unités vit désormais au coin du plateau
           (`UnitCounterBadge`) : le montrer ICI aussi le dirait deux fois. */}
-      {/* Même hauteur que les boutons (`min-h-tap`). Sous `TIMER_LOW_S` : rouge
-          et pulsation (retirée sous `prefers-reduced-motion`, la couleur reste). */}
-      <span
-        className={'inline-flex min-h-tap shrink-0 items-center rounded-lg border px-3 text-base font-bold tabular-nums '
-          + (isTimerLow(prepRemaining)
-            ? 'border-danger bg-danger/20 text-danger motion-safe:animate-pulse'
-            : 'border-line bg-surface/80 text-white/70')}
-        role="timer"
-        aria-label={`Temps de préparation restant : ${fmt(prepRemaining)}`}
+      <PhaseClock
+        remaining={prepRemaining}
+        label={`Temps de préparation restant : ${fmt(prepRemaining)}`}
+        className="min-h-tap px-3 text-base font-bold"
       >
         {fmt(prepRemaining)}
-      </span>
+      </PhaseClock>
       <div className="flex-1" />
       {/* `visible`, pas un montage conditionnel : `canMulligan` retombe à
           `false` dans le MÊME tick que `onConfirm` (une seule fois par

@@ -18,6 +18,8 @@ import { END_ROUND_DURATION_S, TERRAIN_ALERT_MS } from '../../game/timings.js';
 import type { EndRoundResult } from '../../logic/GameSession.js';
 import type { BonusSourceEntry } from '../../logic/types.js';
 import * as Audio from '../../audio/AudioManager.js';
+import PhaseClock from '../hud/PhaseClock.js';
+import { useTimerLowSound } from '../hud/useTimerLowSound.js';
 
 /**
  * L'annonce du terrain, à l'entrée en phase de combat.
@@ -204,6 +206,7 @@ export function EndRoundOverlay() {
     controller?.dismissEndRound();
   }, [countdown, endRound, controller]);
 
+  useTimerLowSound(countdown, !!endRound);
   if (!endRound || !controller) return null;
   const { winner, isGameOver } = endRound;
   const title = winner === 'player' ? 'VICTOIRE DU ROUND' : winner === 'enemy' ? 'DÉFAITE DU ROUND' : 'ÉGALITÉ DU ROUND';
@@ -224,7 +227,7 @@ export function EndRoundOverlay() {
           <span className="font-bold text-enemy tabular-nums">{enemyHp} PV</span>
         </div>
         <DamageBreakdown result={endRound} />
-        <div className="mt-1 text-xs text-white/40">{countdown}s</div>
+        <PhaseClock remaining={countdown} label={`Temps restant : ${countdown} secondes`} className="mt-1 px-2.5 py-0.5 text-sm font-bold">{countdown}s</PhaseClock>
         <Button variant="primary" className="mt-1 w-full" onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('round_recap_dismiss'); controller.dismissEndRound(); }} sfx={false}>
           {isGameOver ? 'RÉSULTAT FINAL' : `TOUR ${round + 1} ▸`}
         </Button>
