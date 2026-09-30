@@ -13,7 +13,9 @@ import { Illustration } from '../ui/primitives.js';
 import UiIcon from '../ui/UiIcon.js';
 import TierIcon from '../ui/TierIcon.js';
 import RecipeRow from '../ui/SummonRecipe.js';
-import { cardName, magieName } from '../../data/gameNames.js';
+import { cardName, magieName, GAME_NAMES } from '../../data/gameNames.js';
+import { effectLabel, magieCostHp } from '../../logic/MagieEffect.js';
+import { rarityOf, RARITY_LABELS } from '../../logic/MagieOffer.js';
 import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
 import { primaryTier, tiersOf } from '../../logic/Tiers.js';
 import { materialValueOf } from '../../logic/Unit.js';
@@ -339,6 +341,26 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
             );
           })}
         </div>
+      </div>
+    );
+  }
+
+  if (content.kind === 'magie') {
+    const m: any = content.magie;
+    const rarity = rarityOf(m);
+    const cost = magieCostHp(m);
+    return (
+      <div>
+        <div className="flex items-center gap-2">
+          {m._has_illustration && <Illustration id={m.id} className="h-10 w-10 rounded-md" />}
+          <div className="min-w-0">
+            <div className="text-sm font-bold text-gold">{m.name}</div>
+            <div className="text-[9px] uppercase tracking-wide text-white/50">{RARITY_LABELS[rarity]}</div>
+          </div>
+        </div>
+        {/* Même mise en mots que la Phase Shopping : `effectLabel` + GAME_NAMES. */}
+        <div className="mt-1 text-xs text-white/70">{(effectLabel as any)(m, GAME_NAMES)}</div>
+        {cost > 0 && <div className="mt-1 text-[10px] font-bold text-red-300">Contrecoup : −{cost} PV</div>}
       </div>
     );
   }
