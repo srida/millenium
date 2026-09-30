@@ -29,30 +29,16 @@
 // ⚠️ `pointer-events-none` sur toute la couche, comme les autres transitions
 // de phase : rien ne doit pouvoir bloquer un geste en dessous, même si dans
 // les faits le joueur n'a rien à taper avant la fin de l'annonce.
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../../stores/authStore.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { Avatar } from '../ui/primitives.js';
 import * as Audio from '../../audio/AudioManager.js';
+import { startDuelVortex, DUEL_VORTEX_END, type VortexRefs } from './duelVortex.js';
 
-const DEFAULT_DURATION_MS = 3000;
-// Fixe : la vitesse du tourbillon ne doit pas dépendre de la durée totale
-// (cf. l'avertissement en tête de `duelIntro.css`).
-const VORTEX_DURATION_MS = 1500;
-
-// Braises aspirées : angle de départ, rayon, taille, retard — déterministe
-// (même calcul que le prototype d'origine), pour que le motif soit identique
-// à chaque partie plutôt que de gigoter d'un lancement à l'autre.
-function embers(n: number) {
-  return Array.from({ length: n }, (_, i) => ({
-    key: i,
-    angleDeg: (i * 360) / n + (((i * 53) % 13) - 6) * 2,
-    radius: 40 + ((i * 17) % 10) * 3.2,
-    size: 0.4 + ((i * 7) % 5) * 0.22,
-    delayFrac: ((i * 29) % 17) / 17,
-  }));
-}
-const EMBERS = embers(26);
+// La chronologie de `duelVortex.ts` est calée sur cette valeur : un seul
+// horloge (rAF) pilote canvas, avatars, titre, VS et noms.
+const DEFAULT_DURATION_MS = DUEL_VORTEX_END * 1000;
 
 export interface DuelIntroProps {
   /** Portrait adverse : avatar de profil (PvP) ou avatar du deck public (solo/tournoi/arcade). */
@@ -60,7 +46,7 @@ export interface DuelIntroProps {
   enemyAvatarFallback?: string;
   /** Pseudo de l'adversaire (PvP) ou nom du deck public (solo/tournoi/arcade). */
   enemyName?: string | null;
-  /** Durée totale de l'annonce, en ms (le tourbillon, lui, garde son propre rythme fixe). */
+  /** Durée totale de l'annonce, en ms (la chronologie est calée sur la valeur par défaut : ne pas la passer). */
   duration?: number;
   /**
    * Appelé UNE fois, à l'échéance de l'annonce (ou à son annulation
@@ -88,6 +74,21 @@ export default function DuelIntro({
   const playerName = user?.username ?? 'Toi';
 
   const [done, setDone] = useState(false);
+  const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const refs = {
+    overlay: useRef<HTMLDivElement>(null), canvas: useRef<HTMLCanvasElement>(null),
+    title: useRef<HTMLParagraphElement>(null), rule: useRef<HTMLDivElement>(null),
+    vs: useRef<HTMLSpanElement>(null), avP: useRef<HTMLDivElement>(null),
+    avE: useRef<HTMLDivElement>(null), nameP: useRef<HTMLDivElement>(null), nameE: useRef<HTMLDivElement>(null),
+  };
+  // useLayoutEffect : la première image du canvas est peinte avant le premier affichage.
+  useLayoutEffect(() => {
+    const r = Object.fromEntries(Object.entries(refs).map(([k, v]) => [k, v.current]));
+    if (Object.values(r).some(v => !v)) return;
+    return startDuelVortex(r as unknown as VortexRefs, { reduced });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- joué une seule fois au montage
+  }, []);
 
   // `onDone` change d'identité à chaque rendu du parent (closure sur
   // `controller`) ; le garder dans une ref évite de le figer dans l'effet de
@@ -114,7 +115,6 @@ export default function DuelIntro({
     // son propre thème avant `begin()`, appelé par `onDone` ci-dessous) — le
     // thème de PARTIE la remplacera de lui-même au premier `_openRound`.
     Audio.setMusicTheme(null);
-    const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const total = reduced ? Math.min(duration, 1600) : duration;
     const t = setTimeout(() => {
       setDone(true);
@@ -139,44 +139,30 @@ export default function DuelIntro({
   if (done) return null;
 
   return (
-    <div
-      className="duel-intro"
-      style={{
-        ['--dur' as string]: `${duration}ms`,
-        ['--dur-vortex' as string]: `${VORTEX_DURATION_MS}ms`,
-      }}
-      aria-hidden="true"
-    >
-      <div className="duel-intro-stage">
-        <div className="duel-intro-layer duel-intro-veil" />
-        <div className="duel-intro-layer duel-intro-mid duel-intro-swirl duel-intro-swirl-c" />
-        <div className="duel-intro-layer duel-intro-mid duel-intro-swirl duel-intro-swirl-b" />
-        <div className="duel-intro-layer duel-intro-mid duel-intro-swirl duel-intro-swirl-a" />
-        <div className="duel-intro-layer duel-intro-core" />
-        {EMBERS.map(e => (
-          <div
-            key={e.key}
-            className="duel-intro-layer duel-intro-ember"
-            style={{
-              ['--ang' as string]: `${e.angleDeg.toFixed(1)}deg`,
-              ['--rad' as string]: `${e.radius.toFixed(1)}`,
-              ['--sz' as string]: `${e.size.toFixed(2)}`,
-              ['--dl' as string]: `${e.delayFrac.toFixed(3)}`,
-            }}
-          />
-        ))}
-        <div className="duel-intro-layer duel-intro-flash" />
-        <div className="duel-intro-copy">
-          <p className="duel-intro-word">C&rsquo;est l&rsquo;heure du duel</p>
-          <div className="duel-intro-rule" />
-          <div className="duel-intro-versus">
-            <div className="duel-intro-side duel-intro-side-player">
+    <div className={'duel-intro' + (reduced ? ' is-reduced' : '')} aria-hidden="true">
+      <div ref={refs.overlay} className="duel-intro-stage">
+        <canvas ref={refs.canvas} className="duel-intro-canvas" />
+        <div className="duel-intro-top">
+          <p ref={refs.title} className="duel-intro-word">C&rsquo;est l&rsquo;heure du duel</p>
+          <div ref={refs.rule} className="duel-intro-rule" />
+        </div>
+        <div className="duel-intro-center">
+          <span ref={refs.vs} className="duel-intro-vs">VS</span>
+          <div ref={refs.avP} className="duel-intro-side duel-intro-side-player">
+            <div className="duel-intro-frame">
               <Avatar src={playerAvatar} fallback="★" className="duel-intro-avatar" />
+            </div>
+            <div ref={refs.nameP} className="duel-intro-label">
+              <i className="duel-intro-bar" />
               <span className="duel-intro-name">{playerName}</span>
             </div>
-            <span className="duel-intro-vs">VS</span>
-            <div className="duel-intro-side duel-intro-side-enemy">
+          </div>
+          <div ref={refs.avE} className="duel-intro-side duel-intro-side-enemy">
+            <div className="duel-intro-frame">
               <Avatar src={enemyAvatarSrc} fallback={enemyAvatarFallback} className="duel-intro-avatar" />
+            </div>
+            <div ref={refs.nameE} className="duel-intro-label">
+              <i className="duel-intro-bar" />
               <span className="duel-intro-name">{enemyName ?? 'Adversaire'}</span>
             </div>
           </div>

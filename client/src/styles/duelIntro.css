@@ -1,348 +1,83 @@
-/* Lancement de partie (entraînement, jeu en ligne, arcade, tournoi) — un
-   tourbillon de braises aspire l'écran (dos de carte Millenium), un flash
-   claque, puis « C'est l'heure du duel » s'imprime au centre avec l'avatar et
-   le nom des deux joueurs sous le texte.
-
-   Traduit du prototype `millenium-duel-transition.js` (custom element, shadow
-   DOM) en classes CSS ordinaires — ce projet n'utilise pas de shadow DOM, donc
-   tout est préfixé `duel-intro-` pour ne rien risquer (même geste que
-   `outcomeTransition.css` pour `millenium-outcome-transition.js` et les
-   volets `.phase-wipe-*` pour `millenium-phase-transition.js` /
-   `millenium-shop-transition.js`).
-
-   ⚠️ Deux échelles de temps séparées, PAS une seule comme dans le prototype :
-   `--dur-vortex` (fixe, 1500ms) chronomètre le tourbillon qui se referme
-   (nappes de braise, dos de carte, gueule noire, flash) — sa vitesse ne doit
-   pas dépendre de la durée totale. `--dur` (le prop `duration`, 3000ms par
-   défaut) chronomètre le voile, le mot et la ligne « joueur VS adversaire »,
-   qui doivent rester lisibles plus longtemps que le tourbillon ne dure. Les
-   coupler sur une seule variable, comme le prototype, aurait fait défiler le
-   tourbillon au ralenti dès qu'on allonge la lecture pour laisser le temps de
-   lire les deux noms.
-
-   ⚠️ `--u` suit la plus PETITE dimension (`min(100vw, 100vh)`), comme les
-   volets de phase et l'écran de fin de partie : aucune media query de mise en
-   page n'est nécessaire, web, tablette, mobile, portrait et paysage se
-   règlent d'eux-mêmes. */
+/* Lancement de partie — tornade vue du dessus (Transition Duel v3).
+   Mise en page seule : tout le mouvement est piloté par `duelVortex.ts`
+   (un seul rAF : canvas + éléments DOM), donc aucun @keyframes ici hormis
+   le fondu du mouvement réduit. `--u` = plus petite dimension de l'écran :
+   aucune media query, portrait comme paysage. */
 
 .duel-intro {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: block;
-  pointer-events: none;
-  /* ⚠️ OPAQUE DÈS LA PREMIÈRE PEINTURE, sans fondu ni délai — un `opacity:0`
-     initial levé plus tard par une classe React (un ou deux `rAF`, puis une
-     transition CSS) laisse passer une à deux frames de board/HUD déjà rendus
-     PENDANT que la couche est encore transparente : c'est exactement ce
-     qu'on voyait, une fraction de seconde. Le noir doit être là AVANT que
-     quoi que ce soit d'autre n'ait la moindre chance de peindre. `background`
-     ici, en plus de celui d'`.duel-intro-veil` (positionnée en `inset:0`
-     juste en dessous) : deux couches solides et non une, mais un filet à
-     coût nul contre tout écart d'un pixel entre les deux boîtes. */
-  background: #040100;
+  position: fixed; inset: 0; z-index: 40; pointer-events: none;
+  background: #040100;               /* opaque dès la 1re peinture — ne pas retirer */
   --u: min(100vw, 100vh);
-  --big: max(100vw, 100vh);
-  --dur-vortex: 1500ms;
-  --dur: 3000ms;
-  --gold: var(--color-gold);
-  --fire: #4a2a14;
-  --ember: #8a5a30;
 }
+.duel-intro-stage { position: absolute; inset: 0; overflow: hidden; background: #040100; }
+.duel-intro-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
-.duel-intro-stage { position: absolute; inset: 0; overflow: hidden; background: transparent; }
-.duel-intro-layer { position: absolute; animation-fill-mode: both; }
-.duel-intro-mid {
-  top: 50%; left: 50%; width: var(--big); height: var(--big);
-  margin: calc(var(--big) * -.5) 0 0 calc(var(--big) * -.5);
-}
-
-.duel-intro-veil {
-  inset: 0;
-  /* ⚠️ Le FOND est un noir SOLIDE (`#040100`, opaque partout), pas la seule
-     couleur de bord du dégradé d'origine : celui-ci ne montait à l'opacité 1
-     qu'à ses BORDS (`rgba(...,.92)` puis `.86` au centre), ce qui suffisait à
-     peine à couvrir le décor de démonstration mais laissait le vrai board 3D
-     (units, terrain, illustrations, bien plus lumineux) transparaître au
-     centre de l'écran — justement là où le regard se pose. Le dégradé chaud
-     reste, posé PAR-DESSUS ce fond opaque comme un simple accent de teinte. */
-  background:
-    radial-gradient(60% 60% at 50% 50%, rgba(40, 14, 0, .55) 0%, rgba(10, 4, 0, .35) 45%, transparent 100%),
-    #040100;
-  animation: duel-intro-veil var(--dur) linear both;
-}
-
-/* Nappes de braise : bandes obliques en conique, filées par le flou. */
-.duel-intro-swirl {
-  border-radius: 50%;
-  filter: blur(calc(var(--u) * .006)) saturate(1.25);
-  mix-blend-mode: screen;
-  background:
-    repeating-conic-gradient(from 0deg,
-      rgba(0, 0, 0, 0) 0deg 2.2deg,
-      color-mix(in srgb, var(--fire) 70%, #000) 2.2deg 3.1deg,
-      rgba(0, 0, 0, 0) 3.1deg 5.4deg,
-      var(--ember) 5.4deg 5.9deg,
-      rgba(0, 0, 0, 0) 5.9deg 9deg);
-  -webkit-mask-image: radial-gradient(closest-side, transparent 16%, #000 34%, #000 74%, transparent 99%);
-  mask-image: radial-gradient(closest-side, transparent 16%, #000 34%, #000 74%, transparent 99%);
-  animation: duel-intro-swirl var(--dur-vortex) cubic-bezier(.35, 0, .72, 1) both;
-}
-.duel-intro-swirl-b {
-  filter: blur(calc(var(--u) * .018)) saturate(1.1);
-  opacity: .75;
-  background:
-    repeating-conic-gradient(from 12deg,
-      rgba(0, 0, 0, 0) 0deg 6deg,
-      color-mix(in srgb, var(--fire) 85%, #000) 6deg 9deg,
-      rgba(0, 0, 0, 0) 9deg 18deg);
-  animation-name: duel-intro-swirl-rev;
-}
-.duel-intro-swirl-c {
-  filter: blur(calc(var(--u) * .045));
-  opacity: .55;
-  background:
-    repeating-conic-gradient(from 40deg,
-      rgba(0, 0, 0, 0) 0deg 14deg,
-      color-mix(in srgb, var(--fire) 85%, #000) 14deg 22deg,
-      rgba(0, 0, 0, 0) 22deg 40deg);
-  animation-name: duel-intro-swirl-slow;
-}
-
-/* Texture du dos de carte porté par le joueur, aspirée dans le tourbillon —
-   absente si le catalogue de dos n'a pas encore d'art (`DuelIntro` n'y met
-   rien, cf. le repli déjà suivi par `CardBack` de `RoundStart.tsx`). */
-.duel-intro-card {
-  top: 50%; left: 50%;
-  width: calc(var(--u) * .62); height: calc(var(--u) * .9);
-  margin: calc(var(--u) * -.45) 0 0 calc(var(--u) * -.31);
-  background-size: cover; background-position: 50% 50%;
-  mix-blend-mode: screen; opacity: 0;
-  -webkit-mask-image: radial-gradient(closest-side, #000 55%, transparent 100%);
-  mask-image: radial-gradient(closest-side, #000 55%, transparent 100%);
-  animation: duel-intro-card var(--dur-vortex) cubic-bezier(.4, 0, .7, 1) both;
-}
-
-/* Gueule noire du vortex. */
-.duel-intro-core {
-  top: 50%; left: 50%;
-  width: calc(var(--u) * .3); height: calc(var(--u) * .38);
-  margin: calc(var(--u) * -.19) 0 0 calc(var(--u) * -.15);
-  border-radius: 50%;
-  background: radial-gradient(closest-side, #000 52%, rgba(20, 4, 0, .7) 80%, transparent 100%);
-  box-shadow: 0 0 calc(var(--u) * .12) calc(var(--u) * .02) color-mix(in srgb, var(--ember) 55%, transparent) inset;
-  animation: duel-intro-core var(--dur-vortex) cubic-bezier(.4, 0, .6, 1) both;
-}
-
-.duel-intro-ember {
-  top: 50%; left: 50%; width: 0; height: 0; transform-origin: 0 0;
-  animation: duel-intro-ember var(--dur-vortex) cubic-bezier(.3, .02, .55, 1) both;
-  animation-delay: calc(var(--dl) * var(--dur-vortex) * .34);
-}
-.duel-intro-ember::after {
-  content: '';
-  position: absolute;
-  width: calc(var(--u) * .012 * var(--sz)); height: calc(var(--u) * .0035 * var(--sz));
-  border-radius: 99px;
-  background: linear-gradient(90deg, rgba(138, 90, 48, 0), var(--ember));
-  box-shadow: 0 0 calc(var(--u) * .012) rgba(138, 90, 48, .9);
-}
-
-.duel-intro-flash {
-  top: 50%; left: 50%;
-  width: calc(var(--u) * .5); height: calc(var(--u) * .5);
-  margin: calc(var(--u) * -.25) 0 0 calc(var(--u) * -.25);
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff 0%, #ffd98a 20%, color-mix(in srgb, var(--fire) 70%, transparent) 42%, transparent 70%);
-  animation: duel-intro-flash var(--dur-vortex) linear both;
-}
-
-.duel-intro-copy {
-  position: absolute; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: calc(var(--u) * .022); padding: calc(var(--u) * .04) max(16px, 6vw);
-  text-align: center;
-  box-sizing: border-box;
-  overflow-y: auto;
+.duel-intro-top {
+  position: absolute; left: 0; right: 0; top: 50%; height: 0;
+  display: flex; justify-content: center;
 }
 .duel-intro-word {
-  margin: 0;
-  max-width: min(94vw, calc(var(--u) * 1.4));
-  overflow-wrap: break-word;
-  /* Le serif d'affichage des cartes (`--font-display`, `board3d.css`), déjà
-     lu au combat (nom d'unité, toast de pouvoir) comme à la Phase Shopping
-     (cartes de main) — pour que la seule annonce sans carte à l'écran ne
-     tranche pas avec la police que le joueur voit partout ailleurs pendant
-     la partie. */
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(22px, calc(var(--u) * .066), 92px);
-  line-height: 1.06;
-  color: #fff;
-  animation: duel-intro-word var(--dur) cubic-bezier(.16, .9, .24, 1) both;
-  flex: none;
+  position: absolute; top: calc(var(--u) * -.26); margin: 0; opacity: 0;
+  font-family: var(--font-display); font-weight: 800;
+  font-size: calc(var(--u) * .074); line-height: 1.02; white-space: nowrap;
+  color: #f6e7c8;
+  text-shadow: 0 0 calc(var(--u) * .03) rgba(212,175,97,.35), 0 calc(var(--u) * .004) calc(var(--u) * .012) rgba(0,0,0,.9);
+  will-change: transform, opacity, filter;
 }
 .duel-intro-rule {
-  width: calc(var(--u) * .16);
-  max-width: 40vw;
-  height: max(1px, calc(var(--u) * .0016));
-  background: linear-gradient(90deg, transparent, var(--gold), transparent);
-  animation: duel-intro-rule var(--dur) linear both;
-  flex: none;
+  position: absolute; top: calc(var(--u) * -.155);
+  width: calc(var(--u) * .26); height: max(1px, calc(var(--u) * .0022));
+  background: linear-gradient(90deg, transparent, var(--color-gold) 30%, #f3d9a0 50%, var(--color-gold) 70%, transparent);
+  opacity: 0; transform: scaleX(0);
 }
 
-/* La ligne « joueur VS adversaire », sous le mot — c'est elle qui manquait au
-   prototype d'origine (qui ne portait qu'un sous-titre textuel optionnel). */
-.duel-intro-versus {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: calc(var(--u) * .035);
-  max-width: 100%;
-  animation: duel-intro-versus var(--dur) cubic-bezier(.16, .9, .24, 1) both;
-  flex: none;
+.duel-intro-center { position: absolute; left: 50%; top: calc(50% + var(--u) * .04); width: 0; height: 0; }
+.duel-intro-vs {
+  position: absolute; left: calc(var(--u) * -.1); top: calc(var(--u) * -.05);
+  width: calc(var(--u) * .2); height: calc(var(--u) * .1);
+  display: flex; align-items: center; justify-content: center; opacity: 0;
+  font-family: var(--font-display); font-style: italic; font-weight: 800;
+  font-size: calc(var(--u) * .06); letter-spacing: .04em; color: var(--color-gold);
+  text-shadow: 0 0 calc(var(--u) * .025) rgba(212,175,97,.55), 0 0 calc(var(--u) * .006) rgba(0,0,0,.9);
 }
-.duel-intro-side {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: calc(var(--u) * .012);
-  min-width: 0;
-  max-width: calc(var(--u) * .34);
+
+.duel-intro-side { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; will-change: transform, opacity, filter; }
+.duel-intro-frame {
+  position: absolute; left: calc(var(--u) * -.09); top: calc(var(--u) * -.09);
+  width: calc(var(--u) * .18); height: calc(var(--u) * .18);
+  box-sizing: border-box; padding: calc(var(--u) * .0055); border-radius: 22%;
+  background: linear-gradient(150deg, #f3d9a0 0%, #a8703a 38%, #3a1f0d 100%);
+  box-shadow: 0 0 0 calc(var(--u) * .003) #120804,
+              0 0 calc(var(--u) * .06) var(--duel-intro-glow),
+              0 calc(var(--u) * .018) calc(var(--u) * .04) rgba(0,0,0,.85);
 }
+.duel-intro-side-player { --duel-intro-glow: color-mix(in srgb, var(--color-player) 32%, transparent); --duel-intro-side: var(--color-player); }
+.duel-intro-side-enemy  { --duel-intro-glow: color-mix(in srgb, var(--color-enemy) 32%, transparent);  --duel-intro-side: var(--color-enemy); }
+/* ⚠️ !important : écrase les dimensions/bordures posées par <Avatar>. */
 .duel-intro-avatar {
-  width: clamp(40px, calc(var(--u) * .16), 92px) !important;
-  height: clamp(40px, calc(var(--u) * .16), 92px) !important;
-  border-radius: 14px;
-  border-width: 2px !important;
-  box-shadow: 0 0 calc(var(--u) * .028) 0 var(--duel-intro-glow, rgba(255, 180, 60, .35));
+  width: 100% !important; height: 100% !important;
+  border: 0 !important; border-radius: 19% !important;
+  background: radial-gradient(circle at 50% 35%, #3a2415, #120804);
+  color: var(--color-gold); font-family: var(--font-display); font-size: calc(var(--u) * .08);
+  object-fit: cover;
 }
-.duel-intro-side-player .duel-intro-avatar {
-  border-color: color-mix(in srgb, var(--color-player) 80%, white 10%) !important;
-  --duel-intro-glow: color-mix(in srgb, var(--color-player) 55%, transparent);
+.duel-intro-label {
+  position: absolute; left: calc(var(--u) * -.16); top: calc(var(--u) * .112);
+  width: calc(var(--u) * .32); opacity: 0;
+  display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * .01);
 }
-.duel-intro-side-enemy .duel-intro-avatar {
-  border-color: color-mix(in srgb, var(--color-enemy) 80%, white 10%) !important;
-  --duel-intro-glow: color-mix(in srgb, var(--color-enemy) 55%, transparent);
+.duel-intro-bar {
+  width: calc(var(--u) * .04); height: max(2px, calc(var(--u) * .004)); border-radius: 9px;
+  background: var(--duel-intro-side);
+  box-shadow: 0 0 calc(var(--u) * .012) var(--duel-intro-side);
 }
 .duel-intro-name {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 700;
-  font-size: clamp(11px, calc(var(--u) * .026), 19px);
-  letter-spacing: .01em;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, .7);
-}
-.duel-intro-side-player .duel-intro-name { color: color-mix(in srgb, var(--color-player) 82%, white 18%); }
-.duel-intro-side-enemy .duel-intro-name { color: color-mix(in srgb, var(--color-enemy) 82%, white 18%); }
-.duel-intro-vs {
-  flex-shrink: 0;
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(15px, calc(var(--u) * .042), 32px);
-  color: #fff;
-  text-transform: uppercase;
-  letter-spacing: .06em;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 700; font-size: max(11px, calc(var(--u) * .026));
+  letter-spacing: .14em; text-transform: uppercase; color: #f3e6cf;
+  text-shadow: 0 calc(var(--u) * .002) calc(var(--u) * .008) #000;
 }
 
-/* ⚠️ Opaque DÈS 0% — pas de montée depuis 0 comme le reste des couches : le
-   voile est le fond noir lui-même (cf. `.duel-intro`/`.duel-intro-veil`), il
-   n'a rien à faire apparaître progressivement, seulement à s'effacer à la
-   toute fin pour découvrir la partie. */
-@keyframes duel-intro-veil { 0%, 88% { opacity: 1 } 100% { opacity: 0 } }
-@keyframes duel-intro-swirl {
-  0%   { transform: rotate(0deg) scale(1.5); opacity: 0 }
-  14%  { opacity: .95 }
-  62%  { transform: rotate(640deg) scale(.14); opacity: .9 }
-  72%  { transform: rotate(760deg) scale(.02); opacity: 0 }
-  100% { opacity: 0 }
-}
-@keyframes duel-intro-swirl-rev {
-  0%   { transform: rotate(120deg) scale(1.9); opacity: 0 }
-  16%  { opacity: .75 }
-  62%  { transform: rotate(-420deg) scale(.18); opacity: .7 }
-  72%  { transform: rotate(-520deg) scale(.03); opacity: 0 }
-  100% { opacity: 0 }
-}
-@keyframes duel-intro-swirl-slow {
-  0%   { transform: rotate(-40deg) scale(2.3); opacity: 0 }
-  18%  { opacity: .55 }
-  64%  { transform: rotate(300deg) scale(.25); opacity: .5 }
-  74%  { transform: rotate(360deg) scale(.05); opacity: 0 }
-  100% { opacity: 0 }
-}
-@keyframes duel-intro-card {
-  0%   { transform: rotate(-8deg) scale(1.15); opacity: 0 }
-  12%  { opacity: .5 }
-  40%  { opacity: .42 }
-  64%  { transform: rotate(520deg) scale(.06); opacity: 0 }
-  100% { opacity: 0 }
-}
-@keyframes duel-intro-core {
-  0%   { transform: scale(.2); opacity: 0 }
-  18%  { opacity: 1 }
-  58%  { transform: scale(1.15); opacity: 1 }
-  66%  { transform: scale(.05); opacity: .9 }
-  70%  { opacity: 0 }
-  100% { opacity: 0 }
-}
-@keyframes duel-intro-ember {
-  0%   { transform: rotate(var(--ang)) translateX(calc(var(--u) * var(--rad) * .01)); opacity: 0 }
-  10%  { opacity: 1 }
-  88%  { opacity: 1 }
-  100% { transform: rotate(calc(var(--ang) + 500deg)) translateX(0); opacity: 0 }
-}
-@keyframes duel-intro-flash {
-  0%, 62% { opacity: 0; transform: scale(.2) }
-  67%     { opacity: 1; transform: scale(1) }
-  82%     { opacity: 0; transform: scale(1.6) }
-  100%    { opacity: 0 }
-}
-/* ⚠️ Les pourcentages sont calés sur `--dur` (le total, 3000ms par défaut) et
-   non sur `--dur-vortex` : le mot doit claquer juste après le flash (qui, lui,
-   vit sur son horloge de 1500ms) puis TENIR jusqu'à ce que le voile s'éteigne
-   — c'est ce qui laisse le temps de lire les deux noms sous lui. */
-@keyframes duel-intro-word {
-  0%, 36% { opacity: 0; letter-spacing: .3em; transform: scale(1.3) }
-  44%     { opacity: 1; letter-spacing: .02em; transform: scale(1) }
-  48%     { transform: scale(1.012) }
-  52%     { transform: scale(1) }
-  86%     { opacity: 1 }
-  100%    { opacity: 0; transform: scale(1.02) }
-}
-@keyframes duel-intro-rule {
-  0%, 50% { transform: scaleX(0); opacity: 0 }
-  60%     { transform: scaleX(1); opacity: .9 }
-  86%     { opacity: .9 }
-  100%    { opacity: 0 }
-}
-@keyframes duel-intro-versus {
-  0%, 52%  { opacity: 0; transform: translateY(14%) }
-  62%      { opacity: 1; transform: translateY(0) }
-  86%      { opacity: 1 }
-  100%     { opacity: 0; transform: translateY(-6%) }
-}
-
-/* ⚠️ DERNIER bloc du fichier, et ce n'est pas cosmétique : à spécificité égale
-   (un seul nom de classe de part et d'autre), c'est la règle déclarée en
-   DERNIER qui l'emporte, media query ou pas — la placer plus haut (juste après
-   `.is-playing`, comme un premier jet) laissait les règles non conditionnelles
-   plus bas dans le fichier regagner la main. Même piège que celui déjà
-   documenté pour `admin.html` (§ « Outils d'admin — le bloc `@media
-   (max-width: 768px)` doit rester le DERNIER de la feuille »). On retire le
-   MOUVEMENT (tourbillon, braises, dos de carte), jamais l'INFORMATION : le
-   voile, le mot et la ligne « joueur VS adversaire » restent, immobiles et
-   pleinement lisibles dès le premier paint. */
-@media (prefers-reduced-motion: reduce) {
-  .duel-intro-swirl,
-  .duel-intro-card,
-  .duel-intro-core,
-  .duel-intro-ember { display: none; }
-  .duel-intro-veil { animation: none; opacity: 1; }
-  .duel-intro-flash { animation: none; opacity: .92; }
-  .duel-intro-word { animation: none; opacity: 1; letter-spacing: .02em; transform: none; }
-  .duel-intro-rule,
-  .duel-intro-versus { animation: none; opacity: 1; transform: none; }
-}
+/* Mouvement réduit : image figée posée par duelVortex.ts, fondu final seul. */
+@keyframes duel-intro-fade { 0%, 80% { opacity: 1 } 100% { opacity: 0 } }
+.duel-intro.is-reduced .duel-intro-stage { animation: duel-intro-fade 1600ms linear both; }
