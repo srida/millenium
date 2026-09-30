@@ -145,6 +145,9 @@ export default function TournamentScreen() {
             ))}
 
             <div className="space-y-2 pt-2">
+              {/* Entre deux manches ET entre deux rounds (le « Round suivant » suit
+                  une série gagnée) : le thème se change avant chaque match. */}
+              {!complete && !eliminated && <div className="flex justify-center"><MusicThemePicker /></div>}
               {complete ? (
                 <div className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-center">
                   <UiIcon id="UI_VICTORY" className="mx-auto h-8 w-8" />
@@ -161,7 +164,6 @@ export default function TournamentScreen() {
                 </div>
               ) : playerMatch ? (
                 <>
-                  <div className="flex justify-center"><MusicThemePicker /></div>
                   <Button variant="primary" className="w-full py-3" onPointerDown={() => playMatch(playerMatch)}>
                     ▸ JOUER LA MANCHE {playerMatch.wins[0] + playerMatch.wins[1] + 1}
                   </Button>
