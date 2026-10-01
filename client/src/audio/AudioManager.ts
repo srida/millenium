@@ -213,6 +213,7 @@ let musicHeldForCtx = false;
 function onCtxStateChange(): void {
   if (!audioCtx) return;
   if (audioCtx.state === 'running') {
+    stuckSince = null;
     if (musicHeldForCtx) {
       musicHeldForCtx = false;
       if (current && !backgroundPaused) current.el.play().catch(() => { /* unlock() retentera au prochain geste */ });
@@ -393,6 +394,16 @@ export function playSfx(trigger: string, variant?: SfxVariant): void {
 
   const buffer = sfxBufferCache.get(entry.id);
   const ctx = getAudioCtx();
+  // ⚠️ **Un contexte à l'arrêt ne reçoit AUCUN son.** `start(0)` veut dire
+  // « à `currentTime` », et `currentTime` est figé tant qu'il ne tourne pas :
+  // chaque bruitage s'y mettait en FILE, et la reprise les jouait tous d'un
+  // coup — une partie entière de sons en une seconde. Un bruitage manqué ne
+  // se rattrape pas, il se perd. Le repli élément est routé dans le même
+  // contexte : même règle.
+  if (ctx && ctx.state !== 'running') {
+    if (needsResume(ctx) && !backgroundPaused) ctx.resume().catch(() => {});
+    return;
+  }
   if (buffer && ctx) {
     try {
       const gain = ensureSfxGain(ctx);
@@ -500,10 +511,64 @@ function applyMusicVolume(): void {
  * (n'importe quel bouton de menu) le retente ici.
  */
 export function unlock(): void {
-  const ctx = getAudioCtx();
-  if (needsResume(ctx)) ctx.resume().catch(() => {});
+  let ctx = getAudioCtx();
+  if (needsResume(ctx)) {
+    const now = Date.now();
+    if (stuckSince === null) stuckSince = now;
+    else if (now - stuckSince >= STUCK_CTX_REBUILD_MS) ctx = rebuildAudioCtx();
+    if (needsResume(ctx)) ctx.resume().catch(() => {});
+  }
   if (typeof Audio === 'undefined') return;
   if (current?.el.paused) current.el.play().catch(() => { /* toujours refusé : tant pis, silencieux */ });
+}
+
+/** Depuis quand un GESTE a trouvé le contexte à l'arrêt sans qu'il reparte —
+ *  `null` tant qu'il tourne. */
+let stuckSince: number | null = null;
+/** Au-delà, un geste qui trouve encore le contexte à l'arrêt le RECRÉE. */
+const STUCK_CTX_REBUILD_MS = 1000;
+
+/**
+ * ⚠️ **Un contexte peut ne JAMAIS repartir.** Constaté sur iOS au retour d'un
+ * passage en arrière-plan en pleine partie : `resume()` ne fait plus rien,
+ * même appelé dans un geste, et la partie continue sans aucun son jusqu'au
+ * prochain aller-retour. Le seul remède fiable est d'en créer un neuf — dans
+ * un geste (`unlock`), sinon il naîtrait lui aussi suspendu.
+ *
+ * L'ancien est FERMÉ avant (deux contextes vivants font changer la fréquence
+ * matérielle sur iOS, cf. `getAudioCtx`). Tout ce qui y était branché est
+ * perdu : le gain des bruitages se recrée à la demande, les bruitages en vol
+ * sont abandonnés, et la piste en cours est recréée sur un élément neuf, à la
+ * même position — un `<audio>` ne se branche qu'à UN contexte, à vie.
+ */
+function rebuildAudioCtx(): AudioContext | null {
+  const old = audioCtx;
+  audioCtx = null;
+  sfxGain = null;
+  stuckSince = null;
+  musicHeldForCtx = false;
+  if (old) {
+    old.removeEventListener?.('statechange', onCtxStateChange);
+    old.close?.().catch(() => {});
+  }
+  activeSfxSources.clear();
+  for (const el of routedSfxKeepAlive) el.pause();
+  routedSfxKeepAlive.clear();
+  for (const el of deferredPauses) el.pause();
+  deferredPauses.clear();
+
+  const ctx = getAudioCtx();
+  if (current) {
+    const stale = current;
+    const fresh = createRoutedAudio(stale.el.src);
+    fresh.el.loop = stale.el.loop;
+    try { fresh.el.currentTime = stale.el.currentTime; } catch { /* repart du début */ }
+    setRoutedVolume(fresh, effectiveMusicVolume());
+    stale.el.pause();
+    current = fresh;
+    if (!backgroundPaused) fresh.el.play().catch(() => { /* unlock() retentera */ });
+  }
+  return ctx;
 }
 
 /** Vrai entre un `suspendForBackground()` et son `resumeFromBackground()` —

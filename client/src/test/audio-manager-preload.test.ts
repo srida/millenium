@@ -70,6 +70,13 @@ class FakeAudioContext {
     return Promise.resolve().then(() => this.setStateFromOs('running'));
   }
   suspend() { this.state = 'suspended'; return Promise.resolve(); }
+  closed = false;
+  close() { this.closed = true; this.state = 'closed'; return Promise.resolve(); }
+  removeEventListener(type: string, fn: () => void) {
+    this.listeners[type] = (this.listeners[type] ?? []).filter(f => f !== fn);
+  }
+  /** Le contexte cassé d'iOS : `resume()` ne fait plus rien, même dans un geste. */
+  breakResume() { this.resume = () => { this.resumeCalls++; return Promise.resolve(); }; }
 }
 // Le contexte de DÉCODAGE, utilisé par le préchargement — jamais connecté à
 // une sortie audible, jamais gagné par la politique d'autoplay.
@@ -91,6 +98,7 @@ class FakeAudioEl {
   loop = false;
   volume = 1;
   constructor(src?: string) { this.src = src; createdAudioEls.push(this); }
+  currentTime = 0;
   play() { this.paused = false; return Promise.resolve(); }
   pause() { this.paused = true; }
 }
@@ -347,5 +355,76 @@ describe('AudioManager — la musique suit l\'état du contexte (accélération 
     Audio.setMusicTheme(null);
     await flush();
     expect(track.paused).toBe(true);
+  });
+});
+
+describe('AudioManager — retour d\'arrière-plan avec un contexte qui ne repart pas', () => {
+  async function inGame() {
+    const Audio = await import('../audio/AudioManager.js');
+    await Audio.preloadSfxAsync();
+    Audio.unlock();
+    Audio.setMusicTheme('menu');
+    const track = createdAudioEls[createdAudioEls.length - 1];
+    return { Audio, track, ctx: lastAudioCtx! };
+  }
+
+  it('aucun bruitage n\'est mis en file sur un contexte à l\'arrêt (pas de rafale à la reprise)', async () => {
+    const { Audio, ctx } = await inGame();
+    ctx.breakResume();
+    ctx.state = 'interrupted';
+    const before = startedSources.length;
+    Audio.playSfx('ready');
+    Audio.playSfx('ready');
+    Audio.playSfx('ready');
+    expect(startedSources.length).toBe(before);
+    // Pas de repli élément non plus : il est routé dans le même contexte.
+    expect(createdAudioEls.length).toBe(1);
+  });
+
+  it('un contexte bloqué est RECRÉÉ au geste suivant, et la musique reprend sur un élément neuf', async () => {
+    const { Audio, track, ctx } = await inGame();
+    track.currentTime = 42;
+    ctx.breakResume();
+    Audio.suspendForBackground();
+    Audio.resumeFromBackground();
+    expect(ctx.state).toBe('suspended');
+
+    vi.useFakeTimers();
+    try {
+      Audio.unlock();                 // premier geste : on laisse sa chance au resume()
+      expect(lastAudioCtx).toBe(ctx);
+      vi.advanceTimersByTime(1500);
+      Audio.unlock();                 // toujours bloqué : contexte neuf
+    } finally { vi.useRealTimers(); }
+
+    expect(ctx.closed).toBe(true);
+    expect(lastAudioCtx).not.toBe(ctx);
+    const fresh = createdAudioEls[createdAudioEls.length - 1];
+    expect(fresh).not.toBe(track);
+    expect(fresh.src).toBe(track.src);
+    expect(fresh.currentTime).toBe(42);
+    expect(fresh.paused).toBe(false);
+    expect(track.paused).toBe(true);
+
+    // Les bruitages repartent sur le nouveau contexte.
+    await flush();
+    const before = startedSources.length;
+    Audio.playSfx('ready');
+    expect(startedSources.length).toBe(before + 1);
+  });
+
+  it('un contexte qui repart normalement n\'est jamais recréé', async () => {
+    const { Audio, ctx } = await inGame();
+    Audio.suspendForBackground();
+    Audio.resumeFromBackground();
+    await flush();
+    vi.useFakeTimers();
+    try {
+      Audio.unlock();
+      vi.advanceTimersByTime(5000);
+      Audio.unlock();
+    } finally { vi.useRealTimers(); }
+    expect(lastAudioCtx).toBe(ctx);
+    expect(ctx.closed).toBe(false);
   });
 });
