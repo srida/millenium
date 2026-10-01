@@ -15,7 +15,7 @@ import UiIcon from './UiIcon.js';
 
 export type SortState = { key: string; dir: 'asc' | 'desc' };
 
-export default function SortControl({ schema, value, onChange, className = '', labelClassName = 'max-w-[8rem] truncate' }: {
+export default function SortControl({ schema, value, onChange, className = '', labelClassName = 'max-w-[8rem] truncate', pinFirst }: {
   schema: any;
   value: SortState;
   onChange: (next: SortState) => void;
@@ -23,10 +23,15 @@ export default function SortControl({ schema, value, onChange, className = '', l
   /** Largeur du libellé tronqué — un appelant à l'étroit (ligne de filtres
    *  dense) peut la resserrer sans toucher au reste du bouton. */
   labelClassName?: string;
+  /** Critère remonté juste sous « Ordre du catalogue » (ex. la date d'obtention). */
+  pinFirst?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const fields: any[] = Query.sortableFields(schema);
-  const current = fields.find(f => f.key === value.key);
+  const all: any[] = Query.sortableFields(schema);
+  const fields = pinFirst
+    ? [...all.filter(f => f.key === pinFirst), ...all.filter(f => f.key !== pinFirst)]
+    : all;
+  const current = all.find(f => f.key === value.key);
   const arrow = value.dir === 'asc' ? '↑' : '↓';
 
   // Retaper le critère déjà actif bascule son sens ; en choisir un autre

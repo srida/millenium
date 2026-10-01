@@ -255,7 +255,7 @@ export default function DeckBuilder() {
         // la carte ni dans le catalogue, mais dans la collection du joueur
         // (`user_cards.unlocked_at`, servi en ordre par /me/progression). C'est
         // aussi pour ça qu'il n'existe pas côté admin, qui n'a pas de joueur.
-        { key: 'obtention', aliases: ['obtenue', 'acquisition'], label: 'Ordre d\'obtention',
+        { key: 'obtention', aliases: ['obtenue', 'acquisition'], label: 'Date d\'obtention',
           type: 'number', get: (c: Card) => rankOf(c.id) },
       ],
     };
@@ -625,7 +625,7 @@ function LibraryPanel({
               <TierIcon tier={t} className={`h-4 w-4 ${TIER_TEXT[t]}`} />
             </Chip>
           ))}
-          <SortControl schema={schema} value={sort} onChange={setSort} className="ml-auto" />
+          <SortControl schema={schema} value={sort} onChange={setSort} pinFirst="obtention" className="ml-auto" />
         </div>
         <div className="text-[11px] text-white/40">
           {ownedCount}/{total} cartes débloquées · {cards.length} affichée{cards.length > 1 ? 's' : ''} · 1 exemplaire par deck
