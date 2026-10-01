@@ -9,7 +9,7 @@
 // Web Audio n'existe pas dans l'environnement de test (`environment: 'node'`,
 // sans DOM) : on pose un faux `AudioContext`/`Audio`/`fetch` minimal, sur le
 // modèle de `game-controller-audio.test.ts` qui pose `window` à la main.
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 vi.mock('../data/SfxDatabase.js', () => ({
   resolveSfx: (trigger: string) =>
@@ -235,7 +235,7 @@ describe('AudioManager — la musique est une piste DÉCODÉE, jamais un <audio>
     await settle();
     expect(fetchCalls).toContain('/audio/MUSIC_MENU');
     expect(playingMusic()).not.toBeNull();
-    expect(createdAudioEls).toEqual([]);
+    expect(createdAudioEls.filter(el => el.src?.includes('MUSIC'))).toEqual([]);
   });
 
   it('une seule piste vit à la fois : la sortante est arrêtée avant que l\'entrante parte', async () => {
@@ -398,7 +398,7 @@ describe('AudioManager — retour d\'arrière-plan avec un contexte qui ne repar
     Audio.playSfx('ready');
     expect(sfxCount()).toBe(before);
     // Pas de repli élément non plus : il est routé dans le même contexte.
-    expect(createdAudioEls).toEqual([]);
+    expect(createdAudioEls.filter(el => el.src?.includes('SFX'))).toEqual([]);
   });
 
   it('un contexte bloqué est RECRÉÉ au geste suivant, et la musique reprend à sa position', async () => {
@@ -513,5 +513,46 @@ describe('AudioManager — contexte « running » mais figé (retour d\'Instagra
       Audio.unlock();
       expect(lastAudioCtx).not.toBe(second);
     } finally { vi.useRealTimers(); }
+  });
+});
+
+describe('AudioManager — session audio iOS (bouton silencieux)', () => {
+  // Web Audio seul est coupé par le bouton silencieux d'iOS : sans élément
+  // média en lecture, plus rien ne sort. L'ancien <audio> de la musique
+  // tenait ce rôle sans le dire.
+  const keeper = () => createdAudioEls.find(el => el.src?.startsWith('data:audio/wav'));
+  afterEach(() => { delete (globalThis as any).navigator; });
+
+  it('unlock() lance un <audio> MUET en boucle, non branché au contexte', async () => {
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.unlock();
+    const el = keeper();
+    expect(el).toBeDefined();
+    expect(el!.loop).toBe(true);
+    expect(el!.paused).toBe(false);
+  });
+
+  it('unlock() passe la session en « playback » quand l\'API existe', async () => {
+    (globalThis as any).navigator = { audioSession: { type: 'auto' } };
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.unlock();
+    expect((globalThis as any).navigator.audioSession.type).toBe('playback');
+  });
+
+  it('l\'élément muet se coupe en arrière-plan et repart au retour', async () => {
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.unlock();
+    Audio.suspendForBackground();
+    expect(keeper()!.paused).toBe(true);
+    Audio.resumeFromBackground();
+    expect(keeper()!.paused).toBe(false);
+  });
+
+  it('un seul élément muet, quel que soit le nombre de gestes', async () => {
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.unlock();
+    Audio.unlock();
+    Audio.unlock();
+    expect(createdAudioEls.filter(el => el.src?.startsWith('data:audio/wav'))).toHaveLength(1);
   });
 });

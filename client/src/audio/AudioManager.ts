@@ -664,6 +664,7 @@ class MusicTrack {
  * contexte l'est.
  */
 export function unlock(): void {
+  keepSessionAudible();
   let ctx = getAudioCtx();
   if (ctx && isStalled(ctx) && canRebuild()) {
     // Figé alors qu'il se dit en lecture : `resume()` n'y peut rien.
@@ -675,6 +676,57 @@ export function unlock(): void {
     if (needsResume(ctx)) ctx.resume().catch(() => {});
   }
   if (current?.paused && !backgroundPaused) current.play();
+}
+
+// ================== Session audio iOS ==================
+
+/**
+ * ⚠️ **Sur iOS, Web Audio SEUL est coupé par le bouton silencieux.** Sans
+ * aucun élément média en lecture, la page reste dans la catégorie de session
+ * « ambiant » : interrupteur sur silencieux, plus RIEN ne sort — musique
+ * comme bruitages. C'est l'ancien `<audio>` de la musique qui, en jouant,
+ * faisait passer la page en catégorie « lecture » et rendait tout audible ;
+ * il a disparu avec `MusicTrack`, et le son avec lui.
+ *
+ * Deux leviers, posés dans le geste (`unlock`) :
+ * - `navigator.audioSession.type = 'playback'` (Safari 16.4+), la voie propre ;
+ * - un `<audio>` MUET en boucle, pour les iOS plus anciens. Il n'est PAS
+ *   branché au contexte (`createMediaElementSource`) : c'est ce branchement,
+ *   pas l'élément, qui faisait accélérer la musique. Il sert aussi de « dernier
+ *   élément média » qui ne s'arrête jamais (cf. `deferredPauses`).
+ */
+let sessionKeeper: HTMLAudioElement | null = null;
+
+/** 0,5 s de silence, WAV PCM 8 bits mono 8 kHz (128 = zéro en 8 bits). */
+function silentWavUrl(): string {
+  const samples = 4000;
+  const bytes = new Uint8Array(44 + samples);
+  const view = new DataView(bytes.buffer);
+  const ascii = (at: number, text: string) => { for (let i = 0; i < text.length; i++) bytes[at + i] = text.charCodeAt(i); };
+  ascii(0, 'RIFF'); view.setUint32(4, 36 + samples, true); ascii(8, 'WAVE');
+  ascii(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true);
+  view.setUint32(24, 8000, true); view.setUint32(28, 8000, true); view.setUint16(32, 1, true); view.setUint16(34, 8, true);
+  ascii(36, 'data'); view.setUint32(40, samples, true);
+  bytes.fill(128, 44);
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return `data:audio/wav;base64,${btoa(binary)}`;
+}
+
+function keepSessionAudible(): void {
+  try {
+    const session = (typeof navigator === 'undefined' ? undefined : navigator) as (Navigator & { audioSession?: { type: string } }) | undefined;
+    if (session?.audioSession && session.audioSession.type !== 'playback') session.audioSession.type = 'playback';
+  } catch { /* API absente ou refusée : l'élément muet prend le relais */ }
+  if (typeof Audio === 'undefined' || backgroundPaused) return;
+  try {
+    if (!sessionKeeper) {
+      sessionKeeper = new Audio(silentWavUrl());
+      sessionKeeper.loop = true;
+      sessionKeeper.setAttribute?.('playsinline', '');
+    }
+    if (sessionKeeper.paused) sessionKeeper.play().catch(() => { /* hors geste : retenté au prochain */ });
+  } catch { /* jamais remonté */ }
 }
 
 /** Depuis quand un GESTE a trouvé le contexte à l'arrêt sans qu'il reparte —
@@ -761,6 +813,7 @@ export function suspendForBackground(): void {
   backgroundPaused = true;
   if (audioCtx?.state === 'running') audioCtx.suspend().catch(() => {});
   current?.pause();
+  sessionKeeper?.pause();
   // Une piste muette en attente de pause n'a rien à faire en fond.
   for (const track of deferredPauses) track.dispose();
   deferredPauses.clear();
@@ -774,6 +827,7 @@ export function resumeFromBackground(): void {
   // L'OS suspend souvent le contexte lui-même en fond, pas seulement
   // l'élément — sans le reprendre, ni la piste ni un `playSfx` à venir ne
   // produiraient le moindre son, bien qu'en lecture apparente.
+  keepSessionAudible();
   if (needsResume(audioCtx)) audioCtx.resume().catch(() => {});
   current?.play();
 }
