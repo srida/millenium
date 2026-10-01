@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/authStore.js';
 import { Avatar } from '../ui/primitives.js';
 import HpBar, { useHpTransition } from './HpBar.js';
 import { useWebLayout } from '../system/useWebLayout.js';
+import { useEmoteStore } from '../../stores/emoteStore.js';
 
 export interface HudProps {
   // Portrait adverse : avatar de profil (PvP) ou avatar du deck public
@@ -14,15 +15,19 @@ export interface HudProps {
   enemyAvatarFallback?: string;
   // Pseudo de l'adversaire (PvP) ou nom du deck public (solo/tournoi).
   enemyName?: string | null;
+  // Messages rapides (Duel en ligne seulement) : quand il est fourni, la zone
+  // avatar + pseudo du joueur devient un bouton qui l'appelle.
+  onPlayerTap?: () => void;
 }
 
-export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', enemyName = null }: HudProps) {
+export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', enemyName = null, onPlayerTap }: HudProps) {
   const { playerHp, enemyHp, round, playerMultiplier, enemyMultiplier, combatActive } = useGameStore();
   // ⚠️ Le chiffre et la jauge comptent sur la MÊME horloge : la transition est
   // tenue ici, une fois par camp, et descend dans les deux (cf. `HpBar`). Deux
   // décomptes indépendants finiraient par ne plus annoncer le même total.
   const player = useHpTransition(playerHp);
   const enemy = useHpTransition(enemyHp);
+  const opponentMuted = useEmoteStore(s => s.opponentMuted);
   const user = useAuthStore(s => s.user);
   const playerAvatar = (user as { avatar?: string | null } | null)?.avatar ?? '';
   const playerName = user?.username ?? 'Toi';
@@ -39,10 +44,23 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
     <div className={classname_header}>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2 text-xs">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <Avatar src={playerAvatar} fallback="★" className="h-5 w-5" />
-            <span className="truncate font-semibold text-player">{playerName}</span>
-          </span>
+          {onPlayerTap ? (
+            // Cible tactile de 44 px : `-my-3` l'empêche de faire grandir la ligne.
+            <button
+              type="button"
+              aria-label="Messages rapides"
+              onClick={onPlayerTap}
+              className="pointer-events-auto -my-3 flex min-h-[44px] min-w-0 flex-1 items-center gap-1.5 text-left"
+            >
+              <Avatar src={playerAvatar} fallback="★" className="h-5 w-5" />
+              <span className="truncate font-semibold text-player">{playerName}</span>
+            </button>
+          ) : (
+            <span className="flex min-w-0 items-center gap-1.5">
+              <Avatar src={playerAvatar} fallback="★" className="h-5 w-5" />
+              <span className="truncate font-semibold text-player">{playerName}</span>
+            </span>
+          )}
           <span className="flex flex-shrink-0 items-center gap-1.5">
             {combatActive && <span className="text-[10px] font-bold text-player/80 tabular-nums">×{playerMultiplier.toFixed(1)}</span>}
             <span className="font-bold text-player tabular-nums">{player.shown}</span>
@@ -65,6 +83,7 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
             {combatActive && <span className="text-[10px] font-bold text-enemy/80 tabular-nums">×{enemyMultiplier.toFixed(1)}</span>}
           </span>
           <span className="flex min-w-0 items-center gap-1.5">
+            {opponentMuted && <span className="flex-shrink-0 text-[9px] tracking-[0.08em] text-white/50">MUET</span>}
             {enemyName && <span className="truncate font-semibold text-enemy">{enemyName}</span>}
             <Avatar src={enemyAvatarSrc} fallback={enemyAvatarFallback} className="h-5 w-5" />
           </span>

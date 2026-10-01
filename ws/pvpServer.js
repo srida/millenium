@@ -11,6 +11,7 @@ const queue = require('./MatchmakingQueue');
 const challengeQueue = require('./ChallengeQueue');
 const relay = require('./MatchRelay');
 const botMatch = require('./BotMatch');
+const emotes = require('./emotes');
 
 const WS_PATH = '/ws/pvp';
 
@@ -97,6 +98,7 @@ function attachPvpWebSocketServer(httpServer) {
       challengeQueue.handleDisconnectWhileWaiting(ws.userId);
       relay.handleDisconnect(ws.userId);
       botMatch.handleDisconnect(ws.userId);
+      emotes.forget(ws.userId);
     });
   });
 
@@ -164,6 +166,15 @@ function handleMessage(ws, msg) {
     case 'match:report_result':
       relay.handleReportResult(msg.matchId, ws.userId, msg.localWinner);
       break;
+    // Messages rapides. ⚠️ Un `case` dédié AVANT le `default`, pas un détail :
+    // le relais par défaut transmettrait n'importe quel payload tel quel. On ne
+    // relaie ici qu'un id de la liste blanche, à cadence bornée, dans un
+    // message reconstruit (`type` + `emoteId` seulement).
+    case 'emote:send':
+      if (emotes.accept(ws.userId, msg.emoteId)) {
+        relay.relayMessage(msg.matchId, ws.userId, { type: 'emote:send', matchId: msg.matchId, emoteId: msg.emoteId });
+      }
+      break;
     // Tous les autres messages (round:board_ready, round:terrain_pick,
     // round:combat_start_ack, round:combat_result, round:next_ready) sont de
     // simples relais entre les 2 joueurs du match — aucune interprétation
@@ -174,4 +185,5 @@ function handleMessage(ws, msg) {
   }
 }
 
-module.exports = { attachPvpWebSocketServer };
+// `handleMessage` n'est exporté que pour les tests (le routage se vérifie sans socket).
+module.exports = { attachPvpWebSocketServer, handleMessage };

@@ -28,6 +28,8 @@ const require = createRequire(import.meta.url);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
 let relay: any;
+let pvpServer: any;
+let emotesMod: any;
 let stmt: any;
 let progression: any;
 
@@ -81,6 +83,8 @@ beforeAll(() => {
   ({ stmt } = require(path.join(ROOT, 'db.js')));
   progression = require(path.join(ROOT, 'progression.js'));
   relay = require(path.join(ROOT, 'ws', 'MatchRelay.js'));
+  pvpServer = require(path.join(ROOT, 'ws', 'pvpServer.js'));
+  emotesMod = require(path.join(ROOT, 'ws', 'emotes.js'));
 });
 
 let A: string, B: string, wsA: any, wsB: any, matchId: string;
@@ -425,5 +429,70 @@ describe('échéance de la barrière', () => {
     vi.advanceTimersByTime(BARRIER_MS * 3);
     expect(wsA.last('match:end')).toBeNull();
     expect(stmt.matchById.get(matchId).status).toBe('active');
+  });
+});
+
+// ── Messages rapides ───────────────────────────────────────────────────────
+//
+// Le relais par défaut transmet n'importe quel payload tel quel : les messages
+// rapides ne doivent JAMAIS y passer. Un `case` dédié filtre l'id (liste
+// blanche), borne la cadence par joueur et reconstruit le message.
+describe('messages rapides (emote:send)', () => {
+  const T0 = 1_000_000;
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(T0);
+    emotesMod.forget(A);
+    emotesMod.forget(B);
+  });
+  afterEach(() => { vi.useRealTimers(); });
+
+  const send = (ws: any, userId: string, extra: any = {}) =>
+    pvpServer.handleMessage({ ...ws, userId }, { type: 'emote:send', matchId, emoteId: 'gg', ...extra });
+  const received = (ws: any) => ws.sent.filter((m: any) => m.type === 'emote:send');
+
+  it('relaye un id connu à l\'adversaire seulement, dans un message reconstruit', () => {
+    send(wsA, A, { evil: 'payload', round: 99 });
+    expect(received(wsA)).toHaveLength(0);
+    expect(received(wsB)).toEqual([{ type: 'emote:send', matchId, emoteId: 'gg' }]);
+  });
+
+  it('ignore un id hors liste blanche', () => {
+    send(wsA, A, { emoteId: 'insulte' });
+    send(wsA, A, { emoteId: undefined });
+    send(wsA, A, { emoteId: { toString: () => 'gg' } });
+    expect(received(wsB)).toHaveLength(0);
+  });
+
+  it('borne la cadence par joueur : trop tôt = ignoré, puis à nouveau accepté', () => {
+    send(wsA, A);
+    vi.setSystemTime(T0 + 1000);
+    send(wsA, A);
+    expect(received(wsB)).toHaveLength(1);
+    vi.setSystemTime(T0 + 2600);
+    send(wsA, A);
+    expect(received(wsB)).toHaveLength(2);
+  });
+
+  it('un message refusé n\'avance pas l\'horloge', () => {
+    send(wsA, A);
+    vi.setSystemTime(T0 + 2000);
+    send(wsA, A);                       // refusé, à 2,0 s
+    vi.setSystemTime(T0 + 2600);
+    send(wsA, A);                       // 2,6 s après le DERNIER ACCEPTÉ
+    expect(received(wsB)).toHaveLength(2);
+  });
+
+  it('la cadence est propre à chaque joueur', () => {
+    send(wsA, A);
+    send(wsB, B);
+    expect(received(wsB)).toHaveLength(1);
+    expect(received(wsA)).toHaveLength(1);
+  });
+
+  it('un joueur étranger au match ne relaie rien', () => {
+    const intrus = newUser('intrus');
+    send(wsA, intrus);
+    expect(received(wsB)).toHaveLength(0);
   });
 });

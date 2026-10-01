@@ -46,8 +46,13 @@ const buffered = new Map(); // type -> payload[]
  * partie parfaitement saine s'ouvrait sur « Connexion perdue », bannière que
  * rien ne venait effacer et qui masquait ensuite tout retour d'invocation.
  * Une socket morte n'a rien à raconter à celle qui la remplace.
+ *
+ * `emote:send` suit la même règle, pour une autre raison : un message rapide
+ * est un geste du MOMENT. Mis en attente faute d'écouteur (avant l'abonnement
+ * de l'écran, ou après une reconnexion), il ressortirait à retardement —
+ * une bulle « GG ! » affichée plusieurs secondes après avoir été envoyée.
  */
-const TRANSIENT = new Set(['_socket_closed']);
+const TRANSIENT = new Set(['_socket_closed', 'emote:send']);
 
 function dispatch(type, payload) {
   const set = listeners.get(type);

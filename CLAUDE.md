@@ -1648,6 +1648,18 @@ Verrouillé par `client/src/test/pvp.test.ts`.
 - `OnlineLobby` force `DeckRepository.flushSync()` **avant** `queue:join` : la synchro est debouncée à 500 ms.
 - Sur `match:found`, le lobby **présente l'adversaire** (avatar + pseudo + tag, overlay plein écran) pendant `MATCH_REVEAL_MS` (3 s) avant de naviguer — `MatchRelay.handleReady` n'a pas de chrono, les deux clients peuvent donc tenir cette pause chacun de leur côté. ⚠️ L'overlay **couvre le `◂`** à dessein : le match existe déjà côté serveur, quitter pendant la présentation le laisserait orphelin. Le décompte affiché ne pilote rien — le départ est tenu par le `setTimeout`, **annulé au démontage** (sinon un retour navigateur ferait naviguer l'écran suivant).
 
+## Messages rapides (`game/emotes.ts`, `ws/emotes.js`)
+
+Duel en ligne seulement : toucher son avatar (HUD) ouvre un panneau de 7 messages ; seul l'**id** voyage (`emote:send`), le texte se résout côté client. Case manga sous l'avatar de l'émetteur, 2,4 s, remplacée sans file d'attente.
+
+- ⚠️ **`case 'emote:send'` dédié dans `pvpServer.handleMessage`, avant le `default`** : le relais par défaut transmet le payload brut. Il vérifie la liste blanche, borne la cadence par joueur (2,5 s, sous les 3 s du client) et **reconstruit** le message (`type` + `emoteId`). Un message refusé n'avance pas l'horloge.
+- ⚠️ `ws/emotes.js` (`EMOTE_IDS`) est le **jumeau** de `game/emotes.ts` ; `emotes.test.ts` est le seul filet contre la dérive.
+- ⚠️ `emote:send` est dans `PvpConnection.TRANSIENT` : jamais mis en tampon, sinon une bulle ressort au premier `on()` venu.
+- État dans `stores/emoteStore.ts` (minuteurs au niveau du module, `attach`/`detach` par `GameScreenPvp`). « Masquer » vaut pour le match et se remet à zéro au `detach`.
+- **Duel bot** : le serveur ignore le message ; `BotController` observe `emoteStore.me` et répond via `receive` (60 %, 1,5–3 s, table `botReplyTo`) — donc le « Masquer » du joueur la retient aussi.
+- La zone tactile est dans `Hud` (`onPlayerTap`, 44 px) ; les cases sont `pointer-events: none` (z 26, panneau 29). ⚠️ Les overlays modaux (`z-40`) la recouvrent : pas de message pendant le Shopping ni l'attente adverse.
+- Cases en CSS pur (`styles/emotes.css`, clip-path). Polices Comic Neue + Dela Gothic One via Google Fonts (`index.html`).
+
 ## Log de combat par tick — outil de diagnostic temporaire
 
 `client/src/game/CombatRecorder.ts` + `pvplog.js` + `routes/admin-pvplog.js` + onglet 🔬 Logs PvP. Enregistre chaque combat PvP **des deux côtés**, tick par tick, et met les deux vues face à face en nommant la **première** différence (`diff` : `header` → `order` → `state` → `events` → `length` → `epilogue`, avec le champ fautif **nommé**).

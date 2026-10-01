@@ -21,6 +21,8 @@ import { useGameStore } from '../stores/gameStore.js';
 import UiIcon from '../components/ui/UiIcon.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
+import { useEmoteStore } from '../stores/emoteStore.js';
+import EmoteLayer from '../components/emotes/EmoteLayer.js';
 import Board3DCanvas from '../components/board/Board3DCanvas.js';
 import UnitCounterBadge from '../components/board/UnitCounterBadge.js';
 import Hud from '../components/hud/Hud.js';
@@ -77,6 +79,9 @@ export default function GameScreenPvp() {
       : new PvpController(session, pvpDeps(), role, opponent);
     setControllerLocal(ctrl);
     setController(ctrl);
+    // Messages rapides : abonnés pour toute la durée du duel (bot compris — la
+    // réponse du bot passe par le même store).
+    useEmoteStore.getState().attach();
     // ⚠️ `ctrl.begin()` PAS ici : c'est l'`onDone` de `DuelIntro` qui le
     // déclenche (cf. plus bas dans le rendu) — même règle que le solo
     // (`GameScreen`), la partie démarre À LA FIN de l'annonce, pas dessous.
@@ -89,6 +94,7 @@ export default function GameScreenPvp() {
     // barrière.
     return () => {
       ctrl.dispose();
+      useEmoteStore.getState().detach();
       setController(null);
       reset();
       // Ne fermer la socket PvP (singleton) QUE si on quitte réellement l'écran.
@@ -113,6 +119,7 @@ export default function GameScreenPvp() {
       <Board3DCanvas controller={controller} />
       <UnitCounterBadge />
       <HudWithOpponent opponentAvatar={opponentAvatar} />
+      <EmoteLayer opponentName={opponentName ?? 'Adversaire'} opponentAvatar={opponentAvatar} />
       <DuelIntro
         enemyAvatarSrc={opponentAvatar}
         enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
@@ -200,6 +207,7 @@ function HudWithOpponent({ opponentAvatar }: { opponentAvatar: string | null }) 
   const opponentName = useGameStore(s => s.pvpOpponent);
   return (
     <Hud
+      onPlayerTap={useEmoteStore.getState().toggleOpen}
       enemyAvatarSrc={opponentAvatar}
       enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
       enemyName={opponentName}

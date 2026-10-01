@@ -20,6 +20,8 @@ import { GameController } from './GameController.js';
 import { GameSession, Phase } from '../logic/GameSession.js';
 import * as PvpConnection from '../net/PvpConnection.js';
 import { useAuthStore } from '../stores/authStore.js';
+import { useEmoteStore } from '../stores/emoteStore.js';
+import { botReplyTo } from './emotes.js';
 
 /**
  * Latence de « PRÊT » de l'adversaire, tirée à chaque round.
@@ -61,6 +63,8 @@ export class BotController extends GameController {
   private _finished = false;
   private _endTimer: ReturnType<typeof setTimeout> | null = null;
   private _resolved = false;
+  private _emoteUnsub: (() => void) | null = null;
+  private _emoteTimers = new Set<ReturnType<typeof setTimeout>>();
 
   constructor(session: GameSession, opponentName: string) {
     super(session);
@@ -77,6 +81,7 @@ export class BotController extends GameController {
     this._listen('_socket_closed', () => this._flashError('Connexion perdue'));
     super.begin();
     this._armReady();
+    this._armEmoteReplies();
     this.sync({ pvpOpponent: this.opponentName });
   }
 
@@ -200,7 +205,30 @@ export class BotController extends GameController {
     this._listeners.push([type, fn]);
   }
 
+  // ── Messages rapides ──────────────────────────────────────────────────────
+  // Le serveur ne relaie rien dans un duel bot (le message tombe dans le
+  // `default` de pvpServer) : c'est ici que l'adversaire a l'air de réagir.
+  // On observe l'affichage du message du JOUEUR (`me`), et non son envoi — un
+  // seul point d'entrée. La réponse passe par `receive`, donc le « Masquer »
+  // du joueur la retient comme celle d'un humain.
+  private _armEmoteReplies(): void {
+    this._emoteUnsub = useEmoteStore.subscribe((s, prev) => {
+      if (!s.me || s.me.key === prev.me?.key) return;
+      const reply = botReplyTo(s.me.emoteId);
+      if (!reply) return;
+      const t = setTimeout(() => {
+        this._emoteTimers.delete(t);
+        if (!this._finished) useEmoteStore.getState().receive(reply.emoteId);
+      }, reply.delayMs);
+      this._emoteTimers.add(t);
+    });
+  }
+
   dispose(): void {
+    this._emoteUnsub?.();
+    this._emoteUnsub = null;
+    for (const t of this._emoteTimers) clearTimeout(t);
+    this._emoteTimers.clear();
     if (this._waitTimer) { clearTimeout(this._waitTimer); this._waitTimer = null; }
     this._clearEndTimer();
     for (const [type, fn] of this._listeners) (PvpConnection as any).off(type, fn);

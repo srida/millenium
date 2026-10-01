@@ -174,3 +174,24 @@ describe('PvpConnection — envoi', () => {
     vi.useRealTimers();
   });
 });
+
+describe('PvpConnection — messages rapides', () => {
+  // Un message rapide est un geste du MOMENT : mis en tampon faute d'écouteur
+  // (avant l'abonnement de l'écran), il ressortirait au premier `on()` venu —
+  // une bulle affichée longtemps après avoir été envoyée.
+  it('un emote:send reçu sans écouteur n\'est PAS rejoué à l\'abonnement', async () => {
+    const { C, sock } = await connected();
+    sock.deliver({ type: 'emote:send', matchId: 'm1', emoteId: 'gg' });
+    const seen: any[] = [];
+    C.on('emote:send', (m: any) => seen.push(m));
+    expect(seen).toEqual([]);
+  });
+
+  it('abonné, il est livré', async () => {
+    const { C, sock } = await connected();
+    const seen: any[] = [];
+    C.on('emote:send', (m: any) => seen.push(m));
+    sock.deliver({ type: 'emote:send', matchId: 'm1', emoteId: 'gg' });
+    expect(seen.map(m => m.emoteId)).toEqual(['gg']);
+  });
+});

@@ -1,0 +1,338 @@
+/* Messages rapides du Duel en ligne — bulles de manga et cases (cf.
+   game/emotes.ts, components/emotes/).
+
+   Tout est en CSS (clip-path + dégradés), sans image. ⚠️ Si le rendu coûte
+   trop cher au combat, le repli prévu est d'exporter chaque case en image ;
+   la structure (portrait + bulle en DOM par-dessus un fond) le permet. */
+
+.emote-layer {
+  /* Haut de la zone d'ancrage : sous la rangée de PV, zone sûre comprise. */
+  --emote-top: calc(max(0.5rem, env(safe-area-inset-top)) + 38px);
+  --emote-inset-x: 0.5rem;
+  --emote-ink: #0b0b0d;
+  --emote-cream: #f4f1ea;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* Même décalage que le HUD en mode web (px-22). */
+.emote-layer--web { --emote-inset-x: 5.5rem; }
+
+/* ── Bulle (MangaBubble) ─────────────────────────────────────────────────── */
+.mb {
+  --mb-size: 20px;
+  --mb-tilt: 0deg;
+  position: relative;
+  display: inline-block;
+  font-family: 'Comic Neue', 'Comic Sans MS', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--emote-ink, #0b0b0d);
+  line-height: 1.02;
+  font-size: var(--mb-size);
+  transform: rotate(var(--mb-tilt));
+}
+.mb-body {
+  position: relative;
+  background: #fff;
+  border: 3px solid #0b0b0d;
+  border-radius: 50%;
+  padding: 0.6em 1.05em 0.5em;
+  letter-spacing: 0.01em;
+  text-align: center;
+  max-width: 8.5em;
+  font-size: 0.82em;
+  line-height: 1.15;
+  /* Seules les coupures écrites dans le catalogue s'appliquent. */
+  white-space: pre;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+.mb--think .mb-body {
+  border-radius: 46% 54% 50% 50% / 60% 55% 45% 40%;
+  padding-inline: 1.15em;
+}
+.mb-burst {
+  position: relative;
+  display: inline-block;
+  padding: 1.25em 2.1em;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+  --mb-star: polygon(50.0% 3.0%,59.1% 10.0%,71.7% 5.0%,75.6% 17.9%,86.7% 20.7%,86.9% 32.2%,98.7% 38.9%,91.0% 50.0%,95.8% 60.5%,86.9% 67.8%,89.1% 81.2%,75.6% 82.1%,70.4% 92.3%,59.1% 90.0%,50.0% 100.0%,40.9% 90.0%,29.6% 92.3%,24.4% 82.1%,10.9% 81.2%,13.1% 67.8%,4.2% 60.5%,9.0% 50.0%,1.3% 38.9%,13.1% 32.2%,13.3% 20.7%,24.4% 17.9%,28.3% 5.0%,40.9% 10.0%);
+}
+.mb-burst-edge,
+.mb-burst-fill { position: absolute; clip-path: var(--mb-star); }
+.mb-burst-edge { inset: 0; background: #0b0b0d; }
+.mb-burst-fill {
+  inset: 4px;
+  background:
+    radial-gradient(circle at 35% 35%, #fff 0 42%, rgba(255, 255, 255, 0) 78%),
+    radial-gradient(rgba(0, 0, 0, 0.32) 1px, transparent 1.6px) 0 0 / 5px 5px,
+    #fff;
+}
+.mb-burst-text {
+  position: relative;
+  text-align: center;
+  max-width: 6.5em;
+  font-style: italic;
+  font-size: 1.05em;
+  white-space: pre;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+/* ── Panneau de choix ────────────────────────────────────────────────────── */
+.emote-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 28;
+  pointer-events: auto;
+}
+.emote-panel {
+  position: absolute;
+  top: calc(var(--emote-top) + 4px);
+  left: var(--emote-inset-x);
+  width: min(318px, calc(100% - 1rem));
+  z-index: 29;
+  box-sizing: border-box;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 97, 0.4);
+  background: rgba(15, 17, 23, 0.97);
+  padding: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  transform-origin: 20px 0;
+  animation: emote-pick-in 160ms ease-out both;
+  pointer-events: auto;
+}
+.emote-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.emote-pick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 58px;
+  padding: 6px 2px;
+  border-radius: 8px;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface-raised);
+  touch-action: manipulation;
+}
+.emote-pick--wide { grid-column: span 3; }
+.emote-pick .mb { --mb-size: 12px; max-width: 100%; }
+/* Dans la grille, la bulle s'adapte à sa cellule au lieu de déborder (un
+   bouton rogne ce qui dépasse) : « BONNE CHANCE ! » est le plus long. */
+.emote-pick .mb-body { max-width: none; padding-inline: 0.6em; letter-spacing: 0; font-size: 0.78em; }
+/* Inclinaisons : de quoi casser l'alignement, sans signification. */
+.emote-pick:nth-child(7n + 1) .mb { --mb-tilt: -3deg; }
+.emote-pick:nth-child(7n + 2) .mb { --mb-tilt: 2deg; }
+.emote-pick:nth-child(7n + 3) .mb { --mb-tilt: -1deg; }
+.emote-pick:nth-child(7n + 4) .mb { --mb-tilt: 3deg; }
+.emote-pick:nth-child(7n + 5) .mb { --mb-tilt: -2deg; }
+.emote-pick:nth-child(7n + 6) .mb { --mb-tilt: 1deg; }
+.emote-pick:nth-child(7n) .mb { --mb-tilt: -3deg; }
+.emote-cooldown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(15, 17, 23, 0.78);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+.emote-toggle {
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  border-radius: 9999px;
+  background: var(--color-line);
+}
+.emote-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.7);
+}
+.emote-toggle[data-on='true'] { background: var(--color-gold); }
+.emote-toggle[data-on='true']::after { left: auto; right: 2px; background: var(--color-surface); }
+
+/* ── Cases ───────────────────────────────────────────────────────────────── */
+.emote-case {
+  position: absolute;
+  top: var(--emote-top);
+  width: 340px;
+  height: 330px;
+  z-index: 26;
+  pointer-events: none;
+  --emote-color: var(--color-player);
+}
+.emote-case--me { left: calc(var(--emote-inset-x) - 18px); }
+/* L'adversaire : la même case, en miroir. Le texte, lui, est re-retourné par
+   `.emote-flip` pour rester lisible. */
+.emote-case--opponent {
+  right: calc(var(--emote-inset-x) - 18px);
+  transform: scaleX(-1);
+  --emote-color: var(--color-enemy);
+}
+.emote-case--opponent .emote-flip { transform: scaleX(-1); }
+.emote-flip { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+.emote-sheet {
+  position: absolute;
+  transform-origin: 30% 0;
+  animation: emote-slam 2400ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.55));
+}
+.ly { position: absolute; inset: 0; }
+
+.emote-who {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.emote-portrait {
+  width: var(--emote-portrait, 96px);
+  height: var(--emote-portrait, 96px);
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 3px solid #0b0b0d;
+  background: var(--color-surface-raised);
+  color: #fff;
+  font-size: calc(var(--emote-portrait, 96px) * 0.3);
+  font-weight: 600;
+}
+.emote-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'Comic Neue', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: #fff;
+  background: #0b0b0d;
+  padding: 2px 8px;
+  transform: rotate(var(--emote-name-tilt, -2deg));
+}
+.emote-bubble { position: absolute; }
+.emote-sfx { position: absolute; z-index: 2; }
+.emote-sfx-text {
+  display: block;
+  font-family: 'Dela Gothic One', sans-serif;
+  font-size: 40px;
+  line-height: 1;
+  white-space: nowrap;
+  color: #fff;
+  -webkit-text-stroke: 3px #0b0b0d;
+  paint-order: stroke fill;
+  text-shadow: 4px 4px 0 var(--emote-color);
+  transform: rotate(var(--emote-sfx-tilt, 6deg));
+}
+
+/* 3a — case haute en trame (salutations) */
+.emote-3a { left: 70px; top: 40px; width: 200px; height: 250px; --emote-portrait: 104px; }
+.emote-3a .poly { clip-path: polygon(0 4%, 86% 0, 100% 28%, 92% 100%, 5% 94%); }
+.emote-3a .poly-in {
+  clip-path: polygon(5px calc(4% + 5px), calc(86% - 3px) 5px, calc(100% - 6px) 28%, calc(92% - 5px) calc(100% - 6px), calc(5% + 5px) calc(94% - 5px));
+}
+.emote-3a .edge { background: #0b0b0d; }
+.emote-3a .paper { background: #fff; }
+.emote-3a .dots {
+  background: radial-gradient(rgba(11, 11, 13, 0.55) 1.6px, transparent 2.2px) 0 0 / 7px 7px;
+  -webkit-mask: linear-gradient(to top, #000 0%, transparent 65%);
+  mask: linear-gradient(to top, #000 0%, transparent 65%);
+}
+.emote-3a .emote-who { left: 50%; bottom: 34px; transform: translateX(-50%); }
+.emote-3a .emote-bubble { top: -22px; left: -46px; --mb-size: 21px; --mb-tilt: -3deg; }
+
+/* 3b — case d'ombre (cris) */
+.emote-3b { left: 24px; top: 70px; width: 290px; height: 200px; --emote-name-tilt: 3deg; }
+.emote-3b .poly { clip-path: polygon(0 10%, 72% 0, 82% 14%, 75% 24%, 92% 34%, 83% 47%, 100% 60%, 87% 71%, 95% 100%, 0 88%); }
+.emote-3b .rim { inset: -5px; background: var(--emote-cream); }
+.emote-3b .night {
+  background:
+    repeating-linear-gradient(0deg, rgba(244, 241, 234, 0.85) 0 1px, transparent 1px 7px, rgba(244, 241, 234, 0.4) 7px 8px, transparent 8px 13px),
+    #0b0b0d;
+}
+.emote-3b .halo { background: radial-gradient(ellipse 34% 60% at 24% 56%, #0b0b0d 0 55%, rgba(11, 11, 13, 0) 100%); }
+.emote-3b .emote-who { left: 22px; bottom: 26px; }
+.emote-3b .emote-portrait { border-color: var(--emote-cream); box-shadow: 0 0 0 3px #0b0b0d; }
+.emote-3b .emote-name { color: #0b0b0d; background: #fff; }
+.emote-3b .emote-bubble { top: -26px; right: 24px; --mb-size: 24px; --mb-tilt: -6deg; }
+.emote-3b .emote-sfx { right: -6px; bottom: -22px; }
+
+/* 3d — case brisée (douleur) */
+.emote-3d { left: 30px; top: 50px; width: 280px; height: 240px; --emote-portrait: 92px; --emote-name-tilt: -5deg; }
+.emote-3d .shard { position: absolute; inset: 0; }
+.emote-3d .shard-edge { position: absolute; inset: -4px; background: #0b0b0d; }
+.emote-3d .shard-fill {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 40% 62%, #fff 0 16%, rgba(255, 255, 255, 0) 17%),
+    repeating-conic-gradient(from 10deg at 40% 62%, #fff 0 6deg, #b9b9bf 6deg 26deg);
+}
+.emote-3d .shard--a { transform: translate(-6px, -6px) rotate(-2deg); }
+.emote-3d .shard--b { transform: translate(8px, -4px) rotate(2deg); }
+.emote-3d .shard--c { transform: translate(0, 6px); }
+.emote-3d .shard--a .shard-edge, .emote-3d .shard--a .shard-fill { clip-path: polygon(4% 3%, 64% 0, 46% 46%, 0 58%); }
+.emote-3d .shard--b .shard-edge, .emote-3d .shard--b .shard-fill { clip-path: polygon(66% 0, 98% 5%, 100% 52%, 49% 47%); }
+.emote-3d .shard--c .shard-edge, .emote-3d .shard--c .shard-fill { clip-path: polygon(0 61%, 47% 50%, 100% 55%, 93% 100%, 3% 97%); }
+.emote-3d .emote-who { left: 66px; bottom: 30px; transform: rotate(-3deg); }
+.emote-3d .emote-bubble { top: -24px; right: -16px; --mb-size: 24px; --mb-tilt: 6deg; }
+.emote-3d .emote-sfx { left: -18px; top: -14px; --emote-sfx-tilt: -8deg; }
+
+/* 3e — case souvenir (pensées) */
+.emote-3e { left: 40px; top: 56px; width: 260px; height: 220px; --emote-portrait: 84px; --emote-name-tilt: 0deg; }
+.emote-3e .smudge {
+  position: absolute;
+  inset: -14px;
+  border-radius: 46% 54% 42% 58% / 52% 44% 56% 48%;
+  background: #0b0b0d;
+  filter: blur(6px);
+}
+.emote-3e .memory {
+  position: absolute;
+  inset: 6px;
+  border-radius: 42% 58% 46% 54% / 56% 42% 58% 44%;
+  background: radial-gradient(ellipse at 50% 55%, #fff 0 46%, #d9d9de 70%, #0b0b0d 100%);
+}
+.emote-3e .emote-who { left: 50%; top: 54%; transform: translate(-50%, -50%); opacity: 0.92; }
+.emote-3e .emote-portrait { filter: grayscale(1); }
+.emote-3e .emote-bubble { top: -26px; right: -24px; --mb-size: 20px; --mb-tilt: 2deg; }
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes emote-slam {
+  0%   { opacity: 0; transform: scale(1.35) rotate(-4deg); }
+  10%  { opacity: 1; transform: scale(0.97) rotate(-1.5deg); }
+  16%  { transform: scale(1.02) rotate(-2deg); }
+  22%  { transform: scale(1) rotate(-2deg); }
+  85%  { opacity: 1; transform: scale(1) rotate(-2deg); }
+  100% { opacity: 0; transform: translateY(-8px) scale(0.98) rotate(-2deg); }
+}
+@keyframes emote-fade {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes emote-pick-in {
+  0%   { opacity: 0; transform: translateY(-8px) scale(0.94); }
+  100% { opacity: 1; transform: none; }
+}
+/* On retire le mouvement, pas l'information : la case s'affiche et s'efface en fondu. */
+@media (prefers-reduced-motion: reduce) {
+  .emote-sheet { animation-name: emote-fade; animation-timing-function: linear; }
+  .emote-panel { animation: none; }
+}
