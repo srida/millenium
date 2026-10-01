@@ -3790,7 +3790,7 @@ function _effectFieldOptions(champ, valeur) {
     // ⚠️ `choix_direct` : les options voyagent DANS le descripteur, parce
     // qu'elles dépendent du type (les moments qu'il sait honorer) et non d'un
     // catalogue. Les recopier ici en ferait une seconde liste à tenir d'accord.
-    return vide + champ.options.map(([v, l]) => opt(v, l, valeur === v)).join('');
+    return vide + champ.options.map(([v, l]) => opt(v, l, String(valeur) === String(v))).join('');
   }
   switch (champ.options) {
     case 'stats':
@@ -4027,7 +4027,11 @@ function readEffectFromForm(porteur, prefixe, precedent) {
       // tout le catalogue. C'est la pollution qu'on a retirée à l'ancien
       // éditeur, pas une à réintroduire.
       if (champ.omettreSiDefaut && brut === champ.defaut) continue;
-      out[champ.id] = champ.options === 'tiers' ? parseInt(brut, 10) : brut;
+      // ⚠️ Les options numériques (`rarity`: 1/2/3) s'écrivent en NOMBRE : le moteur
+      // compare en strict (`rarityOf(m) !== g.rarity`), un « "3" » ne matche jamais.
+      const numerique = champ.options === 'tiers'
+        || (Array.isArray(champ.options) && champ.options.length && champ.options.every(([v]) => typeof v === 'number'));
+      out[champ.id] = numerique ? parseInt(brut, 10) : brut;
       continue;
     }
     if (brut === '' && champ.facultatif) continue;

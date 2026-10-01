@@ -261,7 +261,7 @@ export function hasGuaranteedMagieCriteria(g: GuaranteedMagie | null | undefined
  * le modèle exact de `matchesGuaranteedDraw({ ignoreTier })`.
  */
 function _matchesGuaranteedMagie(m: Magie, g: GuaranteedMagie, { ignoreRarity = false } = {}): boolean {
-  if (!ignoreRarity && g.rarity && rarityOf(m) !== g.rarity) return false;
+  if (!ignoreRarity && g.rarity && rarityOf(m) !== Number(g.rarity)) return false;
   if (g.magie_id && m.id !== g.magie_id) return false;
   return true;
 }
