@@ -91,7 +91,7 @@ export default function CardCatalogGrid({
     ];
     if (rankOf) {
       extra.push({
-        key: 'obtention', aliases: ['obtenue', 'acquisition'], label: 'Ordre d\'obtention',
+        key: 'obtention', aliases: ['obtenue', 'acquisition'], label: 'Date d\'obtention',
         type: 'number', get: (c: Card) => rankOf(c.id),
       });
     }
@@ -131,7 +131,7 @@ export default function CardCatalogGrid({
             </Chip>
           ))}
           <SortControl
-            schema={schema} value={sort} onChange={setSort}
+            schema={schema} value={sort} onChange={setSort} pinFirst="obtention"
             className="ml-auto" labelClassName="max-w-[4.5rem] truncate"
           />
           <OwnershipToggle value={ownership} onChange={setOwnership} />
