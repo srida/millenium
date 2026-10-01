@@ -1323,7 +1323,7 @@ export class GameController {
       playerMultiplier: gs.player_multiplier,
       enemyMultiplier: gs.enemy_multiplier,
       boardSlots: gs.player_board_slots,
-      placedCount: this.session.getPlayerUnits().length,
+      placedCount: this.session.getPlayerUnits().filter(u => !u.is_token).length,
       canUndo: gs.phase === Phase.PREPARATION
         && this._committedPrepId !== this.session.prepId
         && this.session.canUndoPreparation(),
