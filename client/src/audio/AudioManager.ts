@@ -186,6 +186,7 @@ function getAudioCtx(): AudioContext | null {
       // n'explique la coupure côté app — seul filet pour cette classe
       // d'interruption, propre au mobile et particulièrement au mode PWA.
       audioCtx.addEventListener?.('statechange', onCtxStateChange);
+      resetProbe(audioCtx);
     } catch { return null; }
   }
   return audioCtx;
@@ -214,18 +215,54 @@ function onCtxStateChange(): void {
   if (!audioCtx) return;
   if (audioCtx.state === 'running') {
     stuckSince = null;
+    resetProbe(audioCtx);
     if (musicHeldForCtx) {
       musicHeldForCtx = false;
       if (current && !backgroundPaused) current.el.play().catch(() => { /* unlock() retentera au prochain geste */ });
     }
     return;
   }
+  probe = null;
   if (backgroundPaused) return;
   if (current?.gain && !current.el.paused) {
     current.el.pause();
     musicHeldForCtx = true;
   }
   if (needsResume(audioCtx)) audioCtx.resume().catch(() => {});
+}
+
+// ================== Sonde de vie du contexte ==================
+
+/**
+ * ⚠️ **`state === 'running'` ne prouve PAS que le contexte joue.** Constaté
+ * sur iOS au retour d'une appli qui a pris la session audio (Instagram) : le
+ * contexte se déclare en lecture, mais son horloge (`currentTime`) est
+ * FIGÉE. Rien ne sort, chaque `start(0)` se met en file, et le jour où l'OS
+ * rend la session, toute la file part d'un coup. Seule l'horloge dit la
+ * vérité : on la compare au temps réel.
+ */
+let probe: { ctxTime: number; wall: number } | null = null;
+let stalled = false;
+/** En dessous, deux mesures sont trop proches pour conclure. */
+const PROBE_MIN_MS = 250;
+
+function resetProbe(ctx: AudioContext | null): void {
+  probe = ctx ? { ctxTime: ctx.currentTime, wall: Date.now() } : null;
+  stalled = false;
+}
+
+/** Vrai si le contexte se dit en lecture mais que son horloge n'avance pas
+ *  (au moins deux fois moins vite que le temps réel). Mesure paresseuse :
+ *  rendue par les appels eux-mêmes (`playSfx`, `unlock`), sans minuteur. */
+function isStalled(ctx: AudioContext): boolean {
+  if (ctx.state !== 'running') return false;
+  const wall = Date.now();
+  if (!probe) { probe = { ctxTime: ctx.currentTime, wall }; return stalled; }
+  const elapsed = wall - probe.wall;
+  if (elapsed < PROBE_MIN_MS) return stalled;
+  stalled = (ctx.currentTime - probe.ctxTime) * 1000 < elapsed * 0.5;
+  probe = { ctxTime: ctx.currentTime, wall };
+  return stalled;
 }
 
 let decodeCtx: OfflineAudioContext | null = null;
@@ -400,7 +437,7 @@ export function playSfx(trigger: string, variant?: SfxVariant): void {
   // coup — une partie entière de sons en une seconde. Un bruitage manqué ne
   // se rattrape pas, il se perd. Le repli élément est routé dans le même
   // contexte : même règle.
-  if (ctx && ctx.state !== 'running') {
+  if (ctx && (ctx.state !== 'running' || isStalled(ctx))) {
     if (needsResume(ctx) && !backgroundPaused) ctx.resume().catch(() => {});
     return;
   }
@@ -512,10 +549,13 @@ function applyMusicVolume(): void {
  */
 export function unlock(): void {
   let ctx = getAudioCtx();
-  if (needsResume(ctx)) {
+  if (ctx && isStalled(ctx) && canRebuild()) {
+    // Figé alors qu'il se dit en lecture : `resume()` n'y peut rien.
+    ctx = rebuildAudioCtx();
+  } else if (needsResume(ctx)) {
     const now = Date.now();
     if (stuckSince === null) stuckSince = now;
-    else if (now - stuckSince >= STUCK_CTX_REBUILD_MS) ctx = rebuildAudioCtx();
+    else if (now - stuckSince >= STUCK_CTX_REBUILD_MS && canRebuild()) ctx = rebuildAudioCtx();
     if (needsResume(ctx)) ctx.resume().catch(() => {});
   }
   if (typeof Audio === 'undefined') return;
@@ -527,6 +567,15 @@ export function unlock(): void {
 let stuckSince: number | null = null;
 /** Au-delà, un geste qui trouve encore le contexte à l'arrêt le RECRÉE. */
 const STUCK_CTX_REBUILD_MS = 1000;
+/** Au plus une recréation par fenêtre : si l'OS garde la session ailleurs, le
+ *  contexte neuf peut naître figé lui aussi — chaque tap ne doit pas en
+ *  recréer un. */
+const REBUILD_MIN_INTERVAL_MS = 2000;
+let lastRebuildAt = -Infinity;
+
+function canRebuild(): boolean {
+  return Date.now() - lastRebuildAt >= REBUILD_MIN_INTERVAL_MS;
+}
 
 /**
  * ⚠️ **Un contexte peut ne JAMAIS repartir.** Constaté sur iOS au retour d'un
@@ -546,6 +595,7 @@ function rebuildAudioCtx(): AudioContext | null {
   audioCtx = null;
   sfxGain = null;
   stuckSince = null;
+  lastRebuildAt = Date.now();
   musicHeldForCtx = false;
   if (old) {
     old.removeEventListener?.('statechange', onCtxStateChange);
@@ -558,6 +608,7 @@ function rebuildAudioCtx(): AudioContext | null {
   deferredPauses.clear();
 
   const ctx = getAudioCtx();
+  if (needsResume(ctx)) ctx.resume().catch(() => {});
   if (current) {
     const stale = current;
     const fresh = createRoutedAudio(stale.el.src);

@@ -55,6 +55,12 @@ class FakeAudioContext {
   state = 'running';
   destination = {};
   listeners: Record<string, Array<() => void>> = {};
+  // L'horloge avance avec le temps réel (`Date.now()`, simulé par les faux
+  // minuteurs), sauf après `freeze()` : le contexte figé d'iOS, qui se dit
+  // `running` sans que rien ne sorte.
+  private frozenAt: number | null = null;
+  get currentTime() { return this.frozenAt ?? Date.now() / 1000; }
+  freeze() { this.frozenAt = Date.now() / 1000; }
   resumeCalls = 0;
   constructor() { audioCtxInstances++; setLastAudioCtx(this); }
   addEventListener(type: string, fn: () => void) { (this.listeners[type] ??= []).push(fn); }
@@ -426,5 +432,76 @@ describe('AudioManager — retour d\'arrière-plan avec un contexte qui ne repar
     } finally { vi.useRealTimers(); }
     expect(lastAudioCtx).toBe(ctx);
     expect(ctx.closed).toBe(false);
+  });
+});
+
+describe('AudioManager — contexte « running » mais figé (retour d\'Instagram)', () => {
+  async function inGame() {
+    const Audio = await import('../audio/AudioManager.js');
+    await Audio.preloadSfxAsync();
+    vi.useFakeTimers();
+    Audio.unlock();
+    Audio.setMusicTheme('menu');
+    const track = createdAudioEls[createdAudioEls.length - 1];
+    return { Audio, track, ctx: lastAudioCtx! };
+  }
+
+  it('un contexte figé ne reçoit plus aucun bruitage', async () => {
+    try {
+      const { Audio, ctx } = await inGame();
+      ctx.freeze();
+      vi.advanceTimersByTime(1000);
+      const before = startedSources.length;
+      Audio.playSfx('ready');
+      Audio.playSfx('ready');
+      expect(ctx.state).toBe('running');
+      expect(startedSources.length).toBe(before);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('un contexte figé est recréé au geste suivant, musique comprise', async () => {
+    try {
+      const { Audio, track, ctx } = await inGame();
+      ctx.freeze();
+      vi.advanceTimersByTime(1000);
+      Audio.unlock();
+      expect(ctx.closed).toBe(true);
+      expect(lastAudioCtx).not.toBe(ctx);
+      const fresh = createdAudioEls[createdAudioEls.length - 1];
+      expect(fresh).not.toBe(track);
+      expect(fresh.paused).toBe(false);
+      const before = startedSources.length;
+      Audio.playSfx('ready');
+      expect(startedSources.length).toBe(before + 1);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('un contexte sain n\'est jamais pris pour figé, même après une longue pause', async () => {
+    try {
+      const { Audio, ctx } = await inGame();
+      vi.advanceTimersByTime(120_000);
+      Audio.unlock();
+      const before = startedSources.length;
+      Audio.playSfx('ready');
+      expect(lastAudioCtx).toBe(ctx);
+      expect(startedSources.length).toBe(before + 1);
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('une recréation par fenêtre au plus, si le contexte neuf naît figé lui aussi', async () => {
+    try {
+      const { Audio, ctx } = await inGame();
+      ctx.freeze();
+      vi.advanceTimersByTime(1000);
+      Audio.unlock();
+      const second = lastAudioCtx!;
+      second.freeze();
+      vi.advanceTimersByTime(500);
+      Audio.unlock();
+      expect(lastAudioCtx).toBe(second);
+      vi.advanceTimersByTime(2000);
+      Audio.unlock();
+      expect(lastAudioCtx).not.toBe(second);
+    } finally { vi.useRealTimers(); }
   });
 });
