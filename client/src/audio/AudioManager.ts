@@ -31,10 +31,11 @@
 // une lecture quasi instantanée. `createRoutedAudio` (l'ancien chemin, un
 // `<audio>` par lecture) reste le REPLI pour un son pas encore préchargé —
 // jamais silencieux, seulement plus lent le temps que le cache se remplisse.
-// La MUSIQUE, elle, reste sur ce chemin élément : des pistes qui bouclent
-// plusieurs minutes coûteraient bien plus cher décodées entières en mémoire
-// qu'en flux, et un changement d'emplacement est rare (par round, pas par
-// attaque) — le coût d'un `fetch` n'y est structurellement pas sensible.
+// La MUSIQUE est décodée elle aussi (`MusicTrack`), mais piste par piste, au
+// moment où elle démarre, et une seule à la fois en mémoire : un `<audio>`
+// branché au contexte (`createMediaElementSource`) faisait parfois ACCÉLÉRER
+// la musique sur iOS, quelques secondes, le temps de rattraper un retard pris
+// dans le branchement — cf. `MusicTrack`.
 //
 // ⚠️ `preloadSfxAsync` (avec sa progression) est ATTENDU par l'écran de
 // chargement (`App.tsx`) AVANT que le menu ne s'affiche — c'est aussi ce qui
@@ -192,42 +193,19 @@ function getAudioCtx(): AudioContext | null {
   return audioCtx;
 }
 
-/** Vrai quand la piste a été mise en pause PARCE QUE le contexte a cessé de
- *  tourner — seul ce cas se relance tout seul au retour de `'running'`. */
-let musicHeldForCtx = false;
-
-/**
- * ⚠️ **La musique suit l'état du contexte, et pas seulement pour la reprise.**
- * La piste est un `<audio>` branché dans le contexte (`createMediaElementSource`).
- * Quand l'OS interrompt le contexte (iOS : `'interrupted'`, sans aucun
- * `visibilitychange`), l'ÉLÉMENT, lui, continue d'avancer : ce qu'il produit
- * s'accumule dans le tampon du branchement, que personne ne lit. À la
- * reprise, ce retard est rattrapé d'un coup — la musique s'ACCÉLÈRE quelques
- * secondes puis retombe sur le bon tempo. On met donc la piste en pause dès
- * que le contexte cesse de tourner, et on la relance quand il repart : rien
- * ne s'accumule.
- *
- * Une piste non branchée (`gain: null`, repli `.volume`) ne passe pas par le
- * contexte et n'est pas concernée. Une coupure due à `suspendForBackground`
- * n'arme pas `musicHeldForCtx` : `resumeFromBackground` s'en charge.
- */
+/** Relance un contexte qui cesse de tourner sans que l'app l'ait voulu
+ *  (interruption iOS, sans `visibilitychange`). La musique n'a rien à faire :
+ *  jouée depuis un buffer, elle s'arrête et repart AVEC l'horloge du
+ *  contexte, sans rien accumuler. */
 function onCtxStateChange(): void {
   if (!audioCtx) return;
   if (audioCtx.state === 'running') {
     stuckSince = null;
     resetProbe(audioCtx);
-    if (musicHeldForCtx) {
-      musicHeldForCtx = false;
-      if (current && !backgroundPaused) current.el.play().catch(() => { /* unlock() retentera au prochain geste */ });
-    }
     return;
   }
   probe = null;
   if (backgroundPaused) return;
-  if (current?.gain && !current.el.paused) {
-    current.el.pause();
-    musicHeldForCtx = true;
-  }
   if (needsResume(audioCtx)) audioCtx.resume().catch(() => {});
 }
 
@@ -300,8 +278,8 @@ interface RoutedAudio {
 
 /**
  * Crée un `<audio>` et le route à travers un `GainNode` fraîchement créé —
- * c'est la primitive commune aux effets sonores (un élément par lecture) et
- * à la musique (un élément par piste). `el.volume` est laissé à 1 dès que le
+ * c'est le REPLI des effets sonores pas encore préchargés (un élément par
+ * lecture). La musique n'y passe plus (cf. `MusicTrack`). `el.volume` est laissé à 1 dès que le
  * `GainNode` a pris la main : c'est LUI qui porte le volume, un `.volume`
  * résiduel ne ferait qu'atténuer deux fois sur les plateformes où il compte.
  */
@@ -514,7 +492,7 @@ function retainUntilDone(el: HTMLAudioElement): void {
 // ================== Musique ==================
 
 let currentTheme: string | null = null;
-let current: RoutedAudio | null = null;
+let current: MusicTrack | null = null;
 /** Le thème de PARTIE verrouillé pour le match en cours — tiré une fois par
  *  `rollGameTheme()`, jamais rejoué à chaque round. */
 let lockedGameTheme: string | null = null;
@@ -525,7 +503,149 @@ function effectiveMusicVolume(): number {
 }
 
 function applyMusicVolume(): void {
-  if (current) setRoutedVolume(current, effectiveMusicVolume());
+  current?.setVolume(effectiveMusicVolume());
+}
+
+/**
+ * Une piste de musique, DÉCODÉE en entier puis jouée en boucle par un
+ * `AudioBufferSourceNode` — jamais par un `<audio>` branché au contexte.
+ *
+ * ⚠️ **Pourquoi pas un `<audio>` :** branché par `createMediaElementSource`
+ * (indispensable pour le volume sur iOS, qui ignore `.volume`), l'élément
+ * avance sur sa propre horloge et remplit un tampon que le contexte vide sur
+ * la sienne. Quand les deux se décalent, iOS rattrape le retard d'un coup :
+ * la musique ACCÉLÈRE quelques secondes puis retombe sur le bon tempo, sans
+ * aucune interruption pour l'expliquer. Une source de buffer n'a qu'une
+ * horloge, celle du contexte : rien à rattraper.
+ *
+ * Prix : la piste décodée occupe ~20 Mo par minute (PCM 44,1 kHz stéréo) —
+ * d'où une seule piste en mémoire (`dispose()` libère la précédente) et un
+ * décodage au démarrage plutôt qu'au chargement de l'appli, avec ~0,5–1 s
+ * de délai avant le premier son. Le fondu d'entrée attend ce démarrage
+ * (`whenStarted`), sinon il se jouerait dans le vide.
+ *
+ * Décodée par `getDecodeCtx()` (aucune politique d'autoplay) ; un buffer
+ * reste lisible sur n'importe quel contexte, donc une recréation du contexte
+ * (`rebind`) reprend la piste à sa position sans la redécoder.
+ */
+class MusicTrack {
+  private buffer: AudioBuffer | null = null;
+  private gain: GainNode | null = null;
+  private gainCtx: AudioContext | null = null;
+  private source: AudioBufferSourceNode | null = null;
+  /** `currentTime` du contexte qui correspond à la position 0 de la piste. */
+  private startedAt = 0;
+  /** Position (s) retenue quand la piste ne joue pas. */
+  private offset = 0;
+  private volume = 0;
+  private wantPlaying = false;
+  private disposed = false;
+  private onStart: (() => void) | null = null;
+
+  constructor(readonly url: string) {
+    void this.load();
+  }
+
+  private async load(): Promise<void> {
+    const ctx = getDecodeCtx();
+    if (!ctx) return;
+    try {
+      const res = await fetch(this.url);
+      if (!res.ok) return;
+      const buffer = await ctx.decodeAudioData(await res.arrayBuffer());
+      if (this.disposed) return;
+      this.buffer = buffer;
+      this.startIfWanted();
+    } catch { /* piste muette : jamais une erreur qui remonte */ }
+  }
+
+  get paused(): boolean {
+    return !this.wantPlaying;
+  }
+
+  play(): void {
+    this.wantPlaying = true;
+    this.startIfWanted();
+  }
+
+  pause(): void {
+    if (this.source) {
+      this.offset = this.position();
+      this.stopSource();
+    }
+    this.wantPlaying = false;
+  }
+
+  setVolume(v: number): void {
+    this.volume = clamp01(v);
+    if (this.gain) this.gain.gain.value = this.volume;
+  }
+
+  /** `cb` au premier son réellement planifié (tout de suite s'il l'est déjà). */
+  whenStarted(cb: () => void): void {
+    if (this.source) cb();
+    else this.onStart = cb;
+  }
+
+  /** Le contexte a été recréé : tout ce qui était branché sur l'ancien est
+   *  perdu, le buffer non. Reprend à la même position. */
+  rebind(): void {
+    if (this.source) this.offset = this.position();
+    this.stopSource();
+    this.gain = null;
+    this.gainCtx = null;
+    this.startIfWanted();
+  }
+
+  dispose(): void {
+    this.disposed = true;
+    this.onStart = null;
+    this.pause();
+    try { this.gain?.disconnect(); } catch { /* déjà détaché */ }
+    this.gain = null;
+    this.buffer = null;
+  }
+
+  private position(): number {
+    const ctx = this.gainCtx;
+    const d = this.buffer?.duration ?? 0;
+    if (!this.source || !ctx || d <= 0) return this.offset;
+    return (((ctx.currentTime - this.startedAt) % d) + d) % d;
+  }
+
+  private stopSource(): void {
+    const src = this.source;
+    this.source = null;
+    if (!src) return;
+    try { src.stop(); } catch { /* jamais démarrée ou déjà arrêtée */ }
+    try { src.disconnect(); } catch { /* déjà détachée */ }
+  }
+
+  private startIfWanted(): void {
+    if (!this.wantPlaying || this.source || !this.buffer || this.disposed) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    try {
+      if (!this.gain || this.gainCtx !== ctx) {
+        this.gain = ctx.createGain();
+        this.gain.connect(ctx.destination);
+        this.gainCtx = ctx;
+      }
+      this.gain.gain.value = this.volume;
+      const src = ctx.createBufferSource();
+      src.buffer = this.buffer;
+      src.loop = true;
+      src.connect(this.gain);
+      const d = this.buffer.duration;
+      const at = d > 0 ? this.offset % d : 0;
+      src.start(0, at);
+      this.startedAt = ctx.currentTime - at;
+      this.source = src;
+    } catch { return; }
+    const cb = this.onStart;
+    this.onStart = null;
+    cb?.();
+  }
 }
 
 /**
@@ -534,18 +654,14 @@ function applyMusicVolume(): void {
  * bloquée jusque-là par les navigateurs.
  *
  * ⚠️ Résume aussi l'`AudioContext` : il naît `suspended` tant qu'aucun geste
- * ne l'a débloqué (même contrainte que la lecture elle-même), et un élément
- * routé à travers lui reste MUET tant qu'il n'a pas repris — `resume()` est
- * retenté à CHAQUE appel, jamais une seule fois.
+ * ne l'a débloqué, et tout ce qui le traverse (musique comme bruitages)
+ * reste MUET tant qu'il n'a pas repris — `resume()` est retenté à CHAQUE
+ * appel, jamais une seule fois. C'est aussi ici, dans le geste, qu'un
+ * contexte bloqué ou figé est recréé (`rebuildAudioCtx`).
  *
- * ⚠️ Le rattrapage d'une piste restée en pause (`current.el.paused`) tourne
- * lui aussi À CHAQUE appel, PAS seulement au premier — `unlocked` ne garde
- * que la mémoire du fait qu'un geste a déjà eu lieu, il ne doit RIEN empêcher
- * de rejouer. C'est ce filet qui rattrape un premier `play()` resté muet sur
- * Safari mobile : le tap d'entrée utilise `onClick` (le seul geste que
- * `<audio>.play()` y reconnaît de façon fiable), mais si jamais CE play()
- * précis échouait quand même, le tout PROCHAIN clic ailleurs dans l'appli
- * (n'importe quel bouton de menu) le retente ici.
+ * Relance enfin une piste restée en pause hors arrière-plan — filet, rien
+ * de plus : une piste décodée n'est pas soumise à l'autoplay, seul le
+ * contexte l'est.
  */
 export function unlock(): void {
   let ctx = getAudioCtx();
@@ -558,8 +674,7 @@ export function unlock(): void {
     else if (now - stuckSince >= STUCK_CTX_REBUILD_MS && canRebuild()) ctx = rebuildAudioCtx();
     if (needsResume(ctx)) ctx.resume().catch(() => {});
   }
-  if (typeof Audio === 'undefined') return;
-  if (current?.el.paused) current.el.play().catch(() => { /* toujours refusé : tant pis, silencieux */ });
+  if (current?.paused && !backgroundPaused) current.play();
 }
 
 /** Depuis quand un GESTE a trouvé le contexte à l'arrêt sans qu'il reparte —
@@ -587,8 +702,8 @@ function canRebuild(): boolean {
  * L'ancien est FERMÉ avant (deux contextes vivants font changer la fréquence
  * matérielle sur iOS, cf. `getAudioCtx`). Tout ce qui y était branché est
  * perdu : le gain des bruitages se recrée à la demande, les bruitages en vol
- * sont abandonnés, et la piste en cours est recréée sur un élément neuf, à la
- * même position — un `<audio>` ne se branche qu'à UN contexte, à vie.
+ * sont abandonnés, et la piste en cours est rebranchée (`MusicTrack.rebind`), à la
+ * même position, sans être redécodée.
  */
 function rebuildAudioCtx(): AudioContext | null {
   const old = audioCtx;
@@ -596,7 +711,6 @@ function rebuildAudioCtx(): AudioContext | null {
   sfxGain = null;
   stuckSince = null;
   lastRebuildAt = Date.now();
-  musicHeldForCtx = false;
   if (old) {
     old.removeEventListener?.('statechange', onCtxStateChange);
     old.close?.().catch(() => {});
@@ -604,20 +718,14 @@ function rebuildAudioCtx(): AudioContext | null {
   activeSfxSources.clear();
   for (const el of routedSfxKeepAlive) el.pause();
   routedSfxKeepAlive.clear();
-  for (const el of deferredPauses) el.pause();
+  for (const track of deferredPauses) track.dispose();
   deferredPauses.clear();
 
   const ctx = getAudioCtx();
   if (needsResume(ctx)) ctx.resume().catch(() => {});
   if (current) {
-    const stale = current;
-    const fresh = createRoutedAudio(stale.el.src);
-    fresh.el.loop = stale.el.loop;
-    try { fresh.el.currentTime = stale.el.currentTime; } catch { /* repart du début */ }
-    setRoutedVolume(fresh, effectiveMusicVolume());
-    stale.el.pause();
-    current = fresh;
-    if (!backgroundPaused) fresh.el.play().catch(() => { /* unlock() retentera */ });
+    current.rebind();
+    if (!backgroundPaused) current.play();
   }
   return ctx;
 }
@@ -651,11 +759,10 @@ let backgroundPaused = false;
  */
 export function suspendForBackground(): void {
   backgroundPaused = true;
-  musicHeldForCtx = false;
   if (audioCtx?.state === 'running') audioCtx.suspend().catch(() => {});
-  if (current && !current.el.paused) current.el.pause();
+  current?.pause();
   // Une piste muette en attente de pause n'a rien à faire en fond.
-  for (const el of deferredPauses) el.pause();
+  for (const track of deferredPauses) track.dispose();
   deferredPauses.clear();
 }
 
@@ -668,7 +775,7 @@ export function resumeFromBackground(): void {
   // l'élément — sans le reprendre, ni la piste ni un `playSfx` à venir ne
   // produiraient le moindre son, bien qu'en lecture apparente.
   if (needsResume(audioCtx)) audioCtx.resume().catch(() => {});
-  if (current) current.el.play().catch(() => { /* toujours refusé : tant pis, silencieux */ });
+  current?.play();
 }
 
 /**
@@ -730,24 +837,26 @@ export function currentMusicTheme(): string | null {
  * qui porte les bruitages : un son long en cours (`duel_start`, `match_win`,
  * `match_lose` — tous joués juste avant un `setMusicTheme(null)`) était coupé
  * net 900 ms plus tard, à la fin du fondu. La piste reste donc en lecture, à
- * volume nul, tant qu'un bruitage est en vol.
+ * volume nul, tant qu'un bruitage est en vol. La musique n'est plus un
+ * élément média depuis `MusicTrack`, mais la règle est gardée : elle ne
+ * coûte rien et c'est elle qui a fait disparaître ces coupures.
  */
-const deferredPauses = new Set<HTMLAudioElement>();
+const deferredPauses = new Set<MusicTrack>();
 /** Filet si un `ended` ne vient jamais (contexte resté suspendu) : une piste
  *  muette ne doit pas tourner indéfiniment. */
 const DEFERRED_PAUSE_MAX_MS = 10_000;
 
-function pauseWhenSfxIdle(el: HTMLAudioElement): void {
-  if (!sfxPlaying()) { el.pause(); return; }
-  deferredPauses.add(el);
+function pauseWhenSfxIdle(track: MusicTrack): void {
+  if (!sfxPlaying()) { track.dispose(); return; }
+  deferredPauses.add(track);
   setTimeout(() => {
-    if (deferredPauses.delete(el)) el.pause();
+    if (deferredPauses.delete(track)) track.dispose();
   }, DEFERRED_PAUSE_MAX_MS);
 }
 
 function releaseDeferredPauses(): void {
   if (sfxPlaying() || !deferredPauses.size) return;
-  for (const el of deferredPauses) el.pause();
+  for (const track of deferredPauses) track.dispose();
   deferredPauses.clear();
 }
 
@@ -756,7 +865,7 @@ function fadeOutCurrent(): void {
   current = null;
   if (!outgoing) return;
   const startVolume = effectiveMusicVolume();
-  runFade((t) => setRoutedVolume(outgoing, startVolume * (1 - t)), () => pauseWhenSfxIdle(outgoing.el));
+  runFade((t) => outgoing.setVolume(startVolume * (1 - t)), () => pauseWhenSfxIdle(outgoing));
 }
 
 /**
@@ -772,22 +881,25 @@ function crossfadeTo(id: string): void {
   current = null;
   if (!outgoing) { startIncoming(id); return; }
   const startVolume = effectiveMusicVolume();
-  runFade((t) => setRoutedVolume(outgoing, startVolume * (1 - t)), () => {
-    outgoing.el.pause();
+  runFade((t) => outgoing.setVolume(startVolume * (1 - t)), () => {
+    outgoing.dispose();
     startIncoming(id);
   });
 }
 
 function startIncoming(id: string): void {
-  const incoming = createRoutedAudio(musicUrl(id));
-  incoming.el.loop = true;
-  setRoutedVolume(incoming, 0);
+  const incoming = new MusicTrack(musicUrl(id));
+  incoming.setVolume(0);
   current = incoming;
-  // Refusé tant qu'aucun geste utilisateur n'a eu lieu — `unlock()` relance
-  // alors l'élément resté en pause, sans qu'on ait à s'en soucier ici.
-  incoming.el.play().catch(() => { /* silencieux, cf. unlock() */ });
-  const target = effectiveMusicVolume();
-  runFade((t) => setRoutedVolume(incoming, target * t));
+  incoming.play();
+  // Le fondu part au premier son, pas tout de suite : le décodage prend un
+  // instant, et un fondu fini avant lui ferait démarrer la piste à plein
+  // volume, d'un coup.
+  incoming.whenStarted(() => {
+    if (current !== incoming) return;
+    const target = effectiveMusicVolume();
+    runFade((t) => { if (current === incoming) incoming.setVolume(target * t); });
+  });
 }
 
 /**

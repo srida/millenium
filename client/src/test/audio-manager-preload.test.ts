@@ -34,17 +34,31 @@ vi.mock('../data/MusicDatabase.js', () => ({
 class FakeGainNode {
   gain = { value: 1 };
   connect() { return this; }
+  disconnect() { /* rien à vérifier ici */ }
 }
 // Chaque source démarrée est gardée : un test peut ainsi simuler la FIN
 // d'un bruitage (`onended`), dont dépend la pause différée de la musique.
+// La MUSIQUE est elle aussi une source de buffer, reconnaissable à `loop`.
 let startedSources: FakeBufferSourceNode[] = [];
 class FakeBufferSourceNode {
   buffer: unknown = null;
+  loop = false;
   onended: (() => void) | null = null;
+  stopped = false;
+  startOffset = 0;
   connect() { /* rien à vérifier ici */ }
-  start() { startedSources.push(this); }
+  disconnect() { /* rien à vérifier ici */ }
+  start(...args: number[]) { this.startOffset = args[1] ?? 0; startedSources.push(this); }
+  stop() { this.stopped = true; }
   finish() { this.onended?.(); }
 }
+const sfxCount = () => startedSources.filter(src => !src.loop).length;
+const musicSources = () => startedSources.filter(src => src.loop);
+/** La source de musique qui joue, s'il y en a une. */
+const playingMusic = () => musicSources().filter(src => !src.stopped).at(-1) ?? null;
+/** Laisse passer fetch + décodage de la piste (des promesses en chaîne) —
+ *  marche aussi sous faux minuteurs, contrairement à `flush`. */
+const settle = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
 let lastAudioCtx: FakeAudioContext | null = null;
 const setLastAudioCtx = (ctx: FakeAudioContext) => { lastAudioCtx = ctx; };
 // Le contexte de LECTURE réel — ne doit être instancié qu'APRÈS un geste
@@ -56,26 +70,44 @@ class FakeAudioContext {
   destination = {};
   listeners: Record<string, Array<() => void>> = {};
   // L'horloge avance avec le temps réel (`Date.now()`, simulé par les faux
-  // minuteurs), sauf après `freeze()` : le contexte figé d'iOS, qui se dit
+  // minuteurs) tant que le contexte tourne, s'arrête quand il est suspendu,
+  // et ne repart plus après `freeze()` : le contexte figé d'iOS, qui se dit
   // `running` sans que rien ne sorte.
-  private frozenAt: number | null = null;
-  get currentTime() { return this.frozenAt ?? Date.now() / 1000; }
-  freeze() { this.frozenAt = Date.now() / 1000; }
+  private clockMs = 0;
+  private runningSince: number | null = Date.now();
+  private frozen = false;
+  get currentTime() {
+    const live = this.runningSince !== null ? Date.now() - this.runningSince : 0;
+    return (this.clockMs + live) / 1000;
+  }
+  private stopClock() {
+    if (this.runningSince === null) return;
+    this.clockMs += Date.now() - this.runningSince;
+    this.runningSince = null;
+  }
+  private startClock() {
+    if (this.runningSince === null && !this.frozen) this.runningSince = Date.now();
+  }
+  freeze() { this.stopClock(); this.frozen = true; }
   resumeCalls = 0;
   constructor() { audioCtxInstances++; setLastAudioCtx(this); }
   addEventListener(type: string, fn: () => void) { (this.listeners[type] ??= []).push(fn); }
   /** Simule un changement d'état imposé par l'OS (iOS : `'interrupted'`). */
-  setStateFromOs(state: string) { this.state = state; this.listeners.statechange?.forEach(fn => fn()); }
+  setStateFromOs(state: string) {
+    this.state = state;
+    if (state === 'running') this.startClock(); else this.stopClock();
+    this.listeners.statechange?.forEach(fn => fn());
+  }
   createGain() { return new FakeGainNode(); }
   createBufferSource() { return new FakeBufferSourceNode(); }
   createMediaElementSource() { return { connect() { return this; } }; }
-  decodeAudioData() { return Promise.resolve({ duration: 1 }); }
+  decodeAudioData() { return Promise.resolve({ duration: 120 }); }
   // Asynchrone et suivi d'un `statechange`, comme le vrai `resume()`.
   resume() {
     this.resumeCalls++;
     return Promise.resolve().then(() => this.setStateFromOs('running'));
   }
-  suspend() { this.state = 'suspended'; return Promise.resolve(); }
+  suspend() { this.state = 'suspended'; this.stopClock(); return Promise.resolve(); }
   closed = false;
   close() { this.closed = true; this.state = 'closed'; return Promise.resolve(); }
   removeEventListener(type: string, fn: () => void) {
@@ -89,7 +121,7 @@ class FakeAudioContext {
 let decodeCtxInstances = 0;
 class FakeOfflineAudioContext {
   constructor() { decodeCtxInstances++; }
-  decodeAudioData() { return Promise.resolve({ duration: 1 }); }
+  decodeAudioData() { return Promise.resolve({ duration: 120 }); }
 }
 
 // Un faux `<audio>` qui suit son état de lecture — c'est CE qu'on vérifie
@@ -193,108 +225,128 @@ describe('AudioManager — préchargement des effets sonores', () => {
   });
 });
 
-describe('AudioManager — pause en arrière-plan', () => {
-  it('suspendForBackground met la piste en PAUSE sans toucher au thème verrouillé', async () => {
+describe('AudioManager — la musique est une piste DÉCODÉE, jamais un <audio>', () => {
+  // Un <audio> branché au contexte faisait accélérer la musique sur iOS, le
+  // temps de rattraper un retard pris dans le branchement.
+  it('setMusicTheme joue la piste depuis un buffer en boucle, sans aucun élément <audio>', async () => {
     const Audio = await import('../audio/AudioManager.js');
+    Audio.unlock();
     Audio.setMusicTheme('menu');
-    await flush();
-    const track = createdAudioEls[createdAudioEls.length - 1];
-    expect(track.paused).toBe(false);
+    await settle();
+    expect(fetchCalls).toContain('/audio/MUSIC_MENU');
+    expect(playingMusic()).not.toBeNull();
+    expect(createdAudioEls).toEqual([]);
+  });
 
+  it('une seule piste vit à la fois : la sortante est arrêtée avant que l\'entrante parte', async () => {
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.unlock();
+    Audio.setMusicTheme('menu');
+    await settle();
+    const first = playingMusic()!;
+    vi.useFakeTimers();
+    try {
+      Audio.setMusicTheme('menu', { force: true });
+      vi.advanceTimersByTime(1000);
+      await settle();
+    } finally { vi.useRealTimers(); }
+    expect(first.stopped).toBe(true);
+    expect(musicSources().filter(src => !src.stopped)).toHaveLength(1);
+  });
+});
+
+describe('AudioManager — pause en arrière-plan', () => {
+  async function menuPlaying() {
+    const Audio = await import('../audio/AudioManager.js');
+    Audio.unlock();
+    Audio.setMusicTheme('menu');
+    await settle();
+    expect(playingMusic()).not.toBeNull();
+    return Audio;
+  }
+
+  it('suspendForBackground arrête la piste sans toucher au thème', async () => {
+    const Audio = await menuPlaying();
     Audio.suspendForBackground();
-    expect(track.paused).toBe(true);
-    // `setMusicTheme('menu')` de nouveau ne doit RIEN relancer : c'est
-    // toujours le même thème en cours, la coupure n'y a pas touché.
+    expect(playingMusic()).toBeNull();
     Audio.setMusicTheme('menu');
     expect(Audio.currentMusicTheme()).toBe('menu');
   });
 
-  it('resumeFromBackground relance la MÊME piste après un suspendForBackground', async () => {
-    const Audio = await import('../audio/AudioManager.js');
-    Audio.setMusicTheme('menu');
-    await flush();
-    const track = createdAudioEls[createdAudioEls.length - 1];
-
-    Audio.suspendForBackground();
-    expect(track.paused).toBe(true);
-    Audio.resumeFromBackground();
-    expect(track.paused).toBe(false);
+  it('resumeFromBackground relance la piste à la position où elle s\'était arrêtée', async () => {
+    const Audio = await menuPlaying();
+    vi.useFakeTimers();
+    try {
+      vi.advanceTimersByTime(30_000);
+      Audio.suspendForBackground();
+      Audio.resumeFromBackground();
+    } finally { vi.useRealTimers(); }
+    const resumed = playingMusic()!;
+    expect(resumed).not.toBeNull();
+    expect(resumed.startOffset).toBeCloseTo(30, 0);
   });
 
   it('resumeFromBackground est un NO-OP si rien n\'a été suspendu par lui', async () => {
-    const Audio = await import('../audio/AudioManager.js');
-    Audio.setMusicTheme('menu');
-    await flush();
-    const track = createdAudioEls[createdAudioEls.length - 1];
-    track.pause(); // coupure MANUELLE (le joueur a coupé le son), pas via suspendForBackground
-
+    const Audio = await menuPlaying();
+    const before = musicSources().length;
     Audio.resumeFromBackground();
-    // Ne doit PAS relancer une piste que le joueur a coupée lui-même — seul
-    // un `suspendForBackground()` préalable autorise la reprise.
-    expect(track.paused).toBe(true);
+    expect(musicSources().length).toBe(before);
   });
 
   it('un aller-retour en arrière-plan SANS musique en cours suspend et reprend quand même le contexte, pour les bruitages', async () => {
-    // Le cas de partie : entre deux rounds (ou après `setMusicTheme(null)`
-    // en fin de match), aucune piste ne joue. Un `suspendForBackground()`
-    // survenant à ce moment-là doit quand même suspendre/reprendre le
-    // contexte Web Audio — sinon `playSfx` reste silencieux (le contexte
-    // resterait `suspended`) jusqu'à ce qu'un vrai `click` (jamais produit
-    // par les gestes `pointerdown` du board) vienne le débloquer par accident.
+    // Fin de combat, écran de résultat : aucune piste ne joue, et les
+    // bruitages ne doivent pas rester muets après l'aller-retour.
     const Audio = await import('../audio/AudioManager.js');
     Audio.preloadSfx();
     await flush();
-    // Force la création du contexte de lecture réel, comme le ferait le
-    // premier son joué en partie.
     Audio.playSfx('ready');
-
     Audio.suspendForBackground();
-    // Rien à mettre en pause (aucune musique), mais le contexte lui doit
-    // avoir basculé `suspended`.
     Audio.resumeFromBackground();
-
-    // Aucune exception, et surtout aucun repli sur le chemin élément (donc
-    // aucun fetch) : le son rejoué passe bien par le buffer déjà décodé,
-    // preuve que le contexte est redevenu utilisable après le cycle.
+    await flush();
     fetchCalls = [];
+    const before = sfxCount();
     expect(() => Audio.playSfx('ready')).not.toThrow();
     expect(fetchCalls).toEqual([]);
+    expect(sfxCount()).toBe(before + 1);
   });
 });
 
 describe('AudioManager — bruitage long pendant l\'arrêt de la musique (iOS)', () => {
   // `duel_start`, `match_win` et `match_lose` partent juste avant un
-  // `setMusicTheme(null)` : la pause de la piste, 900 ms plus tard, pouvait
-  // désactiver la session audio iOS et couper le bruitage en plein vol.
+  // `setMusicTheme(null)` : l'arrêt de la piste, 900 ms plus tard, coupait
+  // le bruitage en plein vol.
   async function menuThenSfx() {
     const Audio = await import('../audio/AudioManager.js');
     await Audio.preloadSfxAsync();
+    Audio.unlock();
     Audio.setMusicTheme('menu');
-    const track = createdAudioEls[createdAudioEls.length - 1];
+    await settle();
+    const track = playingMusic()!;
     Audio.playSfx('ready');
-    return { Audio, track };
+    const sfx = startedSources.filter(src => !src.loop).at(-1)!;
+    return { Audio, track, sfx };
   }
 
-  it('la piste descendue au silence n\'est PAS mise en pause tant qu\'un bruitage joue', async () => {
-    const { Audio, track } = await menuThenSfx();
+  it('la piste descendue au silence n\'est PAS arrêtée tant qu\'un bruitage joue', async () => {
+    const { Audio, track, sfx } = await menuThenSfx();
     vi.useFakeTimers();
     try {
       Audio.setMusicTheme(null);
       vi.advanceTimersByTime(2000);
-      expect(track.paused).toBe(false);
-      startedSources[0].finish();
-      expect(track.paused).toBe(true);
+      expect(track.stopped).toBe(false);
+      sfx.finish();
+      expect(track.stopped).toBe(true);
     } finally { vi.useRealTimers(); }
   });
 
-  it('sans bruitage en vol, la piste est mise en pause à la fin du fondu', async () => {
-    const { Audio, track } = await menuThenSfx();
-    startedSources[0].finish();
+  it('sans bruitage en vol, la piste est arrêtée à la fin du fondu', async () => {
+    const { Audio, track, sfx } = await menuThenSfx();
+    sfx.finish();
     vi.useFakeTimers();
     try {
       Audio.setMusicTheme(null);
       vi.advanceTimersByTime(1000);
-      expect(track.paused).toBe(true);
+      expect(track.stopped).toBe(true);
     } finally { vi.useRealTimers(); }
   });
 
@@ -304,7 +356,7 @@ describe('AudioManager — bruitage long pendant l\'arrêt de la musique (iOS)',
     try {
       Audio.setMusicTheme(null);
       vi.advanceTimersByTime(12_000);
-      expect(track.paused).toBe(true);
+      expect(track.stopped).toBe(true);
     } finally { vi.useRealTimers(); }
   });
 
@@ -326,97 +378,56 @@ describe('AudioManager — bruitage long pendant l\'arrêt de la musique (iOS)',
   });
 });
 
-describe('AudioManager — la musique suit l\'état du contexte (accélération iOS)', () => {
-  // Contexte interrompu par l'OS, élément qui continue d'avancer : le retard
-  // accumulé était rattrapé d'un coup à la reprise — la musique s'accélérait.
-  async function menuPlaying() {
-    const Audio = await import('../audio/AudioManager.js');
-    Audio.unlock();
-    Audio.setMusicTheme('menu');
-    const track = createdAudioEls[createdAudioEls.length - 1];
-    expect(track.paused).toBe(false);
-    return { Audio, track, ctx: lastAudioCtx! };
-  }
-
-  it('la piste est mise en pause pendant l\'interruption, puis relancée à la reprise', async () => {
-    const { track, ctx } = await menuPlaying();
-    ctx.setStateFromOs('interrupted');
-    expect(track.paused).toBe(true);
-    await flush();
-    expect(ctx.state).toBe('running');
-    expect(track.paused).toBe(false);
-  });
-
-  it('une pause en arrière-plan n\'est PAS relancée par la reprise du contexte', async () => {
-    const { Audio, track, ctx } = await menuPlaying();
-    Audio.suspendForBackground();
-    ctx.setStateFromOs('running');
-    expect(track.paused).toBe(true);
-  });
-
-  it('une musique coupée pendant l\'interruption n\'est pas ressuscitée', async () => {
-    const { Audio, track, ctx } = await menuPlaying();
-    ctx.state = 'interrupted';
-    ctx.listeners.statechange?.forEach(fn => fn());
-    Audio.setMusicTheme(null);
-    await flush();
-    expect(track.paused).toBe(true);
-  });
-});
-
 describe('AudioManager — retour d\'arrière-plan avec un contexte qui ne repart pas', () => {
   async function inGame() {
     const Audio = await import('../audio/AudioManager.js');
     await Audio.preloadSfxAsync();
     Audio.unlock();
     Audio.setMusicTheme('menu');
-    const track = createdAudioEls[createdAudioEls.length - 1];
-    return { Audio, track, ctx: lastAudioCtx! };
+    await settle();
+    return { Audio, track: playingMusic()!, ctx: lastAudioCtx! };
   }
 
   it('aucun bruitage n\'est mis en file sur un contexte à l\'arrêt (pas de rafale à la reprise)', async () => {
     const { Audio, ctx } = await inGame();
     ctx.breakResume();
     ctx.state = 'interrupted';
-    const before = startedSources.length;
+    const before = sfxCount();
     Audio.playSfx('ready');
     Audio.playSfx('ready');
     Audio.playSfx('ready');
-    expect(startedSources.length).toBe(before);
+    expect(sfxCount()).toBe(before);
     // Pas de repli élément non plus : il est routé dans le même contexte.
-    expect(createdAudioEls.length).toBe(1);
+    expect(createdAudioEls).toEqual([]);
   });
 
-  it('un contexte bloqué est RECRÉÉ au geste suivant, et la musique reprend sur un élément neuf', async () => {
-    const { Audio, track, ctx } = await inGame();
-    track.currentTime = 42;
-    ctx.breakResume();
-    Audio.suspendForBackground();
-    Audio.resumeFromBackground();
-    expect(ctx.state).toBe('suspended');
-
+  it('un contexte bloqué est RECRÉÉ au geste suivant, et la musique reprend à sa position', async () => {
     vi.useFakeTimers();
     try {
+      const { Audio, ctx } = await inGame();
+      vi.advanceTimersByTime(42_000);
+      ctx.breakResume();
+      Audio.suspendForBackground();
+      Audio.resumeFromBackground();
+      expect(ctx.state).toBe('suspended');
+
       Audio.unlock();                 // premier geste : on laisse sa chance au resume()
       expect(lastAudioCtx).toBe(ctx);
       vi.advanceTimersByTime(1500);
       Audio.unlock();                 // toujours bloqué : contexte neuf
+
+      expect(ctx.closed).toBe(true);
+      expect(lastAudioCtx).not.toBe(ctx);
+      const resumed = playingMusic()!;
+      expect(resumed).not.toBeNull();
+      expect(resumed.startOffset).toBeCloseTo(42, 0);
+      expect(musicSources().filter(src => !src.stopped)).toHaveLength(1);
+
+      await settle();
+      const before = sfxCount();
+      Audio.playSfx('ready');
+      expect(sfxCount()).toBe(before + 1);
     } finally { vi.useRealTimers(); }
-
-    expect(ctx.closed).toBe(true);
-    expect(lastAudioCtx).not.toBe(ctx);
-    const fresh = createdAudioEls[createdAudioEls.length - 1];
-    expect(fresh).not.toBe(track);
-    expect(fresh.src).toBe(track.src);
-    expect(fresh.currentTime).toBe(42);
-    expect(fresh.paused).toBe(false);
-    expect(track.paused).toBe(true);
-
-    // Les bruitages repartent sur le nouveau contexte.
-    await flush();
-    const before = startedSources.length;
-    Audio.playSfx('ready');
-    expect(startedSources.length).toBe(before + 1);
   });
 
   it('un contexte qui repart normalement n\'est jamais recréé', async () => {
@@ -442,8 +453,8 @@ describe('AudioManager — contexte « running » mais figé (retour d\'Instagra
     vi.useFakeTimers();
     Audio.unlock();
     Audio.setMusicTheme('menu');
-    const track = createdAudioEls[createdAudioEls.length - 1];
-    return { Audio, track, ctx: lastAudioCtx! };
+    await settle();
+    return { Audio, track: playingMusic()!, ctx: lastAudioCtx! };
   }
 
   it('un contexte figé ne reçoit plus aucun bruitage', async () => {
@@ -451,11 +462,11 @@ describe('AudioManager — contexte « running » mais figé (retour d\'Instagra
       const { Audio, ctx } = await inGame();
       ctx.freeze();
       vi.advanceTimersByTime(1000);
-      const before = startedSources.length;
+      const before = sfxCount();
       Audio.playSfx('ready');
       Audio.playSfx('ready');
       expect(ctx.state).toBe('running');
-      expect(startedSources.length).toBe(before);
+      expect(sfxCount()).toBe(before);
     } finally { vi.useRealTimers(); }
   });
 
@@ -467,12 +478,11 @@ describe('AudioManager — contexte « running » mais figé (retour d\'Instagra
       Audio.unlock();
       expect(ctx.closed).toBe(true);
       expect(lastAudioCtx).not.toBe(ctx);
-      const fresh = createdAudioEls[createdAudioEls.length - 1];
+      const fresh = playingMusic()!;
       expect(fresh).not.toBe(track);
-      expect(fresh.paused).toBe(false);
-      const before = startedSources.length;
+      const before = sfxCount();
       Audio.playSfx('ready');
-      expect(startedSources.length).toBe(before + 1);
+      expect(sfxCount()).toBe(before + 1);
     } finally { vi.useRealTimers(); }
   });
 
@@ -481,10 +491,10 @@ describe('AudioManager — contexte « running » mais figé (retour d\'Instagra
       const { Audio, ctx } = await inGame();
       vi.advanceTimersByTime(120_000);
       Audio.unlock();
-      const before = startedSources.length;
+      const before = sfxCount();
       Audio.playSfx('ready');
       expect(lastAudioCtx).toBe(ctx);
-      expect(startedSources.length).toBe(before + 1);
+      expect(sfxCount()).toBe(before + 1);
     } finally { vi.useRealTimers(); }
   });
 
