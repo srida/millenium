@@ -37,10 +37,12 @@
   background: #fff;
   border: 3px solid #0b0b0d;
   border-radius: 50%;
-  padding: 0.6em 1.05em 0.5em;
+  padding: 0.8em 1.1em 0.7em;
   letter-spacing: 0.01em;
   text-align: center;
-  max-width: 8.5em;
+  /* Le texte ne passe jamais à la ligne (`pre`) : la bulle épouse sa largeur,
+     sinon « BONNE CHANCE ! » déborde de l'ellipse. */
+  width: max-content;
   font-size: 0.82em;
   line-height: 1.15;
   /* Seules les coupures écrites dans le catalogue s'appliquent. */
@@ -123,7 +125,7 @@
 .emote-pick .mb { --mb-size: 12px; max-width: 100%; }
 /* Dans la grille, la bulle s'adapte à sa cellule au lieu de déborder (un
    bouton rogne ce qui dépasse) : « BONNE CHANCE ! » est le plus long. */
-.emote-pick .mb-body { max-width: none; padding-inline: 0.6em; letter-spacing: 0; font-size: 0.78em; }
+.emote-pick .mb-body { padding-inline: 0.5em; letter-spacing: 0; font-size: 0.75em; }
 /* Inclinaisons : de quoi casser l'alignement, sans signification. */
 .emote-pick:nth-child(7n + 1) .mb { --mb-tilt: -3deg; }
 .emote-pick:nth-child(7n + 2) .mb { --mb-tilt: 2deg; }
