@@ -1041,6 +1041,10 @@ export class Scene3D {
   exitCombatMode(): void {
     this._resize();
     this._combatMode = false;
+    // Les statuts persistants ne sont resynchronisés qu'à chaque tick de combat
+    // (`syncPowerStatuses`) : sans ce balayage, ceux encore posés au dernier tick
+    // restent affichés pendant toute la préparation.
+    this.powers?.clearAll();
     this._animateCameraTo(false);
     this._syncSeparators();
     if (this._gridGroup) this._gridGroup.visible = false;

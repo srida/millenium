@@ -36,7 +36,7 @@ const {
   validCells, summonConditionsStatus,
 } = _InvocationRules as any;
 import {
-  summonConditions, conditionMaterials, conditionRequires,
+  summonConditions, conditionMaterials, conditionRequires, livingSlotUnits,
 } from './InvocationManager.js';
 import { tiersForRound, drawHand, resolveGuaranteedDraws } from './Draw.js';
 import { tiersOf } from './Tiers.js';
@@ -1758,7 +1758,7 @@ export class GameSession {
       const matCard = this.deps.cardDb.getCard(matId);
       if (!matCard) continue;
       const matUnit = new Unit(matCard, 'player');
-      const cell = this.board.getLivingUnitsOnSide('player').length < this.gameState.player_board_slots
+      const cell = livingSlotUnits(this.board, 'player').length < this.gameState.player_board_slots
         ? this.board.firstEmptyPlayerCell() : null;
       if (cell) {
         matUnit.initial_position = { ...cell };
