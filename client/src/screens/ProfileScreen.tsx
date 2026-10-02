@@ -13,7 +13,7 @@ import UiIcon from '../components/ui/UiIcon.js';
 import { LevelTrack } from '../components/ui/ProgressionStats.js';
 import type { LevelRewardsView } from '../components/ui/ProgressionStats.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
-import { useTabletLayout, useWebLayout } from '../components/system/useWebLayout.js';
+import { useWebLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
 
 interface UserRow { id: string; username: string; tag?: number; avatar?: string | null; relation?: string; friendship_id?: string; level?: number }
@@ -134,7 +134,6 @@ export default function ProfileScreen() {
   const avatarIds = cosmeticSnapshot ? selectableAvatars() : FALLBACK_AVATARS;
 
   const web = useWebLayout();
-  const phone = !useTabletLayout();
 
   // Paliers de niveau : le BARÈME vient du serveur (levels.js) plutôt que
   // d'être recopié ici — les deux ne peuvent donc pas diverger. Pas de store
@@ -415,7 +414,7 @@ export default function ProfileScreen() {
   // seule.
   if (web) {
     return (
-      <main className={`relative z-10 grid h-full min-h-0 grid-cols-[320px_minmax(0,1fr)] gap-5 text-white ${phone ? 'px-12' : 'px-6'}`}>
+      <main className="relative z-10 grid h-full min-h-0 grid-cols-[320px_minmax(0,1fr)] gap-5 text-white pl-[max(5.5rem,env(safe-area-inset-left))] pr-[max(5.5rem,env(safe-area-inset-right))]">
         <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto py-3">
           {title}
           {identity}

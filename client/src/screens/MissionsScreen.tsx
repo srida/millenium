@@ -20,7 +20,7 @@ import { Button, Countdown, Gauge, LoadState, Panel, SHADOW_IDLE, SHADOW_SQUASHE
 import { CURRENCY, fmt, XP_ICON } from '../components/ui/currency.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 import UiIcon, { type UiIconId } from '../components/ui/UiIcon.js';
-import { useTabletLayout, useWebLayout } from '../components/system/useWebLayout.js';
+import { useWebLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
 
 // Difficulté du slot (brief §3.1) : facile = 1 partie, moyen = 2, engagé = 3-4.
@@ -38,7 +38,6 @@ export default function MissionsScreen() {
   const user = useAuthStore(s => s.user);
   const { snapshot, loading, error, load } = useMissionStore();
   const web = useWebLayout();
-  const phone = !useTabletLayout();
 
   useEffect(() => { void load(true); }, [load]);
   // La dépendance est le CHAMP, pas l'instantané : ce dernier change d'identité
@@ -94,7 +93,7 @@ export default function MissionsScreen() {
   // visible pendant qu'on parcourt les missions.
   if (web) {
     return (
-      <main className={`relative z-10 grid h-full min-h-0 grid-cols-[300px_minmax(0,1fr)] gap-4 text-white ${phone ? 'px-12' : 'px-6'}`}>
+      <main className="relative z-10 grid h-full min-h-0 grid-cols-[300px_minmax(0,1fr)] gap-4 text-white pl-[max(5.5rem,env(safe-area-inset-left))] pr-[max(5.5rem,env(safe-area-inset-right))]">
         <aside className="flex min-h-0 flex-col gap-2.5 overflow-y-auto py-3">
           {title(false)}
           {load_}
