@@ -25,6 +25,7 @@ import { frameVars } from '../../three/cardPalette.js';
 import type { BoosterResult, ShopSet } from '../../stores/shopStore.js';
 import Card3D, { cardVisualProps } from '../ui/Card3D.js';
 import { Button, Illustration } from '../ui/primitives.js';
+import { useUiStore } from '../../stores/uiStore.js';
 import UiIcon from '../ui/UiIcon.js';
 import { PackPoster } from './PackContents.js';
 import { SHAKE_MIN, frameAt, type Frame } from './boosterTimeline.js';
@@ -167,7 +168,8 @@ export default function BoosterOpening({ set, result, aborted = false, onClose }
   const moving = done ? '' : 'will-change-transform';
 
   // Passer l'animation : un tap sur l'overlay pendant le temps B saute à la fin.
-  const skip = useCallback(() => { skipRef.current = true; }, []);
+  const hideTooltip = useUiStore(s => s.hideTooltip);
+  const skip = useCallback(() => { skipRef.current = true; hideTooltip(); }, [hideTooltip]);
 
   const ctaRef = useCallback((el: HTMLDivElement | null) => { refs.current.cta = el; }, []);
 
@@ -198,7 +200,7 @@ export default function BoosterOpening({ set, result, aborted = false, onClose }
               </div>
               <div className="bo-face absolute inset-0 [transform:rotateY(180deg)]">
                 {card
-                  ? <Card3D {...cardVisualProps(card)} size="h-full w-full" tooltip={null} />
+                  ? <Card3D {...cardVisualProps(card)} size="h-full w-full" tapOn="up" />
                   : <div className="flex h-full w-full items-center justify-center rounded-[13px] border border-line bg-surface text-[10px] text-white/50">{result!.cards[i].card_id}</div>}
               </div>
             </div>
@@ -228,7 +230,7 @@ export default function BoosterOpening({ set, result, aborted = false, onClose }
           <p className="mb-3 flex items-center justify-center gap-1 text-center text-[11px] text-gold"><UiIcon id="UI_PIN" className="h-3 w-3" /> Ta carte épinglée est tombée — l'épingle est libérée.</p>
         )}
         {result && (
-          <Button variant="primary" className="w-full" onPointerDown={e => { e.stopPropagation(); onClose(); }}>
+          <Button variant="primary" className="w-full" onPointerDown={e => { e.stopPropagation(); hideTooltip(); onClose(); }}>
             Continuer
           </Button>
         )}

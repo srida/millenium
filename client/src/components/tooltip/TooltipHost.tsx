@@ -52,7 +52,7 @@ export default function TooltipHost() {
   return (
     <div
       ref={ref}
-      className="pointer-events-none fixed z-50 w-60 rounded-xl border border-gold/60 bg-surface/97 p-3 text-white shadow-2xl backdrop-blur"
+      className="pointer-events-none fixed z-[70] w-60 rounded-xl border border-gold/60 bg-surface/97 p-3 text-white shadow-2xl backdrop-blur"
       style={{ left: pos.left, top: pos.top }}
     >
       <TooltipBody content={tooltip.content} anchor={tooltip.anchor} />
