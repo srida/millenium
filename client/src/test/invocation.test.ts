@@ -188,6 +188,33 @@ describe('un matériel nommé ne paie qu’un slot', () => {
   });
 });
 
+// ── Exigence d'attribut : paie sa valeur ; le nommé exact passe d'abord ──────
+describe('exigences d’attribut', () => {
+  const DRAGON = makeCard({ id: 'DRAGON', attributes: ['ARCH_DRAGON'], material_value: 2 });
+  const FODDER = (n: number) => makeCard({ id: `FODDER_${n}` });
+
+  // Mutation : compter 1 par exigence d'attribut tenue → ROUGE.
+  it('une unité qui tient une exigence d’attribut paie sa material_value', () => {
+    const board = makeBoard();
+    const d = spawn(board, DRAGON, 'player', { col: 0, row: 0 });
+    const f = spawn(board, FODDER(1), 'player', { col: 1, row: 0 });
+    expect(materialSlotsPaid([d, f], ['ARCH_DRAGON'])).toBe(3);
+    // Le pendant nommé, lui, ne change pas : 1 slot.
+    expect(materialSlotsPaid([d, f], ['DRAGON'])).toBe(2);
+  });
+
+  // Mutation : traiter les exigences dans l'ordre d'écriture → ROUGE.
+  it('le nommé exact prime sur l’attribut pour la même unité', () => {
+    const board = makeBoard();
+    const d = spawn(board, makeCard({ id: 'DRAGON', attributes: ['ARCH_DRAGON'] }), 'player', { col: 0, row: 0 });
+    // Attribut écrit EN PREMIER : sans priorité il prendrait le dragon,
+    // laissant « DRAGON » à découvert.
+    expect(getUncoveredRequirements(['ARCH_DRAGON', 'DRAGON'], [d])).toEqual(['ARCH_DRAGON']);
+    const d2 = spawn(board, makeCard({ id: 'DRAGON_2', attributes: ['ARCH_DRAGON'] }), 'player', { col: 1, row: 0 });
+    expect(getUncoveredRequirements(['ARCH_DRAGON', 'DRAGON'], [d, d2])).toEqual([]);
+  });
+});
+
 describe('canSummon', () => {
   it('normal : refuse le doublon vivant sur le board joueur', () => {
     const board = makeBoard();

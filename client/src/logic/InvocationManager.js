@@ -445,7 +445,13 @@ function matchRequirements(required, units) {
     return false;
   };
 
-  for (let ri = 0; ri < required.length; ri++) seat(ri, units.map(() => false));
+  // ⚠️ Les exigences NOMMÉES (id de carte) s'installent AVANT celles d'attribut :
+  // une unité qui peut tenir les deux va au nommé. L'augmentation ne désinstalle
+  // jamais une exigence déjà tenue (elle la déplace), donc une exigence d'attribut
+  // ne prive jamais un nommé de son matériel.
+  const byPriority = required.map((_, i) => i)
+    .sort((a, b) => Number(isAttributeMaterial(required[a])) - Number(isAttributeMaterial(required[b])) || a - b);
+  for (const ri of byPriority) seat(ri, units.map(() => false));
   return { holder, load };
 }
 
@@ -471,7 +477,10 @@ export function materialLineageMatches(unit, matId, requiredMaterials) {
  * Combien de slots cette sélection paie, face aux exigences NOMMÉES de la
  * condition — la seule réponse à « le coût est-il couvert ? ».
  *
- * ⚠️ **Un matériel NOMMÉ ne compte que pour 1, quelle que soit sa valeur.** Une
+ * ⚠️ **Une exigence d'ATTRIBUT (`ARCH_*`) fait exception** : l'unité qui la tient
+ * paie sa `material_value`, comme sur un slot libre.
+ *
+ * ⚠️ **Un matériel NOMMÉ (id de carte) ne compte que pour 1, quelle que soit sa valeur.** Une
  * unité paie sa `material_value` quand elle bouche un slot libre, mais une
  * exigence nommée est un slot et un seul : « 3 matériels dont CORE_002 » se lit
  * donc littéralement — CORE_002, qui vaut pourtant 2, plus deux autres unités.
@@ -485,6 +494,12 @@ export function materialLineageMatches(unit, matId, requiredMaterials) {
  * `required` vide (un coût nu) rend la simple somme des `material_value`.
  */
 export function materialSlotsPaid(units, required = []) {
-  const { load } = required.length ? matchRequirements(required, units) : { load: [] };
-  return units.reduce((sum, u, i) => sum + (load[i] > 0 ? load[i] : (u.material_value ?? 1)), 0);
+  const { load, holder } = required.length ? matchRequirements(required, units) : { load: [], holder: [] };
+  // Une unité qui répond à une exigence d'ATTRIBUT paie sa `material_value`.
+  const viaAttribute = new Set();
+  holder.forEach((ui, ri) => { if (ui !== -1 && isAttributeMaterial(required[ri])) viaAttribute.add(ui); });
+  return units.reduce((sum, u, i) => {
+    if (viaAttribute.has(i)) return sum + Math.max(load[i], u.material_value ?? 1);
+    return sum + (load[i] > 0 ? load[i] : (u.material_value ?? 1));
+  }, 0);
 }
