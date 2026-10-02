@@ -659,6 +659,10 @@ describe('reflets', () => {
     expect(cosmetics.buy(user(), 'foil', foil.id).ok).toBe(false);
   });
 
+  it('tous les effets coûtent 20 gemmes', () => {
+    for (const k of ['foil', 'holo', 'sparkle', 'ink', 'frame']) expect(cosmetics.PRICE[k]).toEqual({ gems: 20 });
+  });
+
   it('chaque famille s\'achète à son prix et se range dans sa liste', () => {
     const user = foilUser(1_000);
     const effects = cosmetics.refresh(user()).effects;

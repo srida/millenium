@@ -12,7 +12,7 @@
 //   - VARIANTE (50 gemmes) — illustration alternative d'une carte, écrite en
 //     admin. Le joueur ne peut acheter que les variantes des cartes QU'IL
 //     POSSÈDE : une variante d'une carte qu'on n'a pas ne s'affiche nulle part.
-//   - EFFETS (reflet 20, holo 40, éclats 30, encre 30, cadre 50 gemmes) —
+//   - EFFETS (reflet, holo, éclats, encre, cadre : 20 gemmes chacun) —
 //     finitions d'UNE carte, partout où elle s'affiche. Pas de catalogue : l'id
 //     est le `card_id` (reflet, holo, éclats) ou `card_id:style` (encre, cadre),
 //     et le pool est la collection du joueur (cartes possédées dont l'art
@@ -51,10 +51,10 @@ const PRICE = Object.freeze({
   avatar: Object.freeze({ gems: 5 }),
   variant: Object.freeze({ gems: 50 }),
   foil: Object.freeze({ gems: 20 }),
-  holo: Object.freeze({ gems: 40 }),
-  sparkle: Object.freeze({ gems: 30 }),
-  ink: Object.freeze({ gems: 30 }),
-  frame: Object.freeze({ gems: 50 }),
+  holo: Object.freeze({ gems: 20 }),
+  sparkle: Object.freeze({ gems: 20 }),
+  ink: Object.freeze({ gems: 20 }),
+  frame: Object.freeze({ gems: 20 }),
   // ⚠️ REPLI seulement : un dos porte son propre `price_gems`, saisi en admin
   // (c'est le seul cosmétique dont le prix est éditorial — il n'y en a qu'une
   // poignée, et ils ne se valent pas). Ce chiffre ne sert qu'à une entrée de
@@ -473,7 +473,8 @@ const buy = db.transaction((user, kind, id) => {
   if (!item) return { ok: false, reason: 'L\'offre a changé, recharge la boutique.', stale: true };
   if (owns(user.id, kind, id)) return { ok: false, reason: 'Cosmétique déjà possédé.' };
 
-  const price = item.price_gems ?? PRICE[kind].gems;
+  // ⚠️ Un effet est tarifé par le barème, jamais par le prix persisté dans l'offre du jour.
+  const price = OFFER_KEY[kind] === 'effects' ? PRICE[kind].gems : (item.price_gems ?? PRICE[kind].gems);
   const fresh = stmt.userById.get(user.id);
   if ((fresh?.gems ?? 0) < price) return { ok: false, reason: 'Pas assez de gemmes.' };
 
@@ -614,7 +615,7 @@ function getSnapshot(user) {
     avatars: (offer?.avatars ?? []).map(a => ({ ...a, purchased: ownedAvatars.has(a.id) })),
     variants: (offer?.variants ?? []).map(v => ({ ...v, purchased: ownedVariants.has(v.id) })),
     card_backs: (offer?.card_backs ?? []).map(b => ({ ...b, purchased: ownedBacks.has(b.id) })),
-    effects: (offer?.effects ?? []).map(e => ({ ...e, purchased: !!ownedSet[e.kind]?.has(e.id) })),
+    effects: (offer?.effects ?? []).map(e => ({ ...e, price_gems: PRICE[e.kind]?.gems ?? e.price_gems, purchased: !!ownedSet[e.kind]?.has(e.id) })),
     // Les dos POSSÉDÉS voyagent en objets (id + nom) pour que le Profil dresse
     // sa grille sans relire le catalogue ; les OFFERTS sont joints à la liste,
     // le joueur ne fait pas la différence entre « donné » et « acheté » quand

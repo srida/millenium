@@ -439,7 +439,7 @@ Lame de lumière qui balaie l'illustration d'une carte **sur le plateau** (`styl
 
 ### Effets et cadres (`kind: 'holo' | 'sparkle' | 'ink' | 'frame'`)
 
-Même statut que le reflet : cosmétiques, choisis **par deck**, absents de `logic/` et du payload de déterminisme. Ids : `card_id` (reflet, holo, éclats) · `card_id:style` (encre `tier|sepia|nb`, cadre `courant|gravure|facettes`). Prix : 20 / 40 / 30 / 30 / 50 💎. Tous se cumulent ; **une** encre et **un** cadre par carte.
+Même statut que le reflet : cosmétiques, choisis **par deck**, absents de `logic/` et du payload de déterminisme. Ids : `card_id` (reflet, holo, éclats) · `card_id:style` (encre `tier|sepia|nb`, cadre `courant|gravure|facettes`). Prix : 20 💎 chacun. Tous se cumulent ; **une** encre et **un** cadre par carte.
 
 - **Boutique** : 9 tuiles fixes « Effets du jour » (`EFFECT_SLOTS`), `offer.effects` ; ⚠️ le reflet n'a plus de liste à lui (`offer.foils` supprimée, une offre ancienne est complétée par `sync`). ⚠️ L'achat cherche le **couple** `(kind, id)` : un reflet et un holo d'une même carte ont le même id. Chaque emplacement a sa graine ; les cartes déjà sorties sont écartées tant que le pool le permet.
 - **Deck** : `meta[nom].finishes = { card_id: { holo?, sparkle?, ink?, frame? } }` (`DeckRepository.getDeckFinishes`/`setDeckFinishes`, logique pure dans `data/DeckFinish.ts`). PvP : `cosmetics.deckFinishMap` → `finishes` de `deckDerived` ; un bot annonce `{}`.
