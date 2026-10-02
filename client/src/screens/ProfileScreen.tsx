@@ -8,12 +8,12 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useCosmeticStore } from '../stores/cosmeticStore.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useChallengeStore } from '../stores/challengeStore.js';
-import { Button, IconButton, Modal, usePressSquash } from '../components/ui/primitives.js';
+import { Button, Modal, SHADOW_IDLE, SHADOW_SQUASHED, usePressSquash } from '../components/ui/primitives.js';
 import UiIcon from '../components/ui/UiIcon.js';
-import { LevelRewardsPanel, ProgressionPanel } from '../components/ui/ProgressionStats.js';
+import { LevelTrack } from '../components/ui/ProgressionStats.js';
 import type { LevelRewardsView } from '../components/ui/ProgressionStats.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
-import { useWebLayout } from '../components/system/useWebLayout.js';
+import { useTabletLayout, useWebLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
 
 interface UserRow { id: string; username: string; tag?: number; avatar?: string | null; relation?: string; friendship_id?: string; level?: number }
@@ -50,6 +50,39 @@ function FriendSection({ title, children }: { title: string; children: ReactNode
       <h2 className="mb-1.5 text-[10px] tracking-widest text-white/40">{title.toUpperCase()}</h2>
       <div className="space-y-1.5">{children}</div>
     </section>
+  );
+}
+
+// Bouton d'ami 44 × 44, icône seule : mêmes relief et son que `Button`.
+function SquareButton({ label, tone, onTap, disabled, children }: {
+  label: string; tone: 'success' | 'danger'; onTap: () => void; disabled?: boolean; children: ReactNode;
+}) {
+  const { squashed, handlers } = usePressSquash<HTMLButtonElement>(onTap, disabled);
+  const cls = tone === 'success' ? 'border-success/50 bg-success/15' : 'border-danger/50 bg-danger/15';
+  return (
+    <button
+      type="button" aria-label={label} title={label} disabled={disabled} {...handlers}
+      className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[10px] border transition-[transform,box-shadow] duration-100 disabled:opacity-40 ${cls} ${squashed ? SHADOW_SQUASHED : SHADOW_IDLE}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+// « Défier » : libellé visible à côté de l'icône ; « En attente » une fois le
+// défi parti (désactivé — un second tap enverrait un `already_pending`).
+function ChallengeButton({ pending, disabled, onTap }: { pending: boolean; disabled: boolean; onTap: () => void }) {
+  const { squashed, handlers } = usePressSquash<HTMLButtonElement>(onTap, disabled);
+  return (
+    <button
+      type="button" disabled={disabled} {...handlers}
+      className={`flex h-11 flex-shrink-0 items-center gap-1.5 rounded-[10px] border px-3 text-xs font-semibold transition-[transform,box-shadow] duration-100 ${
+        pending ? 'border-line text-white/40' : 'border-player/50 bg-player/15 text-white'
+      } disabled:cursor-not-allowed ${pending ? '' : 'disabled:opacity-40'} ${squashed ? SHADOW_SQUASHED : SHADOW_IDLE}`}
+    >
+      <UiIcon id={pending ? 'UI_HOURGLASS' : 'UI_DUEL'} className="h-3.5 w-3.5" />
+      {pending ? 'En attente' : 'Défier'}
+    </button>
   );
 }
 
@@ -92,6 +125,7 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const loadCosmetics = useCosmeticStore(s => s.load);
   const selectableAvatars = useCosmeticStore(s => s.selectableAvatars);
@@ -100,7 +134,7 @@ export default function ProfileScreen() {
   const avatarIds = cosmeticSnapshot ? selectableAvatars() : FALLBACK_AVATARS;
 
   const web = useWebLayout();
-  const classname_title = `flex items-center gap-3 border-b border-line py-3${web ? ' px-22' : ' px-6'}`;
+  const phone = !useTabletLayout();
 
   // Paliers de niveau : le BARÈME vient du serveur (levels.js) plutôt que
   // d'être recopié ici — les deux ne peuvent donc pas diverger. Pas de store
@@ -186,15 +220,18 @@ export default function ProfileScreen() {
     } catch (e: any) { handleFriendsError(e); }
   };
 
-  async function save() {
+  // Rien n'a de bouton « Enregistrer » : le pseudo s'enregistre à la validation,
+  // l'avatar au choix.
+  async function persist(patch: { username?: string; avatar?: string | null }) {
     setError(null); setSaved(false); setBusy(true);
     try {
       const updated = await (AuthClient as any).updateProfile({
-        username: username.trim(),
-        avatar: avatar.trim() || null,
+        username: patch.username ?? user!.username,
+        avatar: patch.avatar !== undefined ? patch.avatar : ((user as any).avatar ?? null),
       });
       setUser(updated);
       setSaved(true);
+      setEditing(false);
     } catch (e: any) {
       setError(e?.message ?? 'Erreur');
     } finally {
@@ -202,155 +239,205 @@ export default function ProfileScreen() {
     }
   }
 
+  const cancelEdit = () => { setUsername(user!.username); setEditing(false); setError(null); };
+  const canValidate = !busy && !!username.trim() && username.trim() !== user.username;
+
   const avatarPreview = avatar.trim();
   const isImg = /^(https?:|data:|\/)/i.test(avatarPreview);
 
-  return (
-    <main className="flex min-h-full flex-col relative z-10 text-white">
-      <div className={classname_title}>
-        <h1 className="text-lg font-bold tracking-wide">Profil</h1>
-        <span className="ml-auto text-xs text-white/40">#{(user as any).tag ?? '—'}</span>
-      </div>
+  const title = (
+    <h1 className={`text-lg font-bold tracking-wide ${web ? '' : 'border-b border-line px-6 py-3'}`}>Profil</h1>
+  );
 
-      <div className="flex flex-1 flex-col items-center gap-5 p-6">
+  const identity = (
+    <div>
+      <div className="flex items-center gap-3.5">
         <button
           type="button"
           onPointerDown={() => { Audio.playSfx('menu_button'); setAvatarPickerOpen(true); }}
           aria-label="Changer d'avatar"
-          className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-gold/40 bg-surface-raised text-3xl active:opacity-80"
+          className="flex h-[68px] w-[68px] flex-shrink-0 items-center justify-center overflow-hidden rounded-[14px] border border-gold/40 bg-surface-raised text-[26px] active:opacity-80"
         >
           {avatarPreview
             ? (isImg ? <img src={avatarPreview} alt="" className="h-full w-full object-cover" /> : <span>{avatarPreview.slice(0, 2)}</span>)
             : <span>{user.username.slice(0, 1).toUpperCase()}</span>}
         </button>
 
-        {/* Progression : lecture seule, au-dessus des champs éditables. Le
-            détail des paliers suit la jauge — « où j'en suis », puis « ce que
-            ça me rapportera ». */}
-        <ProgressionPanel user={user} />
-        <LevelRewardsPanel user={user} levels={levels} onClaimed={() => setLevelsBust(n => n + 1)} />
-
-        <div className="flex w-full max-w-xs flex-col gap-3">
-          <label className="text-[10px] tracking-widest text-white/40">PSEUDO</label>
-          <input
-            value={username} maxLength={20} onChange={(e) => { setUsername(e.target.value); setSaved(false); }}
-            className="min-h-tap rounded-lg border border-line bg-surface-raised px-3 text-white"
-          />
-          {error && <p className="text-xs text-danger">{error}</p>}
-          {saved && <p className="flex items-center gap-1 text-xs text-success"><UiIcon id="UI_CHECK" className="h-3 w-3" /> Profil enregistré</p>}
-          <Button variant="primary" disabled={busy || !username.trim()} className="w-full" onPointerDown={save}>
-            {busy ? '…' : 'Enregistrer'}
-          </Button>
-        </div>
-
-        <div className="w-full max-w-xs space-y-5">
-          <h2 className="text-[10px] tracking-widest text-white/40">AMIS</h2>
-
-          {friendsError && (
-            <div className="flex items-center gap-2 rounded-lg border border-danger/40 bg-danger/10 p-2">
-              <p className="flex-1 text-xs text-danger">{friendsError}</p>
-              <Button className="px-2 text-xs" onPointerDown={() => { void refreshFriends(); }}>Réessayer</Button>
-            </div>
-          )}
-
-          <section>
-            <input
-              value={friendQuery} onChange={(e) => setFriendQuery(e.target.value)} placeholder="Rechercher un joueur (2+ lettres)…"
-              className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-white placeholder:text-white/30"
-            />
-            <div className="mt-2 space-y-1.5">
-              {friendResults.map(u => (
-                <FriendRow key={u.id} u={u}>
-                  {u.relation === 'friends' ? <span className="text-xs text-success">Ami</span>
-                    : u.relation === 'outgoing' ? <span className="text-xs text-white/40">Envoyée</span>
-                    : u.relation === 'incoming' ? <Button className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).sendRequest(u.id))}>Accepter</Button>
-                    : <Button variant="primary" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).sendRequest(u.id))}>+ Ajouter</Button>}
-                </FriendRow>
-              ))}
-            </div>
-          </section>
-
-          {incoming.length > 0 && (
-            <FriendSection title={`Demandes reçues · ${incoming.length}`}>
-              {incoming.map(u => (
-                <FriendRow key={u.friendship_id} u={u}>
-                  <Button variant="primary" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).acceptRequest(u.friendship_id))}><UiIcon id="UI_CHECK" className="h-3.5 w-3.5" /></Button>
-                  <Button variant="danger" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).declineRequest(u.friendship_id))}><UiIcon id="UI_CLOSE" className="h-3.5 w-3.5" /></Button>
-                </FriendRow>
-              ))}
-            </FriendSection>
-          )}
-
-          {outgoing.length > 0 && (
-            <FriendSection title={`Demandes envoyées · ${outgoing.length}`}>
-              {outgoing.map(u => (
-                <FriendRow key={u.friendship_id} u={u}>
-                  <Button className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).removeFriend(u.friendship_id))}>Annuler</Button>
-                </FriendRow>
-              ))}
-            </FriendSection>
-          )}
-
-          <FriendSection title={`Mes amis · ${friends.length}`}>
-            {friends.length === 0
-              ? <p className="text-xs text-white/40">Aucun ami pour l'instant.</p>
-              : friends.map(u => {
-                const pending = challengeTo(u.id);
-                const sending = challengingId === u.id;
-                return (
-                  <FriendRow key={u.friendship_id} u={u}>
-                    <IconButton
-                      tone="primary" label={pending ? 'Défi en attente' : 'Défier'} disabled={!!pending || sending}
-                      icon={<UiIcon id="UI_DUEL" className="h-3.5 w-3.5" />}
-                      onTap={() => { void handleChallenge(u.id); }}
-                    />
-                    <IconButton
-                      tone="danger" label="Retirer"
-                      icon={<UiIcon id="UI_DELETE" className="h-3.5 w-3.5" />}
-                      onTap={friendAct(() => (AuthClient as any).removeFriend(u.friendship_id))}
-                    />
-                  </FriendRow>
-                );
-              })}
-          </FriendSection>
-        </div>
-
-        <div className="w-full max-w-xs">
-          <button onPointerDown={() => { Audio.playSfx('menu_button'); logout(); navigate('main_menu'); }} className="w-full text-center text-xs text-white/50 underline">
-            Se déconnecter
-          </button>
-        </div>
-      </div>
-
-      {avatarPickerOpen && (
-        <Modal onClose={() => setAvatarPickerOpen(false)}>
-          <div className="flex flex-col gap-3">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-sm font-bold">Avatar</h2>
+        <div className="flex min-w-0 flex-1 flex-col">
+          {editing ? (
+            <div className="flex gap-1.5">
+              <input
+                value={username} maxLength={20} autoFocus
+                aria-label="Pseudo"
+                onChange={(e) => { setUsername(e.target.value); setSaved(false); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && canValidate) void persist({ username: username.trim() });
+                  if (e.key === 'Escape') cancelEdit();
+                }}
+                className="min-h-tap min-w-0 flex-1 rounded-lg border border-gold/60 bg-surface-raised px-3 text-[15px] text-white"
+              />
+              <SquareButton label="Valider" tone="success" disabled={!canValidate} onTap={() => void persist({ username: username.trim() })}>
+                <UiIcon id="UI_CHECK" className="h-4 w-4" />
+              </SquareButton>
               <button
-                onPointerDown={() => { Audio.playSfx('menu_button'); navigate('shop'); }}
-                className="text-[10px] text-white/40 underline"
+                type="button" aria-label="Annuler" title="Annuler"
+                onPointerDown={cancelEdit}
+                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[10px] border border-line bg-surface-raised"
               >
-                En débloquer d'autres →
+                <UiIcon id="UI_CLOSE" className="h-4 w-4 opacity-70" />
               </button>
             </div>
-            <div className="grid grid-cols-4 gap-2">
-              {avatarIds.map((id) => {
-                const url = illustrationUrl(id);
-                return (
-                  <AvatarChoice
-                    key={id}
-                    id={id}
-                    url={url}
-                    selected={avatar === url}
-                    onTap={() => { setAvatar(url); setSaved(false); setAvatarPickerOpen(false); }}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        </Modal>
+          ) : (
+            <button
+              type="button" aria-label="Renommer"
+              onPointerDown={() => { Audio.playSfx('menu_button'); setSaved(false); setEditing(true); }}
+              className="-mx-1.5 flex min-h-tap items-center gap-2 self-start rounded-lg px-1.5 text-left active:bg-white/5"
+            >
+              <span className="truncate text-xl font-bold">{user.username}</span>
+              <UiIcon id="UI_RENAME" className="h-[13px] w-[13px] opacity-35" />
+            </button>
+          )}
+          <span className="text-[11px] text-white/40">#{(user as any).tag ?? '—'}</span>
+        </div>
+      </div>
+      {error && <p role="alert" className="ml-[82px] mt-1 text-xs text-danger">{error}</p>}
+      {saved && !error && <p className="ml-[82px] mt-1 flex items-center gap-1 text-xs text-success"><UiIcon id="UI_CHECK" className="h-3 w-3" /> Profil enregistré</p>}
+    </div>
+  );
+
+  const track = <LevelTrack user={user} levels={levels} onClaimed={() => setLevelsBust(n => n + 1)} />;
+
+  const friendsBlock = (
+    <div className="flex flex-col gap-5">
+      <h2 className="text-[10px] tracking-widest text-white/40">AMIS</h2>
+
+      {friendsError && (
+        <div className="flex items-center gap-2 rounded-lg border border-danger/40 bg-danger/10 p-2">
+          <p className="flex-1 text-xs text-danger">{friendsError}</p>
+          <Button className="px-2 text-xs" onPointerDown={() => { void refreshFriends(); }}>Réessayer</Button>
+        </div>
       )}
+
+      <section>
+        <input
+          value={friendQuery} onChange={(e) => setFriendQuery(e.target.value)} placeholder="Rechercher un joueur (2+ lettres)…"
+          className="min-h-tap w-full rounded-lg border border-line bg-surface-raised px-3 text-white placeholder:text-white/30"
+        />
+        <div className="mt-2 space-y-1.5">
+          {friendResults.map(u => (
+            <FriendRow key={u.id} u={u}>
+              {u.relation === 'friends' ? <span className="text-xs text-success">Ami</span>
+                : u.relation === 'outgoing' ? <span className="text-xs text-white/40">Envoyée</span>
+                : u.relation === 'incoming' ? <Button className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).sendRequest(u.id))}>Accepter</Button>
+                : <Button variant="primary" className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).sendRequest(u.id))}>+ Ajouter</Button>}
+            </FriendRow>
+          ))}
+        </div>
+      </section>
+
+      {incoming.length > 0 && (
+        <FriendSection title={`Demandes reçues · ${incoming.length}`}>
+          {incoming.map(u => (
+            <FriendRow key={u.friendship_id} u={u}>
+              <SquareButton label="Accepter" tone="success" onTap={friendAct(() => (AuthClient as any).acceptRequest(u.friendship_id))}><UiIcon id="UI_CHECK" className="h-4 w-4" /></SquareButton>
+              <SquareButton label="Refuser" tone="danger" onTap={friendAct(() => (AuthClient as any).declineRequest(u.friendship_id))}><UiIcon id="UI_CLOSE" className="h-4 w-4" /></SquareButton>
+            </FriendRow>
+          ))}
+        </FriendSection>
+      )}
+
+      {outgoing.length > 0 && (
+        <FriendSection title={`Demandes envoyées · ${outgoing.length}`}>
+          {outgoing.map(u => (
+            <FriendRow key={u.friendship_id} u={u}>
+              <Button className="px-2 text-xs" onPointerDown={friendAct(() => (AuthClient as any).removeFriend(u.friendship_id))}>Annuler</Button>
+            </FriendRow>
+          ))}
+        </FriendSection>
+      )}
+
+      <FriendSection title={`Mes amis · ${friends.length}`}>
+        {friends.length === 0
+          ? <p className="text-xs text-white/40">Aucun ami pour l'instant.</p>
+          : friends.map(u => {
+            const pending = challengeTo(u.id);
+            const sending = challengingId === u.id;
+            return (
+              <FriendRow key={u.friendship_id} u={u}>
+                <ChallengeButton pending={!!pending} disabled={!!pending || sending} onTap={() => { void handleChallenge(u.id); }} />
+                <SquareButton label="Retirer" tone="danger" onTap={friendAct(() => (AuthClient as any).removeFriend(u.friendship_id))}>
+                  <UiIcon id="UI_DELETE" className="h-4 w-4" />
+                </SquareButton>
+              </FriendRow>
+            );
+          })}
+      </FriendSection>
+    </div>
+  );
+
+  const logoutButton = (
+    <Button variant="danger" className="w-full" onPointerDown={() => { logout(); navigate('main_menu'); }}>
+      Se déconnecter
+    </Button>
+  );
+
+  const avatarModal = avatarPickerOpen && (
+    <Modal onClose={() => setAvatarPickerOpen(false)}>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-sm font-bold">Avatar</h2>
+          <button
+            onPointerDown={() => { Audio.playSfx('menu_button'); navigate('shop'); }}
+            className="text-[10px] text-white/40 underline"
+          >
+            En débloquer d'autres →
+          </button>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {avatarIds.map((id) => {
+            const url = illustrationUrl(id);
+            return (
+              <AvatarChoice
+                key={id}
+                id={id}
+                url={url}
+                selected={avatar === url}
+                onTap={() => { setAvatar(url); setAvatarPickerOpen(false); void persist({ avatar: url }); }}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </Modal>
+  );
+
+  // Paysage : identité + niveau à gauche, amis à droite, chaque colonne défile
+  // seule.
+  if (web) {
+    return (
+      <main className={`relative z-10 grid h-full min-h-0 grid-cols-[320px_minmax(0,1fr)] gap-5 text-white ${phone ? 'px-12' : 'px-6'}`}>
+        <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto py-3">
+          {title}
+          {identity}
+          {track}
+          {logoutButton}
+        </aside>
+        <section className="min-h-0 overflow-y-auto py-3">{friendsBlock}</section>
+        {avatarModal}
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex min-h-full flex-col relative z-10 text-white">
+      {title}
+      <div className="flex flex-1 flex-col gap-4 p-4">
+        {identity}
+        {track}
+        {friendsBlock}
+        {logoutButton}
+      </div>
+      {avatarModal}
     </main>
   );
 }

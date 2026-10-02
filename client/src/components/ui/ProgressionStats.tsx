@@ -10,12 +10,13 @@
 // niveau. C'est la seule lecture qui compte (« où j'en suis du palier »), là où
 // un nombre nu ne dit rien sans son plafond ; le décompte exact reste en petit
 // sous la barre. Gold et gemmes, eux, sont des soldes → chiffres.
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useAuthStore } from '../../stores/authStore.js';
 import type { AuthUser, LevelReward } from '../../stores/authStore.js';
 import { Amount, Button, CountBadge, Gauge, Illustration, Modal, Panel, SHADOW_IDLE, SHADOW_SQUASHED, SURFACE_NEUTRAL, usePressSquash } from './primitives.js';
-import { CURRENCIES, CURRENCY, fmt, XP_ICON } from './currency.js';
+import { CURRENCIES, fmt, XP_ICON } from './currency.js';
 import UiIcon from './UiIcon.js';
+import * as Audio from '../../audio/AudioManager.js';
 
 // Palier de niveau — doit rester aligné sur `XP_PER_LEVEL` de progression.js
 // (serveur). `user.xp` est la progression DANS le niveau, jamais un cumul de
@@ -145,38 +146,6 @@ export function ProfilePill({ user, onPointerDown, compact = false, className = 
   );
 }
 
-/** Bloc détaillé (jauge pleine largeur + soldes) — écran Profil. */
-export function ProgressionPanel({ user, className = '' }: { user: AuthUser | null; className?: string }) {
-  if (!user) return null;
-
-  return (
-    <Panel className={`w-full max-w-xs p-3 ${className}`}>
-      <div className="mb-3 border-b border-line pb-3" title={xpTitle(user)}>
-        <div className="flex items-baseline justify-between">
-          <span className="text-[10px] tracking-widest text-white/40">NIVEAU</span>
-          <span className="text-lg font-bold tabular-nums text-gold">{fmt.format(user.level ?? 1)}</span>
-        </div>
-        {/* Jauge du palier : 0 → 100 XP, repart de 0 à chaque niveau gagné. */}
-        <Gauge value={xpOf(user) / XP_PER_LEVEL} className="mt-1.5" fillClassName="bg-player" />
-        <div className="mt-1 flex justify-between text-[10px] tabular-nums text-white/40">
-          <span className="flex items-center gap-1"><UiIcon id={XP_ICON} className="h-3 w-3" /> EXPÉRIENCE</span>
-          <span>{fmt.format(xpOf(user))} / {XP_PER_LEVEL}</span>
-        </div>
-      </div>
-      <dl className="grid grid-cols-2 gap-2 text-center">
-        {CURRENCIES.map(c => (
-          <div key={c.key} title={c.label} className="rounded-lg border border-line bg-surface/60 px-1 py-2">
-            <dt className="text-[10px] tracking-widest text-white/40">
-              <UiIcon id={c.icon} className="inline-block h-3 w-3 align-[-2px]" /> {c.short.toUpperCase()}
-            </dt>
-            <dd className={`mt-1 text-sm font-bold tabular-nums ${c.cls}`}>{fmt.format(user[c.key] ?? 0)}</dd>
-          </div>
-        ))}
-      </dl>
-    </Panel>
-  );
-}
-
 // --- Paliers de niveau ---
 
 /**
@@ -218,39 +187,39 @@ const kindList = (kinds: string[]) => kinds.map(k => KIND_LABELS[k] ?? k).join('
 const stepList = (steps: number[]) =>
   steps.length > 1 ? `${steps.slice(0, -1).join(', ')} et ${steps[steps.length - 1]}` : String(steps[0] ?? '');
 
-/** Une marche de la liste « prochains paliers ». */
-function UpcomingRow({ step }: { step: LevelStep }) {
-  // Un palier à objet est un rendez-vous, pas une ligne de plus : il est le
-  // seul à être souligné, sinon la liste se lit comme quatre fois la même chose.
-  //
-  // ⚠️ Le montant en golds n'est affiché QUE s'il y en a : les niveaux en 2, 3,
-  // 7 et 8 échangent leurs golds contre autre chose, et un « 💰 0 » se lirait
-  // comme une perte plutôt que comme un échange.
+const HALO = 'shadow-[0_0_0_4px_color-mix(in_srgb,var(--color-success)_18%,transparent),0_0_12px_color-mix(in_srgb,var(--color-success)_50%,transparent)]';
+
+// La frise compte cinq cases : `levels.upcoming` en porte au moins cinq.
+const TRACK_STEPS = 5;
+
+/** Récompenses d'une marche à venir. ⚠️ Un montant nul ne s'affiche pas : sur
+ *  un niveau d'échange, un « 💰 0 » se lirait comme une perte. */
+function StepRewards({ step }: { step: LevelStep }) {
   return (
-    <li className={`flex items-center justify-between rounded-lg px-2 py-1.5 ${step.draw ? 'bg-gold/10 ring-1 ring-inset ring-gold/40' : 'bg-surface/60'}`}>
-      <span className="text-[11px] font-semibold tabular-nums text-white/70">Nv. {fmt.format(step.level)}</span>
-      <span className="flex items-center gap-2 text-[11px] tabular-nums">
-        {step.gold > 0 && <Amount currency="gold" value={step.gold} />}
-        {step.gems > 0 && <Amount currency="gems" value={step.gems} />}
-        {step.draw && <span className="flex items-center gap-1 text-white/80"><UiIcon id="UI_GIFTS" className="h-3 w-3" /> objet</span>}
-      </span>
-    </li>
+    <span className="flex items-center gap-2.5 text-sm font-semibold tabular-nums">
+      {step.gold > 0 && <Amount currency="gold" value={step.gold} />}
+      {step.gems > 0 && <Amount currency="gems" value={step.gems} />}
+      {step.draw && <span className="flex items-center gap-1 text-white/85"><UiIcon id="UI_GIFTS" className="h-[15px] w-[15px]" /> objet</span>}
+    </span>
   );
 }
 
 /**
- * Section « Paliers de niveau » de l'écran Profil : ce qui attend d'être
- * récupéré, ce que donne le prochain niveau, et les rendez-vous qui suivent.
+ * Bloc « niveau » de l'écran Profil : où j'en suis, ce qui attend d'être
+ * récupéré, ce que donne la marche suivante.
  *
- * C'est le SEUL endroit où un palier se récupère — un niveau se gagne partout
- * (fin de combat, missions, cadeau), le geste, lui, tient à un endroit. Le
- * panneau répond du même coup à la question que la jauge laisse en suspens :
- * « et si je monte, qu'est-ce que j'y gagne ? ».
+ * Une frise de cinq cases (au plus deux paliers gagnés, puis les marches à
+ * venir) et UNE carte de détail — le gain à récupérer, sinon le prochain
+ * objectif. C'est le SEUL endroit où un palier se récupère : un niveau se gagne
+ * partout (fin de combat, missions, cadeau), le geste, lui, tient ici.
+ *
+ * Tout vient du serveur (`LevelRewardsView`) : rien n'est recalculé. Les soldes
+ * sont déjà dans l'en-tête de l'appli.
  *
  * `onClaimed` permet à l'écran de recharger son barème après le tap (les
  * paliers en attente ont bougé) ; la récupération elle-même vit ici.
  */
-export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
+export function LevelTrack({ user, levels, onClaimed, className = '' }: {
   user: AuthUser | null;
   levels: LevelRewardsView | null;
   onClaimed?: () => void;
@@ -259,98 +228,167 @@ export function LevelRewardsPanel({ user, levels, onClaimed, className = '' }: {
   const claimLevels = useAuthStore(s => s.claimLevels);
   const [busy, setBusy] = useState(false);
   const [reveal, setReveal] = useState<LevelReward[] | null>(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const claimSquash = usePressSquash<HTMLButtonElement>(() => void claim(), busy);
 
   if (!user || !levels) return null;
 
   const { rules } = levels;
   const level = user.level ?? 1;
+  const xp = xpOf(user);
   const pending = levels.pending ?? [];
   const totals = levels.pending_totals ?? { gold: 0, gems: 0, draws: 0 };
+
+  const shown = pending.slice(-2);
+  const upcoming = (levels.upcoming ?? []).slice(0, TRACK_STEPS - shown.length);
+  const steps = [
+    ...shown.map(s => ({ ...s, st: 'claim' as const })),
+    ...upcoming.map((s, i) => ({ ...s, st: i === 0 ? 'next' as const : 'todo' as const })),
+  ];
+  const leftOf = (i: number) => `${((i + 1) / TRACK_STEPS) * 100}%`;
+  const fill = Math.min(1, (shown.length + xp / XP_PER_LEVEL) / TRACK_STEPS) * 100;
+  const iconOf = (s: LevelStep) => (s.draw ? 'UI_GIFTS' : s.gems ? 'UI_GEMS' : 'UI_GOLD') as 'UI_GIFTS' | 'UI_GEMS' | 'UI_GOLD';
+  const nextStep = levels.upcoming?.[0];
 
   async function claim() {
     // Verrouillé pendant l'appel : la récupération n'est pas idempotente côté
     // serveur (le second tap échouerait en 409, mais autant ne pas l'envoyer).
     setBusy(true);
+    setErr(null);
     try {
       const res = await claimLevels();
       if (res) setReveal(res.lines);
       onClaimed?.();
+    } catch (e) {
+      setErr((e as Error)?.message ?? 'Erreur');
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Panel className={`w-full max-w-xs p-3 ${className}`}>
+    <Panel className={`flex flex-col gap-2.5 p-3 ${className}`}>
       <div className="flex items-baseline justify-between">
-        <span className="text-[10px] tracking-widest text-white/40">PALIERS DE NIVEAU</span>
-        <span className="text-[10px] tabular-nums text-white/40">Nv. {fmt.format(level)}</span>
+        <span className="flex items-baseline gap-2">
+          <span className="text-[10px] tracking-widest text-white/40">NIVEAU</span>
+          <span className="text-lg font-bold tabular-nums text-gold">{fmt.format(level)}</span>
+        </span>
+        <span className="flex items-center gap-1 text-[11px] tabular-nums text-white/50" title={xpTitle(user)}>
+          <UiIcon id={XP_ICON} className="h-3 w-3" /> {fmt.format(xp)} / {XP_PER_LEVEL} XP
+        </span>
       </div>
 
-      {/* Le gain en attente passe AVANT la règle et les paliers à venir : c'est
-          la seule chose actionnable de l'écran, elle ne se mérite pas un
-          défilement. */}
-      {pending.length > 0 && (
-        <div className="mt-2 rounded-lg border border-success/50 bg-success/10 p-2">
-          <p className="text-[11px] font-semibold text-white">
-            {pending.length} palier{pending.length > 1 ? 's' : ''} à récupérer
-            <span className="ml-1 font-normal text-white/50">
-              (Nv. {fmt.format(pending[0].level)}
-              {pending.length > 1 ? ` → ${fmt.format(pending[pending.length - 1].level)}` : ''})
-            </span>
-          </p>
-          <div className="mt-1 flex items-baseline gap-2 text-[11px] tabular-nums">
-            {totals.gold > 0 && <Amount currency="gold" value={totals.gold} />}
-            {totals.gems > 0 && <Amount currency="gems" value={totals.gems} />}
-            {totals.draws > 0 && (
-              // L'objet n'est pas nommé : il n'est tiré qu'au tap (zéro
-              // doublon). L'annoncer, ce serait le promettre avant de l'avoir.
-              <span className="flex items-center gap-1 text-white/80"><UiIcon id="UI_GIFTS" className="h-3 w-3" /> ×{totals.draws}</span>
-            )}
-          </div>
-          <Button variant="primary" className="mt-2 w-full justify-center" disabled={busy} onPointerDown={claim}>
-            {busy ? '…' : 'Récupérer'}
-          </Button>
+      {/* Frise : le point bleu est le niveau actuel, les cases les marches à
+          venir, régulièrement espacées (ce n'est pas une échelle d'XP). */}
+      <div className="relative ml-1 mr-4 h-[30px]">
+        <div className="absolute inset-x-0 top-3 h-1.5 overflow-hidden rounded-full bg-black/50">
+          <div className="h-full rounded-full bg-player" style={{ width: `${fill}%` }} />
         </div>
+        <span className="absolute left-0 top-[11px] h-2 w-2 -translate-x-1/2 rounded-full bg-player" />
+        {steps.map((s, i) => {
+          const pos = 'absolute top-0 flex h-[30px] w-0 items-center justify-center';
+          const wrap = (node: ReactNode) => <div key={`${s.st}-${s.level}`} className={pos} style={{ left: leftOf(i) }}>{node}</div>;
+          if (s.st === 'claim') {
+            return wrap(
+              <button
+                type="button"
+                disabled={busy}
+                onPointerDown={() => { Audio.playSfx('menu_button'); void claim(); }}
+                aria-label={`Récupérer le palier du niveau ${s.level}`}
+                className={`flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full border-2 border-success bg-[color-mix(in_srgb,var(--color-success)_30%,var(--color-surface-raised))] ${HALO} active:scale-90 disabled:opacity-40`}
+              >
+                <UiIcon id={iconOf(s)} className="h-[15px] w-[15px]" />
+              </button>,
+            );
+          }
+          if (s.st === 'next') {
+            return wrap(
+              <span className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full border-2 border-gold bg-surface-raised shadow-[0_0_10px_color-mix(in_srgb,var(--color-gold)_35%,transparent)]">
+                <UiIcon id={iconOf(s)} className="h-[15px] w-[15px]" />
+              </span>,
+            );
+          }
+          return wrap(
+            <span className={`flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-full border-[1.5px] bg-surface-sunken ${s.draw ? 'border-gold/55' : 'border-line-strong'}`}>
+              <UiIcon id={iconOf(s)} className="h-[13px] w-[13px] opacity-70" />
+            </span>,
+          );
+        })}
+      </div>
+
+      {pending.length > 0 ? (
+        <button
+          type="button"
+          disabled={busy}
+          {...claimSquash.handlers}
+          className={`flex min-h-[52px] w-full items-center gap-3 rounded-[10px] border border-success bg-gradient-to-b from-[color-mix(in_srgb,var(--color-success)_28%,var(--color-surface-raised))] to-[color-mix(in_srgb,var(--color-success)_12%,var(--color-surface))] px-3 py-2 text-left text-success transition-[transform,box-shadow] duration-100 disabled:opacity-60 ${claimSquash.squashed ? SHADOW_SQUASHED : SHADOW_IDLE}`}
+        >
+          <UiIcon id="UI_GIFTS" className="h-[22px] w-[22px]" />
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="text-[13px] font-semibold">
+              {pending.length} palier{pending.length > 1 ? 's' : ''} à récupérer
+              <span className="ml-1.5 whitespace-nowrap font-normal text-white/50">
+                Nv. {fmt.format(pending[0].level)}
+                {pending.length > 1 ? ` → ${fmt.format(pending[pending.length - 1].level)}` : ''}
+              </span>
+            </span>
+            <span className="flex items-center gap-2.5 text-xs tabular-nums">
+              {totals.gold > 0 && <Amount currency="gold" value={totals.gold} />}
+              {totals.gems > 0 && <Amount currency="gems" value={totals.gems} />}
+              {/* L'objet n'est pas nommé : il n'est tiré qu'au tap (zéro
+                  doublon). L'annoncer, ce serait le promettre avant. */}
+              {totals.draws > 0 && <span className="flex items-center gap-1">objet ×{totals.draws}</span>}
+            </span>
+          </span>
+          <span className="text-xs font-bold tracking-wide">{busy ? '…' : 'RÉCUPÉRER'}</span>
+        </button>
+      ) : nextStep && (
+        <div className="flex min-h-[52px] items-center justify-between gap-3 rounded-[10px] border border-gold/45 bg-[color-mix(in_srgb,var(--color-gold)_8%,var(--color-surface-sunken))] px-3 py-2">
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="text-[10px] tracking-widest text-white/45">NIVEAU {fmt.format(level + 1)}</span>
+            <StepRewards step={nextStep} />
+          </div>
+          <div className="flex flex-col items-end leading-none">
+            <span className="text-lg font-bold tabular-nums">{XP_PER_LEVEL - xp}</span>
+            <span className="mt-0.5 text-[10px] text-white/45">XP restants</span>
+          </div>
+        </div>
+      )}
+
+      {err && (
+        <p role="alert" className="rounded-lg border border-danger/50 bg-danger/10 px-2 py-1.5 text-xs leading-snug text-danger">{err}</p>
       )}
 
       {reveal && <LevelReveal lines={reveal} onClose={() => setReveal(null)} />}
 
-      {/* La règle en une phrase, avant la liste : c'est elle qui rend les quatre
-          lignes suivantes lisibles comme un rythme et non comme un tableau. */}
-      <p className="mt-2 text-[11px] leading-relaxed text-white/60">
-        Chaque niveau rapporte <Amount currency="gold" value={rules.gold_per_level} className="font-semibold" />,
-        tous les {rules.gems.every} niveaux <Amount currency="gems" value={rules.gems.amount} className="font-semibold" /> en plus,
-        et tous les {rules.draw.every} niveaux un objet tiré au sort ({kindList(rules.draw.kinds)}).
-      </p>
-
-      {/* Les échanges, en phrase à part : « en plus » et « à la place » sont
-          deux règles opposées, les fondre en une seule phrase ferait lire les
-          quatre rangs comme des bonus supplémentaires. */}
-      {rules.swaps && (
-        <p className="mt-1 text-[11px] leading-relaxed text-white/60">
-          À la place des golds : les niveaux en {stepList(rules.swaps.gems.steps)} donnent{' '}
-          <Amount currency="gems" value={rules.swaps.gems.amount} className="font-semibold" />,
-          ceux en {stepList(rules.swaps.draw.steps)} un objet.
-        </p>
+      <button
+        type="button"
+        aria-expanded={rulesOpen}
+        onPointerDown={() => setRulesOpen(o => !o)}
+        className="flex min-h-8 items-center justify-between text-[11px] text-white/45"
+      >
+        Barème des niveaux <span aria-hidden>{rulesOpen ? '−' : '+'}</span>
+      </button>
+      {rulesOpen && (
+        <div className="flex flex-col gap-1 text-[11px] leading-relaxed text-white/60">
+          <p>
+            Chaque niveau rapporte <Amount currency="gold" value={rules.gold_per_level} className="font-semibold" />,
+            tous les {rules.gems.every} niveaux <Amount currency="gems" value={rules.gems.amount} className="font-semibold" /> en plus,
+            et tous les {rules.draw.every} niveaux un objet tiré au sort ({kindList(rules.draw.kinds)}).
+          </p>
+          {/* Les échanges, en phrase à part : « en plus » et « à la place » sont
+              deux règles opposées, les fondre ferait lire les rangs comme des
+              bonus supplémentaires. */}
+          {rules.swaps && (
+            <p>
+              À la place des golds : les niveaux en {stepList(rules.swaps.gems.steps)} donnent{' '}
+              <Amount currency="gems" value={rules.swaps.gems.amount} className="font-semibold" />,
+              ceux en {stepList(rules.swaps.draw.steps)} un objet.
+            </p>
+          )}
+        </div>
       )}
-
-      <ul className="mt-2 flex flex-col gap-1">
-        {levels.upcoming.map(step => <UpcomingRow key={step.level} step={step} />)}
-      </ul>
-
-      {/* Les deux rendez-vous, redits en clair : la liste ne va pas toujours
-          assez loin pour les montrer (un objet peut être à 10 niveaux). */}
-      <dl className="mt-2 grid grid-cols-2 gap-2 text-center">
-        <div className="rounded-lg border border-line bg-surface/60 px-1 py-2">
-          <dt className="flex items-center justify-center gap-1 text-[10px] tracking-widest text-white/40"><UiIcon id={CURRENCY.gems.icon} className="h-3 w-3" /> PROCHAINES</dt>
-          <dd className="mt-1 text-sm font-bold tabular-nums text-violet">Nv. {fmt.format(levels.next_gems_level)}</dd>
-        </div>
-        <div className="rounded-lg border border-line bg-surface/60 px-1 py-2">
-          <dt className="flex items-center justify-center gap-1 text-[10px] tracking-widest text-white/40"><UiIcon id="UI_GIFTS" className="h-3 w-3" /> PROCHAIN OBJET</dt>
-          <dd className="mt-1 text-sm font-bold tabular-nums text-gold">Nv. {fmt.format(levels.next_draw_level)}</dd>
-        </div>
-      </dl>
     </Panel>
   );
 }

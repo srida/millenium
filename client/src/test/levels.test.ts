@@ -505,12 +505,12 @@ describe('tirage des paliers à objet', () => {
 });
 
 describe('annonce au joueur (preview)', () => {
-  it('annonce les 4 prochains paliers, à partir du suivant', () => {
+  it('annonce les 5 prochains paliers, à partir du suivant', () => {
     const user = newUser();
     levelTo(user().id, 7);
 
     const view = levels.preview(user());
-    expect(view.upcoming.map((u: any) => u.level)).toEqual([8, 9, 10, 11]);
+    expect(view.upcoming.map((u: any) => u.level)).toEqual([8, 9, 10, 11, 12]);
     expect(view.upcoming[2]).toEqual({ level: 10, gold: 50, gems: 50, draw: true });
   });
 

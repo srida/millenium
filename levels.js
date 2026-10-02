@@ -277,9 +277,9 @@ const claim = db.transaction((user) => {
 
 // --- Lecture ---
 
-// Nombre de paliers annoncés au joueur. Quatre : assez pour voir venir la
-// prochaine marche à gemmes sans transformer le profil en calendrier.
-const PREVIEW_COUNT = 4;
+// Nombre de paliers annoncés au joueur. Cinq : la frise du profil a cinq cases ;
+// assez pour voir venir la prochaine marche sans en faire un calendrier.
+const PREVIEW_COUNT = 5;
 
 /**
  * Prochain niveau, strictement au-dessus de `level`, dont le barème satisfait

@@ -98,6 +98,8 @@ input, textarea, select { font-size: 1rem !important; }
   --color-surface: #0f1117;
   --color-surface-raised: #1a1d27;
   --color-line: #2a2e3d;
+  --color-line-strong: #3a3f52;
+  --color-surface-sunken: #141720;
   --color-gold: #d4af61;
   --color-player: #4f8ef7;
   --color-enemy: #e0564f;
