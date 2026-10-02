@@ -319,11 +319,12 @@ function CosmeticOffer({
       {card ? (
         <div className="flex justify-center py-1.5">
           {/* ⚠️ `plain`, puis l'effet vendu : la tuile ne montre QUE ce qu'elle
-              vend, pas les effets du deck actif. Sans pastille de coût. */}
+              vend, pas les effets du deck actif. Même taille que les cartes de
+              la vitrine, avec sa pastille de coût en matériels. */}
           <Card3D
             {...cardVisualProps(card, 'player', { plain: true })}
-            hint={null} foil={foil} finish={finish}
-            size="h-52" tapOn="up"
+            foil={foil} finish={finish}
+            size="h-28" tapOn="up"
           />
         </div>
       ) : (
