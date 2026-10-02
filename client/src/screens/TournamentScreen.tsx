@@ -182,7 +182,7 @@ export default function TournamentScreen() {
   if (web) {
     return (
       <main className="relative z-10 grid h-full min-h-0 grid-cols-[300px_minmax(0,1fr)] gap-4 text-white pl-[max(5.5rem,env(safe-area-inset-left))] pr-[max(5.5rem,env(safe-area-inset-right))]">
-        <aside className="flex min-h-0 flex-col gap-2.5 pb-3.5 pt-2.5">
+        <aside className="flex min-h-0 flex-col gap-2 overflow-y-auto pb-3 pt-2">
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-bold tracking-wide">Tournoi</h1>
             <span className="ml-auto">{abandon}</span>
@@ -344,21 +344,21 @@ function BoPips({ wins, side, compact }: { wins: number; side: 'player' | 'enemy
 function VsHero({ view, compact }: { view: View; compact?: boolean }) {
   const tone = view.heroTone === 'gold' ? 'text-gold' : view.heroTone === 'success' ? 'text-success' : 'text-danger';
   const border = view.heroTone === 'danger' ? 'border-danger/50' : 'border-gold/50';
-  const size = compact ? 'h-11 w-11' : 'h-[72px] w-[72px]';
+  const size = compact ? 'h-9 w-9' : 'h-[72px] w-[72px]';
   return (
-    <div className={`flex flex-col border bg-surface-raised/70 ${border} ${compact ? 'min-h-0 flex-1 justify-center gap-2 rounded-xl px-3 py-2.5' : 'gap-3 rounded-2xl px-3 py-4'}`}>
+    <div className={`flex flex-col border bg-surface-raised/70 ${border} ${compact ? 'shrink-0 gap-1.5 rounded-xl px-3 py-2' : 'gap-3 rounded-2xl px-3 py-4'}`}>
       <div className={`flex items-center justify-center gap-1.5 font-semibold tracking-widest ${compact ? 'text-[9px]' : 'text-[10px]'} ${tone}`}>
         {view.champion && <UiIcon id="UI_VICTORY" className="h-4 w-4" />}
         <span className="text-center">{view.heroLabel}</span>
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-        <div className="flex min-w-0 flex-col items-center gap-1.5">
+        <div className="flex min-w-0 flex-col items-center gap-1">
           <Portrait p={{ isPlayer: true }} size={size} round="rounded-[14px]" ring="ring-2 ring-gold" />
           <span className="text-sm font-bold text-gold">Vous</span>
           <BoPips wins={view.playerWins} side="player" compact={compact} />
         </div>
         <span className="text-xs font-bold tracking-widest text-white/35">VS</span>
-        <div className="flex min-w-0 flex-col items-center gap-1.5">
+        <div className="flex min-w-0 flex-col items-center gap-1">
           {view.opp && <Portrait p={view.opp} size={size} round="rounded-[14px]" ring="ring-2 ring-enemy" />}
           <span className="max-w-full truncate text-sm font-bold">{view.opp?.name ?? '—'}</span>
           <BoPips wins={view.oppWins} side="enemy" compact={compact} />
