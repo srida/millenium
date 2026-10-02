@@ -212,7 +212,7 @@ export default function TournamentScreen() {
         <OtherMatches view={view} />
       </div>
       <div className="flex shrink-0 flex-col gap-2.5 border-t border-line bg-surface/95 px-4 pb-4 pt-3">
-        {showMusic && <MusicThemePicker />}
+        {showMusic && <MusicThemePicker full />}
         {mainButton}
       </div>
       {confirm}

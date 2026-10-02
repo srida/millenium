@@ -31,7 +31,7 @@ function ArrowButton({ label, onTap, children }: { label: string; onTap: () => v
   );
 }
 
-export default function MusicThemePicker() {
+export default function MusicThemePicker({ full = false }: { full?: boolean } = {}) {
   const ids = playableGameThemeIds();
   // Une préférence qui n'est plus jouable retombe sur Aléatoire (index 0).
   const opts = ['', ...ids];
@@ -56,7 +56,7 @@ export default function MusicThemePicker() {
         if (e.key === 'ArrowLeft') go(-1);
         if (e.key === 'ArrowRight') go(1);
       }}
-      className="grid w-full max-w-sm grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 rounded-xl border border-line bg-surface-raised/70 p-1.5"
+      className={`grid w-full ${full ? '' : 'max-w-sm'} grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 rounded-xl border border-line bg-surface-raised/70 p-1.5`}
     >
       <ArrowButton label="Thème précédent" onTap={() => go(-1)}>‹</ArrowButton>
       <div className="flex min-w-0 flex-col items-center gap-1">

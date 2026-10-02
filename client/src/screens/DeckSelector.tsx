@@ -250,7 +250,7 @@ export default function DeckSelector() {
         <div className={classname_title}>
           <h1 className="truncate text-lg font-bold tracking-wide">{MODES.play.title}</h1>
         </div>
-        <div className="px-4 pt-3"><MusicThemePicker /></div>
+        <div className="px-4 pt-3"><MusicThemePicker full /></div>
         {chips}
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{grid}</div>
         <div className={classname_button}>
