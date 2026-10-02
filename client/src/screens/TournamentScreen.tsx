@@ -19,7 +19,7 @@ import {
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useTournamentStore } from '../stores/tournamentStore.js';
-import { Button } from '../components/ui/primitives.js';
+import { Button, Modal } from '../components/ui/primitives.js';
 import UiIcon from '../components/ui/UiIcon.js';
 import SelectedDeck from '../components/deck/SelectedDeck.js';
 import MusicThemePicker from '../components/ui/MusicThemePicker.js';
@@ -45,6 +45,7 @@ export default function TournamentScreen() {
   const web = useWebLayout();
   const classname_title = `border-b border-line py-3${web ? ' px-22' : ' px-6'}`;
   const classname_body = `flex-1 space-y-4 overflow-y-auto p-4${web ? ' px-22' : ' px-6'}`;
+  const [confirmAbandon, setConfirmAbandon] = useState(false);
 
   // ⚠️ Le `.catch` n'est pas décoratif : sans lui, un catalogue injoignable
   // (hors ligne, 500) laissait `ready` à false pour toujours, avec une
@@ -83,9 +84,9 @@ export default function TournamentScreen() {
     navigate('game', { tournament: true });
   }
 
-  const complete = tournament && isTournamentComplete(tournament);
+  const complete = !!tournament && isTournamentComplete(tournament);
   const champion = tournament && getChampion(tournament);
-  const eliminated = tournament && isPlayerEliminated(tournament);
+  const eliminated = !!tournament && isPlayerEliminated(tournament);
   const playerMatch = tournament && !complete ? findPlayerMatch(tournament) : null;
 
   const header = (
@@ -110,12 +111,11 @@ export default function TournamentScreen() {
     );
   }
 
-  return (
-    <main className="flex min-h-full flex-col relative z-10 text-white">
-      {header}
-
-      <div className={classname_body}>
-        {!tournament ? (
+  if (!tournament) {
+    return (
+      <main className="flex min-h-full flex-col relative z-10 text-white">
+        {header}
+        <div className={classname_body}>
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <UiIcon id="UI_TOURNAMENT" className="h-10 w-10" />
             <p className="max-w-xs text-sm text-white/60">
@@ -131,79 +131,318 @@ export default function TournamentScreen() {
               </Button>
             )}
           </div>
-        ) : (
-          <>
-            {tournament.rounds.map((round: any[], ri: number) => (
-              <section key={ri}>
-                <h2 className="mb-1.5 text-[10px] tracking-widest text-white/40">
-                  {(ROUND_LABELS[ri] ?? `Round ${ri + 1}`).toUpperCase()}
-                </h2>
-                <div className="space-y-1.5">
-                  {round.map((m: any) => <MatchRow key={m.id} match={m} live={m === playerMatch} />)}
-                </div>
-              </section>
-            ))}
+        </div>
+      </main>
+    );
+  }
 
-            <div className="space-y-2 pt-2">
-              {/* Entre deux manches ET entre deux rounds (le « Round suivant » suit
-                  une série gagnée) : le thème se change avant chaque match. */}
-              {!complete && !eliminated && <div className="flex justify-center"><MusicThemePicker /></div>}
-              {complete ? (
-                <div className="rounded-xl border border-gold/40 bg-gold/10 p-4 text-center">
-                  <UiIcon id="UI_VICTORY" className="mx-auto h-8 w-8" />
-                  {champion && (
-                    <div className="mt-1 flex justify-center">
-                      <Portrait p={champion} won size="h-12 w-12" />
-                    </div>
-                  )}
-                  <div className="mt-1 text-sm">Champion : <span className="font-bold text-gold">{champion?.isPlayer ? 'Vous' : champion?.name}</span></div>
-                  <div className={`mt-1 flex items-center justify-center gap-1 text-xs ${champion?.isPlayer ? 'text-success' : eliminated ? 'text-danger' : 'text-white/50'}`}>
-                    {champion?.isPlayer ? <><UiIcon id="UI_CELEBRATE" className="h-3.5 w-3.5" /> Tu remportes le tournoi !</> : eliminated ? 'Tu as été éliminé.' : 'Tournoi terminé.'}
-                  </div>
-                  <Button className="mt-3" onPointerDown={clearTournament}>Nouveau tournoi</Button>
-                </div>
-              ) : playerMatch ? (
-                <>
-                  <Button variant="primary" className="w-full py-3" onPointerDown={() => playMatch(playerMatch)}>
-                    ▸ JOUER LA MANCHE {playerMatch.wins[0] + playerMatch.wins[1] + 1}
-                  </Button>
-                  <p className="text-center text-xs text-white/40">
-                    vs {playerMatch.players.find((p: any) => !p.isPlayer)?.name} — premier à 3 manches.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <Button variant="primary" className="w-full py-3" onPointerDown={nextRound}>Round suivant ▸</Button>
-                  {eliminated && <p className="text-center text-xs text-white/40">Tu es éliminé — déroule le bracket pour voir le champion.</p>}
-                </>
-              )}
-              {!complete && <Button className="flex w-full items-center justify-center gap-1.5" onPointerDown={clearTournament}><UiIcon id="UI_CLOSE" className="h-4 w-4" /> Abandonner le tournoi</Button>}
-            </div>
-          </>
-        )}
+  // Un seul calcul de vue, partagé par les deux mises en page.
+  const view = buildView(tournament, { playerMatch, complete, eliminated, champion });
+  const showMusic = !complete && !eliminated;
+
+  const abandon = !complete && (
+    <button
+      type="button"
+      onPointerDown={() => setConfirmAbandon(true)}
+      className={`flex items-center gap-1 text-xs font-semibold text-danger/85 ${web ? 'min-h-9 px-1' : 'min-h-11 px-2.5'}`}
+    >
+      <UiIcon id="UI_CLOSE" className="h-3.5 w-3.5 opacity-80" /> Abandonner
+    </button>
+  );
+
+  const mainButton = (
+    <div className="flex flex-col gap-2.5">
+      <Button
+        variant="primary"
+        className="min-h-tap w-full py-3 text-base"
+        onPointerDown={() => (playerMatch ? playMatch(playerMatch) : complete ? clearTournament() : nextRound())}
+      >
+        <UiIcon id="UI_DUEL" className="h-4 w-4" />
+        {playerMatch ? `Jouer la manche ${playerMatch.wins[0] + playerMatch.wins[1] + 1}` : complete ? 'Nouveau tournoi' : 'Round suivant'}
+      </Button>
+      {eliminated && !complete && (
+        <p className="text-center text-xs text-white/40">Tu es éliminé · déroule le bracket pour voir le champion.</p>
+      )}
+    </div>
+  );
+
+  const confirm = confirmAbandon && (
+    <Modal onClose={() => setConfirmAbandon(false)}>
+      <div className="flex flex-col gap-3 text-center">
+        <div className="text-sm font-bold">Abandonner le tournoi ?</div>
+        <p className="text-xs text-white/60">Ta progression sera perdue.</p>
+        <div className="flex gap-2">
+          <Button className="flex-1" onPointerDown={() => setConfirmAbandon(false)}>Annuler</Button>
+          <Button variant="danger" className="flex-1" onPointerDown={() => { setConfirmAbandon(false); clearTournament(); }}>Abandonner</Button>
+        </div>
       </div>
+    </Modal>
+  );
+
+  if (web) {
+    return (
+      <main className="relative z-10 grid h-full min-h-0 grid-cols-[300px_minmax(0,1fr)] gap-4 text-white pl-[max(5.5rem,env(safe-area-inset-left))] pr-[max(5.5rem,env(safe-area-inset-right))]">
+        <aside className="flex min-h-0 flex-col gap-2.5 pb-3.5 pt-2.5">
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold tracking-wide">Tournoi</h1>
+            <span className="ml-auto">{abandon}</span>
+          </div>
+          <VsHero compact view={view} />
+          {showMusic && <MusicThemePicker />}
+          {mainButton}
+        </aside>
+        <section className="flex min-h-0 flex-col gap-3.5 overflow-y-auto pb-4 pt-3.5">
+          <PathTimeline view={view} />
+          <OtherMatches view={view} />
+        </section>
+        {confirm}
+      </main>
+    );
+  }
+
+  return (
+    <main className="relative z-10 flex h-full min-h-0 flex-col text-white">
+      <div className="flex items-center border-b border-line px-6 py-1">
+        <h1 className="text-lg font-bold tracking-wide">Tournoi</h1>
+        <span className="ml-auto">{abandon}</span>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-y-auto p-4">
+        <VsHero view={view} />
+        <PathTimeline view={view} />
+        <OtherMatches view={view} />
+      </div>
+      <div className="flex shrink-0 flex-col gap-2.5 border-t border-line bg-surface/95 px-4 pb-4 pt-3">
+        {showMusic && <MusicThemePicker />}
+        {mainButton}
+      </div>
+      {confirm}
     </main>
   );
 }
 
-function MatchRow({ match, live }: { match: any; live?: boolean }) {
-  const [a, b] = match.players;
+// ---------------------------------------------------------------------------
+// Vue dérivée du bracket — fonctions pures, sans mutation de `t`.
+
+type StepTone = 'won' | 'lost' | 'current' | 'todo';
+interface Step {
+  label: string; tone: StepTone; dim: boolean;
+  opponents: any[];            // 0 (inconnu), 1 ou 2 (« A ou B »)
+  unknownCount: number;        // nb d'adversaires possibles quand aucun n'est connu
+  score: string | null;
+}
+interface View {
+  heroLabel: string; heroTone: 'gold' | 'success' | 'danger'; champion: boolean;
+  opp: any | null; playerWins: number; oppWins: number;
+  steps: Step[]; others: any[]; othersLabel: string;
+}
+
+// Arbre projeté sur 4 rounds : slots inconnus = null.
+function projectBracket(t: any) {
+  const rounds: any[][] = [];
+  let seats = t.rounds[0].flatMap((m: any) => m.players);
+  for (let r = 0; r < 4; r++) {
+    const real = t.rounds[r];
+    const ms = real ?? Array.from({ length: seats.length / 2 }, (_, k) => ({ players: [seats[2 * k], seats[2 * k + 1]], wins: [0, 0], winner: null }));
+    rounds.push(ms);
+    seats = ms.map((m: any) => m.winner ?? null);
+  }
+  return rounds;
+}
+
+function buildView(t: any, s: { playerMatch: any; complete: boolean; eliminated: boolean; champion: any }): View {
+  const ri: number = t.currentRoundIndex;
+  const roundName = (r: number) => (ROUND_LABELS[r] ?? `Round ${r + 1}`).toUpperCase();
+  const projected = projectBracket(t);
+  const first: any[] = t.rounds[0];
+  const pIdx = first.findIndex(m => m.players.some((p: any) => p.isPlayer));
+  const pos = pIdx * 2 + (first[pIdx].players[0].isPlayer ? 0 : 1);
+
+  // Dernier match du joueur (le plus récent round où il figure).
+  let lastR = -1; let last: any = null;
+  t.rounds.forEach((round: any[], r: number) => {
+    const m = round.find(x => x.players.some((p: any) => p.isPlayer));
+    if (m) { lastR = r; last = m; }
+  });
+  const slotOf = (m: any) => (m.players[0].isPlayer ? 0 : 1);
+
+  const steps: Step[] = [];
+  let lostAt = -1;
+  for (let r = 0; r < 4; r++) {
+    const real = t.rounds[r]?.find((x: any) => x.players.some((p: any) => p.isPlayer));
+    const label = ROUND_LABELS[r] ?? `Round ${r + 1}`;
+    if (real) {
+      const sl = slotOf(real);
+      const lost = !!real.winner && !real.winner.isPlayer;
+      const won = !!real.winner && real.winner.isPlayer;
+      if (lost) lostAt = r;
+      steps.push({
+        label, tone: lost ? 'lost' : won ? 'won' : 'current', dim: false,
+        opponents: [real.players[1 - sl]], unknownCount: 0,
+        score: `${real.wins[sl]}–${real.wins[1 - sl]}`,
+      });
+      continue;
+    }
+    if (lostAt >= 0) { steps.push({ label, tone: 'todo', dim: true, opponents: [], unknownCount: 0, score: null }); continue; }
+    const mi = pos >> (r + 1);
+    const sd = (pos >> r) & 1;
+    const opp = projected[r][mi]?.players[1 - sd] ?? null;
+    let opponents: any[] = opp ? [opp] : [];
+    let unknownCount = 0;
+    if (!opp && r > 0) {
+      const feeder = projected[r - 1][2 * mi + (1 - sd)];
+      if (feeder?.players[0] && feeder?.players[1]) opponents = [feeder.players[0], feeder.players[1]];
+      else unknownCount = 2 ** r;
+    }
+    steps.push({ label, tone: 'todo', dim: false, opponents, unknownCount, score: null });
+  }
+
+  let heroLabel: string; let heroTone: View['heroTone'] = 'gold'; let opp: any = null; let pw = 0; let ow = 0;
+  const m = s.playerMatch ?? last;
+  if (m) {
+    const sl = slotOf(m);
+    opp = m.players[1 - sl]; pw = m.wins[sl]; ow = m.wins[1 - sl];
+  }
+  const isChampion = s.complete && !!s.champion?.isPlayer;
+  if (s.playerMatch) heroLabel = `${roundName(ri)} · MANCHE ${pw + ow + 1} / 3`;
+  else if (isChampion) heroLabel = 'CHAMPION DU TOURNOI';
+  else if (s.eliminated) { heroLabel = `ÉLIMINÉ EN ${roundName(lastR)}`; heroTone = 'danger'; }
+  else { heroLabel = `QUALIFIÉ POUR ${roundName(Math.min(ri + 1, 3))}`; heroTone = 'success'; }
+
+  const others = (t.rounds[ri] as any[]).filter(x => !x.players.some((p: any) => p.isPlayer));
+  return {
+    heroLabel, heroTone, champion: isChampion, opp, playerWins: pw, oppWins: ow, steps, others,
+    othersLabel: ROUND_LABELS[ri] ?? `Round ${ri + 1}`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Composants
+
+function SectionHeader({ children }: { children: ReactNode }) {
   return (
-    <div className={`flex items-stretch overflow-hidden rounded-lg border bg-surface-raised/60 text-sm ${live ? 'border-gold/60' : 'border-line'}`}>
-      <Slot p={a} score={match.wins[0]} won={match.winner === a} />
-      <div className="flex items-center px-1 text-[10px] text-white/30">vs</div>
-      <Slot p={b} score={match.wins[1]} won={match.winner === b} right />
+    <div className="flex items-center gap-2.5">
+      <h2 className="text-[10px] font-semibold tracking-widest text-white/40">{children}</h2>
+      <span className="h-px flex-1 bg-line" />
     </div>
   );
 }
 
-function Slot({ p, score, won, right }: { p: any; score: number; won: boolean; right?: boolean }) {
+function BoPips({ wins, side, compact }: { wins: number; side: 'player' | 'enemy'; compact?: boolean }) {
+  const dot = compact ? 'h-2 w-2' : 'h-2.5 w-2.5';
   return (
-    <div className={`flex flex-1 items-center gap-2 p-2 ${right ? 'flex-row-reverse text-right' : ''} ${won ? 'text-gold' : 'text-white/70'}`}>
-      <span className={`tabular-nums text-xs font-bold ${won ? 'text-gold' : 'text-white/40'}`}>{score}</span>
-      <Portrait p={p} won={won} />
-      <span className={`min-w-0 flex-1 truncate ${p.isPlayer ? 'font-bold' : ''}`}>{p.isPlayer ? 'Vous' : p.name}</span>
+    <div className="flex gap-1" aria-label={`${wins} manche${wins > 1 ? 's' : ''} gagnée${wins > 1 ? 's' : ''}`}>
+      {[0, 1].map(i => (
+        <span
+          key={i}
+          className={`${dot} rounded-full ${wins > i ? (side === 'player' ? 'bg-gold' : 'bg-enemy') : 'shadow-[inset_0_0_0_1px_rgba(255,255,255,.25)]'}`}
+        />
+      ))}
     </div>
+  );
+}
+
+function VsHero({ view, compact }: { view: View; compact?: boolean }) {
+  const tone = view.heroTone === 'gold' ? 'text-gold' : view.heroTone === 'success' ? 'text-success' : 'text-danger';
+  const border = view.heroTone === 'danger' ? 'border-danger/50' : 'border-gold/50';
+  const size = compact ? 'h-11 w-11' : 'h-[72px] w-[72px]';
+  return (
+    <div className={`flex flex-col border bg-surface-raised/70 ${border} ${compact ? 'min-h-0 flex-1 justify-center gap-2 rounded-xl px-3 py-2.5' : 'gap-3 rounded-2xl px-3 py-4'}`}>
+      <div className={`flex items-center justify-center gap-1.5 font-semibold tracking-widest ${compact ? 'text-[9px]' : 'text-[10px]'} ${tone}`}>
+        {view.champion && <UiIcon id="UI_VICTORY" className="h-4 w-4" />}
+        <span className="text-center">{view.heroLabel}</span>
+      </div>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+        <div className="flex min-w-0 flex-col items-center gap-1.5">
+          <Portrait p={{ isPlayer: true }} size={size} round="rounded-[14px]" ring="ring-2 ring-gold" />
+          <span className="text-sm font-bold text-gold">Vous</span>
+          <BoPips wins={view.playerWins} side="player" compact={compact} />
+        </div>
+        <span className="text-xs font-bold tracking-widest text-white/35">VS</span>
+        <div className="flex min-w-0 flex-col items-center gap-1.5">
+          {view.opp && <Portrait p={view.opp} size={size} round="rounded-[14px]" ring="ring-2 ring-enemy" />}
+          <span className="max-w-full truncate text-sm font-bold">{view.opp?.name ?? '—'}</span>
+          <BoPips wins={view.oppWins} side="enemy" compact={compact} />
+        </div>
+      </div>
+      {!compact && <p className="text-center text-xs text-white/50">Bo3 · 2 manches gagnantes</p>}
+    </div>
+  );
+}
+
+const TONE: Record<StepTone, { dot: string; line: string; text: string }> = {
+  won: { dot: 'border-success bg-success', line: 'bg-success', text: 'text-success' },
+  lost: { dot: 'border-danger bg-danger', line: 'bg-danger', text: 'text-danger' },
+  current: { dot: 'border-gold bg-surface shadow-[0_0_10px_-1px_var(--color-gold)]', line: 'bg-line', text: 'text-gold' },
+  todo: { dot: 'border-line', line: 'bg-line', text: 'text-white/40' },
+};
+
+function PathTimeline({ view }: { view: View }) {
+  return (
+    <section className="flex flex-col gap-1.5">
+      <SectionHeader>MON PARCOURS</SectionHeader>
+      <div className="flex flex-col">
+        {view.steps.map((st, i) => {
+          const c = TONE[st.tone];
+          const last = i === view.steps.length - 1;
+          const names = st.opponents.length
+            ? st.opponents.map((o: any) => o.name).join(' ou ')
+            : st.unknownCount ? `${st.unknownCount} adversaires possibles` : '—';
+          return (
+            <div key={i} className={`grid grid-cols-[24px_minmax(0,1fr)] gap-2.5 ${st.dim ? 'opacity-40' : st.tone === 'todo' ? 'opacity-70' : ''}`}>
+              <div className="flex flex-col items-center">
+                <span className={`mt-3.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 ${c.dot}`} />
+                {!last && <span className={`w-0.5 flex-1 ${c.line}`} />}
+              </div>
+              <div className="flex min-h-11 items-center gap-2.5 py-1.5">
+                <div className="min-w-0 flex-1">
+                  <div className={`text-[10px] font-semibold tracking-widest ${c.text}`}>
+                    {st.label.toUpperCase()}{st.tone === 'current' && ' · EN COURS'}
+                  </div>
+                  <div className="truncate text-[13px] font-semibold">{names}</div>
+                </div>
+                {st.opponents.length > 0 && (
+                  <div className="flex shrink-0">
+                    {st.opponents.map((o: any, k: number) => (
+                      <Portrait key={k} p={o} size="h-7 w-7" round="rounded-[7px]" ring={`ring-2 ring-surface${k ? ' -ml-1.5' : ''}`} />
+                    ))}
+                  </div>
+                )}
+                <span className={`w-[34px] shrink-0 text-right text-xs font-bold tabular-nums ${c.text}`}>{st.score ?? ''}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function OtherMatches({ view }: { view: View }) {
+  if (view.others.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-1.5">
+      <SectionHeader>AUTRES MATCHS · {view.othersLabel.toUpperCase()}</SectionHeader>
+      <div className="flex flex-col">
+        {view.others.map((m: any) => {
+          const [a, b] = m.players;
+          const done = !!m.winner;
+          const side = (p: any, w: number, right?: boolean) => (
+            <div className={`flex min-w-0 items-center gap-1.5 ${right ? 'flex-row-reverse text-right' : ''} ${done && m.winner !== p ? 'opacity-45' : ''}`}>
+              <Portrait p={p} size="h-[22px] w-[22px]" round="rounded-md" />
+              <span className={`min-w-0 truncate ${done && m.winner === p ? 'text-gold' : ''}`}>{p.name}</span>
+              <span className="sr-only">{w}</span>
+            </div>
+          );
+          return (
+            <div key={m.id} className="grid min-h-9 grid-cols-[minmax(0,1fr)_36px_minmax(0,1fr)] items-center gap-1.5 text-xs">
+              {side(a, m.wins[0])}
+              <span className="text-center font-bold tabular-nums text-white/50">{done ? `${m.wins[0]}–${m.wins[1]}` : '–'}</span>
+              {side(b, m.wins[1], true)}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -211,10 +450,9 @@ function Slot({ p, score, won, right }: { p: any; score: number; won: boolean; r
 // l'avatar de profil pour le joueur — qui peut être une image ou un emoji, et
 // retombe sur ★ en invité. Un slot vide au milieu de sept portraits se lirait
 // comme un bug, donc chaque branche rend quelque chose.
-function Portrait({ p, won, size = 'h-8 w-8' }: { p: any; won?: boolean; size?: string }) {
+function Portrait({ p, size = 'h-8 w-8', round = 'rounded-lg', ring = 'ring-1 ring-line' }: { p: any; size?: string; round?: string; ring?: string }) {
   const user = useAuthStore(s => s.user);
-  const ring = won ? 'ring-gold/60' : 'ring-line';
-  const frame = `${size} flex-shrink-0 overflow-hidden rounded-lg bg-surface object-cover ring-1 ${ring}`;
+  const frame = `${size} flex-shrink-0 overflow-hidden ${round} bg-surface object-cover ${ring}`;
 
   if (!p.isPlayer) {
     return <img src={(PublicDeckDatabase as any).avatarUrl(p.avatarId ?? 'PUBLIC_DECK_000')} alt="" className={frame} />;
