@@ -78,3 +78,29 @@ export function setEnemyFoils(ids: readonly string[] | null | undefined): void {
 export function hasFoil(cardId: string, side: Side = 'player'): boolean {
   return (side === 'enemy' ? _enemyFoils : _playerFoils).has(cardId);
 }
+
+// --- Effets et cadres ---
+// Holo, éclats, encre, cadre : même statut que le reflet (cosmétique, choisi
+// par deck, absent de `logic/` et du payload de déterminisme), même étanchéité
+// entre les camps. Une seule encre et un seul cadre par carte.
+
+// ⚠️ JUMEAUX de `INK_STYLES` / `FRAME_STYLES` (`cosmetics.js`).
+export type InkStyle = 'tier' | 'sepia' | 'nb';
+export type FrameStyle = 'courant' | 'gravure' | 'facettes';
+export interface CardFinish { holo?: boolean; sparkle?: boolean; ink?: InkStyle; frame?: FrameStyle }
+export type FinishMap = Record<string, CardFinish>;
+
+const NO_FINISH: CardFinish = Object.freeze({});
+let _playerFinishes: FinishMap = {};
+let _enemyFinishes: FinishMap = {};
+
+/** Finitions du deck joué par le joueur local. */
+export function setPlayerFinishes(m: FinishMap | null | undefined): void { _playerFinishes = m ?? {}; }
+
+/** Finitions du deck adverse — alimenté par le PvP uniquement. */
+export function setEnemyFinishes(m: FinishMap | null | undefined): void { _enemyFinishes = m ?? {}; }
+
+/** Les finitions de cette carte dans ce camp (`{}` sinon — jamais `undefined`). */
+export function finishOf(cardId: string, side: Side = 'player'): CardFinish {
+  return (side === 'enemy' ? _enemyFinishes : _playerFinishes)[cardId] ?? NO_FINISH;
+}

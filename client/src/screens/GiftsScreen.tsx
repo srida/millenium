@@ -249,7 +249,7 @@ function GiftReveal({ onClose }: { onClose: () => void }) {
             {cards.map((id, i) => {
               const card = cardOf(id);
               return card
-                ? <Card3D key={`${id}-${i}`} {...cardVisualProps(card as never)} size="h-32" tapOn="up" />
+                ? <Card3D key={`${id}-${i}`} {...cardVisualProps(card as never, 'player', { plain: true })} size="h-32" tapOn="up" />
                 : <span key={`${id}-${i}`} className="text-xs text-white/40">{id}</span>;
             })}
           </div>

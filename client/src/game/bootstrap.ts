@@ -149,6 +149,8 @@ export function buildSession(
   // Reflets : même trajet, même étanchéité entre les camps.
   CardArt.setPlayerFoils(resolvedName ? (DeckRepository as any).getDeckFoils?.(resolvedName) : null);
   CardArt.setEnemyFoils(null);
+  CardArt.setPlayerFinishes(resolvedName ? (DeckRepository as any).getDeckFinishes?.(resolvedName) : null);
+  CardArt.setEnemyFinishes(null);
 
   return new GameSession({
     // ⚠️ Le pool se dérive des TIERS DE LA CARTE, pas de la lane où le

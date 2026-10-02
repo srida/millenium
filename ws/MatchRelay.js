@@ -56,6 +56,8 @@ function deckDerived(userId, deckName) {
     variants: cosmetics.deckVariantMap(userId, deckName),
     // Cosmétique lui aussi : les cartes à reflet, filtrées par possession.
     foils: cosmetics.deckFoilList(userId, deckName),
+    // Holo, éclats, encre, cadre : même trajet, même filtre de possession.
+    finishes: cosmetics.deckFinishMap(userId, deckName),
     deck_attribute_counts: decks.deckAttributeCounts(userId, deckName),
   };
 }

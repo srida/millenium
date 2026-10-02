@@ -179,6 +179,21 @@ export function setDeckFoils(name, foils) {
   _afterMutation();
 }
 
+// Holo, éclats, encre, cadre de ce deck : { card_id: { holo?, sparkle?, ink?,
+// frame? } }. Même trajet que les reflets — le serveur refiltre par présence
+// au deck et par possession avant de l'annoncer à un adversaire.
+export function getDeckFinishes(name) {
+  const f = loadMeta()[name]?.finishes;
+  return f && typeof f === 'object' && !Array.isArray(f) ? f : {};
+}
+
+export function setDeckFinishes(name, finishes) {
+  const meta = loadMeta();
+  meta[name] = { ...(meta[name] || {}), finishes };
+  saveMeta(meta);
+  _afterMutation();
+}
+
 // Sauvegarde un deck. Structure : { "1": ["ID", ...], "2": [...], ... }
 export function saveDeck(name, deckData) {
   const decks = load();

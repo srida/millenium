@@ -32,7 +32,7 @@ function CardGroup({ title, cards, pick }: { title: string; cards: Card[]; pick:
       </div>
       <div className="mt-1.5 grid grid-cols-4 gap-2">
         {cards.map(c => {
-          if (!pick) return <Card3D key={c.id} {...cardVisualProps(c)} size="h-auto w-full" tapOn="up" />;
+          if (!pick) return <Card3D key={c.id} {...cardVisualProps(c, 'player', { plain: true })} size="h-auto w-full" tapOn="up" />;
           // Même lecture que `LibraryPanel` du DeckBuilder, au mot près :
           // déjà dans le deck → liseré or + tap qui RETIRE ; verrouillée (non
           // possédée) ou tier plein → grisée et intapable, sauf si déjà
@@ -43,7 +43,7 @@ function CardGroup({ title, cards, pick }: { title: string; cards: Card[]; pick:
           const full = !pick.canAdd(c);
           return (
             <Card3D
-              key={c.id} {...cardVisualProps(c)} size="h-auto w-full"
+              key={c.id} {...cardVisualProps(c, 'player', { plain: true })} size="h-auto w-full"
               tapOn="up" onTap={() => pick.onTap(c)}
               locked={locked}
               disabled={!inDeck && (locked || full)}

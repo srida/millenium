@@ -11,6 +11,7 @@ import { create } from 'zustand';
 import * as AuthClient from '../data/AuthClient.js';
 import { useAuthStore } from './authStore.js';
 import { createSnapshotChannel } from './snapshotLoader.js';
+import type { InkStyle, FrameStyle } from '../data/CardArt.js';
 
 export interface CosmeticAvatar {
   id: string;
@@ -52,10 +53,13 @@ export interface CosmeticCardBack {
 }
 
 /**
- * Un reflet — une lame de lumière sur l'illustration d'UNE carte. Son id EST le
- * `card_id` : un seul reflet par carte, pas de catalogue.
+ * Une tuile des « Effets du jour » : reflet, holo, éclats (id = `card_id`),
+ * encre ou cadre (id = `card_id:style`). Pas de catalogue.
  */
-export interface CosmeticFoil {
+export type EffectKind = 'foil' | 'holo' | 'sparkle' | 'ink' | 'frame';
+export interface CosmeticEffect {
+  kind: EffectKind;
+  style: InkStyle | FrameStyle | null;
   id: string;
   card_id: string;
   card_name: string;
@@ -73,18 +77,21 @@ export interface OwnedCardBack {
 export interface CosmeticSnapshot {
   day: string;
   next_rotation_at: number;
-  prices: { avatar: { gems: number }; variant: { gems: number }; card_back?: { gems: number }; foil?: { gems: number } };
+  prices: { avatar: { gems: number }; variant: { gems: number }; card_back?: { gems: number } } & Partial<Record<EffectKind, { gems: number }>>;
   avatars: CosmeticAvatar[];
   variants: CosmeticVariant[];
   card_backs: CosmeticCardBack[];
-  foils: CosmeticFoil[];
-  /** `owned.foils` : les card_id dont le joueur possède le reflet. */
-  owned: { avatars: string[]; variants: OwnedVariant[]; card_backs: OwnedCardBack[]; foils: string[] };
+  effects: CosmeticEffect[];
+  /** `foils` / `holos` / `sparkles` : des card_id ; `inks` / `frames` : des `card_id:style`. */
+  owned: {
+    avatars: string[]; variants: OwnedVariant[]; card_backs: OwnedCardBack[];
+    foils: string[]; holos: string[]; sparkles: string[]; inks: string[]; frames: string[];
+  };
   default_avatars: string[];
   default_card_backs: string[];
 }
 
-export type CosmeticKind = 'avatar' | 'variant' | 'card_back' | 'foil';
+export type CosmeticKind = 'avatar' | 'variant' | 'card_back' | EffectKind;
 
 interface CosmeticStoreState {
   snapshot: CosmeticSnapshot | null;
@@ -98,6 +105,11 @@ interface CosmeticStoreState {
   ownedVariantsFor: (cardId: string) => OwnedVariant[];
   /** Le joueur possède-t-il le reflet de cette carte ? — DeckBuilder. */
   ownsFoil: (cardId: string) => boolean;
+  ownsHolo: (cardId: string) => boolean;
+  ownsSparkle: (cardId: string) => boolean;
+  /** Encres possédées pour cette carte, dans l'ordre canonique. */
+  ownedInks: (cardId: string) => InkStyle[];
+  ownedFrames: (cardId: string) => FrameStyle[];
   /** Avatars sélectionnables au Profil : les offerts, puis les achetés. */
   selectableAvatars: () => string[];
   /** Dos de cartes portables au Profil — offerts et achetés confondus. */
@@ -116,12 +128,16 @@ function pickSnapshot(data: any): CosmeticSnapshot {
     avatars: data.avatars ?? [],
     variants: data.variants ?? [],
     card_backs: data.card_backs ?? [],
-    foils: data.foils ?? [],
+    effects: data.effects ?? [],
     owned: {
       avatars: data.owned?.avatars ?? [],
       variants: data.owned?.variants ?? [],
       card_backs: data.owned?.card_backs ?? [],
       foils: data.owned?.foils ?? [],
+      holos: data.owned?.holos ?? [],
+      sparkles: data.owned?.sparkles ?? [],
+      inks: data.owned?.inks ?? [],
+      frames: data.owned?.frames ?? [],
     },
     default_avatars: data.default_avatars ?? [],
     default_card_backs: data.default_card_backs ?? [],
@@ -136,7 +152,14 @@ const BUY_NOTICE: Record<CosmeticKind, (label: string) => string> = {
   variant: (l) => `Illustration débloquée : ${l} — choisis-la dans le DeckBuilder.`,
   card_back: (l) => `Dos de carte débloqué : ${l} — choisis-le dans ton profil.`,
   foil: (l) => `Reflet débloqué : ${l} — active-le dans le DeckBuilder.`,
+  holo: (l) => `Holo prismatique débloqué : ${l} — active-le dans le DeckBuilder.`,
+  sparkle: (l) => `Éclats débloqués : ${l} — active-les dans le DeckBuilder.`,
+  ink: (l) => `Encre débloquée : ${l} — choisis-la dans le DeckBuilder.`,
+  frame: (l) => `Cadre débloqué : ${l} — choisis-le dans le DeckBuilder.`,
 };
+
+const INK_ORDER: InkStyle[] = ['tier', 'sepia', 'nb'];
+const FRAME_ORDER: FrameStyle[] = ['courant', 'gravure', 'facettes'];
 
 const channel = createSnapshotChannel<CosmeticSnapshot>({
   fetch: () => (AuthClient as any).getCosmetics(),
@@ -175,6 +198,10 @@ export const useCosmeticStore = create<CosmeticStoreState>((set, get) => ({
     (get().snapshot?.owned.variants ?? []).filter(v => v.card_id === cardId),
 
   ownsFoil: (cardId) => (get().snapshot?.owned.foils ?? []).includes(cardId),
+  ownsHolo: (cardId) => (get().snapshot?.owned.holos ?? []).includes(cardId),
+  ownsSparkle: (cardId) => (get().snapshot?.owned.sparkles ?? []).includes(cardId),
+  ownedInks: (cardId) => INK_ORDER.filter(s => (get().snapshot?.owned.inks ?? []).includes(`${cardId}:${s}`)),
+  ownedFrames: (cardId) => FRAME_ORDER.filter(s => (get().snapshot?.owned.frames ?? []).includes(`${cardId}:${s}`)),
 
   selectableAvatars: () => {
     const snap = get().snapshot;

@@ -1,0 +1,115 @@
+/* Effets et cadres — cosmétiques achetés carte par carte (cosmetics.js : holo,
+   éclats, encre, cadre). Même statut que le reflet (`foil.css`) : posés par
+   `three/UnitCardEl` sur le plateau et par `components/ui/Card3D` partout
+   ailleurs (main, cimetière, boutique, DeckBuilder) — UNE recette, deux
+   fabriques, le balisage vient de `three/finishLayers.ts`.
+
+   ⚠️ Animations limitées à `transform`, `rotate` et `opacity` : composées par le
+   GPU, aucune boucle rAF. Les couches larges sont TRANSLATÉES au lieu de voir
+   leur dégradé réécrit.
+   ⚠️ Le PARENT rogne (`.unit-face` : `overflow: hidden`).
+   ⚠️ `--uc-ink` / `--uc-deep` viennent de `three/cardPalette.frameVars` ;
+   `test/card-palette.test.ts` exige que la palette et les feuilles s'accordent. */
+
+/* ── Encre ── */
+.unit-art.ink-tier  { filter: grayscale(1) contrast(1.25) brightness(1.1); }
+.unit-art.ink-sepia { filter: sepia(.9) contrast(1.12) brightness(.96) saturate(1.15); }
+.unit-art.ink-nb    { filter: grayscale(1) contrast(1.4) brightness(1.05); }
+.finish-ink-tint, .finish-ink-grain { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.finish-ink-tint.tier  { background: linear-gradient(155deg, var(--uc-ink), var(--uc-edge) 55%, var(--uc-deep)); mix-blend-mode: color; opacity: .92; }
+.finish-ink-tint.sepia { background: radial-gradient(80% 70% at 50% 40%, transparent 45%, rgba(60,30,8,.55)); mix-blend-mode: multiply; }
+.finish-ink-grain {
+  background-image: radial-gradient(rgba(255,255,255,.12) .5px, transparent .7px), radial-gradient(rgba(0,0,0,.22) .5px, transparent .7px);
+  background-size: 3px 3px, 4px 4px; background-position: 0 0, 1px 2px; mix-blend-mode: overlay;
+}
+
+/* ── Holo prismatique ── */
+.finish-holo { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; border-radius: inherit; }
+.finish-holo .film {          /* couche 3× plus large, translatée : composée GPU */
+  position: absolute; top: -100%; left: -100%; width: 300%; height: 300%;
+  background: linear-gradient(115deg, transparent 18%, rgba(255,70,170,.8) 30%, rgba(255,214,80,.8) 39%,
+    rgba(90,255,190,.8) 48%, rgba(70,170,255,.8) 57%, rgba(185,100,255,.8) 66%, transparent 80%);
+  mix-blend-mode: color-dodge; opacity: .55;
+  animation: finish-holo-drift 7s ease-in-out infinite; animation-delay: var(--drift-delay, 0s);
+}
+.finish-holo .trame { position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, rgba(255,255,255,.22) 0 1px, transparent 1px 3px); mix-blend-mode: overlay; opacity: .5; }
+.finish-holo .eclat {
+  position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,.75) 0%, transparent 38%); mix-blend-mode: overlay;
+  animation: finish-holo-glare 7s ease-in-out infinite; animation-delay: var(--drift-delay, 0s);
+}
+@keyframes finish-holo-drift { 0%,100% { transform: translate(15%, 10%); } 50% { transform: translate(-15%, -10%); } }
+@keyframes finish-holo-glare { 0%,100% { transform: translate(-15%, -18%); } 50% { transform: translate(15%, 5%); } }
+
+/* ── Éclats ── 18 <i> (`SPARKLES`, three/finishLayers.ts) : left/top/width en %
+   de la face, délai en ligne. */
+.finish-sparkle { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.finish-sparkle i {
+  position: absolute; translate: -50% -50%; aspect-ratio: 1; opacity: 0; mix-blend-mode: screen;
+  background:
+    radial-gradient(circle, #fff 0 10%, rgba(255,255,255,.6) 16%, transparent 34%),
+    linear-gradient(90deg, transparent 46%, var(--uc-ink) 50%, transparent 54%),
+    linear-gradient(0deg,  transparent 46%, var(--uc-ink) 50%, transparent 54%);
+  animation: finish-twinkle 4.6s ease-in-out infinite;
+}
+@keyframes finish-twinkle {
+  0%,100% { transform: scale(0) rotate(0deg); opacity: 0; }
+  10%     { transform: scale(1) rotate(45deg); opacity: 1; }
+  22%     { transform: scale(0) rotate(90deg); opacity: 0; }
+}
+
+/* ── Cadres : épaisseur 2 → 3 px ── */
+.frame-courant .unit-face, .frame-gravure .unit-face, .frame-facettes .unit-face { inset: 3px; border-radius: 10px; }
+.finish-ring { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; }
+.finish-ring::before {        /* disque surdimensionné tourné : composé GPU */
+  content: ''; position: absolute; left: 50%; top: 50%; width: 180%; aspect-ratio: 1; translate: -50% -50%;
+}
+.finish-frame-inner { position: absolute; inset: 0; z-index: 3; pointer-events: none; border-radius: inherit; }
+
+/* ⚠️ Courant et Facettes se posent PAR-DESSUS `--uc-frame-bg` (translucides, en
+   fusion) au lieu de le remplacer : une carte multi-tiers garde ses bandes. */
+
+/* Courant — une lueur blanche fait le tour */
+.frame-courant .finish-ring::before {
+  background: conic-gradient(transparent 0 70%, color-mix(in srgb, var(--uc-ink) 70%, transparent) 78%, #fff 82%, color-mix(in srgb, var(--uc-ink) 70%, transparent) 88%, transparent 96%);
+  mix-blend-mode: screen; animation: finish-orbit 3.2s linear infinite;
+}
+.frame-courant .finish-frame-inner { box-shadow: inset 0 0 0 1px var(--uc-ink), inset 0 0 9px 1px var(--uc-glow); }
+
+/* Gravure — métal ciselé, fixe */
+.frame-gravure .finish-ring { background:
+  repeating-linear-gradient(45deg, rgba(255,255,255,.5) 0 1px, rgba(0,0,0,.4) 1px 2px, transparent 2px 4px),
+  linear-gradient(155deg, rgba(255,255,255,.6), transparent 35%, transparent 65%, rgba(0,0,0,.6));
+  mix-blend-mode: overlay; }
+.frame-gravure .finish-frame-inner { box-shadow:
+  inset 0 0 0 1px rgba(0,0,0,.65), inset 0 0 0 2px var(--uc-edge), inset 0 0 0 3px var(--uc-deep),
+  inset 0 0 0 3.5px var(--uc-ink), inset 0 0 10px 3px rgba(0,0,0,.45); }
+
+/* Facettes — gemme taillée, rotation lente */
+.frame-facettes .finish-ring::before {
+  background: conic-gradient(rgba(255,255,255,.35) 0 6%, rgba(0,0,0,.35) 0 13%, transparent 0 19%, #fff 0 20%,
+    transparent 0 31%, rgba(0,0,0,.35) 0 38%, rgba(255,255,255,.35) 0 44%, transparent 0 56%,
+    rgba(0,0,0,.35) 0 63%, rgba(255,255,255,.35) 0 69%, #fff 0 70%, transparent 0 81%,
+    rgba(0,0,0,.35) 0 88%, rgba(255,255,255,.35) 0 94%, transparent 0);
+  mix-blend-mode: soft-light; animation: finish-orbit 14s linear infinite;
+}
+.frame-facettes .finish-frame-inner { box-shadow: inset 0 0 0 1px var(--uc-ink), inset 0 0 12px 2px var(--uc-glow); }
+
+@keyframes finish-orbit { to { rotate: 360deg; } }
+
+/* ── États de jeu : mêmes règles que `.foil-sheen` ── */
+.unit-card.neutralized :is(.finish-holo, .finish-sparkle) { display: none; }
+.unit-card:is(.selected, .dragging) :is(.finish-holo .film, .finish-holo .eclat, .finish-sparkle i, .finish-ring::before),
+.card3d:is(.is-selected, .is-dragging) :is(.finish-holo .film, .finish-holo .eclat, .finish-sparkle i),
+.card3d:is(.is-selected, .is-dragging) .finish-ring::before { animation-play-state: paused; }
+
+/* Plateau : une unité par case, jusqu'à une quinzaine d'unités animées — les
+   éclats sont limités à `SPARKLES_ON_BOARD` à la fabrication (UnitCardEl). */
+
+/* ── Mouvement réduit : on fige, on ne retire pas ce qui a été acheté ── */
+@media (prefers-reduced-motion: reduce) {
+  .finish-holo .film, .finish-holo .eclat { animation: none; transform: none; }
+  .finish-sparkle i { animation: none; opacity: .6; transform: scale(.7) rotate(45deg); }
+  .finish-sparkle i:nth-child(n+5) { display: none; }
+  .finish-ring::before { animation: none; rotate: 45deg; }
+}

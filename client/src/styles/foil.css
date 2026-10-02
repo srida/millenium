@@ -35,3 +35,5 @@
 @media (prefers-reduced-motion: reduce) {
   .foil-sheen::before { animation: none; transform: translateX(190%) skewX(-12deg); opacity: .5; }
 }
+/* La main et le cimetière portent aussi le reflet (`.card3d`) : même pause. */
+.card3d:is(.is-selected, .is-dragging) .foil-sheen::before { animation-play-state: paused; }

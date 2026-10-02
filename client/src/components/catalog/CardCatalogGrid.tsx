@@ -144,7 +144,7 @@ export default function CardCatalogGrid({
           : (
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8">
               {shown.map(c => (
-                <Card3D key={c.id} {...cardVisualProps(c)} size="h-auto w-full" tapOn="up" />
+                <Card3D key={c.id} {...cardVisualProps(c, 'player', { plain: true })} size="h-auto w-full" tapOn="up" />
               ))}
             </div>
           )}

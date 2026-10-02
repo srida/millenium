@@ -23,7 +23,7 @@ import { webRailBand, WEB_RAIL_OFFSET_RIGHT, ZONE_LABEL, ZONE_LABEL_PORTRAIT } f
 import { graveyardVisible, graveyardCardVisual, graveyardTapIntent } from './handVisual.js';
 import { fanLayout, railLayout, type CardTransform, type LayoutResult } from './cardFan.js';
 import Card3D from '../ui/Card3D.js';
-import { artFor } from '../../data/CardArt.js';
+import { artFor, finishOf, hasFoil } from '../../data/CardArt.js';
 import { RAIL_COLUMNS, RAIL_GAP_X, railCardWidth } from './railGeometry.js';
 
 /** Largeur nominale d'une carte de cimetière en portrait — plus petite que
@@ -103,6 +103,8 @@ function GraveCard3D({ entry, targeting, transform, width, rail }: {
   return (
     <Card3D
       illustrationId={artFor(entry.unit.card_id, entry.unit.side)}
+      foil={hasFoil(entry.unit.card_id, entry.unit.side)}
+      finish={finishOf(entry.unit.card_id, entry.unit.side)}
       name={entry.unit.name}
       showName={false}
       // ⚠️ Le tier de l'unité, et pas `null` : sur la carte 3D le CADRE est la

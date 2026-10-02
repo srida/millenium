@@ -126,6 +126,10 @@ export function frameVars(tiers: number | readonly number[] | null | undefined):
   return {
     '--uc-edge': bands[0].edge,
     '--uc-glow': bands[0].glow,
+    // L'encre « tier » et les cadres (`styles/finish.css`) lisent aussi le ton
+    // clair et le fond profond de la bande du haut.
+    '--uc-ink':  bands[0].ink,
+    '--uc-deep': bands[0].deep,
     '--uc-frame-bg':     bg,
     '--uc-frame-art':    art,
     '--uc-frame-shadow': shadow,

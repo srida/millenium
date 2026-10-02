@@ -111,7 +111,10 @@ describe('le miroir avec styles/index.css — une seule palette de tier', () => 
 });
 
 describe('frameVars — le contrat avec styles/board3d.css', () => {
-  const sheet = fs.readFileSync(path.join(SRC, 'styles', 'board3d.css'), 'utf8');
+  // Deux feuilles lisent le cadre : le cadre lui-même (`board3d.css`) et les
+  // effets / cadres cosmétiques (`finish.css`, qui lit `--uc-ink` et `--uc-deep`).
+  const sheet = ['board3d.css', 'finish.css']
+    .map(f => fs.readFileSync(path.join(SRC, 'styles', f), 'utf8')).join('\n');
   const readBySheet = new Set(sheet.match(/--uc-[a-z-]+/g) ?? []);
   const produced = new Set(Object.keys(frameVars([3, 4])));
 
@@ -132,8 +135,8 @@ describe('frameVars — le contrat avec styles/board3d.css', () => {
     expect(inutiles).toEqual([]);
   });
 
-  it('un tier inconnu produit quand même les cinq variables', () => {
-    expect(Object.keys(frameVars(undefined))).toHaveLength(5);
+  it('un tier inconnu produit quand même les sept variables', () => {
+    expect(Object.keys(frameVars(undefined))).toHaveLength(7);
   });
 });
 

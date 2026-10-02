@@ -121,7 +121,7 @@ describe('barème', () => {
   });
 
   it('3 avatars, 3 variantes, 2 dos de cartes et 3 reflets par jour', () => {
-    expect(cosmetics.DAILY).toEqual({ avatars: 3, variants: 3, card_backs: 2, foils: 3 });
+    expect(cosmetics.DAILY).toEqual({ avatars: 3, variants: 3, card_backs: 2 });
   });
 
   it('un reflet coûte 20 gemmes', () => {
@@ -607,7 +607,7 @@ describe('dos de cartes', () => {
   it('un kind inconnu est refusé, jamais servi par un autre pool', () => {
     const user = newUser();
     expect(cosmetics.buy(user(), 'chapeau', 'X').ok).toBe(false);
-    expect(cosmetics.KINDS).toEqual(['avatar', 'variant', 'card_back', 'foil']);
+    expect(cosmetics.KINDS).toEqual(['avatar', 'variant', 'card_back', 'foil', 'holo', 'sparkle', 'ink', 'frame']);
   });
 });
 
@@ -635,57 +635,125 @@ describe('reflets', () => {
     expect(pool.every((id: string) => ownedSet.has(id))).toBe(true);
   });
 
-  it('l\'offre du jour porte 3 reflets, au prix du barème, nommés par leur carte', () => {
+  it('l\'offre du jour porte 9 effets sur 9 cartes distinctes, au prix de leur famille', () => {
     const user = foilUser();
     const snap = cosmetics.refresh(user());
-    expect(snap.foils).toHaveLength(3);
-    for (const f of snap.foils) {
-      expect(f.id).toBe(f.card_id);
-      expect(f.price_gems).toBe(20);
-      expect(f.card_name).toBe(CARDS.find(c => c.id === f.card_id).name);
+    expect(snap.effects.map((e: any) => [e.kind, e.style])).toEqual(cosmetics.EFFECT_SLOTS.map(([k, st]: any) => [k, st ?? null]));
+    expect(new Set(snap.effects.map((e: any) => e.card_id)).size).toBe(9);
+    for (const e of snap.effects) {
+      expect(e.id).toBe(e.style ? `${e.card_id}:${e.style}` : e.card_id);
+      expect(e.price_gems).toBe(cosmetics.PRICE[e.kind].gems);
+      expect(e.card_name).toBe(CARDS.find(c => c.id === e.card_id).name);
     }
+    expect(snap.foils).toBeUndefined();
   });
 
-  it('l\'achat débite 20 gemmes et rend le reflet possédé', () => {
+  it('l\'achat d\'un reflet débite 20 gemmes et le rend possédé', () => {
     const user = foilUser(1_000);
-    const snap = cosmetics.refresh(user());
-    const id = snap.foils[0].id;
-    const res = cosmetics.buy(user(), 'foil', id);
+    const foil = cosmetics.refresh(user()).effects.find((e: any) => e.kind === 'foil');
+    const res = cosmetics.buy(user(), 'foil', foil.id);
     expect(res.ok).toBe(true);
     expect(res.price).toBe(20);
     expect(user().gems).toBe(980);
-    expect(cosmetics.getSnapshot(user()).owned.foils).toContain(id);
-    expect(cosmetics.buy(user(), 'foil', id).ok).toBe(false);
+    expect(cosmetics.getSnapshot(user()).owned.foils).toContain(foil.id);
+    expect(cosmetics.buy(user(), 'foil', foil.id).ok).toBe(false);
   });
 
-  it('un reflet possédé ne ressort jamais de l\'offre', () => {
+  it('chaque famille s\'achète à son prix et se range dans sa liste', () => {
+    const user = foilUser(1_000);
+    const effects = cosmetics.refresh(user()).effects;
+    const lists: Record<string, string> = { holo: 'holos', sparkle: 'sparkles', ink: 'inks', frame: 'frames' };
+    let gems = 1_000;
+    for (const e of effects.filter((x: any) => x.kind !== 'foil')) {
+      expect(cosmetics.buy(user(), e.kind, e.id).ok).toBe(true);
+      gems -= cosmetics.PRICE[e.kind].gems;
+      expect(cosmetics.getSnapshot(user()).owned[lists[e.kind]]).toContain(e.id);
+    }
+    expect(user().gems).toBe(gems);
+  });
+
+  // ⚠️ Un reflet et un holo de la même carte portent le MÊME id : l'achat se
+  // cherche sur le COUPLE (kind, id), sinon le holo s'achèterait au prix du
+  // reflet en nommant la tuile du reflet.
+  it('l\'achat vérifie le couple kind + id', () => {
+    const user = foilUser(1_000);
+    const effects = cosmetics.refresh(user()).effects;
+    const foil = effects.find((e: any) => e.kind === 'foil');
+    const holo = effects.find((e: any) => e.kind === 'holo');
+    expect(cosmetics.buy(user(), 'holo', foil.id).ok).toBe(false);   // le holo n'est pas offert sur cette carte
+    expect(cosmetics.buy(user(), 'sparkle', holo.id).ok).toBe(false); // ni l'inverse
+    expect(user().gems).toBe(1_000);
+    expect(cosmetics.buy(user(), 'ink', `${foil.card_id}:sepia`).ok).toBe(false); // id d'encre non offert
+  });
+
+  it('un effet possédé ne ressort jamais de l\'offre', () => {
     const user = foilUser();
-    const id = cosmetics.refresh(user()).foils[0].id;
-    cosmetics.buy(user(), 'foil', id);
+    const first = cosmetics.refresh(user()).effects.find((e: any) => e.kind === 'frame' && e.style === 'gravure');
+    cosmetics.buy(user(), 'frame', first.id);
     for (let i = 0; i < 5; i++) {
       rotate(user().id);
-      expect(cosmetics.refresh(user()).foils.map((f: any) => f.id)).not.toContain(id);
+      const ids = cosmetics.refresh(user()).effects.filter((e: any) => e.kind === 'frame' && e.style === 'gravure').map((e: any) => e.id);
+      expect(ids).not.toContain(first.id);
     }
   });
 
-  // Une offre tirée avant l'arrivée des reflets n'en porte pas : elle est
+  // Une offre tirée avant l'arrivée des effets n'en porte pas : elle est
   // COMPLÉTÉE, jamais re-tirée — les avatars du matin restent ceux du matin.
-  it('complète une offre du jour tirée sans reflets, sans toucher au reste', () => {
+  it('complète une offre du jour tirée sans effets, sans toucher au reste', () => {
     const user = foilUser();
     const before = cosmetics.refresh(user());
     const row = stmt.cosmeticStateByUser.get(user().id);
     const offer = JSON.parse(row.offer);
-    delete offer.foils;
+    delete offer.effects;
+    offer.foils = [{ id: 'ANCIEN', card_id: 'ANCIEN' }];
     stmt.upsertCosmeticState.run({ ...row, offer: JSON.stringify(offer) });
 
     const after = cosmetics.refresh(user());
     expect(after.avatars.map((a: any) => a.id)).toEqual(before.avatars.map((a: any) => a.id));
-    expect(after.foils.map((f: any) => f.id)).toEqual(before.foils.map((f: any) => f.id));
+    expect(after.effects.map((e: any) => e.id)).toEqual(before.effects.map((e: any) => e.id));
+    expect(JSON.parse(stmt.cosmeticStateByUser.get(user().id).offer).foils).toBeUndefined();
+  });
+
+  it('unlock valide la forme de l\'id d\'une encre ou d\'un cadre', () => {
+    const id = newUser()().id;
+    const card = CARDS[0].id;
+    expect(cosmetics.unlock(id, 'ink', `${card}:sepia`).ok).toBe(true);
+    expect(cosmetics.unlock(id, 'ink', card).ok).toBe(false);                 // style manquant
+    expect(cosmetics.unlock(id, 'ink', `${card}:courant`).ok).toBe(false);    // style d'un autre kind
+    expect(cosmetics.unlock(id, 'frame', `PAS_UNE_CARTE:gravure`).ok).toBe(false);
+    expect(cosmetics.unlock(id, 'holo', `${card}:tier`).ok).toBe(false);      // pas de style sur un holo
+    expect(cosmetics.unlock(id, 'holo', card).ok).toBe(true);
+  });
+
+  it('deckFinishMap filtre par présence au deck, possession et style valide', () => {
+    const user = foilUser();
+    const [a, b, absent] = CARDS.map(c => c.id).filter((id: string) => progression.unlockedCardIds(user()).includes(id));
+    const uid = user().id;
+    cosmetics.unlock(uid, 'holo', a);
+    cosmetics.unlock(uid, 'ink', `${a}:sepia`);
+    cosmetics.unlock(uid, 'frame', `${a}:gravure`);
+    cosmetics.unlock(uid, 'holo', absent);
+    setDeckBook(uid, {
+      decks: { Duel: { 1: [a, b] } },
+      meta: { Duel: { finishes: {
+        // `a` : holo + encre possédés ; l'éclat, le cadre « courant » ne le sont pas.
+        [a]: { holo: true, sparkle: true, ink: 'sepia', frame: 'courant' },
+        [b]: { holo: true },            // non possédé
+        [absent]: { holo: true },       // hors deck
+        BIDON: 'x',
+      } } },
+      active: 'Duel',
+    });
+    expect(cosmetics.deckFinishMap(uid, 'Duel')).toEqual({ [a]: { holo: true, ink: 'sepia' } });
+    // Encre inconnue : écartée.
+    setDeckBook(uid, { decks: { Duel: { 1: [a] } }, meta: { Duel: { finishes: { [a]: { ink: 'rouge' } } } }, active: 'Duel' });
+    expect(cosmetics.deckFinishMap(uid, 'Duel')).toEqual({});
+    expect(cosmetics.deckFinishMap(newUser()().id, 'Duel')).toEqual({});
   });
 
   it('la liste d\'un deck (PvP) est filtrée par possession ET par présence au deck', () => {
     const user = foilUser();
-    const bought = cosmetics.refresh(user()).foils[0].id;
+    const bought = cosmetics.refresh(user()).effects.find((e: any) => e.kind === 'foil').id;
     cosmetics.buy(user(), 'foil', bought);
     const [other] = progression.unlockedCardIds(user()).filter((id: string) => id !== bought);
     const absent = CARDS.find(c => c.id !== bought && c.id !== other).id;

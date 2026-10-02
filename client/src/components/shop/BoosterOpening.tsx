@@ -200,7 +200,7 @@ export default function BoosterOpening({ set, result, aborted = false, onClose }
               </div>
               <div className="bo-face absolute inset-0 [transform:rotateY(180deg)]">
                 {card
-                  ? <Card3D {...cardVisualProps(card)} size="h-full w-full" tapOn="up" />
+                  ? <Card3D {...cardVisualProps(card, 'player', { plain: true })} size="h-full w-full" tapOn="up" />
                   : <div className="flex h-full w-full items-center justify-center rounded-[13px] border border-line bg-surface text-[10px] text-white/50">{result!.cards[i].card_id}</div>}
               </div>
             </div>

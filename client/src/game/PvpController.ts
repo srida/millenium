@@ -66,12 +66,15 @@ export class PvpController extends GameController {
     // de déterminisme du round.
     CardArt.setEnemyVariants((PvpConnection as any).getOpponent()?.variants ?? null);
     CardArt.setEnemyFoils((PvpConnection as any).getOpponent()?.foils ?? null);
+    CardArt.setEnemyFinishes((PvpConnection as any).getOpponent()?.finishes ?? null);
     this._applyOpponentDeck();
     // Après une reconnexion, l'adversaire est re-annoncé : on le relit, sinon
     // le reste du match se jouerait avec l'art d'origine.
     this._listen('match:rejoined', () => {
       CardArt.setEnemyVariants((PvpConnection as any).getOpponent()?.variants ?? null);
       CardArt.setEnemyFoils((PvpConnection as any).getOpponent()?.foils ?? null);
+      CardArt.setEnemyFinishes((PvpConnection as any).getOpponent()?.finishes ?? null);
+    CardArt.setEnemyFinishes((PvpConnection as any).getOpponent()?.finishes ?? null);
       this._applyOpponentDeck();
     });
     // Écoute les messages de round + fin de match, puis démarre la préparation.

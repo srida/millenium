@@ -12,10 +12,12 @@
 //   - VARIANTE (50 gemmes) — illustration alternative d'une carte, écrite en
 //     admin. Le joueur ne peut acheter que les variantes des cartes QU'IL
 //     POSSÈDE : une variante d'une carte qu'on n'a pas ne s'affiche nulle part.
-//   - REFLET (20 gemmes) — une lame de lumière qui traverse l'illustration
-//     d'UNE carte sur le plateau. Pas de catalogue : son id EST le `card_id`,
+//   - EFFETS (reflet 20, holo 40, éclats 30, encre 30, cadre 50 gemmes) —
+//     finitions d'UNE carte, partout où elle s'affiche. Pas de catalogue : l'id
+//     est le `card_id` (reflet, holo, éclats) ou `card_id:style` (encre, cadre),
 //     et le pool est la collection du joueur (cartes possédées dont l'art
-//     existe). Choisi deck par deck, comme une variante.
+//     existe). Choisis deck par deck, comme une variante. Ils se vendent par
+//     NEUF emplacements fixes (`EFFECT_SLOTS`), une tuile par effet.
 //
 // Les invariants sont ceux de la boutique de cartes, pour les mêmes raisons :
 //   1. ZÉRO DOUBLON — un cosmétique possédé ne ressort jamais du tirage.
@@ -40,7 +42,7 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 
 // --- Barème ---
 
-const DAILY = Object.freeze({ avatars: 3, variants: 3, card_backs: 2, foils: 3 });
+const DAILY = Object.freeze({ avatars: 3, variants: 3, card_backs: 2 });
 
 // Prix fixes, en gemmes uniquement. Un avatar coûte le dixième d'une variante :
 // l'un se change comme on change d'humeur, l'autre est un investissement sur
@@ -49,6 +51,10 @@ const PRICE = Object.freeze({
   avatar: Object.freeze({ gems: 5 }),
   variant: Object.freeze({ gems: 50 }),
   foil: Object.freeze({ gems: 20 }),
+  holo: Object.freeze({ gems: 40 }),
+  sparkle: Object.freeze({ gems: 30 }),
+  ink: Object.freeze({ gems: 30 }),
+  frame: Object.freeze({ gems: 50 }),
   // ⚠️ REPLI seulement : un dos porte son propre `price_gems`, saisi en admin
   // (c'est le seul cosmétique dont le prix est éditorial — il n'y en a qu'une
   // poignée, et ils ne se valent pas). Ce chiffre ne sert qu'à une entrée de
@@ -56,7 +62,38 @@ const PRICE = Object.freeze({
   card_back: Object.freeze({ gems: 100 }),
 });
 
-const KINDS = Object.freeze(['avatar', 'variant', 'card_back', 'foil']);
+const KINDS = Object.freeze(['avatar', 'variant', 'card_back', 'foil', 'holo', 'sparkle', 'ink', 'frame']);
+
+// Les styles d'une encre / d'un cadre. ⚠️ JUMEAUX de `InkStyle` / `FrameStyle`
+// (`client/src/data/CardArt.ts`) : la frontière CJS / TS interdit un module
+// partagé, `cosmetics.test.ts` est le filet.
+const EFFECT_KINDS = new Set(['foil', 'holo', 'sparkle', 'ink', 'frame']);
+const INK_STYLES = Object.freeze(['tier', 'sepia', 'nb']);
+const FRAME_STYLES = Object.freeze(['courant', 'gravure', 'facettes']);
+const STYLES_BY_KIND = Object.freeze({ ink: INK_STYLES, frame: FRAME_STYLES });
+
+// Les neuf emplacements « Effets du jour », dans l'ordre d'affichage.
+const EFFECT_SLOTS = Object.freeze([
+  ['foil'], ['holo'], ['sparkle'],
+  ['ink', 'tier'], ['ink', 'sepia'], ['ink', 'nb'],
+  ['frame', 'courant'], ['frame', 'gravure'], ['frame', 'facettes'],
+]);
+/** `card_id` pour un effet sans style, `card_id:style` sinon. */
+const finishId = (cardId, style) => (style ? `${cardId}:${style}` : cardId);
+
+/**
+ * Un id d'effet est-il bien formé pour ce `kind` ? Rend le `card_id` s'il l'est.
+ * Reflet, holo et éclats : l'id nu EST le `card_id`. Encre et cadre :
+ * `card_id:style`, le style devant appartenir à la liste fermée du kind.
+ */
+function parseFinishId(kind, id) {
+  if (typeof id !== 'string' || !id) return null;
+  const styles = STYLES_BY_KIND[kind];
+  if (!styles) return id.includes(':') ? null : id;
+  const [cardId, style, ...rest] = id.split(':');
+  if (!cardId || rest.length || !styles.includes(style)) return null;
+  return cardId;
+}
 
 /**
  * La clé de chaque famille dans l'offre persistée. ⚠️ Une TABLE et non un
@@ -64,7 +101,10 @@ const KINDS = Object.freeze(['avatar', 'variant', 'card_back', 'foil']);
  * qui n'était pas un avatar comme une variante — un `kind` inconnu serait allé
  * chercher dans le mauvais pool. Ici il ne trouve rien, donc il est refusé.
  */
-const OFFER_KEY = Object.freeze({ avatar: 'avatars', variant: 'variants', card_back: 'card_backs', foil: 'foils' });
+const OFFER_KEY = Object.freeze({
+  avatar: 'avatars', variant: 'variants', card_back: 'card_backs',
+  foil: 'effects', holo: 'effects', sparkle: 'effects', ink: 'effects', frame: 'effects',
+});
 
 // Avatars offerts à tout le monde, jamais vendus et jamais tirés. C'est la
 // liste que ProfileScreen codait en dur avant l'existence de cette boutique :
@@ -193,14 +233,30 @@ function foilPool(user) {
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
-function drawFoils(user, day, ownedFoils) {
-  // Sa propre graine, comme chaque famille : l'offre d'une famille ne doit pas
-  // bouger quand le pool d'une autre change.
-  return pick(
-    foilPool(user).filter(f => !ownedFoils.has(f.id)),
-    DAILY.foils,
-    seededRandom(user.id, day, 'foil'),
-  ).map(f => ({ ...f, price_gems: PRICE.foil.gems }));
+/**
+ * Les neuf tuiles « Effets du jour ». Chaque emplacement a sa propre graine
+ * (une offre ne bouge pas quand une autre change) et les cartes déjà sorties
+ * sont écartées au fil du tirage, pour que les tuiles montrent des cartes
+ * différentes tant que le pool le permet. Un cosmétique déjà possédé ne
+ * ressort jamais.
+ */
+function drawEffects(user, day, ownedRows) {
+  const owned = new Set(ownedRows.map(r => `${r.kind}|${r.cosmetic_id}`));
+  const pool = foilPool(user);
+  const used = new Set();
+  const out = [];
+  for (const [kind, style] of EFFECT_SLOTS) {
+    const candidates = pool.filter(c => !owned.has(`${kind}|${finishId(c.card_id, style)}`));
+    const fresh = candidates.filter(c => !used.has(c.card_id));
+    const [c] = pick(fresh.length ? fresh : candidates, 1, seededRandom(user.id, day, `effect:${kind}:${style ?? ''}`));
+    if (!c) continue; // pool épuisé : moins de neuf tuiles, comme ailleurs
+    used.add(c.card_id);
+    out.push({
+      kind, style: style ?? null, id: finishId(c.card_id, style), card_id: c.card_id,
+      card_name: c.card_name, tier: c.tier, price_gems: PRICE[kind].gems,
+    });
+  }
+  return out;
 }
 
 // --- Possession ---
@@ -212,6 +268,10 @@ function ownedOf(userId) {
     variants: rows.filter(r => r.kind === 'variant').map(r => r.cosmetic_id),
     card_backs: rows.filter(r => r.kind === 'card_back').map(r => r.cosmetic_id),
     foils: rows.filter(r => r.kind === 'foil').map(r => r.cosmetic_id),
+    holos: rows.filter(r => r.kind === 'holo').map(r => r.cosmetic_id),
+    sparkles: rows.filter(r => r.kind === 'sparkle').map(r => r.cosmetic_id),
+    inks: rows.filter(r => r.kind === 'ink').map(r => r.cosmetic_id),
+    frames: rows.filter(r => r.kind === 'frame').map(r => r.cosmetic_id),
   };
 }
 
@@ -298,7 +358,7 @@ function buildOffer(user, { day }) {
     // Le prix d'un dos vient du CATALOGUE, pas du barème : `cardBackPool` l'a
     // déjà posé, avec son repli.
     card_backs: backList,
-    foils: drawFoils(user, day, new Set(ownedIds.foils)),
+    effects: drawEffects(user, day, stmt.cosmeticsByUser.all(user.id)),
   };
 }
 
@@ -328,12 +388,13 @@ const sync = db.transaction((user) => {
   const state = readState(user.id);
   const day = dayKey();
   if (state.offer_day === day && state.offer) {
-    // Une offre du jour tirée AVANT l'existence des reflets n'en porte pas :
+    // Une offre du jour tirée AVANT l'existence des effets n'en porte pas :
     // on la COMPLÈTE, sans rien re-tirer de ce qu'elle contient déjà (même
     // geste que `shop.fillSlots`). Le tirage est semé sur (joueur, jour), donc
     // c'est exactement l'offre que le joueur aurait eue au matin.
-    if (!Array.isArray(state.offer.foils)) {
-      state.offer.foils = drawFoils(user, day, new Set(ownedOf(user.id).foils));
+    if (!Array.isArray(state.offer.effects)) {
+      state.offer.effects = drawEffects(user, day, stmt.cosmeticsByUser.all(user.id));
+      delete state.offer.foils;
       writeState(state);
     }
     return state;
@@ -366,7 +427,10 @@ function unlock(userId, kind, id) {
   if (!KINDS.includes(kind)) return { ok: false, reason: 'Type de cosmétique inconnu.' };
   if (kind === 'variant' && !variants.byId(id)) return { ok: false, reason: 'Variante introuvable.' };
   if (kind === 'avatar' && !variants.illustrationExists(id)) return { ok: false, reason: 'Avatar introuvable.' };
-  if (kind === 'foil' && !cards().has(id)) return { ok: false, reason: 'Carte introuvable.' };
+  if (EFFECT_KINDS.has(kind)) {
+    const cardId = parseFinishId(kind, id);
+    if (!cardId || !cards().has(cardId)) return { ok: false, reason: 'Carte introuvable.' };
+  }
   // Un dos exige les DEUX : une entrée au catalogue (c'est elle qui le nomme et
   // le tarife) et son art (sans PNG il serait portable et vide).
   if (kind === 'card_back' && (!cardBackExists(id) || !variants.illustrationExists(id))) {
@@ -402,7 +466,10 @@ const buy = db.transaction((user, kind, id) => {
   }
 
   const pool = OFFER_KEY[kind] ? state.offer[OFFER_KEY[kind]] : null;
-  const item = (pool ?? []).find(e => e.id === id);
+  // ⚠️ Les cinq effets partagent UNE liste d'offre : l'id seul ne suffit pas
+  // (un reflet et un holo de la même carte portent le même `card_id`), on
+  // cherche le COUPLE (kind, id).
+  const item = (pool ?? []).find(e => e.id === id && (OFFER_KEY[kind] !== 'effects' || e.kind === kind));
   if (!item) return { ok: false, reason: 'L\'offre a changé, recharge la boutique.', stale: true };
   if (owns(user.id, kind, id)) return { ok: false, reason: 'Cosmétique déjà possédé.' };
 
@@ -416,9 +483,10 @@ const buy = db.transaction((user, kind, id) => {
   if (kind === 'variant' && !variants.byId(id)) {
     return { ok: false, reason: 'Variante introuvable.', stale: true };
   }
-  // Même raison pour la carte d'un reflet.
-  if (kind === 'foil' && !cards().has(id)) {
-    return { ok: false, reason: 'Carte introuvable.', stale: true };
+  // Même raison pour la carte d'un effet, et pour la forme de son id.
+  if (EFFECT_KINDS.has(kind)) {
+    const cardId = parseFinishId(kind, id);
+    if (!cardId || !cards().has(cardId)) return { ok: false, reason: 'Carte introuvable.', stale: true };
   }
   // Même raison pour un dos retiré du catalogue depuis le tirage.
   if (kind === 'card_back' && !cardBackExists(id)) {
@@ -479,6 +547,37 @@ function deckFoilList(userId, deckName) {
   return [...new Set(raw)].filter(id => typeof id === 'string' && inDeck.has(id) && owned.has(id)).sort();
 }
 
+/**
+ * Finitions du deck d'un joueur, `{ card_id: { holo?, sparkle?, ink?, frame? } }`,
+ * dérivées du deck book SERVEUR et filtrées par présence au deck ET possession —
+ * le trajet de `deckFoilList`, pour la même raison : le client ne transmet
+ * jamais cette map à son adversaire.
+ */
+function deckFinishMap(userId, deckName) {
+  const resolved = decks.resolveDeck(userId, deckName);
+  if (!resolved) return {};
+  const { name, book } = resolved;
+  const raw = book?.meta?.[name]?.finishes;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const inDeck = decks.deckCardIds(userId, deckName);
+  const own = ownedOf(userId);
+  const holos = new Set(own.holos);
+  const sparkles = new Set(own.sparkles);
+  const inks = new Set(own.inks);
+  const frames = new Set(own.frames);
+  const out = {};
+  for (const [cardId, f] of Object.entries(raw)) {
+    if (!inDeck.has(cardId) || !f || typeof f !== 'object') continue;
+    const entry = {};
+    if (f.holo === true && holos.has(cardId)) entry.holo = true;
+    if (f.sparkle === true && sparkles.has(cardId)) entry.sparkle = true;
+    if (INK_STYLES.includes(f.ink) && inks.has(finishId(cardId, f.ink))) entry.ink = f.ink;
+    if (FRAME_STYLES.includes(f.frame) && frames.has(finishId(cardId, f.frame))) entry.frame = f.frame;
+    if (Object.keys(entry).length) out[cardId] = entry;
+  }
+  return out;
+}
+
 // --- Lecture ---
 
 /**
@@ -494,7 +593,7 @@ function getSnapshot(user) {
   const ownedAvatars = new Set(ownedIds.avatars);
   const ownedVariants = new Set(ownedIds.variants);
   const ownedBacks = new Set(ownedIds.card_backs);
-  const ownedFoils = new Set(ownedIds.foils);
+  const ownedSet = { foil: new Set(ownedIds.foils), holo: new Set(ownedIds.holos), sparkle: new Set(ownedIds.sparkles), ink: new Set(ownedIds.inks), frame: new Set(ownedIds.frames) };
 
   // Les variantes possédées voyagent en OBJETS, pas en ids : le DeckBuilder a
   // besoin du card_id et du nom pour bâtir son sélecteur, et cette forme lui
@@ -515,7 +614,7 @@ function getSnapshot(user) {
     avatars: (offer?.avatars ?? []).map(a => ({ ...a, purchased: ownedAvatars.has(a.id) })),
     variants: (offer?.variants ?? []).map(v => ({ ...v, purchased: ownedVariants.has(v.id) })),
     card_backs: (offer?.card_backs ?? []).map(b => ({ ...b, purchased: ownedBacks.has(b.id) })),
-    foils: (offer?.foils ?? []).map(f => ({ ...f, purchased: ownedFoils.has(f.id) })),
+    effects: (offer?.effects ?? []).map(e => ({ ...e, purchased: !!ownedSet[e.kind]?.has(e.id) })),
     // Les dos POSSÉDÉS voyagent en objets (id + nom) pour que le Profil dresse
     // sa grille sans relire le catalogue ; les OFFERTS sont joints à la liste,
     // le joueur ne fait pas la différence entre « donné » et « acheté » quand
@@ -526,8 +625,13 @@ function getSnapshot(user) {
       card_backs: [...defaultCardBackIds(), ...ownedIds.card_backs]
         .filter((id, i, all) => all.indexOf(id) === i && cardBackExists(id))
         .map(id => ({ id, name: cardBacksCatalog().find(b => b.id === id)?.name ?? id })),
-      // Un reflet n'a que son card_id : le DeckBuilder n'a besoin de rien d'autre.
+      // Un effet n'a que son id (`card_id`, ou `card_id:style`) : le
+      // DeckBuilder n'a besoin de rien d'autre.
       foils: ownedIds.foils,
+      holos: ownedIds.holos,
+      sparkles: ownedIds.sparkles,
+      inks: ownedIds.inks,
+      frames: ownedIds.frames,
     },
     default_avatars: [...DEFAULT_AVATARS],
     default_card_backs: defaultCardBackIds(),
@@ -541,9 +645,9 @@ function refresh(user) {
 }
 
 module.exports = {
-  DAILY, PRICE, KINDS, DEFAULT_AVATARS,
+  DAILY, PRICE, KINDS, INK_STYLES, FRAME_STYLES, EFFECT_SLOTS, DEFAULT_AVATARS,
   avatarPool, variantPool, cardBackPool, foilPool, defaultCardBackIds, cardBackExists,
   ownedOf, owns, canUseAvatar, canUseCardBack,
-  buildOffer, sync, unlock, buy, deckVariantMap, deckFoilList,
+  buildOffer, sync, unlock, buy, deckVariantMap, deckFoilList, deckFinishMap,
   getSnapshot, refresh,
 };

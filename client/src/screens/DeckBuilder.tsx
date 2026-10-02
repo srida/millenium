@@ -7,7 +7,10 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as CardDatabase from '../data/CardDatabase.js';
 import * as AttributeDatabase from '../data/AttributeDatabase.js';
 import * as DeckRepository from '../data/DeckRepository.js';
-import { illustrationUrl } from '../data/CardArt.js';
+import { illustrationUrl, type CardFinish, type FinishMap } from '../data/CardArt.js';
+import {
+  NO_FINISH, NO_OWNED_FINISHES, hasAnyFinish, pruneFinishes, visibleFinish, type OwnedFinishes,
+} from '../data/DeckFinish.js';
 import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
 import { computeDeckTags } from '../data/DeckTags.js';
 import { summonCostOf } from '../data/SummonInfo.js';
@@ -37,6 +40,7 @@ const MIN_DECK = 20;
 /** Édition admin d'un deck public : aucun joueur, donc aucune variante. */
 const noVariants = () => [];
 const noFoil = () => false;
+const noFinishes = () => NO_OWNED_FINISHES;
 const DECK_COLORS = [
   '#d8564e', '#e4c65a', '#7cd88a', '#2f7d4f', '#6fc0e6', '#2f5bd8', '#e08a3a', '#a86ee7', '#e58ab8',
   '#f5f0e6', '#d9c7a3', '#9a9a9a', '#8b5a2b',
@@ -129,6 +133,18 @@ export default function DeckBuilder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ownedVariantsFor : cosmeticSnapshot force la re-dérivation après un achat
     [cosmeticSnapshot],
   );
+  // Holo, éclats, encres et cadres possédés pour une carte — même garde.
+  const ownedFinishes = useMemo(
+    () => (cardId: string): OwnedFinishes => {
+      const s = useCosmeticStore.getState();
+      return {
+        foil: s.ownsFoil(cardId), holo: s.ownsHolo(cardId), sparkle: s.ownsSparkle(cardId),
+        inks: s.ownedInks(cardId), frames: s.ownedFrames(cardId),
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cf. ownedVariantsFor : cosmeticSnapshot force la re-dérivation après un achat
+    [cosmeticSnapshot],
+  );
   // Dos de cartes débloqués (offerts + achetés) — même instantané que les
   // variantes, `loadCosmetics` ci-dessus le couvre déjà.
   // ⚠️ Passe par `useMemo`, jamais par un sélecteur Zustand inline : `?? []`
@@ -155,6 +171,8 @@ export default function DeckBuilder() {
   // Cartes dont le REFLET est allumé dans ce deck. Même règle que les
   // variantes : une absence vaut « éteint », et le méta ne porte que les oui.
   const [foils, setFoils] = useState<string[]>([]);
+  // Holo, éclats, encre, cadre : { card_id: { holo?, sparkle?, ink?, frame? } }.
+  const [finishes, setFinishes] = useState<FinishMap>({});
   // Dos de carte choisi pour CE deck — `null` = pas de choix, la popup de
   // pioche retombe sur celui du profil (cf. RoundStart.tsx).
   const [cardBack, setCardBack] = useState<string | null>(null);
@@ -203,6 +221,7 @@ export default function DeckBuilder() {
     setColor((DeckRepository as any).getDeckColor?.(editName) ?? null);
     setVariants((DeckRepository as any).getDeckVariants?.(editName) ?? {});
     setFoils((DeckRepository as any).getDeckFoils?.(editName) ?? []);
+    setFinishes((DeckRepository as any).getDeckFinishes?.(editName) ?? {});
     setCardBack((DeckRepository as any).getDeckCardBack?.(editName) ?? null);
   }, [editName]);
 
@@ -385,6 +404,10 @@ export default function DeckBuilder() {
       Object.fromEntries(Object.entries(variants).filter(([cardId]) => inDeck.has(cardId))),
     );
     (DeckRepository as any).setDeckFoils?.(finalName, foils.filter(id => inDeck.has(id)));
+    // Les finitions dont la carte a quitté le deck, ou que le joueur ne possède
+    // plus, sont écartées — le serveur refiltre de toute façon avant de les
+    // annoncer à un adversaire.
+    (DeckRepository as any).setDeckFinishes?.(finalName, pruneFinishes(finishes, inDeck, ownedFinishes));
     (DeckRepository as any).setDeckCardBack?.(finalName, cardBack);
     // Tous les modes de jeu partent du deck actif : sans deck actif valide (1er
     // deck créé, deck actif supprimé), on adopte celui qu'on vient d'enregistrer.
@@ -458,6 +481,7 @@ export default function DeckBuilder() {
             onClear={() => setDeckData(EMPTY)}
             variants={variants} onSkin={setSkinning}
             foils={foils} ownsFoil={isAdminEdit ? noFoil : ownsFoil}
+            finishes={finishes} ownedFinishes={isAdminEdit ? noFinishes : ownedFinishes}
             // Pas de cosmétique en édition de deck public : il n'y a pas de
             // « joueur » propriétaire, donc personne dont ce soient les variantes
             // ni les dos de carte débloqués.
@@ -509,11 +533,13 @@ export default function DeckBuilder() {
           card={skinning}
           current={variants[skinning.id] ?? skinning.id}
           options={ownedVariantsFor(skinning.id)}
-          foilOwned={ownsFoil(skinning.id)}
+          owned={ownedFinishes(skinning.id)}
           foil={foils.includes(skinning.id)}
           onToggleFoil={() => setFoils(prev => prev.includes(skinning.id)
             ? prev.filter(id => id !== skinning.id)
             : [...prev, skinning.id])}
+          finish={finishes[skinning.id] ?? NO_FINISH}
+          onFinish={(patch) => setFinishes(prev => ({ ...prev, [skinning.id]: { ...prev[skinning.id], ...patch } }))}
           onPick={(illustrationId) => setVariants(prev => {
             const next = { ...prev };
             // Revenir à l'origine RETIRE l'entrée : le défaut est une absence.
@@ -577,7 +603,7 @@ function SkinButton({ card, skinned, onTap }: { card: Card; skinned: boolean; on
   return (
     <button
       type="button"
-      title="Illustration et reflet"
+      title="Illustration et effets"
       aria-label={`Illustration de ${card.name}`}
       className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border bg-surface/90 text-[11px] ${skinned ? 'border-gold' : 'border-line'}`}
       {...handlers}
@@ -655,7 +681,7 @@ function LibraryPanel({
                 const full = !canPlace(c, deckData, tierMax);
                 return (
                   <Card3D
-                    key={c.id} {...cardVisualProps(c)} size="h-auto w-full"
+                    key={c.id} {...cardVisualProps(c, 'player', { plain: true })} size="h-auto w-full"
                     // Ajout/retrait au relâchement : un appui long ouvre le
                     // tooltip sans toucher au deck au passage.
                     tapOn="up" onTap={() => (inDeck ? onRemove(c) : onAdd(c))}
@@ -675,7 +701,7 @@ function LibraryPanel({
 
 function DeckPanel({
   deckData, tierMax, name, setName, color, setColor, showColor = true, onRemove, owns, onClear,
-  variants = {}, onSkin, ownedVariantsFor, foils = [], ownsFoil, cardBack = null, setCardBack, ownedCardBacks = [],
+  variants = {}, onSkin, ownedVariantsFor, foils = [], ownsFoil, finishes = {}, ownedFinishes, cardBack = null, setCardBack, ownedCardBacks = [],
 }: any) {
   const clearHandlers = usePressSquash<HTMLButtonElement>(onClear, false).handlers;
   const web = useWebLayout();
@@ -751,20 +777,25 @@ function DeckPanel({
                     {cards.map((c, idx) => {
                       const skins = ownedVariantsFor?.(c.id) ?? [];
                       const foiled = foils.includes(c.id) && !!ownsFoil?.(c.id);
-                      const skinned = !!variants[c.id] || foiled;
-                      // Le bouton ouvre le même sélecteur pour les deux
-                      // cosmétiques de la carte : illustration et reflet.
-                      const customizable = skins.length > 0 || !!ownsFoil?.(c.id);
+                      const fx: OwnedFinishes | null = ownedFinishes?.(c.id) ?? null;
+                      const fin: CardFinish = finishes[c.id] ?? NO_FINISH;
+                      const finished = !!fx && ((fx.holo && !!fin.holo) || (fx.sparkle && !!fin.sparkle)
+                        || (!!fin.ink && fx.inks.includes(fin.ink)) || (!!fin.frame && fx.frames.includes(fin.frame)));
+                      const skinned = !!variants[c.id] || foiled || finished;
+                      // Le bouton ouvre le même sélecteur pour tous les
+                      // cosmétiques de la carte : illustration, reflet, effets.
+                      const customizable = skins.length > 0 || !!ownsFoil?.(c.id) || hasAnyFinish(fx);
                       return (
                         // Une carte du deck non débloquée reste RETIRABLE : c'est
                         // la seule action qui la fait sortir du deck.
                         <div key={`${c.id}-${idx}`} className="relative">
                           <Card3D
-                            {...cardVisualProps(c)} size="h-auto w-full"
+                            {...cardVisualProps(c, 'player', { plain: true })} size="h-auto w-full"
                             // Aperçu immédiat du choix en cours d'édition, sans
                             // toucher à l'état global de CardArt (non enregistré).
                             illustrationId={variants[c.id] ?? c.id}
                             foil={foiled}
+                            finish={visibleFinish(fin, fx)}
                             tapOn="up" onTap={() => onRemove(t, idx)}
                             locked={!owns(c.id)} dim={owns(c.id) ? 'none' : 'strong'}
                           />

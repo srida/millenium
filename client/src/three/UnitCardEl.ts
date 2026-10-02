@@ -5,10 +5,13 @@ import type { Unit } from '../logic/Unit.js';
 // `data/CardArt` n'importe rien : la couche de rendu y gagne la résolution des
 // variantes sans traîner de dépendance (les garde-fous ESLint n'interdisent à
 // three/ que React et Zustand).
-import { artFor, hasFoil, illustrationUrl } from '../data/CardArt.js';
+import { artFor, finishOf, hasFoil, illustrationUrl } from '../data/CardArt.js';
 import { getCard } from '../data/CardDatabase.js';
 import { tiersOf } from '../logic/Tiers.js';
 import { frameVars } from './cardPalette.js';
+import {
+  FINISH_RING_HTML, SPARKLES_ON_BOARD, effectLayersHtml, frameClass, frameInnerHtml, inkClass, inkLayersHtml,
+} from './finishLayers.js';
 
 const EFFECT_CFG: Record<string, { bg: string; edge: string; glow: string; ink: string }> = {
   shield:      { bg: 'rgba(40,30,8,.72)',  edge: 'rgba(240,196,90,.85)',  glow: 'rgba(232,168,80,.65)',  ink: '#f6da82' },
@@ -22,11 +25,15 @@ const EFFECT_CFG: Record<string, { bg: string; edge: string; glow: string; ink: 
 
 export function createUnitEl(unit: Unit, { selected = false, materialSelected = false } = {}): HTMLDivElement {
   const el = document.createElement('div');
+  const frame = frameClass(finishOf(unit.card_id, unit.side));
   el.className = 'unit-card'
     + ` unit-${unit.side}`
     + (selected ? ' selected' : '')
     + (materialSelected ? ' material-selected' : '')
-    + (unit.is_neutralized ? ' neutralized' : '');
+    + (unit.is_neutralized ? ' neutralized' : '')
+    // Cadre cosmétique : la classe de style, et `span.finish-ring` posé par
+    // `_inner` avant la face.
+    + (frame ? ` ${frame}` : '');
   el.dataset.uid = String(unit.uid);
   // Décalage de phase de l'idle bob (`unit-idle-bob`, board3d.css) : purement
   // cosmétique, donc un `Math.random()` ici n'a rien à voir avec le flux semé
@@ -111,11 +118,18 @@ function _inner(unit: Unit): string {
   // seulement stylé (`styles/board3d.css`). `Powers.setStatus` insère lui-même
   // son propre overlay de statut persistant dans `.unit-face`, sans qu'il y
   // ait rien à déclarer d'avance.
+  // Effets et cadres cosmétiques (`styles/finish.css`) : l'ORDRE des calques est
+  // celui de `Card3D`, qui rend les mêmes (`three/finishLayers`).
+  const fin = finishOf(unit.card_id, unit.side);
   return `
+    ${fin.frame ? FINISH_RING_HTML : ''}
     <div class="unit-face">
-      <img class="unit-art" src="${illustrationUrl(artFor(unit.card_id, unit.side))}" alt="${esc(unit.name)}">
+      <img class="unit-art ${inkClass(fin)}" src="${illustrationUrl(artFor(unit.card_id, unit.side))}" alt="${esc(unit.name)}">
+      ${inkLayersHtml(fin)}
       <div class="unit-foil-stars"></div>
+      ${effectLayersHtml(fin, SPARKLES_ON_BOARD)}
       ${hasFoil(unit.card_id, unit.side) ? '<div class="foil-sheen"></div>' : ''}
+      ${frameInnerHtml(fin)}
       <div class="unit-top-edge"></div>
       <div class="unit-bottom-scrim"></div>
 

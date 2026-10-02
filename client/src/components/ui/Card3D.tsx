@@ -32,7 +32,8 @@ import { useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { type TooltipContent } from '../../stores/uiStore.js';
 import { frameVars } from '../../three/cardPalette.js';
-import { artFor, illustrationUrl } from '../../data/CardArt.js';
+import { artFor, finishOf, hasFoil, illustrationUrl, type CardFinish } from '../../data/CardArt.js';
+import { frameClass, inkClass, sparkleSpecs } from '../../three/finishLayers.js';
 import { summonCostsOf } from '../../data/SummonInfo.js';
 import { tiersOf } from '../../logic/Tiers.js';
 import { useCardPress } from './cardPress.js';
@@ -96,9 +97,16 @@ export interface Card3DProps {
   onDragBegin?: () => boolean | void;
   onDragMove?: (clientX: number, clientY: number) => void;
   onDrop?: (clientX: number, clientY: number) => void;
-  /** Aperçu du REFLET acheté (`styles/foil.css`) — DeckBuilder seulement. */
+  /** Le REFLET acheté (`styles/foil.css`). */
   foil?: boolean;
+  /** Holo, éclats, encre, cadre (`styles/finish.css`). Le balisage vient de
+   *  `three/finishLayers`, que `UnitCardEl` consomme aussi : même ordre de
+   *  calques sur le plateau et en main. */
+  finish?: CardFinish;
 }
+
+const NO_FINISH: CardFinish = {};
+const SPARKLE_SPECS = sparkleSpecs();
 
 export default function Card3D({
   illustrationId, name, tiers = null, hint = null, badge = null,
@@ -106,7 +114,7 @@ export default function Card3D({
   highlight = 'none', dim = 'none', lift = 'none',
   locked = false, disabled = false, tapOn = 'down', tooltip = null, onTap,
   transform, width, size = 'h-auto w-full', raised = false, rail = null,
-  onDragBegin, onDragMove, onDrop, foil = false,
+  onDragBegin, onDragMove, onDrop, foil = false, finish = NO_FINISH,
 }: Card3DProps) {
   // Mode flow : pas de géométrie calculée par `cardFan`, la carte reste dans
   // le flux normal — même convention que l'ancien `CardTile`.
@@ -166,6 +174,7 @@ export default function Card3D({
         stacked ? 'is-stacked' : '', raised ? 'is-raised' : '',
         badge != null && badge > 0 ? 'has-count' : '',
         rail ? `in-rail in-rail-${rail}` : '', dragging ? 'is-dragging' : '',
+        frameClass(finish),
         // Mode flow : pas de géométrie absolue, la carte reste dans le flux —
         // `is-flow` réécrit `position`/`transform` en conséquence
         // (`card3d.css`) ; la taille vient de `size`, classes Tailwind.
@@ -192,16 +201,28 @@ export default function Card3D({
         }),
       } as CSSProperties}
     >
+      {finish.frame && <span className="finish-ring" />}
       <span className="unit-face">
         {/* ⚠️ `draggable={false}` : sans lui, le premier pixel d'un glisser démarre
             le GLISSER NATIF D'IMAGE du navigateur, qui émet aussitôt un
             `pointercancel` — le geste du jeu meurt avant d'exister, et rien
             dans le code ne le dit. `loading="lazy"` : en grille (boutique,
             DeckBuilder, packs…), une carte peut en montrer des centaines. */}
-        <img className="unit-art" src={illustrationUrl(illustrationId)} alt="" draggable={false} loading="lazy" />
+        <img className={`unit-art ${inkClass(finish)}`.trim()} src={illustrationUrl(illustrationId)} alt="" draggable={false} loading="lazy" />
+        {finish.ink && finish.ink !== 'nb' && <span className={`finish-ink-tint ${finish.ink}`} />}
+        {finish.ink && <span className="finish-ink-grain" />}
         <span className="unit-foil-stars" />
         <span className="unit-foil-nebula" />
+        {finish.holo && <span className="finish-holo"><i className="film" /><i className="trame" /><i className="eclat" /></span>}
+        {finish.sparkle && (
+          <span className="finish-sparkle">
+            {SPARKLE_SPECS.map((s, i) => (
+              <i key={i} style={{ left: s.left, top: s.top, width: s.width, animationDelay: s.delay }} />
+            ))}
+          </span>
+        )}
         {foil && <span className="foil-sheen" />}
+        {finish.frame && <span className="finish-frame-inner" />}
         <span className="unit-top-edge" />
         <span className="unit-bottom-scrim" />
         {showName && <span className="card3d-name">{name}</span>}
@@ -237,9 +258,20 @@ function renderHint(card: Card): ReactNode {
 // utilisé (main, cimetière, boutique, DeckBuilder, packs, tutoriel, bancs de
 // dev). La prop reste surchargeable — le DeckBuilder s'en sert pour prévisualiser
 // un choix en cours d'édition, avant qu'il ne soit enregistré.
-export function cardVisualProps(card: Card): Pick<Card3DProps, 'illustrationId' | 'name' | 'tiers' | 'hint' | 'tooltip'> {
+//
+// `foil` et `finish` suivent le camp (`player` par défaut) : la main et le
+// cimetière portent donc le reflet, le holo, les éclats, l'encre et le cadre du
+// deck joué, et la main adverse ceux de l'adversaire (`side = 'enemy'`).
+// ⚠️ Hors partie, les ensembles du joueur reflètent le deck ACTIF : une grille
+// qui ne doit pas porter d'effet (boutique, packs, DeckBuilder, tutoriel…)
+// passe `{ plain: true }`.
+export function cardVisualProps(
+  card: Card, side: 'player' | 'enemy' = 'player', { plain = false }: { plain?: boolean } = {},
+): Pick<Card3DProps, 'illustrationId' | 'name' | 'tiers' | 'hint' | 'tooltip' | 'foil' | 'finish'> {
   return {
-    illustrationId: artFor(card.id),
+    foil: !plain && hasFoil(card.id, side),
+    finish: plain ? NO_FINISH : finishOf(card.id, side),
+    illustrationId: artFor(card.id, side),
     name: card.name,
     tiers: tiersOf(card),
     hint: renderHint(card),

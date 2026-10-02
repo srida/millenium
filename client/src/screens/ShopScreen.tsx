@@ -22,11 +22,12 @@ import type { Card } from '../logic/types.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
-import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant, type CosmeticCardBack, type CosmeticFoil } from '../stores/cosmeticStore.js';
+import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant, type CosmeticCardBack, type CosmeticEffect } from '../stores/cosmeticStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
 import { Countdown, Gauge, IconButton, Illustration, LoadState, Panel, usePressSquash } from '../components/ui/primitives.js';
 import HoldConfirmButton from '../components/ui/HoldConfirmButton.js';
 import { CURRENCY, fmt } from '../components/ui/currency.js';
+import type { CardFinish } from '../data/CardArt.js';
 import Card3D, { cardVisualProps } from '../components/ui/Card3D.js';
 import PackContents, { PackPoster } from '../components/shop/PackContents.js';
 import BoosterOpening from '../components/shop/BoosterOpening.js';
@@ -264,16 +265,17 @@ function CosmeticsTab() {
 
           <section className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between px-1">
-              <h2 className="text-[10px] tracking-widest text-white/40">REFLETS DU JOUR</h2>
-              <span className="flex items-center gap-1 text-[10px] text-white/30">{snapshot.prices.foil?.gems ?? 20} <UiIcon id={CURRENCY.gems.icon} className="h-3 w-3" /> pièce</span>
+              <h2 className="text-[10px] tracking-widest text-white/40">EFFETS DU JOUR</h2>
+              {/* Les prix diffèrent par famille : ils se lisent sur la tuile. */}
+              <span className="text-[10px] text-white/30">prix à la pièce</span>
             </div>
-            {snapshot.foils.length ? (
+            {snapshot.effects.length ? (
               <div className="grid grid-cols-3 gap-2">
-                {snapshot.foils.map(f => <FoilOffer key={f.id} foil={f} />)}
+                {snapshot.effects.map(e => <EffectOffer key={`${e.kind}|${e.id}`} effect={e} />)}
               </div>
             ) : (
               <Panel className="p-4 text-center text-xs text-white/40">
-                Tu as déjà le reflet de toutes tes cartes.
+                Tu as déjà tous les effets de tes cartes.
               </Panel>
             )}
           </section>
@@ -284,8 +286,9 @@ function CosmeticsTab() {
             {' '}choisit carte par carte dans le DeckBuilder — et l'adversaire la voit aussi. Tu ne
             {' '}peux acheter que les illustrations des cartes que tu possèdes. Un dos de carte se
             {' '}porte lui aussi depuis ton profil : c'est lui qu'on retourne au début de chaque tour. Un
-            {' '}reflet fait passer une lame de lumière sur l'illustration d'une de tes cartes, sur le
-            {' '}plateau : il s'active carte par carte dans le DeckBuilder, comme une illustration.
+            {' '}effet ou un cadre habille une de tes cartes, quelle que soit l'illustration choisie : il
+            {' '}s'active carte par carte dans le DeckBuilder. Les effets se cumulent ; une carte porte un
+            {' '}seul cadre et une seule encre.
           </p>
         </>
       )}
@@ -295,12 +298,17 @@ function CosmeticsTab() {
 
 /** Tuile d'offre — l'image, le nom, le prix, un bouton. Rien de plus. */
 function CosmeticOffer({
-  illustrationId, title, subtitle, price, purchased, onBuy, foil = false,
+  illustrationId, title, subtitle, price, purchased, onBuy, card = null, foil = false, finish,
 }: {
   illustrationId: string; title: string; subtitle: string;
   price: number; purchased: boolean; onBuy: () => void;
-  /** Montre le reflet EN MARCHE sur la vignette : c'est lui qu'on achète. */
+  /** Un EFFET se montre sur une carte entière (son vrai cadre, ses tiers) et
+   *  non sur une vignette carrée. */
+  card?: Card | null;
+  /** Reflet en marche sur la carte : c'est lui qu'on achète. */
   foil?: boolean;
+  /** Holo, éclats, encre ou cadre en marche. */
+  finish?: CardFinish;
 }) {
   const busy = useCosmeticStore(s => s.busy);
   const gems = useAuthStore(s => s.user?.gems ?? 0);
@@ -308,9 +316,21 @@ function CosmeticOffer({
 
   return (
     <Panel className="flex flex-col gap-1.5 p-2">
-      <FoilFrame foil={foil} className="aspect-square w-full">
-        <Illustration id={illustrationId} framed className="h-full w-full" />
-      </FoilFrame>
+      {card ? (
+        <div className="flex justify-center py-1.5">
+          {/* ⚠️ `plain`, puis l'effet vendu : la tuile ne montre QUE ce qu'elle
+              vend, pas les effets du deck actif. Sans pastille de coût. */}
+          <Card3D
+            {...cardVisualProps(card, 'player', { plain: true })}
+            hint={null} foil={foil} finish={finish}
+            size="h-52" tapOn="up"
+          />
+        </div>
+      ) : (
+        <div className="aspect-square w-full">
+          <Illustration id={illustrationId} framed className="h-full w-full" />
+        </div>
+      )}
       <div className="min-h-8">
         <div className="truncate text-[11px] font-semibold leading-tight">{title}</div>
         <div className="truncate text-[10px] text-white/40">{subtitle}</div>
@@ -332,17 +352,6 @@ function CosmeticOffer({
         />
       )}
     </Panel>
-  );
-}
-
-/** Cadre qui rogne la lame du reflet (`styles/foil.css`) — neutre sans reflet. */
-function FoilFrame({ foil, className, children }: { foil: boolean; className: string; children: ReactNode }) {
-  if (!foil) return <div className={className}>{children}</div>;
-  return (
-    <div className={`relative overflow-hidden rounded-lg ${className}`}>
-      {children}
-      <div className="foil-sheen" aria-hidden />
-    </div>
   );
 }
 
@@ -395,19 +404,37 @@ function CardBackOffer({ back }: { back: CosmeticCardBack }) {
   );
 }
 
-function FoilOffer({ foil }: { foil: CosmeticFoil }) {
+// Le sous-titre d'une tuile d'effet : la famille, puis le style.
+const EFFECT_SUBTITLE: Record<string, string> = {
+  foil: 'Reflet', holo: 'Holo prismatique', sparkle: 'Éclats',
+  'ink:tier': 'Encre · tier', 'ink:sepia': 'Encre · sépia', 'ink:nb': 'Encre · noir et blanc',
+  'frame:courant': 'Cadre · courant', 'frame:gravure': 'Cadre · gravure', 'frame:facettes': 'Cadre · facettes',
+};
+
+function EffectOffer({ effect }: { effect: CosmeticEffect }) {
   const buy = useCosmeticStore(s => s.buy);
+  const card = cardOf(effect.card_id);
+  const subtitle = EFFECT_SUBTITLE[effect.style ? `${effect.kind}:${effect.style}` : effect.kind] ?? effect.kind;
+  // L'effet vendu, en marche sur la carte : c'est lui qu'on achète.
+  const finish: CardFinish = {
+    holo: effect.kind === 'holo' || undefined,
+    sparkle: effect.kind === 'sparkle' || undefined,
+    ink: effect.kind === 'ink' ? (effect.style as CardFinish['ink']) : undefined,
+    frame: effect.kind === 'frame' ? (effect.style as CardFinish['frame']) : undefined,
+  };
   return (
     <CosmeticOffer
-      // L'illustration d'ORIGINE de la carte, reflet en marche : un reflet vaut
-      // pour la carte, quelle que soit l'illustration choisie dans le deck.
-      illustrationId={foil.card_id}
-      title={foil.card_name}
-      subtitle="Reflet"
-      price={foil.price_gems}
-      purchased={foil.purchased}
-      foil
-      onBuy={() => { void buy('foil', foil.id, foil.card_name); }}
+      // L'illustration d'ORIGINE de la carte : un effet vaut pour la carte,
+      // quelle que soit l'illustration choisie dans le deck.
+      illustrationId={effect.card_id}
+      card={card}
+      title={effect.card_name}
+      subtitle={subtitle}
+      price={effect.price_gems}
+      purchased={effect.purchased}
+      foil={effect.kind === 'foil'}
+      finish={finish}
+      onBuy={() => { void buy(effect.kind, effect.id, `${effect.card_name} · ${subtitle}`); }}
     />
   );
 }
@@ -486,7 +513,7 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
 
       <div className="flex justify-center">
         {card
-          ? <Card3D {...cardVisualProps(card)} size="h-28" tapOn="up" dim={slot.purchased ? 'soft' : 'none'} />
+          ? <Card3D {...cardVisualProps(card, 'player', { plain: true })} size="h-28" tapOn="up" dim={slot.purchased ? 'soft' : 'none'} />
           : <div className="h-28 w-20 rounded-lg border border-line" />}
       </div>
 

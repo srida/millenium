@@ -208,7 +208,7 @@ function CardExamples({ pick, caption }: { pick: (cards: Card[]) => Card[]; capt
       <div className="flex flex-wrap gap-2">
         {cards.map(c => (
           <div key={c.id} className="w-20">
-            <Card3D {...cardVisualProps(c)} size="h-auto w-full" />
+            <Card3D {...cardVisualProps(c, 'player', { plain: true })} size="h-auto w-full" />
           </div>
         ))}
       </div>

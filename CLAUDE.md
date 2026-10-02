@@ -437,6 +437,16 @@ Lame de lumière qui balaie l'illustration d'une carte **sur le plateau** (`styl
 - ⚠️ Une offre du jour tirée **sans** `foils` est **complétée** par `sync`, jamais re-tirée.
 - ⚠️ La lame reprend `--drift-delay` comme phase : deux reflets voisins ne passent pas ensemble. Le parent doit rogner (`overflow: hidden`). `prefers-reduced-motion` la pose au milieu, immobile.
 
+### Effets et cadres (`kind: 'holo' | 'sparkle' | 'ink' | 'frame'`)
+
+Même statut que le reflet : cosmétiques, choisis **par deck**, absents de `logic/` et du payload de déterminisme. Ids : `card_id` (reflet, holo, éclats) · `card_id:style` (encre `tier|sepia|nb`, cadre `courant|gravure|facettes`). Prix : 20 / 40 / 30 / 30 / 50 💎. Tous se cumulent ; **une** encre et **un** cadre par carte.
+
+- **Boutique** : 9 tuiles fixes « Effets du jour » (`EFFECT_SLOTS`), `offer.effects` ; ⚠️ le reflet n'a plus de liste à lui (`offer.foils` supprimée, une offre ancienne est complétée par `sync`). ⚠️ L'achat cherche le **couple** `(kind, id)` : un reflet et un holo d'une même carte ont le même id. Chaque emplacement a sa graine ; les cartes déjà sorties sont écartées tant que le pool le permet.
+- **Deck** : `meta[nom].finishes = { card_id: { holo?, sparkle?, ink?, frame? } }` (`DeckRepository.getDeckFinishes`/`setDeckFinishes`, logique pure dans `data/DeckFinish.ts`). PvP : `cosmetics.deckFinishMap` → `finishes` de `deckDerived` ; un bot annonce `{}`.
+- **Client** : `CardArt.setPlayerFinishes`/`setEnemyFinishes`/`finishOf`, remplis aux mêmes endroits que les reflets. `cardVisualProps(card, side, { plain })` pose `foil` + `finish` : main et cimetière les portent ; ⚠️ les grilles hors partie (boutique, packs, DeckBuilder, catalogue, tutoriel) passent `plain: true`, sinon elles montreraient les effets du deck **actif**.
+- **Rendu** : `styles/finish.css` ; `three/finishLayers.ts` est le **seul** endroit qui dit quels calques poser et dans quel ordre (consommé par `UnitCardEl` en HTML et `Card3D` en JSX). Le cadre ajoute `span.finish-ring` en **premier enfant** de la racine et la classe `frame-*` ; Courant et Facettes se posent **par-dessus** `--uc-frame-bg` pour garder les bandes d'une carte multi-tiers. `--uc-ink`/`--uc-deep` sont produites par `frameVars` et lues dans `finish.css` (le test de palette sonde les deux feuilles).
+- ⚠️ **Perf** : animations en `transform`/`rotate`/`opacity` seulement. Au plateau, les éclats sont limités à `SPARKLES_ON_BOARD` (10 sur 18) ; à mesurer sur mobile.
+
 ### Variantes (`variants.js`)
 
 `{ id, card_id }` dans `data/variants.json` — **pas de nom propre** : une variante est une illustration de plus pour une carte. Elle s'annonce par le nom de sa **carte** (`card_name`) ; un `name` résiduel est **ignoré**. L'art vit dans `ILLUS_DIR`, donc aucune famille d'assets à créer.

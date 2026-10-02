@@ -17,7 +17,7 @@
 //   3. `setEnemyVariants(null)` PURGE. `GameController.dispose()` s'en sert pour
 //      que l'art adverse ne fuite pas dans la partie suivante.
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setPlayerVariants, setEnemyVariants, artFor, setPlayerFoils, setEnemyFoils, hasFoil } from '../data/CardArt.js';
+import { setPlayerVariants, setEnemyVariants, artFor, setPlayerFoils, setEnemyFoils, hasFoil, setPlayerFinishes, setEnemyFinishes, finishOf } from '../data/CardArt.js';
 
 // Le module porte un état de module : chaque test repart d'une table vide.
 beforeEach(() => {
@@ -149,5 +149,32 @@ describe('reflets', () => {
     setEnemyFoils(null);
     expect(hasFoil('CORE_001', 'enemy')).toBe(false);
     expect(hasFoil('CORE_001')).toBe(true);
+  });
+});
+
+// ── Effets et cadres ────────────────────────────────────────────────────────
+
+describe('finitions (holo, éclats, encre, cadre)', () => {
+  beforeEach(() => { setPlayerFinishes(null); setEnemyFinishes(null); });
+
+  it('repli : une carte sans finition rend `{}`, jamais undefined', () => {
+    expect(finishOf('CORE_001')).toEqual({});
+    expect(finishOf('CORE_001', 'enemy')).toEqual({});
+  });
+
+  it('deux ensembles étanches, un par camp', () => {
+    setPlayerFinishes({ CORE_001: { holo: true, ink: 'sepia' } });
+    setEnemyFinishes({ CORE_001: { frame: 'gravure' } });
+    expect(finishOf('CORE_001', 'player')).toEqual({ holo: true, ink: 'sepia' });
+    expect(finishOf('CORE_001', 'enemy')).toEqual({ frame: 'gravure' });
+    expect(finishOf('CORE_001')).toEqual(finishOf('CORE_001', 'player'));
+  });
+
+  it('`setEnemyFinishes(null)` purge le camp adverse seul', () => {
+    setPlayerFinishes({ CORE_001: { sparkle: true } });
+    setEnemyFinishes({ CORE_001: { sparkle: true } });
+    setEnemyFinishes(null);
+    expect(finishOf('CORE_001', 'enemy')).toEqual({});
+    expect(finishOf('CORE_001', 'player')).toEqual({ sparkle: true });
   });
 });
