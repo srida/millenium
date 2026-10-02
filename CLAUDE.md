@@ -352,6 +352,15 @@ Table `user_shop_state`. Deux systèmes qui ne se recouvrent pas : les **emplace
 - ⚠️ **Rattrapage d'une offre plus courte** : `sync` la **complète** (`fillSlots`), ne la régénère jamais — seul écart toléré à « l'offre est figée », et il n'est pas déclenchable par le client.
 - ⚠️ **Écart assumé avec le brief** : la Convoitise (épingler n'importe quelle carte du catalogue) n'existe pas ; on garde une *proposition*, on ne commande pas une carte.
 
+### Ouverture d'un booster (`components/shop/BoosterOpening.tsx`)
+
+Sachet déchiré, cartes étalées face cachée puis retournées. Timeline **pure** dans `boosterTimeline.frameAt(t, tB, n)` ; le composant n'écrit que des `transform`/`opacity` sur des refs (aucun re-render par frame).
+
+- ⚠️ **Le temps A (voile, montée, tremblement) part à la fin de la charge du `HoldConfirmButton`**, avant la réponse serveur : `result` est `null` et le tremblement boucle. Le temps B (`tB`) ne démarre qu'avec les cartes — le sachet ne s'ouvre jamais sans elles.
+- ⚠️ Échec d'achat pendant A → `aborted`, fondu 200 ms, pas de révélation. Le `notice` de set complété ne s'affiche qu'**après** la fermeture.
+- ⚠️ Le wrapper de carte bouge, jamais `.card3d` ; l'éclat est un `drop-shadow` sur le wrapper (le `box-shadow` porte déjà `--uc-frame-shadow`).
+- Dos : `CardBackDatabase.defaultCardBack()`. Tap pendant B = saut à l'état final ; `prefers-reduced-motion` = état final d'un coup, après réponse.
+
 ### Packs (`sets.js` + onglet 🎁 Packs)
 
 Le préfixe d'`id` (`CORE`, `EXTRA`, `YGX`…) est technique, pas commercial. Chaque carte porte un champ **`set`** ; `data/sets.json` décrit les packs (nom, archétypes, `booster_enabled`, `starter`, `signature_card`, `completion_reward`, liste `cards`).

@@ -16,7 +16,7 @@
 //
 // Rien n'est calculé ici : prix, tirage et soldes viennent du serveur
 // (shop.js, cosmetics.js). L'écran affiche et déclenche, il n'arbitre pas.
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import * as CardDatabase from '../data/CardDatabase.js';
 import type { Card } from '../logic/types.js';
 import { useUiStore } from '../stores/uiStore.js';
@@ -24,11 +24,12 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useShopStore, markShopSeen, type ShopSlot, type ShopSet } from '../stores/shopStore.js';
 import { useCosmeticStore, type CosmeticAvatar, type CosmeticVariant, type CosmeticCardBack, type CosmeticFoil } from '../stores/cosmeticStore.js';
 import { useCollectionStore } from '../stores/collectionStore.js';
-import { Button, Countdown, Gauge, IconButton, Illustration, LoadState, Modal, Panel, usePressSquash } from '../components/ui/primitives.js';
+import { Countdown, Gauge, IconButton, Illustration, LoadState, Panel, usePressSquash } from '../components/ui/primitives.js';
 import HoldConfirmButton from '../components/ui/HoldConfirmButton.js';
 import { CURRENCY, fmt } from '../components/ui/currency.js';
 import Card3D, { cardVisualProps } from '../components/ui/Card3D.js';
 import PackContents, { PackPoster } from '../components/shop/PackContents.js';
+import BoosterOpening from '../components/shop/BoosterOpening.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
@@ -51,6 +52,11 @@ export default function ShopScreen() {
   // idempotent, et `shopStore.absorb` continue d'y verser les cartes achetées.
   const loadCollection = useCollectionStore(s => s.load);
   const [tab, setTab] = useState<'cards' | 'cosmetics'>('cards');
+  // L'ouverture démarre à la FIN DE LA CHARGE du bouton, pas à la réponse du
+  // serveur : le set est connu avant les cartes (`booster` reste nul d'ici là).
+  const [opening, setOpening] = useState<{ setId: string; failed: boolean } | null>(null);
+  const openingSet = opening ? snapshot?.sets.find(s => s.id === opening.setId) ?? null : null;
+  const closeOpening = useCallback(() => { setOpening(null); closeBooster(); }, [closeBooster]);
 
   const web = useWebLayout();
   const classname_title = `flex items-center gap-3 py-3${web ? ' px-22' : ' px-6'}`;
@@ -99,7 +105,7 @@ export default function ShopScreen() {
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4">
         <LoadState error={error} loading={loading} hasContent={!!snapshot} />
 
-        {notice && (
+        {notice && !opening && (
           <button
             onPointerDown={dismissNotice}
             className="rounded-lg border border-gold bg-[color-mix(in_srgb,var(--color-gold)_16%,var(--color-surface-raised))] px-3 py-2 text-left text-xs text-gold"
@@ -146,7 +152,14 @@ export default function ShopScreen() {
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 {snapshot.sets.map(set => (
-                  <BoosterCard key={set.id} set={set} priceGolds={snapshot.booster.price_golds} priceGems={snapshot.booster.price_gems} />
+                  <BoosterCard
+                    key={set.id}
+                    set={set}
+                    priceGolds={snapshot.booster.price_golds}
+                    priceGems={snapshot.booster.price_gems}
+                    onOpening={() => setOpening({ setId: set.id, failed: false })}
+                    onFailed={() => setOpening(o => (o ? { ...o, failed: true } : o))}
+                  />
                 ))}
               </div>
             </section>
@@ -163,7 +176,9 @@ export default function ShopScreen() {
       </div>
       )}
 
-      {booster && <BoosterReveal onClose={closeBooster} />}
+      {opening && openingSet && (
+        <BoosterOpening set={openingSet} result={booster} aborted={opening.failed} onClose={closeOpening} />
+      )}
     </main>
   );
 }
@@ -520,7 +535,13 @@ function SlotCard({ slot }: { slot: ShopSlot }) {
 
 // --- Boosters ---
 
-function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds: number; priceGems: number }) {
+function BoosterCard({ set, priceGolds, priceGems, onOpening, onFailed }: {
+  set: ShopSet; priceGolds: number; priceGems: number;
+  /** Fin de la charge : l'animation part, sans attendre le serveur. */
+  onOpening: () => void;
+  /** L'achat a échoué : l'overlay se referme sans rien révéler. */
+  onFailed: () => void;
+}) {
   const user = useAuthStore(s => s.user);
   const busy = useShopStore(s => s.busy);
   const open = useShopStore(s => s.openBooster);
@@ -532,6 +553,12 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
 
   const missing = set.card_count - set.owned_count;
   const disabled = busy || set.complete || !set.booster_enabled;
+  const launch = async (currency: 'golds' | 'gems') => {
+    setErr(null);
+    onOpening();
+    const e = await open(set.id, currency);
+    if (e) { setErr(e); onFailed(); }
+  };
   const openContents = usePressSquash<HTMLButtonElement>(() => setContents(true), false);
 
   // `card_count` est un plafond : quand il reste moins de cartes que ça dans le
@@ -582,7 +609,7 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
               currency="gold"
               fullWidth
               disabled={disabled || (user?.gold ?? 0) < priceGolds}
-              onConfirm={async () => setErr(await open(set.id, 'golds'))}
+              onConfirm={() => launch('golds')}
               className="px-2 text-xs"
             />
             <HoldConfirmButton
@@ -593,7 +620,7 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
               currency="gems"
               fullWidth
               disabled={disabled || (user?.gems ?? 0) < priceGems}
-              onConfirm={async () => setErr(await open(set.id, 'gems'))}
+              onConfirm={() => launch('gems')}
               className="px-2 text-xs"
             />
           </div>
@@ -612,43 +639,5 @@ function BoosterCard({ set, priceGolds, priceGems }: { set: ShopSet; priceGolds:
       {err && <p className="text-[10px] text-danger">{err}</p>}
       {contents && <PackContents set={set} onClose={() => setContents(false)} />}
     </Panel>
-  );
-}
-
-function BoosterReveal({ onClose }: { onClose: () => void }) {
-  const booster = useShopStore(s => s.booster);
-  // Le pack ouvert, retrouvé dans l'instantané : c'est de là que viennent son
-  // nom et son affiche (la réponse d'achat ne porte qu'un `set_id`).
-  const set = useShopStore(s => s.snapshot?.sets.find(x => x.id === booster?.set_id) ?? null);
-  if (!booster) return null;
-
-  return (
-    <Modal onClose={onClose}>
-      <div className="mb-3 flex items-center justify-center gap-2">
-        {set && <PackPoster set={set} className="h-8 w-8" />}
-        <h2 className="text-sm font-bold tracking-widest text-gold">{set ? set.name.toUpperCase() : 'BOOSTER OUVERT'}</h2>
-      </div>
-      {/* `flex-wrap` et non une grille : à 5 cartes la rangée ne tient plus en
-          portrait (les vignettes sont `flex-shrink-0`), et une dernière ligne
-          incomplète doit rester CENTRÉE — ce qu'une grille à colonnes fixes
-          collerait à gauche. */}
-      <div className="flex flex-wrap justify-center gap-2">
-        {booster.cards.map(({ card_id }) => {
-          const card = cardOf(card_id);
-          return card
-            ? <Card3D key={card_id} {...cardVisualProps(card)} size="h-32" tapOn="up" />
-            : <span key={card_id} className="text-xs text-white/40">{card_id}</span>;
-        })}
-      </div>
-      {booster.pin_cleared && (
-        <p className="mt-3 flex items-center justify-center gap-1 text-center text-[11px] text-gold"><UiIcon id="UI_PIN" className="h-3 w-3" /> Ta carte épinglée est tombée — l'épingle est libérée.</p>
-      )}
-      {booster.sets_completed.map(s => (
-        <p key={s.set_id} className="mt-2 flex items-center justify-center gap-1 text-center text-[11px] text-success">
-          <UiIcon id="UI_MEDAL" className="h-3 w-3" /> Set complété : {s.name}{s.rewards.gems ? <> — +{s.rewards.gems} <UiIcon id={CURRENCY.gems.icon} className="inline-block h-3 w-3 align-[-2px]" /></> : ''}
-        </p>
-      ))}
-      <Button variant="primary" className="mt-4 w-full" onPointerDown={onClose}>Continuer</Button>
-    </Modal>
   );
 }
