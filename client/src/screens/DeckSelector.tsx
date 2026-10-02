@@ -31,6 +31,7 @@ import SelectedDeck from '../components/deck/SelectedDeck.js';
 import MusicThemePicker from '../components/ui/MusicThemePicker.js';
 import { useWebLayout } from '../components/system/useWebLayout.js';
 import UiIcon from '../components/ui/UiIcon.js';
+import * as Audio from '../audio/AudioManager.js';
 
 const TIER_BG: Record<number, string> = {
   1: 'bg-tier-1', 2: 'bg-tier-2', 3: 'bg-tier-3', 4: 'bg-tier-4', 5: 'bg-tier-5',
@@ -87,6 +88,8 @@ export default function DeckSelector() {
   const [guestDecks, setGuestDecks] = useState<PublicDeckSummary[]>([]);
   // Deck confié à l'EnemyAI (mode 'play'), par id de deck public. null = miroir.
   const [enemyId, setEnemyId] = useState<string | null>(null);
+  // Filtre de difficulté du mode 'play' ; 0 = « Tous ». Ne touche pas à `enemyId`.
+  const [filter, setFilter] = useState<number>(0);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -167,7 +170,11 @@ export default function DeckSelector() {
   // tirage — en évitant de retomber sur le précédent tant qu'il y a le choix.
   const drawable = (publicDecks ?? []).filter(d => d.count >= MIN_DECK);
   function randomEnemy() {
-    const pool = [drawable.filter(d => d.id !== enemyId), drawable].find(p => p.length > 0);
+    const filtered = filter === 0 ? drawable : drawable.filter(d => d.difficulty === filter);
+    const pool = [
+      filtered.filter(d => d.id !== enemyId), filtered,
+      drawable.filter(d => d.id !== enemyId), drawable,
+    ].find(p => p.length > 0);
     if (!pool) return;
     setEnemyId(pool[Math.floor(Math.random() * pool.length)].id);
   }
@@ -185,6 +192,73 @@ export default function DeckSelector() {
   // Le mode est propagé au builder pour que son retour revienne ici à l'identique.
   function openBuilder(deckName?: string) {
     navigate('deck_builder', { ...(deckName ? { deckName } : {}), mode });
+  }
+
+  if (!manage) {
+    const difficulties = [...new Set((publicDecks ?? []).map(d => d.difficulty))].sort((a, b) => a - b);
+    const shown = (publicDecks ?? [])
+      .map((d, i) => ({ d, i }))
+      .filter(({ d }) => filter === 0 || d.difficulty === filter)
+      .sort((a, b) => a.d.difficulty - b.d.difficulty || a.i - b.i)
+      .map(({ d }) => d);
+    const grid = (
+      <FoeGrid
+        decks={publicDecks} shown={shown} enemyId={enemyId} showRandom={drawable.length > 0}
+        onMirror={() => setEnemyId(null)} onRandom={randomEnemy} onPick={pick}
+      />
+    );
+    const chips = (
+      <DifficultyChips value={filter} onChange={setFilter} difficulties={difficulties} decks={publicDecks ?? []} counts={!web} web={web} />
+    );
+    const vs = <VsCard vertical={web} active={active} enemy={enemy} />;
+    const playBtn = (
+      <>
+        <Button variant="primary" disabled={!canPlay} className="flex min-h-tap w-full items-center justify-center gap-1.5 py-3 text-base" onPointerDown={play}>
+          <UiIcon id="UI_DUEL" className="h-4 w-4" /> Jouer
+        </Button>
+        {!canPlay && (
+          <p className="text-center text-xs text-gold">
+            {active
+              ? `Ton deck est incomplet (${active.count}/${MIN_DECK} cartes).`
+              : 'Choisis ton deck dans « Mes decks » avant de jouer.'}
+          </p>
+        )}
+      </>
+    );
+
+    if (web) return (
+      <main
+        className="relative z-10 grid h-full min-h-0 grid-cols-[300px_minmax(0,1fr)] gap-4 text-white"
+        style={{ paddingInline: 'max(88px, env(safe-area-inset-left))' }}
+        onPointerDown={hideTooltip}
+      >
+        <aside className="flex min-h-0 flex-col gap-2.5 py-3.5">
+          <h1 className="text-lg font-bold tracking-wide">{MODES.play.title}</h1>
+          <MusicThemePicker />
+          {vs}
+          <div className="space-y-2">{playBtn}</div>
+        </aside>
+        <section className="flex min-h-0 flex-col">
+          {chips}
+          <div className="min-h-0 flex-1 overflow-y-auto pb-4 pt-1">{grid}</div>
+        </section>
+      </main>
+    );
+
+    return (
+      <main className="relative z-10 flex h-full min-h-0 flex-col text-white" onPointerDown={hideTooltip}>
+        <div className={classname_title}>
+          <h1 className="truncate text-lg font-bold tracking-wide">{MODES.play.title}</h1>
+        </div>
+        <div className="px-4 pt-3"><MusicThemePicker /></div>
+        {chips}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{grid}</div>
+        <div className={classname_button}>
+          {vs}
+          {playBtn}
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -455,6 +529,141 @@ function DeckCard({
           <IconButton label="Supprimer" icon={<UiIcon id="UI_DELETE" className="h-5 w-5" />} tone="danger" className="flex-1" onTap={onDelete} />
         </div>
       )}
+    </div>
+  );
+}
+
+// Fonds et bordures de difficulté, pendants de DIFFICULTY_TEXT_TONE : les puces
+// actives les posent en `color-mix` (style inline imposé par la valeur dynamique).
+const DIFFICULTY_COLOR: Record<number, string> = {
+  1: 'var(--color-success)', 2: 'var(--color-gold)', 3: 'var(--color-violet)', 4: 'var(--color-enemy)',
+};
+const difficultyColor = (d: number) => DIFFICULTY_COLOR[d] ?? 'rgba(255,255,255,.6)';
+
+function DifficultyChips({ value, onChange, difficulties, decks, counts, web }: {
+  value: number; onChange: (d: number) => void; difficulties: number[]; decks: PublicDeckSummary[]; counts: boolean; web: boolean;
+}) {
+  const items = [0, ...difficulties];
+  return (
+    <div className={`flex shrink-0 gap-1.5 overflow-x-auto ${web ? 'pb-2 pt-3' : 'px-4 py-3'}`}>
+      {items.map(d => {
+        const on = value === d;
+        const color = d === 0 ? 'var(--color-gold)' : difficultyColor(d);
+        const n = d === 0 ? decks.length : decks.filter(x => x.difficulty === d).length;
+        return (
+          <button
+            key={d} type="button"
+            className={`flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border text-xs font-semibold whitespace-nowrap ${web ? 'px-2.5' : 'px-3'} ${on ? '' : 'border-line bg-surface-raised text-white/75'}`}
+            style={on ? { borderColor: color, color, background: `color-mix(in srgb, ${color} 15%, transparent)` } : undefined}
+            onPointerDown={() => { Audio.playSfx('menu_button'); onChange(d); }}
+          >
+            {d === 0 ? 'Tous' : (PublicDeckDatabase as any).difficultyLabel(d)}
+            {counts && <span className="text-[10px] font-normal opacity-60">{n}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function FoeGrid({ decks, shown, enemyId, showRandom, onMirror, onRandom, onPick }: {
+  decks: PublicDeckSummary[] | null; shown: PublicDeckSummary[]; enemyId: string | null; showRandom: boolean;
+  onMirror: () => void; onRandom: () => void; onPick: (d: PublicDeckSummary) => void;
+}) {
+  const tap = (fn: () => void) => () => { Audio.playSfx('menu_button'); fn(); };
+  return (
+    <>
+      <div className="grid grid-cols-4 gap-x-2 gap-y-2.5">
+        <FoeButton label="Miroir" ring={enemyId === null ? 'border-enemy' : 'border-line'} onPointerDown={tap(onMirror)}>
+          <span className={`flex h-full w-full items-center justify-center ${SURFACE_NEUTRAL}`}>
+            <span className="h-3.5 w-3.5 rounded-full bg-violet" style={{ boxShadow: '0 0 10px var(--color-violet)' }} />
+          </span>
+        </FoeButton>
+        {showRandom && (
+          <FoeButton label="Aléatoire" ring="border-line" onPointerDown={tap(onRandom)}>
+            <span className={`flex h-full w-full items-center justify-center ${SURFACE_NEUTRAL}`}>
+              <UiIcon id="UI_REROLL" className="h-6 w-6" />
+            </span>
+          </FoeButton>
+        )}
+        {shown.map(d => (
+          <FoeButton key={d.id} label={d.name} ring={enemyId === d.id ? 'border-enemy' : 'border-transparent'} onPointerDown={tap(() => onPick(d))}>
+            <span className="relative block h-full w-full bg-surface">
+              <img src={(PublicDeckDatabase as any).avatarUrl(d.id)} alt="" className="h-full w-full object-cover" />
+            </span>
+            <span
+              className="absolute bottom-1 right-1 h-2 w-2 rounded-full ring-2 ring-surface"
+              style={{ background: difficultyColor(d.difficulty) }}
+            />
+          </FoeButton>
+        ))}
+      </div>
+      {decks === null && <div className="py-8 text-center text-xs text-white/40">Chargement des decks…</div>}
+      {decks?.length === 0 && (
+        <div className="py-8 text-center text-xs text-white/40">
+          Aucun deck adverse disponible — l'IA jouera ton deck en miroir.
+        </div>
+      )}
+    </>
+  );
+}
+
+function FoeButton({ label, ring, onPointerDown, children }: { label: string; ring: string; onPointerDown: () => void; children: ReactNode }) {
+  return (
+    <button type="button" className="flex min-w-0 flex-col items-center gap-1.5 active:scale-95" onPointerDown={onPointerDown}>
+      <span className={`relative aspect-square w-full overflow-hidden rounded-xl border-2 ${ring}`}>{children}</span>
+      <span className="line-clamp-2 h-[26px] max-w-full text-center text-[11px] font-semibold leading-tight">{label}</span>
+    </button>
+  );
+}
+
+// Barre « contre » : le deck du joueur face à l'adversaire désigné (ou au miroir).
+function VsCard({ vertical, active, enemy }: { vertical: boolean; active: DeckSummary | null; enemy: PublicDeckSummary | null }) {
+  const hex = active?.color ?? '#a86ee7';
+  const tone = enemy ? difficultyColor(enemy.difficulty) : undefined;
+  const mine = active ? (
+    <>
+      {vertical
+        ? <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-surface-raised"><span className="h-3 w-3 rounded-full" style={{ background: hex, boxShadow: `0 0 8px -1px ${hex}` }} /></span>
+        : <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: hex, boxShadow: `0 0 8px -1px ${hex}` }} />}
+      <div className="min-w-0">
+        <div className="text-[9px] tracking-widest text-white/40">MON DECK</div>
+        <div className="truncate text-[13px] font-bold text-gold">{active.name}</div>
+      </div>
+    </>
+  ) : (
+    <p className="text-xs text-white/50">Choisis ton deck dans « Mes decks » pour jouer.</p>
+  );
+  const portrait = enemy
+    ? <img src={(PublicDeckDatabase as any).avatarUrl(enemy.id)} alt="" className="h-8 w-8 shrink-0 rounded-lg bg-surface object-cover ring-1 ring-enemy" />
+    : <span className="h-8 w-8 shrink-0 rounded-lg bg-surface-raised" />;
+  const foeText = (
+    <div className="min-w-0">
+      <div className={`truncate text-[9px] tracking-widest ${enemy ? '' : 'text-white/40'}`} style={enemy ? { color: tone } : undefined}>
+        {enemy ? String((PublicDeckDatabase as any).difficultyLabel(enemy.difficulty)).toUpperCase() : 'L\'IA JOUE TON DECK'}
+      </div>
+      <div className="truncate text-[13px] font-bold">{enemy ? enemy.name : 'Miroir'}</div>
+    </div>
+  );
+
+  if (vertical) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-2 rounded-xl border border-line bg-surface-raised/70 px-3 py-2.5">
+        <div className="flex items-center gap-2">{mine}</div>
+        <div className="flex items-center gap-2">
+          <div className="h-px flex-1 bg-line" />
+          <span className="text-[10px] font-bold tracking-widest text-white/35">VS</span>
+          <div className="h-px flex-1 bg-line" />
+        </div>
+        <div className="flex items-center gap-2">{portrait}{foeText}</div>
+      </div>
+    );
+  }
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5">
+      <div className="flex min-w-0 items-center gap-2">{mine}</div>
+      <span className="text-[11px] font-bold tracking-widest text-white/35">VS</span>
+      <div className="flex min-w-0 items-center justify-end gap-2 text-right">{foeText}{portrait}</div>
     </div>
   );
 }
