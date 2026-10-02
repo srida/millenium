@@ -232,7 +232,7 @@ export default function DeckSelector() {
         style={{ paddingInline: 'max(88px, env(safe-area-inset-left))' }}
         onPointerDown={hideTooltip}
       >
-        <aside className="flex min-h-0 flex-col gap-2.5 py-3.5">
+        <aside className="flex min-h-0 flex-col gap-2 py-2.5">
           <h1 className="text-lg font-bold tracking-wide">{MODES.play.title}</h1>
           <MusicThemePicker />
           {vs}
@@ -648,14 +648,14 @@ function VsCard({ vertical, active, enemy }: { vertical: boolean; active: DeckSu
 
   if (vertical) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-2 rounded-xl border border-line bg-surface-raised/70 px-3 py-2.5">
-        <div className="flex items-center gap-2">{mine}</div>
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-1.5 overflow-hidden rounded-xl border border-line bg-surface-raised/70 px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">{mine}</div>
         <div className="flex items-center gap-2">
           <div className="h-px flex-1 bg-line" />
           <span className="text-[10px] font-bold tracking-widest text-white/35">VS</span>
           <div className="h-px flex-1 bg-line" />
         </div>
-        <div className="flex items-center gap-2">{portrait}{foeText}</div>
+        <div className="flex min-w-0 items-center gap-2">{portrait}{foeText}</div>
       </div>
     );
   }
