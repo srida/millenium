@@ -602,7 +602,7 @@
 	{
 		"id": "PUBLIC_DECK_016",
 		"name": "Zane",
-		"difficulty": 3,
+		"difficulty": 4,
 		"deck": {
 			"1": [
 				"ZANE_010",
@@ -635,7 +635,9 @@
 			"5": [
 				"ZANE_012"
 			]
-		}
+		},
+		"bot": false,
+		"guest": false
 	},
 	{
 		"id": "PUBLIC_DECK_017",
@@ -1448,6 +1450,168 @@
 			],
 			"5": [
 				"JESSE_018"
+			]
+		},
+		"bot": false,
+		"guest": false
+	},
+	{
+		"id": "PUBLIC_DECK_026",
+		"name": "Suprême King",
+		"difficulty": 3,
+		"deck": {
+			"1": [
+				"KING_009",
+				"KING_005",
+				"CORE_093",
+				"CORE_096",
+				"CORE_094",
+				"CORE_097",
+				"CORE_095",
+				"KING_007"
+			],
+			"2": [
+				"KING_001",
+				"KING_004",
+				"KING_002",
+				"KING_006",
+				"KING_003",
+				"KING_015",
+				"KING_017",
+				"KING_019"
+			],
+			"3": [
+				"KING_008",
+				"KING_011",
+				"KING_010",
+				"KING_020",
+				"KING_016"
+			],
+			"4": [
+				"KING_012",
+				"JADEN_023",
+				"KING_014",
+				"KING_013"
+			],
+			"5": [
+				"KING_018"
+			]
+		},
+		"bot": false,
+		"guest": false
+	},
+	{
+		"id": "PUBLIC_DECK_027",
+		"name": "Axel",
+		"difficulty": 2,
+		"deck": {
+			"1": [
+				"AXEL_003",
+				"AXEL_001",
+				"AXEL_008",
+				"AXEL_009",
+				"AXEL_007",
+				"ZANE_018"
+			],
+			"2": [
+				"AXEL_016",
+				"AXEL_002",
+				"AXEL_019",
+				"AXEL_015",
+				"AXEL_011",
+				"AXEL_010",
+				"AXEL_013"
+			],
+			"3": [
+				"AXEL_004",
+				"AXEL_012",
+				"AXEL_014"
+			],
+			"4": [
+				"AXEL_017",
+				"AXEL_005",
+				"AXEL_018"
+			],
+			"5": [
+				"AXEL_006"
+			]
+		},
+		"bot": false,
+		"guest": false
+	},
+	{
+		"id": "PUBLIC_DECK_028",
+		"name": "Jim",
+		"difficulty": 2,
+		"deck": {
+			"1": [
+				"JIM_014",
+				"JIM_003",
+				"STAPLE_295",
+				"STAPLE_296",
+				"JIM_001"
+			],
+			"2": [
+				"JIM_015",
+				"JIM_004",
+				"JIM_005",
+				"JIM_006",
+				"JIM_013"
+			],
+			"3": [
+				"JIM_016",
+				"JIM_007",
+				"JIM_008",
+				"STAPLE_416",
+				"JIM_012"
+			],
+			"4": [
+				"JIM_011",
+				"JIM_009",
+				"JIM_010",
+				"STAPLE_127"
+			],
+			"5": [
+				"JIM_017"
+			]
+		},
+		"bot": false,
+		"guest": false
+	},
+	{
+		"id": "PUBLIC_DECK_029",
+		"name": "Kagemaru",
+		"difficulty": 3,
+		"deck": {
+			"1": [
+				"KAGEMARU_007",
+				"KAGEMARU_006",
+				"KAGEMARU_011",
+				"EXTRA_063"
+			],
+			"2": [
+				"KAGEMARU_008",
+				"KAGEMARU_009",
+				"STAPLE_404",
+				"STAPLE_084",
+				"BONZ_010",
+				"STAPLE_165"
+			],
+			"3": [
+				"KAGEMARU_010",
+				"STAPLE_135",
+				"STAPLE_172"
+			],
+			"4": [
+				"KAGEMARU_001",
+				"KAGEMARU_003",
+				"KAGEMARU_002",
+				"STAPLE_423",
+				"STAPLE_405"
+			],
+			"5": [
+				"KAGEMARU_004",
+				"KAGEMARU_005"
 			]
 		},
 		"bot": false,

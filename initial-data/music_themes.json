@@ -1,46 +1,46 @@
 [
 	{
 		"id": "THEME_001",
-		"name": "A"
+		"name": "Master Duel 1"
 	},
 	{
 		"id": "THEME_002",
-		"name": "B"
+		"name": "Master Duel 2"
 	},
 	{
 		"id": "THEME_003",
-		"name": "C"
+		"name": "Master Duel 3"
 	},
 	{
 		"id": "THEME_004",
-		"name": "D"
+		"name": "Master Duel 4"
 	},
 	{
 		"id": "THEME_005",
-		"name": "E"
+		"name": "Master Duel 5"
 	},
 	{
 		"id": "THEME_006",
-		"name": "F"
+		"name": "Master Duel 6"
 	},
 	{
 		"id": "THEME_007",
-		"name": "G"
+		"name": "Master Duel 7"
 	},
 	{
 		"id": "THEME_008",
-		"name": "H"
+		"name": "Master Duel 8"
 	},
 	{
 		"id": "THEME_009",
-		"name": "I"
+		"name": "Master Duel 9"
 	},
 	{
 		"id": "THEME_010",
-		"name": "J"
+		"name": "Yugioh 5DS 1"
 	},
 	{
 		"id": "THEME_011",
-		"name": "K"
+		"name": "Yugioh 5DS 2"
 	}
 ]

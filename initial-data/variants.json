@@ -1205,5 +1205,117 @@
 	{
 		"id": "VAR_301",
 		"card_id": "KING_001"
+	},
+	{
+		"id": "VAR_302",
+		"card_id": "KING_010"
+	},
+	{
+		"id": "VAR_303",
+		"card_id": "AXEL_004"
+	},
+	{
+		"id": "VAR_304",
+		"card_id": "AXEL_019"
+	},
+	{
+		"id": "VAR_305",
+		"card_id": "JIM_001"
+	},
+	{
+		"id": "VAR_306",
+		"card_id": "JIM_006"
+	},
+	{
+		"id": "VAR_307",
+		"card_id": "JIM_010"
+	},
+	{
+		"id": "VAR_308",
+		"card_id": "JIM_011"
+	},
+	{
+		"id": "VAR_309",
+		"card_id": "JIM_004"
+	},
+	{
+		"id": "VAR_310",
+		"card_id": "JIM_005"
+	},
+	{
+		"id": "VAR_311",
+		"card_id": "JIM_007"
+	},
+	{
+		"id": "VAR_312",
+		"card_id": "JIM_009"
+	},
+	{
+		"id": "VAR_313",
+		"card_id": "JIM_012"
+	},
+	{
+		"id": "VAR_314",
+		"card_id": "KAGEMARU_001"
+	},
+	{
+		"id": "VAR_315",
+		"card_id": "KAGEMARU_001"
+	},
+	{
+		"id": "VAR_316",
+		"card_id": "KAGEMARU_002"
+	},
+	{
+		"id": "VAR_317",
+		"card_id": "KAGEMARU_002"
+	},
+	{
+		"id": "VAR_318",
+		"card_id": "KAGEMARU_003"
+	},
+	{
+		"id": "VAR_319",
+		"card_id": "KAGEMARU_003"
+	},
+	{
+		"id": "VAR_320",
+		"card_id": "KAGEMARU_004"
+	},
+	{
+		"id": "VAR_321",
+		"card_id": "KAGEMARU_004"
+	},
+	{
+		"id": "VAR_322",
+		"card_id": "KAGEMARU_005"
+	},
+	{
+		"id": "VAR_323",
+		"card_id": "KAGEMARU_011"
+	},
+	{
+		"id": "VAR_324",
+		"card_id": "KAGEMARU_011"
+	},
+	{
+		"id": "VAR_325",
+		"card_id": "CORE_132"
+	},
+	{
+		"id": "VAR_326",
+		"card_id": "CORE_133"
+	},
+	{
+		"id": "VAR_327",
+		"card_id": "CORE_134"
+	},
+	{
+		"id": "VAR_328",
+		"card_id": "CORE_131"
+	},
+	{
+		"id": "VAR_329",
+		"card_id": "CORE_135"
 	}
 ]

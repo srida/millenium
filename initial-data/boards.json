@@ -2,15 +2,17 @@
 	{
 		"id": "BOARD_002",
 		"name": "Forêt",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 10,
-			"stat": "atk",
-			"target_attributes": [
-				"ARCH_021",
-				"ARCH_033"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "atk",
+				"value": 10,
+				"target_attributes": [
+					"ARCH_021",
+					"ARCH_033"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 4,
@@ -33,15 +35,17 @@
 	{
 		"id": "BOARD_003",
 		"name": "Montagne",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 10,
-			"stat": "atk",
-			"target_attributes": [
-				"ARCH_003",
-				"ARCH_045"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "atk",
+				"value": 10,
+				"target_attributes": [
+					"ARCH_003",
+					"ARCH_045"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 1,
@@ -68,14 +72,16 @@
 	{
 		"id": "BOARD_004",
 		"name": "Prairie",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 10,
-			"stat": "atk",
-			"target_attributes": [
-				"ARCH_001"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "atk",
+				"value": 10,
+				"target_attributes": [
+					"ARCH_001"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 1,
@@ -128,14 +134,16 @@
 	{
 		"id": "BOARD_006",
 		"name": "Gratte-ciel",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 10,
-			"stat": "atk",
-			"target_attributes": [
-				"ARCH_006"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "atk",
+				"value": 10,
+				"target_attributes": [
+					"ARCH_006"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 0,
@@ -154,14 +162,16 @@
 	{
 		"id": "BOARD_007",
 		"name": "École de sorcier",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 10,
-			"stat": "atk",
-			"target_attributes": [
-				"ARCH_002"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "atk",
+				"value": 10,
+				"target_attributes": [
+					"ARCH_002"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 2,
@@ -180,14 +190,16 @@
 	{
 		"id": "BOARD_001",
 		"name": "Enfer",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 30,
-			"stat": "hp",
-			"target_attributes": [
-				"ARCH_019"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "hp",
+				"value": 30,
+				"target_attributes": [
+					"ARCH_019"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 4,
@@ -210,14 +222,16 @@
 	{
 		"id": "BOARD_008",
 		"name": "Cimetière",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 7,
-			"stat": "movement_rate",
-			"target_attributes": [
-				"ARCH_029"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "movement_rate",
+				"value": 7,
+				"target_attributes": [
+					"ARCH_029"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 3,
@@ -240,14 +254,16 @@
 	{
 		"id": "BOARD_009",
 		"name": "Vallée des rois",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 7,
-			"stat": "movement_rate",
-			"target_attributes": [
-				"ARCH_030"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "movement_rate",
+				"value": 7,
+				"target_attributes": [
+					"ARCH_030"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 2,
@@ -266,14 +282,16 @@
 	{
 		"id": "BOARD_010",
 		"name": "Mur du Labyrinthe",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 7,
-			"stat": "movement_rate",
-			"target_attributes": [
-				"ARCH_041"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "movement_rate",
+				"value": 7,
+				"target_attributes": [
+					"ARCH_041"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 0,
@@ -308,14 +326,16 @@
 	{
 		"id": "BOARD_011",
 		"name": "Monde Jurassique",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 10,
-			"stat": "atk",
-			"target_attributes": [
-				"ARCH_034"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "atk",
+				"value": 10,
+				"target_attributes": [
+					"ARCH_034"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 0,
@@ -346,14 +366,16 @@
 	{
 		"id": "BOARD_013",
 		"name": "Nuit des machines",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 7,
-			"stat": "attack_rate",
-			"target_attributes": [
-				"ARCH_025"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "attack_rate",
+				"value": 3,
+				"target_attributes": [
+					"ARCH_025"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 1,
@@ -376,14 +398,16 @@
 	{
 		"id": "BOARD_014",
 		"name": "Desert",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 50,
-			"stat": "hp",
-			"target_attributes": [
-				"ARCH_028"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "hp",
+				"value": 50,
+				"target_attributes": [
+					"ARCH_028"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 3,
@@ -398,14 +422,16 @@
 	{
 		"id": "BOARD_015",
 		"name": "Village secret",
-		"effect": {
-			"type": "stat_bonus",
-			"value": 1,
-			"stat": "range",
-			"target_attributes": [
-				"ARCH_023"
-			]
-		},
+		"effects": [
+			{
+				"type": "stat_bonus",
+				"stat": "range",
+				"value": 1,
+				"target_attributes": [
+					"ARCH_023"
+				]
+			}
+		],
 		"blocked_cells": [
 			{
 				"col": 2,
@@ -447,8 +473,8 @@
 		"effects": [
 			{
 				"type": "stat_bonus",
-				"value": 5,
 				"stat": "movement_rate",
+				"value": 3,
 				"target_attributes": [
 					"ARCH_086"
 				]
@@ -471,8 +497,8 @@
 		"effects": [
 			{
 				"type": "stat_bonus",
-				"value": 20,
 				"stat": "atk",
+				"value": 20,
 				"target_attributes": [
 					"ARCH_087"
 				]
@@ -518,16 +544,16 @@
 		"effects": [
 			{
 				"type": "stat_bonus",
-				"value": 30,
 				"stat": "hp",
+				"value": 30,
 				"target_attributes": [
 					"ARCH_050"
 				]
 			},
 			{
 				"type": "stat_bonus",
-				"value": -5,
 				"stat": "atk",
+				"value": -5,
 				"target_attributes": [
 					"ARCH_049"
 				]
@@ -550,8 +576,8 @@
 		"effects": [
 			{
 				"type": "stat_bonus",
-				"value": 5,
 				"stat": "attack_rate",
+				"value": 5,
 				"target_attributes": [
 					"ARCH_090"
 				]
@@ -565,8 +591,8 @@
 		"effects": [
 			{
 				"type": "stat_bonus",
-				"value": 10,
 				"stat": "atk",
+				"value": 10,
 				"target_attributes": []
 			}
 		],
@@ -603,16 +629,16 @@
 		"effects": [
 			{
 				"type": "stat_bonus",
-				"value": 10,
 				"stat": "atk",
+				"value": 10,
 				"target_attributes": [
 					"ARCH_048"
 				]
 			},
 			{
 				"type": "stat_bonus",
-				"value": -10,
 				"stat": "atk",
+				"value": -10,
 				"target_attributes": [
 					"ARCH_053"
 				]
@@ -647,16 +673,16 @@
 		"effects": [
 			{
 				"type": "stat_bonus",
-				"value": 10,
 				"stat": "atk",
+				"value": 10,
 				"target_attributes": [
 					"ARCH_058"
 				]
 			},
 			{
 				"type": "stat_bonus",
-				"value": -10,
 				"stat": "atk",
+				"value": -10,
 				"target_attributes": [
 					"ARCH_001",
 					"ARCH_002",
@@ -681,16 +707,16 @@
 		"effects": [
 			{
 				"type": "stat_bonus",
-				"stat": "atk",
-				"value": 20,
+				"stat": "attack_rate",
+				"value": 6,
 				"target_attributes": [
 					"ARCH_055"
 				]
 			},
 			{
 				"type": "stat_bonus",
-				"stat": "atk",
-				"value": -10,
+				"stat": "attack_rate",
+				"value": -3,
 				"target_attributes": []
 			}
 		],
@@ -707,8 +733,8 @@
 		"effects": [
 			{
 				"type": "stat_bonus",
-				"value": 50,
 				"stat": "hp",
+				"value": 50,
 				"target_attributes": [
 					"ARCH_061"
 				]

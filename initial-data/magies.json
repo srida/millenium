@@ -103,8 +103,8 @@
 		"name": "Raigeki",
 		"effect": {
 			"type": "stat_bonus",
-			"value": 7,
-			"stat": "attack_rate"
+			"stat": "attack_rate",
+			"value": 3
 		},
 		"rarity": 1
 	},
@@ -113,8 +113,8 @@
 		"name": "Godspeed",
 		"effect": {
 			"type": "stat_bonus",
-			"value": 7,
-			"stat": "movement_rate"
+			"stat": "movement_rate",
+			"value": 3
 		},
 		"rarity": 1
 	},

@@ -199,5 +199,45 @@
 		"id": "SFX_039",
 		"name": "Buy_1",
 		"trigger": "shop_buy"
+	},
+	{
+		"id": "SFX_040",
+		"name": "Reward_1",
+		"trigger": "reward_mission"
+	},
+	{
+		"id": "SFX_041",
+		"name": "Reward_2",
+		"trigger": "reward_weekly"
+	},
+	{
+		"id": "SFX_042",
+		"name": "Reward_3",
+		"trigger": "reward_daily_gift"
+	},
+	{
+		"id": "SFX_043",
+		"name": "Reward_4",
+		"trigger": "reward_level"
+	},
+	{
+		"id": "SFX_044",
+		"name": "Notif_1",
+		"trigger": "notify_mission"
+	},
+	{
+		"id": "SFX_045",
+		"name": "Notif_2",
+		"trigger": "notify_weekly"
+	},
+	{
+		"id": "SFX_046",
+		"name": "Notif_3",
+		"trigger": "notify_level"
+	},
+	{
+		"id": "SFX_047",
+		"name": "Chrono_1",
+		"trigger": "timer_low"
 	}
 ]
