@@ -152,7 +152,11 @@ describe('speed-scale — le catalogue livré', () => {
       visit(a.effect, `${a.id} (${a.name})`);
       for (const t of a.thresholds ?? []) visit(t.effects, `${a.id} (${a.name})`);
     }
+    // BOARD_025 (Monde transparent) ralentit volontairement tout ce qui n'est pas
+    // Énergie (ARCH_055, +6) : un malus de terrain voulu, pas un reliquat de
+    // l'ancienne échelle. Seul terrain dans ce cas.
     for (const b of readCatalog('boards.json')) {
+      if (b.id === 'BOARD_025') continue;
       visit(b.effects, `${b.id} (${b.name})`);
       visit(b.effect, `${b.id} (${b.name})`);
     }

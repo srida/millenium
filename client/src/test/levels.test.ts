@@ -115,7 +115,9 @@ beforeAll(() => {
   CARDS = JSON.parse(fs.readFileSync(path.join(TMP, 'cards.json'), 'utf8'));
   // Catalogue entièrement illustré SAUF une carte : c'est l'état nominal, et
   // l'exception est le sujet d'un test.
-  NO_ART = CARDS[CARDS.length - 1].id;
+  // Hors préfixe CORE : sans pack de départ (sets.json vide), c'est le repli de
+  // la dotation, donc une carte CORE serait possédée dès l'inscription.
+  NO_ART = [...CARDS].reverse().find(c => !String(c.id).startsWith('CORE_'))!.id;
   for (const c of CARDS) if (c.id !== NO_ART) putArt(c.id);
 
   writeJson('sets.json', []);

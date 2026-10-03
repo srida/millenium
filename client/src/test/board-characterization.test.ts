@@ -256,7 +256,7 @@ describe('Terrains livrés — l\'oracle de l\'étape 0', () => {
     }
   });
 
-  // Les quatre terrains de la première famille d'effets morts, nommément : ils
+  // Les trois terrains de la première famille d'effets morts, nommément : ils
   // font désormais quelque chose, et le test dit QUOI.
   //
   // ⚠️ Le SENS a été retourné par la bascule vers le compteur 0–100 : ces
@@ -265,7 +265,7 @@ describe('Terrains livrés — l\'oracle de l\'étape 0', () => {
   // `movement_rate` POSITIF, et un compteur qui monte accélère. Le jeu est le
   // même ; c'est le chiffre qui a cessé de mentir au joueur.
   // Mutation : `_recomputeStats` rendue à sa lecture de `_base` seul → ROUGE.
-  it.each(['BOARD_008', 'BOARD_009', 'BOARD_010', 'BOARD_025'])(
+  it.each(['BOARD_008', 'BOARD_009', 'BOARD_010'])(
     '%s applique enfin son bonus de vitesse de déplacement',
     (id) => {
       const b = boards.find(x => x.id === id)!;
