@@ -42,6 +42,12 @@ export interface Aggregates {
   attributes: FamilyRow[];
   summonTypes: FamilyRow[];
   tiers: FamilyRow[];
+  /**
+   * Une ligne par PORTÉE (1, 2, 3, 4+) — la mesure qui pilote l'équilibre
+   * portée / PV / vitesse (`scripts/rebalance-ranges.js`). Partition : chaque
+   * carte pèse dans une seule ligne.
+   */
+  ranges: FamilyRow[];
   /** Axes de style de jeu, chacun rendu comme un couple à comparer. */
   playstyles: FamilyRow[];
   /** Le rappel de méthode, transporté avec les chiffres plutôt qu'à côté. */
@@ -157,6 +163,18 @@ export function buildAggregates(
     .filter((r): r is FamilyRow => !!r)
     .sort((a, b) => Number(a.key) - Number(b.key));
 
+  // ── Portées ───────────────────────────────────────────────────────────
+  const byRange = new Map<number, CardRow[]>();
+  for (const row of played) {
+    const r = Math.min(4, Math.max(1, cardById.get(row.card_id)?.stats?.range ?? 1));
+    if (!byRange.has(r)) byRange.set(r, []);
+    byRange.get(r)!.push(row);
+  }
+  const rangeRows = [...byRange.entries()]
+    .map(([r, group]) => fold(String(r), r >= 4 ? 'portée quatre et plus' : `portée ${EN_TOUTES_LETTRES[r]}`, group, baseline))
+    .filter((r): r is FamilyRow => !!r)
+    .sort((a, b) => Number(a.key) - Number(b.key));
+
   // ── Styles de jeu ─────────────────────────────────────────────────────
   // Les seuils sont les MÉDIANES DU CATALOGUE MESURÉ, pas des constantes : un
   // catalogue retouché déplace ses propres médianes, et un seuil en dur
@@ -182,6 +200,7 @@ export function buildAggregates(
     attributes: attrRows,
     summonTypes: typeRows,
     tiers: tierRows,
+    ranges: rangeRows,
     playstyles,
     caveats: [
       'Une carte porte jusqu’à quatre attributs : le même résultat compte dans plusieurs familles, la somme des poses dépasse donc le nombre de poses réelles.',

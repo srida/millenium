@@ -209,7 +209,7 @@ describe('Émission — la forme', () => {
     };
     const show = buildShow({
       date: '2026-01-01', detector: vide,
-      aggregates: { attributes: [], summonTypes: [], tiers: [], playstyles: [], caveats: [] },
+      aggregates: { attributes: [], summonTypes: [], tiers: [], ranges: [], playstyles: [], caveats: [] },
       ab: [], catalogCards: 0,
     });
     expect(show.segments.length).toBeGreaterThanOrEqual(9);

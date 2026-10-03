@@ -8590,6 +8590,75 @@ function setStatsPowerDetail(id) {
   renderStats();
 }
 
+/**
+ * Le BUDGET d'une carte : ses dégâts par tick multipliés par ses PV,
+ * `(ATQ / ticks d'attaque) × PV`. Un indice, pas une vérité : il ignore pouvoir,
+ * vitesse de déplacement et attributs. Sert à repérer une carte hors du rang
+ * de ses voisines (même tier, même portée).
+ */
+function cardBudget(c) {
+  const st = c.stats || {};
+  const ticks = SPEED.ticksForRate(SPEED.clampRate(st.attack_rate));
+  return ((Number(st.atk) || 0) / Math.max(1, ticks)) * (Number(st.hp) || 0);
+}
+
+/** La classe de portée d'une carte : 1, 2, 3, 4 (= 4 et plus). */
+const rangeClass = (c) => Math.min(4, Math.max(1, Number(c.stats?.range) || 1));
+
+/**
+ * « Budget par portée » : médiane du budget par tier × portée, et les cartes
+ * dont le budget dépasse 1,6× ou tombe sous 0,5× la médiane de LEUR case. La portée doit
+ * se payer (cf. `scripts/rebalance-ranges.js`) : une case « portée 3 » dont la
+ * médiane rejoint celle de la mêlée est le signe qu'elle ne se paie plus.
+ * Un tableau de bord, pas un validateur — rien n'est bloqué.
+ */
+function rangeBudgetSectionHtml() {
+  const med = (xs) => { const a = [...xs].sort((x, y) => x - y); return a.length ? a[Math.floor(a.length / 2)] : null; };
+  const cells = {};
+  for (const c of cards) {
+    if (!c.stats) continue;
+    const key = `${cardTier(c)}/${rangeClass(c)}`;
+    (cells[key] ??= []).push(c);
+  }
+  const medians = {};
+  for (const [k, list] of Object.entries(cells)) medians[k] = med(list.map(cardBudget));
+  const outliers = [];
+  for (const [k, list] of Object.entries(cells)) {
+    const m = medians[k];
+    if (!m || list.length < 4) continue;
+    for (const c of list) {
+      const b = cardBudget(c);
+      if (b <= 0) continue;   // carte utilitaire (0 ATQ) : pas un combattant à comparer
+      const r = b / m;
+      if (r > 1.6 || r < 0.5) outliers.push({ c, r });
+    }
+  }
+  // Les cartes AU-DESSUS du rang d'abord : c'est l'excès qui déséquilibre.
+  outliers.sort((a, b) => (b.r > 1) - (a.r > 1) || Math.abs(Math.log(b.r)) - Math.abs(Math.log(a.r)));
+  const fmt = (v) => v == null ? '<span style="color:var(--muted)">—</span>' : Math.round(v);
+  const rows = [1, 2, 3, 4].map(r => `<tr>
+      <td style="font-weight:600;color:var(--muted);white-space:nowrap">Portée ${r}${r === 4 ? '+' : ''}</td>
+      ${[1, 2, 3, 4, 5].map(t => {
+        const k = `${t}/${r}`;
+        const n = cells[k]?.length || 0;
+        return `<td><div class="stat-val">${fmt(medians[k])}</div><div class="stat-range">${n} carte${n > 1 ? 's' : ''}</div></td>`;
+      }).join('')}
+    </tr>`).join('');
+  const chips = outliers.slice(0, 40).map(({ c, r }) => `<span class="badge" style="background:var(--surface2);cursor:pointer" onclick="jumpToCard('${c.id}')">${esc(c.name)} <span style="color:${TIER_COLORS[cardTier(c)]}">T${cardTier(c)}</span> · P${rangeClass(c)} · <span style="color:${r > 1 ? 'var(--red)' : 'var(--accent)'}">${r > 1 ? '+' : ''}${Math.round((r - 1) * 100)} %</span></span>`).join(' ');
+  return `
+    <div class="stat-panel" style="margin-bottom:20px">
+      <h3>Budget par portée <span style="font-size:11px;font-weight:400;color:var(--muted)">(médiane de (ATQ ÷ ticks d'attaque) × PV — la portée doit se payer : une portée longue doit rester sous la mêlée de son tier)</span></h3>
+      <div style="overflow-x:auto">
+        <table class="tier-overview-table">
+          <thead><tr><th>Portée</th>${[1, 2, 3, 4, 5].map(t => `<th style="color:${TIER_COLORS[t]}">Tier ${t}</th>`).join('')}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin:10px 0 6px">Hors du rang de leur case (au-delà de ×1,6 ou sous ×0,5, cases d'au moins 4 cartes, cartes à 0 ATQ écartées) — ${outliers.length} carte${outliers.length > 1 ? 's' : ''}${outliers.length > 40 ? ', 40 premières' : ''} :</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${chips || '<span style="font-size:11px;color:var(--muted)">Aucune</span>'}</div>
+    </div>`;
+}
+
 function renderStats() {
   const el = document.getElementById('stats-content');
   const ts = computeTierStats();
@@ -8909,8 +8978,11 @@ function renderStats() {
     </div>
   `;
 
+  const budgetSection = rangeBudgetSectionHtml();
+
   el.innerHTML = `
     ${overviewTable}
+    ${budgetSection}
     ${powerSection}
     ${powerDetailSection}
     <div class="stat-panel">

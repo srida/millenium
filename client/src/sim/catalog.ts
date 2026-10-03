@@ -15,9 +15,13 @@ import { tierIndex, resolveTiers } from '../logic/Tiers.js';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT = path.resolve(HERE, '../../..');
 
-export const DATA_DIR = fs.existsSync(path.join(PROJECT, 'data', 'cards.json'))
-  ? path.join(PROJECT, 'data')
-  : path.join(PROJECT, 'initial-data');
+// `SIM_DATA_DIR` force un dossier : c'est ce qui permet de MESURER une
+// proposition (`scripts/rebalance-ranges.js --to=<dossier>`) avant de l'écrire.
+export const DATA_DIR = process.env.SIM_DATA_DIR
+  ? path.resolve(process.env.SIM_DATA_DIR)
+  : fs.existsSync(path.join(PROJECT, 'data', 'cards.json'))
+    ? path.join(PROJECT, 'data')
+    : path.join(PROJECT, 'initial-data');
 
 function load<T>(dir: string, file: string): T[] {
   const raw = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
