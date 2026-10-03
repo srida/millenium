@@ -329,7 +329,7 @@ export interface TacheModifier {
    * l'ancien. Et `duree` et `valeur` s'excluent : les quatre pouvoirs de
    * `DURATION_POWERS` lisent la première, les dix autres la seconde.
    */
-  pouvoir?: { id: string; rate?: number | null; valeur?: number | null; duree?: number | null };
+  pouvoir?: { id: string; rate?: number | null; valeur?: number | null; duree?: number | null; zone?: number | null };
   /**
    * Le MOT-CLÉ posé par la tâche (`champ: 'mot_cle'`) — l'id d'un attribut de
    * catégorie MotCle, ajouté à `unit.attributes` comme s'il avait toujours

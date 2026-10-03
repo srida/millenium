@@ -359,6 +359,7 @@ function appliqueSurUnite(t: TacheModifier, u: Unit, mult: number, trace: Trace)
     u.power_rate = clampRate(t.pouvoir.rate ?? u.power_rate ?? 0);
     u.power_value = t.pouvoir.valeur ?? null;
     u.power_duration = t.pouvoir.duree ?? null;
+    u.power_zone = t.pouvoir.zone ?? null;
     u.power_gauge = 0;
     u.is_power_blocked = false;
     u.power_block_remaining = 0;

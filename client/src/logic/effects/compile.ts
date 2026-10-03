@@ -770,6 +770,7 @@ export interface MagieEffectLike {
   power_id?: string;
   power_rate?: number;
   duration?: number;
+  zone?: number;
   tier?: number;
   attribute?: string;
   attributes?: string[];
@@ -914,6 +915,7 @@ export function compileMagie(magie: MagieLike): CompilationResult {
           rate: (e.power_rate as number) ?? null,
           valeur: (e.value as number) ?? null,
           duree: (e.duration as number) ?? null,
+          zone: (e.zone as number) ?? null,
         },
       }]);
       return { effets, refus };

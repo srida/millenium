@@ -26,7 +26,7 @@ const path = require('path');
 const { tierIndex, resolveTiers, TIER_CATEGORY } = require('../tiers');
 // Le contrat vit dans `card-contract.js` et nulle part ailleurs : le serveur le
 // refuse en 400 avec la MÊME fonction.
-const { REQUIRED_CATEGORIES, missingCategories, missingRates, missingDurations } = require('../card-contract');
+const { REQUIRED_CATEGORIES, missingCategories, missingRates, missingDurations, missingZones } = require('../card-contract');
 
 const PROJECT = path.join(__dirname, '..');
 const DATA = fs.existsSync(path.join(PROJECT, 'data', 'cards.json'))
@@ -62,6 +62,7 @@ function audit() {
   const legacyInitiative = [];
   const badRates = [];
   const badDurations = [];
+  const badZones = [];
   const multiTier = [];
   const appelsOrphelins = [];
 
@@ -82,6 +83,8 @@ function audit() {
     // Même famille de faute : la DURÉE des quatre pouvoirs qui en portent une.
     const durations = missingDurations(c);
     if (durations.length) badDurations.push(`${c.id} → ${durations.join(' · ')}`);
+    const zones = missingZones(c);
+    if (zones.length) badZones.push(`${c.id} → ${zones.join(' · ')}`);
 
     const ts = tiersOf(c);
     if (ts.length > 1) multiTier.push(`${c.id} → T${ts.join('·T')}`);
@@ -122,14 +125,14 @@ function audit() {
 
   return {
     missing, unknownAttr, legacyField, legacyInitiative,
-    badRates, badDurations, multiTier, attrsWithoutTier, appelsOrphelins,
+    badRates, badDurations, badZones, multiTier, attrsWithoutTier, appelsOrphelins,
   };
 }
 
 const r = audit();
 const errors = REQUIRED_CATEGORIES.reduce((n, c) => n + r.missing[c].length, 0)
   + r.unknownAttr.length + r.legacyField.length + r.legacyInitiative.length
-  + r.badRates.length + r.badDurations.length + r.attrsWithoutTier.length
+  + r.badRates.length + r.badDurations.length + r.badZones.length + r.attrsWithoutTier.length
   + r.appelsOrphelins.length;
 
 if (process.argv.includes('--json')) {
@@ -151,6 +154,7 @@ show('✗ Champ `tier` résiduel (le retirer : scripts/migrate-tiers.js --write)
 show('✗ Champ `stats.initiative` résiduel (le retirer : scripts/migrate-initiative.js --write)', r.legacyInitiative);
 show('✗ Vitesse manquante ou en ticks (reprise : scripts/migrate-speeds.js --write)', r.badRates);
 show('✗ Durée de pouvoir invalide ou en ticks (reprise : scripts/migrate-speeds.js --write)', r.badDurations);
+show('✗ Zone de pouvoir absente ou invalide (reprise : scripts/migrate-zones.js --write)', r.badZones);
 show('✗ Attribut de tier sans champ `tier`', r.attrsWithoutTier);
 show('✗ Mot-clé Appelant et champ `appel` dépareillés', r.appelsOrphelins);
 show('· Cartes multi-tiers', r.multiTier);

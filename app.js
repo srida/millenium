@@ -280,6 +280,14 @@ function logCatalogueFormat() {
       'Reprise : `node scripts/migrate-speeds.js --write`.',
     );
   }
+  const zones = cards.filter(c => cardContract.missingZones(c).length);
+  if (zones.length) {
+    console.warn(
+      `[catalogue] ⚠ ${zones.length} carte(s) sur ${cards.length} portent une zone de pouvoir ` +
+      `absente ou invalide (ex. ${zones.slice(0, 3).map(c => c.id).join(', ')}). Attaque Zone et ` +
+      'Provocation y joueront le REPLI du moteur. Reprise : `node scripts/migrate-zones.js --write`.',
+    );
+  }
 }
 
 // Récapitulatif des dossiers d'images réellement utilisés. Une famille dont la
@@ -856,8 +864,14 @@ app.use('/api/cards', crud({
     // le moteur retomberait sur son repli et une paralysie annoncée 60 durerait
     // 20 ticks, en silence. Cf. `cardContract.missingDurations`.
     const durations = cardContract.missingDurations(c);
-    return durations.length
-      ? { status: 400, body: { error: `Durée de pouvoir invalide : ${durations.join(', ')}` } }
+    if (durations.length) {
+      return { status: 400, body: { error: `Durée de pouvoir invalide : ${durations.join(', ')}` } };
+    }
+    // ⚠️ La ZONE d'Attaque Zone et de Provocation est obligatoire : sans elle le
+    // moteur retombe sur un repli qui n'est pas ce que la carte annonce.
+    const zones = cardContract.missingZones(c);
+    return zones.length
+      ? { status: 400, body: { error: `Zone de pouvoir invalide : ${zones.join(', ')}` } }
       : null;
   },
   strip: (c) => { delete c._has_illustration; delete c._starter; delete c._tiers; },

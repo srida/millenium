@@ -41,6 +41,8 @@ export interface CardPower {
    * autres, c'est l'inverse : ils gardent `value` et n'ont pas de durée.
    */
   duration?: number | null;
+  /** Rayon de Manhattan des pouvoirs de `ZONE_POWERS` (Attaque Zone, Provocation). */
+  zone?: number | null;
   /**
    * L'id du token à invoquer, sur POWER_SUMMON_TOKEN uniquement — résolu dans
    * le catalogue de tokens (`data/tokens.json`), jamais dans celui des cartes.

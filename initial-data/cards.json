@@ -871,7 +871,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 20,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -1718,7 +1719,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 23,
-			"value": 40
+			"value": 40,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -1902,7 +1904,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 20,
-			"power_rate": 63
+			"power_rate": 63,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -2519,7 +2522,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 50,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -2602,7 +2606,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 35,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -2664,7 +2669,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -2815,7 +2821,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 20,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -2978,7 +2985,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -3023,7 +3031,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 63,
-			"value": 60
+			"value": 60,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -3062,7 +3071,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 30,
-			"power_rate": 56
+			"power_rate": 56,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -3299,7 +3309,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 25,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -3972,7 +3983,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -4054,7 +4066,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -4380,7 +4393,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 15,
-			"power_rate": 43
+			"power_rate": 43,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -4557,7 +4571,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -4880,7 +4895,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 25,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -5226,7 +5242,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 30,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -5829,7 +5846,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 15,
-			"power_rate": 50
+			"power_rate": 50,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -6152,7 +6170,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 56,
-			"value": 15
+			"value": 15,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -6194,7 +6213,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 20,
-			"power_rate": 50
+			"power_rate": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -7201,7 +7221,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -7740,7 +7761,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 50,
-			"power_rate": 3
+			"power_rate": 3,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -8026,7 +8048,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 40,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -8063,7 +8086,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 40,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -8186,7 +8210,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 45,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -8365,7 +8390,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 35,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -8442,7 +8468,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 10,
-			"value": 50
+			"value": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -8631,7 +8658,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -9209,7 +9237,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 50,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -9509,7 +9538,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -9982,7 +10012,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 50,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -10313,7 +10344,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 30,
-			"power_rate": 3
+			"power_rate": 3,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -10619,7 +10651,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 5,
-			"power_rate": 76
+			"power_rate": 76,
+			"zone": 1
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -10727,7 +10760,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 20,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -11766,7 +11800,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 30,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -11902,7 +11937,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -12003,7 +12039,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 10,
-			"power_rate": 63
+			"power_rate": 63,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -12648,7 +12685,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -12808,7 +12846,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 40,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -12987,7 +13026,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -13077,7 +13117,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -13146,7 +13187,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -13594,7 +13636,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -13942,7 +13985,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -14602,7 +14646,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 50,
-			"duration": 50
+			"duration": 50,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -15131,7 +15176,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 76,
-			"duration": 24
+			"duration": 24,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -16807,7 +16853,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -17019,7 +17066,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -17144,7 +17192,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -17263,7 +17312,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -17306,7 +17356,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -18275,7 +18326,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 50,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -18616,7 +18668,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 23,
-			"value": 30
+			"value": 30,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -18735,7 +18788,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -18860,7 +18914,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 45,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -19377,7 +19432,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 36,
-			"value": 50
+			"value": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -19918,7 +19974,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 25,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -19955,7 +20012,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 30,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -20678,7 +20736,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 45,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -21190,7 +21249,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -21878,7 +21938,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -22114,7 +22175,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 35,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -24911,7 +24973,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -24940,7 +25003,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -25033,7 +25097,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 50,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -26441,7 +26506,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 23,
-			"value": 50
+			"value": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -26479,7 +26545,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 30,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -26590,7 +26657,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -26632,7 +26700,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -26733,7 +26802,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 40,
-			"power_rate": 36
+			"power_rate": 36,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -26890,7 +26960,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 50,
-			"duration": 50
+			"duration": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -26985,7 +27056,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 23,
-			"value": 30
+			"value": 30,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -27152,7 +27224,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 23,
-			"value": 35
+			"value": 35,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -27853,7 +27926,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 30,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -27901,7 +27975,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 40,
-			"power_rate": 23
+			"power_rate": 23,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -28052,7 +28127,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"represented_ids": [],
@@ -28806,7 +28882,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 36,
-			"value": 40
+			"value": 40,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -28950,7 +29027,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 40,
-			"power_rate": 50
+			"power_rate": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -28987,7 +29065,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 50,
-			"value": 50
+			"value": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -29366,7 +29445,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"value": 20,
-			"power_rate": 63
+			"power_rate": 63,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"represented_ids": [
@@ -30188,7 +30268,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 63
+			"duration": 63,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -30315,7 +30396,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 50,
-			"value": 40
+			"value": 40,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -31053,7 +31135,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"represented_ids": [],
@@ -31436,7 +31519,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 36,
-			"value": 50
+			"value": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -31478,7 +31562,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 63
+			"duration": 63,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -31552,7 +31637,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"represented_ids": []
@@ -31773,7 +31859,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -32070,7 +32157,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 23,
-			"value": 50
+			"value": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -32111,7 +32199,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 43,
-			"value": 50
+			"value": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -32151,7 +32240,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 37,
-			"value": 60
+			"value": 60,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -32758,7 +32848,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 50,
-			"value": 45
+			"value": 45,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -33149,7 +33240,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 36,
-			"value": 30
+			"value": 30,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -33188,7 +33280,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 36,
-			"value": 50
+			"value": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -33225,7 +33318,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 36,
-			"value": 60
+			"value": 60,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -33581,7 +33675,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 37,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -33715,7 +33810,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77
+			"duration": 77,
+			"zone": 2
 		},
 		"summon_conditions": [],
 		"represented_ids": []
@@ -33783,7 +33879,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 36,
-			"value": 30
+			"value": 30,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -33860,7 +33957,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 51,
-			"value": 40
+			"value": 40,
+			"zone": 1
 		},
 		"summon_conditions": [
 			{
@@ -33950,7 +34048,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 63,
-			"value": 50
+			"value": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -34251,7 +34350,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 36,
-			"duration": 64
+			"duration": 64,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -34394,7 +34494,8 @@
 		"power": {
 			"id": "POWER_AOE_ATTACK",
 			"power_rate": 0,
-			"value": 50
+			"value": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{
@@ -34568,7 +34669,8 @@
 		"power": {
 			"id": "POWER_TAUNT",
 			"power_rate": 50,
-			"duration": 50
+			"duration": 50,
+			"zone": 2
 		},
 		"summon_conditions": [
 			{

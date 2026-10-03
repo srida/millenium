@@ -1208,7 +1208,7 @@ Une unité a **zéro ou un** pouvoir. La jauge gagne `1 + _stat_bonuses.power_ch
 | `POWER_HEAL` | Soigne l'allié au plus bas (soi inclus) de 40 % du `max_hp` du **lanceur** | PV plats |
 | `POWER_SHIELD` | Bouclier sur soi = `atk × 2` | bouclier plat |
 | `POWER_SUPER_ATTACK` | `atk × 3` sur la cible | dégâts plats |
-| `POWER_AOE_ATTACK` | `atk` sur **tous** les ennemis vivants | dégâts plats par cible |
+| `POWER_AOE_ATTACK` | `atk` sur la cible **et les unités de son camp dans sa zone** | dégâts plats par cible |
 | `POWER_POISON` | DOT `max(1, atk/2)`, 1 pulse tous les `DOT_INTERVAL` (3) steps, **jusqu'à la fin du round** | dégâts par pulse |
 | `POWER_BURN` | `max(1, atk/2)` **à chacune des attaques de la cible**, jusqu'à la fin du round | dégâts par attaque |
 | `POWER_PARALYSIS` | **période d'attaque doublée** pendant 20 steps — ralentit, ne bloque pas | ⏱ **compteur de durée** |
@@ -1216,10 +1216,13 @@ Une unité a **zéro ou un** pouvoir. La jauge gagne `1 + _stat_bonuses.power_ch
 | `POWER_DEBUFF` | `resetCombatStats()` sur la cible — efface bonus **et** statuts | — |
 | `POWER_BLOCK` | Empêche la cible d'utiliser son pouvoir 25 steps | ⏱ **compteur de durée** |
 | `POWER_CONFUSION` | 20 steps : la cible prend ses **propres alliés** pour cibles | ⏱ **compteur de durée** |
-| `POWER_TAUNT` | 20 steps : le lanceur force les ennemis à le cibler | ⏱ **compteur de durée** |
+| `POWER_TAUNT` | 20 steps : les ennemis **dans la zone du lanceur** sont forcés à le cibler | ⏱ **compteur de durée** |
 | `POWER_TELEPORT` | Au contact de l'ennemi au plus bas PV. Sans destination, la jauge **reste pleine** | — |
 | `POWER_FREEZE` | Repousse d'1 case et **gèle la case libérée** jusqu'à la fin du round | — |
 
+- **Zone** (`power.zone`, Attaque Zone et Provocation — `ZONE_POWERS`, `speed-scale.mjs`) : rayon de **Manhattan**, entier 0–14, centré sur la **cible** (Attaque Zone) ou le **lanceur** (Provocation). Lue par `zoneFor` en `??` : **0 est légitime** (la seule cible). Repli 1 / 2 pour un champ absent, mais le champ est **obligatoire** (`cardContract.missingZones`, 400 + audit). Reprise : `node scripts/migrate-zones.js [--write] [--initial-data]`.
+- ⚠️ **La provocation est un ÉTAT DE LA VICTIME** (`provoked_by` / `provoked_remaining`), posé sur chaque ennemi de la zone ; `taunt_remaining` du lanceur ne sert plus qu'à l'affichage. `_targetCandidates` lit `_provoker(unit)`. **L'immunité aux effets en protège** (`extra.immune`), `resetCombatStats()` la lève, la mort du lanceur aussi.
+- ⚠️ Attaque Zone frappe le **camp de la cible** : une unité confuse touche donc les siens. La cible principale est en tête de `targets` (centre de l'onde visuelle).
 - ⏱ = **`power.duration`, un compteur 0–100** (`ticksForDuration`), jamais `power.value` — ces quatre-là ne lisent plus la colonne « Valeur ». `powerDurationTicks` en est le seul lecteur ; un `value` résiduel y est du tick que personne ne lit, refusé en **400**.
 - ⚠️ **`powerValue(unit, fallback)` est le seul lecteur de `power_value`, et il utilise `||` et non `??`** : une **Valeur laissée à 0** en admin est le *défaut du champ*, pas une intention. Lue strictement, elle donnerait un blocage de 0 step — un pouvoir qui consomme sa jauge sans effet.
 - **Un montant plat n'est pas un multiplicateur** : `HAGA_008` a `atk: 1, hp: 400, value: 80` — sous `atk × 2` ce mur se poserait un bouclier de 2. Le soin est indexé sur le `max_hp` du **lanceur** : un soigneur ne doit pas soigner moins parce qu'il est fragile.
@@ -1241,7 +1244,7 @@ Une unité a **zéro ou un** pouvoir. La jauge gagne `1 + _stat_bonuses.power_ch
 | `POWER_DEBUFF` | la cible ne porte **rien** de ce que `resetCombatStats()` efface |
 | `POWER_PARALYSIS` | la cible est déjà paralysée |
 | `POWER_CONFUSION` | la cible est déjà confuse, ou n'a aucun autre allié vivant |
-| `POWER_TAUNT` | la provocation du lanceur court encore |
+| `POWER_TAUNT` | aucun ennemi de sa zone qu'il ne provoque pas déjà |
 | `POWER_PUSH` · `POWER_FREEZE` | la case de retraite est hors board, occupée ou bloquée |
 | `POWER_TELEPORT` | le saut ne **rapprocherait pas** du plus faible |
 | les autres | jamais — dégâts, bouclier, poison et brûlure posent toujours quelque chose |
@@ -1605,7 +1608,7 @@ Les toucher déplacerait le placement dans tous les modes et ferait bouger les g
 
 ⚠️ **Tout état persistant d'une unité doit voyager dans `round:board_ready`**, sinon les deux clients simulent des combats différents. Le payload transporte par unité :
 
-`card_id` · `position` · `veterancy_points` · `base` (stats de base, modifiées en permanent par les magies) · `current_hp` (les PV ne se régénèrent pas entre rounds) · `shield` · **`power_id` / `power_rate` / `power_value` / `power_duration`** (`grant_power` et `power_cooldown` réécrivent durablement le pouvoir ; `power_rate` voyage y compris à `null`, qui veut dire « ne part jamais » ; sans `power_duration`, l'adversaire rejoue une paralysie du **repli** là où son propriétaire en joue une de 60) — plus **`player_hp`** et **`damage_multiplier_bonus`** (+ `damage_multiplier_sources`) au niveau du message, chaque joueur étant la source de vérité de ses propres PV et de son bonus permanent.
+`card_id` · `position` · `veterancy_points` · `base` (stats de base, modifiées en permanent par les magies) · `current_hp` (les PV ne se régénèrent pas entre rounds) · `shield` · **`power_id` / `power_rate` / `power_value` / `power_duration` / `power_zone`** (`grant_power` et `power_cooldown` réécrivent durablement le pouvoir ; `power_rate` voyage y compris à `null`, qui veut dire « ne part jamais » ; sans `power_duration`, l'adversaire rejoue une paralysie du **repli** là où son propriétaire en joue une de 60) — plus **`player_hp`** et **`damage_multiplier_bonus`** (+ `damage_multiplier_sources`) au niveau du message, chaque joueur étant la source de vérité de ses propres PV et de son bonus permanent.
 
 ⚠️ **Les PV de fin de round doivent se calculer À L'IDENTIQUE des deux côtés** : la resynchro par `player_hp` n'arrive qu'au combat SUIVANT, donc un gain ou une perte connu d'un seul client fait diverger la fin de partie. D'où : l'attribut `player_hp_bonus` de l'adversaire est versé dans `enemy_hp` (`enemy_hp_bonus`, tous modes — l'IA porte aussi le sien) ; un `player_hp_bonus` de **terrain** frappe **les deux joueurs** en PvP, quelle que soit sa cible (`allie`/`ennemi`). Verrouillé par « PV de fin de round » (`pvp-determinism.test.ts`).
 

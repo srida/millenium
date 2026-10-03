@@ -137,11 +137,22 @@ describe('pertinence d\'un pouvoir vis-à-vis de sa cible', () => {
     expect(a.relevant()).toBe(false);
   });
 
-  it('POWER_TAUNT ne se rejoue pas tant que la provocation du lanceur court', () => {
-    const a = arena({ id: 'POWER_TAUNT', power_rate: 100 });
+  // La provocation est portée par les VICTIMES dans la zone du lanceur : elle
+  // est pertinente tant qu'un ennemi de la zone n'est pas déjà tenu par lui.
+  it('POWER_TAUNT ne se rejoue pas tant que TOUS les ennemis de sa zone sont déjà provoqués par lui', () => {
+    const a = arena({ id: 'POWER_TAUNT', power_rate: 100, zone: 5 });
     expect(a.relevant()).toBe(true);
-    a.caster.taunt_remaining = 20;
+    for (const e of [a.target, a.target2]) { e.provoked_by = a.caster; e.provoked_remaining = 20; }
     expect(a.relevant()).toBe(false);
+    a.target2.provoked_remaining = 0;   // l'un d'eux s'est libéré
+    expect(a.relevant()).toBe(true);
+  });
+
+  it('POWER_TAUNT se tait quand aucun ennemi n\'est dans sa zone', () => {
+    // Lanceur en (2,3), ennemis à 4 et 5 cases : une zone de 3 n'en couvre aucun.
+    const a = arena({ id: 'POWER_TAUNT', power_rate: 100, zone: 3 });
+    expect(a.relevant()).toBe(false);
+    expect(arena({ id: 'POWER_TAUNT', power_rate: 100, zone: 4 }).relevant()).toBe(true);
   });
 
   it('POWER_WEAKEN ne se rejoue pas sur une cible déjà affaiblie — comme la paralysie, assigné donc raccourcirait', () => {
@@ -309,10 +320,12 @@ describe('pouvoirs SANS PORTÉE : soin, provocation, téléportation', () => {
   });
 
   it('POWER_TAUNT part hors de portée — le tank provoque AVANT le contact, c\'est tout son intérêt', () => {
-    const d = distant({ id: 'POWER_TAUNT', power_rate: 99 });
+    // Zone 14 : tout le plateau, pour ne regarder que la portée.
+    const d = distant({ id: 'POWER_TAUNT', power_rate: 99, zone: 14 });
     const events = d.tick();
     expect(events.some(e => e.type === 'power' && e.power_id === 'POWER_TAUNT')).toBe(true);
     expect(d.caster.taunt_remaining).toBeGreaterThan(0);
+    expect(d.foe.provoked_by).toBe(d.caster);
   });
 
   it('POWER_TELEPORT part hors de portée — il devait être à portée pour se mettre à portée', () => {
@@ -352,7 +365,7 @@ describe('pouvoirs SANS PORTÉE : soin, provocation, téléportation', () => {
   });
 
   it('la brûlure pulse sur un tir hors de portée : le pouvoir REMPLACE l\'attaque, il ne s\'y soustrait pas', () => {
-    const d = distant({ id: 'POWER_TAUNT', power_rate: 99 });
+    const d = distant({ id: 'POWER_TAUNT', power_rate: 99, zone: 14 });
     d.caster.burn_stacks.push({ damage: 7 });
     const hp = d.caster.current_hp;
     const events = d.tick();

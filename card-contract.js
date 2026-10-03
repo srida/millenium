@@ -151,8 +151,49 @@ function missingDurations(card) {
   return problems;
 }
 
+/**
+ * Les pouvoirs qui lisent `power.zone` (un rayon de Manhattan), et ses bornes.
+ *
+ * ⚠️ Jumeaux de `ZONE_POWERS` / `ZONE_MIN` / `ZONE_MAX` (`speed-scale.mjs`),
+ * pour la raison de `DURATION_POWERS` : la frontière CJS / ESM.
+ * `speed-scale.test.ts` les fait répondre la même chose.
+ */
+const ZONE_POWERS = Object.freeze(['POWER_AOE_ATTACK', 'POWER_TAUNT']);
+const ZONE_MIN = 0;
+const ZONE_MAX = 14;
+
+/**
+ * Ce qui cloche dans la zone du pouvoir d'une carte. `[]` = conforme.
+ *
+ * ⚠️ OBLIGATOIRE sur `ZONE_POWERS`, contrairement à la durée : la zone change le
+ * sens même du pouvoir (une Attaque Zone sans zone touchait tout le plateau), et
+ * le repli du moteur n'est qu'un filet pour un catalogue pas encore repris
+ * (`scripts/migrate-zones.js`). Un champ `zone` sur un autre pouvoir est un
+ * champ sans lecteur.
+ */
+function missingZones(card) {
+  const problems = [];
+  const power = card?.power;
+  if (!power || !power.id) return problems;
+  const readsZone = ZONE_POWERS.includes(power.id);
+  if (!readsZone) {
+    if ('zone' in power) problems.push(`power.zone sur ${power.id} (ce pouvoir ne lit aucune zone)`);
+    return problems;
+  }
+  if (power.zone == null || power.zone === '') {
+    problems.push(`power.zone (zone manquante sur ${power.id} — voir scripts/migrate-zones.js)`);
+    return problems;
+  }
+  const n = Number(power.zone);
+  if (!Number.isInteger(n) || n < ZONE_MIN || n > ZONE_MAX) {
+    problems.push(`power.zone (entier hors de ${ZONE_MIN}–${ZONE_MAX} : ${power.zone})`);
+  }
+  return problems;
+}
+
 module.exports = {
   REQUIRED_CATEGORIES, missingCategories,
   RATE_FIELDS, missingRates,
   DURATION_POWERS, DURATION_AND_VALUE_POWERS, missingDurations,
+  ZONE_POWERS, ZONE_MIN, ZONE_MAX, missingZones,
 };

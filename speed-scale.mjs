@@ -210,3 +210,38 @@ export const DURATION_POWERS = Object.freeze([
  * tient que pour ces quatre-là.
  */
 export const DURATION_AND_VALUE_POWERS = Object.freeze(['POWER_WEAKEN']);
+
+// ── La ZONE d'un pouvoir ───────────────────────────────────────────────────
+//
+// Pas une durée ni un rythme, mais un champ de pouvoir partagé par les trois
+// mêmes mondes (combat, admin, contrat de carte) : il vit donc ici plutôt que
+// dans un module de plus à router.
+//
+// `power.zone` est un RAYON DE MANHATTAN (la mesure de la portée) : 0 = la seule
+// case de référence, 1 = elle et ses quatre voisines, etc. La case de référence
+// est la CIBLE pour Attaque Zone, le LANCEUR pour Provocation.
+//
+// ⚠️ Lu en `??`, jamais en `||` : 0 est une zone LÉGITIME (Attaque Zone sur la
+// seule cible). Le repli ne vaut que pour un champ ABSENT.
+
+/** Les pouvoirs qui lisent `power.zone`. */
+export const ZONE_POWERS = Object.freeze(['POWER_AOE_ATTACK', 'POWER_TAUNT']);
+
+/** Le repli par pouvoir, pour un champ absent. */
+export const ZONE_DEFAULTS = Object.freeze({ POWER_AOE_ATTACK: 1, POWER_TAUNT: 2 });
+
+/** Bornes de saisie : 14 = la distance de Manhattan maximale d'un 5×11. */
+export const ZONE_MIN = 0;
+export const ZONE_MAX = 14;
+
+/** Borne une zone saisie ; `null` pour une valeur illisible. */
+export function clampZone(zone) {
+  const n = Number(zone);
+  if (zone === null || zone === '' || !Number.isFinite(n)) return null;
+  return Math.min(ZONE_MAX, Math.max(ZONE_MIN, Math.round(n)));
+}
+
+/** La zone effective d'un pouvoir : la donnée, sinon le repli du pouvoir. */
+export function zoneFor(powerId, zone) {
+  return clampZone(zone) ?? ZONE_DEFAULTS[powerId] ?? 0;
+}

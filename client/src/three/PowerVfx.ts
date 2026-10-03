@@ -163,6 +163,14 @@ export function playPowerVfx(
       .filter((a): a is NonNullable<typeof a> => a != null);
   }
 
+  if (powerId === 'POWER_TAUNT') {
+    // Seuls les ennemis DANS LA ZONE sont provoqués : le flux ne part que d'eux.
+    recipeExtra.provoked = ((extra.provoked as Unit[] | undefined) ?? [])
+      .filter((t) => t.position && !ctx.dying.has(t.uid))
+      .map((t) => scene.actorForUid(t.uid))
+      .filter((a): a is NonNullable<typeof a> => a != null);
+  }
+
   const targetActor = targets.map((t) => scene.actorForUid(t.uid)).find((a) => a != null) ?? casterActor;
   scene.powers.cast(powerId, casterActor, targetActor, { tier: caster.tier, extra: recipeExtra });
 }

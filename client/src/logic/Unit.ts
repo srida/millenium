@@ -112,6 +112,14 @@ export class Unit {
    * `null` = pas de durée saisie, donc le repli du pouvoir (`CombatManager`).
    */
   power_duration: number | null;
+  /**
+   * La ZONE du pouvoir, un rayon de Manhattan (`speed-scale.ZONE_POWERS`) —
+   * lue par Attaque Zone (autour de la cible) et Provocation (autour du
+   * lanceur). `null` = le repli du pouvoir (`zoneFor`). Réécrite par
+   * `grant_power`, donc elle voyage dans `round:board_ready` comme
+   * `power_duration`.
+   */
+  power_zone: number | null;
 
   // Frozen base stats (for reset)
   _base: BaseStats;
@@ -164,7 +172,17 @@ export class Unit {
   is_power_blocked: boolean;
   power_block_remaining: number;
   confusion_remaining: number; // steps left of confusion (targets own allies)
-  taunt_remaining: number; // steps left this unit forces enemies to target it
+  taunt_remaining: number; // steps left of this unit's own taunt (caster side, medallion)
+  /**
+   * La PROVOCATION SUBIE : l'unité adverse qui la force à la cibler, et pour
+   * combien de ticks. Posée par `POWER_TAUNT` sur chaque ennemi DANS LA ZONE du
+   * lanceur — c'est la victime qui porte l'état, pas le lanceur, d'où une
+   * provocation locale (un tank sur un bord n'attire que son couloir).
+   * ⚠️ Une référence d'objet, valable le temps d'un combat : jamais transportée,
+   * remise à zéro par `resetCombatStats()`.
+   */
+  provoked_by: Unit | null;
+  provoked_remaining: number;
   is_effect_immune: boolean; // granted by effect_immunity attribute — blocks debuff powers
   /**
    * L'unité ne se déplace pas, et **rien ne la déplace** — le mot-clé Tour.
@@ -253,6 +271,7 @@ export class Unit {
     this.power_rate = card.power?.power_rate ?? null;
     this.power_value = card.power?.value ?? null;
     this.power_duration = card.power?.duration ?? null;
+    this.power_zone = card.power?.zone ?? null;
     this.power_token_id = card.power?.token_id ?? null;
 
     this._base = {
@@ -284,6 +303,8 @@ export class Unit {
     this.power_block_remaining = 0;
     this.confusion_remaining = 0;
     this.taunt_remaining = 0;
+    this.provoked_by = null;
+    this.provoked_remaining = 0;
     this.is_effect_immune = false;
     this.is_immobile = false;
     this.is_elusive = false;
@@ -404,6 +425,8 @@ export class Unit {
     this.power_block_remaining = 0;
     this.confusion_remaining = 0;
     this.taunt_remaining = 0;
+    this.provoked_by = null;
+    this.provoked_remaining = 0;
     this.is_effect_immune = false;
     this.weaken_remaining = 0;
     this.weaken_atk_delta = 0;

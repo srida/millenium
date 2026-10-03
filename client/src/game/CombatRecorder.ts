@@ -49,7 +49,7 @@ const MIRROR_AXIS = 10;
 export const UNIT_COLUMNS = [
   'key', 'col', 'row', 'hp', 'max_hp', 'shield', 'atk', 'movement_rate',
   'attack_period_eff', 'gauge', 'attack_timer', 'move_timer',
-  'paralysis', 'block', 'confusion', 'taunt', 'dots', 'burns', 'alive',
+  'paralysis', 'block', 'confusion', 'taunt', 'provoked', 'dots', 'burns', 'alive',
 ] as const;
 
 /**
@@ -238,6 +238,7 @@ export class CombatRecorder {
       u.power_block_remaining ?? 0,
       u.confusion_remaining ?? 0,
       u.taunt_remaining ?? 0,
+      u.provoked_remaining ?? 0,
       (u.dot_effects ?? []).length,
       (u.burn_stacks ?? []).length,
       u.isAlive?.() ? 1 : 0,

@@ -2,7 +2,7 @@ import { chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarge
 import { Unit } from './Unit.js';
 // L'échelle vit à la racine (cf. l'en-tête de `speed-scale.mjs`) : une seule
 // fenêtre de ticks pour les rythmes ET les durées.
-import { ticksForDuration } from '../../../speed-scale.mjs';
+import { ticksForDuration, zoneFor } from '../../../speed-scale.mjs';
 
 // Power constants — every one of them is a FALLBACK: the card's own
 // `power.value` (admin field "Valeur") overrides it when set, see powerValue().
@@ -195,6 +195,10 @@ export class CombatManager {
       // Confusion / taunt countdown
       if (u.confusion_remaining > 0) u.confusion_remaining--;
       if (u.taunt_remaining > 0) u.taunt_remaining--;
+      if (u.provoked_remaining > 0) {
+        u.provoked_remaining--;
+        if (u.provoked_remaining === 0) u.provoked_by = null;
+      }
 
       // Weaken countdown — undo exactly the delta that was applied (stored on
       // the unit rather than re-read from the card, which could have changed
@@ -360,12 +364,13 @@ export class CombatManager {
 
   _targetCandidates(unit, { requireLOS }) {
     const enemies = this._enemies(unit).filter(e => e.isAlive());
-    let taunters = enemies.filter(e => e.taunt_remaining > 0);
-    if (requireLOS) taunters = taunters.filter(e => hasLineOfSight(this.board, unit.position, e.position));
-    if (taunters.length > 0) {
-      return [taunters.reduce((a, b) =>
-        manhattanDistance(unit.position, a.position) <= manhattanDistance(unit.position, b.position) ? a : b
-      )];
+    // ⚠️ La provocation est portée par la VICTIME (`provoked_by`), posée par
+    // `POWER_TAUNT` sur les seuls ennemis dans la zone du lanceur. En résolution
+    // d'attaque, un provocateur hors ligne de vue ne force rien ; en
+    // déplacement, l'unité marche vers lui pour la regagner.
+    const taunter = this._provoker(unit);
+    if (taunter && (!requireLOS || hasLineOfSight(this.board, unit.position, taunter.position))) {
+      return [taunter];
     }
 
     if (unit.confusion_remaining > 0) {
@@ -374,6 +379,20 @@ export class CombatManager {
     }
 
     return enemies;
+  }
+
+  /** L'ennemi vivant qui provoque `unit`, ou `null`. */
+  _provoker(unit) {
+    const p = unit.provoked_by;
+    if (!p || unit.provoked_remaining <= 0 || !p.isAlive() || p.side === unit.side) return null;
+    return p;
+  }
+
+  /** Les unités vivantes du camp de `side` à `zone` cases ou moins de `center`. */
+  _unitsInZone(side, center, zone) {
+    const pool = side === 'player' ? this.playerUnits : this.enemyUnits;
+    return pool.filter(u => u.isAlive() && u.position
+      && manhattanDistance(u.position, center) <= zone);
   }
 
   /**
@@ -501,9 +520,14 @@ export class CombatManager {
         return target.confusion_remaining === 0
           && this._allies(target).some(a => a.isAlive() && a !== target);
 
-      // Self-buff, assigned the same way: no point refreshing a running taunt.
-      case 'POWER_TAUNT':
-        return unit.taunt_remaining === 0;
+      // Needs someone to provoke: an enemy in the caster's zone that it does
+      // not already hold. Immune enemies count — immunity has its designed
+      // outcome (the deflection), the same rule as every other debuff.
+      case 'POWER_TAUNT': {
+        const zone = zoneFor(unit.power_id, unit.power_zone);
+        return this._unitsInZone(unit.side === 'player' ? 'enemy' : 'player', unit.position, zone)
+          .some(e => this._provoker(e) !== unit);
+      }
 
       // weaken_remaining is ASSIGNED like the four above: held until it lapses,
       // then re-applied — re-casting on an already-weakened target would just
@@ -553,6 +577,7 @@ export class CombatManager {
       || u.is_power_blocked
       || u.confusion_remaining > 0
       || u.taunt_remaining > 0
+      || u.provoked_remaining > 0
       || u.weaken_remaining > 0
       || u.is_effect_immune;
   }
@@ -617,10 +642,18 @@ export class CombatManager {
         break;
       }
 
+      // ⚠️ La zone est centrée sur la CIBLE et touche le camp de la cible : une
+      // unité confuse (qui vise un allié) frappe donc les siens, comme toute
+      // autre attaque confuse.
       case 'POWER_AOE_ATTACK': {
         const damage = powerValue(unit, unit.atk);
-        for (const e of enemies) e.takeDamage(damage);
-        events.push({ type: 'power', unit, targets: [...enemies], power_id: pid, extra: { damage } });
+        const zone = zoneFor(pid, unit.power_zone);
+        // La cible principale en tête : c'est elle que l'animateur prend pour
+        // centre de l'onde.
+        const hit = [primaryTarget, ...this._unitsInZone(primaryTarget.side, primaryTarget.position, zone)
+          .filter(e => e !== primaryTarget)];
+        for (const e of hit) e.takeDamage(damage);
+        events.push({ type: 'power', unit, targets: [...hit], power_id: pid, extra: { damage, zone } });
         break;
       }
 
@@ -756,10 +789,24 @@ export class CombatManager {
         break;
       }
 
+      // ⚠️ L'état est posé sur chaque ennemi DANS LA ZONE du lanceur
+      // (`provoked_by`), pas sur le plateau entier. L'immunité aux effets en
+      // protège, comme des autres pouvoirs de contrôle. `taunt_remaining` sur le
+      // lanceur ne sert plus qu'à l'afficher (médaillon, aura).
       case 'POWER_TAUNT': {
         const taunt_ticks = powerDurationTicks(unit, POWER_TAUNT_DURATION);
+        const zone = zoneFor(pid, unit.power_zone);
         unit.taunt_remaining = taunt_ticks;
-        events.push({ type: 'power', unit, targets: [unit], power_id: pid, extra: { ticks: taunt_ticks } });
+        const inZone = this._unitsInZone(unit.side === 'player' ? 'enemy' : 'player', unit.position, zone);
+        const provoked = [];
+        const immune = [];
+        for (const e of inZone) {
+          if (e.is_effect_immune) { immune.push(e); continue; }
+          e.provoked_by = unit;
+          e.provoked_remaining = taunt_ticks;
+          provoked.push(e);
+        }
+        events.push({ type: 'power', unit, targets: [unit, ...provoked], power_id: pid, extra: { ticks: taunt_ticks, zone, provoked, immune } });
         break;
       }
 

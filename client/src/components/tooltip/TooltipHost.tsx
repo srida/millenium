@@ -27,7 +27,15 @@ import type { Card, GuaranteedDraw } from '../../logic/types.js';
 import { STAT_LABELS } from '../../data/StatLabels.js';
 import { boardEffectLabel } from '../../data/BoardInfo.js';
 import TerrainEffects from '../ui/TerrainEffects.js';
+import { ZONE_POWERS, zoneFor } from '../../../../speed-scale.mjs';
 import * as Audio from '../../audio/AudioManager.js';
+
+/** « Zone : 2 cases autour de la cible » — la portée d'un pouvoir de zone, dite. */
+function zoneLabel(powerId: string, zone: unknown): string {
+  const z = zoneFor(powerId, zone);
+  const autour = powerId === 'POWER_TAUNT' ? 'du lanceur' : 'de la cible';
+  return z === 0 ? 'Zone : la seule cible' : `Zone : ${z} case${z > 1 ? 's' : ''} autour ${autour}`;
+}
 
 export default function TooltipHost() {
   const tooltip = useUiStore(s => s.tooltip);
@@ -276,6 +284,9 @@ function TooltipBody({ content, anchor }: { content: TooltipContent; anchor: Too
                     : 'Aucune vitesse de chargement — ce pouvoir ne part jamais'}
                 </div>
               : power.description && <div className="text-[10px] text-white/60">{power.description}</div>}
+            {ZONE_POWERS.includes(powerId) && (
+              <div className="text-[10px] text-orange-200/80">{zoneLabel(powerId, isUnit ? data.power_zone : data.power?.zone)}</div>
+            )}
           </div>
         )}
         {!isUnit && <SummonBlock card={data} />}

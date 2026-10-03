@@ -558,16 +558,20 @@ const RECIPES = {
       this.anim(0.25, (t) => { this.pose(u, { scale: 1.15 - 0.15 * E.out(t), lift: 0.15 * (1 - t) }); if (t >= 1) this.pose(u); });
       this.flash(c.from, halos[0], 1.8, 0.35, 0.8); this.flash(c.from, '#ffffff', 0.7, 0.15);
       this.shake(0.05 + 0.025 * c.tier);
-      const waves = 1 + (c.tier >= 3) + (c.tier >= 5), R = 6 + c.tier;
+      // ⚠️ L'onde part de la CIBLE et s'arrête au bord de la ZONE : c'est elle
+      // qui dit au joueur jusqu'où le coup porte (caméra verticale → anneau plat).
+      const z = Number(c.extra.zone ?? 1), at = c.to;
+      this.flash(at, halos[0], 1.2 + 0.4 * z, 0.3, 0.7);
+      const waves = 1 + (c.tier >= 3) + (c.tier >= 5), R = z + 0.6;
       for (let w = 0; w < waves; w++) {
         const h = halos[w % halos.length];
-        this.ring(c.from, h, R, 0.95, { width: 0.018, delay: w * 0.14 });
-        this.ring(c.from, w ? c.T : '#ffffff', R * 0.7, 0.7, { width: 0.012, delay: w * 0.14 + 0.03, alpha: 0.8 });
-        this.later(w * 0.14, () => this.fx._burst(c.from, this.N(80 + 20 * c.tier), { colors: cols, speed: [6, 9], life: [0.5, 0.8], size: [0.05, 0.1], drag: 0.9, y: 0.02, blend: c.Ps[w % c.Ps.length].tp.blend || 'add', alpha: c.Ps[w % c.Ps.length].tp.alpha ?? 1 }));
+        this.ring(at, h, R, 0.95, { width: 0.03, delay: w * 0.14 });
+        this.ring(at, w ? c.T : '#ffffff', R * 0.7, 0.7, { width: 0.02, delay: w * 0.14 + 0.03, alpha: 0.8 });
+        this.later(w * 0.14, () => this.fx._burst(at, this.N(80 + 20 * c.tier), { colors: cols, speed: [2 + 2 * z, 3 + 3 * z], life: [0.5, 0.8], size: [0.05, 0.1], drag: 0.9, y: 0.02, blend: c.Ps[w % c.Ps.length].tp.blend || 'add', alpha: c.Ps[w % c.Ps.length].tp.alpha ?? 1 }));
       }
       this.tierLayers(c.from, c.tier, c.T);
       for (const e of c.extra.targets || []) {
-        const p = this.h.posOf(e), d = this.dirOf(c.from, p);
+        const p = this.h.posOf(e), d = this.dirOf(at, p);
         this.later(0.04 + d.L / 10, () => {
           if (!this.h.alive(e)) return;
           this.fx._impact(c.Ps[0], p, new THREE.Vector3(d.x, 0, d.z), 0.7 + 0.15 * c.tier);
@@ -688,10 +692,13 @@ const RECIPES = {
   // le lanceur (« ils me regardent tous »).
   POWER_TAUNT(c) {
     const p = c.from;
-    [0, 0.12, 0.24].forEach((d, i) => this.ring(p, '#ff5a44', 1.2 + i * 0.6, 0.55, { width: 0.05, delay: d }));
+    // Le dernier anneau s'arrête au bord de la ZONE : seuls les ennemis dedans
+    // sont provoqués, et c'est d'eux seuls que part le flux.
+    const z = Number(c.extra.zone ?? 2);
+    [0, 0.12, 0.24].forEach((d, i) => this.ring(p, '#ff5a44', (z + 0.6) * (0.5 + i * 0.25), 0.55, { width: 0.05, delay: d }));
     this.flash(p, '#ff5a44', 1.1, 0.35, 0.6);
     this.pulseCard(c.caster, 1.14, 300);
-    for (const e of this.h.opponents?.(c.caster) || []) {
+    for (const e of c.extra.provoked || []) {
       const q = this.h.posOf(e), d = this.dirOf(q, p);
       this.later(0.12 + Math.random() * 0.1, () => {
         this.travel(q, p, this.N(12), PAL.taunt, { life: [0.4, 0.5], size: [0.035, 0.06], spread: 0.04, stagger: 0.015 });

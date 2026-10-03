@@ -2273,6 +2273,7 @@ function renderCardDetail() {
       <div class="field" id="f-power-speed-wrap">${counterSliderHtml('f-power-speed', 'Vitesse pouvoir', hasPower ? c.power.power_rate : null)}</div>
       <div class="field" id="f-power-val-wrap"><label>Valeur</label><input type="number" id="f-power-val" value="${hasPower && c.power.value != null ? c.power.value : ''}" step="0.5" placeholder="optionnel"></div>
       <div class="field" id="f-power-dur-wrap">${counterSliderHtml('f-power-dur', 'Durée de l\'effet', hasPower ? c.power.duration : null, { kind: 'Duration' })}</div>
+      <div class="field" id="f-power-zone-wrap">${zoneFieldHtml('f-power-zone', hasPower ? c.power.id : null, hasPower ? c.power.zone : null)}</div>
       <div class="field" id="f-power-token-wrap"><label>Token invoqué</label>
         ${tokenPickHtml('f-power-token', hasPower ? c.power.token_id : null)}
         <span style="font-size:11px;color:var(--muted);margin-top:4px">La récursion (un token qui en invoque un autre) est autorisée, bornée par les cases libres du plateau.</span>
@@ -2340,6 +2341,25 @@ function renderCardDetail() {
 }
 
 /**
+ * Le champ ZONE d'un pouvoir (`SPEED.ZONE_POWERS` : Attaque Zone, Provocation),
+ * partagé par les fiches carte et token. Un rayon de Manhattan, entier de
+ * `ZONE_MIN` à `ZONE_MAX` ; vide = le repli du pouvoir, que le contrat refuse
+ * pourtant à l'écriture — l'écran le pré-remplit donc avec ce repli.
+ */
+function zoneFieldHtml(id, powId, zone) {
+  const z = SPEED.zoneFor(powId, zone);
+  return `<label>Zone (cases)</label>
+    <input type="number" id="${id}" value="${z}" min="${SPEED.ZONE_MIN}" max="${SPEED.ZONE_MAX}" step="1">
+    <span style="font-size:11px;color:var(--muted);margin-top:4px">Rayon de Manhattan autour de la cible (Attaque Zone) ou du lanceur (Provocation). 0 = la seule case.</span>`;
+}
+
+/** `{ zone }` relu du formulaire, seulement pour un pouvoir qui la lit. */
+function zoneFromForm(id, powId) {
+  if (!SPEED.ZONE_POWERS.includes(powId)) return {};
+  return { zone: SPEED.zoneFor(powId, document.getElementById(id)?.value) };
+}
+
+/**
  * ⚠️ « Valeur » et « Durée » s'EXCLUENT pour les quatre pouvoirs de PURE
  * durée (`SPEED.DURATION_POWERS`) : ils lisent `power.duration` et n'ont plus
  * de `value`, les dix autres pouvoirs l'inverse. Montrer les deux leur
@@ -2361,6 +2381,7 @@ function togglePowerFields() {
   show('f-power-speed-wrap', !!powId);
   show('f-power-val-wrap', !!powId && (!isPureDuration || isDualPower));
   show('f-power-dur-wrap', isPureDuration || isDualPower);
+  show('f-power-zone-wrap', SPEED.ZONE_POWERS.includes(powId));
   // ⚠️ Le SEUL champ propre à POWER_SUMMON_TOKEN : quel token il invoque.
   // Rien à voir avec Valeur/Durée — même geste que sur la fiche Token
   // elle-même (cf. `tokenPickHtml`, partagé par les deux formulaires).
@@ -2749,7 +2770,7 @@ function cardPowerFromForm() {
   const powVal = document.getElementById('f-power-val')?.value;
   const withValue = (powVal !== '' && powVal != null) ? { value: parseFloat(powVal) } : {};
   const tokenId = document.getElementById('f-power-token-value')?.value;
-  const withTokenId = (powId === 'POWER_SUMMON_TOKEN' && tokenId) ? { token_id: tokenId } : {};
+  const withTokenId = { ...((powId === 'POWER_SUMMON_TOKEN' && tokenId) ? { token_id: tokenId } : {}), ...zoneFromForm('f-power-zone', powId) };
   if (SPEED.DURATION_POWERS.includes(powId) || isDualPower) {
     const dur = counterFromSlider('f-power-dur');
     return { ...base, ...(isDualPower ? withValue : {}), duration: dur, ...withTokenId };
@@ -3828,6 +3849,8 @@ function _effectFieldOptions(champ, valeur) {
  */
 function _effectFieldMasque(champ, effet) {
   if (!champ.masqueSi) return false;
+  // La zone ne se montre que sur les pouvoirs qui la lisent (`ZONE_POWERS`).
+  if (champ.masqueSi === 'pouvoir_sans_zone') return !SPEED.ZONE_POWERS.includes(effet?.power_id);
   // Affaiblissement lit les deux champs : aucun des deux n'est masqué.
   if (SPEED.DURATION_AND_VALUE_POWERS.includes(effet?.power_id)) return false;
   const duree = SPEED.DURATION_POWERS.includes(effet?.power_id);
@@ -5806,6 +5829,7 @@ function toggleTokenPowerFields() {
   show('tk-power-speed-wrap', !!powId);
   show('tk-power-val-wrap', !!powId && (!isPureDuration || isDualPower));
   show('tk-power-dur-wrap', isPureDuration || isDualPower);
+  show('tk-power-zone-wrap', SPEED.ZONE_POWERS.includes(powId));
   // ⚠️ Le SEUL champ propre à un token : quel autre token POWER_SUMMON_TOKEN
   // invoque. Rien à voir avec Valeur/Durée — un token peut porter ce pouvoir
   // comme n'importe quelle carte (récursion assumée, cf. CombatManager).
@@ -5820,7 +5844,7 @@ function tokenPowerFromForm() {
   const powVal = document.getElementById('tk-power-val')?.value;
   const withValue = (powVal !== '' && powVal != null) ? { value: parseFloat(powVal) } : {};
   const tokenId = document.getElementById('tk-power-token-value')?.value;
-  const withTokenId = (powId === 'POWER_SUMMON_TOKEN' && tokenId) ? { token_id: tokenId } : {};
+  const withTokenId = { ...((powId === 'POWER_SUMMON_TOKEN' && tokenId) ? { token_id: tokenId } : {}), ...zoneFromForm('tk-power-zone', powId) };
   if (SPEED.DURATION_POWERS.includes(powId) || isDualPower) {
     const dur = counterFromSlider('tk-power-dur');
     return { ...base, ...(isDualPower ? withValue : {}), duration: dur, ...withTokenId };
@@ -5993,6 +6017,7 @@ function renderTokenDetail() {
       <div class="field" id="tk-power-speed-wrap">${counterSliderHtml('tk-power-speed', 'Vitesse pouvoir', hasPower ? t.power.power_rate : null)}</div>
       <div class="field" id="tk-power-val-wrap"><label>Valeur</label><input type="number" id="tk-power-val" value="${hasPower && t.power.value != null ? t.power.value : ''}" step="0.5" placeholder="optionnel"></div>
       <div class="field" id="tk-power-dur-wrap">${counterSliderHtml('tk-power-dur', 'Durée de l\'effet', hasPower ? t.power.duration : null, { kind: 'Duration' })}</div>
+      <div class="field" id="tk-power-zone-wrap">${zoneFieldHtml('tk-power-zone', hasPower ? t.power.id : null, hasPower ? t.power.zone : null)}</div>
       <div class="field" id="tk-power-token-wrap"><label>Token invoqué</label>
         ${tokenPickHtml('tk-power-token', hasPower ? t.power.token_id : null)}
         <span style="font-size:11px;color:var(--muted);margin-top:4px">La récursion (un token qui en invoque un autre) est autorisée, bornée par les cases libres du plateau.</span>
@@ -9073,7 +9098,12 @@ async function applyMassEdit() {
     const base = { id: powId, power_rate: prev?.power_rate ?? 50 };
     const isDualPower = SPEED.DURATION_AND_VALUE_POWERS.includes(powId);
     const withValue = prev?.value != null ? { value: prev.value } : {};
-    const withTokenId = (powId === 'POWER_SUMMON_TOKEN' && prev?.token_id) ? { token_id: prev.token_id } : {};
+    // La zone suit le pouvoir comme la durée : gardée si le nouveau en lit une
+    // (sinon son repli), jamais traînée sur un pouvoir qui n'en lit pas.
+    const withTokenId = {
+      ...((powId === 'POWER_SUMMON_TOKEN' && prev?.token_id) ? { token_id: prev.token_id } : {}),
+      ...(SPEED.ZONE_POWERS.includes(powId) ? { zone: SPEED.zoneFor(powId, prev?.id === powId ? prev?.zone : null) } : {}),
+    };
     if (SPEED.DURATION_POWERS.includes(powId) || isDualPower) {
       return { ...base, ...(isDualPower ? withValue : {}), ...(prev?.duration != null ? { duration: prev.duration } : {}), ...withTokenId };
     }

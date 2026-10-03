@@ -366,6 +366,7 @@ export function applyEffect(magie, { gameState = null, targetUnit = null, target
         // Les deux champs se posent ensemble parce qu'un pouvoir donné n'hérite
         // de rien de l'ancien — ni sa valeur, ni sa durée.
         targetUnit.power_duration = e.duration ?? null;
+        targetUnit.power_zone = e.zone ?? null;
         // La jauge repart de zéro : héritée pleine de l'ancien pouvoir, le
         // nouveau se déclencherait au premier step, ce que rien n'annonce.
         targetUnit.power_gauge = 0;

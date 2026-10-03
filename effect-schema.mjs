@@ -352,6 +352,10 @@ export const CHAMPS = Object.freeze({
     label: 'Durée du pouvoir', saisie: 'compteur_duree', defaut: 50,
     aide: 'Compteur 0–100. Les quatre pouvoirs de durée lisent ceci, jamais « Valeur ».',
   },
+  zone: {
+    label: 'Zone du pouvoir', defaut: 1,
+    aide: 'Rayon en cases (Manhattan) autour de la cible (Attaque Zone) ou du lanceur (Provocation). 0 = la seule case.',
+  },
   target: {
     label: 'Qui encaisse', saisie: 'choix_direct', defaut: 'allie',
     options: [['allie', 'Le joueur (soi)'], ['ennemi', 'L’adversaire']],
@@ -551,6 +555,8 @@ export const TYPES = Object.freeze({
         power_id: {}, power_rate: {},
         value: { label: 'Valeur du pouvoir', facultatif: true, masqueSi: 'pouvoir_de_duree' },
         duration: { facultatif: true, masqueSi: 'pouvoir_sans_duree' },
+        // Seuls Attaque Zone et Provocation lisent une zone (`ZONE_POWERS`).
+        zone: { facultatif: true, masqueSi: 'pouvoir_sans_zone' },
       },
     },
   },

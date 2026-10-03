@@ -73,6 +73,7 @@ export function sendOwnBoard(round, units, playerHp, multiplierBonus = null) {
       power_rate: u.power_rate ?? null,
       power_value: u.power_value ?? null,
       power_duration: u.power_duration ?? null,
+      power_zone: u.power_zone ?? null,
       attributes: [...u.attributes],
     })),
   };
@@ -123,6 +124,9 @@ export function reconstructOpponentUnits(payload, board, cardDb) {
       unit.power_id = entry.power_id ?? null;
       unit.power_value = entry.power_value ?? null;
       unit.power_duration = entry.power_duration ?? null;
+      // ⚠️ `'power_zone' in entry` : un payload antérieur au champ garde la zone
+      // de la carte plutôt que de la remettre au repli du moteur.
+      if ('power_zone' in entry) unit.power_zone = entry.power_zone ?? null;
       // ⚠️ `'power_rate' in entry` et non `typeof === 'number'` : `null` est la
       // valeur qui dit « ce pouvoir ne part jamais », et l'ignorer rendrait à
       // l'unité reconstruite un rythme que son propriétaire n'a pas.
