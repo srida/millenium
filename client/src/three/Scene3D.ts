@@ -343,6 +343,7 @@ export class Scene3D {
   _onPointerDown!: (e: PointerEvent) => void;
   _onPointerMove!: (e: PointerEvent) => void;
   _onPointerUp!: (e: PointerEvent) => void;
+  _onWheel!: (e: WheelEvent) => void;
   _lastW = 0;
   _lastH = 0;
   _lastTime = 0;
@@ -559,8 +560,29 @@ export class Scene3D {
     return combatMode && this._aspect() > 1;
   }
 
+  /**
+   * Le cadrage de PRÉPARATION, entre le bloc joueur (`_prepView` = 0) et le
+   * plateau entier (1) — c'est ce qui permet au joueur de voir les obstacles du
+   * terrain, révélé dès le début du tour, avant de poser ses unités.
+   *
+   * ⚠️ Le plateau entier est pris SANS rotation, même en mode web : la rotation
+   * d'un quart de tour est celle du combat, et pivoter sous les rails de la
+   * main ferait tourner le décor à chaque coup de molette.
+   */
   _cameraFraming(combatMode: boolean): { centerZ: number; H: number; angle: number } {
-    const showFullBoard = combatMode || this.showEnemySide;
+    if (combatMode || this.showEnemySide || this._prepView <= 0) return this._baseFraming(combatMode);
+    const prep = this._baseFraming(false);
+    const full = this._baseFraming(false, true);
+    const t = this._prepView;
+    return {
+      centerZ: THREE.MathUtils.lerp(prep.centerZ, full.centerZ, t),
+      H: THREE.MathUtils.lerp(prep.H, full.H, t),
+      angle: 0,
+    };
+  }
+
+  _baseFraming(combatMode: boolean, forceFullBoard = false): { centerZ: number; H: number; angle: number } {
+    const showFullBoard = combatMode || this.showEnemySide || forceFullBoard;
     const rotated = this._shouldRotate(combatMode);
     const vFov = THREE.MathUtils.degToRad(FOV);
     const aspect = this._aspect();
@@ -614,6 +636,49 @@ export class Scene3D {
     for (const entry of this.unitObjs.values()) {
       entry.obj.rotation.set(-Math.PI / 2, 0, this._camAngle);
     }
+  }
+
+  // ── Vue de préparation (le terrain se lit avant de poser) ─────────────────
+
+  /** 0 = cadrage du bloc joueur, 1 = plateau entier. Sans effet en combat. */
+  _prepView = 0;
+  /** Le survol automatique en cours, annulé par tout geste du joueur. */
+  _prepPreview: { cancelled: boolean } | null = null;
+
+  /** Où en est la vue de préparation (0 → 1). */
+  getPrepView(): number { return this._prepView; }
+
+  /**
+   * Règle la vue de préparation. Un geste du joueur (défilement, molette,
+   * bouton) annule un survol automatique en cours — sinon la caméra lui
+   * reprendrait la main.
+   */
+  setPrepView(t: number, opts: { animate?: boolean; fromPreview?: boolean } = {}): void {
+    if (!opts.fromPreview && this._prepPreview) { this._prepPreview.cancelled = true; this._prepPreview = null; }
+    const v = Math.min(1, Math.max(0, t));
+    if (v === this._prepView && !opts.animate) return;
+    this._prepView = v;
+    if (this._combatMode) return;
+    if (opts.animate) this._animateCameraTo(false);
+    else this._setCameraImmediate(false);
+  }
+
+  /**
+   * Le SURVOL du terrain : la caméra recule jusqu'au plateau entier, s'y
+   * attarde, puis revient au bloc joueur. Joué une fois, à la révélation du
+   * terrain en début de tour. Tout geste du joueur l'interrompt.
+   */
+  previewTerrain(holdMs = 900): void {
+    if (this._combatMode) return;
+    if (this._prepPreview) this._prepPreview.cancelled = true;
+    const run = { cancelled: false };
+    this._prepPreview = run;
+    this.setPrepView(1, { animate: true, fromPreview: true });
+    setTimeout(() => {
+      if (run.cancelled || this._combatMode) return;
+      this._prepPreview = null;
+      this.setPrepView(0, { animate: true, fromPreview: true });
+    }, 500 + holdMs);
   }
 
   _setCameraImmediate(combatMode: boolean): void {
@@ -1045,6 +1110,10 @@ export class Scene3D {
     // (`syncPowerStatuses`) : sans ce balayage, ceux encore posés au dernier tick
     // restent affichés pendant toute la préparation.
     this.powers?.clearAll();
+    // Le tour suivant repart du bloc joueur : la vue de préparation ne survit
+    // pas à un combat.
+    this._prepView = 0;
+    this._prepPreview = null;
     this._animateCameraTo(false);
     this._syncSeparators();
     if (this._gridGroup) this._gridGroup.visible = false;
@@ -2653,11 +2722,15 @@ export class Scene3D {
       let cell = this._cellFromEvent(e);
       const entry = (cell && this._entryAt(cell)) || this._unitNear(e.clientX, e.clientY);
       if (entry) cell = { ...(entry.unit.position as Position) };
-      if (!cell) return;
+      // ⚠️ Un appui hors du plateau n'est pas un tap, mais il peut DÉFILER la
+      // vue de préparation : l'état est donc créé sans case.
+      if (!cell && this._combatMode) return;
       const state: any = {
         cell, entry,
         startX: e.clientX, startY: e.clientY,
         dragging: false,
+        panning: false,
+        panFrom: this._prepView,
         longPressTimer: null,
       };
       if (entry && this.onUnitLongPress) {
@@ -2680,6 +2753,17 @@ export class Scene3D {
       if (!state) return;
       const dx = e.clientX - state.startX;
       const dy = e.clientY - state.startY;
+      // DÉFILEMENT de la vue de préparation : un glisser vertical parti d'une
+      // case VIDE (ou d'hors du plateau). Une unité sous le doigt se déplace,
+      // elle ne fait pas défiler. Seuil de 8 px pour ne pas voler un tap.
+      if (!state.entry && !this._combatMode) {
+        if (!state.panning && Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) state.panning = true;
+        if (state.panning) {
+          const h = this.container.clientHeight || 1;
+          this.setPrepView(state.panFrom + dy / (h * 0.6));
+        }
+        return;
+      }
       if (!state.dragging && state.entry && Math.hypot(dx, dy) > 10) {
         if (this._combatMode) return;
         state.dragging = true;
@@ -2704,6 +2788,7 @@ export class Scene3D {
       this._pointerState = null;
       if (state.longPressTimer) clearTimeout(state.longPressTimer);
       if (state.dragging && state.entry) state.entry.el.classList.remove('dragging');
+      if (state.panning || !state.cell) return;
 
       if (state.dragging && state.entry) {
         const dropCell = state.hoverCell || state.cell;
@@ -2720,6 +2805,13 @@ export class Scene3D {
       this.onCellTap(state.cell);
     };
 
+    // La molette fait défiler la vue de préparation (vers le haut = vers le
+    // camp adverse), comme le glisser au doigt.
+    this._onWheel = (e: WheelEvent) => {
+      if (this._combatMode) return;
+      this.setPrepView(this._prepView - e.deltaY * 0.0015);
+    };
+    el.addEventListener('wheel', this._onWheel, { passive: true });
     el.addEventListener('pointerdown', this._onPointerDown);
     window.addEventListener('pointermove', this._onPointerMove);
     window.addEventListener('pointerup', this._onPointerUp);
@@ -2965,6 +3057,7 @@ export class Scene3D {
     this._pointerState = null;
 
     this.renderer.domElement.removeEventListener('pointerdown', this._onPointerDown);
+    this.renderer.domElement.removeEventListener('wheel', this._onWheel);
     window.removeEventListener('pointermove', this._onPointerMove);
     window.removeEventListener('pointerup', this._onPointerUp);
     window.removeEventListener('resize', this._resizeHandler);

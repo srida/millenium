@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// L'annonce de terrain à l'entrée en combat — le versant qui ne se voit ni dans
+// L'annonce de terrain en DÉBUT DE TOUR — le versant qui ne se voit ni dans
 // `logic/` (qui ignore l'annonce) ni dans un test de composant (la suite tourne
 // en node SANS DOM).
 //
-// Ce qui est verrouillé ici tient en deux choses :
-//   - ce que l'annonce DIT ne peut pas contredire ce que l'effet a FAIT ;
-//   - le combat ne part pas tant que l'annonce est à l'écran, et il ne part
-//     qu'UNE fois.
+// Ce qui est verrouillé ici :
+//   - ce que l'annonce DIT ne peut pas contredire ce que l'effet FERA ;
+//   - elle tombe APRÈS la popup de pioche, une fois, et se retire seule ;
+//   - le combat ne l'attend plus (le terrain est déjà connu).
 //
 // Harnais d'`arcade-store.test.ts` / `prep-undo-events.test.ts` : `window` posé
 // à la main, contrôleur SANS scène (tous les appels y sont en `?.`).
@@ -32,9 +32,9 @@ vi.mock('../data/AuthClient.js', () => ({
   sendMissionEvents: vi.fn()
 }));
 
-const { GameController, terrainAlertFor } = await import('../game/GameController.js');
+const { GameController, terrainPrepAlertFor } = await import('../game/GameController.js');
 const { useGameStore } = await import('../stores/gameStore.js');
-const { TERRAIN_ALERT_MS, COMBAT_INTRO_MS } = await import('../game/timings.js');
+const { TERRAIN_ALERT_MS, COMBAT_INTRO_MS, ROUND_INTRO_MS } = await import('../game/timings.js');
 const { applyEffect } = await import('../logic/BoardEffect.js');
 
 function terrain(id: string, effect: any): BoardDef {
@@ -60,12 +60,6 @@ function makeController(opts: { board?: BoardDef | null; playerAttrs?: string[][
   return { session, controller };
 }
 
-/** Pose une unité du joueur puis lance le combat. */
-function playTo(controller: any, session: GameSession) {
-  session.startPreparation();
-  session.place(session.hand[0], { col: 0, row: 0 }, [], 0);
-  controller.startCombat();
-}
 
 beforeEach(() => {
   vi.useRealTimers();
@@ -73,190 +67,141 @@ beforeEach(() => {
 });
 
 describe('Annonce de terrain — ce qui est dit', () => {
-  // ⚠️ L'INVARIANT du lot : l'annonce et l'effet partagent `effectTargets`.
+  // ⚠️ L'INVARIANT : l'annonce et l'effet partagent `effectTargets`. Le
+  // décompte du début de tour se fait sur les CARTES du joueur (rien n'est
+  // posé) ; posées, elles deviennent exactement les unités que l'effet touche.
   // Mutation : compter sur `target_attributes` au lieu de `effectTargets` → ROUGE.
-  it('le décompte annoncé est exactement ce que l\'effet a boosté', () => {
-    const units = [
-      { attributes: ['ARCH_003'] }, { attributes: ['ARCH_003'] }, { attributes: ['ARCH_001'] }
-    ] as any[];
-    const enemies = [{ attributes: ['ARCH_003'] }] as any[];
+  it('le décompte annoncé est exactement ce que l\'effet boostera une fois posées', () => {
+    const cards = [
+      makeCard({ id: 'A', attributes: ['ARCH_003'], stats: { atk: 20, hp: 100, movement_rate: 50, attack_rate: 50, range: 1 } as any }),
+      makeCard({ id: 'B', attributes: ['ARCH_003'], stats: { atk: 20, hp: 100, movement_rate: 50, attack_rate: 50, range: 1 } as any }),
+      makeCard({ id: 'C', attributes: ['ARCH_001'], stats: { atk: 20, hp: 100, movement_rate: 50, attack_rate: 50, range: 1 } as any }),
+    ];
     const effect = { type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: ['ARCH_003'] };
+    const alert = terrainPrepAlertFor(terrain('B', effect), cards as any)!;
 
-    const alert = terrainAlertFor(terrain('B', effect), units, enemies)!;
-
-    // Ce que l'effet fait RÉELLEMENT : on le pose et on compte qui a été touché.
-    //
-    // ⚠️ De VRAIES `Unit`, et on lit le BONUS POSÉ — plus une doublure qui
-    // compte les appels à `applyStatBonus`. Depuis que le terrain passe par le
-    // moteur générique, ce qu'une doublure doit savoir répondre (`isAlive`,
-    // `_base`, les registres) est devenu la moitié d'une `Unit` : la maintenir
-    // reviendrait à tenir une seconde implémentation de ce qu'on mesure. Et
-    // l'ATQ posée est un témoin plus juste que le nombre d'appels — c'est
-    // l'effet, pas le geste.
-    const real = (attrs: string[], side: 'player' | 'enemy', i: number) => new (Unit as any)(
-      makeCard({ id: `${side}${i}`, attributes: attrs, stats: { atk: 20, hp: 100, movement_rate: 50, attack_rate: 50, range: 1 } as any }),
-      side,
-    ) as any;
-    const p = units.map((u, i) => real(u.attributes, 'player', i));
-    const e = enemies.map((u, i) => real(u.attributes, 'enemy', i));
-    applyEffect(effect as any, { playerUnits: p as any, enemyUnits: e as any });
-    const boostedPlayer = p.filter(u => (u._stat_bonuses.atk ?? 0) > 0).length;
-    const boostedEnemy = e.filter(u => (u._stat_bonuses.atk ?? 0) > 0).length;
-
-    expect(alert.boosted).toEqual({ player: boostedPlayer, enemy: boostedEnemy });
-    expect(alert.boosted).toEqual({ player: 2, enemy: 1 });
+    const units = cards.map(c => new (Unit as any)(c, 'player'));
+    applyEffect(effect as any, { playerUnits: units as any, enemyUnits: [] });
+    const boosted = units.filter((u: any) => (u._stat_bonuses.atk ?? 0) > 0).length;
+    expect(alert.boosted).toEqual({ player: boosted, enemy: null });
+    expect(alert.boosted).toEqual({ player: 2, enemy: null });
   });
 
   // Mutation : `target_attributes` vide traité comme « personne » → ROUGE.
-  it('un ciblage vide compte TOUTES les unités des deux camps', () => {
-    const alert = terrainAlertFor(
+  it('un ciblage vide compte TOUTES les cartes', () => {
+    const alert = terrainPrepAlertFor(
       terrain('B', { type: 'stat_bonus', stat: 'atk', value: 5, target_attributes: [] }),
-      [{ attributes: [] }, { attributes: ['X'] }] as any,
-      [{ attributes: [] }] as any
+      [{ id: 'X', attributes: [] }, { id: 'Y', attributes: ['X'] }],
     )!;
-    expect(alert.boosted).toEqual({ player: 2, enemy: 1 });
+    expect(alert.boosted).toEqual({ player: 2, enemy: null });
   });
 
   // Mutation : garde `boardTargetsUnits` retirée → ROUGE.
   it('draw_bonus n\'annonce AUCUN décompte — il ne vise pas les unités', () => {
-    const alert = terrainAlertFor(
+    const alert = terrainPrepAlertFor(
       terrain('B', { type: 'draw_bonus', value: 1, target_attributes: ['ARCH_003'] }),
-      [{ attributes: ['ARCH_003'] }] as any, [] as any
+      [{ id: 'X', attributes: ['ARCH_003'] }],
     )!;
     expect(alert.boosted).toBeNull();
-    expect(alert.board.id).toBe('B');
   });
 
-  // ⚠️ Un terrain CUMULE désormais plusieurs effets : on annonce l'UNION des
-  // unités touchées, jamais la somme — une unité que deux effets boostent reste
-  // une unité, et la phrase dit « combien en profitent ».
-  // Mutation : addition des décomptes effet par effet → ROUGE (3 au lieu de 2).
-  it('sur un terrain à plusieurs effets, on compte les unités, pas les bonus', () => {
+  // Union, jamais somme. Mutation : addition effet par effet → ROUGE.
+  it('sur un terrain à plusieurs effets, on compte les cartes, pas les bonus', () => {
     const board = {
       id: 'B', name: 'B',
       effects: [
         { type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: ['ARCH_003'] },
-        { type: 'shield', value: 20, target_attributes: ['ARCH_003', 'ARCH_021'] }
+        { type: 'shield', value: 20, target_attributes: ['ARCH_003', 'ARCH_021'] },
       ] } as any as BoardDef;
-    const units = [{ attributes: ['ARCH_003'] }, { attributes: ['ARCH_021'] }, { attributes: ['ARCH_099'] }] as any[];
-
-    expect(terrainAlertFor(board, units, [])!.boosted).toEqual({ player: 2, enemy: 0 });
+    const cards = [{ id: 'A', attributes: ['ARCH_003'] }, { id: 'B', attributes: ['ARCH_021'] }, { id: 'C', attributes: ['ARCH_099'] }];
+    expect(terrainPrepAlertFor(board, cards)!.boosted).toEqual({ player: 2, enemy: null });
   });
 
-  // Mutation : `board.effect` lu directement au lieu de `boardEffects` → ROUGE.
-  it('un terrain migré en `effects` s\'annonce comme les autres', () => {
+  // Une carte en main ET posée (deux exemplaires) compte une fois.
+  // Mutation : compter les entrées au lieu des card_id → ROUGE.
+  it('une même carte (main + plateau) compte une seule fois', () => {
     const board = { id: 'B', name: 'B', effects: [{ type: 'stat_bonus', stat: 'atk', value: 5 }] } as any as BoardDef;
-    expect(terrainAlertFor(board, [{ attributes: [] }] as any, [])!.boosted).toEqual({ player: 1, enemy: 0 });
-  });
-
-  // Le décompte suit le ciblage par ATTRIBUT D'INVOCATION comme n'importe quel
-  // autre archétype : c'est `effectTargets` qui tranche, des deux côtés. Il n'y
-  // a plus de second ciblage à tenir d'accord avec le premier.
-  it('le décompte suit le ciblage par attribut d\'invocation', () => {
-    const board = {
-      id: 'B', name: 'B',
-      effects: [{ type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: ['ARCH_086'] }] } as any as BoardDef;
-    const units = [{ attributes: ['ARCH_086'] }, { attributes: ['ARCH_090'] }] as any[];
-
-    expect(terrainAlertFor(board, units, [])!.boosted).toEqual({ player: 1, enemy: 0 });
-  });
-
-  it('un terrain sans effet s\'annonce quand même, sans décompte', () => {
-    const alert = terrainAlertFor(terrain('B', null), [{ attributes: [] }] as any, [] as any)!;
-    expect(alert.boosted).toBeNull();
+    expect(terrainPrepAlertFor(board, [{ id: 'A', attributes: [] }, { card_id: 'A', attributes: [] }])!.boosted)
+      .toEqual({ player: 1, enemy: null });
   });
 
   it('pas de terrain → aucune annonce', () => {
-    expect(terrainAlertFor(null, [] as any, [] as any)).toBeNull();
+    expect(terrainPrepAlertFor(null, [])).toBeNull();
   });
 });
 
-describe('Annonce de terrain — quand le combat part', () => {
+describe('Annonce de terrain — quand elle tombe', () => {
   const BOARD = terrain('B_DRAGON', { type: 'stat_bonus', stat: 'atk', value: 10, target_attributes: ['ARCH_003'] });
 
-  // ⚠️ L'annonce n'apparaît qu'à la fin du volet de passage en combat, pas en
-  // même temps que lui (cf. `PhaseWipe.tsx`) : le mot COMBAT la recouvrirait
-  // sinon pendant toute sa durée.
-  // Mutation : départ immédiat rétabli (`animator.start()` hors du timer), ou
-  // annonce publiée en même temps que le volet → ROUGE.
-  it('le combat ne démarre PAS tant que l\'annonce est à l\'écran', () => {
+  function opened() {
     vi.useFakeTimers();
-    const { session, controller } = makeController({ board: BOARD, playerAttrs: [['ARCH_003']] });
-    playTo(controller, session);
+    const { session, controller } = makeController({ board: BOARD });
+    controller.begin();
+    return { session, controller };
+  }
 
-    let snap = useGameStore.getState();
-    expect(snap.terrainAlert).toBeNull();          // le volet joue encore, l'annonce attend
-    expect(snap.combatActive).toBe(true);          // le HUD est déjà en combat…
-    expect((controller as any).animator._running).toBeFalsy();   // …mais rien ne joue
+  // Mutation : annoncer dès `begin()` (par-dessus la pioche) → ROUGE.
+  it('le terrain est connu dès la préparation mais annoncé APRÈS la popup de pioche', () => {
+    const { session, controller } = opened();
+    expect(session.roundBoard?.id).toBe('B_DRAGON');
+    expect(useGameStore.getState().boardTerrain?.id).toBe('B_DRAGON');
+    expect(useGameStore.getState().terrainAlert).toBeNull();
+    vi.advanceTimersByTime(ROUND_INTRO_MS);
+    expect(useGameStore.getState().drawPopup).not.toBeNull();
+    expect(useGameStore.getState().terrainAlert).toBeNull();
+    controller.dismissDrawPopup();
+    expect(useGameStore.getState().terrainAlert?.board.id).toBe('B_DRAGON');
+  });
 
-    vi.advanceTimersByTime(COMBAT_INTRO_MS);
-    snap = useGameStore.getState();
-    expect(snap.terrainAlert?.board.id).toBe('B_DRAGON');   // le volet est fini, l'annonce paraît
-    expect((controller as any).animator._running).toBeFalsy();
-
+  // Mutation : retirer le minuteur de l'annonce → ROUGE.
+  it('elle se retire seule, et ne revient pas', () => {
+    const { controller } = opened();
+    vi.advanceTimersByTime(ROUND_INTRO_MS);
+    controller.dismissDrawPopup();
     vi.advanceTimersByTime(TERRAIN_ALERT_MS);
     expect(useGameStore.getState().terrainAlert).toBeNull();
-    expect((controller as any).animator._running).toBe(true);
-    controller.dispose();
+    controller.dismissDrawPopup();   // geste sans objet
+    expect(useGameStore.getState().terrainAlert).toBeNull();
   });
 
-  it('le tap congédie l\'annonce et lance le combat', () => {
-    vi.useFakeTimers();
-    const { session, controller } = makeController({ board: BOARD, playerAttrs: [['ARCH_003']] });
-    playTo(controller, session);
-
+  it('le tap la retire tout de suite', () => {
+    const { controller } = opened();
+    vi.advanceTimersByTime(ROUND_INTRO_MS);
+    controller.dismissDrawPopup();
     controller.dismissTerrainAlert();
     expect(useGameStore.getState().terrainAlert).toBeNull();
-    expect((controller as any).animator._running).toBe(true);
-    controller.dispose();
   });
 
-  // ⚠️ Mutation : `_pendingCombatStart` non remis à `null` → ROUGE.
-  it('deux taps ne lancent qu\'UN combat', () => {
-    vi.useFakeTimers();
-    const { session, controller } = makeController({ board: BOARD, playerAttrs: [['ARCH_003']] });
-    playTo(controller, session);
-
-    const animator = (controller as any).animator;
-    const start = vi.spyOn(animator, 'start');
-    controller.dismissTerrainAlert();
-    controller.dismissTerrainAlert();
-    controller.dismissTerrainAlert();
-    expect(start).toHaveBeenCalledTimes(1);
-    controller.dispose();
-  });
-
-  // ⚠️ Sans terrain il n'y a RIEN À ANNONCER — mais le volet de passage en
-  // combat, lui, est posé à tous les coups (`COMBAT_INTRO_MS`) et retient le
-  // premier coup comme l'annonce le ferait : un volet qui recouvre le plateau
-  // pendant que les premières frappes partent les escamote. C'est le même
-  // `holdMs`, pas une seconde attente (cf. `combat-outro.test.ts`).
-  it('sans terrain, rien n\'est annoncé — seul le volet de passage retient le combat', () => {
-    vi.useFakeTimers();
-    const { session, controller } = makeController({ board: null });
-    playTo(controller, session);
-
+  // Mutation : laisser l'annonce en combat → ROUGE.
+  it('PRÊT pendant l\'annonce la retire, et le combat part après le seul volet', () => {
+    const { session, controller } = opened();
+    vi.advanceTimersByTime(ROUND_INTRO_MS);
+    controller.dismissDrawPopup();
+    session.place(session.hand[0], { col: 0, row: 0 }, [], 0);
+    controller.startCombat();
     expect(useGameStore.getState().terrainAlert).toBeNull();
+    expect(controller._revealTimer).not.toBeNull();     // retenu par le volet…
     vi.advanceTimersByTime(COMBAT_INTRO_MS);
-    expect((controller as any).animator._running).toBe(true);
+    expect(controller._revealTimer).toBeNull();         // …et par lui seul
     controller.dispose();
   });
 
-  // ⚠️ Deux choses distinctes, et il faut les deux : le combat ne part pas (la
-  // garde d'identité de l'animateur s'en charge), ET le minuteur est réellement
-  // annulé. Sans la seconde assertion, retirer le `clearTimeout` de `dispose`
-  // laisse ce test au vert — vérifié.
-  it('démonter l\'écran pendant l\'annonce annule le départ en attente', () => {
+  it('PvP : un terrain qui arrive APRÈS la popup est annoncé à son arrivée', () => {
     vi.useFakeTimers();
-    const { session, controller } = makeController({ board: BOARD, playerAttrs: [['ARCH_003']] });
-    playTo(controller, session);
-    const animator = (controller as any).animator;
-    const start = vi.spyOn(animator, 'start');
-    expect(vi.getTimerCount()).toBeGreaterThan(0);   // l'annonce retient bien le combat
-
+    const playerCards = [makeCard({ id: 'P0', summon_conditions: [], attributes: ['ARCH_003'] })];
+    const session = new GameSession({
+      cardsByTier: { 1: playerCards as any }, enemyDeck: { 1: [] }, attributeList: [],
+      cardDb: { getCard: () => null } as any, getAllBoards: () => [BOARD], getAllMagies: () => [],
+      mode: 'pvp',
+    } as GameSessionDeps);
+    const controller = new (GameController as any)(session);
+    controller.begin();
+    vi.advanceTimersByTime(ROUND_INTRO_MS);
+    controller.dismissDrawPopup();
+    expect(useGameStore.getState().terrainAlert).toBeNull();      // pas encore connu
+    controller.applyRoundBoard(BOARD);
+    expect(session.roundBoard?.id).toBe('B_DRAGON');
+    expect(useGameStore.getState().terrainAlert?.board.id).toBe('B_DRAGON');
     controller.dispose();
-    expect(vi.getTimerCount()).toBe(0);              // …et `dispose` a bien lâché le minuteur
-    vi.advanceTimersByTime(TERRAIN_ALERT_MS * 2);
-    expect(start).not.toHaveBeenCalled();
   });
 });

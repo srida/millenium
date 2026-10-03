@@ -38,7 +38,7 @@ function session(attributs: any[], cartes: any[]) {
     cardsByTier: { 1: deck, 2: [], 3: [], 4: [], 5: [] },
     attributeList: attributs,
     cardDb: { getCard: (id: string) => deck.find((c: any) => c.id === id) ?? null },
-    boardDb: { getAllBoards: () => [] },
+    getAllBoards: () => [],
     getAllMagies: () => [],
     mode: 'ai',
     rand: () => 0.5,

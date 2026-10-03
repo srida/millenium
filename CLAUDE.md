@@ -599,7 +599,7 @@ Fin de partie : tour 5 terminé, un joueur à 0 PV, ou abandon par le menu.
 Deux beats avant que le joueur ne reprenne la main : l'annonce du changement de tour (`ROUND_INTRO_MS` 1,4 s) puis la **popup de pioche**, congédiée d'un tap sur le dos de carte.
 
 - ⚠️ **La popup RÉVÈLE, elle ne PIOCHE pas** : le tirage a déjà eu lieu quand elle s'affiche. Le différer jusqu'au tap décalerait le flux semé de `sim/` et du filet de déterminisme PvP, et déplacerait le point de capture de « Tout annuler ». **Le tap ne consomme aucun hasard** (verrouillé par golden test).
-- **Un seul minuteur, et il vit dans `GameController`** (`_openRound` / `_introTimer` / `_pendingDraw`) — même règle que `TERRAIN_ALERT_MS`. Le tap sur l'annonce et l'horloge ouvrent la **même** popup, une fois ; `dispose()` annule les deux.
+- **Un seul minuteur, et il vit dans `GameController`** (`_openRound` / `_introTimer` / `_pendingDraw`). Le tap sur l'annonce et l'horloge ouvrent la **même** popup, une fois ; `dispose()` annule les deux.
 - ⚠️ Ouvert aux **deux** entrées de tour — `begin()` et `_proceedNextRound()` — sinon un round sur cinq n'aurait pas sa popup. `_closeRoundOpening()` est appelé par les deux `startCombat` : sans lui l'overlay reste posé sur tout le combat quand le chrono tombe à 0 par-dessous.
 - **Chronos** : en solo la popup **gèle** la préparation (`roundIntro`/`drawPopup` dans le prédicat du `PhaseTimer`, modèle `menuOpen`) ; **en PvP il continue**, et la popup se congédie seule (`DRAW_POPUP_AUTO_MS` 8 s). Rien n'y prend de branche sur `bot`.
 - Le tutoriel s'efface derrière elle : `gameCoachStep` rend `null` sur `roundOpening`, en **règle globale** (la popup revient à chaque tour, pas seulement au premier).
@@ -609,7 +609,7 @@ Deux beats avant que le joueur ne reprenne la main : l'annonce du changement de 
 
 ### Les trois passages de phase
 
-Trois transitions, une seule doctrine : **le contrôleur possède l'horloge, React n'a que des états à rendre** (la règle de `TERRAIN_ALERT_MS`). Deux d'entre elles ne retiennent rien, la troisième retient le récapitulatif.
+Trois transitions, une seule doctrine : **le contrôleur possède l'horloge, React n'a que des états à rendre** . Deux d'entre elles ne retiennent rien, la troisième retient le récapitulatif.
 
 | Passage | État | Durée | Retient-il quelque chose ? |
 |---|---|---|---|
@@ -620,7 +620,7 @@ Trois transitions, une seule doctrine : **le contrôleur possède l'horloge, Rea
 **Le volet (`PhaseWipe`)** — deux bandes qui se croisent, et **aucun mot**.
 - ⚠️ Il portait « COMBAT » / « MAGIES » : mesuré à l'écran, le premier tombait **en plein milieu de l'annonce de terrain**, qu'il recouvrait de son propre nom. Les deux phases s'annoncent déjà elles-mêmes (annonce de terrain, titre de la modale de Shopping) — la teinte suffit à dire laquelle.
 - ⚠️ **`pointer-events-none` sur toute la couche** : il passe par-dessus l'annonce de terrain, qui reste tapable pendant ce temps-là.
-- ⚠️ Il rejoint le **`holdMs` existant** (`Math.max(revealMs, TERRAIN_ALERT_MS, COMBAT_INTRO_MS)`) au lieu de s'ajouter en amont — un volet qui recouvre le plateau pendant que les premiers coups partent les escamote. Mais **pas** `_combatStartAt` : ce plancher-là dit « l'adversaire n'est pas encore posé », et le tap qui congédie l'annonce doit continuer de lancer le combat tout de suite.
+- ⚠️ Il rejoint le **`holdMs` existant** (`Math.max(revealMs, COMBAT_INTRO_MS)`) au lieu de s'ajouter en amont — un volet qui recouvre le plateau pendant que les premiers coups partent les escamote.
 - ⚠️ **L'état de jeu est publié EN MÊME TEMPS que lui**, jamais à son échéance : le volet ne fait que le découvrir. Le retarder mettrait une horloge entre le tap du joueur et l'écran qu'il demande.
 - Une Phase Shopping **sautée** (offre vide) n'annonce rien : le volet est posé **après** la garde.
 - `prefers-reduced-motion` : il disparaît **entièrement** — seul des trois à le faire, et c'est cohérent, il ne porte aucune information.
@@ -630,7 +630,7 @@ Trois transitions, une seule doctrine : **le contrôleur possède l'horloge, Rea
 - ⚠️ **`combatActive` reste VRAI** : l'outro est la queue du combat, pas une phase de plus. Main, cimetière et `SynergyPanel` se masquent dessus — les faire revenir 1,5 s avant la popup, sur un plateau où les unités frappent encore, serait un clignotement pour rien.
 - ⚠️ **Le plateau n'est rangé qu'à la SORTIE** : `exitCombatMode` ramène la caméra au cadrage de préparation *et* rappelle `refresh()`, qui repose les survivants sur leur `initial_position`. Le faire plus tôt ferait reculer les unités pendant qu'elles s'élancent.
 - ⚠️ **Une partie soldée pendant l'outro n'ouvre AUCUN récapitulatif** (le menu ☰ reste atteignable sous la barre de combat, et en duel c'est le serveur qui tranche) : garde sur `gameOver` dans `_endCombatOutro`.
-- Le tap le passe (`skipCombatOutro`), une seule fois — même patron de champ que `_pendingCombatStart`.
+- Le tap le passe (`skipCombatOutro`), une seule fois — même patron de champ que `_pendingDraw`.
 - ⚠️ **`Scene3D.playFinalStrike` lit la position de l'OBJET, jamais celle de l'unité** : `finishCombat` vient de ramener les survivants chez eux alors que leurs cartes sont encore là où le combat les a laissées.
 - ⚠️ **La portée de la charge est une DISTANCE FIXE**, jamais une fraction du chemin restant : les survivants d'un round gagné ont le plus souvent déjà traversé le plateau, donc la charge ne se voyait pas — précisément chez le camp qui vient de frapper (constaté à l'écran).
 
@@ -768,7 +768,7 @@ board.blockedCells()                          // ⚠️ la SEULE lecture juste p
 }
 ```
 
-Actif **pendant le combat uniquement** (en préparation le terrain n'est pas encore tiré et le cadrage ne montre que les rangées 0–3).
+Tiré et révélé **en début de tour** (cases bloquées posées dès la préparation) ; ses **effets** ne s'appliquent qu'au combat.
 
 | `type` | Effet |
 |---|---|
@@ -809,21 +809,24 @@ Deux règles, de poids inégal :
 - ⚠️ **Exactement UN appel à `rand` par tirage, et AUCUN sur un pool vide** — c'est ce qui garde le flux semé de la simulation en phase.
 - ⚠️ **C'est `startCombat` qui marque le terrain comme joué, jamais `pickCombatBoard`** : on marque celui qui est **joué**. Une seule ligne tient donc l'historique dans tous les modes, y compris quand le terrain arrive de l'extérieur (`agreedBoard`).
 - **Portée de l'historique : le DUEL.** Il vit dans la `GameSession` — rien à réinitialiser. Une run d'Arcade enchaîne 4 sessions, donc 4 historiques.
-- **PvP** : seul le rôle **A** tire (`session.pickCombatBoard()`, qui ne consomme rien), diffuse l'`id`, et les deux clients rejouent l'id renvoyé par `round:go`. ⚠️ `deps.enemyDeck` est **inutilisable** en PvP (`buildSession` y retombe sur le deck du joueur) : les attributs adverses viennent du **serveur** via `setEnemyDeckAttributeCounts`. Sans ça le rôle A compterait **deux fois son propre deck** — erreur parfaitement silencieuse, puisqu'elle rend quand même un terrain pertinent pour quelqu'un.
+- **PvP** : seul le rôle **A** tire (`session.pickCombatBoard()`, qui ne consomme rien), en début de tour, diffuse l'`id`, et les deux clients rejouent l'id renvoyé par `round:go`. ⚠️ `deps.enemyDeck` est **inutilisable** en PvP (`buildSession` y retombe sur le deck du joueur) : les attributs adverses viennent du **serveur** via `setEnemyDeckAttributeCounts`. Sans ça le rôle A compterait **deux fois son propre deck** — erreur parfaitement silencieuse, puisqu'elle rend quand même un terrain pertinent pour quelqu'un.
 - **Duels contre bot, solo, arcade, tournoi, tutoriel : rien à brancher** — tous passent par `buildSession`, dont la dérivation est déjà juste.
 - ⚠️ **La symétrie des terrains est une question d'ÉQUITÉ, pas de déterminisme** : 7 des 14 terrains livrés donnent un couvert à un camp que l'autre n'a pas. `BoardMirror.isMirrorSymmetric` existe pour le signaler ; rien ne s'en sert.
 
-### L'annonce du terrain
+### Le terrain révélé en début de tour
 
-`TerrainAlert` (`components/overlays/Overlays.tsx`) pendant `TERRAIN_ALERT_MS` (2,5 s) : illustration **carrée** (`/illustrations/<id>`, jamais le fond 5:11), nom, effets, cibles, et **combien d'unités de chaque camp** sont touchées.
+Le terrain est **tiré à la fin de `GameSession.startPreparation()`** (juste après la pioche, toujours **un** appel à `rand`) et ses **cases bloquées sont posées tout de suite** : le joueur place ses unités en connaissant les obstacles. Ses **effets** (bonus, boucliers, tokens) restent appliqués au combat.
 
-- ⚠️ **Le combat attend l'annonce, et il n'y a QU'UN minuteur** : `_beginCombatAnimation` allonge le délai existant de la cascade d'arrivée de l'IA à `max(revealMs, TERRAIN_ALERT_MS)`. Deux horloges pour un même départ finiraient par ne plus s'accorder.
-- ⚠️ Le tap qui passe l'annonce **réarme pour le reliquat** (`_combatStartAt`) : sinon un tap à 0,3 s lancerait le premier coup pendant que l'adversaire est encore en l'air.
-- ⚠️ **`_pendingCombatStart` est un champ, pas une closure** : le tap et le minuteur doivent déclencher le **même** départ, une seule fois. `dispose()` l'annule *et* vide le minuteur.
-- ⚠️ **Le décompte ne peut pas contredire l'effet** : `BoardEffect.effectTargets` est extrait d'`applyEffect`, qui l'appelle, et `terrainAlertFor` compte avec **la même fonction**. Le décompte est l'**union** des unités touchées, jamais la somme.
-- Un terrain qui ne touche personne le **dit**. `draw_bonus` n'affiche aucun décompte (`boosted: null`).
-- Pas de `Modal` (elle poserait un voile sur ce qu'on annonce) : couche transparente **`z-40`** — pas plus, `TutorialCoach` est en `z-50`. Contrepartie : pendant 2,5 s la barre de combat n'est pas tapable.
-- ⚠️ En `prefers-reduced-motion: reduce` l'annonce **reste et le combat attend toujours** : c'est le mouvement qu'on retire, pas l'information.
+- `session.roundBoard` : `undefined` = pas encore choisi (PvP rôle B en attente), `null` = aucun terrain. `startCombat(agreed?)` joue `agreed`, sinon `roundBoard`, sinon tire (combat sans préparation, tests).
+- ⚠️ **Ni le mulligan ni « Tout annuler » ne retirent le terrain** (tirage avant la capture du point de retour). Verrouillé par `board-selection.test.ts`.
+- **PvP** : le rôle **A** tire en entrant en préparation (`PvpController._settleRoundTerrain`) et envoie `round:terrain_pick { round, boardId }`, que le serveur garde par round **et relaie** à B (relais générique) ; B le range par round (`_terrainByRound`, il peut arriver pendant sa Phase Shopping) et le pose à son entrée en préparation. Les deux acquittent le combat **sans attendre** ; `round:go` redit l'id et fait foi. Aucun changement serveur.
+- **Séquence écran** : annonce du tour → popup de pioche → **`TerrainAlert`** (`dismissDrawPopup` → `_announceTerrain`) → survol caméra (`Scene3D.previewTerrain`). En PvP, un terrain arrivé après la popup est annoncé à son arrivée (`applyRoundBoard`).
+- L'annonce se retire seule (`TERRAIN_ALERT_MS`, minuteur dans le contrôleur) ou d'un tap ; elle **gèle le chrono solo** (`terrainAlert` dans le prédicat du `PhaseTimer`) et efface le coach du tutoriel.
+- **Le décompte porte sur les CARTES du joueur (main + plateau)** — `terrainPrepAlertFor`, via `effectTargets` comme l'effet ; `boosted.enemy` vaut `null` (rien n'est posé en face). Union, une carte comptée une fois.
+- **Le combat n'attend plus d'annonce** : `holdMs = max(revealMs, COMBAT_INTRO_MS)`.
+- **Vue de préparation** (`Scene3D._prepView`, 0 = bloc joueur, 1 = plateau entier, sans rotation) : glisser vertical parti d'une case **vide** ou d'hors plateau (seuil 8 px), molette, ou bouton 🗺️ (`GameController.toggleTerrainView`). Un geste annule le survol automatique ; `exitCombatMode` la remet à 0.
+- Pas de `Modal` (elle poserait un voile sur ce qu'on annonce) : couche transparente **`z-40`** — pas plus, `TutorialCoach` est en `z-50`.
+- ⚠️ La validation de placement **ne lit pas** les cases bloquées : les terrains livrés ne bloquent que la zone neutre (rangées 4–6). Un terrain qui bloquerait une case joueur devrait l'ajouter à `validCells`/`canSummon`.
 
 ### Modèle 3D du terrain (`_has_model`)
 
@@ -1160,7 +1163,6 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 | `draw_bonus` | `end_of_combat` | Pioches supplémentaires (plafonné par `max`) |
 | `guaranteed_draw` | `end_of_combat` | Pousse les critères dans `player_guaranteed_draws` — ⚠️ **les mêmes qu'une magie** (`tier`, `attributes`, `card_ids`) : même file, même `Draw.resolveGuaranteedDraws`, donc même éditeur d'admin |
 | `guaranteed_draw_bearer` | `end_of_combat` | Même file, **critères lus sur la CARTE** (`card.appel`) : une promesse par porteur. Aucun champ sur l'effet (cf. « Les mots-clés ») |
-| `guaranteed_board` | `start_of_combat` | `board_id` : terrain du combat **qui commence**. Le terrain étant tiré avant `applyStartOfCombat`, c'est `pickCombatBoard` qui lit les paliers actifs des **deux camps** (`AttributeManager.guaranteedBoardIds`, joueur puis adversaire) ; plusieurs promesses → tirage au hasard, toujours **un** appel à `rand`. ⚠️ Une promesse l'emporte sur la non-répétition (seule exception). ⚠️ PvP : le rôle A installe le board adverse **avant** de tirer et n'acquitte qu'**après** `round:terrain_pick`. Attribut seulement |
 | `board_slot_bonus` | `end_of_combat` | Via `grantLimitedBoardSlotBonus` — **cap +1 partagé avec les magies de slot** |
 | `damage_multiplier_bonus` | `end_of_combat` | S'ajoute au `player_multiplier` **de ce round** |
 | `shopping_bonus` | `end_of_combat` | Magies supplémentaires au Shopping suivant (plafonné par `max`) |

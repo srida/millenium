@@ -36,14 +36,6 @@ export function magieName(id: string): string {
   }
 }
 
-/** Le nom d'un terrain derrière son id — `guaranteed_board` le nomme. */
-export function boardName(id: string): string {
-  try {
-    return (BoardDatabase as { getBoard: (id: string) => { name?: string } | null }).getBoard(id)?.name ?? id;
-  } catch {
-    return id;
-  }
-}
 
 /**
  * Le nom derrière l'id d'un REGISTRE DE PROVENANCE — celui de la pioche

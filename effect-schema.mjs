@@ -620,15 +620,6 @@ export const TYPES = Object.freeze({
     attribut: { quands: ['fin_combat'], champs: { rarity: {}, magie_id: {} } },
     magie: { quands: ['immediat'], champs: { rarity: {}, magie_id: {} } },
   },
-  guaranteed_board: {
-    label: 'Terrain garanti pour ce combat',
-    court: 'Terrain garanti',
-    // ⚠️ `debut_combat` SEUL : la promesse vaut pour le combat qui COMMENCE.
-    // Le terrain est tiré AVANT le passage des effets de début de combat, donc
-    // c'est `pickCombatBoard` qui lit les paliers actifs des deux camps
-    // (`AttributeManager.guaranteedBoardIds`). Attribut seulement.
-    attribut: { quands: ['debut_combat'], champs: { board_id: {} } },
-  },
   board_slot_bonus: {
     label: 'Slot de board supplémentaire',
     court: 'Slot de board',

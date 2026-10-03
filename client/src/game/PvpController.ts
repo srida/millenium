@@ -7,8 +7,10 @@
 // déterministe des deux côtés (aucun RNG dans CombatManager).
 //
 // Séquence d'un round (identique pour A et B, barrières côté serveur) :
-//   startCombat → board_ready(mes unités) ; A choisit + terrain_pick(boardId)
-//   → combat_start_ack → [barrière serveur] → round:go(boardId)
+//   préparation : A tire le terrain → terrain_pick(round, boardId), relayé à B
+//   (les deux le posent aussitôt : obstacles visibles AVANT le placement)
+//   startCombat → board_ready(mes unités) → combat_start_ack
+//   → [barrière serveur] → round:go(boardId)
 //   → reconstruire l'adversaire (miroir rows 7–10) → session.startCombat(board)
 //   → animer. Fin de partie : match:report_result(localWinner) → match:end.
 import { GameController } from './GameController.js';
@@ -36,6 +38,9 @@ export class PvpController extends GameController {
   private _oppBoardPromise: Promise<any> | null = null;
   private _listeners: [string, (m: any) => void][] = [];
   private _finished = false;
+  /** Terrains annoncés par le rôle A, par round — B peut recevoir celui du
+   *  round suivant pendant sa Phase Shopping. */
+  private _terrainByRound = new Map<number, string | null>();
 
   constructor(session: GameSession, pvp: PvpDeps, role: 'A' | 'B', opponentName: string) {
     super(session);
@@ -79,6 +84,7 @@ export class PvpController extends GameController {
     });
     // Écoute les messages de round + fin de match, puis démarre la préparation.
     this._listen('round:go', (m) => this._onRoundGo(m));
+    this._listen('round:terrain_pick', (m) => this._onTerrainPick(m));
     this._listen('match:end', (m) => this._onMatchEnd(m));
     this._listen('match:opponent_disconnected', () => this._pvpNotify('Adversaire déconnecté…'));
     this._listen('_socket_closed', () => this._pvpNotify('Connexion perdue'));
@@ -87,6 +93,8 @@ export class PvpController extends GameController {
     this._clearSelection();
     this.scene?.refresh();
     this.sync({ pvpOpponent: this.opponentName });
+    this._revealRoundTerrain();
+    this._settleRoundTerrain();
     // Même ouverture qu'en solo : annonce du tour puis popup de pioche. Les
     // rounds suivants passent par `_proceedNextRound`, hérité tel quel.
     this._openRound(draw);
@@ -115,46 +123,42 @@ export class PvpController extends GameController {
     });
     // 2) J'attends le board adverse, puis j'acquitte la barrière.
     this._oppBoardPromise = waitForOpponentBoard(round);
-    if (this.role === 'A') {
-      // Le rôle A choisit le terrain et le diffuse (déterminisme : un seul
-      // tirage). ⚠️ Il doit d'abord CONNAÎTRE le board adverse : un terrain
-      // promis (`guaranteed_board`) se lit sur les unités des deux camps. Son
-      // acquittement part donc APRÈS `round:terrain_pick` — la barrière du
-      // serveur ne s'ouvre qu'à deux acquittements, donc jamais sans le choix.
-      void this._pickTerrainThenAck(round);
-    } else {
-      PvpConnection.send('round:combat_start_ack', { round });
-    }
+    // Le terrain est déjà convenu (annoncé en début de tour) : les deux rôles
+    // acquittent tout de suite.
+    PvpConnection.send('round:combat_start_ack', { round });
     this.sync({ combatActive: false, pvpWaiting: true });
   }
 
-  /** Délai au-delà duquel A n'attend plus le board adverse : il acquitte sans
-   *  terrain et laisse la barrière du serveur trancher (client adverse mort).
-   *  Sous `BARRIER_TIMEOUT_MS` (180 s) côté serveur. */
-  private static readonly OPP_BOARD_WAIT_MS = 150_000;
-
-  private async _pickTerrainThenAck(round: number): Promise<void> {
-    const oppBoard = this._oppBoardPromise;
-    let boardId: string | null = null;
-    const payload = await Promise.race([
-      oppBoard,
-      new Promise<null>(resolve => setTimeout(() => resolve(null), PvpController.OPP_BOARD_WAIT_MS)),
-    ]);
-    if (this._handshaking && this._oppBoardPromise === oppBoard && payload) {
-      // Sa session est la seule à connaître les deux decks, les terrains déjà
-      // joués et les promesses ; elle ne consomme rien ici : c'est l'id que le
-      // serveur renverra dans `round:go` qui sera marqué joué des deux côtés.
-      this._installOpponent(payload);
-      boardId = this.session.pickCombatBoard()?.id ?? null;
+  /**
+   * Le terrain du tour en PvP. Le rôle A le TIRE (un seul tirage pour deux
+   * clients — déterminisme) et l'annonce ; le rôle B le pose à l'arrivée du
+   * message. Les deux le posent dès la préparation, et `round:go` le redit au
+   * combat (c'est lui qui fait foi s'il diffère).
+   */
+  private _settleRoundTerrain(): void {
+    if (this.session.phase !== Phase.PREPARATION) return;
+    const round = this.session.gameState.round;
+    if (this.role === 'A') {
+      const board = this.session.pickCombatBoard();
+      PvpConnection.send('round:terrain_pick', { round, boardId: board?.id ?? null });
+      this.applyRoundBoard(board);
+      return;
     }
-    PvpConnection.send('round:terrain_pick', { round, boardId });
-    PvpConnection.send('round:combat_start_ack', { round });
+    if (this._terrainByRound.has(round)) {
+      const id = this._terrainByRound.get(round) ?? null;
+      this.applyRoundBoard(id ? this.pvp.getBoard(id) : null);
+    }
+  }
+
+  private _onTerrainPick(msg: { round?: number; boardId: string | null }): void {
+    if (this.role !== 'B' || typeof msg.round !== 'number') return;
+    this._terrainByRound.set(msg.round, msg.boardId ?? null);
+    if (msg.round === this.session.gameState.round) this._settleRoundTerrain();
   }
 
   /**
    * Remplace les unités adverses par celles du payload, en miroir (rows 7–10).
-   * Idempotent pour un payload donné : le rôle A l'appelle AVANT de tirer le
-   * terrain, `_onRoundGo` le rappelle pour les deux rôles.
+   * Idempotent pour un payload donné (`_onRoundGo`).
    */
   private _installedPayload: any = null;
   private _installOpponent(oppPayload: any): void {
@@ -218,6 +222,7 @@ export class PvpController extends GameController {
   protected _proceedNextRound(): void {
     PvpConnection.send('round:next_ready', { round: this.session.gameState.round });
     super._proceedNextRound();
+    this._settleRoundTerrain();
   }
 
   private _onMatchEnd(msg: { winner: 'A' | 'B' | 'draw'; progression?: any }): void {

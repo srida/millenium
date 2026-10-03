@@ -84,7 +84,14 @@ export function TerrainAlert() {
  * le cas arrive, et le taire laisserait le joueur croire à un bonus qu'il n'a
  * pas. Les couleurs sont celles des deux camps, déjà lues partout ailleurs.
  */
-function BoostedCount({ player, enemy }: { player: number; enemy: number }) {
+function BoostedCount({ player, enemy }: { player: number; enemy: number | null }) {
+  // Début de tour : rien n'est encore posé en face, seules les cartes du joueur
+  // (main + plateau) se comptent.
+  if (enemy === null) {
+    return player === 0
+      ? <div className="text-[11px] text-white/40">Aucune de tes cartes n'en profite</div>
+      : <div className="text-[11px] font-semibold text-player">{player === 1 ? '1 de tes cartes en profite' : `${player} de tes cartes en profitent`}</div>;
+  }
   if (player === 0 && enemy === 0) {
     return <div className="text-[11px] text-white/40">Aucune unité en jeu n'en profite</div>;
   }

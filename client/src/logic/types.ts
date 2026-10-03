@@ -148,8 +148,6 @@ export interface AttributeEffect {
   /** `guaranteed_magie` : cf. `GuaranteedMagie`. */
   rarity?: MagieRarity;
   magie_id?: string;
-  /** `guaranteed_board` : l'id du terrain promis pour le combat qui commence. */
-  board_id?: string;
 }
 
 export interface AttributeThreshold {

@@ -379,16 +379,16 @@ export const CHAPTERS: Chapter[] = [
     id: 'boards',
     icon: 'UI_LANDSCAPE',
     title: 'Les terrains',
-    blurb: 'Un décor tiré à chaque combat, avec ses obstacles et son effet.',
+    blurb: 'Un décor tiré à chaque tour, révélé avant que tu ne places tes unités.',
     blocks: [
-      { kind: 'text', text: "À chaque combat, un **terrain** est tiré au sort. Il n'existe que pendant le combat : en préparation, tu ne sais pas encore lequel tombera." },
+      { kind: 'text', text: "À chaque tour, un **terrain** est tiré au sort et **révélé juste après ta pioche** : tu places tes unités en connaissant ses obstacles. Ses effets, eux, ne s'appliquent qu'au combat." },
       { kind: 'boards', caption: 'Quelques terrains', limit: 3 },
       { kind: 'bullets', items: [
         "**Cases bloquées** — des obstacles, souvent dans la zone neutre. Les unités les contournent.",
         "**Ligne de vue** — un obstacle entre une unité et sa cible l'empêche d'attaquer. Elle continue d'avancer jusqu'à retrouver l'angle.",
         "**Effet de terrain** — un bonus de statistique, parfois réservé à certains attributs, appliqué aux unités concernées des deux camps.",
       ] },
-      { kind: 'note', text: "En combat, l'illustration et le nom du terrain s'affichent dans la barre du bas. Tape-les pour voir son effet et les archétypes qu'il renforce." },
+      { kind: 'note', text: "En préparation, fais **glisser le plateau** (ou utilise la molette, ou le bouton :UI_TERRAIN: de la barre du bas) pour voir tout le terrain et ses obstacles. En combat, tape le nom du terrain dans la barre du bas pour revoir son effet." },
     ],
   },
 ];

@@ -96,30 +96,23 @@ export class GameController {
   private _errorTimer: ReturnType<typeof setTimeout> | null = null;
   private _revealTimer: ReturnType<typeof setTimeout> | null = null;
   /** L'annonce de changement de tour, et la pioche qu'elle précède. Même patron
-   *  que `_pendingCombatStart` : un CHAMP, pour que le tap et le minuteur
+   *  que `_pendingEndRound` : un CHAMP, pour que le tap et le minuteur
    *  ouvrent la même popup une seule fois. */
   private _introTimer: ReturnType<typeof setTimeout> | null = null;
   private _pendingDraw: DrawSummary | null = null;
-  /** Le départ du combat, tant qu'il est retenu par la cascade et/ou l'annonce
-   *  de terrain. C'est un CHAMP et non une closure locale parce qu'un tap du
-   *  joueur doit pouvoir déclencher le même départ que le minuteur — et une
-   *  seule fois : il se remet à `null` en partant, donc un double tap ne lance
-   *  pas deux combats. */
-  private _pendingCombatStart: (() => void) | null = null;
-  /** Instant au plus tôt où le combat peut partir : la cascade d'arrivée de
-   *  l'IA doit être terminée, même si le joueur passe l'annonce d'un tap. */
-  private _combatStartAt = 0;
-  /** Retient l'affichage de l'annonce de terrain jusqu'à la fin du volet de
-   *  passage en combat — les deux se recouvraient sinon (cf. `PhaseWipe.tsx`).
-   *  Distinct de `_revealTimer` : celui-ci ne fait qu'AFFICHER l'annonce, il ne
-   *  retient pas le départ du combat (`holdMs` s'en charge déjà). */
+  /** L'échéance de l'annonce de terrain (début de tour), qui se retire seule. */
   private _alertTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Le terrain du tour, s'il reste à ANNONCER (après la popup de pioche).
+   *  `undefined` = rien à annoncer ; en PvP (rôle B) il peut arriver APRÈS la
+   *  popup, d'où `_terrainAwaited`. */
+  private _terrainToAnnounce: import('../logic/types.js').BoardDef | null | undefined = undefined;
+  private _terrainAwaited = false;
   protected _combatRemaining = COMBAT_DURATION_S;
   /** Le volet de passage d'une phase à l'autre. Il ne retient rien — c'est le
    *  seul minuteur du contrôleur dont personne n'attend l'échéance. */
   private _wipeTimer: ReturnType<typeof setTimeout> | null = null;
   /** La frappe finale, et le récapitulatif qu'elle retient. Même patron que
-   *  `_pendingCombatStart` : un CHAMP, pour que le tap et le minuteur livrent
+   *  `_pendingDraw` : un CHAMP, pour que le tap et le minuteur livrent
    *  la MÊME popup, une seule fois (il se vide en partant). */
   private _outroTimer: ReturnType<typeof setTimeout> | null = null;
   private _pendingEndRound: import('../logic/GameSession.js').EndRoundResult | null = null;
@@ -154,7 +147,68 @@ export class GameController {
     this._matchReported = false;
     this.scene?.refresh();
     this.sync(this._freshPhaseClocks());
+    this._revealRoundTerrain();
     this._openRound(draw);
+  }
+
+  /**
+   * Le TERRAIN du tour, connu dès la préparation : posé tout de suite sur la
+   * scène (fond, modèle 3D, obstacles) et retenu pour être ANNONCÉ une fois la
+   * popup de pioche refermée.
+   *
+   * ⚠️ En PvP le rôle B ne le connaît qu'à l'arrivée du message du rôle A
+   * (`applyRoundBoard`) : rien n'est posé tant qu'il manque, et l'annonce
+   * attend.
+   */
+  protected _revealRoundTerrain(): void {
+    const board = this.session.roundBoard;
+    this._terrainAwaited = false;
+    if (board === undefined) {
+      this._terrainToAnnounce = undefined;
+      this._terrainAwaited = true;
+      this.sync({ boardTerrain: null });
+      return;
+    }
+    this.scene?.setBlockedCells(this.session.board.blockedCells());
+    this.scene?.setTerrainBackground(board);
+    this._terrainToAnnounce = board;
+    this.sync({ boardTerrain: board });
+  }
+
+  /**
+   * PvP : le terrain du tour arrive du réseau. Posé sur la session (cases
+   * bloquées comprises), puis sur la scène ; annoncé tout de suite si la popup
+   * de pioche est déjà refermée.
+   */
+  applyRoundBoard(board: import('../logic/types.js').BoardDef | null): void {
+    if (this.session.phase !== Phase.PREPARATION || this.session.roundBoard !== undefined) return;
+    const awaited = this._terrainAwaited;
+    this.session.setRoundBoard(board);
+    this._revealRoundTerrain();
+    const s = useGameStore.getState();
+    if (awaited && !s.roundIntro && !s.drawPopup && !this._pendingDraw) this._announceTerrain();
+  }
+
+  /**
+   * L'annonce du terrain, juste après la popup de pioche : ce qui pèsera sur le
+   * combat, dit AVANT de placer. Elle se retire seule (`TERRAIN_ALERT_MS`) ou
+   * d'un tap, puis la caméra SURVOLE le plateau pour montrer les obstacles.
+   */
+  private _announceTerrain(): void {
+    const board = this._terrainToAnnounce;
+    if (board === undefined) return;
+    this._terrainToAnnounce = undefined;
+    if (this._alertTimer) { clearTimeout(this._alertTimer); this._alertTimer = null; }
+    const alert = terrainPrepAlertFor(board, [...this.session.hand, ...this.session.getPlayerUnits()]);
+    if (!alert) return;
+    this.sync({ terrainAlert: alert });
+    this._alertTimer = setTimeout(() => this.dismissTerrainAlert(), TERRAIN_ALERT_MS);
+  }
+
+  /** Bascule la vue de préparation entre le bloc joueur et le plateau entier. */
+  toggleTerrainView(): void {
+    if (!this.scene || this.session.phase !== Phase.PREPARATION) return;
+    this.scene.setPrepView(this.scene.getPrepView() > 0.5 ? 0 : 1, { animate: true });
   }
 
   /**
@@ -242,6 +296,7 @@ export class GameController {
   dismissDrawPopup(): void {
     if (!useGameStore.getState().drawPopup) return;
     this.sync({ drawPopup: null });
+    this._announceTerrain();
   }
 
   // Chronos remis à neuf en même temps que la phase de préparation : le
@@ -652,8 +707,11 @@ export class GameController {
   protected _closeRoundOpening(): void {
     if (this._introTimer) { clearTimeout(this._introTimer); this._introTimer = null; }
     this._pendingDraw = null;
+    if (this._alertTimer) { clearTimeout(this._alertTimer); this._alertTimer = null; }
+    this._terrainToAnnounce = undefined;
+    this._terrainAwaited = false;
     const s = useGameStore.getState();
-    if (s.roundIntro || s.drawPopup) this.sync({ roundIntro: null, drawPopup: null });
+    if (s.roundIntro || s.drawPopup || s.terrainAlert) this.sync({ roundIntro: null, drawPopup: null, terrainAlert: null });
   }
 
   // Lance l'animateur de combat sur un CombatManager déjà construit. Partagé
@@ -695,50 +753,24 @@ export class GameController {
     animator.setSpeed(this.combatSpeed);
     this.animator = animator;
     this.paused = false;
-    // L'annonce du terrain : ce qui va peser sur ce combat, dit AVANT le premier
-    // coup. Elle prolonge l'attente qui existait déjà pour la cascade au lieu de
-    // s'en ajouter une seconde — deux minuteurs pour un même départ finiraient
-    // par ne plus s'accorder. Les listes passées sont celles sur lesquelles
-    // `startCombat` vient d'appliquer l'effet : unités vivantes, IA déjà placée.
-    const terrainAlert = terrainAlertFor(boardData, this.session.getPlayerUnits(), this.session.enemyUnits);
     // Le volet de passage en combat : il couvre exactement le travelling de
     // caméra que `enterCombatMode` vient de lancer (0,5 s), c'est-à-dire le seul
     // moment où le cadrage saute sous les yeux du joueur.
     this._playPhaseWipe('combat', COMBAT_INTRO_MS);
-    // ⚠️ L'annonce n'apparaît qu'à la FIN du volet, pas en même temps : le motif
-    // « Faille runique » (mot COMBAT compris, cf. `PhaseWipe.tsx`) la
-    // recouvrirait sinon pendant toute sa durée. Elle rejoint quand même le
-    // `holdMs` EXISTANT au lieu de s'ajouter en amont du sien : un volet qui
-    // recouvre le plateau pendant que les premiers coups partent les escamote,
-    // et deux attentes pour un même départ finiraient par ne plus s'accorder.
-    const alertMs = terrainAlert ? TERRAIN_ALERT_MS : 0;
-    const holdMs = Math.max(revealMs, COMBAT_INTRO_MS + alertMs);
+    // ⚠️ Plus d'annonce de terrain ici : il est révélé en DÉBUT DE TOUR, avant
+    // le placement. Le premier coup n'attend plus que la cascade de l'IA et le
+    // volet — un volet qui recouvre le plateau escamoterait les premiers coups.
+    const holdMs = Math.max(revealMs, COMBAT_INTRO_MS);
     // combatRemaining doit repartir de 60 dès l'entrée en combat : sans ça le
     // HUD affiche la valeur finale du combat précédent jusqu'au premier tick.
-    // `terrainAlert` reste `null` ici — c'est le minuteur juste en dessous qui
-    // la publie, une fois le volet retiré.
     this.sync({ combatActive: true, combatRemaining: this._combatRemaining, boardTerrain: boardData, terrainAlert: null });
-    if (terrainAlert) {
-      this._alertTimer = setTimeout(() => {
-        this._alertTimer = null;
-        if (this.animator !== animator) return;   // combat quitté entre-temps
-        this.sync({ terrainAlert });
-      }, COMBAT_INTRO_MS);
-    }
-    // ⚠️ Le plancher est la CASCADE, pas l'annonce : un tap qui passe l'annonce
-    // ne doit pas lancer le premier coup pendant que l'adversaire est encore en
-    // l'air (`dismissTerrainAlert` réarme pour le reliquat).
-    this._combatStartAt = Date.now() + revealMs;
     const begin = () => {
       this._revealTimer = null;
-      this._pendingCombatStart = null;
       if (this.animator !== animator) return;   // combat quitté entre-temps
-      this.sync({ terrainAlert: null });
       animator.start();
       if (this.paused) animator.pause();        // Pause tapée pendant l'attente
     };
     if (holdMs > 0) {
-      this._pendingCombatStart = begin;
       this._revealTimer = setTimeout(begin, holdMs);
     } else {
       begin();
@@ -746,25 +778,14 @@ export class GameController {
   }
 
   /**
-   * Passe l'annonce de terrain d'un tap. À 5 rounds par partie — et 4 duels
-   * enchaînés en Arcade — une attente non passable devient vite une corvée.
-   *
-   * ⚠️ Ne peut PAS faire partir le combat avant la fin de la cascade d'arrivée
-   * de l'IA : on réarme pour le reliquat plutôt que de démarrer sous des cartes
-   * encore en train de tomber.
+   * Retire l'annonce de terrain (tap ou échéance), puis la caméra survole le
+   * plateau : le joueur VOIT les obstacles avant de poser ses unités.
    */
   dismissTerrainAlert(): void {
-    const begin = this._pendingCombatStart;
-    if (!begin) return;                          // déjà parti — geste sans objet
-    if (this._revealTimer) clearTimeout(this._revealTimer);
-    const left = this._combatStartAt - Date.now();
-    if (left > 0) {
-      this.sync({ terrainAlert: null });          // l'annonce s'en va tout de suite
-      this._revealTimer = setTimeout(begin, left);
-      return;
-    }
-    this._revealTimer = null;
-    begin();
+    if (this._alertTimer) { clearTimeout(this._alertTimer); this._alertTimer = null; }
+    if (!useGameStore.getState().terrainAlert) return;
+    this.sync({ terrainAlert: null });
+    if (this.session.phase === Phase.PREPARATION) this.scene?.previewTerrain();
   }
 
   toggleGrid(): void {
@@ -1177,6 +1198,7 @@ export class GameController {
     }
     this.scene?.refresh();
     this.sync({ shopping: null, endRound: null, ...this._freshPhaseClocks() });
+    this._revealRoundTerrain();
     this._openRound(draw);
   }
 
@@ -1361,7 +1383,8 @@ export class GameController {
     if (this._introTimer) clearTimeout(this._introTimer);
     this._introTimer = null;
     this._pendingDraw = null;
-    this._pendingCombatStart = null;
+    this._terrainToAnnounce = undefined;
+    this._terrainAwaited = false;
     this.animator?.stop();
     this.animator = null;
     // Combat quitté en cours de route : ce qui a été capturé part quand même.
@@ -1381,34 +1404,29 @@ export class GameController {
 }
 
 /**
- * Ce que l'annonce de terrain a à dire : le terrain, et combien d'unités de
- * chaque camp son effet touche VRAIMENT.
+ * Ce que l'annonce de terrain a à dire, en DÉBUT DE TOUR : le terrain, et
+ * combien des cartes du joueur (main + plateau) son effet viserait.
  *
  * ⚠️ Le décompte passe par `effectTargets`, la fonction même dont
- * `BoardEffect.applyEffect` se sert pour choisir ses cibles. C'est ce qui rend
- * impossible d'annoncer au joueur un décompte que l'effet n'a pas appliqué —
- * un second filtre écrit ici aurait fini par ne plus dire la même chose.
+ * `BoardEffect.applyEffect` se sert pour choisir ses cibles — sur des CARTES
+ * cette fois (rien n'est encore posé) : elles portent les mêmes attributs.
+ * Le camp adverse n'est pas compté : ses unités ne sont pas encore posées.
  *
- * ⚠️ `boosted: null` quand AUCUN effet ne lit le ciblage (`draw_bonus`, qui
- * crédite le joueur quoi qu'il arrive) : annoncer « 3 unités boostées » sous lui
- * ferait mentir l'écran.
- *
- * ⚠️ Sur un terrain à plusieurs effets, on compte l'UNION des unités touchées,
- * jamais la somme : une unité que deux effets boostent reste une unité. La
- * phrase annoncée est « combien en profitent », pas « combien de bonus tombent ».
+ * ⚠️ `boosted: null` quand AUCUN effet ne lit le ciblage (`draw_bonus`).
+ * ⚠️ Union, jamais somme : une carte que deux effets visent reste une carte.
+ * ⚠️ Une carte en plusieurs exemplaires (main + plateau) compte une fois.
  */
-export function terrainAlertFor(
+export function terrainPrepAlertFor(
   board: import('../logic/types.js').BoardDef | null,
-  playerUnits: import('../logic/Unit.js').Unit[],
-  enemyUnits: import('../logic/Unit.js').Unit[],
+  playerCards: { card_id?: string; id?: string; attributes?: string[] }[],
 ): import('../stores/gameStore.js').TerrainAlertSnapshot | null {
   if (!board) return null;
   const targeting = boardEffects(board).filter(boardTargetsUnits);
-  const count = (units: import('../logic/Unit.js').Unit[]) => {
-    const touched = new Set<import('../logic/Unit.js').Unit>();
-    for (const effect of targeting) for (const u of effectTargets(effect, units)) touched.add(u);
-    return touched.size;
-  };
-  const boosted = targeting.length ? { player: count(playerUnits), enemy: count(enemyUnits) } : null;
-  return { board, boosted };
+  if (!targeting.length) return { board, boosted: null };
+  const items = playerCards.map(c => ({ key: c.card_id ?? c.id ?? '', attributes: c.attributes ?? [] }));
+  const touched = new Set<string>();
+  for (const effect of targeting) {
+    for (const c of effectTargets(effect, items as never[]) as unknown as typeof items) touched.add(c.key);
+  }
+  return { board, boosted: { player: touched.size, enemy: null } };
 }

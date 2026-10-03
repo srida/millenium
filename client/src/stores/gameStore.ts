@@ -81,7 +81,8 @@ export interface ShoppingState {
  */
 export interface TerrainAlertSnapshot {
   board: import('../logic/types.js').BoardDef;
-  boosted: { player: number; enemy: number } | null;
+  /** `enemy: null` = non compté (annonce de début de tour : rien n'est encore posé en face). */
+  boosted: { player: number; enemy: number | null } | null;
 }
 
 /**

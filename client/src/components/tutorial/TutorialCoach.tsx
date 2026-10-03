@@ -39,10 +39,10 @@ export default function TutorialCoach() {
   const canRerollShopping = useGameStore(s => s.shopping?.canReroll ?? false);
   const gameOver = useGameStore(s => s.gameOver);
   const menuOpen = useGameStore(s => s.menuOpen);
-  // L'ouverture de tour (annonce + popup de pioche) : le script s'efface
+  // L'ouverture de tour (annonce + popup de pioche + annonce du terrain) : le script s'efface
   // derrière elle — la décision vit dans `gameCoachStep`, ici on ne fait que
   // lui rapporter l'état.
-  const roundOpening = useGameStore(s => s.roundIntro !== null || s.drawPopup !== null);
+  const roundOpening = useGameStore(s => s.roundIntro !== null || s.drawPopup !== null || s.terrainAlert !== null);
 
   const [seen, setSeen] = useState<ReadonlySet<string>>(() => new Set<string>());
 

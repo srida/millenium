@@ -317,37 +317,49 @@ export class GameSession {
   }
 
   /**
-   * Le terrain du prochain combat, SANS le jouer ni le consommer. Seul le rôle A
-   * du PvP s'en sert : il le tire, diffuse son id, et les DEUX clients repassent
-   * ensuite par `startCombat(board)` avec l'id que le serveur leur renvoie.
+   * Le terrain du prochain combat, SANS le jouer ni le consommer. Tiré par
+   * `startPreparation` (solo, IA, tournoi…) ; en PvP seul le rôle A s'en sert :
+   * il le tire en entrant en préparation, diffuse son id, et les DEUX clients le
+   * posent par `setRoundBoard`.
    */
   pickCombatBoard(): BoardDef | null {
     return pickBoard(this.deps.getAllBoards(), this._boardPickContext(), this._rand);
   }
 
   /**
-   * Les terrains promis par les unités DES DEUX CAMPS actuellement posées.
-   *
-   * ⚠️ Lit le board, donc l'appelant doit l'avoir peuplé : en solo,
-   * `_placeEnemyUnits` précède le tirage ; en PvP, le rôle A installe le board
-   * adverse avant de tirer (`PvpController._installOpponent`).
-   * ⚠️ Sortie sèche quand le catalogue ne déclare pas l'effet (mémoïsé) : aucun
-   * `AttributeManager` construit, aucun appel à `rand` de plus.
+   * Le terrain du tour en cours, CONNU DÈS LA PRÉPARATION : `undefined` tant
+   * qu'il n'est pas choisi (PvP, rôle B, avant l'arrivée du message), `null`
+   * pour un catalogue sans terrain.
    */
-  private _promisedBoardIds(): string[] {
-    const list = this.deps.attributeList;
-    if (this._declaresBoardPromise?.list !== list) {
-      this._declaresBoardPromise = {
-        list,
-        value: list.some(a => a.thresholds?.some(t => t.effects?.some(e => e.type === 'guaranteed_board'))),
-      };
-    }
-    if (!this._declaresBoardPromise.value) return [];
-    return new AttributeManager(
-      list, this.board.getLivingUnitsOnSide('player'), this.board.getLivingUnitsOnSide('enemy'),
-    ).guaranteedBoardIds();
+  get roundBoard(): BoardDef | null | undefined { return this._roundBoard; }
+  private _roundBoard: BoardDef | null | undefined = undefined;
+
+  /**
+   * Pose le terrain du tour : il est retenu pour le combat, et ses cases
+   * bloquées sont posées TOUT DE SUITE sur le plateau — c'est ce qui permet au
+   * joueur de placer ses unités en connaissant les obstacles.
+   *
+   * ⚠️ Les EFFETS du terrain (bonus, boucliers, tokens), eux, restent appliqués
+   * au lancement du combat : ils visent des unités qui ne sont pas encore posées.
+   * ⚠️ Rien n'est marqué joué ici : c'est `startCombat` qui le fait, sur le
+   * terrain réellement joué.
+   */
+  setRoundBoard(board: BoardDef | null): void {
+    this._roundBoard = board;
+    this._applyBlockedCells(board);
   }
-  private _declaresBoardPromise?: { list: unknown; value: boolean };
+
+  /** Les cases bloquées d'un terrain, dans le repère de CE client. */
+  private _applyBlockedCells(board: BoardDef | null | undefined): void {
+    // ⚠️ Le terrain est une donnée POSITIONNELLE, au même titre que la position
+    // d'une unité : appliqué verbatim des deux côtés d'un duel, il décrit deux
+    // plateaux différents (cf. `logic/BoardMirror`).
+    this.board.setBlockedCells(
+      this.deps.mirroredRole
+        ? mirrorCells(board?.blocked_cells)
+        : (board?.blocked_cells || []),
+    );
+  }
 
   /** L'état du duel traduit pour `BoardPicker` — même geste que `_offerContext`
    *  pour les magies : le module de règles est pur, c'est la session qui lui
@@ -357,7 +369,6 @@ export class GameSession {
       playerAttributes: this._playerDeckAttributes,
       enemyAttributes: this._enemyDeckAttributes,
       usedBoardIds: this._usedBoardIds,
-      guaranteedBoardIds: this._promisedBoardIds(),
     };
   }
 
@@ -437,6 +448,12 @@ export class GameSession {
     this.hand.push(...drawnGuaranteed);
     this._recordUniqueDraws([...drawnRandom, ...drawnGuaranteed]);
 
+    // Le TERRAIN du tour est tiré ici, et non plus au lancement du combat : le
+    // joueur pose ses unités en connaissant les obstacles. ⚠️ Toujours UN appel
+    // à `rand`, juste après la pioche. En PvP il arrive du réseau
+    // (`setRoundBoard`), choisi par le rôle A — rien n'est tiré ici.
+    this._roundBoard = undefined;
+    if (this.deps.mode !== 'pvp') this.setRoundBoard(this.pickCombatBoard());
 
     // L'adversaire ne joue PAS ici : en solo l'IA place ses unités au
     // lancement du combat (startCombat), une fois le joueur prêt ; en PvP
@@ -905,7 +922,12 @@ export class GameSession {
     this.graveyard = this._rescapesDuCimetiere(this.graveyard);
     this.enemyGraveyard = this._rescapesDuCimetiere(this.enemyGraveyard);
 
-    const boardData = agreedBoard !== undefined ? agreedBoard : this.pickCombatBoard();
+    // Le terrain convenu (PvP) prime ; sinon celui révélé en début de tour ; à
+    // défaut (combat lancé sans préparation, tests), un tirage maintenant.
+    const boardData = agreedBoard !== undefined ? agreedBoard
+      : this._roundBoard !== undefined ? this._roundBoard
+      : this.pickCombatBoard();
+    this._roundBoard = boardData;
     // ⚠️ On marque le terrain qui est JOUÉ, jamais celui qui a été tiré. En PvP,
     // c'est l'id renvoyé par le serveur qui fait foi : un `round:terrain_pick`
     // perdu ne doit pas consommer un terrain que personne n'a vu. Et comme le
@@ -913,14 +935,7 @@ export class GameSession {
     // compris ceux où le terrain arrive de l'extérieur (`agreedBoard`) — une
     // seule ligne tient l'historique du duel.
     if (boardData) this._usedBoardIds.add(boardData.id);
-    // ⚠️ Le terrain est une donnée POSITIONNELLE, au même titre que la position
-    // d'une unité : appliqué verbatim des deux côtés d'un duel, il décrit deux
-    // plateaux différents (cf. `logic/BoardMirror`).
-    this.board.setBlockedCells(
-      this.deps.mirroredRole
-        ? mirrorCells(boardData?.blocked_cells)
-        : (boardData?.blocked_cells || []),
-    );
+    this._applyBlockedCells(boardData);
 
     const playerUnits = this.board.getLivingUnitsOnSide('player');
     this.enemyUnits = this.board.getLivingUnitsOnSide('enemy');

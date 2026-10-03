@@ -234,7 +234,6 @@ export const CHAMPS_JOUEUR = Object.freeze({
   multiplicateur: 'multiplicateur',
   magies_shop: 'magies_shop',
   magies_garanties: 'magies_garanties',
-  terrains_garantis: 'terrains_garantis',
 } as const);
 export type ChampJoueur = keyof typeof CHAMPS_JOUEUR;
 
@@ -293,8 +292,6 @@ export interface TacheModifier {
    *  d'une magie garantie (`champ: 'magies_garanties'`) — un seul champ pour
    *  les deux, comme leurs deux registres partagent la même forme. */
   criteres?: GuaranteedDraw | GuaranteedMagie;
-  /** L'id du terrain promis (`champ: 'terrains_garantis'`). */
-  boardId?: string;
   /**
    * Les critères viennent des PORTEURS, pas de la tâche — une entrée par
    * porteur, lue dans son champ `appel` (le mot-clé Appelant).

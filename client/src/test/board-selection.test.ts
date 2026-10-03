@@ -179,3 +179,78 @@ describe('Terrain d\'un duel — l\'override PvP', () => {
     expect(seen.size).toBeGreaterThan(1);
   });
 });
+
+describe('Terrain RÉVÉLÉ en début de tour', () => {
+  const walled = (id: string): BoardDef => ({
+    ...terrain(id), blocked_cells: [{ col: 1, row: 4 }, { col: 3, row: 6 }],
+  } as BoardDef);
+
+  // Mutation : retirer le tirage de `startPreparation` → ROUGE.
+  it('le terrain est tiré à la préparation, cases bloquées POSÉES avant le moindre placement', () => {
+    const session = makeSession({ boards: [walled('W1')] });
+    expect(session.roundBoard).toBeUndefined();
+    session.startPreparation();
+    expect(session.roundBoard?.id).toBe('W1');
+    expect(session.board.isBlocked({ col: 1, row: 4 })).toBe(true);
+    expect(session.board.isBlocked({ col: 3, row: 6 })).toBe(true);
+  });
+
+  // Mutation : `startCombat` retire au lieu de lire `_roundBoard` → ROUGE.
+  it('le combat joue LE terrain annoncé, jamais un second tirage', () => {
+    const boards = Array.from({ length: 10 }, (_, i) => terrain(`B${i}`));
+    for (let seed = 1; seed <= 20; seed++) {
+      const session = makeSession({ boards, seed });
+      session.startPreparation();
+      const announced = session.roundBoard?.id;
+      expect(session.startCombat().boardData?.id).toBe(announced);
+    }
+  });
+
+  // Mutation : retirer dans `mulligan()` ou `undoPreparation()` → ROUGE.
+  it('ni le mulligan ni « Tout annuler » ne retirent le terrain', () => {
+    const boards = Array.from({ length: 10 }, (_, i) => terrain(`B${i}`));
+    const session = makeSession({ boards, playerAttrs: [[], [], [], [], [], []] });
+    session.startPreparation();
+    const announced = session.roundBoard?.id;
+    if (session.canMulligan()) session.mulligan();
+    expect(session.roundBoard?.id).toBe(announced);
+    session.undoPreparation();
+    expect(session.roundBoard?.id).toBe(announced);
+    expect(session.startCombat().boardData?.id).toBe(announced);
+  });
+
+  // Mutation : tirer aussi en PvP → ROUGE (le rôle B tirerait un terrain que
+  // personne ne lui a annoncé).
+  it('PvP : rien n\'est tiré à la préparation, le terrain arrive par setRoundBoard (miroité pour le rôle B)', () => {
+    const board = walled('W1');
+    const s = makeSession({ boards: [board], mode: 'pvp' });
+    s.startPreparation();
+    expect(s.roundBoard).toBeUndefined();
+    expect(s.board.blockedCells()).toEqual([]);
+    s.setRoundBoard(board);
+    expect(s.board.isBlocked({ col: 1, row: 4 })).toBe(true);
+
+    const b = new GameSession({
+      cardsByTier: { 1: [makeCard({ id: 'P0', summon_conditions: [] })] as any },
+      attributeList: [], cardDb: { getCard: () => null } as any,
+      getAllBoards: () => [board], getAllMagies: () => [],
+      mode: 'pvp', mirroredRole: true, rand: makeRandom(1),
+    } as unknown as GameSessionDeps);
+    b.startPreparation();
+    b.setRoundBoard(board);
+    expect(b.board.isBlocked({ col: 1, row: 6 })).toBe(true);   // 10 − 4
+    expect(b.board.isBlocked({ col: 3, row: 4 })).toBe(true);   // 10 − 6
+  });
+
+  it('le tour suivant tire un NOUVEAU terrain et efface les obstacles de l\'ancien', () => {
+    const boards = [walled('W1'), terrain('B2')];
+    const session = makeSession({ boards });
+    session.startPreparation();
+    const first = session.roundBoard!.id;
+    session.startCombat();
+    session.finishCombat();
+    session.startNextRound();
+    expect(session.roundBoard!.id).not.toBe(first);
+    if (first === 'W1') expect(session.board.blockedCells()).toEqual([]);
+  });
+});

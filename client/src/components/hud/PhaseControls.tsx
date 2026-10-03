@@ -187,6 +187,19 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
       >
         {prepRemaining}s
       </PhaseClock>
+      {/* Le terrain est connu dès la préparation : le bouton bascule la vue
+          entre le bloc joueur et le plateau entier, pour voir les obstacles
+          (le glisser vertical et la molette font la même chose, en continu). */}
+      {boardTerrain && (
+        <Button
+          aria-label="Voir le terrain"
+          title="Voir le terrain"
+          className="shrink-0 px-3 text-base"
+          onPointerDown={(e) => { e.stopPropagation(); controller.toggleTerrainView(); }}
+        >
+          <UiIcon id="UI_TERRAIN" className="h-5 w-5" />
+        </Button>
+      )}
       <div className="flex-1" />
       {/* `visible`, pas un montage conditionnel : `canMulligan` retombe à
           `false` dans le MÊME tick que `onConfirm` (une seule fois par

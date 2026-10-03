@@ -13,7 +13,7 @@ import { Illustration } from '../ui/primitives.js';
 import UiIcon from '../ui/UiIcon.js';
 import TierIcon from '../ui/TierIcon.js';
 import RecipeRow from '../ui/SummonRecipe.js';
-import { boardName, cardName, magieName, GAME_NAMES } from '../../data/gameNames.js';
+import { cardName, magieName, GAME_NAMES } from '../../data/gameNames.js';
 import { effectLabel, magieCostHp } from '../../logic/MagieEffect.js';
 import { rarityOf, RARITY_LABELS } from '../../logic/MagieOffer.js';
 import { summonRecipes, recipeIsFree } from '../../data/SummonInfo.js';
@@ -114,7 +114,7 @@ function motCleTexte(id: string, appel?: GuaranteedDraw | null): string | null {
   // ⚠️ `appel` traverse jusqu'ici parce qu'un mot-clé peut être PARAMÉTRÉ PAR
   // CARTE (Appelant) : sans lui le bloc annoncerait la mécanique sans dire ce
   // que CETTE carte appelle, c'est-à-dire la seule chose qu'on vient y chercher.
-  return keywordText(attr, appel, attributeName, cardName, boardName);
+  return keywordText(attr, appel, attributeName, cardName);
 }
 
 function Keywords({ ids, appel }: { ids: string[]; appel?: GuaranteedDraw | null }) {
@@ -407,6 +407,6 @@ function describeEffects(effects: any[], withTargets = true): string {
   return (effects ?? []).map((e: any) =>
     // ⚠️ `cardName` est passé même sans cibles : une pioche garantie peut NOMMER
     // des cartes, et sans résolveur c'est un id brut qui sort à l'écran.
-    boardEffectLabel(e, withTargets ? (ids) => ids.map(attributeName).join(', ') : undefined, cardName, magieName, undefined, boardName),
+    boardEffectLabel(e, withTargets ? (ids) => ids.map(attributeName).join(', ') : undefined, cardName, magieName),
   ).join(', ');
 }

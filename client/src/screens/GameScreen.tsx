@@ -137,7 +137,7 @@ export default function GameScreen() {
       {/* Chronos partagés avec GameScreenPvp. Le solo gèle en plus sur
           `coachBlocking` : une bulle du tutoriel qui attend un tap ne doit pas
           voir le combat partir sous elle, ni la magie se choisir à sa place.
-          Il gèle aussi sur l'ouverture de tour (`roundIntro`/`drawPopup`) : la
+          Il gèle aussi sur l'ouverture de tour (`roundIntro`/`drawPopup`/`terrainAlert`) : la
           popup de pioche attend un geste, et hors réseau rien n'oblige à le
           compter dans les 60 s de préparation. Même modèle que `menuOpen`.
           `duelIntro` gèle les toutes premières secondes, le temps de
@@ -146,7 +146,7 @@ export default function GameScreen() {
         durationS={PREP_DURATION_S}
         field="prepRemaining"
         restartKey={round}
-        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.coachBlocking && !s.roundIntro && !s.drawPopup && !s.gameOver && !s.duelIntro}
+        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.menuOpen && !s.coachBlocking && !s.roundIntro && !s.drawPopup && !s.terrainAlert && !s.gameOver && !s.duelIntro}
         onTimeout={() => controller.onPrepTimeout()}
       />
       {shoppingOpen && (

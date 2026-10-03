@@ -165,31 +165,6 @@ export class AttributeManager {
     return pool.filter(e => actifs.get(e.condition?.attribut) === e.condition?.minimum);
   }
 
-  /**
-   * Les terrains PROMIS (`guaranteed_board`) par les paliers actifs des DEUX
-   * camps, un id par effet.
-   *
-   * ⚠️ Appelé AVANT `applyStartOfCombat` : le terrain est tiré avant le passage
-   * des effets de début de combat, donc la promesse ne peut pas se lire dans le
-   * versement du moteur. On ne rejoue que les effets qui écrivent ce champ —
-   * rejouer `debut_combat` en entier appliquerait les bonus de stats deux fois.
-   *
-   * ⚠️ Les deux camps : l'IA (ou l'adversaire PvP) promet comme le joueur.
-   * Ordre fixe, joueur puis adversaire — c'est le déterminisme du tirage.
-   */
-  guaranteedBoardIds() {
-    const pool = this._effets.filter(e => e.taches?.some(t => t.champ === 'terrains_garantis'));
-    if (!pool.length) return [];
-    const ids = [];
-    for (const [units, other] of [[this.playerUnits, this.enemyUnits], [this.enemyUnits, this.playerUnits]]) {
-      const ressources = ressourcesVides();
-      executer(this._effetsDesPaliers(this._paliersVivants(units), pool), 'debut_combat',
-        this._monde(units, other, ressources, []));
-      ids.push(...ressources.terrains_garantis);
-    }
-    return ids;
-  }
-
   /** Les paliers actifs d'un camp, au décompte des VIVANTES (deux premières passes). */
   _paliersVivants(units) {
     const actifs = new Map();
