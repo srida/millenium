@@ -117,8 +117,11 @@ export function buildAggregates(
   attributes: AttributeDef[],
   baseline: number,
 ): Aggregates {
-  const played = rows.filter(r => r.played > 0);
   const cardById = new Map(cards.map(c => [c.id, c]));
+  // ⚠️ Les cartes marquées `balance_excluded` (utilitaires) restent jouées et
+  // mesurées carte par carte, mais n'entrent dans AUCUNE famille : elles
+  // tireraient les moyennes vers des profils qu'on ne veut pas comparer.
+  const played = rows.filter(r => r.played > 0 && !cardById.get(r.card_id)?.balance_excluded);
   const attrName = new Map(attributes.map(a => [a.id, a.name]));
 
   // ── Attributs ─────────────────────────────────────────────────────────

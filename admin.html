@@ -1041,6 +1041,15 @@ function buildQuerySchemas() {
     packOptions: opts(packs, p => p.id, p => p.name || p.id),
     tierOptions: () => tierAttrDefs().map(a => ({ value: String(a.tier), label: `${a.tier}`, hint: a.name })),
   });
+  // Propre à l'admin : le DeckBuilder n'a rien à faire de l'équilibrage.
+  // `exclue` / `-exclue` sélectionne les cartes à (ré)intégrer en masse.
+  QUERY_SCHEMAS.card = {
+    ...QUERY_SCHEMAS.card,
+    fields: [...QUERY_SCHEMAS.card.fields, {
+      key: 'exclue', aliases: ['hors_equilibrage'], label: 'Exclue des stats d’équilibrage',
+      type: 'bool', get: c => !!c.balance_excluded,
+    }],
+  };
 
   QUERY_SCHEMAS.attr = {
     text: ['nom', 'id'],
@@ -2247,6 +2256,13 @@ function renderCardDetail() {
         <div class="slider-marks"><span>1</span><span>3</span><span>5</span></div>
         <span style="font-size:11px;color:var(--muted);margin-top:4px">Slots que l'unité représente quand elle est CONSOMMÉE sur un slot <strong style="color:var(--text)">libre</strong>. ⚠️ Une recette qui la <strong style="color:var(--text)">nomme</strong> ne lui paie qu'un slot, quelle que soit cette valeur. C'est une donnée, jamais dérivée : les deux camps la lisent.</span>
       </div>
+      <div class="field">
+        <label class="field-check">
+          <input type="checkbox" id="f-balance-excluded" ${c.balance_excluded ? 'checked' : ''}>
+          <span>Exclure des statistiques d'équilibrage</span>
+        </label>
+        <span style="font-size:11px;color:var(--muted);margin-top:4px">Pour une carte utilitaire (matériau, pièce d'un ensemble) qu'on ne veut pas comparer aux combattants : écartée de l'onglet Stats, des agrégats de la simulation et de <code>scripts/rebalance-ranges.js</code>. Elle reste jouée et mesurée carte par carte.</span>
+      </div>
     </div>
 
     <div class="section-title">Stats</div>
@@ -2861,6 +2877,9 @@ function collectCardFromForm() {
     // ⚠️ `undefined` EFFACE le champ côté serveur au lieu d'y laisser un `{}` :
     // un appel vide se lirait comme une promesse « au choix » que rien ne tient.
     appel: appelFromForm(),
+    // ⚠️ `undefined` plutôt que `false` : le drapeau n'existe que là où il dit
+    // quelque chose (même geste que `appel`).
+    balance_excluded: document.getElementById('f-balance-excluded')?.checked ? true : undefined,
   };
 }
 
@@ -8479,10 +8498,19 @@ function stdDev(arr) {
   return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length);
 }
 
+/**
+ * Les cartes que l'onglet Stats COMPARE : toutes, moins celles marquées
+ * `balance_excluded` (cartes utilitaires qui fausseraient moyennes et
+ * médianes). La répartition des pouvoirs, elle, reste un inventaire complet.
+ */
+function statsCards() {
+  return cards.filter(c => !c.balance_excluded);
+}
+
 function computeTierStats() {
   const result = {};
   [1,2,3,4,5].forEach(tier => {
-    const tc = cards.filter(c => cardTier(c) === tier && c.stats);
+    const tc = statsCards().filter(c => cardTier(c) === tier && c.stats);
     result[tier] = { count: tc.length, stats: {} };
     STAT_KEYS.forEach(key => {
       const vals = tc.map(c => c.stats[key]).filter(v => v != null && !isNaN(v));
@@ -8495,7 +8523,7 @@ function computeTierStats() {
 
 function detectOutliers(tierStats) {
   const out = [];
-  cards.forEach(card => {
+  statsCards().forEach(card => {
     if (!card.stats) return;
     const tier = cardTier(card);
     const ts = tierStats[tier];
@@ -8515,7 +8543,7 @@ function detectOutliers(tierStats) {
 function computeCompositeTierStats() {
   const result = {};
   [1,2,3,4,5].forEach(tier => {
-    const tc = cards.filter(c => cardTier(c) === tier && c.stats);
+    const tc = statsCards().filter(c => cardTier(c) === tier && c.stats);
     result[tier] = { count: tc.length };
     COMPOSITE_STATS.forEach(cs => {
       const vals = tc.map(c => cs.compute(c.stats)).filter(v => v != null && !isNaN(v) && isFinite(v));
@@ -8528,7 +8556,7 @@ function computeCompositeTierStats() {
 
 function detectCompositeOutliers(compTierStats) {
   const out = [];
-  cards.forEach(card => {
+  statsCards().forEach(card => {
     if (!card.stats) return;
     const tier = cardTier(card);
     const ts = compTierStats[tier];
@@ -8615,7 +8643,7 @@ const rangeClass = (c) => Math.min(4, Math.max(1, Number(c.stats?.range) || 1));
 function rangeBudgetSectionHtml() {
   const med = (xs) => { const a = [...xs].sort((x, y) => x - y); return a.length ? a[Math.floor(a.length / 2)] : null; };
   const cells = {};
-  for (const c of cards) {
+  for (const c of statsCards()) {
     if (!c.stats) continue;
     const key = `${cardTier(c)}/${rangeClass(c)}`;
     (cells[key] ??= []).push(c);
@@ -8647,7 +8675,7 @@ function rangeBudgetSectionHtml() {
   const chips = outliers.slice(0, 40).map(({ c, r }) => `<span class="badge" style="background:var(--surface2);cursor:pointer" onclick="jumpToCard('${c.id}')">${esc(c.name)} <span style="color:${TIER_COLORS[cardTier(c)]}">T${cardTier(c)}</span> · P${rangeClass(c)} · <span style="color:${r > 1 ? 'var(--red)' : 'var(--accent)'}">${r > 1 ? '+' : ''}${Math.round((r - 1) * 100)} %</span></span>`).join(' ');
   return `
     <div class="stat-panel" style="margin-bottom:20px">
-      <h3>Budget par portée <span style="font-size:11px;font-weight:400;color:var(--muted)">(médiane de (ATQ ÷ ticks d'attaque) × PV — la portée doit se payer : une portée longue doit rester sous la mêlée de son tier)</span></h3>
+      <h3>Budget par portée ${cards.some(c => c.balance_excluded) ? `<span class="badge" style="background:var(--surface2);font-size:11px">${cards.filter(c => c.balance_excluded).length} carte(s) exclue(s)</span>` : ''} <span style="font-size:11px;font-weight:400;color:var(--muted)">(médiane de (ATQ ÷ ticks d'attaque) × PV — la portée doit se payer : une portée longue doit rester sous la mêlée de son tier)</span></h3>
       <div style="overflow-x:auto">
         <table class="tier-overview-table">
           <thead><tr><th>Portée</th>${[1, 2, 3, 4, 5].map(t => `<th style="color:${TIER_COLORS[t]}">Tier ${t}</th>`).join('')}</tr></thead>
@@ -9136,6 +9164,7 @@ function openMassEditModal() {
       <select id="mass-field" onchange="onMassFieldChange()">
         <option value="material_value">Valeur en matériel</option>
         <option value="power">Pouvoir</option>
+        <option value="balance_excluded">Exclusion des statistiques d'équilibrage</option>
       </select>
     </div>
     <div id="mass-value-wrap" class="field"></div>
@@ -9153,6 +9182,8 @@ function onMassFieldChange() {
   if (!wrap) return;
   if (field === 'material_value') {
     wrap.innerHTML = `<label>Valeur en matériel</label><select id="mass-value">${[1,2,3,4,5].map(n=>`<option value="${n}">${n} slot${n>1?'s':''}</option>`).join('')}</select>`;
+  } else if (field === 'balance_excluded') {
+    wrap.innerHTML = `<label>Statistiques d'équilibrage</label><select id="mass-value"><option value="1">Exclure</option><option value="">Réintégrer</option></select>`;
   } else if (field === 'power') {
     wrap.innerHTML = `<label>Pouvoir</label><select id="mass-value"><option value="">Aucun</option>${powers.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>`;
   }
@@ -9190,6 +9221,7 @@ async function applyMassEdit() {
     delete updated._tiers;
     delete updated.tier;
     if (field === 'material_value') updated.material_value = parseInt(value, 10) || 1;
+    else if (field === 'balance_excluded') { if (value) updated.balance_excluded = true; else delete updated.balance_excluded; }
     // ⚠️ Le chiffre du pouvoir SUIT le pouvoir : un `value` traîné sur un
     // pouvoir de durée est du tick que plus personne ne lit (400 au contrat),
     // et une `duration` traînée sur les dix autres est un champ sans lecteur.

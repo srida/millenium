@@ -116,6 +116,9 @@ export interface Card {
    * jamais sur la carte du catalogue.
    */
   _discounted_from?: SummonCondition[];
+  /** Écartée des statistiques d'équilibrage (admin, agrégats de simulation,
+   *  `scripts/rebalance-ranges.js`). Aucun effet en jeu. */
+  balance_excluded?: boolean;
 }
 
 // ── Attributs (synergies) ──

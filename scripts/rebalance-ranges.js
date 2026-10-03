@@ -11,6 +11,9 @@
 // Le principe : la mêlée encaisse et va vite, la distance est FRAGILE et lente.
 // Un tireur fragile est un tireur qu'il faut PROTÉGER — c'est-à-dire placer.
 //
+// Les cartes marquées `balance_excluded` (case de la fiche carte en admin) ne
+// sont PAS retouchées.
+//
 // Le script applique un COEFFICIENT PAR PORTÉE, jamais une valeur cible : les
 // écarts réglés à la main entre deux cartes de même portée sont conservés.
 //
@@ -88,9 +91,11 @@ async function main() {
 
   const cards = JSON.parse(fs.readFileSync(path.join(SOURCE, 'cards.json'), 'utf8'));
   const tally = {};
+  let skipped = 0;
   const out = cards.map(card => {
     const st = card.stats;
-    if (!st) return card;
+    // Une carte exclue de l'équilibrage (utilitaire) garde ses stats telles quelles.
+    if (!st || card.balance_excluded) { if (card.balance_excluded) skipped++; return card; }
     const cls = Math.min(4, Math.max(1, Number(st.range) || 1));
     const k = COEFFS[cls];
     const next = {
@@ -105,7 +110,7 @@ async function main() {
     return { ...card, stats: next };
   });
 
-  console.log(`[rebalance-ranges] source : ${SOURCE}`);
+  console.log(`[rebalance-ranges] source : ${SOURCE} — ${skipped} carte(s) exclue(s) de l'équilibrage, laissée(s) telle(s) quelle(s)`);
   for (const [cls, t] of Object.entries(tally)) {
     console.log(`  portée ${cls}${cls === '4' ? '+' : ' '} : ${String(t.cards).padStart(4)} cartes · PV moy. ${(t.hpBefore / t.cards).toFixed(0)} → ${(t.hpAfter / t.cards).toFixed(0)} · ATQ moy. ${(t.atkBefore / t.cards).toFixed(1)} → ${(t.atkAfter / t.cards).toFixed(1)} · coeffs ${JSON.stringify(COEFFS[cls])}`);
   }

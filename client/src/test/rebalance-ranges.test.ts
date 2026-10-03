@@ -51,6 +51,14 @@ describe('rebalance-ranges', () => {
     expect(ticksForRate(r3.stats.attack_rate)).toBe(ticksForRate(84) + 1);
   });
 
+  // Mutation : retirer le test `balance_excluded` → ROUGE.
+  it('une carte exclue de l\'équilibrage n\'est pas retouchée', () => {
+    const { read } = runTo([{ ...card('X', 3), balance_excluded: true }, card('R3', 3)]);
+    const [x, r3] = read();
+    expect(x.stats.hp).toBe(200);
+    expect(r3.stats.hp).toBe(160);
+  });
+
   it('--coeffs surcharge une classe sans toucher aux autres', () => {
     const { read } = runTo([card('M', 1), card('R3', 3)], ['--coeffs={"3":{"hp":0.5}}']);
     const [m, r3] = read();
