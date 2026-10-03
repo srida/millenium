@@ -483,6 +483,7 @@ Six types de lot : `gold`, `gems`, `card`, `pack`, `avatar`, `variant`.
 
 - ⚠️ **Il n'y a pas de `sync` dans `gifts.js`, et ce n'est pas un oubli** : le module ne tire aucune offre, tout se déduit à la lecture. `refresh` n'est qu'un alias de `getSnapshot`.
 - Gardes SQL : quotidien `ON CONFLICT(user_id) DO UPDATE … WHERE daily_day IS NOT @day` — ⚠️ **`IS NOT` et non `!=`**, qui rendrait `NULL` (donc faux) à la première récupération ; ponctuels `INSERT OR IGNORE` sur `(user_id, gift_id)`.
+- **Expiration** : `expires_at` (ms, facultatif, saisi en admin, absent = éternel). Passé cette date, le cadeau n'est ni récupérable ni listé — **récupérés compris** ; le registre `user_gifts` reste intact (repousser la date le ressuscite). Déduit à la lecture (`gifts.isExpired`), aucune purge. Date illisible : 400 à l'écriture, cadeau ignoré au chargement.
 - ⚠️ `created_at` est **estampillé par le serveur** à la création et **préservé** par le `PUT`, jamais lu du corps. L'import le **conserve** quand il en reçoit un (sinon `sync-data.js` re-daterait tout).
 - ⚠️ **Un `created_at` absent fait tomber le cadeau au chargement** (avec un `console.warn`) : c'est le seul champ sans lecture de repli sûre.
 - Un lot mal formé est **ignoré** (`normalizeLot`) ; un cadeau dont **tous** les lots sont invalides n'existe pas. `validateGift` rend le même verdict à l'écriture (400) qu'au chargement.

@@ -285,6 +285,38 @@ describe('récupération d\'un cadeau ponctuel', () => {
   });
 });
 
+describe('expiration', () => {
+  it('un cadeau périmé n\'est ni récupérable ni listé, récupéré ou non', () => {
+    const future = Date.now() + 3_600_000;
+    writeGifts([
+      gift('G_EXP_TAKEN', [{ type: 'gold', amount: 100 }], { expires_at: future }),
+      gift('G_EXP_OPEN', [{ type: 'gold', amount: 100 }], { expires_at: future }),
+      gift('G_EXP_NEVER', [{ type: 'gold', amount: 100 }]),
+    ]);
+    const user = newUser();
+    expect(gifts.claimGift(user(), 'G_EXP_TAKEN').ok).toBe(true);
+    expect(gifts.getSnapshot(user()).gifts.map((g: any) => g.id).sort())
+      .toEqual(['G_EXP_NEVER', 'G_EXP_OPEN', 'G_EXP_TAKEN']);
+
+    // Même catalogue, dates passées : les deux disparaissent, l'éternel reste.
+    const past = Date.now() - 1000;
+    writeGifts([
+      gift('G_EXP_TAKEN', [{ type: 'gold', amount: 100 }], { expires_at: past }),
+      gift('G_EXP_OPEN', [{ type: 'gold', amount: 100 }], { expires_at: past }),
+      gift('G_EXP_NEVER', [{ type: 'gold', amount: 100 }]),
+    ]);
+    expect(gifts.getSnapshot(user()).gifts.map((g: any) => g.id)).toEqual(['G_EXP_NEVER']);
+    const before = progression.getProgression(user()).gold;
+    expect(gifts.claimGift(user(), 'G_EXP_OPEN').ok).toBe(false);
+    expect(progression.getProgression(user()).gold).toBe(before);
+  });
+
+  it('validateGift refuse une date illisible', () => {
+    expect(gifts.validateGift(gift('G_X', [{ type: 'gold', amount: 1 }], { expires_at: 'abc' })).ok).toBe(false);
+    expect(gifts.validateGift(gift('G_X', [{ type: 'gold', amount: 1 }], { expires_at: null })).ok).toBe(true);
+  });
+});
+
 describe('lots sans effet — le cadeau est consommé par le geste, pas par son rendement', () => {
   it('une carte déjà possédée ne fait pas échouer la récupération', () => {
     const card = POOL[2].id;

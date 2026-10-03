@@ -134,6 +134,18 @@ function normalizeGift(raw) {
     return null;
   }
 
+  // `expires_at` est facultatif (absent/null = ne périme jamais). Contrairement
+  // à `created_at`, il est saisi par l'admin ; une valeur illisible fait tomber
+  // le cadeau, bruyamment : l'ignorer en ferait un cadeau éternel.
+  let expiresAt = null;
+  if (raw.expires_at != null && raw.expires_at !== '') {
+    expiresAt = Number(raw.expires_at);
+    if (!Number.isFinite(expiresAt) || expiresAt <= 0) {
+      console.warn(`[gifts] ${id} : expires_at invalide, cadeau ignoré`);
+      return null;
+    }
+  }
+
   const contents = (Array.isArray(raw.contents) ? raw.contents : [])
     .slice(0, MAX_LOTS_PER_GIFT)
     .map(normalizeLot)
@@ -147,6 +159,7 @@ function normalizeGift(raw) {
     name: String(raw.name ?? id).slice(0, 120),
     description: String(raw.description ?? '').slice(0, 500),
     created_at: createdAt,
+    expires_at: expiresAt,
     contents: Object.freeze(contents),
   });
 }
@@ -169,6 +182,13 @@ function validateGift(raw) {
   if (!id) errors.push({ field: 'id', message: 'Un identifiant est requis.' });
   if (id.length > 64) errors.push({ field: 'id', message: 'Identifiant trop long (64 caractères maximum).' });
   if (!String(raw?.name ?? '').trim()) errors.push({ field: 'name', message: 'Un nom est requis.' });
+
+  if (raw?.expires_at != null && raw.expires_at !== '') {
+    const exp = Number(raw.expires_at);
+    if (!Number.isFinite(exp) || exp <= 0) {
+      errors.push({ field: 'expires_at', message: "Date d'expiration illisible." });
+    }
+  }
 
   const contents = Array.isArray(raw?.contents) ? raw.contents : [];
   if (!contents.length) {
@@ -210,6 +230,15 @@ function validateGift(raw) {
  */
 function isEligible(def, user) {
   return Number(def.created_at) >= Number(user?.created_at ?? 0);
+}
+
+/**
+ * Un cadeau périmé disparaît ENTIÈREMENT : ni récupérable, ni listé — y compris
+ * chez ceux qui l'avaient déjà pris. Le registre (`user_gifts`) n'est pas touché ;
+ * le cadeau n'est simplement plus servi. Déduit à la lecture, aucune purge.
+ */
+function isExpired(def, now = Date.now()) {
+  return def.expires_at != null && now >= def.expires_at;
 }
 
 // --- Registre ---
@@ -344,7 +373,7 @@ function totalsOf(lines) {
 const claimGift = db.transaction((user, giftId) => {
   const id = String(giftId ?? '').slice(0, 64);
   const def = id ? giftDef(id) : null;
-  if (!def || !isEligible(def, user)) return { ok: false, reason: 'Cadeau introuvable.' };
+  if (!def || !isEligible(def, user) || isExpired(def)) return { ok: false, reason: 'Cadeau introuvable.' };
 
   const res = stmt.claimGift.run(user.id, def.id, Date.now());
   if (!res.changes) return { ok: false, reason: 'Cadeau déjà récupéré.' };
@@ -404,14 +433,16 @@ function getSnapshot(user) {
   const day = dayKey();
   const daily = dailyState(user.id);
   const claimed = claimedMap(user.id);
+  const now = Date.now();
 
   const gifts = catalog()
-    .filter(def => isEligible(def, user))
+    .filter(def => isEligible(def, user) && !isExpired(def, now))
     .map(def => ({
       id: def.id,
       name: def.name,
       description: def.description,
       created_at: def.created_at,
+      expires_at: def.expires_at,
       contents: def.contents.map(lotView),
       claimed: claimed.has(def.id),
       claimed_at: claimed.get(def.id) ?? null,
@@ -442,6 +473,6 @@ function refresh(user) {
 
 module.exports = {
   DAILY_REWARD, LOT_TYPES, CURRENCY_LOTS, MAX_LOT_AMOUNT, MAX_LOTS_PER_GIFT, GIFTS_FILE,
-  catalog, giftDef, normalizeGift, normalizeLot, validateGift, isEligible,
+  catalog, giftDef, normalizeGift, normalizeLot, validateGift, isEligible, isExpired,
   claimDaily, claimGift, getSnapshot, refresh,
 };

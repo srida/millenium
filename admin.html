@@ -7297,6 +7297,7 @@ function renderGiftDetail() {
     <div class="form-grid">
       <div class="field"><label>ID</label>${isNewGift ? idPickerHtml('gift', g.id) : idFieldHtmlFor('gift', g.id, { readonly: true })}</div>
       <div class="field"><label>Nom (vu par le joueur)</label><input id="gf-name" value="${esc(g.name || '')}"></div>
+      <div class="field"><label>Expire le (optionnel)</label><input id="gf-expires" type="datetime-local" value="${g.expires_at ? esc(_toLocalInput(g.expires_at)) : ''}"></div>
       <div class="field" style="grid-column:1/-1"><label>Description (optionnelle)</label><input id="gf-description" value="${esc(g.description || '')}" placeholder="ex. Compensation suite à l'interruption du 12 août."></div>
     </div>
 
@@ -7317,6 +7318,9 @@ function renderGiftDetail() {
       Recréer un cadeau sous un <b>id déjà utilisé</b> le laisse silencieusement
       inaccessible à tous ceux qui avaient pris le premier. Même piège que la
       prime de complétion d'un pack, mémorisée par id.</p>
+      <p>⚠️ <b>À l'expiration, le cadeau disparaît pour tout le monde</b> — y compris
+      de la liste des cadeaux déjà récupérés. Les récupérations restent enregistrées
+      (repousser la date le fait réapparaître tel quel).</p>
       <p>Un lot « booster de pack » offre <b>une</b> ouverture du pack choisi (jamais
       le pack entier), avec les mêmes règles qu'un booster acheté : zéro doublon,
       et rien de ce que le joueur possède déjà. Un lot qui ne peut rien apporter
@@ -7337,8 +7341,15 @@ function renderGiftDetail() {
   `;
 }
 
+function _toLocalInput(ms) {
+  const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60000);
+  return d.toISOString().slice(0, 16);
+}
+
 function _collectGiftFields() {
+  const exp = document.getElementById('gf-expires')?.value;
   return {
+    expires_at: exp ? new Date(exp).getTime() : null,
     id: document.getElementById('gf-id')?.value.trim() || selectedGift.id,
     name: document.getElementById('gf-name')?.value.trim() || '',
     description: document.getElementById('gf-description')?.value.trim() || '',
