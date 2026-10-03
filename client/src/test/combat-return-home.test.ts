@@ -106,6 +106,30 @@ describe('GameSession._returnHome — filet de repositionnement', () => {
     expect(board.getUnit(unitA.position!)).toBe(unitA);
   });
 
+  // `_returnHome` retire tout le monde (`removeUnit`, qui laisse `position`
+  // intacte) puis rappelle `moveUnit`, qui vidait la case de départ LUE DANS
+  // `position` sans vérifier qui l'occupe. Une unité finie sur la case d'origine
+  // d'une autre, rentrée avant elle, effaçait donc celle-ci de `board.grid` :
+  // `Scene3D.refresh()` retirait sa carte, et l'unité sortait de la partie.
+  it('une unité finie sur la case d\'origine d\'une autre ne l\'efface pas en rentrant', () => {
+    const session = makeSession();
+    const board = session.board;
+    const card = makeCard({ id: 'FIX', summon_conditions: [] });
+
+    const unitA = spawn(board, card, 'player', { col: 2, row: 0 });
+    const unitB = spawn(board, card, 'player', { col: 1, row: 3 });
+    // Combat : B part chez l'adversaire, A marche sur la case d'origine de B.
+    board.moveUnit(unitB, { col: 3, row: 8 });
+    board.moveUnit(unitA, { col: 1, row: 3 });
+
+    const overflow = (session as any)._returnHome([unitB, unitA], 'player');
+
+    expect(overflow).toHaveLength(0);
+    expect(board.getUnit({ col: 1, row: 3 })).toBe(unitB);
+    expect(board.getUnit({ col: 2, row: 0 })).toBe(unitA);
+    expect(board.getAllUnits()).toHaveLength(2);
+  });
+
   // `Board.moveUnit` refuse désormais une destination hors limites (comme
   // `placeUnit`), au lieu de l'écrire silencieusement dans une case que
   // `getAllUnits`/`rowScan` n'énumèrent jamais. `_returnHome` doit absorber ce

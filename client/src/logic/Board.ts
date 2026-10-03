@@ -78,8 +78,13 @@ export class Board {
     // deviendrait invisible : `getAllUnits`/`rowScan` n'énumèrent que
     // `[0, rows)`. Un échec bruyant ici vaut mieux qu'une disparition muette.
     if (!this.isInBounds(to)) throw new Error(`Out of bounds: ${JSON.stringify(to)}`);
+    // ⚠️ Ne vider la case de départ que si l'unité l'occupe ENCORE (même garde
+    // que `removeUnit`) : `removeUnit` laisse `position` intacte, et
+    // `GameSession._returnHome` rappelle `moveUnit` sur des unités déjà
+    // retirées — la case lue ici peut alors appartenir à une autre unité,
+    // qui disparaissait de la grille (et de l'écran) en fin de combat.
     const from = unit.position;
-    if (from) this.grid[from.col][from.row] = null;
+    if (from && this.grid[from.col]?.[from.row] === unit) this.grid[from.col][from.row] = null;
     this.grid[to.col][to.row] = unit;
     unit.position = { col: to.col, row: to.row };
   }
