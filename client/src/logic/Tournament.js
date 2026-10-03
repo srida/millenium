@@ -102,3 +102,67 @@ export function isPlayerEliminated(tournament) {
   const allMatches = tournament.rounds.flat();
   return allMatches.some(m => m.winner && !m.winner.isPlayer && m.players.some(p => p.isPlayer));
 }
+
+// ---------------------------------------------------------------------------
+//  Persistance (le bracket est repris d'un appareil à l'autre — cf. tournamentStore)
+// ---------------------------------------------------------------------------
+
+/**
+ * Forme sérialisable, compacte : un match ne porte que les ids de ses joueurs
+ * et l'INDEX de son vainqueur. Le bracket réel partage des objets (le vainqueur
+ * d'un match EST l'un de ses `players`, qui EST un participant) ; un
+ * `JSON.stringify` direct dupliquerait ces objets, deck compris, à chaque round.
+ */
+export function serializeTournament(tournament) {
+  return {
+    playerDeckName: tournament.playerDeckName,
+    currentRoundIndex: tournament.currentRoundIndex,
+    participants: tournament.participants,
+    rounds: tournament.rounds.map(round => round.map(m => ({
+      id: m.id,
+      players: m.players.map(p => p.id),
+      wins: [...m.wins],
+      games: [...m.games],
+      winnerSlot: m.winner ? m.players.indexOf(m.winner) : null,
+    }))),
+  };
+}
+
+/**
+ * Inverse de `serializeTournament`, ou `null` si la donnée est mal formée (une
+ * donnée serveur ne doit jamais faire tomber l'écran). ⚠️ Rétablit l'identité
+ * des objets — l'écran compare `match.winner === p` — ET recale le compteur
+ * d'ids de matchs : sans cela, le round suivant réutiliserait des ids déjà pris
+ * et `finishGame` retrouverait le mauvais match.
+ */
+export function restoreTournament(data) {
+  try {
+    if (!data || !Array.isArray(data.participants) || !Array.isArray(data.rounds)) return null;
+    const byId = new Map(data.participants.map(p => [p.id, p]));
+    let maxId = 0;
+    const rounds = data.rounds.map(round => round.map(m => {
+      const players = m.players.map(id => byId.get(id));
+      if (players.length !== 2 || players.some(p => !p)) throw new Error('joueur inconnu');
+      maxId = Math.max(maxId, m.id);
+      const slot = m.winnerSlot;
+      return {
+        id: m.id,
+        players,
+        wins: [m.wins[0] | 0, m.wins[1] | 0],
+        games: Array.isArray(m.games) ? [...m.games] : [],
+        winner: slot === 0 || slot === 1 ? players[slot] : null,
+      };
+    }));
+    if (rounds.length === 0) return null;
+    _nextMatchId = Math.max(_nextMatchId, maxId + 1);
+    const idx = data.currentRoundIndex | 0;
+    return {
+      playerDeckName: data.playerDeckName,
+      participants: data.participants,
+      rounds,
+      currentRoundIndex: Math.min(Math.max(idx, 0), rounds.length - 1),
+    };
+  } catch {
+    return null;
+  }
+}

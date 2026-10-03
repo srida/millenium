@@ -153,7 +153,8 @@ BOARD_BG_DIR = process.env.BOARD_BG_DIR || path.join(ASSETS_ROOT, 'board_backgro
 | `POST /api/auth/{forgot,reset}-password` | Public (rate-limité) | **Révoque toutes les sessions du compte** |
 | `GET/PUT /api/profile/me` | Connecté | Profil (l'appartenance de l'avatar est vérifiée) |
 | `GET /api/users/search`, `/api/friends*` | Connecté | Recherche, amis, demandes |
-| `GET/PUT /api/me/decks` | Connecté | Synchro des decks (`DeckRepository.pull` / `flushSync`) |
+| `GET/PUT /api/me/decks` | Connecté | Synchro des decks ; le `PUT` **fusionne par deck** et rend le livre fusionné (`DeckRepository.pull` / `flushSync`) |
+| `GET/PUT/DELETE /api/me/tournament` | Connecté (`PUT` 120/min) | Bracket de tournoi en cours, repris d'un appareil à l'autre |
 | `GET /api/me/progression` | Connecté | Progression + collection + barème des paliers |
 | `POST /api/me/levels/claim` | Connecté | Récupère **tous** les paliers dus |
 | `GET /api/me/missions` · `POST …/events` · `…/:id/claim` · `…/weekly/:points/claim` · `…/:id/reroll` | Connecté (20–30/min) | Missions |
@@ -187,6 +188,7 @@ Toutes les mutations renvoient **l'instantané complet + la progression à jour*
 | `bots.js` | Identités et decks des adversaires artificiels |
 | `pvplog.js` · `ailog.js` | Outils de diagnostic (feuilles, retirables d'un bloc) |
 | `json-cache.js` · `asset-dirs.js` | Cache au mtime, chemins d'assets |
+| `deck-book.js` | Fusion par deck de deux deck books (`mergeBooks`, pur) |
 | `speed-scale.mjs` | Compteur 0–100 ↔ ticks, rythmes ET durées (pur, ESM, partagé racine ↔ client ↔ `admin.html`) |
 | `tiers.js` | Résolution « attributs de catégorie `Tiers` → numéros » (jumeau de `logic/Tiers.ts`) |
 | `card-contract.js` | Les catégories d'attributs qu'une carte doit porter (pur, partagé avec l'audit) |
@@ -194,7 +196,7 @@ Toutes les mutations renvoient **l'instantané complet + la progression à jour*
 | `effect-schema.mjs` | Le vocabulaire d'effets : quel type, sur quel porteur, quels champs, quel moment (pur, partagé `admin.html` ↔ client) |
 
 **Règle anti-cycle** — elle n'est écrite nulle part ailleurs que ici :
-- **Feuilles** (ne requièrent que `db` / `json-cache`, personne ne les requiert en retour) : `sets.js`, `variants.js`, `decks.js`, `pvplog.js`, `ailog.js`, `asset-dirs.js`, `tiers.js`, `card-contract.js`.
+- **Feuilles** (ne requièrent que `db` / `json-cache`, personne ne les requiert en retour) : `sets.js`, `variants.js`, `decks.js`, `pvplog.js`, `ailog.js`, `asset-dirs.js`, `tiers.js`, `card-contract.js`, `deck-book.js`.
 - **Puits** (requièrent les autres, aucun ne doit les requérir) : `levels.js`, `gifts.js`.
 - `sets.js` existe parce que `shop.js` (boosters) et `progression.js` (dotation) en ont tous deux besoin, et que `shop.js` requiert déjà `progression.js`.
 - `cosmetics.js`, `gifts.js` et `arcade.js` importent **littéralement** le calendrier de `shop.js` : `const { dayKey, nextRotationAt, seededRandom } = require('./shop')`.
@@ -507,7 +509,7 @@ Une run par jour, **4 duels solo enchaînés** contre des decks publics de diffi
 Gain de fin de parcours : **200 golds + 50 XP**, une seule fois au 4ᵉ duel gagné. Une défaite **clôt la run**. Croissance stricte des trois axes verrouillée par golden test.
 
 1. **Une run par jour** : `start` refuse dès qu'une run porte la date courante, **quel que soit son état**. Lire ne consomme rien.
-2. **La run est serveur, donc reprenable** (contrairement au Tournoi, dont le bracket vit en mémoire et se perd au F5).
+2. **La run est serveur, donc reprenable** (comme le bracket de Tournoi, persisté lui aussi).
 3. **Le client nomme, le serveur chiffre** : il rapporte `win`/`loss` sur un **index** de duel.
 
 - Le blob de run porte la **composition** du deck adverse, pas seulement son id (un deck retouché en admin ne doit pas casser la reprise). Le deck du joueur est figé au lancement (`run.deck_name`) ; son *contenu* ne l'est pas.
@@ -1743,12 +1745,20 @@ saveDeck / loadDeck / deleteDeck / renameDeck / deckExists / findFreeName
 getActiveDeck / setActiveDeck / listDecks
 getDeckColor / setDeckColor / getDeckTags / setDeckTags
 getDeckVariants / setDeckVariants        // { card_id: variant_id }
-await pull()        // GET /api/me/decks → écrase le local
-await flushSync()   // PUT /api/me/decks — push debouncé, forcé
+await pull()        // cache d'un autre compte/invité : le serveur écrase ; sinon fusion (= flushSync)
+await flushSync()   // PUT /api/me/decks — envoie le bloc, applique le livre FUSIONNÉ rendu ; true si le cache a changé
+await refresh()     // flushSync au plus toutes les 30 s (retour au premier plan, réseau revenu)
 handleLogout()      // coupe la synchro, garde le local
 ```
 
 Structure d'un deck : `{ "1": ["CORE_001", …], "2": […], "3": […], "4": […], "5": […] }`.
+
+**Multi-appareils** — le bloc synchronisé est `{ decks, meta, active, stamps, deleted, active_ts }` ; `deck-book.js` (`mergeBooks`) fusionne **par deck**, dernier horodatage gagnant.
+- ⚠️ **Le serveur fusionne, il ne remplace plus** : un `PUT` renvoie le livre fusionné que le client applique. Égalité présent/supprimé → le deck survit ; un livre sans horodatage (ancien client) pèse 0 : il peut **ajouter**, jamais écraser ni supprimer. Horodatages futurs plafonnés à `now + 5 min` ; pierres tombales purgées à 90 j.
+- ⚠️ **Toute mutation horodate** (`_touch` / `_tombstone` / `_touchActive`) — un nouveau setter qui oublie `_touch` n'est jamais synchronisé. Renommer = pierre tombale sur l'ancien nom + horodatage du nouveau.
+- ⚠️ Une réponse qui arrive après une modification locale **n'est pas appliquée** (`_mutationSeq`) : le local est repoussé.
+- `app/accountSync.ts` : `refresh()` au retour au premier plan / réseau revenu, `flushIfPending()` au passage en arrière-plan. ⚠️ **Jamais en partie** (`game`, `game_pvp`) : `deckStore.refresh` repose les illustrations du deck actif par-dessus celles du deck engagé.
+- Le cache d'un autre compte (ou d'un invité) n'est **pas** fusionné : le serveur écrase s'il a des decks, sinon migration one-shot des decks locaux.
 
 ## DeckBuilder et deck actif
 
@@ -1784,7 +1794,10 @@ buildSession(deckName, mode, enemyDeckName, enemyDeck, playerDeck, enemyBonus)
 Bracket local à 16, **entièrement client** (`logic/Tournament.js`), élimination directe, chaque match en Bo3 (2 manches gagnantes).
 - Les matchs **entre IA** sont simulés (`MatchSimulator`, headless déterministe), résolus dès l'ouverture d'un round.
 - Les matchs **du joueur** se **jouent** : chaque manche lance une vraie partie solo (`GameScreen` avec `params.tournament`) contre le deck public adverse injecté via `buildSession`. Victoire/défaite créditée, **égalité non comptée** (manche rejouée), abandon = manche concédée.
-- Le bracket vit dans `stores/tournamentStore.ts` et non dans l'état du composant (l'écran est démonté pendant qu'on joue) ; `pendingGame` est le contrat entre les deux écrans. ⚠️ Il vit en **mémoire** et se perd au F5 — c'est la différence de fond avec l'Arcade.
+- Le bracket vit dans `stores/tournamentStore.ts` et non dans l'état du composant (l'écran est démonté pendant qu'on joue) ; `pendingGame` est le contrat entre les deux écrans. Connecté, il est **persisté** (`user_tournament`, `GET/PUT/DELETE /api/me/tournament`) ; en invité il reste en **mémoire** et se perd au F5.
+- `serializeTournament` / `restoreTournament` (`logic/Tournament.js`) : un match ne porte que des **ids** de joueurs et un `winnerSlot`. ⚠️ `restoreTournament` rétablit l'**identité** des objets (l'écran compare `match.winner === p`) et **recale `_nextMatchId`** — sans cela le round suivant réutilise des ids et `finishGame` retrouve le mauvais match.
+- ⚠️ **Garde de révision dans le SQL** (`WHERE @rev > user_tournament.rev`) : un appareil resté sur un bracket périmé reçoit **409** avec la version serveur, qu'il adopte. `DELETE` pose une **pierre tombale** (`rev + 1`, données `null`), jamais un `DELETE` de ligne — sinon l'appareil périmé ressuscite le bracket.
+- `pendingGame` n'est **pas** persisté : une manche en cours abandonnée en changeant d'appareil est rejouée. `hydrate()` n'écrase jamais un appareil qui a une manche en cours.
 - `logic/Tournament.js` transporte un `avatarId` par participant et **ne construit aucune URL**.
 - ⚠️ **`MatchSimulator` n'est PAS la simulation d'équilibrage** : il rejoue une boucle allégée (pas de vétérance, unités réanimées ignorées, aucun terrain). Seul `Tournament.js` en dépend.
 

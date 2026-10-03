@@ -11,6 +11,7 @@ const cosmetics = require('../cosmetics');
 const arcade = require('../arcade');
 const gifts = require('../gifts');
 const pvplog = require('../pvplog');
+const { mergeBooks } = require('../deck-book');
 const challenges = require('../challenges');
 
 const router = express.Router();
@@ -705,14 +706,68 @@ router.get('/me/decks', auth.requireUser, (req, res) => {
   res.json({ book });
 });
 
+// ⚠️ Le serveur FUSIONNE (par deck, dernier horodatage gagnant) au lieu de
+// remplacer : deux appareils qui poussent chacun leur bloc ne s'écrasent plus.
+// Lecture-fusion-écriture dans le même tick (better-sqlite3 est synchrone) :
+// atomique sans transaction. La réponse rend le livre fusionné, que le client
+// applique à son cache.
 router.put('/me/decks', auth.requireUser, (req, res) => {
   const book = req.body && req.body.book;
   if (!book || typeof book !== 'object') return res.status(400).json({ error: 'book requis' });
-  // On stocke le bloc tel quel (decks + meta + active). Garde-fou de taille.
-  const data = JSON.stringify(book);
+  if (JSON.stringify(book).length > 1_000_000) return res.status(413).json({ error: 'deck book trop volumineux' });
+  const row = stmt.deckBookByUser.get(req.user.id);
+  let current = null;
+  if (row) { try { current = JSON.parse(row.data); } catch { current = null; } }
+  const merged = mergeBooks(current, book);
+  const data = JSON.stringify(merged);
   if (data.length > 1_000_000) return res.status(413).json({ error: 'deck book trop volumineux' });
   stmt.upsertDeckBook.run({ user_id: req.user.id, data, updated_at: Date.now() });
-  res.json({ ok: true });
+  res.json({ ok: true, book: merged });
+});
+
+// =====================================================================
+//  TOURNOI EN COURS (un bracket par joueur, repris d'un appareil à l'autre)
+// =====================================================================
+// Le bracket se joue côté client ; le serveur le garde et ne l'interprète pas.
+// ⚠️ Rien d'économique ici : la victoire reste rapportée par la route `claim`
+// (le client nomme une raison, jamais un montant).
+const MAX_TOURNAMENT_BYTES = 300_000;
+
+router.get('/me/tournament', auth.requireUser, (req, res) => {
+  const row = stmt.tournamentByUser.get(req.user.id);
+  let tournament = null;
+  if (row) { try { tournament = JSON.parse(row.data); } catch { tournament = null; } }
+  res.json({ tournament, rev: row ? row.rev : 0 });
+});
+
+router.put('/me/tournament', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 120 }), (req, res) => {
+  const t = req.body && req.body.tournament;
+  const rev = Number(req.body && req.body.rev);
+  if (!t || typeof t !== 'object' || !Array.isArray(t.rounds) || !Array.isArray(t.participants)) {
+    return res.status(400).json({ error: 'tournament requis' });
+  }
+  if (!Number.isInteger(rev) || rev < 1) return res.status(400).json({ error: 'rev requis' });
+  const data = JSON.stringify(t);
+  if (data.length > MAX_TOURNAMENT_BYTES) return res.status(413).json({ error: 'tournoi trop volumineux' });
+  const { changes } = stmt.upsertTournament.run({ user_id: req.user.id, rev, data, updated_at: Date.now() });
+  if (changes === 0) {
+    // Un autre appareil a avancé : on rend sa version, le client l'adopte.
+    const row = stmt.tournamentByUser.get(req.user.id);
+    let tournament = null;
+    if (row) { try { tournament = JSON.parse(row.data); } catch { tournament = null; } }
+    return res.status(409).json({ error: 'révision périmée', tournament, rev: row ? row.rev : 0 });
+  }
+  res.json({ ok: true, rev });
+});
+
+// ⚠️ Pierre tombale, pas un DELETE : une ligne effacée laisserait un appareil
+// resté sur l'ancien bracket le ressusciter. On garde la révision (rev + 1,
+// données `null`) ; un nouveau tournoi repart de cette révision.
+router.delete('/me/tournament', auth.requireUser, (req, res) => {
+  const row = stmt.tournamentByUser.get(req.user.id);
+  const rev = (row ? row.rev : 0) + 1;
+  stmt.upsertTournament.run({ user_id: req.user.id, rev, data: 'null', updated_at: Date.now() });
+  res.json({ ok: true, rev });
 });
 
 // =====================================================================

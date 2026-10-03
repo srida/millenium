@@ -3,7 +3,7 @@
 // matchs joués : les matchs IA sont simulés, celui du joueur ne l'est JAMAIS
 // (il se joue manche par manche via GameScreen), et le report du résultat
 // dans le bracket passe par tournamentStore.finishGame().
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   createTournament, resolveAiMatches, findPlayerMatch, isRoundComplete,
   buildNextRound, isTournamentComplete, getChampion, isPlayerEliminated,
@@ -128,5 +128,56 @@ describe('tournamentStore — report des manches jouées', () => {
     }
     expect(isTournamentComplete(t)).toBe(true);
     expect(getChampion(t).isPlayer).toBe(false);
+  });
+});
+
+describe('Tournament — persistance (reprise sur un autre appareil)', () => {
+  it('serialize → restore : identité des objets, scores et vainqueurs préservés', async () => {
+    const { serializeTournament, restoreTournament } = await import('../logic/Tournament.js');
+    const t = makeTournament();
+    resolveAiMatches(t.rounds[0], FAKE_DEPS as any);
+    const wire = JSON.parse(JSON.stringify(serializeTournament(t)));   // vrai aller-retour JSON
+    const r = restoreTournament(wire)!;
+
+    expect(r.participants).toHaveLength(16);
+    for (const [i, m] of r.rounds[0].entries()) {
+      const orig = t.rounds[0][i];
+      expect(m.id).toBe(orig.id);
+      expect(m.wins).toEqual(orig.wins);
+      expect((m.winner as any)?.id ?? null).toBe((orig.winner as any)?.id ?? null);
+      // L'écran compare `match.winner === p` : l'identité doit être rétablie.
+      if (m.winner) expect(m.players).toContain(m.winner);
+      // Les joueurs d'un match sont LES participants, pas des copies.
+      for (const p of m.players) expect(r.participants).toContain(p);
+    }
+    expect((findPlayerMatch(r) as any)?.id).toBe((findPlayerMatch(t) as any)?.id);
+  });
+
+  it('les ids du round suivant ne réutilisent aucun id existant après un RECHARGEMENT', async () => {
+    // Session 1 : un module NEUF, donc des ids de match qui partent de 1.
+    vi.resetModules();
+    const s1 = await import('../logic/Tournament.js');
+    const publicDecks = Array.from({ length: 15 }, (_, i) => ({ name: `IA ${i + 1}`, deck: { ...DECK } }));
+    const t = s1.createTournament('Mon deck', { playerDeck: { ...DECK }, publicDecks });
+    s1.resolveAiMatches(t.rounds[0], FAKE_DEPS as any);
+    const pm = s1.findPlayerMatch(t) as any;
+    pm.wins = [2, 0]; pm.winner = pm.players[0];
+    const wire = JSON.parse(JSON.stringify(s1.serializeTournament(t)));
+
+    // Session 2 (F5, autre appareil) : le compteur repart de 1 ; seul le recalage
+    // de `restoreTournament` empêche le round suivant de réutiliser les ids 1..8.
+    vi.resetModules();
+    const s2 = await import('../logic/Tournament.js');
+    const r = s2.restoreTournament(wire)!;
+    s2.buildNextRound(r);
+    const ids = r.rounds.flat().map((m: any) => m.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('rejette une donnée mal formée au lieu de jeter', async () => {
+    const { restoreTournament } = await import('../logic/Tournament.js');
+    expect(restoreTournament(null)).toBeNull();
+    expect(restoreTournament({ participants: [], rounds: [] })).toBeNull();
+    expect(restoreTournament({ participants: [{ id: 0 }], rounds: [[{ id: 1, players: [0, 9], wins: [0, 0] }]] })).toBeNull();
   });
 });

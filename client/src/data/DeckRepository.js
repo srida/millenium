@@ -36,11 +36,64 @@ function _deleteMeta(name) {
 //  Le localStorage reste le cache de travail synchrone ; le serveur est la
 //  source de vérité une fois connecté. Reads/writes restent synchrones ;
 //  la sync se fait en arrière-plan.
+//
+//  Multi-appareils : chaque deck porte un horodatage de dernière modification
+//  (et une pierre tombale s'il est supprimé). Le client envoie son bloc, le
+//  serveur FUSIONNE par deck (deck-book.js) et rend le livre fusionné, que le
+//  client applique. Deux appareils qui modifient des decks différents ne
+//  s'écrasent donc plus ; le même deck : la dernière modification gagne.
 // =====================================================================
+
+const SYNC_STATE_KEY = 'soulforge_deck_sync';
+const MIN_REFRESH_MS = 30_000;
+
+function loadSyncState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SYNC_STATE_KEY) || '{}');
+    return { stamps: s.stamps || {}, deleted: s.deleted || {}, active_ts: s.active_ts || 0 };
+  } catch {
+    return { stamps: {}, deleted: {}, active_ts: 0 };
+  }
+}
+
+function saveSyncState(state) {
+  localStorage.setItem(SYNC_STATE_KEY, JSON.stringify(state));
+}
+
+// Compteur de mutations locales : une réponse de sync qui arrive après une
+// modification plus récente ne doit pas l'écraser (cf. `flushSync`).
+let _mutationSeq = 0;
+
+function _touch(name) {
+  const st = loadSyncState();
+  st.stamps[name] = Date.now();
+  delete st.deleted[name];
+  saveSyncState(st);
+  _mutationSeq++;
+}
+
+function _tombstone(name) {
+  const st = loadSyncState();
+  st.deleted[name] = Date.now();
+  delete st.stamps[name];
+  saveSyncState(st);
+  _mutationSeq++;
+}
+
+function _touchActive() {
+  const st = loadSyncState();
+  st.active_ts = Date.now();
+  saveSyncState(st);
+  _mutationSeq++;
+}
 
 // Construit le bloc complet envoyé au serveur.
 function _buildBook() {
-  return { decks: load(), meta: loadMeta(), active: getActiveDeck() };
+  const st = loadSyncState();
+  return {
+    decks: load(), meta: loadMeta(), active: getActiveDeck(),
+    stamps: st.stamps, deleted: st.deleted, active_ts: st.active_ts,
+  };
 }
 
 // Écrit un bloc serveur dans le cache local (sans re-déclencher de push).
@@ -49,6 +102,15 @@ function _applyBook(book) {
   saveMeta(book?.meta ?? {});
   if (book?.active) localStorage.setItem(ACTIVE_KEY, book.active);
   else localStorage.removeItem(ACTIVE_KEY);
+  saveSyncState({
+    stamps: book?.stamps ?? {},
+    deleted: book?.deleted ?? {},
+    active_ts: book?.active_ts ?? 0,
+  });
+}
+
+function _snapshot() {
+  return JSON.stringify([load(), loadMeta(), getActiveDeck()]);
 }
 
 function _hasLocalDecks() {
@@ -56,6 +118,7 @@ function _hasLocalDecks() {
 }
 
 let _pushTimer = null;
+let _lastSyncAt = 0;
 // Push debouncé du bloc complet (no-op si non connecté).
 function _afterMutation() {
   if (!AuthClient.isLoggedIn()) return;
@@ -63,45 +126,88 @@ function _afterMutation() {
   _pushTimer = setTimeout(() => { flushSync(); }, 500);
 }
 
-// Envoi immédiat du bloc au serveur (best-effort).
+// Envoi immédiat du bloc au serveur, qui le fusionne et rend le résultat.
+// Rend `true` si le cache local a changé (un autre appareil a modifié quelque chose).
+// Hors-ligne : le cache local reste la vérité, le prochain sync renverra tout.
 export async function flushSync() {
   clearTimeout(_pushTimer);
-  if (!AuthClient.isLoggedIn()) return;
+  _pushTimer = null;
+  if (!AuthClient.isLoggedIn()) return false;
+  const seq = _mutationSeq;
+  const before = _snapshot();
   try {
-    await fetch('/api/me/decks', {
+    const res = await fetch('/api/me/decks', {
       method: 'PUT',
       credentials: 'include',
+      keepalive: true,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ book: _buildBook() }),
     });
-  } catch { /* hors-ligne : le cache local reste la vérité jusqu'au prochain push */ }
+    if (!res.ok) return false;
+    const { book } = await res.json();
+    _lastSyncAt = Date.now();
+    if (!book) return false;
+    if (seq !== _mutationSeq) {
+      // Modifié pendant le vol : on garde le local et on repousse.
+      _afterMutation();
+      return false;
+    }
+    _applyBook(book);
+    return _snapshot() !== before;
+  } catch {
+    return false; /* hors-ligne */
+  }
 }
 
 // Récupère les decks du compte. À appeler au démarrage et après login.
-//  - serveur non vide → le serveur écrase le cache local (autoritaire)
-//  - serveur vide + decks locaux jamais migrés vers CE compte → migration one-shot
+//  - cache d'un AUTRE compte (ou d'un invité) : le serveur, s'il a des decks,
+//    écrase le cache ; sinon migration one-shot des decks locaux
+//  - cache de CE compte : fusion par deck avec le serveur (`flushSync`)
+// Rend `true` si le cache local a changé.
 export async function pull() {
   const user = AuthClient.getUser();
-  if (!user) return;
+  if (!user) return false;
+  const alreadySynced = localStorage.getItem(SYNCED_USER_KEY) === user.id;
+
+  if (alreadySynced) return flushSync();
+
+  const before = _snapshot();
   let book = null;
   try {
     const res = await fetch('/api/me/decks', { credentials: 'include' });
     if (res.ok) book = (await res.json()).book;
-  } catch { return; /* hors-ligne */ }
+  } catch { return false; /* hors-ligne */ }
 
   const serverHasDecks = book && book.decks && Object.keys(book.decks).length > 0;
-  const alreadySynced = localStorage.getItem(SYNCED_USER_KEY) === user.id;
-
   if (serverHasDecks) {
     _applyBook(book);
-  } else if (!alreadySynced && _hasLocalDecks()) {
-    // Premier login sur un compte vide : on migre les decks locaux (invité).
+  } else if (_hasLocalDecks()) {
+    // Premier login sur un compte vide : on migre les decks locaux (invité),
+    // en les horodatant pour que la fusion les reconnaisse.
+    for (const name of Object.keys(load())) _touch(name);
+    _touchActive();
     await flushSync();
   } else {
     // Compte vide, rien à migrer.
     _applyBook({ decks: {}, meta: {}, active: null });
   }
   localStorage.setItem(SYNCED_USER_KEY, user.id);
+  return _snapshot() !== before;
+}
+
+// Pousse tout de suite ce que le debounce retenait encore (passage en arrière-plan).
+export function flushIfPending() {
+  if (_pushTimer) return flushSync();
+  return Promise.resolve(false);
+}
+
+// Resynchronisation opportuniste (retour au premier plan, réseau revenu) :
+// au plus une fois toutes les 30 s. Rend `true` si le cache local a changé.
+export async function refresh() {
+  if (!AuthClient.isLoggedIn()) return false;
+  if (Date.now() - _lastSyncAt < MIN_REFRESH_MS) return false;
+  _lastSyncAt = Date.now();
+  return flushSync();
 }
 
 // À appeler à la déconnexion : nettoie le cache pour repartir en invité propre.
@@ -110,6 +216,7 @@ export function handleLogout() {
   localStorage.removeItem(META_KEY);
   localStorage.removeItem(ACTIVE_KEY);
   localStorage.removeItem(SYNCED_USER_KEY);
+  localStorage.removeItem(SYNC_STATE_KEY);
 }
 
 export function getDeckColor(name) {
@@ -120,6 +227,7 @@ export function setDeckColor(name, color) {
   const meta = loadMeta();
   meta[name] = { ...(meta[name] || {}), color };
   saveMeta(meta);
+  _touch(name);
   _afterMutation();
 }
 
@@ -131,6 +239,7 @@ export function setDeckTags(name, tags) {
   const meta = loadMeta();
   meta[name] = { ...(meta[name] || {}), tags };
   saveMeta(meta);
+  _touch(name);
   _afterMutation();
 }
 
@@ -146,6 +255,7 @@ export function setDeckCardBack(name, cardBackId) {
   const meta = loadMeta();
   meta[name] = { ...(meta[name] || {}), card_back: cardBackId };
   saveMeta(meta);
+  _touch(name);
   _afterMutation();
 }
 
@@ -161,6 +271,7 @@ export function setDeckVariants(name, variants) {
   const meta = loadMeta();
   meta[name] = { ...(meta[name] || {}), variants };
   saveMeta(meta);
+  _touch(name);
   _afterMutation();
 }
 
@@ -176,6 +287,7 @@ export function setDeckFoils(name, foils) {
   const meta = loadMeta();
   meta[name] = { ...(meta[name] || {}), foils };
   saveMeta(meta);
+  _touch(name);
   _afterMutation();
 }
 
@@ -191,6 +303,7 @@ export function setDeckFinishes(name, finishes) {
   const meta = loadMeta();
   meta[name] = { ...(meta[name] || {}), finishes };
   saveMeta(meta);
+  _touch(name);
   _afterMutation();
 }
 
@@ -199,6 +312,7 @@ export function saveDeck(name, deckData) {
   const decks = load();
   decks[name] = deckData;
   save(decks);
+  _touch(name);
   _afterMutation();
 }
 
@@ -211,7 +325,8 @@ export function deleteDeck(name) {
   delete decks[name];
   save(decks);
   _deleteMeta(name);
-  if (getActiveDeck() === name) localStorage.removeItem(ACTIVE_KEY);
+  if (getActiveDeck() === name) { localStorage.removeItem(ACTIVE_KEY); _touchActive(); }
+  _tombstone(name);
   _afterMutation();
 }
 
@@ -225,6 +340,8 @@ export function renameDeck(oldName, newName) {
   const meta = loadMeta();
   if (meta[oldName]) { meta[newName] = meta[oldName]; delete meta[oldName]; saveMeta(meta); }
   if (getActiveDeck() === oldName) setActiveDeck(newName);
+  _tombstone(oldName);
+  _touch(newName);
   _afterMutation();
 }
 
@@ -255,6 +372,7 @@ export function findFreeName(baseName) {
 
 export function setActiveDeck(name) {
   localStorage.setItem(ACTIVE_KEY, name);
+  _touchActive();
   _afterMutation();
 }
 

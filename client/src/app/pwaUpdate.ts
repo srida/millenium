@@ -49,9 +49,10 @@ let pending = false;
 let lastCheck = 0;
 
 /**
- * ⚠️ Le bracket de tournoi vit en MÉMOIRE (`tournamentStore`) et se perd au
- * rechargement. Un joueur peut revenir au menu entre deux manches : le menu ne
- * suffit donc pas à dire que rien n'est en cours.
+ * ⚠️ Le bracket de tournoi vit en MÉMOIRE (`tournamentStore`) ; connecté il est
+ * repris du serveur, mais en invité il se perd au rechargement. Un joueur peut
+ * revenir au menu entre deux manches : le menu ne suffit donc pas à dire que
+ * rien n'est en cours.
  */
 function isIdle(): boolean {
   return useUiStore.getState().screen === 'main_menu'

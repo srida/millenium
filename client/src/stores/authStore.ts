@@ -72,6 +72,13 @@ interface AuthStoreState {
 // missionStore : deux paliers du même gain doivent avoir deux clés React.
 let levelToastKey = 0;
 
+// Reprise des données du compte qui ne vivent pas dans authStore : le bracket de
+// tournoi en cours. Import paresseux — tournamentStore lit authStore, un import
+// statique serait circulaire.
+async function hydrateAccountData(): Promise<void> {
+  try { await (await import('./tournamentStore.js')).useTournamentStore.getState().hydrate(); } catch { /* hors-ligne */ }
+}
+
 export const useAuthStore = create<AuthStoreState>((set, get) => ({
   user: null,
   ready: false,
@@ -165,7 +172,10 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
 
     if (raced !== TIMED_OUT) {
       set({ user: raced ?? null, ready: true });
-      if (raced) { try { await (DeckRepository as any).pull(); } catch { /* hors-ligne */ } }
+      if (raced) {
+        try { await (DeckRepository as any).pull(); } catch { /* hors-ligne */ }
+        void hydrateAccountData();
+      }
       return;
     }
 
@@ -175,11 +185,13 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     if (!late || get().user) return;
     set({ user: late });
     try { await (DeckRepository as any).pull(); } catch { /* hors-ligne */ }
+    void hydrateAccountData();
   },
 
   onAuthenticated: async (user) => {
     set({ user });
     try { await (DeckRepository as any).pull(); } catch { /* hors-ligne */ }
+    void hydrateAccountData();
     // Missions du compte fraîchement connecté (l'invité n'en a pas). Import
     // paresseux : missionStore lit authStore, un import statique serait circulaire.
     void (await import('./missionStore.js')).useMissionStore.getState().load(true);
@@ -190,6 +202,8 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     try { await (AuthClient as any).logout(); } catch { /* best-effort */ }
     (DeckRepository as any).handleLogout();
     set({ user: null, levelToasts: [] });
+    // Le bracket reste au serveur ; le cache local, lui, ne doit pas passer au compte suivant.
+    try { (await import('./tournamentStore.js')).useTournamentStore.getState().reset(); } catch { /* best-effort */ }
     // Le deck actif vit dans DeckRepository (localStorage) ; deckStore n'en est
     // qu'un cache réactif — sans refresh, un écran déjà monté garderait l'ancien
     // deck actif à l'écran jusqu'à son prochain montage.

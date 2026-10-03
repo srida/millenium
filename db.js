@@ -307,6 +307,18 @@ db.exec(`
   );
 `);
 
+// Tournoi en cours : UN bracket par joueur, blob JSON dont la forme appartient
+// au client (logic/Tournament.js). `rev` est le compteur de révision posé par le
+// client : la garde contre un appareil périmé est dans le SQL (cf. upsertTournament).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_tournament (
+    user_id    TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    rev        INTEGER NOT NULL,
+    data       TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+`);
+
 // Cadeaux. Deux formes de persistance parce qu'il y a deux natures de cadeau,
 // et qu'aucune n'a besoin de la forme de l'autre :
 //
@@ -663,6 +675,16 @@ const stmt = {
     INSERT INTO user_arcade_state (user_id, run_day, run)
     VALUES (@user_id, @run_day, @run)
     ON CONFLICT(user_id) DO UPDATE SET run_day = @run_day, run = @run
+  `),
+
+  tournamentByUser: db.prepare('SELECT rev, data FROM user_tournament WHERE user_id = ?'),
+  // ⚠️ Le `WHERE` du DO UPDATE est la garde : une révision <= à celle stockée
+  // (appareil resté sur un bracket périmé) ne change aucune ligne.
+  upsertTournament: db.prepare(`
+    INSERT INTO user_tournament (user_id, rev, data, updated_at)
+    VALUES (@user_id, @rev, @data, @updated_at)
+    ON CONFLICT(user_id) DO UPDATE SET rev = @rev, data = @data, updated_at = @updated_at
+    WHERE @rev > user_tournament.rev
   `),
 
   // Cadeaux (quotidien + ponctuels). Les RÈGLES vivent dans gifts.js — ici,
