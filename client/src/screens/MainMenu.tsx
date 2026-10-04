@@ -346,7 +346,7 @@ function TutorialInvite() {
           className="w-full"
           onPointerDown={() => { updateProgress({ dismissed: true }); setOpen(false); navigate('tutorial'); }}
         >
-          ▸ Commencer le tutoriel
+          Commencer le tutoriel
         </Button>
         <button onPointerDown={() => { Audio.playSfx('menu_button'); close(); }} className="text-xs text-white/50 underline">Plus tard</button>
       </div>

@@ -211,7 +211,7 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
       {canUndo && <UndoButton onUndo={() => controller.undoPreparation()} />}
       <MenuButton />
       <Button variant="primary" onPointerDown={(e) => { e.stopPropagation(); controller.startCombat(); }} sfx={false}>
-        PRÊT ▸
+        PRÊT
       </Button>
     </div>
   );

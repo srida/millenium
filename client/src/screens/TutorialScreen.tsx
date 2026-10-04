@@ -113,13 +113,13 @@ function TableOfContents({
         <h2 className="mb-2 text-[10px] tracking-widest text-white/40">LA PRATIQUE</h2>
         <div className="flex flex-col gap-2">
           <PracticeButton
-            label="▸ Partie d'entraînement"
+            label="Partie d'entraînement"
             hint="Une vraie partie contre l'IA, guidée pas à pas."
             done={progress.game}
             onTap={onPractice}
           />
           <PracticeButton
-            label="▸ Créer mon premier deck"
+            label="Créer mon premier deck"
             hint="20 cartes minimum, 8 par tier — accompagné."
             done={progress.deck}
             onTap={onBuild}
@@ -198,14 +198,14 @@ function ChapterReader({
           aria-label="Chapitre précédent"
           onPointerDown={() => onNavigate(index - 1)}
         >
-          ◂
+          Précédent
         </Button>
         <div className="flex-1 text-center text-[11px] tabular-nums text-white/40">
           {index + 1} / {CHAPTERS.length}
         </div>
         {last
-          ? <Button variant="primary" onPointerDown={onFinish}>▸ Passer à la pratique</Button>
-          : <Button variant="primary" onPointerDown={() => onNavigate(index + 1)}>Suivant ▸</Button>}
+          ? <Button variant="primary" onPointerDown={onFinish}>Passer à la pratique</Button>
+          : <Button variant="primary" onPointerDown={() => onNavigate(index + 1)}>Suivant</Button>}
       </div>
     </>
   );

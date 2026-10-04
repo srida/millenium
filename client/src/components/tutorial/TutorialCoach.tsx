@@ -106,7 +106,7 @@ export default function TutorialCoach() {
         className="w-full max-w-sm"
         title={step.title}
         text={step.text}
-        action={terminal ? '▸ Construire mon deck' : step.blocking ? 'Compris ▸' : undefined}
+        action={terminal ? 'Construire mon deck' : step.blocking ? 'Compris' : undefined}
         onAction={() => {
           if (terminal) { navigate('deck_builder', { tutorial: true, mode: 'manage' }); return; }
           setSeen(prev => new Set(prev).add(step.id));

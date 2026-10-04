@@ -33,7 +33,7 @@ export default function GameMenu({ onQuit, quitLabel = 'Quitter la partie' }: {
           <div className="space-y-2">
             <VolumeSliders />
             <Button variant="primary" className="w-full" onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_resume'); close(); }} sfx={false}>
-              ▸ Reprendre
+              Reprendre
             </Button>
             {confirm ? (
               <div className="space-y-2 rounded-lg border border-danger/40 bg-danger/10 p-2">
