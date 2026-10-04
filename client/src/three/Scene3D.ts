@@ -954,7 +954,7 @@ export class Scene3D {
     const group = new THREE.Group();
     group.add(make(lines, 0xffffff, 0.28));
     if (blocked.length) group.add(make(blocked, 0xff4d5e, 1));
-    group.visible = this._combatMode;
+    group.visible = true;
     this.scene.add(group);
     this._gridGroup = group;
   }
@@ -1096,7 +1096,6 @@ export class Scene3D {
     this._combatMode = true;
     this._animateCameraTo(true);
     this._syncSeparators();
-    if (this._gridGroup) this._gridGroup.visible = true;
     for (const entry of this.unitObjs.values()) {
       if (entry.unit.side === 'enemy') this._fadeEntry(entry, true);
     }
@@ -1116,7 +1115,6 @@ export class Scene3D {
     this._prepPreview = null;
     this._animateCameraTo(false);
     this._syncSeparators();
-    if (this._gridGroup) this._gridGroup.visible = false;
     for (const entry of this.unitObjs.values()) {
       if (entry.unit.side === 'enemy') this._fadeEntry(entry, false);
     }

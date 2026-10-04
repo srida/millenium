@@ -46,6 +46,21 @@ function TerrainChip({ board }: { board: BoardDef }) {
   );
 }
 
+// Grille de repérage ▦ — partagée par les barres de préparation et de combat.
+function GridButton({ active, onToggle }: { active: boolean; onToggle: () => void }) {
+  return (
+    <Button
+      aria-label={active ? 'Masquer la grille' : 'Afficher la grille'}
+      aria-pressed={active}
+      title={active ? 'Masquer la grille' : 'Afficher la grille'}
+      className={'shrink-0 px-3 text-base' + (active ? ' border-gold text-gold' : '')}
+      onPointerDown={(e) => { e.stopPropagation(); onToggle(); }}
+    >
+      ▦
+    </Button>
+  );
+}
+
 // Une vitesse ×1/×2/×4 — en sous-composant, pas inline dans le `.map` du
 // dessus : `usePressSquash` est un hook, et un hook ne s'appelle pas dans une
 // boucle.
@@ -153,15 +168,7 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
           </div>
         )}
         <div className="flex-1" />
-        <Button
-          aria-label={showGrid ? 'Masquer la grille' : 'Afficher la grille'}
-          aria-pressed={showGrid}
-          title={showGrid ? 'Masquer la grille' : 'Afficher la grille'}
-          className={'shrink-0 px-3 text-base' + (showGrid ? ' border-gold text-gold' : '')}
-          onPointerDown={(e) => { e.stopPropagation(); controller.toggleGrid(); }}
-        >
-          ▦
-        </Button>
+        <GridButton active={showGrid} onToggle={() => controller.toggleGrid()} />
         <MenuButton />
         {!pvp && (
           <Button
@@ -187,20 +194,10 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
       >
         {prepRemaining}s
       </PhaseClock>
-      {/* Le terrain est connu dès la préparation : le bouton bascule la vue
-          entre le bloc joueur et le plateau entier, pour voir les obstacles
-          (le glisser vertical et la molette font la même chose, en continu). */}
-      {boardTerrain && (
-        <Button
-          aria-label="Voir le terrain"
-          title="Voir le terrain"
-          className="shrink-0 px-3 text-base"
-          onPointerDown={(e) => { e.stopPropagation(); controller.toggleTerrainView(); }}
-        >
-          <UiIcon id="UI_TERRAIN" className="h-5 w-5" />
-        </Button>
-      )}
+      {/* Même chip terrain et même bouton de grille qu'en combat. */}
+      {boardTerrain && <TerrainChip board={boardTerrain} />}
       <div className="flex-1" />
+      <GridButton active={showGrid} onToggle={() => controller.toggleGrid()} />
       {/* `visible`, pas un montage conditionnel : `canMulligan` retombe à
           `false` dans le MÊME tick que `onConfirm` (une seule fois par
           partie) — démonter le composant ici tuerait son toast avant qu'il
