@@ -685,8 +685,10 @@ router.post('/me/draft/pick', auth.requireUser, auth.rateLimit({ windowMs: 60_00
   const raw = Array.isArray(req.body?.card_ids) ? req.body.card_ids.slice(0, 3) : [];
   const cardIds = raw.map(id => String(id || '').slice(0, 64)).filter(Boolean);
   if (cardIds.length === 0) return res.status(400).json({ error: 'card_ids requis', field: 'card_ids' });
+  // `mod` : le malus du lien ou le bonus du pari, à la carte de plus seulement.
+  const mod = typeof req.body?.mod === 'string' ? req.body.mod : null;
   draft.sync(req.user);
-  draftResult(req, res, draft.pick(req.user, cardIds));
+  draftResult(req, res, draft.pick(req.user, cardIds, mod));
 });
 
 router.post('/me/draft/reroll', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {

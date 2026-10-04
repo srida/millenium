@@ -69,6 +69,8 @@ const EXTRA_LIFE_PRICE_GEMS = 20;
 const WIN_GEMS = Object.freeze([6, 9, 12, 15, 18]);
 
 const RESULTS = Object.freeze(['win', 'loss']);
+/** Signes d'une carte de plus modifiée. ⚠️ JUMEAU de `logic/Draft.ts` (`ModSign`). */
+const MOD_SIGNS = Object.freeze(['malus', 'bonus']);
 
 const cardsById = jsonCache(CARDS_FILE, list => new Map((list || []).filter(c => c && c.id).map(c => [c.id, c])));
 
@@ -195,7 +197,7 @@ const start = db.transaction((user) => {
 
 /** Retient le choix de l'étape en cours : une carte, les trois d'un lot, ou la
  *  carte de plus d'entre deux duels. */
-const pick = db.transaction((user, cardIds) => {
+const pick = db.transaction((user, cardIds, mod = null) => {
   const state = readState(user.id);
   const { run, error } = todayRun(state);
   if (error) return { ok: false, reason: error, stale: true };
@@ -212,8 +214,13 @@ const pick = db.transaction((user, cardIds) => {
     return { ok: false, reason: 'Cette carte n\'est pas du tier de l\'étape.', stale: true };
   }
   if (step.tier == null && !step.bonus && !isLinkedBundle(cards)) return { ok: false, reason: 'Ces cartes ne forment pas un lot lié.' };
+  // Malus du lien, bonus du pari : la carte de plus seulement. Le serveur ne
+  // calcule pas l'offre (cf. en-tête) et ne peut donc pas vérifier le RÔLE ;
+  // il borne le signe, et le client en dérive l'effet (`logic/Draft.applyMod`).
+  if (mod != null && (!step.bonus || !MOD_SIGNS.includes(mod))) return { ok: false, reason: 'Modificateur refusé.' };
 
   run.picks.push(...ids);
+  if (mod) run.mods = { ...run.mods, [ids[0]]: mod };
   if (run.status === 'drafting' && run.picks.length >= DRAFT_SIZE) run.status = 'playing';
   writeState(state);
   return { ok: true };
@@ -326,5 +333,5 @@ function refresh(user) {
 module.exports = {
   DRAFT_STEPS, DRAFT_SIZE, BONUS_STEP, DRAFT_REROLLS, isLinkedBundle, RUN_WINS, RUN_LOSSES, EXTRA_LIVES,
   EXTRA_LIFE_PRICE_GEMS, WIN_GEMS,
-  sync, start, pick, reroll, duelDeck, recordDuel, buyLife, getSnapshot, refresh, pendingBonus,
+  MOD_SIGNS, sync, start, pick, reroll, duelDeck, recordDuel, buyLife, getSnapshot, refresh, pendingBonus,
 };

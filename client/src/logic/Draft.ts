@@ -81,10 +81,81 @@ export interface DraftState {
   /** Vie rachetée : la run tolère une défaite de plus. */
   extra_life: boolean;
   status: DraftStatus;
+  /** Cartes de plus prises avec un malus ou un bonus, par id (cf. `DraftMod`).
+   *  Absent sur une run qui n'en a pris aucune. */
+  mods?: Record<string, ModSign>;
 }
 
-/** Le rôle d'un choix — ce que l'écran annonce. */
-export type OfferKind = 'bundle' | 'complement' | 'buildable' | 'bet';
+/** Le rôle d'un choix — ce que l'écran annonce. `link` n'existe qu'à la carte
+ *  de plus : une carte qui a un vrai lien avec le deck. */
+export type OfferKind = 'bundle' | 'complement' | 'buildable' | 'bet' | 'link';
+
+// --- Malus et bonus de la carte de plus ---
+
+/** Le lien se paie (malus), le pari se récompense (bonus). */
+export type ModSign = 'malus' | 'bonus';
+/** Sur les stats (ATQ et PV) ou sur le nombre de matériels de chaque recette. */
+export type ModKind = 'stats' | 'materials';
+export interface DraftMod { sign: ModSign; kind: ModKind }
+
+/** Part d'ATQ et de PV retirée (malus) ou ajoutée (bonus). */
+export const MOD_STAT_RATIO = 0.2;
+
+/** ⚠️ JUMEAU de `draft.js` (`MOD_SIGNS`) : le serveur borne le signe reçu. */
+export const MOD_SIGNS: readonly ModSign[] = Object.freeze(['malus', 'bonus']);
+
+/** Le décalage de matériels a-t-il un sens sur cette carte ? Il faut une
+ *  recette ; un bonus exige en plus qu'AUCUNE ne soit déjà gratuite (on ne
+ *  descend pas sous zéro). */
+function canShiftMaterials(card: Card, sign: ModSign): boolean {
+  const cds = card.summon_conditions ?? [];
+  return cds.length > 0 && (sign === 'malus' || cds.every(cd => (cd.materials ?? 0) >= 1));
+}
+
+/** Le modificateur d'une carte : son signe vient de son rôle dans l'offre, sa
+ *  nature est tirée de (graine, carte) — donc la même à chaque lecture, sans
+ *  rien d'autre à stocker que le signe. */
+export function modFor(seed: number, card: Card, sign: ModSign): DraftMod {
+  const materials = canShiftMaterials(card, sign) && makeRandom(hashSeed(seed, 'mod', card.id))() < 0.5;
+  return { sign, kind: materials ? 'materials' : 'stats' };
+}
+
+/** La carte telle qu'elle se joue avec son modificateur — un objet NEUF, le
+ *  catalogue n'est jamais touché. Matériels : ±1 sur chaque recette, les
+ *  exigences nommées rognées pour tenir dans le nouveau compte (le geste de la
+ *  magie `reduce_materials`). Stats : ATQ et PV à ±20 %, plancher à 1. */
+export function applyMod(card: Card, mod: DraftMod): Card {
+  const d = mod.sign === 'bonus' ? 1 : -1;
+  if (mod.kind === 'materials') {
+    return {
+      ...card,
+      summon_conditions: (card.summon_conditions ?? []).map(cd => {
+        const materials = Math.max(0, (cd.materials ?? 0) - d);
+        return { ...cd, materials, ...(cd.requires ? { requires: cd.requires.slice(0, materials) } : {}) };
+      }),
+    };
+  }
+  const scale = (v: number | undefined) => Math.max(1, Math.round((v ?? 0) * (1 + d * MOD_STAT_RATIO)));
+  return { ...card, stats: { ...card.stats, atk: scale(card.stats?.atk), hp: scale(card.stats?.hp) } };
+}
+
+/** Ce que l'écran annonce, en mots. */
+export function modLabel(mod: DraftMod): string {
+  if (mod.kind === 'materials') return mod.sign === 'bonus' ? '1 matériel de moins' : '1 matériel de plus';
+  const pct = Math.round(MOD_STAT_RATIO * 100);
+  return mod.sign === 'bonus' ? `ATQ et PV +${pct}\u00a0%` : `ATQ et PV −${pct}\u00a0%`;
+}
+
+/** Les cartes modifiées d'une run, par id. Le deck engagé se joue avec elles. */
+export function moddedCards(state: Pick<DraftState, 'seed' | 'mods'>, pool: readonly Card[]): Map<string, Card> {
+  const out = new Map<string, Card>();
+  const byId = indexOf(pool);
+  for (const [id, sign] of Object.entries(state.mods ?? {})) {
+    const c = byId.get(id);
+    if (c && (sign === 'malus' || sign === 'bonus')) out.set(id, applyMod(c, modFor(state.seed, c, sign)));
+  }
+  return out;
+}
 
 /** Un choix de l'offre : une carte, ou un lot de trois. */
 export interface OfferSlot {
@@ -93,6 +164,8 @@ export interface OfferSlot {
   /** Lot seulement : ses cartes encore impayables avec le deck ET le lot —
    *  ce que les choix d'une carte devront venir compléter. */
   missing?: number;
+  /** Carte de plus seulement : le malus du lien, le bonus du pari. */
+  mod?: DraftMod;
 }
 
 export function newDraft(seed: number): DraftState {
@@ -293,6 +366,8 @@ export function offerFor(
   const complement = buildable.filter(c => fillsMissing(c, missing));
   const bets = eligible.filter(c => !isSummonable(c, cov.ids, cov.attrs));
 
+  if (at.step.bonus) return bonusOffer(state, eligible, picked, cov, rerolls);
+
   const rand = makeRandom(hashSeed(state.seed, 'offer', state.picks.length, rerolls));
   const out: OfferSlot[] = [];
   const used = new Set<string>();
@@ -319,6 +394,69 @@ export function offerFor(
   return out;
 }
 
+/**
+ * L'offre de la carte de plus, tous tiers : trois rôles, chacun son prix.
+ *
+ *   - **lien** (malus) : une carte qu'une carte du deck NOMME dans sa recette,
+ *     ou dont la recette nomme une carte du deck — jouable de préférence. À
+ *     défaut, un lien par attribut (le deck exige un attribut qu'elle porte, ou
+ *     elle exige un attribut que le deck porte) ;
+ *   - **jouable** : une carte qui se pose avec ce que le deck contient ;
+ *   - **pari** (bonus) : une carte dont les matériaux manquent encore.
+ *
+ * Un rôle sans candidat retombe sur une carte jouable, puis sur n'importe
+ * laquelle, et ne porte alors ni malus ni bonus : le prix va avec le rôle.
+ */
+function bonusOffer(
+  state: Pick<DraftState, 'seed' | 'picks'>,
+  eligible: readonly Card[],
+  picked: readonly Card[],
+  cov: ReturnType<typeof coverageOf>,
+  rerolls: number,
+): OfferSlot[] {
+  const deckIds = new Set(state.picks);
+  const namedByDeck = new Set(picked.flatMap(c => [...namedIds(c)]));
+  const attrsWanted = new Set(picked.flatMap(requiredAttrs));
+  const playable = (c: Card) => isSummonable(c, cov.ids, cov.attrs);
+  const idLinked = (c: Card) => namedByDeck.has(c.id) || [...namedIds(c)].some(id => deckIds.has(id));
+  const attrLinked = (c: Card) => (c.attributes ?? []).some(a => attrsWanted.has(a))
+    || requiredAttrs(c).some(a => cov.attrs.has(a));
+
+  const buildable = eligible.filter(playable);
+  const links = eligible.filter(idLinked);
+  const linkTiers = [links.filter(playable), links, eligible.filter(c => !idLinked(c) && attrLinked(c))];
+  const bets = eligible.filter(c => !playable(c));
+
+  const rand = makeRandom(hashSeed(state.seed, 'bonus', state.picks.length, rerolls));
+  const used = new Set<string>();
+  const fresh = (list: readonly Card[]) => list.filter(c => !used.has(c.id));
+  const firstFresh = (lists: readonly (readonly Card[])[]) => lists.map(fresh).find(l => l.length > 0) ?? [];
+  const out: OfferSlot[] = [];
+  const push = (card: Card | null, kind: OfferKind | null) => {
+    if (!card) return;
+    used.add(card.id);
+    const actual: OfferKind = kind ?? (playable(card) ? 'buildable' : 'bet');
+    const mod = actual === 'link' ? modFor(state.seed, card, 'malus')
+      : kind === 'bet' ? modFor(state.seed, card, 'bonus') : undefined;
+    out.push({ cards: [card], kind: actual, ...(mod ? { mod } : {}) });
+  };
+  const fallback = () => draw(fresh(buildable), rand) ?? draw(fresh(eligible), rand);
+
+  const link = draw(firstFresh(linkTiers), rand);
+  push(link ?? fallback(), link ? 'link' : null);
+  const safe = draw(fresh(buildable.filter(c => !idLinked(c))), rand) ?? draw(fresh(buildable), rand);
+  push(safe ?? draw(fresh(eligible), rand), safe ? 'buildable' : null);
+  const bet = draw(fresh(bets.filter(c => !idLinked(c))), rand) ?? draw(fresh(bets), rand);
+  // Un pari de repli n'en est pas un : il ne reçoit pas de bonus (`push`).
+  push(bet ?? fallback(), bet ? 'bet' : null);
+  return out;
+}
+
+/** Les attributs qu'exigent les recettes d'une carte (`ARCH_*`). */
+function requiredAttrs(card: Card): string[] {
+  return (card.summon_conditions ?? []).flatMap(cd => (cd.requires ?? []).filter(isAttributeMaterial));
+}
+
 // --- Actions (pures : rendent un nouvel état, ou `null` si refusé) ---
 
 /** Prend un choix de l'offre : ses cartes, dans l'ordre de l'offre. */
@@ -329,7 +467,8 @@ export function pickCards(state: DraftState, cardIds: readonly string[], pool: r
   if (!slot) return null;
   const picks = [...state.picks, ...slot.cards.map(c => c.id)];
   const status = state.status === 'drafting' && picks.length >= DRAFT_SIZE ? 'playing' : state.status;
-  return { ...state, picks, status };
+  const mods = slot.mod ? { ...state.mods, [slot.cards[0].id]: slot.mod.sign } : state.mods;
+  return { ...state, picks, status, ...(mods ? { mods } : {}) };
 }
 
 /** Les relances valent pour toute la run, cartes de plus comprises. */
@@ -367,7 +506,7 @@ export function cardPower(c: Card): number {
 
 /** Puissance d'un choix : la somme de ses cartes. */
 function slotPower(slot: OfferSlot): number {
-  return slot.cards.reduce((n, c) => n + cardPower(c), 0);
+  return slot.cards.reduce((n, c) => n + cardPower(slot.mod ? applyMod(c, slot.mod) : c), 0);
 }
 
 /** Le choix de l'IA : le plus fort parmi les jouables, un pari seulement
@@ -386,6 +525,11 @@ function bestSlot(offer: readonly OfferSlot[]): OfferSlot {
  * comme celui du joueur). Elle ne relance jamais.
  */
 export function autoDraft(seed: number, pool: readonly Card[], extra = 0): Record<string, string[]> {
+  return deckOf(autoDraftRun(seed, pool, extra), pool);
+}
+
+/** Le draft de l'IA en entier — avec les malus et bonus de ses cartes de plus. */
+export function autoDraftRun(seed: number, pool: readonly Card[], extra = 0): DraftState {
   let state: DraftState = newDraft(seed);
   while (state.status === 'drafting') {
     const offer = offerFor(state, pool);
@@ -397,15 +541,23 @@ export function autoDraft(seed: number, pool: readonly Card[], extra = 0): Recor
   for (let i = 0; i < extra && state.picks.length >= DRAFT_SIZE; i++) {
     const offer = offerFor(state, pool);
     if (offer.length === 0) break;
-    state = { ...state, picks: [...state.picks, ...bestSlot(offer).cards.map(c => c.id)] };
+    const slot = bestSlot(offer);
+    const id = slot.cards[0].id;
+    state = {
+      ...state,
+      picks: [...state.picks, id],
+      ...(slot.mod ? { mods: { ...state.mods, [id]: slot.mod.sign } } : {}),
+    };
   }
-  return deckOf(state, pool);
+  return state;
 }
 
 export interface DraftOpponent {
   /** Index du duel dans la run (victoires + défaites). */
   index: number;
   deck: Record<string, string[]>;
+  /** Ses cartes de plus modifiées (malus du lien, bonus du pari), par id. */
+  cards: Map<string, Card>;
   /** Sa carte la plus forte : elle lui sert de visage. */
   faceCardId: string | null;
 }
@@ -420,11 +572,12 @@ export interface DraftOpponent {
 export function currentOpponent(state: DraftState, pool: readonly Card[]): DraftOpponent | null {
   if (state.status !== 'playing') return null;
   const index = state.wins + state.losses;
-  const deck = autoDraft(hashSeed(state.seed, 'enemy', index), pool, index);
+  const run = autoDraftRun(hashSeed(state.seed, 'enemy', index), pool, index);
+  const deck = deckOf(run, pool);
   const byId = indexOf(pool);
   const cards = cardsOf(Object.values(deck).flat(), byId);
   const face = [...cards].sort((a, b) => (cardPower(b) - cardPower(a)) || a.id.localeCompare(b.id))[0] ?? null;
-  return { index, deck, faceCardId: face?.id ?? null };
+  return { index, deck, cards: moddedCards(run, pool), faceCardId: face?.id ?? null };
 }
 
 /**

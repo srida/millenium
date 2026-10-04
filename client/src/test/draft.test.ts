@@ -13,7 +13,7 @@ import {
   DRAFT_STEPS, DRAFT_SIZE, DRAFT_REROLLS, OFFER_SIZE, RUN_WINS, RUN_LOSSES,
   newDraft, offerFor, pickCards, reroll, canReroll, recordResult, deckOf,
   autoDraft, currentOpponent, currentStep, isLinkedBundle, laneTier, type DraftState,
-  pendingBonus, stepOf, BONUS_STEP,
+  pendingBonus, stepOf, BONUS_STEP, applyMod, modFor, moddedCards, MOD_STAT_RATIO,
 } from '../logic/Draft.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -234,6 +234,84 @@ describe('carte de plus entre deux duels', () => {
       expect(offerFor(reroll(s)!, POOL).flatMap(ids)).not.toEqual(offer.flatMap(ids));
     }
     expect(seen.size).toBeGreaterThan(2);
+  });
+});
+
+describe('carte de plus : lien, jouable, pari', () => {
+  /** Une run en duels, carte de plus due. */
+  const bonusState = (seed: number) => ({ ...draftFirst(seed), wins: 1 });
+  const namedIn = (c: Card) => new Set((c.summon_conditions ?? []).flatMap(cd => cd.requires ?? []));
+
+  it('propose un lien avec malus, une carte jouable, un pari avec bonus', () => {
+    let roles = 0;
+    for (let seed = 1; seed <= 25; seed++) {
+      const s = bonusState(seed);
+      const picked = s.picks.map(id => BY_ID.get(id)!);
+      const cov = coverageOf(picked);
+      const offer = offerFor(s, POOL);
+      expect(offer).toHaveLength(3);
+      for (const o of offer) {
+        const c = o.cards[0];
+        if (o.kind === 'link') {
+          // Un VRAI lien : nommé par une carte du deck, ou nommant une carte du
+          // deck, ou par attribut. Et il se paie.
+          const byId = picked.some(p => namedIn(p).has(c.id)) || [...namedIn(c)].some(id => s.picks.includes(id));
+          const byAttr = (c.attributes ?? []).some(a => picked.some(p => namedIn(p).has(a)))
+            || [...namedIn(c)].some(a => cov.attrs.has(a));
+          expect(byId || byAttr).toBe(true);
+          expect(o.mod?.sign).toBe('malus');
+        } else if (o.kind === 'bet') {
+          expect(isSummonable(c, cov.ids, cov.attrs)).toBe(false);
+          if (o.mod) expect(o.mod.sign).toBe('bonus');
+        } else {
+          expect(o.mod).toBeUndefined();
+        }
+      }
+      if (offer[0].kind === 'link' && offer[1].kind === 'buildable' && offer[2].kind === 'bet' && offer[2].mod) roles++;
+    }
+    // Sur le vrai catalogue, les trois rôles sortent presque toujours.
+    expect(roles).toBeGreaterThanOrEqual(20);
+  });
+
+  it('le choix retient son signe, et le deck engagé joue la carte modifiée', () => {
+    const s = bonusState(7);
+    const offer = offerFor(s, POOL);
+    const i = offer.findIndex(o => o.kind === 'link');
+    const next = pickCards(s, ids(offer[i]), POOL)!;
+    const id = offer[i].cards[0].id;
+    expect(next.mods).toEqual({ [id]: 'malus' });
+    const played = moddedCards(next, POOL).get(id)!;
+    expect(played).toEqual(applyMod(BY_ID.get(id)!, offer[i].mod!));
+    expect(BY_ID.get(id)).not.toBe(played);                       // catalogue intact
+    // Un choix sans rôle payant ne pose rien.
+    const j = offer.findIndex(o => o.kind === 'buildable');
+    expect(pickCards(s, ids(offer[j]), POOL)!.mods).toBeUndefined();
+  });
+
+  it('malus et bonus jouent dans le bon sens', () => {
+    const card = POOL.find(c => (c.summon_conditions ?? []).length > 0
+      && c.summon_conditions!.every(cd => cd.materials >= 2 && (cd.requires ?? []).length >= 2))!;
+    const cost = (c: Card) => c.summon_conditions!.map(cd => cd.materials);
+    expect(cost(applyMod(card, { sign: 'malus', kind: 'materials' }))).toEqual(cost(card).map(n => n + 1));
+    const cheaper = applyMod(card, { sign: 'bonus', kind: 'materials' });
+    expect(cost(cheaper)).toEqual(cost(card).map(n => n - 1));
+    expect(cheaper.summon_conditions!.every(cd => (cd.requires ?? []).length <= cd.materials)).toBe(true);
+    const weaker = applyMod(card, { sign: 'malus', kind: 'stats' });
+    const stronger = applyMod(card, { sign: 'bonus', kind: 'stats' });
+    expect(weaker.stats.atk).toBe(Math.max(1, Math.round(card.stats.atk * (1 - MOD_STAT_RATIO))));
+    expect(stronger.stats.hp).toBe(Math.max(1, Math.round(card.stats.hp * (1 + MOD_STAT_RATIO))));
+  });
+
+  it('un bonus ne rend jamais une recette négative : une carte gratuite le prend en stats', () => {
+    const free = POOL.find(c => !(c.summon_conditions ?? []).length)!;
+    for (let seed = 1; seed <= 20; seed++) expect(modFor(seed, free, 'bonus').kind).toBe('stats');
+  });
+
+  it('le bot drafte ses cartes de plus avec les mêmes règles', () => {
+    const s = { ...draftFirst(3), wins: 2, picks: [...draftFirst(3).picks] };
+    const opp = currentOpponent({ ...s, picks: [...s.picks, 'X1', 'X2'] }, POOL)!;
+    expect(Object.values(opp.deck).flat()).toHaveLength(DRAFT_SIZE + 2);
+    for (const [id, c] of opp.cards) expect(c.id).toBe(id);
   });
 });
 

@@ -95,6 +95,10 @@ export interface GameSessionDeps {
   attributeList: AttributeDef[];
   /** Résolution de carte par id (pour l'IA ennemie). */
   cardDb: CardDbLike;
+  /** Résolution propre au deck de l'IA, quand ses cartes ne sont pas celles
+   *  du catalogue (le bot du Draft joue ses cartes de plus modifiées). Absent :
+   *  `cardDb`. */
+  enemyCardDb?: CardDbLike;
   /** Résolution d'un token par id (POWER_SUMMON_TOKEN, `CombatManager`).
    *  Absent : le pouvoir ne trouve jamais son token et ne se déclenche donc
    *  jamais (même traitement qu'une case adjacente indisponible). */
@@ -288,7 +292,7 @@ export class GameSession {
     // de l'ordre dans lequel le plateau s'énumère, et cet ordre est de la
     // logique de jeu (cf. `Board.getUnitsOnSide`).
     this.board.mirroredFrame = !!deps.mirroredRole;
-    this.enemyAI = new EnemyAI(deps.enemyDeck, deps.cardDb as any, 'enemy', deps.rand ?? Math.random);
+    this.enemyAI = new EnemyAI(deps.enemyDeck, (deps.enemyCardDb ?? deps.cardDb) as any, 'enemy', deps.rand ?? Math.random);
     this._playerDeckAttributes = deckAttributes(_distinctCards(Object.values(deps.cardsByTier ?? {}).flat()));
     this._enemyDeckAttributes = deckAttributes(
       Object.values(deps.enemyDeck ?? {})
