@@ -78,7 +78,7 @@ interface DraftStoreState {
   load: (force?: boolean) => Promise<void>;
   start: () => Promise<string | null>;
   /** Une carte, ou les trois d'un lot. */
-  pick: (cardIds: string[]) => Promise<string | null>;
+  pick: (cardIds: string[], mod?: 'malus' | 'bonus') => Promise<string | null>;
   reroll: () => Promise<string | null>;
   buyLife: () => Promise<string | null>;
   /** Retient le solde annoncé par `match:end` (`null` : rien de soldé). */
@@ -114,7 +114,7 @@ export const useDraftStore = create<DraftStoreState>((set, get) => {
 
     load: channel.load(set, get),
     start: () => mutate(() => (AuthClient as any).startDraft(), 'Impossible de lancer le draft.'),
-    pick: (cardIds) => mutate(() => (AuthClient as any).pickDraftCards(cardIds), 'Choix non enregistré.'),
+    pick: (cardIds, mod) => mutate(() => (AuthClient as any).pickDraftCards(cardIds, mod), 'Choix non enregistré.'),
     reroll: () => mutate(() => (AuthClient as any).rerollDraft(), 'Relance impossible.'),
     buyLife: () => mutate(() => (AuthClient as any).buyDraftLife(), 'Achat impossible.'),
     // Rien à relire ici : l'écran Draft relit la run à son montage, c'est-à-dire

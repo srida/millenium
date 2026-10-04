@@ -18,7 +18,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useDraftStore, getDraftPool, type DraftRun, type DraftSnapshot } from '../stores/draftStore.js';
 import {
   DRAFT_STEPS, DRAFT_SIZE, DRAFT_REROLLS, RUN_WINS, RUN_LOSSES,
-  offerFor, currentStep, stepOf, pendingBonus, currentOpponent, canReroll, deckOf, maxLosses,
+  offerFor, applyMod, modLabel, moddedCards, currentStep, stepOf, pendingBonus, currentOpponent, canReroll, deckOf, maxLosses,
   type OfferKind, type OfferSlot, type DraftState,
 } from '../logic/Draft.js';
 import DeckTierGrid from '../components/deck/DeckTierGrid.js';
@@ -38,6 +38,7 @@ const KIND_LABEL: Record<Exclude<OfferKind, 'bundle'>, { text: string; tone: str
   complement: { text: 'Complète une recette', tone: 'text-success' },
   buildable: { text: 'Jouable', tone: 'text-white/50' },
   bet: { text: 'Pari : matériaux absents', tone: 'text-gold' },
+  link: { text: 'Lien avec ton deck', tone: 'text-success' },
 };
 
 const sum = (list: number[]) => list.reduce((a, b) => a + b, 0);
@@ -105,7 +106,7 @@ function Intro({ snapshot }: { snapshot: DraftSnapshot }) {
         {DRAFT_REROLLS} relances pour toute la run. Ensuite, des duels en ligne contre d'autres joueurs en draft :
         {' '}{RUN_WINS} victoires pour gagner la run, {RUN_LOSSES} défaites y mettent fin
         (une vie de plus se rachète <Amount currency="gems" value={snapshot.rules.extra_life_price_gems} />).
-        Après chaque duel, tu draftes une carte de plus.
+        Après chaque duel, tu draftes une carte de plus : un lien avec ton deck (avec un malus), une carte jouable, ou un pari (avec un bonus).
       </p>
       <p className="text-xs text-white/70">
         Chaque victoire rapporte des gemmes, jusqu'à <Amount currency="gems" value={total} /> pour une run parfaite.
@@ -155,7 +156,9 @@ function Picking({ state }: { state: DraftState }) {
         // `pt-4` : la carte retenue se lève, elle ne doit pas recouvrir la consigne.
         <div className="mx-auto grid max-w-md grid-cols-3 gap-3 pt-4">
           {offer.map((s, i) => {
-            const card = s.cards[0];
+            // La carte se montre TELLE QU'ELLE SE JOUERA : stats et coût portent
+            // déjà le malus ou le bonus, et l'infobulle aussi.
+            const card = s.mod ? applyMod(s.cards[0], s.mod) : s.cards[0];
             const label = KIND_LABEL[s.kind as Exclude<OfferKind, 'bundle'>];
             return (
               <div key={card.id} className="flex min-w-0 flex-col items-center gap-1.5">
@@ -167,6 +170,11 @@ function Picking({ state }: { state: DraftState }) {
                   onTap={() => setSelected(i)}
                 />
                 {label && <span className={`text-center text-[10px] leading-tight ${label.tone}`}>{label.text}</span>}
+                {s.mod && (
+                  <span className={`text-center text-[10px] font-bold leading-tight ${s.mod.sign === 'bonus' ? 'text-success' : 'text-danger'}`}>
+                    {s.mod.sign === 'bonus' ? 'Bonus' : 'Malus'} : {modLabel(s.mod)}
+                  </span>
+                )}
               </div>
             );
           })}
@@ -188,7 +196,7 @@ function Picking({ state }: { state: DraftState }) {
           variant="primary"
           className="flex-1 py-3"
           disabled={busy || !slot}
-          onPointerDown={async () => { if (slot) setErr(await pick(slot.cards.map(c => c.id))); }}
+          onPointerDown={async () => { if (slot) setErr(await pick(slot.cards.map(c => c.id), slot.mod?.sign)); }}
         >
           Prendre
         </Button>
@@ -413,7 +421,8 @@ function Pips({ label, filled, total, tone }: { label: string; filled: number; t
 function DeckSummary({ state }: { state: DraftState }) {
   const pool = getDraftPool();
   const deck = useMemo(() => {
-    const byId = new Map(pool.map(c => [c.id, c]));
+    // Les cartes de plus modifiées remplacent celles du catalogue.
+    const byId = new Map([...pool.map(c => [c.id, c] as const), ...moddedCards(state, pool)]);
     const ids = deckOf(state, pool);
     return Object.fromEntries([1, 2, 3, 4, 5].map(t =>
       [t, ids[String(t)].map(id => byId.get(id)).filter((c): c is Card => !!c)]));

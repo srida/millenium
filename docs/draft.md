@@ -46,8 +46,27 @@ Le jeu a déjà tout ce qu'il faut :
    fois la run perdue, **une vie se rachète 20 gemmes**, une seule fois.
 5. **Une carte de plus après chaque duel** qui ne clôt pas la run (victoire ou
    défaite) : une parmi trois, tous tiers, avant de chercher le duel suivant.
+   Les trois ont un rôle et un prix : un **lien** avec le deck (avec un
+   **malus**), une carte **jouable**, un **pari** (avec un **bonus**).
 6. **Chaque victoire paie des gemmes** : 6, 9, 12, 15 puis 18, soit **60** pour une
    run parfaite, plus le gain d'XP d'un duel en ligne.
+
+## La carte de plus : lien, jouable, pari
+
+- **Lien** : une carte qu'une carte du deck nomme dans sa recette, ou dont la
+  recette nomme une carte du deck (jouable de préférence). À défaut, un lien
+  par attribut. Elle porte un **malus**.
+- **Jouable** : elle se pose avec ce que le deck contient. Ni malus ni bonus.
+- **Pari** : ses matériaux manquent encore. Elle porte un **bonus**.
+
+Malus et bonus valent ±1 matériel sur chaque recette, ou ±20 % d'ATQ et de PV.
+La nature est tirée de (graine, carte) ; un bonus ne prend la forme « matériel »
+que si aucune recette de la carte n'est déjà gratuite. Le serveur ne retient que
+le **signe** (`run.mods`), à la carte de plus seulement ; le client en dérive la
+carte modifiée (`applyMod`) et la joue partout (offre, deck, partie). En duel
+réel seules les stats voyagent (`base`), un décalage de matériels ne regarde que
+celui qui invoque. Le bot drafte ses cartes de plus avec les mêmes règles et
+joue ses cartes modifiées.
 
 ## Les lots
 

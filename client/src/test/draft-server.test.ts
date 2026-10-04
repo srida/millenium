@@ -236,6 +236,23 @@ describe('carte de plus et file d\'attente', () => {
     expect(draft.duelDeck(user().id).card_ids).toHaveLength(16);
   });
 
+  it('retient le malus ou le bonus de la carte de plus, et seulement là', () => {
+    const user = newUser();
+    // Pendant le draft, aucun modificateur n'est reçu.
+    draft.start(user());
+    expect(draft.pick(user(), cardForStep(run(user)), 'bonus').ok).toBe(false);
+    while (run(user).status === 'drafting') expect(draft.pick(user(), cardForStep(run(user))).ok).toBe(true);
+    draft.recordDuel(user().id, 'win');
+    const id = anyFreeCard(run(user));
+    expect(draft.pick(user(), [id], 'triche').ok).toBe(false);               // signe inconnu
+    expect(draft.pick(user(), [id], 'bonus').ok).toBe(true);
+    expect(run(user).mods).toEqual({ [id]: 'bonus' });
+  });
+
+  it('les signes acceptés sont ceux du client', () => {
+    expect([...draft.MOD_SIGNS]).toEqual([...ClientDraft.MOD_SIGNS]);
+  });
+
   it('la relance vaut aussi pour la carte de plus', () => {
     const user = newUser();
     drafted(user);

@@ -122,6 +122,11 @@ function resolveDeck(deckName?: string): { deck: Record<string, string[]>; name:
  *   UNE chose : dire à la session que son monde est le MIROIR du repère de
  *   référence (`mirroredRole`), le rôle B jouant le reflet du monde de A.
  *   `logic/` ne connaît pas les rôles — il ne reçoit que le booléen.
+ * @param cardOverrides Cartes qui ne se jouent pas comme au catalogue, par id
+ *   et par camp — les cartes de plus du Draft, avec leur malus ou leur bonus.
+ *   Côté joueur elles remplacent celles du pool de pioche ; côté IA, sa
+ *   résolution de carte. Les deux camps restent étanches : une même carte
+ *   peut être modifiée chez l'un et pas chez l'autre.
  */
 export function buildSession(
   deckName?: string,
@@ -131,6 +136,7 @@ export function buildSession(
   playerDeck?: Record<string, string[]> | null,
   enemyBonus?: { atk: number; hp: number } | null,
   pvpRole?: 'A' | 'B' | null,
+  cardOverrides?: { player?: ReadonlyMap<string, Card>; enemy?: ReadonlyMap<string, Card> } | null,
 ): GameSession {
   const { deck: rawDeck, name: resolvedName } = playerDeck
     ? { deck: playerDeck, name: null }
@@ -157,8 +163,11 @@ export function buildSession(
     // DeckBuilder l'a rangée : une carte multi-tiers se pioche à chacun des
     // siens. La règle vit dans `Draw.deckPoolByTier`, que la simulation appelle
     // aussi — deux constructions de pool finiraient par ne plus s'accorder.
-    cardsByTier: deckPoolByTier(rawDeck, CardDatabase as any),
+    cardsByTier: overridePool(deckPoolByTier(rawDeck, CardDatabase as any), cardOverrides?.player),
     enemyDeck: rawEnemyDeck,
+    enemyCardDb: cardOverrides?.enemy?.size
+      ? { ...(CardDatabase as any), getCard: (id: string) => cardOverrides.enemy!.get(id) ?? (CardDatabase as any).getCard(id) }
+      : undefined,
     attributeList: (AttributeDatabase as any).getAllAttributes(),
     cardDb: CardDatabase as any,
     getAllBoards: () => (BoardDatabase as any).getAllBoards(),
@@ -168,6 +177,13 @@ export function buildSession(
     enemyBonus: enemyBonus ?? null,
     mirroredRole: mode === 'pvp' && pvpRole === 'B',
   });
+}
+
+function overridePool(pool: Record<number, Card[]>, overrides?: ReadonlyMap<string, Card>): Record<number, Card[]> {
+  if (!overrides?.size) return pool;
+  const out: Record<number, Card[]> = {};
+  for (const [t, cards] of Object.entries(pool)) out[Number(t)] = cards.map(c => overrides.get(c.id) ?? c);
+  return out;
 }
 
 // Dépendances data pour le PvpController (résolution carte + terrain convenu).

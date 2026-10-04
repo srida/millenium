@@ -44,7 +44,7 @@ import { PhaseTimer, Banners } from '../components/hud/PhaseTimer.js';
 import { RoundIntro, DrawPopup } from '../components/overlays/RoundStart.js';
 import { PREP_DURATION_S, SHOPPING_DURATION_S, DRAW_POPUP_AUTO_MS } from '../game/timings.js';
 import { useDraftStore, getDraftPool, type DraftDuelOutcome } from '../stores/draftStore.js';
-import { deckOf, currentOpponent } from '../logic/Draft.js';
+import { deckOf, currentOpponent, moddedCards } from '../logic/Draft.js';
 import { illustrationUrl } from '../data/CardArt.js';
 import { fmt } from '../components/ui/currency.js';
 
@@ -74,6 +74,10 @@ export default function GameScreenPvp() {
     const draftRun = inDraft ? useDraftStore.getState().snapshot?.run ?? null : null;
     if (inDraft && draftRun?.status !== 'playing') { navigate('draft'); return; }
     const draftDeck = draftRun ? deckOf(draftRun, getDraftPool()) : null;
+    // Les cartes de plus se jouent avec leur malus ou leur bonus. En duel réel,
+    // seules les STATS d'une unité voyagent (dans `base`) : un décalage de
+    // matériels ne concerne que celui qui invoque.
+    const draftCards = draftRun ? moddedCards(draftRun, getDraftPool()) : undefined;
     const opponentUser = (PvpConnection as any).getOpponent();
     const opponent = opponentUser?.username ?? 'Adversaire';
     // Duel contre bot : la session est un solo (mode 'ai' + deck du bot), pas
@@ -86,12 +90,13 @@ export default function GameScreenPvp() {
     setOpponentAvatar(opponentUser?.avatar ?? (draftBot?.faceCardId ? illustrationUrl(draftBot.faceCardId) : null));
     setOpponentName(opponent);
     const session = bot
-      ? buildSession(deckName, 'ai', opponent, draftBot?.deck ?? bot.deck, draftDeck)
+      ? buildSession(deckName, 'ai', opponent, draftBot?.deck ?? bot.deck, draftDeck, null, null,
+        { player: draftCards, enemy: draftBot?.cards })
       // ⚠️ Le rôle est passé à la session, et pour une seule raison : le terrain.
       // Le monde du rôle B étant le reflet de celui de A, ses cases bloquées
       // doivent être miroitées — sans quoi les deux clients simulent deux
       // plateaux différents (cf. `logic/BoardMirror`).
-      : buildSession(deckName, 'pvp', undefined, null, draftDeck, null, role);
+      : buildSession(deckName, 'pvp', undefined, null, draftDeck, null, role, { player: draftCards });
     // Le solde du duel dans la run voyage avec `match:end`. Abonné AVANT le
     // contrôleur (qui s'abonne dans `begin()`), donc lu avant l'écran de
     // résultat.
