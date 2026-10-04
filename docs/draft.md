@@ -38,15 +38,16 @@ Le jeu a déjà tout ce qu'il faut :
    en tout. Les deux choix de tier 1 garantissent de quoi jouer au premier tour,
    qu'un lot ne contient pas forcément. Tout est tiré dans **tout le catalogue**
    (pas la collection du joueur) : le mode fait découvrir des cartes.
-3. **2 relances** pour tout le draft, lots compris.
-4. **Une échelle de duels** contre l'IA : la run est gagnée à **5 victoires** et se
-   termine à **2 défaites**. Une égalité se rejoue, abandonner un duel le concède.
-   Une fois la run perdue, **une vie se rachète 20 gemmes**, une seule fois.
-5. **Chaque victoire paie des gemmes** : 6, 9, 12, 15 puis 18, soit **60** pour une
-   run parfaite. La montée donne du sens à la vie rachetée en fin de run.
-6. Le handicap de l'IA monte avec les victoires (`LADDER_BONUS`, de +0 à
-   +4 ATK / +30 PV) : c'est le primitif `enemyBonus` de l'Arcade, plus doux
-   puisque l'adversaire a lui aussi un deck drafté.
+3. **2 relances** pour toute la run, lots et cartes de plus compris.
+4. **Une échelle de duels en ligne**, contre d'autres joueurs en draft : la run
+   est gagnée à **5 victoires** et se termine à **2 défaites**. Sans adversaire
+   dans la file, un **bot** au deck drafté prend la place (le joueur ne le sait
+   pas). Une égalité se rejoue, abandonner ou quitter un duel le concède. Une
+   fois la run perdue, **une vie se rachète 20 gemmes**, une seule fois.
+5. **Une carte de plus après chaque duel** qui ne clôt pas la run (victoire ou
+   défaite) : une parmi trois, tous tiers, avant de chercher le duel suivant.
+6. **Chaque victoire paie des gemmes** : 6, 9, 12, 15 puis 18, soit **60** pour une
+   run parfaite, plus le gain d'XP d'un duel en ligne.
 
 ## Les lots
 
@@ -91,14 +92,18 @@ draft**. Les adversaires, qui prennent le choix jouable le plus fort, finissent
 - **L'offre reste calculée côté client**, depuis la graine du serveur : elle lit
   les règles d'invocation (`logic/DeckCoverage.ts`), que Node ne porte pas. Le
   serveur vérifie qu'un choix est du bon tier (ou forme un lot lié) et pas déjà
-  pris, mais ne peut pas vérifier qu'il figurait dans l'offre. C'est la même confiance bornée que le
-  résultat d'un duel : une run par jour, 60 gemmes au plus.
+  pris, mais ne peut pas vérifier qu'il figurait dans l'offre : une run par
+  jour, 60 gemmes au plus.
+- **Le résultat d'un duel est soldé par le serveur**, à la clôture du match en
+  ligne (`ws/MatchRelay`, `ws/BotMatch`) : le client ne rapporte rien.
 - **L'offre est une fonction de l'état** (graine, nombre de cartes prises,
   relances dépensées) : recharger la page rend la même offre.
 - **Toute la règle de l'offre est pure** dans `logic/Draft.ts`, testée dans
   `test/draft.test.ts` ; le serveur dans `test/draft-server.test.ts`.
-- L'écran de jeu est le vrai `GameScreen` (`params.draft`), avec le deck drafté
-  passé à `buildSession` comme le deck du tutoriel.
+- L'écran de jeu est celui du Duel en ligne (`GameScreenPvp`, `params.draft`),
+  avec le deck drafté passé à `buildSession`. Contre un bot, son deck est
+  drafté chez le client avec la même fonction d'offre, à la taille du deck du
+  joueur.
 
 ## Ce qui reste ouvert
 
@@ -111,5 +116,7 @@ draft**. Les adversaires, qui prennent le choix jouable le plus fort, finissent
   temps, un choix de pack thématique en début de draft (le pool devient un pack
   au lieu du catalogue, sans rien concevoir de plus), une magie ou un terrain à
   drafter entre deux duels.
-- **L'IA adverse** reste `EnemyAI` : elle drafte bien (carte jouable la plus
-  forte), mais elle joue comme partout ailleurs.
+- **Le bot** reste `EnemyAI` : il drafte bien (carte jouable la plus forte),
+  mais il joue comme partout ailleurs.
+- **L'appariement** est le premier venu en draft, sans tenir compte du nombre de
+  victoires : à revoir si la file se peuple.

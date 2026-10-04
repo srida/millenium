@@ -78,15 +78,34 @@ function drafted(user: () => any) {
   while (run(user).status === 'drafting') expect(draft.pick(user(), cardForStep(run(user))).ok).toBe(true);
 }
 
+/** Une carte de n'importe quel tier, pas encore prise. */
+const anyFreeCard = (r: any) => cards.find(c => tiers.tiersOf(c).length && !r.picks.includes(c.id)).id;
+
+/** Solde un duel comme le relais PvP, puis prend la carte de plus si elle est due. */
 const report = (user: () => any, result: 'win' | 'loss') => {
-  const r = run(user);
-  return draft.reportDuel(user(), { index: r.wins + r.losses, result });
+  const out = draft.recordDuel(user().id, result);
+  if (draft.pendingBonus(run(user))) expect(draft.pick(user(), [anyFreeCard(run(user))]).ok).toBe(true);
+  return out;
 };
 
 describe('jumeaux client / serveur', () => {
+  it('« une carte de plus est due » se dérive pareil des deux côtés', () => {
+    const base = { day: 'x', seed: 1, rerolls: 0, extra_life: false, gems_earned: 0 };
+    const ids = (n: number) => Array.from({ length: n }, (_, i) => `C${i}`);
+    for (const status of ['drafting', 'playing', 'won', 'lost'] as const) {
+      for (const n of [14, 15, 16, 17]) {
+        for (const [wins, losses] of [[0, 0], [1, 0], [1, 1], [2, 0]]) {
+          const r = { ...base, status, picks: ids(n), wins, losses };
+          expect(draft.pendingBonus(r)).toBe(ClientDraft.pendingBonus(r as any));
+        }
+      }
+    }
+  });
+
   it('le serveur compte avec les mêmes règles que le client', () => {
     expect(draft.DRAFT_STEPS).toEqual(ClientDraft.DRAFT_STEPS);
     expect(draft.DRAFT_SIZE).toBe(ClientDraft.DRAFT_SIZE);
+    expect(draft.BONUS_STEP).toEqual(ClientDraft.BONUS_STEP);
     expect(draft.DRAFT_REROLLS).toBe(ClientDraft.DRAFT_REROLLS);
     expect(draft.RUN_WINS).toBe(ClientDraft.RUN_WINS);
     expect(draft.RUN_LOSSES).toBe(ClientDraft.RUN_LOSSES);
@@ -179,19 +198,60 @@ describe('choix et relances', () => {
 });
 
 describe('gemmes', () => {
-  it('une run parfaite paie 60 gemmes, et un rapport rejoué ne paie pas', () => {
+  it('une run parfaite paie 60 gemmes, et un solde rejoué ne paie pas', () => {
     const user = newUser();
     drafted(user);
     const before = user().gems;
     for (let i = 0; i < draft.RUN_WINS; i++) {
-      const index = run(user).wins + run(user).losses;
-      expect(draft.reportDuel(user(), { index, result: 'win' }).granted).toEqual({ gems: draft.WIN_GEMS[i] });
-      // Le même rapport, rejoué : refusé, rien de plus.
-      expect(draft.reportDuel(user(), { index, result: 'win' }).ok).toBe(false);
+      expect(draft.recordDuel(user().id, 'win').granted).toEqual({ gems: draft.WIN_GEMS[i] });
+      // Un second solde avant la carte de plus : refusé, rien de plus.
+      expect(draft.recordDuel(user().id, 'win').ok).toBe(false);
+      if (draft.pendingBonus(run(user))) draft.pick(user(), [anyFreeCard(run(user))]);
     }
     expect(user().gems - before).toBe(60);
     expect(run(user)).toMatchObject({ status: 'won', gems_earned: 60 });
     expect(report(user, 'win').ok).toBe(false);
+  });
+});
+
+describe('carte de plus et file d\'attente', () => {
+  it('une carte de tout tier est due après chaque duel qui ne clôt pas la run', () => {
+    const user = newUser();
+    drafted(user);
+    expect(draft.duelDeck(user().id)).toMatchObject({ ok: true });
+    expect(draft.duelDeck(user().id).card_ids).toHaveLength(15);
+    // Pas de carte à prendre avant le premier duel.
+    expect(draft.pick(user(), [anyFreeCard(run(user))]).ok).toBe(false);
+
+    draft.recordDuel(user().id, 'loss');
+    expect(draft.pendingBonus(run(user))).toBe(true);
+    // La file refuse un duel tant que la carte n'est pas prise.
+    expect(draft.duelDeck(user().id)).toMatchObject({ ok: false });
+    expect(draft.pick(user(), [run(user).picks[0]]).ok).toBe(false);           // déjà prise
+    const t5 = cards.find(c => tiers.tiersOf(c).includes(5) && !run(user).picks.includes(c.id)).id;
+    expect(draft.pick(user(), [t5, anyFreeCard(run(user))]).ok).toBe(false); // une seule
+    expect(draft.pick(user(), [t5]).ok).toBe(true);                          // tout tier
+    expect(run(user).picks).toHaveLength(16);
+    expect(draft.pick(user(), [anyFreeCard(run(user))]).ok).toBe(false);     // une par duel
+    expect(draft.duelDeck(user().id).card_ids).toHaveLength(16);
+  });
+
+  it('la relance vaut aussi pour la carte de plus', () => {
+    const user = newUser();
+    drafted(user);
+    expect(draft.reroll(user()).ok).toBe(false);                              // rien à choisir
+    draft.recordDuel(user().id, 'win');
+    expect(draft.reroll(user()).ok).toBe(true);
+  });
+
+  it('aucune carte n\'est due quand la défaite clôt la run', () => {
+    const user = newUser();
+    drafted(user);
+    report(user, 'loss');
+    draft.recordDuel(user().id, 'loss');
+    expect(run(user).status).toBe('lost');
+    expect(draft.pendingBonus(run(user))).toBe(false);
+    expect(draft.duelDeck(user().id).ok).toBe(false);
   });
 });
 
@@ -203,6 +263,7 @@ describe('vie rachetée', () => {
     report(user, 'loss');
     report(user, 'loss');
     expect(run(user).status).toBe('lost');
+    expect(run(user).picks).toHaveLength(16);
     expect(draft.buyLife(user())).toMatchObject({ ok: false, reason: 'Pas assez de gemmes.' });
     expect(run(user).status).toBe('lost');
 
@@ -210,6 +271,9 @@ describe('vie rachetée', () => {
     expect(draft.buyLife(user()).ok).toBe(true);
     expect(user().gems).toBe(25 - draft.EXTRA_LIFE_PRICE_GEMS);
     expect(run(user)).toMatchObject({ status: 'playing', extra_life: true });
+    // La carte du duel perdu est due avant le dernier duel.
+    expect(draft.duelDeck(user().id).ok).toBe(false);
+    expect(draft.pick(user(), [anyFreeCard(run(user))]).ok).toBe(true);
 
     report(user, 'loss');
     expect(run(user).status).toBe('lost');

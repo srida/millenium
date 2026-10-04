@@ -431,7 +431,7 @@ export function GameOverScreen({
   onExit, exitLabel = 'MENU PRINCIPAL',
   playerAvatarSrc, playerAvatarFallback = '★',
   enemyAvatarSrc, enemyAvatarFallback = '?',
-  note = null,
+  note = null, info = null,
 }: {
   onExit?: (winner: 'player' | 'enemy' | 'draw' | null) => void;
   exitLabel?: string;
@@ -446,6 +446,9 @@ export function GameOverScreen({
    * l'avertissement serait écrit et invisible.
    */
   note?: string | null;
+  /** Une ligne neutre sur ce que la partie a changé ailleurs (le solde d'un
+   *  duel de Draft dans la run du jour). */
+  info?: string | null;
 } = {}) {
   const gameOver = useGameStore(s => s.gameOver);
   const winner = useGameStore(s => s.winner);
@@ -487,6 +490,7 @@ export function GameOverScreen({
             toXp={user.xp ?? startProgression.current.xp}
           />
         )}
+        {info && <div className="mb-1 text-center text-xs text-white/70">{info}</div>}
         {note && (
           <div className="mb-1 flex items-center justify-center gap-1 text-center text-xs text-danger">
             <UiIcon id="UI_WARNING" className="h-3.5 w-3.5" /> {note}

@@ -143,7 +143,7 @@ function handleMessage(ws, msg) {
 
   switch (msg.type) {
     case 'queue:join':
-      queue.joinQueue(ws, ws.userId, msg.deckName);
+      queue.joinQueue(ws, ws.userId, msg.deckName, msg.mode);
       break;
     case 'queue:leave':
       queue.leaveQueue(ws.userId);

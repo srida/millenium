@@ -119,11 +119,16 @@ function spawn() {
   const def = pick(decks);
   return {
     deckId: def.id,
-    username: pick(PSEUDOS),
-    tag: randomTag(),
+    ...identity(),
     avatar: avatarFor(def),
     deck: def.deck,
   };
 }
 
-module.exports = { catalog, spawn, avatarFor, PSEUDOS, DECKS_FILE };
+/** Un pseudo et un tag, sans deck — l'adversaire d'un duel de Draft, dont le
+ *  deck est drafté chez le client (cf. ws/BotMatch.js). */
+function identity() {
+  return { username: pick(PSEUDOS), tag: randomTag() };
+}
+
+module.exports = { catalog, spawn, identity, avatarFor, PSEUDOS, DECKS_FILE };

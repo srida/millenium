@@ -225,10 +225,6 @@ export async function rerollDraft() {
   return absorbShop(await api('/me/draft/reroll', { method: 'POST', body: {} }));
 }
 
-export async function reportDraftDuel({ index, result }) {
-  return absorbShop(await api('/me/draft/duel', { method: 'POST', body: { index, result } }));
-}
-
 export async function buyDraftLife() {
   return absorbShop(await api('/me/draft/life', { method: 'POST', body: {} }));
 }

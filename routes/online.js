@@ -694,13 +694,8 @@ router.post('/me/draft/reroll', auth.requireUser, auth.rateLimit({ windowMs: 60_
   draftResult(req, res, draft.reroll(req.user));
 });
 
-router.post('/me/draft/duel', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
-  const index = Number(req.body?.index);
-  const result = String(req.body?.result || '');
-  if (!Number.isInteger(index)) return res.status(400).json({ error: 'index requis', field: 'index' });
-  draft.sync(req.user);
-  draftResult(req, res, draft.reportDuel(req.user, { index, result }));
-});
+// ⚠️ Pas de route de résultat : un duel de Draft est un match en ligne, soldé
+// par le relais PvP (`draft.recordDuel`, appelé à la clôture du match).
 
 router.post('/me/draft/life', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
   draft.sync(req.user);

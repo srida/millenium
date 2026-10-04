@@ -64,7 +64,9 @@ export default function ChallengeBanner() {
   const navigateRef = useRef(navigate);
   navigateRef.current = navigate;
   useEffect(() => {
-    const onFound = () => navigateRef.current('game_pvp', {});
+    // Un duel de Draft a son propre trajet (écran Draft, présentation, puis
+    // `game_pvp` avec `draft: true`) : le reprendre ici le jouerait sans sa run.
+    const onFound = (msg: any) => { if (msg?.mode !== 'draft') navigateRef.current('game_pvp', {}); };
     const onJoinFailed = (msg: any) => {
       setBusyId(null);
       setJoinError(

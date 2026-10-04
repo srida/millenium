@@ -1843,24 +1843,32 @@ Bracket local à 16, **entièrement client** (`logic/Tournament.js`), éliminati
 
 ## Mode Draft (`draft.js` + `logic/Draft.ts`)
 
-Une run par jour (rotation de 5 h). 15 cartes : trois **lots** de 3 cartes liées (tiers mélangés), puis six choix d'une carte parmi trois (tiers 1, 1, 2, 3, 4, 5) ; 2 relances, puis duels solo jusqu'à 5 victoires ou 2 défaites. Écran `draft`, duel via `GameScreen` + `params.draft`. Note de design : `docs/draft.md`.
+Une run par jour (rotation de 5 h). 15 cartes : trois **lots** de 3 cartes liées (tiers mélangés), puis six choix d'une carte parmi trois (tiers 1, 1, 2, 3, 4, 5) ; 2 relances pour toute la run, puis **duels en ligne** jusqu'à 5 victoires ou 2 défaites, avec **une carte de plus** à drafter après chaque duel qui ne clôt pas la run. Écran `draft`, duel via `GameScreenPvp` + `params.draft`. Note de design : `docs/draft.md`.
 
 | Règle | Valeur |
 |---|---|
-| Gemmes par victoire | 6 / 9 / 12 / 15 / 18 (60 pour une run parfaite), versées au rapport |
+| Gemmes par victoire | 6 / 9 / 12 / 15 / 18 (60 pour une run parfaite), versées à la clôture du match |
 | Vie rachetée | **20 gemmes**, une par run, seulement une fois la run perdue |
+| Carte de plus | une parmi trois, **tous tiers** (`BONUS_STEP`), due avant le duel suivant |
 
 - ⚠️ **Partage serveur / client inhabituel** : le serveur pose la **graine** et tient la run (choix, relances, duels, vie, gemmes, table `user_draft_state`) ; l'**offre** se calcule côté client, parce qu'elle lit les règles d'invocation que Node ne porte pas.
-- ⚠️ Le serveur valide un choix (cartes du catalogue, pas encore prises, du tier de l'étape ou formant un lot lié) mais **ne peut pas vérifier qu'il était dans l'offre** — même confiance bornée que le résultat d'un duel.
+- ⚠️ Le serveur valide un choix (cartes du catalogue, pas encore prises, du tier de l'étape ou formant un lot lié) mais **ne peut pas vérifier qu'il était dans l'offre**.
 - **Lot lié** = une carte « tête » et les matériels que sa recette **nomme** (un seul nommé : le 3ᵉ est un matériel de ce matériel, à défaut une carte qui se sert de l'un des deux). `isLinkedBundle` juge : cartes reliées par des recettes qui se nomment, au moins deux « plus bas tiers » distincts.
-- L'étape se **déduit** de `picks.length` (`currentStep`) ; `picks` reste une liste plate. Le deck range chaque carte à son **plus bas tier** (`deckOf(state, pool)`).
-- ⚠️ `DRAFT_STEPS`, `DRAFT_REROLLS`, `RUN_WINS`, `RUN_LOSSES`, `EXTRA_LIVES` et `isLinkedBundle` sont **jumeaux** (`draft.js` ↔ `logic/Draft.ts`) ; `draft-server.test.ts` est le seul filet.
-- Garde anti-double-paiement : le rapport porte l'**index** du duel (`wins + losses`), refusé (409) s'il est périmé, dans la transaction.
+- L'étape se **déduit** de `picks.length` (`stepOf` : `currentStep` en draft, `BONUS_STEP` quand une carte est due) ; `picks` reste une liste plate. Le deck range chaque carte à son **plus bas tier** (`deckOf(state, pool)`).
+- ⚠️ **La carte de plus est DÉRIVÉE, jamais stockée** : `pendingBonus(run)` = `playing` et `picks.length < DRAFT_SIZE + wins + losses`. Rien à oublier de poser, et une vie rachetée la rend due elle aussi.
+- ⚠️ `DRAFT_STEPS`, `BONUS_STEP`, `DRAFT_REROLLS`, `RUN_WINS`, `RUN_LOSSES`, `EXTRA_LIVES`, `isLinkedBundle` et `pendingBonus` sont **jumeaux** (`draft.js` ↔ `logic/Draft.ts`) ; `draft-server.test.ts` est le seul filet.
 - ⚠️ **L'offre est une fonction de l'état** (`seed`, `picks.length`, `rerolls`) : jamais de `Math.random` au rendu.
 - Choix d'une carte : complément / sûr / pari, jugés par **`logic/DeckCoverage.isSummonable`** (`sim/decks.ts` la réexporte).
-- Les adversaires draftent avec la même `offerFor` (`autoDraft`), déterministes à `(seed, index du duel)`. Handicap `LADDER_BONUS` indexé sur les victoires.
 - Pool : tout le catalogue avec illustration (`draftPool`), pas la collection du joueur ; repli sur tout le catalogue si un tier ne peut plus remplir ses étapes.
-- `ai_win` reste crédité à chaque duel gagné, comme en Arcade.
+
+### Les duels de Draft (file PvP, `mode: 'draft'`)
+
+- `queue:join { mode: 'draft' }` : la file **n'apparie qu'entre joueurs en draft** (FIFO par mode). Le deck vient de la **run** (`draft.duelDeck`), jamais d'un nom envoyé par le client ; refus → `error` `draft_unavailable` (pas de run en duels, carte de plus due).
+- ⚠️ **Le résultat est soldé par le SERVEUR** à la clôture du match (`MatchRelay.endMatch` / `BotMatch.endMatch` → `draft.recordDuel`), **avant** le gain `pvp_win`, et annoncé dans `match:end.draft`. Il n'y a plus de route de rapport. Un nul ne solde rien (le duel se rejoue).
+- `deckDerived` d'un match de draft : `deck_attribute_counts` du deck drafté (`decks.attributeCountsOf`), **aucun cosmétique**.
+- **Repli bot** : `match:found` porte `bot: { deck: null }` et `mode: 'draft'` — le client drafte le deck du bot (`currentOpponent` → `autoDraft(…, extra = index)`, même taille que le deck du joueur) et prend sa carte « tête » pour avatar. Le bot n'a **aucun handicap**.
+- ⚠️ Contre un bot : une victoire sous `MIN_MATCH_MS` ne compte pas ; une défaite compte toujours ; **fermer l'onglet en plein duel est une défaite** (`handleDisconnect`), seul mode où c'est le cas.
+- ⚠️ `ChallengeBanner` écoute **tous** les `match:found` : il ignore ceux de `mode: 'draft'`, sinon il naviguait vers `game_pvp` sans `params.draft`.
 - Le deck s'affiche par `components/deck/DeckTierGrid` — la présentation de l'onglet Deck du DeckBuilder, partagée.
 
 ## Mode tutoriel

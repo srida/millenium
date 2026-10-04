@@ -1,6 +1,8 @@
 // Mode DRAFT : une run par jour. Le joueur construit un deck de 15 cartes —
 // trois lots de trois cartes liées, puis six cartes à l'unité — puis enchaîne
-// des duels contre des adversaires qui ont drafté avec les mêmes règles.
+// des duels EN LIGNE contre d'autres joueurs en draft (un bot au deck drafté si
+// la file ne trouve personne). Après chaque duel qui ne clôt pas la run, il
+// drafte une carte de plus.
 //
 // Partage des rôles avec le client — et il est inhabituel :
 //
@@ -11,22 +13,25 @@
 //   - Tout le reste est ICI : le verrou quotidien, les choix retenus, les
 //     relances dépensées, les victoires et défaites, la vie bonus et les
 //     gemmes. Un rechargement, un autre appareil : la run se reprend.
+//   - Le RÉSULTAT d'un duel n'est plus rapporté par une route HTTP : c'est le
+//     relais PvP qui le solde (`recordDuel`, appelé par `ws/MatchRelay` et
+//     `ws/BotMatch`), là où il arbitre déjà le vainqueur.
 //
 // ⚠️ Limite assumée : le serveur vérifie qu'un choix est fait de cartes du
 // catalogue, pas encore prises, du bon tier (choix d'une carte) ou formant un
-// lot lié (étape de lot) — il ne peut pas vérifier qu'il figurait dans l'offre. Comme le résultat d'un duel (Arcade, solo), c'est une
-// confiance bornée : une run par jour, 60 gemmes au plus.
+// lot lié (étape de lot) — il ne peut pas vérifier qu'il figurait dans l'offre.
+// C'est une confiance bornée : une run par jour, 60 gemmes au plus. Même
+// limite sur un duel contre BOT, dont le résultat reste rapporté par le client
+// (cf. ws/BotMatch.js) ; un duel entre deux joueurs, lui, est arbitré.
 //
 // Deux règles de l'économie, comme partout :
-//   1. LE CLIENT NOMME, LE SERVEUR CHIFFRE. Le client envoie une carte, un
-//      résultat sur un index de duel, « je rachète une vie » — jamais un
-//      montant. Barème et prix vivent ici.
+//   1. LE CLIENT NOMME, LE SERVEUR CHIFFRE. Le client envoie une carte,
+//      « je rachète une vie » — jamais un montant. Barème et prix vivent ici.
 //   2. GARDES DANS LA TRANSACTION. Chaque action lit et réécrit la run dans
-//      une seule `db.transaction` (better-sqlite3 est synchrone) ; l'index de
-//      duel attendu rejette un rapport rejoué, donc deux taps ne paient qu'une
-//      fois.
+//      une seule `db.transaction` (better-sqlite3 est synchrone) ; un duel est
+//      soldé une fois, par la clôture du match qui le portait.
 //
-// ⚠️ JUMEAU : `DRAFT_STEPS`, `DRAFT_REROLLS`, `RUN_WINS`, `RUN_LOSSES`,
+// ⚠️ JUMEAU : `DRAFT_STEPS`, `BONUS_STEP`, `DRAFT_REROLLS`, `RUN_WINS`, `RUN_LOSSES`,
 // `EXTRA_LIVES` et `isLinkedBundle` existent aussi dans `client/src/logic/Draft.ts` (frontière
 // CJS / ESM-TS). `client/src/test/draft-server.test.ts` les fait répondre la
 // même chose.
@@ -50,6 +55,8 @@ const DRAFT_STEPS = Object.freeze([
   { cards: 1, tier: 3 }, { cards: 1, tier: 4 }, { cards: 1, tier: 5 },
 ].map(s => Object.freeze(s)));
 const DRAFT_SIZE = DRAFT_STEPS.reduce((n, s) => n + s.cards, 0);
+/** La carte de plus, entre deux duels : une carte, tous tiers confondus. */
+const BONUS_STEP = Object.freeze({ cards: 1, bonus: true });
 const DRAFT_REROLLS = 2;
 const RUN_WINS = 5;
 /** La run s'arrête à la 2ᵉ défaite… */
@@ -103,6 +110,19 @@ function isLinkedBundle(cards) {
     }
   }
   return seen.size === cards.length;
+}
+
+/** Une carte est-elle due ? Une par duel joué tant que la run continue : le
+ *  compte se DÉDUIT des cartes prises et des duels, la run n'a rien à porter.
+ *  (Une vie rachetée remet la run en jeu : la carte du duel perdu est due.) */
+function pendingBonus(run) {
+  return run.status === 'playing' && run.picks.length < DRAFT_SIZE + run.wins + run.losses;
+}
+
+/** L'étape à jouer : celle du draft, la carte de plus, ou rien. */
+function stepOf(run) {
+  if (run.status === 'drafting') return currentStep(run.picks.length);
+  return pendingBonus(run) ? BONUS_STEP : null;
 }
 
 function maxLosses(run) {
@@ -173,14 +193,14 @@ const start = db.transaction((user) => {
   return { ok: true };
 });
 
-/** Retient le choix de l'étape en cours : une carte, ou les trois d'un lot. */
+/** Retient le choix de l'étape en cours : une carte, les trois d'un lot, ou la
+ *  carte de plus d'entre deux duels. */
 const pick = db.transaction((user, cardIds) => {
   const state = readState(user.id);
   const { run, error } = todayRun(state);
   if (error) return { ok: false, reason: error, stale: true };
-  if (run.status !== 'drafting') return { ok: false, reason: 'Le draft est terminé.', stale: true };
-  const step = currentStep(run.picks.length);
-  if (!step) return { ok: false, reason: 'Le draft est terminé.', stale: true };
+  const step = stepOf(run);
+  if (!step) return { ok: false, reason: 'Aucune carte à choisir.', stale: true };
   const ids = Array.isArray(cardIds) ? cardIds : [];
   if (ids.length !== step.cards || new Set(ids).size !== ids.length) {
     return { ok: false, reason: `Cette étape prend ${step.cards} carte${step.cards > 1 ? 's' : ''}.`, stale: true };
@@ -191,10 +211,10 @@ const pick = db.transaction((user, cardIds) => {
   if (step.tier != null && !tiers.tiersOf(cards[0]).includes(step.tier)) {
     return { ok: false, reason: 'Cette carte n\'est pas du tier de l\'étape.', stale: true };
   }
-  if (step.tier == null && !isLinkedBundle(cards)) return { ok: false, reason: 'Ces cartes ne forment pas un lot lié.' };
+  if (step.tier == null && !step.bonus && !isLinkedBundle(cards)) return { ok: false, reason: 'Ces cartes ne forment pas un lot lié.' };
 
   run.picks.push(...ids);
-  if (run.picks.length >= DRAFT_SIZE) run.status = 'playing';
+  if (run.status === 'drafting' && run.picks.length >= DRAFT_SIZE) run.status = 'playing';
   writeState(state);
   return { ok: true };
 });
@@ -203,7 +223,7 @@ const reroll = db.transaction((user) => {
   const state = readState(user.id);
   const { run, error } = todayRun(state);
   if (error) return { ok: false, reason: error, stale: true };
-  if (run.status !== 'drafting') return { ok: false, reason: 'Le draft est terminé.', stale: true };
+  if (!stepOf(run)) return { ok: false, reason: 'Aucune carte à choisir.', stale: true };
   if (run.rerolls >= DRAFT_REROLLS) return { ok: false, reason: 'Plus de relance.', stale: true };
   run.rerolls += 1;
   writeState(state);
@@ -211,19 +231,30 @@ const reroll = db.transaction((user) => {
 });
 
 /**
- * Solde un duel. `index` (victoires + défaites déjà comptées) doit désigner le
- * duel en cours : un rapport rejoué arrive sur un index périmé et est refusé,
- * c'est ce qui empêche une victoire de payer deux fois.
+ * Le deck que le joueur engage dans un duel, ou la raison pour laquelle il ne
+ * peut pas en lancer un. Lu par la file d'attente (`ws/MatchmakingQueue`) : un
+ * duel ne se cherche qu'avec une run en phase de duels, sans carte due.
  */
-const reportDuel = db.transaction((user, { index, result } = {}) => {
-  const state = readState(user.id);
+function duelDeck(userId) {
+  const { run, error } = todayRun(readState(userId));
+  if (error) return { ok: false, reason: error };
+  if (run.status !== 'playing') return { ok: false, reason: 'Aucun duel à jouer.' };
+  if (pendingBonus(run)) return { ok: false, reason: 'Choisis d\'abord ta carte.' };
+  return { ok: true, card_ids: [...run.picks] };
+}
+
+/**
+ * Solde un duel. Appelé par le relais PvP, jamais par le client : c'est le
+ * serveur qui arbitre le vainqueur (rapports croisés, forfait, délai), donc
+ * aucun index ni montant ne transite. Un duel soldé hors de la phase de duels
+ * (run déjà close, jour tourné en plein match) ne compte pas.
+ */
+const recordDuel = db.transaction((userId, result) => {
+  const state = readState(userId);
   const { run, error } = todayRun(state);
-  if (error) return { ok: false, reason: error, stale: true };
-  if (run.status !== 'playing') return { ok: false, reason: 'Aucun duel en cours.', stale: true };
+  if (error) return { ok: false, reason: error };
+  if (run.status !== 'playing' || pendingBonus(run)) return { ok: false, reason: 'Aucun duel en cours.' };
   if (!RESULTS.includes(result)) return { ok: false, reason: 'Résultat inconnu.' };
-  if (Number(index) !== run.wins + run.losses) {
-    return { ok: false, reason: 'Ce duel n\'est plus celui en cours.', stale: true };
-  }
 
   let granted = null;
   if (result === 'win') {
@@ -231,7 +262,7 @@ const reportDuel = db.transaction((user, { index, result } = {}) => {
     run.wins += 1;
     if (gems > 0) {
       run.gems_earned += gems;
-      progression.grant(user.id, { gems });
+      progression.grant(userId, { gems });
       granted = { gems };
     }
     if (run.wins >= RUN_WINS) run.status = 'won';
@@ -275,6 +306,7 @@ function getSnapshot(user) {
     next_rotation_at: nextRotationAt(),
     rules: {
       steps: DRAFT_STEPS.map(s => ({ ...s })),
+      bonus_step: { ...BONUS_STEP },
       rerolls: DRAFT_REROLLS,
       wins: RUN_WINS,
       losses: RUN_LOSSES,
@@ -292,7 +324,7 @@ function refresh(user) {
 }
 
 module.exports = {
-  DRAFT_STEPS, DRAFT_SIZE, DRAFT_REROLLS, isLinkedBundle, RUN_WINS, RUN_LOSSES, EXTRA_LIVES,
+  DRAFT_STEPS, DRAFT_SIZE, BONUS_STEP, DRAFT_REROLLS, isLinkedBundle, RUN_WINS, RUN_LOSSES, EXTRA_LIVES,
   EXTRA_LIFE_PRICE_GEMS, WIN_GEMS,
-  sync, start, pick, reroll, reportDuel, buyLife, getSnapshot, refresh,
+  sync, start, pick, reroll, duelDeck, recordDuel, buyLife, getSnapshot, refresh, pendingBonus,
 };

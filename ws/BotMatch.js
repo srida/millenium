@@ -15,6 +15,7 @@
 const crypto = require('crypto');
 const progression = require('../progression');
 const bots = require('../bots');
+const draft = require('../draft');
 
 /** Le joueur est toujours le rôle A — le bot n'a pas de socket à qui parler. */
 const PLAYER_ROLE = 'A';
@@ -61,16 +62,25 @@ function isBotMatch(matchId) {
  * → null si aucun bot n'est disponible : le joueur reste alors dans la file,
  *   ce qui vaut mieux que de l'envoyer affronter un deck vide.
  */
-function createMatch(ws, userId) {
-  const bot = bots.spawn();
+/**
+ * Duel de DRAFT (`opts.draft`) : le bot a lui aussi un deck drafté, et il est
+ * drafté CHEZ LE CLIENT (`logic/Draft.currentOpponent`, même fonction d'offre
+ * que le joueur) — Node ne porte pas les règles d'invocation qui font l'offre.
+ * Le serveur n'annonce donc qu'une identité ; l'avatar reste vide, le client
+ * pose la carte la plus forte du deck drafté (même geste que `bots.avatarFor`).
+ */
+function createMatch(ws, userId, opts = {}) {
+  const isDraft = opts.draft === true;
+  const bot = isDraft ? { ...bots.identity(), avatar: null, deck: null } : bots.spawn();
   if (!bot) return null;
 
   const matchId = crypto.randomUUID();
-  matches.set(matchId, { userId, ws, bot, startedAt: Date.now() });
+  matches.set(matchId, { userId, ws, bot, draft: isDraft, startedAt: Date.now() });
   matchByUser.set(userId, matchId);
 
   send(ws, 'match:found', {
     matchId,
+    mode: isDraft ? 'draft' : 'standard',
     youAre: PLAYER_ROLE,
     opponent: { id: null, username: bot.username, tag: bot.tag, avatar: bot.avatar, variants: {}, foils: [], finishes: {} },
     // La seule chose qui distingue ce message d'un vrai match. Le client s'en
@@ -100,12 +110,19 @@ function handleForfeit(matchId, userId) {
  * Le joueur a fermé l'onglet : le match disparaît sans gain ni défaite. Il n'y
  * a pas de période de grâce à tenir ici, contrairement au PvP réel — aucun
  * adversaire n'attend, et l'état de la partie est parti avec la page.
+ *
+ * ⚠️ Sauf en Draft, où c'est une DÉFAITE : sans elle, un duel mal engagé se
+ * fermerait pour être rejoué, et le repli bot deviendrait la porte « rejouer
+ * jusqu'à gagner » d'un mode où chaque victoire paie des gemmes. Un vrai duel
+ * se perd de même au bout de la période de grâce (cf. MatchRelay).
  */
 function handleDisconnect(userId) {
   const matchId = matchByUser.get(userId);
   if (!matchId) return;
+  const match = matches.get(matchId);
   matches.delete(matchId);
   matchByUser.delete(userId);
+  if (match?.draft) draft.recordDuel(userId, 'loss');
 }
 
 function rewardAllowed(userId, match) {
@@ -133,15 +150,25 @@ function endMatch(matchId, winnerRole, reason) {
 
   // Même forme de réponse que `MatchRelay.endMatch` : la progression voyage
   // avec `match:end`, le vainqueur voit sa jauge bouger sans refetch.
-  const gain = winnerRole === PLAYER_ROLE && rewardAllowed(match.userId, match)
-    ? progression.reward(match.userId, 'pvp_win')
-    : null;
+  const allowed = winnerRole === PLAYER_ROLE && rewardAllowed(match.userId, match);
+
+  // Draft : le duel est soldé dans la run, AVANT le gain (la progression rendue
+  // porte ainsi les gemmes). Une victoire que la caisse refuse (match trop
+  // court) ne compte pas ; une défaite compte toujours ; un nul se rejoue.
+  let draftOutcome = null;
+  if (match.draft && winnerRole !== 'draw' && (winnerRole !== PLAYER_ROLE || allowed)) {
+    const res = draft.recordDuel(match.userId, winnerRole === PLAYER_ROLE ? 'win' : 'loss');
+    if (res.ok) draftOutcome = { result: res.result, status: res.status, granted: res.granted };
+  }
+
+  const gain = allowed ? progression.reward(match.userId, 'pvp_win') : null;
 
   send(match.ws, 'match:end', {
     matchId,
     winner: winnerRole,
     reason,
     ...(gain ? { xp_gained: progression.REWARDS.pvp_win, progression: gain } : {}),
+    ...(draftOutcome ? { draft: draftOutcome } : {}),
   });
 }
 

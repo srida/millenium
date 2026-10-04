@@ -1,10 +1,12 @@
-// Mode DRAFT : le deck se construit PENDANT la run, puis il affronte une
-// échelle d'adversaires qui ont drafté avec les mêmes règles. Pur et headless :
-// aucun import data, React ou store — le catalogue est passé en argument, comme
-// partout dans `logic/`.
+// Mode DRAFT : le deck se construit PENDANT la run, puis il affronte en ligne
+// d'autres joueurs en draft (ou un bot au deck drafté avec les mêmes règles).
+// Pur et headless : aucun import data, React ou store — le catalogue est passé
+// en argument, comme partout dans `logic/`.
 //
 // Deux temps : trois LOTS de trois cartes liées par une recette (9 cartes,
 // tiers mélangés), puis six choix d'UNE carte, au tier imposé par l'étape.
+// Puis, après chaque duel qui ne clôt pas la run, une carte DE PLUS, tous
+// tiers confondus.
 //
 // Trois règles portent tout le reste (cf. docs/draft.md) :
 //
@@ -31,6 +33,8 @@ import type { Card } from './types.js';
 export interface DraftStep {
   cards: number;
   tier?: number;
+  /** La carte de plus d'entre deux duels : une carte, sans tier imposé. */
+  bonus?: boolean;
 }
 
 /** Les étapes, dans l'ordre : trois lots de trois, puis six cartes en
@@ -47,6 +51,10 @@ export const DRAFT_STEPS: readonly DraftStep[] = Object.freeze([
 /** Taille du deck drafté. */
 export const DRAFT_SIZE = DRAFT_STEPS.reduce((n, s) => n + s.cards, 0);
 
+/** La carte de plus, due après chaque duel qui ne clôt pas la run.
+ *  ⚠️ JUMEAU de `draft.js` (`BONUS_STEP`). */
+export const BONUS_STEP: DraftStep = Object.freeze({ cards: 1, bonus: true });
+
 export const OFFER_SIZE = 3;
 /** Relances de l'offre, pour tout le draft. Le levier « chance » du joueur. */
 export const DRAFT_REROLLS = 2;
@@ -55,17 +63,6 @@ export const RUN_WINS = 5;
 export const RUN_LOSSES = 2;
 /** …sauf vie rachetée en gemmes (une par run, prix fixé par le serveur). */
 export const EXTRA_LIVES = 1;
-
-/** Handicap plat de l'IA selon le nombre de victoires déjà acquises : le même
- *  primitif que l'Arcade (`enemyBonus`), plus doux puisque l'adversaire a lui
- *  aussi un deck drafté. */
-export const LADDER_BONUS: readonly { atk: number; hp: number }[] = Object.freeze([
-  { atk: 0, hp: 0 },
-  { atk: 1, hp: 5 },
-  { atk: 2, hp: 10 },
-  { atk: 3, hp: 20 },
-  { atk: 4, hp: 30 },
-]);
 
 // --- État ---
 
@@ -111,6 +108,30 @@ export function currentStep(state: Pick<DraftState, 'picks'>): { index: number; 
     taken += DRAFT_STEPS[index].cards;
   }
   return null;
+}
+
+/** L'étape d'un deck qui compte `picksCount` cartes : celle du draft, puis la
+ *  carte de plus au-delà. Ne dit pas si elle est DUE (cf. `stepOf`). */
+function stepAt(picksCount: number): { index: number; step: DraftStep } {
+  let taken = 0;
+  for (let index = 0; index < DRAFT_STEPS.length; index++) {
+    if (picksCount === taken) return { index, step: DRAFT_STEPS[index] };
+    taken += DRAFT_STEPS[index].cards;
+  }
+  return { index: DRAFT_STEPS.length + Math.max(0, picksCount - DRAFT_SIZE), step: BONUS_STEP };
+}
+
+/** Une carte de plus est-elle due ? Une par duel joué tant que la run
+ *  continue — déduit des cartes prises et des duels, comme côté serveur.
+ *  ⚠️ JUMEAU de `draft.js` (`pendingBonus`). */
+export function pendingBonus(state: Pick<DraftState, 'status' | 'picks' | 'wins' | 'losses'>): boolean {
+  return state.status === 'playing' && state.picks.length < DRAFT_SIZE + state.wins + state.losses;
+}
+
+/** L'étape à jouer maintenant : celle du draft, la carte de plus, ou `null`. */
+export function stepOf(state: Pick<DraftState, 'status' | 'picks' | 'wins' | 'losses'>): { index: number; step: DraftStep } | null {
+  if (state.status === 'drafting') return currentStep(state);
+  return pendingBonus(state) ? stepAt(state.picks.length) : null;
 }
 
 /** Le plus bas tier d'une carte : celui où elle se range dans le deck. */
@@ -254,9 +275,8 @@ export function offerFor(
   pool: readonly Card[],
   rerolls: number = state.rerolls,
 ): OfferSlot[] {
-  const at = currentStep(state);
-  if (!at) return [];
-  if (at.step.tier == null) return bundleOffer(state, pool, at.index, rerolls);
+  const at = stepAt(state.picks.length);
+  if (at.step.tier == null && !at.step.bonus) return bundleOffer(state, pool, at.index, rerolls);
   const tier = at.step.tier;
   const byId = indexOf(pool);
   const taken = new Set(state.picks);
@@ -267,7 +287,7 @@ export function offerFor(
   // Ordre du catalogue normalisé par id : la même graine doit rendre la même
   // offre quel que soit l'ordre dans lequel le serveur a servi les cartes.
   const eligible = pool
-    .filter(c => !taken.has(c.id) && hasTier(c, tier))
+    .filter(c => !taken.has(c.id) && (tier == null || hasTier(c, tier)))
     .sort((a, b) => a.id.localeCompare(b.id));
   const buildable = eligible.filter(c => isSummonable(c, cov.ids, cov.attrs));
   const complement = buildable.filter(c => fillsMissing(c, missing));
@@ -303,16 +323,18 @@ export function offerFor(
 
 /** Prend un choix de l'offre : ses cartes, dans l'ordre de l'offre. */
 export function pickCards(state: DraftState, cardIds: readonly string[], pool: readonly Card[]): DraftState | null {
-  if (state.status !== 'drafting') return null;
+  if (!stepOf(state)) return null;
   const key = [...cardIds].sort().join('|');
   const slot = offerFor(state, pool).find(s => s.cards.map(c => c.id).sort().join('|') === key);
   if (!slot) return null;
   const picks = [...state.picks, ...slot.cards.map(c => c.id)];
-  return { ...state, picks, status: picks.length >= DRAFT_SIZE ? 'playing' : 'drafting' };
+  const status = state.status === 'drafting' && picks.length >= DRAFT_SIZE ? 'playing' : state.status;
+  return { ...state, picks, status };
 }
 
+/** Les relances valent pour toute la run, cartes de plus comprises. */
 export function canReroll(state: DraftState): boolean {
-  return state.status === 'drafting' && state.rerolls < DRAFT_REROLLS;
+  return !!stepOf(state) && state.rerolls < DRAFT_REROLLS;
 }
 
 export function reroll(state: DraftState): DraftState | null {
@@ -324,10 +346,10 @@ export function maxLosses(state: Pick<DraftState, 'extra_life'>): number {
   return RUN_LOSSES + (state.extra_life ? EXTRA_LIVES : 0);
 }
 
-/** Solde un duel — le même verdict que `draft.reportDuel`, utile à l'IA des
- *  tests et à la simulation. Une égalité ne se rapporte pas. */
+/** Solde un duel — le même verdict que `draft.recordDuel`, utile aux tests.
+ *  Une égalité ne se rapporte pas ; aucun duel tant qu'une carte est due. */
 export function recordResult(state: DraftState, result: 'win' | 'loss'): DraftState | null {
-  if (state.status !== 'playing') return null;
+  if (state.status !== 'playing' || pendingBonus(state)) return null;
   const wins = state.wins + (result === 'win' ? 1 : 0);
   const losses = state.losses + (result === 'loss' ? 1 : 0);
   const status: DraftStatus = wins >= RUN_WINS ? 'won' : losses >= maxLosses(state) ? 'lost' : 'playing';
@@ -348,24 +370,34 @@ function slotPower(slot: OfferSlot): number {
   return slot.cards.reduce((n, c) => n + cardPower(c), 0);
 }
 
+/** Le choix de l'IA : le plus fort parmi les jouables, un pari seulement
+ *  quand l'offre ne propose rien d'autre. */
+function bestSlot(offer: readonly OfferSlot[]): OfferSlot {
+  return [...offer].sort((a, b) =>
+    (Number(a.kind === 'bet') - Number(b.kind === 'bet'))
+    || ((a.missing ?? 0) - (b.missing ?? 0))
+    || (slotPower(b) - slotPower(a))
+    || a.cards[0].id.localeCompare(b.cards[0].id))[0];
+}
+
 /**
- * Un draft complet joué par l'IA, avec la MÊME fonction d'offre : à chaque
- * étape elle prend le choix jouable le plus fort, un pari seulement quand
- * l'offre ne propose rien d'autre. Elle ne relance jamais.
+ * Un draft complet joué par l'IA, avec la MÊME fonction d'offre, plus `extra`
+ * cartes de plus (une par duel déjà joué : le deck d'un adversaire grandit
+ * comme celui du joueur). Elle ne relance jamais.
  */
-export function autoDraft(seed: number, pool: readonly Card[]): Record<string, string[]> {
+export function autoDraft(seed: number, pool: readonly Card[], extra = 0): Record<string, string[]> {
   let state: DraftState = newDraft(seed);
   while (state.status === 'drafting') {
     const offer = offerFor(state, pool);
     if (offer.length === 0) break;
-    const ranked = [...offer].sort((a, b) =>
-      (Number(a.kind === 'bet') - Number(b.kind === 'bet'))
-      || ((a.missing ?? 0) - (b.missing ?? 0))
-      || (slotPower(b) - slotPower(a))
-      || a.cards[0].id.localeCompare(b.cards[0].id));
-    const next = pickCards(state, ranked[0].cards.map(c => c.id), pool);
+    const next = pickCards(state, bestSlot(offer).cards.map(c => c.id), pool);
     if (!next) break;
     state = next;
+  }
+  for (let i = 0; i < extra && state.picks.length >= DRAFT_SIZE; i++) {
+    const offer = offerFor(state, pool);
+    if (offer.length === 0) break;
+    state = { ...state, picks: [...state.picks, ...bestSlot(offer).cards.map(c => c.id)] };
   }
   return deckOf(state, pool);
 }
@@ -374,22 +406,25 @@ export interface DraftOpponent {
   /** Index du duel dans la run (victoires + défaites). */
   index: number;
   deck: Record<string, string[]>;
-  bonus: { atk: number; hp: number };
   /** Sa carte la plus forte : elle lui sert de visage. */
   faceCardId: string | null;
 }
 
-/** L'adversaire du duel en cours, ou `null` hors phase de duels. Déterministe
- *  à (graine, index) : un rechargement retombe sur le même adversaire. */
+/**
+ * Le BOT du duel en cours — servi quand la file d'attente ne trouve aucun
+ * joueur en draft —, ou `null` hors phase de duels. Il a drafté autant de
+ * cartes que le joueur. Aucun handicap de stats : l'adversaire doit pouvoir
+ * passer pour un joueur, et un bonus se lirait dans l'infobulle de ses cartes.
+ * Déterministe à (graine, index) : un rechargement retombe sur le même deck.
+ */
 export function currentOpponent(state: DraftState, pool: readonly Card[]): DraftOpponent | null {
   if (state.status !== 'playing') return null;
   const index = state.wins + state.losses;
-  const deck = autoDraft(hashSeed(state.seed, 'enemy', index), pool);
+  const deck = autoDraft(hashSeed(state.seed, 'enemy', index), pool, index);
   const byId = indexOf(pool);
   const cards = cardsOf(Object.values(deck).flat(), byId);
   const face = [...cards].sort((a, b) => (cardPower(b) - cardPower(a)) || a.id.localeCompare(b.id))[0] ?? null;
-  const bonus = LADDER_BONUS[Math.min(state.wins, LADDER_BONUS.length - 1)];
-  return { index, deck, bonus: { ...bonus }, faceCardId: face?.id ?? null };
+  return { index, deck, faceCardId: face?.id ?? null };
 }
 
 /**

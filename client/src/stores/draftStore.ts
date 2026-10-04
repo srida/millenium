@@ -7,9 +7,9 @@
 // les règles d'invocation que Node ne porte pas. Aucune copie locale : un
 // rechargement ou un autre appareil relit « où j'en suis aujourd'hui ».
 //
-// Mêmes deux parades que `arcadeStore` contre une lecture qui écraserait une
-// mutation plus fraîche : le compteur du canal (`bump`) et l'écran de jeu qui
-// ATTEND le rapport avant de naviguer.
+// Les duels sont des matchs EN LIGNE : leur résultat est soldé par le serveur à
+// la clôture du match, et arrive avec `match:end` (champ `draft`). Le store ne
+// rapporte donc rien ; il retient ce que le match a rendu et relit la run.
 import { create } from 'zustand';
 import * as AuthClient from '../data/AuthClient.js';
 import * as CardDatabase from '../data/CardDatabase.js';
@@ -21,6 +21,13 @@ import type { Card } from '../logic/types.js';
 export interface DraftRun extends DraftState {
   day: string;
   gems_earned: number;
+}
+
+/** Le solde d'un duel tel que le serveur l'annonce avec `match:end`. */
+export interface DraftDuelOutcome {
+  result: 'win' | 'loss';
+  status: DraftRun['status'];
+  granted: { gems: number } | null;
 }
 
 export interface DraftSnapshot {
@@ -64,17 +71,18 @@ interface DraftStoreState {
   loading: boolean;
   busy: boolean;
   error: string | null;
-  /** Gemmes tout juste versées par une victoire, affichées une fois. */
-  granted: { gems: number } | null;
+  /** Ce que le dernier duel a soldé dans la run (`match:end`), affiché une
+   *  fois sur l'écran de résultat. */
+  lastDuel: DraftDuelOutcome | null;
 
   load: (force?: boolean) => Promise<void>;
   start: () => Promise<string | null>;
   /** Une carte, ou les trois d'un lot. */
   pick: (cardIds: string[]) => Promise<string | null>;
   reroll: () => Promise<string | null>;
-  reportDuel: (result: 'win' | 'loss') => Promise<string | null>;
   buyLife: () => Promise<string | null>;
-  dismissGranted: () => void;
+  /** Retient le solde annoncé par `match:end` (`null` : rien de soldé). */
+  noteDuel: (outcome: DraftDuelOutcome | null) => void;
 }
 
 export const useDraftStore = create<DraftStoreState>((set, get) => {
@@ -86,7 +94,7 @@ export const useDraftStore = create<DraftStoreState>((set, get) => {
     try {
       const data = await call();
       channel.bump();
-      set({ snapshot: pickSnapshot(data), granted: data.granted ?? null });
+      set({ snapshot: pickSnapshot(data) });
       useAuthStore.getState().applyProgression(data.progression);
       return null;
     } catch (e: any) {
@@ -102,20 +110,15 @@ export const useDraftStore = create<DraftStoreState>((set, get) => {
     loading: false,
     busy: false,
     error: null,
-    granted: null,
+    lastDuel: null,
 
     load: channel.load(set, get),
     start: () => mutate(() => (AuthClient as any).startDraft(), 'Impossible de lancer le draft.'),
     pick: (cardIds) => mutate(() => (AuthClient as any).pickDraftCards(cardIds), 'Choix non enregistré.'),
     reroll: () => mutate(() => (AuthClient as any).rerollDraft(), 'Relance impossible.'),
-    // L'index est lu dans l'instantané, jamais choisi par l'appelant.
-    reportDuel: (result) => {
-      const run = get().snapshot?.run;
-      if (!run || run.status !== 'playing') return Promise.resolve(null);
-      const index = run.wins + run.losses;
-      return mutate(() => (AuthClient as any).reportDraftDuel({ index, result }), 'Résultat non enregistré.');
-    },
     buyLife: () => mutate(() => (AuthClient as any).buyDraftLife(), 'Achat impossible.'),
-    dismissGranted: () => set({ granted: null }),
+    // Rien à relire ici : l'écran Draft relit la run à son montage, c'est-à-dire
+    // au retour du match, une fois le duel soldé côté serveur.
+    noteDuel: (outcome) => set({ lastDuel: outcome }),
   };
 });
