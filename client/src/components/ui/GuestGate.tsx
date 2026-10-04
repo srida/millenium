@@ -3,7 +3,7 @@
 // Le bloc était recopié dans SEPT écrans (Missions, Boutique, Cadeaux, Profil,
 // Amis, Duel en ligne, Arcade), à chaque fois avec le même squelette et une
 // seule phrase de différence. Et la copie diverge : celle de l'Arcade avait
-// perdu son bouton « ◂ Menu », laissant l'invité sans autre issue que de
+// perdu son bouton « Menu », laissant l'invité sans autre issue que de
 // s'inscrire — alors que la branche voisine du même fichier, elle, l'avait.
 //
 // ⚠️ Le retour au menu N'EST PAS OPTIONNEL. Ces écrans sont atteignables par
@@ -24,7 +24,7 @@ export function GuestGate({ reason }: {
     <main className="relative z-10 flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center text-white">
       <p className="max-w-xs text-sm text-white/60">{reason}</p>
       <Button variant="primary" onPointerDown={() => navigate('auth')}>Se connecter</Button>
-      <Button onPointerDown={() => navigate('main_menu')}>◂ Menu</Button>
+      <Button onPointerDown={() => navigate('main_menu')}>Menu</Button>
     </main>
   );
 }

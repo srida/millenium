@@ -210,7 +210,7 @@ export default function TestBench() {
   return (
     <div className="flex h-dvh flex-col bg-surface text-white" onPointerDown={() => useUiStore.getState().hideTooltip()}>
       <header className="flex flex-wrap items-center gap-2 border-b border-line p-2">
-        <button className={idle} onPointerDown={() => navigate('main_menu')}>◂ Menu</button>
+        <button className={idle} onPointerDown={() => navigate('main_menu')}>Menu</button>
         <h1 className="mr-2 font-bold text-gold">TestBench</h1>
         {phase !== 'combat'
           ? <button className={active} onPointerDown={startCombat} disabled={phase === 'done'}>Lancer le combat</button>

@@ -514,7 +514,7 @@ export default function DeckBuilder() {
       <div className={classname_button}>
         <Button className="px-4" onPointerDown={back}>Annuler</Button>
         <Button variant="primary" disabled={saving} className="flex-1 py-3" onPointerDown={attemptSave}>
-          {saving ? '…' : '▸ Enregistrer le deck'}
+          {saving ? '…' : 'Enregistrer le deck'}
         </Button>
       </div>
 

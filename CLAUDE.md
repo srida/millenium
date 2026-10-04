@@ -1428,7 +1428,7 @@ Contre **`SHOPPING_REROLL_COST_HP` = 50 PV** (`GameState.ts`), l'offre est jeté
 - **`ShoppingState.canReroll` est FIGÉ à la publication de l'offre**, jamais relu à chaque `sync` : rien ne peut le changer pendant qu'une offre est à l'écran, et la règle balaie le catalogue de magies. Les trois états « écran de choix » passent par une fabrique unique, `GameController._shoppingChoice()` (`_shoppingTargeting()` pour le ciblage, où `canReroll` est faux).
 - **Rien côté PvP** : `player_hp` voyage déjà, et le shopping n'est de toute façon pas synchronisé.
 
-⚠️ **Le mulligan et le reroll sont les deux seuls gestes payés en PV**, et ils partagent leur confirmation (`components/ui/ConfirmHpCost.tsx`) : prix, PV restants, deux boutons. Ce n'est **pas** la doctrine de la modale de magies, qui n'a volontairement aucune confirmation (le contrecoup se lit sur la carte choisie, une magie impayable est verrouillée) — ici le tap est à un pouce de PRÊT ▸ ou des magies elles-mêmes, et il ne se reprend pas.
+⚠️ **Le mulligan et le reroll sont les deux seuls gestes payés en PV**, et ils partagent leur confirmation (`components/ui/ConfirmHpCost.tsx`) : prix, PV restants, deux boutons. Ce n'est **pas** la doctrine de la modale de magies, qui n'a volontairement aucune confirmation (le contrecoup se lit sur la carte choisie, une magie impayable est verrouillée) — ici le tap est à un pouce de PRÊT ou des magies elles-mêmes, et il ne se reprend pas.
 
 ### Modèle de données
 

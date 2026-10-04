@@ -101,7 +101,7 @@ export const GAME_STEPS: GameStepDef[] = [
   {
     id: 'ready',
     title: 'Lance le combat',
-    text: "Tape PRÊT ▸ en bas à droite. L'adversaire posera alors son board — tu ne le vois pas avant.",
+    text: "Tape PRÊT en bas à droite. L'adversaire posera alors son board — tu ne le vois pas avant.",
     blocking: false,
     done: (s) => s.combatActive,
   },

@@ -159,7 +159,7 @@ export default function ArcadeScreen() {
                     className="w-full py-3"
                     onPointerDown={() => navigate('game', { arcade: true })}
                   >
-                    ▸ DUEL {duel.index + 1}/{snapshot.duel_count}
+                    DUEL {duel.index + 1}/{snapshot.duel_count}
                   </Button>
                   <p className="text-center text-xs text-white/40">
                     vs {duel.deck_name} — {bonusLabel(duel.bonus)}.
@@ -245,7 +245,7 @@ function DuelRow({ duel, live }: { duel: ArcadeDuel; live: boolean }) {
         </div>
       </div>
       <span className={`text-sm ${tone}`}>
-        {won ? <UiIcon id="UI_CHECK" className="inline-block h-3.5 w-3.5" /> : duel.result === 'loss' ? <UiIcon id="UI_CROSS" className="inline-block h-3.5 w-3.5" /> : live ? '▸' : '·'}
+        {won ? <UiIcon id="UI_CHECK" className="inline-block h-3.5 w-3.5" /> : duel.result === 'loss' ? <UiIcon id="UI_CROSS" className="inline-block h-3.5 w-3.5" /> : live ? <span aria-hidden>•</span> : '·'}
       </span>
     </div>
   );

@@ -143,7 +143,6 @@ export function SummonOptionMenu() {
                   chercher, et la raison vient déjà de `canSummon`. */}
               {!o.ok && o.reason && <div className="mt-0.5 text-[10px] text-enemy">{o.reason}</div>}
             </span>
-            <span className="flex-shrink-0 text-white/40">▸</span>
           </button>
         ))}
       </div>
@@ -236,7 +235,7 @@ export function EndRoundOverlay() {
         <DamageBreakdown result={endRound} />
         <PhaseClock remaining={countdown} label={`Temps restant : ${countdown} secondes`} className="mt-1 px-2.5 py-0.5 text-sm font-bold">{countdown}s</PhaseClock>
         <Button variant="primary" className="mt-1 w-full" onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('round_recap_dismiss'); controller.dismissEndRound(); }} sfx={false}>
-          {isGameOver ? 'RÉSULTAT FINAL' : `TOUR ${round + 1} ▸`}
+          {isGameOver ? 'RÉSULTAT FINAL' : `TOUR ${round + 1}`}
         </Button>
       </div>
     </Modal>

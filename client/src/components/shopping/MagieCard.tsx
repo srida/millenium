@@ -117,7 +117,7 @@ export default function MagieCard(
           </div>
         )}
       </div>
-      <span className="flex-shrink-0 pr-1 text-white/30">{affordable ? '▸' : <UiIcon id="UI_CLOSE" className="h-3 w-3 inline-block" />}</span>
+      <span className="flex-shrink-0 pr-1 text-white/30">{!affordable && <UiIcon id="UI_CLOSE" className="h-3 w-3 inline-block" />}</span>
     </button>
   );
 }

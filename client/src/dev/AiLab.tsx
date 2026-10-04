@@ -270,7 +270,7 @@ export default function AiLab() {
           ne tiennent pas sur une ligne de 390 px, et sans lui les libellés se
           cassent en trois lignes chacun plutôt que de passer à la ligne. */}
       <header className="flex flex-wrap items-center gap-2 border-b border-white/10 px-3 py-2">
-        <button className={btn} onPointerDown={() => navigate('main_menu')}>◂ Menu</button>
+        <button className={btn} onPointerDown={() => navigate('main_menu')}>Menu</button>
         <h1 className="whitespace-nowrap text-sm font-semibold">Labo IA</h1>
         {/* Utile sur grand écran, mais elle mangeait la moitié de l'en-tête sur
             un téléphone (quatre lignes pour une mention explicative). */}
