@@ -319,8 +319,7 @@
 			"type": "grant_power",
 			"power_id": "POWER_TAUNT",
 			"power_rate": 23,
-			"duration": 77,
-			"zone": 2
+			"duration": 77
 		}
 	},
 	{
@@ -418,8 +417,7 @@
 			"type": "grant_power",
 			"value": 50,
 			"power_id": "POWER_AOE_ATTACK",
-			"power_rate": 50,
-			"zone": 1
+			"power_rate": 50
 		}
 	},
 	{

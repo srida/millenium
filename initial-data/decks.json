@@ -1229,8 +1229,7 @@
 				"EXTRA_013",
 				"STAPLE_295",
 				"REX_005",
-				"BASTIEN_001",
-				"STAPLE_296"
+				"BASTIEN_001"
 			],
 			"2": [
 				"STAPLE_291",
@@ -1258,7 +1257,8 @@
 				"STAPLE_468"
 			]
 		},
-		"bot": true
+		"bot": true,
+		"guest": false
 	},
 	{
 		"id": "PUBLIC_DECK_021",
