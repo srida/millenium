@@ -970,6 +970,7 @@ confusion_remaining    // > 0 → cible ses propres alliés
 taunt_remaining        // > 0 → force les ennemis à la cibler
 is_effect_immune       // attribut effect_immunity
 is_immobile            // mot-clé Tour — ⚠️ remis à zéro par startCombat, PAS par resetCombatStats
+is_elusive             // mot-clé Insaisissable — même cycle de vie que is_immobile
 
 position / initial_position / is_neutralized / veterancy_points
 attack_timer / move_timer                        // ⚠️ remis à zéro à chaque startCombat
@@ -1045,7 +1046,7 @@ Les cinq tiers sont les attributs de catégorie `Tiers` (`ARCH_091`…`ARCH_095`
 
 Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-clé est un attribut qui décrit ce que la carte FAIT, pas ce qu'elle est.
 
-**Les six livrés**, et ce que chacun a coûté au moteur :
+**Les sept livrés**, et ce que chacun a coûté au moteur :
 
 | Mot-clé | La règle | Ce qu'il a fallu ajouter |
 |---|---|---|
@@ -1055,6 +1056,7 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 | 📣 **Appelant** | **pioche garantie** de ce que SA carte nomme | un paramètre d'effet qui vit sur la CARTE (`card.appel`) |
 | 👯 **Multiple** | se pose même si un exemplaire vit déjà sur le terrain | `MOTS_CLES` — une exception d'invocation, pas une tâche |
 | 🔱 **Unique** | ne se pioche qu'**une fois par partie** | `MOTS_CLES` — une exclusion de pool de pioche, pas une tâche |
+| 🐇 **Insaisissable** | **fuit** l'adversaire et ne frappe qu'au **rechargement de son point de mouvement** | `Unit.is_elusive`, `CombatManager._actOnMoveRecharge`, `PathFinder.stepAway` |
 
 ⚠️ **Un mot-clé est un EFFET par défaut.** Il s'écrit dans les seuils de l'attribut (`thresholds: [{ count: 1, effects: [...] }]`), avec son `quand` et ses tâches, comme n'importe quel palier d'archétype : le compilateur émet `cible = { camp: 'allie', filtre: { attributs: [porteur] } }`, donc un palier à **1** s'applique à chaque porteur et à lui seul. Il n'y a rien à ajouter pour ce cas.
 
@@ -1111,6 +1113,16 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 - Sortie sèche quand le catalogue ne déclare pas le mot-clé (`_isUnique` rend `false` faute d'index, `_uniqueDrawn` reste vide) : la carte se pioche comme n'importe quelle autre.
 - Témoin livré : HAGA_003 « Soldat Insecte du Ciel » porte ARCH_101.
 
+**Insaisissable** — un `insaisissable` seul sur un palier à 1 (ARCH_106) : pose `is_elusive`. Aucun champ, comme `immobile` : la règle remplace deux comportements de la boucle de combat, elle ne se chiffre pas.
+- **Sa seule fenêtre d'action est le rechargement de son `move_timer`** (`CombatManager._actOnMoveRecharge`, phase 3). Dans l'ordre : pouvoir s'il part (`_tryFirePower`), sinon attaque simple si une cible est à portée et en LOS, sinon **un pas de fuite**. ⚠️ L'attaque **remplace** la fuite ce tick-là, elle ne s'y ajoute pas.
+- ⚠️ **La phase 4 lui refuse l'attaque simple** (`reachable && !u.is_elusive`), mais **pas le pouvoir** : sa jauge part sur son timer d'attaque comme pour toute unité. ⚠️ Le pouvoir est aussi tenté dans la fenêtre de mouvement : sans ça, une unité qui ne reste presque jamais à portée au tick d'attaque gardait sa jauge pleine à vie (`elusive-power.test.ts`).
+- **La cible suit les règles de la phase d'attaque** (`_targetCandidates` en LOS — provocation et confusion comprises) ; **la fuite les ignore** et s'écarte de l'ennemi vivant le plus proche : c'est une direction, pas un ciblage.
+- `PathFinder.stepAway` : voisine libre qui **maximise** la Manhattan à cet ennemi, départage dans l'ordre de `board.getNeighbors` (repère de référence, donc déterministe en PvP). Aucune voisine ne gagne de distance → l'unité **reste sur place** plutôt que de se rapprocher. Un corps neutralisé ne bloque pas la fuite.
+- ⚠️ **`is_elusive` suit exactement `is_immobile`** : remis à zéro par `startCombat`, **jamais** par `resetCombatStats()` — une dissipation ne rejoue que les stats.
+- ⚠️ **Tour + Insaisissable = une unité qui ne frappe jamais en attaque simple** : `is_immobile` sort de la phase 3 avant que le `move_timer` n'avance, donc la fenêtre de rechargement n'arrive jamais ; seul le pouvoir reste. Rien ne l'interdit.
+- La sonde `attribute-characterization.test.ts` lit `is_elusive` explicitement : le mot-clé ne bouge ni stat ni ressource, il y serait muet.
+- Cartes livrées : KING_014 « Seigneur Néos », AXEL_012 « Blaster Volcanique ».
+
 **Explosif** — un `destroy_enemy` seul sur un palier à 1, au moment `porteur_detruit`. Le porteur emporte l'unité adverse la **plus proche** en tombant. Quatre choses n'existaient pas avant lui :
 
 | Ce qu'il a fallu ajouter | Où |
@@ -1156,6 +1168,7 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 | `shield` | `start_of_combat` · `on_summon` · `on_power_fired` | `value` × nombre d'**alliés vivants** |
 | `effect_immunity` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_effect_immune` — annule les pouvoirs de debuff |
 | `immobile` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_immobile` — ne marche pas, ne se pousse pas, ne se téléporte pas. **Attribut seulement** (cf. « Les mots-clés ») |
+| `insaisissable` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_elusive` — fuit, n'attaque qu'au rechargement du mouvement. **Attribut seulement** (cf. « Les mots-clés ») |
 | `summon_token` | `start_of_combat` · `on_summon` · `on_power_fired` | Invoque un token (`token_id`) sur une case libre au hasard ; `camp` = `allie` (le camp qui PORTE l'attribut) ou `ennemi`. ⚠️ Pas de `end_of_combat` : rien à combattre après le dernier tick. Désactivé en PvP réel |
 | `destroy_enemy` | `on_self_neutralized` | Détruit l'unité adverse la **plus proche** du porteur. Rien à saisir. ⚠️ Son SEUL moment, et il n'existe que pour lui (cf. « Les mots-clés ») |
 | `stat_modifier` | `during_combat` | Déclenché par `trigger` : `on_ally_neutralized` / `on_enemy_neutralized` |
