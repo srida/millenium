@@ -10,6 +10,9 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useTournamentStore } from '../stores/tournamentStore.js';
 import { useArcadeStore, currentDuel } from '../stores/arcadeStore.js';
 import * as PublicDeckDatabase from '../data/PublicDeckDatabase.js';
+import { useDraftStore, getDraftPool } from '../stores/draftStore.js';
+import { currentOpponent, deckOf, type DraftOpponent } from '../logic/Draft.js';
+import { illustrationUrl } from '../data/CardArt.js';
 import Board3DCanvas from '../components/board/Board3DCanvas.js';
 import UnitCounterBadge from '../components/board/UnitCounterBadge.js';
 import Hud from '../components/hud/Hud.js';
@@ -51,16 +54,28 @@ export default function GameScreen() {
   // run là où elle en était après un rechargement.
   const inArcade = useUiStore(s => s.params.arcade === true);
   const arcadeDuel = useArcadeStore(s => (inArcade ? currentDuel(s.snapshot) : null));
+  // Duel d'une run de Draft : le deck du joueur et l'adversaire (drafté lui
+  // aussi) se DÉRIVENT de la run servie par le serveur, lue une fois au montage.
+  const inDraft = useUiStore(s => s.params.draft === true);
+  const [draftOpponent] = useState<DraftOpponent | null>(() => {
+    if (!inDraft) return null;
+    const run = useDraftStore.getState().snapshot?.run;
+    return run ? currentOpponent(run, getDraftPool()) : null;
+  });
   const pendingOpponentAvatarId = useTournamentStore(s => s.pendingGame?.opponentAvatarId);
   const pendingOpponentName = useTournamentStore(s => s.pendingGame?.opponentName);
   // Avatar adverse dans le HUD : deck public choisi (solo), du bracket (tournoi)
   // ou de l'échelon d'Arcade ; sans choix (miroir), repli sur l'avatar par
   // défaut — le serveur renvoie déjà ce même repli quand un deck n'a pas le sien.
-  const enemyAvatarSrc = PublicDeckDatabase.avatarUrl(
-    (inTournament ? pendingOpponentAvatarId : inArcade ? arcadeDuel?.deck_id : enemyDeckId) ?? 'PUBLIC_DECK_000',
-  );
+  const enemyAvatarSrc = draftOpponent?.faceCardId
+    ? illustrationUrl(draftOpponent.faceCardId)
+    : PublicDeckDatabase.avatarUrl(
+      (inTournament ? pendingOpponentAvatarId : inArcade ? arcadeDuel?.deck_id : enemyDeckId) ?? 'PUBLIC_DECK_000',
+    );
   // Nom du deck public adverse — absent en miroir, rien à afficher alors.
-  const enemyName = (inTournament ? pendingOpponentName : inArcade ? arcadeDuel?.deck_name : enemyDeckName) ?? null;
+  const enemyName = draftOpponent
+    ? `Adversaire ${draftOpponent.index + 1}`
+    : (inTournament ? pendingOpponentName : inArcade ? arcadeDuel?.deck_name : enemyDeckName) ?? null;
   // Pilotage des deux chronos partagés (cf. components/hud/PhaseTimer).
   const round = useGameStore(s => s.round);
   const shoppingOpen = useGameStore(s => !!s.shopping);
@@ -73,6 +88,9 @@ export default function GameScreen() {
     // de duel à jouer (deep-link, ou run terminée dans un autre onglet).
     const duel = inArcade ? currentDuel(useArcadeStore.getState().snapshot) : null;
     if (inArcade && !duel) { useUiStore.getState().navigate('arcade'); return; }
+    // Même garde côté Draft : pas de run en phase de duels, rien à jouer.
+    const draftState = inDraft ? useDraftStore.getState().snapshot?.run ?? null : null;
+    if (inDraft && (!draftState || !draftOpponent)) { useUiStore.getState().navigate('draft'); return; }
     // Le deck d'entraînement ne vit pas dans DeckRepository : il est dérivé du
     // catalogue à chaque lancement, comme les decks publics adverses, et voyage
     // donc en clair jusqu'à buildSession.
@@ -83,9 +101,9 @@ export default function GameScreen() {
       (duel ? useArcadeStore.getState().snapshot?.run?.deck_name : null) ?? pending?.playerDeckName ?? deckName,
       'ai',
       enemyDeckName,
-      duel?.deck ?? tutorialDecks?.enemy ?? pending?.opponentDeck ?? enemyDeck,
-      tutorialDecks?.player,
-      duel?.bonus ? { atk: duel.bonus.atk, hp: duel.bonus.hp } : null,
+      draftOpponent?.deck ?? duel?.deck ?? tutorialDecks?.enemy ?? pending?.opponentDeck ?? enemyDeck,
+      draftState ? deckOf(draftState, getDraftPool()) : tutorialDecks?.player,
+      draftOpponent?.bonus ?? (duel?.bonus ? { atk: duel.bonus.atk, hp: duel.bonus.hp } : null),
     );
     const ctrl = new GameController(session);
     setControllerLocal(ctrl);
@@ -129,6 +147,9 @@ export default function GameScreen() {
         // Sans ça, un duel mal engagé se relancerait à volonté et le handicap
         // croissant ne voudrait plus rien dire.
         <GameMenu quitLabel="Abandonner le duel" onQuit={() => { void exitArcadeGame('enemy'); }} />
+      ) : inDraft ? (
+        // Quitter un duel de Draft le concède, comme en Arcade.
+        <GameMenu quitLabel="Abandonner le duel" onQuit={() => { void exitDraftGame('enemy'); }} />
       ) : inTutorial ? (
         <GameMenu quitLabel="Quitter l'entraînement" onQuit={() => useUiStore.getState().navigate('tutorial')} />
       ) : (
@@ -187,6 +208,8 @@ export default function GameScreen() {
         ? <GameOverScreen onExit={exitTournamentGame} />
         : inArcade
           ? <GameOverScreen onExit={(w) => { void exitArcadeGame(w); }} />
+          : inDraft
+            ? <GameOverScreen onExit={(w) => { void exitDraftGame(w); }} />
           : inTutorial
             ? <GameOverScreen onExit={() => useUiStore.getState().navigate('tutorial')} />
             : <GameOverScreen />}
@@ -245,3 +268,13 @@ async function exitArcadeGame(winner: 'player' | 'enemy' | 'draw' | null) {
   useUiStore.getState().navigate('arcade');
 }
 
+
+// Solde le duel dans la run de Draft puis rend la main à l'écran Draft. Une
+// égalité n'est pas rapportée : le duel se rejoue. Le rapport est ATTENDU
+// avant de naviguer, pour la même raison qu'en Arcade (cf. exitArcadeGame).
+async function exitDraftGame(winner: 'player' | 'enemy' | 'draw' | null) {
+  if (winner === 'player' || winner === 'enemy') {
+    await useDraftStore.getState().reportDuel(winner === 'player' ? 'win' : 'loss');
+  }
+  useUiStore.getState().navigate('draft');
+}
