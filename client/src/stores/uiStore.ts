@@ -17,7 +17,7 @@ import type { Unit } from '../logic/Unit.js';
  */
 export const SCREEN_NAMES = [
   'main_menu', 'auth', 'reset_password', 'profile',
-  'deck_selector', 'deck_builder', 'online_lobby', 'tournament', 'arcade', 'missions', 'shop', 'gifts',
+  'deck_selector', 'deck_builder', 'online_lobby', 'tournament', 'arcade', 'draft', 'missions', 'shop', 'gifts',
   'catalog', 'tutorial', 'game', 'game_pvp', 'combatlab', 'testbench', 'ailab',
 ] as const;
 
@@ -46,6 +46,8 @@ export interface ScreenParams {
   // quotidienne (adversaire, handicap IA et deck lus dans arcadeStore, qui les
   // tient du SERVEUR — c'est ce qui rend la run reprenable après un F5).
   arcade?: boolean;
+  // Duel d'une run de Draft : deck et adversaire viennent de `draftStore`.
+  draft?: boolean;
   // Panneau admin (iframe) : édite un deck PUBLIC (par id) au lieu d'un deck du
   // joueur. Voir App.tsx / DeckBuilder.tsx.
   publicDeckId?: string;

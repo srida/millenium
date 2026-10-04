@@ -75,13 +75,17 @@ export default function MainMenu() {
           <div className="flex min-h-0 flex-1 items-stretch gap-3">
             <PlayCard className="min-w-0 flex-[1.15]" />
             {isGuest ? (
-              <TutorialButton className="h-full flex-1" />
+              <div className="flex h-full flex-1 flex-col gap-2">
+                <TutorialButton className="h-full w-full flex-1" />
+                <DraftButton className="h-full w-full flex-1" />
+              </div>
             ) : (
-              <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
+              <div className="grid h-full flex-1 grid-cols-2 grid-rows-3 gap-2">
                 <TutorialButton className="h-full w-full" />
                 <TournamentButton className="h-full w-full" />
                 <TrainingButton className="h-full w-full" />
                 <ArcadeButton className="h-full w-full" />
+                <DraftButton className="col-span-2 h-full w-full" />
               </div>
             )}
           </div>
@@ -97,13 +101,17 @@ export default function MainMenu() {
           <div className="flex w-full items-stretch gap-3 flex-1 sm:gap-2 sm:max-h-[330px]">
             <PlayCard className="min-w-0 flex-[1.15]" />
             {isGuest ? (
-              <TutorialButton className="h-full flex-1" />
+              <div className="flex h-full flex-1 flex-col gap-2">
+                <TutorialButton className="h-full w-full flex-1" />
+                <DraftButton className="h-full w-full flex-1" />
+              </div>
             ) : (
-              <div className="grid h-full flex-1 grid-cols-2 grid-rows-2 gap-2">
+              <div className="grid h-full flex-1 grid-cols-2 grid-rows-3 gap-2">
                 <TutorialButton className="h-full w-full" />
                 <TournamentButton className="h-full w-full" />
                 <TrainingButton className="h-full w-full" />
                 <ArcadeButton className="h-full w-full" />
+                <DraftButton className="col-span-2 h-full w-full" />
               </div>
             )}
           </div>
@@ -120,7 +128,11 @@ export default function MainMenu() {
                 <TrainingButton className="flex-1" />
               </div>
             )}
-            {!isGuest && <ArcadeButton />}
+            {/* Le Draft est client de bout en bout : il reste ouvert aux invités. */}
+            <div className="flex gap-2">
+              {!isGuest && <ArcadeButton className="flex-1" />}
+              <DraftButton className="flex-1" />
+            </div>
           </div>
         </>
       )}
@@ -304,6 +316,17 @@ function TournamentButton({ className = '' }: { className?: string }) {
   return (
     <Button className={`${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('tournament')}>
       <span className="flex items-center justify-center gap-1.5 whitespace-nowrap"><UiIcon id="UI_TOURNAMENT" className="h-4 w-4" /> Tournoi</span>
+    </Button>
+  );
+}
+
+// Draft : construire son deck en jouant, une carte parmi trois. Aucun compte
+// requis — la run vit en localStorage, comme le tutoriel.
+function DraftButton({ className = '' }: { className?: string }) {
+  const navigate = useUiStore(s => s.navigate);
+  return (
+    <Button className={`${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('draft')}>
+      <span className="flex items-center justify-center gap-1.5 whitespace-nowrap"><UiIcon id="UI_CARD" className="h-4 w-4" /> Draft</span>
     </Button>
   );
 }

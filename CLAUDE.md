@@ -1841,6 +1841,16 @@ Bracket local à 16, **entièrement client** (`logic/Tournament.js`), éliminati
 - `logic/Tournament.js` transporte un `avatarId` par participant et **ne construit aucune URL**.
 - ⚠️ **`MatchSimulator` n'est PAS la simulation d'équilibrage** : il rejoue une boucle allégée (pas de vétérance, unités réanimées ignorées, aucun terrain). Seul `Tournament.js` en dépend.
 
+## Mode Draft (prototype)
+
+20 choix d'une carte parmi trois (6/5/4/3/2 par tier, en montant), 2 relances, puis duels solo jusqu'à 5 victoires ou 2 défaites. Écran `draft`, duel via `GameScreen` + `params.draft`. Note de design : `docs/draft.md`.
+
+- **Entièrement client**, ouvert aux invités : état dans `millenium_draft_v1` (`stores/draftStore.ts`), aucun gain propre (seul `ai_win`).
+- Règle pure dans `logic/Draft.ts`. ⚠️ **L'offre est une fonction de l'état** (`seed`, `picks.length`, `rerolls`) : jamais de `Math.random` au rendu, sinon un rechargement relance l'offre gratuitement.
+- Trois emplacements : complément / sûr / pari, jugés par **`logic/DeckCoverage.isSummonable`** — la seule règle de couverture des recettes (`sim/decks.ts` la réexporte).
+- Les adversaires draftent avec la même `offerFor` (`autoDraft`), déterministes à `(seed, index du duel)`. Handicap `LADDER_BONUS` indexé sur les victoires.
+- Pool : `draftPool` = cartes avec illustration, repli sur tout le catalogue si un tier ne peut plus remplir ses étapes (dév sans `resources/`).
+
 ## Mode tutoriel
 
 Codex de 12 chapitres + partie guidée + création accompagnée du premier deck. Écran `tutorial`.

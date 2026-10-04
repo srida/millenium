@@ -13,6 +13,7 @@ import DeckSelector from '../screens/DeckSelector.js';
 import DeckBuilder from '../screens/DeckBuilder.js';
 import TournamentScreen from '../screens/TournamentScreen.js';
 import ArcadeScreen from '../screens/ArcadeScreen.js';
+import DraftScreen from '../screens/DraftScreen.js';
 import OnlineLobby from '../screens/OnlineLobby.js';
 import MissionsScreen from '../screens/MissionsScreen.js';
 import ShopScreen from '../screens/ShopScreen.js';
@@ -75,6 +76,7 @@ const SCREENS: Record<ScreenName, ComponentType> = {
   online_lobby: OnlineLobby,
   tournament: TournamentScreen,
   arcade: ArcadeScreen,
+  draft: DraftScreen,
   missions: MissionsScreen,
   shop: ShopScreen,
   gifts: GiftsScreen,

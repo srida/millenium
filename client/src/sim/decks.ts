@@ -12,6 +12,7 @@
 // tier n'entre que si le deck couvre déjà ses matériaux (ids ET attributs), et
 // une fusion retenue au tier 3 alimente à son tour la couverture du tier 4.
 import { isAttributeMaterial } from '../logic/InvocationManager.js';
+import { isSummonable } from '../logic/DeckCoverage.js';
 import type { Card, SummonCondition } from '../logic/types.js';
 import { primaryTier, tiersOf, hasTier } from '../logic/Tiers.js';
 
@@ -25,20 +26,13 @@ function conditionsOf(card: Card): SummonCondition[] {
   return card.summon_conditions ?? [];
 }
 
-/** Les matériels NOMMÉS d'une condition — les seuls qu'une couverture puisse
- *  garantir ; un coût purement chiffré se paie avec n'importe quoi. */
+/** Les matériels NOMMÉS d'une condition. */
 function requiresOf(condition: SummonCondition | undefined): string[] {
   return condition?.requires ?? [];
 }
 
-/** Une condition suffit. Un matériau `ARCH_*` désigne n'importe quel porteur de
- *  l'attribut, pas une carte — d'où les deux couvertures. */
-export function isSummonable(card: Card, ids: Set<string>, attrs: Set<string>): boolean {
-  const conditions = conditionsOf(card);
-  if (conditions.length === 0) return true;
-  return conditions.some(cd =>
-    requiresOf(cd).every(m => (isAttributeMaterial(m) ? attrs.has(m) : ids.has(m))));
-}
+// La règle de couverture vit dans `logic/DeckCoverage` (le draft la pose aussi).
+export { isSummonable };
 
 /** Tirage sans remise de `count` éléments. */
 function sample<T>(pool: T[], count: number, rand: () => number): T[] {
