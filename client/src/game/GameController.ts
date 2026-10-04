@@ -9,7 +9,6 @@ import { boardEffects, effectTargets } from '../logic/BoardEffect.js';
 import { primaryTier } from '../logic/Tiers.js';
 import { boardTargetsUnits } from '../data/BoardInfo.js';
 import { CombatAnimator3D } from '../three/CombatAnimator3D.js';
-import { LOW_END_DEVICE } from '../three/constants.js';
 import type { Scene3D } from '../three/Scene3D.js';
 import type { Card, DrawSummary, Position, Magie, SummonCondition } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
@@ -186,7 +185,7 @@ export class GameController {
     if (!board || this._terrainShown) return;
     this._terrainShown = true;
     this.scene?.setBlockedCells(this.session.board.blockedCells());
-    this.scene?.setTerrainBackground(board, { reveal: !LOW_END_DEVICE });
+    this.scene?.setTerrainBackground(board, { reveal: true });
     this.sync({ boardTerrain: board });
   }
 

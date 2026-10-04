@@ -931,7 +931,7 @@ export class Scene3D {
   // Les séparateurs dorés des zones n'accompagnent un décor illustré que sur
   // demande ; sans décor (ou hors combat) ils gardent leur comportement d'avant.
   _syncSeparators(): void {
-    const show = this._combatMode && (this._gridVisible || !this._terrainActive);
+    const show = this._gridVisible || (this._combatMode && !this._terrainActive);
     for (const sep of this._separators) sep.visible = show;
     this._invalidate();
   }
