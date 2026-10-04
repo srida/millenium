@@ -51,10 +51,24 @@ function newUser() {
 
 const run = (user: () => any) => draft.getSnapshot(user()).run;
 
-/** Une carte du tier demandé que la run n'a pas encore prise. */
-function cardForStep(r: any): string {
-  const tier = draft.DRAFT_SCHEDULE[r.picks.length];
-  return cards.find(c => tiers.tiersOf(c).includes(tier) && !r.picks.includes(c.id)).id;
+/** L'étape en cours d'une run (même déduction que le serveur). */
+function stepOf(r: any): any {
+  let taken = 0;
+  for (const st of draft.DRAFT_STEPS) { if (r.picks.length === taken) return st; taken += st.cards; }
+  return null;
+}
+
+/** Un choix valide pour l'étape : un lot lié tiré de l'offre du CLIENT, ou une
+ *  carte du tier demandé que la run n'a pas encore prise. */
+function cardForStep(r: any): string[] {
+  const st = stepOf(r);
+  if (st.tier == null) return ClientDraft.offerFor(r, decorated())[0].cards.map(c => c.id);
+  return [cards.find(c => tiers.tiersOf(c).includes(st.tier) && !r.picks.includes(c.id)).id];
+}
+
+let _decorated: any[] | null = null;
+function decorated(): any[] {
+  return (_decorated ??= cards.map(c => ({ ...c, _tiers: tiers.tiersOf(c) })));
 }
 
 /** Lance la run du jour et la mène jusqu'aux duels. */
@@ -71,12 +85,30 @@ const report = (user: () => any, result: 'win' | 'loss') => {
 
 describe('jumeaux client / serveur', () => {
   it('le serveur compte avec les mêmes règles que le client', () => {
-    expect(draft.DRAFT_SCHEDULE).toEqual(ClientDraft.DRAFT_SCHEDULE);
+    expect(draft.DRAFT_STEPS).toEqual(ClientDraft.DRAFT_STEPS);
+    expect(draft.DRAFT_SIZE).toBe(ClientDraft.DRAFT_SIZE);
     expect(draft.DRAFT_REROLLS).toBe(ClientDraft.DRAFT_REROLLS);
     expect(draft.RUN_WINS).toBe(ClientDraft.RUN_WINS);
     expect(draft.RUN_LOSSES).toBe(ClientDraft.RUN_LOSSES);
     expect(draft.EXTRA_LIVES).toBe(ClientDraft.EXTRA_LIVES);
-    expect(draft.DRAFT_SCHEDULE).toHaveLength(15);
+    expect(draft.DRAFT_SIZE).toBe(15);
+  });
+
+  it('le serveur juge un lot comme le client', () => {
+    for (let seed = 1; seed <= 15; seed++) {
+      let s = ClientDraft.newDraft(seed);
+      for (let step = 0; step < 3; step++) {
+        const offer = ClientDraft.offerFor(s, decorated());
+        for (const o of offer) {
+          expect(draft.isLinkedBundle(o.cards)).toBe(true);
+          expect(ClientDraft.isLinkedBundle(o.cards)).toBe(true);
+        }
+        // Trois cartes sans lien : refusées des deux côtés.
+        const loose = [offer[0].cards[0], offer[1].cards[0], offer[2].cards[0]];
+        expect(draft.isLinkedBundle(loose)).toBe(ClientDraft.isLinkedBundle(loose));
+        s = ClientDraft.pickCards(s, offer[0].cards.map(c => c.id), decorated())!;
+      }
+    }
   });
 
   it('60 gemmes au total, une par victoire', () => {
@@ -101,14 +133,34 @@ describe('une run par jour', () => {
 });
 
 describe('choix et relances', () => {
-  it('refuse le mauvais tier et le doublon, passe en duels au 15ᵉ choix', () => {
+  it('lots : refuse une carte seule, un lot non lié, un doublon', () => {
     const user = newUser();
     draft.refresh(user());
     draft.start(user());
+    const bundle = cardForStep(run(user));
+    expect(draft.pick(user(), [bundle[0]]).ok).toBe(false);
+    expect(draft.pick(user(), [bundle[0], bundle[0], bundle[1]]).ok).toBe(false);
+    expect(draft.pick(user(), [bundle[0], bundle[1], 'NOPE']).ok).toBe(false);
+    const loose = cards.filter(c => !(c.summon_conditions ?? []).length && !bundle.includes(c.id))
+      .filter((c, i, l) => l.findIndex(o => tiers.tiersOf(o)[0] === tiers.tiersOf(c)[0]) === i).slice(0, 3).map(c => c.id);
+    expect(draft.pick(user(), loose)).toMatchObject({ ok: false, reason: 'Ces cartes ne forment pas un lot lié.' });
+    expect(run(user).picks).toHaveLength(0);
+    expect(draft.pick(user(), bundle).ok).toBe(true);
+    expect(run(user).picks).toEqual(bundle);
+    expect(draft.pick(user(), cardForStep(run(user)).map((id, i) => (i === 0 ? bundle[0] : id))).ok).toBe(false);
+  });
+
+  it('cartes à l\'unité : refuse le mauvais tier et le doublon, passe en duels à la 15ᵉ carte', () => {
+    const user = newUser();
+    draft.refresh(user());
+    draft.start(user());
+    while (stepOf(run(user)).tier == null) expect(draft.pick(user(), cardForStep(run(user))).ok).toBe(true);
+    expect(run(user).picks).toHaveLength(9);
     const t5 = cards.find(c => tiers.tiersOf(c).includes(5) && !tiers.tiersOf(c).includes(1)).id;
-    expect(draft.pick(user(), t5).ok).toBe(false);
-    expect(draft.pick(user(), 'NOPE').ok).toBe(false);
+    expect(draft.pick(user(), [t5]).ok).toBe(false);
+    expect(draft.pick(user(), ['NOPE']).ok).toBe(false);
     const first = cardForStep(run(user));
+    expect(draft.pick(user(), [...first, run(user).picks[0]]).ok).toBe(false);
     expect(draft.pick(user(), first).ok).toBe(true);
     expect(draft.pick(user(), first).ok).toBe(false);
     while (run(user).status === 'drafting') draft.pick(user(), cardForStep(run(user)));

@@ -1,6 +1,6 @@
-// Mode DRAFT : une run par jour. Le joueur construit un deck de 15 cartes, une
-// carte parmi trois, puis enchaîne des duels contre des adversaires qui ont
-// drafté avec les mêmes règles.
+// Mode DRAFT : une run par jour. Le joueur construit un deck de 15 cartes —
+// trois lots de trois cartes liées, puis six cartes à l'unité — puis enchaîne
+// des duels contre des adversaires qui ont drafté avec les mêmes règles.
 //
 // Partage des rôles avec le client — et il est inhabituel :
 //
@@ -12,9 +12,9 @@
 //     relances dépensées, les victoires et défaites, la vie bonus et les
 //     gemmes. Un rechargement, un autre appareil : la run se reprend.
 //
-// ⚠️ Limite assumée : le serveur vérifie qu'un choix est une carte du
-// catalogue, du bon tier, pas encore prise — il ne peut pas vérifier qu'elle
-// figurait dans l'offre. Comme le résultat d'un duel (Arcade, solo), c'est une
+// ⚠️ Limite assumée : le serveur vérifie qu'un choix est fait de cartes du
+// catalogue, pas encore prises, du bon tier (choix d'une carte) ou formant un
+// lot lié (étape de lot) — il ne peut pas vérifier qu'il figurait dans l'offre. Comme le résultat d'un duel (Arcade, solo), c'est une
 // confiance bornée : une run par jour, 60 gemmes au plus.
 //
 // Deux règles de l'économie, comme partout :
@@ -26,8 +26,8 @@
 //      duel attendu rejette un rapport rejoué, donc deux taps ne paient qu'une
 //      fois.
 //
-// ⚠️ JUMEAU : `DRAFT_SCHEDULE`, `DRAFT_REROLLS`, `RUN_WINS`, `RUN_LOSSES` et
-// `EXTRA_LIVES` existent aussi dans `client/src/logic/Draft.ts` (frontière
+// ⚠️ JUMEAU : `DRAFT_STEPS`, `DRAFT_REROLLS`, `RUN_WINS`, `RUN_LOSSES`,
+// `EXTRA_LIVES` et `isLinkedBundle` existent aussi dans `client/src/logic/Draft.ts` (frontière
 // CJS / ESM-TS). `client/src/test/draft-server.test.ts` les fait répondre la
 // même chose.
 const path = require('path');
@@ -42,8 +42,14 @@ const CARDS_FILE = path.join(DATA_DIR, 'cards.json');
 
 // --- Barème ---
 
-/** Le tier de chaque étape : 15 cartes, en montant. */
-const DRAFT_SCHEDULE = Object.freeze([1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5]);
+/** Les étapes : trois LOTS de trois cartes liées (sans tier), puis six cartes
+ *  à l'unité au tier imposé. 15 cartes. */
+const DRAFT_STEPS = Object.freeze([
+  { cards: 3 }, { cards: 3 }, { cards: 3 },
+  { cards: 1, tier: 1 }, { cards: 1, tier: 1 }, { cards: 1, tier: 2 },
+  { cards: 1, tier: 3 }, { cards: 1, tier: 4 }, { cards: 1, tier: 5 },
+].map(s => Object.freeze(s)));
+const DRAFT_SIZE = DRAFT_STEPS.reduce((n, s) => n + s.cards, 0);
 const DRAFT_REROLLS = 2;
 const RUN_WINS = 5;
 /** La run s'arrête à la 2ᵉ défaite… */
@@ -58,6 +64,46 @@ const WIN_GEMS = Object.freeze([6, 9, 12, 15, 18]);
 const RESULTS = Object.freeze(['win', 'loss']);
 
 const cardsById = jsonCache(CARDS_FILE, list => new Map((list || []).filter(c => c && c.id).map(c => [c.id, c])));
+
+/** L'étape en cours, déduite du nombre de cartes prises. */
+function currentStep(picksCount) {
+  let taken = 0;
+  for (const step of DRAFT_STEPS) {
+    if (picksCount === taken) return step;
+    taken += step.cards;
+  }
+  return null;
+}
+
+const laneTier = card => tiers.tiersOf(card)[0] ?? 1;
+
+/** Ids de carte nommés par les recettes d'une carte (jamais un `ARCH_*`). */
+function namedIds(card) {
+  const out = new Set();
+  for (const cd of card.summon_conditions || []) {
+    for (const m of cd.requires || []) if (!String(m).startsWith('ARCH_')) out.add(m);
+  }
+  return out;
+}
+
+/** Lot lié : chaque carte reliée aux autres par une recette qui nomme l'une
+ *  d'elles, et au moins deux « plus bas tiers » distincts.
+ *  ⚠️ JUMEAU de `isLinkedBundle` (`client/src/logic/Draft.ts`). */
+function isLinkedBundle(cards) {
+  if (cards.length < 2) return false;
+  if (new Set(cards.map(laneTier)).size < 2) return false;
+  const named = cards.map(namedIds);
+  const linked = (i, j) => named[i].has(cards[j].id) || named[j].has(cards[i].id);
+  const seen = new Set([0]);
+  const queue = [0];
+  while (queue.length) {
+    const i = queue.shift();
+    for (let j = 0; j < cards.length; j++) {
+      if (!seen.has(j) && linked(i, j)) { seen.add(j); queue.push(j); }
+    }
+  }
+  return seen.size === cards.length;
+}
 
 function maxLosses(run) {
   return RUN_LOSSES + (run.extra_life ? EXTRA_LIVES : 0);
@@ -127,20 +173,28 @@ const start = db.transaction((user) => {
   return { ok: true };
 });
 
-/** Retient une carte pour l'étape en cours. */
-const pick = db.transaction((user, cardId) => {
+/** Retient le choix de l'étape en cours : une carte, ou les trois d'un lot. */
+const pick = db.transaction((user, cardIds) => {
   const state = readState(user.id);
   const { run, error } = todayRun(state);
   if (error) return { ok: false, reason: error, stale: true };
   if (run.status !== 'drafting') return { ok: false, reason: 'Le draft est terminé.', stale: true };
-  const tier = DRAFT_SCHEDULE[run.picks.length];
-  const card = cardsById().get(cardId);
-  if (!card) return { ok: false, reason: 'Carte inconnue.' };
-  if (run.picks.includes(cardId)) return { ok: false, reason: 'Carte déjà prise.' };
-  if (!tiers.tiersOf(card).includes(tier)) return { ok: false, reason: 'Cette carte n\'est pas du tier de l\'étape.', stale: true };
+  const step = currentStep(run.picks.length);
+  if (!step) return { ok: false, reason: 'Le draft est terminé.', stale: true };
+  const ids = Array.isArray(cardIds) ? cardIds : [];
+  if (ids.length !== step.cards || new Set(ids).size !== ids.length) {
+    return { ok: false, reason: `Cette étape prend ${step.cards} carte${step.cards > 1 ? 's' : ''}.`, stale: true };
+  }
+  const cards = ids.map(id => cardsById().get(id));
+  if (cards.some(c => !c)) return { ok: false, reason: 'Carte inconnue.' };
+  if (ids.some(id => run.picks.includes(id))) return { ok: false, reason: 'Carte déjà prise.' };
+  if (step.tier != null && !tiers.tiersOf(cards[0]).includes(step.tier)) {
+    return { ok: false, reason: 'Cette carte n\'est pas du tier de l\'étape.', stale: true };
+  }
+  if (step.tier == null && !isLinkedBundle(cards)) return { ok: false, reason: 'Ces cartes ne forment pas un lot lié.' };
 
-  run.picks.push(cardId);
-  if (run.picks.length >= DRAFT_SCHEDULE.length) run.status = 'playing';
+  run.picks.push(...ids);
+  if (run.picks.length >= DRAFT_SIZE) run.status = 'playing';
   writeState(state);
   return { ok: true };
 });
@@ -220,7 +274,7 @@ function getSnapshot(user) {
     day,
     next_rotation_at: nextRotationAt(),
     rules: {
-      schedule: [...DRAFT_SCHEDULE],
+      steps: DRAFT_STEPS.map(s => ({ ...s })),
       rerolls: DRAFT_REROLLS,
       wins: RUN_WINS,
       losses: RUN_LOSSES,
@@ -238,7 +292,7 @@ function refresh(user) {
 }
 
 module.exports = {
-  DRAFT_SCHEDULE, DRAFT_REROLLS, RUN_WINS, RUN_LOSSES, EXTRA_LIVES,
+  DRAFT_STEPS, DRAFT_SIZE, DRAFT_REROLLS, isLinkedBundle, RUN_WINS, RUN_LOSSES, EXTRA_LIVES,
   EXTRA_LIFE_PRICE_GEMS, WIN_GEMS,
   sync, start, pick, reroll, reportDuel, buyLife, getSnapshot, refresh,
 };

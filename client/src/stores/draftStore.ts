@@ -69,7 +69,8 @@ interface DraftStoreState {
 
   load: (force?: boolean) => Promise<void>;
   start: () => Promise<string | null>;
-  pick: (cardId: string) => Promise<string | null>;
+  /** Une carte, ou les trois d'un lot. */
+  pick: (cardIds: string[]) => Promise<string | null>;
   reroll: () => Promise<string | null>;
   reportDuel: (result: 'win' | 'loss') => Promise<string | null>;
   buyLife: () => Promise<string | null>;
@@ -105,7 +106,7 @@ export const useDraftStore = create<DraftStoreState>((set, get) => {
 
     load: channel.load(set, get),
     start: () => mutate(() => (AuthClient as any).startDraft(), 'Impossible de lancer le draft.'),
-    pick: (cardId) => mutate(() => (AuthClient as any).pickDraftCard(cardId), 'Choix non enregistré.'),
+    pick: (cardIds) => mutate(() => (AuthClient as any).pickDraftCards(cardIds), 'Choix non enregistré.'),
     reroll: () => mutate(() => (AuthClient as any).rerollDraft(), 'Relance impossible.'),
     // L'index est lu dans l'instantané, jamais choisi par l'appelant.
     reportDuel: (result) => {

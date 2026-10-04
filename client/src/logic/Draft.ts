@@ -1,39 +1,51 @@
-// Mode DRAFT : le deck se construit PENDANT la run, une carte parmi trois à
-// chaque étape, puis il affronte une échelle d'adversaires qui ont drafté avec
-// les mêmes règles. Pur et headless : aucun import data, React ou store — le
-// catalogue est passé en argument, comme partout dans `logic/`.
+// Mode DRAFT : le deck se construit PENDANT la run, puis il affronte une
+// échelle d'adversaires qui ont drafté avec les mêmes règles. Pur et headless :
+// aucun import data, React ou store — le catalogue est passé en argument, comme
+// partout dans `logic/`.
+//
+// Deux temps : trois LOTS de trois cartes liées par une recette (9 cartes,
+// tiers mélangés), puis six choix d'UNE carte, au tier imposé par l'étape.
 //
 // Trois règles portent tout le reste (cf. docs/draft.md) :
 //
 //   1. AUCUN TIRAGE N'EST DESSINÉ À LA MAIN. Une offre se tire uniformément
-//      dans le catalogue, filtrée par le tier de l'étape. La SEULE intelligence
-//      est la couverture des recettes (`logic/DeckCoverage`) : elle dit quelle
-//      carte est jouable avec ce qui est déjà pris, et c'est elle qui donne aux
-//      trois emplacements leur rôle (compléter, jouer sûr, parier).
+//      dans le catalogue. Un lot n'est pas composé en admin : c'est une carte
+//      et les matériels que sa recette NOMME. La couverture des recettes
+//      (`logic/DeckCoverage`) donne aux choix d'une carte leur rôle
+//      (compléter, jouer sûr, parier).
 //   2. L'OFFRE EST UNE FONCTION DE L'ÉTAT. Elle se dérive de (graine, nombre de
-//      choix, relances dépensées) : recharger la page rend la même offre, il
-//      n'y a donc rien à « reroller » en fermant l'onglet.
+//      cartes prises, relances dépensées) : recharger la page rend la même
+//      offre, il n'y a donc rien à « reroller » en fermant l'onglet.
 //   3. TOUT LE MONDE DRAFTE. Les adversaires construisent leur deck avec la même
-//      fonction d'offre, en prenant à chaque étape la carte la plus forte
-//      qu'ils savent jouer. Aucun deck adverse n'est à écrire en admin.
+//      fonction d'offre. Aucun deck adverse n'est à écrire en admin.
 import { makeRandom, hashSeed } from './Random.js';
-import { hasTier } from './Tiers.js';
+import { hasTier, tiersOf } from './Tiers.js';
 import { isSummonable, coverageOf, missingMaterials, fillsMissing } from './DeckCoverage.js';
+import { isAttributeMaterial } from './InvocationManager.js';
 import type { Card } from './types.js';
 
 // --- Barème ---
 
-/** Le tier de chaque étape, dans l'ordre : on monte, pour que les cartes de
- *  bas tier déjà prises disent quelles fusions deviennent jouables. 15 cartes.
+/** Une étape du draft : `cards` cartes prises d'un coup. Sans `tier`, c'est un
+ *  LOT lié (tiers mélangés) ; avec, un choix d'une carte de ce tier. */
+export interface DraftStep {
+  cards: number;
+  tier?: number;
+}
+
+/** Les étapes, dans l'ordre : trois lots de trois, puis six cartes en
+ *  montant. Les deux choix de tier 1 garantissent de quoi jouer au tour 1
+ *  (un lot n'en contient pas forcément).
  *  ⚠️ JUMEAU de `draft.js` (racine), comme les quatre constantes qui suivent :
  *  le serveur valide les choix et compte les défaites. */
-export const DRAFT_SCHEDULE: readonly number[] = Object.freeze([
-  1, 1, 1, 1, 1,
-  2, 2, 2, 2,
-  3, 3, 3,
-  4, 4,
-  5,
-]);
+export const DRAFT_STEPS: readonly DraftStep[] = Object.freeze([
+  { cards: 3 }, { cards: 3 }, { cards: 3 },
+  { cards: 1, tier: 1 }, { cards: 1, tier: 1 }, { cards: 1, tier: 2 },
+  { cards: 1, tier: 3 }, { cards: 1, tier: 4 }, { cards: 1, tier: 5 },
+].map(s => Object.freeze(s)));
+
+/** Taille du deck drafté. */
+export const DRAFT_SIZE = DRAFT_STEPS.reduce((n, s) => n + s.cards, 0);
 
 export const OFFER_SIZE = 3;
 /** Relances de l'offre, pour tout le draft. Le levier « chance » du joueur. */
@@ -63,8 +75,7 @@ export type DraftStatus = 'drafting' | 'playing' | 'won' | 'lost';
  *  aucune copie à lui. */
 export interface DraftState {
   seed: number;
-  /** Cartes prises, dans l'ordre des étapes : la lane de la i-ème est
-   *  `DRAFT_SCHEDULE[i]`. */
+  /** Cartes prises, à plat, dans l'ordre des étapes. */
   picks: string[];
   /** Relances dépensées. */
   rerolls: number;
@@ -75,31 +86,134 @@ export interface DraftState {
   status: DraftStatus;
 }
 
-/** Le rôle d'un emplacement d'offre — ce que l'écran annonce. */
-export type OfferKind = 'complement' | 'buildable' | 'bet';
+/** Le rôle d'un choix — ce que l'écran annonce. */
+export type OfferKind = 'bundle' | 'complement' | 'buildable' | 'bet';
 
+/** Un choix de l'offre : une carte, ou un lot de trois. */
 export interface OfferSlot {
-  card: Card;
+  cards: Card[];
   kind: OfferKind;
+  /** Lot seulement : ses cartes encore impayables avec le deck ET le lot —
+   *  ce que les choix d'une carte devront venir compléter. */
+  missing?: number;
 }
 
 export function newDraft(seed: number): DraftState {
   return { seed: seed >>> 0, picks: [], rerolls: 0, wins: 0, losses: 0, extra_life: false, status: 'drafting' };
 }
 
-/** Tier de l'étape en cours, ou `null` une fois le deck complet. */
-export function currentTier(state: DraftState): number | null {
-  return DRAFT_SCHEDULE[state.picks.length] ?? null;
+/** L'étape en cours (et son rang), ou `null` une fois le deck complet. Se
+ *  déduit du nombre de cartes prises : l'état n'a rien d'autre à porter. */
+export function currentStep(state: Pick<DraftState, 'picks'>): { index: number; step: DraftStep } | null {
+  let taken = 0;
+  for (let index = 0; index < DRAFT_STEPS.length; index++) {
+    if (state.picks.length === taken) return { index, step: DRAFT_STEPS[index] };
+    taken += DRAFT_STEPS[index].cards;
+  }
+  return null;
 }
 
-/** Le deck tel que `buildSession` l'attend : `{ "1": [...], …, "5": [...] }`. */
-export function deckOf(state: Pick<DraftState, 'picks'>): Record<string, string[]> {
+/** Le plus bas tier d'une carte : celui où elle se range dans le deck. */
+export function laneTier(card: Card): number {
+  return tiersOf(card)[0] ?? 1;
+}
+
+/** Le deck tel que `buildSession` l'attend : `{ "1": [...], …, "5": [...] }`.
+ *  Chaque carte se range à son plus bas tier — la pioche se dérive de toute
+ *  façon des tiers de la carte (`Draw.deckPoolByTier`), pas de sa lane. */
+export function deckOf(state: Pick<DraftState, 'picks'>, pool: readonly Card[]): Record<string, string[]> {
   const deck: Record<string, string[]> = { '1': [], '2': [], '3': [], '4': [], '5': [] };
-  state.picks.forEach((id, i) => {
-    const t = DRAFT_SCHEDULE[i];
-    if (t) deck[String(t)].push(id);
-  });
+  const byId = indexOf(pool);
+  for (const id of state.picks) {
+    const c = byId.get(id);
+    deck[String(c ? laneTier(c) : 1)]?.push(id);
+  }
   return deck;
+}
+
+// --- Lots liés ---
+
+/** Les ids de carte NOMMÉS par les recettes d'une carte (jamais un `ARCH_*`). */
+function namedIds(card: Card): Set<string> {
+  const out = new Set<string>();
+  for (const cd of card.summon_conditions ?? []) {
+    for (const m of cd.requires ?? []) if (!isAttributeMaterial(m)) out.add(m);
+  }
+  return out;
+}
+
+/**
+ * Le lot est-il LIÉ ? Deux cartes le sont quand l'une nomme l'autre dans une
+ * recette ; le lot l'est quand ces liens relient toutes ses cartes. Tiers
+ * mélangés en plus : au moins deux « plus bas tiers » distincts.
+ * ⚠️ JUMEAU de `draft.js` (`isLinkedBundle`) : le serveur rejoue ce verdict.
+ */
+export function isLinkedBundle(cards: readonly Card[]): boolean {
+  if (cards.length < 2) return false;
+  if (new Set(cards.map(laneTier)).size < 2) return false;
+  const named = cards.map(namedIds);
+  const linked = (i: number, j: number) => named[i].has(cards[j].id) || named[j].has(cards[i].id);
+  const seen = new Set([0]);
+  const queue = [0];
+  while (queue.length) {
+    const i = queue.shift()!;
+    for (let j = 0; j < cards.length; j++) {
+      if (!seen.has(j) && linked(i, j)) { seen.add(j); queue.push(j); }
+    }
+  }
+  return seen.size === cards.length;
+}
+
+/**
+ * Le lot d'une carte « tête » : elle, et les matériels que sa recette nomme.
+ * Sa recette la plus riche en matériels nommés disponibles d'abord ; avec un
+ * seul, le troisième est un matériel de ce matériel, à défaut une carte qui se
+ * sert de l'un des deux. `null` si aucun lot lié ne se forme.
+ */
+function bundleFor(head: Card, byId: ReadonlyMap<string, Card>, blocked: ReadonlySet<string>, sorted: readonly Card[]): Card[] | null {
+  const free = (id: string) => id !== head.id && !blocked.has(id) && byId.has(id);
+  let best: string[] = [];
+  for (const cd of head.summon_conditions ?? []) {
+    const ids = [...new Set((cd.requires ?? []).filter(m => !isAttributeMaterial(m) && free(m)))];
+    if (ids.length > best.length) best = ids;
+  }
+  if (best.length === 0) return null;
+  const bundle = [head, ...best.slice(0, 2).map(id => byId.get(id)!)];
+  if (bundle.length === 2) {
+    const inBundle = new Set(bundle.map(c => c.id));
+    const mat = bundle[1];
+    const third = [...namedIds(mat)].sort().find(id => free(id) && !inBundle.has(id))
+      ?? sorted.find(c => !inBundle.has(c.id) && free(c.id)
+        && (namedIds(c).has(head.id) || namedIds(c).has(mat.id)))?.id;
+    if (!third) return null;
+    bundle.push(byId.get(third)!);
+  }
+  return isLinkedBundle(bundle) ? bundle : null;
+}
+
+/** Trois lots disjoints, tirés dans les têtes possibles. */
+function bundleOffer(
+  state: Pick<DraftState, 'seed' | 'picks'>, pool: readonly Card[], stepIndex: number, rerolls: number,
+): OfferSlot[] {
+  const byId = indexOf(pool);
+  const taken = new Set(state.picks);
+  const sorted = [...pool].sort((a, b) => a.id.localeCompare(b.id));
+  const heads = sorted.filter(c => !taken.has(c.id));
+  const rand = makeRandom(hashSeed(state.seed, 'bundle', stepIndex, rerolls));
+  const picked = cardsOf(state.picks, byId);
+  const out: OfferSlot[] = [];
+  const used = new Set(taken);
+  while (out.length < OFFER_SIZE && heads.length > 0) {
+    const head = heads.splice(Math.floor(rand() * heads.length), 1)[0];
+    if (used.has(head.id)) continue;
+    const bundle = bundleFor(head, byId, used, sorted);
+    if (!bundle) continue;
+    for (const c of bundle) used.add(c.id);
+    const cov = coverageOf([...picked, ...bundle]);
+    const missing = bundle.filter(c => !isSummonable(c, cov.ids, cov.attrs)).length;
+    out.push({ cards: bundle, kind: 'bundle', missing });
+  }
+  return out;
 }
 
 // --- Offre ---
@@ -122,15 +236,14 @@ function draw(list: Card[], rand: () => number): Card | null {
 }
 
 /**
- * L'offre d'une étape. Trois emplacements, trois rôles :
+ * L'offre de l'étape en cours. Sur une étape de LOT : trois lots liés et
+ * disjoints. Sur une étape d'une carte, trois emplacements, trois rôles :
  *
  *   - **complément** : une carte jouable qui comble un matériel qu'attend une
  *     carte déjà prise (à défaut, une carte jouable) ;
  *   - **sûr** : une carte jouable avec ce que le deck contient ;
  *   - **pari** : une carte dont les matériaux manquent encore (à défaut, une
- *     carte jouable). C'est la carte qu'on prend en espérant que la suite du
- *     draft apporte ce qu'il lui faut — et c'est ce que l'emplacement
- *     « complément » viendra ensuite chercher.
+ *     carte jouable).
  *
  * Chaque emplacement retombe sur tout ce qui reste quand son rôle n'a plus de
  * candidat : une offre plus courte que trois n'arrive que sur un catalogue
@@ -141,8 +254,10 @@ export function offerFor(
   pool: readonly Card[],
   rerolls: number = state.rerolls,
 ): OfferSlot[] {
-  const tier = DRAFT_SCHEDULE[state.picks.length];
-  if (!tier) return [];
+  const at = currentStep(state);
+  if (!at) return [];
+  if (at.step.tier == null) return bundleOffer(state, pool, at.index, rerolls);
+  const tier = at.step.tier;
   const byId = indexOf(pool);
   const taken = new Set(state.picks);
   const picked = cardsOf(state.picks, byId);
@@ -179,19 +294,21 @@ export function offerFor(
     // « sûre » qui se trouve combler un manque se dit aussi complément.
     if (actual === 'buildable' && fillsMissing(card, missing)) actual = 'complement';
     used.add(card.id);
-    out.push({ card, kind: actual });
+    out.push({ cards: [card], kind: actual });
   }
   return out;
 }
 
 // --- Actions (pures : rendent un nouvel état, ou `null` si refusé) ---
 
-export function pickCard(state: DraftState, cardId: string, pool: readonly Card[]): DraftState | null {
+/** Prend un choix de l'offre : ses cartes, dans l'ordre de l'offre. */
+export function pickCards(state: DraftState, cardIds: readonly string[], pool: readonly Card[]): DraftState | null {
   if (state.status !== 'drafting') return null;
-  const offer = offerFor(state, pool);
-  if (!offer.some(s => s.card.id === cardId)) return null;
-  const picks = [...state.picks, cardId];
-  return { ...state, picks, status: picks.length >= DRAFT_SCHEDULE.length ? 'playing' : 'drafting' };
+  const key = [...cardIds].sort().join('|');
+  const slot = offerFor(state, pool).find(s => s.cards.map(c => c.id).sort().join('|') === key);
+  if (!slot) return null;
+  const picks = [...state.picks, ...slot.cards.map(c => c.id)];
+  return { ...state, picks, status: picks.length >= DRAFT_SIZE ? 'playing' : 'drafting' };
 }
 
 export function canReroll(state: DraftState): boolean {
@@ -226,9 +343,14 @@ export function cardPower(c: Card): number {
   return (c.stats?.atk ?? 0) * 20 + (c.stats?.hp ?? 0);
 }
 
+/** Puissance d'un choix : la somme de ses cartes. */
+function slotPower(slot: OfferSlot): number {
+  return slot.cards.reduce((n, c) => n + cardPower(c), 0);
+}
+
 /**
  * Un draft complet joué par l'IA, avec la MÊME fonction d'offre : à chaque
- * étape elle prend la carte jouable la plus forte, un pari seulement quand
+ * étape elle prend le choix jouable le plus fort, un pari seulement quand
  * l'offre ne propose rien d'autre. Elle ne relance jamais.
  */
 export function autoDraft(seed: number, pool: readonly Card[]): Record<string, string[]> {
@@ -238,13 +360,14 @@ export function autoDraft(seed: number, pool: readonly Card[]): Record<string, s
     if (offer.length === 0) break;
     const ranked = [...offer].sort((a, b) =>
       (Number(a.kind === 'bet') - Number(b.kind === 'bet'))
-      || (cardPower(b.card) - cardPower(a.card))
-      || a.card.id.localeCompare(b.card.id));
-    const next = pickCard(state, ranked[0].card.id, pool);
+      || ((a.missing ?? 0) - (b.missing ?? 0))
+      || (slotPower(b) - slotPower(a))
+      || a.cards[0].id.localeCompare(b.cards[0].id));
+    const next = pickCards(state, ranked[0].cards.map(c => c.id), pool);
     if (!next) break;
     state = next;
   }
-  return deckOf(state);
+  return deckOf(state, pool);
 }
 
 export interface DraftOpponent {
@@ -279,7 +402,7 @@ export function currentOpponent(state: DraftState, pool: readonly Card[]): Draft
 export function draftPool(cards: readonly Card[]): Card[] {
   const withArt = cards.filter(c => c._has_illustration);
   const need: Record<number, number> = {};
-  for (const t of DRAFT_SCHEDULE) need[t] = (need[t] ?? 0) + 1;
+  for (const s of DRAFT_STEPS) if (s.tier != null) need[s.tier] = (need[s.tier] ?? 0) + 1;
   const enough = Object.entries(need).every(([t, n]) =>
     withArt.filter(c => hasTier(c, Number(t))).length >= n + OFFER_SIZE);
   return enough ? withArt : [...cards];

@@ -681,10 +681,12 @@ router.post('/me/draft/start', auth.requireUser, auth.rateLimit({ windowMs: 60_0
 });
 
 router.post('/me/draft/pick', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 60 }), (req, res) => {
-  const cardId = String(req.body?.card_id || '').slice(0, 64);
-  if (!cardId) return res.status(400).json({ error: 'card_id requis', field: 'card_id' });
+  // `card_ids` : une carte, ou les trois d'un lot. Borné avant tout calcul.
+  const raw = Array.isArray(req.body?.card_ids) ? req.body.card_ids.slice(0, 3) : [];
+  const cardIds = raw.map(id => String(id || '').slice(0, 64)).filter(Boolean);
+  if (cardIds.length === 0) return res.status(400).json({ error: 'card_ids requis', field: 'card_ids' });
   draft.sync(req.user);
-  draftResult(req, res, draft.pick(req.user, cardId));
+  draftResult(req, res, draft.pick(req.user, cardIds));
 });
 
 router.post('/me/draft/reroll', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {

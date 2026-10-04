@@ -10,9 +10,9 @@ import type { Card } from '../logic/types.js';
 import { tierIndex, resolveTiers, hasTier } from '../logic/Tiers.js';
 import { isSummonable, coverageOf } from '../logic/DeckCoverage.js';
 import {
-  DRAFT_SCHEDULE, DRAFT_REROLLS, OFFER_SIZE, RUN_WINS, RUN_LOSSES,
-  newDraft, offerFor, pickCard, reroll, canReroll, recordResult, deckOf,
-  autoDraft, currentOpponent, currentTier, type DraftState,
+  DRAFT_STEPS, DRAFT_SIZE, DRAFT_REROLLS, OFFER_SIZE, RUN_WINS, RUN_LOSSES,
+  newDraft, offerFor, pickCards, reroll, canReroll, recordResult, deckOf,
+  autoDraft, currentOpponent, currentStep, isLinkedBundle, laneTier, type DraftState,
 } from '../logic/Draft.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -21,35 +21,82 @@ const TIERS = tierIndex(read('attributes.json'));
 const POOL = (read('cards.json') as Card[]).map(c => ({ ...c, _tiers: resolveTiers(c, TIERS) }));
 const BY_ID = new Map(POOL.map(c => [c.id, c]));
 
+const ids = (slot: { cards: Card[] }) => slot.cards.map(c => c.id);
+const take = (s: DraftState, i: number) => pickCards(s, ids(offerFor(s, POOL)[i]), POOL)!;
+
 /** Draft complet où le joueur prend toujours le premier emplacement. */
 function draftFirst(seed: number): DraftState {
   let s = newDraft(seed);
-  while (s.status === 'drafting') s = pickCard(s, offerFor(s, POOL)[0].card.id, POOL)!;
+  while (s.status === 'drafting') s = take(s, 0);
   return s;
 }
 
+describe('étapes', () => {
+  it('trois lots de trois, puis six cartes : 15 en tout', () => {
+    expect(DRAFT_STEPS.slice(0, 3).every(st => st.cards === 3 && st.tier == null)).toBe(true);
+    expect(DRAFT_STEPS.slice(3).every(st => st.cards === 1 && st.tier != null)).toBe(true);
+    expect(DRAFT_STEPS.slice(3)).toHaveLength(6);
+    expect(DRAFT_SIZE).toBe(15);
+  });
+});
+
 describe('offre', () => {
-  it('propose trois cartes distinctes du tier de l\'étape', () => {
-    let s = newDraft(42);
-    while (s.status === 'drafting') {
-      const offer = offerFor(s, POOL);
-      expect(offer).toHaveLength(OFFER_SIZE);
-      expect(new Set(offer.map(o => o.card.id)).size).toBe(OFFER_SIZE);
-      for (const o of offer) {
-        expect(hasTier(o.card, currentTier(s)!)).toBe(true);
-        expect(s.picks).not.toContain(o.card.id);
+  it('propose trois lots liés et disjoints, puis trois cartes distinctes du tier de l\'étape', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      let s = newDraft(seed);
+      while (s.status === 'drafting') {
+        const step = currentStep(s)!.step;
+        const offer = offerFor(s, POOL);
+        expect(offer).toHaveLength(OFFER_SIZE);
+        const all = offer.flatMap(ids);
+        expect(new Set(all).size).toBe(all.length);
+        for (const o of offer) {
+          expect(o.cards).toHaveLength(step.cards);
+          for (const c of o.cards) expect(s.picks).not.toContain(c.id);
+          if (step.tier == null) {
+            expect(o.kind).toBe('bundle');
+            // Le verdict que le serveur rejoue.
+            expect(isLinkedBundle(o.cards)).toBe(true);
+            expect(new Set(o.cards.map(laneTier)).size).toBeGreaterThan(1);
+          } else {
+            expect(hasTier(o.cards[0], step.tier)).toBe(true);
+          }
+        }
+        s = take(s, seed % OFFER_SIZE);
       }
-      s = pickCard(s, offer[1].card.id, POOL)!;
+      expect(s.picks).toHaveLength(DRAFT_SIZE);
     }
   });
 
+  it('un lot dit honnêtement ce qui reste à compléter', () => {
+    let s = newDraft(8);
+    for (const o of offerFor(s, POOL)) {
+      const cov = coverageOf(o.cards);
+      expect(o.missing).toBe(o.cards.filter(c => !isSummonable(c, cov.ids, cov.attrs)).length);
+    }
+    s = take(s, 0);
+    expect(s.picks).toHaveLength(3);
+  });
+
+  it('un lot non lié, ou de tiers tous égaux, n\'en est pas un', () => {
+    const t1 = POOL.filter(c => laneTier(c) === 1 && !(c.summon_conditions ?? []).length).slice(0, 3);
+    expect(isLinkedBundle(t1)).toBe(false);
+    const linked = offerFor(newDraft(2), POOL)[0].cards;
+    expect(isLinkedBundle(linked)).toBe(true);
+    expect(isLinkedBundle([linked[0], linked[1], t1[0]])).toBe(t1[0] && isLinkedBundle([linked[0], t1[0]]));
+  });
+
   it('est une fonction de l\'état : même graine, même offre ; une relance la change', () => {
-    const s = newDraft(7);
-    expect(offerFor(s, POOL).map(o => o.card.id)).toEqual(offerFor(s, POOL).map(o => o.card.id));
-    // L'ordre du catalogue ne compte pas.
-    expect(offerFor(s, [...POOL].reverse()).map(o => o.card.id)).toEqual(offerFor(s, POOL).map(o => o.card.id));
-    const r = reroll(s)!;
-    expect(offerFor(r, POOL).map(o => o.card.id)).not.toEqual(offerFor(s, POOL).map(o => o.card.id));
+    let s = newDraft(7);
+    const flat = (st: DraftState, pool = POOL) => offerFor(st, pool).flatMap(ids);
+    // Sur une étape de lot puis sur une étape d'une carte.
+    for (let step = 0; step < 2; step++) {
+      expect(flat(s)).toEqual(flat(s));
+      // L'ordre du catalogue ne compte pas.
+      expect(flat(s, [...POOL].reverse())).toEqual(flat(s));
+      expect(flat(reroll(s)!)).not.toEqual(flat(s));
+      while (currentStep(s)!.step.tier == null) s = take(s, 0);
+    }
   });
 
   it('annonce honnêtement chaque rôle', () => {
@@ -58,10 +105,11 @@ describe('offre', () => {
       while (s.status === 'drafting') {
         const cov = coverageOf(s.picks.map(id => BY_ID.get(id)!));
         for (const o of offerFor(s, POOL)) {
-          const ok = isSummonable(o.card, cov.ids, cov.attrs);
+          if (o.kind === 'bundle') continue;
+          const ok = isSummonable(o.cards[0], cov.ids, cov.attrs);
           expect(ok).toBe(o.kind !== 'bet');
         }
-        s = pickCard(s, offerFor(s, POOL)[2].card.id, POOL)!;
+        s = take(s, 2);
       }
     }
   });
@@ -78,7 +126,7 @@ describe('offre', () => {
         const c = offer.find(o => o.kind === 'complement');
         const pick = c ?? offer.find(o => o.kind === 'bet') ?? offer[0];
         if (c) complements++;
-        s = pickCard(s, pick.card.id, POOL)!;
+        s = pickCards(s, ids(pick), POOL)!;
       }
       if (complements > 0) resolved++;
     }
@@ -87,10 +135,18 @@ describe('offre', () => {
 });
 
 describe('choix et relances', () => {
-  it('refuse une carte absente de l\'offre', () => {
+  it('refuse un choix absent de l\'offre, ou un lot incomplet', () => {
     const s = newDraft(3);
-    const outside = POOL.find(c => hasTier(c, 1) && !offerFor(s, POOL).some(o => o.card.id === c.id))!;
-    expect(pickCard(s, outside.id, POOL)).toBeNull();
+    const offer = offerFor(s, POOL);
+    expect(pickCards(s, ids(offer[0]).slice(0, 2), POOL)).toBeNull();
+    expect(pickCards(s, [ids(offer[0])[0], ids(offer[1])[1], ids(offer[2])[2]], POOL)).toBeNull();
+    // L'ordre des cartes d'un lot ne compte pas.
+    expect(pickCards(s, [...ids(offer[1])].reverse(), POOL)!.picks).toHaveLength(3);
+    let single = s;
+    while (currentStep(single)!.step.tier == null) single = take(single, 0);
+    const outside = POOL.find(c => hasTier(c, 1) && !single.picks.includes(c.id)
+      && !offerFor(single, POOL).some(o => o.cards[0].id === c.id))!;
+    expect(pickCards(single, [outside.id], POOL)).toBeNull();
   });
 
   it('borne les relances et passe en duels au dernier choix', () => {
@@ -100,8 +156,10 @@ describe('choix et relances', () => {
     expect(reroll(s)).toBeNull();
     const done = draftFirst(5);
     expect(done.status).toBe('playing');
-    expect(Object.values(deckOf(done)).flat()).toHaveLength(DRAFT_SCHEDULE.length);
-    expect(deckOf(done)['5']).toHaveLength(1);
+    const deck = deckOf(done, POOL);
+    expect(Object.values(deck).flat()).toHaveLength(DRAFT_SIZE);
+    // Chaque carte est rangée à son plus bas tier.
+    for (const [t, list] of Object.entries(deck)) for (const id of list) expect(laneTier(BY_ID.get(id)!)).toBe(Number(t));
   });
 });
 
@@ -127,11 +185,11 @@ describe('adversaires', () => {
     const s = draftFirst(11);
     const a = currentOpponent(s, POOL)!;
     expect(currentOpponent(s, POOL)!.deck).toEqual(a.deck);
-    const ids = Object.values(a.deck).flat();
-    expect(ids).toHaveLength(DRAFT_SCHEDULE.length);
+    const deckIds = Object.values(a.deck).flat();
+    expect(deckIds).toHaveLength(DRAFT_SIZE);
     // L'IA prend une carte jouable dès qu'elle en a une : la très grande
     // majorité de son deck est invocable.
-    const cards = ids.map(id => BY_ID.get(id)!);
+    const cards = deckIds.map(id => BY_ID.get(id)!);
     const cov = coverageOf(cards);
     const playable = cards.filter(c => isSummonable(c, cov.ids, cov.attrs)).length;
     expect(playable / cards.length).toBeGreaterThan(0.85);

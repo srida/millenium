@@ -35,6 +35,7 @@ import { useWebLayout } from '../components/system/useWebLayout.js';
 import * as Audio from '../audio/AudioManager.js';
 import { ScreenTransition } from '../components/nav/ScreenTransition.js';
 import TierIcon from '../components/ui/TierIcon.js';
+import DeckTierGrid, { TIER_TEXT } from '../components/deck/DeckTierGrid.js';
 
 const MIN_DECK = 20;
 /** Édition admin d'un deck public : aucun joueur, donc aucune variante. */
@@ -45,9 +46,6 @@ const DECK_COLORS = [
   '#d8564e', '#e4c65a', '#7cd88a', '#2f7d4f', '#6fc0e6', '#2f5bd8', '#e08a3a', '#a86ee7', '#e58ab8',
   '#f5f0e6', '#d9c7a3', '#9a9a9a', '#8b5a2b',
 ];
-const TIER_TEXT: Record<number, string> = {
-  1: 'text-tier-1', 2: 'text-tier-2', 3: 'text-tier-3', 4: 'text-tier-4', 5: 'text-tier-5',
-};
 
 type DeckData = Record<number, Card[]>;
 const EMPTY: DeckData = { 1: [], 2: [], 3: [], 4: [], 5: [] };
@@ -759,61 +757,43 @@ function DeckPanel({
         </div>
       )}
 
-      <div className="mt-4 space-y-3">
-        {[1, 2, 3, 4, 5].map(t => {
-          const cards: Card[] = deckData[t];
-          const full = cards.length >= tierMax[t];
+      <DeckTierGrid
+        className="mt-4" deck={deckData} tierMax={tierMax}
+        renderCard={(c, t, idx) => {
+          const skins = ownedVariantsFor?.(c.id) ?? [];
+          const foiled = foils.includes(c.id) && !!ownsFoil?.(c.id);
+          const fx: OwnedFinishes | null = ownedFinishes?.(c.id) ?? null;
+          const fin: CardFinish = finishes[c.id] ?? NO_FINISH;
+          const finished = !!fx && ((fx.holo && !!fin.holo) || (fx.sparkle && !!fin.sparkle)
+            || (!!fin.ink && fx.inks.includes(fin.ink)) || (!!fin.frame && fx.frames.includes(fin.frame)));
+          const skinned = !!variants[c.id] || foiled || finished;
+          // Le bouton ouvre le même sélecteur pour tous les
+          // cosmétiques de la carte : illustration, reflet, effets.
+          const customizable = skins.length > 0 || !!ownsFoil?.(c.id) || hasAnyFinish(fx);
           return (
-            <div key={t} className="rounded-lg border border-line bg-surface-raised/50 p-2">
-              <div className="mb-1.5 flex items-center gap-2">
-                <span className={`flex items-center gap-1.5 text-xs font-bold ${TIER_TEXT[t]}`}><TierIcon tier={t} className="h-4 w-4" /> Tier {t}</span>
-                <div className="h-px flex-1 bg-line" />
-                <span className={`text-xs font-bold tabular-nums ${full ? 'text-danger' : 'text-white/50'}`}>{cards.length}/{tierMax[t]}</span>
-              </div>
-              {cards.length === 0
-                ? <div className="py-2 text-center text-[11px] text-white/30">Aucune carte de tier {t}</div>
-                : (
-                  <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-8">
-                    {cards.map((c, idx) => {
-                      const skins = ownedVariantsFor?.(c.id) ?? [];
-                      const foiled = foils.includes(c.id) && !!ownsFoil?.(c.id);
-                      const fx: OwnedFinishes | null = ownedFinishes?.(c.id) ?? null;
-                      const fin: CardFinish = finishes[c.id] ?? NO_FINISH;
-                      const finished = !!fx && ((fx.holo && !!fin.holo) || (fx.sparkle && !!fin.sparkle)
-                        || (!!fin.ink && fx.inks.includes(fin.ink)) || (!!fin.frame && fx.frames.includes(fin.frame)));
-                      const skinned = !!variants[c.id] || foiled || finished;
-                      // Le bouton ouvre le même sélecteur pour tous les
-                      // cosmétiques de la carte : illustration, reflet, effets.
-                      const customizable = skins.length > 0 || !!ownsFoil?.(c.id) || hasAnyFinish(fx);
-                      return (
-                        // Une carte du deck non débloquée reste RETIRABLE : c'est
-                        // la seule action qui la fait sortir du deck.
-                        <div key={`${c.id}-${idx}`} className="relative">
-                          <Card3D
-                            {...cardVisualProps(c, 'player', { plain: true })} size="h-auto w-full"
-                            // Aperçu immédiat du choix en cours d'édition, sans
-                            // toucher à l'état global de CardArt (non enregistré).
-                            illustrationId={variants[c.id] ?? c.id}
-                            foil={foiled}
-                            finish={visibleFinish(fin, fx)}
-                            tapOn="up" onTap={() => onRemove(t, idx)}
-                            locked={!owns(c.id)} dim={owns(c.id) ? 'none' : 'strong'}
-                          />
-                          {/* Le tap retire la carte, l'appui long ouvre le tooltip :
-                              les deux gestes sont pris. Le badge est donc un FRÈRE
-                              de la vignette — un pointerdown qui l'atteint n'arme
-                              jamais le retrait (et un <button> imbriqué serait du
-                              HTML invalide). */}
-                          {customizable && <SkinButton card={c} skinned={skinned} onTap={() => onSkin?.(c)} />}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+            // Une carte du deck non débloquée reste RETIRABLE : c'est
+            // la seule action qui la fait sortir du deck.
+            <div key={`${c.id}-${idx}`} className="relative">
+              <Card3D
+                {...cardVisualProps(c, 'player', { plain: true })} size="h-auto w-full"
+                // Aperçu immédiat du choix en cours d'édition, sans
+                // toucher à l'état global de CardArt (non enregistré).
+                illustrationId={variants[c.id] ?? c.id}
+                foil={foiled}
+                finish={visibleFinish(fin, fx)}
+                tapOn="up" onTap={() => onRemove(t, idx)}
+                locked={!owns(c.id)} dim={owns(c.id) ? 'none' : 'strong'}
+              />
+              {/* Le tap retire la carte, l'appui long ouvre le tooltip :
+                  les deux gestes sont pris. Le badge est donc un FRÈRE
+                  de la vignette — un pointerdown qui l'atteint n'arme
+                  jamais le retrait (et un <button> imbriqué serait du
+                  HTML invalide). */}
+              {customizable && <SkinButton card={c} skinned={skinned} onTap={() => onSkin?.(c)} />}
             </div>
           );
-        })}
-      </div>
+        }}
+      />
 
       <button type="button" className="mt-4 w-full text-center text-xs text-white/40 underline" {...clearHandlers}>
         Vider le deck

@@ -217,8 +217,8 @@ export async function startDraft() {
   return absorbShop(await api('/me/draft/start', { method: 'POST', body: {} }));
 }
 
-export async function pickDraftCard(cardId) {
-  return absorbShop(await api('/me/draft/pick', { method: 'POST', body: { card_id: cardId } }));
+export async function pickDraftCards(cardIds) {
+  return absorbShop(await api('/me/draft/pick', { method: 'POST', body: { card_ids: cardIds } }));
 }
 
 export async function rerollDraft() {

@@ -1,4 +1,5 @@
-// DraftScreen — le draft du jour : 15 choix d'une carte parmi trois, puis une
+// DraftScreen — le draft du jour : trois lots de trois cartes liées, puis six
+// choix d'une carte parmi trois (15 cartes), puis une
 // échelle de duels (5 victoires pour la gagner, 2 défaites la closent, une vie
 // rachetable en gemmes) contre des adversaires qui ont drafté avec les mêmes
 // règles. Chaque victoire paie des gemmes, 60 pour une run parfaite.
@@ -10,11 +11,11 @@ import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDraftStore, getDraftPool, type DraftRun, type DraftSnapshot } from '../stores/draftStore.js';
 import {
-  DRAFT_SCHEDULE, DRAFT_REROLLS, RUN_WINS, RUN_LOSSES,
-  offerFor, currentTier, currentOpponent, canReroll, deckOf, maxLosses,
-  type OfferKind, type DraftState,
+  DRAFT_STEPS, DRAFT_SIZE, DRAFT_REROLLS, RUN_WINS, RUN_LOSSES,
+  offerFor, currentStep, currentOpponent, canReroll, deckOf, maxLosses,
+  type OfferKind, type OfferSlot, type DraftState,
 } from '../logic/Draft.js';
-import * as CardDatabase from '../data/CardDatabase.js';
+import DeckTierGrid from '../components/deck/DeckTierGrid.js';
 import Card3D, { cardVisualProps } from '../components/ui/Card3D.js';
 import { Amount, Button, Countdown, Illustration, LoadState } from '../components/ui/primitives.js';
 import HoldConfirmButton from '../components/ui/HoldConfirmButton.js';
@@ -27,19 +28,10 @@ import type { Card } from '../logic/types.js';
 
 /** Ce que l'écran dit de chaque emplacement. Le PARI est le seul à porter un
  *  avertissement : c'est la carte qu'on ne peut pas encore jouer. */
-const KIND_LABEL: Record<OfferKind, { text: string; tone: string }> = {
+const KIND_LABEL: Record<Exclude<OfferKind, 'bundle'>, { text: string; tone: string }> = {
   complement: { text: 'Complète une recette', tone: 'text-success' },
   buildable: { text: 'Jouable', tone: 'text-white/50' },
   bet: { text: 'Pari : matériaux absents', tone: 'text-gold' },
-};
-
-// Classes littérales : Tailwind ne voit pas une classe composée à l'exécution.
-const TIER_TEXT: Record<string, string> = {
-  '1': 'text-tier-1', '2': 'text-tier-2', '3': 'text-tier-3', '4': 'text-tier-4', '5': 'text-tier-5',
-};
-
-const cardOf = (id: string): Card | null => {
-  try { return (CardDatabase as { getCard(id: string): Card | null }).getCard(id) ?? null; } catch { return null; }
 };
 
 const sum = (list: number[]) => list.reduce((a, b) => a + b, 0);
@@ -68,7 +60,7 @@ export default function DraftScreen() {
         {run && (run.status === 'drafting' || run.status === 'playing') ? (
           <span className="ml-auto text-xs text-white/50">
             {run.status === 'drafting'
-              ? `Choix ${run.picks.length + 1}/${DRAFT_SCHEDULE.length}`
+              ? `Étape ${(currentStep(run)?.index ?? 0) + 1}/${DRAFT_STEPS.length}`
               : `${run.wins} V · ${run.losses} D`}
           </span>
         ) : snapshot && <Countdown at={snapshot.next_rotation_at} title="Prochain draft" className="ml-auto" />}
@@ -93,10 +85,12 @@ function Intro({ snapshot }: { snapshot: DraftSnapshot }) {
     <div className="mx-auto flex max-w-sm flex-col items-center gap-3 py-4 text-center">
       <UiIcon id="UI_CARD" className="h-10 w-10" />
       <p className="text-sm text-white/70">
-        Construis un deck de {DRAFT_SCHEDULE.length} cartes en jouant : une carte parmi trois à chaque étape,
-        du tier 1 au tier 5, tirée dans tout le catalogue — de quoi découvrir des cartes que tu n'as pas.
+        Construis un deck de {DRAFT_SIZE} cartes en jouant, tirées dans tout le catalogue — de quoi découvrir
+        des cartes que tu n'as pas. D'abord trois lots de trois cartes liées par une recette, puis six cartes
+        à choisir une par une, du tier 1 au tier 5.
       </p>
       <ul className="w-full space-y-1.5 text-left text-xs text-white/50">
+        <li><span className="text-violet">Lot</span> : une carte et les matériels que sa recette nomme.</li>
         <li><span className="text-success">Complète une recette</span> : la carte apporte un matériel qui te manque.</li>
         <li><span className="text-white/70">Jouable</span> : tu peux la poser avec ce que tu as déjà.</li>
         <li><span className="text-gold">Pari</span> : ses matériaux te manquent encore. À toi de les trouver.</li>
@@ -128,32 +122,50 @@ function Picking({ state }: { state: DraftState }) {
   // La sélection est attachée à SON offre : un choix fait ou une relance
   // change la clé, et la sélection d'avant ne vaut plus rien.
   const offerKey = `${state.picks.length}:${state.rerolls}`;
-  const [choice, setChoice] = useState<{ key: string; id: string } | null>(null);
-  const selected = choice?.key === offerKey ? choice.id : null;
-  const setSelected = (id: string) => setChoice({ key: offerKey, id });
-  const tier = currentTier(state);
+  const [choice, setChoice] = useState<{ key: string; index: number } | null>(null);
+  const selected = choice?.key === offerKey ? choice.index : null;
+  const setSelected = (index: number) => setChoice({ key: offerKey, index });
+  const step = currentStep(state)?.step;
+  const bundles = step?.tier == null;
+  const slot = selected != null ? offer[selected] : null;
 
   return (
     <>
       <div className="text-center">
-        <div className="text-[10px] tracking-widest text-white/40">TIER {tier} · CHOISIS UNE CARTE</div>
+        <div className="text-[10px] tracking-widest text-white/40">
+          {bundles ? 'CHOISIS UN LOT DE 3 CARTES' : `TIER ${step?.tier} · CHOISIS UNE CARTE`}
+        </div>
       </div>
-      {/* `pt-4` : la carte retenue se lève, elle ne doit pas recouvrir la consigne. */}
-      <div className="mx-auto grid max-w-md grid-cols-3 gap-3 pt-4">
-        {offer.map(({ card, kind }) => (
-          <div key={card.id} className="flex min-w-0 flex-col items-center gap-1.5">
-            <Card3D
-              {...cardVisualProps(card, 'player', { plain: true })}
-              size="h-auto w-full"
-              tapOn="up"
-              highlight={selected === card.id ? 'selected' : 'none'}
-              onTap={() => setSelected(card.id)}
-            />
-            <span className={`text-center text-[10px] leading-tight ${KIND_LABEL[kind].tone}`}>{KIND_LABEL[kind].text}</span>
-          </div>
-        ))}
-      </div>
-      <p className="text-center text-[11px] text-white/40">Touche une carte pour la choisir, appui long pour la détailler.</p>
+      {bundles ? (
+        <div className="mx-auto max-w-md space-y-3">
+          {offer.map((s, i) => (
+            <BundleRow key={s.cards[0].id} slot={s} selected={selected === i} onTap={() => setSelected(i)} />
+          ))}
+        </div>
+      ) : (
+        // `pt-4` : la carte retenue se lève, elle ne doit pas recouvrir la consigne.
+        <div className="mx-auto grid max-w-md grid-cols-3 gap-3 pt-4">
+          {offer.map((s, i) => {
+            const card = s.cards[0];
+            const label = KIND_LABEL[s.kind as Exclude<OfferKind, 'bundle'>];
+            return (
+              <div key={card.id} className="flex min-w-0 flex-col items-center gap-1.5">
+                <Card3D
+                  {...cardVisualProps(card, 'player', { plain: true })}
+                  size="h-auto w-full"
+                  tapOn="up"
+                  highlight={selected === i ? 'selected' : 'none'}
+                  onTap={() => setSelected(i)}
+                />
+                {label && <span className={`text-center text-[10px] leading-tight ${label.tone}`}>{label.text}</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <p className="text-center text-[11px] text-white/40">
+        Touche {bundles ? 'un lot' : 'une carte'} pour {bundles ? 'le' : 'la'} choisir, appui long sur une carte pour la détailler.
+      </p>
       {err && <p className="text-center text-xs text-danger">{err}</p>}
       <div className="mx-auto flex max-w-md gap-2">
         <Button
@@ -166,14 +178,44 @@ function Picking({ state }: { state: DraftState }) {
         <Button
           variant="primary"
           className="flex-1 py-3"
-          disabled={busy || !selected}
-          onPointerDown={async () => { if (selected) setErr(await pick(selected)); }}
+          disabled={busy || !slot}
+          onPointerDown={async () => { if (slot) setErr(await pick(slot.cards.map(c => c.id))); }}
         >
           Prendre
         </Button>
       </div>
       <DeckSummary state={state} />
     </>
+  );
+}
+
+/** Un lot de l'offre : ses trois cartes côte à côte, tapables d'un bloc. Le
+ *  titre nomme la carte dont la recette lie les deux autres. */
+function BundleRow({ slot, selected, onTap }: { slot: OfferSlot; selected: boolean; onTap: () => void }) {
+  const [head] = slot.cards;
+  const missing = slot.missing ?? 0;
+  return (
+    <div className={`rounded-xl border p-2 pt-1.5 ${selected ? 'border-gold bg-gold/10' : 'border-line bg-surface-raised/50'}`}>
+      <div className="mb-1 flex items-baseline gap-2">
+        <span className="min-w-0 truncate text-xs font-bold text-violet">Lot · {head.name}</span>
+        <span className={`ml-auto shrink-0 text-[10px] ${missing ? 'text-gold' : 'text-success'}`}>
+          {missing ? `${missing} carte${missing > 1 ? 's' : ''} à compléter` : 'Tout se joue'}
+        </span>
+      </div>
+      {/* `pt-4` : une carte survolée se lève, elle ne doit pas recouvrir le titre. */}
+      <div className="grid grid-cols-3 gap-2 pt-4">
+        {slot.cards.map(card => (
+          <Card3D
+            key={card.id}
+            {...cardVisualProps(card, 'player', { plain: true })}
+            size="h-auto w-full"
+            tapOn="up"
+            highlight={selected ? 'selected' : 'none'}
+            onTap={onTap}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -281,20 +323,26 @@ function Pips({ label, filled, total, tone }: { label: string; filled: number; t
   );
 }
 
-/** Le deck en cours, par tier. Les noms suffisent : l'appui long sur une carte
- *  de l'offre détaille, ici on relit ce qu'on a pris. */
+/** Le deck en cours, rangé par tier comme l'onglet « Deck » du DeckBuilder.
+ *  Lecture seule : l'appui long détaille une carte, le tap ne fait rien. */
 function DeckSummary({ state }: { state: DraftState }) {
-  const deck = deckOf(state);
+  const pool = getDraftPool();
+  const deck = useMemo(() => {
+    const byId = new Map(pool.map(c => [c.id, c]));
+    const ids = deckOf(state, pool);
+    return Object.fromEntries([1, 2, 3, 4, 5].map(t =>
+      [t, ids[String(t)].map(id => byId.get(id)).filter((c): c is Card => !!c)]));
+  }, [state, pool]);
   if (state.picks.length === 0) return null;
   return (
-    <section className="mx-auto max-w-md space-y-1.5">
-      <h2 className="text-[10px] tracking-widest text-white/40">TON DECK ({state.picks.length}/{DRAFT_SCHEDULE.length})</h2>
-      {['1', '2', '3', '4', '5'].map(t => deck[t].length > 0 && (
-        <div key={t} className="flex gap-2 text-xs">
-          <span className={`w-6 flex-shrink-0 font-bold ${TIER_TEXT[t]}`}>T{t}</span>
-          <span className="min-w-0 text-white/70">{deck[t].map(id => cardOf(id)?.name ?? id).join(' · ')}</span>
-        </div>
-      ))}
+    <section className="mx-auto max-w-md">
+      <h2 className="mb-1.5 text-[10px] tracking-widest text-white/40">TON DECK ({state.picks.length}/{DRAFT_SIZE})</h2>
+      <DeckTierGrid
+        deck={deck}
+        renderCard={(c, _t, idx) => (
+          <Card3D key={`${c.id}-${idx}`} {...cardVisualProps(c, 'player', { plain: true })} size="h-auto w-full" />
+        )}
+      />
     </section>
   );
 }

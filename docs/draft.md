@@ -17,8 +17,10 @@ Le jeu a déjà tout ce qu'il faut :
 
 - **Le tirage uniforme est déjà la règle du jeu** : la boutique et les boosters
   tirent sans poids de tier ni affinité (`shop.pick`). Le Draft tire de la même
-  façon, dans **tout le catalogue** (les cartes qui ont leur illustration), filtré
-  par le tier de l'étape.
+  façon, dans **tout le catalogue** (les cartes qui ont leur illustration).
+- **Un lot n'est pas composé à la main non plus** : c'est une carte et les
+  matériels que sa recette nomme déjà. Le catalogue dit lui-même quelles cartes
+  vont ensemble.
 - **La seule « intelligence » est la couverture des recettes**, qui existait déjà
   pour la simulation et le tutoriel : une carte de haut tier est-elle invocable
   avec ce que le deck contient ? Elle vit désormais dans
@@ -30,20 +32,37 @@ Le jeu a déjà tout ce qu'il faut :
 ## Le déroulé
 
 0. **Un draft par jour**, comme l'Arcade (rotation de 5 h).
-1. **15 choix d'une carte parmi trois**, en montant les tiers :
-   5 × T1, 4 × T2, 3 × T3, 2 × T4, 1 × T5, tirés dans **tout le catalogue**
+1. **Trois lots de trois cartes liées**, un lot parmi trois à chaque étape :
+   9 cartes, tiers mélangés.
+2. **Six choix d'une carte parmi trois**, aux tiers 1, 1, 2, 3, 4 et 5 : 15 cartes
+   en tout. Les deux choix de tier 1 garantissent de quoi jouer au premier tour,
+   qu'un lot ne contient pas forcément. Tout est tiré dans **tout le catalogue**
    (pas la collection du joueur) : le mode fait découvrir des cartes.
-2. **2 relances** pour tout le draft.
-3. **Une échelle de duels** contre l'IA : la run est gagnée à **5 victoires** et se
+3. **2 relances** pour tout le draft, lots compris.
+4. **Une échelle de duels** contre l'IA : la run est gagnée à **5 victoires** et se
    termine à **2 défaites**. Une égalité se rejoue, abandonner un duel le concède.
    Une fois la run perdue, **une vie se rachète 20 gemmes**, une seule fois.
-4. **Chaque victoire paie des gemmes** : 6, 9, 12, 15 puis 18, soit **60** pour une
+5. **Chaque victoire paie des gemmes** : 6, 9, 12, 15 puis 18, soit **60** pour une
    run parfaite. La montée donne du sens à la vie rachetée en fin de run.
-4. Le handicap de l'IA monte avec les victoires (`LADDER_BONUS`, de +0 à
+6. Le handicap de l'IA monte avec les victoires (`LADDER_BONUS`, de +0 à
    +4 ATK / +30 PV) : c'est le primitif `enemyBonus` de l'Arcade, plus doux
    puisque l'adversaire a lui aussi un deck drafté.
 
-## Les trois emplacements de l'offre
+## Les lots
+
+Un lot part d'une carte « tête » qui nomme des matériels dans sa recette : elle
+et deux de ces matériels. Si la recette n'en nomme qu'un, le troisième est un
+matériel de ce matériel, à défaut une carte qui se sert de l'un des deux. Un lot
+doit mélanger les tiers (au moins deux tiers différents) ; les trois lots d'une
+offre ne partagent aucune carte. L'écran dit si tout le lot se joue tel quel ou
+combien de ses cartes attendent encore un matériel — ce que les choix d'une
+carte viendront compléter.
+
+Le serveur rejoue le même verdict (`isLinkedBundle`) : trois cartes sans lien
+entre elles sont refusées, même s'il ne peut pas vérifier que le lot était dans
+l'offre.
+
+## Les trois emplacements d'un choix d'une carte
 
 C'est là que se joue la chance, et c'est la seule règle qui a été écrite :
 
@@ -59,9 +78,10 @@ suite du draft apporte ses matériaux, ce que l'emplacement **complément** vien
 justement chercher.
 
 Mesuré sur le catalogue livré (200 drafts) : un joueur qui prend **tous** les
-paris ne finit qu'avec **47 %** de cartes jouables, et le complément n'apparaît
-qu'environ **une fois par draft**. Le pari est donc un vrai risque, pas une
-option gratuite.
+paris finit avec **72 %** de cartes jouables (les lots, liés par construction,
+amortissent le risque), et le complément apparaît environ **1,5 fois par
+draft**. Les adversaires, qui prennent le choix jouable le plus fort, finissent
+à **99,5 %**.
 
 ## Les choix techniques
 
@@ -70,11 +90,11 @@ option gratuite.
   rechargement ou un autre appareil reprend la run.
 - **L'offre reste calculée côté client**, depuis la graine du serveur : elle lit
   les règles d'invocation (`logic/DeckCoverage.ts`), que Node ne porte pas. Le
-  serveur vérifie qu'un choix est du bon tier et pas déjà pris, mais ne peut pas
-  vérifier qu'il figurait dans l'offre. C'est la même confiance bornée que le
+  serveur vérifie qu'un choix est du bon tier (ou forme un lot lié) et pas déjà
+  pris, mais ne peut pas vérifier qu'il figurait dans l'offre. C'est la même confiance bornée que le
   résultat d'un duel : une run par jour, 60 gemmes au plus.
-- **L'offre est une fonction de l'état** (graine, nombre de choix, relances
-  dépensées) : recharger la page rend la même offre.
+- **L'offre est une fonction de l'état** (graine, nombre de cartes prises,
+  relances dépensées) : recharger la page rend la même offre.
 - **Toute la règle de l'offre est pure** dans `logic/Draft.ts`, testée dans
   `test/draft.test.ts` ; le serveur dans `test/draft-server.test.ts`.
 - L'écran de jeu est le vrai `GameScreen` (`params.draft`), avec le deck drafté

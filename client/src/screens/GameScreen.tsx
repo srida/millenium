@@ -102,7 +102,7 @@ export default function GameScreen() {
       'ai',
       enemyDeckName,
       draftOpponent?.deck ?? duel?.deck ?? tutorialDecks?.enemy ?? pending?.opponentDeck ?? enemyDeck,
-      draftState ? deckOf(draftState) : tutorialDecks?.player,
+      draftState ? deckOf(draftState, getDraftPool()) : tutorialDecks?.player,
       draftOpponent?.bonus ?? (duel?.bonus ? { atk: duel.bonus.atk, hp: duel.bonus.hp } : null),
     );
     const ctrl = new GameController(session);
