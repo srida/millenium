@@ -13,6 +13,7 @@ import {
   DRAFT_STEPS, DRAFT_SIZE, DRAFT_REROLLS, OFFER_SIZE, RUN_WINS, RUN_LOSSES,
   newDraft, offerFor, pickCards, reroll, canReroll, recordResult, deckOf,
   autoDraft, currentOpponent, currentStep, isLinkedBundle, laneTier, type DraftState,
+  pendingBonus, stepOf, BONUS_STEP,
 } from '../logic/Draft.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -23,6 +24,12 @@ const BY_ID = new Map(POOL.map(c => [c.id, c]));
 
 const ids = (slot: { cards: Card[] }) => slot.cards.map(c => c.id);
 const take = (s: DraftState, i: number) => pickCards(s, ids(offerFor(s, POOL)[i]), POOL)!;
+
+/** Un duel soldé, puis la carte de plus s'il en est une due (premier choix). */
+function duel(s: DraftState, result: 'win' | 'loss'): DraftState {
+  const next = recordResult(s, result)!;
+  return pendingBonus(next) ? take(next, 0) : next;
+}
 
 /** Draft complet où le joueur prend toujours le premier emplacement. */
 function draftFirst(seed: number): DraftState {
@@ -166,17 +173,67 @@ describe('choix et relances', () => {
 describe('run', () => {
   it('s\'arrête à la 5ᵉ victoire ou à la 2ᵉ défaite', () => {
     let s = draftFirst(9);
-    for (let i = 0; i < RUN_WINS - 1; i++) s = recordResult(s, 'win')!;
+    for (let i = 0; i < RUN_WINS - 1; i++) s = duel(s, 'win');
     expect(s.status).toBe('playing');
     expect(recordResult(s, 'win')!.status).toBe('won');
     let l = draftFirst(9);
-    for (let i = 0; i < RUN_LOSSES; i++) l = recordResult(l, 'loss')!;
+    for (let i = 0; i < RUN_LOSSES; i++) l = duel(l, 'loss');
     expect(l.status).toBe('lost');
     expect(recordResult(l, 'win')).toBeNull();
   });
 
   it('pas de rapport pendant le draft', () => {
     expect(recordResult(newDraft(1), 'win')).toBeNull();
+  });
+});
+
+describe('carte de plus entre deux duels', () => {
+  it('est due après un duel qui ne clôt pas la run, victoire ou défaite', () => {
+    const s = draftFirst(21);
+    expect(pendingBonus(s)).toBe(false);
+    for (const result of ['win', 'loss'] as const) {
+      const after = recordResult(s, result)!;
+      expect(after.status).toBe('playing');
+      expect(pendingBonus(after)).toBe(true);
+      expect(stepOf(after)?.step).toEqual(BONUS_STEP);
+      // Pas de duel tant qu'elle n'est pas prise.
+      expect(recordResult(after, 'win')).toBeNull();
+      const taken = take(after, 0);
+      expect(taken.picks).toHaveLength(DRAFT_SIZE + 1);
+      expect(pendingBonus(taken)).toBe(false);
+      expect(taken.status).toBe('playing');
+    }
+  });
+
+  it('n\'est pas due quand le duel clôt la run', () => {
+    let won = draftFirst(22);
+    for (let i = 0; i < RUN_WINS - 1; i++) won = duel(won, 'win');
+    won = recordResult(won, 'win')!;
+    expect(won.status).toBe('won');
+    expect(pendingBonus(won)).toBe(false);
+    let lost = draftFirst(22);
+    for (let i = 0; i < RUN_LOSSES; i++) lost = duel(lost, 'loss');
+    expect(lost.status).toBe('lost');
+    expect(stepOf(lost)).toBeNull();
+    // Une vie rachetée remet la run en jeu : la carte du duel perdu est due.
+    expect(pendingBonus({ ...lost, status: 'playing' })).toBe(true);
+  });
+
+  it('propose trois cartes de TOUS tiers, hors deck, et se relance', () => {
+    const seen = new Set<number>();
+    for (let seed = 30; seed < 50; seed++) {
+      const s = recordResult(draftFirst(seed), 'win')!;
+      const offer = offerFor(s, POOL);
+      expect(offer).toHaveLength(OFFER_SIZE);
+      for (const slot of offer) {
+        expect(slot.cards).toHaveLength(1);
+        expect(s.picks).not.toContain(slot.cards[0].id);
+        for (const t of BY_ID.get(slot.cards[0].id)!._tiers ?? []) seen.add(t);
+      }
+      expect(canReroll(s)).toBe(true);
+      expect(offerFor(reroll(s)!, POOL).flatMap(ids)).not.toEqual(offer.flatMap(ids));
+    }
+    expect(seen.size).toBeGreaterThan(2);
   });
 });
 
@@ -193,10 +250,13 @@ describe('adversaires', () => {
     const cov = coverageOf(cards);
     const playable = cards.filter(c => isSummonable(c, cov.ids, cov.attrs)).length;
     expect(playable / cards.length).toBeGreaterThan(0.85);
-    // L'adversaire suivant n'est pas le même.
-    const b = currentOpponent(recordResult(s, 'win')!, POOL)!;
+    // L'adversaire suivant n'est pas le même, et il a drafté sa carte de plus
+    // comme le joueur : même taille de deck.
+    const after = duel(s, 'win');
+    const b = currentOpponent(after, POOL)!;
     expect(b.deck).not.toEqual(a.deck);
-    expect(b.bonus.atk).toBeGreaterThan(a.bonus.atk);
+    expect(Object.values(b.deck).flat()).toHaveLength(after.picks.length);
+    expect(new Set(Object.values(b.deck).flat()).size).toBe(after.picks.length);
   });
 
   it('autoDraft ne dépend que de sa graine', () => {
@@ -207,7 +267,7 @@ describe('adversaires', () => {
 describe('vie rachetée', () => {
   it('tolère une défaite de plus', () => {
     let s = draftFirst(4);
-    for (let i = 0; i < RUN_LOSSES - 1; i++) s = recordResult(s, 'loss')!;
+    for (let i = 0; i < RUN_LOSSES - 1; i++) s = duel(s, 'loss');
     const bought = { ...s, extra_life: true };
     expect(recordResult(s, 'loss')!.status).toBe('lost');
     expect(recordResult(bought, 'loss')!.status).toBe('playing');

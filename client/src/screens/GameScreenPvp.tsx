@@ -5,6 +5,11 @@
 // (`HudWithOpponent`). Ajoute l'overlay d'attente (poignée de main réseau /
 // résultat) et l'abandon.
 //
+// Il sert aussi les duels de DRAFT (`params.draft`) : même match en ligne, mais
+// le deck engagé est celui de la run du jour (`logic/Draft.deckOf`), et un bot
+// de repli joue un deck drafté lui aussi (`currentOpponent`). Le duel est soldé
+// dans la run par le serveur, à la clôture du match.
+//
 // ⚠️ Cet écran sert AUSSI les duels contre un adversaire artificiel, servis par
 // le serveur quand la file d'attente ne trouve personne (cf.
 // ws/MatchmakingQueue.BOT_DELAY_MIN_MS → BOT_DELAY_MAX_MS). Seul le contrôleur
@@ -38,6 +43,10 @@ import ShoppingLayer from '../components/shopping/ShoppingLayer.js';
 import { PhaseTimer, Banners } from '../components/hud/PhaseTimer.js';
 import { RoundIntro, DrawPopup } from '../components/overlays/RoundStart.js';
 import { PREP_DURATION_S, SHOPPING_DURATION_S, DRAW_POPUP_AUTO_MS } from '../game/timings.js';
+import { useDraftStore, getDraftPool, type DraftDuelOutcome } from '../stores/draftStore.js';
+import { deckOf, currentOpponent } from '../logic/Draft.js';
+import { illustrationUrl } from '../data/CardArt.js';
+import { fmt } from '../components/ui/currency.js';
 
 export default function GameScreenPvp() {
   const [controller, setControllerLocal] = useState<PvpController | BotController | null>(null);
@@ -55,25 +64,40 @@ export default function GameScreenPvp() {
   const shoppingOpen = useGameStore(s => !!s.shopping);
   const navigate = useUiStore(s => s.navigate);
   const deckName = useUiStore(s => s.params.deckName as string | undefined);
+  const inDraft = useUiStore(s => s.params.draft === true);
 
   useEffect(() => {
     const role = (PvpConnection as any).getRole() as 'A' | 'B' | null;
-    if (!role) { navigate('online_lobby'); return; }
+    if (!role) { navigate(inDraft ? 'draft' : 'online_lobby'); return; }
+    // Duel de Draft : le deck vient de la run (la file l'a déjà vérifiée côté
+    // serveur). Sans run en phase de duels, il n'y a rien à jouer ici.
+    const draftRun = inDraft ? useDraftStore.getState().snapshot?.run ?? null : null;
+    if (inDraft && draftRun?.status !== 'playing') { navigate('draft'); return; }
+    const draftDeck = draftRun ? deckOf(draftRun, getDraftPool()) : null;
     const opponentUser = (PvpConnection as any).getOpponent();
     const opponent = opponentUser?.username ?? 'Adversaire';
-    setOpponentAvatar(opponentUser?.avatar ?? null);
-    setOpponentName(opponent);
     // Duel contre bot : la session est un solo (mode 'ai' + deck du bot), pas
     // une session PvP — il n'y a pas de second client à synchroniser, et
-    // l'EnemyAI a besoin d'un deck adverse pour jouer.
+    // l'EnemyAI a besoin d'un deck adverse pour jouer. En Draft, son deck est
+    // drafté ICI (le serveur n'en annonce aucun), et sa carte la plus forte lui
+    // sert de visage, comme l'avatar d'un bot du Duel en ligne.
     const bot = (PvpConnection as any).getBotMatch();
+    const draftBot = bot && draftRun ? currentOpponent(draftRun, getDraftPool()) : null;
+    setOpponentAvatar(opponentUser?.avatar ?? (draftBot?.faceCardId ? illustrationUrl(draftBot.faceCardId) : null));
+    setOpponentName(opponent);
     const session = bot
-      ? buildSession(deckName, 'ai', opponent, bot.deck)
+      ? buildSession(deckName, 'ai', opponent, draftBot?.deck ?? bot.deck, draftDeck)
       // ⚠️ Le rôle est passé à la session, et pour une seule raison : le terrain.
       // Le monde du rôle B étant le reflet de celui de A, ses cases bloquées
       // doivent être miroitées — sans quoi les deux clients simulent deux
       // plateaux différents (cf. `logic/BoardMirror`).
-      : buildSession(deckName, 'pvp', undefined, null, null, null, role);
+      : buildSession(deckName, 'pvp', undefined, null, draftDeck, null, role);
+    // Le solde du duel dans la run voyage avec `match:end`. Abonné AVANT le
+    // contrôleur (qui s'abonne dans `begin()`), donc lu avant l'écran de
+    // résultat.
+    const onEnd = (m: any) => { if (inDraft) useDraftStore.getState().noteDuel(m?.draft ?? null); };
+    useDraftStore.getState().noteDuel(null);
+    (PvpConnection as any).on('match:end', onEnd);
     const ctrl = bot
       ? new BotController(session, opponent)
       : new PvpController(session, pvpDeps(), role, opponent);
@@ -93,6 +117,7 @@ export default function GameScreenPvp() {
     // propre annonce) ne fait que reculer d'autant la fermeture de cette
     // barrière.
     return () => {
+      (PvpConnection as any).off('match:end', onEnd);
       ctrl.dispose();
       useEmoteStore.getState().detach();
       setController(null);
@@ -177,28 +202,43 @@ export default function GameScreenPvp() {
       <PhaseWipe />
       <EndRoundOverlay />
       <ShoppingLayer />
-      <ResultOverlay opponentAvatar={opponentAvatar} />
+      <ResultOverlay opponentAvatar={opponentAvatar} inDraft={inDraft} />
     </div>
   );
 }
 
 // Portrait du vainqueur sur l'écran de résultat : le mien (profil connecté,
 // ★ en invité) ou celui de l'adversaire, récupéré à la poignée de main.
-function ResultOverlay({ opponentAvatar }: { opponentAvatar: string | null }) {
+function ResultOverlay({ opponentAvatar, inDraft }: { opponentAvatar: string | null; inDraft: boolean }) {
   const user = useAuthStore(s => s.user);
   const opponentName = useGameStore(s => s.pvpOpponent);
   // La modale recouvre la bannière de jeu : c'est ici, et nulle part ailleurs,
   // qu'un « le serveur n'a pas pu enregistrer ce duel » atteint le joueur.
   const note = useGameStore(s => s.errorFlash);
+  const lastDuel = useDraftStore(s => s.lastDuel);
   return (
     <GameOverScreen
+      onExit={inDraft ? () => useUiStore.getState().navigate('draft') : undefined}
+      exitLabel={inDraft ? 'RETOUR AU DRAFT' : undefined}
       playerAvatarSrc={user?.avatar ?? null}
       playerAvatarFallback={(user?.username ?? '?').slice(0, 2).toUpperCase()}
       enemyAvatarSrc={opponentAvatar}
       enemyAvatarFallback={(opponentName ?? '?').slice(0, 2).toUpperCase()}
       note={note}
+      info={inDraft && !note ? draftNote(lastDuel) : null}
     />
   );
+}
+
+// Ce que le duel a changé dans la run de Draft. Rien de soldé = une égalité
+// (ou un duel que le serveur n'a pas compté) : il se rejoue.
+function draftNote(d: DraftDuelOutcome | null): string {
+  if (!d) return 'Ce duel ne compte pas dans ta run : il se rejoue.';
+  if (d.result === 'loss') {
+    return d.status === 'lost' ? 'Défaite : ta run de Draft s\'arrête là.' : 'Défaite enregistrée. Une carte de plus t\'attend au Draft.';
+  }
+  const gems = d.granted ? ` (+${fmt.format(d.granted.gems)} gemmes)` : '';
+  return d.status === 'won' ? `Victoire${gems} : ta run de Draft est gagnée !` : `Victoire${gems}. Une carte de plus t'attend au Draft.`;
 }
 
 // Portrait de l'adversaire dans le HUD : avatar de profil + pseudo, récupérés

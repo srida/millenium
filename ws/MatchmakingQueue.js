@@ -3,6 +3,7 @@
 // rejoindre à nouveau la file (aucune persistance nécessaire ici).
 const relay = require('./MatchRelay');
 const botMatch = require('./BotMatch');
+const draft = require('../draft');
 
 /**
  * Fenêtre au bout de laquelle un joueur seul se voit servir un adversaire
@@ -28,7 +29,15 @@ function botDelay() {
   return BOT_DELAY_MIN_MS + Math.floor(Math.random() * (BOT_DELAY_MAX_MS - BOT_DELAY_MIN_MS + 1));
 }
 
-const waiting = new Map(); // userId -> { ws, deckName, joinedAt, botTimer }
+const waiting = new Map(); // userId -> { ws, deckName, mode, draftIds, joinedAt, botTimer }
+
+/**
+ * Deux files dans une : `standard` (Duel en ligne, deck actif) et `draft`
+ * (duels de la run de Draft du jour). Un joueur n'est apparié qu'avec un
+ * joueur du MÊME mode — un deck drafté de 15 cartes contre un deck construit
+ * ne serait pas un duel de Draft.
+ */
+const MODES = Object.freeze(['standard', 'draft']);
 
 /** Retire de la file ET désarme le repli bot — les deux vont toujours ensemble. */
 function drop(userId) {
@@ -39,16 +48,30 @@ function drop(userId) {
   return entry;
 }
 
-function joinQueue(ws, userId, deckName) {
+function sendError(ws, code, message) {
+  if (ws && ws.readyState === ws.OPEN) ws.send(JSON.stringify({ type: 'error', code, message }));
+}
+
+function joinQueue(ws, userId, deckName, mode = 'standard') {
   // Un joueur déjà en file (ex: double clic) remplace simplement son entrée.
   drop(userId);
-  waiting.set(userId, { ws, deckName, joinedAt: Date.now(), botTimer: null });
+  if (!MODES.includes(mode)) mode = 'standard';
 
-  // Cherche un adversaire différent de soi-même.
+  // Draft : le deck vient de la run SERVEUR, jamais du client. Pas de run en
+  // phase de duels (ou une carte due) → pas de file.
+  let draftIds = null;
+  if (mode === 'draft') {
+    const ready = draft.duelDeck(userId);
+    if (!ready.ok) { sendError(ws, 'draft_unavailable', ready.reason); return; }
+    draftIds = ready.card_ids;
+  }
+  waiting.set(userId, { ws, deckName, mode, draftIds, joinedAt: Date.now(), botTimer: null });
+
+  // Cherche un adversaire différent de soi-même, dans le même mode.
   let opponentEntry = null;
   let opponentId = null;
   for (const [uid, entry] of waiting) {
-    if (uid === userId) continue;
+    if (uid === userId || entry.mode !== mode) continue;
     opponentEntry = entry;
     opponentId = uid;
     break;
@@ -65,8 +88,9 @@ function joinQueue(ws, userId, deckName) {
   drop(opponentId);
 
   relay.createMatch(
-    { userId, ws, deckName },
-    { userId: opponentId, ws: opponentEntry.ws, deckName: opponentEntry.deckName }
+    { userId, ws, deckName, draftIds },
+    { userId: opponentId, ws: opponentEntry.ws, deckName: opponentEntry.deckName, draftIds: opponentEntry.draftIds },
+    mode,
   );
 }
 
@@ -80,7 +104,7 @@ function serveBot(userId) {
   const entry = waiting.get(userId);
   if (!entry) return;
   if (entry.ws.readyState !== entry.ws.OPEN) { drop(userId); return; }
-  const matchId = botMatch.createMatch(entry.ws, userId);
+  const matchId = botMatch.createMatch(entry.ws, userId, { draft: entry.mode === 'draft' });
   if (matchId) drop(userId);
 }
 
@@ -92,4 +116,4 @@ function handleDisconnectWhileWaiting(userId) {
   drop(userId);
 }
 
-module.exports = { joinQueue, leaveQueue, handleDisconnectWhileWaiting, BOT_DELAY_MIN_MS, BOT_DELAY_MAX_MS };
+module.exports = { MODES, joinQueue, leaveQueue, handleDisconnectWhileWaiting, BOT_DELAY_MIN_MS, BOT_DELAY_MAX_MS };

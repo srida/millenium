@@ -70,12 +70,18 @@ function deckCardIds(userId, deckName) {
  * porter une carte supprimée en admin depuis sa dernière édition.
  */
 function deckAttributeCounts(userId, deckName) {
+  return attributeCountsOf(deckCardIds(userId, deckName));
+}
+
+/** Même compte sur une liste d'ids donnée — le deck d'une run de Draft, qui ne
+ *  vit pas dans le deck book. Les doublons sont comptés une fois. */
+function attributeCountsOf(cardIds) {
   const index = cardAttributes();
   const out = {};
-  for (const id of deckCardIds(userId, deckName)) {
+  for (const id of new Set(cardIds)) {
     for (const attr of index.get(id) ?? []) out[attr] = (out[attr] ?? 0) + 1;
   }
   return out;
 }
 
-module.exports = { resolveDeck, deckCardIds, deckAttributeCounts };
+module.exports = { resolveDeck, deckCardIds, deckAttributeCounts, attributeCountsOf };

@@ -1,23 +1,29 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // DraftScreen — le draft du jour : trois lots de trois cartes liées, puis six
-// choix d'une carte parmi trois (15 cartes), puis une
-// échelle de duels (5 victoires pour la gagner, 2 défaites la closent, une vie
-// rachetable en gemmes) contre des adversaires qui ont drafté avec les mêmes
-// règles. Chaque victoire paie des gemmes, 60 pour une run parfaite.
+// choix d'une carte parmi trois (15 cartes), puis des duels EN LIGNE contre
+// d'autres joueurs en draft (5 victoires pour gagner la run, 2 défaites la
+// closent, une vie rachetable en gemmes). Après chaque duel qui ne clôt pas la
+// run, une carte de plus à drafter. Chaque victoire paie des gemmes, 60 pour
+// une run parfaite.
 //
-// La run est SERVEUR (`draft.js`) ; l'offre et les adversaires se dérivent de
-// sa graine (`logic/Draft.ts`). Cet écran ne fait que rendre et taper.
-import { useEffect, useMemo, useState } from 'react';
+// La run est SERVEUR (`draft.js`) ; l'offre se dérive de sa graine
+// (`logic/Draft.ts`). Le duel passe par la file du Duel en ligne (mode
+// `draft`) et se joue dans `GameScreenPvp` ; c'est le serveur qui le solde.
+import { useEffect, useMemo, useRef, useState } from 'react';
+import * as PvpConnection from '../net/PvpConnection.js';
+import MatchFoundReveal, { MATCH_REVEAL_MS, type MatchOpponent } from '../components/online/MatchFoundReveal.js';
+import { illustrationUrl } from '../data/CardArt.js';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDraftStore, getDraftPool, type DraftRun, type DraftSnapshot } from '../stores/draftStore.js';
 import {
   DRAFT_STEPS, DRAFT_SIZE, DRAFT_REROLLS, RUN_WINS, RUN_LOSSES,
-  offerFor, currentStep, currentOpponent, canReroll, deckOf, maxLosses,
+  offerFor, currentStep, stepOf, pendingBonus, currentOpponent, canReroll, deckOf, maxLosses,
   type OfferKind, type OfferSlot, type DraftState,
 } from '../logic/Draft.js';
 import DeckTierGrid from '../components/deck/DeckTierGrid.js';
 import Card3D, { cardVisualProps } from '../components/ui/Card3D.js';
-import { Amount, Button, Countdown, Illustration, LoadState } from '../components/ui/primitives.js';
+import { Amount, Button, Countdown, LoadState } from '../components/ui/primitives.js';
 import HoldConfirmButton from '../components/ui/HoldConfirmButton.js';
 import { CURRENCY, fmt } from '../components/ui/currency.js';
 import { GuestGate } from '../components/ui/GuestGate.js';
@@ -69,7 +75,7 @@ export default function DraftScreen() {
         <LoadState error={error} loading={loading} hasContent={!!snapshot} />
         {snapshot && (!run ? <Intro snapshot={snapshot} />
           : run.status === 'drafting' ? <Picking state={run} />
-            : run.status === 'playing' ? <Ladder snapshot={snapshot} run={run} />
+            : run.status === 'playing' ? (pendingBonus(run) ? <Picking state={run} /> : <Ladder snapshot={snapshot} run={run} />)
               : <Finished snapshot={snapshot} run={run} />)}
       </div>
     </main>
@@ -96,9 +102,10 @@ function Intro({ snapshot }: { snapshot: DraftSnapshot }) {
         <li><span className="text-gold">Pari</span> : ses matériaux te manquent encore. À toi de les trouver.</li>
       </ul>
       <p className="text-xs text-white/50">
-        {DRAFT_REROLLS} relances pour tout le draft. Ensuite, des duels contre des adversaires qui ont drafté eux aussi :
+        {DRAFT_REROLLS} relances pour toute la run. Ensuite, des duels en ligne contre d'autres joueurs en draft :
         {' '}{RUN_WINS} victoires pour gagner la run, {RUN_LOSSES} défaites y mettent fin
         (une vie de plus se rachète <Amount currency="gems" value={snapshot.rules.extra_life_price_gems} />).
+        Après chaque duel, tu draftes une carte de plus.
       </p>
       <p className="text-xs text-white/70">
         Chaque victoire rapporte des gemmes, jusqu'à <Amount currency="gems" value={total} /> pour une run parfaite.
@@ -125,16 +132,18 @@ function Picking({ state }: { state: DraftState }) {
   const [choice, setChoice] = useState<{ key: string; index: number } | null>(null);
   const selected = choice?.key === offerKey ? choice.index : null;
   const setSelected = (index: number) => setChoice({ key: offerKey, index });
-  const step = currentStep(state)?.step;
-  const bundles = step?.tier == null;
+  const step = stepOf(state)?.step;
+  const bonus = !!step?.bonus;
+  const bundles = step?.tier == null && !bonus;
   const slot = selected != null ? offer[selected] : null;
 
   return (
     <>
       <div className="text-center">
         <div className="text-[10px] tracking-widest text-white/40">
-          {bundles ? 'CHOISIS UN LOT DE 3 CARTES' : `TIER ${step?.tier} · CHOISIS UNE CARTE`}
+          {bundles ? 'CHOISIS UN LOT DE 3 CARTES' : bonus ? 'CARTE DE PLUS · TOUS TIERS' : `TIER ${step?.tier} · CHOISIS UNE CARTE`}
         </div>
+        {bonus && <p className="mt-1 text-xs text-white/60">Ton duel est joué : ajoute une carte à ton deck avant le suivant.</p>}
       </div>
       {bundles ? (
         <div className="mx-auto max-w-md space-y-3">
@@ -220,15 +229,7 @@ function BundleRow({ slot, selected, onTap }: { slot: OfferSlot; selected: boole
 }
 
 function Ladder({ snapshot, run }: { snapshot: DraftSnapshot; run: DraftRun }) {
-  const navigate = useUiStore(s => s.navigate);
-  const pool = getDraftPool();
-  const opponent = useMemo(() => currentOpponent(run, pool), [run, pool]);
-  if (!opponent) return null;
-  const bonus = opponent.bonus.atk || opponent.bonus.hp
-    ? `IA +${opponent.bonus.hp} PV / +${opponent.bonus.atk} ATK`
-    : 'IA sans bonus';
   const nextGems = snapshot.rules.win_gems[run.wins] ?? 0;
-
   return (
     <>
       <div className="mx-auto flex max-w-sm justify-center gap-6">
@@ -237,20 +238,104 @@ function Ladder({ snapshot, run }: { snapshot: DraftSnapshot; run: DraftRun }) {
       </div>
       <GemsLine run={run} />
       <div className="mx-auto flex max-w-sm items-center gap-3 rounded-lg border border-gold/60 bg-surface-raised/60 px-3 py-2">
-        {opponent.faceCardId && <Illustration id={opponent.faceCardId} framed className="h-12 w-12" />}
+        <UiIcon id="UI_DUEL" className="h-8 w-8" />
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-bold text-gold">Adversaire {opponent.index + 1}</div>
-          <div className="text-[11px] text-white/50">Deck drafté · {bonus}</div>
+          <div className="text-sm font-bold text-gold">Duel {run.wins + run.losses + 1}</div>
+          <div className="text-[11px] text-white/50">En ligne, contre un autre joueur en draft</div>
         </div>
         {nextGems > 0 && <Amount currency="gems" value={nextGems} sign className="text-sm font-bold" />}
       </div>
       <div className="mx-auto max-w-sm space-y-2">
         <div className="flex justify-center"><MusicThemePicker /></div>
-        <Button variant="primary" className="w-full py-3" onPointerDown={() => navigate('game', { draft: true })}>
-          DUEL {opponent.index + 1}
-        </Button>
+        <DuelSearch run={run} />
       </div>
       <DeckSummary state={run} />
+    </>
+  );
+}
+
+type SearchStatus = 'idle' | 'connecting' | 'searching' | 'found' | 'error';
+
+/**
+ * La recherche d'un duel : la file du Duel en ligne, en mode `draft`. Le
+ * serveur lit le deck dans la run et refuse (`draft_unavailable`) une run sans
+ * duel à jouer. Même patron que `OnlineLobby` : abonnement au montage, sortie
+ * de file au démontage tant qu'aucun match n'est trouvé.
+ */
+function DuelSearch({ run }: { run: DraftRun }) {
+  const navigate = useUiStore(s => s.navigate);
+  const [status, setStatus] = useState<SearchStatus>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const [opponent, setOpponent] = useState<MatchOpponent | null>(null);
+  const foundRef = useRef(false);
+  const revealRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Lu par le handler, abonné une seule fois : la run à jour sans relancer l'effet.
+  const runRef = useRef(run);
+  runRef.current = run;
+
+  useEffect(() => {
+    const onFound = (msg: any) => {
+      if (msg?.mode !== 'draft') return;
+      foundRef.current = true;
+      // Un bot de Draft n'a pas d'avatar annoncé : son visage est la carte la
+      // plus forte de son deck drafté, celui que l'écran de jeu lui donnera.
+      const face = msg?.bot ? currentOpponent(runRef.current, getDraftPool())?.faceCardId : null;
+      setOpponent({ ...(msg?.opponent ?? {}), avatar: msg?.opponent?.avatar ?? (face ? illustrationUrl(face) : null) });
+      setStatus('found');
+      revealRef.current = setTimeout(() => navigate('game_pvp', { draft: true }), MATCH_REVEAL_MS);
+    };
+    const onError = (msg: any) => {
+      if (msg?.code !== 'draft_unavailable') return;
+      setError(msg?.message ?? 'Duel impossible.');
+      setStatus('error');
+    };
+    PvpConnection.on('match:found', onFound);
+    PvpConnection.on('error', onError);
+    return () => {
+      PvpConnection.off('match:found', onFound);
+      PvpConnection.off('error', onError);
+      if (revealRef.current) { clearTimeout(revealRef.current); revealRef.current = null; }
+      if (!foundRef.current) { try { PvpConnection.send('queue:leave'); } catch { /* noop */ } }
+    };
+  }, [navigate]);
+
+  async function search() {
+    if (status === 'connecting' || status === 'searching') return;
+    setError(null);
+    setStatus('connecting');
+    try {
+      await (PvpConnection as any).connect();
+      setStatus('searching');
+      (PvpConnection as any).send('queue:join', { mode: 'draft' });
+    } catch (e: any) {
+      setError(e?.message ?? 'Connexion impossible.');
+      setStatus('error');
+    }
+  }
+
+  function cancel() {
+    try { (PvpConnection as any).send('queue:leave'); } catch { /* noop */ }
+    (PvpConnection as any).disconnect();
+    setStatus('idle');
+  }
+
+  return (
+    <>
+      {(status === 'idle' || status === 'error') && (
+        <Button variant="primary" className="w-full py-3" onPointerDown={search}>
+          Chercher un adversaire
+        </Button>
+      )}
+      {(status === 'connecting' || status === 'searching') && (
+        <div className="flex flex-col items-center gap-2">
+          <p className="animate-pulse text-sm text-white/70">
+            {status === 'connecting' ? 'Connexion…' : 'Recherche d\'un adversaire…'}
+          </p>
+          <Button onPointerDown={cancel}>Annuler</Button>
+        </div>
+      )}
+      {error && <p className="text-center text-xs text-danger">{error}</p>}
+      {status === 'found' && <MatchFoundReveal opponent={opponent} />}
     </>
   );
 }
@@ -336,7 +421,7 @@ function DeckSummary({ state }: { state: DraftState }) {
   if (state.picks.length === 0) return null;
   return (
     <section className="mx-auto max-w-md">
-      <h2 className="mb-1.5 text-[10px] tracking-widest text-white/40">TON DECK ({state.picks.length}/{DRAFT_SIZE})</h2>
+      <h2 className="mb-1.5 text-[10px] tracking-widest text-white/40">TON DECK ({state.status === 'drafting' ? `${state.picks.length}/${DRAFT_SIZE}` : `${state.picks.length} cartes`})</h2>
       <DeckTierGrid
         deck={deck}
         renderCard={(c, _t, idx) => (

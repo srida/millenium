@@ -13,6 +13,7 @@ const { stmt } = require('../db');
 const progression = require('../progression');
 const cosmetics = require('../cosmetics');
 const decks = require('../decks');
+const draft = require('../draft');
 
 const GRACE_PERIOD_MS = 45_000;
 
@@ -51,7 +52,13 @@ function playerInfo(userId, ws) {
  * serveur — mettrait de la logique de jeu dans un relais dont tout le principe
  * est d'être OPAQUE.
  */
-function deckDerived(userId, deckName) {
+function deckDerived(userId, deckName, draftIds = null) {
+  // Duel de Draft : le deck est celui de la run, pas une entrée du deck book.
+  // Ses cartes ne sont pas à lui (tirées dans tout le catalogue) : aucun
+  // cosmétique ne s'y applique, seuls les attributs voyagent.
+  if (draftIds) {
+    return { variants: {}, foils: [], finishes: {}, deck_attribute_counts: decks.attributeCountsOf(draftIds) };
+  }
   return {
     variants: cosmetics.deckVariantMap(userId, deckName),
     // Cosmétique lui aussi : les cartes à reflet, filtrées par possession.
@@ -79,18 +86,24 @@ function roleOfUser(match, userId) {
   return null;
 }
 
-function createMatch(connA, connB) {
+/**
+ * `mode: 'draft'` : un duel de la run de Draft du jour. Chaque `conn` porte
+ * alors `draftIds` (les cartes de sa run, lues par la file sur le serveur), et
+ * la clôture du match solde le duel dans les deux runs (`draft.recordDuel`).
+ */
+function createMatch(connA, connB, mode = 'standard') {
   const matchId = crypto.randomUUID();
   const now = Date.now();
 
   const match = {
     id: matchId,
+    mode,
     round: 1,
     status: 'active',
     readyRound1: new Set(),
     players: {
-      A: { userId: connA.userId, ws: connA.ws, deckName: connA.deckName, connected: true, disconnectTimer: null },
-      B: { userId: connB.userId, ws: connB.ws, deckName: connB.deckName, connected: true, disconnectTimer: null },
+      A: { userId: connA.userId, ws: connA.ws, deckName: connA.deckName, draftIds: connA.draftIds ?? null, connected: true, disconnectTimer: null },
+      B: { userId: connB.userId, ws: connB.ws, deckName: connB.deckName, draftIds: connB.draftIds ?? null, connected: true, disconnectTimer: null },
     },
     // ⚠️ La barrière de lancement de combat est indexée par ROUND, et ce n'est
     // pas de la précaution : les deux clients ne traversent pas la fin d'un
@@ -116,11 +129,11 @@ function createMatch(connA, connB) {
     created_at: now,
   });
 
-  const infoA = { ...playerInfo(connA.userId, connA.ws), ...deckDerived(connA.userId, connA.deckName) };
-  const infoB = { ...playerInfo(connB.userId, connB.ws), ...deckDerived(connB.userId, connB.deckName) };
+  const infoA = { ...playerInfo(connA.userId, connA.ws), ...deckDerived(connA.userId, connA.deckName, match.players.A.draftIds) };
+  const infoB = { ...playerInfo(connB.userId, connB.ws), ...deckDerived(connB.userId, connB.deckName, match.players.B.draftIds) };
 
-  send(connA.ws, 'match:found', { matchId, opponent: infoB, youAre: 'A' });
-  send(connB.ws, 'match:found', { matchId, opponent: infoA, youAre: 'B' });
+  send(connA.ws, 'match:found', { matchId, mode, opponent: infoB, youAre: 'A' });
+  send(connB.ws, 'match:found', { matchId, mode, opponent: infoA, youAre: 'B' });
 
   return matchId;
 }
@@ -381,10 +394,10 @@ function handleRejoin(ws, matchIdHint, userId) {
   // À la reconnexion aussi : sans ça, un joueur revenu en jeu perdrait l'art
   // de son adversaire pour le reste du match.
   const opponentInfo = other.ws
-    ? { ...playerInfo(other.userId, other.ws), ...deckDerived(other.userId, other.deckName) }
+    ? { ...playerInfo(other.userId, other.ws), ...deckDerived(other.userId, other.deckName, other.draftIds) }
     : { id: other.userId };
 
-  send(ws, 'match:rejoined', { matchId: match.id, round: match.round, opponent: opponentInfo, youAre: role });
+  send(ws, 'match:rejoined', { matchId: match.id, mode: match.mode, round: match.round, opponent: opponentInfo, youAre: role });
 
   if (other.connected) {
     send(other.ws, 'match:opponent_reconnected', { matchId: match.id });
@@ -406,6 +419,17 @@ function endMatch(matchId, winnerUserId, reason) {
 
   stmt.endMatch.run(winnerUserId || null, reason, Date.now(), matchId);
 
+  // Duel de Draft : soldé dans la run de chacun AVANT le gain PvP, pour que la
+  // progression rendue avec `match:end` porte aussi les gemmes. Un nul (ou un
+  // désaccord) ne solde rien : le duel se rejoue, comme en Arcade.
+  const draftOutcome = { A: null, B: null };
+  if (match.mode === 'draft' && winnerUserId) {
+    for (const r of ['A', 'B']) {
+      const res = draft.recordDuel(match.players[r].userId, winnerUserId === match.players[r].userId ? 'win' : 'loss');
+      if (res.ok) draftOutcome[r] = { result: res.result, status: res.status, granted: res.granted };
+    }
+  }
+
   // Gain PvP décerné ICI et pas par le client : c'est le serveur qui arbitre le
   // vainqueur (rapports croisés des deux joueurs, forfait, timeout). Le gain
   // vaut aussi sur forfait/timeout — l'adversaire a bien remporté le match.
@@ -417,10 +441,12 @@ function endMatch(matchId, winnerUserId, reason) {
   send(roleA.ws, 'match:end', {
     matchId, winner: winnerRole, reason,
     ...(winnerRole === 'A' ? { xp_gained: xpGained, progression: gain } : {}),
+    ...(draftOutcome.A ? { draft: draftOutcome.A } : {}),
   });
   send(roleB.ws, 'match:end', {
     matchId, winner: winnerRole, reason,
     ...(winnerRole === 'B' ? { xp_gained: xpGained, progression: gain } : {}),
+    ...(draftOutcome.B ? { draft: draftOutcome.B } : {}),
   });
 
   for (const p of [roleA, roleB]) {
