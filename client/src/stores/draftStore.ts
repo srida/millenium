@@ -1,78 +1,120 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// draftStore — la run de Draft en cours. Toute la RÈGLE vit dans
-// `logic/Draft.ts` ; ce store ne fait que tenir l'état, le persister et
-// fournir le catalogue.
+// draftStore — la run de Draft du jour, servie par le serveur (`draft.js`).
 //
-// Entièrement CLIENT, comme le tutoriel : pas de route, pas de table, aucun
-// gain propre au mode (seul l'XP habituelle d'une victoire solo, `ai_win`, est
-// créditée par l'écran de jeu). Il est donc ouvert aux invités. La run tient
-// dans une clé localStorage : un rechargement la reprend, et l'offre étant une
-// fonction de l'état, il ne donne pas une nouvelle offre.
+// Le partage est celui de l'Arcade, à une nuance près : le serveur tient la run
+// (graine, choix, relances, duels, vie rachetée, gemmes) et le CLIENT calcule
+// l'offre à partir de cette graine (`logic/Draft.ts`), parce qu'elle repose sur
+// les règles d'invocation que Node ne porte pas. Aucune copie locale : un
+// rechargement ou un autre appareil relit « où j'en suis aujourd'hui ».
+//
+// Mêmes deux parades que `arcadeStore` contre une lecture qui écraserait une
+// mutation plus fraîche : le compteur du canal (`bump`) et l'écran de jeu qui
+// ATTEND le rapport avant de naviguer.
 import { create } from 'zustand';
+import * as AuthClient from '../data/AuthClient.js';
 import * as CardDatabase from '../data/CardDatabase.js';
-import {
-  newDraft, pickCard, reroll as rerollDraft, recordResult, parseDraft, draftPool,
-  type DraftState,
-} from '../logic/Draft.js';
+import { useAuthStore } from './authStore.js';
+import { createSnapshotChannel } from './snapshotLoader.js';
+import { draftPool, type DraftState } from '../logic/Draft.js';
 import type { Card } from '../logic/types.js';
 
-const KEY = 'millenium_draft_v1';
-
-function loadState(): DraftState | null {
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? parseDraft(JSON.parse(raw)) : null;
-  } catch { return null; }
+export interface DraftRun extends DraftState {
+  day: string;
+  gems_earned: number;
 }
 
-function saveState(state: DraftState | null): void {
-  try {
-    if (state) localStorage.setItem(KEY, JSON.stringify(state));
-    else localStorage.removeItem(KEY);
-  } catch { /* mode privé : la run vit le temps de l'onglet */ }
+export interface DraftSnapshot {
+  day: string;
+  next_rotation_at: number;
+  rules: {
+    extra_life_price_gems: number;
+    /** Gemmes de la 1ʳᵉ, 2ᵉ… victoire. */
+    win_gems: number[];
+  };
+  run: DraftRun | null;
 }
 
-/** Le catalogue du draft, calculé une fois (le catalogue ne change pas en
- *  cours de session). */
+function pickSnapshot(data: any): DraftSnapshot {
+  return {
+    day: data.day,
+    next_rotation_at: data.next_rotation_at,
+    rules: {
+      extra_life_price_gems: data.rules?.extra_life_price_gems ?? 0,
+      win_gems: data.rules?.win_gems ?? [],
+    },
+    run: data.run ?? null,
+  };
+}
+
+/** Le catalogue du draft, calculé une fois (il ne change pas en cours de session). */
 let poolCache: Card[] | null = null;
 export function getDraftPool(): Card[] {
   if (!poolCache) poolCache = draftPool((CardDatabase as any).getAllCards() as Card[]);
   return poolCache;
 }
 
+const channel = createSnapshotChannel<DraftSnapshot>({
+  fetch: () => (AuthClient as any).getDraft(),
+  pick: pickSnapshot,
+  errorLabel: 'Draft indisponible.',
+});
+
 interface DraftStoreState {
-  state: DraftState | null;
-  hydrate: () => void;
-  start: () => void;
-  pick: (cardId: string) => boolean;
-  reroll: () => void;
-  report: (result: 'win' | 'loss') => void;
-  abandon: () => void;
+  snapshot: DraftSnapshot | null;
+  loading: boolean;
+  busy: boolean;
+  error: string | null;
+  /** Gemmes tout juste versées par une victoire, affichées une fois. */
+  granted: { gems: number } | null;
+
+  load: (force?: boolean) => Promise<void>;
+  start: () => Promise<string | null>;
+  pick: (cardId: string) => Promise<string | null>;
+  reroll: () => Promise<string | null>;
+  reportDuel: (result: 'win' | 'loss') => Promise<string | null>;
+  buyLife: () => Promise<string | null>;
+  dismissGranted: () => void;
 }
 
 export const useDraftStore = create<DraftStoreState>((set, get) => {
-  const commit = (state: DraftState | null) => { saveState(state); set({ state }); };
+  /** Une mutation : appel serveur, instantané rendu, progression appliquée.
+   *  Un 409 veut dire que le serveur sait mieux (autre onglet) : on relit. */
+  const mutate = async (call: () => Promise<any>, fallback: string): Promise<string | null> => {
+    if (get().busy) return null;
+    set({ busy: true });
+    try {
+      const data = await call();
+      channel.bump();
+      set({ snapshot: pickSnapshot(data), granted: data.granted ?? null });
+      useAuthStore.getState().applyProgression(data.progression);
+      return null;
+    } catch (e: any) {
+      if (e?.status === 409) void get().load(true);
+      return e?.message ?? fallback;
+    } finally {
+      set({ busy: false });
+    }
+  };
+
   return {
-    state: null,
-    hydrate: () => set({ state: loadState() }),
-    start: () => commit(newDraft((Math.random() * 0xffffffff) >>> 0)),
-    pick: (cardId) => {
-      const cur = get().state;
-      const next = cur ? pickCard(cur, cardId, getDraftPool()) : null;
-      if (!next) return false;
-      commit(next);
-      return true;
+    snapshot: null,
+    loading: false,
+    busy: false,
+    error: null,
+    granted: null,
+
+    load: channel.load(set, get),
+    start: () => mutate(() => (AuthClient as any).startDraft(), 'Impossible de lancer le draft.'),
+    pick: (cardId) => mutate(() => (AuthClient as any).pickDraftCard(cardId), 'Choix non enregistré.'),
+    reroll: () => mutate(() => (AuthClient as any).rerollDraft(), 'Relance impossible.'),
+    // L'index est lu dans l'instantané, jamais choisi par l'appelant.
+    reportDuel: (result) => {
+      const run = get().snapshot?.run;
+      if (!run || run.status !== 'playing') return Promise.resolve(null);
+      const index = run.wins + run.losses;
+      return mutate(() => (AuthClient as any).reportDraftDuel({ index, result }), 'Résultat non enregistré.');
     },
-    reroll: () => {
-      const cur = get().state;
-      const next = cur ? rerollDraft(cur) : null;
-      if (next) commit(next);
-    },
-    report: (result) => {
-      const cur = get().state;
-      const next = cur ? recordResult(cur, result) : null;
-      if (next) commit(next);
-    },
-    abandon: () => commit(null),
+    buyLife: () => mutate(() => (AuthClient as any).buyDraftLife(), 'Achat impossible.'),
+    dismissGranted: () => set({ granted: null }),
   };
 });

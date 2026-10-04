@@ -24,22 +24,25 @@ import type { Card } from './types.js';
 // --- Barème ---
 
 /** Le tier de chaque étape, dans l'ordre : on monte, pour que les cartes de
- *  bas tier déjà prises disent quelles fusions deviennent jouables. 20 cartes,
- *  le plancher d'un deck. */
+ *  bas tier déjà prises disent quelles fusions deviennent jouables. 15 cartes.
+ *  ⚠️ JUMEAU de `draft.js` (racine), comme les quatre constantes qui suivent :
+ *  le serveur valide les choix et compte les défaites. */
 export const DRAFT_SCHEDULE: readonly number[] = Object.freeze([
-  1, 1, 1, 1, 1, 1,
-  2, 2, 2, 2, 2,
-  3, 3, 3, 3,
-  4, 4, 4,
-  5, 5,
+  1, 1, 1, 1, 1,
+  2, 2, 2, 2,
+  3, 3, 3,
+  4, 4,
+  5,
 ]);
 
 export const OFFER_SIZE = 3;
 /** Relances de l'offre, pour tout le draft. Le levier « chance » du joueur. */
 export const DRAFT_REROLLS = 2;
-/** La run s'arrête à la 5ᵉ victoire ou à la 2ᵉ défaite. */
+/** La run s'arrête à la 5ᵉ victoire ou à la 2ᵉ défaite… */
 export const RUN_WINS = 5;
 export const RUN_LOSSES = 2;
+/** …sauf vie rachetée en gemmes (une par run, prix fixé par le serveur). */
+export const EXTRA_LIVES = 1;
 
 /** Handicap plat de l'IA selon le nombre de victoires déjà acquises : le même
  *  primitif que l'Arcade (`enemyBonus`), plus doux puisque l'adversaire a lui
@@ -56,8 +59,9 @@ export const LADDER_BONUS: readonly { atk: number; hp: number }[] = Object.freez
 
 export type DraftStatus = 'drafting' | 'playing' | 'won' | 'lost';
 
+/** La run telle que le serveur la tient (`draft.js`) — le client n'en garde
+ *  aucune copie à lui. */
 export interface DraftState {
-  version: 1;
   seed: number;
   /** Cartes prises, dans l'ordre des étapes : la lane de la i-ème est
    *  `DRAFT_SCHEDULE[i]`. */
@@ -66,6 +70,8 @@ export interface DraftState {
   rerolls: number;
   wins: number;
   losses: number;
+  /** Vie rachetée : la run tolère une défaite de plus. */
+  extra_life: boolean;
   status: DraftStatus;
 }
 
@@ -78,7 +84,7 @@ export interface OfferSlot {
 }
 
 export function newDraft(seed: number): DraftState {
-  return { version: 1, seed: seed >>> 0, picks: [], rerolls: 0, wins: 0, losses: 0, status: 'drafting' };
+  return { seed: seed >>> 0, picks: [], rerolls: 0, wins: 0, losses: 0, extra_life: false, status: 'drafting' };
 }
 
 /** Tier de l'étape en cours, ou `null` une fois le deck complet. */
@@ -196,12 +202,18 @@ export function reroll(state: DraftState): DraftState | null {
   return canReroll(state) ? { ...state, rerolls: state.rerolls + 1 } : null;
 }
 
-/** Solde un duel. Une égalité ne se rapporte pas : le duel se rejoue. */
+/** Défaites tolérées avant que la run ne s'arrête. */
+export function maxLosses(state: Pick<DraftState, 'extra_life'>): number {
+  return RUN_LOSSES + (state.extra_life ? EXTRA_LIVES : 0);
+}
+
+/** Solde un duel — le même verdict que `draft.reportDuel`, utile à l'IA des
+ *  tests et à la simulation. Une égalité ne se rapporte pas. */
 export function recordResult(state: DraftState, result: 'win' | 'loss'): DraftState | null {
   if (state.status !== 'playing') return null;
   const wins = state.wins + (result === 'win' ? 1 : 0);
   const losses = state.losses + (result === 'loss' ? 1 : 0);
-  const status: DraftStatus = wins >= RUN_WINS ? 'won' : losses >= RUN_LOSSES ? 'lost' : 'playing';
+  const status: DraftStatus = wins >= RUN_WINS ? 'won' : losses >= maxLosses(state) ? 'lost' : 'playing';
   return { ...state, wins, losses, status };
 }
 
@@ -255,23 +267,6 @@ export function currentOpponent(state: DraftState, pool: readonly Card[]): Draft
   const face = [...cards].sort((a, b) => (cardPower(b) - cardPower(a)) || a.id.localeCompare(b.id))[0] ?? null;
   const bonus = LADDER_BONUS[Math.min(state.wins, LADDER_BONUS.length - 1)];
   return { index, deck, bonus: { ...bonus }, faceCardId: face?.id ?? null };
-}
-
-/** Lit un état persisté ; tout ce qui n'a pas la bonne forme rend `null`. */
-export function parseDraft(raw: unknown): DraftState | null {
-  const s = raw as Partial<DraftState> | null;
-  if (!s || s.version !== 1 || !Array.isArray(s.picks)) return null;
-  if (!['drafting', 'playing', 'won', 'lost'].includes(s.status as string)) return null;
-  const n = (v: unknown) => (Number.isInteger(v) && (v as number) >= 0 ? (v as number) : 0);
-  return {
-    version: 1,
-    seed: n(s.seed),
-    picks: s.picks.filter((x): x is string => typeof x === 'string').slice(0, DRAFT_SCHEDULE.length),
-    rerolls: Math.min(n(s.rerolls), DRAFT_REROLLS),
-    wins: n(s.wins),
-    losses: n(s.losses),
-    status: s.status as DraftStatus,
-  };
 }
 
 /**

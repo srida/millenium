@@ -1,6 +1,6 @@
 # Mode Draft — note de design
 
-> Prototype jouable livré (écran `draft`, bouton **Draft** du menu). Ce document
+> Livré (écran `draft`, bouton **Draft** du menu, compte requis). Ce document
 > dit ce qu'il fait, pourquoi, et ce qui reste ouvert.
 
 ## L'intention
@@ -29,11 +29,16 @@ Le jeu a déjà tout ce qu'il faut :
 
 ## Le déroulé
 
-1. **20 choix d'une carte parmi trois**, en montant les tiers :
-   6 × T1, 5 × T2, 4 × T3, 3 × T4, 2 × T5 (le plancher d'un deck).
+0. **Un draft par jour**, comme l'Arcade (rotation de 5 h).
+1. **15 choix d'une carte parmi trois**, en montant les tiers :
+   5 × T1, 4 × T2, 3 × T3, 2 × T4, 1 × T5, tirés dans **tout le catalogue**
+   (pas la collection du joueur) : le mode fait découvrir des cartes.
 2. **2 relances** pour tout le draft.
 3. **Une échelle de duels** contre l'IA : la run est gagnée à **5 victoires** et se
    termine à **2 défaites**. Une égalité se rejoue, abandonner un duel le concède.
+   Une fois la run perdue, **une vie se rachète 20 gemmes**, une seule fois.
+4. **Chaque victoire paie des gemmes** : 6, 9, 12, 15 puis 18, soit **60** pour une
+   run parfaite. La montée donne du sens à la vie rachetée en fin de run.
 4. Le handicap de l'IA monte avec les victoires (`LADDER_BONUS`, de +0 à
    +4 ATK / +30 PV) : c'est le primitif `enemyBonus` de l'Arcade, plus doux
    puisque l'adversaire a lui aussi un deck drafté.
@@ -60,25 +65,28 @@ option gratuite.
 
 ## Les choix techniques
 
-- **Entièrement client**, comme le tutoriel : pas de route, pas de table. La run
-  tient dans une clé localStorage (`millenium_draft_v1`), donc le mode est
-  **ouvert aux invités** et se reprend après un rechargement.
+- **La run est serveur** (`draft.js`, table `user_draft_state`) : verrou
+  quotidien, graine, choix, relances, duels, vie rachetée et gemmes. Un
+  rechargement ou un autre appareil reprend la run.
+- **L'offre reste calculée côté client**, depuis la graine du serveur : elle lit
+  les règles d'invocation (`logic/DeckCoverage.ts`), que Node ne porte pas. Le
+  serveur vérifie qu'un choix est du bon tier et pas déjà pris, mais ne peut pas
+  vérifier qu'il figurait dans l'offre. C'est la même confiance bornée que le
+  résultat d'un duel : une run par jour, 60 gemmes au plus.
 - **L'offre est une fonction de l'état** (graine, nombre de choix, relances
-  dépensées) : recharger la page rend la même offre, fermer l'onglet ne relance
-  rien.
-- **Toute la règle est pure** dans `logic/Draft.ts`, testée dans
-  `test/draft.test.ts` sur le catalogue livré.
+  dépensées) : recharger la page rend la même offre.
+- **Toute la règle de l'offre est pure** dans `logic/Draft.ts`, testée dans
+  `test/draft.test.ts` ; le serveur dans `test/draft-server.test.ts`.
 - L'écran de jeu est le vrai `GameScreen` (`params.draft`), avec le deck drafté
   passé à `buildSession` comme le deck du tutoriel.
 
 ## Ce qui reste ouvert
 
-- **Récompenses.** Aucune pour l'instant, hormis l'XP habituelle d'une victoire
-  solo (`ai_win`). Payer la run (golds selon le nombre de victoires, un ticket
-  d'entrée façon Snap) demanderait de passer la run côté serveur, puisque le
-  client ne peut pas chiffrer un gain.
-- **Le dosage** : taille du deck, nombre de relances, longueur de l'échelle,
-  handicap. Tous sont des constantes en tête de `logic/Draft.ts`.
+- **Le dosage** : un deck de 15 cartes pioche 5 cartes par tour dans un sac
+  plus petit, donc les mêmes cartes reviennent plus souvent. À rejouer pour
+  voir si 15 tient ou s'il faut remonter. Taille, relances, échelle, prix de la
+  vie et barème de gemmes sont des constantes en tête de `draft.js` (et de
+  `logic/Draft.ts` pour les jumelles).
 - **Plus de leviers de chance**, si le cœur plaît : une offre « rare » de temps en
   temps, un choix de pack thématique en début de draft (le pool devient un pack
   au lieu du catalogue, sans rien concevoir de plus), une magie ou un terrain à

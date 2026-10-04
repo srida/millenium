@@ -12,7 +12,7 @@ import { isSummonable, coverageOf } from '../logic/DeckCoverage.js';
 import {
   DRAFT_SCHEDULE, DRAFT_REROLLS, OFFER_SIZE, RUN_WINS, RUN_LOSSES,
   newDraft, offerFor, pickCard, reroll, canReroll, recordResult, deckOf,
-  autoDraft, currentOpponent, parseDraft, currentTier, type DraftState,
+  autoDraft, currentOpponent, currentTier, type DraftState,
 } from '../logic/Draft.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -93,7 +93,7 @@ describe('choix et relances', () => {
     expect(pickCard(s, outside.id, POOL)).toBeNull();
   });
 
-  it('borne les relances et passe en duels au 20ᵉ choix', () => {
+  it('borne les relances et passe en duels au dernier choix', () => {
     let s = newDraft(5);
     for (let i = 0; i < DRAFT_REROLLS; i++) s = reroll(s)!;
     expect(canReroll(s)).toBe(false);
@@ -101,7 +101,7 @@ describe('choix et relances', () => {
     const done = draftFirst(5);
     expect(done.status).toBe('playing');
     expect(Object.values(deckOf(done)).flat()).toHaveLength(DRAFT_SCHEDULE.length);
-    expect(deckOf(done)['5']).toHaveLength(2);
+    expect(deckOf(done)['5']).toHaveLength(1);
   });
 });
 
@@ -146,12 +146,12 @@ describe('adversaires', () => {
   });
 });
 
-describe('persistance', () => {
-  it('relit un état sain et rejette le reste', () => {
-    const s = draftFirst(2);
-    expect(parseDraft(JSON.parse(JSON.stringify(s)))).toEqual(s);
-    expect(parseDraft(null)).toBeNull();
-    expect(parseDraft({ version: 2 })).toBeNull();
-    expect(parseDraft({ ...s, status: 'bogus' })).toBeNull();
+describe('vie rachetée', () => {
+  it('tolère une défaite de plus', () => {
+    let s = draftFirst(4);
+    for (let i = 0; i < RUN_LOSSES - 1; i++) s = recordResult(s, 'loss')!;
+    const bought = { ...s, extra_life: true };
+    expect(recordResult(s, 'loss')!.status).toBe('lost');
+    expect(recordResult(bought, 'loss')!.status).toBe('playing');
   });
 });

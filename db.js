@@ -307,6 +307,16 @@ db.exec(`
   );
 `);
 
+// Mode Draft : la run quotidienne, même forme que l'Arcade (le jour en
+// colonne, la run en blob dont la forme appartient à draft.js).
+db.exec(`
+  CREATE TABLE IF NOT EXISTS user_draft_state (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    run_day TEXT,
+    run     TEXT
+  );
+`);
+
 // Tournoi en cours : UN bracket par joueur, blob JSON dont la forme appartient
 // au client (logic/Tournament.js). `rev` est le compteur de révision posé par le
 // client : la garde contre un appareil périmé est dans le SQL (cf. upsertTournament).
@@ -673,6 +683,13 @@ const stmt = {
   arcadeStateByUser: db.prepare('SELECT * FROM user_arcade_state WHERE user_id = ?'),
   upsertArcadeState: db.prepare(`
     INSERT INTO user_arcade_state (user_id, run_day, run)
+    VALUES (@user_id, @run_day, @run)
+    ON CONFLICT(user_id) DO UPDATE SET run_day = @run_day, run = @run
+  `),
+
+  draftStateByUser: db.prepare('SELECT * FROM user_draft_state WHERE user_id = ?'),
+  upsertDraftState: db.prepare(`
+    INSERT INTO user_draft_state (user_id, run_day, run)
     VALUES (@user_id, @run_day, @run)
     ON CONFLICT(user_id) DO UPDATE SET run_day = @run_day, run = @run
   `),

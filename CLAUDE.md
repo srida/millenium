@@ -1841,15 +1841,24 @@ Bracket local à 16, **entièrement client** (`logic/Tournament.js`), éliminati
 - `logic/Tournament.js` transporte un `avatarId` par participant et **ne construit aucune URL**.
 - ⚠️ **`MatchSimulator` n'est PAS la simulation d'équilibrage** : il rejoue une boucle allégée (pas de vétérance, unités réanimées ignorées, aucun terrain). Seul `Tournament.js` en dépend.
 
-## Mode Draft (prototype)
+## Mode Draft (`draft.js` + `logic/Draft.ts`)
 
-20 choix d'une carte parmi trois (6/5/4/3/2 par tier, en montant), 2 relances, puis duels solo jusqu'à 5 victoires ou 2 défaites. Écran `draft`, duel via `GameScreen` + `params.draft`. Note de design : `docs/draft.md`.
+Une run par jour (rotation de 5 h). 15 choix d'une carte parmi trois (5/4/3/2/1 par tier, en montant), 2 relances, puis duels solo jusqu'à 5 victoires ou 2 défaites. Écran `draft`, duel via `GameScreen` + `params.draft`. Note de design : `docs/draft.md`.
 
-- **Entièrement client**, ouvert aux invités : état dans `millenium_draft_v1` (`stores/draftStore.ts`), aucun gain propre (seul `ai_win`).
-- Règle pure dans `logic/Draft.ts`. ⚠️ **L'offre est une fonction de l'état** (`seed`, `picks.length`, `rerolls`) : jamais de `Math.random` au rendu, sinon un rechargement relance l'offre gratuitement.
-- Trois emplacements : complément / sûr / pari, jugés par **`logic/DeckCoverage.isSummonable`** — la seule règle de couverture des recettes (`sim/decks.ts` la réexporte).
+| Règle | Valeur |
+|---|---|
+| Gemmes par victoire | 6 / 9 / 12 / 15 / 18 (60 pour une run parfaite), versées au rapport |
+| Vie rachetée | **20 gemmes**, une par run, seulement une fois la run perdue |
+
+- ⚠️ **Partage serveur / client inhabituel** : le serveur pose la **graine** et tient la run (choix, relances, duels, vie, gemmes, table `user_draft_state`) ; l'**offre** se calcule côté client, parce qu'elle lit les règles d'invocation que Node ne porte pas.
+- ⚠️ Le serveur valide un choix (carte du catalogue, du tier de l'étape, pas encore prise) mais **ne peut pas vérifier qu'elle était dans l'offre** — même confiance bornée que le résultat d'un duel.
+- ⚠️ `DRAFT_SCHEDULE`, `DRAFT_REROLLS`, `RUN_WINS`, `RUN_LOSSES`, `EXTRA_LIVES` sont **jumeaux** (`draft.js` ↔ `logic/Draft.ts`) ; `draft-server.test.ts` est le seul filet.
+- Garde anti-double-paiement : le rapport porte l'**index** du duel (`wins + losses`), refusé (409) s'il est périmé, dans la transaction.
+- ⚠️ **L'offre est une fonction de l'état** (`seed`, `picks.length`, `rerolls`) : jamais de `Math.random` au rendu.
+- Trois emplacements : complément / sûr / pari, jugés par **`logic/DeckCoverage.isSummonable`** (`sim/decks.ts` la réexporte).
 - Les adversaires draftent avec la même `offerFor` (`autoDraft`), déterministes à `(seed, index du duel)`. Handicap `LADDER_BONUS` indexé sur les victoires.
-- Pool : `draftPool` = cartes avec illustration, repli sur tout le catalogue si un tier ne peut plus remplir ses étapes (dév sans `resources/`).
+- Pool : tout le catalogue avec illustration (`draftPool`), pas la collection du joueur ; repli sur tout le catalogue si un tier ne peut plus remplir ses étapes.
+- `ai_win` reste crédité à chaque duel gagné, comme en Arcade.
 
 ## Mode tutoriel
 

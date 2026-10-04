@@ -121,7 +121,7 @@ module.exports = [
       'n/no-restricted-require': ['error', [
         ...SINKS,
         leaf('./shop'), leaf('./progression'), leaf('./cosmetics'),
-        leaf('./db'), leaf('./missions'), leaf('./arcade'),
+        leaf('./db'), leaf('./missions'), leaf('./arcade'), leaf('./draft'),
       ]],
     },
   },

@@ -55,12 +55,12 @@ export default function GameScreen() {
   const inArcade = useUiStore(s => s.params.arcade === true);
   const arcadeDuel = useArcadeStore(s => (inArcade ? currentDuel(s.snapshot) : null));
   // Duel d'une run de Draft : le deck du joueur et l'adversaire (drafté lui
-  // aussi) se DÉRIVENT de l'état du draft, lu une fois au montage.
+  // aussi) se DÉRIVENT de la run servie par le serveur, lue une fois au montage.
   const inDraft = useUiStore(s => s.params.draft === true);
   const [draftOpponent] = useState<DraftOpponent | null>(() => {
     if (!inDraft) return null;
-    const st = useDraftStore.getState().state;
-    return st ? currentOpponent(st, getDraftPool()) : null;
+    const run = useDraftStore.getState().snapshot?.run;
+    return run ? currentOpponent(run, getDraftPool()) : null;
   });
   const pendingOpponentAvatarId = useTournamentStore(s => s.pendingGame?.opponentAvatarId);
   const pendingOpponentName = useTournamentStore(s => s.pendingGame?.opponentName);
@@ -89,7 +89,7 @@ export default function GameScreen() {
     const duel = inArcade ? currentDuel(useArcadeStore.getState().snapshot) : null;
     if (inArcade && !duel) { useUiStore.getState().navigate('arcade'); return; }
     // Même garde côté Draft : pas de run en phase de duels, rien à jouer.
-    const draftState = inDraft ? useDraftStore.getState().state : null;
+    const draftState = inDraft ? useDraftStore.getState().snapshot?.run ?? null : null;
     if (inDraft && (!draftState || !draftOpponent)) { useUiStore.getState().navigate('draft'); return; }
     // Le deck d'entraînement ne vit pas dans DeckRepository : il est dérivé du
     // catalogue à chaque lancement, comme les decks publics adverses, et voyage
@@ -149,7 +149,7 @@ export default function GameScreen() {
         <GameMenu quitLabel="Abandonner le duel" onQuit={() => { void exitArcadeGame('enemy'); }} />
       ) : inDraft ? (
         // Quitter un duel de Draft le concède, comme en Arcade.
-        <GameMenu quitLabel="Abandonner le duel" onQuit={() => exitDraftGame('enemy')} />
+        <GameMenu quitLabel="Abandonner le duel" onQuit={() => { void exitDraftGame('enemy'); }} />
       ) : inTutorial ? (
         <GameMenu quitLabel="Quitter l'entraînement" onQuit={() => useUiStore.getState().navigate('tutorial')} />
       ) : (
@@ -209,7 +209,7 @@ export default function GameScreen() {
         : inArcade
           ? <GameOverScreen onExit={(w) => { void exitArcadeGame(w); }} />
           : inDraft
-            ? <GameOverScreen onExit={exitDraftGame} />
+            ? <GameOverScreen onExit={(w) => { void exitDraftGame(w); }} />
           : inTutorial
             ? <GameOverScreen onExit={() => useUiStore.getState().navigate('tutorial')} />
             : <GameOverScreen />}
@@ -270,10 +270,11 @@ async function exitArcadeGame(winner: 'player' | 'enemy' | 'draw' | null) {
 
 
 // Solde le duel dans la run de Draft puis rend la main à l'écran Draft. Une
-// égalité n'est pas rapportée : le duel se rejoue, comme en Arcade.
-function exitDraftGame(winner: 'player' | 'enemy' | 'draw' | null) {
+// égalité n'est pas rapportée : le duel se rejoue. Le rapport est ATTENDU
+// avant de naviguer, pour la même raison qu'en Arcade (cf. exitArcadeGame).
+async function exitDraftGame(winner: 'player' | 'enemy' | 'draw' | null) {
   if (winner === 'player' || winner === 'enemy') {
-    useDraftStore.getState().report(winner === 'player' ? 'win' : 'loss');
+    await useDraftStore.getState().reportDuel(winner === 'player' ? 'win' : 'loss');
   }
   useUiStore.getState().navigate('draft');
 }

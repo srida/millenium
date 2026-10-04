@@ -206,6 +206,33 @@ export async function reportArcadeDuel({ index, result }) {
   return absorbShop(await api('/me/arcade/duel', { method: 'POST', body: { index, result } }));
 }
 
+// --- Draft (run quotidienne) ---
+// Le serveur pose la graine et tient la run ; l'offre se calcule côté client.
+// Le client nomme une carte, un résultat sur un index, « une vie » — jamais un prix.
+export async function getDraft() {
+  return absorbShop(await api('/me/draft'));
+}
+
+export async function startDraft() {
+  return absorbShop(await api('/me/draft/start', { method: 'POST', body: {} }));
+}
+
+export async function pickDraftCard(cardId) {
+  return absorbShop(await api('/me/draft/pick', { method: 'POST', body: { card_id: cardId } }));
+}
+
+export async function rerollDraft() {
+  return absorbShop(await api('/me/draft/reroll', { method: 'POST', body: {} }));
+}
+
+export async function reportDraftDuel({ index, result }) {
+  return absorbShop(await api('/me/draft/duel', { method: 'POST', body: { index, result } }));
+}
+
+export async function buyDraftLife() {
+  return absorbShop(await api('/me/draft/life', { method: 'POST', body: {} }));
+}
+
 // --- Cadeaux (quotidien + ponctuels) ---
 // Même contrat que partout : le client DÉSIGNE (« le quotidien », un id de
 // cadeau), le serveur chiffre. Aucun montant ne circule dans ce sens.

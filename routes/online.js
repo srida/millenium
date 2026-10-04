@@ -9,6 +9,7 @@ const missions = require('../missions');
 const shop = require('../shop');
 const cosmetics = require('../cosmetics');
 const arcade = require('../arcade');
+const draft = require('../draft');
 const gifts = require('../gifts');
 const pvplog = require('../pvplog');
 const { mergeBooks } = require('../deck-book');
@@ -659,6 +660,49 @@ router.post('/me/arcade/duel', auth.requireUser, auth.rateLimit({ windowMs: 60_0
   if (!Number.isInteger(index)) return res.status(400).json({ error: 'index requis', field: 'index' });
   arcade.sync(req.user);
   arcadeResult(req, res, arcade.reportDuel(req.user, { index, result }));
+});
+
+// =====================================================================
+//  DRAFT (run quotidienne — règles dans draft.js, offre calculée côté client)
+// =====================================================================
+router.get('/me/draft', auth.requireUser, (req, res) => {
+  res.json({ ...draft.refresh(req.user), progression: progression.getProgression(req.user) });
+});
+
+function draftResult(req, res, result) {
+  if (!result.ok) return res.status(result.stale ? 409 : 400).json({ error: result.reason });
+  const fresh = stmt.userById.get(req.user.id);
+  res.json({ ...result, ...draft.getSnapshot(fresh), progression: progression.getProgression(fresh) });
+}
+
+router.post('/me/draft/start', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
+  draft.sync(req.user);
+  draftResult(req, res, draft.start(req.user));
+});
+
+router.post('/me/draft/pick', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 60 }), (req, res) => {
+  const cardId = String(req.body?.card_id || '').slice(0, 64);
+  if (!cardId) return res.status(400).json({ error: 'card_id requis', field: 'card_id' });
+  draft.sync(req.user);
+  draftResult(req, res, draft.pick(req.user, cardId));
+});
+
+router.post('/me/draft/reroll', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
+  draft.sync(req.user);
+  draftResult(req, res, draft.reroll(req.user));
+});
+
+router.post('/me/draft/duel', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  const index = Number(req.body?.index);
+  const result = String(req.body?.result || '');
+  if (!Number.isInteger(index)) return res.status(400).json({ error: 'index requis', field: 'index' });
+  draft.sync(req.user);
+  draftResult(req, res, draft.reportDuel(req.user, { index, result }));
+});
+
+router.post('/me/draft/life', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 20 }), (req, res) => {
+  draft.sync(req.user);
+  draftResult(req, res, draft.buyLife(req.user));
 });
 
 // =====================================================================

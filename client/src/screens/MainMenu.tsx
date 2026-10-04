@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react';
 import { useUiStore } from '../stores/uiStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useDeckStore } from '../stores/deckStore.js';
+import { useDraftStore } from '../stores/draftStore.js';
 import { useArcadeStore } from '../stores/arcadeStore.js';
 import { getProgress, shouldInvite, updateProgress } from '../data/tutorialProgress.js';
 import { Button, CountBadge, Modal, NewDot } from '../components/ui/primitives.js';
@@ -77,7 +78,6 @@ export default function MainMenu() {
             {isGuest ? (
               <div className="flex h-full flex-1 flex-col gap-2">
                 <TutorialButton className="h-full w-full flex-1" />
-                <DraftButton className="h-full w-full flex-1" />
               </div>
             ) : (
               <div className="grid h-full flex-1 grid-cols-2 grid-rows-3 gap-2">
@@ -103,7 +103,6 @@ export default function MainMenu() {
             {isGuest ? (
               <div className="flex h-full flex-1 flex-col gap-2">
                 <TutorialButton className="h-full w-full flex-1" />
-                <DraftButton className="h-full w-full flex-1" />
               </div>
             ) : (
               <div className="grid h-full flex-1 grid-cols-2 grid-rows-3 gap-2">
@@ -128,11 +127,12 @@ export default function MainMenu() {
                 <TrainingButton className="flex-1" />
               </div>
             )}
-            {/* Le Draft est client de bout en bout : il reste ouvert aux invités. */}
-            <div className="flex gap-2">
-              {!isGuest && <ArcadeButton className="flex-1" />}
-              <DraftButton className="flex-1" />
-            </div>
+            {!isGuest && (
+              <div className="flex gap-2">
+                <ArcadeButton className="flex-1" />
+                <DraftButton className="flex-1" />
+              </div>
+            )}
           </div>
         </>
       )}
@@ -320,13 +320,19 @@ function TournamentButton({ className = '' }: { className?: string }) {
   );
 }
 
-// Draft : construire son deck en jouant, une carte parmi trois. Aucun compte
-// requis — la run vit en localStorage, comme le tutoriel.
+// Draft : construire son deck en jouant, une carte parmi trois, une run par
+// jour (comme l'Arcade). Point doré tant que le draft du jour n'est pas lancé.
 function DraftButton({ className = '' }: { className?: string }) {
   const navigate = useUiStore(s => s.navigate);
+  const userId = useAuthStore(s => s.user?.id ?? null);
+  const snapshot = useDraftStore(s => s.snapshot);
+  const load = useDraftStore(s => s.load);
+  useEffect(() => { if (userId) void load(true); }, [userId, load]);
+  const available = !!snapshot && !snapshot.run;
   return (
     <Button className={`${MENU_BUTTON_SIZE} ${className}`} onPointerDown={() => navigate('draft')}>
       <span className="flex items-center justify-center gap-1.5 whitespace-nowrap"><UiIcon id="UI_CARD" className="h-4 w-4" /> Draft</span>
+      {available && <NewDot label="Draft du jour disponible" />}
     </Button>
   );
 }
