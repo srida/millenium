@@ -18,6 +18,7 @@ import type { GameSession } from '../logic/GameSession.js';
 import type { Card, Position } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
 import { summonCost } from '../logic/InvocationManager.js';
+import { bestKeywordCell } from '../logic/KeywordPlacement.js';
 
 /** Ordre d'essai des cartes, repris de `EnemyAI._summonPriority` : les moins
  *  chères d'abord, parce qu'une fois posées elles deviennent les matériaux des
@@ -78,7 +79,17 @@ function selectMaterials(session: GameSession, card: Card, conditionIndex: numbe
 /** La meilleure case parmi celles autorisées : mêlée devant, distance derrière,
  *  centre avant les bords. Une transformation n'en a qu'une, le tri est alors
  *  sans effet. */
-function bestCell(cells: Position[], card: Card): Position {
+function bestCell(cells: Position[], card: Card, session: GameSession): Position {
+  // Un mot-clé de placement (familles 1 et 2) choisit sa case par la MÊME règle
+  // que l'IA (`KeywordPlacement`). Sans lui, rien ne change.
+  const keyword = session.placementKeywordOf(card.attributes);
+  if (keyword) {
+    const ward = keyword === 'garde_du_corps' ? weakestAlly(session) : null;
+    const cell = bestKeywordCell(keyword, cells, {
+      board: session.board, frontRow: 3, rowStep: -1, range: card.stats?.range ?? 1, ward,
+    });
+    if (cell) return cell;
+  }
   const rows = (card.stats?.range ?? 1) > 1 ? RANGED_ROWS : MELEE_ROWS;
   let best = cells[0];
   let bestScore = Infinity;
@@ -89,6 +100,15 @@ function bestCell(cells: Position[], card: Card): Position {
     if (score < bestScore) { bestScore = score; best = cell; }
   }
   return best;
+}
+
+/** La case de l'allié vivant aux PV les plus bas (PV max, puis uid), ou `null` — le protégé d'un Garde du corps. */
+function weakestAlly(session: GameSession): Position | null {
+  const allies = session.board.getLivingUnitsOnSide('player');
+  if (allies.length === 0) return null;
+  const w = allies.reduce((best, u) =>
+    (u.current_hp - best.current_hp || u.max_hp - best.max_hp || u.uid - best.uid) < 0 ? u : best);
+  return w.position;
 }
 
 /**
@@ -116,7 +136,7 @@ export function playPreparation(session: GameSession): Unit[] {
         if (mats === null) continue;
         const cells = session.validCells(card, mats, conditionIndex);
         if (cells.length === 0) continue;
-        const unit = session.place(card, bestCell(cells, card), mats, idx, conditionIndex);
+        const unit = session.place(card, bestCell(cells, card, session), mats, idx, conditionIndex);
         if (unit) { placed.push(unit); progressed = true; break; }
       }
       if (progressed) break;

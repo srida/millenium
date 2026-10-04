@@ -42,6 +42,8 @@ import { tiersForRound, drawHand, resolveGuaranteedDraws } from './Draw.js';
 import { tiersOf } from './Tiers.js';
 import { indexeMotsCles, porteMotCle, catalogueDeclare } from './Keywords.js';
 import type { IndexMotsCles, AttributMotCle } from './Keywords.js';
+import { indexPlacementKeywords, placementKeyword } from './KeywordPlacement.js';
+import type { PlacementKeyword } from './KeywordPlacement.js';
 import { pickMagies, resolveGuaranteedMagies, isMagieRelevant } from './MagieOffer.js';
 import type { MagieOfferContext } from './MagieOffer.js';
 import type { BonusSourceEntry, Card, Position, BoardDef, AttributeDef, DrawSummary, Magie, RoundWinner } from './types.js';
@@ -641,7 +643,7 @@ export class GameSession {
     // d'asymétrie : `EnemyAI` tient son propre registre (`_uniqueDrawn`).
     this.enemyAI.drawHand(this.gameState.round, null, extraDraws, guaranteedDraws, this._isUnique);
     this.enemyAI.placeFromHand(this.board, this.gameState.enemy_board_slots, this.enemyGraveyard, null, this._hasMultiple);
-    this.enemyAI.rearrangeUnits(this.board, this.gameState.enemy_board_slots);
+    this.enemyAI.rearrangeUnits(this.board, this.gameState.enemy_board_slots, null, (u: Unit) => this.placementKeywordOf(u.attributes));
     this.enemyUnits = this.board.getLivingUnitsOnSide('enemy');
     this._applyEnemyBonus();
   }
@@ -687,6 +689,17 @@ export class GameSession {
    * (`InvocationManager._canSummonWith`, règle 2) ne s'applique alors pas.
    * Calculée sur l'index mémoïsé, comme `_rescapesDuCimetiere`.
    */
+  /**
+   * Le mot-clé de placement (familles 1 et 2) d'une unité ou carte, d'après
+   * ses attributs — lu par l'IA (`rearrangeUnits`) et par l'auto-joueur de la
+   * simulation. Cf. `KeywordPlacement`.
+   */
+  placementKeywordOf(attrIds: readonly string[] | undefined): PlacementKeyword | null {
+    this._placementIndex ??= indexPlacementKeywords(this.deps.attributeList ?? []);
+    return placementKeyword(attrIds, this._placementIndex);
+  }
+  private _placementIndex: Map<string, Set<PlacementKeyword>> | null = null;
+
   private _hasMultiple = (card: Card): boolean =>
     porteMotCle((card as any)?.attributes, 'multiple', this._motsCles());
 

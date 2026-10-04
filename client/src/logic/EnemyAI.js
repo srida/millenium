@@ -1,6 +1,7 @@
 import { Unit } from './Unit.js';
 import { tiersForRound, resolveGuaranteedDraws, deckPoolByTier, poolForRound } from './Draw.js';
 import { primaryTier } from './Tiers.js';
+import { bestKeywordCell } from './KeywordPlacement.js';
 import {
   materialLineageMatches, summonConditions, conditionMaterials, conditionRequires,
   conditionIsFree, summonCost, forcedCell, materialSlotsPaid, getUncoveredRequirements,
@@ -8,6 +9,8 @@ import {
 } from './InvocationManager.js';
 
 const HAND_SIZE = 5;
+// Column order: centre-out so units are never bunched at one edge.
+const COL_ORDER = [2, 1, 3, 0, 4];
 
 /**
  * EnemyAI
@@ -222,7 +225,15 @@ export class EnemyAI {
    * @param {number} maxUnits
    * @param {?function(*): void} trace
    */
-  rearrangeUnits(board, maxUnits = 5, trace = null) {
+  /**
+   * @param {any} board
+   * @param {number} [maxUnits]
+   * @param {((evt: any) => void) | null} [trace]
+   * @param {((u: Unit) => import('./KeywordPlacement.js').PlacementKeyword | null) | null} [keywordOf]
+   *   Le mot-clé de placement d'une unité (cf. `KeywordPlacement`). Injecté —
+   *   `EnemyAI` ne lit pas le catalogue d'attributs. Absent : placement historique.
+   */
+  rearrangeUnits(board, maxUnits = 5, trace = null, keywordOf = null) {
     const units = board.getLivingUnitsOnSide(this._side);
     if (units.length === 0) {
       trace?.({ kind: 'rearrange', before: [], after: [], dropped: [] });
@@ -244,11 +255,17 @@ export class EnemyAI {
     // la seule trace qu'il en reste.
     const dropped = sorted.slice(maxUnits).map(u => _unitRow(u));
 
-    const melee  = toPlace.filter(u => u.range <= 1);
-    const ranged = toPlace.filter(u => u.range > 1);
+    // Les porteurs d'un mot-clé de placement sont posés APRÈS les autres, sur
+    // les cases restantes (`KeywordPlacement`). Sans porteur, rien ne change :
+    // c'est le placement historique, au bit près.
+    const keyed = keywordOf ? toPlace.filter(u => keywordOf(u)) : [];
+    const plain = keyed.length > 0 ? toPlace.filter(u => !keyed.includes(u)) : toPlace;
+
+    const melee  = plain.filter(u => u.range <= 1);
+    const ranged = plain.filter(u => u.range > 1);
 
     // Column order: centre-out so units are never bunched at one edge
-    const COL = [2, 1, 3, 0, 4];
+    const COL = COL_ORDER;
 
     // Front row = closest to the neutral zone (row 7 for enemy, row 3 for player).
     // Enemy rows grow downward from the front (7→9); player rows grow upward (3→1).
@@ -273,6 +290,7 @@ export class EnemyAI {
       unit.initial_position = null; // reset so placeUnit assigns the new cell
       board.placeUnit(unit, pos);
     }
+    if (keyed.length > 0) this._placeKeyed(board, keyed, keywordOf, frontRow, rowStep, placements);
 
     trace?.({
       kind: 'rearrange',
@@ -280,6 +298,36 @@ export class EnemyAI {
       after: placements.map(({ unit }) => _unitRow(unit)),
       dropped,
     });
+  }
+
+  /**
+   * Pose les porteurs d'un mot-clé de placement, Garde du corps en dernier (il
+   * se cale sur un protégé déjà posé). Le protégé est l'allié posé aux PV les
+   * plus bas — PV max ensuite, puis `uid` —, gardes exclus.
+   */
+  _placeKeyed(board, keyed, keywordOf, frontRow, rowStep, placements) {
+    const ordered = [...keyed].sort((a, b) =>
+      (keywordOf(a) === 'garde_du_corps') - (keywordOf(b) === 'garde_du_corps'));
+    for (const u of ordered) {
+      const free = [];
+      for (let d = 0; d < 4; d++) {
+        for (let col = 0; col < board.cols; col++) {
+          const cell = { col, row: frontRow + rowStep * d };
+          if (!board.isOccupied(cell) && !board.isBlocked(cell)) free.push(cell);
+        }
+      }
+      if (free.length === 0) break;
+      const kw = keywordOf(u);
+      const wards = placements.map(p => p.unit).filter(w => keywordOf(w) !== 'garde_du_corps');
+      const ward = wards.length === 0 ? null : wards.reduce((best, w) =>
+        (w.current_hp - best.current_hp || w.max_hp - best.max_hp || w.uid - best.uid) < 0 ? w : best);
+      const cell = bestKeywordCell(kw, free, { board, frontRow, rowStep, range: u.range, ward: ward?.position ?? null })
+        ?? free.sort((a, b) => COL_ORDER.indexOf(a.col) - COL_ORDER.indexOf(b.col)
+          || (a.row - b.row) * rowStep)[0];
+      u.initial_position = null;
+      board.placeUnit(u, cell);
+      placements.push({ unit: u, pos: cell });
+    }
   }
 
   /** Damage multiplier formula, based on units on the board at start of combat (symmetric with player). */

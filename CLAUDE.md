@@ -1180,7 +1180,7 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 - **Une politique par famille** : `KEYWORD_POLICIES` (`effects/engine.ts`) tranche par rang, jamais par l'ordre des effets — Briseur > Chasseur > Tireur d'élite, Garde du corps > Embusqué > Flanc.
 - **Préséance** : Tour > Insaisissable > `move_policy`. Provocation l'emporte sur toute politique (un provoqué marche vers son provocateur).
 - Remis à zéro par `Unit.resetKeywordStatuses()` dans `startCombat`, jamais par `resetCombatStats()`.
-- **Non traité** : placement par l'IA (`EnemyAI.rearrangeUnits`) et par l'auto-joueur — lot séparé, il déplace la ligne de base de la simulation.
+- **Placement** : `logic/KeywordPlacement.ts` est la seule règle, lue par `EnemyAI.rearrangeUnits` (porteurs posés après les autres, `keywordOf` injecté par `GameSession.placementKeywordOf`) et `sim/autoPlayer.bestCell`. Tireur d'élite au fond, Embusqué en première ligne face à un couloir libre, Flanc sur un bord, Garde du corps au contact de l'allié le plus blessé ; Chasseur et Briseur rien. ⚠️ Sans porteur, placement historique au bit près. Le Labo IA ne le passe pas.
 
 | Effet | Timing | Détail |
 |---|---|---|
