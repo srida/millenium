@@ -141,15 +141,17 @@ describe('Annonce de terrain — quand elle tombe', () => {
   }
 
   // Mutation : annoncer dès `begin()` (par-dessus la pioche) → ROUGE.
-  it('le terrain est connu dès la préparation mais annoncé APRÈS la popup de pioche', () => {
+  it('le terrain est tiré dès la préparation mais révélé et annoncé APRÈS la popup de pioche', () => {
     const { session, controller } = opened();
     expect(session.roundBoard?.id).toBe('B_DRAGON');
-    expect(useGameStore.getState().boardTerrain?.id).toBe('B_DRAGON');
+    expect(useGameStore.getState().boardTerrain).toBeNull();
     expect(useGameStore.getState().terrainAlert).toBeNull();
     vi.advanceTimersByTime(ROUND_INTRO_MS);
     expect(useGameStore.getState().drawPopup).not.toBeNull();
+    expect(useGameStore.getState().boardTerrain).toBeNull();
     expect(useGameStore.getState().terrainAlert).toBeNull();
     controller.dismissDrawPopup();
+    expect(useGameStore.getState().boardTerrain?.id).toBe('B_DRAGON');
     expect(useGameStore.getState().terrainAlert?.board.id).toBe('B_DRAGON');
   });
 

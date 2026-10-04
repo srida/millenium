@@ -106,6 +106,7 @@ export class GameController {
    *  `undefined` = rien à annoncer ; en PvP (rôle B) il peut arriver APRÈS la
    *  popup, d'où `_terrainAwaited`. */
   private _terrainToAnnounce: import('../logic/types.js').BoardDef | null | undefined = undefined;
+  private _terrainShown = false;
   private _terrainAwaited = false;
   protected _combatRemaining = COMBAT_DURATION_S;
   /** Le volet de passage d'une phase à l'autre. Il ne retient rien — c'est le
@@ -169,9 +170,22 @@ export class GameController {
       this.sync({ boardTerrain: null });
       return;
     }
+    this._terrainToAnnounce = board;
+    this._terrainShown = false;
+    this.sync({ boardTerrain: null });
+  }
+
+  /**
+   * Pose le terrain sur la scène et dans le HUD — seulement APRÈS la popup de
+   * pioche : il se découvre une fois la main vue, jamais dès le changement de
+   * tour. Idempotent (un seul passage par tour).
+   */
+  private _showRoundTerrain(): void {
+    const board = this.session.roundBoard;
+    if (!board || this._terrainShown) return;
+    this._terrainShown = true;
     this.scene?.setBlockedCells(this.session.board.blockedCells());
     this.scene?.setTerrainBackground(board);
-    this._terrainToAnnounce = board;
     this.sync({ boardTerrain: board });
   }
 
@@ -186,7 +200,10 @@ export class GameController {
     this.session.setRoundBoard(board);
     this._revealRoundTerrain();
     const s = useGameStore.getState();
-    if (awaited && !s.roundIntro && !s.drawPopup && !this._pendingDraw) this._announceTerrain();
+    if (!s.roundIntro && !s.drawPopup && !this._pendingDraw) {
+      this._showRoundTerrain();
+      if (awaited) this._announceTerrain();
+    }
   }
 
   /**
@@ -296,6 +313,7 @@ export class GameController {
   dismissDrawPopup(): void {
     if (!useGameStore.getState().drawPopup) return;
     this.sync({ drawPopup: null });
+    this._showRoundTerrain();
     this._announceTerrain();
   }
 
