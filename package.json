@@ -8,6 +8,8 @@
     "build": "npm --prefix client install && npm --prefix client run build",
     "client:dev": "npm --prefix client run dev",
     "audit:cards": "node scripts/audit-cards.js",
+    "migrate:zones": "node scripts/migrate-zones.js",
+    "rebalance:ranges": "node scripts/rebalance-ranges.js",
     "sync:pull": "node scripts/sync-data.js pull",
     "sync:push": "node scripts/sync-data.js push",
     "lint": "eslint .",
