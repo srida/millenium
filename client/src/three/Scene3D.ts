@@ -20,6 +20,7 @@ import { UnitSpawns } from './UnitSpawns.js';
 import { UnitShatter } from './UnitShatter.js';
 import { Powers } from './Powers.js';
 import { animateTerrain } from './terrain-anim.js';
+import { createBoardReveal } from './board-reveal.js';
 import { createUnitEl, updateUnitEl } from './UnitCardEl.js';
 import {
   ELEMENT_STYLES, elementsForUnit,
@@ -318,6 +319,9 @@ export class Scene3D {
   _terrainModel: THREE.Object3D | null = null;
   _terrainModelActive = false;
   _terrainAnim: { update(t: number): void; dispose(): void } | null = null;
+  /** Id du terrain actuellement posé (modèle ou PNG), `null` si aucun. */
+  _terrainBoardId: string | null = null;
+  _terrainReveal: { update(dt: number): boolean; finish(): void; dispose(): void } | null = null;
   // Calque de repérage (grille 5×11, séparation des zones, cases bloquées cerclées
   // de rouge) — celui de la démo « Terrains 3D ». Éteint par défaut : sur un décor
   // illustré, les séparateurs dorés et le quadrillage le salissent. C'est un choix
@@ -756,13 +760,14 @@ export class Scene3D {
   // Le PNG est la solution de repli — appareil modeste (`LOW_END_DEVICE`),
   // terrain sans modèle, modèle illisible ou 404. Sans fond du tout, on ne fait
   // rien de plus que nettoyer : le décor par défaut de la scène est conservé.
-  setTerrainBackground(board: BoardDef | null | undefined): void {
+  setTerrainBackground(board: BoardDef | null | undefined, opts: { reveal?: boolean } = {}): void {
     const token = ++this._terrainToken;
     this._clearTerrainBackground();
+    this._terrainBoardId = board?.id ?? null;
     if (!board) return;
 
     if (board._has_model && TERRAIN_MODELS_ENABLED) {
-      this._loadTerrainModel(board, token).catch(() => {
+      this._loadTerrainModel(board, token, !!opts.reveal).catch(() => {
         // Le chargement a échoué : repli sur le PNG, sauf si un autre terrain a
         // été demandé entre-temps (le jeton a alors changé).
         if (token === this._terrainToken && this._running) this._loadTerrainPng(board, token);
@@ -774,7 +779,7 @@ export class Scene3D {
 
   // Le modèle est déjà dans le repère du jeu (`xForCol` / `zForRow`) : aucune
   // translation à appliquer, hormis le décalage vertical anti z-fighting.
-  async _loadTerrainModel(board: BoardDef, token: number): Promise<void> {
+  async _loadTerrainModel(board: BoardDef, token: number, reveal = false): Promise<void> {
     const gltf = await new GLTFLoader().loadAsync(`/api/board-models/${board.id}`);
     const model = gltf.scene;
     if (token !== this._terrainToken || !this._running) { disposeObject(model); return; }
@@ -804,14 +809,29 @@ export class Scene3D {
     holder.position.y = TERRAIN_MODEL_Y;
     this.scene.add(holder);
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    if (!reduced && TERRAIN_ANIM_ENABLED) {
+    const startAnim = () => {
+      if (reduced || !TERRAIN_ANIM_ENABLED || this._terrainModel !== holder) return;
       // fxParent = holder : les particules héritent du miroir et de TERRAIN_MODEL_Y
       this._terrainAnim = animateTerrain(model, { fxParent: holder });
-    }
+      this._invalidate();
+    };
 
     this._terrainModel = holder;
     this._terrainLights = this._buildTerrainLights(centerZ);
     this.scene.add(this._terrainLights);
+    // ⚠️ L'apparition AVANT l'ambiance : brouillard, fumée et particules ne
+    // doivent pas flotter au-dessus d'un plateau encore en l'air.
+    if (reveal && !reduced) {
+      this._terrainReveal = createBoardReveal(holder, {
+        mode: 'drop',
+        fxParent: this.scene,
+        onImpact: () => this.shakeCamera(this._camH * 0.012, 0.25),
+        onDone: () => { this._terrainReveal = null; startAnim(); },
+      });
+      this.anims.push(this._terrainReveal);
+    } else {
+      startAnim();
+    }
     this._terrainModelActive = true;
     this._terrainActive = true;
     this._syncSeparators();
@@ -959,7 +979,12 @@ export class Scene3D {
     this._gridGroup = group;
   }
 
+  /** Termine l'apparition du terrain en cours (tap du joueur). */
+  finishTerrainReveal(): void { this._terrainReveal?.finish(); }
+
   _clearTerrainBackground(): void {
+    this._terrainReveal?.dispose();
+    this._terrainReveal = null;
     const hadModel = this._terrainModelActive;
     this._terrainAnim?.dispose();
     this._terrainAnim = null;
@@ -3076,6 +3101,8 @@ export class Scene3D {
     }
     this._terrainTex?.dispose();
     this._terrainTex = null;
+    this._terrainReveal?.dispose();
+    this._terrainReveal = null;
     this._terrainAnim?.dispose();
     this._terrainAnim = null;
     if (this._terrainModel) { disposeObject(this._terrainModel); this._terrainModel = null; }

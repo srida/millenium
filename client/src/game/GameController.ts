@@ -9,6 +9,7 @@ import { boardEffects, effectTargets } from '../logic/BoardEffect.js';
 import { primaryTier } from '../logic/Tiers.js';
 import { boardTargetsUnits } from '../data/BoardInfo.js';
 import { CombatAnimator3D } from '../three/CombatAnimator3D.js';
+import { LOW_END_DEVICE } from '../three/constants.js';
 import type { Scene3D } from '../three/Scene3D.js';
 import type { Card, DrawSummary, Position, Magie, SummonCondition } from '../logic/types.js';
 import type { Unit } from '../logic/Unit.js';
@@ -185,7 +186,7 @@ export class GameController {
     if (!board || this._terrainShown) return;
     this._terrainShown = true;
     this.scene?.setBlockedCells(this.session.board.blockedCells());
-    this.scene?.setTerrainBackground(board);
+    this.scene?.setTerrainBackground(board, { reveal: !LOW_END_DEVICE });
     this.sync({ boardTerrain: board });
   }
 
@@ -743,7 +744,8 @@ export class GameController {
     // peindre les rochers d'après `boardData` poserait le décor à côté des
     // obstacles que le pathfinding contourne réellement.
     this.scene?.setBlockedCells(this.session.board.blockedCells());
-    this.scene?.setTerrainBackground(boardData ?? null);
+    // Même terrain déjà posé en préparation : pas de rechargement (clignotement).
+    if (!boardData || this.scene?._terrainBoardId !== boardData.id) this.scene?.setTerrainBackground(boardData ?? null);
     this.scene?.setGridVisible(this.showGrid);
     this.scene?.enterCombatMode();
     // L'IA place ses unités au moment du PRÊT : elles n'ont pas encore d'objet
@@ -803,6 +805,7 @@ export class GameController {
     if (this._alertTimer) { clearTimeout(this._alertTimer); this._alertTimer = null; }
     if (!useGameStore.getState().terrainAlert) return;
     this.sync({ terrainAlert: null });
+    this.scene?.finishTerrainReveal();
     if (this.session.phase === Phase.PREPARATION) this.scene?.previewTerrain();
   }
 
