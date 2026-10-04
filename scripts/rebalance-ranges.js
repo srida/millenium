@@ -43,11 +43,13 @@ const PASS_ID = 'ranges-v1';
  *   move / atk_t — décalage de la période en TICKS (+ = plus lent), retraduit
  *                  en compteur 0–100 par l'échelle partagée.
  */
+// Retenus après mesure (20 000 parties, 30 cartes exclues) : l'écart de
+// victoires entre portées passe de 3,9 points (+0,1 → +4,0) à 1,0 (+0,6 → +1,6).
 const DEFAULT_COEFFS = Object.freeze({
-  1: { hp: 1.15, atk: 1.00, move: -2, atk_t: 0 },
+  1: { hp: 1.20, atk: 1.00, move: -2, atk_t: 0 },
   2: { hp: 0.95, atk: 1.00, move: 0, atk_t: 0 },
-  3: { hp: 0.80, atk: 0.95, move: 2, atk_t: 1 },
-  4: { hp: 0.70, atk: 0.95, move: 3, atk_t: 2 },
+  3: { hp: 0.70, atk: 0.95, move: 2, atk_t: 1 },
+  4: { hp: 0.85, atk: 1.00, move: 3, atk_t: 1 },
 });
 
 const PROJECT = path.join(__dirname, '..');

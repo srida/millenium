@@ -42,9 +42,9 @@ describe('rebalance-ranges', () => {
     const { r, read } = runTo([card('M', 1), card('R3', 3), card('R5', 5)]);
     expect(r.status).toBe(0);
     const [m, r3, r5] = read();
-    expect(m.stats.hp).toBe(230);                       // ×1,15
-    expect(r3.stats.hp).toBe(160);                      // ×0,80
-    expect(r5.stats.hp).toBe(140);                      // ×0,70 (classe 4+)
+    expect(m.stats.hp).toBe(240);                       // ×1,20
+    expect(r3.stats.hp).toBe(140);                      // ×0,70
+    expect(r5.stats.hp).toBe(170);                      // ×0,85 (classe 4+)
     expect(r3.stats.atk).toBe(19);                      // ×0,95
     expect(ticksForRate(m.stats.movement_rate)).toBe(ticksForRate(90) - 2);
     expect(ticksForRate(r3.stats.movement_rate)).toBe(ticksForRate(90) + 2);
@@ -56,14 +56,14 @@ describe('rebalance-ranges', () => {
     const { read } = runTo([{ ...card('X', 3), balance_excluded: true }, card('R3', 3)]);
     const [x, r3] = read();
     expect(x.stats.hp).toBe(200);
-    expect(r3.stats.hp).toBe(160);
+    expect(r3.stats.hp).toBe(140);
   });
 
   it('--coeffs surcharge une classe sans toucher aux autres', () => {
     const { read } = runTo([card('M', 1), card('R3', 3)], ['--coeffs={"3":{"hp":0.5}}']);
     const [m, r3] = read();
     expect(r3.stats.hp).toBe(100);
-    expect(m.stats.hp).toBe(230);
+    expect(m.stats.hp).toBe(240);
   });
 
   // Mutation : retirer la garde du registre → ROUGE (le coefficient s'appliquerait deux fois).
@@ -72,9 +72,9 @@ describe('rebalance-ranges', () => {
     const first = spawnSync(process.execPath, [path.join(fake, 'scripts/rebalance-ranges.js'), '--write'], { encoding: 'utf8' });
     expect(first.status).toBe(0);
     const hp = JSON.parse(fs.readFileSync(path.join(fake, 'initial-data/cards.json'), 'utf8'))[0].stats.hp;
-    expect(hp).toBe(230);
+    expect(hp).toBe(240);
     const second = spawnSync(process.execPath, [path.join(fake, 'scripts/rebalance-ranges.js'), '--write'], { encoding: 'utf8' });
     expect(second.status).toBe(1);
-    expect(JSON.parse(fs.readFileSync(path.join(fake, 'initial-data/cards.json'), 'utf8'))[0].stats.hp).toBe(230);
+    expect(JSON.parse(fs.readFileSync(path.join(fake, 'initial-data/cards.json'), 'utf8'))[0].stats.hp).toBe(240);
   });
 });
