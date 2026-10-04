@@ -971,6 +971,7 @@ taunt_remaining        // > 0 → force les ennemis à la cibler
 is_effect_immune       // attribut effect_immunity
 is_immobile            // mot-clé Tour — ⚠️ remis à zéro par startCombat, PAS par resetCombatStats
 is_elusive             // mot-clé Insaisissable — même cycle de vie que is_immobile
+target_policy / move_policy / ambush_awake  // familles 1 et 2 — même cycle de vie (resetKeywordStatuses)
 
 position / initial_position / is_neutralized / veterancy_points
 attack_timer / move_timer                        // ⚠️ remis à zéro à chaque startCombat
@@ -1162,6 +1163,25 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 - **Admin** : le champ `appel` d'une carte est édité par **le même widget** que les critères d'une pioche garantie (`renderGuaranteedDrawCriteria`, scope `'carte'` dans `_gdScope`) — c'est la même promesse, un second éditeur finirait par proposer autre chose. ⚠️ Un appel vide n'est **jamais persisté** (`appelFromForm` rend `undefined`) : `{}` se lirait comme « au choix ». L'écran signale le dépareillage dans les deux sens, comme l'audit.
 - ⚠️ `attrEstAppelant` (`admin.html`) et `estAppelant` (`scripts/audit-cards.js`) sont **jumeaux** : la question se pose sur le TYPE D'EFFET, jamais sur l'id ni sur le nom de l'attribut — « Appelant » se renomme, `ARCH_099` n'est qu'un numéro.
 
+**Familles 1 et 2 (ciblage, déplacement)** — six mots-clés sur le patron d'Insaisissable (type d'effet sans champ → `poser_statut` → champ de `Unit`), jamais `MOTS_CLES`. Attributs `ARCH_107`…`ARCH_112`.
+
+| Mot-clé | Champ de `Unit` | Règle |
+|---|---|---|
+| 🎯 Tireur d'élite | `target_policy = 'plus_loin_a_portee'` | le plus éloigné parmi les attaquables ; rien d'attaquable → défaut |
+| 🩸 Chasseur | `target_policy = 'pv_bas'` | `current_hp` le plus bas (bouclier exclu), où qu'il soit, et marche vers lui |
+| 🔨 Briseur | `target_policy = 'pv_max_haut'` | `max_hp` le plus haut, où qu'il soit, et marche vers lui |
+| 🕳️ Embusqué | `move_policy = 'embusque'` | immobile (horloge figée) jusqu'au réveil, définitif : ennemi à portée, coup encaissé, cible en phase 4 ou provocation |
+| 🛡️ Garde du corps | `move_policy = 'garde'` | marche vers l'allié aux PV les plus bas et s'arrête au contact, même avec un ennemi à portée |
+| 🐎 Flanc | `move_policy = 'flanc'` | point de passage `(colonne de bord, rangée de la cible)` tant qu'il n'est pas sur la rangée de sa cible |
+
+- ⚠️ **`plus_proche` reste le code historique au bit près** (`PathFinder.findAttackTarget`) : le modifier ferait bouger les goldens de `sim.test.ts` et le filet PvP.
+- ⚠️ Chasseur et Briseur frappent le meilleur **attaquable** selon leur politique quand leur proie est hors d'atteinte, et continuent de marcher vers elle (phase 3 triée par `sortByPolicy` au lieu de Chebyshev).
+- **Départage** de toute politique hors défaut : métrique → Manhattan → `card_id` → `referenceCellRank` (colonne puis rang dans `rowScan`). `card_id` seul ne sépare pas deux exemplaires d'une Multiple.
+- **Une politique par famille** : `KEYWORD_POLICIES` (`effects/engine.ts`) tranche par rang, jamais par l'ordre des effets — Briseur > Chasseur > Tireur d'élite, Garde du corps > Embusqué > Flanc.
+- **Préséance** : Tour > Insaisissable > `move_policy`. Provocation l'emporte sur toute politique (un provoqué marche vers son provocateur).
+- Remis à zéro par `Unit.resetKeywordStatuses()` dans `startCombat`, jamais par `resetCombatStats()`.
+- **Non traité** : placement par l'IA (`EnemyAI.rearrangeUnits`) et par l'auto-joueur — lot séparé, il déplace la ligne de base de la simulation.
+
 | Effet | Timing | Détail |
 |---|---|---|
 | `stat_bonus` | `start_of_combat` · `on_summon` · `on_power_fired` | Bonus plat ; `value_per` optionnel (× nb d'unités **adverses** portant l'attribut). La stat `power_charge` accélère la jauge (`+1 + power_charge` par step). ⚠️ Sur `attack_rate` / `movement_rate`, le bonus est **positif pour accélérer** et s'écrête à 100 |
@@ -1171,6 +1191,7 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 | `insaisissable` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose `is_elusive` — fuit, n'attaque qu'au rechargement du mouvement. **Attribut seulement** (cf. « Les mots-clés ») |
 | `summon_token` | `start_of_combat` · `on_summon` · `on_power_fired` | Invoque un token (`token_id`) sur une case libre au hasard ; `camp` = `allie` (le camp qui PORTE l'attribut) ou `ennemi`. ⚠️ Pas de `end_of_combat` : rien à combattre après le dernier tick. Désactivé en PvP réel |
 | `destroy_enemy` | `on_self_neutralized` | Détruit l'unité adverse la **plus proche** du porteur. Rien à saisir. ⚠️ Son SEUL moment, et il n'existe que pour lui (cf. « Les mots-clés ») |
+| `tireur_elite` · `chasseur` · `briseur` · `embusque` · `garde_du_corps` · `flanc` | `start_of_combat` · `on_summon` · `on_power_fired` | Pose une politique de ciblage ou de déplacement. Rien à saisir (cf. « Familles 1 et 2 ») |
 | `stat_modifier` | `during_combat` | Déclenché par `trigger` : `on_ally_neutralized` / `on_enemy_neutralized` |
 | `revive` | `end_of_combat` | Réanime une unité neutralisée à `hp_percent` % (déf. 50) |
 | `draw_bonus` | `end_of_combat` | Pioches supplémentaires (plafonné par `max`) |

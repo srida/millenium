@@ -321,6 +321,13 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   // Le mot-clé **Insaisissable** — même famille que Tour : un statut posé sur
   // le porteur, aux mêmes trois moments.
   insaisissable: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  // Familles 1 et 2 (ciblage, déplacement) : même famille que Tour.
+  tireur_elite: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  chasseur: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  briseur: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  embusque: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  garde_du_corps: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  flanc: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   // ⚠️ **Un type à part de `destroy_unit`, et non un champ `camp`** : la magie
   // détruit une unité ALLIÉE (un coût que le joueur consent, il la désigne), le
   // mot-clé une unité ADVERSE (une récompense). Le geste du moteur est le même
@@ -548,6 +555,17 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
         // le journal des stats.
         case 'insaisissable':
           pousse([{ action: 'poser_statut', cible: cibleUnite(), statut: 'insaisissable', duree: 'combat' }]);
+          return;
+
+        // Familles 1 et 2 — même geste qu'Insaisissable : le statut porte le
+        // nom du type, le moteur le traduit en politique (`KEYWORD_POLICIES`).
+        case 'tireur_elite':
+        case 'chasseur':
+        case 'briseur':
+        case 'embusque':
+        case 'garde_du_corps':
+        case 'flanc':
+          pousse([{ action: 'poser_statut', cible: cibleUnite(), statut: effect.type, duree: 'combat' }]);
           return;
 
         // **Explosif** — le porteur emporte une unité adverse en tombant.

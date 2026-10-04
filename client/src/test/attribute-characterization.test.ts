@@ -148,6 +148,9 @@ function etat(u: Unit): string {
     // celui de Tour, si `immobile` n'y était pas systématiquement épaulé d'un
     // `stat_bonus range`).
     u.is_elusive ? 'insaisissable' : null,
+    // Familles 1 et 2 : des politiques, muettes elles aussi sans ces lignes.
+    u.target_policy !== 'plus_proche' ? `vise ${u.target_policy}` : null,
+    u.move_policy !== 'normal' ? `va ${u.move_policy}` : null,
     u._stat_bonuses.power_charge ? `charge +${u._stat_bonuses.power_charge}` : null,
     u.is_neutralized ? 'neutralisé' : null,
   ].filter(Boolean).join(' · ');

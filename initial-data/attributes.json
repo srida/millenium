@@ -2139,5 +2139,113 @@
 				]
 			}
 		]
+	},
+	{
+		"id": "ARCH_107",
+		"name": "Tireur d'élite",
+		"icon": "🎯",
+		"timing": "start_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "tireur_elite"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_108",
+		"name": "Chasseur",
+		"icon": "🩸",
+		"timing": "start_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "chasseur"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_109",
+		"name": "Briseur",
+		"icon": "🔨",
+		"timing": "start_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "briseur"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_110",
+		"name": "Embusqué",
+		"icon": "🕳️",
+		"timing": "start_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "embusque"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_111",
+		"name": "Garde du corps",
+		"icon": "🛡️",
+		"timing": "start_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "garde_du_corps"
+					}
+				]
+			}
+		]
+	},
+	{
+		"id": "ARCH_112",
+		"name": "Flanc",
+		"icon": "🐎",
+		"timing": "start_of_combat",
+		"categorie": "MotCle",
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "flanc"
+					}
+				]
+			}
+		]
 	}
 ]

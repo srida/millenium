@@ -569,6 +569,87 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
 });
 
 // ===========================================================================
+//  Familles 1 et 2 (+ Insaisissable) — les politiques de ciblage et de pas
+// ===========================================================================
+// Chaque mot-clé CHOISIT une unité (une cible, un protégé) ou une case (un pas
+// de détour) : autant d'occasions de départager par un ordre local. Le même
+// filet que ci-dessus, avec les VRAIS attributs livrés posés au hasard.
+describe('Familles 1 et 2 : le même combat physique dans les deux repères', () => {
+  const ATTRS: any[] = createRequire(import.meta.url)('../../../initial-data/attributes.json');
+  const TYPES = ['tireur_elite', 'chasseur', 'briseur', 'embusque', 'garde_du_corps', 'flanc', 'insaisissable'];
+  const MOTS = TYPES.map(t => ATTRS.find(a => a.thresholds?.some((th: any) => th.effects?.some((e: any) => e.type === t))));
+
+  function scenario(seed: number): { a: Placed[]; b: Placed[]; board: BoardDef } {
+    const rand = makeRandom(seed);
+    const pick = <T>(xs: T[]): T => xs[Math.floor(rand() * xs.length)];
+    const taken = new Set<string>();
+    const place = (side: 'A' | 'B', i: number): Placed => {
+      let col = 0, row = 0;
+      do {
+        col = Math.floor(rand() * 5);
+        row = (side === 'A' ? 0 : 7) + Math.floor(rand() * 4);
+      } while (taken.has(`${col},${row}`));
+      taken.add(`${col},${row}`);
+      // Un mot-clé de chaque famille au plus, souvent aucun.
+      const attributes = [pick([null, null, ...MOTS.slice(0, 3)]), pick([null, null, ...MOTS.slice(3)])]
+        .filter(Boolean).map((m: any) => m.id);
+      return {
+        col, row,
+        card: makeCard({
+          id: `${side}_${i}`, summon_conditions: [], attributes,
+          power: pick([null, null, { id: 'POWER_HEAL', power_rate: 87, value: null }, { id: 'POWER_TAUNT', power_rate: 84, value: null }]) as any,
+          stats: {
+            atk: pick([6, 9, 14]), hp: pick([60, 90, 130]),
+            movement_rate: pick([100, 99, 98]), attack_rate: pick([99, 96, 92]),
+            range: pick([1, 2, 4])
+          }
+        })
+      };
+    };
+    return {
+      a: Array.from({ length: 4 }, (_, i) => place('A', i)),
+      b: Array.from({ length: 4 }, (_, i) => place('B', i)),
+      board: {
+        id: 'BOARD_005', name: 'Duel', effect: null,
+        blocked_cells: [{ col: 0, row: 5 }, { col: 2, row: 4 }, { col: 2, row: 6 }, { col: 4, row: 5 }] } as any
+    };
+  }
+
+  it('300 combats semés donnent des logs rigoureusement identiques', () => {
+    const divergents: string[] = [];
+    for (let seed = 1; seed <= 300; seed++) {
+      const { a, b, board } = scenario(seed);
+      const d = pvplog.diff(playAs('A', a, b, board, MOTS), playAs('B', a, b, board, MOTS));
+      if (d) divergents.push(`graine ${seed} : ${d.kind} @ tick ${d.tick} · ${d.detail?.field ?? d.detail?.unit ?? ''}`);
+    }
+    expect(divergents).toEqual([]);
+  });
+
+  // ⚠️ L'égalité que les graines ne produisent pas : deux exemplaires de la
+  // MÊME carte dans un même camp (Multiple, tokens), même PV, même distance.
+  // ⚠️ CARACTÉRISATION, pas régression : retirer le dernier départage (la case
+  // de référence) ne le fait pas rougir (vérifié) — les tableaux d'unités sont
+  // déjà dans l'ordre du repère de référence (`Board.getUnitsOnSide`). Le
+  // départage rend le tri autosuffisant, comme `_frameSide` pour l'ordre d'action.
+  for (const type of ['chasseur', 'briseur', 'tireur_elite', 'garde_du_corps']) {
+    it(`${type} : deux jumelles d'un même camp se départagent pareil dans les deux repères`, () => {
+      const mot = MOTS[TYPES.indexOf(type)];
+      const chasseur = makeCard({ id: 'A_MOT', summon_conditions: [], attributes: [mot.id],
+        stats: { atk: 3, hp: 300, movement_rate: 99, attack_rate: 99, range: type === 'tireur_elite' ? 9 : 1 } });
+      const jumelle = () => makeCard({ id: 'JUMELLE', summon_conditions: [],
+        stats: { atk: 1, hp: 50, movement_rate: 0, attack_rate: 0, range: 1 } });
+      const a: Placed[] = [{ card: chasseur, col: 2, row: 1 }];
+      if (type === 'garde_du_corps') a.push({ card: jumelle(), col: 0, row: 2 }, { card: jumelle(), col: 4, row: 2 });
+      const b: Placed[] = type === 'garde_du_corps'
+        ? [{ card: jumelle(), col: 2, row: 10 }]
+        : [{ card: jumelle(), col: 0, row: 8 }, { card: jumelle(), col: 4, row: 8 }];
+      const plat: BoardDef = { id: 'BOARD_PLAT', name: 'Plat', effect: null, blocked_cells: [] } as any;
+      expect(pvplog.diff(playAs('A', a, b, plat, MOTS), playAs('B', a, b, plat, MOTS))).toBeNull();
+    });
+  }
+});
+
+// ===========================================================================
 //  Ce qui SURVIT au combat — le filet multi-rounds
 // ===========================================================================
 // Duel `3ebfa22f` : rounds 1 à 4 rigoureusement identiques (850 ticks), puis

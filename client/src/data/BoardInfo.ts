@@ -136,6 +136,14 @@ export function boardEffectLabel(
     // fait par défaut (fuir) et la seule fenêtre où elle frappe quand même
     // (le pouvoir, lui, part normalement et n'a pas besoin d'être nommé ici).
     case 'insaisissable':     return 'Fuit l\'adversaire ; n\'attaque que lorsque son point de mouvement se recharge';
+    // Familles 1 et 2 : chaque phrase dit la règle ENTIÈRE, y compris ce qui se
+    // passe quand la cible voulue n'est pas atteignable.
+    case 'tireur_elite':      return 'Vise l\'ennemi le plus éloigné à sa portée';
+    case 'chasseur':          return 'Vise l\'ennemi aux PV les plus bas, où qu\'il soit, et marche vers lui ; frappe ce qui est à sa portée en chemin';
+    case 'briseur':           return 'Vise l\'ennemi aux PV max les plus hauts et marche vers lui ; frappe ce qui est à sa portée en chemin';
+    case 'embusque':          return 'Reste en place jusqu\'à ce qu\'un ennemi entre à sa portée ou le frappe, puis avance normalement';
+    case 'garde_du_corps':    return 'Reste au contact de l\'allié aux PV les plus bas et frappe ce qui passe à sa portée';
+    case 'flanc':             return 'Avance par la colonne de bord la plus proche, puis rejoint sa cible';
     // ⚠️ Le mot-clé **Explosif**, et il nomme les DEUX choses que le joueur ne
     // peut pas deviner : *quand* (en mourant) et *laquelle* (la plus proche).
     // Le repli sur le type brut sortait « destroy_enemy » à l'écran.

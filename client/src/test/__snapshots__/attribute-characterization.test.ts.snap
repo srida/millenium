@@ -2471,5 +2471,131 @@ exports[`Attributs livrés — l'oracle de l'étape 0 > ce que chaque palier de 
     ],
     "timing": "start_of_combat",
   },
+  {
+    "categorie": "MotCle",
+    "id": "ARCH_107",
+    "nom": "Tireur d'élite",
+    "paliers": [
+      {
+        "effets": [
+          "tireur_elite",
+        ],
+        "ennemi": {
+          "E0_ARCH_107": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · vise plus_loin_a_portee",
+        },
+        "joueur": {
+          "P0_ARCH_107": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · vise plus_loin_a_portee",
+        },
+        "palier": 1,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "MotCle",
+    "id": "ARCH_108",
+    "nom": "Chasseur",
+    "paliers": [
+      {
+        "effets": [
+          "chasseur",
+        ],
+        "ennemi": {
+          "E0_ARCH_108": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · vise pv_bas",
+        },
+        "joueur": {
+          "P0_ARCH_108": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · vise pv_bas",
+        },
+        "palier": 1,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "MotCle",
+    "id": "ARCH_109",
+    "nom": "Briseur",
+    "paliers": [
+      {
+        "effets": [
+          "briseur",
+        ],
+        "ennemi": {
+          "E0_ARCH_109": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · vise pv_max_haut",
+        },
+        "joueur": {
+          "P0_ARCH_109": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · vise pv_max_haut",
+        },
+        "palier": 1,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "MotCle",
+    "id": "ARCH_110",
+    "nom": "Embusqué",
+    "paliers": [
+      {
+        "effets": [
+          "embusque",
+        ],
+        "ennemi": {
+          "E0_ARCH_110": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · va embusque",
+        },
+        "joueur": {
+          "P0_ARCH_110": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · va embusque",
+        },
+        "palier": 1,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "MotCle",
+    "id": "ARCH_111",
+    "nom": "Garde du corps",
+    "paliers": [
+      {
+        "effets": [
+          "garde_du_corps",
+        ],
+        "ennemi": {
+          "E0_ARCH_111": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · va garde",
+        },
+        "joueur": {
+          "P0_ARCH_111": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · va garde",
+        },
+        "palier": 1,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
+  {
+    "categorie": "MotCle",
+    "id": "ARCH_112",
+    "nom": "Flanc",
+    "paliers": [
+      {
+        "effets": [
+          "flanc",
+        ],
+        "ennemi": {
+          "E0_ARCH_112": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · va flanc",
+        },
+        "joueur": {
+          "P0_ARCH_112": "pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 → pv 200/200 · atq 20 · dep 50 · vit 50 · por 3 · bcl 0 · va flanc",
+        },
+        "palier": 1,
+        "ressources": null,
+      },
+    ],
+    "timing": "start_of_combat",
+  },
 ]
 `;

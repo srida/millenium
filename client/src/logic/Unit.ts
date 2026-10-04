@@ -1,4 +1,4 @@
-import type { Card, DotEffect, BurnStack, GuaranteedDraw, Position, Side } from './types.js';
+import type { Card, DotEffect, BurnStack, GuaranteedDraw, MovePolicy, Position, Side, TargetPolicy } from './types.js';
 import { primaryTier } from './Tiers.js';
 // L'échelle de vitesse vit À LA RACINE et nulle part ailleurs (cf. l'en-tête de
 // `speed-scale.mjs`) : le bundle client, `admin.html` et les scripts Node y
@@ -215,6 +215,24 @@ export class Unit {
    */
   is_elusive: boolean;
   /**
+   * Les mots-clés de **ciblage** (famille 1) : qui l'unité vise. Un seul champ
+   * pour toute la famille, donc « Chasseur ET Briseur » n'est pas un état
+   * exprimable — le conflit se tranche à la pose (`KEYWORD_PRIORITY`).
+   *
+   * ⚠️ Même cycle de vie que `is_immobile` : posé par un statut d'effet, remis
+   * à zéro par `resetKeywordStatuses()` (appelé par `startCombat`), jamais par
+   * `resetCombatStats()` — une dissipation ne retire pas un comportement.
+   */
+  target_policy: TargetPolicy;
+  /** Les mots-clés de **déplacement** (famille 2) : où l'unité va. Même cycle de vie que `target_policy`. */
+  move_policy: MovePolicy;
+  /**
+   * L'Embusqué s'est réveillé : un ennemi est entré à sa portée, il a encaissé
+   * un coup, ou il est provoqué. Définitif pour le combat — sans cette mémoire,
+   * l'Embusqué se refigerait dès que sa cible meurt.
+   */
+  ambush_awake: boolean;
+  /**
    * Le compte à rebours d'Affaiblissement (POWER_WEAKEN), en ticks.
    *
    * ⚠️ Contrairement à Paralysie/Blocage/Confusion/Provocation, ce pouvoir lit
@@ -308,6 +326,9 @@ export class Unit {
     this.is_effect_immune = false;
     this.is_immobile = false;
     this.is_elusive = false;
+    this.target_policy = 'plus_proche';
+    this.move_policy = 'normal';
+    this.ambush_awake = false;
     this.weaken_remaining = 0;
     this.weaken_atk_delta = 0;
     this.is_token = false;
@@ -353,6 +374,10 @@ export class Unit {
 
   takeDamage(amount: number): number {
     let dmg = Math.max(0, amount);
+    // Embusqué : encaisser un coup le réveille, bouclier compris — sans quoi un
+    // tireur plus long le tuerait sur place, et deux camps embusqués hors de
+    // portée l'un de l'autre attendraient le timeout.
+    if (amount > 0 && this.move_policy === 'embusque') this.ambush_awake = true;
     if (this.shield > 0) {
       const absorbed = Math.min(this.shield, dmg);
       this.shield -= absorbed;
@@ -413,6 +438,20 @@ export class Unit {
   resetCombatClocks(): void {
     this.attack_timer = 0;
     this.move_timer = 0;
+  }
+
+  /**
+   * Les comportements posés par un mot-clé (Tour, Insaisissable, familles de
+   * ciblage et de déplacement) : remis à zéro au début de chaque combat, puis
+   * reposés par `applyStartOfCombat`. Jamais par `resetCombatStats()`, que
+   * `POWER_DEBUFF` appelle en plein combat (cf. `is_immobile`).
+   */
+  resetKeywordStatuses(): void {
+    this.is_immobile = false;
+    this.is_elusive = false;
+    this.target_policy = 'plus_proche';
+    this.move_policy = 'normal';
+    this.ambush_awake = false;
   }
 
   // Called by POWER_DEBUFF and at end of combat — strip all bonuses and status effects

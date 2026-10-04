@@ -12,6 +12,16 @@ export interface Position {
 
 export type Side = 'player' | 'enemy';
 
+/**
+ * Qui une unité vise (mots-clés de la famille 1). `plus_proche` est la règle
+ * historique, inchangée au bit près ; les trois autres sont Tireur d'élite,
+ * Chasseur et Briseur. Cf. `PathFinder.findAttackTarget`.
+ */
+export type TargetPolicy = 'plus_proche' | 'plus_loin_a_portee' | 'pv_bas' | 'pv_max_haut';
+
+/** Où une unité va (mots-clés de la famille 2) : Embusqué, Garde du corps, Flanc. */
+export type MovePolicy = 'normal' | 'embusque' | 'garde' | 'flanc';
+
 // ── Cartes ──
 
 export interface CardStats {

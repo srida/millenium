@@ -531,6 +531,43 @@ export const TYPES = Object.freeze({
     // suivant.
     attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
   },
+  // ── Familles 1 et 2 : qui l'unité vise, où elle va ──────────────────────
+  // ⚠️ **Aucun champ, attribut seul, mêmes moments que Tour et Insaisissable**,
+  // et pour la même raison : un comportement posé sur le porteur, que
+  // `startCombat` efface (`Unit.resetKeywordStatuses`). Une magie le donne par
+  // `grant_keyword` (l'attribut, qui voyage en PvP), jamais par ce type.
+  // ⚠️ Un seul mot-clé par famille agit : le conflit se tranche à la pose, par
+  // la table de priorité du moteur (`KEYWORD_POLICIES`, `effects/engine.ts`).
+  tireur_elite: {
+    label: 'Vise l’ennemi le plus éloigné à sa portée (Tireur d’élite)',
+    court: 'Tireur d’élite',
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
+  },
+  chasseur: {
+    label: 'Vise l’ennemi aux PV les plus bas, où qu’il soit, et marche vers lui (Chasseur)',
+    court: 'Chasseur',
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
+  },
+  briseur: {
+    label: 'Vise l’ennemi aux PV max les plus hauts, et marche vers lui (Briseur)',
+    court: 'Briseur',
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
+  },
+  embusque: {
+    label: 'Reste en place jusqu’à ce qu’un ennemi entre à portée ou le frappe (Embusqué)',
+    court: 'Embusqué',
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
+  },
+  garde_du_corps: {
+    label: 'Reste au contact de l’allié aux PV les plus bas (Garde du corps)',
+    court: 'Garde du corps',
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
+  },
+  flanc: {
+    label: 'Avance par la colonne de bord la plus proche (Flanc)',
+    court: 'Flanc',
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
+  },
   revive: {
     label: 'Réanimation d’une unité du cimetière',
     court: 'Réanimation',

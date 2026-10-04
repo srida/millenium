@@ -1,4 +1,4 @@
-import { chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, hasLineOfSight, stepToward, stepTowardOrNearest, stepAway } from './PathFinder.js';
+import { chebyshevDistance, manhattanDistance, findClosestEnemy, findAttackTarget, isInAttackRange, canAttack, hasLineOfSight, stepToward, stepTowardOrNearest, stepAway, isGlobalPolicy, sortByPolicy, compareTieBreak } from './PathFinder.js';
 import { Unit } from './Unit.js';
 // L'échelle vit à la racine (cf. l'en-tête de `speed-scale.mjs`) : une seule
 // fenêtre de ticks pour les rythmes ET les durées.
@@ -236,6 +236,10 @@ export class CombatManager {
       // seuls endroits qui répondent « cette unité peut-elle changer de
       // case ? » : `_canPush` et `_teleportPlan`.
       if (u.is_immobile) continue;
+      // ⚠️ **Embusqué** : même geste que Tour tant qu'il attend — l'horloge
+      // n'avance pas, sinon un pas accumulé partirait au réveil. Insaisissable
+      // passe devant (préséance Tour > Insaisissable > politique de déplacement).
+      if (!u.is_elusive && u.move_policy === 'embusque' && !this._ambushAwake(u)) continue;
       u.move_timer++;
       if (u.move_timer < u.movement_period) continue;
       u.move_timer = 0;
@@ -245,17 +249,29 @@ export class CombatManager {
       // reste de la phase, qui ne le concerne plus.
       if (u.is_elusive) { this._actOnMoveRecharge(u, events); continue; }
 
+      // **Garde du corps** : marche vers son protégé au lieu de sa cible ;
+      // rend `false` quand rien n'est à garder (déplacement normal).
+      if (u.move_policy === 'garde' && this._guardMove(u, events)) continue;
+
       const candidates = this._targetCandidates(u, { requireLOS: false });
       if (candidates.length === 0) continue;
 
-      // Try candidates closest-first; if primary target is blocked, fall back to next reachable one
-      const sorted = [...candidates].sort(
-        (a, b) => chebyshevDistance(u.position, a.position) - chebyshevDistance(u.position, b.position)
-      );
+      // Try candidates closest-first; if primary target is blocked, fall back to next reachable one.
+      // ⚠️ Chasseur et Briseur marchent vers LEUR proie : même boucle, seul
+      // l'ordre change. Le reste (s'arrêter si `canAttack`, candidat suivant,
+      // repli `stepTowardOrNearest`) est commun.
+      const sorted = isGlobalPolicy(u.target_policy)
+        ? sortByPolicy(u.position, candidates, this.board, u.target_policy)
+        : [...candidates].sort(
+          (a, b) => chebyshevDistance(u.position, a.position) - chebyshevDistance(u.position, b.position)
+        );
+      // **Flanc** : un point de passage sur le bord. Pas pour un provoqué, qui
+      // marche droit vers son provocateur, quelle que soit sa politique.
+      const flank = u.move_policy === 'flanc' && !this._provoker(u);
       let moved = false;
       for (const target of sorted) {
         if (canAttack(u, target, this.board)) { moved = true; break; } // in range and has line of sight
-        const next = stepToward(this.board, u.position, target.position);
+        const next = (flank && this._flankStep(u, target)) || stepToward(this.board, u.position, target.position);
         if (next && !this.board.isOccupied(next)) {
           const from = { ...u.position };
           this.board.moveUnit(u, next);
@@ -284,11 +300,15 @@ export class CombatManager {
       u.attack_timer = 0;
 
       const candidates = this._targetCandidates(u, { requireLOS: true });
-      const target = candidates.length > 0 ? findAttackTarget(u, candidates, this.board).unit : null;
+      const target = candidates.length > 0 ? findAttackTarget(u, candidates, this.board, u.target_policy).unit : null;
       // Out of range or without line of sight there is nothing to hit — but the
       // rangeless powers never needed that target in the first place, so they
       // are offered a null one rather than being skipped with the attack.
       const reachable = target !== null && canAttack(u, target, this.board);
+      // Embusqué : une cible à sa portée le réveille, même si elle meurt de ce
+      // coup — elle est entrée et morte dans le même tick, la phase 3 ne l'a
+      // jamais vue.
+      if (reachable && u.move_policy === 'embusque') u.ambush_awake = true;
 
       // A full gauge is not enough: the power must have something to do to THIS
       // target (see _isPowerRelevant). When it hasn't, the unit attacks normally
@@ -446,7 +466,7 @@ export class CombatManager {
    */
   _actOnMoveRecharge(u, events) {
     const candidates = this._targetCandidates(u, { requireLOS: true });
-    const target = candidates.length > 0 ? findAttackTarget(u, candidates, this.board).unit : null;
+    const target = candidates.length > 0 ? findAttackTarget(u, candidates, this.board, u.target_policy).unit : null;
     const reachable = target !== null && canAttack(u, target, this.board);
     // ⚠️ Le pouvoir prime sur l'attaque simple dans cette fenêtre aussi : sinon un
     // Insaisissable, qui ne reste presque jamais à portée au tick d'attaque,
@@ -466,6 +486,75 @@ export class CombatManager {
     const from = { ...u.position };
     this.board.moveUnit(u, next);
     events.push({ type: 'move', unit: u, from, to: { ...u.position } });
+  }
+
+  /**
+   * **Embusqué** : réveillé (définitivement, pour ce combat) dès qu'un ennemi
+   * vivant est à sa PORTÉE — sans ligne de vue : un ennemi derrière un mur doit
+   * le faire contourner —, qu'il est provoqué, qu'il a une cible à portée en
+   * phase 4 (une cible entrée et tuée dans le même tick), ou qu'il a encaissé
+   * un coup (posé par `Unit.takeDamage`).
+   */
+  _ambushAwake(u) {
+    if (u.ambush_awake) return true;
+    if (this._provoker(u) || this._enemies(u).some(e => e.isAlive() && e.position && isInAttackRange(u, e))) {
+      u.ambush_awake = true;
+    }
+    return u.ambush_awake;
+  }
+
+  /**
+   * **Garde du corps** : le protégé est l'allié vivant aux PV les plus bas
+   * (lui-même exclu ; `current_hp` absolu, puis le départage commun). Au
+   * contact (Manhattan 1), le garde ne bouge pas ; sinon il fait un pas vers
+   * lui, seulement si ce pas le rapproche.
+   *
+   * ⚠️ La garde l'emporte sur l'arrêt `canAttack` : un garde à portée d'un
+   * ennemi mais loin de son protégé marche quand même, et frappe en phase 4
+   * depuis là où il est. Rend `false` — déplacement normal — sans allié à
+   * garder ou quand l'unité est provoquée.
+   */
+  _guardMove(u, events) {
+    if (this._provoker(u)) return false;
+    const allies = this._allies(u).filter(a => a !== u && a.isAlive() && a.position);
+    if (allies.length === 0) return false;
+    const ward = allies.reduce((best, a) =>
+      (a.current_hp - best.current_hp || compareTieBreak(u.position, this.board, a, best)) < 0 ? a : best);
+    const dist = manhattanDistance(u.position, ward.position);
+    if (dist <= 1) return true;
+    const next = stepTowardOrNearest(this.board, u.position, ward.position);
+    if (next && manhattanDistance(next, ward.position) < dist) {
+      const from = { ...u.position };
+      this.board.moveUnit(u, next);
+      events.push({ type: 'move', unit: u, from, to: { ...u.position } });
+    }
+    return true;
+  }
+
+  /**
+   * **Flanc** : le pas vers le point de passage `(colonne de bord, rangée de la
+   * cible)` tant que l'unité n'est pas sur la rangée de sa cible ; `null` pour
+   * retomber sur le pas normal (déjà sur la rangée, point de passage bloqué,
+   * occupé ou inaccessible). Sans état : recalculé à chaque pas.
+   *
+   * ⚠️ Le bord se choisit sur la COLONNE, que le miroir du rôle B ne touche pas
+   * (`BoardMirror` ne retourne que les rangées) : même choix chez les deux clients.
+   */
+  _flankStep(u, target) {
+    const pos = u.position, goal = target.position;
+    if (pos.row === goal.row) return null;
+    const lastCol = this.board.cols - 1;
+    const centre = lastCol / 2;
+    const side = pos.col !== centre ? pos.col : goal.col;
+    const edge = side > centre ? lastCol : 0;
+    const waypoint = { col: edge, row: goal.row };
+    if (this.board.isBlocked(waypoint)) return null;
+    const occupant = this.board.getUnit(waypoint);
+    if (occupant && !occupant.is_neutralized && occupant !== u) return null;
+    const next = stepToward(this.board, pos, waypoint);
+    if (!next) return null;
+    const occ = this.board.getUnit(next);
+    return occ && !occ.is_neutralized ? null : next;
   }
 
   // Would firing `unit`'s power at `target` right now change anything?

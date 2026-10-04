@@ -23,7 +23,7 @@
 // Cf. `docs/moteur-effets.md` §4 et §5.
 
 import { Unit } from '../Unit.js';
-import type { Card, GuaranteedDraw, GuaranteedMagie, DrawSourceEntry, BonusSourceEntry } from '../types.js';
+import type { Card, GuaranteedDraw, GuaranteedMagie, DrawSourceEntry, BonusSourceEntry, MovePolicy, TargetPolicy } from '../types.js';
 import { CHAMPS_UNITE, cleDeTri } from './types.js';
 import { clampRate, rateForTicks } from '../../../../speed-scale.mjs';
 import type { Effet, Tache, TacheModifier, TacheDeplacer, TachePoserStatut, TacheAjouter, TacheRetirer, TacheRemplacer, TachePoserEffet, TacheInvoquer, EntreeRegistre, Portee, Selecteur, ChampUnite, Camp } from './types.js';
@@ -612,6 +612,34 @@ function appliqueDeplacer(t: TacheDeplacer, monde: Monde, trace: Trace): void {
   }
 }
 
+/**
+ * Les mots-clés des familles 1 (ciblage) et 2 (déplacement) : le champ de
+ * `Unit` qu'ils écrivent, la valeur, et leur RANG dans la famille.
+ *
+ * ⚠️ Une unité ne porte qu'une politique par famille. Deux mots-clés d'une même
+ * famille se tranchent ici, par le rang (Briseur > Chasseur > Tireur d'élite ;
+ * Garde du corps > Embusqué > Flanc), et non par l'ordre des effets — qui
+ * dépend du catalogue d'attributs.
+ */
+type KeywordPolicy =
+  | { champ: 'target_policy'; valeur: TargetPolicy; rang: number }
+  | { champ: 'move_policy'; valeur: MovePolicy; rang: number };
+
+export const KEYWORD_POLICIES: Record<string, KeywordPolicy> = {
+  tireur_elite:   { champ: 'target_policy', valeur: 'plus_loin_a_portee', rang: 1 },
+  chasseur:       { champ: 'target_policy', valeur: 'pv_bas',             rang: 2 },
+  briseur:        { champ: 'target_policy', valeur: 'pv_max_haut',        rang: 3 },
+  flanc:          { champ: 'move_policy',   valeur: 'flanc',              rang: 1 },
+  embusque:       { champ: 'move_policy',   valeur: 'embusque',           rang: 2 },
+  garde_du_corps: { champ: 'move_policy',   valeur: 'garde',              rang: 3 },
+};
+
+/** Le rang de la politique que `u` porte déjà dans cette famille (0 = défaut). */
+function policyRank(u: Unit, champ: KeywordPolicy['champ']): number {
+  for (const p of Object.values(KEYWORD_POLICIES)) if (p.champ === champ && p.valeur === u[champ]) return p.rang;
+  return 0;
+}
+
 function appliquePoserStatut(t: TachePoserStatut, monde: Monde, trace: Trace): void {
   for (const u of resoudre(t.cible, monde)) {
     if (t.statut === 'immunite') {
@@ -630,6 +658,16 @@ function appliquePoserStatut(t: TachePoserStatut, monde: Monde, trace: Trace): v
       // `GameSession.startCombat` remet `is_elusive` à zéro (cf. `Unit`).
       u.is_elusive = true;
       trace.applique.push(`${u.card_id}·insaisissable`);
+    } else if (t.statut in KEYWORD_POLICIES) {
+      // Familles 1 et 2 — même geste : le moteur POSE, `startCombat` nettoie
+      // (`Unit.resetKeywordStatuses`). Un rang plus haut que l'actuel remplace,
+      // jamais l'inverse : le résultat ne dépend pas de l'ordre des effets.
+      const p = KEYWORD_POLICIES[t.statut];
+      if (p.rang > policyRank(u, p.champ)) {
+        if (p.champ === 'target_policy') u.target_policy = p.valeur;
+        else u.move_policy = p.valeur;
+      }
+      trace.applique.push(`${u.card_id}·${t.statut}`);
     } else {
       trace.ignore.push(`${u.card_id}·statut ${t.statut} (non câblé)`);
     }

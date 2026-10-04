@@ -1,4 +1,4 @@
-import type { Position } from './types.js';
+import type { Position, TargetPolicy } from './types.js';
 import type { Board } from './Board.js';
 import type { Unit } from './Unit.js';
 
@@ -157,20 +157,95 @@ export function canAttack(attacker: Unit, target: Unit, board: Board | null = nu
 }
 
 /**
- * Find the best attack target for `unit` among `enemies`.
- * Prefers targets with line of sight when a board is provided.
+ * Find the best attack target for `unit` among `enemies`, under `policy`.
+ *
+ * `plus_proche` (the default) is the historical rule, unchanged to the bit:
+ * prefer targets with line of sight, then the closest in Manhattan, first of the
+ * array on a tie. Changing it would move every combat (sim goldens, PvP net).
+ *
+ * The three keyword policies (Tireur d'élite, Chasseur, Briseur) first look at
+ * the ATTACKABLE candidates (range + line of sight) and pick the best of them by
+ * the policy — so an attack is never lost because the preferred target is out
+ * of reach. With nothing attackable, `plus_loin_a_portee` falls back to the
+ * default, while the two GLOBAL policies pick their prey in the whole pool
+ * (line of sight first, like the default): that is the unit phase 3 walks to.
+ *
  * Returns { unit, distance } or null.
  */
-export function findAttackTarget(unit: Unit, enemies: Unit[], board: Board | null = null): { unit: Unit; distance: number } | null {
+export function findAttackTarget(unit: Unit, enemies: Unit[], board: Board | null = null, policy: TargetPolicy = 'plus_proche'): { unit: Unit; distance: number } | null {
   const alive = enemies.filter(e => e.isAlive());
+  const from = unit.position as Position;
+  if (policy !== 'plus_proche') {
+    const attackable = alive.filter(e => canAttack(unit, e, board));
+    if (attackable.length > 0 || isGlobalPolicy(policy)) {
+      const losAlive = board ? alive.filter(e => hasLineOfSight(board, from, e.position as Position)) : alive;
+      const pool = attackable.length > 0 ? attackable : (losAlive.length > 0 ? losAlive : alive);
+      const best = bestByPolicy(from, pool, board, policy);
+      return best ? { unit: best, distance: manhattanDistance(from, best.position as Position) } : null;
+    }
+  }
   // Prefer targets with line of sight; fall back to all alive if none have LOS
-  const losAlive = board ? alive.filter(e => hasLineOfSight(board, unit.position as Position, e.position as Position)) : alive;
+  const losAlive = board ? alive.filter(e => hasLineOfSight(board, from, e.position as Position)) : alive;
   const pool = losAlive.length > 0 ? losAlive : alive;
 
   let best: Unit | null = null, bestDist = Infinity;
   for (const e of pool) {
-    const d = manhattanDistance(unit.position as Position, e.position as Position);
+    const d = manhattanDistance(from, e.position as Position);
     if (d < bestDist) { bestDist = d; best = e; }
   }
   return best ? { unit: best, distance: bestDist } : null;
+}
+
+/**
+ * Les politiques qui choisissent leur cible PARTOUT sur le plateau (Chasseur,
+ * Briseur) : l'unité marche vers elle, au lieu de marcher vers la plus proche.
+ */
+export function isGlobalPolicy(policy: TargetPolicy): boolean {
+  return policy === 'pv_bas' || policy === 'pv_max_haut';
+}
+
+/**
+ * Le rang d'une case dans le repère de RÉFÉRENCE : la colonne, puis la place de
+ * la rangée dans `board.rowScan()`. La même valeur pour la même case physique
+ * sur les deux clients d'un duel — là où `row` seul est miroité.
+ */
+export function referenceCellRank(board: Board | null, pos: Position): number {
+  const rows = board?.rows ?? 11;
+  const rank = board?.mirroredFrame ? rows - 1 - pos.row : pos.row;
+  return pos.col * rows + rank;
+}
+
+/**
+ * Le départage de toute politique hors défaut, une fois sa métrique à égalité :
+ * Manhattan croissante depuis `from`, puis `card_id`, puis la case dans le
+ * repère de référence.
+ *
+ * ⚠️ `card_id` ne suffit pas : deux exemplaires d'une carte Multiple, ou deux
+ * tokens, le partagent dans un même camp. Jamais l'ordre d'un tableau d'unités.
+ */
+export function compareTieBreak(from: Position, board: Board | null, a: Unit, b: Unit): number {
+  return manhattanDistance(from, a.position as Position) - manhattanDistance(from, b.position as Position)
+    || a.card_id.localeCompare(b.card_id)
+    || referenceCellRank(board, a.position as Position) - referenceCellRank(board, b.position as Position);
+}
+
+/** La métrique d'une politique, plus petite = meilleure. */
+function policyMetric(policy: TargetPolicy, from: Position, u: Unit): number {
+  switch (policy) {
+    case 'plus_loin_a_portee': return -manhattanDistance(from, u.position as Position);
+    // `current_hp` absolu, bouclier exclu — comme POWER_HEAL et `_teleportPlan`.
+    case 'pv_bas': return u.current_hp;
+    case 'pv_max_haut': return -u.max_hp;
+    default: return manhattanDistance(from, u.position as Position);
+  }
+}
+
+/** `pool` trié par la politique, puis par `compareTieBreak` — une copie. */
+export function sortByPolicy(from: Position, pool: Unit[], board: Board | null, policy: TargetPolicy): Unit[] {
+  return [...pool].sort((a, b) =>
+    policyMetric(policy, from, a) - policyMetric(policy, from, b) || compareTieBreak(from, board, a, b));
+}
+
+function bestByPolicy(from: Position, pool: Unit[], board: Board | null, policy: TargetPolicy): Unit | null {
+  return pool.length > 0 ? sortByPolicy(from, pool, board, policy)[0] : null;
 }
