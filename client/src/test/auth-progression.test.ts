@@ -60,6 +60,16 @@ describe('applyProgression', () => {
     expect(useAuthStore.getState().levelToasts.map(t => t.level)).toEqual([4, 5]);
   });
 
+  it('ignore une progression périmée : un niveau déjà annoncé ne se rejoue pas', () => {
+    const { applyProgression } = useAuthStore.getState();
+    applyProgression({ ...PROG, level: 4 });
+    applyProgression({ ...PROG, level: 3, pending_levels: 1 }); // réponse en retard
+    expect(useAuthStore.getState().user!.level).toBe(4);
+    expect(useAuthStore.getState().user!.pending_levels).toBe(0);
+    applyProgression({ ...PROG, level: 4, xp: 5 });
+    expect(useAuthStore.getState().levelToasts.map(t => t.level)).toEqual([4]);
+  });
+
   it('garde `pending_levels` quand le serveur ne le dit pas', () => {
     useAuthStore.setState({ user: { id: 'u1', username: 'Testeur', ...PROG, pending_levels: 2 } });
     const before = useAuthStore.getState().user;

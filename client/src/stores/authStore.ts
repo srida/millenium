@@ -92,6 +92,13 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     const user = get().user;
     if (!user) return;
 
+    // ⚠️ Un niveau ne redescend jamais : une progression plus BASSE que celle
+    // déjà appliquée est une réponse périmée (deux routes d'instantané parties
+    // en même temps, la plus ancienne arrive en dernier). L'appliquer faisait
+    // reculer `level`, donc la réponse suivante « refranchissait » le niveau —
+    // toast rejoué — et rouvrait `pending_levels` après la récupération.
+    if (user.level !== undefined && p.level < user.level) return;
+
     const pending = p.pending_levels ?? user.pending_levels;
 
     // ⚠️ Un instantané IDENTIQUE ne réécrit PAS `user`. Ce n'est pas une
