@@ -130,10 +130,14 @@ function HandCard3D({ entry, targeting, targetable, transform, width, rail }: {
   const ctx = { targeting, targetable, rail };
   const visual = handCardVisual(entry, ctx);
   const intent = handTapIntent(entry, ctx);
+  // Tour engagé (PRÊT tapé en duel) : la main se consulte (appui long →
+  // tooltip) mais ne se joue plus — ni tap, ni glisser.
+  const locked = useGameStore(s => s.pvpReady);
 
   return (
     <Card3D
       {...cardVisualProps(entry.card)}
+      disabled={locked}
       transform={transform}
       width={width}
       // tap → sélection d'invocation ; en ciblage de magie, la carte est la
@@ -182,7 +186,7 @@ function HandCard3D({ entry, targeting, targetable, transform, width, rail }: {
       // La carte retenue sort de sa bande : vers le haut en portrait, vers le
       // board (droite) quand la main est un rail vertical.
       lift={visual.lift}
-      dim={visual.dim}
+      dim={locked && visual.dim === 'none' ? 'soft' : visual.dim}
       badge={visual.badge}
       stacked={visual.stacked}
       raised={visual.lift !== 'none'}

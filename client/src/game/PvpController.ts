@@ -35,7 +35,8 @@ export class PvpController extends GameController {
   private role: 'A' | 'B';
   private opponentName: string;
   private _handshaking = false;
-  private _oppBoardPromise: Promise<any> | null = null;
+  /** Une demande d'annulation de PRÊT est partie, la réponse du serveur manque. */
+  private _cancelPending = false;
   private _listeners: [string, (m: any) => void][] = [];
   private _finished = false;
   /** Terrains annoncés par le rôle A, par round — B peut recevoir celui du
@@ -85,6 +86,8 @@ export class PvpController extends GameController {
     // Écoute les messages de round + fin de match, puis démarre la préparation.
     this._listen('round:go', (m) => this._onRoundGo(m));
     this._listen('round:terrain_pick', (m) => this._onTerrainPick(m));
+    this._listen('round:cancel_ok', () => this._onCancelOk());
+    this._listen('round:cancel_refused', () => { this._cancelPending = false; });
     this._listen('match:end', (m) => this._onMatchEnd(m));
     this._listen('match:opponent_disconnected', () => this._pvpNotify('Adversaire déconnecté…'));
     this._listen('_socket_closed', () => this._pvpNotify('Connexion perdue'));
@@ -121,12 +124,36 @@ export class PvpController extends GameController {
       value: gs.player_damage_multiplier_bonus,
       sources: gs.player_multiplier_sources,
     });
-    // 2) J'attends le board adverse, puis j'acquitte la barrière.
-    this._oppBoardPromise = waitForOpponentBoard(round);
+    // 2) J'acquitte la barrière. Le board adverse n'est lu qu'à `round:go` :
+    //    l'adversaire peut reprendre son PRÊT et renvoyer un autre board, seul le
+    //    dernier reçu fait foi (`PvpOpponentProvider` écrase par round).
     // Le terrain est déjà convenu (annoncé en début de tour) : les deux rôles
     // acquittent tout de suite.
     PvpConnection.send('round:combat_start_ack', { round });
-    this.sync({ combatActive: false, pvpWaiting: true });
+    // Pas d'overlay : main et plateau sont verrouillés (`_isLocked`) et c'est le
+    // bouton PRÊT qui porte l'attente.
+    this.sync({ combatActive: false, pvpReady: true });
+  }
+
+  /**
+   * Reprend le PRÊT. Le déverrouillage attend l'accord du serveur
+   * (`round:cancel_ok`) : si l'adversaire a acquitté entre-temps, `round:go` est
+   * déjà parti, la barrière est franchie et le combat se joue — le refus laisse
+   * alors le tour verrouillé.
+   */
+  cancelReady(): void {
+    if (!this._handshaking || this._cancelPending || this.session.phase !== Phase.PREPARATION) return;
+    this._cancelPending = true;
+    const sent = PvpConnection.send('round:combat_start_cancel', { round: this.session.gameState.round });
+    if (!sent) this._cancelPending = false;
+  }
+
+  private _onCancelOk(): void {
+    if (!this._handshaking || !this._cancelPending) return;
+    this._cancelPending = false;
+    this._handshaking = false;
+    this._committedPrepId = null;
+    this.sync({ pvpReady: false });
   }
 
   /**
@@ -172,9 +199,9 @@ export class PvpController extends GameController {
   }
 
   private async _onRoundGo(msg: { round: number; boardId: string | null }): Promise<void> {
-    if (!this._oppBoardPromise) return;
-    const oppPayload = await this._oppBoardPromise;
-    this._oppBoardPromise = null;
+    if (!this._handshaking) return;
+    this._cancelPending = false;
+    const oppPayload = await waitForOpponentBoard(this.session.gameState.round);
 
     // PV adverses : autoritaires côté propriétaire. Les magies globales de la
     // Phase Shopping (player_hp_bonus) n'existent que sur le client qui les a
@@ -191,7 +218,7 @@ export class PvpController extends GameController {
     this.scene?.refresh();
     const { combat } = this.session.startCombat(board);
     this._handshaking = false;
-    this.sync({ pvpWaiting: false });
+    this.sync({ pvpReady: false });
     this._beginCombatAnimation(combat, board);
   }
 
@@ -233,7 +260,7 @@ export class PvpController extends GameController {
     // voyage dans match:end : il n'y a rien à réclamer, juste à afficher.
     this._reportMatchCompleted();
     if (iWon && msg.progression) useAuthStore.getState().applyProgression(msg.progression);
-    this.sync({ combatActive: false, pvpWaiting: false, gameOver: true, winner });
+    this.sync({ combatActive: false, pvpWaiting: false, pvpReady: false, gameOver: true, winner });
   }
 
   // Abandon volontaire (bouton quitter).

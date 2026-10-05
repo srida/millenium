@@ -164,8 +164,8 @@ export default function GameScreenPvp() {
           attend à la barrière réseau, on ne peut pas le bloquer en l'ouvrant. */}
       <GameMenu onQuit={() => controller.forfeit()} quitLabel="Abandonner le duel" />
       {/* Chronos partagés avec GameScreen. Deux différences avec le solo, et
-          elles tiennent au réseau : `pvpWaiting` gèle la préparation (on attend
-          l'adversaire à la barrière), et rien ne gèle le shopping — l'adversaire
+          elles tiennent au réseau : `pvpReady` / `pvpWaiting` gèlent la
+          préparation (on attend l'adversaire à la barrière), et rien ne gèle le shopping — l'adversaire
           attend derrière, le choix doit être borné. Pas de `coachBlocking` non
           plus : il n'y a pas de tutoriel en duel. `duelIntro`, lui, ne pose
           aucun problème réseau (rien n'attend derrière une animation purement
@@ -175,7 +175,7 @@ export default function GameScreenPvp() {
         durationS={PREP_DURATION_S}
         field="prepRemaining"
         restartKey={round}
-        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.pvpWaiting && !s.gameOver && !s.duelIntro}
+        isActive={s => s.phase === 'preparation' && !s.combatActive && !s.endRound && !s.shopping && !s.pvpWaiting && !s.pvpReady && !s.gameOver && !s.duelIntro}
         onTimeout={() => controller.startCombat()}
       />
       {shoppingOpen && (

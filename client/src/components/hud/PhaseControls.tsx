@@ -125,7 +125,7 @@ function MenuButton() {
 export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   const {
     controller, combatActive, prepRemaining, combatRemaining,
-    speed, showGrid, paused, boardTerrain, canUndo, canMulligan, mulliganCost,
+    speed, showGrid, paused, boardTerrain, canUndo, canMulligan, mulliganCost, pvpReady,
   } = useGameStore();
   const web = useWebLayout();
   // Un seul chrono visible à la fois : celui de la phase en cours.
@@ -210,9 +210,26 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
       />
       {canUndo && <UndoButton onUndo={() => controller.undoPreparation()} />}
       <MenuButton />
-      <Button variant="primary" onPointerDown={(e) => { e.stopPropagation(); controller.startCombat(); }} sfx={false}>
-        PRÊT
-      </Button>
+      {/* En duel, PRÊT tapé = tour verrouillé, et le bouton porte l'attente (plus
+          de popup bloquante) : un nouveau tap reprend la validation. */}
+      {pvpReady ? (
+        <Button
+          variant="primary"
+          aria-label="En attente de l'adversaire — toucher pour annuler"
+          className="animate-pulse"
+          onPointerDown={(e) => { e.stopPropagation(); controller.cancelReady(); }}
+          sfx={false}
+        >
+          <span className="flex flex-col items-center leading-tight">
+            <span>PRÊT ✓</span>
+            <span className="text-[10px] font-normal">En attente · annuler</span>
+          </span>
+        </Button>
+      ) : (
+        <Button variant="primary" onPointerDown={(e) => { e.stopPropagation(); controller.startCombat(); }} sfx={false}>
+          PRÊT
+        </Button>
+      )}
     </div>
   );
 }

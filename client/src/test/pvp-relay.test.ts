@@ -349,6 +349,37 @@ describe('barrière du terrain', () => {
   });
 });
 
+// ── Reprendre son PRÊT ─────────────────────────────────────────────────────
+describe('annulation du PRÊT', () => {
+  // Mutation : `round:combat_start_cancel` retiré du relais → ROUGE (rien ne
+  // répond, et la barrière s'ouvre dès que B acquitte).
+  it('retire l\'acquittement : B seul ne lance plus le combat', () => {
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_ack', round: 1 });
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_cancel', round: 1 });
+    expect(wsA.last('round:cancel_ok')).not.toBeNull();
+    relay.relayMessage(matchId, B, { type: 'round:combat_start_ack', round: 1 });
+    expect(wsA.last('round:go')).toBeNull();
+    expect(wsB.last('round:go')).toBeNull();
+    // A re-valide : la barrière s'ouvre.
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_ack', round: 1 });
+    expect(wsA.last('round:go').round).toBe(1);
+  });
+
+  it('refusée une fois la barrière franchie — le combat se joue', () => {
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_ack', round: 1 });
+    relay.relayMessage(matchId, B, { type: 'round:combat_start_ack', round: 1 });
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_cancel', round: 1 });
+    expect(wsA.last('round:cancel_refused')).not.toBeNull();
+    expect(wsA.last('round:cancel_ok')).toBeNull();
+  });
+
+  it('refusée sans acquittement préalable, et jamais relayée à l\'adversaire', () => {
+    relay.relayMessage(matchId, A, { type: 'round:combat_start_cancel', round: 1 });
+    expect(wsA.last('round:cancel_refused')).not.toBeNull();
+    expect(wsB.last('round:combat_start_cancel')).toBeNull();
+    expect(wsB.last('round:cancel_ok')).toBeNull();
+  });
+});
 
 // ── L'échéance : une barrière à moitié franchie ne dure pas ─────────────────
 //

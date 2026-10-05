@@ -261,6 +261,25 @@ function relayMessage(matchId, fromUserId, msg) {
     return;
   }
 
+  // Le joueur reprend son « PRÊT ». Il ne peut le faire que tant que la barrière
+  // de ce round n'est PAS franchie : son acquittement est alors seul dans le
+  // lot, on le retire (avec son board, qu'il renverra en re-validant) et
+  // l'échéance retombe s'il n'y a plus personne. Une barrière déjà ouverte est
+  // refusée — `round:go` est parti, le combat se joue. La réponse est toujours
+  // rendue à l'émetteur, jamais relayée : l'adversaire n'a rien à en savoir.
+  if (msg.type === 'round:combat_start_cancel') {
+    const round = roundOf(msg, match);
+    const barrier = match.barriers.get(round);
+    const ok = !!barrier && barrier.acks.has(role) && barrier.acks.size === 1;
+    if (ok) {
+      barrier.acks.delete(role);
+      barrier.boards.delete(role);
+      if (barrier.acks.size === 0 && barrier.timer) { clearTimeout(barrier.timer); barrier.timer = null; }
+    }
+    send(match.players[role].ws, ok ? 'round:cancel_ok' : 'round:cancel_refused', { round });
+    return;
+  }
+
   // ⚠️ `round:next_ready` ne RÉINITIALISE plus rien, et c'est la correction :
   // il n'est qu'un relais. Il vidait auparavant la barrière et le terrain, sans
   // regarder de quel round il parlait — si bien qu'un joueur encore en Phase

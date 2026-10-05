@@ -1685,6 +1685,10 @@ Verrouillé par `client/src/test/pvp.test.ts`.
 
 ⚠️ **La barrière de lancement de combat est indexée par ROUND** (`ackRound`, `combatStartAcks`, `terrainByRound`). Les deux joueurs ne traversent pas la fin d'un round à la même vitesse (récapitulatif 22 s, Shopping 45 s, préparation 60 s) : `round:next_ready` vidait la barrière **sans regarder de quel round il parlait**, effaçant l'acquittement déjà posé — chaque client n'acquittant qu'une fois par round, elle ne repassait **jamais** à deux et le match figeait sans erreur ni déconnexion. `round:next_ready` n'est donc plus qu'un **relais**, et la barrière se referme sur elle-même.
 
+**PRÊT reprenable** (duel réel et bot) : PRÊT tapé → `pvpReady` (pas d'overlay), main/plateau/cimetière verrouillés (`GameController._isLocked`, consultation par tooltip seulement), le bouton PRÊT porte l'attente et un nouveau tap appelle `cancelReady()`. `pvpWaiting` ne sert plus qu'à l'attente du résultat final (overlay conservé).
+- ⚠️ Annulation = `round:combat_start_cancel` → `round:cancel_ok` / `round:cancel_refused`, **jamais relayé**. Le serveur ne retire l'acquittement que si la barrière n'est pas franchie et que c'est le seul ; le client ne déverrouille **qu'au `cancel_ok`**.
+- ⚠️ Le board adverse se lit **à `round:go`** (`waitForOpponentBoard`), pas au PRÊT : l'adversaire peut renvoyer un board après annulation, le dernier reçu par round fait foi.
+
 ⚠️ **Une barrière à moitié franchie ne dure pas** : `BARRIER_TIMEOUT_MS` (180 s, armé au premier acquittement) la tranche selon la règle de Marvel Snap — on joue le round si on **peut** le jouer, sinon le silencieux perd (`endMatch(..., 'timeout')`). C'est le second gel possible, distinct du précédent : un onglet gelé n'acquitte jamais **sans se déconnecter**.
 
 - ⚠️ **« Jouer sans lui » n'est possible que si son BOARD est arrivé** : le client présent attend aussi `round:board_ready` (`waitForOpponentBoard`) et le serveur n'en garde **aucune copie**. La grâce ne vaut donc que si seul l'acquittement manque — structurellement rare, board et acquittement partant du même appel synchrone.

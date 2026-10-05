@@ -98,7 +98,7 @@ export class BotController extends GameController {
     this._committedPrepId = this.session.prepId;
     if (wait <= 0) { super.startCombat(); return; }
     this._clearSelection();
-    this.sync({ combatActive: false, pvpWaiting: true });
+    this.sync({ combatActive: false, pvpReady: true });
     this._waitTimer = setTimeout(() => {
       this._waitTimer = null;
       // ⚠️ La partie a pu se solder PENDANT l'attente : l'overlay est modal,
@@ -107,9 +107,19 @@ export class BotController extends GameController {
       // `session.phase` ne suffit pas à le voir, elle est toujours en
       // préparation (c'est le SERVEUR qui a mis fin au match, pas la session).
       if (this._finished) return;
-      this.sync({ pvpWaiting: false });
+      this.sync({ pvpReady: false });
       if (this.session.phase === Phase.PREPARATION) super.startCombat();
     }, wait);
+  }
+
+  /** Même geste que le duel réel : le PRÊT se reprend tant que l'« adversaire »
+   *  n'a pas fini son attente — le joueur ne doit pas pouvoir les distinguer. */
+  cancelReady(): void {
+    if (!this._waitTimer) return;
+    clearTimeout(this._waitTimer);
+    this._waitTimer = null;
+    this._committedPrepId = null;
+    this.sync({ pvpReady: false });
   }
 
   // ── Fin de round / fin de partie ──────────────────────────────────────────
@@ -153,7 +163,7 @@ export class BotController extends GameController {
     // `progression` n'accompagne `match:end` que si le gain a été versé : le
     // serveur refuse un match invraisemblablement court ou trop répété.
     if (msg.progression) useAuthStore.getState().applyProgression(msg.progression);
-    this.sync({ combatActive: false, pvpWaiting: false, gameOver: true, winner });
+    this.sync({ combatActive: false, pvpWaiting: false, pvpReady: false, gameOver: true, winner });
   }
 
   // Abandon volontaire : concédé au serveur, qui clôt le match sans rien verser.
@@ -188,6 +198,7 @@ export class BotController extends GameController {
     this.sync({
       combatActive: false,
       pvpWaiting: false,
+      pvpReady: false,
       gameOver: true,
       winner: forced ?? this.session.getWinner(),
     });

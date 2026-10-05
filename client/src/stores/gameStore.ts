@@ -214,7 +214,11 @@ export interface GameSnapshot {
   winner: 'player' | 'enemy' | 'draw' | null;
   // PvP uniquement
   pvpOpponent: string | null;   // pseudo de l'adversaire
-  pvpWaiting: boolean;          // en attente de l'adversaire (poignée de main / résultat)
+  pvpWaiting: boolean;          // en attente du résultat de la partie (overlay bloquant)
+  // PRÊT tapé en duel : main et plateau verrouillés, le bouton PRÊT porte
+  // l'indication d'attente et un nouveau tap reprend la validation. Jamais
+  // bloquant — distinct de `pvpWaiting`, qui garde son overlay.
+  pvpReady: boolean;
 }
 
 export const EMPTY_SNAPSHOT: GameSnapshot = {
@@ -225,7 +229,7 @@ export const EMPTY_SNAPSHOT: GameSnapshot = {
   boardTerrain: null, terrainAlert: null, roundIntro: null, drawPopup: null,
   combatActive: false, combatOutro: null, phaseWipe: null, combatRemaining: 60, speed: 2, showGrid: false, paused: false,
   prepRemaining: 60, endRound: null, shopping: null, shoppingRemaining: SHOPPING_DURATION_S, summonOptions: null,
-  menuOpen: false, coachBlocking: false, duelIntro: false, gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false,
+  menuOpen: false, coachBlocking: false, duelIntro: false, gameOver: false, winner: null, pvpOpponent: null, pvpWaiting: false, pvpReady: false,
 };
 
 interface GameStoreState extends GameSnapshot {

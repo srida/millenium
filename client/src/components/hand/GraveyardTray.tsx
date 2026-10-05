@@ -99,9 +99,12 @@ function GraveCard3D({ entry, targeting, transform, width, rail }: {
   const controller = useGameStore(s => s.controller)!;
   const visual = graveyardCardVisual(entry, { targeting });
   const intent = graveyardTapIntent({ targeting });
+  // Cf. `HandBar` : tour engagé → consultation seule.
+  const locked = useGameStore(s => s.pvpReady);
 
   return (
     <Card3D
+      disabled={locked}
       illustrationId={artFor(entry.unit.card_id, entry.unit.side)}
       foil={hasFoil(entry.unit.card_id, entry.unit.side)}
       finish={finishOf(entry.unit.card_id, entry.unit.side)}
@@ -121,7 +124,7 @@ function GraveCard3D({ entry, targeting, transform, width, rail }: {
         else controller.tapGraveyardUnit(entry.unit);
       }}
       highlight={visual.highlight}
-      dim={visual.dim}
+      dim={locked && visual.dim === 'none' ? 'soft' : visual.dim}
       tooltip={{ kind: 'unit', unit: entry.unit }}
     />
   );

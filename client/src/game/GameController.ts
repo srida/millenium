@@ -328,7 +328,24 @@ export class GameController {
 
   // ── Sélection de carte en main ──────────────────────────────────────────
 
+  /**
+   * Le tour est engagé (PRÊT tapé) : main et plateau sont VERROUILLÉS, seule la
+   * consultation (tooltips) reste ouverte. Le verrou se lève de lui-même au tour
+   * suivant (`prepId`) ou quand le joueur reprend son PRÊT (`cancelReady`).
+   * ⚠️ Limité à la préparation : la Phase Shopping partage le `prepId` du tour
+   * qui vient de finir, et ses ciblages de magie ne doivent pas être gelés.
+   */
+  protected _isLocked(): boolean {
+    return this.session.phase === Phase.PREPARATION
+      && this._committedPrepId === this.session.prepId;
+  }
+
+  /** Reprend un PRÊT déjà tapé. Sans objet hors duel en ligne : le solo lance le
+   *  combat sur-le-champ. */
+  cancelReady(): void { /* no-op — surchargé par PvpController / BotController */ }
+
   selectCard(card: Card | null, handIdx: number | null): void {
+    if (this._isLocked()) return;
     this._closeSummonMenu();
     this.selectedMaterials = [];
     this.selectedCell = null;
@@ -409,7 +426,7 @@ export class GameController {
    * un téléphone, est le geste principal.
    */
   onCellTap = (pos: Position): void => {
-    if (this.summonOptions) return;
+    if (this.summonOptions || this._isLocked()) return;
     useUiStore.getState().hideTooltip();
     if (this.selectedCard) {
       if (this.session.needsMaterials(this.selectedCard, this.selectedConditionIndex)
@@ -456,6 +473,11 @@ export class GameController {
       return;
     }
     if (this.session.phase !== Phase.PREPARATION) {
+      useUiStore.getState().showTooltip({ kind: 'unit', unit }, rect);
+      return;
+    }
+    // Tour engagé : le plateau se CONSULTE, il ne se joue plus.
+    if (this._isLocked()) {
       useUiStore.getState().showTooltip({ kind: 'unit', unit }, rect);
       return;
     }
@@ -573,7 +595,7 @@ export class GameController {
   onUnitDrag = (unit: Unit, from: Position, to: Position): void => {
     if (this.session.phase !== Phase.PREPARATION) return;
     if (to.col === from.col && to.row === from.row) return;
-    if (!this.session.reposition(unit, to)) {
+    if (this._isLocked() || !this.session.reposition(unit, to)) {
       this.scene?.animateUnitMove(unit.uid, from, 0.15);
       return;
     }
@@ -589,6 +611,7 @@ export class GameController {
 
   // Tap sur une unité du cimetière (matériau) — appelé depuis GraveyardTray React.
   tapGraveyardUnit(unit: Unit): void {
+    if (this._isLocked()) return;
     useUiStore.getState().hideTooltip();
     if (this.session.phase === Phase.PREPARATION && this.selectedCard && this.session.needsMaterials(this.selectedCard, this.selectedConditionIndex)) {
       const card = this.selectedCard;
