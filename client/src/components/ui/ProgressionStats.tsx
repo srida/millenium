@@ -222,7 +222,9 @@ function StepRewards({ step }: { step: LevelStep }) {
 // L'action part au `pointerdown`, mais le navigateur émet encore mousedown /
 // click au relâchement, sur ce qui est alors SOUS le doigt : quand la mise en
 // page bouge (bouton retiré, modale), c'est un autre élément qui les reçoit —
-// sur le Profil, le champ de recherche d'amis, qui prend le focus.
+// sur le Profil, le champ de recherche d'amis, qui prend le focus. Vaut aussi
+// pour la fermeture de la révélation (« Continuer » ferme au pointerdown) : une
+// révélation de golds seuls est courte, son bouton tombe sur le champ d'amis.
 function swallowGhostTap() {
   const stop = (e: Event) => { e.preventDefault(); e.stopPropagation(); };
   const types = ['mousedown', 'mouseup', 'click'] as const;
@@ -372,7 +374,7 @@ export function LevelTrack({ user, levels, onClaimed, className = '' }: {
         <p role="alert" className="rounded-lg border border-danger/50 bg-danger/10 px-2 py-1.5 text-xs leading-snug text-danger">{err}</p>
       )}
 
-      {reveal && <LevelReveal lines={reveal} onClose={() => setReveal(null)} />}
+      {reveal && <LevelReveal lines={reveal} onClose={() => { swallowGhostTap(); setReveal(null); }} />}
 
       <button
         type="button"
