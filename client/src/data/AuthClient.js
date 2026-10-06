@@ -221,6 +221,10 @@ export async function pickDraftCards(cardIds, mod) {
   return absorbShop(await api('/me/draft/pick', { method: 'POST', body: { card_ids: cardIds, ...(mod ? { mod } : {}) } }));
 }
 
+export async function removeDraftCard(cardId) {
+  return absorbShop(await api('/me/draft/remove', { method: 'POST', body: { card_id: cardId } }));
+}
+
 export async function rerollDraft() {
   return absorbShop(await api('/me/draft/reroll', { method: 'POST', body: {} }));
 }

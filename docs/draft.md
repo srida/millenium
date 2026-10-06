@@ -47,9 +47,11 @@ Le jeu a déjà tout ce qu'il faut :
 5. **Une carte de plus après chaque duel** qui ne clôt pas la run (victoire ou
    défaite) : une parmi trois, tous tiers, avant de chercher le duel suivant.
    Les trois ont un rôle et un prix : un **lien** avec le deck (avec un
-   **malus**), une carte **jouable**, un **pari** (avec un **bonus**).
+   **malus**), une carte **jouable**, un **pari** (avec un **bonus**). Au
+   même moment, le joueur peut **retirer une carte** de son deck (facultatif).
 6. **Chaque victoire paie des gemmes** : 6, 9, 12, 15 puis 18, soit **60** pour une
-   run parfaite, plus le gain d'XP d'un duel en ligne.
+   run parfaite, plus **30 XP** (`draft_win`, moins qu'un duel en ligne : la
+   run paie déjà en gemmes).
 
 ## La carte de plus : lien, jouable, pari
 
@@ -67,6 +69,20 @@ carte modifiée (`applyMod`) et la joue partout (offre, deck, partie). En duel
 réel seules les stats voyagent (`base`), un décalage de matériels ne regarde que
 celui qui invoque. Le bot drafte ses cartes de plus avec les mêmes règles et
 joue ses cartes modifiées.
+
+## Le retrait d'une carte
+
+À l'étape de la carte de plus, le joueur peut aussi retirer **une** carte de son
+deck : facultatif, révisable (« Remettre », ou en retirer une autre) tant que la
+carte de plus n'est pas prise, puis figé. Le deck ne descend donc jamais sous 15
+cartes. Une carte retirée ne revient pas dans une offre.
+
+Le serveur range le retrait sous la clé de l'étape (`run.removals`, clé =
+`picks.length` au moment du retrait) ; `picks` reste la liste de tout ce qui a été
+pris, donc la carte due se compte comme avant. Le deck engagé (`duelDeck`,
+`deckOf`) est `picks` moins les retraits. L'offre de l'étape en cours ignore son
+propre retrait : sinon retirer puis remettre une carte servirait de relance
+gratuite. Le bot ne retire rien, son deck garde 15 cartes plus une par duel.
 
 ## Les lots
 

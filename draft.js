@@ -121,6 +121,25 @@ function pendingBonus(run) {
   return run.status === 'playing' && run.picks.length < DRAFT_SIZE + run.wins + run.losses;
 }
 
+/**
+ * Retraits : à l'étape de la carte de plus, le joueur peut aussi RETIRER une
+ * carte de son deck — une par étape, révisable tant que la carte de plus
+ * n'est pas prise. `run.removals` range le retrait sous la clé de l'étape
+ * (`picks.length` à ce moment-là, unique par étape) ; `picks` reste la liste
+ * de tout ce qui a été pris, donc `pendingBonus` n'en est pas affecté et une
+ * carte retirée ne peut pas revenir dans une offre.
+ * ⚠️ JUMEAU de `logic/Draft.ts` (`removedIds`, `deckIds`).
+ */
+function removedIds(run) {
+  return new Set(Object.values(run.removals ?? {}));
+}
+
+/** Les cartes du deck : tout ce qui a été pris, moins les retraits. */
+function deckIds(run) {
+  const removed = removedIds(run);
+  return run.picks.filter(id => !removed.has(id));
+}
+
 /** L'étape à jouer : celle du draft, la carte de plus, ou rien. */
 function stepOf(run) {
   if (run.status === 'drafting') return currentStep(run.picks.length);
@@ -226,6 +245,28 @@ const pick = db.transaction((user, cardIds, mod = null) => {
   return { ok: true };
 });
 
+/** Retire une carte du deck à l'étape de la carte de plus (`cardId` nul :
+ *  annule le retrait de l'étape). Un second retrait sur la même étape
+ *  REMPLACE le premier : la carte d'avant revient. */
+const remove = db.transaction((user, cardId) => {
+  const state = readState(user.id);
+  const { run, error } = todayRun(state);
+  if (error) return { ok: false, reason: error, stale: true };
+  if (!pendingBonus(run)) return { ok: false, reason: 'Aucun retrait possible maintenant.', stale: true };
+  const key = String(run.picks.length);
+  const removals = { ...run.removals };
+  delete removals[key];
+  if (cardId != null) {
+    const earlier = new Set(Object.values(removals));
+    if (!run.picks.includes(cardId) || earlier.has(cardId)) return { ok: false, reason: 'Cette carte n\'est pas dans ton deck.', stale: true };
+    removals[key] = cardId;
+  }
+  if (Object.keys(removals).length) run.removals = removals;
+  else delete run.removals;
+  writeState(state);
+  return { ok: true };
+});
+
 const reroll = db.transaction((user) => {
   const state = readState(user.id);
   const { run, error } = todayRun(state);
@@ -247,7 +288,7 @@ function duelDeck(userId) {
   if (error) return { ok: false, reason: error };
   if (run.status !== 'playing') return { ok: false, reason: 'Aucun duel à jouer.' };
   if (pendingBonus(run)) return { ok: false, reason: 'Choisis d\'abord ta carte.' };
-  return { ok: true, card_ids: [...run.picks] };
+  return { ok: true, card_ids: deckIds(run) };
 }
 
 /**
@@ -333,5 +374,5 @@ function refresh(user) {
 module.exports = {
   DRAFT_STEPS, DRAFT_SIZE, BONUS_STEP, DRAFT_REROLLS, isLinkedBundle, RUN_WINS, RUN_LOSSES, EXTRA_LIVES,
   EXTRA_LIFE_PRICE_GEMS, WIN_GEMS,
-  MOD_SIGNS, sync, start, pick, reroll, duelDeck, recordDuel, buyLife, getSnapshot, refresh, pendingBonus,
+  MOD_SIGNS, sync, start, pick, remove, reroll, duelDeck, recordDuel, buyLife, getSnapshot, refresh, pendingBonus, removedIds, deckIds,
 };

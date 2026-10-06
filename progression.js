@@ -38,8 +38,9 @@ const REWARDS = Object.freeze({
   ai_win: 10,          // victoire sur l'IA (partie solo)
   tournament_win: 50,  // tournoi remporté (le joueur est champion)
   pvp_win: 70,         // victoire sur un autre joueur en ligne
+  draft_win: 30,       // victoire d'un duel de Draft (joueur ou bot) — la run paie déjà en gemmes
 });
-// `pvp_win` est décerné par le serveur lui-même (ws/MatchRelay.endMatch, qui
+// `pvp_win` et `draft_win` sont décernés par le serveur lui-même (ws/MatchRelay.endMatch, qui
 // tranche le vainqueur à partir des rapports croisés des deux clients) : le
 // réclamer via HTTP n'aurait aucune garantie.
 const CLIENT_CLAIMABLE = Object.freeze(['ai_win', 'tournament_win']);

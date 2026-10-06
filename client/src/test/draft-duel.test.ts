@@ -157,6 +157,9 @@ describe('solde du duel', () => {
     expect(wsB.last('match:end').draft).toMatchObject({ result: 'loss', status: 'playing' });
     // La progression rendue au vainqueur porte déjà les gemmes.
     expect(wsA.last('match:end').progression.gems).toBe(gemsOf(A));
+    // Un duel de Draft paie `draft_win` (30 XP), pas `pvp_win`.
+    expect(wsA.last('match:end').xp_gained).toBe(progression.REWARDS.draft_win);
+    expect(progression.REWARDS.draft_win).toBe(30);
     // Une carte de plus est due à chacun.
     expect(draft.pendingBonus(runOf(A))).toBe(true);
     expect(draft.pendingBonus(runOf(B))).toBe(true);
@@ -181,9 +184,11 @@ describe('solde du duel', () => {
   it('un match du Duel en ligne ne touche à aucune run', () => {
     const A = newUser(); const B = newUser();
     setRun(A, PICKS()); setRun(B, OTHER_PICKS());
-    const id = relay.createMatch({ userId: A, ws: fakeSocket('a'), deckName: 'x' }, { userId: B, ws: fakeSocket('b'), deckName: 'x' });
+    const wsA = fakeSocket('a');
+    const id = relay.createMatch({ userId: A, ws: wsA, deckName: 'x' }, { userId: B, ws: fakeSocket('b'), deckName: 'x' });
     relay.handleReportResult(id, A, 'player');
     relay.handleReportResult(id, B, 'enemy');
+    expect(wsA.last('match:end').xp_gained).toBe(progression.REWARDS.pvp_win);
     expect(runOf(A).wins).toBe(0);
     expect(runOf(B).losses).toBe(0);
   });
@@ -213,6 +218,7 @@ describe('repli bot', () => {
     botMatch.handleReportResult(slow, U, 'player');
     expect(runOf(U)).toMatchObject({ wins: 1, gems_earned: draft.WIN_GEMS[0] });
     expect(ws.last('match:end').draft).toMatchObject({ result: 'win' });
+    expect(ws.last('match:end').xp_gained).toBe(progression.REWARDS.draft_win);
   });
 
   it('fermer l\'onglet en plein duel est une défaite', () => {

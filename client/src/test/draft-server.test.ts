@@ -272,6 +272,36 @@ describe('carte de plus et file d\'attente', () => {
   });
 });
 
+describe('retrait d\'une carte', () => {
+  it('une carte par étape de carte de plus, révisable, absente du deck engagé', () => {
+    const user = newUser();
+    drafted(user);
+    const [a, b] = run(user).picks;
+    expect(draft.remove(user(), a).ok).toBe(false);                          // pas d'étape en cours
+    draft.recordDuel(user().id, 'win');
+    expect(draft.remove(user(), 'INCONNUE').ok).toBe(false);
+    expect(draft.remove(user(), a).ok).toBe(true);
+    expect(draft.remove(user(), b).ok).toBe(true);                           // remplace : `a` revient
+    expect(Object.values(run(user).removals)).toEqual([b]);
+    expect(draft.remove(user(), null).ok).toBe(true);                        // annule
+    expect(run(user).removals).toBeUndefined();
+    expect(draft.remove(user(), a).ok).toBe(true);
+    // La carte de plus reste due : le retrait ne la remplace pas.
+    expect(draft.pendingBonus(run(user))).toBe(true);
+    expect(draft.pick(user(), [a]).ok).toBe(false);                          // ne revient pas
+    expect(draft.pick(user(), [anyFreeCard(run(user))]).ok).toBe(true);
+    const deck = draft.duelDeck(user().id).card_ids;
+    expect(deck).toHaveLength(15);
+    expect(deck).not.toContain(a);
+    // L'étape est passée : son retrait est figé, une carte retirée ne se retire pas deux fois.
+    expect(draft.remove(user(), b).ok).toBe(false);
+    draft.recordDuel(user().id, 'loss');
+    expect(draft.remove(user(), a).ok).toBe(false);
+    expect(draft.remove(user(), b).ok).toBe(true);
+    expect(draft.deckIds(run(user))).toEqual(ClientDraft.deckIds(run(user)));
+  });
+});
+
 describe('vie rachetée', () => {
   it('se rachète une fois, seulement à la défaite, et se paie', () => {
     const user = newUser();
