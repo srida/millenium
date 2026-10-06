@@ -13,7 +13,7 @@ import {
   DRAFT_STEPS, DRAFT_SIZE, DRAFT_REROLLS, OFFER_SIZE, RUN_WINS, RUN_LOSSES,
   newDraft, offerFor, pickCards, reroll, canReroll, recordResult, deckOf,
   autoDraft, currentOpponent, currentStep, isLinkedBundle, laneTier, type DraftState,
-  pendingBonus, stepOf, BONUS_STEP, applyMod, modFor, moddedCards, MOD_STAT_RATIO,
+  pendingBonus, stepOf, BONUS_STEP, removeCard, currentRemoval, deckIds, applyMod, modFor, moddedCards, MOD_STAT_RATIO,
 } from '../logic/Draft.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -234,6 +234,48 @@ describe('carte de plus entre deux duels', () => {
       expect(offerFor(reroll(s)!, POOL).flatMap(ids)).not.toEqual(offer.flatMap(ids));
     }
     expect(seen.size).toBeGreaterThan(2);
+  });
+});
+
+describe('retrait d\'une carte entre deux duels', () => {
+  it('se fait à l\'étape de la carte de plus seulement, une par étape, révisable', () => {
+    const s = draftFirst(61);
+    const [a, b] = s.picks;
+    expect(removeCard(s, a)).toBeNull();
+    const due = recordResult(s, 'win')!;
+    expect(removeCard(due, 'INCONNUE')).toBeNull();
+    const one = removeCard(due, a)!;
+    expect(currentRemoval(one)).toBe(a);
+    expect(Object.values(deckOf(one, POOL)).flat()).not.toContain(a);
+    const swapped = removeCard(one, b)!;
+    expect(deckIds(swapped)).toContain(a);
+    expect(deckIds(swapped)).not.toContain(b);
+    expect(removeCard(swapped, null)!.removals).toBeUndefined();
+  });
+
+  it('l\'offre en cours ne bouge pas avec son propre retrait (pas de relance gratuite)', () => {
+    for (let seed = 62; seed < 72; seed++) {
+      const due = recordResult(draftFirst(seed), 'win')!;
+      const before = offerFor(due, POOL).flatMap(ids);
+      for (const id of due.picks.slice(0, 5)) {
+        expect(offerFor(removeCard(due, id)!, POOL).flatMap(ids)).toEqual(before);
+      }
+    }
+  });
+
+  it('une carte retirée quitte le deck pour de bon et ne revient pas dans une offre', () => {
+    const due = recordResult(draftFirst(73), 'win')!;
+    const gone = due.picks[3];
+    let s = take(removeCard(due, gone)!, 0);
+    expect(s.removals).toEqual({ [String(DRAFT_SIZE)]: gone });
+    expect(deckIds(s)).toHaveLength(DRAFT_SIZE);
+    for (let i = 0; i < 3; i++) {
+      s = recordResult(s, 'win')!;
+      expect(offerFor(s, POOL).flatMap(ids)).not.toContain(gone);
+      expect(removeCard(s, gone)).toBeNull();                 // déjà retirée
+      s = take(s, 0);
+    }
+    expect(Object.values(deckOf(s, POOL)).flat()).not.toContain(gone);
   });
 });
 

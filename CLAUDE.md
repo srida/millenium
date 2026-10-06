@@ -223,9 +223,9 @@ Toutes les mutations renvoient **l'instantané complet + la progression à jour*
 
 `XP_PER_LEVEL = 100`, palier unique. `grant()` absorbe le passage de palier (250 XP = +2 niveaux et 50 de reste). Un débit d'XP ne fait jamais redescendre de niveau.
 
-**Barème des gains** (`progression.REWARDS`) : `ai_win` 10 · `tournament_win` 50 · `pvp_win` 70.
+**Barème des gains** (`progression.REWARDS`) : `ai_win` 10 · `tournament_win` 50 · `pvp_win` 70 · `draft_win` 30.
 
-- `pvp_win` est refusé sur la route HTTP (`CLIENT_CLAIMABLE`) : le serveur est seul arbitre du vainqueur PvP et le décerne lui-même (`ws/MatchRelay.endMatch`, `ws/BotMatch.endMatch`).
+- `pvp_win` et `draft_win` sont refusés sur la route HTTP (`CLIENT_CLAIMABLE`) : le serveur est seul arbitre du vainqueur PvP et le décerne lui-même (`ws/MatchRelay.endMatch`, `ws/BotMatch.endMatch`).
 - Une **manche** de tournoi ne rapporte pas `ai_win` (le tournoi a son gain à la victoire finale).
 - Solo et tournoi se déroulent entièrement côté client : le serveur ne peut que croire le joueur, le rate-limit (30/min) borne l'abus sans l'empêcher.
 
@@ -1854,6 +1854,8 @@ Une run par jour (rotation de 5 h). 15 cartes : trois **lots** de 3 cartes liée
 | Gemmes par victoire | 6 / 9 / 12 / 15 / 18 (60 pour une run parfaite), versées à la clôture du match |
 | Vie rachetée | **20 gemmes**, une par run, seulement une fois la run perdue |
 | Carte de plus | une parmi trois, **tous tiers** (`BONUS_STEP`), due avant le duel suivant |
+| Retrait | **une** carte du deck, facultatif, à l'étape de la carte de plus (révisable jusqu'au choix) |
+| XP par victoire | **30** (`draft_win`, à la place de `pvp_win`), joueur comme bot |
 
 - ⚠️ **Partage serveur / client inhabituel** : le serveur pose la **graine** et tient la run (choix, relances, duels, vie, gemmes, table `user_draft_state`) ; l'**offre** se calcule côté client, parce qu'elle lit les règles d'invocation que Node ne porte pas.
 - ⚠️ Le serveur valide un choix (cartes du catalogue, pas encore prises, du tier de l'étape ou formant un lot lié) mais **ne peut pas vérifier qu'il était dans l'offre**.
@@ -1861,6 +1863,7 @@ Une run par jour (rotation de 5 h). 15 cartes : trois **lots** de 3 cartes liée
 - L'étape se **déduit** de `picks.length` (`stepOf` : `currentStep` en draft, `BONUS_STEP` quand une carte est due) ; `picks` reste une liste plate. Le deck range chaque carte à son **plus bas tier** (`deckOf(state, pool)`).
 - **Carte de plus = lien (malus) / jouable / pari (bonus)** (`bonusOffer`). Malus et bonus : ±1 matériel par recette (exigences rognées) ou ±20 % ATQ/PV, nature tirée de (graine, carte). ⚠️ Le serveur ne stocke que le **signe** (`run.mods`, `MOD_SIGNS` jumeau), il ne peut pas vérifier le rôle ; la carte modifiée se dérive côté client (`moddedCards`) et passe à `buildSession` par `cardOverrides` (pool du joueur, `enemyCardDb` pour le bot). Jamais le catalogue muté.
 - ⚠️ **La carte de plus est DÉRIVÉE, jamais stockée** : `pendingBonus(run)` = `playing` et `picks.length < DRAFT_SIZE + wins + losses`. Rien à oublier de poser, et une vie rachetée la rend due elle aussi.
+- ⚠️ **Un retrait ne touche pas `picks`** : `run.removals = { [picks.length]: card_id }`, une entrée par étape. Le deck est `deckIds(run)` (`picks` moins les retraits, jumeau `draft.js` ↔ `logic/Draft.ts`) — `duelDeck`, `deckOf` et l'offre le lisent, jamais `picks`. ⚠️ L'offre de l'étape en cours ignore son propre retrait (`deckIds(state, picks.length)`) : sinon retirer/remettre serait une relance gratuite.
 - ⚠️ `DRAFT_STEPS`, `BONUS_STEP`, `DRAFT_REROLLS`, `RUN_WINS`, `RUN_LOSSES`, `EXTRA_LIVES`, `isLinkedBundle` et `pendingBonus` sont **jumeaux** (`draft.js` ↔ `logic/Draft.ts`) ; `draft-server.test.ts` est le seul filet.
 - ⚠️ **L'offre est une fonction de l'état** (`seed`, `picks.length`, `rerolls`) : jamais de `Math.random` au rendu.
 - Choix d'une carte : complément / sûr / pari, jugés par **`logic/DeckCoverage.isSummonable`** (`sim/decks.ts` la réexporte).
@@ -1869,7 +1872,7 @@ Une run par jour (rotation de 5 h). 15 cartes : trois **lots** de 3 cartes liée
 ### Les duels de Draft (file PvP, `mode: 'draft'`)
 
 - `queue:join { mode: 'draft' }` : la file **n'apparie qu'entre joueurs en draft** (FIFO par mode). Le deck vient de la **run** (`draft.duelDeck`), jamais d'un nom envoyé par le client ; refus → `error` `draft_unavailable` (pas de run en duels, carte de plus due).
-- ⚠️ **Le résultat est soldé par le SERVEUR** à la clôture du match (`MatchRelay.endMatch` / `BotMatch.endMatch` → `draft.recordDuel`), **avant** le gain `pvp_win`, et annoncé dans `match:end.draft`. Il n'y a plus de route de rapport. Un nul ne solde rien (le duel se rejoue).
+- ⚠️ **Le résultat est soldé par le SERVEUR** à la clôture du match (`MatchRelay.endMatch` / `BotMatch.endMatch` → `draft.recordDuel`), **avant** le gain `draft_win`, et annoncé dans `match:end.draft`. Il n'y a plus de route de rapport. Un nul ne solde rien (le duel se rejoue).
 - `deckDerived` d'un match de draft : `deck_attribute_counts` du deck drafté (`decks.attributeCountsOf`), **aucun cosmétique**.
 - **Repli bot** : `match:found` porte `bot: { deck: null }` et `mode: 'draft'` — le client drafte le deck du bot (`currentOpponent` → `autoDraft(…, extra = index)`, même taille que le deck du joueur) et prend sa carte « tête » pour avatar. Le bot n'a **aucun handicap**.
 - ⚠️ Contre un bot : une victoire sous `MIN_MATCH_MS` ne compte pas ; une défaite compte toujours ; **fermer l'onglet en plein duel est une défaite** (`handleDisconnect`), seul mode où c'est le cas.

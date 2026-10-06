@@ -18,7 +18,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { useDraftStore, getDraftPool, type DraftRun, type DraftSnapshot } from '../stores/draftStore.js';
 import {
   DRAFT_STEPS, DRAFT_SIZE, DRAFT_REROLLS, RUN_WINS, RUN_LOSSES,
-  offerFor, applyMod, modLabel, moddedCards, currentStep, stepOf, pendingBonus, currentOpponent, canReroll, deckOf, maxLosses,
+  offerFor, applyMod, modLabel, moddedCards, currentStep, stepOf, pendingBonus, currentOpponent, canReroll, deckOf, deckIds, currentRemoval, maxLosses,
   type OfferKind, type OfferSlot, type DraftState,
 } from '../logic/Draft.js';
 import DeckTierGrid from '../components/deck/DeckTierGrid.js';
@@ -144,7 +144,7 @@ function Picking({ state }: { state: DraftState }) {
         <div className="text-[10px] tracking-widest text-white/40">
           {bundles ? 'CHOISIS UN LOT DE 3 CARTES' : bonus ? 'CARTE DE PLUS · TOUS TIERS' : `TIER ${step?.tier} · CHOISIS UNE CARTE`}
         </div>
-        {bonus && <p className="mt-1 text-xs text-white/60">Ton duel est joué : ajoute une carte à ton deck avant le suivant.</p>}
+        {bonus && <p className="mt-1 text-xs text-white/60">Ton duel est joué : ajoute une carte à ton deck avant le suivant. Tu peux aussi en retirer une.</p>}
       </div>
       {bundles ? (
         <div className="mx-auto max-w-md space-y-3">
@@ -201,7 +201,7 @@ function Picking({ state }: { state: DraftState }) {
           Prendre
         </Button>
       </div>
-      <DeckSummary state={state} />
+      <DeckSummary state={state} removable={bonus} />
     </>
   );
 }
@@ -417,24 +417,51 @@ function Pips({ label, filled, total, tone }: { label: string; filled: number; t
 }
 
 /** Le deck en cours, rangé par tier comme l'onglet « Deck » du DeckBuilder.
- *  Lecture seule : l'appui long détaille une carte, le tap ne fait rien. */
-function DeckSummary({ state }: { state: DraftState }) {
+ *  L'appui long détaille une carte. À l'étape de la carte de plus
+ *  (`removable`), le tap RETIRE la carte du deck — une par étape, révisable
+ *  tant que la carte de plus n'est pas prise (`draft.remove`). */
+function DeckSummary({ state, removable = false }: { state: DraftState; removable?: boolean }) {
+  const remove = useDraftStore(s => s.remove);
+  const busy = useDraftStore(s => s.busy);
+  const [err, setErr] = useState<string | null>(null);
   const pool = getDraftPool();
+  // Les cartes de plus modifiées remplacent celles du catalogue.
+  const byId = useMemo(() => new Map([...pool.map(c => [c.id, c] as const), ...moddedCards(state, pool)]), [state, pool]);
   const deck = useMemo(() => {
-    // Les cartes de plus modifiées remplacent celles du catalogue.
-    const byId = new Map([...pool.map(c => [c.id, c] as const), ...moddedCards(state, pool)]);
     const ids = deckOf(state, pool);
     return Object.fromEntries([1, 2, 3, 4, 5].map(t =>
       [t, ids[String(t)].map(id => byId.get(id)).filter((c): c is Card => !!c)]));
-  }, [state, pool]);
+  }, [state, pool, byId]);
   if (state.picks.length === 0) return null;
+  const removedId = removable ? currentRemoval(state) : null;
+  const removed = removedId ? byId.get(removedId) : null;
+  const count = deckIds(state).length;
+  const act = async (id: string | null) => { if (!busy) setErr(await remove(id)); };
   return (
     <section className="mx-auto max-w-md">
-      <h2 className="mb-1.5 text-[10px] tracking-widest text-white/40">TON DECK ({state.status === 'drafting' ? `${state.picks.length}/${DRAFT_SIZE}` : `${state.picks.length} cartes`})</h2>
+      <h2 className="mb-1.5 text-[10px] tracking-widest text-white/40">TON DECK ({state.status === 'drafting' ? `${state.picks.length}/${DRAFT_SIZE}` : `${count} cartes`})</h2>
+      {removable && (
+        <div className="mb-2 flex items-center gap-2 rounded-lg border border-line bg-surface-raised/50 px-3 py-2 text-xs">
+          {removed ? (
+            <>
+              <span className="min-w-0 flex-1 truncate text-white/70">Retirée : <span className="font-bold text-danger">{removed.name}</span></span>
+              <Button className="shrink-0 px-3 py-1.5 text-xs" disabled={busy} onPointerDown={() => act(null)}>Remettre</Button>
+            </>
+          ) : (
+            <span className="text-white/50">Touche une carte de ton deck pour la retirer (facultatif, une par duel).</span>
+          )}
+        </div>
+      )}
+      {err && <p className="mb-2 text-center text-xs text-danger">{err}</p>}
       <DeckTierGrid
         deck={deck}
         renderCard={(c, _t, idx) => (
-          <Card3D key={`${c.id}-${idx}`} {...cardVisualProps(c, 'player', { plain: true })} size="h-auto w-full" />
+          <Card3D
+            key={`${c.id}-${idx}`}
+            {...cardVisualProps(c, 'player', { plain: true })}
+            size="h-auto w-full"
+            {...(removable ? { tapOn: 'up' as const, onTap: () => act(c.id) } : {})}
+          />
         )}
       />
     </section>

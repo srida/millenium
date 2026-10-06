@@ -696,6 +696,14 @@ router.post('/me/draft/reroll', auth.requireUser, auth.rateLimit({ windowMs: 60_
   draftResult(req, res, draft.reroll(req.user));
 });
 
+// Retrait d'une carte à l'étape de la carte de plus ; `card_id: null` l'annule.
+router.post('/me/draft/remove', auth.requireUser, auth.rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
+  const cardId = req.body?.card_id;
+  if (cardId != null && typeof cardId !== 'string') return res.status(400).json({ error: 'card_id invalide.' });
+  draft.sync(req.user);
+  draftResult(req, res, draft.remove(req.user, cardId ?? null));
+});
+
 // ⚠️ Pas de route de résultat : un duel de Draft est un match en ligne, soldé
 // par le relais PvP (`draft.recordDuel`, appelé à la clôture du match).
 

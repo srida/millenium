@@ -161,13 +161,14 @@ function endMatch(matchId, winnerRole, reason) {
     if (res.ok) draftOutcome = { result: res.result, status: res.status, granted: res.granted };
   }
 
-  const gain = allowed ? progression.reward(match.userId, 'pvp_win') : null;
+  const rewardKey = match.draft ? 'draft_win' : 'pvp_win';
+  const gain = allowed ? progression.reward(match.userId, rewardKey) : null;
 
   send(match.ws, 'match:end', {
     matchId,
     winner: winnerRole,
     reason,
-    ...(gain ? { xp_gained: progression.REWARDS.pvp_win, progression: gain } : {}),
+    ...(gain ? { xp_gained: progression.REWARDS[rewardKey], progression: gain } : {}),
     ...(draftOutcome ? { draft: draftOutcome } : {}),
   });
 }

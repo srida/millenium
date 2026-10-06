@@ -454,8 +454,10 @@ function endMatch(matchId, winnerUserId, reason) {
   // vaut aussi sur forfait/timeout — l'adversaire a bien remporté le match.
   // `reward` renvoie la progression à jour, transmise avec match:end pour que
   // le vainqueur voie sa jauge bouger sans refetch.
-  const gain = winnerUserId ? progression.reward(winnerUserId, 'pvp_win') : null;
-  const xpGained = gain ? progression.REWARDS.pvp_win : 0;
+  // Un duel de Draft paie moins (`draft_win`) : la run verse déjà ses gemmes.
+  const rewardKey = match.mode === 'draft' ? 'draft_win' : 'pvp_win';
+  const gain = winnerUserId ? progression.reward(winnerUserId, rewardKey) : null;
+  const xpGained = gain ? progression.REWARDS[rewardKey] : 0;
 
   send(roleA.ws, 'match:end', {
     matchId, winner: winnerRole, reason,

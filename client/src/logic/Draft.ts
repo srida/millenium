@@ -84,6 +84,9 @@ export interface DraftState {
   /** Cartes de plus prises avec un malus ou un bonus, par id (cf. `DraftMod`).
    *  Absent sur une run qui n'en a pris aucune. */
   mods?: Record<string, ModSign>;
+  /** Cartes retirées du deck, une par étape de carte de plus, sous la clé de
+   *  l'étape (`picks.length` au moment du retrait). Absent sans retrait. */
+  removals?: Record<string, string>;
 }
 
 /** Le rôle d'un choix — ce que l'écran annonce. `link` n'existe qu'à la carte
@@ -207,6 +210,43 @@ export function stepOf(state: Pick<DraftState, 'status' | 'picks' | 'wins' | 'lo
   return pendingBonus(state) ? stepAt(state.picks.length) : null;
 }
 
+/** Les cartes retirées du deck. `before` ne garde que les retraits des étapes
+ *  PRÉCÉDANT ce nombre de cartes prises : l'offre de l'étape en cours se
+ *  calcule sans son propre retrait, sinon retirer puis remettre une carte
+ *  servirait de relance gratuite.
+ *  ⚠️ JUMEAU de `draft.js` (`removedIds`). */
+export function removedIds(state: Pick<DraftState, 'removals'>, before = Infinity): Set<string> {
+  return new Set(Object.entries(state.removals ?? {}).filter(([k]) => Number(k) < before).map(([, id]) => id));
+}
+
+/** Le deck : tout ce qui a été pris, moins les retraits.
+ *  ⚠️ JUMEAU de `draft.js` (`deckIds`). */
+export function deckIds(state: Pick<DraftState, 'picks' | 'removals'>, before = Infinity): string[] {
+  const removed = removedIds(state, before);
+  return state.picks.filter(id => !removed.has(id));
+}
+
+/** Le retrait de l'étape en cours, s'il y en a un. */
+export function currentRemoval(state: Pick<DraftState, 'picks' | 'removals'>): string | null {
+  return state.removals?.[String(state.picks.length)] ?? null;
+}
+
+/** Retire une carte à l'étape de la carte de plus (`null` : annule) — le même
+ *  verdict que `draft.remove`. Un second retrait remplace le premier. */
+export function removeCard(state: DraftState, cardId: string | null): DraftState | null {
+  if (!pendingBonus(state)) return null;
+  const key = String(state.picks.length);
+  const removals = { ...state.removals };
+  delete removals[key];
+  if (cardId != null) {
+    if (!state.picks.includes(cardId) || Object.values(removals).includes(cardId)) return null;
+    removals[key] = cardId;
+  }
+  const { removals: _old, ...rest } = state;
+  void _old;
+  return Object.keys(removals).length ? { ...rest, removals } : rest;
+}
+
 /** Le plus bas tier d'une carte : celui où elle se range dans le deck. */
 export function laneTier(card: Card): number {
   return tiersOf(card)[0] ?? 1;
@@ -215,10 +255,10 @@ export function laneTier(card: Card): number {
 /** Le deck tel que `buildSession` l'attend : `{ "1": [...], …, "5": [...] }`.
  *  Chaque carte se range à son plus bas tier — la pioche se dérive de toute
  *  façon des tiers de la carte (`Draw.deckPoolByTier`), pas de sa lane. */
-export function deckOf(state: Pick<DraftState, 'picks'>, pool: readonly Card[]): Record<string, string[]> {
+export function deckOf(state: Pick<DraftState, 'picks' | 'removals'>, pool: readonly Card[]): Record<string, string[]> {
   const deck: Record<string, string[]> = { '1': [], '2': [], '3': [], '4': [], '5': [] };
   const byId = indexOf(pool);
-  for (const id of state.picks) {
+  for (const id of deckIds(state)) {
     const c = byId.get(id);
     deck[String(c ? laneTier(c) : 1)]?.push(id);
   }
@@ -344,7 +384,7 @@ function draw(list: Card[], rand: () => number): Card | null {
  * presque vide.
  */
 export function offerFor(
-  state: Pick<DraftState, 'seed' | 'picks' | 'rerolls'>,
+  state: Pick<DraftState, 'seed' | 'picks' | 'rerolls' | 'removals'>,
   pool: readonly Card[],
   rerolls: number = state.rerolls,
 ): OfferSlot[] {
@@ -352,8 +392,11 @@ export function offerFor(
   if (at.step.tier == null && !at.step.bonus) return bundleOffer(state, pool, at.index, rerolls);
   const tier = at.step.tier;
   const byId = indexOf(pool);
+  // Une carte retirée ne revient pas (`taken` garde tout ce qui a été pris),
+  // mais elle ne compte plus dans le deck dont l'offre se nourrit.
   const taken = new Set(state.picks);
-  const picked = cardsOf(state.picks, byId);
+  const deck = deckIds(state, state.picks.length);
+  const picked = cardsOf(deck, byId);
   const cov = coverageOf(picked);
   const missing = missingMaterials(picked, cov);
 
@@ -366,7 +409,7 @@ export function offerFor(
   const complement = buildable.filter(c => fillsMissing(c, missing));
   const bets = eligible.filter(c => !isSummonable(c, cov.ids, cov.attrs));
 
-  if (at.step.bonus) return bonusOffer(state, eligible, picked, cov, rerolls);
+  if (at.step.bonus) return bonusOffer(state, deck, eligible, picked, cov, rerolls);
 
   const rand = makeRandom(hashSeed(state.seed, 'offer', state.picks.length, rerolls));
   const out: OfferSlot[] = [];
@@ -409,16 +452,17 @@ export function offerFor(
  */
 function bonusOffer(
   state: Pick<DraftState, 'seed' | 'picks'>,
+  deck: readonly string[],
   eligible: readonly Card[],
   picked: readonly Card[],
   cov: ReturnType<typeof coverageOf>,
   rerolls: number,
 ): OfferSlot[] {
-  const deckIds = new Set(state.picks);
+  const inDeck = new Set(deck);
   const namedByDeck = new Set(picked.flatMap(c => [...namedIds(c)]));
   const attrsWanted = new Set(picked.flatMap(requiredAttrs));
   const playable = (c: Card) => isSummonable(c, cov.ids, cov.attrs);
-  const idLinked = (c: Card) => namedByDeck.has(c.id) || [...namedIds(c)].some(id => deckIds.has(id));
+  const idLinked = (c: Card) => namedByDeck.has(c.id) || [...namedIds(c)].some(id => inDeck.has(id));
   const attrLinked = (c: Card) => (c.attributes ?? []).some(a => attrsWanted.has(a))
     || requiredAttrs(c).some(a => cov.attrs.has(a));
 
