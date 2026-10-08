@@ -1317,5 +1317,29 @@
 	{
 		"id": "VAR_329",
 		"card_id": "CORE_135"
+	},
+	{
+		"id": "VAR_330",
+		"card_id": "VIPER_002"
+	},
+	{
+		"id": "VAR_331",
+		"card_id": "VIPER_004"
+	},
+	{
+		"id": "VAR_332",
+		"card_id": "VIPER_006"
+	},
+	{
+		"id": "VAR_333",
+		"card_id": "VIPER_006"
+	},
+	{
+		"id": "VAR_334",
+		"card_id": "VIPER_005"
+	},
+	{
+		"id": "VAR_335",
+		"card_id": "VIPER_005"
 	}
 ]

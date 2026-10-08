@@ -676,7 +676,8 @@
 				"stat": "atk",
 				"value": 10,
 				"target_attributes": [
-					"ARCH_058"
+					"ARCH_058",
+					"ARCH_080"
 				]
 			},
 			{

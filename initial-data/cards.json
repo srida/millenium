@@ -262,18 +262,20 @@
 			"ARCH_004",
 			"ARCH_050",
 			"ARCH_090",
-			"ARCH_091"
+			"ARCH_091",
+			"ARCH_111"
 		],
 		"stats": {
 			"atk": 13,
 			"hp": 300,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 83,
-			"movement_rate": 86
+			"range": 1
 		},
 		"power": {},
 		"summon_conditions": [],
-		"material_value": 1
+		"material_value": 1,
+		"represented_ids": []
 	},
 	{
 		"id": "CORE_011",
@@ -2858,20 +2860,17 @@
 			"ARCH_049",
 			"ARCH_050",
 			"ARCH_086",
-			"ARCH_092"
+			"ARCH_092",
+			"ARCH_111"
 		],
 		"stats": {
 			"atk": 10,
 			"hp": 360,
-			"range": 1,
+			"movement_rate": 92,
 			"attack_rate": 90,
-			"movement_rate": 92
+			"range": 1
 		},
-		"power": {
-			"id": "POWER_SHIELD",
-			"value": 50,
-			"power_rate": 50
-		},
+		"power": {},
 		"summon_conditions": [
 			{
 				"materials": 2,
@@ -2980,14 +2979,15 @@
 			"ARCH_011",
 			"ARCH_056",
 			"ARCH_086",
-			"ARCH_093"
+			"ARCH_093",
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 35,
 			"hp": 600,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -6286,14 +6286,15 @@
 			"ARCH_054",
 			"ARCH_049",
 			"ARCH_088",
-			"ARCH_092"
+			"ARCH_092",
+			"ARCH_107"
 		],
 		"stats": {
 			"atk": 14,
 			"hp": 145,
-			"range": 2,
+			"movement_rate": 90,
 			"attack_rate": 92,
-			"movement_rate": 90
+			"range": 2
 		},
 		"power": {},
 		"summon_conditions": [
@@ -7227,14 +7228,15 @@
 			"ARCH_052",
 			"ARCH_051",
 			"ARCH_086",
-			"ARCH_094"
+			"ARCH_094",
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 40,
 			"hp": 430,
-			"range": 2,
+			"movement_rate": 96,
 			"attack_rate": 91,
-			"movement_rate": 96
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -8980,19 +8982,20 @@
 			"ARCH_049",
 			"ARCH_054",
 			"ARCH_087",
-			"ARCH_093"
+			"ARCH_093",
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 5,
 			"hp": 400,
-			"range": 1,
+			"movement_rate": 90,
 			"attack_rate": 96,
-			"movement_rate": 90
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_SHIELD",
-			"value": 50,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 50
 		},
 		"summon_conditions": [
 			{
@@ -9004,7 +9007,8 @@
 		],
 		"material_value": 1,
 		"set": "SET_013",
-		"balance_excluded": true
+		"balance_excluded": true,
+		"represented_ids": []
 	},
 	{
 		"id": "EXTRA_054",
@@ -9050,7 +9054,7 @@
 			"atk": 0,
 			"hp": 250,
 			"movement_rate": 0,
-			"attack_rate": 0,
+			"attack_rate": 50,
 			"range": 1
 		},
 		"power": {
@@ -9547,14 +9551,15 @@
 			"ARCH_052",
 			"ARCH_051",
 			"ARCH_088",
-			"ARCH_095"
+			"ARCH_095",
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 50,
 			"hp": 600,
-			"range": 1,
+			"movement_rate": 99,
 			"attack_rate": 94,
-			"movement_rate": 99
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_TAUNT",
@@ -14926,19 +14931,20 @@
 			"ARCH_057",
 			"ARCH_028",
 			"ARCH_090",
-			"ARCH_093"
+			"ARCH_093",
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 10,
 			"hp": 300,
-			"range": 1,
+			"movement_rate": 79,
 			"attack_rate": 79,
-			"movement_rate": 79
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_SHIELD",
-			"value": 40,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 40
 		},
 		"summon_conditions": [],
 		"material_value": 1,
@@ -15727,19 +15733,20 @@
 			"ARCH_048",
 			"ARCH_025",
 			"ARCH_087",
-			"ARCH_093"
+			"ARCH_093",
+			"ARCH_098"
 		],
 		"stats": {
-			"atk": 5,
+			"atk": 0,
 			"hp": 50,
-			"range": 1,
-			"attack_rate": 96,
-			"movement_rate": 96
+			"movement_rate": 0,
+			"attack_rate": 63,
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_POISON",
-			"value": 5,
-			"power_rate": 63
+			"power_rate": 63,
+			"value": 5
 		},
 		"summon_conditions": [
 			{
@@ -18526,7 +18533,8 @@
 			"ARCH_021",
 			"ARCH_019",
 			"ARCH_087",
-			"ARCH_093"
+			"ARCH_093",
+			"ARCH_100"
 		],
 		"stats": {
 			"atk": 23,
@@ -18781,19 +18789,20 @@
 			"ARCH_055",
 			"ARCH_025",
 			"ARCH_088",
-			"ARCH_094"
+			"ARCH_094",
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 20,
 			"hp": 480,
-			"range": 1,
+			"movement_rate": 79,
 			"attack_rate": 82,
-			"movement_rate": 79
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_SHIELD",
-			"value": 80,
-			"power_rate": 50
+			"power_rate": 50,
+			"value": 80
 		},
 		"summon_conditions": [
 			{
@@ -21180,14 +21189,15 @@
 			"ARCH_035",
 			"ARCH_049",
 			"ARCH_090",
-			"ARCH_091"
+			"ARCH_091",
+			"ARCH_080"
 		],
 		"stats": {
 			"atk": 16,
 			"hp": 215,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"range": 1
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26223,20 +26233,17 @@
 			"ARCH_056",
 			"ARCH_001",
 			"ARCH_090",
-			"ARCH_091"
+			"ARCH_091",
+			"ARCH_100"
 		],
 		"stats": {
 			"atk": 12,
 			"hp": 170,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 86,
-			"movement_rate": 86
+			"range": 1
 		},
-		"power": {
-			"id": "POWER_SHIELD",
-			"value": 30,
-			"power_rate": 50
-		},
+		"power": {},
 		"summon_conditions": [],
 		"material_value": 1,
 		"represented_ids": []
@@ -26308,19 +26315,20 @@
 			"ARCH_021",
 			"ARCH_035",
 			"ARCH_088",
-			"ARCH_093"
+			"ARCH_093",
+			"ARCH_080"
 		],
 		"stats": {
 			"atk": 26,
 			"hp": 335,
-			"range": 1,
+			"movement_rate": 86,
 			"attack_rate": 87,
-			"movement_rate": 86
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_POISON",
-			"value": 5,
-			"power_rate": 23
+			"power_rate": 23,
+			"value": 5
 		},
 		"summon_conditions": [
 			{
@@ -26348,14 +26356,15 @@
 			"ARCH_021",
 			"ARCH_035",
 			"ARCH_090",
-			"ARCH_092"
+			"ARCH_092",
+			"ARCH_080"
 		],
 		"stats": {
 			"atk": 19,
 			"hp": 215,
-			"range": 1,
+			"movement_rate": 79,
 			"attack_rate": 84,
-			"movement_rate": 79
+			"range": 1
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -26376,19 +26385,20 @@
 			"ARCH_035",
 			"ARCH_086",
 			"ARCH_094",
-			"ARCH_110"
+			"ARCH_110",
+			"ARCH_080"
 		],
 		"stats": {
 			"atk": 36,
 			"hp": 340,
-			"range": 2,
+			"movement_rate": 83,
 			"attack_rate": 86,
-			"movement_rate": 83
+			"range": 2
 		},
 		"power": {
 			"id": "POWER_POISON",
-			"value": 5,
-			"power_rate": 50
+			"power_rate": 50,
+			"value": 5
 		},
 		"summon_conditions": [
 			{
@@ -28580,14 +28590,15 @@
 			"ARCH_090",
 			"ARCH_021",
 			"ARCH_019",
-			"ARCH_076"
+			"ARCH_076",
+			"ARCH_106"
 		],
 		"stats": {
 			"atk": 1,
 			"hp": 100,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 96,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -28606,14 +28617,15 @@
 			"ARCH_090",
 			"ARCH_021",
 			"ARCH_019",
-			"ARCH_076"
+			"ARCH_076",
+			"ARCH_106"
 		],
 		"stats": {
 			"atk": 1,
 			"hp": 100,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 96,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -28632,14 +28644,15 @@
 			"ARCH_090",
 			"ARCH_021",
 			"ARCH_019",
-			"ARCH_076"
+			"ARCH_076",
+			"ARCH_106"
 		],
 		"stats": {
 			"atk": 1,
 			"hp": 100,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 96,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {},
 		"summon_conditions": [],
@@ -28747,14 +28760,15 @@
 			"ARCH_021",
 			"ARCH_019",
 			"ARCH_092",
-			"ARCH_076"
+			"ARCH_076",
+			"ARCH_106"
 		],
 		"stats": {
 			"atk": 1,
 			"hp": 100,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 96,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_FREEZE",
@@ -28776,19 +28790,20 @@
 			"ARCH_021",
 			"ARCH_019",
 			"ARCH_092",
-			"ARCH_076"
+			"ARCH_076",
+			"ARCH_106"
 		],
 		"stats": {
 			"atk": 1,
 			"hp": 100,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 96,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_BURN",
-			"value": 5,
-			"power_rate": 50
+			"power_rate": 50,
+			"value": 5
 		},
 		"summon_conditions": [],
 		"represented_ids": [],
@@ -28806,19 +28821,20 @@
 			"ARCH_021",
 			"ARCH_019",
 			"ARCH_092",
-			"ARCH_076"
+			"ARCH_076",
+			"ARCH_106"
 		],
 		"stats": {
 			"atk": 1,
 			"hp": 100,
-			"range": 1,
+			"movement_rate": 96,
 			"attack_rate": 96,
-			"movement_rate": 96
+			"range": 1
 		},
 		"power": {
 			"id": "POWER_HEAL",
-			"value": 50,
-			"power_rate": 63
+			"power_rate": 63,
+			"value": 50
 		},
 		"summon_conditions": [],
 		"represented_ids": [],
@@ -31196,7 +31212,8 @@
 			"ARCH_092",
 			"ARCH_056",
 			"ARCH_025",
-			"ARCH_090"
+			"ARCH_090",
+			"ARCH_111"
 		],
 		"stats": {
 			"atk": 3,
@@ -31699,7 +31716,8 @@
 			"ARCH_055",
 			"ARCH_050",
 			"ARCH_092",
-			"ARCH_093"
+			"ARCH_093",
+			"ARCH_111"
 		],
 		"stats": {
 			"atk": 17,
@@ -31786,7 +31804,8 @@
 			"ARCH_035",
 			"ARCH_049",
 			"ARCH_092",
-			"ARCH_093"
+			"ARCH_093",
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 8,
@@ -31921,7 +31940,8 @@
 			"ARCH_087",
 			"ARCH_088",
 			"ARCH_054",
-			"ARCH_093"
+			"ARCH_093",
+			"ARCH_111"
 		],
 		"stats": {
 			"atk": 22,
@@ -32056,7 +32076,8 @@
 			"ARCH_054",
 			"ARCH_087",
 			"ARCH_088",
-			"ARCH_093"
+			"ARCH_093",
+			"ARCH_110"
 		],
 		"stats": {
 			"atk": 10,
@@ -34955,5 +34976,197 @@
 		"summon_conditions": [],
 		"represented_ids": [],
 		"balance_excluded": true
+	},
+	{
+		"id": "VIPER_001",
+		"name": "Cobra Venin",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_080",
+			"ARCH_056",
+			"ARCH_050",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_021"
+		],
+		"stats": {
+			"atk": 5,
+			"hp": 200,
+			"movement_rate": 77,
+			"attack_rate": 90,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "VIPER_002",
+		"name": "Serpent Venin",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_080",
+			"ARCH_050",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_021"
+		],
+		"stats": {
+			"atk": 10,
+			"hp": 100,
+			"movement_rate": 90,
+			"attack_rate": 90,
+			"range": 1
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_rate": 50,
+			"value": 5
+		},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "VIPER_003",
+		"name": "Vipère Venin",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_091",
+			"ARCH_080",
+			"ARCH_050",
+			"ARCH_054",
+			"ARCH_090",
+			"ARCH_021",
+			"ARCH_108"
+		],
+		"stats": {
+			"atk": 15,
+			"hp": 80,
+			"movement_rate": 90,
+			"attack_rate": 87,
+			"range": 1
+		},
+		"power": {},
+		"summon_conditions": [],
+		"represented_ids": []
+	},
+	{
+		"id": "VIPER_004",
+		"name": "Boa Venin",
+		"type": "monster",
+		"material_value": 1,
+		"attributes": [
+			"ARCH_080",
+			"ARCH_050",
+			"ARCH_054",
+			"ARCH_021",
+			"ARCH_092",
+			"ARCH_087"
+		],
+		"stats": {
+			"atk": 16,
+			"hp": 160,
+			"movement_rate": 83,
+			"attack_rate": 90,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_rate": 50,
+			"value": 10
+		},
+		"summon_conditions": [
+			{
+				"materials": 1,
+				"requires": [
+					"ARCH_080"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "VIPER_005",
+		"name": "Venominon le roi des serpents venimeux",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_080",
+			"ARCH_050",
+			"ARCH_054",
+			"ARCH_021",
+			"ARCH_087",
+			"ARCH_093",
+			"ARCH_096"
+		],
+		"stats": {
+			"atk": 30,
+			"hp": 300,
+			"movement_rate": 83,
+			"attack_rate": 90,
+			"range": 2
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_rate": 50,
+			"value": 15
+		},
+		"summon_conditions": [
+			{
+				"materials": 2,
+				"requires": [
+					"ARCH_080"
+				]
+			}
+		],
+		"represented_ids": []
+	},
+	{
+		"id": "VIPER_006",
+		"name": "Venominaga le déesse des serpents venimeux",
+		"type": "monster",
+		"material_value": 2,
+		"attributes": [
+			"ARCH_080",
+			"ARCH_050",
+			"ARCH_054",
+			"ARCH_021",
+			"ARCH_087",
+			"ARCH_095",
+			"ARCH_088",
+			"ARCH_094"
+		],
+		"stats": {
+			"atk": 40,
+			"hp": 400,
+			"movement_rate": 83,
+			"attack_rate": 93,
+			"range": 3
+		},
+		"power": {
+			"id": "POWER_POISON",
+			"power_rate": 50,
+			"value": 20
+		},
+		"summon_conditions": [
+			{
+				"materials": 3,
+				"requires": [
+					"ARCH_080"
+				]
+			},
+			{
+				"materials": 1,
+				"requires": [
+					"VIPER_005"
+				]
+			}
+		],
+		"represented_ids": []
 	}
 ]

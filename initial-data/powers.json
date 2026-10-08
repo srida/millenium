@@ -20,7 +20,7 @@
 	{
 		"id": "POWER_AOE_ATTACK",
 		"name": "Attaque massive",
-		"description": "Inflige des dégâts à la cible et à toutes les unités ennemies dans sa zone (rayon en cases autour de la cible).",
+		"description": "Inflige des dégâts à toutes les unités ennemies vivantes présentes sur le terrain au moment de l'activation.",
 		"icon": "🌪️"
 	},
 	{
@@ -80,7 +80,7 @@
 	{
 		"id": "POWER_TAUNT",
 		"name": "Provocation",
-		"description": "Force les unités ennemies dans sa zone (rayon en cases autour du lanceur) à l'attaquer pendant un court laps de temps.",
+		"description": "Force toutes les unités ennemies à portée de vue à attaquer le lanceur pendant un court laps de temps.",
 		"icon": "🤬"
 	},
 	{

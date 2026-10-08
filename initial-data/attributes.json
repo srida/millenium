@@ -1781,9 +1781,19 @@
 		"id": "ARCH_080",
 		"name": "Venin",
 		"icon": "🐍",
-		"timing": "start_of_combat",
+		"timing": "end_of_combat",
 		"categorie": "Archetype",
-		"thresholds": []
+		"thresholds": [
+			{
+				"count": 1,
+				"medal": "platinum",
+				"effects": [
+					{
+						"type": "heal"
+					}
+				]
+			}
+		]
 	},
 	{
 		"id": "ARCH_081",

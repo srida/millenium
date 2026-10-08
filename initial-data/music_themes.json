@@ -42,5 +42,29 @@
 	{
 		"id": "THEME_011",
 		"name": "Yugioh 5DS 2"
+	},
+	{
+		"id": "THEME_012",
+		"name": "L"
+	},
+	{
+		"id": "THEME_013",
+		"name": "M"
+	},
+	{
+		"id": "THEME_014",
+		"name": "N"
+	},
+	{
+		"id": "THEME_015",
+		"name": "Bleach 1"
+	},
+	{
+		"id": "THEME_016",
+		"name": "Bleach 2"
+	},
+	{
+		"id": "THEME_017",
+		"name": "Bleach 3"
 	}
 ]
