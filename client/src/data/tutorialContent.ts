@@ -364,7 +364,7 @@ export const CHAPTERS: Chapter[] = [
       { kind: 'table', head: ['Portée', 'Exemples'], rows: [
         ['Sur une unité du terrain', 'Bonus de statistique, soin, bouclier, destruction.'],
         ['Sur une unité du cimetière', 'Réanimation.'],
-        ['Sur une carte de ta main', "Échangeur de carte (la remplace par une autre carte du pool de pioche du tour), duplication, sacrifice."],
+        ['Sur une carte de ta main', "Échangeur de carte (la remplace par une autre carte du pool de pioche du tour), duplication, carte brûlée contre des PV."],
         ['Globale', 'Pioche supplémentaire, PV joueur, emplacement de terrain.'],
       ] },
       { kind: 'note', text: "Les bonus de statistiques donnés par une magie sont **permanents** — et ils **suivent l'unité** si tu la consommes plus tard comme matériau. Investir sur une unité n'est jamais perdu." },
