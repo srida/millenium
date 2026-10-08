@@ -25,6 +25,13 @@ export type PlacementKeyword = 'tank' | 'garde_du_corps' | 'embusque' | 'flanc' 
  */
 const ORDRE: readonly PlacementKeyword[] = ['tank', 'garde_du_corps', 'embusque', 'flanc', 'tireur_elite'];
 
+/**
+ * Un effet qui n'est pas une politique mais qui place comme elle : une Tour
+ * (`immobile`) ne bougera jamais de sa case, elle se pose donc au fond, comme
+ * un Archer.
+ */
+const PLACE_COMME: Readonly<Record<string, PlacementKeyword>> = { immobile: 'tireur_elite' };
+
 /** Attribut → les types d'effet de placement que ses paliers à 1 posent. */
 export function indexPlacementKeywords(attributeList: readonly any[] = []): Map<string, Set<PlacementKeyword>> { // eslint-disable-line @typescript-eslint/no-explicit-any
   const index = new Map<string, Set<PlacementKeyword>>();
@@ -32,9 +39,10 @@ export function indexPlacementKeywords(attributeList: readonly any[] = []): Map<
     for (const th of attr?.thresholds ?? []) {
       if ((th?.count ?? 1) > 1) continue;
       for (const e of th?.effects ?? []) {
-        if (!ORDRE.includes(e?.type)) continue;
+        const k: PlacementKeyword | undefined = ORDRE.includes(e?.type) ? e.type : PLACE_COMME[e?.type];
+        if (!k) continue;
         if (!index.has(attr.id)) index.set(attr.id, new Set());
-        index.get(attr.id)!.add(e.type);
+        index.get(attr.id)!.add(k);
       }
     }
   }

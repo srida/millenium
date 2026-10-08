@@ -2,6 +2,7 @@
 // dessous, l'énergie du tour (en préparation),
 // multiplicateurs de dégâts (affichés pendant le combat), identité des deux
 // camps (avatar + pseudo/nom de deck, résolus par l'écran appelant).
+import UiIcon from '../ui/UiIcon.js';
 import { useGameStore } from '../../stores/gameStore.js';
 import { useAuthStore } from '../../stores/authStore.js';
 import { Avatar } from '../ui/primitives.js';
@@ -83,7 +84,7 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
             aria-label={`Énergie : ${energyLeft} sur ${energyBudget}. Chaque unité posée occupe son tier.`}
             className={'mt-1 rounded-md border border-line bg-surface/80 px-2 py-0.5 text-xs font-bold tabular-nums ' + (energyLeft === 0 ? 'text-white/40' : 'text-gold')}
           >
-            <span aria-hidden>⚡</span>{energyLeft}<span className="font-normal text-white/50">/{energyBudget}</span>
+            <UiIcon id="UI_ENERGY" className="mr-0.5 h-3.5 w-3.5 align-[-2px]" />{energyLeft}<span className="font-normal text-white/50">/{energyBudget}</span>
           </span>
         )}
       </div>

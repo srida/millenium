@@ -19,7 +19,11 @@ export type UiIconId =
   | 'UI_STATS' | 'UI_LINK' | 'UI_LANDSCAPE' | 'UI_LOCATION' | 'UI_RECIPES' | 'UI_FORBIDDEN'
   | 'UI_SORT' | 'UI_CLOSE'
   | 'UI_CHECK' | 'UI_CROSS' | 'UI_TIMER' | 'UI_STAR' | 'UI_SUMMONING' | 'UI_POWERS'
-  | 'UI_EYE' | 'UI_SPARKLE' | 'UI_PLAY' | 'UI_PAUSE' | 'UI_HOURGLASS' | 'UI_SHIELD';
+  | 'UI_EYE' | 'UI_SPARKLE' | 'UI_PLAY' | 'UI_PAUSE' | 'UI_HOURGLASS' | 'UI_SHIELD'
+  | 'UI_ENERGY';
+
+/** Les rares glyphes livrés en PNG plutôt qu'en SVG. */
+const PNG: ReadonlySet<UiIconId> = new Set<UiIconId>(['UI_ENERGY']);
 
 /** Un id de la famille Interface commence toujours par `UI_` — ce qui permet
  *  à un appelant qui reçoit un champ « soit un id, soit un emoji brut » (un
@@ -38,7 +42,7 @@ export default function UiIcon({ id, className = '', alt = '' }: {
 }) {
   return (
     <img
-      src={`${BASE}${id}.svg`}
+      src={`${BASE}${id}.${PNG.has(id) ? 'png' : 'svg'}`}
       alt={alt}
       draggable={false}
       className={`inline-block flex-shrink-0 object-contain ${className}`}

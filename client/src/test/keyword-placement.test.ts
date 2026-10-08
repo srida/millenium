@@ -48,6 +48,11 @@ describe('Placement des mots-clés — lecture des attributs', () => {
     expect(placementKeyword([idDe('chasseur')], INDEX)).toBeNull();
     expect(placementKeyword([], INDEX)).toBeNull();
   });
+
+  it('une Tour (immobile) se place comme un Archer, au fond', () => {
+    expect(placementKeyword([idDe('immobile')], INDEX)).toBe('tireur_elite');
+    expect(placementKeyword([idDe('insaisissable')], INDEX)).toBeNull();
+  });
 });
 
 describe('EnemyAI.rearrangeUnits — les porteurs', () => {

@@ -1961,7 +1961,7 @@
 		"name": "Tour",
 		"icon": "🗼",
 		"timing": "start_of_combat",
-		"categorie": "MotCle",
+		"categorie": "Role",
 		"thresholds": [
 			{
 				"count": 1,
@@ -2137,7 +2137,7 @@
 		"name": "Insaisissable",
 		"icon": "🐇",
 		"timing": "start_of_combat",
-		"categorie": "MotCle",
+		"categorie": "Role",
 		"thresholds": [
 			{
 				"count": 1,

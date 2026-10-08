@@ -2269,7 +2269,7 @@ exports[`Attributs livrés — l'oracle de l'étape 0 > ce que chaque palier de 
     "timing": "end_of_combat",
   },
   {
-    "categorie": "MotCle",
+    "categorie": "Role",
     "id": "ARCH_097",
     "nom": "Tour",
     "paliers": [
@@ -2477,7 +2477,7 @@ exports[`Attributs livrés — l'oracle de l'étape 0 > ce que chaque palier de 
     "timing": "start_of_combat",
   },
   {
-    "categorie": "MotCle",
+    "categorie": "Role",
     "id": "ARCH_106",
     "nom": "Insaisissable",
     "paliers": [
