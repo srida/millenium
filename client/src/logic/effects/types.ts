@@ -252,7 +252,7 @@ export const CHAMPS_CARTE = Object.freeze({
 export type ChampCarte = keyof typeof CHAMPS_CARTE;
 
 /** Les statuts qu'une tâche peut poser sur une unité. */
-export const STATUTS = ['immunite', 'immobile', 'insaisissable', 'tireur_elite', 'chasseur', 'briseur', 'embusque', 'garde_du_corps', 'flanc', 'poison', 'brulure', 'paralysie', 'confusion', 'provocation', 'blocage_pouvoir'] as const;
+export const STATUTS = ['immunite', 'immobile', 'insaisissable', 'tireur_elite', 'chasseur', 'briseur', 'embusque', 'garde_du_corps', 'flanc', 'tank', 'poison', 'brulure', 'paralysie', 'confusion', 'provocation', 'blocage_pouvoir'] as const;
 export type Statut = typeof STATUTS[number];
 
 // ───────────────────────────────────────────────────────────────────────────

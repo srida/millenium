@@ -11,7 +11,15 @@ import { indexPlacementKeywords, placementKeyword, bestKeywordCell } from '../lo
 import { makeCard, spawn, makeBoard } from './helpers.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-const attributs: any[] = JSON.parse(readFileSync(path.join(ROOT, 'initial-data/attributes.json'), 'utf8'));
+// Embusqué et Flanc ne sont plus portés par aucun attribut livré (les rôles
+// les ont remplacés) ; le moteur les sait toujours, on les éprouve sur deux
+// attributs synthétiques.
+const synthetique = (id: string, type: string) => ({ id, name: id, categorie: 'MotCle', timing: 'start_of_combat',
+  thresholds: [{ count: 1, effects: [{ type }] }] });
+const attributs: any[] = [
+  ...JSON.parse(readFileSync(path.join(ROOT, 'initial-data/attributes.json'), 'utf8')),
+  synthetique('T_EMB', 'embusque'), synthetique('T_FLANC', 'flanc'),
+];
 const INDEX = indexPlacementKeywords(attributs);
 const idDe = (type: string) => attributs.find(a => a.thresholds?.some((t: any) => t.effects?.some((e: any) => e.type === type))).id;
 
@@ -70,6 +78,12 @@ describe('EnemyAI.rearrangeUnits — les porteurs', () => {
     const { board, porteur } = plateau('flanc');
     ia().rearrangeUnits(board, null, keywordOf);
     expect([0, 4]).toContain(porteur.position.col);
+  });
+
+  it('Tank en première ligne', () => {
+    const { board, porteur } = plateau('tank');
+    ia().rearrangeUnits(board, null, keywordOf);
+    expect(porteur.position.row).toBe(7);
   });
 
   it('Garde du corps au contact de l\'allié le plus blessé', () => {

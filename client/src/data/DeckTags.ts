@@ -8,7 +8,7 @@
 // partie de son méta), un deck public les dérive à l'affichage (DeckSelector) —
 // il n'a pas de méta local où les ranger et sa composition change en admin.
 import * as AttributeDatabase from './AttributeDatabase.js';
-import { isInvocationAttribute, isTierAttribute } from './AttributeDatabase.js';
+import { isInvocationAttribute, isTierAttribute, isRoleAttribute } from './AttributeDatabase.js';
 import { MIN_ATTRIBUTE_OCCURRENCES } from '../logic/BoardPicker.js';
 import type { Card } from '../logic/types.js';
 
@@ -37,7 +37,7 @@ export function computeDeckTags(cards: Card[]): string[] {
   // seraient dominants dans chaque deck et ne distingueraient rien.
   const dominant = Object.entries(attrCounts)
     .filter(([id, c]) => c >= MIN_ATTRIBUTE_OCCURRENCES
-      && !isInvocationAttribute(id) && !isTierAttribute(id))
+      && !isInvocationAttribute(id) && !isTierAttribute(id) && !isRoleAttribute(id))
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .slice(0, 2)
     .map(([id]) => (AttributeDatabase as any).getAttribute(id)?.name ?? id);

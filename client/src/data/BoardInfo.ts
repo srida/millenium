@@ -143,6 +143,7 @@ export function boardEffectLabel(
     case 'briseur':           return 'Vise l\'ennemi aux PV max les plus hauts et marche vers lui ; frappe ce qui est à sa portée en chemin';
     case 'embusque':          return 'Reste en place jusqu\'à ce qu\'un ennemi entre à sa portée ou le frappe, puis avance normalement';
     case 'garde_du_corps':    return 'Reste au contact de l\'allié aux PV les plus bas et frappe ce qui passe à sa portée';
+    case 'tank':              return 'Avance vers l\'ennemi le plus proche ; ses alliés ne dépassent pas sa ligne tant qu\'il n\'a ni attaqué ni été attaqué';
     case 'flanc':             return 'Avance par la colonne de bord la plus proche, puis rejoint sa cible';
     // ⚠️ Le mot-clé **Explosif**, et il nomme les DEUX choses que le joueur ne
     // peut pas deviner : *quand* (en mourant) et *laquelle* (la plus proche).

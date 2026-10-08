@@ -53,6 +53,15 @@ export const PORTEUR_LABELS = Object.freeze({
 export const MOT_CLE_CATEGORY = 'MotCle';
 
 /**
+ * La catégorie d'attribut qui porte les RÔLES (Fantassin, Tank, Lancier,
+ * Assassin, Archer, Soutien) : **un par carte**, il dit comment l'unité choisit
+ * sa cible et se déplace. Les rôles ont remplacé les mots-clés de ciblage et de
+ * déplacement ; leur mécanique est un effet de palier à 1, comme un mot-clé.
+ * Ils ne sont ni une synergie (panneau) ni un tag de deck.
+ */
+export const ROLE_CATEGORY = 'Role';
+
+/**
  * Les mots-clés dont la règle **n'est pas un effet** — la porte de sortie, et
  * elle est étroite à dessein.
  *
@@ -561,6 +570,13 @@ export const TYPES = Object.freeze({
   garde_du_corps: {
     label: 'Reste au contact de l’allié aux PV les plus bas (Garde du corps)',
     court: 'Garde du corps',
+    attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
+  },
+  // Le rôle **Tank** : il avance normalement, mais ses alliés ne dépassent pas
+  // sa rangée tant qu'il n'a ni attaqué ni été attaqué (`CombatManager._tankLine`).
+  tank: {
+    label: 'Ses alliés ne dépassent pas sa ligne tant qu’il n’a ni attaqué ni été attaqué (Tank)',
+    court: 'Tank',
     attribut: { quands: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'], champs: {} },
   },
   flanc: {

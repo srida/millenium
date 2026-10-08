@@ -632,6 +632,7 @@ export const KEYWORD_POLICIES: Record<string, KeywordPolicy> = {
   flanc:          { champ: 'move_policy',   valeur: 'flanc',              rang: 1 },
   embusque:       { champ: 'move_policy',   valeur: 'embusque',           rang: 2 },
   garde_du_corps: { champ: 'move_policy',   valeur: 'garde',              rang: 3 },
+  tank:           { champ: 'move_policy',   valeur: 'tank',               rang: 4 },
 };
 
 /** Le rang de la politique que `u` porte déjà dans cette famille (0 = défaut). */

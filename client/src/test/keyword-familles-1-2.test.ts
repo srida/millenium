@@ -21,14 +21,19 @@ const attributs: any[] = JSON.parse(readFileSync(path.join(ROOT, 'initial-data/a
 /** L'attribut livré qui porte ce type d'effet — jamais une copie écrite ici. */
 const livre = (type: string) => attributs.find(a => a.thresholds?.some((t: any) => t.effects?.some((e: any) => e.type === type)));
 
+// Les types que porte un RÔLE livré (Archer, Assassin, Lancier, Soutien, Tank).
+// Embusqué et Flanc restent des types du moteur, sans attribut livré : leurs
+// comportements sont éprouvés plus bas sur une politique posée à la main.
 const TYPES = {
   tireur_elite: ['target_policy', 'plus_loin_a_portee'],
   chasseur: ['target_policy', 'pv_bas'],
   briseur: ['target_policy', 'pv_max_haut'],
-  embusque: ['move_policy', 'embusque'],
   garde_du_corps: ['move_policy', 'garde'],
-  flanc: ['move_policy', 'flanc'],
+  tank: ['move_policy', 'tank'],
 } as const;
+
+/** Un attribut de mot-clé écrit pour le test, quand aucun n'est livré. */
+const synthetique = (id: string, type: string) => ({ id, name: id, categorie: 'MotCle', timing: 'start_of_combat', thresholds: [{ count: 1, effects: [{ type }] }] });
 
 /** Une unité lente, molle et sans attaque : seule la règle testée se lit. */
 function carte(id: string, stats: any = {}, attrs: string[] = []) {
@@ -53,10 +58,10 @@ const pas = (log: any[], par: string) => log.filter(e => e.type === 'move' && e.
 
 describe('Familles 1 et 2 — la donnée livrée', () => {
   for (const [type, [champ, valeur]] of Object.entries(TYPES)) {
-    it(`${type} : un attribut MotCle à palier 1 qui pose ${champ} = ${valeur}`, () => {
+    it(`${type} : un RÔLE à palier 1 qui pose ${champ} = ${valeur}`, () => {
       const attr = livre(type);
       expect(attr, `aucun attribut livré ne porte ${type}`).toBeTruthy();
-      expect(attr.categorie).toBe('MotCle');
+      expect(attr.categorie).toBe('Role');
       expect(attr.thresholds).toHaveLength(1);
       expect(attr.thresholds[0].count).toBe(1);
 
@@ -90,8 +95,10 @@ describe('Familles 1 et 2 — une politique par famille', () => {
   });
 
   it('Garde du corps l\'emporte sur Embusqué et Flanc, dans les deux ordres', () => {
-    const ids = [livre('flanc').id, livre('embusque').id, livre('garde_du_corps').id];
-    for (const catalogue of [attributs, [...attributs].reverse()]) {
+    const extra = [synthetique('T_FLANC', 'flanc'), synthetique('T_EMB', 'embusque')];
+    const ids = ['T_FLANC', 'T_EMB', livre('garde_du_corps').id];
+    const tous = [...attributs, ...extra];
+    for (const catalogue of [tous, [...tous].reverse()]) {
       for (const porte of [ids, [...ids].reverse()]) {
         const board = makeBoard();
         const u = spawn(board, carte('P', {}, porte), 'player', { col: 0, row: 0 });

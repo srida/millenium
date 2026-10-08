@@ -10,11 +10,14 @@
 // (`ChapterBlocks`). Deux explications du même mot-clé, c'est deux explications
 // qui finissent par ne plus dire la même chose — et celle du codex est
 // précisément celle qu'un joueur lit pour APPRENDRE la règle.
-import { MOTS_CLES, MOT_CLE_CATEGORY } from '../../../effect-schema.mjs';
+import { MOTS_CLES, MOT_CLE_CATEGORY, ROLE_CATEGORY } from '../../../effect-schema.mjs';
 import { boardEffectLabel } from './BoardInfo.js';
 import type { GuaranteedDraw } from '../logic/types.js';
 
-export { MOT_CLE_CATEGORY };
+export { MOT_CLE_CATEGORY, ROLE_CATEGORY };
+
+/** La phrase du rôle sans effet (Fantassin) : le comportement par défaut du moteur. */
+export const DEFAULT_ROLE_TEXT = 'Va vers l\'ennemi le plus proche et le frappe';
 
 /** La forme minimale d'un attribut que ce module lit — jamais `data/`. */
 export interface KeywordAttribute {
@@ -56,7 +59,8 @@ export function keywordText(
   if (!attr) return null;
   const def = (MOTS_CLES as Record<string, { aide?: string }>)[attr.mot_cle as string];
   if (def) return def.aide ?? null;
-  if (attr.categorie !== MOT_CLE_CATEGORY) return null;
+  const isRole = attr.categorie === ROLE_CATEGORY;
+  if (attr.categorie !== MOT_CLE_CATEGORY && !isRole) return null;
   // ⚠️ Le résolveur d'attributs est passé **même si aucun mot-clé n'annonce de
   // cibles** : `boardEffectLabel` ne s'en sert pour un suffixe « (…) » que s'il
   // lit un `target_attributes`, qu'un effet de mot-clé n'a pas (sa cible est le
@@ -68,7 +72,7 @@ export function keywordText(
     .flatMap(t => (t.effects ?? []) as Record<string, unknown>[])
     .map(e => boardEffectLabel(e as never, ids => ids.map(attributeName).join(', '), cardName, undefined, appel))
     .join(', ');
-  return texte || null;
+  return texte || (isRole ? DEFAULT_ROLE_TEXT : null);
 }
 
 /**
@@ -85,6 +89,7 @@ export function keywordText(
  */
 export function keywordAttributes(all: KeywordAttribute[]): KeywordAttribute[] {
   return all
-    .filter(a => a.categorie === MOT_CLE_CATEGORY)
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .filter(a => a.categorie === MOT_CLE_CATEGORY || a.categorie === ROLE_CATEGORY)
+    // Les rôles d'abord (toute carte en porte un), puis les mots-clés, chacun par id.
+    .sort((a, b) => Number(b.categorie === ROLE_CATEGORY) - Number(a.categorie === ROLE_CATEGORY) || a.id.localeCompare(b.id));
 }

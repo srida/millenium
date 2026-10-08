@@ -164,6 +164,14 @@
    et non par un sélecteur de voisinage — le badge est un frère de `.unit-face`,
    pas du nom, qui vit DANS la face. */
 .card3d.has-count .card3d-name { padding-left: 22px; }
+/* Le RÔLE — haut-droite, le coin que coût et compte laissent libre. */
+.card3d-role {
+  right: 2px; top: 2px;
+  display: flex; align-items: center; justify-content: center;
+  min-width: 15px; height: 15px; padding: 0 2px;
+  font-weight: 400; line-height: 1;
+}
+.card3d-role img { width: 11px; height: 11px; object-fit: contain; }
 
 /* ── La levée de la carte RETENUE ──
    Une direction, pas une valeur recopiée : vers le haut en bande, vers le board

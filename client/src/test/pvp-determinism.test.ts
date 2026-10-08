@@ -575,8 +575,15 @@ describe('Un même combat physique rend le même log dans les deux repères', ()
 // de détour) : autant d'occasions de départager par un ordre local. Le même
 // filet que ci-dessus, avec les VRAIS attributs livrés posés au hasard.
 describe('Familles 1 et 2 : le même combat physique dans les deux repères', () => {
-  const ATTRS: any[] = createRequire(import.meta.url)('../../../initial-data/attributes.json');
-  const TYPES = ['tireur_elite', 'chasseur', 'briseur', 'embusque', 'garde_du_corps', 'flanc', 'insaisissable'];
+  // Embusqué et Flanc ne sont plus livrés (les rôles les ont remplacés) mais le
+  // moteur les sait toujours : deux attributs synthétiques les gardent au filet.
+  const synthetique = (id: string, type: string) => ({ id, name: id, categorie: 'MotCle', timing: 'start_of_combat',
+    thresholds: [{ count: 1, effects: [{ type }] }] });
+  const ATTRS: any[] = [
+    ...createRequire(import.meta.url)('../../../initial-data/attributes.json'),
+    synthetique('T_EMB', 'embusque'), synthetique('T_FLANC', 'flanc'),
+  ];
+  const TYPES = ['tireur_elite', 'chasseur', 'briseur', 'embusque', 'garde_du_corps', 'flanc', 'insaisissable', 'tank'];
   const MOTS = TYPES.map(t => ATTRS.find(a => a.thresholds?.some((th: any) => th.effects?.some((e: any) => e.type === t))));
 
   function scenario(seed: number): { a: Placed[]; b: Placed[]; board: BoardDef } {

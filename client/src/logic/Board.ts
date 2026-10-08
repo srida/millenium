@@ -37,10 +37,18 @@ export class Board {
    * A, décroissantes pour le rôle B — si bien que les deux clients balaient le
    * plateau physique dans le même sens.
    */
-  rowScan(): number[] {
-    const rows = Array.from({ length: this.rows }, (_, r) => r);
-    return this.mirroredFrame ? rows.reverse() : rows;
+  rowScan(): readonly number[] {
+    // Mémoïsé : appelé par colonne dans chaque balayage, c'était un point chaud
+    // de la simulation. Le tableau rendu est partagé, donc gelé.
+    if (this._rowScanFor !== this.mirroredFrame || this._rowScan.length !== this.rows) {
+      const rows = Array.from({ length: this.rows }, (_, r) => r);
+      this._rowScan = Object.freeze(this.mirroredFrame ? rows.reverse() : rows);
+      this._rowScanFor = this.mirroredFrame;
+    }
+    return this._rowScan;
   }
+  private _rowScan: readonly number[] = [];
+  private _rowScanFor: boolean | null = null;
 
   /**
    * Les deux décalages de rangée — « vers l'avant » puis « vers l'arrière » —
@@ -157,9 +165,22 @@ export class Board {
   }
 
   isBlocked(pos: Position): boolean {
-    const key = `${pos.col},${pos.row}`;
-    return this._blockedCells.has(key) || this._temporaryBlockedCells.has(key);
+    // Point chaud de la BFS : les blocages permanents sont lus dans un index
+    // numérique, reconstruit quand l'ensemble est REMPLACÉ (il n'est jamais
+    // muté en place). Les temporaires (un seul bloc de glace) gardent la clé.
+    if (this._blockedIndexOf !== this._blockedCells) {
+      this._blockedIndex = new Uint8Array(this.cols * this.rows);
+      for (const key of this._blockedCells) {
+        const [col, row] = key.split(',').map(Number);
+        if (col >= 0 && col < this.cols && row >= 0 && row < this.rows) this._blockedIndex[row * this.cols + col] = 1;
+      }
+      this._blockedIndexOf = this._blockedCells;
+    }
+    if (this.isInBounds(pos) && this._blockedIndex[pos.row * this.cols + pos.col]) return true;
+    return this._temporaryBlockedCells.size > 0 && this._temporaryBlockedCells.has(`${pos.col},${pos.row}`);
   }
+  private _blockedIndex = new Uint8Array(0);
+  private _blockedIndexOf: Set<string> | null = null;
 
   /**
    * Les blocages PERMANENTS du terrain, tels qu'ils sont réellement appliqués.

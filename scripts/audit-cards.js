@@ -65,6 +65,7 @@ function audit() {
   const badZones = [];
   const multiTier = [];
   const appelsOrphelins = [];
+  const badRoles = [];
 
   for (const c of CARDS) {
     const attrs = c.attributes ?? [];
@@ -113,6 +114,12 @@ function audit() {
     //   • l'attribut sans l'appel → le porteur n'appelle rien, le moteur trace
     //     un `neant` que personne ne lit ;
     //   • l'appel sans l'attribut → de la donnée que rien ne déclenche.
+    // Un RÔLE et un seul (catégorie `Role`). Sans rôle, l'unité joue en
+    // Fantassin sans le dire ; avec deux, seul le plus prioritaire agit.
+    // Reprise : scripts/migrate-roles.js --write.
+    const roles = attrs.filter(id => byId[id]?.categorie === 'Role');
+    if (roles.length !== 1) badRoles.push(`${c.id} → ${roles.length ? roles.join(', ') : 'aucun rôle'}`);
+
     const porteAppelant = attrs.some(id => estAppelant(byId[id]));
     const aUnAppel = c.appel && Object.values(c.appel).some(v => v != null && (!Array.isArray(v) || v.length));
     if (porteAppelant && !aUnAppel) appelsOrphelins.push(`${c.id} → porte Appelant, sans champ appel`);
@@ -125,7 +132,7 @@ function audit() {
 
   return {
     missing, unknownAttr, legacyField, legacyInitiative,
-    badRates, badDurations, badZones, multiTier, attrsWithoutTier, appelsOrphelins,
+    badRates, badDurations, badZones, multiTier, attrsWithoutTier, appelsOrphelins, badRoles,
   };
 }
 
@@ -133,7 +140,7 @@ const r = audit();
 const errors = REQUIRED_CATEGORIES.reduce((n, c) => n + r.missing[c].length, 0)
   + r.unknownAttr.length + r.legacyField.length + r.legacyInitiative.length
   + r.badRates.length + r.badDurations.length + r.badZones.length + r.attrsWithoutTier.length
-  + r.appelsOrphelins.length;
+  + r.appelsOrphelins.length + r.badRoles.length;
 
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify({ source: DATA, cards: CARDS.length, errors, ...r }, null, 2));
@@ -157,6 +164,7 @@ show('✗ Durée de pouvoir invalide ou en ticks (reprise : scripts/migrate-spee
 show('✗ Zone de pouvoir absente ou invalide (reprise : scripts/migrate-zones.js --write)', r.badZones);
 show('✗ Attribut de tier sans champ `tier`', r.attrsWithoutTier);
 show('✗ Mot-clé Appelant et champ `appel` dépareillés', r.appelsOrphelins);
+show('✗ Pas exactement un rôle (reprise : scripts/migrate-roles.js --write)', r.badRoles);
 show('· Cartes multi-tiers', r.multiTier);
 console.log(errors ? `\n${errors} carte(s) hors contrat.` : '\n✓ Contrat respecté.');
 

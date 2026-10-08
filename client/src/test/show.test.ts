@@ -177,13 +177,18 @@ describe('Émission — la forme', () => {
     // Le nombre de lignes jugeables, lui, croît avec les parties jouées sans
     // rien devoir au hasard : c'est exactement la porte devant laquelle la
     // significativité attend.
+    //
+    // ⚠️ `grand` joue 1 500 parties, pas 1 000 : à 1 000, la carte la plus posée
+    // tourne autour de 100 poses, pile sur `MIN_PLAYED` — le compte y valait 1
+    // ou 0 selon le moindre changement de règle de combat (constaté avec la
+    // ligne de l'Archer : 101 → 99 poses, émission identique au mot près).
     // Mutation : échanger `petit` et `grand` → ROUGE sur les deux assertions.
     const petit = makeShow(300, 'petit');
-    const grand = makeShow(1000, 'grand');
+    const grand = makeShow(1500, 'grand');
     const jugeables = (r: DetectorResult) => r.rows.filter(x => x.played >= MIN_PLAYED).length;
     expect(jugeables(grand.detector)).toBeGreaterThan(jugeables(petit.detector));
     expect(grand.show.words).toBeGreaterThan(petit.show.words);
-    // ⚠️ Délai EXPLICITE : ce cas est le seul à payer un run de 1 000 parties en
+    // ⚠️ Délai EXPLICITE : ce cas est le seul à payer un run de 1 500 parties en
     // plus du run mémoïsé, et il tournait à ~28 s contre les 30 s par défaut de
     // vitest — deux secondes de marge, c'est-à-dire aucune. Un runner un peu
     // chargé le faisait tomber en « Test timed out », un rouge qui ne dit rien

@@ -8,6 +8,7 @@ import type { Unit } from '../logic/Unit.js';
 import { artFor, finishOf, hasFoil, illustrationUrl } from '../data/CardArt.js';
 import { getCard } from '../data/CardDatabase.js';
 import { tiersOf } from '../logic/Tiers.js';
+import { roleOf } from '../data/AttributeDatabase.js';
 import { frameVars } from './cardPalette.js';
 import {
   FINISH_RING_HTML, SPARKLES_ON_BOARD, effectLayersHtml, frameClass, frameInnerHtml, inkClass, inkLayersHtml,
@@ -147,7 +148,23 @@ function _inner(unit: Unit): string {
     <div class="unit-vet-badge" style="display:none"></div>
     <div class="unit-medallion" style="display:none"></div>
     <div class="unit-mat-badge" style="display:none"></div>
+    ${_roleBadgeHtml(unit)}
   `.trim();
+}
+
+/**
+ * Le RÔLE de l'unité, en haut à droite DANS la carte — le même coin que la
+ * carte de main (`.card3d-role`). Posé au spawn : le rôle ne change pas en
+ * combat. Visible pour les deux camps, fantômes compris : c'est ce qui rend le
+ * plateau adverse lisible d'un coup d'œil.
+ */
+function _roleBadgeHtml(unit: Unit): string {
+  const role = roleOf(unit.attributes) as { id: string; name: string; icon?: string; _has_illustration?: boolean } | null;
+  if (!role) return '';
+  const inner = role._has_illustration
+    ? `<img src="${illustrationUrl(role.id)}" alt="${esc(role.name)}">`
+    : esc(role.icon ?? '');
+  return `<div class="unit-role-badge" title="${esc(role.name)}">${inner}</div>`;
 }
 
 function _primaryBuff(unit: Unit): string | null {

@@ -192,6 +192,19 @@
   pointer-events: none;
 }
 
+/* Rôle — HAUT-DROITE, DANS la carte : le coin de `.card3d-role` en main.
+   Le médaillon de statut (hors carte, même coin) passe par-dessus quand il
+   est posé : un statut est passager, le rôle se relit après. */
+.unit-role-badge {
+  position: absolute; top: 2px; right: 2px; z-index: 4;
+  min-width: 13px; height: 13px; padding: 0 2px; border-radius: 4px;
+  background: rgba(0,0,0,.7);
+  display: flex; align-items: center; justify-content: center;
+  font: 400 8px/1 var(--font-sans); color: #fff;
+  pointer-events: none;
+}
+.unit-role-badge img { width: 9px; height: 9px; object-fit: contain; }
+
 /* Status medallion — top-right, outside card */
 .unit-medallion {
   position: absolute; top: -4px; right: -4px; z-index: 5;

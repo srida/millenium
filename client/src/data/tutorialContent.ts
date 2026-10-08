@@ -323,11 +323,12 @@ export const CHAPTERS: Chapter[] = [
   {
     id: 'keywords',
     icon: 'UI_PIN',
-    title: 'Les mots-clés',
+    title: 'Rôles et mots-clés',
     blurb: "Des attributs qui ne rangent pas la carte : ils lui donnent une règle.",
     blocks: [
       { kind: 'text', text: "La plupart des attributs **rangent** une carte — un type, un archétype, un élément — et n'agissent qu'en **synergie**, quand assez de cartes les partagent. Un **mot-clé**, lui, dit ce que la carte FAIT, et il agit **à un seul exemplaire** : il n'attend personne." },
-      { kind: 'keywords', caption: 'Les mots-clés du jeu, et ce qu\'ils font' },
+      { kind: 'text', text: "Chaque carte a **un rôle**, et un seul : il dit comment l'unité choisit sa cible et où elle va. Son icône est sur la carte et sur l'unité, chez toi comme chez l'adversaire. Le **Tank** retient ses alliés : tant qu'il n'a ni attaqué ni été attaqué, aucun ne dépasse sa ligne." },
+      { kind: 'keywords', caption: 'Les rôles, puis les mots-clés, et ce qu\'ils font' },
       { kind: 'bullets', items: [
         "Un mot-clé n'a **pas de palier à atteindre** : il vaut dès que la carte est sur le terrain. Tu ne le verras donc jamais dans le panneau des synergies.",
         "Il est **intrinsèque à sa carte** : rien ne le donne, rien ne le retire, et il vaut **pour les deux camps** — l'adversaire en profite exactement comme toi.",
