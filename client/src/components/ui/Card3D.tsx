@@ -179,6 +179,7 @@ export default function Card3D({
         'card3d', HIGHLIGHT[highlight], DIM[dim], LIFT[lift],
         stacked ? 'is-stacked' : '', raised ? 'is-raised' : '',
         badge != null && badge > 0 ? 'has-count' : '',
+        role ? 'has-role' : '',
         rail ? `in-rail in-rail-${rail}` : '', dragging ? 'is-dragging' : '',
         frameClass(finish),
         // Mode flow : pas de géométrie absolue, la carte reste dans le flux —
@@ -237,14 +238,18 @@ export default function Card3D({
           deux coins d'une même lisière, la seule qu'un éventail laisse voir
           d'une carte recouverte. Le tier ne s'écrit pas — il est le cadre. */}
       {hint && <span className="card3d-cost">{hint}</span>}
-      {badge != null && badge > 0 && <span className="card3d-badge card3d-count">×{badge}</span>}
-      {/* Le RÔLE en haut à droite : le seul coin libre, et le même qu'au plateau
-          (`.unit-role-badge`). Image si l'attribut en a une, emoji sinon. */}
-      {role && (
-        <span className="card3d-badge card3d-role" title={role.name}>
-          {role._has_illustration
-            ? <img src={illustrationUrl(role.id)} alt={role.name} draggable={false} />
-            : role.icon}
+      {/* Le pied BAS-GAUCHE : le RÔLE (même place qu'au plateau, `.unit-role-badge`
+          — image si l'attribut en a une, emoji sinon) puis le compte d'exemplaires. */}
+      {(role || (badge != null && badge > 0)) && (
+        <span className="card3d-foot">
+          {role && (
+            <span className="card3d-badge card3d-role" title={role.name}>
+              {role._has_illustration
+                ? <img src={illustrationUrl(role.id)} alt={role.name} draggable={false} />
+                : role.icon}
+            </span>
+          )}
+          {badge != null && badge > 0 && <span className="card3d-badge card3d-count">×{badge}</span>}
         </span>
       )}
       {locked && <span className="card3d-lock" aria-label="Carte verrouillée"><UiIcon id="UI_LOCK" className="h-3.5 w-3.5" /></span>}

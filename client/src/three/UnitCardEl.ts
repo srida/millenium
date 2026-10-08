@@ -135,9 +135,7 @@ function _inner(unit: Unit): string {
       <div class="unit-bottom-scrim"></div>
 
       <div class="unit-bars">
-        <div class="unit-team-hex-wrap">
-          <div class="unit-team-hex"><div class="unit-team-hex-inner"></div></div>
-        </div>
+        ${_roleBadgeHtml(unit)}
         <div class="unit-bars-stack">
           ${pwrBar}
           <div class="unit-hp-bar"><div class="unit-hp-fill" style="width:${hpPct}%"></div></div>
@@ -148,15 +146,14 @@ function _inner(unit: Unit): string {
     <div class="unit-vet-badge" style="display:none"></div>
     <div class="unit-medallion" style="display:none"></div>
     <div class="unit-mat-badge" style="display:none"></div>
-    ${_roleBadgeHtml(unit)}
   `.trim();
 }
 
 /**
- * Le RÔLE de l'unité, en haut à droite DANS la carte — le même coin que la
- * carte de main (`.card3d-role`). Posé au spawn : le rôle ne change pas en
- * combat. Visible pour les deux camps, fantômes compris : c'est ce qui rend le
- * plateau adverse lisible d'un coup d'œil.
+ * Le RÔLE de l'unité, en bas à gauche, devant les barres — la place de l'ancien
+ * losange d'équipe (le camp se lit déjà à la couleur de la barre de vie). Même
+ * coin que la carte de main (`.card3d-role`). Posé au spawn : le rôle ne change
+ * pas en combat. Visible pour les deux camps, fantômes compris.
  */
 function _roleBadgeHtml(unit: Unit): string {
   const role = roleOf(unit.attributes) as { id: string; name: string; icon?: string; _has_illustration?: boolean } | null;
