@@ -202,7 +202,7 @@ export const CHAPTERS: Chapter[] = [
         ['Zone neutre', '4 à 6'],
         ['Côté adverse', '7 à 10'],
       ] },
-      { kind: 'text', text: "Tu ne places tes unités que **sur ton côté**. La **zone neutre** est inoccupable en préparation : c'est le terrain qu'on se dispute, la distance que les unités traversent une fois le combat lancé. En préparation, le côté adverse t'est masqué — tu poses ton board sans voir le sien." },
+      { kind: 'text', text: "Tu ne places tes unités que **sur ton côté**. La **zone neutre** est inoccupable en préparation : c'est le terrain qu'on se dispute, la distance que les unités traversent une fois le combat lancé. En préparation, tu vois en transparence les **survivants adverses** du tour d'avant (glisse le plateau vers le bas depuis une case vide pour le voir en entier) ; ce que l'adversaire pose ce tour-ci reste caché jusqu'au combat." },
       { kind: 'note', text: "**5 unités maximum** sur le terrain (6 avec certaines synergies d'attributs)." },
       { kind: 'text', text: "Une unité qui tombe au combat est **neutralisée**. Elle ne disparaît pas pour autant : elle reste sur le terrain jusqu'à la fin de la préparation suivante, et rejoint ton **cimetière**." },
       { kind: 'bullets', items: [
@@ -364,6 +364,7 @@ export const CHAPTERS: Chapter[] = [
       { kind: 'table', head: ['Portée', 'Exemples'], rows: [
         ['Sur une unité du terrain', 'Bonus de statistique, soin, bouclier, destruction.'],
         ['Sur une unité du cimetière', 'Réanimation.'],
+        ['Sur une carte de ta main', "Échangeur de carte (la remplace par une autre carte du pool de pioche du tour), duplication, sacrifice."],
         ['Globale', 'Pioche supplémentaire, PV joueur, emplacement de terrain.'],
       ] },
       { kind: 'note', text: "Les bonus de statistiques donnés par une magie sont **permanents** — et ils **suivent l'unité** si tu la consommes plus tard comme matériau. Investir sur une unité n'est jamais perdu." },

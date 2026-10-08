@@ -59,7 +59,7 @@ export const GAME_STEPS: GameStepDef[] = [
   {
     id: 'hand',
     title: 'Ta main',
-    text: "Voici les 5 cartes que tu viens de piocher. Tape l'une d'elles pour la choisir.",
+    text: "Voici les 5 cartes que tu viens de piocher. Tape l'une d'elles pour la choisir. Chaque carte coûte son tier en énergie ⚡ : 3 au tour 1, plus à chaque tour.",
     blocking: false,
     done: (s) => s.handSelected || s.placedCount >= 1,
   },
@@ -101,7 +101,7 @@ export const GAME_STEPS: GameStepDef[] = [
   {
     id: 'ready',
     title: 'Lance le combat',
-    text: "Tape PRÊT en bas à droite. L'adversaire posera alors son board — tu ne le vois pas avant.",
+    text: "Tape PRÊT en bas à droite. L'adversaire posera alors ses nouvelles unités — tu ne les vois pas avant. Ses survivants, eux, restent visibles d'un tour à l'autre.",
     blocking: false,
     done: (s) => s.combatActive,
   },
@@ -148,7 +148,7 @@ export const GAME_STEPS: GameStepDef[] = [
   {
     id: 'next_round',
     title: 'Tour 2',
-    text: "Tes survivants sont restés en place, avec les PV qu'il leur reste. Les neutralisées sont au cimetière — elles peuvent encore servir de matériaux.",
+    text: "Tes survivants sont restés en place, avec les PV qu'il leur reste. Les neutralisées sont au cimetière — elles peuvent encore servir de matériaux. En face, les survivants adverses s'affichent en transparence : place-toi contre eux.",
     blocking: true,
     done: (s, seen) => seen.has('next_round') || s.combatActive,
     visible: (s) => s.round >= 2 && !s.combatActive,
