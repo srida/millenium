@@ -1203,6 +1203,8 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 - Ne bloque que la marche (phase 3, repli, pas de Soutien) : téléportation et poussée passent. Une unité déjà au-delà ne recule pas, elle ne peut que se déplacer latéralement.
 - Le Tank fixe la ligne, il n'y est pas soumis.
 
+**La ligne de l'Archer** (même garde, `_beyondTankLine`) : un Archer (`target_policy = 'plus_loin_a_portee'`) ne marche jamais à la rangée de l'allié vivant le plus avancé d'un **autre** rôle, ni au-delà — il reste au moins une rangée derrière. Les autres Archers ne fixent pas cette ligne ; seuls avec des Archers, ils avancent librement. Avec un Tank non engagé, la plus restrictive des deux lignes l'emporte. Même mesure dans le sens de marche du camp, mêmes exceptions (téléportation, poussée). Verrouillé par `role-tank.test.ts`.
+
 **Règles communes aux politiques** :
 
 - ⚠️ **`plus_proche` reste le code historique au bit près** (`PathFinder.findAttackTarget`) : le modifier ferait bouger les goldens de `sim.test.ts` et le filet PvP.

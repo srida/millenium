@@ -517,12 +517,25 @@ export class CombatManager {
    * - Le Tank qui fixe la ligne n'y est pas soumis (il est exclu de la recherche) ;
    *   un Tank plus en retrait l'est, comme n'importe quel allié.
    * - Seule la marche est concernée : poussée et téléportation passent ailleurs.
+   * - Un Archer a en plus sa propre ligne (une rangée derrière l'allié le plus
+   *   avancé d'un autre rôle) ; la plus restrictive des deux l'emporte.
    */
   _beyondTankLine(u, next) {
     let line = -Infinity;
     for (const a of this._allies(u)) {
       if (a === u || !a.isAlive() || !a.position || a.move_policy !== 'tank' || a.tank_engaged) continue;
       line = Math.max(line, this._forwardDepth(a, a.position.row));
+    }
+    // **Ligne de l'Archer** : un Archer reste au moins une rangée derrière
+    // l'allié vivant le plus avancé d'un AUTRE rôle (les autres Archers ne
+    // comptent pas, sinon deux Archers se retiendraient l'un l'autre).
+    if (u.target_policy === 'plus_loin_a_portee') {
+      let front = -Infinity;
+      for (const a of this._allies(u)) {
+        if (a === u || !a.isAlive() || !a.position || a.target_policy === 'plus_loin_a_portee') continue;
+        front = Math.max(front, this._forwardDepth(a, a.position.row));
+      }
+      if (front !== -Infinity) line = line === -Infinity ? front - 1 : Math.min(line, front - 1);
     }
     if (line === -Infinity) return false;
     return this._forwardDepth(u, next.row) > Math.max(line, this._forwardDepth(u, u.position.row));
