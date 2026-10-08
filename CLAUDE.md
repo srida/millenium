@@ -2051,6 +2051,7 @@ Reprendre une PWA depuis les tâches de fond **n'est pas une navigation** : le n
 | **Appliquer** | l'écran devient `main_menu` (abonnement `uiStore`) | `skipWaiting` + rechargement |
 
 - ⚠️ **`registerType: 'prompt'`, alors que le rechargement EST automatique** : la différence n'est pas la confirmation, c'est **le moment**. `autoUpdate` pose `skipWaiting` + `clientsClaim` → la nouvelle version prend la main **sous la page en cours** et purge le précache de l'ancienne ; les écrans de jeu étant en `lazy()`, un `import()` parti après la bascule demande un chunk dont le nom a changé, le serveur répond par le fallback SPA, et le navigateur essaie de lire `index.html` comme un module.
+- ⚠️ **Pas de `registerSW` de vite-plugin-pwa** : il recharge la page à tout `controlling` dès qu'une version attend, sur n'importe quel écran (flash blanc en fin de partie sur iOS). `pwaUpdate.ts` inscrit `/sw.js` lui-même et ne poste `SKIP_WAITING` + `reload` qu'au menu.
 - ⚠️ **`injectRegister: null`** : le script injecté par défaut se contente d'un `register()` au chargement — il n'a rien pour interroger le serveur au réveil, ce qui est précisément le trou qu'on bouche.
 - ⚠️ **Le rechargement n'a lieu QU'AU MENU PRINCIPAL** : `navigate()` n'écrivant pas dans l'URL, un `reload()` ramène toujours au menu. Recharger en pleine partie perdrait le combat.
 - ⚠️ **Le menu ne suffit pas à dire que rien n'est en cours** : le bracket de tournoi vit en mémoire et se perd, or on revient au menu entre deux manches → seconde clause de `isIdle()`.
