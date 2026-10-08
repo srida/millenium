@@ -2152,10 +2152,10 @@
 	},
 	{
 		"id": "ARCH_107",
-		"name": "Tireur d'élite",
-		"icon": "🎯",
+		"name": "Archer",
+		"icon": "🏹",
 		"timing": "start_of_combat",
-		"categorie": "MotCle",
+		"categorie": "Role",
 		"thresholds": [
 			{
 				"count": 1,
@@ -2170,10 +2170,10 @@
 	},
 	{
 		"id": "ARCH_108",
-		"name": "Chasseur",
-		"icon": "🩸",
+		"name": "Assassin",
+		"icon": "🗡️",
 		"timing": "start_of_combat",
-		"categorie": "MotCle",
+		"categorie": "Role",
 		"thresholds": [
 			{
 				"count": 1,
@@ -2188,10 +2188,10 @@
 	},
 	{
 		"id": "ARCH_109",
-		"name": "Briseur",
-		"icon": "🔨",
+		"name": "Lancier",
+		"icon": "🔱",
 		"timing": "start_of_combat",
-		"categorie": "MotCle",
+		"categorie": "Role",
 		"thresholds": [
 			{
 				"count": 1,
@@ -2206,17 +2206,17 @@
 	},
 	{
 		"id": "ARCH_110",
-		"name": "Embusqué",
-		"icon": "🕳️",
+		"name": "Tank",
+		"icon": "🛡️",
 		"timing": "start_of_combat",
-		"categorie": "MotCle",
+		"categorie": "Role",
 		"thresholds": [
 			{
 				"count": 1,
 				"medal": "platinum",
 				"effects": [
 					{
-						"type": "embusque"
+						"type": "tank"
 					}
 				]
 			}
@@ -2224,10 +2224,10 @@
 	},
 	{
 		"id": "ARCH_111",
-		"name": "Garde du corps",
-		"icon": "🛡️",
+		"name": "Soutien",
+		"icon": "✚",
 		"timing": "start_of_combat",
-		"categorie": "MotCle",
+		"categorie": "Role",
 		"thresholds": [
 			{
 				"count": 1,
@@ -2241,21 +2241,11 @@
 		]
 	},
 	{
-		"id": "ARCH_112",
-		"name": "Flanc",
-		"icon": "🐎",
+		"id": "ARCH_113",
+		"name": "Fantassin",
+		"icon": "🪖",
 		"timing": "start_of_combat",
-		"categorie": "MotCle",
-		"thresholds": [
-			{
-				"count": 1,
-				"medal": "platinum",
-				"effects": [
-					{
-						"type": "flanc"
-					}
-				]
-			}
-		]
+		"categorie": "Role",
+		"thresholds": []
 	}
 ]

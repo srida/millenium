@@ -70,6 +70,29 @@ export function isKeywordAttribute(id) {
   }
 }
 
+export { ROLE_CATEGORY } from '../../../effect-schema.mjs';
+import { ROLE_CATEGORY as ROLE_CAT } from '../../../effect-schema.mjs';
+
+/** Cet attribut est-il un RÔLE (un par carte : Fantassin, Tank, Archer…) ? */
+export function isRoleAttribute(id) {
+  try {
+    return getAttribute(id)?.categorie === ROLE_CAT;
+  } catch {
+    return false;
+  }
+}
+
+/** Le rôle d'une carte ou d'une unité (l'attribut résolu), ou `null`. */
+export function roleOf(attrIds) {
+  try {
+    for (const id of attrIds || []) {
+      const a = getAttribute(id);
+      if (a?.categorie === ROLE_CAT) return a;
+    }
+  } catch { /* database non initialisée (bancs de dev) */ }
+  return null;
+}
+
 /** Cet attribut désigne-t-il un tier ? */
 export function isTierAttribute(id) {
   try {

@@ -272,7 +272,7 @@ export class CombatManager {
       for (const target of sorted) {
         if (canAttack(u, target, this.board)) { moved = true; break; } // in range and has line of sight
         const next = (flank && this._flankStep(u, target)) || stepToward(this.board, u.position, target.position);
-        if (next && !this.board.isOccupied(next)) {
+        if (next && !this.board.isOccupied(next) && !this._beyondTankLine(u, next)) {
           const from = { ...u.position };
           this.board.moveUnit(u, next);
           events.push({ type: 'move', unit: u, from, to: { ...u.position } });
@@ -284,7 +284,7 @@ export class CombatManager {
       // Fallback: all normal paths failed — get as close as possible to the primary target
       if (!moved && sorted.length > 0) {
         const next = stepTowardOrNearest(this.board, u.position, sorted[0].position);
-        if (next) {
+        if (next && !this._beyondTankLine(u, next)) {
           const from = { ...u.position };
           this.board.moveUnit(u, next);
           events.push({ type: 'move', unit: u, from, to: { ...u.position } });
@@ -328,6 +328,8 @@ export class CombatManager {
       } else {
         continue; // nothing in reach, nothing to cast — the unit just closes in
       }
+      // **Tank** : agir (frappe ou pouvoir, même raté) l'engage — sa ligne tombe.
+      if (u.move_policy === 'tank') u.tank_engaged = true;
       // The burn pulses on the CURSED UNIT'S OWN action, and a power replaces
       // the attack of the step: a rangeless cast burns exactly like a swing.
       this._applyBurnStacks(u, events);
@@ -504,6 +506,34 @@ export class CombatManager {
   }
 
   /**
+   * La **ligne du Tank** : ce pas mènerait-il `u` au-delà de la rangée du Tank
+   * allié non engagé le plus avancé ?
+   *
+   * - La profondeur se mesure vers l'avant DU CAMP (rangée croissante pour le
+   *   joueur, décroissante pour l'ennemi), jamais dans le repère : le miroir du
+   *   rôle B retourne les rangées ET les camps, donc les deux clients rendent
+   *   le même verdict.
+   * - Une unité déjà au-delà de la ligne n'avance plus, mais peut se décaler.
+   * - Le Tank qui fixe la ligne n'y est pas soumis (il est exclu de la recherche) ;
+   *   un Tank plus en retrait l'est, comme n'importe quel allié.
+   * - Seule la marche est concernée : poussée et téléportation passent ailleurs.
+   */
+  _beyondTankLine(u, next) {
+    let line = -Infinity;
+    for (const a of this._allies(u)) {
+      if (a === u || !a.isAlive() || !a.position || a.move_policy !== 'tank' || a.tank_engaged) continue;
+      line = Math.max(line, this._forwardDepth(a, a.position.row));
+    }
+    if (line === -Infinity) return false;
+    return this._forwardDepth(u, next.row) > Math.max(line, this._forwardDepth(u, u.position.row));
+  }
+
+  /** Profondeur d'une rangée vers l'avant du camp de `u` (0 = sa ligne de fond). */
+  _forwardDepth(u, row) {
+    return u.side === 'player' ? row : (this.board.rows - 1) - row;
+  }
+
+  /**
    * **Garde du corps** : le protégé est l'allié vivant aux PV les plus bas
    * (lui-même exclu ; `current_hp` absolu, puis le départage commun). Au
    * contact (Manhattan 1), le garde ne bouge pas ; sinon il fait un pas vers
@@ -523,7 +553,7 @@ export class CombatManager {
     const dist = manhattanDistance(u.position, ward.position);
     if (dist <= 1) return true;
     const next = stepTowardOrNearest(this.board, u.position, ward.position);
-    if (next && manhattanDistance(next, ward.position) < dist) {
+    if (next && manhattanDistance(next, ward.position) < dist && !this._beyondTankLine(u, next)) {
       const from = { ...u.position };
       this.board.moveUnit(u, next);
       events.push({ type: 'move', unit: u, from, to: { ...u.position } });

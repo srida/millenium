@@ -23,6 +23,7 @@
 import { compileAttributes } from './effects/compile.js';
 import { executer, ressourcesVides } from './effects/engine.js';
 import { MOT_CLE_CATEGORY } from './Keywords.js';
+import { ROLE_CATEGORY } from '../../../effect-schema.mjs';
 
 // Veterancy: a unit that survives a combat without being neutralized gains 1 point
 // (GameScreen3D._finishCombat). From 2 cumulated points onward it gets a permanent
@@ -526,6 +527,8 @@ export class AttributeManager {
       // partage que les tiers, qui sortent des chips parce que la couleur du
       // cadre les dit déjà.
       if (attr.categorie === MOT_CLE_CATEGORY) continue;
+      // Même règle pour un RÔLE : un par carte, il agit à un exemplaire.
+      if (attr.categorie === ROLE_CATEGORY) continue;
       const count = this._countAttribute(attrId, units);
       const result = this._activeThreshold(attrId, units);
       const activeThreshold = result?.threshold ?? null;

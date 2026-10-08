@@ -17,7 +17,7 @@ import AttrIcon, { attributeName } from '../ui/AttrIcon.js';
 import UiIcon, { isUiIconId } from '../ui/UiIcon.js';
 // ⚠️ La MÊME mise en mots qu'en jeu (`TooltipHost`) : un joueur ne doit pas
 // pouvoir lire dans le codex autre chose que ce que la carte lui dira.
-import { keywordText, keywordAttributes, MOT_CLE_CATEGORY } from '../../data/KeywordInfo.js';
+import { keywordText, keywordAttributes, MOT_CLE_CATEGORY, ROLE_CATEGORY } from '../../data/KeywordInfo.js';
 import { effectLabel } from '../../logic/MagieEffect.js';
 import { GAME_NAMES, cardName } from '../../data/gameNames.js';
 import { boardEffects } from '../../logic/BoardEffect.js';
@@ -90,7 +90,7 @@ function AttributeExamples({ limit }: { limit: number }) {
   // est pas enseignerait le contraire de ce chapitre.
   const all = ((AttributeDatabase as any).getAllAttributes() as AttributeDef[])
     .filter(a => (a.thresholds?.length ?? 0) > 0)
-    .filter(a => (a as any).categorie !== MOT_CLE_CATEGORY);
+    .filter(a => (a as any).categorie !== MOT_CLE_CATEGORY && (a as any).categorie !== ROLE_CATEGORY);
   return (
     <div className="grid gap-1.5">
       {firstById(all, limit).map(a => (

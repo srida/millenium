@@ -16,14 +16,14 @@ import type { Position } from './types.js';
 import type { Board } from './Board.js';
 import { manhattanDistance } from './PathFinder.js';
 
-export type PlacementKeyword = 'garde_du_corps' | 'embusque' | 'flanc' | 'tireur_elite';
+export type PlacementKeyword = 'tank' | 'garde_du_corps' | 'embusque' | 'flanc' | 'tireur_elite';
 
 /**
  * L'ordre de lecture quand une unité en porte plusieurs : la famille 2 d'abord
  * (c'est elle qui décide où l'unité VA), dans le rang du moteur
  * (`KEYWORD_POLICIES`), puis Tireur d'élite.
  */
-const ORDRE: readonly PlacementKeyword[] = ['garde_du_corps', 'embusque', 'flanc', 'tireur_elite'];
+const ORDRE: readonly PlacementKeyword[] = ['tank', 'garde_du_corps', 'embusque', 'flanc', 'tireur_elite'];
 
 /** Attribut → les types d'effet de placement que ses paliers à 1 posent. */
 export function indexPlacementKeywords(attributeList: readonly any[] = []): Map<string, Set<PlacementKeyword>> { // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -72,6 +72,8 @@ const BORDS = [0, 4, 1, 3, 2];
  * placement par défaut s'applique alors.
  *
  * - **Tireur d'élite** : le plus au fond possible, centre d'abord.
+ * - **Tank** : en première ligne, centre d'abord — c'est sa rangée qui retient
+ *   ses alliés.
  * - **Embusqué** : en première ligne, face à un couloir libre (aucune case
  *   bloquée dans la zone neutre de sa colonne) — c'est là que l'ennemi entrera
  *   à sa portée.
@@ -84,6 +86,8 @@ export function keywordCellScore(keyword: PlacementKeyword, cell: Position, ctx:
   switch (keyword) {
     case 'tireur_elite':
       return (3 - depth) * 10 + centre;
+    case 'tank':
+      return depth * 10 + centre;
     case 'embusque': {
       const couloir = [4, 5, 6].some(row => ctx.board.isBlocked({ col: cell.col, row })) ? 1 : 0;
       return depth * 100 + couloir * 10 + centre;

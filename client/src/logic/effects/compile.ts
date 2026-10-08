@@ -328,6 +328,7 @@ const QUANDS_PAR_TYPE: Record<string, readonly Quand[]> = {
   embusque: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   garde_du_corps: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   flanc: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
+  tank: ['debut_combat', 'a_l_invocation', 'pouvoir_utilise'],
   // ⚠️ **Un type à part de `destroy_unit`, et non un champ `camp`** : la magie
   // détruit une unité ALLIÉE (un coût que le joueur consent, il la désigne), le
   // mot-clé une unité ADVERSE (une récompense). Le geste du moteur est le même
@@ -565,6 +566,7 @@ export function compileAttribute(attr: AttributeLike, connus?: ReadonlySet<strin
         case 'embusque':
         case 'garde_du_corps':
         case 'flanc':
+        case 'tank':
           pousse([{ action: 'poser_statut', cible: cibleUnite(), statut: effect.type, duree: 'combat' }]);
           return;
 

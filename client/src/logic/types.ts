@@ -20,7 +20,7 @@ export type Side = 'player' | 'enemy';
 export type TargetPolicy = 'plus_proche' | 'plus_loin_a_portee' | 'pv_bas' | 'pv_max_haut';
 
 /** Où une unité va (mots-clés de la famille 2) : Embusqué, Garde du corps, Flanc. */
-export type MovePolicy = 'normal' | 'embusque' | 'garde' | 'flanc';
+export type MovePolicy = 'normal' | 'embusque' | 'garde' | 'flanc' | 'tank';
 
 // ── Cartes ──
 

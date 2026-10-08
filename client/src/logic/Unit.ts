@@ -234,6 +234,12 @@ export class Unit {
    */
   ambush_awake: boolean;
   /**
+   * Le **Tank** est engagé : il a attaqué (ou lancé son pouvoir) ou encaissé un
+   * coup. Tant qu'il ne l'est pas, ses alliés ne dépassent pas sa rangée
+   * (`CombatManager._tankLine`). Même cycle de vie que `ambush_awake`.
+   */
+  tank_engaged: boolean;
+  /**
    * Le compte à rebours d'Affaiblissement (POWER_WEAKEN), en ticks.
    *
    * ⚠️ Contrairement à Paralysie/Blocage/Confusion/Provocation, ce pouvoir lit
@@ -335,6 +341,7 @@ export class Unit {
     this.target_policy = 'plus_proche';
     this.move_policy = 'normal';
     this.ambush_awake = false;
+    this.tank_engaged = false;
     this.weaken_remaining = 0;
     this.weaken_atk_delta = 0;
     this.is_token = false;
@@ -384,6 +391,7 @@ export class Unit {
     // tireur plus long le tuerait sur place, et deux camps embusqués hors de
     // portée l'un de l'autre attendraient le timeout.
     if (amount > 0 && this.move_policy === 'embusque') this.ambush_awake = true;
+    if (amount > 0 && this.move_policy === 'tank') this.tank_engaged = true;
     if (this.shield > 0) {
       const absorbed = Math.min(this.shield, dmg);
       this.shield -= absorbed;
@@ -458,6 +466,7 @@ export class Unit {
     this.target_policy = 'plus_proche';
     this.move_policy = 'normal';
     this.ambush_awake = false;
+    this.tank_engaged = false;
   }
 
   // Called by POWER_DEBUFF and at end of combat — strip all bonuses and status effects

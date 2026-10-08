@@ -36,6 +36,7 @@ import { artFor, finishOf, hasFoil, illustrationUrl, type CardFinish } from '../
 import { frameClass, inkClass, sparkleSpecs } from '../../three/finishLayers.js';
 import { summonCostsOf } from '../../data/SummonInfo.js';
 import { tiersOf } from '../../logic/Tiers.js';
+import { roleOf } from '../../data/AttributeDatabase.js';
 import { useCardPress } from './cardPress.js';
 import UiIcon from './UiIcon.js';
 import type { Card } from '../../logic/types.js';
@@ -103,7 +104,12 @@ export interface Card3DProps {
    *  `three/finishLayers`, que `UnitCardEl` consomme aussi : même ordre de
    *  calques sur le plateau et en main. */
   finish?: CardFinish;
+  /** Le RÔLE de la carte (icône en haut à droite) — `roleBadge`, ou rien. */
+  role?: RoleBadge | null;
 }
+
+/** Ce qu'il faut pour dessiner la pastille de rôle : l'attribut résolu. */
+export interface RoleBadge { id: string; name: string; icon?: string; _has_illustration?: boolean }
 
 const NO_FINISH: CardFinish = {};
 const SPARKLE_SPECS = sparkleSpecs();
@@ -114,7 +120,7 @@ export default function Card3D({
   highlight = 'none', dim = 'none', lift = 'none',
   locked = false, disabled = false, tapOn = 'down', tooltip = null, onTap,
   transform, width, size = 'h-auto w-full', raised = false, rail = null,
-  onDragBegin, onDragMove, onDrop, foil = false, finish = NO_FINISH,
+  onDragBegin, onDragMove, onDrop, foil = false, finish = NO_FINISH, role = null,
 }: Card3DProps) {
   // Mode flow : pas de géométrie calculée par `cardFan`, la carte reste dans
   // le flux normal — même convention que l'ancien `CardTile`.
@@ -232,6 +238,15 @@ export default function Card3D({
           d'une carte recouverte. Le tier ne s'écrit pas — il est le cadre. */}
       {hint && <span className="card3d-cost">{hint}</span>}
       {badge != null && badge > 0 && <span className="card3d-badge card3d-count">×{badge}</span>}
+      {/* Le RÔLE en haut à droite : le seul coin libre, et le même qu'au plateau
+          (`.unit-role-badge`). Image si l'attribut en a une, emoji sinon. */}
+      {role && (
+        <span className="card3d-badge card3d-role" title={role.name}>
+          {role._has_illustration
+            ? <img src={illustrationUrl(role.id)} alt={role.name} draggable={false} />
+            : role.icon}
+        </span>
+      )}
       {locked && <span className="card3d-lock" aria-label="Carte verrouillée"><UiIcon id="UI_LOCK" className="h-3.5 w-3.5" /></span>}
     </button>
   );
@@ -267,8 +282,9 @@ function renderHint(card: Card): ReactNode {
 // passe `{ plain: true }`.
 export function cardVisualProps(
   card: Card, side: 'player' | 'enemy' = 'player', { plain = false }: { plain?: boolean } = {},
-): Pick<Card3DProps, 'illustrationId' | 'name' | 'tiers' | 'hint' | 'tooltip' | 'foil' | 'finish'> {
+): Pick<Card3DProps, 'illustrationId' | 'name' | 'tiers' | 'hint' | 'tooltip' | 'foil' | 'finish' | 'role'> {
   return {
+    role: roleOf(card.attributes) as RoleBadge | null,
     foil: !plain && hasFoil(card.id, side),
     finish: plain ? NO_FINISH : finishOf(card.id, side),
     illustrationId: artFor(card.id, side),

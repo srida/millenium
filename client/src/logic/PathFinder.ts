@@ -19,28 +19,31 @@ export function manhattanDistance(a: Position, b: Position): number {
  * or null if unreachable.
  */
 function findPath(board: Board, from: Position, to: Position): Position[] | null {
-  const key = (p: Position) => `${p.col},${p.row}`;
-  const visited = new Set([key(from)]);
-  const queue: { pos: Position; path: Position[] }[] = [{ pos: from, path: [] }];
+  // Même parcours que la version à chemins copiés (même ordre de voisines, même
+  // marquage), donc même résultat au bit près : seuls les chemins sont
+  // reconstruits par parents au lieu d'être recopiés à chaque case. La BFS est
+  // le point chaud de la simulation.
+  const width = board.cols;
+  const id = (p: Position) => p.row * width + p.col;
+  const parent = new Map<number, Position | null>([[id(from), null]]);
+  const queue: Position[] = [from];
 
-  while (queue.length > 0) {
-    const { pos, path } = queue.shift() as { pos: Position; path: Position[] };
-
+  for (let head = 0; head < queue.length; head++) {
+    const pos = queue[head];
     for (const next of board.getNeighbors(pos)) {
-      const k = key(next);
-      if (visited.has(k)) continue;
-      visited.add(k);
+      const k = id(next);
+      if (parent.has(k)) continue;
+      parent.set(k, pos);
 
-      const isGoal = next.col === to.col && next.row === to.row;
-      if (!isGoal) {
-        const occupant = board.getUnit(next);
-        // Block on living units (except destination)
-        if (occupant && !occupant.is_neutralized) continue;
+      if (next.col === to.col && next.row === to.row) {
+        const path: Position[] = [next];
+        for (let p = pos; p !== from; p = parent.get(id(p)) as Position) path.push(p);
+        return path.reverse();
       }
-
-      const newPath = [...path, next];
-      if (isGoal) return newPath;
-      queue.push({ pos: next, path: newPath });
+      const occupant = board.getUnit(next);
+      // Block on living units (except destination)
+      if (occupant && !occupant.is_neutralized) continue;
+      queue.push(next);
     }
   }
   return null;

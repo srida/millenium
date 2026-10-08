@@ -358,6 +358,7 @@ exports[`Terrains livrés — l'oracle de l'étape 0 > ce que chacun des 25 terr
       "ARCH_055": "atk 20→30",
       "ARCH_058": "atk 20→30",
       "ARCH_061": "atk 20→30",
+      "ARCH_080": "atk 20→30",
       "ARCH_086": "atk 20→30",
       "ARCH_087": "atk 20→30",
       "ARCH_088": "atk 20→30",
@@ -390,6 +391,7 @@ exports[`Terrains livrés — l'oracle de l'étape 0 > ce que chacun des 25 terr
       "ARCH_055": "atk 20→30",
       "ARCH_058": "atk 20→30",
       "ARCH_061": "atk 20→30",
+      "ARCH_080": "atk 20→30",
       "ARCH_086": "atk 20→30",
       "ARCH_087": "atk 20→30",
       "ARCH_088": "atk 20→30",
@@ -423,7 +425,7 @@ exports[`Terrains livrés — l'oracle de l'étape 0 > ce que chacun des 25 terr
   {
     "cases_bloquees": 2,
     "effets": [
-      "stat_bonus · atk · 10 · ARCH_058",
+      "stat_bonus · atk · 10 · ARCH_058|ARCH_080",
       "stat_bonus · atk · -10 · ARCH_001|ARCH_002|ARCH_023",
     ],
     "ennemi": {
@@ -431,6 +433,7 @@ exports[`Terrains livrés — l'oracle de l'étape 0 > ce que chacun des 25 terr
       "ARCH_002": "atk 20→10",
       "ARCH_023": "atk 20→10",
       "ARCH_058": "atk 20→30",
+      "ARCH_080": "atk 20→30",
     },
     "id": "BOARD_024",
     "joueur": {
@@ -438,6 +441,7 @@ exports[`Terrains livrés — l'oracle de l'étape 0 > ce que chacun des 25 terr
       "ARCH_002": "atk 20→10",
       "ARCH_023": "atk 20→10",
       "ARCH_058": "atk 20→30",
+      "ARCH_080": "atk 20→30",
     },
     "nom": "Marais",
     "pioches": 0,
@@ -473,6 +477,7 @@ exports[`Terrains livrés — l'oracle de l'étape 0 > ce que chacun des 25 terr
       "ARCH_055": "attack_rate 50→53, attack_period 40→38",
       "ARCH_058": "attack_rate 50→47, attack_period 40→42",
       "ARCH_061": "attack_rate 50→47, attack_period 40→42",
+      "ARCH_080": "attack_rate 50→47, attack_period 40→42",
       "ARCH_086": "attack_rate 50→47, attack_period 40→42",
       "ARCH_087": "attack_rate 50→47, attack_period 40→42",
       "ARCH_088": "attack_rate 50→47, attack_period 40→42",
@@ -505,6 +510,7 @@ exports[`Terrains livrés — l'oracle de l'étape 0 > ce que chacun des 25 terr
       "ARCH_055": "attack_rate 50→53, attack_period 40→38",
       "ARCH_058": "attack_rate 50→47, attack_period 40→42",
       "ARCH_061": "attack_rate 50→47, attack_period 40→42",
+      "ARCH_080": "attack_rate 50→47, attack_period 40→42",
       "ARCH_086": "attack_rate 50→47, attack_period 40→42",
       "ARCH_087": "attack_rate 50→47, attack_period 40→42",
       "ARCH_088": "attack_rate 50→47, attack_period 40→42",
