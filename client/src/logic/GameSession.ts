@@ -40,7 +40,7 @@ import {
 } from './InvocationManager.js';
 import { tiersForRound, drawHand, resolveGuaranteedDraws, poolForRound } from './Draw.js';
 import { tiersOf } from './Tiers.js';
-import { budgetForRound, energyCost } from './SummonBudget.js';
+import { budgetForRound, energyCost, boardEnergy } from './SummonBudget.js';
 import { indexeMotsCles, porteMotCle, catalogueDeclare } from './Keywords.js';
 import type { IndexMotsCles, AttributMotCle } from './Keywords.js';
 import { indexPlacementKeywords, placementKeyword } from './KeywordPlacement.js';
@@ -239,7 +239,6 @@ interface PrepSnapshot {
    */
   bonus: { unit: Unit; stats: Record<string, number> }[];
   /** L'énergie déjà dépensée à l'ouverture du tour (0, sauf mulligan). */
-  energySpent: number;
 }
 
 export interface StartCombatResult {
@@ -276,10 +275,6 @@ export class GameSession {
   // État de début de tour, pour « Tout annuler » (cf. PrepSnapshot).
   private _prepSnapshot: PrepSnapshot | null = null;
 
-  /** L'énergie dépensée ce tour par les invocations depuis la main (cf.
-   *  `SummonBudget`). Remise à zéro par `startPreparation`, rendue par
-   *  `undoPreparation`. Les poses gratuites (magies, tokens) n'y entrent pas. */
-  private _energySpent = 0;
 
   /** Terrains déjà JOUÉS dans ce duel. Vit sur la session, donc sa durée de vie
    *  est exactement celle du duel — rien à réinitialiser, rien à purger, et
@@ -443,8 +438,6 @@ export class GameSession {
   startPreparation(): DrawSummary {
     // Nettoie le terrain du combat précédent
     this.board.clearBlockedCells();
-    // Le budget d'invocation repart à plein — ce qui n'a pas été dépensé est perdu.
-    this._energySpent = 0;
 
     // Pioches garanties : occupent des slots dans la main normale (pas des cartes en plus)
     const guaranteedDraws = this.gameState.player_guaranteed_draws.splice(0);
@@ -587,7 +580,6 @@ export class GameSession {
         initial_position: unit.initial_position ? { ...unit.initial_position } : null,
       })),
       bonus: units.map(unit => ({ unit, stats: { ...(unit as any)._stat_bonuses } })),
-      energySpent: this._energySpent,
     };
   }
 
@@ -640,7 +632,6 @@ export class GameSession {
     }
     this.hand = [...snap.hand];
     this.graveyard = [...snap.graveyard];
-    this._energySpent = snap.energySpent;
     return true;
   }
 
@@ -649,14 +640,30 @@ export class GameSession {
   /** Le budget du tour en cours. */
   energyBudget(): number { return budgetForRound(this.gameState.round); }
 
-  /** Ce qu'il reste à dépenser ce tour. */
-  energyLeft(): number { return Math.max(0, this.energyBudget() - this._energySpent); }
+  /** Ce que le plateau occupe déjà : chaque unité vivante du joueur, survivantes
+   *  comprises. Structurel — « Tout annuler » et le mulligan n'ont rien à rendre. */
+  energyUsed(): number { return boardEnergy(this.getPlayerUnits()); }
+
+  /** Ce qu'il reste de place dans le budget. */
+  energyLeft(): number { return Math.max(0, this.energyBudget() - this.energyUsed()); }
 
   /** Ce que coûte l'invocation de cette carte (son tier). */
   energyCost(card: Card): number { return energyCost(card); }
 
-  /** Le budget couvre-t-il cette carte ? */
-  canAffordSummon(card: Card): boolean { return energyCost(card) <= this.energyLeft(); }
+  /**
+   * Le plateau, une fois la carte posée, tient-il dans le budget ?
+   *
+   * ⚠️ Les matériaux pris SUR LE PLATEAU rendent leur coût (ils partent avant la
+   * pose) ; ceux du cimetière n'occupaient rien. Sans sélection (`null`), la
+   * réponse est OPTIMISTE pour une carte à matériaux — tout le plateau pourrait
+   * y passer — et c'est `canSummon`, à la pose, qui tranche.
+   */
+  canAffordSummon(card: Card, materials: Unit[] | null = null): boolean {
+    const freed = materials === null
+      ? (InvocationManager.summonCost(card as any) > 0 ? this.energyUsed() : 0)
+      : boardEnergy(materials.filter(u => !u.is_neutralized && this.board.getUnit(u.position as Position) === u));
+    return energyCost(card) - freed <= this.energyBudget() - this.energyUsed();
+  }
 
   /** Placement de l'adversaire IA — le joueur pose en premier, l'IA répond au
    *  moment où il valide (bouton PRÊT / fin du chrono). No-op en PvP. */
@@ -818,10 +825,14 @@ export class GameSession {
   }
 
   canSummon(card: Card, pos: Position, selectedMaterials: Unit[], conditionIndex: number | null = null) {
-    if (!this.canAffordSummon(card)) {
+    // ⚠️ La règle d'invocation d'abord : tant que les matériaux ne sont pas
+    // désignés, l'énergie qu'ils rendront n'est pas connue, et « énergie
+    // insuffisante » mentirait sur une sélection simplement incomplète.
+    const verdict = InvocationManager.canSummon(card as any, pos, this.board, this.hand, this.graveyard, selectedMaterials, conditionIndex, this._hasMultiple(card));
+    if (verdict.ok && !this.canAffordSummon(card, selectedMaterials)) {
       return { ok: false, reason: `Énergie insuffisante (${energyCost(card)} requise, ${this.energyLeft()} restante)` };
     }
-    return InvocationManager.canSummon(card as any, pos, this.board, this.hand, this.graveyard, selectedMaterials, conditionIndex, this._hasMultiple(card));
+    return verdict;
   }
 
   exceedsBoardSlots(card: Card, selectedMaterials: Unit[]): boolean {
@@ -830,17 +841,14 @@ export class GameSession {
 
   /** Exécute l'invocation (validée en amont). Retourne l'unité placée ou null. */
   place(card: Card, pos: Position, selectedMaterials: Unit[], handIdx: number | null, conditionIndex: number | null = null): Unit | null {
-    if (!this.canAffordSummon(card)) return null;
+    if (!this.canAffordSummon(card, selectedMaterials)) return null;
     const unit = InvocationManager.summon(card as any, pos, this.board, this.hand, selectedMaterials.length > 0 ? selectedMaterials : null, handIdx, conditionIndex, this._hasMultiple(card));
     // Retire les unités de cimetière consommées
     for (const u of selectedMaterials) {
       const gi = this.graveyard.indexOf(u);
       if (gi !== -1) this.graveyard.splice(gi, 1);
     }
-    if (unit) {
-      this._energySpent += energyCost(card);
-      this._joueInvocation();
-    }
+    if (unit) this._joueInvocation();
     return unit;
   }
 

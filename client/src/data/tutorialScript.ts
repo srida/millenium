@@ -59,7 +59,7 @@ export const GAME_STEPS: GameStepDef[] = [
   {
     id: 'hand',
     title: 'Ta main',
-    text: "Voici les 5 cartes que tu viens de piocher. Tape l'une d'elles pour la choisir. Chaque carte coûte son tier en énergie ⚡ : 3 au tour 1, plus à chaque tour.",
+    text: "Voici les 5 cartes que tu viens de piocher. Tape l'une d'elles pour la choisir. Chaque unité sur ton terrain occupe son tier en énergie ⚡ (compteur à côté de tes PV) : 3 au tour 1, plus à chaque tour.",
     blocking: false,
     done: (s) => s.handSelected || s.placedCount >= 1,
   },

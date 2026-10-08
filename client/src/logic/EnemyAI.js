@@ -1,7 +1,7 @@
 import { Unit } from './Unit.js';
 import { tiersForRound, resolveGuaranteedDraws, deckPoolByTier, poolForRound } from './Draw.js';
 import { primaryTier } from './Tiers.js';
-import { energyCost } from './SummonBudget.js';
+import { energyCost, boardEnergy } from './SummonBudget.js';
 import { bestKeywordCell } from './KeywordPlacement.js';
 import {
   materialLineageMatches, summonConditions, conditionMaterials, conditionRequires,
@@ -170,14 +170,18 @@ export class EnemyAI {
    *   `null` (défaut) revient à « aucune carte n'a Multiple », le comportement
    *   d'avant.
    * @param {number} [budget]  Le budget d'invocation du tour (cf.
-   *   `SummonBudget`) : chaque carte posée en coûte son tier. `Infinity`
-   *   (défaut) = pas de budget, le comportement d'avant.
+   *   `SummonBudget`), un PLAFOND DE PLATEAU : les unités déjà posées du camp
+   *   l'occupent, chaque carte posée en prend son tier, les matériaux pris
+   *   sur le plateau rendent le leur. `Infinity` (défaut) = pas de budget.
+   *   ⚠️ L'IA ne compte pas d'avance ce que des matériaux lui rendraient : une
+   *   carte plus chère que la place restante est refusée avant d'être tentée
+   *   (le joueur, lui, a la règle exacte — une tentative ici mute le plateau).
    * @returns {Unit[]} placed units
    */
   placeFromHand(board, maxUnits = 5, graveyard = [], trace = null, hasMultiple = null, budget = Infinity) {
     let unplaced = [...this._hand];
     const placed = [];
-    let energyLeft = budget;
+    let energyLeft = budget - boardEnergy(board.getLivingUnitsOnSide(this._side));
     let pass = 0;
 
     for (;;) {
@@ -198,7 +202,7 @@ export class EnemyAI {
           ? _refused('over_budget', { cost, left: energyLeft })
           : _attempt(card, board, maxUnits, graveyard, this._side, hasMultiple?.(card) ?? false);
         trace?.(_attemptEvent(pass, card, res));
-        if (res.unit) { placed.push(res.unit); energyLeft -= cost; }
+        if (res.unit) { placed.push(res.unit); energyLeft -= cost - boardEnergy(res.consumed?.board ?? []); }
         else remaining.push(card);
       }
 

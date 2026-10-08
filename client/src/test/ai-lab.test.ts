@@ -136,7 +136,7 @@ describe('Motifs de refus — un par cas', () => {
     const surv = ['A', 'B', 'C', 'D', 'E'].map(id => makeCard({ id, summon_conditions: [] }));
     const mat = makeCard({ id: 'M', summon_conditions: [] });
     const f = makeCard({ id: 'F', summon_conditions: [{ materials: 1, requires: ['M'] }] });
-    const r = run({
+    const r = run({ round: 5,
       cardDb: db([...surv, mat, f]),
       survivors: surv.map((c, i) => ({ card_id: c.id, col: i, row: 7 })),
       graveyard: ['M'],
@@ -348,7 +348,7 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
 
   it('un sacrifice mange la moins chère des unités éligibles', () => {
     const s = makeCard({ id: 'S', summon_conditions: [{ materials: 1 }] });
-    const r = run({
+    const r = run({ round: 5,
       cardDb: db([cheap, mid, rich, s]),
       // Posées dans l'ordre RICH → MID → CHEAP : le balayage du plateau donne
       // donc RICH en premier. C'est lui que l'ancienne IA mangeait.
@@ -385,7 +385,7 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
     const weak = makeCard({ id: 'W', summon_conditions: [], attributes: ['ARCH_X'], stats: { atk: 1, hp: 10 } as any });
     const strong = makeCard({ id: 'G', summon_conditions: [], attributes: ['ARCH_X'], stats: { atk: 30, hp: 300 } as any });
     const f = makeCard({ id: 'F', summon_conditions: [{ materials: 1, requires: ['ARCH_X'] }], tier: 2  });
-    const r = run({
+    const r = run({ round: 5,
       cardDb: db([weak, strong, f]),
       survivors: [{ card_id: 'G', col: 0, row: 7 }, { card_id: 'W', col: 1, row: 7 }],
       hand: ['F'] });
@@ -401,7 +401,7 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
     // fois, pour les deux camps. Une seconde carte à 3 la mange SEULE.
     const compo = makeCard({ id: 'COMPO', summon_conditions: [{ materials: 3 }], material_value: 3 });
     const s = makeCard({ id: 'S', summon_conditions: [{ materials: 3 }], tier: 2 });
-    const r = run({
+    const r = run({ round: 5,
       cardDb: db([compo, mid, s]),
       survivors: [
         { card_id: 'COMPO', col: 0, row: 7 },
@@ -418,7 +418,7 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
   it('material_outranks_result : un Tier 3 ne se sacrifie pas pour un Tier 2', () => {
     const t3 = makeCard({ id: 'T3', summon_conditions: [], tier: 3, stats: { atk: 20, hp: 250 } as any });
     const t2 = makeCard({ id: 'T2', summon_conditions: [{ materials: 1 }], tier: 2  });
-    const r = run({
+    const r = run({ round: 5,
       cardDb: db([t3, t2]),
       survivors: [{ card_id: 'T3', col: 0, row: 7 }],
       hand: ['T2'] });
@@ -430,7 +430,7 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
   it('le tier écarte un candidat de fusion, et le motif le NOMME', () => {
     const t3 = makeCard({ id: 'T3', summon_conditions: [], tier: 3, attributes: ['ARCH_X'] });
     const f = makeCard({ id: 'F', summon_conditions: [{ materials: 1, requires: ['ARCH_X'] }], tier: 1  });
-    const r = run({
+    const r = run({ round: 5,
       cardDb: db([t3, f]),
       survivors: [{ card_id: 'T3', col: 0, row: 7 }],
       hand: ['F'] });
@@ -450,7 +450,7 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
     // intermédiaire est une montée parfaitement légitime.
     const a2 = makeCard({ id: 'A2', summon_conditions: [], tier: 2 });
     const s2 = makeCard({ id: 'S2', summon_conditions: [{ materials: 1 }], tier: 2  });
-    const r = run({
+    const r = run({ round: 5,
       cardDb: db([a2, s2]),
       survivors: [{ card_id: 'A2', col: 0, row: 7 }],
       hand: ['S2'] });
@@ -462,7 +462,7 @@ describe('Choix des matériaux — le moins cher, et jamais vers le bas', () => 
   it('une transformation ne descend pas d’un tier', () => {
     const t3 = makeCard({ id: 'T3', summon_conditions: [], tier: 3 });
     const down = makeCard({ id: 'DOWN', summon_conditions: [{ materials: 1, requires: ['T3'] }], tier: 1  });
-    const r = run({
+    const r = run({ round: 5,
       cardDb: db([t3, down]),
       survivors: [{ card_id: 'T3', col: 0, row: 7 }],
       hand: ['DOWN'] });
@@ -519,7 +519,7 @@ describe('Passes — le point fixe de placeFromHand', () => {
     const f = makeCard({ id: 'F', summon_conditions: [{ materials: 1, requires: ['S'] }] });
     const fodderA = makeCard({ id: 'FODDER_A', summon_conditions: [] });
     const fodderB = makeCard({ id: 'FODDER_B', summon_conditions: [] });
-    const r = run({
+    const r = run({ round: 5,
       cardDb: db([n, s, f, fodderA, fodderB]),
       survivors: [{ card_id: 'FODDER_A', col: 0, row: 7 }, { card_id: 'FODDER_B', col: 1, row: 7 }],
       hand: ['N', 'S', 'F'] });

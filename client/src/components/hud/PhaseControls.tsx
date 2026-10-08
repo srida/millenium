@@ -20,23 +20,6 @@ import { useTimerLowSound } from './useTimerLowSound.js';
 // d'illustrations, celle du tooltip) ; 🗺️ n'est que le repli tant qu'aucune
 // image n'a été importée — même règle que `AttrIcon` pour les attributs. Un
 // pictogramme générique ne distingue pas deux terrains, une image si.
-/**
- * Le budget d'invocation du tour : ce qu'il reste sur ce que le tour donne.
- * Une carte coûte son tier, donc la couleur de son cadre dit déjà son prix.
- */
-function EnergyChip({ left, budget }: { left: number; budget: number }) {
-  return (
-    <div
-      role="status"
-      aria-label={`Énergie : ${left} sur ${budget}. Une carte coûte son tier.`}
-      className={'flex min-h-tap shrink-0 items-center gap-1 rounded-md border px-2 text-sm font-bold tabular-nums '
-        + (left === 0 ? 'border-line text-white/40' : 'border-gold/50 text-gold')}
-    >
-      <span aria-hidden>⚡</span>{left}<span className="text-xs font-normal text-white/50">/{budget}</span>
-    </div>
-  );
-}
-
 function TerrainChip({ board }: { board: BoardDef }) {
   const showTooltip = useUiStore(s => s.showTooltip);
   const ref = useRef<HTMLButtonElement>(null);
@@ -143,7 +126,6 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
   const {
     controller, combatActive, prepRemaining, combatRemaining,
     speed, showGrid, paused, boardTerrain, canUndo, canMulligan, mulliganCost, pvpReady,
-    energyBudget, energyLeft,
   } = useGameStore();
   const web = useWebLayout();
   // Un seul chrono visible à la fois : celui de la phase en cours.
@@ -212,7 +194,6 @@ export default function PhaseControls({ pvp = false }: { pvp?: boolean }) {
       >
         {prepRemaining}s
       </PhaseClock>
-      <EnergyChip left={energyLeft} budget={energyBudget} />
       {/* Même chip terrain et même bouton de grille qu'en combat. */}
       {boardTerrain && <TerrainChip board={boardTerrain} />}
       <div className="flex-1" />

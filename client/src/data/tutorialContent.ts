@@ -178,7 +178,7 @@ export const CHAPTERS: Chapter[] = [
         ['5', 'Tier 3 à 5'],
       ] },
       { kind: 'cards', caption: 'Trois cartes d\'une même main', pick: (cards) => [1, 2, 3].flatMap(t => firstWhere(cards, c => hasTier(c, t))) },
-      { kind: 'text', text: "⚡ **L'énergie.** Chaque tour te donne un budget d'invocation, et chaque carte posée depuis ta main en coûte **son tier** (le plus bas, pour une carte à plusieurs tiers). Ce que tu ne dépenses pas est perdu au tour suivant." },
+      { kind: 'text', text: "⚡ **L'énergie.** Chaque tour te donne un budget, et chaque unité sur ton terrain en occupe **son tier** (le plus bas, pour une carte à plusieurs tiers) — **les survivantes des tours d'avant comprises**. Une invocation qui consomme des unités du terrain récupère leur part. Le compteur ⚡ est à côté de tes PV." },
       { kind: 'table', head: ['Tour', 'Énergie'], rows: [['1', '3'], ['2', '5'], ['3', '8'], ['4', '13'], ['5', '21']] },
       { kind: 'note', text: "Les exemplaires identiques sont **empilés** sous une seule vignette, avec un badge ×N. Une carte grisée est injouable pour l'instant : énergie insuffisante, matériaux manquants, terrain plein, ou doublon déjà en jeu." },
       { kind: 'text', text: ":UI_MULLIGAN: **Le mulligan.** Une main de départ ratée n'est plus une partie perdue d'avance : au **tour 1**, le bouton :UI_MULLIGAN: de la barre du bas remet ta main dans le deck et t'en repioche autant, contre **50 PV**." },

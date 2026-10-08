@@ -661,12 +661,12 @@ Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()`
 |---|---|---|---|---|---|
 | Budget | 3 | 5 | 8 | 13 | 21 |
 
-- Une invocation **depuis la main** coûte le **tier** de la carte (`energyCost`) ; carte multi-tiers → son tier **le plus bas**. Le reliquat est **perdu** au tour suivant.
-- `GameSession` : `energyBudget` / `energyLeft` / `canAffordSummon` ; la garde vit dans `isPlayable`, `canSummon` (raison « Énergie insuffisante ») et `place`. Les poses gratuites (magies, tokens) ne dépensent rien.
-- ⚠️ `_energySpent` est remis à zéro par `startPreparation` et **capturé dans `PrepSnapshot`** : « Tout annuler » rend l'énergie.
-- **Les deux camps** : `EnemyAI.placeFromHand(..., budget)` refuse en `over_budget` (glosé dans `aiLabRun.REASON_LABELS` et `AI_REASONS` d'`admin.html`). `MatchSimulator` et le Labo IA passent `budgetForRound` aussi. `budget = Infinity` (défaut) = ancien comportement.
+- **Plafond de plateau** : chaque unité vivante du camp occupe le **tier** de sa carte (`Unit.energy_cost` = `energyCost`, le plus **bas** pour une multi-tiers), **survivantes comprises** ; une invocation passe si le plateau posé tient dans le budget du tour. Les tokens n'occupent rien (`unitEnergy`).
+- Les matériaux pris **sur le plateau** rendent leur coût ; ceux du cimetière n'occupaient rien. `canAffordSummon(card, materials)` est exact avec une sélection, **optimiste** sans (`isPlayable`) — `canSummon` tranche, et seulement **après** la règle d'invocation (une sélection incomplète ne doit pas lire « Énergie insuffisante »).
+- ⚠️ **Structurel, aucun compteur** : `energyUsed()` relit le plateau, donc « Tout annuler », le mulligan et les magies n'ont rien à rendre.
+- **Les deux camps** : `EnemyAI.placeFromHand(..., budget)` part de `budget − boardEnergy(son camp)` et refuse en `over_budget` (glosé dans `aiLabRun.REASON_LABELS` et `AI_REASONS` d'`admin.html`). ⚠️ L'IA ne compte pas d'avance ce que des matériaux lui rendraient (une tentative mute le plateau) : elle est plus prudente que le joueur. `MatchSimulator` et le Labo IA passent `budgetForRound`. `budget = Infinity` (défaut) = ancien comportement.
 - Rien côté PvP : chaque client tient son propre budget.
-- Affichage : chip ⚡ `restant/budget` dans la barre de préparation (`PhaseControls.EnergyChip`).
+- Affichage : ⚡ `restant/budget` dans le `Hud`, à côté des PV du joueur, à la place du multiplicateur (qui ne s'affiche qu'en combat).
 
 ### Mulligan — le seul geste qui DÉPLACE le point de retour
 
@@ -841,7 +841,7 @@ Le terrain est **tiré à la fin de `GameSession.startPreparation()`** (juste ap
 - L'annonce se retire seule (`TERRAIN_ALERT_MS`, minuteur dans le contrôleur) ou d'un tap ; elle **gèle le chrono solo** (`terrainAlert` dans le prédicat du `PhaseTimer`) et efface le coach du tutoriel.
 - **Le décompte porte sur les CARTES du joueur (main + plateau)** — `terrainPrepAlertFor`, via `effectTargets` comme l'effet ; `boosted.enemy` vaut `null` (rien n'est posé en face). Union, une carte comptée une fois.
 - **Le combat n'attend plus d'annonce** : `holdMs = max(revealMs, COMBAT_INTRO_MS)`.
-- **Vue de préparation** (`Scene3D._prepView`, 0 = bloc joueur, 1 = plateau entier, sans rotation) : glisser vertical parti d'une case **vide** ou d'hors plateau (seuil 8 px), molette, ou bouton 🗺️ (`GameController.toggleTerrainView`). Un geste annule le survol automatique ; `exitCombatMode` la remet à 0.
+- **Vue de préparation** (`Scene3D._prepView`, 0 = bloc joueur, 1 = plateau entier, sans rotation) : glisser vertical parti d'une case **vide** ou d'hors plateau (seuil 8 px) ou molette (`GameController.toggleTerrainView` existe, aucun bouton ne l’appelle). Un geste annule le survol automatique ; `exitCombatMode` la remet à 0.
 - Pas de `Modal` (elle poserait un voile sur ce qu'on annonce) : couche transparente **`z-40`** — pas plus, `TutorialCoach` est en `z-50`.
 - ⚠️ La validation de placement **ne lit pas** les cases bloquées : les terrains livrés ne bloquent que la zone neutre (rangées 4–6). Un terrain qui bloquerait une case joueur devrait l'ajouter à `validCells`/`canSummon`.
 

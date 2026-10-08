@@ -21,7 +21,7 @@ export interface HudProps {
 }
 
 export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', enemyName = null, onPlayerTap }: HudProps) {
-  const { playerHp, enemyHp, round, playerMultiplier, enemyMultiplier, combatActive } = useGameStore();
+  const { playerHp, enemyHp, round, playerMultiplier, enemyMultiplier, combatActive, energyLeft, energyBudget } = useGameStore();
   // ⚠️ Le chiffre et la jauge comptent sur la MÊME horloge : la transition est
   // tenue ici, une fois par camp, et descend dans les deux (cf. `HpBar`). Deux
   // décomptes indépendants finiraient par ne plus annoncer le même total.
@@ -62,7 +62,20 @@ export default function Hud({ enemyAvatarSrc = null, enemyAvatarFallback = '?', 
             </span>
           )}
           <span className="flex flex-shrink-0 items-center gap-1.5">
-            {combatActive && <span className="text-[10px] font-bold text-player/80 tabular-nums">×{playerMultiplier.toFixed(1)}</span>}
+            {/* L'énergie occupe la place du multiplicateur : l'une ne sert qu'en
+                préparation, l'autre qu'en combat. Elle vivait dans la barre de
+                phase, où elle disputait sa place aux boutons. */}
+            {combatActive
+              ? <span className="text-[10px] font-bold text-player/80 tabular-nums">×{playerMultiplier.toFixed(1)}</span>
+              : (
+                <span
+                  role="status"
+                  aria-label={`Énergie : ${energyLeft} sur ${energyBudget}. Chaque unité posée occupe son tier.`}
+                  className={'text-[10px] font-bold tabular-nums ' + (energyLeft === 0 ? 'text-white/40' : 'text-gold')}
+                >
+                  <span aria-hidden>⚡</span>{energyLeft}<span className="font-normal text-white/50">/{energyBudget}</span>
+                </span>
+              )}
             <span className="font-bold text-player tabular-nums">{player.shown}</span>
           </span>
         </div>

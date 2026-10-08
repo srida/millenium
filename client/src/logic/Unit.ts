@@ -1,5 +1,6 @@
 import type { Card, DotEffect, BurnStack, GuaranteedDraw, MovePolicy, Position, Side, TargetPolicy } from './types.js';
 import { primaryTier } from './Tiers.js';
+import { energyCost } from './SummonBudget.js';
 // L'échelle de vitesse vit À LA RACINE et nulle part ailleurs (cf. l'en-tête de
 // `speed-scale.mjs`) : le bundle client, `admin.html` et les scripts Node y
 // lisent la même table. Pur, sans import — il n'entre dans aucune frontière.
@@ -268,6 +269,10 @@ export class Unit {
    * unité construite depuis une carte du catalogue de cartes.
    */
   is_token: boolean;
+  /** Ce que l'unité occupe du budget d'invocation (cf. `SummonBudget`) : le
+   *  PLUS BAS tier de sa carte. Dérivé de la carte, donc identique des deux
+   *  côtés en PvP sans voyager. */
+  energy_cost: number;
 
   constructor(card: Card, side: Side) {
     this.uid = _nextUid++;
@@ -275,6 +280,7 @@ export class Unit {
     this.name = card.name;
     this.side = side;
     this.tier = primaryTier(card);
+    this.energy_cost = energyCost(card);
     this.attributes = card.attributes || [];
 
     // ⚠️ `card.id` est ajouté UNE fois, en tête, et filtré des entrées

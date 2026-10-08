@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Le budget d'invocation (« énergie ») : 3, 5, 8, 13, 21 par tour, une carte
-// coûte son tier, et les deux camps jouent avec la même règle.
+// Le budget d'invocation (« énergie ») : 3, 5, 8, 13, 21 par tour, un PLAFOND
+// DE PLATEAU — chaque unité vivante occupe son tier, survivantes comprises, les
+// matériaux pris sur le plateau rendent le leur. Les deux camps, même règle.
 import { describe, it, expect } from 'vitest';
 import { GameSession } from '../logic/GameSession.js';
 import type { GameSessionDeps } from '../logic/GameSession.js';
 import { EnemyAI } from '../logic/EnemyAI.js';
 import { Board } from '../logic/Board.js';
 import { SUMMON_BUDGET, budgetForRound, energyCost } from '../logic/SummonBudget.js';
-import { makeCard } from './helpers.js';
+import { makeCard, spawn } from './helpers.js';
 
 function makeSession(cards: any[] = []): GameSession {
   const byId = new Map(cards.map(c => [c.id, c]));
@@ -52,7 +53,7 @@ describe('GameSession — budget du joueur', () => {
     expect(session.getPlayerUnits()).toHaveLength(1);
   });
 
-  it('« Tout annuler » rend l\'énergie, le tour suivant repart à plein', () => {
+  it('« Tout annuler » rend l\'énergie : elle se lit sur le plateau', () => {
     const a = makeCard({ id: 'A', tier: 2 });
     const session = makeSession([a]);
     session.hand = [{ ...a }] as any;
@@ -61,11 +62,49 @@ describe('GameSession — budget du joueur', () => {
     expect(session.energyLeft()).toBe(1);
     expect(session.undoPreparation()).toBe(true);
     expect(session.energyLeft()).toBe(3);
+  });
 
+  it('les survivantes du tour d\'avant occupent le budget du tour suivant', () => {
+    const a = makeCard({ id: 'A', tier: 2 });
+    const session = makeSession([a]);
+    session.hand = [{ ...a }] as any;
+    session.startPreparation();
     session.place(session.hand[0], { col: 0, row: 0 }, [], 0);
     session.gameState.round = 2;
     session.startPreparation();
-    expect(session.energyLeft()).toBe(5);
+    expect(session.energyUsed()).toBe(2);
+    expect(session.energyLeft()).toBe(3);
+  });
+
+  it('les matériaux pris sur le plateau rendent leur coût', () => {
+    const n = makeCard({ id: 'N', tier: 1 });
+    const m = makeCard({ id: 'M', tier: 1 });
+    const f = makeCard({ id: 'F', tier: 3, summon_conditions: [{ materials: 2 }] });
+    const session = makeSession([n, m, f]);
+    session.hand = [{ ...f }] as any;
+    session.startPreparation();
+    const u1 = spawn(session.board, n, 'player', { col: 0, row: 0 });
+    const u2 = spawn(session.board, m, 'player', { col: 1, row: 0 });
+    // Plateau à 2 sur 3 : le Tier 3 seul ne tiendrait pas, mais il remplace les deux.
+    expect(session.energyLeft()).toBe(1);
+    expect(session.isPlayable(session.hand[0])).toBe(true);
+    expect(session.canSummon(session.hand[0], { col: 0, row: 0 }, [u1, u2]).ok).toBe(true);
+    expect(session.place(session.hand[0], { col: 0, row: 0 }, [u1, u2], 0)).not.toBeNull();
+    expect(session.energyUsed()).toBe(3);
+  });
+
+  it('un seul matériau ne rend pas assez : refus nommé', () => {
+    const n = makeCard({ id: 'N', tier: 1 });
+    const m = makeCard({ id: 'M', tier: 1 });
+    const f = makeCard({ id: 'F', tier: 3, summon_conditions: [{ materials: 1 }] });
+    const session = makeSession([n, m, f]);
+    session.hand = [{ ...f }] as any;
+    session.startPreparation();
+    const u1 = spawn(session.board, n, 'player', { col: 0, row: 0 });
+    spawn(session.board, m, 'player', { col: 1, row: 0 });
+    const verdict = session.canSummon(session.hand[0], { col: 0, row: 0 }, [u1]);
+    expect(verdict.ok).toBe(false);
+    expect(verdict.reason).toMatch(/Énergie insuffisante/);
   });
 });
 
@@ -79,6 +118,17 @@ describe('EnemyAI — budget de l\'IA', () => {
     const placed = ai.placeFromHand(new Board(), 5, [], (e: any) => events.push(e), null, 5);
     expect(placed).toHaveLength(2);
     expect(events.some(e => e.kind === 'attempt' && e.reason === 'over_budget')).toBe(true);
+  });
+
+  it('les unités déjà posées de l\'IA occupent son budget', () => {
+    const cards = ['X', 'Y'].map(id => makeCard({ id, tier: 2, summon_conditions: [] }));
+    const old = makeCard({ id: 'OLD', tier: 2 });
+    const byId = new Map([...cards, old].map(c => [c.id, c]));
+    const ai = new (EnemyAI as any)({}, { getCard: (id: string) => byId.get(id) ?? null });
+    ai._hand = cards.map(c => ({ ...c }));
+    const board = new Board();
+    spawn(board, old, 'enemy', { col: 0, row: 7 });
+    expect(ai.placeFromHand(board, 5, [], null, null, 5)).toHaveLength(1);
   });
 
   it('sans budget, le comportement d\'avant', () => {
