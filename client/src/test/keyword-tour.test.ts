@@ -37,9 +37,9 @@ function carte(id: string, attrs: string[] = [], stats: any = {}) {
 }
 
 describe('Tour — la donnée livrée', () => {
-  it('existe, en catégorie MotCle, et porte ses DEUX effets sur un palier à 1', () => {
+  it('existe, en catégorie Role, et porte ses DEUX effets sur un palier à 1', () => {
     expect(TOUR, 'attribut « Tour » absent du catalogue').toBeTruthy();
-    expect(TOUR.categorie).toBe('MotCle');
+    expect(TOUR.categorie).toBe('Role');
     expect(TOUR.thresholds).toHaveLength(1);
     expect(TOUR.thresholds[0].count).toBe(1);
     expect(TOUR.thresholds[0].effects.map((e: any) => e.type).sort()).toEqual(['immobile', 'stat_bonus']);

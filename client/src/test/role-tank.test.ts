@@ -94,8 +94,9 @@ describe('Les rôles livrés', () => {
   const cards: any[] = load('cards.json');
   const roles = attrs.filter(a => a.categorie === 'Role');
 
-  it('six rôles, dont un seul sans effet (Fantassin)', () => {
-    expect(roles.map(r => r.name).sort()).toEqual(['Archer', 'Assassin', 'Fantassin', 'Lancier', 'Soutien', 'Tank']);
+  it('huit rôles, dont un seul sans effet (Fantassin)', () => {
+    expect(roles.map(r => r.name).sort())
+      .toEqual(['Archer', 'Assassin', 'Fantassin', 'Insaisissable', 'Lancier', 'Soutien', 'Tank', 'Tour']);
     expect(roles.filter(r => !(r.thresholds?.length))).toHaveLength(1);
   });
 

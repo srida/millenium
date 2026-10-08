@@ -10,6 +10,10 @@
 //   ARCH_112 Flanc          → supprimé, ses porteurs deviennent Assassins
 //   ARCH_113 (nouveau)      → 🪖 Fantassin  (aucun effet : le comportement par défaut)
 //
+// Deux mots-clés deviennent aussi des rôles, à leur effet près (rien ne change
+// en combat) : 🗼 Tour (`immobile`) et 🐇 Insaisissable (`insaisissable`). Ils
+// passent en catégorie `Role` et REMPLACENT le rôle que leurs porteurs avaient.
+//
 // Une carte qui ne portait aucun de ces mots-clés est CLASSÉE d'après son
 // pouvoir, sa portée et son gabarit (PV et DPS rapportés à la médiane de son
 // tier) — cf. `rolePour`. C'est un classement DE DÉPART, à corriger en admin.
@@ -47,7 +51,7 @@ function save(f, value) {
 const ROLE_CATEGORY = 'Role';
 const FLANC = 'ARCH_112';
 
-/** Les six rôles : l'id d'attribut, son nom, son icône, l'effet de son palier à 1. */
+/** Les six rôles de base : l'id d'attribut, son nom, son icône, l'effet de son palier à 1. */
 const ROLES = {
   fantassin: { id: 'ARCH_113', name: 'Fantassin', icon: '🪖', effet: null },
   tank:      { id: 'ARCH_110', name: 'Tank',      icon: '🛡️', effet: 'tank' },
@@ -57,6 +61,8 @@ const ROLES = {
   soutien:   { id: 'ARCH_111', name: 'Soutien',   icon: '✚',  effet: 'garde_du_corps' },
 };
 const ROLE_IDS = new Set(Object.values(ROLES).map(r => r.id));
+/** Les rôles venus des mots-clés, reconnus à leur EFFET (les ids ne sont que des numéros). */
+const ROLE_EFFECTS = { immobile: 'tour', insaisissable: 'insaisissable' };
 
 function roleAttribute(r) {
   return {
@@ -70,7 +76,7 @@ const ticks = rate => Math.ceil(77 - 0.75 * Number(rate || 0));
 const median = xs => { const s = [...xs].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 
 /** Le rôle de départ d'une carte sans mot-clé de déplacement. */
-function rolePour(card, tier, med, keywords) {
+function rolePour(card, tier, med) {
   const p = card.power?.id ?? null;
   const st = card.stats ?? {};
   const range = Number(st.range ?? 1);
@@ -81,8 +87,7 @@ function rolePour(card, tier, med, keywords) {
   if (p === 'POWER_HEAL') return 'soutien';
   if (p === 'POWER_TAUNT') return 'tank';
   if (CONTROLE.has(p)) return 'soutien';
-  if (p === 'POWER_TELEPORT' || keywords.has('insaisissable')) return 'assassin';
-  if (keywords.has('immobile')) return 'archer';
+  if (p === 'POWER_TELEPORT') return 'assassin';
   if (range <= 1 && ((p === 'POWER_SHIELD' && gab !== 'faible' && gab !== 'canon') || gab === 'mur')) return 'tank';
   if (p === 'POWER_AOE_ATTACK') return 'archer';
   if (p === 'POWER_POISON' || p === 'POWER_BURN') return 'fantassin';
@@ -98,10 +103,26 @@ function main() {
   const cards = load('cards.json');
   const report = [];
 
+  // Les mots-clés « Tour » / « Insaisissable » se reconnaissent à leur EFFET,
+  // jamais à leur id (les ids ne sont que des numéros).
+  const keywordOf = new Map();
+  for (const a of attributes) {
+    for (const th of a.thresholds ?? []) for (const e of th.effects ?? []) {
+      if (ROLE_EFFECTS[e.type]) keywordOf.set(a.id, e.type);
+    }
+  }
+  for (const id of keywordOf.keys()) ROLE_IDS.add(id);
+
   // 1. Les attributs : convertis en rôles, Flanc retiré, Fantassin ajouté.
   const byId = new Map(attributes.map(a => [a.id, a]));
   let attrsChanged = false;
   const nextAttrs = attributes.filter(a => a.id !== FLANC).map(a => {
+    if (keywordOf.has(a.id)) {
+      if (a.categorie === ROLE_CATEGORY) return a;
+      attrsChanged = true;
+      report.push(`attribut ${a.id} ${a.name} → rôle (catégorie ${a.categorie ?? '—'} → ${ROLE_CATEGORY})`);
+      return { ...a, categorie: ROLE_CATEGORY };
+    }
     const r = Object.values(ROLES).find(x => x.id === a.id);
     if (!r || a.categorie === ROLE_CATEGORY) return a;
     attrsChanged = true;
@@ -128,15 +149,6 @@ function main() {
     };
   }
 
-  // Les mots-clés « Tour » / « Insaisissable » se reconnaissent à leur EFFET,
-  // jamais à leur id (les ids ne sont que des numéros).
-  const keywordOf = new Map();
-  for (const a of attributes) {
-    for (const th of a.thresholds ?? []) for (const e of th.effects ?? []) {
-      if (e.type === 'immobile' || e.type === 'insaisissable') keywordOf.set(a.id, e.type);
-    }
-  }
-
   // 3. Les cartes : un rôle et un seul.
   const counts = {};
   let cardsChanged = 0;
@@ -145,15 +157,19 @@ function main() {
     const hadFlanc = ids.includes(FLANC);
     ids = ids.filter(id => id !== FLANC);
     const held = ids.filter(id => ROLE_IDS.has(id));
+    const kwRole = held.find(id => keywordOf.has(id));
     let role;
-    if (held.length >= 1) {
+    if (kwRole) {
+      // Tour / Insaisissable REMPLACE le rôle que la carte portait.
+      role = ROLE_EFFECTS[keywordOf.get(kwRole)];
+      ids = ids.filter(id => !ROLE_IDS.has(id) || id === kwRole);
+    } else if (held.length >= 1) {
       // Plusieurs rôles : on garde le premier porté (le cas ne se présente pas
       // sur le catalogue livré, la règle existe pour qu'il ne soit pas muet).
       role = Object.keys(ROLES).find(k => ROLES[k].id === held[0]);
       ids = ids.filter(id => !ROLE_IDS.has(id) || id === held[0]);
     } else {
-      const kws = new Set(ids.map(id => keywordOf.get(id)).filter(Boolean));
-      role = hadFlanc ? 'assassin' : rolePour(card, topTier(card), med, kws);
+      role = hadFlanc ? 'assassin' : rolePour(card, topTier(card), med);
       ids.push(ROLES[role].id);
     }
     counts[role] = (counts[role] ?? 0) + 1;
@@ -166,7 +182,8 @@ function main() {
   for (const line of report) console.log(line);
   console.log(`Dossier : ${DATA}`);
   console.log(`Cartes modifiées : ${cardsChanged} / ${cards.length}`);
-  for (const k of Object.keys(ROLES)) console.log(`  ${ROLES[k].icon} ${ROLES[k].name.padEnd(10)} ${counts[k] ?? 0}`);
+  for (const k of Object.keys(ROLES)) console.log(`  ${ROLES[k].icon} ${ROLES[k].name.padEnd(13)} ${counts[k] ?? 0}`);
+  for (const k of Object.values(ROLE_EFFECTS)) console.log(`  ${k.padEnd(16)} ${counts[k] ?? 0}`);
   if (!WRITE) { console.log('(rapport seul — --write pour appliquer)'); return; }
   if (attrsChanged) save('attributes.json', nextAttrs);
   if (cardsChanged) save('cards.json', nextCards);

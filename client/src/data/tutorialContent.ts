@@ -178,7 +178,7 @@ export const CHAPTERS: Chapter[] = [
         ['5', 'Tier 3 à 5'],
       ] },
       { kind: 'cards', caption: 'Trois cartes d\'une même main', pick: (cards) => [1, 2, 3].flatMap(t => firstWhere(cards, c => hasTier(c, t))) },
-      { kind: 'text', text: "⚡ **L'énergie.** Chaque tour te donne un budget, et chaque unité sur ton terrain en occupe **son tier** (le plus bas, pour une carte à plusieurs tiers) — **les survivantes des tours d'avant comprises**. Une invocation qui consomme des unités du terrain récupère leur part. C'est la **seule** limite : il n'y a pas de nombre maximum d'unités. Certaines magies t'en donnent en plus pour le reste de la partie. Le compteur ⚡ est sous le numéro de manche." },
+      { kind: 'text', text: ":UI_ENERGY: **L'énergie.** Chaque tour te donne un budget, et chaque unité sur ton terrain en occupe **son tier** (le plus bas, pour une carte à plusieurs tiers) — **les survivantes des tours d'avant comprises**. Une invocation qui consomme des unités du terrain récupère leur part. C'est la **seule** limite : il n'y a pas de nombre maximum d'unités. Certaines magies t'en donnent en plus pour le reste de la partie. Le compteur :UI_ENERGY: est sous le numéro de manche." },
       { kind: 'table', head: ['Tour', 'Énergie'], rows: [['1', '3'], ['2', '5'], ['3', '8'], ['4', '13'], ['5', '21']] },
       { kind: 'note', text: "Les exemplaires identiques sont **empilés** sous une seule vignette, avec un badge ×N. Une carte grisée est injouable pour l'instant : énergie insuffisante, matériaux manquants, terrain plein, ou doublon déjà en jeu." },
       { kind: 'text', text: ":UI_MULLIGAN: **Le mulligan.** Une main de départ ratée n'est plus une partie perdue d'avance : au **tour 1**, le bouton :UI_MULLIGAN: de la barre du bas remet ta main dans le deck et t'en repioche autant, contre **50 PV**." },
@@ -203,7 +203,7 @@ export const CHAPTERS: Chapter[] = [
         ['Côté adverse', '7 à 10'],
       ] },
       { kind: 'text', text: "Tu ne places tes unités que **sur ton côté**. La **zone neutre** est inoccupable en préparation : c'est le terrain qu'on se dispute, la distance que les unités traversent une fois le combat lancé. En préparation, tu vois en transparence les **survivants adverses** du tour d'avant (glisse le plateau vers le bas depuis une case vide pour le voir en entier) ; ce que l'adversaire pose ce tour-ci reste caché jusqu'au combat." },
-      { kind: 'note', text: "Pas de nombre maximum d'unités : c'est ton **énergie** ⚡ qui décide combien tu en poses." },
+      { kind: 'note', text: "Pas de nombre maximum d'unités : c'est ton **énergie** :UI_ENERGY: qui décide combien tu en poses." },
       { kind: 'text', text: "Une unité qui tombe au combat est **neutralisée**. Elle ne disparaît pas pour autant : elle reste sur le terrain jusqu'à la fin de la préparation suivante, et rejoint ton **cimetière**." },
       { kind: 'bullets', items: [
         "Les unités neutralisées sont **utilisables comme matériels** d'invocation pendant toute la préparation suivante.",

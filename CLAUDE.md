@@ -667,7 +667,7 @@ Bouton **↺** de `PhaseControls`. Tout est dans `GameSession.undoPreparation()`
 - **Les deux camps** : `EnemyAI.placeFromHand(..., budget)` part de `budget − boardEnergy(son camp)` et refuse en `over_budget` (glosé dans `aiLabRun.REASON_LABELS` et `AI_REASONS` d'`admin.html`). ⚠️ L'IA ne compte pas d'avance ce que des matériaux lui rendraient (une tentative mute le plateau) : elle est plus prudente que le joueur. `MatchSimulator` et le Labo IA passent `budgetForRound`. `budget = Infinity` (défaut) = ancien comportement.
 - Rien côté PvP : chaque client tient son propre budget.
 - **`energy_bonus`** (magie Réaction en chaîne, ou attribut) : `player_energy_bonus` / `enemy_energy_bonus`, **cumulables, sans plafond**, ajoutés au budget de chaque tour (`GameSession.energyBudget`, `_placeEnemyUnits`).
-- Affichage : ⚡ `restant/budget` dans le `Hud`, sous le numéro de manche, en préparation seulement.
+- Affichage : icône `UI_ENERGY` (seul PNG de `UiIcon`) + `restant/budget` dans le `Hud`, sous le numéro de manche, en préparation seulement.
 
 ### Mulligan — le seul geste qui DÉPLACE le point de retour
 
@@ -1190,8 +1190,11 @@ Troisième catégorie **mécanique** après `Tiers` et `Invocation` : un mot-cl�
 | 🗡️ Assassin | `ARCH_108` | `chasseur` | `target_policy = 'pv_bas'` | `current_hp` le plus bas (bouclier exclu), où qu'il soit, et marche vers lui |
 | 🏹 Archer | `ARCH_107` | `tireur_elite` | `target_policy = 'plus_loin_a_portee'` | le plus éloigné parmi les attaquables ; rien d'attaquable → défaut |
 | ✚ Soutien | `ARCH_111` | `garde_du_corps` | `move_policy = 'garde'` | marche vers l'allié aux PV les plus bas et s'arrête au contact |
+| 🗼 Tour | `ARCH_097` | `stat_bonus range` + `immobile` | `is_immobile` | cf. « Les mots-clés » |
+| 🐇 Insaisissable | `ARCH_106` | `insaisissable` | `is_elusive` | cf. « Les mots-clés » |
 
-- **Reprise** : `npm run migrate:roles -- [--write] [--initial-data]` (idempotent, atomique) convertit les attributs, supprime Flanc (`ARCH_112`, ses porteurs deviennent Assassins) et classe chaque carte sans rôle d'après pouvoir, portée et gabarit — un classement de **départ**, à corriger en admin. ⚠️ Les deux dossiers sont à reprendre.
+- **Tour et Insaisissable sont des rôles** (catégorie `Role`, mécanique inchangée, décrite dans « Les mots-clés ») : ils **remplacent** le rôle de leurs porteurs. Une Tour se place au fond comme un Archer (`KeywordPlacement.PLACE_COMME`).
+- **Reprise** : `npm run migrate:roles -- [--write] [--initial-data]` (idempotent, atomique) convertit les attributs (Tour et Insaisissable reconnus à leur effet), supprime Flanc (`ARCH_112`, ses porteurs deviennent Assassins) et classe chaque carte sans rôle d'après pouvoir, portée et gabarit — un classement de **départ**, à corriger en admin. ⚠️ Les deux dossiers sont à reprendre.
 - ⚠️ **Le rôle n'est PAS dans `card-contract.js`** : un volume non repris bloquerait toute écriture admin. `audit:cards --check` sort en 1 sur une carte sans rôle ou à deux rôles ; une carte sans rôle se comporte en Fantassin.
 - **Lecture** : `ROLE_CATEGORY` (`effect-schema.mjs`), `AttributeDatabase.isRoleAttribute` / `roleOf`. Un rôle est écarté du `SynergyPanel`, de `DeckTags` et des exemples de synergie du tutoriel ; `KeywordInfo.keywordText` le met en mots (infobulle et codex, chapitre « Rôles et mots-clés »).
 - **Affichage** : badge haut-droite sur `Card3D` (via `cardVisualProps().role`) et sur l'unité du plateau (`unit-role-badge`, `UnitCardEl`), adverse comprise.
