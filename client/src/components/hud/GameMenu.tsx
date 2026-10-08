@@ -9,6 +9,7 @@ import { useGameStore } from '../../stores/gameStore.js';
 import { Button, Modal } from '../ui/primitives.js';
 import UiIcon from '../ui/UiIcon.js';
 import VolumeSliders from '../ui/VolumeSliders.js';
+import MemoryToggle from '../ui/MemoryToggle.js';
 import * as Audio from '../../audio/AudioManager.js';
 
 export default function GameMenu({ onQuit, quitLabel = 'Quitter la partie' }: {
@@ -32,6 +33,7 @@ export default function GameMenu({ onQuit, quitLabel = 'Quitter la partie' }: {
           <div className="mb-3 text-base font-bold">Partie en cours</div>
           <div className="space-y-2">
             <VolumeSliders />
+            <MemoryToggle />
             <Button variant="primary" className="w-full" onPointerDown={(e) => { e.stopPropagation(); Audio.playSfx('menu_resume'); close(); }} sfx={false}>
               Reprendre
             </Button>

@@ -6,6 +6,7 @@ import { useUiStore } from '../../stores/uiStore.js';
 import { Button, IconButton, Modal } from '../ui/primitives.js';
 import UiIcon from '../ui/UiIcon.js';
 import VolumeSliders from '../ui/VolumeSliders.js';
+import MemoryToggle from '../ui/MemoryToggle.js';
 
 export default function SettingsMenu() {
   const [open, setOpen] = useState(false);
@@ -25,6 +26,7 @@ export default function SettingsMenu() {
           <div className="mb-3 text-base font-bold">Paramètres</div>
           <div className="space-y-2">
             <VolumeSliders />
+            <MemoryToggle />
             {user && (
               <Button
                 variant="danger" className="w-full"

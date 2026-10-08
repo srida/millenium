@@ -16,6 +16,8 @@ import { Scene3D } from '../../three/Scene3D.js';
 import { useUiStore } from '../../stores/uiStore.js';
 import { Button } from '../ui/primitives.js';
 import type { GameController } from '../../game/GameController.js';
+import { setSceneProbe } from '../hud/MemoryOverlay.js';
+import { noteSceneCreated } from '../../stores/memoryStore.js';
 import { useWebLayout } from '../system/useWebLayout.js';
 
 export default function Board3DCanvas({ controller }: { controller: GameController }) {
@@ -43,6 +45,8 @@ export default function Board3DCanvas({ controller }: { controller: GameControll
       return;
     }
     controller.attachScene(scene);
+    noteSceneCreated();
+    setSceneProbe(() => scene.memoryInfo());
 
     // ⚠️ `destroy()` provoque lui-même un `webglcontextlost` (il force la perte
     // du contexte pour le rendre au navigateur) : l'écouteur part AVANT le
@@ -53,6 +57,7 @@ export default function Board3DCanvas({ controller }: { controller: GameControll
 
     return () => {
       canvas.removeEventListener('webglcontextlost', onContextLost);
+      setSceneProbe(null);
       controller.scene = null;
       scene.dispose();
     };

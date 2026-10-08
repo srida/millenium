@@ -2041,6 +2041,10 @@ Trois modules purs, testés, et **aucune décision dans les composants** :
 - Deux transforms imbriqués (l'extérieur porte l'échelle, mesurée une fois par `ResizeObserver` ; l'intérieur le balancement). Largeur par `className`, hauteur par `aspect-ratio` — aucune taille écrite deux fois. Fréquences en **multiples entiers de la boucle** (couture exacte) ; braises et runes **semées**.
 - ⚠️ **L'écran de chargement garde le `logo.png` statique** : il s'affiche avant que les données soient là. `logo.png` reste la source des icônes PWA.
 
+## Indicateur mémoire (admins)
+
+`components/hud/MemoryOverlay.tsx`, monté par `App`, activé par `MemoryToggle` (menu d'options en jeu et ⚙ des menus, `is_admin` seulement ; préférence `millenium_show_mem`). Affiche parties montées, tas JS (absent sur iOS), DOM, géométries/textures GPU (`Scene3D.memoryInfo`), audio décodé (`AudioManager.audioMemoryStats`). ⚠️ Le dernier relevé est écrit dans `localStorage` à chaque seconde : il est relu et montré au démarrage suivant — seule trace d'un onglet tué par iOS.
+
 ## Mise à jour de l'appli installée (`app/pwaUpdate.ts`)
 
 Reprendre une PWA depuis les tâches de fond **n'est pas une navigation** : le navigateur n'interroge le serveur pour un nouveau service worker qu'au chargement d'une page ou sur un `registration.update()` explicite. Deux moitiés, et il faut les deux :
